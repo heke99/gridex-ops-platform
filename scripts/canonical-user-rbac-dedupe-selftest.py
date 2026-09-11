@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Private, unpublished H2 native-COMMIT proof; never a selectable replay gate."""
+"""Complete standalone H2 evidence plus actual57 terminal owned replay proof."""
 import argparse
 import hashlib
 import importlib.util
@@ -35,31 +35,20 @@ def load(name, filename):
 replay = load('dedupe_replay', 'canonical-auth-provisioning-replay.py')
 legacy = replay.load_batch()
 repair = replay.load_repair()
+dedupe = replay.load_dedupe()
 support = load('dedupe_repair_test_support', 'canonical-user-rbac-repair-selftest.py')
 BoundaryError = legacy.BoundaryError
 
 
 def source_bytes(paths):
-    if tuple(paths) != (SOURCE,) or SOURCE.is_symlink() or SOURCE.resolve() != SOURCE or not SOURCE.is_file():
-        raise BoundaryError('COMPLETE_SOURCE_REQUIRED')
-    manifest = json.loads((ROOT/'scripts/migration-history-manifest.json').read_text())['files']
-    if manifest.get(SOURCE.name) != SHA256:
-        raise BoundaryError('SOURCE_MANIFEST_MISMATCH')
-    data = SOURCE.read_bytes()
-    legacy.verify_bytes(data, SHA256, 96)
-    return data
+    return dedupe.validate_sources(paths)[0].data
 
 
-INDEX_NAMES = ('user_roles_active_unique_role_text_idx', 'user_roles_active_unique_role_id_idx')
+INDEX_NAMES = dedupe.INDEX_NAMES
 
 
 def index_declarations():
-    """Independent oracle: only the two original pinned index declarations."""
-    sql = source_bytes((SOURCE,)).decode()
-    declarations = re.findall(r'create unique index if not exists (user_roles_active_unique_role_\w+_idx)\s+on public\.user_roles\s*\(.*?;', sql, re.S)
-    if tuple(declarations) != INDEX_NAMES:
-        raise BoundaryError('INDEX_ORACLE_MISMATCH')
-    return '\n'.join(re.findall(r'create unique index if not exists user_roles_active_unique_role_\w+_idx\s+on public\.user_roles\s*\(.*?;', sql, re.S))
+    return dedupe.index_declarations()
 
 
 class Proof:
@@ -289,13 +278,13 @@ def workflow_constructors():
     job = match.group(1)
     assert 'timeout-minutes: 20' in job
     assert 'GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-dedupe-${{ github.run_id }}-${{ github.run_attempt }}' in job
-    assert 'run: python3 scripts/canonical-user-rbac-dedupe-selftest.py\n' in job
+    assert 'run: python3 scripts/canonical-auth-membership-group.py --partition dedupe19\n' in job
     assert 'if: always()\n        run: python3 scripts/canonical-user-rbac-dedupe-selftest.py --cleanup-owned' in job
     assert not re.search(r'\b(?:services|needs):|upload-artifact|docker logs|setup-cli', job)
     assert 'Verify command18 standalone and actual staged repair56 on private owned PostgreSQL 17' in workflow
     command = subprocess.run([sys.executable, str(ROOT/'scripts/canonical-auth-membership-group.py'), '--dry-run'],
                              capture_output=True, text=True, cwd=ROOT)
-    assert command.returncode == 0 and 'dedupe' not in command.stdout
+    assert command.returncode == 0 and command.stdout.splitlines()[-1] == 'python3 scripts/canonical-user-rbac-dedupe-selftest.py'
     for argv in (['--unknown'], ['--selection'], ['--selection-only', '--cleanup-owned']):
         with contextlib.redirect_stderr(io.StringIO()):
             try:
@@ -308,7 +297,7 @@ def workflow_constructors():
          patch.object(legacy, 'cleanup_workflow_owned') as cleanup:
         main()
         cleanup.assert_called_once_with()
-    print('PASS independent workflow, exact cleanup and CLI constructors; all18 unchanged')
+    print('PASS independent workflow, exact cleanup and CLI constructors; all19 with unchanged original18')
 
 
 def clone(h, database, template='gridex_auth_legacy_template'):
@@ -354,16 +343,7 @@ VALUES ('{C2}','synthetic','dedupe_canary','Dedupe retained work');
 
 
 def index_details(h, database):
-    return json.loads(h.sql(database, '''
-SELECT coalesce(jsonb_agg(jsonb_build_object('name', c.relname,'method',a.amname,
- 'unique',i.indisunique,'valid',i.indisvalid,'ready',i.indisready,
- 'nulls_not_distinct',i.indnullsnotdistinct,'predicate',pg_get_expr(i.indpred,i.indrelid),
- 'opclasses',(SELECT jsonb_agg(o.opcname ORDER BY x.ordinal)
- FROM unnest(i.indclass) WITH ORDINALITY x(id,ordinal) JOIN pg_opclass o ON o.oid=x.id))
- ORDER BY c.relname),'[]') FROM pg_index i JOIN pg_class c ON c.oid=i.indexrelid
- JOIN pg_am a ON a.oid=c.relam WHERE c.relnamespace='public'::regnamespace
- AND c.relname IN ('user_roles_active_unique_role_text_idx','user_roles_active_unique_role_id_idx');
-''', 'index_details'))
+    return dedupe.index_details(h, database)
 
 
 def actual56(proof):
@@ -771,8 +751,9 @@ def privacy(proof):
     print('PASS private client/server/DETAIL/HINT/statement/parameter boundaries; allowlisted receipts only')
 
 
-def controller_death_cleanup():
+def controller_death_cleanup(actual=False):
     """SIGKILL skips __exit__; workflow cleanup still matches exact name+label."""
+    originals=support.replay_originals_snapshot() if actual else None
     owner = os.environ.get('GRIDEX_LEGACY_CONTAINER_NAME') or 'gridex-auth-legacy-dedupe-'+os.urandom(8).hex()
     canary = owner+'-death-canary'
     env = legacy.clean_environment()
@@ -801,6 +782,26 @@ with m.legacy.OwnedPostgres() as h:
  os.replace(temporary,sys.argv[2])
  time.sleep(120)
 '''
+    if actual:
+        child = '''import importlib.util,os,sys,time
+spec=importlib.util.spec_from_file_location('dedupe_actual_death_child',sys.argv[1])
+m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+with m.legacy.OwnedPostgres() as h:
+ m.dedupe.prepare_reference(h)
+ native=h.run_files
+ def committed(database,files,stage,*args,**kwargs):
+  result=native(database,files,stage,*args,**kwargs)
+  if stage=='dedupe_native':
+   assert m.dedupe._STATES[h]=='NATIVE'
+   temporary=sys.argv[2]+'.tmp'
+   with open(temporary,'w') as marker:
+    os.chmod(temporary,0o600);marker.write(h.directory.name)
+   os.replace(temporary,sys.argv[2])
+   time.sleep(120)
+  return result
+ h.run_files=committed
+ m.replay.serve_child(m.legacy,h,['bash',str(m.ROOT/'scripts/gridex-aud-003-clean-replay.sh'),'--dedupe-prefix-proof'],'dedupe57')
+'''
     try:
         with tempfile.TemporaryDirectory(prefix='dedupe-controller-') as directory:
             marker = Path(directory)/'committed'
@@ -809,7 +810,7 @@ with m.legacy.OwnedPostgres() as h:
                 os.chmod(output,0o600)
                 process = subprocess.Popen([sys.executable,'-c',child,str(Path(__file__).resolve()),str(marker)],
                                            stdout=stream,stderr=stream,env=env)
-            deadline = time.monotonic()+90
+            deadline = time.monotonic()+(180 if actual else 90)
             while not marker.exists():
                 if process.poll() is not None or time.monotonic() >= deadline:
                     raise BoundaryError('CONTROLLER_READY_FAILED')
@@ -818,10 +819,10 @@ with m.legacy.OwnedPostgres() as h:
             assert private_directory.parent == Path(tempfile.gettempdir())
             assert private_directory.name.startswith('gridex-auth-legacy-')
             assert private_directory.is_dir() and private_directory.stat().st_uid == os.getuid()
-            check = subprocess.run(['docker','exec',owner,'psql','-X','-U','postgres','-d','gridex_auth_legacy_native','-qAt','-c',
+            check = subprocess.run(['docker','exec',owner,'psql','-X','-U','postgres','-d',replay.DATABASE if actual else 'gridex_auth_legacy_native','-qAt','-c',
                 "SELECT count(*) FROM public.user_roles; SELECT count(*) FROM pg_indexes WHERE schemaname='public' AND indexname IN ('user_roles_active_unique_role_text_idx','user_roles_active_unique_role_id_idx');"],
                 capture_output=True,env=env)
-            assert check.returncode == 0 and check.stdout.splitlines() == [b'1',b'2']
+            assert check.returncode == 0 and check.stdout.splitlines() == [b'0' if actual else b'1',b'2']
             process.kill()
             assert process.wait(timeout=10) == -signal.SIGKILL
             # The committed container survives controller death, until exact
@@ -844,7 +845,15 @@ with m.legacy.OwnedPostgres() as h:
             shutil.rmtree(private_directory)
         removed = subprocess.run(['docker','rm','-v',canary],capture_output=True,env=env)
         assert removed.returncode == 0
-    print('PASS reduced native commit plus controller SIGKILL; exact workflow-owned cleanup retains distinct canary')
+    if actual:
+        deadline=time.monotonic()+15
+        while True:
+            try:restored=support.replay_originals_snapshot()==originals
+            except OSError:restored=False
+            if restored:break
+            if time.monotonic()>deadline:raise BoundaryError('CONTROLLER_DEATH_RESTORATION_FAILED')
+            time.sleep(.1)
+    print('PASS '+('actual57' if actual else 'reduced')+' native commit plus controller SIGKILL; exact workflow-owned cleanup retains distinct canary')
 
 
 def sql_main():
@@ -865,7 +874,7 @@ def sql_main():
             print('PASS dedupe lane='+lane.__name__+' milliseconds='+str(round((time.monotonic()-begin)*1000)),flush=True)
     support.cleanup_proof(repair)
     controller_death_cleanup()
-    print('PASS complete unselected unpublished H2 native-COMMIT proof milliseconds='+str(round((time.monotonic()-started)*1000)))
+    print('PASS complete standalone unpublished H2 native-COMMIT proof milliseconds='+str(round((time.monotonic()-started)*1000)))
 
 
 def arguments(argv=None):
@@ -876,16 +885,382 @@ def arguments(argv=None):
     return parser.parse_args(argv)
 
 
+def integration_constructors():
+    assert hasattr(replay, 'load_dedupe'), 'trusted reusable H2 loader missing'
+    b = replay.load_dedupe()
+    assert b.legacy is legacy and b.repair is repair
+    assert b.validate_sources(b.reviewed_paths())[0].data == source_bytes((SOURCE,))
+    order = json.loads((ROOT/'scripts/gridex-aud-003-foundation-order.json').read_text())['foundation']
+    assert len(order) == 98 and order[56] == 'migrations/'+SOURCE.name
+    assert replay.scope_flags('dedupe57') == ['--dedupe-prefix-proof']
+    for flags in (['--dedupe-prefix'], ['--dedupe-prefix-proof','--repair-prefix-proof'],
+                  ['--dedupe-prefix-proof','--foundation-prefix-proof'], ['--dedupe-prefix-proof','57']):
+        result = subprocess.run([sys.executable, str(ROOT/'scripts/canonical-auth-provisioning-replay.py'), *flags], capture_output=True)
+        assert result.returncode == 2
+    for target in (None, object(), types.SimpleNamespace(active=True)):
+        try: b.require_owned(target)
+        except BoundaryError: pass
+        else: raise AssertionError('duck typed target accepted')
+    print('PASS H2 shared identity, exact98, named57 constructors; NO SQL claim')
+
+
+def lifecycle_constructors():
+    # These private registry fixtures exercise denial/disposal construction only.
+    # They never call prepare_reference, promote accepted56, or claim SQL proof.
+    b = dedupe
+    with tempfile.TemporaryDirectory(prefix='dedupe-lifecycle-constructor-') as directory:
+        hold=Path(directory)/'hold';hold.mkdir(mode=0o700)
+        for path in (ROOT/'supabase/migrations').iterdir():
+            if path.is_file(): shutil.copyfile(path,hold/path.name)
+        h=legacy.OwnedPostgres();h.active=True;h.directory=types.SimpleNamespace(name=directory)
+        h.reference=({},{});repair.REFERENCES[h]=repair.Reference(directory,{}, {})
+        ref=b._Reference(directory,h.name,h.reference,repair.REFERENCES[h],{}, {},[])
+        b._REFERENCES[h]=ref;b._STATES[h]='FRESH'
+        try:
+            loop=replay.FoundationLoop(legacy,h,'dedupe57')
+            order=loop.order
+            paths=[str(hold/Path(p).name if p.startswith('migrations/') else ROOT/'supabase'/p) for p in order]
+            original_open=Path.open
+            def retained_only(path,*args,**kwargs):
+                if path.parent==ROOT/'supabase/migrations': raise AssertionError('ROOT read after HOLD')
+                return original_open(path,*args,**kwargs)
+            with patch.object(Path,'open',retained_only):
+                loop.validate(hold,paths)
+                assert b.validate_sources(b.reviewed_paths(),legacy.StagedSources(hold))[0].data == (hold/SOURCE.name).read_bytes()
+            for fake in (object(),types.SimpleNamespace(hold=hold)):
+                try:b.validate_sources(b.reviewed_paths(),fake)
+                except BoundaryError:pass
+                else:raise AssertionError('duck staged reader accepted')
+            b._REFERENCES.pop(h)
+            try:
+                try: b.require_owned(h)
+                except BoundaryError: pass
+                else: raise AssertionError('legacy/repair reference substituted for H2')
+            finally: b._REFERENCES[h]=ref
+            for which in ('legacy','repair','directory'):
+                old=(h.reference,repair.REFERENCES[h],h.directory)
+                try:
+                    if which=='legacy':h.reference=({}, {})
+                    if which=='repair':repair.REFERENCES[h]=repair.Reference(directory,{}, {})
+                    if which=='directory':h.directory=types.SimpleNamespace(name=directory+'-wrong')
+                    try:b.require_owned(h)
+                    except BoundaryError:pass
+                    else:raise AssertionError('replaced owned authority accepted')
+                finally:h.reference,repair.REFERENCES[h],h.directory=old
+            # A failed validation must terminally dispose even before first43 SQL.
+            calls=[]
+            with patch.object(b,'_dispose',side_effect=lambda target:calls.append(target)):
+                try:loop.validate(hold,paths[::-1])
+                except BoundaryError:pass
+                else:raise AssertionError('reordered stage accepted')
+            assert calls==[h] and b._STATES[h]=='DISPOSED', 'validation failure did not quarantine/dispose'
+            for action in (lambda:loop.validate(hold,paths), lambda:loop.run(hold,paths),
+                           lambda:b.require_live(h),lambda:b.fresh_target(h),
+                           lambda:b.snapshot(h),lambda:b.index_details(h,replay.DATABASE),
+                           lambda:b.execute(h,replay.DATABASE,b.reviewed_paths())):
+                try:action()
+                except BoundaryError:pass
+                else:raise AssertionError('terminal target operation accepted')
+            # Failed disposal leaves denial, never a falsely clean state.
+            b._STATES[h]='FRESH'
+            with patch.object(b,'_dispose',side_effect=BoundaryError('SYNTHETIC_DISPOSAL_FAILURE')):
+                try:b.fail(h)
+                except BoundaryError as error:assert str(error)=='REPLAY_TERMINAL_DISPOSAL_FAILED'
+                else:raise AssertionError('failed disposal claimed success')
+            assert b._STATES[h]=='TERMINAL'
+            # Inspect exact constructed commands; no container/SQL process runs.
+            calls=[]
+            def docker(target,args,**kwargs):
+                calls.append(args)
+                if args[0]=='inspect':return (h.name+'\n').encode()
+                if 'psql' in args:return b'0\n'
+                return b''
+            with patch.object(legacy.OwnedPostgres,'docker',docker):b.fail(h)
+            assert b._STATES[h]=='DISPOSED'
+            assert calls[1]==['exec',h.name,'dropdb','-U','postgres','--if-exists','--force',replay.DATABASE]
+            assert len(calls)==3 and all('gridex_auth_legacy_reference' not in call for call in calls)
+        finally:
+            b._REFERENCES.pop(h,None);b._STATES.pop(h,None);repair.REFERENCES.pop(h,None)
+            h.active=False;h.directory=None
+    key='user_rbac_dedupe_batch';saved=sys.modules[key]
+    try:
+        copied=types.ModuleType(key);copied.__dict__.update(saved.__dict__)
+        for fake in (types.ModuleType(key),copied):
+            sys.modules[key]=fake
+            try:replay.load_dedupe()
+            except RuntimeError:pass
+            else:raise AssertionError('forged H2 module accepted')
+    finally:sys.modules[key]=saved
+    print('PASS lifecycle/staged/source/reference/terminal/disposal constructors; NO SQL claim')
+
+
+def run_stage_fault(mode,hold,paths,operation):
+    """Mutate one staged H2 view, then restore its exact filesystem metadata."""
+    hold=Path(hold);path=hold/SOURCE.name
+    hold_stat=hold.stat();source_stat=path.stat();raw=path.read_bytes()
+    try:
+        if mode=='stage_missing':path.unlink()
+        elif mode=='stage_substituted':path.write_bytes(raw+b'\n')
+        return operation(paths[::-1] if mode=='stage_order' else paths)
+    finally:
+        path.write_bytes(raw)
+        os.chmod(path,source_stat.st_mode)
+        os.utime(path,ns=(source_stat.st_atime_ns,source_stat.st_mtime_ns))
+        os.utime(hold,ns=(hold_stat.st_atime_ns,hold_stat.st_mtime_ns))
+
+
+def expect_actual57_failure(mode,operation):
+    try:operation()
+    except BoundaryError:return
+    except OSError:
+        if mode=='transport':return
+        raise
+    raise AssertionError('failed replay returned success')
+
+
+def fix_review_regressions():
+    """Bounded real-filesystem and failure-classification review regressions."""
+    raw = b'synthetic staged H2 bytes\n'
+    paths = ['first', 'second', 'third']
+    with tempfile.TemporaryDirectory(prefix='dedupe-fix-review-') as directory:
+        hold = Path(directory)/'HOLD';hold.mkdir(mode=0o700)
+        staged = hold/SOURCE.name
+        staged.write_bytes(raw);os.chmod(staged,0o640)
+        for index, mode in enumerate(('stage_missing','stage_order','stage_substituted')):
+            stamp = 1_700_000_000_000_000_000 + index*10
+            os.utime(staged,ns=(stamp,stamp+1));os.utime(hold,ns=(stamp+2,stamp+3))
+            source_before=staged.stat();hold_before=hold.stat();observed=[]
+            fault=BoundaryError('EXPECTED_STAGE_FAULT')
+            def inspect_fault(selected):
+                observed.append(selected)
+                if mode=='stage_missing':assert not staged.exists()
+                elif mode=='stage_substituted':assert staged.read_bytes()==raw+b'\n'
+                else:assert staged.read_bytes()==raw
+                raise fault
+            try:run_stage_fault(mode,hold,paths,inspect_fault)
+            except BoundaryError as caught:assert caught is fault
+            else:raise AssertionError('staged fault did not reject replay')
+            assert observed==[paths[::-1] if mode=='stage_order' else paths]
+            source_after=staged.stat();hold_after=hold.stat()
+            assert (source_after.st_mode,source_after.st_atime_ns,source_after.st_mtime_ns)==(
+                source_before.st_mode,source_before.st_atime_ns,source_before.st_mtime_ns)
+            assert (hold_after.st_mode,hold_after.st_atime_ns,hold_after.st_mtime_ns)==(
+                hold_before.st_mode,hold_before.st_atime_ns,hold_before.st_mtime_ns)
+            assert staged.read_bytes()==raw
+    assert expect_actual57_failure('catalog',lambda:(_ for _ in ()).throw(BoundaryError('EXPECTED'))) is None
+    for error in (OSError('transport'),BrokenPipeError('transport')):
+        assert expect_actual57_failure('transport',lambda error=error:(_ for _ in ()).throw(error)) is None
+    other_modes=('stage_missing','stage_order','stage_substituted','catalog','pop_active',
+                 'pop_inactive','pop_null','pop_other','pre_commit','post_commit','final_check',
+                 'row_change','sequence_change','backend','shell_failure','restore_failure','suffix')
+    for mode in other_modes:
+        error=OSError(mode)
+        try:expect_actual57_failure(mode,lambda error=error:(_ for _ in ()).throw(error))
+        except OSError as caught:assert caught is error
+        else:raise AssertionError('non-transport OSError accepted')
+    unexpected=TypeError('unexpected')
+    try:expect_actual57_failure('transport',lambda:(_ for _ in ()).throw(unexpected))
+    except TypeError as caught:assert caught is unexpected
+    else:raise AssertionError('unexpected transport failure accepted')
+    try:expect_actual57_failure('transport',lambda:None)
+    except AssertionError as error:assert str(error)=='failed replay returned success'
+    else:raise AssertionError('successful operation accepted as failure')
+    print('PASS Task14 review regressions: exact staged metadata and narrow transport failure; NO SQL claim')
+
+
+def actual57_case(mode):
+    """Real whole shell replay; external controller faults never edit H2 SQL."""
+    import threading
+    import socket
+    original_files=support.replay_originals_snapshot()
+    seed=ROOT/'supabase/seed.sql';seed_stat=seed.stat();seed_bytes=seed.read_bytes()
+    artifacts=ROOT/'artifacts/replay-input-accounting.json'
+    artifact_before=artifacts.read_bytes() if artifacts.exists() else None
+    with legacy.OwnedPostgres() as h:
+        dedupe.prepare_reference(h)
+        ref=dedupe._REFERENCES[h]
+        legacy_ref=h.reference;repair_ref=repair.REFERENCES[h]
+        canary_db='gridex_auth_legacy_seeded'
+        h.reset(canary_db)
+        h.sql(canary_db,'CREATE TABLE public.canary(value text); INSERT INTO public.canary VALUES (\'retain\');','canary')
+        canary=support.snapshot(repair,h,canary_db)
+        original_validate=replay.FoundationLoop.validate
+        original_legacy=legacy.execute;original_repair=repair.execute
+        original_native=h.run_files;original_dispose=dedupe._dispose;original_final=dedupe.assert_final
+        reached=[];preimages=[];disposed=[];threads=[];failures=[]
+        def validate(loop,hold,paths):
+            if mode.startswith('stage_'):
+                return run_stage_fault(mode,hold,paths,
+                                       lambda staged:original_validate(loop,hold,staged))
+            return original_validate(loop,hold,paths)
+        def legacy_once(target,database,paths,staging=None):
+            assert target is h and database==replay.DATABASE and type(staging) is legacy.StagedSources
+            assert reached==[];reached.append('legacy')
+            return original_legacy(target,database,paths,staging)
+        def repair_once(target,database,paths,staging=None):
+            assert reached==['legacy'];reached.append('repair')
+            result=original_repair(target,database,paths,staging)
+            assert repair.catalog(h,database)==ref.base
+            h.sql(database,canaries(),'actual57_canaries')
+            # Use a real source-created sequence without changing the admitted catalog.
+            h.sql(database,"SELECT setval('auth.refresh_tokens_id_seq',41,false);"+
+                  ("SELECT nextval('auth.refresh_tokens_id_seq');" if mode=='success_called' else ''),'actual57_sequence')
+            if mode=='catalog':h.sql(database,'ALTER TABLE public.user_roles ADD COLUMN unexpected text;','wrong_catalog')
+            populated={'pop_active':row(1,'active'), 'pop_inactive':row(2,None,status='disabled',active=False),
+                       'pop_null':row(3,None,role_id=None), 'pop_other':row(4,None,user=U2,company=C2)}
+            if mode in populated:insert_rows(h,database,[populated[mode]])
+            preimages.append(support.snapshot(repair,h,database))
+            return result
+        def dispose(target):
+            assert target is h and dedupe._STATES[h]=='TERMINAL'
+            # Only this private test controller can inspect committed state before disposal.
+            current=support.snapshot(repair,h,replay.DATABASE)
+            disposed.append(current)
+            if mode in ('post_commit','final_check','transport','backend','shell_failure','restore_failure','suffix'):
+                assert current==(ref.final,preimages[0][1]), 'committed H2 effects not retained before disposal'
+            if mode=='pre_commit':
+                assert current[1]==preimages[0][1]
+                assert all('index/public.'+name not in current[0] for name in INDEX_NAMES)
+            if mode in ('row_change','sequence_change'):
+                assert current[0]==ref.final and current[1]!=preimages[0][1]
+            original_dispose(target)
+            assert h.sql(canary_db,"SELECT count(*) FROM pg_database WHERE datname='gridex_auth_legacy_replay';",'disposed').strip()=='0'
+        def native(database,files,stage,*args,**kwargs):
+            if mode=='suffix' and stage=='replay_foundation_58':
+                return original_native(database,[h.private('external-suffix-failure.sql',sentinel_sql()),*files],stage,**kwargs)
+            if stage!='dedupe_native':return original_native(database,files,stage,*args,**kwargs)
+            assert reached==['legacy','repair'];reached.append('H2')
+            assert kwargs.get('transaction') is False and len(files)==1
+            assert hashlib.sha256(files[0].read_bytes()).hexdigest()==SHA256
+            if mode=='pre_commit':
+                h.sql(database,"CREATE FUNCTION public.dedupe_external_fail() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION USING ERRCODE='XX000',MESSAGE='SYNTHETIC_FAILURE'; END $$; CREATE TRIGGER dedupe_external_fail BEFORE DELETE ON public.user_roles FOR EACH STATEMENT EXECUTE FUNCTION public.dedupe_external_fail();",'external_precommit_hook')
+            if mode=='post_commit':files=[*files,h.private('external-postcommit.sql',sentinel_sql())]
+            if mode=='backend':
+                files=[h.private('external-appname.sql',"SET application_name='dedupe_integration_death';"),*files,h.private('external-pause.sql','SELECT pg_sleep(30);')]
+                def terminate():
+                    try:
+                        support.observed(h,database,"EXISTS(SELECT 1 FROM pg_stat_activity WHERE application_name='dedupe_integration_death' AND wait_event='PgSleep')")
+                        assert support.snapshot(repair,h,database)==(ref.final,preimages[0][1])
+                        support.private_query(h,database,"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE application_name='dedupe_integration_death'")
+                    except BaseException as error:failures.append(type(error).__name__)
+                thread=threading.Thread(target=terminate);thread.start();threads.append(thread)
+            result=original_native(database,files,stage,**kwargs)
+            if mode=='row_change':h.sql(database,"UPDATE auth.users SET raw_user_meta_data='{}' WHERE id='"+U+"';",'external_row_change')
+            if mode=='sequence_change':h.sql(database,"SELECT nextval('auth.refresh_tokens_id_seq');",'external_sequence_change')
+            return result
+        def final(target):
+            original_final(target)
+            if mode=='final_check':raise BoundaryError('TRUSTED_FINAL_FAILURE')
+        original_send=socket.socket.sendall
+        def send(connection,data,*args,**kwargs):
+            if mode=='transport' and dedupe._STATES.get(h)=='H2_COMPLETE':
+                connection.shutdown(socket.SHUT_RDWR)
+            return original_send(connection,data,*args,**kwargs)
+        # The wrapper actually runs the shell, then attacks all RPC operations
+        # after a rejected source call; it records only rejection booleans.
+        wrapper='''import importlib.util,json,os,subprocess,sys
+spec=importlib.util.spec_from_file_location('integration_client',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+result=subprocess.run(['bash',sys.argv[2],'--dedupe-prefix-proof'])
+if result.returncode:
+ rejected=[]
+ for operation in ('context','validate_foundation','foundation','sql'):
+  try:m.request({'operation':operation,'scope':'dedupe57','hold':'/not-owned','paths':[],'sql':'CREATE TABLE public.unusable_target(value text);'})
+  except Exception:rejected.append(operation)
+ with open(sys.argv[3],'w') as stream:json.dump(rejected,stream)
+ sys.exit(result.returncode)
+if sys.argv[4]=='shell_failure':sys.exit(73)
+'''
+        rejected=Path(h.directory.name)/'rejected.json'
+        command=[sys.executable,'-c',wrapper,str(ROOT/'scripts/canonical-auth-provisioning-replay.py'),str(ROOT/'scripts/gridex-aud-003-clean-replay.sh'),str(rejected),mode]
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(patch.object(replay.FoundationLoop,'validate',validate))
+            stack.enter_context(patch.object(legacy,'execute',legacy_once))
+            stack.enter_context(patch.object(repair,'execute',repair_once))
+            stack.enter_context(patch.object(h,'run_files',native))
+            stack.enter_context(patch.object(dedupe,'_dispose',dispose))
+            stack.enter_context(patch.object(dedupe,'assert_final',final))
+            stack.enter_context(patch.object(socket.socket,'sendall',send))
+            if mode=='restore_failure':
+                # Fail the real shell's seed restore copy, preserving its recovery copy.
+                hooks=Path(h.directory.name)/'hooks';hooks.mkdir(mode=0o700)
+                cp=hooks/'cp';real_cp=shutil.which('cp')
+                cp.write_text('#!/usr/bin/env python3\nimport os,sys\nif sys.argv[-1]=='+repr(str(seed))+':sys.exit(77)\nos.execv('+repr(real_cp)+',['+repr(real_cp)+',*sys.argv[1:]])\n');cp.chmod(0o700)
+                tmp=Path(h.directory.name)/'restore-tmp';tmp.mkdir(mode=0o700)
+                stack.enter_context(patch.dict(os.environ,{'PATH':str(hooks)+os.pathsep+os.environ['PATH'],'TMPDIR':str(tmp)}))
+            try:
+                if mode.startswith('success'):
+                    assert replay.serve_child(legacy,h,command,'dedupe57')==0
+                    assert reached==['legacy','repair','H2'] and not disposed
+                    assert support.snapshot(repair,h,replay.DATABASE)==(ref.final,preimages[0][1])
+                    seq=[value for name,value in preimages[0][1] if name=='auth.refresh_tokens_id_seq']
+                    assert len(seq)==1 and seq[0]['last_value']==41
+                    assert seq[0]['is_called'] is (mode=='success_called')
+                    assert dedupe._STATES[h]=='SUCCEEDED'
+                else:
+                    def failed_operation():
+                        if mode=='suffix':
+                            # A trusted bounded full-loop fault fixture; public noflag
+                            # completeness admission remains intact and blocks startup.
+                            hold=Path(h.directory.name)/'suffix-hold';hold.mkdir(mode=0o700)
+                            for path in (ROOT/'supabase/migrations').iterdir():
+                                if path.is_file():shutil.copyfile(path,hold/path.name)
+                            dedupe.fresh_target(h)
+                            loop=replay.FoundationLoop(legacy,h,'full')
+                            paths=[str(hold/Path(p).name if p.startswith('migrations/') else ROOT/'supabase'/p) for p in loop.order]
+                            loop.validate(hold,paths)
+                            h.sql(replay.DATABASE,(ROOT/'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_text(),'bootstrap',transaction=False)
+                            loop.run(hold,paths)
+                        else:return replay.serve_child(legacy,h,command,'dedupe57')
+                    expect_actual57_failure(mode,failed_operation)
+                    assert dedupe._STATES[h]=='DISPOSED' and len(disposed)==1
+                    if mode not in ('transport','shell_failure','restore_failure','suffix'):
+                        assert json.loads(rejected.read_text())==['context','validate_foundation','foundation','sql']
+                    for action in (lambda:dedupe.require_live(h),lambda:dedupe.fresh_target(h),
+                                   lambda:replay.FoundationLoop(legacy,h,'dedupe57')):
+                        try:action()
+                        except BoundaryError:pass
+                        else:raise AssertionError('failed handle reused')
+            finally:
+                for thread in threads:thread.join(timeout=10)
+                assert not failures and all(not t.is_alive() for t in threads)
+                if mode=='restore_failure':
+                    copies=[p for p in tmp.iterdir() if p.is_file() and p.read_bytes()==seed_bytes]
+                    assert len(copies)==1 and seed.read_bytes()==b''
+                    shutil.copyfile(copies[0],seed);os.chmod(seed,seed_stat.st_mode)
+                    os.utime(seed,ns=(seed_stat.st_atime_ns,seed_stat.st_mtime_ns))
+        assert support.snapshot(repair,h,canary_db)==canary
+        assert h.reference is legacy_ref and repair.REFERENCES[h] is repair_ref and dedupe._REFERENCES[h] is ref
+        assert not (Path(h.directory.name)/'replay.sock').exists()
+        assert support.replay_originals_snapshot()==original_files
+        assert (artifacts.read_bytes() if artifacts.exists() else None)==artifact_before
+        h.verify_logging()
+    print('PASS actual57 mode='+mode+'; same owned target, exact disposal/restoration/canary and private receipts',flush=True)
+
+
+def actual57_integration():
+    modes=('success','stage_missing','stage_order','stage_substituted','catalog',
+           'pop_active','pop_inactive','pop_null','pop_other','pre_commit','post_commit',
+           'final_check','row_change','sequence_change','transport','backend','shell_failure','restore_failure','suffix','success_called')
+    for mode in modes:actual57_case(mode)
+    controller_death_cleanup(actual=True)
+    print('PASS actual57 fresh reconstruction after every terminal failure; all19 integration authored independently of standalone lanes')
+
+
+
 def main():
     args = arguments()
     if args.cleanup_owned:
         legacy.cleanup_workflow_owned()
         return
+    integration_constructors()
+    lifecycle_constructors()
+    fix_review_regressions()
     constructors()
     oracle_constructors()
     workflow_constructors()
     if not args.selection_only:
         sql_main()
+        actual57_integration()
 
 
 if __name__ == '__main__':

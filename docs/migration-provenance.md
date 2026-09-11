@@ -109,13 +109,16 @@ The former native invocation, `bash scripts/gridex-aud-003-clean-replay.sh`, is 
 `GRIDEX-REM-002` is VERIFIED only when both the static provenance gate and the clean empty-database replay pass on the same commit.
 
 
-### Owned compatible replay boundaries (Task12, 2026-09-10)
+### Owned compatible replay boundaries (Task14, 2026-09-11)
 
-The selected foundation contains 97 inputs. The first52 is unchanged, including
-historical fixture cuts30/31/32/33, P38, G42/R43 and complete A44 through Q52.
-Complete pinned R2/E2/S2/W occupy53–56; the former53–93 suffix retains its order
-at57–97. Each selected original and boundary executes once. W moves from timestamp
-execution to foundation56; it is not duplicated. Historical SQL, Q and W are unchanged.
+The selected foundation contains 98 inputs. First56 is unchanged: historical
+fixture cuts30/31/32/33, P38, G42/R43, A44–Q52 and R2/E2/S2/W53–56.
+Complete pinned H2 occupies57; the unchanged old57–97 suffix occupies58–98.
+H2 is the 96-line original `20260525_debug_batch_2h_dedupe_user_roles_and_unique_guard.sql`,
+SHA256 `98522e209332c44c804d7acccf831f25fb13b75b048fbe3613c8d69fcb373a9b`.
+Every selected source executes once. No historical source, checksum or timestamp
+was changed. Foundation path digest is
+`271142f607da58484518cc870366802aa36fb3f3b6b9688c40188cf180d6ce08`.
 
 Run `python3 scripts/canonical-auth-provisioning-replay.py --owned-compatible`
 with one of these scopes:
@@ -124,44 +127,63 @@ with one of these scopes:
 | --- | --- | --- |
 | `--foundation-prefix-proof` | Historical first52, stopping after whole A–Q | Separate legacy first43/final52 catalogs |
 | `--repair-prefix-proof` | First52 then whole R2/E2/S2/W through56 | Separate repair base52/final56 catalogs |
-| No prefix flag | All97 then unchanged timestamp history, subject to full admission | Both independent bounded references, then later full-replay gates |
+| `--dedupe-prefix-proof` | First56 then native whole H2 through57 | Separate independently constructed base56/final57 catalog and index oracle |
+| No prefix flag | All98 then unchanged timestamp history, subject to full admission | All independent bounded references, then later full-replay gates |
 
-Both prefix flags together, unknown flags and arbitrary cutoffs are rejected.
-Both diagnostic scopes exit before artifact, type or ledger output and cannot
-establish complete replay. Full mode requires `--require-full-effects` before
-owned startup or source staging and remains blocked by55 unresolved inputs:
-global596=537 full/23 substituted/32 unclassified/4 excluded;
-focused342=294/20/24/4, with44 focused unresolved.
+Combined, abbreviated and unknown flags and arbitrary cutoffs are rejected.
+All named scopes exit before artifact, type or ledger output. Full mode requires
+`--require-full-effects` before owned startup or staging and remains blocked by54
+unresolved inputs: global596=538 full/23 substituted/31 unclassified/4 excluded;
+focused342=295/20/23/4, with43 focused unresolved. Selection is not hosted acceptance.
 
 The parent creates a network-disabled PostgreSQL17 container and retains its exact
-owned handle. The three trusted consumers share one origin-verified loader/class.
-It prepares the required independent catalogs before original migrations move;
-the repair reference never overwrites the legacy first43/final52 pair. Reference
-databases supply expectations and are never substituted for the actual replay target.
+owned handle. Origin-verified shared loaders bind the legacy, repair and H2 helpers
+to the same exact class and live owner. Independent references are constructed
+before HOLD staging and never overwrite one another. H2's final oracle uses the
+accepted reference construction plus only its two pinned index declarations;
+actual target output never supplies the expected catalog. It includes full portable
+catalogs and explicit index validity/readiness/uniqueness, predicates, opclasses and
+NULL properties. References never substitute for actual selected-source execution.
 
-The real clean shell retains originals in private HOLD700 and communicates through
-a parent-owned socket600. It validates the complete97 order, physical identities,
-checksums and both groups' oracle dependencies before bootstrap SQL, even in either
-bounded scope. All migration reads after staging use retained bytes without ROOT
-fallback. Bootstrap, first43, whole44–52 and whole53–56 execute on the same actual
-`gridex_auth_legacy_replay` database; each complete group retains its own
-single-connection admission/originals/boundary/assertions transaction. Private raw
-client/server logging and exact owned cleanup remain required.
+The real shell retains originals in private HOLD700 and uses a parent-owned
+socket600. All98 physical identities, checksums and source/oracle dependencies are
+validated before bootstrap SQL, including in historical52/56 scopes. Reads after
+staging use retained bytes without original-path fallback. Bootstrap, first43,
+whole legacy44–52, repair53–56 and native H2 at57 execute in the same actual
+`gridex_auth_legacy_replay` database. Legacy and repair retain their accepted
+transactions and historical rollback/inspection proofs.
 
-Command17 retains the complete legacy standalone proof and historical52 actual
-staged proof, including ordinary Q rejection and post-Q rollback. Command18 appends
-the complete repair standalone lanes and actual repair56 shell/HOLD/planner proof,
-including independent final rows/catalog, ordinary W rejection and trusted post-W
-failure rolling the entire repair group back to intact52 rows/catalog/sequence.
-The default runner is `all18`; explicit `all17` preserves the historical prefix.
-Hosted `original16`, `legacy17` and `repair18` partitions cover all18 exactly once.
-Task12 constructors are not SQL acceptance: exact-head hosted all18, complete actual
-staging, quality and Ediel receipts remain required after review/publication.
+H2 retains its own BEGIN, two sequential deletes, two indexes, COMMIT and final
+diagnostic, unchanged and without an outer single-transaction option. Its COMMIT
+is not rollback-safe. The synchronous parent boundary requires accepted56,
+exact base catalog and empty user_roles across **all** rows. It holds complete
+public/Auth/storage row and explicit sequence last_value/log_cnt/is_called
+preimages privately across COMMIT, then checks exact final catalog/indexes and
+unchanged preexisting rows/sequences before allowing continuation.
 
-This mode carries **NO ledger provenance**. It does not create official Supabase
-ledger rows or equate the compatible Auth/storage shape with a native provider
-catalog. Native CLI and generic external URLs are rejected; independent native
-genesis, real stack ownership, private logging and CLI-owned official-ledger proof
-remain unresolved interfaces. Full replay, type refresh, later-chain security and
-production delivery remain separate open gates. No artifacts may be refreshed from
-these incomplete diagnostic replays.
+New dedupe57/full lifecycles quarantine any failed target, deny subsequent
+context/validation/foundation/SQL operations, and destroy exactly the owned replay
+database before failure returns. If database disposal cannot be verified, cleanup falls back to the
+exact name-and-label-owned container; unresolved disposal failure retains terminal
+denial and reports a sanitized failure. References and unrelated canaries are not
+selected for database disposal. Failed handles cannot start another attempt; fresh
+owned construction rebuilds the complete accepted prefix. The parent also checks
+child exit and exact originals/seed bytes, modes and timestamps after restoration.
+Full accounting publication occurs only after complete child and restoration
+success. Existing workflow owner/name/label cleanup covers controller death.
+
+Commands1–18 retain their exact tuples and complete accepted SQL lanes. Command19
+runs the full standalone H2 native/reduced/NULL/sequence/dependent/privacy/death
+proof plus actual57 shell/HOLD integration and terminal-failure cases. The default
+runner is `all19`; explicit `all18` and `all17` preserve historical prefixes.
+Hosted `original16`, `legacy17`, `repair18` and `dedupe19` partitions cover all19
+exactly once; the existing private H2 job runs command19 with its20-minute timeout
+and always-cleanup gate. Task14 requires independent review and same-head hosted
+all19, actual52/56/57, quality and Ediel before acceptance; constructors alone do
+not establish SQL success.
+
+This mode carries **NO ledger provenance**. It neither creates official Supabase
+ledger rows nor equates compatible Auth/storage with a native provider catalog.
+Native CLI and generic external URLs remain rejected. Full native replay, types,
+later-chain security, provider parity, remaining source restoration and production
+delivery remain separate open gates. Never refresh artifacts from a named proof.

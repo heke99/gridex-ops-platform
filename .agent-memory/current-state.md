@@ -1,6 +1,6 @@
 # Current state
 
-Updated: 2026-09-10
+Updated: 2026-09-11
 Status: IN_PROGRESS
 
 Authorization: user explicitly requests all necessary commits, pushes, PRs,
@@ -11,70 +11,60 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `6681ca3d79da9edfada5c01925edb2a54461e658`, exact reviewed
-tree `7e0bca400037f4214f96a8bc8a2a2c611eb3f814`; fetched equality/tracked-clean
-alignment PASS, locala1d1bba8 archived. Task12 implementation775af96c plus report
-untracking29196b20 independently APPROVED. Minor T12-R1 stale hosted step label
-is deferred to the next required workflow edit; no blocking finding.
-OPS34540658066 repair18/job103082327314 PASS169659ms, including full
-standalone plus actual shell/bootstrap/first43/legacy44–52/repair53–56 once in
-same owned DB, independent rows/catalog, W-alone rejection, post-W rollback to
-intact52 rows/catalog/sequence, exact restoration/private logs/cleanup. Legacy17
-job103082327393 PASS151856ms with historical52 proof. Ediel103082327231 PASS;
-quality103082327385 PASS. Original16/auth103082327371 PASS. Task12 COMPLETE; all18 and actual52/56 union verified.
+Latest publication: `8448b57736cba0ae96eb1fe38e0257bdda4aa8c6`, exact reviewed
+tree `5c5ad4575770e805b7ea32ea1ce2b729a4452a82`; fetched equality/tracked-clean
+alignment PASS, local838bd79d archived. Task13 COMPLETE: independently reviewed
+5801c68d, no findings. OPS34543272605 fullH2/job103090355261 PASS69083ms;
+original16/auth103090355254, repair18/actual56 job103090355020 PASS180653ms,
+quality103090355308 and Ediel103090355311 PASS. Legacy17 targeted retry103092259593
+PASS151107ms on identical head after early opaque BoundaryError; no code change
+or confirmed source defect. Same-head all18/fullH2/quality/Ediel union accepted.
+Task12 COMPLETE6681ca3d all18/actual52+56/quality/Ediel; T12-R1 CLOSED.
 Task11 is COMPLETE at62d60d76 with same-head original17/new standalone166773ms/
 quality/Ediel all PASS; reuse its full source proof, no audit restart.
 No full replay/type refresh, production mutation, merge or deployment.
 
 
-Working-tree accounting is 596 inputs: 537 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 32 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
-The focused group contains 342 inputs: 294 selected, 20 substituted, 24 unclassified, and 4 excluded.
-Task12 exact post-selection accounting is now published. Foundation97 retains
-first52, adds R2/E2/S2/W53–56 and shifts unchanged old suffix to57–97; all18 runner
-preserves original17.55 total/44 focused unresolved. This integration is reviewed
-and actual-staged SQL-accepted at6681ca3d. Prior62d60d76 standalone baseline remains
-596/534/23/35/4,focused342/291/20/27/4,foundation93/all17 and fully verified Task11.
-
-Q is registered as timestamp input (ordinal509); working-tree Task8 now selects
-A44/B45/C46/D47/E48/F49/H50/I51/Q52 in foundation93. This integration is SQL-verified at5389f2b5 by the actual staged loop and complete all17 union.
-Its complete standalone SQL execution is now verified with Task7; registration
-alone was not that proof. Current reviewed59-line Q hash is
-fcc6594b1b312e139ac094b811fee9395ee6ab780144d14d1c19e0c178a28983. A–I unchanged.
-There are55 total and44 focused unresolved inputs in the working tree. Selection means complete
-source execution, not surviving-effect equivalence or production readiness.
-Foundation93 preserves historical fixture prefixes30/31/32/33 and RBAC38;
-first43 unchanged including G42/R43, former44–84 suffix preserved after new44–52.
-Original16 command prefix stays exact; Task8 appends17 with its own hosted gate.
+Working-tree accounting is 596 inputs: 538 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 31 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
+The focused group contains 342 inputs: 295 selected, 20 substituted, 23 unclassified, and 4 excluded.
+Task14 working selection is authored, not yet reviewed/hosted: H2at57,foundation98,
+first56 and former57–97 suffix preserved; computed foundation SHA256
+271142f607da58484518cc870366802aa36fb3f3b6b9688c40188cf180d6ce08.
+Working54 total/43 focused unresolved. Published8448b577 baseline remains
+596=537/23/32/4,focused342=294/20/24/4,foundation97/all18,55/44 unresolved and
+H2 UNCLASSIFIED. Do not infer actual57 SQL acceptance from working selection.
+Immutable history and Q/W hashes remain unchanged; source selection is not
+production readiness. Counts in older receipts remain historical.
 
 ## Sole active work item
 
-Task13 IMPLEMENTED_NOT_VERIFIED: author commit5801c68d0278abe6b5406be25da0b6f7a9817faf
-adds the independent complete H2 native-COMMIT proof and its private owned PG17
-workflow. Only new selftest/workflow changed; report remains ignored. Constructors,
-runner partitions, unchanged accounting/provenance/integrity and syntax PASS.
-Actual56/reduced/native failure/contention/death/privacy SQL cases are authored
-but not yet executed. Independent spec/quality review APPROVED, no findings; no SQL acceptance claim.
-Minor T12-R1 label is corrected in this implementation, independently reviewed and CLOSED.
-H2 remains UNCLASSIFIED; no source-selection or input-count delta.
+Task14 IMPLEMENTED_NOT_VERIFIED at39e14a98f78ece7eae72c8cda52c15306cc06abc:
+integrate verified H2 at57 with strict reusable boundary and
+terminal owned-database failure lifecycle. Follow Task14 exact plan/brief;
+parent-held preimages survive native COMMIT, any failed/partial target is denied
+and exactly disposed before usable continuation. Preserve accepted legacy52 and
+repair56 scopes, first56 and immutable SQL; add named dedupe57/all19 and real
+staged proof. No historical replay or mass ledger marking live under ADR-006.
+Task14 working accounting is54 unresolved; published55 remains the accepted baseline.
 
-Task12 COMPLETE at6681ca3d: same-head all18, actual52/56, quality and Ediel PASS.
-Foundation97/first52/original17 prefix and separate legacy/repair reference identities
-are the accepted baseline. Task11 complete standalone proof and four reviewed
-hosted fixes are inherited; T9-R1/T11-R1 closed. Earlier Tasks1–10 remain complete
-within their recorded bounded scopes; do not restart source audits or SQL suites.
-Detailed receipts reside in completed-work/session-log/verification-matrix and
-quality/audits/AUTH_PROVISIONING_SOURCE_RESTORATION_PLAN_2026-09-10.md.
+Task13 COMPLETE at8448b577: complete actual56/index/full rows/sequences, native
+constraints, actual/reduced sequential/dependent characterization, pre/postCOMMIT
+errors, real contention/backend/controller death/private cleanup PASS. No fixed
+identity/account/provider needed. Independently reviewed/no findings. Reuse these
+SQL receipts; no source audit restart. H2 is now selected in unverified Task14 working code; published baseline remains UNCLASSIFIED.
+Task12 and earlier bounded receipts remain complete. Separate legacy/repair
+reference identities, trusted loaders, private staged sources and exact originals/
+seed restoration are binding. Details in source-restoration plan/evidence files.
 
-Next: publish the coherent independently reviewed Task13 batch and require same-head original18, complete H2,
-quality and Ediel PASS. Only then plan the separate owned-database publication
-lifecycle/H2 selection gate.55 unresolved; full native replay/types remain red.
-No source selection or production readiness is inferred from constructors.
+Bounded constructors, runner19,20 cleanup tests, provenance98, exact accounting/
+hashes and syntax PASS per author report. Independent review is active; new actual57
+failure/death/transport SQL remains authored/unexecuted. Report stays ignored.
 
-Actual CLI-created Q and W skeleton artifacts and ignored SDD reports remain
-preserved; never regenerate timestamps or edit immutable history. No local PG,
-Docker, socket or CLI installation probes are needed. Use isolated hosted PG17.
-No historical sources may be mass-replayed or mass-marked live; eventual forward
-convergence must reconcile the actual ledger/runtime under ADR-006.
+Next: finish Task14 independent review and coherent exact-tree publication;
+require same-head all19 including actual52/56/57 plus quality/Ediel before
+acceptance. Full replay/types and production gates remain open. Source selection
+or constructors do not imply readiness. Actual Q/W skeletons/reports stay preserved;
+no local PG/Docker/socket/CLI retries or timestamp regeneration.
 
 ## Current executed acceptance
 

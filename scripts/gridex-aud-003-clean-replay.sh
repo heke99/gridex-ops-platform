@@ -5,6 +5,7 @@ REPLAY_SCOPE=full
 SCOPE_FLAGS=()
 if [[ "${1:-}" == --foundation-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=legacy52; SCOPE_FLAGS=(--foundation-prefix-proof);
 elif [[ "${1:-}" == --repair-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=repair56; SCOPE_FLAGS=(--repair-prefix-proof);
+elif [[ "${1:-}" == --dedupe-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=dedupe57; SCOPE_FLAGS=(--dedupe-prefix-proof);
 elif [[ "$#" != 0 ]]; then echo "unsupported replay scope" >&2; exit 1; fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -452,6 +453,5 @@ if [[ "$ACTUAL_FINGERPRINT" != "$EXPECTED_FINGERPRINT" ]]; then
   exit 1
 fi
 echo "[GRIDEX-REM-002 replay] schema fingerprint verified: $ACTUAL_FINGERPRINT"
-mkdir -p "$ROOT/artifacts"
-cp "$ACCOUNTING_PROOF" "$ROOT/artifacts/replay-input-accounting.json"
+# The controller publishes accounting only after successful child exit AND restoration.
 echo '[GRIDEX-REM-002 replay] PASS: owned compatible schema diagnostic; NO ledger provenance'

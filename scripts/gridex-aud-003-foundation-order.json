@@ -58,6 +58,7 @@
     "migrations/20260525_debug_batch_2e_verify_dashboard_user_provisioning.sql",
     "migrations/20260526_debug_batch_2_tenant_rbac_server_actions.sql",
     "migrations/20260910174947_canonical_user_rbac_repair_boundary.sql",
+    "migrations/20260525_debug_batch_2h_dedupe_user_roles_and_unique_guard.sql",
     "bootstrap/20260521_external_contract_intakes_foundation.sql",
     "bootstrap/20260521_customer_portal_completions_foundation.sql",
     "bootstrap/20260521_batch_2b_control_tower_foundation.sql",

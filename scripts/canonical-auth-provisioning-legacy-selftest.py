@@ -208,7 +208,7 @@ def constructor_checks():
     import ast
     runner=ast.parse((ROOT/'scripts/canonical-auth-membership-group.py').read_text())
     commands=next(ast.literal_eval(n.value) for n in runner.body if isinstance(n,ast.Assign) and any(getattr(t,'id','')=='COMMANDS' for t in n.targets))
-    assert len(commands)==18 and commands[16]==('python3','scripts/canonical-auth-provisioning-legacy-selftest.py')
+    assert len(commands)==19 and commands[16]==('python3','scripts/canonical-auth-provisioning-legacy-selftest.py')
     assert hashlib.sha256(json.dumps(commands[:16],separators=(',',':')).encode()).hexdigest()=='cb21bcc0056da45b1d91c1312f107e322330744f645fdb4123fa278825f6b1bb'
     replay=load_replay()
     replay_constructor_checks(b,replay)
@@ -848,7 +848,7 @@ def replay_constructor_checks(b,replay):
     result=subprocess.run(['python3','scripts/gridex-replay-input-accounting.py','--require-full-effects'],cwd=ROOT,capture_output=True,text=True)
     accounting=json.loads(result.stdout)
     assert result.returncode==1 and accounting['totalMigrations']==596 and not accounting['errors']
-    assert accounting['counts']=={'FULL_FILE_SELECTED':537,'SUBSTITUTED':23,'UNCLASSIFIED':32,'EXPLICITLY_EXCLUDED':4}
+    assert accounting['counts']=={'FULL_FILE_SELECTED':538,'SUBSTITUTED':23,'UNCLASSIFIED':31,'EXPLICITLY_EXCLUDED':4}
     by_path={item['path']:item for item in accounting['migrations']}
     for ordinal,logical in enumerate(replay.selected_group(b),44):
         assert by_path[logical]['classification']=='FULL_FILE_SELECTED'

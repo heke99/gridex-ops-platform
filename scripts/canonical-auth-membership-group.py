@@ -25,16 +25,17 @@ COMMANDS = (
     ('python3', 'scripts/canonical-auth-provisioning-diagnostics-selftest.py'),
     ('python3', 'scripts/canonical-auth-provisioning-legacy-selftest.py'),
     ('python3', 'scripts/canonical-user-rbac-repair-selftest.py'),
+    ('python3', 'scripts/canonical-user-rbac-dedupe-selftest.py'),
 )
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--dry-run', action='store_true')
-    parser.add_argument('--partition', choices=('all18','all17','original16','legacy17','repair18'), default='all18')
+    parser.add_argument('--partition', choices=('all19','all18','all17','original16','legacy17','repair18','dedupe19'), default='all19')
     args = parser.parse_args()
     environment = {key: value for key, value in os.environ.items() if not key.startswith('PG')}
-    commands = {'all18':COMMANDS,'all17':COMMANDS[:17],'original16':COMMANDS[:16],
-                'legacy17':COMMANDS[16:17],'repair18':COMMANDS[17:18]}[args.partition]
+    commands = {'all19':COMMANDS,'all18':COMMANDS[:18],'all17':COMMANDS[:17],'original16':COMMANDS[:16],
+                'legacy17':COMMANDS[16:17],'repair18':COMMANDS[17:18],'dedupe19':COMMANDS[18:19]}[args.partition]
     for command in commands:
         print(' '.join(command), flush=True)
         if not args.dry_run:

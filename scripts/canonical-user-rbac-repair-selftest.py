@@ -757,11 +757,11 @@ def integration_constructors(b):
             else:raise AssertionError('arbitrary registered module accepted as trusted origin')
     finally:sys.modules[key]=saved
     order=json.loads((ROOT/'scripts/gridex-aud-003-foundation-order.json').read_text())['foundation']
-    assert len(order)==97 and order[52:56]==['migrations/'+p.name for p in b.reviewed_paths()]
+    assert len(order)==98 and order[52:56]==['migrations/'+p.name for p in b.reviewed_paths()]
     account=subprocess.run(['python3','scripts/gridex-replay-input-accounting.py','--require-full-effects'],cwd=ROOT,capture_output=True,text=True)
     data=json.loads(account.stdout)
     assert account.returncode==1 and not data['errors']
-    assert data['counts']=={'FULL_FILE_SELECTED':537,'SUBSTITUTED':23,'UNCLASSIFIED':32,'EXPLICITLY_EXCLUDED':4}
+    assert data['counts']=={'FULL_FILE_SELECTED':538,'SUBSTITUTED':23,'UNCLASSIFIED':31,'EXPLICITLY_EXCLUDED':4}
     by_path={row['path']:row for row in data['migrations']}
     for ordinal,path in enumerate(order[43:56],44):
         assert by_path[path]['execution']==[{'ordinal':ordinal,'stage':'foundation'}]
@@ -797,26 +797,35 @@ def integration_constructors(b):
             return original_open(path,*args,**kwargs)
         paths=[str(hold/Path(p).name if p.startswith('migrations/') else ROOT/'supabase'/p) for p in order]
         try:
-            for scope in ('legacy52','repair56','full'):
-                loop=replay.FoundationLoop(b.legacy,h,scope)
-                observed=[]
-                h.run_files=lambda db,files,stage,transaction=True:observed.append((db,stage,transaction))
-                def legacy_execute(target,db,logical,staging=None):
-                    b.legacy.envelope_files(target,logical,staging)
-                    observed.append((db,'legacy',True));return {'sources':9}
-                def repair_execute(target,db,logical,staging=None):
-                    b.envelope_files(target,logical,staging)
-                    observed.append((db,'repair',True));return {'sources':4}
-                with patch.object(Path,'open',retained_only),patch.object(b.legacy,'execute',legacy_execute),patch.object(b,'execute',repair_execute),contextlib.redirect_stdout(io.StringIO()):
-                    loop.run(hold,paths)
-                expected=['replay_foundation_'+str(i) for i in range(1,44)]+['legacy']
-                if scope!='legacy52':expected+=['repair']
-                if scope=='full':expected+=['replay_foundation_'+str(i) for i in range(57,98)]
-                assert [stage for _,stage,_ in observed]==expected
-                assert all(db==replay.DATABASE for db,_,_ in observed)
-                try:loop.run(hold,paths)
-                except b.BoundaryError:pass
-                else:raise AssertionError('duplicate whole foundation executed')
+            # New native-COMMIT scopes have their own real lifecycle proof in command19.
+            # These recorder-only checks retain full98 dispatch construction.
+            with contextlib.ExitStack() as constructor_patches:
+                dedupe=replay.load_dedupe()
+                for name in ('require_live','accepted56','fail'):
+                    constructor_patches.enter_context(patch.object(dedupe,name,return_value=None))
+                constructor_patches.enter_context(patch.object(dedupe,'execute',side_effect=lambda target,db,paths,staging=None: observed.append((db,'dedupe',False)) or {'sources':1}))
+                _record_scopes=('legacy52','repair56','dedupe57','full')
+                for scope in _record_scopes:
+                    loop=replay.FoundationLoop(b.legacy,h,scope)
+                    observed=[]
+                    h.run_files=lambda db,files,stage,transaction=True:observed.append((db,stage,transaction))
+                    def legacy_execute(target,db,logical,staging=None):
+                        b.legacy.envelope_files(target,logical,staging)
+                        observed.append((db,'legacy',True));return {'sources':9}
+                    def repair_execute(target,db,logical,staging=None):
+                        b.envelope_files(target,logical,staging)
+                        observed.append((db,'repair',True));return {'sources':4}
+                    with patch.object(Path,'open',retained_only),patch.object(b.legacy,'execute',legacy_execute),patch.object(b,'execute',repair_execute),contextlib.redirect_stdout(io.StringIO()):
+                        loop.run(hold,paths)
+                    expected=['replay_foundation_'+str(i) for i in range(1,44)]+['legacy']
+                    if scope!='legacy52':expected+=['repair']
+                    if scope in ('dedupe57','full'):expected+=['dedupe']
+                    if scope=='full':expected+=['replay_foundation_'+str(i) for i in range(58,99)]
+                    assert [stage for _,stage,_ in observed]==expected
+                    assert all(db==replay.DATABASE for db,_,_ in observed)
+                    try:loop.run(hold,paths)
+                    except b.BoundaryError:pass
+                    else:raise AssertionError('duplicate whole foundation executed')
             loop=replay.FoundationLoop(b.legacy,h,'repair56')
             h.run_files=lambda *a,**k:(_ for _ in ()).throw(AssertionError('invalid stage reached target SQL'))
             for bad in (paths[:-1],paths[::-1],paths+paths[-1:],paths[:52]+paths[53:56]+paths[52:53]+paths[56:]):
@@ -834,13 +843,13 @@ def integration_constructors(b):
                     except b.BoundaryError:pass
                     else:raise AssertionError('bad retained dependency accepted')
                     path.unlink(missing_ok=True);path.write_bytes(raw)
-            for scope in ('legacy52','full'):
+            for scope in ('legacy52','repair56'):
                 other=replay.FoundationLoop(b.legacy,h,scope)
                 w=hold/b.W;raw=w.read_bytes();w.write_bytes(raw+b'\n')
                 try:
                     try:other.run(hold,paths)
                     except b.BoundaryError:pass
-                    else:raise AssertionError('whole97 validation omitted repair source in named scope')
+                    else:raise AssertionError('whole98 validation omitted repair source in named scope')
                 finally:w.write_bytes(raw)
             for fake_stage in (object(),types.SimpleNamespace(read=lambda p:p.read_bytes())):
                 try:b.validate_sources(b.reviewed_paths(),fake_stage)
@@ -876,7 +885,7 @@ def integration_constructors(b):
             assert h.reference==({'legacy_base':1},{'legacy_final':1})
             assert b.REFERENCES[h] is saved_ref
         finally:b.REFERENCES.pop(h,None);h.active=False;h.directory=None
-    print('PASS repair integration constructors: exact97, shared trusted loader, retained dependencies, three scopes and once-only same-target dispatch; NO SQL claim')
+    print('PASS repair integration constructors: exact98, shared trusted loader, retained dependencies, four scopes and once-only same-target dispatch; NO SQL claim')
 
 
 def replay_originals_snapshot():

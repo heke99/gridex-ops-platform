@@ -81,8 +81,8 @@ jobs:
       GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-dedupe-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
-      - name: Verify complete unselected H2 with native COMMIT on private owned PostgreSQL 17
-        run: python3 scripts/canonical-user-rbac-dedupe-selftest.py
+      - name: Verify command19 full standalone H2 and actual staged dedupe57 on private owned PostgreSQL 17
+        run: python3 scripts/canonical-auth-membership-group.py --partition dedupe19
       - name: Remove only the owned dedupe proof container
         if: always()
         run: python3 scripts/canonical-user-rbac-dedupe-selftest.py --cleanup-owned

@@ -58,8 +58,12 @@ def load_repair():
     return trusted_module('user_rbac_repair_batch','canonical-user-rbac-repair-batch.py')
 
 
-SCOPES={'legacy52':52,'repair56':56,'full':97}
-FOUNDATION_SHA256='d7df5b38f95f9e65995eba3adada6aba61e7be354fc0191f190bf692bff54ac1'
+def load_dedupe():
+    return trusted_module('user_rbac_dedupe_batch','canonical-user-rbac-dedupe-batch.py')
+
+
+SCOPES={'legacy52':52,'repair56':56,'dedupe57':57,'full':98}
+FOUNDATION_SHA256='271142f607da58484518cc870366802aa36fb3f3b6b9688c40188cf180d6ce08'
 
 
 def require_scope(scope):
@@ -70,7 +74,7 @@ def require_scope(scope):
 
 def scope_flags(scope):
     require_scope(scope)
-    return {'legacy52':['--foundation-prefix-proof'],'repair56':['--repair-prefix-proof'],'full':[]}[scope]
+    return {'legacy52':['--foundation-prefix-proof'],'repair56':['--repair-prefix-proof'],'dedupe57':['--dedupe-prefix-proof'],'full':[]}[scope]
 
 
 def require_context(payload,scope):
@@ -86,6 +90,9 @@ class FoundationLoop:
     def __init__(self,b,target,scope='full'):
         self.scope=require_scope(scope)
         self.repair=load_repair()
+        self.dedupe=load_dedupe()
+        self.terminal=scope in ('dedupe57','full')
+        if self.terminal: self.dedupe.require_live(target)
         if b is not load_batch() or self.repair.legacy is not b:
             raise RuntimeError('TRUSTED_MODULE_ORIGIN_REQUIRED')
         self.repair.require_owned(target,reference=scope!='legacy52')
@@ -97,14 +104,23 @@ class FoundationLoop:
         self.repair_reference=self.repair.REFERENCES.get(target) if scope!='legacy52' else None
         self.order=json.loads((ROOT/'scripts/gridex-aud-003-foundation-order.json').read_text())['foundation']
         self.prefix=b.verified_prefix()
-        if (len(self.order)!=97 or self.order[43:52]!=selected_group(b) or
+        if (len(self.order)!=98 or self.order[43:52]!=selected_group(b) or
             self.order[52:56]!=selected_group(self.repair) or
+            self.order[56:57]!=selected_group(self.dedupe) or
             hashlib.sha256(json.dumps(self.order,separators=(',',':')).encode()).hexdigest()!=FOUNDATION_SHA256):
             raise b.BoundaryError('FOUNDATION_GROUP_MISMATCH')
         if [p for p,_ in self.prefix]!=self.order[:43]:
             raise b.BoundaryError('PREFIX_MISMATCH')
 
     def validate(self,hold,paths):
+        if self.terminal: self.dedupe.require_live(self.target)
+        try:
+            return self._validate(hold,paths)
+        except BaseException:
+            if self.terminal: self.dedupe.fail(self.target)
+            raise
+
+    def _validate(self,hold,paths):
         b=self.b
         self.repair.require_owned(self.target,reference=self.scope!='legacy52')
         if (self.target.reference is not self.legacy_reference or
@@ -132,10 +148,19 @@ class FoundationLoop:
         repair_sources=self.repair.validate_sources(self.repair.reviewed_paths(),stage)
         self.repair.source_oracle(repair_sources)
         self.repair.diagnostic_guard(repair_sources)
+        self.dedupe.index_declarations(stage)
         self.validated=True
         return stage,data
 
     def run(self,hold,paths):
+        if self.terminal: self.dedupe.require_live(self.target)
+        try:
+            return self._run(hold,paths)
+        except BaseException:
+            if self.terminal: self.dedupe.fail(self.target)
+            raise
+
+    def _run(self,hold,paths):
         if self.applied: raise self.b.BoundaryError('FOUNDATION_ALREADY_EXECUTED')
         stage,data=self.validate(hold,paths)
         self.applied=True
@@ -147,11 +172,15 @@ class FoundationLoop:
         if self.scope!='legacy52':
             receipt=self.repair.execute(h,DATABASE,self.repair.reviewed_paths(),stage)
             if receipt['sources']!=4: raise b.BoundaryError('SOURCE_COMPLETION_MISMATCH')
+        if self.terminal:
+            self.dedupe.accepted56(h)
+            receipt=self.dedupe.execute(h,DATABASE,self.dedupe.reviewed_paths(),stage)
+            if receipt['sources']!=1: raise b.BoundaryError('SOURCE_COMPLETION_MISMATCH')
         if self.scope=='full':
-            for ordinal,raw in enumerate(data[56:],57):
+            for ordinal,raw in enumerate(data[57:],58):
                 h.run_files(DATABASE,[h.private('replay-source-'+str(ordinal)+'.sql',raw)],'replay_foundation_'+str(ordinal),transaction=False)
         print(json.dumps({'stage':'actual_replay_foundation','first43':43,'legacy_sources':9,
-                          'repair_sources':0 if self.scope=='legacy52' else 4,'scope':self.scope,
+                          'repair_sources':0 if self.scope=='legacy52' else 4,'dedupe_sources':int(self.terminal),'scope':self.scope,
                           'executions_each':1,'foundation_sources':SCOPES[self.scope],
                           'ledger_provenance':'NO','complete_replay':False},sort_keys=True),flush=True)
         return ''
@@ -187,8 +216,34 @@ def psql_payload(arguments):
     return {'operation':'sql','sql':'\n'.join(statements)}
 
 
+def originals_snapshot():
+    migrations=ROOT/'supabase/migrations'
+    entries=[]
+    for path in sorted(migrations.rglob('*')):
+        stat=path.lstat()
+        value=os.readlink(path) if path.is_symlink() else (path.read_bytes() if path.is_file() else None)
+        entries.append((str(path.relative_to(migrations)),stat.st_mode,stat.st_mtime_ns,value))
+    seed=ROOT/'supabase/seed.sql'
+    return (migrations.stat().st_mode,migrations.stat().st_mtime_ns,entries,
+            seed.read_bytes(),seed.stat().st_mode,seed.stat().st_mtime_ns)
+
+
 def serve_child(b,h,command,scope='full'):
+    terminal=require_scope(scope) in ('dedupe57','full')
+    dedupe=load_dedupe()
+    if terminal: dedupe.fresh_target(h)
+    try:
+        return _serve_child(b,h,command,scope)
+    except BaseException:
+        if terminal: dedupe.fail(h)
+        raise
+
+
+def _serve_child(b,h,command,scope):
     loop=FoundationLoop(b,h,scope)
+    originals=originals_snapshot() if loop.terminal else None
+    bootstrap=(ROOT/'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_text()
+    bootstrap_done=False
     endpoint=Path(h.directory.name)/'replay.sock'
     shim_dir=Path(h.directory.name)/'transport';shim_dir.mkdir(mode=0o700,exist_ok=True)
     shim=shim_dir/'psql'
@@ -199,7 +254,7 @@ def serve_child(b,h,command,scope='full'):
                         'PATH':str(shim_dir)+os.pathsep+environment.get('PATH','')})
     with socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as server:
         server.bind(str(endpoint));os.chmod(endpoint,0o600);server.listen(1);server.settimeout(.2)
-        child=subprocess.Popen(command,cwd=ROOT,env=environment)
+        child=subprocess.Popen(command,cwd=ROOT,env=environment,start_new_session=True)
         h.processes.append(child)
         try:
             while child.poll() is None:
@@ -213,6 +268,7 @@ def serve_child(b,h,command,scope='full'):
                             chunks.append(chunk)
                             if sum(map(len,chunks))>16*1024*1024: raise b.BoundaryError('REQUEST_TOO_LARGE')
                         payload=json.loads(b''.join(chunks))
+                        if loop.terminal: loop.dedupe.require_live(h)
                         operation=payload.get('operation')
                         if operation=='context':
                             require_context(payload,scope)
@@ -224,6 +280,12 @@ def serve_child(b,h,command,scope='full'):
                             else:output=loop.run(payload['hold'],payload['paths'])
                         elif operation=='sql':
                             if not loop.validated: raise b.BoundaryError('STAGED_VALIDATION_REQUIRED')
+                            if loop.terminal and not loop.applied:
+                                if bootstrap_done or payload['sql']!=bootstrap:
+                                    raise b.BoundaryError('BOOTSTRAP_ONLY_REQUIRED')
+                                bootstrap_done=True
+                            elif scope=='dedupe57':
+                                raise b.BoundaryError('BOUNDED_SQL_REJECTED')
                             # Keep all client/server raw streams private. Only
                             # SQL stdout needed by fingerprint/shape checks is
                             # returned to the child; stderr is always sanitized.
@@ -231,16 +293,28 @@ def serve_child(b,h,command,scope='full'):
                         else: raise b.BoundaryError('REPLAY_OPERATION_REJECTED')
                         response={'ok':True,'output':output}
                     except Exception as error:
+                        if loop.terminal: loop.dedupe.fail(h)
                         if isinstance(error,b.BoundaryError) and str(error)=='INTERRUPTED': raise
                         print(json.dumps({'stage':'replay_transport','category':'REQUEST_REJECTED','type':type(error).__name__}),flush=True)
                         response={'ok':False}
                     connection.sendall(json.dumps(response).encode())
-            return child.wait()
+            status=child.wait()
+            if loop.terminal:
+                if status or not loop.applied or originals_snapshot()!=originals:
+                    loop.dedupe.fail(h)
+                    raise b.BoundaryError('ACTUAL_REPLAY_OR_RESTORATION_FAILED')
+                loop.dedupe.finish(h,scope=='full')
+            return status
         finally:
             if child.poll() is None:
-                child.terminate()
+                # Give a disconnected shim time to fail and the real shell to
+                # restore HOLD before terminating a wedged child process group.
                 try: child.wait(timeout=5)
-                except subprocess.TimeoutExpired: child.kill();child.wait()
+                except subprocess.TimeoutExpired:
+                    os.killpg(child.pid,signal.SIGTERM)
+                    try: child.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        os.killpg(child.pid,signal.SIGKILL);child.wait()
             endpoint.unlink(missing_ok=True)
 
 
@@ -252,12 +326,13 @@ def main():
     scopes=parser.add_mutually_exclusive_group()
     scopes.add_argument('--foundation-prefix-proof',action='store_true')
     scopes.add_argument('--repair-prefix-proof',action='store_true')
+    scopes.add_argument('--dedupe-prefix-proof',action='store_true')
     parser.add_argument('--context',action='store_true')
     parser.add_argument('--foundation')
     parser.add_argument('--validate-foundation',action='store_true')
     parser.add_argument('--hold')
     args=parser.parse_args()
-    scope='legacy52' if args.foundation_prefix_proof else ('repair56' if args.repair_prefix_proof else 'full')
+    scope='legacy52' if args.foundation_prefix_proof else ('repair56' if args.repair_prefix_proof else ('dedupe57' if args.dedupe_prefix_proof else 'full'))
     if args.context:
         request({'operation':'context','scope':scope});return
     if args.foundation:
@@ -270,19 +345,27 @@ def main():
     if scope=='full':
         result=subprocess.run([sys.executable,str(ROOT/'scripts/gridex-replay-input-accounting.py'),'--root',str(ROOT),'--require-full-effects'],capture_output=True)
         if result.returncode: raise b.BoundaryError('FULL_EFFECTS_INCOMPLETE')
+        result_accounting=result.stdout
     with b.OwnedPostgres() as h:
         if scope=='legacy52':b.prepare_reference(h)
-        else:load_repair().prepare_reference(h)
-        h.reset(DATABASE)
+        elif scope=='repair56':load_repair().prepare_reference(h)
+        else:load_dedupe().prepare_reference(h)
+        if scope in ('legacy52','repair56'):h.reset(DATABASE)
         command=['bash',str(ROOT/'scripts/gridex-aud-003-clean-replay.sh')]
         command+=scope_flags(scope)
         result=serve_child(b,h,command,scope)
         if result: raise b.BoundaryError('ACTUAL_REPLAY_FAILED')
-        if scope!='full':
+        if scope=='dedupe57':
+            print('PASS actual clean-shell scope=dedupe57; owned compatible diagnostic; NOT full replay')
+        elif scope in ('legacy52','repair56'):
             actual=h.catalog(DATABASE) if scope=='legacy52' else load_repair().catalog(h,DATABASE)
             expected=h.reference[1] if scope=='legacy52' else load_repair().REFERENCES[h].final
             if actual!=expected: raise b.BoundaryError('ACTUAL_REPLAY_CATALOG_MISMATCH')
             print('PASS actual clean-shell scope='+scope+'; owned compatible diagnostic; NOT full replay')
+
+    if scope=='full':
+        artifacts=ROOT/'artifacts';artifacts.mkdir(exist_ok=True)
+        (artifacts/'replay-input-accounting.json').write_bytes(result_accounting)
 
 
 if __name__=='__main__':
