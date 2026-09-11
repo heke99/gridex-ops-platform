@@ -6,9 +6,9 @@
   "archive": ".agent-memory/archive/pre-batch-20260907/",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "6c9e05d2dd5b93f31e031b513c5ff9862761d5c2",
+    "published_baseline": "1d6f75ede1606c084fc39e26796768e5665016e0",
     "last_isolated_pg17_code": "6c9e05d2dd5b93f31e031b513c5ff9862761d5c2"
   },
-  "execution_environment": "connected; reviewed tree4957ebcd aligned to published6c9e05d2; local6a432466 archived",
-  "next_action": "Publish coherent reviewed Task21/22/23 batch (Task22code55f29c50+fix14b85b35,Task23doccfbc9f46), verify exacttree and new hostedPG17/required prior gates. Counters600/346,foundation104/actual63,50historical unresolved unchanged. Full plan open."
+  "execution_environment": "connected; reviewed tree33f3a960 aligned to published1d6f75ed; localeb902cf7 archived",
+  "next_action": "Publish reviewed diagnostic-onlyTask22fix2code8092b637, verify exacttree, collect onehosted first-stage/category evidence. Originalcauseunproved;10constructors/cleanupPASS, nativealignmentfailed.600/346,foundation104/actual63,50historical unresolved. Fullplanopen."
 }

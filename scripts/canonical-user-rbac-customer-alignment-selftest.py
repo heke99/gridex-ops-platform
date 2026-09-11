@@ -20,6 +20,55 @@ def load(name, filename):
 
 
 class Constructors(unittest.TestCase):
+    def test_failure_receipt_discards_untrusted_stage_type_and_message(self):
+        self.assertTrue('failure_receipt' in globals(), 'closed diagnostic constructor required')
+        class PrivateError(RuntimeError):
+            def __str__(self):
+                raise AssertionError('private exception string must never be read')
+        actual = failure_receipt('private/path/identity', PrivateError('private SQL payload'))
+        self.assertEqual(actual, dict(stage='internal', type='OTHER', category='PRIVATE_PROOF_FAILED'))
+        self.assertEqual(failure_receipt('release_binding', batch.BoundaryError('ALIGNMENT_FROZEN_RELEASE_IDENTITY')),
+                         dict(stage='release_binding', type='BOUNDARY', category='BOUNDARY_REJECTED'))
+        self.assertEqual(failure_receipt('release_binding', batch.BoundaryError('unknown private label'))['category'],
+                         'BOUNDARY_REJECTED')
+
+    def test_query_failure_categories_are_closed(self):
+        self.assertTrue('query_failure_category' in globals(), 'closed query categories required')
+        self.assertEqual(query_failure_category('42703'), 'QUERY_UNDEFINED_COLUMN')
+        self.assertEqual(query_failure_category('42601'), 'QUERY_SYNTAX')
+        for value in ('private SQLSTATE text', 'XX000', '', None, ['42703']):
+            self.assertEqual(query_failure_category(value), 'PRIVATE_QUERY_FAILED')
+
+    def test_query_diagnostics_preserve_exact_success_predicate(self):
+        from unittest.mock import Mock
+        reader = Mock(spec=AlignmentProof)
+        for code, state in ((0, '00000'), (1, '00000'), (0, '42703'), (1, 'private state')):
+            reader.run.return_value = core.Result('private rows', 'private SQL', code, state, None, None)
+            if code == 0 and state == '00000':
+                self.assertEqual(AlignmentProof.query(reader, 'private database', 'private input'), 'private rows')
+            else:
+                with self.assertRaises(NativeQueryError) as caught:
+                    AlignmentProof.query(reader, 'private database', 'private input')
+                receipt = failure_receipt('helper_catalog', caught.exception)
+                self.assertEqual(receipt['category'], query_failure_category(state))
+                self.assertNotIn('private', json.dumps(receipt))
+
+    def test_first_stage_failure_survives_cleanup_exception(self):
+        global _NATIVE_FAILURE
+        previous = _NATIVE_FAILURE
+        _NATIVE_FAILURE = None
+        try:
+            with self.assertRaises(OSError):
+                with diagnostic_stage('owned_lifecycle'):
+                    try:
+                        with diagnostic_stage('helper_catalog'):
+                            raise NativeQueryError('42703')
+                    finally:
+                        raise OSError('private cleanup detail')
+            self.assertEqual(_NATIVE_FAILURE, dict(stage='helper_catalog', type='QUERY', category='QUERY_UNDEFINED_COLUMN'))
+        finally:
+            _NATIVE_FAILURE = previous
+
     def test_boundary_privilege_probe_rejects_commit_before_reader(self):
         try:
             with self.assertRaises(batch.BoundaryError):
@@ -203,6 +252,56 @@ def rows_equal(a, b):
     return sorted(map(encoded, a)) == sorted(map(encoded, b))
 
 
+DIAGNOSTIC_STAGES = frozenset(('entry', 'owner_requirement', 'source_snapshot',
+    'owned_lifecycle', 'accepted_inputs', 'reference_prepare', 'canary_setup',
+    'actual63_child', 'alignment_reference', 'release_binding', 'helper_prerequisites',
+    'helper_catalog', 'origin_snapshot', 'reference_decode', 'catalog_equality',
+    'source_state_equality', 'canary_snapshot', 'graph_admission', 'diagnostic_binding',
+    'next_catalog_receipt', 'native_cases', 'final_privacy', 'controller_deaths'))
+QUERY_CATEGORIES = {'42601': 'QUERY_SYNTAX', '42703': 'QUERY_UNDEFINED_COLUMN',
+    '42P01': 'QUERY_UNDEFINED_RELATION', '42704': 'QUERY_UNDEFINED_OBJECT',
+    '42804': 'QUERY_DATATYPE', '42883': 'QUERY_UNDEFINED_FUNCTION',
+    '42501': 'QUERY_PRIVILEGE', '55P03': 'QUERY_LOCK', 'P0004': 'QUERY_ASSERTION'}
+_NATIVE_FAILURE = None
+
+
+def query_failure_category(state):
+    return QUERY_CATEGORIES.get(state, 'PRIVATE_QUERY_FAILED') if type(state) is str else 'PRIVATE_QUERY_FAILED'
+
+
+class NativeQueryError(batch.BoundaryError):
+    def __init__(self, state):
+        super().__init__()
+        self.category = query_failure_category(state)
+
+
+def failure_receipt(stage, error):
+    """Finite literals only: never exception args, str/repr, dynamic type names."""
+    stage = stage if type(stage) is str and stage in DIAGNOSTIC_STAGES else 'internal'
+    kind = {batch.BoundaryError: 'BOUNDARY', NativeQueryError: 'QUERY',
+            AssertionError: 'ASSERTION', ValueError: 'VALUE', KeyError: 'KEY',
+            TypeError: 'TYPE', AttributeError: 'ATTRIBUTE', json.JSONDecodeError: 'JSON',
+            OSError: 'PROCESS', subprocess.TimeoutExpired: 'TIMEOUT'}.get(type(error), 'OTHER')
+    category = 'BOUNDARY_REJECTED' if kind == 'BOUNDARY' else 'PRIVATE_PROOF_FAILED'
+    if type(error) is NativeQueryError:
+        candidate = error.category
+        category = candidate if type(candidate) is str and candidate in QUERY_CATEGORIES.values() else 'PRIVATE_QUERY_FAILED'
+    return dict(stage=stage, type=kind, category=category)
+
+
+@contextlib.contextmanager
+def diagnostic_stage(stage):
+    global _NATIVE_FAILURE
+    try:
+        yield
+    except BaseException as error:
+        # Capture the first failing operation before context cleanup can replace
+        # its exception. Retain only the closed receipt, never private objects.
+        if _NATIVE_FAILURE is None:
+            _NATIVE_FAILURE = failure_receipt(stage, error)
+        raise
+
+
 def boundary_privilege_probe():
     """Post-C test-only grants; whole W must remove them before role disposal."""
     before = '''CREATE ROLE alignment_boundary_inherited NOLOGIN;
@@ -255,21 +354,39 @@ class AlignmentProof(core.Proof):
         self.reservations, self.terminal = {}, set()
         self.sources = batch.validate_sources(batch.reviewed_paths())
         self.accepted_inputs = self.fixed_reference.inputs if type(self.fixed_reference) is fixed.Reference else None
-        self.owned(batch.replay.DATABASE)
+        with diagnostic_stage('release_binding'):
+            self.owned(batch.replay.DATABASE)
         # The helper was built independently from selected prefix and source-only
         # R2/E2/S2/H2 declarations. Add exactly the fixed prerequisite source delta,
         # without rerunning fixed identities or using restoration X as an oracle.
-        self.query(REFERENCE, "ALTER TABLE public.companies ADD COLUMN industry text NOT NULL DEFAULT 'electricity_supplier'; ALTER TABLE public.company_memberships ADD COLUMN suspended_at timestamptz;")
-        independently_constructed = self.snapshot(REFERENCE)[0]
-        self.origin = self.snapshot(batch.replay.DATABASE)
-        expected = fixed.decoded(self.fixed_release.s1)
-        check(self.origin[0] == independently_constructed, 'ALIGNMENT_INDEPENDENT_ACTUAL63_CATALOG')
-        check({k: v for k, v in self.origin[0].items() if not k.startswith('alignment_')} == expected[0]
-              and rows_equal(self.origin[1], expected[1]), 'ALIGNMENT_SOURCE_BACKED_ACTUAL63_REQUIRED')
+        with diagnostic_stage('helper_prerequisites'):
+            self.query(REFERENCE, "ALTER TABLE public.companies ADD COLUMN industry text NOT NULL DEFAULT 'electricity_supplier'; ALTER TABLE public.company_memberships ADD COLUMN suspended_at timestamptz;")
+        with diagnostic_stage('helper_catalog'):
+            independently_constructed = self.snapshot(REFERENCE)[0]
+        with diagnostic_stage('origin_snapshot'):
+            self.origin = self.snapshot(batch.replay.DATABASE)
+        with diagnostic_stage('reference_decode'):
+            expected = fixed.decoded(self.fixed_release.s1)
+        with diagnostic_stage('catalog_equality'):
+            check(self.origin[0] == independently_constructed, 'ALIGNMENT_INDEPENDENT_ACTUAL63_CATALOG')
+        with diagnostic_stage('source_state_equality'):
+            check({k: v for k, v in self.origin[0].items() if not k.startswith('alignment_')} == expected[0]
+                  and rows_equal(self.origin[1], expected[1]), 'ALIGNMENT_SOURCE_BACKED_ACTUAL63_REQUIRED')
         self.reference = encoded((independently_constructed, expected[1]))
-        self.canary = self.snapshot(CANARY)
-        self.graph(self.origin[0])
-        self.bind_diagnostic()
+        with diagnostic_stage('canary_snapshot'):
+            self.canary = self.snapshot(CANARY)
+        with diagnostic_stage('graph_admission'):
+            self.graph(self.origin[0])
+        with diagnostic_stage('diagnostic_binding'):
+            self.bind_diagnostic()
+
+    def query(self, database, sql):
+        # Same inherited memory transport and exact success predicate. A failed
+        # Result already carries a sanitized state; map it to a finite category.
+        result = self.run(database, sql)
+        if not (result.code == 0 and result.state == '00000'):
+            raise NativeQueryError(result.state)
+        return result.stdout
 
     def owned(self, database):
         repair.require_owned(self.h)
@@ -482,29 +599,40 @@ def require_owner():
 
 
 def native(death_stage=None):
-    require_owner()
-    original = batch.replay.originals_snapshot()
-    with legacy.OwnedPostgres() as h:
-        with core.AcceptedInputs(h):
-            dedupe.prepare_reference(h, 'fixed-target')
-            h.reset(CANARY)
-            h.sql(CANARY, 'CREATE TABLE public.alignment_canary(id integer PRIMARY KEY, value text); INSERT INTO public.alignment_canary VALUES(1,\'preserved\');', 'alignment_canary')
+    global _NATIVE_FAILURE
+    _NATIVE_FAILURE = None
+    with diagnostic_stage('owner_requirement'):
+        require_owner()
+    with diagnostic_stage('source_snapshot'):
+        original = batch.replay.originals_snapshot()
+    with diagnostic_stage('owned_lifecycle'), legacy.OwnedPostgres() as h:
+        with diagnostic_stage('accepted_inputs'), core.AcceptedInputs(h):
+            with diagnostic_stage('reference_prepare'):
+                dedupe.prepare_reference(h, 'fixed-target')
+            with diagnostic_stage('canary_setup'):
+                h.reset(CANARY)
+                h.sql(CANARY, 'CREATE TABLE public.alignment_canary(id integer PRIMARY KEY, value text); INSERT INTO public.alignment_canary VALUES(1,\'preserved\');', 'alignment_canary')
             command = ['bash', str(ROOT/'scripts/gridex-aud-003-clean-replay.sh'), '--fixed-target-prefix-proof']
-            check(batch.replay.serve_child(legacy, h, command, 'fixed-target') == 0, 'ALIGNMENT_ACTUAL63_CHILD_REQUIRED')
-        proof = AlignmentProof(h)
-        labels = ('customer_profiles', 'customer_delivery_points', 'contract_agreements', 'document_ai_extractions')
-        sql = "SELECT jsonb_object_agg(label,coalesce(c.relkind::text,'missing')) FROM (VALUES " + ','.join('(' + batch.literal(name) + ')' for name in labels) + ") names(label) LEFT JOIN pg_class c ON c.oid=to_regclass('public.'||label);"
-        evidence = json.loads(proof.query(batch.replay.DATABASE, sql))
-        check(type(evidence) is dict and set(evidence) == set(labels) and all(value in ('r','p','v','m','f','S','i','I','c','t','missing') for value in evidence.values()), 'ALIGNMENT_BOUNDED_NEXT_CATALOG_SHAPE')
-        print(json.dumps({'stage': 'alignment_actual63_catalog_evidence', 'relations': evidence}, sort_keys=True), flush=True)
+            with diagnostic_stage('actual63_child'):
+                check(batch.replay.serve_child(legacy, h, command, 'fixed-target') == 0, 'ALIGNMENT_ACTUAL63_CHILD_REQUIRED')
+        with diagnostic_stage('alignment_reference'):
+            proof = AlignmentProof(h)
+        with diagnostic_stage('next_catalog_receipt'):
+            labels = ('customer_profiles', 'customer_delivery_points', 'contract_agreements', 'document_ai_extractions')
+            sql = "SELECT jsonb_object_agg(label,coalesce(c.relkind::text,'missing')) FROM (VALUES " + ','.join('(' + batch.literal(name) + ')' for name in labels) + ") names(label) LEFT JOIN pg_class c ON c.oid=to_regclass('public.'||label);"
+            evidence = json.loads(proof.query(batch.replay.DATABASE, sql))
+            check(type(evidence) is dict and set(evidence) == set(labels) and all(value in ('r','p','v','m','f','S','i','I','c','t','missing') for value in evidence.values()), 'ALIGNMENT_BOUNDED_NEXT_CATALOG_SHAPE')
+            print(json.dumps({'stage': 'alignment_actual63_catalog_evidence', 'relations': evidence}, sort_keys=True), flush=True)
         cases = load('alignment_native_cases', 'canonical-user-rbac-customer-alignment-cases.py')
         if death_stage:
             database = proof.fresh_generation(ATOMIC, 'controller-death-' + death_stage)
             before = proof.snapshot(database)
             proof.envelope(database, before, proof.expected(before), fault='controller_' + death_stage)
             raise batch.BoundaryError('ALIGNMENT_CONTROLLER_DEATH_NOT_OBSERVED')
-        cases.run(sys.modules[__name__], proof)
-        core.private_inputs.privacy(core, proof)
+        with diagnostic_stage('native_cases'):
+            cases.run(sys.modules[__name__], proof)
+        with diagnostic_stage('final_privacy'):
+            core.private_inputs.privacy(core, proof)
         check(not proof.reservations, 'ALIGNMENT_ALL_CONTROLS_DISPOSED')
         check(encoded(proof.snapshot(batch.replay.DATABASE)) == encoded(proof.origin), 'ALIGNMENT_FINAL_ORIGIN_CHANGED')
         check(batch.replay.originals_snapshot() == original, 'ALIGNMENT_SOURCE_RESTORATION_REQUIRED')
@@ -529,7 +657,8 @@ def main():
     if not args.selection_only:
         native()
         cases = load('alignment_death_cases', 'canonical-user-rbac-customer-alignment-cases.py')
-        cases.controller_deaths(sys.modules[__name__])
+        with diagnostic_stage('controller_deaths'):
+            cases.controller_deaths(sys.modules[__name__])
 
 
 if __name__ == '__main__':
@@ -537,7 +666,8 @@ if __name__ == '__main__':
         main()
     except SystemExit:
         raise
-    except BaseException:
-        # Closed diagnostic: never raw SQL, exception text, paths or identifiers.
-        print('FAIL customer alignment category=PRIVATE_PROOF_FAILED', file=sys.stderr)
+    except BaseException as error:
+        # Closed diagnostic: no raw SQL, args/text, paths, identities or results.
+        receipt = _NATIVE_FAILURE or failure_receipt('entry', error)
+        print('FAIL customer alignment ' + json.dumps(receipt, sort_keys=True), file=sys.stderr)
         raise SystemExit(1)

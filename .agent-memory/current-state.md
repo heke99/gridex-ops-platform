@@ -11,29 +11,20 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `6c9e05d2dd5b93f31e031b513c5ff9862761d5c2`, exact reviewed tree
-`4957ebcd63dce52a48f9dddcf56daeef9cb094b0`. Nonforce publication/fetch/local-server
-tree equality and tracked-clean alignment PASS; local6a432466 archived.
-Approved fix3 preserves runtime/SQL/privacy/source pins. Complete new native
-continuation103253167529 PASS12:10:31: standalone/actual63/repeats/all22faults/
-child exit/controller deaths after D2/F2/X/finalprivacy and cleanup. Samehead
-full10218/25/28/31/finalprivacy, quality/Ediel/original16/actual52/actual56 PASS.
-Historical19 targeted retry103257042591 PASS complete standalone/actual57/
-controller deaths/fresh failure recovery/privacy/exactcleanup12:20UTC.
-Task18 aggregate bounded original19/full102/actual63 acceptance COMPLETE.
-The initial reduced-controller failure remains documented with unproved cause;
-one retry, unchanged code, no guard weakening or repeated passed matrices.
-Task19 map/Task20 actual CLI/Task21 independently approved design complete.
-Task22 code55f29c50 + scopedfix14b85b35 independently APPROVED;
-complete new hostedPG17 characterization is the next acceptance gate.
-Nine fresh constructors and scoped static checks PASS; native hosted proof pending.
-Tenant/browser and fullE2E coverage PASS. Smoke14/15PASS including application
-TypeScript; sole migrations/generated-schema-types guard fails, so PRcertificate
-correctly remains red. Runtime/real/nightly/full lanes skipped, not acceptance.
-Full native/types/production plan remains open. No user changes discarded.
-Tasks1-14 remain accepted; their recorded source proofs are not restarted.
-Full native replay/types and production gates remain open.
-
+Latest publication: `1d6f75ede1606c084fc39e26796768e5665016e0`, exact reviewed tree
+`33f3a960d2801131b38aa78ca11ab8c718ef1fde`. Nonforce publication/fetch/local-server
+tree equality and tracked-clean alignment PASS; localeb902cf7 retained in
+archive/alignment-reviewed-eb902cf7. PRbody synchronized to actual head/failure.
+Task21 design, Task22 code55f29c50+fix14b85b35 and Task23mapcfbc9f46 are published
+and independently reviewed. Task22 hosted characterization FAILED before its
+first actual63 catalog receipt: OPS34606383824/job103285713102,10constructorsPASS
+13:48:08, PRIVATE_PROOF_FAILED13:48:43; ownedcleanupPASS. Exact cause unproved.
+Fix2 diagnostic-only8092b637 independently APPROVED; exact cause stillunproved.
+Publish the closed stage/type/category observation and obtain onehostedreceipt.
+Currenthead Ediel103285712932 and tenant34606383811 PASS; other required jobs
+still being collected. Clean replay103285713024 FAIL; fullnative/types gates open.
+Prior6c9e05d2 Task18 acceptance remains recorded below, not currenthead acceptance.
+No user changes discarded; no production merge/migration/deployment.
 
 Working-tree accounting is 600 inputs: 546 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 27 `UNCLASSIFIED`, and 4 `EXPLICITLY_EXCLUDED`.
 The focused group contains 346 inputs: 303 selected, 20 substituted, 19 unclassified, and 4 excluded.
@@ -56,10 +47,9 @@ readiness. Older counts remain historical receipts.
 
 ## Sole active work item
 
-Task22: publish reviewed whole-alignment characterization/private boundary and
-verify complete hostedPG17 behavior, failure/death/privacy/cleanup. Scopedfix1
-I1/I2 both addressed and independently approved, no newfindings.
-No local nativeSQL acceptance or historical A/B/C selection is claimed. Independent reviewed
+Task22 fix2: publish approved closed diagnostic8092b637 and obtain exact first
+hosted failure stage/category before a causal correction. No sharedruntime or
+SQL changes. Native acceptance/A/B/Cselection pending; root owns publication. Independent reviewed
 Task21 design and actual Task20 P20260911114442/W20260911114443 identities are binding.
 No historical A/B/C selection until complete hosted characterization passes.
 Task23 static source-effects map committedcfbc9f46 and independently APPROVED
@@ -70,8 +60,9 @@ Task18 is bounded VERIFIED at6c9e05d2, all19/full102/complete actual63/native
 fault/death/repeat/privacy accepted. No repeated old source audits/matrices.
 Task21 runtime/data-provenance/UX/native/live implementation gates remain downstream.
 
-Next: publish the coherent reviewed Task21/22/23 batch, verify exact local/remote
-tree equality and the complete new hostedPG17 job with required prior gates. Actual600/346 registration deltas are already synchronized.
+Next: publish reviewed Task22 fix2 with synchronized evidence, verify exacttree,
+collect onehosted failure diagnosis and repair its proven cause; complete allgates.
+Actual600/346 registration deltas are already synchronized.
 Fullnative/types/security/system/production plan remains open; no production action.
 
 ## Current executed acceptance
