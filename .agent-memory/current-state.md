@@ -1,7 +1,7 @@
 # Current state
 
 Updated: 2026-09-11.
-Status: IN_PROGRESS
+Status: BLOCKED
 
 The user authorizes necessary commits, pushes, PRs, merges, migrations and
 production deployment after the relevant gates. Continue in dependency order
@@ -9,12 +9,39 @@ without renewed permission.
 Push reviewed, coherent batches stepwise as requested. No production action has occurred in this continuation.
 No production mutation has been performed in this replay-verification batch.
 
-## Active work
+## Infrastructure block
+
+The execution environment disconnected immediately after the final actual77 local
+verification PASS. Root recovery timed out; independent reviewer returned409
+`environment_offline — Environment is not connected`. No command ran in that
+retry. Current disk state cannot be freshly inspected.
+
+Published implementation is b53a185fb018c32ee97daa3140b4a547a4e0b574. Actual74
+native is accepted; the standalone R/D/I source gate also PASSED all23cases in
+OPS34658558933/job103456082760 by23:37:24Z.
+
+The unpublished actual77 candidate was independently APPROVED, with8constructors,
+9scope dispatch,38accounting,20cleanup, affected predecessor constructors,
+diagnostics/provenance/history/readiness and final auth-membership-group checks
+PASS. It includes new intake runtime/continuation, original-child wiring, R/D/I
+at75–77, foundation118 and preserved first74/original41tail. Candidate counts are
+558selected/23substituted/14unclassified/5excluded (37global,30focusedunresolved).
+These are candidate counts; the exact published counts below remain authoritative
+until the candidate is recovered and published. No native77 acceptance is claimed.
+
+Next action after environment reconnect: inspect Git status and preserve all
+unpublished changes; fetch the documentation checkpoint; reconcile memory without
+resetting code; verify/stage the reviewed actual77 candidate, publish nonforce and
+resolve its hosted gate. Do not reconstruct or assert exact uncommitted bytes
+from chat. Continue remaining sources/full replay/schema/types/parity and the
+remaining masterplan after that. No production action occurred.
+
+## Published implementation evidence
 
 - Branch: `codex/gridex-parity-remediation-20260905`; draft PR #310.
-- Published implementation baseline: `53ef8b7f8d15d554cda9453acd314856ac9ea854`.
+- Published implementation baseline: `b53a185fb018c32ee97daa3140b4a547a4e0b574`.
 - Active masterplan step: P0-C, complete schema reconstruction and provenance.
-- Twelve reviewed batches pushed. The directional HOT correction passed native32
+- Thirteen reviewed implementation batches pushed. The directional HOT correction passed native32
   SQL controls and nine behavior cases. All43 raw omission setups were measured:
   17 reject2BP01,26 succeed; exact rollback preservation and cleanupPASS.
 - Source-bound omission fixture correction is published61bc1fe5. It uses exact
@@ -127,10 +154,8 @@ and verify exact tree equality. Preserve any unrelated changes.
 
 ## Continuity and next steps
 
-Actual74 native gate accepted on53ef8b7. Publish next bounded source-only R/D/I group
-332lines is statically reviewed;8constructor controls PASS. Whole-source native
-23case matrix and workflow prepared, independent final review APPROVED; actual74 predecessor now accepted. Source
-selection unchanged; these three remain unclassified. Continue after source gate.
+Recover and publish the approved actual77 candidate after environment reconnect,
+then resolve its hosted native gate. See the infrastructure block above.
 Independent review is required by AGENTS.md and requesting-code-review; do not
 repeat accepted matrices without an affected dependency. The new diagnostics
 are independently implemented from complete published source, not reconstructed
