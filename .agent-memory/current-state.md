@@ -11,17 +11,15 @@ No masterplan phase is closed by the bounded source-restoration receipts below.
 
 Active branch: `codex/gridex-parity-remediation-20260905`;
 [draft PR #310](https://github.com/heke99/gridex-ops-platform/pull/310).
-Latest publication: `aec7a34fd44f107d1d5411a8640b9d2bd0a4f93d`, exact reviewed tree
-`a81b69759c9b17e94b81952111aaddf966cc114f`. Nonforce publication/fetch/local-server
-tree equality and tracked-clean alignment PASS; local90258256 archived.
-Diagnostic-only fix1 independently APPROVED; OPS34592482485 running to reveal
-safe cause categories now confirm EMPTY_FIXED_BUSINESS_REQUIRED plus
-SOURCE_LITERAL_IN_PRIVATE_ARTIFACT at H2_COMPLETE; disposal VERIFIED.
-Author fix2 active from ccd5cefd; actual63 remains unaccepted.
-Prior633a9cf0 all original19/actual52+56+57/full102/finalprivacy/quality/Ediel PASS;
-new actual63 failed FIXED_FAILURE_PRIVACY_REJECTED, exact cleanup PASS.
-Task19 source map ccd5cefd independently APPROVED; two Minor wording corrections
-in5a59f483 inspected and accepted. Documentation task complete, native still open.
+Latest publication: `54ae675938fcec05e87324ad3ae4ae8380214d53`, exact reviewed tree
+`5f50e2c3f4ab08fcb4522683c89ea6dd17967e5a`. Nonforce publication/fetch/local-server
+tree equality and tracked-clean alignment PASS; localc41353a5 archived.
+Published batch includes independently approved Task18 fix2/Task19 map/Task20
+CLI-only workflow. OPS34595483635 running mandatory actual63/privacy and same-head
+original19/full102/quality/Ediel; actual alignment CLI artifact retrieval pending.
+Prior aec7a34f all19/actual52+56+57/full102/finalprivacy/quality/Ediel PASS;
+new actual63 failed the now-corrected seed admission/result artifact causes.
+Fix2 code review is approval to test, not native acceptance. Full plan open.
 No tracked user changes discarded; cache and unrelated worktree preserved.
 Tasks1-14 remain accepted; their recorded source proofs are not restarted.
 Full native replay/types and production gates remain open.
@@ -42,31 +40,23 @@ readiness. Older counts remain historical receipts.
 
 ## Sole active work item
 
-Task18 IMPLEMENTED_NOT_VERIFIED; fix2 contract correction independently APPROVED;
-fix2 implemented3a16b0f8 from5a59f483, independent code review APPROVED
-with no findings; mandatory hosted acceptance pending. Exact first57 creates an original random-PK
-company; original empty-company/one-total premise was impossible. Actual native
-aec7a34f job103240714820 confirms EMPTY_FIXED_BUSINESS_REQUIRED plus physical
-snapshot SOURCE_LITERAL_IN_PRIVATE_ARTIFACT at H2_COMPLETE, disposal VERIFIED.
+Task18 IMPLEMENTED_NOT_VERIFIED; fix3 targets proof-wrapper assertion after
+successful actual staged-shell boundary. At54ae6759, OPS34595483635/job103250143594
+passes complete standalone six-input execution/restoration/canary/finalprivacy;
+actual shell then reports bounded fixed-target integration PASS. Its subsequent
+stale-handle test calls the still-patched observation wrapper and asserts the
+pre-run state after successful completion. The real trusted denial must run.
+Fix3b0bce50c is independently APPROVED; runtime/SQL/privacy
+remain unchanged. Remaining native fault/death/repeat cases still must finish.
 
-Proposed correction preserves C_seed's original PK, requires its exact
-source-backed full row, independently materializes P's industry default in S1,
-reserves only its slug temporarily and constructs the required fixed C_target.
-Exactly3 synthetic Auth and1 synthetic company; two companies during composition,
-original one after X. Full original seed row/PK/catalog/sequence restoration and
-strict private actual-writer memory transport remain mandatory. No blanket
-business admission, PK rewrite, source rewrite or privacy exception is approved.
-Ignored task-18-fix2-contract.md and its approved review hold exact requirements;
-tracked Task16 contract will be reconciled alongside the implementation.
+Task20 actual CLI artifact10261507270 verified: ZIP484bytes/SHA7d1841830464e313509f55021ec23d91151b7e5bae02a94e67d98ce4db7a89f4;
+exact empty P20260911114442 and W20260911114443 alignment members retained ignored.
+Task20 complete. Fix3 also removes only its temporary job to avoid regeneration.
+Task19 source map complete/approved including two corrected minor wordings.
 
-Next: publish one
-coherent publication with mandatory hosted actual63 and same-head19/102 gates.
-Task19 source map is complete: ccd5cefd approved, two Minor wording corrections
-in5a59f483 inspected. Its later native/catalog/ownership/security gates remain open.
-Task20 CLI-only workflow4bd5f056 independently APPROVED; include in coherent
-publication and retrieve/verify actual two empty CLI identities from hosted job.
-Do not rerun completed source audits or invent timestamps. Full native/types
-and the complete production plan remain open; no production action occurred.
+Next: coherent publication and mandatory actual63 complete native/failure/privacy gates plus
+same-head19/102/quality/Ediel. No repeated source audits/CLI identities. Full
+native/types/security/system/production plan remains open; no production action.
 
 ## Current executed acceptance
 

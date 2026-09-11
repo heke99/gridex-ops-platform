@@ -280,3 +280,11 @@ renewed permission. No blanket seed exemption, deletion/recreation or second
 company is approved. Author prepares exact source-bound sole-company reuse/PK/
 P-materialization/S1/cleanup preservation amendment for independent review.
 Private artifact cause remains separately under source-backed diagnosis.
+
+54ae6759 new native continuation103250143594: standalone six whole inputs/
+restoration/disposal/canary/finalprivacy PASS. Actual staged shell reaches
+actual_replay_foundation63/bounded success, then test's stale-handle assertion
+wrongly calls patched observation wrapper, which asserts empty submissions and
+H2_COMPLETE despite SUCCEEDED/six inputs. This is a proof-wrapper defect;
+original trusted stale-handle denial must be exercised. Fix3 sole author active,
+no runtime/SQL/privacy changes required. All remaining native fault modes pending.

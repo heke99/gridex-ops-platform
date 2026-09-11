@@ -857,3 +857,13 @@ sequence disposal; conditional absence across57 index declaration identities.
 Root inspected exact two-line correction; no new test/review loop required.
 Actual63/native catalog/ownership/security decisions remain explicit later
 implementation gates. No source registration or production acceptance claimed.
+
+Task20 COMPLETE actual CLI artifact at54ae6759 OPS34595483635/job103250143578.
+Artifact10261507270 ZIP484bytes SHA256
+7d1841830464e313509f55021ec23d91151b7e5bae02a94e67d98ce4db7a89f4 verified
+against server digest. Exactly two regular nonsymlink empty members, each SHA
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:
+20260911114442_canonical_user_rbac_customer_alignment_prerequisites.sql
+20260911114443_canonical_user_rbac_customer_alignment_boundary.sql.
+Actual source files retained ignored with task-20-artifact-receipt.json; no SQL
+or source selection. Author fix3 will remove temporary job to avoid regeneration.

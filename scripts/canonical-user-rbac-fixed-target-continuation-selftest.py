@@ -45,6 +45,7 @@ def constructors():
     company_cleanup_controls(c)
     cleanup_context_controls(c)
     lifecycle_controls(c)
+    completed_continuation_controls(c)
     memory_controls(c)
     failure_receipt_controls(c)
     print('PASS continuation pins/reference/graph/PK/lifecycle/private-input constructors; no SQL executed')
@@ -372,6 +373,34 @@ def lifecycle_controls(c):
         rejected(c,lambda:c.dedupe.fresh_target(h))
 
 
+def assert_completed_continuation(c,h,original_continue,staging):
+    assert c.dedupe._STATES[h]=='SUCCEEDED','COMPLETED_CONTINUATION_REQUIRED'
+    try:
+        original_continue(h,c.replay.DATABASE,c.reviewed_paths(),staging)
+    except c.BoundaryError as error:
+        assert str(error)=='UNPUBLISHED_REPLAY_REQUIRED','SUCCEEDED_CONTINUATION_DENIAL_REQUIRED'
+    else:
+        raise AssertionError('SUCCEEDED_CONTINUATION_ACCEPTED')
+    assert c.dedupe._STATES[h]=='SUCCEEDED','SUCCEEDED_HANDLE_CHANGED'
+
+
+def completed_continuation_controls(c):
+    # Same live observation patch as native_case, after all six submissions.
+    # The proof must reach the real runtime's succeeded-handle denial.
+    with synthetic_handle(c,True,'SUCCEEDED') as h:
+        original=c.dedupe.continue_fixed
+        submitted=['P','B0','C2','D2','F2','X']
+        def observer(*args):
+            assert not submitted and c.dedupe._STATES[h]=='H2_COMPLETE','COMPLETED_OBSERVER_REENTERED'
+            return original(*args)
+        with patch.object(c.dedupe,'continue_fixed',observer):
+            assert_completed_continuation(c,h,original,object())
+        assert submitted==['P','B0','C2','D2','F2','X'] and c.dedupe._STATES[h]=='SUCCEEDED'
+        try:assert_completed_continuation(c,h,lambda *args:None,object())
+        except AssertionError as error:assert str(error)=='SUCCEEDED_CONTINUATION_ACCEPTED'
+        else:raise AssertionError('SUCCEEDED_DENIAL_CHECK_MISSING')
+
+
 def failure_receipt_controls(c):
     """A terminal privacy failure must retain safe causes, never private text."""
     core=characterization()
@@ -587,8 +616,7 @@ def native_case(mode,actual=False,prior=None):
                     assert final==c.decoded(c._RUNS[h].s1)
                     assert [row for table,row in final[1] if table=='public.companies']==[json.loads(c._RUNS[h].company)['before']]
                     if actual:
-                        assert c.dedupe._STATES[h]=='SUCCEEDED'
-                        rejected(c,lambda:c.dedupe.continue_fixed(h,c.replay.DATABASE,c.reviewed_paths(),inputs.closed_staging))
+                        assert_completed_continuation(c,h,original_continue,inputs.closed_staging)
                     else:
                         assert c.dedupe._STATES[h]=='FIXED_COMPLETE'
                         # Direct finish is not a successful child. It terminally

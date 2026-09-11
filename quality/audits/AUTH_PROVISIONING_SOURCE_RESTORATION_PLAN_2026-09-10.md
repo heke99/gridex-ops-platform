@@ -1074,3 +1074,37 @@ bindings, exact B0 predicate, original-PK company restoration, real writer/resul
 memory path and final disposal/privacy contracts approved. No tests rerun by
 reviewer. Native actual63 remains mandatory; ready for coherent publication
 with separately reviewed Task19 document and Task20 CLI-only workflow.
+
+Task20 COMPLETE actual CLI artifact at54ae6759 OPS34595483635/job103250143578.
+Artifact10261507270 ZIP484bytes SHA256
+7d1841830464e313509f55021ec23d91151b7e5bae02a94e67d98ce4db7a89f4 verified
+against server digest. Exactly two regular nonsymlink empty members, each SHA
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:
+20260911114442_canonical_user_rbac_customer_alignment_prerequisites.sql
+20260911114443_canonical_user_rbac_customer_alignment_boundary.sql.
+Actual source files retained ignored with task-20-artifact-receipt.json; no SQL
+or source selection. Author fix3 will remove temporary job to avoid regeneration.
+
+Task18 54ae6759 new native continuation103250143594: standalone six whole inputs/
+restoration/disposal/canary/finalprivacy PASS. Actual staged shell reaches
+actual_replay_foundation63/bounded success, then test's stale-handle assertion
+wrongly calls patched observation wrapper, which asserts empty submissions and
+H2_COMPLETE despite SUCCEEDED/six inputs. This is a proof-wrapper defect;
+original trusted stale-handle denial must be exercised. Fix3 sole author active,
+no runtime/SQL/privacy changes required. All remaining native fault modes pending.
+
+# Task21 — resolve bounded alignment ownership/runtime contracts
+
+Read first this brief, approved quality/audits/USER_RBAC_CUSTOMER_ALIGNMENT_SOURCE_EFFECTS_2026-09-11.md, task-19-review.md and ignored alignment-ownership-preparation.md. Root preparation is current-code evidence, not independent approval; verify named claims. Task18 fix3/proof remains independent, and actual63 full acceptance is still pending.
+
+INITIAL PHASE READ-ONLY: write only ignored task-21-draft.md and task-21-report.md. No tracked edits/index/commit/SQL/tests/CLI/probes/network/live data/provider/customer/credential action. Root later authorizes one tracked design document quality/audits/USER_RBAC_ALIGNMENT_RUNTIME_OWNERSHIP_2026-09-11.md after publication boundary. Don't reread741 source lines already reviewed or broad inventories. Work only four concrete Task19 unresolved interfaces, with named caller/guard/source authority needed to make their intended behavior precise.
+
+1. TGT dynamic imported data: exact store four exports and callers in actions.part-1/2, tgtAutopilot and downstream action paths named in preparation. Verify tenant-authorized write actions drop company context, and scoped source-message references enter otherwise global raw_text. Resolve minimum tenant-owned imported-data versus immutable shared static definitions boundary. Propose exact company/actor/PK/unique/read/write API rules and source-backed ownership convergence. Do not infer historical NULL company from creator's current membership, guess a company, delete/de-duplicate tenant data, or declare arbitrary legacy rows shared. Ambiguous ownership must remain fail-closed pending authoritative evidence; preserve every original row/PK. This is the explicit project tenant-invariant application, not permission to silently disable a user flow. Identify exact data-proof and UX decisions still needed.
+
+2. Ediel message-rule registry: current platform-only rule UI and guarded save/template actions vs company-filtered read projection and company column/backfills. Determine intended globally governed protocol rules versus real tenant overrides from current source/callers/target-architecture authority. Verify all actual writes (including helper call guards) and canonical Edifact bypass. Choose the minimal justified final RPC/ACL/global-or-tenant scope contract; do not create tenant overrides merely from a legacy company_id column or label all actual rows global solely from a UI heading. No live row classification or destructive migration proposal without evidence.
+
+3. Role RPC and tenant service scope: current lib/tenant/scope.ts63–84 derives global privilege from gridex_get_user_roles output, while current lib/admin/guards.ts uses authoritative canonical_authenticated_tenant_context flag. Determine reuse of existing exact SQL/global-role authority or smallest safe interface separation. Preserve dashboard/self-role and platform-admin target-inspection contracts; company-scoped platform-looking roles must never confer global access. Read only exact role authority definitions/callers required, distinguish accepted-prefix shape from later source/live uncertainty. Do not re-report old already-fixed admin guard inference as current.
+
+4. Dormant count helper: no app/lib caller found for getLatestContractBucketCounts. Verify reachability by exactsymbol only, make minimal complete handling of explicit all+partition rows/duplicate none/unknown statuses and tenant/ACL contract precise. No optional product redesign, new public endpoint or source mutation. Historical C body remains whole immutable characterization authority, forward/runtime corrections separate.
+
+Deliver concise line-backed decisions, proved findings vs unresolved assumptions, exact minimal implementation file/DB boundaries, and meaningful synthetic two-company/actor/role/collision/rollback/privacy validation needed. Reuse approved Task19 P20260911114442/W20260911114443 actual empty CLI identities only if a future boundary needs them; no invented timestamps/source counts/selection. Do not edit Task18 or expand current runtime fixer. No original19/102 re-audits, docs-mirroring tests or production reads. Independent review follows before any implementation. Report source paths/ranges, limitations, static document whitespace/reference checks only; return ignored draft/report ready.

@@ -1177,3 +1177,32 @@ Existing10jobs byte-preserved; one5min pinnedCLI2.101 two-empty-skeleton job,
 allCLI/upload skipped if either authored alignment suffix exists. Static YAML/
 guard/path/identity/whitespace PASS; actual CLI artifact retrieval remains pending.
 Task18 fix2 and Task19 documentation already approved. Publish coherent batch.
+
+Task20 COMPLETE actual CLI artifact at54ae6759 OPS34595483635/job103250143578.
+Artifact10261507270 ZIP484bytes SHA256
+7d1841830464e313509f55021ec23d91151b7e5bae02a94e67d98ce4db7a89f4 verified
+against server digest. Exactly two regular nonsymlink empty members, each SHA
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:
+20260911114442_canonical_user_rbac_customer_alignment_prerequisites.sql
+20260911114443_canonical_user_rbac_customer_alignment_boundary.sql.
+Actual source files retained ignored with task-20-artifact-receipt.json; no SQL
+or source selection. Author fix3 will remove temporary job to avoid regeneration.
+
+Task18 54ae6759 new native continuation103250143594: standalone six whole inputs/
+restoration/disposal/canary/finalprivacy PASS. Actual staged shell reaches
+actual_replay_foundation63/bounded success, then test's stale-handle assertion
+wrongly calls patched observation wrapper, which asserts empty submissions and
+H2_COMPLETE despite SUCCEEDED/six inputs. This is a proof-wrapper defect;
+original trusted stale-handle denial must be exercised. Fix3 sole author active,
+no runtime/SQL/privacy changes required. All remaining native fault modes pending.
+
+54ae6759 OPS34595483635 completed original19/actual52+56+57 PASS
+(auth103250143676,legacy103250143545,repair103250143681,dedupe103250143650).
+Full102103250143747 independently counted18/25/28/31 with finalprivacy11:51:24
+and cleanup PASS; quality103250143585/Ediel103250143451 PASS. New standalone and
+actual63 staged boundary PASS, remaining matrix blocked by proved test wrapper.
+Fix3b0bce50c independently spec/quality APPROVED no findings: retained real
+SUCCEEDED denial +exact state, meaningful RED/GREEN, only completed Task20job
+removed. Runtime/SQL/pins/adapter unchanged. Publish then require full matrix.
+Task20 actual artifact10261507270/two CLI empty identities accepted; Task21
+read-only ignored ownership/runtime contract preparation proceeds independently.
