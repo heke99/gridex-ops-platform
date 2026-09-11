@@ -1548,3 +1548,13 @@ Alignment139b532 independently approved; native verification pending for both.
 Root unchangedgroup/status regression PASS after metadata update. Current17204
 fullE2E smoke confirmed14/15: only types tail; coverage/P0contractPASS, fullruntime
 lanes skipped. CurrentCI inspection complete; no historicalcause/retry/prodclaim.
+
+## 2026-09-11 continuation from PR310 outage
+
+Current main and app.gridex.se are eb9a25bc, Vercel production READY. Connected
+Supabase ledger tail20260904222450 confirmed read-only. Git clone succeeded;
+shell push lacks credentials, authenticated Git tree/commit/ref tools available.
+Unpublished f23dcdf3 fetch and API lookup failed; no recovery claim. Alignment
+job103342579053 confirms behavior_cases BOUNDARY_REJECTED after previous stages.
+New finite diagnostic regressions:3 RED failures then4 PASS; existing25 PASS.
+No SQL, source order, acceptance predicate, migration or production changes.

@@ -7,8 +7,8 @@ import time
 
 
 def succeeded(c, result):
-    c.check(result.code == 0 and result.state == '00000' and result.stdout.splitlines().count('ALIGNMENT_COMPLETE') == 1,
-            'ALIGNMENT_NATIVE_COMPLETION_REQUIRED')
+    if not (result.code == 0 and result.state == '00000' and result.stdout.splitlines().count('ALIGNMENT_COMPLETE') == 1):
+        raise c.NativeResultError(result)
 
 
 def preserved(c, p, database, before):
@@ -170,22 +170,38 @@ def contention(c, p):
 
 def run(c, p):
     fixtures = c.load('alignment_actual_fixtures', 'canonical-user-rbac-customer-alignment-fixtures.py')
-    baseline(c, p)
-    populated(c, p, fixtures)
-    a_payload_and_null_order(c, p, fixtures)
-    boundary_privileges(c, p)
-    standalone_c_backfills(c, p, fixtures)
-    tgt_loss(c, p, fixtures)
-    rpc_cases(c, p, fixtures)
-    count_edge_rows(c, p, fixtures)
-    role_overrides(c, p, fixtures)
-    guard_sources(c, p)
-    incoming_fk_and_trigger(c, p, fixtures)
-    audit_and_constraint_probes(c, p, fixtures)
-    standalone_boundary(c, p)
-    faults(c, p)
-    catalog_rejections(c, p)
-    contention(c, p)
+    with c.diagnostic_stage('case_baseline'):
+        baseline(c, p)
+    with c.diagnostic_stage('case_populated'):
+        populated(c, p, fixtures)
+    with c.diagnostic_stage('case_a_payload_and_null_order'):
+        a_payload_and_null_order(c, p, fixtures)
+    with c.diagnostic_stage('case_boundary_privileges'):
+        boundary_privileges(c, p)
+    with c.diagnostic_stage('case_standalone_c_backfills'):
+        standalone_c_backfills(c, p, fixtures)
+    with c.diagnostic_stage('case_tgt_loss'):
+        tgt_loss(c, p, fixtures)
+    with c.diagnostic_stage('case_rpc_cases'):
+        rpc_cases(c, p, fixtures)
+    with c.diagnostic_stage('case_count_edge_rows'):
+        count_edge_rows(c, p, fixtures)
+    with c.diagnostic_stage('case_role_overrides'):
+        role_overrides(c, p, fixtures)
+    with c.diagnostic_stage('case_guard_sources'):
+        guard_sources(c, p)
+    with c.diagnostic_stage('case_incoming_fk_and_trigger'):
+        incoming_fk_and_trigger(c, p, fixtures)
+    with c.diagnostic_stage('case_audit_and_constraint_probes'):
+        audit_and_constraint_probes(c, p, fixtures)
+    with c.diagnostic_stage('case_standalone_boundary'):
+        standalone_boundary(c, p)
+    with c.diagnostic_stage('case_faults'):
+        faults(c, p)
+    with c.diagnostic_stage('case_catalog_rejections'):
+        catalog_rejections(c, p)
+    with c.diagnostic_stage('case_contention'):
+        contention(c, p)
 
 
 def a_payload_and_null_order(c, p, fixtures):

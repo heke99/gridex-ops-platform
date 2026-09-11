@@ -121,7 +121,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Characterize whole customer alignment on a private owned actual63 PostgreSQL 17 prefix
-        run: python3 scripts/canonical-user-rbac-customer-alignment-selftest.py
+        run: |
+          python3 scripts/canonical-alignment-diagnostics-selftest.py
+          python3 scripts/canonical-user-rbac-customer-alignment-selftest.py
       - name: Remove only the owned customer alignment proof container
         if: always()
         run: python3 scripts/canonical-user-rbac-customer-alignment-selftest.py --cleanup-owned

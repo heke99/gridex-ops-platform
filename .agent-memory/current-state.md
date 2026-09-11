@@ -10,51 +10,29 @@ without renewed permission. No production action has occurred in this continuati
 ## Active work
 
 - Branch: `codex/gridex-parity-remediation-20260905`; draft PR #310.
-- Published head: `17204f06fddcc2db5bcc7363e2c07e01a8448725`, tree
-  `4ab252303f6e3ed718b0a8d4f9bc887ec1d3d4e9`. Exact reviewed-tree/nonforce/fetch
-  checks passed; reviewed local history is in archive/proof-stages-reviewed-4e624d67.
+- Published baseline: `54ce97ab60688cfffcd8d9048d6d5e03a3df2644`.
 - Active masterplan step: P0-C, complete schema reconstruction and provenance.
-- Active subtask: publish approved owned-startupd89a497 and alignment139b532
-  as one coherent harness batch, then inspect native acceptance. Both independent
-  scoped reviews approved without findings; no active implementation author. No blind retry or
-  relaxed acceptance. Regenerate schema/types only after authoritative full replay.
-- Alignment139b532 is locally implemented: the hosted42804 is proved at
-  timestamp_mutation in job103338041853, after24 constructors, actual63,
-  independent catalog/source equality, exact15-table binding and oracle DDL pass.
-  The fix copies a PG-created donor anyarray into the catalog in the existing
-  disposable transaction. Exact1 drift/raw42804 rejection/preservation/disposal
-  gates stay unchanged. All25 constructors pass; scoped independent review
-  approved without findings. Native donor SQL acceptance remains pending.
-- Shared startup has a separately source-proven gap: socket pg_isready may accept
-  the official image's temporary initialization server before final exec. The
-  bounded correction will require final PID1 postgres plus socket readiness under
-  unchanged60s deadline/0.25s cadence/5s command limits, then logging checks.
-  Actual__enter__ seam RED/GREEN, timeout/owned-cleanup and all legacy constructors
-  pass. Independent review approved without findings; historical failure causality
-  remains UNCLASSIFIED. Hosted native readiness and cleanup acceptance pending. No first43 receipt is not
-  proof of zero SQL/process work.
-- OPS34622016471 on17204f06: alignment103338041853 failed as above;
-  legacy103338041773 passed constructors then BoundaryError before first43/SQL
-  receipts, cleanupPASS. Auth/repair/dedupe/fixed102/Ediel/quality-build PASS;
-  fullactual63 continuation/fault/death/privacy103338041627 PASS16:37:14Z. Dedupe103338041737 completed all19 modes,
-  controller death/privacy/cleanup at16:35:06Z. Tenant/public-browser PASS.
-  Verify/fullE2E retain known types failure; skipped runtime lanes unverified.
-- Previous complete baseline:5ec9b426/OPS34620219856. Auth/legacy/repair/fixed102,
-  fullactual63 continuation/fault/death/privacy, Ediel, quality/build, tenant and
-  public-browser PASS. Alignment passed the corrected exact15-table binding then
-  exposed42804; dedupe failed early with unknown cause and successful cleanup.
-  Verify and E2E smoke fail the known types tail20260911114443 (smoke14/15).
-  Coverage/P0contractPASS; runtime/staging/full/nightly skipped and unverified.
-- Task24 bounded DB2 operational-script disposition is independently reviewed and
-  published: exact31-line exclusion, nine pins, Python/JS direct+derived overlap
-  guards. Accounting38/cleanup20/reviewgroups16/integrity600/504/provenance and
-  affected constructor checks pass; I1 direct-interleaved case closed by RED/GREEN
-  and scoped re-review. No historical SQL executed; schema-bearing companions
-  remain unclassified. Accounting and foundation boundaries below remain binding.
-- Reviewed diagnostic commits7ac14cdc/fa6828b are published in17204f06. Finite
-  stages/categories preserve first captured failure and cleanup behavior; local
-  privacy/seam/constructor checks and independent reviews passed. Prior timestamp
-  comparison and view-binding fixes passed their formerly failing hosted stages.
+- This fresh continuation verified main and app.gridex.se production remain
+  `eb9a25bc989c6de808903f41c2314d5465e9c07b`. Connected Supabase ledger tail
+  remains `20260904222450`. No production write has occurred.
+- PR #310 contains the newer outage handoff than the previous current-state.
+  Its unpublished `c68ff550`/`f23dcdf3` objects are unavailable: exact Git fetch
+  returned not-our-ref and authenticated GitHub commit retrieval returned 404.
+  No claim is made to recover those objects or their prior reviews.
+- OPS34623405014 alignment103342579053 passed25 constructors, actual63,
+  catalog/source/view/oracle binding and timestamp drift rejection, then failed
+  at behavior_cases with BOUNDARY_REJECTED; cleanup passed. The actual failed
+  SQL/guard remains unknown. Do not guess a SQL fix or weaken an acceptance gate.
+- New diagnostics retain the original execution/SQL/success predicates and add
+  16 case stages,63 fixed guard labels and primary-header-only input/assertion
+  classification. Unknown and preceding NOTICE/quoted content stay unclassified.
+  Four new regressions: three expected RED failures, then all four GREEN;
+  all25 existing constructors GREEN. Scoped independent review APPROVED after
+  the client NOTICE correction; AST confirms same16 ordered calls/arguments.
+- Next: publish the reviewed diagnostic batch, inspect the next hosted receipt,
+  fix its proved cause, then continue native replay/source disposition/types.
+- Native CLI ownership/reference/private logging remains unsupported; generated
+  types still omit tail20260911114443. Full source accounting below remains open.
 
 ## Verified starting evidence
 
@@ -99,29 +77,19 @@ and verify exact tree equality. Preserve any unrelated changes.
 
 ## Continuity and next steps
 
-The prior unpushed529b824e object was unavailable in this workspace. Task24 was
-reconstructed from published whole-source evidence in91d045f/1925fc9b and is now
-independently approved. Do not restart that work or claim the older object was
-recovered. Historical receipts remain in Git and in the evidence files.
+Continue from the new hosted alignment receipt after publishing this batch.
+Independent review is required by AGENTS.md and requesting-code-review; do not
+repeat accepted matrices without an affected dependency. The new diagnostics
+are independently implemented from complete published source, not reconstructed
+from partial chat or represented as recovered prior commits.
 
-Next-source static preparation is preserved in
-`quality/audits/TIMESTAMPED_DB1_SOURCE_MAP_2026-09-11.md`; independent scoped
-review approved documentation only with no findings. The source is schema/
-reference-bearing with four verified differences from the selected split sources.
-No disposition or ordering change is authorized by that map alone.
-
-After each bounded fix: test, independent review, publish a coherent batch,
-inspect relevant CI, record exact evidence and continue. Do not repeat accepted
-old matrices without a concrete affected dependency.
-
-Do not publish per file or subtask; publish a coherent reviewed batch.
-For this workflow-tooling batch, no production mutation is authorized or performed.
-This batch boundary does not change the user's authorization for later delivery
-after the relevant production gates pass.
+The reviewed static `quality/audits/TIMESTAMPED_DB1_SOURCE_MAP_2026-09-11.md`
+remains documentation only; source T is still unclassified. A rollback-only
+characterization cannot prove commit/deferred/durability/original-runner behavior.
 
 Remaining masterplan: finish source disposition and full native replay/genesis/
 ledger/schema/types; verify production parity; then readiness, Ediel, typed
 clients, inbound mail, tenant/RLS/customer/switch/billing/API/jobs/recovery,
-observability, domain/failure/load tests and production canary. No phase is
-closed by a bounded source proof. ADR006 bars mass historical replay or ledger
-marking in production. Never bypass a red gate to merge.
+observability, domain/failure/load tests and production canary. ADR006 bars mass
+historical replay or ledger marking in production. User authorization covers
+necessary staged delivery after relevant gates; never merge through red gates.

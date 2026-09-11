@@ -514,6 +514,96 @@ QUERY_CATEGORIES = {'42601': 'QUERY_SYNTAX', '42703': 'QUERY_UNDEFINED_COLUMN',
     '42P01': 'QUERY_UNDEFINED_RELATION', '42704': 'QUERY_UNDEFINED_OBJECT',
     '42804': 'QUERY_DATATYPE', '42883': 'QUERY_UNDEFINED_FUNCTION',
     '42501': 'QUERY_PRIVILEGE', '55P03': 'QUERY_LOCK', 'P0004': 'QUERY_ASSERTION'}
+DIAGNOSTIC_STAGES |= frozenset((
+    'case_baseline',
+    'case_populated',
+    'case_a_payload_and_null_order',
+    'case_boundary_privileges',
+    'case_standalone_c_backfills',
+    'case_tgt_loss',
+    'case_rpc_cases',
+    'case_count_edge_rows',
+    'case_role_overrides',
+    'case_guard_sources',
+    'case_incoming_fk_and_trigger',
+    'case_audit_and_constraint_probes',
+    'case_standalone_boundary',
+    'case_faults',
+    'case_catalog_rejections',
+    'case_contention',
+))
+CASE_GUARDS = frozenset((
+    'ALIGNMENT_ALL_NINETEEN_TARGETS',
+    'ALIGNMENT_AUDIT_NATIVE_SOURCE_REQUIRED',
+    'ALIGNMENT_A_EXISTING_PAYLOAD_ORACLE',
+    'ALIGNMENT_A_NULL_ORDER_FIXTURE_REQUIRED',
+    'ALIGNMENT_BASE_UNIQUE_PRESERVED',
+    'ALIGNMENT_CATALOG_DRIFT_REJECTED',
+    'ALIGNMENT_COLUMN_GRANT_DENIAL',
+    'ALIGNMENT_CONTROLLER_CANARY_PRESERVED',
+    'ALIGNMENT_CONTROLLER_COLLECTOR_PRIVACY',
+    'ALIGNMENT_CONTROLLER_DEATH_FULL_ROLLBACK',
+    'ALIGNMENT_CONTROLLER_EXACT_CLEANUP',
+    'ALIGNMENT_CONTROLLER_SIGKILL_REQUIRED',
+    'ALIGNMENT_CONTROLLER_SOURCE_RESTORATION',
+    'ALIGNMENT_COUNTS_SOURCE_ORACLE',
+    'ALIGNMENT_COUNT_DUPLICATE_LABELS',
+    'ALIGNMENT_COUNT_NULL_UNKNOWN_TIE_ORACLE',
+    'ALIGNMENT_DEATH_BACKEND_RELEASE',
+    'ALIGNMENT_DEATH_OBSERVATION_FAILED',
+    'ALIGNMENT_DEATH_OWNER_LABEL',
+    'ALIGNMENT_DEATH_PRIVATE_CHECKPOINT',
+    'ALIGNMENT_DORMANT_DOUBLE_COUNT_CHARACTERIZED',
+    'ALIGNMENT_EDIEL_DEFAULT_NULL_STANDARD',
+    'ALIGNMENT_EDIEL_INBOUND_COUNT',
+    'ALIGNMENT_EDIEL_SINGLE_SOURCE_ORACLE',
+    'ALIGNMENT_EDIEL_TIE_GROUP_ORDER',
+    'ALIGNMENT_EFFECTIVE_EXECUTE_DENIAL',
+    'ALIGNMENT_EFFECTIVE_VIEW_DENIAL',
+    'ALIGNMENT_EMPTY_COUNT_SOURCE_ORACLE',
+    'ALIGNMENT_EXACT_DEATH_DIRECTORY',
+    'ALIGNMENT_EXACT_REPEAT_REQUIRED',
+    'ALIGNMENT_EXPECTED_CATALOG_REQUIRED',
+    'ALIGNMENT_EXPECTED_FAULT_STATE',
+    'ALIGNMENT_GLOBAL_LOSS_ACCEPTED',
+    'ALIGNMENT_GUARD_INDEX_ORACLE',
+    'ALIGNMENT_GUARD_NATIVE_RESULT',
+    'ALIGNMENT_GUARD_SETUP_SOURCE_DEPENDENCY',
+    'ALIGNMENT_INCOMING_FK_FULL_ROWS',
+    'ALIGNMENT_LOSS_ADMISSION_REQUIRED',
+    'ALIGNMENT_NATIVE_COMPLETION_REQUIRED',
+    'ALIGNMENT_NATIVE_EXECUTE_DENIAL',
+    'ALIGNMENT_NATIVE_FAULT_REQUIRED',
+    'ALIGNMENT_NATIVE_INCOMING_FK_ACTION',
+    'ALIGNMENT_NATIVE_INCOMING_FK_RESTRICTION',
+    'ALIGNMENT_NATIVE_LOCK_HOLDER',
+    'ALIGNMENT_NATIVE_LOCK_TIMEOUT',
+    'ALIGNMENT_NATIVE_OUTGOING_CONSTRAINT',
+    'ALIGNMENT_NONTRANSACTIONAL_SEQUENCE_OBSERVED',
+    'ALIGNMENT_NULL_GROUP_VS_UNIQUE_REQUIRED',
+    'ALIGNMENT_OVERRIDE_SOURCE_ORACLE',
+    'ALIGNMENT_RESERVED_ALL_AMBIGUITY_ACCEPTED',
+    'ALIGNMENT_ROLE_SOURCE_ORACLE',
+    'ALIGNMENT_SEQUENCE_CATALOG_ROLLBACK',
+    'ALIGNMENT_SEQUENCE_DISCREPANCY_REQUIRED',
+    'ALIGNMENT_SEQUENCE_TRANSACTIONAL_ROWS_ROLLBACK',
+    'ALIGNMENT_STANDALONE_REJECTED',
+    'ALIGNMENT_TABLE_RETURN_REQUIRED',
+    'ALIGNMENT_TERMINAL_REUSE_ACCEPTED',
+    'ALIGNMENT_TRANSACTION_ROLLBACK_REQUIRED',
+    'ALIGNMENT_TRIGGER_COMPLETE_SIDE_WRITES',
+    'ALIGNMENT_UNKNOWN_TRIGGER_ACCEPTED',
+    'ALIGNMENT_WHOLE_C_CATALOG_ORACLE',
+    'ALIGNMENT_WHOLE_C_FULL_BACKFILL_ORACLE',
+    'ALIGNMENT_WHOLE_C_NATIVE_REQUIRED',
+))
+SQL_ASSERTIONS = frozenset((
+    'ALIGNMENT_FULL_ROWS_MISMATCH', 'ALIGNMENT_STAGE_MISMATCH',
+    'ALIGNMENT_OWNER_REQUIRED', 'ALIGNMENT_CATALOG_MISMATCH',
+    'ALIGNMENT_COMPLETION_REQUIRED', 'ALIGNMENT_FINAL_CATALOG_MISMATCH',
+    'ALIGNMENT_SOURCE_DROP_IDENTITY_REQUIRED', 'ALIGNMENT_EXISTING_IDENTITY_CHANGED',
+    'ALIGNMENT_CONTEXT_REQUIRED', 'ALIGNMENT_PREREQUISITE_SHAPE', 'A6_LOSS_REJECTED',
+))
 _NATIVE_FAILURE = None
 
 
@@ -527,18 +617,41 @@ class NativeQueryError(batch.BoundaryError):
         self.category = query_failure_category(state)
 
 
+class NativeResultError(batch.BoundaryError):
+    """Finite diagnostic only; no Result, SQL or stderr retained by the error."""
+    def __init__(self, result):
+        super().__init__()
+        self.category = query_failure_category(result.state)
+        self.input = self.assertion = 'UNCLASSIFIED'
+        # Only a primary error at byte zero is authoritative. Never scan NOTICE,
+        # CONTEXT or multiline quoted payload for something resembling a header.
+        match = re.match(r'psql:(<stdin>|/legacy-private/alignment-(whole-[PABCW]|stage-[PABC]|assertions)\.sql):[0-9]+: ERROR:[ \t]+([A-Z0-9]{5}):[ \t]*([^\r\n]*)', result.stderr)
+        if match:
+            self.input = match[2] or 'prelude'
+            if match[3] == result.state and match[4] in SQL_ASSERTIONS:
+                self.assertion = match[4]
+
+
 def failure_receipt(stage, error):
-    """Finite literals only: never exception args, str/repr, dynamic type names."""
+    """Finite literals only; unknown exception content is never disclosed."""
     stage = stage if type(stage) is str and stage in DIAGNOSTIC_STAGES else 'internal'
     kind = {batch.BoundaryError: 'BOUNDARY', NativeQueryError: 'QUERY',
+            NativeResultError: 'NATIVE_RESULT',
             AssertionError: 'ASSERTION', ValueError: 'VALUE', KeyError: 'KEY',
             TypeError: 'TYPE', AttributeError: 'ATTRIBUTE', json.JSONDecodeError: 'JSON',
             OSError: 'PROCESS', subprocess.TimeoutExpired: 'TIMEOUT'}.get(type(error), 'OTHER')
     category = 'BOUNDARY_REJECTED' if kind == 'BOUNDARY' else 'PRIVATE_PROOF_FAILED'
-    if type(error) is NativeQueryError:
+    if type(error) in (NativeQueryError, NativeResultError):
         candidate = error.category
         category = candidate if type(candidate) is str and candidate in QUERY_CATEGORIES.values() else 'PRIVATE_QUERY_FAILED'
-    return dict(stage=stage, type=kind, category=category)
+    receipt = dict(stage=stage, type=kind, category=category)
+    if type(error) is batch.BoundaryError and len(error.args) == 1:
+        guard = error.args[0]
+        if type(guard) is str and guard in CASE_GUARDS:
+            receipt['guard'] = guard
+    if type(error) is NativeResultError:
+        receipt.update(input=error.input, assertion=error.assertion)
+    return receipt
 
 
 @contextlib.contextmanager
@@ -778,7 +891,7 @@ class AlignmentProof(core.Proof):
             process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE, env=legacy.clean_environment())
             self.h.processes.append(process)
-            process.stdin.write(b"SET TRANSACTION ISOLATION LEVEL READ COMMITTED; SET log_min_messages=panic; SELECT 'FIXED_PRIVATE_READY' WHERE current_setting('log_min_messages')='panic' AND current_setting('log_min_error_statement')='panic' AND current_setting('log_parameter_max_length_on_error')='0';\n")
+            process.stdin.write(b"SET TRANSACTION ISOLATION LEVEL READ COMMITTED; SET log_min_messages=panic; SET client_min_messages=error; SELECT 'FIXED_PRIVATE_READY' WHERE current_setting('log_min_messages')='panic' AND current_setting('client_min_messages')='error' AND current_setting('log_min_error_statement')='panic' AND current_setting('log_parameter_max_length_on_error')='0';\n")
             process.stdin.flush()
             ready, _, _ = select.select([process.stdout], [], [], 10)
             check(bool(ready) and process.stdout.readline() == b'FIXED_PRIVATE_READY\n', 'PRIVATE_SESSION_REQUIRED')

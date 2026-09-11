@@ -5,7 +5,7 @@
   "current_state": ".agent-memory/current-state.md",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "17204f06fddcc2db5bcc7363e2c07e01a8448725"
+    "published_baseline": "54ce97ab60688cfffcd8d9048d6d5e03a3df2644"
   },
-  "next_action": "Publish approved startupd89a497 with alignment139b532, then require native timestamp-control/startup and full prior gates. Historical startup cause unclassified; full native/types/production remain open."
+  "next_action": "Publish reviewed finite alignment diagnostics, inspect hosted case/guard/source receipt, fix proven cause and continue P0-C."
 }
