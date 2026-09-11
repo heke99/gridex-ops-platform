@@ -12,9 +12,9 @@ No production mutation has been performed in this replay-verification batch.
 ## Active work
 
 - Branch: `codex/gridex-parity-remediation-20260905`; draft PR #310.
-- Published implementation baseline: `db5173700b89a62f0a42cb376f7860a59583b5c5`.
+- Published implementation baseline: `53ef8b7f8d15d554cda9453acd314856ac9ea854`.
 - Active masterplan step: P0-C, complete schema reconstruction and provenance.
-- Eleven reviewed batches pushed. The directional HOT correction passed native32
+- Twelve reviewed batches pushed. The directional HOT correction passed native32
   SQL controls and nine behavior cases. All43 raw omission setups were measured:
   17 reject2BP01,26 succeed; exact rollback preservation and cleanupPASS.
 - Source-bound omission fixture correction is published61bc1fe5. It uses exact
@@ -38,7 +38,7 @@ No production mutation has been performed in this replay-verification batch.
   exact22012/57P01 rollback, postcommit catalog/row drift, failed child and
   post-COMMIT controller death all PASS. Canary, source/HOLD restoration,
   private collector boundaries and exact owner cleanup all PASS by21:54:51Z.
-- Actual71 is the accepted native boundary. Source-only L/E/U native PASS
+- Actual71 predecessor native acceptance: Source-only L/E/U native PASS
   on279e0f55, OPS34653186725/job103439770379. All14cases, privileges/constraints,
   populated Ediel message preservation, exact rollback, original/canary/privacy
   and owner cleanup PASS22:17:15Z. Full source analysis244lines is accepted.
@@ -64,13 +64,16 @@ No production mutation has been performed in this replay-verification batch.
   OPS34656370070/job103449573876, native19cases+viewACL/branches allPASS
   23:02:43Z and exact cleanupPASS.331original lines independently reviewed,
   independent model/DDL +10constructors; closed-chain and ILIKE regressions
-  observedRED->GREEN. Actual71 remains accepted predecessor.
-- Prepared readiness74 original-child integration: complete M/E/Z atfoundation
+  observedRED->GREEN. Actual71 remains the accepted M/E/Z source-proof predecessor.
+- Published readiness74 original-child integration53ef8b7: complete M/E/Z atfoundation
   72–74, immutable first71 and old41tail retained. Same activeowned target,
   liveheldsources, full prior catalog/rows, UTC/ISOkeycontext, source-derived
   oracle, one PIPEtransaction, fullpre/postcommit, linkedrelease and exactchild
   completion/privacy/HOLD.7localconstructorsPASS; independent final review
-  APPROVED for publication; native74 gate PENDING. No actual74 claim.
+  APPROVED and published with exact fetched tree ca6c7d8c. Native74 gate
+  SUCCESS in OPS34657354694/job103452514584: three success runs,15negative
+  cases, controller death afterCOMMIT23:31:18Z, source/owner/HOLD/privacy and
+  exact cleanupPASS23:32:15Z. Actual74 is the accepted native boundary.
 - Registration accounting INPUT_SELECTION_ONLY: foundation115/timestamp508;
   600=555selected,23substituted,17unclassified,5excluded. Global40dispositions
   unresolved; focused31. Original bytes/manifests unchanged; full replay remains
@@ -101,7 +104,7 @@ Working-tree accounting is 600 inputs: 555 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED
 The focused group contains 346 inputs: 310 selected, 20 substituted,
 11 unclassified, and 5 excluded.
 Forty historical inputs remain unresolved; focused group unresolved31.
-Foundation115 / native actual71 and all immutable source pins remain binding.
+Foundation115 / native actual74 and all immutable source pins remain binding.
 Selection is not proof of successful full SQL replay or production parity.
 
 ## Production and access
@@ -124,8 +127,10 @@ and verify exact tree equality. Preserve any unrelated changes.
 
 ## Continuity and next steps
 
-Complete independent review, publish actual74 integration and resolve its native gate.
-Continue remaining source dispositions after the linked actual71 gate passes.
+Actual74 native gate accepted on53ef8b7. Publish next bounded source-only R/D/I group
+332lines is statically reviewed;8constructor controls PASS. Whole-source native
+23case matrix and workflow prepared, independent final review APPROVED; actual74 predecessor now accepted. Source
+selection unchanged; these three remain unclassified. Continue after source gate.
 Independent review is required by AGENTS.md and requesting-code-review; do not
 repeat accepted matrices without an affected dependency. The new diagnostics
 are independently implemented from complete published source, not reconstructed

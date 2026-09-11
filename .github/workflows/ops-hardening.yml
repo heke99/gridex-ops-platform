@@ -139,6 +139,19 @@ jobs:
         if: always()
         run: python3 scripts/canonical-readiness-operations-selftest.py --cleanup-owned
 
+  intake-governance-source-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Characterize complete intake and governance sources at owned actual74
+        run: python3 scripts/canonical-intake-governance-selftest.py
+      - name: Remove only the owned intake source proof container
+        if: always()
+        run: python3 scripts/canonical-intake-governance-selftest.py --cleanup-owned
+
   readiness-operations-continuation-proof:
     runs-on: ubuntu-latest
     timeout-minutes: 30

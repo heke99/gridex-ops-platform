@@ -105,3 +105,6 @@ Independent actual74 runtime/native-matrix/scope-order review APPROVED publicati
 Seven constructors and exact first71+inserted3+old41tail/foundationhash verified.
 Hosted actual74 gate remains pending; no production action is authorized by
 these local checks alone. Existing user delivery authorization applies after gates.
+
+
+Actual74 integration native ACCEPTED on53ef8b7f8d15d554cda9453acd314856ac9ea854, OPS34657354694/job103452514584. Three successes,15negative/faultcases, controller death afterCOMMIT and exact privacy/HOLD/canary/cleanupPASS by23:32:15Z. Full replay/types/parity remain open.
