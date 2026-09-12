@@ -1,3 +1,5 @@
+import { readAdminJson } from '@/lib/http/adminJsonRequest'
+import { generateUnderlaySchema } from '@/lib/admin/internalJsonSchemas'
 import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
 import { adminApiCompanyAccessErrorStatus, assertAdminApiCompanyAccess, requireAdminApiAccess } from '@/lib/admin/apiGuards'
@@ -16,7 +18,9 @@ export async function POST(request: Request) {
 
   try {
     const companyId = await assertAdminApiCompanyAccess(access.guard)
-    const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    const input = await readAdminJson(request, generateUnderlaySchema)
+    if (!input.ok) return NextResponse.json({ error: input.error, code: input.code }, { status: input.status })
+    const body = input.data
     const billingMonth = typeof body.billing_month === 'string' ? body.billing_month : typeof body.billingMonth === 'string' ? body.billingMonth : ''
     if (!/^\d{4}-\d{2}$/.test(billingMonth)) return NextResponse.json({ error: 'billing_month måste anges som YYYY-MM.' }, { status: 400 })
 

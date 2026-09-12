@@ -1,3 +1,5 @@
+import { readAdminJson } from '@/lib/http/adminJsonRequest'
+import { pricingRepriceSchema } from '@/lib/admin/internalJsonSchemas'
 import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
 import { adminApiCompanyAccessErrorStatus, assertAdminApiCompanyAccess, requireAdminApiAccess } from '@/lib/admin/apiGuards'
@@ -12,7 +14,9 @@ export async function POST(request: Request) {
 
   try {
     const companyId = await assertAdminApiCompanyAccess(access.guard)
-    const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    const input = await readAdminJson(request, pricingRepriceSchema)
+    if (!input.ok) return NextResponse.json({ error: input.error, code: input.code }, { status: input.status })
+    const body = input.data
     const billingUnderlayId = typeof body.billing_underlay_id === 'string' ? body.billing_underlay_id : typeof body.billingUnderlayId === 'string' ? body.billingUnderlayId : ''
     if (!billingUnderlayId) return NextResponse.json({ error: 'billing_underlay_id krävs.' }, { status: 400 })
 
