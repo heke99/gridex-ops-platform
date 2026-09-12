@@ -188,15 +188,17 @@ export async function requireOperationalCompanyId(userId: string): Promise<strin
 
 export async function assertUserCanOperateCompany(
   userId: string,
-  companyId: string | null | undefined
+  companyId: string | null | undefined,
+  authority?: { isPlatformAdmin: boolean },
 ): Promise<string> {
   const normalized = companyId?.trim()
   if (!normalized) {
     const fallbackCompanyId = await requireOperationalCompanyId(userId)
-    return assertUserCanOperateCompany(userId, fallbackCompanyId)
+    return assertUserCanOperateCompany(userId, fallbackCompanyId, authority)
   }
 
-  if (await isPlatformAdminUser(userId)) {
+  const isPlatformAdmin = authority?.isPlatformAdmin ?? await isPlatformAdminUser(userId)
+  if (isPlatformAdmin) {
     const { data, error } = await supabaseService
       .from('companies')
       .select('id, status')

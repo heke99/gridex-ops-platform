@@ -120,7 +120,10 @@ export const manualCases: Array<{ name: string; run: (load: ManualLoader) => Pro
     name: 'zero-row claim is an observable skip without a provider call',
     async run(load) {
       const f = manualFixture()
-      f.beforeQuery = (q) => { if (q.patch?.status === 'sending') takeOtherLease(f) }
+      f.beforeQuery = (q) => {
+        if (q.patch?.status === 'sending') takeOtherLease(f)
+        return undefined
+      }
       const result = await load(f)({ companyId: 'A' })
       assert.equal(result.claimed, 0); assert.equal(result.skipped, 1); assert.equal(result.failed, 0)
       assert.match(result.errors.join('|'), /claim_lost/)
@@ -136,7 +139,10 @@ export const manualCases: Array<{ name: string; run: (load: ManualLoader) => Pro
         if (call === 2) { if (boundary === 'transport') takeOtherLease(f, status); throw new Error('transport policy unavailable') }
         return { allowed: true, reason_code: 'allowed', company_status: 'active' }
       }
-      f.beforeQuery = (q) => { if (boundary === 'failure-write' && q.patch?.last_error_code === 'send_failed') takeOtherLease(f, status) }
+      f.beforeQuery = (q) => {
+        if (boundary === 'failure-write' && q.patch?.last_error_code === 'send_failed') takeOtherLease(f, status)
+        return undefined
+      }
       const result = await load(f)({ companyId: 'A' })
       assert.equal(f.row.status, status); assert.equal(f.row.attempts, 3)
       assert.equal(f.row.locked_by, status === 'sent' ? null : 'OTHER-WORKER')

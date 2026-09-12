@@ -43,13 +43,18 @@ function actorRoleFromFamily(senderEdielId: string | null, messageFamily: string
   return 'unknown_actor'
 }
 
-async function loadMessage(messageId: string): Promise<EdielMessageRow> {
-  const { data, error } = await supabaseService
+async function loadMessage(messageId: string, companyId?: string): Promise<EdielMessageRow> {
+  let query = supabaseService
     .from('ediel_messages')
     .select('*')
     .eq('id', messageId)
-    .single()
+  if (companyId) query = query.eq('company_id', companyId)
+
+  const { data, error } = await query.single()
   if (error) throw error
+  if (companyId && text((data as EdielMessageRow | null)?.company_id) !== companyId) {
+    throw new Error('Ediel-meddelandet hittades inte.')
+  }
   return data as EdielMessageRow
 }
 
@@ -152,8 +157,13 @@ async function createManualReview(input: {
 export async function evaluateInboundEdielRequest(input: {
   messageId: string
   forceManualReview?: boolean
+  companyId?: string
 }) {
-  const message = await loadMessage(input.messageId)
+  const authorizedCompanyId = input.companyId === undefined ? undefined : text(input.companyId)
+  if (authorizedCompanyId === null) {
+    throw new Error('Ediel-meddelandet hittades inte.')
+  }
+  const message = await loadMessage(input.messageId, authorizedCompanyId)
   const canonical = parseCanonicalEdielPayload({
     rawPayload: message.raw_payload,
     direction: message.direction,

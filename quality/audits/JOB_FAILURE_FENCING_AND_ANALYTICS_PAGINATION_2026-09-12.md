@@ -88,3 +88,7 @@ Next action: root independently reviews this exact six-file candidate, then perf
 ## Independent review
 
 Specification and quality APPROVED for the bounded application task, no blocking findings. Minor: the supplemental Node24 runner emits its experimental TypeScript-stripping warning; this is recorded runtime noise and does not imply pristine hosted output. Supported Node22 and native/PostgREST gates remain pending.
+
+## Supported CI follow-up
+
+On e5ad80ee, supported Node22 OPS34677792370/job103510668930 passed lint and script typecheck, then rejected two fixture beforeQuery callbacks inferred as void (TS2322 at original lines123/139). The original author added explicit undefined returns to exactly those callbacks, preserving runtime values, mutation predicates and all32cases. Five affected actual-source cases and syntax passed; independent specification and quality review approved without findings. The correction changes no application code, types, casts, suppressions or global configuration. Hosted typecheck and Vitest remain pending the next reviewed publication.

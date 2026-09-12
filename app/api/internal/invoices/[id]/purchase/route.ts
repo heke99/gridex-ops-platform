@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
-import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
-import { assertUserCanOperateCompany, requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { assertAdminApiCompanyAccess, requireAdminApiAccess } from '@/lib/admin/apiGuards'
 import { supabaseService } from '@/lib/supabase/service'
 import { requestCapwayInvoicePurchase } from '@/lib/integrations/billing/capway/purchase'
 
@@ -17,7 +16,7 @@ export async function POST(request: Request, { params }: Props) {
     const { id } = await params
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
     const requestedCompanyId = typeof body.companyId === 'string' ? body.companyId : typeof body.company_id === 'string' ? body.company_id : null
-    const companyId = requestedCompanyId ? await assertUserCanOperateCompany(access.guard.userId, requestedCompanyId) : await requireOperationalCompanyId(access.guard.userId)
+    const companyId = await assertAdminApiCompanyAccess(access.guard, requestedCompanyId)
     const financingMode = body.financing_mode === 'factoring_with_recourse' || body.financingMode === 'factoring_with_recourse' ? 'factoring_with_recourse' : 'factoring_without_recourse'
 
     const { data: item, error } = await supabaseService

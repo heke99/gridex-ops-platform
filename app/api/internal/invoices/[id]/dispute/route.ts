@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
-import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
-import { assertUserCanOperateCompany, requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { assertAdminApiCompanyAccess, requireAdminApiAccess } from '@/lib/admin/apiGuards'
 import { supabaseService } from '@/lib/supabase/service'
 import { createCapwayApticClient } from '@/lib/integrations/billing/capway/client'
 import { emitDomainEvent } from '@/lib/events/domainEvents'
@@ -17,7 +16,10 @@ export async function POST(request: Request, { params }: Props) {
   try {
     const { id } = await params
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
-    const companyId = typeof body.companyId === 'string' ? await assertUserCanOperateCompany(access.guard.userId, body.companyId) : await requireOperationalCompanyId(access.guard.userId)
+    const companyId = await assertAdminApiCompanyAccess(
+      access.guard,
+      typeof body.companyId === 'string' ? body.companyId : null,
+    )
     const { data: item, error } = await supabaseService.from('invoice_export_items').select('*').eq('company_id', companyId).eq('id', id).single()
     if (error) throw error
     const invoiceGuid = typeof item.provider_invoice_guid === 'string' ? item.provider_invoice_guid : ''
