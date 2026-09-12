@@ -8,7 +8,7 @@ import {
 import { type GuardResult } from '@/lib/admin/guards'
 import { ADMIN_SELECTED_COMPANY_COOKIE } from '@/lib/admin/navigationPreferences'
 import { normalizeRoleKey, resolveRoleKey } from '@/lib/rbac/roleKeys'
-import { assertUserCanOperateCompany } from '@/lib/tenant/scope'
+import { assertUserCanOperateCompany, assertUserCanReadCompany, CompanyAccessError } from '@/lib/tenant/scope'
 
 type UserRoleRpcRow = string | {
   role_id?: string | null
@@ -59,20 +59,44 @@ export function apiErrorResponse(error: unknown, fallbackStatus = 500) {
   return jsonError(message, status)
 }
 
-export async function assertAdminApiCompanyAccess(
+function bindAdminApiCompany(
   guard: GuardResult,
   requestedCompanyId?: string | null,
-): Promise<string> {
+): string {
   const canonicalCompanyId = guard.companyId?.trim() || null
   const companyId = requestedCompanyId?.trim() || canonicalCompanyId
 
   if (!companyId) {
-    throw new Error('Du saknar behörighet för valt bolag. Välj bolaget innan du fortsätter.')
+    throw new CompanyAccessError('Du saknar behörighet för valt bolag. Välj bolaget innan du fortsätter.')
   }
 
   if (!guard.isPlatformAdmin && canonicalCompanyId !== companyId) {
-    throw new Error('Du saknar behörighet för valt bolag. Välj bolaget innan du fortsätter.')
+    throw new CompanyAccessError('Du saknar behörighet för valt bolag. Välj bolaget innan du fortsätter.')
   }
+
+  return companyId
+}
+
+export function adminApiCompanyAccessErrorStatus(error: unknown): 403 | undefined {
+  return error instanceof CompanyAccessError ? 403 : undefined
+}
+
+export async function assertAdminApiCompanyReadAccess(
+  guard: GuardResult,
+  requestedCompanyId?: string | null,
+): Promise<string> {
+  const companyId = bindAdminApiCompany(guard, requestedCompanyId)
+
+  return assertUserCanReadCompany(guard.userId, companyId, {
+    isPlatformAdmin: guard.isPlatformAdmin,
+  })
+}
+
+export async function assertAdminApiCompanyAccess(
+  guard: GuardResult,
+  requestedCompanyId?: string | null,
+): Promise<string> {
+  const companyId = bindAdminApiCompany(guard, requestedCompanyId)
 
   return assertUserCanOperateCompany(guard.userId, companyId, {
     isPlatformAdmin: guard.isPlatformAdmin,

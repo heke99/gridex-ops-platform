@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
-import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
-import { requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { adminApiCompanyAccessErrorStatus, assertAdminApiCompanyAccess, requireAdminApiAccess } from '@/lib/admin/apiGuards'
 import { calculatePricingPreviewForBillingMonth, calculatePricingPreviewForUnderlay } from '@/lib/pricing/engine'
 
 export const runtime = 'nodejs'
@@ -16,7 +15,7 @@ export async function POST(request: Request) {
   if (access.response) return access.response
 
   try {
-    const companyId = await requireOperationalCompanyId(access.guard.userId)
+    const companyId = await assertAdminApiCompanyAccess(access.guard)
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
     const billingUnderlayId = typeof body.billing_underlay_id === 'string' ? body.billing_underlay_id : typeof body.billingUnderlayId === 'string' ? body.billingUnderlayId : ''
     const billingMonth = typeof body.billing_month === 'string' ? body.billing_month : typeof body.billingMonth === 'string' ? body.billingMonth : ''
@@ -36,6 +35,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'billing_underlay_id eller billing_month måste anges.' }, { status: 400 })
   } catch (error) {
     const internalMessage = error instanceof Error ? error.message : ''
-    return internalApiError({ context: 'pricing-preview', error, code: 'pricing_preview_failed', message: 'Prispreview kunde inte skapas.', status: isBillingPeriodLockError(internalMessage) ? 409 : 500 })
+    return internalApiError({ context: 'pricing-preview', error, code: 'pricing_preview_failed', message: 'Prispreview kunde inte skapas.', status: adminApiCompanyAccessErrorStatus(error) ?? (isBillingPeriodLockError(internalMessage) ? 409 : 500) })
   }
 }

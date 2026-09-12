@@ -1,0 +1,440 @@
+{
+  "status": "BLOCKED_TASK15A_AND_TASK15B_OBSERVED_INPUT",
+  "admitted_reuse_manifest": {
+    "path": "quality/audits/BILLING_EVENT_EFFECTIVE_PREREQUISITE_MANIFEST_2026-09-12.json",
+    "bytes": 763671,
+    "sha256": "90a0bb834206e2928208fe859e9350e97d1d5208f59115bc63cdcad7aa9e52c4"
+  },
+  "source_contract_inputs": [
+    {
+      "path": ".superpowers/sdd/2026-09-12-current-and-plan77-85/task-15-brief.md",
+      "bytes": 4159,
+      "sha256": "4402b09a0bd7a46bd348b2e64f420b71cb2ccd7593c74b122fe42a9f5dc44200"
+    },
+    {
+      "path": "quality/audits/BILLING_NATIVE_EVIDENCE_CONTRACT_2026-09-12.md",
+      "bytes": 45207,
+      "sha256": "09bafe77c4d86c8774474a6f83456aafe428550de6b67547ba0301c9c60874ad"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_TRANSACTION_CONTRACT_2026-09-12.md",
+      "bytes": 35621,
+      "sha256": "36137d564e17f4eeefcb6c3018eb3181efc0962ab1c5a1b170930af2a66d708f"
+    }
+  ],
+  "source_name_discovery_only": [
+    {
+      "path": "supabase/migrations/20260716010000_contract_billing_end_to_end_completion.sql",
+      "bytes": 113534,
+      "sha256": "681f2061678aa4c22075d730925367a824400a9bd9c58f71281c9e182dee9014",
+      "authority": "source-only target-name/body navigation; not current or historical admission",
+      "function_spans": [
+        {
+          "name": "public.gridex_persist_pricing_run",
+          "start_byte": 87403,
+          "end_byte_exclusive": 93110,
+          "slice_sha256": "bf47dec5abb52411906afa0c36bd2590d930460fbff158414168f7c7410d6a20"
+        },
+        {
+          "name": "public.gridex_lock_pricing_run",
+          "start_byte": 93112,
+          "end_byte_exclusive": 95905,
+          "slice_sha256": "9908899a89a22545d6ae4e2090549489dc161b96885e028d7f8910f4a72ec95b"
+        },
+        {
+          "name": "public.gridex_store_billing_underlay_batch",
+          "start_byte": 98542,
+          "end_byte_exclusive": 99497,
+          "slice_sha256": "237032d18d4b789f4ead85efea3e85b141df330a5111665cdbaacef557518403"
+        },
+        {
+          "name": "public.gridex_create_billing_export_run",
+          "start_byte": 99659,
+          "end_byte_exclusive": 106058,
+          "slice_sha256": "21bdf0b8bede1be1c7c033ab2d793030f603b6a5b7301344873742c46e4e1f2d"
+        }
+      ]
+    },
+    {
+      "path": "supabase/migrations/20260901152500_canonicalize_billing_underlay_stockholm_period_semantics.sql",
+      "bytes": 9434,
+      "sha256": "1722e8bda642ca12c2ca2f337aaaf929bde83ecf82955979d4c671554c2abcbd",
+      "authority": "source-only target-name/body navigation; not current or historical admission",
+      "function_spans": [
+        {
+          "name": "public.gridex_store_billing_underlay",
+          "start_byte": 0,
+          "end_byte_exclusive": 6870,
+          "slice_sha256": "4e5354c59d15d9b74c77b28bcad8eb5ec248a88fc178db7976adcbefc9e285d4"
+        },
+        {
+          "name": "public.gridex_billing_underlay_item_gate_guard",
+          "start_byte": 6872,
+          "end_byte_exclusive": 9214,
+          "slice_sha256": "c0d4948862e6ae8b2400b6a13c8a0d281dfd7e909f83c700217792fbbe952612"
+        }
+      ]
+    },
+    {
+      "path": "supabase/migrations/20260901165500_link_ediel_sources_during_atomic_metering_ingest_recovery.sql",
+      "bytes": 8036,
+      "sha256": "8c8edf8b15a32587082e39361b4f415fdf96eea0ee3e422a45bde2a6a65255e3",
+      "authority": "source-only target-name/body navigation; not current or historical admission",
+      "function_spans": [
+        {
+          "name": "public.gridex_ingest_metering_value_atomic",
+          "start_byte": 0,
+          "end_byte_exclusive": 8035,
+          "slice_sha256": "89dc5def75328cdc6226aa5528385779995790ab68eb406807c3f9816ec9824d"
+        }
+      ]
+    },
+    {
+      "path": "supabase/migrations/20260901165000_metering_value_source_provenance_for_idempotent_recovery.sql",
+      "bytes": 2533,
+      "sha256": "f5ba406d10abdc6da189238f4d6840ca1b24bc78061afd1a1a00964d289cb414",
+      "authority": "source-only target-name/body navigation; not current or historical admission",
+      "function_spans": [
+        {
+          "name": "public.gridex_guard_metering_value_source_tenant_v1",
+          "start_byte": 1056,
+          "end_byte_exclusive": 2039,
+          "slice_sha256": "386abdf53651f1c89c7f184c5bcd34132efa1d6036956c719d0fedb989f9181b"
+        }
+      ]
+    },
+    {
+      "path": "supabase/migrations/20260727164000_canonical_invoice_export_runtime_completion.sql",
+      "bytes": 8810,
+      "sha256": "e2d41cf4449aeaf3cc1771736ce8fd18529f36a0a873d410748fe444e24f7027",
+      "authority": "source-only target-name/body navigation; not current or historical admission",
+      "function_spans": [
+        {
+          "name": "public.gridex_create_invoice_export_graph_v1",
+          "start_byte": 530,
+          "end_byte_exclusive": 8285,
+          "slice_sha256": "1933f96942dc329e2d303c8af29fdac4218e671cc0517f513b30a8c762e0f5df"
+        }
+      ]
+    },
+    {
+      "path": "supabase/migrations/20260727010000_contract_flow_integrity_completion.sql",
+      "bytes": 35215,
+      "sha256": "392d9e90c4fcec6752644fb75721ed7a113c3dcd2cb68d3185e3bfd44a065c4f",
+      "authority": "source-only target-name/body navigation; not current or historical admission",
+      "function_spans": [
+        {
+          "name": "public.gridex_create_invoice_export_graph_v1",
+          "start_byte": 16255,
+          "end_byte_exclusive": 22330,
+          "slice_sha256": "ce70809f102621a70ee20052e9d6f84f0fd96c3ed2d78c6fe1a90308222649ee"
+        }
+      ]
+    },
+    {
+      "path": "supabase/migrations/20260728170000_live_schema_code_canonical_sync.sql",
+      "bytes": 60288,
+      "sha256": "4b1af824f75423faa393d60b845d3b39a3998bcfc7d7ea1cec2a54aa8d3bd400",
+      "authority": "source-only target-name/body navigation; not current or historical admission",
+      "function_spans": []
+    },
+    {
+      "path": "supabase/migrations/20260702120000_gridex_billing_pricing_immutability_constraints.sql",
+      "bytes": 12293,
+      "sha256": "e27c10de31bbc04cc06e39e894cc9b6fa9f1aec6490bfbb5e4b403d0cd3faddf",
+      "authority": "source-only target-name/body navigation; not current or historical admission",
+      "function_spans": [
+        {
+          "name": "public.gridex_unlock_pricing_runs_for_month",
+          "start_byte": 3365,
+          "end_byte_exclusive": 4571,
+          "slice_sha256": "ac13d5a3219278e8f3aec116b4636d889529230aa4dc5663cbbda2021e621dbd"
+        }
+      ]
+    },
+    {
+      "path": "supabase/migrations/20260712100000_gridex_end_to_end_integrity_hardening.sql",
+      "bytes": 94361,
+      "sha256": "02e8e31077ad75ec3e1e753dcea72da819fc5f89484c430f2007e4fbf55e42be",
+      "authority": "source-only target-name/body navigation; not current or historical admission",
+      "function_spans": [
+        {
+          "name": "public.gridex_acquire_automation_lock",
+          "start_byte": 1565,
+          "end_byte_exclusive": 2627,
+          "slice_sha256": "e2325c4c00389f3feb61cc2ead7f1b281e5690bcf2cb72b6c74b84e357267ada"
+        },
+        {
+          "name": "public.gridex_release_automation_lock",
+          "start_byte": 2629,
+          "end_byte_exclusive": 2953,
+          "slice_sha256": "ae39450ab291b67cd782359d0c9a9aa8e4d2d12bd7cea70d32ceba20b6bf8174"
+        }
+      ]
+    },
+    {
+      "path": "supabase/migrations/20260716090000_production_settlement_export_completion.sql",
+      "bytes": 39167,
+      "sha256": "d50c8f7e755c026d1af9be693bf42b0d0001b4b8a4680c96c4e0d611f03b64eb",
+      "authority": "source-only target-name/body navigation; not current or historical admission",
+      "function_spans": []
+    },
+    {
+      "path": "lib/billing/invoiceApprovedDispatch.ts",
+      "bytes": 27878,
+      "sha256": "67aeed6029e523865cf419257ac5eb8097e67d0a61b1290b2ba8ab7e278360ef",
+      "authority": "source-only target-name/body navigation; not current or historical admission",
+      "function_spans": []
+    },
+    {
+      "path": "lib/billing/invoiceReadiness.ts",
+      "bytes": 35197,
+      "sha256": "4e9ea26cfdacc883e344ecfc8813cce497b4bc96a4acc186effaa6d4607dfe3e",
+      "authority": "source-only target-name/body navigation; not current or historical admission",
+      "function_spans": []
+    },
+    {
+      "path": "lib/billing/underlayEvidence.ts",
+      "bytes": 13406,
+      "sha256": "720a8799ab4994422503d210620c8bda4fbb6b1cd2c9aa94c18de9884599d89f",
+      "authority": "source-only target-name/body navigation; not current or historical admission",
+      "function_spans": []
+    },
+    {
+      "path": "lib/pricing/intervalPricing.ts",
+      "bytes": 7064,
+      "sha256": "c1d31e8f6e097de35fb91b88dd324a5d7120c345dbb0bff780df0b000c5a4a64",
+      "authority": "source-only target-name/body navigation; not current or historical admission",
+      "function_spans": []
+    },
+    {
+      "path": "lib/pricing/priceSourceResolver.ts",
+      "bytes": 52442,
+      "sha256": "cc55d0cdb4b1d3f8d8bab1cb9605e99c2f8f4e1c2559ee0f27ead8185701005d",
+      "authority": "source-only target-name/body navigation; not current or historical admission",
+      "function_spans": []
+    },
+    {
+      "path": "lib/pricing/marketPriceSources.ts",
+      "bytes": 10611,
+      "sha256": "2c32c855e0e6a56c30f08332275d95f5598e71c95b5bbd9e4e1bb2eae858811e",
+      "authority": "source-only target-name/body navigation; not current or historical admission",
+      "function_spans": []
+    },
+    {
+      "path": "lib/platform/outboundFreeze.ts",
+      "bytes": 1575,
+      "sha256": "bbfb26e233265368092dfe78d18e7b66093a19f21960f194efebe98339697906",
+      "authority": "source-only target-name/body navigation; not current or historical admission",
+      "function_spans": []
+    },
+    {
+      "path": "lib/automation/locks.ts",
+      "bytes": 1734,
+      "sha256": "48e2f957953d936ad95a59b961d960bf854354d8128cd310a742b675ee5482d4",
+      "authority": "source-only target-name/body navigation; not current or historical admission",
+      "function_spans": []
+    },
+    {
+      "path": "lib/integrations/billing/capway/auth.ts",
+      "bytes": 7704,
+      "sha256": "c8ad9c4d34d97e59555ee9e5c2171f08dd7f07f3899f26ad1f2342880c26b522",
+      "authority": "source-only target-name/body navigation; not current or historical admission",
+      "function_spans": []
+    },
+    {
+      "path": "lib/tenant/governance.ts",
+      "bytes": 31089,
+      "sha256": "3473e7f4dd497b377af05d1bb07c9c88f14b04a6a994b220eafbf938becd0ebe",
+      "authority": "source-only target-name/body navigation; specific requireCompanyOperationalForWrites and company getter only, not broad governance execution",
+      "function_spans": []
+    }
+  ],
+  "new_relation_frontier": [
+    {
+      "identity": "public.billing_underlay_items",
+      "phase": "15a",
+      "reached_reason": "Complete interval item set; regeneration DELETE/reinsert; economic child INSERT/UPDATE/DELETE freeze and actual lineage trigger."
+    },
+    {
+      "identity": "public.billing_underlay_events",
+      "phase": "15a",
+      "reached_reason": "Actual underlay writer inserts underlay_generated event; rollback sink."
+    },
+    {
+      "identity": "public.metering_values",
+      "phase": "15a",
+      "reached_reason": "Raw current/replaced revision identity and actual ingestion return type/write graph."
+    },
+    {
+      "identity": "public.normalized_metering_values",
+      "phase": "15a",
+      "reached_reason": "Required lineage/current eligibility/quantity source and replacement transitions; gate rowtype."
+    },
+    {
+      "identity": "public.metering_value_sources",
+      "phase": "15a",
+      "reached_reason": "Actual idempotent and replacement ingestion provenance INSERT with tenant/FK guard."
+    },
+    {
+      "identity": "public.ediel_messages",
+      "phase": "15a",
+      "reached_reason": "Required source-message identity and actual provenance FK/tenant guard parent; complete valid source setup."
+    },
+    {
+      "identity": "public.customer_supply_periods",
+      "phase": "15a",
+      "reached_reason": "Exact supply-period/customer/meter/contract eligibility and segment evidence, not nullable dummy identity."
+    },
+    {
+      "identity": "public.pricing_preview_lines",
+      "phase": "15a",
+      "reached_reason": "Persist INSERT and monetary sum/one-time-ledger inputs; direct sealed economic child mutations."
+    },
+    {
+      "identity": "public.pricing_interval_evidence",
+      "phase": "15a",
+      "reached_reason": "Persist INSERT, full exact interval/selected-price evidence and child freeze; actual item RESTRICT FK must be observed."
+    },
+    {
+      "identity": "public.contract_charge_ledger",
+      "phase": "15a",
+      "reached_reason": "First lock inserts once/event component charges; uniqueness/replay/rollback ledger."
+    },
+    {
+      "identity": "public.price_period_locks",
+      "phase": "15a+15b",
+      "reached_reason": "First pricing lock upsert and compatibility period gating; dispatch month completion also writes it."
+    },
+    {
+      "identity": "public.billing_period_locks",
+      "phase": "15a+15b",
+      "reached_reason": "Closed/reopened-period replay and first reservation gating; dispatch completion upsert."
+    },
+    {
+      "identity": "public.billing_export_runs",
+      "phase": "15a+15b",
+      "reached_reason": "Actual compatibility writer rowtype/INSERT, wrapper existing-run/hash coherence and finish projection."
+    },
+    {
+      "identity": "public.billing_export_run_items",
+      "phase": "15a+15b",
+      "reached_reason": "Compatibility writer ready/blocked INSERT and exact count, energy inheritance, finish sent/failure projection."
+    },
+    {
+      "identity": "public.spot_price_intervals",
+      "phase": "15a",
+      "reached_reason": "Exact selected interval source ID/value/area/time/resolution under source consistency boundary; source value swap tests."
+    },
+    {
+      "identity": "public.company_market_price_sources",
+      "phase": "15a",
+      "reached_reason": "Applicable source priority/resolution/area/portfolio policy used for real selected price evidence."
+    },
+    {
+      "identity": "public.spot_price_monthly_summaries",
+      "phase": "15a",
+      "reached_reason": "Locked monthly variable-price settlement control and immutable selected source record; no quote-preview substitution."
+    },
+    {
+      "identity": "public.invoice_export_attempts",
+      "phase": "15b",
+      "reached_reason": "Actual attempt result/request-hash/token-adjacent evidence sink must finalize atomically."
+    },
+    {
+      "identity": "public.invoice_dead_letters",
+      "phase": "15b",
+      "reached_reason": "Existing terminal failure branch writes dead-letter evidence; cannot silently omit failure sink."
+    },
+    {
+      "identity": "public.billing_provider_connections",
+      "phase": "15b_runtime_adjacent",
+      "reached_reason": "Current Capway configuration/environment/allowed status boundary; metadata only, no settings/secret_reference values."
+    },
+    {
+      "identity": "public.automation_locks",
+      "phase": "15b_runtime_adjacent",
+      "reached_reason": "Actual surrounding acquire/release lock RPC sink; preserve lock expiration/reconciliation distinction, not evidence seal."
+    }
+  ],
+  "new_named_function_frontier": [
+    {
+      "signature": "public.gridex_persist_pricing_run(uuid,uuid,jsonb,jsonb)",
+      "phase": "15a",
+      "reached_reason": "Success/failure direct RPC; child persist/supersession/source-readiness behavior and search_path/ACL unknown currently."
+    },
+    {
+      "signature": "public.gridex_lock_pricing_run(uuid,uuid,uuid)",
+      "phase": "15a",
+      "reached_reason": "First lock ledger/period/seal integration and already-locked replay; actual body/ACL must be observed."
+    },
+    {
+      "signature": "public.gridex_store_billing_underlay_batch(uuid,jsonb,uuid)",
+      "phase": "15a",
+      "reached_reason": "Batch mutex and per-command writer transaction; sorted shared-parent discipline."
+    },
+    {
+      "signature": "public.gridex_store_billing_underlay(uuid,jsonb,jsonb,uuid)",
+      "phase": "15a",
+      "reached_reason": "Latest source September1 full writer supersedes prior patches; regeneration/item/event effects."
+    },
+    {
+      "signature": "public.gridex_billing_underlay_item_gate_guard()",
+      "phase": "15a",
+      "reached_reason": "Existing source lineage guard must remain real; direct current registration/body/ACL needed."
+    },
+    {
+      "signature": "public.gridex_create_invoice_export_graph_v1_core(jsonb,jsonb,jsonb)",
+      "phase": "15a+15b",
+      "reached_reason": "Actual amended owner-internal core, portal-before-legacy compatibility ordering and service revoke."
+    },
+    {
+      "signature": "public.gridex_create_invoice_export_graph_v1(jsonb,jsonb,jsonb)",
+      "phase": "15a+15b",
+      "reached_reason": "Actual public wrapper/hash/idempotency/core/legacy/domain/outbox whole graph."
+    },
+    {
+      "signature": "public.gridex_create_billing_export_run(jsonb,jsonb)",
+      "phase": "15a+15b",
+      "reached_reason": "Direct compatibility ready-item entrypoint plus blocked diagnostic behavior; actual grants retained."
+    },
+    {
+      "signature": "public.gridex_unlock_pricing_runs_for_month(uuid,text,uuid,text)",
+      "phase": "15a",
+      "reached_reason": "Existing maintenance unlock writes run economics/history; cannot bypass reserved/sent seal."
+    },
+    {
+      "signature": "public.gridex_ingest_metering_value_atomic(jsonb)",
+      "phase": "15a",
+      "reached_reason": "Actual current/replaced revision transitions and idempotent provenance; legitimate later ingestion remains allowed."
+    },
+    {
+      "signature": "public.gridex_guard_metering_value_source_tenant_v1()",
+      "phase": "15a",
+      "reached_reason": "Actual provenance INSERT/UPDATE guard reaches raw/normalized/message identities."
+    },
+    {
+      "signature": "public.gridex_acquire_automation_lock(text,uuid,uuid,integer,jsonb)",
+      "phase": "15b_runtime_adjacent",
+      "reached_reason": "Current app wrapper exact lock TTL/token scope; source performs global expired-lock cleanup."
+    },
+    {
+      "signature": "public.gridex_release_automation_lock(text,uuid)",
+      "phase": "15b_runtime_adjacent",
+      "reached_reason": "Current app wrapper exact token-matched release; finally path not silently replaced."
+    }
+  ],
+  "new_direct_metadata_rule": "Full exact named relation/function projections plus actual direct custom trigger functions, direct FK key metadata/default/index/policy/function dependencies and ACLs; bounded direct only. New named assertions must not be mistaken for transitive closure. No query authored/executed.",
+  "existing_observed_promotion": {
+    "identity": "public.customer_invoice_lines",
+    "receipt": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+    "receipt_sha256": "8cdca9cf1e6a67a9b4870d00e654eceab3f5d00902cb6c5dad16d53efe672c48",
+    "selector": "/catalog/tables/7",
+    "start_byte": 831769,
+    "end_byte_exclusive": 865780,
+    "slice_sha256": "6cb408391a4d42b1b6e2f0c03ac5a22873f2d5fb336cea5154ce1b66ed716af8",
+    "canonical_json_sha256": "1fda87dc7698c15f10810c7fe82102f0c08374e911fd49cc6086fff44d2b2982",
+    "custom_triggers": [],
+    "reason": "Task15 contract explicitly includes invoice/lines graph; actual six FKs use already observed full parents/self. Reuse exact full metadata even though Task12 effective profile excluded it; no new query."
+  }
+}

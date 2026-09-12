@@ -94,6 +94,7 @@ const supabaseService = {
   async rpc() { return { data: [], error: null } },
 }
 const tenantScope = load('lib/tenant/scope.ts', [
+  'CompanyAccessError',
   'assertUserCanOperateCompany',
   'requireOperationalCompanyId',
 ], {
@@ -138,6 +139,15 @@ const retryRoute = load('app/api/internal/invoice-exports/[id]/retry/route.ts', 
   internalApiError: () => NextResponse.json({ error: 'failed' }, { status: 500 }),
   resetFailedInvoiceExportItems: async (input) => { state.resets.push(input) },
 })
+
+await assert.rejects(
+  apiGuards.assertAdminApiCompanyAccess(
+    { userId: 'actor', companyId: 'A', isPlatformAdmin: false },
+    'B',
+  ),
+  (error) => error instanceof tenantScope.CompanyAccessError,
+  'mismatched company must throw the actual CompanyAccessError dependency',
+)
 
 const canonicalPayload = {
   messageFamilyForStorage: 'OTHER', messageCode: null, sender: null, receiver: null,
@@ -194,4 +204,4 @@ assert.deepEqual(
   { id: 'message-A', company_id: 'A' },
 )
 
-console.log('PASS actual retry route and Ediel route/helper deny A/B effects; blank/omitted/scoped helper contracts hold')
+console.log('PASS actual CompanyAccessError dependency, retry route and Ediel route/helper deny A/B effects; blank/omitted/scoped helper contracts hold')
