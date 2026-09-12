@@ -6,9 +6,12 @@ import {
   processResendWebhookEvent,
   verifyResendWebhook,
 } from '@/lib/email/resendWebhookEvents'
+import { readTextBodyWithLimit } from '@/lib/http/boundedRequestBody'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+const MAX_BODY_BYTES = 2_000_000
 
 // Safe diagnostics: we never echo the signing secret. We distinguish the four
 // failure classes so superadmin can tell a misconfiguration (missing secret /
@@ -30,7 +33,14 @@ export async function POST(request: NextRequest) {
   }
 
   // The raw body MUST be used for signature verification; do not parse first.
-  const payload = await request.text()
+  const bounded = await readTextBodyWithLimit(request, MAX_BODY_BYTES)
+  if (!bounded.ok) {
+    return NextResponse.json(
+      { ok: false, error: 'Webhook-payloaden är för stor.', code: 'payload_too_large' },
+      { status: 413 },
+    )
+  }
+  const payload = bounded.text
 
   let event
   try {

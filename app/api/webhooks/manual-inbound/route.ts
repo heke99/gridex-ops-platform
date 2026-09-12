@@ -1,6 +1,7 @@
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { ingestManualInboundEmail, type ManualInboundEmail } from '@/lib/inbound-mail/manualInboundIngestion'
+import { readTextBodyWithLimit } from '@/lib/http/boundedRequestBody'
 import { supabaseService } from '@/lib/supabase/service'
 
 export const runtime = 'nodejs'
@@ -127,14 +128,11 @@ function toInboundEmail(body: Record<string, unknown>): ManualInboundEmail {
 }
 
 export async function POST(request: NextRequest) {
-  const contentLength = Number(request.headers.get('content-length') ?? '0')
-  if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
+  const bounded = await readTextBodyWithLimit(request, MAX_BODY_BYTES)
+  if (!bounded.ok) {
     return NextResponse.json({ ok: false, error: 'Payload för stor.', code: 'payload_too_large' }, { status: 413 })
   }
-  const rawBody = await request.text()
-  if (Buffer.byteLength(rawBody, 'utf8') > MAX_BODY_BYTES) {
-    return NextResponse.json({ ok: false, error: 'Payload för stor.', code: 'payload_too_large' }, { status: 413 })
-  }
+  const rawBody = bounded.text
 
   try {
     verifyRequest(request, rawBody)

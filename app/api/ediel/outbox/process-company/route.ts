@@ -3,9 +3,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { processEdielOutbox } from '@/lib/ediel/outbox/processEdielOutbox'
 import { supabaseService } from '@/lib/supabase/service'
 import { resolveConfiguredEdielAutomationActorId } from '@/lib/ediel/automationActor'
+import { readJsonWithLimit } from '@/lib/http/payloadLimit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+const MAX_BODY_BYTES = 256_000
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -56,7 +59,13 @@ export async function POST(request: NextRequest) {
   }
   if (!isAuthorized(request)) return NextResponse.json({ ok: false, error: 'Unauthorized.' }, { status: 401 })
 
-  const body = await request.json().catch(() => ({} as Record<string, unknown>))
+  const parsed = await readJsonWithLimit(request, MAX_BODY_BYTES)
+  if (!parsed.ok && parsed.code === 'payload_too_large') {
+    return NextResponse.json({ ok: false, error: 'Payload för stor.', code: 'payload_too_large' }, { status: 413 })
+  }
+  const body = parsed.ok && parsed.body && typeof parsed.body === 'object' && !Array.isArray(parsed.body)
+    ? parsed.body as Record<string, unknown>
+    : {}
   const companyId = clean(body.companyId) ?? clean(body.company_id)
   const reason = clean(body.reason)
   const environment = clean(body.environment)

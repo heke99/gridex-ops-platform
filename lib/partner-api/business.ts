@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
+import { ApiInputError, readJsonObject } from '@/lib/api/strictRequest'
 import {
   integrationCredential,
   logIntegrationApiRequest,
@@ -295,6 +296,14 @@ async function defaultOfferReference(
 
 function normalizeError(error: unknown): BusinessPartnerApiError {
   if (error instanceof BusinessPartnerApiError) return error
+  if (error instanceof ApiInputError) {
+    return new BusinessPartnerApiError(
+      error.message,
+      error.code,
+      error.status,
+      error.field ?? undefined,
+    )
+  }
   if (error instanceof EnergyResolutionBindingError) {
     return new BusinessPartnerApiError(
       error.message,
@@ -536,7 +545,7 @@ async function createPrice(request: NextRequest) {
   })
   if (!context.ok) return context.response
   try {
-    const body = record(await request.json())
+    const body = await readJsonObject(request, 256_000)
     assertBusinessOnlyInput(body)
     const allowed = new Set([
       'postal_code', 'zip_code', 'address', 'street', 'city', 'country',
