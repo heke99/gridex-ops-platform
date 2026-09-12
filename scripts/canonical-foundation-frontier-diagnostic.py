@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inspect the selected foundation after the accepted77 prefix, never certify it.
+"""Inspect the selected foundation and timestamp continuation, never certify it.
 
 Runs only on a new network-disabled OwnedPostgres target, through the existing
 source-pinned controller and independent prefix references. It deliberately
@@ -28,6 +28,14 @@ def load_controller():
     loaded = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(loaded)
     return loaded.controller()
+
+
+def load_timestamp():
+    path = ROOT / 'scripts/canonical-timestamp-frontier.py'
+    spec = importlib.util.spec_from_file_location('timestamp_frontier', path)
+    loaded = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(loaded)
+    return loaded
 
 
 def verify_selection(controller):
@@ -79,10 +87,11 @@ def safe_failure_category(controller, error):
 def receipt(report, outcome, details=None):
     return {
         'schemaVersion': SCHEMA,
-        'scope': 'SELECTED_FOUNDATION_DIAGNOSTIC_ONLY',
+        'scope': 'SELECTED_CHAIN_DIAGNOSTIC_ONLY',
         'outcome': outcome,
         'sourceCounts': report['counts'],
         'foundationInputs': 118,
+        'timestampInputs': report.get('selectedInputCounts', {}).get('timestamp', 0),
         'completeReplayVerified': False,
         'ledgerProvenanceVerified': False,
         'generatedTypesVerified': False,
@@ -96,6 +105,8 @@ def run():
         raise ValueError('NO_TARGET_OR_SCOPE_ARGUMENTS_ACCEPTED')
     controller = load_controller()
     order, report = verify_selection(controller)
+    timestamp = load_timestamp()
+    selected, prerequisites = timestamp.load_inputs(ROOT, report, order)
     legacy = controller.load_batch()
 
     def interrupted(_signum, _frame):
@@ -106,6 +117,7 @@ def run():
     before = controller.originals_snapshot()
     result = None
     phase = 'OWNED_TARGET'
+    progress = {'foundationExecuted': False, 'timestampApplied': 0}
     with legacy.OwnedPostgres() as target:
         try:
             phase = 'PRIVATE_INPUT_ADMISSION'
@@ -133,11 +145,15 @@ def run():
                            'frontier_bootstrap', transaction=False)
                 phase = 'SELECTED_FOUNDATION_EXECUTION'
                 loop.run(str(hold), paths)
-                result = receipt(report, 'SELECTED_FOUNDATION_EXECUTED_NOT_CERTIFIED')
+                progress['foundationExecuted'] = True
+                phase = 'SELECTED_TIMESTAMP_EXECUTION'
+                timestamp.execute_tail(ROOT, target, controller.DATABASE, selected, prerequisites, progress)
+                result = receipt(report, 'SELECTED_CHAIN_EXECUTED_NOT_CERTIFIED', progress)
         except Exception as error:
             last = Path(target.directory.name) / 'client-last.out'
             details = safe_error_identifiers(last.read_bytes()) if last.is_file() else {}
             details.update({'phase': phase, 'cause': safe_failure_category(controller, error)})
+            details.update(progress)
             result = receipt(report, 'BLOCKED', details)
         # Preserve the exact original source tree: there is no checkout staging,
         # restoration, source/manifest rewrite or schema baseline publication.
@@ -146,13 +162,13 @@ def run():
     if target.active:
         raise legacy.BoundaryError('OWNED_CLEANUP_REQUIRED')
     print(json.dumps(result, sort_keys=True), flush=True)
-    return 0 if result['outcome'] == 'SELECTED_FOUNDATION_EXECUTED_NOT_CERTIFIED' else 1
+    return 0 if result['outcome'] == 'SELECTED_CHAIN_EXECUTED_NOT_CERTIFIED' else 1
 
 
 if __name__ == '__main__':
     try:
         raise SystemExit(run())
     except Exception:
-        print(json.dumps({'scope': 'SELECTED_FOUNDATION_DIAGNOSTIC_ONLY', 'outcome': 'HARNESS_ERROR',
+        print(json.dumps({'scope': 'SELECTED_CHAIN_DIAGNOSTIC_ONLY', 'outcome': 'HARNESS_ERROR',
                           'completeReplayVerified': False}), flush=True)
         raise SystemExit(2) from None

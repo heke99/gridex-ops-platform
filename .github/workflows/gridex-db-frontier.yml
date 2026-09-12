@@ -5,12 +5,13 @@ on:
     paths:
       - '.github/workflows/gridex-db-frontier.yml'
       - 'scripts/canonical-foundation-frontier-*.py'
+      - 'scripts/canonical-timestamp-frontier*.py'
 
 permissions:
   contents: read
 
 jobs:
-  selected-foundation-diagnostic:
+  selected-chain-diagnostic:
     if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -22,8 +23,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
       - name: Validate source selection and private diagnostic receipts
-        run: python3 scripts/canonical-foundation-frontier-selftest.py
-      - name: Execute selected foundation on an owned network-disabled database
+        run: |
+          python3 scripts/canonical-foundation-frontier-selftest.py
+          python3 scripts/canonical-timestamp-frontier-selftest.py
+      - name: Execute selected chain on an owned network-disabled database
         run: python3 scripts/canonical-foundation-frontier-diagnostic.py
       - name: Remove only this diagnostic's owned container
         if: always()

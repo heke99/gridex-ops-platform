@@ -23,7 +23,7 @@ class FrontierTests(unittest.TestCase):
         self.assertFalse(report['sqlExecutionVerified'])
 
     def test_success_is_never_full_acceptance(self):
-        value = diag.receipt({'counts': {}}, 'SELECTED_FOUNDATION_EXECUTED_NOT_CERTIFIED')
+        value = diag.receipt({'counts': {}}, 'SELECTED_CHAIN_EXECUTED_NOT_CERTIFIED')
         for key in ('completeReplayVerified','ledgerProvenanceVerified','generatedTypesVerified','productionModified'):
             self.assertIs(value[key], False)
 
