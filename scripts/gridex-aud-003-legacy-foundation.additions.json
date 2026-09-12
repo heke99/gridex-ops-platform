@@ -1,6 +1,10 @@
 {
   "foundation": [
     "bootstrap/20260519_user_profiles_foundation.sql",
+    "bootstrap/20260519_user_profiles_active_company_foundation.sql",
+    "migrations/20260519_auth_callback_email_reset_sync.sql",
+    "migrations/20260520_user_profiles_auth_action_constraint_hardfix.sql",
+    "migrations/20260519_auth_email_templates_invite_reset_sync.sql",
     "bootstrap/20260519_companies_primary_contact_email_foundation.sql",
     "bootstrap/20260519_companies_governance_foundation.sql",
     "bootstrap/20260519_contract_offer_versions_foundation.sql",
@@ -8,13 +12,34 @@
     "bootstrap/20260520_pricing_component_rules_foundation.sql",
     "bootstrap/20260520_companies_support_email_foundation.sql",
     "bootstrap/20260520_onboarding_billing_auxiliary_foundation.sql",
+    "migrations/20260521_final_customer_info_request_status_check.sql",
+    "migrations/20260520_batch_3_4_final_completion.sql",
     "bootstrap/20260521_external_contract_intakes_foundation.sql",
     "bootstrap/20260521_customer_portal_completions_foundation.sql",
     "bootstrap/20260525_customer_invoice_lines_runtime_foundation.sql",
     "bootstrap/20260526_customer_blockers_foundation.sql",
+    "migrations/20260526_batch_3c_3d_fullmakt_data_requests.sql",
+    "migrations/20260909120000_canonical_role_permission_uniqueness_reconstruction.sql",
+    "migrations/20260909120100_canonical_invitation_status_index_reconstruction.sql",
+    "migrations/20260909120200_canonical_role_permission_identity_reconstruction.sql",
+    "migrations/20260519_saas_ui_tenant_admin.sql",
+    "migrations/20260519_batch_6d_superadmin_tenant_governance.sql",
+    "migrations/20260519_operations_core_saas_sync.sql",
+    "migrations/20260909123000_canonical_invitation_token_prerequisite.sql",
+    "migrations/20260519_customer_intake_contracts_tenant_hardening.sql",
+    "migrations/20260519_final_saas_hardening.sql",
+    "migrations/20260526_debug_step1_2f_customer_import_foundation.sql",
+    "migrations/20260519_batch_6d2_runtime_governance_completion.sql",
     "bootstrap/20260527_company_memberships_role_key_foundation.sql",
+    "migrations/20260520_batch_6e_rbac_tenant_stats_whitelabel.sql",
+    "migrations/20260520_batch_6e_fix_rbac_backfill_security.sql",
+    "migrations/20260520_batch_6e_hard_platform_roles_only.sql",
+    "migrations/20260528_auth_provisioning_runtime_guard.sql",
+    "migrations/20260910121054_canonical_auth_provisioning_diagnostics_boundary.sql",
     "bootstrap/20260528_route_decision_logs_foundation.sql",
     "bootstrap/20260528_route_decision_logs_current_supplier_foundation.sql",
+    "migrations/20260528_batch_1_completion_customer_flow.sql",
+    "migrations/20260521_actor_testing_engine_automation.sql",
     "migrations/20260602090000_ediel_operations_platform_core.sql",
     "migrations/20260605160000_ediel_backend_automation_foundation.sql",
     "bootstrap/20260609_integration_api_client_origins_foundation.sql",
@@ -23,7 +48,41 @@
     "bootstrap/20260614_integration_api_client_readiness_foundation.sql",
     "bootstrap/20260618_customer_operation_jobs_foundation.sql",
     "bootstrap/20260721_contract_publication_revisions_foundation.sql",
-    "bootstrap/20260722_external_tenant_reference_foundation.sql"
+    "bootstrap/20260722_external_tenant_reference_foundation.sql",
+    "migrations/20260519_company_invite_temp_password_sync.sql",
+    "migrations/20260520_direct_account_temporary_password_flow.sql",
+    "migrations/20260520_direct_temporary_password_auth_sync_fix.sql",
+    "migrations/20260527_debug_user_invites_role_flow.sql",
+    "migrations/20260527_fix_company_user_creation_schema_safe_backfill.sql",
+    "migrations/20260527_fix_company_user_invite_runtime_columns.sql",
+    "migrations/20260528_final_user_access_schema_safe_repair.sql",
+    "migrations/20260528_fix_user_roles_without_role_column_and_compact_users.sql",
+    "migrations/20260910140053_canonical_auth_provisioning_legacy_boundary.sql",
+    "migrations/20260525_debug_batch_2_rbac_tenant_alignment.sql",
+    "migrations/20260525_debug_batch_2e_verify_dashboard_user_provisioning.sql",
+    "migrations/20260526_debug_batch_2_tenant_rbac_server_actions.sql",
+    "migrations/20260910174947_canonical_user_rbac_repair_boundary.sql",
+    "migrations/20260525_debug_batch_2h_dedupe_user_roles_and_unique_guard.sql",
+    "migrations/20260911095503_canonical_user_rbac_fixed_target_prerequisites.sql",
+    "migrations/20260519_bootstrap_div3rsa_superadmin.sql",
+    "migrations/20260525_debug_batch_2c_activate_afshin_nibela.sql",
+    "migrations/20260525_debug_batch_2d_activate_afshin_nibela_v2.sql",
+    "migrations/20260525_debug_batch_2f_normalize_afshin_nibela.sql",
+    "migrations/20260911095505_canonical_user_rbac_fixed_target_restoration.sql",
+    "migrations/20260911114442_canonical_user_rbac_customer_alignment_prerequisites.sql",
+    "migrations/20260525_debug_step2_code_schema_alignment.sql",
+    "migrations/20260525_debug_step2b_tenant_scope_and_customer_card_performance.sql",
+    "migrations/20260526_debug_step1_2c_full_schema_code_alignment.sql",
+    "migrations/20260911114443_canonical_user_rbac_customer_alignment_boundary.sql",
+    "migrations/20260519_customer_move_out_lifecycle.sql",
+    "migrations/20260519_ediel_tenant_profile_runtime_sync.sql",
+    "migrations/20260519_operations_customers_ux.sql",
+    "migrations/20260519_batch_6c_metering_billing_readiness.sql",
+    "migrations/20260520_batch_1_2_saas_ediel_control_center.sql",
+    "migrations/20260520_final_z01_outbound_and_platform_guard.sql",
+    "migrations/20260513_ediel_agt_saas_runtime_safe.sql",
+    "migrations/20260520_company_delete_backfill_and_admin_layout.sql",
+    "migrations/20260521_batch_customer_intake_debug_hardening.sql"
   ],
   "interleaved": [
     {
@@ -131,6 +190,7 @@
     "bootstrap/20260519_user_profiles_foundation.sql": {
       "source": "migrations/20260519_auth_callback_email_reset_sync.sql",
       "artifactSha256": "72d92dcd6cb0806b70cb59400d95cf64586524b553bd0430d9789393a3399ab6",
+      "preserveSourceReplay": true,
       "purpose": "Restore only the source-defined user_profiles relation, auth-state columns, constraint and indexes required by canonical security convergence; no auth users, profiles or email events are seeded."
     },
     "bootstrap/20260520_pricing_component_rules_foundation.sql": {
@@ -166,7 +226,8 @@
     "bootstrap/20260527_company_memberships_role_key_foundation.sql": {
       "source": "migrations/20260527_fix_company_user_invite_runtime_columns.sql",
       "artifactSha256": "46c5e05a35063f84547dcf6554bc378d9c90d62171cd38843383542c6fe602c5",
-      "purpose": "Restore the source-defined company_memberships runtime column family, role/status constraints and supporting indexes required by tracked RBAC/performance helpers; empty replay has no membership rows to backfill and user_roles.role_key is intentionally not created because it is absent from canonical live schema."
+      "purpose": "Restore the source-defined company_memberships runtime column family, role/status constraints and supporting indexes required by tracked RBAC/performance helpers; empty replay has no membership rows to backfill and user_roles.role_key is intentionally not created because it is absent from canonical live schema.",
+      "preserveSourceReplay": true
     },
     "bootstrap/20260528_route_decision_logs_foundation.sql": {
       "source": "migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql",
@@ -176,17 +237,20 @@
     "bootstrap/20260528_route_decision_logs_current_supplier_foundation.sql": {
       "source": "migrations/20260528_batch_1_completion_customer_flow.sql",
       "artifactSha256": "c3d6fe34ff9223c419bc176fbb1875df8618508d834b77fcd1aa996964caedc1",
+      "preserveSourceReplay": true,
       "purpose": "Restore only the pre-ledger current_supplier_id trace column and partial index observed in the canonical live route_decision_logs schema; no route decisions are seeded."
     },
     "bootstrap/20260609_integration_api_client_origins_foundation.sql": {
       "source": "migrations/20260609150000_batch_6_sync_status_origin_fix.sql",
       "artifactSha256": "41c346f89b6b390cdc0815c24a2398749e848df8397627f24073ecb2a11185d3",
-      "purpose": "Restore only integration API client origin/runtime columns and the historical origin index required by later runtime capability checks; no clients are seeded."
+      "preserveSourceReplay": true,
+      "purpose": "Provide early API-client prerequisites, then retain the entire reviewed source at its original timestamp to preserve portal defaults and generic origin/identity normalization. See quality/audits/PORTAL_ORIGIN_REPLAY_EFFECTS_2026-09-06.md; selection alone is not execution or production parity evidence."
     },
     "bootstrap/20260609_communication_log_trace_foundation.sql": {
       "source": "migrations/20260609162000_batch_7_website_integration_foundation.sql",
       "artifactSha256": "0554a1e68a04c7b85951cc4e49d23ae0094bd9d542ffb6407231a3c0409dc56b",
-      "purpose": "Restore only the source-defined communication log identity/trace columns and customer-number index at the source migration's chronological boundary before Batch 8; no communication rows or tenant/customer data are seeded."
+      "purpose": "Restore only the source-defined communication log identity/trace columns and customer-number index at the source migration's chronological boundary before Batch 8; no communication rows or tenant/customer data are seeded. The complete immutable source also executes once at its original timestamp; this artifact is a prerequisite, not a replacement for source effects.",
+      "preserveSourceReplay": true
     },
     "bootstrap/20260611_grid_owner_information_request_foundation.sql": {
       "source": "migrations/20260611100000_energy_resolver_grid_area_operations.sql",
@@ -263,7 +327,8 @@
     "bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql": {
       "source": "migrations/20260802232000_migration_truth_readiness.sql",
       "artifactSha256": "24db9894315e5a95e976889db3332acb5a3d49744ad3dffab3b8e2dce9871015",
-      "purpose": "Restore only canonical migration-manifest verification metadata required by the tracked v3 governance view; no manifest rows or verification evidence are seeded."
+      "purpose": "Restore only canonical migration-manifest verification metadata required by the tracked v3 governance view; no manifest rows or verification evidence are seeded. The complete immutable source also executes once at its original timestamp; this artifact is a prerequisite, not a replacement for source effects.",
+      "preserveSourceReplay": true
     },
     "bootstrap/20260716_contract_platform_readiness_foundation.sql": {
       "source": "migrations/20260716183000_contract_canonical_finalization.sql",
@@ -274,12 +339,14 @@
     "bootstrap/20260519_companies_primary_contact_email_foundation.sql": {
       "source": "migrations/20260519_final_saas_hardening.sql",
       "artifactSha256": "9a3be1644f22fb0ea8c3f08cf96d942a8fa645f4b3ae7038e78acaf0346c2c23",
-      "purpose": "Restore only source-defined companies primary-contact fields required by later canonical tenant-mail and legal-profile flows: primary_contact_email, primary_contact_name, phone and website; no company rows are seeded or rewritten."
+      "purpose": "Retain the early source-defined companies primary-contact fields required by later canonical tenant-mail and legal-profile flows: primary_contact_email, primary_contact_name, phone and website; preserve the complete immutable final SaaS source replay. No company rows are seeded or rewritten by this bootstrap.",
+      "preserveSourceReplay": true
     },
     "bootstrap/20260520_companies_support_email_foundation.sql": {
       "source": "migrations/20260520_batch_6e_rbac_tenant_stats_whitelabel.sql",
       "artifactSha256": "d1c082322d12e9936647f9e4d75602bf484b05bef480de5302ae9f841d9dc326",
-      "purpose": "Restore only the source-defined Batch 6E companies metadata block required by later canonical tenant-mail, legal-profile, Ediel identity and white-label flows: billing/support contacts, address, Ediel identity, operating environment, branding/billing settings, plus the source constraint/indexes; no company rows are seeded or rewritten."
+      "purpose": "Provide early source-defined company settings prerequisites while preserving the complete reviewed Batch 6E source after the membership foundation for its helper, policy, view and data effects; selection alone is not surviving-effect or production-parity evidence.",
+      "preserveSourceReplay": true
     },
     "bootstrap/20260616_customer_portal_user_email_prerequisite.sql": {
       "source": "migrations/20260525_debug_fix_batch_1b_schema_code_alignment.sql",
@@ -337,6 +404,7 @@
     "bootstrap/20260815_ediel_test_runs_environment_type_prerequisite.sql": {
       "source": "migrations/20260602143000_ediel_environment_business_action_locks.sql",
       "artifactSha256": "e99d45f17b4bce864f75fb03c1b19ae3bb118079bea424348c9e58358df9826d",
+      "preserveSourceReplay": true,
       "purpose": "Restore only the source-defined ediel_test_runs environment_type column omitted by the earlier enum-only substitution, immediately before canonical role-scoped configuration binding consumes it; no test runs or tenant data are seeded or rewritten."
     },
     "bootstrap/20260804_customer_contract_standard_fees_prerequisite.sql": {
@@ -367,23 +435,56 @@
     "bootstrap/20260519_companies_governance_foundation.sql": {
       "source": "migrations/20260519_batch_6d_superadmin_tenant_governance.sql",
       "artifactSha256": "7e245a6f95321c4fcf3fd0194b2c50a8ea99f9af4cfa05c917741e496ed6a41d",
-      "purpose": "Restore only the source-defined companies lifecycle/governance block required by later canonical company/legal-profile and tenant lifecycle flows: canonical tenant status constraint, status reason, lifecycle audit timestamps/actors and governance status index; no company rows are seeded or rewritten."
+      "purpose": "Retain the exact early companies lifecycle prerequisite at entry10; replay the complete immutable 6D source after SaaS for membership/profile checks, journal, operational guards and overview. No rows are seeded or rewritten by this bootstrap.",
+      "preserveSourceReplay": true
     },
     "bootstrap/20260519_contract_offer_versions_foundation.sql": {
       "source": "migrations/20260519_final_saas_hardening.sql",
       "artifactSha256": "dfc498aa35f02dcc1b4ab30481f8f52981a8987ccde911c06e4b52541d0c63e6",
-      "purpose": "Restore only source-defined contract_offer_versions and its company/offer history index required by later canonical contract/invoice completion; no offer versions or tenant/product rows are seeded."
+      "purpose": "Retain the early source-defined contract_offer_versions relation and created_at history index required by later canonical contract/invoice completion; preserve the complete immutable final SaaS source replay. No offer versions or tenant/product rows are seeded by this bootstrap.",
+      "preserveSourceReplay": true
     },
     "bootstrap/20260519_contract_offers_lifecycle_foundation.sql": {
       "source": "migrations/20260519_customer_intake_contracts_tenant_hardening.sql",
       "artifactSha256": "d4d1a4393ca71d8d70896fa9a21e1e4f897053e4a3c55724c833a4e4b378614d",
-      "purpose": "Restore only the source-defined contract_offers lifecycle metadata required by later canonical contract/invoice completion: version_number, published_at, archived_at, last_price_change_at and the company/status index; no offer rows are seeded or rewritten."
+      "purpose": "Retain the early source-defined contract_offers lifecycle metadata and company/status index required by later canonical contract/invoice completion; preserve the complete immutable customer-intake source replay. No offer rows are seeded or rewritten by this bootstrap.",
+      "preserveSourceReplay": true
     },
     "migrations/20260519_ediel_operations_engine_batch.sql": {
       "source": "migrations/20260519_ediel_operations_engine_batch.sql",
       "artifactSha256": "74d82d3a269770d99ae82052946faadde22892b69f61eec96178fc397752af69",
       "preserveSourceReplay": true,
       "purpose": "Replay the checksum-pinned legacy Ediel operations schema at the exact late boundary where canonical UTILTS persistence first extends meter_reading_series and meter_reading_values; no tenant or metering rows are seeded."
+    },
+    "bootstrap/20260519_user_profiles_active_company_foundation.sql": {
+      "source": "migrations/20260519_saas_ui_tenant_admin.sql",
+      "artifactSha256": "ac6341a482ef9b9a912522a8874f6bcbd8df73ea6e4a4896d4d1d6d589830e23",
+      "purpose": "Restore only the source-defined user_profiles active_company_id foreign key and index required for complete Batch 6E profile/membership attribution; no profile, membership, company or role rows are seeded or rewritten.",
+      "preserveSourceReplay": true
+    },
+    "bootstrap/20260531_integration_api_clients_foundation.sql": {
+      "source": "migrations/20260531111600_system_readiness_foundation.sql",
+      "artifactSha256": "2ce69ee0fc4ec5afccc4ad23226526d3bd26a42e26d3c37e912d5061694a8a2d",
+      "preserveSourceReplay": true,
+      "purpose": "Retain the original source-defined prerequisite bootstrap. The complete immutable source also executes once at its original timestamp; this artifact is a prerequisite, not a replacement for source effects."
+    },
+    "bootstrap/20260609_webhook_email_readiness_foundation.sql": {
+      "source": "migrations/20260609162000_batch_7_website_integration_foundation.sql",
+      "artifactSha256": "c42f8658753cee18e34e566b6387a9ad330575b24b2c066b83a4a7090b436898",
+      "preserveSourceReplay": true,
+      "purpose": "Retain the original source-defined prerequisite bootstrap. The complete immutable source also executes once at its original timestamp; this artifact is a prerequisite, not a replacement for source effects."
+    },
+    "bootstrap/20260609_website_customer_applications_foundation.sql": {
+      "source": "migrations/20260609162000_batch_7_website_integration_foundation.sql",
+      "artifactSha256": "5c0c044eacad9908ad47db0f260d57219d2cd6fbf0a668f49392e4b9b6edfce9",
+      "preserveSourceReplay": true,
+      "purpose": "Retain the original source-defined prerequisite bootstrap. The complete immutable source also executes once at its original timestamp; this artifact is a prerequisite, not a replacement for source effects."
+    },
+    "bootstrap/20260801_company_capabilities_foundation.sql": {
+      "source": "migrations/20260801143000_canonical_multitenant_platform_hardening.sql",
+      "artifactSha256": "77f03f57cfb1122129e00d95535e6f30620b80af571ba124412ea1956f5d85df",
+      "preserveSourceReplay": true,
+      "purpose": "Retain the original source-defined prerequisite bootstrap. The complete immutable source also executes once at its original timestamp; this artifact is a prerequisite, not a replacement for source effects."
     }
   }
 }

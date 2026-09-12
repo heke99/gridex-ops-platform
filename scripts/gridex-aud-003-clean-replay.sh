@@ -1,6 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+REPLAY_SCOPE=full
+SCOPE_FLAGS=()
+if [[ "${1:-}" == --foundation-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=legacy52; SCOPE_FLAGS=(--foundation-prefix-proof);
+elif [[ "${1:-}" == --repair-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=repair56; SCOPE_FLAGS=(--repair-prefix-proof);
+elif [[ "${1:-}" == --dedupe-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=dedupe57; SCOPE_FLAGS=(--dedupe-prefix-proof);
+elif [[ "${1:-}" == --fixed-target-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=fixed-target; SCOPE_FLAGS=(--fixed-target-prefix-proof);
+elif [[ "${1:-}" == --alignment-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=alignment68; SCOPE_FLAGS=(--alignment-prefix-proof);
+elif [[ "${1:-}" == --operations-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=operations71; SCOPE_FLAGS=(--operations-prefix-proof);
+elif [[ "${1:-}" == --readiness-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=readiness74; SCOPE_FLAGS=(--readiness-prefix-proof);
+elif [[ "${1:-}" == --intake-prefix-proof && "$#" == 1 ]]; then REPLAY_SCOPE=intake77; SCOPE_FLAGS=(--intake-prefix-proof);
+elif [[ "$#" != 0 ]]; then echo "unsupported replay scope" >&2; exit 1; fi
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SUPABASE="$ROOT/supabase"
 MIGRATIONS="$SUPABASE/migrations"
@@ -30,32 +42,62 @@ LEDGER_MARKERS="$(mktemp -d)"
 SEED_BACKUP="$(mktemp)"
 FOUNDATION_EXEC="$(mktemp)"
 TIMESTAMP_EXEC="$(mktemp)"
-# Clean replay normally runs against the local Supabase stack. Where Docker is
-# unavailable, GRIDEX_REPLAY_DB_URL points at an already-created empty database
-# that this script provisions with the Supabase-compatible surface instead. The
-# migration ordering, checksum pinning and fingerprint below are identical in
-# both modes; only how the empty database is obtained differs.
+ACCOUNTING_PROOF="$(mktemp)"
+WORKTREE_MUTATED=false
+# Only the parent-owned compatible transport supports the selected sensitive
+# batch. CLI/native genesis and generic external URLs have no accepted ownership,
+# independent catalog reference or private-server logging contract.
 EXTERNAL_DB="${GRIDEX_REPLAY_DB_URL:-}"
+DB_URL="$EXTERNAL_DB"
 SUPABASE_BOOTSTRAP="$ROOT/scripts/sql/gridex-supabase-compatible-bootstrap.sql"
-if [[ -n "$EXTERNAL_DB" ]]; then
-  DB_URL="$EXTERNAL_DB"
-else
-  DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
-fi
+
+
+# Copy every entry, including hidden entries, without transferring the source
+# directory's mode to the destination. HOLD must remain owner-only, and restore
+# must retain the original migrations-directory attributes. Descendant metadata
+# and symlinks still use archive semantics; an empty source fails closed.
+copy_replay_entries(){
+  local replay_source="$1" replay_destination="$2"
+  (
+    shopt -s dotglob nullglob
+    replay_entries=("$replay_source"/*)
+    [[ "${#replay_entries[@]}" -gt 0 ]] || exit 1
+    cp -a -- "${replay_entries[@]}" "$replay_destination"/
+  )
+}
 
 cleanup(){
+  local status=$?
+  local restore_failed=false
   set +e
-  if [[ -z "${EXTERNAL_DB:-}" ]]; then
-    supabase stop --no-backup >/dev/null 2>&1 || true
+  # Preflight and incomplete backups must never overwrite untouched originals.
+  if [[ "$WORKTREE_MUTATED" == true ]]; then
+    if rm -f "$MIGRATIONS"/*.sql && copy_replay_entries "$HOLD" "$MIGRATIONS" && touch -r "$HOLD" "$MIGRATIONS"; then
+      rm -rf "$HOLD"
+    else
+      echo "replay migration restore failed; recovery copy retained at $HOLD" >&2
+      restore_failed=true
+    fi
+    if cp "$SEED_BACKUP" "$SEED" && touch -r "$SEED_BACKUP" "$SEED"; then
+      rm -f "$SEED_BACKUP"
+    else
+      echo "replay seed restore failed; recovery copy retained at $SEED_BACKUP" >&2
+      restore_failed=true
+    fi
+  else
+    rm -rf "$HOLD" "$SEED_BACKUP"
   fi
-  rm -f "$MIGRATIONS"/*.sql
-  cp -a "$HOLD"/. "$MIGRATIONS"/ 2>/dev/null || true
-  cp "$SEED_BACKUP" "$SEED" 2>/dev/null || true
-  rm -rf "$HOLD" "$LEDGER_MARKERS" "$SEED_BACKUP" "$FOUNDATION_EXEC" "$TIMESTAMP_EXEC"
+  rm -rf "$LEDGER_MARKERS" "$FOUNDATION_EXEC" "$TIMESTAMP_EXEC" "$ACCOUNTING_PROOF"
+  if [[ "$status" == 0 && "$restore_failed" == true ]]; then status=1; fi
+  exit "$status"
 }
 trap cleanup EXIT
 
-if [[ -z "$EXTERNAL_DB" ]]; then command -v supabase >/dev/null; else test -f "$SUPABASE_BOOTSTRAP"; fi
+if [[ "$EXTERNAL_DB" != owned-compatible || -z "${GRIDEX_REPLAY_OWNED_SOCKET:-}" ]]; then
+  echo "unsupported replay target: use canonical-auth-provisioning-replay.py --owned-compatible; CLI/native and generic external modes require reviewed ownership/reference/private logging; NO ledger provenance" >&2
+  exit 1
+fi
+test -f "$SUPABASE_BOOTSTRAP"
 command -v psql >/dev/null
 command -v python3 >/dev/null
 for required in "$FINGERPRINT_SQL" "$FOUNDATION_ORDER" "$NONCANONICAL" "$POA_LIVE_PREREQUISITE" "$INBOUND_DEDUPE_REPLAY_PREREQUISITE" "$INBOUND_EDIEL_PIPELINE_REPLAY_PREREQUISITE" "$GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE" "$WHITE_LABEL_HYGIENE_REPLAY_SHIM"; do
@@ -87,8 +129,25 @@ if [[ "$ACTUAL_WHITE_LABEL_HYGIENE_REPLAY_SHIM_SHA256" != "$WHITE_LABEL_HYGIENE_
   exit 1
 fi
 
-cp -a "$MIGRATIONS"/. "$HOLD"/
+# Input accounting must finish before originals are moved or a database starts.
+# A selected bootstrap is not evidence that its complete historical effects were
+# preserved. Keep unresolved substitutions blocking, not silently exempted.
+if [[ "$REPLAY_SCOPE" != full ]]; then
+  # Explicitly bounded integration proof. Never writes replay artifacts/types or
+  # claims completeness. Context binds this scope to the owned parent process.
+  python3 "$ROOT/scripts/canonical-auth-provisioning-replay.py" --context "${SCOPE_FLAGS[@]}"
+else
+  python3 "$ROOT/scripts/gridex-replay-input-accounting.py" --root "$ROOT" --require-full-effects > "$ACCOUNTING_PROOF"
+  python3 "$ROOT/scripts/canonical-auth-provisioning-replay.py" --context
+fi
+
+copy_replay_entries "$MIGRATIONS" "$HOLD"
+# Carry only directory timestamps onto the private HOLD; never its permissions.
+touch -r "$MIGRATIONS" "$HOLD"
 cp "$SEED" "$SEED_BACKUP"
+touch -r "$SEED" "$SEED_BACKUP"
+# Arm restoration only after both copies succeed, before the first mutation.
+WORKTREE_MUTATED=true
 rm -f "$MIGRATIONS"/*.sql
 : > "$SEED"
 
@@ -202,6 +261,40 @@ for item in interleaved:
     if should_skip_timestamp_source(source,meta): skip_timestamp_names.add(source.name)
     interleaved_paths.append((actual,after,before))
 
+# Finite reviewed-content allowlist, NOT a SQL parser. SELECT alone does not
+# establish safety (CTE DML, SELECT INTO and function calls can have effects).
+# New content or paths require fresh statement/body review and a code change;
+# refreshing manifest hashes cannot expand this diagnostic exclusion contract.
+reviewed_diagnostics={'migrations/20260525_debug_batch_2j_verify_no_old_afshin_id.sql': '10874b4600763f89d7e0f1c9e4c3e1e57c9e5ea50928d1af97b9d43185ec0da9', 'migrations/20260525_verify_company_user_provisioning_flow.sql': 'b0e38917e7e5ec00310b0246f306ec4614808ed16964b6488c845b107ec7403f'}
+# Finite source/body review only; no deployment or execution assertion.
+reviewed_operational_repairs={'migrations/02_db2b_apply_superadmin_and_membership.sql': {'sha256': '64671e13a4390e0d464a24198cd6ad27a38908c9816e3c597dc5119afc95dbc4',
+                                                            'dependencies': [{'path': 'migrations/20260611150000_launch_readiness_security_routes_stats.sql',
+                                                                              'sha256': '3fa71292b07e4534dab13c1f2ef28574a0635fad17db736201f4eed23f6dd053'},
+                                                                             {'path': 'migrations/20260727040000_contract_security_energy_direction_api_completion.sql',
+                                                                              'sha256': 'c608cb8ca01792971c7dd3974b63138f8ec5d016b643eeff2f7d49f721a9867e'},
+                                                                             {'path': 'migrations/20260802170000_canonical_security_convergence.sql',
+                                                                              'sha256': 'e34618a9cb0c780f3fd75034ab113e48d99a27d8983e5d0fcbfc4a53ee27370a'}]}}
+reviewed_operational_repairs['migrations/02_db2_execute_controlled_reconciliation.sql']={'sha256': 'fcdc75e660f157a58e742f64b3e8f7a1c6801565ef16023bd0c9a317982744c9',
+ 'dependencies': [{'path': 'migrations/01_db2_full_view_preflight_schema_and_functions.sql',
+                   'sha256': '4de50050384d6892612c16484de8b198785c59cbb5d2ff03e7cea7e600d36cc9'},
+                  {'path': 'migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql',
+                   'sha256': '85f3561be4d91cee063bbf626302de7726a09c5ce08743b250e62cee959bb5f2'},
+                  {'path': 'migrations/03_db1_backfill_functions_rls_reports_and_finish.sql',
+                   'sha256': '877e395df0050a36ec71298d279c72fb0e6cb13d8b90082277450012e196f169'},
+                  {'path': 'migrations/20260522_db1_schema_repair_backfill_foundation.sql',
+                   'sha256': 'aff5a3e4fb3aae6ebe682081cbce4876c5731be1c124650b19d8151abf6efc73'},
+                  {'path': 'migrations/20260612203000_company_customer_number_prefix_hardening.sql',
+                   'sha256': '39f6c82ca05f6876e347c58f2b60a24c358c9a72fe856e42d7474f03f9f66065'},
+                  {'path': 'migrations/20260719120000_canonical_customer_number_assignment.sql',
+                   'sha256': '259817d0c2fb43e83478b78184fd3d41125636d527e1edd2801783009326fe1e'},
+                  {'path': 'migrations/20260727040000_contract_security_energy_direction_api_completion.sql',
+                   'sha256': 'c608cb8ca01792971c7dd3974b63138f8ec5d016b643eeff2f7d49f721a9867e'},
+                  {'path': 'migrations/20260802170000_canonical_security_convergence.sql',
+                   'sha256': 'e34618a9cb0c780f3fd75034ab113e48d99a27d8983e5d0fcbfc4a53ee27370a'},
+                  {'path': 'migrations/20260816170000_partner_api_v1_canonical_surface_events.sql',
+                   'sha256': '1faa62377d47df7159ccf5440d4dbee44acd12860d440a19b80b643a4fcd6a4b'}]}
+selected_paths={*foundation, *(item['path'] for item in interleaved)}
+selected_derived_sources={derived[rel].get('source') for rel in selected_paths if rel in derived}
 excluded=set()
 artifacts=noncanonical.get('artifacts') or []
 if not artifacts: raise SystemExit('noncanonical artifact contract is empty')
@@ -211,16 +304,28 @@ for item in artifacts:
     status=item.get('status','')
     reason=item.get('reason','')
     evidence=item.get('evidence') or []
-    if status != 'merged_repository_artifact_not_deployed' or not reason or not evidence:
+    if status not in ('merged_repository_artifact_not_deployed','historical_read_only_diagnostic','historical_operational_data_repair') or not reason or not evidence:
         raise SystemExit(f'incomplete noncanonical classification: {rel}')
-    if not rel.startswith('migrations/'):
+    if status == 'historical_read_only_diagnostic' and reviewed_diagnostics.get(rel) != expected:
+        raise SystemExit(f'unreviewed diagnostic path or content hash: {rel}')
+    if status == 'historical_operational_data_repair':
+        reviewed=reviewed_operational_repairs.get(rel)
+        if reviewed is None or reviewed['sha256'] != expected:
+            raise SystemExit(f'unreviewed operational repair path or content hash: {rel}')
+        if item.get('reviewedDependencies') != reviewed['dependencies']:
+            raise SystemExit(f'unreviewed operational repair dependency pins: {rel}')
+        for dependency in reviewed['dependencies']:
+            dependency_path=resolve(dependency['path'])
+            if not dependency_path.is_file() or digest(dependency_path) != dependency['sha256'] or checksums.get(dependency_path.name) != dependency['sha256']:
+                raise SystemExit(f'operational repair dependency missing or checksum drift: {dependency["path"]}')
+    if not re.fullmatch(r'migrations/[^/]+[.]sql',rel):
         raise SystemExit(f'noncanonical artifact must be a migration path: {rel}')
     actual=resolve(rel)
     if not actual.exists(): raise SystemExit(f'noncanonical artifact missing: {rel}')
     pinned_source(actual)
     if not re.fullmatch(r'[0-9a-f]{64}',expected) or digest(actual) != expected or checksums.get(actual.name) != expected:
         raise SystemExit(f'noncanonical artifact checksum mismatch: {rel}')
-    if actual.name in skip_timestamp_names:
+    if rel in selected_paths or rel in selected_derived_sources or actual.name in skip_timestamp_names:
         raise SystemExit(f'noncanonical artifact overlaps foundation/substitution: {rel}')
     excluded.add(actual.name)
 
@@ -252,34 +357,11 @@ timestamp_out.write_text(''.join(str(p)+'\n' for p in execution))
 print(f'[GRIDEX-REM-002 replay] preflight: {len(foundation_paths)} foundation inputs, {len(skip_timestamp_names)} substitutions, {len(excluded)} noncanonical exclusions, {len(interleaved_paths)} interleaved artifacts, {len(files)} canonical timestamped files')
 PY
 
-python3 - "$LEDGER" "$LEDGER_MARKERS" <<'PY'
-import json,pathlib,sys
-ledger=json.loads(pathlib.Path(sys.argv[1]).read_text()); out=pathlib.Path(sys.argv[2])
-entries=ledger.get('entries',[])
-if not entries: raise SystemExit('official dev ledger snapshot is empty')
-last=None
-for e in entries:
-    version=str(e['version']); name=e['name']
-    if not name or len(version)!=14 or not version.isdigit(): raise SystemExit(f'invalid official ledger entry: {e}')
-    if last is not None and version <= last: raise SystemExit(f'official ledger is not strictly ordered: {version} after {last}')
-    last=version
-    (out/f'{version}_{name}.sql').write_text('-- GRIDEX-REM-002 local ledger marker.\nselect 1;\n')
-PY
-if [[ -z "$EXTERNAL_DB" ]]; then
-  cp "$LEDGER_MARKERS"/*.sql "$MIGRATIONS"/
-  # Supabase CLI owns the official ledger from the beginning so later governance
-  # migrations can inspect it. Marker migrations are no-op SQL and carry exactly
-  # the checksum-pinned dev-ledger versions verified below.
-  supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
-else
-  # No Supabase CLI here, so there is no CLI-owned ledger to reproduce. The
-  # official ledger is deliberately left untouched: writing it by hand would
-  # make the verification below assert rows this script had just invented.
-  # External mode therefore carries NO ledger provenance and is a diagnostic
-  # replay of the schema only.
-  echo "[GRIDEX-REM-002 replay] provisioning Supabase-compatible surface on the external database"
-  psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -f "$SUPABASE_BOOTSTRAP"
-fi
+# Compatible mode carries NO ledger provenance. No CLI marker or provider
+# bootstrap is asserted equivalent to this explicitly synthetic surface.
+echo "[GRIDEX-REM-002 replay] owned compatible mode: NO ledger provenance"
+python3 "$ROOT/scripts/canonical-auth-provisioning-replay.py" --validate-foundation --foundation "$FOUNDATION_EXEC" --hold "$HOLD" "${SCOPE_FLAGS[@]}"
+psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -f "$SUPABASE_BOOTSTRAP"
 
 apply_sql(){
   local file="$1"
@@ -287,7 +369,14 @@ apply_sql(){
   echo "[GRIDEX-REM-002 replay] applying ${file#$ROOT/}"
   psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$file"
 }
-while IFS= read -r file; do apply_sql "$file"; done < "$FOUNDATION_EXEC"
+# The same production foundation loop handles retained first43 and exactly
+# A44/B45/C46/D47/E48/F49/H50/I51/Q52 then R2/E2/S2/W53–56, each group
+# in its own same-connection envelope on the identical owned replay database.
+python3 "$ROOT/scripts/canonical-auth-provisioning-replay.py" --foundation "$FOUNDATION_EXEC" --hold "$HOLD" "${SCOPE_FLAGS[@]}"
+if [[ "$REPLAY_SCOPE" != full ]]; then
+  echo "[GRIDEX-REM-002 replay] PASS bounded $REPLAY_SCOPE integration only; NO ledger provenance; full replay/artifacts/types remain blocked"
+  exit 0
+fi
 poa_live_prerequisite_applied=false
 inbound_dedupe_replay_prerequisite_applied=false
 inbound_ediel_pipeline_replay_prerequisite_applied=false
@@ -390,4 +479,5 @@ if [[ "$ACTUAL_FINGERPRINT" != "$EXPECTED_FINGERPRINT" ]]; then
   exit 1
 fi
 echo "[GRIDEX-REM-002 replay] schema fingerprint verified: $ACTUAL_FINGERPRINT"
-echo '[GRIDEX-REM-002 replay] PASS: empty local Supabase -> verified reconstructed foundation -> canonical checksum-pinned history -> CLI-owned observed dev ledger'
+# The controller publishes accounting only after successful child exit AND restoration.
+echo '[GRIDEX-REM-002 replay] PASS: owned compatible schema diagnostic; NO ledger provenance'

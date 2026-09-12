@@ -34,6 +34,9 @@ export type OperationalCompanyScope = {
   selectedByPlatformAdmin?: boolean
 }
 
+export class CompanyAccessError extends Error {
+}
+
 type MembershipJoinRow = {
   company_id: string
   membership_role: string | null
@@ -186,17 +189,18 @@ export async function requireOperationalCompanyId(userId: string): Promise<strin
   return scope.companyId
 }
 
-export async function assertUserCanOperateCompany(
+export async function assertUserCanReadCompany(
   userId: string,
-  companyId: string | null | undefined
+  companyId: string | null | undefined,
+  authority?: { isPlatformAdmin: boolean },
 ): Promise<string> {
   const normalized = companyId?.trim()
   if (!normalized) {
-    const fallbackCompanyId = await requireOperationalCompanyId(userId)
-    return assertUserCanOperateCompany(userId, fallbackCompanyId)
+    throw new CompanyAccessError('Du saknar behörighet för valt bolag. Välj bolaget innan du fortsätter.')
   }
 
-  if (await isPlatformAdminUser(userId)) {
+  const isPlatformAdmin = authority?.isPlatformAdmin ?? await isPlatformAdminUser(userId)
+  if (isPlatformAdmin) {
     const { data, error } = await supabaseService
       .from('companies')
       .select('id, status')
@@ -209,11 +213,54 @@ export async function assertUserCanOperateCompany(
     }
 
     if (!data?.id) {
-      throw new Error('Det valda elhandelsbolaget finns inte.')
+      throw new CompanyAccessError('Det valda elhandelsbolaget finns inte.')
+    }
+
+    if (!isCompanyVisibleInTenantWorkspace(data.status)) {
+      throw new CompanyAccessError('Bolaget är inte synligt i tenantläget och kan därför inte läsas här.')
+    }
+
+    return normalized
+  }
+
+  const memberships = await listOperationalCompaniesForUser(userId)
+  if (!memberships.some((row) => row.companyId === normalized)) {
+    throw new CompanyAccessError('Du saknar en aktiv bolagskoppling för valt elhandelsbolag.')
+  }
+
+  return normalized
+}
+
+export async function assertUserCanOperateCompany(
+  userId: string,
+  companyId: string | null | undefined,
+  authority?: { isPlatformAdmin: boolean },
+): Promise<string> {
+  const normalized = companyId?.trim()
+  if (!normalized) {
+    const fallbackCompanyId = await requireOperationalCompanyId(userId)
+    return assertUserCanOperateCompany(userId, fallbackCompanyId, authority)
+  }
+
+  const isPlatformAdmin = authority?.isPlatformAdmin ?? await isPlatformAdminUser(userId)
+  if (isPlatformAdmin) {
+    const { data, error } = await supabaseService
+      .from('companies')
+      .select('id, status')
+      .eq('id', normalized)
+      .maybeSingle()
+
+    if (error) {
+      if (isMissingRelationError(error)) throw new Error('Bolagstabellen saknas.')
+      throw error
+    }
+
+    if (!data?.id) {
+      throw new CompanyAccessError('Det valda elhandelsbolaget finns inte.')
     }
 
     if (!isCompanyWritableInTenantWorkspace(data.status)) {
-      throw new Error(
+      throw new CompanyAccessError(
         'Bolaget är pausat eller inte operativt. Vanliga driftåtgärder är blockerade även för platform admin tills bolaget återaktiveras via tenantstyrningen.'
       )
     }
@@ -225,11 +272,11 @@ export async function assertUserCanOperateCompany(
   const membership = memberships.find((row) => row.companyId === normalized)
 
   if (!membership) {
-    throw new Error('Du saknar en aktiv bolagskoppling för valt elhandelsbolag.')
+    throw new CompanyAccessError('Du saknar en aktiv bolagskoppling för valt elhandelsbolag.')
   }
 
   if (!isCompanyWritableInTenantWorkspace(membership.companyStatus)) {
-    throw new Error('Bolaget är pausat eller inte operativt. Ändringar är blockerade tills bolaget återaktiveras.')
+    throw new CompanyAccessError('Bolaget är pausat eller inte operativt. Ändringar är blockerade tills bolaget återaktiveras.')
   }
 
   return normalized

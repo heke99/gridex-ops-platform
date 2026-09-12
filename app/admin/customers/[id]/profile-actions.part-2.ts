@@ -5,12 +5,11 @@ import { redirect } from "next/navigation"
 import { requirePlatformAdminActionAccess } from "@/lib/admin/guards"
 
 import { supabaseService } from "@/lib/supabase/service"
-import { assertUserCanOperateCompany } from "@/lib/tenant/scope"
 import { addCustomerContractEvent } from "@/lib/customer-contracts/db"
 
 import { logUsageEvent } from "@/lib/audit/actionLogger"
 import type { CustomerActionState } from "./customer-action-state"
-import { CustomerActionError, collectManualFlowDeleteGraph, deleteByColumn, deleteByColumnSafe, deleteByCustomerId, deleteByCustomerIdSafe, deleteByIds, deleteByIdsSafe, getActorUserId, getBestEffortArchiveIds, getNullableString, getString, insertAuditLog, isDatabaseShapeError, runBestEffortCustomerArchiveStep, runCustomerCardAction, selectIds, selectIdsByCustomerId } from './profile-actions.part-1'
+import { assertCustomerProfileCompanyAccess, CustomerActionError, collectManualFlowDeleteGraph, deleteByColumn, deleteByColumnSafe, deleteByCustomerId, deleteByCustomerIdSafe, deleteByIds, deleteByIdsSafe, getActorContext, getBestEffortArchiveIds, getNullableString, getString, insertAuditLog, isDatabaseShapeError, runBestEffortCustomerArchiveStep, runCustomerCardAction, selectIds, selectIdsByCustomerId } from './profile-actions.part-1'
 
 export async function deleteStorageObjectsForCustomer(
   customerId: string,
@@ -198,7 +197,8 @@ export async function markCustomerAsTestDataAction(
 export async function markCustomerAsTestDataImpl(
   formData: FormData,
 ): Promise<CustomerActionState> {
-  const actorUserId = await getActorUserId();
+  const actorContext = await getActorContext();
+  const actorUserId = actorContext.userId;
   const customerId = getString(formData, "customer_id");
   const reason = getNullableString(formData, "reason") ?? "Markerad som testdata från kundkortet.";
 
@@ -214,8 +214,8 @@ export async function markCustomerAsTestDataImpl(
 
   if (customerError) throw customerError;
 
-  const companyId = await assertUserCanOperateCompany(
-    actorUserId,
+  const companyId = await assertCustomerProfileCompanyAccess(
+    actorContext,
     typeof customerBefore.company_id === "string" ? customerBefore.company_id : null,
   );
 
@@ -342,7 +342,8 @@ export async function archiveCustomerAction(
 export async function archiveCustomerImpl(
   formData: FormData,
 ): Promise<CustomerActionState> {
-  const actorUserId = await getActorUserId();
+  const actorContext = await getActorContext();
+  const actorUserId = actorContext.userId;
   const customerId = getString(formData, "customer_id");
   const reason = getNullableString(formData, "archive_reason");
   const confirmText = getString(formData, "confirm_archive");
@@ -365,8 +366,8 @@ export async function archiveCustomerImpl(
 
   if (customerError) throw customerError;
 
-  const companyId = await assertUserCanOperateCompany(
-    actorUserId,
+  const companyId = await assertCustomerProfileCompanyAccess(
+    actorContext,
     typeof customerBefore.company_id === "string" ? customerBefore.company_id : null,
   );
 

@@ -1,7 +1,8 @@
+import { readAdminJson } from '@/lib/http/adminJsonRequest'
+import { billingPeriodSchema } from '@/lib/admin/internalJsonSchemas'
 import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
-import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
-import { requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { adminApiCompanyAccessErrorStatus, assertAdminApiCompanyAccess, assertAdminApiCompanyReadAccess, requireAdminApiAccess } from '@/lib/admin/apiGuards'
 import { getBillingPeriodLock, lockBillingPeriod, unlockBillingPeriod } from '@/lib/billing/invoiceReadiness'
 
 export const runtime = 'nodejs'
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
   if (access.response) return access.response
 
   try {
-    const companyId = await requireOperationalCompanyId(access.guard.userId)
+    const companyId = await assertAdminApiCompanyReadAccess(access.guard)
     const url = new URL(request.url)
     const billingMonth = readBillingMonth(url.searchParams.get('billing_month') ?? url.searchParams.get('billingMonth'))
     if (!billingMonth) return NextResponse.json({ error: 'billing_month måste anges som YYYY-MM.' }, { status: 400 })
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
     const lock = await getBillingPeriodLock({ companyId, billingMonth })
     return NextResponse.json({ data: { billingMonth, lock, isLocked: ['locked', 'exported', 'closed'].includes(String(lock?.status ?? '')) } })
   } catch (error) {
-    return internalApiError({ context: 'billing-period-lock-read', error, code: 'billing_period_lock_read_failed', message: 'Fakturaperiodens lås kunde inte hämtas.' })
+    return internalApiError({ context: 'billing-period-lock-read', error, code: 'billing_period_lock_read_failed', message: 'Fakturaperiodens lås kunde inte hämtas.', status: adminApiCompanyAccessErrorStatus(error) })
   }
 }
 
@@ -33,8 +34,10 @@ export async function POST(request: Request) {
   if (access.response) return access.response
 
   try {
-    const companyId = await requireOperationalCompanyId(access.guard.userId)
-    const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    const companyId = await assertAdminApiCompanyAccess(access.guard)
+    const input = await readAdminJson(request, billingPeriodSchema)
+    if (!input.ok) return NextResponse.json({ error: input.error, code: input.code }, { status: input.status })
+    const body = input.data
     const billingMonth = readBillingMonth(body.billing_month ?? body.billingMonth)
     const action = typeof body.action === 'string' ? body.action.trim() : 'lock'
     if (!billingMonth) return NextResponse.json({ error: 'billing_month måste anges som YYYY-MM.' }, { status: 400 })
@@ -61,6 +64,6 @@ export async function POST(request: Request) {
     })
     return NextResponse.json({ data: { billingMonth, lock } })
   } catch (error) {
-    return internalApiError({ context: 'billing-period-lock-write', error, code: 'billing_period_lock_write_failed', message: 'Fakturaperiodens lås kunde inte uppdateras.' })
+    return internalApiError({ context: 'billing-period-lock-write', error, code: 'billing_period_lock_write_failed', message: 'Fakturaperiodens lås kunde inte uppdateras.', status: adminApiCompanyAccessErrorStatus(error) })
   }
 }

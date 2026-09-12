@@ -1,0 +1,1277 @@
+{
+  "status": "VERIFIED_BOUNDED_NATIVE_ONLY",
+  "commit": "aaeb11c7b61adf808e5532881ada9a5c3a79a15a",
+  "tree": "56435f2ecba0e0cbca511f7d56967ac866983573",
+  "workflow_run_id": 34686322908,
+  "job_id": 103533810482,
+  "job_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/34686322908/job/103533810482",
+  "candidate_sha256": "73eb8a8d89b8468783d69f2829658daeb71d7deda667b5f54a9c5650cd6c47ad",
+  "preserved_candidate_prefix_sha256": "ac1a2b63476e1eb509b622adbfbab924f8c143c65bac3a046a739df7ea9d4536",
+  "composition_sha256": "c45021afb4b8e92415166d27ce4852d792bc190c1ac2adec3a37d3a03c1597ce",
+  "construction_tests": 42,
+  "baseline_cases": 10,
+  "candidate_cases": 129,
+  "case_groups": {
+    "P": 28,
+    "C": 32,
+    "F": 16,
+    "S": 24,
+    "SX": 2,
+    "D": 27
+  },
+  "fixture_assertions": 1128,
+  "sql_stages": 154,
+  "checks": [
+    "Original source baseline10",
+    "Candidate first/repeat and catalog/row preservation",
+    "Actual inherited EXECUTE poison observed before recovery",
+    "Owner-private internal arrays and explicit service-only diagnostic after recovery",
+    "All P28/C32/F16/S24/SX2/D27 cases",
+    "Exact owned-container cleanup and final cleanup step"
+  ],
+  "completed_markers": [
+    "2026-09-12T09:37:22.8974542Z PASS baseline10 source defect characterizations",
+    "2026-09-12T09:37:34.3198071Z PASS P28 C32 F16 S24 SX2 D27; repeat, ACL recovery and row preservation",
+    "2026-09-12T09:37:34.4220629Z PASS permission native owned-container cleanup",
+    "2026-09-12T09:37:34.5102078Z PASS owned-container cleanup"
+  ],
+  "stages": [
+    {
+      "at": "2026-09-12T09:37:21.9019036Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 126,
+      "sqlstate": "00000",
+      "stage": "source_composition"
+    },
+    {
+      "at": "2026-09-12T09:37:21.9753725Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 73,
+      "sqlstate": "00000",
+      "stage": "fixture_seed"
+    },
+    {
+      "at": "2026-09-12T09:37:22.0507342Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 75,
+      "sqlstate": "00000",
+      "stage": "baseline_catalog"
+    },
+    {
+      "at": "2026-09-12T09:37:22.1321325Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 79,
+      "sqlstate": "00000",
+      "stage": "baseline_P05"
+    },
+    {
+      "at": "2026-09-12T09:37:22.2131135Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 79,
+      "sqlstate": "00000",
+      "stage": "baseline_P06"
+    },
+    {
+      "at": "2026-09-12T09:37:22.2939222Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 79,
+      "sqlstate": "00000",
+      "stage": "baseline_P07"
+    },
+    {
+      "at": "2026-09-12T09:37:22.3703515Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 74,
+      "sqlstate": "00000",
+      "stage": "baseline_S13"
+    },
+    {
+      "at": "2026-09-12T09:37:22.4428028Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 70,
+      "sqlstate": "00000",
+      "stage": "baseline_S14"
+    },
+    {
+      "at": "2026-09-12T09:37:22.5185258Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 74,
+      "sqlstate": "00000",
+      "stage": "baseline_S15"
+    },
+    {
+      "at": "2026-09-12T09:37:22.5909371Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 70,
+      "sqlstate": "00000",
+      "stage": "baseline_S16"
+    },
+    {
+      "at": "2026-09-12T09:37:22.6740691Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 81,
+      "sqlstate": "00000",
+      "stage": "baseline_S20"
+    },
+    {
+      "at": "2026-09-12T09:37:22.7469337Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 71,
+      "sqlstate": "00000",
+      "stage": "baseline_S22"
+    },
+    {
+      "at": "2026-09-12T09:37:22.8207447Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 72,
+      "sqlstate": "00000",
+      "stage": "baseline_S_VIEWER"
+    },
+    {
+      "at": "2026-09-12T09:37:22.8966756Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 76,
+      "sqlstate": "00000",
+      "stage": "baseline_rollback"
+    },
+    {
+      "at": "2026-09-12T09:37:23.2548819Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 64,
+      "sqlstate": "00000",
+      "stage": "prior_acl_poison"
+    },
+    {
+      "at": "2026-09-12T09:37:23.3239844Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 69,
+      "sqlstate": "00000",
+      "stage": "candidate_first"
+    },
+    {
+      "at": "2026-09-12T09:37:23.3906843Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 66,
+      "sqlstate": "00000",
+      "stage": "candidate_acl"
+    },
+    {
+      "at": "2026-09-12T09:37:23.4672626Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 76,
+      "sqlstate": "00000",
+      "stage": "candidate_catalog"
+    },
+    {
+      "at": "2026-09-12T09:37:23.5370286Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 69,
+      "sqlstate": "00000",
+      "stage": "candidate_repeat"
+    },
+    {
+      "at": "2026-09-12T09:37:23.6125521Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 75,
+      "sqlstate": "00000",
+      "stage": "repeat_catalog"
+    },
+    {
+      "at": "2026-09-12T09:37:23.6798238Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 66,
+      "sqlstate": "00000",
+      "stage": "all_acl_poison"
+    },
+    {
+      "at": "2026-09-12T09:37:23.7487042Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 69,
+      "sqlstate": "00000",
+      "stage": "candidate_acl_recovery"
+    },
+    {
+      "at": "2026-09-12T09:37:23.8156112Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 67,
+      "sqlstate": "00000",
+      "stage": "recovered_acl"
+    },
+    {
+      "at": "2026-09-12T09:37:23.8922979Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 77,
+      "sqlstate": "00000",
+      "stage": "recovered_catalog"
+    },
+    {
+      "at": "2026-09-12T09:37:23.9715403Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 76,
+      "sqlstate": "00000",
+      "stage": "case_P01"
+    },
+    {
+      "at": "2026-09-12T09:37:24.0494596Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 76,
+      "sqlstate": "00000",
+      "stage": "case_P02"
+    },
+    {
+      "at": "2026-09-12T09:37:24.1280183Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 76,
+      "sqlstate": "00000",
+      "stage": "case_P03"
+    },
+    {
+      "at": "2026-09-12T09:37:24.2059016Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 76,
+      "sqlstate": "00000",
+      "stage": "case_P04"
+    },
+    {
+      "at": "2026-09-12T09:37:24.2874029Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 79,
+      "sqlstate": "00000",
+      "stage": "case_P05"
+    },
+    {
+      "at": "2026-09-12T09:37:24.3711525Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 82,
+      "sqlstate": "00000",
+      "stage": "case_P06"
+    },
+    {
+      "at": "2026-09-12T09:37:24.5236543Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 150,
+      "sqlstate": "00000",
+      "stage": "case_P07"
+    },
+    {
+      "at": "2026-09-12T09:37:24.6078819Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 82,
+      "sqlstate": "00000",
+      "stage": "case_P08"
+    },
+    {
+      "at": "2026-09-12T09:37:24.6872672Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 77,
+      "sqlstate": "00000",
+      "stage": "case_P09"
+    },
+    {
+      "at": "2026-09-12T09:37:24.7663908Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 77,
+      "sqlstate": "00000",
+      "stage": "case_P10"
+    },
+    {
+      "at": "2026-09-12T09:37:24.8513377Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 83,
+      "sqlstate": "00000",
+      "stage": "case_P11"
+    },
+    {
+      "at": "2026-09-12T09:37:24.9317684Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 78,
+      "sqlstate": "00000",
+      "stage": "case_P12"
+    },
+    {
+      "at": "2026-09-12T09:37:25.0118583Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 78,
+      "sqlstate": "00000",
+      "stage": "case_P13"
+    },
+    {
+      "at": "2026-09-12T09:37:25.0914593Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 77,
+      "sqlstate": "00000",
+      "stage": "case_P14"
+    },
+    {
+      "at": "2026-09-12T09:37:25.1702698Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 77,
+      "sqlstate": "00000",
+      "stage": "case_P15"
+    },
+    {
+      "at": "2026-09-12T09:37:25.2478464Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 75,
+      "sqlstate": "00000",
+      "stage": "case_P16"
+    },
+    {
+      "at": "2026-09-12T09:37:25.3271629Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 77,
+      "sqlstate": "00000",
+      "stage": "case_P17"
+    },
+    {
+      "at": "2026-09-12T09:37:25.4061372Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 77,
+      "sqlstate": "00000",
+      "stage": "case_P18"
+    },
+    {
+      "at": "2026-09-12T09:37:25.4835786Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 75,
+      "sqlstate": "00000",
+      "stage": "case_P19"
+    },
+    {
+      "at": "2026-09-12T09:37:25.5624972Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 77,
+      "sqlstate": "00000",
+      "stage": "case_P20"
+    },
+    {
+      "at": "2026-09-12T09:37:25.6391257Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 74,
+      "sqlstate": "00000",
+      "stage": "case_P21"
+    },
+    {
+      "at": "2026-09-12T09:37:25.7137008Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 73,
+      "sqlstate": "00000",
+      "stage": "case_P22"
+    },
+    {
+      "at": "2026-09-12T09:37:25.7919679Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 76,
+      "sqlstate": "00000",
+      "stage": "case_P23"
+    },
+    {
+      "at": "2026-09-12T09:37:25.8668891Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 73,
+      "sqlstate": "00000",
+      "stage": "case_P24"
+    },
+    {
+      "at": "2026-09-12T09:37:25.9475637Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 79,
+      "sqlstate": "00000",
+      "stage": "case_P25"
+    },
+    {
+      "at": "2026-09-12T09:37:26.0261296Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 76,
+      "sqlstate": "00000",
+      "stage": "case_P26"
+    },
+    {
+      "at": "2026-09-12T09:37:26.1034631Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 75,
+      "sqlstate": "00000",
+      "stage": "case_P27"
+    },
+    {
+      "at": "2026-09-12T09:37:26.1768930Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 71,
+      "sqlstate": "00000",
+      "stage": "case_P28"
+    },
+    {
+      "at": "2026-09-12T09:37:26.2552912Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 76,
+      "sqlstate": "00000",
+      "stage": "case_C01"
+    },
+    {
+      "at": "2026-09-12T09:37:26.3328366Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 75,
+      "sqlstate": "00000",
+      "stage": "case_C02"
+    },
+    {
+      "at": "2026-09-12T09:37:26.4115912Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 77,
+      "sqlstate": "00000",
+      "stage": "case_C03"
+    },
+    {
+      "at": "2026-09-12T09:37:26.4896236Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 76,
+      "sqlstate": "00000",
+      "stage": "case_C04"
+    },
+    {
+      "at": "2026-09-12T09:37:26.5692677Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 78,
+      "sqlstate": "00000",
+      "stage": "case_C05"
+    },
+    {
+      "at": "2026-09-12T09:37:26.6485400Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 77,
+      "sqlstate": "00000",
+      "stage": "case_C06"
+    },
+    {
+      "at": "2026-09-12T09:37:26.7263546Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 76,
+      "sqlstate": "00000",
+      "stage": "case_C07"
+    },
+    {
+      "at": "2026-09-12T09:37:26.8069522Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 78,
+      "sqlstate": "00000",
+      "stage": "case_C08"
+    },
+    {
+      "at": "2026-09-12T09:37:26.8860610Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 77,
+      "sqlstate": "00000",
+      "stage": "case_C09"
+    },
+    {
+      "at": "2026-09-12T09:37:26.9664176Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 78,
+      "sqlstate": "00000",
+      "stage": "case_C10"
+    },
+    {
+      "at": "2026-09-12T09:37:27.0539757Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 86,
+      "sqlstate": "00000",
+      "stage": "case_C11"
+    },
+    {
+      "at": "2026-09-12T09:37:27.1335075Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 77,
+      "sqlstate": "00000",
+      "stage": "case_C12"
+    },
+    {
+      "at": "2026-09-12T09:37:27.2021013Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 67,
+      "sqlstate": "00000",
+      "stage": "case_C13"
+    },
+    {
+      "at": "2026-09-12T09:37:27.2901001Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 86,
+      "sqlstate": "00000",
+      "stage": "case_C14"
+    },
+    {
+      "at": "2026-09-12T09:37:27.3827391Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 91,
+      "sqlstate": "00000",
+      "stage": "case_C15"
+    },
+    {
+      "at": "2026-09-12T09:37:27.4522346Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 67,
+      "sqlstate": "00000",
+      "stage": "case_C16"
+    },
+    {
+      "at": "2026-09-12T09:37:27.5273658Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 73,
+      "sqlstate": "00000",
+      "stage": "case_C17"
+    },
+    {
+      "at": "2026-09-12T09:37:27.6054678Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 76,
+      "sqlstate": "00000",
+      "stage": "case_C18"
+    },
+    {
+      "at": "2026-09-12T09:37:27.6815051Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 74,
+      "sqlstate": "00000",
+      "stage": "case_C19"
+    },
+    {
+      "at": "2026-09-12T09:37:27.7621929Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 79,
+      "sqlstate": "00000",
+      "stage": "case_C20"
+    },
+    {
+      "at": "2026-09-12T09:37:27.8353734Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 71,
+      "sqlstate": "00000",
+      "stage": "case_C21"
+    },
+    {
+      "at": "2026-09-12T09:37:27.9083505Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 71,
+      "sqlstate": "00000",
+      "stage": "case_C22"
+    },
+    {
+      "at": "2026-09-12T09:37:27.9820244Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 72,
+      "sqlstate": "00000",
+      "stage": "case_C23"
+    },
+    {
+      "at": "2026-09-12T09:37:28.0561479Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 72,
+      "sqlstate": "00000",
+      "stage": "case_C24"
+    },
+    {
+      "at": "2026-09-12T09:37:28.1435706Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 85,
+      "sqlstate": "00000",
+      "stage": "case_C25"
+    },
+    {
+      "at": "2026-09-12T09:37:28.2150771Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 69,
+      "sqlstate": "00000",
+      "stage": "case_C26"
+    },
+    {
+      "at": "2026-09-12T09:37:28.2836032Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 66,
+      "sqlstate": "00000",
+      "stage": "case_C27"
+    },
+    {
+      "at": "2026-09-12T09:37:28.3558345Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 70,
+      "sqlstate": "00000",
+      "stage": "case_C28"
+    },
+    {
+      "at": "2026-09-12T09:37:28.4341140Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 76,
+      "sqlstate": "00000",
+      "stage": "case_C29"
+    },
+    {
+      "at": "2026-09-12T09:37:28.5132545Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 77,
+      "sqlstate": "00000",
+      "stage": "case_C30"
+    },
+    {
+      "at": "2026-09-12T09:37:28.5872621Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 72,
+      "sqlstate": "00000",
+      "stage": "case_C31"
+    },
+    {
+      "at": "2026-09-12T09:37:28.6666135Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 77,
+      "sqlstate": "00000",
+      "stage": "case_C32"
+    },
+    {
+      "at": "2026-09-12T09:37:28.7464859Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 78,
+      "sqlstate": "00000",
+      "stage": "case_F01"
+    },
+    {
+      "at": "2026-09-12T09:37:28.8371690Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 89,
+      "sqlstate": "00000",
+      "stage": "case_F02"
+    },
+    {
+      "at": "2026-09-12T09:37:28.9263772Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 87,
+      "sqlstate": "00000",
+      "stage": "case_F03"
+    },
+    {
+      "at": "2026-09-12T09:37:29.0150677Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 87,
+      "sqlstate": "00000",
+      "stage": "case_F04"
+    },
+    {
+      "at": "2026-09-12T09:37:29.0920531Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 75,
+      "sqlstate": "00000",
+      "stage": "case_F05"
+    },
+    {
+      "at": "2026-09-12T09:37:29.1780096Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 84,
+      "sqlstate": "00000",
+      "stage": "case_F06"
+    },
+    {
+      "at": "2026-09-12T09:37:29.2637624Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 84,
+      "sqlstate": "00000",
+      "stage": "case_F07"
+    },
+    {
+      "at": "2026-09-12T09:37:29.3478194Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 82,
+      "sqlstate": "00000",
+      "stage": "case_F08"
+    },
+    {
+      "at": "2026-09-12T09:37:29.4230221Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 73,
+      "sqlstate": "00000",
+      "stage": "case_F09"
+    },
+    {
+      "at": "2026-09-12T09:37:29.5081790Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 83,
+      "sqlstate": "00000",
+      "stage": "case_F10"
+    },
+    {
+      "at": "2026-09-12T09:37:29.5937461Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 83,
+      "sqlstate": "00000",
+      "stage": "case_F11"
+    },
+    {
+      "at": "2026-09-12T09:37:29.6784434Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 83,
+      "sqlstate": "00000",
+      "stage": "case_F12"
+    },
+    {
+      "at": "2026-09-12T09:37:29.7620596Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 81,
+      "sqlstate": "00000",
+      "stage": "case_F13"
+    },
+    {
+      "at": "2026-09-12T09:37:29.8505650Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 86,
+      "sqlstate": "00000",
+      "stage": "case_F14"
+    },
+    {
+      "at": "2026-09-12T09:37:29.9394069Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 87,
+      "sqlstate": "00000",
+      "stage": "case_F15"
+    },
+    {
+      "at": "2026-09-12T09:37:30.0288956Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 87,
+      "sqlstate": "00000",
+      "stage": "case_F16"
+    },
+    {
+      "at": "2026-09-12T09:37:30.1042483Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 73,
+      "sqlstate": "00000",
+      "stage": "case_S01"
+    },
+    {
+      "at": "2026-09-12T09:37:30.1821828Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 76,
+      "sqlstate": "00000",
+      "stage": "case_S02"
+    },
+    {
+      "at": "2026-09-12T09:37:30.2674263Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 83,
+      "sqlstate": "00000",
+      "stage": "case_S03"
+    },
+    {
+      "at": "2026-09-12T09:37:30.3479310Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 78,
+      "sqlstate": "00000",
+      "stage": "case_S04"
+    },
+    {
+      "at": "2026-09-12T09:37:30.4307144Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 81,
+      "sqlstate": "00000",
+      "stage": "case_S05"
+    },
+    {
+      "at": "2026-09-12T09:37:30.5126992Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 80,
+      "sqlstate": "00000",
+      "stage": "case_S06"
+    },
+    {
+      "at": "2026-09-12T09:37:30.5962086Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 81,
+      "sqlstate": "00000",
+      "stage": "case_S07"
+    },
+    {
+      "at": "2026-09-12T09:37:30.6775461Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 79,
+      "sqlstate": "00000",
+      "stage": "case_S08"
+    },
+    {
+      "at": "2026-09-12T09:37:30.7651458Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 86,
+      "sqlstate": "00000",
+      "stage": "case_S09"
+    },
+    {
+      "at": "2026-09-12T09:37:30.8474630Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 80,
+      "sqlstate": "00000",
+      "stage": "case_S10"
+    },
+    {
+      "at": "2026-09-12T09:37:30.9349251Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 85,
+      "sqlstate": "00000",
+      "stage": "case_S11"
+    },
+    {
+      "at": "2026-09-12T09:37:31.0234435Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 86,
+      "sqlstate": "00000",
+      "stage": "case_S12"
+    },
+    {
+      "at": "2026-09-12T09:37:31.1062353Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 81,
+      "sqlstate": "00000",
+      "stage": "case_S13"
+    },
+    {
+      "at": "2026-09-12T09:37:31.1900043Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 82,
+      "sqlstate": "00000",
+      "stage": "case_S14"
+    },
+    {
+      "at": "2026-09-12T09:37:31.2751811Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 83,
+      "sqlstate": "00000",
+      "stage": "case_S15"
+    },
+    {
+      "at": "2026-09-12T09:37:31.3586349Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 81,
+      "sqlstate": "00000",
+      "stage": "case_S16"
+    },
+    {
+      "at": "2026-09-12T09:37:31.4370634Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 76,
+      "sqlstate": "00000",
+      "stage": "case_S17"
+    },
+    {
+      "at": "2026-09-12T09:37:31.5151074Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 76,
+      "sqlstate": "00000",
+      "stage": "case_S18"
+    },
+    {
+      "at": "2026-09-12T09:37:31.5943617Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 77,
+      "sqlstate": "00000",
+      "stage": "case_S19"
+    },
+    {
+      "at": "2026-09-12T09:37:31.6977029Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 101,
+      "sqlstate": "00000",
+      "stage": "case_S20"
+    },
+    {
+      "at": "2026-09-12T09:37:31.7737183Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 74,
+      "sqlstate": "00000",
+      "stage": "case_S21"
+    },
+    {
+      "at": "2026-09-12T09:37:31.8566573Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 81,
+      "sqlstate": "00000",
+      "stage": "case_S22"
+    },
+    {
+      "at": "2026-09-12T09:37:31.9446627Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 86,
+      "sqlstate": "00000",
+      "stage": "case_S23"
+    },
+    {
+      "at": "2026-09-12T09:37:32.0260777Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 79,
+      "sqlstate": "00000",
+      "stage": "case_S24"
+    },
+    {
+      "at": "2026-09-12T09:37:32.1103607Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 82,
+      "sqlstate": "00000",
+      "stage": "case_S_VIEWER"
+    },
+    {
+      "at": "2026-09-12T09:37:32.1991044Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 87,
+      "sqlstate": "00000",
+      "stage": "case_S_UPSERT_OWN"
+    },
+    {
+      "at": "2026-09-12T09:37:32.2772943Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 76,
+      "sqlstate": "00000",
+      "stage": "case_D01"
+    },
+    {
+      "at": "2026-09-12T09:37:32.3454920Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 66,
+      "sqlstate": "00000",
+      "stage": "case_D02"
+    },
+    {
+      "at": "2026-09-12T09:37:32.4108119Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 63,
+      "sqlstate": "00000",
+      "stage": "case_D03"
+    },
+    {
+      "at": "2026-09-12T09:37:32.4764685Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 64,
+      "sqlstate": "00000",
+      "stage": "case_D04"
+    },
+    {
+      "at": "2026-09-12T09:37:32.5450682Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 67,
+      "sqlstate": "00000",
+      "stage": "case_D05"
+    },
+    {
+      "at": "2026-09-12T09:37:32.6198486Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 73,
+      "sqlstate": "00000",
+      "stage": "case_D06"
+    },
+    {
+      "at": "2026-09-12T09:37:32.6945261Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 73,
+      "sqlstate": "00000",
+      "stage": "case_D07"
+    },
+    {
+      "at": "2026-09-12T09:37:32.7707512Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 74,
+      "sqlstate": "00000",
+      "stage": "case_D08"
+    },
+    {
+      "at": "2026-09-12T09:37:32.8449339Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 72,
+      "sqlstate": "00000",
+      "stage": "case_D09"
+    },
+    {
+      "at": "2026-09-12T09:37:32.9200871Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 73,
+      "sqlstate": "00000",
+      "stage": "case_D10"
+    },
+    {
+      "at": "2026-09-12T09:37:32.9952023Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 73,
+      "sqlstate": "00000",
+      "stage": "case_D11"
+    },
+    {
+      "at": "2026-09-12T09:37:33.0706297Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 73,
+      "sqlstate": "00000",
+      "stage": "case_D12"
+    },
+    {
+      "at": "2026-09-12T09:37:33.1371425Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 64,
+      "sqlstate": "00000",
+      "stage": "case_D13"
+    },
+    {
+      "at": "2026-09-12T09:37:33.2035394Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 64,
+      "sqlstate": "00000",
+      "stage": "case_D14"
+    },
+    {
+      "at": "2026-09-12T09:37:33.2713979Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 66,
+      "sqlstate": "00000",
+      "stage": "case_D15"
+    },
+    {
+      "at": "2026-09-12T09:37:33.3559573Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 82,
+      "sqlstate": "00000",
+      "stage": "case_D16"
+    },
+    {
+      "at": "2026-09-12T09:37:33.4295601Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 71,
+      "sqlstate": "00000",
+      "stage": "case_D17"
+    },
+    {
+      "at": "2026-09-12T09:37:33.5043290Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 73,
+      "sqlstate": "00000",
+      "stage": "case_D18"
+    },
+    {
+      "at": "2026-09-12T09:37:33.5791756Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 73,
+      "sqlstate": "00000",
+      "stage": "case_D19"
+    },
+    {
+      "at": "2026-09-12T09:37:33.6532551Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 72,
+      "sqlstate": "00000",
+      "stage": "case_D20"
+    },
+    {
+      "at": "2026-09-12T09:37:33.7281214Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 73,
+      "sqlstate": "00000",
+      "stage": "case_D21"
+    },
+    {
+      "at": "2026-09-12T09:37:33.8000833Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 70,
+      "sqlstate": "00000",
+      "stage": "case_D22"
+    },
+    {
+      "at": "2026-09-12T09:37:33.8661883Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 64,
+      "sqlstate": "00000",
+      "stage": "case_D23"
+    },
+    {
+      "at": "2026-09-12T09:37:33.9339574Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 66,
+      "sqlstate": "00000",
+      "stage": "case_D24"
+    },
+    {
+      "at": "2026-09-12T09:37:34.0056526Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 70,
+      "sqlstate": "00000",
+      "stage": "case_D25"
+    },
+    {
+      "at": "2026-09-12T09:37:34.0781869Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 70,
+      "sqlstate": "00000",
+      "stage": "case_D26"
+    },
+    {
+      "at": "2026-09-12T09:37:34.1448649Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 65,
+      "sqlstate": "00000",
+      "stage": "case_D27"
+    },
+    {
+      "at": "2026-09-12T09:37:34.2192246Z",
+      "category": "OK",
+      "exit_code": 0,
+      "milliseconds": 74,
+      "sqlstate": "00000",
+      "stage": "matrix_rollback"
+    }
+  ],
+  "boundaries": [
+    "Application quality on same commit failed three supplemental-proof lint variable errors before types/Vitest;38new supported tests remain unaccepted.",
+    "Candidate remains unregistered outside checkout migrations; no external/production SQL was executed.",
+    "Finite source-composed native fixture does not prove full RLS100CRUD/18reference/16access families, managedStorage/sessionrevocation, complete history/schema/generatedtypes or production parity."
+  ]
+}

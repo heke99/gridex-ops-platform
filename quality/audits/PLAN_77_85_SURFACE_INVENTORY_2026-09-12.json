@@ -1,0 +1,785 @@
+{
+  "baseline": "4178602790cc732bf57886cb391dd84c2464e120",
+  "classification": "inventory_only_not_verification",
+  "write_route_files": [
+    {
+      "path": "app/api/cron/analytics/daily/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/analytics/cron",
+        "@/lib/analytics/monthlyMetricsBuilder",
+        "@/lib/analytics/dataQuality",
+        "@/lib/analytics/alerts",
+        "@/lib/analytics/utils"
+      ]
+    },
+    {
+      "path": "app/api/cron/analytics/monthly/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/analytics/cron",
+        "@/lib/analytics/monthlyMetricsBuilder",
+        "@/lib/analytics/utils"
+      ]
+    },
+    {
+      "path": "app/api/cron/billing/invoice-export-retry/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/billing/invoiceApprovedDispatch",
+        "@/lib/billing/providerEventProcessor"
+      ]
+    },
+    {
+      "path": "app/api/cron/billing/monthly/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/billing/monthlyAutomation",
+        "@/lib/automation/scheduledAuth"
+      ]
+    },
+    {
+      "path": "app/api/cron/data-quality/scan/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/analytics/cron",
+        "@/lib/analytics/dataQuality",
+        "@/lib/analytics/utils"
+      ]
+    },
+    {
+      "path": "app/api/cron/ediel/actor-readiness/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/http/apiError"
+      ]
+    },
+    {
+      "path": "app/api/cron/forecast/run/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/analytics/cron",
+        "@/lib/forecasting/forecastRuns",
+        "@/lib/analytics/utils"
+      ]
+    },
+    {
+      "path": "app/api/cron/pricing/spot-prices/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/http/apiError",
+        "@/lib/pricing/spot/spotPriceImporter",
+        "@/lib/pricing/spot/spotImportScheduler",
+        "@/lib/time/stockholm"
+      ]
+    },
+    {
+      "path": "app/api/cron/pricing/spot-settlement/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/http/apiError",
+        "@/lib/pricing/spot/spotImportScheduler",
+        "@/lib/pricing/spot/settlementLocker"
+      ]
+    },
+    {
+      "path": "app/api/cron/reconciliation/daily/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/automation/scheduledAuth",
+        "@/lib/automation/locks",
+        "@/lib/platform/schemaReadiness",
+        "@/lib/ops/reconciliation",
+        "@/lib/supabase/service",
+        "@/lib/performance/mapWithConcurrency"
+      ]
+    },
+    {
+      "path": "app/api/cron/reconciliation/end-to-end/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/automation/scheduledAuth",
+        "@/lib/automation/locks",
+        "@/lib/platform/schemaReadiness",
+        "@/lib/supabase/service"
+      ]
+    },
+    {
+      "path": "app/api/ediel/outbox/process/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/ediel/outbox/processEdielOutbox",
+        "@/lib/ediel/automationActor"
+      ]
+    },
+    {
+      "path": "app/api/ediel/outbox/process-company/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/ediel/outbox/processEdielOutbox",
+        "@/lib/supabase/service",
+        "@/lib/ediel/automationActor"
+      ]
+    },
+    {
+      "path": "app/api/internal/billing/generate-underlay/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/http/apiError",
+        "@/lib/admin/apiGuards",
+        "@/lib/tenant/scope",
+        "@/lib/billing/underlayEngine"
+      ]
+    },
+    {
+      "path": "app/api/internal/billing/period-locks/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/http/apiError",
+        "@/lib/admin/apiGuards",
+        "@/lib/tenant/scope",
+        "@/lib/billing/invoiceReadiness"
+      ]
+    },
+    {
+      "path": "app/api/internal/customer-operations/cron/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/customer-operations/automation",
+        "@/lib/customer-operations/automationConfig",
+        "@/lib/customer-operations/facilityLookupEdifactDispatch",
+        "@/lib/ediel/intent/resumeStuckIntents",
+        "@/lib/ediel/operations/z01ResponseSlaWatchdog",
+        "@/lib/operations/powerOfAttorneyExpiry",
+        "@/lib/operations/supplierSwitchActivationSweep",
+        "@/lib/website/customerApplicationReconciliation",
+        "@/lib/website/legacyFacilityRequestReconciliation",
+        "@/lib/energy/pendingExactAddressResolution"
+      ]
+    },
+    {
+      "path": "app/api/internal/ediel/inbound-request-automation/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/http/apiError",
+        "@/lib/admin/apiGuards",
+        "@/lib/ediel/inboundRequestAutomation"
+      ]
+    },
+    {
+      "path": "app/api/internal/email/outbox/process/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/email/emailOutbox",
+        "@/lib/supabase/service"
+      ]
+    },
+    {
+      "path": "app/api/internal/inbound-mail/cron/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": []
+    },
+    {
+      "path": "app/api/internal/invoice-exports/[id]/retry/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/http/apiError",
+        "@/lib/admin/apiGuards",
+        "@/lib/tenant/scope",
+        "@/lib/integrations/billing/invoiceExportCore"
+      ]
+    },
+    {
+      "path": "app/api/internal/invoice-exports/[id]/send/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/http/apiError",
+        "@/lib/admin/apiGuards",
+        "@/lib/tenant/scope",
+        "@/lib/billing/invoiceApprovedDispatch"
+      ]
+    },
+    {
+      "path": "app/api/internal/invoice-exports/create/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/http/apiError",
+        "@/lib/admin/apiGuards",
+        "@/lib/tenant/scope",
+        "@/lib/supabase/server",
+        "@/lib/billing/invoiceReviewPrepare"
+      ]
+    },
+    {
+      "path": "app/api/internal/invoices/[id]/credit/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/admin/apiGuards"
+      ]
+    },
+    {
+      "path": "app/api/internal/invoices/[id]/dispute/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/http/apiError",
+        "@/lib/admin/apiGuards",
+        "@/lib/tenant/scope",
+        "@/lib/supabase/service",
+        "@/lib/integrations/billing/capway/client",
+        "@/lib/events/domainEvents"
+      ]
+    },
+    {
+      "path": "app/api/internal/invoices/[id]/purchase/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/http/apiError",
+        "@/lib/admin/apiGuards",
+        "@/lib/tenant/scope",
+        "@/lib/supabase/service",
+        "@/lib/integrations/billing/capway/purchase"
+      ]
+    },
+    {
+      "path": "app/api/internal/manual-email/outbox/process/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/email/manualEmailOutbox"
+      ]
+    },
+    {
+      "path": "app/api/internal/manual-inbound/cron/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/inbound-mail/manualMailboxPoller"
+      ]
+    },
+    {
+      "path": "app/api/internal/pricing/lock-preview/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/http/apiError",
+        "@/lib/admin/apiGuards",
+        "@/lib/tenant/scope",
+        "@/lib/pricing/engine"
+      ]
+    },
+    {
+      "path": "app/api/internal/pricing/preview/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/http/apiError",
+        "@/lib/admin/apiGuards",
+        "@/lib/tenant/scope",
+        "@/lib/pricing/engine"
+      ]
+    },
+    {
+      "path": "app/api/internal/pricing/reprice/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/http/apiError",
+        "@/lib/admin/apiGuards",
+        "@/lib/tenant/scope",
+        "@/lib/pricing/engine"
+      ]
+    },
+    {
+      "path": "app/api/internal/spot/import-month/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/http/apiError",
+        "@/lib/admin/apiGuards",
+        "@/lib/tenant/scope",
+        "@/lib/pricing/spot/spotPriceImporter",
+        "@/lib/pricing/types"
+      ]
+    },
+    {
+      "path": "app/api/internal/spot/lock-month/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/http/apiError",
+        "@/lib/admin/apiGuards",
+        "@/lib/tenant/scope",
+        "@/lib/pricing/spot/settlementLocker",
+        "@/lib/pricing/types"
+      ]
+    },
+    {
+      "path": "app/api/internal/system/health/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/ops/health",
+        "@/lib/http/apiError"
+      ]
+    },
+    {
+      "path": "app/api/internal/tenant-provisioning/cron/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/tenant/provisioningWorker"
+      ]
+    },
+    {
+      "path": "app/api/internal/webhooks/dispatch/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/customer-portal/externalApi",
+        "@/lib/integrations/webhooks",
+        "@/lib/integrations/webhookVaultSecrets",
+        "@/lib/events/domainEvents"
+      ]
+    },
+    {
+      "path": "app/api/internal/z01-repair/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/http/apiError",
+        "@/lib/admin/guards",
+        "@/lib/customer-operations/z01Finalizer",
+        "@/lib/ediel/types"
+      ]
+    },
+    {
+      "path": "app/api/partner/v1/[[...path]]/route.ts",
+      "methods": [
+        "POST",
+        "DELETE"
+      ],
+      "imports": [
+        "@/lib/integrations/apiAuth",
+        "@/lib/integrations/publicWebhookTransport",
+        "@/lib/partner-api/business",
+        "@/lib/partner-api/businessOpenApi",
+        "@/lib/partner-api/canonical",
+        "@/lib/partner-api/core",
+        "@/lib/partner-api/openApi",
+        "@/lib/partner-api/simple"
+      ]
+    },
+    {
+      "path": "app/api/platform/energy/import/grid-areas/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/http/apiError",
+        "@/lib/admin/guards",
+        "@/lib/energy/resolver"
+      ]
+    },
+    {
+      "path": "app/api/platform/energy/import/spot-prices/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/http/apiError",
+        "@/lib/admin/guards",
+        "@/lib/pricing/spot/spotPriceImporter",
+        "@/lib/pricing/types"
+      ]
+    },
+    {
+      "path": "app/api/platform/energy/import/svk-geometries/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/admin/guards",
+        "@/lib/energy/svkGeometryImport"
+      ]
+    },
+    {
+      "path": "app/api/platform/energy/resolve/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/http/apiError",
+        "@/lib/admin/guards",
+        "@/lib/energy/resolver"
+      ]
+    },
+    {
+      "path": "app/api/v1/customer/move-out/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/api/strictRequest",
+        "@/lib/supabase/service",
+        "@/lib/customer-portal/externalApi"
+      ]
+    },
+    {
+      "path": "app/api/v1/customer/notifications/read/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/api/strictRequest",
+        "@/lib/supabase/service",
+        "@/lib/integrations/publicReferences",
+        "@/lib/customer-portal/externalApi"
+      ]
+    },
+    {
+      "path": "app/api/v1/customer/portal-bundle/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/api/strictRequest",
+        "@/lib/integrations/apiAuth",
+        "@/lib/customer-portal/externalApi",
+        "@/lib/customer-portal/externalApi",
+        "@/lib/customer-portal/apiData",
+        "@/lib/customer-portal/status",
+        "@/lib/customer-portal/publicDto",
+        "@/lib/performance/timing"
+      ]
+    },
+    {
+      "path": "app/api/v1/customer/profile-update/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/api/strictRequest",
+        "@/lib/supabase/service",
+        "@/lib/customer-portal/externalApi",
+        "@/lib/customer-sites/addressIntake",
+        "@/lib/customer-operations/automation",
+        "@/lib/customer-portal/db",
+        "@/lib/integrations/apiAuth",
+        "@/lib/customer-portal/profileUpdateContract"
+      ]
+    },
+    {
+      "path": "app/api/v1/customer/sync/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/api/strictRequest",
+        "@/lib/integrations/apiAuth",
+        "@/lib/customer-portal/externalApi",
+        "@/lib/customer-portal/tenantSync",
+        "@/lib/customer-portal/customerSyncContract"
+      ]
+    },
+    {
+      "path": "app/api/v1/customer-portal/sync/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/api/strictRequest",
+        "@/lib/supabase/service",
+        "@/lib/integrations/apiAuth",
+        "@/lib/customer-portal/externalApi"
+      ]
+    },
+    {
+      "path": "app/api/v1/events/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/api/strictRequest",
+        "@/lib/api/apiError",
+        "@/lib/events/domainEvents",
+        "@/lib/customer-portal/externalApi",
+        "@/lib/customer-portal/customerResolver",
+        "@/lib/customer-portal/customerEvents",
+        "@/lib/customer-cases/support",
+        "@/lib/integrations/webhooks",
+        "@/lib/integrations/tenantContext",
+        "@/lib/integrations/apiAuth"
+      ]
+    },
+    {
+      "path": "app/api/v1/website/customer-applications/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/customer-portal/externalApi",
+        "@/lib/integrations/apiAuth",
+        "@/lib/website/customerApplications",
+        "@/lib/audit/actionLogger",
+        "@/lib/http/payloadLimit",
+        "@/lib/website/publicCustomerApplication",
+        "@/lib/api/apiError",
+        "@/lib/tenant/context",
+        "@/lib/integrations/tenantWebsiteReadiness"
+      ]
+    },
+    {
+      "path": "app/api/v1/website/customer-events/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/api/strictRequest",
+        "@/lib/api/apiError",
+        "@/lib/customer-portal/externalApi",
+        "@/lib/integrations/apiAuth",
+        "@/lib/customer-portal/customerEvents",
+        "@/lib/customer-cases/support"
+      ]
+    },
+    {
+      "path": "app/api/v1/website/energy-area/resolve/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/customer-portal/externalApi",
+        "@/lib/energy/resolutionBinding",
+        "@/lib/energy/websiteResolutionCache",
+        "@/lib/http/payloadLimit",
+        "@/lib/integrations/apiAuth"
+      ]
+    },
+    {
+      "path": "app/api/v1/website/market-price/current/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/customer-portal/externalApi",
+        "@/lib/energy/resolutionBinding",
+        "@/lib/http/payloadLimit",
+        "@/lib/integrations/apiAuth",
+        "@/lib/pricing/spot/currentMarketPrice",
+        "@/lib/integrations/websiteIntegrationContract",
+        "@/lib/validation/uuid"
+      ]
+    },
+    {
+      "path": "app/api/v1/website/quote/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/audit/actionLogger",
+        "@/lib/customer-portal/externalApi",
+        "@/lib/http/payloadLimit",
+        "@/lib/integrations/apiAuth",
+        "@/lib/integrations/writeIdempotency",
+        "@/lib/pricing/offerQuote",
+        "@/lib/pricing/publicWebsiteQuote",
+        "@/lib/pricing/websiteQuotes",
+        "@/lib/api/apiError",
+        "@/lib/pricing/commercialModel"
+      ]
+    },
+    {
+      "path": "app/api/v1/website/quote/validate/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/customer-portal/externalApi",
+        "@/lib/http/payloadLimit",
+        "@/lib/integrations/apiAuth",
+        "@/lib/customers/externalCustomerType",
+        "@/lib/pricing/publicMarketReference",
+        "@/lib/pricing/websiteQuotes",
+        "@/lib/website/publicContracts",
+        "@/lib/api/apiError",
+        "@/lib/supabase/service"
+      ]
+    },
+    {
+      "path": "app/api/webhooks/billing/[provider]/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/http/apiError",
+        "@/lib/billing/providerWebhooks"
+      ]
+    },
+    {
+      "path": "app/api/webhooks/manual-inbound/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/inbound-mail/manualInboundIngestion",
+        "@/lib/supabase/service"
+      ]
+    },
+    {
+      "path": "app/api/webhooks/resend/route.ts",
+      "methods": [
+        "POST"
+      ],
+      "imports": [
+        "@/lib/email/resendWebhookEvents"
+      ]
+    }
+  ],
+  "scheduled_routes": [
+    {
+      "path": "/api/internal/inbound-mail/cron?environment=production",
+      "schedule": "0-55/5 * * * *"
+    },
+    {
+      "path": "/api/ediel/outbox/process",
+      "schedule": "1-56/5 * * * *"
+    },
+    {
+      "path": "/api/internal/email/outbox/process",
+      "schedule": "2-57/5 * * * *"
+    },
+    {
+      "path": "/api/internal/manual-email/outbox/process",
+      "schedule": "3-58/5 * * * *"
+    },
+    {
+      "path": "/api/internal/manual-inbound/cron?environment=production",
+      "schedule": "4-59/5 * * * *"
+    },
+    {
+      "path": "/api/cron/pricing/spot-prices",
+      "schedule": "15 * * * *"
+    },
+    {
+      "path": "/api/cron/pricing/spot-settlement",
+      "schedule": "35 3 * * *"
+    },
+    {
+      "path": "/api/cron/ediel/actor-readiness?mode=full",
+      "schedule": "25 2 * * *"
+    },
+    {
+      "path": "/api/internal/webhooks/dispatch",
+      "schedule": "0-55/5 * * * *"
+    },
+    {
+      "path": "/api/internal/customer-operations/cron",
+      "schedule": "1-56/5 * * * *"
+    },
+    {
+      "path": "/api/internal/system/health",
+      "schedule": "35 2 * * *"
+    },
+    {
+      "path": "/api/internal/platform/grid-areas/import/cron",
+      "schedule": "2-52/10 * * * *"
+    },
+    {
+      "path": "/api/cron/billing/monthly",
+      "schedule": "20 */6 * * *"
+    },
+    {
+      "path": "/api/cron/billing/invoice-export-retry",
+      "schedule": "8-53/15 * * * *"
+    },
+    {
+      "path": "/api/cron/analytics/daily",
+      "schedule": "45 3 * * *"
+    },
+    {
+      "path": "/api/cron/analytics/monthly",
+      "schedule": "50 4 1 * *"
+    },
+    {
+      "path": "/api/cron/forecast/run",
+      "schedule": "5 4 * * 1"
+    },
+    {
+      "path": "/api/cron/data-quality/scan",
+      "schedule": "25 3 * * *"
+    },
+    {
+      "path": "/api/cron/reconciliation/daily",
+      "schedule": "10 5 * * *"
+    },
+    {
+      "path": "/api/cron/reconciliation/end-to-end",
+      "schedule": "30 5 * * *"
+    },
+    {
+      "path": "/api/internal/tenant-provisioning/cron",
+      "schedule": "7-57/10 * * * *"
+    }
+  ]
+}

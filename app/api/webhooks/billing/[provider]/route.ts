@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
 import { BillingProviderWebhookAuthError, receiveBillingProviderWebhook } from '@/lib/billing/providerWebhooks'
+import { readTextBodyWithLimit } from '@/lib/http/boundedRequestBody'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -11,7 +12,14 @@ type RouteProps = {
 
 export async function POST(request: NextRequest, { params }: RouteProps) {
   const { provider } = await params
-  const body = await request.text()
+  const bounded = await readTextBodyWithLimit(request, 512_000)
+  if (!bounded.ok) {
+    return NextResponse.json(
+      { error: 'Webhook-payloaden är för stor.', code: 'payload_too_large' },
+      { status: 413 },
+    )
+  }
+  const body = bounded.text
 
   try {
     const result = await receiveBillingProviderWebhook({ provider, body, headers: request.headers })

@@ -1,0 +1,35 @@
+{
+  "status": "VERIFIED_BOUNDED_APPLICATION",
+  "commit": "771e97a28205fd763cd08b99029ef63561fd9215",
+  "tree": "ec6d33bb9031039f77523056e87db13e41fc69d0",
+  "run_id": 34685056541,
+  "job_id": 103530498830,
+  "job_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/34685056541/job/103530498830",
+  "test_files": 205,
+  "tests": 1515,
+  "new_tests": {
+    "action_wiring": 31,
+    "integrated_policy_chain": 110,
+    "entity_helper": 12
+  },
+  "quality_tests": 45,
+  "build": "PASS",
+  "lint": "PASS",
+  "script_types": "PASS",
+  "test_types": "PASS",
+  "api_contracts": "PASS",
+  "rbac": "PASS",
+  "budgets": "PASS",
+  "completed_utc": "2026-09-12T09:14:24.9771453Z",
+  "native_permission_repeat": {
+    "job_id": 103530497955,
+    "status": "PASS",
+    "baseline": 10,
+    "candidate": 102
+  },
+  "remaining": {
+    "clean_replay": "Unsupported CLI/native target; rejected before replay, job103530498112",
+    "generated_types": "Migration tail20260911114443 manifest mismatch, job103530498215",
+    "bounds": "Native full RLS/Storage/domain/provider/browser/production behavior is not accepted by these application tests; remaining77–85 tasks stay open."
+  }
+}

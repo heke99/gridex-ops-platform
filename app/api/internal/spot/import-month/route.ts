@@ -1,3 +1,5 @@
+import { readAdminJson } from '@/lib/http/adminJsonRequest'
+import { spotImportSchema } from '@/lib/admin/internalJsonSchemas'
 import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
 import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
@@ -14,7 +16,9 @@ export async function POST(request: Request) {
 
   try {
     await requireOperationalCompanyId(access.guard.userId)
-    const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    const input = await readAdminJson(request, spotImportSchema)
+    if (!input.ok) return NextResponse.json({ error: input.error, code: input.code }, { status: input.status })
+    const body = input.data
     const billingMonth = typeof body.billing_month === 'string' ? body.billing_month : typeof body.billingMonth === 'string' ? body.billingMonth : ''
     const rawAreas = Array.isArray(body.price_areas) ? body.price_areas : Array.isArray(body.priceAreas) ? body.priceAreas : undefined
     const priceAreas = rawAreas?.filter((value): value is PriceArea => typeof value === 'string' && isPriceArea(value))

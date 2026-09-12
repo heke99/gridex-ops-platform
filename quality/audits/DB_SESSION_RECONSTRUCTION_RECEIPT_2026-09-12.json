@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "scope": "SELECTED_CHAIN_DIAGNOSTIC_ONLY",
+  "status": "SELECTED_CHAIN_EXECUTED_NOT_CERTIFIED",
+  "repository": "heke99/gridex-ops-platform",
+  "pullRequest": 310,
+  "startCommit": "57b243734d116c9165ff79a98acccc06742cd961",
+  "verifiedImplementationCommit": "0bdd572d705927995bd388d05ce061542b3be14b",
+  "cleanupCommit": "1d40e33cc2d58e274d83a480b2b0cecc096f0fa1",
+  "nativeRuns": [
+    {
+      "commit": "0bdd572d705927995bd388d05ce061542b3be14b",
+      "runId": 34718506775,
+      "jobId": 103619928466,
+      "status": "success",
+      "testsPassed": 35,
+      "nativeProofGroupsPassed": 6,
+      "foundationExecuted": 118,
+      "timestampExecuted": 508,
+      "cleanup": "PASS"
+    },
+    {
+      "commit": "1d40e33cc2d58e274d83a480b2b0cecc096f0fa1",
+      "runId": 34718792993,
+      "jobId": 103620685321,
+      "status": "success",
+      "testsPassed": 35,
+      "nativeProofGroupsPassed": 6,
+      "foundationExecuted": 118,
+      "timestampExecuted": 508,
+      "cleanup": "PASS",
+      "completedAt": "2026-09-12T21:04:24Z"
+    }
+  ],
+  "sourceCounts": {
+    "FULL_FILE_SELECTED": 558,
+    "SUBSTITUTED": 23,
+    "UNCLASSIFIED": 14,
+    "EXPLICITLY_EXCLUDED": 5
+  },
+  "originalUnresolvedDispositions": 37,
+  "fullEffectsGateExitCode": 1,
+  "accountingErrors": [],
+  "localNewTestsPassed": 14,
+  "historicalSqlBlockerResolvedInDiagnostic": true,
+  "reconstructedSource": "migrations/20260728170000_live_schema_code_canonical_sync.sql",
+  "reconstructedSourceSha256": "4b1af824f75423faa393d60b845d3b39a3998bcfc7d7ea1cec2a54aa8d3bd400",
+  "renderedSqlSha256": "fd565e2b67987679e682e45890c4834877d9bea8dde796007180ee8fb07e1c95",
+  "replacementAuthority": "migrations/20260730130000_historical_sync_forward_repair.sql",
+  "replacementAuthoritySha256": "3e204b00fa33badbfdc7a11c0304df3bc5385b16e0854e40af2df1c06b32b50b",
+  "priorSecurityAuthority": "migrations/20260611190000_launch_linter_hardening_security_definer_rls.sql",
+  "priorSecurityAuthoritySha256": "b696379a5e1d26bde5fae150d7c51e9d40df029a9dfd605810ad9051b1fb74d1",
+  "securityModeTransition": {
+    "from": "invoker",
+    "to": "definer",
+    "authority": "versioned forward repair"
+  },
+  "functionOidOwnerAclRetained": true,
+  "runtime": {
+    "image": "postgis/postgis:17-3.5",
+    "imageId": "sha256:2ed748fc602dd3031c6724db8cb289e1578c2deb552a4f6e291f6f7e5e6e4f69",
+    "serverVersionNum": 170005,
+    "postgisVersion": "3.5.2",
+    "network": "none",
+    "immutableImageInputPin": false
+  },
+  "completeSourceEffectsAccepted": false,
+  "completeReplayVerified": false,
+  "ledgerProvenanceVerified": false,
+  "generatedTypesVerified": false,
+  "managedSupabaseParityVerified": false,
+  "fullRlsVerified": false,
+  "independentReviewCompleted": false,
+  "historicalBytesModified": false,
+  "productionModified": false,
+  "mainMerged": false,
+  "deployed": false,
+  "apiCodeModified": false,
+  "pausedApiPatchActivated": false,
+  "cleanReplayGate": {
+    "commit": "1d40e33cc2d58e274d83a480b2b0cecc096f0fa1",
+    "runId": 34718792985,
+    "jobId": 103620685512,
+    "status": "failure"
+  }
+}

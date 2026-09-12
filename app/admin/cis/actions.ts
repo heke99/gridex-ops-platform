@@ -3,7 +3,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { isPlatformAdminContext, requireAdminActionAccess, requirePlatformAdminActionAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requireAdminActionAccess, requirePlatformAdminActionAccess, type GuardResult } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import {
   bulkQueueMissingBillingUnderlays,
@@ -34,6 +34,7 @@ import { ensureAndPrepareUtiltsFromDataRequest } from '@/lib/cis/edielAutomation
 import { bulkQueueReadyBillingExportsAction } from '@/app/admin/operations/control-actions'
 import { assertUserCanOperateCompany, getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
+import { assertCompanyAccessForGuard } from '@/lib/tenant/entityGuards'
 
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -130,11 +131,11 @@ async function insertAuditLog(params: {
 }
 
 async function assertEntityCompanyAccess(params: {
-  actorUserId: string
+  guard: GuardResult
   table: string
   id: string
   requiresOperationalWrite?: boolean
-}): Promise<string | null> {
+}): Promise<string> {
   const { data, error } = await supabaseService
     .from(params.table)
     .select('company_id')
@@ -144,12 +145,15 @@ async function assertEntityCompanyAccess(params: {
   if (error) throw error
   if (!data) throw new Error('Raden hittades inte eller är inte tillgänglig.')
 
-  const companyId = typeof data.company_id === 'string' ? data.company_id : null
-  if (companyId) {
-    await assertUserCanOperateCompany(params.actorUserId, companyId)
-    if (params.requiresOperationalWrite) {
-      await requireCompanyOperationalForWrites(companyId)
-    }
+  const companyId = await assertCompanyAccessForGuard(
+    typeof data.company_id === 'string' ? data.company_id : null,
+    params.guard,
+  )
+  await assertUserCanOperateCompany(params.guard.userId, companyId, {
+    isPlatformAdmin: params.guard.isPlatformAdmin,
+  })
+  if (params.requiresOperationalWrite) {
+    await requireCompanyOperationalForWrites(companyId)
   }
 
   return companyId
@@ -378,7 +382,7 @@ export async function queueOutboundRequestAction(
 export async function updateOutboundRequestStatusAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess([
+  const guard = await requireAdminActionAccess([
     'switching.write',
     'metering.write',
     'billing_underlay.write',
@@ -395,7 +399,7 @@ export async function updateOutboundRequestStatusAction(
   }
 
   await assertEntityCompanyAccess({
-    actorUserId: actor.id,
+    guard,
     table: 'outbound_requests',
     id: outboundRequestId,
     requiresOperationalWrite: ['queued', 'prepared', 'sent'].includes(status),
@@ -513,7 +517,7 @@ export async function updateGridOwnerDataRequestStatusAction(
 export async function updatePartnerExportStatusAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess(['partner_exports.write'])
+  const guard = await requireAdminActionAccess(['partner_exports.write'])
 
   const actor = await getActor()
   const exportId = formValue(formData, 'export_id') ?? ''
@@ -533,7 +537,7 @@ export async function updatePartnerExportStatusAction(
       | null) ?? 'queued'
 
   await assertEntityCompanyAccess({
-    actorUserId: actor.id,
+    guard,
     table: 'partner_exports',
     id: exportId,
     requiresOperationalWrite: ['queued', 'sent'].includes(nextStatus),
@@ -575,7 +579,7 @@ export async function updatePartnerExportStatusAction(
 export async function ingestMeteringValueAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess(['metering.write'])
+  const guard = await requireAdminActionAccess(['metering.write'])
 
   const actor = await getActor()
   const customerId = formValue(formData, 'customer_id') ?? ''
@@ -589,7 +593,7 @@ export async function ingestMeteringValueAction(
   }
 
   await assertEntityCompanyAccess({
-    actorUserId: actor.id,
+    guard,
     table: 'customers',
     id: customerId,
     requiresOperationalWrite: true,
@@ -644,7 +648,7 @@ export async function ingestMeteringValueAction(
 export async function ingestBillingUnderlayAction(
   formData: FormData
 ): Promise<void> {
-  await requireAdminActionAccess(['billing_underlay.write'])
+  const guard = await requireAdminActionAccess(['billing_underlay.write'])
 
   const actor = await getActor()
   const customerId = formValue(formData, 'customer_id') ?? ''
@@ -654,7 +658,7 @@ export async function ingestBillingUnderlayAction(
   }
 
   await assertEntityCompanyAccess({
-    actorUserId: actor.id,
+    guard,
     table: 'customers',
     id: customerId,
     requiresOperationalWrite: true,

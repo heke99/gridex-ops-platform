@@ -1,0 +1,2220 @@
+{
+  "status": "OBSERVED_CURRENT_MANAGED_POLICY_AND_ACL_ONLY",
+  "project_id": "piidsfebjqjmnepdpnas",
+  "project_name": "gridex-ops-dev",
+  "project_version": "17.6.1.084",
+  "runtime_binding": "UNPROVED; connected project catalog is not production runtime binding evidence",
+  "query": "select jsonb_build_object(\n 'observed_at', clock_timestamp(),\n 'database', current_database(),\n 'server_version', current_setting('server_version'),\n 'ledger', (select jsonb_build_object('count',count(*),'tail',max(version)) from supabase_migrations.schema_migrations),\n 'roles', (select jsonb_agg(jsonb_build_object('name',rolname,'superuser',rolsuper,'inherit',rolinherit,'create_role',rolcreaterole,'create_db',rolcreatedb,'login',rolcanlogin,'replication',rolreplication,'bypass_rls',rolbypassrls) order by rolname) from pg_catalog.pg_roles),\n 'memberships', (select coalesce(jsonb_agg(jsonb_build_object('role',parent.rolname,'member',child.rolname,'grantor',grantor.rolname,'admin',m.admin_option,'inherit',m.inherit_option,'set',m.set_option) order by parent.rolname,child.rolname), '[]'::jsonb) from pg_catalog.pg_auth_members m join pg_catalog.pg_roles parent on parent.oid=m.roleid join pg_catalog.pg_roles child on child.oid=m.member left join pg_catalog.pg_roles grantor on grantor.oid=m.grantor),\n 'default_acls', (select coalesce(jsonb_agg(jsonb_build_object('owner',pg_catalog.pg_get_userbyid(d.defaclrole),'schema',n.nspname,'object_type',d.defaclobjtype,'acl',d.defaclacl::text) order by pg_catalog.pg_get_userbyid(d.defaclrole),n.nspname,d.defaclobjtype), '[]'::jsonb) from pg_catalog.pg_default_acl d left join pg_catalog.pg_namespace n on n.oid=d.defaclnamespace),\n 'tables', (select jsonb_agg(jsonb_build_object('schema',n.nspname,'name',c.relname,'kind',c.relkind,'owner',pg_catalog.pg_get_userbyid(c.relowner),'rls',c.relrowsecurity,'force_rls',c.relforcerowsecurity,'acl',c.relacl::text,\n   'policies',(select coalesce(jsonb_agg(jsonb_build_object('name',p.polname,'command',p.polcmd,'permissive',p.polpermissive,'roles',(select jsonb_agg(case when r.oid=0 then 'PUBLIC' else pg_catalog.pg_get_userbyid(r.oid) end order by r.oid) from unnest(p.polroles) as r(oid)),'using',pg_catalog.pg_get_expr(p.polqual,p.polrelid),'with_check',pg_catalog.pg_get_expr(p.polwithcheck,p.polrelid)) order by p.polname),'[]'::jsonb) from pg_catalog.pg_policy p where p.polrelid=c.oid),\n   'classification',(select to_jsonb(t) from public.platform_table_classification t where t.table_name=c.relname),\n   'column_acls',(select coalesce(jsonb_agg(jsonb_build_object('column',a.attname,'acl',a.attacl::text) order by a.attnum),'[]'::jsonb) from pg_catalog.pg_attribute a where a.attrelid=c.oid and a.attnum>0 and not a.attisdropped and a.attacl is not null),\n   'effective_access',(select jsonb_agg(jsonb_build_object('role',r.rolname,'select',has_table_privilege(r.oid,c.oid,'SELECT'),'insert',has_table_privilege(r.oid,c.oid,'INSERT'),'update',has_table_privilege(r.oid,c.oid,'UPDATE'),'delete',has_table_privilege(r.oid,c.oid,'DELETE'),'schema_usage',has_schema_privilege(r.oid,n.oid,'USAGE')) order by r.rolname) from pg_catalog.pg_roles r where r.rolname in ('anon','authenticated','service_role'))\n ) order by c.relname) from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname in ('customers','customer_sites','metering_points','customer_contracts','powers_of_attorney','billing_underlays','customer_invoices','customer_invoice_lines','audit_logs','webhook_deliveries'))\n) as catalog_receipt;",
+  "catalog": {
+    "roles": [
+      {
+        "name": "anon",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "authenticated",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "authenticator",
+        "login": true,
+        "inherit": false,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "cli_login_postgres",
+        "login": true,
+        "inherit": false,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "dashboard_user",
+        "login": false,
+        "inherit": true,
+        "create_db": true,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": true,
+        "replication": true
+      },
+      {
+        "name": "pg_checkpoint",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_create_subscription",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_database_owner",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_execute_server_program",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_maintain",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_monitor",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_read_all_data",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_read_all_settings",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_read_all_stats",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_read_server_files",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_signal_backend",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_stat_scan_tables",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_use_reserved_connections",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_write_all_data",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_write_server_files",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pgbouncer",
+        "login": true,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "postgres",
+        "login": true,
+        "inherit": true,
+        "create_db": true,
+        "superuser": false,
+        "bypass_rls": true,
+        "create_role": true,
+        "replication": true
+      },
+      {
+        "name": "service_role",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": true,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "supabase_admin",
+        "login": true,
+        "inherit": true,
+        "create_db": true,
+        "superuser": true,
+        "bypass_rls": true,
+        "create_role": true,
+        "replication": true
+      },
+      {
+        "name": "supabase_auth_admin",
+        "login": true,
+        "inherit": false,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": true,
+        "replication": false
+      },
+      {
+        "name": "supabase_etl_admin",
+        "login": true,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": true,
+        "create_role": false,
+        "replication": true
+      },
+      {
+        "name": "supabase_privileged_role",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "supabase_read_only_user",
+        "login": true,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": true,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "supabase_realtime_admin",
+        "login": false,
+        "inherit": false,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "supabase_replication_admin",
+        "login": true,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": true
+      },
+      {
+        "name": "supabase_storage_admin",
+        "login": true,
+        "inherit": false,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": true,
+        "replication": false
+      }
+    ],
+    "ledger": {
+      "tail": "20260904222450",
+      "count": 279
+    },
+    "tables": [
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "kind": "r",
+        "name": "audit_logs",
+        "owner": "postgres",
+        "schema": "public",
+        "policies": [
+          {
+            "name": "gridex_mp_1665771f0351e5ab1ed1",
+            "roles": [
+              "service_role"
+            ],
+            "using": "(true OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR gridex_can_read_company(company_id)) OR true OR gridex_can_read_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))))",
+            "command": "r",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "gridex_mp_1b5c68d9fae31870abd4",
+            "roles": [
+              "service_role"
+            ],
+            "using": "(true OR true)",
+            "command": "d",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "gridex_mp_9bed05b49fafdc78d18b",
+            "roles": [
+              "service_role"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": true,
+            "with_check": "(true OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR gridex_can_write_company(company_id)) OR true OR gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))))"
+          },
+          {
+            "name": "gridex_mp_a3e732c5d18bfa4477f7",
+            "roles": [
+              "service_role"
+            ],
+            "using": "(true OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR gridex_can_read_company(company_id)) OR true OR gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))))",
+            "command": "w",
+            "permissive": true,
+            "with_check": "(true OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR gridex_can_write_company(company_id)) OR true OR gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))))"
+          },
+          {
+            "name": "gridex_mp_e185c4f1c4faa621e763",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR gridex_can_read_company(company_id) OR gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))))",
+            "command": "w",
+            "permissive": true,
+            "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR gridex_can_write_company(company_id) OR gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))))"
+          },
+          {
+            "name": "gridex_mp_e8534998783068d30ad5",
+            "roles": [
+              "authenticated"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": true,
+            "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR gridex_can_write_company(company_id) OR gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))))"
+          },
+          {
+            "name": "gridex_perf_authenticated_select_v1",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "true",
+            "command": "r",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_delete_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_can_write_company(company_id)",
+            "command": "d",
+            "permissive": false,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_insert_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": false,
+            "with_check": "gridex_can_write_company(company_id)"
+          },
+          {
+            "name": "tenant_lifecycle_select_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(( SELECT gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT gridex_user_company_ids() AS gridex_user_company_ids))))",
+            "command": "r",
+            "permissive": false,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_update_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_can_write_company(company_id)",
+            "command": "w",
+            "permissive": false,
+            "with_check": "gridex_can_write_company(company_id)"
+          }
+        ],
+        "force_rls": false,
+        "column_acls": [],
+        "classification": {
+          "kind": "mixed",
+          "rationale": "Holds both platform-scoped and tenant-scoped rows.",
+          "table_name": "audit_logs",
+          "classified_at": "2026-09-02T08:44:17.700543+00:00",
+          "classified_by": "migration:table_classification_mixed_scope",
+          "null_company_meaning": "NULL = a platform-level audit event with no owning tenant. Reducing these is tracked follow-up work; the gate reports the count."
+        },
+        "effective_access": [
+          {
+            "role": "anon",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "schema_usage": true
+          },
+          {
+            "role": "authenticated",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          },
+          {
+            "role": "service_role",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          }
+        ]
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "kind": "r",
+        "name": "billing_underlays",
+        "owner": "postgres",
+        "schema": "public",
+        "policies": [
+          {
+            "name": "gridex_mp_6d134064dfeb024cf146",
+            "roles": [
+              "service_role"
+            ],
+            "using": "(gridex_can_read_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT auth.role() AS role) = 'service_role'::text) OR ((( SELECT auth.role() AS role) = 'service_role'::text) OR ( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR gridex_can_read_company(company_id)))",
+            "command": "r",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "gridex_mp_9614b379b88e1891eece",
+            "roles": [
+              "service_role"
+            ],
+            "using": "(( SELECT auth.role() AS role) = 'service_role'::text)",
+            "command": "d",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "gridex_mp_98c416bf579663dbb6c6",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT auth.role() AS role) = 'service_role'::text))",
+            "command": "w",
+            "permissive": true,
+            "with_check": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT auth.role() AS role) = 'service_role'::text))"
+          },
+          {
+            "name": "gridex_mp_b8aa108710ec32ca511a",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(( SELECT auth.role() AS role) = 'service_role'::text)",
+            "command": "d",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "gridex_mp_c3aee7598effd59bb69f",
+            "roles": [
+              "authenticated"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": true,
+            "with_check": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT auth.role() AS role) = 'service_role'::text))"
+          },
+          {
+            "name": "gridex_mp_d0a23b23406fc12abc0a",
+            "roles": [
+              "service_role"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": true,
+            "with_check": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT auth.role() AS role) = 'service_role'::text))"
+          },
+          {
+            "name": "gridex_mp_f1238cf1607fbe8cc164",
+            "roles": [
+              "service_role"
+            ],
+            "using": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT auth.role() AS role) = 'service_role'::text))",
+            "command": "w",
+            "permissive": true,
+            "with_check": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT auth.role() AS role) = 'service_role'::text))"
+          },
+          {
+            "name": "gridex_perf_authenticated_select_v1",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "true",
+            "command": "r",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_delete_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_can_write_company(company_id)",
+            "command": "d",
+            "permissive": false,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_insert_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": false,
+            "with_check": "gridex_can_write_company(company_id)"
+          },
+          {
+            "name": "tenant_lifecycle_select_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(( SELECT gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT gridex_user_company_ids() AS gridex_user_company_ids))))",
+            "command": "r",
+            "permissive": false,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_update_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_can_write_company(company_id)",
+            "command": "w",
+            "permissive": false,
+            "with_check": "gridex_can_write_company(company_id)"
+          }
+        ],
+        "force_rls": false,
+        "column_acls": [],
+        "classification": {
+          "kind": "tenant",
+          "rationale": "Seeded from observed schema shape during the 2026-09-02 tenant isolation remediation.",
+          "table_name": "billing_underlays",
+          "classified_at": "2026-09-02T08:44:17.700543+00:00",
+          "classified_by": "migration:platform_table_classification",
+          "null_company_meaning": null
+        },
+        "effective_access": [
+          {
+            "role": "anon",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "schema_usage": true
+          },
+          {
+            "role": "authenticated",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          },
+          {
+            "role": "service_role",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          }
+        ]
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "kind": "r",
+        "name": "customer_contracts",
+        "owner": "postgres",
+        "schema": "public",
+        "policies": [
+          {
+            "name": "gridex_mp_3b2ae6804c3c1f2360ec",
+            "roles": [
+              "authenticated"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": true,
+            "with_check": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))))"
+          },
+          {
+            "name": "gridex_mp_5e29c59c997bd0731aa9",
+            "roles": [
+              "service_role"
+            ],
+            "using": "(gridex_can_read_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))))",
+            "command": "r",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "gridex_mp_b9e866773e1b5946e476",
+            "roles": [
+              "service_role"
+            ],
+            "using": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))))",
+            "command": "w",
+            "permissive": true,
+            "with_check": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))))"
+          },
+          {
+            "name": "gridex_mp_c489f3d162d8e49f4d42",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))))",
+            "command": "w",
+            "permissive": true,
+            "with_check": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))))"
+          },
+          {
+            "name": "gridex_mp_cecd70b22218095bb897",
+            "roles": [
+              "service_role"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": true,
+            "with_check": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))))"
+          },
+          {
+            "name": "gridex_perf_authenticated_select_v1",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "true",
+            "command": "r",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_delete_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_can_write_company(company_id)",
+            "command": "d",
+            "permissive": false,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_insert_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": false,
+            "with_check": "gridex_can_write_company(company_id)"
+          },
+          {
+            "name": "tenant_lifecycle_select_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(( SELECT gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT gridex_user_company_ids() AS gridex_user_company_ids))))",
+            "command": "r",
+            "permissive": false,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_update_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_can_write_company(company_id)",
+            "command": "w",
+            "permissive": false,
+            "with_check": "gridex_can_write_company(company_id)"
+          }
+        ],
+        "force_rls": false,
+        "column_acls": [],
+        "classification": {
+          "kind": "tenant",
+          "rationale": "Seeded from observed schema shape during the 2026-09-02 tenant isolation remediation.",
+          "table_name": "customer_contracts",
+          "classified_at": "2026-09-02T08:44:17.700543+00:00",
+          "classified_by": "migration:platform_table_classification",
+          "null_company_meaning": null
+        },
+        "effective_access": [
+          {
+            "role": "anon",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "schema_usage": true
+          },
+          {
+            "role": "authenticated",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          },
+          {
+            "role": "service_role",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          }
+        ]
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "kind": "r",
+        "name": "customer_invoice_lines",
+        "owner": "postgres",
+        "schema": "public",
+        "policies": [
+          {
+            "name": "gridex_mp_2c4a1fb1e726440d27dd",
+            "roles": [
+              "service_role"
+            ],
+            "using": "( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)",
+            "command": "d",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "gridex_mp_30053acbb5147ead655f",
+            "roles": [
+              "service_role"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": true,
+            "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id)))"
+          },
+          {
+            "name": "gridex_mp_53a6da5f4090b1729f82",
+            "roles": [
+              "authenticated"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": true,
+            "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id)))"
+          },
+          {
+            "name": "gridex_mp_8cdfaddbccdd5b0f5b7b",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)",
+            "command": "d",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "gridex_mp_a4e5da55898a84446868",
+            "roles": [
+              "service_role"
+            ],
+            "using": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id)))",
+            "command": "w",
+            "permissive": true,
+            "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id)))"
+          },
+          {
+            "name": "gridex_mp_e258fc3c6c67c397f4cb",
+            "roles": [
+              "service_role"
+            ],
+            "using": "((EXISTS ( SELECT 1\n   FROM (customer_invoices ci\n     JOIN customer_portal_accounts cpa ON ((cpa.customer_id = ci.customer_id)))\n  WHERE ((ci.id = customer_invoice_lines.invoice_id) AND (cpa.user_id = ( SELECT auth.uid() AS uid)) AND (cpa.is_active = true)))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))))",
+            "command": "r",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "gridex_mp_fd5662e9a0f8bc3fc57e",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id)))",
+            "command": "w",
+            "permissive": true,
+            "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id)))"
+          },
+          {
+            "name": "gridex_perf_authenticated_select_v1",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "true",
+            "command": "r",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_delete_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_can_write_company(company_id)",
+            "command": "d",
+            "permissive": false,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_insert_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": false,
+            "with_check": "gridex_can_write_company(company_id)"
+          },
+          {
+            "name": "tenant_lifecycle_select_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(( SELECT gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT gridex_user_company_ids() AS gridex_user_company_ids))))",
+            "command": "r",
+            "permissive": false,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_update_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_can_write_company(company_id)",
+            "command": "w",
+            "permissive": false,
+            "with_check": "gridex_can_write_company(company_id)"
+          }
+        ],
+        "force_rls": false,
+        "column_acls": [],
+        "classification": {
+          "kind": "tenant",
+          "rationale": "Seeded from observed schema shape during the 2026-09-02 tenant isolation remediation.",
+          "table_name": "customer_invoice_lines",
+          "classified_at": "2026-09-02T08:44:17.700543+00:00",
+          "classified_by": "migration:platform_table_classification",
+          "null_company_meaning": null
+        },
+        "effective_access": [
+          {
+            "role": "anon",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "schema_usage": true
+          },
+          {
+            "role": "authenticated",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          },
+          {
+            "role": "service_role",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          }
+        ]
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "kind": "r",
+        "name": "customer_invoices",
+        "owner": "postgres",
+        "schema": "public",
+        "policies": [
+          {
+            "name": "gridex_mp_65c91192ef30794df218",
+            "roles": [
+              "service_role"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": true,
+            "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id)))"
+          },
+          {
+            "name": "gridex_mp_9458281b619011eaa6d5",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id)))",
+            "command": "w",
+            "permissive": true,
+            "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id)))"
+          },
+          {
+            "name": "gridex_mp_b4f1a467a48d4c3337c7",
+            "roles": [
+              "service_role"
+            ],
+            "using": "((EXISTS ( SELECT 1\n   FROM customer_portal_accounts cpa\n  WHERE ((cpa.customer_id = customer_invoices.customer_id) AND (cpa.user_id = ( SELECT auth.uid() AS uid)) AND (cpa.is_active = true)))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))))",
+            "command": "r",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "gridex_mp_c838a834be4116b1f057",
+            "roles": [
+              "authenticated"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": true,
+            "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id)))"
+          },
+          {
+            "name": "gridex_mp_c92ea5826d20296f9603",
+            "roles": [
+              "service_role"
+            ],
+            "using": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id)))",
+            "command": "w",
+            "permissive": true,
+            "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id)))"
+          },
+          {
+            "name": "gridex_mp_d76f0e28e0bc060ae698",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)",
+            "command": "d",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "gridex_mp_ddb460746200d6cf61fb",
+            "roles": [
+              "service_role"
+            ],
+            "using": "( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)",
+            "command": "d",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "gridex_perf_authenticated_select_v1",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "true",
+            "command": "r",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_delete_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_can_write_company(company_id)",
+            "command": "d",
+            "permissive": false,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_insert_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": false,
+            "with_check": "gridex_can_write_company(company_id)"
+          },
+          {
+            "name": "tenant_lifecycle_select_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(( SELECT gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT gridex_user_company_ids() AS gridex_user_company_ids))))",
+            "command": "r",
+            "permissive": false,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_update_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_can_write_company(company_id)",
+            "command": "w",
+            "permissive": false,
+            "with_check": "gridex_can_write_company(company_id)"
+          }
+        ],
+        "force_rls": false,
+        "column_acls": [],
+        "classification": {
+          "kind": "tenant",
+          "rationale": "Seeded from observed schema shape during the 2026-09-02 tenant isolation remediation.",
+          "table_name": "customer_invoices",
+          "classified_at": "2026-09-02T08:44:17.700543+00:00",
+          "classified_by": "migration:platform_table_classification",
+          "null_company_meaning": null
+        },
+        "effective_access": [
+          {
+            "role": "anon",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "schema_usage": true
+          },
+          {
+            "role": "authenticated",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          },
+          {
+            "role": "service_role",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          }
+        ]
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "kind": "r",
+        "name": "customer_sites",
+        "owner": "postgres",
+        "schema": "public",
+        "policies": [
+          {
+            "name": "gridex_mp_3ddad662de3252a3de04",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_has_permission(( SELECT auth.uid() AS uid), 'masterdata.write'::text)",
+            "command": "d",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "gridex_mp_7af212387d25c3fc5702",
+            "roles": [
+              "service_role"
+            ],
+            "using": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))))",
+            "command": "w",
+            "permissive": true,
+            "with_check": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))))"
+          },
+          {
+            "name": "gridex_mp_94b28a477b4f3605ac8f",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(gridex_can_write_company(company_id) OR gridex_has_permission(( SELECT auth.uid() AS uid), 'masterdata.write'::text) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))))",
+            "command": "w",
+            "permissive": true,
+            "with_check": "(gridex_can_write_company(company_id) OR gridex_has_permission(( SELECT auth.uid() AS uid), 'masterdata.write'::text) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))))"
+          },
+          {
+            "name": "gridex_mp_e12eb99a28fee9d2798d",
+            "roles": [
+              "service_role"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": true,
+            "with_check": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))))"
+          },
+          {
+            "name": "gridex_mp_e41450d799fc948805ab",
+            "roles": [
+              "authenticated"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": true,
+            "with_check": "(gridex_can_write_company(company_id) OR gridex_has_permission(( SELECT auth.uid() AS uid), 'masterdata.write'::text) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))))"
+          },
+          {
+            "name": "gridex_mp_f9570695458121c7ccff",
+            "roles": [
+              "service_role"
+            ],
+            "using": "(gridex_can_read_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))))",
+            "command": "r",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "gridex_perf_authenticated_select_v1",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "true",
+            "command": "r",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_delete_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_can_write_company(company_id)",
+            "command": "d",
+            "permissive": false,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_insert_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": false,
+            "with_check": "gridex_can_write_company(company_id)"
+          },
+          {
+            "name": "tenant_lifecycle_select_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(( SELECT gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT gridex_user_company_ids() AS gridex_user_company_ids))))",
+            "command": "r",
+            "permissive": false,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_update_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_can_write_company(company_id)",
+            "command": "w",
+            "permissive": false,
+            "with_check": "gridex_can_write_company(company_id)"
+          }
+        ],
+        "force_rls": false,
+        "column_acls": [],
+        "classification": {
+          "kind": "tenant",
+          "rationale": "Seeded from observed schema shape during the 2026-09-02 tenant isolation remediation.",
+          "table_name": "customer_sites",
+          "classified_at": "2026-09-02T08:44:17.700543+00:00",
+          "classified_by": "migration:platform_table_classification",
+          "null_company_meaning": null
+        },
+        "effective_access": [
+          {
+            "role": "anon",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "schema_usage": true
+          },
+          {
+            "role": "authenticated",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          },
+          {
+            "role": "service_role",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          }
+        ]
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "kind": "r",
+        "name": "customers",
+        "owner": "postgres",
+        "schema": "public",
+        "policies": [
+          {
+            "name": "gridex_mp_2f07922a7a98cae76d60",
+            "roles": [
+              "service_role"
+            ],
+            "using": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))))",
+            "command": "w",
+            "permissive": true,
+            "with_check": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))))"
+          },
+          {
+            "name": "gridex_mp_417aff396ae8f545746f",
+            "roles": [
+              "service_role"
+            ],
+            "using": "(gridex_can_read_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))))",
+            "command": "r",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "gridex_mp_9f70fde0c862614112d2",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))))",
+            "command": "w",
+            "permissive": true,
+            "with_check": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))))"
+          },
+          {
+            "name": "gridex_mp_a5f744341481a057ba49",
+            "roles": [
+              "service_role"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": true,
+            "with_check": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))))"
+          },
+          {
+            "name": "gridex_mp_fafefb8b50aeeb8b1d53",
+            "roles": [
+              "authenticated"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": true,
+            "with_check": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))))"
+          },
+          {
+            "name": "gridex_perf_authenticated_select_v1",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "true",
+            "command": "r",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_delete_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_can_write_company(company_id)",
+            "command": "d",
+            "permissive": false,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_insert_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": false,
+            "with_check": "gridex_can_write_company(company_id)"
+          },
+          {
+            "name": "tenant_lifecycle_select_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(( SELECT gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT gridex_user_company_ids() AS gridex_user_company_ids))))",
+            "command": "r",
+            "permissive": false,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_update_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_can_write_company(company_id)",
+            "command": "w",
+            "permissive": false,
+            "with_check": "gridex_can_write_company(company_id)"
+          }
+        ],
+        "force_rls": false,
+        "column_acls": [],
+        "classification": {
+          "kind": "tenant",
+          "rationale": "Seeded from observed schema shape during the 2026-09-02 tenant isolation remediation.",
+          "table_name": "customers",
+          "classified_at": "2026-09-02T08:44:17.700543+00:00",
+          "classified_by": "migration:platform_table_classification",
+          "null_company_meaning": null
+        },
+        "effective_access": [
+          {
+            "role": "anon",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "schema_usage": true
+          },
+          {
+            "role": "authenticated",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          },
+          {
+            "role": "service_role",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          }
+        ]
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "kind": "r",
+        "name": "metering_points",
+        "owner": "postgres",
+        "schema": "public",
+        "policies": [
+          {
+            "name": "gridex_mp_2b582b6d624222a37d35",
+            "roles": [
+              "service_role"
+            ],
+            "using": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id)) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR gridex_can_write_company(company_id))",
+            "command": "w",
+            "permissive": true,
+            "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id)) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR gridex_can_write_company(company_id))"
+          },
+          {
+            "name": "gridex_mp_5a31eb4186b9bd781b39",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_has_permission(( SELECT auth.uid() AS uid), 'masterdata.write'::text)",
+            "command": "d",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "gridex_mp_a453fc79e2169d72710a",
+            "roles": [
+              "authenticated"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": true,
+            "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id)) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR gridex_can_write_company(company_id) OR gridex_has_permission(( SELECT auth.uid() AS uid), 'masterdata.write'::text))"
+          },
+          {
+            "name": "gridex_mp_a98f13fb311cdd9153b7",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id)) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR gridex_can_write_company(company_id) OR gridex_has_permission(( SELECT auth.uid() AS uid), 'masterdata.write'::text))",
+            "command": "w",
+            "permissive": true,
+            "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id)) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR gridex_can_write_company(company_id) OR gridex_has_permission(( SELECT auth.uid() AS uid), 'masterdata.write'::text))"
+          },
+          {
+            "name": "gridex_mp_b2b2058c0bddb65ed6ae",
+            "roles": [
+              "service_role"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": true,
+            "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id)) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR gridex_can_write_company(company_id))"
+          },
+          {
+            "name": "gridex_mp_f18c838347054655c5f1",
+            "roles": [
+              "service_role"
+            ],
+            "using": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id)) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR gridex_can_read_company(company_id))",
+            "command": "r",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "gridex_perf_authenticated_select_v1",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "true",
+            "command": "r",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_delete_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_can_write_company(company_id)",
+            "command": "d",
+            "permissive": false,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_insert_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": false,
+            "with_check": "gridex_can_write_company(company_id)"
+          },
+          {
+            "name": "tenant_lifecycle_select_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(( SELECT gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT gridex_user_company_ids() AS gridex_user_company_ids))))",
+            "command": "r",
+            "permissive": false,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_update_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_can_write_company(company_id)",
+            "command": "w",
+            "permissive": false,
+            "with_check": "gridex_can_write_company(company_id)"
+          }
+        ],
+        "force_rls": false,
+        "column_acls": [],
+        "classification": {
+          "kind": "tenant",
+          "rationale": "Seeded from observed schema shape during the 2026-09-02 tenant isolation remediation.",
+          "table_name": "metering_points",
+          "classified_at": "2026-09-02T08:44:17.700543+00:00",
+          "classified_by": "migration:platform_table_classification",
+          "null_company_meaning": null
+        },
+        "effective_access": [
+          {
+            "role": "anon",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "schema_usage": true
+          },
+          {
+            "role": "authenticated",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          },
+          {
+            "role": "service_role",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          }
+        ]
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "kind": "r",
+        "name": "powers_of_attorney",
+        "owner": "postgres",
+        "schema": "public",
+        "policies": [
+          {
+            "name": "gridex_mp_24851d20c03e49a78e72",
+            "roles": [
+              "authenticated"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": true,
+            "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id)) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT auth.role() AS role) = 'service_role'::text) OR gridex_can_write_company(company_id))"
+          },
+          {
+            "name": "gridex_mp_3bc58abc6ac2e7c2dca2",
+            "roles": [
+              "service_role"
+            ],
+            "using": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id)) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT auth.role() AS role) = 'service_role'::text) OR ((( SELECT auth.role() AS role) = 'service_role'::text) OR ( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR gridex_can_read_company(company_id)) OR gridex_can_read_company(company_id))",
+            "command": "r",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "gridex_mp_6add9439c74a4d20f62a",
+            "roles": [
+              "service_role"
+            ],
+            "using": "(( SELECT auth.role() AS role) = 'service_role'::text)",
+            "command": "d",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "gridex_mp_74b533756704b3f7d971",
+            "roles": [
+              "service_role"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": true,
+            "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id)) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT auth.role() AS role) = 'service_role'::text) OR gridex_can_write_company(company_id))"
+          },
+          {
+            "name": "gridex_mp_9e0c789e033fff2e438e",
+            "roles": [
+              "service_role"
+            ],
+            "using": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id)) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT auth.role() AS role) = 'service_role'::text) OR gridex_can_write_company(company_id))",
+            "command": "w",
+            "permissive": true,
+            "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id)) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT auth.role() AS role) = 'service_role'::text) OR gridex_can_write_company(company_id))"
+          },
+          {
+            "name": "gridex_mp_dd6161fb13c302e72805",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(( SELECT auth.role() AS role) = 'service_role'::text)",
+            "command": "d",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "gridex_mp_f95b28fc8e3f41deb0b5",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id)) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT auth.role() AS role) = 'service_role'::text) OR gridex_can_write_company(company_id))",
+            "command": "w",
+            "permissive": true,
+            "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id)) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT auth.role() AS role) = 'service_role'::text) OR gridex_can_write_company(company_id))"
+          },
+          {
+            "name": "gridex_perf_authenticated_select_v1",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "true",
+            "command": "r",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_delete_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_can_write_company(company_id)",
+            "command": "d",
+            "permissive": false,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_insert_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": false,
+            "with_check": "gridex_can_write_company(company_id)"
+          },
+          {
+            "name": "tenant_lifecycle_select_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(( SELECT gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT gridex_user_company_ids() AS gridex_user_company_ids))))",
+            "command": "r",
+            "permissive": false,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_update_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_can_write_company(company_id)",
+            "command": "w",
+            "permissive": false,
+            "with_check": "gridex_can_write_company(company_id)"
+          }
+        ],
+        "force_rls": false,
+        "column_acls": [],
+        "classification": {
+          "kind": "tenant",
+          "rationale": "Seeded from observed schema shape during the 2026-09-02 tenant isolation remediation.",
+          "table_name": "powers_of_attorney",
+          "classified_at": "2026-09-02T08:44:17.700543+00:00",
+          "classified_by": "migration:platform_table_classification",
+          "null_company_meaning": null
+        },
+        "effective_access": [
+          {
+            "role": "anon",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "schema_usage": true
+          },
+          {
+            "role": "authenticated",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          },
+          {
+            "role": "service_role",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          }
+        ]
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "kind": "r",
+        "name": "webhook_deliveries",
+        "owner": "postgres",
+        "schema": "public",
+        "policies": [
+          {
+            "name": "gridex_mp_a6186c6d84748c343933",
+            "roles": [
+              "authenticated"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": true,
+            "with_check": "((( SELECT auth.role() AS role) = 'service_role'::text) OR (( SELECT auth.role() AS role) = 'service_role'::text))"
+          },
+          {
+            "name": "gridex_mp_d908d1f170fafa864d90",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "((( SELECT auth.role() AS role) = 'service_role'::text) OR (( SELECT auth.role() AS role) = 'service_role'::text))",
+            "command": "w",
+            "permissive": true,
+            "with_check": "((( SELECT auth.role() AS role) = 'service_role'::text) OR (( SELECT auth.role() AS role) = 'service_role'::text))"
+          },
+          {
+            "name": "gridex_mp_f5b79b50996a4f74e82f",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "((( SELECT auth.role() AS role) = 'service_role'::text) OR (( SELECT auth.role() AS role) = 'service_role'::text))",
+            "command": "d",
+            "permissive": true,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_delete_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_can_write_company(company_id)",
+            "command": "d",
+            "permissive": false,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_insert_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": null,
+            "command": "a",
+            "permissive": false,
+            "with_check": "gridex_can_write_company(company_id)"
+          },
+          {
+            "name": "tenant_lifecycle_select_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(( SELECT gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT gridex_user_company_ids() AS gridex_user_company_ids))))",
+            "command": "r",
+            "permissive": false,
+            "with_check": null
+          },
+          {
+            "name": "tenant_lifecycle_update_guard",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "gridex_can_write_company(company_id)",
+            "command": "w",
+            "permissive": false,
+            "with_check": "gridex_can_write_company(company_id)"
+          },
+          {
+            "name": "webhook_deliveries_service_role_all",
+            "roles": [
+              "service_role"
+            ],
+            "using": "true",
+            "command": "*",
+            "permissive": true,
+            "with_check": "true"
+          },
+          {
+            "name": "webhook_deliveries_tenant_or_platform_read",
+            "roles": [
+              "authenticated"
+            ],
+            "using": "(gridex_user_is_platform_admin() OR gridex_can_read_company(company_id))",
+            "command": "r",
+            "permissive": true,
+            "with_check": null
+          }
+        ],
+        "force_rls": false,
+        "column_acls": [],
+        "classification": {
+          "kind": "tenant",
+          "rationale": "Seeded from observed schema shape during the 2026-09-02 tenant isolation remediation.",
+          "table_name": "webhook_deliveries",
+          "classified_at": "2026-09-02T08:44:17.700543+00:00",
+          "classified_by": "migration:platform_table_classification",
+          "null_company_meaning": null
+        },
+        "effective_access": [
+          {
+            "role": "anon",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "schema_usage": true
+          },
+          {
+            "role": "authenticated",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          },
+          {
+            "role": "service_role",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          }
+        ]
+      }
+    ],
+    "database": "postgres",
+    "memberships": [
+      {
+        "set": true,
+        "role": "anon",
+        "admin": false,
+        "member": "authenticator",
+        "grantor": "supabase_admin",
+        "inherit": false
+      },
+      {
+        "set": true,
+        "role": "anon",
+        "admin": true,
+        "member": "postgres",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "authenticated",
+        "admin": false,
+        "member": "authenticator",
+        "grantor": "supabase_admin",
+        "inherit": false
+      },
+      {
+        "set": true,
+        "role": "authenticated",
+        "admin": true,
+        "member": "postgres",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "authenticator",
+        "admin": true,
+        "member": "postgres",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "authenticator",
+        "admin": false,
+        "member": "supabase_storage_admin",
+        "grantor": "supabase_admin",
+        "inherit": false
+      },
+      {
+        "set": true,
+        "role": "pg_create_subscription",
+        "admin": true,
+        "member": "postgres",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "pg_monitor",
+        "admin": true,
+        "member": "postgres",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "pg_monitor",
+        "admin": false,
+        "member": "supabase_etl_admin",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "pg_monitor",
+        "admin": false,
+        "member": "supabase_read_only_user",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "pg_read_all_data",
+        "admin": true,
+        "member": "postgres",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "pg_read_all_data",
+        "admin": false,
+        "member": "supabase_etl_admin",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "pg_read_all_data",
+        "admin": false,
+        "member": "supabase_read_only_user",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "pg_read_all_settings",
+        "admin": false,
+        "member": "pg_monitor",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "pg_read_all_stats",
+        "admin": false,
+        "member": "pg_monitor",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "pg_signal_backend",
+        "admin": true,
+        "member": "postgres",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "pg_stat_scan_tables",
+        "admin": false,
+        "member": "pg_monitor",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "postgres",
+        "admin": false,
+        "member": "cli_login_postgres",
+        "grantor": "supabase_admin",
+        "inherit": false
+      },
+      {
+        "set": true,
+        "role": "service_role",
+        "admin": false,
+        "member": "authenticator",
+        "grantor": "supabase_admin",
+        "inherit": false
+      },
+      {
+        "set": true,
+        "role": "service_role",
+        "admin": true,
+        "member": "postgres",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "supabase_privileged_role",
+        "admin": false,
+        "member": "postgres",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "supabase_privileged_role",
+        "admin": false,
+        "member": "supabase_etl_admin",
+        "grantor": "supabase_admin",
+        "inherit": true
+      }
+    ],
+    "observed_at": "2026-09-12T09:29:46.131939+00:00",
+    "default_acls": [
+      {
+        "acl": "{postgres=rwU/postgres,service_role=rwU/postgres}",
+        "owner": "postgres",
+        "schema": "public",
+        "object_type": "S"
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "schema": "public",
+        "object_type": "f"
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "owner": "postgres",
+        "schema": "public",
+        "object_type": "r"
+      },
+      {
+        "acl": "{postgres=rwU/postgres,anon=rwU/postgres,authenticated=rwU/postgres,service_role=rwU/postgres}",
+        "owner": "postgres",
+        "schema": "storage",
+        "object_type": "S"
+      },
+      {
+        "acl": "{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "schema": "storage",
+        "object_type": "f"
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "owner": "postgres",
+        "schema": "storage",
+        "object_type": "r"
+      },
+      {
+        "acl": "{postgres=r*w*U*/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "extensions",
+        "object_type": "S"
+      },
+      {
+        "acl": "{postgres=X*/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "extensions",
+        "object_type": "f"
+      },
+      {
+        "acl": "{postgres=a*r*w*d*D*x*t*m*/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "extensions",
+        "object_type": "r"
+      },
+      {
+        "acl": "{postgres=rwU/supabase_admin,anon=rwU/supabase_admin,authenticated=rwU/supabase_admin,service_role=rwU/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "graphql",
+        "object_type": "S"
+      },
+      {
+        "acl": "{postgres=X/supabase_admin,anon=X/supabase_admin,authenticated=X/supabase_admin,service_role=X/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "graphql",
+        "object_type": "f"
+      },
+      {
+        "acl": "{postgres=arwdDxtm/supabase_admin,anon=arwdDxtm/supabase_admin,authenticated=arwdDxtm/supabase_admin,service_role=arwdDxtm/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "graphql",
+        "object_type": "r"
+      },
+      {
+        "acl": "{postgres=rwU/supabase_admin,anon=rwU/supabase_admin,authenticated=rwU/supabase_admin,service_role=rwU/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "graphql_public",
+        "object_type": "S"
+      },
+      {
+        "acl": "{postgres=X/supabase_admin,anon=X/supabase_admin,authenticated=X/supabase_admin,service_role=X/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "graphql_public",
+        "object_type": "f"
+      },
+      {
+        "acl": "{postgres=arwdDxtm/supabase_admin,anon=arwdDxtm/supabase_admin,authenticated=arwdDxtm/supabase_admin,service_role=arwdDxtm/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "graphql_public",
+        "object_type": "r"
+      },
+      {
+        "acl": "{postgres=rwU/supabase_admin,anon=rwU/supabase_admin,authenticated=rwU/supabase_admin,service_role=rwU/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "public",
+        "object_type": "S"
+      },
+      {
+        "acl": "{postgres=X/supabase_admin,anon=X/supabase_admin,authenticated=X/supabase_admin,service_role=X/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "public",
+        "object_type": "f"
+      },
+      {
+        "acl": "{postgres=arwdDxtm/supabase_admin,anon=arwdDxtm/supabase_admin,authenticated=arwdDxtm/supabase_admin,service_role=arwdDxtm/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "public",
+        "object_type": "r"
+      },
+      {
+        "acl": "{postgres=rwU/supabase_admin,dashboard_user=rwU/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "realtime",
+        "object_type": "S"
+      },
+      {
+        "acl": "{postgres=X/supabase_admin,dashboard_user=X/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "realtime",
+        "object_type": "f"
+      },
+      {
+        "acl": "{postgres=arwdDxtm/supabase_admin,dashboard_user=arwdDxtm/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "realtime",
+        "object_type": "r"
+      },
+      {
+        "acl": "{postgres=rwU/supabase_auth_admin,dashboard_user=rwU/supabase_auth_admin}",
+        "owner": "supabase_auth_admin",
+        "schema": "auth",
+        "object_type": "S"
+      },
+      {
+        "acl": "{postgres=X/supabase_auth_admin,dashboard_user=X/supabase_auth_admin}",
+        "owner": "supabase_auth_admin",
+        "schema": "auth",
+        "object_type": "f"
+      },
+      {
+        "acl": "{postgres=arwdDxtm/supabase_auth_admin,dashboard_user=arwdDxtm/supabase_auth_admin}",
+        "owner": "supabase_auth_admin",
+        "schema": "auth",
+        "object_type": "r"
+      }
+    ],
+    "server_version": "17.6"
+  },
+  "boundaries": [
+    "Single read-only statement collecting system catalog, selected classification metadata and ledger count/tail; no customer rows or mutations.",
+    "Current coherent role/membership/default/table/column ACL and policy catalog on ten critical tables; not historical/pre-transform authority.",
+    "No complete row-shape/constraint/trigger/function dependency closure; no native CRUD execution or full replay/type acceptance."
+  ]
+}

@@ -1,0 +1,330 @@
+#!/usr/bin/env python3
+"""Verify the actual selected RBAC foundation prefix on fixed PostgreSQL 17."""
+import argparse
+import importlib.util
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+sys.dont_write_bytecode = True
+
+ROOT = Path(__file__).resolve().parents[1]
+CONTRACT_SPEC = importlib.util.spec_from_file_location(
+    'rbac_prefix_governance_contract', ROOT / 'scripts/canonical_full_governance_contract.py')
+governance_contract = importlib.util.module_from_spec(CONTRACT_SPEC)
+CONTRACT_SPEC.loader.exec_module(governance_contract)
+ADMIN = 'postgresql://postgres:postgres@127.0.0.1:55440/gridex_auth_test'
+DATABASE = 'gridex_rbac_prefix_fixture'
+TARGET = f'postgresql://postgres:postgres@127.0.0.1:55440/{DATABASE}'
+BOUNDARY = 'bootstrap/20260527_company_memberships_role_key_foundation.sql'
+SOURCES = (
+    'migrations/20260520_batch_6e_rbac_tenant_stats_whitelabel.sql',
+    'migrations/20260520_batch_6e_fix_rbac_backfill_security.sql',
+    'migrations/20260520_batch_6e_hard_platform_roles_only.sql',
+)
+FINAL = 'migrations/20260908120000_preserve_gridex_user_has_role_key.sql'
+POLICY_TARGETS = (
+    'audit_logs', 'customers', 'customer_contacts', 'customer_addresses',
+    'customer_sites', 'metering_points', 'customer_authorization_documents',
+    'customer_documents', 'powers_of_attorney', 'customer_contracts',
+    'customer_contract_events', 'contract_offers', 'supplier_switch_requests',
+    'supplier_switch_events', 'grid_owner_data_requests',
+    'customer_operation_tasks', 'outbound_requests', 'ediel_messages',
+    'ediel_message_events', 'ediel_actor_settings', 'ediel_route_profiles',
+    'communication_routes', 'metering_values', 'billing_underlays',
+    'partner_exports',
+)
+ABSENT_TARGETS = ('power_of_attorneys', 'meter_readings', 'files', 'attachments')
+
+
+def read(relative):
+    return (ROOT / relative).read_text()
+
+
+def reduced_seed():
+    """Reuse only the reviewed synthetic rows; schema comes from the real prefix."""
+    path = ROOT / 'scripts/canonical-rbac-tenant-selftest.py'
+    spec = importlib.util.spec_from_file_location('canonical_rbac_tenant_fixture', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    sql = module.seed()
+    invalid_company = "('20000000-0000-0000-0000-000000000002','Synthetic Two','2222222222','');"
+    valid_company = "('20000000-0000-0000-0000-000000000002','Synthetic Two','2222222222','onboarding');"
+    conflicting_grant = "('60000000-0000-0000-0000-000000000001',(select id from roles where key='company_admin'),(select id from permissions where key='tenants.write'))"
+    unique_grant = "('60000000-0000-0000-0000-000000000001',(select id from roles where key='company_admin'),(select id from permissions where key='permissions.manage'))"
+    inactive_role = "('70000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000005','20000000-0000-0000-0000-000000000001',(select id from roles where key='company_admin'),'inactive')"
+    disabled_role = "('70000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000005','20000000-0000-0000-0000-000000000001',(select id from roles where key='company_admin'),'disabled')"
+    marker = 'create temporary table memberships_before as select * from company_memberships;'
+    extra = """insert into user_roles(id,user_id,company_id,role_id,status,is_active) values
+ ('70000000-0000-0000-0000-000000000004','10000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000001',(select id from roles where key='company_admin'),'active',false);
+"""
+    assert marker in sql and invalid_company in sql and conflicting_grant in sql and inactive_role in sql
+    # Full 6D rejects suspended profiles; keep the reduced historical fixture intact.
+    sql = sql.replace("'D','suspended'", "'D','locked_security'").replace("'F','suspended'", "'F','locked_security'")
+    return sql.replace(invalid_company, valid_company).replace(
+        conflicting_grant, unique_grant).replace(
+        inactive_role, disabled_role).replace(marker, extra + marker)
+
+
+def catalog_prerequisites():
+    present = ','.join("'%s'" % name for name in POLICY_TARGETS)
+    absent = ','.join("'%s'" % name for name in ABSENT_TARGETS)
+    billing = ','.join("'%s'" % name for name in (
+        'customers', 'customer_sites', 'metering_points', 'ediel_messages',
+        'metering_values', 'customer_authorization_documents',
+        'billing_underlays', 'partner_exports'))
+    return f"""create function public.test_assert(ok boolean,label text) returns void language plpgsql as $$ begin if ok is distinct from true then raise exception 'FAIL: %',label; end if; end $$;
+select test_assert(current_setting('server_version_num')::int / 10000=17,'PostgreSQL 17');
+select test_assert((select count(*)=25 from unnest(array[{present}]) name where to_regclass('public.' || name) is not null),'all 25 actual prefix policy targets exist');
+select test_assert((select bool_and(exists(select 1 from information_schema.columns c where c.table_schema='public' and c.table_name=name and c.column_name='company_id')) from unnest(array[{present}]) name),'all 25 actual prefix policy targets have company_id');
+select test_assert((select count(*)=8 from unnest(array[{billing}]) name where to_regclass('public.' || name) is not null),'all eight billing view domain tables exist');
+select test_assert((select bool_and(to_regclass('public.' || name) is null) from unnest(array[{absent}]) name),'four source policy targets are genuinely absent at the selected boundary');
+select test_assert(exists(select 1 from information_schema.columns where table_schema='public' and table_name='user_profiles' and column_name='active_company_id'),'profile attribution prerequisite exists');
+select test_assert(exists(select 1 from information_schema.columns where table_schema='public' and table_name='company_memberships' and column_name='membership_role'),'membership role prerequisite exists');
+select test_assert((select count(*)=14 from information_schema.columns where table_schema='public' and table_name='companies' and column_name in ('billing_contact_email','support_email','address_line_1','address_line_2','postal_code','city','country_code','ediel_id','actor_role','sender_sub_address','ediel_mailbox','operating_environment','branding','billing_settings')),'all company metadata columns exist');
+select test_assert(exists(select 1 from information_schema.columns where table_schema='public' and table_name='ediel_actor_settings' and column_name='company_id'),'Ediel actor company prerequisite exists');
+select test_assert((select a.atttypid='timestamptz'::regtype and a.attgenerated='s' and not a.attnotnull and lower(pg_get_expr(d.adbin,d.adrelid))='least(email_confirmed_at, phone_confirmed_at)' from pg_attribute a join pg_attrdef d on d.adrelid=a.attrelid and d.adnum=a.attnum where a.attrelid='auth.users'::regclass and a.attname='confirmed_at'),'managed auth confirmed_at matches generated Supabase catalog semantics');
+select test_assert((select count(*)=2 and bool_and(atttypid='timestamptz'::regtype and not attnotnull and attgenerated='') from pg_attribute where attrelid='auth.users'::regclass and attname in ('email_confirmed_at','phone_confirmed_at')),'managed auth confirmed_at operands are ordinary nullable timestamptz columns');
+"""
+
+
+def prefix_baseline():
+    trigger_targets = ','.join("('%s')" % target for target in governance_contract.TRIGGER_TARGETS)
+    return f"""create temporary table rbac_expected_governance_trigger_targets(table_name text primary key);
+insert into rbac_expected_governance_trigger_targets(table_name) values {trigger_targets};
+create temporary table rbac_governance_triggers as select oid,tgrelid,tgname,tgfoid,tgtype,tgattr,tgenabled from pg_trigger where tgname like '%_tenant_operational_guard_trg' and not tgisinternal;
+create temporary table rbac_governance_checks as select oid,conrelid,conname,pg_get_constraintdef(oid) definition from pg_constraint where conname in ('companies_status_check','company_memberships_role_check','company_memberships_status_check','company_invitations_membership_role_check','company_invitations_status_check','user_profiles_user_status_check') or conrelid='tenant_governance_events'::regclass;
+create temporary table rbac_governance_objects as select oid,relname,relacl,reloptions from pg_class where oid in ('tenant_governance_events'::regclass,'platform_tenant_governance_overview'::regclass,'tenant_governance_events_company_created_idx'::regclass,'tenant_governance_events_target_user_created_idx'::regclass);
+create temporary table rbac_operations_constraints as select oid,conname,contype,conkey,pg_get_constraintdef(oid) definition from pg_constraint where conrelid='customer_sync_events'::regclass;
+create temporary table rbac_operations_objects as select oid,relname,relacl,reloptions from pg_class where oid in ('customer_sync_events'::regclass,'customer_sync_events_pkey'::regclass,'customer_sync_events_company_status_idx'::regclass,'customer_sync_events_customer_idx'::regclass,'customer_sync_events_source_idx'::regclass);
+create temporary table rbac_journal_policies_before as {journal_policy_catalog()};
+create temporary table prefix_roles_before as select * from roles;
+create temporary table prefix_permissions_before as select * from permissions;
+create temporary table prefix_grants_before as select * from role_permissions;
+create temporary table prefix_hard_cleanup_grants as
+select rp.* from role_permissions rp
+join roles r on r.id=rp.role_id
+join permissions p on p.id=rp.permission_id
+where r.key not in ('super_admin','superadmin','platform_admin')
+  and p.key in ('tenants.write','permissions.manage','roles.manage');
+create temporary table rbac_prefix_baseline as
+select
+  (select count(*) from companies) as company_count,
+  (select count(*) from companies where status in ('paused','suspended','archived','pending_deletion')) as company_blocked_count,
+  (select count(*) from company_memberships) as membership_count,
+  (select count(*) from company_memberships where status is distinct from 'active') as membership_blocked_count;
+-- These are the only company fields intentionally normalized by the restored
+-- originals; preserve every other field of the authentic prefix companies.
+create temporary table prefix_companies_before as
+select id, to_jsonb(c) - array['status','country_code','operating_environment'] as unrelated_fields
+from companies c;
+"""
+
+
+def governance_trigger_checks():
+    expected_count = len(governance_contract.TRIGGER_TARGETS)
+    assert expected_count == 28
+    return f"""select test_assert(
+  (select count(*)={expected_count} from rbac_governance_triggers)
+  and not exists(
+    select 1 from rbac_expected_governance_trigger_targets e
+    left join pg_class c on c.relnamespace='public'::regnamespace and c.relname=e.table_name
+    left join rbac_governance_triggers t on t.tgrelid=c.oid and t.tgname=e.table_name||'_tenant_operational_guard_trg'
+    where t.oid is null or t.tgtype<>23 or t.tgenabled<>'O'
+      or t.tgfoid<>'public.gridex_assert_company_operational_for_write()'::regprocedure
+      or array(select unnest(t.tgattr))<>array[(select attnum from pg_attribute where attrelid=t.tgrelid and attname='company_id')]::smallint[])
+  and not exists(
+    select 1 from rbac_governance_triggers t
+    join pg_class c on c.oid=t.tgrelid
+    left join rbac_expected_governance_trigger_targets e on e.table_name=c.relname
+    where e.table_name is null or t.tgname<>c.relname||'_tenant_operational_guard_trg')
+  and not exists(
+    (select * from rbac_governance_triggers except
+     select oid,tgrelid,tgname,tgfoid,tgtype,tgattr,tgenabled from pg_trigger
+     where tgname like '%_tenant_operational_guard_trg' and not tgisinternal)
+    union all (select oid,tgrelid,tgname,tgfoid,tgtype,tgattr,tgenabled from pg_trigger
+     where tgname like '%_tenant_operational_guard_trg' and not tgisinternal
+     except select * from rbac_governance_triggers)),
+  'all28 source-targeted governance trigger identities/events/function and company_id bindings retained through full6E and helper repair');
+select test_assert(not exists(select 1 from pg_trigger where not tgisinternal
+  and tgrelid in ('public.user_roles'::regclass,'public.user_profiles'::regclass)
+  and (tgtype&16)=16),'no unexpected mutating user-role/profile UPDATE trigger through full6E and helper repair');
+"""
+
+
+def journal_policy_catalog():
+    return """select oid,polrelid,polname,polcmd,polroles,polpermissive,
+  pg_get_expr(polqual,polrelid) using_expression,pg_get_expr(polwithcheck,polrelid) check_expression
+  from pg_policy where polrelid in ('public.customer_sync_events'::regclass,'public.tenant_governance_events'::regclass)"""
+
+
+def journal_checks():
+    # Complete 6D2 hardens both journals; none of the three 6E files targets them.
+    # As in Task9, PostgreSQL deparses independent source-literal expected policies.
+    return f"""select test_assert((select count(*)=2 and bool_and(relrowsecurity and not relforcerowsecurity
+  and relowner=(select oid from pg_roles where rolname=current_user)
+  and relacl is null and reloptions is null) from pg_class
+  where oid in ('public.customer_sync_events'::regclass,'public.tenant_governance_events'::regclass)),
+  '6D2 journal RLS/owner/default ACL/options retained; final runtime access remains OPEN');
+select test_assert(not exists(select 1 from pg_constraint where conrelid='customer_sync_events'::regclass and contype='f'),
+  'operations journal still has no source-created FK after 6D2/6E/helper');
+select test_assert(not exists(
+  (select * from rbac_journal_policies_before except ({journal_policy_catalog()}))
+  union all (({journal_policy_catalog()}) except select * from rbac_journal_policies_before)),
+  'both journal policy OIDs/commands/roles/permissiveness/expressions and complete sets retained through full6E/helper');
+begin;
+create table public.rbac_expected_sync(company_id uuid);
+create table public.rbac_expected_governance(company_id uuid);
+create policy customer_sync_events_tenant_select on public.rbac_expected_sync for select using (public.gridex_can_read_company(company_id));
+create policy customer_sync_events_tenant_insert on public.rbac_expected_sync for insert with check (public.gridex_can_write_company(company_id));
+create policy customer_sync_events_tenant_update on public.rbac_expected_sync for update using (public.gridex_can_read_company(company_id)) with check (public.gridex_can_write_company(company_id));
+create policy customer_sync_events_tenant_delete on public.rbac_expected_sync for delete using (public.gridex_user_is_platform_admin());
+create policy tenant_governance_events_select on public.rbac_expected_governance for select using (public.gridex_user_is_platform_admin() or company_id in (select * from public.gridex_user_company_ids()));
+create policy tenant_governance_events_write on public.rbac_expected_governance for all using (public.gridex_user_is_platform_admin()) with check (public.gridex_user_is_platform_admin());
+with actual as (
+  select polrelid,polname,polcmd,polroles,polpermissive,using_expression,check_expression
+  from ({journal_policy_catalog()}) p
+), expected as (
+  select e.actual::regclass::oid polrelid,p.polname,p.polcmd,p.polroles,p.polpermissive,
+    pg_get_expr(p.polqual,p.polrelid) using_expression,pg_get_expr(p.polwithcheck,p.polrelid) check_expression
+  from (values ('public.customer_sync_events','public.rbac_expected_sync'),
+    ('public.tenant_governance_events','public.rbac_expected_governance')) e(actual,expected)
+  join pg_policy p on p.polrelid=e.expected::regclass
+)
+select test_assert((select count(*)=6 from expected) and not exists(
+  (select * from actual except select * from expected)
+  union all (select * from expected except select * from actual)),
+  'exact four operations and two governance 6D2 policies: names/commands/PUBLIC/permissive/USING/WITH CHECK; no extras');
+rollback;
+"""
+
+
+def first_checks():
+    present = ','.join("'%s'" % name for name in POLICY_TARGETS)
+    absent = ','.join("'%s'" % name for name in ABSENT_TARGETS)
+    indexes = ','.join("'%s_company_id_idx'" % name for name in POLICY_TARGETS)
+    return f"""-- RBAC_POLICY_TARGETS_PRESENT=25
+-- RBAC_POLICY_TARGETS_ABSENT=4: power_of_attorneys,meter_readings,files,attachments
+select test_assert((select count(*)=100 from pg_policies where schemaname='public' and tablename in ({present}) and policyname ~ '_tenant_(select|insert|update|delete)$'),'four dynamic policies exist on each of 25 actual targets');
+select test_assert((select bool_and(c.relrowsecurity) from pg_class c where c.oid = any(array[{present}]::regclass[])),'RLS enabled on all 25 actual targets');
+select test_assert((select count(*)=25 from pg_indexes where schemaname='public' and indexname in ({indexes})),'company indexes exist on all 25 actual targets');
+select test_assert((select bool_and(to_regclass('public.' || name) is null) from unnest(array[{absent}]) name),'absent policy targets remain absent');
+select test_assert(to_regclass('public.company_billing_volume_overview') is not null,'billing view exists');
+select test_assert((select reloptions @> array['security_invoker=true'] from pg_class where oid='company_billing_volume_overview'::regclass),'billing view uses source-defined invoker rights');
+select test_assert((select string_agg(column_name || ':' || data_type,',' order by ordinal_position)='company_id:uuid,company_name:text,org_number:text,status:text,active_user_count:integer,customer_count:integer,site_count:integer,metering_point_count:integer,ediel_message_count:integer,metering_value_count:integer,authorization_count:integer,billing_underlay_count:integer,partner_export_count:integer,generated_at:timestamp with time zone' from information_schema.columns where table_schema='public' and table_name='company_billing_volume_overview'),'billing view full 14-column shape');
+select test_assert((select row(active_user_count,customer_count,site_count,metering_point_count,ediel_message_count,metering_value_count,authorization_count,billing_underlay_count,partner_export_count)=row(2,1,1,1,1,1,1,1,1) from company_billing_volume_overview where company_id='20000000-0000-0000-0000-000000000001'),'company one exact billing effects');
+select test_assert((select row(active_user_count,customer_count,site_count,metering_point_count,ediel_message_count,metering_value_count,authorization_count,billing_underlay_count,partner_export_count)=row(2,2,0,0,0,0,0,0,0) from company_billing_volume_overview where company_id='20000000-0000-0000-0000-000000000002'),'company two exact billing effects');
+select test_assert((select status='onboarding' and country_code='SE' and operating_environment='test' from companies where id='20000000-0000-0000-0000-000000000002'),'constraint-valid company metadata normalized');
+select test_assert((select count(*) from company_memberships)=(select b.membership_count + 7 from rbac_prefix_baseline b),'exactly two memberships backfilled beyond the real prefix baseline');
+select test_assert((select count(*)=2 from company_memberships where metadata->>'backfill'='batch_6e_fix_user_profiles_active_company'),'both profile attribution branches execute');
+select test_assert((select active_company_id='20000000-0000-0000-0000-000000000002' from user_profiles where id='10000000-0000-0000-0000-000000000003'),'active membership fills null profile company');
+select test_assert((select active_company_id is null from user_profiles where id='10000000-0000-0000-0000-000000000006'),'suspended membership does not fill profile company');
+select test_assert((select count(*)=1 from user_profiles up join user_profiles_before before on before.id=up.id where up.active_company_id is distinct from before.active_company_id),'only intended profile attribution changes');
+select test_assert(not exists(select to_jsonb(up)-'active_company_id' from user_profiles up except select to_jsonb(before)-'active_company_id' from user_profiles_before before),'unrelated profile fields preserved');
+select test_assert(not exists(select * from memberships_before except select * from company_memberships),'existing memberships preserved');
+select test_assert(not exists(select * from user_roles_before except select * from user_roles),'existing user roles preserved');
+select test_assert(not exists((select * from roles_before except select * from roles) union all (select * from roles except select * from roles_before)),'role reference data preserved exactly');
+select test_assert(not exists((select * from permissions_before except select * from permissions) union all (select * from permissions except select * from permissions_before)),'permission reference data preserved exactly');
+select test_assert((select count(*)=6 from user_roles),'only two missing company-admin roles added');
+select test_assert(not exists(select * from prefix_roles_before except all select * from roles),'authentic prefix roles preserved');
+select test_assert(not exists(select * from prefix_permissions_before except all select * from permissions),'authentic prefix permissions preserved');
+select test_assert(not exists(select 1 from prefix_grants_before p where p.id not in (select id from prefix_hard_cleanup_grants) and not exists(select 1 from role_permissions rp where to_jsonb(rp)=to_jsonb(p))),'authentic prefix grants outside the source-defined hard cleanup survive exactly');
+select test_assert(not exists(select 1 from prefix_hard_cleanup_grants d join role_permissions rp using (id)),'exact source-defined authentic prefix cleanup rows removed');
+select test_assert((select count(*)=1 from prefix_hard_cleanup_grants d join roles r on r.id=d.role_id join permissions p on p.id=d.permission_id where r.key='company_admin' and p.key='tenants.write'),'full F contributes the one authentic prefix grant removed by hard6E');
+select test_assert((select count(*) from role_permissions)=(select count(*)+6-3 from prefix_grants_before),'baseline plus six fixture grants minus two synthetic and one authentic cleanup row');
+select test_assert(not exists((select * from role_permissions_expected_after_cleanup except all select * from role_permissions) union all (select * from role_permissions except all select * from role_permissions_expected_after_cleanup)),'exact source-defined post-seed grant multiset');
+select test_assert((select count(*)=1 from role_permissions rp join roles r on r.id=rp.role_id join permissions p on p.id=rp.permission_id where r.key='company_admin' and p.key='customers.read'),'unrelated company permission preserved');
+select test_assert((select string_agg(column_name || ':' || data_type,',' order by ordinal_position)='area:text,total_rows:bigint,blocked_rows:bigint' from information_schema.columns where table_schema='public' and table_name='gridex_rbac_tenant_audit_summary'),'RBAC audit view full shape');
+select test_assert((select total_rows=b.company_count + 2 and blocked_rows=b.company_blocked_count from gridex_rbac_tenant_audit_summary cross join rbac_prefix_baseline b where area='companies'),'RBAC company audit effects derive from the real prefix baseline');
+select test_assert((select total_rows=b.membership_count + 7 and blocked_rows=b.membership_blocked_count + 3 from gridex_rbac_tenant_audit_summary cross join rbac_prefix_baseline b where area='company_memberships'),'RBAC membership audit effects derive from the real prefix baseline');
+select test_assert(not exists(select 1 from prefix_companies_before before left join companies c using (id) where c.id is null or before.unrelated_fields is distinct from to_jsonb(c) - array['status','country_code','operating_environment']),'authentic prefix company rows and unrelated fields are preserved');
+select test_assert((select not (coalesce(reloptions,array[]::text[]) @> array['security_invoker=true']) from pg_class where oid='gridex_rbac_tenant_audit_summary'::regclass),'fix source leaves audit view for later invoker hardening');
+create temporary table memberships_after_first as select * from company_memberships;
+create temporary table user_roles_after_first as select * from user_roles;
+create temporary table role_permissions_after_first as select * from role_permissions;
+"""
+
+
+def final_checks():
+    return """select test_assert(not exists((select * from memberships_after_first except select * from company_memberships) union all (select * from company_memberships except select * from memberships_after_first)),'second replay preserves membership effects');
+select test_assert(not exists((select * from user_roles_after_first except select * from user_roles) union all (select * from user_roles except select * from user_roles_after_first)),'second replay preserves user-role effects');
+select test_assert(not exists((select * from role_permissions_after_first except all select * from role_permissions) union all (select * from role_permissions except all select * from role_permissions_after_first)),'second replay preserves permission effects');
+select test_assert(not exists((select * from roles_before except all select * from roles) union all (select * from roles except all select * from roles_before)),'both RBAC cycles preserve exact role reference records');
+select test_assert(not exists((select * from permissions_before except all select * from permissions) union all (select * from permissions except all select * from permissions_before)),'both RBAC cycles preserve exact permission reference records');
+select test_assert((select not prosecdef and provolatile='s' and proconfig @> array['search_path=public, auth, extensions'] from pg_proc where oid='gridex_user_has_role_key(text)'::regprocedure),'final helper preserves selected invoker and search-path hardening');
+select test_assert(not has_function_privilege('anon','public.gridex_user_has_role_key(text)','execute') and has_function_privilege('authenticated','public.gridex_user_has_role_key(text)','execute') and has_function_privilege('service_role','public.gridex_user_has_role_key(text)','execute'),'final helper preserves selected execution grants');
+set request.jwt.claim.sub='10000000-0000-0000-0000-000000000005';
+select test_assert(not gridex_user_has_role_key('company_admin'),'inactive role status is rejected after helper restoration');
+set request.jwt.claim.sub='10000000-0000-0000-0000-000000000002';
+select test_assert(not gridex_user_has_role_key('company_admin'),'inactive role flag is rejected after helper restoration');
+set request.jwt.claim.sub='10000000-0000-0000-0000-000000000007';
+select test_assert(gridex_user_has_role_key('platform_admin'),'active platform role remains accepted after helper restoration');
+select test_assert(gridex_user_is_platform_admin(),'hard role-only platform helper remains effective');
+"""
+
+
+def main_sql():
+    order = json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation']
+    boundary = order.index(BOUNDARY)
+    prefix = order[:boundary + 1]
+    chunks = ['-- RBAC_MANAGED_BOOTSTRAP_BEGIN\n' + read('scripts/sql/gridex-supabase-compatible-bootstrap.sql')
+              + '\n-- Apply the bootstrap database default to this already-open test session.\n'
+                'set search_path = "$user", public, extensions;']
+    chunks.extend(f'-- RBAC_PREFIX_FILE_BEGIN {relative}\n{read("supabase/" + relative)}' for relative in prefix)
+    chunks.extend((catalog_prerequisites(), prefix_baseline(), reduced_seed(), '''create temporary table role_permissions_before as select * from role_permissions;
+create temporary table role_permissions_expected_after_cleanup as
+select rp.* from role_permissions rp
+join roles r on r.id=rp.role_id
+join permissions p on p.id=rp.permission_id
+where not (r.key not in ('super_admin','superadmin','platform_admin')
+  and p.key in ('tenants.write','permissions.manage','roles.manage'));
+select test_assert(not exists(select * from prefix_roles_before except all select * from roles),'seeding preserves authentic roles');
+select test_assert(not exists(select * from prefix_permissions_before except all select * from permissions),'seeding preserves authentic permissions');
+select test_assert(not exists(select * from prefix_grants_before except all select * from role_permissions),'seeding preserves authentic grants');
+select test_assert((select count(*) from role_permissions)=(select count(*)+6 from prefix_grants_before),'seeding adds exactly six grants');'''))
+    for cycle in range(2):
+        for relative in SOURCES:
+            chunks.append(f'-- RBAC_SOURCE_FILE_BEGIN {relative}\n{read("supabase/" + relative)}')
+            if cycle == 0 and relative == SOURCES[0]:
+                chunks.append("update companies set status='onboarding',country_code='',operating_environment='test' where id='20000000-0000-0000-0000-000000000002';")
+        if cycle == 0:
+            chunks.append(first_checks())
+    chunks.append(f'-- RBAC_FINAL_HELPER_BEGIN {FINAL}\n{read("supabase/" + FINAL)}')
+    chunks.append(final_checks())
+    chunks.append(governance_trigger_checks())
+    chunks.append("""select test_assert(not exists(select * from rbac_governance_checks except select oid,conrelid,conname,pg_get_constraintdef(oid) from pg_constraint),'governance checks and journal PK/FKs retained through full6E');
+select test_assert(not exists(select * from rbac_governance_objects except select oid,relname,relacl,reloptions from pg_class),'journal/overview/index identities and bounded ACL/options retained through full6E');
+select test_assert(not exists(select * from rbac_operations_constraints except select oid,conname,contype,conkey,pg_get_constraintdef(oid) from pg_constraint),'operations journal PK/check identities retained through full6E');
+select test_assert(not exists(select * from rbac_operations_objects except select oid,relname,relacl,reloptions from pg_class),'operations journal/index identities and bounded ACL/options retained through full6E');
+select test_assert((select membership_role='admin' and status='active' from company_memberships where company_id='20000000-0000-0000-0000-000000000002' and user_id='10000000-0000-0000-0000-000000000004'),'security-locked profile still receives historical6E active-admin backfill; final authorization remains OPEN');
+""")
+    chunks.append("""select test_assert(exists(select 1 from pg_constraint where conrelid='user_profiles'::regclass and conname='user_profiles_user_status_check' and convalidated and pg_get_constraintdef(oid) like '%locked_security%' and pg_get_constraintdef(oid) not like '%suspended%'),'full 6D profile constraint survives both 6E cycles');
+select test_assert((select count(*)=2 from user_profiles where user_status='locked_security'),'actual-prefix security-locked sentinels retained');
+""")
+    chunks.append(journal_checks())
+    return '\n'.join(chunks)
+
+
+def clean_environment():
+    return {key: value for key, value in os.environ.items() if not key.startswith('PG')}
+
+
+def psql(url, sql):
+    result = subprocess.run(['psql', '-X', '-v', 'ON_ERROR_STOP=1', url], input=sql,
+                            text=True, capture_output=True, env=clean_environment())
+    assert result.returncode == 0, result.stderr
+
+
+def execute():
+    psql(ADMIN, f'drop database if exists {DATABASE} with (force);\ncreate database {DATABASE};\n')
+    psql(TARGET, main_sql())
+    print('PASS: actual selected RBAC prefix, repeated sources and preserved final helper')
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--emit', action='store_true', help='Print composed SQL without database calls')
+    args = parser.parse_args()
+    print(main_sql()) if args.emit else execute()

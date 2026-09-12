@@ -4,6 +4,9 @@ import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { importSpotPricesForMonth } from '@/lib/pricing/spot/spotPriceImporter'
 import { PRICE_AREAS, isPriceArea, type PriceArea } from '@/lib/pricing/types'
 
+import { readAdminJson } from '@/lib/http/adminJsonRequest'
+import { platformSpotImportSchema } from '@/lib/admin/platformJsonSchemas'
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
@@ -25,7 +28,9 @@ function normaliseAreas(value: unknown): PriceArea[] {
 export async function POST(request: Request) {
   try {
     const admin = await requirePlatformAdminActionAccess()
-    const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    const parsed = await readAdminJson(request, platformSpotImportSchema)
+    if (!parsed.ok) return NextResponse.json({ ok: false, error: parsed.error, code: parsed.code, field: parsed.field }, { status: parsed.status })
+    const body = parsed.data
     const billingMonth = normaliseMonth(body.billing_month ?? body.billingMonth)
     const priceAreas = normaliseAreas(body.price_areas ?? body.priceAreas)
     const result = await importSpotPricesForMonth({ billingMonth, priceAreas, createdBy: admin.userId, triggerSource: 'manual' })

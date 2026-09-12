@@ -1,7 +1,8 @@
+import { readAdminJson } from '@/lib/http/adminJsonRequest'
+import { invoiceDisputeSchema } from '@/lib/admin/internalJsonSchemas'
 import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
-import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
-import { assertUserCanOperateCompany, requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { assertAdminApiCompanyAccess, requireAdminApiAccess } from '@/lib/admin/apiGuards'
 import { supabaseService } from '@/lib/supabase/service'
 import { createCapwayApticClient } from '@/lib/integrations/billing/capway/client'
 import { emitDomainEvent } from '@/lib/events/domainEvents'
@@ -16,8 +17,13 @@ export async function POST(request: Request, { params }: Props) {
   if (access.response) return access.response
   try {
     const { id } = await params
-    const body = await request.json().catch(() => ({})) as Record<string, unknown>
-    const companyId = typeof body.companyId === 'string' ? await assertUserCanOperateCompany(access.guard.userId, body.companyId) : await requireOperationalCompanyId(access.guard.userId)
+    const input = await readAdminJson(request, invoiceDisputeSchema, { allowEmpty: true })
+    if (!input.ok) return NextResponse.json({ error: input.error, code: input.code }, { status: input.status })
+    const body = input.data
+    const companyId = await assertAdminApiCompanyAccess(
+      access.guard,
+      typeof body.companyId === 'string' ? body.companyId : null,
+    )
     const { data: item, error } = await supabaseService.from('invoice_export_items').select('*').eq('company_id', companyId).eq('id', id).single()
     if (error) throw error
     const invoiceGuid = typeof item.provider_invoice_guid === 'string' ? item.provider_invoice_guid : ''

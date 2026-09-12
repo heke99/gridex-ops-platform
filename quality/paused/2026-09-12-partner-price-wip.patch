@@ -1,0 +1,514 @@
+diff --git a/lib/partner-api/business.ts b/lib/partner-api/business.ts
+index 44e49aa..3380823 100644
+--- a/lib/partner-api/business.ts
++++ b/lib/partner-api/business.ts
+@@ -1,6 +1,8 @@
+ import { randomUUID } from 'node:crypto'
+ import { NextRequest, NextResponse } from 'next/server'
+-import { ApiInputError, readJsonObject } from '@/lib/api/strictRequest'
++import { ApiInputError, readJsonObject, requireIsoDate } from '@/lib/api/strictRequest'
++import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
++import { claimIntegrationWriteIdempotency, completeIntegrationWriteIdempotency, failIntegrationWriteIdempotency, IntegrationWriteIdempotencyError } from '@/lib/integrations/writeIdempotency'
+ import {
+   integrationCredential,
+   logIntegrationApiRequest,
+@@ -296,6 +298,9 @@ async function defaultOfferReference(
+ 
+ function normalizeError(error: unknown): BusinessPartnerApiError {
+   if (error instanceof BusinessPartnerApiError) return error
++  if (error instanceof IntegrationWriteIdempotencyError) {
++    return new BusinessPartnerApiError(error.message, error.code, error.status, error.field)
++  }
+   if (error instanceof ApiInputError) {
+     return new BusinessPartnerApiError(
+       error.message,
+@@ -544,6 +549,8 @@ async function createPrice(request: NextRequest) {
+     anyOf: ['website_quotes.write', 'customer_contracts.read', 'partner_contracts.write'],
+   })
+   if (!context.ok) return context.response
++  let idempotencyRecordId: string | null = null
++  let quotePersistenceAttempted = false
+   try {
+     const body = await readJsonObject(request, 256_000)
+     assertBusinessOnlyInput(body)
+@@ -561,6 +568,31 @@ async function createPrice(request: NextRequest) {
+         unsupported,
+       )
+     }
++    // Validate transported types before any normalization or durable claim.
++    // Otherwise e.g. an array postal code or a null control can be silently
++    // coerced into a different business request.
++    for (const field of ['postal_code', 'zip_code', 'address', 'street', 'city', 'country', 'customer_type', 'start_date', 'invoice_delivery_method']) {
++      if (body[field] !== undefined && typeof body[field] !== 'string') {
++        throw new BusinessPartnerApiError(`${field} must be a string.`, 'invalid_field_type', 422, field)
++      }
++    }
++    for (const field of ['postal_code', 'zip_code']) {
++      if (body[field] !== undefined && !/^\d{5}$/.test(String(body[field]))) {
++        throw new BusinessPartnerApiError(`${field} must contain exactly five Swedish digits.`, 'postal_code_invalid', 422, field)
++      }
++    }
++    for (const [primary, alias] of [['postal_code', 'zip_code'], ['address', 'street']]) {
++      if (body[primary] !== undefined && body[alias] !== undefined && text(body[primary]) !== text(body[alias])) {
++        throw new BusinessPartnerApiError(`${primary} and ${alias} must agree.`, 'conflicting_fields', 422, primary)
++      }
++    }
++    if (body.customer_type !== undefined && !['PRIVATE', 'COMPANY', 'BUSINESS'].includes(String(body.customer_type))) {
++      throw new BusinessPartnerApiError('customer_type must be PRIVATE or COMPANY (legacy BUSINESS is supported).', 'customer_type_invalid', 422, 'customer_type')
++    }
++    if (body.start_date !== undefined) requireIsoDate(body.start_date, 'start_date')
++    if (body.invoice_delivery_method !== undefined && !['email', 'e_invoice', 'paper'].includes(String(body.invoice_delivery_method))) {
++      throw new BusinessPartnerApiError('invoice_delivery_method must be email, e_invoice or paper.', 'invoice_delivery_method_invalid', 422, 'invoice_delivery_method')
++    }
+     const locationInput = locationInputFromValues({
+       postalCode: body.postal_code,
+       zipCode: body.zip_code,
+@@ -583,12 +615,45 @@ async function createPrice(request: NextRequest) {
+       )
+     }
+     const customerType = normalizeCustomerType(body.customer_type)
++    // Claim before the resolver (which also persists evidence), offer lookup,
++    // or quote creation. Hash only caller input, not a date/configuration that
++    // may change between retries.
++    const claim = await claimIntegrationWriteIdempotency({
++      companyId: context.client.company_id,
++      apiClientId: context.client.id,
++      route: '/api/partner/v1/price',
++      idempotencyKey: request.headers.get('Idempotency-Key'),
++      payload: body,
++      required: true,
++    })
++    if (claim.outcome === 'replay') {
++      const stored = record(claim.responseBody)
++      if (claim.statusCode !== 200 || !text(stored.quote_reference) || stored.is_binding !== false) {
++        throw new IntegrationWriteIdempotencyError({
++          message: 'Det sparade prissvaret kunde inte verifieras. Ingen ny offert skapades.',
++          code: 'idempotency_response_invalid', status: 503,
++        })
++      }
++      assertPublicResponsePayload(stored)
++      await successLog({ request, client: context.client, startedAt: context.startedAt, status: 200, operation: 'price.quote.replay', id: context.id })
++      const replay = businessJson(stored, 200, context.id)
++      replay.headers.set('Idempotency-Replayed', 'true')
++      return replay
++    }
++    if (claim.outcome !== 'claimed') {
++      throw new IntegrationWriteIdempotencyError({
++        message: 'Idempotensskyddet kunde inte verifieras. Ingen ny offert skapades.',
++        code: 'idempotency_store_unavailable', status: 503,
++      })
++    }
++    idempotencyRecordId = claim.recordId
+     const resolved = await resolveBusinessLocation({
+       client: context.client,
+       location: locationInput,
+     })
+     const location = ensurePricingReady(locationInput, resolved)
+     const offerReference = await defaultOfferReference(context.client, customerType)
++    quotePersistenceAttempted = true
+     const quote = await calculateOfferQuote({
+       client: context.client,
+       offerReference,
+@@ -651,6 +716,13 @@ async function createPrice(request: NextRequest) {
+       warnings: quote.warnings,
+       assumptions: quote.assumptions,
+     }
++    assertPublicResponsePayload(response)
++    await completeIntegrationWriteIdempotency({
++      recordId: idempotencyRecordId,
++      companyId: context.client.company_id,
++      statusCode: 200,
++      responseBody: response,
++    })
+     await successLog({
+       request,
+       client: context.client,
+@@ -659,8 +731,20 @@ async function createPrice(request: NextRequest) {
+       operation: 'price.quote',
+       id: context.id,
+     })
+-    return businessJson(response, 200, context.id)
++    const result = businessJson(response, 200, context.id)
++    result.headers.set('Idempotency-Replayed', 'false')
++    return result
+   } catch (error) {
++    // Once the quote engine may have persisted, a transport/completion error
++    // is an uncertain outcome. Keep the claim fenced, never label it failed
++    // and invite an automatic new-key write. A committed receipt can replay.
++    if (idempotencyRecordId && !quotePersistenceAttempted) {
++      await failIntegrationWriteIdempotency({
++        recordId: idempotencyRecordId,
++        companyId: context.client.company_id,
++        errorCode: normalizeError(error).code,
++      })
++    }
+     return failureResponse({
+       request,
+       client: context.client,
+diff --git a/lib/partner-api/businessOpenApi.ts b/lib/partner-api/businessOpenApi.ts
+index f2828d8..ba95b04 100644
+--- a/lib/partner-api/businessOpenApi.ts
++++ b/lib/partner-api/businessOpenApi.ts
+@@ -1,4 +1,4 @@
+-import { partnerOpenApi } from './openApi'
++import { idempotencyHeader, partnerOpenApi } from './openApi'
+ 
+ const errorResponse = {
+   description: 'Error',
+@@ -85,7 +85,8 @@ export const partnerPublicOpenApi = {
+       post: {
+         summary: 'Calculate customer price',
+         description:
+-          'Resolves location and the credential default offer, then calculates the quote with the same Gridex pricing engine used by Ops. Internal company, product, price-area, grid-owner and offer identifiers are never accepted.',
++          'Resolves location and the credential default offer, then calculates the quote with the same Gridex pricing engine used by Ops. Internal company, product, price-area, grid-owner and offer identifiers are never accepted. This operation persists a quote and requires Idempotency-Key. An identical retry replays the stored response without recalculation; changed input conflicts. A failed pre-quote request requires a new key after correction. An uncertain quote/receipt outcome stays fenced until reconciled; do not automatically switch keys.',
++        parameters: [idempotencyHeader],
+         requestBody: {
+           required: true,
+           content: {
+@@ -96,7 +97,8 @@ export const partnerPublicOpenApi = {
+         },
+         responses: {
+           '200': {
+-            description: 'Price calculated',
++            description: 'Price calculated or stored quote response replayed',
++            headers: { 'Idempotency-Replayed': { schema: { type: 'string', enum: ['true', 'false'] } } },
+             content: { 'application/json': { schema: { $ref: '#/components/schemas/PriceResponse' } } },
+           },
+           '400': errorResponse,
+@@ -104,7 +106,9 @@ export const partnerPublicOpenApi = {
+           '403': errorResponse,
+           '404': errorResponse,
+           '409': errorResponse,
++          '413': errorResponse,
+           '422': errorResponse,
++          '503': errorResponse,
+         },
+       },
+     },
+@@ -198,14 +202,17 @@ export const partnerPublicOpenApi = {
+       PriceRequest: {
+         type: 'object',
+         additionalProperties: false,
+-        required: ['postal_code', 'annual_consumption_kwh'],
++        required: ['annual_consumption_kwh'],
++        anyOf: [{ required: ['postal_code'] }, { required: ['zip_code'] }],
+         properties: {
+           postal_code: { type: 'string', pattern: '^\\d{5}$' },
++          zip_code: { type: 'string', pattern: '^\\d{5}$', deprecated: true, description: 'Compatibility alias for postal_code. Both values must agree when supplied together.' },
+           address: { type: 'string' },
++          street: { type: 'string', deprecated: true, description: 'Compatibility alias for address. Both values must agree when supplied together.' },
+           city: { type: 'string' },
+           country: { type: 'string', default: 'SE' },
+           annual_consumption_kwh: { type: 'number', exclusiveMinimum: 0 },
+-          customer_type: { type: 'string', enum: ['PRIVATE', 'COMPANY'], default: 'PRIVATE' },
++          customer_type: { type: 'string', enum: ['PRIVATE', 'COMPANY', 'BUSINESS'], default: 'PRIVATE', description: 'BUSINESS is a deprecated compatibility alias for COMPANY.' },
+           start_date: { type: 'string', format: 'date' },
+           invoice_delivery_method: { type: 'string', enum: ['email', 'e_invoice', 'paper'] },
+         },
+diff --git a/lib/partner-api/openApi.ts b/lib/partner-api/openApi.ts
+index 5b6ce0d..befcced 100644
+--- a/lib/partner-api/openApi.ts
++++ b/lib/partner-api/openApi.ts
+@@ -1,4 +1,4 @@
+-export const PARTNER_API_VERSION = '2026-08-17.1'
++export const PARTNER_API_VERSION = '2026-09-12.1'
+ export const PARTNER_API_BASE_URL = 'https://app.gridex.se/api/partner/v1'
+ 
+ const errorResponse = {
+@@ -10,7 +10,7 @@ const errorResponse = {
+   },
+ }
+ 
+-const idempotencyHeader = {
++export const idempotencyHeader = {
+   name: 'Idempotency-Key',
+   in: 'header',
+   required: true,
+diff --git a/__tests__/partner-price-idempotency.test.ts b/__tests__/partner-price-idempotency.test.ts
+new file mode 100644
+index 0000000..2c2a6fe
+--- /dev/null
++++ b/__tests__/partner-price-idempotency.test.ts
+@@ -0,0 +1,282 @@
++import { NextRequest } from 'next/server'
++import { beforeEach, describe, expect, it, vi } from 'vitest'
++
++type Row = Record<string, unknown>
++const fixture = vi.hoisted(() => {
++  const state = {
++    company: 'company-A', client: 'client-A', denied: false,
++    rows: [] as Row[], calls: [] as Array<{ op: string; payload?: Row; filters?: Row }>,
++    claimsUnavailable: false, completionUnavailable: false, completionUncertain: false,
++    resolverError: false, quoteError: false, waitForQuote: null as Promise<void> | null,
++    quoteStarted: null as (() => void) | null, quoteCount: 0,
++  }
++  const from = vi.fn((table: string) => {
++    if (table !== 'integration_api_write_idempotency') throw new Error(`Unexpected table: ${table}`)
++    let op = 'select'
++    let payload: Row = {}
++    const filters: Row = {}
++    const execute = async () => {
++      state.calls.push({ op, payload: structuredClone(payload), filters: { ...filters } })
++      if (op === 'insert') {
++        if (state.claimsUnavailable) return { data: null, error: { code: '08006' } }
++        const same = state.rows.find((row) => ['company_id', 'api_client_id', 'route', 'idempotency_key'].every((key) => row[key] === payload[key]))
++        if (same) return { data: null, error: { code: '23505' } }
++        const row = { ...payload, id: `claim-${state.rows.length + 1}` }
++        state.rows.push(row)
++        return { data: { id: row.id }, error: null }
++      }
++      const row = state.rows.find((candidate) => Object.entries(filters).every(([key, value]) => candidate[key] === value))
++      if (op === 'update' && row) {
++        if (payload.status === 'completed' && state.completionUnavailable) return { data: null, error: { code: '08006' } }
++        Object.assign(row, structuredClone(payload))
++        if (payload.status === 'completed' && state.completionUncertain) return { data: null, error: { code: '08006' } }
++      }
++      return { data: row ? structuredClone(row) : null, error: null }
++    }
++    const query = {
++      insert(value: Row) { op = 'insert'; payload = value; return query },
++      update(value: Row) { op = 'update'; payload = value; return query },
++      select() { return query },
++      eq(key: string, value: unknown) { filters[key] = value; return query },
++      maybeSingle: execute,
++      then: <TResult1 = Awaited<ReturnType<typeof execute>>, TResult2 = never>(
++        onfulfilled?: ((value: Awaited<ReturnType<typeof execute>>) => TResult1 | PromiseLike<TResult1>) | null,
++        onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
++      ) => execute().then(onfulfilled, onrejected),
++    }
++    return query
++  })
++  return { state, from }
++})
++
++vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: fixture.from } }))
++vi.mock('@/lib/integrations/apiAuth', async (importOriginal) => {
++  const actual = await importOriginal<typeof import('@/lib/integrations/apiAuth')>()
++  return {
++    ...actual,
++    requireIntegrationApiAccess: vi.fn(async () => fixture.state.denied
++      ? { ok: false, status: 403, error: 'Denied', errorCode: 'scope_missing' }
++      : { ok: true, client: {
++        id: fixture.state.client, company_id: fixture.state.company,
++        metadata: { partner_default_offer_reference: 'offer-fixture' },
++      } }),
++    logIntegrationApiRequest: vi.fn(async () => undefined),
++  }
++})
++vi.mock('@/lib/energy/resolver', () => ({
++  resolveEnergyContext: vi.fn(async () => {
++    if (fixture.state.resolverError) throw new Error('Resolution unavailable')
++    return {
++      resolutionId: 'resolution-fixture', priceArea: 'SE3', resolutionStatus: 'resolved',
++      priceAreaAssurance: { status: 'verified', confidence: 1, source: 'grid_owner' },
++      gridAreaCode: 'ABC', gridAreaName: 'Test area', gridOwnerName: 'Test owner', gridOwnerId: 'owner-fixture',
++      confidence: 1, warnings: [], sourceChain: ['fixture'],
++    }
++  }),
++}))
++vi.mock('@/lib/pricing/offerQuote', async (importOriginal) => {
++  const actual = await importOriginal<typeof import('@/lib/pricing/offerQuote')>()
++  return { ...actual, calculateOfferQuote: vi.fn(async () => {
++    const count = ++fixture.state.quoteCount
++    fixture.state.quoteStarted?.()
++    if (fixture.state.waitForQuote) await fixture.state.waitForQuote
++    if (fixture.state.quoteError) throw new Error('Persistence response lost')
++    return {
++      quote_reference: `quote_fixture_${count}`, valid_until: '2026-09-13T12:00:00Z',
++      offer: { public_name: 'Test tariff', product_code: 'test-tariff', contract_type: 'fixed' },
++      estimate: { monthly_ex_vat: 100, monthly_vat: 25, monthly_inc_vat: 125, annual_ex_vat: 1200, annual_vat: 300, annual_inc_vat: 1500 },
++      lines: [], warnings: [], assumptions: [],
++    }
++  }) }
++})
++
++import { POST } from '@/app/api/partner/v1/[[...path]]/route'
++import { resolveEnergyContext } from '@/lib/energy/resolver'
++import { calculateOfferQuote } from '@/lib/pricing/offerQuote'
++import { requireIntegrationApiAccess } from '@/lib/integrations/apiAuth'
++import { partnerPublicOpenApi } from '@/lib/partner-api/businessOpenApi'
++
++const body = { postal_code: '11122', annual_consumption_kwh: 3500 }
++function request(payload: Row = body, key: string | null = 'partner-price-request-01', requestId = 'request-first') {
++  return new NextRequest('https://example.test/api/partner/v1/price', {
++    method: 'POST', body: JSON.stringify(payload),
++    headers: { authorization: 'Bearer fixture-only', 'x-request-id': requestId, ...(key === null ? {} : { 'idempotency-key': key }) },
++  })
++}
++const invoke = (payload: Row = body, key: string | null = 'partner-price-request-01', requestId?: string) => POST(request(payload, key, requestId), { params: Promise.resolve({ path: ['price'] }) })
++
++beforeEach(() => {
++  vi.clearAllMocks()
++  vi.useRealTimers()
++  Object.assign(fixture.state, {
++    company: 'company-A', client: 'client-A', denied: false, rows: [], calls: [],
++    claimsUnavailable: false, completionUnavailable: false, completionUncertain: false,
++    resolverError: false, quoteError: false, waitForQuote: null, quoteStarted: null, quoteCount: 0,
++  })
++  vi.spyOn(console, 'error').mockImplementation(() => undefined)
++})
++
++describe('partner price actual dispatch with real idempotency state machine', () => {
++  it.each([null, '', 'short', 'contains spaces', 'x'.repeat(201)])('requires a valid idempotency key %s before resolver/quote effects', async (key) => {
++    const response = await invoke(body, key)
++    expect(response.status).toBe(400)
++    expect(await response.json()).toMatchObject({ error: { code: key ? 'idempotency_key_invalid' : 'idempotency_key_required', field: 'Idempotency-Key' } })
++    expect(resolveEnergyContext).not.toHaveBeenCalled(); expect(calculateOfferQuote).not.toHaveBeenCalled()
++    expect(fixture.state.rows).toHaveLength(0)
++  })
++  it('does not read a denied request body or claim any key', async () => {
++    fixture.state.denied = true
++    const req = request()
++    expect((await POST(req, { params: Promise.resolve({ path: ['price'] }) })).status).toBe(403)
++    expect(req.bodyUsed).toBe(false); expect(fixture.state.calls).toHaveLength(0)
++  })
++  it('validates the request before claiming and preserves the existing role contract', async () => {
++    expect((await invoke({ ...body, annual_consumption_kwh: '3500' })).status).toBe(422)
++    expect(fixture.state.calls).toHaveLength(0)
++    expect(requireIntegrationApiAccess).toHaveBeenCalledWith(expect.any(NextRequest), { anyOf: ['website_quotes.write', 'customer_contracts.read', 'partner_contracts.write'] })
++  })
++  it('persists one result and returns exactly the stored public body on replay', async () => {
++    const first = await invoke()
++    const payload = await first.json()
++    expect(first.status).toBe(200); expect(first.headers.get('Idempotency-Replayed')).toBe('false')
++    const second = await invoke(body, 'partner-price-request-01', 'request-retry')
++    expect(second.status).toBe(200); expect(second.headers.get('Idempotency-Replayed')).toBe('true')
++    expect(second.headers.get('X-Request-ID')).toBe('request-retry')
++    expect(await second.json()).toEqual(payload)
++    expect(resolveEnergyContext).toHaveBeenCalledTimes(1); expect(calculateOfferQuote).toHaveBeenCalledTimes(1)
++    expect(fixture.state.rows[0]).toMatchObject({ company_id: 'company-A', api_client_id: 'client-A', route: '/api/partner/v1/price', status: 'completed', response_status: 200, response_body: payload })
++    expect(fixture.state.calls.filter((call) => call.op === 'update')).toEqual([expect.objectContaining({ filters: { id: 'claim-1', company_id: 'company-A', status: 'processing' } })])
++  })
++  it('hashes keys canonically but never allows a different request under the same key', async () => {
++    expect((await invoke()).status).toBe(200)
++    expect((await invoke({ annual_consumption_kwh: 3500, postal_code: '11122' })).status).toBe(200)
++    const changed = await invoke({ ...body, annual_consumption_kwh: 4000 })
++    expect(changed.status).toBe(409); expect(await changed.json()).toMatchObject({ error: { code: 'idempotency_conflict' } })
++    expect(fixture.state.quoteCount).toBe(1)
++  })
++  it('replays an omitted start date across midnight without recalculation', async () => {
++    vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-09-12T21:59:00Z'))
++    const first = await (await invoke()).json()
++    vi.setSystemTime(new Date('2026-09-13T10:00:00Z'))
++    expect(await (await invoke()).json()).toEqual(first)
++    expect(fixture.state.quoteCount).toBe(1)
++  })
++  it('uses separate keys for different companies and clients', async () => {
++    await invoke()
++    fixture.state.company = 'company-B'; fixture.state.client = 'client-B'; await invoke()
++    fixture.state.company = 'company-A'; fixture.state.client = 'client-A2'; await invoke()
++    fixture.state.client = 'client-A'; const replay = await invoke()
++    expect((await replay.json()).quote_reference).toBe('quote_fixture_1')
++    expect(fixture.state.rows).toHaveLength(3); expect(fixture.state.quoteCount).toBe(3)
++  })
++  it('does not use another operation\'s result for the same company, client and key', async () => {
++    await invoke()
++    fixture.state.rows[0].route = '/api/v1/website/quote'
++    expect((await invoke()).status).toBe(200)
++    expect(fixture.state.rows).toHaveLength(2); expect(fixture.state.quoteCount).toBe(2)
++  })
++  it('refuses effects when the claim store is unavailable', async () => {
++    fixture.state.claimsUnavailable = true
++    const response = await invoke()
++    expect(response.status).toBe(503); expect(await response.json()).toMatchObject({ error: { code: 'idempotency_store_unavailable' } })
++    expect(resolveEnergyContext).not.toHaveBeenCalled(); expect(fixture.state.quoteCount).toBe(0)
++  })
++  it('fences an overlapping request while the first is still executing', async () => {
++    let release = () => {}
++    const entered = new Promise<void>((accept) => { fixture.state.quoteStarted = accept })
++    fixture.state.waitForQuote = new Promise<void>((accept) => { release = accept })
++    const first = invoke()
++    try {
++      await entered
++      const overlap = await invoke()
++      expect(overlap.status).toBe(409); expect(await overlap.json()).toMatchObject({ error: { code: 'idempotency_in_progress' } })
++      expect(fixture.state.quoteCount).toBe(1)
++    } finally { release(); await first }
++    expect((await invoke()).headers.get('Idempotency-Replayed')).toBe('true')
++  })
++  it('retains a failed pre-quote outcome and allows an explicit new-key attempt after repair', async () => {
++    fixture.state.resolverError = true
++    expect((await invoke()).status).toBe(500)
++    expect(fixture.state.rows[0].status).toBe('failed')
++    fixture.state.resolverError = false
++    const repeat = await invoke()
++    expect(repeat.status).toBe(409); expect(await repeat.json()).toMatchObject({ error: { code: 'idempotency_previous_attempt_failed' } })
++    expect((await invoke(body, 'partner-price-request-02')).status).toBe(200)
++    expect(fixture.state.quoteCount).toBe(1)
++  })
++  it('holds an uncertain quote persistence outcome instead of reopening automatic execution', async () => {
++    fixture.state.quoteError = true
++    expect((await invoke()).status).toBe(500)
++    fixture.state.quoteError = false
++    expect(fixture.state.rows[0].status).toBe('processing')
++    expect((await invoke()).status).toBe(409); expect(fixture.state.quoteCount).toBe(1)
++  })
++  it('does not return success or mark failed when completion did not persist', async () => {
++    fixture.state.completionUnavailable = true
++    const first = await invoke()
++    expect(first.status).toBe(503); expect(await first.json()).toMatchObject({ error: { code: 'idempotency_completion_unavailable' } })
++    expect(fixture.state.rows[0].status).toBe('processing')
++    fixture.state.completionUnavailable = false
++    expect((await invoke()).status).toBe(409); expect(fixture.state.quoteCount).toBe(1)
++  })
++  it('recovers by replay if completion committed but its response was lost', async () => {
++    fixture.state.completionUncertain = true
++    expect((await invoke()).status).toBe(503)
++    fixture.state.completionUncertain = false
++    const replay = await invoke()
++    expect(replay.status).toBe(200); expect(replay.headers.get('Idempotency-Replayed')).toBe('true')
++    expect(fixture.state.quoteCount).toBe(1)
++  })
++  it('rejects a malformed stored success without re-executing domain work', async () => {
++    await invoke(); fixture.state.rows[0].response_body = null
++    expect((await invoke()).status).toBe(409); expect(fixture.state.quoteCount).toBe(1)
++  })
++  it('never exposes internal tenant fields from a malformed stored response', async () => {
++    await invoke(); const stored = fixture.state.rows[0].response_body as Row
++    fixture.state.rows[0].response_body = { ...stored, company_id: 'secret-company' }
++    const replay = await invoke()
++    expect(replay.status).toBeGreaterThanOrEqual(500)
++    expect(JSON.stringify(await replay.json())).not.toContain('secret-company')
++    expect(fixture.state.quoteCount).toBe(1)
++  })
++  it('documents the required key, replay header and uncertain-store response', () => {
++    const post = partnerPublicOpenApi.paths['/price'].post as unknown as Row
++    expect(post.parameters).toContainEqual(expect.objectContaining({ name: 'Idempotency-Key', required: true }))
++    const responses = post.responses as Row
++    expect(responses['503']).toBeDefined()
++    expect(responses['200']).toMatchObject({ headers: { 'Idempotency-Replayed': expect.anything() } })
++  })
++})
++
++
++describe('partner price transport schema before the idempotency claim', () => {
++  for (const field of ['postal_code', 'address', 'street', 'city', 'country', 'customer_type', 'start_date', 'invoice_delivery_method']) {
++    it.each([true, 11122, null, ['11122']])(`rejects wrong JSON type for ${field}: %s`, async (value) => {
++      expect((await invoke({ ...body, [field]: value })).status).toBe(422)
++      expect(fixture.state.calls).toHaveLength(0)
++      expect(resolveEnergyContext).not.toHaveBeenCalled()
++      expect(fixture.state.quoteCount).toBe(0)
++    })
++  }
++  it.each([
++    { postal_code: 'abc11122' }, { postal_code: '111 22' }, { zip_code: '99999' },
++    { address: 'A', street: 'B' }, { start_date: '2026-02-30' }, { start_date: 'next Monday' },
++    { customer_type: 'private' }, { invoice_delivery_method: 'sms' },
++  ])('rejects invalid or conflicting values %# before claim', async (patch) => {
++    expect((await invoke({ ...body, ...patch })).status).toBe(422)
++    expect(fixture.state.rows).toHaveLength(0); expect(fixture.state.quoteCount).toBe(0)
++  })
++  it('retains explicit compatible postal/street aliases without silently selecting a conflicting value', async () => {
++    const input = { zip_code: '11122', street: 'Test street', annual_consumption_kwh: 3500, customer_type: 'BUSINESS', start_date: '2026-10-01', invoice_delivery_method: 'e_invoice' }
++    const response = await invoke(input)
++    expect(response.status).toBe(200)
++    expect(calculateOfferQuote).toHaveBeenCalledWith(expect.objectContaining({ postalCode: '11122', customerType: 'business', startDate: '2026-10-01', invoiceDeliveryMethod: 'e_invoice' }))
++    expect((await invoke(input)).headers.get('Idempotency-Replayed')).toBe('true')
++  })
++  it('declares compatible aliases in the strict OpenAPI object', () => {
++    const schema = partnerPublicOpenApi.components.schemas.PriceRequest
++    expect(schema.additionalProperties).toBe(false)
++    expect(schema.properties).toMatchObject({ zip_code: { type: 'string', deprecated: true }, street: { type: 'string', deprecated: true } })
++    expect(schema.properties.customer_type.enum).toContain('BUSINESS')
++  })
++})

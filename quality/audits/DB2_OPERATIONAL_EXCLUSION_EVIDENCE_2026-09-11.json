@@ -1,0 +1,178 @@
+{
+  "counts": {
+    "EXPLICITLY_EXCLUDED": 5,
+    "FULL_FILE_SELECTED": 546,
+    "SUBSTITUTED": 23,
+    "UNCLASSIFIED": 26
+  },
+  "evidenceScope": "INPUT_SELECTION_ONLY",
+  "focusedGroup": {
+    "counts": {
+      "EXPLICITLY_EXCLUDED": 5,
+      "FULL_FILE_SELECTED": 303,
+      "SUBSTITUTED": 20,
+      "UNCLASSIFIED": 18
+    },
+    "inputCount": 346,
+    "name": "auth_membership_tenant",
+    "unresolvedCount": 38
+  },
+  "generators": [
+    {
+      "command": "python3 scripts/gridex-replay-input-accounting.py --require-full-effects",
+      "exitCode": 1
+    },
+    {
+      "command": "python3 scripts/gridex-replay-review-groups.py --group auth_membership_tenant",
+      "exitCode": 1
+    }
+  ],
+  "ledgerProvenanceVerified": false,
+  "migrations": [
+    {
+      "classification": "UNCLASSIFIED",
+      "derivedArtifacts": [],
+      "execution": [],
+      "path": "migrations/01_db2_full_view_preflight_schema_and_functions.sql",
+      "reason": "No whole-file execution, selected derived source, or explicit exclusion",
+      "sha256": "4de50050384d6892612c16484de8b198785c59cbb5d2ff03e7cea7e600d36cc9"
+    },
+    {
+      "classification": "UNCLASSIFIED",
+      "derivedArtifacts": [],
+      "execution": [],
+      "path": "migrations/01_db2b_preflight_views.sql",
+      "reason": "No whole-file execution, selected derived source, or explicit exclusion",
+      "sha256": "884cc115dee1b169eae11ef37a2b319d894a85cff5971ebf050ad2be026e39d7"
+    },
+    {
+      "classification": "EXPLICITLY_EXCLUDED",
+      "derivedArtifacts": [],
+      "exclusion": {
+        "evidence": [
+          "repo:quality/audits/OPERATIONAL_REPAIR_CLASSIFICATION_2026-09-06.md",
+          "repo:quality/audits/DB2_CONTROLLED_RECONCILIATION_SOURCE_EFFECTS_2026-09-11.md"
+        ],
+        "finding": "OPERATIONAL-REPAIR-DB2-2026-09-11",
+        "path": "migrations/02_db2_execute_controlled_reconciliation.sql",
+        "reason": "Reviewed DB2 operational reconciliation and nested membership/profile/customer/link/run/item/finding/audit writes, customer-number allocation, and conditional partner events and queued deliveries. No schema or reference seed effect. No deployment-history or execution authorization claim. Schema-bearing dependencies remain independently accounted.",
+        "reviewedDependencies": [
+          {
+            "path": "migrations/01_db2_full_view_preflight_schema_and_functions.sql",
+            "sha256": "4de50050384d6892612c16484de8b198785c59cbb5d2ff03e7cea7e600d36cc9"
+          },
+          {
+            "path": "migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+            "sha256": "85f3561be4d91cee063bbf626302de7726a09c5ce08743b250e62cee959bb5f2"
+          },
+          {
+            "path": "migrations/03_db1_backfill_functions_rls_reports_and_finish.sql",
+            "sha256": "877e395df0050a36ec71298d279c72fb0e6cb13d8b90082277450012e196f169"
+          },
+          {
+            "path": "migrations/20260522_db1_schema_repair_backfill_foundation.sql",
+            "sha256": "aff5a3e4fb3aae6ebe682081cbce4876c5731be1c124650b19d8151abf6efc73"
+          },
+          {
+            "path": "migrations/20260612203000_company_customer_number_prefix_hardening.sql",
+            "sha256": "39f6c82ca05f6876e347c58f2b60a24c358c9a72fe856e42d7474f03f9f66065"
+          },
+          {
+            "path": "migrations/20260719120000_canonical_customer_number_assignment.sql",
+            "sha256": "259817d0c2fb43e83478b78184fd3d41125636d527e1edd2801783009326fe1e"
+          },
+          {
+            "path": "migrations/20260727040000_contract_security_energy_direction_api_completion.sql",
+            "sha256": "c608cb8ca01792971c7dd3974b63138f8ec5d016b643eeff2f7d49f721a9867e"
+          },
+          {
+            "path": "migrations/20260802170000_canonical_security_convergence.sql",
+            "sha256": "e34618a9cb0c780f3fd75034ab113e48d99a27d8983e5d0fcbfc4a53ee27370a"
+          },
+          {
+            "path": "migrations/20260816170000_partner_api_v1_canonical_surface_events.sql",
+            "sha256": "1faa62377d47df7159ccf5440d4dbee44acd12860d440a19b80b643a4fcd6a4b"
+          }
+        ],
+        "sha256": "fcdc75e660f157a58e742f64b3e8f7a1c6801565ef16023bd0c9a317982744c9",
+        "status": "historical_operational_data_repair"
+      },
+      "execution": [],
+      "path": "migrations/02_db2_execute_controlled_reconciliation.sql",
+      "sha256": "fcdc75e660f157a58e742f64b3e8f7a1c6801565ef16023bd0c9a317982744c9"
+    },
+    {
+      "classification": "EXPLICITLY_EXCLUDED",
+      "derivedArtifacts": [],
+      "exclusion": {
+        "evidence": [
+          "repo:quality/audits/OPERATIONAL_REPAIR_CLASSIFICATION_2026-09-06.md"
+        ],
+        "finding": "OPERATIONAL-REPAIR-2026-09-06",
+        "path": "migrations/02_db2b_apply_superadmin_and_membership.sql",
+        "reason": "Reviewed fixed-target administrator and company membership repair with operational backfill/audit records only. No generic role seeds or schema definitions. Exclusion makes no deployment-history claim and does not authorize execution. Trigger source dependencies bind the reviewed audit normalization, administrator audit, and last-admin guard bodies; those schema-bearing sources remain independently accounted.",
+        "reviewedDependencies": [
+          {
+            "path": "migrations/20260611150000_launch_readiness_security_routes_stats.sql",
+            "sha256": "3fa71292b07e4534dab13c1f2ef28574a0635fad17db736201f4eed23f6dd053"
+          },
+          {
+            "path": "migrations/20260727040000_contract_security_energy_direction_api_completion.sql",
+            "sha256": "c608cb8ca01792971c7dd3974b63138f8ec5d016b643eeff2f7d49f721a9867e"
+          },
+          {
+            "path": "migrations/20260802170000_canonical_security_convergence.sql",
+            "sha256": "e34618a9cb0c780f3fd75034ab113e48d99a27d8983e5d0fcbfc4a53ee27370a"
+          }
+        ],
+        "sha256": "64671e13a4390e0d464a24198cd6ad27a38908c9816e3c597dc5119afc95dbc4",
+        "status": "historical_operational_data_repair"
+      },
+      "execution": [],
+      "path": "migrations/02_db2b_apply_superadmin_and_membership.sql",
+      "sha256": "64671e13a4390e0d464a24198cd6ad27a38908c9816e3c597dc5119afc95dbc4"
+    },
+    {
+      "classification": "UNCLASSIFIED",
+      "derivedArtifacts": [],
+      "execution": [],
+      "path": "migrations/03_db2_validation_and_finish.sql",
+      "reason": "No whole-file execution, selected derived source, or explicit exclusion",
+      "sha256": "74579e9fb883c1aba60933b1c82460164534d6bf171a7fb094b528f5bbb7224e"
+    },
+    {
+      "classification": "UNCLASSIFIED",
+      "derivedArtifacts": [],
+      "execution": [],
+      "path": "migrations/03_db2b_validation_views.sql",
+      "reason": "No whole-file execution, selected derived source, or explicit exclusion",
+      "sha256": "f84d355c54d20bd0fcd3f86426bcd0e56435a1e8713fad3ec7a239f480a2b5e5"
+    },
+    {
+      "classification": "UNCLASSIFIED",
+      "derivedArtifacts": [],
+      "execution": [],
+      "path": "migrations/20260522_db1_schema_repair_backfill_foundation.sql",
+      "reason": "No whole-file execution, selected derived source, or explicit exclusion",
+      "sha256": "aff5a3e4fb3aae6ebe682081cbce4876c5731be1c124650b19d8151abf6efc73"
+    }
+  ],
+  "schemaVersion": 1,
+  "selectedInputCounts": {
+    "foundation": 104,
+    "timestamp": 510
+  },
+  "selector": {
+    "path": "scripts/gridex-aud-003-clean-replay.sh",
+    "pythonSha256": "d862b1dac120cf49feadbd0f73e59407e90fa72ed8dbd28d4c792321082f773f",
+    "sha256": "ed81dd5385a584272b24d286493475cb72d185ae77d18ed818bbf75ae3f36ad0"
+  },
+  "sourceCodeBase": "d060d1d2791bd26ea6baa1a9a30d91dbce5adcd4",
+  "sqlExecutionVerified": false,
+  "totalMigrations": 600,
+  "unresolvedCounts": {
+    "SUBSTITUTED": 23,
+    "UNCLASSIFIED": 26,
+    "total": 49
+  }
+}

@@ -4,7 +4,6 @@ import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getAdminUserById } from '@/lib/rbac/getAdminUserById'
 import { getAllRoles } from '@/lib/rbac/getAllRoles'
 import { getAllPermissions } from '@/lib/rbac/getAllPermissions'
-import { getUserPermissions } from '@/lib/rbac/getUserPermissions'
 import {
  getInternalRoleOptions,
  getPermissionMeta,
@@ -43,16 +42,15 @@ export default async function AdminUserDetailPage({
  const current = await requirePlatformAdminAccess()
  const { id } = await params
 
- const [user, allRoles, allPermissions, effectivePermissionList] = await Promise.all([
-  getAdminUserById(id),
+ const [user, allRoles, allPermissions] = await Promise.all([
+  getAdminUserById(current.userId, id),
   getAllRoles(),
   getAllPermissions(),
-  getUserPermissions(id),
  ])
  if (!user) notFound()
  const roles = getInternalRoleOptions(allRoles)
  const permissions = sortPermissions(allPermissions)
- const effectivePermissions = new Set(effectivePermissionList)
+ const effectivePermissions = new Set(user.effectivePermissions)
 
  const canManageRoles = current.permissions.includes('roles.manage')
  const canManagePermissionOverrides = current.permissions.includes('permissions.manage')
@@ -213,7 +211,7 @@ export default async function AdminUserDetailPage({
  </div>
 
  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
- Effektiva permissions just nu: <strong>{effectivePermissions.size}</strong>
+ Behörigheter via minst en aktiv bolagskoppling eller plattformsbehörighet: <strong>{effectivePermissions.size}</strong>
  </div>
  </div>
 

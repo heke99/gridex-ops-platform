@@ -7,19 +7,21 @@ decisions remain higher-authority sources.
 
 ## Read order
 
-1. `current-state.md`
-2. `current-task.md`
-3. `checkpoint.json`
-4. `handover.md`
-5. `open-blockers.md`
-6. active item in `work-plan.md`
-7. relevant domain files
-8. `decisions.md` and `known-failures.md`
+1. `current-state.md` — the sole authoritative status, active task, blockers,
+   verification boundaries and next action
+2. `checkpoint.json` — continuity pointer only
+3. relevant domain files
+4. `decisions.md` and `known-failures.md`
+
+`current-task.md`, `handover.md`, `open-blockers.md`, and `work-plan.md` are
+pointers to `current-state.md`. Files below `archive/` are historical records,
+never active evidence.
 
 ## Update rules
 
 - Maintain exactly one active work item and subtask.
-- Update the checkpoint after implementation, verification, failure or blocker.
+- Update `current-state.md` after implementation, verification, failure or a
+  blocker; keep `checkpoint.json` limited to continuity pointers.
 - Put only actually verified work in `completed-work.md`.
 - Append concise evidence to `verification-matrix.md` and `session-log.md`.
 - Archive superseded progress; do not run two current-task systems.

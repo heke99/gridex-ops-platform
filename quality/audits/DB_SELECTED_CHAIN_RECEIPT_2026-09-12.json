@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "scope": "SELECTED_CHAIN_DIAGNOSTIC_ONLY",
+  "status": "BLOCKED",
+  "repository": "heke99/gridex-ops-platform",
+  "pullRequest": 310,
+  "startCommit": "d94e1f0b7aa2b6d98d133a039261ec0d2e2aeae1",
+  "continuationCommit": "1ba0f7b1c4fe41da7ab379a7ac2244def49dd3da",
+  "postgisCommit": "eacc6d404f229f91b13e9eb60c301f0b4ac148ef",
+  "postgisTree": "e7cec58d624cf42f8f7d623ee7b6812520d7fa1e",
+  "sourceCounts": {
+    "FULL_FILE_SELECTED": 558,
+    "SUBSTITUTED": 23,
+    "UNCLASSIFIED": 14,
+    "EXPLICITLY_EXCLUDED": 5
+  },
+  "foundationInputs": 118,
+  "timestampInputs": 508,
+  "fullEffectsGateExitCode": 1,
+  "accountingUnchanged": true,
+  "runs": [
+    {
+      "runId": 34714610111,
+      "jobId": 103609490437,
+      "commit": "1ba0f7b1c4fe41da7ab379a7ac2244def49dd3da",
+      "foundationExecuted": 118,
+      "timestampApplied": 44,
+      "failedTimestampOrdinal": 45,
+      "sqlstate": "0A000",
+      "source": "migrations/20260611100000_energy_resolver_grid_area_operations.sql",
+      "sourceSha256": "c557aef5bb7f7d7f4ca2930db4ae7f9ee42d5355ecf20b3afbbcbe75c820026b"
+    },
+    {
+      "runId": 34715245340,
+      "jobId": 103611207798,
+      "commit": "eacc6d404f229f91b13e9eb60c301f0b4ac148ef",
+      "foundationExecuted": 118,
+      "timestampApplied": 228,
+      "failedTimestampOrdinal": 229,
+      "sqlstate": "42601",
+      "source": "migrations/20260728170000_live_schema_code_canonical_sync.sql",
+      "sourceSha256": "4b1af824f75423faa393d60b845d3b39a3998bcfc7d7ea1cec2a54aa8d3bd400",
+      "testsPassed": 21,
+      "cleanup": "PASS",
+      "completedAt": "2026-09-12T19:50:38Z"
+    }
+  ],
+  "runtime": {
+    "image": "postgis/postgis:17-3.5",
+    "imageId": "sha256:2ed748fc602dd3031c6724db8cb289e1578c2deb552a4f6e291f6f7e5e6e4f69",
+    "postgisVersion": "3.5.2",
+    "serverVersionNum": 170005,
+    "network": "none",
+    "managedSupabaseParityVerified": false,
+    "immutableImageInputPin": false
+  },
+  "applicationQuality": {
+    "runId": 34715245359,
+    "jobId": 103611207992,
+    "status": "success"
+  },
+  "completeReplayVerified": false,
+  "ledgerProvenanceVerified": false,
+  "generatedTypesVerified": false,
+  "fullRlsVerified": false,
+  "nativeBillingTransactionsVerified": false,
+  "point86Verified": false,
+  "independentReviewCompleted": false,
+  "productionModified": false,
+  "mainMerged": false,
+  "deployed": false,
+  "preservedArchiveSha256": {
+    "completed-work.md": "a5da95e779ec2a628c14478064798163d8efb133faafa7f1d819bce6f5da2262",
+    "verification-matrix.md": "9cd2f5b04d9ce2a975072053ff88fc14635f364aa3cd3567e042f1c928b8119f",
+    "session-log.md": "7ce99a061407aadccd3844fbca8ee7ffb9940877ed92a45cec60a6e5df5f0bd3"
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "status": "OBSERVED_CURRENT_NAMED_PARENT_KEY_ONLY",
+  "project_id": "piidsfebjqjmnepdpnas",
+  "project_name": "gridex-ops-dev",
+  "runtime_binding": "UNPROVED",
+  "query": "select jsonb_build_object(\n'observed_at',clock_timestamp(),'database',current_database(),'server_version',current_setting('server_version'),\n'ledger',(select jsonb_build_object('count',count(*),'tail',max(version)) from supabase_migrations.schema_migrations),\n'origin_fk',(select jsonb_build_object('oid',f.oid,'name',f.conname,'child',f.conrelid::regclass::text,'parent',f.confrelid::regclass::text,'parent_oid',f.confrelid,'child_columns',f.conkey,'parent_columns',f.confkey,'index_oid',f.conindid,'definition',pg_get_constraintdef(f.oid,true),'validated',f.convalidated,'deferrable',f.condeferrable,'deferred',f.condeferred,'delete_action',f.confdeltype,'update_action',f.confupdtype,'match_type',f.confmatchtype) from pg_constraint f where f.conrelid=to_regclass('public.webhook_subscriptions') and f.conname='webhook_subscriptions_api_client_id_fkey'),\n'parent_key_projections',(select jsonb_agg(jsonb_build_object('schema','public','name',v.name,'observed_oid',v.observed_oid,'oid',c.oid,'kind',c.relkind,'owner',pg_get_userbyid(c.relowner),'acl',c.relacl::text,'namespace_acl',n.nspacl::text,\n 'columns',(select jsonb_agg(jsonb_build_object('number',a.attnum,'name',a.attname,'type_oid',a.atttypid,'type',format_type(a.atttypid,a.atttypmod),'not_null',a.attnotnull,'collation_oid',a.attcollation,'acl',a.attacl::text) order by a.attnum) from pg_attribute a where a.attrelid=c.oid and a.attnum=any(array(select unnest(f.confkey) from pg_constraint f where f.contype='f' and f.confrelid=c.oid and f.conrelid in(to_regclass('public.webhook_subscriptions'))))),\n 'referenced_indexes',(select jsonb_agg(jsonb_build_object('oid',i.indexrelid,'definition',pg_get_indexdef(i.indexrelid),'unique',i.indisunique,'primary',i.indisprimary,'valid',i.indisvalid,'ready',i.indisready,'nulls_not_distinct',i.indnullsnotdistinct,'key_columns',i.indkey::text,'key_count',i.indnkeyatts,'total_count',i.indnatts,'opclasses',(select jsonb_agg(jsonb_build_object('position',o.pos,'oid',o.oid,'schema',onsp.nspname,'name',oc.opcname,'family_oid',oc.opcfamily,'input_type',oc.opcintype,'default',oc.opcdefault) order by o.pos) from unnest(i.indclass::oid[]) with ordinality o(oid,pos) join pg_opclass oc on oc.oid=o.oid join pg_namespace onsp on onsp.oid=oc.opcnamespace),'collations',(select jsonb_agg(jsonb_build_object('position',co.pos,'oid',co.oid,'metadata',to_jsonb(pc)) order by co.pos) from unnest(i.indcollation::oid[]) with ordinality co(oid,pos) left join pg_collation pc on pc.oid=co.oid),'predicate',pg_get_expr(i.indpred,i.indrelid),'expressions',pg_get_expr(i.indexprs,i.indrelid),'constraints',(select jsonb_agg(jsonb_build_object('oid',uc.oid,'name',uc.conname,'type',uc.contype,'definition',pg_get_constraintdef(uc.oid,true),'validated',uc.convalidated,'deferrable',uc.condeferrable,'deferred',uc.condeferred) order by uc.oid) from pg_constraint uc where uc.conrelid=c.oid and uc.conindid=i.indexrelid)) order by i.indexrelid) from pg_index i where i.indrelid=c.oid and i.indexrelid in(select f.conindid from pg_constraint f where f.contype='f' and f.confrelid=c.oid and f.conrelid in(to_regclass('public.webhook_subscriptions')))))\n order by v.name) from (values ('integration_api_clients',47634::oid)) v(name,observed_oid) left join pg_namespace n on n.nspname='public' left join pg_class c on c.relnamespace=n.oid and c.relname=v.name)\n) as catalog_receipt;",
+  "catalog": {
+    "ledger": {
+      "tail": "20260904222450",
+      "count": 279
+    },
+    "database": "postgres",
+    "origin_fk": {
+      "oid": "59216",
+      "name": "webhook_subscriptions_api_client_id_fkey",
+      "child": "webhook_subscriptions",
+      "parent": "integration_api_clients",
+      "deferred": false,
+      "index_oid": "47649",
+      "validated": true,
+      "deferrable": false,
+      "definition": "FOREIGN KEY (api_client_id) REFERENCES integration_api_clients(id) ON DELETE SET NULL",
+      "match_type": "s",
+      "parent_oid": "47634",
+      "child_columns": [
+        17
+      ],
+      "delete_action": "n",
+      "update_action": "a",
+      "parent_columns": [
+        1
+      ]
+    },
+    "observed_at": "2026-09-12T10:05:56.222346+00:00",
+    "server_version": "17.6",
+    "parent_key_projections": [
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "oid": "47634",
+        "kind": "r",
+        "name": "integration_api_clients",
+        "owner": "postgres",
+        "schema": "public",
+        "columns": [
+          {
+            "acl": null,
+            "name": "id",
+            "type": "uuid",
+            "number": 1,
+            "not_null": true,
+            "type_oid": "2950",
+            "collation_oid": "0"
+          }
+        ],
+        "observed_oid": "47634",
+        "namespace_acl": "{pg_database_owner=UC/pg_database_owner,=U/pg_database_owner,postgres=U/pg_database_owner,anon=U/pg_database_owner,authenticated=U/pg_database_owner,service_role=U/pg_database_owner}",
+        "referenced_indexes": [
+          {
+            "oid": "47649",
+            "ready": true,
+            "valid": true,
+            "unique": true,
+            "primary": true,
+            "key_count": 1,
+            "opclasses": [
+              {
+                "oid": "10065",
+                "name": "uuid_ops",
+                "schema": "pg_catalog",
+                "default": true,
+                "position": 1,
+                "family_oid": "2968",
+                "input_type": "2950"
+              }
+            ],
+            "predicate": null,
+            "collations": [
+              {
+                "oid": "0",
+                "metadata": null,
+                "position": 1
+              }
+            ],
+            "definition": "CREATE UNIQUE INDEX integration_api_clients_pkey ON public.integration_api_clients USING btree (id)",
+            "constraints": [
+              {
+                "oid": "47650",
+                "name": "integration_api_clients_pkey",
+                "type": "p",
+                "deferred": false,
+                "validated": true,
+                "deferrable": false,
+                "definition": "PRIMARY KEY (id)"
+              }
+            ],
+            "expressions": null,
+            "key_columns": "1",
+            "total_count": 1,
+            "nulls_not_distinct": false
+          }
+        ]
+      }
+    ]
+  },
+  "boundaries": [
+    "Only actual webhook_subscriptions_api_client_id_fkey plus integration_api_clients referenced-column/index/constraint metadata. No client rows, keys, tokens or credentials.",
+    "Single later observation; not a rewritten timestamp for wave2 and not a full integration-client table/trigger graph.",
+    "Empty-parent projection is allowed only when the declared synthetic api_client_id stays NULL; no live state or native acceptance."
+  ]
+}

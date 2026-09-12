@@ -27,6 +27,11 @@ export type MonthlyBillingAutomationCompanyResult = {
 
 function text(value: unknown): string | null { return typeof value === 'string' && value.trim() ? value.trim() : null }
 function billingMonth(value: unknown): string { return parseBillingMonth(text(value) ?? previousStockholmBillingMonth()).value }
+function automationErrorMessage(error: unknown): string {
+  if (error instanceof Error) return text(error.message) ?? 'Okänt fel i månatlig fakturaförberedelse.'
+  if (error && typeof error === 'object') return text((error as JsonRecord).message) ?? 'Okänt fel i månatlig fakturaförberedelse.'
+  return text(error) ?? 'Okänt fel i månatlig fakturaförberedelse.'
+}
 
 async function listCompanies(companyId?: string | null): Promise<JsonRecord[]> {
   const select = 'id,status,is_active,billing_automation_enabled,invoice_export_enabled,invoice_export_target_system,billing_provider_environment'
@@ -69,6 +74,44 @@ async function finishRun(input: { companyId: string; automationRunId: string; ac
   if (!result.data) throw new Error('Faktureringskörningen kunde inte slutföras atomiskt.')
 }
 
+async function runPreparedMonthlyBillingAutomationForCompany(input: {
+  companyId: string
+  periodMonth: string
+  actorUserId: string
+  environment: 'test' | 'production'
+}): Promise<MonthlyBillingAutomationCompanyResult> {
+  const lockKey = `billing-monthly-prepare:${input.companyId}:${input.periodMonth}`
+
+  return withAutomationLock({
+    lockKey,
+    companyId: input.companyId,
+    ttlSeconds: 21_600,
+    metadata: { domain: 'monthly_billing_prepare', billingMonth: input.periodMonth, meteringAutopilot: true },
+    run: async (lock) => {
+      const automationRunId = await insertRun({ companyId: input.companyId, periodMonth: input.periodMonth, actorUserId: input.actorUserId, lockKey: lock.lockKey, lockToken: lock.lockToken })
+      try {
+        const periodLock = await getBillingPeriodLock({ companyId: input.companyId, billingMonth: input.periodMonth })
+        if (periodLock && ['locked', 'exported', 'closed'].includes(String(periodLock.status))) {
+          await finishRun({ companyId: input.companyId, automationRunId, actorUserId: input.actorUserId, status: 'completed', totalPrepared: 0, metadata: { source: 'monthly_billing_prepare_only_v3', no_op: true, reason: 'billing_period_locked', period_lock_status: periodLock.status } })
+          return { companyId: input.companyId, billingMonth: input.periodMonth, status: 'completed', automationRunId, prepared: 0, blocked: 0, failed: 0 }
+        }
+
+        const metering = await runMeteringMarketDataAutopilot({ companyId: input.companyId, billingMonth: input.periodMonth, actorUserId: input.actorUserId })
+        const underlayResult = await generateBillingUnderlaysForMonth({ companyId: input.companyId, billingMonth: input.periodMonth, createdBy: input.actorUserId })
+        const preparation = await prepareInvoiceDraftsForReview({ companyId: input.companyId, billingMonth: input.periodMonth, environment: input.environment, actorUserId: input.actorUserId })
+        const meteringBlockers = metering.review + metering.stopped + metering.requested
+        const status: MonthlyBillingAutomationStatus = meteringBlockers > 0 || preparation.blocked > 0 || preparation.failed > 0 ? 'completed_with_blockers' : 'completed'
+        await finishRun({ companyId: input.companyId, automationRunId, actorUserId: input.actorUserId, status, totalUnderlays: preparation.underlays, totalBlocked: preparation.blocked + meteringBlockers, totalPrepared: preparation.created, metadata: { source: 'monthly_billing_prepare_only_v3', approval_required: true, metering_autopilot: metering, underlay_result: underlayResult, preparation } })
+        return { companyId: input.companyId, billingMonth: input.periodMonth, status, automationRunId, metering, underlayResult, preparation, prepared: preparation.created, blocked: preparation.blocked + meteringBlockers, failed: preparation.failed }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Okänt fel i månatlig fakturaförberedelse.'
+        await finishRun({ companyId: input.companyId, automationRunId, actorUserId: input.actorUserId, status: 'failed', failureReason: message, metadata: { source: 'monthly_billing_prepare_only_v3', error: message } })
+        return { companyId: input.companyId, billingMonth: input.periodMonth, status: 'failed', automationRunId, error: message }
+      }
+    },
+  })
+}
+
 export async function runMonthlyBillingAutomationForCompany(input: { companyId: string; billingMonth?: string | null; actorUserId?: string | null; companyConfig?: JsonRecord | null }): Promise<MonthlyBillingAutomationCompanyResult> {
   await assertPlatformSchemaReady()
   const periodMonth = billingMonth(input.billingMonth)
@@ -76,46 +119,27 @@ export async function runMonthlyBillingAutomationForCompany(input: { companyId: 
   if (!actorUserId) throw new Error('GRIDEX_AUTOMATION_USER_ID krävs för mätvärdes- och faktureringsautopilot.')
   const company = input.companyConfig ?? (await listCompanies(input.companyId))[0]
   const environment = validateCompany(company)
-  const lockKey = `billing-monthly-prepare:${input.companyId}:${periodMonth}`
-
-  return withAutomationLock({
-    lockKey,
-    companyId: input.companyId,
-    ttlSeconds: 21_600,
-    metadata: { domain: 'monthly_billing_prepare', billingMonth: periodMonth, meteringAutopilot: true },
-    run: async (lock) => {
-      const automationRunId = await insertRun({ companyId: input.companyId, periodMonth, actorUserId, lockKey: lock.lockKey, lockToken: lock.lockToken })
-      try {
-        const periodLock = await getBillingPeriodLock({ companyId: input.companyId, billingMonth: periodMonth })
-        if (periodLock && ['locked', 'exported', 'closed'].includes(String(periodLock.status))) {
-          await finishRun({ companyId: input.companyId, automationRunId, actorUserId, status: 'completed', totalPrepared: 0, metadata: { source: 'monthly_billing_prepare_only_v3', no_op: true, reason: 'billing_period_locked', period_lock_status: periodLock.status } })
-          return { companyId: input.companyId, billingMonth: periodMonth, status: 'completed', automationRunId, prepared: 0, blocked: 0, failed: 0 }
-        }
-
-        const metering = await runMeteringMarketDataAutopilot({ companyId: input.companyId, billingMonth: periodMonth, actorUserId })
-        const underlayResult = await generateBillingUnderlaysForMonth({ companyId: input.companyId, billingMonth: periodMonth, createdBy: actorUserId })
-        const preparation = await prepareInvoiceDraftsForReview({ companyId: input.companyId, billingMonth: periodMonth, environment, actorUserId })
-        const meteringBlockers = metering.review + metering.stopped + metering.requested
-        const status: MonthlyBillingAutomationStatus = meteringBlockers > 0 || preparation.blocked > 0 || preparation.failed > 0 ? 'completed_with_blockers' : 'completed'
-        await finishRun({ companyId: input.companyId, automationRunId, actorUserId, status, totalUnderlays: preparation.underlays, totalBlocked: preparation.blocked + meteringBlockers, totalPrepared: preparation.created, metadata: { source: 'monthly_billing_prepare_only_v3', approval_required: true, metering_autopilot: metering, underlay_result: underlayResult, preparation } })
-        return { companyId: input.companyId, billingMonth: periodMonth, status, automationRunId, metering, underlayResult, preparation, prepared: preparation.created, blocked: preparation.blocked + meteringBlockers, failed: preparation.failed }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Okänt fel i månatlig fakturaförberedelse.'
-        await finishRun({ companyId: input.companyId, automationRunId, actorUserId, status: 'failed', failureReason: message, metadata: { source: 'monthly_billing_prepare_only_v3', error: message } })
-        return { companyId: input.companyId, billingMonth: periodMonth, status: 'failed', automationRunId, error: message }
-      }
-    },
-  })
+  return runPreparedMonthlyBillingAutomationForCompany({ companyId: input.companyId, periodMonth, actorUserId, environment })
 }
 
 export async function runMonthlyBillingAutomation(input: { companyId?: string | null; billingMonth?: string | null; actorUserId?: string | null } = {}) {
+  const periodMonth = billingMonth(input.billingMonth)
   await assertPlatformSchemaReady()
   const companies = await listCompanies(input.companyId)
   const results: MonthlyBillingAutomationCompanyResult[] = []
   for (const company of companies) {
     const companyId = text(company.id)
     if (!companyId) continue
-    results.push(await runMonthlyBillingAutomationForCompany({ companyId, billingMonth: input.billingMonth, actorUserId: input.actorUserId, companyConfig: company }))
+    await assertPlatformSchemaReady()
+    try {
+      const actorUserId = text(input.actorUserId) ?? text(process.env.GRIDEX_AUTOMATION_USER_ID)
+      if (!actorUserId) throw new Error('GRIDEX_AUTOMATION_USER_ID krävs för mätvärdes- och faktureringsautopilot.')
+      const environment = validateCompany(company)
+      results.push(await runPreparedMonthlyBillingAutomationForCompany({ companyId, periodMonth, actorUserId, environment }))
+    } catch (error) {
+      if (input.companyId) throw error
+      results.push({ companyId, billingMonth: periodMonth, status: 'failed', automationRunId: null, error: automationErrorMessage(error) })
+    }
   }
-  return { billingMonth: billingMonth(input.billingMonth), processed: results.length, completed: results.filter((row) => row.status === 'completed').length, completedWithBlockers: results.filter((row) => row.status === 'completed_with_blockers').length, failed: results.filter((row) => row.status === 'failed').length, results }
+  return { billingMonth: periodMonth, processed: results.length, completed: results.filter((row) => row.status === 'completed').length, completedWithBlockers: results.filter((row) => row.status === 'completed_with_blockers').length, failed: results.filter((row) => row.status === 'failed').length, results }
 }
