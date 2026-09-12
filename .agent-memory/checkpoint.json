@@ -3,9 +3,10 @@
   "updated_at": "2026-09-12",
   "status": "PARTIAL",
   "current_state": ".agent-memory/current-state.md",
-  "active_group": "api_contracts",
+  "active_group": "database_reconstruction",
   "source_state": {
-    "published_application_baseline": "52b2de4d81cae370bf250e5a80f12c300bbddd16"
+    "published_application_baseline": "52b2de4d81cae370bf250e5a80f12c300bbddd16",
+    "published_database_diagnostic": "eacc6d404f229f91b13e9eb60c301f0b4ac148ef"
   },
-  "next_action": "API implementation paused at user request. Completed application changes are published in PR310; the unfinished partner-price candidate is preserved as an unapplied patch under quality/paused. Check publication CI and retain full replay/types/E2E/RLS/billing/job blockers before any main merge. Scope on resumption includes masterplan86 starvation."
+  "next_action": "Resolve timestamp229 historical live-sync intermediate session-guard compilation with source-bound reconstruction/native final-state and ACL evidence. PostGIS blocker is verified fixed; 118 foundation and228 timestamp inputs passed. Keep37 unresolved source effects, full replay/types and release gates blocking. Preserve completed API code; follow database -> runtime faults -> RLS -> billing -> jobs/86 -> paused API -> review/merge/deploy."
 }
