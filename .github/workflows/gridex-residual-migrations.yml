@@ -1,0 +1,53 @@
+name: Gridex residual migration effects
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-residual-migrations.yml'
+      - 'scripts/canonical-residual-migration-*.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: residual-migrations-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  source-checkpoint-probes:
+    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Verify finite source inventory and private receipt boundaries
+        run: python3 scripts/canonical-residual-migration-selftest.py
+      - name: Probe full historical sources on owned checkpoint clones
+        run: |
+          mkdir -p "$RUNNER_TEMP/residual-probes"
+          python3 scripts/canonical-residual-migration-probe.py > "$RUNNER_TEMP/residual-probes/metadata.jsonl"
+      - name: Upload only sanitized source and catalog metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: residual-source-probes
+          path: ${{ runner.temp }}/residual-probes/metadata.jsonl
+          if-no-files-found: warn
+          retention-days: 2
+      - name: Remove only this workflow's owned container
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          path = Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve()
+          spec = importlib.util.spec_from_file_location('residual_cleanup', path)
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          module.load_controller().load_batch().cleanup_workflow_owned()
+          PY
