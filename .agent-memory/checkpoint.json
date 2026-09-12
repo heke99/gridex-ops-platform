@@ -5,7 +5,7 @@
   "current_state": ".agent-memory/current-state.md",
   "active_group": "api_contracts",
   "source_state": {
-    "published_baseline": "9c4e93f6d69b57eea5b677bc9d00f69ed78f0540"
+    "published_baseline": "85d8c22a095a495f01bfc0dfb9e5de22e073b1e8"
   },
-  "next_action": "Publish and verify Task10b2a seven-route strict JSON batch (local210files/1840tests). Continue six invoice/Ediel and five platform routes, then partner idempotency/move-out. Full replay/types and native77\u201385 gates remain open; no main merge or production acceptance. Use current-state.md."
+  "next_action": "Publish and verify Task10b2b six invoice/Ediel JSON routes;111 new tests and394 combined tests PASS locally. Continue five platform routes, partner idempotency/move-out and recorded runtime errors. Full replay/types/native77–85 remain open. Stop before86."
 }

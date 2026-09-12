@@ -1,3 +1,5 @@
+import { readAdminJson } from '@/lib/http/adminJsonRequest'
+import { invoiceDisputeSchema } from '@/lib/admin/internalJsonSchemas'
 import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
 import { assertAdminApiCompanyAccess, requireAdminApiAccess } from '@/lib/admin/apiGuards'
@@ -15,7 +17,9 @@ export async function POST(request: Request, { params }: Props) {
   if (access.response) return access.response
   try {
     const { id } = await params
-    const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    const input = await readAdminJson(request, invoiceDisputeSchema, { allowEmpty: true })
+    if (!input.ok) return NextResponse.json({ error: input.error, code: input.code }, { status: input.status })
+    const body = input.data
     const companyId = await assertAdminApiCompanyAccess(
       access.guard,
       typeof body.companyId === 'string' ? body.companyId : null,

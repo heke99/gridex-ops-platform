@@ -11,10 +11,11 @@ type InputFailure = {
   field: string | null
 }
 
-/** Call only after authentication and the applicable company/lifecycle guard. */
+/** Authenticate first; bind any explicit company before domain/provider I/O. */
 export async function readAdminJson<T>(
   request: Request,
   schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+  options: { allowEmpty?: boolean } = {},
 ): Promise<{ ok: true; data: T } | InputFailure> {
   let body: unknown
   try {
@@ -22,7 +23,7 @@ export async function readAdminJson<T>(
     if (!result.ok) {
       return { ok: false, status: 413, code: 'payload_too_large', error: 'Request body är för stor.', field: null }
     }
-    body = JSON.parse(result.text)
+    body = options.allowEmpty && !result.text.trim() ? {} : JSON.parse(result.text)
   } catch (error) {
     if (error instanceof InvalidRequestBodyLimitError) throw error
     return { ok: false, status: 400, code: 'invalid_json', error: 'JSON body saknas eller är ogiltig.', field: null }

@@ -79,3 +79,31 @@ export const spotSettlementSchema = z.object({
   alias(body, ctx, 'billing_month', 'billingMonth')
   alias(body, ctx, 'price_area', 'priceArea')
 })
+
+const companies = { company_id: reference.optional(), companyId: reference.optional() }
+export const invoiceCreateSchema = z.object({ ...companies, ...months }).strict().superRefine((body, ctx) => {
+  alias(body, ctx, 'company_id', 'companyId', false)
+  alias(body, ctx, 'billing_month', 'billingMonth')
+})
+export const invoiceOperationSchema = z.object(companies).strict().superRefine((body, ctx) => {
+  alias(body, ctx, 'company_id', 'companyId', false)
+})
+export const invoiceDisputeSchema = z.object({ companyId: reference.optional(), reason: z.string().optional() }).strict()
+const financingMode = z.enum(['factoring_with_recourse', 'factoring_without_recourse'])
+const recourseDays = z.number().int().nonnegative().safe().nullable()
+export const invoicePurchaseSchema = z.object({
+  ...companies,
+  financing_mode: financingMode.optional(), financingMode: financingMode.optional(),
+  recourse_days: recourseDays.optional(), recourseDays: recourseDays.optional(),
+  note: z.string().optional(),
+}).strict().superRefine((body, ctx) => {
+  alias(body, ctx, 'company_id', 'companyId', false)
+  alias(body, ctx, 'financing_mode', 'financingMode', false)
+  alias(body, ctx, 'recourse_days', 'recourseDays', false)
+})
+export const edielRequestAutomationSchema = z.object({
+  message_id: reference.optional(), messageId: reference.optional(),
+  forceManualReview: z.boolean().optional(),
+}).strict().superRefine((body, ctx) => {
+  alias(body, ctx, 'message_id', 'messageId')
+})
