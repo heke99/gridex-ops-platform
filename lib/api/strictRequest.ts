@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import type { NextRequest } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
 import { isValidIdempotencyKey } from '@/lib/api/idempotencyKey'
+import { readTextBodyWithLimit } from '@/lib/http/boundedRequestBody'
 
 export class ApiInputError extends Error {
   readonly status: number
@@ -18,12 +19,9 @@ export class ApiInputError extends Error {
 }
 
 export async function readJsonObject(request: NextRequest, maxBytes = 256_000): Promise<Record<string, unknown>> {
-  const contentLength = Number(request.headers.get('content-length') ?? '0')
-  if (Number.isFinite(contentLength) && contentLength > maxBytes) {
-    throw new ApiInputError('Request body är för stor.', 'payload_too_large', 413)
-  }
-  const raw = await request.text()
-  if (Buffer.byteLength(raw, 'utf8') > maxBytes) throw new ApiInputError('Request body är för stor.', 'payload_too_large', 413)
+  const result = await readTextBodyWithLimit(request, maxBytes)
+  if (!result.ok) throw new ApiInputError('Request body är för stor.', 'payload_too_large', 413)
+  const raw = result.text
   if (!raw.trim()) throw new ApiInputError('JSON body saknas.', 'json_body_missing', 400)
   let parsed: unknown
   try {
