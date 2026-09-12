@@ -9,6 +9,30 @@ permissions:
   contents: read
 
 jobs:
+  source-snapshot:
+    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/gridex-parity-remediation-20260905'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Archive only tracked source with exact commit and tree receipts
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/gridex-source-snapshot"
+          mkdir -p "$out"
+          git archive --format=tar.gz HEAD > "$out/source.tar.gz"
+          printf 'source_commit=%s\nsource_tree=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" > "$out/receipt.txt"
+          sha256sum "$out/source.tar.gz" >> "$out/receipt.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gridex-source-snapshot
+          path: ${{ runner.temp }}/gridex-source-snapshot/
+          retention-days: 1
+          if-no-files-found: error
   dependency-report:
     if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/gridex-parity-remediation-20260905'
     runs-on: ubuntu-latest
