@@ -1,0 +1,51 @@
+name: Owned API remediation workspace
+
+on:
+  push:
+    branches:
+      - codex/gridex-api-json-hardening-20260912
+    paths:
+      - .github/workflows/gridex-owned-review-export.yml
+
+permissions:
+  contents: read
+
+jobs:
+  export-owned-workspace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify owned source boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = '6e4d2190478329b5565bcf7ec6820ce15fef5009'
+          test "$(git rev-parse HEAD^{tree})" != ''
+          mkdir -p "$RUNNER_TEMP/gridex-review-export"
+          git archive --format=tar 6e4d2190478329b5565bcf7ec6820ce15fef5009 | gzip -1 > "$RUNNER_TEMP/gridex-review-export/source.tar.gz"
+          printf '%s\n' 'source_commit=6e4d2190478329b5565bcf7ec6820ce15fef5009' 'source_tree=52b60ff4c3e6a13747d666529b3048a72013487c' > "$RUNNER_TEMP/gridex-review-export/receipt.txt"
+          node --version >> "$RUNNER_TEMP/gridex-review-export/receipt.txt"
+          npm --version >> "$RUNNER_TEMP/gridex-review-export/receipt.txt"
+      - name: Install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Package only source and installed dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -czf "$RUNNER_TEMP/gridex-review-export/node_modules.tar.gz" node_modules
+          cd "$RUNNER_TEMP/gridex-review-export"
+          sha256sum source.tar.gz node_modules.tar.gz >> receipt.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gridex-owned-api-workspace
+          path: ${{ runner.temp }}/gridex-review-export/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
