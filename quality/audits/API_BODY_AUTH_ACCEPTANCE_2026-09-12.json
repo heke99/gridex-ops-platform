@@ -1,0 +1,79 @@
+{
+  "status": "VERIFIED_BOUNDED_API_BODY_AUTH_APPLICATION",
+  "commit": "4d4fe075198ad61b9df85aa456e40965668549dc",
+  "tree": "5d237eba812fd359cb2a545488f8edc952d9d64d",
+  "run_id": 34695431202,
+  "application_job_id": 103557991297,
+  "application_job_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/34695431202/job/103557991297",
+  "application": {
+    "runtime": "Supported Node22 hosted lane",
+    "files": 207,
+    "tests": 1593,
+    "new_body_auth_tests": 40,
+    "quality_files": 2,
+    "quality_tests": 45,
+    "installed_sdk": "resend@6.12.4 from unchanged lockfile via npm ci; real verifier imported by all permanent Resend cases",
+    "checks": [
+      "lint",
+      "script typecheck",
+      "test typecheck",
+      "mechanical verification",
+      "quality tests",
+      "full Vitest",
+      "API documentation",
+      "API compatibility",
+      "immutable API release",
+      "RBAC",
+      "large-file budget",
+      "performance budget",
+      "production build",
+      "browser bundle budget"
+    ],
+    "evidence": [
+      "2026-09-12T13:07:00.3396469Z  Test Files  2 passed (2)",
+      "2026-09-12T13:07:00.3397788Z       Tests  45 passed (45)",
+      "2026-09-12T13:07:03.3986262Z  ✓ __tests__/api-body-auth-contracts.test.ts (40 tests) 607ms",
+      "2026-09-12T13:08:11.5409376Z  Test Files  207 passed (207)",
+      "2026-09-12T13:08:11.5435345Z       Tests  1593 passed (1593)",
+      "2026-09-12T13:09:21.9910810Z ✓ Compiled successfully in 62s",
+      "2026-09-12T13:10:15.7385709Z   Finished TypeScript in 54s ...",
+      "2026-09-12T13:10:40.1564278Z Browser bundle budget passed: largest chunk 222348 bytes; 3 route budgets verified."
+    ]
+  },
+  "native_regression": {
+    "job_id": 103557991288,
+    "candidate_cases": 129,
+    "baseline_cases": 10,
+    "construction_tests": 42,
+    "evidence": [
+      "2026-09-12T13:05:22.4021619Z PASS baseline10 source defect characterizations",
+      "2026-09-12T13:05:36.6468231Z PASS P28 C32 F16 S24 SX2 D27; repeat, ACL recovery and row preservation",
+      "2026-09-12T13:05:36.7565568Z PASS permission native owned-container cleanup",
+      "2026-09-12T13:05:36.8635670Z PASS owned-container cleanup"
+    ]
+  },
+  "source_review": {
+    "source_cases": 32,
+    "reviewer_missing_target_cases": 8,
+    "initial_findings": 3,
+    "final_spec": "APPROVED",
+    "final_quality": "APPROVED",
+    "remaining_findings": 0,
+    "review_sha256": "1f73b34fd078db708f7b9994e5a23d9ddc0be18097e8da6ea6c6caca00c80ecb"
+  },
+  "full_gates": {
+    "verify_job_id": 103557991139,
+    "replay_job_id": 103557991279,
+    "evidence": [
+      "2026-09-12T13:06:28.6317457Z Supabase generated-types check failed:",
+      "2026-09-12T13:06:28.6319355Z - migration tail changed (20260911114443_canonical_user_rbac_customer_alignment_boundary.sql); regenerate Supabase types and update the manifest",
+      "2026-09-12T13:05:25.4793048Z unsupported replay target: use canonical-auth-provisioning-replay.py --owned-compatible; CLI/native and generic external modes require reviewed ownership/reference/private logging; NO ledger provenance"
+    ]
+  },
+  "boundaries": [
+    "Only Task10a body/auth contract increment is accepted; strict schema/quote types, move-out release and partner price idempotency remain open.",
+    "Resend 2,000,000-byte cap is an explicit application choice, not a provider maximum; metadata fixtures cover the declared shapes.",
+    "Controlled DB/RPC/DNS/worker I/O tests do not establish native integration rate counters, provider delivery, full RLS, runtime production binding or deployment transport limits.",
+    "Full clean replay and generated-types tail still fail. No migration registration, production mutation, merge, deploy or ledger marking."
+  ]
+}

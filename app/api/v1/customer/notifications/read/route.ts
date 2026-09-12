@@ -84,6 +84,17 @@ export async function POST(request: NextRequest) {
 
   try {
     const payload = await readJsonObject(request) as Record<string, unknown>
+    const unknownFields = Object.keys(payload).filter(
+      (field) => field !== 'notification_references',
+    )
+    if (unknownFields.length > 0) {
+      throw new ApiInputError(
+        'Förfrågan innehåller fält som inte ingår i API-kontraktet.',
+        'unknown_field',
+        400,
+        unknownFields[0],
+      )
+    }
     const references = notificationReferences(payload)
     const canonicalPayload = { notification_references: references }
     const result = await executeIdempotentPortalWrite<Record<string, unknown>>({

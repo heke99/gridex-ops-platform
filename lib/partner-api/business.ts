@@ -569,8 +569,12 @@ async function createPrice(request: NextRequest) {
       city: body.city,
       country: body.country,
     })
-    const annualConsumptionKwh = numberValue(body.annual_consumption_kwh)
-    if (annualConsumptionKwh === null || annualConsumptionKwh <= 0) {
+    const annualConsumptionKwh = body.annual_consumption_kwh
+    if (
+      typeof annualConsumptionKwh !== 'number' ||
+      !Number.isFinite(annualConsumptionKwh) ||
+      annualConsumptionKwh <= 0
+    ) {
       throw new BusinessPartnerApiError(
         'annual_consumption_kwh must be greater than 0.',
         'annual_consumption_invalid',
