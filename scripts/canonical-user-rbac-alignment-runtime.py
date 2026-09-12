@@ -91,7 +91,7 @@ class Release:
 
 def base_owned(target):
     ref = fixed.owned(target)
-    check(ref.dedupe.scope in ('alignment68', 'operations71', 'readiness74', 'full'), 'ALIGNMENT_CONTINUATION_SCOPE_REQUIRED')
+    check(ref.dedupe.scope in ('alignment68', 'operations71', 'readiness74', 'intake77', 'full'), 'ALIGNMENT_CONTINUATION_SCOPE_REQUIRED')
     ref.inputs.owned()
     check(replay.load_private()._ACTIVE.get(target) is ref.inputs,
           'ALIGNMENT_LIVE_INPUT_OWNER_REQUIRED')

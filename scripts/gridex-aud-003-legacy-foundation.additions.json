@@ -79,7 +79,10 @@
     "migrations/20260519_operations_customers_ux.sql",
     "migrations/20260519_batch_6c_metering_billing_readiness.sql",
     "migrations/20260520_batch_1_2_saas_ediel_control_center.sql",
-    "migrations/20260520_final_z01_outbound_and_platform_guard.sql"
+    "migrations/20260520_final_z01_outbound_and_platform_guard.sql",
+    "migrations/20260513_ediel_agt_saas_runtime_safe.sql",
+    "migrations/20260520_company_delete_backfill_and_admin_layout.sql",
+    "migrations/20260521_batch_customer_intake_debug_hardening.sql"
   ],
   "interleaved": [
     {

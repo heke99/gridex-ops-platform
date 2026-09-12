@@ -114,7 +114,7 @@ SELECT coalesce(jsonb_agg(jsonb_build_array(name,row_value) ORDER BY name,row_va
 
 def prepare_reference(target, scope='dedupe57'):
     started = datetime.now(timezone.utc)
-    if scope not in ('dedupe57','fixed-target','alignment68','operations71','readiness74','full'):
+    if scope not in ('dedupe57','fixed-target','alignment68','operations71','readiness74','intake77','full'):
         raise BoundaryError('DEDUPE_SCOPE_REQUIRED')
     require_owned(target, False)
     if target in _STATES or target in _REFERENCES:
@@ -144,12 +144,14 @@ def prepare_reference(target, scope='dedupe57'):
     _REFERENCES[target] = _Reference(target.directory.name,target.name,legacy_ref,repair_ref,before[0],final,indexes,scope != 'dedupe57',scope)
     if scope != 'dedupe57':
         fixed_module().prepare_reference(target)
-    if scope in ('alignment68', 'operations71', 'readiness74', 'full'):
+    if scope in ('alignment68', 'operations71', 'readiness74', 'intake77', 'full'):
         fixed_module().replay.load_alignment_runtime().prepare_reference(target, started)
-    if scope in ('operations71','readiness74','full'):
+    if scope in ('operations71','readiness74','intake77','full'):
         fixed_module().replay.load_operations_runtime().prepare_reference(target)
-    if scope in ('readiness74','full'):
+    if scope in ('readiness74','intake77','full'):
         fixed_module().replay.load_readiness_runtime().prepare_reference(target)
+    if scope in ('intake77','full'):
+        fixed_module().replay.load_intake_runtime().prepare_reference(target)
 
 
 def fresh_target(target):
@@ -313,9 +315,43 @@ _READINESS_FAILURE_CATEGORIES = frozenset((
 ))
 
 
+_INTAKE_FAILURE_CATEGORIES = frozenset((
+    'INTAKE_ACCEPTED_BASELINE_REQUIRED',
+    'INTAKE_CATALOG_MISMATCH',
+    'INTAKE_COMPLETION_LINK_REQUIRED',
+    'INTAKE_COMPLETION_RECEIPT_REQUIRED',
+    'INTAKE_COMPLETION_REQUIRED',
+    'INTAKE_CONTINUATION_REQUIRED',
+    'INTAKE_CONTROLLER_CALL_REQUIRED',
+    'INTAKE_FINAL_STATE_CHANGED',
+    'INTAKE_FROZEN_SOURCES_REQUIRED',
+    'INTAKE_MANIFEST_REQUIRED',
+    'INTAKE_ONCE_STAGED_REQUIRED',
+    'INTAKE_ORACLE_BASELINE_REQUIRED',
+    'INTAKE_ORIGINALS_RESTORATION_REQUIRED',
+    'INTAKE_PHYSICAL_SOURCE_REQUIRED',
+    'INTAKE_POST_COMMIT_MISMATCH',
+    'INTAKE_PREIMAGE_CHANGED',
+    'INTAKE_PREPARATION_REQUIRED',
+    'INTAKE_PROGRAM_BINDING_REQUIRED',
+    'INTAKE_REFERENCE_REQUIRED',
+    'INTAKE_RELEASE_SCOPE_REQUIRED',
+    'INTAKE_SCOPE_REQUIRED',
+    'INTAKE_SOURCE_ORDER_REQUIRED',
+    'INTAKE_STAGED_SOURCE_CHANGED',
+    'INTAKE_STAGE_REQUIRED',
+    'INTAKE_STATE_REQUIRED',
+    'INTAKE_TARGETS_REQUIRED',
+    'INTAKE_STATUS_CHECK_REJECTS',
+    'INTAKE_EXISTING_COMPANY_TIMESTAMP_REQUIRED',
+    'INTAKE_JSON_NULL_KIND_REQUIRED',
+    'INTAKE_RUNTIME_INDEXES_REQUIRED',
+))
+
+
 def _failure_category(error):
     if type(error) is BoundaryError and len(error.args)==1 and type(error.args[0]) is str:
-        if error.args[0] in _FIXED_FAILURE_CATEGORIES or error.args[0] in _ALIGNMENT_FAILURE_CATEGORIES or error.args[0] in _OPERATIONS_FAILURE_CATEGORIES or error.args[0] in _READINESS_FAILURE_CATEGORIES:
+        if error.args[0] in _FIXED_FAILURE_CATEGORIES or error.args[0] in _ALIGNMENT_FAILURE_CATEGORIES or error.args[0] in _OPERATIONS_FAILURE_CATEGORIES or error.args[0] in _READINESS_FAILURE_CATEGORIES or error.args[0] in _INTAKE_FAILURE_CATEGORIES:
             return error.args[0]
     return {TypeError:'TYPE_ERROR',KeyError:'KEY_ERROR',ValueError:'VALUE_ERROR',
             AttributeError:'ATTRIBUTE_ERROR',FileNotFoundError:'FILE_NOT_FOUND',
@@ -349,7 +385,7 @@ def fail(target):
     finally:
         if _REFERENCES[target].continuation:
             print(json.dumps({'stage':'fixed_failure',
-                'state':state if state in ('STARTING','FRESH','ACCEPTED56','NATIVE','H2_COMPLETE','FIXED_NATIVE','FIXED_COMPLETE','ALIGNMENT_NATIVE','ALIGNMENT_COMPLETE','OPERATIONS_NATIVE','OPERATIONS_COMPLETE','READINESS_NATIVE','READINESS_COMPLETE','TERMINAL') else 'UNCLASSIFIED',
+                'state':state if state in ('STARTING','FRESH','ACCEPTED56','NATIVE','H2_COMPLETE','FIXED_NATIVE','FIXED_COMPLETE','ALIGNMENT_NATIVE','ALIGNMENT_COMPLETE','OPERATIONS_NATIVE','OPERATIONS_COMPLETE','READINESS_NATIVE','READINESS_COMPLETE','INTAKE_NATIVE','INTAKE_COMPLETE','TERMINAL') else 'UNCLASSIFIED',
                 'cause':_failure_category(cause),
                 'privacy':'VERIFIED' if privacy_error is None else _failure_category(privacy_error),
                 'disposal':disposal},sort_keys=True),flush=True)
@@ -433,13 +469,16 @@ def finish(target, full=False):
     require_live(target)
     try:
         ref = _REFERENCES[target]
-        readiness = ref.scope in ('readiness74', 'full')
+        intake = ref.scope in ('intake77', 'full')
+        readiness = ref.scope == 'readiness74'
         operations = ref.scope == 'operations71'
         alignment = ref.scope == 'alignment68'
-        expected = 'READINESS_COMPLETE' if readiness else ('OPERATIONS_COMPLETE' if operations else ('ALIGNMENT_COMPLETE' if alignment else ('FIXED_COMPLETE' if ref.continuation else 'H2_COMPLETE')))
+        expected = 'INTAKE_COMPLETE' if intake else ('READINESS_COMPLETE' if readiness else ('OPERATIONS_COMPLETE' if operations else ('ALIGNMENT_COMPLETE' if alignment else ('FIXED_COMPLETE' if ref.continuation else 'H2_COMPLETE'))))
         if _STATES[target] != expected or full != (ref.scope == 'full'):
             raise BoundaryError('DEDUPE_COMPLETION_REQUIRED')
-        if readiness:
+        if intake:
+            fixed_module().replay.load_intake_runtime().release_checks(target, full=full)
+        elif readiness:
             fixed_module().replay.load_readiness_runtime().release_checks(target, full=full)
         elif operations:
             fixed_module().replay.load_operations_runtime().release_checks(target, full=full)
@@ -458,7 +497,7 @@ def finish(target, full=False):
 def continue_alignment(target, database, paths, staging, actual_bounds):
     require_live(target)
     try:
-        if (_REFERENCES[target].scope not in ('alignment68', 'operations71', 'readiness74', 'full')
+        if (_REFERENCES[target].scope not in ('alignment68', 'operations71', 'readiness74', 'intake77', 'full')
                 or _STATES[target] != 'FIXED_COMPLETE' or database != DATABASE):
             raise BoundaryError('ALIGNMENT_CONTINUATION_REQUIRED')
         fixed = fixed_module()
@@ -480,7 +519,7 @@ def continue_alignment(target, database, paths, staging, actual_bounds):
 def continue_operations(target, database, paths, staging):
     require_live(target)
     try:
-        if (_REFERENCES[target].scope not in ('operations71','readiness74','full')
+        if (_REFERENCES[target].scope not in ('operations71','readiness74','intake77','full')
                 or _STATES[target] != 'ALIGNMENT_COMPLETE' or database != DATABASE):
             raise BoundaryError('OPERATIONS_CONTINUATION_REQUIRED')
         replay = fixed_module().replay
@@ -502,7 +541,7 @@ def continue_operations(target, database, paths, staging):
 def continue_readiness(target, database, paths, staging):
     require_live(target)
     try:
-        if (_REFERENCES[target].scope not in ('readiness74','full')
+        if (_REFERENCES[target].scope not in ('readiness74','intake77','full')
                 or _STATES[target] != 'OPERATIONS_COMPLETE' or database != DATABASE):
             raise BoundaryError('READINESS_CONTINUATION_REQUIRED')
         replay = fixed_module().replay
@@ -515,6 +554,28 @@ def continue_readiness(target, database, paths, staging):
             raise BoundaryError('READINESS_COMPLETION_REQUIRED')
         runtime.assert_final(target)
         _STATES[target] = 'READINESS_COMPLETE'
+        return receipt
+    except BaseException:
+        fail(target)
+        raise
+
+
+def continue_intake(target, database, paths, staging):
+    require_live(target)
+    try:
+        if (_REFERENCES[target].scope not in ('intake77','full')
+                or _STATES[target] != 'READINESS_COMPLETE' or database != DATABASE):
+            raise BoundaryError('INTAKE_CONTINUATION_REQUIRED')
+        replay = fixed_module().replay
+        replay.load_readiness_runtime().assert_final(target)
+        runtime = replay.load_intake_runtime()
+        runtime.owned(target, 'READINESS_COMPLETE')
+        _STATES[target] = 'INTAKE_NATIVE'
+        receipt = runtime.execute(target, database, paths, staging)
+        if receipt != {'sources':3}:
+            raise BoundaryError('INTAKE_COMPLETION_REQUIRED')
+        runtime.assert_final(target)
+        _STATES[target] = 'INTAKE_COMPLETE'
         return receipt
     except BaseException:
         fail(target)

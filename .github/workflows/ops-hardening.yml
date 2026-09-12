@@ -152,6 +152,19 @@ jobs:
         if: always()
         run: python3 scripts/canonical-intake-governance-selftest.py --cleanup-owned
 
+  intake-governance-continuation-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify actual77 intake and governance continuation on owned PostgreSQL 17
+        run: python3 scripts/canonical-intake-governance-continuation-selftest.py
+      - name: Remove only the owned intake continuation container
+        if: always()
+        run: python3 scripts/canonical-intake-governance-continuation-selftest.py --cleanup-owned
+
   readiness-operations-continuation-proof:
     runs-on: ubuntu-latest
     timeout-minutes: 30

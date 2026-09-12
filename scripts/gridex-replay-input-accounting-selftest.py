@@ -465,9 +465,9 @@ class DB2DispositionTest(unittest.TestCase):
                                 text=True, capture_output=True, timeout=60)
         report = json.loads(result.stdout)
         self.assertEqual(result.returncode, 1, report)
-        self.assertEqual(report['counts'], {'FULL_FILE_SELECTED': 555, 'SUBSTITUTED': 23,
-                                          'UNCLASSIFIED': 17, 'EXPLICITLY_EXCLUDED': 5})
-        self.assertEqual(report['selectedInputCounts'], {'foundation': 115, 'timestamp': 508})
+        self.assertEqual(report['counts'], {'FULL_FILE_SELECTED': 558, 'SUBSTITUTED': 23,
+                                          'UNCLASSIFIED': 14, 'EXPLICITLY_EXCLUDED': 5})
+        self.assertEqual(report['selectedInputCounts'], {'foundation': 118, 'timestamp': 508})
         rows = {row['path']: row for row in report['migrations']}
         self.assertEqual(rows[self.entry['path']]['classification'], 'EXPLICITLY_EXCLUDED')
         self.assertEqual(rows['migrations/02_db2b_apply_superadmin_and_membership.sql']['classification'], 'EXPLICITLY_EXCLUDED')

@@ -89,10 +89,10 @@ class Constructors(unittest.TestCase):
     def test_scope_registration_and_original_tail(self):
         r=runtime();order=json.loads((ROOT/'scripts/gridex-aud-003-foundation-order.json').read_text())['foundation']
         self.assertEqual(r.replay.SCOPES['operations71'],71)
-        self.assertEqual(r.replay.SCOPES['full'],115)
+        self.assertEqual(r.replay.SCOPES['full'],118)
         self.assertEqual(r.replay.scope_flags('operations71'),['--operations-prefix-proof'])
         self.assertEqual(order[68:71],['migrations/'+p.name for p in r.reviewed_paths()])
-        self.assertEqual(len(order[74:]),41)
+        self.assertEqual(len(order[77:]),41)
 
 def support():
     spec=importlib.util.spec_from_file_location('operations_continuation_support',ROOT/'scripts/canonical-user-rbac-fixed-target-continuation-selftest.py')
