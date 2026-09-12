@@ -1,11 +1,11 @@
 {
   "project": "gridex-ops-platform",
   "updated_at": "2026-09-12",
-  "status": "IN_PROGRESS",
+  "status": "PARTIAL",
   "current_state": ".agent-memory/current-state.md",
   "active_group": "api_contracts",
   "source_state": {
-    "published_baseline": "85d8c22a095a495f01bfc0dfb9e5de22e073b1e8"
+    "published_application_baseline": "52b2de4d81cae370bf250e5a80f12c300bbddd16"
   },
-  "next_action": "Publish and verify Task10b2b six invoice/Ediel JSON routes;111 new tests and394 combined tests PASS locally. Continue five platform routes, partner idempotency/move-out and recorded runtime errors. Full replay/types/native77–85 remain open. Stop before86."
+  "next_action": "API implementation paused at user request. Completed application changes are published in PR310; the unfinished partner-price candidate is preserved as an unapplied patch under quality/paused. Check publication CI and retain full replay/types/E2E/RLS/billing/job blockers before any main merge. Scope on resumption includes masterplan86 starvation."
 }

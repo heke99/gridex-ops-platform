@@ -1,45 +1,55 @@
 # Current state
 
 Updated: 2026-09-12.
-Status: IN_PROGRESS.
+Status: PARTIAL
 
-## Scope and active task
+## User scope and current action
 
-Finish the existing work and masterplan77–85; stop before86. The user has explicitly authorized necessary commits, pushes, migrations and merge to main, subject to actual verification. No new approval is needed for already authorized work. Never infer whole-plan completion from a bounded application/native proof. No production database mutation or main merge has been performed by this continuation.
+The remediation scope is masterplan points 77–86, including point86 STARVATION (old backlog must not block new work, completed rows must not consume batch windows, and one tenant must not block others). This is not migration ordinal86.
 
-Active task: Task10b2b, the six invoice/Ediel JSON routes. The seven-route batch was published at85d8c22a095a495f01bfc0dfb9e5de22e073b1e8/tree8006ea67ad53768976bca488cdaf7c0b8e11b98b. The six-route implementation now has111 new tests (72 expected original-source failures), with394 combined schema/actual-company tests, test typecheck and targeted ESLint PASS locally. Collect exact hosted CI for each published batch, then continue the five platform JSON routes. Records: `quality/audits/ADMIN_JSON_SEVEN_ROUTE_REMEDIATION_2026-09-12.md` and `quality/audits/ADMIN_JSON_INVOICE_EDIEL_REMEDIATION_2026-09-12.md`. Independent review is not claimed for these new implementations.
+Latest user instruction: save/publish the completed work now and defer further API development. No new API implementation is active. Preserve existing work, record verification accurately, and leave the unresolved release gates in place. Existing authorization to commit/push and eventually merge remains subject to verification; it does not authorize bypassing failed gates.
 
-The previous Task10b2auth implementation is already published at6e4d2190478329b5565bcf7ec6820ce15fef5009. GitHub quality-release-gates job103575728105 (OPS34702159960) passed lint, script/test types, tests, API contracts, RBAC, build and budgets. Its 71 real-route tests also pass locally with the new JSON changes. Do not redo the accepted authority correction or confuse it with the new schema task.
+## Published application work
 
-## Local workspace and verification
+The application baseline is commit52b2de4d81cae370bf250e5a80f12c300bbddd16, tree76e633e2c7189807ae8b7de297a6d2e6e2343234, on PR310 / codex/gridex-parity-remediation-20260905. It includes the seven selected-company JSON routes, six invoice/Ediel JSON routes, and five platform JSON routes, plus the preceding accepted body/auth/company-authority fixes. The platform batch is recorded in quality/audits/ADMIN_JSON_PLATFORM_REMEDIATION_2026-09-12.md.
 
-The current working environment has a source+dependency snapshot from owned CI artifact10301238629/run34704968297, GitHub commit9c4e93f6/tree232663b021a581e1eb22ce6aba91af5f94e37294. SHA256 receipts and the exact Git tree matched. Local Git history is a synthetic offline snapshot, not upstream commit history. No deployment secrets or customer data were fetched. The temporary workspace-export workflow is removed after its artifact is retrieved.
+On that exact application head, OPS34708688278 / quality-release-gates103593343733 passed tests, lint, script/test types, API contracts, RBAC, build and budgets. The full local application suite has212files/2080tests on that baseline. These results do not close the full replay, RLS, billing or job plan; independent review of the JSON increments remains open.
 
-New seven-route tests: 165 total, 78 expected failures against original route bodies; all165 pass with the fix. Existing company-authority71 also pass. Full local suite:210 files/1840 tests PASS using two workers. Test typecheck and targeted ESLint PASS. Local Node22.16.0; dependency archive Node22.23.2. Hosted CI must be checked on the exact published head before acceptance.
+## Paused API work, not activated
 
-## Accepted work retained
+The three modified partner-price source/contract files and the 63-case test file are preserved byte-for-byte in quality/paused/2026-09-12-partner-price-wip.patch, with hashes and restoration instructions next to it. The patch is not applied to the application source in this publication. It preserves the candidate idempotency/schema work without introducing its new required header into the currently published application code.
 
-- Task10a body/auth and Task10b1 strict public schemas were accepted on their exact recorded CI heads;1604 tests/build on d731b76d belongs to that earlier head, not later candidates.
-- Task4 monthly company failure isolation and global-schema propagation; Tasks6/13 application billing evidence and tenant wrapper guards; Task7 manual-email fencing and company pagination; Task9 API company authority; Task14 server-action authority are bounded accepted application work.
-- Task11a source-composed canonical permissions/private-Storage metadata behavior and Task11c diagnostics have bounded native/application receipts. They are not a deployed migration or full RLS matrix.
-- Actual migration prefix77 has bounded native acceptance only. It is NOT masterplan77 (RLS tests), and does not prove a complete600-input replay.
+The paused candidate passed a fresh local suite of213files/2143tests with exit0 before capture. That is local mocked/application evidence only, not independent review, native-database concurrency, contract-release acceptance or production acceptance. Resume it deliberately, not through automatic patch application in CI. The move-out contract has not been changed.
 
-## Open merge blockers
+## Replay accounting and safety
 
-1. Full clean replay rejects the unsupported CLI/native target; reviewed ownership/reference/private logging and complete migration source effects remain incomplete. Keep the fail-closed guard.
-2. Generated types/manifest tail check fails at20260911114443. Generate from the complete accepted canonical replay; never update the tail/hash from partial replay or the live database merely to pass CI.
-3. Accounting remains600 inputs:558 selected/23 substituted/14 unclassified/5 excluded;37 global and30 focused dispositions unresolved.
-4. Remaining Task10 JSON routes, partner-price idempotency and move-out contract release.
-5. Task11b complete two-tenant CRUD/ACL/RLS; Task12 atomic invoice events; Task15 native billing evidence and dispatch reservation; Tasks16–18 ownership, scale, recovery and native job contracts.
+Working-tree accounting is 600 inputs: 558 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 14 `UNCLASSIFIED`, and 5 `EXPLICITLY_EXCLUDED`.
+The focused group contains 346 inputs: 311 selected, 20 substituted, 10 unclassified, and 5 excluded.
 
-Task12's current-observed normal/Partner/portfolio prerequisite graph was ready to author a bounded fixture (53 relations/105 functions); no transaction fixture or migration was authored. Historical source admission remains blocked. Task11b's current-observed dependency profile was ready to author separately from historical source authority. Task15's21-relation/33-function observation remained under dependency assessment. All trigger/ACL/parent/setup effects and separately timed observations must be preserved. Full details and source pins are retained in the archive below and the existing audit contracts.
+No production mutation has been performed in this replay-verification batch.
+Push reviewed, coherent batches stepwise as requested.
 
-## Connected runtime observations
+The condensed state previously omitted these truthful markers and had a trailing period on Status, causing canonical-auth-membership-group-selftest.py to fail before the older schema/type gate. This publication restores the markers and matching status pointer; no test or safety guard is weakened.
 
-Vercel projectprj_xA3EDI1xztkkyx21e3LY4UhgYrWt is linked to heke99/gridex-ops-platform; production deploymentdpl_6qevcw57wT7X2p5yd5rQA7hzRq8c is READY. Supabase projectpiidsfebjqjmnepdpnas is named gridex-ops-dev and ACTIVE_HEALTHY; do not infer deployment-to-database binding solely from these names.
+## Remaining merge blockers
 
-Read-only runtime error inspection and matching catalog constraint reads confirmed two additional defects to remediate: platform market/geodata events omit event_scope and hit canonical_energy_flow_events_scope_check; the DQ metering_points→customers embed is ambiguous between two tenant-composite FKs. No row data or secret is needed in the durable record. Preserve tenant checks; do not remove constraints to hide either failure.
+1. Full clean replay rejects its unsupported CLI/native target; complete source effects and reviewed ownership/reference/private logging remain incomplete. Keep the fail-closed guard.
+2. Generated-types manifest tail check remains unsatisfied at20260911114443. Regenerate only from the complete accepted canonical replay, never from an arbitrary live or partial database to make CI green.
+3. Accounting still has37global/30focused unresolved dispositions. Bounded native acceptance of migration prefix77 does not prove the complete600-input replay.
+4. Remaining API work and independent review are deferred, including partner-price release and move-out compatibility.
+5. Complete two-tenant CRUD/RLS/ACL, atomic invoice events, native billing evidence and dispatch reservation, ownership/scale/recovery/native job tests and starvation remain open. Preserve the existing Task11b/12/15/16–18 contracts and source pins.
+6. Full E2E on the application head is not green and must be diagnosed before release. Do not treat a green application job as full CI acceptance.
 
-## Continuity
+Current-observed Task12 inputs (53relations/105functions) and Task11b dependency inputs are retained for bounded fixture authoring, separately from historical source authority. Task15's21-relation/33-function observation still needs dependency assessment. No native transaction fixture, registered migration, main merge or production rollout is accepted by this checkpoint.
 
-The complete superseded state (including all acceptance receipts, historical source boundaries and pinned observations) is preserved at `.agent-memory/archive/pre-api-json-20260912/current-state.md`. It is history, not the active task. Continue using `quality/plans/2026-09-12-current-and-plan77-85.md` and its linked native contracts. No changes to immutable migrations, manifests or SQL candidates have been made in the JSON batch.
+## Runtime observations retained
+
+The last inspected Vercel production deployment was dpl_6qevcw57wT7X2p5yd5rQA7hzRq8c for projectprj_xA3EDI1xztkkyx21e3LY4UhgYrWt. Supabase projectpiidsfebjqjmnepdpnas is named gridex-ops-dev. Names alone do not prove deployment/database binding.
+
+Previously confirmed but not fixed by this publication: platform market/geodata events omit event_scope and violate canonical_energy_flow_events_scope_check; the DQ metering_points to customers embed is ambiguous between two tenant-composite foreign keys. Keep the constraints and tenant checks intact.
+
+## Continuity and receipts
+
+See quality/audits/SAVE_AND_API_PAUSE_2026-09-12.md for this publication and quality/paused/README.md for the preserved candidate. Continue the existing quality/plans/2026-09-12-current-and-plan77-85.md with the explicit point86 scope above only when implementation resumes. Older detailed receipts remain in .agent-memory/archive/pre-api-json-20260912/current-state.md and existing audit files; do not restart accepted work.
+
+The local workspace is an exact-tree offline snapshot with synthetic local Git history. Upstream commits are created against the actual GitHub parent, never by pushing synthetic history. The original dirty candidate remains preserved locally. No production secrets, customer rows, new migration or deployment are included in this publication.
