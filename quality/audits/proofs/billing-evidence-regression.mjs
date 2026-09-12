@@ -13,23 +13,23 @@ async function load(relative, mocks) {
     if (cache.has(id)) return cache.get(id);
     if (mocks[id] || id.startsWith('node:')) {
       const object = mocks[id] ?? await import(id);
-      const module = new vm.SyntheticModule(Object.keys(object), function () {
+      const boundaryModule = new vm.SyntheticModule(Object.keys(object), function () {
         for (const [key, value] of Object.entries(object)) this.setExport(key, value);
       });
-      cache.set(id, module);
-      return module;
+      cache.set(id, boundaryModule);
+      return boundaryModule;
     }
     const file = path.resolve(id.startsWith('@/') ? `${id.slice(2)}.ts` : id);
     const sourceRef = process.argv.find(arg => arg.startsWith('--source-ref='))?.slice(13);
     const source = sourceRef ? execFileSync('git', ['show', `${sourceRef}:${path.relative(process.cwd(), file)}`], { encoding: 'utf8' }) : fs.readFileSync(file, 'utf8');
-    const module = new vm.SourceTextModule(stripTypeScriptTypes(source), { identifier: file });
-    cache.set(id, module);
-    return module;
+    const sourceModule = new vm.SourceTextModule(stripTypeScriptTypes(source), { identifier: file });
+    cache.set(id, sourceModule);
+    return sourceModule;
   }
-  const module = await moduleFor(relative);
-  await module.link(moduleFor);
-  await module.evaluate();
-  return module.namespace;
+  const rootModule = await moduleFor(relative);
+  await rootModule.link(moduleFor);
+  await rootModule.evaluate();
+  return rootModule.namespace;
 }
 
 function fixture({ start = '2026-05-31T22:00:00Z', count = 2880, civilStart = '2026-06-01', civilEnd = '2026-07-01' } = {}) {

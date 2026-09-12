@@ -110,3 +110,7 @@ Hosted Node22 permanent Vitest, lint/typecheck/build remain PENDING. Add `__test
 ## Independent acceptance at application boundary
 
 TASK6-R1 addressed after one fix round; independent specification and quality APPROVED, no new findings. The nine implementation/test files are ready for reviewed branch publication and supported Node22 CI. Native SQL/direct-RPC/concurrency enforcement is still required and is not claimed by this application acceptance.
+
+## Hosted CI correction1
+
+Published19d6fd40 OPS34676898137/job103508242109 stopped at three no-assign-module-variable lint errors in the supplemental VM loader before Vitest. Only the three lexical bindings/references were renamed to boundaryModule/sourceModule/rootModule. Syntax and representative canonical shared-import pricing/lock case PASS; independent specification/quality APPROVED with no findings. Lint rules, application behavior and40 cases unchanged. Supported hosted acceptance remains pending the correction push.

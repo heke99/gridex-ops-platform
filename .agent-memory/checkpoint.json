@@ -5,7 +5,7 @@
   "current_state": ".agent-memory/current-state.md",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "fc869cb5cd32ba4316373e47848c73e690a05e07"
+    "published_baseline": "19d6fd40fe960a1905c73b3ddc7cf5908fb1b9fb"
   },
-  "next_action": "Publish reviewed Task6 billing application guards (40 actual-source cases PASS, fix round1 independent APPROVED), verify hostedNode22. Task13 tenantDb author active. Continue native permission/storage and billing transaction/evidence tasks plus remaining API/company/jobs fixes; no production mutation."
+  "next_action": "Publish approved Task13 wrapper guards plus lexical-only Task6 CI correction; verify supportedNode22. Task7 manual-email/analytics author active. Continue Task9/14 company authority,10API contracts,11nativepermissions,12atomicevents,15nativebilling; no production mutation."
 }
