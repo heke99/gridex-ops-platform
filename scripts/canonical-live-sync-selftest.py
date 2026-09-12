@@ -58,7 +58,7 @@ class ReconstructionTests(unittest.TestCase):
         again,evidence=fix.reconstruct(ROOT,self.original)
         self.assertEqual(again,self.rendered)
         self.assertEqual(evidence,self.evidence)
-        self.assertEqual(evidence['reconstructedSha256'],'ccebd218e15fb8243178f9d4e94490a0b4113dd0fa9163468401b9c8429a867a')
+        self.assertEqual(evidence['reconstructedSha256'],'fd565e2b67987679e682e45890c4834877d9bea8dde796007180ee8fb07e1c95')
         self.assertIs(evidence['completeSourceEffectsAccepted'],False)
         self.assertIs(evidence['historicalBytesModified'],False)
 
@@ -70,7 +70,7 @@ class ReconstructionTests(unittest.TestCase):
     def test_changed_forward_authority_is_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);(root/'supabase/migrations').mkdir(parents=True)
-            for name,sha in ((fix.ORIGINAL,fix.ORIGINAL_SHA256),(fix.FORWARD,fix.FORWARD_SHA256)):
+            for name,sha in ((fix.ORIGINAL,fix.ORIGINAL_SHA256),(fix.FORWARD,fix.FORWARD_SHA256),(fix.HARDENING,fix.HARDENING_SHA256)):
                 (root/'supabase'/name).write_text(fix.read_pinned(ROOT,name,sha))
             p=root/'supabase'/fix.FORWARD;p.write_text(p.read_text().replace('return false;','return true;'))
             with self.assertRaisesRegex(ValueError,'LIVE_SYNC_SOURCE_HASH_MISMATCH'):
@@ -79,6 +79,7 @@ class ReconstructionTests(unittest.TestCase):
     def test_symlink_source_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);(root/'supabase/migrations').mkdir(parents=True)
+            (root/'supabase'/fix.HARDENING).write_text(fix.read_pinned(ROOT,fix.HARDENING,fix.HARDENING_SHA256))
             (root/'supabase'/fix.ORIGINAL).symlink_to(ROOT/'supabase'/fix.ORIGINAL)
             with self.assertRaisesRegex(ValueError,'LIVE_SYNC_SOURCE_REQUIRED'):
                 fix.reconstruct(root,self.original)
@@ -128,6 +129,13 @@ class ReconstructionTests(unittest.TestCase):
             self.assertNotIn('source_function',result)
             self.assertNotIn('private-value',str(result))
         self.assertNotIn('known_failure',legacy.safe_receipt('ERROR: 55000: LIVE_SYNC_GUARD_PREIMAGE_MISMATCH',3,'unrelated'))
+
+    def test_prior_invoker_and_forward_definer_are_both_source_bound(self):
+        hardening=fix.read_pinned(ROOT,fix.HARDENING,fix.HARDENING_SHA256)
+        self.assertIn('alter function %I.%I(%s) security invoker',hardening)
+        self.assertIn('AND NOT p.prosecdef',self.rendered)
+        self.assertIn('AND p.prosecdef',self.rendered)
+        self.assertEqual(self.evidence['securityModeTransition'],{'from':'invoker','to':'definer','authority':fix.FORWARD})
 
     def test_original_files_are_not_modified_by_rendering(self):
         for name,expected in ((fix.SOURCE,fix.SOURCE_SHA256),(fix.ORIGINAL,fix.ORIGINAL_SHA256),(fix.FORWARD,fix.FORWARD_SHA256)):

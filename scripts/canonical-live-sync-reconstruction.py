@@ -17,6 +17,8 @@ ORIGINAL = 'migrations/20260519_batch_6d2_runtime_governance_completion.sql'
 ORIGINAL_SHA256 = 'b7d9d48b9cd3093b5546b04225f9c6151b0f674d2ae73441d8086f51922de9ab'
 FORWARD = 'migrations/20260730130000_historical_sync_forward_repair.sql'
 FORWARD_SHA256 = '3e204b00fa33badbfdc7a11c0304df3bc5385b16e0854e40af2df1c06b32b50b'
+HARDENING = 'migrations/20260611190000_launch_linter_hardening_security_definer_rls.sql'
+HARDENING_SHA256 = 'b696379a5e1d26bde5fae150d7c51e9d40df029a9dfd605810ad9051b1fb74d1'
 SIGNATURE = 'public.gridex_is_current_session_allowed()'
 START = "do $repair$\nbegin\n  if to_regprocedure('" + SIGNATURE + "') is not null then\n"
 END = '\nend\n$repair$;'
@@ -63,6 +65,10 @@ def split_source(sql):
 
 def reconstruct(root, source):
     """Retain every byte outside the defective block and original BEGIN/COMMIT."""
+    hardening_sql = read_pinned(root, HARDENING, HARDENING_SHA256)
+    if ("'gridex_is_current_session_allowed'" not in hardening_sql
+            or 'alter function %I.%I(%s) security invoker' not in hardening_sql):
+        raise ValueError('LIVE_SYNC_HARDENING_AUTHORITY_MISMATCH')
     original_sql = read_pinned(root, ORIGINAL, ORIGINAL_SHA256)
     forward_sql = read_pinned(root, FORWARD, FORWARD_SHA256)
     _, original_body = function_parts(original_sql)
@@ -78,7 +84,7 @@ BEGIN
     WHERE p.oid=to_regprocedure('{SIGNATURE}')
       AND p.prosrc={quoted(original_body)} AND p.pronargs=0
       AND p.prorettype='boolean'::regtype AND p.prokind='f'
-      AND p.prosecdef AND p.provolatile='s' AND NOT p.proisstrict
+      AND NOT p.prosecdef AND p.provolatile='s' AND NOT p.proisstrict
       AND l.lanname='plpgsql'
   ) THEN
     RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='LIVE_SYNC_GUARD_PREIMAGE_MISMATCH';
@@ -107,6 +113,8 @@ DROP TABLE pg_temp.gridex_live_sync_guard_before;"""
     rendered = prefix + before + forward_definition + after + suffix
     evidence = {
         'source': SOURCE, 'sourceSha256': SOURCE_SHA256,
+        'priorSecurityAuthority': HARDENING, 'priorSecurityAuthoritySha256': HARDENING_SHA256,
+        'securityModeTransition': {'from': 'invoker', 'to': 'definer', 'authority': FORWARD},
         'replacementAuthority': FORWARD, 'replacementAuthoritySha256': FORWARD_SHA256,
         'reconstructedSha256': digest(rendered.encode()),
         'preservedPrefixSha256': digest(prefix.encode()),
