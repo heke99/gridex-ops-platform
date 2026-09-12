@@ -1,0 +1,46 @@
+name: Gridex isolated remediation workspace
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-offline-workspace.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  workspace:
+    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/gridex-parity-remediation-20260905'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Package isolated workspace without credentials or runtime data
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/gridex-remediation-workspace"
+          mkdir -p "$out"
+          git archive --format=tar.gz --output="$out/source.tar.gz" HEAD
+          tar -czf "$out/dependencies.tar.gz" node_modules
+          {
+            printf 'source_commit=%s\n' "$(git rev-parse HEAD)"
+            printf 'source_tree=%s\n' "$(git rev-parse HEAD^{tree})"
+            printf 'node=%s\n' "$(node --version)"
+            printf 'npm=%s\n' "$(npm --version)"
+            sha256sum "$out/source.tar.gz" "$out/dependencies.tar.gz"
+          } > "$out/receipt.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gridex-isolated-remediation-workspace
+          path: ${{ runner.temp }}/gridex-remediation-workspace/
+          retention-days: 1
+          compression-level: 0
+          if-no-files-found: error
