@@ -165,6 +165,26 @@ jobs:
         if: always()
         run: python3 scripts/canonical-intake-governance-continuation-selftest.py --cleanup-owned
 
+  canonical-permission-native-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-permissions-${{ github.run_id }}-${{ github.run_attempt }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check finite permission source admission and fixture construction
+        run: |
+          python3 -B scripts/test-canonical-permission-native-admission.py
+          python3 -B scripts/test-canonical-permission-native-fixture.py
+          python3 -B scripts/test-canonical-permission-native-runner.py
+          python3 -B scripts/canonical-permission-native-runner.py --check
+      - name: Verify canonical permissions and private Storage on dedicated owned PostgreSQL 17
+        run: python3 -B scripts/canonical-permission-native-runner.py --native
+      - name: Remove only the owned permission proof container
+        if: always()
+        run: python3 -B scripts/canonical-permission-native-runner.py --cleanup-owned
+
   readiness-operations-continuation-proof:
     runs-on: ubuntu-latest
     timeout-minutes: 30

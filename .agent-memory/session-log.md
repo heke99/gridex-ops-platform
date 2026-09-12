@@ -1775,3 +1775,23 @@ Actual77 independently authored implementation: final spec/qualityreview APPROVE
 - 2026-09-12: Task9 andTask7CI1 candidates stopped/independentlyAPPROVED for combinedpublication. NativeTask11a /root/permission_native_impl soleauthor usinggenuine07candidate/sourcecontract/settledalgebra; no externalSQL/historymutation. Finitejobnative/scalecontract readonly audit_permissions active.
 
 - 2026-09-12: NativeTask11a resumedsoleauthor after Task9CI1 minimalfixturecorrection stopped/approved. Task17/18finite remainingjobscope writtenfromreadonly8case/sourcecontract. No newproductionSQL or migrationregistration.
+
+## 2026-09-12 — resumed points 77–85; published application checks accepted
+
+Verified remote/local `fe25765765d592f4b487321a027ce7032fefcd1e` and main
+`eb9a25bc989c6de808903f41c2314d5465e9c07b`. OPS run34679112809,
+quality-release-gates job103514273129 succeeded with202 Vitest files/1362tests,
+quality suite, lint, script/test typechecks, API compatibility/release, RBAC,
+production build and bundle budget. Published Task6/13/7/9 tests are now hosted
+accepted; the previous pending markers are historical. Monthly global-schema
+preflight isolation is already published6e192171, with15 supported tests.
+
+The full verify job103514273159 still fails the generated-types tail check for
+20260911114443; clean replay job103514273053 rejects an unsupported CLI/native
+target before SQL. No full schema/parity/production acceptance follows from
+application success. Latest user scope ends at point85, before86. Task11a native
+permission/private Storage implementation resumes from preserved unfinished
+source-admission files; no prior SQL implementation/approval is claimed.
+
+
+2026-09-12 Task11a reviewed publication candidate: original CLI identity20260912052507, candidateSHA22572cc31819a52fe577dbaa654dbe84cd6ebc0dd7564ab6f9c4f340cbd5a4fe. Nine implementation files frozen; independent spec+quality APPROVED0findings.37local construction testsPASS;102candidate/9baseline cases constructed, nativeNOT_RUN. Dedicated owned network-disabledPG17 lane/source admission/row+catalog+ACL repeat and poison-recovery checks implemented. Original source bucket foundation admitted after construction RED/GREEN; no historical source rewrite, replay registration or production action. Reports PERMISSION_NATIVE_FIXTURE_2026-09-12.md andPERMISSION_NATIVE_REVIEW_2026-09-12.md. All16bounded/source/quality jobs onbaselinefe257657 now confirmedSUCCESS; clean replay/types remainFAIL. Next exact hosted native result required. Full11b policy/CRUD100/relationship18 andmanagedStorage/session/replay/type gates stayOPEN.
