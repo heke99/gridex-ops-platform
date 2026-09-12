@@ -7,6 +7,7 @@ on:
       - 'scripts/canonical-foundation-frontier-*.py'
       - 'scripts/canonical-timestamp-frontier*.py'
       - 'scripts/canonical-auth-provisioning-legacy-batch.py'
+      - 'scripts/canonical-live-sync-*.py'
 
 permissions:
   contents: read
@@ -27,6 +28,7 @@ jobs:
         run: |
           python3 scripts/canonical-foundation-frontier-selftest.py
           python3 scripts/canonical-timestamp-frontier-selftest.py
+          python3 scripts/canonical-live-sync-selftest.py
       - name: Execute selected chain on an owned network-disabled database
         run: python3 scripts/canonical-foundation-frontier-diagnostic.py
       - name: Remove only this diagnostic's owned container

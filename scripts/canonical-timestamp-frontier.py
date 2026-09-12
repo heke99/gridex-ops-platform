@@ -139,7 +139,16 @@ def execute_tail(root, target, database, selected, prerequisites, progress):
         progress['sourceSha256'] = source[1]
         # Only safe stage labels go to the existing private SQL runner. No SQL
         # output, exception text, rows or credentials are copied into progress.
-        target.sql(database, read_source(root, source), stage, transaction=False)
+        sql = read_source(root, source)
+        if source[0] == 'migrations/20260728170000_live_schema_code_canonical_sync.sql':
+            # A source-bound reconstruction with its native RED/GREEN/rollback
+            # proof. This never changes the selected file or acceptance ledger.
+            spec = importlib.util.spec_from_file_location('live_sync_boundary', root / 'scripts/canonical-live-sync-proof.py')
+            proof = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(proof)
+            proof.execute_boundary(root, target, database, sql, progress)
+        else:
+            target.sql(database, sql, stage, transaction=False)
 
     reached = set()
     for ordinal, source in enumerate(selected, 1):
