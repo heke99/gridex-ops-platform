@@ -1,6 +1,6 @@
 # Bounded billing audit, masterplan 79–82
 
-Date: 2026-09-12. Source baseline: 41786027. Scope: read-only business-path audit; no application or migration edits, database connections, production reads, provider calls, or deployment. The companion `billing-audit-proof.cjs` runs actual TypeScript modules with isolated in-memory boundary stubs; it is evidence code, not a production fix or native SQL integration test.
+Date: 2026-09-12. Source baseline: 41786027. Scope: read-only business-path audit; no application or migration edits, database connections, production reads, provider calls, or deployment. The companion `billing-audit-proof.mjs` runs actual TypeScript modules with isolated in-memory boundary stubs; it is evidence code, not a production fix or native SQL integration test.
 
 Outcome: **three current confirmed code defects**, one narrower fail-closed candidate, and explicit remaining dynamic gates. This does not close points 79–82 or establish production readiness.
 
@@ -128,7 +128,7 @@ Existing tests inspected: `billing-canonical-gate.test.ts` (two cases, no presen
 From repository root:
 
 ```sh
-node --no-warnings --experimental-vm-modules .superpowers/sdd/2026-09-12-current-and-plan77-85/billing-audit-proof.cjs
+node --no-warnings --experimental-vm-modules quality/audits/proofs/billing-audit-proof.mjs
 ```
 
 Actual observed output:

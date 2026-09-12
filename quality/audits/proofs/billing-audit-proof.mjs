@@ -1,15 +1,15 @@
-const fs = require('node:fs');
-const path = require('node:path');
-const vm = require('node:vm');
-const assert = require('node:assert/strict');
-const {stripTypeScriptTypes}=require('node:module');
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import {stripTypeScriptTypes} from 'node:module';
 const root=process.cwd();
 async function load(relative,mocks={}) {
  const cache=new Map();
  async function moduleFor(id){
   if(cache.has(id)) return cache.get(id);
   if(mocks[id]){const obj=mocks[id];const m=new vm.SyntheticModule(Object.keys(obj),function(){for(const [k,v] of Object.entries(obj))this.setExport(k,v)});cache.set(id,m);return m;}
-  if(id.startsWith('node:')){const obj=require(id);const m=new vm.SyntheticModule(Object.keys(obj),function(){for(const [k,v] of Object.entries(obj))this.setExport(k,v)});cache.set(id,m);return m;}
+  if(id.startsWith('node:')){const obj=await import(id);const m=new vm.SyntheticModule(Object.keys(obj),function(){for(const [k,v] of Object.entries(obj))this.setExport(k,v)});cache.set(id,m);return m;}
   const abs=id.startsWith('@/')?path.join(root,id.slice(2)+'.ts'):path.resolve(root,id);
   const m=new vm.SourceTextModule(stripTypeScriptTypes(fs.readFileSync(abs,'utf8')),{identifier:abs});cache.set(id,m);
   await m.link(moduleFor);return m;
