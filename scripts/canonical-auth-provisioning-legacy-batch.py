@@ -161,7 +161,26 @@ def safe_receipt(raw,code,stage):
         stage='internal'
     found=re.search(r'(?:ERROR|FATAL|PANIC):\s+([A-Z0-9]{5}):',raw)
     state=found.group(1) if found else ('00000' if code==0 else 'XXXXX')
-    return {'stage':stage,'exit_code':code,'sqlstate':state,'category':CATEGORIES.get(state,'OK' if code==0 else 'NATIVE_ERROR')}
+    receipt = {'stage':stage,'exit_code':code,'sqlstate':state,'category':CATEGORIES.get(state,'OK' if code==0 else 'NATIVE_ERROR')}
+    if stage.startswith('live_sync_') and code != 0:
+        # Closed diagnostics only: never copy DETAIL, CONTEXT, SQL or row values.
+        headline = re.search(r'(?:ERROR|FATAL|PANIC):\s+[A-Z0-9]{5}:([^\n]*)', raw)
+        if headline:
+            message = headline[1].strip()
+            known = ('LIVE_SYNC_GUARD_PREIMAGE_MISMATCH', 'LIVE_SYNC_GUARD_POSTIMAGE_MISMATCH',
+                     'LIVE_SYNC_INJECTED_FAILURE', 'LIVE_SYNC_BEHAVIOR_FAILED')
+            if message in known:
+                receipt['known_failure'] = message
+            prefix = 'gridex_repair_unexpected_function_definition:'
+            signature = message[len(prefix):] if message.startswith(prefix) else ''
+            source = ROOT/'supabase/migrations/20260728170000_live_schema_code_canonical_sync.sql'
+            data = source.read_bytes()
+            if (digest(data) == '4b1af824f75423faa393d60b845d3b39a3998bcfc7d7ea1cec2a54aa8d3bd400'
+                    and re.fullmatch(r'public\.[a-z_][a-z0-9_]*\([a-z0-9_, ]*\)', signature)
+                    and ("'"+signature+"'") in data.decode()):
+                receipt['known_failure'] = 'REPAIR_UNEXPECTED_FUNCTION_DEFINITION'
+                receipt['source_function'] = signature
+    return receipt
 
 
 def literal(value):
@@ -219,7 +238,7 @@ class OwnedPostgres:
                 '-c','log_parameter_max_length_on_error=0','-c','log_min_duration_statement=-1',
                 '-c','log_min_duration_sample=-1','-c','log_transaction_sample_rate=0',
                 '-c','log_duration=off','-c','shared_preload_libraries=','-c','local_preload_libraries=',
-                '-c','session_preload_libraries='],timeout=180)
+                '-c','log_duration=off','-c','session_preload_libraries='],timeout=180)
             self.active=True
             deadline=time.monotonic()+60
             while True:

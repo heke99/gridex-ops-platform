@@ -112,6 +112,23 @@ class ReconstructionTests(unittest.TestCase):
         denied=next(call for call in target.calls if call[0][2]=='live_sync_acl_anon')
         self.assertEqual(denied[1]['expect'],'42501')
 
+    def test_sql_error_diagnostic_is_closed_and_source_bound(self):
+        # Loading through the existing controller preserves its dataclass loader.
+        controller=load('canonical-auth-provisioning-replay').controller()
+        legacy=controller.load_batch()
+        def receipt(message):
+            return legacy.safe_receipt('ERROR: 55000: '+message+'\nDETAIL: private-value',3,'live_sync_test')
+        self.assertEqual(receipt('LIVE_SYNC_GUARD_PREIMAGE_MISMATCH')['known_failure'],'LIVE_SYNC_GUARD_PREIMAGE_MISMATCH')
+        signature='public.gridex_is_current_session_allowed()'
+        self.assertEqual(receipt('gridex_repair_unexpected_function_definition:'+signature)['source_function'],signature)
+        for message in ('secret@example.test','LIVE_SYNC_SECRET_VALUE',
+                        'gridex_repair_unexpected_function_definition:public.private_value()'):
+            result=receipt(message)
+            self.assertNotIn('known_failure',result)
+            self.assertNotIn('source_function',result)
+            self.assertNotIn('private-value',str(result))
+        self.assertNotIn('known_failure',legacy.safe_receipt('ERROR: 55000: LIVE_SYNC_GUARD_PREIMAGE_MISMATCH',3,'unrelated'))
+
     def test_original_files_are_not_modified_by_rendering(self):
         for name,expected in ((fix.SOURCE,fix.SOURCE_SHA256),(fix.ORIGINAL,fix.ORIGINAL_SHA256),(fix.FORWARD,fix.FORWARD_SHA256)):
             self.assertEqual(fix.digest((ROOT/'supabase'/name).read_bytes()),expected)
