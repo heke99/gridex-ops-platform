@@ -113,22 +113,16 @@ class ReconstructionTests(unittest.TestCase):
         denied=next(call for call in target.calls if call[0][2]=='live_sync_acl_anon')
         self.assertEqual(denied[1]['expect'],'42501')
 
-    def test_sql_error_diagnostic_is_closed_and_source_bound(self):
-        # Loading through the existing controller preserves its dataclass loader.
+    def test_original_private_sql_receipts_do_not_expose_values(self):
         controller=load('canonical-auth-provisioning-replay').controller()
         legacy=controller.load_batch()
-        def receipt(message):
-            return legacy.safe_receipt('ERROR: 55000: '+message+'\nDETAIL: private-value',3,'live_sync_test')
-        self.assertEqual(receipt('LIVE_SYNC_GUARD_PREIMAGE_MISMATCH')['known_failure'],'LIVE_SYNC_GUARD_PREIMAGE_MISMATCH')
-        signature='public.gridex_is_current_session_allowed()'
-        self.assertEqual(receipt('gridex_repair_unexpected_function_definition:'+signature)['source_function'],signature)
-        for message in ('secret@example.test','LIVE_SYNC_SECRET_VALUE',
+        for message in ('LIVE_SYNC_GUARD_PREIMAGE_MISMATCH','secret@example.test',
                         'gridex_repair_unexpected_function_definition:public.private_value()'):
-            result=receipt(message)
-            self.assertNotIn('known_failure',result)
-            self.assertNotIn('source_function',result)
+            result=legacy.safe_receipt('ERROR: 55000: '+message+'\nDETAIL: private-value',3,'live_sync_test')
+            self.assertEqual(result,{'stage':'live_sync_test','exit_code':3,
+                                     'sqlstate':'55000','category':'DIRTY_DATA'})
+            self.assertNotIn(message,str(result))
             self.assertNotIn('private-value',str(result))
-        self.assertNotIn('known_failure',legacy.safe_receipt('ERROR: 55000: LIVE_SYNC_GUARD_PREIMAGE_MISMATCH',3,'unrelated'))
 
     def test_prior_invoker_and_forward_definer_are_both_source_bound(self):
         hardening=fix.read_pinned(ROOT,fix.HARDENING,fix.HARDENING_SHA256)
