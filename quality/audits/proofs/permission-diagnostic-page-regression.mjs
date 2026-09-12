@@ -28,7 +28,7 @@ for (const test of cases) {
   const service = {
     rpc: async (name, args) => { calls.push(['diagnostic', name, args]); return { data: test.data, error: test.error ?? null } },
     auth: { admin: { getUserById: async id => { calls.push(['target-auth', id]); return { data: { user: { id } }, error: null } } } },
-    from: table => { const query = { select: () => query, eq: () => query, order: () => query, in: () => query, then: resolve => Promise.resolve({ data: [], error: null }).then(resolve) }; return query },
+    from: () => { const query = { select: () => query, eq: () => query, order: () => query, in: () => query, then: resolve => Promise.resolve({ data: [], error: null }).then(resolve) }; return query },
   }
   const session = {
     auth: { getUser: async () => ({ data: { user: { id: actor } }, error: null }) },
@@ -55,9 +55,9 @@ for (const test of cases) {
     if (mocks[id] || id.startsWith('node:')) {
       if (cache.has(id)) return cache.get(id)
       const object = mocks[id] ?? await import(id)
-      const module = new vm.SyntheticModule(Object.keys(object), function () { for (const [key, value] of Object.entries(object)) this.setExport(key, value) }, { context })
-      cache.set(id, module)
-      return module
+      const boundaryModule = new vm.SyntheticModule(Object.keys(object), function () { for (const [key, value] of Object.entries(object)) this.setExport(key, value) }, { context })
+      cache.set(id, boundaryModule)
+      return boundaryModule
     }
     const relative = id.startsWith('@/') ? id.slice(2) : id.startsWith('.') ? path.join(path.dirname(importer.identifier), id) : id
     const file = path.resolve(relative.endsWith('.tsx') ? relative : relative.endsWith('.ts') ? relative : relative + '.ts')
@@ -68,9 +68,9 @@ for (const test of cases) {
       assert.ok(rendering > 0, 'exact JSX rendering boundary')
       source = source.slice(0, rendering) + '\n return { count: effectivePermissions.size };\n}\n'
     }
-    const module = new vm.SourceTextModule(stripTypeScriptTypes(source), { identifier: file, context })
-    cache.set(file, module)
-    return module
+    const sourceModule = new vm.SourceTextModule(stripTypeScriptTypes(source), { identifier: file, context })
+    cache.set(file, sourceModule)
+    return sourceModule
   }
   try {
     const page = await load('app/admin/users/[id]/page.tsx')

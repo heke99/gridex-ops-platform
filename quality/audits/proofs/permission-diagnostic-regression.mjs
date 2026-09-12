@@ -33,17 +33,17 @@ for (const [name, data, error, expected] of cases) {
   }
   const boundary = new vm.SyntheticModule(['supabaseService'], function () { this.setExport('supabaseService', service) }, { context })
   const serverOnly = new vm.SyntheticModule([], function () {}, { context })
-  const module = new vm.SourceTextModule(stripTypeScriptTypes(source), { identifier: file, context })
-  await module.link(id => id === 'server-only' ? serverOnly : id === '@/lib/supabase/service' ? boundary : Promise.reject(new Error(`Unexpected import ${id}`)))
-  await module.evaluate()
+  const sourceModule = new vm.SourceTextModule(stripTypeScriptTypes(source), { identifier: file, context })
+  await sourceModule.link(id => id === 'server-only' ? serverOnly : id === '@/lib/supabase/service' ? boundary : Promise.reject(new Error(`Unexpected import ${id}`)))
+  await sourceModule.evaluate()
   try {
     if (expected) {
-      const result = await module.namespace.getAdminUserById(actor, target)
+      const result = await sourceModule.namespace.getAdminUserById(actor, target)
       assert.deepEqual(structuredClone(result.effectivePermissions), expected)
       assert.deepEqual(structuredClone(calls[0]), ['rpc', 'canonical_get_platform_user_permission_diagnostic', { p_actor_user_id: actor, p_target_user_id: target }])
       assert.deepEqual(calls[1], ['auth', target])
     } else {
-      await assert.rejects(module.namespace.getAdminUserById(actor, target), /Behörighetsdiagnostiken är inte tillgänglig/)
+      await assert.rejects(sourceModule.namespace.getAdminUserById(actor, target), /Behörighetsdiagnostiken är inte tillgänglig/)
       assert.equal(calls.some(([kind]) => kind === 'auth' || kind === 'from'), false)
       assert.ok(JSON.stringify(logs).length < 500)
     }
