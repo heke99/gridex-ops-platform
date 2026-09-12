@@ -1,0 +1,1575 @@
+{
+  "format_version": 1,
+  "status": "BLOCKED",
+  "profile": "BILL03_EVENT_APPLY_NORMAL_PARTNER_PORTFOLIO_CURRENT_OBSERVED_INPUT_V1",
+  "authority": "actual_executed_observation_only_not_historical_source_admission",
+  "offset_convention": "UTF-8 byte_start inclusive, byte_end exclusive",
+  "canonical_json_encoding": "sort_keys=true,separators=comma-colon,ensure_ascii=false UTF-8",
+  "receipts": [
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "bytes": 5163485,
+      "sha256": "63a84e0aa7e98503cd95c58e0a36b963e54b77dc273a4f3863ba5dd52ca9aa2b",
+      "observed_at": "2026-09-12T13:54:42.623376+00:00"
+    },
+    {
+      "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+      "bytes": 3537639,
+      "sha256": "8cdca9cf1e6a67a9b4870d00e654eceab3f5d00902cb6c5dad16d53efe672c48",
+      "observed_at": "2026-09-12T09:41:32.785612+00:00"
+    },
+    {
+      "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE2_2026-09-12.json",
+      "bytes": 1174816,
+      "sha256": "0f798ee90026d898f3e2afc3a05c6da2404aeaf2ee15e209f4f3bf99f29d11f4",
+      "observed_at": "2026-09-12T09:58:49.391332+00:00"
+    }
+  ],
+  "query_comparison": {
+    "executed_bytes": 22780,
+    "executed_sha256": "77d7844dfee874d3e6fd5d87756362eb19974f64250001dd56bfd024ba3e1f76",
+    "final_bytes": 22980,
+    "final_sha256": "88422a5b622a623e4b1aa3095d02e6b44612c145394c1dec452d89e13886c1bf",
+    "sole_added_line": " 'session_context',jsonb_build_object('search_path',current_setting('search_path'),'current_user',current_user,'session_user',session_user,'server_version_num',current_setting('server_version_num')),\n",
+    "added_bytes": 200,
+    "object_projections_changed": false,
+    "material_missing_metadata": "session diagnostics only; retained object comparison is exact; no rerun required solely for context"
+  },
+  "objects": [
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/0",
+      "byte_start": 34853,
+      "byte_end": 58837,
+      "raw_slice_sha256": "ed780f14c0c31d7fb8e95290259a26f2091e67e19a8ffc8a4bee4860911a80e3",
+      "canonical_json_sha256": "e6b9323c491e2c3cf0c491c10a198d0e1cd974b44cf993d932e22b051531f9a6",
+      "oid": "17607",
+      "schema": "public",
+      "name": "audit_logs"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/1",
+      "byte_start": 58845,
+      "byte_end": 162006,
+      "raw_slice_sha256": "998732b2672c169cb1638bc70d6b94ec850831ee28010e0e6f7be5ff723f5cb9",
+      "canonical_json_sha256": "384ecef2f9cb1d4ca188dc4910a5a74f07dad792ae3f4449a5952f7330b044c5",
+      "oid": "33648",
+      "schema": "public",
+      "name": "billing_underlays"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/2",
+      "byte_start": 162014,
+      "byte_end": 562523,
+      "raw_slice_sha256": "7830745f6d79e7fffd6fb00bde781a5107e6625cbf3b05a230cfa76cf960a5fc",
+      "canonical_json_sha256": "5b8f78f1178b5a5853bb8f488d3cb3d6d550d5e07a471d2b0f7c837d3f206932",
+      "oid": "40619",
+      "schema": "public",
+      "name": "companies"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/3",
+      "byte_start": 562531,
+      "byte_end": 607961,
+      "raw_slice_sha256": "f7b6b8c535ef6f1b6b320a3a206d562258ee80cf3fa45d404758c78b172ec2b8",
+      "canonical_json_sha256": "d8f7b47e385678c14980b0f13c49782779b20371262843e79f476b0e54ebeab1",
+      "oid": "58176",
+      "schema": "public",
+      "name": "contract_price_snapshots"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/4",
+      "byte_start": 607969,
+      "byte_end": 791187,
+      "raw_slice_sha256": "e6d95a6b937ec7d18a69fb8e44cd7bbae70cb3e75792b8fe38fad12a702feea7",
+      "canonical_json_sha256": "80619e045018c12dd3766ab8e62e92076d94b51386b9dcfa121ae84e44686eeb",
+      "oid": "33852",
+      "schema": "public",
+      "name": "customer_contracts"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/5",
+      "byte_start": 791195,
+      "byte_end": 877535,
+      "raw_slice_sha256": "30680030be784a037f392f7e05c41c19190adeb997e5675db6819b6660531f86",
+      "canonical_json_sha256": "c20e17c69e8b9ef119cdad056a5455d43a1f1bbdd0d243b68ec9df389d884c67",
+      "oid": "39121",
+      "schema": "public",
+      "name": "customer_invoices"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/6",
+      "byte_start": 877543,
+      "byte_end": 1036432,
+      "raw_slice_sha256": "ba93f8f33446ac5898f858381d71c01bd9e148ef8c32f748c4eb237b1eae2f59",
+      "canonical_json_sha256": "e787a860bb67700fc355e6de08b8fa84a3c3b8bb2b03f2c8b40b177f74a44c98",
+      "oid": "18086",
+      "schema": "public",
+      "name": "customer_sites"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/7",
+      "byte_start": 1036440,
+      "byte_end": 1270398,
+      "raw_slice_sha256": "ef3ba26eb9ea4177fb4b1d0138d088d63206f4dbd6c7975c2e37383b57540e94",
+      "canonical_json_sha256": "d9c8a8095d7ff064a6715e4c8d1dd3b69dd74e12ac27c2cbd2a138ebceb6bb5d",
+      "oid": "17721",
+      "schema": "public",
+      "name": "customers"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/8",
+      "byte_start": 1270406,
+      "byte_end": 1298024,
+      "raw_slice_sha256": "73a3504de444f4595789505ae9ad78dbf7611f229ee281394166af3cd1af80de",
+      "canonical_json_sha256": "ece772e998390582d9b61d67cfde4eaeb9e87321b96b8de01b4761c84d4cca66",
+      "oid": "47493",
+      "schema": "public",
+      "name": "domain_events"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/9",
+      "byte_start": 1298032,
+      "byte_end": 1320266,
+      "raw_slice_sha256": "6e15f66a17dc7d8679976de9984bfa23dad758649bb02ae23b23967ce51e30b8",
+      "canonical_json_sha256": "70c56de3dd1ce9d9df501a16a4bc09af6624cc2b538fd3d9dd9a239aeb2ff649",
+      "oid": "47528",
+      "schema": "public",
+      "name": "event_outbox"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/10",
+      "byte_start": 1320274,
+      "byte_end": 1377725,
+      "raw_slice_sha256": "51167389054dbd2f732fd71204446a674d45ff75f12a8bd91445b1decde16cbd",
+      "canonical_json_sha256": "810d1d9d07d8895279f19fbdaf35219c8413820fa6923aca576c75d604ca4c15",
+      "oid": "58593",
+      "schema": "public",
+      "name": "invoice_export_items"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/11",
+      "byte_start": 1377733,
+      "byte_end": 1399208,
+      "raw_slice_sha256": "8568e662c7da6b43ec36601ca874f4d6b5cbb4b78ede2f9bce40d52f67484276",
+      "canonical_json_sha256": "8c3dd0d3f93a59a227d4a5e33840e9a448b555caecbe03a95aae87f94fe5e5f7",
+      "oid": "58561",
+      "schema": "public",
+      "name": "invoice_export_runs"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/12",
+      "byte_start": 1399216,
+      "byte_end": 1418253,
+      "raw_slice_sha256": "61808d3389b243e525a9cba254cc7cecb356c0b3f555e2023a298118146b4d9b",
+      "canonical_json_sha256": "625ea824a5a699629bfbe67a9721788442bfb9f66b3b4e22904ae91a167bd515",
+      "oid": "58632",
+      "schema": "public",
+      "name": "invoice_provider_events"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/13",
+      "byte_start": 1418261,
+      "byte_end": 1545302,
+      "raw_slice_sha256": "88a340d005268f54ef6916a4474cfc82d2124c1fb7e335a6f1d6738f6e9f0705",
+      "canonical_json_sha256": "6b3633902b011c5eba4e5cd84b457209c2465df8fef20de37ecbf46c4668efa0",
+      "oid": "17802",
+      "schema": "public",
+      "name": "metering_points"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/14",
+      "byte_start": 1545310,
+      "byte_end": 1592602,
+      "raw_slice_sha256": "7a126b524fa04a6798242e05d352e78159ec939f6dc460e7faf132aba852fe14",
+      "canonical_json_sha256": "eee7b63e8af019cc04dda4ebe4feace6ed4ef337ab540bf8a0444226f3621fe5",
+      "oid": "33693",
+      "schema": "public",
+      "name": "partner_exports"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/15",
+      "byte_start": 1592610,
+      "byte_end": 1646909,
+      "raw_slice_sha256": "6ccf657246aca925eab390d9185b2d154a921187312dde7a9dd20fb20c2912db",
+      "canonical_json_sha256": "d740bbf57fc47abe67904dfd3fd70615ba9b25a1af0a2551c16d252df4f68b57",
+      "oid": "138174",
+      "schema": "public",
+      "name": "portfolio_monthly_settlements"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/16",
+      "byte_start": 1646917,
+      "byte_end": 1658425,
+      "raw_slice_sha256": "2ce9f056d85cc938efdbe0e73dd61320433c927ae2dff25f2945afa7ad89a3f8",
+      "canonical_json_sha256": "10828e8f13fda73ee257a27f26f03d273fb48de10a71ee3945435e5579f88cfd",
+      "oid": "138323",
+      "schema": "public",
+      "name": "portfolio_settlement_audit_log"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/17",
+      "byte_start": 1658433,
+      "byte_end": 1677974,
+      "raw_slice_sha256": "41e665dbf59c457035ab3e7e9abe56cf261769abb39a755bd373d7c6db00c7ad",
+      "canonical_json_sha256": "d33feb7b91a3bd0d14da345a69ab4c96776faeb679c059184bb1cad762e4165a",
+      "oid": "138152",
+      "schema": "public",
+      "name": "portfolios"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/18",
+      "byte_start": 1677982,
+      "byte_end": 1719785,
+      "raw_slice_sha256": "bab99f9b04f67607dec1e6fb897c39ebbb354bd62b12990cf829c7339e8ace92",
+      "canonical_json_sha256": "68e10822c69fb195c82f65e2ba9d9a9adeea8c1a4cdb6df30908d3115f37077f",
+      "oid": "58040",
+      "schema": "public",
+      "name": "price_plan_versions"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/19",
+      "byte_start": 1719793,
+      "byte_end": 1758167,
+      "raw_slice_sha256": "44cacaef957ccff4bdbe972083eeca65309326006410d8e9f58cf1e4f55ea94d",
+      "canonical_json_sha256": "dd756053137d07fa442aec0967f9f9bdcafb8ce3d0e1b0622a7ad7f193936181",
+      "oid": "58195",
+      "schema": "public",
+      "name": "pricing_runs"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/20",
+      "byte_start": 1758175,
+      "byte_end": 1934634,
+      "raw_slice_sha256": "130201a19cd21a100a36484ae59555c2536d604950a3a0a5b2651e7f17bf6014",
+      "canonical_json_sha256": "5e608188d1157007fd43b5e2d31cb98eb5e9ff4358dc4be140696b1eb92adca5",
+      "oid": "16499",
+      "schema": "auth",
+      "name": "users"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/21",
+      "byte_start": 1934642,
+      "byte_end": 1968218,
+      "raw_slice_sha256": "5fb139ca3126f650f8ad890693ade5b7276371a178d1db33b08479ff4f6267c3",
+      "canonical_json_sha256": "d4453add7820540ed1f530ff3d4fc3879e4e82e02052d5d58a74ce1d3f16c846",
+      "oid": "47597",
+      "schema": "public",
+      "name": "webhook_deliveries"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/tables/22",
+      "byte_start": 1968226,
+      "byte_end": 2004848,
+      "raw_slice_sha256": "e5a39215ea5a3dd61d60072e36f86f9a70090cf58376dabe191aaaee15b81719",
+      "canonical_json_sha256": "4e1cff76ccbd36ae911e8741b31fe6899ddb3c632351211a1c26abfdb08d213a",
+      "oid": "47560",
+      "schema": "public",
+      "name": "webhook_subscriptions"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/0",
+      "byte_start": 2004997,
+      "byte_end": 2006152,
+      "raw_slice_sha256": "599eeec17faace582497adb281b49d35ec07858f847e9b1276b181a98f684a71",
+      "canonical_json_sha256": "89d50aaa52066f641a104ace58ce77019dfb493916e1fab61c660b8d7d96302e",
+      "oid": "16448",
+      "schema": "extensions",
+      "name": "digest"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/1",
+      "byte_start": 2006160,
+      "byte_end": 2007317,
+      "raw_slice_sha256": "c1f16b75c3e11a83d59b9938b2a4e3becc3cf16f29b759c2540ba65b8768642c",
+      "canonical_json_sha256": "b8c1d234df23c77048c2b07d487500f4c1821b56c3a3c4092427f06d900f11bf",
+      "oid": "16449",
+      "schema": "extensions",
+      "name": "digest"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/2",
+      "byte_start": 2007325,
+      "byte_end": 2008203,
+      "raw_slice_sha256": "87fb665f03c4541e00ad464385f262f761a44c5b2d3dee08c3ad51fad19ac933",
+      "canonical_json_sha256": "136cad0e5a5808975804c497f92a490fd43cb54e0b934e114027ce61b5af4b79",
+      "oid": "1646",
+      "schema": "pg_catalog",
+      "name": "RI_FKey_cascade_del"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/3",
+      "byte_start": 2008211,
+      "byte_end": 2009087,
+      "raw_slice_sha256": "a162fa6918c89ae26c9c4b40c1c8e83d22a7e18ab20929dcd03986e36a12a1aa",
+      "canonical_json_sha256": "40da494c3d577d9b6aa63ec89f58f43ee1199aada33d4f0b5b7688ace34e6bea",
+      "oid": "1644",
+      "schema": "pg_catalog",
+      "name": "RI_FKey_check_ins"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/4",
+      "byte_start": 2009095,
+      "byte_end": 2009971,
+      "raw_slice_sha256": "c250115bdce2edca3a6202aa60345c5142f4faf981b8ddf1a147d2a51144fdc5",
+      "canonical_json_sha256": "3dcc239d903cf355e9dc1034363fb8b1448567a1190dcbac295efbf10e2a4de9",
+      "oid": "1645",
+      "schema": "pg_catalog",
+      "name": "RI_FKey_check_upd"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/5",
+      "byte_start": 2009979,
+      "byte_end": 2010858,
+      "raw_slice_sha256": "6e3427b3949ba790f5eff784ff7470bcc32650236febbe4a8deba44011577f50",
+      "canonical_json_sha256": "20be3e9c25fb7914de760a4b2a93d3fee1f1c96ab19786af4596c6945eeb77f0",
+      "oid": "1654",
+      "schema": "pg_catalog",
+      "name": "RI_FKey_noaction_del"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/6",
+      "byte_start": 2010866,
+      "byte_end": 2011745,
+      "raw_slice_sha256": "ea96388667a3734cb17c2dc126b781b7650d3249ec0de26b5a1f316542fd5c45",
+      "canonical_json_sha256": "cf2b537dac09b6c94838ad2e2ad3f5951e7c1cd50e8c564886965a08190a1b9d",
+      "oid": "1655",
+      "schema": "pg_catalog",
+      "name": "RI_FKey_noaction_upd"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/7",
+      "byte_start": 2011753,
+      "byte_end": 2012632,
+      "raw_slice_sha256": "8569563877fda92400c02a3b2a7d3b54664c809de741f2fd9a8e6ab31da8cb20",
+      "canonical_json_sha256": "185b8bfcbd3cae0ba6f6395f2e4a1b6596d8affefea3fd117c032b32e3b138bd",
+      "oid": "1648",
+      "schema": "pg_catalog",
+      "name": "RI_FKey_restrict_del"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/8",
+      "byte_start": 2012640,
+      "byte_end": 2013518,
+      "raw_slice_sha256": "a2ca92578313da40a8c2197745754e596f8330fed270a09459a55eb03fa4b38e",
+      "canonical_json_sha256": "bf7a57a2fff5bfde447e4490fb6e3913678b3f5196daec0506b0ce5c1545c7a7",
+      "oid": "1650",
+      "schema": "pg_catalog",
+      "name": "RI_FKey_setnull_del"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/9",
+      "byte_start": 2013526,
+      "byte_end": 2018408,
+      "raw_slice_sha256": "600c77cc8f859d07c03974e6b7e629bbb0758bcf84a77b3349f75789d8afbd17",
+      "canonical_json_sha256": "596815ce3e9c5cc8885cdb6b241cacaad190fefc8c3224069bbd62a512262530",
+      "oid": "344927",
+      "schema": "private",
+      "name": "gridex_emit_partner_resource_event_v2"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/10",
+      "byte_start": 2018416,
+      "byte_end": 2020420,
+      "raw_slice_sha256": "dffde9c677dec8f52461d476bb77b0ed46a8e5bcf186355d6dfa16af3b132cce",
+      "canonical_json_sha256": "815e1904ae9f35172c62fa1e912fed1f735c66f015c8745992b9b698d4ac9fbe",
+      "oid": "344931",
+      "schema": "private",
+      "name": "gridex_partner_invoice_event_v2"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/11",
+      "byte_start": 2020428,
+      "byte_end": 2021910,
+      "raw_slice_sha256": "5f23dcc6ea007d6f8fd9c72f56d375bcc1bfd39844f042785d631e6183f9fb66",
+      "canonical_json_sha256": "577afec01e993b6ec3c5cf0539b2b3f2d74acdff02792ca32ce08d2b4cd060df",
+      "oid": "346047",
+      "schema": "private",
+      "name": "gridex_require_locked_pricing_run_for_invoice_export"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/12",
+      "byte_start": 2021918,
+      "byte_end": 2023652,
+      "raw_slice_sha256": "b82452a39992463cc6456e72c2a540af4c063404b8446224771d0feceef974b2",
+      "canonical_json_sha256": "6445ee827069796f19b8c662e6a20581337d767cc63f00fa46f02d3d750a7af4",
+      "oid": "341232",
+      "schema": "public",
+      "name": "ensure_customer_invoice_reference_v1"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/13",
+      "byte_start": 2023660,
+      "byte_end": 2025325,
+      "raw_slice_sha256": "550f2fab10a2dcd0cc4d9061d8bf39fbee5c90329d6038265e058b33033f34e0",
+      "canonical_json_sha256": "660e67f4a5e06a4d6fc472f16da5bce30f2ebde99199a0ef6addaa1be57ba52a",
+      "oid": "41311",
+      "schema": "public",
+      "name": "gridex_assert_company_operational_for_write"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/14",
+      "byte_start": 2025333,
+      "byte_end": 2027046,
+      "raw_slice_sha256": "6e3ef67e43e0f6bcc9a45e2f9daeea9feaf1ec23353b4a2bc80ba8676785f8f6",
+      "canonical_json_sha256": "24bce320cfe43098e74813c456c9b29aaffd5f193d2c791796a0db82352649a1",
+      "oid": "67738",
+      "schema": "public",
+      "name": "gridex_assert_same_company"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/15",
+      "byte_start": 2027054,
+      "byte_end": 2030087,
+      "raw_slice_sha256": "5703586275d2f27a375beb10112a64b2dfc4dd99632de7a310873217ef717564",
+      "canonical_json_sha256": "2b6ee662cd15600f1f91390fdc3e568cf557aae4171682a28b0bc752600f762e",
+      "oid": "42266",
+      "schema": "public",
+      "name": "gridex_audit_critical_row_change"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/16",
+      "byte_start": 2030095,
+      "byte_end": 2033815,
+      "raw_slice_sha256": "8ee9720843f68126c5913f84e3fe8d8a5af2bc84cd159f853b42c46ffa2bef69",
+      "canonical_json_sha256": "a1d82be414376c4047cde7d62cdf353c9083af960f8ea7eea9dc2f121e8f9c88",
+      "oid": "138347",
+      "schema": "public",
+      "name": "gridex_audit_portfolio_settlement_write"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/17",
+      "byte_start": 2033823,
+      "byte_end": 2036715,
+      "raw_slice_sha256": "18fdd5ec778f9af81f48820d78bdae0c4522b4d055bdf8d909bc7cd1c1125956",
+      "canonical_json_sha256": "a55a9d49c6a2995d612ca97e17a12e1ac009fb5516098f42712482997bb761db",
+      "oid": "67762",
+      "schema": "public",
+      "name": "gridex_billing_underlays_company_guard"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/18",
+      "byte_start": 2036723,
+      "byte_end": 2039614,
+      "raw_slice_sha256": "3ae99344e5d8f12a9fe14694a424ac350c7888b6987bdbd23dd00143e68f9d5b",
+      "canonical_json_sha256": "fd059c90b0f3c344b12b6f4cef1316763d631892e1f77891121cede3bb6e293f",
+      "oid": "133799",
+      "schema": "public",
+      "name": "gridex_claim_invoice_provider_events"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/19",
+      "byte_start": 2039622,
+      "byte_end": 2043627,
+      "raw_slice_sha256": "937cd0df4994dcf95291240ff3d1873fecffb07491a95b6c2f2d31ae5445b6b6",
+      "canonical_json_sha256": "109c190afd0488f254b73a77422b1080ad02eaab518946d17fde48d78cadcc6d",
+      "oid": "337850",
+      "schema": "public",
+      "name": "gridex_enforce_billing_underlay_price_area"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/20",
+      "byte_start": 2043635,
+      "byte_end": 2047157,
+      "raw_slice_sha256": "3b20a9566d2d8563442dcc273f1e1804a02f1f734477bfcfebf5a3b490af475c",
+      "canonical_json_sha256": "f2d4ab1080d92c83c199a2acaee7c609acfb88656e1edc2da8cf313a65158f02",
+      "oid": "179613",
+      "schema": "public",
+      "name": "gridex_enforce_customer_contract_chain_v1"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/21",
+      "byte_start": 2047165,
+      "byte_end": 2048667,
+      "raw_slice_sha256": "ce25ccf048640fec035159b5c91dea72507cb6c94f01e19afdb43df3c62fe8f4",
+      "canonical_json_sha256": "08ff10f7e73cf49319a5ed1a6869727df78b9be8a5c9ea636e611a159218ae94",
+      "oid": "137289",
+      "schema": "public",
+      "name": "gridex_guard_billing_underlay_exact_refs"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/22",
+      "byte_start": 2048675,
+      "byte_end": 2053812,
+      "raw_slice_sha256": "cc8dd77a48910bcfb31ca4b36014674c588d0365493e02e7a4ffa40b80d29076",
+      "canonical_json_sha256": "32bc3c2837bcaeee8fc90b2ae3c81aaa4fe14881d9cf8d70580a69d0bc177b23",
+      "oid": "138463",
+      "schema": "public",
+      "name": "gridex_guard_portfolio_invoice_evidence"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/23",
+      "byte_start": 2053820,
+      "byte_end": 2057025,
+      "raw_slice_sha256": "54ae88304670eb39b4c3cd2dc928795bf6e47b1ec6ad12138f76917fac019afa",
+      "canonical_json_sha256": "bc04fa09377bb61582514b6ea5a6e9dc6d042271c2f5d5323d3e4c69c27ac6ac",
+      "oid": "138345",
+      "schema": "public",
+      "name": "gridex_guard_portfolio_settlement_immutability"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/24",
+      "byte_start": 2057033,
+      "byte_end": 2058620,
+      "raw_slice_sha256": "590f3bb17320869b77f671c89692c17fc36cd677071fc3e3b530e6988940277d",
+      "canonical_json_sha256": "90b72a513454ba5f27137adc2619340693d57ca997e55ecf1b56772fa2cae0d0",
+      "oid": "137342",
+      "schema": "public",
+      "name": "gridex_inherit_pricing_run_energy_flow"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/25",
+      "byte_start": 2058628,
+      "byte_end": 2061741,
+      "raw_slice_sha256": "69f2099dc429bf6d54d5d51e5d3cb3b9b5cf83e76fababaf941878fa4e06049b",
+      "canonical_json_sha256": "91d069ebca9e937b214faeafc14a4cb7a56d45c989c838f23d6a4984133e880b",
+      "oid": "192996",
+      "schema": "public",
+      "name": "gridex_normalize_audit_context_v1"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/26",
+      "byte_start": 2061749,
+      "byte_end": 2063864,
+      "raw_slice_sha256": "2331daec0dfb39f97891a8f95f0959b6514f5aeef4f06cb4363ec100499f0b6f",
+      "canonical_json_sha256": "41d8a6ec262060467cc9b2bfaafa7eddbe2ff12d85dd504e7ac20c85a9e895cc",
+      "oid": "137339",
+      "schema": "public",
+      "name": "gridex_normalize_billing_energy_flow"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/27",
+      "byte_start": 2063872,
+      "byte_end": 2065378,
+      "raw_slice_sha256": "7e66d2bc284954a398c21e1e4f5f4100ba40ed4f7d5e2034f93467e2d1c80408",
+      "canonical_json_sha256": "e6ef17739a3d69198d5f658370c72d1ec903cd548612f2778f8239d35e4c39b9",
+      "oid": "38705",
+      "schema": "public",
+      "name": "gridex_partner_exports_guard"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/28",
+      "byte_start": 2065386,
+      "byte_end": 2066927,
+      "raw_slice_sha256": "43e943aa76ecb085aba5987123f1835fdb36c8f0cbe55bee2cb5979c640cc543",
+      "canonical_json_sha256": "80579cc5cdb35416754e2e2088abebd76c4dd033e24662d16c014d2f151d25a5",
+      "oid": "38727",
+      "schema": "public",
+      "name": "gridex_partner_exports_status_guard_2"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/29",
+      "byte_start": 2066935,
+      "byte_end": 2068232,
+      "raw_slice_sha256": "be7c2c337b06f8c32b7a461edb42a761b5e28aaa23e40d01352c78fd100bcb41",
+      "canonical_json_sha256": "f99f261a1c62e3b87df47d340b2f34ae4c26260a655d902cadfe280beee6fb10",
+      "oid": "138349",
+      "schema": "public",
+      "name": "gridex_portfolio_audit_immutable"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/30",
+      "byte_start": 2068240,
+      "byte_end": 2070147,
+      "raw_slice_sha256": "ffa0c9eacfbb758fb741c699b41bec0402cebe1829620e5c5edaa0bace8fdc78",
+      "canonical_json_sha256": "23c810c034c2372bad26e1f841c53d3fcc2baae844d97fed98c8a39e965ceb71",
+      "oid": "132513",
+      "schema": "public",
+      "name": "gridex_protect_locked_pricing_runs"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/31",
+      "byte_start": 2070155,
+      "byte_end": 2073480,
+      "raw_slice_sha256": "a5ad3a718fe1e29ee7c48c371943fa9badb57d0ec458e9095c5d58fe92010eb2",
+      "canonical_json_sha256": "053c6ace964a1c66a45b2333b91a03cff4d0ae13f0127137e40b2b9f01ed21f0",
+      "oid": "132557",
+      "schema": "public",
+      "name": "gridex_protect_sent_invoice_export_items"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/32",
+      "byte_start": 2073488,
+      "byte_end": 2076782,
+      "raw_slice_sha256": "e79df691c0ba6fa125d81da8493d4682c0d289269a3077e77cce03fdcd31c299",
+      "canonical_json_sha256": "4d2146d66b00fbd6a57503fe1ae08990ea785ebfcba58a389d912f38b516e81c",
+      "oid": "345166",
+      "schema": "public",
+      "name": "gridex_public_catalog_dependency_revision_trigger_v1"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/33",
+      "byte_start": 2076790,
+      "byte_end": 2078571,
+      "raw_slice_sha256": "6511185ef7d6d3349b3ceda17517adac8ba04a64e824aa1170ba2a432675168b",
+      "canonical_json_sha256": "15ef6bce92ad53fd696c61e056ea2f53f0bbbb7afcad3dcf2748061dfbfc0e93",
+      "oid": "161091",
+      "schema": "public",
+      "name": "gridex_reject_billing_configuration_snapshot_mutation"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/34",
+      "byte_start": 2078579,
+      "byte_end": 2080124,
+      "raw_slice_sha256": "425bb95caaf64c08a180050d832cfdd9b38f6ea36f9cf45466c98a462c2d2000",
+      "canonical_json_sha256": "f5d0183fc451c4fe4081b47b7030bf89f9c0eb6c4e18e8b05dcd37108365fb15",
+      "oid": "137042",
+      "schema": "public",
+      "name": "gridex_reject_locked_price_version_mutation"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/35",
+      "byte_start": 2080132,
+      "byte_end": 2081454,
+      "raw_slice_sha256": "7da742d5ce5aff22db9e50ac079948ba54f91592c22e797ef84356c438d34d33",
+      "canonical_json_sha256": "ce9635ca1b9ffe79ca86ed3fa59b25f8f24c93dfdd5a28c4ca67dfddf52eb2e2",
+      "oid": "345213",
+      "schema": "public",
+      "name": "gridex_suppress_retired_onboarding_outbox_v1"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/36",
+      "byte_start": 2081462,
+      "byte_end": 2086505,
+      "raw_slice_sha256": "9bdb891a1ed3e1b48573b54efe5c4c38929d57da338d9c8ffd5f443f4f3945a6",
+      "canonical_json_sha256": "e0f67038c8c6d1141474a4b957e96a1bdefb2dd9b735931e77ded9d39cc2c345",
+      "oid": "137855",
+      "schema": "public",
+      "name": "gridex_sync_portfolio_monthly_prices_for_version"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/37",
+      "byte_start": 2086513,
+      "byte_end": 2087831,
+      "raw_slice_sha256": "08459430e790e21cecffd796f6bc0c81cacced16f8b12bcb449ddd74a775ad13",
+      "canonical_json_sha256": "c3f350b8c8a9e00c4f7981c55712a2d4d49d9b994117e4446c5a5422fc7b5396",
+      "oid": "137856",
+      "schema": "public",
+      "name": "gridex_sync_portfolio_monthly_prices_from_version_trigger"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/38",
+      "byte_start": 2087839,
+      "byte_end": 2090645,
+      "raw_slice_sha256": "c033d00a74c680270122a9f2ca953fd813dea457a2347d9d746e04dda3462e20",
+      "canonical_json_sha256": "c04d05a722253d15c5b5767d9e0f56811845b687051bed8074981d2a32ffa3c5",
+      "oid": "348033",
+      "schema": "public",
+      "name": "gridex_sync_underlay_invoice_projection_v1"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/functions/39",
+      "byte_start": 2090653,
+      "byte_end": 2091894,
+      "raw_slice_sha256": "8243c2f7cff0bbade92c70c16f49fe0dd30d30daa2ab02c8e716bc11d6ef5724",
+      "canonical_json_sha256": "5352b016e5aa2745665261316d6eff7f994706fc40ddafddabea2c5cd01eb6dd",
+      "oid": "20523",
+      "schema": "public",
+      "name": "set_updated_at_timestamp"
+    },
+    {
+      "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+      "selector": "/catalog/sequences/0",
+      "byte_start": 2091927,
+      "byte_end": 2093572,
+      "raw_slice_sha256": "4b87b0ed021425589b13cad91a7b12178796bd008db05ce016d6b5c3f36132ae",
+      "canonical_json_sha256": "377e5ab8deb9a5873b83ac463fb0e48ee0d6c34d120393a56c63f77af215cd3d",
+      "oid": "138322",
+      "schema": "public",
+      "name": "portfolio_settlement_audit_log_id_seq"
+    }
+  ],
+  "retained_comparisons": [
+    {
+      "kind": "tables",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/tables/0",
+        "byte_start": 34853,
+        "byte_end": 58837,
+        "raw_slice_sha256": "ed780f14c0c31d7fb8e95290259a26f2091e67e19a8ffc8a4bee4860911a80e3",
+        "canonical_json_sha256": "e6b9323c491e2c3cf0c491c10a198d0e1cd974b44cf993d932e22b051531f9a6",
+        "oid": "17607",
+        "schema": "public",
+        "name": "audit_logs"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/tables/1",
+        "byte_start": 36830,
+        "byte_end": 60814,
+        "raw_slice_sha256": "ed780f14c0c31d7fb8e95290259a26f2091e67e19a8ffc8a4bee4860911a80e3",
+        "canonical_json_sha256": "e6b9323c491e2c3cf0c491c10a198d0e1cd974b44cf993d932e22b051531f9a6",
+        "oid": "17607",
+        "schema": "public",
+        "name": "audit_logs"
+      }
+    },
+    {
+      "kind": "tables",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/tables/1",
+        "byte_start": 58845,
+        "byte_end": 162006,
+        "raw_slice_sha256": "998732b2672c169cb1638bc70d6b94ec850831ee28010e0e6f7be5ff723f5cb9",
+        "canonical_json_sha256": "384ecef2f9cb1d4ca188dc4910a5a74f07dad792ae3f4449a5952f7330b044c5",
+        "oid": "33648",
+        "schema": "public",
+        "name": "billing_underlays"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/tables/2",
+        "byte_start": 60822,
+        "byte_end": 163983,
+        "raw_slice_sha256": "998732b2672c169cb1638bc70d6b94ec850831ee28010e0e6f7be5ff723f5cb9",
+        "canonical_json_sha256": "384ecef2f9cb1d4ca188dc4910a5a74f07dad792ae3f4449a5952f7330b044c5",
+        "oid": "33648",
+        "schema": "public",
+        "name": "billing_underlays"
+      }
+    },
+    {
+      "kind": "tables",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/tables/2",
+        "byte_start": 162014,
+        "byte_end": 562523,
+        "raw_slice_sha256": "7830745f6d79e7fffd6fb00bde781a5107e6625cbf3b05a230cfa76cf960a5fc",
+        "canonical_json_sha256": "5b8f78f1178b5a5853bb8f488d3cb3d6d550d5e07a471d2b0f7c837d3f206932",
+        "oid": "40619",
+        "schema": "public",
+        "name": "companies"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/tables/3",
+        "byte_start": 163991,
+        "byte_end": 564500,
+        "raw_slice_sha256": "7830745f6d79e7fffd6fb00bde781a5107e6625cbf3b05a230cfa76cf960a5fc",
+        "canonical_json_sha256": "5b8f78f1178b5a5853bb8f488d3cb3d6d550d5e07a471d2b0f7c837d3f206932",
+        "oid": "40619",
+        "schema": "public",
+        "name": "companies"
+      }
+    },
+    {
+      "kind": "tables",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/tables/3",
+        "byte_start": 562531,
+        "byte_end": 607961,
+        "raw_slice_sha256": "f7b6b8c535ef6f1b6b320a3a206d562258ee80cf3fa45d404758c78b172ec2b8",
+        "canonical_json_sha256": "d8f7b47e385678c14980b0f13c49782779b20371262843e79f476b0e54ebeab1",
+        "oid": "58176",
+        "schema": "public",
+        "name": "contract_price_snapshots"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/tables/5",
+        "byte_start": 603105,
+        "byte_end": 648535,
+        "raw_slice_sha256": "f7b6b8c535ef6f1b6b320a3a206d562258ee80cf3fa45d404758c78b172ec2b8",
+        "canonical_json_sha256": "d8f7b47e385678c14980b0f13c49782779b20371262843e79f476b0e54ebeab1",
+        "oid": "58176",
+        "schema": "public",
+        "name": "contract_price_snapshots"
+      }
+    },
+    {
+      "kind": "tables",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/tables/4",
+        "byte_start": 607969,
+        "byte_end": 791187,
+        "raw_slice_sha256": "e6d95a6b937ec7d18a69fb8e44cd7bbae70cb3e75792b8fe38fad12a702feea7",
+        "canonical_json_sha256": "80619e045018c12dd3766ab8e62e92076d94b51386b9dcfa121ae84e44686eeb",
+        "oid": "33852",
+        "schema": "public",
+        "name": "customer_contracts"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/tables/6",
+        "byte_start": 648543,
+        "byte_end": 831761,
+        "raw_slice_sha256": "e6d95a6b937ec7d18a69fb8e44cd7bbae70cb3e75792b8fe38fad12a702feea7",
+        "canonical_json_sha256": "80619e045018c12dd3766ab8e62e92076d94b51386b9dcfa121ae84e44686eeb",
+        "oid": "33852",
+        "schema": "public",
+        "name": "customer_contracts"
+      }
+    },
+    {
+      "kind": "tables",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/tables/5",
+        "byte_start": 791195,
+        "byte_end": 877535,
+        "raw_slice_sha256": "30680030be784a037f392f7e05c41c19190adeb997e5675db6819b6660531f86",
+        "canonical_json_sha256": "c20e17c69e8b9ef119cdad056a5455d43a1f1bbdd0d243b68ec9df389d884c67",
+        "oid": "39121",
+        "schema": "public",
+        "name": "customer_invoices"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/tables/8",
+        "byte_start": 865788,
+        "byte_end": 952128,
+        "raw_slice_sha256": "30680030be784a037f392f7e05c41c19190adeb997e5675db6819b6660531f86",
+        "canonical_json_sha256": "c20e17c69e8b9ef119cdad056a5455d43a1f1bbdd0d243b68ec9df389d884c67",
+        "oid": "39121",
+        "schema": "public",
+        "name": "customer_invoices"
+      }
+    },
+    {
+      "kind": "tables",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/tables/6",
+        "byte_start": 877543,
+        "byte_end": 1036432,
+        "raw_slice_sha256": "ba93f8f33446ac5898f858381d71c01bd9e148ef8c32f748c4eb237b1eae2f59",
+        "canonical_json_sha256": "e787a860bb67700fc355e6de08b8fa84a3c3b8bb2b03f2c8b40b177f74a44c98",
+        "oid": "18086",
+        "schema": "public",
+        "name": "customer_sites"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/tables/11",
+        "byte_start": 1029608,
+        "byte_end": 1188497,
+        "raw_slice_sha256": "ba93f8f33446ac5898f858381d71c01bd9e148ef8c32f748c4eb237b1eae2f59",
+        "canonical_json_sha256": "e787a860bb67700fc355e6de08b8fa84a3c3b8bb2b03f2c8b40b177f74a44c98",
+        "oid": "18086",
+        "schema": "public",
+        "name": "customer_sites"
+      }
+    },
+    {
+      "kind": "tables",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/tables/7",
+        "byte_start": 1036440,
+        "byte_end": 1270398,
+        "raw_slice_sha256": "ef3ba26eb9ea4177fb4b1d0138d088d63206f4dbd6c7975c2e37383b57540e94",
+        "canonical_json_sha256": "d9c8a8095d7ff064a6715e4c8d1dd3b69dd74e12ac27c2cbd2a138ebceb6bb5d",
+        "oid": "17721",
+        "schema": "public",
+        "name": "customers"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/tables/12",
+        "byte_start": 1188505,
+        "byte_end": 1422463,
+        "raw_slice_sha256": "ef3ba26eb9ea4177fb4b1d0138d088d63206f4dbd6c7975c2e37383b57540e94",
+        "canonical_json_sha256": "d9c8a8095d7ff064a6715e4c8d1dd3b69dd74e12ac27c2cbd2a138ebceb6bb5d",
+        "oid": "17721",
+        "schema": "public",
+        "name": "customers"
+      }
+    },
+    {
+      "kind": "tables",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/tables/8",
+        "byte_start": 1270406,
+        "byte_end": 1298024,
+        "raw_slice_sha256": "73a3504de444f4595789505ae9ad78dbf7611f229ee281394166af3cd1af80de",
+        "canonical_json_sha256": "ece772e998390582d9b61d67cfde4eaeb9e87321b96b8de01b4761c84d4cca66",
+        "oid": "47493",
+        "schema": "public",
+        "name": "domain_events"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE2_2026-09-12.json",
+        "selector": "/catalog/tables/5",
+        "byte_start": 263155,
+        "byte_end": 290773,
+        "raw_slice_sha256": "73a3504de444f4595789505ae9ad78dbf7611f229ee281394166af3cd1af80de",
+        "canonical_json_sha256": "ece772e998390582d9b61d67cfde4eaeb9e87321b96b8de01b4761c84d4cca66",
+        "oid": "47493",
+        "schema": "public",
+        "name": "domain_events"
+      }
+    },
+    {
+      "kind": "tables",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/tables/13",
+        "byte_start": 1418261,
+        "byte_end": 1545302,
+        "raw_slice_sha256": "88a340d005268f54ef6916a4474cfc82d2124c1fb7e335a6f1d6738f6e9f0705",
+        "canonical_json_sha256": "6b3633902b011c5eba4e5cd84b457209c2465df8fef20de37ecbf46c4668efa0",
+        "oid": "17802",
+        "schema": "public",
+        "name": "metering_points"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/tables/13",
+        "byte_start": 1422471,
+        "byte_end": 1549512,
+        "raw_slice_sha256": "88a340d005268f54ef6916a4474cfc82d2124c1fb7e335a6f1d6738f6e9f0705",
+        "canonical_json_sha256": "6b3633902b011c5eba4e5cd84b457209c2465df8fef20de37ecbf46c4668efa0",
+        "oid": "17802",
+        "schema": "public",
+        "name": "metering_points"
+      }
+    },
+    {
+      "kind": "tables",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/tables/20",
+        "byte_start": 1758175,
+        "byte_end": 1934634,
+        "raw_slice_sha256": "130201a19cd21a100a36484ae59555c2536d604950a3a0a5b2651e7f17bf6014",
+        "canonical_json_sha256": "5e608188d1157007fd43b5e2d31cb98eb5e9ff4358dc4be140696b1eb92adca5",
+        "oid": "16499",
+        "schema": "auth",
+        "name": "users"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/tables/22",
+        "byte_start": 1732009,
+        "byte_end": 1908468,
+        "raw_slice_sha256": "130201a19cd21a100a36484ae59555c2536d604950a3a0a5b2651e7f17bf6014",
+        "canonical_json_sha256": "5e608188d1157007fd43b5e2d31cb98eb5e9ff4358dc4be140696b1eb92adca5",
+        "oid": "16499",
+        "schema": "auth",
+        "name": "users"
+      }
+    },
+    {
+      "kind": "tables",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/tables/21",
+        "byte_start": 1934642,
+        "byte_end": 1968218,
+        "raw_slice_sha256": "5fb139ca3126f650f8ad890693ade5b7276371a178d1db33b08479ff4f6267c3",
+        "canonical_json_sha256": "d4453add7820540ed1f530ff3d4fc3879e4e82e02052d5d58a74ce1d3f16c846",
+        "oid": "47597",
+        "schema": "public",
+        "name": "webhook_deliveries"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/tables/23",
+        "byte_start": 1908476,
+        "byte_end": 1942052,
+        "raw_slice_sha256": "5fb139ca3126f650f8ad890693ade5b7276371a178d1db33b08479ff4f6267c3",
+        "canonical_json_sha256": "d4453add7820540ed1f530ff3d4fc3879e4e82e02052d5d58a74ce1d3f16c846",
+        "oid": "47597",
+        "schema": "public",
+        "name": "webhook_deliveries"
+      }
+    },
+    {
+      "kind": "tables",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/tables/22",
+        "byte_start": 1968226,
+        "byte_end": 2004848,
+        "raw_slice_sha256": "e5a39215ea5a3dd61d60072e36f86f9a70090cf58376dabe191aaaee15b81719",
+        "canonical_json_sha256": "4e1cff76ccbd36ae911e8741b31fe6899ddb3c632351211a1c26abfdb08d213a",
+        "oid": "47560",
+        "schema": "public",
+        "name": "webhook_subscriptions"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE2_2026-09-12.json",
+        "selector": "/catalog/tables/9",
+        "byte_start": 341345,
+        "byte_end": 377967,
+        "raw_slice_sha256": "e5a39215ea5a3dd61d60072e36f86f9a70090cf58376dabe191aaaee15b81719",
+        "canonical_json_sha256": "4e1cff76ccbd36ae911e8741b31fe6899ddb3c632351211a1c26abfdb08d213a",
+        "oid": "47560",
+        "schema": "public",
+        "name": "webhook_subscriptions"
+      }
+    },
+    {
+      "kind": "functions",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/functions/0",
+        "byte_start": 2004997,
+        "byte_end": 2006152,
+        "raw_slice_sha256": "599eeec17faace582497adb281b49d35ec07858f847e9b1276b181a98f684a71",
+        "canonical_json_sha256": "89d50aaa52066f641a104ace58ce77019dfb493916e1fab61c660b8d7d96302e",
+        "oid": "16448",
+        "schema": "extensions",
+        "name": "digest"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE2_2026-09-12.json",
+        "selector": "/catalog/functions/2",
+        "byte_start": 447908,
+        "byte_end": 449063,
+        "raw_slice_sha256": "599eeec17faace582497adb281b49d35ec07858f847e9b1276b181a98f684a71",
+        "canonical_json_sha256": "89d50aaa52066f641a104ace58ce77019dfb493916e1fab61c660b8d7d96302e",
+        "oid": "16448",
+        "schema": "extensions",
+        "name": "digest"
+      }
+    },
+    {
+      "kind": "functions",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/functions/1",
+        "byte_start": 2006160,
+        "byte_end": 2007317,
+        "raw_slice_sha256": "c1f16b75c3e11a83d59b9938b2a4e3becc3cf16f29b759c2540ba65b8768642c",
+        "canonical_json_sha256": "b8c1d234df23c77048c2b07d487500f4c1821b56c3a3c4092427f06d900f11bf",
+        "oid": "16449",
+        "schema": "extensions",
+        "name": "digest"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE2_2026-09-12.json",
+        "selector": "/catalog/functions/3",
+        "byte_start": 449071,
+        "byte_end": 450228,
+        "raw_slice_sha256": "c1f16b75c3e11a83d59b9938b2a4e3becc3cf16f29b759c2540ba65b8768642c",
+        "canonical_json_sha256": "b8c1d234df23c77048c2b07d487500f4c1821b56c3a3c4092427f06d900f11bf",
+        "oid": "16449",
+        "schema": "extensions",
+        "name": "digest"
+      }
+    },
+    {
+      "kind": "functions",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/functions/10",
+        "byte_start": 2018416,
+        "byte_end": 2020420,
+        "raw_slice_sha256": "dffde9c677dec8f52461d476bb77b0ed46a8e5bcf186355d6dfa16af3b132cce",
+        "canonical_json_sha256": "815e1904ae9f35172c62fa1e912fed1f735c66f015c8745992b9b698d4ac9fbe",
+        "oid": "344931",
+        "schema": "private",
+        "name": "gridex_partner_invoice_event_v2"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/functions/14",
+        "byte_start": 1961770,
+        "byte_end": 1963774,
+        "raw_slice_sha256": "dffde9c677dec8f52461d476bb77b0ed46a8e5bcf186355d6dfa16af3b132cce",
+        "canonical_json_sha256": "815e1904ae9f35172c62fa1e912fed1f735c66f015c8745992b9b698d4ac9fbe",
+        "oid": "344931",
+        "schema": "private",
+        "name": "gridex_partner_invoice_event_v2"
+      }
+    },
+    {
+      "kind": "functions",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/functions/12",
+        "byte_start": 2021918,
+        "byte_end": 2023652,
+        "raw_slice_sha256": "b82452a39992463cc6456e72c2a540af4c063404b8446224771d0feceef974b2",
+        "canonical_json_sha256": "6445ee827069796f19b8c662e6a20581337d767cc63f00fa46f02d3d750a7af4",
+        "oid": "341232",
+        "schema": "public",
+        "name": "ensure_customer_invoice_reference_v1"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/functions/23",
+        "byte_start": 1984550,
+        "byte_end": 1986284,
+        "raw_slice_sha256": "b82452a39992463cc6456e72c2a540af4c063404b8446224771d0feceef974b2",
+        "canonical_json_sha256": "6445ee827069796f19b8c662e6a20581337d767cc63f00fa46f02d3d750a7af4",
+        "oid": "341232",
+        "schema": "public",
+        "name": "ensure_customer_invoice_reference_v1"
+      }
+    },
+    {
+      "kind": "functions",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/functions/13",
+        "byte_start": 2023660,
+        "byte_end": 2025325,
+        "raw_slice_sha256": "550f2fab10a2dcd0cc4d9061d8bf39fbee5c90329d6038265e058b33033f34e0",
+        "canonical_json_sha256": "660e67f4a5e06a4d6fc472f16da5bce30f2ebde99199a0ef6addaa1be57ba52a",
+        "oid": "41311",
+        "schema": "public",
+        "name": "gridex_assert_company_operational_for_write"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE2_2026-09-12.json",
+        "selector": "/catalog/functions/13",
+        "byte_start": 461564,
+        "byte_end": 463229,
+        "raw_slice_sha256": "550f2fab10a2dcd0cc4d9061d8bf39fbee5c90329d6038265e058b33033f34e0",
+        "canonical_json_sha256": "660e67f4a5e06a4d6fc472f16da5bce30f2ebde99199a0ef6addaa1be57ba52a",
+        "oid": "41311",
+        "schema": "public",
+        "name": "gridex_assert_company_operational_for_write"
+      }
+    },
+    {
+      "kind": "functions",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/functions/14",
+        "byte_start": 2025333,
+        "byte_end": 2027046,
+        "raw_slice_sha256": "6e3ef67e43e0f6bcc9a45e2f9daeea9feaf1ec23353b4a2bc80ba8676785f8f6",
+        "canonical_json_sha256": "24bce320cfe43098e74813c456c9b29aaffd5f193d2c791796a0db82352649a1",
+        "oid": "67738",
+        "schema": "public",
+        "name": "gridex_assert_same_company"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE2_2026-09-12.json",
+        "selector": "/catalog/functions/14",
+        "byte_start": 463237,
+        "byte_end": 464950,
+        "raw_slice_sha256": "6e3ef67e43e0f6bcc9a45e2f9daeea9feaf1ec23353b4a2bc80ba8676785f8f6",
+        "canonical_json_sha256": "24bce320cfe43098e74813c456c9b29aaffd5f193d2c791796a0db82352649a1",
+        "oid": "67738",
+        "schema": "public",
+        "name": "gridex_assert_same_company"
+      }
+    },
+    {
+      "kind": "functions",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/functions/15",
+        "byte_start": 2027054,
+        "byte_end": 2030087,
+        "raw_slice_sha256": "5703586275d2f27a375beb10112a64b2dfc4dd99632de7a310873217ef717564",
+        "canonical_json_sha256": "2b6ee662cd15600f1f91390fdc3e568cf557aae4171682a28b0bc752600f762e",
+        "oid": "42266",
+        "schema": "public",
+        "name": "gridex_audit_critical_row_change"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE2_2026-09-12.json",
+        "selector": "/catalog/functions/15",
+        "byte_start": 464958,
+        "byte_end": 467991,
+        "raw_slice_sha256": "5703586275d2f27a375beb10112a64b2dfc4dd99632de7a310873217ef717564",
+        "canonical_json_sha256": "2b6ee662cd15600f1f91390fdc3e568cf557aae4171682a28b0bc752600f762e",
+        "oid": "42266",
+        "schema": "public",
+        "name": "gridex_audit_critical_row_change"
+      }
+    },
+    {
+      "kind": "functions",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/functions/17",
+        "byte_start": 2033823,
+        "byte_end": 2036715,
+        "raw_slice_sha256": "18fdd5ec778f9af81f48820d78bdae0c4522b4d055bdf8d909bc7cd1c1125956",
+        "canonical_json_sha256": "a55a9d49c6a2995d612ca97e17a12e1ac009fb5516098f42712482997bb761db",
+        "oid": "67762",
+        "schema": "public",
+        "name": "gridex_billing_underlays_company_guard"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/functions/31",
+        "byte_start": 2000448,
+        "byte_end": 2003340,
+        "raw_slice_sha256": "18fdd5ec778f9af81f48820d78bdae0c4522b4d055bdf8d909bc7cd1c1125956",
+        "canonical_json_sha256": "a55a9d49c6a2995d612ca97e17a12e1ac009fb5516098f42712482997bb761db",
+        "oid": "67762",
+        "schema": "public",
+        "name": "gridex_billing_underlays_company_guard"
+      }
+    },
+    {
+      "kind": "functions",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/functions/19",
+        "byte_start": 2039622,
+        "byte_end": 2043627,
+        "raw_slice_sha256": "937cd0df4994dcf95291240ff3d1873fecffb07491a95b6c2f2d31ae5445b6b6",
+        "canonical_json_sha256": "109c190afd0488f254b73a77422b1080ad02eaab518946d17fde48d78cadcc6d",
+        "oid": "337850",
+        "schema": "public",
+        "name": "gridex_enforce_billing_underlay_price_area"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/functions/46",
+        "byte_start": 2035289,
+        "byte_end": 2039294,
+        "raw_slice_sha256": "937cd0df4994dcf95291240ff3d1873fecffb07491a95b6c2f2d31ae5445b6b6",
+        "canonical_json_sha256": "109c190afd0488f254b73a77422b1080ad02eaab518946d17fde48d78cadcc6d",
+        "oid": "337850",
+        "schema": "public",
+        "name": "gridex_enforce_billing_underlay_price_area"
+      }
+    },
+    {
+      "kind": "functions",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/functions/20",
+        "byte_start": 2043635,
+        "byte_end": 2047157,
+        "raw_slice_sha256": "3b20a9566d2d8563442dcc273f1e1804a02f1f734477bfcfebf5a3b490af475c",
+        "canonical_json_sha256": "f2d4ab1080d92c83c199a2acaee7c609acfb88656e1edc2da8cf313a65158f02",
+        "oid": "179613",
+        "schema": "public",
+        "name": "gridex_enforce_customer_contract_chain_v1"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/functions/49",
+        "byte_start": 2045066,
+        "byte_end": 2048588,
+        "raw_slice_sha256": "3b20a9566d2d8563442dcc273f1e1804a02f1f734477bfcfebf5a3b490af475c",
+        "canonical_json_sha256": "f2d4ab1080d92c83c199a2acaee7c609acfb88656e1edc2da8cf313a65158f02",
+        "oid": "179613",
+        "schema": "public",
+        "name": "gridex_enforce_customer_contract_chain_v1"
+      }
+    },
+    {
+      "kind": "functions",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/functions/21",
+        "byte_start": 2047165,
+        "byte_end": 2048667,
+        "raw_slice_sha256": "ce25ccf048640fec035159b5c91dea72507cb6c94f01e19afdb43df3c62fe8f4",
+        "canonical_json_sha256": "08ff10f7e73cf49319a5ed1a6869727df78b9be8a5c9ea636e611a159218ae94",
+        "oid": "137289",
+        "schema": "public",
+        "name": "gridex_guard_billing_underlay_exact_refs"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/functions/56",
+        "byte_start": 2076415,
+        "byte_end": 2077917,
+        "raw_slice_sha256": "ce25ccf048640fec035159b5c91dea72507cb6c94f01e19afdb43df3c62fe8f4",
+        "canonical_json_sha256": "08ff10f7e73cf49319a5ed1a6869727df78b9be8a5c9ea636e611a159218ae94",
+        "oid": "137289",
+        "schema": "public",
+        "name": "gridex_guard_billing_underlay_exact_refs"
+      }
+    },
+    {
+      "kind": "functions",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/functions/22",
+        "byte_start": 2048675,
+        "byte_end": 2053812,
+        "raw_slice_sha256": "cc8dd77a48910bcfb31ca4b36014674c588d0365493e02e7a4ffa40b80d29076",
+        "canonical_json_sha256": "32bc3c2837bcaeee8fc90b2ae3c81aaa4fe14881d9cf8d70580a69d0bc177b23",
+        "oid": "138463",
+        "schema": "public",
+        "name": "gridex_guard_portfolio_invoice_evidence"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/functions/57",
+        "byte_start": 2077925,
+        "byte_end": 2083062,
+        "raw_slice_sha256": "cc8dd77a48910bcfb31ca4b36014674c588d0365493e02e7a4ffa40b80d29076",
+        "canonical_json_sha256": "32bc3c2837bcaeee8fc90b2ae3c81aaa4fe14881d9cf8d70580a69d0bc177b23",
+        "oid": "138463",
+        "schema": "public",
+        "name": "gridex_guard_portfolio_invoice_evidence"
+      }
+    },
+    {
+      "kind": "functions",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/functions/25",
+        "byte_start": 2058628,
+        "byte_end": 2061741,
+        "raw_slice_sha256": "69f2099dc429bf6d54d5d51e5d3cb3b9b5cf83e76fababaf941878fa4e06049b",
+        "canonical_json_sha256": "91d069ebca9e937b214faeafc14a4cb7a56d45c989c838f23d6a4984133e880b",
+        "oid": "192996",
+        "schema": "public",
+        "name": "gridex_normalize_audit_context_v1"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/functions/68",
+        "byte_start": 2111515,
+        "byte_end": 2114628,
+        "raw_slice_sha256": "69f2099dc429bf6d54d5d51e5d3cb3b9b5cf83e76fababaf941878fa4e06049b",
+        "canonical_json_sha256": "91d069ebca9e937b214faeafc14a4cb7a56d45c989c838f23d6a4984133e880b",
+        "oid": "192996",
+        "schema": "public",
+        "name": "gridex_normalize_audit_context_v1"
+      }
+    },
+    {
+      "kind": "functions",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/functions/26",
+        "byte_start": 2061749,
+        "byte_end": 2063864,
+        "raw_slice_sha256": "2331daec0dfb39f97891a8f95f0959b6514f5aeef4f06cb4363ec100499f0b6f",
+        "canonical_json_sha256": "41d8a6ec262060467cc9b2bfaafa7eddbe2ff12d85dd504e7ac20c85a9e895cc",
+        "oid": "137339",
+        "schema": "public",
+        "name": "gridex_normalize_billing_energy_flow"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/functions/69",
+        "byte_start": 2114636,
+        "byte_end": 2116751,
+        "raw_slice_sha256": "2331daec0dfb39f97891a8f95f0959b6514f5aeef4f06cb4363ec100499f0b6f",
+        "canonical_json_sha256": "41d8a6ec262060467cc9b2bfaafa7eddbe2ff12d85dd504e7ac20c85a9e895cc",
+        "oid": "137339",
+        "schema": "public",
+        "name": "gridex_normalize_billing_energy_flow"
+      }
+    },
+    {
+      "kind": "functions",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/functions/33",
+        "byte_start": 2076790,
+        "byte_end": 2078571,
+        "raw_slice_sha256": "6511185ef7d6d3349b3ceda17517adac8ba04a64e824aa1170ba2a432675168b",
+        "canonical_json_sha256": "15ef6bce92ad53fd696c61e056ea2f53f0bbbb7afcad3dcf2748061dfbfc0e93",
+        "oid": "161091",
+        "schema": "public",
+        "name": "gridex_reject_billing_configuration_snapshot_mutation"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/functions/87",
+        "byte_start": 2147702,
+        "byte_end": 2149483,
+        "raw_slice_sha256": "6511185ef7d6d3349b3ceda17517adac8ba04a64e824aa1170ba2a432675168b",
+        "canonical_json_sha256": "15ef6bce92ad53fd696c61e056ea2f53f0bbbb7afcad3dcf2748061dfbfc0e93",
+        "oid": "161091",
+        "schema": "public",
+        "name": "gridex_reject_billing_configuration_snapshot_mutation"
+      }
+    },
+    {
+      "kind": "functions",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/functions/38",
+        "byte_start": 2087839,
+        "byte_end": 2090645,
+        "raw_slice_sha256": "c033d00a74c680270122a9f2ca953fd813dea457a2347d9d746e04dda3462e20",
+        "canonical_json_sha256": "c04d05a722253d15c5b5767d9e0f56811845b687051bed8074981d2a32ffa3c5",
+        "oid": "348033",
+        "schema": "public",
+        "name": "gridex_sync_underlay_invoice_projection_v1"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/functions/94",
+        "byte_start": 2161020,
+        "byte_end": 2163826,
+        "raw_slice_sha256": "c033d00a74c680270122a9f2ca953fd813dea457a2347d9d746e04dda3462e20",
+        "canonical_json_sha256": "c04d05a722253d15c5b5767d9e0f56811845b687051bed8074981d2a32ffa3c5",
+        "oid": "348033",
+        "schema": "public",
+        "name": "gridex_sync_underlay_invoice_projection_v1"
+      }
+    },
+    {
+      "kind": "functions",
+      "status": "EXACT_PARSED_OBJECT_EQUAL",
+      "current": {
+        "path": "quality/audits/BILLING_EVENT_CURRENT_CATALOG_OBSERVATION_2026-09-12.json",
+        "selector": "/catalog/functions/39",
+        "byte_start": 2090653,
+        "byte_end": 2091894,
+        "raw_slice_sha256": "8243c2f7cff0bbade92c70c16f49fe0dd30d30daa2ab02c8e716bc11d6ef5724",
+        "canonical_json_sha256": "5352b016e5aa2745665261316d6eff7f994706fc40ddafddabea2c5cd01eb6dd",
+        "oid": "20523",
+        "schema": "public",
+        "name": "set_updated_at_timestamp"
+      },
+      "prior": {
+        "path": "quality/audits/RLS_MANAGED_CATALOG_WAVE1_2026-09-12.json",
+        "selector": "/catalog/functions/102",
+        "byte_start": 2179328,
+        "byte_end": 2180569,
+        "raw_slice_sha256": "8243c2f7cff0bbade92c70c16f49fe0dd30d30daa2ab02c8e716bc11d6ef5724",
+        "canonical_json_sha256": "5352b016e5aa2745665261316d6eff7f994706fc40ddafddabea2c5cd01eb6dd",
+        "oid": "20523",
+        "schema": "public",
+        "name": "set_updated_at_timestamp"
+      }
+    }
+  ],
+  "context_equal_to_both_prior_waves": [
+    "roles",
+    "memberships",
+    "default_acls",
+    "ledger"
+  ],
+  "source_name_discovery_pins": [
+    {
+      "path": "supabase/migrations/20260722133000_external_tenant_quote_api_completion.sql",
+      "parent_bytes": 18840,
+      "parent_sha256": "9049ada1a4ebad92b8f1e71cef62442f778bb121df39aa7f30c70aec515951e5",
+      "function": "gridex_bump_contract_publication_revision",
+      "byte_start": 10427,
+      "byte_end": 13902,
+      "slice_sha256": "869eba328f438db4472c460e3c250fde0face67a77be32e74de1773905c3091e",
+      "authority": "historical_source_used_only_to_identify_next_catalog_names_not_current_definition"
+    },
+    {
+      "path": "supabase/migrations/20260718161000_portfolio_monthly_settlements_rbac.sql",
+      "parent_bytes": 44358,
+      "parent_sha256": "50e20fa73a5e9fd9fdc8a5e4d919bbbd027a57f4e268a3fb80d76ea441988d87",
+      "function": "gridex_portfolio_actor_has_permission",
+      "byte_start": 15429,
+      "byte_end": 16315,
+      "slice_sha256": "562f41f053a0336d7a61c43b4858d2611e957eade1c80260164a7521a218ae2b",
+      "authority": "historical_source_used_only_to_identify_next_catalog_names_not_current_definition"
+    },
+    {
+      "path": "supabase/migrations/20260718161000_portfolio_monthly_settlements_rbac.sql",
+      "parent_bytes": 44358,
+      "parent_sha256": "50e20fa73a5e9fd9fdc8a5e4d919bbbd027a57f4e268a3fb80d76ea441988d87",
+      "function": "gridex_portfolio_actor_is_superadmin",
+      "byte_start": 14612,
+      "byte_end": 15427,
+      "slice_sha256": "64555fb2a9cc71e2ba24248a68585d3c11c73f7e57f636aa548c5cc001c85ab7",
+      "authority": "historical_source_used_only_to_identify_next_catalog_names_not_current_definition"
+    }
+  ],
+  "next_missing_relation_names": [
+    "public.contract_publication_revisions",
+    "public.price_plans",
+    "public.portfolio_settlement_permission_grants"
+  ],
+  "next_missing_signatures": [
+    "public.gridex_validate_partner_export_payload(text,jsonb)",
+    "public.gridex_bump_contract_publication_revision(uuid,text,text,text)",
+    "public.gridex_portfolio_actor_has_permission(uuid,text,uuid,uuid)",
+    "public.gridex_portfolio_actor_is_superadmin(uuid)"
+  ]
+}

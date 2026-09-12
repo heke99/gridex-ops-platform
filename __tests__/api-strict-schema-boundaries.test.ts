@@ -194,7 +194,7 @@ const io = vi.hoisted(() => {
       return {
         data: [{
           contract_price_option_id: 'price-option-row-A',
-          price_row_reference: 'area-price-SE3',
+          price_row_reference: 'area-price-se3',
           price_area: 'SE3',
           amount: 100,
           unit: 'ore_per_kwh',
@@ -807,7 +807,8 @@ describe('strict notification and pricing request schemas', () => {
       body: quoteBody(),
     }))
 
-    expect(response.status).toBe(201)
+    const responseBody = await response.clone().json()
+    expect(response.status, JSON.stringify(responseBody)).toBe(201)
     expect(authCalls()).toHaveLength(1)
     expect(io.state.dbCalls).toContainEqual(expect.objectContaining({
       table: 'customer_site_resolution',
@@ -927,7 +928,11 @@ describe('strict notification and pricing request schemas', () => {
       url: 'https://app.gridex.se/api/v1/website/quote',
       body: quoteBody(),
     }))
-    expect(createdResponse.status).toBe(201)
+    const createdResponseBody = await createdResponse.clone().json()
+    expect(
+      createdResponse.status,
+      JSON.stringify(createdResponseBody),
+    ).toBe(201)
     const created = await createdResponse.json() as {
       data: { quote_reference: string }
     }
@@ -1013,7 +1018,8 @@ describe('strict notification and pricing request schemas', () => {
       { params: Promise.resolve({ path: ['price'] }) },
     )
 
-    expect(response.status).toBe(200)
+    const responseBody = await response.clone().json()
+    expect(response.status, JSON.stringify(responseBody)).toBe(200)
     expect(authCalls()).toHaveLength(1)
     expect(authCalls()[0].input).toMatchObject({
       p_required_any: [
