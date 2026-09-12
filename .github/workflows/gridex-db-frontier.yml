@@ -6,6 +6,7 @@ on:
       - '.github/workflows/gridex-db-frontier.yml'
       - 'scripts/canonical-foundation-frontier-*.py'
       - 'scripts/canonical-timestamp-frontier*.py'
+      - 'scripts/canonical-auth-provisioning-legacy-batch.py'
 
 permissions:
   contents: read

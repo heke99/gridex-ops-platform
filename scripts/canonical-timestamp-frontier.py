@@ -33,6 +33,26 @@ def sha256(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def verify_spatial_runtime(target):
+    """Read back the real owned image/PG17/PostGIS capability before source SQL."""
+    if not target.active or target.name != target._created_name:
+        raise ValueError('SPATIAL_RUNTIME_REQUIRED')
+    fmt = '{{.Config.Image}}|{{.Image}}|{{.HostConfig.NetworkMode}}|{{index .Config.Labels "gridex.auth-legacy.owner"}}'
+    parts = target.docker(['inspect', '--format', fmt, target.name]).decode().strip().split('|')
+    if (len(parts) != 4 or parts[0] != 'postgis/postgis:17-3.5'
+            or not re.fullmatch(r'sha256:[0-9a-f]{64}', parts[1])
+            or parts[2] != 'none' or parts[3] != target.name):
+        raise ValueError('SPATIAL_RUNTIME_REQUIRED')
+    query = "SELECT current_setting('server_version_num'), default_version FROM pg_available_extensions WHERE name = 'postgis';"
+    capability = target.docker(['exec', target.name, 'psql', '-X', '-U', 'postgres', '-d', 'postgres',
+                                '-At', '-v', 'ON_ERROR_STOP=1', '-c', query]).decode().strip()
+    if not re.fullmatch(r'17[0-9]{4}\|3\.5\.[0-9]+', capability):
+        raise ValueError('SPATIAL_RUNTIME_REQUIRED')
+    version, postgis = capability.split('|')
+    return {'image': parts[0], 'imageId': parts[1],
+            'serverVersionNum': int(version), 'postgisVersion': postgis}
+
+
 def read_source(root, source):
     """Require canonical non-symlink source paths and exact admitted bytes."""
     relative, expected = source

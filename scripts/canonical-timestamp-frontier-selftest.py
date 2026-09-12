@@ -4,6 +4,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 import sys
 
 sys.dont_write_bytecode = True
@@ -141,6 +142,61 @@ class TimestampTests(unittest.TestCase):
             self.assertEqual(progress['source'], selected[1][0])
             self.assertEqual(len(target.calls), 4)
             self.assertNotIn('private-value', str(progress))
+
+    def test_postgis_is_explicit_and_never_an_arbitrary_image_or_url(self):
+        owned = frontier.load_controller().load_batch()
+        self.assertIs(owned.OwnedPostgres()._postgis, False)
+        self.assertIs(owned.OwnedPostgres(postgis=True)._postgis, True)
+        for value in ('postgres:17', 'postgresql://private', 1, None):
+            with self.assertRaises(owned.BoundaryError):
+                owned.OwnedPostgres(postgis=value)
+        with self.assertRaises(TypeError):
+            owned.OwnedPostgres(image='untrusted-image')
+
+    def test_both_profiles_retain_identical_isolation_and_private_logging(self):
+        owned = frontier.load_controller().load_batch()
+        commands = []
+        def stop_after_constructing_command(target, args, **kwargs):
+            commands.append(args)
+            raise RuntimeError('stop before invoking Docker')
+        for spatial in (False, True):
+            target = owned.OwnedPostgres(postgis=spatial)
+            with patch.object(owned.OwnedPostgres, 'docker', stop_after_constructing_command):
+                with self.assertRaisesRegex(RuntimeError, 'stop before invoking Docker'):
+                    with target:
+                        self.fail('no actual runtime permitted in constructor tests')
+            self.assertIsNone(target.directory)
+            self.assertFalse(target.active)
+        for command in commands:
+            self.assertEqual(command[command.index('--network') + 1], 'none')
+            self.assertNotIn('-p', command)
+            self.assertNotIn('--publish', command)
+            self.assertIn('/var/lib/postgresql/data:rw,nosuid,nodev', command)
+            self.assertIn('log_min_error_statement=panic', command)
+            self.assertIn('log_file_mode=0600', command)
+            self.assertTrue(command[command.index('--mount') + 1].endswith(',dst=/legacy-private,readonly'))
+        self.assertIn('postgres:17', commands[0])
+        self.assertNotIn('postgis/postgis:17-3.5', commands[0])
+        self.assertIn('postgis/postgis:17-3.5', commands[1])
+        self.assertNotIn('postgres:17', commands[1])
+
+    def test_spatial_runtime_requires_actual_version_extension_image_and_owner(self):
+        class Runtime:
+            name = _created_name = 'gridex-auth-legacy-continuation-1-1'
+            active = True
+            def __init__(self, image='postgis/postgis:17-3.5', network='none', owner=None, version='170006|3.5.2'):
+                self.inspect = '|'.join((image, 'sha256:' + '1' * 64, network, owner or self.name))
+                self.version = version
+            def docker(self, args):
+                return (self.inspect if args[0] == 'inspect' else self.version).encode()
+        result = tail.verify_spatial_runtime(Runtime())
+        self.assertEqual(result['serverVersionNum'], 170006)
+        self.assertEqual(result['postgisVersion'], '3.5.2')
+        for runtime in (Runtime(image='postgres:17'), Runtime(network='bridge'),
+                        Runtime(owner='someone-else'), Runtime(version='170006|'),
+                        Runtime(version='180001|3.5.2'), Runtime(version='private-value')):
+            with self.assertRaisesRegex(ValueError, 'SPATIAL_RUNTIME_REQUIRED'):
+                tail.verify_spatial_runtime(runtime)
 
     def test_source_revalidated_before_each_sql_call(self):
         with tempfile.TemporaryDirectory() as directory:

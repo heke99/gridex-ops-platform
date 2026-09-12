@@ -170,7 +170,10 @@ def literal(value):
 
 class OwnedPostgres:
     """Created and destroyed here; no external-target constructor or URL fallback."""
-    def __init__(self):
+    def __init__(self, *, postgis=False):
+        if type(postgis) is not bool:
+            raise BoundaryError('OWNED_PROFILE_REQUIRED')
+        self._postgis=postgis
         self.name=os.environ.get('GRIDEX_LEGACY_CONTAINER_NAME') or ('gridex-auth-legacy-'+secrets.token_hex(8))
         if not re.fullmatch(r'gridex-auth-legacy-[a-z0-9-]{8,80}',self.name):
             raise BoundaryError('OWNED_TARGET_REQUIRED')
@@ -209,7 +212,7 @@ class OwnedPostgres:
             self.docker(['run','--detach','--name',self.name,'--label','gridex.auth-legacy.owner='+self.name,
                 '--network','none','--tmpfs','/var/lib/postgresql/data:rw,nosuid,nodev',
                 '--mount','type=bind,src='+self.directory.name+',dst=/legacy-private,readonly',
-                '-e','POSTGRES_HOST_AUTH_METHOD=trust','postgres:17',
+                '-e','POSTGRES_HOST_AUTH_METHOD=trust','postgis/postgis:17-3.5' if self._postgis else 'postgres:17',
                 'postgres','-c','logging_collector=on','-c','log_directory=pg_log_private',
                 '-c','log_file_mode=0600','-c','log_statement=none','-c','log_min_error_statement=panic',
                 '-c','log_error_verbosity=terse','-c','log_parameter_max_length=0',

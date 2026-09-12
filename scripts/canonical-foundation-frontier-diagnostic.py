@@ -118,8 +118,10 @@ def run():
     result = None
     phase = 'OWNED_TARGET'
     progress = {'foundationExecuted': False, 'timestampApplied': 0}
-    with legacy.OwnedPostgres() as target:
+    with legacy.OwnedPostgres(postgis=True) as target:
         try:
+            phase = 'SPATIAL_RUNTIME_ADMISSION'
+            progress['runtime'] = timestamp.verify_spatial_runtime(target)
             phase = 'PRIVATE_INPUT_ADMISSION'
             with controller.load_private().AcceptedInputs(target):
                 phase = 'INDEPENDENT_REFERENCES'
