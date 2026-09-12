@@ -153,8 +153,7 @@ const io = vi.hoisted(() => {
 
   const from = vi.fn((table: string): LocalQuery => {
     const call: LocalDbCall = { table, operation: 'select', payload: null, filters: {} }
-    let query: LocalQuery
-    query = {
+    const query: LocalQuery = {
       select: () => query,
       insert: (payload: unknown) => { call.operation = 'insert'; call.payload = payload; return query },
       update: (payload: unknown) => { call.operation = 'update'; call.payload = payload; return query },

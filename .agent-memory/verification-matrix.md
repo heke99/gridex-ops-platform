@@ -1555,3 +1555,7 @@ Actual77 independently authored implementation: final spec/qualityreview APPROVE
 - 2026-09-12 final e5ad80ee OPS34677792370 jobs snapshot: all15 existing bounded native/source jobs SUCCESS, including actual77 continuation103510668915. quality103510668930 FAILED at the recorded two fixture TS2322; fullverify103510668906 and cleanreplay103510668937 FAILED and remain separate unresolved gates. No new source effects or full replay acceptance inferred.
 
 - 2026-09-12: Task9 fixround1 independent spec/qualityAPPROVED, TASK9-R1 addressed, no newbreakage. Actualsourceproof and syntaxPASS;47realimportVitestcases authored but hostedpending. Task7CI1 independentAPPROVED, fivecoveringactualsourcecasesPASS, supportedTS2322confirmationpending.
+
+- 2026-09-12 4d3a3cc OPS34678785614/job103513359561 completed06:43:03Z: npmciPASS; lintFAILED exactlyoneprefer-const __tests__/api-company-authority-binding.test.ts:157 (queryneverreassigned). Types/Vitestskipped. OriginalTask9authorCI1 minimaltypedconstcorrectionactive; nativeauthorconfirmedread-onlypause. No retrywithoutchangedcause.
+
+- 2026-09-12: Task9CI1 independentreviewAPPROVED, exactprefer-const cause fixed, syntax/diffPASS. Hostedlint/types/Vitestpendingnewbatch. Nativepermissionfixture must preserve actualsingleactiveroleindex andbothscopetriggers; impossible2samecompanyactiverolepositive replacedbysourcefaithful23505negative andvalidsingle-role/direct/sharedcontrols.

@@ -101,3 +101,7 @@ No local TypeScript compiler or project dependencies are available, so strict ty
 ## Independent review
 
 Initial review found TASK9-R1 at the nullable optional-scope handoff. The original author fixed it by directly rejecting derived null and added three direct helper regressions. Scoped re-review specification and quality APPROVED: finding addressed, no new breakage. Forty-seven permanent real-import Vitest cases and supported strict typecheck remain hosted-pending.
+
+## Supported CI declaration correction
+
+On4d3a3cc OPS34678785614/job103513359561, lint rejected one fixture query declaration with prefer-const before typechecks/Vitest. The original author replaced the separate typed let declaration and assignment with one typed const initializer. All47cases, explicitLocalQuery and deferred self-reference closures are unchanged; syntax and scoped diff passed. Independent specification/quality review APPROVED without findings. No global rules/types/application behavior changed. Supported CI remains the next gate.

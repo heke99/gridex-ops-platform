@@ -93,7 +93,7 @@ For ordinary users without any active membership, SharedOrdinary is empty even i
 | Active A membership, direct B allow only | absent | no membership authority | absent |
 | Active A membership, valid NULL direct allow | recommended allow after normal context admission | no membership authority | recommended allow via A |
 | No memberships, ordinary NULL direct/override allow | no company authority | no company authority | empty under recommendation |
-| Two roles allow/deny same key, no override | allow union preserved | according to B sources | union of effective sets |
+| Single active A role denies key, eligible direct A allow, no override | direct allow retained; role deny is a nongrant | according to B sources | union of effective sets |
 | Direct deny plus role allow, no override | role allow retained | according to B sources | union of effective sets |
 
 Native cases must also cover inactive/removed direct rows, inactive role assignment/definition, expired/future/inclusive override boundaries, duplicate conflicting rows in both orders, F-18 ordinary-positive and membership-free platform-positive controls. Catalog-false behavior must be explicitly asserted according to the parent's chosen policy, rather than left untested. These are test requirements, not executed evidence.
@@ -115,3 +115,7 @@ Verification performed: complete latest September2 resolver files, direct-relati
 ## Controller clarification: ordinary effective-set admission
 
 Before adding direct/override positives, the shared effective-company helper must require the ordinary canonical active identity/profile, active same-company membership, and at least one active same-company user-role assignment joined to an active role definition. Direct/override rows cannot revive authority after the last role or its definition is disabled. Keep original canonical output/selection structure; it may still expose its existing invalid-selection invariant result with empty permissions, but must not gain effective keys. The original August10 selection EXISTS checks user-role assignment activity without joining role-definition activity, while its memberships/roles/role-grant queries do join active definitions; characterize this exact difference in native tests rather than assuming selected_company_id alone proves role eligibility. Use the same eligibility before each ordinary shared-company set. Authoritative platform admission remains the separately preserved predicate and explicit native characterization.
+
+## Native fixture correction: one active ordinary role per company
+
+The existing source-preservation constraint governs fixture admission. Both August10 architecture sources create user_roles_company_user_single_active_uidx on(company_id,user_id) for nonnull company with active status/is_active; schema.sql records the same index. The earlier two-role same-company table example described an algebra hypothesis, not an authorized removal of that invariant. The native fixture must retain the index and assert a second active same-company assignment rejects23505 with unchanged rows. Characterize role-deny as a nongrant using a valid single-role A deny plus eligible direct A allow (which remains allowed), and an A deny/B allow shared-company control. No production role semantics or constraints change; impossible fixture positives are not admitted.
