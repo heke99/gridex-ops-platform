@@ -151,7 +151,7 @@ def execute():
             run_case(target,NATIVE,label,body,'baseline')
         if capture(target,NATIVE,'baseline_rollback') != pristine:
             raise NativeError('BASELINE_ROLLBACK_DRIFT')
-        print('PASS baseline9 source defect characterizations',flush=True)
+        print('PASS baseline10 source defect characterizations',flush=True)
         # Fresh database in this newly created container; never an active replay target.
         target.reset(ATOMIC)
         target.docker(['exec',target.name,'dropdb','-U','postgres',ATOMIC])

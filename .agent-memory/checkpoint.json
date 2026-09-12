@@ -5,7 +5,7 @@
   "current_state": ".agent-memory/current-state.md",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "fe25765765d592f4b487321a027ce7032fefcd1e"
+    "published_baseline": "2a4e6ff7f9402125f28b8a2bbb604fd9b6cf1ecb"
   },
-  "next_action": "Publish independently approved Task11a native permission/private Storage batch to PR310 and execute/read owned PG17 lane. 37 construction tests PASS; 102 candidate/9 baseline constructed, native NOT_RUN. Continue remaining points77\u201385, stop before86; full replay/types remain red."
+  "next_action": "Publish independently approved Task11a nativefix1 ac1a2b63 candidate, then execute/read ownedPG17 baseline10/candidate102. 39constructionPASS, revisednativeNOT_RUN;2a4e6ff7quality1362/buildSUCCESS. Full11b source/ACL/triggerclosureBLOCKED; continue feasible77\u201385remediation, stop before86."
 }

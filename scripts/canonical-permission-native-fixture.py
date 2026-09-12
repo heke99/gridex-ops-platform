@@ -209,6 +209,38 @@ def command_proof(cmd):
             + check('count(*)=1 from public.user_permission_overrides where company_id is null and is_active', 'override_written'))
 
 
+def replacement_case(baseline=False):
+    initial = command_proof(command(key='masterdata.write',effect='deny'))
+    allow = command('replace_overrides',extra={'allow_permissions':['masterdata.write'],'deny_permissions':[]},token='replace-allow')
+    if baseline:
+        # The actual original command deletes, then fails to assign UNION text
+        # NULL into company_id uuid. Its statement/subtransaction must roll back.
+        return initial+unchanged_begin()+as_role(PLATFORM,'service_role')+error(allow,'42804')+unchanged_end()
+    sql = initial+overrides([(B,'test.extra','deny')])
+    replacements = [
+        ('replace-allow',['masterdata.write'],[],True,False),
+        ('replace-deny',[],['masterdata.write'],False,False),
+        ('replace-mixed',['test.extra'],['masterdata.write'],False,True),
+        ('replace-empty',[],[],True,False),
+    ]
+    for index,(token,allows,denies,masterdata,extra) in enumerate(replacements,2):
+        cmd = command('replace_overrides',extra={'allow_permissions':allows,'deny_permissions':denies},token=token)
+        sql += as_role(PLATFORM,'service_role')+cmd+';\nreset role;\n'
+        expected = sorted([[key,'allow'] for key in allows]+[[key,'deny'] for key in denies])
+        sql += check("coalesce(jsonb_agg(jsonb_build_array(permission_key,effect) order by permission_key,effect),'[]'::jsonb)="+lit(json.dumps(expected))+f"::jsonb from public.user_permission_overrides where user_id={lit(UAB)} and company_id is null",'replacement_rows_exact')
+        sql += check(f"count(*)=1 from public.user_permission_overrides where user_id={lit(UAB)} and company_id={lit(B)} and permission_key='test.extra' and effect='deny' and is_active",'local_override_preserved')
+        sql += check(f'count(*)={index} from public.canonical_platform_access_command_results','replacement_results_count')
+        sql += check(f'count(*)={index} from public.canonical_platform_access_audit_events','replacement_audits_count')
+        sql += decision('masterdata.write',masterdata)+decision('test.extra',extra)
+        # A same-key replay returns the stored result with no audit/result/row
+        # changes; a different request under that key rejects before mutation.
+        sql += unchanged_begin()+as_role(PLATFORM,'service_role')
+        sql += check(cmd.removeprefix('select ')+f"=(select result_payload from public.canonical_platform_access_command_results where target_user_id={lit(UAB)} and command_type='platform.user_access.replace_overrides' and idempotency_key={lit(token)})",'idempotent_result_stable')
+        conflict = command('replace_overrides',extra={'allow_permissions':['switching.read'],'deny_permissions':[]},token=token)
+        sql += error(conflict,'23505')+unchanged_end()+'drop table before_rows;\n'
+    return sql
+
+
 def permission_cases(baseline=False):
     cases = {}
     cases['P01'] = decision('masterdata.write', True,A)
@@ -217,7 +249,7 @@ def permission_cases(baseline=False):
     cases['P04'] = decision('switching.write', True,B)
     cases['P05'] = command_proof(command(key='masterdata.write',effect='deny')) + decision('masterdata.write',baseline)
     cases['P06'] = command_proof(command()) + decision('test.extra',not baseline)
-    cases['P07'] = command_proof(command(key='masterdata.write',effect='deny')) + as_role(PLATFORM,'service_role') + command('replace_overrides',extra={'allow_permissions':['masterdata.write'],'deny_permissions':[]},token='replace') + ';\nreset role;\n' + decision('masterdata.write',True)
+    cases['P07'] = replacement_case(baseline)
     cases['P08'] = command_proof(command(key='masterdata.write',effect='deny')) + as_role(PLATFORM,'service_role') + command('clear_overrides',token='clear') + ';\nreset role;\n' + decision('masterdata.write',True)
     configs = [
         ('P09',[(A,'test.extra','allow')],'test.extra',True),
@@ -247,7 +279,7 @@ def permission_cases(baseline=False):
     for actor in [PLATFORM,ADMIN]:
         cases['P27'] += check(f'public.canonical_actor_is_platform_admin({lit(actor)})','platform_authority') + shared('masterdata.read' if actor==PLATFORM else 'admin.access',True,actor) + as_role(actor) + check('public.gridex_user_is_platform_admin()','platform_current') + check("(public.canonical_authenticated_tenant_context(null)->>'is_platform_admin')::boolean",'platform_context') + 'reset role;\n'
     cases['P28'] = unchanged_begin() + error(f"insert into public.user_roles(user_id,company_id,role_id,role) values ({lit(NONE)},{lit(A)},{lit(RP)},'super_admin')",'23514') + error(f'insert into public.user_roles(user_id,role_id) values ({lit(NONE)},{lit(RA)})','23514') + unchanged_end()
-    return {k:v for k,v in cases.items() if not baseline or k in ['P05','P06']}
+    return {k:v for k,v in cases.items() if not baseline or k in ['P05','P06','P07']}
 
 
 def algebra_cases():

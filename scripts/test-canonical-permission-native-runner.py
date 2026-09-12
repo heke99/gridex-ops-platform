@@ -16,7 +16,7 @@ class RunnerTests(unittest.TestCase):
         fixture = runner.fixture
         cases = fixture.build_cases()
         self.assertEqual(set(cases), {f'{prefix}{i:02}' for prefix, size in [('P',28),('C',32),('F',16),('S',24)] for i in range(1,size+1)} | {'S_VIEWER','S_UPSERT_OWN'})
-        self.assertEqual(set(runner.baseline_cases()), {'P05','P06','S13','S14','S15','S16','S20','S22','S_VIEWER'})
+        self.assertEqual(set(runner.baseline_cases()), {'P05','P06','P07','S13','S14','S15','S16','S20','S22','S_VIEWER'})
         self.assertNotEqual(runner.baseline_cases()['P05'], cases['P05'])
         self.assertNotEqual(runner.baseline_cases()['S14'], cases['S14'])
 

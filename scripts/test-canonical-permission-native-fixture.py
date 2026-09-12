@@ -46,6 +46,35 @@ class CandidateTests(unittest.TestCase):
         self.assertIn("('customer-documents', 'customer-documents', false,", source)
         self.assertIn(source, module.admission.compose())
 
+    def test_writer_is_full_admitted_source_with_only_two_uuid_casts(self):
+        spec = importlib.util.spec_from_file_location('fixture', ROOT / 'scripts/canonical-permission-native-fixture.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        admitted = module.admission.admit()
+        original = admitted['override_writer']
+        needle = 'select null,v_target_user_id,permission_key'
+        self.assertEqual(original.count(needle),2)
+        expected = original.replace(needle,'select null::uuid,v_target_user_id,permission_key')
+        candidate = module.candidate()
+        self.assertEqual(candidate.count(expected),1)
+        self.assertIn(admitted['platform_command_acls'],candidate)
+        self.assertIn('company_id uuid',admitted['user_permission_overrides_table'])
+
+    def test_replacement_cases_preserve_real_command_and_transaction_contract(self):
+        spec = importlib.util.spec_from_file_location('fixture', ROOT / 'scripts/canonical-permission-native-fixture.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        baseline = module.permission_cases(baseline=True)['P07']
+        self.assertIn("'42804'",baseline)
+        self.assertIn('unchanged_multisets',baseline)
+        fixed = module.permission_cases()['P07']
+        for token in ['replace-allow','replace-deny','replace-mixed','replace-empty']:
+            self.assertIn(token,fixed)
+        for label in ['replacement_rows_exact','idempotent_result_stable','local_override_preserved']:
+            self.assertIn(label,fixed)
+        self.assertIn("'23505'",fixed)
+        self.assertIn('unchanged_multisets',fixed)
+
     def test_private_acl_removes_each_nonowner_grantee(self):
         sql = CI.read_text()
         self.assertIn('aclexplode', sql)

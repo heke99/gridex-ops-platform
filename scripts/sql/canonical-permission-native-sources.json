@@ -1043,7 +1043,7 @@
   "f16_scope": "Controller-approved source-exact finite SELECT policy subset + actual lifecycle guards and table/column ACL negatives. Explicit fixture-only SELECT grants. Complete effective pg_policies composition deferred to 11b; no complete catalog or Data API reachability claim.",
   "forward_candidate": {
     "basename": "20260912052507_canonical_permission_overrides_and_storage_write_guards.sql",
-    "sha256": "22572cc31819a52fe577dbaa654dbe84cd6ebc0dd7564ab6f9c4f340cbd5a4fe"
+    "sha256": "ac1a2b63476e1eb509b622adbfbab924f8c143c65bac3a046a739df7ea9d4536"
   },
   "staged_policy_omissions": [
     "20260612143000_performance_policy_consolidation_and_index_cleanup.sql",

@@ -543,4 +543,258 @@ begin
 end
 $private_acl$;
 
+-- Native P07: UNION ALL resolves an all-unknown NULL column to text before
+-- INSERT assigns company_id uuid. Preserve the complete admitted command body;
+-- only the two global company NULL expressions acquire their intended UUID type.
+create or replace function public.canonical_manage_platform_user_access(p_command jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, auth, pg_temp
+as $function$
+declare
+  v_actor_user_id uuid := nullif(p_command->>'actor_user_id','')::uuid;
+  v_target_user_id uuid := nullif(p_command->>'target_user_id','')::uuid;
+  v_action text := lower(coalesce(p_command->>'action',''));
+  v_role_id uuid := nullif(p_command->>'role_id','')::uuid;
+  v_user_role_id uuid := nullif(p_command->>'user_role_id','')::uuid;
+  v_permission_key text := nullif(btrim(p_command->>'permission_key'),'');
+  v_effect text := lower(coalesce(nullif(btrim(p_command->>'effect'),''),'allow'));
+  v_reason text := nullif(btrim(p_command->>'reason'),'');
+  v_preserve_overrides boolean := coalesce((p_command->>'preserve_overrides')::boolean,false);
+  v_idempotency_key text := nullif(btrim(p_command->>'idempotency_key'),'');
+  v_request jsonb := p_command - 'actor_user_id';
+  v_hash text;
+  v_existing public.canonical_platform_access_command_results%rowtype;
+  v_before jsonb;
+  v_after jsonb;
+  v_result jsonb;
+  v_missing_permissions text[];
+  v_overlap text[];
+  v_allow text[] := coalesce(array(select jsonb_array_elements_text(coalesce(p_command->'allow_permissions','[]'::jsonb))),array[]::text[]);
+  v_deny text[] := coalesce(array(select jsonb_array_elements_text(coalesce(p_command->'deny_permissions','[]'::jsonb))),array[]::text[]);
+  v_existing_role_id uuid;
+begin
+  if v_actor_user_id is null or v_target_user_id is null or v_idempotency_key is null then
+    raise exception using errcode='22023', message='actor_target_and_idempotency_required';
+  end if;
+  if not public.canonical_actor_is_platform_admin(v_actor_user_id) then
+    raise exception using errcode='42501', message='platform_admin_required';
+  end if;
+  if not exists(select 1 from auth.users where id=v_target_user_id and deleted_at is null) then
+    raise exception using errcode='P0002', message='target_auth_user_not_found';
+  end if;
+  if v_action not in (
+    'set_primary_role','add_role','remove_role','replace_overrides',
+    'clear_overrides','upsert_override','remove_override','disable_platform_access'
+  ) then
+    raise exception using errcode='22023', message='invalid_platform_access_action';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtextextended('platform-access:'||v_target_user_id::text,0));
+  v_hash := public.canonical_json_sha256(v_request);
+
+  select * into v_existing
+  from public.canonical_platform_access_command_results
+  where target_user_id=v_target_user_id
+    and command_type='platform.user_access.'||v_action
+    and idempotency_key=v_idempotency_key;
+  if found then
+    if v_existing.request_hash is distinct from v_hash then
+      raise exception using errcode='23505', message='IDEMPOTENCY_KEY_REUSE_MISMATCH';
+    end if;
+    return v_existing.result_payload;
+  end if;
+
+  select jsonb_build_object(
+    'roles',coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id',ur.id,'role_id',ur.role_id,'role',ur.role,
+        'status',ur.status,'is_active',ur.is_active
+      ) order by ur.created_at,ur.id)
+      from public.user_roles ur
+      where ur.user_id=v_target_user_id and ur.company_id is null
+    ),'[]'::jsonb),
+    'overrides',coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id',upo.id,'permission_key',upo.permission_key,'effect',upo.effect,
+        'reason',upo.reason,'is_active',upo.is_active
+      ) order by upo.permission_key,upo.id)
+      from public.user_permission_overrides upo
+      where upo.user_id=v_target_user_id and upo.company_id is null
+    ),'[]'::jsonb)
+  ) into v_before;
+
+  if v_action in ('set_primary_role','add_role') then
+    if v_role_id is null or not exists(select 1 from public.roles where id=v_role_id) then
+      raise exception using errcode='22023', message='platform_role_not_found';
+    end if;
+  end if;
+
+  if v_action='set_primary_role' then
+    update public.user_roles
+    set status='disabled',is_active=false,updated_at=now()
+    where user_id=v_target_user_id and company_id is null and coalesce(is_active,true);
+
+    select id into v_existing_role_id
+    from public.user_roles
+    where user_id=v_target_user_id and company_id is null and role_id=v_role_id
+    order by created_at asc,id asc
+    limit 1
+    for update;
+
+    if v_existing_role_id is null then
+      insert into public.user_roles(user_id,company_id,role_id,status,is_active,created_at,updated_at)
+      values(v_target_user_id,null,v_role_id,'active',true,now(),now());
+    else
+      update public.user_roles
+      set status='active',is_active=true,updated_at=now()
+      where id=v_existing_role_id;
+    end if;
+
+    if not v_preserve_overrides then
+      delete from public.user_permission_overrides
+      where user_id=v_target_user_id and company_id is null;
+    end if;
+
+  elsif v_action='add_role' then
+    select id into v_existing_role_id
+    from public.user_roles
+    where user_id=v_target_user_id and company_id is null and role_id=v_role_id
+    order by created_at asc,id asc
+    limit 1
+    for update;
+    if v_existing_role_id is null then
+      insert into public.user_roles(user_id,company_id,role_id,status,is_active,created_at,updated_at)
+      values(v_target_user_id,null,v_role_id,'active',true,now(),now());
+    else
+      update public.user_roles set status='active',is_active=true,updated_at=now()
+      where id=v_existing_role_id;
+    end if;
+
+  elsif v_action='remove_role' then
+    if v_user_role_id is not null then
+      update public.user_roles set status='disabled',is_active=false,updated_at=now()
+      where id=v_user_role_id and user_id=v_target_user_id and company_id is null;
+    elsif v_role_id is not null then
+      update public.user_roles set status='disabled',is_active=false,updated_at=now()
+      where user_id=v_target_user_id and company_id is null and role_id=v_role_id;
+    else
+      raise exception using errcode='22023', message='role_identifier_required';
+    end if;
+
+  elsif v_action='replace_overrides' then
+    select array_agg(value) into v_overlap
+    from (
+      select unnest(v_allow) value
+      intersect
+      select unnest(v_deny) value
+    ) q;
+    if coalesce(array_length(v_overlap,1),0)>0 then
+      raise exception using errcode='23514', message='permission_allow_deny_overlap';
+    end if;
+
+    select array_agg(requested.permission_key order by requested.permission_key)
+      into v_missing_permissions
+    from (
+      select distinct unnest(v_allow||v_deny) permission_key
+    ) requested
+    left join public.permissions p on p.key=requested.permission_key
+    where p.id is null;
+    if coalesce(array_length(v_missing_permissions,1),0)>0 then
+      raise exception using errcode='22023', message='permission_not_found';
+    end if;
+
+    delete from public.user_permission_overrides
+    where user_id=v_target_user_id and company_id is null;
+
+    insert into public.user_permission_overrides(
+      company_id,user_id,permission_key,effect,reason,is_active,created_by,updated_by,created_at,updated_at
+    )
+    select null::uuid,v_target_user_id,permission_key,'allow',v_reason,true,v_actor_user_id,v_actor_user_id,now(),now()
+    from unnest(v_allow) permission_key
+    union all
+    select null::uuid,v_target_user_id,permission_key,'deny',v_reason,true,v_actor_user_id,v_actor_user_id,now(),now()
+    from unnest(v_deny) permission_key;
+
+  elsif v_action='clear_overrides' then
+    delete from public.user_permission_overrides
+    where user_id=v_target_user_id and company_id is null;
+
+  elsif v_action='upsert_override' then
+    if v_permission_key is null or v_effect not in ('allow','deny') then
+      raise exception using errcode='22023', message='permission_key_and_valid_effect_required';
+    end if;
+    if not exists(select 1 from public.permissions where key=v_permission_key) then
+      raise exception using errcode='22023', message='permission_not_found';
+    end if;
+    delete from public.user_permission_overrides
+    where user_id=v_target_user_id and company_id is null and permission_key=v_permission_key;
+    insert into public.user_permission_overrides(
+      company_id,user_id,permission_key,effect,reason,is_active,created_by,updated_by,created_at,updated_at
+    ) values(
+      null,v_target_user_id,v_permission_key,v_effect,v_reason,true,v_actor_user_id,v_actor_user_id,now(),now()
+    );
+
+  elsif v_action='remove_override' then
+    if v_permission_key is null then
+      raise exception using errcode='22023', message='permission_key_required';
+    end if;
+    delete from public.user_permission_overrides
+    where user_id=v_target_user_id and company_id is null and permission_key=v_permission_key;
+
+  elsif v_action='disable_platform_access' then
+    update public.user_roles
+    set status='disabled',is_active=false,updated_at=now()
+    where user_id=v_target_user_id and company_id is null and coalesce(is_active,true);
+    delete from public.user_permission_overrides
+    where user_id=v_target_user_id and company_id is null;
+  end if;
+
+  select jsonb_build_object(
+    'roles',coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id',ur.id,'role_id',ur.role_id,'role',ur.role,
+        'status',ur.status,'is_active',ur.is_active
+      ) order by ur.created_at,ur.id)
+      from public.user_roles ur
+      where ur.user_id=v_target_user_id and ur.company_id is null
+    ),'[]'::jsonb),
+    'overrides',coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id',upo.id,'permission_key',upo.permission_key,'effect',upo.effect,
+        'reason',upo.reason,'is_active',upo.is_active
+      ) order by upo.permission_key,upo.id)
+      from public.user_permission_overrides upo
+      where upo.user_id=v_target_user_id and upo.company_id is null
+    ),'[]'::jsonb)
+  ) into v_after;
+
+  v_result := jsonb_build_object(
+    'changed',v_before is distinct from v_after,
+    'target_user_id',v_target_user_id,
+    'action',v_action,
+    'state',v_after
+  );
+
+  insert into public.canonical_platform_access_audit_events(
+    target_user_id,event_type,actor_user_id,idempotency_key,reason,before_state,after_state
+  ) values(
+    v_target_user_id,'PLATFORM_USER_ACCESS_CHANGED',v_actor_user_id,v_idempotency_key,v_reason,v_before,v_after
+  );
+
+  insert into public.canonical_platform_access_command_results(
+    target_user_id,command_type,idempotency_key,request_hash,request_payload,result_payload,actor_user_id
+  ) values(
+    v_target_user_id,'platform.user_access.'||v_action,v_idempotency_key,v_hash,v_request,v_result,v_actor_user_id
+  );
+
+  return v_result;
+end
+$function$;
+revoke all on function public.canonical_manage_platform_user_access(jsonb)
+  from public, anon, authenticated;
+grant execute on function public.canonical_manage_platform_user_access(jsonb)
+  to service_role;
+
 commit;

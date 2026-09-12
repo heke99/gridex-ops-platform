@@ -1,6 +1,6 @@
 # Canonical permission and Storage native fixture — construction receipt
 
-Task11a candidate; independent spec and quality review APPROVED,0findings (PERMISSION_NATIVE_REVIEW_2026-09-12.md). Native execution NOT_RUN. This is the exact author report preserved for review/publication; acceptance requires the separate hosted receipt.
+Historical initial Task11a candidate receipt (22572cc). Its first hosted run2a4e6ff7 failedP07 with42804 after baseline9/ACLrepeat+recovery/P01–P06 succeeded; cleanupPASS. The source-traced writer fix and revised ac1a2b63 candidate are recorded in PERMISSION_NATIVE_WRITER_TYPE_FIX_2026-09-12.md and its independent APPROVED review PERMISSION_NATIVE_WRITER_TYPE_REVIEW_2026-09-12.md. Revised native execution NOT_RUN. This is the exact author report preserved for review/publication; acceptance requires the separate hosted receipt.
 
 # Task11a recovered candidate — author report
 
