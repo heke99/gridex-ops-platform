@@ -5,7 +5,7 @@ import { billingEvidenceCaseNames, runBillingEvidenceCase } from '../quality/aud
 // supported CI through Vitest's real imports. Only external I/O is replaced.
 describe('canonical billing evidence across pricing, lock, draft and send', () => {
   it.each(billingEvidenceCaseNames)('%s', async (name) => {
-    await runBillingEvidenceCase(name, async (relative, mocks) => {
+    await runBillingEvidenceCase(name, async (relative, mocks: Record<string, Record<string, unknown>>) => {
       vi.resetModules()
       for (const [id, boundary] of Object.entries(mocks)) vi.doMock(id, () => boundary)
       switch (relative) {

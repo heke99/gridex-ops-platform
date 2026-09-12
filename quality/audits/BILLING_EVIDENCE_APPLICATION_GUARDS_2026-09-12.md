@@ -114,3 +114,7 @@ TASK6-R1 addressed after one fix round; independent specification and quality AP
 ## Hosted CI correction1
 
 Published19d6fd40 OPS34676898137/job103508242109 stopped at three no-assign-module-variable lint errors in the supplemental VM loader before Vitest. Only the three lexical bindings/references were renamed to boundaryModule/sourceModule/rootModule. Syntax and representative canonical shared-import pricing/lock case PASS; independent specification/quality APPROVED with no findings. Lint rules, application behavior and40 cases unchanged. Supported hosted acceptance remains pending the correction push.
+
+## Hosted CI correction2
+
+On e9f81b76 OPS34677294507/job103509313258 lint and script typecheck passed; test typecheck failed TS2769 at the Vitest loader factory because the mock namespace was inferred unknown. One erased parameter annotation now records the actual module-ID to export-namespace mapping as Record<string, Record<string, unknown>>. No any/cast/suppression/config/runtime/case changes. Syntax and byte-equivalence after removing only the annotation PASS; independent specification/quality APPROVED, no findings. Supported test typecheck/Vitest/build remain pending the correction push.
