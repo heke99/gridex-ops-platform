@@ -18,7 +18,7 @@ class FrontierTests(unittest.TestCase):
     def test_real_source_selection_retains_all_unresolved_dispositions(self):
         order, report = diag.verify_selection(diag.load_controller())
         self.assertEqual(len(order), 118)
-        self.assertEqual(report['counts']['SUBSTITUTED'], 23)
+        self.assertEqual(report['counts']['SUBSTITUTED'], 19)
         self.assertEqual(report['counts']['UNCLASSIFIED'], 14)
         self.assertFalse(report['sqlExecutionVerified'])
 

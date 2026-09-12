@@ -6,7 +6,8 @@
   "active_group": "database_reconstruction",
   "source_state": {
     "published_application_baseline": "52b2de4d81cae370bf250e5a80f12c300bbddd16",
-    "published_database_diagnostic": "1d40e33cc2d58e274d83a480b2b0cecc096f0fa1"
+    "published_database_diagnostic": "1d40e33cc2d58e274d83a480b2b0cecc096f0fa1",
+    "baseline_probe_commit": "54914f5116a07749b7b684fa174e3e24731f2589"
   },
   "native_verification": {
     "run_id": 34718792993,
@@ -18,5 +19,5 @@
     "cleanup": "PASS",
     "full_canonical_acceptance": false
   },
-  "next_action": "Timestamp229 session reconstruction is verified in the isolated selected-chain diagnostic; do not restart it. Review and accept its source-bound substitution, resolve37 original source dispositions with effect evidence, wire the supported canonical CLI replay, then generate/check types. Keep full replay/types and release gates blocking. Preserve completed API code and paused patch; retain database-first order through point86."
+  "next_action": "Verify four whole-original restorations in the 118+512 selected chain with 32 bounded postconditions and negative controls; continue remaining33 original source dispositions and canonical replay/types. Preserve API and session reconstruction; all full release/type/ledger gates remain blocking."
 }

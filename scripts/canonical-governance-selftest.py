@@ -51,7 +51,7 @@ def selection():
     account = subprocess.run(['python3','scripts/gridex-replay-input-accounting.py'],cwd=ROOT,text=True,capture_output=True)
     data = json.loads(account.stdout)
     assert account.returncode == 1 and not data['errors']
-    assert data['totalMigrations'] == 600 and data['counts'] == {'FULL_FILE_SELECTED':558,'SUBSTITUTED':23,'UNCLASSIFIED':14,'EXPLICITLY_EXCLUDED':5}, data['counts']
+    assert data['totalMigrations'] == 600 and data['counts'] == {'FULL_FILE_SELECTED':562,'SUBSTITUTED':19,'UNCLASSIFIED':14,'EXPLICITLY_EXCLUDED':5}, data['counts']
     grouped = subprocess.run(['python3','scripts/gridex-replay-review-groups.py','--group','auth_membership_tenant'],cwd=ROOT,text=True,capture_output=True)
     group = json.loads(grouped.stdout)
     assert grouped.returncode == 1 and not group['errors'] and len(group['inputs']) == 346

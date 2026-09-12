@@ -761,7 +761,7 @@ def integration_constructors(b):
     account=subprocess.run(['python3','scripts/gridex-replay-input-accounting.py','--require-full-effects'],cwd=ROOT,capture_output=True,text=True)
     data=json.loads(account.stdout)
     assert account.returncode==1 and not data['errors']
-    assert data['counts']=={'FULL_FILE_SELECTED':558,'SUBSTITUTED':23,'UNCLASSIFIED':14,'EXPLICITLY_EXCLUDED':5}
+    assert data['counts']=={'FULL_FILE_SELECTED':562,'SUBSTITUTED':19,'UNCLASSIFIED':14,'EXPLICITLY_EXCLUDED':5}
     by_path={row['path']:row for row in data['migrations']}
     for ordinal,path in enumerate(order[43:56],44):
         assert by_path[path]['execution']==[{'ordinal':ordinal,'stage':'foundation'}]

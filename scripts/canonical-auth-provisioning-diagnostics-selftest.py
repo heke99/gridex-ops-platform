@@ -250,7 +250,7 @@ def constructor_checks():
     assert account_run.returncode == 1, 'source completeness remains blocking'
     account = json.loads(account_run.stdout)
     assert not account['errors'] and account['totalMigrations']==600
-    assert account['counts']=={'FULL_FILE_SELECTED':558,'SUBSTITUTED':23,'UNCLASSIFIED':14,'EXPLICITLY_EXCLUDED':5}
+    assert account['counts']=={'FULL_FILE_SELECTED':562,'SUBSTITUTED':19,'UNCLASSIFIED':14,'EXPLICITLY_EXCLUDED':5}
     by_path = {item['path']:item for item in account['migrations']}
     assert by_path[G]['classification']==by_path[R]['classification']=='FULL_FILE_SELECTED'
     foundation_execution_once(by_path[G]['execution'],42)

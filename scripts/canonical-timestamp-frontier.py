@@ -109,7 +109,7 @@ def load_inputs(root, report, foundation):
         last_paths = [Path(path).relative_to(supabase).as_posix() for path in last.read_text().splitlines()]
     if first_paths != foundation:
         raise ValueError('FOUNDATION_SELECTION_CHANGED')
-    if (len(last_paths) != 508 or report['selectedInputCounts']['timestamp'] != 508
+    if (len(last_paths) != 512 or report['selectedInputCounts']['timestamp'] != 512
             or len(set(first_paths + last_paths)) != len(first_paths) + len(last_paths)):
         raise ValueError('TIMESTAMP_SELECTION_CHANGED')
     # The actual selector verifies migration and derived-artifact manifest pins.
@@ -126,13 +126,23 @@ def load_inputs(root, report, foundation):
     for source in selected + list(prerequisites.values()):
         read_source(root, source)
     validate_boundaries(selected, prerequisites)
+    load_restoration().validate_selection(root, selected)
     return selected, prerequisites
+
+
+def load_restoration():
+    path = Path(__file__).with_name('canonical-timestamp-source-restoration.py')
+    spec = importlib.util.spec_from_file_location('timestamp_source_restoration', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def execute_tail(root, target, database, selected, prerequisites, progress):
     """Stop at the first failure; preserve whole-file transaction semantics."""
     validate_boundaries(selected, prerequisites)
     progress['timestampApplied'] = 0
+    restoration = load_restoration()
 
     def apply(source, stage):
         progress['source'] = source[0]
@@ -174,6 +184,8 @@ def execute_tail(root, target, database, selected, prerequisites, progress):
         if made_shim:
             progress['phase'] = 'WHITE_LABEL_CLEANUP'
             target.sql(database, WHITE_LABEL_DROP, 'timestamp_white_label_cleanup', transaction=False)
+        if source[0] in restoration.SOURCES:
+            restoration.verify(target, database, source, ordinal, progress)
         progress['timestampApplied'] = ordinal
     if reached != set(BOUNDARIES):
         raise ValueError('TIMESTAMP_BOUNDARY_CHANGED')

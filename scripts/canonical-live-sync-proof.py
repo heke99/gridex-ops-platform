@@ -155,7 +155,7 @@ def execute_boundary(root,target,database,source_sql,progress):
         current_phase='behavior'
         behavior(target,accepted)
         current_phase='replay_application'
-        target.sql(database,rendered,'live_sync_reconstructed_229',transaction=False)
+        target.sql(database,rendered,'live_sync_reconstructed_source',transaction=False)
         after=metadata(target,database)
         check(after['body']==expected and after['acl']==accepted['acl'],'LIVE_SYNC_REPLAY_POSTIMAGE_MISMATCH')
         progress['sessionReconstruction']['nativeBoundaryVerified']=True

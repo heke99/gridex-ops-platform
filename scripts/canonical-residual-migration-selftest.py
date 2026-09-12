@@ -21,7 +21,7 @@ class ResidualTests(unittest.TestCase):
         sources = probe.bound_sources(self.report)
         self.assertEqual(len(sources), 37)
         self.assertEqual(len(set(sources)), 37)
-        self.assertEqual(self.report['counts']['SUBSTITUTED'], 23)
+        self.assertEqual(self.report['counts']['SUBSTITUTED'], 19)
         self.assertEqual(self.report['counts']['UNCLASSIFIED'], 14)
 
     def test_edited_hash_is_rejected(self):
@@ -32,7 +32,7 @@ class ResidualTests(unittest.TestCase):
 
     def test_missing_source_is_rejected(self):
         wrong = copy.deepcopy(self.report)
-        next(x for x in wrong['migrations'] if x['classification']=='UNCLASSIFIED')['classification']='FULL_FILE_SELECTED'
+        wrong['migrations'] = [x for x in wrong['migrations'] if x['path'] != probe.BASELINE_PATHS[0]]
         with self.assertRaisesRegex(ValueError, 'RESIDUAL_SOURCE_SET_MISMATCH'):
             probe.bound_sources(wrong)
 

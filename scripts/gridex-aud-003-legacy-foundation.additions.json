@@ -249,7 +249,8 @@
     "bootstrap/20260609_communication_log_trace_foundation.sql": {
       "source": "migrations/20260609162000_batch_7_website_integration_foundation.sql",
       "artifactSha256": "0554a1e68a04c7b85951cc4e49d23ae0094bd9d542ffb6407231a3c0409dc56b",
-      "purpose": "Restore only the source-defined communication log identity/trace columns and customer-number index at the source migration's chronological boundary before Batch 8; no communication rows or tenant/customer data are seeded."
+      "purpose": "Restore only the source-defined communication log identity/trace columns and customer-number index at the source migration's chronological boundary before Batch 8; no communication rows or tenant/customer data are seeded. The complete immutable source also executes once at its original timestamp; this artifact is a prerequisite, not a replacement for source effects.",
+      "preserveSourceReplay": true
     },
     "bootstrap/20260611_grid_owner_information_request_foundation.sql": {
       "source": "migrations/20260611100000_energy_resolver_grid_area_operations.sql",
@@ -326,7 +327,8 @@
     "bootstrap/20260802_canonical_migration_manifest_verification_foundation.sql": {
       "source": "migrations/20260802232000_migration_truth_readiness.sql",
       "artifactSha256": "24db9894315e5a95e976889db3332acb5a3d49744ad3dffab3b8e2dce9871015",
-      "purpose": "Restore only canonical migration-manifest verification metadata required by the tracked v3 governance view; no manifest rows or verification evidence are seeded."
+      "purpose": "Restore only canonical migration-manifest verification metadata required by the tracked v3 governance view; no manifest rows or verification evidence are seeded. The complete immutable source also executes once at its original timestamp; this artifact is a prerequisite, not a replacement for source effects.",
+      "preserveSourceReplay": true
     },
     "bootstrap/20260716_contract_platform_readiness_foundation.sql": {
       "source": "migrations/20260716183000_contract_canonical_finalization.sql",
@@ -459,6 +461,30 @@
       "artifactSha256": "ac6341a482ef9b9a912522a8874f6bcbd8df73ea6e4a4896d4d1d6d589830e23",
       "purpose": "Restore only the source-defined user_profiles active_company_id foreign key and index required for complete Batch 6E profile/membership attribution; no profile, membership, company or role rows are seeded or rewritten.",
       "preserveSourceReplay": true
+    },
+    "bootstrap/20260531_integration_api_clients_foundation.sql": {
+      "source": "migrations/20260531111600_system_readiness_foundation.sql",
+      "artifactSha256": "2ce69ee0fc4ec5afccc4ad23226526d3bd26a42e26d3c37e912d5061694a8a2d",
+      "preserveSourceReplay": true,
+      "purpose": "Retain the original source-defined prerequisite bootstrap. The complete immutable source also executes once at its original timestamp; this artifact is a prerequisite, not a replacement for source effects."
+    },
+    "bootstrap/20260609_webhook_email_readiness_foundation.sql": {
+      "source": "migrations/20260609162000_batch_7_website_integration_foundation.sql",
+      "artifactSha256": "c42f8658753cee18e34e566b6387a9ad330575b24b2c066b83a4a7090b436898",
+      "preserveSourceReplay": true,
+      "purpose": "Retain the original source-defined prerequisite bootstrap. The complete immutable source also executes once at its original timestamp; this artifact is a prerequisite, not a replacement for source effects."
+    },
+    "bootstrap/20260609_website_customer_applications_foundation.sql": {
+      "source": "migrations/20260609162000_batch_7_website_integration_foundation.sql",
+      "artifactSha256": "5c0c044eacad9908ad47db0f260d57219d2cd6fbf0a668f49392e4b9b6edfce9",
+      "preserveSourceReplay": true,
+      "purpose": "Retain the original source-defined prerequisite bootstrap. The complete immutable source also executes once at its original timestamp; this artifact is a prerequisite, not a replacement for source effects."
+    },
+    "bootstrap/20260801_company_capabilities_foundation.sql": {
+      "source": "migrations/20260801143000_canonical_multitenant_platform_hardening.sql",
+      "artifactSha256": "77f03f57cfb1122129e00d95535e6f30620b80af571ba124412ea1956f5d85df",
+      "preserveSourceReplay": true,
+      "purpose": "Retain the original source-defined prerequisite bootstrap. The complete immutable source also executes once at its original timestamp; this artifact is a prerequisite, not a replacement for source effects."
     }
   }
 }

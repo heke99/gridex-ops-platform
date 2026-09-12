@@ -21,7 +21,7 @@ Native run34718506775/job103619928466 on0bdd572 passed all118 foundation and508 
 
 The bounded session fixture covers unauthenticated/active/blocked states, disabled_at, two users, versioned schema-compatibility cases and anon/authenticated/service_role calls. It is not full managed Auth or two-tenant RLS acceptance. The runtime remains PG170005/PostGIS3.5.2, network=none; neither the mutable image tag nor its observed ID certifies managed Supabase parity.
 
-## Exact next database action
+## Previous session handoff (superseded by current increment below)
 
 Review the source-bound reconstruction, reconcile the37 original unresolved source dispositions with actual effect evidence, and integrate the accepted reconstruction into the supported canonical CLI/replay path. Only then regenerate and verify the schema/types from that accepted complete replay. Generated-types tail20260911114443 remains unresolved. The selected-chain diagnostic now finishes; the ordinary canonical clean-replay/type gate is still not accepted.
 
@@ -33,13 +33,13 @@ Application baseline52b2de4d81cae370bf250e5a80f12c300bbddd16/tree76e633e2c718980
 
 ## Replay accounting and safety
 
-Working-tree accounting is 600 inputs: 558 `FULL_FILE_SELECTED`, 23 `SUBSTITUTED`, 14 `UNCLASSIFIED`, and 5 `EXPLICITLY_EXCLUDED`.
-The focused group contains 346 inputs: 311 selected, 20 substituted, 10 unclassified, and 5 excluded.
+Working-tree accounting is 600 inputs: 562 `FULL_FILE_SELECTED`, 19 `SUBSTITUTED`, 14 `UNCLASSIFIED`, and 5 `EXPLICITLY_EXCLUDED`.
+The focused group contains 346 inputs: 314 selected, 17 substituted, 10 unclassified, and 5 excluded.
 
 No production mutation has been performed in this replay-verification batch.
 Push reviewed, coherent batches stepwise as requested.
 
-The source-accounting gate was rerun locally after cleanup: zero input-contract errors,118 foundation/508 timestamp selected, --require-full-effects exit1. The37 original unresolved dispositions are unchanged. The new session-block reconstruction is separately disclosed and not misrepresented as raw whole-file execution by the unchanged selection accounting. Fourteen new source/negative tests passed locally; the full35 constructor tests passed in hosted CI.
+At the previous session checkpoint, before this increment, the source-accounting gate was rerun locally after cleanup: zero input-contract errors,118 foundation/508 timestamp selected, --require-full-effects exit1. At that previous checkpoint the37 original unresolved dispositions were unchanged. The new session-block reconstruction is separately disclosed and not misrepresented as raw whole-file execution by the unchanged selection accounting. Fourteen new source/negative tests passed locally; the full35 constructor tests passed in hosted CI.
 
 On1d40e33, OPS34718792985 clean-migration-replay103620685512 still failed its clean replay/types step. Other quality jobs had not all finished when inspected. No full CI/E2E, ledger provenance, generated types, full RLS, main merge or production deployment is accepted.
 
@@ -52,3 +52,13 @@ No managed database SQL or Vercel operation occurred. The previously recorded Su
 Current evidence: quality/audits/DB_SESSION_RECONSTRUCTION_2026-09-12.md and DB_SESSION_RECONSTRUCTION_RECEIPT_2026-09-12.json. Older DB_SELECTED_CHAIN_FRONTIER reports and linked archive/pre-db-frontier-20260912 logs remain historical evidence; their previous timestamp229 blocker is superseded by this checkpoint. Continue quality/plans/2026-09-12-current-and-plan77-85.md with the explicit point86 scope and database-first order above.
 
 Current-turn local work used an older source artifact plus verified relevant files. Individual changed blobs were checked; full local-workspace tree equivalence is not claimed. Published commits use real upstream parents and non-force ref updates, and native CI checked out the exact published code SHA.
+
+## Current increment — baseline probes and four whole-source restorations
+
+Starting head ce1578417b8a0cf5bcc47eae012c480cb3d26703. Exact source recovered at803243a85bd04b6eac34b782b26e10b43c611c14; its complete local Git tree matched the published tree. Baseline probe code54914f5116a07749b7b684fa174e3e24731f2589 ran all37 original residual files on separate owned clones at foundation118 and selected626. Native run34719704518 completed74 probes,50 SQL successes and24 SQL failures, with owned cleanup. A SQL success on a checkpoint clone does not establish valid chronological placement or surviving effects. Permanent metadata evidence: quality/audits/DB_RESIDUAL_SOURCE_MATRIX_2026-09-12.json.
+
+The current candidate uses the existing preserveSourceReplay selector contract for four complete originals: system readiness20260531111600, website foundation20260609162000, canonical platform hardening20260801143000, migration truth20260802232000. All six associated bootstrap artifacts remain checksum-identical prerequisites. The ordinary selector now includes118 foundation and512 timestamp inputs, with these four originals once at ordinals8/38/242/256. The remaining33 original dispositions (19 substituted,14 unclassified) remain blocking; the separately disclosed session reconstruction is not full-effect acceptance.
+
+Targeted local tests passed56 cases (8 foundation,13 timestamp,14 session,12 baseline-probe,9 restoration). New native postconditions cover32 schema/seed/ACL properties and include four isolated negative controls. The candidate's complete512-stage native run is still required before these four restorations are described as verified. Historical migrations, checksum manifests, original foundation order, replay shell, generated types and API code are unchanged. No managed SQL or release action. The completed74-case probe and source export workflows are retired from the candidate, rather than repeatedly executing historical repairs on every push.
+
+Next action: verify the four originals in the complete chronological chain and their native postconditions, then continue the remaining33 source dispositions and the supported canonical replay/type integration. Do not manufacture accepted schema/type artifacts or waive full-effects checks.

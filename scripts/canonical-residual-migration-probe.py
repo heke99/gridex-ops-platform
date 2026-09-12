@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Characterize the 37 unresolved sources on owned checkpoint clones only.
+"""Characterize the 37 baseline unresolved sources on owned checkpoint clones only.
 
 A successful SQL file is NOT source-effect acceptance. Failed probes discard
 only their clone and do not change the selected replay, manifests, or ledger.
@@ -21,7 +21,8 @@ sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[1]
 RESIDUAL_PIN = 'f646322e447fedd33a17cbc373a13229f4e5ff736ec9015fd8fc129fa4987ede'
 CLONE = 'gridex_auth_legacy_atomic'
-CHECKPOINTS = ('foundation118', 'selected626')
+CHECKPOINTS = ('foundation118', 'selected_tail')
+BASELINE_PATHS = ('migrations/01_db2_full_view_preflight_schema_and_functions.sql', 'migrations/01_db2b_preflight_views.sql', 'migrations/03_db2_validation_and_finish.sql', 'migrations/03_db2b_validation_views.sql', 'migrations/20260520_batch_3_4_onboarding_pricing_billing_engine.sql', 'migrations/20260520_batch_5_cases_audit_email_ux.sql', 'migrations/20260520_batch_5_final_quality_handbook_alignment.sql', 'migrations/20260521_actor_testing_go_live_module.sql', 'migrations/20260521_batch3_pricing_billing_audit_roles_completion.sql', 'migrations/20260521_batch_1_2_live_readiness_and_automation_hardening.sql', 'migrations/20260521_batch_2b_full_automation_and_live_ops.sql', 'migrations/20260521_batch_2c_end_to_end_operations.sql', 'migrations/20260521_batch_customer_intake_batch2_completion.sql', 'migrations/20260521_batch_customer_intake_batch2_hardening.sql', 'migrations/20260522_batch4_multisite_duplicate_billing_hardening.sql', 'migrations/20260522_batch4c_billing_export_audit_quality_ai.sql', 'migrations/20260522_batch4d_merge_poa_lifecycle_hardening.sql', 'migrations/20260522_batch4e_switch_pdf_audit_rbac_completion.sql', 'migrations/20260522_batch4f_rbac_database_lint_hardening.sql', 'migrations/20260522_customer_flow_access_repair.sql', 'migrations/20260522_db1_schema_repair_backfill_foundation.sql', 'migrations/20260523_db3_tenant_isolation_rbac_enforcement.sql', 'migrations/20260525_db4b_customer_registry_ediel_test_cleanup.sql', 'migrations/20260525_debug_fix_batch_1b_schema_code_alignment.sql', 'migrations/20260526_batch_3a_3b_customer_intake_blockers_documents.sql', 'migrations/20260528_batch_1_customer_flow_masterdata_preflight.sql', 'migrations/20260528_batch_2_completion_rulebook_actions_regression.sql', 'migrations/20260528_batch_7a1_inbound_hardening.sql', 'migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql', 'migrations/20260528_debug_post_repair_schema_guardrails.sql', 'migrations/20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql', 'migrations/20260531111600_system_readiness_foundation.sql', 'migrations/20260601070000_ediel_production_readiness_hardening.sql', 'migrations/20260609162000_batch_7_website_integration_foundation.sql', 'migrations/20260615_multitenant_integrity_and_claim_locks.sql', 'migrations/20260801143000_canonical_multitenant_platform_hardening.sql', 'migrations/20260802232000_migration_truth_readiness.sql')
 
 
 def load(name):
@@ -36,7 +37,7 @@ def bound_sources(report):
     if report['errors'] or report['totalMigrations'] != 600:
         raise ValueError('RESIDUAL_INVENTORY_MISMATCH')
     sources = [(r['path'], r['sha256']) for r in report['migrations']
-               if r['classification'] in ('UNCLASSIFIED', 'SUBSTITUTED')]
+               if r['path'] in BASELINE_PATHS]
     encoded = json.dumps(sources, separators=(',', ':')).encode()
     if len(sources) != 37 or hashlib.sha256(encoded).hexdigest() != RESIDUAL_PIN:
         raise ValueError('RESIDUAL_SOURCE_SET_MISMATCH')
@@ -151,7 +152,7 @@ def run():
             loop.run(str(hold), paths)
             results += probe_sources(controller, timestamp, target, report, 'foundation118')
             timestamp.execute_tail(ROOT, target, controller.DATABASE, selected, prerequisites, progress)
-            results += probe_sources(controller, timestamp, target, report, 'selected626')
+            results += probe_sources(controller, timestamp, target, report, 'selected_tail')
         if controller.originals_snapshot() != before_sources:
             raise ValueError('RESIDUAL_SOURCE_PRESERVATION_FAILED')
     if target.active:
