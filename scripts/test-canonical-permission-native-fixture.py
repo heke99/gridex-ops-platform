@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Dependency-free construction checks; native SQL acceptance is separate."""
 import importlib.util
+import hashlib
+import json
 from pathlib import Path
 import unittest
 
@@ -10,6 +12,33 @@ SDD = ROOT / '.superpowers/sdd/2026-09-12-current-and-plan77-85/generated-migrat
 CI = ROOT / 'scripts/sql/forward-candidates' / NAME
 
 class CandidateTests(unittest.TestCase):
+    def test_diagnostic_append_preserves_entire_accepted_candidate(self):
+        sql = CI.read_bytes()
+        marker = b'-- Task11c: service-only actor-bound permission diagnostic.\n'
+        self.assertEqual(sql.count(marker), 1)
+        accepted = sql.split(marker)[0] + b'commit;\n'
+        self.assertEqual(hashlib.sha256(accepted).hexdigest(),
+                         'ac1a2b63476e1eb509b622adbfbab924f8c143c65bac3a046a739df7ea9d4536')
+
+    def test_diagnostic_has_only_canonical_permission_delegate(self):
+        sql = CI.read_text()
+        self.assertIn('create or replace function public.canonical_get_platform_user_permission_diagnostic(', sql)
+        body = sql.split('create or replace function public.canonical_get_platform_user_permission_diagnostic(', 1)[1].split('$function$;', 1)[0]
+        self.assertIn('public.gridex_get_user_permissions(p_target_user_id)', body)
+        self.assertIn('public.canonical_actor_is_platform_admin(p_actor_user_id)', body)
+        self.assertLess(body.index('canonical_actor_is_platform_admin'), body.index('from auth.users'))
+        for forbidden in ['user_roles', 'role_permissions', 'user_permission_overrides', 'company_memberships', 'exception when']:
+            self.assertNotIn(forbidden, body)
+
+    def test_original_102_native_cases_are_byte_identical(self):
+        spec = importlib.util.spec_from_file_location('fixture', ROOT / 'scripts/canonical-permission-native-fixture.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        original = {key: value for key, value in module.build_cases().items() if not key.startswith('D')}
+        self.assertEqual(len(original), 102)
+        self.assertEqual(hashlib.sha256(json.dumps(original, sort_keys=True).encode()).hexdigest(),
+                         'e9f942bb0d0b5a4cbeb6bb7a747574a2d7d73c6c39ac6e1135c348087db5d527')
+
     def test_genuine_candidate_exists_and_ci_copy_matches(self):
         spec = importlib.util.spec_from_file_location('fixture', ROOT / 'scripts/canonical-permission-native-fixture.py')
         module = importlib.util.module_from_spec(spec)

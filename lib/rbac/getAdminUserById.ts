@@ -1,3 +1,4 @@
+import 'server-only'
 import { supabaseService } from '@/lib/supabase/service'
 
 type PermissionRow = {
@@ -55,7 +56,48 @@ function normalizeRoleKey(value: string | null | undefined) {
   return String(value ?? '').trim()
 }
 
-export async function getAdminUserById(userId: string) {
+const DIAGNOSTIC_UNAVAILABLE = 'Behörighetsdiagnostiken är inte tillgänglig.'
+
+function validateDiagnostic(value: unknown, targetUserId: string): string[] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(DIAGNOSTIC_UNAVAILABLE)
+  }
+  const result = value as Record<string, unknown>
+  if (
+    result.target_user_id !== targetUserId ||
+    result.scope !== 'shared_active_companies' ||
+    !Array.isArray(result.permissions) ||
+    !result.permissions.every((key): key is string => typeof key === 'string' && key.trim().length > 0) ||
+    new Set(result.permissions).size !== result.permissions.length ||
+    typeof result.evaluated_at !== 'string' ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(result.evaluated_at) ||
+    !Number.isFinite(Date.parse(result.evaluated_at))
+  ) {
+    throw new Error(DIAGNOSTIC_UNAVAILABLE)
+  }
+  return [...result.permissions]
+}
+
+export async function getAdminUserById(actorUserId: string, userId: string) {
+  // The actor-bound database gate must complete before any privileged target read.
+  let diagnostic: unknown
+  try {
+    const { data, error } = await supabaseService.rpc(
+      'canonical_get_platform_user_permission_diagnostic',
+      { p_actor_user_id: actorUserId, p_target_user_id: userId },
+    )
+    if (error) throw error
+    diagnostic = data
+  } catch (error) {
+    const failure = error && typeof error === 'object' ? error as Record<string, unknown> : {}
+    console.error('[permission-diagnostic] Failed', {
+      code: typeof failure.code === 'string' ? failure.code.slice(0, 32) : 'UNKNOWN',
+      message: typeof failure.message === 'string' ? failure.message.slice(0, 160) : 'Unavailable',
+    })
+    throw new Error(DIAGNOSTIC_UNAVAILABLE)
+  }
+  const effectivePermissions = validateDiagnostic(diagnostic, userId)
+
   const { data: authUserData, error: authError } =
     await supabaseService.auth.admin.getUserById(userId)
 
@@ -125,6 +167,7 @@ export async function getAdminUserById(userId: string) {
 
   return {
     authUser: authUserData.user,
+    effectivePermissions,
     roles: normalizedRoles,
     overrides: normalizedOverrides,
   }

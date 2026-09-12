@@ -404,6 +404,77 @@ def storage_additional_cases(baseline=False):
     return cases
 
 
+DIAGNOSTIC_SIGNATURE = 'public.canonical_get_platform_user_permission_diagnostic(uuid,uuid)'
+
+
+def diagnostic_call(actor=PLATFORM, target=UAB):
+    return f'public.canonical_get_platform_user_permission_diagnostic({lit(actor)}::uuid,{lit(target)}::uuid)'
+
+
+def diagnostic_result(permissions, actor=PLATFORM, target=UAB):
+    expected = json.dumps(dict(target_user_id=target, scope='shared_active_companies', permissions=permissions))
+    call = diagnostic_call(actor, target)
+    return (as_role(actor, 'service_role')
+            + check(f"({call} - 'evaluated_at')={lit(expected)}::jsonb", 'diagnostic_result_exact')
+            + check(f"({call}->>'evaluated_at')::timestamptz=now()", 'diagnostic_evaluated_at')
+            + 'reset role;\n')
+
+
+def diagnostic_cases():
+    cases = {}
+    cases['D01'] = unchanged_begin()+diagnostic_result(KEYS[:4])+unchanged_end()
+    cases['D02'] = diagnostic_result([], target=NONE)
+    cases['D03'] = as_role(PLATFORM, 'service_role')+error('select '+diagnostic_call(None), '22023')
+    cases['D04'] = as_role(PLATFORM, 'service_role')+error('select '+diagnostic_call(target=None), '22023')
+    cases['D05'] = f"update auth.users set deleted_at=now() where id={lit(UB)};\n"
+    for target in [UAB, uid(999), UB]:
+        cases['D05'] += as_role(UAB, 'service_role')+error('select '+diagnostic_call(UAB, target), '42501')
+    changes = [
+        f"update public.user_roles set is_active=false where user_id={lit(PLATFORM)};",
+        f"update public.user_profiles set user_status='disabled' where id={lit(PLATFORM)};",
+        f"delete from public.user_profiles where id={lit(PLATFORM)};",
+        f"update auth.users set banned_until=now()+interval '1 day' where id={lit(PLATFORM)};",
+        f"update auth.users set deleted_at=now() where id={lit(PLATFORM)};",
+        f"delete from public.user_roles where user_id={lit(PLATFORM)};",
+        f"update public.user_roles set status='disabled' where user_id={lit(PLATFORM)};",
+    ]
+    for index, change in enumerate(changes, 6):
+        cases[f'D{index:02}'] = change+'\n'+unchanged_begin()+as_role(PLATFORM, 'service_role')+error('select '+diagnostic_call(), '42501')+unchanged_end()
+    cases['D13'] = as_role(PLATFORM, 'service_role')+error('select '+diagnostic_call(actor=uid(999)), '42501')
+    cases['D14'] = as_role(PLATFORM, 'service_role')+error('select '+diagnostic_call(target=uid(999)), 'P0002')
+    cases['D15'] = f"update auth.users set deleted_at=now() where id={lit(UAB)};\n"+as_role(PLATFORM, 'service_role')+error('select '+diagnostic_call(), 'P0002')
+    cases['D16'] = overrides([(A,'test.extra','deny'),(B,'test.extra','allow')])+decision('test.extra',False,A)+diagnostic_result(KEYS[:5])
+    cases['D17'] = overrides([(None,'test.extra','deny'),(A,'test.extra','allow')])+diagnostic_result(KEYS[:4])
+    # Test-only fault injection is transactional and rolled back with each case.
+    replacement = "create or replace function public.gridex_get_user_permissions(p_user_id uuid) returns text[] language plpgsql stable security definer set search_path=public,auth,pg_temp as $fault$ begin %s end $fault$;\n"
+    for label, body, state in [
+        ('D18', "raise exception using errcode='22012',message='fixture_canonical_failure';", '22012'),
+        ('D19', 'return null;', '22023'),
+        ('D20', "return array['masterdata.read',null]::text[];", '22023'),
+        ('D21', "return array['']::text[];", '22023'),
+    ]:
+        cases[label] = replacement % body + unchanged_begin()+as_role(PLATFORM, 'service_role')+error('select '+diagnostic_call(), state)+unchanged_end()
+    cases['D22'] = f"update public.roles set is_active=false where id={lit(RP)};\n"+check(f'public.canonical_actor_is_platform_admin({lit(PLATFORM)})','diagnostic_c26_authority')+diagnostic_result([], target=PLATFORM)
+    cases['D23'] = ''
+    for role in ['anon', 'authenticated']:
+        cases['D23'] += as_role(None if role == 'anon' else UAB, role)
+        for target in [UAB, uid(999)]:
+            cases['D23'] += error('select '+diagnostic_call(target=target), '42501')
+        cases['D23'] += 'reset role;\n'
+    cases['D24'] = ''
+    for role in ['anon', 'authenticated', 'service_role']:
+        cases['D24'] += as_role(None if role == 'anon' else PLATFORM, role)
+        for call in [f'public.gridex_get_user_permissions({lit(UAB)})',
+                     f'public.gridex_get_user_permissions_in_company({lit(UAB)},{lit(A)})',
+                     f'gridex_private.effective_company_permissions({lit(UAB)},{lit(A)},now())']:
+            cases['D24'] += error('select '+call, '42501')
+        cases['D24'] += 'reset role;\n'
+    cases['D25'] = diagnostic_result(['admin.access'], target=ADMIN)
+    cases['D26'] = overrides([(None,'test.extra','allow','now(),now(),true')])+diagnostic_result(KEYS[:5])
+    cases['D27'] = f"update public.admin_users set is_active=false where user_id={lit(ADMIN)};\n"+as_role(ADMIN, 'service_role')+error('select '+diagnostic_call(actor=ADMIN), '42501')
+    return cases
+
+
 PRIVATE_SIGNATURES=['gridex_private.effective_company_permissions(uuid,uuid,timestamptz)',
                     'gridex_private.platform_permissions(uuid,timestamptz)',
                     'public.gridex_get_user_permissions(uuid)',
@@ -421,6 +492,14 @@ def acl_assertions():
         sql+=check(f"not has_function_privilege('{role}','public.canonical_manage_platform_user_access(jsonb)','EXECUTE')",'command_acl_private')
     sql+=check("has_function_privilege('authenticated','public.canonical_authenticated_tenant_context(uuid)','EXECUTE')",'context_rpc_acl')
     sql+=check("not has_function_privilege('anon','gridex_private.customer_document_path_allows(text,text)','EXECUTE')",'storage_anon_acl')
+    for signature in PRIVATE_SIGNATURES:
+        for role in ['anon', 'authenticated', 'service_role']:
+            sql += check(f"not has_function_privilege('{role}',{lit(signature)},'EXECUTE')", 'internal_inherited_acl_denied')
+    for role in ['anon', 'authenticated']:
+        sql += check(f"not has_function_privilege('{role}',{lit(DIAGNOSTIC_SIGNATURE)},'EXECUTE')", 'diagnostic_inherited_acl_denied')
+    sql += check(f"has_function_privilege('service_role',{lit(DIAGNOSTIC_SIGNATURE)},'EXECUTE')", 'diagnostic_service_execute')
+    sql += check("count(*)=1 and bool_and(a.grantee='service_role'::regrole and a.privilege_type='EXECUTE' and not a.is_grantable) from pg_proc p cross join lateral aclexplode(p.proacl) a where p.oid="+lit(DIAGNOSTIC_SIGNATURE)+"::regprocedure and a.grantee<>p.proowner", 'diagnostic_only_explicit_service')
+    sql += check("p.prosecdef and p.provolatile='s' and p.proconfig=array['search_path=public, auth, pg_temp'] and has_function_privilege(p.proowner,'public.gridex_get_user_permissions(uuid)','EXECUTE') from pg_proc p where p.oid="+lit(DIAGNOSTIC_SIGNATURE)+"::regprocedure", 'diagnostic_security_definer_contract')
     return sql
 
 
@@ -451,10 +530,10 @@ def candidate():
 
 
 def build_cases():
-    groups={'P':permission_cases(),'C':algebra_cases(),'F':access_cases(),'S':storage_cases(),'SX':storage_additional_cases()}
-    if {k:len(v) for k,v in groups.items()}!={'P':28,'C':32,'F':16,'S':24,'SX':2}:
+    groups={'P':permission_cases(),'C':algebra_cases(),'F':access_cases(),'S':storage_cases(),'SX':storage_additional_cases(),'D':diagnostic_cases()}
+    if {k:len(v) for k,v in groups.items()}!={'P':28,'C':32,'F':16,'S':24,'SX':2,'D':27}:
         raise ValueError('FINITE_MATRIX_COUNT_MISMATCH')
     cases={name:body for group in groups.values() for name,body in group.items()}
-    if len(cases)!=102 or any(not body for body in cases.values()):
+    if len(cases)!=129 or any(not body for body in cases.values()):
         raise ValueError('FINITE_MATRIX_CASE_MISMATCH')
     return cases

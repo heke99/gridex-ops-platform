@@ -117,12 +117,17 @@ def run_case(target, database, label, body, prefix='case'):
 
 def acl_poison(all_functions=False):
     signatures = fixture.PRIVATE_SIGNATURES if all_functions else fixture.PRIVATE_SIGNATURES[2:]
+    signatures = [*signatures, *([fixture.DIAGNOSTIC_SIGNATURE] if all_functions else [])]
     return ("-- FIXTURE-ONLY preexisting ACL poison, never added to source authority.\n"
             "do $$ begin if not exists(select 1 from pg_roles where rolname='fixture_permission_grantee') then\n"
             "create role fixture_permission_grantee nologin noinherit nosuperuser nobypassrls;\n"
-            "end if; end $$;\n" + ''.join(
+            "end if; end $$;\n"
+            "grant fixture_permission_grantee to anon, authenticated, service_role with inherit true;\n" + ''.join(
                 'grant execute on function '+signature+' to service_role, fixture_permission_grantee;\n'
-                for signature in signatures))
+                for signature in signatures) + ''.join(
+                fixture.check(f"has_function_privilege('{role}',{fixture.lit(signature)},'EXECUTE')", 'poison_inherited_execute_control')
+                for signature in signatures for role in ['anon', 'authenticated', 'service_role'])
+            + (f'grant execute on function {fixture.DIAGNOSTIC_SIGNATURE} to public, anon, authenticated;\n' if all_functions else ''))
 
 
 def capture(target, database, stage):
@@ -177,7 +182,7 @@ def execute():
         if capture(target,ATOMIC,'matrix_rollback') != first:
             raise NativeError('MATRIX_ROLLBACK_DRIFT')
         target.verify_logging()
-        print('PASS P28 C32 F16 S24 SX2; repeat, ACL recovery and row preservation',flush=True)
+        print('PASS P28 C32 F16 S24 SX2 D27; repeat, ACL recovery and row preservation',flush=True)
     print('PASS permission native owned-container cleanup',flush=True)
 
 

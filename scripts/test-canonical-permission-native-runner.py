@@ -15,7 +15,7 @@ class RunnerTests(unittest.TestCase):
     def test_finite_case_and_baseline_contract(self):
         fixture = runner.fixture
         cases = fixture.build_cases()
-        self.assertEqual(set(cases), {f'{prefix}{i:02}' for prefix, size in [('P',28),('C',32),('F',16),('S',24)] for i in range(1,size+1)} | {'S_VIEWER','S_UPSERT_OWN'})
+        self.assertEqual(set(cases), {f'{prefix}{i:02}' for prefix, size in [('P',28),('C',32),('F',16),('S',24),('D',27)] for i in range(1,size+1)} | {'S_VIEWER','S_UPSERT_OWN'})
         self.assertEqual(set(runner.baseline_cases()), {'P05','P06','P07','S13','S14','S15','S16','S20','S22','S_VIEWER'})
         self.assertNotEqual(runner.baseline_cases()['P05'], cases['P05'])
         self.assertNotEqual(runner.baseline_cases()['S14'], cases['S14'])
@@ -57,6 +57,8 @@ class RunnerTests(unittest.TestCase):
         sql = runner.acl_poison(all_functions=True)
         for signature in runner.fixture.PRIVATE_SIGNATURES:
             self.assertIn('grant execute on function '+signature+' to service_role, fixture_permission_grantee;',sql)
+        self.assertIn('grant fixture_permission_grantee to anon, authenticated, service_role with inherit true;',sql)
+        self.assertIn('grant execute on function '+runner.fixture.DIAGNOSTIC_SIGNATURE+' to service_role, fixture_permission_grantee;',sql)
         self.assertNotIn('customer_document_path_allows',sql)
 
     def test_workflow_dedicated_lane_and_always_exact_cleanup(self):
@@ -100,7 +102,7 @@ class RunnerTests(unittest.TestCase):
         with patch.object(runner,'owned_module',return_value=Owned), patch.object(runner,'dedicated_name'), patch('builtins.print'):
             runner.execute()
         stages = [call[2] for call in Target.calls if call[0]=='sql']
-        self.assertEqual(sum(stage.startswith('case_') for stage in stages),102)
+        self.assertEqual(sum(stage.startswith('case_') for stage in stages),129)
         self.assertTrue(stages.index('baseline_P05') < stages.index('candidate_first'))
         self.assertTrue(stages.index('candidate_repeat') < stages.index('candidate_acl_recovery'))
         self.assertEqual(Target.calls[-1],('close',))

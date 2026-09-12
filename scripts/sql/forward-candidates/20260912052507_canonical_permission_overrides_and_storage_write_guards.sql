@@ -797,4 +797,72 @@ revoke all on function public.canonical_manage_platform_user_access(jsonb)
 grant execute on function public.canonical_manage_platform_user_access(jsonb)
   to service_role;
 
+-- Task11c: service-only actor-bound permission diagnostic.
+create or replace function public.canonical_get_platform_user_permission_diagnostic(
+  p_actor_user_id uuid,
+  p_target_user_id uuid
+)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public, auth, pg_temp
+as $function$
+declare
+  v_permissions text[];
+begin
+  if p_actor_user_id is null or p_target_user_id is null then
+    raise exception using errcode='22023', message='actor_and_target_user_required';
+  end if;
+  if not coalesce(public.canonical_actor_is_platform_admin(p_actor_user_id), false) then
+    raise exception using errcode='42501', message='platform_admin_required';
+  end if;
+  if not exists (
+    select 1 from auth.users u where u.id=p_target_user_id and u.deleted_at is null
+  ) then
+    raise exception using errcode='P0002', message='target_auth_user_not_found';
+  end if;
+
+  v_permissions := public.gridex_get_user_permissions(p_target_user_id);
+  if v_permissions is null or exists (
+    select 1 from unnest(v_permissions) permission_key
+    where permission_key is null or btrim(permission_key)=''
+  ) then
+    raise exception using errcode='22023', message='permission_diagnostic_invalid';
+  end if;
+
+  return jsonb_build_object(
+    'target_user_id', p_target_user_id,
+    'scope', 'shared_active_companies',
+    'permissions', to_jsonb(array(select permission_key from unnest(v_permissions) permission_key order by permission_key)),
+    'evaluated_at', now()
+  );
+end
+$function$;
+
+-- Clear every non-owner ACL, including custom parent roles inherited by API roles,
+-- before establishing the sole explicit service grant. CREATE OR REPLACE keeps ACLs.
+do $diagnostic_acl$
+declare
+  signature regprocedure := 'public.canonical_get_platform_user_permission_diagnostic(uuid,uuid)'::regprocedure;
+  target record;
+begin
+  for target in
+    select distinct acl.grantee
+    from pg_proc proc
+    cross join lateral aclexplode(coalesce(proc.proacl,acldefault('f',proc.proowner))) acl
+    where proc.oid=signature and acl.grantee <> proc.proowner
+  loop
+    execute format('revoke all on function %s from %s cascade',
+      signature,
+      case when target.grantee=0 then 'public'
+           else quote_ident(pg_get_userbyid(target.grantee)) end);
+  end loop;
+end
+$diagnostic_acl$;
+revoke all on function public.canonical_get_platform_user_permission_diagnostic(uuid,uuid)
+  from public, anon, authenticated;
+grant execute on function public.canonical_get_platform_user_permission_diagnostic(uuid,uuid)
+  to service_role;
+
 commit;
