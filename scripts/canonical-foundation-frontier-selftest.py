@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Finite constructor/privacy tests; these never claim a PostgreSQL execution."""
 import importlib.util
+import ast
+import inspect
+import re
 from pathlib import Path
 import sys
 import unittest
@@ -36,6 +39,31 @@ class FrontierTests(unittest.TestCase):
     def test_untrusted_label_is_not_an_identifier(self):
         result = diag.safe_error_identifiers(b'ERROR: 42P01: relation "user@example.test" does not exist')
         self.assertEqual(result['schema_identifiers'], [])
+
+    def test_workflow_uses_existing_private_input_owner_contract(self):
+        # Read the actual adapter predicate rather than duplicating its regex.
+        controller = diag.load_controller()
+        code = ast.parse(inspect.getsource(controller.load_private()))
+        patterns = [node.args[0].value for node in ast.walk(code)
+                    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                    and node.func.attr == 'fullmatch' and node.args
+                    and isinstance(node.args[0], ast.Constant)
+                    and isinstance(node.args[0].value, str)
+                    and node.args[0].value.startswith('gridex-auth-legacy-')]
+        self.assertEqual(len(patterns), 1)
+        workflow = (diag.ROOT / '.github/workflows/gridex-db-frontier.yml').read_text()
+        line = next(line for line in workflow.splitlines() if 'GRIDEX_LEGACY_CONTAINER_NAME:' in line)
+        name = line.split(':', 1)[1].strip().replace('${{ github.run_id }}', '123456').replace('${{ github.run_attempt }}', '1')
+        self.assertRegex(name, patterns[0])
+        self.assertIsNone(re.fullmatch(patterns[0], 'gridex-auth-legacy-frontier-123456-1'))
+
+    def test_exception_labels_are_closed_not_arbitrary_uppercase(self):
+        controller = diag.load_controller()
+        boundary = controller.load_batch().BoundaryError
+        self.assertEqual(diag.safe_failure_category(controller, boundary('FRESH_FIXED_PREPARATION_REQUIRED')),
+                         'FRESH_FIXED_PREPARATION_REQUIRED')
+        self.assertEqual(diag.safe_failure_category(controller, boundary('SECRET_API_KEY_1234')), 'UNCLASSIFIED')
+        self.assertEqual(diag.safe_failure_category(controller, RuntimeError('user@example.test password')), 'UNCLASSIFIED')
 
     def test_missing_native_error_is_explicit(self):
         self.assertEqual(diag.safe_error_identifiers(b'connection closed'), {'sqlstate': None, 'schema_identifiers': []})

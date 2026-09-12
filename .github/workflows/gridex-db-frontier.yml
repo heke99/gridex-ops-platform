@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-frontier-${{ github.run_id }}-${{ github.run_attempt }}
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -37,27 +37,3 @@ jobs:
           spec.loader.exec_module(module)
           module.load_controller().load_batch().cleanup_workflow_owned()
           PY
-  exact-source-snapshot:
-    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          persist-credentials: false
-      - name: Export tracked source only for isolated remediation
-        shell: bash
-        run: |
-          set -euo pipefail
-          out="$RUNNER_TEMP/gridex-db-source"
-          mkdir -p "$out"
-          git archive --format=tar.gz HEAD > "$out/source.tar.gz"
-          printf 'source_commit=%s\nsource_tree=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" > "$out/receipt.txt"
-          sha256sum "$out/source.tar.gz" >> "$out/receipt.txt"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: gridex-db-source
-          path: ${{ runner.temp }}/gridex-db-source/
-          retention-days: 1
-          if-no-files-found: error

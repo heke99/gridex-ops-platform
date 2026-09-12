@@ -11,7 +11,6 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
-import os
 from pathlib import Path
 import re
 import shutil
@@ -64,6 +63,19 @@ def safe_error_identifiers(raw):
     return {'sqlstate': state, 'schema_identifiers': names}
 
 
+def safe_failure_category(controller, error):
+    """Use only source-owned fixed labels; exception text is never serialized."""
+    legacy = controller.load_batch()
+    if (type(error) is legacy.BoundaryError and len(error.args) == 1
+            and type(error.args[0]) is str and error.args[0] in (
+                'FRESH_FIXED_PREPARATION_REQUIRED', 'UNEXPECTED_SQL_RESULT',
+                'STAGED_SOURCE_REQUIRED', 'STAGED_ORDER_MISMATCH',
+                'TRUSTED_ACCEPTED_WRITER_REQUIRED', 'SOURCE_HASH_MISMATCH',
+            )):
+        return error.args[0]
+    return controller.load_dedupe()._failure_category(error)
+
+
 def receipt(report, outcome, details=None):
     return {
         'schemaVersion': SCHEMA,
@@ -93,11 +105,16 @@ def run():
     signal.signal(signal.SIGTERM, interrupted)
     before = controller.originals_snapshot()
     result = None
+    phase = 'OWNED_TARGET'
     with legacy.OwnedPostgres() as target:
         try:
+            phase = 'PRIVATE_INPUT_ADMISSION'
             with controller.load_private().AcceptedInputs(target):
+                phase = 'INDEPENDENT_REFERENCES'
                 controller.load_dedupe().prepare_reference(target, 'full')
+                phase = 'FRESH_TARGET'
                 controller.load_dedupe().fresh_target(target)
+                phase = 'SOURCE_STAGING'
                 hold = Path(target.directory.name) / 'frontier-hold'
                 hold.mkdir(mode=0o700)
                 for source in (ROOT / 'supabase/migrations').iterdir():
@@ -107,16 +124,20 @@ def run():
                         shutil.copy2(source, hold / source.name)
                 paths = [str(hold / Path(rel).name if rel.startswith('migrations/')
                              else ROOT / 'supabase' / rel) for rel in order]
+                phase = 'FOUNDATION_ADMISSION'
                 loop = controller.FoundationLoop(legacy, target, 'full')
                 loop.validate(str(hold), paths)
+                phase = 'PLATFORM_BOOTSTRAP'
                 target.sql(controller.DATABASE,
                            (ROOT / 'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_text(),
                            'frontier_bootstrap', transaction=False)
+                phase = 'SELECTED_FOUNDATION_EXECUTION'
                 loop.run(str(hold), paths)
                 result = receipt(report, 'SELECTED_FOUNDATION_EXECUTED_NOT_CERTIFIED')
-        except Exception:
+        except Exception as error:
             last = Path(target.directory.name) / 'client-last.out'
             details = safe_error_identifiers(last.read_bytes()) if last.is_file() else {}
+            details.update({'phase': phase, 'cause': safe_failure_category(controller, error)})
             result = receipt(report, 'BLOCKED', details)
         # Preserve the exact original source tree: there is no checkout staging,
         # restoration, source/manifest rewrite or schema baseline publication.
