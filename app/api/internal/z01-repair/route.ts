@@ -14,17 +14,14 @@ import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { finalizeStuckZ01GridOwnerDataRequest, dryRunZ01Finalizer } from '@/lib/customer-operations/z01Finalizer'
 import type { EdielEnvironment } from '@/lib/ediel/types'
 
+import { readAdminJson } from '@/lib/http/adminJsonRequest'
+import { z01RepairSchema } from '@/lib/admin/platformJsonSchemas'
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 function asString(v: unknown): string | null {
   return typeof v === 'string' && v.trim().length > 0 ? v.trim() : null
-}
-
-function asBool(v: unknown): boolean {
-  if (typeof v === 'boolean') return v
-  if (v === 'true' || v === '1') return true
-  return false
 }
 
 export async function POST(request: NextRequest) {
@@ -34,12 +31,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Åtkomst nekad. Kräver plattformsadministratörsbehörighet.' }, { status: 403 })
     }
 
-    let body: Record<string, unknown>
-    try {
-      body = (await request.json()) as Record<string, unknown>
-    } catch {
-      return NextResponse.json({ ok: false, error: 'Ogiltig JSON.' }, { status: 400 })
-    }
+    const parsed = await readAdminJson(request, z01RepairSchema)
+    if (!parsed.ok) return NextResponse.json({ ok: false, error: parsed.error, code: parsed.code, field: parsed.field }, { status: parsed.status })
+    const body = parsed.data
 
     const companyId = asString(body.company_id)
     if (!companyId) {
@@ -54,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     const environment = asString(body.environment) as EdielEnvironment | null
-    const dryRun = asBool(body.dry_run ?? body.dryRun ?? true)
+    const dryRun = body.dry_run ?? body.dryRun ?? true
 
     const actorUserId = guard.userId ?? 'platform-admin'
 

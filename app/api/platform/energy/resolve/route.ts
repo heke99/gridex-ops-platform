@@ -3,13 +3,18 @@ import { internalApiError } from '@/lib/http/apiError'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { resolveEnergyContext } from '@/lib/energy/resolver'
 
+import { readAdminJson } from '@/lib/http/adminJsonRequest'
+import { platformEnergyResolveSchema } from '@/lib/admin/platformJsonSchemas'
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
   try {
     await requirePlatformAdminActionAccess()
-    const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    const parsed = await readAdminJson(request, platformEnergyResolveSchema)
+    if (!parsed.ok) return NextResponse.json({ ok: false, error: parsed.error, code: parsed.code, field: parsed.field }, { status: parsed.status })
+    const body = parsed.data
     const result = await resolveEnergyContext({
       companyId: typeof body.company_id === 'string' ? body.company_id : typeof body.companyId === 'string' ? body.companyId : null,
       customerId: typeof body.customer_id === 'string' ? body.customer_id : typeof body.customerId === 'string' ? body.customerId : null,
