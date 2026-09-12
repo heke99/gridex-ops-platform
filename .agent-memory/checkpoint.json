@@ -5,7 +5,7 @@
   "current_state": ".agent-memory/current-state.md",
   "active_group": "auth_membership_tenant",
   "source_state": {
-    "published_baseline": "604b2e17f93901b81faa93e8c0dd5654e8854c7a"
+    "published_baseline": "4ae4f1dcfc7632caa92c206286a0437e2b2a970a"
   },
-  "next_action": "Actual77 nativeaccepted on3f8be706/job103498679021. Publish reviewedcompanyguards+artifactlintfix; resolvehostedNode22 API/guardgates; continueTask4/monthly, billing, SQLpermissions/storage/RLS andcomplete77\u201385 matrices."
+  "next_action": "Actual77 native accepted; API+companyguards supportedNode22qualityPASS on4ae4f1d/job103501283793. ResolveTask4reviewfix then CLIscaffold andbilling underlay/evidence/task7jobfixes, canonicalpermissions/storage/nativeRLS, fullAPI/jobs/billingmatrices."
 }
