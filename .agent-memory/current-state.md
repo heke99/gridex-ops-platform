@@ -5,36 +5,31 @@ Status: PARTIAL
 
 ## User scope and active task
 
-Continue masterplan points 77–86 in this order: database reconstruction and generated types; the two confirmed runtime faults; full RLS/permissions; native billing transactions; background jobs including point86 STARVATION; resume the paused API remainder; final review, merge and deployment. Point86 is fairness/backlog isolation, not a migration ordinal.
+Continue masterplan points77–86 in this order: database reconstruction and generated types; the two confirmed runtime faults; full RLS/permissions; native billing transactions; background jobs including point86 STARVATION; resume the paused API remainder; final review, merge and deployment. Point86 is fairness/backlog isolation, not a migration ordinal.
 
-The sole active task is database reconstruction. The latest instruction supersedes the earlier publication-only/API-pause next action, but does not authorize redoing completed API work or bypassing release gates. Existing API code remains unchanged; the unfinished partner-price patch stays unapplied until its scheduled turn.
+The active task remains database reconstruction and acceptance. The timestamp229 session compilation blocker is now resolved in the isolated selected-chain diagnostic. Do not redo the completed API work or restart the solved SQL investigation. No remaining release gate is waived.
 
-## Published implementation and exact native evidence
+## Published session reconstruction and native evidence
 
-PR310 / codex/gridex-parity-remediation-20260905 contains two database-test commits on d94e1f0b7aa2b6d98d133a039261ec0d2e2aeae1:
+Starting head for this batch:57b243734d116c9165ff79a98acccc06742cd961. Final code head:1d40e33cc2d58e274d83a480b2b0cecc096f0fa1 on PR310 / codex/gridex-parity-remediation-20260905. Only five code/test/workflow paths differ from the starting head. The shared private SQL executor has been restored byte-for-byte after temporary diagnosis.
 
-- 1ba0f7b1c4fe41da7ab379a7ac2244def49dd3da extends the existing 118-input foundation diagnostic through the exact source-pinned 508-input timestamp/interleaved selection and its five prerequisite boundaries.
-- eacc6d404f229f91b13e9eb60c301f0b4ac148ef supplies an explicit real PostGIS profile for this owned, network-disabled diagnostic. Default legacy proofs still use postgres:17. The diagnostic verifies image identity, owner, network isolation and PG17/PostGIS availability before executing sources.
+The reconstruction replaces only the invalid four-call session repair block in 20260728170000_live_schema_code_canonical_sync.sql with the exact complete function from the already-versioned 20260730130000_historical_sync_forward_repair.sql. It preserves all surrounding SQL and the original transaction, checks the exact preimage, retains compiler validation and verifies the final body plus unchanged OID/owner/ACL/effective execute permissions. Historical files and manifests are unchanged. This is explicitly a reconstructed execution, not unchanged historical SQL or automatic source-effect acceptance.
 
-At 1ba0f7b, native run34714610111/job103609490437 passed all118 foundation inputs and44 timestamp inputs, then stopped with SQLSTATE0A000 at timestamp45, migrations/20260611100000_energy_resolver_grid_area_operations.sql. Its CREATE EXTENSION postgis requirement was absent from the plain PostgreSQL image.
+The June11 linter hardening migration had changed the original helper to SECURITY INVOKER. The first candidate correctly failed its incorrectly assumed definer preimage. The corrected code pins that predecessor and verifies the explicit invoker-to-definer transition authored by the complete forward repair. The security mode itself is not claimed unchanged.
 
-At eacc6d4, native run34715245340/job103611207798 passed the PostGIS migration, all118 foundation inputs and228 timestamp inputs. It stopped with SQLSTATE42601 at timestamp229, migrations/20260728170000_live_schema_code_canonical_sync.sql. Source SHA256 is 4b1af824f75423faa393d60b845d3b39a3998bcfc7d7ea1cec2a54aa8d3bd400. All21 local and hosted constructor/selection/privacy tests passed; owned-container cleanup passed. This is a BLOCKED diagnostic, not a complete accepted replay.
+Native run34718506775/job103619928466 on0bdd572 passed all118 foundation and508 timestamp stages. The cleaned code1d40e33 repeated the complete result in run34718792993/job103620685321, finishing2026-09-12T21:04:24Z. Both runs passed35 constructor/source tests and all six native proof groups: original42601 plus catalog/row rollback; injected pre-COMMIT rollback; full candidate success with exact function and retained ACL; unknown-preimage rejection without partial effects; bounded session/caller behavior; and actual replay application/continuation. Owned cleanup passed.
 
-The real diagnostic runtime was PostgreSQL170005 with PostGIS3.5.2, image postgis/postgis:17-3.5, imageId sha256:2ed748fc602dd3031c6724db8cb289e1578c2deb552a4f6e291f6f7e5e6e4f69. This is not claimed to be the exact managed Supabase runtime. The mutable tag is read back, not represented as an immutable image-input pin.
+The bounded session fixture covers unauthenticated/active/blocked states, disabled_at, two users, versioned schema-compatibility cases and anon/authenticated/service_role calls. It is not full managed Auth or two-tenant RLS acceptance. The runtime remains PG170005/PostGIS3.5.2, network=none; neither the mutable image tag nor its observed ID certifies managed Supabase parity.
 
 ## Exact next database action
 
-Resolve the invalid intermediate session-guard definition in the historical live-schema sync without rewriting applied history or skipping source effects. Its four text-repair calls remove v_disabled_at before removing the SELECT INTO target and other references. The existing later 20260730130000_historical_sync_forward_repair.sql explicitly documents this defect and installs a complete guard atomically; the current chronological replay cannot reach it. A new reconstruction solution needs source-bound native failure/rollback, final function/ACL/behavior and continuation evidence before acceptance. No such solution has been implemented by this checkpoint.
+Review the source-bound reconstruction, reconcile the37 original unresolved source dispositions with actual effect evidence, and integrate the accepted reconstruction into the supported canonical CLI/replay path. Only then regenerate and verify the schema/types from that accepted complete replay. Generated-types tail20260911114443 remains unresolved. The selected-chain diagnostic now finishes; the ordinary canonical clean-replay/type gate is still not accepted.
 
-Do not merely disable validation, catch-and-ignore SQL errors, reorder arbitrary migrations, alter history hashes, mark missing effects complete or generate types from the partial database. Continue from this exact blocker rather than reopening API work.
+Do not skip source effects, alter immutable migration hashes, manufacture ledger provenance or generate accepted types from an uncertified target. Native boundary success is not an independent code review. No separate reviewer result is claimed for this batch.
 
-## Preserved application work and verification
+## Preserved application work
 
-The accepted application baseline remains52b2de4d81cae370bf250e5a80f12c300bbddd16/tree76e633e2c7189807ae8b7de297a6d2e6e2343234. It includes seven selected-company JSON routes, six invoice/Ediel routes, five platform routes and the preceding body/auth/company-authority fixes. The API sources, quality/paused/2026-09-12-partner-price-wip.patch, migration files, migration manifests and generated types are byte-identical to the starting head of this database batch. The move-out contract is unchanged.
-
-On eacc6d4, OPS34715245359/quality-release-gates103611207992 passed lint, script/test types, mechanical checks, tests, API docs/compatibility/release checks, RBAC, budgets and build. This is not full CI: verify103611207917 failed at db:migrations:check, and clean-migration-replay103611208029 failed its clean replay/types step. Full E2E acceptance remains open. Independent review of this database diagnostic and the outstanding JSON increments has not been performed in this session.
-
-The paused candidate previously had213files/2143tests locally; it is not active or newly accepted. Retain its separate release/header/idempotency and native concurrency review.
+Application baseline52b2de4d81cae370bf250e5a80f12c300bbddd16/tree76e633e2c7189807ae8b7de297a6d2e6e2343234 and all existing API changes remain intact. The partner-price candidate at quality/paused/2026-09-12-partner-price-wip.patch remains unapplied. The move-out contract, historical migrations, manifests and generated types are unchanged by this session.
 
 ## Replay accounting and safety
 
@@ -44,18 +39,16 @@ The focused group contains 346 inputs: 311 selected, 20 substituted, 10 unclassi
 No production mutation has been performed in this replay-verification batch.
 Push reviewed, coherent batches stepwise as requested.
 
-The complete accounting report is unchanged from the starting head. --require-full-effects still exits1, with no input-contract errors and37 unresolved global dispositions. Selection and partial native execution do not prove their missing effects. The original clean-replay/full-effects/ownership/private-logging gates are unchanged. No ledger provenance, schema baseline, generated types, main merge or production deployment is accepted.
+The source-accounting gate was rerun locally after cleanup: zero input-contract errors,118 foundation/508 timestamp selected, --require-full-effects exit1. The37 original unresolved dispositions are unchanged. The new session-block reconstruction is separately disclosed and not misrepresented as raw whole-file execution by the unchanged selection accounting. Fourteen new source/negative tests passed locally; the full35 constructor tests passed in hosted CI.
 
-## Remaining plan and runtime observations
+On1d40e33, OPS34718792985 clean-migration-replay103620685512 still failed its clean replay/types step. Other quality jobs had not all finished when inspected. No full CI/E2E, ledger provenance, generated types, full RLS, main merge or production deployment is accepted.
 
-After full database reconstruction and types, fix the previously confirmed missing event_scope in platform market/geodata events and the ambiguous metering_points-to-customers embed between two tenant-composite foreign keys. Preserve canonical_energy_flow_events_scope_check and tenant constraints.
+## Remaining plan and continuity
 
-Then finish complete two-tenant CRUD/RLS/ACL, native invoice/event/evidence/dispatch transactions, job ownership/scale/recovery and point86 starvation tests, the paused API remainder and final independent review/E2E/deployment. Preserve the existing Task11b/12/15/16–18 source and admission contracts. Generated-types tail20260911114443 remains unresolved.
+After accepted database reconstruction/types, fix the recorded missing event_scope in platform market/geodata events and ambiguous metering_points-to-customers embed. Preserve the event_scope check and tenant-composite constraints. Then complete full RLS/CRUD/ACL, native invoice/event/evidence/dispatch transactions, job ownership/scale/recovery/starvation, the paused API remainder and final review/E2E/deployment. Preserve Task11b/12/15/16–18 contracts and source pins.
 
-Supabase projectpiidsfebjqjmnepdpnas is named gridex-ops-dev. The earlier recorded Vercel deployment is dpl_6qevcw57wT7X2p5yd5rQA7hzRq8c for projectprj_xA3EDI1xztkkyx21e3LY4UhgYrWt. Neither the name nor this offline diagnostic proves deployment/database binding. No managed database SQL or Vercel deployment was performed in this session.
+No managed database SQL or Vercel operation occurred. The previously recorded Supabase name gridex-ops-dev/refpiidsfebjqjmnepdpnas and Vercel deployment dpl_6qevcw57wT7X2p5yd5rQA7hzRq8c do not independently establish deployment/database binding.
 
-## Continuity
+Current evidence: quality/audits/DB_SESSION_RECONSTRUCTION_2026-09-12.md and DB_SESSION_RECONSTRUCTION_RECEIPT_2026-09-12.json. Older DB_SELECTED_CHAIN_FRONTIER reports and linked archive/pre-db-frontier-20260912 logs remain historical evidence; their previous timestamp229 blocker is superseded by this checkpoint. Continue quality/plans/2026-09-12-current-and-plan77-85.md with the explicit point86 scope and database-first order above.
 
-Evidence: quality/audits/DB_SELECTED_CHAIN_FRONTIER_2026-09-12.md and DB_SELECTED_CHAIN_RECEIPT_2026-09-12.json. Continue quality/plans/2026-09-12-current-and-plan77-85.md with the explicit point86 scope and the database-first order above. Older evidence logs are preserved byte-for-byte under .agent-memory/archive/pre-db-frontier-20260912/ and linked from the current append logs; they are historical evidence, not the active status.
-
-The local workspace was reconstructed from a GitHub source artifact and matched by complete Git tree. Published commits use the real upstream parent and non-force ref updates; no synthetic local history is pushed. All successful/blocked receipts remain scoped to their exact code SHA.
+Current-turn local work used an older source artifact plus verified relevant files. Individual changed blobs were checked; full local-workspace tree equivalence is not claimed. Published commits use real upstream parents and non-force ref updates, and native CI checked out the exact published code SHA.

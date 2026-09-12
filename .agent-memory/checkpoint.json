@@ -6,7 +6,17 @@
   "active_group": "database_reconstruction",
   "source_state": {
     "published_application_baseline": "52b2de4d81cae370bf250e5a80f12c300bbddd16",
-    "published_database_diagnostic": "eacc6d404f229f91b13e9eb60c301f0b4ac148ef"
+    "published_database_diagnostic": "1d40e33cc2d58e274d83a480b2b0cecc096f0fa1"
   },
-  "next_action": "Resolve timestamp229 historical live-sync intermediate session-guard compilation with source-bound reconstruction/native final-state and ACL evidence. PostGIS blocker is verified fixed; 118 foundation and228 timestamp inputs passed. Keep37 unresolved source effects, full replay/types and release gates blocking. Preserve completed API code; follow database -> runtime faults -> RLS -> billing -> jobs/86 -> paused API -> review/merge/deploy."
+  "native_verification": {
+    "run_id": 34718792993,
+    "job_id": 103620685321,
+    "foundation_inputs_passed": 118,
+    "timestamp_inputs_passed": 508,
+    "constructor_tests_passed": 35,
+    "session_proof_groups_passed": 6,
+    "cleanup": "PASS",
+    "full_canonical_acceptance": false
+  },
+  "next_action": "Timestamp229 session reconstruction is verified in the isolated selected-chain diagnostic; do not restart it. Review and accept its source-bound substitution, resolve37 original source dispositions with effect evidence, wire the supported canonical CLI replay, then generate/check types. Keep full replay/types and release gates blocking. Preserve completed API code and paused patch; retain database-first order through point86."
 }
