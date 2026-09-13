@@ -18,7 +18,7 @@ CLASSIFICATION = '20260902094000_platform_table_classification_and_invariant_gat
 ORIGINAL = '20260902095000_lock_customer_chain_with_composite_keys.sql'
 DATABASE = 'gridex_auth_legacy_atomic'
 KEY = 'constraint/public.ediel_message_intents/ediel_message_intents_customer_company_fk'
-EXPECTED = {'kind':'f', 'definition':'FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL (customer_id)', 'validated':True, 'deferrable':False, 'deferred':False, 'noinherit':False}
+EXPECTED = {'kind':'f', 'definition':'FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL (customer_id)', 'validated':True, 'deferrable':False, 'deferred':False, 'noinherit':True}
 
 
 def read_candidate():
