@@ -1,0 +1,133 @@
+name: Publish exact reviewed Gridex ordinary replay patch
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-reviewed-ordinary-publish.yml'
+      - 'quality/paused/2026-09-13-reviewed-ordinary.patch.gz.b64.1'
+      - 'quality/paused/2026-09-13-reviewed-ordinary.patch.gz.b64.2'
+      - 'quality/paused/2026-09-13-reviewed-ordinary.patch.gz.b64.3'
+permissions:
+  contents: read
+jobs:
+  publish:
+    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository && github.repository == 'heke99/gridex-ops-platform' && github.event.pull_request.head.ref == 'codex/gridex-parity-remediation-20260905'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    outputs:
+      sha: ${{ steps.publish.outputs.sha }}
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      EXPECTED_BASE: 6064dcf02319342e1a88424d9999bf0f42dd8b0a
+      EXPECTED_TREE: 1ace7a02ab3e5e8e54e0abb385b9a5f9b2b08f14
+      TRIGGER_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Apply only reviewed bytes on their exact parent and remove this publisher
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, hashlib, os, pathlib, re, subprocess, zlib
+          def git(*args): return subprocess.check_output(['git', *args], text=True).strip()
+          paths = ['.github/workflows/gridex-reviewed-ordinary-publish.yml',
+                   'quality/paused/2026-09-13-reviewed-ordinary.patch.gz.b64.1',
+                   'quality/paused/2026-09-13-reviewed-ordinary.patch.gz.b64.2',
+                   'quality/paused/2026-09-13-reviewed-ordinary.patch.gz.b64.3']
+          assert re.fullmatch('[0-9a-f]{40}', os.environ['TRIGGER_SHA'])
+          assert git('rev-parse', 'HEAD') == os.environ['TRIGGER_SHA']
+          assert git('rev-parse', 'HEAD^') == os.environ['EXPECTED_BASE']
+          assert git('diff', '--name-only', 'HEAD^', 'HEAD').splitlines() == paths
+          assert git('diff', '--diff-filter=A', '--name-only', 'HEAD^', 'HEAD').splitlines() == paths
+          raw = b''.join(pathlib.Path(p).read_bytes() for p in paths[1:])
+          assert len(raw) == 32952 and hashlib.sha256(raw).hexdigest() == '2ee667d48528fe1028ed1c5fb1b1ae43aec71355cc5f50a0b6c1ebda29ee3477'
+          packed = base64.b64decode(b''.join(raw.splitlines()), validate=True)
+          decoder = zlib.decompressobj(16 + zlib.MAX_WBITS)
+          patch = decoder.decompress(packed, 200000)
+          assert decoder.eof and not decoder.unused_data and not decoder.unconsumed_tail
+          assert len(patch) == 88953 and hashlib.sha256(patch).hexdigest() == 'f64589c47005f09e1821d3281ee8da44bd140e4cac20d8936f1472c82ca5b678'
+          output = pathlib.Path(os.environ['RUNNER_TEMP'])/'gridex-reviewed-ordinary.patch'
+          with output.open('xb') as f:
+              os.chmod(output, 0o600)
+              f.write(patch)
+          subprocess.run(['git', 'apply', '--check', str(output)], check=True)
+          subprocess.run(['git', 'apply', '--index', str(output)], check=True)
+          subprocess.run(['git', 'rm', '--', *paths], check=True)
+          output.unlink()
+          assert git('write-tree') == os.environ['EXPECTED_TREE']
+          PY
+      - name: Verify source admission and unchanged rejection controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/canonical-residual-source-admission-selftest.py
+          python3 scripts/canonical-owned-timestamp-selftest.py
+          python3 scripts/gridex-aud-003-clean-replay-selftest.py
+          python3 scripts/gridex-replay-required-checks-selftest.py
+          python3 scripts/canonical-timestamp-frontier-selftest.py
+          python3 scripts/canonical-residual-transition-selftest.py
+          python3 scripts/canonical-db2-reconstruction-selftest.py
+          python3 scripts/canonical-residual-integration-selftest.py
+          python3 scripts/canonical-timestamp-retained-selftest.py
+          python3 scripts/canonical-residual-index-effects-selftest.py
+          python3 scripts/canonical-user-rbac-repair-selftest.py --selection-only
+          python3 scripts/gridex-replay-input-accounting-selftest.py
+          node scripts/gridex-aud-003-migration-provenance-regression.cjs
+          git diff --check --cached
+          git diff --exit-code
+          test "$(git write-tree)" = "$EXPECTED_TREE"
+      - name: Fast-forward only the original PR branch to the exact reviewed tree
+        id: publish
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git remote get-url origin)" = 'https://github.com/heke99/gridex-ops-platform'
+          test "$(git write-tree)" = "$EXPECTED_TREE"
+          header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          echo "::add-mask::$header"
+          branch='refs/heads/codex/gridex-parity-remediation-20260905'
+          current="$(git -c "http.https://github.com/.extraheader=$header" ls-remote origin "$branch" | cut -f1)"
+          test "$current" = "$TRIGGER_SHA"
+          git -c user.name='Gridex reviewed patch publisher' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix(db): admit exact residual sources and wire retained owned timestamp tail' -m 'Publish the reviewed fixed-tree patch after source and rejection controls. Retain all ordinary required-object, schema fingerprint, ledger and type acceptance gates. Native and managed replay acceptance remain unproven. Remove this one-time publisher and its payload in the same commit.'
+          test "$(git rev-parse HEAD^)" = "$TRIGGER_SHA"
+          test "$(git rev-parse HEAD^{tree})" = "$EXPECTED_TREE"
+          git -c "http.https://github.com/.extraheader=$header" push origin "HEAD:$branch"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+  native-owned-verification:
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-ordinary-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ needs.publish.outputs.sha }}
+          persist-credentials: false
+      - name: Verify published tree identity and execute actual owned clean shell
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^{tree})" = '1ace7a02ab3e5e8e54e0abb385b9a5f9b2b08f14'
+          python3 scripts/canonical-auth-provisioning-replay.py --owned-compatible
+      - name: Remove only this workflow's owned database
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          p=Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve()
+          s=importlib.util.spec_from_file_location('cleanup',p);m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+          m.load_controller().load_batch().cleanup_workflow_owned()
+          PY
