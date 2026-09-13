@@ -12,8 +12,13 @@ jobs:
     timeout-minutes: 10
     env:
       OWNED_NAME: gridex-public-runtime-${{ github.run_id }}-${{ github.run_attempt }}
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
       EXPECTED_IMAGE: sha256:2ed748fc602dd3031c6724db8cb289e1578c2deb552a4f6e291f6f7e5e6e4f69
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
       - name: Export only pinned public PostgreSQL tools and dependencies
         shell: bash
         run: |
@@ -34,6 +39,51 @@ jobs:
           printf 'public_image_id=%s\nsource_commit=%s\nscope=SQL_TOOLING_ONLY_NOT_REPLAY_ACCEPTANCE\n' "$EXPECTED_IMAGE" '${{ github.event.pull_request.head.sha }}' > "$out/receipt.txt"
           docker image inspect --format '{{json .RepoDigests}}' "$EXPECTED_IMAGE" >> "$out/receipt.txt"
           sha256sum "$out/runtime.tar.gz" >> "$out/receipt.txt"
+      - name: Export source-only verified foundation for local SQL diagnostics
+        shell: bash
+        run: |
+          python3 - <<'PYTHON'
+          import hashlib, importlib.util, json, os, shutil, signal
+          from pathlib import Path
+          path = Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve()
+          spec = importlib.util.spec_from_file_location('snapshot_frontier', path)
+          frontier = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(frontier)
+          controller = frontier.load_controller()
+          order, report = frontier.verify_selection(controller)
+          legacy = controller.load_batch()
+          before = controller.originals_snapshot()
+          def interrupted(signum, frame):
+              raise RuntimeError('SOURCE_ONLY_EXPORT_INTERRUPTED')
+          signal.signal(signal.SIGTERM, interrupted)
+          signal.signal(signal.SIGINT, interrupted)
+          with legacy.OwnedPostgres(postgis=True) as target:
+              runtime = frontier.load_timestamp().verify_spatial_runtime(target)
+              with controller.load_private().AcceptedInputs(target):
+                  controller.load_dedupe().prepare_reference(target, 'full')
+                  controller.load_dedupe().fresh_target(target)
+                  hold = Path(target.directory.name) / 'snapshot-hold'
+                  hold.mkdir(mode=0o700)
+                  for source in (frontier.ROOT / 'supabase/migrations').iterdir():
+                      if source.is_symlink():
+                          raise RuntimeError('SYMLINK_SOURCE_REJECTED')
+                      if source.is_file() and source.suffix == '.sql':
+                          shutil.copy2(source, hold / source.name)
+                  paths = [str(hold / Path(rel).name if rel.startswith('migrations/') else frontier.ROOT / 'supabase' / rel) for rel in order]
+                  loop = controller.FoundationLoop(legacy, target, 'full')
+                  loop.validate(str(hold), paths)
+                  target.sql(controller.DATABASE, (frontier.ROOT / 'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_text(), 'snapshot_bootstrap', transaction=False)
+                  loop.run(str(hold), paths)
+                  target.sql(controller.DATABASE, "DO $$ BEGIN IF EXISTS(SELECT 1 FROM auth.users) OR EXISTS(SELECT 1 FROM vault.secrets) THEN RAISE EXCEPTION 'SOURCE_ONLY_EXPORT_EXPECTS_EMPTY_IDENTITIES_AND_VAULT'; END IF; END $$;", 'snapshot_source_only')
+                  data = target.docker(['exec', target.name, 'pg_dump', '-U', 'postgres', '-Fc', '-d', controller.DATABASE])
+                  output = Path(os.environ['RUNNER_TEMP']) / 'gridex-native-tools'
+                  (output / 'foundation-source-only.dump').write_bytes(data)
+                  (output / 'foundation-receipt.json').write_text(json.dumps({'scope':'SOURCE_ONLY_FOUNDATION_NOT_DATABASE_ACCEPTANCE','sourceCommit':os.environ['GITHUB_HEAD_SHA'],'runtime':runtime,'foundationInputs':len(order),'dumpSha256':hashlib.sha256(data).hexdigest(),'authUsersEmpty':True,'vaultSecretsEmpty':True,'productionModified':False,'completeReplayVerified':False}, indent=2)+'\n')
+                  if controller.originals_snapshot() != before:
+                      raise RuntimeError('SOURCE_PRESERVATION_FAILED')
+          PYTHON
+        env:
+          GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       - uses: actions/upload-artifact@v4
         with:
           name: gridex-native-tools
@@ -49,3 +99,16 @@ jobs:
             test "$(docker inspect --format '{{index .Config.Labels "gridex.public-runtime.owner"}}' "$OWNED_NAME")" = "$OWNED_NAME"
             docker rm -f "$OWNED_NAME"
           fi
+      - name: Clean owned diagnostic database after interruption
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PYTHON'
+          import importlib.util
+          from pathlib import Path
+          path = Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve()
+          spec = importlib.util.spec_from_file_location('snapshot_cleanup', path)
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          module.load_controller().load_batch().cleanup_workflow_owned()
+          PYTHON
