@@ -63,7 +63,9 @@ refresh manifests to conceal this. Temporary diagnostic cleanup is not yet due.
 
 Supabase projectpiidsfebjqjmnepdpnas is reachable but has no separate development
 branch. Treat its default branch as production; do not test reset/replay there.
-No production mutation has been performed. Existing native tests use owned CI
+No production mutation has been performed in this replay-verification batch.
+Push reviewed, coherent batches stepwise as requested.
+Existing native tests use owned CI
 containers. No independent security review or dependency remediation is claimed.
 
 Application baseline52b2de4d81cae370bf250e5a80f12c300bbddd16/tree76e633e2c7189807ae8b7de297a6d2e6e2343234 is preserved.
