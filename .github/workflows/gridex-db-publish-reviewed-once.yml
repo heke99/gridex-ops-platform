@@ -1,0 +1,168 @@
+name: Gridex assemble exact reviewed database tree
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-db-publish-reviewed-once.yml'
+permissions:
+  contents: read
+jobs:
+  assemble-unreferenced-tree:
+    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/gridex-parity-remediation-20260905'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: aec040ad956a2431e2dc47dd24647267eb081e38
+          persist-credentials: false
+      - name: Verify bounded edits and publish only unattached Git objects
+        env:
+          GH_ASSEMBLY_TOKEN: ${{ github.token }}
+          CARRIER_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, json, os, re, subprocess, urllib.request, zlib
+          from pathlib import Path
+          REPO = 'heke99/gridex-ops-platform'
+          BASE = 'aec040ad956a2431e2dc47dd24647267eb081e38'
+          EXPECTED_TREE = '311e59c51335bd07d7537e66e3c30d83bbedbe32'
+          EXPECTED_PAYLOAD = '04f1fc8f1391399eb01d8e87d367b2ffa842ceb1a54cc801358e04cb2ed50513'
+          CARRIER_PATH = '.github/workflows/gridex-db-publish-reviewed-once.yml'
+          PATHS = {
+              '.agent-memory/checkpoint.json', '.agent-memory/completed-work.md',
+              '.agent-memory/current-state.md', '.agent-memory/database-and-migrations.md',
+              '.agent-memory/session-log.md', '.agent-memory/verification-matrix.md',
+              '.github/workflows/gridex-db-frontier.yml',
+              '.github/workflows/gridex-db-native-runtime-once.yml',
+              '.github/workflows/gridex-db-source-once.yml',
+              'quality/audits/DB_BUSINESS_WHOLE_SOURCES_2026-09-13.json',
+              'quality/audits/DB_BUSINESS_WHOLE_SOURCES_2026-09-13.md',
+              'scripts/canonical-business-source-restoration.py',
+              'scripts/canonical-business-source-selftest.py',
+              'scripts/canonical-foundation-frontier-selftest.py',
+              'scripts/canonical-timestamp-frontier-selftest.py',
+              'scripts/canonical-timestamp-frontier.py',
+              'scripts/canonical-timestamp-source-restoration.py',
+              'scripts/canonical-timestamp-source-selftest.py',
+              'scripts/gridex-aud-003-legacy-foundation.additions.json',
+          }
+          carrier = os.environ['CARRIER_SHA']
+          if os.environ['GITHUB_REPOSITORY'] != REPO or not re.fullmatch('[0-9a-f]{40}', carrier):
+              raise RuntimeError('BOUND_REPOSITORY_OR_COMMIT_MISMATCH')
+          def api(method, endpoint, data=None):
+              if method == 'GET':
+                  permitted = re.fullmatch(r'git/(?:blobs|commits|trees)/[0-9a-f]{40}', endpoint) or endpoint == 'git/ref/heads/codex/gridex-parity-remediation-20260905'
+              else:
+                  permitted = method == 'POST' and endpoint in ('git/blobs', 'git/trees')
+              if not permitted:
+                  raise RuntimeError('ENDPOINT_NOT_ALLOWED')
+              request = urllib.request.Request('https://api.github.com/repos/' + REPO + '/' + endpoint,
+                  data=None if data is None else json.dumps(data).encode(), method=method,
+                  headers={'Authorization':'Bearer ' + os.environ['GH_ASSEMBLY_TOKEN'],
+                           'Accept':'application/vnd.github+json', 'Content-Type':'application/json',
+                           'X-GitHub-Api-Version':'2022-11-28'})
+              try:
+                  with urllib.request.urlopen(request, timeout=40) as response:
+                      return json.load(response)
+              except Exception:
+                  raise RuntimeError('BOUNDED_GIT_OBJECT_API_FAILED') from None
+          def git(*args):
+              return subprocess.check_output(['git', *args], text=True).strip()
+          def blob_id(data):
+              return hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+          if git('rev-parse', 'HEAD') != BASE or git('status', '--porcelain'):
+              raise RuntimeError('CHECKOUT_NOT_EXACT_CLEAN_BASE')
+          head = api('GET', 'git/ref/heads/codex/gridex-parity-remediation-20260905')['object']['sha']
+          parent = api('GET', 'git/commits/' + carrier)
+          if head != carrier or [p['sha'] for p in parent['parents']] != [BASE]:
+              raise RuntimeError('CARRIER_PARENT_OR_HEAD_CHANGED')
+          parts = []
+          for sha in ('2cf7420faae238bf020d70a9437f4acfaed44493', '2f8feb70078280d799697431f12474ab6975c640'):
+              item = api('GET', 'git/blobs/' + sha)
+              data = base64.b64decode(item['content'])
+              if item['encoding'] != 'base64' or blob_id(data) != sha:
+                  raise RuntimeError('COMPRESSED_BLOB_MISMATCH')
+              parts.append(data)
+          # Two transport transcription corrections, independently bound below to
+          # the original compressed part and the complete reviewed JSON digest.
+          transported = base64.b64encode(parts[1]).decode()
+          for old, new in (('k7Ds7J/WJ', 'k7Ds7/WJ'), ('lyfb8DgNZ', 'lyfb8IgNZ')):
+              if transported.count(old) != 1:
+                  raise RuntimeError('TRANSPORT_CORRECTION_NOT_UNIQUE')
+              transported = transported.replace(old, new)
+          transported = transported.rstrip('=')
+          transported += '=' * (-len(transported) % 4)
+          parts[1] = base64.b64decode(transported, validate=True)
+          if blob_id(parts[1]) != 'e53eb874d0c8b4165206503b80c4821c9a5c6c68':
+              raise RuntimeError('ORIGINAL_COMPRESSED_PART_MISMATCH')
+          decoder = zlib.decompressobj()
+          payload = decoder.decompress(b''.join(parts), 73611)
+          if len(payload) != 73610 or not decoder.eof or decoder.unused_data or decoder.unconsumed_tail or hashlib.sha256(payload).hexdigest() != EXPECTED_PAYLOAD:
+              raise RuntimeError('REVIEWED_PAYLOAD_DIGEST_MISMATCH')
+          edits = json.loads(payload)
+          if edits['version'] != 1 or len(edits['items']) != len(PATHS) or {e['path'] for e in edits['items']} != PATHS:
+              raise RuntimeError('EXACT_PATH_SET_MISMATCH')
+          root = Path.cwd().resolve()
+          for change in edits['items']:
+              path = root / change['path']
+              if path.is_symlink() or root not in path.resolve().parents:
+                  raise RuntimeError('UNSAFE_FILE_TARGET')
+              old = path.read_bytes() if path.exists() else b''
+              if (blob_id(old) if path.exists() else None) != change['oldBlob']:
+                  raise RuntimeError('OLD_FILE_DIGEST_MISMATCH')
+              if change.get('delete'):
+                  if change['newBlob'] is not None:
+                      raise RuntimeError('DELETE_SHAPE_MISMATCH')
+                  path.unlink()
+                  continue
+              lines, cursor, output = old.decode('utf-8').splitlines(keepends=True), 0, []
+              for start, end, replacement in change['edits']:
+                  if not (isinstance(start, int) and isinstance(end, int) and cursor <= start <= end <= len(lines) and isinstance(replacement, str)):
+                      raise RuntimeError('LINE_EDIT_RANGE_MISMATCH')
+                  output.extend(lines[cursor:start])
+                  output.append(replacement)
+                  cursor = end
+              output.extend(lines[cursor:])
+              data = ''.join(output).encode('utf-8')
+              if blob_id(data) != change['newBlob']:
+                  raise RuntimeError('NEW_FILE_DIGEST_MISMATCH')
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_bytes(data)
+              path.chmod(0o644)
+          subprocess.run(['git', 'add', '-A', '--', *sorted(PATHS)], check=True)
+          subprocess.run(['git', 'diff', '--cached', '--check'], check=True)
+          if set(git('diff', '--cached', '--name-only').splitlines()) != PATHS or git('write-tree') != EXPECTED_TREE:
+              raise RuntimeError('EXACT_REVIEWED_TREE_MISMATCH')
+          entries = []
+          for change in edits['items']:
+              entry = {'path':change['path'], 'mode':'100644', 'type':'blob', 'sha':None}
+              if change['newBlob'] is not None:
+                  data = (root / change['path']).read_bytes()
+                  uploaded = api('POST', 'git/blobs', {'encoding':'base64', 'content':base64.b64encode(data).decode()})
+                  if uploaded['sha'] != change['newBlob']:
+                      raise RuntimeError('UPLOADED_FILE_DIGEST_MISMATCH')
+                  entry['sha'] = uploaded['sha']
+              entries.append(entry)
+          entries.append({'path':CARRIER_PATH, 'mode':'100644', 'type':'blob', 'sha':None})
+          tree = api('POST', 'git/trees', {'base_tree':parent['tree']['sha'], 'tree':entries})
+          if tree['sha'] != EXPECTED_TREE:
+              raise RuntimeError('PUBLISHED_TREE_MISMATCH')
+          receipt = {'scope':'EXACT_REVIEWED_UNREFERENCED_TREE_ONLY', 'baseCommit':BASE,
+              'carrierCommit':carrier, 'treeSha':tree['sha'], 'payloadSha256':EXPECTED_PAYLOAD,
+              'reviewedPaths':sorted(PATHS), 'carrierWorkflowRemoved':True,
+              'refUpdated':False, 'commitCreated':False, 'productionModified':False,
+              'tests': 'LOCAL_RESULTS_RECORDED_IN_TREE_HOSTED_CANDIDATE_TESTS_STILL_REQUIRED'}
+          out = Path(os.environ['RUNNER_TEMP']) / 'gridex-reviewed-tree'
+          out.mkdir(mode=0o700)
+          (out / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          print(json.dumps({'treeSha':tree['sha'], 'refUpdated':False, 'commitCreated':False}))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gridex-reviewed-tree
+          path: ${{ runner.temp }}/gridex-reviewed-tree/receipt.json
+          retention-days: 1
+          if-no-files-found: error
