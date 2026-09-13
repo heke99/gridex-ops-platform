@@ -33,8 +33,8 @@ READINESS_PATH_SHA = 'a8c841b201c873a0349e015b7dc2b9647ef90675fffaf6b5299420cea2
 SUFFIX_SHA = '0f502cdd0f15911dc6ff87589969f2ccf2d94bf361ccd76cfc73131efc304ef4'
 RUNNER_SHA = '4665b791b5e228628fe4ca508c762a4377a9692850fd1090566385c645c8e1ac'
 BASE_FOUNDATION_MANIFEST_SHA = '7196bf2e7fc66cbb5ec0546e8b3d75675410763dbf569036d5c0bcdc627e4ba9'
-OLD_ADDITIONS_FOUNDATION_SHA = '753a7813c9a9ff49f927c5b3c1633aafbaea185c42ae95e1400cbc7b7c8ffe09'
-ADDITIONS_DERIVED_SHA = '11e6ef86224ba62349491835eb5faa0ff74f3dfe3df8619fdd83a9b966de5dc5'
+OLD_ADDITIONS_FOUNDATION_SHA = '5e6d43d00160bb4b91bbf6a15ac8ed6ecb0b06902f4fc60d0d0f2b848bb0abe0'
+ADDITIONS_DERIVED_SHA = '2049baa72dfb4028a28adb6ecf428eb89d854283c31867422d9a8be72ac5e7b7'
 DATABASES = tuple('gridex_auth_provisioning_' + name for name in ('reduced','prefix','failure','lock'))
 ADMIN = 'gridex_auth_test'
 EVENTS = 'public.auth_provisioning_events'
@@ -99,8 +99,8 @@ def transaction_body(sql):
 def prefix_paths(order=None):
     if order is None:
         order = json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation']
-    assert len(order) == 118, 'selected diagnostics stage requires foundation118'
-    assert path_digest(order[:41]) == PREFIX_SHA and path_digest(order[77:]) == SUFFIX_SHA
+    assert len(order) == 140, 'selected diagnostics stage requires foundation140'
+    assert path_digest(order[:41]) == PREFIX_SHA and path_digest(order[77:118]) == SUFFIX_SHA
     assert path_digest(order[63:68]) == ALIGNMENT_PATH_SHA
     assert path_digest(order[68:71]) == OPERATIONS_PATH_SHA
     assert path_digest(order[71:74]) == READINESS_PATH_SHA
@@ -169,8 +169,8 @@ def constructor_checks():
         pass
     else:
         raise AssertionError('truncated actual prefix accepted')
-    assert len(order)==118 and order[41:43]==[G,R]
-    assert path_digest(order[:41])==PREFIX_SHA and path_digest(order[77:])==SUFFIX_SHA
+    assert len(order)==140 and order[41:43]==[G,R]
+    assert path_digest(order[:41])==PREFIX_SHA and path_digest(order[77:118])==SUFFIX_SHA
     # Every rejection uses the constructor that the executing fixture consumes.
     for change in ({G:source[G].encode()[:-1]},
                    {G:source[G].replace('full join','left join',1).encode()},
@@ -250,7 +250,7 @@ def constructor_checks():
     assert account_run.returncode == 1, 'source completeness remains blocking'
     account = json.loads(account_run.stdout)
     assert not account['errors'] and account['totalMigrations']==600
-    assert account['counts']=={'FULL_FILE_SELECTED':562,'SUBSTITUTED':19,'UNCLASSIFIED':14,'EXPLICITLY_EXCLUDED':5}
+    assert account['counts']=={'FULL_FILE_SELECTED':584,'SUBSTITUTED':5,'UNCLASSIFIED':6,'EXPLICITLY_EXCLUDED':5}
     by_path = {item['path']:item for item in account['migrations']}
     assert by_path[G]['classification']==by_path[R]['classification']=='FULL_FILE_SELECTED'
     foundation_execution_once(by_path[G]['execution'],42)
@@ -264,7 +264,7 @@ def constructor_checks():
     grouped = subprocess.run(['python3','scripts/gridex-replay-review-groups.py','--group','auth_membership_tenant'],cwd=ROOT,text=True,capture_output=True)
     group = json.loads(grouped.stdout)
     assert grouped.returncode==1 and not group['errors'] and len(group['inputs'])==346
-    assert {key:sum(item['classification']==key for item in group['inputs']) for key in account['counts']} == {'FULL_FILE_SELECTED':311,'SUBSTITUTED':20,'UNCLASSIFIED':10,'EXPLICITLY_EXCLUDED':5}
+    assert {key:sum(item['classification']==key for item in group['inputs']) for key in account['counts']} == {'FULL_FILE_SELECTED':331,'SUBSTITUTED':4,'UNCLASSIFIED':6,'EXPLICITLY_EXCLUDED':5}
     # Construct the actual SQL without emitting historical input or provider rows.
     sql = actual_prefix_sql(source)
     observed = re.findall(r'^-- DIAGNOSTICS_PREFIX_FILE (.+)$',sql,re.M)
