@@ -1,0 +1,132 @@
+name: Gridex verify rulebook source order
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-residual-reviewed-tree-once.yml'
+permissions:
+  contents: read
+jobs:
+  verify-unreferenced-tree:
+    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/gridex-parity-remediation-20260905'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 775d58171737ed2bd4bde779db0e18da7182280a
+          persist-credentials: false
+      - name: Materialize exact reviewed rulebook edits
+        env:
+          ASSEMBLY_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64,hashlib,json,os,subprocess,urllib.request,zlib
+          from pathlib import Path
+          BASE='775d58171737ed2bd4bde779db0e18da7182280a'
+          TREE='0485f1c435f2f374b6209013c2a47035b510063a'
+          PIN='77358eceec8e63a178ceb6546d1268d9f7fc4fd07ee396584dc19099b21aa68d'
+          BLOB='bb2be7d98552fd1324cc9a2bf4a7be824da43634'
+          PATHS={'scripts/canonical-auth-provisioning-diagnostics-selftest.py','scripts/canonical-auth-provisioning-replay.py','scripts/canonical-foundation-frontier-diagnostic.py','scripts/canonical-foundation-frontier-selftest.py','scripts/canonical-residual-migration-probe.py','scripts/canonical-residual-migration-selftest.py','scripts/canonical-residual-source-restoration.py','scripts/canonical-residual-source-selftest.py','scripts/canonical-timestamp-frontier-selftest.py','scripts/canonical-timestamp-source-selftest.py','scripts/gridex-aud-003-foundation-order.json','scripts/gridex-aud-003-legacy-foundation.additions.json','scripts/gridex-aud-003-migration-provenance-regression.cjs','scripts/gridex-replay-input-accounting-selftest.py'}
+          def git(*args): return subprocess.check_output(['git',*args],text=True).strip()
+          def blob(data): return hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
+          if os.environ['GITHUB_REPOSITORY']!='heke99/gridex-ops-platform' or git('rev-parse','HEAD')!=BASE or git('status','--porcelain'):
+              raise RuntimeError('EXACT_CLEAN_BASE_REQUIRED')
+          request=urllib.request.Request('https://api.github.com/repos/heke99/gridex-ops-platform/git/blobs/'+BLOB,headers={'Authorization':'Bearer '+os.environ['ASSEMBLY_TOKEN'],'Accept':'application/vnd.github+json'})
+          with urllib.request.urlopen(request,timeout=30) as response: wrapped=json.load(response)
+          packed=base64.b64decode(wrapped['content'])
+          if blob(packed)!=BLOB: raise RuntimeError('TRANSPORT_BLOB_MISMATCH')
+          decoder=zlib.decompressobj(); raw=decoder.decompress(packed,16202)
+          if len(raw)!=16201 or not decoder.eof or decoder.unused_data or decoder.unconsumed_tail or hashlib.sha256(raw).hexdigest()!=PIN:
+              raise RuntimeError('REVIEWED_PAYLOAD_MISMATCH')
+          payload=json.loads(raw)
+          if payload['version']!=1 or payload['base']!=BASE or len(payload['items'])!=len(PATHS) or {e['path'] for e in payload['items']}!=PATHS:
+              raise RuntimeError('EXACT_PATH_SET_REQUIRED')
+          root=Path.cwd().resolve()
+          for change in payload['items']:
+              path=root/change['path']
+              if path.is_symlink() or root not in path.resolve().parents: raise RuntimeError('UNSAFE_SOURCE_PATH')
+              old=path.read_bytes()
+              if blob(old)!=change['oldBlob'] or change['delete']: raise RuntimeError('PREIMAGE_MISMATCH')
+              lines=old.decode().splitlines(keepends=True); cursor=0; output=[]
+              for start,end,replacement in change['edits']:
+                  if not (type(start) is int and type(end) is int and cursor<=start<=end<=len(lines) and isinstance(replacement,str)):
+                      raise RuntimeError('EDIT_RANGE_MISMATCH')
+                  output.extend(lines[cursor:start]); output.append(replacement); cursor=end
+              output.extend(lines[cursor:]); data=''.join(output).encode()
+              if blob(data)!=change['newBlob'] or change['mode'] not in ('100644','100755'): raise RuntimeError('RESULT_MISMATCH')
+              path.write_bytes(data); path.chmod(int(change['mode'],8)&0o777)
+          subprocess.run(['git','add','--',*sorted(PATHS)],check=True)
+          subprocess.run(['git','diff','--cached','--check'],check=True)
+          if git('write-tree')!=TREE or set(git('diff','--cached','--name-only').splitlines())!=PATHS:
+              raise RuntimeError('REVIEWED_TREE_MISMATCH')
+          output=Path(os.environ['RUNNER_TEMP'])/'rulebook-reviewed'; output.mkdir(mode=0o700)
+          (output/'manifest.json').write_text(json.dumps({'treeSha':TREE,'baseCommit':BASE,'payloadSha256':PIN,'items':[{k:e[k] for k in ('path','mode','newBlob','delete')} for e in payload['items']]},indent=2))
+          print('PASS exact reviewed source tree '+TREE)
+          PY
+      - name: Run source and rejection regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/canonical-foundation-frontier-selftest.py
+          python3 scripts/canonical-timestamp-frontier-selftest.py
+          python3 scripts/canonical-timestamp-source-selftest.py
+          python3 scripts/canonical-residual-source-selftest.py
+          python3 scripts/canonical-residual-migration-selftest.py
+          python3 scripts/canonical-live-sync-selftest.py
+          python3 scripts/test-canonical-permission-native-admission.py
+          python3 scripts/test-canonical-permission-native-fixture.py
+          python3 scripts/gridex-replay-input-accounting-selftest.py
+          node scripts/gridex-aud-003-migration-provenance-regression.cjs
+      - name: Run full selected chain and native seed corruption controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/canonical-foundation-frontier-diagnostic.py | tee "$RUNNER_TEMP/rulebook-reviewed/native.log"
+          git diff --exit-code
+          test "$(git write-tree)" = 0485f1c435f2f374b6209013c2a47035b510063a
+      - name: Upload only unattached verified file objects
+        env:
+          ASSEMBLY_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64,hashlib,json,os,urllib.request
+          from pathlib import Path
+          output=Path(os.environ['RUNNER_TEMP'])/'rulebook-reviewed'
+          manifest=json.loads((output/'manifest.json').read_text())
+          for entry in manifest['items']:
+              data=Path(entry['path']).read_bytes()
+              sha=hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
+              if sha!=entry['newBlob']: raise RuntimeError('VERIFIED_FILE_CHANGED')
+              request=urllib.request.Request('https://api.github.com/repos/heke99/gridex-ops-platform/git/blobs',data=json.dumps({'encoding':'base64','content':base64.b64encode(data).decode()}).encode(),method='POST',headers={'Authorization':'Bearer '+os.environ['ASSEMBLY_TOKEN'],'Accept':'application/vnd.github+json','Content-Type':'application/json'})
+              with urllib.request.urlopen(request,timeout=30) as response: result=json.load(response)
+              if result['sha']!=sha: raise RuntimeError('UPLOADED_BLOB_MISMATCH')
+          manifest.update({'scope':'SELECTED_CHAIN_AND_BOUNDED_SOURCE_PROOFS_NOT_RELEASE_ACCEPTANCE','refUpdated':False,'commitCreated':False,'productionModified':False,'completeReplayVerified':False,'generatedTypesVerified':False,'nativeSelectedChainVerified':True})
+          (output/'receipt.json').write_text(json.dumps(manifest,indent=2)+'\n')
+          print('PASS unattached verified file objects; no branch changes')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gridex-reviewed-rulebook-tree
+          path: ${{ runner.temp }}/rulebook-reviewed/
+          retention-days: 2
+          if-no-files-found: error
+      - name: Cleanup only this run's owned database
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          path=Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve()
+          spec=importlib.util.spec_from_file_location('cleanup',path)
+          module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+          module.load_controller().load_batch().cleanup_workflow_owned()
+          PY
