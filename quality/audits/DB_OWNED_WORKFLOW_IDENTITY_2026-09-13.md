@@ -1,6 +1,6 @@
 # Owned replay workflow identity correction
 
-Status: IMPLEMENTED_NOT_VERIFIED (fresh native result pending).
+Status: IDENTITY_FIX_NATIVE_VERIFIED; full replay remains BLOCKED.
 Base:1f09dcc770215f1a64b895c2172bf7eec5fa2032, PR310.
 
 ## Publication recovered
@@ -39,3 +39,11 @@ Canonical sources accounted600 does not mean complete database acceptance.
 The managed clean-replay/type release job remains mandatory and unresolved.
 Read fresh native results before marking this correction verified. Points85/86,
 ledger provenance and accepted type regeneration remain incomplete.
+
+## Fresh native result at6a65e75
+
+Run34779330429 verifies the corrected identity. Actual owned shell103783333534
+executes144/7/513 and all18 final predicates are true, then rejects the unchanged
+schema fingerprint; terminal privacy also rejects a private source literal. Exact
+disposal/cleanup passes. Residual103783333423 passes selected and staged-originals-
+absent lanes. See DB_FINAL_GATE_DIAGNOSTIC_2026-09-13.md and current-state.md.

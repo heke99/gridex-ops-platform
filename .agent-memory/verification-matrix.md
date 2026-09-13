@@ -72,3 +72,12 @@ Historical SQL/type manifests remain unchanged. No production mutation or merge.
 -New local increment: source contract18, owned-tail13 (RED/GREEN), cleanup20,
   required checks12, timestamp13, focused residual51, repair selection-only PASS.
 -New full native/managed/ledger/schema/types: NOT VERIFIED. See current-state.
+
+## 2026-09-13 — actual final-gate boundary
+
+6a65e75 /34779330429: residual103783333423 SUCCESS including originals-absent
+continuation; ordinary103783333534 reaches144 foundation/7 residual/513 timestamp
+and18/18 true, then fingerprintFAIL and private-source privacyFAIL. Disposal and
+exact cleanupPASS. Canonical600/0 input admissionPASS is not schema/ledger/types.
+13 new terminal-diagnostic +3 identity +13 tail localtestsPASS; native diagnostic
+pending. See current-state.md and DB_FINAL_GATE_DIAGNOSTIC_2026-09-13.md.

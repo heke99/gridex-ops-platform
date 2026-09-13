@@ -61,3 +61,12 @@ timestamp transport; kept original source files, schema fingerprint, required
 checks, real-ledger and type gates unchanged. Fresh native integration pending.
 No main merge, production mutation, deployment or paused API-patch application.
 See current-state and DB_SOURCE_ADMISSION_OWNED_TAIL_2026-09-13.md.
+
+## 2026-09-13 — recovered real ordinary execution
+
+Published1f09dcc exact reviewed source/tail implementation; then6a65e75 corrects
+workflow identity without widening private-input admission. Native34779330429 now
+executes actual ordinary144/7/513 and all18 required predicates, exposes final
+fingerprint mismatch and SOURCE_LITERAL_IN_PRIVATE_ARTIFACT; cleanup verified.
+Added a bounded readonly terminal diagnostic and13 tests, not an acceptance fix.
+No production/main/type changes. Active next action remains in current-state.md.

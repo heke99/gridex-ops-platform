@@ -4,8 +4,7 @@
   "status": "PARTIAL",
   "current_state": ".agent-memory/current-state.md",
   "active_group": "database_reconstruction",
-  "verified_code": "6064dcf02319342e1a88424d9999bf0f42dd8b0a",
-  "evidence": "quality/audits/DB_OWNED_WORKFLOW_IDENTITY_2026-09-13.md",
-  "next_action": "Read corrected actual owned-shell native CI after workflow identity fix. Preserve schema/required/ledger gates; no accepted type regeneration until managed reconstruction is verified.",
-  "implementation_code": "1f09dcc770215f1a64b895c2172bf7eec5fa2032"
+  "verified_code": "6a65e75597ddf388d1ea304701b6b7c30d9f2672",
+  "evidence": "quality/audits/DB_FINAL_GATE_DIAGNOSTIC_2026-09-13.md",
+  "next_action": "Read terminal diagnostic CI. Reconcile schema fingerprint and private-source artifact failure without changing acceptance gates. Managed ledger and accepted types remain blocked."
 }

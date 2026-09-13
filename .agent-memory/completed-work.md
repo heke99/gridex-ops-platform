@@ -41,3 +41,11 @@ native34776030335/job103774181992 passed both selected144+7+513 continuations,
 including original files absent through the full tail. No accepted ledger/types.
 New source-admission/ordinary-tail code has local static evidence only; current
 status and audit DB_SOURCE_ADMISSION_OWNED_TAIL_2026-09-13.md retain that boundary.
+
+## 2026-09-13 — CI publication and owned workflow identity
+
+Published exact reviewed tree as1f09dcc via connected GitHub without permission
+changes, then identity correction6a65e75 with3 real-constructor regressions. Fresh
+34779330429 proves selected/staged continuation and actual owned144/7/513 plus
+18/18 predicates. Only these scoped corrections are verified; final schema/privacy,
+managed ledger and types remain blocked. Evidence: DB_FINAL_GATE_DIAGNOSTIC_2026-09-13.md.

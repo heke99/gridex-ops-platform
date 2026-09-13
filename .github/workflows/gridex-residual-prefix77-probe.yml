@@ -8,6 +8,7 @@ on:
       - 'scripts/canonical-auth-provisioning-replay.py'
       - 'scripts/canonical-owned-timestamp-selftest.py'
       - 'scripts/canonical-owned-workflow-selftest.py'
+      - 'scripts/canonical-replay-final-diagnostic*.py'
       - 'scripts/canonical-timestamp-*.py'
       - 'scripts/gridex-replay-complete-accounting.py'
       - 'scripts/gridex-replay-residual-source-dispositions.json'
@@ -37,6 +38,7 @@ jobs:
           python3 scripts/canonical-residual-source-admission-selftest.py
           python3 scripts/canonical-owned-timestamp-selftest.py
           python3 scripts/canonical-owned-workflow-selftest.py
+          python3 scripts/canonical-replay-final-diagnostic-selftest.py
           python3 scripts/gridex-replay-complete-accounting.py --require-canonical-sources
       - name: Verify residual migrations and complete selected continuation
         run: python3 scripts/canonical-residual-transition-native.py
@@ -69,9 +71,10 @@ jobs:
           python3 scripts/gridex-aud-003-clean-replay-selftest.py
           python3 scripts/canonical-owned-timestamp-selftest.py
           python3 scripts/canonical-owned-workflow-selftest.py
+          python3 scripts/canonical-replay-final-diagnostic-selftest.py
           python3 scripts/gridex-replay-complete-accounting.py --require-canonical-sources
       - name: Execute actual owned clean shell through unchanged final schema guards
-        run: python3 scripts/canonical-auth-provisioning-replay.py --owned-compatible
+        run: python3 scripts/canonical-replay-final-diagnostic.py
       - name: Remove only this workflow's owned database
         if: always()
         run: |
