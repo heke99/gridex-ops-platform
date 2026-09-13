@@ -37,6 +37,9 @@ begin
   if not exists (select 1 from pg_roles where rolname = 'supabase_storage_admin') then
     create role supabase_storage_admin nologin noinherit createrole;
   end if;
+  if not exists (select 1 from pg_roles where rolname = 'supabase_privileged_role') then
+    create role supabase_privileged_role nologin inherit nocreaterole nocreatedb noreplication nobypassrls;
+  end if;
   if not exists (select 1 from pg_roles where rolname = 'dashboard_user') then
     create role dashboard_user nologin noinherit createrole createdb replication;
   end if;
