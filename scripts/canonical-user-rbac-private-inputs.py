@@ -2,6 +2,7 @@
 """Private accepted-input transport, extracted without whole-input exemptions."""
 import importlib.util
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -53,7 +54,7 @@ class MemoryAdmission:
 class AcceptedInputs:
     """Same-handle adaptation of the exact accepted preparation handle.
 
-    Four whole inputs retain writer/inode provenance. Only three exact generated
+    Whole inputs retain exact source/writer/phase/inode provenance. Three generated
     reference/admission controls use stdin; all other methods/writes delegate.
     """
     ORDER = ('repair-context.sql','repair-admission.sql','repair-whole-R2.sql',
@@ -67,6 +68,23 @@ class AcceptedInputs:
     PREFIX = ('01_db1_schema_repair_core_helpers_and_canonical_tables.sql',
               '85f3561be4d91cee063bbf626302de7726a09c5ce08743b250e62cee959bb5f2')
 
+    # These five complete sources are already selected by the full replay.
+    # Admit their actual writers, not arbitrary same-hash files at final cleanup.
+    RETAINED_FOUNDATION = {
+        'replay-source-120.sql': ('01_db2b_preflight_views.sql',
+            '884cc115dee1b169eae11ef37a2b319d894a85cff5971ebf050ad2be026e39d7'),
+        'replay-source-121.sql': ('03_db2b_validation_views.sql',
+            'f84d355c54d20bd0fcd3f86426bcd0e56435a1e8713fad3ec7a239f480a2b5e5'),
+    }
+    RETAINED_SQL = {
+        'residual_apply_1': ('20260522_db1_schema_repair_backfill_foundation.sql',
+            'aff5a3e4fb3aae6ebe682081cbce4876c5731be1c124650b19d8151abf6efc73', True),
+        'timestamp_120': ('20260623090000_z01_route_profile_actor_setting_backfill.sql',
+            '8258b4d57c93eb2193e108befd05026a609ba29a60deaa0507a17a899300847d', False),
+        'timestamp_488': ('20260902100000_rpc_surface_and_permission_scope_corrections.sql',
+            '9753cd0f10a120a32826286a0eeb08d6f7e2b51704014decf60243e5eaa1a919', False),
+    }
+
     def __init__(self, h):
         self.h, self.name = h, h.name
         self.directory = h.directory.name if h.directory else None
@@ -76,9 +94,11 @@ class AcceptedInputs:
         self.route = self.binding = self.phase = None
         self.result_call = None
         self.records, self.envelope, self.buffers = {}, [], []
+        self.sql_writers, self.sql_stages = {}, set()
         self.sources = {'prefix-1.sql':self.PREFIX,'replay-source-1.sql':self.PREFIX,
                         'repair-whole-E2.sql':repair.SPECS[1][1:3],
-                        'dedupe-whole-H2.sql':(dedupe.SOURCE.name,dedupe.SHA256)}
+                        'dedupe-whole-H2.sql':(dedupe.SOURCE.name,dedupe.SHA256),
+                        **self.RETAINED_FOUNDATION}
 
     def owned(self):
         repair.require_owned(self.h, False)
@@ -110,9 +130,54 @@ class AcceptedInputs:
         check(type(path) is type(ROOT) and path.is_file() and not path.is_symlink()
               and path.resolve() == path, 'PHYSICAL_ACCEPTED_INPUT_REQUIRED')
         stat = path.stat()
+        check(stat.st_uid == os.getuid() and stat.st_mode & 0o777 == 0o600
+              and stat.st_nlink == 1, 'PRIVATE_ACCEPTED_INPUT_REQUIRED')
         return stat.st_dev,stat.st_ino,stat.st_size,stat.st_mtime_ns,stat.st_ctime_ns
 
+    def full_stage(self):
+        self.owned()
+        dedupe.require_live(self.h)
+        check(dedupe._STATES.get(self.h) == 'INTAKE_COMPLETE'
+              and getattr(dedupe._REFERENCES.get(self.h), 'scope', None) == 'full'
+              and type(self.staging) is legacy.StagedSources,
+              'RETAINED_FULL_STAGE_REQUIRED')
+
+    def admit_sql_writer(self, frame, name):
+        """Bind one complete staged source at the real SQL writer, before disk I/O."""
+        if frame.f_code is not legacy.OwnedPostgres.sql.__code__:
+            return
+        stage = frame.f_locals.get('stage')
+        if stage not in self.RETAINED_SQL:
+            return
+        self.full_stage()
+        source, digest, transaction = self.RETAINED_SQL[stage]
+        check(frame.f_locals.get('self') is self.h
+              and frame.f_locals.get('database') == replay.DATABASE
+              and frame.f_locals.get('expect') == '00000'
+              and frame.f_locals.get('transaction') is transaction
+              and re.fullmatch(r'fixture-[0-9a-f]{16}\.sql', name) is not None
+              and stage not in self.sql_stages and name not in self.sources
+              and not (Path(self.directory)/name).exists()
+              and not (Path(self.directory)/name).is_symlink(),
+              'RETAINED_SQL_WRITER_REQUIRED')
+        # Canonical reads use the already admitted, owner-only HOLD directory;
+        # no source lookup by attacker-controlled filename or content hash.
+        self.sources[name] = (source, digest)
+        self.sql_writers[name] = stage
+        self.sql_stages.add(stage)
+
     def writer(self, frame, name):
+        if name in self.sql_writers:
+            stage = self.sql_writers[name]
+            return (frame.f_code is legacy.OwnedPostgres.sql.__code__
+                    and frame.f_locals.get('self') is self.h
+                    and frame.f_locals.get('stage') == stage
+                    and dedupe._STATES.get(self.h) == 'INTAKE_COMPLETE')
+        if name in self.RETAINED_FOUNDATION:
+            loop = frame.f_locals.get('self')
+            return (frame.f_code is replay.FoundationLoop._run.__code__
+                    and type(loop) is replay.FoundationLoop and loop.target is self.h
+                    and dedupe._STATES.get(self.h) == 'INTAKE_COMPLETE')
         if name == 'prefix-1.sql':
             return (frame.f_code in legacy.OwnedPostgres.prefix.__code__.co_consts
                     and frame.f_back.f_code is legacy.OwnedPostgres.prefix.__code__
@@ -160,6 +225,7 @@ class AcceptedInputs:
             # This exact writer ignores private()'s return. The real run_files
             # frame retains stdout/stderr and returns its ordinary result; no sink.
             return None
+        self.admit_sql_writer(frame, name)
         generated = name in self.GENERATED
         route = ('repair' if frame.f_code is repair.envelope_files.__code__ else
                  'legacy' if frame.f_code is legacy.envelope_files.__code__ else None)
@@ -187,7 +253,12 @@ class AcceptedInputs:
             self.buffers.append(path)
         else:
             if name in self.sources:
-                staging = frame.f_locals.get('stage' if name == 'replay-source-1.sql' else 'staging')
+                if name in self.sql_writers:
+                    staging = self.staging
+                else:
+                    staging = frame.f_locals.get('stage' if name.startswith('replay-source-') else 'staging')
+                if name in self.RETAINED_FOUNDATION:
+                    self.full_stage()
                 if name == 'replay-source-1.sql':
                     check(type(staging) is legacy.StagedSources and self.staging is None,
                           'ACCEPTED_REPLAY_STAGE_REQUIRED')

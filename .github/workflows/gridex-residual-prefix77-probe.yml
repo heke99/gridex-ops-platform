@@ -8,6 +8,8 @@ on:
       - 'scripts/canonical-auth-provisioning-replay.py'
       - 'scripts/canonical-owned-timestamp-selftest.py'
       - 'scripts/canonical-owned-workflow-selftest.py'
+      - 'scripts/canonical-user-rbac-private-inputs.py'
+      - 'scripts/canonical-retained-input-provenance-selftest.py'
       - 'scripts/canonical-replay-final-diagnostic*.py'
       - 'scripts/canonical-timestamp-*.py'
       - 'scripts/gridex-replay-complete-accounting.py'
@@ -38,6 +40,7 @@ jobs:
           python3 scripts/canonical-residual-source-admission-selftest.py
           python3 scripts/canonical-owned-timestamp-selftest.py
           python3 scripts/canonical-owned-workflow-selftest.py
+          python3 scripts/canonical-retained-input-provenance-selftest.py
           python3 scripts/canonical-replay-final-diagnostic-selftest.py
           python3 scripts/gridex-replay-complete-accounting.py --require-canonical-sources
       - name: Verify residual migrations and complete selected continuation
@@ -71,6 +74,7 @@ jobs:
           python3 scripts/gridex-aud-003-clean-replay-selftest.py
           python3 scripts/canonical-owned-timestamp-selftest.py
           python3 scripts/canonical-owned-workflow-selftest.py
+          python3 scripts/canonical-retained-input-provenance-selftest.py
           python3 scripts/canonical-replay-final-diagnostic-selftest.py
           python3 scripts/gridex-replay-complete-accounting.py --require-canonical-sources
       - name: Execute actual owned clean shell through unchanged final schema guards
