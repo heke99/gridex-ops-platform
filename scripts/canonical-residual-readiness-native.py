@@ -46,7 +46,10 @@ def before(target, database, relative, prepared, progress):
           ('20000000-0000-4000-8000-000000000002','Lock B','lock-b');""",'locks_two_company_fixture')
         target.sql(CLONE,sql,'locks_original_first',transaction=False)
         target.sql(CLONE,"""DO $$ BEGIN
-          IF (SELECT count(*) FROM public.ediel_send_locks WHERE environment='production' AND locked)<>2
+          IF (SELECT count(*) FROM public.ediel_send_locks WHERE environment='production' AND locked
+            AND company_id IN ('20000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000002'))<>2
+            OR EXISTS(SELECT 1 FROM public.companies c WHERE NOT EXISTS(
+              SELECT 1 FROM public.ediel_send_locks l WHERE l.company_id=c.id AND l.environment='production' AND l.locked))
           THEN RAISE EXCEPTION USING ERRCODE='23514',MESSAGE='LOCK_SEED_NOT_FAIL_CLOSED'; END IF;
           IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid='public.ediel_send_locks'::regclass
             AND contype='f' AND confrelid='auth.users'::regclass)
@@ -106,7 +109,7 @@ def after(target, database, relative, prepared, progress):
           ('30000000-0000-4000-8000-000000000004','20000000-0000-4000-8000-000000000001','Other role','98004','test','grid_owner',true,'2020-01-01','2020-01-01','{}'),
           ('30000000-0000-4000-8000-000000000005','20000000-0000-4000-8000-000000000001','Inactive','98005','test','supplier',false,'2022-01-01','2022-01-01','{}');
         DO $$ BEGIN
-          IF (SELECT array_agg(id ORDER BY id) FROM public.ediel_active_actor_settings_v) IS DISTINCT FROM
+          IF (SELECT array_agg(id ORDER BY id) FROM public.ediel_active_actor_settings_v WHERE company_id IN ('20000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000002')) IS DISTINCT FROM
             ARRAY['30000000-0000-4000-8000-000000000002'::uuid,'30000000-0000-4000-8000-000000000003'::uuid,'30000000-0000-4000-8000-000000000004'::uuid]
             OR EXISTS(SELECT 1 FROM public.ediel_active_actor_settings_v WHERE runtime_rank<>1)
             OR NOT EXISTS(SELECT 1 FROM public.ediel_active_actor_settings_v WHERE actor_name='New A' AND metadata='{"preserved":true}'::jsonb)
