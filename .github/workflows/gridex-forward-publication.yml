@@ -1,0 +1,48 @@
+name: Gridex exact reviewed forward publication
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-forward-publication.yml'
+      - 'scripts/gridex-forward-publication.py'
+      - 'scripts/gridex-forward-publication.patch.b64'
+permissions:
+  contents: write
+concurrency:
+  group: gridex-forward-publication-310
+  cancel-in-progress: false
+jobs:
+  publish-reviewed-source:
+    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/gridex-parity-remediation-20260905'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-fk-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Apply and verify only the exact reviewed non-workflow source tree
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/gridex-forward-publication.py
+      - name: Remove only the owned qualification database
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          path=Path('scripts/canonical-ediel-customer-fk-qualification.py').resolve()
+          spec=importlib.util.spec_from_file_location('forward_cleanup',path)
+          module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+          module.load_legacy().cleanup_workflow_owned()
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gridex-forward-publication-receipt
+          path: ${{ runner.temp }}/gridex-forward-publication-receipt.json
+          retention-days: 1
+          if-no-files-found: ignore
