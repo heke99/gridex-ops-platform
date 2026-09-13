@@ -9,37 +9,39 @@ Database/types only: complete migration verification, ordinary replay/ledger,
 then regenerate accepted types. PR310 remains draft/unmerged. No production reset,
 main merge or deployment during these proofs; points85/86 are not complete.
 
-## Latest verified baseline
+## Published implementation and evidence
 
-6064dcf02319342e1a88424d9999bf0f42dd8b0a fixes the DB2 invitation-index namesake
-with exact semantic preimage guards and transaction/rollback controls. Native
-residual34776030335/job103774181992 passed both full selected continuation and
-shared staging with originals absent:144 foundation, seven residual sources,
-513 timestamp stages. DB1/DB2 index semantics passed. CI runs start without the
-former action_required blocker; quality-release-gates103774182237 passed.
+1f09dcc770215f1a64b895c2172bf7eec5fa2032 publishes exact reviewed tree
+1ace7a02ab3e5e8e54e0abb385b9a5f9b2b08f14 through the connected GitHub API.
+The temporary publisher and payload are removed. Its own GITHUB_TOKEN could not
+publish workflow changes; no permissions, branch protections or gates were relaxed.
 
-OPS34776030297 clean103774182283 still rejected the unsupported native target
-before SQL. The verify/types gate remains red. Native diagnostic success is not
-accepted managed Supabase schema, real ledger provenance or regenerated types.
+Canonical source dispositions now account for600 inputs:588 selected originals,
+7 exact reviewed residuals and5 explicit exclusions, with0 unresolved inputs.
+The original selector still reports588/2/5/5; input accounting is not proof of
+successful SQL, surviving effects, managed schema, ledger or generated types.
+Historical DB2 operator programs remain explicitly unexecuted.
 
-## Active increment
+Base6064dcf native34776030335/job103774181992 passed144 foundation,7 residuals
+and513 timestamp stages in both selected and originals-absent staging lanes.
+On1f09dcc, run34778949144 passes source admission and selected native continuation;
+its actual owned-shell job103782281962 fails before source SQL, cleanup passes.
 
-Exhaustive seven-source byte/authority/renderer/executor/boundary contract plus
-combined canonical-source accounting:588 selected originals +7 reviewed residuals
-+5 explicit exclusions =600 inputs. Old selector588/2/5/5 remains unchanged;
-operator-only DB2 effects are explicitly not executed. New static tests18 pass.
+## Active correction
 
-The real owned clean shell now requests the native-verified retained timestamp
-driver, once only after completed144+7 foundation effects, with all original paths
-still absent.13 new transport/state tests and20 cleanup tests pass locally. Full
-scope selects owned PG17/PostGIS; bounded scopes are unchanged. Schema/required
-checks and NO-ledger boundaries are retained. This increment is
-IMPLEMENTED_NOT_VERIFIED until its fresh native CI result is read.
+The owned-shell workflow used gridex-auth-legacy-ordinary, but AcceptedInputs
+only admits fixed/continuation identities with numeric run/attempt suffixes.
+The same FRESH_FIXED_PREPARATION_REQUIRED rejection is reproduced locally.
+Change only the workflow identity to the already accepted continuation family;
+keep the private-input guard unchanged. Three new constructor tests exercise
+real identity/method/source admission without container or SQL execution.
+All3 new tests,13 existing tail tests and18 source-admission tests pass locally.
+This correction is IMPLEMENTED_NOT_VERIFIED until fresh native CI is read.
 
-Evidence: quality/audits/DB_SOURCE_ADMISSION_OWNED_TAIL_2026-09-13.md.
-Next: inspect actual owned clean-shell CI, repair its first genuine failure, then
-establish supported managed lifecycle and real ledger before accepting schema/types.
-Do not refresh baseline/types from an arbitrary diagnostic or live database.
+Evidence: quality/audits/DB_OWNED_WORKFLOW_IDENTITY_2026-09-13.md.
+Next: inspect corrected actual owned-shell CI; repair its first genuine failure
+without changing the accepted fingerprint to match an arbitrary diagnostic.
+Then establish supported managed lifecycle and real ledger before accepted types.
 
 ## Preserved scope
 
