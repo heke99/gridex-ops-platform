@@ -111,8 +111,8 @@ def load_dedupe():
     return trusted_module('user_rbac_dedupe_batch','canonical-user-rbac-dedupe-batch.py')
 
 
-SCOPES={'legacy52':52,'repair56':56,'dedupe57':57,'fixed-target':63,'alignment68':68,'operations71':71,'readiness74':74,'intake77':77,'full':118}
-FOUNDATION_SHA256='bf29ab9457e5f9b7d9720582bc8900f7661415c268a44bbb4039e3cb8b227c1b'
+SCOPES={'legacy52':52,'repair56':56,'dedupe57':57,'fixed-target':63,'alignment68':68,'operations71':71,'readiness74':74,'intake77':77,'full':140}
+FOUNDATION_SHA256='d0651aa367a9ec198ed2d7152f57f8d0d706bfbf251c2346caeef39c9f39dfa0'
 
 
 def require_scope(scope):
@@ -157,7 +157,7 @@ class FoundationLoop:
         self.repair_reference=self.repair.REFERENCES.get(target) if scope!='legacy52' else None
         self.order=json.loads((ROOT/'scripts/gridex-aud-003-foundation-order.json').read_text())['foundation']
         self.prefix=b.verified_prefix()
-        if (len(self.order)!=118 or self.order[43:52]!=selected_group(b) or
+        if (len(self.order)!=140 or self.order[43:52]!=selected_group(b) or
             self.order[52:56]!=selected_group(self.repair) or
             self.order[56:57]!=selected_group(self.dedupe) or
             self.order[57:63]!=selected_group(load_fixed()) or

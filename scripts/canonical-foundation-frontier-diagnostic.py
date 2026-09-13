@@ -47,7 +47,7 @@ def verify_selection(controller):
     report = accounting.account(ROOT)
     order = json.loads((ROOT / 'scripts/gridex-aud-003-foundation-order.json').read_text())['foundation']
     digest = hashlib.sha256(json.dumps(order, separators=(',', ':')).encode()).hexdigest()
-    if (len(order) != 118 or len(order) != len(set(order)) or
+    if (len(order) != 140 or len(order) != len(set(order)) or
             digest != controller.FOUNDATION_SHA256 or
             report['selectedInputCounts']['foundation'] != len(order)):
         raise ValueError('FOUNDATION_SELECTION_CHANGED')
@@ -90,7 +90,7 @@ def receipt(report, outcome, details=None):
         'scope': 'SELECTED_CHAIN_DIAGNOSTIC_ONLY',
         'outcome': outcome,
         'sourceCounts': report['counts'],
-        'foundationInputs': 118,
+        'foundationInputs': 140,
         'timestampInputs': report.get('selectedInputCounts', {}).get('timestamp', 0),
         'completeReplayVerified': False,
         'ledgerProvenanceVerified': False,

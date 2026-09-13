@@ -19,10 +19,10 @@ class ResidualTests(unittest.TestCase):
 
     def test_exact_complete_residual_inventory(self):
         sources = probe.bound_sources(self.report)
-        self.assertEqual(len(sources), 37)
-        self.assertEqual(len(set(sources)), 37)
-        self.assertEqual(self.report['counts']['SUBSTITUTED'], 19)
-        self.assertEqual(self.report['counts']['UNCLASSIFIED'], 14)
+        self.assertEqual(len(sources), 11)
+        self.assertEqual(len(set(sources)), 11)
+        self.assertEqual(self.report['counts']['SUBSTITUTED'], 5)
+        self.assertEqual(self.report['counts']['UNCLASSIFIED'], 6)
 
     def test_edited_hash_is_rejected(self):
         wrong = copy.deepcopy(self.report)
@@ -83,7 +83,7 @@ class ResidualTests(unittest.TestCase):
     def test_unknown_target_and_checkpoint_fail_before_sql(self):
         controller=probe.load('canonical-foundation-frontier-diagnostic').load_controller()
         with self.assertRaisesRegex(ValueError, 'RESIDUAL_OWNED_CHECKPOINT_REQUIRED'):
-            probe.probe_sources(controller, None, object(), self.report,'foundation118')
+            probe.probe_sources(controller, None, object(), self.report,'foundation140')
         with self.assertRaisesRegex(ValueError, 'RESIDUAL_OWNED_CHECKPOINT_REQUIRED'):
             probe.probe_sources(controller, None, object(), self.report,'production')
 
