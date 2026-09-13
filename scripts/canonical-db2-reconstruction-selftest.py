@@ -37,6 +37,34 @@ class DB2Tests(unittest.TestCase):
         self.assertEqual(sql.count('create unique index if not exists '),1)
         self.assertEqual(sql.count('create index if not exists '),3)
 
+    def test_known_email_index_preimage_is_bound_to_immutable_history(self):
+        source = ROOT/'supabase/migrations/20260519_saas_ui_tenant_admin.sql'
+        self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(), m.INVITE_PREIMAGE_SHA256)
+        self.assertIn('ON public.company_invitations (lower(email), status);', source.read_text())
+
+    def test_email_index_transition_is_guarded_and_precedes_original_ddl(self):
+        sql = m.reconstruct(m.PREFLIGHT, m.read(ROOT, m.PREFLIGHT))
+        guard = sql.index('DB2_INVITATION_INDEX_PREIMAGE_MISMATCH')
+        ddl = sql.index('create index if not exists company_invitations_email_status_idx')
+        self.assertLess(guard, ddl)
+        for term in ('LOCK TABLE public.company_invitations IN SHARE MODE',
+                     'DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED',
+                     'IS DISTINCT FROM', 'indisclustered', 'indisreplident',
+                     'pg_description', 'pg_seclabel', 'reloptions', 'reltablespace'):
+            self.assertIn(term, sql)
+        self.assertEqual(sql.count('DROP INDEX public.company_invitations_email_status_idx;'), 1)
+        self.assertNotIn('CASCADE', sql)
+        self.assertIn('ON pg_temp.gridex_db2_invite_index_shape(lower(email), status);', sql)
+        self.assertIn('ON pg_temp.gridex_db2_invite_index_shape(lower(email), status, created_at desc);', sql)
+
+    def test_email_index_transition_compares_full_semantics(self):
+        sql = m.reconstruct(m.PREFLIGHT, m.read(ROOT, m.PREFLIGHT))
+        for term in ('indisunique', 'indisprimary', 'indisexclusion', 'indimmediate',
+                     'indnullsnotdistinct', 'indisvalid', 'indisready', 'indislive',
+                     'relam', 'indnkeyatts', 'indnatts', 'pg_get_indexdef', 'pg_get_expr',
+                     'indcollation', 'indclass', 'indoption', 'indrelid'):
+            self.assertIn(term, sql)
+
     def test_only_generic_closeout_check_is_retained(self):
         sql=m.reconstruct(m.FINISH,m.read(ROOT,m.FINISH))
         self.assertIn('schema_contract_missing_code_columns',sql)

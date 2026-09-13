@@ -22,8 +22,51 @@ def clone(target,database):
     target.docker(['exec',target.name,'createdb','-U','postgres','-T',database,CLONE])
 
 
+def invitation_index_controls(target, database, prepared):
+    """Exercise the fixed namesake transition and transactional rollback natively."""
+    m, raw, sql = prepared
+    parent_before = target.catalog(database)
+    name = 'public.company_invitations_email_status_idx'
+    # Each mutation is confined to a new clone of the actual foundation. The
+    # unknown preimage must fail rather than be silently replaced.
+    cases = {
+        'unique': f'DROP INDEX {name}; CREATE UNIQUE INDEX company_invitations_email_status_idx ON public.company_invitations(lower(email), status);',
+        'partial': f'DROP INDEX {name}; CREATE INDEX company_invitations_email_status_idx ON public.company_invitations(lower(email), status) WHERE email IS NOT NULL;',
+        'wrong_order': f'DROP INDEX {name}; CREATE INDEX company_invitations_email_status_idx ON public.company_invitations(lower(email), status, created_at ASC);',
+        'commented': f"COMMENT ON INDEX {name} IS 'preserve index metadata';",
+    }
+    for label, mutation in cases.items():
+        clone(target, database)
+        try:
+            target.sql(CLONE, mutation, 'db2_invite_index_' + label + '_fixture')
+            before = target.catalog(CLONE)
+            target.sql(CLONE, sql[m.PREFLIGHT], 'db2_invite_index_' + label + '_rejected', expect='55000')
+            if target.catalog(CLONE) != before:
+                raise ValueError('DB2_INVITATION_INDEX_REJECTION_CHANGED_CATALOG')
+        finally:
+            drop(target)
+    clone(target, database)
+    try:
+        before = target.catalog(CLONE)
+        target.sql(CLONE, sql[m.PREFLIGHT] + "\nDO $$ BEGIN RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='INJECTED_POST_INDEX_FAILURE'; END $$;",
+                   'db2_invite_index_replacement_rollback', expect='23514')
+        if target.catalog(CLONE) != before:
+            raise ValueError('DB2_INVITATION_INDEX_REPLACEMENT_NOT_ATOMIC')
+        target.sql(CLONE, f'DROP INDEX {name};', 'db2_invite_index_missing_fixture')
+        target.sql(CLONE, sql[m.PREFLIGHT], 'db2_invite_index_missing_created')
+        before = target.catalog(CLONE)
+        target.sql(CLONE, sql[m.PREFLIGHT], 'db2_invite_index_existing_preserved')
+        if target.catalog(CLONE) != before:
+            raise ValueError('DB2_INVITATION_INDEX_REPEAT_CHANGED_CATALOG')
+    finally:
+        drop(target)
+    if target.catalog(database) != parent_before:
+        raise ValueError('DB2_INVITATION_INDEX_CONTROLS_CHANGED_PARENT')
+
+
 def apply(target,database,prepared,progress):
     m,raw,sql=prepared
+    invitation_index_controls(target, database, prepared)
     clone(target,database)
     try:
         target.sql(CLONE,"""INSERT INTO public.companies(id,name,slug) VALUES
@@ -88,5 +131,6 @@ def apply(target,database,prepared,progress):
     spec=importlib.util.spec_from_file_location('db2_index_effects',Path(__file__).with_name('canonical-residual-index-effects.py'))
     effects=importlib.util.module_from_spec(spec);spec.loader.exec_module(effects)
     effects.verify(target,database,m.PREFLIGHT,raw[m.PREFLIGHT])
+    progress['db2InvitationIndexTransitionControls']='PASS'
     progress['db2SchemaAndHistoricalSeparationControls']='PASS'
     progress['db2HistoricalOperatorProgramExecuted']=False

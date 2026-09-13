@@ -6,6 +6,7 @@ legacy reports and run bookkeeping are explicitly NOT replayed or called passed.
 No legacy tables or historical tenant/user/customer rows are fabricated.
 """
 import hashlib
+import importlib.util
 from pathlib import Path
 import re
 
@@ -72,6 +73,60 @@ def ledger(relative, raw):
                      for a,b,kind,value in partition(relative,raw)]}
 
 
+# Known predecessor: migrations/20260519_saas_ui_tenant_admin.sql, lines 78-79.
+# The immutable DB2 source requests a third DESC key but IF NOT EXISTS cannot
+# upgrade the earlier namesake. This is an explicit, guarded reconstruction
+# transition, not a rewrite of either historical source or a production repair.
+INVITE_PREIMAGE_SHA256 = '861130aecf1b3c5d400cbf414c8d99e14d21adbd635c9f8ddb0c357c1964009e'
+
+
+def invitation_index_transition(raw):
+    spec = importlib.util.spec_from_file_location(
+        'db2_index_shape', Path(__file__).with_name('canonical-residual-index-effects.py'))
+    effects = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(effects)
+    declarations = effects.declarations(PREFLIGHT, raw)
+    _, name, table, unique, tail = declarations[-1]
+    if (name, table, unique) != ('company_invitations_email_status_idx', 'company_invitations', ''):
+        raise ValueError('DB2_INVITATION_INDEX_SOURCE_MISMATCH')
+    actual = effects.shape('public.' + name)
+    previous = effects.shape('pg_temp.gridex_db2_invite_index_previous')
+    desired = effects.shape('pg_temp.gridex_db2_invite_index_desired')
+    return f"""DO $db2_invite_owned$ BEGIN
+  IF current_database() NOT IN ('gridex_auth_legacy_replay', 'gridex_auth_legacy_atomic') THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED';
+  END IF;
+END $db2_invite_owned$;
+LOCK TABLE public.company_invitations IN SHARE MODE;
+CREATE TEMP TABLE gridex_db2_invite_index_shape (LIKE public.company_invitations) ON COMMIT DROP;
+CREATE INDEX gridex_db2_invite_index_previous ON pg_temp.gridex_db2_invite_index_shape(lower(email), status);
+CREATE INDEX gridex_db2_invite_index_desired ON pg_temp.gridex_db2_invite_index_shape{tail};
+DO $db2_invite_transition$
+DECLARE candidate oid := to_regclass('public.company_invitations_email_status_idx');
+BEGIN
+  -- A missing index is created by the original DDL immediately below. An
+  -- already-correct index is kept with its OID, metadata and dependencies.
+  IF candidate IS NULL THEN RETURN; END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_index WHERE indexrelid=candidate
+                 AND indrelid='public.company_invitations'::regclass) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='DB2_INVITATION_INDEX_PREIMAGE_MISMATCH';
+  END IF;
+  IF {actual} IS NOT DISTINCT FROM {desired} THEN RETURN; END IF;
+  -- Reject every unknown semantic or attached operational property instead
+  -- of silently replacing a custom/unique/partial/clustered/annotated index.
+  IF {actual} IS DISTINCT FROM {previous}
+     OR EXISTS (SELECT 1 FROM pg_index WHERE indexrelid=candidate AND (indisclustered OR indisreplident))
+     OR EXISTS (SELECT 1 FROM pg_class WHERE oid=candidate AND (reloptions IS NOT NULL OR reltablespace<>0))
+     OR EXISTS (SELECT 1 FROM pg_description WHERE objoid=candidate AND classoid='pg_class'::regclass)
+     OR EXISTS (SELECT 1 FROM pg_seclabel WHERE objoid=candidate AND classoid='pg_class'::regclass) THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='DB2_INVITATION_INDEX_PREIMAGE_MISMATCH';
+  END IF;
+  DROP INDEX public.company_invitations_email_status_idx;
+END $db2_invite_transition$;
+DROP TABLE pg_temp.gridex_db2_invite_index_shape;
+"""
+
+
 def reconstruct(relative, raw):
     chunks = []
     for _,_,kind,value in partition(relative,raw):
@@ -84,7 +139,10 @@ def reconstruct(relative, raw):
                 raise ValueError('DB2_INDEX_SOURCE_MISMATCH')
             # Execute the exact index DDL directly. Do not swallow uniqueness or
             # permission failures through the legacy operator logging wrapper.
-            chunks.extend(sql+';\n' for _,sql in found)
+            for name, sql in found:
+                if name == 'company_invitations_email_status_idx':
+                    chunks.append(invitation_index_transition(raw))
+                chunks.append(sql+';\n')
         elif kind == 'schema_check':
             chunks.append("DO $db2_schema_check$ DECLARE issues integer; BEGIN\n"
                           "SELECT issue_count INTO STRICT issues FROM (\n"+text+
