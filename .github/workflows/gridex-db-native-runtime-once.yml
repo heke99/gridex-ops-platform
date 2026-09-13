@@ -1,44 +1,30 @@
-name: Gridex persist expanded foundation reference oracle
+name: Gridex diagnose final 11 after oracle repair
 on:
   pull_request:
     paths:
       - '.github/workflows/gridex-db-native-runtime-once.yml'
 permissions:
-  contents: write
+  contents: read
 jobs:
-  persist-reference-oracle:
+  final11-diagnostic:
     if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 40
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          persist-credentials: true
-      - name: Patch exact expanded-foundation oracle pins
+          persist-credentials: false
+      - name: Verify current selection and repaired reference oracle
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('scripts/canonical-auth-provisioning-diagnostics-selftest.py')
-          s=p.read_text()
-          replacements=(
-            ("assert len(order) == 118, 'selected diagnostics stage requires foundation118'", "assert len(order) == 140, 'selected diagnostics stage requires foundation140'"),
-            ("path_digest(order[77:]) == SUFFIX_SHA", "path_digest(order[77:118]) == SUFFIX_SHA"),
-            ("assert len(order)==118 and order[41:43]==[G,R]", "assert len(order)==140 and order[41:43]==[G,R]"),
-            ("path_digest(order[77:])==SUFFIX_SHA", "path_digest(order[77:118])==SUFFIX_SHA"),
-            ("OLD_ADDITIONS_FOUNDATION_SHA = '753a7813c9a9ff49f927c5b3c1633aafbaea185c42ae95e1400cbc7b7c8ffe09'", "OLD_ADDITIONS_FOUNDATION_SHA = '5e6d43d00160bb4b91bbf6a15ac8ed6ecb0b06902f4fc60d0d0f2b848bb0abe0'"),
-            ("ADDITIONS_DERIVED_SHA = '11e6ef86224ba62349491835eb5faa0ff74f3dfe3df8619fdd83a9b966de5dc5'", "ADDITIONS_DERIVED_SHA = '2049baa72dfb4028a28adb6ecf428eb89d854283c31867422d9a8be72ac5e7b7'"),
-            ("{'FULL_FILE_SELECTED':562,'SUBSTITUTED':19,'UNCLASSIFIED':14,'EXPLICITLY_EXCLUDED':5}", "{'FULL_FILE_SELECTED':584,'SUBSTITUTED':5,'UNCLASSIFIED':6,'EXPLICITLY_EXCLUDED':5}"),
-            ("{'FULL_FILE_SELECTED':311,'SUBSTITUTED':20,'UNCLASSIFIED':10,'EXPLICITLY_EXCLUDED':5}", "{'FULL_FILE_SELECTED':331,'SUBSTITUTED':4,'UNCLASSIFIED':6,'EXPLICITLY_EXCLUDED':5}"),
-          )
-          for old,new in replacements:
-            if s.count(old)!=1:
-              raise SystemExit('REFERENCE_ORACLE_EXACT_REPLACEMENT_MISMATCH:'+old)
-            s=s.replace(old,new)
-          p.write_text(s)
-          PY
+          python3 scripts/canonical-foundation-frontier-selftest.py
+          python3 scripts/canonical-timestamp-frontier-selftest.py
+          python3 scripts/canonical-timestamp-source-selftest.py
+          python3 scripts/canonical-residual-migration-selftest.py
           python3 - <<'PY'
           import importlib.util
           from pathlib import Path
@@ -48,14 +34,48 @@ jobs:
           m.constructor_checks()
           print('PASS diagnostics constructor checks')
           PY
-          git diff --check
-      - name: Commit exact oracle update
+          python3 scripts/gridex-replay-input-accounting.py --require-full-effects > "$RUNNER_TEMP/accounting.json" || test "$?" -eq 1
+      - name: Execute current selected chain with safe phase receipt
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          python3 scripts/canonical-foundation-frontier-diagnostic.py 2>&1 | tee "$RUNNER_TEMP/frontier.log"
+          printf '%s\n' "${PIPESTATUS[0]}" > "$RUNNER_TEMP/frontier-exit.txt"
+      - name: Probe exact final 11 originals on both owned checkpoints
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          python3 scripts/canonical-residual-migration-probe.py 2>&1 | tee "$RUNNER_TEMP/final11.log"
+          printf '%s\n' "${PIPESTATUS[0]}" > "$RUNNER_TEMP/final11-exit.txt"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gridex-final11-after-oracle-repair
+          path: |
+            ${{ runner.temp }}/accounting.json
+            ${{ runner.temp }}/frontier.log
+            ${{ runner.temp }}/frontier-exit.txt
+            ${{ runner.temp }}/final11.log
+            ${{ runner.temp }}/final11-exit.txt
+          retention-days: 2
+          if-no-files-found: warn
+      - name: Require bounded diagnostic output
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add scripts/canonical-auth-provisioning-diagnostics-selftest.py
-          git diff --cached --check
-          git commit -m 'test(db): rebind diagnostics oracle to expanded foundation'
-          git push origin HEAD:codex/gridex-parity-remediation-20260905
+          test -s "$RUNNER_TEMP/frontier.log"
+          test -s "$RUNNER_TEMP/final11.log"
+      - name: Cleanup owned database
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          p=Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve()
+          s=importlib.util.spec_from_file_location('cleanup',p)
+          m=importlib.util.module_from_spec(s); s.loader.exec_module(m)
+          m.load_controller().load_batch().cleanup_workflow_owned()
+          PY
