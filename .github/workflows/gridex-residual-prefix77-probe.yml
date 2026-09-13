@@ -15,6 +15,9 @@ on:
       - 'scripts/gridex-replay-complete-accounting.py'
       - 'scripts/gridex-replay-residual-source-dispositions.json'
       - 'scripts/gridex-aud-003-clean-replay.sh'
+      - 'scripts/canonical-ediel-customer-fk-admission-selftest.py'
+      - 'scripts/migration-history-manifest.runtime.additions.json'
+      - 'supabase/migrations/*.sql'
 permissions:
   contents: read
 jobs:
@@ -42,6 +45,7 @@ jobs:
           python3 scripts/canonical-owned-workflow-selftest.py
           python3 scripts/canonical-retained-input-provenance-selftest.py
           python3 scripts/canonical-replay-final-diagnostic-selftest.py
+          python3 scripts/canonical-ediel-customer-fk-admission-selftest.py
           python3 scripts/gridex-replay-complete-accounting.py --require-canonical-sources
       - name: Verify residual migrations and complete selected continuation
         run: python3 scripts/canonical-residual-transition-native.py
@@ -76,6 +80,7 @@ jobs:
           python3 scripts/canonical-owned-workflow-selftest.py
           python3 scripts/canonical-retained-input-provenance-selftest.py
           python3 scripts/canonical-replay-final-diagnostic-selftest.py
+          python3 scripts/canonical-ediel-customer-fk-admission-selftest.py
           python3 scripts/gridex-replay-complete-accounting.py --require-canonical-sources
       - name: Execute actual owned clean shell through unchanged final schema guards
         run: python3 scripts/canonical-replay-final-diagnostic.py

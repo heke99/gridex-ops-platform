@@ -1,10 +1,11 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-13",
+  "updated_at": "2026-09-14",
   "status": "PARTIAL",
   "current_state": ".agent-memory/current-state.md",
   "active_group": "database_reconstruction",
-  "verified_code": "7c6a7aa70bc95c4cef33cde4bc59721701482dcf",
-  "evidence": "quality/audits/DB_FINAL_GATE_NATIVE_RECEIPT_2026-09-13.md",
-  "next_action": "Repair five exact whole-input provenance gaps and prove native privacy. Trace the missing composite customer FK and reconcile final schema semantics before managed-ledger acceptance and generated types."
+  "verified_code": "4f45b185579dddadb702189cc4d0454eb17b58fd",
+  "evidence": "quality/audits/DB_EDIEL_FORWARD_2026-09-14.md",
+  "next_action": "Native full-chain verification of the exact integrated Ediel forward migration; full schema semantics and managed Supabase ledger before type regeneration and merge.",
+  "verification_scope": "Exact registered FK native qualification and nine self-test scripts; full replay NOT accepted"
 }
