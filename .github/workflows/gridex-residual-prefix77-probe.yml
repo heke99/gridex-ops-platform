@@ -6,6 +6,11 @@ on:
       - 'scripts/canonical-residual-*.py'
       - 'scripts/canonical-db2-*.py'
       - 'scripts/canonical-auth-provisioning-replay.py'
+      - 'scripts/canonical-owned-timestamp-selftest.py'
+      - 'scripts/canonical-timestamp-*.py'
+      - 'scripts/gridex-replay-complete-accounting.py'
+      - 'scripts/gridex-replay-residual-source-dispositions.json'
+      - 'scripts/gridex-aud-003-clean-replay.sh'
 permissions:
   contents: read
 jobs:
@@ -28,10 +33,42 @@ jobs:
           python3 scripts/canonical-residual-integration-selftest.py
           python3 scripts/canonical-timestamp-retained-selftest.py
           python3 scripts/canonical-residual-index-effects-selftest.py
+          python3 scripts/canonical-residual-source-admission-selftest.py
+          python3 scripts/canonical-owned-timestamp-selftest.py
+          python3 scripts/gridex-replay-complete-accounting.py --require-canonical-sources
       - name: Verify residual migrations and complete selected continuation
         run: python3 scripts/canonical-residual-transition-native.py
       - name: Verify foundation and timestamp tail with original SQL absent
         run: python3 scripts/canonical-residual-staging-native.py
+      - name: Remove only this workflow's owned database
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          p=Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve()
+          s=importlib.util.spec_from_file_location('cleanup',p);m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+          m.load_controller().load_batch().cleanup_workflow_owned()
+          PY
+  ordinary-owned-continuation:
+    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/gridex-parity-remediation-20260905'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-ordinary-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Verify ordinary shell cleanup and exact source admission
+        run: |
+          python3 scripts/gridex-aud-003-clean-replay-selftest.py
+          python3 scripts/canonical-owned-timestamp-selftest.py
+          python3 scripts/gridex-replay-complete-accounting.py --require-canonical-sources
+      - name: Execute actual owned clean shell through unchanged final schema guards
+        run: python3 scripts/canonical-auth-provisioning-replay.py --owned-compatible
       - name: Remove only this workflow's owned database
         if: always()
         run: |

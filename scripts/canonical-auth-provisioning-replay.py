@@ -346,8 +346,59 @@ def serve_child(b,h,command,scope='full'):
         raise
 
 
+class OwnedTimestampTail:
+    """Once-only continuation, retained before the child moves original sources.
+
+    This uses the same native-verified tail as the staging proof, on the actual
+    parent-owned target. It does not issue ledger rows or accept schema/types.
+    """
+    def __init__(self, target):
+        filename = ROOT/'scripts/canonical-foundation-frontier-diagnostic.py'
+        spec = importlib.util.spec_from_file_location('owned_tail_selection', filename)
+        frontier = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(frontier)
+        order, report = frontier.verify_selection(controller())
+        self.driver = frontier.load_timestamp()
+        self.driver.verify_spatial_runtime(target)
+        self.selected, self.prerequisites = self.driver.load_inputs(ROOT, report, order)
+        self.retained = self.driver.retain_sources(ROOT, self.selected, self.prerequisites)
+        self.target = target
+        self.state = 'prepared'
+
+    def execute(self, loop, payload):
+        if (payload != {'operation': 'timestamp_tail', 'scope': 'full'} or
+                loop.scope != 'full' or loop.target is not self.target or
+                loop.validated is not True or loop.applied is not True or self.state != 'prepared' or
+                not hasattr(loop, 'residual_receipt')):
+            raise RuntimeError('OWNED_TIMESTAMP_BOUNDARY_REQUIRED')
+        # Reject an early/repeated call or a child which did not actually stage
+        # the originals. No SQL text, path override or external target is input.
+        if list((ROOT/'supabase/migrations').glob('*.sql')):
+            raise RuntimeError('OWNED_TIMESTAMP_ORIGINALS_MUST_BE_ABSENT')
+        loop.repair.require_owned(self.target, reference=True)
+        loop.dedupe.require_live(self.target)
+        self.state = 'running'
+        progress = {'foundationApplied': 144, 'timestampApplied': 0}
+        try:
+            self.driver.execute_tail(ROOT, self.target, DATABASE, self.selected,
+                                     self.prerequisites, progress, retained=self.retained)
+            if (progress['timestampApplied'] != len(self.selected) or
+                    list((ROOT/'supabase/migrations').glob('*.sql'))):
+                raise RuntimeError('OWNED_TIMESTAMP_COMPLETION_REQUIRED')
+        except BaseException:
+            self.state = 'failed'
+            raise
+        self.state = 'executed'
+        print(json.dumps({**progress, 'stage': 'actual_replay_timestamp_tail',
+                          'originalsAbsentDuringTimestamp': True,
+                          'completeReplayVerified': False, 'ledgerProvenanceVerified': False,
+                          'generatedTypesVerified': False}, sort_keys=True), flush=True)
+        return ''
+
+
 def _serve_child(b,h,command,scope):
     loop=FoundationLoop(b,h,scope)
+    tail=OwnedTimestampTail(h) if scope=='full' else None
     originals=originals_snapshot() if loop.terminal else None
     bootstrap=(ROOT/'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_text()
     bootstrap_done=False
@@ -385,6 +436,9 @@ def _serve_child(b,h,command,scope):
                             if operation=='validate_foundation':
                                 loop.validate(payload['hold'],payload['paths']);output=''
                             else:output=loop.run(payload['hold'],payload['paths'])
+                        elif operation=='timestamp_tail':
+                            if tail is None: raise b.BoundaryError('FULL_SCOPE_REQUIRED')
+                            output=tail.execute(loop,payload)
                         elif operation=='sql':
                             if not loop.validated: raise b.BoundaryError('STAGED_VALIDATION_REQUIRED')
                             if loop.terminal and not loop.applied:
@@ -393,6 +447,8 @@ def _serve_child(b,h,command,scope):
                                 bootstrap_done=True
                             elif scope in ('dedupe57','fixed-target','alignment68','operations71','readiness74','intake77'):
                                 raise b.BoundaryError('BOUNDED_SQL_REJECTED')
+                            elif scope=='full' and tail.state!='executed':
+                                raise b.BoundaryError('OWNED_TIMESTAMP_COMPLETION_REQUIRED')
                             # Keep all client/server raw streams private. Only
                             # SQL stdout needed by fingerprint/shape checks is
                             # returned to the child; stderr is always sanitized.
@@ -407,7 +463,8 @@ def _serve_child(b,h,command,scope):
                     connection.sendall(json.dumps(response).encode())
             status=child.wait()
             if loop.terminal:
-                if status or not loop.applied or originals_snapshot()!=originals:
+                if (status or not loop.applied or originals_snapshot()!=originals or
+                    (scope=='full' and tail.state!='executed')):
                     loop.dedupe.fail(h)
                     raise b.BoundaryError('ACTUAL_REPLAY_OR_RESTORATION_FAILED')
                 server.close()
@@ -442,11 +499,16 @@ def main():
     scopes.add_argument('--readiness-prefix-proof',action='store_true')
     scopes.add_argument('--intake-prefix-proof',action='store_true')
     parser.add_argument('--context',action='store_true')
+    parser.add_argument('--timestamp-tail',action='store_true')
     parser.add_argument('--foundation')
     parser.add_argument('--validate-foundation',action='store_true')
     parser.add_argument('--hold')
     args=parser.parse_args()
     scope='legacy52' if args.foundation_prefix_proof else ('repair56' if args.repair_prefix_proof else ('dedupe57' if args.dedupe_prefix_proof else ('fixed-target' if args.fixed_target_prefix_proof else ('alignment68' if args.alignment_prefix_proof else ('operations71' if args.operations_prefix_proof else ('readiness74' if args.readiness_prefix_proof else ('intake77' if args.intake_prefix_proof else 'full')))))))
+    if args.timestamp_tail:
+        if scope!='full' or args.foundation or args.validate_foundation or args.hold or args.context or args.owned_compatible:
+            parser.error('--timestamp-tail requires only the existing full owned context')
+        request({'operation':'timestamp_tail','scope':'full'});return
     if args.context:
         request({'operation':'context','scope':scope});return
     if args.foundation:
@@ -457,11 +519,11 @@ def main():
     signal.signal(signal.SIGTERM,interrupted);signal.signal(signal.SIGINT,interrupted)
     # Full completeness admission precedes creation of the owned container.
     if scope=='full':
-        result=subprocess.run([sys.executable,str(ROOT/'scripts/gridex-replay-input-accounting.py'),'--root',str(ROOT),'--require-full-effects'],capture_output=True)
+        result=subprocess.run([sys.executable,str(ROOT/'scripts/gridex-replay-complete-accounting.py'),'--root',str(ROOT),'--require-canonical-sources'],capture_output=True)
         if result.returncode: raise b.BoundaryError('FULL_EFFECTS_INCOMPLETE')
         result_accounting=result.stdout
     import contextlib
-    with b.OwnedPostgres() as h, contextlib.ExitStack() as private_stack:
+    with b.OwnedPostgres(postgis=scope=='full') as h, contextlib.ExitStack() as private_stack:
         if scope in ('fixed-target','alignment68','operations71','readiness74','intake77','full'):
             private_stack.enter_context(load_private().AcceptedInputs(h))
         if scope=='legacy52':b.prepare_reference(h)

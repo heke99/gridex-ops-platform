@@ -5,41 +5,45 @@ Status: PARTIAL
 
 ## Active task
 
-Database/types only: resolve CI execution, complete migration effects, ordinary
-replay/ledger, then regenerate accepted types. User authorized coherent commits
-and pushes to PR310. No production reset, main merge or deployment during proofs.
+Database/types only: complete migration verification, ordinary replay/ledger,
+then regenerate accepted types. PR310 remains draft/unmerged. No production reset,
+main merge or deployment during these proofs; points85/86 are not complete.
 
 ## Latest verified baseline
 
-Base d47bfb0fb482d3e986de3abae98a8a0c7bafac56 already removes the one-time
-publication workflow. The CI action_required blocker is superseded: OPS34771242285
-ran, former status/repair-constructor faults and quality/build passed. Its verify
-job103761119007 fails db:migrations:check; clean replay103761119014 fails. Native
-residual34771242282 and frontier34771242291 pass. These are not canonical acceptance.
+6064dcf02319342e1a88424d9999bf0f42dd8b0a fixes the DB2 invitation-index namesake
+with exact semantic preimage guards and transaction/rollback controls. Native
+residual34776030335/job103774181992 passed both full selected continuation and
+shared staging with originals absent:144 foundation, seven residual sources,
+513 timestamp stages. DB1/DB2 index semantics passed. CI runs start without the
+former action_required blocker; quality-release-gates103774182237 passed.
 
-## Active retained timestamp increment
+OPS34776030297 clean103774182283 still rejected the unsupported native target
+before SQL. The verify/types gate remains red. Native diagnostic success is not
+accepted managed Supabase schema, real ledger provenance or regenerated types.
 
-The old staging proof restored originals before513 timestamp stages. Retain all
-selected bytes and session authorities first; execute the whole native tail while
-original SQL remains absent, preserving source hashes, transactions and existing
-negative controls. 11 new tests plus68 existing tests pass locally. Native result
-on this increment is pending. Evidence:
-quality/audits/DB_RETAINED_TIMESTAMP_INTEGRATION_2026-09-13.md.
+## Active increment
 
-Working-tree accounting is 600 inputs: 588 `FULL_FILE_SELECTED`, 2 `SUBSTITUTED`, 5 `UNCLASSIFIED`, and 5 `EXPLICITLY_EXCLUDED`.
-The focused group contains 346 inputs: 334 selected, 2 substituted, 5 unclassified, and 5 excluded.
+Exhaustive seven-source byte/authority/renderer/executor/boundary contract plus
+combined canonical-source accounting:588 selected originals +7 reviewed residuals
++5 explicit exclusions =600 inputs. Old selector588/2/5/5 remains unchanged;
+operator-only DB2 effects are explicitly not executed. New static tests18 pass.
 
-## Remaining acceptance
+The real owned clean shell now requests the native-verified retained timestamp
+driver, once only after completed144+7 foundation effects, with all original paths
+still absent.13 new transport/state tests and20 cleanup tests pass locally. Full
+scope selects owned PG17/PostGIS; bounded scopes are unchanged. Schema/required
+checks and NO-ledger boundaries are retained. This increment is
+IMPLEMENTED_NOT_VERIFIED until its fresh native CI result is read.
 
-Source-effect admission for the seven residuals is still open. The ordinary
-clean-replay target/lifecycle, ledger and generated-type gates remain blocking;
-no accepted types were regenerated and tail20260911114443 was not fabricated.
-After native retained-tail verification, integrate complete reviewed source-effect
-accounting and the supported ordinary lifecycle. Only then capture schema/types.
+Evidence: quality/audits/DB_SOURCE_ADMISSION_OWNED_TAIL_2026-09-13.md.
+Next: inspect actual owned clean-shell CI, repair its first genuine failure, then
+establish supported managed lifecycle and real ledger before accepting schema/types.
+Do not refresh baseline/types from an arbitrary diagnostic or live database.
 
-No production mutation has been performed in this replay-verification batch.
-Push reviewed, coherent batches stepwise as requested.
-The accessible Supabase default branch is not a disposable test database.
-App/API baseline52b2de4d81cae370bf250e5a80f12c300bbddd16 is preserved, and
-quality/paused/2026-09-12-partner-price-wip.patch remains unapplied. After database:
-runtime event_scope/DQ defects, RLS, billing, jobs including86, paused API, review.
+## Preserved scope
+
+No production mutation in this batch. The accessible Supabase default branch is
+not disposable. App/API baseline52b2de4d81cae370bf250e5a80f12c300bbddd16 and paused
+quality/paused/2026-09-12-partner-price-wip.patch are unchanged. After database:
+recorded event_scope/DQ defects, RLS, billing, jobs including86, paused API, review.

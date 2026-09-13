@@ -239,7 +239,7 @@ if (!replay.includes('interleaved_paths')) fail('clean replay lost interleaved b
 // reviewed. The supported owned compatible mode cannot establish official-ledger
 // provenance; keep this static result separate from the blocked full replay gate.
 if (!replay.includes('unsupported replay target') || !replay.includes('NO ledger provenance') ||
-    !replay.includes('--context') || !replay.includes('--require-full-effects') ||
+    !replay.includes('--context') || !replay.includes('--require-canonical-sources') ||
     !replay.includes('--foundation "$FOUNDATION_EXEC" --hold "$HOLD"')) {
   fail('clean replay lost owned context, whole batch, completeness or NO-ledger boundary');
 }

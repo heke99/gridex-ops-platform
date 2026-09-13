@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+"""Controller state/transport regressions; native SQL remains a separate CI gate."""
+import contextlib
+import importlib.util
+import io
+import json
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+from types import SimpleNamespace
+import unittest
+from unittest.mock import Mock, patch
+
+ROOT = Path(__file__).resolve().parents[1]
+spec = importlib.util.spec_from_file_location('owned_tail_test_controller', ROOT/'scripts/canonical-auth-provisioning-replay.py')
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+
+
+class OwnedTimestampTests(unittest.TestCase):
+    def fixture(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = Path(directory.name)
+        (root/'supabase/migrations').mkdir(parents=True)
+        current = patch.object(m, 'ROOT', root)
+        current.start()
+        self.addCleanup(current.stop)
+        target = object()
+        loop = SimpleNamespace(scope='full', target=target, validated=True, applied=True,
+                               residual_receipt={'residualApplied': ['fixture-only']},
+                               repair=SimpleNamespace(require_owned=Mock()),
+                               dedupe=SimpleNamespace(require_live=Mock()))
+        tail = object.__new__(m.OwnedTimestampTail)
+        tail.target, tail.state = target, 'prepared'
+        tail.selected, tail.prerequisites, tail.retained = [('fixture', 'sha')], {}, object()
+        def execute(root, actual, database, selected, prerequisites, progress, *, retained):
+            self.assertIs(actual, target)
+            self.assertIs(retained, tail.retained)
+            progress['timestampApplied'] = len(selected)
+        tail.driver = SimpleNamespace(execute_tail=Mock(side_effect=execute))
+        return root, loop, tail, {'operation': 'timestamp_tail', 'scope': 'full'}
+
+    def test_once_only_full_continuation_preserves_false_acceptance_flags(self):
+        root, loop, tail, payload = self.fixture()
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(tail.execute(loop, payload), '')
+        self.assertEqual(tail.state, 'executed')
+        result = json.loads(output.getvalue())
+        self.assertIs(result['originalsAbsentDuringTimestamp'], True)
+        for field in ('completeReplayVerified', 'ledgerProvenanceVerified', 'generatedTypesVerified'):
+            self.assertIs(result[field], False)
+        loop.repair.require_owned.assert_called_once_with(tail.target, reference=True)
+        loop.dedupe.require_live.assert_called_once_with(tail.target)
+        with self.assertRaisesRegex(RuntimeError, 'BOUNDARY_REQUIRED'):
+            tail.execute(loop, payload)
+        self.assertEqual(tail.driver.execute_tail.call_count, 1)
+
+    def test_payload_cannot_supply_sql_paths_or_target(self):
+        _, loop, tail, payload = self.fixture()
+        for invalid in ({}, {'scope':'full'}, dict(payload, sql='SELECT 1'),
+                        dict(payload, hold='/tmp/other'), dict(payload, target='external'),
+                        dict(payload, scope='intake77')):
+            with self.subTest(payload=invalid), self.assertRaisesRegex(RuntimeError, 'BOUNDARY_REQUIRED'):
+                tail.execute(loop, invalid)
+        tail.driver.execute_tail.assert_not_called()
+
+    def test_missing_or_wrong_foundation_boundary_is_rejected(self):
+        _, loop, tail, payload = self.fixture()
+        for key, value in (('scope','intake77'), ('target',object()), ('validated',False),
+                           ('validated',1), ('applied',False), ('applied',1)):
+            original = getattr(loop, key)
+            setattr(loop, key, value)
+            try:
+                with self.subTest(key=key, value=value), self.assertRaisesRegex(RuntimeError, 'BOUNDARY_REQUIRED'):
+                    tail.execute(loop, payload)
+            finally:
+                setattr(loop, key, original)
+        del loop.residual_receipt
+        with self.assertRaisesRegex(RuntimeError, 'BOUNDARY_REQUIRED'):
+            tail.execute(loop, payload)
+        tail.driver.execute_tail.assert_not_called()
+
+    def test_original_files_present_are_rejected_before_sql(self):
+        root, loop, tail, payload = self.fixture()
+        (root/'supabase/migrations/unmoved.sql').write_text('-- original')
+        with self.assertRaisesRegex(RuntimeError, 'ORIGINALS_MUST_BE_ABSENT'):
+            tail.execute(loop, payload)
+        tail.driver.execute_tail.assert_not_called()
+
+    def test_ownership_or_reference_failure_never_executes_tail(self):
+        _, loop, tail, payload = self.fixture()
+        for check in (loop.repair.require_owned, loop.dedupe.require_live):
+            check.side_effect = RuntimeError('test boundary revoked')
+            with self.assertRaisesRegex(RuntimeError, 'boundary revoked'):
+                tail.execute(loop, payload)
+            check.side_effect = None
+        tail.driver.execute_tail.assert_not_called()
+
+    def test_native_failure_is_terminal_and_does_not_emit_success(self):
+        _, loop, tail, payload = self.fixture()
+        tail.driver.execute_tail.side_effect = RuntimeError('private diagnostic')
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            with self.assertRaisesRegex(RuntimeError, 'private diagnostic'):
+                tail.execute(loop, payload)
+        self.assertEqual(output.getvalue(), '')
+        self.assertEqual(tail.state, 'failed')
+        with self.assertRaisesRegex(RuntimeError, 'BOUNDARY_REQUIRED'):
+            tail.execute(loop, payload)
+        self.assertEqual(tail.driver.execute_tail.call_count, 1)
+
+    def test_incomplete_driver_does_not_claim_completion(self):
+        _, loop, tail, payload = self.fixture()
+        tail.driver.execute_tail.side_effect = None
+        with self.assertRaisesRegex(RuntimeError, 'COMPLETION_REQUIRED'):
+            tail.execute(loop, payload)
+        self.assertEqual(tail.state, 'failed')
+
+    def test_source_recreation_during_tail_fails(self):
+        root, loop, tail, payload = self.fixture()
+        def recreate(*args, **kwargs):
+            args[5]['timestampApplied'] = 1
+            (root/'supabase/migrations/recreated.sql').write_text('-- wrong')
+        tail.driver.execute_tail.side_effect = recreate
+        with self.assertRaisesRegex(RuntimeError, 'COMPLETION_REQUIRED'):
+            tail.execute(loop, payload)
+        self.assertEqual(tail.state, 'failed')
+
+    def test_cli_rejects_tail_override_or_nonfull_scope(self):
+        for flags in (['--timestamp-tail','--owned-compatible'],
+                      ['--timestamp-tail','--foundation-prefix-proof'],
+                      ['--timestamp-tail','--context'], ['--timestamp-tail','--hold','/tmp'],
+                      ['--timestamp-tail','--foundation','/tmp/list'],
+                      ['--timestamp-tail','--validate-foundation']):
+            result = subprocess.run([sys.executable,str(ROOT/'scripts/canonical-auth-provisioning-replay.py'),*flags],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 2, flags)
+            self.assertIn('requires only the existing full owned context', result.stderr)
+
+    def test_cli_tail_requires_an_existing_socket_context(self):
+        with patch.dict(m.os.environ, {}, clear=True), patch.object(sys,'argv',['replay','--timestamp-tail']):
+            with self.assertRaisesRegex(RuntimeError, 'OWNED_CONTEXT_REQUIRED'):
+                m.main()
+
+    def test_incomplete_canonical_accounting_blocks_before_startup(self):
+        batch = m.load_batch()
+        result = SimpleNamespace(returncode=1, stdout=b'{}')
+        with patch.object(m.subprocess,'run',return_value=result) as run, \
+             patch.object(batch,'OwnedPostgres') as start, \
+             patch.object(sys,'argv',['replay','--owned-compatible']):
+            with self.assertRaisesRegex(batch.BoundaryError, 'FULL_EFFECTS_INCOMPLETE'):
+                m.main()
+        start.assert_not_called()
+        self.assertIn(str(ROOT/'scripts/gridex-replay-complete-accounting.py'), run.call_args.args[0])
+        self.assertIn('--require-canonical-sources', run.call_args.args[0])
+
+    def test_full_scope_selects_postgis_after_successful_preflight(self):
+        batch = m.load_batch()
+        with patch.object(m.subprocess,'run',return_value=SimpleNamespace(returncode=0,stdout=b'{}')), \
+             patch.object(batch,'OwnedPostgres',side_effect=RuntimeError('stop before container')) as start, \
+             patch.object(sys,'argv',['replay','--owned-compatible']):
+            with self.assertRaisesRegex(RuntimeError, 'stop before container'):
+                m.main()
+        start.assert_called_once_with(postgis=True)
+
+    def test_shell_uses_shared_tail_before_unchanged_schema_and_ledger_guards(self):
+        shell = (ROOT/'scripts/gridex-aud-003-clean-replay.sh').read_text()
+        tail = shell.index('--timestamp-tail')
+        self.assertLess(tail, shell.index('gridex-replay-required-checks.py'))
+        self.assertLess(tail, shell.index('ACTUAL_FINGERPRINT='))
+        self.assertIn('NO ledger provenance', shell)
+        self.assertIn('supabase_migrations.schema_migrations', shell)
+        self.assertNotIn('while IFS= read -r file; do', shell)
+        self.assertIn('schema fingerprint mismatch', shell)
+        self.assertNotIn('continue-on-error', shell)
+
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)

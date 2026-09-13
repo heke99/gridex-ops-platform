@@ -778,8 +778,9 @@ def integration_constructors(b):
         assert result.returncode==2
     # Full completeness admission must precede even the constructor/startup.
     class NoStartup:
-        def __init__(self):raise AssertionError('incomplete full replay started an owned target')
-    with patch.object(b.legacy,'OwnedPostgres',NoStartup),patch.object(sys,'argv',[script,'--owned-compatible']):
+        def __init__(self, **kwargs):raise AssertionError('incomplete full replay started an owned target')
+    with patch.object(b.legacy,'OwnedPostgres',NoStartup),patch.object(sys,'argv',[script,'--owned-compatible']), \
+         patch.object(replay.subprocess,'run',return_value=types.SimpleNamespace(returncode=1,stdout=b'')):
         try:replay.main()
         except b.BoundaryError as error:assert str(error)=='FULL_EFFECTS_INCOMPLETE'
         else:raise AssertionError('incomplete full replay admitted')

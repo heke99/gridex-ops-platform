@@ -34,3 +34,10 @@ membership selftest now passes unchanged. Total156 enumerated tests plus that
 full program pass locally. All three ordinary replay/full-effects/type gates still
 exit1. No push, main merge, accepted type regeneration or production mutation.
 See quality/audits/DB_REPLAY_TRUE_ONLY_GATE_CANDIDATE_2026-09-13.md.
+
+## 2026-09-13 — DB2 namesake fixed, native6064 verified
+6064dcf0 guarded the exact older invitation-index definition.51 focused tests and
+native34776030335/job103774181992 passed both selected144+7+513 continuations,
+including original files absent through the full tail. No accepted ledger/types.
+New source-admission/ordinary-tail code has local static evidence only; current
+status and audit DB_SOURCE_ADMISSION_OWNED_TAIL_2026-09-13.md retain that boundary.

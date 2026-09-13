@@ -1,0 +1,343 @@
+{
+  "completeReplayVerified": false,
+  "foundationSha256": "11af5df0de43b4e135a2c8172a1ffc937079241826a60e5fefda9cb588363595",
+  "generatedTypesVerified": false,
+  "historicalOperatorProgramExecuted": false,
+  "implementationSha256": {
+    "canonical-db2-reconstruction-native.py": "cb23d3675b86137f120465e42e04e94a4158e4efa1ef53349b85630174e7be07",
+    "canonical-db2-reconstruction.py": "e072f3ed0b1c10153a6f889d88ca03279e665426fcdda00469e5d39841fbe33f",
+    "canonical-residual-index-effects.py": "71a26a96c7c2f47c5ecf7923bf38bf4709fe44de0e2c8d20d4bb0e66e7f9f455",
+    "canonical-residual-readiness-native.py": "6dbdf14556f4d21ed44458eb98b61d5e385d9226b7987e88b00469144a60fad0",
+    "canonical-residual-readiness-transitions.py": "24a696b02fbe73d5ab290f03fc27802986cf6d6c388de07fca8a39a42651a39e",
+    "canonical-residual-replay.py": "ae2850bf2c60286f79a1ea2ba8238a0b2cb1c6f6e891e8f5eebab25e35de853e",
+    "canonical-residual-transitions.py": "aaefda1f6be936017c416120a8ba0932d9ebda0dd51731f30ab358640dff06cd"
+  },
+  "ledgerProvenanceVerified": false,
+  "schemaVersion": 1,
+  "scope": "CANONICAL_SOURCE_DISPOSITIONS_NOT_DATABASE_ACCEPTANCE",
+  "sources": [
+    {
+      "authorities": [],
+      "boundary": {
+        "afterOrdinal": 77,
+        "position": 1,
+        "stage": "foundation"
+      },
+      "mode": "WHOLE_ORIGINAL_AT_REVIEWED_BOUNDARY",
+      "parts": [
+        {
+          "disposition": "COPY_ORIGINAL_SQL",
+          "endByteExclusive": 124029,
+          "sha256": "aff5a3e4fb3aae6ebe682081cbce4876c5731be1c124650b19d8151abf6efc73",
+          "startByte": 0
+        }
+      ],
+      "renderedSha256": "aff5a3e4fb3aae6ebe682081cbce4876c5731be1c124650b19d8151abf6efc73",
+      "source": "migrations/20260522_db1_schema_repair_backfill_foundation.sql",
+      "sourceByteCount": 124029,
+      "sourceSha256": "aff5a3e4fb3aae6ebe682081cbce4876c5731be1c124650b19d8151abf6efc73"
+    },
+    {
+      "authorities": [],
+      "boundary": {
+        "afterOrdinal": 77,
+        "position": 2,
+        "stage": "foundation"
+      },
+      "mode": "GUARDED_RECONSTRUCTION",
+      "parts": [
+        {
+          "disposition": "COPY_ORIGINAL_SQL",
+          "endByteExclusive": 6997,
+          "sha256": "b98fae7162459d533a20154eac419614469f277632a39cd71c7a731c15499705",
+          "startByte": 0
+        },
+        {
+          "disposition": "CANONICAL_ROLE_COLUMN_REFERENCE",
+          "endByteExclusive": 7008,
+          "sha256": "c1dcf2397a571fba291476e609ac99cf1862449f61b85028cb3ee98c8625edce",
+          "startByte": 6997
+        },
+        {
+          "disposition": "COPY_ORIGINAL_SQL",
+          "endByteExclusive": 7761,
+          "sha256": "1e28fce81a4bd2e2a3f74e59e703aa684508c9e6ab58be96556a20442c362355",
+          "startByte": 7008
+        }
+      ],
+      "renderedSha256": "62c8a1d852a2317f3fe749154b7d0a0ecee87cefdc84c0a0a760e7c002dab7fb",
+      "source": "migrations/20260521_batch_customer_intake_batch2_completion.sql",
+      "sourceByteCount": 7761,
+      "sourceSha256": "9cf593a45de464b273eb0642645d21d4b831fbc6e2458cb41711dcfdb90fff6a"
+    },
+    {
+      "authorities": [
+        {
+          "sha256": "5a4a2326232ab847d23fed32af2be13a046ee3e3a2dae41dead6f5b4eba16472",
+          "source": "migrations/20260526_debug_step1_2c_full_schema_code_alignment.sql"
+        }
+      ],
+      "boundary": {
+        "afterOrdinal": 77,
+        "position": 3,
+        "stage": "foundation"
+      },
+      "mode": "GUARDED_RECONSTRUCTION",
+      "parts": [
+        {
+          "disposition": "COPY_ORIGINAL_SQL",
+          "endByteExclusive": 23027,
+          "sha256": "9561ab0d7eff080941011f198a91e6fe51bd7f6ee627faa4a879d240f14ffd90",
+          "startByte": 0
+        },
+        {
+          "disposition": "SUPERSEDED_ROLE_FUNCTION_PRESERVE_CANONICAL_IDENTITY_AND_ACL",
+          "endByteExclusive": 25720,
+          "sha256": "ed002c085e91f3b656241ad464218301bc4ba4aeb7afe559acaa4249148feb3d",
+          "startByte": 23027
+        },
+        {
+          "disposition": "COPY_ORIGINAL_SQL",
+          "endByteExclusive": 48537,
+          "sha256": "95d8f34854e4ad8ac0f97efe9bf73ec17a0b7cf438c8d23dc1bd20a40569e6a8",
+          "startByte": 25720
+        }
+      ],
+      "renderedSha256": "ae0e078da9d7ddaf6cbda6c70423f225b08d0cd34d41d51ab880db163df4f61f",
+      "source": "migrations/20260525_debug_fix_batch_1b_schema_code_alignment.sql",
+      "sourceByteCount": 48537,
+      "sourceSha256": "c846be376c5f878965ea6a831d23611da959d4721cd0ebfb853fa46b10bccf68"
+    },
+    {
+      "authorities": [],
+      "boundary": {
+        "beforeOrdinal": 100,
+        "stage": "foundation"
+      },
+      "mode": "WHOLE_ORIGINAL_AT_REVIEWED_BOUNDARY",
+      "parts": [
+        {
+          "disposition": "COPY_ORIGINAL_SQL",
+          "endByteExclusive": 9984,
+          "sha256": "7a73e59f559ebb5291d3e7df74545e6918011ec9764e5c512df19fbaa5bdbc12",
+          "startByte": 0
+        }
+      ],
+      "renderedSha256": "7a73e59f559ebb5291d3e7df74545e6918011ec9764e5c512df19fbaa5bdbc12",
+      "source": "migrations/20260601070000_ediel_production_readiness_hardening.sql",
+      "sourceByteCount": 9984,
+      "sourceSha256": "7a73e59f559ebb5291d3e7df74545e6918011ec9764e5c512df19fbaa5bdbc12"
+    },
+    {
+      "authorities": [
+        {
+          "sha256": "aff5a3e4fb3aae6ebe682081cbce4876c5731be1c124650b19d8151abf6efc73",
+          "source": "migrations/20260522_db1_schema_repair_backfill_foundation.sql"
+        }
+      ],
+      "boundary": {
+        "afterOrdinal": 125,
+        "stage": "foundation"
+      },
+      "mode": "GUARDED_RECONSTRUCTION",
+      "parts": [
+        {
+          "disposition": "COPY_ORIGINAL_SQL",
+          "endByteExclusive": 3670,
+          "sha256": "b0a4b51ec095936d082036cae297828a090e7ae2c0a9383458d9d02faa3300e3",
+          "startByte": 0
+        },
+        {
+          "disposition": "COMPATIBLE_VIEW_PROJECTION_PRESERVE_IDENTITY_ACL_AND_RANKING",
+          "endByteExclusive": 4474,
+          "sha256": "8f1a75e5e8efa65768e5875371e96a467650f8140f8499abc468203666438c6a",
+          "startByte": 3670
+        },
+        {
+          "disposition": "COPY_ORIGINAL_SQL",
+          "endByteExclusive": 14572,
+          "sha256": "8dbd26e09dcdeeef1e1aed455f4c1135cc9ddc4ad707875f2173ee298fd95c63",
+          "startByte": 4474
+        }
+      ],
+      "renderedSha256": "341b84add39abb3fbfddeda10c2f54ab7ff5e1fe1301025ac4fbab38872717e5",
+      "source": "migrations/20260521_batch_1_2_live_readiness_and_automation_hardening.sql",
+      "sourceByteCount": 14572,
+      "sourceSha256": "9f741fb9afc07661713e8448cb394f9ec950e25eaf56ee4422b0983886f81c34"
+    },
+    {
+      "authorities": [
+        {
+          "sha256": "861130aecf1b3c5d400cbf414c8d99e14d21adbd635c9f8ddb0c357c1964009e",
+          "source": "migrations/20260519_saas_ui_tenant_admin.sql"
+        }
+      ],
+      "boundary": {
+        "afterOrdinal": 144,
+        "position": 1,
+        "stage": "foundation"
+      },
+      "mode": "CANONICAL_SCHEMA_WITH_EXPLICIT_OPERATOR_SEPARATION",
+      "parts": [
+        {
+          "disposition": "DOCUMENTATION",
+          "endByteExclusive": 588,
+          "sha256": "c46d242d56fd50efe3d527dc68f963eed368076d2649fa4437a5687bab82707d",
+          "startByte": 0
+        },
+        {
+          "disposition": "COPY_ORIGINAL_SCHEMA_SQL",
+          "endByteExclusive": 630,
+          "sha256": "32bb0ced46841c24bc5b0d320f0ab9a444131917a2125d5ec04e2ddc7e35e04e",
+          "startByte": 588
+        },
+        {
+          "disposition": "EXCLUDED_HISTORICAL_OPERATOR_DDL_AND_DATA",
+          "endByteExclusive": 1212,
+          "sha256": "7012db06d80dd4dad4e9f1bffbd59a6c57b9ad47e24d88100987bac2a303f868",
+          "startByte": 630
+        },
+        {
+          "disposition": "COPY_ORIGINAL_SCHEMA_SQL",
+          "endByteExclusive": 1701,
+          "sha256": "55ff2bbfb93af8d058ebb80de592353a4940476c3281e4562af9cd7528839721",
+          "startByte": 1212
+        },
+        {
+          "disposition": "EXCLUDED_HISTORICAL_OPERATOR_DDL_AND_DATA",
+          "endByteExclusive": 2220,
+          "sha256": "c3c5d320608730977bac5298d482c05996507a443dd378480450f470a1b6d89b",
+          "startByte": 1701
+        },
+        {
+          "disposition": "COPY_ORIGINAL_SCHEMA_SQL",
+          "endByteExclusive": 3316,
+          "sha256": "78da9c8d36fa27155ca06bb018bce7d5089ab73defe379e956ef4a7c33128d25",
+          "startByte": 2220
+        },
+        {
+          "disposition": "EXCLUDED_HISTORICAL_OPERATOR_DDL_AND_DATA",
+          "endByteExclusive": 6206,
+          "sha256": "e17ae0e7fbb9b9fef50c25c82a56f970a97a710b220fb5e8f27c33624ae50ab7",
+          "startByte": 3316
+        },
+        {
+          "disposition": "COPY_ORIGINAL_SCHEMA_SQL",
+          "endByteExclusive": 9412,
+          "sha256": "197870a16d4cd211f06851936625a3226da2e2d9c8998fc0fa5f7e99522fb87b",
+          "startByte": 6206
+        },
+        {
+          "disposition": "EXCLUDED_HISTORICAL_OPERATOR_DDL_AND_DATA",
+          "endByteExclusive": 10265,
+          "sha256": "68a171ff3de4122c7a554ec0656986d70a3df43a9bfa2332b441bad5ba8284db",
+          "startByte": 9412
+        },
+        {
+          "disposition": "COPY_ORIGINAL_SCHEMA_SQL",
+          "endByteExclusive": 11149,
+          "sha256": "1d63d9e9b3370daa3298883f53b8408886747d815ac754e33602a45401f88484",
+          "startByte": 10265
+        },
+        {
+          "disposition": "EXCLUDED_HISTORICAL_OPERATOR_DDL_AND_DATA",
+          "endByteExclusive": 12120,
+          "sha256": "30ffe50cc557e4b1ca5dd88adf30e1a48544883ac57c213fbb48acc96585cd00",
+          "startByte": 11149
+        },
+        {
+          "disposition": "COPY_ORIGINAL_SCHEMA_SQL",
+          "endByteExclusive": 13824,
+          "sha256": "86b807a69089f4c94cff8ed0538d13a3174497060ec3a1c645982273d15a9cbe",
+          "startByte": 12120
+        },
+        {
+          "disposition": "EXCLUDED_HISTORICAL_OPERATOR_DDL_AND_DATA",
+          "endByteExclusive": 14757,
+          "sha256": "9acaedfa9845ea97f00cf6ce85f3d48f365066b04bc8a1e957f97d5efe942440",
+          "startByte": 13824
+        },
+        {
+          "disposition": "COPY_ORIGINAL_SCHEMA_SQL",
+          "endByteExclusive": 16058,
+          "sha256": "9258a5f5fc1468ff9fd564e97d85dd77d62e5bf0dbce991e730581ffcf24ee13",
+          "startByte": 14757
+        },
+        {
+          "disposition": "STRICT_ORIGINAL_INDEX_DDL_WITH_GUARDED_PREDECESSOR_TRANSITION",
+          "endByteExclusive": 17001,
+          "sha256": "2727921583d6004f51753f08bd3b8e0cad926d0df1034b07b07ecab0328f61b6",
+          "startByte": 16058
+        },
+        {
+          "disposition": "EXCLUDED_HISTORICAL_OPERATOR_DDL_AND_DATA",
+          "endByteExclusive": 18941,
+          "sha256": "e16a54581823604e9887115a7e618bcc3a62f41f78cba89b2a2c9ba42029ce67",
+          "startByte": 17001
+        },
+        {
+          "disposition": "COPY_ORIGINAL_SCHEMA_SQL",
+          "endByteExclusive": 20593,
+          "sha256": "5b6d86d0ae3ea126f699aa26994c8b67c9bc2a59c601b2081ee7e94df554c2fd",
+          "startByte": 18941
+        },
+        {
+          "disposition": "EXCLUDED_HISTORICAL_OPERATOR_DDL_AND_DATA",
+          "endByteExclusive": 50661,
+          "sha256": "a0cfc921dd272e7702987c9ff59e2236b72df75a8486abfda26501217411a411",
+          "startByte": 20593
+        },
+        {
+          "disposition": "COPY_ORIGINAL_SCHEMA_SQL",
+          "endByteExclusive": 50748,
+          "sha256": "316a9c948175cf5ddb3b98adaf7b7ffbbd185ce5adb93e057706f9a0208b3033",
+          "startByte": 50661
+        },
+        {
+          "disposition": "EXCLUDED_HISTORICAL_OPERATOR_DDL_AND_DATA",
+          "endByteExclusive": 50951,
+          "sha256": "076bb31295c8dc87279bc5f46859305278e6d038d7f4faeba8218366785f4177",
+          "startByte": 50748
+        }
+      ],
+      "renderedSha256": "2a57d7938d1a8934339ce9a04f4f12febf22314d09be626886769971ea98ae63",
+      "source": "migrations/01_db2_full_view_preflight_schema_and_functions.sql",
+      "sourceByteCount": 50951,
+      "sourceSha256": "4de50050384d6892612c16484de8b198785c59cbb5d2ff03e7cea7e600d36cc9"
+    },
+    {
+      "authorities": [],
+      "boundary": {
+        "afterOrdinal": 144,
+        "position": 2,
+        "stage": "foundation"
+      },
+      "mode": "CANONICAL_SCHEMA_WITH_EXPLICIT_OPERATOR_SEPARATION",
+      "parts": [
+        {
+          "disposition": "EXCLUDED_HISTORICAL_OPERATOR_DDL_AND_DATA",
+          "endByteExclusive": 1884,
+          "sha256": "e4278cbb8ddb0b9aa1e80311b23c3e975ffbf26b95123ed12231b3d63f722027",
+          "startByte": 0
+        },
+        {
+          "disposition": "STRICT_ORIGINAL_SCHEMA_POSTCONDITION",
+          "endByteExclusive": 2166,
+          "sha256": "0789d074f32bfad68f1be6f88227738a1f50d6b5617273dfc51663c61c340a0a",
+          "startByte": 1884
+        },
+        {
+          "disposition": "EXCLUDED_HISTORICAL_OPERATOR_DDL_AND_DATA",
+          "endByteExclusive": 5990,
+          "sha256": "d02e822973fd7f14d4d51a7a2babc53403fb8c70b59f339b29680b431ca5e932",
+          "startByte": 2166
+        }
+      ],
+      "renderedSha256": "c9aa161f18eade0de8ffd8a2e3be6fb1149f47245ddb1c2d079618f5da871bf3",
+      "source": "migrations/03_db2_validation_and_finish.sql",
+      "sourceByteCount": 5990,
+      "sourceSha256": "74579e9fb883c1aba60933b1c82460164534d6bf171a7fb094b528f5bbb7224e"
+    }
+  ],
+  "sqlExecutionVerified": false
+}

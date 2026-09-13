@@ -53,3 +53,11 @@ suites rerun successfully; longer local membership invocation exceeded tool limi
 No new membership/native pass claimed. Published blobs are compared to local Git
 blob hashes before an atomic non-force branch update. Default Supabase branch
 has no separate test database; no destructive or production SQL is used.
+
+## 2026-09-13 — Source admission and actual owned timestamp integration
+Published6064 index fix; read green native34776030335 and actual red ordinary
+job103774182283. Added exact seven-source dispositions and parent-owned retained
+timestamp transport; kept original source files, schema fingerprint, required
+checks, real-ledger and type gates unchanged. Fresh native integration pending.
+No main merge, production mutation, deployment or paused API-patch application.
+See current-state and DB_SOURCE_ADMISSION_OWNED_TAIL_2026-09-13.md.

@@ -137,7 +137,7 @@ if [[ "$REPLAY_SCOPE" != full ]]; then
   # claims completeness. Context binds this scope to the owned parent process.
   python3 "$ROOT/scripts/canonical-auth-provisioning-replay.py" --context "${SCOPE_FLAGS[@]}"
 else
-  python3 "$ROOT/scripts/gridex-replay-input-accounting.py" --root "$ROOT" --require-full-effects > "$ACCOUNTING_PROOF"
+  python3 "$ROOT/scripts/gridex-replay-complete-accounting.py" --root "$ROOT" --require-canonical-sources > "$ACCOUNTING_PROOF"
   python3 "$ROOT/scripts/canonical-auth-provisioning-replay.py" --context
 fi
 
@@ -363,12 +363,6 @@ echo "[GRIDEX-REM-002 replay] owned compatible mode: NO ledger provenance"
 python3 "$ROOT/scripts/canonical-auth-provisioning-replay.py" --validate-foundation --foundation "$FOUNDATION_EXEC" --hold "$HOLD" "${SCOPE_FLAGS[@]}"
 psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -f "$SUPABASE_BOOTSTRAP"
 
-apply_sql(){
-  local file="$1"
-  test -f "$file" || { echo "missing replay source $file" >&2; exit 1; }
-  echo "[GRIDEX-REM-002 replay] applying ${file#$ROOT/}"
-  psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$file"
-}
 # The same production foundation loop handles retained first43 and exactly
 # A44/B45/C46/D47/E48/F49/H50/I51/Q52 then R2/E2/S2/W53–56, each group
 # in its own same-connection envelope on the identical owned replay database.
@@ -377,63 +371,12 @@ if [[ "$REPLAY_SCOPE" != full ]]; then
   echo "[GRIDEX-REM-002 replay] PASS bounded $REPLAY_SCOPE integration only; NO ledger provenance; full replay/artifacts/types remain blocked"
   exit 0
 fi
-poa_live_prerequisite_applied=false
-inbound_dedupe_replay_prerequisite_applied=false
-inbound_ediel_pipeline_replay_prerequisite_applied=false
-grid_owner_name_key_replay_prerequisite_applied=false
-white_label_hygiene_boundary_reached=false
-white_label_hygiene_replay_shim_applied=false
-while IFS= read -r file; do
-  if [[ "$(basename "$file")" == 20260824140830_* ]]; then
-    apply_sql "$POA_LIVE_PREREQUISITE"
-    poa_live_prerequisite_applied=true
-  fi
-  if [[ "$(basename "$file")" == 20260902093000_* ]]; then
-    apply_sql "$INBOUND_DEDUPE_REPLAY_PREREQUISITE"
-    inbound_dedupe_replay_prerequisite_applied=true
-  fi
-  if [[ "$(basename "$file")" == 20260902096000_* ]]; then
-    apply_sql "$INBOUND_EDIEL_PIPELINE_REPLAY_PREREQUISITE"
-    inbound_ediel_pipeline_replay_prerequisite_applied=true
-  fi
-  if [[ "$(basename "$file")" == 20260902100000_* ]]; then
-    apply_sql "$GRID_OWNER_NAME_KEY_REPLAY_PREREQUISITE"
-    grid_owner_name_key_replay_prerequisite_applied=true
-  fi
-  if [[ "$(basename "$file")" == 20260902100500_* ]]; then
-    white_label_hygiene_boundary_reached=true
-    if [[ "$(psql "$DB_URL" -X -At -v ON_ERROR_STOP=1 -c "select case when to_regclass('public.white_label_platform_memberships') is null and to_regprocedure('public.gridex_user_has_white_label_admin_membership(uuid)') is null then 'yes' else 'no' end")" == "yes" ]]; then
-      apply_sql "$WHITE_LABEL_HYGIENE_REPLAY_SHIM"
-      white_label_hygiene_replay_shim_applied=true
-    fi
-    apply_sql "$file"
-    if [[ "$white_label_hygiene_replay_shim_applied" == true ]]; then
-      psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c "drop function if exists public.gridex_user_has_white_label_admin_membership(uuid);"
-    fi
-    continue
-  fi
-  apply_sql "$file"
-done < "$TIMESTAMP_EXEC"
-if [[ "$poa_live_prerequisite_applied" != true ]]; then
-  echo "verified POA live-schema prerequisite boundary was not reached before 20260824140830" >&2
-  exit 1
-fi
-if [[ "$inbound_dedupe_replay_prerequisite_applied" != true ]]; then
-  echo "verified inbound dedupe replay prerequisite boundary was not reached before 20260902093000" >&2
-  exit 1
-fi
-if [[ "$inbound_ediel_pipeline_replay_prerequisite_applied" != true ]]; then
-  echo "verified inbound EDIEL pipeline replay prerequisite boundary was not reached before 20260902096000" >&2
-  exit 1
-fi
-if [[ "$grid_owner_name_key_replay_prerequisite_applied" != true ]]; then
-  echo "verified grid-owner name-key replay prerequisite boundary was not reached before 20260902100000" >&2
-  exit 1
-fi
-if [[ "$white_label_hygiene_boundary_reached" != true ]]; then
-  echo "verified white-label hygiene replay boundary was not reached at 20260902100500" >&2
-  exit 1
-fi
+# The parent retained every selected timestamp source and all five prerequisite
+# boundaries before HOLD. Use the native-verified shared driver, including the
+# guarded historical session transition, on this same owned database. The driver
+# requires once-only execution after all 144 foundation steps and seven residuals.
+# This does not bypass the required-object, fingerprint or ledger checks below.
+python3 "$ROOT/scripts/canonical-auth-provisioning-replay.py" --timestamp-tail
 
 if [[ -n "$EXTERNAL_DB" ]]; then
   echo "[GRIDEX-REM-002 replay] external mode: NO ledger provenance. The CLI-owned official ledger is not reproduced and not verified; this run proves schema reconstruction only and must not be cited as canonical provenance."

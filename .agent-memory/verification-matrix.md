@@ -63,3 +63,12 @@ The earlier access limitation is superseded. GitHub write actions are available.
 Eight focused suites rerun PASS(102 tests); long membership rerun timed out and
 is not a new pass. Full hosted verification of the publication remains pending.
 Historical SQL/type manifests remain unchanged. No production mutation or merge.
+
+## 2026-09-13 —6064 and ordinary-tail increment
+-6064 native residual34776030335/job103774181992: PASS, both selected and staged
+  foundation144/residual7/timestamp513; index semantic checks and cleanup PASS.
+-6064 OPS34776030297: quality-release-gates103774182237 PASS; clean103774182283
+  rejects unsupported native target before SQL; verify/types remains blocked.
+-New local increment: source contract18, owned-tail13 (RED/GREEN), cleanup20,
+  required checks12, timestamp13, focused residual51, repair selection-only PASS.
+-New full native/managed/ledger/schema/types: NOT VERIFIED. See current-state.

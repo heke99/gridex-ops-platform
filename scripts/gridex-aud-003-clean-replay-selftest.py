@@ -52,8 +52,8 @@ exit 99
 ''')
         self.stub('python3', '''
 if [[ "$1" == */canonical-auth-provisioning-replay.py ]]; then exit 0; fi
-if [[ "$1" == */gridex-replay-input-accounting.py ]]; then
-  [[ "$*" == *--require-full-effects* ]] || exit 92
+if [[ "$1" == */gridex-replay-complete-accounting.py ]]; then
+  [[ "$*" == *--require-canonical-sources* ]] || exit 92
   exit 0
 fi
 [[ ! -e "$FIXTURE/supabase/migrations/20260101000000_first.sql" ]] || exit 90
@@ -119,7 +119,7 @@ exit 73
                 log=self.root/'transport-calls'
                 log.unlink(missing_ok=True)
                 self.stub('python3', """
-if [[ "$1" == */gridex-replay-input-accounting.py ]]; then exit 98; fi
+if [[ "$1" == */gridex-replay-complete-accounting.py ]]; then exit 98; fi
 if [[ "$1" == */canonical-auth-provisioning-replay.py ]]; then
   printf '%s\\n' "$*" >> "$FIXTURE/transport-calls"
 fi
@@ -143,15 +143,18 @@ exit 0
 
     def test_full_scope_never_reopens_originals_for_accounting(self):
         self.stub('python3', """
-if [[ "$1" == */gridex-replay-input-accounting.py ]]; then
+if [[ "$1" == */gridex-replay-complete-accounting.py ]]; then
   [[ -f "$FIXTURE/supabase/migrations/20260101000000_first.sql" ]] || exit 96
   printf 'synthetic-accounting\\n'
+fi
+if [[ "$1" == */canonical-auth-provisioning-replay.py && "$*" == *--timestamp-tail* ]]; then
+  [[ ! -e "$FIXTURE/supabase/migrations/20260101000000_first.sql" ]] || exit 95
+  exit 81
 fi
 exit 0
 """)
         self.stub('psql','exit 0')
-        result=self.run_replay(1)
-        self.assertIn('POA live-schema prerequisite boundary was not reached',result.stderr)
+        self.run_replay(81)
         self.assertFalse((self.root/'artifacts').exists())
 
     def test_real_staging_keeps_hold_private_and_retains_hidden_entries(self):
@@ -161,7 +164,7 @@ exit 0
         (self.migrations / '.link').symlink_to('README.txt')
         self.originals=self.snapshot()
         self.stub('python3', '''
-if [[ "$1" == */gridex-replay-input-accounting.py ]]; then exit 0; fi
+if [[ "$1" == */gridex-replay-complete-accounting.py ]]; then exit 0; fi
 if [[ "$1" == */canonical-auth-provisioning-replay.py ]]; then exit 0; fi
 # This is the actual shell's generated-plan call, after its real entry copy.
 [[ "$1" == - && "$#" == 12 ]] || exit 92
@@ -206,7 +209,7 @@ exit 0
 
     def test_unowned_socket_rejected_before_staging(self):
         self.stub('python3', '''
-if [[ "$1" == */gridex-replay-input-accounting.py ]]; then exit 0; fi
+if [[ "$1" == */gridex-replay-complete-accounting.py ]]; then exit 0; fi
 if [[ "$1" == */canonical-auth-provisioning-replay.py ]]; then exit 79; fi
 exit 98
 ''')

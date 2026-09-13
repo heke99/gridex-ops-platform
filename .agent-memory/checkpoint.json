@@ -4,7 +4,7 @@
   "status": "PARTIAL",
   "current_state": ".agent-memory/current-state.md",
   "active_group": "database_reconstruction",
-  "verified_code": "d47bfb0fb482d3e986de3abae98a8a0c7bafac56",
-  "evidence": "quality/audits/DB_RETAINED_TIMESTAMP_INTEGRATION_2026-09-13.md",
-  "next_action": "Verify the retained full timestamp tail natively, then complete source-effects admission and supported ordinary replay/ledger before generating accepted schema/types."
+  "verified_code": "6064dcf02319342e1a88424d9999bf0f42dd8b0a",
+  "evidence": "quality/audits/DB_SOURCE_ADMISSION_OWNED_TAIL_2026-09-13.md",
+  "next_action": "Read fresh actual owned clean-shell CI; preserve required checks and fingerprint, then establish supported managed lifecycle and real ledger before accepting regenerated schema/types."
 }

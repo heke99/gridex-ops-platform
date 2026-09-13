@@ -17,7 +17,7 @@ import tempfile
 from types import MappingProxyType
 
 sys.dont_write_bytecode = True
-SHELL_SHA256 = 'ba9412f8b2f76604549ee8b49ce0ada6cfcf3ef4e856bad0f0e1a7a33292e513'
+SHELL_SHA256 = '8db57f70fb0cfa1877dfeff45f9ccec5276260a42ad680ad8b952b8f4910769d'
 BOUNDARIES = {
     '20260824140830': 'bootstrap/20260824_powers_of_attorney_legal_bundle_version_document_prerequisite.sql',
     '20260902093000': 'bootstrap/20260902_inbound_email_dedupe_replay_prerequisite.sql',
