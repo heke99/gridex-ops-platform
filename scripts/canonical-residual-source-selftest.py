@@ -169,6 +169,42 @@ class ResidualSourceTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'RESIDUAL_OWNED_SOURCE_REQUIRED'):
                 restored.verify_rulebook_conversion(Target(),database,relative,ordinal)
 
+    def test_retained_selection_and_seed_oracles_never_reopen_originals(self):
+        retained=tuple((ROOT/'supabase'/relative).read_bytes() for relative in self.order)
+        raw=retained[86]
+        expected=restored.rulebook_seed_check('ediel_field_rules',True)
+        def no_originals(*args,**kwargs):
+            raise AssertionError('original migration was reopened after HOLD staging')
+        with patch.object(Path,'read_bytes',no_originals):
+            restored.validate_selection(self.order,retained)
+            actual=restored.rulebook_seed_check('ediel_field_rules',True,source_bytes=raw)
+            self.assertEqual(actual,expected)
+            self.assertEqual(len(restored.checks(restored.RULEBOOK_COMPLETION,rulebook_bytes=raw)),13)
+
+    def test_retained_selection_rejects_shape_changes_and_byte_mutation(self):
+        retained=tuple((ROOT/'supabase'/relative).read_bytes() for relative in self.order)
+        for wrong in (list(retained),retained[:-1],retained+(b'extra',),tuple(str(i) for i in retained)):
+            with self.assertRaisesRegex(ValueError,'RESIDUAL_RETAINED_BYTES_MISMATCH'):
+                restored.validate_selection(self.order,wrong)
+        for relative,(_,ordinal) in restored.FOUNDATION_SOURCES.items():
+            wrong=list(retained);wrong[ordinal-1]+=b'\n-- unexpected change'
+            with self.assertRaisesRegex(ValueError,'RESIDUAL_WHOLE_SOURCE_OR_ORDER_MISMATCH'):
+                restored.validate_selection(self.order,tuple(wrong))
+
+    def test_retained_seed_bytes_reject_wrong_source_type_or_content(self):
+        raw=(ROOT/'supabase'/restored.RULEBOOK_COMPLETION).read_bytes()
+        for wrong in (b'',raw+b'\n',raw.decode(),bytearray(raw)):
+            with self.assertRaisesRegex(ValueError,'RESIDUAL_WHOLE_SOURCE_OR_ORDER_MISMATCH'):
+                restored.rulebook_seed_check('ediel_field_rules',source_bytes=wrong)
+
+    def test_retained_sources_do_not_make_a_changed_order_acceptable(self):
+        retained=tuple((ROOT/'supabase'/relative).read_bytes() for relative in self.order)
+        order=list(self.order);values=list(retained)
+        order[86],order[87]=order[87],order[86]
+        values[86],values[87]=values[87],values[86]
+        with self.assertRaisesRegex(ValueError,'RESIDUAL_WHOLE_SOURCE_OR_ORDER_MISMATCH'):
+            restored.validate_selection(order,tuple(values))
+
     def test_role_bootstrap_remains_hash_bound_with_no_new_elevated_privileges(self):
         proof = load('canonical-auth-provisioning-diagnostics-selftest')
         data = (ROOT/proof.BOOTSTRAP).read_bytes()

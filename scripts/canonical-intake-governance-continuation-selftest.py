@@ -124,13 +124,13 @@ class Constructors(unittest.TestCase):
     def test_scope_registration_and_original_tail(self):
         r=runtime();order=json.loads((ROOT/'scripts/gridex-aud-003-foundation-order.json').read_text())['foundation']
         self.assertEqual(r.replay.SCOPES['intake77'],77)
-        self.assertEqual(r.replay.SCOPES['full'],118)
+        self.assertEqual(r.replay.SCOPES['full'],144)
         self.assertEqual(r.replay.scope_flags('intake77'),['--intake-prefix-proof'])
         self.assertEqual(order[74:77],['migrations/'+p.name for p in r.reviewed_paths()])
-        self.assertEqual(len(order[77:]),41)
+        self.assertEqual(len(order[77:]),67)
         digest=lambda paths:hashlib.sha256(json.dumps(paths,separators=(',',':')).encode()).hexdigest()
         self.assertEqual(digest(order[:74]),'1edba65bd313620171cc8f3039ef7f1d39c51b2bd849dc8a89426d6cdd515b6b')
-        self.assertEqual(digest(order[77:]),'3f3a129909e86db648f994cfe0cedc7979015cca5d93388e543161db762de2cb')
+        self.assertEqual(digest(order[77:]),'9ff8eb314373c2896a6f15ef616e92452e0905c72edde1a634308d3d020b1f9a')
 
 def support():
     spec=importlib.util.spec_from_file_location('intake_continuation_support',ROOT/'scripts/canonical-user-rbac-fixed-target-continuation-selftest.py')

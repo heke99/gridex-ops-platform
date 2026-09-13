@@ -258,14 +258,16 @@ class FoundationLoop:
             if receipt!={'sources':3}: raise b.BoundaryError('SOURCE_COMPLETION_MISMATCH')
         if self.scope=='full':
             restored = trusted_module('canonical_residual_source_restoration', 'canonical-residual-source-restoration.py')
-            restored.validate_selection(self.order)
+            retained = tuple(data)
+            restored.validate_selection(self.order, retained)
+            rulebook_bytes = retained[restored.FOUNDATION_SOURCES[restored.RULEBOOK_COMPLETION][1] - 1]
             for ordinal,raw in enumerate(data[77:],78):
                 h.run_files(DATABASE,[h.private('replay-source-'+str(ordinal)+'.sql',raw)],'replay_foundation_'+str(ordinal),transaction=False)
                 relative = self.order[ordinal-1]
                 if relative in restored.SOURCES:
-                    restored.verify(h,DATABASE,relative,ordinal)
+                    restored.verify(h,DATABASE,relative,ordinal,rulebook_bytes=rulebook_bytes)
                 if relative == 'migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql':
-                    restored.verify_rulebook_conversion(h,DATABASE,relative,ordinal)
+                    restored.verify_rulebook_conversion(h,DATABASE,relative,ordinal,rulebook_bytes=rulebook_bytes)
         print(json.dumps({'stage':'actual_replay_foundation','first43':43,'legacy_sources':9,
                           'repair_sources':0 if self.scope=='legacy52' else 4,'dedupe_sources':int(self.terminal),'scope':self.scope,
                           'fixed_sources':6 if self.scope in ('fixed-target','alignment68','operations71','readiness74','intake77','full') else 0,

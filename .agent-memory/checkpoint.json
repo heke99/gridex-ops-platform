@@ -1,23 +1,12 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-12",
+  "updated_at": "2026-09-13",
   "status": "PARTIAL",
   "current_state": ".agent-memory/current-state.md",
   "active_group": "database_reconstruction",
-  "source_state": {
-    "published_application_baseline": "52b2de4d81cae370bf250e5a80f12c300bbddd16",
-    "published_database_diagnostic": "1d40e33cc2d58e274d83a480b2b0cecc096f0fa1",
-    "baseline_probe_commit": "54914f5116a07749b7b684fa174e3e24731f2589"
-  },
-  "native_verification": {
-    "run_id": 34718792993,
-    "job_id": 103620685321,
-    "foundation_inputs_passed": 118,
-    "timestamp_inputs_passed": 508,
-    "constructor_tests_passed": 35,
-    "session_proof_groups_passed": 6,
-    "cleanup": "PASS",
-    "full_canonical_acceptance": false
-  },
-  "next_action": "Verify four whole-original restorations in the 118+512 selected chain with 32 bounded postconditions and negative controls; continue remaining33 original source dispositions and canonical replay/types. Preserve API and session reconstruction; all full release/type/ledger gates remain blocking."
+  "verified_code": "85149c49108e24884d82e92df9f70c6302d89c5b",
+  "evidence": "quality/audits/DB_RESIDUAL_WHOLE_SOURCES_2026-09-13.json",
+  "native_run": 34755799372,
+  "native_job": 103719840158,
+  "next_action": "Verify retained-byte/standalone fixture follow-up natively; then resolve seven residual originals and accepted normal canonical replay/ledger/schema/types. All release gates stay blocking."
 }

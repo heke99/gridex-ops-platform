@@ -32,3 +32,12 @@ The broader local accounting/group selftest invocations were interrupted by tool
 | Independent review/full RLS/release | OPEN | No independent reviewer, production parity, merge or deployment claimed |
 
 The native run on0bdd572 also passed before cleanup. The final shared SQL executor is byte-identical to the starting version; no temporary diagnostic relaxation remains. Exact pins and both run receipts are in DB_SESSION_RECONSTRUCTION_RECEIPT_2026-09-12.json.
+
+## 2026-09-13 residual restoration
+
+85149c4: native selected144+513 PASS(34755799372/103719840158); 150 source tests
+and full candidate native PASS(34755559678/103719212176). Application build/API
+gates PASS103719840231 and permissions/Storage PASS103719840272. Full canonical
+clean replay/types FAIL103719840293; fullE2E FAIL34755799382; seven source
+dispositions OPEN. Retained-byte follow-up:19 residual unit tests and named-scope
+constructors PASS locally; native rerun REQUIRED. Security scan/review OPEN.

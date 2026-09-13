@@ -19,3 +19,14 @@ The user explicitly asked to resolve42601 and verify continuation, not reopen AP
 Published8cacda, temporary diagnosis0b6f328, corrected0bdd572, and cleanup1d40e33 without force. The final shared executor is restored to its original bytes. Both0bdd572 and1d40e33 passed118+508 native stages,35 constructor tests and six boundary proof groups. Final run34718792993/job103620685321 and cleanup completed successfully. Fourteen new tests passed locally. Only individual changed blobs, not a full current local tree, were verified in this session; CI checked out the exact published head.
 
 Current state/checkpoint now supersede the solved timestamp229 blocker and point to the37 unverified source dispositions, reconstruction review, supported canonical CLI integration and then accepted types. The normal clean-replay/type job remains failed. No source-history rewrite, API change, generated types, managed SQL, merge or deployment occurred. Evidence is in DB_SESSION_RECONSTRUCTION_2026-09-12.md and its companion JSON.
+
+## 2026-09-13 — residual originals and staging integration
+
+Continued user's eleven-migration request fromb88642d. Restored four whole
+originals in775d581/85149c4, verified native144+513 with negative controls and
+repeated the regular frontier on the published code. Accounting now588/2/5/5.
+Found stale standalone count guards and an original-directory reopen after HOLD
+staging; implemented retained-byte/fixture follow-up with local regressions.
+Seven genuine source dispositions and ordinary canonical/types remain OPEN.
+No main merge, production mutation or generated-type replacement. Current-state
+and the residual audit are the active evidence; old progress archived.

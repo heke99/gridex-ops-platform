@@ -38,12 +38,26 @@ def reviewed_paths():
     return tuple(ROOT / "supabase" / p for p in SOURCES)
 
 
-def validate_selection(order):
+def validate_selection(order, retained=None):
+    """Verify either on-disk sources or exact bytes retained by FoundationLoop.
+
+    The clean shell moves migration files into its private HOLD directory. Never
+    reopen the original migration path in the retained-byte execution lane.
+    """
+    if retained is not None and (type(retained) is not tuple or len(retained) != len(order)
+                                 or any(type(raw) is not bytes for raw in retained)):
+        raise ValueError('RESIDUAL_RETAINED_BYTES_MISMATCH')
     for relative, (pin, ordinal) in FOUNDATION_SOURCES.items():
-        path = ROOT / 'supabase' / relative
-        if (path.is_symlink() or not path.is_file()
-                or hashlib.sha256(path.read_bytes()).hexdigest() != pin
-                or [i for i, p in enumerate(order, 1) if p == relative] != [ordinal]):
+        if [i for i, p in enumerate(order, 1) if p == relative] != [ordinal]:
+            raise ValueError('RESIDUAL_WHOLE_SOURCE_OR_ORDER_MISMATCH')
+        if retained is None:
+            path = ROOT / 'supabase' / relative
+            if path.is_symlink() or not path.is_file():
+                raise ValueError('RESIDUAL_WHOLE_SOURCE_OR_ORDER_MISMATCH')
+            raw = path.read_bytes()
+        else:
+            raw = retained[ordinal - 1]
+        if hashlib.sha256(raw).hexdigest() != pin:
             raise ValueError('RESIDUAL_WHOLE_SOURCE_OR_ORDER_MISMATCH')
 
 
@@ -81,7 +95,7 @@ def enabled_rls(table):
     return "EXISTS(SELECT 1 FROM pg_class WHERE oid=to_regclass('public." + table + "') AND relrowsecurity)"
 
 
-def rulebook_seed_check(table, converted=False):
+def rulebook_seed_check(table, converted=False, *, source_bytes=None):
     """Compare every authored seed column against the immutable source values.
 
     This accepts only the three finite INSERT/VALUES statements in the pinned
@@ -94,9 +108,14 @@ def rulebook_seed_check(table, converted=False):
     }
     if table not in columns or type(converted) is not bool or (converted and table != 'ediel_field_rules'):
         raise ValueError('UNREVIEWED_RULEBOOK_SEED')
-    path = ROOT / 'supabase' / RULEBOOK_COMPLETION
-    raw = path.read_bytes()
-    if path.is_symlink() or hashlib.sha256(raw).hexdigest() != RULEBOOK_COMPLETION_SHA256:
+    if source_bytes is None:
+        path = ROOT / 'supabase' / RULEBOOK_COMPLETION
+        if path.is_symlink():
+            raise ValueError('RESIDUAL_WHOLE_SOURCE_OR_ORDER_MISMATCH')
+        raw = path.read_bytes()
+    else:
+        raw = source_bytes
+    if type(raw) is not bytes or hashlib.sha256(raw).hexdigest() != RULEBOOK_COMPLETION_SHA256:
         raise ValueError('RESIDUAL_WHOLE_SOURCE_OR_ORDER_MISMATCH')
     matches = re.findall(r'(?ms)^insert into public\.' + re.escape(table) + r'\(([^)]+)\)\nvalues\n(.*?)\non conflict', raw.decode())
     if len(matches) != 1 or tuple(c.strip() for c in matches[0][0].split(',')) != columns[table]:
@@ -112,7 +131,7 @@ def rulebook_seed_check(table, converted=False):
             table + ' a WHERE ' + ' AND '.join(comparisons) + '))')
 
 
-def checks(relative):
+def checks(relative, *, rulebook_bytes=None):
     if relative not in SOURCES:
         raise ValueError('UNREVIEWED_RESIDUAL_SOURCE')
     if relative == RULEBOOK_COMPLETION:
@@ -127,9 +146,9 @@ def checks(relative):
             index('ediel_test_run_steps_unique_step_idx', ('test_run_id','step_no'), True),
             index('ediel_test_run_steps_status_idx', ('test_run_id','status','step_no')),
             index('ediel_test_artifacts_run_type_idx', ('test_run_id','artifact_type','created_at')),
-            rulebook_seed_check('ediel_field_rules'),
-            rulebook_seed_check('ediel_ack_rules'),
-            rulebook_seed_check('ediel_message_build_rules'),
+            rulebook_seed_check('ediel_field_rules', source_bytes=rulebook_bytes),
+            rulebook_seed_check('ediel_ack_rules', source_bytes=rulebook_bytes),
+            rulebook_seed_check('ediel_message_build_rules', source_bytes=rulebook_bytes),
         ]
     if '7a1_inbound' in relative:
         return [
@@ -187,13 +206,13 @@ def negative_sql(relative):
     raise ValueError('UNREVIEWED_RESIDUAL_SOURCE')
 
 
-def verify(target, database, relative, ordinal):
+def verify(target, database, relative, ordinal, *, rulebook_bytes=None):
     if (database != 'gridex_auth_legacy_replay' or not getattr(target, 'active', False)
             or getattr(target, 'name', None) != getattr(target, '_created_name', None) or relative not in SOURCES
             or SOURCES[relative][1] != ordinal):
         raise ValueError('RESIDUAL_OWNED_SOURCE_REQUIRED')
     target.command(database)
-    expressions = checks(relative)
+    expressions = checks(relative, rulebook_bytes=rulebook_bytes)
     sql = ''.join(assertion(e) for e in expressions)
     stage = 'residual_whole_' + str(ordinal)
     target.sql(database, sql, stage, transaction=True)
@@ -211,14 +230,14 @@ def verify(target, database, relative, ordinal):
                       'negativeControlVerified':True, 'fullDatabaseAcceptance':False}, sort_keys=True), flush=True)
 
 
-def verify_rulebook_conversion(target, database, relative, ordinal):
+def verify_rulebook_conversion(target, database, relative, ordinal, *, rulebook_bytes=None):
     expected = 'migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql'
     if (database != 'gridex_auth_legacy_replay' or not getattr(target,'active',False)
             or getattr(target,'name',None) != getattr(target,'_created_name',None)
             or relative != expected or ordinal != 88):
         raise ValueError('RESIDUAL_OWNED_SOURCE_REQUIRED')
     target.command(database)
-    expression = assertion(column('ediel_field_rules','allowed_values','text[]')) + assertion(rulebook_seed_check('ediel_field_rules',True))
+    expression = assertion(column('ediel_field_rules','allowed_values','text[]')) + assertion(rulebook_seed_check('ediel_field_rules',True,source_bytes=rulebook_bytes))
     target.sql(database,expression,'rulebook_conversion_seeds',transaction=True)
     target.docker(['exec',target.name,'dropdb','-U','postgres','--if-exists','--force',CLONE])
     target.docker(['exec',target.name,'createdb','-U','postgres','-T',database,CLONE])
