@@ -1,4 +1,4 @@
-name: Gridex isolated final 11 residual source probe
+name: Gridex persist verified final 11 harness
 on:
   pull_request:
     paths:
@@ -6,12 +6,10 @@ on:
 permissions:
   contents: write
 jobs:
-  final11:
+  persist-harness:
     if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/gridex-parity-remediation-20260905'
     runs-on: ubuntu-latest
-    timeout-minutes: 40
-    env:
-      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -50,24 +48,7 @@ jobs:
           python3 scripts/canonical-timestamp-frontier-selftest.py
           python3 scripts/canonical-timestamp-source-selftest.py
           python3 scripts/canonical-residual-migration-selftest.py
-      - name: Probe exact final 11 originals on both owned checkpoints
-        shell: bash
-        run: |
-          set +e
-          python3 scripts/canonical-residual-migration-probe.py 2>&1 | tee "$RUNNER_TEMP/final11.log"
-          rc=${PIPESTATUS[0]}
-          set -e
-          printf '%s\n' "$rc" > "$RUNNER_TEMP/final11-exit.txt"
-          test "$rc" -eq 0 -o "$rc" -eq 1
-      - uses: actions/upload-artifact@v4
-        with:
-          name: gridex-final11-residual-probe
-          path: |
-            ${{ runner.temp }}/final11.log
-            ${{ runner.temp }}/final11-exit.txt
-          retention-days: 2
-          if-no-files-found: error
-      - name: Commit reviewed harness rebinding
+      - name: Commit only verified harness rebinding
         shell: bash
         run: |
           set -euo pipefail
@@ -77,12 +58,3 @@ jobs:
           git diff --cached --check
           git commit -m 'test(db): bind final 11 residual probe to current replay selection'
           git push origin HEAD:codex/gridex-parity-remediation-20260905
-      - name: Cleanup owned database
-        if: always()
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          import importlib.util
-          from pathlib import Path
-          p=Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve(); s=importlib.util.spec_from_file_location('cleanup',p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); m.load_controller().load_batch().cleanup_workflow_owned()
-          PY
