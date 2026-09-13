@@ -51,18 +51,18 @@ class AdmissionTests(unittest.TestCase):
         change(value)
         path.write_text(json.dumps(value))
 
-    def test_complete_plan_accounts_600_without_claiming_sql_or_types(self):
+    def test_complete_plan_accounts_601_without_claiming_sql_or_types(self):
         report = self.complete.account(ROOT)
-        self.assertEqual(report['canonicalCounts'], {'wholeFileSelector':588,'reviewedResidualSources':7,
+        self.assertEqual(report['canonicalCounts'], {'wholeFileSelector':589,'reviewedResidualSources':7,
                                                     'explicitlyExcluded':5,'unresolved':0})
-        self.assertEqual(report['totalMigrations'], 600)
+        self.assertEqual(report['totalMigrations'], 601)
         self.assertIs(report['canonicalSourceDispositionsComplete'], True)
         for key in ('sqlExecutionVerified','ledgerProvenanceVerified','completeReplayVerified','generatedTypesVerified'):
             self.assertIs(report[key], False)
             self.assertIs(self.contract[key], False)
 
     def test_original_selector_still_reports_its_own_seven_unresolved_sources(self):
-        self.assertEqual(self.selected['counts'], {'FULL_FILE_SELECTED':588,'SUBSTITUTED':2,
+        self.assertEqual(self.selected['counts'], {'FULL_FILE_SELECTED':589,'SUBSTITUTED':2,
                                                   'UNCLASSIFIED':5,'EXPLICITLY_EXCLUDED':5})
         result = subprocess.run([sys.executable,str(ROOT/'scripts/gridex-replay-input-accounting.py'),
                                  '--require-full-effects'],capture_output=True,text=True)

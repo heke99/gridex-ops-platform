@@ -270,8 +270,8 @@ def constructor_checks():
     account_run = subprocess.run(['python3','scripts/gridex-replay-input-accounting.py'],cwd=ROOT,text=True,capture_output=True)
     assert account_run.returncode == 1, 'source completeness remains blocking'
     account = json.loads(account_run.stdout)
-    assert not account['errors'] and account['totalMigrations']==600
-    assert account['counts']=={'FULL_FILE_SELECTED':588,'SUBSTITUTED':2,'UNCLASSIFIED':5,'EXPLICITLY_EXCLUDED':5}
+    assert not account['errors'] and account['totalMigrations']==601
+    assert account['counts']=={'FULL_FILE_SELECTED':589,'SUBSTITUTED':2,'UNCLASSIFIED':5,'EXPLICITLY_EXCLUDED':5}
     by_path = {item['path']:item for item in account['migrations']}
     assert by_path[G]['classification']==by_path[R]['classification']=='FULL_FILE_SELECTED'
     foundation_execution_once(by_path[G]['execution'],42)

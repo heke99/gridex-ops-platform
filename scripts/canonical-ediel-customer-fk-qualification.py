@@ -12,7 +12,8 @@ import sys
 
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[1]
-CANDIDATE = ROOT/'scripts/sql/forward-candidates/ediel-intent-customer-company-fk.sql'
+FORWARD_NAME = '20260913211625_ediel_intent_customer_company_integrity.sql'
+CANDIDATE = ROOT/'supabase/migrations'/FORWARD_NAME
 CANDIDATE_SHA = 'da2d3d288d69038b4c9767fe22b2a1ae4293d3196d88b5d129089337594392b9'
 CLASSIFICATION = '20260902094000_platform_table_classification_and_invariant_gate.sql'
 ORIGINAL = '20260902095000_lock_customer_chain_with_composite_keys.sql'

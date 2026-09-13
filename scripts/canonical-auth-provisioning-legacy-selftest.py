@@ -947,8 +947,8 @@ def replay_constructor_checks(b,replay):
     import tempfile,shutil,os,json,subprocess
     result=subprocess.run(['python3','scripts/gridex-replay-input-accounting.py','--require-full-effects'],cwd=ROOT,capture_output=True,text=True)
     accounting=json.loads(result.stdout)
-    assert result.returncode==1 and accounting['totalMigrations']==600 and not accounting['errors']
-    assert accounting['counts']=={'FULL_FILE_SELECTED':588,'SUBSTITUTED':2,'UNCLASSIFIED':5,'EXPLICITLY_EXCLUDED':5}
+    assert result.returncode==1 and accounting['totalMigrations']==601 and not accounting['errors']
+    assert accounting['counts']=={'FULL_FILE_SELECTED':589,'SUBSTITUTED':2,'UNCLASSIFIED':5,'EXPLICITLY_EXCLUDED':5}
     by_path={item['path']:item for item in accounting['migrations']}
     for ordinal,logical in enumerate(replay.selected_group(b),44):
         assert by_path[logical]['classification']=='FULL_FILE_SELECTED'

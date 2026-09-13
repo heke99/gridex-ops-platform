@@ -35,14 +35,16 @@ class TimestampTests(unittest.TestCase):
     def setUpClass(cls):
         cls.foundation, cls.report = frontier.verify_selection(frontier.load_controller())
 
-    def test_exact_source_selector_retains_all_513_tail_inputs(self):
+    def test_exact_source_selector_retains_513_historical_and_one_forward_input(self):
         selected, prerequisites = tail.load_inputs(ROOT, self.report, self.foundation)
-        self.assertEqual(len(selected), 513)
+        self.assertEqual(len(selected), 514)
+        self.assertEqual(selected[-1], ('migrations/20260913211625_ediel_intent_customer_company_integrity.sql',
+                                       'da2d3d288d69038b4c9767fe22b2a1ae4293d3196d88b5d129089337594392b9'))
         self.assertEqual(len(prerequisites), 5)
-        self.assertEqual(len(set(path for path, sha in selected)), 513)
+        self.assertEqual(len(set(path for path, sha in selected)), 514)
         self.assertEqual(self.report['counts']['UNCLASSIFIED'], 5)
         self.assertEqual(self.report['counts']['SUBSTITUTED'], 2)
-        self.assertEqual(selected[-1][0], 'migrations/20260908120000_preserve_gridex_user_has_role_key.sql')
+        self.assertEqual(selected[-2][0], 'migrations/20260908120000_preserve_gridex_user_has_role_key.sql')
         # Newer prerequisite/boundary migrations execute in the foundation,
         # not at the end of the chronological tail. Do not reorder them.
         self.assertEqual(self.foundation[67], 'migrations/20260911114443_canonical_user_rbac_customer_alignment_boundary.sql')

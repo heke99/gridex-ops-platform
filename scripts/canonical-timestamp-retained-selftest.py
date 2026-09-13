@@ -103,7 +103,7 @@ class RetainedTimestampTests(unittest.TestCase):
             residual.return_value.TIMESTAMP_SOURCES={}
             progress={}
             tail.execute_tail(ROOT,Target(),'owned_test',self.selected,self.prerequisites,progress,retained=retained)
-        self.assertEqual(progress['timestampApplied'],513)
+        self.assertEqual(progress['timestampApplied'],514)
         self.assertEqual(len([s for s,_,_ in calls if s=='session']),1)
         for ordinal,source in enumerate(self.selected,1):
             if source[0]!=fix.SOURCE:

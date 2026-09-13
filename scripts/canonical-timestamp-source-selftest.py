@@ -24,8 +24,8 @@ class SourceRestorationTests(unittest.TestCase):
 
     def test_four_sources_are_selected_whole_at_exact_original_positions(self):
         restored.validate_selection(ROOT,self.selected)
-        self.assertEqual(len(self.selected),513)
-        self.assertEqual(self.report['counts'],{'FULL_FILE_SELECTED':588,'SUBSTITUTED':2,'UNCLASSIFIED':5,'EXPLICITLY_EXCLUDED':5})
+        self.assertEqual(len(self.selected),514)
+        self.assertEqual(self.report['counts'],{'FULL_FILE_SELECTED':589,'SUBSTITUTED':2,'UNCLASSIFIED':5,'EXPLICITLY_EXCLUDED':5})
         for row in self.report['migrations']:
             if row['path'] in restored.SOURCES:
                 self.assertEqual(row['classification'],'FULL_FILE_SELECTED')

@@ -34,7 +34,7 @@ def load(name):
 
 
 def bound_sources(report):
-    if report['errors'] or report['totalMigrations'] != 600:
+    if report['errors'] or report['totalMigrations'] != 601:
         raise ValueError('RESIDUAL_INVENTORY_MISMATCH')
     sources = [(r['path'], r['sha256']) for r in report['migrations']
                if r['path'] in BASELINE_PATHS]

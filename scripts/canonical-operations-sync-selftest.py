@@ -86,8 +86,8 @@ def selection():
     account_run = subprocess.run(['python3', 'scripts/gridex-replay-input-accounting.py'], cwd=ROOT, text=True, capture_output=True)
     account = json.loads(account_run.stdout)
     assert account_run.returncode == 1 and not account['errors']
-    assert account['totalMigrations'] == 600
-    assert account['counts'] == {'FULL_FILE_SELECTED': 588, 'SUBSTITUTED': 2, 'UNCLASSIFIED': 5, 'EXPLICITLY_EXCLUDED': 5}
+    assert account['totalMigrations'] == 601
+    assert account['counts'] == {'FULL_FILE_SELECTED': 589, 'SUBSTITUTED': 2, 'UNCLASSIFIED': 5, 'EXPLICITLY_EXCLUDED': 5}
     by_path = {item['path']: item for item in account['migrations']}
     assert by_path[SOURCE]['classification'] == 'FULL_FILE_SELECTED'
     group_run = subprocess.run(['python3', 'scripts/gridex-replay-review-groups.py', '--group', 'auth_membership_tenant'], cwd=ROOT, text=True, capture_output=True)

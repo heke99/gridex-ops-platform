@@ -154,7 +154,7 @@ def load_inputs(root, report, foundation):
         last_paths = [Path(path).relative_to(supabase).as_posix() for path in last.read_text().splitlines()]
     if first_paths != foundation:
         raise ValueError('FOUNDATION_SELECTION_CHANGED')
-    if (len(last_paths) != 513 or report['selectedInputCounts']['timestamp'] != 513
+    if (len(last_paths) != 514 or report['selectedInputCounts']['timestamp'] != 514
             or len(set(first_paths + last_paths)) != len(first_paths) + len(last_paths)):
         raise ValueError('TIMESTAMP_SELECTION_CHANGED')
     # The actual selector verifies migration and derived-artifact manifest pins.
