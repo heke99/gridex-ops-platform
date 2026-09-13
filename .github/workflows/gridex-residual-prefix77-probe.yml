@@ -18,16 +18,18 @@ jobs:
         with:
           ref: b8ee0281149a695857126e88b0d4d2f182b89a21
           persist-credentials: false
-      - name: Probe only seven checksum-bound originals on owned early clones
+      - name: Probe seven originals with sanitized native SQL receipts
         shell: bash
         run: |
           python3 - <<'PY'
           import contextlib,hashlib,importlib.util,io,json,os,shutil,signal
           from pathlib import Path
           root=Path.cwd().resolve()
-          path=root/'scripts/canonical-foundation-frontier-diagnostic.py'
-          spec=importlib.util.spec_from_file_location('prefix77_frontier',path)
-          frontier=importlib.util.module_from_spec(spec);spec.loader.exec_module(frontier)
+          def load(name,file):
+              spec=importlib.util.spec_from_file_location(name,root/'scripts'/file)
+              module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);return module
+          frontier=load('prefix77_frontier','canonical-foundation-frontier-diagnostic.py')
+          probe=load('prefix77_receipts','canonical-residual-migration-probe.py')
           controller=frontier.load_controller();legacy=controller.load_batch()
           order,report=frontier.verify_selection(controller)
           wanted=('migrations/01_db2_full_view_preflight_schema_and_functions.sql','migrations/03_db2_validation_and_finish.sql','migrations/20260521_batch_1_2_live_readiness_and_automation_hardening.sql','migrations/20260521_batch_customer_intake_batch2_completion.sql','migrations/20260522_db1_schema_repair_backfill_foundation.sql','migrations/20260525_debug_fix_batch_1b_schema_code_alignment.sql','migrations/20260601070000_ediel_production_readiness_hardening.sql')
@@ -61,15 +63,15 @@ jobs:
                       clone='gridex_auth_legacy_atomic'
                       target.docker(['exec',target.name,'dropdb','-U','postgres','--if-exists','--force',clone])
                       target.docker(['exec',target.name,'createdb','-U','postgres','-T',controller.DATABASE,clone])
-                      capture=io.StringIO();success=True;error_metadata={}
+                      capture=io.StringIO();success=True;stage='early_residual_'+str(index)
                       try:
                           with contextlib.redirect_stdout(capture):
-                              try: target.sql(clone,raw.decode(),'early_residual_'+str(index),transaction=False)
+                              try: target.sql(clone,raw.decode(),stage,transaction=False)
                               except legacy.BoundaryError as error:
                                   if error.args!=('UNEXPECTED_SQL_RESULT',): raise
                                   success=False
-                                  error_metadata=frontier.safe_error_identifiers((Path(target.directory.name)/'client-last.out').read_bytes())
-                          rows.append({'path':source['path'],'sha256':source['sha256'],'checkpoint':'owned_actual77','sqlSucceeded':success,**error_metadata,'sourceEffectsAccepted':False})
+                          metadata=probe.native_result(capture.getvalue(),stage,success)
+                          rows.append({'path':source['path'],'sha256':source['sha256'],'checkpoint':'owned_actual77','sqlSucceeded':success,**metadata,'sourceEffectsAccepted':False})
                       finally:
                           capture.close();target.docker(['exec',target.name,'dropdb','-U','postgres','--if-exists','--force',clone])
                   if target.catalog(controller.DATABASE)!=parent or controller.originals_snapshot()!=before: raise RuntimeError('PARENT_OR_SOURCE_CHANGED')
