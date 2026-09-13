@@ -41,3 +41,25 @@ gates PASS103719840231 and permissions/Storage PASS103719840272. Full canonical
 clean replay/types FAIL103719840293; fullE2E FAIL34755799382; seven source
 dispositions OPEN. Retained-byte follow-up:19 residual unit tests and named-scope
 constructors PASS locally; native rerun REQUIRED. Security scan/review OPEN.
+
+
+## 2026-09-13 — local true-only gate candidate, base22c923bb
+
+| Scope | Result | Boundary |
+| --- | --- | --- |
+| New true-only gate | PASS | 12 local tests, including actual bash pipeline with transport double; not PostgreSQL |
+| Targeted source/cleanup/accounting suites | PASS | 156 enumerated tests in total plus full membership program |
+| Published residual native proof | PASS | Existing22c923bb run34762374742/job103737335752; predates local patch |
+| Ordinary replay | BLOCKED | exit1 unsupported mode |
+| Full effects | BLOCKED | exit1; 2 substituted and5 unclassified |
+| Generated types | BLOCKED | exit1 tail20260911114443 |
+| Push/merge/deploy/independent review | NOT PERFORMED | Local patch only; no remote write capability |
+
+Evidence:quality/audits/DB_REPLAY_TRUE_ONLY_GATE_CANDIDATE_2026-09-13.md.
+
+## 2026-09-13 — publication session
+
+The earlier access limitation is superseded. GitHub write actions are available.
+Eight focused suites rerun PASS(102 tests); long membership rerun timed out and
+is not a new pass. Full hosted verification of the publication remains pending.
+Historical SQL/type manifests remain unchanged. No production mutation or merge.

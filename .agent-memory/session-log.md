@@ -30,3 +30,26 @@ staging; implemented retained-byte/fixture follow-up with local regressions.
 Seven genuine source dispositions and ordinary canonical/types remain OPEN.
 No main merge, production mutation or generated-type replacement. Current-state
 and the residual audit are the active evidence; old progress archived.
+
+
+## 2026-09-13 — local true-only gate patch against published22c923bb
+
+Preserved the separately published shared residual integration on22c923bb; its
+native selected/staged job103737335752 passed. Discarded the overlapping local
+scheduler rather than overwrite that work. Added strict true-only validation for
+the 18 existing final replay predicates, its 12 regression tests and CI wiring.
+Restored accurate exact accounting summaries in current-state; the existing full
+membership selftest now passes unchanged. Total156 enumerated tests plus that
+full program pass locally. All three ordinary replay/full-effects/type gates still
+exit1. No push, main merge, accepted type regeneration or production mutation.
+See quality/audits/DB_REPLAY_TRUE_ONLY_GATE_CANDIDATE_2026-09-13.md.
+
+## 2026-09-13 — publication authorized
+
+User reconnected GitHub/Supabase and requested all delivered changes be published
+before continuing the remaining gates. Recovered checksum-verified22c923bb source;
+its branch head is unchanged. Reapplied delivered patch cleanly. Eight focused
+suites rerun successfully; longer local membership invocation exceeded tool limit.
+No new membership/native pass claimed. Published blobs are compared to local Git
+blob hashes before an atomic non-force branch update. Default Supabase branch
+has no separate test database; no destructive or production SQL is used.

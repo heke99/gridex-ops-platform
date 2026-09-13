@@ -16,7 +16,7 @@ import sys
 import tempfile
 
 sys.dont_write_bytecode = True
-SHELL_SHA256 = '37e3f54b3c9d8361d99719995bd6418b52a1b7b175f3e8b5d41ab90072384323'
+SHELL_SHA256 = 'ba9412f8b2f76604549ee8b49ce0ada6cfcf3ef4e856bad0f0e1a7a33292e513'
 BOUNDARIES = {
     '20260824140830': 'bootstrap/20260824_powers_of_attorney_legal_bundle_version_document_prerequisite.sql',
     '20260902093000': 'bootstrap/20260902_inbound_email_dedupe_replay_prerequisite.sql',

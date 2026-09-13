@@ -255,6 +255,7 @@ jobs:
         run: |
           node scripts/canonical-migration-inventory-selftest.cjs
           python3 scripts/gridex-aud-003-clean-replay-selftest.py
+          python3 scripts/gridex-replay-required-checks-selftest.py
           node scripts/gridex-schema-document-selftest.cjs
           python3 scripts/gridex-replay-input-accounting-selftest.py
           python3 scripts/gridex-replay-review-groups-selftest.py

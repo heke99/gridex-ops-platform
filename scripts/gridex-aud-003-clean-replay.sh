@@ -450,7 +450,8 @@ print(f'[GRIDEX-REM-002 replay] Supabase CLI ledger verified: {len(actual)} offi
 PY
 fi
 
-psql "$DB_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+psql "$DB_URL" -X -At -v ON_ERROR_STOP=1 <<'SQL' | python3 "$ROOT/scripts/gridex-replay-required-checks.py"
+SELECT row_to_json(required_checks) FROM (
 select
   to_regclass('public.companies') is not null as companies_ok,
   to_regclass('public.metering_permissions') is not null as metering_permissions_ok,
@@ -469,7 +470,8 @@ select
   to_regprocedure('public.gridex_contract_platform_readiness_internal_v1(uuid)') is not null as contract_platform_readiness_internal_ok,
   jsonb_typeof(public.gridex_contract_platform_readiness_internal_v1(gen_random_uuid())) = 'object' as contract_platform_readiness_internal_executes_ok,
   to_regclass('public.ediel_message_intents') is not null as ediel_message_intents_ok,
-  to_regclass('public.company_capabilities') is not null as company_capabilities_ok;
+  to_regclass('public.company_capabilities') is not null as company_capabilities_ok
+) AS required_checks;
 SQL
 ACTUAL_FINGERPRINT="$(psql "$DB_URL" -X -At -v ON_ERROR_STOP=1 -f "$FINGERPRINT_SQL" | tr -d '[:space:]')"
 if [[ "$ACTUAL_FINGERPRINT" != "$EXPECTED_FINGERPRINT" ]]; then

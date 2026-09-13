@@ -21,3 +21,16 @@ frontier34755799372/job103719840158:144+513 selected stages pass;150 constructor
 tests and four original-source/negative-control groups pass. Seven dispositions
 remain. No historic SQL, app/API or accepted type baseline changed. See
 quality/audits/DB_RESIDUAL_WHOLE_SOURCES_2026-09-13.md for exact hashes and limits.
+
+
+## 2026-09-13 — local true-only gate patch against published22c923bb
+
+Preserved the separately published shared residual integration on22c923bb; its
+native selected/staged job103737335752 passed. Discarded the overlapping local
+scheduler rather than overwrite that work. Added strict true-only validation for
+the 18 existing final replay predicates, its 12 regression tests and CI wiring.
+Restored accurate exact accounting summaries in current-state; the existing full
+membership selftest now passes unchanged. Total156 enumerated tests plus that
+full program pass locally. All three ordinary replay/full-effects/type gates still
+exit1. No push, main merge, accepted type regeneration or production mutation.
+See quality/audits/DB_REPLAY_TRUE_ONLY_GATE_CANDIDATE_2026-09-13.md.
