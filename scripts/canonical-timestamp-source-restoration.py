@@ -17,9 +17,9 @@ SOURCES = {
     'migrations/20260609162000_batch_7_website_integration_foundation.sql':
         ('1809f5c8926ec6bda991eb861cc3ba7a24738e8655b47e94f4ab086d5f2afb0b', 38),
     'migrations/20260801143000_canonical_multitenant_platform_hardening.sql':
-        ('4de56322077ea89f72596bd9cd2de9f2bdae67c2b74c4721779410553b3326b0', 242),
+        ('4de56322077ea89f72596bd9cd2de9f2bdae67c2b74c4721779410553b3326b0', 243),
     'migrations/20260802232000_migration_truth_readiness.sql':
-        ('dc977bb14a66bc4f12939437428198d3daf7bd174ada16ff42133b44405ef1e2', 256),
+        ('dc977bb14a66bc4f12939437428198d3daf7bd174ada16ff42133b44405ef1e2', 257),
 }
 INDEXES = (
     'integration_api_clients_scopes_idx',

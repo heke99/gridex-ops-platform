@@ -111,8 +111,8 @@ def load_dedupe():
     return trusted_module('user_rbac_dedupe_batch','canonical-user-rbac-dedupe-batch.py')
 
 
-SCOPES={'legacy52':52,'repair56':56,'dedupe57':57,'fixed-target':63,'alignment68':68,'operations71':71,'readiness74':74,'intake77':77,'full':140}
-FOUNDATION_SHA256='d0651aa367a9ec198ed2d7152f57f8d0d706bfbf251c2346caeef39c9f39dfa0'
+SCOPES={'legacy52':52,'repair56':56,'dedupe57':57,'fixed-target':63,'alignment68':68,'operations71':71,'readiness74':74,'intake77':77,'full':143}
+FOUNDATION_SHA256='609808ca358e541e6d16da30955c06d0e4a6b45ba35886f8e7c69c37233252a0'
 
 
 def require_scope(scope):
@@ -157,7 +157,7 @@ class FoundationLoop:
         self.repair_reference=self.repair.REFERENCES.get(target) if scope!='legacy52' else None
         self.order=json.loads((ROOT/'scripts/gridex-aud-003-foundation-order.json').read_text())['foundation']
         self.prefix=b.verified_prefix()
-        if (len(self.order)!=140 or self.order[43:52]!=selected_group(b) or
+        if (len(self.order)!=143 or self.order[43:52]!=selected_group(b) or
             self.order[52:56]!=selected_group(self.repair) or
             self.order[56:57]!=selected_group(self.dedupe) or
             self.order[57:63]!=selected_group(load_fixed()) or
@@ -257,8 +257,13 @@ class FoundationLoop:
             receipt=self.dedupe.continue_intake(h,DATABASE,load_intake().reviewed_paths(),stage)
             if receipt!={'sources':3}: raise b.BoundaryError('SOURCE_COMPLETION_MISMATCH')
         if self.scope=='full':
+            restored = trusted_module('canonical_residual_source_restoration', 'canonical-residual-source-restoration.py')
+            restored.validate_selection(self.order)
             for ordinal,raw in enumerate(data[77:],78):
                 h.run_files(DATABASE,[h.private('replay-source-'+str(ordinal)+'.sql',raw)],'replay_foundation_'+str(ordinal),transaction=False)
+                relative = self.order[ordinal-1]
+                if relative in restored.SOURCES:
+                    restored.verify(h,DATABASE,relative,ordinal)
         print(json.dumps({'stage':'actual_replay_foundation','first43':43,'legacy_sources':9,
                           'repair_sources':0 if self.scope=='legacy52' else 4,'dedupe_sources':int(self.terminal),'scope':self.scope,
                           'fixed_sources':6 if self.scope in ('fixed-target','alignment68','operations71','readiness74','intake77','full') else 0,

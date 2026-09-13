@@ -25,7 +25,7 @@ R = 'migrations/20260910121054_canonical_auth_provisioning_diagnostics_boundary.
 G_SHA = '0c2455cbc31553f4be1f1a3fa2800f516295c972bcead8fbbd77c448d3f98026'
 R_SHA = '018d81e763e6134ddb3d886ef7e219d6247584a9dad14b871e2ef98014db6333'
 BOOTSTRAP = 'scripts/sql/gridex-supabase-compatible-bootstrap.sql'
-BOOTSTRAP_SHA = '209b0c391bcfa957ec8b30cfc338622b4bda776e6976d3624fdd2d04779b8914'
+BOOTSTRAP_SHA = '41cc610b7cfa8a7c894c5433a5593607028ad85e885db64b1d094abb486dd391'
 PREFIX_SHA = '38fbbe9f2d21feab39285d249cad99f17d929687cee3fbfa0b56ebe0d91330dd'
 ALIGNMENT_PATH_SHA = '382f733ba3404ada48502ec49e62ad704d8eb27305f8483c55881e9e762436eb'
 OPERATIONS_PATH_SHA = '5f91d7cf84c6ea1d9b6a7592b02b7e09d580f8b132eb270c4daf7d6beba9f20b'
@@ -99,7 +99,7 @@ def transaction_body(sql):
 def prefix_paths(order=None):
     if order is None:
         order = json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation']
-    assert len(order) == 140, 'selected diagnostics stage requires foundation140'
+    assert len(order) == 143, 'selected diagnostics stage requires foundation143'
     assert path_digest(order[:41]) == PREFIX_SHA and path_digest(order[77:118]) == SUFFIX_SHA
     assert path_digest(order[63:68]) == ALIGNMENT_PATH_SHA
     assert path_digest(order[68:71]) == OPERATIONS_PATH_SHA
@@ -169,7 +169,7 @@ def constructor_checks():
         pass
     else:
         raise AssertionError('truncated actual prefix accepted')
-    assert len(order)==140 and order[41:43]==[G,R]
+    assert len(order)==143 and order[41:43]==[G,R]
     assert path_digest(order[:41])==PREFIX_SHA and path_digest(order[77:118])==SUFFIX_SHA
     # Every rejection uses the constructor that the executing fixture consumes.
     for change in ({G:source[G].encode()[:-1]},
@@ -238,9 +238,18 @@ def constructor_checks():
     intake_inserted={'migrations/'+p.name for p in intake.reviewed_paths()}
     assert json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation'][74:77] == ['migrations/'+p.name for p in intake.reviewed_paths()]
     old_additions = [path for path in additions['foundation'] if path not in {G,R,*inserted,*repair_inserted,*dedupe_inserted,*fixed_inserted,*alignment_inserted,*operations_inserted,*readiness_inserted,*intake_inserted}]
-    assert json_digest(old_additions) == OLD_ADDITIONS_FOUNDATION_SHA
+    residual_additions = ['migrations/20260528_batch_7a1_inbound_hardening.sql', 'bootstrap/20260529_ediel_ack_negative_aperak_prerequisite.sql', 'migrations/20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql']
+    assert old_additions[-3:] == residual_additions
+    assert json_digest(old_additions[:-3]) == OLD_ADDITIONS_FOUNDATION_SHA
     prior_derived = json.loads(json.dumps(additions['derivedBootstrap']))
     assert prior_derived['bootstrap/20260527_company_memberships_role_key_foundation.sql'].pop('preserveSourceReplay') is True
+    assert prior_derived.pop('bootstrap/20260529_ediel_ack_negative_aperak_prerequisite.sql') == {'source': 'migrations/20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql', 'artifactSha256': 'e52a699c911fc5ac9d00c53d7d06644a3acc453953d1dd97106c4d932f410e40', 'preserveSourceReplay': True, 'purpose': 'Restore only the source-defined negative_aperak_on_error boolean before the complete 20260529 original; fail closed on an incompatible existing column.'}
+    for key, old_meta in {'bootstrap/20260618_ediel_outbox_claim_lock_prerequisite.sql': {'source': 'migrations/20260615_multitenant_integrity_and_claim_locks.sql', 'artifactSha256': '278b30d6fd9a428f3d57d33bc4daadb39c5afb9fffb67080d2247bc94ce77192', 'purpose': 'Restore only the source-defined ediel_outbox claim-lock fields consumed by canonical 20260618200000 queue hardening (locked_at, locked_by, send_attempt_count, current_send_attempt_id); no outbox rows are seeded or modified.'}}.items():
+        current_meta = dict(prior_derived[key])
+        assert current_meta.pop('preserveSourceReplay') is True
+        assert current_meta == {k:v for k,v in old_meta.items() if k != 'preserveSourceReplay'}
+        prior_derived[key] = old_meta
+    assert prior_derived.pop('migrations/20260615_multitenant_integrity_and_claim_locks.sql') == {'source': 'migrations/20260615_multitenant_integrity_and_claim_locks.sql', 'artifactSha256': '046c7ec8c885eca46d8dde306bc1b289aa7bccea3f9d4ebdd5f8580c07ca9a37', 'preserveSourceReplay': True, 'purpose': 'Execute the whole immutable legacy source after the June 13 legal and June 8 pricing tables exist, before June 15 operations. All seven tenant-attribution triggers are required by native postconditions.'}
     assert json_digest(prior_derived) == ADDITIONS_DERIVED_SHA
     workflow = read('.github/workflows/ops-hardening.yml')
     assert 'Create diagnostics migration skeleton' not in workflow
@@ -250,7 +259,7 @@ def constructor_checks():
     assert account_run.returncode == 1, 'source completeness remains blocking'
     account = json.loads(account_run.stdout)
     assert not account['errors'] and account['totalMigrations']==600
-    assert account['counts']=={'FULL_FILE_SELECTED':584,'SUBSTITUTED':5,'UNCLASSIFIED':6,'EXPLICITLY_EXCLUDED':5}
+    assert account['counts']=={'FULL_FILE_SELECTED':587,'SUBSTITUTED':3,'UNCLASSIFIED':5,'EXPLICITLY_EXCLUDED':5}
     by_path = {item['path']:item for item in account['migrations']}
     assert by_path[G]['classification']==by_path[R]['classification']=='FULL_FILE_SELECTED'
     foundation_execution_once(by_path[G]['execution'],42)
@@ -264,7 +273,7 @@ def constructor_checks():
     grouped = subprocess.run(['python3','scripts/gridex-replay-review-groups.py','--group','auth_membership_tenant'],cwd=ROOT,text=True,capture_output=True)
     group = json.loads(grouped.stdout)
     assert grouped.returncode==1 and not group['errors'] and len(group['inputs'])==346
-    assert {key:sum(item['classification']==key for item in group['inputs']) for key in account['counts']} == {'FULL_FILE_SELECTED':331,'SUBSTITUTED':4,'UNCLASSIFIED':6,'EXPLICITLY_EXCLUDED':5}
+    assert {key:sum(item['classification']==key for item in group['inputs']) for key in account['counts']} == {'FULL_FILE_SELECTED': 334, 'SUBSTITUTED': 2, 'UNCLASSIFIED': 5, 'EXPLICITLY_EXCLUDED': 5}
     # Construct the actual SQL without emitting historical input or provider rows.
     sql = actual_prefix_sql(source)
     observed = re.findall(r'^-- DIAGNOSTICS_PREFIX_FILE (.+)$',sql,re.M)

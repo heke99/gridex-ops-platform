@@ -104,7 +104,10 @@
     "migrations/20260526_batch_3a_3b_customer_intake_blockers_documents.sql",
     "migrations/20260528_batch_1_customer_flow_masterdata_preflight.sql",
     "migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql",
-    "migrations/20260528_debug_post_repair_schema_guardrails.sql"
+    "migrations/20260528_debug_post_repair_schema_guardrails.sql",
+    "migrations/20260528_batch_7a1_inbound_hardening.sql",
+    "bootstrap/20260529_ediel_ack_negative_aperak_prerequisite.sql",
+    "migrations/20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql"
   ],
   "interleaved": [
     {
@@ -206,6 +209,11 @@
       "path": "bootstrap/20260815_ediel_test_runs_environment_type_prerequisite.sql",
       "afterLedgerVersion": "20260815093959",
       "beforeLedgerVersion": "20260815095427"
+    },
+    {
+      "path": "migrations/20260615_multitenant_integrity_and_claim_locks.sql",
+      "afterLedgerVersion": "20260614140000",
+      "beforeLedgerVersion": "20260615090000"
     }
   ],
   "derivedBootstrap": {
@@ -388,7 +396,8 @@
     "bootstrap/20260618_ediel_outbox_claim_lock_prerequisite.sql": {
       "source": "migrations/20260615_multitenant_integrity_and_claim_locks.sql",
       "artifactSha256": "278b30d6fd9a428f3d57d33bc4daadb39c5afb9fffb67080d2247bc94ce77192",
-      "purpose": "Restore only the source-defined ediel_outbox claim-lock fields consumed by canonical 20260618200000 queue hardening (locked_at, locked_by, send_attempt_count, current_send_attempt_id); no outbox rows are seeded or modified."
+      "purpose": "Restore only the source-defined ediel_outbox claim-lock fields consumed by canonical 20260618200000 queue hardening (locked_at, locked_by, send_attempt_count, current_send_attempt_id); no outbox rows are seeded or modified.",
+      "preserveSourceReplay": true
     },
     "bootstrap/20260618_customer_application_workflows_foundation.sql": {
       "source": "migrations/20260618213000_ops_completion_workflows_health.sql",
@@ -507,6 +516,18 @@
       "artifactSha256": "77f03f57cfb1122129e00d95535e6f30620b80af571ba124412ea1956f5d85df",
       "preserveSourceReplay": true,
       "purpose": "Retain the original source-defined prerequisite bootstrap. The complete immutable source also executes once at its original timestamp; this artifact is a prerequisite, not a replacement for source effects."
+    },
+    "bootstrap/20260529_ediel_ack_negative_aperak_prerequisite.sql": {
+      "source": "migrations/20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql",
+      "artifactSha256": "e52a699c911fc5ac9d00c53d7d06644a3acc453953d1dd97106c4d932f410e40",
+      "preserveSourceReplay": true,
+      "purpose": "Restore only the source-defined negative_aperak_on_error boolean before the complete 20260529 original; fail closed on an incompatible existing column."
+    },
+    "migrations/20260615_multitenant_integrity_and_claim_locks.sql": {
+      "source": "migrations/20260615_multitenant_integrity_and_claim_locks.sql",
+      "artifactSha256": "046c7ec8c885eca46d8dde306bc1b289aa7bccea3f9d4ebdd5f8580c07ca9a37",
+      "preserveSourceReplay": true,
+      "purpose": "Execute the whole immutable legacy source after the June 13 legal and June 8 pricing tables exist, before June 15 operations. All seven tenant-attribution triggers are required by native postconditions."
     }
   }
 }

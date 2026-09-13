@@ -21,7 +21,7 @@ sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[1]
 RESIDUAL_PIN = '964d512ddf8975fe96a004a1d82b93d7b33ebc77207c9e8d5c320135c81328e9'
 CLONE = 'gridex_auth_legacy_atomic'
-CHECKPOINTS = ('foundation140', 'selected_tail')
+CHECKPOINTS = ('foundation143', 'selected_tail')
 BASELINE_PATHS = ('migrations/01_db2_full_view_preflight_schema_and_functions.sql', 'migrations/03_db2_validation_and_finish.sql', 'migrations/20260521_batch_1_2_live_readiness_and_automation_hardening.sql', 'migrations/20260521_batch_customer_intake_batch2_completion.sql', 'migrations/20260522_db1_schema_repair_backfill_foundation.sql', 'migrations/20260525_debug_fix_batch_1b_schema_code_alignment.sql', 'migrations/20260528_batch_2_completion_rulebook_actions_regression.sql', 'migrations/20260528_batch_7a1_inbound_hardening.sql', 'migrations/20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql', 'migrations/20260601070000_ediel_production_readiness_hardening.sql', 'migrations/20260615_multitenant_integrity_and_claim_locks.sql')
 
 
@@ -150,7 +150,7 @@ def run():
             target.sql(controller.DATABASE, (ROOT / 'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_text(),
                        'residual_bootstrap', transaction=False)
             loop.run(str(hold), paths)
-            results += probe_sources(controller, timestamp, target, report, 'foundation140')
+            results += probe_sources(controller, timestamp, target, report, 'foundation143')
             timestamp.execute_tail(ROOT, target, controller.DATABASE, selected, prerequisites, progress)
             results += probe_sources(controller, timestamp, target, report, 'selected_tail')
         if controller.originals_snapshot() != before_sources:

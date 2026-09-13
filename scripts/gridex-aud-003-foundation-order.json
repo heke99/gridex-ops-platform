@@ -141,6 +141,9 @@
     "migrations/20260526_batch_3a_3b_customer_intake_blockers_documents.sql",
     "migrations/20260528_batch_1_customer_flow_masterdata_preflight.sql",
     "migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql",
-    "migrations/20260528_debug_post_repair_schema_guardrails.sql"
+    "migrations/20260528_debug_post_repair_schema_guardrails.sql",
+    "migrations/20260528_batch_7a1_inbound_hardening.sql",
+    "bootstrap/20260529_ediel_ack_negative_aperak_prerequisite.sql",
+    "migrations/20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql"
   ]
 }

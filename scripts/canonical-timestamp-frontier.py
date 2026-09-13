@@ -109,7 +109,7 @@ def load_inputs(root, report, foundation):
         last_paths = [Path(path).relative_to(supabase).as_posix() for path in last.read_text().splitlines()]
     if first_paths != foundation:
         raise ValueError('FOUNDATION_SELECTION_CHANGED')
-    if (len(last_paths) != 512 or report['selectedInputCounts']['timestamp'] != 512
+    if (len(last_paths) != 513 or report['selectedInputCounts']['timestamp'] != 513
             or len(set(first_paths + last_paths)) != len(first_paths) + len(last_paths)):
         raise ValueError('TIMESTAMP_SELECTION_CHANGED')
     # The actual selector verifies migration and derived-artifact manifest pins.
@@ -127,6 +127,7 @@ def load_inputs(root, report, foundation):
         read_source(root, source)
     validate_boundaries(selected, prerequisites)
     load_restoration().validate_selection(root, selected)
+    load_residual_restoration().validate_timestamp(selected)
     return selected, prerequisites
 
 
@@ -138,11 +139,20 @@ def load_restoration():
     return module
 
 
+def load_residual_restoration():
+    path = Path(__file__).with_name('canonical-residual-source-restoration.py')
+    spec = importlib.util.spec_from_file_location('residual_source_restoration', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def execute_tail(root, target, database, selected, prerequisites, progress):
     """Stop at the first failure; preserve whole-file transaction semantics."""
     validate_boundaries(selected, prerequisites)
     progress['timestampApplied'] = 0
     restoration = load_restoration()
+    residual = load_residual_restoration()
 
     def apply(source, stage):
         progress['source'] = source[0]
@@ -186,6 +196,8 @@ def execute_tail(root, target, database, selected, prerequisites, progress):
             target.sql(database, WHITE_LABEL_DROP, 'timestamp_white_label_cleanup', transaction=False)
         if source[0] in restoration.SOURCES:
             restoration.verify(target, database, source, ordinal, progress)
+        if source[0] in residual.TIMESTAMP_SOURCES:
+            residual.verify(target, database, source[0], ordinal)
         progress['timestampApplied'] = ordinal
     if reached != set(BOUNDARIES):
         raise ValueError('TIMESTAMP_BOUNDARY_CHANGED')

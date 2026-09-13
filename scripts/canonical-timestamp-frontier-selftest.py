@@ -35,13 +35,13 @@ class TimestampTests(unittest.TestCase):
     def setUpClass(cls):
         cls.foundation, cls.report = frontier.verify_selection(frontier.load_controller())
 
-    def test_exact_source_selector_retains_all_512_tail_inputs(self):
+    def test_exact_source_selector_retains_all_513_tail_inputs(self):
         selected, prerequisites = tail.load_inputs(ROOT, self.report, self.foundation)
-        self.assertEqual(len(selected), 512)
+        self.assertEqual(len(selected), 513)
         self.assertEqual(len(prerequisites), 5)
-        self.assertEqual(len(set(path for path, sha in selected)), 512)
-        self.assertEqual(self.report['counts']['UNCLASSIFIED'], 6)
-        self.assertEqual(self.report['counts']['SUBSTITUTED'], 5)
+        self.assertEqual(len(set(path for path, sha in selected)), 513)
+        self.assertEqual(self.report['counts']['UNCLASSIFIED'], 5)
+        self.assertEqual(self.report['counts']['SUBSTITUTED'], 3)
         self.assertEqual(selected[-1][0], 'migrations/20260908120000_preserve_gridex_user_has_role_key.sql')
         # Newer prerequisite/boundary migrations execute in the foundation,
         # not at the end of the chronological tail. Do not reorder them.

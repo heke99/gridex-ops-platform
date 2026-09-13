@@ -465,19 +465,24 @@ class DB2DispositionTest(unittest.TestCase):
                                 text=True, capture_output=True, timeout=60)
         report = json.loads(result.stdout)
         self.assertEqual(result.returncode, 1, report)
-        self.assertEqual(report['counts'], {'FULL_FILE_SELECTED': 562, 'SUBSTITUTED': 19,
-                                          'UNCLASSIFIED': 14, 'EXPLICITLY_EXCLUDED': 5})
-        self.assertEqual(report['selectedInputCounts'], {'foundation': 118, 'timestamp': 512})
+        self.assertEqual(report['counts'], {'FULL_FILE_SELECTED': 587, 'SUBSTITUTED': 3,
+                                          'UNCLASSIFIED': 5, 'EXPLICITLY_EXCLUDED': 5})
+        self.assertEqual(report['selectedInputCounts'], {'foundation': 143, 'timestamp': 513})
         rows = {row['path']: row for row in report['migrations']}
         self.assertEqual(rows[self.entry['path']]['classification'], 'EXPLICITLY_EXCLUDED')
         self.assertEqual(rows['migrations/02_db2b_apply_superadmin_and_membership.sql']['classification'], 'EXPLICITLY_EXCLUDED')
         for name in ('01_db2_full_view_preflight_schema_and_functions.sql',
-                     '01_db2b_preflight_views.sql', '03_db2_validation_and_finish.sql',
-                     '03_db2b_validation_views.sql', '20260522_db1_schema_repair_backfill_foundation.sql'):
+                     '03_db2_validation_and_finish.sql',
+                     '20260522_db1_schema_repair_backfill_foundation.sql'):
             row = rows['migrations/' + name]
             self.assertEqual(row['classification'], 'UNCLASSIFIED', name)
             self.assertEqual(row['execution'], [], name)
             self.assertEqual(row['derivedArtifacts'], [], name)
+        for name in ('01_db2b_preflight_views.sql', '03_db2b_validation_views.sql'):
+            row = rows['migrations/' + name]
+            self.assertEqual(row['classification'], 'FULL_FILE_SELECTED', name)
+            self.assertEqual(len(row['execution']), 1, name)
+            self.assertEqual(row['execution'][0]['stage'], 'foundation', name)
         self.assertFalse(report['sqlExecutionVerified'])
         self.assertFalse(report['ledgerProvenanceVerified'])
 
