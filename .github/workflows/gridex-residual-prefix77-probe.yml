@@ -3,7 +3,8 @@ on:
   pull_request:
     paths:
       - '.github/workflows/gridex-residual-prefix77-probe.yml'
-      - 'scripts/canonical-residual-transition*.py'
+      - 'scripts/canonical-residual-*.py'
+      - 'scripts/canonical-db2-*.py'
 permissions:
   contents: read
 jobs:
@@ -20,7 +21,9 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
       - name: Check exact source transformations and rejection controls
-        run: python3 scripts/canonical-residual-transition-selftest.py
+        run: |
+          python3 scripts/canonical-residual-transition-selftest.py
+          python3 scripts/canonical-db2-reconstruction-selftest.py
       - name: Verify residual migrations and complete selected continuation
         run: python3 scripts/canonical-residual-transition-native.py
       - name: Remove only this workflow's owned database

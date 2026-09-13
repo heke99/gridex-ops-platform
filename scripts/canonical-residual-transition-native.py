@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Three residual transitions plus actual continuation on an owned PG17 target.
+"""Seven residual source dispositions plus actual continuation on an owned PG17 target.
 
 This candidate lane cannot certify normal replay, source-effect accounting,
 ledger provenance or generated types. It uses the real first77 and the complete
@@ -45,6 +45,8 @@ def run():
     selected, prerequisites = timestamp.load_inputs(ROOT, report, order)
     extra = load('residual_readiness_native', 'canonical-residual-readiness-native.py')
     prepared = extra.prepare(ROOT)
+    db2 = load('db2_native', 'canonical-db2-reconstruction-native.py')
+    db2_prepared = db2.prepare(ROOT)
     legacy = controller.load_batch()
     source_before = controller.originals_snapshot()
     original_bytes = {p: transitions.read(ROOT, p) for p in transitions.ORDER}
@@ -165,9 +167,11 @@ def run():
                         restored.verify(target, controller.DATABASE, relative, ordinal, rulebook_bytes=rulebook)
                     if relative == 'migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql':
                         restored.verify_rulebook_conversion(target, controller.DATABASE, relative, ordinal, rulebook_bytes=rulebook)
+                phase = 'DB2_GENERIC_SCHEMA_SEPARATION'
+                db2.apply(target, controller.DATABASE, db2_prepared, progress)
                 phase = 'ACTUAL_TIMESTAMP_CONTINUATION'
                 timestamp.execute_tail(ROOT, target, controller.DATABASE, selected, prerequisites, progress)
-                if len(progress['residualApplied']) != 5:
+                if len(progress['residualApplied']) != 7:
                     raise ValueError('RESIDUAL_CANDIDATE_NOT_EXECUTED')
                 result = {'outcome': 'CANDIDATE_CONTINUATION_PASSED', **progress}
         except Exception as error:
