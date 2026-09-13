@@ -6,10 +6,10 @@ from pathlib import Path
 CLONE='gridex_auth_legacy_atomic'
 
 
-def prepare(root):
+def prepare(root, *, read_source=None):
     spec=importlib.util.spec_from_file_location('db2_reconstruction',Path(root)/'scripts/canonical-db2-reconstruction.py')
     m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
-    raw={p:m.read(root,p) for p in m.PINS}
+    raw={p:(m.read(root,p) if read_source is None else m.verified(p,read_source(p))) for p in m.PINS}
     return m,raw,{p:m.reconstruct(p,b) for p,b in raw.items()}
 
 

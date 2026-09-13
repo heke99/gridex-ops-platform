@@ -5,6 +5,7 @@ on:
       - '.github/workflows/gridex-residual-prefix77-probe.yml'
       - 'scripts/canonical-residual-*.py'
       - 'scripts/canonical-db2-*.py'
+      - 'scripts/canonical-auth-provisioning-replay.py'
 permissions:
   contents: read
 jobs:
@@ -24,8 +25,11 @@ jobs:
         run: |
           python3 scripts/canonical-residual-transition-selftest.py
           python3 scripts/canonical-db2-reconstruction-selftest.py
+          python3 scripts/canonical-residual-integration-selftest.py
       - name: Verify residual migrations and complete selected continuation
         run: python3 scripts/canonical-residual-transition-native.py
+      - name: Verify shared full foundation with originals absent from the repository
+        run: python3 scripts/canonical-residual-staging-native.py
       - name: Remove only this workflow's owned database
         if: always()
         run: |

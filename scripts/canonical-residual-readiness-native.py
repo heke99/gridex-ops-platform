@@ -9,15 +9,18 @@ OPS = 'migrations/20260602090000_ediel_operations_platform_core.sql'
 OPS_SHA = '949bad4ed31e526954e59676c308b5953f128363b21d94821725c0dc3f4681b3'
 
 
-def prepare(root):
+def prepare(root, *, read_source=None):
     path = Path(root)/'scripts/canonical-residual-readiness-transitions.py'
     spec = importlib.util.spec_from_file_location('readiness_transitions', path)
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
-    raw = {p:m.read(root,p) for p in m.PINS}
-    db1 = (Path(root)/'supabase/migrations/20260522_db1_schema_repair_backfill_foundation.sql').read_bytes()
+    read = read_source if read_source is not None else lambda p: (Path(root)/'supabase'/p).read_bytes()
+    raw = {p:(read(p) if read_source is not None else m.read(root,p)) for p in m.PINS}
+    for p,value in raw.items():
+        m.verified(p,value)
+    db1 = read('migrations/20260522_db1_schema_repair_backfill_foundation.sql')
     candidate = m.reconstruct(raw[m.READINESS], db1)
-    ops = (Path(root)/'supabase'/OPS).read_bytes()
+    ops = read(OPS)
     if hashlib.sha256(ops).hexdigest() != OPS_SHA:
         raise ValueError('READINESS_LOCK_SUCCESSOR_MISMATCH')
     return m, raw, candidate, ops
