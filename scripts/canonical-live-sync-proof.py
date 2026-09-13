@@ -111,10 +111,10 @@ def behavior(target, accepted):
     checkpoint('bounded_session_and_caller_matrix')
 
 
-def execute_boundary(root,target,database,source_sql,progress):
+def execute_boundary(root,target,database,source_sql,progress,*,retained=None):
     """Prove on owned clones before applying the reconstruction to the replay."""
     check(Path(root).resolve()==ROOT and database=='gridex_auth_legacy_replay','LIVE_SYNC_OWNED_TARGET_REQUIRED')
-    rendered,evidence=fix.reconstruct(ROOT,source_sql)
+    rendered,evidence=fix.reconstruct(ROOT,source_sql,retained=retained)
     progress['sessionReconstruction']=dict(evidence,nativeBoundaryVerified=False)
     current_phase='original_failure'
     try:
@@ -137,7 +137,7 @@ def execute_boundary(root,target,database,source_sql,progress):
         clone(target,database,CLONES[2]); before_meta=metadata(target,CLONES[2])
         target.sql(CLONES[2],rendered,'live_sync_candidate_green',transaction=False)
         accepted=metadata(target,CLONES[2])
-        _,expected=fix.function_parts(fix.read_pinned(ROOT,fix.FORWARD,fix.FORWARD_SHA256))
+        _,expected=fix.function_parts(fix.read_pinned(ROOT,fix.FORWARD,fix.FORWARD_SHA256,retained=retained))
         check(before_meta['definer'] is False and accepted['definer'] is True,'LIVE_SYNC_SECURITY_MODE_AUTHORITY_MISMATCH')
         check(accepted['body']==expected and all(accepted[k]==before_meta[k] for k in ('oid','owner','acl','execute','volatility')),'LIVE_SYNC_FUNCTION_OR_ACL_CHANGED')
         target.sql(CLONES[2],assert_sql("to_regprocedure('public.gridex__repair_replace_function_text(text,text,text)') IS NULL"),'live_sync_no_repair_helper')

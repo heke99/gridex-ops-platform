@@ -14,6 +14,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from types import MappingProxyType
 
 sys.dont_write_bytecode = True
 SHELL_SHA256 = 'ba9412f8b2f76604549ee8b49ce0ada6cfcf3ef4e856bad0f0e1a7a33292e513'
@@ -53,11 +54,18 @@ def verify_spatial_runtime(target):
             'serverVersionNum': int(version), 'postgisVersion': postgis}
 
 
-def read_source(root, source):
+def read_source(root, source, *, retained=None):
     """Require canonical non-symlink source paths and exact admitted bytes."""
     relative, expected = source
     if not re.fullmatch(r'(migrations|bootstrap)/[A-Za-z0-9_.-]+\.sql', relative):
         raise ValueError('UNSAFE_SOURCE_PATH')
+    if retained is not None:
+        if not isinstance(retained, MappingProxyType) or relative not in retained:
+            raise ValueError('RETAINED_TIMESTAMP_SOURCE_REQUIRED')
+        data = retained[relative]
+        if type(data) is not bytes or sha256(data) != expected:
+            raise ValueError('SOURCE_HASH_MISMATCH')
+        return data.decode('utf-8')
     base = root / 'supabase'
     path = base / relative
     if (base.is_symlink() or path.parent.is_symlink() or path.is_symlink()
@@ -67,6 +75,43 @@ def read_source(root, source):
     if sha256(data) != expected:
         raise ValueError('SOURCE_HASH_MISMATCH')
     return data.decode('utf-8')
+
+
+def load_live_sync_proof():
+    path = Path(__file__).with_name('canonical-live-sync-proof.py')
+    spec = importlib.util.spec_from_file_location('live_sync_boundary', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def retain_sources(root, selected, prerequisites):
+    """Freeze exact selected SQL and session authorities before HOLD staging.
+
+    The map is private/immutable; there is no reader callback or later filesystem
+    fallback. Every use still verifies its expected digest. Duplicate references
+    to an authority read the identical byte stream once, not once per purpose.
+    """
+    validate_boundaries(selected, prerequisites)
+    sources = dict(selected)
+    if len(sources) != len(selected):
+        raise ValueError('TIMESTAMP_DUPLICATE_SOURCE')
+    for relative, digest in prerequisites.values():
+        if relative in sources and sources[relative] != digest:
+            raise ValueError('TIMESTAMP_AUTHORITY_PIN_CONFLICT')
+        sources[relative] = digest
+    fix = load_live_sync_proof().fix
+    if fix.SOURCE in sources:
+        if sources[fix.SOURCE] != fix.SOURCE_SHA256:
+            raise ValueError('SOURCE_HASH_MISMATCH')
+        for relative, digest in ((fix.ORIGINAL, fix.ORIGINAL_SHA256),
+                                 (fix.FORWARD, fix.FORWARD_SHA256),
+                                 (fix.HARDENING, fix.HARDENING_SHA256)):
+            if relative in sources and sources[relative] != digest:
+                raise ValueError('TIMESTAMP_AUTHORITY_PIN_CONFLICT')
+            sources[relative] = digest
+    return MappingProxyType({relative: read_source(root, (relative, digest)).encode('utf-8')
+                             for relative, digest in sources.items()})
 
 
 def validate_boundaries(selected, prerequisites):
@@ -147,9 +192,20 @@ def load_residual_restoration():
     return module
 
 
-def execute_tail(root, target, database, selected, prerequisites, progress):
+def execute_tail(root, target, database, selected, prerequisites, progress, *, retained=None):
     """Stop at the first failure; preserve whole-file transaction semantics."""
     validate_boundaries(selected, prerequisites)
+    # Reject an incomplete retained bundle before the first database effect,
+    # not only when the missing source is eventually reached.
+    if retained is not None:
+        for source in selected + list(prerequisites.values()):
+            read_source(root, source, retained=retained)
+        fix = load_live_sync_proof().fix
+        if any(source[0] == fix.SOURCE for source in selected):
+            for relative, digest in ((fix.ORIGINAL, fix.ORIGINAL_SHA256),
+                                     (fix.FORWARD, fix.FORWARD_SHA256),
+                                     (fix.HARDENING, fix.HARDENING_SHA256)):
+                fix.read_pinned(root, relative, digest, retained=retained)
     progress['timestampApplied'] = 0
     restoration = load_restoration()
     residual = load_residual_restoration()
@@ -159,14 +215,12 @@ def execute_tail(root, target, database, selected, prerequisites, progress):
         progress['sourceSha256'] = source[1]
         # Only safe stage labels go to the existing private SQL runner. No SQL
         # output, exception text, rows or credentials are copied into progress.
-        sql = read_source(root, source)
+        sql = read_source(root, source, retained=retained)
         if source[0] == 'migrations/20260728170000_live_schema_code_canonical_sync.sql':
             # A source-bound reconstruction with its native RED/GREEN/rollback
             # proof. This never changes the selected file or acceptance ledger.
-            spec = importlib.util.spec_from_file_location('live_sync_boundary', root / 'scripts/canonical-live-sync-proof.py')
-            proof = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(proof)
-            proof.execute_boundary(root, target, database, sql, progress)
+            proof = load_live_sync_proof()
+            proof.execute_boundary(root, target, database, sql, progress, retained=retained)
         else:
             target.sql(database, sql, stage, transaction=False)
 

@@ -2,8 +2,8 @@
 """Verify the shared full FoundationLoop with actual originals absent during HOLD.
 
 This owned integration test does not waive source-effect acceptance, create a
-ledger, capture an accepted schema, or generate application types. Sources are
-restored before the separately labelled selected timestamp diagnostic resumes.
+ledger, capture an accepted schema, or generate application types. Sources remain
+absent through all timestamp stages and session authorities; restoration is last.
 """
 from contextlib import contextmanager
 import importlib.util
@@ -54,6 +54,7 @@ def run():
     order,report=frontier.verify_selection(controller)
     timestamp=frontier.load_timestamp()
     selected,prerequisites=timestamp.load_inputs(ROOT,report,order)
+    retained=timestamp.retain_sources(ROOT,selected,prerequisites)
     legacy=controller.load_batch()
     def interrupted(*_):
         raise RuntimeError('STAGED_REPLAY_INTERRUPTED')
@@ -81,9 +82,13 @@ def run():
                     loop.run(str(hold),paths)
                     progress.update(loop.residual_receipt)
                     progress.update(foundationApplied=144,originalsAbsentDuringFoundation=True)
+                    timestamp.execute_tail(ROOT,target,controller.DATABASE,selected,prerequisites,progress,
+                                           retained=retained)
+                    if list((ROOT/'supabase/migrations').glob('*.sql')):
+                        raise ValueError('TIMESTAMP_ORIGINALS_RECREATED')
+                    progress['originalsAbsentDuringTimestamp']=True
                 if controller.originals_snapshot()!=before:
                     raise ValueError('STAGED_SOURCE_RESTORATION_FAILED')
-                timestamp.execute_tail(ROOT,target,controller.DATABASE,selected,prerequisites,progress)
                 result={'outcome':'STAGED_SHARED_FOUNDATION_AND_CONTINUATION_PASSED',**progress}
         except Exception as error:
             last=Path(target.directory.name)/'client-last.out'

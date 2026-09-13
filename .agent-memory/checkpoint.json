@@ -4,9 +4,7 @@
   "status": "PARTIAL",
   "current_state": ".agent-memory/current-state.md",
   "active_group": "database_reconstruction",
-  "verified_code": "22c923bb59cda3dbf933002b0f05c2b136c99a2f",
-  "evidence": "quality/audits/DB_REPLAY_TRUE_ONLY_GATE_CANDIDATE_2026-09-13.md",
-  "native_run": 34762374742,
-  "native_job": 103737335752,
-  "next_action": "Publish and read back the true-only gate patch, then complete source-effects accounting and supported normal replay/ledger. Regenerate accepted schema/types only afterward. Preserve22c923bb shared residual integration."
+  "verified_code": "d47bfb0fb482d3e986de3abae98a8a0c7bafac56",
+  "evidence": "quality/audits/DB_RETAINED_TIMESTAMP_INTEGRATION_2026-09-13.md",
+  "next_action": "Verify the retained full timestamp tail natively, then complete source-effects admission and supported ordinary replay/ledger before generating accepted schema/types."
 }

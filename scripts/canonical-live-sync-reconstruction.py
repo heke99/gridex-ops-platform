@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import re
 from pathlib import Path
+from types import MappingProxyType
 
 SOURCE = 'migrations/20260728170000_live_schema_code_canonical_sync.sql'
 SOURCE_SHA256 = '4b1af824f75423faa393d60b845d3b39a3998bcfc7d7ea1cec2a54aa8d3bd400'
@@ -33,7 +34,17 @@ def quoted(value):
     return "'" + value.replace("'", "''") + "'"
 
 
-def read_pinned(root, relative, expected):
+def read_pinned(root, relative, expected, *, retained=None):
+    if retained is not None:
+        pins = {SOURCE: SOURCE_SHA256, ORIGINAL: ORIGINAL_SHA256,
+                FORWARD: FORWARD_SHA256, HARDENING: HARDENING_SHA256}
+        if (not isinstance(retained, MappingProxyType) or relative not in retained
+                or pins.get(relative) != expected):
+            raise ValueError('LIVE_SYNC_RETAINED_SOURCE_REQUIRED')
+        data = retained[relative]
+        if type(data) is not bytes or digest(data) != expected:
+            raise ValueError('LIVE_SYNC_SOURCE_HASH_MISMATCH')
+        return data.decode('utf-8')
     base = Path(root) / 'supabase'
     path = base / relative
     if (base.is_symlink() or path.parent.is_symlink() or path.is_symlink()
@@ -63,14 +74,14 @@ def split_source(sql):
     return prefix, block, suffix
 
 
-def reconstruct(root, source):
+def reconstruct(root, source, *, retained=None):
     """Retain every byte outside the defective block and original BEGIN/COMMIT."""
-    hardening_sql = read_pinned(root, HARDENING, HARDENING_SHA256)
+    hardening_sql = read_pinned(root, HARDENING, HARDENING_SHA256, retained=retained)
     if ("'gridex_is_current_session_allowed'" not in hardening_sql
             or 'alter function %I.%I(%s) security invoker' not in hardening_sql):
         raise ValueError('LIVE_SYNC_HARDENING_AUTHORITY_MISMATCH')
-    original_sql = read_pinned(root, ORIGINAL, ORIGINAL_SHA256)
-    forward_sql = read_pinned(root, FORWARD, FORWARD_SHA256)
+    original_sql = read_pinned(root, ORIGINAL, ORIGINAL_SHA256, retained=retained)
+    forward_sql = read_pinned(root, FORWARD, FORWARD_SHA256, retained=retained)
     _, original_body = function_parts(original_sql)
     forward_definition, forward_body = function_parts(forward_sql)
     prefix, block, suffix = split_source(source)
