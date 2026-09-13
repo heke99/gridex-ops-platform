@@ -1,81 +1,53 @@
-name: Gridex diagnose final 11 after oracle repair
+name: Gridex persist Supabase privileged replay role
 on:
   pull_request:
     paths:
       - '.github/workflows/gridex-db-native-runtime-once.yml'
 permissions:
-  contents: read
+  contents: write
 jobs:
-  final11-diagnostic:
+  persist-bootstrap-role:
     if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 40
-    env:
-      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          persist-credentials: false
-      - name: Verify current selection and repaired reference oracle
+          persist-credentials: true
+      - name: Add managed Supabase privileged role to clean-replay bootstrap
         shell: bash
         run: |
           set -euo pipefail
-          python3 scripts/canonical-foundation-frontier-selftest.py
-          python3 scripts/canonical-timestamp-frontier-selftest.py
-          python3 scripts/canonical-timestamp-source-selftest.py
-          python3 scripts/canonical-residual-migration-selftest.py
           python3 - <<'PY'
-          import importlib.util
           from pathlib import Path
-          p=Path('scripts/canonical-auth-provisioning-diagnostics-selftest.py').resolve()
-          s=importlib.util.spec_from_file_location('diagnostics_constructor',p)
-          m=importlib.util.module_from_spec(s); s.loader.exec_module(m)
-          m.constructor_checks()
-          print('PASS diagnostics constructor checks')
+          p=Path('scripts/sql/gridex-supabase-compatible-bootstrap.sql')
+          s=p.read_text()
+          old="""  if not exists (select 1 from pg_roles where rolname = 'supabase_storage_admin') then
+    create role supabase_storage_admin nologin noinherit createrole;
+  end if;
+  if not exists (select 1 from pg_roles where rolname = 'dashboard_user') then
+"""
+          new="""  if not exists (select 1 from pg_roles where rolname = 'supabase_storage_admin') then
+    create role supabase_storage_admin nologin noinherit createrole;
+  end if;
+  if not exists (select 1 from pg_roles where rolname = 'supabase_privileged_role') then
+    create role supabase_privileged_role nologin inherit nocreaterole nocreatedb noreplication nobypassrls;
+  end if;
+  if not exists (select 1 from pg_roles where rolname = 'dashboard_user') then
+"""
+          if s.count(old)!=1:
+            raise SystemExit('BOOTSTRAP_ROLE_INSERTION_PREIMAGE_MISMATCH')
+          p.write_text(s.replace(old,new))
           PY
-          python3 scripts/gridex-replay-input-accounting.py --require-full-effects > "$RUNNER_TEMP/accounting.json" || test "$?" -eq 1
-      - name: Execute current selected chain with safe phase receipt
-        continue-on-error: true
-        shell: bash
-        run: |
-          set -o pipefail
-          python3 scripts/canonical-foundation-frontier-diagnostic.py 2>&1 | tee "$RUNNER_TEMP/frontier.log"
-          printf '%s\n' "${PIPESTATUS[0]}" > "$RUNNER_TEMP/frontier-exit.txt"
-      - name: Probe exact final 11 originals on both owned checkpoints
-        continue-on-error: true
-        shell: bash
-        run: |
-          set -o pipefail
-          python3 scripts/canonical-residual-migration-probe.py 2>&1 | tee "$RUNNER_TEMP/final11.log"
-          printf '%s\n' "${PIPESTATUS[0]}" > "$RUNNER_TEMP/final11-exit.txt"
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: gridex-final11-after-oracle-repair
-          path: |
-            ${{ runner.temp }}/accounting.json
-            ${{ runner.temp }}/frontier.log
-            ${{ runner.temp }}/frontier-exit.txt
-            ${{ runner.temp }}/final11.log
-            ${{ runner.temp }}/final11-exit.txt
-          retention-days: 2
-          if-no-files-found: warn
-      - name: Require bounded diagnostic output
+          git diff --check
+      - name: Commit exact bootstrap compatibility fix
         shell: bash
         run: |
           set -euo pipefail
-          test -s "$RUNNER_TEMP/frontier.log"
-          test -s "$RUNNER_TEMP/final11.log"
-      - name: Cleanup owned database
-        if: always()
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          import importlib.util
-          from pathlib import Path
-          p=Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve()
-          s=importlib.util.spec_from_file_location('cleanup',p)
-          m=importlib.util.module_from_spec(s); s.loader.exec_module(m)
-          m.load_controller().load_batch().cleanup_workflow_owned()
-          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/sql/gridex-supabase-compatible-bootstrap.sql
+          git diff --cached --check
+          git commit -m 'fix(db): mirror Supabase privileged role in clean replay bootstrap'
+          git push origin HEAD:codex/gridex-parity-remediation-20260905
