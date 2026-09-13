@@ -92,9 +92,15 @@ def selection():
     assert by_path[SOURCE]['classification'] == 'FULL_FILE_SELECTED'
     group_run = subprocess.run(['python3', 'scripts/gridex-replay-review-groups.py', '--group', 'auth_membership_tenant'], cwd=ROOT, text=True, capture_output=True)
     group = json.loads(group_run.stdout)
-    assert group_run.returncode == 1 and not group['errors'] and len(group['inputs']) == 346
+    # Admit exactly the new timestamp input, without changing this historical prefix.
+    forward = [item for item in group['inputs'] if item['path'] ==
+               'migrations/20260913211625_ediel_intent_customer_company_integrity.sql']
+    assert len(forward) == 1 and forward[0]['sha256'] == '2b9cc5e9cb7fad14aa4b30e0bc98274a4a957f47379f456ed0d3c9663ef5f39b'
+    assert forward[0]['classification'] == 'FULL_FILE_SELECTED'
+    assert forward[0]['execution'] == [{'ordinal': 514, 'stage': 'timestamp'}]
+    assert group_run.returncode == 1 and not group['errors'] and len(group['inputs']) == 347
     counts = {key: sum(item['classification'] == key for item in group['inputs']) for key in account['counts']}
-    assert counts == {'FULL_FILE_SELECTED': 334, 'SUBSTITUTED': 2, 'UNCLASSIFIED': 5, 'EXPLICITLY_EXCLUDED': 5}
+    assert counts == {'FULL_FILE_SELECTED': 335, 'SUBSTITUTED': 2, 'UNCLASSIFIED': 5, 'EXPLICITLY_EXCLUDED': 5}
     assert SOURCE not in {item['path'] for item in group['inputs']}
     return order[:31]
 
