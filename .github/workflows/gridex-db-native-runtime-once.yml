@@ -1,0 +1,51 @@
+name: Gridex isolated native SQL tooling export
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-db-native-runtime-once.yml'
+permissions:
+  contents: read
+jobs:
+  public-runtime-only:
+    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      OWNED_NAME: gridex-public-runtime-${{ github.run_id }}-${{ github.run_attempt }}
+      EXPECTED_IMAGE: sha256:2ed748fc602dd3031c6724db8cb289e1578c2deb552a4f6e291f6f7e5e6e4f69
+    steps:
+      - name: Export only pinned public PostgreSQL tools and dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/gridex-native-tools"
+          mkdir -p "$out"
+          docker pull postgis/postgis:17-3.5
+          test "$(docker image inspect --format '{{.Id}}' postgis/postgis:17-3.5)" = "$EXPECTED_IMAGE"
+          docker run -d --name "$OWNED_NAME" --label "gridex.public-runtime.owner=$OWNED_NAME" --network none --entrypoint sleep "$EXPECTED_IMAGE" 600
+          docker exec "$OWNED_NAME" bash -euo pipefail -c '
+            { find /usr/lib/postgresql/17/bin -type f; find /usr/lib/postgresql/17/lib -type f -name "*.so"; } > /tmp/tool-inputs
+            while IFS= read -r f; do ldd "$f" 2>/dev/null || true; done < /tmp/tool-inputs > /tmp/dependencies
+            awk '\''$3 ~ /^\// {print $3} $1 ~ /^\// {print $1}'\'' /tmp/dependencies | sort -u > /tmp/libs
+            { printf "%s\n" /usr/lib/postgresql/17 /usr/share/postgresql/17 /usr/share/proj /usr/share/gdal; cat /tmp/libs; } > /tmp/paths
+            tar --dereference -czf /tmp/gridex-native-tools.tar.gz -T /tmp/paths
+          '
+          docker cp "$OWNED_NAME:/tmp/gridex-native-tools.tar.gz" "$out/runtime.tar.gz"
+          printf 'public_image_id=%s\nsource_commit=%s\nscope=SQL_TOOLING_ONLY_NOT_REPLAY_ACCEPTANCE\n' "$EXPECTED_IMAGE" '${{ github.event.pull_request.head.sha }}' > "$out/receipt.txt"
+          docker image inspect --format '{{json .RepoDigests}}' "$EXPECTED_IMAGE" >> "$out/receipt.txt"
+          sha256sum "$out/runtime.tar.gz" >> "$out/receipt.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gridex-native-tools
+          path: ${{ runner.temp }}/gridex-native-tools/
+          retention-days: 1
+          if-no-files-found: error
+      - name: Remove only this job's owned public runtime
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if docker container inspect "$OWNED_NAME" >/dev/null 2>&1; then
+            test "$(docker inspect --format '{{index .Config.Labels "gridex.public-runtime.owner"}}' "$OWNED_NAME")" = "$OWNED_NAME"
+            docker rm -f "$OWNED_NAME"
+          fi
