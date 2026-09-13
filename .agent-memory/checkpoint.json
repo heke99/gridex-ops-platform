@@ -4,8 +4,12 @@
   "status": "PARTIAL",
   "current_state": ".agent-memory/current-state.md",
   "active_group": "database_reconstruction",
-  "verified_code": "4f45b185579dddadb702189cc4d0454eb17b58fd",
+  "verified_native_sql_code": "76dd87ef62a471a49e8f7fbcbadec25425219cc9",
+  "latest_test_correction_code": "581ed7c09061ce20fce12d820605064d7f19c540",
   "evidence": "quality/audits/DB_EDIEL_FORWARD_2026-09-14.md",
-  "next_action": "Native full-chain verification of the exact integrated Ediel forward migration; full schema semantics and managed Supabase ledger before type regeneration and merge.",
-  "verification_scope": "Exact registered FK native qualification and nine self-test scripts; full replay NOT accepted"
+  "next_action": "Reconcile the full schema reference while preserving real company fields; implement reviewed native Supabase lifecycle and truthful migration ledger; regenerate types and pass mandatory checks before main merge.",
+  "verification_scope": "Registered FK native qualification; selected foundation144/timestamp514 including original-SQL-absent staging; privacy/disposal; exact three group inventory deltas. Full schema/native Supabase ledger/types and overall CI NOT accepted.",
+  "main_merged": false,
+  "connected_database_modified": false,
+  "plan_points_85_86_accepted": false
 }
