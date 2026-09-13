@@ -1,4 +1,4 @@
-name: Gridex diagnose final 11 residual sources
+name: Gridex isolate final 11 reference blocker
 on:
   pull_request:
     paths:
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: read
 jobs:
-  final11-diagnostic:
+  reference-diagnostic:
     if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -17,49 +17,49 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
-      - name: Verify current selection harness
-        shell: bash
+      - name: Verify pinned current selection
         run: |
           set -euo pipefail
           python3 scripts/canonical-foundation-frontier-selftest.py
           python3 scripts/canonical-timestamp-frontier-selftest.py
           python3 scripts/canonical-timestamp-source-selftest.py
           python3 scripts/canonical-residual-migration-selftest.py
-          python3 scripts/gridex-replay-input-accounting.py --require-full-effects > "$RUNNER_TEMP/accounting.json" || test "$?" -eq 1
-      - name: Execute current selected chain with safe phase receipt
-        id: frontier
-        continue-on-error: true
-        shell: bash
-        run: |
-          set -o pipefail
-          python3 scripts/canonical-foundation-frontier-diagnostic.py 2>&1 | tee "$RUNNER_TEMP/frontier.log"
-          printf '%s\n' "${PIPESTATUS[0]}" > "$RUNNER_TEMP/frontier-exit.txt"
-      - name: Probe exact final 11 originals on both owned checkpoints
-        id: residual
-        continue-on-error: true
-        shell: bash
-        run: |
-          set -o pipefail
-          python3 scripts/canonical-residual-migration-probe.py 2>&1 | tee "$RUNNER_TEMP/final11.log"
-          printf '%s\n' "${PIPESTATUS[0]}" > "$RUNNER_TEMP/final11-exit.txt"
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: gridex-final11-diagnostic
-          path: |
-            ${{ runner.temp }}/accounting.json
-            ${{ runner.temp }}/frontier.log
-            ${{ runner.temp }}/frontier-exit.txt
-            ${{ runner.temp }}/final11.log
-            ${{ runner.temp }}/final11-exit.txt
-          retention-days: 2
-          if-no-files-found: warn
-      - name: Assert diagnostics produced bounded outcomes
+      - name: Isolate independent reference scope with metadata-only traceback
         shell: bash
         run: |
           set -euo pipefail
-          test -s "$RUNNER_TEMP/frontier.log"
-          test -s "$RUNNER_TEMP/final11.log"
+          python3 - <<'PY' | tee "$RUNNER_TEMP/reference-scopes.log"
+          import importlib.util, json, traceback
+          from pathlib import Path
+          p=Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve()
+          s=importlib.util.spec_from_file_location('frontier_scope_diag',p)
+          f=importlib.util.module_from_spec(s); s.loader.exec_module(f)
+          c=f.load_controller(); legacy=c.load_batch(); timestamp=f.load_timestamp()
+          scopes=('dedupe57','fixed-target','alignment68','operations71','readiness74','intake77','full')
+          for scope in scopes:
+            outcome={'scope':scope,'outcome':'UNKNOWN'}
+            try:
+              with legacy.OwnedPostgres(postgis=True) as target:
+                timestamp.verify_spatial_runtime(target)
+                with c.load_private().AcceptedInputs(target):
+                  c.load_dedupe().prepare_reference(target,scope)
+              outcome['outcome']='PASS'
+            except Exception as e:
+              frames=[]
+              for frame in traceback.extract_tb(e.__traceback__):
+                path=Path(frame.filename)
+                if path.name.startswith('canonical-'):
+                  frames.append({'file':path.name,'line':frame.lineno,'function':frame.name})
+              outcome.update({'outcome':'FAIL','exception':type(e).__name__,'frames':frames[-8:]})
+            print(json.dumps(outcome,sort_keys=True),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gridex-final11-reference-scopes
+          path: ${{ runner.temp }}/reference-scopes.log
+          retention-days: 2
+          if-no-files-found: error
       - name: Cleanup owned database
         if: always()
         shell: bash
