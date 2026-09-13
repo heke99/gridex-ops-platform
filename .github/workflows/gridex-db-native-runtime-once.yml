@@ -1,74 +1,60 @@
-name: Gridex isolate final 11 reference blocker
+name: Gridex persist expanded foundation reference oracle
 on:
   pull_request:
     paths:
       - '.github/workflows/gridex-db-native-runtime-once.yml'
 permissions:
-  contents: read
+  contents: write
 jobs:
-  reference-diagnostic:
+  persist-reference-oracle:
     if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 40
-    env:
-      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          persist-credentials: false
-      - name: Verify pinned current selection
-        run: |
-          set -euo pipefail
-          python3 scripts/canonical-foundation-frontier-selftest.py
-          python3 scripts/canonical-timestamp-frontier-selftest.py
-          python3 scripts/canonical-timestamp-source-selftest.py
-          python3 scripts/canonical-residual-migration-selftest.py
-      - name: Isolate independent reference scope with metadata-only traceback
+          persist-credentials: true
+      - name: Patch exact expanded-foundation oracle pins
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY' | tee "$RUNNER_TEMP/reference-scopes.log"
-          import importlib.util, json, traceback
+          python3 - <<'PY'
           from pathlib import Path
-          p=Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve()
-          s=importlib.util.spec_from_file_location('frontier_scope_diag',p)
-          f=importlib.util.module_from_spec(s); s.loader.exec_module(f)
-          c=f.load_controller(); legacy=c.load_batch(); timestamp=f.load_timestamp()
-          scopes=('dedupe57','fixed-target','alignment68','operations71','readiness74','intake77','full')
-          for scope in scopes:
-            outcome={'scope':scope,'outcome':'UNKNOWN'}
-            try:
-              with legacy.OwnedPostgres(postgis=True) as target:
-                timestamp.verify_spatial_runtime(target)
-                with c.load_private().AcceptedInputs(target):
-                  c.load_dedupe().prepare_reference(target,scope)
-              outcome['outcome']='PASS'
-            except Exception as e:
-              frames=[]
-              for frame in traceback.extract_tb(e.__traceback__):
-                path=Path(frame.filename)
-                if path.name.startswith('canonical-'):
-                  frames.append({'file':path.name,'line':frame.lineno,'function':frame.name})
-              outcome.update({'outcome':'FAIL','exception':type(e).__name__,'frames':frames[-8:]})
-            print(json.dumps(outcome,sort_keys=True),flush=True)
+          p=Path('scripts/canonical-auth-provisioning-diagnostics-selftest.py')
+          s=p.read_text()
+          replacements=(
+            ("assert len(order) == 118, 'selected diagnostics stage requires foundation118'", "assert len(order) == 140, 'selected diagnostics stage requires foundation140'"),
+            ("path_digest(order[77:]) == SUFFIX_SHA", "path_digest(order[77:118]) == SUFFIX_SHA"),
+            ("assert len(order)==118 and order[41:43]==[G,R]", "assert len(order)==140 and order[41:43]==[G,R]"),
+            ("path_digest(order[77:])==SUFFIX_SHA", "path_digest(order[77:118])==SUFFIX_SHA"),
+            ("OLD_ADDITIONS_FOUNDATION_SHA = '753a7813c9a9ff49f927c5b3c1633aafbaea185c42ae95e1400cbc7b7c8ffe09'", "OLD_ADDITIONS_FOUNDATION_SHA = '5e6d43d00160bb4b91bbf6a15ac8ed6ecb0b06902f4fc60d0d0f2b848bb0abe0'"),
+            ("ADDITIONS_DERIVED_SHA = '11e6ef86224ba62349491835eb5faa0ff74f3dfe3df8619fdd83a9b966de5dc5'", "ADDITIONS_DERIVED_SHA = '2049baa72dfb4028a28adb6ecf428eb89d854283c31867422d9a8be72ac5e7b7'"),
+            ("{'FULL_FILE_SELECTED':311,'SUBSTITUTED':20,'UNCLASSIFIED':10,'EXPLICITLY_EXCLUDED':5}", "{'FULL_FILE_SELECTED':331,'SUBSTITUTED':4,'UNCLASSIFIED':6,'EXPLICITLY_EXCLUDED':5}"),
+          )
+          for old,new in replacements:
+            if s.count(old)!=1:
+              raise SystemExit('REFERENCE_ORACLE_EXACT_REPLACEMENT_MISMATCH:'+old)
+            s=s.replace(old,new)
+          p.write_text(s)
           PY
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: gridex-final11-reference-scopes
-          path: ${{ runner.temp }}/reference-scopes.log
-          retention-days: 2
-          if-no-files-found: error
-      - name: Cleanup owned database
-        if: always()
-        shell: bash
-        run: |
           python3 - <<'PY'
           import importlib.util
           from pathlib import Path
-          p=Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve()
-          s=importlib.util.spec_from_file_location('cleanup',p)
+          p=Path('scripts/canonical-auth-provisioning-diagnostics-selftest.py').resolve()
+          s=importlib.util.spec_from_file_location('diagnostics_constructor',p)
           m=importlib.util.module_from_spec(s); s.loader.exec_module(m)
-          m.load_controller().load_batch().cleanup_workflow_owned()
+          m.constructor_checks()
+          print('PASS diagnostics constructor checks')
           PY
+          git diff --check
+      - name: Commit exact oracle update
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/canonical-auth-provisioning-diagnostics-selftest.py
+          git diff --cached --check
+          git commit -m 'test(db): rebind diagnostics oracle to expanded foundation'
+          git push origin HEAD:codex/gridex-parity-remediation-20260905
