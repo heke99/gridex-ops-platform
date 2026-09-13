@@ -86,6 +86,8 @@ def apply_prefix(target, retained, progress):
                 drop_clone(target)
         target.sql(DATABASE, candidates[relative], 'residual_apply_' + str(len(progress['residualApplied'])+1))
         progress['residualApplied'].append(relative)
+        if relative == transitions.DB1:
+            load('canonical-residual-index-effects.py').verify(target,DATABASE,relative,original_bytes[relative])
         if relative == transitions.INTAKE:
             target.sql(DATABASE, """DO $$ DECLARE t text; BEGIN
                           FOREACH t IN ARRAY ARRAY['customers','customer_contacts','customer_addresses','customer_sites','metering_points','customer_contracts','customer_contract_events','powers_of_attorney','customer_info_requests','customer_cases','customer_import_batches','customer_import_rows'] LOOP

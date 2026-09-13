@@ -85,5 +85,8 @@ def apply(target,database,prepared,progress):
     for path in (m.PREFLIGHT,m.FINISH):
         target.sql(database,sql[path],'residual_db2_'+('preflight' if path==m.PREFLIGHT else 'closeout'))
         progress['residualApplied'].append(path)
+    spec=importlib.util.spec_from_file_location('db2_index_effects',Path(__file__).with_name('canonical-residual-index-effects.py'))
+    effects=importlib.util.module_from_spec(spec);spec.loader.exec_module(effects)
+    effects.verify(target,database,m.PREFLIGHT,raw[m.PREFLIGHT])
     progress['db2SchemaAndHistoricalSeparationControls']='PASS'
     progress['db2HistoricalOperatorProgramExecuted']=False

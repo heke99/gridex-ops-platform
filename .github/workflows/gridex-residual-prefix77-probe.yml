@@ -27,6 +27,7 @@ jobs:
           python3 scripts/canonical-db2-reconstruction-selftest.py
           python3 scripts/canonical-residual-integration-selftest.py
           python3 scripts/canonical-timestamp-retained-selftest.py
+          python3 scripts/canonical-residual-index-effects-selftest.py
       - name: Verify residual migrations and complete selected continuation
         run: python3 scripts/canonical-residual-transition-native.py
       - name: Verify foundation and timestamp tail with original SQL absent
