@@ -39,7 +39,7 @@ class TimestampTests(unittest.TestCase):
         selected, prerequisites = tail.load_inputs(ROOT, self.report, self.foundation)
         self.assertEqual(len(selected), 514)
         self.assertEqual(selected[-1], ('migrations/20260913211625_ediel_intent_customer_company_integrity.sql',
-                                       'da2d3d288d69038b4c9767fe22b2a1ae4293d3196d88b5d129089337594392b9'))
+                                       '2b9cc5e9cb7fad14aa4b30e0bc98274a4a957f47379f456ed0d3c9663ef5f39b'))
         self.assertEqual(len(prerequisites), 5)
         self.assertEqual(len(set(path for path, sha in selected)), 514)
         self.assertEqual(self.report['counts']['UNCLASSIFIED'], 5)

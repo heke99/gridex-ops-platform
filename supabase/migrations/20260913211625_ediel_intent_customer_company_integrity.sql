@@ -34,9 +34,11 @@ begin
   select attnum into parent_id from pg_attribute
     where attrelid = parent and attname = 'id' and atttypid = 'uuid'::regtype
       and attnum > 0 and not attisdropped and attnotnull;
+  -- Historical customers.company_id is nullable. The child company stays NOT
+  -- NULL; the composite key still rejects references to an unassigned customer.
   select attnum into parent_company from pg_attribute
     where attrelid = parent and attname = 'company_id' and atttypid = 'uuid'::regtype
-      and attnum > 0 and not attisdropped and attnotnull;
+      and attnum > 0 and not attisdropped;
   if child_customer is null or child_company is null or parent_id is null or parent_company is null then
     raise exception using errcode = '55000', message = 'EDIEL_CUSTOMER_COLUMN_CONTRACT_REQUIRED';
   end if;

@@ -23,11 +23,15 @@ class ForwardAdmissionTests(unittest.TestCase):
     def setUp(self):
         self.module = load()
 
-    def test_real_migration_is_the_exact_previously_native_qualified_program(self):
+    def test_registered_program_only_repairs_the_proven_parent_precondition(self):
         m = self.module
         raw = m.read_candidate().encode()
         self.assertEqual(m.CANDIDATE, ROOT/'supabase/migrations'/m.FORWARD_NAME)
-        self.assertEqual(raw, (ROOT/'scripts/sql/forward-candidates/ediel-intent-customer-company-fk.sql').read_bytes())
+        predecessor = m.read_predecessor()
+        old = "  select attnum into parent_company from pg_attribute\n    where attrelid = parent and attname = 'company_id' and atttypid = 'uuid'::regtype\n      and attnum > 0 and not attisdropped and attnotnull;"
+        new = "  -- Historical customers.company_id is nullable. The child company stays NOT\n  -- NULL; the composite key still rejects references to an unassigned customer.\n  select attnum into parent_company from pg_attribute\n    where attrelid = parent and attname = 'company_id' and atttypid = 'uuid'::regtype\n      and attnum > 0 and not attisdropped;"
+        self.assertEqual(predecessor.count(old), 1)
+        self.assertEqual(raw.decode(), predecessor.replace(old, new))
         self.assertEqual(hashlib.sha256(raw).hexdigest(), m.CANDIDATE_SHA)
         additions = json.loads((ROOT/'scripts/migration-history-manifest.runtime.additions.json').read_text())
         self.assertEqual(additions['files'][m.FORWARD_NAME], m.CANDIDATE_SHA)
