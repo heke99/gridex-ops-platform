@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 20
     env:
       PYTHONDONTWRITEBYTECODE: '1'
-      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-transitions-${{ github.run_id }}-${{ github.run_attempt }}
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
         with:
