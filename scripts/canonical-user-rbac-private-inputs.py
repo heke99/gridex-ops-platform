@@ -149,6 +149,11 @@ class AcceptedInputs:
         stage = frame.f_locals.get('stage')
         if stage not in self.RETAINED_SQL:
             return
+        # The independent intake77 candidate exercises the same SQL methods but
+        # is not a full-shell acceptance run. Preserve its existing execution;
+        # do not record or exempt any of its files as full-replay inputs.
+        if getattr(dedupe._REFERENCES.get(self.h), 'scope', None) == 'intake77':
+            return
         self.full_stage()
         source, digest, transaction = self.RETAINED_SQL[stage]
         check(frame.f_locals.get('self') is self.h

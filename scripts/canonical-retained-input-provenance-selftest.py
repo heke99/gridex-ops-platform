@@ -90,12 +90,20 @@ class RetainedInputTests(unittest.TestCase):
             with self.subTest(case=case),self.prepared() as (h,inputs):
                 kwargs={}
                 if case=='phase': m.dedupe._STATES[h]='FRESH'
-                if case=='scope': m.dedupe._REFERENCES[h]=SimpleNamespace(scope='intake77')
+                if case=='scope': m.dedupe._REFERENCES[h]=SimpleNamespace(scope='unexpected')
                 if case=='database': kwargs['database']='gridex_auth_legacy_atomic'
                 if case=='transaction': kwargs['transaction']=True
                 if case=='expect': kwargs['expect']='23514'
                 with self.assertRaises(m.BoundaryError): self.write_sql(h,'timestamp_120',**kwargs)
                 self.assertFalse(list(Path(h.directory.name).glob('fixture-*.sql')))
+
+    def test_intake77_candidate_continuation_delegates_without_full_provenance(self):
+        for stage in SQL:
+            with self.subTest(stage=stage), self.prepared() as (h,inputs):
+                m.dedupe._REFERENCES[h]=SimpleNamespace(scope='intake77')
+                path=self.write_sql(h,stage)
+                self.assertNotIn(path.name, inputs.records)
+                self.assertFalse(inputs.whole_input(self.closed_proof(h,inputs),path))
 
     def test_repeated_source_stage_rejected(self):
         with self.prepared() as (h,inputs):
