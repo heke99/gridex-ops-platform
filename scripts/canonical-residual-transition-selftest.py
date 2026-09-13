@@ -64,5 +64,42 @@ class SourceTests(unittest.TestCase):
             self.assertIn(required, guard)
 
 
+class ReadinessTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        spec = importlib.util.spec_from_file_location('readiness', ROOT/'scripts/canonical-residual-readiness-transitions.py')
+        cls.r = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.r)
+
+    def test_locks_original_is_not_transformed(self):
+        raw = self.r.read(ROOT, self.r.LOCKS)
+        self.assertEqual(self.r.verified(self.r.LOCKS, raw).encode(), raw)
+        self.assertIn(b'on conflict (company_id, environment) do nothing', raw)
+
+    def test_view_only_reorders_projection_and_preserves_metadata(self):
+        raw = self.r.read(ROOT, self.r.READINESS)
+        old = raw.decode()
+        part = self.r.projection(old)
+        rendered = self.r.reconstruct(raw, m.read(ROOT,m.DB1))
+        self.assertIn(old[:part.start(2)], rendered)
+        self.assertIn(old[part.end(2):], rendered)
+        self.assertIn('ranked.metadata', rendered)
+        self.assertIn('ranked.updated_by,\n        ranked.runtime_rank', rendered)
+        self.assertIn('partition by eas.company_id, eas.environment, eas.actor_role', rendered)
+        self.assertNotIn('drop view public.', rendered.lower())
+
+    def test_view_unknown_sources_rejected(self):
+        raw = self.r.read(ROOT, self.r.READINESS)
+        db1 = m.read(ROOT,m.DB1)
+        for a,b in ((raw+b'\n', db1),(raw,db1+b'\n')):
+            with self.assertRaises(ValueError):
+                self.r.reconstruct(a,b)
+
+    def test_native_owner_matches_admitted_workflow_identity(self):
+        workflow = (ROOT/'.github/workflows/gridex-residual-prefix77-probe.yml').read_text()
+        self.assertIn('GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-', workflow)
+        self.assertIn('persist-credentials: false', workflow)
+
+
 if __name__ == '__main__':
     unittest.main()

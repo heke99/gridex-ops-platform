@@ -4,9 +4,9 @@
   "status": "PARTIAL",
   "current_state": ".agent-memory/current-state.md",
   "active_group": "database_reconstruction",
-  "verified_code": "85149c49108e24884d82e92df9f70c6302d89c5b",
-  "evidence": "quality/audits/DB_RESIDUAL_WHOLE_SOURCES_2026-09-13.json",
-  "native_run": 34755799372,
-  "native_job": 103719840158,
-  "next_action": "Verify retained-byte/standalone fixture follow-up natively; then resolve seven residual originals and accepted normal canonical replay/ledger/schema/types. All release gates stay blocking."
+  "verified_code": "7a5b420d363770fd4d257c436402547b9dae29b8",
+  "evidence": "quality/audits/DB_RESIDUAL_TRANSITIONS_2026-09-13.md",
+  "native_run": 34759568573,
+  "native_job": 103729860099,
+  "next_action": "Native-test lock/view extension; integrate verified transitions; separate DB2 generic/historical effects; normal replay/ledger/schema/type gates remain blocking."
 }

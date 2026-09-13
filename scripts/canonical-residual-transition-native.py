@@ -43,6 +43,8 @@ def run():
     order, report = frontier.verify_selection(controller)
     timestamp = frontier.load_timestamp()
     selected, prerequisites = timestamp.load_inputs(ROOT, report, order)
+    extra = load('residual_readiness_native', 'canonical-residual-readiness-native.py')
+    prepared = extra.prepare(ROOT)
     legacy = controller.load_batch()
     source_before = controller.originals_snapshot()
     original_bytes = {p: transitions.read(ROOT, p) for p in transitions.ORDER}
@@ -154,15 +156,19 @@ def run():
                 rulebook = retained[restored.FOUNDATION_SOURCES[restored.RULEBOOK_COMPLETION][1]-1]
                 for ordinal, raw in enumerate(retained[77:], 78):
                     phase = 'foundation_' + str(ordinal)
+                    extra.before(target, controller.DATABASE, order[ordinal-1], prepared, progress)
                     target.sql(controller.DATABASE, raw.decode(), 'residual_continue_' + str(ordinal), transaction=False)
                     progress['foundationApplied'] = ordinal
                     relative = order[ordinal-1]
+                    extra.after(target, controller.DATABASE, relative, prepared, progress)
                     if relative in restored.SOURCES:
                         restored.verify(target, controller.DATABASE, relative, ordinal, rulebook_bytes=rulebook)
                     if relative == 'migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql':
                         restored.verify_rulebook_conversion(target, controller.DATABASE, relative, ordinal, rulebook_bytes=rulebook)
                 phase = 'ACTUAL_TIMESTAMP_CONTINUATION'
                 timestamp.execute_tail(ROOT, target, controller.DATABASE, selected, prerequisites, progress)
+                if len(progress['residualApplied']) != 5:
+                    raise ValueError('RESIDUAL_CANDIDATE_NOT_EXECUTED')
                 result = {'outcome': 'CANDIDATE_CONTINUATION_PASSED', **progress}
         except Exception as error:
             last = Path(target.directory.name)/'client-last.out'
