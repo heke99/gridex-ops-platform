@@ -81,3 +81,11 @@ and18/18 true, then fingerprintFAIL and private-source privacyFAIL. Disposal and
 exact cleanupPASS. Canonical600/0 input admissionPASS is not schema/ledger/types.
 13 new terminal-diagnostic +3 identity +13 tail localtestsPASS; native diagnostic
 pending. See current-state.md and DB_FINAL_GATE_DIAGNOSTIC_2026-09-13.md.
+
+## 2026-09-13 —7c6a7aa diagnostic read-back
+
+34780512868:103786555047 selected/staged/cleanupSUCCESS;103786554902 staticPASS,
+actual ordinary144/7/513 and18/18PASS, fingerprintFAIL, privacyFAIL, disposalPASS.
+Read-only projection/censusVERIFIED; source hashes independently match originals
+and manifest. Official managed ledger/typesNOT ACCEPTED. No new runtime fix,
+production write or main merge. Evidence:DB_FINAL_GATE_NATIVE_RECEIPT_2026-09-13.md.

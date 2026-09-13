@@ -49,3 +49,11 @@ changes, then identity correction6a65e75 with3 real-constructor regressions. Fre
 34779330429 proves selected/staged continuation and actual owned144/7/513 plus
 18/18 predicates. Only these scoped corrections are verified; final schema/privacy,
 managed ledger and types remain blocked. Evidence: DB_FINAL_GATE_DIAGNOSTIC_2026-09-13.md.
+
+## 2026-09-13 — final diagnostic native evidence
+
+7c6a7aa diagnostic is now VERIFIED in34780512868: selected/staged103786555047
+SUCCESS; actual ordinary103786554902 reaches18/18 then rejects schema/privacy.
+Bounded output identifies7 extra columns, one extra FK, one missing customer FK
+and5 exact unrecorded original copies. This completes diagnosis only, not fixes
+or acceptance. See DB_FINAL_GATE_NATIVE_RECEIPT_2026-09-13.md and current-state.

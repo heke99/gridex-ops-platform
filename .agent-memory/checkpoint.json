@@ -4,7 +4,7 @@
   "status": "PARTIAL",
   "current_state": ".agent-memory/current-state.md",
   "active_group": "database_reconstruction",
-  "verified_code": "6a65e75597ddf388d1ea304701b6b7c30d9f2672",
-  "evidence": "quality/audits/DB_FINAL_GATE_DIAGNOSTIC_2026-09-13.md",
-  "next_action": "Read terminal diagnostic CI. Reconcile schema fingerprint and private-source artifact failure without changing acceptance gates. Managed ledger and accepted types remain blocked."
+  "verified_code": "7c6a7aa70bc95c4cef33cde4bc59721701482dcf",
+  "evidence": "quality/audits/DB_FINAL_GATE_NATIVE_RECEIPT_2026-09-13.md",
+  "next_action": "Repair five exact whole-input provenance gaps and prove native privacy. Trace the missing composite customer FK and reconcile final schema semantics before managed-ledger acceptance and generated types."
 }

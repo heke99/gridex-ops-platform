@@ -70,3 +70,12 @@ executes actual ordinary144/7/513 and all18 required predicates, exposes final
 fingerprint mismatch and SOURCE_LITERAL_IN_PRIVATE_ARTIFACT; cleanup verified.
 Added a bounded readonly terminal diagnostic and13 tests, not an acceptance fix.
 No production/main/type changes. Active next action remains in current-state.md.
+
+## 2026-09-13 — final diagnostic verified; genuine blockers retained
+
+Read completed7c6a7aa run34780512868, including actual final projection and private
+census. Verified source authority for7 added company fields and source hashes for
+5 unrecorded whole inputs. Missing customer/company FK remains; grant-dependent
+classification is a lead, not a proved root cause. Saved exact bounded native
+evidence without raw literals. No privacy/source/schema gate, accepted baseline,
+production data or main changed. Current-state supersedes diagnostic-pending text.
