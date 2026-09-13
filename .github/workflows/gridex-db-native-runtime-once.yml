@@ -1,114 +1,88 @@
-name: Gridex isolated native SQL tooling export
+name: Gridex isolated final 11 residual source probe
 on:
   pull_request:
     paths:
       - '.github/workflows/gridex-db-native-runtime-once.yml'
 permissions:
-  contents: read
+  contents: write
 jobs:
-  public-runtime-only:
-    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository
+  final11:
+    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/gridex-parity-remediation-20260905'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 40
     env:
-      OWNED_NAME: gridex-public-runtime-${{ github.run_id }}-${{ github.run_attempt }}
       GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
-      EXPECTED_IMAGE: sha256:2ed748fc602dd3031c6724db8cb289e1578c2deb552a4f6e291f6f7e5e6e4f69
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          persist-credentials: false
-      - name: Export only pinned public PostgreSQL tools and dependencies
+          persist-credentials: true
+      - name: Bind harness to current 140 + 512 replay and exact final 11
         shell: bash
         run: |
           set -euo pipefail
-          out="$RUNNER_TEMP/gridex-native-tools"
-          mkdir -p "$out"
-          docker pull postgis/postgis:17-3.5
-          test "$(docker image inspect --format '{{.Id}}' postgis/postgis:17-3.5)" = "$EXPECTED_IMAGE"
-          docker run -d --name "$OWNED_NAME" --label "gridex.public-runtime.owner=$OWNED_NAME" --network none --entrypoint sleep "$EXPECTED_IMAGE" 600
-          docker exec "$OWNED_NAME" bash -euo pipefail -c '
-            { find /usr/lib/postgresql/17/bin -type f; find /usr/lib/postgresql/17/lib -type f -name "*.so"; } > /tmp/tool-inputs
-            while IFS= read -r f; do ldd "$f" 2>/dev/null || true; done < /tmp/tool-inputs > /tmp/dependencies
-            awk '\''$3 ~ /^\// {print $3} $1 ~ /^\// {print $1}'\'' /tmp/dependencies | sort -u > /tmp/libs
-            { printf "%s\n" /usr/lib/postgresql/17 /usr/share/postgresql/17 /usr/share/proj /usr/share/gdal; cat /tmp/libs; } > /tmp/paths
-            tar --dereference -czf /tmp/gridex-native-tools.tar.gz -T /tmp/paths
-          '
-          docker cp "$OWNED_NAME:/tmp/gridex-native-tools.tar.gz" "$out/runtime.tar.gz"
-          printf 'public_image_id=%s\nsource_commit=%s\nscope=SQL_TOOLING_ONLY_NOT_REPLAY_ACCEPTANCE\n' "$EXPECTED_IMAGE" '${{ github.event.pull_request.head.sha }}' > "$out/receipt.txt"
-          docker image inspect --format '{{json .RepoDigests}}' "$EXPECTED_IMAGE" >> "$out/receipt.txt"
-          sha256sum "$out/runtime.tar.gz" >> "$out/receipt.txt"
-      - name: Export source-only verified foundation for local SQL diagnostics
+          python3 - <<'PY'
+          from pathlib import Path
+          exact={
+          'scripts/canonical-auth-provisioning-replay.py':[("'full':118","'full':140"),("FOUNDATION_SHA256='bf29ab9457e5f9b7d9720582bc8900f7661415c268a44bbb4039e3cb8b227c1b'","FOUNDATION_SHA256='d0651aa367a9ec198ed2d7152f57f8d0d706bfbf251c2346caeef39c9f39dfa0'"),('len(self.order)!=118','len(self.order)!=140')],
+          'scripts/canonical-foundation-frontier-diagnostic.py':[('len(order) != 118','len(order) != 140'),("'foundationInputs': 118","'foundationInputs': 140")],
+          'scripts/canonical-foundation-frontier-selftest.py':[('self.assertEqual(len(order), 118)','self.assertEqual(len(order), 140)'),("self.assertEqual(report['counts']['SUBSTITUTED'], 19)","self.assertEqual(report['counts']['SUBSTITUTED'], 5)"),("self.assertEqual(report['counts']['UNCLASSIFIED'], 14)","self.assertEqual(report['counts']['UNCLASSIFIED'], 6)")],
+          'scripts/canonical-timestamp-frontier-selftest.py':[("self.assertEqual(self.report['counts']['UNCLASSIFIED'], 14)","self.assertEqual(self.report['counts']['UNCLASSIFIED'], 6)"),("self.assertEqual(self.report['counts']['SUBSTITUTED'], 19)","self.assertEqual(self.report['counts']['SUBSTITUTED'], 5)")],
+          'scripts/canonical-timestamp-source-selftest.py':[("{'FULL_FILE_SELECTED':562,'SUBSTITUTED':19,'UNCLASSIFIED':14,'EXPLICITLY_EXCLUDED':5}","{'FULL_FILE_SELECTED':584,'SUBSTITUTED':5,'UNCLASSIFIED':6,'EXPLICITLY_EXCLUDED':5}"),('test_full_effects_still_has_33_blocking_original_dispositions','test_full_effects_still_has_11_blocking_original_dispositions'),("self.report['counts']['SUBSTITUTED']+self.report['counts']['UNCLASSIFIED'],33","self.report['counts']['SUBSTITUTED']+self.report['counts']['UNCLASSIFIED'],11")],
+          'scripts/canonical-residual-migration-selftest.py':[('self.assertEqual(len(sources), 37)','self.assertEqual(len(sources), 11)'),('self.assertEqual(len(set(sources)), 37)','self.assertEqual(len(set(sources)), 11)'),("self.assertEqual(self.report['counts']['SUBSTITUTED'], 19)","self.assertEqual(self.report['counts']['SUBSTITUTED'], 5)"),("self.assertEqual(self.report['counts']['UNCLASSIFIED'], 14)","self.assertEqual(self.report['counts']['UNCLASSIFIED'], 6)"),("'foundation118'","'foundation140'")],
+          }
+          for file,replacements in exact.items():
+            p=Path(file); s=p.read_text()
+            for old,new in replacements:
+              if s.count(old)!=1: raise SystemExit(f'EXACT_REPLACEMENT_MISMATCH:{file}:{old}')
+              s=s.replace(old,new)
+            p.write_text(s)
+          p=Path('scripts/canonical-residual-migration-probe.py'); s=p.read_text()
+          a=s.index('BASELINE_PATHS = ('); b=s.index(')\n\n\ndef load',a)+1
+          paths=('migrations/01_db2_full_view_preflight_schema_and_functions.sql','migrations/03_db2_validation_and_finish.sql','migrations/20260521_batch_1_2_live_readiness_and_automation_hardening.sql','migrations/20260521_batch_customer_intake_batch2_completion.sql','migrations/20260522_db1_schema_repair_backfill_foundation.sql','migrations/20260525_debug_fix_batch_1b_schema_code_alignment.sql','migrations/20260528_batch_2_completion_rulebook_actions_regression.sql','migrations/20260528_batch_7a1_inbound_hardening.sql','migrations/20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql','migrations/20260601070000_ediel_production_readiness_hardening.sql','migrations/20260615_multitenant_integrity_and_claim_locks.sql')
+          s=s[:a]+'BASELINE_PATHS = ('+', '.join(repr(x) for x in paths)+')'+s[b:]
+          for old,new in (("Characterize the 37 baseline unresolved sources","Characterize the current 11 unresolved sources"),("RESIDUAL_PIN = 'f646322e447fedd33a17cbc373a13229f4e5ff736ec9015fd8fc129fa4987ede'","RESIDUAL_PIN = '964d512ddf8975fe96a004a1d82b93d7b33ebc77207c9e8d5c320135c81328e9'"),("CHECKPOINTS = ('foundation118', 'selected_tail')","CHECKPOINTS = ('foundation140', 'selected_tail')"),('len(sources) != 37','len(sources) != 11'),("'foundation118'","'foundation140'")):
+            if s.count(old)!=1: raise SystemExit('RESIDUAL_EXACT_REPLACEMENT_MISMATCH:'+old)
+            s=s.replace(old,new)
+          p.write_text(s)
+          PY
+          python3 scripts/canonical-foundation-frontier-selftest.py
+          python3 scripts/canonical-timestamp-frontier-selftest.py
+          python3 scripts/canonical-timestamp-source-selftest.py
+          python3 scripts/canonical-residual-migration-selftest.py
+      - name: Probe exact final 11 originals on both owned checkpoints
         shell: bash
         run: |
-          python3 - <<'PYTHON'
-          import hashlib, importlib.util, json, os, shutil, signal
-          from pathlib import Path
-          path = Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve()
-          spec = importlib.util.spec_from_file_location('snapshot_frontier', path)
-          frontier = importlib.util.module_from_spec(spec)
-          spec.loader.exec_module(frontier)
-          controller = frontier.load_controller()
-          order, report = frontier.verify_selection(controller)
-          legacy = controller.load_batch()
-          before = controller.originals_snapshot()
-          def interrupted(signum, frame):
-              raise RuntimeError('SOURCE_ONLY_EXPORT_INTERRUPTED')
-          signal.signal(signal.SIGTERM, interrupted)
-          signal.signal(signal.SIGINT, interrupted)
-          with legacy.OwnedPostgres(postgis=True) as target:
-              runtime = frontier.load_timestamp().verify_spatial_runtime(target)
-              with controller.load_private().AcceptedInputs(target):
-                  controller.load_dedupe().prepare_reference(target, 'full')
-                  controller.load_dedupe().fresh_target(target)
-                  hold = Path(target.directory.name) / 'snapshot-hold'
-                  hold.mkdir(mode=0o700)
-                  for source in (frontier.ROOT / 'supabase/migrations').iterdir():
-                      if source.is_symlink():
-                          raise RuntimeError('SYMLINK_SOURCE_REJECTED')
-                      if source.is_file() and source.suffix == '.sql':
-                          shutil.copy2(source, hold / source.name)
-                  paths = [str(hold / Path(rel).name if rel.startswith('migrations/') else frontier.ROOT / 'supabase' / rel) for rel in order]
-                  loop = controller.FoundationLoop(legacy, target, 'full')
-                  loop.validate(str(hold), paths)
-                  target.sql(controller.DATABASE, (frontier.ROOT / 'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_text(), 'snapshot_bootstrap', transaction=False)
-                  loop.run(str(hold), paths)
-                  target.sql(controller.DATABASE, "DO $$ BEGIN IF EXISTS(SELECT 1 FROM auth.users) OR EXISTS(SELECT 1 FROM vault.secrets) THEN RAISE EXCEPTION 'SOURCE_ONLY_EXPORT_EXPECTS_EMPTY_IDENTITIES_AND_VAULT'; END IF; END $$;", 'snapshot_source_only')
-                  data = target.docker(['exec', target.name, 'pg_dump', '-U', 'postgres', '-Fc', '-d', controller.DATABASE])
-                  output = Path(os.environ['RUNNER_TEMP']) / 'gridex-native-tools'
-                  (output / 'foundation-source-only.dump').write_bytes(data)
-                  (output / 'foundation-receipt.json').write_text(json.dumps({'scope':'SOURCE_ONLY_FOUNDATION_NOT_DATABASE_ACCEPTANCE','sourceCommit':os.environ['GITHUB_HEAD_SHA'],'runtime':runtime,'foundationInputs':len(order),'dumpSha256':hashlib.sha256(data).hexdigest(),'authUsersEmpty':True,'vaultSecretsEmpty':True,'productionModified':False,'completeReplayVerified':False}, indent=2)+'\n')
-                  if controller.originals_snapshot() != before:
-                      raise RuntimeError('SOURCE_PRESERVATION_FAILED')
-          PYTHON
-        env:
-          GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          set +e
+          python3 scripts/canonical-residual-migration-probe.py 2>&1 | tee "$RUNNER_TEMP/final11.log"
+          rc=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "$rc" > "$RUNNER_TEMP/final11-exit.txt"
+          test "$rc" -eq 0 -o "$rc" -eq 1
       - uses: actions/upload-artifact@v4
         with:
-          name: gridex-native-tools
-          path: ${{ runner.temp }}/gridex-native-tools/
-          retention-days: 1
+          name: gridex-final11-residual-probe
+          path: |
+            ${{ runner.temp }}/final11.log
+            ${{ runner.temp }}/final11-exit.txt
+          retention-days: 2
           if-no-files-found: error
-      - name: Remove only this job's owned public runtime
-        if: always()
+      - name: Commit reviewed harness rebinding
         shell: bash
         run: |
           set -euo pipefail
-          if docker container inspect "$OWNED_NAME" >/dev/null 2>&1; then
-            test "$(docker inspect --format '{{index .Config.Labels "gridex.public-runtime.owner"}}' "$OWNED_NAME")" = "$OWNED_NAME"
-            docker rm -f "$OWNED_NAME"
-          fi
-      - name: Clean owned diagnostic database after interruption
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/canonical-auth-provisioning-replay.py scripts/canonical-foundation-frontier-diagnostic.py scripts/canonical-foundation-frontier-selftest.py scripts/canonical-timestamp-frontier-selftest.py scripts/canonical-timestamp-source-selftest.py scripts/canonical-residual-migration-probe.py scripts/canonical-residual-migration-selftest.py
+          git diff --cached --check
+          git commit -m 'test(db): bind final 11 residual probe to current replay selection'
+          git push origin HEAD:codex/gridex-parity-remediation-20260905
+      - name: Cleanup owned database
         if: always()
         shell: bash
         run: |
-          python3 - <<'PYTHON'
+          python3 - <<'PY'
           import importlib.util
           from pathlib import Path
-          path = Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve()
-          spec = importlib.util.spec_from_file_location('snapshot_cleanup', path)
-          module = importlib.util.module_from_spec(spec)
-          spec.loader.exec_module(module)
-          module.load_controller().load_batch().cleanup_workflow_owned()
-          PYTHON
+          p=Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve(); s=importlib.util.spec_from_file_location('cleanup',p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); m.load_controller().load_batch().cleanup_workflow_owned()
+          PY
