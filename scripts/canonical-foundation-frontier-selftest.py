@@ -17,8 +17,8 @@ spec.loader.exec_module(diag)
 class FrontierTests(unittest.TestCase):
     def test_real_source_selection_retains_all_unresolved_dispositions(self):
         order, report = diag.verify_selection(diag.load_controller())
-        self.assertEqual(len(order), 143)
-        self.assertEqual(report['counts']['SUBSTITUTED'], 3)
+        self.assertEqual(len(order), 144)
+        self.assertEqual(report['counts']['SUBSTITUTED'], 2)
         self.assertEqual(report['counts']['UNCLASSIFIED'], 5)
         self.assertFalse(report['sqlExecutionVerified'])
 

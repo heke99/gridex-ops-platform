@@ -32,7 +32,7 @@ class ResidualSourceTests(unittest.TestCase):
         cls.order, cls.report = frontier.verify_selection(frontier.load_controller())
         cls.selected, _ = frontier.load_timestamp().load_inputs(ROOT, cls.report, cls.order)
 
-    def test_all_three_immutable_sources_selected_once_at_reviewed_boundaries(self):
+    def test_all_four_immutable_sources_selected_once_at_reviewed_boundaries(self):
         restored.validate_selection(self.order)
         restored.validate_timestamp(self.selected)
         rows = {r['path']:r for r in self.report['migrations']}
@@ -41,8 +41,8 @@ class ResidualSourceTests(unittest.TestCase):
             self.assertEqual(rows[source]['classification'], 'FULL_FILE_SELECTED')
             self.assertEqual(rows[source]['sha256'], digest)
             self.assertEqual(rows[source]['execution'], [{'stage':stage,'ordinal':ordinal}])
-        self.assertEqual(self.report['selectedInputCounts'], {'foundation':143,'timestamp':513})
-        self.assertEqual(self.report['counts'], {'FULL_FILE_SELECTED':587, 'SUBSTITUTED':3,
+        self.assertEqual(self.report['selectedInputCounts'], {'foundation':144,'timestamp':513})
+        self.assertEqual(self.report['counts'], {'FULL_FILE_SELECTED':588, 'SUBSTITUTED':2,
                                                 'UNCLASSIFIED':5, 'EXPLICITLY_EXCLUDED':5})
         self.assertFalse(self.report['sqlExecutionVerified'])
         self.assertFalse(self.report['ledgerProvenanceVerified'])
@@ -110,7 +110,7 @@ class ResidualSourceTests(unittest.TestCase):
         source = next(iter(restored.SOURCES))
         for database in ('production','postgres','postgresql://example/production'):
             with self.assertRaisesRegex(ValueError, 'RESIDUAL_OWNED_SOURCE_REQUIRED'):
-                restored.verify(Target(),database,source,141)
+                restored.verify(Target(),database,source,142)
 
     def test_ack_prerequisite_is_exact_source_column_not_fabricated_business_data(self):
         source = (ROOT/'supabase/migrations/20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql').read_text()
@@ -123,6 +123,51 @@ class ResidualSourceTests(unittest.TestCase):
         self.assertIn('EDIEL_ACK_PREREQUISITE_COLUMN_SHAPE_MISMATCH',sql)
         for forbidden in ('INSERT INTO', 'DELETE FROM', 'DROP TABLE', 'DISABLE TRIGGER', 'BYPASSRLS'):
             self.assertNotIn(forbidden,sql.upper())
+
+    def test_rulebook_completion_is_before_the_list_type_conversion(self):
+        self.assertEqual(self.order[86], restored.RULEBOOK_COMPLETION)
+        self.assertEqual(self.order[87], 'migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql')
+        self.assertEqual(restored.SOURCES[restored.RULEBOOK_COMPLETION][1], 87)
+        proof = load('canonical-auth-provisioning-diagnostics-selftest')
+        for first, second in ((85,86),(86,87),(87,88)):
+            order = list(self.order); order[first],order[second] = order[second],order[first]
+            with self.assertRaises(AssertionError):
+                proof.retained_suffix_digest(order)
+        self.assertEqual(proof.retained_suffix_digest(self.order),proof.SUFFIX_SHA)
+
+    def test_all_three_seed_matrices_compare_authored_values(self):
+        for table,count in (('ediel_field_rules',13),('ediel_ack_rules',9),('ediel_message_build_rules',5)):
+            sql = restored.rulebook_seed_check(table)
+            self.assertEqual(sql.count("  ('"),count)
+            self.assertIn('WHERE NOT EXISTS',sql)
+            self.assertIn('IS NOT DISTINCT FROM',sql)
+            self.assertNotIn('on conflict',sql)
+        converted = restored.rulebook_seed_check('ediel_field_rules',True)
+        self.assertIn('jsonb_array_elements_text(e.allowed_values)',converted)
+        self.assertIn('a.allowed_values IS NOT DISTINCT FROM ARRAY(',converted)
+        self.assertIn("field_key='transaction_type'",restored.negative_sql(restored.RULEBOOK_COMPLETION))
+
+    def test_seed_oracle_rejects_unreviewed_tables_and_options(self):
+        for table,converted in (('customers',False),('ediel_ack_rules',True),('ediel_field_rules',1)):
+            with self.assertRaisesRegex(ValueError,'UNREVIEWED_RULEBOOK_SEED'):
+                restored.rulebook_seed_check(table,converted)
+
+    def test_seed_oracle_revalidates_immutable_bytes_at_use(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); (root/'supabase/migrations').mkdir(parents=True)
+            path = root/'supabase'/restored.RULEBOOK_COMPLETION
+            path.write_bytes((ROOT/'supabase'/restored.RULEBOOK_COMPLETION).read_bytes()+b'\n-- unexpected')
+            with patch.object(restored,'ROOT',root), self.assertRaisesRegex(ValueError,'RESIDUAL_WHOLE_SOURCE_OR_ORDER_MISMATCH'):
+                restored.rulebook_seed_check('ediel_field_rules')
+
+    def test_conversion_verifier_rejects_other_target_and_boundary(self):
+        class Target:
+            active=True; name='owned'; _created_name='owned'
+            def command(self,*args): raise AssertionError('unexpected command')
+        source = 'migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql'
+        for database,relative,ordinal in (('production',source,88),('gridex_auth_legacy_replay',source,87),('gridex_auth_legacy_replay','migrations/unknown.sql',88)):
+            with self.assertRaisesRegex(ValueError,'RESIDUAL_OWNED_SOURCE_REQUIRED'):
+                restored.verify_rulebook_conversion(Target(),database,relative,ordinal)
 
     def test_role_bootstrap_remains_hash_bound_with_no_new_elevated_privileges(self):
         proof = load('canonical-auth-provisioning-diagnostics-selftest')

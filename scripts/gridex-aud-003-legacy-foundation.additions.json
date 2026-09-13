@@ -107,7 +107,8 @@
     "migrations/20260528_debug_post_repair_schema_guardrails.sql",
     "migrations/20260528_batch_7a1_inbound_hardening.sql",
     "bootstrap/20260529_ediel_ack_negative_aperak_prerequisite.sql",
-    "migrations/20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql"
+    "migrations/20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql",
+    "migrations/20260528_batch_2_completion_rulebook_actions_regression.sql"
   ],
   "interleaved": [
     {

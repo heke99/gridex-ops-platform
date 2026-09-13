@@ -111,8 +111,8 @@ def load_dedupe():
     return trusted_module('user_rbac_dedupe_batch','canonical-user-rbac-dedupe-batch.py')
 
 
-SCOPES={'legacy52':52,'repair56':56,'dedupe57':57,'fixed-target':63,'alignment68':68,'operations71':71,'readiness74':74,'intake77':77,'full':143}
-FOUNDATION_SHA256='609808ca358e541e6d16da30955c06d0e4a6b45ba35886f8e7c69c37233252a0'
+SCOPES={'legacy52':52,'repair56':56,'dedupe57':57,'fixed-target':63,'alignment68':68,'operations71':71,'readiness74':74,'intake77':77,'full':144}
+FOUNDATION_SHA256='11af5df0de43b4e135a2c8172a1ffc937079241826a60e5fefda9cb588363595'
 
 
 def require_scope(scope):
@@ -157,7 +157,7 @@ class FoundationLoop:
         self.repair_reference=self.repair.REFERENCES.get(target) if scope!='legacy52' else None
         self.order=json.loads((ROOT/'scripts/gridex-aud-003-foundation-order.json').read_text())['foundation']
         self.prefix=b.verified_prefix()
-        if (len(self.order)!=143 or self.order[43:52]!=selected_group(b) or
+        if (len(self.order)!=144 or self.order[43:52]!=selected_group(b) or
             self.order[52:56]!=selected_group(self.repair) or
             self.order[56:57]!=selected_group(self.dedupe) or
             self.order[57:63]!=selected_group(load_fixed()) or
@@ -264,6 +264,8 @@ class FoundationLoop:
                 relative = self.order[ordinal-1]
                 if relative in restored.SOURCES:
                     restored.verify(h,DATABASE,relative,ordinal)
+                if relative == 'migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql':
+                    restored.verify_rulebook_conversion(h,DATABASE,relative,ordinal)
         print(json.dumps({'stage':'actual_replay_foundation','first43':43,'legacy_sources':9,
                           'repair_sources':0 if self.scope=='legacy52' else 4,'dedupe_sources':int(self.terminal),'scope':self.scope,
                           'fixed_sources':6 if self.scope in ('fixed-target','alignment68','operations71','readiness74','intake77','full') else 0,

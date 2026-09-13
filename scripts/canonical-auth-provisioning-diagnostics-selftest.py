@@ -96,11 +96,22 @@ def transaction_body(sql):
     return sql[begin:end]
 
 
+def retained_suffix_digest(order):
+    # Keep the old suffix pin: admit exactly the immutable completion source
+    # between its creator and the V4 jsonb-to-text[] conversion, not arbitrary edits.
+    source = 'migrations/20260528_batch_2_completion_rulebook_actions_regression.sql'
+    assert order[86] == source and order.count(source) == 1
+    assert digest((ROOT / 'supabase' / source).read_bytes()) == '7374dcf5f7ac5b2081a0ba752a103e60fc292f2d55f49c9f45e1db23872436f9'
+    assert order[85] == 'migrations/20260528_batch_2_ediel_rulebook_system_tests.sql'
+    assert order[87] == 'migrations/20260529_batch_2_rulebook_hardening_sql_fix_v4.sql'
+    return path_digest([p for p in order[77:119] if p != source])
+
+
 def prefix_paths(order=None):
     if order is None:
         order = json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation']
-    assert len(order) == 143, 'selected diagnostics stage requires foundation143'
-    assert path_digest(order[:41]) == PREFIX_SHA and path_digest(order[77:118]) == SUFFIX_SHA
+    assert len(order) == 144, 'selected diagnostics stage requires foundation144'
+    assert path_digest(order[:41]) == PREFIX_SHA and retained_suffix_digest(order) == SUFFIX_SHA
     assert path_digest(order[63:68]) == ALIGNMENT_PATH_SHA
     assert path_digest(order[68:71]) == OPERATIONS_PATH_SHA
     assert path_digest(order[71:74]) == READINESS_PATH_SHA
@@ -169,8 +180,8 @@ def constructor_checks():
         pass
     else:
         raise AssertionError('truncated actual prefix accepted')
-    assert len(order)==143 and order[41:43]==[G,R]
-    assert path_digest(order[:41])==PREFIX_SHA and path_digest(order[77:118])==SUFFIX_SHA
+    assert len(order)==144 and order[41:43]==[G,R]
+    assert path_digest(order[:41])==PREFIX_SHA and retained_suffix_digest(order)==SUFFIX_SHA
     # Every rejection uses the constructor that the executing fixture consumes.
     for change in ({G:source[G].encode()[:-1]},
                    {G:source[G].replace('full join','left join',1).encode()},
@@ -239,8 +250,9 @@ def constructor_checks():
     assert json.loads(read('scripts/gridex-aud-003-foundation-order.json'))['foundation'][74:77] == ['migrations/'+p.name for p in intake.reviewed_paths()]
     old_additions = [path for path in additions['foundation'] if path not in {G,R,*inserted,*repair_inserted,*dedupe_inserted,*fixed_inserted,*alignment_inserted,*operations_inserted,*readiness_inserted,*intake_inserted}]
     residual_additions = ['migrations/20260528_batch_7a1_inbound_hardening.sql', 'bootstrap/20260529_ediel_ack_negative_aperak_prerequisite.sql', 'migrations/20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql']
-    assert old_additions[-3:] == residual_additions
-    assert json_digest(old_additions[:-3]) == OLD_ADDITIONS_FOUNDATION_SHA
+    assert old_additions[-1] == 'migrations/20260528_batch_2_completion_rulebook_actions_regression.sql' and old_additions.count('migrations/20260528_batch_2_completion_rulebook_actions_regression.sql') == 1
+    assert old_additions[-4:-1] == residual_additions
+    assert json_digest(old_additions[:-4]) == OLD_ADDITIONS_FOUNDATION_SHA
     prior_derived = json.loads(json.dumps(additions['derivedBootstrap']))
     assert prior_derived['bootstrap/20260527_company_memberships_role_key_foundation.sql'].pop('preserveSourceReplay') is True
     assert prior_derived.pop('bootstrap/20260529_ediel_ack_negative_aperak_prerequisite.sql') == {'source': 'migrations/20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql', 'artifactSha256': 'e52a699c911fc5ac9d00c53d7d06644a3acc453953d1dd97106c4d932f410e40', 'preserveSourceReplay': True, 'purpose': 'Restore only the source-defined negative_aperak_on_error boolean before the complete 20260529 original; fail closed on an incompatible existing column.'}
@@ -259,7 +271,7 @@ def constructor_checks():
     assert account_run.returncode == 1, 'source completeness remains blocking'
     account = json.loads(account_run.stdout)
     assert not account['errors'] and account['totalMigrations']==600
-    assert account['counts']=={'FULL_FILE_SELECTED':587,'SUBSTITUTED':3,'UNCLASSIFIED':5,'EXPLICITLY_EXCLUDED':5}
+    assert account['counts']=={'FULL_FILE_SELECTED':588,'SUBSTITUTED':2,'UNCLASSIFIED':5,'EXPLICITLY_EXCLUDED':5}
     by_path = {item['path']:item for item in account['migrations']}
     assert by_path[G]['classification']==by_path[R]['classification']=='FULL_FILE_SELECTED'
     foundation_execution_once(by_path[G]['execution'],42)

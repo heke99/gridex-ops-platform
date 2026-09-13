@@ -25,7 +25,7 @@ class SourceRestorationTests(unittest.TestCase):
     def test_four_sources_are_selected_whole_at_exact_original_positions(self):
         restored.validate_selection(ROOT,self.selected)
         self.assertEqual(len(self.selected),513)
-        self.assertEqual(self.report['counts'],{'FULL_FILE_SELECTED':587,'SUBSTITUTED':3,'UNCLASSIFIED':5,'EXPLICITLY_EXCLUDED':5})
+        self.assertEqual(self.report['counts'],{'FULL_FILE_SELECTED':588,'SUBSTITUTED':2,'UNCLASSIFIED':5,'EXPLICITLY_EXCLUDED':5})
         for row in self.report['migrations']:
             if row['path'] in restored.SOURCES:
                 self.assertEqual(row['classification'],'FULL_FILE_SELECTED')
@@ -68,8 +68,8 @@ class SourceRestorationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'RESTORATION_SOURCE_ROOT_MISMATCH'):
             restored.validate_selection('/tmp',self.selected)
 
-    def test_full_effects_still_has_8_blocking_original_dispositions(self):
-        self.assertEqual(self.report['counts']['SUBSTITUTED']+self.report['counts']['UNCLASSIFIED'],8)
+    def test_full_effects_still_has_7_blocking_original_dispositions(self):
+        self.assertEqual(self.report['counts']['SUBSTITUTED']+self.report['counts']['UNCLASSIFIED'],7)
         self.assertIs(self.report['sqlExecutionVerified'],False)
         self.assertIs(self.report['ledgerProvenanceVerified'],False)
 

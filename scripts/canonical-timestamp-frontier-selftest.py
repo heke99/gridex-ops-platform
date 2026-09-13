@@ -41,7 +41,7 @@ class TimestampTests(unittest.TestCase):
         self.assertEqual(len(prerequisites), 5)
         self.assertEqual(len(set(path for path, sha in selected)), 513)
         self.assertEqual(self.report['counts']['UNCLASSIFIED'], 5)
-        self.assertEqual(self.report['counts']['SUBSTITUTED'], 3)
+        self.assertEqual(self.report['counts']['SUBSTITUTED'], 2)
         self.assertEqual(selected[-1][0], 'migrations/20260908120000_preserve_gridex_user_has_role_key.sql')
         # Newer prerequisite/boundary migrations execute in the foundation,
         # not at the end of the chronological tail. Do not reorder them.
