@@ -7,7 +7,7 @@
   "native_bootstrap_qualified_code": "c8c3ac5a45895909b539a942679356fddd8ca72c",
   "historical_acl_fixture_code": "ce0bb1b3d24ddaef5024d6fdf04e6a74ec480ebe",
   "evidence": "quality/audits/DB_NATIVE_LEDGER_TAIL_2026-09-14.md",
-  "next_action": "Verify native first43 after exact CLI comment-tail correction; then later atomic envelopes and full schema/ledger/types before main.",
+  "next_action": "Correct and natively qualify ordinal27 explicit locking/atomic CLI-ledger boundary;26 historical inputs currently verified. Full prefix/schema/types/release remain blocked.",
   "verification_scope": "Native initial privileges and synthetic CLI ledger verified; full Gridex historical native replay, full schema parity, generated types and overall release NOT accepted.",
   "main_merged": false,
   "connected_database_modified": false,
@@ -15,5 +15,11 @@
   "local_patch_only": false,
   "local_base_commit": "b3c371c852be3d1838e093bb7fd5698bbd56063a",
   "local_tests_passed": 67,
-  "native_patch_execution_verified": false
+  "native_patch_execution_verified": false,
+  "native_verified_code": "30e5404ceeb73313e41dc906d7a8f415632f4813",
+  "native_verified_foundation_inputs": 26,
+  "native_failure_ordinal": 27,
+  "native_failure_sqlstate": "25P01",
+  "native_run_id": 34855261138,
+  "native_artifact_id": 10353410024
 }
