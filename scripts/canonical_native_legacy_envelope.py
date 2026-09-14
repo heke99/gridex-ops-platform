@@ -139,6 +139,28 @@ def wrap(prefix, parts):
     return raw
 
 
+def source_mentions_identifier(prefix, sql, identifier, depth=0):
+    """Conservative scan of hash-pinned sources, excluding SQL comments only.
+
+    Dollar bodies are scanned recursively because their comments are otherwise
+    one lexer token. Quoted values remain searchable, including dynamic SQL.
+    This is not a general SQL dependency analyser or an admission for new sources;
+    immutable whole-file hashes and exact source order remain mandatory.
+    """
+    if depth > 32 or not re.fullmatch(r'[a-z_][a-z_0-9]*',identifier):
+        raise prefix.PrefixError('NATIVE_LEGACY52_SOURCE_REQUIRED')
+    # The fixed prefix lets the existing lexer accept a comment-only body.
+    # It is used for scanning only and is never inserted into executed SQL.
+    for token, _, _ in prefix.sql_tokens('SELECT 0;\n'+sql):
+        tag = re.match(r'(\$(?:[A-Za-z_][A-Za-z_0-9]*)?\$)',token)
+        if tag:
+            if source_mentions_identifier(prefix,token[len(tag[1]):-len(tag[1])],identifier,depth+1):
+                return True
+        elif identifier in token.casefold():
+            return True
+    return False
+
+
 def prepare(prefix, batch, sources, before, provider_relations=()):
     """Bind exact first43 preimage and source-derived delta assertions to one unit.
 
@@ -167,7 +189,7 @@ CREATE TEMP TABLE legacy_reference(base jsonb NOT NULL,final jsonb) ON COMMIT DR
         if (relation not in PROVIDER_METADATA
                 or before.get('relation/'+relation,{}).get('owner') != PROVIDER_METADATA[relation]
                 or before.get('relation/'+relation,{}).get('kind') not in ('r','p')
-                or any(relation.split('.')[1] in source.data.decode() for source in sources)):
+                or any(source_mentions_identifier(prefix,source.data.decode(),relation.split('.')[1]) for source in sources)):
             raise prefix.PrefixError('NATIVE_LEGACY52_SOURCE_REQUIRED')
     if provider_relations:
         site = "  IF substr(r.key,10) IN ('public.roles',"

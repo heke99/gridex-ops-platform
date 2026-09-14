@@ -58,6 +58,29 @@ class EnvelopeTests(unittest.TestCase):
         with self.assertRaises(self.p.PrefixError):
             self.m.prepare(self.p,self.batch,self.sources,before,('auth.schema_migrations',))
 
+    def test_native_four_provider_profile_does_not_treat_comments_as_references(self):
+        before = {**self.before, **{'relation/'+name:{'kind':'r','owner':owner}
+                  for name,owner in self.m.PROVIDER_METADATA.items()}}
+        relations = tuple(sorted(self.m.PROVIDER_METADATA))
+        program = self.m.prepare(self.p,self.batch,self.sources,before,relations)
+        self.assertEqual(program.provider_relations,relations)
+        self.assertEqual(len(program.sources),9)
+        for source in self.sources:
+            self.assertEqual(program.sql.count(source.data),1)
+        self.assertEqual([state for _,state,_ in self.m.probes(self.p,program)],
+                         ['42501','P5244','57014','P5252','P5253'])
+
+    def test_provider_scan_ignores_only_comments_including_inside_do(self):
+        scan = self.m.source_mentions_identifier
+        for sql in ("-- migrations\nSELECT 1;", "/* migrations */ SELECT 1;",
+                    "DO $$ BEGIN /* migrations */ PERFORM 1; END $$;"):
+            self.assertFalse(scan(self.p,sql,'migrations'))
+        for sql in ('SELECT * FROM storage.migrations;', 'SELECT * FROM storage."migrations";',
+                    "DO $$ BEGIN DELETE FROM storage.migrations; END $$;",
+                    "DO $$ BEGIN EXECUTE 'DELETE FROM storage.migrations'; END $$;",
+                    "DO $x$ BEGIN EXECUTE $sql$DELETE FROM storage.migrations$sql$; END $x$;"):
+            self.assertTrue(scan(self.p,sql,'migrations'))
+
     def test_all_nine_whole_sources_are_one_atomic_cli_unit(self):
         m, p = self.m, self.p
         self.assertEqual(len(self.sources), 9)
