@@ -26,13 +26,45 @@ class EnvelopeTests(unittest.TestCase):
         self.before = {'relation/public.fixture': {'kind': 'r', 'owner': 'postgres'}}
         self.program = self.m.prepare(self.p, self.batch, self.sources, self.before)
 
+    def test_statement_deadline_is_set_before_the_atomic_body(self):
+        self.assertTrue(self.program.sql.startswith(self.m.TIMEOUTS))
+        self.assertEqual([tokens[0] for tokens in self.p.identity(self.program.sql.decode())],
+                         ['SET', 'SET', 'DO'])
+        timeout = next(raw for raw, state, _ in self.m.probes(self.p,self.program) if state=='57014')
+        self.assertIn(b'pg_sleep(61)', timeout)
+        self.assertIn(self.sources[0].data, timeout)
+
+    def test_permission_diagnostic_cannot_publish_unrelated_error_text(self):
+        catalog = {'relation/auth.protected_table': {}, 'relation/public.known': {}}
+        known = self.m.permission_diagnostic(b'ERROR: permission denied for table protected_table (SQLSTATE 42501)', catalog)
+        self.assertEqual(known, {'category':'TABLE_PERMISSION_DENIED','relation':'auth.protected_table'})
+        self.assertEqual(self.m.permission_diagnostic(b'ERROR: permission denied for table secret_person (SQLSTATE 42501)',catalog), {})
+        self.assertEqual(self.m.permission_diagnostic(b'private arbitrary SQL text',catalog), {})
+
+    def test_only_exact_unrelated_provider_metadata_gets_read_lock_projection(self):
+        before = {**self.before,'relation/auth.schema_migrations': {'kind':'r','owner':'supabase_auth_admin'}}
+        program = self.m.prepare(self.p,self.batch,self.sources,before,('auth.schema_migrations',))
+        self.assertIn(b"IN ('auth.schema_migrations') THEN",program.sql)
+        self.assertIn(b'LOCK TABLE %s IN ACCESS SHARE MODE',program.sql)
+        self.assertIn(b'LOCK TABLE %s IN SHARE MODE',program.sql)
+        self.assertIn(b'LOCK TABLE %s IN ACCESS EXCLUSIVE MODE',program.sql)
+        self.assertNotIn(b'LOCK TABLE %s IN ACCESS SHARE MODE',program.old_permission_probe)
+        self.assertEqual([state for _,state,_ in self.m.probes(self.p,program)],
+                         ['42501','P5244','57014','P5252','P5253'])
+        for relation in ('public.customers','auth.users','auth.future_provider_table'):
+            with self.assertRaises(self.p.PrefixError):
+                self.m.prepare(self.p,self.batch,self.sources,before,(relation,))
+        before['relation/auth.schema_migrations']['owner']='postgres'
+        with self.assertRaises(self.p.PrefixError):
+            self.m.prepare(self.p,self.batch,self.sources,before,('auth.schema_migrations',))
+
     def test_all_nine_whole_sources_are_one_atomic_cli_unit(self):
         m, p = self.m, self.p
         self.assertEqual(len(self.sources), 9)
         self.assertEqual([s.alias for s in self.sources], list('ABCDEFHIQ'))
         self.assertEqual([x['ordinal'] for x in self.program.sources], list(range(44, 53)))
-        self.assertEqual(len(p.identity(self.program.sql.decode())), 1)
-        self.assertEqual(p.identity(self.program.sql.decode())[0][0], 'DO')
+        self.assertEqual(len(p.identity(self.program.sql.decode())), 3)
+        self.assertEqual(p.identity(self.program.sql.decode())[-1][0], 'DO')
         self.assertEqual(self.program.name, 'gridex_native_f0044_0052_'+p.sha(self.program.sql)[:12])
         for source in self.sources:
             self.assertEqual(self.program.sql.count(source.data), 1)
@@ -69,10 +101,11 @@ class EnvelopeTests(unittest.TestCase):
     def test_actual_ledger_requires_whole_execution_body(self):
         name = '20260914190000_'+self.program.name+'.sql'
         entry = {'version': name[:14], 'name': self.program.name,
-                 'statements': [self.program.sql.decode().rstrip().removesuffix(';')]}
+                 'statements': ["SET LOCAL lock_timeout = '10s'", "SET LOCAL statement_timeout = '60s'",
+                     self.program.sql[len(self.m.TIMEOUTS):].decode().rstrip().removesuffix(';')]}
         self.p.verify_entry(entry, name, self.program)
         for bad in (["SELECT 1"], entry['statements']*2,
-                    [entry['statements'][0].replace('stage=\'completed\'', 'stage=\'Q\'')]):
+                    [*entry['statements'][:-1],entry['statements'][-1].replace('stage=\'completed\'', 'stage=\'Q\'')]):
             with self.assertRaises(self.p.PrefixError):
                 self.p.verify_entry({**entry, 'statements': bad}, name, self.program)
 
@@ -91,7 +124,7 @@ class EnvelopeTests(unittest.TestCase):
 
     def test_failure_probes_keep_sources_exact_and_check_ledger_boundary(self):
         probes = self.m.probes(self.p, self.program)
-        self.assertEqual([state for _, state, _ in probes], ['P5244', 'P5252', 'P5253'])
+        self.assertEqual([state for _, state, _ in probes], ['P5244', '57014', 'P5252', 'P5253'])
         for raw, _, _ in probes:
             self.assertIn(self.sources[0].data, raw)
             self.assertEqual(raw.count(self.sources[0].data), 1)
@@ -153,8 +186,8 @@ class ProofRuntimeTests(unittest.TestCase):
                 self.assertEqual(args, ('migration', 'up', '--local'))
                 self.assertTrue(kwargs['allow_failure'])
                 state['run'] += 1
-                if state['run'] == 3: self.assertTrue(state['guard'])
-                wanted = ['P5244', 'P5252', 'P5253'][state['run']-1]
+                if state['run'] == 4: self.assertTrue(state['guard'])
+                wanted = ['P5244', '57014', 'P5252', 'P5253'][state['run']-1]
                 if fault == 'file': old.write_bytes(b'SELECT 2;')
                 return SimpleNamespace(returncode=0 if fault == 'success' else 1, stdout=b'',
                     stderr=('SQLSTATE '+('P5200' if fault == 'wrong-state' else wanted)).encode())
@@ -177,11 +210,11 @@ class ProofRuntimeTests(unittest.TestCase):
                 else:
                     m.qualify(p, native, sql, directory, program, expected, retained, snapshot, report)
                     self.assertTrue(report['verified'])
-                    self.assertEqual(len(report['cases']), 3)
+                    self.assertEqual(len(report['cases']), 4)
                     self.assertEqual({x.name for x in directory.iterdir()}, {old.name})
                     self.assertFalse(state['guard'])
 
-    def test_real_control_flow_passes_all_three_probes(self): self.exercise()
+    def test_real_control_flow_passes_all_four_probes(self): self.exercise()
     def test_unexpected_success_is_rejected(self): self.exercise('success')
     def test_wrong_sqlstate_is_rejected(self): self.exercise('wrong-state')
     def test_changed_ledger_is_rejected(self): self.exercise('ledger')

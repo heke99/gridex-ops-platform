@@ -2,7 +2,8 @@
 
 Only the already-verified first43 lifecycle may call this module. All eight
 historical sources, Q, admission, stage guards and preservation assertions run
-unchanged inside one invoker DO statement. No applied historical row is invented.
+inside one invoker DO statement. Only provider-owned, unrelated metadata lock
+modes have a finite native adaptation; no applied historical row is invented.
 Raw baseline catalogs and execution bodies live only in the owned private workdir.
 """
 from dataclasses import dataclass, field
@@ -22,8 +23,22 @@ PINS = {
     'sql/canonical-auth-provisioning-legacy-assertions.sql': 'df55959f4205fe9c1c3caea4edbb0ee0c8e083798e40332e0b4f08adc7255caa',
     'sql/canonical-auth-provisioning-legacy-catalog.sql': '50ecb6deb8e160bc8c98fcca11bb8c976a852ad9d8f1f98aafe185dd18246fcb',
 }
+PROVIDER_METADATA = {'auth.schema_migrations': 'supabase_auth_admin',
+                     'storage.migrations': 'supabase_storage_admin',
+                     'storage.buckets_vectors': 'supabase_storage_admin',
+                     'storage.vector_indexes': 'supabase_storage_admin'}
 TAG = '$gridex_native_legacy52$'
 NAME = r'gridex_native_f0044_0052_[a-f0-9]{12}'
+# Apply the statement deadline before entering DO: changing it inside a
+# running function does not arm the current protocol statement's timer.
+TIMEOUTS = b"SET LOCAL lock_timeout = '10s';\nSET LOCAL statement_timeout = '60s';\n"
+LOCK_PRIVILEGES = """SELECT coalesce(jsonb_agg(jsonb_build_object(
+ 'relation',format('%I.%I',n.nspname,c.relname),'owner',pg_get_userbyid(c.relowner),
+ 'canSelect',has_table_privilege(current_user,c.oid,'SELECT'),
+ 'canWrite',has_table_privilege(current_user,c.oid,'INSERT,UPDATE,DELETE,TRUNCATE'),
+ 'canShareLock',has_table_privilege(current_user,c.oid,'MAINTAIN,UPDATE,DELETE,TRUNCATE'))
+ ORDER BY n.nspname,c.relname),'[]'::jsonb) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+ WHERE n.nspname IN ('public','auth','storage') AND c.relkind IN ('r','p');"""
 FINISH = """DO $legacy52_finish$ BEGIN
  IF (SELECT count(*) FROM pg_temp.legacy_context WHERE txid=txid_current() AND stage='completed')<>1
  THEN RAISE EXCEPTION 'NATIVE_LEGACY52_INCOMPLETE' USING ERRCODE='P5200'; END IF;
@@ -40,6 +55,11 @@ BOUNDARY = """
    'company_memberships','user_profiles','user_roles']) t WHERE NOT EXISTS
    (SELECT FROM pg_locks WHERE pid=pg_backend_pid() AND relation=to_regclass('public.'||t)
     AND mode='AccessExclusiveLock' AND granted))
+ OR EXISTS (SELECT FROM unnest(ARRAY['auth.schema_migrations','storage.migrations',
+   'storage.buckets_vectors','storage.vector_indexes']) provider_relation
+   WHERE to_regclass(provider_relation) IS NOT NULL AND NOT EXISTS (SELECT FROM pg_locks
+     WHERE pid=pg_backend_pid() AND relation=to_regclass(provider_relation)
+       AND mode IN ('AccessShareLock','ShareLock','AccessExclusiveLock') AND granted))
  OR (SELECT count(*) FROM pg_temp.legacy_context WHERE txid=txid_current() AND stage='completed')<>1
  OR NOT EXISTS (SELECT FROM public.gridex_native_lifecycle_probe WHERE id=5200001)
  THEN RAISE EXCEPTION 'NATIVE_LEGACY52_BOUNDARY_FAILED' USING ERRCODE='P5200'; END IF;
@@ -98,6 +118,8 @@ class Envelope:
     sql: bytes = field(repr=False)
     sources: tuple
     parts: tuple = field(repr=False)
+    provider_relations: tuple = ()
+    old_permission_probe: bytes = field(default=b'', repr=False)
 
     @property
     def name(self):
@@ -111,18 +133,19 @@ def wrap(prefix, parts):
         if TAG in text or tag in text:
             raise prefix.PrefixError('NATIVE_LEGACY52_SOURCE_REQUIRED')
         statements.append('EXECUTE '+tag+text+tag+';')
-    raw = ('DO '+TAG+'\nBEGIN\n'+'\n'.join(statements)+'\nEND\n'+TAG+';\n').encode()
+    raw = TIMEOUTS+('DO '+TAG+'\nBEGIN\n'+'\n'.join(statements)+'\nEND\n'+TAG+';\n').encode()
     if len(raw) > prefix.MAX_SQL:
         raise prefix.PrefixError('NATIVE_SQL_INPUT_REQUIRED')
     return raw
 
 
-def prepare(prefix, batch, sources, before):
+def prepare(prefix, batch, sources, before, provider_relations=()):
     """Bind exact first43 preimage and source-derived delta assertions to one unit.
 
     The existing executor's SET TRANSACTION is replaced by an exact isolation
     precondition: the CLI's DO statement has already acquired a snapshot. No
-    other context, source, admission or assertion SQL is rewritten.
+    historical source or preservation assertion SQL is rewritten. The exact
+    native-only provider lock projection is explicit below.
     """
     if (sources != batch.validate_sources(batch.reviewed_paths())
             or not isinstance(before, dict) or not before):
@@ -137,6 +160,24 @@ CREATE TEMP TABLE legacy_reference(base jsonb NOT NULL,final jsonb) ON COMMIT DR
     admission = (batch.SUPPORT/'canonical-auth-provisioning-legacy-admission.sql').read_text()
     batch.validate_admission(admission)
     admission = admission.replace('-- LEGACY_CATALOG_CAPTURE', batch.catalog_capture('legacy_catalog_before'))
+    original_admission = admission
+    if type(provider_relations) is not tuple or provider_relations != tuple(sorted(set(provider_relations))):
+        raise prefix.PrefixError('NATIVE_LEGACY52_SOURCE_REQUIRED')
+    for relation in provider_relations:
+        if (relation not in PROVIDER_METADATA
+                or before.get('relation/'+relation,{}).get('owner') != PROVIDER_METADATA[relation]
+                or before.get('relation/'+relation,{}).get('kind') not in ('r','p')
+                or any(relation.split('.')[1] in source.data.decode() for source in sources)):
+            raise prefix.PrefixError('NATIVE_LEGACY52_SOURCE_REQUIRED')
+    if provider_relations:
+        site = "  IF substr(r.key,10) IN ('public.roles',"
+        if admission.count(site)!=1:
+            raise prefix.PrefixError('NATIVE_LEGACY52_SOURCE_REQUIRED')
+        names = ','.join(batch.literal(name) for name in provider_relations)
+        native_site = ("  IF substr(r.key,10) IN ("+names+") THEN\n"
+                       "   EXECUTE format('LOCK TABLE %s IN ACCESS SHARE MODE',actual::regclass);\n"
+                       "  ELSIF substr(r.key,10) IN ('public.roles',")
+        admission = admission.replace(site,native_site)
     parts = [context, admission]
     previous = 'admitted'
     for source in sources:
@@ -150,7 +191,10 @@ CREATE TEMP TABLE legacy_reference(base jsonb NOT NULL,final jsonb) ON COMMIT DR
     parts.extend([assertions, FINISH])
     receipts = tuple({'ordinal': i, 'source': 'migrations/'+s.path.name,
                       'sourceSha256': s.sha256} for i, s in enumerate(sources, 44))
-    return Envelope(wrap(prefix, parts), receipts, tuple(parts))
+    old_probe = (wrap(prefix,[context,original_admission,sources[0].data.decode(),
+                 "DO $old$ BEGIN RAISE EXCEPTION 'OLD_PERMISSION_PROBE_DID_NOT_FAIL' USING ERRCODE='P5200'; END $old$;"])
+                 if provider_relations else b'')
+    return Envelope(wrap(prefix, parts), receipts, tuple(parts), provider_relations, old_probe)
 
 
 def catalog_sql(batch):
@@ -177,7 +221,10 @@ def probes(prefix, program):
     # Mid-source failure deliberately occurs after full A, before B and Q.
     mid = list(program.parts[:3])+["DO $fail$ BEGIN RAISE EXCEPTION 'MID' USING ERRCODE='P5244'; END $fail$;"]
     post = ('DO $post$ BEGIN\n'+BOUNDARY+"RAISE EXCEPTION 'POST' USING ERRCODE='P5252'; END $post$;\n").encode()
-    return ((wrap(prefix, mid), 'P5244', False),
+    timed = list(program.parts[:3])+["DO $deadline$ BEGIN PERFORM pg_catalog.pg_sleep(61); END $deadline$;"]
+    old = ((program.old_permission_probe, '42501', False),) if program.provider_relations else ()
+    return old+((wrap(prefix, mid), 'P5244', False),
+            (wrap(prefix, timed), '57014', False),
             (program.sql+MARKER+post, 'P5252', False),
             (program.sql+MARKER, 'P5253', True))
 
@@ -197,6 +244,18 @@ def create_unit(prefix, native, directory, raw, expected, files):
     physical = prefix.private_write(path, raw)
     prefix.verify_private(path, raw, physical)
     return path, physical, name
+
+
+def permission_diagnostic(stderr, catalog):
+    """Publish only a relation identity already in this run's admitted catalog."""
+    match = re.search(rb'(?:^|\n)ERROR: permission denied for (?:table|relation) ([a-z_][a-z_0-9]*) \(SQLSTATE 42501\)', stderr)
+    if not match:
+        return {}
+    names = [key[len('relation/'):] for key in catalog
+             if key.startswith('relation/') and key.rsplit('.',1)[-1]==match[1].decode()]
+    if len(names)!=1 or not re.fullmatch(r'(?:public|auth|storage)\.[a-z_][a-z_0-9]*', names[0]):
+        return {}
+    return {'category':'TABLE_PERMISSION_DENIED','relation':names[0]}
 
 
 def qualify(prefix, native, sql, directory, program, expected, retained, snapshot, report):
@@ -222,6 +281,9 @@ def qualify(prefix, native, sql, directory, program, expected, retained, snapsho
             actual_state = match[1].decode() if match else None
             if result.returncode == 0 or actual_state != state:
                 report['unexpectedSqlstate'] = actual_state
+                report['permissionDiagnostic'] = permission_diagnostic(result.stderr, before.get('catalog', {}))
+                raise prefix.PrefixError('NATIVE_LEGACY52_PROOF_REQUIRED')
+            if state=='42501' and permission_diagnostic(result.stderr,before.get('catalog',{})).get('relation') != program.provider_relations[0]:
                 raise prefix.PrefixError('NATIVE_LEGACY52_PROOF_REQUIRED')
             if sql(prefix.LEDGER_SQL) != expected:
                 raise prefix.PrefixError('NATIVE_FAILED_LEDGER_CHANGED')
@@ -237,7 +299,9 @@ def qualify(prefix, native, sql, directory, program, expected, retained, snapsho
                                 'ledgerUnchanged': True, 'catalogAndRowsRestored': True})
     report.update(verified=True, phase='VERIFIED', locksHeldAtLedgerInsert=True,
                   temporaryContextHeldAtLedgerInsert=True, localTimeoutsPreserved=True,
-                  noAppliedProbeRows=True, helpersDisposed=True)
+                  noAppliedProbeRows=True, helpersDisposed=True, statementDeadlineExecuted=True,
+                  originalProviderLockDenialReproduced=bool(program.provider_relations),
+                  providerMetadataReadLocksHeld=True)
 
 
 def prerequisite(prefix, sql, work, previous):
@@ -296,16 +360,29 @@ def execute(prefix, native, sql, work, previous, report):
     def snapshot():
         return {'catalog': sql(catalog_sql(batch)), 'rows': sql(ROWS_SQL)}
     before = snapshot()
+    permissions = sql(LOCK_PRIVILEGES)
+    if (type(permissions) is not list or any(type(item) is not dict
+            or set(item)!={'relation','owner','canShareLock','canSelect','canWrite'}
+            or 'relation/'+item['relation'] not in before['catalog']
+            or any(type(item[key]) is not bool for key in ('canShareLock','canSelect','canWrite')) for item in permissions)):
+        raise prefix.PrefixError('NATIVE_LEGACY52_SOURCE_REQUIRED')
+    deficits = [item for item in permissions if not item['canShareLock']]
+    report['shareLockPrivilegeDeficits'] = deficits
+    if any(item['relation'] not in PROVIDER_METADATA or not item['canSelect'] or item['canWrite']
+           or item['owner']!=PROVIDER_METADATA[item['relation']] for item in deficits):
+        raise prefix.PrefixError('NATIVE_LEGACY52_SOURCE_REQUIRED')
+    provider_relations = tuple(sorted(item['relation'] for item in deficits))
+    report['nativeReadOnlyProviderMetadata'] = provider_relations
     if sql("SELECT to_json(to_regnamespace('gridex_native_legacy52_probe') IS NULL);") is not True:
         raise prefix.PrefixError('NATIVE_LEGACY52_PROOF_REQUIRED')
-    program = prepare(prefix, batch, sources, before['catalog'])
+    program = prepare(prefix, batch, sources, before['catalog'], provider_relations)
     report['sources'] = program.sources
     report['transactionBoundary44_52'] = {}
     qualify(prefix, native, sql, directory, program, expected, retained, snapshot,
             report['transactionBoundary44_52'])
     # Re-read all nine immutable inputs/support after probes, before real apply.
     fresh_batch, fresh_sources = load_sources(prefix)
-    if prepare(prefix, fresh_batch, fresh_sources, before['catalog']).sql != program.sql:
+    if prepare(prefix, fresh_batch, fresh_sources, before['catalog'], provider_relations).sql != program.sql:
         raise prefix.PrefixError('NATIVE_LEGACY52_SOURCE_REQUIRED')
     report['phase'] = 'ATOMIC_CLI_MIGRATION'
     path, physical, name = create_unit(prefix, native, directory, program.sql, expected,
