@@ -3,7 +3,7 @@
 
 The default command qualifies synthetic initialization and ledger behavior.
 The ordinary replay caller can additionally request the pinned historical
-first43 boundary, atomic44-52/53-56 and whole-source57. Neither mode accepts the
+first43 boundary, atomic44-52/53-56, whole-source57 and bounded58-63. Neither mode accepts the
 complete Gridex chain or its types.
 Raw CLI/Docker streams stay private; no hosted credentials are accepted.
 """
@@ -155,6 +155,21 @@ def failure_code(error, historical):
         'NATIVE_LEGACY52_PREFIX_REQUIRED',
         'NATIVE_LEGACY52_PROOF_REQUIRED',
         'NATIVE_LEGACY52_ROLLBACK_REQUIRED',
+        'NATIVE_FIXED63_AUTH_DEFAULT_REQUIRED',
+        'NATIVE_FIXED63_BRANCH_EFFECT_REQUIRED',
+        'NATIVE_FIXED63_CONSTRUCTOR_REQUIRED',
+        'NATIVE_FIXED63_CONTEXT_REQUIRED',
+        'NATIVE_FIXED63_EMPTY_PREIMAGE_REQUIRED',
+        'NATIVE_FIXED63_GRAPH_REQUIRED',
+        'NATIVE_FIXED63_LEDGER_FAULT',
+        'NATIVE_FIXED63_ORACLE_REQUIRED',
+        'NATIVE_FIXED63_PREFIX_REQUIRED',
+        'NATIVE_FIXED63_PREREQUISITES_REQUIRED',
+        'NATIVE_FIXED63_PROOF_REQUIRED',
+        'NATIVE_FIXED63_PROVIDER_DRIFT',
+        'NATIVE_FIXED63_RESTORATION_REQUIRED',
+        'NATIVE_FIXED63_ROLLBACK_REQUIRED',
+        'NATIVE_FIXED63_SOURCE_REQUIRED',
         'NATIVE_DEDUPE57_COMMIT_BOUNDARY_REQUIRED',
         'NATIVE_DEDUPE57_EMPTY_PREIMAGE_REQUIRED',
         'NATIVE_DEDUPE57_FINAL_REQUIRED',
@@ -259,7 +274,7 @@ def run(*, historical_prefix=False):
     cli = shutil.which('supabase')
     if cli is None:
         raise ValueError('PINNED_NATIVE_CLI_REQUIRED')
-    report = {'scope':('BOUNDED_THROUGH57_NATIVE_HISTORY_NOT_FULL_REPLAY_ACCEPTANCE' if historical_prefix
+    report = {'scope':('BOUNDED_THROUGH63_NATIVE_HISTORY_NOT_FULL_REPLAY_ACCEPTANCE' if historical_prefix
                        else 'SYNTHETIC_NATIVE_LIFECYCLE_NOT_GRIDEX_REPLAY_ACCEPTANCE'),
               'cliVersion':VERSION,'outcome':'BLOCKED','historicalGridexSourcesExecuted':False,
               'completeReplayVerified':False,'generatedTypesVerified':False,'productionModified':False}
@@ -379,6 +394,14 @@ def run(*, historical_prefix=False):
                                  report['historicalLegacy52'], report['historicalRepair56'],
                                  report['historicalDedupe57'], provider_bootstrap=report['providerEventBootstrap'])
                 report['foundationInputsExecuted'] = 57
+                phase = 'HISTORICAL_FIXED58_63_NATIVE_LEDGER'
+                from canonical_native_fixed63 import execute as execute_fixed63
+                report['historicalFixed63'] = {}
+                execute_fixed63(historical, native, sql, work, report['historicalPrefix'],
+                                report['historicalLegacy52'], report['historicalRepair56'],
+                                report['historicalDedupe57'], report['historicalFixed63'],
+                                provider_bootstrap=report['providerEventBootstrap'])
+                report['foundationInputsExecuted'] = 63
             success = True
         except Exception as error:
             report.update(outcome='BLOCKED',phase=phase,errorType=type(error).__name__)
@@ -416,7 +439,7 @@ def run(*, historical_prefix=False):
                                                   and report.get('cleanupVerified'))
     success = success and report['privateWorkspaceRemoved']
     if success:
-        report['outcome'] = ('NATIVE_HISTORICAL_THROUGH57_VERIFIED' if historical_prefix
+        report['outcome'] = ('NATIVE_HISTORICAL_THROUGH63_VERIFIED' if historical_prefix
                              else 'NATIVE_LIFECYCLE_VERIFIED')
     output = ROOT/'artifacts'; output.mkdir(exist_ok=True)
     (output/'native-supabase-lifecycle.json').write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')

@@ -69,7 +69,7 @@ class SourceTests(unittest.TestCase):
             cli=base/'supabase';cli.write_text('fixture');(base/'supabase-go').write_text('fixture')
             name=self.m.program(self.p,self.source).name
             self.assertEqual(t.cli_command(cli,work,project,('migration','new',name))[-1],name)
-            for bad in ('gridex_native_f0058_'+'a'*12,'gridex_native_f0057_0063_'+'a'*12,name+'x'):
+            for bad in ('gridex_native_f0064_'+'a'*12,'gridex_native_f0057_0063_'+'a'*12,name+'x'):
                 with self.assertRaises(ValueError):t.cli_command(cli,work,project,('migration','new',bad))
 
     def test_index_cleanup_is_not_domain_data_rollback(self):
