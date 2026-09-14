@@ -373,12 +373,15 @@ def rbac_prefix_journal_contract():
         'except select * from rbac_journal_policies_before',
         'count(*)=2 and bool_and(relrowsecurity and not relforcerowsecurity',
         'relowner=(select oid from pg_roles where rolname=current_user)',
-        'relacl is null and reloptions is null',
+        'select * from rbac_journal_metadata_before except',
+        'except select * from rbac_journal_metadata_before',
+        'JOURNAL_ACL_NEGATIVE_CONTROL',
+        'JOURNAL_ACL_NEGATIVE_ROLLBACK_PRESERVED',
         "conrelid='customer_sync_events'::regclass and contype='f'",
         '(select count(*)=6 from expected)',
         '(select * from actual except select * from expected)',
         '(select * from expected except select * from actual)',
-        '6D2 journal RLS/owner/default ACL/options retained; final runtime access remains OPEN',
+        '6D2 journal RLS/owner/options retained; final runtime access remains OPEN',
     ]:
         assert marker in sql, marker
     baseline = sql.index('create temporary table rbac_journal_policies_before as')

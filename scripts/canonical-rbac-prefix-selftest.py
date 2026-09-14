@@ -99,6 +99,7 @@ create temporary table rbac_governance_checks as select oid,conrelid,conname,pg_
 create temporary table rbac_governance_objects as select oid,relname,relacl,reloptions from pg_class where oid in ('tenant_governance_events'::regclass,'platform_tenant_governance_overview'::regclass,'tenant_governance_events_company_created_idx'::regclass,'tenant_governance_events_target_user_created_idx'::regclass);
 create temporary table rbac_operations_constraints as select oid,conname,contype,conkey,pg_get_constraintdef(oid) definition from pg_constraint where conrelid='customer_sync_events'::regclass;
 create temporary table rbac_operations_objects as select oid,relname,relacl,reloptions from pg_class where oid in ('customer_sync_events'::regclass,'customer_sync_events_pkey'::regclass,'customer_sync_events_company_status_idx'::regclass,'customer_sync_events_customer_idx'::regclass,'customer_sync_events_source_idx'::regclass);
+create temporary table rbac_journal_metadata_before as {journal_metadata_catalog()};
 create temporary table rbac_journal_policies_before as {journal_policy_catalog()};
 create temporary table prefix_roles_before as select * from roles;
 create temporary table prefix_permissions_before as select * from permissions;
@@ -160,14 +161,33 @@ def journal_policy_catalog():
   from pg_policy where polrelid in ('public.customer_sync_events'::regclass,'public.tenant_governance_events'::regclass)"""
 
 
+def journal_metadata_catalog():
+    return """select oid,relowner,relacl,reloptions,relrowsecurity,relforcerowsecurity
+  from pg_class where oid in ('public.customer_sync_events'::regclass,'public.tenant_governance_events'::regclass)"""
+
+
+def journal_metadata_unchanged():
+    return f"""not exists(
+  (select * from rbac_journal_metadata_before except ({journal_metadata_catalog()}))
+  union all (({journal_metadata_catalog()}) except select * from rbac_journal_metadata_before))"""
+
+
 def journal_checks():
     # Complete 6D2 hardens both journals; none of the three 6E files targets them.
     # As in Task9, PostgreSQL deparses independent source-literal expected policies.
     return f"""select test_assert((select count(*)=2 and bool_and(relrowsecurity and not relforcerowsecurity
   and relowner=(select oid from pg_roles where rolname=current_user)
-  and relacl is null and reloptions is null) from pg_class
+  and reloptions is null) from pg_class
   where oid in ('public.customer_sync_events'::regclass,'public.tenant_governance_events'::regclass)),
-  '6D2 journal RLS/owner/default ACL/options retained; final runtime access remains OPEN');
+  '6D2 journal RLS/owner/options retained; final runtime access remains OPEN');
+select test_assert({journal_metadata_unchanged()},
+  'exact journal ACL/owner/options/RLS preimages preserved, including native default grants');
+-- A real ACL mutation must be detected, independently of default-ACL encoding.
+BEGIN;
+REVOKE SELECT ON public.customer_sync_events FROM authenticated;
+select test_assert(not ({journal_metadata_unchanged()}), 'JOURNAL_ACL_NEGATIVE_CONTROL');
+ROLLBACK;
+select test_assert({journal_metadata_unchanged()}, 'JOURNAL_ACL_NEGATIVE_ROLLBACK_PRESERVED');
 select test_assert(not exists(select 1 from pg_constraint where conrelid='customer_sync_events'::regclass and contype='f'),
   'operations journal still has no source-created FK after 6D2/6E/helper');
 select test_assert(not exists(

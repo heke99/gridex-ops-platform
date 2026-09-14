@@ -299,8 +299,13 @@ class Proof:
         before=self.snapshot(NATIVE)
         for role in ('anon','authenticated','service_role'):
             for view in ('billing_readiness_flags','gridex_tenant_runtime_readiness'):
-                result=self.run(NATIVE,'SET LOCAL ROLE '+role+'; SELECT * FROM public.'+view+';')
-                batch.check(result.code!=0 and result.state=='42501','READINESS_VIEW_ACL_REQUIRED')
+                granted=self.query(NATIVE,"SELECT has_table_privilege('"+role+"','public."+view+"','SELECT');")
+                batch.check(granted.strip()=='t','READINESS_NATIVE_STARTING_VIEW_ACL_REQUIRED')
+                # Rollback-only negative control, not a claim that these
+                # intermediate historical views deny clients before hardening.
+                sql='REVOKE SELECT ON public.'+view+' FROM PUBLIC, '+role+'; SET LOCAL ROLE '+role+'; SELECT * FROM public.'+view+'; ROLLBACK;'
+                result=self.run(NATIVE,sql)
+                batch.check(result.code!=0 and result.state=='42501','READINESS_ROLLBACK_VIEW_ACL_REQUIRED')
         # Rollback-only synthetic branches preserve actual view ACLs and all rows.
         setup="DELETE FROM public.ediel_actor_settings; DELETE FROM public.communication_routes; DELETE FROM public.ediel_route_profiles;"
         for status,ediel,route,expected in (('active',None,False,'missing_actor_profile'),('active','999',False,'missing_route'),
@@ -309,9 +314,14 @@ class Proof:
             # Seed active so operational INSERT guard succeeds before status changes.
             sql=setup+"UPDATE public.companies SET status='active',ediel_id="+('NULL' if ediel is None else "'999'")+";"
             if route:sql+="INSERT INTO public.communication_routes(id,company_id,route_name,created_at,updated_at) SELECT '82000000-0000-4000-8000-000000000001',id,'Readiness route','2020-01-01','2020-01-02' FROM public.companies;"
-            sql+="UPDATE public.companies SET status='"+status+"'; SELECT readiness_status FROM public.gridex_tenant_runtime_readiness; ROLLBACK;"
-            result=self.run(NATIVE,sql)
-            batch.check(result.code==0 and result.state=='00000' and result.stdout.strip()==expected,'READINESS_VIEW_BRANCH_REQUIRED')
+            sql+="UPDATE public.companies SET status='"+status+"';"
+            # These original owner-context views expose the same synthetic
+            # rows to clients. Preserve this finding; final hardening remains
+            # a separate release gate, never certified by this source proof.
+            for role in ('postgres','anon','authenticated','service_role'):
+                probe=sql+'SET LOCAL ROLE '+role+'; SELECT readiness_status FROM public.gridex_tenant_runtime_readiness; ROLLBACK;'
+                result=self.run(NATIVE,probe)
+                batch.check(result.code==0 and result.state=='00000' and result.stdout.strip()==expected,'READINESS_HISTORICAL_CLIENT_VIEW_EXPOSURE_REQUIRED')
         for enabled,expected in ((False,'missing_route'),(True,'ready')):
             sql=setup+"UPDATE public.companies SET status='active',ediel_id=NULL;"
             sql+="INSERT INTO public.ediel_actor_settings(id,company_id,actor_name,actor_ediel_id,created_at,updated_at) SELECT '82000000-0000-4000-8000-000000000002',id,'Readiness actor','999990003','2020-01-01','2020-01-02' FROM public.companies;"
@@ -320,9 +330,15 @@ class Proof:
             result=self.run(NATIVE,sql)
             batch.check(result.code==0 and result.state=='00000' and result.stdout.strip()==expected,'READINESS_PROFILE_BRANCH_REQUIRED')
         sql="INSERT INTO public.billing_underlays(id,company_id,status,readiness_status,created_at,updated_at) SELECT ('83000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,id,'pending',value,'2020-01-01','2020-01-02' FROM public.companies CROSS JOIN (VALUES(1,'warning'),(2,'blocked'),(3,'requires_correction'),(4,'ready'),(5,NULL)) x(n,value); SELECT string_agg(readiness_status,',' ORDER BY readiness_status) FROM public.billing_readiness_flags; ROLLBACK;"
-        result=self.run(NATIVE,sql)
-        batch.check(result.code==0 and result.state=='00000' and result.stdout.strip()=='blocked,requires_correction,warning','READINESS_BILLING_BRANCH_REQUIRED')
+        for role in ('postgres','anon','authenticated','service_role'):
+            probe=sql.replace('SELECT string_agg(', 'SET LOCAL ROLE '+role+'; SELECT string_agg(')
+            result=self.run(NATIVE,probe)
+            batch.check(result.code==0 and result.state=='00000' and result.stdout.strip()=='blocked,requires_correction,warning','READINESS_HISTORICAL_BILLING_VIEW_EXPOSURE_REQUIRED')
         batch.check(r.encoded(self.snapshot(NATIVE))==r.encoded(before),'READINESS_PROBE_PRESERVATION_REQUIRED')
+        print(json.dumps({'scope':'HISTORICAL_READINESS_SOURCE_CHARACTERIZATION',
+            'clientViewRowsVisibleAtIntermediateBoundary':True,
+            'rollbackAclNegativeControls':6,'completeCatalogAndRowsPreserved':True,
+            'finalAccessSecurityAccepted':False,'fullReplayAccepted':False}),flush=True)
 
 
 def seed_sql():

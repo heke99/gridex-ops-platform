@@ -279,9 +279,14 @@ class Proof:
 
     def privileges(self):
         before=self.snapshot(NATIVE)
+        # Native initial grants are present. Characterize this intermediate
+        # source honestly; ACL denial and row-policy denial are different tests.
         for role in ('anon','authenticated','service_role'):
-            result=self.run(NATIVE,'SET LOCAL ROLE '+role+'; SELECT * FROM public.customer_lifecycle_events;')
-            batch.check(result.code!=0 and result.state=='42501','OPERATIONS_ACL_DENIAL_REQUIRED')
+            granted=self.query(NATIVE,"SELECT has_table_privilege('"+role+"','public.customer_lifecycle_events','SELECT');")
+            batch.check(granted.strip()=='t','OPERATIONS_NATIVE_STARTING_ACL_REQUIRED')
+            sql='REVOKE SELECT ON public.customer_lifecycle_events FROM PUBLIC, '+role+'; SET LOCAL ROLE '+role+'; SELECT * FROM public.customer_lifecycle_events; ROLLBACK;'
+            result=self.run(NATIVE,sql)
+            batch.check(result.code!=0 and result.state=='42501','OPERATIONS_ROLLBACK_ACL_DENIAL_REQUIRED')
         gap=self.query(NATIVE,"SELECT missing_select_policy,missing_insert_policy,missing_update_policy FROM public.gridex_debug_batch2_tenant_policy_gaps_v WHERE table_name='customer_lifecycle_events';")
         batch.check(gap.strip()=='t|t|t','OPERATIONS_HISTORICAL_POLICY_GAP_REQUIRED')
         customer="INSERT INTO public.customers(id,company_id,full_name,created_at,updated_at) SELECT '76000000-0000-4000-8000-000000000001',id,'Operations journal fixture','2020-01-01','2020-01-02' FROM public.companies LIMIT 1;"
@@ -293,9 +298,12 @@ class Proof:
         cascade=customer+event+"DELETE FROM public.customers WHERE id='76000000-0000-4000-8000-000000000001'; SELECT count(*) FROM public.customer_lifecycle_events; ROLLBACK;"
         result=self.run(NATIVE,cascade)
         batch.check(result.code==0 and result.state=='00000' and result.stdout.strip()=='0','OPERATIONS_SOURCE_CASCADE_REQUIRED')
-        # Labelled rollback-only grants measure the policy separately from actual ACL denial.
-        for claim,count in (('authenticated','0'),('service_role','1')):
-            sql=customer+event+"GRANT SELECT ON public.customer_lifecycle_events TO authenticated; SET LOCAL ROLE authenticated; SET LOCAL request.jwt.claim.role='"+claim+"'; SELECT count(*) FROM public.customer_lifecycle_events; ROLLBACK;"
+        # Actual client/service roles exercise the existing policy without
+        # granting access in the probe. The deliberately supplied service claim
+        # characterizes historical auth.role() semantics, not API JWT forgery.
+        for role,claim,count in (('anon','anon','0'),('authenticated','authenticated','0'),
+                                 ('service_role','service_role','1'),('authenticated','service_role','1')):
+            sql=customer+event+"SET LOCAL ROLE "+role+"; SET LOCAL request.jwt.claim.role='"+claim+"'; SELECT count(*) FROM public.customer_lifecycle_events; ROLLBACK;"
             result=self.run(NATIVE,sql)
             batch.check(result.code==0 and result.state=='00000' and result.stdout.strip()==count,'OPERATIONS_ROLLBACK_POLICY_REQUIRED')
         batch.check(r.encoded(self.snapshot(NATIVE))==r.encoded(before),'OPERATIONS_PRIVILEGE_PROBE_PRESERVATION_REQUIRED')
