@@ -318,7 +318,7 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
         spec=importlib.util.spec_from_file_location('existing_native_fixture',ROOT/'scripts/canonical-native-supabase-lifecycle-selftest.py')
         cls.fixture=importlib.util.module_from_spec(spec);spec.loader.exec_module(cls.fixture)
 
-    def execute(self, fail=False, cleanup=False, legacy_fail=False, repair_fail=False, provider_fail=False, dedupe_fail=False, fixed_fail=False):
+    def execute(self, fail=False, cleanup=False, legacy_fail=False, repair_fail=False, provider_fail=False, dedupe_fail=False, fixed_fail=False, alignment_fail=False):
         native=self.fixture.m
         original=native.run
         prepared=object()
@@ -356,6 +356,12 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
             self.assertEqual(provider_bootstrap,native.provider_events.receipt())
             if fixed_fail:raise ValueError('private fixed SQL must not reach report')
             progress.update(verified=True,foundationInputsExecuted=6,cumulativeFoundationInputsExecuted=63)
+        import canonical_native_alignment68 as alignment
+        def apply_alignment(prefix,cli,sql,work,first43,legacy52,repair56,dedupe57,fixed63,progress,*,provider_bootstrap):
+            self.assertEqual(fixed63['cumulativeFoundationInputsExecuted'],63)
+            self.assertEqual(provider_bootstrap,native.provider_events.receipt())
+            if alignment_fail:raise ValueError('private alignment SQL must not reach report')
+            progress.update(verified=True,foundationInputsExecuted=5,cumulativeFoundationInputsExecuted=68)
         helper=SimpleNamespace(prepare=lambda:prepared,execute=apply)
         with patch.object(native,'load_historical_prefix',return_value=helper), \
              patch.object(native.provider_events,'bootstrap',side_effect=ValueError('NATIVE_PROVIDER_EVENT_IMAGE_REQUIRED') if provider_fail else None,return_value=native.provider_events.receipt()), \
@@ -363,6 +369,7 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
              patch.object(repair,'execute',side_effect=apply_repair), \
              patch.object(dedupe,'execute',side_effect=apply_dedupe), \
              patch.object(fixed,'execute',side_effect=apply_fixed), \
+             patch.object(alignment,'execute',side_effect=apply_alignment), \
              patch.object(native,'run',side_effect=lambda:original(historical_prefix=True)):
             return self.fixture.NativeTests().execute_fixture('cleanup' if cleanup else None)
 
@@ -376,8 +383,9 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
     def test_bounded_native_success_cannot_certify_full_replay(self):
         status,report=self.execute()
         self.assertEqual(status,0)
-        self.assertEqual(report['outcome'],'NATIVE_HISTORICAL_THROUGH63_VERIFIED')
-        self.assertEqual(report['foundationInputsExecuted'],63)
+        self.assertEqual(report['outcome'],'NATIVE_HISTORICAL_THROUGH68_VERIFIED')
+        self.assertEqual(report['foundationInputsExecuted'],68)
+        self.assertTrue(report['historicalAlignment68']['verified'])
         self.assertTrue(report['historicalFixed63']['verified'])
         self.assertTrue(report['historicalDedupe57']['verified'])
         self.assertTrue(report['historicalRepair56']['verified'])
@@ -436,6 +444,16 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
         self.assertFalse(report['completeReplayVerified'])
         self.assertNotIn('private fixed SQL',str(report))
 
+    def test_alignment_failure_preserves_verified63_without_accepting68(self):
+        status,report=self.execute(alignment_fail=True)
+        self.assertEqual(status,1)
+        self.assertEqual(report['outcome'],'BLOCKED')
+        self.assertEqual(report['phase'],'HISTORICAL_ALIGNMENT64_68_NATIVE_LEDGER')
+        self.assertEqual(report['foundationInputsExecuted'],63)
+        self.assertTrue(report['historicalPrivateInputsDisposed'])
+        self.assertFalse(report['completeReplayVerified'])
+        self.assertNotIn('private alignment SQL',str(report))
+
     def test_cleanup_failure_cannot_certify_historical_input_disposal(self):
         status,report=self.execute(cleanup=True)
         self.assertEqual(status,1)
@@ -455,6 +473,9 @@ def load_tests(loader, tests, pattern):
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     tests.addTests(loader.loadTestsFromModule(module))
     spec=importlib.util.spec_from_file_location('native63_tests',ROOT/'scripts/test-canonical-native-fixed63.py')
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    tests.addTests(loader.loadTestsFromModule(module))
+    spec=importlib.util.spec_from_file_location('native68_tests',ROOT/'scripts/test-canonical-native-alignment68.py')
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     tests.addTests(loader.loadTestsFromModule(module))
     return tests

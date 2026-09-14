@@ -32,7 +32,9 @@ def cli_command(cli, work, project, arguments):
                    and re.fullmatch(r'gridex_native_f0057_[a-f0-9]{12}', arguments[2]))
     fixed_name = (len(arguments) == 3 and tuple(arguments[:2]) == ('migration', 'new')
                   and re.fullmatch(r'gridex_native_(?:f00(?:58|59|60|61|62|63)|fixed_constructor)_[a-f0-9]{12}', arguments[2]))
-    if tuple(arguments) not in allowed and not historical_name and not legacy_name and not repair_name and not dedupe_name and not fixed_name:
+    alignment_name = (len(arguments) == 3 and tuple(arguments[:2]) == ('migration', 'new')
+                      and re.fullmatch(r'gridex_native_f0064_0068_[a-f0-9]{12}', arguments[2]))
+    if tuple(arguments) not in allowed and not historical_name and not legacy_name and not repair_name and not dedupe_name and not fixed_name and not alignment_name:
         raise ValueError('FIXED_NATIVE_CLI_COMMAND_REQUIRED')
     work = Path(work)
     if (not work.is_absolute() or work.resolve() != work or not work.is_dir()

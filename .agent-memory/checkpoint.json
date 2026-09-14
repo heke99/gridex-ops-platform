@@ -4,11 +4,11 @@
   "status": "PARTIAL",
   "current_state": ".agent-memory/current-state.md",
   "active_group": "database_reconstruction",
-  "evidence": "quality/audits/DB_NATIVE56_VERIFIED_2026-09-14.md",
-  "next_action": "Integrate native foundation57 H2 with its exact transaction/ledger boundary; continue58-144 and timestamp chain, then full schema/auth/types/required CI before merging ALL PR310 changes. Native1-56 is verified; publication and P0004 blockers are superseded.",
-  "native_verified_code": "b1a80fb1829463eea57f026080e248005a720e94",
-  "native_verified_tree": "e03c94394d124a42038df6ca63d5a4e38c9423de",
-  "native_run_id": 34888356621,
-  "native_job_id": 104124511143,
-  "native_artifact_id": 10365822727
+  "evidence": "quality/audits/DB_NATIVE63_VERIFIED_2026-09-14.md",
+  "next_action": "Verify published native64-68 candidate on ordinary OPS. Native1-63 is verified. Then continue69-144/timestamps, schema/auth/types/required CI before merging ALL PR310 changes.",
+  "native_verified_code": "b6d274a789ed3e5c6b3b9389c6875e40d0733a14",
+  "native_verified_tree": "edad04d9dfb900ca5dc6bf74efe6fa2506df4009",
+  "native_run_id": 34895544084,
+  "native_job_id": 104148494046,
+  "native_artifact_id": 10368479003
 }
