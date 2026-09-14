@@ -5,6 +5,7 @@ import hashlib
 import importlib.util
 import json
 from types import SimpleNamespace
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -81,11 +82,34 @@ class ExecutionTests(unittest.TestCase):
     project = 'gridex-sb-012345abcdef-0123456789abcdef'
 
     def fixture(self, fail=None, wrong_owner=False, external_network=False):
-        calls = []
+        calls = []; portable_calls = []
         native = matrix(); old = copy.deepcopy(native)
         for row in old['grants']:
             if row['kind'] in ('table', 'sequence') and row['role'] != 'postgres':
                 row['allowed'] = False
+        class Portable:
+            active = False
+            directory = None
+            def __enter__(self):
+                self.active = True; self.directory = object()
+                return self
+            def __exit__(self, *args):
+                if fail == 'cleanup':
+                    raise ValueError('portable cleanup failure')
+                self.active = False; self.directory = None
+            def reset(self, database):
+                portable_calls.append(('reset', database))
+            def sql(self, database, query, stage, **kwargs):
+                portable_calls.append((stage, database, query, kwargs))
+                if fail == 'bootstrap' and query == m.sources()[0]:
+                    raise ValueError('bootstrap failure')
+                if query == m.CAPTURE:
+                    value = old if database == 'gridex_auth_legacy_native' else native
+                    if fail == 'comparison' and database == 'gridex_auth_legacy_atomic':
+                        value = {**native, 'rlsEnabled': False}
+                    return json.dumps(value)
+                return ''
+        portable = Portable()
         def command(args, *, data=None):
             calls.append((args, data))
             value = ''
@@ -97,61 +121,67 @@ class ExecutionTests(unittest.TestCase):
             elif args[:3] == ['docker', 'network', 'inspect']:
                 value = [{'Labels': {'gridex.native.owner': self.project}, 'Internal': not external_network}]
             elif data is not None:
-                database = args[args.index('-d')+1]
-                if fail == 'collision' and data == m.PROBES.encode() and database == 'postgres':
+                self.assertEqual(args[args.index('-d')+1], 'postgres')
+                self.assertIn(data, (m.PROBES.encode(), m.CAPTURE.encode(), m.DROP.encode()))
+                if fail == 'collision' and data == m.PROBES.encode():
                     raise ValueError('probe collision')
-                if fail == 'bootstrap' and data == m.sources()[0]:
-                    raise ValueError('bootstrap failure')
-                if data == m.CAPTURE.encode():
-                    value = old if database == 'gridex_bootstrap_before' else native
-                    if fail == 'comparison' and database == 'gridex_bootstrap_after':
-                        value = {**native, 'rlsEnabled': False}
-            elif fail == 'drop' and 'dropdb' in args and args[-1] == 'gridex_bootstrap_after':
-                raise ValueError('drop failure')
+                if fail == 'native_cleanup' and data == m.DROP.encode():
+                    raise ValueError('native cleanup failure')
+                if data == m.CAPTURE.encode(): value = native
             return SimpleNamespace(stdout=json.dumps(value).encode())
-        return command, calls
+        return command, calls, portable, portable_calls
 
-    def test_all_three_databases_are_compared_then_owned_probes_removed(self):
-        command, calls = self.fixture()
-        result = m.verify(command, self.project)
+    def test_native_and_two_vanilla_databases_are_compared_and_cleaned(self):
+        command, calls, portable, local = self.fixture()
+        with patch.object(m, 'load_portable', return_value=portable):
+            result = m.verify(command, self.project)
         self.assertTrue(result['nativeDefaultGrantsMatched'])
         self.assertEqual(result['oldBootstrapMissingPrivileges'], 33)
         self.assertFalse(result['fullReplayAccepted'])
-        captures = [a[a.index('-d')+1] for a, d in calls if d == m.CAPTURE.encode()]
-        self.assertEqual(captures, ['postgres', 'gridex_bootstrap_before', 'gridex_bootstrap_after'])
-        self.assertEqual([a[-1] for a, d in calls if 'dropdb' in a],
-                         ['gridex_bootstrap_after', 'gridex_bootstrap_before'])
+        self.assertTrue(result['separateVanillaRuntime'])
+        self.assertFalse(portable.active); self.assertIsNone(portable.directory)
+        self.assertEqual([c[1] for c in local if c[0] == 'reset'],
+                         ['gridex_auth_legacy_native', 'gridex_auth_legacy_atomic'])
+        self.assertEqual([c[2] for c in local if c[0] == 'bootstrap_complete_input'], list(m.sources()))
         self.assertEqual(calls[-1][1], m.DROP.encode())
         self.assertFalse(any('--linked' in a or '--db-url' in a for a, d in calls))
 
     def test_unowned_or_external_runtime_never_executes_sql(self):
         for options in ({'wrong_owner': True}, {'external_network': True}):
-            command, calls = self.fixture(**options)
+            command, calls, _, _ = self.fixture(**options)
             with self.assertRaises(ValueError): m.verify(command, self.project)
             self.assertFalse(any(a[:2] == ['docker', 'exec'] for a, d in calls))
 
-    def test_failed_setup_does_not_drop_preexisting_objects(self):
-        command, calls = self.fixture(fail='collision')
-        with self.assertRaisesRegex(ValueError, 'probe collision'): m.verify(command, self.project)
-        self.assertFalse(any('dropdb' in a or d == m.DROP.encode() for a, d in calls))
+    def test_collision_never_drops_existing_objects_or_starts_portable_runtime(self):
+        command, calls, _, _ = self.fixture(fail='collision')
+        with patch.object(m, 'load_portable') as load:
+            with self.assertRaisesRegex(ValueError, 'probe collision'): m.verify(command, self.project)
+            load.assert_not_called()
+        self.assertFalse(any(d == m.DROP.encode() for a, d in calls))
 
-    def test_failure_discards_only_successfully_created_databases(self):
-        command, calls = self.fixture(fail='bootstrap')
-        with self.assertRaisesRegex(ValueError, 'bootstrap failure'): m.verify(command, self.project)
-        self.assertEqual([a[-1] for a, d in calls if 'dropdb' in a], ['gridex_bootstrap_before'])
+    def test_bootstrap_and_comparison_failures_still_clean_both_runtimes(self):
+        for fail in ('bootstrap', 'comparison'):
+            command, calls, portable, _ = self.fixture(fail=fail)
+            with patch.object(m, 'load_portable', return_value=portable):
+                with self.assertRaises(ValueError): m.verify(command, self.project)
+            self.assertFalse(portable.active); self.assertIsNone(portable.directory)
+            self.assertEqual(calls[-1][1], m.DROP.encode())
+
+    def test_portable_cleanup_failure_does_not_skip_native_probe_cleanup(self):
+        command, calls, portable, _ = self.fixture(fail='cleanup')
+        with patch.object(m, 'load_portable', return_value=portable):
+            with self.assertRaisesRegex(ValueError, 'portable cleanup failure'): m.verify(command, self.project)
         self.assertEqual(calls[-1][1], m.DROP.encode())
 
-    def test_mismatch_fails_after_cleanup_without_success(self):
-        command, calls = self.fixture(fail='comparison')
-        with self.assertRaisesRegex(ValueError, 'AUTHORIZATION_MISMATCH'): m.verify(command, self.project)
-        self.assertEqual(len([a for a, d in calls if 'dropdb' in a]), 2)
-        self.assertEqual(calls[-1][1], m.DROP.encode())
+    def test_native_cleanup_failure_cannot_report_success(self):
+        command, calls, portable, _ = self.fixture(fail='native_cleanup')
+        with patch.object(m, 'load_portable', return_value=portable):
+            with self.assertRaisesRegex(ValueError, 'native cleanup failure'): m.verify(command, self.project)
+        self.assertFalse(portable.active)
 
-    def test_failed_drop_still_attempts_all_remaining_cleanup(self):
-        command, calls = self.fixture(fail='drop')
-        with self.assertRaisesRegex(ValueError, 'PROBE_DISPOSAL_REQUIRED'): m.verify(command, self.project)
-        self.assertEqual(len([a for a, d in calls if 'dropdb' in a]), 2)
-        self.assertEqual(calls[-1][1], m.DROP.encode())
+    def test_portable_runtime_does_not_adopt_an_environment_target(self):
+        with patch.dict(os.environ, {'GRIDEX_LEGACY_CONTAINER_NAME': 'gridex-auth-legacy-someone-else'}):
+            with self.assertRaisesRegex(ValueError, 'GENERATED_PORTABLE_OWNER_REQUIRED'): m.load_portable()
 
 
 if __name__ == '__main__':

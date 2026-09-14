@@ -35,7 +35,8 @@ source/admission rejection tests still pass.
 ## New native positive and negative control
 
 The existing owned/unlinked CLI lifecycle now tests its native database against
-two new template0 databases in the same owned, internally networked container.
+two new databases in a separate owned, network-disabled vanilla PostgreSQL
+container. The native Supabase platform roles are not re-bootstrapped.
 The old complete bootstrap is reconstructed and hash-verified byte-for-byte as
 the negative control. The corrected complete bootstrap is the positive control.
 Synthetic probes compare48 effective table/sequence/function grants, RLS flags,
@@ -51,11 +52,36 @@ The native test receipt explicitly keeps fullReplayAccepted=false.
 ## Offline verification
 
 Red: original bootstrap fails the new source-default assertion.
-Green:13 bootstrap controls,15 lifecycle/CLI controls,21 permission source
+Green:14 bootstrap controls,15 lifecycle/CLI controls,21 permission source
 admission tests,10 permission fixture tests,11 permission runner tests,
 20 replay cleanup controls and23 independent-reference controls passed locally.
 Permission fixture construction:129 cases/1128 assertions; construction only,
 NOT native case execution. Migration integrity remains601 files/505 groups.
+
+## Complete selected-chain result on12ad2b2
+
+Code12ad2b2b9c55aec0160973b470f76fba1c063442 is published. Full reference
+run34830200878/artifact10341619615 executes144 foundation and514 timestamp
+stages. Privacy, original restoration and disposal pass. The immutable reference
+is unchanged. Relative to the prior dd0e70a comparison:
+
+| Missing reference identities | Before | After |
+| --- | ---: | ---: |
+| Relation grants | 7761 | 24 |
+| Policies | 1886 | 59 |
+| Constraints | 38 | 11 |
+
+Remaining added/changed entries and all other schema sections are still visible;
+none are accepted merely because the missing counts improved. The full reference
+job correctly remains FAILURE. ZIP SHA256:
+b2f62de688da891b100f4df4d862229dcebab43350afaa1bb3286f5fa265f25a.
+
+The first new native comparison (run34830200882) stopped during portable bootstrap
+setup on Supabase's managed roles, before claiming matrix equivalence. All owned
+resources were removed. The comparison is now isolated using the existing private
+vanilla PostgreSQL runtime, where the complete portable bootstrap belongs. Both
+complete source programs and the independent native grant matrix are preserved.
+Native confirmation of this test-boundary correction is still pending.
 
 ## Release boundary
 

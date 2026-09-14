@@ -1,10 +1,13 @@
 """Prove portable public default grants against a freshly CLI-created Supabase.
 
-Uses only synthetic probe objects in a parent-owned, unlinked local project.
+Uses only synthetic probes in a parent-owned, unlinked Supabase project and
+a separate owned, network-disabled vanilla PostgreSQL runtime.
 The old bootstrap is reconstructed byte-for-byte as the required negative control.
 No hosted database, historical business SQL or acceptance baseline is changed.
 """
 import hashlib
+import importlib.util
+import os
 import json
 from pathlib import Path
 import re
@@ -120,6 +123,19 @@ def verify_difference(native, old, repaired):
     return count
 
 
+def load_portable():
+    # Use the existing private-log, network-none runtime without changing its
+    # ownership checks. The name is generated inside its own constructor.
+    if os.environ.get('GRIDEX_LEGACY_CONTAINER_NAME'):
+        raise ValueError('GENERATED_PORTABLE_OWNER_REQUIRED')
+    path = ROOT/'scripts/canonical-auth-provisioning-legacy-batch.py'
+    spec = importlib.util.spec_from_file_location('native_bootstrap_portable_runtime', path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module.OwnedPostgres()
+
+
 def verify(command, project):
     if type(project) is not str or not re.fullmatch(r'gridex-sb-[a-f0-9]{12}-[a-f0-9]{16}', project):
         raise ValueError('EXACT_NATIVE_OWNER_REQUIRED')
@@ -135,41 +151,38 @@ def verify(command, project):
     if (type(network) is not list or len(network) != 1 or network[0].get('Internal') is not True
             or network[0].get('Labels',{}).get('gridex.native.owner') != project):
         raise ValueError('OWNED_NATIVE_NETWORK_REQUIRED')
-    def sql(database, query):
+    def native_sql(query):
         return command(['docker','exec','-i',container,'psql','-X','-qAt','-U','postgres',
-                        '-d',database,'-v','ON_ERROR_STOP=1'], data=query if isinstance(query,bytes) else query.encode())
-    created = []; probes_created = False
+                        '-d','postgres','-v','ON_ERROR_STOP=1'], data=query.encode())
+    probes_created = False
+    portable = None
     try:
-        # The parent created an empty native database; collisions fail, never DROP.
-        sql('postgres', PROBES); probes_created = True
-        native = validate(json.loads(sql('postgres', CAPTURE).stdout))
+        # Native roles/platform objects are authoritative, not re-bootstrapped.
+        # Colliding probes fail without removing pre-existing objects.
+        native_sql(PROBES); probes_created = True
+        native = validate(json.loads(native_sql(CAPTURE).stdout))
         results = []
-        for database, bootstrap in [('gridex_bootstrap_before',old), ('gridex_bootstrap_after',repaired)]:
-            command(['docker','exec',container,'createdb','-U','postgres','--template=template0',database])
-            created.append(database)
-            sql(database, bootstrap)
-            sql(database, PROBES)
-            results.append(validate(json.loads(sql(database, CAPTURE).stdout)))
-        count = verify_difference(native, *results)
+        portable = load_portable()
+        with portable as target:
+            # The complete portable bootstrap requires a pristine vanilla PG,
+            # not Supabase's already-provisioned/restricted platform roles.
+            for database, bootstrap in [('gridex_auth_legacy_native',old),
+                                        ('gridex_auth_legacy_atomic',repaired)]:
+                target.reset(database)
+                target.sql(database, bootstrap, 'bootstrap_complete_input', transaction=False)
+                target.sql(database, PROBES, 'bootstrap_synthetic_probes', transaction=False)
+                results.append(validate(json.loads(target.sql(database, CAPTURE, 'bootstrap_acl_matrix'))))
+            count = verify_difference(native, *results)
+        if portable.active or portable.directory is not None:
+            raise ValueError('PORTABLE_RUNTIME_DISPOSAL_REQUIRED')
     finally:
-        # Try all owned cleanup even when one removal fails; the parent then
-        # disposes the complete temporary CLI project. Never report partial
-        # cleanup as a successful comparison.
-        cleanup_failed = False
-        for database in reversed(created):
-            try:
-                command(['docker','exec',container,'dropdb','-U','postgres',database])
-            except Exception:
-                cleanup_failed = True
+        # The private vanilla runtime closes even on a comparison/SQL failure;
+        # this finally independently removes the native synthetic probe family.
         if probes_created:
-            try:
-                sql('postgres', DROP)
-            except Exception:
-                cleanup_failed = True
-        if cleanup_failed:
-            raise ValueError('BOOTSTRAP_PROBE_DISPOSAL_REQUIRED')
+            native_sql(DROP)
     return {'nativeDefaultGrantsMatched': True, 'effectivePrivilegeChecks': 48,
             'oldBootstrapMissingPrivileges': count, 'negativeControlVerified': True,
             'rlsPreserved': True, 'probeCleanupVerified': True,
+            'portableRuntimeCleanupVerified': True, 'separateVanillaRuntime': True,
             'bootstrapSha256': hashlib.sha256(repaired).hexdigest(),
             'fullReplayAccepted': False, 'hostedDatabaseModified': False}
