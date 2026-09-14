@@ -4,7 +4,8 @@ Status: PARTIAL
 
 Native foundation1–52 and its actual CLI ledger: VERIFIED on603e68a5.
 The old42501/P5244 mismatch from run34868620937 is SUPERSEDED.
-Active work: integrate foundation53–56 as the next native atomic unit.
+Active work: publish and natively verify the bounded53–56 provider-event fix.
+The diagnosedP0004 is current; the candidate is local only after a tool-blocked write.
 Full replay, generated types, release and plan85/86 are NOT accepted.
 
 ## Current verified evidence
@@ -34,27 +35,37 @@ and local deadlines at the CLI's own ledger INSERT. Helpers are disposed.
 
 ## Current implementation — native53–56
 
-Status for this increment: IMPLEMENTED_NOT_VERIFIED.
-The new canonical_native_repair_envelope.py connects exact R2/E2/S2/W to the
-ordinary native Supabase lifecycle as one atomic CLI unit. It retains original
-source/support bytes, original role/policy restoration, full scoped catalog/
-row/sequence checks, previous actual ledger and private input identities.
-An independent source-DDL reference is constructed with ROLLBACK on native52.
-Original provider-denial, mid-source, statement-deadline, post-body and ledger-
-insert failures must all verify rollback before the real unit is applied.
+Status for the published increment: IMPLEMENTED_NOT_VERIFIED.
+Published diagnostic code d503e1fa896002a72b6a55f16aeec4147214720d was tested by
+OPS34884449551 / clean job104111486320 / artifact10364318629. Native1–52 pass;
+repair56 failsP0004 instead ofP5653 after its oracle rollback. The report proves
+zero active roles triggers and eight active built-in Supabase event triggers;
+the portable blanket event-trigger ban rejects this baseline. Cleanup passes.
 
-Local128 tests and601 migration-file integrity / complete accounting PASS.
-Database/CLI callbacks are simulated locally; native53–56 is NOT yet accepted.
-No full replay, type regeneration, merge, hosted mutation or deployment.
-Evidence: quality/audits/DB_NATIVE53_56_2026-09-14.md.
+A complete bounded candidate was prepared and145 offline source/control tests
+pass, with601 original migration checksums unchanged. It pins the entire native
+provider contract to the pristine image, retains real negative controls and
+adds provider static-catalog preservation. It never disables an event trigger,
+resets a sequence, expands domain privileges or rewrites historical support.
+It explicitly excludes GraphQL cache-counter rollback from business-data claims.
+
+The candidate is NOT published: GitHub blocked the lifecycle-blob write because
+it could not determine safety status. No partial candidate ref update occurred.
+The conversation supplies a cleanly applicable eight-file patch based on d503e1fa,
+SHA256 e40612db619c0874bbd90dfffb1e380e4d284aa3f59c380bd6ede0a01feb8b53.
+Local callbacks are not native SQL evidence. No type generation, merge, hosted
+mutation or deployment occurred. Full receipt and exact evidence:
+quality/audits/DB_NATIVE53_56_TRIGGER_ADMISSION_2026-09-14.md.
 
 ## Exact next action
 
-Execute the new53–56 unit via the ordinary OPS clean-migration-replay job and
-inspect its genuine native report. Do not mark56 complete from local tests.
+Publish the complete candidate through an authorized write, then run ordinary
+OPS clean-migration-replay and verify all nine negative controls, the real CLI
+ledger entry, final catalog and no-op repeat before accepting native56.
+The old52 lock failure remains superseded; do not confuse it with this event ban.
 After verified56 continue foundation57–144 and514 timestamp stages, then full
 schema semantics, auth-email, generated types and all mandatory CI before merge.
-The older42501/P5244 mismatch remains superseded for44–52 only.
+The generated-types tail mismatch remains; never update its manifest as a bypass.
 Preserve original601 migrations, real company fields/white-label relationship,
 existing app/API work and quality/paused/2026-09-12-partner-price-wip.patch.
 
