@@ -318,7 +318,7 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
         spec=importlib.util.spec_from_file_location('existing_native_fixture',ROOT/'scripts/canonical-native-supabase-lifecycle-selftest.py')
         cls.fixture=importlib.util.module_from_spec(spec);spec.loader.exec_module(cls.fixture)
 
-    def execute(self, fail=False, cleanup=False, legacy_fail=False, repair_fail=False, provider_fail=False):
+    def execute(self, fail=False, cleanup=False, legacy_fail=False, repair_fail=False, provider_fail=False, dedupe_fail=False):
         native=self.fixture.m
         original=native.run
         prepared=object()
@@ -344,11 +344,18 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
             if repair_fail:raise ValueError('private repair SQL must not reach report')
             progress.update(verified=True,foundationInputsExecuted=4,
                             cumulativeFoundationInputsExecuted=56)
+        import canonical_native_dedupe57 as dedupe
+        def apply_dedupe(prefix,cli,sql,work,first43,legacy52,repair56,progress,*,provider_bootstrap):
+            self.assertEqual(repair56['cumulativeFoundationInputsExecuted'],56)
+            self.assertEqual(provider_bootstrap,native.provider_events.receipt())
+            if dedupe_fail:raise ValueError('private dedupe SQL must not reach report')
+            progress.update(verified=True,foundationInputsExecuted=1,cumulativeFoundationInputsExecuted=57)
         helper=SimpleNamespace(prepare=lambda:prepared,execute=apply)
         with patch.object(native,'load_historical_prefix',return_value=helper), \
              patch.object(native.provider_events,'bootstrap',side_effect=ValueError('NATIVE_PROVIDER_EVENT_IMAGE_REQUIRED') if provider_fail else None,return_value=native.provider_events.receipt()), \
              patch.object(legacy,'execute',side_effect=apply_legacy), \
              patch.object(repair,'execute',side_effect=apply_repair), \
+             patch.object(dedupe,'execute',side_effect=apply_dedupe), \
              patch.object(native,'run',side_effect=lambda:original(historical_prefix=True)):
             return self.fixture.NativeTests().execute_fixture('cleanup' if cleanup else None)
 
@@ -362,8 +369,9 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
     def test_bounded_native_success_cannot_certify_full_replay(self):
         status,report=self.execute()
         self.assertEqual(status,0)
-        self.assertEqual(report['outcome'],'NATIVE_HISTORICAL_THROUGH56_VERIFIED')
-        self.assertEqual(report['foundationInputsExecuted'],56)
+        self.assertEqual(report['outcome'],'NATIVE_HISTORICAL_THROUGH57_VERIFIED')
+        self.assertEqual(report['foundationInputsExecuted'],57)
+        self.assertTrue(report['historicalDedupe57']['verified'])
         self.assertTrue(report['historicalRepair56']['verified'])
         self.assertTrue(report['historicalLegacy52']['verified'])
         self.assertEqual(report['historicalPrefix']['foundationInputsExecuted'],43)
@@ -400,6 +408,16 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
         self.assertFalse(report['completeReplayVerified'])
         self.assertNotIn('private repair SQL',str(report))
 
+    def test_dedupe_failure_preserves_verified56_and_disposes_owned_database(self):
+        status,report=self.execute(dedupe_fail=True)
+        self.assertEqual(status,1)
+        self.assertEqual(report['outcome'],'BLOCKED')
+        self.assertEqual(report['phase'],'HISTORICAL_DEDUPE57_NATIVE_LEDGER')
+        self.assertEqual(report['foundationInputsExecuted'],56)
+        self.assertTrue(report['historicalPrivateInputsDisposed'])
+        self.assertFalse(report['completeReplayVerified'])
+        self.assertNotIn('private dedupe SQL',str(report))
+
     def test_cleanup_failure_cannot_certify_historical_input_disposal(self):
         status,report=self.execute(cleanup=True)
         self.assertEqual(status,1)
@@ -412,6 +430,13 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
         with patch.object(native,'run',side_effect=ValueError('synthetic stop')):
             with self.assertRaises(ValueError):native.run_guarded(historical_prefix=True)
         self.assertEqual(previous,{sig:signal.getsignal(sig) for sig in previous})
+
+
+def load_tests(loader, tests, pattern):
+    spec=importlib.util.spec_from_file_location('native57_tests',ROOT/'scripts/test-canonical-native-dedupe57.py')
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    tests.addTests(loader.loadTestsFromModule(module))
+    return tests
 
 
 if __name__=='__main__': unittest.main(verbosity=2)

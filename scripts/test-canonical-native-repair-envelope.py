@@ -135,7 +135,7 @@ class RepairEnvelopeTests(unittest.TestCase):
             args=transport.cli_command(cli,work,project,('migration','new',self.program.name))
             self.assertEqual(args[-1],self.program.name)
             for bad in ('gridex_native_f0053_'+ 'a'*12,'gridex_native_f0053_0057_'+ 'a'*12,
-                        'gridex_native_f0057_'+ 'a'*12,self.program.name+'x'):
+                        'gridex_native_f0058_'+ 'a'*12,self.program.name+'x'):
                 with self.assertRaises(ValueError):transport.cli_command(cli,work,project,('migration','new',bad))
 
     def test_full_release_guards_are_not_advanced(self):
