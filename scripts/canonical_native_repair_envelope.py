@@ -17,6 +17,7 @@ from types import SimpleNamespace
 
 import canonical_native_legacy_envelope as previous
 import canonical_native_trigger_diagnostics as trigger_diagnostics
+import canonical_native_provider_events as provider_events
 
 ROOT = Path(__file__).resolve().parents[1]
 PINS = {'canonical-user-rbac-repair-batch.py': '9b0d3d22c4826f9c8a90501b9ee9b24b0d502e1cd7e68207ea4b40c6765ce43f', 'sql/canonical-user-rbac-repair-admission.sql': '107260d28f6c22889575facda5c237a072811a158b55ff69883002b8b5c872a7', 'sql/canonical-user-rbac-repair-assertions.sql': '5afc3a8ab872d93122e38986c51da9987ae461b53d823e3e1df970a3eb99b99f', 'sql/canonical-user-rbac-repair-catalog.sql': '1d6315ea6d4d542a01e4b697f1cc2b4528a227f2be7e7052f47c8a04166103c7'}
@@ -148,6 +149,7 @@ class Envelope:
     parts: tuple=field(repr=False)
     provider_relations: tuple=()
     old_permission_probe: bytes=field(default=b'',repr=False)
+    event_probes: tuple=field(default=(),repr=False)
 
     @property
     def name(self):
@@ -166,7 +168,7 @@ def wrap(prefix,parts):
     return raw
 
 
-def prepare(prefix,batch,sources,before,final,provider_relations=()):
+def prepare(prefix,batch,sources,before,final,provider_relations=(),*,native_events=False):
     if (sources!=batch.validate_sources(batch.reviewed_paths()) or not isinstance(before,dict) or not before
             or not isinstance(final,dict) or not final or type(provider_relations) is not tuple
             or provider_relations!=tuple(sorted(set(provider_relations)))):
@@ -195,6 +197,17 @@ CREATE TEMP TABLE repair_native_readonly(relation_name text PRIMARY KEY) ON COMM
     if admission.count(site)!=1:raise prefix.PrefixError('NATIVE_REPAIR56_SOURCE_REQUIRED')
     if provider_relations:
         admission=admission.replace(site,"  IF substr(r.key,10) IN ("+','.join(batch.literal(n) for n in provider_relations)+") THEN\n   EXECUTE format('LOCK TABLE %s IN ACCESS SHARE MODE',rel::regclass);\n  ELSE\n"+site+"\n  END IF;")
+    event_probes=()
+    if native_events:
+        site=provider_events.OLD_PREDICATE
+        if admission.count(site)!=1:
+            raise prefix.PrefixError('NATIVE_REPAIR56_SOURCE_REQUIRED')
+        old_event_ban=admission
+        admission=admission.replace(site,provider_events.predicate())
+        stop="DO $event_probe$ BEGIN RAISE EXCEPTION 'EVENT_PROBE_DID_NOT_FAIL' USING ERRCODE='P5600'; END $event_probe$;"
+        event_probes=(wrap(prefix,[context,old_event_ban,stop]),)+tuple(
+            wrap(prefix,[context+setup,admission,stop]) for setup in provider_events.mismatch_setups())
+        context+=provider_events.setup_sql()
     parts=[context,admission]; prior='admitted'
     for source in sources:
         parts.append(source.data.decode())
@@ -205,7 +218,7 @@ CREATE TEMP TABLE repair_native_readonly(relation_name text PRIMARY KEY) ON COMM
     receipts=tuple({'ordinal':i,'source':'migrations/'+s.path.name,'sourceSha256':s.sha256} for i,s in enumerate(sources,53))
     old=(wrap(prefix,[context,original,sources[0].data.decode(),
          "DO $old$ BEGIN RAISE EXCEPTION 'OLD_PERMISSION_PROBE_DID_NOT_FAIL' USING ERRCODE='P5600'; END $old$;"]) if provider_relations else b'')
-    return Envelope(wrap(prefix,parts),receipts,tuple(parts),provider_relations,old)
+    return Envelope(wrap(prefix,parts),receipts,tuple(parts),provider_relations,old,event_probes)
 
 
 def catalog_sql(batch):
@@ -246,7 +259,7 @@ def probes(prefix,program):
     timed=list(program.parts[:3])+["DO $deadline$ BEGIN PERFORM pg_catalog.pg_sleep(61); END $deadline$;"]
     post=('DO $post$ BEGIN\n'+BOUNDARY+"RAISE EXCEPTION 'POST' USING ERRCODE='P5656'; END $post$;\n").encode()
     old=((program.old_permission_probe,'42501',False),) if program.provider_relations else ()
-    return old+((wrap(prefix,mid),'P5653',False),(wrap(prefix,timed),'57014',False),
+    return old+tuple((raw,'P0004',False) for raw in program.event_probes)+((wrap(prefix,mid),'P5653',False),(wrap(prefix,timed),'57014',False),
                 (program.sql+MARKER+post,'P5656',False),(program.sql+MARKER,'P5657',True))
 
 
@@ -266,8 +279,8 @@ def create_unit(prefix,native,directory,raw,expected,files):
 def qualify(prefix,native,sql,directory,program,expected,retained,snapshot,report):
     before=snapshot(); files={p.name for p in directory.iterdir()}
     report.update(verified=False,cases=[])
-    for raw,state,guarded in probes(prefix,program):
-        report.update(phase='CLI_FILE_CREATION',currentProbe=state)
+    for probe_index,(raw,state,guarded) in enumerate(probes(prefix,program),1):
+        report.update(phase='CLI_FILE_CREATION',currentProbe=state,currentProbeIndex=probe_index)
         path,physical,name=create_unit(prefix,native,directory,raw,expected,files)
         installed=False
         try:
@@ -295,7 +308,7 @@ def qualify(prefix,native,sql,directory,program,expected,retained,snapshot,repor
         report['phase']='ROLLBACK_VERIFICATION'
         if snapshot()!=before or {p.name for p in directory.iterdir()}!=files:
             raise prefix.PrefixError('NATIVE_REPAIR56_ROLLBACK_REQUIRED')
-        report['cases'].append({'expectedSqlstate':state,'programSha256':prefix.sha(raw),
+        report['cases'].append({'expectedSqlstate':state,'probeIndex':probe_index,'programSha256':prefix.sha(raw),
                                 'ledgerUnchanged':True,'catalogRowsAndSequencesRestored':True})
     report.update(verified=True,phase='VERIFIED',locksHeldAtLedgerInsert=True,
                   temporaryContextHeldAtLedgerInsert=True,localTimeoutsPreserved=True,
@@ -348,7 +361,7 @@ def prerequisite(prefix,sql,work,first43,legacy52):
     return directory,copy.deepcopy(expected),retained
 
 
-def execute(prefix,native,sql,work,first43,legacy52,report):
+def execute(prefix,native,sql,work,first43,legacy52,report,*,provider_bootstrap=None):
     directory,expected,retained=prerequisite(prefix,sql,work,first43,legacy52)
     if report:raise prefix.PrefixError('NATIVE_FRESH_PROGRESS_REQUIRED')
     report.update(scope='FOUNDATION53_56_ATOMIC_NATIVE_NOT_FULL_REPLAY',verified=False,
@@ -361,8 +374,16 @@ def execute(prefix,native,sql,work,first43,legacy52,report):
            "(SELECT jsonb_object_agg(name,setting) FROM pg_settings WHERE name IN ("+keys+")));")!={
             'role':'postgres','database':'postgres','settings':prefix.SETTINGS}:
         raise prefix.PrefixError('NATIVE_PRIVATE_LOGGING_REQUIRED')
+    report['phase']='PROVIDER_EVENT_SOURCE_ADMISSION'
+    provider_events.require(sql,provider_bootstrap)
+    report['providerEventAdmission']={**provider_bootstrap,'fixedContractMatched':True,
+                                     'eventsDisabled':False,'providerCacheSequence':provider_events.CACHE_SCOPE,
+                                     'providerCacheSequenceRollbackClaimed':False}
     def snapshot():
-        return {'catalog':sql(catalog_sql(batch)),'rows':sql(previous.ROWS_SQL),'sequences':sql(SEQUENCES_SQL)}
+        return {'catalog':sql(catalog_sql(batch)),'rows':sql(previous.ROWS_SQL),'sequences':sql(SEQUENCES_SQL),
+                'providerCatalog':sql(provider_events.static_catalog_sql(batch)),
+                'providerSequenceShape':sql(provider_events.SEQUENCE_SHAPE),
+                'providerEvents':sql(provider_events.QUERY)}
     before=snapshot();validate_preimage(prefix,batch,sources,before['catalog'])
     providers=provider_profile(prefix,sql,before['catalog'])
     report['nativeReadOnlyProviderMetadata']=providers
@@ -374,12 +395,15 @@ def execute(prefix,native,sql,work,first43,legacy52,report):
     report['independentOracleRollbackVerified']=True
     if sql("SELECT to_json(to_regnamespace('gridex_native_repair56_probe') IS NULL);") is not True:
         raise prefix.PrefixError('NATIVE_REPAIR56_PROOF_REQUIRED')
-    program=prepare(prefix,batch,sources,before['catalog'],final,providers)
+    program=prepare(prefix,batch,sources,before['catalog'],final,providers,native_events=True)
     report['sources']=program.sources;report['transactionBoundary53_56']={}
     report['phase']='ATOMIC_BOUNDARY_QUALIFICATION'
     qualify(prefix,native,sql,directory,program,expected,retained,snapshot,report['transactionBoundary53_56'])
+    report['providerEventAdmission'].update(originalEventBanReproduced=True,
+                                           expectedContractMismatchControlsVerified=3,
+                                           providerMetadataPreservedAcrossRollback=True)
     new_batch,new_sources=load_sources(prefix)
-    if prepare(prefix,new_batch,new_sources,before['catalog'],final,providers).sql!=program.sql:
+    if prepare(prefix,new_batch,new_sources,before['catalog'],final,providers,native_events=True).sql!=program.sql:
         raise prefix.PrefixError('NATIVE_REPAIR56_SOURCE_REQUIRED')
     report['phase']='ATOMIC_CLI_MIGRATION'
     path,physical,name=create_unit(prefix,native,directory,program.sql,expected,{p.name for p in directory.iterdir()})
@@ -397,7 +421,8 @@ def execute(prefix,native,sql,work,first43,legacy52,report):
         raise prefix.PrefixError('NATIVE_UNEXPECTED_LEDGER_DELTA')
     prefix.verify_entry(actual[-1],path.name,program)
     after=snapshot()
-    if after['catalog']!=final:raise prefix.PrefixError('NATIVE_REPAIR56_REFERENCE_REQUIRED')
+    if after['catalog']!=final or any(after[k]!=before[k] for k in ('providerCatalog','providerSequenceShape','providerEvents')):
+        raise prefix.PrefixError('NATIVE_REPAIR56_REFERENCE_REQUIRED')
     native('migration','up','--local')
     for item in retained:prefix.verify_private(*item)
     if sql(prefix.LEDGER_SQL)!=actual or snapshot()!=after:

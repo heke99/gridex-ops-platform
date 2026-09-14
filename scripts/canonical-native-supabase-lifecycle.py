@@ -22,6 +22,7 @@ import subprocess
 import sys
 import tempfile
 import tomllib
+import canonical_native_provider_events as provider_events
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = '2.101.0'
@@ -130,6 +131,8 @@ def failure_code(error, historical):
     class previously hid every first43 failure behind errorType=PrefixError.
     """
     lifecycle_codes = {'NATIVE_COMMAND_FAILED', 'EXACT_NATIVE_CLI_VERSION_REQUIRED',
+                       'NATIVE_PROVIDER_EVENT_IMAGE_REQUIRED', 'NATIVE_PROVIDER_EVENT_CONTRACT_REQUIRED',
+                       'NATIVE_PROVIDER_EVENT_BOOTSTRAP_REQUIRED', 'NATIVE_PROVIDER_CATALOG_SOURCE_REQUIRED',
                        'PREEXISTING_NATIVE_PROJECT_REJECTED', 'EMPTY_UNLINKED_NATIVE_PROJECT_REQUIRED',
                        'OWNED_NATIVE_DATABASE_REQUIRED', 'NATIVE_POSTGRES_ROLE_REQUIRED',
                        'CLI_GENERATED_MIGRATION_REQUIRED', 'GENUINE_NATIVE_LEDGER_REQUIRED',
@@ -308,6 +311,8 @@ def run(*, historical_prefix=False):
             report.update(image=inspected['Config']['Image'], imageId=inspected['Image'],
                           cliConnectsInsideInternalNetwork=True)
             report['nativeBootstrap'] = sql(METADATA)
+            if historical_prefix:
+                report['providerEventBootstrap']=provider_events.bootstrap(sql,report['imageId'],report['nativeBootstrap'])
             if (not report['nativeBootstrap']['serverVersion'].startswith('17.')
                     or report['nativeBootstrap']['currentRole'] != 'postgres'):
                 raise ValueError('NATIVE_POSTGRES_ROLE_REQUIRED')
@@ -357,7 +362,8 @@ def run(*, historical_prefix=False):
                 from canonical_native_repair_envelope import execute as execute_repair56
                 report['historicalRepair56'] = {}
                 execute_repair56(historical, native, sql, work, report['historicalPrefix'],
-                                 report['historicalLegacy52'], report['historicalRepair56'])
+                                 report['historicalLegacy52'], report['historicalRepair56'],
+                                 provider_bootstrap=report['providerEventBootstrap'])
                 report['foundationInputsExecuted'] = 56
             success = True
         except Exception as error:

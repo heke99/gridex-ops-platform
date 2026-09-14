@@ -110,6 +110,7 @@ class HistoricalDiagnosticTests(unittest.TestCase):
                                prepare=lambda: (), execute=execute)
         original = lifecycle.run
         with patch.object(lifecycle, 'load_historical_prefix', return_value=fake), \
+             patch.object(lifecycle.provider_events, 'bootstrap', return_value=lifecycle.provider_events.receipt()), \
              patch.object(lifecycle, 'run', side_effect=lambda: original(historical_prefix=True)):
             return lifecycle_tests.NativeTests().execute_fixture()
 

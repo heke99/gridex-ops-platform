@@ -240,6 +240,9 @@ class ExecutionControlTests(unittest.TestCase):
                     return final if state['applied'] or (state['oracle'] and fault=='oracle-rollback') else before
                 if query==m.previous.ROWS_SQL:return [{'changed':True}] if state['repeat'] and fault=='repeat' else []
                 if query==m.SEQUENCES_SQL:return {}
+                if query==m.provider_events.static_catalog_sql(batch):return {'drift':True} if state['applied'] and fault=='provider-catalog' else {}
+                if query==m.provider_events.SEQUENCE_SHAPE:return {'drift':True} if state['applied'] and fault=='provider-sequence' else {'type':'integer'}
+                if query==m.provider_events.QUERY:return [] if state['applied'] and fault=='provider-events' else m.provider_events.expected()
                 if query==m.trigger_diagnostics.QUERY:return {'roleTriggerCount':0,'events':[]}
                 if "jsonb_build_object('role',current_user" in query:
                     return {'role':'postgres','database':'postgres','settings':p.SETTINGS}
@@ -270,10 +273,10 @@ class ExecutionControlTests(unittest.TestCase):
                  patch.object(m,'validate_preimage'),patch.object(m,'provider_profile',return_value=()), \
                  patch.object(m,'qualify',side_effect=qualify),patch.object(m.time,'sleep'):
                 if fault:
-                    with self.assertRaises(p.PrefixError):m.execute(p,native,sql,Path(d),{}, {}, report)
+                    with self.assertRaises(p.PrefixError):m.execute(p,native,sql,Path(d),{}, {}, report,provider_bootstrap=m.provider_events.receipt())
                     self.assertFalse(report['verified'])
                 else:
-                    m.execute(p,native,sql,Path(d),{}, {}, report)
+                    m.execute(p,native,sql,Path(d),{}, {}, report,provider_bootstrap=m.provider_events.receipt())
                     self.assertTrue(report['verified']);self.assertEqual(report['cumulativeFoundationInputsExecuted'],56)
                     self.assertTrue(report['independentOracleRollbackVerified'])
                     self.assertEqual(state['ledger'][:-1],expected)
@@ -286,10 +289,16 @@ class ExecutionControlTests(unittest.TestCase):
     def test_failed_cli_with_ledger_write_is_rejected(self):self.exercise('failed-ledger')
     def test_wrong_actual_ledger_program_is_rejected(self):self.exercise('statements')
     def test_repeat_data_mutation_is_rejected(self):self.exercise('repeat')
+    def test_provider_catalog_mutation_is_rejected(self):self.exercise('provider-catalog')
+    def test_provider_sequence_definition_mutation_is_rejected(self):self.exercise('provider-sequence')
+    def test_provider_routine_contract_mutation_is_rejected(self):self.exercise('provider-events')
 
 
 def load_tests(loader, tests, pattern):
     spec=importlib.util.spec_from_file_location('native_trigger_diagnostic_tests',ROOT/'scripts/test-canonical-native-trigger-diagnostics.py')
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    tests.addTests(loader.loadTestsFromModule(module))
+    spec=importlib.util.spec_from_file_location('native_provider_event_tests',ROOT/'scripts/test-canonical-native-provider-events.py')
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     tests.addTests(loader.loadTestsFromModule(module))
     return tests

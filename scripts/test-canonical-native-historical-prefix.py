@@ -318,7 +318,7 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
         spec=importlib.util.spec_from_file_location('existing_native_fixture',ROOT/'scripts/canonical-native-supabase-lifecycle-selftest.py')
         cls.fixture=importlib.util.module_from_spec(spec);spec.loader.exec_module(cls.fixture)
 
-    def execute(self, fail=False, cleanup=False, legacy_fail=False, repair_fail=False):
+    def execute(self, fail=False, cleanup=False, legacy_fail=False, repair_fail=False, provider_fail=False):
         native=self.fixture.m
         original=native.run
         prepared=object()
@@ -338,17 +338,26 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
             progress.update(verified=True,foundationInputsExecuted=9,
                             cumulativeFoundationInputsExecuted=52)
         import canonical_native_repair_envelope as repair
-        def apply_repair(prefix,cli,sql,work,first43,legacy52,progress):
+        def apply_repair(prefix,cli,sql,work,first43,legacy52,progress,*,provider_bootstrap):
+            self.assertEqual(provider_bootstrap,native.provider_events.receipt())
             self.assertEqual(legacy52['cumulativeFoundationInputsExecuted'],52)
             if repair_fail:raise ValueError('private repair SQL must not reach report')
             progress.update(verified=True,foundationInputsExecuted=4,
                             cumulativeFoundationInputsExecuted=56)
         helper=SimpleNamespace(prepare=lambda:prepared,execute=apply)
         with patch.object(native,'load_historical_prefix',return_value=helper), \
+             patch.object(native.provider_events,'bootstrap',side_effect=ValueError('NATIVE_PROVIDER_EVENT_IMAGE_REQUIRED') if provider_fail else None,return_value=native.provider_events.receipt()), \
              patch.object(legacy,'execute',side_effect=apply_legacy), \
              patch.object(repair,'execute',side_effect=apply_repair), \
              patch.object(native,'run',side_effect=lambda:original(historical_prefix=True)):
             return self.fixture.NativeTests().execute_fixture('cleanup' if cleanup else None)
+
+    def test_wrong_provider_image_stops_before_historical_inputs(self):
+        status,report=self.execute(provider_fail=True)
+        self.assertEqual(status,1)
+        self.assertFalse(report['historicalGridexSourcesExecuted'])
+        self.assertTrue(report['cleanupVerified'])
+        self.assertEqual(report['errorCode'],'NATIVE_PROVIDER_EVENT_IMAGE_REQUIRED')
 
     def test_bounded_native_success_cannot_certify_full_replay(self):
         status,report=self.execute()
