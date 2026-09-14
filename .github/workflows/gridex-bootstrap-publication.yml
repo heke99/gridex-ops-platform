@@ -25,70 +25,89 @@ jobs:
           PYTHONDONTWRITEBYTECODE: '1'
         run: |
           python3 -B - <<'PY'
-          import base64, gzip, hashlib, json, os, subprocess, tempfile
+          import base64, gzip, hashlib, json, os, re, subprocess, tempfile
           from pathlib import Path
-          BASE = "5b934308249dde2f51cf4d71c4a216ae5479e142"
-          BASE_TREE = "8d0406f6180c402a1ebedc38136825c7921e3348"
-          CODE_TREE = "913394eab15dec40946a0ca6008a395b4cdd3c95"
-          PATCH_HASH = "d21287671ed37b469c643a61a2f733302eace15719d4942a6241bc751ca3cfc8"
-          TEMP = ".github/workflows/gridex-bootstrap-publication.yml"
-          BRANCH = "codex/gridex-parity-remediation-20260905"
-          PAYLOAD = "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"
+          BASE = 'd87f56518f5f9d20b6675c2dd763f85814051054'
+          BASE_TREE = '8d0406f6180c402a1ebedc38136825c7921e3348'
+          CODE_TREE = '913394eab15dec40946a0ca6008a395b4cdd3c95'
+          PATCH_HASH = 'd21287671ed37b469c643a61a2f733302eace15719d4942a6241bc751ca3cfc8'
+          TEMP = '.github/workflows/gridex-bootstrap-publication.yml'
+          BRANCH = 'codex/gridex-parity-remediation-20260905'
           def run(args, env=None):
               p = subprocess.run(args, capture_output=True, text=True, env=env, timeout=180)
               if p.returncode:
-                  raise RuntimeError("EXACT_PUBLICATION_CHECK_FAILED")
+                  raise RuntimeError('EXACT_PUBLICATION_CHECK_FAILED')
               return p.stdout.strip()
           def projection():
               with tempfile.TemporaryDirectory() as directory:
-                  env = {**os.environ, "GIT_INDEX_FILE": directory+"/index"}
-                  run(["git", "read-tree", run(["git", "write-tree"])], env)
-                  run(["git", "update-index", "--force-remove", "--", TEMP], env)
-                  return run(["git", "write-tree"], env)
-          def main():
-              event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
-              pr = event["pull_request"]; head = pr["head"]["sha"]
-              if (os.environ.get("GITHUB_EVENT_NAME") != "pull_request" or event["number"] != 310
-                  or pr["head"]["ref"] != BRANCH or pr["head"]["repo"]["full_name"] != "heke99/gridex-ops-platform"
-                  or run(["git", "rev-parse", "HEAD"]) != head or run(["git", "rev-parse", "HEAD^"]) != BASE
-                  or run(["git", "status", "--porcelain"]) or projection() != BASE_TREE):
-                  raise RuntimeError("EXACT_PUBLICATION_BASE_REQUIRED")
-              raw = gzip.decompress(base64.b64decode(PAYLOAD, validate=True))
+                  env = {**os.environ, 'GIT_INDEX_FILE': directory+'/index'}
+                  run(['git', 'read-tree', run(['git', 'write-tree'])], env)
+                  run(['git', 'update-index', '--force-remove', '--', TEMP], env)
+                  return run(['git', 'write-tree'], env)
+          def decode():
+              # Correct four transcription errors in the previous transport,
+              # never in SQL or test expectations. Both encodings and the final
+              # patch are independently hash-locked to the reviewed local diff.
+              document = run(['git', 'show', BASE+':'+TEMP])
+              found = re.findall(r'^          PAYLOAD = "([^"]+)"$', document, re.M)
+              if len(found) != 1:
+                  raise RuntimeError('PINNED_TRANSPORT_REQUIRED')
+              encoded = found[0]
+              if hashlib.sha256(encoded.encode()).hexdigest() != '7d95a90cca455cc2832a7c703e3f5be8473bb76cba105136d82461b55e027c39':
+                  raise RuntimeError('PINNED_TRANSPORT_REQUIRED')
+              parts = []; cursor = 0
+              for start, end, before, after in [(3022,3024,'Np',''),(3313,3316,'Nbs',''),(6092,6093,'3',''),(11266,11266,'','/')]:
+                  if encoded[start:end] != before:
+                      raise RuntimeError('EXACT_TRANSPORT_SITE_REQUIRED')
+                  parts.extend((encoded[cursor:start],after)); cursor=end
+              parts.append(encoded[cursor:]); encoded=''.join(parts)
+              if hashlib.sha256(encoded.encode()).hexdigest() != '1780df6c0bbd16f44fad4c3731380c211c56e77025c6c7119bff4d1709a99959':
+                  raise RuntimeError('CORRECTED_TRANSPORT_HASH_REQUIRED')
+              raw = gzip.decompress(base64.b64decode(encoded,validate=True))
               if len(raw) != 32497 or hashlib.sha256(raw).hexdigest() != PATCH_HASH:
-                  raise RuntimeError("EXACT_PATCH_REQUIRED")
+                  raise RuntimeError('EXACT_PATCH_REQUIRED')
+              return raw
+          def main():
+              event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+              pr = event['pull_request']; head = pr['head']['sha']
+              if (os.environ.get('GITHUB_EVENT_NAME') != 'pull_request' or event['number'] != 310
+                  or pr['head']['ref'] != BRANCH or pr['head']['repo']['full_name'] != 'heke99/gridex-ops-platform'
+                  or run(['git', 'rev-parse', 'HEAD']) != head or run(['git', 'rev-parse', 'HEAD^']) != BASE
+                  or run(['git', 'status', '--porcelain']) or projection() != BASE_TREE):
+                  raise RuntimeError('EXACT_PUBLICATION_BASE_REQUIRED')
               with tempfile.TemporaryDirectory() as directory:
-                  path = Path(directory)/"source.patch"; path.write_bytes(raw)
-                  run(["git", "apply", "--check", "--index", str(path)])
-                  run(["git", "apply", "--index", str(path)])
-              files = run(["git", "diff", "--cached", "--name-only"]).splitlines()
-              if len(files) != 8 or any(p.startswith(".github/") for p in files) or projection() != CODE_TREE:
-                  raise RuntimeError("EXACT_REVIEWED_SOURCE_TREE_REQUIRED")
-              checks = [["python3", "-B", "scripts/"+name] for name in (
-                  "canonical-native-bootstrap-contract-selftest.py", "canonical-native-supabase-lifecycle-selftest.py",
-                  "test-canonical-permission-native-admission.py", "test-canonical-permission-native-fixture.py",
-                  "test-canonical-permission-native-runner.py", "gridex-aud-003-clean-replay-selftest.py",
-                  "canonical-full-schema-reference-selftest.py")]
-              checks += [["python3", "-B", "scripts/canonical-permission-native-runner.py", "--check"], ["node", "scripts/check-migration-versions.cjs"]]
-              env = {k: v for k,v in os.environ.items() if k not in ("GH_TOKEN", "GITHUB_TOKEN")}
+                  path = Path(directory)/'source.patch'; path.write_bytes(decode())
+                  run(['git', 'apply', '--check', '--index', str(path)])
+                  run(['git', 'apply', '--index', str(path)])
+              files = run(['git', 'diff', '--cached', '--name-only']).splitlines()
+              if len(files) != 8 or any(p.startswith('.github/') for p in files) or projection() != CODE_TREE:
+                  raise RuntimeError('EXACT_REVIEWED_SOURCE_TREE_REQUIRED')
+              checks = [['python3', '-B', 'scripts/'+name] for name in (
+                  'canonical-native-bootstrap-contract-selftest.py', 'canonical-native-supabase-lifecycle-selftest.py',
+                  'test-canonical-permission-native-admission.py', 'test-canonical-permission-native-fixture.py',
+                  'test-canonical-permission-native-runner.py', 'gridex-aud-003-clean-replay-selftest.py',
+                  'canonical-full-schema-reference-selftest.py')]
+              checks += [['python3', '-B', 'scripts/canonical-permission-native-runner.py', '--check'], ['node', 'scripts/check-migration-versions.cjs']]
+              env = {k: v for k,v in os.environ.items() if k not in ('GH_TOKEN', 'GITHUB_TOKEN')}
               for check in checks:
-                  print("Verify "+check[2 if check[0] == "python3" else 1], flush=True)
+                  print('Verify '+check[2 if check[0] == 'python3' else 1], flush=True)
                   run(check, env)
-              run(["git", "diff", "--check"]); run(["git", "diff", "--exit-code"])
+              run(['git', 'diff', '--cached', '--check']); run(['git', 'diff', '--exit-code'])
               if projection() != CODE_TREE:
-                  raise RuntimeError("POST_TEST_TREE_CHANGED")
-              auth = base64.b64encode(("x-access-token:"+os.environ["GH_TOKEN"]).encode()).decode()
-              git = ["git", "-c", "credential.helper=", "-c", "http.https://github.com/.extraheader=AUTHORIZATION: basic "+auth]
-              if run([*git, "ls-remote", "origin", "refs/heads/"+BRANCH]).split()[0] != head:
-                  raise RuntimeError("BRANCH_MOVED")
-              run(["git", "-c", "user.name=github-actions[bot]", "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com", "commit", "--no-gpg-sign", "-m", "fix(db): match native initial table and sequence grants in replay bootstrap"])
-              commit = run(["git", "rev-parse", "HEAD"])
-              run([*git, "push", "origin", "HEAD:refs/heads/"+BRANCH])
-              if run([*git, "ls-remote", "origin", "refs/heads/"+BRANCH]).split()[0] != commit:
-                  raise RuntimeError("PUBLICATION_READBACK_FAILED")
-              print(json.dumps({"codeCommit": commit, "codeTree": CODE_TREE, "files":files, "offlineChecksPassed":len(checks), "nativeBootstrapVerified":False, "mainMerged":False,"hostedDatabaseModified":False}),flush=True)
+                  raise RuntimeError('POST_TEST_TREE_CHANGED')
+              auth = base64.b64encode(('x-access-token:'+os.environ['GH_TOKEN']).encode()).decode()
+              git = ['git', '-c', 'credential.helper=', '-c', 'http.https://github.com/.extraheader=AUTHORIZATION: basic '+auth]
+              if run([*git, 'ls-remote', 'origin', 'refs/heads/'+BRANCH]).split()[0] != head:
+                  raise RuntimeError('BRANCH_MOVED')
+              run(['git', '-c', 'user.name=github-actions[bot]', '-c', 'user.email=41898282+github-actions[bot]@users.noreply.github.com', 'commit', '--no-gpg-sign', '-m', 'fix(db): match native initial table and sequence grants in replay bootstrap'])
+              commit = run(['git', 'rev-parse', 'HEAD'])
+              run([*git, 'push', 'origin', 'HEAD:refs/heads/'+BRANCH])
+              if run([*git, 'ls-remote', 'origin', 'refs/heads/'+BRANCH]).split()[0] != commit:
+                  raise RuntimeError('PUBLICATION_READBACK_FAILED')
+              print(json.dumps({'codeCommit':commit,'codeTree':CODE_TREE,'files':files,'offlineChecksPassed':len(checks),'nativeBootstrapVerified':False,'mainMerged':False,'hostedDatabaseModified':False}),flush=True)
           try:
               main()
           except Exception:
-              print("FAIL exact bootstrap publication; no raw diagnostics, forced ref or acceptance override",flush=True)
+              print('FAIL exact bootstrap publication; no raw diagnostics, forced ref or acceptance override',flush=True)
               raise SystemExit(1) from None
           PY
