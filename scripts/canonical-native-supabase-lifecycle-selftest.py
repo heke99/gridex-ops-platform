@@ -183,17 +183,24 @@ class NativeTests(unittest.TestCase):
                 if data==m.METADATA.encode():output=json.dumps({'serverVersion':'17.6','currentRole':'postgres','defaultPrivileges':[]}).encode()
                 else:output=json.dumps(ledger()).encode()
             return subprocess.CompletedProcess(args,status,output,b'private-raw-diagnostic@example.invalid')
+        def bootstrap(*args):
+            if fail_stage == 'bootstrap':
+                raise ValueError('private-bootstrap-failure@example.invalid')
+            return {'nativeDefaultGrantsMatched':True}
         with tempfile.TemporaryDirectory() as directory, patch.object(m,'ROOT',Path(directory)), \
              patch.dict(os.environ,{'GITHUB_ACTIONS':'true','GITHUB_RUN_ID':'34822996630','GITHUB_RUN_ATTEMPT':'1'}), \
              patch.object(m.secrets,'token_hex',return_value='0123456789abcdef'), \
              patch.object(m.shutil,'which',return_value='/fixture/supabase'), \
              patch.object(m.sys,'argv',['script']), patch.object(m.subprocess,'run',side_effect=fake), \
              patch.object(m,'load_transport',return_value=SimpleNamespace(cli_command=lambda cli,w,p,a:['docker','run','--network',p+'-network',cli,'--workdir',str(w),*a])), \
+             patch.object(m,'load_bootstrap',return_value=SimpleNamespace(verify=bootstrap)), \
              contextlib.redirect_stdout(io.StringIO()) as output:
             status=m.run()
             report=json.loads((Path(directory)/'artifacts/native-supabase-lifecycle.json').read_text())
             self.assertNotIn('private-raw-diagnostic',output.getvalue()+json.dumps(report))
             self.assertFalse(work.exists())
+        if fail_stage == 'bootstrap':
+            self.assertEqual(migrations, 0)
         self.assertFalse(any('--all' in args or '--linked' in args or '--db-url' in args for args in calls))
         self.assertTrue(any('stop' in args and PROJECT in args for args in calls))
         self.assertTrue(in_network)
@@ -213,6 +220,14 @@ class NativeTests(unittest.TestCase):
         self.assertEqual(status,1)
         self.assertTrue(report['cleanupVerified'])
         self.assertNotIn('nativeLedgerVerified',report)
+
+    def test_bootstrap_mismatch_stops_before_migrations_and_still_cleans(self):
+        status, report = self.execute_fixture('bootstrap')
+        self.assertEqual(status, 1)
+        self.assertEqual(report['phase'], 'PORTABLE_BOOTSTRAP_AUTHORIZATION')
+        self.assertTrue(report['cleanupVerified'])
+        self.assertNotIn('nativeLedgerVerified', report)
+        self.assertNotIn('private-bootstrap-failure', json.dumps(report))
 
     def test_failed_cleanup_cannot_be_accepted(self):
         status,report=self.execute_fixture('cleanup')

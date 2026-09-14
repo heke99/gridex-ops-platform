@@ -149,6 +149,13 @@ def load_transport():
     return module
 
 
+def load_bootstrap():
+    path = Path(__file__).with_name('canonical_native_bootstrap_contract.py')
+    spec = importlib.util.spec_from_file_location('native_bootstrap_contract', path)
+    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    return module
+
+
 def run():
     if len(sys.argv) != 1 or os.environ.get('GITHUB_ACTIONS') != 'true':
         raise ValueError('DEDICATED_NATIVE_CI_REQUIRED')
@@ -216,6 +223,8 @@ def run():
             if (not report['nativeBootstrap']['serverVersion'].startswith('17.')
                     or report['nativeBootstrap']['currentRole'] != 'postgres'):
                 raise ValueError('NATIVE_POSTGRES_ROLE_REQUIRED')
+            phase = 'PORTABLE_BOOTSTRAP_AUTHORIZATION'
+            report['portableBootstrapAuthorization'] = load_bootstrap().verify(command, project)
             phase = 'GENUINE_CLI_MIGRATION'
             native('migration','new','native_lifecycle_proof')
             files = list(migrations.glob('*.sql'))

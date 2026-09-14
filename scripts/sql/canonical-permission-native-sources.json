@@ -3,7 +3,7 @@
   "scope": "task11a_source_intake",
   "source_selection": "Finite repository source semantics; not deployed schema or replay authority.",
   "sources": {
-    "scripts/sql/gridex-supabase-compatible-bootstrap.sql": "41cc610b7cfa8a7c894c5433a5593607028ad85e885db64b1d094abb486dd391",
+    "scripts/sql/gridex-supabase-compatible-bootstrap.sql": "d7d6d7b7f1a55cff7fad78ca6397aa5d4e8d43ea1d1ec362eca741bcc36b403b",
     "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql": "85f3561be4d91cee063bbf626302de7726a09c5ce08743b250e62cee959bb5f2",
     "supabase/migrations/20260519_auth_callback_email_reset_sync.sql": "59efbf233d314558f8cc7ffbb2b15788cadaaf7ba476e0f80fa1e820299419a9",
     "supabase/migrations/20260519_batch_6d2_runtime_governance_completion.sql": "b7d9d48b9cd3093b5546b04225f9c6151b0f674d2ae73441d8086f51922de9ab",
@@ -42,8 +42,8 @@
       "id": "managed_compatible_bootstrap",
       "source": "scripts/sql/gridex-supabase-compatible-bootstrap.sql",
       "start": 0,
-      "end": 9744,
-      "sha256": "41cc610b7cfa8a7c894c5433a5593607028ad85e885db64b1d094abb486dd391",
+      "end": 10065,
+      "sha256": "d7d6d7b7f1a55cff7fad78ca6397aa5d4e8d43ea1d1ec362eca741bcc36b403b",
       "kind": "bootstrap",
       "starts_with": "-- GRIDEX OPS master remediation plan, Fas 2 (\u00a75.1) \u2014 Supabase-compatible emp",
       "ends_with": " primary key,\n  statements text[],\n  name text\n);\n"
