@@ -1,0 +1,121 @@
+name: Gridex exact native repair56 publication
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-repair56-publication.yml'
+      - 'scripts/gridex-repair56-publication.part*.b64'
+permissions:
+  contents: write
+concurrency:
+  group: gridex-repair56-publication-310
+  cancel-in-progress: false
+jobs:
+  publish-reviewed-source:
+    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/gridex-parity-remediation-20260905'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Publish only the exact reviewed source tree after offline verification
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python3 -B - <<'PY'
+          import base64, gzip, hashlib, json, os, subprocess, tempfile
+          from pathlib import Path
+          BASE='1c11f33ec53682b0c3968225a738ee927d9a3a5b'
+          BASE_TREE='486f46e0ac2a2208ef6e62cbcbdc1a3b7db81a2a'
+          RESULT_TREE='a9ac66bf964700846b8249bf49e5f3cc5b6e5512'
+          PATCH_SHA='0ab4aa3304cd6b56916b0479160e3b96abc6c0b7a3d2c582c5a556d6a59d9b6f'
+          BRANCH='codex/gridex-parity-remediation-20260905'
+          PARTS=tuple('scripts/gridex-repair56-publication.part'+str(i)+'.b64' for i in range(3))
+          TEMP=('.github/workflows/gridex-repair56-publication.yml',*PARTS)
+          PART_HASHES=('47a24b9262af62f387d0a119995d031a99707eb8','ef6d9b76d2b51c974edc96ebb85be8f6e455bac7','35518493ab3a04f12d79804123cc275dd3e7b74a')
+          TESTS=(('test-canonical-native-repair-envelope.py',28),
+                 ('test-canonical-native-historical-prefix.py',32),
+                 ('test-canonical-native-legacy-envelope.py',22),
+                 ('test-canonical-native-lock-boundary.py',9),
+                 ('canonical-native-supabase-lifecycle-selftest.py',15),
+                 ('canonical-native-ledger-regression.py',8),
+                 ('canonical-native-bootstrap-contract-selftest.py',14))
+          def run(args,env=None):
+              p=subprocess.run(args,capture_output=True,text=True,timeout=180,env=env)
+              if p.returncode: raise RuntimeError('REVIEWED_PUBLICATION_COMMAND_FAILED')
+              return p.stdout.strip()
+          def blob(data):
+              return hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
+          def projection():
+              tree=run(['git','write-tree'])
+              with tempfile.TemporaryDirectory(prefix='gridex-repair56-index-') as directory:
+                  env={**os.environ,'GIT_INDEX_FILE':str(Path(directory)/'index')}
+                  run(['git','read-tree',tree],env)
+                  run(['git','update-index','--force-remove','--',*TEMP],env)
+                  return run(['git','write-tree'],env)
+          def main():
+              event=json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text());pr=event['pull_request']
+              source=pr['head']['sha']
+              if (os.environ.get('GITHUB_EVENT_NAME')!='pull_request' or event['number']!=310
+                  or pr['head']['ref']!=BRANCH or pr['head']['repo']['full_name']!='heke99/gridex-ops-platform'
+                  or os.environ.get('GITHUB_REPOSITORY')!='heke99/gridex-ops-platform'
+                  or run(['git','rev-parse','HEAD'])!=source or run(['git','rev-parse','HEAD^'])!=BASE
+                  or run(['git','status','--porcelain']) or projection()!=BASE_TREE):
+                  raise RuntimeError('EXACT_REVIEWED_BASE_REQUIRED')
+              chunks=[Path(name).read_bytes() for name in PARTS]
+              if tuple(blob(data) for data in chunks)!=PART_HASHES:
+                  raise RuntimeError('EXACT_TRANSFER_REQUIRED')
+              # The staged first segment has one identified transcription byte.
+              # Both that input and the reconstructed original are pinned.
+              if len(chunks[0])!=8001 or chunks[0][1614:1615]!=b'Y':
+                  raise RuntimeError('EXACT_TRANSFER_BYTE_REQUIRED')
+              chunks[0]=chunks[0][:1614]+chunks[0][1615:]
+              if blob(chunks[0])!='070587622788cd7e46ce515931c1625a0298cf64':
+                  raise RuntimeError('ORIGINAL_TRANSFER_REQUIRED')
+              payload=gzip.decompress(base64.b64decode(b''.join(chunks),validate=True))
+              if len(payload)!=65958 or hashlib.sha256(payload).hexdigest()!=PATCH_SHA:
+                  raise RuntimeError('EXACT_REVIEWED_PATCH_REQUIRED')
+              with tempfile.TemporaryDirectory(prefix='gridex-repair56-patch-') as directory:
+                  path=Path(directory)/'source.patch';path.write_bytes(payload)
+                  run(['git','apply','--check','--index',str(path)])
+                  run(['git','apply','--index',str(path)])
+              changed=run(['git','diff','--cached','--name-only']).splitlines()
+              if len(changed)!=11 or any(p.startswith('.github/') for p in changed) or projection()!=RESULT_TREE:
+                  raise RuntimeError('EXACT_RESULT_TREE_REQUIRED')
+              run(['git','diff','--cached','--check'])
+              environment={k:v for k,v in os.environ.items() if k not in ('GH_TOKEN','GITHUB_TOKEN')}
+              for name,count in TESTS:
+                  print('Verify '+name+' ('+str(count)+' controls)',flush=True)
+                  run(['python3','-B','scripts/'+name],environment)
+              run(['node','scripts/check-migration-versions.cjs'],environment)
+              run(['python3','-B','scripts/gridex-replay-complete-accounting.py','--require-canonical-sources'],environment)
+              run(['git','diff','--exit-code'])
+              if projection()!=RESULT_TREE: raise RuntimeError('TESTS_CHANGED_SOURCE_TREE')
+              authorization=base64.b64encode(('x-access-token:'+os.environ['GH_TOKEN']).encode()).decode()
+              git=['git','-c','credential.helper=','-c','http.https://github.com/.extraheader=AUTHORIZATION: basic '+authorization]
+              if run([*git,'ls-remote','origin','refs/heads/'+BRANCH]).split()[0]!=source:
+                  raise RuntimeError('BRANCH_MOVED')
+              run(['git','-c','user.name=github-actions[bot]','-c','user.email=41898282+github-actions[bot]@users.noreply.github.com','commit','--no-gpg-sign','-m','feat(db): integrate native repair53-56 as one source-bound CLI envelope'])
+              commit=run(['git','rev-parse','HEAD'])
+              run([*git,'push','origin','HEAD:refs/heads/'+BRANCH])
+              if run([*git,'ls-remote','origin','refs/heads/'+BRANCH]).split()[0]!=commit:
+                  raise RuntimeError('PUBLISHED_HEAD_READBACK_FAILED')
+              receipt={'sourceCommit':source,'base':BASE,'codeCommit':commit,'codeTree':RESULT_TREE,'patchSha256':PATCH_SHA,'filesChanged':changed,'localTestCount':sum(n for _,n in TESTS),'testsUseSimulatedNativeCalls':True,'migrationFiles':601,'historicalRepair56NativeAccepted':False,'completeReplayAccepted':False,'mainChanged':False,'hostedDatabaseModified':False}
+              (Path(os.environ['RUNNER_TEMP'])/'gridex-repair56-publication.json').write_text(json.dumps(receipt,indent=2)+'\n')
+              print(json.dumps(receipt,sort_keys=True),flush=True)
+          try:
+              main()
+          except Exception as error:
+              print('FAIL exact repair56 publication: '+type(error).__name__,flush=True)
+              raise SystemExit(1) from None
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gridex-repair56-publication
+          path: ${{ runner.temp }}/gridex-repair56-publication.json
+          retention-days: 1
+          if-no-files-found: ignore
