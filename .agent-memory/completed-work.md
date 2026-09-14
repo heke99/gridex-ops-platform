@@ -74,3 +74,13 @@ Recomputed all43 program/source receipts;62 fresh offline tests and601 original
 migration hashes PASS. No new runtime change in this receipt increment.
 Full native replay, schema/types, release and main merge remain NOT ACCEPTED.
 See DB_NATIVE_LOCK27_VERIFIED_2026-09-14.md and the sole current-state pointer.
+
+## 2026-09-14 — reconcile superseded42501 with verified native52
+
+Rechecked exact603e68a5 and native34873361878/job104074455772/artifact10359689961.
+All52 source hashes,43 prefix program hashes and4 support hashes match. Native
+through52, five negative controls, actual CLI ledger/repeat and cleanup VERIFIED.
+Fresh62 local unit tests and601-file/505-group integrity PASS; local callbacks
+are simulated. Publish the scoped receipt/current-state/checkpoint; no runtime
+patch, hosted mutation, type/reference refresh, full acceptance or main merge.
+Evidence:quality/audits/DB_NATIVE52_VERIFIED_2026-09-14.md. Next:native53–56.

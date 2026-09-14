@@ -4,10 +4,10 @@
   "status": "PARTIAL",
   "current_state": ".agent-memory/current-state.md",
   "active_group": "database_reconstruction",
-  "evidence": "quality/audits/DB_NATIVE_LOCK27_VERIFIED_2026-09-14.md",
-  "next_action": "Integrate foundation44–52 as the reviewed native atomic legacy envelope; ordinal27 and first43 actual CLI ledger are now verified. Full schema, types and release remain open.",
-  "native_verified_code": "a7622e16c63e561cb62fc792d07c4ddf53103945",
-  "native_run_id": 34860588353,
-  "native_job_id": 104031445849,
-  "native_artifact_id": 10354879366
+  "evidence": "quality/audits/DB_NATIVE52_VERIFIED_2026-09-14.md",
+  "next_action": "Integrate native foundation53–56; foundation1–52 and the former42501 blocker are verified/superseded. Full replay/schema/types/CI and merge remain open.",
+  "native_verified_code": "603e68a52f223a7fcfb65fc8ec33a3ed529ff4da",
+  "native_run_id": 34873361878,
+  "native_job_id": 104074455772,
+  "native_artifact_id": 10359689961
 }

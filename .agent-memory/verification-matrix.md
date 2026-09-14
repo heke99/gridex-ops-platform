@@ -110,3 +110,16 @@ Local native-entry patch: 28 new + 64 existing tests PASS; all native calls simu
 
 Evidence:quality/audits/DB_NATIVE_LOCK27_VERIFIED_2026-09-14.md. This supersedes
 the earlier26-input boundary, not the remaining full-release gates.
+
+## 2026-09-14 — provider42501 superseded; native52 boundary
+
+| Scope | Result | Evidence |
+| --- | --- | --- |
+| Native1–52 / one44–52 CLI unit / no-op | VERIFIED |603e68a5;34873361878;10359689961 |
+|42501/P5244/57014/P5252/P5253 rollback | VERIFIED | Same native receipt |
+|52 source /43 prefix program /4 support hashes | MATCH | Fresh independent recomputation |
+|62 local tests /601 files /505 version groups | PASS | Simulated local calls; not native SQL |
+| Later foundation/tail/schema/types/mandatory CI | NOT ACCEPTED | Later-envelope stop remains |
+| Main merge / hosted database mutation | NOT PERFORMED | Documentation-only publication |
+
+Evidence:quality/audits/DB_NATIVE52_VERIFIED_2026-09-14.md.
