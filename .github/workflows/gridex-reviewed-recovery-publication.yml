@@ -1,0 +1,84 @@
+name: Gridex reviewed verifier recovery publication
+on:
+  pull_request:
+    paths: ['.github/workflows/gridex-reviewed-recovery-publication.yml']
+permissions:
+  contents: write
+concurrency:
+  group: gridex-reviewed-recovery-publication
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/gridex-parity-remediation-20260905'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Verify the exact two-file change and all affected local contracts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python3 -B - <<'PY'
+          import base64, gzip, hashlib, json, os, subprocess, tempfile
+          from pathlib import Path
+          def run(args, env=None):
+              p = subprocess.run(args, capture_output=True, text=True, env=env, timeout=240)
+              if p.returncode:
+                  raise RuntimeError('REVIEWED_RECOVERY_CHECK_FAILED')
+              return p.stdout.strip()
+          event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+          head = event['pull_request']['head']['sha']
+          branch = 'codex/gridex-parity-remediation-20260905'
+          if (os.environ['GITHUB_EVENT_NAME'] != 'pull_request' or event['number'] != 310
+              or event['pull_request']['head']['ref'] != branch
+              or event['pull_request']['head']['repo']['full_name'] != 'heke99/gridex-ops-platform'
+              or run(['git', 'rev-parse', 'HEAD']) != head
+              or run(['git', 'rev-parse', 'HEAD^']) != '5d126ad9ebc3cd04a87001c6ec9ec1859c29d679'
+              or run(['git', 'status', '--porcelain'])):
+              raise RuntimeError('EXACT_REVIEWED_BASE_REQUIRED')
+          encoded = 'H4sIAAAAAAAC/61W/27aSBD+308xUqUzCNuBBAiJFCkOOK0lmuT4cW1VVWRZD3ivxnZ31xDUq3QPcU94T3KzNiRplban3PGP8Xrmm29mvhk7EosFuO5SaGAHHltiqt0VrjK5PeCFlOZWaabRW0Uw/4mBJdII72DBIr7ozT2vxZrYPGTQaja77bbluu5PY1iNRuPncc7PwW05XWi0nB6cn1vwAvqVDZQ28Peff0HENJszhSCRZ6nSsuBaZKkDh83Drts8cVttCyx3TA6FOoUbfzQJ/aEHr5lIDyQmaHxZGkGesBTyTKRaQa9z0OsCkwhX1xNgnGOuMfKsxjcwVsNqPAsIKJkX8BtKsRAYVW6FijGiJybt9rFzBI32idM6pMzh/2EPwVpEmHI8hdtPBUuE3h6wIhJaHQwuZsEgDIazy+vRG380mD1UjzpxS75+koDGVZ5JJrdEdp4I4isV1X2VrQm+5OQANSFFTvEeOmP4RZgn2XZlekfELChSHrN0afyCO6G0SJfA8jwRnJn2Hfg3IWwy+bFKjhUKzUXqFGX5LGeax5BLVCjXZWusBlX0NeOxSNHlMfKP5EJsCLqgTMu/knFtLN8QMkV0tUQ0BcqKtGQgFHSbLRBpXmgqd6d3AreX0yGVJRwGs3EwDPqTYHBL4oLb8fRiPAkn0+qgA7fTq/7QH4/Dy7A8McTpNHh7Mwz74WT4bha87Q+nA3pYsp3ECIuMl5ktZVbkJUOqoYKj9vE9h6OjDihqtCmpiauKOVVLF+Vtx9QxYUqVMtrHxDueFNGuKFcZVSmLqqmAVaHL+kLMFMwRSTMoF5lcEQmRgo6FaSiJaeuuS3FW7YC5KTfh3ZBIyWAtcGPi8YwkYHpaPkdFc4n5RpieG5xPBapSedHj9aO4FDlpjrM0SylA4lINpCvnjLsLcYeRq5lconbLjmWJ8vItLYvnuO1W1Um7O49w4XntRa/X4Udfr6pnAVcL7FmuZr6Pe23nGBrm0uqaCSd695M620ihabRqvH5qwVM/7lF7ixy92XjiT4Lx+/gDnIHt9/vBDemx07Wf9tsIHVej42Xz30lTtT2SY6uU5SrOtO1I1IVMZ2uWFHhW+/zFef+hXne+40biQ6lnC5GyxP7GKibUT8k3gHbT/l5aX6WGd8hJ5QTCvUqS3sCf+Bf+OHDujfZSnFHcWNXqDr0Ylli33Ae4chXUFOpaNVKeeVHISNXPzh4dqqyQHFXdsS+vp6PZKPCHszejcBKMxnTz6zQcBQO7bjX2uC9gYmaFmkypIezI0gHhADKZbGHXRQfSTNNkIehNBgm9t6SxSqNysh4j7hyARZQd6Kx04klmNkTFj2ZqSctSbj3wo5WguafZzBZkSEYV9lOARJQISi4M0pxW4b1cqTO0cUinZRlc2hRrTBm9IlzaOQtKSJNivQdMvMur5X4Gn23avpS/2/LKJoO9WxwV1f3xg+/jn7FlQrqbOEvQDQ73EFVbd8evquMvDxA/7OaeG8H8ux4+gbaXwQMa/AHmOff83XSGleUomPjhVTCgN+b0ioQZXl/Vn0jW7g+vx2Q1Jkb9gGi8DMeT0bsf8jF6eSJD+OW/MRnSphjNbl7RAFH4/vXIeIwuwsEguCIa94YkApLUGehtjjV7H+zGnNoOjdhnO7ZPabRTtkL645mrY0eCeGr6jjNH9ze7h/ebrUrJPq2uX+q1R3G3ApOoik5fQf8ANjmS1rIKAAA='
+          payload = gzip.decompress(base64.b64decode(encoded, validate=True))
+          if len(payload) != 2738 or hashlib.sha256(payload).hexdigest() != 'da7b2e73defdb0b58d9e4d6c57c1d8d84658d9bda753cd4acab1492c52519717':
+              raise RuntimeError('EXACT_PATCH_REQUIRED')
+          with tempfile.TemporaryDirectory() as directory:
+              patch = Path(directory)/'reviewed.patch'; patch.write_bytes(payload)
+              run(['git', 'apply', '--check', '--index', str(patch)])
+              run(['git', 'apply', '--index', str(patch)])
+          expected_paths = ['.agent-memory/current-state.md', 'scripts/canonical-user-rbac-fixed-target-controls.py']
+          if run(['git', 'diff', '--cached', '--name-only']).splitlines() != expected_paths:
+              raise RuntimeError('EXACT_TWO_FILES_REQUIRED')
+          def projection():
+              with tempfile.TemporaryDirectory() as directory:
+                  env = {**os.environ, 'GIT_INDEX_FILE': str(Path(directory)/'index')}
+                  run(['git', 'read-tree', run(['git', 'write-tree'])], env)
+                  run(['git', 'update-index', '--force-remove', '--', '.github/workflows/gridex-reviewed-recovery-publication.yml'], env)
+                  return run(['git', 'write-tree'], env)
+          expected_tree = 'ee0941e6079ae1cc4bc0a6a5e9848e8acb4f3bf4'
+          if projection() != expected_tree:
+              raise RuntimeError('EXACT_REVIEWED_TREE_REQUIRED')
+          env = {k:v for k,v in os.environ.items() if k not in ('GH_TOKEN', 'GITHUB_TOKEN')}
+          for script, args in [('canonical-auth-membership-group-selftest.py', []),
+                               ('canonical-user-rbac-fixed-target-selftest.py', ['--selection-only']),
+                               ('canonical-user-rbac-fixed-target-continuation-selftest.py', ['--selection-only']),
+                               ('canonical-retained-input-provenance-selftest.py', [])]:
+              run(['python3', '-B', 'scripts/'+script, *args], env)
+              print('PASS '+script, flush=True)
+          run(['git', 'diff', '--check']); run(['git', 'diff', '--exit-code'])
+          if projection() != expected_tree:
+              raise RuntimeError('TEST_CHANGED_REVIEWED_TREE')
+          authorization = base64.b64encode(('x-access-token:'+os.environ['GH_TOKEN']).encode()).decode()
+          git = ['git', '-c', 'credential.helper=', '-c', 'http.https://github.com/.extraheader=AUTHORIZATION: basic '+authorization]
+          if run([*git, 'ls-remote', 'origin', 'refs/heads/'+branch]).split()[0] != head:
+              raise RuntimeError('BRANCH_MOVED')
+          run(['git', '-c', 'user.name=github-actions[bot]', '-c', 'user.email=41898282+github-actions[bot]@users.noreply.github.com', 'commit', '--no-gpg-sign', '-m', 'fix(db): restore continuity contract and exact early-writer fixture scope'])
+          commit = run(['git', 'rev-parse', 'HEAD'])
+          run([*git, 'push', 'origin', 'HEAD:refs/heads/'+branch])
+          if run([*git, 'ls-remote', 'origin', 'refs/heads/'+branch]).split()[0] != commit:
+              raise RuntimeError('PUBLICATION_READBACK_FAILED')
+          print(json.dumps({'commit':commit,'reviewedTree':expected_tree,'mainChanged':False,'productionModified':False,'fullReplayAccepted':False}))
+          PY
