@@ -369,7 +369,11 @@ jobs:
         run: |
           set -o pipefail
           exec > >(tee rem002-clean-replay.log) 2>&1
-          source scripts/gridex-aud-003-clean-replay.sh
+          # The native parent owns startup, private logs and disposal. It must
+          # remain nonzero until all historical envelopes AND final gates are
+          # integrated; first43 is not permission to run the following checks.
+          python3 -B scripts/test-canonical-native-historical-prefix.py
+          python3 -B scripts/canonical-auth-provisioning-replay.py
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/sql/canonical-tenant-guard-catalog.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
@@ -421,6 +425,7 @@ jobs:
           path: |
             rem002-clean-replay.log
             artifacts/replay-input-accounting.json
+            artifacts/native-supabase-lifecycle.json
             rem002-database.types.ts
             rem002-schema-snapshot/
           if-no-files-found: error
