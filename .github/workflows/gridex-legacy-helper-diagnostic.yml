@@ -1,0 +1,58 @@
+name: Gridex bounded legacy helper diagnosis
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-legacy-helper-diagnostic.yml'
+permissions:
+  contents: read
+jobs:
+  exact-helper-diagnostic:
+    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Execute exact published helper test and report only a known assertion hash
+        run: |
+          python3 -B - <<'PY'
+          import hashlib, importlib.util, json, re
+          from pathlib import Path
+          def load(name):
+              p=Path('scripts')/(name+'.py')
+              s=importlib.util.spec_from_file_location(name,p)
+              m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+              return m
+          helper=load('canonical-auth-provisioning-legacy-selftest')
+          rbac=load('canonical-rbac-prefix-selftest')
+          labels={}
+          for section in ('catalog_prerequisites','final_checks','governance_trigger_checks','journal_checks'):
+              for ordinal,label in enumerate(re.findall(r"'([^'\n]*)'\);",getattr(rbac,section)())):
+                  labels[label]=(section,ordinal,hashlib.sha256(label.encode()).hexdigest())
+          b=helper.load_batch()
+          try:
+              with b.OwnedPostgres() as h:
+                  b.prepare_reference(h)
+                  try:
+                      helper.downstream_helper(b,h)
+                  except Exception:
+                      p=Path(h.directory.name)/'client-last.out'
+                      if p.is_file() and not p.is_symlink() and p.stat().st_size<1048576:
+                          raw=p.read_text(errors='replace')
+                          found=[value for label,value in labels.items() if ('FAIL: '+label+'\n') in raw]
+                          for section,ordinal,digest in found:
+                              print(json.dumps({'stage':'known_helper_assertion','section':section,'ordinal':ordinal,'labelSha256':digest,'accepted':False}),flush=True)
+                      raise
+              print('PASS exact isolated downstream helper; not a full legacy/replay acceptance',flush=True)
+          except Exception:
+              print('FAIL exact helper diagnostic; original failure retained and raw SQL withheld',flush=True)
+              raise SystemExit(1) from None
+          PY
+      - name: Clean only owned diagnostic resources
+        if: always()
+        run: python3 -B scripts/canonical-auth-provisioning-legacy-selftest.py --cleanup-owned
