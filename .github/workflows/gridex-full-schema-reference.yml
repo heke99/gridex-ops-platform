@@ -1,0 +1,50 @@
+name: Gridex full schema reference comparison
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-full-schema-reference.yml'
+      - 'scripts/canonical-*.py'
+      - 'scripts/sql/gridex-db-parity-introspect.sql'
+      - 'scripts/gridex-schema-document.cjs'
+      - 'supabase/schema.sql'
+      - 'supabase/migrations/*.sql'
+permissions:
+  contents: read
+concurrency:
+  group: gridex-full-schema-reference-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  independent-public-reference:
+    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/gridex-parity-remediation-20260905'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Verify complete comparison and disclosure rejection controls
+        run: python3 -B scripts/canonical-full-schema-reference-selftest.py
+      - name: Restore the independent reference and compare all public schema sections
+        run: python3 -B scripts/canonical-full-schema-reference.py
+      - name: Remove only this workflow's owned database
+        if: always()
+        run: |
+          python3 -B - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          path = Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve()
+          spec = importlib.util.spec_from_file_location('cleanup', path)
+          module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+          module.load_controller().load_batch().cleanup_workflow_owned()
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gridex-full-schema-reference-diff
+          path: artifacts/full-schema-reference-diff.json
+          retention-days: 2
+          if-no-files-found: ignore
