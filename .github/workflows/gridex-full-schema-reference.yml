@@ -6,6 +6,7 @@ on:
       - 'scripts/canonical-*.py'
       - 'scripts/sql/gridex-db-parity-introspect.sql'
       - 'scripts/gridex-schema-document.cjs'
+      - 'scripts/gridex-schema-dump*.cjs'
       - 'supabase/schema.sql'
       - 'supabase/migrations/*.sql'
 permissions:
@@ -27,7 +28,9 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
       - name: Verify complete comparison and disclosure rejection controls
-        run: python3 -B scripts/canonical-full-schema-reference-selftest.py
+        run: |
+          node scripts/gridex-schema-dump-selftest.cjs
+          python3 -B scripts/canonical-full-schema-reference-selftest.py
       - name: Restore the independent reference and compare all public schema sections
         run: python3 -B scripts/canonical-full-schema-reference.py
       - name: Remove only this workflow's owned database

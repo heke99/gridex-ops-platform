@@ -151,7 +151,30 @@ def restore_reference(target, raw):
                'reference_spatial_prerequisite', transaction=False)
     target.verify_logging()
     command = target.command(REFERENCE_DB, (), transaction=False)+['-f', '-']
-    result = subprocess.run(command, input=raw, capture_output=True, timeout=180,
+    # Native RED/GREEN control of the old invalid normalized key. This contains
+    # no source definitions, operator literals, credentials or business data.
+    environment = load('canonical-auth-provisioning-replay.py').load_batch().clean_environment()
+    old_probe = b'\\restrict gridex_canonical_schema_snapshot\nSELECT 1;\n\\unrestrict gridex_canonical_schema_snapshot\n'
+    old = subprocess.run(command, input=old_probe, capture_output=True, timeout=30, env=environment)
+    if old.returncode == 0:
+        raise ValueError('INVALID_RESTRICT_KEY_REGRESSION_REQUIRED')
+    def rekey(data):
+        process = subprocess.run(['node', '-e',
+            "const fs=require('node:fs');process.stdout.write(require('./scripts/gridex-schema-dump.cjs').prepareRestore(fs.readFileSync(0,'utf8')));"],
+            input=data, capture_output=True, timeout=30, cwd=ROOT)
+        if process.returncode:
+            raise ValueError('RESTRICTED_RESTORE_PREPARATION_FAILED')
+        return process.stdout
+    good = subprocess.run(command, input=rekey(old_probe), capture_output=True, timeout=30, env=environment)
+    if good.returncode or good.stdout.strip() != b'1':
+        raise ValueError('NATIVE_RESTRICTED_CLIENT_REQUIRED')
+    prepared = rekey(raw)
+    if sum(a != b for a,b in zip(raw.splitlines(), prepared.splitlines())) != 2 or len(raw.splitlines()) != len(prepared.splitlines()):
+        raise ValueError('EXACT_RESTRICT_KEY_ONLY_CHANGE_REQUIRED')
+    print(json.dumps({'stage':'native_restricted_restore_control','invalidKeyRejected':True,
+                      'freshKeyAccepted':True,'originalSnapshotSha256':sha(raw),
+                      'preparedStreamSha256':sha(prepared),'changedGuardLines':2}), flush=True)
+    result = subprocess.run(command, input=prepared, capture_output=True, timeout=180,
                             env=load('canonical-auth-provisioning-replay.py').load_batch().clean_environment())
     if result.returncode:
         safe = load('canonical-foundation-frontier-diagnostic.py').safe_error_identifiers(result.stderr)
