@@ -146,6 +146,35 @@ def restore_reference(target, raw):
     return load('canonical-reference-restore.py').restore_reference(target, raw)
 
 
+
+def isolated_reference(legacy, timestamp, raw):
+    """Return only catalog metadata after destroying the reference runtime.
+
+    The reconstruction must not adopt a target that already performed reference
+    SQL or contains its client files. In particular, AcceptedInputs deliberately
+    rejects a pre-existing physical client-last.out. Do not delete that evidence
+    or relax the guard; dispose the reference instance and create a fresh target.
+    """
+    with legacy.OwnedPostgres(postgis=True) as target:
+        timestamp.verify_spatial_runtime(target)
+        document = restore_reference(target, raw)
+    if target.active or target.directory is not None:
+        raise ValueError('REFERENCE_DISPOSAL_REQUIRED')
+    return validate(document)
+
+
+def publish_result(result):
+    output = ROOT/'artifacts'; output.mkdir(exist_ok=True)
+    (output/'full-schema-reference-diff.json').write_text(json.dumps(result, sort_keys=True, indent=2)+'\n')
+    summary = {k:v for k,v in result.items() if k != 'sections'}
+    summary['counts'] = {s:{k:v for k,v in entry.items() if k.endswith('Count')} |
+                         {kind:len(entry[kind]) for kind in ('added','removed','changed')}
+                         for s,entry in result.get('sections',{}).items()}
+    print(json.dumps(summary, sort_keys=True), flush=True)
+    return 0 if result.get('publicSnapshotEqual') and result.get('privacyVerified') else 1
+
+
+
 def run():
     if len(sys.argv) != 1:
         raise ValueError('NO_TARGET_OR_ACCEPTANCE_OVERRIDES')
@@ -168,11 +197,20 @@ def run():
     def interrupted(*_):
         raise ValueError('SCHEMA_REFERENCE_INTERRUPTED')
     signal.signal(signal.SIGINT, interrupted); signal.signal(signal.SIGTERM, interrupted)
+    try:
+        reference = isolated_reference(legacy, timestamp, raw)
+    except Exception as error:
+        if controller.originals_snapshot() != before:
+            raise ValueError('SOURCE_RESTORATION_REQUIRED')
+        result.update(outcome='BLOCKED', phase='INDEPENDENT_REFERENCE_RESTORE',
+                      errorType=type(error).__name__, originalsRestored=True)
+        return publish_result(result)
+    result.update(referenceRestored=True, referenceDisposed=True,
+                  referenceCounts={name:len(rows) for name,rows in reference.items()},
+                  referenceSha256=sha(reference))
     with legacy.OwnedPostgres(postgis=True) as target:
         try:
             timestamp.verify_spatial_runtime(target)
-            phase = 'INDEPENDENT_REFERENCE_RESTORE'
-            reference = restore_reference(target, raw)
             phase = 'COMPLETE_SELECTED_REPLAY'
             with controller.load_private().AcceptedInputs(target):
                 controller.load_dedupe().prepare_reference(target, 'full')
@@ -196,7 +234,7 @@ def run():
                         raise ValueError('FULL_SOURCE_EXECUTION_REQUIRED')
                     phase = 'FULL_PUBLIC_COMPARISON'
                     actual = capture(target, controller.DATABASE)
-                result = compare(reference, actual)
+                result.update(compare(reference, actual))
                 result.update(foundationApplied=len(order), timestampApplied=len(selected), snapshotSourceSha256=sha(raw))
             if controller.originals_snapshot() != before:
                 raise ValueError('SOURCE_RESTORATION_REQUIRED')
@@ -212,14 +250,7 @@ def run():
     result.update(cleanupVerified=not target.active, originalsRestored=True)
     if target.active:
         raise ValueError('OWNED_CLEANUP_REQUIRED')
-    output = ROOT/'artifacts'; output.mkdir(exist_ok=True)
-    (output/'full-schema-reference-diff.json').write_text(json.dumps(result, sort_keys=True, indent=2)+'\n')
-    summary = {k:v for k,v in result.items() if k != 'sections'}
-    summary['counts'] = {s:{k:v for k,v in entry.items() if k.endswith('Count')} |
-                         {kind:len(entry[kind]) for kind in ('added','removed','changed')}
-                         for s,entry in result.get('sections',{}).items()}
-    print(json.dumps(summary, sort_keys=True), flush=True)
-    return 0 if result.get('publicSnapshotEqual') and result.get('privacyVerified') else 1
+    return publish_result(result)
 
 
 if __name__ == '__main__':

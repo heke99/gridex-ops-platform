@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('full_reference', ROOT/'scripts/canonical-full-schema-reference.py')
@@ -84,6 +84,46 @@ class ReferenceTests(unittest.TestCase):
         for identity in ('bad\nprivate-value', 'bad\x00value', 'x'*1025, None):
             with self.assertRaisesRegex(ValueError, 'CATALOG_IDENTITY_REQUIRED'):
                 m.key({'name':identity}, ('name',))
+
+    def test_reference_runtime_is_disposed_before_its_metadata_is_reused(self):
+        target = Mock(); target.active = True; target.directory = object()
+        context = Mock(); context.__enter__ = Mock(return_value=target)
+        def dispose(*_):
+            target.active = False; target.directory = None
+        context.__exit__ = Mock(side_effect=dispose)
+        legacy = Mock(); legacy.OwnedPostgres.return_value = context
+        timestamp = Mock()
+        def restore(handle, raw):
+            self.assertIs(handle, target)
+            self.assertTrue(handle.active)
+            self.assertEqual(raw, b'exact-reference')
+            return document()
+        with patch.object(m, 'restore_reference', side_effect=restore):
+            value = m.isolated_reference(legacy, timestamp, b'exact-reference')
+        self.assertEqual(value, document())
+        self.assertFalse(target.active)
+        self.assertIsNone(target.directory)
+        legacy.OwnedPostgres.assert_called_once_with(postgis=True)
+        timestamp.verify_spatial_runtime.assert_called_once_with(target)
+        context.__exit__.assert_called_once()
+
+    def test_unverified_reference_disposal_blocks_later_reconstruction(self):
+        for active, directory in ((True, None), (False, object())):
+            target = Mock(); target.active = active; target.directory = directory
+            context = Mock(); context.__enter__ = Mock(return_value=target); context.__exit__ = Mock(return_value=False)
+            legacy = Mock(); legacy.OwnedPostgres.return_value = context
+            with patch.object(m, 'restore_reference', return_value=document()):
+                with self.assertRaisesRegex(ValueError, 'REFERENCE_DISPOSAL_REQUIRED'):
+                    m.isolated_reference(legacy, Mock(), b'exact')
+
+    def test_failed_restore_is_not_replaced_by_an_observed_replay_catalog(self):
+        context = Mock(); context.__enter__ = Mock(return_value=Mock()); context.__exit__ = Mock(return_value=False)
+        legacy = Mock(); legacy.OwnedPostgres.return_value = context
+        with patch.object(m, 'restore_reference', side_effect=ValueError('source-failed')):
+            with self.assertRaisesRegex(ValueError, 'source-failed'):
+                m.isolated_reference(legacy, Mock(), b'exact')
+        self.assertEqual(legacy.OwnedPostgres.call_count, 1)
+        context.__exit__.assert_called_once()
 
     def test_reference_comes_from_the_exact_committed_dump(self):
         data = m.pinned()
