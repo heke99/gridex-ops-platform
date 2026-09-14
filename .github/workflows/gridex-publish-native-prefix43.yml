@@ -1,0 +1,107 @@
+name: Gridex reviewed native prefix publication
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-publish-native-prefix43.yml'
+permissions:
+  contents: write
+concurrency:
+  group: gridex-native-prefix43-publication-310
+  cancel-in-progress: false
+jobs:
+  publish-exact-reviewed-prefix:
+    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/gridex-parity-remediation-20260905'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Verify and publish only the locked non-workflow source patch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python3 -B - <<'PY'
+          import base64, gzip, hashlib, json, os, subprocess, tempfile
+          from pathlib import Path
+          BASE = '2a1cfcdb7a213302da7f0bbd2df32f12f731962b'
+          BASE_TREE = 'e295f9e56143a3e17677c31b124cf706e8b2ae3e'
+          RESULT_TREE = 'b17e36bd94fa1f2a8d97baf6ac9259386ce838c0'
+          BRANCH = 'codex/gridex-parity-remediation-20260905'
+          PARTS = tuple('scripts/.native-prefix43-part'+str(i)+'.b64' for i in range(1,4))
+          TEMPORARY = ('.github/workflows/gridex-publish-native-prefix43.yml', *PARTS)
+          TESTS = ('test-canonical-native-historical-prefix.py',
+                   'canonical-native-supabase-lifecycle-selftest.py',
+                   'canonical-native-bootstrap-contract-selftest.py',
+                   'gridex-aud-003-clean-replay-selftest.py',
+                   'canonical-owned-workflow-selftest.py',
+                   'gridex-replay-required-checks-selftest.py')
+          def run(args, env=None, timeout=180):
+              result = subprocess.run(args, capture_output=True, text=True, env=env, timeout=timeout)
+              if result.returncode:
+                  raise RuntimeError('EXACT_PREFIX_PUBLICATION_COMMAND_FAILED')
+              return result.stdout.strip()
+          def projection():
+              tree = run(['git','write-tree'])
+              with tempfile.TemporaryDirectory() as directory:
+                  env = {**os.environ,'GIT_INDEX_FILE':str(Path(directory)/'index')}
+                  run(['git','read-tree',tree],env)
+                  run(['git','update-index','--force-remove','--',*TEMPORARY],env)
+                  return run(['git','write-tree'],env)
+          def main():
+              event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+              pr = event['pull_request']; head = pr['head']['sha']
+              if (os.environ.get('GITHUB_EVENT_NAME') != 'pull_request'
+                  or event['number'] != 310 or pr['head']['ref'] != BRANCH
+                  or pr['head']['repo']['full_name'] != 'heke99/gridex-ops-platform'
+                  or os.environ.get('GITHUB_REPOSITORY') != 'heke99/gridex-ops-platform'
+                  or run(['git','rev-parse','HEAD']) != head
+                  or run(['git','rev-parse','HEAD^']) != BASE
+                  or run(['git','status','--porcelain']) or projection() != BASE_TREE):
+                  raise RuntimeError('EXACT_PREFIX_BASE_REQUIRED')
+              encoded = b''.join(Path(part).read_bytes() for part in PARTS)
+              raw = gzip.decompress(base64.b64decode(encoded, validate=True))
+              if (len(raw) != 57980 or hashlib.sha256(raw).hexdigest() !=
+                  '2be7d23295661b011ad3bcb858ffd661653a9f92449fd2772a88628e12731b54'):
+                  raise RuntimeError('EXACT_REVIEWED_PREFIX_PATCH_REQUIRED')
+              with tempfile.TemporaryDirectory() as directory:
+                  patch = Path(directory)/'source.patch'; patch.write_bytes(raw)
+                  run(['git','apply','--check','--index',str(patch)])
+                  run(['git','apply','--index',str(patch)])
+              changed = run(['git','diff','--cached','--name-only']).splitlines()
+              if (len(changed) != 10 or any(p.startswith('.github/') for p in changed)
+                  or projection() != RESULT_TREE):
+                  raise RuntimeError('EXACT_PREFIX_RESULT_TREE_REQUIRED')
+              environment = {k:v for k,v in os.environ.items() if k not in ('GH_TOKEN','GITHUB_TOKEN')}
+              for test in TESTS:
+                  print('Verify '+test, flush=True)
+                  run(['python3','-B','scripts/'+test],environment)
+              run(['node','scripts/check-migration-versions.cjs'],environment)
+              run(['python3','-B','scripts/gridex-replay-complete-accounting.py','--require-canonical-sources'],environment)
+              run(['git','diff','--check']); run(['git','diff','--exit-code'])
+              if projection() != RESULT_TREE:
+                  raise RuntimeError('PREFIX_TEST_CHANGED_SOURCE')
+              authorization = base64.b64encode(('x-access-token:'+os.environ['GH_TOKEN']).encode()).decode()
+              git = ['git','-c','credential.helper=','-c','http.https://github.com/.extraheader=AUTHORIZATION: basic '+authorization]
+              if run([*git,'ls-remote','origin','refs/heads/'+BRANCH]).split()[0] != head:
+                  raise RuntimeError('PREFIX_BRANCH_MOVED')
+              run(['git','-c','user.name=github-actions[bot]',
+                   '-c','user.email=41898282+github-actions[bot]@users.noreply.github.com',
+                   'commit','--no-gpg-sign','-m','feat(db): publish reviewed first43 native Supabase execution and ledger boundary'])
+              commit = run(['git','rev-parse','HEAD'])
+              run([*git,'push','origin','HEAD:refs/heads/'+BRANCH])
+              if run([*git,'ls-remote','origin','refs/heads/'+BRANCH]).split()[0] != commit:
+                  raise RuntimeError('PREFIX_PUBLISHED_HEAD_READBACK_FAILED')
+              print(json.dumps({'sourceCommit':BASE,'codeCommit':commit,'codeTree':RESULT_TREE,
+                    'unitRegressionTestsPassed':92,'immutableMigrationFilesVerified':601,
+                    'nativeDatabaseExecuted':False,'fullReplayAccepted':False,
+                    'mainMerged':False,'connectedDatabaseModified':False}),flush=True)
+          try:
+              main()
+          except Exception:
+              print('FAIL exact prefix publication; no force-push or acceptance override',flush=True)
+              raise SystemExit(1) from None
+          PY
