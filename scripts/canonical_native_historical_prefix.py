@@ -17,6 +17,9 @@ from pathlib import Path
 import re
 import stat
 import time
+import sys
+
+from canonical_native_lock_boundary import adapt as adapt_lock_boundary, qualify as qualify_lock_boundary
 
 ROOT = Path(__file__).resolve().parents[1]
 ORDER_SHA = '11af5df0de43b4e135a2c8172a1ffc937079241826a60e5fefda9cb588363595'
@@ -124,6 +127,8 @@ def cli_program(raw: bytes) -> tuple[bytes, bool]:
 
     Interior transaction controls are deliberately unsupported. No search/replace
     inside functions, identifiers, comments or string literals is performed.
+    Four hash-pinned LOCK sources additionally receive atomic DO contexts;
+    their locks remain in the CLI transaction through its ledger insertion.
     This is a derived execution program, never a rewrite of source history.
     """
     try: text = raw.decode('utf-8')
@@ -148,6 +153,7 @@ def cli_program(raw: bytes) -> tuple[bytes, bool]:
         text = text[start:end] + ';\n'
     program = text.encode()
     if not program or not body: raise PrefixError('NATIVE_SQL_INPUT_REQUIRED')
+    program = adapt_lock_boundary(raw, program, statements, PrefixError)
     return program, wrapped
 
 
@@ -388,6 +394,10 @@ def execute(command, native, sql, work: Path, project: str,
         source = ROOT/'supabase'/program.source
         if source.resolve() != source or sha(source.read_bytes()) != program.source_sha256:
             raise PrefixError('NATIVE_SOURCE_BYTES_REQUIRED')
+        if program.ordinal == 27:
+            progress['transactionBoundary27'] = {}
+            qualify_lock_boundary(sys.modules[__name__], native, sql, work, program,
+                                  expected, retained, progress['transactionBoundary27'])
         # CLI timestamps have one-second precision. Do not invent or rename a
         # timestamp to hide collisions; wait once before creating the next file.
         time.sleep(1.05)

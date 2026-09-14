@@ -6,6 +6,8 @@ on:
       - 'scripts/canonical-native-supabase-lifecycle*.py'
       - 'scripts/canonical_native_cli_transport.py'
       - 'scripts/canonical_native_historical_prefix.py'
+      - 'scripts/canonical_native_lock_boundary.py'
+      - 'scripts/test-canonical-native-lock-boundary.py'
       - 'scripts/test-canonical-native-historical-prefix.py'
       - 'scripts/canonical-native-ledger-regression.py'
       - 'scripts/canonical_native_bootstrap_contract.py'
@@ -34,6 +36,7 @@ jobs:
       - name: Verify local ownership, genuine-ledger and failure controls
         run: |
           python3 -B scripts/test-canonical-native-historical-prefix.py
+          python3 -B scripts/test-canonical-native-lock-boundary.py
           python3 -B scripts/canonical-native-ledger-regression.py
           python3 -B scripts/canonical-native-supabase-lifecycle-selftest.py
           python3 -B scripts/canonical-native-bootstrap-contract-selftest.py
