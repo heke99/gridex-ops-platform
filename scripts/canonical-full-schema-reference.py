@@ -10,10 +10,7 @@ A matching public projection alone does not certify native Supabase or its ledge
 import hashlib
 import importlib.util
 import json
-import os
 from pathlib import Path
-import re
-import shutil
 import signal
 import subprocess
 import sys
@@ -171,8 +168,94 @@ def publish_result(result):
                          {kind:len(entry[kind]) for kind in ('added','removed','changed')}
                          for s,entry in result.get('sections',{}).items()}
     print(json.dumps(summary, sort_keys=True), flush=True)
-    return 0 if result.get('publicSnapshotEqual') and result.get('privacyVerified') else 1
+    return 0 if all(result.get(field) is True for field in
+                    ('publicSnapshotEqual', 'privacyVerified', 'cleanupVerified',
+                     'ordinaryReplaySucceeded')) else 1
 
+
+
+def terminal_observer(controller, original, reference, before, result):
+    """Inspect a finished full shell failure without changing its disposition.
+
+    The shell/controller owns source staging and AcceptedInputs. Do not duplicate
+    migration copies in the private target or exempt them from the privacy gate.
+    Catalog values stay in memory; only the sanitized comparison may be published
+    after the ORIGINAL terminal handler verifies privacy and disposes the target.
+    A successful comparison never converts the shell's failure into acceptance.
+    """
+    targets = {}
+
+    def observed(handle):
+        eligible = False
+        candidate = None
+        try:
+            frame = sys._getframe(1)
+            tail = frame.f_locals.get('tail')
+            loop = frame.f_locals.get('loop')
+            child = frame.f_locals.get('child')
+            code = getattr(controller._serve_child, '__code__', None)
+            eligible = (code is not None and frame.f_code is code
+                        and frame.f_locals.get('h') is handle
+                        and frame.f_locals.get('scope') == 'full'
+                        and getattr(tail, 'state', None) == 'executed'
+                        and getattr(loop, 'applied', False) is True
+                        and child is not None and child.poll() not in (None, 0)
+                        and id(handle) not in targets)
+            if eligible:
+                targets[id(handle)] = handle
+                controller.load_repair().require_owned(handle, reference=True)
+                controller.load_dedupe().require_live(handle)
+                if controller.originals_snapshot() != before:
+                    raise ValueError('SOURCE_RESTORATION_REQUIRED')
+                candidate = compare(reference, capture(handle, controller.DATABASE))
+                candidate.update(foundationApplied=controller.SCOPES['full'],
+                                 timestampApplied=len(tail.selected))
+        except Exception:
+            # Never publish exception strings, SQL, raw catalog values or paths.
+            result['collectionOutcome'] = 'EVIDENCE_UNAVAILABLE'
+        finally:
+            # Propagate the original error unchanged, even if collection failed.
+            returned = original(handle)
+        if eligible:
+            if controller.load_dedupe()._STATES.get(handle) != 'DISPOSED':
+                raise ValueError('OBSERVED_TERMINAL_DISPOSAL_REQUIRED')
+            if candidate is not None:
+                result.update(candidate, collectionOutcome='COLLECTED',
+                              privacyVerified=True, databaseDisposed=True,
+                              originalsRestored=True)
+        return returned
+    observed.targets = targets
+    return observed
+
+
+def observe_actual_shell(controller, reference, before, result):
+    """Invoke the actual shell once; restore all observer-local process state."""
+    dedupe = controller.load_dedupe()
+    original, argv = dedupe.fail, sys.argv
+    signals = {s:signal.getsignal(s) for s in (signal.SIGINT, signal.SIGTERM)}
+    observer = terminal_observer(controller, original, reference, before, result)
+    dedupe.fail = observer
+    sys.argv = [str(ROOT/'scripts/canonical-auth-provisioning-replay.py'), '--owned-compatible']
+    result['ordinaryReplaySucceeded'] = False
+    try:
+        controller.main()
+        result['ordinaryReplaySucceeded'] = True
+    except Exception as error:
+        # This remains a failed diagnostic run, not an alternative release gate.
+        result.update(outcome='BLOCKED', phase='ACTUAL_OWNED_SHELL',
+                      errorType=type(error).__name__)
+    finally:
+        dedupe.fail, sys.argv = original, argv
+        for signum, handler in signals.items():
+            signal.signal(signum, handler)
+    # fail() verifies removal of the replay database. The controller's context
+    # manager closes the owning runtime afterwards; these are different checks.
+    if result.get('privacyVerified') is True:
+        result['cleanupVerified'] = bool(observer.targets) and all(
+            not target.active and target.directory is None
+            for target in observer.targets.values())
+        if not result['cleanupVerified']:
+            result.update(outcome='BLOCKED', phase='OWNED_RUNTIME_CLEANUP')
 
 
 def run():
@@ -186,17 +269,12 @@ def run():
     if not accounting['canonicalSourceDispositionsComplete']:
         raise ValueError('SOURCE_ACCOUNTING_REQUIRED')
     timestamp = frontier.load_timestamp()
-    selected, prerequisites = timestamp.load_inputs(ROOT, source_report, order)
-    retained = timestamp.retain_sources(ROOT, selected, prerequisites)
-    staging = load('canonical-residual-staging-native.py')
+    timestamp.load_inputs(ROOT, source_report, order)
     legacy = controller.load_batch()
     before = controller.originals_snapshot()
-    phase = 'OWNED_TARGET'
     result = {'scope': 'FULL_PUBLIC_SNAPSHOT_PROJECTION_NOT_RELEASE_ACCEPTANCE',
-              'schemaAccepted': False, 'productionModified': False}
-    def interrupted(*_):
-        raise ValueError('SCHEMA_REFERENCE_INTERRUPTED')
-    signal.signal(signal.SIGINT, interrupted); signal.signal(signal.SIGTERM, interrupted)
+              'schemaAccepted': False, 'productionModified': False,
+              'snapshotSourceSha256': sha(raw)}
     try:
         reference = isolated_reference(legacy, timestamp, raw)
     except Exception as error:
@@ -208,48 +286,9 @@ def run():
     result.update(referenceRestored=True, referenceDisposed=True,
                   referenceCounts={name:len(rows) for name,rows in reference.items()},
                   referenceSha256=sha(reference))
-    with legacy.OwnedPostgres(postgis=True) as target:
-        try:
-            timestamp.verify_spatial_runtime(target)
-            phase = 'COMPLETE_SELECTED_REPLAY'
-            with controller.load_private().AcceptedInputs(target):
-                controller.load_dedupe().prepare_reference(target, 'full')
-                controller.load_dedupe().fresh_target(target)
-                hold = Path(target.directory.name)/'full-schema-hold'; hold.mkdir(mode=0o700)
-                for source in (ROOT/'supabase/migrations').iterdir():
-                    if source.is_symlink():
-                        raise ValueError('SYMLINK_SOURCE_REJECTED')
-                    if source.is_file() and source.suffix == '.sql':
-                        shutil.copy2(source, hold/source.name)
-                paths = [str(hold/Path(p).name if p.startswith('migrations/') else ROOT/'supabase'/p) for p in order]
-                loop = controller.FoundationLoop(legacy, target, 'full')
-                with staging.originals_absent(hold):
-                    loop.validate(str(hold), paths)
-                    target.sql(controller.DATABASE, (ROOT/'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_text(),
-                               'full_schema_bootstrap', transaction=False)
-                    loop.run(str(hold), paths)
-                    progress = {'foundationApplied': len(order), 'timestampApplied': 0}
-                    timestamp.execute_tail(ROOT, target, controller.DATABASE, selected, prerequisites, progress, retained=retained)
-                    if progress['timestampApplied'] != len(selected):
-                        raise ValueError('FULL_SOURCE_EXECUTION_REQUIRED')
-                    phase = 'FULL_PUBLIC_COMPARISON'
-                    actual = capture(target, controller.DATABASE)
-                result.update(compare(reference, actual))
-                result.update(foundationApplied=len(order), timestampApplied=len(selected), snapshotSourceSha256=sha(raw))
-            if controller.originals_snapshot() != before:
-                raise ValueError('SOURCE_RESTORATION_REQUIRED')
-            phase = 'PRIVATE_TERMINAL_VERIFICATION'
-            controller.load_fixed().privacy(target)
-            result['privacyVerified'] = True
-        except Exception as error:
-            result.update(outcome='BLOCKED', phase=phase, errorType=type(error).__name__)
-            if target in controller.load_dedupe()._REFERENCES:
-                controller.load_dedupe().fail(target)
-        if controller.originals_snapshot() != before:
-            raise ValueError('SOURCE_RESTORATION_REQUIRED')
-    result.update(cleanupVerified=not target.active, originalsRestored=True)
-    if target.active:
-        raise ValueError('OWNED_CLEANUP_REQUIRED')
+    observe_actual_shell(controller, reference, before, result)
+    if controller.originals_snapshot() != before:
+        raise ValueError('SOURCE_RESTORATION_REQUIRED')
     return publish_result(result)
 
 
