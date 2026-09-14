@@ -7,6 +7,7 @@ on:
       - 'scripts/canonical_native_cli_transport.py'
       - 'scripts/canonical_native_historical_prefix.py'
       - 'scripts/test-canonical-native-historical-prefix.py'
+      - 'scripts/canonical-native-ledger-regression.py'
       - 'scripts/canonical_native_bootstrap_contract.py'
       - 'scripts/canonical-native-bootstrap-contract-selftest.py'
       - 'scripts/sql/gridex-supabase-compatible-bootstrap.sql'
@@ -33,6 +34,7 @@ jobs:
       - name: Verify local ownership, genuine-ledger and failure controls
         run: |
           python3 -B scripts/test-canonical-native-historical-prefix.py
+          python3 -B scripts/canonical-native-ledger-regression.py
           python3 -B scripts/canonical-native-supabase-lifecycle-selftest.py
           python3 -B scripts/canonical-native-bootstrap-contract-selftest.py
       - name: Qualify an empty native Supabase and real CLI migration ledger

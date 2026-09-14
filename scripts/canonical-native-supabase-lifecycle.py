@@ -121,6 +121,61 @@ def command_signals(stdout, stderr):
     return sorted(category for marker, category in markers.items() if marker in raw)
 
 
+def failure_code(error, historical):
+    """Return only a fixed code from the exact trusted error class.
+
+    Never stringify exceptions or disclose arbitrary SQL/process output. The
+    historical boundary has its own ValueError subclass; excluding that exact
+    class previously hid every first43 failure behind errorType=PrefixError.
+    """
+    lifecycle_codes = {'NATIVE_COMMAND_FAILED', 'EXACT_NATIVE_CLI_VERSION_REQUIRED',
+                       'PREEXISTING_NATIVE_PROJECT_REJECTED', 'EMPTY_UNLINKED_NATIVE_PROJECT_REQUIRED',
+                       'OWNED_NATIVE_DATABASE_REQUIRED', 'NATIVE_POSTGRES_ROLE_REQUIRED',
+                       'CLI_GENERATED_MIGRATION_REQUIRED', 'GENUINE_NATIVE_LEDGER_REQUIRED',
+                       'EXECUTED_NATIVE_STATEMENTS_REQUIRED', 'NATIVE_LEDGER_IDEMPOTENCE_REQUIRED',
+                       'NEXT_CLI_MIGRATION_REQUIRED', 'NATIVE_FAILED_MIGRATION_ATOMICITY_REQUIRED'}
+    historical_codes = {
+        'NATIVE_BOUND_PROGRAM_REQUIRED',
+        'NATIVE_CLI_CREATED_FILE_REQUIRED',
+        'NATIVE_DATA_DIRECTORY_REQUIRED',
+        'NATIVE_EXACT_PREFIX_REQUIRED',
+        'NATIVE_EXECUTED_LEDGER_REQUIRED',
+        'NATIVE_EXECUTED_STATEMENTS_REQUIRED',
+        'NATIVE_FAILED_LEDGER_CHANGED',
+        'NATIVE_FRESH_PROGRESS_REQUIRED',
+        'NATIVE_HISTORICAL_LEDGER_REPEAT_CHANGED',
+        'NATIVE_HISTORICAL_SQL_FAILED',
+        'NATIVE_INTERIOR_TRANSACTION_CONTROL_REJECTED',
+        'NATIVE_LOGGING_ADMIN_REQUIRED',
+        'NATIVE_OWNED_SERVER_REQUIRED',
+        'NATIVE_OWNER_REQUIRED',
+        'NATIVE_PREFIX_ORDER_REQUIRED',
+        'NATIVE_PRIVATE_LOGGING_REQUIRED',
+        'NATIVE_PRIVATE_SOURCE_CHANGED',
+        'NATIVE_PRIVATE_SOURCE_REQUIRED',
+        'NATIVE_PSQL_METACOMMAND_REJECTED',
+        'NATIVE_RESTART_NOT_READY',
+        'NATIVE_SERVER_MUTATION_REJECTED',
+        'NATIVE_SOURCE_BYTES_REQUIRED',
+        'NATIVE_SOURCE_PATH_REQUIRED',
+        'NATIVE_SQL_INPUT_REQUIRED',
+        'NATIVE_SYNTHETIC_PREFLIGHT_LEDGER_REQUIRED',
+        'NATIVE_UNEXPECTED_LEDGER_DELTA',
+        'NATIVE_UNEXPECTED_MIGRATION_INPUT',
+        'NATIVE_UNTERMINATED_SQL_TOKEN',
+        'NATIVE_UTF8_SOURCE_REQUIRED',
+    }
+    if type(error) is ValueError:
+        allowed = lifecycle_codes
+    elif historical is not None and type(error) is getattr(historical, 'PrefixError', None):
+        allowed = historical_codes
+    else:
+        return None
+    if len(error.args) == 1 and type(error.args[0]) is str and error.args[0] in allowed:
+        return error.args[0]
+    return None
+
+
 def check_container(data, project, network):
     owner(project)
     if (len(data) != 1 or data[0]['Name'] != '/supabase_db_'+project
@@ -281,15 +336,9 @@ def run(*, historical_prefix=False):
             success = True
         except Exception as error:
             report.update(outcome='BLOCKED',phase=phase,errorType=type(error).__name__)
-            # Only this module's closed error codes are eligible for disclosure.
-            allowed = {'NATIVE_COMMAND_FAILED', 'EXACT_NATIVE_CLI_VERSION_REQUIRED',
-                       'PREEXISTING_NATIVE_PROJECT_REJECTED', 'EMPTY_UNLINKED_NATIVE_PROJECT_REQUIRED',
-                       'OWNED_NATIVE_DATABASE_REQUIRED', 'NATIVE_POSTGRES_ROLE_REQUIRED',
-                       'CLI_GENERATED_MIGRATION_REQUIRED', 'GENUINE_NATIVE_LEDGER_REQUIRED',
-                       'EXECUTED_NATIVE_STATEMENTS_REQUIRED', 'NATIVE_LEDGER_IDEMPOTENCE_REQUIRED',
-                       'NEXT_CLI_MIGRATION_REQUIRED', 'NATIVE_FAILED_MIGRATION_ATOMICITY_REQUIRED'}
-            if type(error) is ValueError and len(error.args) == 1 and error.args[0] in allowed:
-                report['errorCode'] = error.args[0]
+            code = failure_code(error, historical)
+            if code is not None:
+                report['errorCode'] = code
             report['lastCommandIndex'] = counter
         finally:
             if historical_prefix:

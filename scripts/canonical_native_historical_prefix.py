@@ -221,15 +221,26 @@ def verify_entry(entry: dict, filename: str, program: Program) -> None:
             or entry.get('name') != program.name or type(entry.get('statements')) is not list
             or not entry['statements']):
         raise PrefixError('NATIVE_EXECUTED_LEDGER_REQUIRED')
+    source_text = program.sql.decode()
+    tokens = sql_tokens(source_text)
+    # CLI 2.101.0 SplitAndTrim retains a final comment-only EOF fragment in
+    # the ledger. Admit only the EXACT suffix of these pinned source bytes,
+    # at the final position; never discard arbitrary non-executable entries.
+    tail = source_text[tokens[-1][2]:].strip() if tokens[-1][0] == ';' else ''
+    fragments = entry['statements']
+    if tail:
+        if fragments[-1] != tail:
+            raise PrefixError('NATIVE_EXECUTED_STATEMENTS_REQUIRED')
+        fragments = fragments[:-1]
     actual = []
-    for statement in entry['statements']:
+    for statement in fragments:
         # Every ledger item must be one full SQL statement, never a marker or
         # a concatenated fallback which could conceal missing execution units.
         if not isinstance(statement, str): raise PrefixError('NATIVE_EXECUTED_LEDGER_REQUIRED')
         parsed = identity(statement)
         if len(parsed) != 1: raise PrefixError('NATIVE_EXECUTED_LEDGER_REQUIRED')
         actual.extend(parsed)
-    if tuple(actual) != identity(program.sql.decode()):
+    if tuple(actual) != identity(source_text):
         raise PrefixError('NATIVE_EXECUTED_STATEMENTS_REQUIRED')
 
 
