@@ -8,6 +8,8 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import stat
+from types import SimpleNamespace
 import tempfile
 import tomllib
 import unittest
@@ -130,9 +132,16 @@ class NativeTests(unittest.TestCase):
 
     def execute_fixture(self, fail_stage=None):
         calls=[];created=False;stopped=False;network_removed=False;work=None;migrations=0
+        in_network=[]
         def fake(args,**kwargs):
             nonlocal created,stopped,network_removed,work,migrations
             calls.append(args)
+            if args[:2]==['docker','run']:
+                self.assertIn(PROJECT+'-network',args)
+                args=args[args.index('/fixture/supabase'):]
+                in_network.append(args[3:])
+            elif args[0]=='/fixture/supabase':
+                self.assertTrue(args[1:]==['--version'] or args[3:]==['init'])
             output=b'';status=0
             if args[0]=='/fixture/supabase':
                 if args[1:] == ['--version']:
@@ -179,6 +188,7 @@ class NativeTests(unittest.TestCase):
              patch.object(m.secrets,'token_hex',return_value='0123456789abcdef'), \
              patch.object(m.shutil,'which',return_value='/fixture/supabase'), \
              patch.object(m.sys,'argv',['script']), patch.object(m.subprocess,'run',side_effect=fake), \
+             patch.object(m,'load_transport',return_value=SimpleNamespace(cli_command=lambda cli,w,p,a:['docker','run','--network',p+'-network',cli,'--workdir',str(w),*a])), \
              contextlib.redirect_stdout(io.StringIO()) as output:
             status=m.run()
             report=json.loads((Path(directory)/'artifacts/native-supabase-lifecycle.json').read_text())
@@ -186,6 +196,7 @@ class NativeTests(unittest.TestCase):
             self.assertFalse(work.exists())
         self.assertFalse(any('--all' in args or '--linked' in args or '--db-url' in args for args in calls))
         self.assertTrue(any('stop' in args and PROJECT in args for args in calls))
+        self.assertTrue(in_network)
         return status,report
 
     def test_real_ledger_path_and_exact_cleanup_are_exercised(self):
@@ -208,6 +219,48 @@ class NativeTests(unittest.TestCase):
         self.assertEqual(status,1)
         self.assertFalse(report['cleanupVerified'])
         self.assertEqual(report['outcome'],'BLOCKED')
+
+
+class CliNetworkTests(unittest.TestCase):
+    def test_transport_uses_internal_dns_port_and_only_the_synthetic_workspace(self):
+        transport=m.load_transport()
+        original=Path.stat
+        def stat_fixture(path,**kwargs):
+            if str(path)=='/var/run/docker.sock':
+                return SimpleNamespace(st_mode=stat.S_IFSOCK|0o660,st_gid=123)
+            return original(path,**kwargs)
+        with tempfile.TemporaryDirectory() as temp, patch.object(Path,'stat',stat_fixture):
+            base=Path(temp);work=base/(PROJECT+'-private');work.mkdir(mode=0o700)
+            cli=base/'supabase';cli.write_text('fixture')
+            backend=base/'supabase-go';backend.write_text('fixture')
+            args=transport.cli_command(cli,work,PROJECT,('migration','up','--local'))
+            self.assertIn('--rm',args)
+            self.assertIn('--read-only',args)
+            self.assertIn('--cap-drop=ALL',args)
+            self.assertIn('SUPABASE_SERVICES_HOSTNAME=supabase_db_'+PROJECT,args)
+            self.assertEqual(args[args.index('--network')+1],PROJECT+'-network')
+            self.assertEqual(args[-3:],['migration','up','--local'])
+            self.assertNotIn('--publish',args)
+            self.assertNotIn('--privileged',args)
+            self.assertNotIn(str(ROOT),str(args))
+            self.assertNotIn('GH_TOKEN',str(args))
+            for command in [('migration','up','--linked'),('db','push'),('stop','--all'),
+                            ('--network-id','bridge','db','start')]:
+                with self.assertRaisesRegex(ValueError,'FIXED_NATIVE_CLI_COMMAND_REQUIRED'):
+                    transport.cli_command(cli,work,PROJECT,command)
+            backend.unlink()
+            with self.assertRaisesRegex(ValueError,'COMPLETE_OFFICIAL_CLI_BUNDLE_REQUIRED'):
+                transport.cli_command(cli,work,PROJECT,('migration','up','--local'))
+
+    def test_transport_does_not_admit_shared_or_foreign_workspaces(self):
+        transport=m.load_transport()
+        with tempfile.TemporaryDirectory() as temp:
+            directory=Path(temp)
+            with self.assertRaisesRegex(ValueError,'PRIVATE_NATIVE_WORKSPACE_REQUIRED'):
+                transport.cli_command(directory/'supabase',directory,PROJECT,('migration','up','--local'))
+            named=directory/(PROJECT+'-private');named.mkdir(mode=0o755)
+            with self.assertRaisesRegex(ValueError,'PRIVATE_NATIVE_WORKSPACE_REQUIRED'):
+                transport.cli_command(directory/'supabase',named,PROJECT,('migration','up','--local'))
 
 
 if __name__=='__main__':unittest.main(verbosity=2)

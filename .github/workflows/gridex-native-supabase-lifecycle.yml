@@ -4,6 +4,7 @@ on:
     paths:
       - '.github/workflows/gridex-native-supabase-lifecycle.yml'
       - 'scripts/canonical-native-supabase-lifecycle*.py'
+      - 'scripts/canonical_native_cli_transport.py'
 permissions:
   contents: read
 concurrency:

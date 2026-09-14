@@ -7,6 +7,7 @@ acceptance of the historical Gridex chain. Raw CLI/Docker streams stay private.
 """
 import copy
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -141,6 +142,13 @@ def verify_ledger(value, filename):
         raise ValueError('EXECUTED_NATIVE_STATEMENTS_REQUIRED')
 
 
+def load_transport():
+    path = Path(__file__).with_name('canonical_native_cli_transport.py')
+    spec = importlib.util.spec_from_file_location('gridex_native_cli_transport', path)
+    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    return module
+
+
 def run():
     if len(sys.argv) != 1 or os.environ.get('GITHUB_ACTIONS') != 'true':
         raise ValueError('DEDICATED_NATIVE_CI_REQUIRED')
@@ -152,6 +160,7 @@ def run():
     report = {'scope':'SYNTHETIC_NATIVE_LIFECYCLE_NOT_GRIDEX_REPLAY_ACCEPTANCE',
               'cliVersion':VERSION,'outcome':'BLOCKED','historicalGridexSourcesExecuted':False,
               'completeReplayVerified':False,'generatedTypesVerified':False,'productionModified':False}
+    transport = load_transport()
     phase = 'PREFLIGHT'; created_network = False; attempted_start = False; success = False
     with tempfile.TemporaryDirectory(prefix=project+'-') as directory:
         work = Path(directory); private_home = work/'home'; private_home.mkdir(mode=0o700)
@@ -172,6 +181,8 @@ def run():
                 raise ValueError('NATIVE_COMMAND_FAILED')
             return process
         def native(*args, **kwargs):
+            if created_network:
+                return command(transport.cli_command(cli, work, project, args), **kwargs)
             return command([cli,'--workdir',str(work),*args],**kwargs)
         def sql(query):
             return json.loads(command(['docker','exec','-i','supabase_db_'+project,'psql','-X','-qAt','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1'],data=query.encode()).stdout)
@@ -188,7 +199,7 @@ def run():
             # Keep the two reservations distinct while choosing ports.
             with socket.socket() as a, socket.socket() as b:
                 a.bind(('127.0.0.1',0)); b.bind(('127.0.0.1',0))
-                text = config(project,a.getsockname()[1],b.getsockname()[1],
+                text = config(project,5432,b.getsockname()[1],
                               (work/'supabase/config.toml').read_text())
             path = work/'supabase/config.toml'; path.write_text(text); path.chmod(0o600)
             migrations = work/'supabase/migrations'; migrations.mkdir(exist_ok=True)
@@ -199,7 +210,8 @@ def run():
             phase = 'NATIVE_DATABASE_START'; attempted_start = True
             native('--network-id',network,'db','start',timeout=600)
             inspected = check_container(json.loads(command(['docker','inspect','supabase_db_'+project]).stdout),project,network)
-            report.update(image=inspected['Config']['Image'], imageId=inspected['Image'])
+            report.update(image=inspected['Config']['Image'], imageId=inspected['Image'],
+                          cliConnectsInsideInternalNetwork=True)
             report['nativeBootstrap'] = sql(METADATA)
             if (not report['nativeBootstrap']['serverVersion'].startswith('17.')
                     or report['nativeBootstrap']['currentRole'] != 'postgres'):
