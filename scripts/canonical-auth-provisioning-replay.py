@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Owned compatible diagnostic replay; native CLI and generic URLs are unsupported.
+"""Owned full diagnostic replay and a fail-closed native first43 entry.
+
+The ordinary native entry does not yet admit the later historical envelopes.
+A successful first43 ledger is never reported as complete replay acceptance.
 
 The parent retains the live OwnedPostgres handle. Its child shell uses a private
 Unix socket, never a URL-as-ownership assertion. The real replay database owns
@@ -513,7 +516,19 @@ def main():
         request({'operation':'context','scope':scope});return
     if args.foundation:
         request({'operation':'validate_foundation' if args.validate_foundation else 'foundation','scope':scope,'hold':args.hold,'paths':Path(args.foundation).read_text().splitlines()});return
-    if not args.owned_compatible: raise RuntimeError('OWNED_TARGET_REQUIRED')
+    if not args.owned_compatible:
+        if sys.argv[1:]:
+            raise RuntimeError('OWNED_TARGET_REQUIRED')
+        # The ordinary CI entry now owns a real, unlinked native Supabase
+        # lifecycle and applies the pinned first43 through the official CLI.
+        # Later envelopes are deliberately not aliased to this smaller proof.
+        path = ROOT/'scripts/canonical-native-supabase-lifecycle.py'
+        spec = importlib.util.spec_from_file_location('native_historical_entry', path)
+        native = importlib.util.module_from_spec(spec); spec.loader.exec_module(native)
+        status = native.run_guarded(historical_prefix=True)
+        if status:
+            raise RuntimeError('NATIVE_HISTORICAL_PREFIX_FAILED')
+        raise RuntimeError('NATIVE_LATER_ENVELOPES_AND_FULL_ACCEPTANCE_REQUIRED')
     b=load_batch()
     def interrupted(signum,frame): raise b.BoundaryError('INTERRUPTED')
     signal.signal(signal.SIGTERM,interrupted);signal.signal(signal.SIGINT,interrupted)
@@ -551,5 +566,11 @@ if __name__=='__main__':
     try: controller().main()
     except BaseException as error:
         if isinstance(error,(KeyboardInterrupt,SystemExit)): raise
-        print('FAIL owned replay category=REJECTED type='+type(error).__name__,file=sys.stderr)
+        code = str(error)
+        if type(error) is RuntimeError and code in {
+                'NATIVE_LATER_ENVELOPES_AND_FULL_ACCEPTANCE_REQUIRED',
+                'NATIVE_HISTORICAL_PREFIX_FAILED'}:
+            print('FAIL native replay category='+code,file=sys.stderr)
+        else:
+            print('FAIL owned replay category=REJECTED type='+type(error).__name__,file=sys.stderr)
         sys.exit(1)

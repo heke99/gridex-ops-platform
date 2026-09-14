@@ -89,3 +89,8 @@ actual ordinary144/7/513 and18/18PASS, fingerprintFAIL, privacyFAIL, disposalPAS
 Read-only projection/censusVERIFIED; source hashes independently match originals
 and manifest. Official managed ledger/typesNOT ACCEPTED. No new runtime fix,
 production write or main merge. Evidence:DB_FINAL_GATE_NATIVE_RECEIPT_2026-09-13.md.
+
+
+## 2026-09-14 — local native entry increment
+
+Local native-entry patch: 28 new + 64 existing tests PASS; all native calls simulated. 601-file integrity PASS; generated-types migration-tail check FAIL. Native execution, full parity, push and merge NOT VERIFIED.

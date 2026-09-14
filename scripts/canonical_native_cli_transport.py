@@ -1,8 +1,9 @@
-"""Run only the synthetic native lifecycle's fixed CLI commands inside its network.
+"""Run the native lifecycle's finite CLI commands inside its owned network.
 
 An internal Docker network deliberately has no operational published host port.
 The official CLI therefore connects by the exact database container DNS name.
 No repository checkout, hosted credentials or arbitrary command is mounted.
+The historical entry can stage only its pinned first43 canonical execution units.
 """
 import os
 from pathlib import Path
@@ -21,7 +22,9 @@ def cli_command(cli, work, project, arguments):
         ('migration', 'up', '--local'),
         ('stop', '--project-id', project, '--no-backup'),
     }
-    if tuple(arguments) not in allowed:
+    historical_name = (len(arguments) == 3 and tuple(arguments[:2]) == ('migration', 'new')
+                       and re.fullmatch(r'gridex_native_f(?:000[1-9]|00[1-3][0-9]|004[0-3])_[a-f0-9]{12}', arguments[2]))
+    if tuple(arguments) not in allowed and not historical_name:
         raise ValueError('FIXED_NATIVE_CLI_COMMAND_REQUIRED')
     work = Path(work)
     if (not work.is_absolute() or work.resolve() != work or not work.is_dir()

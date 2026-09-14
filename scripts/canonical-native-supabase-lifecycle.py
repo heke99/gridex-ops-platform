@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Qualify the pinned official CLI on a fresh, local, synthetic-only project.
+"""Own the pinned official CLI on a fresh, local, unlinked project.
 
-No Gridex source SQL, user data, linked project or hosted credentials are used.
-This verifies native initialization and a real CLI-owned migration ledger, not
-acceptance of the historical Gridex chain. Raw CLI/Docker streams stay private.
+The default command qualifies synthetic initialization and ledger behavior.
+The ordinary replay caller can additionally request the pinned historical
+first43 boundary. Neither mode accepts the complete Gridex chain or its types.
+Raw CLI/Docker streams stay private; no hosted credentials are accepted.
 """
 import copy
 import hashlib
@@ -156,7 +157,22 @@ def load_bootstrap():
     return module
 
 
-def run():
+def load_historical_prefix():
+    path = Path(__file__).with_name('canonical_native_historical_prefix.py')
+    spec = importlib.util.spec_from_file_location('canonical_native_historical_prefix', path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    try:
+        spec.loader.exec_module(module)
+    except BaseException:
+        sys.modules.pop(spec.name, None)
+        raise
+    return module
+
+
+def run(*, historical_prefix=False):
+    if type(historical_prefix) is not bool:
+        raise ValueError('EXACT_NATIVE_SCOPE_REQUIRED')
     if len(sys.argv) != 1 or os.environ.get('GITHUB_ACTIONS') != 'true':
         raise ValueError('DEDICATED_NATIVE_CI_REQUIRED')
     run_id, attempt = os.environ.get('GITHUB_RUN_ID',''), os.environ.get('GITHUB_RUN_ATTEMPT','')
@@ -164,9 +180,12 @@ def run():
     cli = shutil.which('supabase')
     if cli is None:
         raise ValueError('PINNED_NATIVE_CLI_REQUIRED')
-    report = {'scope':'SYNTHETIC_NATIVE_LIFECYCLE_NOT_GRIDEX_REPLAY_ACCEPTANCE',
+    report = {'scope':('BOUNDED_FIRST43_NATIVE_HISTORY_NOT_FULL_REPLAY_ACCEPTANCE' if historical_prefix
+                       else 'SYNTHETIC_NATIVE_LIFECYCLE_NOT_GRIDEX_REPLAY_ACCEPTANCE'),
               'cliVersion':VERSION,'outcome':'BLOCKED','historicalGridexSourcesExecuted':False,
               'completeReplayVerified':False,'generatedTypesVerified':False,'productionModified':False}
+    historical = load_historical_prefix() if historical_prefix else None
+    programs = historical.prepare() if historical_prefix else None
     transport = load_transport()
     phase = 'PREFLIGHT'; created_network = False; attempted_start = False; success = False
     with tempfile.TemporaryDirectory(prefix=project+'-') as directory:
@@ -250,6 +269,15 @@ def run():
                           executedSqlSha256=hashlib.sha256(FIRST.encode()).hexdigest(),
                           idempotent=True,failedMigrationRolledBack=True,
                           failedMigrationNotRecorded=True,probeAcl=initial['probeAcl'])
+            if historical_prefix:
+                phase = 'HISTORICAL_FIRST43_NATIVE_LEDGER'
+                # The failed synthetic file must not be retried ahead of the
+                # real prefix. Never alter the successful CLI ledger row.
+                added[0].unlink()
+                report['historicalPrefix'] = {}
+                historical.execute(command, native, sql, work, project, programs,
+                                   report['historicalPrefix'])
+                report['historicalGridexSourcesExecuted'] = True
             success = True
         except Exception as error:
             report.update(outcome='BLOCKED',phase=phase,errorType=type(error).__name__)
@@ -264,6 +292,9 @@ def run():
                 report['errorCode'] = error.args[0]
             report['lastCommandIndex'] = counter
         finally:
+            if historical_prefix:
+                report['historicalGridexSourcesExecuted'] = bool(
+                    report.get('historicalPrefix', {}).get('historicalGridexSourcesExecuted'))
             cleanup = True
             try:
                 if attempted_start:
@@ -286,26 +317,35 @@ def run():
             report['cleanupVerified'] = cleanup
             success = success and cleanup
     report['privateWorkspaceRemoved'] = not work.exists()
+    report['historicalPrivateInputsDisposed'] = bool(historical_prefix and not work.exists()
+                                                  and report.get('cleanupVerified'))
     success = success and report['privateWorkspaceRemoved']
     if success:
-        report['outcome'] = 'NATIVE_LIFECYCLE_VERIFIED'
+        report['outcome'] = ('NATIVE_HISTORICAL_PREFIX_VERIFIED' if historical_prefix
+                             else 'NATIVE_LIFECYCLE_VERIFIED')
     output = ROOT/'artifacts'; output.mkdir(exist_ok=True)
     (output/'native-supabase-lifecycle.json').write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')
     print(json.dumps(report,sort_keys=True),flush=True)
     return 0 if success else 1
 
 
-if __name__ == '__main__':
+def run_guarded(*, historical_prefix=False):
+    """Keep cleanup signal handling when invoked by the ordinary replay entry."""
     def interrupted(*_):
         raise ValueError('NATIVE_INTERRUPTED')
     previous = {s:signal.getsignal(s) for s in (signal.SIGINT,signal.SIGTERM)}
     try:
         for signum in previous:
             signal.signal(signum,interrupted)
-        raise SystemExit(run())
-    except Exception:
-        print('FAIL native lifecycle; no raw output or hosted target permitted',file=sys.stderr)
-        raise SystemExit(1) from None
+        return run(historical_prefix=historical_prefix)
     finally:
         for signum,handler in previous.items():
             signal.signal(signum,handler)
+
+
+if __name__ == '__main__':
+    try:
+        raise SystemExit(run_guarded())
+    except Exception:
+        print('FAIL native lifecycle; no raw output or hosted target permitted',file=sys.stderr)
+        raise SystemExit(1) from None

@@ -57,3 +57,8 @@ SUCCESS; actual ordinary103786554902 reaches18/18 then rejects schema/privacy.
 Bounded output identifies7 extra columns, one extra FK, one missing customer FK
 and5 exact unrecorded original copies. This completes diagnosis only, not fixes
 or acceptance. See DB_FINAL_GATE_NATIVE_RECEIPT_2026-09-13.md and current-state.
+
+
+## 2026-09-14 — local native entry increment
+
+Local first43 integration offline controls PASS (92 tests). No native database execution or publication acceptance; full replay remains PARTIAL.

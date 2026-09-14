@@ -2,8 +2,46 @@
 
 Status: PARTIAL
 
-Active work: native initialization, historical ACL fixtures, full schema/ledger/types.
+Active work: local first43 native-entry integration; native CI and publication blocked.
+The complete historical native replay, full schema/ledger/types remain unaccepted.
 Main/release and plan points85/86 are NOT accepted. No hosted database mutation.
+
+## Local implementation — NOT published, NOT native-verified
+
+Base source: `2a1cfcdb7a213302da7f0bbd2df32f12f731962b`, exact tree
+`e295f9e56143a3e17677c31b124cf706e8b2ae3e` recovered and checked locally.
+The connected PR/main references have not changed in this session.
+
+The local patch connects the ordinary OPS job to the native parent and stages
+exactly the first43 pinned inputs as genuine CLI-created canonical execution
+units. Original source files are unchanged. Five exact outer transactions are
+transferred to the CLI's per-file transaction in derived programs; this new
+execution boundary is NOT yet verified on PostgreSQL. Ledger checks compare
+actual statement tokens, not names/counts alone. Private source identity/modes,
+logging/restart ownership and cleanup signals have offline rejection tests.
+
+A first43 success deliberately remains a NONZERO ordinary full-replay result:
+`NATIVE_LATER_ENVELOPES_AND_FULL_ACCEPTANCE_REQUIRED`. The legacy52-and-later
+atomic executors, timestamp tail and final schema/type acceptance have NOT been
+connected to the native parent. This is not completion of step1 or points85/86.
+
+Local verification: 28 new tests, 15 existing native lifecycle tests, 14 bootstrap
+contract tests, 20 clean-shell cleanup tests, 3 owned-workflow tests and 12
+required-check tests PASS (92 total). Database/process calls in native tests are
+simulated. Canonical source accounting passes; migration integrity verifies all
+601 files. `db:migrations:check` still FAILS at generated types for the Ediel tail.
+A real hardlink negative-control mutation fails, and the corrected writer passes.
+
+Execution/publication limits in this session: no Docker/Supabase CLI in the local
+runtime; the GitHub connector exposes read/search/download but no commit/push/
+merge actions. No new native CI run, remote commit, hosted DB write or merge.
+The patch is saved externally as `gridex-native-entry-prefix43.patch` with a
+validation receipt. Do not mark its native execution or full parity as accepted.
+
+Next: publish this bounded patch to the existing PR when write actions are
+available, inspect actual native output, then integrate legacy52 onwards with
+source/atomicity/privacy qualifications intact. Only after full native replay
+and independent schema reconciliation may types and release gates be refreshed.
 
 ## Published and verified
 

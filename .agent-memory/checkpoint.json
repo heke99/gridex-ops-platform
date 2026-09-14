@@ -7,9 +7,13 @@
   "native_bootstrap_qualified_code": "c8c3ac5a45895909b539a942679356fddd8ca72c",
   "historical_acl_fixture_code": "ce0bb1b3d24ddaef5024d6fdf04e6a74ec480ebe",
   "evidence": "quality/audits/DB_NATIVE_BOOTSTRAP_RECEIPT_2026-09-14.md",
-  "next_action": "Verify corrected historical ACL fixtures in native OPS; implement the ordinary native Supabase historical replay and truthful ledger, reconcile full schema, regenerate types and pass all mandatory checks before main merge.",
+  "next_action": "Publish/review the local bounded first43 native-entry patch and run genuine native CI; then integrate later atomic envelopes and full schema/types without bypassing release gates.",
   "verification_scope": "Native initial privileges and synthetic CLI ledger verified; full Gridex historical native replay, full schema parity, generated types and overall release NOT accepted.",
   "main_merged": false,
   "connected_database_modified": false,
-  "plan_points_85_86_accepted": false
+  "plan_points_85_86_accepted": false,
+  "local_patch_only": true,
+  "local_base_commit": "2a1cfcdb7a213302da7f0bbd2df32f12f731962b",
+  "local_tests_passed": 92,
+  "native_patch_execution_verified": false
 }
