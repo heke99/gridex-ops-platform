@@ -240,6 +240,7 @@ class ExecutionControlTests(unittest.TestCase):
                     return final if state['applied'] or (state['oracle'] and fault=='oracle-rollback') else before
                 if query==m.previous.ROWS_SQL:return [{'changed':True}] if state['repeat'] and fault=='repeat' else []
                 if query==m.SEQUENCES_SQL:return {}
+                if query==m.trigger_diagnostics.QUERY:return {'roleTriggerCount':0,'events':[]}
                 if "jsonb_build_object('role',current_user" in query:
                     return {'role':'postgres','database':'postgres','settings':p.SETTINGS}
                 if query.startswith('BEGIN;') and 'ROLLBACK;' in query:
@@ -285,6 +286,13 @@ class ExecutionControlTests(unittest.TestCase):
     def test_failed_cli_with_ledger_write_is_rejected(self):self.exercise('failed-ledger')
     def test_wrong_actual_ledger_program_is_rejected(self):self.exercise('statements')
     def test_repeat_data_mutation_is_rejected(self):self.exercise('repeat')
+
+
+def load_tests(loader, tests, pattern):
+    spec=importlib.util.spec_from_file_location('native_trigger_diagnostic_tests',ROOT/'scripts/test-canonical-native-trigger-diagnostics.py')
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    tests.addTests(loader.loadTestsFromModule(module))
+    return tests
 
 
 if __name__=='__main__': unittest.main(verbosity=2)

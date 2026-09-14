@@ -16,6 +16,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import canonical_native_legacy_envelope as previous
+import canonical_native_trigger_diagnostics as trigger_diagnostics
 
 ROOT = Path(__file__).resolve().parents[1]
 PINS = {'canonical-user-rbac-repair-batch.py': '9b0d3d22c4826f9c8a90501b9ee9b24b0d502e1cd7e68207ea4b40c6765ce43f', 'sql/canonical-user-rbac-repair-admission.sql': '107260d28f6c22889575facda5c237a072811a158b55ff69883002b8b5c872a7', 'sql/canonical-user-rbac-repair-assertions.sql': '5afc3a8ab872d93122e38986c51da9987ae461b53d823e3e1df970a3eb99b99f', 'sql/canonical-user-rbac-repair-catalog.sql': '1d6315ea6d4d542a01e4b697f1cc2b4528a227f2be7e7052f47c8a04166103c7'}
@@ -365,6 +366,7 @@ def execute(prefix,native,sql,work,first43,legacy52,report):
     before=snapshot();validate_preimage(prefix,batch,sources,before['catalog'])
     providers=provider_profile(prefix,sql,before['catalog'])
     report['nativeReadOnlyProviderMetadata']=providers
+    report['triggerAdmissionDiagnostic']=trigger_diagnostics.summarize(sql(trigger_diagnostics.QUERY))
     report['phase']='INDEPENDENT_SOURCE_DDL_ORACLE'
     final=sql(oracle_sql(prefix,batch,sources))
     if not isinstance(final,dict) or not final or final==before['catalog'] or snapshot()!=before or sql(prefix.LEDGER_SQL)!=expected:
