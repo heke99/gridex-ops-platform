@@ -318,7 +318,7 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
         spec=importlib.util.spec_from_file_location('existing_native_fixture',ROOT/'scripts/canonical-native-supabase-lifecycle-selftest.py')
         cls.fixture=importlib.util.module_from_spec(spec);spec.loader.exec_module(cls.fixture)
 
-    def execute(self, fail=False, cleanup=False):
+    def execute(self, fail=False, cleanup=False, legacy_fail=False):
         native=self.fixture.m
         original=native.run
         prepared=object()
@@ -330,15 +330,25 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
                             completeReplayVerified=False)
             if fail:raise ValueError('private SQL text must never reach report')
             return progress
+        import canonical_native_legacy_envelope as legacy
+        def apply_legacy(prefix,cli,sql,work,previous,progress):
+            self.assertIs(prefix,helper)
+            self.assertEqual(previous['foundationInputsExecuted'],43)
+            if legacy_fail:raise ValueError('private legacy SQL must not reach report')
+            progress.update(verified=True,foundationInputsExecuted=9,
+                            cumulativeFoundationInputsExecuted=52)
         helper=SimpleNamespace(prepare=lambda:prepared,execute=apply)
         with patch.object(native,'load_historical_prefix',return_value=helper), \
+             patch.object(legacy,'execute',side_effect=apply_legacy), \
              patch.object(native,'run',side_effect=lambda:original(historical_prefix=True)):
             return self.fixture.NativeTests().execute_fixture('cleanup' if cleanup else None)
 
     def test_bounded_native_success_cannot_certify_full_replay(self):
         status,report=self.execute()
         self.assertEqual(status,0)
-        self.assertEqual(report['outcome'],'NATIVE_HISTORICAL_PREFIX_VERIFIED')
+        self.assertEqual(report['outcome'],'NATIVE_HISTORICAL_THROUGH52_VERIFIED')
+        self.assertEqual(report['foundationInputsExecuted'],52)
+        self.assertTrue(report['historicalLegacy52']['verified'])
         self.assertEqual(report['historicalPrefix']['foundationInputsExecuted'],43)
         self.assertTrue(report['historicalPrivateInputsDisposed'])
         self.assertFalse(report['completeReplayVerified'])
@@ -351,6 +361,16 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
         self.assertTrue(report['historicalPrivateInputsDisposed'])
         self.assertEqual(report['historicalPrefix']['foundationInputsExecuted'],1)
         self.assertNotIn('private SQL text',str(report))
+        self.assertFalse(report['completeReplayVerified'])
+
+    def test_later_envelope_failure_cannot_certify_through52(self):
+        status,report=self.execute(legacy_fail=True)
+        self.assertEqual(status,1)
+        self.assertEqual(report['outcome'],'BLOCKED')
+        self.assertEqual(report['phase'],'HISTORICAL_LEGACY44_52_NATIVE_LEDGER')
+        self.assertNotIn('foundationInputsExecuted',report)
+        self.assertTrue(report['historicalPrivateInputsDisposed'])
+        self.assertNotIn('private legacy SQL',str(report))
         self.assertFalse(report['completeReplayVerified'])
 
     def test_cleanup_failure_cannot_certify_historical_input_disposal(self):

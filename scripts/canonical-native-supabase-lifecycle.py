@@ -3,7 +3,8 @@
 
 The default command qualifies synthetic initialization and ledger behavior.
 The ordinary replay caller can additionally request the pinned historical
-first43 boundary. Neither mode accepts the complete Gridex chain or its types.
+first43 boundary and the atomic44-52 continuation. Neither mode accepts the
+complete Gridex chain or its types.
 Raw CLI/Docker streams stay private; no hosted credentials are accepted.
 """
 import copy
@@ -147,6 +148,10 @@ def failure_code(error, historical):
         'NATIVE_HISTORICAL_SQL_FAILED',
         'NATIVE_INTERIOR_TRANSACTION_CONTROL_REJECTED',
         'NATIVE_LOGGING_ADMIN_REQUIRED',
+        'NATIVE_LEGACY52_SOURCE_REQUIRED',
+        'NATIVE_LEGACY52_PREFIX_REQUIRED',
+        'NATIVE_LEGACY52_PROOF_REQUIRED',
+        'NATIVE_LEGACY52_ROLLBACK_REQUIRED',
         'NATIVE_LOCK_SOURCE_REQUIRED',
         'NATIVE_LOCK27_PROOF_REQUIRED',
         'NATIVE_LOCK27_ROLLBACK_REQUIRED',
@@ -238,7 +243,7 @@ def run(*, historical_prefix=False):
     cli = shutil.which('supabase')
     if cli is None:
         raise ValueError('PINNED_NATIVE_CLI_REQUIRED')
-    report = {'scope':('BOUNDED_FIRST43_NATIVE_HISTORY_NOT_FULL_REPLAY_ACCEPTANCE' if historical_prefix
+    report = {'scope':('BOUNDED_THROUGH52_NATIVE_HISTORY_NOT_FULL_REPLAY_ACCEPTANCE' if historical_prefix
                        else 'SYNTHETIC_NATIVE_LIFECYCLE_NOT_GRIDEX_REPLAY_ACCEPTANCE'),
               'cliVersion':VERSION,'outcome':'BLOCKED','historicalGridexSourcesExecuted':False,
               'completeReplayVerified':False,'generatedTypesVerified':False,'productionModified':False}
@@ -336,6 +341,12 @@ def run(*, historical_prefix=False):
                 historical.execute(command, native, sql, work, project, programs,
                                    report['historicalPrefix'])
                 report['historicalGridexSourcesExecuted'] = True
+                phase = 'HISTORICAL_LEGACY44_52_NATIVE_LEDGER'
+                from canonical_native_legacy_envelope import execute as execute_legacy52
+                report['historicalLegacy52'] = {}
+                execute_legacy52(historical, native, sql, work,
+                                 report['historicalPrefix'], report['historicalLegacy52'])
+                report['foundationInputsExecuted'] = 52
             success = True
         except Exception as error:
             report.update(outcome='BLOCKED',phase=phase,errorType=type(error).__name__)
@@ -373,7 +384,7 @@ def run(*, historical_prefix=False):
                                                   and report.get('cleanupVerified'))
     success = success and report['privateWorkspaceRemoved']
     if success:
-        report['outcome'] = ('NATIVE_HISTORICAL_PREFIX_VERIFIED' if historical_prefix
+        report['outcome'] = ('NATIVE_HISTORICAL_THROUGH52_VERIFIED' if historical_prefix
                              else 'NATIVE_LIFECYCLE_VERIFIED')
     output = ROOT/'artifacts'; output.mkdir(exist_ok=True)
     (output/'native-supabase-lifecycle.json').write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')
