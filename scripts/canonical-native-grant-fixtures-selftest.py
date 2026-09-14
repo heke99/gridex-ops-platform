@@ -38,6 +38,16 @@ class NativeGrantFixtureTests(unittest.TestCase):
         self.assertNotIn('relacl is null', check)
         self.assertIn('JOURNAL_ACL_NEGATIVE_CONTROL', check)
         self.assertIn('REVOKE SELECT ON public.customer_sync_events FROM authenticated', check)
+        self.assertIn('GRANT SELECT ON public.customer_sync_events TO authenticated', check)
+        negative = check.split('-- A real ACL mutation must be detected,', 1)[1].split('JOURNAL_ACL_NEGATIVE_ROLLBACK_PRESERVED', 1)[0]
+        self.assertIn("aclexplode(coalesce(c.relacl, acldefault('r',c.relowner)))", negative)
+        self.assertIn("r.rolname='authenticated' AND a.privilege_type='SELECT'", negative)
+        self.assertIn('JOIN pg_roles r ON r.oid=a.grantee', negative)
+        self.assertNotIn('has_table_privilege', negative)
+        self.assertLess(negative.index('BEGIN;'), negative.index('DO $journal_acl_negative$'))
+        self.assertLess(negative.index('REVOKE SELECT'), negative.index('ELSE'))
+        self.assertLess(negative.index('ELSE'), negative.index('GRANT SELECT'))
+        self.assertLess(negative.index('JOURNAL_ACL_NEGATIVE_CONTROL'), negative.index('ROLLBACK;'))
         self.assertIn('ROLLBACK', check)
         self.assertIn('count(*)=2 and bool_and(relrowsecurity and not relforcerowsecurity', check)
 

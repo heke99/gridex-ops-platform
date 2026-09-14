@@ -184,7 +184,24 @@ select test_assert({journal_metadata_unchanged()},
   'exact journal ACL/owner/options/RLS preimages preserved, including native default grants');
 -- A real ACL mutation must be detected, independently of default-ACL encoding.
 BEGIN;
-REVOKE SELECT ON public.customer_sync_events FROM authenticated;
+-- Toggle a direct grant, not effective access: PUBLIC/inherited grants must
+-- not make the mutation a no-op. Both native and no-grant fixture preimages
+-- must exercise a real catalog change before the exact rollback comparison.
+DO $journal_acl_negative$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_class c
+    CROSS JOIN LATERAL aclexplode(coalesce(c.relacl, acldefault('r',c.relowner))) a
+    JOIN pg_roles r ON r.oid=a.grantee
+    WHERE c.oid='public.customer_sync_events'::regclass
+      AND r.rolname='authenticated' AND a.privilege_type='SELECT'
+  ) THEN
+    REVOKE SELECT ON public.customer_sync_events FROM authenticated;
+  ELSE
+    GRANT SELECT ON public.customer_sync_events TO authenticated;
+  END IF;
+END
+$journal_acl_negative$;
 select test_assert(not ({journal_metadata_unchanged()}), 'JOURNAL_ACL_NEGATIVE_CONTROL');
 ROLLBACK;
 select test_assert({journal_metadata_unchanged()}, 'JOURNAL_ACL_NEGATIVE_ROLLBACK_PRESERVED');
