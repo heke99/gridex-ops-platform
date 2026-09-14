@@ -94,3 +94,19 @@ production write or main merge. Evidence:DB_FINAL_GATE_NATIVE_RECEIPT_2026-09-13
 ## 2026-09-14 — local native entry increment
 
 Local native-entry patch: 28 new + 64 existing tests PASS; all native calls simulated. 601-file integrity PASS; generated-types migration-tail check FAIL. Native execution, full parity, push and merge NOT VERIFIED.
+
+
+## 2026-09-14 — native ordinal27 and first43 acceptance boundary
+
+| Check | Result | Exact scope |
+| --- | --- | --- |
+| Native transaction27 proof | VERIFIED | a7622e16;34860588353/104031445849;25P01,P2727,P2728 with rollback/held lock/timeouts |
+| Historical CLI ledger | VERIFIED | All43 foundation inputs and no-op repeat;0 timestamp inputs |
+| Private inputs and owned cleanup | VERIFIED | Artifact10354879366; helpers and workspace removed |
+| Independent source/receipt cross-check | PASS | All43 prepared source/program hashes match native artifact |
+| Fresh offline regressions/integrity | PASS |9+30+15+8=62 tests;601 files/505 version groups |
+| Ordinary full clean job | FAILURE | Intentional NATIVE_LATER_ENVELOPES_AND_FULL_ACCEPTANCE_REQUIRED after43 |
+| Full schema/types/OPS/E2E/merge | NOT ACCEPTED | No acceptance override; next atomic group44–52 |
+
+Evidence:quality/audits/DB_NATIVE_LOCK27_VERIFIED_2026-09-14.md. This supersedes
+the earlier26-input boundary, not the remaining full-release gates.

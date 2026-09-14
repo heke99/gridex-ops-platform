@@ -62,3 +62,15 @@ or acceptance. See DB_FINAL_GATE_NATIVE_RECEIPT_2026-09-13.md and current-state.
 ## 2026-09-14 — local native entry increment
 
 Local first43 integration offline controls PASS (92 tests). No native database execution or publication acceptance; full replay remains PARTIAL.
+
+
+## 2026-09-14 — ordinal27 fixed and native first43 ledger verified
+
+Published code a7622e16, OPS34860588353/job104031445849/artifact10354879366:
+all43 historical inputs and their actual CLI ledger VERIFIED. Native25P01 red
+regression, post-bodyP2727 rollback, ledger-insertP2728 rollback, retained lock
+and local timeouts, no applied probe rows and full owned/private cleanup PASS.
+Recomputed all43 program/source receipts;62 fresh offline tests and601 original
+migration hashes PASS. No new runtime change in this receipt increment.
+Full native replay, schema/types, release and main merge remain NOT ACCEPTED.
+See DB_NATIVE_LOCK27_VERIFIED_2026-09-14.md and the sole current-state pointer.

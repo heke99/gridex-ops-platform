@@ -2,53 +2,60 @@
 
 Status: PARTIAL
 
-Main/release and plan points85/86 are NOT accepted.
-Active work: correct and qualify ordinal27's native transaction/locking boundary.
+Ordinal27 transaction boundary: VERIFIED. Native first43 execution and its
+actual CLI ledger: VERIFIED. Main/release and plan points85/86: NOT ACCEPTED.
+Active work: integrate the next native atomic envelope, foundation44 through52.
 
-## Verified native progress
+## Latest verified evidence
 
-Published code30e5404ceeb73313e41dc906d7a8f415632f4813 fixes exact CLI comment-tail
-verification and safe PrefixError diagnostics. Its complete tree
-07cf86ee69718b605fc4563fce9c809b9e7fecdf matches the reviewed local tree.
-The saved first43 patch was already published in1250a544/59313510; logging setup
-was subsequently corrected through b3c371c. Do not reapply the old local ZIP.
+Tested code: a7622e16c63e561cb62fc792d07c4ddf53103945.
+Ordinary OPS run34860588353, clean job104031445849, artifact10354879366.
+The result is NATIVE_HISTORICAL_PREFIX_VERIFIED: all43 historical foundation
+inputs execute using official CLI2.101.0 and native Supabase PG17.6.1.106.
+Their source/program hashes and actual ledger statements are checked. A repeat
+migration up leaves the prefix ledger unchanged. No timestamp inputs execute.
 
-Ordinary OPS34855261138/job104013056268/artifact10353410024 genuinely verifies
-foundation inputs1 through26 using CLI2.101.0 and native Supabase PG17.6.1.106.
-Original source hashes, exact programs and actual ledger statements pass for
-those26. Cleanup, private historical-input disposal and workspace removal pass.
-The synthetic CLI ledger/idempotence/failure rollback also passes. Local67
-regression tests,601 immutable migrations and330 tamper variants pass separately.
-No offline fixture is counted as native execution.
+The ordinal27 adapter preserves the exact LOCK TABLE in an atomic DO context
+inside the CLI batch. It does not remove the lock or COMMIT before the CLI's
+ledger INSERT. Four pinned sources (27,28,29,43) use this narrow adaptation;
+unknown or changed lock-bearing sources are rejected. Original SQL is unchanged.
+The native proof reproduces25P01 on the old execution program, then checks
+rollback after the repaired body and during the CLI ledger INSERT (P2727/P2728).
+The AccessExclusiveLock and original5s/30s local timeouts are present at ledger
+insertion. Failed probes leave schema, rows and ledger unchanged. Temporary
+helpers, owned resources and private historical inputs/workspace are disposed.
 
-## Exact next blocker
+The native artifact was matched independently to all43 prepared source/program
+receipts. Fresh offline tests:9 lock-boundary +30 prefix +15 lifecycle +8 ledger
+regressions PASS (62 total);601 immutable files/505 version groups PASS.
+Offline tests are separate from the actual native evidence above.
 
-Ordinal27: migrations/20260909120000_canonical_role_permission_uniqueness_reconstruction.sql.
-Native failure NATIVE_HISTORICAL_SQL_FAILED / SQLSTATE25P01. Its derived program
-removes the exact outer BEGIN/COMMIT but retains a top-level LOCK TABLE. The
-implicit CLI batch does not supply the explicit transaction context this lock
-requires. Preserve locking, local timeouts and atomic SQL-plus-ledger behavior;
-qualify a corrected execution boundary before admitting it. This fix is NOT
-implemented yet. The failed unit leaves the genuine prior ledger unchanged.
+## Exact next action and remaining gates
 
-The first43 ledger is NOT verified;26 is the executed/verified boundary. Full
-native144 foundation/514 timestamp replay, later atomic envelopes, full schema
-parity, auth-email tests, generated types and mandatory OPS/E2E remain blocked.
-Retain NATIVE_LATER_ENVELOPES_AND_FULL_ACCEPTANCE_REQUIRED even after first43.
-Evidence: quality/audits/DB_NATIVE_LEDGER_TAIL_2026-09-14.md.
+Continue foundation44–52 as its reviewed atomic legacy envelope. Do not simply
+increase LIMIT or strip inner transaction boundaries. Retain truthful CLI
+ledger verification, source admission, locking, rollback and private cleanup.
+Then integrate all remaining144-foundation/514-timestamp execution and verify
+full independent schema semantics, auth-email tests, generated types and all
+mandatory OPS/E2E checks before considering a merge.
+
+The ordinary clean job remains FAILURE because the implemented native lane
+intentionally ends at43 with NATIVE_LATER_ENVELOPES_AND_FULL_ACCEPTANCE_REQUIRED.
+This is not an ordinal27 SQL failure. completeReplayVerified=false and
+generatedTypesVerified=false remain correct. No full-PR green claim is made.
+The old26-input/ordinal27 blocker is superseded, not still active.
+Evidence: quality/audits/DB_NATIVE_LOCK27_VERIFIED_2026-09-14.md.
 
 ## Preserved scope
 
-No hosted database mutation, reset, fabricated applied ledger, rewritten
-original migration, expected schema/type baseline change, deployment or main
-merge. Main remains eb9a25bc989c6de808903f41c2314d5465e9c07b at inspection.
-Seven real company fields/white-label FK and existing application/API work,
-including quality/paused/2026-09-12-partner-price-wip.patch, are preserved.
-Prior read-only hosted ledger279/latest20260904222450 is historical evidence,
-not a fresh hosted inspection. Qualified Ediel detach remains unapplied live.
-Earlier bootstrap/schema and Ediel details remain in
-quality/audits/DB_NATIVE_BOOTSTRAP_RECEIPT_2026-09-14.md and
-quality/audits/DB_EDIEL_FORWARD_2026-09-14.md.
+The current increment verifies already-published code and records its result;
+it does not reapply or change the runtime correction. No hosted database call,
+mutation/reset, fabricated applied row, original-history rewrite, schema/type
+baseline refresh, deployment or main merge. Main was eb9a25bc at inspection.
+Keep the seven real company fields/white-label FK and all existing app/API work,
+including quality/paused/2026-09-12-partner-price-wip.patch. Prior hosted ledger
+279/latest20260904222450 is historical, not a fresh inspection. Ediel detach
+remains unapplied live in this work. Earlier evidence is preserved.
 
 ## Machine-checked continuity contract
 

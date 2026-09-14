@@ -84,3 +84,18 @@ production data or main changed. Current-state supersedes diagnostic-pending tex
 ## 2026-09-14 — local native entry increment
 
 Prepared unpublished patch against2a1cfcdb. Activated debugging, verification-before-completion and Supabase/Postgres skills for CLI/private-file/ledger boundaries. No UI or deployment changes; browser/design skills not applicable. Native tooling and GitHub write actions unavailable. See current-state.md for the single active status.
+
+
+## 2026-09-14 — read back and close ordinal27, keep full replay open
+
+User requested the transaction-boundary correction with main/hosted DB unchanged.
+Live PR read showed the correction already published at20be4640/a7622e16.
+Recovered exact source and native CI artifacts; reviewed the adapter/caller/
+ledger probes instead of reapplying the old patch. Actual native first43 and
+three fault-injection paths pass.62 local regressions and601 migration hashes
+pass; all43 native source/program receipts independently match. Documentation
+now supersedes the stale ordinal27 failure and points to atomic44–52.
+Activated Supabase/debugging/differential-review/verification skills; no UI,
+performance, deployment or broad security scan scope. No new runtime patch,
+hosted call, main merge or full-acceptance claim in this receipt increment.
+Evidence:quality/audits/DB_NATIVE_LOCK27_VERIFIED_2026-09-14.md.
