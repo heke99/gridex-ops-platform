@@ -146,6 +146,15 @@ def failure_code(error, historical):
         'NATIVE_ALIGNMENT68_PROVIDER_REQUIRED',
         'NATIVE_ALIGNMENT68_ROLLBACK_REQUIRED',
         'NATIVE_ALIGNMENT68_SOURCE_ORACLE_REQUIRED',
+        'NATIVE_TAIL_SOURCE_REQUIRED',
+        'NATIVE_TAIL_PROFILE_REQUIRED',
+        'NATIVE_TAIL_PREFIX_REQUIRED',
+        'NATIVE_TAIL_PREIMAGE_CHANGED',
+        'NATIVE_TAIL_PROOF_REQUIRED',
+        'NATIVE_TAIL_ROLLBACK_REQUIRED',
+        'NATIVE_TAIL_ORACLE_ROLLBACK_REQUIRED',
+        'NATIVE_TAIL_FINAL_REQUIRED',
+        'NATIVE_TAIL_SOURCE_ORACLE_REQUIRED',
         'NATIVE_ALIGNMENT68_SOURCE_REQUIRED',
         'NATIVE_ALIGNMENT68_SYSTEM_PROFILE_REQUIRED',
         'NATIVE_BOUND_PROGRAM_REQUIRED',
@@ -283,7 +292,7 @@ def run(*, historical_prefix=False):
     cli = shutil.which('supabase')
     if cli is None:
         raise ValueError('PINNED_NATIVE_CLI_REQUIRED')
-    report = {'scope':('BOUNDED_THROUGH68_NATIVE_HISTORY_NOT_FULL_REPLAY_ACCEPTANCE' if historical_prefix
+    report = {'scope':('BOUNDED_THROUGH77_NATIVE_HISTORY_NOT_FULL_REPLAY_ACCEPTANCE' if historical_prefix
                        else 'SYNTHETIC_NATIVE_LIFECYCLE_NOT_GRIDEX_REPLAY_ACCEPTANCE'),
               'cliVersion':VERSION,'outcome':'BLOCKED','historicalGridexSourcesExecuted':False,
               'completeReplayVerified':False,'generatedTypesVerified':False,'productionModified':False}
@@ -419,6 +428,9 @@ def run(*, historical_prefix=False):
                                     report['historicalDedupe57'], report['historicalFixed63'],
                                     report['historicalAlignment68'], provider_bootstrap=report['providerEventBootstrap'])
                 report['foundationInputsExecuted'] = 68
+                phase = 'HISTORICAL_OPERATIONS69_77_NATIVE_LEDGER'
+                from canonical_native_operations77 import execute as execute_operations77
+                execute_operations77(historical, native, sql, work, report)
             success = True
         except Exception as error:
             report.update(outcome='BLOCKED',phase=phase,errorType=type(error).__name__)
@@ -456,7 +468,7 @@ def run(*, historical_prefix=False):
                                                   and report.get('cleanupVerified'))
     success = success and report['privateWorkspaceRemoved']
     if success:
-        report['outcome'] = ('NATIVE_HISTORICAL_THROUGH68_VERIFIED' if historical_prefix
+        report['outcome'] = ('NATIVE_HISTORICAL_THROUGH77_VERIFIED' if historical_prefix
                              else 'NATIVE_LIFECYCLE_VERIFIED')
     output = ROOT/'artifacts'; output.mkdir(exist_ok=True)
     (output/'native-supabase-lifecycle.json').write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')

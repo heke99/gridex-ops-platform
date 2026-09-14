@@ -130,7 +130,7 @@ def rows_equal(batch,expected,actual,bounds):
     except (ValueError,TypeError,KeyError):return False
 
 
-def prerequisite(prefix,sql,work,first43,legacy52,repair56,dedupe57,fixed63):
+def prerequisite(prefix,sql,work,first43,legacy52,repair56,dedupe57,fixed63,*,through68=None):
     if (first43.get('historicalPrefixLedgerVerified') is not True or first43.get('foundationInputsExecuted')!=43
         or first43.get('transactionBoundary27',{}).get('verified') is not True
         or len(first43.get('canonicalExecutionUnits',[]))!=43):
@@ -153,20 +153,34 @@ def prerequisite(prefix,sql,work,first43,legacy52,repair56,dedupe57,fixed63):
     if [v.get('expectedSqlstate') for v in controls]!=['P6358','P6359','55000','55000','P6363'] or any(
           v.get('ledgerUnchanged') is not True or v.get('scopedRollbackVerified') is not True for v in controls):
         raise prefix.PrefixError('NATIVE_ALIGNMENT68_PREFIX_REQUIRED')
+    tail=[]
+    if through68 is not None:
+        if (type(through68) is not dict or through68.get('verified') is not True
+            or through68.get('foundationInputsExecuted')!=5 or through68.get('cumulativeFoundationInputsExecuted')!=68
+            or through68.get('canonicalExecutionUnitCount')!=1 or through68.get('timestampInputsExecuted')!=0
+            or through68.get('supportSha256')!=PINS or through68.get('groupAtomic') is not True
+            or any(through68.get(k) is not True for k in ('noOpRepeatVerified','unchangedEarlierLedger','sourceRowsAndCatalogVerified','existingIdentityChecksExecuted'))
+            or through68.get('transactionBoundary64_68',{}).get('verified') is not True):
+            raise prefix.PrefixError('NATIVE_ALIGNMENT68_PREFIX_REQUIRED')
+        _,accepted_sources=load_sources(prefix)
+        if through68.get('sources')!=[{'ordinal':i,'source':'migrations/'+x.path.name,'sourceSha256':x.sha256}
+                                    for i,x in enumerate(accepted_sources,64)]:
+            raise prefix.PrefixError('NATIVE_ALIGNMENT68_PREFIX_REQUIRED')
+        tail=[through68]
     directory=work/'supabase/migrations'
     if (work.resolve()!=work or not re.fullmatch(fixed.OWNER+r'-.+',work.name) or work.stat().st_mode&0o077
             or directory.resolve()!=directory or directory.stat().st_mode&0o077):
         raise prefix.PrefixError('NATIVE_PRIVATE_SOURCE_REQUIRED')
     entries=sql(prefix.LEDGER_SQL)
-    if type(entries) is not list or len(entries)!=54:
+    if type(entries) is not list or len(entries)!=54+len(tail):
         raise prefix.PrefixError('NATIVE_ALIGNMENT68_PREFIX_REQUIRED')
     filenames={e['version']+'_'+e['name']+'.sql' for e in entries}
-    if len(filenames)!=54 or {p.name for p in directory.iterdir()}!=filenames:
+    if len(filenames)!=54+len(tail) or {p.name for p in directory.iterdir()}!=filenames:
         raise prefix.PrefixError('NATIVE_UNEXPECTED_MIGRATION_INPUT')
     units=fixed63['canonicalExecutionUnits']
     if [u['stage'] for u in units]!=['f0058','fixed_constructor','f0059','f0060','f0061','f0062','f0063']:
         raise prefix.PrefixError('NATIVE_ALIGNMENT68_PREFIX_REQUIRED')
-    receipts=[*first43['canonicalExecutionUnits'],legacy52,repair56,dedupe57,*units];retained=[]
+    receipts=[*first43['canonicalExecutionUnits'],legacy52,repair56,dedupe57,*units,*tail];retained=[]
     for i,entry in enumerate(entries):
         filename=entry['version']+'_'+entry['name']+'.sql';path=directory/filename
         if path.is_symlink() or not path.is_file():raise prefix.PrefixError('NATIVE_PRIVATE_SOURCE_REQUIRED')
@@ -197,6 +211,9 @@ def prerequisite(prefix,sql,work,first43,legacy52,repair56,dedupe57,fixed63):
     _,sources=fixed.load_sources(prefix)
     for i,s in zip((47,49,50,51,52),sources[:-1]):
         if retained[i][1]!=s.data:raise prefix.PrefixError('NATIVE_ALIGNMENT68_PREFIX_REQUIRED')
+    if through68 is not None:
+        if any(retained[-1][1].count(source.data)!=1 for source in accepted_sources):
+            raise prefix.PrefixError('NATIVE_ALIGNMENT68_PREFIX_REQUIRED')
     return directory,copy.deepcopy(entries),retained
 
 
