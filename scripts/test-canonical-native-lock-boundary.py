@@ -67,6 +67,14 @@ class LockAdapterTests(unittest.TestCase):
 
 
 class NativeProofControlTests(unittest.TestCase):
+    def test_guard_receipts_use_supported_json_constructor_before_commit(self):
+        for query in (boundary.ledger_trigger('gridex_native_f0027_abcdefabcdef'),
+                      boundary.DROP_TRIGGER):
+            self.assertNotIn('true::json', query)
+            self.assertEqual(prefix.identity(query)[-2:],
+                             (("SELECT", "pg_catalog", ".", "to_json", "(", "true", ")"),
+                              ("COMMIT",)))
+
     def exercise(self, fault=None):
         program = prefix.prepare()[26]
         state = {'trigger': False, 'runs': 0}

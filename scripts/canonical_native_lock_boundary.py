@@ -90,14 +90,14 @@ def ledger_trigger(name: str) -> str:
             "RAISE EXCEPTION 'NATIVE_LOCK27_LEDGER_PROBE' USING ERRCODE='P2728';\nEND $guard$;\n"
             "REVOKE ALL ON FUNCTION gridex_native_tx27.reject_ledger() FROM PUBLIC, anon, authenticated, service_role;\n"
             "CREATE TRIGGER gridex_native_tx27_guard BEFORE INSERT ON supabase_migrations.schema_migrations\n"
-            "FOR EACH ROW EXECUTE FUNCTION gridex_native_tx27.reject_ledger();\nCOMMIT; SELECT true::json;")
+            "FOR EACH ROW EXECUTE FUNCTION gridex_native_tx27.reject_ledger();\nSELECT pg_catalog.to_json(true); COMMIT;")
 
 
 DROP_TRIGGER = """BEGIN;
 DROP TRIGGER gridex_native_tx27_guard ON supabase_migrations.schema_migrations;
 DROP FUNCTION gridex_native_tx27.reject_ledger();
 DROP SCHEMA gridex_native_tx27;
-COMMIT; SELECT true::json;
+SELECT pg_catalog.to_json(true); COMMIT;
 """
 
 
@@ -128,6 +128,7 @@ def qualify(prefix, native, sql, work: Path, program, expected: list, retained: 
              (program.sql+MARKER, 'P2728', True))
     report.update(verified=False, cases=[])
     for payload, state, trigger in cases:
+        report.update(currentProbe=state, phase='CLI_FILE_CREATION')
         name = 'gridex_native_f0027_'+prefix.sha(payload)[:12]
         time.sleep(1.05)
         native('migration', 'new', name)
@@ -143,10 +144,12 @@ def qualify(prefix, native, sql, work: Path, program, expected: list, retained: 
         installed = False
         try:
             if trigger:
+                report['phase'] = 'LEDGER_GUARD_INSTALL'
                 if sql(ledger_trigger(name)) is not True:
                     raise prefix.PrefixError('NATIVE_LOCK27_PROOF_REQUIRED')
                 installed = True
             for item in retained: prefix.verify_private(*item)
+            report['phase'] = 'EXPECTED_MIGRATION_FAILURE'
             outcome = native('migration', 'up', '--local', allow_failure=True)
             prefix.verify_private(path, payload, physical)
             for item in retained: prefix.verify_private(*item)
@@ -155,17 +158,21 @@ def qualify(prefix, native, sql, work: Path, program, expected: list, retained: 
             if outcome.returncode == 0 or actual_state != state:
                 report['unexpectedSqlstate'] = actual_state
                 raise prefix.PrefixError('NATIVE_LOCK27_PROOF_REQUIRED')
+            report['phase'] = 'FAILED_LEDGER_VERIFICATION'
             if sql(prefix.LEDGER_SQL) != expected:
                 raise prefix.PrefixError('NATIVE_FAILED_LEDGER_CHANGED')
         finally:
-            if installed and sql(DROP_TRIGGER) is not True:
-                raise prefix.PrefixError('NATIVE_LOCK27_PROOF_REQUIRED')
+            if installed:
+                report['phase'] = 'LEDGER_GUARD_DISPOSAL'
+                if sql(DROP_TRIGGER) is not True:
+                    raise prefix.PrefixError('NATIVE_LOCK27_PROOF_REQUIRED')
             prefix.verify_private(path, payload, physical)
             path.unlink()
+        report['phase'] = 'ROLLBACK_SNAPSHOT_VERIFICATION'
         if sql(SNAPSHOT) != before or {p.name for p in directory.iterdir()} != original_files:
             raise prefix.PrefixError('NATIVE_LOCK27_ROLLBACK_REQUIRED')
         report['cases'].append({'expectedSqlstate':state, 'programSha256':prefix.sha(payload),
                                 'ledgerUnchanged':True, 'schemaAndRowsRestored':True})
-    report.update(verified=True, original25P01Reproduced=True, lockHeldAtLedgerInsert=True,
+    report.update(verified=True, phase='VERIFIED', original25P01Reproduced=True, lockHeldAtLedgerInsert=True,
                   localTimeoutsPreserved=True, sourceAndMarkerRollbackVerified=True,
                   noAppliedProbeRows=True, helpersDisposed=True)

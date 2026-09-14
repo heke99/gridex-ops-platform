@@ -1,6 +1,8 @@
 # Current state — database reconstruction, 2026-09-14
 
-Status: PARTIAL. Main/release and plan points85/86 are NOT accepted.
+Status: PARTIAL
+
+Main/release and plan points85/86 are NOT accepted.
 Active work: correct and qualify ordinal27's native transaction/locking boundary.
 
 ## Verified native progress
