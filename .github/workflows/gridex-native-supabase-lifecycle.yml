@@ -5,6 +5,9 @@ on:
       - '.github/workflows/gridex-native-supabase-lifecycle.yml'
       - 'scripts/canonical-native-supabase-lifecycle*.py'
       - 'scripts/canonical_native_cli_transport.py'
+      - 'scripts/canonical_native_bootstrap_contract.py'
+      - 'scripts/canonical-native-bootstrap-contract-selftest.py'
+      - 'scripts/sql/gridex-supabase-compatible-bootstrap.sql'
 permissions:
   contents: read
 concurrency:
@@ -26,7 +29,9 @@ jobs:
         with:
           version: 2.101.0
       - name: Verify local ownership, genuine-ledger and failure controls
-        run: python3 -B scripts/canonical-native-supabase-lifecycle-selftest.py
+        run: |
+          python3 -B scripts/canonical-native-supabase-lifecycle-selftest.py
+          python3 -B scripts/canonical-native-bootstrap-contract-selftest.py
       - name: Qualify an empty native Supabase and real CLI migration ledger
         run: python3 -B scripts/canonical-native-supabase-lifecycle.py
       - uses: actions/upload-artifact@v4
