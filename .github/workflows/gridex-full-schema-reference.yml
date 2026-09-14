@@ -4,6 +4,7 @@ on:
     paths:
       - '.github/workflows/gridex-full-schema-reference.yml'
       - 'scripts/canonical-*.py'
+      - 'scripts/canonical-reference-private-functions.json'
       - 'scripts/sql/gridex-db-parity-introspect.sql'
       - 'scripts/gridex-schema-document.cjs'
       - 'scripts/gridex-schema-dump*.cjs'
@@ -32,6 +33,7 @@ jobs:
           node scripts/gridex-schema-dump-selftest.cjs
           python3 -B scripts/canonical-reference-restore-selftest.py
           python3 -B scripts/canonical-reference-dependencies-selftest.py
+          python3 -B scripts/canonical-reference-private-functions-selftest.py
           python3 -B scripts/canonical-full-schema-reference-selftest.py
       - name: Restore the independent reference and compare all public schema sections
         run: python3 -B scripts/canonical-full-schema-reference.py

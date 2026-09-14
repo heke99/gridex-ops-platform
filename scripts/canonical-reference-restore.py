@@ -119,6 +119,7 @@ def restore_reference(target, raw):
     target.sql(REFERENCE_DB, 'CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA extensions;\nDROP SCHEMA public CASCADE;',
                'reference_spatial_prerequisite', transaction=False)
     load('canonical-reference-dependencies.py').prepare(target)
+    load('canonical-reference-private-functions.py').prepare(target)
     target.verify_logging()
     restriction_controls(target)
     prepared = rekey(raw)
@@ -133,5 +134,6 @@ def restore_reference(target, raw):
         print(json.dumps({'stage': 'reference_restore', **safe}), flush=True)
         raise ValueError('INDEPENDENT_REFERENCE_RESTORE_FAILED')
     dependency = load('canonical-reference-dependencies.py').verify(target)
+    dependency.update(load('canonical-reference-private-functions.py').verify(target))
     print(json.dumps({'stage':'reference_private_dependency_verified',**dependency}),flush=True)
     return load('canonical-full-schema-reference.py').capture(target, REFERENCE_DB)
