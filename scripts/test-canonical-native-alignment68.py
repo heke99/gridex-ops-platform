@@ -50,6 +50,9 @@ class SourceTests(unittest.TestCase):
         for s in self.sources:self.assertEqual(prepared.sql.count(s.data),1)
         self.assertEqual(len(self.p.identity(prepared.sql.decode())),3)
         self.assertIn(b"current_database() NOT IN ('postgres')",prepared.sql)
+        # CTAS accepts column names only; the SELECT determines JSONB type.
+        self.assertIn(b'CREATE TEMP TABLE alignment_identity_reference(value) ON COMMIT DROP AS SELECT coalesce(jsonb_object_agg',prepared.sql)
+        self.assertNotIn(b'alignment_identity_reference(value jsonb) ON COMMIT DROP AS',prepared.sql)
         self.assertIn(b"SET LOCAL lock_timeout='3s'",prepared.sql)
         self.assertIn(b'IN SHARE ROW EXCLUSIVE MODE',prepared.sql)
         self.assertNotIn(b'INSERT INTO supabase_migrations',prepared.sql)

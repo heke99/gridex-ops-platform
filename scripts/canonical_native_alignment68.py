@@ -259,7 +259,7 @@ def prepare(prefix,batch,sources,before,rows,final,domain_readonly,system_readon
     locks.extend((n,'AccessShareLock' if n in system_readonly else 'ShareRowExclusiveLock') for n in SYSTEM_TABLES)
     admission+="\nCREATE TEMP TABLE alignment_native_locks(name text,mode text) ON COMMIT DROP;\nINSERT INTO alignment_native_locks VALUES "+','.join(
         '('+batch.literal(n)+','+batch.literal(mode)+')' for n,mode in locks)+';\n'
-    admission+='CREATE TEMP TABLE alignment_identity_reference(value jsonb) ON COMMIT DROP AS '+batch.identities_sql()
+    admission+='CREATE TEMP TABLE alignment_identity_reference(value) ON COMMIT DROP AS '+batch.identities_sql()
     parts=[admission];prior='ADMITTED'
     for s in sources:
         parts.append(s.data.decode())
