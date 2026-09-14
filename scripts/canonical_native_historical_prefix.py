@@ -289,9 +289,16 @@ def protect_logging(command, sql, project: str) -> None:
     # The provider's postgres role is deliberately not a superuser. Only
     # this already-verified, disposable server's fixed logging configuration
     # uses its local infrastructure owner; migrations retain the postgres role.
-    admin = ['docker','exec','-i',name,'psql','-X','-qAt','-U','supabase_admin',
+    # In image 17.6.1.106 the upstream pg_hba.conf.j2 uses SCRAM for this
+    # role on Unix sockets, but an existing local-only route for 127.0.0.1.
+    # Stay INSIDE this verified container; never change HBA or expose a port.
+    admin = ['docker','exec','-i',name,'psql','-X','-qAt','-w',
+             '-h','127.0.0.1','-p','5432','-U','supabase_admin',
              '-d','postgres','-v','ON_ERROR_STOP=1']
     check = command(admin, data=("SELECT current_user = 'supabase_admin' AND rolsuper "
+                                 "AND inet_client_addr() = '127.0.0.1'::inet "
+                                 "AND inet_server_addr() = '127.0.0.1'::inet "
+                                 "AND inet_server_port() = 5432 "
                                  "FROM pg_roles WHERE rolname = current_user;").encode())
     if check.stdout.strip() != b't':
         raise PrefixError('NATIVE_LOGGING_ADMIN_REQUIRED')

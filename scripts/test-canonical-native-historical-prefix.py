@@ -256,9 +256,14 @@ class NativeLoggingTests(unittest.TestCase):
                                     'Labels':{'gridex.native.owner':PROJECT}}]).encode()
             elif 'psql' in args:
                 # Model the provider role separation, not a vanilla superuser.
-                self.assertEqual(args[args.index('-U')+1], 'supabase_admin')
+                self.assertEqual(args, ['docker','exec','-i','supabase_db_'+PROJECT,
+                    'psql','-X','-qAt','-w','-h','127.0.0.1','-p','5432',
+                    '-U','supabase_admin','-d','postgres','-v','ON_ERROR_STOP=1'])
                 payload=kwargs.get('data',b'')
                 if payload.startswith(b'SELECT current_user'):
+                    self.assertIn(b"inet_client_addr() = '127.0.0.1'::inet",payload)
+                    self.assertIn(b"inet_server_addr() = '127.0.0.1'::inet",payload)
+                    self.assertIn(b'inet_server_port() = 5432',payload)
                     output=b'f' if fault=='admin-role' else b't'
                 else:
                     self.assertIn(payload, {f"ALTER SYSTEM SET {key} = '{value}';".encode()
