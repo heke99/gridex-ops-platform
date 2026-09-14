@@ -3,7 +3,7 @@
 An internal Docker network deliberately has no operational published host port.
 The official CLI therefore connects by the exact database container DNS name.
 No repository checkout, hosted credentials or arbitrary command is mounted.
-The historical entry admits first43 and exactly one atomic44-52 unit shape.
+The historical entry admits first43 and the exact atomic44-52 and53-56 unit shapes.
 """
 import os
 from pathlib import Path
@@ -26,7 +26,9 @@ def cli_command(cli, work, project, arguments):
                        and re.fullmatch(r'gridex_native_f(?:000[1-9]|00[1-3][0-9]|004[0-3])_[a-f0-9]{12}', arguments[2]))
     legacy_name = (len(arguments) == 3 and tuple(arguments[:2]) == ('migration', 'new')
                    and re.fullmatch(r'gridex_native_f0044_0052_[a-f0-9]{12}', arguments[2]))
-    if tuple(arguments) not in allowed and not historical_name and not legacy_name:
+    repair_name = (len(arguments) == 3 and tuple(arguments[:2]) == ('migration', 'new')
+                   and re.fullmatch(r'gridex_native_f0053_0056_[a-f0-9]{12}', arguments[2]))
+    if tuple(arguments) not in allowed and not historical_name and not legacy_name and not repair_name:
         raise ValueError('FIXED_NATIVE_CLI_COMMAND_REQUIRED')
     work = Path(work)
     if (not work.is_absolute() or work.resolve() != work or not work.is_dir()

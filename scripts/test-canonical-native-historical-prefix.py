@@ -318,7 +318,7 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
         spec=importlib.util.spec_from_file_location('existing_native_fixture',ROOT/'scripts/canonical-native-supabase-lifecycle-selftest.py')
         cls.fixture=importlib.util.module_from_spec(spec);spec.loader.exec_module(cls.fixture)
 
-    def execute(self, fail=False, cleanup=False, legacy_fail=False):
+    def execute(self, fail=False, cleanup=False, legacy_fail=False, repair_fail=False):
         native=self.fixture.m
         original=native.run
         prepared=object()
@@ -337,17 +337,25 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
             if legacy_fail:raise ValueError('private legacy SQL must not reach report')
             progress.update(verified=True,foundationInputsExecuted=9,
                             cumulativeFoundationInputsExecuted=52)
+        import canonical_native_repair_envelope as repair
+        def apply_repair(prefix,cli,sql,work,first43,legacy52,progress):
+            self.assertEqual(legacy52['cumulativeFoundationInputsExecuted'],52)
+            if repair_fail:raise ValueError('private repair SQL must not reach report')
+            progress.update(verified=True,foundationInputsExecuted=4,
+                            cumulativeFoundationInputsExecuted=56)
         helper=SimpleNamespace(prepare=lambda:prepared,execute=apply)
         with patch.object(native,'load_historical_prefix',return_value=helper), \
              patch.object(legacy,'execute',side_effect=apply_legacy), \
+             patch.object(repair,'execute',side_effect=apply_repair), \
              patch.object(native,'run',side_effect=lambda:original(historical_prefix=True)):
             return self.fixture.NativeTests().execute_fixture('cleanup' if cleanup else None)
 
     def test_bounded_native_success_cannot_certify_full_replay(self):
         status,report=self.execute()
         self.assertEqual(status,0)
-        self.assertEqual(report['outcome'],'NATIVE_HISTORICAL_THROUGH52_VERIFIED')
-        self.assertEqual(report['foundationInputsExecuted'],52)
+        self.assertEqual(report['outcome'],'NATIVE_HISTORICAL_THROUGH56_VERIFIED')
+        self.assertEqual(report['foundationInputsExecuted'],56)
+        self.assertTrue(report['historicalRepair56']['verified'])
         self.assertTrue(report['historicalLegacy52']['verified'])
         self.assertEqual(report['historicalPrefix']['foundationInputsExecuted'],43)
         self.assertTrue(report['historicalPrivateInputsDisposed'])
@@ -372,6 +380,16 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
         self.assertTrue(report['historicalPrivateInputsDisposed'])
         self.assertNotIn('private legacy SQL',str(report))
         self.assertFalse(report['completeReplayVerified'])
+
+    def test_repair_failure_preserves_verified52_without_certifying56(self):
+        status,report=self.execute(repair_fail=True)
+        self.assertEqual(status,1)
+        self.assertEqual(report['outcome'],'BLOCKED')
+        self.assertEqual(report['phase'],'HISTORICAL_REPAIR53_56_NATIVE_LEDGER')
+        self.assertEqual(report['foundationInputsExecuted'],52)
+        self.assertTrue(report['historicalPrivateInputsDisposed'])
+        self.assertFalse(report['completeReplayVerified'])
+        self.assertNotIn('private repair SQL',str(report))
 
     def test_cleanup_failure_cannot_certify_historical_input_disposal(self):
         status,report=self.execute(cleanup=True)

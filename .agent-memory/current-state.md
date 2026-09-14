@@ -32,32 +32,31 @@ The five native failures42501/P5244/57014/P5252/P5253 each preserve the prior
 ledger and restore scoped catalog/rows. The last verifies locks, temp context
 and local deadlines at the CLI's own ledger INSERT. Helpers are disposed.
 
-## Fresh scoped verification and publication boundary
+## Current implementation — native53–56
 
-Revalidated the original native ZIP against GitHub's published SHA256, then
-matched52 source hashes,43 prefix program hashes and4 support hashes to the
-exact runtime tree. Fresh local tests:22 envelope,31 prefix/integration and9
-lock tests PASS (62 total);601 immutable files/505 version groups PASS.
-Local tests simulate native calls; native evidence is the existing CI run above,
-not a new locally executed database. This change publishes documentation only.
-No runtime, SQL source, workflow, RLS/grant, type or reference baseline changes.
+Status for this increment: IMPLEMENTED_NOT_VERIFIED.
+The new canonical_native_repair_envelope.py connects exact R2/E2/S2/W to the
+ordinary native Supabase lifecycle as one atomic CLI unit. It retains original
+source/support bytes, original role/policy restoration, full scoped catalog/
+row/sequence checks, previous actual ledger and private input identities.
+An independent source-DDL reference is constructed with ROLLBACK on native52.
+Original provider-denial, mid-source, statement-deadline, post-body and ledger-
+insert failures must all verify rollback before the real unit is applied.
 
-## Exact remaining action
+Local128 tests and601 migration-file integrity / complete accounting PASS.
+Database/CLI callbacks are simulated locally; native53–56 is NOT yet accepted.
+No full replay, type regeneration, merge, hosted mutation or deployment.
+Evidence: quality/audits/DB_NATIVE53_56_2026-09-14.md.
 
-Implement foundation53–56 using scripts/canonical-user-rbac-repair-batch.py,
-then remaining foundation57–144 and514 timestamp stages with truthful CLI
-ledger and atomic failure controls. Do not rebuild44–52 or retry the old run
-as a repair. The ordinary job intentionally ends AFTER52 with
-NATIVE_LATER_ENVELOPES_AND_FULL_ACCEPTANCE_REQUIRED. This is not42501.
-Full schema semantics, the auth-email failure, generated types and every
-mandatory OPS/E2E gate still require resolution before merge.
+## Exact next action
 
-Evidence: quality/audits/DB_NATIVE52_VERIFIED_2026-09-14.md.
-Main remained eb9a25bc at read-back. No hosted Supabase calls/mutations/reset,
-ledger repair, main merge or deployment in this verification/publication.
-Preserve all601 original migrations, real company fields/white-label FK,
+Execute the new53–56 unit via the ordinary OPS clean-migration-replay job and
+inspect its genuine native report. Do not mark56 complete from local tests.
+After verified56 continue foundation57–144 and514 timestamp stages, then full
+schema semantics, auth-email, generated types and all mandatory CI before merge.
+The older42501/P5244 mismatch remains superseded for44–52 only.
+Preserve original601 migrations, real company fields/white-label relationship,
 existing app/API work and quality/paused/2026-09-12-partner-price-wip.patch.
-The older279-row hosted ledger observation is historical, not fresh evidence.
 
 ## Machine-checked continuity contract
 
