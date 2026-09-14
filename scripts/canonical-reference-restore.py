@@ -85,6 +85,32 @@ def rekey(data):
     return process.stdout
 
 
+def restriction_controls(target):
+    """Verify enforcement, not an assumed key-character rejection.
+
+    The PostgreSQL 17 client accepts nonempty underscore keys in its actual
+    implementation. It must reject forbidden commands while restricted and a
+    mismatched unrestrict key; a valid matched key must restore normal handling.
+    """
+    key = secrets.token_hex(32).encode()
+    denied = b'\\restrict '+key+b'\n\\echo GRIDEX_FORBIDDEN_META\n\\unrestrict '+key+b'\n'
+    wrong = b'\\restrict '+key+b'\n\\unrestrict wrong'+key+b'\nSELECT 999;\n'
+    for name, program, forbidden in (
+            ('restricted_metacommand', denied, b'GRIDEX_FORBIDDEN_META'),
+            ('wrong_unrestrict_key', wrong, b'999')):
+        result = execute(target, program)
+        if result.returncode == 0 or forbidden in result.stdout:
+            raise ValueError('NATIVE_RESTRICTION_DENIAL_REQUIRED')
+        print(json.dumps({'stage':name,'rejected':True,'exitCode':result.returncode}),flush=True)
+    good_program = (b'\\restrict '+key+b'\nSELECT 1;\n\\unrestrict '+key+
+                    b'\n\\echo GRIDEX_RESTRICTION_RELEASED\n')
+    good = execute(target, good_program)
+    if good.returncode or good.stdout != b'1\nGRIDEX_RESTRICTION_RELEASED\n':
+        raise ValueError('NATIVE_RESTRICTED_CLIENT_REQUIRED')
+    print(json.dumps({'stage':'native_restriction_controls','matchedKeyAndSqlAccepted':True,
+                      'restrictionReleaseVerified':True}),flush=True)
+
+
 def restore_reference(target, raw):
     """Read an immutable dump through private stdin; never duplicate it on disk."""
     target.reset(REFERENCE_DB)
@@ -93,24 +119,12 @@ def restore_reference(target, raw):
     target.sql(REFERENCE_DB, 'CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA extensions;\nDROP SCHEMA public CASCADE;',
                'reference_spatial_prerequisite', transaction=False)
     target.verify_logging()
-    # Native RED/GREEN control of the old invalid normalized key. This contains
-    # no source definitions, operator literals, credentials or business data.
-    old_probe = b'\\restrict gridex_canonical_schema_snapshot\nSELECT 1;\n\\unrestrict gridex_canonical_schema_snapshot\n'
-    old = execute(target, old_probe)
-    print(json.dumps({'stage':'restricted_client_probe','invalidKeyExitCode':old.returncode,
-                      'invalidKeyOutputSha256':sha(old.stdout+old.stderr)}),flush=True)
-    if old.returncode == 0:
-        raise ValueError('INVALID_RESTRICT_KEY_REGRESSION_REQUIRED')
-    good = execute(target, rekey(old_probe))
-    print(json.dumps({'stage':'restricted_client_probe','validKeyExitCode':good.returncode,
-                      'validKeyOutputSha256':sha(good.stdout+good.stderr)}),flush=True)
-    if good.returncode or good.stdout.strip() != b'1':
-        raise ValueError('NATIVE_RESTRICTED_CLIENT_REQUIRED')
+    restriction_controls(target)
     prepared = rekey(raw)
     if sum(a != b for a,b in zip(raw.splitlines(), prepared.splitlines())) != 2 or len(raw.splitlines()) != len(prepared.splitlines()):
         raise ValueError('EXACT_RESTRICT_KEY_ONLY_CHANGE_REQUIRED')
-    print(json.dumps({'stage':'native_restricted_restore_control','invalidKeyRejected':True,
-                      'freshKeyAccepted':True,'originalSnapshotSha256':sha(raw),
+    print(json.dumps({'stage':'native_restricted_restore_control','forbiddenMetaCommandRejected':True,
+                      'wrongUnrestrictKeyRejected':True,'freshKeyAccepted':True,'originalSnapshotSha256':sha(raw),
                       'preparedStreamSha256':sha(prepared),'changedGuardLines':2}), flush=True)
     result = execute(target, prepared)
     if result.returncode:

@@ -92,6 +92,32 @@ class RestoreTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'RESTORE_CLIENT_DISPOSAL_UNVERIFIED'):
                 m.execute(Target(),b'SELECT 1;')
 
+    def test_native_restriction_controls_require_real_denials_and_recovery(self):
+        replies = [result(code=3, err=b'restricted'), result(code=3, err=b'wrong key'),
+                   result(out=b'1\nGRIDEX_RESTRICTION_RELEASED\n')]
+        with patch.object(m, 'execute', side_effect=replies) as run:
+            m.restriction_controls(Target())
+            programs = [call.args[1] for call in run.call_args_list]
+            self.assertEqual(len(programs), 3)
+            self.assertIn(b'\\echo GRIDEX_FORBIDDEN_META', programs[0])
+            self.assertIn(b'\\unrestrict wrong', programs[1])
+            self.assertIn(b'\\echo GRIDEX_RESTRICTION_RELEASED', programs[2])
+            self.assertNotIn(b'gridex_canonical_schema_snapshot', b''.join(programs))
+
+    def test_native_controls_reject_a_client_that_ignores_restrictions(self):
+        for index in (0, 1):
+            replies = [result(code=3), result(code=3), result(out=b'1\nGRIDEX_RESTRICTION_RELEASED\n')]
+            replies[index] = result(code=0)
+            with patch.object(m, 'execute', side_effect=replies):
+                with self.assertRaisesRegex(ValueError, 'NATIVE_RESTRICTION_DENIAL_REQUIRED'):
+                    m.restriction_controls(Target())
+
+    def test_native_controls_reject_missing_success_output_or_failed_client(self):
+        for good in (result(code=3), result(), result(out=b'1\n'), result(out=b'private-value')):
+            with patch.object(m, 'execute', side_effect=[result(code=3), result(code=3), good]):
+                with self.assertRaisesRegex(ValueError, 'NATIVE_RESTRICTED_CLIENT_REQUIRED'):
+                    m.restriction_controls(Target())
+
     def test_live_dump_rekeying_preserves_every_sql_line(self):
         raw=(ROOT/'supabase/schema.sql').read_bytes()
         out=m.rekey(raw)
