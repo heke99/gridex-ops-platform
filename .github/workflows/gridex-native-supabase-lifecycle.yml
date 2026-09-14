@@ -7,6 +7,8 @@ on:
       - 'scripts/canonical_native_cli_transport.py'
       - 'scripts/canonical_native_historical_prefix.py'
       - 'scripts/canonical_native_legacy_envelope.py'
+      - 'scripts/canonical_native_repair_envelope.py'
+      - 'scripts/test-canonical-native-repair-envelope.py'
       - 'scripts/test-canonical-native-legacy-envelope.py'
       - 'scripts/canonical_native_lock_boundary.py'
       - 'scripts/test-canonical-native-lock-boundary.py'
@@ -40,6 +42,7 @@ jobs:
           python3 -B scripts/test-canonical-native-historical-prefix.py
           python3 -B scripts/test-canonical-native-lock-boundary.py
           python3 -B scripts/test-canonical-native-legacy-envelope.py
+          python3 -B scripts/test-canonical-native-repair-envelope.py
           python3 -B scripts/canonical-native-ledger-regression.py
           python3 -B scripts/canonical-native-supabase-lifecycle-selftest.py
           python3 -B scripts/canonical-native-bootstrap-contract-selftest.py
