@@ -286,10 +286,19 @@ def protect_logging(command, sql, project: str) -> None:
     if directory != '/var/lib/postgresql/data':
         raise PrefixError('NATIVE_DATA_DIRECTORY_REQUIRED')
     command(['docker','exec','--user','postgres',name,'mkdir','-m','700',directory+'/gridex_native_private_logs'])
+    # The provider's postgres role is deliberately not a superuser. Only
+    # this already-verified, disposable server's fixed logging configuration
+    # uses its local infrastructure owner; migrations retain the postgres role.
+    admin = ['docker','exec','-i',name,'psql','-X','-qAt','-U','supabase_admin',
+             '-d','postgres','-v','ON_ERROR_STOP=1']
+    check = command(admin, data=("SELECT current_user = 'supabase_admin' AND rolsuper "
+                                 "FROM pg_roles WHERE rolname = current_user;").encode())
+    if check.stdout.strip() != b't':
+        raise PrefixError('NATIVE_LOGGING_ADMIN_REQUIRED')
     for key, value in SETTINGS.items():
         # ALTER SYSTEM must be a standalone command, not inside a SQL batch.
-        command(['docker','exec','-i',name,'psql','-X','-qAt','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1'],
-                data=f"ALTER SYSTEM SET {key} = '{value}';".encode())
+        # Never grant the migration/application roles additional privileges.
+        command(admin, data=f"ALTER SYSTEM SET {key} = '{value}';".encode())
     command(['docker','restart',name], timeout=120)
     deadline = time.monotonic() + 60
     while True:

@@ -254,6 +254,15 @@ class NativeLoggingTests(unittest.TestCase):
             elif args[:3]==['docker','network','inspect']:
                 output=json.dumps([{'Internal':fault!='public-network',
                                     'Labels':{'gridex.native.owner':PROJECT}}]).encode()
+            elif 'psql' in args:
+                # Model the provider role separation, not a vanilla superuser.
+                self.assertEqual(args[args.index('-U')+1], 'supabase_admin')
+                payload=kwargs.get('data',b'')
+                if payload.startswith(b'SELECT current_user'):
+                    output=b'f' if fault=='admin-role' else b't'
+                else:
+                    self.assertIn(payload, {f"ALTER SYSTEM SET {key} = '{value}';".encode()
+                                           for key,value in m.SETTINGS.items()})
             elif 'stat' in args:output=b'755' if fault=='permissions' else b'700'
             elif 'pg_isready' in args:output=b'ready'
             return subprocess.CompletedProcess(args,0,output,b'')
@@ -271,14 +280,31 @@ class NativeLoggingTests(unittest.TestCase):
         error,calls=self.exercise()
         self.assertIsNone(error)
         self.assertIn(['docker','restart','supabase_db_'+PROJECT],calls)
-        self.assertEqual(sum('psql' in call for call in calls),len(m.SETTINGS))
+        self.assertEqual(sum('psql' in call for call in calls),len(m.SETTINGS)+1)
         self.assertNotIn('supabase_migrations',str(calls))
 
     def test_foreign_server_network_data_directory_and_log_changes_fail_closed(self):
-        for fault in ('replaced','wrong-owner','public-network','permissions','data-dir','logging'):
+        for fault in ('replaced','wrong-owner','public-network','permissions','data-dir','logging','admin-role'):
             error,calls=self.exercise(fault)
             self.assertIsNotNone(error,fault)
             self.assertNotIn('migration',str(calls))
+
+
+    def test_unverified_admin_is_rejected_before_server_mutation(self):
+        error,calls=self.exercise('admin-role')
+        self.assertEqual(error,'NATIVE_LOGGING_ADMIN_REQUIRED')
+        self.assertEqual(sum('psql' in call for call in calls),1)
+        self.assertFalse(any('restart' in call for call in calls))
+
+    def test_infrastructure_role_is_not_used_for_historical_cli_execution(self):
+        source=(ROOT/'scripts/canonical-native-supabase-lifecycle.py').read_text()
+        # Both parent metadata/ledger queries and the CLI migration lane keep
+        # the provider postgres role. No ALTER ROLE or GRANT elevation exists.
+        self.assertNotIn('supabase_admin', source[source.index('def run('):])
+        self.assertIn("'psql','-X','-qAt','-U','postgres','-d','postgres'",source)
+        transport=(ROOT/'scripts/canonical_native_cli_transport.py').read_text()
+        self.assertNotIn('supabase_admin',transport)
+
 
 
 class NativeLifecycleIntegrationTests(unittest.TestCase):
