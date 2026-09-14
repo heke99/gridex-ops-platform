@@ -4,14 +4,11 @@
   "status": "PARTIAL",
   "current_state": ".agent-memory/current-state.md",
   "active_group": "database_reconstruction",
-  "evidence": "quality/audits/DB_NATIVE53_56_TRIGGER_ADMISSION_2026-09-14.md",
-  "next_action": "Publish the complete conversation patch for native53-56 provider admission; then verify real OPS ledger/rollback. Tool blocked publication; accepted boundary remains52.",
-  "native_verified_code": "603e68a52f223a7fcfb65fc8ec33a3ed529ff4da",
-  "native_run_id": 34873361878,
-  "native_job_id": 104074455772,
-  "native_artifact_id": 10359689961,
-  "diagnostic_code": "d503e1fa896002a72b6a55f16aeec4147214720d",
-  "diagnostic_run_id": 34884449551,
-  "diagnostic_job_id": 104111486320,
-  "diagnostic_artifact_id": 10364318629
+  "evidence": "quality/audits/DB_NATIVE56_VERIFIED_2026-09-14.md",
+  "next_action": "Integrate native foundation57 H2 with its exact transaction/ledger boundary; continue58-144 and timestamp chain, then full schema/auth/types/required CI before merging ALL PR310 changes. Native1-56 is verified; publication and P0004 blockers are superseded.",
+  "native_verified_code": "b1a80fb1829463eea57f026080e248005a720e94",
+  "native_verified_tree": "e03c94394d124a42038df6ca63d5a4e38c9423de",
+  "native_run_id": 34888356621,
+  "native_job_id": 104124511143,
+  "native_artifact_id": 10365822727
 }

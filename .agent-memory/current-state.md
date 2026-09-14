@@ -2,72 +2,57 @@
 
 Status: PARTIAL
 
-Native foundation1–52 and its actual CLI ledger: VERIFIED on603e68a5.
-The old42501/P5244 mismatch from run34868620937 is SUPERSEDED.
-Active work: publish and natively verify the bounded53–56 provider-event fix.
-The diagnosedP0004 is current; the candidate is local only after a tool-blocked write.
+Native foundation1–56 is VERIFIED on actual Supabase. The complete provider-
+event fix is PUBLISHED as b1a80fb1829463eea57f026080e248005a720e94, tree
+e03c94394d124a42038df6ca63d5a4e38c9423de. The old tool publication block and
+P0004/P5653 mismatch are SUPERSEDED. Do not republish or re-fix that patch.
 Full replay, generated types, release and plan85/86 are NOT accepted.
 
 ## Current verified evidence
 
-Runtime603e68a52f223a7fcfb65fc8ec33a3ed529ff4da; source tree
-872908e717f961bde8a6f78952b8114b67e2f455.
-Ordinary OPS34873361878 / clean job104074455772 / artifact10359689961.
-The actual report is NATIVE_HISTORICAL_THROUGH52_VERIFIED:43 prefix inputs
-plus all9 inputs44–52 in one additional CLI migration unit. Actual ledger
-statements, earlier entries, no-op repeat and owned/private cleanup pass.
-Zero timestamp inputs execute. No original applied version is fabricated.
+Ordinary OPS34888356621 / clean job104124511143 / artifact10365822727.
+Native outcome: NATIVE_HISTORICAL_THROUGH56_VERIFIED.
+ZIP SHA256:3b2add320cbdc5d91b9d59061cb2955e71315e4d0563883c0f006141d143d6b6.
+All43 prefix inputs plus the one44–52 and one53–56 CLI units are verified.
+The actual ledger, unchanged earlier entries, source preservation, no-op repeat
+and private/owned-resource cleanup pass. All nine repair56 negative controls
+pass:42501, four P0004 controls, P5653,57014,P5656,P5657.
+The eight native provider event/routine contracts match the pristine image.
+No event was disabled, no domain privilege expanded and no historical version
+fabricated. GraphQL cache-sequence VALUE rollback is explicitly not claimed.
+Zero timestamp inputs execute. Full replay/types flags remain false.
 
-The initial42501 is now reproduced only as an expected negative control.
-The exact original lock denial is bound to auth.schema_migrations. Native
-postgres also lacks SHARE privileges on storage.migrations,
-storage.buckets_vectors and storage.vector_indexes. Only these four exact
-provider-owned, read-only identities use ACCESS SHARE in the isolated db-only
-fixture. Domain exclusive locks and migration roles remain unchanged. This is
-not equivalent protection from concurrent provider DML in a production system.
+Fresh independent check:56 source hashes,43 prefix program hashes,8 support
+hashes and native result/rollback/repeat/cleanup assertions PASS. Fresh145
+local control tests and601-file/505-group integrity PASS. Local callbacks are
+not native SQL evidence. Full receipt:
+quality/audits/DB_NATIVE56_VERIFIED_2026-09-14.md.
 
-The later source-comment false positive is corrected in603e68a5. Actual
-references, quoted SQL and dynamic SQL remain checked; only comments are
-ignored. All source hashes and source ordering are still required.
-The five native failures42501/P5244/57014/P5252/P5253 each preserve the prior
-ledger and restore scoped catalog/rows. The last verifies locks, temp context
-and local deadlines at the CLI's own ledger INSERT. Helpers are disposed.
+## Active implementation and release blockers
 
-## Current implementation — native53–56
+Next actual code task is native foundation57 (H2), then fixed-target58–63.
+The pinned H2 source has BEGIN/COMMIT followed by a verification SELECT; the
+native adapter must qualify that exact transaction/ledger shape while keeping
+the whole source. Do not drop verification or assert rollback across COMMIT.
+Continue remaining foundation64–144 and514 timestamp stages afterwards.
 
-Status for the published increment: IMPLEMENTED_NOT_VERIFIED.
-Published diagnostic code d503e1fa896002a72b6a55f16aeec4147214720d was tested by
-OPS34884449551 / clean job104111486320 / artifact10364318629. Native1–52 pass;
-repair56 failsP0004 instead ofP5653 after its oracle rollback. The report proves
-zero active roles triggers and eight active built-in Supabase event triggers;
-the portable blanket event-trigger ban rejects this baseline. Cleanup passes.
+The ordinary clean job intentionally stops AFTER verified56 with
+NATIVE_LATER_ENVELOPES_AND_FULL_ACCEPTANCE_REQUIRED. Full schema/reference,
+residual source, full E2E, auth-email and generated-types gates remain failed.
+The types tail is20260913211625_ediel_intent_customer_company_integrity.sql;
+actual generation from complete accepted replay is required, not a manifest edit.
 
-A complete bounded candidate was prepared and145 offline source/control tests
-pass, with601 original migration checksums unchanged. It pins the entire native
-provider contract to the pristine image, retains real negative controls and
-adds provider static-catalog preservation. It never disables an event trigger,
-resets a sequence, expands domain privileges or rewrites historical support.
-It explicitly excludes GraphQL cache-counter rollback from business-data claims.
+## Whole PR310 to main
 
-The candidate is NOT published: GitHub blocked the lifecycle-blob write because
-it could not determine safety status. No partial candidate ref update occurred.
-The conversation supplies a cleanly applicable eight-file patch based on d503e1fa,
-SHA256 e40612db619c0874bbd90dfffb1e380e4d284aa3f59c380bd6ede0a01feb8b53.
-Local callbacks are not native SQL evidence. No type generation, merge, hosted
-mutation or deployment occurred. Full receipt and exact evidence:
-quality/audits/DB_NATIVE53_56_TRIGGER_ADMISSION_2026-09-14.md.
-
-## Exact next action
-
-Publish the complete candidate through an authorized write, then run ordinary
-OPS clean-migration-replay and verify all nine negative controls, the real CLI
-ledger entry, final catalog and no-op repeat before accepting native56.
-The old52 lock failure remains superseded; do not confuse it with this event ban.
-After verified56 continue foundation57–144 and514 timestamp stages, then full
-schema semantics, auth-email, generated types and all mandatory CI before merge.
-The generated-types tail mismatch remains; never update its manifest as a bypass.
-Preserve original601 migrations, real company fields/white-label relationship,
-existing app/API work and quality/paused/2026-09-12-partner-price-wip.patch.
+Preserve the complete PR310 branch and all existing changes for eventual merge;
+do not cherry-pick only this fix. The eight-file fix extends the previous head
+normally. All4049 prior files were compared: only six intended existing patch
+files changed and two new files were added. The original601 migrations, real
+company/white-label fields, all app/API work and the paused partner-price patch
+are intact. No hosted mutation/reset, main merge, force push or deployment.
+Main at inspection:eb9a25bc989c6de808903f41c2314d5465e9c07b. PR remains draft.
+Merge the entire PR only after complete replay/schema/auth/types and required
+same-head CI pass. No further user approval is needed for the requested work.
 
 ## Machine-checked continuity contract
 
