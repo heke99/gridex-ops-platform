@@ -784,7 +784,16 @@ def accepted_writers(c):
                     c.dedupe._STATES[h] = 'ACCEPTED56'
                     with patch.object(c.dedupe,'snapshot',return_value=({},[])),patch.object(c.dedupe,'assert_final'),patch.object(h,'sql',return_value='0'):
                         c.dedupe.execute(h,c.replay.DATABASE,c.dedupe.reviewed_paths(),stage)
-        c.check(set(inputs.records)==set(inputs.sources),'FOUR_REAL_WRITERS_REQUIRED')
+        # This fixture executes four early writers, not the two later foundation
+        # writers added to the closed source registry. Admission of those later
+        # writers is exercised by canonical-retained-input-provenance-selftest.py.
+        expected = {'prefix-1.sql', 'replay-source-1.sql',
+                    'repair-whole-E2.sql', 'dedupe-whole-H2.sql'}
+        c.check(set(inputs.records)==expected, 'FOUR_REAL_WRITERS_REQUIRED')
+        c.check(set(inputs.sources)==expected | set(c.AcceptedInputs.RETAINED_FOUNDATION),
+                'CLOSED_SOURCE_REGISTRY_REQUIRED')
+        c.check(not set(inputs.records) & set(c.AcceptedInputs.RETAINED_FOUNDATION),
+                'LATER_PHASE_RECORD_FORBIDDEN')
         proof = type('AcceptedProof',(),{'h':h,'name':h.name,'directory':h.directory.name,'accepted_inputs':inputs})()
         yield proof
 

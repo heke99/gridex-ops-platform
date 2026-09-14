@@ -1,6 +1,8 @@
 # Current state — database reconstruction, 2026-09-14
 
-Status: PARTIAL. Main/release and plan points 85/86 are NOT accepted.
+Status: PARTIAL
+
+Main/release and plan points 85/86 are NOT accepted.
 
 ## Verified and pushed
 
@@ -47,3 +49,12 @@ Status: PARTIAL. Main/release and plan points 85/86 are NOT accepted.
 Evidence: `quality/audits/DB_EDIEL_FORWARD_2026-09-14.md`.
 All temporary publishers removed. Main, connected database and deployment are
 unchanged. Existing application/API work and paused partner/API patch preserved.
+
+## Machine-checked continuity contract
+
+Working-tree accounting is 601 inputs: 589 `FULL_FILE_SELECTED`, 2 `SUBSTITUTED`, 5 `UNCLASSIFIED`, and 5 `EXPLICITLY_EXCLUDED`.
+
+The focused group contains 347 inputs: 335 selected, 2 substituted, 5 unclassified, and 5 excluded.
+
+No production mutation has been performed in this replay-verification batch.
+Push reviewed, coherent batches stepwise as requested.
