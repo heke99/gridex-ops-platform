@@ -9,13 +9,36 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+import tomllib
 import unittest
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('native_lifecycle',ROOT/'scripts/canonical-native-supabase-lifecycle.py')
 m = importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
-PROJECT = 'gridex-native-100-1-0123456789abcdef'
+PROJECT = 'gridex-sb-45c3b5c5b510-0123456789abcdef'
+TEMPLATE = '''project_id = "generated"
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+[db.seed]
+enabled = true
+[api]
+enabled = true
+[analytics]
+enabled = false
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+[storage]
+enabled = true
+[realtime]
+enabled = true
+[edge_runtime]
+enabled = true
+deno_version = 2
+'''
 FILE = '20260914000000_native_lifecycle_proof.sql'
 
 
@@ -33,11 +56,41 @@ class NativeTests(unittest.TestCase):
             with self.assertRaises(ValueError):m.owner(value)
 
     def test_config_is_local_and_ports_are_distinct(self):
-        text=m.config(PROJECT,25432,25433)
+        text=m.config(PROJECT,25432,25433,TEMPLATE)
         self.assertIn('major_version = 17',text)
         self.assertNotIn('project-ref',text)
         for ports in [(5432,5432),(True,5432),(1,5432),(5432,65536)]:
-            with self.assertRaises(ValueError):m.config(PROJECT,*ports)
+            with self.assertRaises(ValueError):m.config(PROJECT,*ports,TEMPLATE)
+
+    def test_real_workflow_ids_never_trigger_supabase_project_name_truncation(self):
+        value=m.project_name('34822996630','1','0123456789abcdef')
+        self.assertEqual(value,PROJECT)
+        self.assertLessEqual(len(value),40)
+        self.assertLessEqual(len(m.project_name('9'*40,'9'*20,'f'*16)),40)
+        self.assertNotEqual(value,m.project_name('34822996630','2','0123456789abcdef'))
+        with self.assertRaises(ValueError):m.owner('gridex-native-34822996630-1-0123456789abcdef')
+        for run,attempt,nonce in [('main','1','0'*16),('100','../','0'*16),('100','1','xyz')]:
+            with self.assertRaises(ValueError):m.project_name(run,attempt,nonce)
+
+    def test_config_preserves_upstream_auth_storage_and_other_defaults(self):
+        before=tomllib.loads(TEMPLATE)
+        after=tomllib.loads(m.config(PROJECT,25432,25433,TEMPLATE))
+        before['project_id']=PROJECT
+        before['db']['port']=25432;before['db']['shadow_port']=25433
+        for section in ('api','analytics'):before[section]['enabled']=False
+        before['db']['seed']['enabled']=False
+        self.assertEqual(before,after)
+        for text in [TEMPLATE.replace('shadow_port = 54320',''),
+                     TEMPLATE.replace('major_version = 17','major_version = 15'),
+                     TEMPLATE+'\n[remotes.production]\nproject_id = "piidsfebjqjmnepdpnas"\n']:
+            with self.assertRaises(ValueError):m.config(PROJECT,25432,25433,text)
+
+    def test_command_diagnostics_use_only_closed_markers_not_untrusted_values(self):
+        raw=b'failed to connect to postgres postgres://u:private@private.example/db SQLSTATE 08006'
+        value=m.command_signals(raw,b'private-raw-diagnostic@example.invalid')
+        self.assertIn('POSTGRES_CONNECTION_FAILED',value)
+        self.assertNotIn('private',json.dumps(value))
+        self.assertEqual(m.command_signals(b'unclassified private value',b''),[])
 
     def test_database_requires_exact_owner_network_and_official_pg17_image(self):
         data=[{'Name':'/supabase_db_'+PROJECT,
@@ -87,7 +140,7 @@ class NativeTests(unittest.TestCase):
                 else:
                     work=Path(args[2]); sub=args[3:]
                     if sub==['init']:
-                        (work/'supabase').mkdir();(work/'supabase/config.toml').write_text('original')
+                        (work/'supabase').mkdir();(work/'supabase/config.toml').write_text(TEMPLATE)
                     elif 'start' in sub:
                         created=True
                         if fail_stage=='start':status=1
@@ -122,7 +175,7 @@ class NativeTests(unittest.TestCase):
                 else:output=json.dumps(ledger()).encode()
             return subprocess.CompletedProcess(args,status,output,b'private-raw-diagnostic@example.invalid')
         with tempfile.TemporaryDirectory() as directory, patch.object(m,'ROOT',Path(directory)), \
-             patch.dict(os.environ,{'GITHUB_ACTIONS':'true','GITHUB_RUN_ID':'100','GITHUB_RUN_ATTEMPT':'1'}), \
+             patch.dict(os.environ,{'GITHUB_ACTIONS':'true','GITHUB_RUN_ID':'34822996630','GITHUB_RUN_ATTEMPT':'1'}), \
              patch.object(m.secrets,'token_hex',return_value='0123456789abcdef'), \
              patch.object(m.shutil,'which',return_value='/fixture/supabase'), \
              patch.object(m.sys,'argv',['script']), patch.object(m.subprocess,'run',side_effect=fake), \

@@ -5,6 +5,7 @@ No Gridex source SQL, user data, linked project or hosted credentials are used.
 This verifies native initialization and a real CLI-owned migration ledger, not
 acceptance of the historical Gridex chain. Raw CLI/Docker streams stay private.
 """
+import copy
 import hashlib
 import json
 import os
@@ -17,6 +18,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = '2.101.0'
@@ -40,17 +42,81 @@ LEDGER = """SELECT jsonb_build_object(
 
 
 def owner(value):
-    if not re.fullmatch(r'gridex-native-[0-9]+-[0-9]+-[a-f0-9]{16}', value):
+    # The pinned CLI silently truncates longer project IDs to 40 characters.
+    # Such a rename would invalidate both ownership checks and targeted cleanup.
+    if not isinstance(value, str) or not re.fullmatch(r'gridex-sb-[a-f0-9]{12}-[a-f0-9]{16}', value):
         raise ValueError('EXACT_NATIVE_OWNER_REQUIRED')
     return value
 
 
-def config(project, port, shadow):
+def project_name(run_id, attempt, nonce):
+    if (not all(isinstance(v, str) and re.fullmatch(r'[0-9]+', v) for v in (run_id, attempt))
+            or not isinstance(nonce, str) or not re.fullmatch(r'[a-f0-9]{16}', nonce)):
+        raise ValueError('EXACT_NATIVE_OWNER_REQUIRED')
+    identity = hashlib.sha256((run_id+':'+attempt).encode()).hexdigest()[:12]
+    return owner('gridex-sb-'+identity+'-'+nonce)
+
+
+def config(project, port, shadow, template):
+    """Change only local identity, ports and exposure in the CLI-generated file."""
     owner(project)
     if any(type(p) is not int or not 1024 < p < 65536 for p in (port, shadow)) or port == shadow:
         raise ValueError('DISTINCT_LOCAL_PORTS_REQUIRED')
-    return (f'project_id = "{project}"\n[db]\nport = {port}\nshadow_port = {shadow}\nmajor_version = 17\n'
-            '[db.seed]\nenabled = false\n[api]\nenabled = false\n[analytics]\nenabled = false\n')
+    before = tomllib.loads(template)
+    if before.get('remotes') or before.get('db', {}).get('major_version') != 17:
+        raise ValueError('UNLINKED_NATIVE_PG17_TEMPLATE_REQUIRED')
+    replacements = {('', 'project_id'): json.dumps(project), ('db', 'port'): str(port),
+                    ('db', 'shadow_port'): str(shadow), ('db.seed', 'enabled'): 'false',
+                    ('api', 'enabled'): 'false', ('analytics', 'enabled'): 'false'}
+    section = ''; changed = set(); result = []
+    for line in template.splitlines(keepends=True):
+        heading = re.fullmatch(r'\[([a-z_]+(?:\.[a-z_]+)*)\]\s*(?:#.*)?', line.strip())
+        if heading:
+            section = heading[1]
+        assignment = re.match(r'^(\s*)([a-z_]+)\s*=.*?(\r?\n)?$', line)
+        key = (section, assignment[2]) if assignment else None
+        if key in replacements:
+            if key in changed:
+                raise ValueError('EXACT_NATIVE_TEMPLATE_SITE_REQUIRED')
+            changed.add(key)
+            line = assignment[1]+assignment[2]+' = '+replacements[key]+(assignment[3] or '')
+        result.append(line)
+    if changed != set(replacements):
+        raise ValueError('EXACT_NATIVE_TEMPLATE_SITE_REQUIRED')
+    rendered = ''.join(result)
+    expected = copy.deepcopy(before)
+    expected['project_id'] = project
+    expected['db']['port'] = port; expected['db']['shadow_port'] = shadow
+    expected['db']['seed']['enabled'] = False
+    expected['api']['enabled'] = False; expected['analytics']['enabled'] = False
+    if tomllib.loads(rendered) != expected:
+        raise ValueError('UNRELATED_NATIVE_CONFIG_CHANGE')
+    return rendered
+
+
+def command_signals(stdout, stderr):
+    """Emit fixed diagnostic categories, never arbitrary error text or values."""
+    raw = (stdout+b'\n'+stderr).lower()
+    markers = {
+        b'could not find the `supabase-go` binary': 'CLI_COMPANION_BINARY_MISSING',
+        b'cannot connect to the docker daemon': 'DOCKER_UNAVAILABLE',
+        b'failed to parse config': 'NATIVE_CONFIG_REJECTED',
+        b'missing required field in config': 'NATIVE_REQUIRED_CONFIG_MISSING',
+        b'project_id field in config is invalid': 'NATIVE_PROJECT_ID_REWRITTEN',
+        b'unknown flag': 'NATIVE_FLAG_REJECTED',
+        b'failed to pull docker image': 'NATIVE_IMAGE_PULL_FAILED',
+        b'failed to connect to postgres': 'POSTGRES_CONNECTION_FAILED',
+        b'connection refused': 'NATIVE_CONNECTION_REFUSED',
+        b'network not found': 'NATIVE_NETWORK_MISSING',
+        b'is not healthy': 'NATIVE_SERVICE_UNHEALTHY',
+        b'address already in use': 'NATIVE_PORT_CONFLICT',
+        b'initialising schema': 'NATIVE_SCHEMA_INITIALIZATION_REACHED',
+        b'starting database': 'NATIVE_DATABASE_START_REACHED',
+        b'permission denied': 'NATIVE_PERMISSION_DENIED',
+        b'client version': 'DOCKER_API_VERSION_REPORTED',
+        b'sqlstate': 'NATIVE_SQL_ERROR_REPORTED',
+    }
+    return sorted(category for marker, category in markers.items() if marker in raw)
 
 
 def check_container(data, project, network):
@@ -79,7 +145,7 @@ def run():
     if len(sys.argv) != 1 or os.environ.get('GITHUB_ACTIONS') != 'true':
         raise ValueError('DEDICATED_NATIVE_CI_REQUIRED')
     run_id, attempt = os.environ.get('GITHUB_RUN_ID',''), os.environ.get('GITHUB_RUN_ATTEMPT','')
-    project = owner(f'gridex-native-{run_id}-{attempt}-{secrets.token_hex(8)}')
+    project = project_name(run_id, attempt, secrets.token_hex(8))
     cli = shutil.which('supabase')
     if cli is None:
         raise ValueError('PINNED_NATIVE_CLI_REQUIRED')
@@ -102,12 +168,7 @@ def run():
                     os.chmod(path,0o600); stream.write(raw)
             if process.returncode and not allow_failure:
                 report['lastExitCode'] = process.returncode
-                for marker, category in ((b'Could not find the `supabase-go` binary', 'CLI_COMPANION_BINARY_MISSING'),
-                                         (b'Cannot connect to the Docker daemon', 'DOCKER_UNAVAILABLE'),
-                                         (b'failed to parse config', 'NATIVE_CONFIG_REJECTED'),
-                                         (b'failed to pull docker image', 'NATIVE_IMAGE_PULL_FAILED')):
-                    if marker in process.stderr:
-                        report['commandFailureCategory'] = category
+                report['commandSignals'] = command_signals(process.stdout, process.stderr)
                 raise ValueError('NATIVE_COMMAND_FAILED')
             return process
         def native(*args, **kwargs):
@@ -127,7 +188,8 @@ def run():
             # Keep the two reservations distinct while choosing ports.
             with socket.socket() as a, socket.socket() as b:
                 a.bind(('127.0.0.1',0)); b.bind(('127.0.0.1',0))
-                text = config(project,a.getsockname()[1],b.getsockname()[1])
+                text = config(project,a.getsockname()[1],b.getsockname()[1],
+                              (work/'supabase/config.toml').read_text())
             path = work/'supabase/config.toml'; path.write_text(text); path.chmod(0o600)
             migrations = work/'supabase/migrations'; migrations.mkdir(exist_ok=True)
             if list(migrations.iterdir()) or (work/'supabase/.temp/project-ref').exists():
