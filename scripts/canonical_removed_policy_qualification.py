@@ -295,8 +295,23 @@ def expected_policies(retained):
     return expected
 
 
-def require_policy_hashes(actual,expected):
-    if actual!=expected:raise ValueError('REMOVED_POLICY_EXACT_POLICY_SET_REQUIRED')
+def require_policy_hashes(actual,expected,*,row_count=None):
+    if actual!=expected or (row_count is not None and (type(row_count) is not int or row_count!=len(expected))):
+        # Positions are one-based in the sorted, retained expected inventory.
+        # Unknown identities and expressions never leave the owned target.
+        keys=sorted(expected)
+        missing=[i for i,key in enumerate(keys,1) if key not in actual]
+        changed=[]
+        for i,key in enumerate(keys,1):
+            if key in actual and actual[key]!=expected[key]:
+                digest=actual[key]
+                changed.append(dict(position=i,actualSha256=digest if type(digest) is str
+                                    and re.fullmatch('[a-f0-9]{64}',digest) else None))
+        print(json.dumps(dict(stage='removed_policy_set_difference',expectedCount=len(expected),
+            actualCount=len(actual),rowCount=row_count if type(row_count) is int else None,
+            missingCount=len(missing),extraCount=len(actual.keys()-expected.keys()),changedCount=len(changed),
+            missingPositions=missing,changed=changed,expectedSetSha256=sha(sorted(expected.items()))),sort_keys=True),flush=True)
+        raise ValueError('REMOVED_POLICY_EXACT_POLICY_SET_REQUIRED')
 
 
 def complete(progress,native):
@@ -349,8 +364,7 @@ def validate_metadata(metadata,retained):
         raise ValueError('REMOVED_POLICY_METADATA_REQUIRED')
     rows=metadata['policies']
     actual={(r['nspname'],r['relname'],r['polname']):sha(r) for r in rows}
-    if len(rows)!=267:raise ValueError('REMOVED_POLICY_EXACT_POLICY_SET_REQUIRED')
-    require_policy_hashes(actual,expected_policies(retained))
+    require_policy_hashes(actual,expected_policies(retained),row_count=len(rows))
     expected_relations=[dict(name=t,kind='r',rls=True,force=False,owner='postgres') for t in TABLES]
     if metadata['relations']!=expected_relations:raise ValueError('REMOVED_POLICY_RELATION_SHAPE_REQUIRED')
     principals={p['rolname']:p for p in metadata['principals']}

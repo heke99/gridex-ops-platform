@@ -51,3 +51,15 @@ The diagnostic patch now wraps the unchanged qualification execution with a fixe
 ## Independent review of parent frontier fixture correction
 
 ACCEPT: `canonical-timestamp-frontier-selftest.py` changes current inventory 605→607, timestamp inputs 518→520 and explicitly requires six forwards. This matches the existing `canonical_forward_sources.py` immutable inventory partition (601 historical plus six exact forwards) and timestamp partition (514 historical plus six exact forwards). Historical source length/hash checks, disjointness and ordered partition equality remain intact; this changes a stale fixture expectation, not replay admission or schema acceptance. Fresh `python3 -B scripts/canonical-timestamp-frontier-selftest.py`: PASS, 16 tests.
+
+## Actual diagnostic rerun at 18494974
+
+Run 34998326163, job 104480142628, on published head 1849497413325385b080e33f2bbfffd4073f488f completes 144 foundations, 514 timestamps, all six forwards/repeats and real policy actor qualification. At 2026-09-15 17:03:29 UTC, the metadata SQL succeeds and the new diagnostic reports `REMOVED_POLICY_EXACT_POLICY_SET_REQUIRED`. The exact policy inventory/hash admission fails before relation, principal, ACL, helper and live formula validation. Privacy, disposal and workflow cleanup pass. Independent reference remains restored/disposed with the same hashes; report is still BLOCKED with empty counts and schemaAccepted=false.
+
+Artifact 10409225320, 630 bytes; job log advertises ZIP SHA256 d41b680a65e7239fe320ab185ba03dc27b8bc293f1973d09944b9fe51c8c2d41. This is log evidence, not a locally hash-verified archive.
+
+Job: https://github.com/heke99/gridex-ops-platform/actions/runs/34998326163/job/104480142628
+
+The exact changed/missing/extra policy remains UNVERIFIED: this run narrows the invariant but does not expose actual policy rows or hashes. The 267-member expected inventory and its source-pinned hashes were not changed. There is insufficient evidence to distinguish a missing/extra policy from an expression/hash serialization mismatch.
+
+The next diagnostic-only patch records finite expected/actual/row/missing/extra/changed counts, one-based positions in the sorted retained expected inventory, validated actual SHA256 values for changed positions, and the expected-set SHA256. It emits no raw identities, expressions or unknown names. Expected-set SHA256 is d22964bce2efc5666f574644ae5e3a1fe4d8ec268fcf523f786fa7c75a478217. The original exact-map and row-count rejection remains, including duplicate rows. New regression failed before implementation on missing diagnostic arguments, then qualification tests passed (9 tests). Formula tests passed (9 tests). This patch needs another actual owned run; it is not a schema repair or acceptance.

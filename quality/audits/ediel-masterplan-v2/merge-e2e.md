@@ -46,3 +46,21 @@ Confirmed release blocker; no independent harness defect found in the inspected 
 No production source, harness, workflow, schema, type, or manifest changes made. No DB writes or cleanup required. Shared memory updates belong to the coordinating workstream.
 
 Sources: [full E2E run](https://github.com/heke99/gridex-ops-platform/actions/runs/34996128566), [smoke job](https://github.com/heke99/gridex-ops-platform/actions/runs/34996128566/job/104473018400). Verify job logs and step summaries were fetched directly by job ID `104473224018`.
+
+## Subsequent tenant integrity repair — shared screened message lookup
+
+The coordinating agent inspected [tenant integrity run 34998326037, job 104480140557](https://github.com/heke99/gridex-ops-platform/actions/runs/34998326037/job/104480140557): direct service-role call sites increased to 2403 against the unchanged 2402 ceiling after DSN screening was added. Inspection found `ensureDiagnosticEdielMessagesForInboundEmails` screened IDs, called the public list function (screening the same IDs again), then queried existing messages a second time to obtain inbound IDs.
+
+The private shared query now selects `id,inbound_email_message_id` once in descending `created_at` order. Both public entrypoints independently screen their original IDs before calling it. Diagnostic creation derives existing message IDs and represented inbound IDs from the same result, then processes only missing screened IDs. Existing-only diagnostic lookup drops from four database requests to two. DSN quarantine, raw/body MIME screening, missing-row exclusion, errors, ordering and tenant attribution are preserved. No ratchet baseline, tenant identifier, grants, query scope or generated manifest changes were made.
+
+The regression test was observed failing before the source change because diagnostic lookup issued the two redundant reads. Afterward:
+
+- `npx vitest run __tests__/ediel-dsn-classification.test.ts`: **20 PASS**.
+- `npm run tenant:service-role-ratchet`: **PASS, 2402 call sites / 453 files**, unchanged baseline.
+- `npm run typecheck`: **PASS**.
+- `npm run typecheck:tests`: **PASS**.
+- `git diff --check`: **PASS**.
+
+Tests cover both entrypoints, DSN/raw/body exclusion, duplicate/empty/missing IDs, one screening and one ordered lookup, null message IDs, preserved existing order, creation only for missing safe mail with retained company attribution, and propagation of both screening and message-query errors. Existing old-parse DSN quarantine and processor tests remain passing. The query fixture honors selected fields so omitting inbound ownership IDs fails rather than silently returning unavailable columns.
+
+Scope remains bounded application query sharing; live database behavior and final-head hosted gates require the coordinating rerun. The earlier generated-types blocker is not resolved by this repair.

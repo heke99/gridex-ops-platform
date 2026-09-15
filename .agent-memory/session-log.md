@@ -258,3 +258,7 @@ preflight3, historical166 offline tests PASS. Full native/schema/types remain OP
 ## 2026-09-15 — main merge prerequisite diagnosis
 
 User authorized whole merge before next Ediel phase. Fresh native34989328503/job104450130810 reaches144+514+6 and ledger verification, then final tenant invariant fails. Schema34989327838 fails removed-policy validation before comparison. E2E and verify fail genuine generated-type tail check; no manifest refresh. Frontier stale exact counts corrected;16 frontier and50 adjacent tests pass. Safe diagnostics under review; main remains unchanged. Active status and next action: current-state.md.
+
+Published1849497413325385b080e33f2bbfffd4073f488f, reviewed treebd3bab442377206b7ecb1a34664c1383632f7c3c equality verified. Non-forced refs retain complete ancestry. GitHub confirms PR311 merged into PR310 branch; PR310 remains unmerged to main. Actual schema34998326163/frontier34998326022/OPS34998326584 started; no acceptance yet.
+
+Follow-up DSN lookup sharing independently reviewed; local service ratchet2402 unchanged PASS, DSN20 PASS, app/tests TypeScript PASS. Full Node22 Vitest218 files/2134 tests PASS. Schema exact267 mismatch has further closed counts/ordinal/hash diagnostics only; no acceptance or manifest change.

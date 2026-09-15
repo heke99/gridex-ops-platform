@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
 import { splitMimeParts } from '@/lib/inbound-mail/edielMailboxPoller.part-1'
 import { processInboundEmailMessage } from '@/lib/inbound-mail/edielInboundProcessor'
-import { ensureDiagnosticEdielMessagesForInboundEmails } from '@/lib/inbound-mail/edielMailboxPoller.part-2'
+import { ensureDiagnosticEdielMessagesForInboundEmails, listEdielMessageIdsForInboundEmails } from '@/lib/inbound-mail/edielMailboxPoller.part-2'
 
 const mocks = vi.hoisted(() => ({ from: vi.fn(), update: vi.fn(), task: vi.fn(), tenant: vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: mocks.from } }))
@@ -81,6 +81,98 @@ describe('DSN classification before EDIFACT extraction', () => {
     expect(await ensureDiagnosticEdielMessagesForInboundEmails(['mail1'])).toEqual([])
     expect(insert).not.toHaveBeenCalled()
   })
+  it.each([listEdielMessageIdsForInboundEmails, ensureDiagnosticEdielMessagesForInboundEmails])(
+    'filters DSNs once and reads existing business messages once in newest-first order (%#)', async (lookup) => {
+      const calls: Array<{ table: string; ids: string[]; order?: unknown }> = []
+      mocks.from.mockImplementation((table: string) => {
+        if (!['inbound_email_messages', 'ediel_messages'].includes(table)) throw new Error(`Unexpected query: ${table}`)
+        const call: typeof calls[number] = { table, ids: [] }
+        calls.push(call)
+        let columns = ''
+        const query = {
+          select: vi.fn((selected: string) => { columns = selected; return query }),
+          in: vi.fn((_column: string, ids: string[]) => { call.ids = ids; return query }),
+          order: vi.fn((column: string, options: unknown) => { call.order = [column, options]; return query }),
+          then: (resolve: (value: unknown) => unknown) => {
+            const rows = table === 'inbound_email_messages' ? [
+              { id: 'safe', raw_email: edi },
+              { id: 'dsn', match_status: 'dsn_transport_review' },
+              { id: 'raw-dsn', raw_email: report() },
+              { id: 'body-dsn', body_text: report() },
+            ] : [
+              { id: 'newest', inbound_email_message_id: 'safe' },
+              { id: 'older', inbound_email_message_id: 'safe' },
+              { id: null, inbound_email_message_id: 'safe' },
+            ]
+            const data = rows.map((row) => Object.fromEntries(Object.entries(row).filter(([key]) => columns.split(',').includes(key))))
+            return Promise.resolve({ data, error: null }).then(resolve)
+          },
+        }
+        return query
+      })
+      expect(await lookup(['safe', 'dsn', 'raw-dsn', 'body-dsn', 'missing', 'safe', ''])).toEqual(['newest', 'older'])
+      expect(calls).toEqual([
+        { table: 'inbound_email_messages', ids: ['safe', 'dsn', 'raw-dsn', 'body-dsn', 'missing'] },
+        { table: 'ediel_messages', ids: ['safe'], order: ['created_at', { ascending: false }] },
+      ])
+    },
+  )
+  it.each([listEdielMessageIdsForInboundEmails, ensureDiagnosticEdielMessagesForInboundEmails])(
+    'fails closed before business lookup when DSN screening fails (%#)', async (lookup) => {
+      const failure = new Error('screening unavailable')
+      mocks.from.mockReturnValue({ select: vi.fn().mockReturnThis(), in: vi.fn().mockResolvedValue({ data: null, error: failure }) })
+      await expect(lookup(['mail1'])).rejects.toBe(failure)
+      expect(mocks.from).toHaveBeenCalledTimes(1)
+      expect(mocks.from).toHaveBeenCalledWith('inbound_email_messages')
+    },
+  )
+  it('creates diagnostics only for missing screened mail while retaining existing message order', async () => {
+    const inserted: Array<Record<string, unknown>> = []
+    const selections: Array<[string, string[]]> = []
+    mocks.from.mockImplementation((table: string) => {
+      let values: string[] = []
+      let inserting = false
+      const query = {
+        select: vi.fn().mockReturnThis(),
+        in: vi.fn((_column: string, ids: string[]) => { values = ids; selections.push([table, ids]); return query }),
+        order: vi.fn().mockReturnThis(),
+        insert: vi.fn((rows: Array<Record<string, unknown>>) => { inserting = true; inserted.push(...rows); return query }),
+        then: (resolve: (value: unknown) => unknown) => {
+          let data: Array<Record<string, unknown>>
+          if (table === 'inbound_email_messages') data = [{ id: 'existing', raw_email: edi }, { id: 'new', raw_email: edi }, { id: 'dsn', raw_email: report() }]
+          else if (table === 'inbound_ediel_parse_results') data = [{ id: 'parse-new', inbound_email_message_id: 'new', company_id: 'company-a', raw_payload: edi, message_family: 'PRODAT' }].filter((row) => values.includes(row.inbound_email_message_id))
+          else if (table === 'ediel_messages') data = inserting ? [{ id: 'created' }] : [
+            { id: 'newest-existing', inbound_email_message_id: 'existing' },
+            { id: 'older-existing', inbound_email_message_id: 'existing' },
+          ]
+          else throw new Error(`Unexpected query: ${table}`)
+          return Promise.resolve({ data, error: null }).then(resolve)
+        },
+      }
+      return query
+    })
+    expect(await ensureDiagnosticEdielMessagesForInboundEmails(['existing', 'new', 'dsn'])).toEqual(['newest-existing', 'older-existing', 'created'])
+    expect(selections).toEqual([
+      ['inbound_email_messages', ['existing', 'new', 'dsn']],
+      ['ediel_messages', ['existing', 'new']],
+      ['inbound_ediel_parse_results', ['new']],
+    ])
+    expect(inserted).toHaveLength(1)
+    expect(inserted[0]).toMatchObject({ inbound_email_message_id: 'new', company_id: 'company-a', raw_payload: edi })
+  })
+  it.each([listEdielMessageIdsForInboundEmails, ensureDiagnosticEdielMessagesForInboundEmails])(
+    'propagates existing-message lookup errors without attempting diagnostic creation (%#)', async (lookup) => {
+      const failure = new Error('message lookup unavailable')
+      mocks.from.mockImplementation((table: string) => ({
+        select: vi.fn().mockReturnThis(), in: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(),
+        then: (resolve: (value: unknown) => unknown) => Promise.resolve(table === 'inbound_email_messages'
+          ? { data: [{ id: 'safe', raw_email: edi }], error: null }
+          : { data: null, error: failure }).then(resolve),
+      }))
+      await expect(lookup(['safe'])).rejects.toBe(failure)
+      expect(mocks.from.mock.calls).toEqual([['inbound_email_messages'], ['ediel_messages']])
+    },
+  )
   it('routes stored DSNs to transport review before attachment loading or tenant/business processing', async () => {
     const query = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'mail1', company_id: null, raw_email: report(), raw_edifact_payload: edi }, error: null }) }
     mocks.from.mockImplementation((table) => {

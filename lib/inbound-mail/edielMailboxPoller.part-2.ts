@@ -680,20 +680,33 @@ async function filterNonDsnInboundEmailIds(ids: string[]): Promise<string[]> {
   return ids.filter((id) => safe.has(id));
 }
 
-export async function listEdielMessageIdsForInboundEmails(
-  inboundEmailMessageIds: string[],
-): Promise<string[]> {
-  const ids = await filterNonDsnInboundEmailIds(Array.from(new Set(inboundEmailMessageIds.filter(Boolean))));
+type ExistingInboundEdielMessage = {
+  id?: string | null;
+  inbound_email_message_id?: string | null;
+};
+
+// Internal callers must screen these IDs through filterNonDsnInboundEmailIds.
+async function listEdielMessagesForNonDsnInboundEmails(
+  ids: string[],
+): Promise<ExistingInboundEdielMessage[]> {
   if (ids.length === 0) return [];
 
   const { data, error } = await supabaseService
     .from("ediel_messages")
-    .select("id")
+    .select("id,inbound_email_message_id")
     .in("inbound_email_message_id", ids)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return ((data ?? []) as Array<{ id?: string | null }>)
+  return (data ?? []) as ExistingInboundEdielMessage[];
+}
+
+export async function listEdielMessageIdsForInboundEmails(
+  inboundEmailMessageIds: string[],
+): Promise<string[]> {
+  const ids = await filterNonDsnInboundEmailIds(Array.from(new Set(inboundEmailMessageIds.filter(Boolean))));
+  const messages = await listEdielMessagesForNonDsnInboundEmails(ids);
+  return messages
     .map((row) => row.id)
     .filter((id): id is string => Boolean(id));
 }
@@ -723,19 +736,12 @@ export async function ensureDiagnosticEdielMessagesForInboundEmails(
   const ids = await filterNonDsnInboundEmailIds(Array.from(new Set(inboundEmailMessageIds.filter(Boolean))));
   if (ids.length === 0) return [];
 
-  const existingIds = await listEdielMessageIdsForInboundEmails(ids);
-  const { data: existingMessages, error: existingError } = await supabaseService
-    .from("ediel_messages")
-    .select("inbound_email_message_id")
-    .in("inbound_email_message_id", ids);
-
-  if (existingError) throw existingError;
+  const existingMessages = await listEdielMessagesForNonDsnInboundEmails(ids);
+  const existingIds = existingMessages
+    .map((row) => row.id)
+    .filter((id): id is string => Boolean(id));
   const existingInboundIds = new Set(
-    (
-      (existingMessages ?? []) as Array<{
-        inbound_email_message_id?: string | null;
-      }>
-    )
+    existingMessages
       .map((row) => row.inbound_email_message_id)
       .filter((value): value is string => Boolean(value)),
   );

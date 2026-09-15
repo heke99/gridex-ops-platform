@@ -51,6 +51,29 @@ def metadata_fixture(q,retained):
 
 
 class RemovedPolicyQualificationTests(unittest.TestCase):
+    def test_policy_difference_diagnostic_exports_only_counts_ordinals_and_hashes(self):
+        q=load();expected={('public','known_a','policy'):'a'*64,('public','known_b','policy'):'b'*64}
+        actual={('public','known_a','policy'):'c'*64,('private catalog','private row','private policy'):'private SQL'}
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output),self.assertRaisesRegex(ValueError,'EXACT_POLICY_SET_REQUIRED'):
+            q.require_policy_hashes(actual,expected,row_count=3)
+        self.assertEqual(json.loads(output.getvalue()),dict(stage='removed_policy_set_difference',
+            expectedCount=2,actualCount=2,rowCount=3,missingCount=1,extraCount=1,changedCount=1,
+            missingPositions=[2],changed=[dict(position=1,actualSha256='c'*64)],
+            expectedSetSha256=q.sha(sorted(expected.items()))))
+        self.assertNotIn('private',output.getvalue());self.assertNotIn('known',output.getvalue())
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output),self.assertRaisesRegex(ValueError,'EXACT_POLICY_SET_REQUIRED'):
+            q.require_policy_hashes({**expected,('public','known_a','policy'):'private SQL'},expected)
+        self.assertEqual(json.loads(output.getvalue())['changed'],[dict(position=1,actualSha256=None)])
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output),self.assertRaisesRegex(ValueError,'EXACT_POLICY_SET_REQUIRED'):
+            q.require_policy_hashes(expected,expected,row_count=3)
+        self.assertEqual(json.loads(output.getvalue())['rowCount'],3)
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output):q.require_policy_hashes(expected,expected,row_count=2)
+        self.assertEqual(output.getvalue(),'')
+
     def test_execution_failure_diagnostics_are_closed_and_preserve_errors(self):
         q=load()
         cases=[
