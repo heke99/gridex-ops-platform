@@ -10,8 +10,8 @@ whole-PR merge. No new approval is needed.
 8d5 auth-email-source-effects104414879377 SUCCESS after the lexical fixture fix;
 quality-release-gates104414879855 SUCCESS. Verify remains gated by real types.
 
-Publication base8d5b3e46d51ad9aae01aca903a72289294787889, exact tree
-5d45cd8faf7756b74e08557a18b384380e8ca1c9, fetched with exact equality verified.
+Publication base7f301863f79c6aed4f80eae238867685669b865c, exact tree
+6dda93f85900febb7ae331bdeef7b521d57f63c2, fetched with exact equality verified.
 Preserve all ancestry and original601 migration hashes.
 
 Actual824 ordinary native34974499849/job104398696940 now proves144+231;T232
@@ -43,6 +43,22 @@ Both callers now supply the source-valid action;15 actual-module mock regression
 pass and are wired intoOPSverify. Preserve the approved historicalauth SQL.
 A separately identified ediel_send_locks direct-write capability conflicts with
 canonical actor/readiness control; a bounded source-based candidate is pending.
+
+Actual7f3 short native34981240591/job104421809044 now narrows T232 to
+LIVE_SYNC_ACL_ANON: expected42501, nonzero process, no parsed primarySQLSTATE.
+Fixture setup and behavior matrix completed; finalclone disposalfalse, enclosing
+native/private cleanuptrue. Artifact10401737445 ZIP metadatadigest
+b0f42e5012f3445a986a132fef6fdba7faa1ce5922a908148669329852a4906a.
+Do not infer an ACL defect; closed client-format/exit/cleanup diagnostics follow.
+
+Added relation/column audit now source-disposes62relations and937columns; all937
+columnrowhashes and31ordinaryrelationrowhashes independently checked.31fullview
+query witnesses remain a separate actualowned-runtime gate.59removedpolicies
+have source-bound dispositions, with supplemental effectiveauthority checks being
+prepared; the confirmed send-lock write correction is staged foractualPG17+CLI.
+The approved one-tablecandidate revokes7authwrite-capabilities, retainsSELECT and
+legitimate platform-gated SECURITYDEFINER restore RPCs. No sixthsourcepromoted.
+FutureOPS PR versions cancel supersededOPS versions; mainruns are notcancelled.
 
 ## Earlier evidence (superseded boundaries remain historical)
 

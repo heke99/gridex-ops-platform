@@ -41,6 +41,55 @@ def sql_failure_diagnostic(stage, expect, errors, returncode):
                 exit='ZERO' if returncode==0 else 'NONZERO')
 
 
+def sql_transport_diagnostic(result):
+    """Finite response-shape evidence, never raw streams or server identities.
+
+    Markers describe observed bytes only. They cannot establish the cause or
+    substitute for the exact primary SQLSTATE and exit assertion in sql().
+    """
+    def size(raw):
+        return 'EMPTY' if not raw else 'LE_256' if len(raw)<=256 else 'LE_4096' if len(raw)<=4096 else 'GT_4096'
+    exits = {0:'SUCCESS', 1:'PSQL_OR_CLIENT_ERROR', 2:'PSQL_CONNECTION_ERROR',
+             3:'PSQL_SCRIPT_ERROR', 125:'DOCKER_RUN_ERROR', 126:'EXEC_NOT_EXECUTABLE',
+             127:'EXEC_NOT_FOUND', 137:'EXIT_137', 143:'EXIT_143',
+             -9:'SIGNAL_9', -15:'SIGNAL_15'}
+    markers = {
+        b'server closed the connection unexpectedly':'SERVER_CONNECTION_CLOSED',
+        b'connection refused':'CONNECTION_REFUSED',
+        b'no such file or directory':'FILE_OR_SOCKET_MISSING',
+        b'the database system is starting up':'DATABASE_STARTING',
+        b'the database system is shutting down':'DATABASE_SHUTTING_DOWN',
+        b'the database system is in recovery mode':'DATABASE_RECOVERY',
+        b'password authentication failed':'AUTHENTICATION_FAILED',
+        b'peer authentication failed':'PEER_AUTHENTICATION_FAILED',
+        b'no pg_hba.conf entry':'HBA_REJECTED',
+        b'terminating connection due to administrator command':'CONNECTION_TERMINATED',
+        b'oci runtime exec failed':'OCI_EXEC_FAILED',
+        b'is not running':'CONTAINER_NOT_RUNNING',
+        b'no such container':'CONTAINER_MISSING',
+        b'cannot connect to the docker daemon':'DOCKER_UNAVAILABLE',
+    }
+    raw=(result.stdout+b'\n'+result.stderr).lower()
+    signals={label for needle,label in markers.items() if needle in raw}
+    # Exact line shapes distinguish missing verbosity from client diagnostics.
+    prefixes = {
+        'VERBOSE_PRIMARY': rb'^(?:psql:[^\r\n]*?:\d+:\s*)?(?:ERROR|FATAL|PANIC):\s+[A-Z0-9]{5}:',
+        'UNVERBOSE_PRIMARY': rb'^(?:psql:[^\r\n]*?:\d+:\s*)?(?:ERROR|FATAL|PANIC):',
+        'PSQL_CLIENT': rb'^psql: error:',
+        'DOCKER_CLIENT': rb'^(?:docker:|Error response from daemon:|OCI runtime exec failed:)',
+    }
+    for line in result.stderr.splitlines()+result.stdout.splitlines():
+        verbose = bool(re.search(prefixes['VERBOSE_PRIMARY'],line))
+        for label, pattern in prefixes.items():
+            if label=='UNVERBOSE_PRIMARY' and verbose:
+                continue
+            if re.search(pattern,line):
+                signals.add(label)
+    return dict(exitKind=exits.get(result.returncode,'OTHER'),
+                stdoutSize=size(result.stdout),stderrSize=size(result.stderr),
+                signals=sorted(signals) or ['OTHER'])
+
+
 def clone_create_failure(stderr, source):
     """Classify one utility primary error; details and names remain private."""
     primary = [line for line in stderr.splitlines()
@@ -93,6 +142,7 @@ class NativeTimestampTarget:
         self.active = True
         self._owned = {}
         self._last_sql_failure = None
+        self._recent_sql_failure = None
         self.assert_native_owned()
 
     def _admit(self):
@@ -148,8 +198,11 @@ class NativeTimestampTarget:
                             result.stderr, re.M)
         if ((expect == '00000' and (result.returncode != 0 or errors))
                 or (expect != '00000' and (result.returncode == 0 or errors != [expect.encode()]))):
+            diagnostic = sql_failure_diagnostic(stage,expect,errors,result.returncode)
+            diagnostic['transport'] = sql_transport_diagnostic(result)
+            self._recent_sql_failure = diagnostic
             if self._last_sql_failure is None:
-                self._last_sql_failure = sql_failure_diagnostic(stage,expect,errors,result.returncode)
+                self._last_sql_failure = diagnostic
             raise ValueError('NATIVE_TIMESTAMP_SQL_RESULT')
         return result.stdout.decode()
 

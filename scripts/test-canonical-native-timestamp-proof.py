@@ -267,7 +267,7 @@ class BoundaryTests(unittest.TestCase):
             self.transport.result = subprocess.CompletedProcess([], code, b'private stdout', stderr)
             with self.assertRaisesRegex(ValueError, '^NATIVE_TIMESTAMP_SQL_RESULT$'):
                 self.target.sql('postgres','SELECT private_data','live_sync_behavior_fixture')
-            self.assertEqual(self.target._last_sql_failure, dict(
+            self.assertEqual({k:v for k,v in self.target._last_sql_failure.items() if k!='transport'}, dict(
                 stage='LIVE_SYNC_BEHAVIOR_FIXTURE',expected='SUCCESS',actual=state,
                 primaryErrors=count,exit=exit_category))
         self.transport.result = subprocess.CompletedProcess([],3,b'',b'ERROR: 42601: private\n')
@@ -275,6 +275,24 @@ class BoundaryTests(unittest.TestCase):
         with self.assertRaises(ValueError): self.target.sql('postgres','private','arbitrary_private_stage',expect='QQQQQ')
         self.assertEqual(self.target._last_sql_failure['stage'],'OTHER')
         self.assertEqual(self.target._last_sql_failure['expected'],'OTHER')
+
+    def test_sql_transport_diagnostics_are_finite_and_never_accept_errors(self):
+        for code, stderr, stdout, exit_kind, signal in (
+            (3, b'psql:<stdin>:1: ERROR: permission denied for private_secret\n', b'', 'PSQL_SCRIPT_ERROR', 'UNVERBOSE_PRIMARY'),
+            (2, b'psql: error: connection to private_socket failed: server closed the connection unexpectedly\n', b'', 'PSQL_CONNECTION_ERROR', 'SERVER_CONNECTION_CLOSED'),
+            (137, b'', b'OCI runtime exec failed: private_path', 'EXIT_137', 'OCI_EXEC_FAILED'),
+            (1, b'Error response from daemon: container private_id is not running\n', b'', 'PSQL_OR_CLIENT_ERROR', 'CONTAINER_NOT_RUNNING'),
+            (255, b'private_secret', b'private_secret', 'OTHER', 'OTHER'),
+        ):
+            self.target._last_sql_failure = None
+            self.transport.result = subprocess.CompletedProcess([], code, stdout, stderr)
+            with self.assertRaisesRegex(ValueError, '^NATIVE_TIMESTAMP_SQL_RESULT$'):
+                self.target.sql('postgres', 'private_sql', 'live_sync_acl_anon', expect='42501')
+            diagnostic = self.target._last_sql_failure['transport']
+            self.assertEqual(diagnostic['exitKind'], exit_kind)
+            self.assertIn(signal, diagnostic['signals'])
+            self.assertNotIn('private', json.dumps(diagnostic))
+            self.assertEqual(self.target._last_sql_failure['actual'], 'NONE')
 
     def test_live_sync_failure_attaches_only_adapter_diagnostic(self):
         progress={'sessionReconstruction':{'nativeBoundaryVerified':False}}

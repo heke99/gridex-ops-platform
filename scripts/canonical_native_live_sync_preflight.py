@@ -57,6 +57,25 @@ def ledger(target):
     return entries
 
 
+def cleanup_failure(exc,target):
+    """Keep cleanup failure distinct from the first fixture failure, and private."""
+    import subprocess
+    reasons={
+        'NATIVE_TIMESTAMP_SQL_RESULT':'SQL_RESULT',
+        'NATIVE_TIMESTAMP_CLONE_OWNERSHIP':'OWNERSHIP_CHANGED',
+        'NATIVE_TIMESTAMP_PREEXISTING_CLONE':'PREEXISTING_CLONE',
+        'NATIVE_TIMESTAMP_CLONE_DROP_OTHER':'DROP_FAILED',
+        'NATIVE_LIVE_SYNC_PREFLIGHT_CLONE_DISPOSAL_REQUIRED':'CLONES_REMAIN',
+    }
+    reason=('TIMEOUT' if isinstance(exc,subprocess.TimeoutExpired) else
+            reasons.get(str(exc),'OTHER') if type(exc) is ValueError else 'OTHER')
+    report=dict(reason=reason)
+    recent=getattr(target,'_recent_sql_failure',None)
+    if reason=='SQL_RESULT' and isinstance(recent,dict):
+        report['nativeSqlFailure']=dict(recent)
+    return report
+
+
 def verify(command,project,parent):
     if 'nativeLiveSyncBehavior' in parent:
         raise ValueError('NATIVE_LIVE_SYNC_PREFLIGHT_ONCE_REQUIRED')
@@ -83,10 +102,15 @@ def verify(command,project,parent):
             report['nativeSqlFailure']=dict(target._last_sql_failure)
         raise
     finally:
-        target.close()
-        if target._owned:
-            raise ValueError('NATIVE_LIVE_SYNC_PREFLIGHT_CLONE_DISPOSAL_REQUIRED')
-        report['clonesDisposed']=True
+        target._recent_sql_failure=None
+        try:
+            target.close()
+            if target._owned:
+                raise ValueError('NATIVE_LIVE_SYNC_PREFLIGHT_CLONE_DISPOSAL_REQUIRED')
+            report['clonesDisposed']=True
+        except Exception as exc:
+            report['cloneCleanupFailure']=cleanup_failure(exc,target)
+            raise
     if preserved:
         report.update(verified=True,unchangedBehaviorFixtureExecuted=True,
                       catalogRowsProviderAndLedgerPreserved=True)

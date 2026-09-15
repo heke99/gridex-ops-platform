@@ -52,6 +52,31 @@ class Tests(unittest.TestCase):
                 target.close.assert_called_once()
                 if defect=='behavior':self.assertEqual(parent['nativeLiveSyncBehavior']['nativeSqlFailure'],target._last_sql_failure)
 
+    def test_cleanup_failure_has_separate_closed_diagnostic(self):
+        target=self.fixture();parent={}
+        primary=dict(stage='LIVE_SYNC_ACL_ANON',actual='NONE')
+        secondary=dict(stage='TIMESTAMP_CLONE_IDENTITY',actual='NONE')
+        def behavior(*args):
+            target._last_sql_failure=primary
+            raise ValueError('NATIVE_TIMESTAMP_SQL_RESULT')
+        def close():
+            target._recent_sql_failure=secondary
+            raise ValueError('NATIVE_TIMESTAMP_SQL_RESULT')
+        target.close.side_effect=close
+        live=SimpleNamespace(fix=m.proof.load_live_sync().fix,behavior=behavior)
+        with patch.object(m.proof,'NativeTimestampTarget',return_value=target), \
+             patch.object(m.proof,'load_live_sync',return_value=live), \
+             patch.object(m,'ledger',return_value=['actual']), \
+             patch.object(m.timestamp,'native_snapshot',return_value='before'):
+            with self.assertRaisesRegex(ValueError,'NATIVE_TIMESTAMP_SQL_RESULT'):
+                m.verify(Mock(),'owned',parent)
+        report=parent['nativeLiveSyncBehavior']
+        self.assertEqual(report['nativeSqlFailure'],primary)
+        self.assertEqual(report['cloneCleanupFailure'],dict(reason='SQL_RESULT',nativeSqlFailure=secondary))
+        self.assertFalse(report['clonesDisposed'])
+        self.assertFalse(report['verified'])
+        self.assertEqual(m.cleanup_failure(ValueError('private failure'),target)['reason'],'OTHER')
+
     def test_real_single_synthetic_ledger_required(self):
         target=Mock()
         for rows in ([],[dict(version='20260915000000',name='other',statements=['SELECT 1'])]):

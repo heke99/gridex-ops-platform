@@ -1,0 +1,184 @@
+# PR310 added relation and column dispositions — 2026-09-15
+
+Status: preserve the source-defined functional additions described here. One confirmed active-writer incompatibility is corrected in application code: both auth email writers now supply the required source-valid `action`. This is a source/caller disposition, not native execution, actor isolation, schema equality or generated-type acceptance. Existing security findings and their separate qualifications remain required.
+
+## Exact evidence and reconstruction
+
+Scope is all 62 added relations (31 ordinary tables and 31 views) and all 937 added columns (635 on those new relations and 302 on 47 existing relations) in the 1296-record coverage register. The immutable reference is `supabase/schema.sql`, SHA256 `b46b90d7ff066d71964c9157044ac70b31b47cab114cfcbce5d270751012dd30`. The coverage register is a review inventory, not an acceptance allowlist.
+
+The independently checked artifact is `10399581944`, run `34975955635`, job `104403606680`, source `9f1ba7ae`. ZIP SHA256 `0ee862d06ee0e4f33208aa33ceefe8ce5afa8c5e8ca1c9cd186f006c7364f2af`; `full-schema-reference-diff.json` SHA256 `aaee3685f99130f0d451ba6fe4829134873882ecf0053a38505a4b1005bf9772`. It records successful portable execution of 144 foundations, 514 historical timestamps and four forward sources; it does not record a successful native chain or accepted schema. The later fifth source is outside this artifact and is not silently included in this evidence.
+
+`PR310_ADDED_RELATION_COLUMN_CATALOG_2026-09-15.json` retains all 937 reconstructed full column rows and their observed hashes, all 62 relation identities/source declarations and 31 reconstructed ordinary-table rows. Its SHA256 is `b46bf6bb763f7ecfa982efdb4fa3a51bb6148a353df4a57ea6ea9ef5b2b75920`. Every column row independently hashes to the exact artifact entry, including physical ordinal, PostgreSQL formatted type/underlying type, nullability, default, identity and generated flags. Every new ordinary-table row independently matches `relkind=r`, RLS enabled, FORCE RLS disabled, empty reloptions and no view/partition expression. This does not attest table ownership, policies or effective grants: those are different comparator sections.
+
+The offline helper `scripts/canonical-added-column-reconstruction.py` searches finite candidate rows and accepts a row only when its complete sorted compact JSON SHA256 matches. Source DEFAULT hints improve the search; a hint match is not source lineage. The retained JSON was independently checked against all 937 artifact identity/hash pairs. All source declaration pins in its relation records were checked against the retained files. PostgreSQL was not executed for this reconstruction. The 31 complete `pg_get_viewdef` relation rows were not reconstructed; their exact observed hashes remain in the JSON with `row=null, matched=false`. Their column signatures are fully reconstructed, and their intended queries/security source is reviewed below.
+
+Catalog nullability is not a claim about all query results: view expressions are usually catalog-nullable, and the six stored `coalesce_*` text columns are catalog-nullable despite their nonnull expression. Retain their generated flags and exact expressions; do not turn them into writable insert fields. `numeric(5,2)` confidence, bigint view counts/ranks, `name[]` policy lists and the `ediel_environment_type` enum are distinct types, not interchangeable text/integer placeholders. JSON defaults and arrays retain their exact shapes. Generated TypeScript must come from the final intended database and its established override pipeline; these reconstructed rows do not substitute for generation.
+
+## Confirmed auth email caller defect and correction
+
+`20260519_auth_callback_email_reset_sync.sql:47–57` creates `auth_email_events.action text not null` without a default. The exact added-column hash is `9bcabc422d08df4f0a22f18755976d39e5674c066f95eae7f1544ff8e55b24d2`; the observed row confirms NOT NULL, empty default, no identity and no generation. The immutable reference has no action column. The selected source and observed trigger partitions provide no insert trigger/rule supplying action. The May20 source's backfill only updates rows present during migration.
+
+`20260520_direct_temporary_password_auth_sync_fix.sql:115–143` establishes the final broadened action CHECK with 11 values: invite_sent, password_reset_sent, confirmation_sent, email_confirmed, password_updated, auth_callback_completed, auth_callback_failed, email_action_verified, company_invitation_accepted, direct_user_created and direct_user_linked. All seven literals in `AuthEmailEventType` are in this set. The source's approved SQL is preserved unchanged.
+
+Before correction, `lib/auth/authEmailFlow.ts:80` inserted event_type but omitted action, and `lib/tenant/passwordResetEmail.ts:94` did the same. These are active awaited writes: the former is used by confirmation/callback/invitation/password flows; the latter logs both branded SMTP and provider fallback reset attempts. PostgreSQL would reject an otherwise valid payload with 23502. That code is deliberately outside their existing ignorable schema-error set, so a successful email/provider operation could be reported as a failure when the subsequent log insert fails.
+
+The narrow correction supplies `action: input.eventType` and `action: 'password_reset_sent'`, respectively. Existing event_type, normalization, actor/company, source, status and metadata fields are preserved. The action describes the attempted event; status continues to distinguish a failed SMTP attempt. `lib/auth/userSync.ts` already supplies action and is not modified.
+
+`node --experimental-vm-modules --test scripts/test-auth-email-action-contract.cjs` loads the actual two TypeScript modules using Node's type stripping and controlled dependencies. The source-bound mock enforces the required action and CHECK set. All 15 tests failed before the two fields were added and all 15 passed afterward: seven exact event payloads, defaults, branded/fallback paths, failed SMTP logging, preserved schema compatibility handling, and propagated 23502/23514/42501 errors. This is executable application logic testing with a mocked database boundary, not actual PostgreSQL, SMTP or Supabase Auth execution. Node 22.13+ is needed for the built-in stripping API.
+
+Backward-schema limit: adding action to a client payload is intended for this rebuilt schema. An older deployed schema that lacks the column can still return 42703/PGRST205 through the preexisting compatibility path; this review does not declare durable event logging on that schema or prescribe a production deployment. Final generated types must include the actual action column and its insert requirement. No approved auth migration, production ledger or production data is rewritten.
+
+## Functional source families and caller decisions
+
+| Family | Source authority and intended effect | Caller/type/default decision and execution limit |
+|---|---|---|
+| Auth and membership | May19 auth callback/invitation/temp-password sources, May20 direct temporary-password fix, May28 auth provisioning guard; DB2 preflight and September invitation reconstruction retain profile/invitation compatibility columns. | Preserve diagnostic events, optional actor/company IDs and lifecycle timestamps, token UUID default, default-false must_change_password/is_system. Active auth writers require the correction above. Auth diagnostics reads the provisioning journal. Profile/session fields alone do not prove session revocation is enforced; readiness audit and auth source qualification remain separate. |
+| Customer intake, import and document review | May19 customer intake/final SaaS, May26 import foundation, May22 duplicate/multisite and June15 multitenant integrity sources add import journals, parse jobs and review metadata. | `app/admin/customers/actions.part-3.ts` and `actions.part-4.ts` insert/update imports; the latter supplies both source_type/source_kind and both count families. Preserve the actual union of CREATE/ALTER effects, not a last-file CREATE declaration. Empty arrays/objects are default review data, not proof parsing or deduplication succeeded. Added document review timestamps/IDs remain optional; no writer omission of a newly required no-default field was found in this family. |
+| Customer case and lifecycle | May19 move-out, May20 cases/audit and operations sync; May22 switch/PDF completion adds case blockers, cancellation timestamps, invoice and supplier state. | `lib/customer-cases/db.ts`/engine and customer profile actions write events with company, customer/case, event type/message and payload. Move-out profile action supplies the source-defined completed status. Optional blocker/linked IDs are intentional cross-workflow references, not aliases to be coalesced automatically. Foreign keys, delete behavior, state CHECKs and authorization are separately qualified. |
+| Billing and partner integration | May22 batch4c billing/export, June9 website integration adds partner customer links/disputes and invoice provider IDs. | Preserve adapter_key=`gridex_billing_partner_v1`, payload_version=`billing_export_v4c`, retry JSON with maxAttempts3/manual_retry. `lib/admin/websiteIntegrationOps.ts` and company detail UI consume partner rows; invoice and billing flows use optional provider/dispute metadata. Nullable numeric amounts/fees preserve unknown values; no claim that every provider mapping or accounting calculation was executed. |
+| Routes and outbound requests | May21 automation, May28 route/inbound foundation and June2 environment/business locks add agreements, route metadata, queue batch/idempotency fields and wizard journal. | `lib/routes/gridOwnerAgreements.ts` filters company/grid owner/scope/status and handles validity dates; route-wizard actions write blocked/created results. Keep nullable company/reference fields exactly as source, default draft status and default-true required-customer/meter checks. Twenty-six outbound additions carry explicit route/intent/ack context; similarly named contract/POA/switch IDs are not assumed equivalent. Lock expiry, approval, transport and cross-tenant behavior remain execution gates. |
+| Ediel rules, parsing and transport | May25 debug schema alignment, May29 rulebook, May28 inbound hardening and June2 environment/business locks. | Preserve rule direction/environment/priority defaults, nullable validity dates and six stored generated coalesce keys used for duplicate identity; clients must write the base fields. `lib/ediel` and system-test UI consume parser/test/route fields. Environment enum and disabled production_mode prevent a text/default rewrite being called equivalent. Rule syntax versus application status remains separate. Protocol truth and real transport acceptance are not supplied by column compatibility. |
+| Ediel test fixtures | May29 rulebook creates six test data tables; June2 adds run locks, AGT readiness and unlinked-message journal. | `app/admin/ediel/system-tests/actions.part-3.ts` addresses the six datasets dynamically; AGT/test-center pages and `testRunTransportMetadata` consume readiness/locks. Many fixture business fields are intentionally nullable. Default false readiness flags and unlinked status preserve incomplete evidence; relation presence is not a passing AGT or production approval. |
+| Tenant governance and white label | May19 superadmin governance/runtime, May21 actor/go-live module, August29 white-label recursion repair. | `lib/tenant/governance.ts` appends governance events; platform white-label UI and `lib/ediel/actorTesting.ts` consume memberships. Preserve company/actor optionality and default active/admin membership values with their source CHECKs. Governance logging is best-effort in the caller; no audit-durability or delegated-admin acceptance is inferred. Session-revocation journal existence does not prove current session evaluator reads it. |
+| Readiness, data quality and email identity | May31 system readiness source adds findings, status rules, performance budgets, email domains/sender profiles and views. | Data-quality UI consumes live issue projection and domain status; `lib/tenant/emailBranding.ts` selects a verified default sender for the scoped company. Preserve pending/pending_dns defaults and the source's unique-default constraint. Performance budgets are configuration, not measured performance. status_transition_rules has no direct app consumer found; its rows are not asserted to enforce an application state machine. |
+| Contract/legal and operations compatibility | May19 final SaaS retains contract version metadata; August1 canonical platform exposes the invoker legal alias; May19/20/22 operational sources retain lifecycle/assignment/case references. | `lib/tenant/legalDefaults.ts` consumes the neutral legal alias. Contract version timestamps/notes and metadata are additive; the view's catalog-nullable metadata does not erase the base-column default. Portal match booleans default false and snapshots default empty objects, preserving unknown/unverified input. Current full authorization and legal immutability require the separate actor/FK/trigger gates. |
+
+The 302 existing-relation additions contain exactly one NOT NULL column with neither default nor generated/identity behavior: auth_email_events.action. The other additions are nullable, defaulted or generated; this rules out that specific omitted-field failure, not every CHECK/FK/type/race defect. Actual callers and source declarations were inspected by coherent family. There was no exhaustive execution of every added field, dynamic query or business workflow, and no blanket application compatibility claim.
+
+## New view semantics and privilege boundaries
+
+All31 view names and exact declaration anchors are listed below. Source `20260611190000_launch_linter_hardening_security_definer_rls.sql:115–137` attempts to set every then-existing public view to security_invoker and revoke PUBLIC/anon access. Its exception handlers mean source intent alone is not proof of actual final settings; this audit deliberately leaves full view-row hashes unreconstructed. The August1 legal alias itself declares invoker. Existing separate view privilege and actor audits remain authoritative for actual view access, including the unresolved non-SELECT capabilities; this audit does not turn a diagnostic view into a service-only or SELECT-only contract without source evidence.
+
+The active security-report page reads batch3, batch4c and intake reports; batch2cAutomation reads the RLS policy report. Those results describe configured policy names/roles, not successful independent-user authorization tests. The legal alias is an active application data projection. The quality and timeline queries are invoker UNION projections over source rows, not new durable facts. DB2/DB3 target/membership/RBAC/gap views expose operational diagnostics and may include user/tenant metadata; their names do not justify exposing them to broader roles. Readiness views report query-derived facts and are not acceptance flags for this reconstruction.
+
+## Complete relation disposition inventory
+
+Each row below preserves the described source-intended relation. Counts are exact reconstructed added columns. A listed source anchor locates its declaration; multiple declarations are retained as alternatives, not asserted to be identical or selected by filename order. The companion JSON retains full source-file hashes and every observed relation/column hash.
+
+| Relation | Kind / columns | Declaration anchors | Disposition |
+|---|---|---|---|
+| `auth_provisioning_events` | table / 11 | `20260528_auth_provisioning_runtime_guard.sql:6` | Auth-provisioning outcome journal; diagnostics UI reads it. |
+| `billing_disputes` | table / 19 | `20260609162000_batch_7_website_integration_foundation.sql:534` | Partner invoice disputes, optional amounts/evidence and received-status workflow. |
+| `billing_partner_customers` | table / 13 | `20260609162000_batch_7_website_integration_foundation.sql:488` | Scoped customer-to-provider identity links; company detail/website integration reads. |
+| `billing_readiness_flags` | view / 11 | `20260519_batch_6c_metering_billing_readiness.sql:137` | Customer billing blockers/readiness projection; no direct literal app read found. |
+| `canonical_tenant_effective_legal_sources_v` | view / 13 | `20260801143000_canonical_multitenant_platform_hardening.sql:66` | Invoker alias to effective legal sources; legalDefaults consumes it. |
+| `company_billing_volume_overview` | view / 14 | `20260520_batch_6e_rbac_tenant_stats_whitelabel.sql:338` | Company billing-volume aggregation; diagnostic presence is not accounting acceptance. |
+| `company_go_live_reviews` | table / 9 | `20260521_actor_testing_go_live_module.sql:146` | Company go-live review/evidence journal; default not_ready is preserved. |
+| `customer_case_events` | table / 10 | `20260520_batch_5_cases_audit_email_ux.sql:100` | Case/customer event journal; case engine writes required type/message. |
+| `customer_data_quality_open_issues` | view / 8 | `20260531111600_system_readiness_foundation.sql:355` | Computed customer/address/POA issue projection used by data-quality page. |
+| `customer_import_batches` | table / 19 | `20260519_final_saas_hardening.sql:208`; `20260519_customer_intake_contracts_tenant_hardening.sql:139`; `20260526_debug_step1_2f_customer_import_foundation.sql:6` | Import summary with retained old/new source and count fields; import actions write both. |
+| `customer_import_rows` | table / 19 | `20260519_final_saas_hardening.sql:223`; `20260519_customer_intake_contracts_tenant_hardening.sql:158`; `20260526_debug_step1_2f_customer_import_foundation.sql:28` | Per-row import, parse and duplicate review data; import actions update outcomes. |
+| `customer_lifecycle_events` | table / 10 | `20260519_customer_move_out_lifecycle.sql:33` | Customer move-out/termination/restoration/note events; profile action supplies event status. |
+| `customer_sync_events` | table / 19 | `20260519_operations_core_saas_sync.sql:105` | Source-matching/unresolved/resolved event journal consumed by controlTower. |
+| `customer_timeline_events` | view / 10 | `20260531111600_system_readiness_foundation.sql:422` | Invoker UNION of domain, switch and outbound events; no new durable event storage. |
+| `data_quality_findings` | table / 16 | `20260531111600_system_readiness_foundation.sql:287` | Persisted issue findings with default open/warning; no direct literal app read found. |
+| `document_parse_jobs` | table / 17 | `20260615_multitenant_integrity_and_claim_locks.sql:422` | Scoped parse-job/review queue with queued/needs_review defaults; no direct literal app reference found. |
+| `ediel_agt_readiness` | table / 25 | `20260602143000_ediel_environment_business_action_locks.sql:72` | Actor/role/family readiness evidence and sign-offs; actual AGT qualification remains separate. |
+| `ediel_test_customers` | table / 8 | `20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql:197` | System-test dataset customer identity fixtures, nullable business inputs. |
+| `ediel_test_expected_acks` | table / 9 | `20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql:243` | System-test expected acknowledgement fixtures; evidence is not a passing test. |
+| `ediel_test_expected_values` | table / 9 | `20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql:231` | System-test expected-value fixtures with optional input strings. |
+| `ediel_test_facilities` | table / 8 | `20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql:208` | System-test facility fixtures consumed dynamically by system-test actions. |
+| `ediel_test_field_values` | table / 8 | `20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql:255` | System-test field/value fixtures consumed dynamically by system-test actions. |
+| `ediel_test_metering_points` | table / 9 | `20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql:219` | System-test metering-point fixtures consumed dynamically by system-test actions. |
+| `ediel_test_run_locks` | table / 12 | `20260602143000_ediel_environment_business_action_locks.sql:53` | Scoped actor/role/family/environment expiry locks; real concurrency behavior untested here. |
+| `ediel_unlinked_test_messages` | table / 19 | `20260602143000_ediel_environment_business_action_locks.sql:94` | Unlinked test-message journal with environment enum and candidate UUID array. |
+| `grid_owner_access_agreements` | table / 29 | `20260528_batch_7a_route_inbound_mail_platform_ui.sql:42` | Metering-access requirements, validity and routing agreement records; route library consumes. |
+| `gridex_archived_customer_registry_rows` | table / 8 | `20260525_db4b_customer_registry_ediel_test_cleanup.sql:10` | Owner archive records require reason/source_table/source_row; source SQL writes, no app caller found. |
+| `gridex_batch3_role_action_security_v` | view / 4 | `20260521_batch3_pricing_billing_audit_roles_completion.sql:141` | Pricing/billing role-policy configuration report read by tenant-test page. |
+| `gridex_batch4c_role_action_security_v` | view / 4 | `20260522_batch4c_billing_export_audit_quality_ai.sql:199` | Export/audit role-policy configuration report read by tenant-test page. |
+| `gridex_batch7a_foundation_readiness_v` | view / 2 | `20260528_batch_7a_route_inbound_mail_platform_ui.sql:361` | Route/inbound foundation presence/readiness report. |
+| `gridex_batch_2b_rls_status_v` | view / 6 | `20260521_batch_2b_full_automation_and_live_ops.sql:256` | Catalog RLS status report; configured status is not actor proof. |
+| `gridex_batch_2c_rls_policy_report_v` | view / 9 | `20260521_batch_2c_end_to_end_operations.sql:87` | Policy configuration report consumed by batch2cAutomation. |
+| `gridex_customer_intake_security_report_v` | view / 4 | `20260521_batch_customer_intake_batch2_hardening.sql:234` | Intake relation/RLS/policy-name report read by tenant-test page; policies is name[]. |
+| `gridex_db2_v4_schema_contract_v` | view / 4 | `01_db2_full_view_preflight_schema_and_functions.sql:399` | DB2 relation/column presence contract report; no direct app caller found. |
+| `gridex_db2b_final_readiness_v` | view / 3 | `03_db2b_validation_views.sql:59` | DB2 readiness result projection; no direct app caller found. |
+| `gridex_db2b_preflight_v` | view / 3 | `01_db2b_preflight_views.sql:85` | DB2 preflight result projection; no direct app caller found. |
+| `gridex_db2b_rbac_snapshot_v` | view / 8 | `03_db2b_validation_views.sql:127` | DB2 role/member diagnostic projection; effective disclosure remains actor gate. |
+| `gridex_db2b_superadmin_membership_v` | view / 19 | `03_db2b_validation_views.sql:5` | DB2 target-user/company membership diagnostic; no app caller found. |
+| `gridex_db2b_superadmin_target_v` | view / 17 | `01_db2b_preflight_views.sql:33` | DB2 target-user auth/profile diagnostic; no app caller found. |
+| `gridex_db3_final_readiness_v` | view / 3 | `20260523_db3_tenant_isolation_rbac_enforcement.sql:401` | DB3 readiness report; no blanket reconstruction acceptance. |
+| `gridex_db3_rbac_snapshot_v` | view / 8 | `20260523_db3_tenant_isolation_rbac_enforcement.sql:377` | DB3 RBAC diagnostic projection; user/tenant access remains actor gate. |
+| `gridex_db3_tenant_data_gaps_v` | view / 2 | `20260523_db3_tenant_isolation_rbac_enforcement.sql:361` | DB3 tenant data-gap counts; diagnostic data is not remediation. |
+| `gridex_db3_tenant_policy_gaps_v` | view / 6 | `20260523_db3_tenant_isolation_rbac_enforcement.sql:313` | DB3 catalog policy-gap report; does not execute independent-user tests. |
+| `gridex_db4b_customer_registry_visibility_v` | view / 12 | `20260525_db4b_customer_registry_ediel_test_cleanup.sql:21` | Customer-registry/test-data visibility diagnostic; archival source intent preserved. |
+| `gridex_debug_batch2_rbac_v` | view / 9 | `20260525_debug_batch_2_rbac_tenant_alignment.sql:218`; `20260526_debug_step1_2c_full_schema_code_alignment.sql:206` | RBAC schema-alignment projection; multiple source declarations are not presumed equal. |
+| `gridex_debug_batch2_tenant_policy_gaps_v` | view / 5 | `20260526_debug_batch_2_tenant_rbac_server_actions.sql:76` | Tenant-policy configuration-gap report. |
+| `gridex_debug_step1_2_schema_alignment_v` | view / 4 | `20260911114443_canonical_user_rbac_customer_alignment_boundary.sql:28`; `20260526_debug_step1_2c_full_schema_code_alignment.sql:128`; `20260526_debug_step1_2f_customer_import_foundation.sql:239` | Retained schema-alignment report; September boundary restores a particular query. |
+| `gridex_rbac_tenant_audit_summary` | view / 3 | `20260520_batch_6e_fix_rbac_backfill_security.sql:161` | RBAC/tenant backfill audit summary, not actor authorization proof. |
+| `gridex_sensitive_action_audit_coverage_v` | view / 3 | `20260522_batch4e_switch_pdf_audit_rbac_completion.sql:213` | Critical-table audit trigger coverage report; not durable audit delivery proof. |
+| `gridex_tenant_runtime_readiness` | view / 9 | `20260520_batch_1_2_saas_ediel_control_center.sql:87` | Tenant setup/readiness projection, separate from canonical deployment attestations. |
+| `gridex_user_auth_integrity_v` | view / 11 | `20260528_auth_provisioning_runtime_guard.sql:27` | User auth/profile consistency diagnostic, access requires separate actor review. |
+| `metering_billing_audit_overview` | view / 11 | `20260519_batch_6d2_runtime_governance_completion.sql:532` | Metering/billing status aggregation for operations diagnostics. |
+| `page_performance_budgets` | table / 10 | `20260531111600_system_readiness_foundation.sql:315` | Configured route/page targets, positive target limits; no measured performance claim. |
+| `platform_session_revocations` | table / 6 | `20260519_batch_6d2_runtime_governance_completion.sql:47` | Revocation event journal; existence does not make session evaluator enforce it. |
+| `platform_tenant_governance_overview` | view / 11 | `20260519_batch_6d_superadmin_tenant_governance.sql:191` | Tenant governance overview aggregating setup/state; no direct app caller found. |
+| `production_route_wizard_runs` | table / 9 | `20260521_batch_2b_full_automation_and_live_ops.sql:92` | Route-wizard draft/blocked/created/failed journal; active wizard writes payload/results. |
+| `status_transition_rules` | table / 9 | `20260531111600_system_readiness_foundation.sql:240` | Configured transition allow/reason requirements; no direct app enforcement caller found. |
+| `tenant_email_domains` | table / 17 | `20260531111600_system_readiness_foundation.sql:189` | Scoped provider/DNS/domain verification data, initially pending_dns; data-quality reads. |
+| `tenant_email_sender_profiles` | table / 15 | `20260531111600_system_readiness_foundation.sql:214` | Scoped sender identity/status/default profile used by emailBranding. |
+| `tenant_governance_events` | table / 8 | `20260519_batch_6d_superadmin_tenant_governance.sql:87` | Tenant governance action journal; governance caller remains best-effort. |
+| `white_label_platform_memberships` | table / 9 | `20260521_actor_testing_go_live_module.sql:26` | White-label user roles/status and memberships consumed by actorTesting. |
+| `white_label_platforms` | table / 10 | `20260521_actor_testing_go_live_module.sql:9` | White-label platform identity/status metadata consumed by platform UI. |
+
+## Exact existing-relation addition inventory
+
+Every column below has its full type/nullability/default/ordinal/generated row and observed SHA256 in the companion JSON. These47 rows cover exactly302 additions; they are mapped to the functional families above rather than accepted merely because they exist.
+
+| Existing relation | Added columns |
+|---|---|
+| `auth_email_events` | `action`, `message` |
+| `billing_export_runs` | `adapter_key`, `payload_version`, `retry_policy` |
+| `billing_underlays` | `billing_blocked_by_case_id`, `blocker_case_id`, `export_status` |
+| `canonical_internal_contract_offers_v` | `last_versioned_at`, `metadata`, `version_note` |
+| `communication_routes` | `route_group`, `supported_message_codes`, `supported_message_families` |
+| `companies` | `brp_name`, `brp_status`, `esett_status`, `market_role`, `technical_contact_email`, `technical_contact_name`, `white_label_platform_id` |
+| `company_invitations` | `accept_token_hash`, `full_name`, `invited_by`, `invited_email`, `invited_user_id`, `membership_role`, `revoked_at`, `role_key`, `temporary_password_expires_at`, `temporary_password_issued_at`, `token` |
+| `contract_offers` | `last_versioned_at`, `metadata`, `version_note` |
+| `customer_addresses` | `invoice_email`, `invoice_reference`, `is_default_billing`, `recipient_name` |
+| `customer_cases` | `blocker_source_id`, `blocker_source_table`, `cancellation_acknowledged_at`, `cancellation_failed_at`, `cancellation_sent_at`, `linked_external_intake_id`, `linked_metering_gap_id`, `linked_outbound_request_id`, `linked_partner_export_id` |
+| `customer_contracts` | `billing_blocked_by_case_id`, `current_supplier_contract_end_date`, `current_supplier_contract_status`, `current_supplier_id`, `current_supplier_name`, `current_supplier_notice_period`, `current_supplier_org_number`, `current_supplier_response_status`, `current_supplier_termination_fee`, `is_distance_agreement`, `start_date_blocker_reason`, `withdrawal_deadline_at`, `withdrawal_information_sent_at` |
+| `customer_info_requests` | `automation_key`, `automation_origin`, `requested_period_end`, `requested_period_start` |
+| `customer_invoice_documents` | `document_type`, `public_url`, `source_system`, `title` |
+| `customer_lifecycle_decisions` | `notes`, `received_at`, `received_channel`, `resolved_at`, `resolved_by`, `source_customer_case_id`, `status` |
+| `customer_operation_tasks` | `assignment_reason`, `reassigned_at`, `reassigned_by` |
+| `customer_portal_accounts` | `notes` |
+| `customer_portal_claims` | `email_matched`, `failure_reason`, `input_snapshot`, `installation_matched`, `match_method`, `match_snapshot`, `matched_metering_point_id`, `matched_site_id`, `name_matched`, `personal_number_last4`, `personal_number_matched`, `reviewed_at`, `user_email` |
+| `customer_portal_events` | `message` |
+| `customer_sites` | `billing_address_same_as_site`, `billing_city`, `billing_country`, `billing_level`, `billing_postal_code`, `billing_street`, `consolidated_invoice`, `current_supplier_contract_end_date`, `current_supplier_contract_status`, `current_supplier_notice_period`, `current_supplier_response_status`, `current_supplier_termination_fee`, `invoice_email`, `invoice_recipient`, `invoice_reference` |
+| `customers` | `billing_address_same_as_site`, `billing_level`, `consolidated_invoice`, `duplicate_match_payload`, `duplicate_review_status`, `invoice_email`, `invoice_recipient`, `invoice_reference`, `lifecycle_closed_at`, `lifecycle_closed_by`, `lifecycle_status_reason`, `merge_status`, `merged_at`, `merged_by`, `merged_into_customer_id`, `moved_out_at`, `possible_duplicate` |
+| `document_ai_extractions` | `applied_at`, `applied_changes`, `approved_at`, `approved_by`, `bounding_boxes`, `conflict_reasons`, `import_batch_id`, `metadata`, `mime_type`, `normalized_rows`, `ocr_status`, `parser_vendor`, `parser_version`, `parser_warnings`, `raw_extracted_json`, `source_file_sha256`, `source_kind`, `storage_path` |
+| `ediel_ack_rules` | `negative_aperak_on_error` |
+| `ediel_active_actor_settings_v` | `runtime_rank` |
+| `ediel_aperak_error_details` | `aperak_message_id`, `application_error`, `coalesce_free_text_code`, `coalesce_metering_point_id`, `coalesce_transaction_reference`, `free_text`, `free_text_code`, `metering_point_id`, `rule_key`, `source_message_id`, `source_order`, `transaction_reference`, `validation_issue_id` |
+| `ediel_aperak_error_rules` | `application_error`, `applies_to_field`, `created_by`, `direction`, `environment`, `free_text`, `free_text_code`, `priority`, `rule_description`, `rule_key`, `severity`, `updated_by`, `valid_from`, `valid_to` |
+| `ediel_mailboxes` | `last_poll_at`, `last_poll_status`, `last_successful_poll_at`, `smtp_host`, `smtp_port` |
+| `ediel_message_rules` | `created_by`, `updated_by` |
+| `ediel_message_validation_issues` | `coalesce_field_path`, `coalesce_metering_point_id`, `coalesce_transaction_reference`, `expected_value`, `field_path`, `field_value`, `message_id`, `metering_point_id`, `rule_key`, `source_order`, `transaction_reference` |
+| `ediel_messages` | `application_status`, `inbound_email_message_id`, `inbound_processing_job_id`, `message_intent`, `route_decision_payload`, `route_scope`, `syntax_status` |
+| `ediel_outbound_queue` | `idempotency_key`, `original_business_batch_id`, `payload_size_bytes`, `split_batch_key` |
+| `ediel_outbox` | `smtp_message_id`, `transport_channel` |
+| `ediel_route_profiles` | `approval_expires_at`, `approval_reason`, `approved_at`, `approved_by`, `environment_type`, `high_risk_approval_required` |
+| `ediel_test_artifacts` | `diff_report`, `source_file_name` |
+| `ediel_test_runs` | `production_mode`, `unlinked_message_count` |
+| `ediel_tgt_test_data` | `created_by`, `parsed_payload`, `raw_text`, `source_note`, `title`, `updated_by` |
+| `ediel_unresolved_messages` | `raw_interchange_reference`, `raw_message_type`, `raw_receiver`, `raw_sender`, `suggested_company_id` |
+| `electricity_suppliers` | `contract_email`, `customer_service_email`, `metadata`, `switching_email`, `website` |
+| `inbound_processing_jobs` | `max_attempts` |
+| `invoice_export_items` | `customer_number`, `dispute_reason`, `dispute_status`, `disputed_at`, `provider_customer_id`, `provider_debtor_id` |
+| `metering_values` | `source_order` |
+| `outbound_requests` | `ack_policy`, `agreement_id`, `application_reference`, `blocking_reasons`, `business_process`, `contract_id`, `customer_case_id`, `customer_contract_id`, `ediel_route_profile_id`, `entity_id`, `entity_type`, `grid_owner_access_agreement_id`, `message_code`, `message_family`, `message_intent`, `message_version`, `poa_id`, `power_of_attorney_id`, `receiver_ediel_id`, `receiver_sub_address`, `required_admin_actions`, `route_decision_payload`, `sender_ediel_id`, `sender_sub_address`, `supplier_switch_request_id`, `switch_request_id` |
+| `partner_exports` | `customer_case_id`, `export_error_summary`, `prepared_at`, `prepared_payload` |
+| `roles` | `is_system` |
+| `supplier_switch_requests` | `current_supplier_contract_end_date`, `current_supplier_contract_status`, `current_supplier_id`, `current_supplier_notice_period`, `current_supplier_response_status`, `current_supplier_termination_fee`, `current_supplier_unknown`, `poa_id` |
+| `user_profiles` | `active_company_id`, `company_id`, `disabled_at`, `disabled_by`, `disabled_reason`, `last_auth_email_error`, `must_change_password`, `password_changed_at`, `phone`, `reactivated_at`, `reactivated_by`, `session_revoked_at`, `temporary_password_company_id`, `temporary_password_company_name`, `temporary_password_expires_at`, `temporary_password_set_at`, `temporary_password_set_by` |
+| `user_roles` | `disabled_at`, `disabled_by`, `status_reason` |
+| `webhook_subscriptions` | `api_client_id`, `description`, `last_failure_at`, `last_success_at`, `metadata` |
+
+## Source pins for the concrete caller correction
+
+| File | SHA256 |
+|---|---|
+| `supabase/migrations/20260519_auth_callback_email_reset_sync.sql` | `59efbf233d314558f8cc7ffbb2b15788cadaaf7ba476e0f80fa1e820299419a9` |
+| `supabase/migrations/20260520_direct_temporary_password_auth_sync_fix.sql` | `f81c427325e8ecdb9380038ebad994def06004f1a67cd6b7718247e090b632db` |
+
+All62 relation declaration source paths, line anchors and full file SHA256 pins are retained in the companion JSON. App/lib/components literal-name searches were used to locate callers; absence of a literal does not exclude dynamic SQL, indirect services or retained migration consumers. No unrelated SQL/source/reference edits, test-data claims, production execution or acceptance allowlist are introduced.
