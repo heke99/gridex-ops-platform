@@ -7,7 +7,7 @@ import type {
 import { buildDefaultApplicationReference } from '@/lib/ediel/config'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
 import { renderContrl2Ediel2 } from '@/lib/ediel/contrlEngine'
-import { renderAperakEdiel } from '@/lib/ediel/aperakEngine'
+import { renderAperakEdiel, usesUtiltsAperakProfile } from '@/lib/ediel/aperakEngine'
 import { inferEdielFileName } from '@/lib/ediel/classify'
 import { buildCanonicalAckReferences } from '@/lib/ediel/core/referenceRegistry'
 import {
@@ -980,7 +980,7 @@ function buildAckDraft(params: {
       params.ackFamily === 'CONTRL'
         ? 'CONTRL:2:2:UN:EDIEL2'
         : params.ackFamily === 'APERAK'
-          ? params.sourceMessage.message_family === 'UTILTS'
+          ? usesUtiltsAperakProfile(params.sourceMessage.message_family)
             ? 'APERAK:D:04A:UN:E5SE5A'
             : 'APERAK:D:96A:UN:E2SE6A'
           : 'UTILTS:D:02B:UN:E5SE5A',
@@ -1017,7 +1017,7 @@ function buildAckDraft(params: {
       params.ackFamily === 'CONTRL'
         ? 'EDIEL2'
         : params.ackFamily === 'APERAK'
-          ? params.sourceMessage.message_family === 'UTILTS'
+          ? usesUtiltsAperakProfile(params.sourceMessage.message_family)
             ? 'E5SE5A'
             : 'E2SE6A'
           : 'E5SE5A',

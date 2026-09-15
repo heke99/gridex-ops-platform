@@ -524,3 +524,5 @@ surface, which is plan 3.4/3.5 and is next.
 PR #308 -> main `15e6b48`, squash, all seven relevant gates green. Direct push
 to main was blocked by the permission classifier, so the merge went through a
 pull request, which is the convention this repository already used for #307.
+
+2026-09-15: Independent Ediel extraction from main: 201 files/1216 tests PASS on Node22, app/tests TypeScript PASS, original specification integrity PASS, tenant ratchet2399PASS. Partial delivery only; PR310 DB/schema/types remain deferred. Evidence: quality/audits/ediel-masterplan-v2/partial-main-merge.md.

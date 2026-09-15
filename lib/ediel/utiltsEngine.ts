@@ -1,3 +1,6 @@
+import { canonicalBusinessDate } from '@/lib/ediel/core/messagePolicy'
+import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import type { UtiltsProcessabilityPolicy } from '@/lib/ediel/rulebook/utilts25A4'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { resolveUtiltsProcessabilityPolicy } from '@/lib/ediel/rulebook/utilts25A4'
 import {
@@ -25,6 +28,7 @@ export * from '@/lib/ediel/utiltsEngine.part-1'
 
 export type UtiltsRuntimeReferenceOptions = {
   referenceDate?: string | Date | null
+  canonicalPolicy?: CanonicalEdielPolicy
 }
 
 const PRE_TENANT_OBJECT_SENTINEL = '00000000-0000-0000-0000-000000000000'
@@ -65,9 +69,7 @@ function normalizedReferenceDate(
   }
   if (typeof explicit === 'string' && explicit.trim()) return explicit.trim().slice(0, 10)
 
-  const receivedAt = String(message.message_received_at ?? '').trim()
-  if (receivedAt) return receivedAt.slice(0, 10)
-  return new Date().toISOString().slice(0, 10)
+  return canonicalBusinessDate(message)
 }
 
 function rebuildValidation(issues: UtiltsValidationIssue[]): UtiltsRuntimeValidation {
@@ -356,8 +358,9 @@ export function applyUtiltsEffectiveDatePolicyToRuntimeResult(input: {
   message: EdielMessageRow
   result: UtiltsRuntimeResult
   referenceDate: string
+  processabilityPolicy?: UtiltsProcessabilityPolicy | null
 }): UtiltsRuntimeResult {
-  const policy = resolveUtiltsProcessabilityPolicy(input.referenceDate)
+  const policy = input.processabilityPolicy ?? resolveUtiltsProcessabilityPolicy(input.referenceDate)
   if (policy.guideRevision === '25-A-3') return input.result
 
   const removedRejectionCodes = new Set(
@@ -463,7 +466,18 @@ export function runUtiltsRuntimeForMessage(
   message: EdielMessageRow,
   options?: UtiltsRuntimeReferenceOptions,
 ): UtiltsRuntimeResult {
-  const referenceDate = normalizedReferenceDate(message, options)
+  const canonicalPolicy = options?.canonicalPolicy
+  if (canonicalPolicy && (
+    canonicalPolicy.family !== 'UTILTS'
+    || (Boolean(message.message_code) && canonicalPolicy.code !== message.message_code)
+    || canonicalPolicy.direction !== message.direction
+    || !canonicalPolicy.utiltsProcessability
+  )) {
+    throw new Error('utilts_runtime_policy_context_mismatch')
+  }
+  // The selected processability profile is part of the decision. Matching may
+  // enrich tenant/object facts, but must not choose a new guide at receipt time.
+  const referenceDate = canonicalPolicy?.referenceDate ?? normalizedReferenceDate(message, options)
   const validationMessage = runtimeValidationMessage(message)
   const legacyResult = runLegacyUtiltsRuntimeForMessage(validationMessage)
   const resolutionCorrected = applyUtiltsResolutionFormatPolicyToRuntimeResult({
@@ -478,6 +492,7 @@ export function runUtiltsRuntimeForMessage(
     message,
     result: e66Corrected,
     referenceDate,
+    processabilityPolicy: canonicalPolicy?.utiltsProcessability,
   })
   return applyCanonicalE66PersistencePayload(effective)
 }

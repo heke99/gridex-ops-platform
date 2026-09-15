@@ -1,4 +1,5 @@
 import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
+import { isDeliveryStatusNotification } from './dsnClassifier'
 import { resolveTenantForInboundEdiel } from '@/lib/inbound-mail/inboundTenantResolver'
 import { matchMeteringPointForInbound, matchOutboundRequestForInbound } from '@/lib/inbound-mail/inboundMatcher'
 import { createInboundMailTask } from '@/lib/inbound-mail/inboundTaskFactory'
@@ -73,6 +74,25 @@ export async function processInboundEmailMessage(input: {
   const row = data as Record<string, unknown> | null
   if (!row) throw new Error('Inbound email hittades inte.')
 
+  const quarantineDsn = async () => {
+    // The returned original cannot establish the report's tenant or authorize
+    // business processing. Preserve mailbox attribution until attempt matching
+    // and recipient verification can be performed by a transport handler.
+    const companyId = text(row.company_id)
+    await updateInboundEmailProcessingStatus({
+      inboundEmailMessageId: input.inboundEmailMessageId,
+      companyId,
+      status: 'manual_review',
+      matchStatus: 'dsn_transport_review',
+      matchPayload: { classification: 'delivery_status_notification', transportCorrelation: 'unverified' },
+      errorMessage: 'Leveransrapport kräver verifierad korrelation till transportförsök och mottagare.',
+    })
+    return { status: 'manual_review', companyId, parseResultId: null }
+  }
+  if (isDeliveryStatusNotification(text(row.raw_email)) || isDeliveryStatusNotification(text(row.body_text))) {
+    return quarantineDsn()
+  }
+
   const attachmentResult = await supabaseService
     .from('inbound_email_attachments')
     .select('raw_text,is_edifact_candidate,filename')
@@ -81,6 +101,8 @@ export async function processInboundEmailMessage(input: {
     .limit(10)
 
   if (attachmentResult.error) throw attachmentResult.error
+  if (((attachmentResult.data ?? []) as Array<Record<string, unknown>>)
+    .some((attachment) => isDeliveryStatusNotification(text(attachment.raw_text)))) return quarantineDsn()
   const attachmentText = [
     typeof row.raw_edifact_payload === 'string' ? row.raw_edifact_payload : null,
     ...((attachmentResult.data ?? []) as Array<Record<string, unknown>>)

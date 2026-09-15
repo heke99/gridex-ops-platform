@@ -360,3 +360,5 @@ Established from CI rather than assumed: `clean-migration-replay` is green on
 main, so the pinned fingerprint is correct and the dockerless harness is the
 side that differs. The harness is valid for structural work and invalid for
 canonical provenance; that limit is recorded in current-task.md and handover.md.
+
+2026-09-15: Independent Ediel extraction from main: 201 files/1216 tests PASS on Node22, app/tests TypeScript PASS, original specification integrity PASS, tenant ratchet2399PASS. Partial delivery only; PR310 DB/schema/types remain deferred. Evidence: quality/audits/ediel-masterplan-v2/partial-main-merge.md.

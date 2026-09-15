@@ -1,0 +1,656 @@
+[
+  {
+    "id": "ST-T01",
+    "layer": "transport",
+    "from_state": "planned",
+    "event": "prepare_command",
+    "guard": "Auktoriserad tenant/aktör/roll + komplett publicerad profil + aktuell rutt.",
+    "to_state": "prepared",
+    "atomic_effects": "Lås payload, beslut, källa och ruttversion; skapa outbox-intent.",
+    "expected_next": "Sändning i korrekt tidsfönster.",
+    "if_guard_fails": "Intern blockerare med tydliga saknade fakta.",
+    "rule_ids": [
+      "TEN-01",
+      "GOV-01",
+      "ENV-01"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-T02",
+    "layer": "transport",
+    "from_state": "prepared",
+    "event": "worker_claim",
+    "guard": "Giltig lease/fencing; aktuella behörigheter och säkerhet.",
+    "to_state": "submitting",
+    "atomic_effects": "Skapa nytt attempt-id och stabil korrelation till samma avsikt.",
+    "expected_next": "SMTP-resultat.",
+    "if_guard_fails": "Ingen extern sändning.",
+    "rule_ids": [
+      "TR-10",
+      "TR-06"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-T03",
+    "layer": "transport",
+    "from_state": "submitting",
+    "event": "smtp_250",
+    "guard": "Svar avser aktuellt försök.",
+    "to_state": "smtp_accepted",
+    "atomic_effects": "Registrera accepterad mottagare, queue-id, tid, Message-ID, payloadhash.",
+    "expected_next": "CONTRL och tillämpliga andra svar som separata förväntningar.",
+    "if_guard_fails": "Spara motstridiga transportbevis för utredning.",
+    "rule_ids": [
+      "TR-02"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-T04",
+    "layer": "transport",
+    "from_state": "submitting",
+    "event": "connection_lost_after_DATA",
+    "guard": "Kan inte bevisa att servern avvisat eller accepterat.",
+    "to_state": "submission_unknown",
+    "atomic_effects": "Lås mot automatiskt duplicerad affärssändning; skapa spårningsärende.",
+    "expected_next": "Verifierat leverans-/förlustutfall.",
+    "if_guard_fails": "Ingen gissning.",
+    "rule_ids": [
+      "TR-10",
+      "TR-05"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-T05",
+    "layer": "transport",
+    "from_state": "submitting",
+    "event": "known_not_submitted",
+    "guard": "Verifierat fel före möjlig acceptans eller explicit avvisning.",
+    "to_state": "transport_failed",
+    "atomic_effects": "Spara felklass; planera policytillåtet försök utan ny affärshändelse.",
+    "expected_next": "Ny preflight om försök medges.",
+    "if_guard_fails": "Vid osäkerhet använd submission_unknown.",
+    "rule_ids": [
+      "TR-10"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-T06",
+    "layer": "transport",
+    "from_state": "smtp_accepted",
+    "event": "verified_DSN_failure",
+    "guard": "Rätt attempt/originalidentitet och mottagare.",
+    "to_state": "delivery_failed",
+    "atomic_effects": "Koppla strukturerat DSN och ansvarig åtgärd.",
+    "expected_next": "Spårning/rättelse/omsändningsbeslut enligt meddelandet.",
+    "if_guard_fails": "Omatchat DSN till skyddad utredning.",
+    "rule_ids": [
+      "TR-04",
+      "TR-05"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-T07",
+    "layer": "ack",
+    "from_state": "awaiting_contrl",
+    "event": "CONTRL_positive",
+    "guard": "UCI/UCM binder rätt tekniskt original och omfattning.",
+    "to_state": "syntax_acknowledged",
+    "atomic_effects": "Registrera kvittens utan affärsaktivering.",
+    "expected_next": "Applikations- och affärssvar om sådana återstår.",
+    "if_guard_fails": "Korrelation-/säkerhetsutredning.",
+    "rule_ids": [
+      "ACK-01",
+      "ACK-06"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-T08",
+    "layer": "ack",
+    "from_state": "awaiting_contrl",
+    "event": "CONTRL_negative",
+    "guard": "Rätt original; negativt syntaxutfall.",
+    "to_state": "syntax_rejected",
+    "atomic_effects": "Larma, bind teknisk felposition och rättelseärende.",
+    "expected_next": "Rättad hel överföring enligt guide.",
+    "if_guard_fails": "Omatchad kvittens ändrar inget ärende.",
+    "rule_ids": [
+      "ACK-01",
+      "TR-05"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-A01",
+    "layer": "ack",
+    "from_state": "awaiting_application_ack",
+    "event": "APERAK_positive",
+    "guard": "Familjespecifika referenser och samtliga angivna delutfall giltiga.",
+    "to_state": "application_acknowledged",
+    "atomic_effects": "Uppdatera endast kvitterat objekts/transaktions tillstånd.",
+    "expected_next": "Affärssvar väntas fortfarande om tillämpligt.",
+    "if_guard_fails": "Ingen acceptans genom fel familj/kund/tenant.",
+    "rule_ids": [
+      "ACK-02",
+      "ACK-03",
+      "ACK-06"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-A02",
+    "layer": "ack",
+    "from_state": "awaiting_application_ack",
+    "event": "APERAK_negative",
+    "guard": "Rätt original/objekt/transaktion; korrekt kodtolkning.",
+    "to_state": "application_rejected",
+    "atomic_effects": "Spara fel och blockera felaktig fortsättning för berörda delar.",
+    "expected_next": "Rättelse med nytt BGM när processen medger.",
+    "if_guard_fails": "Skapa inte motsatt kvittens på redan slutligt kvitterad del.",
+    "rule_ids": [
+      "ACK-07",
+      "TR-05"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-Q01",
+    "layer": "customer_info",
+    "from_state": "draft",
+    "event": "submit_Z01",
+    "guard": "Behörig kund-/anläggningsförfrågan och källstyrd profil.",
+    "to_state": "awaiting_Z02",
+    "atomic_effects": "Koppla egen Z01 och oberoende bevakningar.",
+    "expected_next": "Z02 eller negativ APERAK; inte Z04.",
+    "if_guard_fails": "Blockerad avsikt, ingen extern sändning.",
+    "rule_ids": [
+      "P-10"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-Q02",
+    "layer": "customer_info",
+    "from_state": "awaiting_Z02",
+    "event": "valid_Z02",
+    "guard": "LI, parter, kund, objekt, nätområde och meddelandeprofil stämmer.",
+    "to_state": "information_verified",
+    "atomic_effects": "Lagra godkända uppgifter atomärt och avsluta rätt svarsförväntning.",
+    "expected_next": "Separat readinessprövning av Z03 om det finns giltigt leveransavtal.",
+    "if_guard_fails": "Guide-/affärsfel eller intern korrelationsutredning enligt orsak.",
+    "rule_ids": [
+      "P-10",
+      "TEN-06"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-Q03",
+    "layer": "customer_info",
+    "from_state": "awaiting_Z02",
+    "event": "response_timeout",
+    "guard": "Tillämplig bevakning förfaller utan svar.",
+    "to_state": "response_overdue",
+    "atomic_effects": "Skapa ansvarig uppgift; bevara skickat original och statuslager.",
+    "expected_next": "Kontakt/spårning; ingen automatisk Z03 eller ny Z01.",
+    "if_guard_fails": "Timer får inte starta om efter sen CONTRL.",
+    "rule_ids": [
+      "OPS-02",
+      "TR-05"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-S01",
+    "layer": "supplier_switch",
+    "from_state": "draft/ready",
+    "event": "submit_Z03L/LK",
+    "guard": "Giltigt avtal, korrekt roll och datumfönster; eventuella uppgiftskontroller klara.",
+    "to_state": "submitted_awaiting_business",
+    "atomic_effects": "Outbox, källbeslut och ärendereferens lagras tillsammans.",
+    "expected_next": "Rätt Z04 + kvittenser; ingen aktiv leverans.",
+    "if_guard_fails": "Blockera med verklig orsak.",
+    "rule_ids": [
+      "P-11"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-S02",
+    "layer": "supplier_switch",
+    "from_state": "submitted_awaiting_business",
+    "event": "valid_Z04L/LK",
+    "guard": "Korrelerad bekräftelse, tillämpliga fält och datum.",
+    "to_state": "confirmed_pending_start",
+    "atomic_effects": "Skapa/versionera framtida customer_supply_period och uppdatera affärsstatus.",
+    "expected_next": "Starttimer; kvittens kan ännu återstå separat.",
+    "if_guard_fails": "Ingen ändring från fel tenant/objekt/undertyp.",
+    "rule_ids": [
+      "P-11",
+      "ACK-06"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-S03",
+    "layer": "supplier_switch",
+    "from_state": "confirmed_pending_start",
+    "event": "effective_start_reached",
+    "guard": "Bekräftelsen fortfarande giltig; ingen giltig kancellering/konflikt; datum och aktörsrätt rätt.",
+    "to_state": "active",
+    "atomic_effects": "Aktivera endast rätt leveransperiod och efterföljande operativa uppgifter.",
+    "expected_next": "Mätvärden och fakturaunderlag för rätt period.",
+    "if_guard_fails": "Vänta/utred, tillverka inte ny Z04.",
+    "rule_ids": [
+      "P-11",
+      "DB-02"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-S04",
+    "layer": "supplier_switch",
+    "from_state": "submitted_awaiting_business/confirmed_pending_start",
+    "event": "submit_Z03C",
+    "guard": "Rätt återtagsgrund och deadline.",
+    "to_state": "cancellation_requested",
+    "atomic_effects": "Skapa korrelerad kancelleringsavsikt; håll ursprungsjournalen oförändrad.",
+    "expected_next": "Tillämpliga kvittenser och Z04C.",
+    "if_guard_fails": "Ingen tyst radering.",
+    "rule_ids": [
+      "P-14"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-S05",
+    "layer": "supplier_switch",
+    "from_state": "cancellation_requested/confirmed_pending_start",
+    "event": "valid_Z04C",
+    "guard": "Rätt kancellerat original och process.",
+    "to_state": "cancelled",
+    "atomic_effects": "Upphäv rätt framtida effekt; vid redan aktiv period skapa explicit korrigeringsförlopp.",
+    "expected_next": "Avslutad/korrigerad process.",
+    "if_guard_fails": "Ordningskonflikt utreds med sparat meddelande.",
+    "rule_ids": [
+      "P-14"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-S06",
+    "layer": "supplier_supply",
+    "from_state": "active/confirmed_pending_start",
+    "event": "valid_Z05L/LK",
+    "guard": "Mottagaren är rätt tidigare leverantör för objekt/tid.",
+    "to_state": "ending_or_ended",
+    "atomic_effects": "Lagra aviserat slut på rätt relation; avsluta vid tid; skapa slutvärdesuppgift.",
+    "expected_next": "Slutvärden/slutunderlag.",
+    "if_guard_fails": "Ändra inte annan tenant/ESCO.",
+    "rule_ids": [
+      "P-13"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-S07",
+    "layer": "supplier_supply",
+    "from_state": "ending_or_ended",
+    "event": "valid_Z05C",
+    "guard": "Rätt tidigare slut återtas och ingen annan giltig konflikt.",
+    "to_state": "restored_or_correction_pending",
+    "atomic_effects": "Återställ berörd period med spårbar kompensation.",
+    "expected_next": "Omprövad leverans- och fakturabild.",
+    "if_guard_fails": "Manuell konflikt, inte duplicerad period.",
+    "rule_ids": [
+      "P-14"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-S08",
+    "layer": "supplier_supply",
+    "from_state": "no_correlated_Z03",
+    "event": "valid_Z04A",
+    "guard": "Verifierat anvisningsavtal och nätområde samt tillämpliga fält/datum.",
+    "to_state": "assigned_pending_or_active",
+    "atomic_effects": "Skapa egen anvisningsrelation och korrekt giltighet.",
+    "expected_next": "Mätvärden/fakturering enligt anvisningen.",
+    "if_guard_fails": "Avvisa/utred rättsligt/affärsmässigt; inte generiskt missing_Z03.",
+    "rule_ids": [
+      "P-12"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-S09",
+    "layer": "production_supply",
+    "from_state": "no_correlated_Z03",
+    "event": "valid_Z04D",
+    "guard": "Mottagningsplikt och kopplad förbrukningsanläggning enligt319.",
+    "to_state": "production_obligation_recorded",
+    "atomic_effects": "Skapa/versionera produktionens relation utan att skriva över förbrukningen.",
+    "expected_next": "Relevanta produktionsvärden/avtal.",
+    "if_guard_fails": "Fel relation går inte till vanlig konsumentstart.",
+    "rule_ids": [
+      "P-12"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-M01",
+    "layer": "structure",
+    "from_state": "known_version",
+    "event": "valid_Z06F/G",
+    "guard": "Rätt avsändare, objekt, giltighet och tillämpliga fält.",
+    "to_state": "new_effective_version",
+    "atomic_effects": "Versionera struktur; skapa eventuella avläsningsförväntningar.",
+    "expected_next": "Rätt UTILTS enligt ändringshändelsen.",
+    "if_guard_fails": "Korrekt kvittens-/felutfall utan historikförlust.",
+    "rule_ids": [
+      "P-15"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-M02",
+    "layer": "meter",
+    "from_state": "known_meter",
+    "event": "valid_Z10M",
+    "guard": "Ny/gammal mätare olika; korrekt registergruppering och gränstid.",
+    "to_state": "meter_change_recorded",
+    "atomic_effects": "Stäng gammal giltighet, skapa ny; bevara historiska observationer.",
+    "expected_next": "UTILTS-transaktioner före/efter bytet.",
+    "if_guard_fails": "Blockera motstridig mutation, inte godkänn på första LIN enbart.",
+    "rule_ids": [
+      "P-05",
+      "P-15"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-E01",
+    "layer": "esco_request",
+    "from_state": "draft",
+    "event": "submit_Z13V/VH",
+    "guard": "Provider legal ESCO, kund/DSO-avtal, avgränsning och samordning klara.",
+    "to_state": "submitted_awaiting_customer_decision",
+    "atomic_effects": "Lagra begäran, serviceuppdrag, rättigheter under prövning och sändningsavsikt.",
+    "expected_next": "APERAK för begäran; därefter Z14 eller N.",
+    "if_guard_fails": "Ingen dataåtkomst skapas.",
+    "rule_ids": [
+      "ESCO-01",
+      "TEN-03"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-E02",
+    "layer": "esco_request",
+    "from_state": "submitted_awaiting_customer_decision",
+    "event": "positive_APERAK_Z13",
+    "guard": "Korrelerad applikationskvittens.",
+    "to_state": "awaiting_customer_decision",
+    "atomic_effects": "Uppdatera endast begärans applikationsstatus.",
+    "expected_next": "Z14 V/VH/N inom relevant förlopp.",
+    "if_guard_fails": "Kvittensen är inte market_permission.",
+    "rule_ids": [
+      "ESCO-03"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-E03",
+    "layer": "esco_request",
+    "from_state": "submitted_awaiting_customer_decision/awaiting_customer_decision",
+    "event": "valid_Z14V/VH",
+    "guard": "A74 och korrekt kund, aktör, LI, objekt och period; källans krav uppfyllda.",
+    "to_state": "approved_for_listed_objects",
+    "atomic_effects": "Skapa market_permission och permission_objects; samordna tillåtna serviceuppdrag utan överutdelning.",
+    "expected_next": "E66 och separat intern grantpublicering.",
+    "if_guard_fails": "Ett godkänt objekt ger inte alla objekt/kunder.",
+    "rule_ids": [
+      "ESCO-04",
+      "TEN-08"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-E04",
+    "layer": "esco_request",
+    "from_state": "awaiting_customer_decision",
+    "event": "valid_Z14N_A13",
+    "guard": "Korrekt aktivt nekande.",
+    "to_state": "denied_active",
+    "atomic_effects": "Avsluta rätt begärans väntan; lagra orsak.",
+    "expected_next": "Kundkommunikation/ny behörig process enligt reglerna.",
+    "if_guard_fails": "Gör inte negativt affärssvar till syntaxfel.",
+    "rule_ids": [
+      "ESCO-05"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-E05",
+    "layer": "esco_request",
+    "from_state": "awaiting_customer_decision",
+    "event": "valid_Z14N_A76",
+    "guard": "Korrekt passivt nekande.",
+    "to_state": "denied_passive",
+    "atomic_effects": "Lagra faktiskt mottaget nekande.",
+    "expected_next": "Tillåten ny process efter relevanta förutsättningar.",
+    "if_guard_fails": "Skapa inte detta meddelande lokalt enbart vid egen timeout.",
+    "rule_ids": [
+      "ESCO-05"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-E06",
+    "layer": "esco_request",
+    "from_state": "awaiting_customer_decision",
+    "event": "21day_watch_expired_no_response",
+    "guard": "Ingen Z14/N har mottagits; verklig motpartstid känd eller bevakning märkt osäker.",
+    "to_state": "overdue_follow_up",
+    "atomic_effects": "Skapa uppföljning utan eget positivt/negativt marknadsbeslut.",
+    "expected_next": "Kontakt med DSO.",
+    "if_guard_fails": "Inte artificiellt godkännande eller ny Z13-loop.",
+    "rule_ids": [
+      "ESCO-06",
+      "OPS-02"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-E07",
+    "layer": "market_permission",
+    "from_state": "active",
+    "event": "valid_Z15V",
+    "guard": "Känt tillstånd; giltig orsak/status/tid.",
+    "to_state": "ending_or_ended",
+    "atomic_effects": "Versionera slut och återkalla berörd framtida distribution enligt rättighetsomfattning.",
+    "expected_next": "Slut på rätt V-rapportering.",
+    "if_guard_fails": "DDQ-leverans och andra tillstånd påverkas inte.",
+    "rule_ids": [
+      "ESCO-07"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-E08",
+    "layer": "historical_delivery",
+    "from_state": "approved_or_receiving",
+    "event": "valid_Z15VH",
+    "guard": "Rätt historikärende och tillstånd.",
+    "to_state": "historical_delivery_closed",
+    "atomic_effects": "Markera historikslut; kontrollera faktisk periodtäckning separat.",
+    "expected_next": "Eventuella saknade värden följs upp; inget nytt V-tillstånd.",
+    "if_guard_fails": "Anta inte att alla värden är fullständiga bara för att slutmeddelande mottagits.",
+    "rule_ids": [
+      "ESCO-07",
+      "U-10"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-E09",
+    "layer": "market_permission",
+    "from_state": "active",
+    "event": "submit_Z18V",
+    "guard": "Behörigt avslut och samtliga berörda serviceberoenden granskade.",
+    "to_state": "termination_requested",
+    "atomic_effects": "Skapa avslutsavsikt och tillämplig intern åtkomstbegränsning.",
+    "expected_next": "Z15 och kvittenser.",
+    "if_guard_fails": "En beneficiarys uppsägning avslutar inte automatiskt allas tillstånd.",
+    "rule_ids": [
+      "ESCO-08",
+      "TEN-09"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-E10",
+    "layer": "market_permission",
+    "from_state": "ended",
+    "event": "valid_Z15C",
+    "guard": "Rätt felaktigt upphörande återtas.",
+    "to_state": "restored",
+    "atomic_effects": "Återställ marknadsrelationens giltighet med audit.",
+    "expected_next": "Pröva downstream-grants på nytt.",
+    "if_guard_fails": "Återkallat servicegrant förblir återkallat om ingen ny behörig grund finns.",
+    "rule_ids": [
+      "ESCO-09",
+      "TEN-10"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-G01",
+    "layer": "service_assignment",
+    "from_state": "draft",
+    "event": "approve_assignment",
+    "guard": "Provider, beneficiary, kund, ändamål, DSO och avtal är tydliga.",
+    "to_state": "approved_waiting_permission",
+    "atomic_effects": "Lagra dokumentreferenser och begränsad scope.",
+    "expected_next": "Koppla eller begär marknadstillstånd.",
+    "if_guard_fails": "Ingen läsbehörighet från tenantrelation ensam.",
+    "rule_ids": [
+      "TEN-03",
+      "TEN-14"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-G02",
+    "layer": "data_access_grant",
+    "from_state": "proposed",
+    "event": "publish_access",
+    "guard": "Aktivt kompatibelt uppdrag och market_permission plus tillåten dataanvändning.",
+    "to_state": "active",
+    "atomic_effects": "Skapa explicit objekt/produkt/period/fält/purpose-grant till beneficiary.",
+    "expected_next": "Filtrerade läsningar/exporter/projektioner.",
+    "if_guard_fails": "Avvisa med behörighetsfel utan marknadsmeddelande.",
+    "rule_ids": [
+      "TEN-08"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-G03",
+    "layer": "data_access_grant",
+    "from_state": "active",
+    "event": "beneficiary_assignment_ended",
+    "guard": "Rätt uppdrag upphör.",
+    "to_state": "revoked_or_bounded",
+    "atomic_effects": "Stoppa tillgång enligt mandatet; invalidate cache/exportjobb.",
+    "expected_next": "Bedöm om marknadstillstånd fortfarande behövs för andra uppdrag.",
+    "if_guard_fails": "Skicka inte Z18 automatiskt före beroendekontroll.",
+    "rule_ids": [
+      "TEN-09",
+      "TEN-10"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-U01",
+    "layer": "utilts_transaction",
+    "from_state": "received",
+    "event": "guide_failed",
+    "guard": "Syntax godkänd men guidekontroll på transaktionen fel.",
+    "to_state": "guide_rejected",
+    "atomic_effects": "Spara diagnos och negativ AP-avsikt för rätt IDE.",
+    "expected_next": "U-APERAK313/41 eller42; syskon fortsätter.",
+    "if_guard_fails": "Ingen funktionskontroll på samma felaktiga transaktion.",
+    "rule_ids": [
+      "U-03"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-U02",
+    "layer": "utilts_transaction",
+    "from_state": "guide_accepted",
+    "event": "functional_failed",
+    "guard": "Tillämpliga funktioner har kontrollerats med giltig struktur/behörighet.",
+    "to_state": "processability_rejected",
+    "atomic_effects": "Spara ERR-avsikt och korrekt källkod/referenser.",
+    "expected_next": "UTILTS-ERR.",
+    "if_guard_fails": "Använd inte egen saknad tenantkonfig som godtyckligt E10.",
+    "rule_ids": [
+      "U-03",
+      "TEN-11"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-U03",
+    "layer": "utilts_transaction",
+    "from_state": "functional_accepted",
+    "event": "commit_measurement",
+    "guard": "Tillåtna data och scoped relation finns.",
+    "to_state": "stored_ack_pending",
+    "atomic_effects": "Atomärt lagra version, disposition och positiv AP-intent.",
+    "expected_next": "U-APERAK312/100 och tillåtna interna projektioner.",
+    "if_guard_fails": "DBfel ger ingen falsk positiv kvittens.",
+    "rule_ids": [
+      "U-14"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-U04",
+    "layer": "utilts_transaction",
+    "from_state": "functional_accepted",
+    "event": "older_valid_revision",
+    "guard": "512/532 visar äldre data; inga andra fel.",
+    "to_state": "accepted_older_revision",
+    "atomic_effects": "Registrera accepterad äldre version/bevis utan att ersätta nyare.",
+    "expected_next": "Positiv APERAK; ingen osynlig fakturaändring.",
+    "if_guard_fails": "Ankomstordning ensam ska inte ge ERR.",
+    "rule_ids": [
+      "U-04"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  },
+  {
+    "id": "ST-I01",
+    "layer": "ai_reconciliation",
+    "from_state": "imported",
+    "event": "difference_detected",
+    "guard": "Rätt avsändare/mottagare/period och format.",
+    "to_state": "requires_investigation",
+    "atomic_effects": "Spara avvikelse och råkällreferens.",
+    "expected_next": "Behörig utredning; separat beslutad mutation.",
+    "if_guard_fails": "Ingen automatisk uppdatering av grunddata.",
+    "rule_ids": [
+      "AI-04"
+    ],
+    "source": "SYS tillståndsdesign; respektive refererad Ediel/Handbok-regel"
+  }
+]

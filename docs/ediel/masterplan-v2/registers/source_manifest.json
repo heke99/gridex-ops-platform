@@ -1,0 +1,44 @@
+[
+  {
+    "id": "P",
+    "filename": "260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B(6).pdf",
+    "sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+    "pages": 140
+  },
+  {
+    "id": "T",
+    "filename": "260220_Ediel-anvisning-generella_tekniska_regler_version_24-A-6(4).pdf",
+    "sha256": "5204d4514774b04b8eedb039e1f4799ed447c7fef14554577935e2d7bd93f951",
+    "pages": 60
+  },
+  {
+    "id": "U",
+    "filename": "260331_Ediel_UTILTS-APERAK_Anvisning_version_25-A-4.pdf",
+    "sha256": "0524c18f38864ebe081dec9d3d53f1797b224ef0af7b01986627e895f47d99be",
+    "pages": 135
+  },
+  {
+    "id": "UE",
+    "filename": "260331_Ediel_UTILTS-APERAK_User_Guide_Version_25-A-4 (2).pdf",
+    "sha256": "a2f2018077b253bb012ef0255c6dc98dcfffeb65b9e707af5ca131838990a92a",
+    "pages": 135
+  },
+  {
+    "id": "AI",
+    "filename": "250401_Ediel_AI-listan_Anvisning_version_14-A-3 Giltig fr_n 2025-10-01(5).pdf",
+    "sha256": "c5815bacbc40beb1ee1b36cb03c71a089fbc18cda3368811afadcdca78899351",
+    "pages": 11
+  },
+  {
+    "id": "OE",
+    "filename": "UTILTS-APERAK_ver_E5SE5A_exempelsamling_objekt_el_250430 (1).pdf",
+    "sha256": "36741ce40f0b67c12cc7df655afd4e260fef86712f3d0272bd6ee61dd76aee6d",
+    "pages": 57
+  },
+  {
+    "id": "AP",
+    "filename": "260807_ANVISNING_APERAK_VERSION05.B.5(4).pdf",
+    "sha256": "0bc4790af2509d19c682748c4aeb85d7acc75cd30214636bae259e2c6c3594bd",
+    "pages": 26
+  }
+]

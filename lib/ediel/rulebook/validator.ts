@@ -3,6 +3,7 @@ import { parseRulebookListPayload, parseRulebookMessage, type ParsedRulebookMess
 import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
 import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
+import { usesUtiltsAperakProfile } from '@/lib/ediel/aperakEngine'
 import { resolveCanonicalRulePack } from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
 import { selectRulebookVersion } from '@/lib/ediel/rulebook/versionSelector'
 import type { RegistryRulePackSnapshot } from '@/lib/ediel/rulebook/fieldRuleRegistry'
@@ -188,7 +189,7 @@ function assertAckFamilyRuntimeVersion(input: {
     normalizeIdentifier(selection.selectedVersion),
     normalizeIdentifier(input.policy.guide.guideRevision),
     normalizeIdentifier(input.policy.guide.associationAssignedCode),
-    ...(input.family === 'APERAK' && sourceFamily === 'UTILTS' ? ['E5SE5A'] : []),
+    ...(input.family === 'APERAK' && usesUtiltsAperakProfile(sourceFamily) ? ['E5SE5A'] : []),
     ...(input.family === 'APERAK' && sourceFamily === 'PRODAT' ? ['E2SE6A'] : []),
   ].filter(Boolean))
 
