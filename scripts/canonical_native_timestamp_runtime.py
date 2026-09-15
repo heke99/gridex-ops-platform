@@ -310,6 +310,8 @@ def execute(command, native, sql, work, project, parent, plan, forward_retained)
         raise ValueError('NATIVE_TIMESTAMP_RETAINED_PLAN_REQUIRED')
     from canonical_native_forward_runtime import programs as forward_programs, execute as execute_forward
     forward_programs(forward_retained)
+    from canonical_native_final_sql import retain as retain_final_sql, execute as execute_final_sql
+    final_sql = retain_final_sql(compiler.ROOT)
     target = NativeTimestampTarget(command, project)
     progress = {'scope': 'NATIVE_TIMESTAMP_EXECUTION_NOT_FULL_SCHEMA_ACCEPTANCE',
                 'executed': False, 'timestampInputsExecuted': 0, 'prerequisitesExecuted': 0,
@@ -396,6 +398,7 @@ def execute(command, native, sql, work, project, parent, plan, forward_retained)
         progress.update(executed=True, phase='ALL_SELECTED_TIMESTAMP_INPUTS_EXECUTED',
                         noOpRepeatVerified=True, actualLedgerRows=len(runner.entries))
         execute_forward(runner, plan, forward_retained, parent)
+        execute_final_sql(runner, final_sql, parent, forward_retained)
         return progress
     finally:
         target.close()

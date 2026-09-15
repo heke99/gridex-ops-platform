@@ -1,6 +1,6 @@
 # PR310 bounded policy dispositions — 2026-09-15
 
-Status: PARTIAL. Three authenticated SELECT predicates are broader than the immutable reference at the policy-composition level. Whether those differences violate the intended application authorization remains unresolved. No production vulnerability, cross-tenant access, schema equality, native acceptance, or release readiness is claimed. Preserve reference and historical sources.
+Status: TARGETED SELECT DISPOSITIONS COMPLETE; broader policy review remains PARTIAL. Six existing-table authenticated read widenings are source-qualified below, 18 TRUE-read substitutions preserve the reviewed predicate, and seven new-table reads have exact tenant guards. Those seven tables nevertheless have a concrete excess-TRUNCATE ACL blocker. No production exploit, schema equality, native acceptance or release readiness is claimed. Preserve reference and historical sources.
 
 ## Scope and evidence
 
@@ -14,13 +14,13 @@ Independent reconstruction DID verify all 31 added `gridex_perf_authenticated_se
 
 Skill routing: bounded code-review/source-contract analysis and direct false-positive checks applied. Broad database scans, SQL optimization, UI, dependency, and application-wide audit groups do not apply to this artifact-specific disposition task. No source, database, reference, or memory mutation performed; this report is the sole repository output.
 
-## Confirmed behavioral divergence; authorization decision still open
+## Confirmed behavioral divergence; targeted disposition below
 
 For the following rows let G denote the unchanged restrictive authenticated lifecycle SELECT guard: allowed session AND (platform administrator OR company_id in the caller's readable company IDs). Each table has an authenticated SELECT grant in the reference and no grant removal for authenticated in this diff. The relation RLS flags and these restrictive guards are unchanged. Thus a permissive TRUE policy changes the effective SELECT predicate to G. This is conditional predicate reasoning, not an executed actor test.
 
 | Table | Immutable reference composition | Observed replay addition | Disposition |
 | --- | --- | --- | --- |
-| user_roles | Only permissive authenticated SELECT is `gridex_linter_user_roles_self_read`, requiring user_id = auth.uid(); effective predicate is self AND G | Self policy removed; hash-verified permissive TRUE SELECT added | Same-tenant non-self role rows can pass G in replay but cannot pass the reference self policy. Prioritize actor tests and explicit expected-access decision. |
+| user_roles | Only permissive authenticated SELECT is `gridex_linter_user_roles_self_read`, requiring user_id = auth.uid(); effective predicate is self AND G | Self policy removed; hash-verified permissive TRUE SELECT added | Same-tenant non-self role rows can pass G in replay but cannot pass the reference self policy. Source-qualified tenant read; preserve the distinct platform-only management boundary. See follow-up. |
 | company_customer_number_sequences | No permissive SELECT policy; restrictive guards alone do not authorize authenticated reads | Hash-verified permissive TRUE SELECT added | Changes from no authenticated row visibility to G. Historical source explicitly authors tenant reads, so do not automatically revert this to the reference. |
 | customer_info_request_events | Sole permissive policy is PUBLIC ALL with auth.role() = service_role; an ordinary authenticated JWT does not satisfy it | Named PUBLIC policy removed; hash-verified permissive TRUE authenticated SELECT added | Changes from service-predicate-only to lifecycle-scoped authenticated reads. Historical source also explicitly authors tenant SELECT. No blanket equivalence. |
 
@@ -58,14 +58,14 @@ Service-role policies must be examined with actual role attributes, role inherit
 | gridcore_ediel_saas_* on metering_permissions | 3 | T1 authors authenticated tenant read/write; generated replacements and a TRUE read policy exist. Check composition with unchanged restrictive lifecycle guards; no name-only acceptance. |
 | ediel_send_locks_tenant_* | 3 | Reference policies target PUBLIC, not merely authenticated. Added generated/authenticated read replacements do not automatically preserve PUBLIC behavior for roles omitted from the finite compiler inventory. Tenant/source behavior remains to qualify. |
 | customer_info_request_events_service_role_all | 1 | Despite its name it targets PUBLIC and tests auth.role(). Authenticated-read divergence is established above. |
-| gridex_linter_user_roles_self_read | 1 | Self-read replaced by tenant lifecycle read at policy level; source/app contract unresolved above. |
+| gridex_linter_user_roles_self_read | 1 | Self-read replaced by tenant lifecycle read at policy level; source-qualified read disposition below; not reference equality. |
 | tenant_lifecycle_anon_deny_guard | 3 | auth_email_events, company_customer_number_sequences, inbound_processing_jobs. Exactly the same three tables lose all eight direct anon privileges each (24 removals). No added PUBLIC grants or changed relation RLS flags are present for them. Therefore removal alone does not establish current anonymous reachability. The exact source path removing these restrictive guards is unresolved; retain this as a defense-in-depth difference. |
 
 The three anonymous guard removals must NOT be attributed to T55: its loop explicitly restricts itself to permissive policies. Nor does T481's dead-policy cleanup apply: it targets only grant-less supabase_privileged_role/dashboard_user/authenticator policy roles, not anon. Full effective privileges include PUBLIC and inherited role rights, which require runtime verification. Future grants could make missing guards significant.
 
 ## Selected source lineage
 
-The actual timestamp prepare selector was run read-only and returned the following retained source identities. These are source/compiler selection evidence, not native SQL execution receipts.
+At the original historical 601-input/514-timestamp boundary, the timestamp prepare selector was run read-only and returned the following retained source identities. These are source/compiler selection evidence, not native SQL execution receipts.
 
 | Ordinal | Source basename | SHA256 |
 | --- | --- | --- |
@@ -79,13 +79,217 @@ The actual timestamp prepare selector was run read-only and returned the followi
 
 T354 creates restrictive lifecycle guards and removes direct access-management DML grants. T442:205–339 substitutes permissive TRUE reads only in the presence of a restrictive authenticated SELECT guard and qualifying older generated policies. Its intent is to preserve the effective predicate at that source point, not to match an externally retained snapshot built from another starting policy inventory. T336 normalizes named ALL policies and selected generated service policies. T481 explicitly excludes PUBLIC from its dead-role cleanup. None of these source comments is accepted as a proof of full role inheritance or whole-policy-set equivalence.
 
-## Required next evidence
+## Targeted final SELECT composition and authorization decisions
 
-1. Preserve these three widening observations and obtain explicit expected authorization for ordinary member, operations/company-admin, platform-admin and service caller on the three tables. Do not narrow source-selected behavior or rewrite the reference merely to erase the diff.
-2. Run fixed disposable native actor cases: own row, another user's same-company row, other company, NULL-company/global row, paused/suspended/removed membership, revoked session, and service role with actual attributes and controlled claims. Compare reference and source-selected composed policies, not isolated predicates alone. Include direct table API permission and function EXECUTE permissions.
-3. Recover/reconstruct all 128 replay USING/WITH CHECK expressions and source stages; retain per-row hashes and compare effective permissive OR / restrictive AND composition. The current archive cannot supply those expression operands.
-4. Explain the three missing anonymous restrictive guards using actual source execution evidence and test effective anon/PUBLIC/inherited privileges. Preserve all existing denials during any repair.
-5. Native complete execution, remaining added-policy review, function helper identity/security checks, privileges, schema/types and same-head CI/E2E remain separate gates.
+This follow-up covers exactly the 31 hash-verified TRUE reads and their relation
+ACL/tenant guards. It does not discharge the 128 changed write/service predicates,
+all 486 added policies, helper EXECUTE on arbitrary roles, or whole-role inheritance.
+The original three-table observation was incomplete: actor_test_results,
+contract_offer_versions and website_customer_applications also have authenticated
+SELECT grants and no permissive reference SELECT/ALL policy. Their TRUE additions
+create three more read widenings. There are **18 equivalent predicate cases,
+6 existing-table source-qualified widenings, and 7 new-table cases**, not 28
+implicitly equivalent cases plus three exceptions.
+
+### Exact predicates, role/session scope and NULL behavior
+
+The full deparsed replay restrictive predicate G was reconstructed against all
+seven new-table guard hashes (table below):
+
+```sql
+( SELECT gridex_is_current_session_allowed() AS gridex_is_current_session_allowed)
+AND (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)
+     OR (company_id IN ( SELECT gridex_user_company_ids() AS gridex_user_company_ids)))
+```
+
+Its canonical hash input contains those lines joined by single spaces. It is a
+RESTRICTIVE authenticated SELECT policy; WITH CHECK is the empty string. The
+other 24 tables have this exact unchanged reference guard. All 31 TRUE additions
+are PERMISSIVE authenticated SELECT with no WITH CHECK; no relation RLS flag
+change was reported for the 24 preexisting tables. The seven new guards are
+independently matched rather than inferred from their names.
+
+The complete reference permissive P for the 18 equivalence cases is:
+
+```sql
+( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)
+OR (company_id IS NOT NULL AND public.gridex_can_read_company(company_id))
+```
+
+`schema.sql` preserves redundant outer parentheses around this expression; those
+parentheses are omitted in this displayed semantic transcription. PUBLIC-target
+policies apply to authenticated; metering_permissions targets authenticated
+explicitly. All 18 have exactly this SELECT branch and G. No reference
+permission-specific SELECT/ALL branch makes the result narrower than this P.
+For an RLS-subject authenticated role with SELECT privilege, G implies P: an
+allowed platform administrator satisfies P directly; an allowed tenant membership
+has a non-NULL matching company and satisfies can_read_company. Therefore
+`G AND P = G`, and replay `G AND TRUE = G`. This proves the reviewed SELECT
+predicate, including NULL-company denial for ordinary members, not the policies
+for arbitrary inherited roles or DML commands.
+
+Helper source authority and limits are explicit:
+
+- `20260814162500_tenant_rls_lifecycle_hardening.sql:16-55` defines company IDs and
+  can_read_company using an allowed session, membership user_id=auth.uid(),
+  COALESCE(status,'active')='active', COALESCE(is_active,true), and company status
+  active/onboarding/paused. It applies **no membership_role or permission-key
+  filter** to reads. Member, operations and company-admin have the same tenant
+  row visibility under G. A membership in a second readable company also permits
+  that company; the UI's currently selected company is not an RLS restriction.
+- `20260802190000_canonical_emergency_access_lockdown.sql:120-165` requires an
+  authenticated, undeleted, unbanned, confirmed Auth user and active profile for
+  the platform-admin helper; authority comes from an active admin_users platform
+  role or an active, NULL-company user_roles platform assignment. Reading another
+  user's role row does not satisfy those actor-bound authority tests.
+- `20260730130000_historical_sync_forward_repair.sql:66-117` defines session
+  allowance from auth.uid(), profile.user_status and disabled_at. It rejects
+  disabled/locked_security/removed_from_company/invitation_revoked profiles.
+  It does **not** query auth.sessions or prove token revocation. Missing profile
+  status is coalesced active by this helper; readable membership is still required
+  for an ordinary tenant caller. Do not rename G as a proven revocation gate.
+- The full artifact shows no function or function-grant delta for these four
+  helpers. The helper EXECUTE grants and DEFINER/search_path bodies remain
+  separate from relation policy row hashes and must survive native qualification.
+
+| Caller/row condition, assuming SELECT privilege and RLS applies | Result under G |
+| --- | --- |
+| Allowed member/operations/company-admin, active membership, own active/onboarding company | Read |
+| Same actor and membership, paused company | Read; paused is deliberately read-only, not hidden |
+| Different company without membership; NULL-company row for ordinary member | Deny |
+| Inactive/removed membership, or suspended/archived/closed tenant, without platform authority | Deny |
+| Session helper returns false, including disabled_at populated | Deny even if a separate platform predicate could pass |
+| Allowed platform administrator, including NULL-company/platform row | Read |
+| Role named service_role, role with BYPASSRLS, anonymous or custom inherited role | Outside this authenticated predicate proof; inspect real role attributes/ACL |
+
+### Eighteen equivalent authenticated SELECT predicates
+
+Exactly these tables share the P/G proof above: audit_logs, communication_routes,
+company_invitations, customer_addresses, customer_authorization_documents,
+customer_contacts, customer_contract_events, customer_documents,
+customer_internal_notes, customer_operation_tasks, ediel_actor_settings,
+ediel_route_profiles, ediel_send_locks, grid_owner_data_requests,
+metering_permissions, outbound_dispatch_events, outbound_requests, partner_exports.
+All have authenticated SELECT in the reference and no authenticated SELECT grant
+removal in the artifact. Decision: preserve these TRUE substitutions for this
+SELECT comparison. Their retained ALL-equivalent or other non-SELECT privileges
+are **not approved by this algebra**; neither are payload classification or
+platform-only mutation requirements. Historical source `T442`'s substring search
+is not itself proof of implication; this result comes from the exact predicates.
+
+### Six source-qualified read widenings on existing tables
+
+| Table | Reference effective authenticated read | Concrete read disposition and authority |
+| --- | --- | --- |
+| user_roles | user_id=auth.uid() AND G | Preserve same-readable-tenant role reads under G. May21 batch2b:14,51-61 and batch2c:14,50-60 explicitly author tenant reads. June11 linter:27-51 adds self-read for invoker helpers without dropping broader reads or declaring others forbidden. User-list/role-management UI remains separately platform guarded; this read does not grant role assignment or platform identity. |
+| company_customer_number_sequences | Deny: no permissive SELECT/ALL | Preserve tenant counter reads under G. June9 website foundation:563-603 expressly promises tenant/platform reads on this named table; numbering RPCs own counter mutations. No absence-of-caller argument overrides that source contract. |
+| customer_info_request_events | auth.role()='service_role' AND G; false for ordinary authenticated claim | Preserve tenant event reads under G as explicitly authored by May21 batch2b. May26 debug source documents direct access following company boundaries; its restored-envelope status alone is not used as proof of a surviving policy. Raw table reads may include all same-company event types/payloads, not only the five Z01 types displayed by the application. This is a deliberate scoped read disposition, not equivalence to the narrower UI DTO. |
+| actor_test_results | Deny: no permissive SELECT/ALL | Preserve tenant results reads under G. May21 live-readiness hardening:272-280 explicitly creates tenant SELECT, and batch2c:22,50-60 repeats it. Platform actor-testing page permission controls managing/aggregating tests and does not undo the source-authored tenant result view. |
+| contract_offer_versions | Deny: no permissive SELECT/ALL | Preserve tenant version reads under G. May19 final_saas_hardening:479,509-522 authors membership reads; batch6d2_runtime_governance:224,263-268 replaces them with can_read_company. The earlier service-predicate-only source is not the final read authority. No tenant write/publish authority follows. |
+| website_customer_applications | Deny: no permissive SELECT/ALL | Preserve tenant application reads under G. June9 website foundation:563-603 names this table and permits tenant reads; current website-applications page:939-948 enforces its permission and company scope before the mediated UI read. Direct table reads still follow G, not that UI permission list. |
+
+This is a policy-level expected-access decision supported by explicit selected
+read sources and the documented company isolation contract in
+`docs/ai-context/03_DATABASE_RLS_TENANT_RULES.md:3-22`. It does not assert that
+service-role callers imply raw table-read authorization. Conversely, a platform
+management page alone is not evidence that every same-tenant read is forbidden.
+`app/admin/users/page.tsx:61-69`, `app/admin/users/actions.ts:307-333`, and
+`lib/auth/companyUserAccess.ts:65-83` retain actor/company-bound management and
+active-role verification. `lib/onboarding/infoRequests.ts:207-235` keeps its
+narrow event projection/filter. No current requirement banning the broader,
+explicitly authored tenant reads was established in those paths or documentation.
+Do not silently narrow them solely to match the reference, or claim their raw
+row visibility is identical to those mediated application surfaces.
+
+### Seven new-table reads: exact guards, specific source purposes, blocked ACL acceptance
+
+Each table below has a hash-verified TRUE read and the following exact G guard.
+Each also has an observed authenticated SELECT grant. These are not new-table-name
+allowances: the intended read source and actual restrictive predicate are both
+required. The row hashes identify only the guard, not acceptance of all ACLs.
+
+| Table | Read source/purpose | Restrictive SELECT row SHA256 |
+| --- | --- | --- |
+| billing_disputes | June9 website foundation:563-603 explicitly names tenant billing dispute reads | `be709d5b67709b72c26e175085909f801672addd0768346894a8a35f8f1a9ba9` |
+| billing_partner_customers | Same source names tenant billing-partner customer mappings; company admin page:323 reads the scoped mapping | `37bbb6196c1e0f804cf21a85ea433a96affedb046433d78d377919e01e5cc693` |
+| company_go_live_reviews | May21 live-readiness hardening:283-293 explicitly separates tenant read from platform write | `d2f11d788f87ba5c803ae3acbab8d3374e522cce90792142d4df8f1c49f49ab0` |
+| customer_import_batches | May21 batch2b:29,51-61 and batch2c:31,50-60 explicitly provide tenant reads; authenticated import-queue client reads at imports/page.tsx:134-153 | `a736c6d9075aa25d88226178c7970f41a5e4e4e826665c94f52fd4d615b79e6d` |
+| customer_import_rows | Same explicit tenant policy sources; authenticated queue client reads rows at imports/page.tsx:155-169 after choosing batch IDs | `1bc670ee8c09ab65d13bf66833157a206a1920c8d264d132a49fbccd0ca41245` |
+| grid_owner_access_agreements | May28 batch7a:347-355 explicitly allows tenant high-level agreement reads, separately from technical mailbox/parser tables | `ee00a98075a530f53e3b451bf0a39de1d3ac8a9a06bcfa6162fe3e4facd9c519` |
+| production_route_wizard_runs | May21 batch2b:109-117 explicitly provides tenant run reads; platform route-wizard page:70-78 projects status/summary by company | `40b84fc4f32786b64f86d67afd545f305b5099350d663b1c18e3ffee0c6810ad` |
+
+Decision: preserve the seven source-authored SELECT predicates, **but reject
+complete ACL acceptance**. The artifact grants authenticated all eight table
+privileges on each: SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER,
+MAINTAIN. In particular TRUNCATE is not constrained by RLS, so a correctly scoped
+SELECT predicate cannot establish tenant isolation for the granted relation as a
+whole. This is a concrete catalog capability defect, not a claim that a public
+HTTP endpoint exposes arbitrary TRUNCATE SQL or that an exploit was executed.
+FK dependencies, transaction locks or triggers may make a particular attempted
+truncate fail; none turns the grant into tenant-scoped authority.
+
+Narrow forward correction recommendation: revoke authenticated TRUNCATE on these
+exact seven relations, with fail-closed shape/privilege preflight and native
+multi-tenant denial/unchanged-row assertions. Do not replace read policies or
+rewrite historical sources. Review REFERENCES/TRIGGER/MAINTAIN under the separate
+ACL domain; no application requirement for them was found, but this follow-up
+does not prescribe broad DML revocations or claim all DML predicates safe.
+The current `20260915121224_restrict_retained_operational_table_privileges.sql`
+targets six different BL-001 relations and **does not repair these seven**.
+No migration was changed by this review; this finding has been reported to the
+controller before any proposed correction.
+
+### Exact ACL blocker and follow-up source identities
+
+All seven following artifact identities are `(public, TABLE, authenticated,
+TRUNCATE)` in relation_grants.added. They are evidence of the grant, not an
+executed destructive statement or proof of a public HTTP SQL endpoint.
+
+| Table | Added TRUNCATE grant row SHA256 |
+| --- | --- |
+| billing_disputes | `c119c5dfeec91427ee52d5573c3587a97c06e2d82d67592fc02f8326cf4f2541` |
+| billing_partner_customers | `37e5a05d88ce9ab83d950b0768c62e8f696b87130a46c4ad164f2b7d6230f0c8` |
+| company_go_live_reviews | `edd36042f5de5ba239d400390a80c78fc8d16554fbed8ab83915ac12e9a704df` |
+| customer_import_batches | `682f247343f12d23a1824a9809ca97b57d63f2b29663ac4c658e5b976ad0e4bf` |
+| customer_import_rows | `8a591af6a0e88be5a3b3aa5260a263ef636d44f112ba3f455534a3f4e5da7c7f` |
+| grid_owner_access_agreements | `6c564f77539099a931d39249ad00b8bc5d62ba0bd86b9e8873fee1acd6db273a` |
+| production_route_wizard_runs | `803ef9487aec62873ae65c50b0ba242f93c120869db50174eb0e3d869d75bc35` |
+
+Additional complete source files read/hash-checked for this follow-up (the timestamp
+helper/compiler identities remain in the earlier source-lineage table):
+
+| Source basename | SHA256 |
+| --- | --- |
+| `20260519_final_saas_hardening.sql` | `2037dbc535d18d7575820d7f40d2a8ef4848b67060161e6851a01eb15990105e` |
+| `20260519_batch_6d2_runtime_governance_completion.sql` | `b7d9d48b9cd3093b5546b04225f9c6151b0f674d2ae73441d8086f51922de9ab` |
+| `20260521_batch_2b_full_automation_and_live_ops.sql` | `20f6846c8857d04381e8956e55d683253eaa0805a88963294c12d9d942f19c4f` |
+| `20260521_batch_2c_end_to_end_operations.sql` | `ed0784a0fa59b447c48e90d4d7220c71e778a4cba5e70254dfad9eea6693d5dd` |
+| `20260521_batch_1_2_live_readiness_and_automation_hardening.sql` | `9f741fb9afc07661713e8448cb394f9ec950e25eaf56ee4422b0983886f81c34` |
+| `20260528_batch_7a_route_inbound_mail_platform_ui.sql` | `a5ca82d1c68f44c8542820e5d209fd5d31356a16e7eb1ccc827843a61e0ba690` |
+| `20260609162000_batch_7_website_integration_foundation.sql` | `1809f5c8926ec6bda991eb861cc3ba7a24738e8655b47e94f4ab086d5f2afb0b` |
+| `20260730130000_historical_sync_forward_repair.sql` | `3e204b00fa33badbfdc7a11c0304df3bc5385b16e0854e40af2df1c06b32b50b` |
+| `20260802190000_canonical_emergency_access_lockdown.sql` | `9f5071e87c0689feb84f8701cbbeef72f65fb1c227862fb1ba628da47bb40d43` |
+
+## Remaining execution and broader policy gates
+
+1. Native actor fixtures must assert the chosen six tenant-read widenings,
+   the 18 equal authenticated predicates, and each of the seven newly reconstructed
+   guards. Include non-self role rows, ordinary member/operations/company-admin,
+   platform user, other/NULL company, paused versus suspended company, inactive
+   membership and disabled profile. An actual revoked-session test is separate
+   from this helper's profile gate.
+2. For each seven-table ACL case, seed two synthetic companies in a disposable
+   target, show SELECT scoping, then attempt TRUNCATE as the actual authenticated
+   role after correction and require42501 plus exact unchanged rows. Before a
+   correction, inspect effective privilege rather than require successful destructive
+   execution against unknown incoming FKs. Use no production data.
+3. Recover/reconstruct all 128 replay USING/WITH CHECK operands and relevant
+   source stages for write/service authorization. None is discharged by TRUE SELECT.
+4. Resolve missing anonymous restrictive guards and effective PUBLIC/inherited
+   privileges. Their omission is not explained by the permissive-policy compiler.
+5. Native complete execution, remaining added-policy review, function security,
+   generated schema/types and same-head CI/E2E remain separate gates. This audit
+   changes no acceptance hash or runtime assertion.
 
 ## Complete reviewed identity register
 

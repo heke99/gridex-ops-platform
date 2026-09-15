@@ -1,0 +1,82 @@
+name: Gridex inbound service privilege qualification
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-inbound-service-privilege-qualification.yml'
+      - 'scripts/canonical-inbound-service-privileges-selftest.py'
+      - 'scripts/canonical-composite-customer-fk-selftest.py'
+      - 'scripts/test_canonical_inbound_service_privileges.py'
+      - 'supabase/migrations/20260904120000_canonical_tenant_invariant_convergence.sql'
+      - 'scripts/sql/forward-candidates/restrict-inbound-service-table-privileges.sql'
+permissions:
+  contents: read
+jobs:
+  inbound-service-privileges:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gridex_auth_test
+        ports:
+          - 55440:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d gridex_auth_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Qualify scoped privileges in the owned PostgreSQL 17 service
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql 'postgresql://postgres:postgres@127.0.0.1:55440/gridex_auth_test' -X -v ON_ERROR_STOP=1 -c 'CREATE ROLE authenticated NOLOGIN; CREATE ROLE service_role NOLOGIN; CREATE ROLE anon NOLOGIN;'
+          mkdir -p artifacts/inbound-service-privilege-candidate
+          python3 -B -m unittest discover -s scripts -p test_canonical_inbound_service_privileges.py
+          python3 -B scripts/canonical-inbound-service-privileges-selftest.py | tee artifacts/inbound-service-privilege-candidate/qualification.json
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Create genuine CLI filename for the qualified staged candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(supabase --version)" == '2.101.0' ]]
+          candidate_root="$(mktemp -d)"
+          trap 'rm -rf -- "$candidate_root"' EXIT
+          supabase --workdir "$candidate_root" init
+          supabase --workdir "$candidate_root" migration new restrict_inbound_service_table_privileges
+          migration_files=("$candidate_root"/supabase/migrations/*_restrict_inbound_service_table_privileges.sql)
+          [[ "${#migration_files[@]}" == 1 && -f "${migration_files[0]}" ]]
+          cp scripts/sql/forward-candidates/restrict-inbound-service-table-privileges.sql "${migration_files[0]}"
+          mkdir -p artifacts/inbound-service-privilege-candidate
+          cp "${migration_files[0]}" artifacts/inbound-service-privilege-candidate/
+          python3 - <<'PY'
+          import hashlib,json,pathlib,re,subprocess
+          root=pathlib.Path('artifacts/inbound-service-privilege-candidate')
+          qualification=json.loads((root/'qualification.json').read_text())
+          assert qualification['scope']=='LIMITED_PG17_INBOUND_ACL_FIXTURE'
+          assert qualification['candidateSha256']=='0ee026c41d180768b23e20826d522387cc1c65e9c689304472f62cda39b19033'
+          assert all(qualification[k] is True for k in ('exactAclDeltaVerified','serviceDmlVerified','rowsAndCatalogPreserved','atomicityVerified','repeatVerified','cleanupVerified'))
+          assert qualification['schemaAccepted'] is False and qualification['productionModified'] is False
+          files=list(root.glob('*.sql'))
+          assert len(files)==1 and re.fullmatch(r'[0-9]{14}_restrict_inbound_service_table_privileges.sql',files[0].name)
+          digest=hashlib.sha256(files[0].read_bytes()).hexdigest()
+          assert digest=='0ee026c41d180768b23e20826d522387cc1c65e9c689304472f62cda39b19033'
+          receipt=dict(scope='CLI_FILENAME_AND_ISOLATED_SQL_NOT_SCHEMA_ACCEPTANCE',cliVersion='2.101.0',
+            sourceHead=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),file=files[0].name,
+            sha256=digest,isolatedPostgresVerified=True,selectedMigration=False,schemaAccepted=False,productionModified=False)
+          (root/'cli-creation.json').write_text(json.dumps(receipt,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gridex-inbound-service-privilege-candidate
+          path: artifacts/inbound-service-privilege-candidate/
+          if-no-files-found: error
+          retention-days: 7

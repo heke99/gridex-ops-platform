@@ -166,8 +166,12 @@ class NativeTimestampTarget:
             self.command(source)
         if self._oid(database) is not None:
             raise ValueError('NATIVE_TIMESTAMP_PREEXISTING_CLONE')
-        result = self._run(['docker', 'exec', self.name, 'createdb', '-U', 'postgres',
-                            '-T', source, database], timeout=120, allow_failure=True)
+        if source == 'postgres':
+            from canonical_native_clone_quiesce import create_from_postgres
+            result = create_from_postgres(self, database)
+        else:
+            result = self._run(['docker', 'exec', self.name, 'createdb', '-U', 'postgres',
+                                '-T', source, database], timeout=120, allow_failure=True)
         if result.returncode != 0:
             raise ValueError(clone_create_failure(result.stderr, source))
         oid = self._oid(database)

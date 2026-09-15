@@ -1,6 +1,6 @@
 # Native timestamp clone diagnostic — PR310
 
-Status: IMPLEMENTED_NOT_VERIFIED. No semantic clone correction is asserted.
+Status: ACTUAL_CAUSE_VERIFIED; bounded correction implemented, native verification pending.
 
 Actual70ce549f OPS34966099676/job104370788723 completes the144 foundations and
 all seven groups with actual ledger/fault/repeat proof. Timestamps1–7 pass.
@@ -35,3 +35,22 @@ the utility result. Corrected proof26, timestamp-runtime19, lifecycle15, ledger8
 preflight3 and full historical integration166 tests pass. Reviewer independently
 checked the diagnostic and preflight scopes; no necessary findings. Actual native
 preflight is required to identify the cause before a narrowly scoped correction.
+
+## Subsequent actual diagnosis and bounded correction
+
+139c837d preflight34971870647/job104389843483 produces exactly
+NATIVE_TIMESTAMP_CLONE_CREATE_SOURCE_DATABASE_IN_USE and verified cleanup.
+Artifact10398315121 metadata digest is
+22b3b03ae25178d1cfe5bdf6a52c29bf10aed95673de4158f66971ce5234ce96.
+The short native reproduction identifies the former utility ambiguity.
+
+The correction admits only the exact owned NativeTimestampTarget and finite clone
+name. An owner-checked template1 maintenance connection temporarily disables new
+connections to the isolated postgres source, drains at most64 source-bound
+backends, and lets the original createdb operation copy it. The finally block is
+entered before disabling connections; it restores the original connection setting
+and requires exact database metadata, role settings, snapshot and ledger equality.
+No hosted address, caller database name, arbitrary SQL or PID can enter this path.
+Only finite failure categories are published. Failed restoration cannot be accepted
+and enclosing owned-container disposal remains mandatory. Offline quiescence6 and
+proof26 tests pass; actual native proof is required and is not asserted here.

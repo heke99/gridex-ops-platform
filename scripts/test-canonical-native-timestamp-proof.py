@@ -58,6 +58,14 @@ class BoundaryTests(unittest.TestCase):
     def setUp(self):
         self.transport = Transport()
         self.target = proof.NativeTimestampTarget(self.transport, PROJECT)
+        # Maintenance SQL has its own faithful boundary suite. Keep these
+        # existing transport/clone tests focused on OIDs and error projection.
+        def quiesced(target, destination):
+            return target._run(['docker','exec',target.name,'createdb','-U','postgres',
+                                '--maintenance-db=template1','-T','postgres',destination],
+                               timeout=120,allow_failure=True)
+        current = patch('canonical_native_clone_quiesce.create_from_postgres',side_effect=quiesced)
+        current.start(); self.addCleanup(current.stop)
 
     def test_arbitrary_project_rejected_before_io(self):
         for name in ('production', PROJECT+'x', 'https://x.supabase.co'):

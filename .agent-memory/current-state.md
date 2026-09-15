@@ -4,22 +4,39 @@ Status: PARTIAL
 
 ## Active work and exact next action
 
-Current bounded task: identify actual native clone failure with a short synthetic
-native preflight and closed utility-error categories before modifying semantics.
-70ce549f clean34966099676/job104370788723 completed FAILURE at T8 after source
-and real CLI ledger verification; prior NULL parse error is gone. Now original
-positive restoration succeeds but clone utility fails NATIVE_COMMAND_FAILED,
-exit1/command1449; all owned cleanup passes. Artifact10396872362 records this
-new boundary. It is not an auth or historical source SQL failure. Exact clone
-cause is not yet observed; do not guess, grant privileges or terminate sessions.
-The current163e8dfe native/independent-schema runs are pending. A short new
-clone-preflight reproduces on the same native bootstrap without the long prefix.
+Current bounded task: publish the reviewed, narrowly owned clone-quiescence
+correction and run the fast native preflight before accepting the historical chain.
+Actual139c837d preflight34971870647/job104389843483 FAILS with the precise
+NATIVE_TIMESTAMP_CLONE_CREATE_SOURCE_DATABASE_IN_USE category; cleanup passes.
+Artifact10398315121 is available. This resolves the previously unknown70ce549f
+clone failure. The new helper temporarily blocks new connections only to postgres
+inside the admitted isolated native container, drains only that source database,
+clones via template1, and restores exact database metadata/settings, full schema,
+rows and real ledger. Restoration is mandatory even when pause/create fails.
+Offline tests pass; actual SQL execution of this correction is still pending.
 
-Publication base163e8dfed6fb970db2d8455fd418bb84e151e309, exact tree
-ce438cdd43a15fd90fea33142d1697f594ca68a4, published and fetched with equality verified. Preserve its entire ancestry,
-including auth ec503fc, the514-source native compiler335f987f, explicit stdin
-82cb5d00, complete foundation admission61d6748e, clone NULL70ce549f, complete
-non-system snapshot80718722 and operational privilege qualification fd4fb907.
+Publication base139c837d108505b0071cef5080c01e438791eca4, exact tree
+83c3aa01c01c12d43b0eb911750b32d3437da7b0, published/fetched with equality verified.
+Preserve its entire ancestry, including auth ec503fc, compiler335f987f, stdin
+82cb5d00, foundation admission61d6748e, clone NULL70ce549f, complete snapshot
+80718722, operational qualificationfd4fb907 and forward integration163e8dfe.
+
+Actual163e8dfe portable34971038792/job104387127532 completes144+514+2 and all
+forward postcondition/repeat/row-preservation controls. Independent schema remains
+red: removed constraints11 ->9 and added relation grants1512 ->1488 exactly match
+the two repairs; remaining difference categories are unchanged. Artifact10397506091
+ZIP SHA2569f354091b31b7e3ee2dfbb1ad6b9bb117d0d6e0722fcad5d40024563959597a6.
+This does not prove official native ledger acceptance.
+
+Five unchanged, exact-byte-pinned existing final SQL checks are now wired inside
+the owned native lifecycle after complete historical and forward ledger admission,
+before disposal. They require per-check schema/row/ledger preservation; this is
+not schema or type acceptance and has not yet executed against the complete target.
+Two additional source-qualified privilege candidates are staged outside selection:
+7 new tenant tables lose authenticated TRUNCATE; 3 explicitly service-only inbound
+tables lose all authenticated table rights. Independent reviews/offline controls
+pass. Each dedicated PG17 workflow must actually qualify SQL and create a genuine
+CLI filename before promotion. Neither candidate is a migration yet.
 
 The forward integration is published: two genuine CLI-created, SQL-qualified forward sources
 AFTER the unchanged144 foundation and514 historical timestamp inputs, through
@@ -50,13 +67,11 @@ cleanup verified. This is LIMITED_FK_AND_TWO_IMMUTABLE_TRIGGERS, not whole
 application graph acceptance. Preserve source-authored NO ACTION composites;
 do not blindly restore reference CASCADE definitions.
 
-Native latest fd4fb907 OPS34967447036/job104375186062 is running; earlier
-70ce549f native104370788723 also running. Latest fully observed boundary remains
-144 foundations plus timestamp1–7 on335f987f. Timestamp8 source and CLI ledger
-succeeded there, but a clone identity SQL-NULL JSON parse failed afterwards.
-70ce549f corrects that demonstrated defect; actual continuation is pending.
-Auth and quality-release-gates on70ce549f are SUCCESS. verify still fails the
-genuine generated-types migration-tail guard, not a new auth failure.
+Native fd4fb907 OPS34967447036/job104375186062 also fails cloning during the
+new full-snapshot qualification, before timestamp execution.70ce549f completed
+failure after the T8 positive restoration; actual accepted boundary remains144
+foundations and timestamps1–7. Auth and quality-release-gates on70ce549f pass;
+verify still fails the genuine generated-types migration-tail guard.
 
 Next: complete reviewed forward admission and actual ledger-dependent readiness
 T257/T262/T275/T351 behavior qualification without synthetic historical ledger
@@ -72,8 +87,8 @@ Independent schema reference remains unchanged at SHA256
 b46b90d7ff066d71964c9157044ac70b31b47cab114cfcbce5d270751012dd30.
 Full portable335f987f artifact10394485748 agrees with earlier comparison.
 Audits now bind exact deltas for typed/remaining columns, constraints, indexes,
-policy changes/removals and grants to source/application evidence. Some policy,
-function privilege and nullable/default dispositions remain OPEN; full schema
+policy changes/removals and grants to source/application evidence. Column/default and removed function-grant dispositions have source-backed audits.
+Some policy and control-view capability dispositions remain OPEN; full schema
 acceptance and generated types remain false. No main merge or production work.
 
 ## Preserved history and access
