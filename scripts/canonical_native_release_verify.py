@@ -54,7 +54,7 @@ def verify(root=ROOT,*,started_ns):
     # verifier. Bind every collector receipt back to the enclosing native owner.
     for key in ('policyActorQualification','removedPolicyQualification','addedViewSourceWitness',
                 'changedViewSourceWitness','changedFunctionBehaviorWitness','changedIndexSourceWitness',
-                'intakeJsonbSourceWitness','nativeFinalSql','historicalTimestampTail'):
+                'intakeJsonbSourceWitness','nativeFinalSql','historicalTimestampTail','addedNonuniqueIndexWitness'):
         if report.get(key)!=diff.get(key) or key not in report:
             raise ValueError('NATIVE_RELEASE_WITNESS_BINDING_REQUIRED')
     import canonical_changed_function_witness as functions
@@ -62,6 +62,8 @@ def verify(root=ROOT,*,started_ns):
         module.validate_execution_receipt(report.get(key),native=True)
     from canonical_native_dump_verify import validate as validate_dump
     validate_dump(report.get('nativeNormalizedDumpComparison'))
+    import canonical_added_nonunique_index_decisions as nonunique
+    nonunique.validate_execution_receipt(report.get(nonunique.KEY),native=True)
     schema=decisions.verify(diff)
     if schema['schemaAccepted'] is not True:
         counts={}

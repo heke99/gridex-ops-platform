@@ -35,6 +35,9 @@ class Tests(unittest.TestCase):
   diff['nativeFinalSql']=dict(scope='POST_REPLAY_SQL_NOT_SCHEMA_OR_TYPE_ACCEPTANCE',verified=True,
    checks=[dict(source=p,sourceSha256=h,verified=True,catalogAndRowsPreserved=True,ledgerUnchanged=True) for p,h in PINS.items()],
    schemaAccepted=False,generatedTypesVerified=False)
+  # The UUID decision requires this actual FK context, but does not approve its behavior.
+  diff['sections']['constraints']['added'].append(dict(identity=['public','ediel_send_locks','ediel_send_locks_locked_by_fkey'],sha256=m.uuid_inet.FK_SHA))
+  diff['sections']['constraints']['replayCount']+=1
   return diff
  def verify(self,diff,fail=None,context=True):
   with ExitStack() as stack:
@@ -44,18 +47,20 @@ class Tests(unittest.TestCase):
    return m.verify(diff)
  def test_reviewed_scope_is_closed_and_positive_only(self):
   records=m.approved()
-  self.assertEqual(len(records),1024)
+  self.assertEqual(len(records),1388)
   self.assertEqual(sum(r['section']=='policies' and r['change']=='removed' for r in records),59)
   self.assertFalse(any('REVIEW_REQUIRED' in r['decision'] for r in records))
- def test_exact_mapping_accepts_only_with_every_runtime_receipt(self):
+ def test_exact_mapping_requires_receipts_and_keeps_fk_acceptance_separate(self):
   diff=self.fixture();result=self.verify(diff)
-  self.assertTrue(result['schemaAccepted']);self.assertFalse(result['referenceRewritten'])
+  self.assertFalse(result['schemaAccepted']);self.assertFalse(result['referenceRewritten'])
+  self.assertEqual(len(result['matched']),1388)
+  self.assertEqual([(r['section'],r['change']) for r in result['unsupported']],[('constraints','added')])
   for key in m.WITNESSES:
    with self.assertRaises(ValueError):self.verify(diff,fail=key)
  def test_unknown_actual_row_is_an_explicit_blocker(self):
   diff=self.fixture();group=diff['sections']['functions'];group['added'].append(dict(identity=['public','new_fn',''],sha256='c'*64));group['replayCount']+=1
   result=self.verify(diff)
-  self.assertFalse(result['schemaAccepted']);self.assertEqual(len(result['unsupported']),1)
+  self.assertFalse(result['schemaAccepted']);self.assertEqual(len(result['unsupported']),2)
   self.assertNotIn('new_fn',str(result['unsupported']))
  def test_missing_duplicate_hash_and_field_drift_rejected(self):
   for defect in ('missing','duplicate','hash','fields','section','cleanup','count'):
@@ -87,6 +92,9 @@ class Tests(unittest.TestCase):
    if defect=='ledger':unit['ledgerStatementsSha256']='missing'
    if defect=='incomplete':tail['timestampInputsExecuted']=513
    with self.subTest(defect=defect),self.assertRaises(ValueError):self.verify(diff)
+ def test_uuid_requires_actual_fk_context(self):
+  diff=self.fixture();diff['sections']['constraints']['added'].clear()
+  with self.assertRaisesRegex(ValueError,'UUID_INET_FK_METADATA_REQUIRED'):self.verify(diff)
  def test_inventory_bytes_cannot_be_changed_to_manufacture_approval(self):
   with patch.object(m,'DECISION_SHA','0'*64):
    with self.assertRaises(ValueError):m.approved()

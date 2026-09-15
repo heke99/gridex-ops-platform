@@ -20,6 +20,8 @@ class Tests(unittest.TestCase):
             verified=True,catalogAndRowsPreserved=True,ledgerUnchanged=True) for path,sha in PINS.items()]),
             forwardSources=dict(inputsExecuted=len(FORWARD_SOURCES)))
         parent['historicalTimestampTail']={'fixture':'retained native source units'}
+        import canonical_added_nonunique_index_decisions as nonunique
+        parent[nonunique.KEY]=nonunique.expected_receipt()
         comparator = Mock()
         import canonical_policy_actor_qualification as actors
         parent['policyActorQualification'] = dict(actors.expected_result(), source=actors.SOURCE,
@@ -57,7 +59,7 @@ class Tests(unittest.TestCase):
         runner.unchanged.assert_called_once()
 
     def test_missing_final_sql_or_real_ledger_blocks_reference_restore(self):
-        for defect in ('checks', 'hash', 'ledger', 'actor', 'views', 'view_hash','changed_views','changed_view_hash','removed','removed_count','functions','indexes','intake'):
+        for defect in ('checks', 'hash', 'ledger', 'actor', 'views', 'view_hash','changed_views','changed_view_hash','removed','removed_count','functions','indexes','intake','nonunique'):
             runner, parent, comparator = self.fixture()
             if defect == 'checks': parent['nativeFinalSql']['checks'].pop()
             if defect == 'hash': parent['nativeFinalSql']['checks'][0]['sourceSha256']='bad'
@@ -65,6 +67,7 @@ class Tests(unittest.TestCase):
             if defect == 'functions': parent['changedFunctionBehaviorWitness']={}
             if defect == 'indexes': parent['changedIndexSourceWitness']={}
             if defect == 'intake': parent['intakeJsonbSourceWitness']={}
+            if defect == 'nonunique': parent['addedNonuniqueIndexWitness']={}
             if defect=='removed':parent['removedPolicyQualification']={}
             if defect=='removed_count':parent['removedPolicyQualification']['formulaComponentsProved']=74
             if defect == 'changed_views': parent['changedViewSourceWitness']={}

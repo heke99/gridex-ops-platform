@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Offline admission/rollback controls, never claimed as SQL execution proof."""
 import copy
+import contextlib
+import io
 import json
 from pathlib import Path
 import tempfile
@@ -67,15 +69,16 @@ class Tests(unittest.TestCase):
                 return ['owned-psql',database]
             def verify_logging(self):
                 pass
-        for defect in (None,'sql','method'):
+        for defect in (None,'sql','private_state','method'):
             target=Owned();target.sql=Mock()
             if defect=='method':target.command=Mock()
             legacy=SimpleNamespace(OwnedPostgres=Owned,clean_environment=lambda:{},
-                safe_receipt=lambda *args:{'sqlstate':'P0001' if defect=='sql' else '00000'})
-            process=SimpleNamespace(stdout=b'{"verified":true}',stderr=b'',returncode=1 if defect=='sql' else 0)
+                safe_receipt=lambda *args:{'sqlstate':('P0001' if defect=='sql' else 'private SQL detail' if defect=='private_state' else '00000')})
+            process=SimpleNamespace(stdout=b'{"verified":true}',stderr=b'private SQL and row detail',returncode=1 if defect in ('sql','private_state') else 0)
             with patch.object(m.actors,'_controller',return_value=SimpleNamespace(load_batch=lambda:legacy)), \
                  patch.object(m.actors,'_admit',return_value=('gridex_auth_legacy_replay',False)), \
-                 patch.object(m.subprocess,'run',return_value=process) as run:
+                 patch.object(m.subprocess,'run',return_value=process) as run, \
+                 contextlib.redirect_stdout(io.StringIO()) as output:
                 if defect:
                     with self.assertRaises(ValueError):m.execute_query(target,'gridex_auth_legacy_replay',False)
                     if defect=='method':run.assert_not_called()
@@ -84,6 +87,11 @@ class Tests(unittest.TestCase):
                     self.assertEqual(run.call_args.args[0],['owned-psql','gridex_auth_legacy_replay','-f','-'])
                     self.assertEqual(run.call_args.kwargs['input'],m.render().encode())
                 target.sql.assert_not_called()
+                expected = (json.dumps({'stage': 'changed_function_portable_sql_failure',
+                    'category': 'SQL_EXECUTION_FAILED',
+                    'sqlstate': 'P0001' if defect=='sql' else 'XXXXX'}, sort_keys=True) + '\n'
+                    if defect in ('sql','private_state') else '')
+                self.assertEqual(output.getvalue(), expected)
 
     def test_execution_requires_actual_result_and_unchanged_state(self):
         retained=m.retain(m.ROOT)

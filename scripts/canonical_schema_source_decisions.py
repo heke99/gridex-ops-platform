@@ -16,6 +16,8 @@ import canonical_intake_jsonb_qualification as intake
 import canonical_schema_index_column_decisions as index_columns
 import canonical_constraint_source_decisions as constraints
 import canonical_schema_physical_order_decisions as physical_order
+import canonical_uuid_inet_source_decisions as uuid_inet
+import canonical_added_nonunique_index_decisions as nonunique_indexes
 
 ROOT=Path(__file__).resolve().parents[1]
 DECISION_SOURCE='quality/audits/PR310_SCHEMA_REMAINING_GRANT_INDEX_DECISIONS_2026-09-15.md'
@@ -80,11 +82,13 @@ def approved():
     records.extend(index_columns.approved())
     records.extend(constraints.approved())
     records.extend(physical_order.approved())
+    records.extend(uuid_inet.approved())
+    records.extend(nonunique_indexes.approved())
     return tuple(records)
 
 WITNESSES={'changedIndexSourceWitness':indexes,'addedViewSourceWitness':added_views,
            'changedViewSourceWitness':changed_views,'policyActorQualification':actors,
-           'removedPolicyQualification':removed,'intakeJsonbSourceWitness':intake,'nativeFinalSql':constraints}
+           'removedPolicyQualification':removed,'intakeJsonbSourceWitness':intake,'nativeFinalSql':constraints,nonunique_indexes.KEY:nonunique_indexes}
 
 def verify(diff):
     module=comparator()
@@ -98,6 +102,8 @@ def verify(diff):
     index_columns.validate_context(diff)
     constraints.validate_native(diff)
     physical_order.validate_context(diff)
+    uuid_inet.validate_context(diff)
+    nonunique_indexes.validate_context(diff)
     decisions=approved();mapping={}
     for row in decisions:
         key=(row['section'],row['change'],tuple(row['identity']))

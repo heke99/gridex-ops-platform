@@ -193,6 +193,17 @@ def failure_code(error, historical):
         'INTAKE_STRING_ARRAY_ROUNDTRIP_REQUIRED',
         'INTAKE_TWO_JSONB_COLUMNS_REQUIRED',
         'INTAKE_WRITERS_REQUIRED',
+        'NONUNIQUE_INDEX_EXACT_CONTEXT_REQUIRED',
+        'NONUNIQUE_INDEX_EXACT_SCOPE_REQUIRED',
+        'NONUNIQUE_INDEX_NATIVE_ONCE_REQUIRED',
+        'NONUNIQUE_INDEX_NATIVE_PRESERVATION_REQUIRED',
+        'NONUNIQUE_INDEX_NATIVE_RECEIPT_REQUIRED',
+        'NONUNIQUE_INDEX_NATIVE_ROWS_REQUIRED',
+        'NONUNIQUE_INDEX_NATIVE_STATE_REQUIRED',
+        'NONUNIQUE_INDEX_POSITIVE_SOURCE_REQUIRED',
+        'NONUNIQUE_INDEX_REGISTER_REQUIRED',
+        'NONUNIQUE_INDEX_SOURCE_LINE_REQUIRED',
+        'NONUNIQUE_INDEX_SOURCE_REQUIRED',
         'CHANGED_FUNCTION_SOURCE_REQUIRED',
         'CHANGED_FUNCTION_RESULT_REQUIRED',
         'CHANGED_FUNCTION_ONCE_REQUIRED',
@@ -455,6 +466,8 @@ def run(*, historical_prefix=False, clone_preflight=False):
         changed_index_retained = retain_changed_indexes(ROOT)
         from canonical_intake_jsonb_qualification import retain as retain_intake
         intake_retained = retain_intake(ROOT)
+        from canonical_added_nonunique_index_decisions import retain as retain_nonunique
+        nonunique_retained = retain_nonunique(ROOT)
         from canonical_removed_policy_qualification import retain as retain_removed_policies
         removed_policy_retained = retain_removed_policies(ROOT)
     transport = load_transport()
@@ -608,7 +621,7 @@ def run(*, historical_prefix=False, clone_preflight=False):
                 phase = 'HISTORICAL_TIMESTAMP_NATIVE_LEDGER'
                 from canonical_native_timestamp_runtime import execute as execute_timestamp
                 execute_timestamp(command, native, sql, work, project, report, timestamp_plan, forward_retained,
-                                  view_retained, removed_policy_retained, changed_view_retained, changed_function_retained, changed_index_retained, intake_retained)
+                                  view_retained, removed_policy_retained, changed_view_retained, changed_function_retained, changed_index_retained, intake_retained, nonunique_retained)
             success = True
         except Exception as error:
             report.update(outcome='BLOCKED',phase=phase,errorType=type(error).__name__)

@@ -165,6 +165,36 @@ class RuntimeTests(unittest.TestCase):
                                  ['before','witness'] if defect in ('receipt','witness') else
                                  ['before','witness','after'])
 
+    def test_nonunique_index_witness_requires_real_runner_binding_before_and_after_execution(self):
+        import canonical_added_nonunique_index_decisions as views
+        retained=views.retain(views.ROOT)
+        for defect in (None,'before','after','receipt','witness'):
+            with self.subTest(defect=defect):
+                events=[];parent={};runner=SimpleNamespace(target=object());forward=object()
+                def admit(actual, sources, progress):
+                    self.assertIs(actual,runner);self.assertIs(sources,forward);self.assertIs(progress,parent)
+                    stage='before' if not events else 'after';events.append(stage)
+                    if defect==stage:raise ValueError('runner ledger rejected')
+                def witness(target, sources, progress):
+                    self.assertIs(target,runner.target);self.assertIs(sources,retained)
+                    events.append('witness')
+                    receipt=views.expected_receipt()
+                    if defect=='receipt':receipt['verified']=False
+                    parent['addedNonuniqueIndexWitness']=receipt
+                    if defect=='witness':raise ValueError('view SQL rejected')
+                    return receipt
+                with patch('canonical_native_final_sql.admit_forward',side_effect=admit), \
+                     patch.object(views,'execute_parent',side_effect=witness):
+                    if defect:
+                        with self.assertRaises(ValueError):self.m.execute_nonunique_indexes(runner,retained,parent,forward)
+                        if 'addedNonuniqueIndexWitness' in parent:self.assertFalse(parent['addedNonuniqueIndexWitness']['verified'])
+                    else:
+                        result=self.m.execute_nonunique_indexes(runner,retained,parent,forward)
+                        self.assertTrue(result['verified']);self.assertFalse(result['performanceVerified'])
+                self.assertEqual(events,['before'] if defect=='before' else
+                                 ['before','witness'] if defect in ('receipt','witness') else
+                                 ['before','witness','after'])
+
     def test_removed_witness_requires_real_runner_binding_before_and_after_execution(self):
         import canonical_removed_policy_qualification as views
         retained=views.retain(views.ROOT)

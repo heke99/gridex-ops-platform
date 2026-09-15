@@ -237,6 +237,11 @@ def execute_query(target, database, native):
     target.verify_logging()
     receipt=legacy.safe_receipt(result.stderr.decode(errors='replace'),result.returncode,'changed_function_behavior_witness')
     if receipt['sqlstate']!='00000' or result.returncode!=0:
+        state = receipt.get('sqlstate')
+        if type(state) is not str or re.fullmatch(r'[A-Z0-9]{5}', state) is None:
+            state = 'XXXXX'
+        print(json.dumps({'stage': 'changed_function_portable_sql_failure',
+                          'category': 'SQL_EXECUTION_FAILED', 'sqlstate': state}, sort_keys=True), flush=True)
         raise ValueError('CHANGED_FUNCTION_BEHAVIOR_REQUIRED')
     return result.stdout.decode()
 

@@ -82,11 +82,12 @@ class Tests(unittest.TestCase):
   import canonical_changed_function_witness as functions
   import canonical_changed_index_witness as indexes
   import canonical_intake_jsonb_qualification as intake
+  import canonical_added_nonunique_index_decisions as nonunique
   from canonical_native_final_sql import PINS
   from canonical_forward_sources import FORWARD_SOURCES
   modules=((actors,'policyActorQualification'),(removed,'removedPolicyQualification'),
            (views,'addedViewSourceWitness'),(changed_views,'changedViewSourceWitness'),
-           (functions,'changedFunctionBehaviorWitness'),(intake,'intakeJsonbSourceWitness'))
+           (functions,'changedFunctionBehaviorWitness'),(intake,'intakeJsonbSourceWitness'),(nonunique,nonunique.KEY))
   receipt=indexes.expected_receipt(indexes.contract(indexes.retain(indexes.ROOT)),native=True)
   for defect in (None,'missing','hash','comparison'):
    parent=dict(cliVersion='2.101.0',foundationInputsExecuted=144,timestampInputsExecuted=514,
