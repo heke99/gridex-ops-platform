@@ -139,6 +139,19 @@ def failure_code(error, historical):
                        'EXECUTED_NATIVE_STATEMENTS_REQUIRED', 'NATIVE_LEDGER_IDEMPOTENCE_REQUIRED',
                        'NEXT_CLI_MIGRATION_REQUIRED', 'NATIVE_FAILED_MIGRATION_ATOMICITY_REQUIRED'}
     lifecycle_codes.update({
+        'NATIVE_APPLICATION_TYPEGEN_PREREQUISITES_REQUIRED',
+        'NATIVE_APPLICATION_TYPEGEN_WITNESS_REQUIRED',
+        'NATIVE_APPLICATION_TYPEGEN_OUTPUT_REQUIRED',
+        'NATIVE_APPLICATION_TYPEGEN_ENCODING_REQUIRED',
+        'NATIVE_APPLICATION_TYPEGEN_OVERRIDE_SOURCE_REQUIRED',
+        'NATIVE_APPLICATION_TYPEGEN_OVERRIDE_REQUIRED',
+        'NATIVE_APPLICATION_TYPEGEN_ONCE_REQUIRED',
+        'NATIVE_APPLICATION_TYPEGEN_COMMAND_REQUIRED',
+        'NATIVE_APPLICATION_TYPEGEN_STATE_PRESERVATION_REQUIRED',
+        'NATIVE_APPLICATION_TYPEGEN_REPEAT_REQUIRED',
+        'NATIVE_APPLICATION_TYPEGEN_EXPORT_BINDING_REQUIRED',
+    })
+    lifecycle_codes.update({
         'LIVE_SYNC_NATIVE_LEDGER_REQUIRED', 'LIVE_SYNC_NATIVE_TARGET_REQUIRED',
         'NATIVE_TIMESTAMP_BOUND_UNIT_REQUIRED', 'NATIVE_TIMESTAMP_BYTES_REQUIRED',
         'NATIVE_TIMESTAMP_CLI_POSTIMAGE_EQUIVALENCE_REQUIRED', 'NATIVE_TIMESTAMP_CLONE_OWNERSHIP',
@@ -568,6 +581,8 @@ def run(*, historical_prefix=False, clone_preflight=False):
         report['outcome'] = ('NATIVE_SELECTED_CHAIN_EXECUTED_NOT_FULL_ACCEPTANCE' if historical_prefix
                              else 'NATIVE_LIFECYCLE_VERIFIED')
     output = ROOT/'artifacts'; output.mkdir(exist_ok=True)
+    from canonical_native_application_typegen import publish as publish_application_candidate
+    publish_application_candidate(report, output, success=success)
     publish_schema_comparison(report, output)
     (output/'native-supabase-lifecycle.json').write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')
     print(json.dumps(report,sort_keys=True),flush=True)

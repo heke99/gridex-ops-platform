@@ -34,6 +34,16 @@ class ForwardSourcesTests(unittest.TestCase):
         self.assertEqual(after, forward.FORWARD_SOURCES)
         self.assertEqual(len(before), 514)
 
+    def test_seventh_retained_source_is_the_actually_qualified_cli_named_candidate(self):
+        retained = forward.retain(ROOT)
+        source = retained[-1]
+        self.assertEqual(len(retained), 7)
+        self.assertEqual(source.source, 'migrations/20260915172543_preserve_retained_customer_history_on_delete.sql')
+        self.assertEqual(source.source_sha256, '00f8a844fc5c72274d697558d57f216acf56388b6d36f6aad6063ca255283734')
+        self.assertEqual(source.sql, (ROOT/'scripts/sql/forward-candidates/preserve-retained-customer-history-on-delete.sql').read_bytes())
+        with self.assertRaisesRegex(ValueError,'FORWARD_RETAINED_SOURCES_REQUIRED'):
+            forward.validate_retained((*retained[:-1],dataclasses.replace(source,sql=source.sql+b'\n')))
+
     def test_timestamp_changes_fail_closed(self):
         historical = self.historical()
         selected = (*historical, *forward.FORWARD_SOURCES)
@@ -153,7 +163,7 @@ class ForwardSourcesTests(unittest.TestCase):
         original=copy.deepcopy(current)
         historical=forward.historical_fixture_accounting(current)
         self.assertEqual(current,original)
-        self.assertEqual((historical['totalMigrations'],historical['currentInventoryTotal']),(601,607))
+        self.assertEqual((historical['totalMigrations'],historical['currentInventoryTotal']),(601,608))
         self.assertEqual(historical['selectedInputCounts'],dict(foundation=144,timestamp=514))
         self.assertEqual(historical['counts']['FULL_FILE_SELECTED'],589)
         mutations=[]

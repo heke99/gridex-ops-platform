@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+"""Candidate transport negative controls; offline tests are not native evidence."""
+import tempfile
+import unittest
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
+import canonical_native_application_typegen as m
+
+RAW=b'''export type Json = string | number | null
+export type Database = {
+ public: { Tables: { companies: { Row: { id: string } } }
+ Functions: { resolve_ediel_timeseries_product_511: {
+ Returns: { description: string\nvalid_to: string }[]
+ } } }
+}
+'''
+class Tests(unittest.TestCase):
+ def test_output_rejects_fixture_invalid_bytes_and_missing_application(self):
+  m.validate_raw(RAW)
+  for raw in (RAW+b'gridex_native_lifecycle_probe:', b'error', RAW.replace(b'companies:',b'wrong:'),RAW+b'\xff'):
+   with self.assertRaises(ValueError): m.validate_raw(raw)
+ def test_existing_override_is_applied_to_private_candidate(self):
+  transformed=m.apply_override(RAW)
+  self.assertIn(b'description: string | null',transformed)
+  self.assertIn(b'valid_to: string | null',transformed)
+ def test_generation_requires_twice_identical_bytes_and_preservation(self):
+  for defect in (None,'repeat','exit','state'):
+   with self.subTest(defect=defect):
+    runner=SimpleNamespace(target=Mock(),unchanged=Mock(),native=Mock())
+    runner.native.side_effect=[SimpleNamespace(returncode=0,stdout=RAW),SimpleNamespace(returncode=1 if defect=='exit' else 0,stdout=RAW+b'\n' if defect=='repeat' else RAW)]
+    parent={}
+    with patch.object(m,'admit'),patch.object(m,'snapshot',side_effect=['same','changed' if defect=='state' else 'same','same']):
+     if defect:
+      with self.assertRaises(ValueError): m.execute(runner,(),parent,'owned-project')
+      self.assertNotIn('_nativeApplicationTypeCandidate',parent)
+     else:
+      m.execute(runner,(),parent,'owned-project')
+      self.assertFalse(parent['nativeApplicationTypeCandidate']['generatedTypesVerified'])
+      self.assertEqual(runner.native.call_count,2)
+ def test_no_export_before_success_and_disposal(self):
+  for success,cleanup,disposed in ((False,True,True),(True,False,True),(True,True,False)):
+   with tempfile.TemporaryDirectory() as tmp:
+    parent={'_nativeApplicationTypeCandidate':RAW,'cleanupVerified':cleanup,'privateWorkspaceRemoved':disposed}
+    m.publish(parent,Path(tmp),success=success)
+    self.assertNotIn('_nativeApplicationTypeCandidate',parent)
+    self.assertEqual(list(Path(tmp).iterdir()),[])
+ def test_success_exports_bound_candidate_only_after_disposal(self):
+  with tempfile.TemporaryDirectory() as tmp:
+   receipt={'candidateSha256':m.sha(RAW),'candidateBytes':len(RAW),'exported':False}
+   parent={'_nativeApplicationTypeCandidate':RAW,'nativeApplicationTypeCandidate':receipt,
+           'cleanupVerified':True,'privateWorkspaceRemoved':True}
+   m.publish(parent,Path(tmp),success=True)
+   self.assertEqual((Path(tmp)/'native-application-database.types.candidate.ts').read_bytes(),RAW)
+   self.assertTrue(receipt['exported'])
+   self.assertNotIn('_nativeApplicationTypeCandidate',parent)
+ def test_wrong_export_hash_rejected_without_artifact(self):
+  with tempfile.TemporaryDirectory() as tmp:
+   parent={'_nativeApplicationTypeCandidate':RAW,'nativeApplicationTypeCandidate':{'candidateSha256':'0'*64},
+           'cleanupVerified':True,'privateWorkspaceRemoved':True}
+   with self.assertRaises(ValueError):m.publish(parent,Path(tmp),success=True)
+   self.assertEqual(list(Path(tmp).iterdir()),[])
+ def test_missing_prerequisites_reject_before_generation(self):
+  with patch('canonical_native_final_sql.admit_forward'),patch('canonical_native_probe_cleanup.admit_completed'):
+   with self.assertRaises(ValueError):m.admit(SimpleNamespace(),(),{})
+if __name__=='__main__':unittest.main()

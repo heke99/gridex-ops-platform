@@ -6,6 +6,8 @@ on:
     paths:
       - '.github/workflows/gridex-retained-parent-delete-qualification.yml'
       - 'scripts/canonical-added-constraint-index-parent-delete-*.py'
+      - 'scripts/canonical_native_forward_runtime.py'
+      - 'scripts/canonical_forward_sources.py'
       - 'scripts/canonical-composite-customer-fk-selftest.py'
       - 'scripts/sql/forward-candidates/preserve-retained-customer-history-on-delete.sql'
       - 'quality/audits/PR310_ADDED_CONSTRAINT_INDEX_*.json'
@@ -20,6 +22,8 @@ on:
     paths:
       - '.github/workflows/gridex-retained-parent-delete-qualification.yml'
       - 'scripts/canonical-added-constraint-index-parent-delete-*.py'
+      - 'scripts/canonical_native_forward_runtime.py'
+      - 'scripts/canonical_forward_sources.py'
       - 'scripts/canonical-composite-customer-fk-selftest.py'
       - 'scripts/sql/forward-candidates/preserve-retained-customer-history-on-delete.sql'
       - 'quality/audits/PR310_ADDED_CONSTRAINT_INDEX_*.json'

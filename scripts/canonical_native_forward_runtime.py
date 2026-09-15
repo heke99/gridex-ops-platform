@@ -1,4 +1,4 @@
-"""Apply exactly six reviewed forward sources after the complete retained prefix.
+"""Apply exactly seven reviewed forward sources after the complete retained prefix.
 
 Uses the already admitted, live CLI Runner. No connection override, historical
 ledger alias, source rewrite, schema acceptance or typegen shortcut is provided.
@@ -165,6 +165,33 @@ def assertion(ordinal):
           AND NOT has_table_privilege('authenticated',c.oid,'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN')
           AND NOT has_any_column_privilege('authenticated',c.oid,'INSERT,UPDATE,REFERENCES'))
           FROM pg_class c WHERE c.oid=to_regclass('public.ediel_send_locks'))"""
+    if ordinal == 7:
+        return """(SELECT count(*)=5 AND bool_and(c.contype='f' AND c.convalidated
+          AND NOT c.condeferrable AND NOT c.condeferred AND c.confmatchtype='s'
+          AND c.confupdtype='c' AND c.confdeltype='n'
+          AND c.conparentid=0 AND c.coninhcount=0 AND c.conislocal
+          AND c.conkey=ARRAY[a.attnum,b.attnum]::smallint[]
+          AND c.confkey=ARRAY[pa.attnum,pb.attnum]::smallint[]
+          AND c.confdelsetcols=ARRAY[a.attnum]::smallint[]
+          AND child.relkind='r' AND parent.relkind='r'
+          AND NOT EXISTS(SELECT 1 FROM pg_inherits WHERE inhrelid IN (child.oid,parent.oid)
+                         OR inhparent IN (child.oid,parent.oid))
+          AND NOT a.attnotnull AND b.attnotnull=(v.name NOT IN ('customer_sync_events','data_quality_findings'))
+          AND pa.attnotnull AND NOT pb.attnotnull)
+          FROM unnest(ARRAY['billing_disputes','customer_import_rows','customer_sync_events',
+                           'data_quality_findings','document_parse_jobs']) v(name)
+          JOIN pg_class child ON child.oid=to_regclass('public.'||v.name)
+          JOIN pg_class parent ON parent.oid=to_regclass('public.customers')
+          JOIN pg_constraint c ON c.conrelid=child.oid AND c.confrelid=parent.oid
+            AND c.conname=v.name||'_customer_company_fk'
+          JOIN pg_attribute a ON a.attrelid=child.oid AND a.attname='customer_id'
+            AND a.attnum>0 AND NOT a.attisdropped AND a.atttypid='uuid'::regtype
+          JOIN pg_attribute b ON b.attrelid=child.oid AND b.attname='company_id'
+            AND b.attnum>0 AND NOT b.attisdropped AND b.atttypid='uuid'::regtype
+          JOIN pg_attribute pa ON pa.attrelid=parent.oid AND pa.attname='id'
+            AND pa.attnum>0 AND NOT pa.attisdropped AND pa.atttypid='uuid'::regtype
+          JOIN pg_attribute pb ON pb.attrelid=parent.oid AND pb.attname='company_id'
+            AND pb.attnum>0 AND NOT pb.attisdropped AND pb.atttypid='uuid'::regtype)"""
     raise ValueError('FORWARD_SOURCE_ORDINAL_REQUIRED')
 
 

@@ -449,6 +449,8 @@ def execute(command, native, sql, work, project, parent, plan, forward_retained,
         from canonical_native_probe_cleanup import execute as cleanup_probe
         cleanup_probe(runner, forward_retained, parent)
         parent['_nativeSchemaComparison'] = compare_native_schema(runner, forward_retained, parent)
+        from canonical_native_application_typegen import execute as generate_application_candidate
+        generate_application_candidate(runner, forward_retained, parent, project)
         return progress
     finally:
         target.close()

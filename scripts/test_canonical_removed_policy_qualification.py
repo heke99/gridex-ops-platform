@@ -144,27 +144,35 @@ class RemovedPolicyQualificationTests(unittest.TestCase):
             with self.assertRaises(ValueError):q.retain(Path(directory))
         self.assertEqual(len(q.expected_policies(retained)),267)
 
-    def test_six_exact_forward_receipts_are_required(self):
+    def test_seven_exact_forward_receipts_are_required(self):
         q=load()
         sixth=(q.SIXTH_SOURCE,q.SIXTH_SHA)
-        sources=(*q.FIRST_FIVE,sixth)
-        good=dict(foundationApplied=144,timestampApplied=514,forwardSources=dict(executed=True,inputsExecuted=6,
-            sources=[dict(source=p,sourceSha256=h,executed=True,positiveAndRepeatVerified=True,rowsPreserved=True)
-                     for p,h in sources]))
-        with patch('canonical_forward_sources.FORWARD_SOURCES',sources):
-            q.complete(good,False)
-            for key,value in [('inputsExecuted',5),('executed',False)]:
-                bad=copy.deepcopy(good);bad['forwardSources'][key]=value
-                with self.assertRaises(ValueError):q.complete(bad,False)
-            for mutation in ('missing','hash','order','repeat'):
-                bad=copy.deepcopy(good);rows=bad['forwardSources']['sources']
-                if mutation=='missing':rows.pop()
-                if mutation=='hash':rows[-1]['sourceSha256']='0'*64
-                if mutation=='order':rows[0],rows[1]=rows[1],rows[0]
-                if mutation=='repeat':rows[-1]['positiveAndRepeatVerified']=False
-                with self.assertRaises(ValueError):q.complete(bad,False)
-        with patch('canonical_forward_sources.FORWARD_SOURCES',q.FIRST_FIVE):
-            with self.assertRaises(ValueError):q.complete(good,False)
+        seventh=('migrations/20260915172543_preserve_retained_customer_history_on_delete.sql',
+                 '00f8a844fc5c72274d697558d57f216acf56388b6d36f6aad6063ca255283734')
+        sources=(*q.FIRST_FIVE,sixth,seventh)
+        for native in (False,True):
+            foundation='foundationInputsExecuted' if native else 'foundationApplied'
+            timestamp='timestampInputsExecuted' if native else 'timestampApplied'
+            repeat='noOpRepeatVerified' if native else 'positiveAndRepeatVerified'
+            good={foundation:144,timestamp:514,'forwardSources':dict(executed=True,inputsExecuted=7,
+                sources=[dict(source=p,sourceSha256=h,executed=True,rowsPreserved=True,**{repeat:True})
+                         for p,h in sources])}
+            with patch('canonical_forward_sources.FORWARD_SOURCES',sources):
+                q.complete(good,native)
+                for key,value in [('inputsExecuted',6),('executed',False)]:
+                    bad=copy.deepcopy(good);bad['forwardSources'][key]=value
+                    with self.assertRaises(ValueError):q.complete(bad,native)
+                for mutation in ('missing','hash','order','repeat'):
+                    bad=copy.deepcopy(good);rows=bad['forwardSources']['sources']
+                    if mutation=='missing':rows.pop()
+                    if mutation=='hash':rows[-1]['sourceSha256']='0'*64
+                    if mutation=='order':rows[0],rows[1]=rows[1],rows[0]
+                    if mutation=='repeat':rows[-1][repeat]=False
+                    with self.assertRaises(ValueError):q.complete(bad,native)
+            for incorrect in (sources[:-1],(*sources[:5],(sixth[0],'0'*64),seventh),
+                              (*sources[:6],(seventh[0],'0'*64))):
+                with patch('canonical_forward_sources.FORWARD_SOURCES',incorrect):
+                    with self.assertRaises(ValueError):q.complete(good,native)
 
     def test_external_target_never_runs_sql(self):
         q=load()

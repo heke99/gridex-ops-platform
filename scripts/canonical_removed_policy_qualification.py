@@ -18,7 +18,7 @@ not a fabricated formula proof. Source register evidence still marks whole-schem
 acceptance false; no new table name or metadata hash alone authorizes a business
 operation. Canonical RPC bodies/ACLs are metadata-preservation checks, not an
 execution of their business graphs. Parent guards bind the actor receipt and
-owned target to the same six-source execution and retain ledger responsibility.
+owned target to the same seven-source execution and retain ledger responsibility.
 """
 from dataclasses import dataclass, field
 import hashlib
@@ -211,6 +211,8 @@ FIRST_FIVE=(('migrations/20260915111458_restore_existing_column_foreign_keys.sql
 FORMULA_PROOF_SHA='1e1338facb111230aeb95e9ac34bfd8be268a7f11692dcbd02158341d94816e1'
 SIXTH_SOURCE='migrations/20260915144319_restrict_ediel_send_lock_client_writes.sql'
 SIXTH_SHA='411df92fc01f8b84dd9a83600464594e76a4841d48928d52dfadfd97b3177705'
+SEVENTH_SOURCE='migrations/20260915172543_preserve_retained_customer_history_on_delete.sql'
+SEVENTH_SHA='00f8a844fc5c72274d697558d57f216acf56388b6d36f6aad6063ca255283734'
 
 
 def sha(raw):
@@ -322,13 +324,14 @@ def complete(progress,native):
     report=progress.get('forwardSources',{});receipts=report.get('sources',[])
     if (type(progress.get(foundation)) is not int or progress[foundation]!=144
             or type(progress.get(timestamp)) is not int or progress[timestamp]!=514
-            or len(FORWARD_SOURCES)!=6 or FORWARD_SOURCES[:5]!=FIRST_FIVE
-            or FORWARD_SOURCES[-1]!=(SIXTH_SOURCE,SIXTH_SHA)
+            or len(FORWARD_SOURCES)!=7 or FORWARD_SOURCES[:5]!=FIRST_FIVE
+            or FORWARD_SOURCES[5]!=(SIXTH_SOURCE,SIXTH_SHA)
+            or FORWARD_SOURCES[6]!=(SEVENTH_SOURCE,SEVENTH_SHA)
             or report.get('executed') is not True or type(report.get('inputsExecuted')) is not int
-            or report['inputsExecuted']!=6 or type(receipts) is not list or len(receipts)!=6
+            or report['inputsExecuted']!=7 or type(receipts) is not list or len(receipts)!=7
             or any(type(row) is not dict or (row.get('source'),row.get('sourceSha256'))!=pair
                    or any(row.get(flag) is not True for flag in flags) for row,pair in zip(receipts,FORWARD_SOURCES))):
-        raise ValueError('REMOVED_POLICY_SIX_FORWARD_RECEIPTS_REQUIRED')
+        raise ValueError('REMOVED_POLICY_SEVEN_FORWARD_RECEIPTS_REQUIRED')
 
 
 def expected_routines(retained):
@@ -484,7 +487,7 @@ _FAILURE_REASONS=frozenset((
     'REMOVED_POLICY_RETAINED_SOURCE_REQUIRED',
     'REMOVED_POLICY_ROLE_GRAPH_REQUIRED',
     'REMOVED_POLICY_SERVICE_ACL_REQUIRED',
-    'REMOVED_POLICY_SIX_FORWARD_RECEIPTS_REQUIRED',
+    'REMOVED_POLICY_SEVEN_FORWARD_RECEIPTS_REQUIRED',
     'REMOVED_POLICY_STATE_PRESERVATION_REQUIRED',
     'REMOVED_POLICY_UNREVIEWED_PRINCIPAL_REQUIRED',
 ))
@@ -534,7 +537,7 @@ def _execute(target,retained,progress,actor_receipt):
         formulaProofSha256=sha(proof),formulaRowsProved=57,formulaComponentsProved=75,
         compositionProofSha256=sha(compositions),compositionCount=len(compositions),
         reusedActorReceiptSha256=sha(actor_receipt),reusedActorCoverage='REAL_HELPER_TRUTH_ONLY_NOT_NEW_POLICY_IDENTITIES',
-        fullSixForwardReceiptsVerified=True,catalogAndRowsPreserved=True,nativeTarget=native,
+        fullSevenForwardReceiptsVerified=True,catalogAndRowsPreserved=True,nativeTarget=native,
         businessGraphAccepted=False,schemaAccepted=False,generatedTypesVerified=False,ledgerProvenanceAccepted=False)
 
     return validate_execution_receipt(receipt,native=native)
@@ -550,7 +553,7 @@ def receipt_contract(*,native):
         reconstructedReplacementRows=57,formulaProofSha256=FORMULA_PROOF_SHA,formulaRowsProved=57,
         formulaComponentsProved=75,compositionCount=55,
         reusedActorCoverage='REAL_HELPER_TRUTH_ONLY_NOT_NEW_POLICY_IDENTITIES',
-        fullSixForwardReceiptsVerified=True,catalogAndRowsPreserved=True,nativeTarget=native,
+        fullSevenForwardReceiptsVerified=True,catalogAndRowsPreserved=True,nativeTarget=native,
         businessGraphAccepted=False,schemaAccepted=False,generatedTypesVerified=False,ledgerProvenanceAccepted=False)
 
 

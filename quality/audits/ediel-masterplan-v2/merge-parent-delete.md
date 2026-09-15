@@ -1,6 +1,6 @@
 # Retained parent-delete fixture repair — 2026-09-15
 
-Status: actual bounded PostgreSQL 17 qualification now PASS; candidate remains unpromoted. Candidate migration and all existing acceptance hashes/checks are unchanged.
+Status: actual bounded PostgreSQL 17 qualification PASS; the exact qualified candidate is now locally registered as forward seven, pending review and actual seven-source qualification. Historical source hashes and existing acceptance checks remain unchanged.
 
 ## Actual failure
 
@@ -44,3 +44,33 @@ All six candidate controls are true: exact five-constraint delta, idempotent rep
 CLI 2.101.0 created `20260915172543_preserve_retained_customer_history_on_delete.sql` only after qualification. The workflow verified candidate SHA256 `00f8a844fc5c72274d697558d57f216acf56388b6d36f6aad6063ca255283734`. Artifact `10409074848` is advertised as 3181 bytes with ZIP SHA256 `3e974cd5bff2a71a50e55f94999181fbf0505cc7d5bd9180e9904e80a3587a40` in both upload logs and GitHub metadata. An artifact file reference was obtained, but independent local byte download returned HTTP403; the archive digest has **not** been independently recomputed locally.
 
 No migration was promoted or copied into the selected history. Next action belongs to the coordinating review: verify archived bytes before any exact-byte promotion decision, then qualify the full selected/native replay and independent schema effect. This bounded success does not clear the other main-merge gates.
+
+## Authorized seventh forward — local implementation pending actual replay
+
+The coordinating agent authorized promotion using the actual CLI filename and the qualified source candidate hash above. The new migration is byte-identical to `scripts/sql/forward-candidates/preserve-retained-customer-history-on-delete.sql`, SHA256 `00f8a844fc5c72274d697558d57f216acf56388b6d36f6aad6063ca255283734`. This establishes exact source-byte identity; it does not claim a locally recomputed artifact ZIP digest following the HTTP403 boundary.
+
+The source registry now admits exactly seven ordered forward sources, the previous six unchanged. Historical inventory remains 601 entries and historical timestamp selection remains 514 entries with their original aggregate hashes; current totals are 608 inventory entries and 521 timestamp sources. The history manifest adds only the new filename/hash. No existing migration, schema reference or generated application type manifest is changed by this promotion.
+
+Ordinal seven verifies the five exact customer/company foreign keys with customer-only SET NULL deletion, cascading updates, original composite columns and expected nullability, validation, deferrability and ordinary-table properties. CLI transport admits ordinal seven and continues to reject ordinal eight. Receipt cardinality and accounting checks increase to seven without relaxing per-source proof requirements. The parent-delete fixture additionally executes this predicate against the original catalog (must be false) and repaired catalog (must be true); its existing actual behavior and rollback controls remain required. Its workflow watches the two newly imported predicate/source files under the existing narrow event guards.
+
+Offline verification completed:
+
+| Suite | Passing tests |
+| --- | ---: |
+| Forward source admission | 8 |
+| Native forward runtime | 7 |
+| Portable forward execution | 5 |
+| Parent-delete fixture | 9 |
+| Native lifecycle | 15 |
+| Timestamp frontier | 16 |
+| Residual source admission | 20 |
+| Policy actor qualification | 7 |
+| Replay accounting | 38 |
+| Native final SQL | 10 |
+| Native cleanup | 5 |
+| Native schema reference | 4 |
+| Full schema reference | 25 |
+
+Migration integrity passes for 608 files and 512 version groups. Production-readiness passes for 608 SQL files and 515 ledger-eligible versions with the three original collision aliases retained. Its generated inventory intermediates were restored after verification; no acceptance artifact was refreshed. `git diff --check` passes.
+
+The newly admitted ordinal-seven predicate still requires the next actual parent-delete qualification. Full seven-source portable/native execution, final SQL, independent schema comparison, generated application types and remaining merge gates are not inferred from these offline results.

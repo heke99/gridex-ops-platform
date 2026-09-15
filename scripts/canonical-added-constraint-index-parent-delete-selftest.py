@@ -296,8 +296,15 @@ def verify_candidate_delta(before, after):
         raise ValueError('ONLY_FIVE_COMPOSITE_DELETE_ACTIONS_MAY_CHANGE')
 
 
+def verify_forward_postcondition(expected):
+    from canonical_native_forward_runtime import assertion
+    if fixture.sql('select ('+assertion(7)+');') != ('t' if expected else 'f'):
+        raise ValueError('SEVENTH_FORWARD_POSTCONDITION_REQUIRED')
+
+
 def qualify_candidate(selected):
     reset(selected, False)
+    verify_forward_postcondition(False)
     # Retained unrelated rows and comments make an unexpected DML/catalog change
     # observable. Sync also retains its intentionally nullable legacy record.
     for table in TABLES:
@@ -310,6 +317,7 @@ def qualify_candidate(selected):
     verify_candidate_delta(before, after)
     if catalog_rows() != repaired_rows(selected['fks']):
         raise ValueError('FIVE_NATIVE_FINAL_ROWS_REQUIRED')
+    verify_forward_postcondition(True)
     fixture.sql(selected['candidate'])
     if state() != after:
         raise ValueError('EXACT_REPEAT_STATE_REQUIRED')

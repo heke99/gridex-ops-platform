@@ -14,6 +14,14 @@ SPEC.loader.exec_module(subject)
 
 
 class ParentDeleteSelectionTests(unittest.TestCase):
+    def test_seventh_forward_predicate_requires_real_expected_database_answer(self):
+        for expected in (False,True):
+            with patch.object(subject.fixture,'sql',return_value='t' if expected else 'f'):
+                subject.verify_forward_postcondition(expected)
+            for wrong in ('','null','t' if not expected else 'f'):
+                with patch.object(subject.fixture,'sql',return_value=wrong),self.assertRaisesRegex(
+                        ValueError,'SEVENTH_FORWARD_POSTCONDITION_REQUIRED'):
+                    subject.verify_forward_postcondition(expected)
     def test_reset_replays_source_configuration_before_comparing_final_function_rows(self):
         selected = subject.selection()
         calls = []
