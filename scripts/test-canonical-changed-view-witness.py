@@ -12,6 +12,56 @@ import canonical_changed_view_witness as v
 
 
 class Tests(unittest.TestCase):
+    def test_witness_freezes_creation_time_columns_without_changing_source_queries_or_hashes(self):
+        specs=v.contract(v.retain(v.ROOT))
+        self.assertEqual(specs[0]['query'],specs[0]['witnessQuery'])
+        for spec in specs[1:]:
+            self.assertEqual(v.sha(spec['query'].encode()),spec['querySha256'])
+            self.assertNotEqual(spec['query'],spec['witnessQuery'])
+        customer=specs[1]['witnessQuery']
+        self.assertNotIn('c.*',customer)
+        self.assertIn('c.lifecycle_stage,',customer)
+        self.assertNotIn('c.billing_eligible_at',customer)
+        self.assertNotIn('c.quote_reference',customer)
+        actor=specs[2]['witnessQuery']
+        self.assertNotIn('eas.*',actor)
+        # The original outer signature is 28 columns; the historical inner
+        # query already saw 37 at the explicitly restored foundation boundary.
+        self.assertIn('eas.operations_contact_email,',actor)
+        self.assertNotIn('eas.legal_name',actor)
+        self.assertNotIn('ranked.operations_contact_email',actor)
+        unresolved=specs[3]['witnessQuery']
+        self.assertNotIn('*',unresolved)
+        self.assertIn('raw_sender, raw_receiver, raw_interchange_reference',unresolved)
+        self.assertNotIn('inbound_quarantine_id',unresolved)
+        platform=specs[4]['witnessQuery']
+        self.assertNotIn('select *',platform)
+        self.assertIn('a.receiver_message_subaddress from public.ediel_actor_settings',platform)
+        self.assertNotIn('brp.is_active',platform)
+        document=v.historical_columns(dict(v.retain(v.ROOT))[v.HISTORICAL_COLUMNS])
+        self.assertEqual([len(r['columns']) for r in document['expansions']],[128,37,31,53,16])
+        self.assertEqual(len(document['sources']),22)
+        sql=v.render(specs)
+        for spec in specs:self.assertIn(spec['witnessQuery'],sql)
+
+    def test_historical_column_register_and_each_declaration_source_are_immutable(self):
+        retained=v.retain(v.ROOT)
+        sources=dict(retained)
+        for name in (v.HISTORICAL_COLUMNS,*v.historical_columns(sources[v.HISTORICAL_COLUMNS])['sources']):
+            changed=tuple((path,raw+b'\n' if path==name else raw) for path,raw in retained)
+            with self.subTest(name=name),self.assertRaisesRegex(ValueError,'CHANGED_VIEW_WITNESS_SOURCE_REQUIRED'):
+                v.contract(changed)
+        specs=v.contract(retained)
+        # A missing or duplicated exact star must fail rather than expanding
+        # some unrelated SQL expression.
+        for query in (specs[1]['query'].replace('c.*','c.id'),specs[1]['query']+' c.*'):
+            with self.assertRaisesRegex(ValueError,'CHANGED_VIEW_WITNESS_SOURCE_REQUIRED'):
+                v.expand_historical_stars(query,2,sources)
+        import canonical_native_timestamp_sources as timestamps
+        for module,key in ((v.p,'ORDER_SHA'),(timestamps,'SELECTION_SHA')):
+            with patch.object(module,key,'0'*64),self.assertRaisesRegex(ValueError,'CHANGED_VIEW_WITNESS_SOURCE_REQUIRED'):
+                v.contract(retained)
+
     def test_exact_source_queries_include_wrapped_and_quoted_semicolons(self):
         retained=v.retain(v.ROOT); specs=v.contract(retained)
         self.assertEqual(len(specs),5)

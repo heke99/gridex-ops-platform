@@ -25,6 +25,19 @@ HARDENING=added.HARDENING
 TRANSITION='scripts/canonical-residual-readiness-transitions.py'
 TRANSITION_SHA='24a696b02fbe73d5ab290f03fc27802986cf6d6c388de07fca8a39a42651a39e'
 ROW_KEYS=added.ROW_KEYS
+HISTORICAL_COLUMNS='quality/audits/ediel-masterplan-v2/changed-view-historical-columns.json'
+HISTORICAL_COLUMNS_SHA='e718c15c5cb303898ec57ca745b2b589e4e6f15575db85cd39708f0ef70ca5d3'
+
+
+def historical_columns(raw):
+    if type(raw) is not bytes or sha(raw)!=HISTORICAL_COLUMNS_SHA:
+        raise ValueError('CHANGED_VIEW_WITNESS_SOURCE_REQUIRED')
+    import canonical_native_timestamp_sources as timestamps
+    document=json.loads(raw)
+    if (document['foundationOrderSha256']!=p.ORDER_SHA
+            or document['timestampSelectionSha256']!=timestamps.SELECTION_SHA):
+        raise ValueError('CHANGED_VIEW_WITNESS_SOURCE_REQUIRED')
+    return document
 
 
 def sha(value):
@@ -44,8 +57,10 @@ def selection(raw):
         observedRelationSha256=row['replaySha256']) for row in document['records'])
 
 
-def pins(views):
+def pins(views,columns_raw):
+    columns=historical_columns(columns_raw)
     return {SELECTION:SELECTION_SHA,**dict(sorted({
+        HISTORICAL_COLUMNS:HISTORICAL_COLUMNS_SHA,**columns['sources'],
         COMPARATOR:COMPARATOR_SHA, HARDENING:added.AUTHORITY[HARDENING],
         TRANSITION:TRANSITION_SHA,
         **{row['source']:row['sourceSha256'] for row in views}}.items()))}
@@ -61,7 +76,7 @@ def read(root,name):
 def retain(root):
     try:
         views=selection(read(root,SELECTION))
-        retained=tuple((name,read(root,name)) for name in pins(views))
+        retained=tuple((name,read(root,name)) for name in pins(views,read(root,HISTORICAL_COLUMNS)))
         contract(retained)
         return retained
     except (OSError,UnicodeError):
@@ -71,9 +86,9 @@ def retain(root):
 def extract(source,spec,transition):
     """Bind queries to immutable declarations, including two historical branches.
 
-    The actor projection is exactly the existing retained transition. Historical
-    inner stars are intentionally retained; a different final-schema expansion
-    must fail the existing observed hash, never silently receive a new hash.
+    The actor projection is exactly the existing retained transition. Return
+    these original query bytes unchanged; historical star expansion is a
+    separate source-pinned rendering step, never a replacement expected hash.
     """
     if spec['ordinal']==1:
         declaration='create view public.canonical_internal_contract_offers_v'
@@ -101,12 +116,46 @@ def extract(source,spec,transition):
     return query
 
 
+def expand_historical_stars(query,ordinal,sources):
+    """Reproduce CREATE-time star expansion from retained original DDL.
+
+    PostgreSQL freezes star columns when CREATE VIEW runs. Re-parsing the same
+    star after later ADD COLUMN statements is a different query. The register
+    records first effective declarations in the already fixed replay order;
+    it contains no catalog-derived query text or replacement relation hashes.
+    """
+    document=historical_columns(sources[HISTORICAL_COLUMNS])
+    for expansion in document['expansions']:
+        if expansion['ordinal']!=ordinal:continue
+        columns=[]
+        for column in expansion['columns']:
+            source=sources[column['source']].decode()
+            lines=source.splitlines()
+            name=column['name']
+            if (not re.fullmatch('[a-z_][a-z_0-9]*',name) or name in columns
+                    or lines[column['line']-1]!=column['declaration']
+                    or not re.search(r'\b'+name+r'\b',column['declaration'])):
+                raise ValueError('CHANGED_VIEW_WITNESS_SOURCE_REQUIRED')
+            columns.append(name)
+        needle=expansion['needle']
+        if query.count(needle)!=1:
+            raise ValueError('CHANGED_VIEW_WITNESS_SOURCE_REQUIRED')
+        alias=expansion['alias']
+        projection=', '.join((alias+'.' if alias else '')+name for name in columns)
+        replacement=needle.replace('*',projection)
+        # c.* / eas.* already include the alias outside the star.
+        if needle in ('c.*','eas.*'):replacement=projection
+        query=query.replace(needle,replacement,1)
+    return query
+
+
 def contract(retained):
     if (type(retained) is not tuple or not retained or any(type(x) is not tuple or len(x)!=2
             or type(x[0]) is not str or type(x[1]) is not bytes for x in retained)
             or retained[0][0]!=SELECTION):
         raise ValueError('CHANGED_VIEW_WITNESS_SOURCE_REQUIRED')
-    views=selection(retained[0][1]);expected=pins(views)
+    views=selection(retained[0][1])
+    expected=pins(views,dict(retained).get(HISTORICAL_COLUMNS))
     if (tuple(name for name,_ in retained)!=tuple(expected)
             or any(sha(raw)!=expected[name] for name,raw in retained)):
         raise ValueError('CHANGED_VIEW_WITNESS_SOURCE_REQUIRED')
@@ -121,7 +170,11 @@ def contract(retained):
     hardening=sources[HARDENING].decode()
     if "alter view public.%I set (security_invoker = true)" not in hardening:
         raise ValueError('CHANGED_VIEW_WITNESS_SOURCE_REQUIRED')
-    return tuple(dict(row,query=extract(sources[row['source']].decode(),row,sources[TRANSITION].decode())) for row in views)
+    specs=[]
+    for row in views:
+        query=extract(sources[row['source']].decode(),row,sources[TRANSITION].decode())
+        specs.append(dict(row,query=query,witnessQuery=expand_historical_stars(query,row['ordinal'],sources)))
+    return tuple(specs)
 
 
 def relation_sql(oid,*,name=None):
@@ -151,7 +204,7 @@ END $view_guard$;"""]
     for spec in specs:
         temp=f"gridex_view_witness_{token}_{spec['ordinal']:02d}"
         # A fresh session-local name cannot shadow any original public view.
-        sql.append(f"CREATE TEMP VIEW {temp} WITH (security_invoker=true) AS {spec['query']};")
+        sql.append(f"CREATE TEMP VIEW {temp} WITH (security_invoker=true) AS {spec['witnessQuery']};")
         captures.append("jsonb_build_object('ordinal',"+str(spec['ordinal'])+",'actual',"+
                         relation_sql('public.'+spec['name'])+",'witness',"+
                         relation_sql('pg_temp.'+temp,name=spec['name'])+")")
@@ -220,6 +273,7 @@ def sources_preserved(retained,*,native):
 def expected_receipt(specs,*,native):
     return dict(scope='SOURCE_DEFINED_CHANGED_VIEWS_NOT_ACTOR_OR_SCHEMA_ACCEPTANCE',
         verified=True,viewCount=5,sourceSelectionSha256=SELECTION_SHA,
+        historicalColumnsSha256=HISTORICAL_COLUMNS_SHA,
         comparatorSha256=COMPARATOR_SHA,pgGetViewdefPretty=True,nativeTarget=native,
         views=[dict(name=s['name'],source=s['source'],sourceSha256=s['sourceSha256'],
                     querySha256=s['querySha256'],relationSha256=s['observedRelationSha256'],

@@ -45,6 +45,11 @@ class OwnedTimestampTests(unittest.TestCase):
         function_patch=patch.object(functions,'execute',return_value=functions.expected_receipt(native=False))
         tail.changed_function_execute=function_patch.start()
         self.addCleanup(function_patch.stop)
+        tail.changed_index_retained = object()
+        import canonical_changed_index_witness as indexes
+        index_patch=patch.object(indexes,'execute',return_value=indexes.expected_receipt(indexes.contract(indexes.retain(indexes.ROOT)),native=False))
+        tail.changed_index_execute=index_patch.start()
+        self.addCleanup(index_patch.stop)
         tail.removed_policy_retained=object()
         import canonical_removed_policy_qualification as removed
         removed_receipt={**removed.receipt_contract(native=False),
@@ -168,6 +173,18 @@ class OwnedTimestampTests(unittest.TestCase):
             else:
                 tail.changed_function_execute.side_effect=None
                 tail.changed_function_execute.return_value={}
+            with contextlib.redirect_stdout(io.StringIO()) as output:
+                with self.assertRaises(ValueError):tail.execute(loop,payload)
+            self.assertEqual(tail.state,'failed')
+            self.assertEqual(output.getvalue(),'')
+
+    def test_changed_index_failure_or_invalid_receipt_never_completes(self):
+        for fail in (True,False):
+            _,loop,tail,payload=self.fixture()
+            if fail:tail.changed_index_execute.side_effect=ValueError('view witness rejected')
+            else:
+                tail.changed_index_execute.side_effect=None
+                tail.changed_index_execute.return_value={}
             with contextlib.redirect_stdout(io.StringIO()) as output:
                 with self.assertRaises(ValueError):tail.execute(loop,payload)
             self.assertEqual(tail.state,'failed')

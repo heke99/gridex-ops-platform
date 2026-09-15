@@ -23,6 +23,7 @@ REVOKE = 'supabase/migrations/20260915132224_restrict_inbound_service_table_priv
 REVOKE_SHA = '0ee026c41d180768b23e20826d522387cc1c65e9c689304472f62cda39b19033'
 TABLES = ('inbound_ediel_match_attempts','inbound_ediel_parse_results','inbound_email_attachments')
 import canonical_forward_portable as snapshots
+from canonical_native_forward_runtime import assertion
 
 
 def load_legacy():
@@ -151,6 +152,8 @@ def run():
         target.sql(DATABASE,revoke,'original_whole_revocation',transaction=False)
         if target.sql(DATABASE,F14_COUNT,'inert_red24').strip()!='24':
             raise ValueError('INERT_EXACT24_REPRODUCTION_REQUIRED')
+        if target.sql(DATABASE,'select '+assertion(10),'inert_native_predicate_before').strip()!='f':
+            raise ValueError('INERT_NATIVE_PREDICATE_BEFORE_REQUIRED')
         # Each rejected shape leaves the complete pre-call catalog and rows intact.
         last=records[-1]['row']; table=last['relname']; name=last['polname']
         cases=[
@@ -176,6 +179,8 @@ def run():
         verify_delta(before,after,records,dependencies)
         if target.sql(DATABASE,F14_COUNT,'inert_green0').strip()!='0':
             raise ValueError('INERT_ZERO_POSTCONDITION_REQUIRED')
+        if target.sql(DATABASE,'select '+assertion(10),'inert_native_predicate_after').strip()!='t':
+            raise ValueError('INERT_NATIVE_PREDICATE_AFTER_REQUIRED')
         target.sql(DATABASE,candidate,'inert_repeat',transaction=False)
         if snapshots.snapshot(target)!=after:
             raise ValueError('INERT_REPEAT_STATE_CHANGED')
@@ -191,7 +196,7 @@ def run():
     if target.active or target.directory is not None or private_dir.exists():
         raise ValueError('INERT_CLEANUP_REQUIRED')
     result=dict(scope='OWNED_PG17_INERT_POLICY_QUALIFICATION_ONLY',candidateSha256=CANDIDATE_SHA,
-        redCount=24,greenCount=0,exactPolicyOnlyDelta=True,repeatVerified=True,negativeShapeCases=len(cases),
+        redCount=24,greenCount=0,nativeForwardPredicateVerified=True,exactPolicyOnlyDelta=True,repeatVerified=True,negativeShapeCases=len(cases),
         clientDenialVerified=True,serviceDmlVerified=True,cleanupVerified=True,schemaAccepted=False,
         nativeReplayAccepted=False,generatedTypesVerified=False,applicationHelpersVerified=False,productionModified=False)
     output=ROOT/'artifacts/inert-inbound-policy-candidate'

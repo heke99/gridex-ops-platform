@@ -74,6 +74,41 @@ class Tests(unittest.TestCase):
    m.execute(runner,(),parent,'owned-project')
   self.assertIn('_nativeApplicationTypeCandidate',parent)
   self.assertEqual(runner.native.call_count,2)
+ def test_index_witness_must_match_same_schema_comparison_before_typegen(self):
+  import canonical_policy_actor_qualification as actors
+  import canonical_removed_policy_qualification as removed
+  import canonical_added_view_witness as views
+  import canonical_changed_view_witness as changed_views
+  import canonical_changed_function_witness as functions
+  import canonical_changed_index_witness as indexes
+  from canonical_native_final_sql import PINS
+  from canonical_forward_sources import FORWARD_SOURCES
+  modules=((actors,'policyActorQualification'),(removed,'removedPolicyQualification'),
+           (views,'addedViewSourceWitness'),(changed_views,'changedViewSourceWitness'),
+           (functions,'changedFunctionBehaviorWitness'))
+  receipt=indexes.expected_receipt(indexes.contract(indexes.retain(indexes.ROOT)),native=True)
+  for defect in (None,'missing','hash','comparison'):
+   parent=dict(cliVersion='2.101.0',foundationInputsExecuted=144,timestampInputsExecuted=514,
+    forwardSources=dict(inputsExecuted=len(FORWARD_SOURCES)),
+    nativeFinalSql=dict(verified=True,checks=[dict(source=p,sourceSha256=h,verified=True,
+      catalogAndRowsPreserved=True,ledgerUnchanged=True) for p,h in PINS.items()]),
+    changedIndexSourceWitness=receipt.copy())
+   comparison=dict(scope='FULL_NATIVE_PUBLIC_PROJECTION_NOT_SCHEMA_ACCEPTANCE',
+    syntheticLifecycleProbeStillPresent=False,actualLedgerRows=0,referenceRestored=True,
+    referenceDisposed=True,nativeSchemaRowsAndLedgerPreserved=True,changedIndexSourceWitness=receipt.copy())
+   for _,key in modules:parent[key]=comparison[key]={'fixture':key}
+   parent['_nativeSchemaComparison']=comparison
+   if defect=='missing':parent.pop('changedIndexSourceWitness')
+   if defect=='hash':parent['changedIndexSourceWitness']['sourceSelectionSha256']='0'*64
+   if defect=='comparison':comparison['changedIndexSourceWitness']={}
+   from contextlib import ExitStack
+   with ExitStack() as stack:
+    stack.enter_context(patch('canonical_native_final_sql.admit_forward'))
+    stack.enter_context(patch('canonical_native_probe_cleanup.admit_completed'))
+    for module,_ in modules:stack.enter_context(patch.object(module,'validate_execution_receipt',side_effect=lambda value,**kw:value))
+    if defect:
+     with self.assertRaises(ValueError):m.admit(SimpleNamespace(entries=[]),(),parent)
+    else:m.admit(SimpleNamespace(entries=[]),(),parent)
  def test_missing_prerequisites_reject_before_generation(self):
   with patch('canonical_native_final_sql.admit_forward'),patch('canonical_native_probe_cleanup.admit_completed'):
    with self.assertRaises(ValueError):m.admit(SimpleNamespace(),(),{})

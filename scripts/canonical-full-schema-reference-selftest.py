@@ -147,7 +147,7 @@ class ShellObservationTests(unittest.TestCase):
     def fixture(self):
         dedupe = SimpleNamespace(require_live=Mock(), _STATES={}, fail=None)
         # Match the real controller frame boundary, not an arbitrary callback.
-        def shell(h, observer, scope='full', state='executed', applied=True, status=1, view_defect=None, removed_defect=None, changed_view_defect=None, changed_function_defect=None):
+        def shell(h, observer, scope='full', state='executed', applied=True, status=1, view_defect=None, removed_defect=None, changed_view_defect=None, changed_function_defect=None, changed_index_defect=None):
             from canonical_forward_sources import FORWARD_SOURCES
             forward = dict(executed=True, inputsExecuted=len(FORWARD_SOURCES), sources=[dict(source=path,sourceSha256=digest,
                 executed=True,positiveAndRepeatVerified=True,rowsPreserved=True) for path,digest in FORWARD_SOURCES])
@@ -164,6 +164,11 @@ class ShellObservationTests(unittest.TestCase):
             if changed_function_defect=='missing':changed_function_receipt=None
             if changed_function_defect=='unverified':changed_function_receipt['verified']=False
             if changed_function_defect=='hash':changed_function_receipt['sqlSha256']='0'*64
+            import canonical_changed_index_witness as indexes
+            changed_index_receipt=indexes.expected_receipt(indexes.contract(indexes.retain(ROOT)),native=False)
+            if changed_index_defect=='missing':changed_index_receipt=None
+            if changed_index_defect=='unverified':changed_index_receipt['verified']=False
+            if changed_index_defect=='hash':changed_index_receipt['indexes'][-1]['currentRowSha256']='0'*64
             import canonical_changed_view_witness as changed_views
             changed_view_receipt=changed_views.expected_receipt(changed_views.contract(changed_views.retain(ROOT)),native=False)
             if changed_view_defect=='missing':changed_view_receipt=None
@@ -179,7 +184,7 @@ class ShellObservationTests(unittest.TestCase):
             tail = SimpleNamespace(state=state, selected=[('test.sql', 'hash')], forward_receipt=forward, actor_receipt=receipt,
                                    view_receipt=view_receipt,removed_policy_receipt=removed_receipt,
                                    changed_view_receipt=changed_view_receipt,
-                                   changed_function_receipt=changed_function_receipt)
+                                   changed_function_receipt=changed_function_receipt, changed_index_receipt=changed_index_receipt)
             loop = SimpleNamespace(applied=applied)
             child = SimpleNamespace(poll=lambda:status)
             return observer(h)
@@ -268,6 +273,16 @@ class ShellObservationTests(unittest.TestCase):
             observer=m.terminal_observer(controller,original,document(),'original-bytes',result)
             with patch.object(m,'capture') as capture:
                 controller._serve_child(target,observer,changed_function_defect=defect)
+            capture.assert_not_called()
+            original.assert_called_once()
+            self.assertEqual(result['collectionOutcome'],'EVIDENCE_UNAVAILABLE')
+
+    def test_missing_or_forged_changed_index_receipt_prevents_catalog_collection(self):
+        for defect in ('missing','unverified','hash'):
+            controller,dedupe,target,original,result=self.fixture()
+            observer=m.terminal_observer(controller,original,document(),'original-bytes',result)
+            with patch.object(m,'capture') as capture:
+                controller._serve_child(target,observer,changed_index_defect=defect)
             capture.assert_not_called()
             original.assert_called_once()
             self.assertEqual(result['collectionOutcome'],'EVIDENCE_UNAVAILABLE')

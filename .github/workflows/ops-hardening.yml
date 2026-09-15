@@ -421,6 +421,7 @@ jobs:
           python3 -B scripts/test-canonical-added-view-witness.py
           python3 -B scripts/test-canonical-changed-view-witness.py
           python3 -B scripts/test-canonical-changed-function-witness.py
+          python3 -B scripts/test-canonical-changed-index-witness.py
           python3 -B scripts/canonical-auth-provisioning-replay.py
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/sql/canonical-tenant-guard-catalog.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql

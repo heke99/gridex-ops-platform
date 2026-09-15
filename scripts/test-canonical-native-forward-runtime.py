@@ -38,7 +38,7 @@ class ForwardTests(unittest.TestCase):
         retained = sources.retain(ROOT)
         with patch.object(Path, 'read_bytes', side_effect=AssertionError('reopened source')):
             programs = forward.programs(retained)
-        self.assertEqual(len(programs), 9)
+        self.assertEqual(len(programs), 10)
         for ordinal, (original, program) in enumerate(zip(retained, programs), 1):
             body, transferred = compiler.transfer_outer(original.sql)
             self.assertTrue(transferred)
@@ -63,7 +63,7 @@ class ForwardTests(unittest.TestCase):
         return runner,program
 
     def test_negative_controls_require_exact_fault_and_restored_snapshot(self):
-        for ordinal,ledger in ((ordinal,ledger) for ordinal in (1,2,3,4,5,6,7,8,9) for ledger in (False,True)):
+        for ordinal,ledger in ((ordinal,ledger) for ordinal in (1,2,3,4,5,6,7,8,9,10) for ledger in (False,True)):
             with tempfile.TemporaryDirectory() as directory:
                 runner,program=self.failure_fixture(directory,ledger=ledger,ordinal=ordinal)
                 with patch.object(timestamp,'native_snapshot',side_effect=[({},[]),({},[])]):
@@ -100,7 +100,7 @@ class ForwardTests(unittest.TestCase):
         self.assertIn("'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN'",send_lock)
         self.assertIn('has_any_column_privilege',send_lock)
         self.assertIn("has_table_privilege('authenticated',c.oid,'SELECT')",send_lock)
-        for ordinal in (0,10):
+        for ordinal in (0,11):
             with self.assertRaisesRegex(ValueError,'FORWARD_SOURCE_ORDINAL_REQUIRED'):
                 forward.assertion(ordinal)
 

@@ -377,6 +377,8 @@ class OwnedTimestampTail:
         self.changed_view_retained = changed_views.retain(ROOT)
         import canonical_changed_function_witness as functions
         self.changed_function_retained = functions.retain(ROOT)
+        import canonical_changed_index_witness as indexes
+        self.changed_index_retained = indexes.retain(ROOT)
         self.target = target
         self.state = 'prepared'
 
@@ -427,6 +429,10 @@ class OwnedTimestampTail:
             self.changed_function_receipt = functions.validate_execution_receipt(
                 functions.execute(self.target, self.changed_function_retained, progress), native=False)
             progress['changedFunctionBehaviorWitness'] = self.changed_function_receipt
+            import canonical_changed_index_witness as indexes
+            self.changed_index_receipt = indexes.validate_execution_receipt(
+                indexes.execute(self.target, self.changed_index_retained, progress), native=False)
+            progress['changedIndexSourceWitness'] = self.changed_index_receipt
         except BaseException:
             self.state = 'failed'
             raise

@@ -18,6 +18,10 @@ Existing application verification:218 files/2134 tests PASS, application/test Ty
 
 Next action: inspect push runs for this9+view/function/parity/F14 qualification batch (resolve exact SHA with git); inspect actual assertions/candidates, resolve source-backed F14 and schema behavior gaps, regenerate genuine application types/manifest, pass final-head CI/E2E and review, merge entire310 to main, then start next Ediel v2 locator/register phase. Do not stop at a partial green subset.
 
+Latest continuation: published ab0c8f49 and then2289066e/35eab5da. Actual ab0c8f49 parent-delete35004825333, auth35004825308, access35004825263 and production parity-engine35004825328 PASS. Portable/source comparison reaches all nine forwards; schema35004825267/job104501850630 stops at changed-view ordinals2–5: actual hashes still equal expected, but witness recreation expands historical SELECT* against later columns. Source-derived historical column lists are being implemented; expected hashes remain unchanged.
+
+Actual inert-policy35006218472/job104506509692 PASS after verifier accounts for the exact policy-owned dependency keys (distinct catalog identity) and fixes fallback cleanup imports. Red24→green0, exact policy/dependency-only catalog delta, all rows/ACLs unchanged, repeat, seven negative shapes, client denial and service NOBYPASSRLS CRUD pass. CLI2.101.0 filename20260915181448_drop_inert_inbound_client_policies.sql; exact SHA256b04ce7766f0d3e4655778cdd6aa6fcde1bb3a0661867e381aa0939f015c9e2c1. Artifact10411686711 metadata only, no local archive hash claim. Tenth-source registration/predicate is being prepared; not yet published. Changed-index draft is under independent completion. Native34999483575/job104484522245 remains running on PR310 six-source head. No main merge or next-phase start.
+
 ## Historical continuation records (superseded status)
 
 # Current work — merge to main before next Ediel phase, 2026-09-15

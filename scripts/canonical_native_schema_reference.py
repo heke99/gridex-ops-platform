@@ -36,6 +36,8 @@ def compare(runner, retained_forward, parent):
     changed_view_receipt = changed_views.validate_execution_receipt(parent.get('changedViewSourceWitness'), native=True)
     import canonical_changed_function_witness as functions
     changed_function_receipt = functions.validate_execution_receipt(parent.get('changedFunctionBehaviorWitness'), native=True)
+    import canonical_changed_index_witness as indexes
+    changed_index_receipt = indexes.validate_execution_receipt(parent.get('changedIndexSourceWitness'), native=True)
     module = load_comparator()
     raw = module.pinned()['supabase/schema.sql']
     before = runner.target.snapshot()
@@ -59,6 +61,7 @@ def compare(runner, retained_forward, parent):
                   addedViewSourceWitness=view_receipt,
                   changedViewSourceWitness=changed_view_receipt,
                   changedFunctionBehaviorWitness=changed_function_receipt,
+                  changedIndexSourceWitness=changed_index_receipt,
                   syntheticLifecycleProbeStillPresent=any(
                       row["nspname"] == "public" and row["relname"] == "gridex_native_lifecycle_probe"
                       for row in actual["relations"]))

@@ -151,6 +151,19 @@ def failure_code(error, historical):
         'NATIVE_PARITY_ENGINE_RECEIPT_REQUIRED',
     })
     lifecycle_codes.update({
+        'CHANGED_INDEX_CASES_REQUIRED',
+        'CHANGED_INDEX_DUPLICATE_ADMITTED',
+        'CHANGED_INDEX_ENVIRONMENT_REQUIRED',
+        'CHANGED_INDEX_EXCLUDED_DUPLICATE_REJECTED',
+        'CHANGED_INDEX_FIXTURE_ROWS_REQUIRED',
+        'CHANGED_INDEX_WITNESS_CATALOG_REQUIRED',
+        'CHANGED_INDEX_WITNESS_EXECUTION_REQUIRED',
+        'CHANGED_INDEX_WITNESS_LEDGER_REQUIRED',
+        'CHANGED_INDEX_WITNESS_ONCE_REQUIRED',
+        'CHANGED_INDEX_WITNESS_OWNED_TARGET_REQUIRED',
+        'CHANGED_INDEX_WITNESS_PRESERVATION_REQUIRED',
+        'CHANGED_INDEX_WITNESS_RESULT_REQUIRED',
+        'CHANGED_INDEX_WITNESS_SOURCE_REQUIRED',
         'CHANGED_FUNCTION_SOURCE_REQUIRED',
         'CHANGED_FUNCTION_RESULT_REQUIRED',
         'CHANGED_FUNCTION_ONCE_REQUIRED',
@@ -409,6 +422,8 @@ def run(*, historical_prefix=False, clone_preflight=False):
         changed_view_retained = retain_changed_views(ROOT)
         from canonical_changed_function_witness import retain as retain_changed_functions
         changed_function_retained = retain_changed_functions(ROOT)
+        from canonical_changed_index_witness import retain as retain_changed_indexes
+        changed_index_retained = retain_changed_indexes(ROOT)
         from canonical_removed_policy_qualification import retain as retain_removed_policies
         removed_policy_retained = retain_removed_policies(ROOT)
     transport = load_transport()
@@ -562,7 +577,7 @@ def run(*, historical_prefix=False, clone_preflight=False):
                 phase = 'HISTORICAL_TIMESTAMP_NATIVE_LEDGER'
                 from canonical_native_timestamp_runtime import execute as execute_timestamp
                 execute_timestamp(command, native, sql, work, project, report, timestamp_plan, forward_retained,
-                                  view_retained, removed_policy_retained, changed_view_retained, changed_function_retained)
+                                  view_retained, removed_policy_retained, changed_view_retained, changed_function_retained, changed_index_retained)
             success = True
         except Exception as error:
             report.update(outcome='BLOCKED',phase=phase,errorType=type(error).__name__)

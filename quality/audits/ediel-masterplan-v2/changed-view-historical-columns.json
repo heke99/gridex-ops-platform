@@ -1,0 +1,1661 @@
+{
+  "scope": "SOURCE_DECLARATIONS_AT_ORIGINAL_VIEW_CREATION_NOT_SCHEMA_ACCEPTANCE",
+  "foundationOrderSha256": "11af5df0de43b4e135a2c8172a1ffc937079241826a60e5fefda9cb588363595",
+  "timestampSelectionSha256": "076408eb112ebd8b153a18d4774ffd7122d92ad3c0a8a9aaf8b58faacfe71fbe",
+  "sources": {
+    "supabase/bootstrap/20260611_customer_contract_energy_resolution_foundation.sql": "ae725b25b9abbfc8281c4ac1eda783886d214935834c436a4b59fdbbb26bd2ea",
+    "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql": "85f3561be4d91cee063bbf626302de7726a09c5ce08743b250e62cee959bb5f2",
+    "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql": "0413f4dca84aca387297954b900a163aa63d0f84552570c372c12e8f8abdd693",
+    "supabase/migrations/20260520_batch_5_cases_audit_email_ux.sql": "0e26b35eef3fa863f149bf4c46be4018ff484d3d55c5434a64323fafde201775",
+    "supabase/migrations/20260521_batch3_pricing_billing_audit_roles_completion.sql": "109ddeee3b532c70fc65ac5f920d4eae250a10037afd304ed5d14144cc30e27f",
+    "supabase/migrations/20260521_batch_customer_intake_batch2_hardening.sql": "ab4bcf98d9baba596e3badde07ea8c035224512979104f6716d1fe39bbbb2594",
+    "supabase/migrations/20260528_batch_1_customer_flow_masterdata_preflight.sql": "08d183bdbb1506958893aada9400982ea58cd2e4c0acec0a886ad83194533135",
+    "supabase/migrations/20260601070000_ediel_production_readiness_hardening.sql": "7a73e59f559ebb5291d3e7df74545e6918011ec9764e5c512df19fbaa5bdbc12",
+    "supabase/migrations/20260601093000_ediel_actor_identity_source_of_truth.sql": "f643bddd8fbaa8bedd1f55dcf57e2bb048e4409afca56ac078994e7af7fb1a67",
+    "supabase/migrations/20260601173000_ediel_final_hardening_schema_patch.sql": "cf505ba9f42ff3a423c71b1ab466ce86eb664ec5213f885f11d22a180d4b60c6",
+    "supabase/migrations/20260602090000_ediel_operations_platform_core.sql": "949bad4ed31e526954e59676c308b5953f128363b21d94821725c0dc3f4681b3",
+    "supabase/migrations/20260602101500_ediel_shared_mailbox_subaddress_security.sql": "624ceaf487bf1f701acec62168b4ee90ad1c9b3251a5597ffd55a8f24739fad3",
+    "supabase/migrations/20260609113000_batch_2_3_4_6_period_onboarding_ediel_portal.sql": "822fa054543dc5d5b45188a060742ac50465177338fc4e262c60205c3177cc7b",
+    "supabase/migrations/20260610123000_customer_application_review_flow.sql": "55bdc0a98d9a601437738f58cc1380b2828bf817d979e586e038331e0a622caf",
+    "supabase/migrations/20260612170000_ops_multitenant_website_contracts_events.sql": "e2e7801e528b1342e8623c119a3424e0b523355cc0a9007f8327baf2f9744520",
+    "supabase/migrations/20260613090000_batch_m_ops_master_legal_readiness.sql": "599b707e9f979727fcf39843d88ee376c15409731a780befb01d2ed436ec842d",
+    "supabase/migrations/20260713203000_contract_api_visibility_signature_mail_hardening.sql": "296b6e60e0ed07118173fb5fd8b7b49783576f6f3ca8f46cd83b03664f049827",
+    "supabase/migrations/20260714130000_canonical_contract_legal_publication_model.sql": "036f08e029a905c8321a047522f9edbae34d6936cace6142e3839f11c339babd",
+    "supabase/migrations/20260716140000_contract_legal_publication_single_source_completion.sql": "c2dcd7e84e5963486207a764a51e57f4830078c59e4032f1df3d8e8405bd5561",
+    "supabase/migrations/20260718160000_v5_signature_switch_readiness_hardening.sql": "1533df3d0ff7d56953d410434676c901bae21157a013e680fe7081a8ac112e45",
+    "supabase/migrations/Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
+    "supabase/migrations/ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2"
+  },
+  "expansions": [
+    {
+      "ordinal": 2,
+      "table": "customer_contracts",
+      "needle": "c.*",
+      "alias": "c",
+      "columns": [
+        {
+          "name": "id",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 978,
+          "declaration": "  id uuid primary key default gen_random_uuid(),"
+        },
+        {
+          "name": "company_id",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 979,
+          "declaration": "  company_id uuid references public.companies(id),"
+        },
+        {
+          "name": "customer_id",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 980,
+          "declaration": "  customer_id uuid references public.customers(id),"
+        },
+        {
+          "name": "site_id",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 981,
+          "declaration": "  site_id uuid,"
+        },
+        {
+          "name": "metering_point_id",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 982,
+          "declaration": "  metering_point_id uuid,"
+        },
+        {
+          "name": "customer_site_id",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 983,
+          "declaration": "  customer_site_id uuid,"
+        },
+        {
+          "name": "contract_offer_id",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 984,
+          "declaration": "  contract_offer_id uuid,"
+        },
+        {
+          "name": "source_type",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 985,
+          "declaration": "  source_type text not null default 'manual_override',"
+        },
+        {
+          "name": "status",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 986,
+          "declaration": "  status text not null default 'draft',"
+        },
+        {
+          "name": "contract_name",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 987,
+          "declaration": "  contract_name text not null default 'Elavtal',"
+        },
+        {
+          "name": "contract_type",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 988,
+          "declaration": "  contract_type text not null default 'variable_monthly',"
+        },
+        {
+          "name": "campaign_name",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 989,
+          "declaration": "  campaign_name text,"
+        },
+        {
+          "name": "campaign_code",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 990,
+          "declaration": "  campaign_code text,"
+        },
+        {
+          "name": "campaign_version",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 991,
+          "declaration": "  campaign_version text,"
+        },
+        {
+          "name": "price_version",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 992,
+          "declaration": "  price_version text,"
+        },
+        {
+          "name": "terms_version",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 993,
+          "declaration": "  terms_version text,"
+        },
+        {
+          "name": "contract_version",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 994,
+          "declaration": "  contract_version text,"
+        },
+        {
+          "name": "signed_version",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 995,
+          "declaration": "  signed_version text,"
+        },
+        {
+          "name": "terms_signed_version",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 996,
+          "declaration": "  terms_signed_version text,"
+        },
+        {
+          "name": "version_snapshot",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 997,
+          "declaration": "  version_snapshot jsonb default '{}'::jsonb,"
+        },
+        {
+          "name": "start_status",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 998,
+          "declaration": "  start_status text,"
+        },
+        {
+          "name": "old_supplier_start_at",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 999,
+          "declaration": "  old_supplier_start_at date,"
+        },
+        {
+          "name": "grid_owner_confirmed_start_at",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1000,
+          "declaration": "  grid_owner_confirmed_start_at date,"
+        },
+        {
+          "name": "ediel_confirmed_start_at",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1001,
+          "declaration": "  ediel_confirmed_start_at date,"
+        },
+        {
+          "name": "export_blocked",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1002,
+          "declaration": "  export_blocked boolean not null default false,"
+        },
+        {
+          "name": "export_block_reason",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1003,
+          "declaration": "  export_block_reason text,"
+        },
+        {
+          "name": "price_snapshot",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1004,
+          "declaration": "  price_snapshot jsonb default '{}'::jsonb,"
+        },
+        {
+          "name": "campaign_snapshot",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1005,
+          "declaration": "  campaign_snapshot jsonb default '{}'::jsonb,"
+        },
+        {
+          "name": "billing_ready_status",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1006,
+          "declaration": "  billing_ready_status text,"
+        },
+        {
+          "name": "billing_blocker_reasons",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1007,
+          "declaration": "  billing_blocker_reasons jsonb default '[]'::jsonb,"
+        },
+        {
+          "name": "withdrawal_requested_at",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1008,
+          "declaration": "  withdrawal_requested_at timestamptz,"
+        },
+        {
+          "name": "rejected_reason",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1009,
+          "declaration": "  rejected_reason text,"
+        },
+        {
+          "name": "fixed_price_ore_per_kwh",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1010,
+          "declaration": "  fixed_price_ore_per_kwh numeric,"
+        },
+        {
+          "name": "spot_markup_ore_per_kwh",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1011,
+          "declaration": "  spot_markup_ore_per_kwh numeric,"
+        },
+        {
+          "name": "variable_fee_ore_per_kwh",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1012,
+          "declaration": "  variable_fee_ore_per_kwh numeric,"
+        },
+        {
+          "name": "monthly_fee_sek",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1013,
+          "declaration": "  monthly_fee_sek numeric,"
+        },
+        {
+          "name": "green_fee_mode",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1014,
+          "declaration": "  green_fee_mode text default 'none',"
+        },
+        {
+          "name": "green_fee_value",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1015,
+          "declaration": "  green_fee_value numeric,"
+        },
+        {
+          "name": "binding_months",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1016,
+          "declaration": "  binding_months integer,"
+        },
+        {
+          "name": "notice_months",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1017,
+          "declaration": "  notice_months integer,"
+        },
+        {
+          "name": "optional_fee_lines",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1018,
+          "declaration": "  optional_fee_lines jsonb default '[]'::jsonb,"
+        },
+        {
+          "name": "starts_at",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1019,
+          "declaration": "  starts_at date,"
+        },
+        {
+          "name": "expected_start_at",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1020,
+          "declaration": "  expected_start_at date,"
+        },
+        {
+          "name": "confirmed_start_at",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1021,
+          "declaration": "  confirmed_start_at date,"
+        },
+        {
+          "name": "actual_start_at",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1022,
+          "declaration": "  actual_start_at date,"
+        },
+        {
+          "name": "start_date_source",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1023,
+          "declaration": "  start_date_source text,"
+        },
+        {
+          "name": "ends_at",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1024,
+          "declaration": "  ends_at date,"
+        },
+        {
+          "name": "signed_at",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1025,
+          "declaration": "  signed_at timestamptz,"
+        },
+        {
+          "name": "termination_notice_date",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1026,
+          "declaration": "  termination_notice_date date,"
+        },
+        {
+          "name": "termination_reason",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1027,
+          "declaration": "  termination_reason text,"
+        },
+        {
+          "name": "auto_renew_enabled",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1028,
+          "declaration": "  auto_renew_enabled boolean not null default false,"
+        },
+        {
+          "name": "auto_renew_term_months",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1029,
+          "declaration": "  auto_renew_term_months integer,"
+        },
+        {
+          "name": "override_reason",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1030,
+          "declaration": "  override_reason text,"
+        },
+        {
+          "name": "invoice_recipient",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1031,
+          "declaration": "  invoice_recipient text,"
+        },
+        {
+          "name": "invoice_email",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1032,
+          "declaration": "  invoice_email text,"
+        },
+        {
+          "name": "invoice_reference",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1033,
+          "declaration": "  invoice_reference text,"
+        },
+        {
+          "name": "billing_street",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1034,
+          "declaration": "  billing_street text,"
+        },
+        {
+          "name": "billing_postal_code",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1035,
+          "declaration": "  billing_postal_code text,"
+        },
+        {
+          "name": "billing_city",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1036,
+          "declaration": "  billing_city text,"
+        },
+        {
+          "name": "billing_country",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1037,
+          "declaration": "  billing_country text default 'SE',"
+        },
+        {
+          "name": "billing_address_same_as_site",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1038,
+          "declaration": "  billing_address_same_as_site boolean default true,"
+        },
+        {
+          "name": "billing_level",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1039,
+          "declaration": "  billing_level text,"
+        },
+        {
+          "name": "consolidated_invoice",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1040,
+          "declaration": "  consolidated_invoice boolean default false,"
+        },
+        {
+          "name": "metadata",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1041,
+          "declaration": "  metadata jsonb not null default '{}'::jsonb,"
+        },
+        {
+          "name": "created_at",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1042,
+          "declaration": "  created_at timestamptz not null default now(),"
+        },
+        {
+          "name": "updated_at",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1043,
+          "declaration": "  updated_at timestamptz not null default now(),"
+        },
+        {
+          "name": "created_by",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1044,
+          "declaration": "  created_by uuid,"
+        },
+        {
+          "name": "updated_by",
+          "source": "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+          "line": 1045,
+          "declaration": "  updated_by uuid"
+        },
+        {
+          "name": "requested_start_mode",
+          "source": "supabase/bootstrap/20260611_customer_contract_energy_resolution_foundation.sql",
+          "line": 9,
+          "declaration": "  add column if not exists requested_start_mode text not null default 'earliest_possible'"
+        },
+        {
+          "name": "calculated_earliest_start_date",
+          "source": "supabase/bootstrap/20260611_customer_contract_energy_resolution_foundation.sql",
+          "line": 11,
+          "declaration": "  add column if not exists calculated_earliest_start_date date,"
+        },
+        {
+          "name": "price_area_used",
+          "source": "supabase/bootstrap/20260611_customer_contract_energy_resolution_foundation.sql",
+          "line": 12,
+          "declaration": "  add column if not exists price_area_used text,"
+        },
+        {
+          "name": "grid_area_code_used",
+          "source": "supabase/bootstrap/20260611_customer_contract_energy_resolution_foundation.sql",
+          "line": 13,
+          "declaration": "  add column if not exists grid_area_code_used text,"
+        },
+        {
+          "name": "resolution_status",
+          "source": "supabase/bootstrap/20260611_customer_contract_energy_resolution_foundation.sql",
+          "line": 14,
+          "declaration": "  add column if not exists resolution_status text;"
+        },
+        {
+          "name": "agreement_channel",
+          "source": "supabase/migrations/20260520_batch_5_cases_audit_email_ux.sql",
+          "line": 149,
+          "declaration": "    alter table public.customer_contracts add column if not exists agreement_channel text null;"
+        },
+        {
+          "name": "is_distance_agreement",
+          "source": "supabase/migrations/20260520_batch_5_cases_audit_email_ux.sql",
+          "line": 150,
+          "declaration": "    alter table public.customer_contracts add column if not exists is_distance_agreement boolean not null default false;"
+        },
+        {
+          "name": "withdrawal_information_sent_at",
+          "source": "supabase/migrations/20260520_batch_5_cases_audit_email_ux.sql",
+          "line": 151,
+          "declaration": "    alter table public.customer_contracts add column if not exists withdrawal_information_sent_at timestamptz null;"
+        },
+        {
+          "name": "withdrawal_deadline_at",
+          "source": "supabase/migrations/20260520_batch_5_cases_audit_email_ux.sql",
+          "line": 152,
+          "declaration": "    alter table public.customer_contracts add column if not exists withdrawal_deadline_at timestamptz null;"
+        },
+        {
+          "name": "billing_blocked_by_case_id",
+          "source": "supabase/migrations/20260520_batch_5_cases_audit_email_ux.sql",
+          "line": 153,
+          "declaration": "    alter table public.customer_contracts add column if not exists billing_blocked_by_case_id uuid null;"
+        },
+        {
+          "name": "discount_value",
+          "source": "supabase/migrations/20260521_batch3_pricing_billing_audit_roles_completion.sql",
+          "line": 37,
+          "declaration": "    ALTER TABLE public.customer_contracts ADD COLUMN IF NOT EXISTS discount_value numeric;"
+        },
+        {
+          "name": "discount_unit",
+          "source": "supabase/migrations/20260521_batch3_pricing_billing_audit_roles_completion.sql",
+          "line": 38,
+          "declaration": "    ALTER TABLE public.customer_contracts ADD COLUMN IF NOT EXISTS discount_unit text;"
+        },
+        {
+          "name": "start_fee_sek",
+          "source": "supabase/migrations/20260521_batch3_pricing_billing_audit_roles_completion.sql",
+          "line": 39,
+          "declaration": "    ALTER TABLE public.customer_contracts ADD COLUMN IF NOT EXISTS start_fee_sek numeric;"
+        },
+        {
+          "name": "admin_fee_sek",
+          "source": "supabase/migrations/20260521_batch3_pricing_billing_audit_roles_completion.sql",
+          "line": 40,
+          "declaration": "    ALTER TABLE public.customer_contracts ADD COLUMN IF NOT EXISTS admin_fee_sek numeric;"
+        },
+        {
+          "name": "break_fee_sek",
+          "source": "supabase/migrations/20260521_batch3_pricing_billing_audit_roles_completion.sql",
+          "line": 41,
+          "declaration": "    ALTER TABLE public.customer_contracts ADD COLUMN IF NOT EXISTS break_fee_sek numeric;"
+        },
+        {
+          "name": "vat_rate",
+          "source": "supabase/migrations/20260521_batch3_pricing_billing_audit_roles_completion.sql",
+          "line": 42,
+          "declaration": "    ALTER TABLE public.customer_contracts ADD COLUMN IF NOT EXISTS vat_rate numeric DEFAULT 0.25;"
+        },
+        {
+          "name": "start_date_blocker_reason",
+          "source": "supabase/migrations/20260521_batch_customer_intake_batch2_hardening.sql",
+          "line": 107,
+          "declaration": "    alter table public.customer_contracts add column if not exists start_date_blocker_reason text null;"
+        },
+        {
+          "name": "current_supplier_id",
+          "source": "supabase/migrations/20260528_batch_1_customer_flow_masterdata_preflight.sql",
+          "line": 29,
+          "declaration": "  add column if not exists current_supplier_id uuid,"
+        },
+        {
+          "name": "current_supplier_name",
+          "source": "supabase/migrations/20260528_batch_1_customer_flow_masterdata_preflight.sql",
+          "line": 30,
+          "declaration": "  add column if not exists current_supplier_name text,"
+        },
+        {
+          "name": "current_supplier_org_number",
+          "source": "supabase/migrations/20260528_batch_1_customer_flow_masterdata_preflight.sql",
+          "line": 31,
+          "declaration": "  add column if not exists current_supplier_org_number text,"
+        },
+        {
+          "name": "current_supplier_contract_status",
+          "source": "supabase/migrations/20260528_batch_1_customer_flow_masterdata_preflight.sql",
+          "line": 32,
+          "declaration": "  add column if not exists current_supplier_contract_status text,"
+        },
+        {
+          "name": "current_supplier_contract_end_date",
+          "source": "supabase/migrations/20260528_batch_1_customer_flow_masterdata_preflight.sql",
+          "line": 33,
+          "declaration": "  add column if not exists current_supplier_contract_end_date date,"
+        },
+        {
+          "name": "current_supplier_notice_period",
+          "source": "supabase/migrations/20260528_batch_1_customer_flow_masterdata_preflight.sql",
+          "line": 34,
+          "declaration": "  add column if not exists current_supplier_notice_period text,"
+        },
+        {
+          "name": "current_supplier_termination_fee",
+          "source": "supabase/migrations/20260528_batch_1_customer_flow_masterdata_preflight.sql",
+          "line": 35,
+          "declaration": "  add column if not exists current_supplier_termination_fee numeric,"
+        },
+        {
+          "name": "current_supplier_response_status",
+          "source": "supabase/migrations/20260528_batch_1_customer_flow_masterdata_preflight.sql",
+          "line": 36,
+          "declaration": "  add column if not exists current_supplier_response_status text;"
+        },
+        {
+          "name": "onboarding_status",
+          "source": "supabase/migrations/20260609113000_batch_2_3_4_6_period_onboarding_ediel_portal.sql",
+          "line": 52,
+          "declaration": "  add column if not exists onboarding_status text,"
+        },
+        {
+          "name": "onboarding_issues",
+          "source": "supabase/migrations/20260609113000_batch_2_3_4_6_period_onboarding_ediel_portal.sql",
+          "line": 53,
+          "declaration": "  add column if not exists onboarding_issues jsonb not null default '[]'::jsonb;"
+        },
+        {
+          "name": "requested_start_date",
+          "source": "supabase/migrations/20260610123000_customer_application_review_flow.sql",
+          "line": 79,
+          "declaration": "  add column if not exists requested_start_date date,"
+        },
+        {
+          "name": "confirmed_start_date",
+          "source": "supabase/migrations/20260610123000_customer_application_review_flow.sql",
+          "line": 80,
+          "declaration": "  add column if not exists confirmed_start_date date,"
+        },
+        {
+          "name": "actual_start_date",
+          "source": "supabase/migrations/20260610123000_customer_application_review_flow.sql",
+          "line": 81,
+          "declaration": "  add column if not exists actual_start_date date,"
+        },
+        {
+          "name": "contract_number",
+          "source": "supabase/migrations/20260612170000_ops_multitenant_website_contracts_events.sql",
+          "line": 211,
+          "declaration": "  add column if not exists contract_number text,"
+        },
+        {
+          "name": "price_plan_id",
+          "source": "supabase/migrations/20260612170000_ops_multitenant_website_contracts_events.sql",
+          "line": 212,
+          "declaration": "  add column if not exists price_plan_id uuid references public.price_plans(id) on delete set null,"
+        },
+        {
+          "name": "price_plan_version_id",
+          "source": "supabase/migrations/20260612170000_ops_multitenant_website_contracts_events.sql",
+          "line": 213,
+          "declaration": "  add column if not exists price_plan_version_id uuid references public.price_plan_versions(id) on delete set null,"
+        },
+        {
+          "name": "invoice_fee_sek",
+          "source": "supabase/migrations/20260612170000_ops_multitenant_website_contracts_events.sql",
+          "line": 214,
+          "declaration": "  add column if not exists invoice_fee_sek numeric,"
+        },
+        {
+          "name": "markup_ore_per_kwh",
+          "source": "supabase/migrations/20260612170000_ops_multitenant_website_contracts_events.sql",
+          "line": 215,
+          "declaration": "  add column if not exists markup_ore_per_kwh numeric,"
+        },
+        {
+          "name": "contract_price_snapshot_id",
+          "source": "supabase/migrations/20260612170000_ops_multitenant_website_contracts_events.sql",
+          "line": 216,
+          "declaration": "  add column if not exists contract_price_snapshot_id uuid;"
+        },
+        {
+          "name": "legal_acceptance_snapshot",
+          "source": "supabase/migrations/20260613090000_batch_m_ops_master_legal_readiness.sql",
+          "line": 211,
+          "declaration": "  add column if not exists legal_acceptance_snapshot jsonb not null default '{}'::jsonb,"
+        },
+        {
+          "name": "legal_readiness_status",
+          "source": "supabase/migrations/20260613090000_batch_m_ops_master_legal_readiness.sql",
+          "line": 212,
+          "declaration": "  add column if not exists legal_readiness_status text not null default 'pending',"
+        },
+        {
+          "name": "legal_readiness_reasons",
+          "source": "supabase/migrations/20260613090000_batch_m_ops_master_legal_readiness.sql",
+          "line": 213,
+          "declaration": "  add column if not exists legal_readiness_reasons jsonb not null default '[]'::jsonb,"
+        },
+        {
+          "name": "application_snapshot",
+          "source": "supabase/migrations/20260613090000_batch_m_ops_master_legal_readiness.sql",
+          "line": 214,
+          "declaration": "  add column if not exists application_snapshot jsonb not null default '{}'::jsonb,"
+        },
+        {
+          "name": "website_application_id",
+          "source": "supabase/migrations/20260613090000_batch_m_ops_master_legal_readiness.sql",
+          "line": 215,
+          "declaration": "  add column if not exists website_application_id uuid;"
+        },
+        {
+          "name": "public_contract_offer_id",
+          "source": "supabase/migrations/20260713203000_contract_api_visibility_signature_mail_hardening.sql",
+          "line": 13,
+          "declaration": "  add column if not exists public_contract_offer_id uuid,"
+        },
+        {
+          "name": "offer_reference",
+          "source": "supabase/migrations/20260713203000_contract_api_visibility_signature_mail_hardening.sql",
+          "line": 14,
+          "declaration": "  add column if not exists offer_reference text,"
+        },
+        {
+          "name": "legal_versions_snapshot",
+          "source": "supabase/migrations/20260713203000_contract_api_visibility_signature_mail_hardening.sql",
+          "line": 15,
+          "declaration": "  add column if not exists legal_versions_snapshot jsonb not null default '[]'::jsonb,"
+        },
+        {
+          "name": "signature_snapshot",
+          "source": "supabase/migrations/20260713203000_contract_api_visibility_signature_mail_hardening.sql",
+          "line": 16,
+          "declaration": "  add column if not exists signature_snapshot jsonb not null default '{}'::jsonb,"
+        },
+        {
+          "name": "signature_snapshot_sha256",
+          "source": "supabase/migrations/20260713203000_contract_api_visibility_signature_mail_hardening.sql",
+          "line": 17,
+          "declaration": "  add column if not exists signature_snapshot_sha256 text,"
+        },
+        {
+          "name": "signed_ip_hash",
+          "source": "supabase/migrations/20260713203000_contract_api_visibility_signature_mail_hardening.sql",
+          "line": 18,
+          "declaration": "  add column if not exists signed_ip_hash text,"
+        },
+        {
+          "name": "signed_user_agent",
+          "source": "supabase/migrations/20260713203000_contract_api_visibility_signature_mail_hardening.sql",
+          "line": 19,
+          "declaration": "  add column if not exists signed_user_agent text;"
+        },
+        {
+          "name": "contract_product_id",
+          "source": "supabase/migrations/20260714130000_canonical_contract_legal_publication_model.sql",
+          "line": 226,
+          "declaration": "  add column if not exists contract_product_id uuid,"
+        },
+        {
+          "name": "contract_product_version_id",
+          "source": "supabase/migrations/20260714130000_canonical_contract_legal_publication_model.sql",
+          "line": 227,
+          "declaration": "  add column if not exists contract_product_version_id uuid,"
+        },
+        {
+          "name": "contract_publication_version_id",
+          "source": "supabase/migrations/20260714130000_canonical_contract_legal_publication_model.sql",
+          "line": 228,
+          "declaration": "  add column if not exists contract_publication_version_id uuid,"
+        },
+        {
+          "name": "legal_bundle_version_id",
+          "source": "supabase/migrations/20260714130000_canonical_contract_legal_publication_model.sql",
+          "line": 229,
+          "declaration": "  add column if not exists legal_bundle_version_id uuid,"
+        },
+        {
+          "name": "commercial_snapshot",
+          "source": "supabase/migrations/20260714130000_canonical_contract_legal_publication_model.sql",
+          "line": 230,
+          "declaration": "  add column if not exists commercial_snapshot jsonb not null default '{}'::jsonb,"
+        },
+        {
+          "name": "legal_snapshot",
+          "source": "supabase/migrations/20260714130000_canonical_contract_legal_publication_model.sql",
+          "line": 231,
+          "declaration": "  add column if not exists legal_snapshot jsonb not null default '{}'::jsonb,"
+        },
+        {
+          "name": "document_sha256",
+          "source": "supabase/migrations/20260714130000_canonical_contract_legal_publication_model.sql",
+          "line": 232,
+          "declaration": "  add column if not exists document_sha256 text,"
+        },
+        {
+          "name": "locked_at",
+          "source": "supabase/migrations/20260714130000_canonical_contract_legal_publication_model.sql",
+          "line": 233,
+          "declaration": "  add column if not exists locked_at timestamptz;"
+        },
+        {
+          "name": "tenant_communication_snapshot",
+          "source": "supabase/migrations/20260716140000_contract_legal_publication_single_source_completion.sql",
+          "line": 914,
+          "declaration": "  add column if not exists tenant_communication_snapshot jsonb not null default '{}'::jsonb,"
+        },
+        {
+          "name": "tenant_communication_snapshot_sha256",
+          "source": "supabase/migrations/20260716140000_contract_legal_publication_single_source_completion.sql",
+          "line": 915,
+          "declaration": "  add column if not exists tenant_communication_snapshot_sha256 text,"
+        },
+        {
+          "name": "tenant_legal_party_snapshot",
+          "source": "supabase/migrations/20260716140000_contract_legal_publication_single_source_completion.sql",
+          "line": 916,
+          "declaration": "  add column if not exists tenant_legal_party_snapshot jsonb not null default '{}'::jsonb;"
+        },
+        {
+          "name": "lifecycle_stage",
+          "source": "supabase/migrations/20260718160000_v5_signature_switch_readiness_hardening.sql",
+          "line": 51,
+          "declaration": "  add column if not exists lifecycle_stage text not null default 'agreement_ready';"
+        }
+      ]
+    },
+    {
+      "ordinal": 3,
+      "table": "ediel_actor_settings",
+      "needle": "eas.*",
+      "alias": "eas",
+      "columns": [
+        {
+          "name": "id",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 421,
+          "declaration": "  id uuid primary key default gen_random_uuid(),"
+        },
+        {
+          "name": "company_id",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 422,
+          "declaration": "  company_id uuid references public.companies(id),"
+        },
+        {
+          "name": "actor_name",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 423,
+          "declaration": "  actor_name text not null,"
+        },
+        {
+          "name": "actor_ediel_id",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 424,
+          "declaration": "  actor_ediel_id text not null,"
+        },
+        {
+          "name": "actor_role",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 425,
+          "declaration": "  actor_role text not null default 'supplier',"
+        },
+        {
+          "name": "environment",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 426,
+          "declaration": "  environment text not null default 'test',"
+        },
+        {
+          "name": "is_active",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 427,
+          "declaration": "  is_active boolean not null default true,"
+        },
+        {
+          "name": "sender_name",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 428,
+          "declaration": "  sender_name text,"
+        },
+        {
+          "name": "sender_sub_address",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 429,
+          "declaration": "  sender_sub_address text,"
+        },
+        {
+          "name": "default_application_reference",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 430,
+          "declaration": "  default_application_reference text,"
+        },
+        {
+          "name": "default_timezone",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 431,
+          "declaration": "  default_timezone integer not null default 1,"
+        },
+        {
+          "name": "default_charset",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 432,
+          "declaration": "  default_charset text not null default 'UNOC:3',"
+        },
+        {
+          "name": "default_test_flag",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 433,
+          "declaration": "  default_test_flag integer not null default 1,"
+        },
+        {
+          "name": "smtp_from_email",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 434,
+          "declaration": "  smtp_from_email text,"
+        },
+        {
+          "name": "smtp_reply_to_email",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 435,
+          "declaration": "  smtp_reply_to_email text,"
+        },
+        {
+          "name": "mailbox",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 436,
+          "declaration": "  mailbox text,"
+        },
+        {
+          "name": "brp_name",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 437,
+          "declaration": "  brp_name text,"
+        },
+        {
+          "name": "brp_ediel_id",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 438,
+          "declaration": "  brp_ediel_id text,"
+        },
+        {
+          "name": "brp_status",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 439,
+          "declaration": "  brp_status text,"
+        },
+        {
+          "name": "esett_status",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 440,
+          "declaration": "  esett_status text,"
+        },
+        {
+          "name": "valid_from",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 441,
+          "declaration": "  valid_from date,"
+        },
+        {
+          "name": "valid_to",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 442,
+          "declaration": "  valid_to date,"
+        },
+        {
+          "name": "notes",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 443,
+          "declaration": "  notes text,"
+        },
+        {
+          "name": "metadata",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 444,
+          "declaration": "  metadata jsonb not null default '{}'::jsonb,"
+        },
+        {
+          "name": "created_at",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 445,
+          "declaration": "  created_at timestamptz not null default now(),"
+        },
+        {
+          "name": "updated_at",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 446,
+          "declaration": "  updated_at timestamptz not null default now(),"
+        },
+        {
+          "name": "created_by",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 447,
+          "declaration": "  created_by uuid,"
+        },
+        {
+          "name": "updated_by",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 448,
+          "declaration": "  updated_by uuid"
+        },
+        {
+          "name": "market",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 23,
+          "declaration": "  add column if not exists market text,"
+        },
+        {
+          "name": "role",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 24,
+          "declaration": "  add column if not exists role text,"
+        },
+        {
+          "name": "ediel_id",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 25,
+          "declaration": "  add column if not exists ediel_id text,"
+        },
+        {
+          "name": "sender_subaddress",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 26,
+          "declaration": "  add column if not exists sender_subaddress text,"
+        },
+        {
+          "name": "receiver_subaddress",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 27,
+          "declaration": "  add column if not exists receiver_subaddress text,"
+        },
+        {
+          "name": "receiver_sub_address",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 47,
+          "declaration": "  add column if not exists receiver_sub_address text,"
+        },
+        {
+          "name": "application_reference",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 48,
+          "declaration": "  add column if not exists application_reference text,"
+        },
+        {
+          "name": "contact_email",
+          "source": "supabase/migrations/20260601070000_ediel_production_readiness_hardening.sql",
+          "line": 43,
+          "declaration": "  add column if not exists contact_email text,"
+        },
+        {
+          "name": "operations_contact_email",
+          "source": "supabase/migrations/20260601070000_ediel_production_readiness_hardening.sql",
+          "line": 44,
+          "declaration": "  add column if not exists operations_contact_email text,"
+        }
+      ]
+    },
+    {
+      "ordinal": 4,
+      "table": "ediel_unresolved_items",
+      "needle": "select * from",
+      "alias": "",
+      "columns": [
+        {
+          "name": "id",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 376,
+          "declaration": "  id uuid primary key default gen_random_uuid(),"
+        },
+        {
+          "name": "company_id",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 377,
+          "declaration": "  company_id uuid references public.companies(id) on delete set null,"
+        },
+        {
+          "name": "source_message_id",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 378,
+          "declaration": "  source_message_id uuid references public.ediel_messages(id) on delete cascade,"
+        },
+        {
+          "name": "issue_type",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 379,
+          "declaration": "  issue_type text not null,"
+        },
+        {
+          "name": "severity",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 380,
+          "declaration": "  severity text not null default 'warning',"
+        },
+        {
+          "name": "extracted_identifiers",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 381,
+          "declaration": "  extracted_identifiers jsonb not null default '{}'::jsonb,"
+        },
+        {
+          "name": "suggested_matches",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 382,
+          "declaration": "  suggested_matches jsonb not null default '[]'::jsonb,"
+        },
+        {
+          "name": "status",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 383,
+          "declaration": "  status text not null default 'open',"
+        },
+        {
+          "name": "assigned_to",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 384,
+          "declaration": "  assigned_to uuid,"
+        },
+        {
+          "name": "resolved_by",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 385,
+          "declaration": "  resolved_by uuid,"
+        },
+        {
+          "name": "resolved_at",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 386,
+          "declaration": "  resolved_at timestamptz,"
+        },
+        {
+          "name": "created_at",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 387,
+          "declaration": "  created_at timestamptz not null default now()"
+        },
+        {
+          "name": "environment",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 187,
+          "declaration": "  add column if not exists environment text,"
+        },
+        {
+          "name": "inbound_email_message_id",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 188,
+          "declaration": "  add column if not exists inbound_email_message_id uuid,"
+        },
+        {
+          "name": "ediel_message_id",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 189,
+          "declaration": "  add column if not exists ediel_message_id uuid,"
+        },
+        {
+          "name": "reason",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 190,
+          "declaration": "  add column if not exists reason text,"
+        },
+        {
+          "name": "resolution_status",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 191,
+          "declaration": "  add column if not exists resolution_status text,"
+        },
+        {
+          "name": "candidate_company_ids",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 192,
+          "declaration": "  add column if not exists candidate_company_ids uuid[] not null default '{}'::uuid[],"
+        },
+        {
+          "name": "parsed_sender_ediel_id",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 193,
+          "declaration": "  add column if not exists parsed_sender_ediel_id text,"
+        },
+        {
+          "name": "parsed_receiver_ediel_id",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 194,
+          "declaration": "  add column if not exists parsed_receiver_ediel_id text,"
+        },
+        {
+          "name": "parsed_subaddress",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 195,
+          "declaration": "  add column if not exists parsed_subaddress text,"
+        },
+        {
+          "name": "message_family",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 196,
+          "declaration": "  add column if not exists message_family text,"
+        },
+        {
+          "name": "message_code",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 197,
+          "declaration": "  add column if not exists message_code text,"
+        },
+        {
+          "name": "raw_payload",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 198,
+          "declaration": "  add column if not exists raw_payload text;"
+        },
+        {
+          "name": "raw_sender",
+          "source": "supabase/migrations/20260601070000_ediel_production_readiness_hardening.sql",
+          "line": 150,
+          "declaration": "  add column if not exists raw_sender text,"
+        },
+        {
+          "name": "raw_receiver",
+          "source": "supabase/migrations/20260601070000_ediel_production_readiness_hardening.sql",
+          "line": 151,
+          "declaration": "  add column if not exists raw_receiver text,"
+        },
+        {
+          "name": "raw_interchange_reference",
+          "source": "supabase/migrations/20260601070000_ediel_production_readiness_hardening.sql",
+          "line": 152,
+          "declaration": "  add column if not exists raw_interchange_reference text,"
+        },
+        {
+          "name": "raw_message_type",
+          "source": "supabase/migrations/20260601070000_ediel_production_readiness_hardening.sql",
+          "line": 153,
+          "declaration": "  add column if not exists raw_message_type text,"
+        },
+        {
+          "name": "suggested_company_id",
+          "source": "supabase/migrations/20260601070000_ediel_production_readiness_hardening.sql",
+          "line": 154,
+          "declaration": "  add column if not exists suggested_company_id uuid references public.companies(id) on delete set null,"
+        },
+        {
+          "name": "created_by",
+          "source": "supabase/migrations/20260602090000_ediel_operations_platform_core.sql",
+          "line": 303,
+          "declaration": "  add column if not exists created_by uuid null,"
+        },
+        {
+          "name": "updated_at",
+          "source": "supabase/migrations/20260602090000_ediel_operations_platform_core.sql",
+          "line": 304,
+          "declaration": "  add column if not exists updated_at timestamptz not null default now();"
+        }
+      ]
+    },
+    {
+      "ordinal": 5,
+      "table": "ediel_actor_settings",
+      "needle": "select * from public.ediel_actor_settings",
+      "alias": "a",
+      "columns": [
+        {
+          "name": "id",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 421,
+          "declaration": "  id uuid primary key default gen_random_uuid(),"
+        },
+        {
+          "name": "company_id",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 422,
+          "declaration": "  company_id uuid references public.companies(id),"
+        },
+        {
+          "name": "actor_name",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 423,
+          "declaration": "  actor_name text not null,"
+        },
+        {
+          "name": "actor_ediel_id",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 424,
+          "declaration": "  actor_ediel_id text not null,"
+        },
+        {
+          "name": "actor_role",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 425,
+          "declaration": "  actor_role text not null default 'supplier',"
+        },
+        {
+          "name": "environment",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 426,
+          "declaration": "  environment text not null default 'test',"
+        },
+        {
+          "name": "is_active",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 427,
+          "declaration": "  is_active boolean not null default true,"
+        },
+        {
+          "name": "sender_name",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 428,
+          "declaration": "  sender_name text,"
+        },
+        {
+          "name": "sender_sub_address",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 429,
+          "declaration": "  sender_sub_address text,"
+        },
+        {
+          "name": "default_application_reference",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 430,
+          "declaration": "  default_application_reference text,"
+        },
+        {
+          "name": "default_timezone",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 431,
+          "declaration": "  default_timezone integer not null default 1,"
+        },
+        {
+          "name": "default_charset",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 432,
+          "declaration": "  default_charset text not null default 'UNOC:3',"
+        },
+        {
+          "name": "default_test_flag",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 433,
+          "declaration": "  default_test_flag integer not null default 1,"
+        },
+        {
+          "name": "smtp_from_email",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 434,
+          "declaration": "  smtp_from_email text,"
+        },
+        {
+          "name": "smtp_reply_to_email",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 435,
+          "declaration": "  smtp_reply_to_email text,"
+        },
+        {
+          "name": "mailbox",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 436,
+          "declaration": "  mailbox text,"
+        },
+        {
+          "name": "brp_name",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 437,
+          "declaration": "  brp_name text,"
+        },
+        {
+          "name": "brp_ediel_id",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 438,
+          "declaration": "  brp_ediel_id text,"
+        },
+        {
+          "name": "brp_status",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 439,
+          "declaration": "  brp_status text,"
+        },
+        {
+          "name": "esett_status",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 440,
+          "declaration": "  esett_status text,"
+        },
+        {
+          "name": "valid_from",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 441,
+          "declaration": "  valid_from date,"
+        },
+        {
+          "name": "valid_to",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 442,
+          "declaration": "  valid_to date,"
+        },
+        {
+          "name": "notes",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 443,
+          "declaration": "  notes text,"
+        },
+        {
+          "name": "metadata",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 444,
+          "declaration": "  metadata jsonb not null default '{}'::jsonb,"
+        },
+        {
+          "name": "created_at",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 445,
+          "declaration": "  created_at timestamptz not null default now(),"
+        },
+        {
+          "name": "updated_at",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 446,
+          "declaration": "  updated_at timestamptz not null default now(),"
+        },
+        {
+          "name": "created_by",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 447,
+          "declaration": "  created_by uuid,"
+        },
+        {
+          "name": "updated_by",
+          "source": "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+          "line": 448,
+          "declaration": "  updated_by uuid"
+        },
+        {
+          "name": "market",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 23,
+          "declaration": "  add column if not exists market text,"
+        },
+        {
+          "name": "role",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 24,
+          "declaration": "  add column if not exists role text,"
+        },
+        {
+          "name": "ediel_id",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 25,
+          "declaration": "  add column if not exists ediel_id text,"
+        },
+        {
+          "name": "sender_subaddress",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 26,
+          "declaration": "  add column if not exists sender_subaddress text,"
+        },
+        {
+          "name": "receiver_subaddress",
+          "source": "supabase/migrations/ediel_rules.sql",
+          "line": 27,
+          "declaration": "  add column if not exists receiver_subaddress text,"
+        },
+        {
+          "name": "receiver_sub_address",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 47,
+          "declaration": "  add column if not exists receiver_sub_address text,"
+        },
+        {
+          "name": "application_reference",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 48,
+          "declaration": "  add column if not exists application_reference text,"
+        },
+        {
+          "name": "contact_email",
+          "source": "supabase/migrations/20260601070000_ediel_production_readiness_hardening.sql",
+          "line": 43,
+          "declaration": "  add column if not exists contact_email text,"
+        },
+        {
+          "name": "operations_contact_email",
+          "source": "supabase/migrations/20260601070000_ediel_production_readiness_hardening.sql",
+          "line": 44,
+          "declaration": "  add column if not exists operations_contact_email text,"
+        },
+        {
+          "name": "legal_name",
+          "source": "supabase/migrations/20260601093000_ediel_actor_identity_source_of_truth.sql",
+          "line": 29,
+          "declaration": "  add column if not exists legal_name text,"
+        },
+        {
+          "name": "organization_number",
+          "source": "supabase/migrations/20260601093000_ediel_actor_identity_source_of_truth.sql",
+          "line": 30,
+          "declaration": "  add column if not exists organization_number text,"
+        },
+        {
+          "name": "market_roles",
+          "source": "supabase/migrations/20260601093000_ediel_actor_identity_source_of_truth.sql",
+          "line": 31,
+          "declaration": "  add column if not exists market_roles jsonb not null default '[]'::jsonb,"
+        },
+        {
+          "name": "test_status",
+          "source": "supabase/migrations/20260601093000_ediel_actor_identity_source_of_truth.sql",
+          "line": 32,
+          "declaration": "  add column if not exists test_status text,"
+        },
+        {
+          "name": "production_status",
+          "source": "supabase/migrations/20260601093000_ediel_actor_identity_source_of_truth.sql",
+          "line": 33,
+          "declaration": "  add column if not exists production_status text,"
+        },
+        {
+          "name": "production_send_lock_enabled",
+          "source": "supabase/migrations/20260601093000_ediel_actor_identity_source_of_truth.sql",
+          "line": 34,
+          "declaration": "  add column if not exists production_send_lock_enabled boolean not null default true,"
+        },
+        {
+          "name": "first_production_send_approved",
+          "source": "supabase/migrations/20260601093000_ediel_actor_identity_source_of_truth.sql",
+          "line": 35,
+          "declaration": "  add column if not exists first_production_send_approved boolean not null default false,"
+        },
+        {
+          "name": "first_production_message_id",
+          "source": "supabase/migrations/20260601093000_ediel_actor_identity_source_of_truth.sql",
+          "line": 36,
+          "declaration": "  add column if not exists first_production_message_id uuid,"
+        },
+        {
+          "name": "approved_by",
+          "source": "supabase/migrations/20260601093000_ediel_actor_identity_source_of_truth.sql",
+          "line": 37,
+          "declaration": "  add column if not exists approved_by uuid references auth.users(id) on delete set null,"
+        },
+        {
+          "name": "approved_at",
+          "source": "supabase/migrations/20260601093000_ediel_actor_identity_source_of_truth.sql",
+          "line": 38,
+          "declaration": "  add column if not exists approved_at timestamptz;"
+        },
+        {
+          "name": "sender_subaddress_prodat",
+          "source": "supabase/migrations/20260601173000_ediel_final_hardening_schema_patch.sql",
+          "line": 9,
+          "declaration": "  add column if not exists sender_subaddress_prodat text,"
+        },
+        {
+          "name": "sender_subaddress_utilts",
+          "source": "supabase/migrations/20260601173000_ediel_final_hardening_schema_patch.sql",
+          "line": 10,
+          "declaration": "  add column if not exists sender_subaddress_utilts text,"
+        },
+        {
+          "name": "default_transport_channel",
+          "source": "supabase/migrations/20260601173000_ediel_final_hardening_schema_patch.sql",
+          "line": 11,
+          "declaration": "  add column if not exists default_transport_channel text,"
+        },
+        {
+          "name": "transport_profile_id",
+          "source": "supabase/migrations/20260601173000_ediel_final_hardening_schema_patch.sql",
+          "line": 12,
+          "declaration": "  add column if not exists transport_profile_id uuid,"
+        },
+        {
+          "name": "subaddress_required",
+          "source": "supabase/migrations/20260602101500_ediel_shared_mailbox_subaddress_security.sql",
+          "line": 51,
+          "declaration": "  add column if not exists subaddress_required boolean not null default false,"
+        },
+        {
+          "name": "receiver_message_subaddress",
+          "source": "supabase/migrations/20260602101500_ediel_shared_mailbox_subaddress_security.sql",
+          "line": 52,
+          "declaration": "  add column if not exists receiver_message_subaddress text;"
+        }
+      ]
+    },
+    {
+      "ordinal": 5,
+      "table": "ediel_brp_settings",
+      "needle": "select * from public.ediel_brp_settings",
+      "alias": "brp",
+      "columns": [
+        {
+          "name": "id",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 64,
+          "declaration": "  id uuid primary key default gen_random_uuid(),"
+        },
+        {
+          "name": "company_id",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 65,
+          "declaration": "  company_id uuid not null references public.companies(id) on delete cascade,"
+        },
+        {
+          "name": "environment",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 66,
+          "declaration": "  environment text not null default 'test',"
+        },
+        {
+          "name": "brp_ediel_id",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 67,
+          "declaration": "  brp_ediel_id text not null,"
+        },
+        {
+          "name": "brp_name",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 68,
+          "declaration": "  brp_name text not null,"
+        },
+        {
+          "name": "brp_email",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 69,
+          "declaration": "  brp_email text,"
+        },
+        {
+          "name": "brp_phone",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 70,
+          "declaration": "  brp_phone text,"
+        },
+        {
+          "name": "contact_person",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 71,
+          "declaration": "  contact_person text,"
+        },
+        {
+          "name": "is_default",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 72,
+          "declaration": "  is_default boolean not null default false,"
+        },
+        {
+          "name": "valid_from",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 73,
+          "declaration": "  valid_from date,"
+        },
+        {
+          "name": "valid_to",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 74,
+          "declaration": "  valid_to date,"
+        },
+        {
+          "name": "metadata",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 75,
+          "declaration": "  metadata jsonb not null default '{}'::jsonb,"
+        },
+        {
+          "name": "created_at",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 76,
+          "declaration": "  created_at timestamptz not null default now(),"
+        },
+        {
+          "name": "updated_at",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 77,
+          "declaration": "  updated_at timestamptz not null default now(),"
+        },
+        {
+          "name": "created_by",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 78,
+          "declaration": "  created_by uuid,"
+        },
+        {
+          "name": "updated_by",
+          "source": "supabase/migrations/Batch 1+2.sql",
+          "line": 79,
+          "declaration": "  updated_by uuid"
+        }
+      ]
+    }
+  ]
+}

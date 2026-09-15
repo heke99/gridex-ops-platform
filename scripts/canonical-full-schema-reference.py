@@ -225,6 +225,8 @@ def terminal_observer(controller, original, reference, before, result):
                 changed_view_receipt = changed_views.validate_execution_receipt(tail.changed_view_receipt, native=False)
                 import canonical_changed_function_witness as functions
                 changed_function_receipt = functions.validate_execution_receipt(tail.changed_function_receipt, native=False)
+                import canonical_changed_index_witness as indexes
+                changed_index_receipt = indexes.validate_execution_receipt(tail.changed_index_receipt, native=False)
                 candidate = compare(reference, capture(handle, controller.DATABASE))
                 candidate.update(foundationApplied=controller.SCOPES['full'],
                                  timestampApplied=len(tail.selected),
@@ -234,6 +236,7 @@ def terminal_observer(controller, original, reference, before, result):
                                  addedViewSourceWitness=view_receipt,
                                  changedViewSourceWitness=changed_view_receipt,
                                  changedFunctionBehaviorWitness=changed_function_receipt,
+                                 changedIndexSourceWitness=changed_index_receipt,
                                  forwardSources=[dict(source=path, sourceSha256=digest) for path,digest in FORWARD_SOURCES])
         except Exception:
             # Never publish exception strings, SQL, raw catalog values or paths.

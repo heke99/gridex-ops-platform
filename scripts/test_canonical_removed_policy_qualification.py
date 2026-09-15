@@ -144,17 +144,17 @@ class RemovedPolicyQualificationTests(unittest.TestCase):
             with self.assertRaises(ValueError):q.retain(Path(directory))
         self.assertEqual(len(q.expected_policies(retained)),267)
 
-    def test_nine_exact_forward_receipts_are_required(self):
+    def test_ten_exact_forward_receipts_are_required(self):
         q=load()
         sixth=(q.SIXTH_SOURCE,q.SIXTH_SHA)
         seventh=('migrations/20260915172543_preserve_retained_customer_history_on_delete.sql',
                  '00f8a844fc5c72274d697558d57f216acf56388b6d36f6aad6063ca255283734')
-        sources=(*q.FIRST_FIVE,sixth,seventh,(q.EIGHTH_SOURCE,q.EIGHTH_SHA),(q.NINTH_SOURCE,q.NINTH_SHA))
+        sources=(*q.FIRST_FIVE,sixth,seventh,(q.EIGHTH_SOURCE,q.EIGHTH_SHA),(q.NINTH_SOURCE,q.NINTH_SHA),(q.TENTH_SOURCE,q.TENTH_SHA))
         for native in (False,True):
             foundation='foundationInputsExecuted' if native else 'foundationApplied'
             timestamp='timestampInputsExecuted' if native else 'timestampApplied'
             repeat='noOpRepeatVerified' if native else 'positiveAndRepeatVerified'
-            good={foundation:144,timestamp:514,'forwardSources':dict(executed=True,inputsExecuted=9,
+            good={foundation:144,timestamp:514,'forwardSources':dict(executed=True,inputsExecuted=10,
                 sources=[dict(source=p,sourceSha256=h,executed=True,rowsPreserved=True,**{repeat:True})
                          for p,h in sources])}
             with patch('canonical_forward_sources.FORWARD_SOURCES',sources):
@@ -169,9 +169,18 @@ class RemovedPolicyQualificationTests(unittest.TestCase):
                     if mutation=='order':rows[0],rows[1]=rows[1],rows[0]
                     if mutation=='repeat':rows[-1][repeat]=False
                     with self.assertRaises(ValueError):q.complete(bad,native)
-            for incorrect in (sources[:-1], *(sources[:i]+((sources[i][0],'0'*64),)+sources[i+1:] for i in range(5,9))):
+            for incorrect in (sources[:-1], *(sources[:i]+((sources[i][0],'0'*64),)+sources[i+1:] for i in range(5,10))):
                 with patch('canonical_forward_sources.FORWARD_SOURCES',incorrect):
                     with self.assertRaises(ValueError):q.complete(good,native)
+
+    def test_tenth_policy_removal_does_not_overlap_267_required_policies(self):
+        q=load()
+        expected=q.expected_policies(q.retain(ROOT))
+        evidence=json.loads((ROOT/'quality/audits/ediel-masterplan-v2/inert-policy-identities.json').read_text())
+        removed={tuple(row['identity']) for row in evidence['records']}
+        self.assertEqual(len(removed),24)
+        self.assertEqual(len(expected),267)
+        self.assertFalse(removed.intersection(expected))
 
     def test_external_target_never_runs_sql(self):
         q=load()

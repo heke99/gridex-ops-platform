@@ -322,12 +322,14 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
         import canonical_added_view_witness as added_views
         import canonical_changed_view_witness as changed_views
         import canonical_changed_function_witness as changed_functions
+        import canonical_changed_index_witness as changed_indexes
         import canonical_removed_policy_qualification as removed_policies
         # Retain and validate actual pinned bytes before entering the minimal
         # fake lifecycle filesystem; only its I/O boundary is mocked below.
         cls.view_retained=added_views.retain(ROOT)
         cls.changed_view_retained=changed_views.retain(ROOT)
         cls.changed_function_retained=changed_functions.retain(ROOT)
+        cls.changed_index_retained=changed_indexes.retain(ROOT)
         cls.removed_policy_retained=removed_policies.retain(ROOT)
 
     def execute(self, fail=False, cleanup=False, legacy_fail=False, repair_fail=False, provider_fail=False, dedupe_fail=False, fixed_fail=False, alignment_fail=False, tail_fail=False, timestamp_fail=False):
@@ -393,12 +395,14 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
         import canonical_added_view_witness as added_views
         import canonical_changed_view_witness as changed_views
         import canonical_changed_function_witness as changed_functions
+        import canonical_changed_index_witness as changed_indexes
         import canonical_removed_policy_qualification as removed_policies
-        def apply_timestamp(command,cli,sql,work,project,parent,plan,forward_retained,view_retained,removed_policy_retained,changed_view_retained,changed_function_retained):
+        def apply_timestamp(command,cli,sql,work,project,parent,plan,forward_retained,view_retained,removed_policy_retained,changed_view_retained,changed_function_retained,changed_index_retained):
             self.assertIs(forward_retained,self.forward_retained)
             self.assertIs(view_retained,self.view_retained)
             self.assertIs(changed_view_retained,self.changed_view_retained)
             self.assertIs(changed_function_retained,self.changed_function_retained)
+            self.assertIs(changed_index_retained,self.changed_index_retained)
             self.assertIs(removed_policy_retained,self.removed_policy_retained)
             # This lifecycle transport fixture uses a sentinel at the compiler
             # boundary; the complete real compiler has its own executable suite.
@@ -425,6 +429,7 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
              patch.object(added_views,'retain',return_value=self.view_retained) as retain_views, \
              patch.object(changed_views,'retain',return_value=self.changed_view_retained), \
              patch.object(changed_functions,'retain',return_value=self.changed_function_retained), \
+             patch.object(changed_indexes,'retain',return_value=self.changed_index_retained), \
              patch.object(removed_policies,'retain',return_value=self.removed_policy_retained) as retain_policies, \
              patch.object(timestamp_runtime,'execute',side_effect=apply_timestamp) as execute_tail, \
              patch.object(native,'run',side_effect=lambda:original(historical_prefix=True)):

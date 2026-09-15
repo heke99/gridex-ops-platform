@@ -50,12 +50,12 @@ class TimestampTests(unittest.TestCase):
         # not at the end of the chronological tail. Do not reorder them.
         self.assertEqual(self.foundation[67], 'migrations/20260911114443_canonical_user_rbac_customer_alignment_boundary.sql')
 
-    def test_nine_registered_forwards_do_not_enter_the_historical_compiler_input(self):
+    def test_ten_registered_forwards_do_not_enter_the_historical_compiler_input(self):
         forward = load('canonical_forward_sources')
         selected, _ = tail.load_inputs(ROOT, self.report, self.foundation)
-        self.assertEqual(self.report['totalMigrations'], 610)
-        self.assertEqual(len(forward.FORWARD_SOURCES), 9)
-        self.assertEqual(self.report['selectedInputCounts']['timestamp'], 523)
+        self.assertEqual(self.report['totalMigrations'], 611)
+        self.assertEqual(len(forward.FORWARD_SOURCES), 10)
+        self.assertEqual(self.report['selectedInputCounts']['timestamp'], 524)
         self.assertEqual(len(selected), 514)
         self.assertFalse(set(selected) & set(forward.FORWARD_SOURCES))
         self.assertEqual(forward.partition_timestamps(selected + list(forward.FORWARD_SOURCES))[0], tuple(selected))

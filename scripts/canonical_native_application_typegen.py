@@ -48,9 +48,11 @@ def admit(runner, retained_forward, parent):
     import canonical_added_view_witness as views
     import canonical_changed_view_witness as changed_views
     import canonical_changed_function_witness as changed_functions
+    import canonical_changed_index_witness as changed_indexes
     for module,key in ((actors,'policyActorQualification'),(removed,'removedPolicyQualification'),
                        (views,'addedViewSourceWitness'),(changed_views,'changedViewSourceWitness'),
-                       (changed_functions,'changedFunctionBehaviorWitness')):
+                       (changed_functions,'changedFunctionBehaviorWitness'),
+                       (changed_indexes,'changedIndexSourceWitness')):
         receipt=module.validate_execution_receipt(parent.get(key),native=True)
         if comparison.get(key)!=receipt:
             raise ValueError('NATIVE_APPLICATION_TYPEGEN_WITNESS_REQUIRED')

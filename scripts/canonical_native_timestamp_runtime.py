@@ -352,6 +352,23 @@ def execute_changed_functions(runner, retained, parent, forward_retained):
     return receipt
 
 
+def execute_changed_indexes(runner, retained, parent, forward_retained):
+    """Bind source witness execution to the live Runner's real files/ledger."""
+    from canonical_native_final_sql import admit_forward
+    import canonical_changed_index_witness as views
+    admit_forward(runner, forward_retained, parent)
+    try:
+        receipt = views.validate_execution_receipt(
+            views.execute(runner.target, retained, parent), native=True)
+        admit_forward(runner, forward_retained, parent)
+    except BaseException:
+        if isinstance(parent.get('changedIndexSourceWitness'), dict):
+            parent['changedIndexSourceWitness']['verified'] = False
+        raise
+    parent['changedIndexSourceWitness'] = receipt
+    return receipt
+
+
 def execute_removed_policies(runner, retained, parent, forward_retained):
     """Bind the supplemental witness to the same real Runner and source ledger."""
     from canonical_native_final_sql import admit_forward
@@ -369,7 +386,7 @@ def execute_removed_policies(runner, retained, parent, forward_retained):
     return receipt
 
 
-def execute(command, native, sql, work, project, parent, plan, forward_retained, view_retained, removed_policy_retained, changed_view_retained, changed_function_retained):
+def execute(command, native, sql, work, project, parent, plan, forward_retained, view_retained, removed_policy_retained, changed_view_retained, changed_function_retained, changed_index_retained):
     import canonical_native_timestamp_sources as compiler
     from canonical_native_timestamp_proof import NativeTimestampTarget, execute_live_sync
     if ('historicalTimestampTail' in parent
@@ -384,6 +401,8 @@ def execute(command, native, sql, work, project, parent, plan, forward_retained,
     changed_views.contract(changed_view_retained)
     import canonical_changed_function_witness as changed_functions
     changed_functions.contract(changed_function_retained)
+    import canonical_changed_index_witness as changed_indexes
+    changed_indexes.contract(changed_index_retained)
     import canonical_removed_policy_qualification as removed
     removed.validate_retained(removed_policy_retained)
     from canonical_native_final_sql import retain as retain_final_sql, execute as execute_final_sql
@@ -483,6 +502,7 @@ def execute(command, native, sql, work, project, parent, plan, forward_retained,
         execute_added_views(runner, view_retained, parent, forward_retained)
         execute_changed_views(runner, changed_view_retained, parent, forward_retained)
         execute_changed_functions(runner, changed_function_retained, parent, forward_retained)
+        execute_changed_indexes(runner, changed_index_retained, parent, forward_retained)
         runner.unchanged()
         from canonical_native_schema_reference import compare as compare_native_schema
         parent['_nativeSchemaComparison'] = compare_native_schema(runner, forward_retained, parent)

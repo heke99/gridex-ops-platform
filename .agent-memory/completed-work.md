@@ -242,3 +242,6 @@ Follow-up published01ee1d55e515dea336531a3f8820bdf9eafebaf0, exact reviewed tree
 
 
 2026-09-15 merge continuation: actual customer-delete35000914503/job104488786469 PASS20 cases; actual schema35000914409/job104488827297 PASS267 policy/59 removal/55 composition/2496 actor/31 view checks but genuine schema fingerprint remains rejected. Portable35001559027/job104490915869 confirms only F14 count24 after144+514+6; ca4ab72a publishes read-only identity diagnosis. Prepared908aad1d admits exact CLI-qualified seventh migration and unaccepted owned applicationtype candidates (7 local tests), no main merge or production change. Sole active boundary: current-state.md.
+
+
+2026-09-15 continued authorized main merge remediation: actual35eab5da inert qualification35006218472/job104506509692 PASS24→0, seven atomic negatives, unchanged ACL/rows, repeat/client denial/service CRUD and owned cleanup. GenuineCLI20260915181448_drop_inert_inbound_client_policies.sql SHA b04ce7766f0d3e4655778cdd6aa6fcde1bb3a0661867e381aa0939f015c9e2c1. Reviewed source10 admission prepared; original601/514+first9 hashes unchanged. Actualab0 schema35004825267 identifies historic SELECT* witness mismatch while current view hashes still exactly expected; source-declaration expansion fix prepared with fixed expected hashes. Main and nextphase remain pending; current-state.md is authoritative.
