@@ -119,6 +119,26 @@ class PlanTests(unittest.TestCase):
             'sqlstate': '55000', 'stage': 'R071',
             'reason': 'DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED'})
 
+    def test_exact_native_primary_padding_receipt(self):
+        # Actual a59e0ce6 run34958678292/artifact10392753658: one 426-byte
+        # primary line. Its SHA proves these exact bytes without raw SQL logs.
+        line = b'ERROR: NATIVE_FOUNDATION_STAGE_R071 REASON=DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED (SQLSTATE 55000)'
+        padded = line + b' ' * 322
+        self.assertEqual(len(padded), 426)
+        self.assertEqual(hashlib.sha256(padded).hexdigest(),
+                         '7e67b94c0d3e709502c478f538731bbb7fb3f3d65250fbc2d7ebfe352625da93')
+        self.assertEqual(self.m.failure_diagnostic(padded + b'\n'), {
+            'sqlstate': '55000', 'stage': 'R071',
+            'reason': 'DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED'})
+
+    def test_padding_does_not_accept_extra_content_or_control_bytes(self):
+        line = b'ERROR: NATIVE_FOUNDATION_STAGE_R071 REASON=DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED (SQLSTATE 55000)'
+        for suffix in (b' private@example.invalid', b'\t', b'\x0b', b'\x00', b'\x1b[0m'):
+            with self.subTest(suffix=suffix):
+                value = self.m.failure_diagnostic(line + b' ' * 322 + suffix)
+                self.assertNotIn('reason', value)
+                self.assertNotIn('private@', json.dumps(value))
+
     def test_source_excerpt_cannot_supply_reason_for_unrelated_error(self):
         raw = (b'ERROR: NATIVE_FOUNDATION_STAGE_R071 (SQLSTATE 55000)\n'
                b'At statement 2:\n'

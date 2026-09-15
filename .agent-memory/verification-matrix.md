@@ -169,3 +169,13 @@ correction. Full branch fast-forwarded; duplicated local implementation not
 committed. This batch reuses upstream implementation unchanged and wires the
 existing native ACL selftest plus8 stronger whole-assertion mutation controls.
 The3 adapted guards, upstream selection check and membership constructor pass.
+
+
+## 2026-09-15 — native primary padding
+
+Actual diagnostic34958678292/artifact10392753658 identifies exact426-byte
+primary55000/R071/reason plus322 ASCII spaces (matching SHA256). RED/GREEN
+parser reproduction and34 foundation tests PASS; actual group7 re-execution
+PENDING. Preserve concurrently published8130ecf3/d05408c2 auth work. No
+production, schema-reference, SQL/ledger/control weakening or main change.
+See quality/audits/PR310_NATIVE_PRIMARY_PADDING_2026-09-15.md.

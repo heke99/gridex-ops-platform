@@ -2,6 +2,29 @@
 
 Status: PARTIAL
 
+## Active correction / exact next action
+
+Current inspected head d05408c228c5d38678503bfc0291944afbed2513; exact local
+source tree50a323536b39d9cd2e38a0e70b86288db8dfe8e3 verified. The previously
+published auth ACL correction and mandatory SQL controls are retained unchanged.
+The local overlapping auth candidate was superseded and stashed, not published.
+
+Completed native diagnostic34958678292/job104346776068 on a59e0ce6,
+artifact10392753658, proves that the expected55000/R071 primary line includes
+its fixed reason plus322 trailing ASCII spaces. Reconstructing all426 bytes
+matches the artifact primary SHA256 exactly. The parser's strict fullmatch
+rejects this display padding; group7 remains unaccepted despite the correct
+underlying error. Strip only trailing ASCII spaces before the existing exact
+single-primary match. Required code/stage/reason, SQL controls and ledger guards
+remain unchanged. Two tests reproduce the failure and reject nonspace suffixes;
+all34 foundation tests pass after the correction. Actual native SQL is pending.
+
+Publish this bounded parser repair on the same PR and inspect its ordinary
+native group7 controls/execution/ledger/repeat. Auth validation for the published
+ACL batch also remains pending. Then native timestamps, independent schema,
+types and all same-head CI/E2E/review gates must pass before whole-PR merge.
+Current receipt: quality/audits/PR310_NATIVE_PRIMARY_PADDING_2026-09-15.md.
+
 ## Preservation and access
 
 Preserve and eventually merge ALL PR310 changes. Starting head for this
@@ -23,7 +46,7 @@ Main branch metadata reports protected=false and no rulesets were returned;
 reading the administration protection endpoint is forbidden (403). No formal
 PR reviews or inline threads were returned. No merge acceptance is inferred.
 
-## Active correction / exact next action
+## Auth correction already published
 
 Actual starting-head OPS34958678141/job104346776007 and diagnostic
 34958678292/job104346776492 identify P0001 at the exact assertion
@@ -39,10 +62,9 @@ The duplicate local implementation was superseded before commit. This batch
 adds CI wiring and stronger mutation controls around the published correction.
 The three adapted local guards and auth constructor pass; SQL acceptance is
 NOT claimed.
-Publish the reviewed batch
-on this same PR branch and inspect current-commit whole-source auth and its
+The reviewed auth batch is published at d05408c2. Inspect its whole-source auth and its
 eight new mutation controls. The pinned fixture bytes remain unchanged.
-Current receipt: quality/audits/PR310_AUTH_JOURNAL_ACL_2026-09-15.md.
+Auth receipt: quality/audits/PR310_AUTH_JOURNAL_ACL_2026-09-15.md.
 
 ## Native replay, schema, types and final gates
 

@@ -303,7 +303,10 @@ def failure_diagnostic(stderr):
     if len(primary)==1 and re.fullmatch(
             rb'ERROR: NATIVE_FOUNDATION_STAGE_R071 '
             rb'REASON=DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED \(SQLSTATE 55000\)',
-            primary[0]):
+            # CLI display padding is ASCII spaces only. The exact 426-byte
+            # native primary line is bound by its artifact SHA in the tests.
+            # Never strip other controls or accept arbitrary trailing content.
+            primary[0].rstrip(b' ')):
         result['reason']=DB2_TARGET_REASON
     return result
 
