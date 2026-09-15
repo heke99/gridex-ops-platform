@@ -1,0 +1,86 @@
+name: PR310 exact journal ACL candidate
+on:
+  push:
+    branches: [work/pr310-journal-acl-20260915]
+    paths:
+      - .github/workflows/pr310-journal-acl-candidate.yml
+      - quality/audits/pr310-journal-acl-candidate.patch
+      - scripts/test-canonical-governance-journal-acl.py
+permissions:
+  contents: read
+jobs:
+  verify-and-store-blob:
+    if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/work/pr310-journal-acl-20260915'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gridex_auth_test
+        ports: [55440:5432]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d gridex_auth_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Apply exactly the reviewed oracle correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object scripts/canonical_full_governance_sql.py)" = 8b936423917d689a729a29343edec1ee0b531a2c
+          git apply --check quality/audits/pr310-journal-acl-candidate.patch
+          git apply quality/audits/pr310-journal-acl-candidate.patch
+          test "$(git hash-object scripts/canonical_full_governance_sql.py)" = fbaa95eb1331b6590aab42abe9c531a36125eb60
+          test "$(git diff --name-only)" = scripts/canonical_full_governance_sql.py
+          git diff --check
+      - name: Verify exact ACL source contract
+        run: python3 -B scripts/test-canonical-governance-journal-acl.py
+      - name: Verify source-created journal and five real SQL negative controls
+        run: python3 -B scripts/test-canonical-governance-journal-acl.py --sql
+      - name: Verify complete original auth and membership group
+        run: python3 -B scripts/canonical-auth-membership-group.py --partition original16 --evidence
+      - name: Store only the tested source blob, without changing any ref
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,subprocess,urllib.request
+          path=pathlib.Path('scripts/canonical_full_governance_sql.py')
+          raw=path.read_bytes()
+          local=hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()
+          assert local=='fbaa95eb1331b6590aab42abe9c531a36125eb60'
+          request=urllib.request.Request(
+            'https://api.github.com/repos/heke99/gridex-ops-platform/git/blobs',
+            data=json.dumps({'encoding':'utf-8','content':raw.decode()}).encode(),
+            headers={'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],
+                     'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28',
+                     'Content-Type':'application/json'},method='POST')
+          with urllib.request.urlopen(request,timeout=45) as response:
+            result=json.load(response)
+          assert result['sha']==local
+          evidence={'status':'AUTH_CANDIDATE_AND_SQL_CONTROLS_PASS',
+            'candidateCommit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+            'publicationParent':'848d1a0d9b2bdd749ad541aacf9e287318a62c81',
+            'path':str(path),'originalBlob':'8b936423917d689a729a29343edec1ee0b531a2c',
+            'testedBlob':local,'sourceSha256':hashlib.sha256(raw).hexdigest(),
+            'updatedRefs':False,'productionMutation':False,'wholePrApproved':False}
+          pathlib.Path('artifacts').mkdir(exist_ok=True)
+          pathlib.Path('artifacts/pr310-journal-candidate.json').write_text(json.dumps(evidence,indent=2)+'\n')
+          print(json.dumps(evidence))
+          PY
+      - name: Upload bounded candidate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr310-journal-acl-candidate
+          path: |
+            artifacts/pr310-journal-candidate.json
+            artifacts/auth-membership-group.json
+          if-no-files-found: warn
+          retention-days: 7
