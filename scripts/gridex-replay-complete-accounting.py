@@ -70,7 +70,40 @@ def account(root=ROOT):
     root = Path(root)
     selected = load('gridex-replay-input-accounting.py').account(root)
     residual = load('canonical-residual-source-admission.py').verify(root)
-    return combine(selected, residual)
+    # Preserve the original residual overlap/count checks on the actual report.
+    report = combine(selected, residual)
+    forward = load('canonical_forward_sources.py')
+    historical, additional = forward.partition_inventory([
+        (row['path'], row['sha256']) for row in selected['migrations']])
+    # Accounting omits some interleaved bootstrap rows. Re-execute the same
+    # pinned selector through load_inputs rather than guessing missing ordinals.
+    foundation = json.loads((root/'scripts/gridex-aud-003-foundation-order.json').read_text())['foundation']
+    timestamps, _ = load('canonical-timestamp-frontier.py').load_inputs(root, selected, foundation)
+    forward.partition_timestamps(timestamps + list(additional))
+    by_path = {row['path']: row for row in selected['migrations']}
+    for ordinal, (path, digest) in enumerate(additional, 515):
+        row = by_path[path]
+        if (row['classification'] != 'FULL_FILE_SELECTED'
+                or row['execution'] != [{'stage': 'timestamp', 'ordinal': ordinal}]
+                or row.get('derivedArtifacts')):
+            raise ValueError('FORWARD_TIMESTAMP_PARTITION_REQUIRED')
+    historical_paths = {path for path, digest in historical}
+    historical_selected = dict(selected,
+        migrations=[row for row in selected['migrations'] if row['path'] in historical_paths],
+        totalMigrations=len(historical),
+        counts=dict(selected['counts'], FULL_FILE_SELECTED=selected['counts']['FULL_FILE_SELECTED'] - len(additional)),
+        selectedInputCounts=dict(selected['selectedInputCounts'], timestamp=len(timestamps)))
+    historical_report = combine(historical_selected, residual)
+    proof = {'sqlExecutionVerified': False, 'completeReplayVerified': False,
+             'ledgerProvenanceVerified': False, 'generatedTypesVerified': False}
+    report.update(
+        historicalAccounting=historical_report,
+        rawSelectedInputCounts=dict(selected['selectedInputCounts']),
+        additionalForwardSourceCount=len(additional),
+        additionalForwardSources=[dict(source=path, sourceSha256=digest,
+            disposition='ADDITIONAL_FORWARD_SOURCE', **proof) for path, digest in additional],
+        canonicalCounts=dict(historical_report['canonicalCounts'], additionalForwardSources=len(additional)))
+    return report
 
 
 def main():

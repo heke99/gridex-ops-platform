@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 import canonical_native_timestamp_sources as timestamp_sources
+import canonical_forward_sources as forward_sources
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -83,6 +84,7 @@ class HistoricalDiagnosticTests(unittest.TestCase):
         # that writes the two accounting files. No timestamp SQL is reached in
         # these deliberately failing foundation diagnostics.
         cls.timestamp_plan = timestamp_sources.prepare()
+        cls.forward_retained = forward_sources.retain(ROOT)
 
     def test_known_prefix_code_is_preserved_without_formatting_exception(self):
         historical = lifecycle.load_historical_prefix()
@@ -120,6 +122,7 @@ class HistoricalDiagnosticTests(unittest.TestCase):
         original = lifecycle.run
         with patch.object(lifecycle, 'load_historical_prefix', return_value=fake), \
              patch.object(timestamp_sources, 'prepare', return_value=self.timestamp_plan), \
+             patch.object(forward_sources, 'retain', return_value=self.forward_retained), \
              patch.object(lifecycle.provider_events, 'bootstrap', return_value=lifecycle.provider_events.receipt()), \
              patch.object(lifecycle, 'run', side_effect=lambda: original(historical_prefix=True)):
             return lifecycle_tests.NativeTests().execute_fixture()

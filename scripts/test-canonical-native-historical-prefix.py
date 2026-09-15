@@ -317,6 +317,8 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
     def setUpClass(cls):
         spec=importlib.util.spec_from_file_location('existing_native_fixture',ROOT/'scripts/canonical-native-supabase-lifecycle-selftest.py')
         cls.fixture=importlib.util.module_from_spec(spec);spec.loader.exec_module(cls.fixture)
+        import canonical_forward_sources as forward_sources
+        cls.forward_retained=forward_sources.retain(ROOT)
 
     def execute(self, fail=False, cleanup=False, legacy_fail=False, repair_fail=False, provider_fail=False, dedupe_fail=False, fixed_fail=False, alignment_fail=False, tail_fail=False, timestamp_fail=False):
         native=self.fixture.m
@@ -377,7 +379,9 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
             parent['foundationInputsExecuted']=144
         import canonical_native_timestamp_sources as timestamp_sources
         import canonical_native_timestamp_runtime as timestamp_runtime
-        def apply_timestamp(command,cli,sql,work,project,parent,plan):
+        import canonical_forward_sources as forward_sources
+        def apply_timestamp(command,cli,sql,work,project,parent,plan,forward_retained):
+            self.assertIs(forward_retained,self.forward_retained)
             # This lifecycle transport fixture uses a sentinel at the compiler
             # boundary; the complete real compiler has its own executable suite.
             self.assertIs(plan,prepared_timestamp)
@@ -399,6 +403,7 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
              patch.object(tail,'execute',side_effect=apply_tail), \
              patch.object(foundation,'execute',side_effect=apply_foundation), \
              patch.object(timestamp_sources,'prepare',return_value=prepared_timestamp) as compile_tail, \
+             patch.object(forward_sources,'retain',return_value=self.forward_retained), \
              patch.object(timestamp_runtime,'execute',side_effect=apply_timestamp) as execute_tail, \
              patch.object(native,'run',side_effect=lambda:original(historical_prefix=True)):
             result=self.fixture.NativeTests().execute_fixture('cleanup' if cleanup else None)

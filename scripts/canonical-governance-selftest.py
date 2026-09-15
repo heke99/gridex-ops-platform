@@ -49,7 +49,8 @@ def selection():
     manifest = json.loads(read('scripts/migration-history-manifest.json'))
     assert manifest['files'][Path(SOURCE).name] == SHA == hashlib.sha256((ROOT / 'supabase' / SOURCE).read_bytes()).hexdigest()
     account = subprocess.run(['python3','scripts/gridex-replay-input-accounting.py'],cwd=ROOT,text=True,capture_output=True)
-    data = json.loads(account.stdout)
+    from canonical_forward_sources import historical_fixture_accounting
+    data = historical_fixture_accounting(json.loads(account.stdout))
     assert account.returncode == 1 and not data['errors']
     assert data['totalMigrations'] == 601 and data['counts'] == {'FULL_FILE_SELECTED':589,'SUBSTITUTED':2,'UNCLASSIFIED':5,'EXPLICITLY_EXCLUDED':5}, data['counts']
     grouped = subprocess.run(['python3','scripts/gridex-replay-review-groups.py','--group','auth_membership_tenant'],cwd=ROOT,text=True,capture_output=True)

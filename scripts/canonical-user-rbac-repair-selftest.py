@@ -759,7 +759,8 @@ def integration_constructors(b):
     order=json.loads((ROOT/'scripts/gridex-aud-003-foundation-order.json').read_text())['foundation']
     assert len(order)==144 and order[52:56]==['migrations/'+p.name for p in b.reviewed_paths()]
     account=subprocess.run(['python3','scripts/gridex-replay-input-accounting.py','--require-full-effects'],cwd=ROOT,capture_output=True,text=True)
-    data=json.loads(account.stdout)
+    from canonical_forward_sources import historical_fixture_accounting
+    data=historical_fixture_accounting(json.loads(account.stdout))
     assert account.returncode==1 and not data['errors']
     assert data['counts']=={'FULL_FILE_SELECTED':589,'SUBSTITUTED':2,'UNCLASSIFIED':5,'EXPLICITLY_EXCLUDED':5}
     by_path={row['path']:row for row in data['migrations']}

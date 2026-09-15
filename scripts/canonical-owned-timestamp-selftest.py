@@ -35,6 +35,15 @@ class OwnedTimestampTests(unittest.TestCase):
         tail = object.__new__(m.OwnedTimestampTail)
         tail.target, tail.state = target, 'prepared'
         tail.selected, tail.prerequisites, tail.retained = [('fixture', 'sha')], {}, object()
+        tail.forward_retained = object()
+        def forward(actual, retained, progress):
+            self.assertIs(actual, target)
+            self.assertIs(retained, tail.forward_retained)
+            self.assertEqual(progress['timestampApplied'], len(tail.selected))
+            progress['forwardSources'] = dict(executed=True, inputsExecuted=2)
+        patched = patch('canonical_forward_portable.execute', side_effect=forward)
+        tail.forward_execute = patched.start()
+        self.addCleanup(patched.stop)
         def execute(root, actual, database, selected, prerequisites, progress, *, retained):
             self.assertIs(actual, target)
             self.assertIs(retained, tail.retained)
@@ -56,6 +65,29 @@ class OwnedTimestampTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'BOUNDARY_REQUIRED'):
             tail.execute(loop, payload)
         self.assertEqual(tail.driver.execute_tail.call_count, 1)
+
+    def test_forward_failure_is_terminal_without_completion_receipt(self):
+        _, loop, tail, payload = self.fixture()
+        tail.forward_execute.side_effect = RuntimeError('forward source rejected')
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            with self.assertRaisesRegex(RuntimeError, 'forward source rejected'):
+                tail.execute(loop, payload)
+        self.assertEqual(output.getvalue(), '')
+        self.assertEqual(tail.state, 'failed')
+        with self.assertRaisesRegex(RuntimeError, 'BOUNDARY_REQUIRED'):
+            tail.execute(loop, payload)
+
+    def test_partial_forward_or_source_recreation_cannot_complete(self):
+        for recreate in (False, True):
+            root, loop, tail, payload = self.fixture()
+            def partial(actual, retained, progress):
+                progress['forwardSources'] = dict(executed=recreate, inputsExecuted=2 if recreate else 1)
+                if recreate:
+                    (root/'supabase/migrations/recreated.sql').write_text('-- invalid')
+            tail.forward_execute.side_effect = partial
+            with self.assertRaisesRegex(RuntimeError, 'FORWARD_COMPLETION_REQUIRED'):
+                tail.execute(loop, payload)
+            self.assertEqual(tail.state, 'failed')
 
     def test_payload_cannot_supply_sql_paths_or_target(self):
         _, loop, tail, payload = self.fixture()

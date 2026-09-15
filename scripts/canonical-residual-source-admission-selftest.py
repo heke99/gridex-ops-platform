@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -53,6 +54,11 @@ class AdmissionTests(unittest.TestCase):
 
     def test_complete_plan_accounts_601_without_claiming_sql_or_types(self):
         report = self.complete.account(ROOT)
+        self.assertEqual(report['totalMigrations'], 603)
+        self.assertEqual(report['rawSelectedInputCounts'], {'foundation':144, 'timestamp':516})
+        self.assertEqual(report['additionalForwardSourceCount'], 2)
+        self.assertEqual(len(report['additionalForwardSources']), 2)
+        report = report['historicalAccounting']
         self.assertEqual(report['canonicalCounts'], {'wholeFileSelector':589,'reviewedResidualSources':7,
                                                     'explicitlyExcluded':5,'unresolved':0})
         self.assertEqual(report['totalMigrations'], 601)
@@ -62,12 +68,58 @@ class AdmissionTests(unittest.TestCase):
             self.assertIs(self.contract[key], False)
 
     def test_original_selector_still_reports_its_own_seven_unresolved_sources(self):
-        self.assertEqual(self.selected['counts'], {'FULL_FILE_SELECTED':589,'SUBSTITUTED':2,
+        self.assertEqual(self.selected['counts'], {'FULL_FILE_SELECTED':589 + 2,'SUBSTITUTED':2,
                                                   'UNCLASSIFIED':5,'EXPLICITLY_EXCLUDED':5})
         result = subprocess.run([sys.executable,str(ROOT/'scripts/gridex-replay-input-accounting.py'),
                                  '--require-full-effects'],capture_output=True,text=True)
         self.assertEqual(result.returncode, 1)
         self.assertFalse(json.loads(result.stdout)['sqlExecutionVerified'])
+
+    def account_selected(self, selected):
+        real_load = self.complete.load
+        accounting = type('Accounting', (), {'account': staticmethod(lambda root: selected)})
+        def loader(filename):
+            return accounting if filename == 'gridex-replay-input-accounting.py' else real_load(filename)
+        with patch.object(self.complete, 'load', side_effect=loader):
+            return self.complete.account(ROOT)
+
+    def test_forward_partition_reports_exact_registered_sources_without_execution_claims(self):
+        forward = load('canonical_forward_sources.py')
+        report = self.complete.account(ROOT)
+        self.assertEqual(tuple((r['source'], r['sourceSha256']) for r in report['additionalForwardSources']),
+                         forward.FORWARD_SOURCES)
+        self.assertEqual(report['historicalAccounting']['selectedInputCounts'], {'foundation':144, 'timestamp':514})
+        self.assertEqual(report['historicalAccounting']['totalMigrations'], 601)
+        self.assertEqual(report['historicalAccounting']['canonicalCounts']['wholeFileSelector'], 589)
+        self.assertEqual(report['baseSelectorCounts']['FULL_FILE_SELECTED'], 591)
+        self.assertEqual(report['canonicalCounts']['additionalForwardSources'], 2)
+        for key in ('sqlExecutionVerified','ledgerProvenanceVerified','completeReplayVerified','generatedTypesVerified'):
+            self.assertIs(report[key], False)
+            for source in report['additionalForwardSources']:
+                self.assertIs(source[key], False)
+
+    def test_forward_partition_rejects_unknown_changed_missing_or_reordered_sources(self):
+        forward = load('canonical_forward_sources.py')
+        for mutation in ('unknown', 'hash', 'missing', 'order', 'historical_hash'):
+            with self.subTest(mutation=mutation):
+                selected = copy.deepcopy(self.selected)
+                path = (forward.FORWARD_SOURCES[0][0] if mutation != 'historical_hash'
+                        else 'migrations/20260519_auth_callback_email_reset_sync.sql')
+                row = next(r for r in selected['migrations'] if r['path'] == path)
+                if mutation == 'unknown':
+                    row['path'] = 'migrations/20260915130000_unregistered.sql'
+                elif mutation in ('hash', 'historical_hash'):
+                    row['sha256'] = '0' * 64
+                elif mutation == 'missing':
+                    selected['migrations'].remove(row)
+                    selected['totalMigrations'] -= 1
+                    selected['counts']['FULL_FILE_SELECTED'] -= 1
+                    selected['selectedInputCounts']['timestamp'] -= 1
+                else:
+                    other = next(r for r in selected['migrations'] if r['path'] == forward.FORWARD_SOURCES[1][0])
+                    row['execution'], other['execution'] = other['execution'], row['execution']
+                with self.assertRaisesRegex(ValueError, 'FORWARD_(INVENTORY|TIMESTAMP)_PARTITION_REQUIRED'):
+                    self.account_selected(selected)
 
     def test_every_source_byte_has_exactly_one_reviewed_disposition(self):
         for row in self.contract['sources']:

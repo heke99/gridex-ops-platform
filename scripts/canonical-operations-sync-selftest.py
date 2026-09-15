@@ -84,7 +84,8 @@ def selection():
     assert manifest['files'][Path(SOURCE).name] == SHA
     assert hashlib.sha256((ROOT / 'supabase' / SOURCE).read_bytes()).hexdigest() == SHA
     account_run = subprocess.run(['python3', 'scripts/gridex-replay-input-accounting.py'], cwd=ROOT, text=True, capture_output=True)
-    account = json.loads(account_run.stdout)
+    from canonical_forward_sources import historical_fixture_accounting
+    account = historical_fixture_accounting(json.loads(account_run.stdout))
     assert account_run.returncode == 1 and not account['errors']
     assert account['totalMigrations'] == 601
     assert account['counts'] == {'FULL_FILE_SELECTED': 589, 'SUBSTITUTED': 2, 'UNCLASSIFIED': 5, 'EXPLICITLY_EXCLUDED': 5}

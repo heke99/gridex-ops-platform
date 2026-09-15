@@ -147,7 +147,10 @@ class ShellObservationTests(unittest.TestCase):
         dedupe = SimpleNamespace(require_live=Mock(), _STATES={}, fail=None)
         # Match the real controller frame boundary, not an arbitrary callback.
         def shell(h, observer, scope='full', state='executed', applied=True, status=1):
-            tail = SimpleNamespace(state=state, selected=[('test.sql', 'hash')])
+            from canonical_forward_sources import FORWARD_SOURCES
+            forward = dict(executed=True, inputsExecuted=2, sources=[dict(source=path,sourceSha256=digest,
+                executed=True,positiveAndRepeatVerified=True,rowsPreserved=True) for path,digest in FORWARD_SOURCES])
+            tail = SimpleNamespace(state=state, selected=[('test.sql', 'hash')], forward_receipt=forward)
             loop = SimpleNamespace(applied=applied)
             child = SimpleNamespace(poll=lambda:status)
             return observer(h)
@@ -192,6 +195,7 @@ class ShellObservationTests(unittest.TestCase):
         self.assertIs(result['cleanupVerified'], True)
         self.assertIs(result['schemaAccepted'], False)
         self.assertEqual(result['timestampApplied'], 1)
+        self.assertEqual(result['forwardApplied'], 2)
 
     def test_capture_must_precede_original_privacy_and_disposal(self):
         controller, dedupe, target, original, result = self.fixture()

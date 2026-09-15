@@ -269,7 +269,8 @@ def constructor_checks():
     assert 'run: python3 scripts/canonical-auth-provisioning-diagnostics-selftest.py' not in workflow
     account_run = subprocess.run(['python3','scripts/gridex-replay-input-accounting.py'],cwd=ROOT,text=True,capture_output=True)
     assert account_run.returncode == 1, 'source completeness remains blocking'
-    account = json.loads(account_run.stdout)
+    from canonical_forward_sources import historical_fixture_accounting
+    account = historical_fixture_accounting(json.loads(account_run.stdout))
     assert not account['errors'] and account['totalMigrations']==601
     assert account['counts']=={'FULL_FILE_SELECTED':589,'SUBSTITUTED':2,'UNCLASSIFIED':5,'EXPLICITLY_EXCLUDED':5}
     by_path = {item['path']:item for item in account['migrations']}

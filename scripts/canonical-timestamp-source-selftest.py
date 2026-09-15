@@ -5,6 +5,7 @@ import importlib.util
 from pathlib import Path
 import sys
 import unittest
+from canonical_forward_sources import historical_fixture_accounting
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -25,7 +26,7 @@ class SourceRestorationTests(unittest.TestCase):
     def test_four_sources_are_selected_whole_at_exact_original_positions(self):
         restored.validate_selection(ROOT,self.selected)
         self.assertEqual(len(self.selected),514)
-        self.assertEqual(self.report['counts'],{'FULL_FILE_SELECTED':589,'SUBSTITUTED':2,'UNCLASSIFIED':5,'EXPLICITLY_EXCLUDED':5})
+        self.assertEqual(historical_fixture_accounting(self.report)['counts'],{'FULL_FILE_SELECTED':589,'SUBSTITUTED':2,'UNCLASSIFIED':5,'EXPLICITLY_EXCLUDED':5})
         for row in self.report['migrations']:
             if row['path'] in restored.SOURCES:
                 self.assertEqual(row['classification'],'FULL_FILE_SELECTED')
@@ -69,7 +70,7 @@ class SourceRestorationTests(unittest.TestCase):
             restored.validate_selection('/tmp',self.selected)
 
     def test_full_effects_still_has_7_blocking_original_dispositions(self):
-        self.assertEqual(self.report['counts']['SUBSTITUTED']+self.report['counts']['UNCLASSIFIED'],7)
+        self.assertEqual(historical_fixture_accounting(self.report)['counts']['SUBSTITUTED']+self.report['counts']['UNCLASSIFIED'],7)
         self.assertIs(self.report['sqlExecutionVerified'],False)
         self.assertIs(self.report['ledgerProvenanceVerified'],False)
 

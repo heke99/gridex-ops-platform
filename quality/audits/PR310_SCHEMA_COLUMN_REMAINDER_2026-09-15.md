@@ -1,10 +1,12 @@
 # PR310 remaining non-physical column dispositions — 2026-09-15
 
-Status: PARTIAL; no schema, reference, generated-type, native-lifecycle or release acceptance.
+Status: SOURCE DISPOSITIONS COMPLETE for these 14 columns; no schema, reference,
+generated-type, native-lifecycle or release acceptance.
 
 ## Scope, method and boundaries
 
 Independent bounded review at repository head `70ce549fa9facdec9add63f91db224ee4c2bc2bb`.
+Final targeted seven-column follow-up reviewed at `fd4fb9077d206ed2165fec0687ffb8f6b9a4ed87`.
 This is the remaining 14 columns with changes beyond physical ordinal in the
 335f987f portable 144-foundation/514-timestamp diff. The four changed types are
 covered separately in `PR310_SCHEMA_COLUMN_DISPOSITIONS_2026-09-15.md`.
@@ -30,9 +32,10 @@ catalog-artifact evidence, not a fresh database query or executed app transactio
 All these rows have `nspname=public`, empty `identity` and `generated`, and
 `udt_name` equal to the displayed data type.
 
-The actual existing input selector was also executed through the read-only
+At the original review boundary, the existing input selector was also executed through the read-only
 `gridex-replay-input-accounting.py.account()` interface: 144 foundation and 514
-timestamp inputs. This validates selection/pins only. Its SUBSTITUTED label for
+timestamp inputs. This is the historical 601-input/514-timestamp receipt, not the later
+603-input/516-timestamp forward promotion. It validates selection/pins only. Its SUBSTITUTED label for
 June1 is preserved below; separate residual execution evidence is not relabeled
 as an ordinary selector row. No whole-replay acceptance follows from this check.
 
@@ -62,7 +65,7 @@ Ordinals are reported solely to make the observed hashes reproducible.
 
 ### 1. Auth email events: event_type, source and status
 
-**UNRESOLVED contract differences; no regression confirmed from these three fields.**
+**PRESERVE the selected legacy-compatible event shape and defaults.**
 Foundation F5 `20260519_auth_callback_email_reset_sync.sql:47-57` creates the older
 `action` event shape, with status NOT NULL DEFAULT sent. F7
 `20260519_auth_email_templates_invite_reset_sync.sql:106-141` has a stronger
@@ -83,16 +86,28 @@ an observed omission on those paths. The older exported writer at
 current app/lib import of that module was found in this bounded search, so its
 reachability is NOT proved and is not used to assert a live failure.
 
-The nullable event type and implicit sent status change the audit admission
-contract for omitted/NULL fields; app-vs-application is also a provenance label
-change. Neither a proven bad persisted event nor a requirement to rewrite old
-labels is established. Any forward tightening requires exact caller/event-shape
-qualification and row preflight, preserving legacy action evidence. Do not infer
-whole-table compatibility: action/other constraints and grants are separate deltas.
+The explicit preservation contract in
+`AUTH_PROVISIONING_LEGACY_ADMISSION_CONTRACT_2026-09-10.md:74,91` retains
+historical action/event_type/status/source, including NULL/unknown/extended events,
+and restores exact pre-batch event CHECKs rather than normalizing audit history.
+Its selected-predecessor authority is template7 and its complete predecessors,
+which are exactly the sources responsible for these attributes. This is positive
+compatibility authority, not merely an absence of observed failures.
+
+Decision: retain nullable event_type/source, source DEFAULT app and status
+NOT NULL DEFAULT sent. The current canonical writer independently uses app/sent;
+changing the source label to application would create divergent provenance for
+otherwise identical omitted-field events. The status default is an existing
+admission convention, not proof of delivery; explicit failed/other allowed states
+must remain intact. This does not authorize new incomplete canonical events:
+current canonical callers continue to supply event_type explicitly. No forward
+attribute repair or historical row rewrite is warranted for parity. The stronger
+reference CREATE branch is a different contract, not equivalent catalog text.
+Whole-table action/CHECK/grant qualification remains outside these three attributes.
 
 ### 2. billing_underlays.pricing_snapshot
 
-**UNRESOLVED nullability/integrity contract; no billing failure proved.**
+**PRESERVE nullable compatibility JSONB; enforce billing evidence through its actual contract.**
 F126 `20260521_batch3_pricing_billing_audit_roles_completion.sql:66-70` first adds
 nullable JSONB DEFAULT {}. T27 `20260608120000_metering_billing_pricing_engine.sql:133`
 requests NOT NULL only with ADD COLUMN IF NOT EXISTS. The last relevant column
@@ -105,15 +120,30 @@ normalizes non-object input to {}, then rejects missing frozen base components
 for non-production energy. `lib/billing/invoiceReadiness.ts:392` separately checks
 snapshot identity IDs; those are distinct from this JSONB column.
 
-A NULL row is structurally possible in replay but prohibited by the reference.
-The inspected app writers do not supply NULL; no bad invoice or bypass is proved.
-Do not equate DEFAULT {} with sufficient pricing evidence or backfill NULL to {}
-merely to make NOT NULL pass. Qualify all producers and pricing evidence requirements
-before a separately reviewed forward nullability repair.
+The final storage RPC in
+`20260901152500_canonicalize_billing_underlay_stockholm_period_semantics.sql:36-65`
+explicitly stores pending/blocked underlays and coalesces an omitted snapshot to
+{}. The documented exact binding chain
+(`docs/contract-platform-109-remediation.md:11,101,113-115`) concerns immutable
+contract/pricing identities and successful evidence, not mandatory nonempty JSONB
+on every pending diagnostic row. `gridex_guard_billing_underlay_exact_refs` in
+`20260716010000_contract_billing_end_to_end_completion.sql:984-996` checks contract
+and snapshot IDs when the row reaches billable states. That guard does not certify
+JSON contents, and is not presented as a universal invoice acceptance proof.
+
+Decision: retain the nullable JSONB/default {} compatibility shape. SQL NULL, JSON
+null and {} are distinct stored values; none establishes complete frozen pricing.
+NOT NULL would still admit JSON null and {}, so this column difference is not the
+missing completeness rule. Current app evidence validation treats absent/nonobject
+payload as missing evidence, and normal producers construct explicit snapshots.
+No concrete pricing failure attributable to SQL nullability was established; no
+forward NOT NULL/backfill is justified. Existing invoice/evidence defects and gates
+remain separately tracked in BILLING_EVIDENCE_APPLICATION_GUARDS and the billing
+native evidence contract; this disposition does not close or weaken them.
 
 ### 3. customer_documents.status
 
-**UNRESOLVED default semantics; no disappearance or write failure proved.**
+**PRESERVE DEFAULT uploaded; explicit available snapshots keep their own status.**
 F138 `20260526_batch_3a_3b_customer_intake_blockers_documents.sql:61` adds required
 status DEFAULT uploaded. The final relevant declaration T95
 `20260617183000_portal_documents_mail_onboarding_batch.sql:20-27` requests DEFAULT
@@ -130,11 +160,20 @@ occurrence on this full replay was not established. `listPortalDocuments` at
 available status. Its archived filter is on customer_authorization_documents,
 a different relation.
 
-There is an actual default-contract difference for an omitted status, but no
-observed normal producer depending on available-by-default, no portal disappearance,
-and no accepted product decision to change all default-created records. Preserve
-both explicit status meanings. Qualify omission and fallback behavior before
-changing the default; do not rewrite existing uploaded rows to available.
+The operational snapshot documentation
+(`docs/customer-card-operational-snapshot-followup.md:7-9`) requires a signed POA
+or an available POA document. The actual predicate
+`lib/customers/customerCardSnapshot.ts:126-149` defines document availability to
+include both uploaded and available (plus active/signed/suggested/completed).
+Thus the omission/fallback default does not lose this specific readiness signal;
+this is direct predicate evidence, beyond portal list visibility.
+
+Decision: keep DEFAULT uploaded, matching the general upload producer. Keep
+available explicit for completed internal legal snapshots. The default difference
+is real for raw stored status, but it does not justify changing the upload contract
+or rewriting rows. No normal producer or inspected readiness/list consumer requires
+available-by-default. This finding does not equate every future consumer of the
+literal strings; it fixes the reviewed default contract and needs no forward DDL.
 
 ### 4. customer_portal_identities.match_strength
 
@@ -155,7 +194,7 @@ full SQL/API and identity security qualification remain separate.
 
 ### 5. customers.intake_status
 
-**UNRESOLVED compact-status contract; current writes compatible.**
+**PRESERVE NOT NULL DEFAULT draft as the compact initial intake state.**
 F77 `20260521_batch_customer_intake_debug_hardening.sql:9` and the later foundation
 batch2 source declare NOT NULL DEFAULT draft. May26 and June10 additions request
 nullable text only if the column is absent. The last relevant column declaration
@@ -168,15 +207,23 @@ Current onboarding/review writes explicitly use customerIntakeStatusForReadiness
 `lib/website/customerApplicationOnboarding.ts:194`,
 `lib/website/customerApplicationShared.ts:241`, and
 `app/admin/website-applications/actions.ts:412`. Nullable reads at
-`lib/customers/getCustomers.ts:190` accommodate either representation. No current
-explicit NULL writer was found in the targeted app/lib search. Omitted status
-becomes draft in replay rather than NULL. Do not silently relax the constraint or
-remove the default without deciding whether NULL and draft are semantically distinct
-for unassessed customers and checking SQL trigger writers as a separate gate.
+`lib/customers/getCustomers.ts:190` accommodate either representation. The mapper itself
+(`lib/website/applicationReview.ts:180-207`) explicitly returns draft when no more
+specific readiness state applies. The final SQL process-summary repair
+`20260823185028_fix_customer_process_summary_intake_status.sql:4-6,48-54`
+documents the compact vocabulary and replaces incompatible projection strings
+with concrete needs_admin_review/blocked/pending_information/active_supply states;
+its CASE never writes NULL. This closes the previously deferred SQL-writer check.
+
+Decision: keep required draft on omission. Draft represents the initial compact
+state; nullable reads and a NULL-tolerant CHECK provide compatibility, not a command
+to erase that initial state or drop its constraint. The migration contains no such
+ALTER, and current app/SQL writers preserve a concrete compact status. No forward
+DROP NOT NULL/DROP DEFAULT or row normalization is warranted for parity.
 
 ### 6. ediel_mailboxes.mailbox_type
 
-**UNRESOLVED source/default contract; current inspected consumer tolerates NULL.**
+**PRESERVE nullable, unclassified mailbox metadata with no default.**
 The whole June1 residual source
 `20260601070000_ediel_production_readiness_hardening.sql:55-56` adds nullable text
 without default. Its ordinary selector accounting remains SUBSTITUTED; the separate
@@ -195,10 +242,22 @@ back to shared for display. `lib/inbound-mail/edielMailboxPoller.part-1.ts:21` a
 `20260903162000_ediel_tenant_readiness_revalidation.sql:96` includes it as snapshot
 metadata; this is not proof that a null and shared snapshot are identical.
 
-No observed transport-routing failure is established. Do not change historical
-mailbox classifications or equate a display fallback with a persisted business
-classification. A forward default/nullability decision needs row classification
-and snapshot/revalidation qualification.
+The latest convergence source explicitly says these classification fields are
+retained for evidence-v3 without overwriting existing values
+(`20260903160000_ediel_send_lock_state_convergence.sql:8-14`). The poller's actual
+shared selector, `isPlatformSharedMailbox` at
+`lib/inbound-mail/edielMailboxPoller.part-1.ts:199-206`, uses company_id,
+environment and metadata.scope; it does not inspect mailbox_type.
+`listConfiguredEdielMailboxes:847-881` filters activity/company/environment/ID and
+that predicate. Manual-operations mailbox-type filters belong to the separate
+manual_communication_mailboxes table and do not contradict this trace.
+
+Decision: keep NULL to mean unclassified metadata and no synthetic shared default.
+The current explicit platform_shared writer remains explicit. Null and shared
+remain distinct in evidence-v3 snapshots; forcing shared would change attribution
+and snapshot input without classifying the row. No missing transport-routing
+requirement warrants NOT NULL/default shared. This is a concrete preservation
+contract, not a claim that the two serialized snapshots are equal.
 
 ### 7. ediel_send_locks.lock_key
 
@@ -270,21 +329,34 @@ parent rows or permissions were altered in this review.
 
 ## Classification and narrow next actions
 
-Seven column deltas have explicit/compatible source reasons to preserve pending
-full qualification: match_strength, lock_key, data_key, method, route, role_id,
-permission_id. Seven remain unresolved attribute-contract differences: the three
-auth columns, pricing_snapshot, document status, intake_status and mailbox_type.
-These are not difference allowlists. There are no newly confirmed application
-regressions in these 14 fields and no unconditional corrective migration justified
-by this bounded review. The source incompatibilities described for reintroducing
-NOT NULL/no-default on lock_key and data_key are reasons against blind alignment.
+All 14 reviewed column attributes now have a concrete source disposition:
+**preserve the observed replay shape; no attribute correction is justified by this
+review.** The seven previously unresolved attributes were resolved through legacy
+audit preservation, explicit upload/readiness semantics, final compact-status SQL,
+nonclassifying mailbox convergence, and the actual billing-evidence contract above.
+These decisions are narrower than claiming all original author intent is known:
+some IF NOT EXISTS CREATE branches describe a different new-table shape. The
+selected predecessor and documented/current compatibility behavior determine the
+reviewed contract; the reference does not automatically override them.
 
-For unresolved columns, require an explicit final contract, targeted omission/NULL
-and representative-row cases, then only a separately reviewed forward correction
-if needed. Keep historical SQL and the committed schema reference unchanged.
-Native SQL/API execution, complete table/constraint/policy/grant behavior, live
-schema comparison, actual generated types, and whole-PR acceptance remain unverified
-by this report. This work adds no runtime/default normalization or gate bypass.
+This is not a difference allowlist and does not change accepted hashes. It makes
+future reference reconciliation reviewable once final replay evidence is available.
+No newly confirmed application regression or new forward migration arises from
+these 14 fields. Native SQL/API execution, complete table/constraint/policy/grant
+behavior, live schema comparison, actual generated types, and whole-PR acceptance
+remain unverified by this report. No runtime/default normalization or gate bypass
+is introduced. The original exact 28 hash matches below remain unchanged.
+
+## Follow-up immutable source evidence
+
+Additional complete source bytes read for the seven-column decision at fd4fb907;
+these hashes identify evidence, not a new selection or execution receipt.
+
+| Migration | SHA256 |
+| --- | --- |
+| `20260823185028_fix_customer_process_summary_intake_status.sql` | `f4ab87439782e875a86d207c5317ee16579603e58feb7e91bb6d05ec79e44d13` |
+| `20260901152500_canonicalize_billing_underlay_stockholm_period_semantics.sql` | `1722e8bda642ca12c2ca2f337aaaf929bde83ecf82955979d4c671554c2abcbd` |
+| `20260903160000_ediel_send_lock_state_convergence.sql` | `1f368f4a36e9ac93d09289c4538d142f7489746793aff110d9f593eaa0c7bafd` |
 
 ## Exact column-row hash evidence
 

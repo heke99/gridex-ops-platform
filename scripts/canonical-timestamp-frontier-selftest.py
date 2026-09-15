@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Selection and stop-on-error tests, not evidence of native SQL execution."""
 import importlib.util
+import copy
 from pathlib import Path
 import tempfile
 import unittest
@@ -48,6 +49,45 @@ class TimestampTests(unittest.TestCase):
         # Newer prerequisite/boundary migrations execute in the foundation,
         # not at the end of the chronological tail. Do not reorder them.
         self.assertEqual(self.foundation[67], 'migrations/20260911114443_canonical_user_rbac_customer_alignment_boundary.sql')
+
+    def test_two_registered_forwards_do_not_enter_the_historical_compiler_input(self):
+        forward = load('canonical_forward_sources')
+        selected, _ = tail.load_inputs(ROOT, self.report, self.foundation)
+        self.assertEqual(self.report['totalMigrations'], 603)
+        self.assertEqual(self.report['selectedInputCounts']['timestamp'], 516)
+        self.assertEqual(len(selected), 514)
+        self.assertFalse(set(selected) & set(forward.FORWARD_SOURCES))
+        self.assertEqual(forward.partition_timestamps(selected + list(forward.FORWARD_SOURCES))[0], tuple(selected))
+
+    def test_forward_inventory_unknown_hash_or_missing_source_is_rejected(self):
+        forward = load('canonical_forward_sources')
+        for mutation in ('unknown', 'hash', 'missing', 'historical_hash'):
+            with self.subTest(mutation=mutation):
+                report = copy.deepcopy(self.report)
+                path = (forward.FORWARD_SOURCES[0][0] if mutation != 'historical_hash'
+                        else 'migrations/20260519_auth_callback_email_reset_sync.sql')
+                row = next(r for r in report['migrations'] if r['path'] == path)
+                if mutation == 'unknown':
+                    row['path'] = 'migrations/20260915130000_unregistered.sql'
+                elif mutation in ('hash', 'historical_hash'):
+                    row['sha256'] = '0' * 64
+                else:
+                    report['migrations'].remove(row)
+                with self.assertRaisesRegex(ValueError, 'FORWARD_INVENTORY_PARTITION_REQUIRED'):
+                    tail.load_inputs(ROOT, report, self.foundation)
+
+    def test_selector_forward_suffix_order_is_not_inferred_from_counts(self):
+        real_run = tail.subprocess.run
+        def reverse_suffix(args, **kwargs):
+            result = real_run(args, **kwargs)
+            output = Path(args[-1])
+            lines = output.read_text().splitlines()
+            lines[-2:] = reversed(lines[-2:])
+            output.write_text('\n'.join(lines) + '\n')
+            return result
+        with patch.object(tail.subprocess, 'run', side_effect=reverse_suffix):
+            with self.assertRaisesRegex(ValueError, 'FORWARD_TIMESTAMP_PARTITION_REQUIRED'):
+                tail.load_inputs(ROOT, self.report, self.foundation)
 
     def test_changed_shell_pin_fails_before_selector_or_sql(self):
         wrong = dict(self.report, selector=dict(self.report['selector'], sha256='0' * 64))

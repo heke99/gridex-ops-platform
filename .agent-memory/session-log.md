@@ -231,3 +231,13 @@ Actual24 extra authenticated administrative grants on6 BL001 tables motivate
 reviewed narrow candidate and fixed PG17 behavior qualification. Source/hash
 selection and YAML parse PASS; native SQL/CLI filename pending. No production,
 reference/type refresh or full acceptance. See schema grant/column/index audits.
+
+2026-09-15 — PR310 forward-source integration atop fd4fb907. Promoted unchanged
+genuine CLI sources20260915111458 and20260915121224 after pinned144+514; inventory
+603 preserves exact601 historical checksums. Operational PG17 job104375184474
+SUCCESS/artifact10395677716 SHA3965feecf1326870dc28148559aa27a4765eeefae257bc806c5ab30dd048fe72.
+Composite SQL characterization70ce549f job104370788695 SUCCESS with limited
+7FK/2trigger scope. Native/portable forward ownership, rollback/repeat, exact
+source/ledger admission and native readiness behavior reviewed without remaining
+findings. Offline auth group passes after explicit601/603 fixture partition;
+actual full native/schema/types/finalCI/merge remain OPEN. See PR310_FORWARD_SOURCE_PROMOTION_2026-09-15.md.

@@ -207,9 +207,19 @@ def terminal_observer(controller, original, reference, before, result):
                 controller.load_dedupe().require_live(handle)
                 if controller.originals_snapshot() != before:
                     raise ValueError('SOURCE_RESTORATION_REQUIRED')
+                from canonical_forward_sources import FORWARD_SOURCES
+                forward = tail.forward_receipt
+                if (forward.get('executed') is not True or forward.get('inputsExecuted') != 2
+                        or len(forward.get('sources', [])) != 2
+                        or any(entry.get('source') != path or entry.get('sourceSha256') != digest
+                               or any(entry.get(flag) is not True for flag in ('executed','positiveAndRepeatVerified','rowsPreserved'))
+                               for entry, (path, digest) in zip(forward['sources'], FORWARD_SOURCES))):
+                    raise ValueError('FULL_SCHEMA_FORWARD_RECEIPT_REQUIRED')
                 candidate = compare(reference, capture(handle, controller.DATABASE))
                 candidate.update(foundationApplied=controller.SCOPES['full'],
-                                 timestampApplied=len(tail.selected))
+                                 timestampApplied=len(tail.selected),
+                                 forwardApplied=2,
+                                 forwardSources=[dict(source=path, sourceSha256=digest) for path,digest in FORWARD_SOURCES])
         except Exception:
             # Never publish exception strings, SQL, raw catalog values or paths.
             result['collectionOutcome'] = 'EVIDENCE_UNAVAILABLE'

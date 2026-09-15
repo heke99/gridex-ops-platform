@@ -9,6 +9,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from canonical_forward_sources import historical_fixture_accounting
 from unittest.mock import patch
 
 sys.dont_write_bytecode = True
@@ -41,8 +42,8 @@ class ResidualSourceTests(unittest.TestCase):
             self.assertEqual(rows[source]['classification'], 'FULL_FILE_SELECTED')
             self.assertEqual(rows[source]['sha256'], digest)
             self.assertEqual(rows[source]['execution'], [{'stage':stage,'ordinal':ordinal}])
-        self.assertEqual(self.report['selectedInputCounts'], {'foundation':144,'timestamp':514})
-        self.assertEqual(self.report['counts'], {'FULL_FILE_SELECTED':589, 'SUBSTITUTED':2,
+        self.assertEqual(historical_fixture_accounting(self.report)['selectedInputCounts'], {'foundation':144,'timestamp':514})
+        self.assertEqual(historical_fixture_accounting(self.report)['counts'], {'FULL_FILE_SELECTED':589, 'SUBSTITUTED':2,
                                                 'UNCLASSIFIED':5, 'EXPLICITLY_EXCLUDED':5})
         self.assertFalse(self.report['sqlExecutionVerified'])
         self.assertFalse(self.report['ledgerProvenanceVerified'])

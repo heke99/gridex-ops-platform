@@ -401,6 +401,9 @@ jobs:
           python3 -B scripts/test-canonical-native-timestamp-sources.py
           python3 -B scripts/test-canonical-native-timestamp-proof.py
           python3 -B scripts/test-canonical-native-timestamp-runtime.py
+          python3 -B scripts/test-canonical-forward-sources.py
+          python3 -B scripts/test-canonical-native-forward-runtime.py
+          python3 -B scripts/test-canonical-native-ledger-readiness.py
           python3 -B scripts/canonical-auth-provisioning-replay.py
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/sql/canonical-tenant-guard-catalog.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql

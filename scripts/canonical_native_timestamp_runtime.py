@@ -301,13 +301,15 @@ def qualify_equivalence(target, unit):
         target.drop_clone(original)
 
 
-def execute(command, native, sql, work, project, parent, plan):
+def execute(command, native, sql, work, project, parent, plan, forward_retained):
     import canonical_native_timestamp_sources as compiler
     from canonical_native_timestamp_proof import NativeTimestampTarget, execute_live_sync
     if ('historicalTimestampTail' in parent
             or type(plan) is not compiler.Plan
             or compiler.compile_retained(plan.selected, plan.prerequisites, plan.retained) != plan):
         raise ValueError('NATIVE_TIMESTAMP_RETAINED_PLAN_REQUIRED')
+    from canonical_native_forward_runtime import programs as forward_programs, execute as execute_forward
+    forward_programs(forward_retained)
     target = NativeTimestampTarget(command, project)
     progress = {'scope': 'NATIVE_TIMESTAMP_EXECUTION_NOT_FULL_SCHEMA_ACCEPTANCE',
                 'executed': False, 'timestampInputsExecuted': 0, 'prerequisitesExecuted': 0,
@@ -368,6 +370,10 @@ def execute(command, native, sql, work, project, parent, plan):
                 state.update(runner.apply(unit))
             if expected is not None and native_snapshot(target) != expected:
                 raise ValueError('NATIVE_TIMESTAMP_CLI_POSTIMAGE_EQUIVALENCE_REQUIRED')
+            if 'LEDGER_DEPENDENT_READINESS' in unit.qualifications:
+                from canonical_native_ledger_readiness import qualify as qualify_readiness
+                state['stage'] = 'NATIVE_LEDGER_READINESS_BEHAVIOR'
+                state.update(qualify_readiness(runner, unit))
             if special:
                 runner.repeat()
                 state['noOpRepeatVerified'] = True
@@ -389,6 +395,7 @@ def execute(command, native, sql, work, project, parent, plan):
             raise ValueError('NATIVE_TIMESTAMP_COMPLETION_REQUIRED')
         progress.update(executed=True, phase='ALL_SELECTED_TIMESTAMP_INPUTS_EXECUTED',
                         noOpRepeatVerified=True, actualLedgerRows=len(runner.entries))
+        execute_forward(runner, plan, forward_retained, parent)
         return progress
     finally:
         target.close()

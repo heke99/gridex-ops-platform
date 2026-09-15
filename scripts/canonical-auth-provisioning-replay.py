@@ -365,6 +365,8 @@ class OwnedTimestampTail:
         self.driver.verify_spatial_runtime(target)
         self.selected, self.prerequisites = self.driver.load_inputs(ROOT, report, order)
         self.retained = self.driver.retain_sources(ROOT, self.selected, self.prerequisites)
+        import canonical_forward_sources as forward
+        self.forward_retained = forward.retain(ROOT)
         self.target = target
         self.state = 'prepared'
 
@@ -388,6 +390,12 @@ class OwnedTimestampTail:
             if (progress['timestampApplied'] != len(self.selected) or
                     list((ROOT/'supabase/migrations').glob('*.sql'))):
                 raise RuntimeError('OWNED_TIMESTAMP_COMPLETION_REQUIRED')
+            from canonical_forward_portable import execute as execute_forward
+            execute_forward(self.target, self.forward_retained, progress)
+            self.forward_receipt = progress['forwardSources']
+            if (self.forward_receipt.get('executed') is not True or self.forward_receipt.get('inputsExecuted') != 2
+                    or list((ROOT/'supabase/migrations').glob('*.sql'))):
+                raise RuntimeError('OWNED_FORWARD_COMPLETION_REQUIRED')
         except BaseException:
             self.state = 'failed'
             raise

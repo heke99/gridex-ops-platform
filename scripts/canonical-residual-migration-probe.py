@@ -34,13 +34,15 @@ def load(name):
 
 
 def bound_sources(report):
-    if report['errors'] or report['totalMigrations'] != 601:
+    from canonical_forward_sources import historical_fixture_accounting
+    if report['errors'] or report['totalMigrations'] != 603:
         raise ValueError('RESIDUAL_INVENTORY_MISMATCH')
     sources = [(r['path'], r['sha256']) for r in report['migrations']
                if r['path'] in BASELINE_PATHS]
     encoded = json.dumps(sources, separators=(',', ':')).encode()
     if len(sources) != 11 or hashlib.sha256(encoded).hexdigest() != RESIDUAL_PIN:
         raise ValueError('RESIDUAL_SOURCE_SET_MISMATCH')
+    historical_fixture_accounting(report)
     return sources
 
 

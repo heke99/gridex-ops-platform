@@ -58,6 +58,9 @@ jobs:
           python3 -B scripts/test-canonical-native-timestamp-sources.py
           python3 -B scripts/test-canonical-native-timestamp-proof.py
           python3 -B scripts/test-canonical-native-timestamp-runtime.py
+          python3 -B scripts/test-canonical-forward-sources.py
+          python3 -B scripts/test-canonical-native-forward-runtime.py
+          python3 -B scripts/test-canonical-native-ledger-readiness.py
           python3 -B scripts/canonical-blocker-diagnostics.py native
       - uses: actions/upload-artifact@v4
         if: always()

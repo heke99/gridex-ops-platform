@@ -154,7 +154,13 @@ def load_inputs(root, report, foundation):
         last_paths = [Path(path).relative_to(supabase).as_posix() for path in last.read_text().splitlines()]
     if first_paths != foundation:
         raise ValueError('FOUNDATION_SELECTION_CHANGED')
-    if (len(last_paths) != 514 or report['selectedInputCounts']['timestamp'] != 514
+    spec = importlib.util.spec_from_file_location('timestamp_forward_sources', scripts / 'canonical_forward_sources.py')
+    forward = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(forward)
+    # New forwards are additional inputs, never replacements for any of the
+    # immutable 601 historical source checksums or the ordered 514 tail.
+    forward.partition_inventory([(entry['path'], entry['sha256']) for entry in report['migrations']])
+    if (len(last_paths) != report['selectedInputCounts']['timestamp']
             or len(set(first_paths + last_paths)) != len(first_paths) + len(last_paths)):
         raise ValueError('TIMESTAMP_SELECTION_CHANGED')
     # The actual selector verifies migration and derived-artifact manifest pins.
@@ -164,12 +170,17 @@ def load_inputs(root, report, foundation):
                for path, metadata in accounting.read_json(scripts / name).get('derivedBootstrap', {}).items()}
     selected = [(path, migration_pins[path] if path.startswith('migrations/')
                  else derived[path]['artifactSha256']) for path in last_paths]
+    historical, additional = forward.partition_timestamps(selected)
     by_path = {entry['path']: entry['sha256'] for entry in report['supplementalPrerequisites']}
     if set(by_path) != set(BOUNDARIES.values()):
         raise ValueError('TIMESTAMP_BOUNDARY_CHANGED')
     prerequisites = {prefix: (path, by_path[path]) for prefix, path in BOUNDARIES.items()}
     for source in selected + list(prerequisites.values()):
         read_source(root, source)
+    # Keep the historical compiler's return contract and all its existing
+    # boundary/source validation unchanged. The owner executes additional
+    # sources through the separately retained forward plan after this prefix.
+    selected = list(historical)
     validate_boundaries(selected, prerequisites)
     load_restoration().validate_selection(root, selected)
     load_residual_restoration().validate_timestamp(selected)
