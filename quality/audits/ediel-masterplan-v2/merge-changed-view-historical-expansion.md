@@ -32,19 +32,19 @@ catalog/row/ledger/source preservation gates remain required.
 ## Source derivation
 
 The immutable register changed-view-historical-columns.json identifies every
-column's original declaration line and full source SHA256, covering22 distinct
+column's original declaration line and full source SHA256, covering24 distinct
 sources. It was derived from the already admitted foundation order, including the
 seven explicit restored-source boundaries, followed by the514 selected timestamp
 units in their existing execution order. Initial CREATE TABLE definitions establish
 column order. First effective ADD COLUMN IF NOT EXISTS appends a column; repeated
 CREATE/ADD statements do not reorder existing columns. No relevant source drops or
 renames these columns. The source inspection stops at the relevant view declaration.
-The executable witness requires the exact register and all22 exact source files;
+The executable witness requires the exact register and all24 exact source files;
 it does not derive authority from the current database or from observed view text.
 
 | Ordinal | View / star dependency | Historical columns | Source boundary |
 | --- | --- | ---: | --- |
-| 2 | customer_contract_lifecycle_readiness_v / customer_contracts | 128 | 20260718160000_v5_signature_switch_readiness_hardening.sql |
+| 2 | customer_contract_lifecycle_readiness_v / customer_contracts | 135 | 20260718160000_v5_signature_switch_readiness_hardening.sql |
 | 3 | ediel_active_actor_settings_v / ediel_actor_settings | 37 | restored May21 source after foundation125 |
 | 4 | ediel_unresolved_messages / ediel_unresolved_items | 31 | 20260605160000_ediel_backend_automation_foundation.sql |
 | 5 | platform_go_live_readiness_v / ediel_actor_settings | 53 | 20260615203000_platform_go_live_route_resolver_message_center.sql |
@@ -62,9 +62,9 @@ stars remain unchanged because they expand the correctly reconstructed CTE shape
 
 ## Verification
 
-`python scripts/test-canonical-changed-view-witness.py`:10 tests pass. Coverage
+`python scripts/test-canonical-changed-view-witness.py`:11 tests pass. Coverage
 includes source-query identity, exact historical exclusions/counts, every one of
-the22 source-file mutations, register mutation, duplicate/missing star rejection,
+the24 source-file mutations, register mutation, duplicate/missing star rejection,
 full-row expected hashes, owned-target admission, cleanup/preservation, and
 memory-only SQL transport.
 
@@ -80,3 +80,27 @@ pre-correction index helper spelling and cannot establish a current result.
 The register's foundation/timestamp ordering hashes are checked against the actual
 source-selector constants; changing either constant fails closed. The execution
 receipt explicitly binds historicalColumnsSha256.
+
+## Actual remaining ordinal2 and exact source correction
+
+Full schema run35009249751/job104516758408 on fe909783 passes all10forwards,
+policy witnesses, addedviews and changedview ordinals1/3/4/5. Onlyordinal2 remains
+unmatched: actual/source-expected7007d704402744b49c4384e7746a69ce815094d90c88e88ed2fc2d2741aa7840;
+initial128-column witness771656d1904ef42082dddd849a72dd30908a206a2740d9e8b24da7415c1ab766.
+
+The first source extraction omitted two SQL forms: unqualified table names and a
+dynamic table loop. Original20260614140000_ops_production_multitenant_readiness.sql
+lines91–95 explicitly adds legal_bundle_id,price_book_id,snapshot_quality,
+snapshot_hash,billing_blocked_reason to customer_contracts. The original
+20260617170000_customer_portal_external_auth_account_repair.sql loop includes
+customer_contracts at308 and adds customer_number/external_customer_id at317–318.
+Both run after the existing website_application_id addition and before July18
+view creation. These exact seven declarations are now inserted at that boundary,
+producing135 columns and24 full-source pins. The register hash is
+2e3501a24b11881a2158344810afe3bd14c445bbb8f1a04b292e890dbf90ab02.
+No observed hash, original source query or other historical expansion is changed.
+The11 local tests pass; actual135-column PostgreSQL witness remains pending.
+
+Separately, actual portable run35009249815/job104516757959 passes144+514+10 and
+all five final SQL gates with cleanup preserved. This does not imply schema
+acceptance or validate the remaining view witness.

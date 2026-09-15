@@ -19,6 +19,8 @@
     "supabase/migrations/20260610123000_customer_application_review_flow.sql": "55bdc0a98d9a601437738f58cc1380b2828bf817d979e586e038331e0a622caf",
     "supabase/migrations/20260612170000_ops_multitenant_website_contracts_events.sql": "e2e7801e528b1342e8623c119a3424e0b523355cc0a9007f8327baf2f9744520",
     "supabase/migrations/20260613090000_batch_m_ops_master_legal_readiness.sql": "599b707e9f979727fcf39843d88ee376c15409731a780befb01d2ed436ec842d",
+    "supabase/migrations/20260614140000_ops_production_multitenant_readiness.sql": "08795f0c7bb3564fb7929100c2fc99bd0f30351348d1c5f2b6be4e82320bb2b7",
+    "supabase/migrations/20260617170000_customer_portal_external_auth_account_repair.sql": "0b955fe06c096a1fec5a7a5177cfc33f411b2ec1b27f7fba52f796e14fadb829",
     "supabase/migrations/20260713203000_contract_api_visibility_signature_mail_hardening.sql": "296b6e60e0ed07118173fb5fd8b7b49783576f6f3ca8f46cd83b03664f049827",
     "supabase/migrations/20260714130000_canonical_contract_legal_publication_model.sql": "036f08e029a905c8321a047522f9edbae34d6936cace6142e3839f11c339babd",
     "supabase/migrations/20260716140000_contract_legal_publication_single_source_completion.sql": "c2dcd7e84e5963486207a764a51e57f4830078c59e4032f1df3d8e8405bd5561",
@@ -686,6 +688,48 @@
           "source": "supabase/migrations/20260613090000_batch_m_ops_master_legal_readiness.sql",
           "line": 215,
           "declaration": "  add column if not exists website_application_id uuid;"
+        },
+        {
+          "name": "legal_bundle_id",
+          "source": "supabase/migrations/20260614140000_ops_production_multitenant_readiness.sql",
+          "line": 91,
+          "declaration": "alter table customer_contracts add column if not exists legal_bundle_id uuid references legal_bundles(id);"
+        },
+        {
+          "name": "price_book_id",
+          "source": "supabase/migrations/20260614140000_ops_production_multitenant_readiness.sql",
+          "line": 92,
+          "declaration": "alter table customer_contracts add column if not exists price_book_id uuid references price_books(id);"
+        },
+        {
+          "name": "snapshot_quality",
+          "source": "supabase/migrations/20260614140000_ops_production_multitenant_readiness.sql",
+          "line": 93,
+          "declaration": "alter table customer_contracts add column if not exists snapshot_quality text;"
+        },
+        {
+          "name": "snapshot_hash",
+          "source": "supabase/migrations/20260614140000_ops_production_multitenant_readiness.sql",
+          "line": 94,
+          "declaration": "alter table customer_contracts add column if not exists snapshot_hash text;"
+        },
+        {
+          "name": "billing_blocked_reason",
+          "source": "supabase/migrations/20260614140000_ops_production_multitenant_readiness.sql",
+          "line": 95,
+          "declaration": "alter table customer_contracts add column if not exists billing_blocked_reason text;"
+        },
+        {
+          "name": "customer_number",
+          "source": "supabase/migrations/20260617170000_customer_portal_external_auth_account_repair.sql",
+          "line": 317,
+          "declaration": "      execute format('alter table public.%I add column if not exists customer_number text', v_table);"
+        },
+        {
+          "name": "external_customer_id",
+          "source": "supabase/migrations/20260617170000_customer_portal_external_auth_account_repair.sql",
+          "line": 318,
+          "declaration": "      execute format('alter table public.%I add column if not exists external_customer_id text', v_table);"
         },
         {
           "name": "public_contract_offer_id",

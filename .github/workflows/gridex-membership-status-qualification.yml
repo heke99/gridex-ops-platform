@@ -1,0 +1,41 @@
+name: Gridex membership status source qualification
+on:
+  push:
+    branches:
+      - codex/ediel-masterplan-v2-alignment-20260915
+    paths:
+      - '.github/workflows/gridex-membership-status-qualification.yml'
+      - 'scripts/canonical_membership_status_qualification.py'
+      - 'scripts/test-canonical-membership-status-qualification.py'
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-membership-status-qualification.yml'
+      - 'scripts/canonical_membership_status_qualification.py'
+      - 'scripts/test-canonical-membership-status-qualification.py'
+permissions:
+  contents: read
+jobs:
+  source-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify source domain and active consumer predicates
+        run: python3 scripts/test-canonical-membership-status-qualification.py
+      - name: Qualify exact lifecycle status CHECK on owned PostgreSQL 17
+        run: python3 scripts/canonical_membership_status_qualification.py
+      - name: Dispose only this qualification's owned container
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,str(Path('scripts').resolve()))
+          import canonical_intake_jsonb_qualification as qualifier
+          qualifier.load_legacy().cleanup_workflow_owned()
+          PY

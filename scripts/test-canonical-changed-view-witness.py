@@ -38,6 +38,7 @@ class Tests(unittest.TestCase):
         self.assertIn('c.lifecycle_stage,',customer)
         self.assertNotIn('c.billing_eligible_at',customer)
         self.assertNotIn('c.quote_reference',customer)
+        self.assertIn('c.website_application_id, c.legal_bundle_id, c.price_book_id, c.snapshot_quality, c.snapshot_hash, c.billing_blocked_reason, c.customer_number, c.external_customer_id, c.public_contract_offer_id',customer)
         actor=specs[2]['witnessQuery']
         self.assertNotIn('eas.*',actor)
         # The original outer signature is 28 columns; the historical inner
@@ -54,8 +55,8 @@ class Tests(unittest.TestCase):
         self.assertIn('a.receiver_message_subaddress from public.ediel_actor_settings',platform)
         self.assertNotIn('brp.is_active',platform)
         document=v.historical_columns(dict(v.retain(v.ROOT))[v.HISTORICAL_COLUMNS])
-        self.assertEqual([len(r['columns']) for r in document['expansions']],[128,37,31,53,16])
-        self.assertEqual(len(document['sources']),22)
+        self.assertEqual([len(r['columns']) for r in document['expansions']],[135,37,31,53,16])
+        self.assertEqual(len(document['sources']),24)
         sql=v.render(specs)
         for spec in specs:self.assertIn(spec['witnessQuery'],sql)
 

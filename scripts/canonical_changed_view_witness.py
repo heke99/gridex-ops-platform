@@ -26,7 +26,7 @@ TRANSITION='scripts/canonical-residual-readiness-transitions.py'
 TRANSITION_SHA='24a696b02fbe73d5ab290f03fc27802986cf6d6c388de07fca8a39a42651a39e'
 ROW_KEYS=added.ROW_KEYS
 HISTORICAL_COLUMNS='quality/audits/ediel-masterplan-v2/changed-view-historical-columns.json'
-HISTORICAL_COLUMNS_SHA='e718c15c5cb303898ec57ca745b2b589e4e6f15575db85cd39708f0ef70ca5d3'
+HISTORICAL_COLUMNS_SHA='2e3501a24b11881a2158344810afe3bd14c445bbb8f1a04b292e890dbf90ab02'
 
 
 def historical_columns(raw):
