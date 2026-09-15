@@ -32,6 +32,8 @@ class Tests(unittest.TestCase):
         parent['changedFunctionBehaviorWitness']=functions.expected_receipt(native=True)
         import canonical_changed_index_witness as indexes
         parent['changedIndexSourceWitness']=indexes.expected_receipt(indexes.contract(indexes.retain(indexes.ROOT)),native=True)
+        import canonical_intake_jsonb_qualification as intake
+        parent['intakeJsonbSourceWitness']=intake.parent_receipt(native=True)
         import canonical_removed_policy_qualification as removed
         parent['removedPolicyQualification']={**removed.receipt_contract(native=True),
             **{key:'a'*64 for key in ('policyContextSha256','roleAndAclContextSha256','helperAndRpcContextSha256',
@@ -53,13 +55,14 @@ class Tests(unittest.TestCase):
         runner.unchanged.assert_called_once()
 
     def test_missing_final_sql_or_real_ledger_blocks_reference_restore(self):
-        for defect in ('checks', 'hash', 'ledger', 'actor', 'views', 'view_hash','changed_views','changed_view_hash','removed','removed_count','functions','indexes'):
+        for defect in ('checks', 'hash', 'ledger', 'actor', 'views', 'view_hash','changed_views','changed_view_hash','removed','removed_count','functions','indexes','intake'):
             runner, parent, comparator = self.fixture()
             if defect == 'checks': parent['nativeFinalSql']['checks'].pop()
             if defect == 'hash': parent['nativeFinalSql']['checks'][0]['sourceSha256']='bad'
             if defect == 'actor': parent['policyActorQualification']={}
             if defect == 'functions': parent['changedFunctionBehaviorWitness']={}
             if defect == 'indexes': parent['changedIndexSourceWitness']={}
+            if defect == 'intake': parent['intakeJsonbSourceWitness']={}
             if defect=='removed':parent['removedPolicyQualification']={}
             if defect=='removed_count':parent['removedPolicyQualification']['formulaComponentsProved']=74
             if defect == 'changed_views': parent['changedViewSourceWitness']={}

@@ -231,6 +231,33 @@ def diagnose(rows,specs):
     if differences:
         print(json.dumps(dict(stage='changed_view_source_difference',selectionSha256=SELECTION_SHA,
                               differences=differences),sort_keys=True),flush=True)
+        for entry in rows:
+            if entry['ordinal']==2:
+                projection_diagnostic(entry)
+
+
+def projection_diagnostic(entry):
+    """Bounded hashes of the customer CTE star expansion; no query text leaves.
+
+    Unknown deparser formats produce no supplementary output and never change
+    the original full-row failure. This only reads already captured catalog rows.
+    """
+    names={}
+    for side in ('actual','witness'):
+        definition=entry[side].get('view_definition')
+        if type(definition) is not str or len(definition)>100_000:return
+        match=re.match(r'\s*WITH evidence AS \(\s*SELECT ((?:c\.[a-z_][a-z_0-9]*,\s*)+)\(',definition)
+        if match is None:return
+        columns=re.findall(r'c\.([a-z_][a-z_0-9]*),',match[1])
+        if not 1<=len(columns)<=200 or len(set(columns))!=len(columns):return
+        names[side]=columns
+    actual,witness=names['actual'],names['witness']
+    print(json.dumps(dict(stage='changed_view_projection_difference',ordinal=2,
+        actualCount=len(actual),witnessCount=len(witness),
+        actualOnly=[sha(n.encode()) for n in actual if n not in witness],
+        witnessOnly=[sha(n.encode()) for n in witness if n not in actual],
+        reordered=[dict(columnSha256=sha(n.encode()),actualPosition=actual.index(n)+1,witnessPosition=i+1)
+                   for i,n in enumerate(witness) if n in actual and actual.index(n)!=i]),sort_keys=True),flush=True)
 
 
 def verify_rows(rows,specs):

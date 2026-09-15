@@ -12,6 +12,21 @@ import canonical_changed_view_witness as v
 
 
 class Tests(unittest.TestCase):
+    def test_customer_projection_diagnostic_is_fixed_identifiers_hashed_not_query_text(self):
+        entry=dict(actual={'view_definition':' WITH evidence AS ( SELECT c.id, c.company_id, c.new_field, ( SELECT private_payload)'},
+                   witness={'view_definition':' WITH evidence AS ( SELECT c.company_id, c.id, c.old_field, ( SELECT private_payload)'})
+        with patch('builtins.print') as emit:
+            v.projection_diagnostic(entry)
+            result=json.loads(emit.call_args.args[0])
+            self.assertEqual(result['actualOnly'],[v.sha(b'new_field')])
+            self.assertEqual(result['witnessOnly'],[v.sha(b'old_field')])
+            self.assertEqual([r['actualPosition'] for r in result['reordered']],[2,1])
+            for private in ('private_payload','company_id','new_field','old_field'):
+                self.assertNotIn(private,str(result))
+            for malformed in ('WITH unknown AS (SELECT c.id, (', 'WITH evidence AS (SELECT c.id,c.id,('):
+                emit.reset_mock();entry['actual']['view_definition']=malformed
+                v.projection_diagnostic(entry);emit.assert_not_called()
+
     def test_witness_freezes_creation_time_columns_without_changing_source_queries_or_hashes(self):
         specs=v.contract(v.retain(v.ROOT))
         self.assertEqual(specs[0]['query'],specs[0]['witnessQuery'])

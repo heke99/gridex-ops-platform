@@ -164,6 +164,35 @@ def failure_code(error, historical):
         'CHANGED_INDEX_WITNESS_PRESERVATION_REQUIRED',
         'CHANGED_INDEX_WITNESS_RESULT_REQUIRED',
         'CHANGED_INDEX_WITNESS_SOURCE_REQUIRED',
+        'NATIVE_DUMP_CAPTURE_REQUIRED',
+        'NATIVE_DUMP_EXACT_COMPARISON_REQUIRED',
+        'NATIVE_DUMP_NORMALIZATION_REQUIRED',
+        'NATIVE_DUMP_ONCE_REQUIRED',
+        'NATIVE_DUMP_OUTPUT_REQUIRED',
+        'NATIVE_DUMP_OWNED_TARGET_REQUIRED',
+        'NATIVE_DUMP_REPEAT_REQUIRED',
+        'NATIVE_DUMP_SOURCE_REQUIRED',
+        'NATIVE_DUMP_STATE_PRESERVATION_REQUIRED',
+        'INTAKE_BEHAVIOR_REQUIRED',
+        'INTAKE_CALLER_CONTRACT_REQUIRED',
+        'INTAKE_CASE_COUNTS_REQUIRED',
+        'INTAKE_CLEANUP_REQUIRED',
+        'INTAKE_DECLARATIONS_REQUIRED',
+        'INTAKE_DEFAULT_REQUIRED',
+        'INTAKE_NO_EXTERNAL_TARGET_OR_OPTIONS',
+        'INTAKE_OWNED_TARGET_REQUIRED',
+        'INTAKE_PARENT_EXACT_COLUMNS_REQUIRED',
+        'INTAKE_PARENT_LEDGER_REQUIRED',
+        'INTAKE_PARENT_ONCE_REQUIRED',
+        'INTAKE_PARENT_PRESERVATION_REQUIRED',
+        'INTAKE_PARENT_RECEIPT_REQUIRED',
+        'INTAKE_RETAINED_SOURCE_REQUIRED',
+        'INTAKE_SOURCE_PIN_REQUIRED',
+        'INTAKE_SQL_QUALIFICATION_REQUIRED',
+        'INTAKE_STATE_PRESERVATION_REQUIRED',
+        'INTAKE_STRING_ARRAY_ROUNDTRIP_REQUIRED',
+        'INTAKE_TWO_JSONB_COLUMNS_REQUIRED',
+        'INTAKE_WRITERS_REQUIRED',
         'CHANGED_FUNCTION_SOURCE_REQUIRED',
         'CHANGED_FUNCTION_RESULT_REQUIRED',
         'CHANGED_FUNCTION_ONCE_REQUIRED',
@@ -424,6 +453,8 @@ def run(*, historical_prefix=False, clone_preflight=False):
         changed_function_retained = retain_changed_functions(ROOT)
         from canonical_changed_index_witness import retain as retain_changed_indexes
         changed_index_retained = retain_changed_indexes(ROOT)
+        from canonical_intake_jsonb_qualification import retain as retain_intake
+        intake_retained = retain_intake(ROOT)
         from canonical_removed_policy_qualification import retain as retain_removed_policies
         removed_policy_retained = retain_removed_policies(ROOT)
     transport = load_transport()
@@ -577,7 +608,7 @@ def run(*, historical_prefix=False, clone_preflight=False):
                 phase = 'HISTORICAL_TIMESTAMP_NATIVE_LEDGER'
                 from canonical_native_timestamp_runtime import execute as execute_timestamp
                 execute_timestamp(command, native, sql, work, project, report, timestamp_plan, forward_retained,
-                                  view_retained, removed_policy_retained, changed_view_retained, changed_function_retained, changed_index_retained)
+                                  view_retained, removed_policy_retained, changed_view_retained, changed_function_retained, changed_index_retained, intake_retained)
             success = True
         except Exception as error:
             report.update(outcome='BLOCKED',phase=phase,errorType=type(error).__name__)

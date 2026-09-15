@@ -65,6 +65,45 @@ class IntakeTests(unittest.TestCase):
             finally:q._STANDALONE.discard(target)
             with self.assertRaisesRegex(ValueError,'FULL_PARENT_REFERENCE_REQUIRED'):q.admit(target)
 
+    def test_parent_receipt_cannot_be_isolated_or_mutated(self):
+        receipt=q.parent_receipt(native=True)
+        self.assertIs(q.validate_execution_receipt(receipt,native=True),receipt)
+        for key,value in [('nativeTarget',False),('verified',1),('ledgerUnchanged',False),('stringArrayCases',4),('extra',True)]:
+            bad=copy.deepcopy(receipt);bad[key]=value
+            with self.assertRaises(ValueError):q.validate_execution_receipt(bad,native=True)
+        with self.assertRaises(ValueError):q.validate_execution_receipt({'scope':'SOURCE_AUTHORED_INTAKE_JSONB_STRING_ARRAYS_ONLY'},native=True)
+
+    def test_parent_requires_exact_columns_and_preservation(self):
+        from contextlib import ExitStack
+        for change in ('none','ordinal','type','missing','ledger','source','snapshot'):
+            rows=q.column_rows(reference=False)
+            if change=='ordinal':rows[0]['attnum']+=1
+            if change=='type':rows[0]['data_type']='text[]'
+            if change=='missing':rows.pop()
+            progress={}
+            with ExitStack() as stack:
+                stack.enter_context(patch.object(q.actors,'_admit',return_value=('postgres',True)))
+                stack.enter_context(patch.object(q.actors,'_complete'))
+                stack.enter_context(patch.object(q.actors,'_snapshot',side_effect=[{}, {'changed':True} if change=='snapshot' else {}]))
+                stack.enter_context(patch.object(q,'parent_ledger',side_effect=[[],[{}] if change=='ledger' else []]))
+                stack.enter_context(patch.object(q,'parent_sources_preserved',return_value=change!='source'))
+                stack.enter_context(patch.object(q,'query',return_value=json.dumps(rows)))
+                behavior=stack.enter_context(patch.object(q,'execute'))
+                if change=='none':
+                    self.assertTrue(q.execute_parent(object(),q.retain(),progress)['verified'])
+                    behavior.assert_called_once()
+                else:
+                    with self.assertRaises(ValueError):q.execute_parent(object(),q.retain(),progress)
+                    self.assertFalse(progress['intakeJsonbSourceWitness']['verified'])
+
+    def test_exact_two_column_decisions_are_source_contract_scoped(self):
+        decisions=q.column_decisions()
+        self.assertEqual(len(decisions),2)
+        self.assertEqual([r['identity'][2] for r in decisions],list(q.COLUMNS))
+        self.assertTrue(all(r['fields']==['attnum','column_default','data_type','udt_name'] for r in decisions))
+        self.assertTrue(all(r['witness']=='intakeJsonbSourceWitness' for r in decisions))
+        self.assertTrue(all(r['decisionSourceSha256']==q.sha(q.PINS) for r in decisions))
+
     def test_external_target_stops_before_queries(self):
         with patch.object(q,'query') as sql:
             with self.assertRaises(ValueError):q.execute(object(),q.retain())

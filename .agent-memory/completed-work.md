@@ -245,3 +245,9 @@ Follow-up published01ee1d55e515dea336531a3f8820bdf9eafebaf0, exact reviewed tree
 
 
 2026-09-15 continued authorized main merge remediation: actual35eab5da inert qualification35006218472/job104506509692 PASS24→0, seven atomic negatives, unchanged ACL/rows, repeat/client denial/service CRUD and owned cleanup. GenuineCLI20260915181448_drop_inert_inbound_client_policies.sql SHA b04ce7766f0d3e4655778cdd6aa6fcde1bb3a0661867e381aa0939f015c9e2c1. Reviewed source10 admission prepared; original601/514+first9 hashes unchanged. Actualab0 schema35004825267 identifies historic SELECT* witness mismatch while current view hashes still exactly expected; source-declaration expansion fix prepared with fixed expected hashes. Main and nextphase remain pending; current-state.md is authoritative.
+
+### 2026-09-15 — preserve historical PUBLIC policies in the unapplied tenth forward
+
+Published fe909783888bf8389d4f6a62c6b5a1aef3bc157b (tree39a4372c9a658e9a446d925b7d4a79e70d10f198). Actual revised policy qualification35008661212/job104514750830 PASS reproduces oldcandidate55000 and preserves6source-authored PUBLIC policies while removing24inert authenticated policies.29candidate/22postcondition negatives, exactdelta/repeat/clientdenial/serviceDML/cleanupPASS; genuineCLI2.101.0 filename183840. Withdrawn181448 was UNAPPLIED; original601/514/first9 unchanged.115local supersession testsPASS. Actual standalone intake35009115834/job104516307686 PASS; native integration remains pending. Native01 finalresultF14only24, not pending. Full fe909 portable/schema runs ongoing. No main merge, next Ediel phase, live DB write or provider send.
+
+Actual fe909 follow-up: portable35009249815/job104516757959 PASS144+514+10 and all5finalSQL; exactstate/cleanupPASS. Retained-history35009250077PASS. Schema35009249751/job104516758408 now onlychanged-viewordinal2 reconstruction mismatch; actual equals expected sourcehash, other4changedviewsPASS. No native/schema/types/main acceptance.

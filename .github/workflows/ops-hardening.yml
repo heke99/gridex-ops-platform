@@ -369,6 +369,9 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
@@ -399,9 +402,8 @@ jobs:
         run: |
           set -o pipefail
           exec > >(tee rem002-clean-replay.log) 2>&1
-          # The native parent owns startup, private logs and disposal. It must
-          # remain nonzero until all historical envelopes AND final gates are
-          # integrated; first43 is not permission to run the following checks.
+          # The native parent executes database checks before disposal. Its
+          # final verifier then binds fresh receipts, schema decisions and types.
           python3 -B scripts/test-canonical-native-historical-prefix.py
           python3 -B scripts/test-canonical-native-timestamp-sources.py
           python3 -B scripts/test-canonical-native-timestamp-proof.py
@@ -422,50 +424,11 @@ jobs:
           python3 -B scripts/test-canonical-changed-view-witness.py
           python3 -B scripts/test-canonical-changed-function-witness.py
           python3 -B scripts/test-canonical-changed-index-witness.py
+          python3 -B scripts/test-canonical-schema-source-decisions.py
+          python3 -B scripts/test-canonical-native-dump-verify.py
+          python3 -B scripts/test-canonical-native-release-verify.py
+          python3 -B scripts/test-canonical-native-release-entry.py
           python3 -B scripts/canonical-auth-provisioning-replay.py
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/sql/canonical-tenant-guard-catalog.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
-          supabase gen types typescript --local > rem002-database.types.ts
-          # Typegen emits non-null Returns for nullable SQL columns on the
-          # field-511 resolver; apply the same durable override used on tip.
-          node scripts/apply-supabase-types-nullability-overrides.cjs rem002-database.types.ts
-          GENERATED_HASH="$(sha256sum rem002-database.types.ts | awk '{print $1}')"
-          MANIFEST_HASH="$(node -p "require('./scripts/supabase-types-manifest.json').sha256")"
-          echo "generated_types_sha256=$GENERATED_HASH"
-          if [[ "$GENERATED_HASH" != "$MANIFEST_HASH" ]]; then
-            echo "Generated Supabase types hash differs from manifest: $GENERATED_HASH != $MANIFEST_HASH" >&2
-            exit 1
-          fi
-          if ! cmp -s rem002-database.types.ts supabase/database.types.ts; then
-            echo "Generated Supabase types differ from committed supabase/database.types.ts" >&2
-            exit 1
-          fi
-
-          # Everything below runs in THIS step on purpose. The replay script is
-          # sourced, so its EXIT trap stops the local Supabase stack when this
-          # step's shell exits; a later step would find no database.
-          SHADOW_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
-
-          # The tenant isolation gate must hold for a system rebuilt from the
-          # repository, not only for the live database it was written against.
-          DATABASE_URL="$SHADOW_URL" npm run tenant:invariants
-
-          # A parity engine that stops detecting drift would make a green run
-          # read as proven parity, so it is checked against injected drift.
-          npm run db:parity:selftest -- "$SHADOW_URL"
-
-          npm run db:schema:snapshot -- --url "$SHADOW_URL" --out-dir rem002-schema-snapshot
-
-          # Activates by itself once a canonical baseline captured from this
-          # replay is committed to supabase/. Until then there is nothing to
-          # compare against.
-          if [[ -f supabase/schema.fingerprint.json ]]; then
-            npm run db:schema:check -- --url "$SHADOW_URL"
-          else
-            echo "no committed canonical schema baseline yet; snapshot uploaded as evidence"
-          fi
       - name: Upload clean-replay evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -477,6 +440,5 @@ jobs:
             artifacts/native-supabase-lifecycle.json
             artifacts/native-full-schema-reference-diff.json
             artifacts/native-application-database.types.candidate.ts
-            rem002-database.types.ts
-            rem002-schema-snapshot/
+            artifacts/native-release-verification.json
           if-no-files-found: error

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Owned full diagnostic replay and a fail-closed native first43 entry.
+"""Owned diagnostic replay and a native entry requiring full release evidence.
 
-The ordinary native entry does not yet admit the later historical envelopes.
-A successful first43 ledger is never reported as complete replay acceptance.
+The ordinary entry admits only fresh, complete native execution, independently
+qualified schema decisions and matching committed application types.
 
 The parent retains the live OwnedPostgres handle. Its child shell uses a private
 Unix socket, never a URL-as-ownership assertion. The real replay database owns
@@ -23,6 +23,7 @@ import signal
 import socket
 import subprocess
 import sys
+import time
 
 sys.dont_write_bytecode=True
 ROOT=Path(__file__).resolve().parents[1]
@@ -564,16 +565,24 @@ def main():
     if not args.owned_compatible:
         if sys.argv[1:]:
             raise RuntimeError('OWNED_TARGET_REQUIRED')
-        # The ordinary CI entry now owns a real, unlinked native Supabase
-        # lifecycle and applies the pinned first43 through the official CLI.
-        # Later envelopes are deliberately not aliased to this smaller proof.
+        # Bind final acceptance to fresh artifacts from this owned invocation.
+        # Successful execution alone does not accept schema drift or stale types.
+        started_ns = time.time_ns()
         path = ROOT/'scripts/canonical-native-supabase-lifecycle.py'
         spec = importlib.util.spec_from_file_location('native_historical_entry', path)
         native = importlib.util.module_from_spec(spec); spec.loader.exec_module(native)
         status = native.run_guarded(historical_prefix=True)
         if status:
             raise RuntimeError('NATIVE_HISTORICAL_PREFIX_FAILED')
-        raise RuntimeError('NATIVE_LATER_ENVELOPES_AND_FULL_ACCEPTANCE_REQUIRED')
+        import canonical_native_release_verify as release
+        try:
+            accepted = release.verify(ROOT, started_ns=started_ns)
+        except ValueError:
+            raise RuntimeError('NATIVE_LATER_ENVELOPES_AND_FULL_ACCEPTANCE_REQUIRED') from None
+        (ROOT/'artifacts/native-release-verification.json').write_text(
+            json.dumps(accepted, sort_keys=True, indent=2)+'\n')
+        print('PASS complete owned native replay, source decisions and committed types')
+        return
     b=load_batch()
     def interrupted(signum,frame): raise b.BoundaryError('INTERRUPTED')
     signal.signal(signal.SIGTERM,interrupted);signal.signal(signal.SIGINT,interrupted)

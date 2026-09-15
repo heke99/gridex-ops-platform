@@ -167,4 +167,95 @@ def main():
     print(json.dumps(result,sort_keys=True))
 
 
+
+
+def sha(value):
+    raw=value if type(value) is bytes else json.dumps(value,sort_keys=True,separators=(',',':')).encode()
+    return hashlib.sha256(raw).hexdigest()
+
+
+def column_rows(*,reference):
+    return [dict(nspname='public',relname='customers',attname=name,
+        attnum=position,data_type='text[]' if reference else 'jsonb',
+        udt_name='_text' if reference else 'jsonb',is_nullable=False,
+        column_default="'{}'::text[]" if reference else "'[]'::jsonb",identity='',generated='')
+        for name,position in zip(COLUMNS,(40,42) if reference else (31,36))]
+
+
+COLUMN_SQL="""SELECT jsonb_agg(to_jsonb(x) ORDER BY x.attname) FROM (
+ SELECT n.nspname,c.relname,a.attnum,a.attname,format_type(a.atttypid,a.atttypmod) AS data_type,
+ t.typname AS udt_name,NOT a.attnotnull AS is_nullable,
+ coalesce(pg_get_expr(d.adbin,d.adrelid,true),'') AS column_default,
+ a.attidentity::text AS identity,a.attgenerated::text AS generated
+ FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace n ON n.oid=c.relnamespace
+ JOIN pg_type t ON t.oid=a.atttypid LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum
+ WHERE n.nspname='public' AND c.relname='customers' AND a.attnum>0 AND NOT a.attisdropped
+ AND a.attname IN ('intake_missing_fields','intake_warnings')) x;"""
+
+
+def column_decisions():
+    return tuple(dict(section='columns',change='changed',identity=['public','customers',old['attname']],
+        fields=sorted(k for k in old if old[k]!=new[k]),referenceSha256=sha(old),replaySha256=sha(new),
+        decision='PRESERVE_FIRST_AUTHORED_JSONB_CONDITIONAL_ADDS_AND_STRING_ARRAY_CALLERS',
+        decisionSourceSha256=sha(PINS),witness='intakeJsonbSourceWitness')
+        for old,new in zip(column_rows(reference=True),column_rows(reference=False)))
+
+
+def parent_receipt(*,native):
+    return dict(scope='FULL_PARENT_SOURCE_AUTHORED_INTAKE_JSONB_STRING_ARRAYS_ONLY',verified=True,
+        sourcePins=dict(PINS),columns=[dict(identity=row['identity'],referenceRowSha256=row['referenceSha256'],
+            currentRowSha256=row['replaySha256']) for row in column_decisions()],
+        nativeTarget=native,stringArrayCases=3,nullRejections=4,metadataVerified=True,
+        defaultEmptyArraysVerified=True,catalogAndRowsPreserved=True,ledgerUnchanged=True,
+        temporaryObjectsRolledBack=True,sourceBytesPreserved=True,
+        nonStringPayloadsQualified=False,postgrestHttpVerified=False,schemaAccepted=False,
+        generatedTypesVerified=False,ledgerProvenanceAccepted=False)
+
+
+def validate_execution_receipt(receipt,*,native):
+    expected=parent_receipt(native=native)
+    if type(native) is not bool or type(receipt) is not dict or receipt!=expected or sha(receipt)!=sha(expected):
+        raise ValueError('INTAKE_PARENT_RECEIPT_REQUIRED')
+    return receipt
+
+
+def parent_sources_preserved(retained,*,native):
+    contract(retained)
+    if native:return retain(ROOT)==retained
+    if not (ROOT/'supabase/migrations').is_dir() or list((ROOT/'supabase/migrations').glob('*.sql')):
+        return False
+    return all(not (ROOT/path).exists() if path.startswith('supabase/migrations/') else
+               not (ROOT/path).is_symlink() and (ROOT/path).read_bytes()==raw for path,digest,raw in retained)
+
+
+def parent_ledger(target,database):
+    from canonical_native_historical_prefix import LEDGER_SQL
+    rows=json.loads(target.sql(database,LEDGER_SQL,'intake_parent_ledger'))
+    if type(rows) is not list:raise ValueError('INTAKE_PARENT_LEDGER_REQUIRED')
+    return rows
+
+
+def execute_parent(target,retained,progress):
+    contract(retained)
+    # Never let the isolated fixture's admission stand in for the real parent.
+    database,native=actors._admit(target)
+    actors._complete(progress,native)
+    if target in _STANDALONE or 'intakeJsonbSourceWitness' in progress:
+        raise ValueError('INTAKE_PARENT_ONCE_REQUIRED')
+    report=dict(verified=False,schemaAccepted=False)
+    progress['intakeJsonbSourceWitness']=report
+    before=actors._snapshot(target,database,native);prior=parent_ledger(target,database)
+    try:
+        rows=json.loads(query(target,COLUMN_SQL,'intake_parent_columns'))
+        if rows!=column_rows(reference=False) or sha(rows)!=sha(column_rows(reference=False)):
+            raise ValueError('INTAKE_PARENT_EXACT_COLUMNS_REQUIRED')
+        execute(target,retained)
+    finally:
+        if (actors._admit(target)!=(database,native) or actors._snapshot(target,database,native)!=before
+                or parent_ledger(target,database)!=prior or not parent_sources_preserved(retained,native=native)):
+            raise ValueError('INTAKE_PARENT_PRESERVATION_REQUIRED')
+    report.update(parent_receipt(native=native))
+    return validate_execution_receipt(report,native=native)
+
+
 if __name__=='__main__':main()

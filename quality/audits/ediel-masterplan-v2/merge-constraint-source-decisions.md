@@ -1,0 +1,9 @@
+# Bounded changed-constraint source decisions
+
+This pure verifier admits four positive CHECK decisions from the independently reviewed `PR310_SCHEMA_CONSTRAINT_REMAINDER_2026-09-15.md`: equal finite role membership, source-required information-request vocabulary, the cancelled case write/read vocabulary, and the reviewed bounded authentication-action token contract. It pins the complete review and16 exact original migration sources. It accepts only the four exact changed identities, definition-only field deltas and all eight independently reconstructed full-row hashes.
+
+The other two changed constraints deliberately remain unsupported: company_memberships status adds deleted_test_only and still requires lifecycle qualification; the intent customer/company FK requires its actual native-bound parent-delete qualification. Source wording, shape-only proof or an isolated earlier receipt does not supply these missing behavior gates. The two removed FKs in the same audit are outside this task and are not added automatically.
+
+Acceptance of the four positive source decisions requires the exact successful five-check `nativeFinalSql` report with source pins and catalog/row/ledger preservation. `validate_native(diff)` additionally requires the real144/514/all-forward completion envelope. The coordinating final verifier binds that report to the same completed native comparison. No synthetic witness, new SQL, migration or source inventory acceptance is created.
+
+Skill routing: code-review/source tracing and verification-before-completion for this bounded pure verification module. Four tests PASS for exact positive scope, every changed original source, unknown identity rejection, altered hash/record/order/boolean/native/ledger gates and incomplete parent rejection. Complete release/schema acceptance remains pending and is not implied by these tests.

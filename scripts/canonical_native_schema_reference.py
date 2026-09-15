@@ -38,6 +38,8 @@ def compare(runner, retained_forward, parent):
     changed_function_receipt = functions.validate_execution_receipt(parent.get('changedFunctionBehaviorWitness'), native=True)
     import canonical_changed_index_witness as indexes
     changed_index_receipt = indexes.validate_execution_receipt(parent.get('changedIndexSourceWitness'), native=True)
+    import canonical_intake_jsonb_qualification as intake
+    intake_receipt = intake.validate_execution_receipt(parent.get('intakeJsonbSourceWitness'), native=True)
     module = load_comparator()
     raw = module.pinned()['supabase/schema.sql']
     before = runner.target.snapshot()
@@ -55,6 +57,9 @@ def compare(runner, retained_forward, parent):
                   nativeSchemaRowsAndLedgerPreserved=True,
                   foundationInputsExecuted=144, timestampInputsExecuted=514,
                   forwardInputsExecuted=parent['forwardSources']['inputsExecuted'],
+                  forwardSources=parent['forwardSources'],
+                  nativeFinalSql=parent['nativeFinalSql'],
+                  intakeJsonbSourceWitness=intake_receipt,
                   actualLedgerRows=len(runner.entries), cleanupVerified=False,
                   policyActorQualification=actor_receipt,
                   removedPolicyQualification=removed_receipt,
