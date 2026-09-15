@@ -60,6 +60,7 @@ class InertPolicyTests(unittest.TestCase):
         target.sql.return_value='["dependency/fixed"]'
         self.assertEqual(m.policy_dependencies(target,rows),['dependency/fixed'])
         query=target.sql.call_args.args[1]
+        self.assertIn('jsonb_agg(distinct k order by k)',query)
         self.assertIn("d.classid='pg_policy'::regclass",query)
         self.assertIn("n.nspname='public'",query)
         for r in rows:

@@ -99,7 +99,7 @@ def policy_dependencies(target, records):
         if not all(re.fullmatch(r'[A-Za-z0-9_]+', value) for value in (table, policy)):
             raise ValueError('INERT_DEPENDENCY_IDENTITY_REQUIRED')
         pairs.append("('%s','%s')" % (table, policy))
-    query = """select coalesce(jsonb_agg(k order by k),'[]'::jsonb) from (
+    query = """select coalesce(jsonb_agg(distinct k order by k),'[]'::jsonb) from (
       select 'dependency/'||pg_describe_object(d.classid,d.objid,d.objsubid)||'/'||
         pg_describe_object(d.refclassid,d.refobjid,d.refobjsubid)||'/'||d.deptype::text as k
       from pg_depend d join pg_policy p on d.classid='pg_policy'::regclass and p.oid=d.objid
@@ -124,6 +124,11 @@ def verify_delta(before, after, records, dependencies=()):
             raise ValueError('INERT_DEPENDENCY_SET_REQUIRED')
         del expected[0][key]
     if after!=expected:
+        before_keys,after_keys=set(expected[0]),set(after[0])
+        print(json.dumps(dict(stage='inert_catalog_delta',
+            missing=len(before_keys-after_keys),extra=len(after_keys-before_keys),
+            changed=len([key for key in before_keys & after_keys if expected[0][key]!=after[0][key]]),
+            rowsPreserved=after[1]==expected[1])),flush=True)
         raise ValueError('INERT_EXACT_POLICY_DELTA_REQUIRED')
 
 
@@ -197,6 +202,11 @@ def run():
 
 if __name__=='__main__':
     try:run()
-    except Exception:
-        print('FAIL owned inert policy qualification; no raw SQL or data published',file=sys.stderr)
+    except Exception as error:
+        allowed={'INERT_EXPECTED_POLICY_MISSING','INERT_DEPENDENCY_SET_REQUIRED',
+                 'INERT_EXACT_POLICY_DELTA_REQUIRED','INERT_ZERO_POSTCONDITION_REQUIRED',
+                 'INERT_REPEAT_STATE_CHANGED','INERT_DENIED_STATE_CHANGED',
+                 'INERT_SERVICE_STATE_CHANGED','INERT_CLEANUP_REQUIRED'}
+        reason=error.args[0] if type(error) is ValueError and len(error.args)==1 and type(error.args[0]) is str and error.args[0] in allowed else 'UNCLASSIFIED'
+        print('FAIL owned inert policy qualification: '+reason,file=sys.stderr)
         raise SystemExit(1) from None
