@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
+import tempfile
 from unittest.mock import Mock, patch
 import canonical_forward_portable as m
 import canonical_forward_sources as sources
@@ -11,6 +12,17 @@ import canonical_forward_sources as sources
 ROOT = Path(__file__).resolve().parents[1]
 
 class PortableTests(unittest.TestCase):
+    def test_inert_error_projection_exposes_only_exact_guard_names(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target=SimpleNamespace(directory=SimpleNamespace(name=directory))
+            path=Path(directory)/'client-last.out'
+            for raw,expected in (
+                ('psql:/private/fixture.sql:12: ERROR:  55000: INERT_INBOUND_EXACT_POLICY_REQUIRED\nCONTEXT: private\n','INERT_INBOUND_EXACT_POLICY_REQUIRED'),
+                ('ERROR:  55000: INERT_INBOUND_EXACT_POLICY_REQUIRED private\n','UNCLASSIFIED'),
+                ('ERROR:  55000: INERT_INBOUND_UNKNOWN\n','UNCLASSIFIED'),
+                ('ERROR:  55000: INERT_INBOUND_EXACT_POLICY_REQUIRED\n'*2,'UNCLASSIFIED')):
+                path.write_text(raw)
+                self.assertEqual(m.inert_failure_reason(target),expected)
     @classmethod
     def setUpClass(cls):
         cls.retained = sources.retain(ROOT)

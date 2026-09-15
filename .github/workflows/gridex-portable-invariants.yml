@@ -9,6 +9,8 @@ on:
       - 'scripts/canonical-portable-invariants-diagnostic.py'
       - 'scripts/test-canonical-portable-invariants.py'
       - 'scripts/canonical_forward_sources.py'
+      - 'scripts/canonical_forward_portable.py'
+      - 'scripts/test-canonical-forward-portable.py'
       - 'scripts/canonical_native_forward_runtime.py'
       - 'scripts/canonical_native_final_sql.py'
       - 'scripts/sql/tenant-isolation-invariants.sql'
