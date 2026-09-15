@@ -1,0 +1,38 @@
+name: Ediel masterplan v2 regressions
+on:
+  pull_request:
+    paths:
+      - 'lib/ediel/**'
+      - 'lib/inbound-mail/**'
+      - '__tests__/ediel-*.test.ts'
+      - 'docs/ediel/masterplan-v2/**'
+      - 'quality/audits/ediel-masterplan-v2/**'
+      - 'scripts/check-ediel-masterplan-v2.cjs'
+      - 'package*.json'
+      - '.github/workflows/ediel-masterplan-v2.yml'
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  targeted-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Verify immutable specification and evidence references
+        run: npm run ediel:masterplan-v2:integrity
+      - name: Verify protocol, retained UTILTS decisions and delivery-report isolation
+        run: >-
+          npx vitest run
+          __tests__/ediel-masterplan-protocol-regression.test.ts
+          __tests__/ediel-utilts-decision-reuse.test.ts
+          __tests__/ediel-utilts-processor-decision-reuse.test.ts
+          __tests__/ediel-dsn-classification.test.ts
+          __tests__/ediel-smtp-outcome.test.ts
+          __tests__/ediel-smtp-post-acceptance.test.ts

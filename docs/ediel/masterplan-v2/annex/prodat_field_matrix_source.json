@@ -1,0 +1,1854 @@
+[
+  {
+    "field": "311",
+    "name_en": "Application Reference",
+    "name_sv": "Application Reference",
+    "usage": {
+      "Z01": "R",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "R",
+      "Z08": "R",
+      "Z09": "R",
+      "Z10": "R",
+      "Z13": "R",
+      "Z14": "R",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "Anges i UNB, ska vara 23-DDQ-PRODAT eller 23-DGI-PRODAT för PRODAT i elmarknaden och 27-DDQ-PRODAT i naturgasmarknaden.",
+    "source_pages": [
+      16
+    ]
+  },
+  {
+    "field": "312",
+    "name_en": "Association assigned code",
+    "name_sv": "Version",
+    "usage": {
+      "Z01": "R",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "R",
+      "Z08": "R",
+      "Z09": "R",
+      "Z10": "R",
+      "Z13": "R",
+      "Z14": "R",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "Nationell version av Ediel-meddelandet.",
+    "source_pages": [
+      16
+    ]
+  },
+  {
+    "field": "202",
+    "name_en": "Message name",
+    "name_sv": "Meddelandenamn",
+    "usage": {
+      "Z01": "R",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "R",
+      "Z08": "R",
+      "Z09": "R",
+      "Z10": "R",
+      "Z13": "R",
+      "Z14": "R",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "PRODAT funktion: Z01, Z02, Z03, Z04, Z05, Z06, Z08, Z09, Z10, Z13, Z14, Z15, Z18",
+    "source_pages": [
+      16
+    ]
+  },
+  {
+    "field": "203",
+    "name_en": "Message Id.",
+    "name_sv": "Meddelandeidentifikation",
+    "usage": {
+      "Z01": "R",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "R",
+      "Z08": "R",
+      "Z09": "R",
+      "Z10": "R",
+      "Z13": "R",
+      "Z14": "R",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "Unik identitet på meddelandet.",
+    "source_pages": [
+      16
+    ]
+  },
+  {
+    "field": "204",
+    "name_en": "Message function",
+    "name_sv": "Meddelandefunktion",
+    "usage": {
+      "Z01": "O",
+      "Z02": "O",
+      "Z03": "O",
+      "Z04": "O",
+      "Z05": "O",
+      "Z06": "O",
+      "Z08": "O",
+      "Z09": "O",
+      "Z10": "O",
+      "Z13": "O",
+      "Z14": "O",
+      "Z15": "O",
+      "Z18": "O"
+    },
+    "notes": "Kod 9 anger originalmeddelande och kod 5 anger ersättningsmeddelande",
+    "source_pages": [
+      16
+    ]
+  },
+  {
+    "field": "313",
+    "name_en": "Request for acknowledgement",
+    "name_sv": "Kvittensbegäran",
+    "usage": {
+      "Z01": "O",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "R",
+      "Z08": "R",
+      "Z09": "R",
+      "Z10": "R",
+      "Z13": "R",
+      "Z14": "R",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "Begäran om APERAK",
+    "source_pages": [
+      16
+    ]
+  },
+  {
+    "field": "205",
+    "name_en": "Message date",
+    "name_sv": "Meddelandedatum",
+    "usage": {
+      "Z01": "R",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "R",
+      "Z08": "R",
+      "Z09": "R",
+      "Z10": "R",
+      "Z13": "R",
+      "Z14": "R",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "Datum då PRODAT-meddelandet skapades i applikationen (ej EDI-systemet)",
+    "source_pages": [
+      16
+    ]
+  },
+  {
+    "field": "206",
+    "name_en": "Time zone",
+    "name_sv": "Tidszon",
+    "usage": {
+      "Z01": "R",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "R",
+      "Z08": "R",
+      "Z09": "R",
+      "Z10": "R",
+      "Z13": "R",
+      "Z14": "R",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "Tidzon anges som \"offset\" till UTC, alltid \"1\" för både normaltid och sommartid i Sverige. Se handboken.",
+    "source_pages": [
+      16
+    ]
+  },
+  {
+    "field": "301",
+    "name_en": "Free text (header)",
+    "name_sv": "Fritext (huvud)",
+    "usage": {
+      "Z01": "O",
+      "Z02": "O",
+      "Z03": "O",
+      "Z04": "O",
+      "Z05": "O",
+      "Z06": "O",
+      "Z08": "O",
+      "Z09": "O",
+      "Z10": "O",
+      "Z13": "O",
+      "Z14": "O",
+      "Z15": "O",
+      "Z18": "O"
+    },
+    "notes": "Fritext rekommenderas EJ, anv. endast i undantagsfall",
+    "source_pages": [
+      16
+    ]
+  },
+  {
+    "field": "207",
+    "name_en": "Sender",
+    "name_sv": "Avsändare (Ediel-ID)",
+    "usage": {
+      "Z01": "R",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "R",
+      "Z08": "R",
+      "Z09": "R",
+      "Z10": "R",
+      "Z13": "R",
+      "Z14": "R",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "Giltigt Ediel-id enligt Ediel-register i Edielportalen samt landskod.",
+    "source_pages": [
+      16
+    ]
+  },
+  {
+    "field": "315",
+    "name_en": "Senders organisation no",
+    "name_sv": "Avsändarens org.nr",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "O",
+      "Z04": "-",
+      "Z05": "-",
+      "Z06": "-",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Avsändarens organisationsnummer",
+    "source_pages": [
+      16
+    ]
+  },
+  {
+    "field": "208",
+    "name_en": "Recipient",
+    "name_sv": "Mottagare (Ediel-ID)",
+    "usage": {
+      "Z01": "R",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "R",
+      "Z08": "R",
+      "Z09": "R",
+      "Z10": "R",
+      "Z13": "R",
+      "Z14": "R",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "Giltigt Ediel-id enligt Ediel-register i Edielportalen samt landskod.",
+    "source_pages": [
+      16
+    ]
+  },
+  {
+    "field": "314",
+    "name_en": "Sequence number",
+    "name_sv": "Sekvensnummer",
+    "usage": {
+      "Z01": "R",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "R",
+      "Z08": "R",
+      "Z09": "R",
+      "Z10": "R",
+      "Z13": "R",
+      "Z14": "R",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "Sekvensnummer",
+    "source_pages": [
+      16
+    ]
+  },
+  {
+    "field": "209",
+    "name_en": "Object Id",
+    "name_sv": "Anläggnings-id",
+    "usage": {
+      "Z01": "R",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "R",
+      "Z08": "R",
+      "Z09": "R",
+      "Z10": "R",
+      "Z13": "-",
+      "Z14": "D",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "Nätägarens identifikation av anläggningen. Skickas i Z14, utom i Z14N.",
+    "source_pages": [
+      16
+    ]
+  },
+  {
+    "field": "258",
+    "name_en": "Sub-line number",
+    "name_sv": "Sekvensnummer",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "D",
+      "Z05": "-",
+      "Z06": "D",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "D",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Sekvensnummer för varje register för aktuell anläggning/mätare. Obligatorisk för anläggningar (mätare) med fler register. Anges ej för anläggningar med endast ett register. För detaljerad information om uppgifter för register 2 och högre, se bilaga 2.",
+    "source_pages": [
+      16
+    ]
+  },
+  {
+    "field": "210",
+    "name_en": "Contract start date",
+    "name_sv": "Avtal, startdatum",
+    "usage": {
+      "Z01": "R",
+      "Z02": "-",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "-",
+      "Z06": "D",
+      "Z08": "-",
+      "Z09": "D",
+      "Z10": "D",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Avser det datum som leverans startar. Giltigt startdatum, se Handboken. Z06/Z10: Om ändring gäller en ändring som sker före leveransstart är ”avtal startdatum” obligatoriskt och meddelande ska skickas till den framtida leverantören. Z09: Används enbart i Z09D och då endast i anslutning till att avtal om produktion tecknas.",
+    "source_pages": [
+      16,
+      17
+    ]
+  },
+  {
+    "field": "211",
+    "name_en": "Contract stop date",
+    "name_sv": "Avtal, slutdatum",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "-",
+      "Z05": "R",
+      "Z06": "O",
+      "Z08": "R",
+      "Z09": "D",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Avser det datum som leverans slutar. Z09: Används enbart i Z09D och då endast i anslutning till att avtal om produktion avslutas. Får ej anges samtidigt som Avtal, startdatum i Z09D, vid fel används kod 109 i APERAK fält A903. Giltigt slutdatum, se Handboken.",
+    "source_pages": [
+      17
+    ]
+  },
+  {
+    "field": "302",
+    "name_en": "Report start date",
+    "name_sv": "Rapportstartdatum",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "O",
+      "Z05": "-",
+      "Z06": "-",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "R",
+      "Z14": "D",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Avser det datum som första mätaravläsning kommer att sändas in (i MSCONS/UTILTS). Anges i Z04 endast om timserier/kvartserier skickas i MSCONS/UTILTS och om datumet avviker från startdatum för avtalet. Anges i Z13 och Z14 som ”tidstämpel för påbörjande av rapportering”. Skickas i Z14 utom i Z14N.",
+    "source_pages": [
+      17
+    ]
+  },
+  {
+    "field": "321",
+    "name_en": "Report end date",
+    "name_sv": "Rapportslutdatum",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "-",
+      "Z05": "-",
+      "Z06": "-",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "D",
+      "Z14": "D",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Avser ”tidstämpel för avslutande av rapportering”. Anges i Z13 och Z14 såvida inte rapporteringen avses ske tills vidare. Skickas ej heller i Z14N.",
+    "source_pages": [
+      17
+    ]
+  },
+  {
+    "field": "216",
+    "name_en": "Validity start date",
+    "name_sv": "Giltighetsdatum – giltig from",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "-",
+      "Z05": "-",
+      "Z06": "R",
+      "Z08": "-",
+      "Z09": "D",
+      "Z10": "R",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Avser det datum när aktuell ändring börjar gälla. Z09: Obligatoriskt i Z09 utom i Z09D, då används istället fält 210 eller 211. Giltigt datum, se Handboken.",
+    "source_pages": [
+      17
+    ]
+  },
+  {
+    "field": "212",
+    "name_en": "First meter reading Date",
+    "name_sv": "Datum för första mätaravläsning",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "O",
+      "Z05": "-",
+      "Z06": "-",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Avser det datum när avläsning startar.",
+    "source_pages": [
+      17
+    ]
+  },
+  {
+    "field": "249",
+    "name_en": "Date of birth",
+    "name_sv": "Födelsedatum",
+    "usage": {
+      "Z01": "O",
+      "Z02": "O",
+      "Z03": "O",
+      "Z04": "O",
+      "Z05": "O",
+      "Z06": "O",
+      "Z08": "O",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Om avsändaren känner till elanvändarens födelsedatum och använder ett annat kund-id än födelsedatum/personnummer för Elanvändaren (fält 227), bör Födelsedatum anges. Födelsedatum underlättar identifieringen hos mottagaren. Avser elanvändarens födelsedatum.",
+    "source_pages": [
+      17
+    ]
+  },
+  {
+    "field": "508",
+    "name_en": "Observation length",
+    "name_sv": "Tidslängd (tidsperiod)",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "R",
+      "Z05": "-",
+      "Z06": "D",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "R",
+      "Z13": "-",
+      "Z14": "D",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Anger om nätägaren skickar kvartsvärden, timvärden, månadsvärden eller årsvärden. Z06: Obligatorisk i Z06F (transaktionstyp=E64), frivillig i Z06E och Z06G. Skickas i Z14, utom i Z14N.",
+    "source_pages": [
+      18
+    ]
+  },
+  {
+    "field": "326",
+    "name_en": "Permission creation timestamp",
+    "name_sv": "Tillståndets tidstämpel",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "-",
+      "Z05": "-",
+      "Z06": "-",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "D",
+      "Z15": "O",
+      "Z18": "O"
+    },
+    "notes": "Anger tidstämpel för skapande av tillståndet. Skickas i Z14, utom i Z14N. Kan anges i Z15 och Z18.",
+    "source_pages": [
+      18
+    ]
+  },
+  {
+    "field": "327",
+    "name_en": "Processing end date/time (Permission end timestamp)",
+    "name_sv": "Tjänsten/rapporteringen upphör",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "-",
+      "Z05": "-",
+      "Z06": "-",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "Anger tidpunkt när rapporteringen upphör (Z18) eller tjänsten upphör (Z15).",
+    "source_pages": [
+      18
+    ]
+  },
+  {
+    "field": "303",
+    "name_en": "Free text (item level)",
+    "name_sv": "Fritext (per anläggning)",
+    "usage": {
+      "Z01": "O",
+      "Z02": "O",
+      "Z03": "O",
+      "Z04": "O",
+      "Z05": "O",
+      "Z06": "O",
+      "Z08": "O",
+      "Z09": "-",
+      "Z10": "O",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Fritext rekommenderas EJ, används endast i undantagsfall",
+    "source_pages": [
+      18
+    ]
+  },
+  {
+    "field": "213",
+    "name_en": "Estimated annual volume",
+    "name_sv": "Uppskattad årsenergi",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "O",
+      "Z04": "R",
+      "Z05": "-",
+      "Z06": "O",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "O",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Uppskattad årsenergi, anges i kWh (el) eller i kubikmeter (gas) utan decimaler.",
+    "source_pages": [
+      18
+    ]
+  },
+  {
+    "field": "214",
+    "name_en": "Constant",
+    "name_sv": "Konstant för mätare",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "D",
+      "Z05": "-",
+      "Z06": "D",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "D",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Tal som uppgiven mätarställning skall multipliceras med för att få värdet i rätt måttenhet, vanligen kWh. Z04, Z10: Obligatorisk om mätarställningar skickas i MSCONS/UTILTS. Z06: Obligatorisk i Z06F (transaktionstyp=E64) då mätarställningar skickas i MSCONS/UTILTS. Frivillig i Z06E och Z06G.",
+    "source_pages": [
+      18
+    ]
+  },
+  {
+    "field": "215",
+    "name_en": "Old Constant",
+    "name_sv": "Konstant, gammal mätare",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "-",
+      "Z05": "-",
+      "Z06": "-",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "O",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "",
+    "source_pages": [
+      18
+    ]
+  },
+  {
+    "field": "217",
+    "name_en": "Measure method",
+    "name_sv": "Mätmetod",
+    "usage": {
+      "Z01": "-",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "-",
+      "Z06": "D",
+      "Z08": "-",
+      "Z09": "D",
+      "Z10": "R",
+      "Z13": "R",
+      "Z14": "D",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Anger om anläggningen har eller kommer få kvartsvis/timvis/månadsvis/årsvis mätning. Z03: Anger antingen om elleverantören har avtal med elanvändaren om kvartsvis mätning (kod för kvart används), eller att elleverantören låter nätägaren avgöra mätmetoden. Z06: Obligatorisk i Z06F (transaktionstyp=E64). Frivillig i Z06E och Z06G. Anger om anläggningen har timvis mätning, eller kvartsvis mätning eller ej. Z09: Obligatorisk i Z09F (kvartsvis mätning) och Z09G (nätägaren avgör). Används ej i Z09B, Z09D eller Z09E. Z13: Anger antingen om energitjänsteföretaget har avtal med elanvändaren om kvartsvis mätning eller att nätägaren får avgöra mätmetoden. Z14: Skickas i Z14 utom i Z14N.",
+    "source_pages": [
+      18,
+      19
+    ]
+  },
+  {
+    "field": "218",
+    "name_en": "Number of digits",
+    "name_sv": "Antal siffror, mätare",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "D",
+      "Z05": "-",
+      "Z06": "D",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "D",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Antalet heltalssiffror på mätaren. Z04, Z10: Obligatorisk om mätarställningar skickas i MSCONS/UTILTS. Z06: Obligatorisk i Z06F (transaktionstyp=E64) då mätarställningar skickas i MSCONS/UTILTS. Frivillig i Z06E och Z06G.",
+    "source_pages": [
+      19
+    ]
+  },
+  {
+    "field": "219",
+    "name_en": "Old Number of digits",
+    "name_sv": "Antal siffror, gammal mätare",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "-",
+      "Z05": "-",
+      "Z06": "-",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "O",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "",
+    "source_pages": [
+      19
+    ]
+  },
+  {
+    "field": "306",
+    "name_en": "Installation status",
+    "name_sv": "Installationsstatus",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "R",
+      "Z05": "-",
+      "Z06": "D",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Anger om anläggningen är aktiv eller ej inkopplad. Z06: Obligatoriskt i Z06F (transaktionstyp=E64) och Z06G (transaktionstyp=E32). Frivillig i Z06E.",
+    "source_pages": [
+      19
+    ]
+  },
+  {
+    "field": "307",
+    "name_en": "Tariff code",
+    "name_sv": "Tariffkod",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "O",
+      "Z05": "-",
+      "Z06": "O",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "T ex nättariff vid samfakturering.",
+    "source_pages": [
+      19
+    ]
+  },
+  {
+    "field": "220",
+    "name_en": "Priority",
+    "name_sv": "Prioritet",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "O",
+      "Z05": "-",
+      "Z06": "O",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Anger om anläggningen är prioriterad eller avkopplingsbar.",
+    "source_pages": [
+      19
+    ]
+  },
+  {
+    "field": "222",
+    "name_en": "Meter reading frequency",
+    "name_sv": "Rapporteringsfrekvens",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "R",
+      "Z05": "-",
+      "Z06": "R",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "R",
+      "Z13": "R",
+      "Z14": "D",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Hur ofta rapportering sker (dagligen, månatligen) enligt kod. Z13, Z14: avser tidsplan för överföring. Skickas i Z14 utom i Z14N.",
+    "source_pages": [
+      19
+    ]
+  },
+  {
+    "field": "223",
+    "name_en": "Reason for transaction",
+    "name_sv": "Transaktionstyp (undertyp)",
+    "usage": {
+      "Z01": "R",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "R",
+      "Z08": "R",
+      "Z09": "R",
+      "Z10": "R",
+      "Z13": "R",
+      "Z14": "R",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "Transaktionstyp (undertyp) enligt kod. (Giltiga koder, se SG14/CCI+Z13-CAV)",
+    "source_pages": [
+      19
+    ]
+  },
+  {
+    "field": "259",
+    "name_en": "Meter time frame",
+    "name_sv": "Mätare, tidsintervall (räkneverkskod)",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "D",
+      "Z05": "-",
+      "Z06": "D",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "D",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Kod som anger typ av tidstariff, enkeltariff eller typ av dubbeltariff. För mätare med flera register ska kod för respektive register anges. Använd Svenska kraftnäts kodlista för räkneverkskoder. Z04, Z10: Obligatorisk om mätarställningar skickas i MSCONS/UTILTS. Z06: Obligatorisk i Z06F (transaktionstyp=E64) då mätarställningar skickas i MSCONS/UTILTS. Frivillig i Z06E och Z06G. Får enbart skickas i elmarknaden då även mätarställningar skickas i UTILTS. Därmed vet mottagaren att endast om räkneverkskod anges i PRODAT så kommer mätarställningar skickas i UTILTS. För naturgasmarknaden gäller andra regler, se kapitel 2.4.5.",
+    "source_pages": [
+      19,
+      20
+    ]
+  },
+  {
+    "field": "254",
+    "name_en": "Method for balance Settlement",
+    "name_sv": "Avräkningsmetod (dygns/månads)",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "R",
+      "Z05": "-",
+      "Z06": "D",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "D",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Anger om dygnsavräkning (balansavräkning) eller månadsavräkning skall användas. Z10: Obligatorisk om avräkningsmetod har ändrats för ny mätare och/eller nya mätare är under gränsen för schablon. Z06: Obligatorisk i Z06F (transaktionstyp=E64) och Z06G (transaktionstyp=E32). Frivillig i Z06E.",
+    "source_pages": [
+      20
+    ]
+  },
+  {
+    "field": "242",
+    "name_en": "Product code",
+    "name_sv": "Produktkod",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "R",
+      "Z05": "-",
+      "Z06": "D",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "D",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "För anläggningar i elmarknaden anges här den tidsserieprodukt vilken används när anläggningens mätvärden aggregeras på elhandelsföretagsnivå, se vidare Handboken. Z10: Endast elmarknaden. Obligatorisk om produktkoden har ändrats i samband med mätarbyte. Z06: Endast elmarknaden. Obligatorisk i Z06F (transaktionstyp=E64) och Z06G (transaktionstyp=E32). Frivillig i Z06E. För naturgasmarknaden används en av följande två koder - 6109 (för dygnsavlästa anläggningar) - 6113 (för månads- eller årsavlästa anläggningar)",
+    "source_pages": [
+      20
+    ]
+  },
+  {
+    "field": "506",
+    "name_en": "Product identification (Energy product)",
+    "name_sv": "Produkt id (Energiprodukt)",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "-",
+      "Z05": "-",
+      "Z06": "-",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "R",
+      "Z14": "D",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Avser ”Energiprodukt”. Anges i Z13 och Z14, utom i Z14N.",
+    "source_pages": [
+      20
+    ]
+  },
+  {
+    "field": "310",
+    "name_en": "Party connected to grid status",
+    "name_sv": "Kundstatus",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "-",
+      "Z05": "D",
+      "Z06": "D",
+      "Z08": "-",
+      "Z09": "D",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Fältet används endast i anslutning till dödsfall. Z05: Obligatorisk då i Z05LK (transaktionstyp Z23) Z06: Obligatorisk i Z06E (transaktionstyp E34) Z09: Obligatorisk i Z09E (transaktionstyp E34)",
+    "source_pages": [
+      20,
+      21
+    ]
+  },
+  {
+    "field": "513",
+    "name_en": "Type of Metering Point (Flow Direction)",
+    "name_sv": "Riktning (Typ av anläggning)",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "-",
+      "Z05": "-",
+      "Z06": "-",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "R",
+      "Z14": "D",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Avser flödesriktning vid mätpunkten. Anges i Z13 och i Z14 (utom i Z14N).",
+    "source_pages": [
+      21
+    ]
+  },
+  {
+    "field": "322",
+    "name_en": "Permission status",
+    "name_sv": "Tillståndets status",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "-",
+      "Z05": "-",
+      "Z06": "-",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "R",
+      "Z15": "R",
+      "Z18": "-"
+    },
+    "notes": "Avser tillståndets status. Anges i Z14 och Z15",
+    "source_pages": [
+      21
+    ]
+  },
+  {
+    "field": "323",
+    "name_en": "Purpose",
+    "name_sv": "Tillståndets syfte",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "-",
+      "Z05": "-",
+      "Z06": "-",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "D",
+      "Z14": "D",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Avser tillståndets syfte. Ska anges för privatkunder i Z13 och Z14, utom i Z14N.",
+    "source_pages": [
+      21
+    ]
+  },
+  {
+    "field": "324",
+    "name_en": "Permission end reason",
+    "name_sv": "Orsak till tillståndets upphörande",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "-",
+      "Z05": "-",
+      "Z06": "-",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "Avser varför tillståndet upphör. Anges i Z15 och Z18,",
+    "source_pages": [
+      21
+    ]
+  },
+  {
+    "field": "224",
+    "name_en": "Meter no.",
+    "name_sv": "Mätarnummer",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "R",
+      "Z05": "O",
+      "Z06": "O",
+      "Z08": "O",
+      "Z09": "-",
+      "Z10": "R",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Mätarnummer.",
+    "source_pages": [
+      21
+    ]
+  },
+  {
+    "field": "225",
+    "name_en": "Old Meter no.",
+    "name_sv": "Gammalt mätarnummer",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "-",
+      "Z05": "-",
+      "Z06": "-",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "R",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Används vid mätarbyte.",
+    "source_pages": [
+      21
+    ]
+  },
+  {
+    "field": "308",
+    "name_en": "Suppliers contract no",
+    "name_sv": "Leverantörens avtalsnr",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "O",
+      "Z04": "-",
+      "Z05": "O",
+      "Z06": "O",
+      "Z08": "O",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Avtalsnummer med elanvändaren.",
+    "source_pages": [
+      21
+    ]
+  },
+  {
+    "field": "260",
+    "name_en": "Net Area",
+    "name_sv": "Nätområdesid",
+    "usage": {
+      "Z01": "R",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "R",
+      "Z08": "R",
+      "Z09": "R",
+      "Z10": "R",
+      "Z13": "-",
+      "Z14": "D",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "3-ställig nätområdeskod. Nätområdetsid skickas i Z14, utom i Z14N.",
+    "source_pages": [
+      21
+    ]
+  },
+  {
+    "field": "320",
+    "name_en": "Calorific Value Area",
+    "name_sv": "Värmevärdesområde",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "D",
+      "Z05": "-",
+      "Z06": "D",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Värmevärdesområde. Används enbart i naturgasmarknaden och då med följande regler: Z04: Ska anges. Z06: Ska anges i Z06F och Z06G (ändras via Z06G). Anges ej i Z06E.",
+    "source_pages": [
+      21
+    ]
+  },
+  {
+    "field": "240",
+    "name_en": "Serial Id",
+    "name_sv": "Serie-id",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "D",
+      "Z05": "O",
+      "Z06": "D",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "D",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Fältet används endast i naturgasmarknaden och då med följande regler: Z04: Ska anges. Z06: Obligatoriskt om serie-id har ändrats pga ändringen. Obligatoriet gäller Z06F och Z06G. Frivillig i Z06E. Z10: Obligatoriskt om serie-id har ändrats pga mätarbytet.",
+    "source_pages": [
+      21
+    ]
+  },
+  {
+    "field": "319",
+    "name_en": "Reference to metering point",
+    "name_sv": "Referens till anläggning",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "D",
+      "Z05": "-",
+      "Z06": "-",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Nätägarens identitet på förbrukningsanläggningen knuten till produktionsanläggningen angiven i fält 209. Z04: Obligatorisk i Z04D (transaktionstyp Z70)",
+    "source_pages": [
+      21
+    ]
+  },
+  {
+    "field": "261",
+    "name_en": "Reference to authorisation",
+    "name_sv": "Referens till avtal/fullmakt",
+    "usage": {
+      "Z01": "R",
+      "Z02": "-",
+      "Z03": "R",
+      "Z04": "-",
+      "Z05": "-",
+      "Z06": "-",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "R",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Avser referens till avtal/fullmakt med elanvändaren (slutkunden).",
+    "source_pages": [
+      22
+    ]
+  },
+  {
+    "field": "226",
+    "name_en": "Reference to line item",
+    "name_sv": "Ärendereferens",
+    "usage": {
+      "Z01": "R",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "R",
+      "Z08": "R",
+      "Z09": "R",
+      "Z10": "R",
+      "Z13": "R",
+      "Z14": "R",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "Unik referens mellan ärenden, t ex Z03 - Z04.",
+    "source_pages": [
+      22
+    ]
+  },
+  {
+    "field": "325",
+    "name_en": "Permission ID",
+    "name_sv": "Tillståndets id",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "-",
+      "Z04": "-",
+      "Z05": "-",
+      "Z06": "-",
+      "Z08": "-",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "D",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "Identifieringskod för tillståndet. Tillståndets id skickas ej i Z14N.",
+    "source_pages": [
+      22
+    ]
+  },
+  {
+    "field": "-",
+    "name_en": "End user",
+    "name_sv": "Elanvändare",
+    "usage": {
+      "Z01": "R",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "D",
+      "Z08": "R",
+      "Z09": "D",
+      "Z10": "-",
+      "Z13": "R",
+      "Z14": "D",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "Elanvändaren anges i Z06E, men inte i Z06F eller Z06G. Elanvändaren anges även i Z09E men inte i Z09B, Z09D, Z09F eller Z09G. Elanvändaren anges i Z14, utom i Z14N.",
+    "source_pages": [
+      22
+    ]
+  },
+  {
+    "field": "227",
+    "name_en": "End user ID",
+    "name_sv": "Kund-id",
+    "usage": {
+      "Z01": "R",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "D",
+      "Z08": "R",
+      "Z09": "D",
+      "Z10": "-",
+      "Z13": "R",
+      "Z14": "D",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "",
+    "source_pages": [
+      22
+    ]
+  },
+  {
+    "field": "228",
+    "name_en": "End user Name",
+    "name_sv": "Namn-elanvändare",
+    "usage": {
+      "Z01": "R",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "D",
+      "Z08": "R",
+      "Z09": "D",
+      "Z10": "-",
+      "Z13": "R",
+      "Z14": "D",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "1-2 rader.",
+    "source_pages": [
+      22
+    ]
+  },
+  {
+    "field": "229",
+    "name_en": "End user Address",
+    "name_sv": "Adress-elanvändare",
+    "usage": {
+      "Z01": "D",
+      "Z02": "D",
+      "Z03": "D",
+      "Z04": "D",
+      "Z05": "D",
+      "Z06": "D",
+      "Z08": "D",
+      "Z09": "D",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "1-3 rader. När elanvändaren anges ska adressen fyllas i om den finns. Adressuppgifter anges ej i Z13, Z14, Z15 och Z18.",
+    "source_pages": [
+      22
+    ]
+  },
+  {
+    "field": "231",
+    "name_en": "End user Postcode",
+    "name_sv": "Postnr-elanvändare",
+    "usage": {
+      "Z01": "R",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "D",
+      "Z08": "R",
+      "Z09": "D",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "",
+    "source_pages": [
+      22
+    ]
+  },
+  {
+    "field": "232",
+    "name_en": "End user City name",
+    "name_sv": "Postort-elanvändare",
+    "usage": {
+      "Z01": "R",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "D",
+      "Z08": "R",
+      "Z09": "D",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "",
+    "source_pages": [
+      22
+    ]
+  },
+  {
+    "field": "316",
+    "name_en": "End user Country",
+    "name_sv": "Land-elanvändare",
+    "usage": {
+      "Z01": "R",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "D",
+      "Z08": "R",
+      "Z09": "D",
+      "Z10": "-",
+      "Z13": "R",
+      "Z14": "R",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "",
+    "source_pages": [
+      22
+    ]
+  },
+  {
+    "field": "-",
+    "name_en": "Installation",
+    "name_sv": "Anläggning",
+    "usage": {
+      "Z01": "O",
+      "Z02": "R",
+      "Z03": "O",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "R",
+      "Z08": "O",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "D",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Anläggningsadressen anges alltid här i Z02, Z04, Z05, Z06, oavsett om den är samma eller inte som adressen för elanvändaren. Anläggningsadressen anges även i Z14 (utom Z14N), när den då skickas ska fält 233 och 234 vara med. Anläggningsadressen behöver inte finnas med i Z01, Z03 eller Z08.",
+    "source_pages": [
+      22
+    ]
+  },
+  {
+    "field": "233",
+    "name_en": "Installation ID",
+    "name_sv": "Anläggnings-id",
+    "usage": {
+      "Z01": "D",
+      "Z02": "R",
+      "Z03": "D",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "R",
+      "Z08": "D",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "R",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "När anläggning skickas, anges alltid samma värde som 209.",
+    "source_pages": [
+      22
+    ]
+  },
+  {
+    "field": "234",
+    "name_en": "Installation Address",
+    "name_sv": "Adress-anläggning",
+    "usage": {
+      "Z01": "D",
+      "Z02": "R",
+      "Z03": "D",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "R",
+      "Z08": "D",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "R",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "1-3 rader. När anläggning skickas så anges alltid dess adress.",
+    "source_pages": [
+      22
+    ]
+  },
+  {
+    "field": "235",
+    "name_en": "Installation Postcode",
+    "name_sv": "Postnr-anläggning",
+    "usage": {
+      "Z01": "O",
+      "Z02": "O",
+      "Z03": "O",
+      "Z04": "O",
+      "Z05": "O",
+      "Z06": "O",
+      "Z08": "O",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "O",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "",
+    "source_pages": [
+      22
+    ]
+  },
+  {
+    "field": "236",
+    "name_en": "Installation City name",
+    "name_sv": "Postort-anläggning",
+    "usage": {
+      "Z01": "O",
+      "Z02": "O",
+      "Z03": "O",
+      "Z04": "O",
+      "Z05": "O",
+      "Z06": "O",
+      "Z08": "O",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "O",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "",
+    "source_pages": [
+      22
+    ]
+  },
+  {
+    "field": "237",
+    "name_en": "Installation Country",
+    "name_sv": "Land-anläggning",
+    "usage": {
+      "Z01": "O",
+      "Z02": "O",
+      "Z03": "O",
+      "Z04": "O",
+      "Z05": "O",
+      "Z06": "O",
+      "Z08": "O",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "O",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "",
+    "source_pages": [
+      23
+    ]
+  },
+  {
+    "field": "-",
+    "name_en": "Invoicee",
+    "name_sv": "Fakturamottagare",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "D",
+      "Z04": "D",
+      "Z05": "D",
+      "Z06": "D",
+      "Z08": "D",
+      "Z09": "D",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Fakturamottagare skall skickas om fakturamottagarens adress skiljer sig från elanvändarens adress. I Z09 kan fakturamottagare enbart anges för Z09E.",
+    "source_pages": [
+      23
+    ]
+  },
+  {
+    "field": "250",
+    "name_en": "Invoicee ID",
+    "name_sv": "Fakturamottagare ID",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "D",
+      "Z04": "D",
+      "Z05": "D",
+      "Z06": "D",
+      "Z08": "D",
+      "Z09": "D",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "När fakturamottagare skickas så anges alltid dess id.",
+    "source_pages": [
+      23
+    ]
+  },
+  {
+    "field": "251",
+    "name_en": "Invoicee Name",
+    "name_sv": "Namn-fakturamottagare",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "D",
+      "Z04": "D",
+      "Z05": "D",
+      "Z06": "D",
+      "Z08": "D",
+      "Z09": "D",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "1-2 rader. När fakturamottagare skickas så anges alltid dess namn.",
+    "source_pages": [
+      23
+    ]
+  },
+  {
+    "field": "252",
+    "name_en": "Invoicee Address",
+    "name_sv": "Adress-fakturamottagare",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "D",
+      "Z04": "D",
+      "Z05": "D",
+      "Z06": "D",
+      "Z08": "D",
+      "Z09": "D",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "1-3 rader. När fakturamottagare skickas så anges alltid, i förekommande fall, dess adress.",
+    "source_pages": [
+      23
+    ]
+  },
+  {
+    "field": "253",
+    "name_en": "Invoicee Postcode",
+    "name_sv": "Postnr-fakturamottgare",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "D",
+      "Z04": "D",
+      "Z05": "D",
+      "Z06": "D",
+      "Z08": "D",
+      "Z09": "D",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "När fakturamottagare skickas så anges alltid dess postnr.",
+    "source_pages": [
+      23
+    ]
+  },
+  {
+    "field": "317",
+    "name_en": "Invoicee City name",
+    "name_sv": "Postort-fakturamottagare",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "D",
+      "Z04": "D",
+      "Z05": "D",
+      "Z06": "D",
+      "Z08": "D",
+      "Z09": "D",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "När fakturamottagare skickas så anges alltid dess postort.",
+    "source_pages": [
+      23
+    ]
+  },
+  {
+    "field": "318",
+    "name_en": "Invoicee Country",
+    "name_sv": "Land-fakturamottagare",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "D",
+      "Z04": "D",
+      "Z05": "D",
+      "Z06": "D",
+      "Z08": "D",
+      "Z09": "D",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "När fakturamottagare skickas så anges alltid dess land.",
+    "source_pages": [
+      23
+    ]
+  },
+  {
+    "field": "262",
+    "name_en": "Balance responsible",
+    "name_sv": "Balansansvarig",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "R",
+      "Z08": "R",
+      "Z09": "R",
+      "Z10": "R",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Giltigt Ediel-id för balansansvarig enligt Ediel- register i Edielportalen. Z05: uppgiften avser gammal balansansvarig.",
+    "source_pages": [
+      23
+    ]
+  }
+]

@@ -1,0 +1,182 @@
+[
+  {
+    "id": "CV-SYNTAX",
+    "scope": "interchange/message",
+    "check": "Full UNSM-syntax plus Ediels CONTRL-avvikelser: envelope, ordning, tillåtna element, typer/längder, räknare och referenser.",
+    "on_pass": "Planera positiv CONTRL; nationell kontroll återstår.",
+    "on_fail": "Negativ CONTRL på rätt nivå med korrekt UCI/UCM/UCS/UCD-position.",
+    "response": "CONTRL:2:2:UN; 0083=1 eller4; aldrig kvittens på CONTRL.",
+    "source": "T §2.1 s.12–18"
+  },
+  {
+    "id": "CV-P-HEADER",
+    "scope": "PRODAT-header",
+    "check": "Nationella huvudfält och obruten LIN-sekvens enligt P; skilj faktisk syntax från nationellt R-fält.",
+    "on_pass": "Validera varje objekt/register.",
+    "on_fail": "Hela meddelandet avvisas med rätt P-APERAK; BGM27 enligt felet.",
+    "response": "APERAK D96A/E2SE6A; t.ex. ERC41/42 med riktigt fältnr, alternativt40/särskild kod.",
+    "source": "P §3.2–3.3 och bilaga4"
+  },
+  {
+    "id": "CV-P-OBJECT",
+    "scope": "PRODAT-object",
+    "check": "Kombinera basfält, subtype, D-villkor, parentgrupp, registeroverlay och affärsvillkor.",
+    "on_pass": "Godkänn/lagra objektets tillåtna effekt.",
+    "on_fail": "Avvisa endast rätt objekt när huvudet är korrekt; bevara syskon.",
+    "response": "P-APERAK: ERC100/FTX OK eller40/41/42; RFF Z07/LI när de finns.",
+    "source": "P §3 s.85–105"
+  },
+  {
+    "id": "CV-U-HEADER",
+    "scope": "UTILTS-header",
+    "check": "Nationell anvisningskontroll innan enskilda transaktioners funktionskontroll.",
+    "on_pass": "Validera transaktionernas anvisningskrav.",
+    "on_fail": "Avvisa hela meddelandet; kör inte senare funktionskontroller.",
+    "response": "U-APERAK BGM313; DOC originalBGM om känt; ingen påhittad ACW till IDE.",
+    "source": "U §5.2 s.107; bilaga1"
+  },
+  {
+    "id": "CV-U-GUIDE",
+    "scope": "UTILTS-transaction",
+    "check": "Obligatoriska fält, tillåtna koder, föräldragrupper och begärda meddelandetypens profil.",
+    "on_pass": "Kör funktionskontroll för denna transaktion.",
+    "on_fail": "Ingen funktionskontroll för denna transaktion; syskon fortsätter.",
+    "response": "U-APERAK 313; ERC41/42; FTX verkligt fältnr; DM+nyttID/ACW+ursprungligt IDE-ID. Bilaga1 medger i särskilda om-möjligt-fall en källstyrd segment-/elementreferens, högst17tecken.",
+    "source": "U §5.2,5.5; bilaga1"
+  },
+  {
+    "id": "CV-U-STORE",
+    "scope": "UTILTS-transaction",
+    "check": "Funktionskontroller passerade och beständig lagring/transaktionsbeslut klar.",
+    "on_pass": "Spara ny version eller registrera tidigare giltig version som äldre; publicera bara rätt projektion.",
+    "on_fail": "DB-/internfel hålls som intern incident; fabricera inte godkänd lagring eller godtycklig extern felkod.",
+    "response": "U-APERAK312/100 efter lyckad affärsbehandling.",
+    "source": "U §5.2 s.107; SYS transaktionsdesign"
+  },
+  {
+    "id": "CV-U-FN-207",
+    "scope": "UTILTS-transaction efter godkänd anvisningskontroll",
+    "check": "Avsändarens behörighet i aktuell roll mot mottagarens giltiga struktur.",
+    "on_pass": "Fortsätt återstående tillämpliga kontroller.",
+    "on_fail": "Markera transaktionen processability_rejected.",
+    "response": "UTILTS BGM ERR med avvisningsorsak E55 nätägare / E16 leverantör / E18 balansansvarig; ingen senare positiv APERAK för samma transaktion.",
+    "source": "U bilaga2 s.130"
+  },
+  {
+    "id": "CV-U-FN-209",
+    "scope": "UTILTS-transaction efter godkänd anvisningskontroll",
+    "check": "Anläggning/reglerobjekt identifieras i den relevanta aktörens och behörighetens struktur; inte genom att leta i samtliga tenants.",
+    "on_pass": "Fortsätt återstående tillämpliga kontroller.",
+    "on_fail": "Markera transaktionen processability_rejected.",
+    "response": "UTILTS BGM ERR med avvisningsorsak E10; ingen senare positiv APERAK för samma transaktion.",
+    "source": "U bilaga2 s.130"
+  },
+  {
+    "id": "CV-U-FN-260",
+    "scope": "UTILTS-transaction efter godkänd anvisningskontroll",
+    "check": "Rätt nätområde och områdestyp i kombination med identifierat objekt.",
+    "on_pass": "Fortsätt återstående tillämpliga kontroller.",
+    "on_fail": "Markera transaktionen processability_rejected.",
+    "response": "UTILTS BGM ERR med avvisningsorsak E49; ingen senare positiv APERAK för samma transaktion.",
+    "source": "U bilaga2 s.130"
+  },
+  {
+    "id": "CV-U-FN-511",
+    "scope": "UTILTS-transaction efter godkänd anvisningskontroll",
+    "check": "Tidsserieproduktens egenskaper plus relevanta områden/parter definierar en giltig tidsserieinstans.",
+    "on_pass": "Fortsätt återstående tillämpliga kontroller.",
+    "on_fail": "Markera transaktionen processability_rejected.",
+    "response": "UTILTS BGM ERR med avvisningsorsak E29; ingen senare positiv APERAK för samma transaktion.",
+    "source": "U bilaga2 s.130"
+  },
+  {
+    "id": "CV-U-FN-245",
+    "scope": "UTILTS-transaction efter godkänd anvisningskontroll",
+    "check": "Leveransperiod/upplösning/registreringstid och tillämpliga periodregler stämmer.",
+    "on_pass": "Fortsätt återstående tillämpliga kontroller.",
+    "on_fail": "Markera transaktionen processability_rejected.",
+    "response": "UTILTS BGM ERR med avvisningsorsak E50; ingen senare positiv APERAK för samma transaktion.",
+    "source": "U bilaga2 s.130–131"
+  },
+  {
+    "id": "CV-U-FN-210",
+    "scope": "UTILTS-transaction efter godkänd anvisningskontroll",
+    "check": "Vid leverantörsbytesanknutet fall: korrekt byteshändelse finns; inte ett globalt krav på ESCO E66.",
+    "on_pass": "Fortsätt återstående tillämpliga kontroller.",
+    "on_fail": "Markera transaktionen processability_rejected.",
+    "response": "UTILTS BGM ERR med avvisningsorsak E47; ingen senare positiv APERAK för samma transaktion.",
+    "source": "U bilaga2 s.131"
+  },
+  {
+    "id": "CV-U-FN-264",
+    "scope": "UTILTS-transaction efter godkänd anvisningskontroll",
+    "check": "Enhet stämmer med aktuell produkt och struktur.",
+    "on_pass": "Fortsätt återstående tillämpliga kontroller.",
+    "on_fail": "Markera transaktionen processability_rejected.",
+    "response": "UTILTS BGM ERR med avvisningsorsak E73; ingen senare positiv APERAK för samma transaktion.",
+    "source": "U bilaga2 s.131"
+  },
+  {
+    "id": "CV-U-FN-224",
+    "scope": "UTILTS-transaction efter godkänd anvisningskontroll",
+    "check": "Mätarnummer kontrolleras mot ERHÅLLEN strukturinformation för perioden, när kontrollen är tillämplig.",
+    "on_pass": "Fortsätt återstående tillämpliga kontroller.",
+    "on_fail": "Markera transaktionen processability_rejected.",
+    "response": "UTILTS BGM ERR med avvisningsorsak E61; ingen senare positiv APERAK för samma transaktion.",
+    "source": "U bilaga2 s.131"
+  },
+  {
+    "id": "CV-U-FN-527",
+    "scope": "UTILTS-transaction efter godkänd anvisningskontroll",
+    "check": "Register-id och antal förväntade register stämmer med ERHÅLLEN strukturinformation.",
+    "on_pass": "Fortsätt återstående tillämpliga kontroller.",
+    "on_fail": "Markera transaktionen processability_rejected.",
+    "response": "UTILTS BGM ERR med avvisningsorsak E62; ingen senare positiv APERAK för samma transaktion.",
+    "source": "U bilaga2 s.131"
+  },
+  {
+    "id": "CV-U-FN-DEC",
+    "scope": "UTILTS-transaction efter godkänd anvisningskontroll",
+    "check": "Tillåtna decimaler per kvantitetstyp/upplösning stämmer.",
+    "on_pass": "Fortsätt återstående tillämpliga kontroller.",
+    "on_fail": "Markera transaktionen processability_rejected.",
+    "response": "UTILTS BGM ERR med avvisningsorsak E51; ingen senare positiv APERAK för samma transaktion.",
+    "source": "U bilaga2 s.131–132"
+  },
+  {
+    "id": "CV-U-FN-COUNT",
+    "scope": "UTILTS-transaction efter godkänd anvisningskontroll",
+    "check": "Antal observationer stämmer med den specificerade perioden/upplösningen och observationstypen.",
+    "on_pass": "Fortsätt återstående tillämpliga kontroller.",
+    "on_fail": "Markera transaktionen processability_rejected.",
+    "response": "UTILTS BGM ERR med avvisningsorsak E87; ingen senare positiv APERAK för samma transaktion.",
+    "source": "U bilaga2 s.132"
+  },
+  {
+    "id": "CV-U-FN-ZERO",
+    "scope": "UTILTS-transaction efter godkänd anvisningskontroll",
+    "check": "Nollvärdeskontroll endast i meddelanden/produkter där den gäller; från oktober inte generell individuell E66-kontroll.",
+    "on_pass": "Fortsätt återstående tillämpliga kontroller.",
+    "on_fail": "Markera transaktionen processability_rejected.",
+    "response": "UTILTS BGM ERR med avvisningsorsak E97; ingen senare positiv APERAK för samma transaktion.",
+    "source": "U bilaga2 s.132"
+  },
+  {
+    "id": "CV-U-FN-SIGN",
+    "scope": "UTILTS-transaction efter godkänd anvisningskontroll",
+    "check": "Teckenkontroll i E30 och aggregat enligt aktuell produkt; från oktober inte generell individuell E66-kontroll.",
+    "on_pass": "Fortsätt återstående tillämpliga kontroller.",
+    "on_fail": "Markera transaktionen processability_rejected.",
+    "response": "UTILTS BGM ERR med avvisningsorsak E98; ingen senare positiv APERAK för samma transaktion.",
+    "source": "U bilaga2 s.132"
+  },
+  {
+    "id": "CV-U-FN-LIMIT",
+    "scope": "UTILTS-transaction efter godkänd anvisningskontroll",
+    "check": "Tillåtna värdegränser i E30/aggregat enligt källan och struktur; inte egen pris-/kundmodell.",
+    "on_pass": "Fortsätt återstående tillämpliga kontroller.",
+    "on_fail": "Markera transaktionen processability_rejected.",
+    "response": "UTILTS BGM ERR med avvisningsorsak E90; ingen senare positiv APERAK för samma transaktion.",
+    "source": "U bilaga2 s.132"
+  }
+]

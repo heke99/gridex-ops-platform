@@ -1,0 +1,2834 @@
+[
+  {
+    "id": "UF-planning-311-50",
+    "field": "311",
+    "context": "planning",
+    "name_en": "Application Reference",
+    "name_sv": "Application Reference",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "För S02: ska vara 23-DDQ-S02-S För S03: 23-DDQ-S03-S, 23-DDK-S03-S eller 23-DDX- S03-S För S04: 23-DDK-S04-S.",
+    "locator_source": "UNB/0026",
+    "source": "U §3.7",
+    "page": 50,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-312-50",
+    "field": "312",
+    "context": "planning",
+    "name_en": "Association assigned code",
+    "name_sv": "Version",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "Aktuell version av Ediel-meddelandet.",
+    "locator_source": "UNH/S009/0057",
+    "source": "U §3.7",
+    "page": 50,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-202-50",
+    "field": "202",
+    "context": "planning",
+    "name_en": "Document name code",
+    "name_sv": "Dokumentnamn, kod",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "UTILTS-meddelandetyp: S02, S03, S04",
+    "locator_source": "BGM/C002/1001",
+    "source": "U §3.7",
+    "page": 50,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-203-50",
+    "field": "203",
+    "context": "planning",
+    "name_en": "Document identifier",
+    "name_sv": "Dokument id",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "Unik identitet på hela UTILTS-medd.",
+    "locator_source": "BGM/C106/1004",
+    "source": "U §3.7",
+    "page": 50,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-204-50",
+    "field": "204",
+    "context": "planning",
+    "name_en": "Message Function",
+    "name_sv": "Meddelandefunktion",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "Funktion, se kod i BGM",
+    "locator_source": "BGM/1225",
+    "source": "U §3.7",
+    "page": 50,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-313-50",
+    "field": "313",
+    "context": "planning",
+    "name_en": "Request for Acknowledgement",
+    "name_sv": "Kvittensbegäran",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "Begäran om APERAK",
+    "locator_source": "BGM/4343",
+    "source": "U §3.7",
+    "page": 50,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-205-50",
+    "field": "205",
+    "context": "planning",
+    "name_en": "Message date",
+    "name_sv": "Meddelandedatum",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "Datum då UTILTS-medd skapas i applikationen, format enligt DTM",
+    "locator_source": "DTM+137/C507/2380",
+    "source": "U §3.7",
+    "page": 50,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-206-50",
+    "field": "206",
+    "context": "planning",
+    "name_en": "Time zone",
+    "name_sv": "Tidzon",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "Tidzon anges som \"offset\" till UTC.",
+    "locator_source": "DTM+735/C507/2380",
+    "source": "U §3.7",
+    "page": 50,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-501-51",
+    "field": "501",
+    "context": "planning",
+    "name_en": "Sector area",
+    "name_sv": "Marknad",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "El eller gas, se kod i MKS",
+    "locator_source": "MKS/7293",
+    "source": "U §3.7",
+    "page": 51,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-502-51",
+    "field": "502",
+    "context": "planning",
+    "name_en": "Phase/Domain",
+    "name_sv": "Skede",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "Aktuellt skede = planning, se kod i MKS",
+    "locator_source": "MKS/C332/3496",
+    "source": "U §3.7",
+    "page": 51,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-207-51",
+    "field": "207",
+    "context": "planning",
+    "name_en": "Sender",
+    "name_sv": "Avsändare",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "Juridisk avsändare, Ediel-id",
+    "locator_source": "SG2/NAD+MS/C082/3039",
+    "source": "U §3.7",
+    "page": 51,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-208-51",
+    "field": "208",
+    "context": "planning",
+    "name_en": "Recipient",
+    "name_sv": "Mottagare",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "Juridisk mottagare, Ediel-id",
+    "locator_source": "SG2/NAD+MR/C082/303 9",
+    "source": "U §3.7",
+    "page": 51,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-509-51",
+    "field": "509",
+    "context": "planning",
+    "name_en": "Ancillary Role",
+    "name_sv": "Underordnad roll",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "Kod för den part som ej är ansvarig för meddelandet, i dessa fall mottagarens roll, t ex systemansvarig, balansansvarig osv",
+    "locator_source": "SG2/NAD+rollkod",
+    "source": "U §3.7",
+    "page": 51,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-505-51",
+    "field": "505",
+    "context": "planning",
+    "name_en": "Transaction id",
+    "name_sv": "Transaktionsnr",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "Avsändarens unika id på transaktionen. Används för att kunna referera till en specifik transaktion.",
+    "locator_source": "SG5/IDE+24/C206/7402",
+    "source": "U §3.7",
+    "page": 51,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-209-51",
+    "field": "209",
+    "context": "planning",
+    "name_en": "Metering Point Id",
+    "name_sv": "Anläggningsid",
+    "usage": {
+      "S02": "R",
+      "S03": "-",
+      "S04": "-"
+    },
+    "condition_text": "Anläggningsid, normalt GS1-nr",
+    "locator_source": "SG5/LOC+172/C517/3225",
+    "source": "U §3.7",
+    "page": 51,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-260a-51",
+    "field": "260a",
+    "context": "planning",
+    "name_en": "Metering grid area",
+    "name_sv": "Nätområdesid",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R (se not)"
+    },
+    "condition_text": "Nätområdesid S04: Om/när det blir aktuellt att skicka aggregerade värden med annat än andelstal kan fältet bli villkorat av vad som skickas (tidsserieprodukten), alternativt används en ny meddelandetyp.",
+    "locator_source": "SG5/LOC+239/C517/3225",
+    "source": "U §3.7",
+    "page": 51,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-262-51",
+    "field": "262",
+    "context": "planning",
+    "name_en": "Balance Responsible",
+    "name_sv": "Balansansvarig",
+    "usage": {
+      "S02": "-",
+      "S03": "D",
+      "S04": "D"
+    },
+    "condition_text": "Balansansvarig: Villkor om detta fält ska skickas eller inte är beroende på vilken tidsserieprodukt (OT) som är aktuell.",
+    "locator_source": "SG5/NAD+DDK//C082/30 39",
+    "source": "U §3.7",
+    "page": 51,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-510-51",
+    "field": "510",
+    "context": "planning",
+    "name_en": "Balance Supplier",
+    "name_sv": "Leverantör",
+    "usage": {
+      "S02": "-",
+      "S03": "D",
+      "S04": "-"
+    },
+    "condition_text": "Leverantör: Villkor om detta fält ska skickas eller inte är beroende på vilken tidsserieprodukt (OT) som är aktuell.",
+    "locator_source": "SG5/NAD+DDQ//C082/30 39",
+    "source": "U §3.7",
+    "page": 51,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-506-51",
+    "field": "506",
+    "context": "planning",
+    "name_en": "Product identification",
+    "name_sv": "Produkt id",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "Generell produktkod, se koder i LIN",
+    "locator_source": "SG5/LIN/C212/7140",
+    "source": "U §3.7",
+    "page": 51,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-511-51",
+    "field": "511",
+    "context": "planning",
+    "name_en": "Time series product",
+    "name_sv": "Tidsserieprodukt",
+    "usage": {
+      "S02": "-",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "Tidsserieprodukt Fem koder anges i enlighet med Svenska kraftnäts kodlista, fält 511a, 511b, 511c, 511d och 511e.",
+    "locator_source": "SG5/PIA+1/C212/7140 (x5)",
+    "source": "U §3.7",
+    "page": 51,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-245-51",
+    "field": "245",
+    "context": "planning",
+    "name_en": "Delivery period",
+    "name_sv": "Leveransperiod",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "Aktuell period för transaktionen",
+    "locator_source": "SG5/DTM+324/C507/238 0",
+    "source": "U §3.7",
+    "page": 51,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-532-51",
+    "field": "532",
+    "context": "planning",
+    "name_en": "Latest update date",
+    "name_sv": "Senaste uppdaterings- tidpunkt",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "Senaste uppdateringstidpunkt",
+    "locator_source": "SG5/DTM+368/C507/238 0",
+    "source": "U §3.7",
+    "page": 51,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-508-51",
+    "field": "508",
+    "context": "planning",
+    "name_en": "Resolution",
+    "name_sv": "Upplösning",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "Upplösning för hela transaktionen, t ex månad, format enligt DTM",
+    "locator_source": "SG5/DTM+354/C507/238 0",
+    "source": "U §3.7",
+    "page": 51,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-223-52",
+    "field": "223",
+    "context": "planning",
+    "name_en": "Reason for transaction",
+    "name_sv": "Anledning till transaktionen",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "Anledning till trans. = Planning",
+    "locator_source": "SG5/STS+7/C556/9013",
+    "source": "U §3.7",
+    "page": 52,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-264-52",
+    "field": "264",
+    "context": "planning",
+    "name_en": "Unit measurement",
+    "name_sv": "Enhet",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "Anger enhet för hela transaktionen.",
+    "locator_source": "SG5/MEA+AAZ/C174/64 11",
+    "source": "U §3.7",
+    "page": 52,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-226-52",
+    "field": "226",
+    "context": "planning",
+    "name_en": "Transaction reference number",
+    "name_sv": "Referens till PRODAT- ärendereferens",
+    "usage": {
+      "S02": "O",
+      "S03": "-",
+      "S04": "-"
+    },
+    "condition_text": "Kan anges för att knyta ihop UTILTS-transaktionen med PRODAT-ärendet.",
+    "locator_source": "SG6/RFF+TN/C506/1154",
+    "source": "U §3.7",
+    "page": 52,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-254-52",
+    "field": "254",
+    "context": "planning",
+    "name_en": "Settlement method",
+    "name_sv": "Avräkningsmetod",
+    "usage": {
+      "S02": "-",
+      "S03": "R",
+      "S04": "-"
+    },
+    "condition_text": "”Profiled” eller ”Non-profiled”",
+    "locator_source": "SG7/CAV/C889/7111 under SG7/CCI+++E02",
+    "source": "U §3.7",
+    "page": 52,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-513-52",
+    "field": "513",
+    "context": "planning",
+    "name_en": "Type of Metering Point",
+    "name_sv": "Typ av anläggning(ar)",
+    "usage": {
+      "S02": "-",
+      "S03": "R",
+      "S04": "-"
+    },
+    "condition_text": "Kod för ”Consumption”, ”Production” eller ”Exchange”. Är i UTILTS S03 alltid förbrukning.",
+    "locator_source": "SG7/CAV/C889/7111 under SG7/CCI+++E12",
+    "source": "U §3.7",
+    "page": 52,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-507a-52",
+    "field": "507a",
+    "context": "planning",
+    "name_en": "Number of Metering Points",
+    "name_sv": "Antal mätpunkter",
+    "usage": {
+      "S02": "-",
+      "S03": "D",
+      "S04": "-"
+    },
+    "condition_text": "Ange default antal mätpunkter. Används vid rapportering av aggregerade serier, användningen beror på aktuell tidsserieprodukt (PC+PT). Se vidare beskrivning i CAV-segmentet (SG7).",
+    "locator_source": "SG7/CAV/C889/7110 under SG7/CCI+++Z01",
+    "source": "U §3.7",
+    "page": 52,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-514-52",
+    "field": "514",
+    "context": "planning",
+    "name_en": "Observation id",
+    "name_sv": "Observationsnr",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "Löpnr/sekvens för resp detaljrad, starta alltid på 1 och räkna upp med 1 för varje detaljrad.",
+    "locator_source": "SG8/SEQ/C286/1050",
+    "source": "U §3.7",
+    "page": 52,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-515-52",
+    "field": "515",
+    "context": "planning",
+    "name_en": "Period Quantity Planned",
+    "name_sv": "Planerad periodisk kvantitet",
+    "usage": {
+      "S02": "R",
+      "S03": "R",
+      "S04": "R"
+    },
+    "condition_text": "Prognostiserad energimängd (eller andelstal)",
+    "locator_source": "SG11/QTY+135/C186/606 0",
+    "source": "U §3.7",
+    "page": 52,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-520-52",
+    "field": "520",
+    "context": "planning",
+    "name_en": "Meter reading quality",
+    "name_sv": "Kvantitetskvalitet",
+    "usage": {
+      "S02": "D",
+      "S03": "-",
+      "S04": "-"
+    },
+    "condition_text": "Obligatoriskt om värde i fält 515 har lägre kvalitet än godkänt. Se koder i SG11/STS.",
+    "locator_source": "SG11/STS+8/C555/4405",
+    "source": "U §3.7",
+    "page": 52,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-planning-507b-52",
+    "field": "507b",
+    "context": "planning",
+    "name_en": "Diverging number of Metering Points",
+    "name_sv": "Avvikande antal mätpunkter",
+    "usage": {
+      "S02": "-",
+      "S03": "D",
+      "S04": "-"
+    },
+    "condition_text": "Anger faktiska antalet mätpunkter för aktuell observation. Används endast om det skiljer mot fält 507a ovan, användningen beror också på angiven tidsserieprodukt (PC och PT). Används vid rapportering av aggregerade serier. Se vidare beskrivning i CAV-segmentet (SG12).",
+    "locator_source": "SG12/CAV/C889/7110 under SG12/CCI+++Z01",
+    "source": "U §3.7",
+    "page": 52,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-311-53",
+    "field": "311",
+    "context": "metering_settlement",
+    "name_en": "Application Reference",
+    "name_sv": "Application Reference",
+    "usage": {
+      "E30": "R",
+      "E31": "R",
+      "E66": "R",
+      "S01": "R",
+      "S05": "R",
+      "S07": "R"
+    },
+    "condition_text": "För E30: ska vara 23-MDR-E30-S eller -T För E31: 23-DDQ-E31-S eller -T, 23-DDK-E31-S/-T, 23-DEA-E31- T eller 23-DDX-E31-S/-T För E66: 23-DEA-E66-S eller -T, 23-DDQ-E66-S/-T, 23-DEC-E66- S/-T, 23-DGI-E66-S/-T, 23-DDK- E66-S/-T, 23-PQ-E66-T eller 23- EZ-E66-T För S01: 23-DDK-S01-S eller -< processtyp> eller 23-DEA-S01-T För S05: 23-DDQ-S05-S eller -< processtyp> För S07: 23-DDQ-S07-S eller -T, 23-DEC-S07-S/-T, 23-DDK-S07- S/-T För aktuell lista över processtyper, se dokumentet med tidsserieprodukter.",
+    "locator_source": "UNB/0026",
+    "source": "U §3.7",
+    "page": 53,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-312-53",
+    "field": "312",
+    "context": "metering_settlement",
+    "name_en": "Association assigned code",
+    "name_sv": "Version",
+    "usage": {
+      "E30": "R",
+      "E31": "R",
+      "E66": "R",
+      "S01": "R",
+      "S05": "R",
+      "S07": "R"
+    },
+    "condition_text": "Aktuell version av Ediel- meddelandet.",
+    "locator_source": "UNH/S009/0057",
+    "source": "U §3.7",
+    "page": 53,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-202-53",
+    "field": "202",
+    "context": "metering_settlement",
+    "name_en": "Document name code",
+    "name_sv": "Dokumentnamn, kod",
+    "usage": {
+      "E30": "R",
+      "E31": "R",
+      "E66": "R",
+      "S01": "R",
+      "S05": "R",
+      "S07": "R"
+    },
+    "condition_text": "UTILTS-meddelandetyp: E30, E31, E66, S01, S05, S07",
+    "locator_source": "BGM/C002/1001",
+    "source": "U §3.7",
+    "page": 53,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-203-53",
+    "field": "203",
+    "context": "metering_settlement",
+    "name_en": "Document identifier",
+    "name_sv": "Dokument id",
+    "usage": {
+      "E30": "R",
+      "E31": "R",
+      "E66": "R",
+      "S01": "R",
+      "S05": "R",
+      "S07": "R"
+    },
+    "condition_text": "Unik identitet på hela UTILTS- medd.",
+    "locator_source": "BGM/C106/1004",
+    "source": "U §3.7",
+    "page": 53,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-204-54",
+    "field": "204",
+    "context": "metering_settlement",
+    "name_en": "Message Function",
+    "name_sv": "Meddelandefunktion",
+    "usage": {
+      "E30": "R",
+      "E31": "R",
+      "E66": "R",
+      "S01": "R",
+      "S05": "R",
+      "S07": "R"
+    },
+    "condition_text": "Funktion, se kod i BGM",
+    "locator_source": "BGM/1225",
+    "source": "U §3.7",
+    "page": 54,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-313-54",
+    "field": "313",
+    "context": "metering_settlement",
+    "name_en": "Request for acknowledgement",
+    "name_sv": "Kvittensbegäran",
+    "usage": {
+      "E30": "R",
+      "E31": "R",
+      "E66": "R",
+      "S01": "R",
+      "S05": "R",
+      "S07": "R"
+    },
+    "condition_text": "Begäran om APERAK",
+    "locator_source": "BGM/4343",
+    "source": "U §3.7",
+    "page": 54,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-205-54",
+    "field": "205",
+    "context": "metering_settlement",
+    "name_en": "Message date",
+    "name_sv": "Meddelandedatum",
+    "usage": {
+      "E30": "R",
+      "E31": "R",
+      "E66": "R",
+      "S01": "R",
+      "S05": "R",
+      "S07": "R"
+    },
+    "condition_text": "Datum då UTILTS-medd skapas i applikationen, format enligt DTM",
+    "locator_source": "DTM+137/C507/2 380",
+    "source": "U §3.7",
+    "page": 54,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-206-54",
+    "field": "206",
+    "context": "metering_settlement",
+    "name_en": "Time zone",
+    "name_sv": "Tidzon",
+    "usage": {
+      "E30": "R",
+      "E31": "R",
+      "E66": "R",
+      "S01": "R",
+      "S05": "R",
+      "S07": "R"
+    },
+    "condition_text": "Tidzon anges som ”offset” till UTC.",
+    "locator_source": "DTM+735/C507/2 380",
+    "source": "U §3.7",
+    "page": 54,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-501-54",
+    "field": "501",
+    "context": "metering_settlement",
+    "name_en": "Sector area",
+    "name_sv": "Marknad",
+    "usage": {
+      "E30": "R",
+      "E31": "R",
+      "E66": "R",
+      "S01": "R",
+      "S05": "R",
+      "S07": "R"
+    },
+    "condition_text": "El eller gas, se kod i MKS",
+    "locator_source": "MKS/7293",
+    "source": "U §3.7",
+    "page": 54,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-502-54",
+    "field": "502",
+    "context": "metering_settlement",
+    "name_en": "Phase/Domain",
+    "name_sv": "Skede",
+    "usage": {
+      "E30": "R",
+      "E31": "R",
+      "E66": "R",
+      "S01": "R",
+      "S05": "R",
+      "S07": "R"
+    },
+    "condition_text": "Aktuellt skede, se kod i MKS",
+    "locator_source": "MKS/C332/3496",
+    "source": "U §3.7",
+    "page": 54,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-207-54",
+    "field": "207",
+    "context": "metering_settlement",
+    "name_en": "Sender",
+    "name_sv": "Avsändare",
+    "usage": {
+      "E30": "R",
+      "E31": "R",
+      "E66": "R",
+      "S01": "R",
+      "S05": "R",
+      "S07": "R"
+    },
+    "condition_text": "Juridisk avsändare, Ediel-id",
+    "locator_source": "SG2/NAD+MS/C 082/3039",
+    "source": "U §3.7",
+    "page": 54,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-208-54",
+    "field": "208",
+    "context": "metering_settlement",
+    "name_en": "Recipient",
+    "name_sv": "Mottagare",
+    "usage": {
+      "E30": "R",
+      "E31": "R",
+      "E66": "R",
+      "S01": "R",
+      "S05": "R",
+      "S07": "R"
+    },
+    "condition_text": "Juridisk mottagare, Ediel-id",
+    "locator_source": "SG2/NAD+MR/C 082/3039",
+    "source": "U §3.7",
+    "page": 54,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-509-54",
+    "field": "509",
+    "context": "metering_settlement",
+    "name_en": "Ancillary Role",
+    "name_sv": "Underordnad roll",
+    "usage": {
+      "E30": "R",
+      "E31": "R",
+      "E66": "R",
+      "S01": "R",
+      "S05": "R",
+      "S07": "R"
+    },
+    "condition_text": "Kod för den part som ej är ansvarig för meddelandet, i dessa fall mottagarens roll, t ex systemansvarig, balansansvarig osv",
+    "locator_source": "SG2/NAD+rollko d",
+    "source": "U §3.7",
+    "page": 54,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-505-54",
+    "field": "505",
+    "context": "metering_settlement",
+    "name_en": "Transaction id",
+    "name_sv": "Transaktionsnr",
+    "usage": {
+      "E30": "R",
+      "E31": "R",
+      "E66": "R",
+      "S01": "R",
+      "S05": "R",
+      "S07": "R"
+    },
+    "condition_text": "Avsändarens unika id på transaktionen. Används för att kunna referera till en specifik transaktion.",
+    "locator_source": "SG5/IDE+24/C20 6/7402",
+    "source": "U §3.7",
+    "page": 54,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-209-54",
+    "field": "209",
+    "context": "metering_settlement",
+    "name_en": "Metering Point Id",
+    "name_sv": "Anläggningsid",
+    "usage": {
+      "E30": "R",
+      "E31": "-",
+      "E66": "D",
+      "S01": "-",
+      "S05": "-",
+      "S07": "R"
+    },
+    "condition_text": "Anläggningsid, normalt GS1-nr. Används i E66 utom då mätvärden för reglerobjekt skickas.",
+    "locator_source": "SG5/LOC+172/C5 17/3225",
+    "source": "U §3.7",
+    "page": 54,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-533-54",
+    "field": "533",
+    "context": "metering_settlement",
+    "name_en": "Station group Id",
+    "name_sv": "Reglerobjektsid",
+    "usage": {
+      "E30": "-",
+      "E31": "-",
+      "E66": "D",
+      "S01": "D",
+      "S05": "-",
+      "S07": "-"
+    },
+    "condition_text": "Reglerobjektsid. Används i E66 då mätvärden för reglerobjekt skickas. Används i S01 beroende på tidsserieprodukt (dvs då tidsserien avser ett reglerobjekt).",
+    "locator_source": "SG5/LOC+175/C5 17/3225",
+    "source": "U §3.7",
+    "page": 54,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-260a-54",
+    "field": "260a",
+    "context": "metering_settlement",
+    "name_en": "Metering grid area",
+    "name_sv": "Nätområdesid",
+    "usage": {
+      "E30": "O",
+      "E31": "D",
+      "E66": "D",
+      "S01": "D",
+      "S05": "D",
+      "S07": "D"
+    },
+    "condition_text": "Nätområdesid (eller identitet på annat område, t.ex. snittområde).",
+    "locator_source": "SG5/LOC+239/C5 17/3225",
+    "source": "U §3.7",
+    "page": 54,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-260b-55",
+    "field": "260b",
+    "context": "metering_settlement",
+    "name_en": "Metering grid area – source",
+    "name_sv": "Nätområde18 – utmatning",
+    "usage": {
+      "E30": "O",
+      "E31": "D",
+      "E66": "D",
+      "S01": "D",
+      "S05": "-",
+      "S07": "D"
+    },
+    "condition_text": "Nätområdesid för utmatning. Skickas alltid tillsammans med 260c Frivilligt i E30 Obligatoriskt annars om fält 513 = Exchange",
+    "locator_source": "SG5/LOC+232/C5 17/3225",
+    "source": "U §3.7",
+    "page": 55,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-260c-55",
+    "field": "260c",
+    "context": "metering_settlement",
+    "name_en": "Metering grid area – sink",
+    "name_sv": "Nätområde18 – inmatning",
+    "usage": {
+      "E30": "O",
+      "E31": "D",
+      "E66": "D",
+      "S01": "D",
+      "S05": "-",
+      "S07": "D"
+    },
+    "condition_text": "Nätområdesid för inmatning. Skickas alltid tillsammans med 260b Frivilligt i E30 Obligatoriskt annars om fält 513 = Exchange",
+    "locator_source": "SG5/LOC+233/C5 17/3225",
+    "source": "U §3.7",
+    "page": 55,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-262-55",
+    "field": "262",
+    "context": "metering_settlement",
+    "name_en": "Balance Responsible",
+    "name_sv": "Balansansvarig",
+    "usage": {
+      "E30": "-",
+      "E31": "D",
+      "E66": "-",
+      "S01": "D",
+      "S05": "D",
+      "S07": "-"
+    },
+    "condition_text": "Balansansvarig villkor om detta fält ska skickas eller inte är beroende på vilken tidsserieprodukt (OT) som är aktuell.",
+    "locator_source": "SG5/NAD+DDK// C082/3039",
+    "source": "U §3.7",
+    "page": 55,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-510-55",
+    "field": "510",
+    "context": "metering_settlement",
+    "name_en": "Balance Supplier",
+    "name_sv": "Leverantör",
+    "usage": {
+      "E30": "-",
+      "E31": "D",
+      "E66": "-",
+      "S01": "-",
+      "S05": "D",
+      "S07": "-"
+    },
+    "condition_text": "Leverantör villkor om detta fält ska skickas eller inte är beroende på vilken tidsserieprodukt (OT) som är aktuell.",
+    "locator_source": "SG5/NAD+DDQ// C082/3039",
+    "source": "U §3.7",
+    "page": 55,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-524-56",
+    "field": "524",
+    "context": "metering_settlement",
+    "name_en": "Buyer",
+    "name_sv": "Köpare",
+    "usage": {
+      "E30": "-",
+      "E31": "-",
+      "E66": "-",
+      "S01": "D",
+      "S05": "D",
+      "S07": "-"
+    },
+    "condition_text": "Köpare villkor om detta fält ska skickas eller inte är beroende på vilken tidsserieprodukt (OT) som är aktuell.",
+    "locator_source": "SG5/NAD+BY//C 082/3039",
+    "source": "U §3.7",
+    "page": 56,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-525-56",
+    "field": "525",
+    "context": "metering_settlement",
+    "name_en": "Seller",
+    "name_sv": "Säljare",
+    "usage": {
+      "E30": "-",
+      "E31": "-",
+      "E66": "-",
+      "S01": "D",
+      "S05": "D",
+      "S07": "-"
+    },
+    "condition_text": "Säljare villkor om detta fält ska skickas eller inte är beroende på vilken tidsserieprodukt (OT) som är aktuell.",
+    "locator_source": "SG5/NAD+SE//C 082/3039",
+    "source": "U §3.7",
+    "page": 56,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-526-56",
+    "field": "526",
+    "context": "metering_settlement",
+    "name_en": "System operator",
+    "name_sv": "Systemansvarig",
+    "usage": {
+      "E30": "-",
+      "E31": "-",
+      "E66": "-",
+      "S01": "D",
+      "S05": "D",
+      "S07": "-"
+    },
+    "condition_text": "Systemansvarig villkor om detta fält ska skickas eller inte är beroende på vilken tidsserieprodukt (OT) som är aktuell.",
+    "locator_source": "SG5/NAD+EZ//C 082/3039",
+    "source": "U §3.7",
+    "page": 56,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-506-56",
+    "field": "506",
+    "context": "metering_settlement",
+    "name_en": "Product identification",
+    "name_sv": "Produkt id",
+    "usage": {
+      "E30": "-",
+      "E31": "R",
+      "E66": "R",
+      "S01": "R",
+      "S05": "R",
+      "S07": "R"
+    },
+    "condition_text": "Generell produktkod, se koder i LIN",
+    "locator_source": "SG5/LIN/C212/71 40",
+    "source": "U §3.7",
+    "page": 56,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-511-56",
+    "field": "511",
+    "context": "metering_settlement",
+    "name_en": "Time series product används ej i ebIX",
+    "name_sv": "Tidsserieprodukt",
+    "usage": {
+      "E30": "-",
+      "E31": "R",
+      "E66": "-",
+      "S01": "R",
+      "S05": "R",
+      "S07": "-"
+    },
+    "condition_text": "Tidsserieprodukt Fem koder anges i enlighet med Svenska kraftnäts kodlista, fält 511a, 511b, 511c, 511d och 511e.",
+    "locator_source": "SG5/PIA+1/C212/ 7140",
+    "source": "U §3.7",
+    "page": 56,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-245-56",
+    "field": "245",
+    "context": "metering_settlement",
+    "name_en": "Delivery period",
+    "name_sv": "Leveransperiod",
+    "usage": {
+      "E30": "D",
+      "E31": "R",
+      "E66": "D",
+      "S01": "R",
+      "S05": "R",
+      "S07": "R"
+    },
+    "condition_text": "Aktuell period för transaktionen Anges i E30 och E66 om antal observationer > 1, dvs när fler än en enskild mätarställning skickas.",
+    "locator_source": "SG5/DTM+324/C 507/2380",
+    "source": "U §3.7",
+    "page": 56,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-512-56",
+    "field": "512",
+    "context": "metering_settlement",
+    "name_en": "Registration date",
+    "name_sv": "Registreringstidpunkt",
+    "usage": {
+      "E30": "R",
+      "E31": "-",
+      "E66": "R",
+      "S01": "-",
+      "S05": "-",
+      "S07": "R"
+    },
+    "condition_text": "Registreringstidpunkten för rapporterade värden.",
+    "locator_source": "SG5/DTM+597/C 507/2380",
+    "source": "U §3.7",
+    "page": 56,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-532-56",
+    "field": "532",
+    "context": "metering_settlement",
+    "name_en": "Latest update date",
+    "name_sv": "Senaste uppdateringstidpunkt",
+    "usage": {
+      "E30": "-",
+      "E31": "R",
+      "E66": "-",
+      "S01": "R",
+      "S05": "R",
+      "S07": "-"
+    },
+    "condition_text": "Senaste uppdateringstidpunkten för rapporterade värden.",
+    "locator_source": "SG5/DTM+368/C 507/2380",
+    "source": "U §3.7",
+    "page": 56,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-508-56",
+    "field": "508",
+    "context": "metering_settlement",
+    "name_en": "Resolution",
+    "name_sv": "Upplösning",
+    "usage": {
+      "E30": "D",
+      "E31": "R",
+      "E66": "D",
+      "S01": "R",
+      "S05": "R",
+      "S07": "R"
+    },
+    "condition_text": "Upplösning för hela transaktionen, t ex månad, format enligt DTM. Anges i E30 och E66 när energivolymer skickas.",
+    "locator_source": "SG5/DTM+354/C 507/2380",
+    "source": "U §3.7",
+    "page": 56,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-223-57",
+    "field": "223",
+    "context": "metering_settlement",
+    "name_en": "Reason for transaction",
+    "name_sv": "Anledning till transaktionen",
+    "usage": {
+      "E30": "R",
+      "E31": "R",
+      "E66": "R",
+      "S01": "R",
+      "S05": "R",
+      "S07": "R"
+    },
+    "condition_text": "E30, E66, S07: se koder i SG5/STS E31, S01, S05: Settlement om avräkningsmetod = “Non- profiled” och Reconciliation om avräkningsmetod = “Profiled”.",
+    "locator_source": "SG5/STS+7/C556/ 9013",
+    "source": "U §3.7",
+    "page": 57,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-264-57",
+    "field": "264",
+    "context": "metering_settlement",
+    "name_en": "Unit measurement",
+    "name_sv": "Enhet",
+    "usage": {
+      "E30": "-",
+      "E31": "R",
+      "E66": "R",
+      "S01": "D",
+      "S05": "D",
+      "S07": "R"
+    },
+    "condition_text": "Ange enhet för hela transaktionen. Används inte i S01 och S05 om enbart belopp skickas, användningen beror på aktuell tidsserieprodukt.",
+    "locator_source": "SG5/MEA+AAZ/ C174/6411",
+    "source": "U §3.7",
+    "page": 57,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-226-57",
+    "field": "226",
+    "context": "metering_settlement",
+    "name_en": "Transaction reference number används ej i ebIX",
+    "name_sv": "Referens till PRODAT- ärendereferens",
+    "usage": {
+      "E30": "-",
+      "E31": "-",
+      "E66": "D",
+      "S01": "-",
+      "S05": "-",
+      "S07": "-"
+    },
+    "condition_text": "Fylls i när transaktionen hör ihop med ett PRODAT-ärende för icke dygnsavräknade anläggningar. Se vidare kapitel 3.6.12.",
+    "locator_source": "SG6/RFF+TN/C5 06/1154",
+    "source": "U §3.7",
+    "page": 57,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-254-57",
+    "field": "254",
+    "context": "metering_settlement",
+    "name_en": "Settlement method",
+    "name_sv": "Avräkningsmetod",
+    "usage": {
+      "E30": "-",
+      "E31": "R",
+      "E66": "-",
+      "S01": "D",
+      "S05": "D",
+      "S07": "-"
+    },
+    "condition_text": "”Profiled” eller ”Non-profiled”, användningen i S01 och S05 beror på aktuell tidsserieprodukt.",
+    "locator_source": "SG7/CAV/C889/7 111 under SG7/CCI+++E02",
+    "source": "U §3.7",
+    "page": 57,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-507a-57",
+    "field": "507a",
+    "context": "metering_settlement",
+    "name_en": "Number of Metering Points används ej i ebIX",
+    "name_sv": "Antal mätpunkter",
+    "usage": {
+      "E30": "-",
+      "E31": "D",
+      "E66": "-",
+      "S01": "-",
+      "S05": "D",
+      "S07": "-"
+    },
+    "condition_text": "Ange default antal mätpunkter. Används vid rapportering av aggregerade serier, användningen beror på aktuell tidsserieprodukt (PC+PT). Se vidare beskrivning i CAV-segmentet (SG7).",
+    "locator_source": "SG7/CAV/C889/7 110 under SG7/CCI+++Z01",
+    "source": "U §3.7",
+    "page": 57,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-513-57",
+    "field": "513",
+    "context": "metering_settlement",
+    "name_en": "Type of Metering Point",
+    "name_sv": "Typ av anläggning(ar)",
+    "usage": {
+      "E30": "-",
+      "E31": "R",
+      "E66": "R",
+      "S01": "-",
+      "S05": "-",
+      "S07": "R"
+    },
+    "condition_text": "”Consumption”, ”Production” eller ”Exchange”",
+    "locator_source": "SG7/CAV/C889/7 111 under SG7/CCI+++E12",
+    "source": "U §3.7",
+    "page": 57,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-514-57",
+    "field": "514",
+    "context": "metering_settlement",
+    "name_en": "Observation id",
+    "name_sv": "Observationsnr",
+    "usage": {
+      "E30": "R",
+      "E31": "R",
+      "E66": "R",
+      "S01": "R",
+      "S05": "R",
+      "S07": "R"
+    },
+    "condition_text": "Löpnr/sekvens för resp detaljrad, starta normalt alltid på 1 och räkna upp med 1 för varje detaljrad (observation).",
+    "locator_source": "SG8/SEQ/C286/10 50",
+    "source": "U §3.7",
+    "page": 57,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-527-57",
+    "field": "527",
+    "context": "metering_settlement",
+    "name_en": "Register id",
+    "name_sv": "RegisterId",
+    "usage": {
+      "E30": "D",
+      "E31": "-",
+      "E66": "D",
+      "S01": "-",
+      "S05": "-",
+      "S07": "D"
+    },
+    "condition_text": "RegisterId",
+    "locator_source": "SG8/RFF+AES/C 506/1154",
+    "source": "U §3.7",
+    "page": 57,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-224-58",
+    "field": "224",
+    "context": "metering_settlement",
+    "name_en": "Meter No",
+    "name_sv": "Mätarnummer",
+    "usage": {
+      "E30": "D",
+      "E31": "-",
+      "E66": "D",
+      "S01": "-",
+      "S05": "-",
+      "S07": "O"
+    },
+    "condition_text": "Anges endast en gång per register (räkneverk). Anges då för den första observationen med mätarställningar. Anges alltid i E30 och E66 då mätarställningar skickas. Frivilligt i S07. Anges inte i E66 med maxeffektvärden (Normalt ett GIAI-nummer, se bilaga 7).",
+    "locator_source": "SG8/RFF+MGaltS E/ C506/1154",
+    "source": "U §3.7",
+    "page": 58,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-522-58",
+    "field": "522",
+    "context": "metering_settlement",
+    "name_en": "Monetary amount",
+    "name_sv": "Belopp",
+    "usage": {
+      "E30": "-",
+      "E31": "-",
+      "E66": "-",
+      "S01": "D",
+      "S05": "D",
+      "S07": "-"
+    },
+    "condition_text": "Belopp, villkor om detta fält ska skickas eller inte är beroende på aktuell tidsserieprodukt. Notera att flera belopp (med olika valutor) är möjliga att skicka för en och samma tidsserie.",
+    "locator_source": "SG8/MOA+9/C51 6/5004",
+    "source": "U §3.7",
+    "page": 58,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-269a-58",
+    "field": "269a",
+    "context": "metering_settlement",
+    "name_en": "Currency",
+    "name_sv": "Valuta",
+    "usage": {
+      "E30": "-",
+      "E31": "-",
+      "E66": "-",
+      "S01": "D",
+      "S05": "D",
+      "S07": "-"
+    },
+    "condition_text": "Valutakod för fält 522, enligt ISO",
+    "locator_source": "SG8/MOA+9/C51 6/6345",
+    "source": "U §3.7",
+    "page": 58,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-523-58",
+    "field": "523",
+    "context": "metering_settlement",
+    "name_en": "Price amount",
+    "name_sv": "Pris",
+    "usage": {
+      "E30": "-",
+      "E31": "-",
+      "E66": "-",
+      "S01": "D",
+      "S05": "D",
+      "S07": "-"
+    },
+    "condition_text": "Pris, villkor om detta fält ska skickas eller inte är beroende på aktuell tidsserieprodukt. Notera att flera priser (med olika valutor) är möjliga att skicka för en och samma tidsserie.",
+    "locator_source": "SG10/PRI/C509/5 118",
+    "source": "U §3.7",
+    "page": 58,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-metering_settlement-269b-58",
+    "field": "269b",
+    "context": "metering_settlement",
+    "name_en": "Currency",
+    "name_sv": "Valuta",
+    "usage": {
+      "E30": "-",
+      "E31": "-",
+      "E66": "-",
+      "S01": "D",
+      "S05": "D",
+      "S07": "-"
+    },
+    "condition_text": "Valutakod för fält 523, enligt ISO",
+    "locator_source": "SG10/CUX+2/634 5",
+    "source": "U §3.7",
+    "page": 58,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-meter_stands-517-59",
+    "field": "517",
+    "context": "meter_stands",
+    "name_en": "Meter Reading",
+    "name_sv": "Mätarställning",
+    "usage": {
+      "E30": "D",
+      "E66": "D",
+      "S07": "D"
+    },
+    "condition_text": "Mätarställning, saknas mätarställning anges ”NULL” i fältet. Anges om mätarställningar skickas.",
+    "locator_source": "SG11/QTY+220/C186/606 0",
+    "source": "U §3.7",
+    "page": 59,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-meter_stands-530a-59",
+    "field": "530a",
+    "context": "meter_stands",
+    "name_en": "Meter reading date",
+    "name_sv": "Datum för mätar- ställning",
+    "usage": {
+      "E30": "D",
+      "E66": "D",
+      "S07": "D"
+    },
+    "condition_text": "Tidpunkt för mätarregistrering. Anges om mätarställningar skickas.",
+    "locator_source": "SG11/DTM+597/C507/23 80",
+    "source": "U §3.7",
+    "page": 59,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-meter_stands-520-59",
+    "field": "520",
+    "context": "meter_stands",
+    "name_en": "Meter reading quality",
+    "name_sv": "Kvantitetskvalitet",
+    "usage": {
+      "E30": "D",
+      "E66": "-",
+      "S07": "-"
+    },
+    "condition_text": "Mätaravläsningskvalitet. Obligatoriskt om mätaravläsningsvärdet (fält 517) har lägre kvalitet än godkänt. Se koder i SG11/STS.",
+    "locator_source": "SG11/STS+8/C555/4405",
+    "source": "U §3.7",
+    "page": 59,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-meter_stands-309-59",
+    "field": "309",
+    "context": "meter_stands",
+    "name_en": "Origin of meter stand",
+    "name_sv": "Mätaravläsare",
+    "usage": {
+      "E30": "-",
+      "E66": "D",
+      "S07": "D"
+    },
+    "condition_text": "Mätaravläsare Anges om mätarställningar skickas. Se koder i SG12/CAV",
+    "locator_source": "SG12/CAV/C889/7111 under SG12/CCI+++E22",
+    "source": "U §3.7",
+    "page": 59,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-quantity-516-59",
+    "field": "516",
+    "context": "quantity",
+    "name_en": "Period Quantity Reached",
+    "name_sv": "Uppnådd periodisk kvantitet",
+    "usage": {
+      "E30": "D",
+      "E66": "D",
+      "S07": "D"
+    },
+    "condition_text": "Uppnådd energimängd. Anges om energimängd skickas.",
+    "locator_source": "SG11/QTY+136/C186/60 60",
+    "source": "U §3.7",
+    "page": 59,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-quantity-520-59",
+    "field": "520",
+    "context": "quantity",
+    "name_en": "Meter reading quality",
+    "name_sv": "Kvantitetskvalitet",
+    "usage": {
+      "E30": "D",
+      "E66": "D",
+      "S07": "D"
+    },
+    "condition_text": "Mätaravläsningskvalitet. Obligatoriskt om värde i fält 516 har lägre kvalitet än godkänt. Se koder i SG11/STS.",
+    "locator_source": "SG11/STS+8/C555/4405",
+    "source": "U §3.7",
+    "page": 59,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-maximum_demand-521-60",
+    "field": "521",
+    "context": "maximum_demand",
+    "name_en": "Maximum Supplied Quantity",
+    "name_sv": "Maxeffektvärde",
+    "usage": {
+      "E30": "-",
+      "E66": "D",
+      "S07": "-"
+    },
+    "condition_text": "Maxeffektvärde (i kilowatt) Anges om maxeffektvärden skickas.",
+    "locator_source": "SG11/QTY+42/C186/606 0",
+    "source": "U §3.7",
+    "page": 60,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-maximum_demand-530b-60",
+    "field": "530b",
+    "context": "maximum_demand",
+    "name_en": "Processing date",
+    "name_sv": "Tidpunkt för effektvärde",
+    "usage": {
+      "E30": "-",
+      "E66": "D",
+      "S07": "-"
+    },
+    "condition_text": "Används när effektvärdet avser en specifik tidpunkt. Inte om effektvärdet uttrycks som maxeffektvärde över hela leveransperioden.",
+    "locator_source": "SG11/DTM+597/C507/23 80",
+    "source": "U §3.7",
+    "page": 60,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-maximum_demand-520-60",
+    "field": "520",
+    "context": "maximum_demand",
+    "name_en": "Meter reading quality",
+    "name_sv": "Kvantitetskvalitet",
+    "usage": {
+      "E30": "-",
+      "E66": "D",
+      "S07": "-"
+    },
+    "condition_text": "Mätaravläsningskvalitet. Obligatoriskt om värde i fält 521 har lägre kvalitet än godkänt. Se koder i SG11/STS.",
+    "locator_source": "SG11/STS+8/C555/4405",
+    "source": "U §3.7",
+    "page": 60,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-maximum_demand-259-60",
+    "field": "259",
+    "context": "maximum_demand",
+    "name_en": "Meter Time Frame",
+    "name_sv": "Tidsintervall",
+    "usage": {
+      "E30": "-",
+      "E66": "D",
+      "S07": "-"
+    },
+    "condition_text": "Tidsintervall som anger att effektvärdet är ett maxvärde. Giltig kod: E12 (Peak) Anges om maxeffektvärden skickas.",
+    "locator_source": "SG12/CAV/C889/7111 under SG12/CCI+++E07",
+    "source": "U §3.7",
+    "page": 60,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-aggregate_observations-516-61",
+    "field": "516",
+    "context": "aggregate_observations",
+    "name_en": "Periodic quantity reached",
+    "name_sv": "Uppnådd periodisk kvantitet",
+    "usage": {
+      "E31": "R",
+      "S01": "R",
+      "S05": "R"
+    },
+    "condition_text": "Kvantitet",
+    "locator_source": "SG11/QTY+136/C186/6 060",
+    "source": "U §3.7",
+    "page": 61,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-aggregate_observations-520-61",
+    "field": "520",
+    "context": "aggregate_observations",
+    "name_en": "Meter reading quality",
+    "name_sv": "Kvantitetskvalitet",
+    "usage": {
+      "E31": "D",
+      "S01": "D",
+      "S05": "D"
+    },
+    "condition_text": "Obligatoriskt om värde i fält 516 har lägre kvalitet än godkänt. Används ej för andelstal. Se koder i SG11/STS.",
+    "locator_source": "SG11/STS+8/C555/440 5",
+    "source": "U §3.7",
+    "page": 61,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-aggregate_observations-507b-61",
+    "field": "507b",
+    "context": "aggregate_observations",
+    "name_en": "Diverging number of Metering Points (different from default) används ej i ebIX",
+    "name_sv": "Avvikande antal mätpunkter",
+    "usage": {
+      "E31": "D",
+      "S01": "-",
+      "S05": "D"
+    },
+    "condition_text": "Anger faktiska antalet mätpunkter, anges om antal mätpunker avviker från ”default”-antal mätpunkter på transaktionsnivån (fält 507a). Används inte för aggregerade högupplösta mätvärden. Om fältet kan förekomma beror även på aktuell tidsserieprodukt (PC och PT).",
+    "locator_source": "SG12/CAV/C889/7110 under SG12/CCI+++Z01",
+    "source": "U §3.7",
+    "page": 61,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-311-62",
+    "field": "311",
+    "context": "request",
+    "name_en": "Application Reference",
+    "name_sv": "Application Reference",
+    "usage": {
+      "E72": "R",
+      "E73": "R",
+      "E74": "R",
+      "S06": "R"
+    },
+    "condition_text": "Ska vara den kod som gäller för det begärda meddelandet, se kapitel 3.7.1 och 3.7.2 ovan.",
+    "locator_source": "UNB/0026",
+    "source": "U §3.7",
+    "page": 62,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-312-62",
+    "field": "312",
+    "context": "request",
+    "name_en": "Association assigned code",
+    "name_sv": "Version",
+    "usage": {
+      "E72": "R",
+      "E73": "R",
+      "E74": "R",
+      "S06": "R"
+    },
+    "condition_text": "Aktuell version av Ediel-meddelandet.",
+    "locator_source": "UNH/S009/0057",
+    "source": "U §3.7",
+    "page": 62,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-202-62",
+    "field": "202",
+    "context": "request",
+    "name_en": "Document name code",
+    "name_sv": "Dokumentnamn, kod",
+    "usage": {
+      "E72": "R",
+      "E73": "R",
+      "E74": "R",
+      "S06": "R"
+    },
+    "condition_text": "UTILTS-meddelandetyp: E72, E73, E74 eller S06",
+    "locator_source": "BGM/C002/1001",
+    "source": "U §3.7",
+    "page": 62,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-203-62",
+    "field": "203",
+    "context": "request",
+    "name_en": "Document identifier",
+    "name_sv": "Dokument id",
+    "usage": {
+      "E72": "R",
+      "E73": "R",
+      "E74": "R",
+      "S06": "R"
+    },
+    "condition_text": "Unik identitet på hela UTILTS-medd.",
+    "locator_source": "BGM/C106/1004",
+    "source": "U §3.7",
+    "page": 62,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-204-62",
+    "field": "204",
+    "context": "request",
+    "name_en": "Message Function",
+    "name_sv": "Meddelandefunktion",
+    "usage": {
+      "E72": "R",
+      "E73": "R",
+      "E74": "R",
+      "S06": "R"
+    },
+    "condition_text": "Funktion, se kod i BGM",
+    "locator_source": "BGM/1225",
+    "source": "U §3.7",
+    "page": 62,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-313-62",
+    "field": "313",
+    "context": "request",
+    "name_en": "Request for acknowledgement",
+    "name_sv": "Kvittensbegäran",
+    "usage": {
+      "E72": "R",
+      "E73": "R",
+      "E74": "R",
+      "S06": "R"
+    },
+    "condition_text": "Begäran om APERAK",
+    "locator_source": "BGM/4343",
+    "source": "U §3.7",
+    "page": 62,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-205-62",
+    "field": "205",
+    "context": "request",
+    "name_en": "Message date",
+    "name_sv": "Meddelandedatum",
+    "usage": {
+      "E72": "R",
+      "E73": "R",
+      "E74": "R",
+      "S06": "R"
+    },
+    "condition_text": "Datum då UTILTS-medd skapas i applikationen, format enligt DTM",
+    "locator_source": "DTM+137/C507/2380",
+    "source": "U §3.7",
+    "page": 62,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-206-62",
+    "field": "206",
+    "context": "request",
+    "name_en": "Time zone",
+    "name_sv": "Tidzon",
+    "usage": {
+      "E72": "R",
+      "E73": "R",
+      "E74": "R",
+      "S06": "R"
+    },
+    "condition_text": "Tidzon anges som ”offset” till UTC.",
+    "locator_source": "DTM+735/C507/2380",
+    "source": "U §3.7",
+    "page": 62,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-501-62",
+    "field": "501",
+    "context": "request",
+    "name_en": "Sector area",
+    "name_sv": "Marknad",
+    "usage": {
+      "E72": "R",
+      "E73": "R",
+      "E74": "R",
+      "S06": "R"
+    },
+    "condition_text": "El eller gas, se kod i MKS",
+    "locator_source": "MKS/7293",
+    "source": "U §3.7",
+    "page": 62,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-502-62",
+    "field": "502",
+    "context": "request",
+    "name_en": "Phase/Domain",
+    "name_sv": "Skede",
+    "usage": {
+      "E72": "R",
+      "E73": "R",
+      "E74": "R",
+      "S06": "R"
+    },
+    "condition_text": "Aktuellt skede, se kod i MKS",
+    "locator_source": "MKS/C332/3496",
+    "source": "U §3.7",
+    "page": 62,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-207-62",
+    "field": "207",
+    "context": "request",
+    "name_en": "Sender",
+    "name_sv": "Avsändare",
+    "usage": {
+      "E72": "R",
+      "E73": "R",
+      "E74": "R",
+      "S06": "R"
+    },
+    "condition_text": "Juridisk avsändare, Ediel-id",
+    "locator_source": "SG2/NAD+MS/C082/3039",
+    "source": "U §3.7",
+    "page": 62,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-208-62",
+    "field": "208",
+    "context": "request",
+    "name_en": "Recipient",
+    "name_sv": "Mottagare",
+    "usage": {
+      "E72": "R",
+      "E73": "R",
+      "E74": "R",
+      "S06": "R"
+    },
+    "condition_text": "Juridisk mottagare, Ediel-id",
+    "locator_source": "SG2/NAD+MR/C082/3039",
+    "source": "U §3.7",
+    "page": 62,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-509-62",
+    "field": "509",
+    "context": "request",
+    "name_en": "Ancillary Role",
+    "name_sv": "Underordnad roll",
+    "usage": {
+      "E72": "R",
+      "E73": "R",
+      "E74": "R",
+      "S06": "R"
+    },
+    "condition_text": "Kod för den part som ej är ansvarig för det medde- lande som begärs, för UTILTS-Request blir det avsändarens roll, t ex leverantör, balansansvarig osv",
+    "locator_source": "SG2/NAD/3035",
+    "source": "U §3.7",
+    "page": 62,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-505-62",
+    "field": "505",
+    "context": "request",
+    "name_en": "Transaction id",
+    "name_sv": "Transaktionsnr",
+    "usage": {
+      "E72": "R",
+      "E73": "R",
+      "E74": "R",
+      "S06": "R"
+    },
+    "condition_text": "Avsändarens unika id på transaktionen. Används för att kunna referera till en specifik transaktion.",
+    "locator_source": "SG5/IDE+24/C206/7402",
+    "source": "U §3.7",
+    "page": 62,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-209-63",
+    "field": "209",
+    "context": "request",
+    "name_en": "Metering Point Id",
+    "name_sv": "Anläggningsid",
+    "usage": {
+      "E72": "R",
+      "E73": "D",
+      "E74": "-",
+      "S06": "-"
+    },
+    "condition_text": "Anläggningsid, nätägarens id alt GS1 (GSRN). Anges alltid i E73 såvida inte man begär mätvärden (E66) för ett reglerobjekt.",
+    "locator_source": "SG5/LOC+172/C517/3225",
+    "source": "U §3.7",
+    "page": 63,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-533-63",
+    "field": "533",
+    "context": "request",
+    "name_en": "Station group Id",
+    "name_sv": "Reglerobjektsid",
+    "usage": {
+      "E72": "-",
+      "E73": "D",
+      "E74": "-",
+      "S06": "D"
+    },
+    "condition_text": "Reglerobjektsid Används i E73 respektive S06 om man begär mätvärden (E66 resp. S01) för ett visst reglerobjekt.",
+    "locator_source": "SG5/LOC+175/C517/3225",
+    "source": "U §3.7",
+    "page": 63,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-260a-63",
+    "field": "260a",
+    "context": "request",
+    "name_en": "Metering grid area",
+    "name_sv": "Nätområdesid",
+    "usage": {
+      "E72": "O",
+      "E73": "D",
+      "E74": "D",
+      "S06": "D"
+    },
+    "condition_text": "Nätområdesid I E72 är fält 260a eller 260b+260c frivilligt att använda. Fält 260a används alltid i E74 om en S03 begärs. Fält 260a eller 260b+260c används i E74 då E31 begärs beroende på aktuell tidsserieprodukt (OT). Fält 260a används i S06 om S04 begärs. Fält 260a används i E73 om S02 begärs. Fält 260a eller 260b+260c används i E73 om E66 begärs. Fält 260a eller 260b+260c används i S06 om S01 begärs beroende på aktuell tidsserieprodukt (OT).",
+    "locator_source": "SG5/LOC+239/C517/3225",
+    "source": "U §3.7",
+    "page": 63,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-260b-63",
+    "field": "260b",
+    "context": "request",
+    "name_en": "Metering grid area – source",
+    "name_sv": "Nätområde – utmatning",
+    "usage": {
+      "E72": "O",
+      "E73": "D",
+      "E74": "D",
+      "S06": "D"
+    },
+    "condition_text": "Nätområdesid för utmatning Skickas alltid tillsammans med 260c Obligatoriskt i E74 om 513 = Exchange Ej aktuell i S06 om S04 begärs. Ej aktuell i E73 om S02 begärs. Ej aktuell i E74 om S03 begärs.",
+    "locator_source": "SG5/LOC+232/C517/3225",
+    "source": "U §3.7",
+    "page": 63,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-260c-63",
+    "field": "260c",
+    "context": "request",
+    "name_en": "Metering grid area – sink",
+    "name_sv": "Nätområde – inmatning",
+    "usage": {
+      "E72": "O",
+      "E73": "D",
+      "E74": "D",
+      "S06": "D"
+    },
+    "condition_text": "Nätområdesid för inmatning Skickas alltid tillsammans med 260b Obligatoriskt i E74 om 513 = Exchange Ej aktuell i S06 om S04 begärs. Ej aktuell i E73 om S02 begärs. Ej aktuell i E74 om S03 begärs.",
+    "locator_source": "SG5/LOC+233/C517/3225",
+    "source": "U §3.7",
+    "page": 63,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-262-64",
+    "field": "262",
+    "context": "request",
+    "name_en": "Balance Responsible",
+    "name_sv": "Balansansvarig",
+    "usage": {
+      "E72": "-",
+      "E73": "-",
+      "E74": "D",
+      "S06": "D"
+    },
+    "condition_text": "Balansansvarig Villkor om detta fält ska skickas eller inte är beroende på vilken tidsserieprodukt (OT) som är aktuell.",
+    "locator_source": "SG5/NAD+DDK//C082/3039",
+    "source": "U §3.7",
+    "page": 64,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-510-64",
+    "field": "510",
+    "context": "request",
+    "name_en": "Balance Supplier",
+    "name_sv": "Leverantör",
+    "usage": {
+      "E72": "-",
+      "E73": "-",
+      "E74": "D",
+      "S06": "-"
+    },
+    "condition_text": "Leverantör Villkor om detta fält ska skickas eller inte är beroende på vilken tidsserieprodukt (OT) som är aktuell.",
+    "locator_source": "SG5/NAD+DDQ//C082/3039",
+    "source": "U §3.7",
+    "page": 64,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-524-64",
+    "field": "524",
+    "context": "request",
+    "name_en": "Buyer",
+    "name_sv": "Köpare",
+    "usage": {
+      "E72": "-",
+      "E73": "-",
+      "E74": "-",
+      "S06": "D"
+    },
+    "condition_text": "Köpare Villkor om detta fält ska skickas eller inte är beroende på vilken tidsserieprodukt (OT) som är aktuell.",
+    "locator_source": "SG5/NAD+BY//C082/3039",
+    "source": "U §3.7",
+    "page": 64,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-525-64",
+    "field": "525",
+    "context": "request",
+    "name_en": "Seller",
+    "name_sv": "Säljare",
+    "usage": {
+      "E72": "-",
+      "E73": "-",
+      "E74": "-",
+      "S06": "D"
+    },
+    "condition_text": "Säljare Villkor om detta fält ska skickas eller inte är beroende på vilken tidsserieprodukt (OT) som är aktuell.",
+    "locator_source": "SG5/NAD+SE//C082/3039",
+    "source": "U §3.7",
+    "page": 64,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-526-64",
+    "field": "526",
+    "context": "request",
+    "name_en": "System operator",
+    "name_sv": "Systemansvarig",
+    "usage": {
+      "E72": "-",
+      "E73": "-",
+      "E74": "-",
+      "S06": "D"
+    },
+    "condition_text": "Systemansvarig Villkor om detta fält ska skickas eller inte är beroende på vilken tidsserieprodukt (OT) som är aktuell.",
+    "locator_source": "SG5/NAD+EZ//C082/3039",
+    "source": "U §3.7",
+    "page": 64,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-506-64",
+    "field": "506",
+    "context": "request",
+    "name_en": "Product identification",
+    "name_sv": "Produkt id",
+    "usage": {
+      "E72": "-",
+      "E73": "R",
+      "E74": "-",
+      "S06": "-"
+    },
+    "condition_text": "Generell produktkod, se koder i LIN",
+    "locator_source": "SG5/LIN/C212/7140",
+    "source": "U §3.7",
+    "page": 64,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-511-64",
+    "field": "511",
+    "context": "request",
+    "name_en": "Time series product används ej i ebIX",
+    "name_sv": "Tidsserieprodukt",
+    "usage": {
+      "E72": "-",
+      "E73": "-",
+      "E74": "R",
+      "S06": "R"
+    },
+    "condition_text": "Tidsserieprodukt Fem koder anges i enlighet med Svenska kraftnäts kodlista, fält 511a, 511b, 511c, 511d och 511e.",
+    "locator_source": "SG5/PIA+1/C212/7140 (x5)",
+    "source": "U §3.7",
+    "page": 64,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-245-64",
+    "field": "245",
+    "context": "request",
+    "name_en": "Delivery period",
+    "name_sv": "Leveransperiod",
+    "usage": {
+      "E72": "R",
+      "E73": "R",
+      "E74": "R",
+      "S06": "R"
+    },
+    "condition_text": "Begärd period för efterfrågade värden",
+    "locator_source": "SG5/DTM+324/C507/2380",
+    "source": "U §3.7",
+    "page": 64,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-223-64",
+    "field": "223",
+    "context": "request",
+    "name_en": "Reason for transaction",
+    "name_sv": "Anledning till transaktionen",
+    "usage": {
+      "E72": "R",
+      "E73": "R",
+      "E74": "R",
+      "S06": "R"
+    },
+    "condition_text": "Anledning till trans. = det som ska skickas i det begärda meddelandet",
+    "locator_source": "SG5/STS+7/C556/9013",
+    "source": "U §3.7",
+    "page": 64,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-503-64",
+    "field": "503",
+    "context": "request",
+    "name_en": "Reference function code används ej i ebIX",
+    "name_sv": "Referens till meddelandetyp",
+    "usage": {
+      "E72": "R",
+      "E73": "R",
+      "E74": "R",
+      "S06": "R"
+    },
+    "condition_text": "Referens till UTILTS-meddelandetyp, E30, E31, E66, S01, S02, S03, S04",
+    "locator_source": "SG6/RFF/1153",
+    "source": "U §3.7",
+    "page": 64,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-254-64",
+    "field": "254",
+    "context": "request",
+    "name_en": "Settlement method",
+    "name_sv": "Avräkningsmetod",
+    "usage": {
+      "E72": "-",
+      "E73": "-",
+      "E74": "R",
+      "S06": "-"
+    },
+    "condition_text": "”Profiled” eller ”Non-profiled”",
+    "locator_source": "SG7/CAV/C889/7111 under SG7/CCI+++E02",
+    "source": "U §3.7",
+    "page": 64,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-request-513-65",
+    "field": "513",
+    "context": "request",
+    "name_en": "Type of Metering Point",
+    "name_sv": "Typ av anläggningar",
+    "usage": {
+      "E72": "-",
+      "E73": "R",
+      "E74": "R",
+      "S06": "-"
+    },
+    "condition_text": "”Consumption”, ”Production” eller ”Exchange”",
+    "locator_source": "SG7/CAV/C889/7111 under SG7/CCI+++E12",
+    "source": "U §3.7",
+    "page": 65,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-311-66",
+    "field": "311",
+    "context": "error",
+    "name_en": "Application Reference",
+    "name_sv": "Application Reference",
+    "usage": {
+      "ERR": "R"
+    },
+    "condition_text": "Samma som i det kvitterade meddelandet",
+    "locator_source": "UNB/0026",
+    "source": "U §3.7",
+    "page": 66,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-312-66",
+    "field": "312",
+    "context": "error",
+    "name_en": "Association assigned code",
+    "name_sv": "Version",
+    "usage": {
+      "ERR": "R"
+    },
+    "condition_text": "Samma version som i det mottagna Ediel-meddelandet (var den versionen fel, skickas negativt APERAK).",
+    "locator_source": "UNH/S009/0057",
+    "source": "U §3.7",
+    "page": 66,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-202-66",
+    "field": "202",
+    "context": "error",
+    "name_en": "Document name code",
+    "name_sv": "Dokumentnamn, kod",
+    "usage": {
+      "ERR": "R"
+    },
+    "condition_text": "UTILTS-meddelandetyp: ERR",
+    "locator_source": "BGM/C002/1001",
+    "source": "U §3.7",
+    "page": 66,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-203-66",
+    "field": "203",
+    "context": "error",
+    "name_en": "Document identifier",
+    "name_sv": "Dokument id",
+    "usage": {
+      "ERR": "R"
+    },
+    "condition_text": "Unik identitet på hela UTILTS-medd.",
+    "locator_source": "BGM/C106/1004",
+    "source": "U §3.7",
+    "page": 66,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-204-66",
+    "field": "204",
+    "context": "error",
+    "name_en": "Message Function",
+    "name_sv": "Meddelandefunktion",
+    "usage": {
+      "ERR": "R"
+    },
+    "condition_text": "Funktion, se kod i BGM",
+    "locator_source": "BGM/1225",
+    "source": "U §3.7",
+    "page": 66,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-313-66",
+    "field": "313",
+    "context": "error",
+    "name_en": "Request for acknowledgement",
+    "name_sv": "Kvittensbegäran",
+    "usage": {
+      "ERR": "R"
+    },
+    "condition_text": "Begäran om APERAK",
+    "locator_source": "BGM/4343",
+    "source": "U §3.7",
+    "page": 66,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-205-66",
+    "field": "205",
+    "context": "error",
+    "name_en": "Message date",
+    "name_sv": "Meddelandedatum",
+    "usage": {
+      "ERR": "R"
+    },
+    "condition_text": "Datum då UTILTS-medd skapas i applikationen, format enligt DTM",
+    "locator_source": "DTM+137/C507/2380",
+    "source": "U §3.7",
+    "page": 66,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-206-66",
+    "field": "206",
+    "context": "error",
+    "name_en": "Time zone",
+    "name_sv": "Tidzon",
+    "usage": {
+      "ERR": "R"
+    },
+    "condition_text": "Tidzon anges som \"offset\" till UTC.",
+    "locator_source": "DTM+735/C507/2380",
+    "source": "U §3.7",
+    "page": 66,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-501-66",
+    "field": "501",
+    "context": "error",
+    "name_en": "Sector area",
+    "name_sv": "Marknad",
+    "usage": {
+      "ERR": "R"
+    },
+    "condition_text": "El eller gas, se kod i MKS (Samma som i det kvitterade meddelandet)",
+    "locator_source": "MKS/7293",
+    "source": "U §3.7",
+    "page": 66,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-502-66",
+    "field": "502",
+    "context": "error",
+    "name_en": "Phase/Domain",
+    "name_sv": "Skede",
+    "usage": {
+      "ERR": "R"
+    },
+    "condition_text": "Aktuellt skede, se kod i MKS (Samma som i det kvitterade meddelandet)",
+    "locator_source": "MKS/C332/3496",
+    "source": "U §3.7",
+    "page": 66,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-207-66",
+    "field": "207",
+    "context": "error",
+    "name_en": "Sender",
+    "name_sv": "Avsändare",
+    "usage": {
+      "ERR": "R"
+    },
+    "condition_text": "Juridisk avsändare, Ediel-id",
+    "locator_source": "SG2/NAD+MS/C082/3039",
+    "source": "U §3.7",
+    "page": 66,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-208-66",
+    "field": "208",
+    "context": "error",
+    "name_en": "Recipient",
+    "name_sv": "Mottagare",
+    "usage": {
+      "ERR": "R"
+    },
+    "condition_text": "Juridisk mottagare, Ediel-id",
+    "locator_source": "SG2/NAD+MR/C082/3039",
+    "source": "U §3.7",
+    "page": 66,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-509-66",
+    "field": "509",
+    "context": "error",
+    "name_en": "Ancillary Role",
+    "name_sv": "Underordnad roll",
+    "usage": {
+      "ERR": "R"
+    },
+    "condition_text": "Kod för den part som ej är ansvarig för meddelandet, för UTILTS ERR blir det avsändarens roll, t ex leverantör, balansansvarig osv, hämtas från mottaget meddelande.",
+    "locator_source": "SG2/NAD/3035",
+    "source": "U §3.7",
+    "page": 66,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-505-66",
+    "field": "505",
+    "context": "error",
+    "name_en": "Transaction id",
+    "name_sv": "Transaktionsnr",
+    "usage": {
+      "ERR": "R"
+    },
+    "condition_text": "Avsändarens unika id på UTILTS-ERR-transaktionen. Används för att i APERAK-svaret kunna referera till en specifik transaktion.",
+    "locator_source": "SG5/IDE+24/C206/7402",
+    "source": "U §3.7",
+    "page": 66,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-209-66",
+    "field": "209",
+    "context": "error",
+    "name_en": "Metering Point Id",
+    "name_sv": "Anläggningsid",
+    "usage": {
+      "ERR": "D"
+    },
+    "condition_text": "Anläggningsid från mottagen transaktion. Ska anges i ERR som svar på UTILTS med enskilda anläggningar (ej reglerobjekt).",
+    "locator_source": "SG5/LOC+172/C517/3225",
+    "source": "U §3.7",
+    "page": 66,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-533-66",
+    "field": "533",
+    "context": "error",
+    "name_en": "Station group Id",
+    "name_sv": "Reglerobjektsid",
+    "usage": {
+      "ERR": "D"
+    },
+    "condition_text": "Reglerobjektsid från mottagen transaktion. Ska anges i ERR som svar på UTILTS med reglerobjekt (gäller då svar på E66 eller S01).",
+    "locator_source": "SG5/LOC+175/C517/3225",
+    "source": "U §3.7",
+    "page": 66,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-260a-66",
+    "field": "260a",
+    "context": "error",
+    "name_en": "Metering grid area",
+    "name_sv": "Nätområdesid",
+    "usage": {
+      "ERR": "D"
+    },
+    "condition_text": "Nätområdesid, samma som i mottagen transaktion. Ska anges i ERR om det finns i mottagen transaktion och felet ej inträffade tidigare och omöjliggjorde att ange nätområdes-id i kvittensen.",
+    "locator_source": "SG5/LOC+239/C517/3225",
+    "source": "U §3.7",
+    "page": 66,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-260b-66",
+    "field": "260b",
+    "context": "error",
+    "name_en": "Metering grid area – source",
+    "name_sv": "Nätområde – utmatning",
+    "usage": {
+      "ERR": "D"
+    },
+    "condition_text": "Nätområdesid för utmatning, samma som i mottagen transaktion. Ska anges i ERR om det finns i mottagen transaktion och felet ej inträffade tidigare och omöjliggjorde att ange nätområdes-id i kvittensen.",
+    "locator_source": "SG5/LOC+232/C517/3225",
+    "source": "U §3.7",
+    "page": 66,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-260c-67",
+    "field": "260c",
+    "context": "error",
+    "name_en": "Metering grid area – sink",
+    "name_sv": "Nätområde – inmatning",
+    "usage": {
+      "ERR": "D"
+    },
+    "condition_text": "Nätområdesid för inmatning, samma som i mottagen transaktion. Ska anges i ERR om det finns i mottagen transaktion och felet ej inträffade tidigare och omöjliggjorde att ange nätområdes-id i kvittensen.",
+    "locator_source": "SG5/LOC+233/C517/3225",
+    "source": "U §3.7",
+    "page": 67,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-262-67",
+    "field": "262",
+    "context": "error",
+    "name_en": "Balance Responsible",
+    "name_sv": "Balansansvarig",
+    "usage": {
+      "ERR": "D"
+    },
+    "condition_text": "Samma som i mottagen transaktion. Ska anges i ERR om det finns i mottagen transaktion och felet ej inträffade tidigare och omöjliggjorde att ange balansansvarig i kvittensen.",
+    "locator_source": "SG5/NAD+DDK//C082/303 9",
+    "source": "U §3.7",
+    "page": 67,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-510-67",
+    "field": "510",
+    "context": "error",
+    "name_en": "Balance Supplier",
+    "name_sv": "Leverantör",
+    "usage": {
+      "ERR": "D"
+    },
+    "condition_text": "Samma som i mottagen transaktion. Ska anges i ERR om det finns i mottagen transaktion och felet ej inträffade tidigare och omöjliggjorde att ange leverantören i kvittensen.",
+    "locator_source": "SG5/NAD+DDQ//C082/303 9",
+    "source": "U §3.7",
+    "page": 67,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-524-67",
+    "field": "524",
+    "context": "error",
+    "name_en": "Buyer",
+    "name_sv": "Köpare",
+    "usage": {
+      "ERR": "D"
+    },
+    "condition_text": "Samma som i mottagen transaktion. Ska anges i ERR om det finns i mottagen transaktion och felet ej inträffade tidigare och omöjliggjorde att ange köparen i kvittensen.",
+    "locator_source": "SG5/NAD+BY//C082/3039",
+    "source": "U §3.7",
+    "page": 67,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-525-67",
+    "field": "525",
+    "context": "error",
+    "name_en": "Seller",
+    "name_sv": "Säljare",
+    "usage": {
+      "ERR": "D"
+    },
+    "condition_text": "Samma som i mottagen transaktion. Ska anges i ERR om det finns i mottagen transaktion och felet ej inträffade tidigare och omöjliggjorde att ange säljaren i kvittensen.",
+    "locator_source": "SG5/NAD+SE//C082/3039",
+    "source": "U §3.7",
+    "page": 67,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-526-67",
+    "field": "526",
+    "context": "error",
+    "name_en": "System operator",
+    "name_sv": "Systemansvarig",
+    "usage": {
+      "ERR": "D"
+    },
+    "condition_text": "Samma som i mottagen transaktion. Ska anges i ERR om det finns i mottagen transaktion och felet ej inträffade tidigare och omöjliggjorde att ange systemansvarig i kvittensen.",
+    "locator_source": "SG5/NAD+EZ//C082/3039",
+    "source": "U §3.7",
+    "page": 67,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-511-67",
+    "field": "511",
+    "context": "error",
+    "name_en": "Time series product",
+    "name_sv": "Tidsserieprodukt",
+    "usage": {
+      "ERR": "D"
+    },
+    "condition_text": "Samma som i mottagen transaktion. Ska anges i ERR om det finns i mottagen transaktion och felet ej inträffade tidigare och omöjliggjorde att ange tidsserieprodukten i kvittensen.",
+    "locator_source": "SG5/PIA+1/C212/7140 (x5)",
+    "source": "U §3.7",
+    "page": 67,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-245-67",
+    "field": "245",
+    "context": "error",
+    "name_en": "Delivery period",
+    "name_sv": "Leveransperiod",
+    "usage": {
+      "ERR": "D"
+    },
+    "condition_text": "Samma som i mottagen transaktion. Ska anges i ERR om det finns i mottagen transaktion och felet ej inträffade tidigare och omöjliggjorde att ange leveransperioden i kvittensen.",
+    "locator_source": "SG5/DTM+324/C507/2380",
+    "source": "U §3.7",
+    "page": 67,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-223-67",
+    "field": "223",
+    "context": "error",
+    "name_en": "Reason for transaction",
+    "name_sv": "Anledning till transaktionen",
+    "usage": {
+      "ERR": "D"
+    },
+    "condition_text": "Samma som i mottaget meddelande. Ska anges i ERR om det finns i mottagen transaktion och felet ej inträffade tidigare och omöjliggjorde att ange anledning till transaktionen i kvittensen.",
+    "locator_source": "SG5/STS+7/C556/9013",
+    "source": "U §3.7",
+    "page": 67,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-528-67",
+    "field": "528",
+    "context": "error",
+    "name_en": "Transaction Response Status code",
+    "name_sv": "Svarskod",
+    "usage": {
+      "ERR": "R"
+    },
+    "condition_text": "Alltid kod 41 (avvisad)",
+    "locator_source": "SG5/STS+E01/C555/4405",
+    "source": "U §3.7",
+    "page": 67,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-531-67",
+    "field": "531",
+    "context": "error",
+    "name_en": "Business Document Acceptance Status code",
+    "name_sv": "Avvisningsorsak",
+    "usage": {
+      "ERR": "R"
+    },
+    "condition_text": "Avvisningsorsak",
+    "locator_source": "SG5/STS+E01/C556/9013",
+    "source": "U §3.7",
+    "page": 67,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-503-67",
+    "field": "503",
+    "context": "error",
+    "name_en": "Reference function code",
+    "name_sv": "Referens till meddelandetyp",
+    "usage": {
+      "ERR": "R"
+    },
+    "condition_text": "Referens till UTILTS-meddelandetyp, tas från BGM/C106/1001 i mottaget meddelande",
+    "locator_source": "SG6/RFF/1153",
+    "source": "U §3.7",
+    "page": 67,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-504-68",
+    "field": "504",
+    "context": "error",
+    "name_en": "Reference to original message",
+    "name_sv": "Referens till meddelandeid",
+    "usage": {
+      "ERR": "R"
+    },
+    "condition_text": "Referens till urspr. UTILTS meddelandeid (från UTILTS BGM/C106/1004).",
+    "locator_source": "SG6/RFF/1154",
+    "source": "U §3.7",
+    "page": 68,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  },
+  {
+    "id": "UF-error-529-68",
+    "field": "529",
+    "context": "error",
+    "name_en": "Reference to Business Document",
+    "name_sv": "Referens till transaktionsnr",
+    "usage": {
+      "ERR": "R"
+    },
+    "condition_text": "Referens till transaktionsnr i mottagen transaktion från IDE/C206/7402",
+    "locator_source": "SG6/RFF+TN/1154",
+    "source": "U §3.7",
+    "page": 68,
+    "effective_from": "2026-10-01",
+    "status": "Källtabell avläst; ej runtimeverifierad"
+  }
+]

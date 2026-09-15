@@ -2,6 +2,8 @@
 import { applyCertifiedUtiltsAckPolicy } from '@/lib/ediel/rulebook/utiltsAckPolicy'
 import { getCustomerSiteById, getGridOwnerById, getMeteringPointById } from '@/lib/masterdata/db'
 import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
+import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { createEdielMessageEvent, getEdielMessageById, linkEdielMessage, updateEdielMessageStatus } from '@/lib/ediel/db'
 
@@ -341,6 +343,7 @@ export async function processInboundUtiltsMessage(params: {
   actorUserId: string
   edielMessageId: string
   testCaseCode?: string | null
+  canonicalPolicy?: CanonicalEdielPolicy | null
 }): Promise<UtiltsProcessResult> {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const message = await getEdielMessageById(params.edielMessageId)
@@ -359,7 +362,11 @@ export async function processInboundUtiltsMessage(params: {
   // normalized UTILTS facts. The final ACK decision is run again after canonical
   // business matching, because live/test must use the same production rule: object
   // identity/processability is validated before period/observation-count checks.
-  const provisionalRuntime = runUtiltsRuntimeForMessage(message)
+  const canonicalPolicy = params.canonicalPolicy ?? resolveCanonicalMessagePolicy(message)
+  if (!canonicalPolicy || canonicalPolicy.family !== 'UTILTS' || canonicalPolicy.code !== message.message_code || canonicalPolicy.direction !== 'inbound') {
+    throw new Error(`utilts_inbound_policy_context_mismatch:${message.id}`)
+  }
+  const provisionalRuntime = runUtiltsRuntimeForMessage(message, { canonicalPolicy })
   const transactionMatches = await matchUtiltsTransactionsForTenant({
     message,
     facts: provisionalRuntime.facts,
@@ -406,7 +413,7 @@ export async function processInboundUtiltsMessage(params: {
         : permissionProbeMessage.business_match_status,
   }
 
-  const runtime = runUtiltsRuntimeForMessage(runtimeSourceMessage)
+  const runtime = runUtiltsRuntimeForMessage(runtimeSourceMessage, { canonicalPolicy })
   const ackPlan = applyCertifiedUtiltsAckPolicy({
     runtime,
     testCaseCode: runtimeTestCaseCode,

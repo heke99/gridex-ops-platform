@@ -1,3 +1,17 @@
+# Current work — Ediel masterplan v2 alignment, 2026-09-15
+
+Status: PARTIAL. User supplied the full Ediel v2 masterplan and authorized implementation against Gridex OPS. This isolated branch is codex/ediel-masterplan-v2-alignment-20260915, based on PR310 head b9f732d28ceaf090e3b984e71d13a9cbd27f6408. It is a stacked Ediel change; preserve and continue the underlying PR310 database work recorded below.
+
+Immutable original specification: docs/ediel/masterplan-v2 (33 manifest entries plus original manifest). Implementation/evidence ledger: quality/audits/ediel-masterplan-v2/coverage.json; 121 rules and231 acceptance contracts retained, no full acceptance inferred from unit tests. Execution plan: docs/superpowers/plans/2026-09-15-ediel-masterplan-v2.md.
+
+Current batch repairs confirmed Z14N parent validation/rendering, UTILTS_ERR APERAK family/alias enforcement, shared UTILTS policy/date reuse, DSN quarantine including nested attachments/old parse rows, and uncertain SMTP outcomes including post-acceptance persistence errors. Independent reviews found additional bypass paths and the patch was extended. Exact final checks and publication are recorded in the batch verification report.
+
+Live Supabase was inspected read-only: gridex-ops-dev ledger279/latest20260904222450. No live database modification, external Ediel send, resend or production activation.
+
+Next action: verify/publish this reviewed Ediel batch, then reconcile the source-backed field327/325/date locator and per-object/register validation gaps; implement the remaining F0–F7 requirements in the ordered plan. Provider/service/beneficiary grants are not implemented or certified. Original G01–G07 evidence gates and underlying PR310 full native replay/schema/types/final CI/E2E remain open. Do not merge main or claim the whole masterplan complete from these bounded repairs.
+
+## Underlying PR310 continuation (preserved)
+
 # Current state — PR310, 2026-09-15
 
 Status: PARTIAL

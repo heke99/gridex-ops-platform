@@ -1,3 +1,4 @@
+import { isDeliveryStatusNotification } from './dsnClassifier'
 import {
   extractCanonicalEdifactPayload,
   parseCanonicalEdifactAst,
@@ -269,6 +270,8 @@ export function parseInboundEmailContent(input: {
   bodyText?: string | null
   attachmentText?: string | null
 }): ParsedEdifactEnvelope | null {
+  if (isDeliveryStatusNotification(input.rawEmail) || isDeliveryStatusNotification(input.bodyText) ||
+      isDeliveryStatusNotification(input.attachmentText)) return null
   const payload =
     extractCanonicalEdifactPayload(input.attachmentText) ??
     extractCanonicalEdifactPayload(input.bodyText) ??

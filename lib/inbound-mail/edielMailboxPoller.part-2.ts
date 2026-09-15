@@ -1,6 +1,7 @@
 // Extracted from edielMailboxPoller.ts; keep public imports on the facade module.
 import { ImapFlow } from "imapflow"
 import { createHash } from "crypto"
+import { isDeliveryStatusNotification } from './dsnClassifier'
 
 import { processInboundEmailMessage } from "@/lib/inbound-mail/edielInboundProcessor"
 
@@ -666,10 +667,23 @@ export async function processQueuedInboundProcessingJobs(
   return { processed, failed };
 }
 
+async function filterNonDsnInboundEmailIds(ids: string[]): Promise<string[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabaseService.from('inbound_email_messages')
+    .select('id,match_status,raw_email,body_text').in('id', ids);
+  if (error) throw error;
+  const safe = new Set(((data ?? []) as Array<Record<string, unknown>>)
+    .filter((row) => row.match_status !== 'dsn_transport_review' &&
+      !isDeliveryStatusNotification(stringOrNull(row.raw_email)) &&
+      !isDeliveryStatusNotification(stringOrNull(row.body_text)))
+    .map((row) => row.id));
+  return ids.filter((id) => safe.has(id));
+}
+
 export async function listEdielMessageIdsForInboundEmails(
   inboundEmailMessageIds: string[],
 ): Promise<string[]> {
-  const ids = Array.from(new Set(inboundEmailMessageIds.filter(Boolean)));
+  const ids = await filterNonDsnInboundEmailIds(Array.from(new Set(inboundEmailMessageIds.filter(Boolean))));
   if (ids.length === 0) return [];
 
   const { data, error } = await supabaseService
@@ -706,7 +720,7 @@ export async function listRecentParsedInboundEmailIds(limit = 50): Promise<strin
 export async function ensureDiagnosticEdielMessagesForInboundEmails(
   inboundEmailMessageIds: string[],
 ): Promise<string[]> {
-  const ids = Array.from(new Set(inboundEmailMessageIds.filter(Boolean)));
+  const ids = await filterNonDsnInboundEmailIds(Array.from(new Set(inboundEmailMessageIds.filter(Boolean))));
   if (ids.length === 0) return [];
 
   const existingIds = await listEdielMessageIdsForInboundEmails(ids);
@@ -792,7 +806,7 @@ export async function ensureDiagnosticEdielMessagesForInboundEmails(
   if (missingPayloadIds.length > 0) {
     const { data: inboundRows, error: inboundError } = await supabaseService
       .from("inbound_email_messages")
-      .select("id,company_id,environment,internet_message_id,from_address,to_address,subject,received_at,processing_status,match_status,error_message,raw_edifact_payload,body_text,message_family,message_code,created_at")
+      .select("id,company_id,environment,internet_message_id,from_address,to_address,subject,received_at,processing_status,match_status,error_message,raw_email,raw_edifact_payload,body_text,message_family,message_code,created_at")
       .in("id", missingPayloadIds);
     if (inboundError) throw inboundError;
 
@@ -812,6 +826,9 @@ export async function ensureDiagnosticEdielMessagesForInboundEmails(
     }
 
     for (const row of (inboundRows ?? []) as Array<Record<string, unknown>>) {
+      if (row.match_status === 'dsn_transport_review' ||
+          isDeliveryStatusNotification(stringOrNull(row.raw_email)) ||
+          isDeliveryStatusNotification(stringOrNull(row.body_text))) continue;
       const inboundId = typeof row.id === "string" ? row.id : null;
       if (!inboundId) continue;
       const attachments = attachmentsByEmail.get(inboundId) ?? [];

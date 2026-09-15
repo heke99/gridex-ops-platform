@@ -250,3 +250,6 @@ gone; exact new clone cause is unobserved. Added reviewed finite utility-error
 categories and early synthetic native clone qualification without changing
 permissions/sessions/clone semantics. Proof26, runtime19, lifecycle15, ledger8,
 preflight3, historical166 offline tests PASS. Full native/schema/types remain OPEN.
+
+
+2026-09-15 Ediel v2 repair batch: immutable specification imported; Z14N parent/render, UTILTS_ERR ACK, retained UTILTS policy/date, nested/legacy DSN quarantine and SMTP uncertainty repairs verified. Final Vitest218files/2127tests; tests/app TypeScript pass. Separate PRODAT rule regression still fails identically at baseline. Evidence: quality/audits/ediel-masterplan-v2/verification.md. Full plan/replay/schema/types/release remain PARTIAL; see sole current-state.md.

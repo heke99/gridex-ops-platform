@@ -6,6 +6,7 @@ import {
   type RulebookFieldRule,
 } from '@/lib/ediel/rulebook/fieldMatrix'
 import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
+import { isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
 
 function asRulebookFieldRule(value: unknown): RulebookFieldRule {
   return value as RulebookFieldRule
@@ -22,7 +23,13 @@ export function validateCanonicalPolicyFields(input: {
   rawSegments?: readonly string[] | null
   scope?: 'all' | 'dependent_only'
 }): EdielRulebookIssue[] {
-  const rules = input.policy.fieldRules.map(asRulebookFieldRule)
+  const rules = input.policy.fieldRules.map(asRulebookFieldRule).flatMap((rule): RulebookFieldRule[] => {
+    if (input.policy.family !== 'PRODAT' || !isProdatFieldInInapplicableParent({
+      messageCode: input.policy.code, subtype: input.policy.subtype, fieldNumber: rule.fieldNumber,
+    })) return [rule]
+    // Inbound extra information is ignored (§2.2); outbound must not carry it.
+    return input.policy.direction === 'outbound' ? [{ ...rule, requirement: 'forbidden' }] : []
+  })
   const matrixInput: FieldMatrixEvaluationInput = {
     family: input.policy.family,
     code: input.policy.code,

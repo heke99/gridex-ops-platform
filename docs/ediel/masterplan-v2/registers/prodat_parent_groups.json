@@ -1,0 +1,77 @@
+[
+  {
+    "group_id": "UD",
+    "field": "-",
+    "name_en": "End user",
+    "name_sv": "Elanvändare",
+    "usage": {
+      "Z01": "R",
+      "Z02": "R",
+      "Z03": "R",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "D",
+      "Z08": "R",
+      "Z09": "D",
+      "Z10": "-",
+      "Z13": "R",
+      "Z14": "D",
+      "Z15": "R",
+      "Z18": "R"
+    },
+    "notes": "Elanvändaren anges i Z06E, men inte i Z06F eller Z06G. Elanvändaren anges även i Z09E men inte i Z09B, Z09D, Z09F eller Z09G. Elanvändaren anges i Z14, utom i Z14N.",
+    "source_pages": [
+      22
+    ]
+  },
+  {
+    "group_id": "IT",
+    "field": "-",
+    "name_en": "Installation",
+    "name_sv": "Anläggning",
+    "usage": {
+      "Z01": "O",
+      "Z02": "R",
+      "Z03": "O",
+      "Z04": "R",
+      "Z05": "R",
+      "Z06": "R",
+      "Z08": "O",
+      "Z09": "-",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "D",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Anläggningsadressen anges alltid här i Z02, Z04, Z05, Z06, oavsett om den är samma eller inte som adressen för elanvändaren. Anläggningsadressen anges även i Z14 (utom Z14N), när den då skickas ska fält 233 och 234 vara med. Anläggningsadressen behöver inte finnas med i Z01, Z03 eller Z08.",
+    "source_pages": [
+      22
+    ]
+  },
+  {
+    "group_id": "IV",
+    "field": "-",
+    "name_en": "Invoicee",
+    "name_sv": "Fakturamottagare",
+    "usage": {
+      "Z01": "-",
+      "Z02": "-",
+      "Z03": "D",
+      "Z04": "D",
+      "Z05": "D",
+      "Z06": "D",
+      "Z08": "D",
+      "Z09": "D",
+      "Z10": "-",
+      "Z13": "-",
+      "Z14": "-",
+      "Z15": "-",
+      "Z18": "-"
+    },
+    "notes": "Fakturamottagare skall skickas om fakturamottagarens adress skiljer sig från elanvändarens adress. I Z09 kan fakturamottagare enbart anges för Z09E.",
+    "source_pages": [
+      23
+    ]
+  }
+]

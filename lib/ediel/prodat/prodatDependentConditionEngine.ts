@@ -3,6 +3,7 @@ import {
   PRODAT_26A_MESSAGE_CODES,
   type Prodat26AMessageCode,
 } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+import { isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
 
 export const PRODAT_26A_DEPENDENT_SOURCE_DOCUMENT =
   '260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B' as const
@@ -216,7 +217,9 @@ export function evaluateProdatDependentConditions(input: {
   return PRODAT_26A_DEPENDENT_CONDITION_REGISTRY
     .filter((entry) => entry.messageCode === messageCode)
     .map((entry) => {
-      const value = entry.predicate({
+      const value = isProdatFieldInInapplicableParent({
+        messageCode, subtype: normalized(facts.canonicalSubtype), fieldNumber: entry.fieldNumber,
+      }) ? false : entry.predicate({
         messageCode: entry.messageCode,
         fieldNumber: entry.fieldNumber,
         id: entry.id,

@@ -875,6 +875,7 @@ export async function processInboundEdielMessage(params: {
     await processInboundUtiltsMessage({
       actorUserId,
       edielMessageId: runtimeMessage.id,
+      canonicalPolicy: canonicalRuntime.decision.policy,
     });
     await applyInboundBusinessStateMachine({
       actorUserId,

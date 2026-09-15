@@ -2,6 +2,11 @@
 
 export type AperakEngineOutcome = 'positive' | 'negative'
 
+/** UTILTS_ERR is a storage alias for UTILTS with BGM ERR, not a P-family. */
+export function usesUtiltsAperakProfile(messageFamily: string): boolean {
+  return messageFamily === 'UTILTS' || messageFamily === 'UTILTS_ERR'
+}
+
 export type AperakEngineApplicationError = {
   ercCode: string
   fieldCode?: string | null
@@ -163,7 +168,8 @@ export function renderAperakEdiel(params: {
    */
   utiltsAcknowledgementReference?: string | null
 }): AperakEngineResult {
-  const isUtiltsSource = params.source.messageFamily === 'UTILTS'
+  const isUtiltsSource = usesUtiltsAperakProfile(params.source.messageFamily)
+  const sourceWireCode = params.source.messageCode === 'UTILTS_ERR' ? 'ERR' : params.source.messageCode
   const utiltsBgmCode = params.outcome === 'positive' ? '312' : '313'
   const bgmFunction = '34'
   const previousMessageReference =
@@ -180,7 +186,7 @@ export function renderAperakEdiel(params: {
         `BGM+${utiltsBgmCode}+${sanitizeEdifactToken(params.externalReference) ?? 'APERAK'}+9`,
         `DTM+137:${swedishDateTime()}:203`,
         'DTM+735:?+0100:406',
-        `DOC+${sanitizeEdifactToken(params.source.messageCode) ?? 'UTILTS'}:SVK:260+${previousMessageReference}`,
+        `DOC+${sanitizeEdifactToken(sourceWireCode) ?? 'UTILTS'}:SVK:260+${previousMessageReference}`,
         `NAD+MS+${sanitizeEdifactToken(params.source.receiverEdielId) ?? 'UNKNOWN'}:SVK:260`,
         `NAD+MR+${sanitizeEdifactToken(params.source.senderEdielId) ?? 'UNKNOWN'}:SVK:260`,
         'NAD+DDQ',
