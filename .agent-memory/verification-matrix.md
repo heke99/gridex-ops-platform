@@ -274,3 +274,5 @@ User authorized whole merge before next Ediel phase. Fresh native34989328503/job
 Published1849497413325385b080e33f2bbfffd4073f488f, reviewed treebd3bab442377206b7ecb1a34664c1383632f7c3c equality verified. Non-forced refs retain complete ancestry. GitHub confirms PR311 merged into PR310 branch; PR310 remains unmerged to main. Actual schema34998326163/frontier34998326022/OPS34998326584 started; no acceptance yet.
 
 Follow-up DSN lookup sharing independently reviewed; local service ratchet2402 unchanged PASS, DSN20 PASS, app/tests TypeScript PASS. Full Node22 Vitest218 files/2134 tests PASS. Schema exact267 mismatch has further closed counts/ordinal/hash diagnostics only; no acceptance or manifest change.
+
+Follow-up published01ee1d55e515dea336531a3f8820bdf9eafebaf0, exact reviewed treeac3de5c3f7cac10b78ee86adb63aff46c1cf0aae verified. New schema34999483634/tenant34999483625/OPS34999483575 queued/running. PR310 main merge remains false; next phase not started. Receipt stays on closed PR311 branch to preserve running310 evidence.
