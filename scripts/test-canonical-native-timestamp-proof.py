@@ -138,6 +138,64 @@ class BoundaryTests(unittest.TestCase):
             self.assertNotIn('--db-url', args); self.assertNotIn('-h', args)
             if 'psql' in args: self.assertIn('supabase_db_'+PROJECT, args)
 
+    def failed_clone_command(self, operation, stderr):
+        original = self.transport
+        def command(args, **options):
+            if operation in args:
+                original.calls.append((args, options))
+                if options.get('allow_failure') is not True:
+                    raise ValueError('NATIVE_COMMAND_FAILED')
+                return subprocess.CompletedProcess(args, 1, b'private output', stderr)
+            return original(args, **options)
+        self.target._run = command
+
+    def test_create_failures_have_closed_diagnostics_and_never_claim_ownership(self):
+        prefix = b'createdb: error: database creation failed: ERROR:  '
+        cases = (
+            (prefix+b'source database "postgres" is being accessed by other users\nDETAIL:  private connection details\n', 'SOURCE_DATABASE_IN_USE'),
+            (prefix+b'permission denied to copy database "postgres"\n', 'COPY_OWNER_DENIED'),
+            (prefix+b'permission denied to create database\n', 'CREATE_PERMISSION_DENIED'),
+            (prefix+b'private unknown failure\n', 'OTHER'),
+            (b'NOTICE: permission denied to create database\n'+prefix+b'unknown\n', 'OTHER'),
+            (prefix+b'permission denied to copy database "private_other"\n', 'OTHER'),
+            (prefix+b'permission denied to create database\n'+prefix+b'unknown\n', 'OTHER'),
+            (prefix+b'permission denied to create database private suffix\n', 'OTHER'),
+        )
+        for stderr, reason in cases:
+            with self.subTest(reason=reason):
+                self.failed_clone_command('createdb', stderr)
+                with self.assertRaises(ValueError) as error:
+                    self.target.clone('postgres', proof.CLONES[0])
+                self.assertEqual(str(error.exception), 'NATIVE_TIMESTAMP_CLONE_CREATE_'+reason)
+                self.assertNotIn(proof.CLONES[0], self.target._owned)
+                self.assertNotIn(proof.CLONES[0], self.transport.databases)
+
+    def test_failed_drop_preserves_ownership_for_cleanup_retry(self):
+        name = proof.CLONES[0]
+        self.target.clone('postgres', name)
+        owned = dict(self.target._owned)
+        self.failed_clone_command('dropdb', b'dropdb: error: database removal failed: ERROR: private failure\n')
+        with self.assertRaises(ValueError) as error:
+            self.target.drop_clone(name)
+        self.assertEqual(str(error.exception), 'NATIVE_TIMESTAMP_CLONE_DROP_OTHER')
+        self.assertEqual(self.target._owned, owned)
+        self.assertIn(name, self.transport.databases)
+        self.target._run = self.transport
+        self.target.drop_clone(name)
+        self.assertNotIn(name, self.target._owned)
+
+    def test_clone_diagnostics_are_exact_lifecycle_allowlist_values(self):
+        spec = importlib.util.spec_from_file_location('clone_diagnostic_lifecycle',
+            ROOT/'scripts/canonical-native-supabase-lifecycle.py')
+        lifecycle = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(lifecycle)
+        codes = ['NATIVE_TIMESTAMP_CLONE_CREATE_'+reason for reason in
+                 ('SOURCE_DATABASE_IN_USE','COPY_OWNER_DENIED','CREATE_PERMISSION_DENIED','OTHER')]
+        codes.append('NATIVE_TIMESTAMP_CLONE_DROP_OTHER')
+        for code in codes:
+            self.assertEqual(lifecycle.failure_code(ValueError(code), None), code)
+            self.assertIsNone(lifecycle.failure_code(ValueError(code+' private details'), None))
+
     def test_psql_stdin_is_an_explicit_script_for_transaction_mode(self):
         # PostgreSQL17 -1 requires -c or -f; bare piped stdin is insufficient.
         base = ['docker', 'exec', '-i', '-e', 'PGOPTIONS=-c search_path=public,extensions',

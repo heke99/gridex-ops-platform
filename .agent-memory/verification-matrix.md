@@ -253,3 +253,12 @@ Composite SQL characterization70ce549f job104370788695 SUCCESS with limited
 source/ledger admission and native readiness behavior reviewed without remaining
 findings. Offline auth group passes after explicit601/603 fixture partition;
 actual full native/schema/types/finalCI/merge remain OPEN. See PR310_FORWARD_SOURCE_PROMOTION_2026-09-15.md.
+
+2026-09-15 —163e8dfe published, fetched exact treece438cdd43a15fd90fea33142d1697f594ca68a4.
+Native70ce549f run34966099676/job104370788723 now fails at T8 restoration clone
+after its actual source/CLI ledger succeeds; error NATIVE_COMMAND_FAILED, exit1,
+command1449, cleanuptrue. Artifact10396872362. The prior SQL-NULL parse defect is
+gone; exact new clone cause is unobserved. Added reviewed finite utility-error
+categories and early synthetic native clone qualification without changing
+permissions/sessions/clone semantics. Proof26, runtime19, lifecycle15, ledger8,
+preflight3, historical166 offline tests PASS. Full native/schema/types remain OPEN.

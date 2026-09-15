@@ -4,13 +4,24 @@ Status: PARTIAL
 
 ## Active work and exact next action
 
-Publication base fd4fb9077d206ed2165fec0687ffb8f6b9a4ed87, tree
-48c271c5ef2613716311a17571afed18b840c8fe. Preserve its entire ancestry,
+Current bounded task: identify actual native clone failure with a short synthetic
+native preflight and closed utility-error categories before modifying semantics.
+70ce549f clean34966099676/job104370788723 completed FAILURE at T8 after source
+and real CLI ledger verification; prior NULL parse error is gone. Now original
+positive restoration succeeds but clone utility fails NATIVE_COMMAND_FAILED,
+exit1/command1449; all owned cleanup passes. Artifact10396872362 records this
+new boundary. It is not an auth or historical source SQL failure. Exact clone
+cause is not yet observed; do not guess, grant privileges or terminate sessions.
+The current163e8dfe native/independent-schema runs are pending. A short new
+clone-preflight reproduces on the same native bootstrap without the long prefix.
+
+Publication base163e8dfed6fb970db2d8455fd418bb84e151e309, exact tree
+ce438cdd43a15fd90fea33142d1697f594ca68a4, published and fetched with equality verified. Preserve its entire ancestry,
 including auth ec503fc, the514-source native compiler335f987f, explicit stdin
 82cb5d00, complete foundation admission61d6748e, clone NULL70ce549f, complete
 non-system snapshot80718722 and operational privilege qualification fd4fb907.
 
-Active work: integrate two genuine CLI-created, SQL-qualified forward sources
+The forward integration is published: two genuine CLI-created, SQL-qualified forward sources
 AFTER the unchanged144 foundation and514 historical timestamp inputs, through
 the existing live native Runner and owned portable target. The inventory is
 603 files, with all original601 path/hash pairs separately pinned unchanged.

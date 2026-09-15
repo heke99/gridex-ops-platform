@@ -142,6 +142,10 @@ def failure_code(error, historical):
         'LIVE_SYNC_NATIVE_LEDGER_REQUIRED', 'LIVE_SYNC_NATIVE_TARGET_REQUIRED',
         'NATIVE_TIMESTAMP_BOUND_UNIT_REQUIRED', 'NATIVE_TIMESTAMP_BYTES_REQUIRED',
         'NATIVE_TIMESTAMP_CLI_POSTIMAGE_EQUIVALENCE_REQUIRED', 'NATIVE_TIMESTAMP_CLONE_OWNERSHIP',
+        'NATIVE_TIMESTAMP_CLONE_CREATE_SOURCE_DATABASE_IN_USE',
+        'NATIVE_TIMESTAMP_CLONE_CREATE_COPY_OWNER_DENIED',
+        'NATIVE_TIMESTAMP_CLONE_CREATE_CREATE_PERMISSION_DENIED',
+        'NATIVE_TIMESTAMP_CLONE_CREATE_OTHER', 'NATIVE_TIMESTAMP_CLONE_DROP_OTHER',
         'NATIVE_TIMESTAMP_CLONE_REQUIRED', 'NATIVE_TIMESTAMP_COMPLETION_REQUIRED',
         'NATIVE_TIMESTAMP_CONTAINER_REQUIRED', 'NATIVE_TIMESTAMP_DATABASE_REQUIRED',
         'NATIVE_TIMESTAMP_DOCKER_COMMAND_REQUIRED', 'NATIVE_TIMESTAMP_EARLIER_LEDGER_CHANGED',
@@ -164,7 +168,7 @@ def failure_code(error, historical):
         'NATIVE_TIMESTAMP_SPLIT_SOURCE_REQUIRED', 'NATIVE_TIMESTAMP_SQL_ARGUMENT_REQUIRED',
         'NATIVE_TIMESTAMP_SQL_RESULT', 'NATIVE_TIMESTAMP_TRANSACTION_REQUIRED',
         'NATIVE_TIMESTAMP_TRANSACTION_TERMINATOR_REQUIRED', 'NATIVE_TIMESTAMP_UNIT_ACCOUNTING_REQUIRED',
-        'NATIVE_TIMESTAMP_UTF8_REQUIRED',
+        'NATIVE_TIMESTAMP_UTF8_REQUIRED', 'NATIVE_TIMESTAMP_CLONE_PREFLIGHT_REQUIRED',
     })
     historical_codes = {
         'NATIVE_ALIGNMENT68_FINAL_REQUIRED',
@@ -310,8 +314,8 @@ def load_historical_prefix():
     return module
 
 
-def run(*, historical_prefix=False):
-    if type(historical_prefix) is not bool:
+def run(*, historical_prefix=False, clone_preflight=False):
+    if type(historical_prefix) is not bool or type(clone_preflight) is not bool or (historical_prefix and clone_preflight):
         raise ValueError('EXACT_NATIVE_SCOPE_REQUIRED')
     if len(sys.argv) != 1 or os.environ.get('GITHUB_ACTIONS') != 'true':
         raise ValueError('DEDICATED_NATIVE_CI_REQUIRED')
@@ -420,6 +424,12 @@ def run(*, historical_prefix=False):
                           executedSqlSha256=hashlib.sha256(FIRST.encode()).hexdigest(),
                           idempotent=True,failedMigrationRolledBack=True,
                           failedMigrationNotRecorded=True,probeAcl=initial['probeAcl'])
+            if clone_preflight:
+                phase = 'SYNTHETIC_NATIVE_CLONE_PREFLIGHT'
+                spec = importlib.util.spec_from_file_location('native_clone_control',
+                    Path(__file__).with_name('canonical-native-clone-preflight.py'))
+                clone_module = importlib.util.module_from_spec(spec); spec.loader.exec_module(clone_module)
+                report['nativeClonePreflight'] = clone_module.qualify(command, sql, project)
             if historical_prefix:
                 phase = 'HISTORICAL_FIRST43_NATIVE_LEDGER'
                 # The failed synthetic file must not be retried ahead of the
@@ -519,7 +529,7 @@ def run(*, historical_prefix=False):
     return 0 if success else 1
 
 
-def run_guarded(*, historical_prefix=False):
+def run_guarded(*, historical_prefix=False, clone_preflight=False):
     """Keep cleanup signal handling when invoked by the ordinary replay entry."""
     def interrupted(*_):
         raise ValueError('NATIVE_INTERRUPTED')
@@ -527,6 +537,8 @@ def run_guarded(*, historical_prefix=False):
     try:
         for signum in previous:
             signal.signal(signum,interrupted)
+        if clone_preflight:
+            return run(historical_prefix=historical_prefix, clone_preflight=clone_preflight)
         return run(historical_prefix=historical_prefix)
     finally:
         for signum,handler in previous.items():

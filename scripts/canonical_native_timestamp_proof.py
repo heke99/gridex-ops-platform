@@ -19,6 +19,24 @@ CLONES = ('gridex_auth_legacy_dirty', 'gridex_auth_legacy_atomic',
           'gridex_native_timestamp_phase')
 
 
+def clone_create_failure(stderr, source):
+    """Classify one utility primary error; details and names remain private."""
+    primary = [line for line in stderr.splitlines()
+               if line.startswith((b'createdb: error:', b'ERROR:', b'FATAL:', b'PANIC:'))]
+    match = (re.fullmatch(rb'createdb: error: database creation failed: ERROR: *(.+)', primary[0])
+             if len(primary) == 1 else None)
+    if match:
+        messages = {
+            b'source database "'+source.encode()+b'" is being accessed by other users': 'SOURCE_DATABASE_IN_USE',
+            b'permission denied to copy database "'+source.encode()+b'"': 'COPY_OWNER_DENIED',
+            b'permission denied to create database': 'CREATE_PERMISSION_DENIED',
+        }
+        reason = messages.get(match[1], 'OTHER')
+    else:
+        reason = 'OTHER'
+    return 'NATIVE_TIMESTAMP_CLONE_CREATE_'+reason
+
+
 def load_live_sync():
     spec = importlib.util.spec_from_file_location('native_timestamp_live_sync',
         ROOT/'scripts/canonical-live-sync-proof.py')
@@ -134,7 +152,9 @@ class NativeTimestampTarget:
         if actual != owned:
             raise ValueError('NATIVE_TIMESTAMP_CLONE_OWNERSHIP')
         result = self._run(['docker', 'exec', self.name, 'dropdb', '-U', 'postgres',
-                            '--if-exists', '--force', database])
+                            '--if-exists', '--force', database], allow_failure=True)
+        if result.returncode != 0:
+            raise ValueError('NATIVE_TIMESTAMP_CLONE_DROP_OTHER')
         del self._owned[database]
         return result.stdout
 
@@ -147,7 +167,9 @@ class NativeTimestampTarget:
         if self._oid(database) is not None:
             raise ValueError('NATIVE_TIMESTAMP_PREEXISTING_CLONE')
         result = self._run(['docker', 'exec', self.name, 'createdb', '-U', 'postgres',
-                            '-T', source, database], timeout=120)
+                            '-T', source, database], timeout=120, allow_failure=True)
+        if result.returncode != 0:
+            raise ValueError(clone_create_failure(result.stderr, source))
         oid = self._oid(database)
         if oid is None:
             raise ValueError('NATIVE_TIMESTAMP_CLONE_OWNERSHIP')
