@@ -39,6 +39,32 @@ class InertPolicyTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'INERT_EXPECTED_POLICY_MISSING'):
             m.verify_delta(missing,after,rows)
 
+    def test_only_captured_policy_dependencies_may_disappear(self):
+        _,rows,_=m.selection()
+        policies={'policy/public.'+r['identity'][1]+'/'+r['identity'][2]:{} for r in rows}
+        dependency='dependency/policy fixed on table public.fixed/table public.fixed/a'
+        other='dependency/function retained()/table public.outside/n'
+        before=(dict(policies, **{dependency:'a',other:'n'}),{'rows':'same'})
+        after=({other:'n'},{'rows':'same'})
+        m.verify_delta(before,after,rows,[dependency])
+        with self.assertRaisesRegex(ValueError,'INERT_EXACT_POLICY_DELTA_REQUIRED'):
+            m.verify_delta(before,({},after[1]),rows,[dependency])
+        for invalid in ([dependency,dependency],['relation/public.outside'],['dependency/missing']):
+            with self.assertRaisesRegex(ValueError,'INERT_DEPENDENCY_SET_REQUIRED'):
+                m.verify_delta(before,after,rows,invalid)
+
+    def test_dependency_capture_is_scoped_to_exact_policy_objects(self):
+        from unittest.mock import Mock
+        _,rows,_=m.selection()
+        target=Mock()
+        target.sql.return_value='["dependency/fixed"]'
+        self.assertEqual(m.policy_dependencies(target,rows),['dependency/fixed'])
+        query=target.sql.call_args.args[1]
+        self.assertIn("d.classid='pg_policy'::regclass",query)
+        self.assertIn("n.nspname='public'",query)
+        for r in rows:
+            self.assertIn("('%s','%s')" % tuple(r['identity'][1:]),query)
+
     def test_changed_candidate_refused(self):
         with patch.object(m,'CANDIDATE_SHA','0'*64):
             with self.assertRaisesRegex(ValueError,'INERT_QUALIFICATION_SOURCE_REQUIRED'):m.selection()

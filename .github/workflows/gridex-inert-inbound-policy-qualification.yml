@@ -77,8 +77,9 @@ jobs:
         if: always()
         run: |
           python3 - <<'PY'
-          import importlib.util
+          import importlib.util, sys
           from pathlib import Path
+          sys.path.insert(0,str(Path('scripts').resolve()))
           path=Path('scripts/canonical-inert-inbound-policy-qualification.py').resolve()
           spec=importlib.util.spec_from_file_location('inert_cleanup',path)
           module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)

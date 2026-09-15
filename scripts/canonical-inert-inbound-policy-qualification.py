@@ -8,6 +8,7 @@ import copy
 import hashlib
 import importlib.util
 import json
+import re
 from pathlib import Path
 import sys
 
@@ -91,12 +92,36 @@ F14_COUNT="""select count(*) from pg_policy pol join pg_class c on c.oid=pol.pol
  where has_table_privilege(r.rolname,c.oid,'SELECT, INSERT, UPDATE, DELETE'));"""
 
 
-def verify_delta(before, after, records):
+def policy_dependencies(target, records):
+    pairs=[]
+    for record in records:
+        table, policy = record['identity'][1:]
+        if not all(re.fullmatch(r'[A-Za-z0-9_]+', value) for value in (table, policy)):
+            raise ValueError('INERT_DEPENDENCY_IDENTITY_REQUIRED')
+        pairs.append("('%s','%s')" % (table, policy))
+    query = """select coalesce(jsonb_agg(k order by k),'[]'::jsonb) from (
+      select 'dependency/'||pg_describe_object(d.classid,d.objid,d.objsubid)||'/'||
+        pg_describe_object(d.refclassid,d.refobjid,d.refobjsubid)||'/'||d.deptype::text as k
+      from pg_depend d join pg_policy p on d.classid='pg_policy'::regclass and p.oid=d.objid
+      join pg_class c on c.oid=p.polrelid join pg_namespace n on n.oid=c.relnamespace
+      where n.nspname='public' and (c.relname,p.polname) in (""" + ','.join(pairs) + ')) selected;'
+    return json.loads(target.sql(DATABASE, query, 'inert_policy_dependencies'))
+
+
+def verify_delta(before, after, records, dependencies=()):
     expected=copy.deepcopy(before)
     for r in records:
         key='policy/public.'+r['identity'][1]+'/'+r['identity'][2]
         if key not in expected[0]:
             raise ValueError('INERT_EXPECTED_POLICY_MISSING')
+        del expected[0][key]
+    if (type(dependencies) not in (list, tuple) or
+            any(type(key) is not str or not key.startswith('dependency/') for key in dependencies)
+            or len(set(dependencies)) != len(dependencies)):
+        raise ValueError('INERT_DEPENDENCY_SET_REQUIRED')
+    for key in dependencies:
+        if key not in expected[0]:
+            raise ValueError('INERT_DEPENDENCY_SET_REQUIRED')
         del expected[0][key]
     if after!=expected:
         raise ValueError('INERT_EXACT_POLICY_DELTA_REQUIRED')
@@ -139,10 +164,11 @@ def run():
             if snapshots.snapshot(target)!=before:
                 raise ValueError('INERT_REJECTION_NOT_ATOMIC')
             target.sql(DATABASE,restore,'inert_restore_'+str(i))
+        dependencies=policy_dependencies(target,records)
         before=snapshots.snapshot(target)
         target.sql(DATABASE,candidate,'inert_candidate',transaction=False)
         after=snapshots.snapshot(target)
-        verify_delta(before,after,records)
+        verify_delta(before,after,records,dependencies)
         if target.sql(DATABASE,F14_COUNT,'inert_green0').strip()!='0':
             raise ValueError('INERT_ZERO_POSTCONDITION_REQUIRED')
         target.sql(DATABASE,candidate,'inert_repeat',transaction=False)
