@@ -372,6 +372,8 @@ def run(*, historical_prefix=False, clone_preflight=False):
         from canonical_native_forward_runtime import programs as forward_programs
         forward_retained = retain_forward(ROOT)
         forward_programs(forward_retained)
+        from canonical_added_view_witness import retain as retain_added_views
+        view_retained = retain_added_views(ROOT)
     transport = load_transport()
     phase = 'PREFLIGHT'; created_network = False; attempted_start = False; success = False
     with tempfile.TemporaryDirectory(prefix=project+'-') as directory:
@@ -522,7 +524,7 @@ def run(*, historical_prefix=False, clone_preflight=False):
                 execute_foundation144(historical, native, sql, work, report)
                 phase = 'HISTORICAL_TIMESTAMP_NATIVE_LEDGER'
                 from canonical_native_timestamp_runtime import execute as execute_timestamp
-                execute_timestamp(command, native, sql, work, project, report, timestamp_plan, forward_retained)
+                execute_timestamp(command, native, sql, work, project, report, timestamp_plan, forward_retained, view_retained)
             success = True
         except Exception as error:
             report.update(outcome='BLOCKED',phase=phase,errorType=type(error).__name__)

@@ -209,19 +209,22 @@ def terminal_observer(controller, original, reference, before, result):
                     raise ValueError('SOURCE_RESTORATION_REQUIRED')
                 from canonical_forward_sources import FORWARD_SOURCES
                 forward = tail.forward_receipt
-                if (forward.get('executed') is not True or forward.get('inputsExecuted') != 5
-                        or len(forward.get('sources', [])) != 5
+                if (forward.get('executed') is not True or forward.get('inputsExecuted') != len(FORWARD_SOURCES)
+                        or len(forward.get('sources', [])) != len(FORWARD_SOURCES)
                         or any(entry.get('source') != path or entry.get('sourceSha256') != digest
                                or any(entry.get(flag) is not True for flag in ('executed','positiveAndRepeatVerified','rowsPreserved'))
                                for entry, (path, digest) in zip(forward['sources'], FORWARD_SOURCES))):
                     raise ValueError('FULL_SCHEMA_FORWARD_RECEIPT_REQUIRED')
                 import canonical_policy_actor_qualification as actors
                 actor_receipt = actors.validate_execution_receipt(tail.actor_receipt, native=False)
+                import canonical_added_view_witness as views
+                view_receipt = views.validate_execution_receipt(tail.view_receipt, native=False)
                 candidate = compare(reference, capture(handle, controller.DATABASE))
                 candidate.update(foundationApplied=controller.SCOPES['full'],
                                  timestampApplied=len(tail.selected),
-                                 forwardApplied=5,
+                                 forwardApplied=len(FORWARD_SOURCES),
                                  policyActorQualification=actor_receipt,
+                                 addedViewSourceWitness=view_receipt,
                                  forwardSources=[dict(source=path, sourceSha256=digest) for path,digest in FORWARD_SOURCES])
         except Exception:
             # Never publish exception strings, SQL, raw catalog values or paths.

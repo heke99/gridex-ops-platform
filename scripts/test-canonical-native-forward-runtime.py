@@ -38,7 +38,7 @@ class ForwardTests(unittest.TestCase):
         retained = sources.retain(ROOT)
         with patch.object(Path, 'read_bytes', side_effect=AssertionError('reopened source')):
             programs = forward.programs(retained)
-        self.assertEqual(len(programs), 5)
+        self.assertEqual(len(programs), 6)
         for ordinal, (original, program) in enumerate(zip(retained, programs), 1):
             body, transferred = compiler.transfer_outer(original.sql)
             self.assertTrue(transferred)
@@ -63,7 +63,7 @@ class ForwardTests(unittest.TestCase):
         return runner,program
 
     def test_negative_controls_require_exact_fault_and_restored_snapshot(self):
-        for ordinal,ledger in ((ordinal,ledger) for ordinal in (1,2,3,4,5) for ledger in (False,True)):
+        for ordinal,ledger in ((ordinal,ledger) for ordinal in (1,2,3,4,5,6) for ledger in (False,True)):
             with tempfile.TemporaryDirectory() as directory:
                 runner,program=self.failure_fixture(directory,ledger=ledger,ordinal=ordinal)
                 with patch.object(timestamp,'native_snapshot',side_effect=[({},[]),({},[])]):
@@ -95,7 +95,12 @@ class ForwardTests(unittest.TestCase):
         self.assertIn("pg_has_role('authenticated',c.relowner,'MEMBER')",remaining)
         self.assertIn("'white_label_platform_memberships'",remaining)
         self.assertIn("'ediel_test_run_locks'",remaining)
-        for ordinal in (0,6):
+        send_lock=forward.assertion(6)
+        self.assertIn("to_regclass('public.ediel_send_locks')",send_lock)
+        self.assertIn("'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN'",send_lock)
+        self.assertIn('has_any_column_privilege',send_lock)
+        self.assertIn("has_table_privilege('authenticated',c.oid,'SELECT')",send_lock)
+        for ordinal in (0,7):
             with self.assertRaisesRegex(ValueError,'FORWARD_SOURCE_ORDINAL_REQUIRED'):
                 forward.assertion(ordinal)
 

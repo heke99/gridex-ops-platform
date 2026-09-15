@@ -62,9 +62,9 @@ class QualificationTests(unittest.TestCase):
 
     def test_complete_prefix_requires_each_exact_forward_receipt(self):
         from canonical_forward_sources import FORWARD_SOURCES
-        self.assertEqual(len(FORWARD_SOURCES), 5)
+        self.assertEqual(len(FORWARD_SOURCES), 6)
         good = dict(foundationApplied=144, timestampApplied=514, forwardSources=dict(
-            executed=True, inputsExecuted=5, sources=[dict(source=p, sourceSha256=h,
+            executed=True, inputsExecuted=6, sources=[dict(source=p, sourceSha256=h,
                 executed=True, positiveAndRepeatVerified=True, rowsPreserved=True)
                 for p,h in FORWARD_SOURCES]))
         q._complete(good, False)

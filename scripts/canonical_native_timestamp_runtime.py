@@ -301,7 +301,24 @@ def qualify_equivalence(target, unit):
         target.drop_clone(original)
 
 
-def execute(command, native, sql, work, project, parent, plan, forward_retained):
+def execute_added_views(runner, retained, parent, forward_retained):
+    """Bind source witness execution to the live Runner's real files/ledger."""
+    from canonical_native_final_sql import admit_forward
+    import canonical_added_view_witness as views
+    admit_forward(runner, forward_retained, parent)
+    try:
+        receipt = views.validate_execution_receipt(
+            views.execute(runner.target, retained, parent), native=True)
+        admit_forward(runner, forward_retained, parent)
+    except BaseException:
+        if isinstance(parent.get('addedViewSourceWitness'), dict):
+            parent['addedViewSourceWitness']['verified'] = False
+        raise
+    parent['addedViewSourceWitness'] = receipt
+    return receipt
+
+
+def execute(command, native, sql, work, project, parent, plan, forward_retained, view_retained):
     import canonical_native_timestamp_sources as compiler
     from canonical_native_timestamp_proof import NativeTimestampTarget, execute_live_sync
     if ('historicalTimestampTail' in parent
@@ -310,6 +327,8 @@ def execute(command, native, sql, work, project, parent, plan, forward_retained)
         raise ValueError('NATIVE_TIMESTAMP_RETAINED_PLAN_REQUIRED')
     from canonical_native_forward_runtime import programs as forward_programs, execute as execute_forward
     forward_programs(forward_retained)
+    import canonical_added_view_witness as views
+    views.contract(view_retained)
     from canonical_native_final_sql import retain as retain_final_sql, execute as execute_final_sql
     final_sql = retain_final_sql(compiler.ROOT)
     import canonical_policy_actor_qualification as actors
@@ -403,6 +422,7 @@ def execute(command, native, sql, work, project, parent, plan, forward_retained)
         execute_final_sql(runner, final_sql, parent, forward_retained)
         parent['policyActorQualification'] = actors.validate_execution_receipt(
             actors.execute(target, actor_retained, parent), native=True)
+        execute_added_views(runner, view_retained, parent, forward_retained)
         runner.unchanged()
         from canonical_native_schema_reference import compare as compare_native_schema
         parent['_nativeSchemaComparison'] = compare_native_schema(runner, forward_retained, parent)

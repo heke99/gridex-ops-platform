@@ -9,6 +9,7 @@ from unittest.mock import Mock, patch
 
 import canonical_native_schema_reference as m
 from canonical_native_final_sql import PINS
+from canonical_forward_sources import FORWARD_SOURCES
 
 
 class Tests(unittest.TestCase):
@@ -17,12 +18,14 @@ class Tests(unittest.TestCase):
         runner = SimpleNamespace(target=target, unchanged=Mock(), entries=['actual-ledger'])
         parent = dict(nativeFinalSql=dict(verified=True, checks=[dict(source=path,sourceSha256=sha,
             verified=True,catalogAndRowsPreserved=True,ledgerUnchanged=True) for path,sha in PINS.items()]),
-            forwardSources=dict(inputsExecuted=4))
+            forwardSources=dict(inputsExecuted=len(FORWARD_SOURCES)))
         comparator = Mock()
         import canonical_policy_actor_qualification as actors
         parent['policyActorQualification'] = dict(actors.expected_result(), source=actors.SOURCE,
             sourceSha256=actors.SOURCE_SHA256, completePolicyContextSha256='a'*64,
             catalogAndRowsPreserved=True,nativeTarget=True,ledgerProvenanceAccepted=False)
+        import canonical_added_view_witness as views
+        parent['addedViewSourceWitness']=views.expected_receipt(views.contract(views.retain(views.ROOT)),native=True)
         comparator.pinned.return_value = {'supabase/schema.sql': b'exact-reference'}
         comparator.compare.return_value = dict(schemaAccepted=False, generatedTypesVerified=False)
         comparator.capture.return_value = dict(relations=[dict(nspname="public",relname="gridex_native_lifecycle_probe")])
@@ -40,11 +43,13 @@ class Tests(unittest.TestCase):
         runner.unchanged.assert_called_once()
 
     def test_missing_final_sql_or_real_ledger_blocks_reference_restore(self):
-        for defect in ('checks', 'hash', 'ledger', 'actor'):
+        for defect in ('checks', 'hash', 'ledger', 'actor', 'views', 'view_hash'):
             runner, parent, comparator = self.fixture()
             if defect == 'checks': parent['nativeFinalSql']['checks'].pop()
             if defect == 'hash': parent['nativeFinalSql']['checks'][0]['sourceSha256']='bad'
             if defect == 'actor': parent['policyActorQualification']={}
+            if defect == 'views': parent['addedViewSourceWitness']={}
+            if defect == 'view_hash':parent['addedViewSourceWitness']['views'][-1]['relationSha256']='0'*64
             with patch('canonical_native_final_sql.admit_forward',side_effect=ValueError('ledger') if defect=='ledger' else None), patch.object(m,'load_comparator',return_value=comparator):
                 with self.assertRaises(ValueError): m.compare(runner, (), parent)
             comparator.isolated_reference.assert_not_called()

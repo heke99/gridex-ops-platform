@@ -442,7 +442,8 @@
     "20260909120100_canonical_invitation_status_index_reconstruction.sql": "1ab9a6bf09953d87a898235e4425b85739286e2c3bcb15987a0d75770c6c3705",
     "20260909120200_canonical_role_permission_identity_reconstruction.sql": "03bec0a08fb0852bf7cdad8c96f01fe509bd6a7c970793a6db2fd4230c49dca1",
     "20260910140053_canonical_auth_provisioning_legacy_boundary.sql": "fcc6594b1b312e139ac094b811fee9395ee6ab780144d14d1c19e0c178a28983",
-    "20260915140647_restrict_remaining_rls_table_truncate.sql": "cf85df9d7339e5368ceac7567b720dfa26cc2bf51fe2cd0f19b79b3af7eaab2b"
+    "20260915140647_restrict_remaining_rls_table_truncate.sql": "cf85df9d7339e5368ceac7567b720dfa26cc2bf51fe2cd0f19b79b3af7eaab2b",
+    "20260915144319_restrict_ediel_send_lock_client_writes.sql": "411df92fc01f8b84dd9a83600464594e76a4841d48928d52dfadfd97b3177705"
   },
   "generatedAt": "2026-08-04T07:35:00.000Z",
   "schemaVersion": 1

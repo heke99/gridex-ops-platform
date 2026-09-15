@@ -11,6 +11,7 @@ import shutil
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
+from canonical_forward_sources import FORWARD_SOURCES
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('full_reference', ROOT/'scripts/canonical-full-schema-reference.py')
@@ -146,14 +147,20 @@ class ShellObservationTests(unittest.TestCase):
     def fixture(self):
         dedupe = SimpleNamespace(require_live=Mock(), _STATES={}, fail=None)
         # Match the real controller frame boundary, not an arbitrary callback.
-        def shell(h, observer, scope='full', state='executed', applied=True, status=1):
+        def shell(h, observer, scope='full', state='executed', applied=True, status=1, view_defect=None):
             from canonical_forward_sources import FORWARD_SOURCES
-            forward = dict(executed=True, inputsExecuted=5, sources=[dict(source=path,sourceSha256=digest,
+            forward = dict(executed=True, inputsExecuted=len(FORWARD_SOURCES), sources=[dict(source=path,sourceSha256=digest,
                 executed=True,positiveAndRepeatVerified=True,rowsPreserved=True) for path,digest in FORWARD_SOURCES])
             import canonical_policy_actor_qualification as actors
             receipt=dict(actors.expected_result(),source=actors.SOURCE,sourceSha256=actors.SOURCE_SHA256,
                 completePolicyContextSha256='a'*64,catalogAndRowsPreserved=True,nativeTarget=False,ledgerProvenanceAccepted=False)
-            tail = SimpleNamespace(state=state, selected=[('test.sql', 'hash')], forward_receipt=forward, actor_receipt=receipt)
+            import canonical_added_view_witness as views
+            view_receipt=views.expected_receipt(views.contract(views.retain(ROOT)),native=False)
+            if view_defect=='missing':view_receipt=None
+            if view_defect=='unverified':view_receipt['verified']=False
+            if view_defect=='hash':view_receipt['views'][-1]['relationSha256']='0'*64
+            tail = SimpleNamespace(state=state, selected=[('test.sql', 'hash')], forward_receipt=forward, actor_receipt=receipt,
+                                   view_receipt=view_receipt)
             loop = SimpleNamespace(applied=applied)
             child = SimpleNamespace(poll=lambda:status)
             return observer(h)
@@ -198,7 +205,7 @@ class ShellObservationTests(unittest.TestCase):
         self.assertIs(result['cleanupVerified'], True)
         self.assertIs(result['schemaAccepted'], False)
         self.assertEqual(result['timestampApplied'], 1)
-        self.assertEqual(result['forwardApplied'], 5)
+        self.assertEqual(result['forwardApplied'], len(FORWARD_SOURCES))
 
     def test_capture_must_precede_original_privacy_and_disposal(self):
         controller, dedupe, target, original, result = self.fixture()
@@ -215,6 +222,16 @@ class ShellObservationTests(unittest.TestCase):
         self.assertTrue(result['databaseDisposed'])
         self.assertTrue(target.active)  # owning runtime closes in controller.main
         self.assertNotIn('cleanupVerified', result)
+
+    def test_missing_or_forged_view_receipt_prevents_catalog_collection(self):
+        for defect in ('missing','unverified','hash'):
+            controller,dedupe,target,original,result=self.fixture()
+            observer=m.terminal_observer(controller,original,document(),'original-bytes',result)
+            with patch.object(m,'capture') as capture:
+                controller._serve_child(target,observer,view_defect=defect)
+            capture.assert_not_called()
+            original.assert_called_once()
+            self.assertEqual(result['collectionOutcome'],'EVIDENCE_UNAVAILABLE')
 
     def test_wrong_scope_incomplete_or_running_shell_never_captures(self):
         for kwargs in ({'scope':'intake77'}, {'state':'running'}, {'state':'failed'},

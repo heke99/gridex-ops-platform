@@ -8,6 +8,20 @@ import canonical_native_live_sync_preflight as m
 
 
 class Tests(unittest.TestCase):
+    def test_server_crash_markers_are_closed_and_owner_bound(self):
+        target=Mock(name='target');target.name='owned-container';target.assert_native_owned=Mock()
+        target._run.return_value=SimpleNamespace(returncode=0,stdout=b'',stderr=(
+            b'LOG: server process (PID 123) was terminated by signal 11: Segmentation fault\n'
+            b'DETAIL: Failed process was running: private SQL and private identity\n'
+            b'LOG: terminating any other active server processes\nLOG: reinitializing\n'))
+        self.assertEqual(m.server_failure_diagnostic(target),dict(collected=True,
+            signals=['OTHER_BACKENDS_TERMINATED','SERVER_REINITIALIZING','SIGNAL_11']))
+        target._run.assert_called_once_with(['docker','logs','--tail','200','owned-container'],
+                                            timeout=30,allow_failure=True)
+        target._run.reset_mock();target.assert_native_owned.side_effect=ValueError('private error')
+        self.assertEqual(m.server_failure_diagnostic(target),dict(collected=False,signals=['COLLECTION_FAILED']))
+        target._run.assert_not_called()
+
     def test_contract_is_exact_forward_definition_and_hardening_acl(self):
         accepted, pins=m.contract()
         self.assertEqual(accepted['execute'],dict(anon=False,authenticated=True,service_role=True))

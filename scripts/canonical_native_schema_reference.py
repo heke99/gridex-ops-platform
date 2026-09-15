@@ -28,6 +28,8 @@ def compare(runner, retained_forward, parent):
         raise ValueError('NATIVE_SCHEMA_FINAL_SQL_REQUIRED')
     import canonical_policy_actor_qualification as actors
     actor_receipt = actors.validate_execution_receipt(parent.get('policyActorQualification'), native=True)
+    import canonical_added_view_witness as views
+    view_receipt = views.validate_execution_receipt(parent.get('addedViewSourceWitness'), native=True)
     module = load_comparator()
     raw = module.pinned()['supabase/schema.sql']
     before = runner.target.snapshot()
@@ -47,6 +49,7 @@ def compare(runner, retained_forward, parent):
                   forwardInputsExecuted=parent['forwardSources']['inputsExecuted'],
                   actualLedgerRows=len(runner.entries), cleanupVerified=False,
                   policyActorQualification=actor_receipt,
+                  addedViewSourceWitness=view_receipt,
                   syntheticLifecycleProbeStillPresent=any(
                       row["nspname"] == "public" and row["relname"] == "gridex_native_lifecycle_probe"
                       for row in actual["relations"]))

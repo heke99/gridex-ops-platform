@@ -153,7 +153,7 @@ class ForwardSourcesTests(unittest.TestCase):
         original=copy.deepcopy(current)
         historical=forward.historical_fixture_accounting(current)
         self.assertEqual(current,original)
-        self.assertEqual((historical['totalMigrations'],historical['currentInventoryTotal']),(601,606))
+        self.assertEqual((historical['totalMigrations'],historical['currentInventoryTotal']),(601,607))
         self.assertEqual(historical['selectedInputCounts'],dict(foundation=144,timestamp=514))
         self.assertEqual(historical['counts']['FULL_FILE_SELECTED'],589)
         mutations=[]

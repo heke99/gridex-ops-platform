@@ -1,4 +1,4 @@
-"""Apply exactly five reviewed forward sources after the complete retained prefix.
+"""Apply exactly six reviewed forward sources after the complete retained prefix.
 
 Uses the already admitted, live CLI Runner. No connection override, historical
 ledger alias, source rewrite, schema acceptance or typegen shortcut is provided.
@@ -158,6 +158,13 @@ def assertion(ordinal):
           'status_transition_rules','tenant_email_domains','tenant_email_sender_profiles',
           'tenant_governance_events','white_label_platform_memberships','white_label_platforms']) t(name)
           JOIN pg_class c ON c.oid=to_regclass('public.'||t.name))"""
+    if ordinal == 6:
+        return """(SELECT count(*)=1 AND bool_and(c.relkind='r' AND c.relrowsecurity
+          AND NOT c.relforcerowsecurity AND NOT pg_has_role('authenticated',c.relowner,'MEMBER')
+          AND has_table_privilege('authenticated',c.oid,'SELECT')
+          AND NOT has_table_privilege('authenticated',c.oid,'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN')
+          AND NOT has_any_column_privilege('authenticated',c.oid,'INSERT,UPDATE,REFERENCES'))
+          FROM pg_class c WHERE c.oid=to_regclass('public.ediel_send_locks'))"""
     raise ValueError('FORWARD_SOURCE_ORDINAL_REQUIRED')
 
 

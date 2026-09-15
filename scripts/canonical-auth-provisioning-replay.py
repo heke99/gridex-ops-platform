@@ -369,6 +369,8 @@ class OwnedTimestampTail:
         self.forward_retained = forward.retain(ROOT)
         import canonical_policy_actor_qualification as actors
         self.actor_retained = actors.retain(ROOT)
+        import canonical_added_view_witness as views
+        self.view_retained = views.retain(ROOT)
         self.target = target
         self.state = 'prepared'
 
@@ -395,13 +397,18 @@ class OwnedTimestampTail:
             from canonical_forward_portable import execute as execute_forward
             execute_forward(self.target, self.forward_retained, progress)
             self.forward_receipt = progress['forwardSources']
-            if (self.forward_receipt.get('executed') is not True or self.forward_receipt.get('inputsExecuted') != 5
+            from canonical_forward_sources import FORWARD_SOURCES
+            if (self.forward_receipt.get('executed') is not True or self.forward_receipt.get('inputsExecuted') != len(FORWARD_SOURCES)
                     or list((ROOT/'supabase/migrations').glob('*.sql'))):
                 raise RuntimeError('OWNED_FORWARD_COMPLETION_REQUIRED')
             import canonical_policy_actor_qualification as actors
             self.actor_receipt = actors.validate_execution_receipt(
                 actors.execute(self.target, self.actor_retained, progress), native=False)
             progress['policyActorQualification'] = self.actor_receipt
+            import canonical_added_view_witness as views
+            self.view_receipt = views.validate_execution_receipt(
+                views.execute(self.target, self.view_retained, progress), native=False)
+            progress['addedViewSourceWitness'] = self.view_receipt
         except BaseException:
             self.state = 'failed'
             raise

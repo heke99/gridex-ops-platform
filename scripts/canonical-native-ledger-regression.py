@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import patch
 import canonical_native_timestamp_sources as timestamp_sources
 import canonical_forward_sources as forward_sources
+import canonical_added_view_witness as views
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -85,6 +86,7 @@ class HistoricalDiagnosticTests(unittest.TestCase):
         # these deliberately failing foundation diagnostics.
         cls.timestamp_plan = timestamp_sources.prepare()
         cls.forward_retained = forward_sources.retain(ROOT)
+        cls.view_retained = views.retain(ROOT)
 
     def test_known_prefix_code_is_preserved_without_formatting_exception(self):
         historical = lifecycle.load_historical_prefix()
@@ -110,6 +112,20 @@ class HistoricalDiagnosticTests(unittest.TestCase):
                          'NATIVE_COMMAND_FAILED')
         self.assertIsNone(lifecycle.failure_code(ValueError('NATIVE_COMMAND_FAILED private SQL literal'), None))
 
+    def test_invalid_view_source_stops_before_native_transport_or_database_start(self):
+        fake=SimpleNamespace(prepare=lambda:())
+        with patch.dict(lifecycle.os.environ,{'GITHUB_ACTIONS':'true','GITHUB_RUN_ID':'12345','GITHUB_RUN_ATTEMPT':'1'}), \
+             patch.object(lifecycle.sys,'argv',['lifecycle']), \
+             patch.object(lifecycle.shutil,'which',return_value='/fixture/supabase'), \
+             patch.object(lifecycle,'load_historical_prefix',return_value=fake), \
+             patch.object(timestamp_sources,'prepare',return_value=self.timestamp_plan), \
+             patch.object(forward_sources,'retain',return_value=self.forward_retained), \
+             patch.object(views,'retain',side_effect=ValueError('ADDED_VIEW_WITNESS_SOURCE_REQUIRED')), \
+             patch.object(lifecycle,'load_transport') as transport:
+            with self.assertRaisesRegex(ValueError,'ADDED_VIEW_WITNESS_SOURCE_REQUIRED'):
+                lifecycle.run(historical_prefix=True)
+        transport.assert_not_called()
+
     def historical_failure(self, message):
         historical = lifecycle.load_historical_prefix()
         def execute(*args):
@@ -123,6 +139,7 @@ class HistoricalDiagnosticTests(unittest.TestCase):
         with patch.object(lifecycle, 'load_historical_prefix', return_value=fake), \
              patch.object(timestamp_sources, 'prepare', return_value=self.timestamp_plan), \
              patch.object(forward_sources, 'retain', return_value=self.forward_retained), \
+             patch.object(views, 'retain', return_value=self.view_retained), \
              patch.object(lifecycle.provider_events, 'bootstrap', return_value=lifecycle.provider_events.receipt()), \
              patch.object(lifecycle, 'run', side_effect=lambda: original(historical_prefix=True)):
             return lifecycle_tests.NativeTests().execute_fixture()

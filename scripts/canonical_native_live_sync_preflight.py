@@ -7,6 +7,7 @@ fixture; it never forges a full historical prefix or a live-sync CLI receipt.
 import hashlib
 import importlib.util
 import json
+import re
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -76,6 +77,30 @@ def cleanup_failure(exc,target):
     return report
 
 
+def server_failure_diagnostic(target):
+    """Read only the owned server's bounded log; export finite crash markers."""
+    try:
+        target.assert_native_owned()
+        result=target._run(['docker','logs','--tail','200',target.name],
+                           timeout=30,allow_failure=True)
+        raw=result.stdout+b'\n'+result.stderr
+        signals=[]
+        for number in (6,9,11):
+            if re.search(rb'terminated by signal '+str(number).encode()+rb'\b',raw):
+                signals.append('SIGNAL_'+str(number))
+        markers={b'reinitializing':'SERVER_REINITIALIZING',
+                 b'terminating any other active server processes':'OTHER_BACKENDS_TERMINATED',
+                 b'was interrupted':'DATABASE_INTERRUPTED',
+                 b'permission denied for function':'FUNCTION_PERMISSION_DENIED',
+                 b'out of memory':'OUT_OF_MEMORY',
+                 b'stack depth limit exceeded':'STACK_DEPTH_LIMIT',
+                 b'ready to accept connections':'SERVER_READY'}
+        signals.extend(label for marker,label in markers.items() if marker in raw.lower())
+        return dict(collected=result.returncode==0,signals=sorted(signals) or ['OTHER'])
+    except Exception:
+        return dict(collected=False,signals=['COLLECTION_FAILED'])
+
+
 def verify(command,project,parent):
     if 'nativeLiveSyncBehavior' in parent:
         raise ValueError('NATIVE_LIVE_SYNC_PREFLIGHT_ONCE_REQUIRED')
@@ -100,6 +125,7 @@ def verify(command,project,parent):
     except Exception:
         if target._last_sql_failure is not None:
             report['nativeSqlFailure']=dict(target._last_sql_failure)
+            report['serverFailureDiagnostic']=server_failure_diagnostic(target)
         raise
     finally:
         target._recent_sql_failure=None

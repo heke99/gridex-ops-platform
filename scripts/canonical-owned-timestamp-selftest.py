@@ -11,6 +11,7 @@ import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
+from canonical_forward_sources import FORWARD_SOURCES
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('owned_tail_test_controller', ROOT/'scripts/canonical-auth-provisioning-replay.py')
@@ -37,13 +38,24 @@ class OwnedTimestampTests(unittest.TestCase):
         tail.selected, tail.prerequisites, tail.retained = [('fixture', 'sha')], {}, object()
         tail.forward_retained = object()
         tail.actor_retained = object()
+        tail.view_retained = object()
+        import canonical_added_view_witness as views
+        view_receipt=views.expected_receipt(views.contract(views.retain(ROOT)),native=False)
+        def witness(actual, retained, progress):
+            self.assertIs(actual,target)
+            self.assertIs(retained,tail.view_retained)
+            self.assertTrue(progress['policyActorQualification']['verified'])
+            return view_receipt
+        view_patch=patch('canonical_added_view_witness.execute',side_effect=witness)
+        tail.view_execute=view_patch.start()
+        self.addCleanup(view_patch.stop)
         import canonical_policy_actor_qualification as actors
         actor_receipt = dict(actors.expected_result(), source=actors.SOURCE, sourceSha256=actors.SOURCE_SHA256,
             completePolicyContextSha256='a'*64,catalogAndRowsPreserved=True,nativeTarget=False,ledgerProvenanceAccepted=False)
         def actor(actual, retained, progress):
             self.assertIs(actual,target)
             self.assertIs(retained,tail.actor_retained)
-            self.assertEqual(progress['forwardSources']['inputsExecuted'],5)
+            self.assertEqual(progress['forwardSources']['inputsExecuted'],len(FORWARD_SOURCES))
             return actor_receipt
         actor_patch = patch('canonical_policy_actor_qualification.execute',side_effect=actor)
         tail.actor_execute=actor_patch.start()
@@ -52,7 +64,7 @@ class OwnedTimestampTests(unittest.TestCase):
             self.assertIs(actual, target)
             self.assertIs(retained, tail.forward_retained)
             self.assertEqual(progress['timestampApplied'], len(tail.selected))
-            progress['forwardSources'] = dict(executed=True, inputsExecuted=5)
+            progress['forwardSources'] = dict(executed=True, inputsExecuted=len(FORWARD_SOURCES))
         patched = patch('canonical_forward_portable.execute', side_effect=forward)
         tail.forward_execute = patched.start()
         self.addCleanup(patched.stop)
@@ -69,6 +81,7 @@ class OwnedTimestampTests(unittest.TestCase):
             self.assertEqual(tail.execute(loop, payload), '')
         self.assertEqual(tail.state, 'executed')
         tail.actor_execute.assert_called_once()
+        tail.view_execute.assert_called_once()
         result = json.loads(output.getvalue())
         self.assertIs(result['originalsAbsentDuringTimestamp'], True)
         for field in ('completeReplayVerified', 'ledgerProvenanceVerified', 'generatedTypesVerified'):
@@ -78,6 +91,18 @@ class OwnedTimestampTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'BOUNDARY_REQUIRED'):
             tail.execute(loop, payload)
         self.assertEqual(tail.driver.execute_tail.call_count, 1)
+
+    def test_view_failure_or_invalid_receipt_never_completes(self):
+        for fail in (True,False):
+            _,loop,tail,payload=self.fixture()
+            if fail:tail.view_execute.side_effect=ValueError('view witness rejected')
+            else:
+                tail.view_execute.side_effect=None
+                tail.view_execute.return_value={}
+            with contextlib.redirect_stdout(io.StringIO()) as output:
+                with self.assertRaises(ValueError):tail.execute(loop,payload)
+            self.assertEqual(tail.state,'failed')
+            self.assertEqual(output.getvalue(),'')
 
     def test_actor_failure_or_invalid_receipt_never_completes(self):
         for fail in (True,False):
@@ -106,7 +131,7 @@ class OwnedTimestampTests(unittest.TestCase):
         for recreate in (False, True):
             root, loop, tail, payload = self.fixture()
             def partial(actual, retained, progress):
-                progress['forwardSources'] = dict(executed=recreate, inputsExecuted=5 if recreate else 1)
+                progress['forwardSources'] = dict(executed=recreate, inputsExecuted=len(FORWARD_SOURCES) if recreate else 1)
                 if recreate:
                     (root/'supabase/migrations/recreated.sql').write_text('-- invalid')
             tail.forward_execute.side_effect = partial

@@ -4,61 +4,47 @@ Status: PARTIAL
 
 ## Active work and exact next action
 
-Current bounded task: diagnose native T232 behavior on the owned Supabase image,
-complete native144+514+5, and finish source/caller schema and type gates before
-whole-PR merge. No new approval is needed.
-8d5 auth-email-source-effects104414879377 SUCCESS after the lexical fixture fix;
-quality-release-gates104414879855 SUCCESS. Verify remains gated by real types.
+Complete native144+514 and all qualified forwards, close source/function schema
+decisions, genuinely generate application types and manifest, pass final-head
+CI/E2E/review, then merge the entire PR310 to main. Already authorized; preserve
+all ancestry, ec503 auth repair and original601 migration hashes.
 
-Publication base7f301863f79c6aed4f80eae238867685669b865c, exact tree
-6dda93f85900febb7ae331bdeef7b521d57f63c2, fetched with exact equality verified.
-Preserve all ancestry and original601 migration hashes.
+Publication base dc011c008a198b3e848fbc9115c264e16bb25682, tree
+5f6f42d570c648a66a1df2651fd562a0b54a3f3c, fetched/index equality verified.
+Actual ordinary native824 run34974499849/job104398696940 proves144+231;
+T232 source/rollback/function/ACL/preimage controls pass before behavior stops.
+Actual short native dc0 run34983371143/job104429130148 narrows the failure:
+LIVE_SYNC_ACL_ANON returns client exit2/SERVER_CONNECTION_CLOSED withoutSQLSTATE;
+clone cleanup then receives DATABASE_RECOVERY. This is NOT an ACL-denial result.
+Outer owned/private disposal succeeds. New bounded owned-server log markers
+will distinguish server termination evidence; no server setting or authSQL changed.
 
-Actual824 ordinary native34974499849/job104398696940 now proves144+231;T232
-session behavior stops with generic NATIVE_TIMESTAMP_SQL_RESULT. All preceding
-T232 source/rollback/function/ACL/preimage controls pass. No auth SQL defect is
-inferred. Closed substep diagnostics and a source-pinned short native behavior
-fixture are now wired after the synthetic typegen preflight; actual result pending. Artifact10400687958
-SHA647fd0f4ded73ea10f30a1779bd055d27f84a2aa1463a1334d544f64703c5376 verified.
-Cleanup/private cleanup true.9f1 native104403604836 remains a separate pendingrun.
+Actual7f portable run34981240448/job104421807074 executes144+514+5 plus2496
+real-helper policy cases; independent schema remains unequal. No schema acceptance.
+Actual dc0 send-lock qualification34983371102/job104429131362 SUCCESS,
+artifact10402835959 ZIPsha6302804dc76fc4a64b6945aac9c310a0af055de0fc58b2c868cae41223ae6397.
+CLI-created20260915144319_restrict_ediel_send_lock_client_writes.sql exact411df92...
+is promoted as sixth source:607inventory/595FULL/520timestamps, historical514retained.
+It removes7authenticated nonSELECT capabilities; realPG17 negative/atomic/repeat/
+row/catalog/ACL/service/definer-mechanism andcleanup controls pass. Real businessRPC
+execution is not claimed. 31source-defined view witnesses are wired into both
+full runtimes with realnativeRunner/ledger binding; actualSQL execution pending.
 
-Actual8d5 full portable34979236704/job104414878993 executes144+514+4 plus all2496
-real-helper policy cases.76service changes are inert in actualclosedBYPASSRLS mode.
-Artifact10400788007 SHAef32946e5e9e5afd67cc0ca5d4b750755ceeb858c05298c8ba5585494228dd1b.
-Schema remains unequal with same projection; no acceptance bypass.
+Auth_email_events.action callers now supply action, but independent full-constraint
+review found actual7-action CHECK restored by historicalQ; three activecaller values
+need the source-authored11value domain. NEW bounded forward qualification is being
+prepared; never rewrite approvedQ/ec503. Prior15module mocks testedintended11,
+not the complete reconstructed7; audit/tests are being corrected explicitly.
+59removedpolicy supplemental metadata/formula proof is under finalreview, including
+anon SET-role closure. Remaining authTRUNCATE capabilities on company_invitations/
+user_roles require separate source-backed correction; no wholecapability acceptance.
 
-Actual8d5 remaining22PG17 qualification34979236786/job104414896156 SUCCESS.
-Artifact10400931632 SHA917eff9e04a80b33d708301f1ecfeda7905c260a79750f3a92abc05fe58e5de7.
-Exact CLI-created20260915140647_restrict_remaining_rls_table_truncate.sql is now
-promoted locally as fifth source;606inventory/594FULL/519raw timestamps, retaining
-601historical/514timestamps. Full five-forward execution pending. Native synthetic
-probe cleanup is wired after firstcomparison and beforesecondcomparison, with
-one separately checked CLI ledger entry and no other state changes permitted;
-actual cleanup execution pending. Evidence and limits:
-quality/audits/PR310_NATIVE231_POLICY_ACTORS_AND_FIFTH_FORWARD_2026-09-15.md.
-
-The source/caller review reconstructed all937 added column hashes and found the
-required auth_email_events.action omitted by two active email-event writers.
-Both callers now supply the source-valid action;15 actual-module mock regressions
-pass and are wired intoOPSverify. Preserve the approved historicalauth SQL.
-A separately identified ediel_send_locks direct-write capability conflicts with
-canonical actor/readiness control; a bounded source-based candidate is pending.
-
-Actual7f3 short native34981240591/job104421809044 now narrows T232 to
-LIVE_SYNC_ACL_ANON: expected42501, nonzero process, no parsed primarySQLSTATE.
-Fixture setup and behavior matrix completed; finalclone disposalfalse, enclosing
-native/private cleanuptrue. Artifact10401737445 ZIP metadatadigest
-b0f42e5012f3445a986a132fef6fdba7faa1ce5922a908148669329852a4906a.
-Do not infer an ACL defect; closed client-format/exit/cleanup diagnostics follow.
-
-Added relation/column audit now source-disposes62relations and937columns; all937
-columnrowhashes and31ordinaryrelationrowhashes independently checked.31fullview
-query witnesses remain a separate actualowned-runtime gate.59removedpolicies
-have source-bound dispositions, with supplemental effectiveauthority checks being
-prepared; the confirmed send-lock write correction is staged foractualPG17+CLI.
-The approved one-tablecandidate revokes7authwrite-capabilities, retainsSELECT and
-legitimate platform-gated SECURITYDEFINER restore RPCs. No sixthsourcepromoted.
-FutureOPS PR versions cancel supersededOPS versions; mainruns are notcancelled.
+Actual8d5 authjob104414879377 andqualityrelease104414879855 SUCCESS. Verify/E2E
+still stop at generated-type tail guard. Synthetic nativeCLI typegen succeeds twice
+withidentical5019bytes only; genuine APPLICATION types remain ungenerated.
+Complete native514, probe cleanup, schema acceptance, final CI/E2E/review and whole
+PRmerge remain open. Main unchanged; PRdraft/open/unmerged. Next: publish6+views+
+ownedserverdiagnostic, inspect fastnativefailure, close newcandidates andfullschema.
 
 ## Earlier evidence (superseded boundaries remain historical)
 

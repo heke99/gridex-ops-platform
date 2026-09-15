@@ -15,6 +15,36 @@ class RuntimeTests(unittest.TestCase):
     def setUpClass(cls):
         cls.m = importlib.import_module('canonical_native_timestamp_runtime')
 
+    def test_view_witness_requires_real_runner_binding_before_and_after_execution(self):
+        import canonical_added_view_witness as views
+        retained=views.retain(views.ROOT)
+        for defect in (None,'before','after','receipt','witness'):
+            with self.subTest(defect=defect):
+                events=[];parent={};runner=SimpleNamespace(target=object());forward=object()
+                def admit(actual, sources, progress):
+                    self.assertIs(actual,runner);self.assertIs(sources,forward);self.assertIs(progress,parent)
+                    stage='before' if not events else 'after';events.append(stage)
+                    if defect==stage:raise ValueError('runner ledger rejected')
+                def witness(target, sources, progress):
+                    self.assertIs(target,runner.target);self.assertIs(sources,retained)
+                    events.append('witness')
+                    receipt=views.expected_receipt(views.contract(retained),native=True)
+                    if defect=='receipt':receipt['verified']=False
+                    parent['addedViewSourceWitness']=receipt
+                    if defect=='witness':raise ValueError('view SQL rejected')
+                    return receipt
+                with patch('canonical_native_final_sql.admit_forward',side_effect=admit), \
+                     patch.object(views,'execute',side_effect=witness):
+                    if defect:
+                        with self.assertRaises(ValueError):self.m.execute_added_views(runner,retained,parent,forward)
+                        if 'addedViewSourceWitness' in parent:self.assertFalse(parent['addedViewSourceWitness']['verified'])
+                    else:
+                        result=self.m.execute_added_views(runner,retained,parent,forward)
+                        self.assertTrue(result['verified']);self.assertFalse(result['ledgerProvenanceAccepted'])
+                self.assertEqual(events,['before'] if defect=='before' else
+                                 ['before','witness'] if defect in ('receipt','witness') else
+                                 ['before','witness','after'])
+
     def test_primary_failure_parser_rejects_ambiguous_or_embedded_messages(self):
         good = b'ERROR: NATIVE_TIMESTAMP_POST_BODY (SQLSTATE PT001)' + b' ' * 322
         self.assertEqual(self.m.failure_state(good), 'PT001')
