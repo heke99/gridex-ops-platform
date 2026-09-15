@@ -1,14 +1,20 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-14",
+  "updated_at": "2026-09-15",
   "status": "PARTIAL",
   "current_state": ".agent-memory/current-state.md",
   "active_group": "database_reconstruction",
-  "evidence": "quality/audits/DB_NATIVE63_VERIFIED_2026-09-14.md",
-  "next_action": "Verify published native64-68 candidate on ordinary OPS. Native1-63 is verified. Then continue69-144/timestamps, schema/auth/types/required CI before merging ALL PR310 changes.",
-  "native_verified_code": "b6d274a789ed3e5c6b3b9389c6875e40d0733a14",
-  "native_verified_tree": "edad04d9dfb900ca5dc6bf74efe6fa2506df4009",
-  "native_run_id": 34895544084,
-  "native_job_id": 104148494046,
-  "native_artifact_id": 10368479003
+  "evidence": "quality/audits/DB_NATIVE144_TARGET_2026-09-15.md",
+  "next_action": "Verify native residual144 DB2 target transfer and read auth command evidence. Then complete native timestamps/schema/auth/types/CI before merging all PR310.",
+  "native_verified_code": "91575a3bf1a22ae64d515f9ee406d5471a1ff2e1",
+  "native_verified_tree": "297fc94544268ae28de6f0039f0223400c36ac06",
+  "native_run_id": 34904445623,
+  "native_job_id": 104177720124,
+  "native_artifact_id": 10372124801,
+  "native_foundation_boundary": 77,
+  "local_patch_published": false,
+  "publication_base": "d8ace45ceedc29ef911352f249967d378fd3351a",
+  "backup_branch": "backup/pr310-20260915-d8ace45c",
+  "latest_native_run": 34939777875,
+  "latest_native_artifact": 10385038918
 }

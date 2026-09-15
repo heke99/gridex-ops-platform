@@ -62,7 +62,7 @@ class PlanTests(unittest.TestCase):
     def test_each_whole_body_is_preserved_in_atomic_program(self):
         for g in self.plan:
             program=self.m.render(g)
-            for s in g.steps:self.assertEqual(program.sql.count(s.sql),1)
+            for s in g.steps:self.assertEqual(program.sql.count(self.m.native_body(s)),1)
             self.assertIn(b'pg_advisory_xact_lock',program.sql)
             self.assertIn(b'native_foundation_context',program.sql)
             self.assertIn(b"stage='complete'",program.sql)
@@ -71,6 +71,39 @@ class PlanTests(unittest.TestCase):
             self.assertNotIn(b'DISABLE TRIGGER ALL',program.sql)
             self.assertTrue(program.name.startswith('gridex_native_foundation_'))
             self.assertEqual(len(self.p.identity(program.sql.decode())),3)
+
+    def test_db2_transfer_changes_only_exact_owned_fixture_admission(self):
+        g=self.plan[-1]; s=g.steps[0]
+        self.assertEqual(s.source,'migrations/01_db2_full_view_preflight_schema_and_functions.sql')
+        body=self.m.native_body(s)
+        self.assertNotIn(self.m.DB2_PORTABLE_TARGET.encode(),body)
+        self.assertEqual(body.replace(self.m.DB2_NATIVE_TARGET.encode(),self.m.DB2_PORTABLE_TARGET.encode()),s.sql)
+        for term in (b'DB2_INVITATION_INDEX_PREIMAGE_MISMATCH',b'DB2_LEGACY_OPERATOR_RECONCILIATION_REQUIRED',
+                     b'LOCK TABLE public.company_invitations IN SHARE MODE',b'pg_backend_pid()',b'txid_current()',
+                     b"stage='started'",b"current_user<>'postgres'",b"current_database()<>'postgres'"):
+            self.assertIn(term,body)
+        self.assertEqual(self.m.native_body(g.steps[1]),g.steps[1].sql)
+
+    def test_db2_original_environment_rejection_is_a_required_native_control(self):
+        g=self.plan[-1]
+        program=self.m.render(g,failure='portable')
+        self.assertIn(self.m.DB2_PORTABLE_TARGET.encode(),program.sql)
+        self.assertNotIn(self.m.DB2_NATIVE_TARGET.encode(),program.sql)
+        self.assertIn(b"HINT=CASE WHEN SQLERRM='DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED'",program.sql)
+        for other in self.plan[:-1]:
+            with self.assertRaises(ValueError):self.m.render(other,failure='portable')
+
+    def test_db2_changed_or_duplicated_target_predicate_is_not_transferred(self):
+        from dataclasses import replace
+        s=self.plan[-1].steps[0]
+        for body in (s.sql.replace(self.m.DB2_PORTABLE_TARGET.encode(),b'IF false THEN'),s.sql+s.sql):
+            with self.assertRaises(ValueError):self.m.native_body(replace(s,sql=body))
+        with self.assertRaises(ValueError):self.m.native_body(replace(s,source_sha256='0'*64))
+
+    def test_db2_failure_hint_is_finite_and_not_an_arbitrary_error_message(self):
+        raw=b'SQLSTATE 55000 NATIVE_FOUNDATION_STAGE_R071 HINT: DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED'
+        self.assertEqual(self.m.failure_diagnostic(raw).get('reason'),'DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED')
+        self.assertNotIn('secret',json.dumps(self.m.failure_diagnostic(raw.replace(b'DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED',b'secret@example.invalid'))))
 
     def test_whole_source_postconditions_and_index_oracles_are_not_dropped(self):
         raw=b'\n'.join(self.m.render(g).sql for g in self.plan)
@@ -156,7 +189,11 @@ class ExecutionControlTests(unittest.TestCase):
                     path=d/(version+'_'+args[2]+'.sql');path.write_text('');state['path']=path
                     return SimpleNamespace(returncode=0,stderr=b'')
                 self.assertEqual(args,('migration','up','--local'))
-                phase=state['runs']%5;state['runs']+=1
+                native_run=state['runs'];state['runs']+=1
+                phase=native_run%5
+                if native_run==30:
+                    return SimpleNamespace(returncode=1,stderr=b'SQLSTATE 55000 NATIVE_FOUNDATION_STAGE_R071 HINT: DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED')
+                if native_run>30:phase=(native_run-1)%5
                 if fault=='file':old.write_bytes(b'SELECT 2;')
                 if phase<3:
                     if phase==2:self.assertTrue(state['guard'])
@@ -187,7 +224,7 @@ class ExecutionControlTests(unittest.TestCase):
                     self.assertEqual(r['residualInputsExecuted'],7)
                     self.assertEqual(parent['foundationInputsExecuted'],144)
                     self.assertEqual(len(state['entries']),8)
-                    self.assertTrue(all(len(g['cases'])==3 for g in r['groups']))
+                    self.assertEqual([len(g['cases']) for g in r['groups']],[3,3,3,3,3,3,4])
                     self.assertFalse(r['completeReplayVerified'])
                     self.assertFalse(r['fullSourceEffectsAccepted'])
                     self.assertFalse(state['guard'])

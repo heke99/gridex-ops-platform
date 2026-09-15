@@ -224,9 +224,34 @@ def prepare():
     return tuple(Group(k,i,end,steps) for i,(k,end,steps) in enumerate(definitions,1))
 
 
+# One native-only environment transfer for the immutable portable DB2 adapter.
+# The source algorithm, index preimage validation and the portable renderer stay
+# unchanged. The genuine original target rejection is executed before this path.
+DB2_PREFLIGHT = 'migrations/01_db2_full_view_preflight_schema_and_functions.sql'
+DB2_SOURCE_SHA = '4de50050384d6892612c16484de8b198785c59cbb5d2ff03e7cea7e600d36cc9'
+DB2_PORTABLE_TARGET = "IF current_database() NOT IN ('gridex_auth_legacy_replay', 'gridex_auth_legacy_atomic') THEN"
+DB2_NATIVE_TARGET = """IF current_user<>'postgres' OR current_database()<>'postgres'
+ OR (SELECT count(*) FROM pg_temp.native_foundation_context
+     WHERE stage='started' AND backend=pg_backend_pid() AND txid=txid_current()
+       AND database_name=current_database())<>1 THEN"""
+DB2_TARGET_REASON = 'DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED'
+
+
+def native_body(step, *, portable=False):
+    if step.source!=DB2_PREFLIGHT:
+        return step.sql
+    if (step.ordinal is not None or step.source_sha256!=DB2_SOURCE_SHA
+            or step.sql.count(DB2_PORTABLE_TARGET.encode())!=1):
+        raise ValueError('NATIVE_FOUNDATION_SOURCE_REQUIRED')
+    if portable:
+        return step.sql
+    return step.sql.replace(DB2_PORTABLE_TARGET.encode(),DB2_NATIVE_TARGET.encode(),1)
+
+
 def render(group,*,failure=None):
     if (group.kind not in KINDS or KINDS.index(group.kind)+1!=group.index
-            or not group.steps or failure not in (None,'mid','post','ledger')):
+            or not group.steps or failure not in (None,'mid','post','ledger','portable')
+            or (failure=='portable' and group.kind!='residual144')):
         raise ValueError('NATIVE_FOUNDATION_PROGRAM_REQUIRED')
     pieces=["""IF current_user<>'postgres' OR current_database()<>'postgres'
  OR current_setting('check_function_bodies')<>'on'
@@ -243,10 +268,12 @@ def render(group,*,failure=None):
             raise ValueError('NATIVE_FOUNDATION_PROGRAM_REQUIRED')
         # Preserve SQLSTATE but return only a fixed stage identifier publicly.
         # Raw diagnostics from the native CLI stay in the parent's private logs.
-        text=s.sql.decode()
+        text=native_body(s,portable=failure=='portable').decode()
         pieces.append('BEGIN\nEXECUTE '+tag+text+tag+';\n'
             +s.postconditions+"\nEXCEPTION WHEN OTHERS THEN RAISE EXCEPTION USING ERRCODE=SQLSTATE,"
-            +" MESSAGE='NATIVE_FOUNDATION_STAGE_"+label+"'; END;\n")
+            +" MESSAGE='NATIVE_FOUNDATION_STAGE_"+label+"',"
+            +" HINT=CASE WHEN SQLERRM='DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED'"
+            +" THEN 'DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED' ELSE 'NATIVE_SOURCE_ERROR' END; END;\n")
         if failure=='mid' and i==1:
             pieces.append("RAISE EXCEPTION 'NATIVE_FOUNDATION_MID_FAULT' USING ERRCODE='P1480';")
             break
@@ -263,7 +290,10 @@ def render(group,*,failure=None):
 def failure_diagnostic(stderr):
     state=re.search(rb'SQLSTATE[ :]+([A-Z0-9]{5})\b',stderr)
     stage=re.search(rb'NATIVE_FOUNDATION_STAGE_(\d{4}|R0[1-7][1-3])\b',stderr)
-    return {'sqlstate':state[1].decode() if state else None,'stage':stage[1].decode() if stage else None}
+    result={'sqlstate':state[1].decode() if state else None,'stage':stage[1].decode() if stage else None}
+    if re.search(rb'HINT:\s+DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED\b',stderr):
+        result['reason']=DB2_TARGET_REASON
+    return result
 
 
 def ledger_guard(name):
@@ -362,7 +392,8 @@ def execute(p,native,sql,work,parent):
     for group in groups:
         state=dict(kind=group.kind,index=group.index,phase='TRANSACTION_QUALIFICATION',executed=False,cases=[])
         report['groups'].append(state)
-        for mode,expected in (('mid','P1480'),('post','P1481'),('ledger','P1482')):
+        controls=((('portable','55000'),) if group.kind=='residual144' else ()) + (('mid','P1480'),('post','P1481'),('ledger','P1482'))
+        for mode,expected in controls:
             program=render(group,failure=mode);before=snapshot();files={f.name for f in directory.iterdir()}
             state.update(currentProbe=expected)
             path,physical=create_unit(p,native,directory,program,entries,files);installed=False
@@ -374,7 +405,9 @@ def execute(p,native,sql,work,parent):
                 p.verify_private(path,program.sql,physical)
                 for item in retained:p.verify_private(*item)
                 observed=failure_diagnostic(result.stderr)
-                if result.returncode==0 or observed['sqlstate']!=expected:
+                if (result.returncode==0 or observed['sqlstate']!=expected
+                        or (mode=='portable' and (observed.get('stage')!='R071'
+                            or observed.get('reason')!=DB2_TARGET_REASON))):
                     state['failure']=observed
                     raise ValueError('NATIVE_FOUNDATION_PROOF_REQUIRED')
                 if sql(p.LEDGER_SQL)!=entries:raise ValueError('NATIVE_FOUNDATION_LEDGER_REQUIRED')
@@ -413,7 +446,9 @@ def execute(p,native,sql,work,parent):
         report['cumulativeFoundationInputsExecuted']=group.end
         parent['foundationInputsExecuted']=group.end
         state.update(executed=True,phase='EXECUTED_AND_LEDGER_VERIFIED',cliFile=path.name,
-             programSha256=p.sha(program.sql),sources=[s.receipt() for s in group.steps],
+             programSha256=p.sha(program.sql),sources=[{**s.receipt(),
+                 'nativeExecutionBodySha256':p.sha(native_body(s)),
+                 'nativeEnvironmentAdmissionTransferred':s.source==DB2_PREFLIGHT} for s in group.steps],
              ledgerStatementsSha256=p.sha(json.dumps(actual[-1]['statements'],separators=(',',':')).encode()),
              noOpRepeatVerified=True,unchangedEarlierLedger=True,canonicalUnitAtomic=True,
              transactionControlsVerified=True,fullSourceEffectsAccepted=False)

@@ -1,59 +1,52 @@
-# Current state — database reconstruction, 2026-09-14
+# Current state — PR310, 2026-09-15
 
 Status: PARTIAL
 
-Native foundation1–63 is VERIFIED on actual Supabase. Steps57 and58–63 are
-published and accepted. The old publication/P0004/step57 blockers are superseded.
-Full replay, schema equality, auth, generated types, release and plan85/86 are NOT accepted.
+Preserve and eventually merge ALL PR310 changes, not a subset. The remote base
+for this batch is d8ace45ceedc29ef911352f249967d378fd3351a. A separate backup
+branch backup/pr310-20260915-d8ace45c preserves the full existing ancestry.
+Writer tools are available in this session; the previous read-only limitation
+is superseded. The ten-file local auth evidence patch is applied and included
+with the native DB2 correction. Do not build these components again.
 
-## Current verified evidence
+## Execution boundary
 
-Runtime b6d274a789ed3e5c6b3b9389c6875e40d0733a14; tree
-edad04d9dfb900ca5dc6bf74efe6fa2506df4009.
-Ordinary OPS34895544084 / clean job104148494046 / artifact10368479003.
-Actual outcome NATIVE_HISTORICAL_THROUGH63_VERIFIED.
-ZIP SHA25644ecaeeebb1d5760dd73791cfc1692d23e21797f7e834c50c10598ba4bc51f14.
+Native1-77 is verified by ordinary OPS34904445623/artifact10372124801.
+The newer OPS34939777875/artifact10385038918 executes all144 foundation inputs
+and five residual inputs in six successful canonical CLI groups. The seventh
+residual144 group is NOT accepted: original55000 atR071 instead of expectedP1480.
+The complete chain, timestamp execution, source-effect/schema parity, generated
+types and whole-PR merge are still NOT accepted. Owned/private cleanup passes.
 
-The native58–63 group has seven actual CLI units: six historical stages and
-one explicit synthetic constructor. Complete source effects, restoration of
-original rows/seed/sequences, all five negative controls, preceding47 ledger
-entries, no-op repeat and owned/private cleanup pass. D2/F2 own COMMITs remain;
-this group is NOT called atomic. Only X's three exact fixture-environment
-checks are transferred; its restoration algorithm and source hash remain.
-Native57's H2 whole source/COMMIT/trailing SELECT and the three distinct
-pre/post-COMMIT controls also pass. Explicit test-index disposal is not rollback.
-Zero timestamp inputs execute. Full replay/types flags remain false.
+## Active correction / actual next action
 
-Independent checks:63 source hashes,43 prefix program hashes,10 support hashes,
-five fixed whole-program hashes and three H2 fault hashes match the report.
-All4056 published files independently match the tested source artifact; prior
-app/API/company/white-label and paused-price work are intact.601 source hashes
-and505 version groups pass. Full receipt:
-quality/audits/DB_NATIVE63_VERIFIED_2026-09-14.md.
+The native DB2 preflight still admits only the portable fixture's two database
+names, not the real owned native postgres database. The new native-only body
+transfers exactly that environment predicate to postgres role/database plus
+private transaction/backend-bound context. Portable sources/rendered hashes,
+legacy scope rejection, all index preimage checks and domain locks remain.
+An extra mandatory negative control reproduces the old55000 with its exact
+R071 stage and fixed reason before the normal mid/body/ledger controls.
+27 local foundation tests PASS after four observed RED regressions;16 previous
+auth evidence tests PASS;601 historical migration checksums PASS.
+These local tests are NOT native SQL proof. Read the next actual OPS artifact.
 
-## Active implementation and release blockers
+The preserved auth patch produces gridex-auth-membership-group evidence with
+actual checkout/fixture hashes, first failed command and redacted traceback/
+SQLSTATE observations. It does not fix auth. Do not guess company_invitations
+or any other SQL cause without that evidence.
 
-Native64–68 is implemented and locally tested in this publication, but NOT
-native-accepted. Its source-bound atomic envelope retains row/catalog/index/
-identity checks and requires actual native lock/rollback/ledger qualification.
-236 local controls pass, not a database-execution claim. Inspect the ordinary
-OPS artifact for the current head; do not advance the boundary from these mocks.
+After native foundation144: integrate admitted timestamp stages, settle full
+independent schema differences with source evidence, fix the actual auth-group
+failure, generate real types and pass required same-head CI/E2E/review before
+merging the ENTIRE PR. Never change only the type-tail manifest as a bypass.
+Existing app/API/company/white-label fields and paused price work are preserved.
+No hosted mutation/reset, historical SQL rewrite, forced update, deployment or
+main merge is included in this batch.
 
-After verified68: native69–144 and514 timestamp stages; full schema/reference,
-residual-source acceptance, auth-group tests, actual type generation and all
-mandatory same-head CI/E2E. The ordinary replay still intentionally stops with
-NATIVE_LATER_ENVELOPES_AND_FULL_ACCEPTANCE_REQUIRED after its bounded success.
-The type tail remains20260913211625_ediel_intent_customer_company_integrity.sql;
-do not change the type manifest without genuine complete-schema generation.
-
-## Whole PR310 to main
-
-Preserve the whole PR310 branch and ancestry. Do not cherry-pick only the new
-adapters or discard earlier application/API changes. The original601 migrations
-and paused partner-price work remain unchanged. No hosted mutation/reset, main
-merge, forced ref or deployment. Main at last inspection:
-eb9a25bc989c6de808903f41c2314d5465e9c07b. PR stays draft until required gates pass.
-No further user approval is needed for the requested coherent incremental work.
+Current receipt: quality/audits/DB_NATIVE144_TARGET_2026-09-15.md.
+Previous auth-patch receipt remains preserved as dated history:
+quality/audits/PR310_MERGE_BLOCKERS_2026-09-15.md.
 
 ## Machine-checked continuity contract
 

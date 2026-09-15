@@ -32,14 +32,22 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--partition', choices=('all19','all18','all17','original16','legacy17','repair18','dedupe19'), default='all19')
+    parser.add_argument('--evidence', action='store_true', help='Save a redacted command receipt; preserve fail-fast exit status')
     args = parser.parse_args()
+    if args.evidence and args.dry_run:
+        parser.error('--evidence requires actual command execution, not --dry-run')
     environment = {key: value for key, value in os.environ.items() if not key.startswith('PG')}
     commands = {'all19':COMMANDS,'all18':COMMANDS[:18],'all17':COMMANDS[:17],'original16':COMMANDS[:16],
                 'legacy17':COMMANDS[16:17],'repair18':COMMANDS[17:18],'dedupe19':COMMANDS[18:19]}[args.partition]
+    evidence = None
+    if args.evidence:
+        from canonical_auth_group_evidence import Evidence
+        evidence = Evidence(ROOT, args.partition, commands)
     for command in commands:
         print(' '.join(command), flush=True)
         if not args.dry_run:
-            result = subprocess.run(command, cwd=ROOT, env=environment, check=False)
+            result = (evidence.run(command, environment) if evidence is not None else
+                      subprocess.run(command, cwd=ROOT, env=environment, check=False))
             if result.returncode:
                 raise SystemExit(result.returncode)
 

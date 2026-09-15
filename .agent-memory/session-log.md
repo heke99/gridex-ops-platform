@@ -119,3 +119,23 @@ unit/regression tests plus601-file integrity and complete accounting PASS.
 Native53–56 NOT VERIFIED; prior1–52 remains accepted. No hosted write,
 original-source rewrite, type/fingerprint refresh or main merge.
 Evidence: quality/audits/DB_NATIVE53_56_2026-09-14.md.
+
+## 2026-09-15 — local merge preparation on91575a3b, NOT published
+
+Rechecked existing native1–77 evidence against77 source/43 program/19 support
+hashes and fresh artifact digests. Added local optional redacted auth command
+evidence and always-upload wiring; this is NOT an auth SQL fix.234 local unit
+controls, the original auth-group self-test (exit0), AST/workflow checks and
+601-file migration integrity pass. No new native SQL, push, deployment or merge.
+The current GitHub connector has no write actions. Full native78+/schema/auth/
+types/required CI remain blocked. Evidence:quality/audits/PR310_MERGE_BLOCKERS_2026-09-15.md.
+
+## 2026-09-15 — PR310 preserved; DB2 target transfer candidate
+
+Full PR ancestry backed up at backup/pr310-20260915-d8ace45c. Prior auth
+evidence patch applied without rebuilding it. Native latest run reaches144
+inputs but residual144 rejects R071/55000; no full-chain acceptance. Native
+DB2 target-only transfer implemented with an original-error negative control.
+27 foundation +16 auth evidence local tests PASS;601 migration checksums PASS.
+CI result pending; no main merge or hosted write. Current receipt:
+quality/audits/DB_NATIVE144_TARGET_2026-09-15.md.
