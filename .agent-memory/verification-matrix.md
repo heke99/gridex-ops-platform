@@ -151,3 +151,21 @@ DB2 target-only transfer implemented with an original-error negative control.
 27 foundation +16 auth evidence local tests PASS;601 migration checksums PASS.
 CI result pending; no main merge or hosted write. Current receipt:
 quality/audits/DB_NATIVE144_TARGET_2026-09-15.md.
+
+## 2026-09-15 — exact auth journal ACL continuation
+
+Starting PR310 head a59e0ce6; full history and43efaf89 preservation ancestry
+verified. GitHub connector tree/ref write works; terminal push has no credentials.
+Actual OPS104346776007 and diagnostic104346776492 identify the journal ACL
+assertion P0001. Exact32-entry ACL correction retains owner/options/comments;
+eight rollback-only SQL controls added to ordinary/diagnostic auth CI. Local
+3 regression guards,16 preserved auth-evidence tests and601-file integrity pass.
+Independent source review found no severity findings; actual PostgreSQL SQL
+acceptance pending publication/Actions. No production or reference changes.
+See quality/audits/PR310_AUTH_JOURNAL_ACL_2026-09-15.md; current-state.md is active.
+
+Pre-publication head changed to8130ecf3, which already published the exact ACL
+correction. Full branch fast-forwarded; duplicated local implementation not
+committed. This batch reuses upstream implementation unchanged and wires the
+existing native ACL selftest plus8 stronger whole-assertion mutation controls.
+The3 adapted guards, upstream selection check and membership constructor pass.

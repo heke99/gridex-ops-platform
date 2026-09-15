@@ -2,55 +2,68 @@
 
 Status: PARTIAL
 
-## Preservation and publication
+## Preservation and access
 
-Preserve and eventually merge ALL PR310 changes. All prior work is published at
-43efaf895aaf080abadef84ce724bceafa3e3a79, tree354d5295c392e15cdb741998b3b3451530e67506.
-The downloaded source archive and a fresh Git write-tree match that exact tree.
-The backup ref backup/pr310-20260915-d8ace45c was read back at
- d8ace45ceedc29ef911352f249967d378fd3351a. PR310 remains draft and unmerged.
-The GitHub writer connection is now available. This publication includes the
-preserved primary-error diagnostic correction and its regression tests.
-Verify the published commit/tree and inspect its actual ordinary OPS result.
-Do not recreate the previously published ten-file auth patch or DB2 target fix.
+Preserve and eventually merge ALL PR310 changes. Starting head for this
+continuation is a59e0ce6aae821955cf5b07eb1e32598addd4144; repository
+heke99/gridex-ops-platform; branch codex/gridex-parity-remediation-20260905.
+Full original Git history is cloned. Before publication a concurrent commit
+8130ecf3ec7ab675ba4cb7fd791b071d59521fbe was discovered and fast-forwarded.
+It already contains the exact ACL correction; reuse its implementation unchanged. The previously local auth-evidence patch
+is published at43efaf895aaf080abadef84ce724bceafa3e3a79 and is an actual ancestor.
+Do not rebuild it. Backup ref backup/pr310-20260915-d8ace45c remains historical
+preservation evidence. No force update, selective merge or history rewrite.
+
+Terminal, local Python tests and dependency installation work. Git terminal
+push lacks credentials; the GitHub connector successfully wrote an unchanged
+tree and performed a non-forced same-SHA ref update. Publish through it.
+PostgreSQL/Docker are unavailable locally; system package installation failed
+on setgroups/setuid restrictions. Native SQL acceptance must come from Actions.
+Main branch metadata reports protected=false and no rulesets were returned;
+reading the administration protection endpoint is forbidden (403). No formal
+PR reviews or inline threads were returned. No merge acceptance is inferred.
 
 ## Active correction / exact next action
 
-Native run34946750789/artifact10388556488 reaches144 regular foundation inputs
-and five residual inputs in six successful groups. Group7/residual144 stops on
-its portable55000 control atR071, with no fixed reason in the artifact. The
-reason is mandatory;55000/R071 alone does NOT prove expected rejection.
+Actual starting-head OPS34958678141/job104346776007 and diagnostic
+34958678292/job104346776492 identify P0001 at the exact assertion
+6D2 journal exact owner/ACL/options/no source comments.
+The immutable source creates platform_session_revocations without ACL changes;
+the previously native-verified bootstrap supplies explicit managed defaults.
+The obsolete relacl IS NULL assumption is corrected to exact normalized
+32-entry ACL equality, retaining owner/options/comment checks. Eight real
+rollback-only mutation controls are mandatory in ordinary and diagnostic auth
+CI. No historical SQL, bootstrap, schema reference or type manifest changed.
 
-A reproduced transport defect is corrected in this publication: the safe allowlisted
-DB2 reason is included in the primary error MESSAGE as well as HINT. The reason
-parser binds it to a single complete primary error with the exact stage/code,
-not quoted SQL text. No admission, grant, source pin or release gate is relaxed.
-32 focused tests and163 aggregated native-prefix tests pass (overlapping suites),
-plus15 lifecycle controls and16 unchanged auth-evidence tests.601 migration
-files/505 version groups retain their checksums. These are NOT native SQL proof.
+The duplicate local implementation was superseded before commit. This batch
+adds CI wiring and stronger mutation controls around the published correction.
+The three adapted local guards and auth constructor pass; SQL acceptance is
+NOT claimed.
+Publish the reviewed batch
+on this same PR branch and inspect current-commit whole-source auth and its
+eight new mutation controls. The pinned fixture bytes remain unchanged.
+Current receipt: quality/audits/PR310_AUTH_JOURNAL_ACL_2026-09-15.md.
 
-Next: inspect the ordinary native job for this publication.
-A fresh local rerun passed all32 focused tests before publication. Inspect the retained reason and all group7 qualification/ledger/
-repeat controls; do not infer their result. No timestamps have been accepted.
-Then complete the native timestamp chain and independent schema reconciliation.
+## Native replay, schema, types and final gates
 
-## Auth and final gates
+Starting-head native diagnostics and ordinary replay were still running when
+this auth correction was prepared. Read their actual artifacts before any
+residual144 correction or acceptance. Prior accepted boundary remains144
+regular foundation inputs plus five residuals in six groups; group7 remains
+unaccepted. Never infer success from controller-only tests.
 
-The latest redacted auth artifact identifies command15 and P0001 in
-canonical-full-governance-source-selftest.py:full_empty_lane line205 calling
-oracle.complete_postflight_sql(), with matching source SHA256. The individual
-failed assertion is not in the artifact. No missing table or RLS cause is proven.
-The local SQL test could not start because psql is unavailable. Auth is NOT fixed.
+The portable timestamp driver already retains514 inputs but has no official
+CLI ledger. Native integration is still absent. Static source compilation
+identifies interior transaction controls at T201/T202 and source-specific LOCK
+handling at T221/T222/T224/T225; T232 requires its full authored repair proof.
+Keep source pins, atomicity/rollback checks and genuine statement ledger.
 
-After complete replay: fix the evidenced auth assertion/cause, genuinely generate
-types and pass required same-head CI, full E2E and independent review before
-merging the ENTIRE PR. No manifest-only refresh, cherry-pick subset or bypass.
-No production database mutation, reset, deployment or main merge was performed.
-
-Current receipt: quality/audits/PR310_NATIVE_DIAGNOSTIC_TRANSPORT_2026-09-15.md.
-The previous DB_NATIVE144_TARGET and auth-patch receipts remain dated history.
-Existing application/API/company/white-label fields and paused price work remain
-unchanged. Native1–77's prior acceptance is not restarted.
+The independent schema comparison is already red after full portable144+514
+execution. Its differences must be causally reconciled, never copied into a
+reference to manufacture equality. Then genuinely generate types and pass all
+mandatory same-head CI/E2E and independent review before whole-PR merge.
+Verify all PR ancestry/content in main after merge. No production database
+mutation, deployment, main merge or completed masterplan step is claimed.
 
 ## Machine-checked continuity contract
 
