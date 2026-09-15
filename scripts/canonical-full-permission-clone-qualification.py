@@ -16,6 +16,7 @@ import canonical_forward_portable as forward_portable
 import canonical_native_final_sql as final_sql
 import canonical_changed_function_witness as functions
 import canonical_permission_full_seed as full_seed
+import canonical_storage_bootstrap as storage_bootstrap
 from canonical_native_timestamp_snapshot import queries
 
 def load(name):
@@ -42,7 +43,7 @@ def receipt(outcome,phase,progress):
         ledgerProvenanceVerified=False,generatedTypesVerified=False,productionModified=False)
 
 
-INPUT_PINS={'scripts/canonical_permission_full_seed.py': 'd58f46ad1596cfb73a0bb6cd5769a94b6ffce2020269297015ea80445f0873ee', 'scripts/canonical_changed_function_witness.py': 'a1eff86d0efecc058af45dc54411bb9056bc4cd96e7fa5b057374ee8cdefcce3', 'scripts/canonical-permission-native-fixture.py': '47425b626551df891f6b13c86390ac9b23239cbe26a3651558572778eceab3a8', 'scripts/canonical-portable-invariants-diagnostic.py': '2737b29ea13cd8d666e16e501f81f5c11d270e5c89aac4a9a88291e6bed21cb9', 'scripts/canonical_native_timestamp_snapshot.py': 'e36911fc25dae81d5d8187ddf7de472af602bbad3e6ec68dc4c657dc6fe23757', 'scripts/sql/canonical-user-rbac-repair-catalog.sql': '1d6315ea6d4d542a01e4b697f1cc2b4528a227f2be7e7052f47c8a04166103c7'}
+INPUT_PINS={'scripts/canonical_storage_bootstrap.py': '5bf70f4c989f40a79ff3a6db71d24851edf340cb4f604411d23578429c787b79', 'scripts/canonical_permission_full_seed.py': 'd58f46ad1596cfb73a0bb6cd5769a94b6ffce2020269297015ea80445f0873ee', 'scripts/canonical_changed_function_witness.py': 'a1eff86d0efecc058af45dc54411bb9056bc4cd96e7fa5b057374ee8cdefcce3', 'scripts/canonical-permission-native-fixture.py': '47425b626551df891f6b13c86390ac9b23239cbe26a3651558572778eceab3a8', 'scripts/canonical-portable-invariants-diagnostic.py': '2737b29ea13cd8d666e16e501f81f5c11d270e5c89aac4a9a88291e6bed21cb9', 'scripts/canonical_native_timestamp_snapshot.py': 'e36911fc25dae81d5d8187ddf7de472af602bbad3e6ec68dc4c657dc6fe23757', 'scripts/sql/canonical-user-rbac-repair-catalog.sql': '1d6315ea6d4d542a01e4b697f1cc2b4528a227f2be7e7052f47c8a04166103c7'}
 
 
 def retained_inputs():
@@ -302,8 +303,11 @@ def run():
                 loop.validate(str(hold), paths)
                 phase = 'PLATFORM_BOOTSTRAP'
                 target.sql(controller.DATABASE,
-                           (ROOT / 'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_text(),
+                           storage_bootstrap.render((ROOT / 'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_bytes()),
                            'frontier_bootstrap', transaction=False)
+                storage_bootstrap.validate(json.loads(target.sql(controller.DATABASE, storage_bootstrap.CAPTURE,
+                    'storage_bootstrap_dml_profile')), allowed=True)
+                progress['storageBootstrapDmlChecks'] = 24
                 phase = 'SELECTED_FOUNDATION_EXECUTION'
                 loop.run(str(hold), paths)
                 progress['foundationApplied'] = 144

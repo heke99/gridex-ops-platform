@@ -2,6 +2,8 @@ name: Gridex native Supabase lifecycle qualification
 on:
   pull_request:
     paths:
+      - 'scripts/canonical_storage_bootstrap.py'
+      - 'scripts/test-canonical-storage-bootstrap.py'
       - '.github/workflows/gridex-native-supabase-lifecycle.yml'
       - 'scripts/canonical-native-supabase-lifecycle*.py'
       - 'scripts/canonical_native_cli_transport.py'
@@ -43,6 +45,7 @@ jobs:
           version: 2.101.0
       - name: Verify local ownership, genuine-ledger and failure controls
         run: |
+          python3 -B scripts/test-canonical-storage-bootstrap.py
           python3 -B scripts/test-canonical-native-historical-prefix.py
           python3 -B scripts/test-canonical-native-lock-boundary.py
           python3 -B scripts/test-canonical-native-legacy-envelope.py

@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 import re
 import sys
+import canonical_storage_bootstrap as storage_bootstrap
 
 sys.dont_write_bytecode = True
 
@@ -161,6 +162,7 @@ def verify(command, project):
         # Colliding probes fail without removing pre-existing objects.
         native_sql(PROBES); probes_created = True
         native = validate(json.loads(native_sql(CAPTURE).stdout))
+        native_storage = storage_bootstrap.validate(json.loads(native_sql(storage_bootstrap.CAPTURE).stdout), allowed=True)
         results = []
         portable = load_portable()
         with portable as target:
@@ -170,6 +172,11 @@ def verify(command, project):
                                         ('gridex_auth_legacy_atomic',repaired)]:
                 target.reset(database)
                 target.sql(database, bootstrap, 'bootstrap_complete_input', transaction=False)
+                storage_bootstrap.validate(json.loads(target.sql(database, storage_bootstrap.CAPTURE, 'storage_before')), allowed=False)
+                target.sql(database, storage_bootstrap.INITIALIZE, 'storage_initialization', transaction=True)
+                storage = storage_bootstrap.validate(json.loads(target.sql(database, storage_bootstrap.CAPTURE, 'storage_after')), allowed=True)
+                if storage != native_storage:
+                    raise ValueError('NATIVE_STORAGE_DML_MISMATCH')
                 target.sql(database, PROBES, 'bootstrap_synthetic_probes', transaction=False)
                 results.append(validate(json.loads(target.sql(database, CAPTURE, 'bootstrap_acl_matrix'))))
             count = verify_difference(native, *results)
@@ -181,6 +188,7 @@ def verify(command, project):
         if probes_created:
             native_sql(DROP)
     return {'nativeDefaultGrantsMatched': True, 'effectivePrivilegeChecks': 48,
+            'nativeStorageDmlMatched': True, 'storageDmlPrivilegeChecks': 24,
             'oldBootstrapMissingPrivileges': count, 'negativeControlVerified': True,
             'rlsPreserved': True, 'probeCleanupVerified': True,
             'portableRuntimeCleanupVerified': True, 'separateVanillaRuntime': True,

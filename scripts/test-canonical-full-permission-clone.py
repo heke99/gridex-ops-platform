@@ -17,7 +17,7 @@ class Tests(unittest.TestCase):
     def test_exact_candidate_and_all_sources(self):
         specs=m.function_specs(m.candidate())
         self.assertEqual(tuple(x['name'] for x in specs),m.NAMES)
-        self.assertEqual(len(m.retained_inputs()),6)
+        self.assertEqual(len(m.retained_inputs()),7)
         self.assertEqual(specs[4]['defaults'],'NULL::uuid')
         self.assertTrue(all(x['definer'] for x in specs))
         with patch.object(m,'CANDIDATE_SHA','0'*64):

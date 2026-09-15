@@ -24,6 +24,12 @@ def matrix():
             'publicFunctionExecute': True}
 
 
+def storage_matrix(allowed=True):
+    return [{'object_name': table, 'role_name': role, 'privilege_name': privilege,
+             'allowed': allowed, 'rls_enabled': True}
+            for table, role, privilege in sorted(m.storage_bootstrap.KEYS)]
+
+
 class BootstrapContractTests(unittest.TestCase):
     def test_bootstrap_contains_native_table_and_sequence_defaults(self):
         text = (ROOT/'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_text()
@@ -90,6 +96,7 @@ class ExecutionTests(unittest.TestCase):
         class Portable:
             active = False
             directory = None
+            storage_ready = False
             def __enter__(self):
                 self.active = True; self.directory = object()
                 return self
@@ -99,10 +106,18 @@ class ExecutionTests(unittest.TestCase):
                 self.active = False; self.directory = None
             def reset(self, database):
                 portable_calls.append(('reset', database))
+                self.storage_ready = False
             def sql(self, database, query, stage, **kwargs):
                 portable_calls.append((stage, database, query, kwargs))
                 if fail == 'bootstrap' and query == m.sources()[0]:
                     raise ValueError('bootstrap failure')
+                if query == m.storage_bootstrap.INITIALIZE:
+                    self.storage_ready = True
+                if query == m.storage_bootstrap.CAPTURE:
+                    allowed = self.storage_ready
+                    if fail == 'storage_before': allowed = True
+                    if fail == 'storage_after' and self.storage_ready: allowed = False
+                    return json.dumps(storage_matrix(allowed))
                 if query == m.CAPTURE:
                     value = old if database == 'gridex_auth_legacy_native' else native
                     if fail == 'comparison' and database == 'gridex_auth_legacy_atomic':
@@ -122,12 +137,13 @@ class ExecutionTests(unittest.TestCase):
                 value = [{'Labels': {'gridex.native.owner': self.project}, 'Internal': not external_network}]
             elif data is not None:
                 self.assertEqual(args[args.index('-d')+1], 'postgres')
-                self.assertIn(data, (m.PROBES.encode(), m.CAPTURE.encode(), m.DROP.encode()))
+                self.assertIn(data, (m.PROBES.encode(), m.CAPTURE.encode(), m.DROP.encode(), m.storage_bootstrap.CAPTURE.encode()))
                 if fail == 'collision' and data == m.PROBES.encode():
                     raise ValueError('probe collision')
                 if fail == 'native_cleanup' and data == m.DROP.encode():
                     raise ValueError('native cleanup failure')
                 if data == m.CAPTURE.encode(): value = native
+                if data == m.storage_bootstrap.CAPTURE.encode(): value = storage_matrix(fail != 'native_storage')
             return SimpleNamespace(stdout=json.dumps(value).encode())
         return command, calls, portable, portable_calls
 
@@ -137,6 +153,8 @@ class ExecutionTests(unittest.TestCase):
             result = m.verify(command, self.project)
         self.assertTrue(result['nativeDefaultGrantsMatched'])
         self.assertEqual(result['oldBootstrapMissingPrivileges'], 33)
+        self.assertTrue(result['nativeStorageDmlMatched'])
+        self.assertEqual(result['storageDmlPrivilegeChecks'],24)
         self.assertFalse(result['fullReplayAccepted'])
         self.assertTrue(result['separateVanillaRuntime'])
         self.assertFalse(portable.active); self.assertIsNone(portable.directory)
@@ -160,7 +178,7 @@ class ExecutionTests(unittest.TestCase):
         self.assertFalse(any(d == m.DROP.encode() for a, d in calls))
 
     def test_bootstrap_and_comparison_failures_still_clean_both_runtimes(self):
-        for fail in ('bootstrap', 'comparison'):
+        for fail in ('bootstrap', 'comparison', 'storage_before', 'storage_after', 'native_storage'):
             command, calls, portable, _ = self.fixture(fail=fail)
             with patch.object(m, 'load_portable', return_value=portable):
                 with self.assertRaises(ValueError): m.verify(command, self.project)

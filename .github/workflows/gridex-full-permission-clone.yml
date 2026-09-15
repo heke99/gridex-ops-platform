@@ -6,6 +6,8 @@ on:
       - codex/ediel-masterplan-v2-alignment-20260915
       - codex/gridex-parity-remediation-20260905
     paths:
+      - 'scripts/canonical_storage_bootstrap.py'
+      - 'scripts/test-canonical-storage-bootstrap.py'
       - '.github/workflows/gridex-full-permission-clone.yml'
       - 'scripts/canonical-portable-invariants-diagnostic.py'
       - 'scripts/canonical-full-permission-clone-qualification.py'
@@ -39,6 +41,7 @@ jobs:
           persist-credentials: false
       - name: Verify selection, closed diagnostics and failure propagation
         run: |
+          python3 -B scripts/test-canonical-storage-bootstrap.py
           python3 scripts/canonical-foundation-frontier-selftest.py
           python3 scripts/canonical-timestamp-frontier-selftest.py
           python3 scripts/test-canonical-forward-portable.py
