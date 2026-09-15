@@ -1,0 +1,146 @@
+{
+  "status": "OBSERVED_DEVELOPMENT_CATALOG_HELPER_FRONTIER_ONLY_NOT_NATIVE_ACCEPTED",
+  "project_id": "piidsfebjqjmnepdpnas",
+  "project_name": "gridex-ops-dev",
+  "project_version": "17.6.1.084",
+  "runtime_binding": "UNPROVED",
+  "query": "-- Task12 frontier3: exact reached helper and extension-default metadata only.\n-- No custom calls, business rows, permission rows, sequence state or mutations.\nwith expected_functions(signature) as (values\n ('public.gridex_jsonb_text(jsonb,text[])'),\n ('extensions.gen_random_uuid()')\n), function_oids as (select pg_catalog.to_regprocedure(signature)::oid oid from expected_functions)\nselect jsonb_build_object(\n 'observed_at',clock_timestamp(),\n 'database',current_database(),\n 'server_version',current_setting('server_version'),\n 'session_context',jsonb_build_object('search_path',current_setting('search_path'),'current_user',current_user,'session_user',session_user),\n 'ledger',(select jsonb_build_object('count',count(*),'tail',max(version)) from supabase_migrations.schema_migrations),\n 'expected_functions',(select jsonb_agg(jsonb_build_object('signature',signature,'oid',pg_catalog.to_regprocedure(signature)::oid) order by signature) from expected_functions),\n 'missing_functions',(select coalesce(jsonb_agg(signature order by signature),'[]'::jsonb) from expected_functions where pg_catalog.to_regprocedure(signature) is null),\n 'function_dependencies',(select coalesce(jsonb_agg(jsonb_build_object('function_oid',d.objid,'reference_class',d.refclassid::regclass::text,'reference_oid',d.refobjid,'reference_subid',d.refobjsubid,'type',d.deptype,'reference',pg_catalog.pg_describe_object(d.refclassid,d.refobjid,d.refobjsubid)) order by d.objid,d.refclassid,d.refobjid,d.refobjsubid),'[]'::jsonb) from pg_catalog.pg_depend d where d.classid='pg_catalog.pg_proc'::regclass and d.objid in(select oid from function_oids)),\n 'functions',(select coalesce(jsonb_agg(jsonb_build_object('oid',p.oid,'schema',n.nspname,'name',p.proname,'identity_arguments',pg_catalog.pg_get_function_identity_arguments(p.oid),'result',pg_catalog.pg_get_function_result(p.oid),'owner',pg_catalog.pg_get_userbyid(p.proowner),'acl',p.proacl::text,'language',l.lanname,'kind',p.prokind,'security_definer',p.prosecdef,'volatility',p.provolatile,'strict',p.proisstrict,'parallel',p.proparallel,'leakproof',p.proleakproof,'config',p.proconfig,'definition',case when n.nspname<>'pg_catalog' and p.prokind in('f','p') then pg_catalog.pg_get_functiondef(p.oid) else null end,'effective_execute',(select jsonb_agg(jsonb_build_object('role',r.rolname,'execute',has_function_privilege(r.oid,p.oid,'EXECUTE')) order by r.rolname) from pg_catalog.pg_roles r where r.rolname in('anon','authenticated','service_role','postgres')),'extension',(select jsonb_build_object('name',e.extname,'version',e.extversion) from pg_catalog.pg_depend d join pg_catalog.pg_extension e on e.oid=d.refobjid and d.refclassid='pg_catalog.pg_extension'::regclass where d.classid='pg_catalog.pg_proc'::regclass and d.objid=p.oid and d.deptype='e')) order by n.nspname,p.proname,p.oid),'[]'::jsonb) from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid=p.pronamespace join pg_catalog.pg_language l on l.oid=p.prolang where p.oid in(select oid from function_oids))\n) as catalog_receipt;\n",
+  "query_sha256": "7282abc1294347b433e958646c76d1d7a23e7d1d7406b0c14df1f0125cd94518",
+  "catalog": {
+    "ledger": {
+      "tail": "20260904222450",
+      "count": 279
+    },
+    "database": "postgres",
+    "functions": [
+      {
+        "acl": "{=X/postgres,postgres=X*/postgres,dashboard_user=X/postgres}",
+        "oid": "16460",
+        "kind": "f",
+        "name": "gen_random_uuid",
+        "owner": "postgres",
+        "config": null,
+        "result": "uuid",
+        "schema": "extensions",
+        "strict": false,
+        "language": "c",
+        "parallel": "s",
+        "extension": {
+          "name": "pgcrypto",
+          "version": "1.3"
+        },
+        "leakproof": false,
+        "definition": "CREATE OR REPLACE FUNCTION extensions.gen_random_uuid()\n RETURNS uuid\n LANGUAGE c\n PARALLEL SAFE\nAS '$libdir/pgcrypto', $function$pg_random_uuid$function$\n",
+        "volatility": "v",
+        "security_definer": false,
+        "effective_execute": [
+          {
+            "role": "anon",
+            "execute": true
+          },
+          {
+            "role": "authenticated",
+            "execute": true
+          },
+          {
+            "role": "postgres",
+            "execute": true
+          },
+          {
+            "role": "service_role",
+            "execute": true
+          }
+        ],
+        "identity_arguments": ""
+      },
+      {
+        "acl": "{=X/postgres,postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+        "oid": "38684",
+        "kind": "f",
+        "name": "gridex_jsonb_text",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, auth, extensions"
+        ],
+        "result": "text",
+        "schema": "public",
+        "strict": false,
+        "language": "sql",
+        "parallel": "u",
+        "extension": null,
+        "leakproof": false,
+        "definition": "CREATE OR REPLACE FUNCTION public.gridex_jsonb_text(payload jsonb, path text[])\n RETURNS text\n LANGUAGE sql\n IMMUTABLE\n SET search_path TO 'public', 'auth', 'extensions'\nAS $function$\n  select jsonb_extract_path_text(payload, variadic path)\n$function$\n",
+        "volatility": "i",
+        "security_definer": false,
+        "effective_execute": [
+          {
+            "role": "anon",
+            "execute": true
+          },
+          {
+            "role": "authenticated",
+            "execute": true
+          },
+          {
+            "role": "postgres",
+            "execute": true
+          },
+          {
+            "role": "service_role",
+            "execute": true
+          }
+        ],
+        "identity_arguments": "payload jsonb, path text[]"
+      }
+    ],
+    "observed_at": "2026-09-12T14:17:26.32801+00:00",
+    "server_version": "17.6",
+    "session_context": {
+      "search_path": "\"\\$user\", public, extensions",
+      "current_user": "postgres",
+      "session_user": "postgres"
+    },
+    "missing_functions": [],
+    "expected_functions": [
+      {
+        "oid": "16460",
+        "signature": "extensions.gen_random_uuid()"
+      },
+      {
+        "oid": "38684",
+        "signature": "public.gridex_jsonb_text(jsonb,text[])"
+      }
+    ],
+    "function_dependencies": [
+      {
+        "type": "n",
+        "reference": "schema extensions",
+        "function_oid": "16460",
+        "reference_oid": "16392",
+        "reference_class": "pg_namespace",
+        "reference_subid": 0
+      },
+      {
+        "type": "e",
+        "reference": "extension pgcrypto",
+        "function_oid": "16460",
+        "reference_oid": "16447",
+        "reference_class": "pg_extension",
+        "reference_subid": 0
+      },
+      {
+        "type": "n",
+        "reference": "schema public",
+        "function_oid": "38684",
+        "reference_oid": "2200",
+        "reference_class": "pg_namespace",
+        "reference_subid": 0
+      }
+    ]
+  },
+  "boundaries": [
+    "Two exact reached helper/default function metadata projections plus direct catalog dependencies and ledger count-tail only.",
+    "No business/customer/permission-assignment rows, sequence values, custom RPC/calls, DDL/DML or provider access.",
+    "Separate timestamp; no historical/native/fullfixture/runtime-production acceptance."
+  ]
+}

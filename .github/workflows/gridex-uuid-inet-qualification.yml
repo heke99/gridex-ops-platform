@@ -1,0 +1,41 @@
+name: Gridex UUID and IP column source qualification
+on:
+  push:
+    branches:
+      - codex/ediel-masterplan-v2-alignment-20260915
+    paths:
+      - '.github/workflows/gridex-uuid-inet-qualification.yml'
+      - 'scripts/canonical_uuid_inet_qualification.py'
+      - 'scripts/test-canonical-uuid-inet-qualification.py'
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-uuid-inet-qualification.yml'
+      - 'scripts/canonical_uuid_inet_qualification.py'
+      - 'scripts/test-canonical-uuid-inet-qualification.py'
+permissions:
+  contents: read
+jobs:
+  source-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify exact declarations and supported payload cases
+        run: python3 scripts/test-canonical-uuid-inet-qualification.py
+      - name: Qualify retained declarations and UUID/IP payload casts on owned PostgreSQL 17
+        run: python3 scripts/canonical_uuid_inet_qualification.py
+      - name: Dispose only this qualification's owned container
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,str(Path('scripts').resolve()))
+          import canonical_uuid_inet_qualification as qualifier
+          qualifier.load_legacy().cleanup_workflow_owned()
+          PY

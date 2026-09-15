@@ -1,0 +1,609 @@
+{
+  "schemaVersion": 1,
+  "scope": "HISTORICAL_CHECKPOINT_PROBES_NOT_ACCEPTANCE",
+  "commit": "54914f5116a07749b7b684fa174e3e24731f2589",
+  "runId": 34719704518,
+  "jobId": 103623165161,
+  "artifactId": 10306093314,
+  "metadataSha256": "d4f56d9f3b4ee7f3635d5d81011527b6d24a52cd183a5c18b784e7da7c691122",
+  "probes": 74,
+  "sqlSuccesses": 50,
+  "sqlFailures": 24,
+  "cleanup": "PASS",
+  "completeReplayVerified": false,
+  "productionModified": false,
+  "sources": [
+    {
+      "path": "migrations/01_db2_full_view_preflight_schema_and_functions.sql",
+      "sha256": "4de50050384d6892612c16484de8b198785c59cbb5d2ff03e7cea7e600d36cc9",
+      "results": {
+        "foundation118": {
+          "sqlstate": "42P01",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        },
+        "selected626": {
+          "sqlstate": "42P01",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        }
+      }
+    },
+    {
+      "path": "migrations/01_db2b_preflight_views.sql",
+      "sha256": "884cc115dee1b169eae11ef37a2b319d894a85cff5971ebf050ad2be026e39d7",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 24
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 24
+        }
+      }
+    },
+    {
+      "path": "migrations/03_db2_validation_and_finish.sql",
+      "sha256": "74579e9fb883c1aba60933b1c82460164534d6bf171a7fb094b528f5bbb7224e",
+      "results": {
+        "foundation118": {
+          "sqlstate": "42883",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        },
+        "selected626": {
+          "sqlstate": "42883",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        }
+      }
+    },
+    {
+      "path": "migrations/03_db2b_validation_views.sql",
+      "sha256": "f84d355c54d20bd0fcd3f86426bcd0e56435a1e8713fad3ec7a239f480a2b5e5",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 36
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 36
+        }
+      }
+    },
+    {
+      "path": "migrations/20260520_batch_3_4_onboarding_pricing_billing_engine.sql",
+      "sha256": "8e5dd55ff22bacb82d924a6c2bb071421ef99a1694103403a310eb77afa8a7b6",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 3
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 5
+        }
+      }
+    },
+    {
+      "path": "migrations/20260520_batch_5_cases_audit_email_ux.sql",
+      "sha256": "0e26b35eef3fa863f149bf4c46be4018ff484d3d55c5434a64323fafde201775",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 33
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 33
+        }
+      }
+    },
+    {
+      "path": "migrations/20260520_batch_5_final_quality_handbook_alignment.sql",
+      "sha256": "fdb2ccba4ada805200e71d5b867456cdf6740f22184a50a5ffb442586578180c",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 23
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 23
+        }
+      }
+    },
+    {
+      "path": "migrations/20260521_actor_testing_go_live_module.sql",
+      "sha256": "94e7fc8168c5d17925c61a4985a889db1dd8a823ce3477ded9fdbdab6cdc7c08",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 86
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 75
+        }
+      }
+    },
+    {
+      "path": "migrations/20260521_batch3_pricing_billing_audit_roles_completion.sql",
+      "sha256": "109ddeee3b532c70fc65ac5f920d4eae250a10037afd304ed5d14144cc30e27f",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 24
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 13
+        }
+      }
+    },
+    {
+      "path": "migrations/20260521_batch_1_2_live_readiness_and_automation_hardening.sql",
+      "sha256": "9f741fb9afc07661713e8448cb394f9ec950e25eaf56ee4422b0983886f81c34",
+      "results": {
+        "foundation118": {
+          "sqlstate": "42703",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        },
+        "selected626": {
+          "sqlstate": "42703",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        }
+      }
+    },
+    {
+      "path": "migrations/20260521_batch_2b_full_automation_and_live_ops.sql",
+      "sha256": "20f6846c8857d04381e8956e55d683253eaa0805a88963294c12d9d942f19c4f",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 80
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 93
+        }
+      }
+    },
+    {
+      "path": "migrations/20260521_batch_2c_end_to_end_operations.sql",
+      "sha256": "ed0784a0fa59b447c48e90d4d7220c71e778a4cba5e70254dfad9eea6693d5dd",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 93
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 88
+        }
+      }
+    },
+    {
+      "path": "migrations/20260521_batch_customer_intake_batch2_completion.sql",
+      "sha256": "9cf593a45de464b273eb0642645d21d4b831fbc6e2458cb41711dcfdb90fff6a",
+      "results": {
+        "foundation118": {
+          "sqlstate": "42703",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        },
+        "selected626": {
+          "sqlstate": "42703",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        }
+      }
+    },
+    {
+      "path": "migrations/20260521_batch_customer_intake_batch2_hardening.sql",
+      "sha256": "ab4bcf98d9baba596e3badde07ea8c035224512979104f6716d1fe39bbbb2594",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 15
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 17
+        }
+      }
+    },
+    {
+      "path": "migrations/20260522_batch4_multisite_duplicate_billing_hardening.sql",
+      "sha256": "b8e38ec7d99cd12e4bcd9310bd3ed1b2c589ea04f7140768435b0b3de9d62355",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 65
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 38
+        }
+      }
+    },
+    {
+      "path": "migrations/20260522_batch4c_billing_export_audit_quality_ai.sql",
+      "sha256": "44206392cb41e8a2e97c617b633ddd86cb855b2fb4b6e152e99bd1c3601d2a34",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 84
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 15
+        }
+      }
+    },
+    {
+      "path": "migrations/20260522_batch4d_merge_poa_lifecycle_hardening.sql",
+      "sha256": "2e346a108ec1ce7583d50b6a46d92302cfe24ab65f5c43dd6cfabf9acaae78fe",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 45
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 13
+        }
+      }
+    },
+    {
+      "path": "migrations/20260522_batch4e_switch_pdf_audit_rbac_completion.sql",
+      "sha256": "e28a7956e18e6704de79b3be29245974faaef5a33aebcec4fa741c7daa06c98d",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 40
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 58
+        }
+      }
+    },
+    {
+      "path": "migrations/20260522_batch4f_rbac_database_lint_hardening.sql",
+      "sha256": "034a7745d7cee04c7d863c65547792335d7fc9b6d9111e242cc5ea9b12caa012",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 11
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 10
+        }
+      }
+    },
+    {
+      "path": "migrations/20260522_customer_flow_access_repair.sql",
+      "sha256": "7be989882e76861a0efcfb0ec53efb68c15955eb21b445b5b90c757c4c1977e2",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 2
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 2
+        }
+      }
+    },
+    {
+      "path": "migrations/20260522_db1_schema_repair_backfill_foundation.sql",
+      "sha256": "aff5a3e4fb3aae6ebe682081cbce4876c5731be1c124650b19d8151abf6efc73",
+      "results": {
+        "foundation118": {
+          "sqlstate": "42P16",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        },
+        "selected626": {
+          "sqlstate": "42P16",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        }
+      }
+    },
+    {
+      "path": "migrations/20260523_db3_tenant_isolation_rbac_enforcement.sql",
+      "sha256": "ac4d51086e0d6865de6012cc5e84ca524a59c094daccf987261afa2580a9f450",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 101
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 88
+        }
+      }
+    },
+    {
+      "path": "migrations/20260525_db4b_customer_registry_ediel_test_cleanup.sql",
+      "sha256": "fcd67f80346b1e767e7f136c5983d5c73d1bdcbbe3e1e82637c6111bb2a6502e",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 26
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 26
+        }
+      }
+    },
+    {
+      "path": "migrations/20260525_debug_fix_batch_1b_schema_code_alignment.sql",
+      "sha256": "c846be376c5f878965ea6a831d23611da959d4721cd0ebfb853fa46b10bccf68",
+      "results": {
+        "foundation118": {
+          "sqlstate": "42P13",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        },
+        "selected626": {
+          "sqlstate": "42P13",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        }
+      }
+    },
+    {
+      "path": "migrations/20260526_batch_3a_3b_customer_intake_blockers_documents.sql",
+      "sha256": "fad2a3336c1bab86cd67d05d5f965643589864c259b500eb67bbafbcaa78cba8",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 19
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 11
+        }
+      }
+    },
+    {
+      "path": "migrations/20260528_batch_1_customer_flow_masterdata_preflight.sql",
+      "sha256": "08d183bdbb1506958893aada9400982ea58cd2e4c0acec0a886ad83194533135",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 26
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 24
+        }
+      }
+    },
+    {
+      "path": "migrations/20260528_batch_2_completion_rulebook_actions_regression.sql",
+      "sha256": "7374dcf5f7ac5b2081a0ba752a103e60fc292f2d55f49c9f45e1db23872436f9",
+      "results": {
+        "foundation118": {
+          "sqlstate": "42804",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        },
+        "selected626": {
+          "sqlstate": "42804",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        }
+      }
+    },
+    {
+      "path": "migrations/20260528_batch_7a1_inbound_hardening.sql",
+      "sha256": "4653d576effa13161ef8bdd713cb928ba9f57e8f2a16084d0f5dff2bc3d83959",
+      "results": {
+        "foundation118": {
+          "sqlstate": "42P01",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        },
+        "selected626": {
+          "sqlstate": "42703",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        }
+      }
+    },
+    {
+      "path": "migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql",
+      "sha256": "a5ca82d1c68f44c8542820e5d209fd5d31356a16e7eb1ccc827843a61e0ba690",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 178
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 86
+        }
+      }
+    },
+    {
+      "path": "migrations/20260528_debug_post_repair_schema_guardrails.sql",
+      "sha256": "41e63220e564c6efee26011e65055b95d5f5ca9e60a7c36811ec00e8f69579e6",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 25
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 17
+        }
+      }
+    },
+    {
+      "path": "migrations/20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql",
+      "sha256": "7f71410f8b9f498286226dae76a2bc8ab1073cb43e07442ed8b5e0eb5de869be",
+      "results": {
+        "foundation118": {
+          "sqlstate": "42703",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        },
+        "selected626": {
+          "sqlstate": "42703",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        }
+      }
+    },
+    {
+      "path": "migrations/20260531111600_system_readiness_foundation.sql",
+      "sha256": "e6ef68b18ede5729da067ce59a86cfca0db083d9d54a35ae0ed3a6c0968b96f2",
+      "results": {
+        "foundation118": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 189
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 163
+        }
+      }
+    },
+    {
+      "path": "migrations/20260601070000_ediel_production_readiness_hardening.sql",
+      "sha256": "7a73e59f559ebb5291d3e7df74545e6918011ec9764e5c512df19fbaa5bdbc12",
+      "results": {
+        "foundation118": {
+          "sqlstate": "42703",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        },
+        "selected626": {
+          "sqlstate": "23502",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        }
+      }
+    },
+    {
+      "path": "migrations/20260609162000_batch_7_website_integration_foundation.sql",
+      "sha256": "1809f5c8926ec6bda991eb861cc3ba7a24738e8655b47e94f4ab086d5f2afb0b",
+      "results": {
+        "foundation118": {
+          "sqlstate": "42P01",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 82
+        }
+      }
+    },
+    {
+      "path": "migrations/20260615_multitenant_integrity_and_claim_locks.sql",
+      "sha256": "046c7ec8c885eca46d8dde306bc1b289aa7bccea3f9d4ebdd5f8580c07ca9a37",
+      "results": {
+        "foundation118": {
+          "sqlstate": "42P01",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 74
+        }
+      }
+    },
+    {
+      "path": "migrations/20260801143000_canonical_multitenant_platform_hardening.sql",
+      "sha256": "4de56322077ea89f72596bd9cd2de9f2bdae67c2b74c4721779410553b3326b0",
+      "results": {
+        "foundation118": {
+          "sqlstate": "42883",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 96
+        }
+      }
+    },
+    {
+      "path": "migrations/20260802232000_migration_truth_readiness.sql",
+      "sha256": "dc977bb14a66bc4f12939437428198d3daf7bd174ada16ff42133b44405ef1e2",
+      "results": {
+        "foundation118": {
+          "sqlstate": "42P01",
+          "sqlSucceeded": false,
+          "catalogChanges": null
+        },
+        "selected626": {
+          "sqlstate": "00000",
+          "sqlSucceeded": true,
+          "catalogChanges": 3
+        }
+      }
+    }
+  ]
+}

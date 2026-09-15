@@ -1,0 +1,68 @@
+{
+  "status": "FAILED_SUPPORTED_APPLICATION_GATE",
+  "commit": "589eda875a3a00f1889a82d87b9f6ef90ae88c9c",
+  "tree": "2b9712171c356e1d9f1fddae04d91edf4b1342bd",
+  "workflow_run_id": 34698160723,
+  "quality_job_id": 103565128134,
+  "runtime": {
+    "node": "22.23.2",
+    "npm": "10.9.8"
+  },
+  "passed": [
+    "lint",
+    "script typecheck",
+    "test typecheck",
+    "mechanical checks",
+    "quality suite45"
+  ],
+  "vitest": {
+    "files_passed": 207,
+    "files_failed": 1,
+    "tests_passed": 1601,
+    "tests_failed": 3,
+    "new_blocks_passed": 8,
+    "new_blocks_failed": 3
+  },
+  "failures": [
+    {
+      "test": "valid website quote creation",
+      "expected_status": 201,
+      "actual_status": 422,
+      "source_line": 810
+    },
+    {
+      "test": "valid quote validation: initial create",
+      "expected_status": 201,
+      "actual_status": 422,
+      "source_line": 930
+    },
+    {
+      "test": "valid partner price dispatch",
+      "expected_status": 200,
+      "actual_status": 422,
+      "source_line": 1016
+    }
+  ],
+  "build": "NOT_RUN_AFTER_TEST_FAILURE",
+  "native_permission_regression": {
+    "job_id": 103565128054,
+    "status": "PASS",
+    "construction_tests": 42,
+    "baseline_cases": 10,
+    "candidate_cases": 129,
+    "assertions": 1128,
+    "repeat_acl_recovery_rows_catalog_cleanup": "PASS"
+  },
+  "other_open_gates": {
+    "verify_job": 103565128137,
+    "verify_reason": "generated-types migration tail20260911114443",
+    "clean_replay_job": 103565128059,
+    "clean_replay_reason": "unsupported CLI/native target before SQL"
+  },
+  "next_action": "Original Task10b1author causal correction, scoped independent review, reviewed publication and supported gate. Task10b2author paused at pre-write boundary.",
+  "limits": [
+    "No acceptance for this application batch or build",
+    "No native billing/full RLS/replay/types/production acceptance",
+    "No production mutation, merge, deploy or migration registration"
+  ]
+}

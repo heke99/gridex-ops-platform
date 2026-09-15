@@ -2,10 +2,11 @@
 import { revalidatePath } from "next/cache"
 
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { requireAdminActionAccess } from "@/lib/admin/guards"
+import { requireAdminActionAccess, type GuardResult } from "@/lib/admin/guards"
 import { MASTERDATA_PERMISSIONS } from "@/lib/admin/masterdataPermissions"
 import { supabaseService } from "@/lib/supabase/service"
 import { assertUserCanOperateCompany } from "@/lib/tenant/scope"
+import { assertCompanyAccessForGuard } from "@/lib/tenant/entityGuards"
 import { addCustomerContractEvent } from "@/lib/customer-contracts/db"
 import { queueTenantTemplateEmail } from "@/lib/tenant/emailTemplates"
 import { logAdminActionAndUsage, logUsageEvent } from "@/lib/audit/actionLogger"
@@ -144,19 +145,33 @@ export function requireValue(value: string | null | undefined, message: string) 
   }
 }
 
-export async function getActorUserId(): Promise<string> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
+export async function getActorContext(): Promise<GuardResult> {
+  const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
 
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (!user || user.id !== guard.userId) {
     throw new Error("Unauthorized");
   }
 
-  return user.id;
+  return guard;
+}
+
+export async function getActorUserId(): Promise<string> {
+  return (await getActorContext()).userId;
+}
+
+export async function assertCustomerProfileCompanyAccess(
+  guard: GuardResult,
+  rowCompanyId: string | null | undefined,
+): Promise<string> {
+  const companyId = await assertCompanyAccessForGuard(rowCompanyId, guard);
+  return assertUserCanOperateCompany(guard.userId, companyId, {
+    isPlatformAdmin: guard.isPlatformAdmin,
+  });
 }
 
 export async function insertAuditLog(params: {
@@ -198,7 +213,8 @@ export async function saveCustomerProfileAction(
 export async function saveCustomerProfileImpl(
   formData: FormData,
 ): Promise<CustomerActionState> {
-  const actorUserId = await getActorUserId();
+  const actorContext = await getActorContext();
+  const actorUserId = actorContext.userId;
 
   const customerId = getString(formData, "customer_id");
   if (!customerId) {
@@ -278,8 +294,8 @@ export async function saveCustomerProfileImpl(
     );
   }
 
-  const companyId = await assertUserCanOperateCompany(
-    actorUserId,
+  const companyId = await assertCustomerProfileCompanyAccess(
+    actorContext,
     typeof before.company_id === "string" ? before.company_id : null,
   );
 
@@ -416,7 +432,8 @@ export async function closeCustomerLifecycleAction(
 export async function closeCustomerLifecycleImpl(
   formData: FormData,
 ): Promise<CustomerActionState> {
-  const actorUserId = await getActorUserId();
+  const actorContext = await getActorContext();
+  const actorUserId = actorContext.userId;
   const customerId = getString(formData, "customer_id");
   const confirmText = getString(formData, "confirm_close");
   const mode = normalizeLifecycleMode(
@@ -447,8 +464,8 @@ export async function closeCustomerLifecycleImpl(
 
   if (customerError) throw customerError;
 
-  const companyId = await assertUserCanOperateCompany(
-    actorUserId,
+  const companyId = await assertCustomerProfileCompanyAccess(
+    actorContext,
     typeof customerBefore.company_id === "string"
       ? customerBefore.company_id
       : null,

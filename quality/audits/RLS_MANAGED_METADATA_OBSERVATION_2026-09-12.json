@@ -1,0 +1,1021 @@
+{
+  "status": "OBSERVED_CURRENT_MANAGED_METADATA_ONLY",
+  "project_id": "piidsfebjqjmnepdpnas",
+  "project_name": "gridex-ops-dev",
+  "project_version": "17.6.1.084",
+  "runtime_binding": "UNPROVED; this project name/ref is not production runtime binding evidence",
+  "query": "select jsonb_build_object(\n 'observed_at', clock_timestamp(),\n 'database', current_database(),\n 'server_version', current_setting('server_version'),\n 'ledger', (select jsonb_build_object('count',count(*),'tail',max(version)) from supabase_migrations.schema_migrations),\n 'roles', (select jsonb_agg(jsonb_build_object('name',rolname,'superuser',rolsuper,'inherit',rolinherit,'create_role',rolcreaterole,'create_db',rolcreatedb,'login',rolcanlogin,'replication',rolreplication,'bypass_rls',rolbypassrls) order by rolname) from pg_catalog.pg_roles),\n 'memberships', (select coalesce(jsonb_agg(jsonb_build_object('role',parent.rolname,'member',child.rolname,'grantor',grantor.rolname,'admin',m.admin_option,'inherit',m.inherit_option,'set',m.set_option) order by parent.rolname,child.rolname), '[]'::jsonb) from pg_catalog.pg_auth_members m join pg_catalog.pg_roles parent on parent.oid=m.roleid join pg_catalog.pg_roles child on child.oid=m.member left join pg_catalog.pg_roles grantor on grantor.oid=m.grantor),\n 'default_acls', (select coalesce(jsonb_agg(jsonb_build_object('owner',pg_catalog.pg_get_userbyid(d.defaclrole),'schema',n.nspname,'object_type',d.defaclobjtype,'acl',d.defaclacl::text) order by pg_catalog.pg_get_userbyid(d.defaclrole),n.nspname,d.defaclobjtype), '[]'::jsonb) from pg_catalog.pg_default_acl d left join pg_catalog.pg_namespace n on n.oid=d.defaclnamespace),\n 'tables', (select jsonb_agg(jsonb_build_object('schema',n.nspname,'name',c.relname,'kind',c.relkind,'owner',pg_catalog.pg_get_userbyid(c.relowner),'rls',c.relrowsecurity,'force_rls',c.relforcerowsecurity,'acl',c.relacl::text,\n   'column_acls',(select coalesce(jsonb_agg(jsonb_build_object('column',a.attname,'acl',a.attacl::text) order by a.attnum),'[]'::jsonb) from pg_catalog.pg_attribute a where a.attrelid=c.oid and a.attnum>0 and not a.attisdropped and a.attacl is not null),\n   'effective_access',(select jsonb_agg(jsonb_build_object('role',r.rolname,'select',has_table_privilege(r.oid,c.oid,'SELECT'),'insert',has_table_privilege(r.oid,c.oid,'INSERT'),'update',has_table_privilege(r.oid,c.oid,'UPDATE'),'delete',has_table_privilege(r.oid,c.oid,'DELETE'),'schema_usage',has_schema_privilege(r.oid,n.oid,'USAGE')) order by r.rolname) from pg_catalog.pg_roles r where r.rolname in ('anon','authenticated','service_role'))\n ) order by c.relname) from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname in ('customers','customer_sites','metering_points','customer_contracts','powers_of_attorney','billing_underlays','customer_invoices','customer_invoice_lines','audit_logs','webhook_deliveries'))\n) as catalog_receipt;",
+  "catalog": {
+    "roles": [
+      {
+        "name": "anon",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "authenticated",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "authenticator",
+        "login": true,
+        "inherit": false,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "cli_login_postgres",
+        "login": true,
+        "inherit": false,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "dashboard_user",
+        "login": false,
+        "inherit": true,
+        "create_db": true,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": true,
+        "replication": true
+      },
+      {
+        "name": "pg_checkpoint",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_create_subscription",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_database_owner",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_execute_server_program",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_maintain",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_monitor",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_read_all_data",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_read_all_settings",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_read_all_stats",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_read_server_files",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_signal_backend",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_stat_scan_tables",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_use_reserved_connections",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_write_all_data",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pg_write_server_files",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "pgbouncer",
+        "login": true,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "postgres",
+        "login": true,
+        "inherit": true,
+        "create_db": true,
+        "superuser": false,
+        "bypass_rls": true,
+        "create_role": true,
+        "replication": true
+      },
+      {
+        "name": "service_role",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": true,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "supabase_admin",
+        "login": true,
+        "inherit": true,
+        "create_db": true,
+        "superuser": true,
+        "bypass_rls": true,
+        "create_role": true,
+        "replication": true
+      },
+      {
+        "name": "supabase_auth_admin",
+        "login": true,
+        "inherit": false,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": true,
+        "replication": false
+      },
+      {
+        "name": "supabase_etl_admin",
+        "login": true,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": true,
+        "create_role": false,
+        "replication": true
+      },
+      {
+        "name": "supabase_privileged_role",
+        "login": false,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "supabase_read_only_user",
+        "login": true,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": true,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "supabase_realtime_admin",
+        "login": false,
+        "inherit": false,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": false
+      },
+      {
+        "name": "supabase_replication_admin",
+        "login": true,
+        "inherit": true,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": false,
+        "replication": true
+      },
+      {
+        "name": "supabase_storage_admin",
+        "login": true,
+        "inherit": false,
+        "create_db": false,
+        "superuser": false,
+        "bypass_rls": false,
+        "create_role": true,
+        "replication": false
+      }
+    ],
+    "ledger": {
+      "tail": "20260904222450",
+      "count": 279
+    },
+    "tables": [
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "kind": "r",
+        "name": "audit_logs",
+        "owner": "postgres",
+        "schema": "public",
+        "force_rls": false,
+        "column_acls": [],
+        "effective_access": [
+          {
+            "role": "anon",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "schema_usage": true
+          },
+          {
+            "role": "authenticated",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          },
+          {
+            "role": "service_role",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          }
+        ]
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "kind": "r",
+        "name": "billing_underlays",
+        "owner": "postgres",
+        "schema": "public",
+        "force_rls": false,
+        "column_acls": [],
+        "effective_access": [
+          {
+            "role": "anon",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "schema_usage": true
+          },
+          {
+            "role": "authenticated",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          },
+          {
+            "role": "service_role",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          }
+        ]
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "kind": "r",
+        "name": "customer_contracts",
+        "owner": "postgres",
+        "schema": "public",
+        "force_rls": false,
+        "column_acls": [],
+        "effective_access": [
+          {
+            "role": "anon",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "schema_usage": true
+          },
+          {
+            "role": "authenticated",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          },
+          {
+            "role": "service_role",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          }
+        ]
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "kind": "r",
+        "name": "customer_invoice_lines",
+        "owner": "postgres",
+        "schema": "public",
+        "force_rls": false,
+        "column_acls": [],
+        "effective_access": [
+          {
+            "role": "anon",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "schema_usage": true
+          },
+          {
+            "role": "authenticated",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          },
+          {
+            "role": "service_role",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          }
+        ]
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "kind": "r",
+        "name": "customer_invoices",
+        "owner": "postgres",
+        "schema": "public",
+        "force_rls": false,
+        "column_acls": [],
+        "effective_access": [
+          {
+            "role": "anon",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "schema_usage": true
+          },
+          {
+            "role": "authenticated",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          },
+          {
+            "role": "service_role",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          }
+        ]
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "kind": "r",
+        "name": "customer_sites",
+        "owner": "postgres",
+        "schema": "public",
+        "force_rls": false,
+        "column_acls": [],
+        "effective_access": [
+          {
+            "role": "anon",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "schema_usage": true
+          },
+          {
+            "role": "authenticated",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          },
+          {
+            "role": "service_role",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          }
+        ]
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "kind": "r",
+        "name": "customers",
+        "owner": "postgres",
+        "schema": "public",
+        "force_rls": false,
+        "column_acls": [],
+        "effective_access": [
+          {
+            "role": "anon",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "schema_usage": true
+          },
+          {
+            "role": "authenticated",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          },
+          {
+            "role": "service_role",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          }
+        ]
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "kind": "r",
+        "name": "metering_points",
+        "owner": "postgres",
+        "schema": "public",
+        "force_rls": false,
+        "column_acls": [],
+        "effective_access": [
+          {
+            "role": "anon",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "schema_usage": true
+          },
+          {
+            "role": "authenticated",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          },
+          {
+            "role": "service_role",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          }
+        ]
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "kind": "r",
+        "name": "powers_of_attorney",
+        "owner": "postgres",
+        "schema": "public",
+        "force_rls": false,
+        "column_acls": [],
+        "effective_access": [
+          {
+            "role": "anon",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "schema_usage": true
+          },
+          {
+            "role": "authenticated",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          },
+          {
+            "role": "service_role",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          }
+        ]
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "kind": "r",
+        "name": "webhook_deliveries",
+        "owner": "postgres",
+        "schema": "public",
+        "force_rls": false,
+        "column_acls": [],
+        "effective_access": [
+          {
+            "role": "anon",
+            "delete": false,
+            "insert": false,
+            "select": false,
+            "update": false,
+            "schema_usage": true
+          },
+          {
+            "role": "authenticated",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          },
+          {
+            "role": "service_role",
+            "delete": true,
+            "insert": true,
+            "select": true,
+            "update": true,
+            "schema_usage": true
+          }
+        ]
+      }
+    ],
+    "database": "postgres",
+    "memberships": [
+      {
+        "set": true,
+        "role": "anon",
+        "admin": false,
+        "member": "authenticator",
+        "grantor": "supabase_admin",
+        "inherit": false
+      },
+      {
+        "set": true,
+        "role": "anon",
+        "admin": true,
+        "member": "postgres",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "authenticated",
+        "admin": false,
+        "member": "authenticator",
+        "grantor": "supabase_admin",
+        "inherit": false
+      },
+      {
+        "set": true,
+        "role": "authenticated",
+        "admin": true,
+        "member": "postgres",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "authenticator",
+        "admin": true,
+        "member": "postgres",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "authenticator",
+        "admin": false,
+        "member": "supabase_storage_admin",
+        "grantor": "supabase_admin",
+        "inherit": false
+      },
+      {
+        "set": true,
+        "role": "pg_create_subscription",
+        "admin": true,
+        "member": "postgres",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "pg_monitor",
+        "admin": true,
+        "member": "postgres",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "pg_monitor",
+        "admin": false,
+        "member": "supabase_etl_admin",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "pg_monitor",
+        "admin": false,
+        "member": "supabase_read_only_user",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "pg_read_all_data",
+        "admin": true,
+        "member": "postgres",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "pg_read_all_data",
+        "admin": false,
+        "member": "supabase_etl_admin",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "pg_read_all_data",
+        "admin": false,
+        "member": "supabase_read_only_user",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "pg_read_all_settings",
+        "admin": false,
+        "member": "pg_monitor",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "pg_read_all_stats",
+        "admin": false,
+        "member": "pg_monitor",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "pg_signal_backend",
+        "admin": true,
+        "member": "postgres",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "pg_stat_scan_tables",
+        "admin": false,
+        "member": "pg_monitor",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "postgres",
+        "admin": false,
+        "member": "cli_login_postgres",
+        "grantor": "supabase_admin",
+        "inherit": false
+      },
+      {
+        "set": true,
+        "role": "service_role",
+        "admin": false,
+        "member": "authenticator",
+        "grantor": "supabase_admin",
+        "inherit": false
+      },
+      {
+        "set": true,
+        "role": "service_role",
+        "admin": true,
+        "member": "postgres",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "supabase_privileged_role",
+        "admin": false,
+        "member": "postgres",
+        "grantor": "supabase_admin",
+        "inherit": true
+      },
+      {
+        "set": true,
+        "role": "supabase_privileged_role",
+        "admin": false,
+        "member": "supabase_etl_admin",
+        "grantor": "supabase_admin",
+        "inherit": true
+      }
+    ],
+    "observed_at": "2026-09-12T09:20:37.902742+00:00",
+    "default_acls": [
+      {
+        "acl": "{postgres=rwU/postgres,service_role=rwU/postgres}",
+        "owner": "postgres",
+        "schema": "public",
+        "object_type": "S"
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "schema": "public",
+        "object_type": "f"
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "owner": "postgres",
+        "schema": "public",
+        "object_type": "r"
+      },
+      {
+        "acl": "{postgres=rwU/postgres,anon=rwU/postgres,authenticated=rwU/postgres,service_role=rwU/postgres}",
+        "owner": "postgres",
+        "schema": "storage",
+        "object_type": "S"
+      },
+      {
+        "acl": "{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "schema": "storage",
+        "object_type": "f"
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "owner": "postgres",
+        "schema": "storage",
+        "object_type": "r"
+      },
+      {
+        "acl": "{postgres=r*w*U*/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "extensions",
+        "object_type": "S"
+      },
+      {
+        "acl": "{postgres=X*/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "extensions",
+        "object_type": "f"
+      },
+      {
+        "acl": "{postgres=a*r*w*d*D*x*t*m*/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "extensions",
+        "object_type": "r"
+      },
+      {
+        "acl": "{postgres=rwU/supabase_admin,anon=rwU/supabase_admin,authenticated=rwU/supabase_admin,service_role=rwU/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "graphql",
+        "object_type": "S"
+      },
+      {
+        "acl": "{postgres=X/supabase_admin,anon=X/supabase_admin,authenticated=X/supabase_admin,service_role=X/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "graphql",
+        "object_type": "f"
+      },
+      {
+        "acl": "{postgres=arwdDxtm/supabase_admin,anon=arwdDxtm/supabase_admin,authenticated=arwdDxtm/supabase_admin,service_role=arwdDxtm/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "graphql",
+        "object_type": "r"
+      },
+      {
+        "acl": "{postgres=rwU/supabase_admin,anon=rwU/supabase_admin,authenticated=rwU/supabase_admin,service_role=rwU/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "graphql_public",
+        "object_type": "S"
+      },
+      {
+        "acl": "{postgres=X/supabase_admin,anon=X/supabase_admin,authenticated=X/supabase_admin,service_role=X/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "graphql_public",
+        "object_type": "f"
+      },
+      {
+        "acl": "{postgres=arwdDxtm/supabase_admin,anon=arwdDxtm/supabase_admin,authenticated=arwdDxtm/supabase_admin,service_role=arwdDxtm/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "graphql_public",
+        "object_type": "r"
+      },
+      {
+        "acl": "{postgres=rwU/supabase_admin,anon=rwU/supabase_admin,authenticated=rwU/supabase_admin,service_role=rwU/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "public",
+        "object_type": "S"
+      },
+      {
+        "acl": "{postgres=X/supabase_admin,anon=X/supabase_admin,authenticated=X/supabase_admin,service_role=X/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "public",
+        "object_type": "f"
+      },
+      {
+        "acl": "{postgres=arwdDxtm/supabase_admin,anon=arwdDxtm/supabase_admin,authenticated=arwdDxtm/supabase_admin,service_role=arwdDxtm/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "public",
+        "object_type": "r"
+      },
+      {
+        "acl": "{postgres=rwU/supabase_admin,dashboard_user=rwU/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "realtime",
+        "object_type": "S"
+      },
+      {
+        "acl": "{postgres=X/supabase_admin,dashboard_user=X/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "realtime",
+        "object_type": "f"
+      },
+      {
+        "acl": "{postgres=arwdDxtm/supabase_admin,dashboard_user=arwdDxtm/supabase_admin}",
+        "owner": "supabase_admin",
+        "schema": "realtime",
+        "object_type": "r"
+      },
+      {
+        "acl": "{postgres=rwU/supabase_auth_admin,dashboard_user=rwU/supabase_auth_admin}",
+        "owner": "supabase_auth_admin",
+        "schema": "auth",
+        "object_type": "S"
+      },
+      {
+        "acl": "{postgres=X/supabase_auth_admin,dashboard_user=X/supabase_auth_admin}",
+        "owner": "supabase_auth_admin",
+        "schema": "auth",
+        "object_type": "f"
+      },
+      {
+        "acl": "{postgres=arwdDxtm/supabase_auth_admin,dashboard_user=arwdDxtm/supabase_auth_admin}",
+        "owner": "supabase_auth_admin",
+        "schema": "auth",
+        "object_type": "r"
+      }
+    ],
+    "server_version": "17.6"
+  },
+  "boundaries": [
+    "Read-only SELECT of system catalogs and ledger count/tail; no customer rows, credentials, function bodies, DDL or DML",
+    "Current final ACL/default/role observation, not original bootstrap or historical source-effect provenance",
+    "No RLS CRUD, native replay, generated types or deployment acceptance",
+    "No change to immutable selection/manifests or Task11a/11c candidate"
+  ]
+}

@@ -3,13 +3,18 @@ import { NextResponse } from 'next/server'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { retrySvkGridOwnerReconciliation, runSvkGeometryImport } from '@/lib/energy/svkGeometryImport'
 
+import { readAdminJson } from '@/lib/http/adminJsonRequest'
+import { platformSvkImportSchema } from '@/lib/admin/platformJsonSchemas'
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
   try {
     const admin = await requirePlatformAdminActionAccess()
-    const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    const parsed = await readAdminJson(request, platformSvkImportSchema, { allowEmpty: true })
+    if (!parsed.ok) return NextResponse.json({ ok: false, error: parsed.error, code: parsed.code, field: parsed.field }, { status: parsed.status })
+    const body = parsed.data
 
     if (body.action === 'retry_reconciliation') {
       const runId = typeof (body.run_id ?? body.runId) === 'string' ? String(body.run_id ?? body.runId) : ''

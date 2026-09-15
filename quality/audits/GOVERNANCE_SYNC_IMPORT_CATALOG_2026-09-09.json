@@ -1,0 +1,593 @@
+{
+  "observed_at": "2026-09-09",
+  "project_id": "piidsfebjqjmnepdpnas",
+  "query": "select c.relname as table_name,c.relrowsecurity,c.relforcerowsecurity,\n(select jsonb_agg(jsonb_build_object('name',a.attname,'type',format_type(a.atttypid,a.atttypmod),'not_null',a.attnotnull,'default',pg_get_expr(d.adbin,d.adrelid)) order by a.attnum) from pg_attribute a left join pg_attrdef d on d.adrelid=a.attrelid and d.adnum=a.attnum where a.attrelid=c.oid and a.attnum>0 and not a.attisdropped) as columns,\n(select jsonb_agg(jsonb_build_object('name',k.conname,'type',k.contype,'validated',k.convalidated,'definition',pg_get_constraintdef(k.oid)) order by k.conname) from pg_constraint k where k.conrelid=c.oid) as constraints,\n(select jsonb_agg(jsonb_build_object('name',x.relname,'definition',pg_get_indexdef(i.indexrelid),'valid',i.indisvalid,'ready',i.indisready) order by x.relname) from pg_index i join pg_class x on x.oid=i.indexrelid where i.indrelid=c.oid) as indexes\nfrom pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname in ('customer_sync_events','customer_import_batches','customer_import_rows') and c.relkind in ('r','p') order by c.relname;",
+  "scope": "Read-only catalog, no rows. Runtime-to-production-database binding not established; intended shape/retention not inferred.",
+  "tables": [
+    {
+      "columns": [
+        {
+          "default": "gen_random_uuid()",
+          "name": "id",
+          "not_null": true,
+          "type": "uuid"
+        },
+        {
+          "default": null,
+          "name": "company_id",
+          "not_null": true,
+          "type": "uuid"
+        },
+        {
+          "default": "'manual'::text",
+          "name": "source_type",
+          "not_null": true,
+          "type": "text"
+        },
+        {
+          "default": null,
+          "name": "file_name",
+          "not_null": false,
+          "type": "text"
+        },
+        {
+          "default": "'previewed'::text",
+          "name": "status",
+          "not_null": true,
+          "type": "text"
+        },
+        {
+          "default": "0",
+          "name": "rows_total",
+          "not_null": true,
+          "type": "integer"
+        },
+        {
+          "default": "0",
+          "name": "rows_created",
+          "not_null": true,
+          "type": "integer"
+        },
+        {
+          "default": "0",
+          "name": "rows_failed",
+          "not_null": true,
+          "type": "integer"
+        },
+        {
+          "default": "'[]'::jsonb",
+          "name": "issues",
+          "not_null": true,
+          "type": "jsonb"
+        },
+        {
+          "default": "'{}'::jsonb",
+          "name": "metadata",
+          "not_null": true,
+          "type": "jsonb"
+        },
+        {
+          "default": null,
+          "name": "created_by",
+          "not_null": false,
+          "type": "uuid"
+        },
+        {
+          "default": "now()",
+          "name": "created_at",
+          "not_null": true,
+          "type": "timestamp with time zone"
+        },
+        {
+          "default": null,
+          "name": "imported_at",
+          "not_null": false,
+          "type": "timestamp with time zone"
+        },
+        {
+          "default": "'[]'::jsonb",
+          "name": "warnings",
+          "not_null": true,
+          "type": "jsonb"
+        },
+        {
+          "default": null,
+          "name": "source_kind",
+          "not_null": false,
+          "type": "text"
+        },
+        {
+          "default": "0",
+          "name": "total_rows",
+          "not_null": true,
+          "type": "integer"
+        },
+        {
+          "default": "0",
+          "name": "created_rows",
+          "not_null": true,
+          "type": "integer"
+        },
+        {
+          "default": "0",
+          "name": "failed_rows",
+          "not_null": true,
+          "type": "integer"
+        },
+        {
+          "default": "now()",
+          "name": "updated_at",
+          "not_null": true,
+          "type": "timestamp with time zone"
+        }
+      ],
+      "constraints": [
+        {
+          "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE",
+          "name": "customer_import_batches_company_id_fkey",
+          "type": "f",
+          "validated": true
+        },
+        {
+          "definition": "FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL",
+          "name": "customer_import_batches_created_by_fkey",
+          "type": "f",
+          "validated": true
+        },
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_import_batches_pkey",
+          "type": "p",
+          "validated": true
+        },
+        {
+          "definition": "CHECK ((rows_created >= 0))",
+          "name": "customer_import_batches_rows_created_check",
+          "type": "c",
+          "validated": true
+        },
+        {
+          "definition": "CHECK ((rows_failed >= 0))",
+          "name": "customer_import_batches_rows_failed_check",
+          "type": "c",
+          "validated": true
+        },
+        {
+          "definition": "CHECK ((rows_total >= 0))",
+          "name": "customer_import_batches_rows_total_check",
+          "type": "c",
+          "validated": true
+        },
+        {
+          "definition": "CHECK ((status = ANY (ARRAY['previewed'::text, 'imported'::text, 'partially_imported'::text, 'completed'::text, 'failed'::text])))",
+          "name": "customer_import_batches_status_check",
+          "type": "c",
+          "validated": true
+        }
+      ],
+      "indexes": [
+        {
+          "definition": "CREATE INDEX customer_import_batches_company_created_idx ON public.customer_import_batches USING btree (company_id, created_at DESC)",
+          "name": "customer_import_batches_company_created_idx",
+          "ready": true,
+          "valid": true
+        },
+        {
+          "definition": "CREATE INDEX customer_import_batches_company_status_created_idx ON public.customer_import_batches USING btree (company_id, status, created_at DESC)",
+          "name": "customer_import_batches_company_status_created_idx",
+          "ready": true,
+          "valid": true
+        },
+        {
+          "definition": "CREATE UNIQUE INDEX customer_import_batches_pkey ON public.customer_import_batches USING btree (id)",
+          "name": "customer_import_batches_pkey",
+          "ready": true,
+          "valid": true
+        },
+        {
+          "definition": "CREATE INDEX idx_fk_customer_import_batches_0c55599f27b9 ON public.customer_import_batches USING btree (created_by)",
+          "name": "idx_fk_customer_import_batches_0c55599f27b9",
+          "ready": true,
+          "valid": true
+        }
+      ],
+      "relforcerowsecurity": false,
+      "relrowsecurity": true,
+      "table_name": "customer_import_batches"
+    },
+    {
+      "columns": [
+        {
+          "default": "gen_random_uuid()",
+          "name": "id",
+          "not_null": true,
+          "type": "uuid"
+        },
+        {
+          "default": null,
+          "name": "import_batch_id",
+          "not_null": true,
+          "type": "uuid"
+        },
+        {
+          "default": null,
+          "name": "company_id",
+          "not_null": true,
+          "type": "uuid"
+        },
+        {
+          "default": null,
+          "name": "row_number",
+          "not_null": true,
+          "type": "integer"
+        },
+        {
+          "default": "'pending'::text",
+          "name": "status",
+          "not_null": true,
+          "type": "text"
+        },
+        {
+          "default": null,
+          "name": "customer_id",
+          "not_null": false,
+          "type": "uuid"
+        },
+        {
+          "default": "'{}'::jsonb",
+          "name": "normalized_payload",
+          "not_null": true,
+          "type": "jsonb"
+        },
+        {
+          "default": "'[]'::jsonb",
+          "name": "issues",
+          "not_null": true,
+          "type": "jsonb"
+        },
+        {
+          "default": "now()",
+          "name": "created_at",
+          "not_null": true,
+          "type": "timestamp with time zone"
+        },
+        {
+          "default": "'{}'::jsonb",
+          "name": "raw_payload",
+          "not_null": true,
+          "type": "jsonb"
+        },
+        {
+          "default": null,
+          "name": "error_message",
+          "not_null": false,
+          "type": "text"
+        },
+        {
+          "default": "'[]'::jsonb",
+          "name": "warnings",
+          "not_null": true,
+          "type": "jsonb"
+        },
+        {
+          "default": null,
+          "name": "parser_confidence",
+          "not_null": false,
+          "type": "integer"
+        },
+        {
+          "default": null,
+          "name": "reviewed_at",
+          "not_null": false,
+          "type": "timestamp with time zone"
+        },
+        {
+          "default": null,
+          "name": "reviewed_by",
+          "not_null": false,
+          "type": "uuid"
+        },
+        {
+          "default": null,
+          "name": "resolution",
+          "not_null": false,
+          "type": "text"
+        },
+        {
+          "default": null,
+          "name": "possible_existing_customer_id",
+          "not_null": false,
+          "type": "uuid"
+        },
+        {
+          "default": "'[]'::jsonb",
+          "name": "duplicate_match_payload",
+          "not_null": true,
+          "type": "jsonb"
+        },
+        {
+          "default": "now()",
+          "name": "updated_at",
+          "not_null": true,
+          "type": "timestamp with time zone"
+        }
+      ],
+      "constraints": [
+        {
+          "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE",
+          "name": "customer_import_rows_company_id_fkey",
+          "type": "f",
+          "validated": true
+        },
+        {
+          "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+          "name": "customer_import_rows_customer_company_fk",
+          "type": "f",
+          "validated": true
+        },
+        {
+          "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+          "name": "customer_import_rows_customer_id_fkey",
+          "type": "f",
+          "validated": true
+        },
+        {
+          "definition": "FOREIGN KEY (import_batch_id) REFERENCES customer_import_batches(id) ON DELETE CASCADE",
+          "name": "customer_import_rows_import_batch_id_fkey",
+          "type": "f",
+          "validated": true
+        },
+        {
+          "definition": "CHECK (((parser_confidence IS NULL) OR ((parser_confidence >= 0) AND (parser_confidence <= 100))))",
+          "name": "customer_import_rows_parser_confidence_check",
+          "type": "c",
+          "validated": true
+        },
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_import_rows_pkey",
+          "type": "p",
+          "validated": true
+        },
+        {
+          "definition": "FOREIGN KEY (reviewed_by) REFERENCES auth.users(id) ON DELETE SET NULL",
+          "name": "customer_import_rows_reviewed_by_fkey",
+          "type": "f",
+          "validated": true
+        },
+        {
+          "definition": "CHECK ((status = ANY (ARRAY['pending'::text, 'ready_to_create'::text, 'requires_review'::text, 'duplicate_warning'::text, 'missing_fields'::text, 'created'::text, 'rejected'::text, 'failed'::text, 'skipped'::text, 'linked_existing_customer'::text])))",
+          "name": "customer_import_rows_status_check",
+          "type": "c",
+          "validated": true
+        }
+      ],
+      "indexes": [
+        {
+          "definition": "CREATE INDEX customer_import_rows_batch_idx ON public.customer_import_rows USING btree (import_batch_id, row_number)",
+          "name": "customer_import_rows_batch_idx",
+          "ready": true,
+          "valid": true
+        },
+        {
+          "definition": "CREATE INDEX customer_import_rows_company_batch_idx ON public.customer_import_rows USING btree (company_id, import_batch_id, row_number)",
+          "name": "customer_import_rows_company_batch_idx",
+          "ready": true,
+          "valid": true
+        },
+        {
+          "definition": "CREATE INDEX customer_import_rows_company_idx ON public.customer_import_rows USING btree (company_id)",
+          "name": "customer_import_rows_company_idx",
+          "ready": true,
+          "valid": true
+        },
+        {
+          "definition": "CREATE INDEX customer_import_rows_company_status_created_idx ON public.customer_import_rows USING btree (company_id, status, created_at DESC)",
+          "name": "customer_import_rows_company_status_created_idx",
+          "ready": true,
+          "valid": true
+        },
+        {
+          "definition": "CREATE INDEX customer_import_rows_company_status_idx ON public.customer_import_rows USING btree (company_id, status)",
+          "name": "customer_import_rows_company_status_idx",
+          "ready": true,
+          "valid": true
+        },
+        {
+          "definition": "CREATE INDEX customer_import_rows_customer_idx ON public.customer_import_rows USING btree (company_id, customer_id)",
+          "name": "customer_import_rows_customer_idx",
+          "ready": true,
+          "valid": true
+        },
+        {
+          "definition": "CREATE UNIQUE INDEX customer_import_rows_pkey ON public.customer_import_rows USING btree (id)",
+          "name": "customer_import_rows_pkey",
+          "ready": true,
+          "valid": true
+        },
+        {
+          "definition": "CREATE INDEX idx_fk_customer_import_rows_62de9b1d5ff5 ON public.customer_import_rows USING btree (reviewed_by)",
+          "name": "idx_fk_customer_import_rows_62de9b1d5ff5",
+          "ready": true,
+          "valid": true
+        },
+        {
+          "definition": "CREATE INDEX idx_fk_customer_import_rows_8b38754186e9 ON public.customer_import_rows USING btree (customer_id)",
+          "name": "idx_fk_customer_import_rows_8b38754186e9",
+          "ready": true,
+          "valid": true
+        }
+      ],
+      "relforcerowsecurity": false,
+      "relrowsecurity": true,
+      "table_name": "customer_import_rows"
+    },
+    {
+      "columns": [
+        {
+          "default": "gen_random_uuid()",
+          "name": "id",
+          "not_null": true,
+          "type": "uuid"
+        },
+        {
+          "default": null,
+          "name": "company_id",
+          "not_null": false,
+          "type": "uuid"
+        },
+        {
+          "default": null,
+          "name": "customer_id",
+          "not_null": false,
+          "type": "uuid"
+        },
+        {
+          "default": null,
+          "name": "site_id",
+          "not_null": false,
+          "type": "uuid"
+        },
+        {
+          "default": null,
+          "name": "metering_point_id",
+          "not_null": false,
+          "type": "uuid"
+        },
+        {
+          "default": null,
+          "name": "source_type",
+          "not_null": true,
+          "type": "text"
+        },
+        {
+          "default": null,
+          "name": "source_id",
+          "not_null": false,
+          "type": "uuid"
+        },
+        {
+          "default": null,
+          "name": "source_reference",
+          "not_null": false,
+          "type": "text"
+        },
+        {
+          "default": "'pending'::text",
+          "name": "match_status",
+          "not_null": true,
+          "type": "text"
+        },
+        {
+          "default": null,
+          "name": "match_confidence",
+          "not_null": false,
+          "type": "numeric(5,2)"
+        },
+        {
+          "default": "'{}'::text[]",
+          "name": "matched_by",
+          "not_null": true,
+          "type": "text[]"
+        },
+        {
+          "default": null,
+          "name": "event_type",
+          "not_null": true,
+          "type": "text"
+        },
+        {
+          "default": null,
+          "name": "title",
+          "not_null": true,
+          "type": "text"
+        },
+        {
+          "default": null,
+          "name": "description",
+          "not_null": false,
+          "type": "text"
+        },
+        {
+          "default": "'{}'::jsonb",
+          "name": "payload",
+          "not_null": true,
+          "type": "jsonb"
+        },
+        {
+          "default": "now()",
+          "name": "created_at",
+          "not_null": true,
+          "type": "timestamp with time zone"
+        },
+        {
+          "default": null,
+          "name": "resolved_at",
+          "not_null": false,
+          "type": "timestamp with time zone"
+        },
+        {
+          "default": null,
+          "name": "resolved_by",
+          "not_null": false,
+          "type": "uuid"
+        },
+        {
+          "default": null,
+          "name": "resolution_note",
+          "not_null": false,
+          "type": "text"
+        }
+      ],
+      "constraints": [
+        {
+          "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+          "name": "customer_sync_events_customer_company_fk",
+          "type": "f",
+          "validated": true
+        },
+        {
+          "definition": "CHECK ((match_status = ANY (ARRAY['pending'::text, 'matched'::text, 'unresolved'::text, 'ignored'::text, 'resolved'::text])))",
+          "name": "customer_sync_events_match_status_check",
+          "type": "c",
+          "validated": true
+        },
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_sync_events_pkey",
+          "type": "p",
+          "validated": true
+        }
+      ],
+      "indexes": [
+        {
+          "definition": "CREATE INDEX customer_sync_events_company_status_idx ON public.customer_sync_events USING btree (company_id, match_status, created_at DESC)",
+          "name": "customer_sync_events_company_status_idx",
+          "ready": true,
+          "valid": true
+        },
+        {
+          "definition": "CREATE INDEX customer_sync_events_customer_idx ON public.customer_sync_events USING btree (customer_id, created_at DESC)",
+          "name": "customer_sync_events_customer_idx",
+          "ready": true,
+          "valid": true
+        },
+        {
+          "definition": "CREATE UNIQUE INDEX customer_sync_events_pkey ON public.customer_sync_events USING btree (id)",
+          "name": "customer_sync_events_pkey",
+          "ready": true,
+          "valid": true
+        },
+        {
+          "definition": "CREATE INDEX customer_sync_events_source_idx ON public.customer_sync_events USING btree (source_type, source_id, source_reference)",
+          "name": "customer_sync_events_source_idx",
+          "ready": true,
+          "valid": true
+        }
+      ],
+      "relforcerowsecurity": false,
+      "relrowsecurity": true,
+      "table_name": "customer_sync_events"
+    }
+  ]
+}

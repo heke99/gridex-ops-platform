@@ -1,0 +1,2253 @@
+{
+  "status": "CATALOG_OBSERVED_BEHAVIOR_UNVERIFIED",
+  "observed_on": "2026-09-09",
+  "project_id": "piidsfebjqjmnepdpnas",
+  "runtime_database_binding": "UNVERIFIED",
+  "scope": "Direct foreign keys referencing public.customers only; no row reads, no mutations; not a complete transitive or non-FK dependency graph.",
+  "index_screening_limit": "has_leading_fk_index tests valid ready nonpartial nonexpression index leading key set coverage only; not query planner/workload evidence and not a recommendation to create indexes.",
+  "direct_foreign_keys": [
+    {
+      "child": "ai_list_import_rows",
+      "child_columns": [
+        "matched_customer_id"
+      ],
+      "conname": "ai_list_import_rows_matched_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (matched_customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "authorization_scopes",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "authorization_scopes_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "authorization_scopes",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "authorization_scopes_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "billing_disputes",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "billing_disputes_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "billing_disputes",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "billing_disputes_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "billing_export_run_items",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "billing_export_run_items_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "billing_partner_customers",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "billing_partner_customers_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "billing_partner_customers",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "billing_partner_customers_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "billing_underlay_items",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "billing_underlay_items_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "billing_underlays",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "billing_underlays_company_customer_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id)",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "billing_underlays",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "billing_underlays_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "canonical_energy_flow_events",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "canonical_energy_flow_events_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "canonical_energy_flow_events",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "canonical_energy_flow_events_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "communication_logs",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "communication_logs_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "communication_logs",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "communication_logs_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "contract_price_snapshots",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "contract_price_snapshots_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "customer_addresses",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_addresses_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_addresses",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_addresses_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_application_intakes",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_application_intakes_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "customer_application_intakes",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_application_intakes_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_application_workflows",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_application_workflows_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "customer_application_workflows",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_application_workflows_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_authorization_documents",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_authorization_documents_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_authorization_documents",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "mt_customer_authorization_documents_customer_id_tenant_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id)",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_blockers",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_blockers_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_blockers",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_blockers_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_case_events",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_case_events_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "customer_case_events",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_case_events_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_cases",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_cases_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_cases",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_cases_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_communications",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_communications_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_contacts",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_contacts_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_contacts",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_contacts_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_contract_events",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_contract_events_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_contract_events",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_contract_events_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_contract_signature_requests",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_contract_signature_requests_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_contract_signature_requests",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "customer_contract_signature_requests_customer_tenant_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id)",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_contracts",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "customer_contracts_company_customer_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id)",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_contracts",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_contracts_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_contracts",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "mt_customer_contracts_customer_id_tenant_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id)",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_correction_requests",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_correction_requests_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "customer_correction_requests",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_correction_requests_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_data_tasks",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_data_tasks_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "customer_documents",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_documents_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_duplicate_resolution_events",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_duplicate_resolution_events_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_events",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_events_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_events",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_events_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_external_auth_links",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_external_auth_links_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "customer_external_auth_links",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_external_auth_links_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_import_rows",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_import_rows_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_import_rows",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_import_rows_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_info_request_events",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_info_request_events_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "customer_info_request_events",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_info_request_events_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_info_requests",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_info_requests_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_info_requests",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "mt_customer_info_requests_customer_id_tenant_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id)",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_internal_notes",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_internal_notes_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_internal_notes",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_internal_notes_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_invoices",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "customer_invoices_company_customer_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id)",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_invoices",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_invoices_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_invoices",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "mt_customer_invoices_customer_id_tenant_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id)",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_legal_acceptances",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_legal_acceptances_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_legal_acceptances",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "mt_customer_legal_acceptances_customer_id_tenant_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id)",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_lifecycle_decisions",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_lifecycle_decisions_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_lifecycle_events",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_lifecycle_events_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "customer_lifecycle_events",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_lifecycle_events_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_match_review_cases",
+      "child_columns": [
+        "resolved_customer_id"
+      ],
+      "conname": "customer_match_review_cases_resolved_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (resolved_customer_id) REFERENCES customers(id) ON DELETE RESTRICT",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_match_review_cases",
+      "child_columns": [
+        "company_id",
+        "resolved_customer_id"
+      ],
+      "conname": "mt_customer_match_review_cases_resolved_customer_id_tenant_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, resolved_customer_id) REFERENCES customers(company_id, id)",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_merge_events",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_merge_events_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "customer_monthly_metrics",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_monthly_metrics_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_monthly_metrics",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_monthly_metrics_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_notes",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_notes_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_notifications",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_notifications_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_notifications",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_notifications_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_onboarding_applications",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_onboarding_applications_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_onboarding_applications",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "mt_customer_onboarding_applications_customer_id_tenant_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id)",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_onboarding_legal_snapshots",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_onboarding_legal_snapshots_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_onboarding_legal_snapshots",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "mt_customer_onboarding_legal_snapshots_customer_id_tenant_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id)",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_operation_events",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_operation_events_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_operation_events",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_operation_events_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_operation_jobs",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_operation_jobs_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_operation_jobs",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_operation_jobs_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_operation_request_snapshots",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_operation_request_snapshots_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "customer_operation_request_snapshots",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_operation_request_snapshots_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_operation_tasks",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_operation_tasks_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "customer_operation_tasks",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_operation_tasks_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_portal_accounts",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "customer_portal_accounts_company_customer_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id) ON DELETE RESTRICT",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_portal_accounts",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_portal_accounts_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_portal_api_access_logs",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_portal_api_access_logs_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_portal_api_access_logs",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_portal_api_access_logs_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_portal_claims",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_portal_claims_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_portal_completions",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_portal_completions_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "customer_portal_completions",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_portal_completions_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_portal_events",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_portal_events_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_portal_events",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_portal_events_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_portal_identities",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "customer_portal_identities_company_customer_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id) ON DELETE RESTRICT",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "customer_portal_identities",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_portal_identities_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_portal_requests",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_portal_requests_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_portal_requests",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_portal_requests_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_readiness_snapshots",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_readiness_snapshots_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_site_address_conflicts",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_site_address_conflicts_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "customer_site_address_conflicts",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_site_address_conflicts_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_site_address_history",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_site_address_history_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "customer_site_address_history",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_site_address_history_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_site_resolution",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_site_resolution_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_site_resolution",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_site_resolution_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_sites",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "customer_sites_company_customer_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_sites",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_sites_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_sites",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "mt_customer_sites_customer_id_tenant_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id)",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_supply_periods",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "customer_supply_periods_company_customer_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id)",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_supply_periods",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "customer_supply_periods_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "customer_sync_events",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "customer_sync_events_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "data_quality_findings",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "data_quality_findings_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "data_quality_findings",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "data_quality_findings_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "document_ai_extractions",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "document_ai_extractions_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "document_parse_jobs",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "document_parse_jobs_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "document_parse_jobs",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "document_parse_jobs_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "domain_events",
+      "child_columns": [
+        "subject_customer_id"
+      ],
+      "conname": "domain_events_subject_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (subject_customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "domain_events",
+      "child_columns": [
+        "company_id",
+        "subject_customer_id"
+      ],
+      "conname": "mt_domain_events_subject_customer_id_tenant_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, subject_customer_id) REFERENCES customers(company_id, id)",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "ediel_business_errors",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "ediel_business_errors_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "ediel_business_errors",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "ediel_business_errors_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "ediel_business_references",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "ediel_business_references_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "ediel_business_references",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "ediel_business_references_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "ediel_inbound_cases",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "ediel_inbound_cases_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "ediel_inbound_cases",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "ediel_inbound_cases_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "ediel_masterdata_reconciliation_items",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "ediel_masterdata_reconciliation_items_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "ediel_message_intents",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "ediel_message_intents_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "ediel_messages",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "ediel_messages_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "ediel_messages",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "ediel_messages_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "ediel_permission_cases",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "ediel_permission_cases_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "ediel_test_runs",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "ediel_test_runs_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "ediel_test_runs",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "ediel_test_runs_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "energy_service_permissions",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "energy_service_permissions_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "facility_data_quality_issues",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "facility_data_quality_issues_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "facility_data_quality_issues",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "facility_data_quality_issues_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "forecast_run_items",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "forecast_run_items_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "grid_owner_data_requests",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "grid_owner_data_requests_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "grid_owner_data_requests",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "grid_owner_data_requests_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "grid_owner_information_requests",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "grid_owner_information_requests_company_customer_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id)",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "grid_owner_information_requests",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "grid_owner_information_requests_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "invoice_export_items",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "invoice_export_items_company_customer_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id)",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "manual_inbound_messages",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "manual_inbound_messages_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "manual_inbound_messages",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "manual_inbound_messages_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "metering_period_gaps",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "metering_period_gaps_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "metering_period_gaps",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "metering_period_gaps_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "metering_permission_sites",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "metering_permission_sites_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "metering_permission_sites",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "metering_permission_sites_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "metering_permissions",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "metering_permissions_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "metering_permissions",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "metering_permissions_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "metering_points",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "metering_points_company_customer_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "metering_points",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "mt_metering_points_customer_id_tenant_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id)",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "metering_requirements",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "metering_requirements_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "metering_requirements",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "metering_requirements_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "metering_values",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "metering_values_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "metering_values",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "metering_values_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "normalized_metering_values",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "normalized_metering_values_company_customer_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id)",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "outbound_requests",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "outbound_requests_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "outbound_requests",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "outbound_requests_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "partner_exports",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "partner_exports_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "partner_exports",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "partner_exports_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "platform_customer_relationship_observations",
+      "child_columns": [
+        "source_customer_id"
+      ],
+      "conname": "platform_customer_relationship_observat_source_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (source_customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "platform_customer_relationship_observations",
+      "child_columns": [
+        "target_customer_id"
+      ],
+      "conname": "platform_customer_relationship_observat_target_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (target_customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "power_of_attorney_scopes",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "power_of_attorney_scopes_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "powers_of_attorney",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "mt_powers_of_attorney_customer_id_tenant_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id)",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "powers_of_attorney",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "powers_of_attorney_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "pricing_runs",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "pricing_runs_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "route_decision_logs",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "route_decision_logs_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "sites",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "sites_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "supplier_switch_requests",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "mt_supplier_switch_requests_customer_id_tenant_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id)",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "supplier_switch_requests",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "supplier_switch_requests_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "tenant_email_outbox",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "tenant_email_outbox_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "tenant_email_outbox",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "tenant_email_outbox_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "tenant_portal_customer_links",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "tenant_portal_customer_links_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    },
+    {
+      "child": "website_application_review_items",
+      "child_columns": [
+        "customer_id",
+        "company_id"
+      ],
+      "conname": "website_application_review_items_customer_company_fk",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "website_customer_applications",
+      "child_columns": [
+        "company_id",
+        "customer_id"
+      ],
+      "conname": "website_customer_applications_company_customer_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id) ON DELETE RESTRICT",
+      "has_leading_fk_index": false
+    },
+    {
+      "child": "website_customer_applications",
+      "child_columns": [
+        "customer_id"
+      ],
+      "conname": "website_customer_applications_customer_id_fkey",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+      "has_leading_fk_index": true
+    }
+  ],
+  "composite_set_null": [
+    {
+      "child": "billing_export_run_items",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": false,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": true,
+          "set_null_target": true
+        }
+      ],
+      "conname": "billing_export_run_items_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "billing_underlay_items",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": false,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": true,
+          "set_null_target": true
+        }
+      ],
+      "conname": "billing_underlay_items_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "contract_price_snapshots",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": false,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": true,
+          "set_null_target": true
+        }
+      ],
+      "conname": "contract_price_snapshots_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_communications",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": true,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": true,
+          "set_null_target": true
+        }
+      ],
+      "conname": "customer_communications_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_data_tasks",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": false,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": false,
+          "set_null_target": true
+        }
+      ],
+      "conname": "customer_data_tasks_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_documents",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": false,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": false,
+          "set_null_target": true
+        }
+      ],
+      "conname": "customer_documents_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_duplicate_resolution_events",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": false,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": true,
+          "set_null_target": true
+        }
+      ],
+      "conname": "customer_duplicate_resolution_events_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_lifecycle_decisions",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": true,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": false,
+          "set_null_target": true
+        }
+      ],
+      "conname": "customer_lifecycle_decisions_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_merge_events",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": false,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": false,
+          "set_null_target": true
+        }
+      ],
+      "conname": "customer_merge_events_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_portal_claims",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": false,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": false,
+          "set_null_target": true
+        }
+      ],
+      "conname": "customer_portal_claims_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_readiness_snapshots",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": true,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": false,
+          "set_null_target": true
+        }
+      ],
+      "conname": "customer_readiness_snapshots_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_sync_events",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": false,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": false,
+          "set_null_target": true
+        }
+      ],
+      "conname": "customer_sync_events_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "document_ai_extractions",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": false,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": false,
+          "set_null_target": true
+        }
+      ],
+      "conname": "document_ai_extractions_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_masterdata_reconciliation_items",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": false,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": false,
+          "set_null_target": true
+        }
+      ],
+      "conname": "ediel_masterdata_reconciliation_items_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_message_intents",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": false,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": true,
+          "set_null_target": true
+        }
+      ],
+      "conname": "ediel_message_intents_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_permission_cases",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": false,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": false,
+          "set_null_target": true
+        }
+      ],
+      "conname": "ediel_permission_cases_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "energy_service_permissions",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": false,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": true,
+          "set_null_target": true
+        }
+      ],
+      "conname": "energy_service_permissions_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "forecast_run_items",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": false,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": true,
+          "set_null_target": true
+        }
+      ],
+      "conname": "forecast_run_items_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "power_of_attorney_scopes",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": false,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": true,
+          "set_null_target": true
+        }
+      ],
+      "conname": "power_of_attorney_scopes_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "pricing_runs",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": false,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": true,
+          "set_null_target": true
+        }
+      ],
+      "conname": "pricing_runs_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "route_decision_logs",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": false,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": false,
+          "set_null_target": true
+        }
+      ],
+      "conname": "route_decision_logs_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "tenant_portal_customer_links",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": true,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": true,
+          "set_null_target": true
+        }
+      ],
+      "conname": "tenant_portal_customer_links_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "website_application_review_items",
+      "columns": [
+        {
+          "column": "customer_id",
+          "not_null": false,
+          "set_null_target": true
+        },
+        {
+          "column": "company_id",
+          "not_null": true,
+          "set_null_target": true
+        }
+      ],
+      "conname": "website_application_review_items_customer_company_fk",
+      "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL"
+    }
+  ]
+}

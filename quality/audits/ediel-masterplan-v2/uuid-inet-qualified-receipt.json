@@ -1,0 +1,34 @@
+{
+  "scope": "ACTUAL_OWNED_PG17_UUID_INET_PAYLOAD_QUALIFICATION_NOT_COLUMN_OR_FK_ACCEPTANCE",
+  "runId": 35013041767,
+  "jobId": 104529480330,
+  "commit": "fa29d4a2",
+  "receipt": {
+    "actorAccessAccepted": false,
+    "actualColumnMetadataVerified": false,
+    "arbitraryTextCompatible": false,
+    "catalogAndRowsPreserved": true,
+    "cleanupVerified": true,
+    "foreignKeyQualified": false,
+    "generatedTypesVerified": false,
+    "invalidTextRejections": 7,
+    "postgrestHttpVerified": false,
+    "schemaAccepted": false,
+    "scope": "SUPPORTED_UUID_NORMALIZED_IP_AND_NULL_PAYLOADS_ONLY",
+    "sourceBytesPreserved": true,
+    "sourcePins": {
+      "app/admin/companies/[id]/ediel-actions.ts": "1fe3bf820eb6b49d87570f49a3f95357e63712fc1db2d4edfc6c0e84bc6ddd09",
+      "lib/integrations/apiAuth.ts": "6a05900e84acf687d7ba4b1cfac98c0a75f25c68afb7e0abad619cc32d719d42",
+      "lib/integrations/ipPolicy.ts": "64862470c9bc5b3df24710672f544953e281ffe5a67f38475e609748167db8ab",
+      "quality/audits/PR310_SCHEMA_COLUMN_DISPOSITIONS_2026-09-15.md": "cc9801d56819b0a6b50c2a985efa4c0c4ae3aab41b10dba07db825c0b63bb0b9",
+      "scripts/canonical-residual-readiness-native.py": "6dbdf14556f4d21ed44458eb98b61d5e385d9226b7987e88b00469144a60fad0",
+      "supabase/migrations/20260531111600_system_readiness_foundation.sql": "e6ef68b18ede5729da067ce59a86cfca0db083d9d54a35ae0ed3a6c0968b96f2",
+      "supabase/migrations/20260601070000_ediel_production_readiness_hardening.sql": "7a73e59f559ebb5291d3e7df74545e6918011ec9764e5c512df19fbaa5bdbc12",
+      "supabase/migrations/20260802011000_canonical_ediel_production_state.sql": "7f50878b2c23889c967bceab5aa85ed0361af7aad9b3a3784b688e6cbd2bb502",
+      "supabase/migrations/20260902094600_fix_canonical_transition_request_hash_rewrite.sql": "4b167c6509b8f3a9076adbe98f24ae5e74981de05501828648045b3d6db3c0ca"
+    },
+    "supportedIpCases": 5,
+    "supportedUuidCases": 3,
+    "temporaryObjectsRolledBack": true
+  }
+}

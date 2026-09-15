@@ -3,7 +3,7 @@
 import { randomUUID } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { isPlatformAdminContext, requireAdminActionAccess, requirePlatformAdminActionAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requireCompanyScopedActionAccess, requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { listOperationalCompaniesForUser } from '@/lib/tenant/scope'
 import {
@@ -116,7 +116,7 @@ function governanceActionForStatus(status: CompanyOperationalStatus): Governance
 }
 
 async function assertCanManageCompanyUsers(companyId: string) {
-  const context = await requireAdminActionAccess({ anyOf: ['tenants.invite', 'users.write'] })
+  const context = await requireCompanyScopedActionAccess(companyId, { anyOf: ['tenants.invite', 'users.write'] })
   if (isPlatformAdminContext(context)) return context
 
   const memberships = await listOperationalCompaniesForUser(context.userId)

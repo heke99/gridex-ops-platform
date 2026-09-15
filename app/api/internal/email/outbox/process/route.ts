@@ -1,10 +1,13 @@
 import { randomUUID, timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { processTenantEmailOutbox } from '@/lib/email/emailOutbox'
+import { readJsonWithLimit } from '@/lib/http/payloadLimit'
 import { supabaseService } from '@/lib/supabase/service'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+const MAX_BODY_BYTES = 256_000
 
 function clean(value: string | null | undefined): string | null {
   const trimmed = String(value ?? '').trim()
@@ -41,8 +44,12 @@ function parseLimit(value: string | null) {
   return Math.min(Math.floor(parsed), 100)
 }
 
-async function readJson(request: NextRequest): Promise<Record<string, unknown>> {
-  return request.json().catch(() => ({}))
+async function readJson(request: NextRequest): Promise<Record<string, unknown> | null> {
+  const parsed = await readJsonWithLimit(request, MAX_BODY_BYTES)
+  if (!parsed.ok) return parsed.code === 'payload_too_large' ? null : {}
+  return parsed.body && typeof parsed.body === 'object' && !Array.isArray(parsed.body)
+    ? parsed.body as Record<string, unknown>
+    : {}
 }
 
 async function logRun(payload: Record<string, unknown>) {
@@ -53,7 +60,7 @@ async function logRun(payload: Record<string, unknown>) {
   })
 }
 
-async function run(request: NextRequest, body: Record<string, unknown> = {}) {
+async function run(request: NextRequest, readBody = false) {
   if (expectedSecrets().length === 0) {
     await logRun({ status: 'blocked', error_message: 'Email outbox cron secret is not configured.', metadata: { reason: 'missing_secret' } })
     return NextResponse.json({ ok: false, error: 'E-postkön är inte konfigurerad.' }, { status: 503 })
@@ -62,6 +69,11 @@ async function run(request: NextRequest, body: Record<string, unknown> = {}) {
   if (!isAuthorized(request)) {
     await logRun({ status: 'blocked', error_message: 'Unauthorized.', metadata: { reason: 'unauthorized' } })
     return NextResponse.json({ ok: false, error: 'Unauthorized.' }, { status: 401 })
+  }
+
+  const body = readBody ? await readJson(request) : {}
+  if (!body) {
+    return NextResponse.json({ ok: false, error: 'Payload för stor.', code: 'payload_too_large' }, { status: 413 })
   }
 
   const searchParams = request.nextUrl.searchParams
@@ -95,5 +107,5 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  return run(request, await readJson(request))
+  return run(request, true)
 }

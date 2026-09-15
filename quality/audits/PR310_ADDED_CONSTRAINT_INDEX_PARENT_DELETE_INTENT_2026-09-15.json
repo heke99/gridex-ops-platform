@@ -1,0 +1,933 @@
+{
+  "scope": "FIVE_CUSTOMER_PARENT_DELETE_SOURCE_INTENT_NOT_RUNTIME_OR_SCHEMA_ACCEPTANCE",
+  "schemaAccepted": false,
+  "nativeSqlExecuted": false,
+  "repairPromoted": false,
+  "constraintRegister": "quality/audits/PR310_ADDED_CONSTRAINT_INDEX_CONSTRAINTS_2026-09-15.json",
+  "constraintRegisterSha256": "7f15c8c45668e38a0ed1fc8e390107bf4382ffdc1b4d9cac5f4c3141c2005899",
+  "triggerCoverageRegister": "quality/audits/PR310_SCHEMA_ACCEPTANCE_COVERAGE_2026-09-15.json",
+  "triggerCoverageRegisterSha256": "64cc257b053c59fb4113b801b96d159cd2b638e644fe2c402e488de2c329c835",
+  "counts": {
+    "cases": 5,
+    "coexistingForeignKeys": 18,
+    "noninternalTriggers": 3,
+    "triggerFunctions": 2
+  },
+  "cases": [
+    {
+      "identity": [
+        "public",
+        "billing_disputes",
+        "billing_disputes_customer_company_fk"
+      ],
+      "observedRowSha256": "1e7d42c4d4c83bfee570e243310f8f424faa728ad2cc1685f1f9a6c904d0daae",
+      "sourceDisposition": "RETAIN_CHILD_AND_KNOWN_COMPANY_DETACH_CUSTOMER",
+      "intent": "Retain provider invoice/debtor identity, amounts, evidence and resolution history independently of optional customer link.",
+      "tableSpecificAuthority": {
+        "path": "supabase/migrations/20260609162000_batch_7_website_integration_foundation.sql",
+        "sourceSha256": "1809f5c8926ec6bda991eb861cc3ba7a24738e8655b47e94f4ab086d5f2afb0b",
+        "line": 537,
+        "lineText": "  customer_id uuid references public.customers(id) on delete set null,"
+      },
+      "observedBehaviorClass": "COMPETING_CASCADE_AND_SINGLE_SET_NULL_REQUIRES_ORDER_QUALIFICATION",
+      "proposedDefinition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL (customer_id)",
+      "proposalStatus": "SOURCE_CONSISTENT_REPAIR_CANDIDATE_NOT_PROMOTED",
+      "preserve": [
+        "ON UPDATE CASCADE",
+        "MATCH SIMPLE",
+        "validated constraint",
+        "existing constraint name",
+        "all simple and other foreign keys",
+        "nullable input compatibility",
+        "existing rows and recorded company"
+      ],
+      "nativeBehaviorVerified": false,
+      "schemaAccepted": false
+    },
+    {
+      "identity": [
+        "public",
+        "customer_import_rows",
+        "customer_import_rows_customer_company_fk"
+      ],
+      "observedRowSha256": "b66b2e270299a2b186d2cda94058f9eb29ba7319681190652c4a27072f3cb3e7",
+      "sourceDisposition": "RETAIN_CHILD_AND_KNOWN_COMPANY_DETACH_CUSTOMER",
+      "intent": "Retain batch, raw/normalized input and creation/review history; status=created still prevents another customer creation after detachment.",
+      "tableSpecificAuthority": {
+        "path": "supabase/migrations/20260526_debug_step1_2f_customer_import_foundation.sql",
+        "sourceSha256": "b2e764f4533f0539af021669831e9077582b1a90a257cbb8564777f42971465a",
+        "line": 36,
+        "lineText": "  customer_id uuid references public.customers(id) on delete set null,"
+      },
+      "observedBehaviorClass": "COMPETING_CASCADE_AND_SINGLE_SET_NULL_REQUIRES_ORDER_QUALIFICATION",
+      "proposedDefinition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL (customer_id)",
+      "proposalStatus": "SOURCE_CONSISTENT_REPAIR_CANDIDATE_NOT_PROMOTED",
+      "preserve": [
+        "ON UPDATE CASCADE",
+        "MATCH SIMPLE",
+        "validated constraint",
+        "existing constraint name",
+        "all simple and other foreign keys",
+        "nullable input compatibility",
+        "existing rows and recorded company"
+      ],
+      "nativeBehaviorVerified": false,
+      "schemaAccepted": false
+    },
+    {
+      "identity": [
+        "public",
+        "data_quality_findings",
+        "data_quality_findings_customer_company_fk"
+      ],
+      "observedRowSha256": "8f8bbc3fd359d097c365cb00650240de5547a6bf063549486363aee9395215bd",
+      "sourceDisposition": "RETAIN_CHILD_AND_KNOWN_COMPANY_DETACH_CUSTOMER",
+      "intent": "Retain independent entity identity, issue evidence and resolution metadata after optional customer detachment.",
+      "tableSpecificAuthority": {
+        "path": "supabase/migrations/20260531111600_system_readiness_foundation.sql",
+        "sourceSha256": "e6ef68b18ede5729da067ce59a86cfca0db083d9d54a35ae0ed3a6c0968b96f2",
+        "line": 292,
+        "lineText": "  customer_id uuid references public.customers(id) on delete set null,"
+      },
+      "observedBehaviorClass": "COMPETING_CASCADE_AND_SINGLE_SET_NULL_REQUIRES_ORDER_QUALIFICATION",
+      "proposedDefinition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL (customer_id)",
+      "proposalStatus": "SOURCE_CONSISTENT_REPAIR_CANDIDATE_NOT_PROMOTED",
+      "preserve": [
+        "ON UPDATE CASCADE",
+        "MATCH SIMPLE",
+        "validated constraint",
+        "existing constraint name",
+        "all simple and other foreign keys",
+        "nullable input compatibility",
+        "existing rows and recorded company"
+      ],
+      "nativeBehaviorVerified": false,
+      "schemaAccepted": false
+    },
+    {
+      "identity": [
+        "public",
+        "document_parse_jobs",
+        "document_parse_jobs_customer_company_fk"
+      ],
+      "observedRowSha256": "b1343fdc2c85899dde079e8fd689cedd31b43c60a61888050aa4659a5b7e832d",
+      "sourceDisposition": "RETAIN_CHILD_AND_KNOWN_COMPANY_DETACH_CUSTOMER",
+      "intent": "Retain document-extraction/storage/parser/job outcome independently of optional customer link.",
+      "tableSpecificAuthority": {
+        "path": "supabase/migrations/20260615_multitenant_integrity_and_claim_locks.sql",
+        "sourceSha256": "046c7ec8c885eca46d8dde306bc1b289aa7bccea3f9d4ebdd5f8580c07ca9a37",
+        "line": 425,
+        "lineText": "  customer_id uuid null references public.customers(id) on delete set null,"
+      },
+      "observedBehaviorClass": "COMPETING_CASCADE_AND_SINGLE_SET_NULL_REQUIRES_ORDER_QUALIFICATION",
+      "proposedDefinition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL (customer_id)",
+      "proposalStatus": "SOURCE_CONSISTENT_REPAIR_CANDIDATE_NOT_PROMOTED",
+      "preserve": [
+        "ON UPDATE CASCADE",
+        "MATCH SIMPLE",
+        "validated constraint",
+        "existing constraint name",
+        "all simple and other foreign keys",
+        "nullable input compatibility",
+        "existing rows and recorded company"
+      ],
+      "nativeBehaviorVerified": false,
+      "schemaAccepted": false
+    },
+    {
+      "identity": [
+        "public",
+        "customer_sync_events",
+        "customer_sync_events_customer_company_fk"
+      ],
+      "observedRowSha256": "81ccd65a6947960b1b6523582cc9542dba375e17e454a21ba97892da3e1d6980",
+      "sourceDisposition": "RETAIN_CHILD_AND_KNOWN_COMPANY_DETACH_CUSTOMER",
+      "intent": "Retain durable matching history and known company when customer disappears; nullable legacy input does not authorize erasing an established tenant.",
+      "tableSpecificAuthority": {
+        "path": "supabase/migrations/20260519_operations_core_saas_sync.sql",
+        "sourceSha256": "e5863b15ec8c25794912b50c36eda6a370f3fb288800339a0bcfb16f2a3bb619",
+        "line": 138,
+        "lineText": "COMMENT ON TABLE public.customer_sync_events IS 'Operations Core SaaS sync journal for customer/site/metering/billing/Ediel linkage decisions. Keeps unresolved inbound and matching history tenant-safe.';"
+      },
+      "observedBehaviorClass": "SET_NULL_TARGETS_BOTH_CUSTOMER_AND_COMPANY_KNOWN_TENANT_ERASURE_IF_PARENT_DELETE_REACHES_ACTION",
+      "proposedDefinition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL (customer_id)",
+      "proposalStatus": "SOURCE_CONSISTENT_REPAIR_CANDIDATE_NOT_PROMOTED",
+      "preserve": [
+        "ON UPDATE CASCADE",
+        "MATCH SIMPLE",
+        "validated constraint",
+        "existing constraint name",
+        "all simple and other foreign keys",
+        "nullable input compatibility",
+        "existing rows and recorded company"
+      ],
+      "nativeBehaviorVerified": false,
+      "schemaAccepted": false
+    }
+  ],
+  "foreignKeys": [
+    {
+      "identity": [
+        "public",
+        "billing_disputes",
+        "billing_disputes_company_id_fkey"
+      ],
+      "sha256": "2e427e072281d0b6e2263167929f7840449445277728bcd261231e1fb0659361",
+      "row": {
+        "nspname": "public",
+        "relname": "billing_disputes",
+        "conname": "billing_disputes_company_id_fkey",
+        "contype": "f",
+        "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE",
+        "convalidated": true
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260609162000_batch_7_website_integration_foundation.sql",
+          "line": 536,
+          "sourceSha256": "1809f5c8926ec6bda991eb861cc3ba7a24738e8655b47e94f4ab086d5f2afb0b",
+          "lineText": "  company_id uuid not null references public.companies(id) on delete cascade,"
+        }
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "billing_disputes",
+        "billing_disputes_customer_company_fk"
+      ],
+      "sha256": "1e7d42c4d4c83bfee570e243310f8f424faa728ad2cc1685f1f9a6c904d0daae",
+      "row": {
+        "nspname": "public",
+        "relname": "billing_disputes",
+        "conname": "billing_disputes_customer_company_fk",
+        "contype": "f",
+        "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+        "convalidated": true
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260902095000_lock_customer_chain_with_composite_keys.sql",
+          "line": 56,
+          "sourceSha256": "bd3e79d2dab7f3332487b6259e595a258c413c288d073c63c5163555f7cd9c38",
+          "lineText": "    execute format("
+        }
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "billing_disputes",
+        "billing_disputes_customer_id_fkey"
+      ],
+      "sha256": "ef582cbde1fd11c0506fbbee057df63f4be8a72b1971cfa82895a91695f3266f",
+      "row": {
+        "nspname": "public",
+        "relname": "billing_disputes",
+        "conname": "billing_disputes_customer_id_fkey",
+        "contype": "f",
+        "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+        "convalidated": true
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260609162000_batch_7_website_integration_foundation.sql",
+          "line": 537,
+          "sourceSha256": "1809f5c8926ec6bda991eb861cc3ba7a24738e8655b47e94f4ab086d5f2afb0b",
+          "lineText": "  customer_id uuid references public.customers(id) on delete set null,"
+        }
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "billing_disputes",
+        "billing_disputes_invoice_export_item_id_fkey"
+      ],
+      "sha256": "0cea3728a2db0389c7efefe2f0dbfdd8aaab2f32cdd1bb4242b33b6a3276a601",
+      "row": {
+        "nspname": "public",
+        "relname": "billing_disputes",
+        "conname": "billing_disputes_invoice_export_item_id_fkey",
+        "contype": "f",
+        "definition": "FOREIGN KEY (invoice_export_item_id) REFERENCES invoice_export_items(id) ON DELETE SET NULL",
+        "convalidated": true
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260609162000_batch_7_website_integration_foundation.sql",
+          "line": 539,
+          "sourceSha256": "1809f5c8926ec6bda991eb861cc3ba7a24738e8655b47e94f4ab086d5f2afb0b",
+          "lineText": "  invoice_export_item_id uuid references public.invoice_export_items(id) on delete set null,"
+        }
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "customer_import_rows",
+        "customer_import_rows_company_id_fkey"
+      ],
+      "sha256": "cc1ed2e35b5e5d9f0deb74c9b25e0ebecf9778f53ab979666f17c606f85d73cd",
+      "row": {
+        "nspname": "public",
+        "relname": "customer_import_rows",
+        "conname": "customer_import_rows_company_id_fkey",
+        "contype": "f",
+        "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE",
+        "convalidated": true
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260519_customer_intake_contracts_tenant_hardening.sql",
+          "line": 161,
+          "sourceSha256": "a448184e58e8777c41f8bdefb32e45a1365bd37fd9a8e316065da657e57e19f4",
+          "lineText": "  company_id uuid not null references public.companies(id) on delete cascade,"
+        },
+        {
+          "path": "supabase/migrations/20260526_debug_step1_2f_customer_import_foundation.sql",
+          "line": 140,
+          "sourceSha256": "b2e764f4533f0539af021669831e9077582b1a90a257cbb8564777f42971465a",
+          "lineText": "      foreign key (company_id) references public.companies(id) on delete cascade not valid;"
+        },
+        {
+          "path": "supabase/migrations/20260526_debug_step1_2f_customer_import_foundation.sql",
+          "line": 31,
+          "sourceSha256": "b2e764f4533f0539af021669831e9077582b1a90a257cbb8564777f42971465a",
+          "lineText": "  company_id uuid not null references public.companies(id) on delete cascade,"
+        }
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "customer_import_rows",
+        "customer_import_rows_customer_company_fk"
+      ],
+      "sha256": "b66b2e270299a2b186d2cda94058f9eb29ba7319681190652c4a27072f3cb3e7",
+      "row": {
+        "nspname": "public",
+        "relname": "customer_import_rows",
+        "conname": "customer_import_rows_customer_company_fk",
+        "contype": "f",
+        "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+        "convalidated": true
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260902095000_lock_customer_chain_with_composite_keys.sql",
+          "line": 56,
+          "sourceSha256": "bd3e79d2dab7f3332487b6259e595a258c413c288d073c63c5163555f7cd9c38",
+          "lineText": "    execute format("
+        }
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "customer_import_rows",
+        "customer_import_rows_customer_id_fkey"
+      ],
+      "sha256": "0bf08dd4b9ac1e59241f181174966e13e13f59174cc3f5fbbce137481be3c5cd",
+      "row": {
+        "nspname": "public",
+        "relname": "customer_import_rows",
+        "conname": "customer_import_rows_customer_id_fkey",
+        "contype": "f",
+        "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+        "convalidated": true
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260526_debug_step1_2f_customer_import_foundation.sql",
+          "line": 146,
+          "sourceSha256": "b2e764f4533f0539af021669831e9077582b1a90a257cbb8564777f42971465a",
+          "lineText": "      foreign key (customer_id) references public.customers(id) on delete set null not valid;"
+        },
+        {
+          "path": "supabase/migrations/20260526_debug_step1_2f_customer_import_foundation.sql",
+          "line": 36,
+          "sourceSha256": "b2e764f4533f0539af021669831e9077582b1a90a257cbb8564777f42971465a",
+          "lineText": "  customer_id uuid references public.customers(id) on delete set null,"
+        }
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "customer_import_rows",
+        "customer_import_rows_import_batch_id_fkey"
+      ],
+      "sha256": "2eec2c2256fdb9420448624fa8179416fb7b00162b1b7c56a18e6ab3498276d7",
+      "row": {
+        "nspname": "public",
+        "relname": "customer_import_rows",
+        "conname": "customer_import_rows_import_batch_id_fkey",
+        "contype": "f",
+        "definition": "FOREIGN KEY (import_batch_id) REFERENCES customer_import_batches(id) ON DELETE CASCADE",
+        "convalidated": true
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260519_final_saas_hardening.sql",
+          "line": 225,
+          "sourceSha256": "2037dbc535d18d7575820d7f40d2a8ef4848b67060161e6851a01eb15990105e",
+          "lineText": "  import_batch_id uuid not null references public.customer_import_batches(id) on delete cascade,"
+        },
+        {
+          "path": "supabase/migrations/20260519_final_saas_hardening.sql",
+          "line": 257,
+          "sourceSha256": "2037dbc535d18d7575820d7f40d2a8ef4848b67060161e6851a01eb15990105e",
+          "lineText": "        add column import_batch_id uuid references public.customer_import_batches(id) on delete cascade;"
+        },
+        {
+          "path": "supabase/migrations/20260519_customer_intake_contracts_tenant_hardening.sql",
+          "line": 160,
+          "sourceSha256": "a448184e58e8777c41f8bdefb32e45a1365bd37fd9a8e316065da657e57e19f4",
+          "lineText": "  import_batch_id uuid not null references public.customer_import_batches(id) on delete cascade,"
+        },
+        {
+          "path": "supabase/migrations/20260526_debug_step1_2f_customer_import_foundation.sql",
+          "line": 134,
+          "sourceSha256": "b2e764f4533f0539af021669831e9077582b1a90a257cbb8564777f42971465a",
+          "lineText": "      foreign key (import_batch_id) references public.customer_import_batches(id) on delete cascade not valid;"
+        },
+        {
+          "path": "supabase/migrations/20260526_debug_step1_2f_customer_import_foundation.sql",
+          "line": 30,
+          "sourceSha256": "b2e764f4533f0539af021669831e9077582b1a90a257cbb8564777f42971465a",
+          "lineText": "  import_batch_id uuid references public.customer_import_batches(id) on delete cascade,"
+        }
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "customer_import_rows",
+        "customer_import_rows_reviewed_by_fkey"
+      ],
+      "sha256": "85f6a6dbaf4d81aad4d76ecf72575daf54f3fe635b882912d991f3fc688e1645",
+      "row": {
+        "nspname": "public",
+        "relname": "customer_import_rows",
+        "conname": "customer_import_rows_reviewed_by_fkey",
+        "contype": "f",
+        "definition": "FOREIGN KEY (reviewed_by) REFERENCES auth.users(id) ON DELETE SET NULL",
+        "convalidated": true
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260526_debug_step1_2f_customer_import_foundation.sql",
+          "line": 152,
+          "sourceSha256": "b2e764f4533f0539af021669831e9077582b1a90a257cbb8564777f42971465a",
+          "lineText": "      foreign key (reviewed_by) references auth.users(id) on delete set null not valid;"
+        },
+        {
+          "path": "supabase/migrations/20260526_debug_step1_2f_customer_import_foundation.sql",
+          "line": 42,
+          "sourceSha256": "b2e764f4533f0539af021669831e9077582b1a90a257cbb8564777f42971465a",
+          "lineText": "  reviewed_by uuid references auth.users(id) on delete set null,"
+        }
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "customer_sync_events",
+        "customer_sync_events_customer_company_fk"
+      ],
+      "sha256": "81ccd65a6947960b1b6523582cc9542dba375e17e454a21ba97892da3e1d6980",
+      "row": {
+        "nspname": "public",
+        "relname": "customer_sync_events",
+        "conname": "customer_sync_events_customer_company_fk",
+        "contype": "f",
+        "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+        "convalidated": true
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260902095000_lock_customer_chain_with_composite_keys.sql",
+          "line": 103,
+          "sourceSha256": "bd3e79d2dab7f3332487b6259e595a258c413c288d073c63c5163555f7cd9c38",
+          "lineText": "      execute format("
+        }
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "data_quality_findings",
+        "data_quality_findings_company_id_fkey"
+      ],
+      "sha256": "78e24be57a7e8947b1a3cd23f8963e5ff46547f2e6ab776717f62962ad7acf81",
+      "row": {
+        "nspname": "public",
+        "relname": "data_quality_findings",
+        "conname": "data_quality_findings_company_id_fkey",
+        "contype": "f",
+        "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE",
+        "convalidated": true
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260531111600_system_readiness_foundation.sql",
+          "line": 289,
+          "sourceSha256": "e6ef68b18ede5729da067ce59a86cfca0db083d9d54a35ae0ed3a6c0968b96f2",
+          "lineText": "  company_id uuid references public.companies(id) on delete cascade,"
+        }
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "data_quality_findings",
+        "data_quality_findings_customer_company_fk"
+      ],
+      "sha256": "8f8bbc3fd359d097c365cb00650240de5547a6bf063549486363aee9395215bd",
+      "row": {
+        "nspname": "public",
+        "relname": "data_quality_findings",
+        "conname": "data_quality_findings_customer_company_fk",
+        "contype": "f",
+        "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+        "convalidated": true
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260902095000_lock_customer_chain_with_composite_keys.sql",
+          "line": 56,
+          "sourceSha256": "bd3e79d2dab7f3332487b6259e595a258c413c288d073c63c5163555f7cd9c38",
+          "lineText": "    execute format("
+        }
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "data_quality_findings",
+        "data_quality_findings_customer_id_fkey"
+      ],
+      "sha256": "31d8fcc0cc2755c8c75f750c438aa4500abba81c6a826199d21bec97b81ca47b",
+      "row": {
+        "nspname": "public",
+        "relname": "data_quality_findings",
+        "conname": "data_quality_findings_customer_id_fkey",
+        "contype": "f",
+        "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+        "convalidated": true
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260531111600_system_readiness_foundation.sql",
+          "line": 292,
+          "sourceSha256": "e6ef68b18ede5729da067ce59a86cfca0db083d9d54a35ae0ed3a6c0968b96f2",
+          "lineText": "  customer_id uuid references public.customers(id) on delete set null,"
+        }
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "data_quality_findings",
+        "data_quality_findings_resolved_by_fkey"
+      ],
+      "sha256": "dba48a45e7f2bb0b27b335fcc9a4d2d04823c580e8264a77651437889a258219",
+      "row": {
+        "nspname": "public",
+        "relname": "data_quality_findings",
+        "conname": "data_quality_findings_resolved_by_fkey",
+        "contype": "f",
+        "definition": "FOREIGN KEY (resolved_by) REFERENCES auth.users(id) ON DELETE SET NULL",
+        "convalidated": true
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260531111600_system_readiness_foundation.sql",
+          "line": 300,
+          "sourceSha256": "e6ef68b18ede5729da067ce59a86cfca0db083d9d54a35ae0ed3a6c0968b96f2",
+          "lineText": "  resolved_by uuid references auth.users(id) on delete set null,"
+        }
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "document_parse_jobs",
+        "document_parse_jobs_company_id_fkey"
+      ],
+      "sha256": "54321e752ada00c02c1e18704212af2e10c95badb18890bad7045e8270256b90",
+      "row": {
+        "nspname": "public",
+        "relname": "document_parse_jobs",
+        "conname": "document_parse_jobs_company_id_fkey",
+        "contype": "f",
+        "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE",
+        "convalidated": true
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260615_multitenant_integrity_and_claim_locks.sql",
+          "line": 424,
+          "sourceSha256": "046c7ec8c885eca46d8dde306bc1b289aa7bccea3f9d4ebdd5f8580c07ca9a37",
+          "lineText": "  company_id uuid not null references public.companies(id) on delete cascade,"
+        }
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "document_parse_jobs",
+        "document_parse_jobs_customer_company_fk"
+      ],
+      "sha256": "b1343fdc2c85899dde079e8fd689cedd31b43c60a61888050aa4659a5b7e832d",
+      "row": {
+        "nspname": "public",
+        "relname": "document_parse_jobs",
+        "conname": "document_parse_jobs_customer_company_fk",
+        "contype": "f",
+        "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+        "convalidated": true
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260902095000_lock_customer_chain_with_composite_keys.sql",
+          "line": 56,
+          "sourceSha256": "bd3e79d2dab7f3332487b6259e595a258c413c288d073c63c5163555f7cd9c38",
+          "lineText": "    execute format("
+        }
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "document_parse_jobs",
+        "document_parse_jobs_customer_id_fkey"
+      ],
+      "sha256": "3ee7ed9223cfa2c758cd18c066a9b03805e939e5cac4b5e613be64407b544ff9",
+      "row": {
+        "nspname": "public",
+        "relname": "document_parse_jobs",
+        "conname": "document_parse_jobs_customer_id_fkey",
+        "contype": "f",
+        "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+        "convalidated": true
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260615_multitenant_integrity_and_claim_locks.sql",
+          "line": 425,
+          "sourceSha256": "046c7ec8c885eca46d8dde306bc1b289aa7bccea3f9d4ebdd5f8580c07ca9a37",
+          "lineText": "  customer_id uuid null references public.customers(id) on delete set null,"
+        }
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "document_parse_jobs",
+        "document_parse_jobs_document_ai_extraction_id_fkey"
+      ],
+      "sha256": "ddf492753898b831f73edc68e3c5f3e719520eff4f6cff4987ceb540f3c5ba9e",
+      "row": {
+        "nspname": "public",
+        "relname": "document_parse_jobs",
+        "conname": "document_parse_jobs_document_ai_extraction_id_fkey",
+        "contype": "f",
+        "definition": "FOREIGN KEY (document_ai_extraction_id) REFERENCES document_ai_extractions(id) ON DELETE SET NULL",
+        "convalidated": true
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260615_multitenant_integrity_and_claim_locks.sql",
+          "line": 426,
+          "sourceSha256": "046c7ec8c885eca46d8dde306bc1b289aa7bccea3f9d4ebdd5f8580c07ca9a37",
+          "lineText": "  document_ai_extraction_id uuid null references public.document_ai_extractions(id) on delete set null,"
+        }
+      ]
+    }
+  ],
+  "triggers": [
+    {
+      "identity": [
+        "public",
+        "customer_import_rows",
+        "customer_import_rows_tenant_operational_guard_trg"
+      ],
+      "sha256": "c7584eb00cfa0acb23d609e67c67d0e0aa9fc1686f44da90808a0a54356c7582",
+      "row": {
+        "definition": "CREATE TRIGGER customer_import_rows_tenant_operational_guard_trg BEFORE INSERT OR UPDATE ON customer_import_rows FOR EACH ROW EXECUTE FUNCTION gridex_assert_company_operational_for_write()",
+        "enabled": "O",
+        "nspname": "public",
+        "relname": "customer_import_rows",
+        "tgname": "customer_import_rows_tenant_operational_guard_trg"
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260818121500_master_production_remediation_p0.sql",
+          "sha256": "16e91ef52b4f24cfc4cf45576f48fef8ce488a5f517535eea391739e924feae5"
+        }
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "customer_import_rows",
+        "gridex_audit_customer_import_rows"
+      ],
+      "sha256": "6c03f498b87cb498cd78dbdc39b2b2a2e6e7540897127b6dec1ed41941956e37",
+      "row": {
+        "definition": "CREATE TRIGGER gridex_audit_customer_import_rows AFTER INSERT OR DELETE OR UPDATE ON customer_import_rows FOR EACH ROW EXECUTE FUNCTION gridex_audit_critical_row_change()",
+        "enabled": "O",
+        "nspname": "public",
+        "relname": "customer_import_rows",
+        "tgname": "gridex_audit_customer_import_rows"
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260522_batch4e_switch_pdf_audit_rbac_completion.sql",
+          "sha256": "e28a7956e18e6704de79b3be29245974faaef5a33aebcec4fa741c7daa06c98d"
+        }
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "customer_sync_events",
+        "customer_sync_events_tenant_operational_guard_trg"
+      ],
+      "sha256": "4afc0dc04430c18321361db8f3396b14635001dba0a13bc8a1cbff24f4f9ae5d",
+      "row": {
+        "definition": "CREATE TRIGGER customer_sync_events_tenant_operational_guard_trg BEFORE INSERT OR UPDATE ON customer_sync_events FOR EACH ROW EXECUTE FUNCTION gridex_assert_company_operational_for_write()",
+        "enabled": "O",
+        "nspname": "public",
+        "relname": "customer_sync_events",
+        "tgname": "customer_sync_events_tenant_operational_guard_trg"
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260818121500_master_production_remediation_p0.sql",
+          "sha256": "16e91ef52b4f24cfc4cf45576f48fef8ce488a5f517535eea391739e924feae5"
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "identity": [
+        "public",
+        "gridex_assert_company_operational_for_write",
+        ""
+      ],
+      "sha256": "83264293b556a5025e6ffd61d74f8e0c372e283288cf5000ef82a1ca1bcaa170",
+      "row": {
+        "nspname": "public",
+        "proname": "gridex_assert_company_operational_for_write",
+        "identity_arguments": "",
+        "arguments": "",
+        "return_type": "trigger",
+        "security_definer": true,
+        "volatility": "v",
+        "kind": "f",
+        "body_md5": "fcdd8e61b45af7096cf2654d767e12a0"
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260519_batch_6d2_runtime_governance_completion.sql",
+          "sourceSha256": "b7d9d48b9cd3093b5546b04225f9c6151b0f674d2ae73441d8086f51922de9ab",
+          "line": 328,
+          "lineText": "create or replace function public.gridex_assert_company_operational_for_write()"
+        }
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "gridex_audit_critical_row_change",
+        ""
+      ],
+      "sha256": "fab506a5d2d7829aeeb26b993a5ab5cf241e3f5885c26b24de3f5934d17cae66",
+      "row": {
+        "nspname": "public",
+        "proname": "gridex_audit_critical_row_change",
+        "identity_arguments": "",
+        "arguments": "",
+        "return_type": "trigger",
+        "security_definer": true,
+        "volatility": "v",
+        "kind": "f",
+        "body_md5": "0bb25c59cc22963c529f3e7dce21d883"
+      },
+      "sources": [
+        {
+          "path": "supabase/migrations/20260522_batch4e_switch_pdf_audit_rbac_completion.sql",
+          "sourceSha256": "e28a7956e18e6704de79b3be29245974faaef5a33aebcec4fa741c7daa06c98d",
+          "line": 87,
+          "lineText": "      create or replace function public.gridex_audit_critical_row_change()"
+        }
+      ]
+    }
+  ],
+  "contextAndCallerEvidence": [
+    {
+      "path": "supabase/migrations/20260902095000_lock_customer_chain_with_composite_keys.sql",
+      "sourceSha256": "bd3e79d2dab7f3332487b6259e595a258c413c288d073c63c5163555f7cd9c38",
+      "line": 56,
+      "lineText": "    execute format("
+    },
+    {
+      "path": "supabase/migrations/20260902095000_lock_customer_chain_with_composite_keys.sql",
+      "sourceSha256": "bd3e79d2dab7f3332487b6259e595a258c413c288d073c63c5163555f7cd9c38",
+      "line": 90,
+      "lineText": "    join public.platform_table_classification t on t.table_name = c.relname and t.kind = 'tenant'"
+    },
+    {
+      "path": "supabase/migrations/20260902095000_lock_customer_chain_with_composite_keys.sql",
+      "sourceSha256": "bd3e79d2dab7f3332487b6259e595a258c413c288d073c63c5163555f7cd9c38",
+      "line": 103,
+      "lineText": "      execute format("
+    },
+    {
+      "path": "supabase/migrations/20260902094000_platform_table_classification_and_invariant_gate.sql",
+      "sourceSha256": "29ea84caceca14260c6a909534c89a26a015568d9bf56741cd796a5cd1896470",
+      "line": 88,
+      "lineText": "    when exists ("
+    },
+    {
+      "path": "supabase/migrations/20260902094000_platform_table_classification_and_invariant_gate.sql",
+      "sourceSha256": "29ea84caceca14260c6a909534c89a26a015568d9bf56741cd796a5cd1896470",
+      "line": 121,
+      "lineText": "update public.platform_table_classification set"
+    },
+    {
+      "path": "supabase/migrations/20260902094000_platform_table_classification_and_invariant_gate.sql",
+      "sourceSha256": "29ea84caceca14260c6a909534c89a26a015568d9bf56741cd796a5cd1896470",
+      "line": 157,
+      "lineText": "update public.platform_table_classification t"
+    },
+    {
+      "path": "scripts/sql/tenant-isolation-invariants.sql",
+      "sourceSha256": "79d10e6b6ebf10b087142edeab3fe0bbebbe47bf325b27b9f42058ce6272b318",
+      "line": 89,
+      "lineText": "  -- F-3: no row in a tenant-classified table without a tenant. Tables that"
+    },
+    {
+      "path": "scripts/sql/tenant-isolation-invariants.sql",
+      "sourceSha256": "79d10e6b6ebf10b087142edeab3fe0bbebbe47bf325b27b9f42058ce6272b318",
+      "line": 105,
+      "lineText": "    execute format('select count(*) from public.%I where company_id is null', v_row.relname)"
+    },
+    {
+      "path": "supabase/migrations/20260818121500_master_production_remediation_p0.sql",
+      "sourceSha256": "16e91ef52b4f24cfc4cf45576f48fef8ce488a5f517535eea391739e924feae5",
+      "line": 309,
+      "lineText": "declare r record;"
+    },
+    {
+      "path": "lib/tenant/controlTower.ts",
+      "sourceSha256": "e765c528525c7d073496831cec0041cbce674072fdcfdef6b6d43ceb3ca794de",
+      "line": 113,
+      "lineText": "    safeCount('customer_sync_events', ["
+    },
+    {
+      "path": "app/admin/customers/actions.part-3.ts",
+      "sourceSha256": "6c12aae0ec756652bd554c5f75de4a8cfe5965f2886c65276fe9d2d724663276",
+      "line": 296,
+      "lineText": "  await supabaseService.from(\"customer_import_rows\").insert({"
+    },
+    {
+      "path": "app/admin/customers/actions.part-3.ts",
+      "sourceSha256": "6c12aae0ec756652bd554c5f75de4a8cfe5965f2886c65276fe9d2d724663276",
+      "line": 658,
+      "lineText": "  }"
+    },
+    {
+      "path": "app/admin/customers/actions.part-3.ts",
+      "sourceSha256": "6c12aae0ec756652bd554c5f75de4a8cfe5965f2886c65276fe9d2d724663276",
+      "line": 675,
+      "lineText": "      .from(\"customer_import_rows\")"
+    },
+    {
+      "path": "app/admin/customers/actions.part-3.ts",
+      "sourceSha256": "6c12aae0ec756652bd554c5f75de4a8cfe5965f2886c65276fe9d2d724663276",
+      "line": 775,
+      "lineText": "    .from(\"customer_import_rows\")"
+    },
+    {
+      "path": "app/admin/customers/imports/page.tsx",
+      "sourceSha256": "0e10c729179f955d9158f8ceba0c317ac4eaff0b0823e81488a907e33fc801f5",
+      "line": 160,
+      "lineText": "          .from(\"customer_import_rows\")"
+    },
+    {
+      "path": "app/admin/customers/duplicates/actions.ts",
+      "sourceSha256": "f0ddd97f8dffc86565d2de4f6393036053016c85c8184ac84ec5a108784864f1",
+      "line": 74,
+      "lineText": "  toCustomerId: string"
+    },
+    {
+      "path": "app/admin/customers/duplicates/actions.ts",
+      "sourceSha256": "f0ddd97f8dffc86565d2de4f6393036053016c85c8184ac84ec5a108784864f1",
+      "line": 156,
+      "lineText": "    'customer_import_rows',"
+    },
+    {
+      "path": "app/admin/customers/[id]/profile-actions.part-2.ts",
+      "sourceSha256": "b436b32299125a80c1520e289a8ed2a2cf436c71a1875a0fb759bf8ab9e0a0f8",
+      "line": 60,
+      "lineText": "export async function collectCustomerDeleteGraph(customerId: string) {"
+    },
+    {
+      "path": "app/admin/customers/[id]/profile-actions.part-2.ts",
+      "sourceSha256": "b436b32299125a80c1520e289a8ed2a2cf436c71a1875a0fb759bf8ab9e0a0f8",
+      "line": 555,
+      "lineText": "  graph: Awaited<ReturnType<typeof collectCustomerDeleteGraph>>,"
+    },
+    {
+      "path": "app/admin/customers/[id]/profile-actions.part-2.ts",
+      "sourceSha256": "b436b32299125a80c1520e289a8ed2a2cf436c71a1875a0fb759bf8ab9e0a0f8",
+      "line": 588,
+      "lineText": "  const platformGuard = await requirePlatformAdminActionAccess();"
+    },
+    {
+      "path": "app/admin/customers/[id]/profile-actions.part-2.ts",
+      "sourceSha256": "b436b32299125a80c1520e289a8ed2a2cf436c71a1875a0fb759bf8ab9e0a0f8",
+      "line": 608,
+      "lineText": ""
+    },
+    {
+      "path": "app/admin/customers/[id]/profile-actions.part-2.ts",
+      "sourceSha256": "b436b32299125a80c1520e289a8ed2a2cf436c71a1875a0fb759bf8ab9e0a0f8",
+      "line": 763,
+      "lineText": "  const { error: deleteCustomerError } = await supabaseService"
+    },
+    {
+      "path": "app/admin/platform/data-cleanup/actions.ts",
+      "sourceSha256": "5262ee22f55afa8b192dae6a5e02152c632fe5d10843c502fe40b50c9e83e285",
+      "line": 64,
+      "lineText": "export async function platformHardDeleteTestCustomerAction(formData: FormData): Promise<void> {"
+    },
+    {
+      "path": "app/admin/platform/data-cleanup/actions.ts",
+      "sourceSha256": "5262ee22f55afa8b192dae6a5e02152c632fe5d10843c502fe40b50c9e83e285",
+      "line": 92,
+      "lineText": "    await deleteCustomerForRecreateAction(IDLE_CUSTOMER_ACTION_STATE, next),"
+    }
+  ],
+  "callerCoverage": {
+    "customer_import_rows": "Active literal insert/link/read/reject and finite merge-list reference reassignment found.",
+    "customer_sync_events": "Control-tower read only; no active literal writer found.",
+    "billing_disputes": "No literal app/lib access found.",
+    "data_quality_findings": "No literal app/lib access found.",
+    "document_parse_jobs": "No literal app/lib access found.",
+    "customerDelete": "Active platform-admin, confirmed marked-test cleanup reaches service customer DELETE after protected-history checks; five tables absent from collection/protection/explicit cleanup. Other database guards unexecuted.",
+    "limit": "Literal and finite-list inspection does not exclude arbitrary dynamic/external writers."
+  },
+  "runtimeQualificationRequired": [
+    "Observed four overlapping FK action outcomes in both creation/order variants and actual native trigger-order binding.",
+    "Same-company allowed, wrong-company rejected and nullable optional/legacy input controls.",
+    "Customer deletion retains child and known company under targeted SET NULL(customer_id).",
+    "Real operational guard and audit trigger, rollback and all outside rows/catalog preserved.",
+    "Final native schema and application gates; no source-only execution inference."
+  ]
+}

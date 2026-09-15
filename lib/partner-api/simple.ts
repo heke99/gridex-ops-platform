@@ -1031,7 +1031,15 @@ async function createWebhook(request: NextRequest) {
     }
     const targetUrl = text(body.target_url)
     if (!targetUrl) throw new SimplePartnerApiError('target_url is required.', 'webhook_target_required', 422, 'target_url')
-    await assertPublicWebhookTarget(targetUrl)
+    try {
+      await assertPublicWebhookTarget(targetUrl)
+    } catch {
+      throw new SimplePartnerApiError(
+        'target_url must be a publicly routable HTTPS endpoint.',
+        'webhook_target_not_public',
+        422,
+      )
+    }
     const notificationEmail = text(body.notification_email)?.toLowerCase() ?? null
     if (notificationEmail && !notificationEmail.includes('@')) {
       throw new SimplePartnerApiError('notification_email is invalid.', 'notification_email_invalid', 422, 'notification_email')

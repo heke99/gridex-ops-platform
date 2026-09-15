@@ -1,0 +1,92 @@
+name: Gridex inert inbound policy qualification
+on:
+  push:
+    branches:
+      - codex/ediel-masterplan-v2-alignment-20260915
+    paths:
+      - '.github/workflows/gridex-inert-inbound-policy-qualification.yml'
+      - 'scripts/canonical-inert-inbound-policy-qualification.py'
+      - 'scripts/test-canonical-inert-inbound-policy.py'
+      - 'scripts/sql/forward-candidates/drop-inert-inbound-client-policies.sql'
+      - 'scripts/sql/forward-candidates/drop-inert-inbound-client-policies-preserve-platform.sql'
+      - 'scripts/sql/forward-candidates/inert-inbound-preserved-platform-postcondition.sql'
+      - 'quality/audits/ediel-masterplan-v2/inert-policy-identities.json'
+permissions:
+  contents: read
+jobs:
+  owned-inert-policy-qualification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-inert-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify actual observed identities and exact source selection
+        run: |
+          python3 scripts/test-canonical-inert-inbound-policy.py
+          python3 scripts/canonical-inert-inbound-policy-qualification.py --selection-only
+      - name: Qualify exact candidate with owned PostgreSQL 17 client execution
+        run: python3 scripts/canonical-inert-inbound-policy-qualification.py
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Create genuine CLI filename only after owned qualification passed
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(supabase --version)" == '2.101.0' ]]
+          candidate_root="$(mktemp -d)"
+          trap 'rm -rf -- "$candidate_root"' EXIT
+          supabase --workdir "$candidate_root" init
+          supabase --workdir "$candidate_root" migration new drop_inert_inbound_client_policies
+          migration_files=("$candidate_root"/supabase/migrations/*_drop_inert_inbound_client_policies.sql)
+          [[ "${#migration_files[@]}" == 1 && -f "${migration_files[0]}" ]]
+          [[ ! -L "${migration_files[0]}" && ! -s "${migration_files[0]}" ]]
+          cp scripts/sql/forward-candidates/drop-inert-inbound-client-policies-preserve-platform.sql "${migration_files[0]}"
+          cp "${migration_files[0]}" artifacts/inert-inbound-policy-candidate/
+          python3 - <<'PY'
+          import hashlib,json,pathlib,re,subprocess
+          root=pathlib.Path('artifacts/inert-inbound-policy-candidate')
+          q=json.loads((root/'qualification.json').read_text())
+          digest='5cd56392d5647196fe4f64e7d5a76fe5fa0a3a9a454efcfd34a6d8f754ac86a7'
+          assert q['scope']=='OWNED_PG17_INERT_POLICY_QUALIFICATION_ONLY' and q['candidateSha256']==digest
+          assert q['redCount']==24 and q['greenCount']==0 and q['negativeShapeCases']==29
+          assert q['retainedPlatformPolicyCount']==6 and q['originalCandidateRejectedSourcePlatformPolicies'] is True
+          assert q['candidatePostconditionVerified'] is True and q['postconditionNegativeCases']==22
+          assert q['candidatePostconditionSha256']=='baaa1053792c8e0d850fcde912b85a3561386756d4f7eec8d8b402591ce13c80'
+          assert all(q[k] is True for k in ('exactPolicyOnlyDelta','repeatVerified','clientDenialVerified','serviceDmlVerified','cleanupVerified'))
+          assert all(q[k] is False for k in ('schemaAccepted','nativeReplayAccepted','generatedTypesVerified','applicationHelpersVerified','productionModified'))
+          files=list(root.glob('*.sql'))
+          assert len(files)==1 and re.fullmatch(r'[0-9]{14}_drop_inert_inbound_client_policies.sql',files[0].name)
+          assert files[0].name[:14] > '20260915181448'
+          assert hashlib.sha256(files[0].read_bytes()).hexdigest()==digest
+          receipt=dict(scope='CLI_FILENAME_AND_ISOLATED_SQL_NOT_SCHEMA_ACCEPTANCE',cliVersion='2.101.0',
+            sourceHead=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),file=files[0].name,
+            sha256=digest,qualification=q,selectedMigration=False,schemaAccepted=False,productionModified=False)
+          (root/'cli-creation.json').write_text(json.dumps(receipt,sort_keys=True,indent=2)+'\n')
+          print(json.dumps(receipt,sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gridex-inert-inbound-policy-candidate
+          path: |
+            artifacts/inert-inbound-policy-candidate/*_drop_inert_inbound_client_policies.sql
+            artifacts/inert-inbound-policy-candidate/cli-creation.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Remove only this qualification's owned container
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import importlib.util, sys
+          from pathlib import Path
+          sys.path.insert(0,str(Path('scripts').resolve()))
+          path=Path('scripts/canonical-inert-inbound-policy-qualification.py').resolve()
+          spec=importlib.util.spec_from_file_location('inert_cleanup',path)
+          module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+          module.load_legacy().cleanup_workflow_owned()
+          PY

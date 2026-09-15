@@ -1,0 +1,78 @@
+name: Gridex full permission clone qualification
+
+on:
+  push:
+    branches:
+      - codex/ediel-masterplan-v2-alignment-20260915
+      - codex/gridex-parity-remediation-20260905
+    paths:
+      - 'scripts/canonical_storage_bootstrap.py'
+      - 'scripts/test-canonical-storage-bootstrap.py'
+      - '.github/workflows/gridex-full-permission-clone.yml'
+      - 'scripts/canonical-portable-invariants-diagnostic.py'
+      - 'scripts/canonical-full-permission-clone-qualification.py'
+      - 'scripts/test-canonical-full-permission-clone.py'
+      - 'scripts/canonical_permission_full_seed.py'
+      - 'scripts/canonical_changed_function_witness.py'
+      - 'scripts/test-canonical-permission-full-seed.py'
+      - 'scripts/sql/forward-candidates/20260912052507_canonical_permission_overrides_and_storage_write_guards.sql'
+      - 'scripts/test-canonical-portable-invariants.py'
+      - 'scripts/canonical_forward_sources.py'
+      - 'scripts/canonical_forward_portable.py'
+      - 'scripts/test-canonical-forward-portable.py'
+      - 'scripts/canonical_native_forward_runtime.py'
+      - 'scripts/canonical_native_final_sql.py'
+      - 'scripts/sql/tenant-isolation-invariants.sql'
+      - 'supabase/migrations/**'
+
+permissions:
+  contents: read
+
+jobs:
+  owned-full-permission-clone:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify selection, closed diagnostics and failure propagation
+        run: |
+          python3 -B scripts/test-canonical-storage-bootstrap.py
+          python3 scripts/canonical-foundation-frontier-selftest.py
+          python3 scripts/canonical-timestamp-frontier-selftest.py
+          python3 scripts/test-canonical-forward-portable.py
+          python3 scripts/test-canonical-native-final-sql.py
+          python3 scripts/test-canonical-portable-invariants.py
+      - name: Check finite whole-candidate clone qualification
+        run: |
+          python3 scripts/test-canonical-full-permission-clone.py
+          python3 scripts/test-canonical-permission-full-seed.py
+      - name: Qualify exact permission candidate after complete replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/canonical-full-permission-clone-qualification.py | tee "$RUNNER_TEMP/gridex-full-permission-qualification.jsonl"
+      - name: Retain already sanitized qualification receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-full-permission-qualification
+          path: ${{ runner.temp }}/gridex-full-permission-qualification.jsonl
+          retention-days: 3
+          if-no-files-found: warn
+      - name: Remove only this diagnostic's owned container
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          path = Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve()
+          spec = importlib.util.spec_from_file_location('portable_cleanup', path)
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          module.load_controller().load_batch().cleanup_workflow_owned()
+          PY

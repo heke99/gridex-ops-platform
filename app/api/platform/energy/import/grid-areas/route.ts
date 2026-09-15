@@ -3,6 +3,9 @@ import { internalApiError } from '@/lib/http/apiError'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { upsertPlatformGridAreaMasterRows } from '@/lib/energy/resolver'
 
+import { readAdminJson } from '@/lib/http/adminJsonRequest'
+import { platformGridImportSchema } from '@/lib/admin/platformJsonSchemas'
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
@@ -30,7 +33,9 @@ function normaliseRows(body: Record<string, unknown>): ImportRow[] {
 export async function POST(request: Request) {
   try {
     await requirePlatformAdminActionAccess()
-    const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    const parsed = await readAdminJson(request, platformGridImportSchema)
+    if (!parsed.ok) return NextResponse.json({ ok: false, error: parsed.error, code: parsed.code, field: parsed.field }, { status: parsed.status })
+    const body = parsed.data
     const rows = normaliseRows(body)
     if (rows.length === 0) return NextResponse.json({ ok: false, error: 'Inga nätområdesrader skickades.' }, { status: 422 })
     const result = await upsertPlatformGridAreaMasterRows(rows)

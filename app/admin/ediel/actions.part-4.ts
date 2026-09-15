@@ -2,7 +2,7 @@
 import { applyUtiltsTestAckPlanOverride } from '@/lib/ediel/testing/utiltsAckOverrides'
 import { revalidatePath } from "next/cache"
 
-import { requireAdminActionAccess, type GuardResult } from "@/lib/admin/guards"
+import { requireAdminActionAccess, requireCompanyScopedActionAccess, type GuardResult } from "@/lib/admin/guards"
 import { requireEdielSendActionAccess, requireEdielWriteActionAccess } from "@/lib/ediel/actionAccess"
 import { assertUserCanOperateCompany, getOperationalCompanyScope } from "@/lib/tenant/scope"
 import { createAckDraftForMessage, createNegativeUtiltsResponse, prepareAndQueueAiList, prepareAndQueueEdielZ03, prepareAndQueueEdielZ04, prepareAndQueueEdielZ05, prepareAndQueueEdielZ06, prepareAndQueueEdielZ09, prepareAndQueueEdielZ10, prepareAndQueueEdielZ13, prepareAndQueueEdielZ14, prepareAndQueueEdielZ15, prepareAndQueueEdielZ18, prepareAndQueueUtiltsE66, prepareAndQueueUtiltsE73, sendQueuedEdielMessage } from "@/lib/ediel/orchestrator"
@@ -606,9 +606,11 @@ export async function prepareSwitchProdatAction(
 }
 
 export async function createEdielPortalTestCustomerAction(formData: FormData) {
-  const context = await requireAdminActionAccess({
+  const requestedCompanyId = formString(formData.get("companyId")) ?? "";
+  const context = await requireCompanyScopedActionAccess(requestedCompanyId, {
     allOf: ["masterdata.write", "switching.write", "communication.write"],
   });
+  if (!requestedCompanyId) throw new Error("companyId saknas");
   const testSuite = parseEdielTestSuite(formData.get("testSuite"));
   const roleCode = parseEdielTestRoleCode(formData.get("roleCode"));
   const testCaseCode = formString(formData.get("testCaseCode"));
@@ -625,7 +627,8 @@ export async function createEdielPortalTestCustomerAction(formData: FormData) {
 
   const companyId = await assertUserCanOperateCompany(
     context.userId,
-    formString(formData.get("companyId")),
+    requestedCompanyId,
+    { isPlatformAdmin: context.isPlatformAdmin },
   );
 
   const supabase = await makeServerClient();

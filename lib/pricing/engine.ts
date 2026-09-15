@@ -1,3 +1,4 @@
+import { billingPeriodInstant, evidenceQuantityKwh, loadUnderlayEvidence, loadPricingRunEvidence, underlayValidationErrors } from "@/lib/billing/underlayEvidence";
 import { supabaseService } from "@/lib/supabase/service";
 import {
   isPriceArea,
@@ -255,6 +256,30 @@ async function persistPricingRun(
 ) {
   if (!underlay.billingUnderlayId)
     throw new Error("Faktureringsunderlagets ID saknas.");
+  if (result.status === "success") {
+    const current = await loadUnderlayEvidence({ companyId, billingUnderlayId: underlay.billingUnderlayId });
+    if (current.underlay.customer_id !== underlay.customerId ||
+      current.underlay.metering_point_id !== underlay.meteringPointId ||
+      current.underlay.contract_id !== underlay.contractId ||
+      current.underlay.price_area !== underlay.priceArea ||
+      current.underlay.energy_direction !== underlay.energyDirection ||
+      current.underlay.settlement_type !== underlay.settlementType ||
+      (current.underlay.contract_price_snapshot_id ?? current.underlay.pricing_snapshot_id) !== underlay.pricingSnapshot?.contract_price_snapshot_id ||
+      Math.abs(current.totalKwh - (underlay.quantityKwh ?? NaN)) > 0.001 ||
+      billingPeriodInstant(current.underlay.billing_period_start) !== billingPeriodInstant(underlay.periodStart) ||
+      billingPeriodInstant(current.underlay.billing_period_end) !== billingPeriodInstant(underlay.periodEnd)) {
+      throw new Error("billing_evidence_changed_before_persist");
+    }
+    if (intervalEvidence.length) {
+      const items = new Map(current.items.map(item => [String(item.id), item]));
+      if (intervalEvidence.length !== items.size || intervalEvidence.some(row => {
+        const item = items.get(row.billing_underlay_item_id);
+        return !item || billingPeriodInstant(item.period_start) !== billingPeriodInstant(row.metering_interval_start) ||
+          billingPeriodInstant(item.period_end) !== billingPeriodInstant(row.metering_interval_end) ||
+          evidenceQuantityKwh(item) !== row.consumption_kwh;
+      })) throw new Error("billing_evidence_changed_before_persist");
+    }
+  }
   const payload = {
     status: result.status,
     total_ex_vat: result.totalExVat,
@@ -322,8 +347,13 @@ export async function calculatePricingPreviewForUnderlay(input: {
     contract,
     snapshot,
   );
-  const errors: string[] = [];
+  let evidencePeriod: { start: string; end: string } | null = null;
+  const errors: string[] = underlayValidationErrors(underlayRow);
   const warnings: string[] = [];
+  if (!errors.length) {
+    try { evidencePeriod = (await loadUnderlayEvidence(input)).period; }
+    catch (error) { errors.push(error instanceof Error ? error.message : "billing_evidence_invalid"); }
+  }
 
   if (!underlay.customerId) errors.push("Kund saknas på fakturaunderlaget.");
   if (!underlay.meteringPointId)
@@ -456,8 +486,8 @@ export async function calculatePricingPreviewForUnderlay(input: {
       companyId: input.companyId,
       billingUnderlayId: input.billingUnderlayId,
       priceArea: underlay.priceArea as PriceArea,
-      periodStart: underlay.periodStart,
-      periodEnd: underlay.periodEnd,
+      periodStart: evidencePeriod?.start ?? underlay.periodStart,
+      periodEnd: evidencePeriod?.end ?? underlay.periodEnd,
       requiredResolution: intervalResolution,
       spotWeightPercent: spotWeight,
     });
@@ -642,6 +672,7 @@ export async function lockPricingPreview(input: {
   pricingRunId: string;
   actorUserId?: string | null;
 }) {
+  await loadPricingRunEvidence(input);
   const { data, error } = await supabaseService.rpc("gridex_lock_pricing_run", {
     p_company_id: input.companyId,
     p_pricing_run_id: input.pricingRunId,

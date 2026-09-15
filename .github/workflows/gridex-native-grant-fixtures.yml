@@ -1,0 +1,29 @@
+name: Gridex native grant fixture controls
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-native-grant-fixtures.yml'
+      - 'scripts/canonical-native-grant-fixtures-selftest.py'
+      - 'scripts/canonical-rbac-prefix-selftest.py'
+      - 'scripts/canonical-auth-membership-group-selftest.py'
+      - 'scripts/canonical-customer-operations-selftest.py'
+      - 'scripts/canonical-readiness-operations-selftest.py'
+      - 'scripts/sql/gridex-supabase-compatible-bootstrap.sql'
+permissions:
+  contents: read
+jobs:
+  probe-construction-and-rejection:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Verify real probe methods and rejection controls without a database
+        run: |
+          python3 -B scripts/canonical-native-grant-fixtures-selftest.py
+          python3 -B scripts/canonical-customer-operations-selftest.py --selection-only
+          python3 -B scripts/canonical-readiness-operations-selftest.py --selection-only

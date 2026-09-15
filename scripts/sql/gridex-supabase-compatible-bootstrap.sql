@@ -37,6 +37,9 @@ begin
   if not exists (select 1 from pg_roles where rolname = 'supabase_storage_admin') then
     create role supabase_storage_admin nologin noinherit createrole;
   end if;
+  if not exists (select 1 from pg_roles where rolname = 'supabase_privileged_role') then
+    create role supabase_privileged_role nologin inherit nocreaterole nocreatedb noreplication nobypassrls;
+  end if;
   if not exists (select 1 from pg_roles where rolname = 'dashboard_user') then
     create role dashboard_user nologin noinherit createrole createdb replication;
   end if;
@@ -82,14 +85,17 @@ grant usage on schema auth to anon, authenticated, service_role, postgres;
 grant usage on schema storage to anon, authenticated, service_role, postgres;
 grant usage on schema public to anon, authenticated, service_role;
 
--- Supabase grants EXECUTE on newly created functions to the client roles
--- through default privileges. Without this the harness sees a NULL ACL where
--- the real stack has an explicit anon grant, so a migration that revokes only
--- from PUBLIC looks sufficient here and is not. Functions only: table default
--- privileges are deliberately NOT replicated, because a table's reachability
--- is what the tenant invariant gate measures and inventing grants here would
--- manufacture findings.
+-- Match the initial public-object privileges observed on a fresh Supabase
+-- CLI 2.101.0 / PostgreSQL 17 database. Historical migrations classify tables
+-- by client reachability, so omitting table/sequence defaults changes which
+-- tenant guards, RLS policies and composite foreign keys they create.
+-- This is empty test-database initialization, NOT a grant to existing/live
+-- tables. Later migration revocations remain authoritative and unmodified.
+-- The native lifecycle job executes the old bootstrap as a negative control
+-- and compares all 48 table/sequence/function privilege checks for this one.
 alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
+alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
 
 -- GoTrue's auth.users. Only the columns the Gridex migration chain reads or
 -- references are guaranteed here; the shape and nullability follow Supabase.
@@ -114,6 +120,8 @@ create table if not exists auth.users (
   updated_at timestamptz,
   phone text default null unique,
   phone_confirmed_at timestamptz,
+  confirmed_at timestamptz generated always as
+    (least(email_confirmed_at, phone_confirmed_at)) stored,
   banned_until timestamptz,
   deleted_at timestamptz,
   is_anonymous boolean not null default false

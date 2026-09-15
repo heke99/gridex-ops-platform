@@ -1,0 +1,136 @@
+{
+  "snapshotSha256": "b46b90d7ff066d71964c9157044ac70b31b47cab114cfcbce5d270751012dd30",
+  "schemaSource": "20260810224500_canonical_review_remediation_v1.sql",
+  "triggerFunctions": [
+    "ediel_requeue_outbox_after_send_lock_release_trigger",
+    "ediel_send_lock_state_convergence_trigger",
+    "gridex_complete_tenant_website_receipt_on_launch_ready_v1",
+    "gridex_guard_site_resolution_materialization_v1",
+    "gridex_learn_verified_postal_mapping_from_site_v1",
+    "gridex_partner_customer_event_v2",
+    "gridex_partner_invoice_event_v2",
+    "gridex_partner_poa_event_v2",
+    "gridex_partner_site_event_v2",
+    "gridex_require_locked_pricing_run_for_invoice_export",
+    "gridex_select_provisional_grid_owner_from_unique_postal_city_v1",
+    "gridex_validate_manual_inbound_tenant_graph",
+    "normalize_website_application_legal_blockers",
+    "reconcile_website_application_terms_acceptance"
+  ],
+  "functions": {
+    "ediel_requeue_outbox_after_send_lock_release_trigger": {
+      "source": "20260903161000_ediel_send_lock_release_requeues_outbox.sql",
+      "sourceSha256": "ed0affa427b7356064a474a4e390dc70cf8297fa39c0b5e7c4e1edc1255c48c1",
+      "programSha256": "b6e50396a431154425831f5ab3fa5fc12583689cf6f12063d3a2607fef07763a",
+      "bodyMd5": "f4b9a5ce66b28997937c1b8d1fac3bd0",
+      "securityDefiner": true
+    },
+    "ediel_send_lock_state_convergence_trigger": {
+      "source": "20260903160000_ediel_send_lock_state_convergence.sql",
+      "sourceSha256": "1f368f4a36e9ac93d09289c4538d142f7489746793aff110d9f593eaa0c7bafd",
+      "programSha256": "abfdb6d2e37bd0acf5c655dbfac9cff257afa825a1aca86eb8b8d4d2f932e6fd",
+      "bodyMd5": "e35819802a667d5f66dfb3631f1bf96b",
+      "securityDefiner": true
+    },
+    "gridex_complete_tenant_website_receipt_on_launch_ready_v1": {
+      "source": "20260815233411_tenant_website_installation_completion_trigger_v1.sql",
+      "sourceSha256": "e0c39810561d78c64329f98be229f533778de2c2a9e0678d056a05cfb158e827",
+      "programSha256": "933a09b1d2b8d79d90dcec4aa4f9f3af3c8982bac28916c3b55dd807d6b063a3",
+      "bodyMd5": "d0963d2890df6cd401d1abf467173a3e",
+      "securityDefiner": true
+    },
+    "gridex_emit_partner_resource_event_v2": {
+      "source": "20260816170000_partner_api_v1_canonical_surface_events.sql",
+      "sourceSha256": "1faa62377d47df7159ccf5440d4dbee44acd12860d440a19b80b643a4fcd6a4b",
+      "programSha256": "987621e1ac57cbff124579e4b3ccdc00564dcdbbfd7e483fb094c78ff35e6d7e",
+      "bodyMd5": "576eeb6c6d32aec0c0aa124b18134015",
+      "securityDefiner": true
+    },
+    "gridex_guard_site_resolution_materialization_v1": {
+      "source": "20260825112000_ops_precision_resolution_authority.sql",
+      "sourceSha256": "3f3549adffd87fcc1bd9d6811189734e57b2c6317442506f0f762bfcb84432d8",
+      "programSha256": "c04f3f4468a7df4f941a5a4825b86e178b17ec07a56207e5872416bfd205b4df",
+      "bodyMd5": "0f71cefd0c0595c1aeddc856497a4470",
+      "securityDefiner": true
+    },
+    "gridex_learn_verified_postal_mapping_from_site_v1": {
+      "source": "20260817094125_papilite_verified_postal_learning.sql",
+      "sourceSha256": "4f3307eb05581388655dc961691cdfd38b8d17734eed60cb28dfff7e362f173d",
+      "programSha256": "8b6ff0fe1699171521403a87e5e5a6cadc24d1d599cdd1666631866c5dc016f7",
+      "bodyMd5": "8789fa10da870a6f303e8ef9465e7e29",
+      "securityDefiner": true
+    },
+    "gridex_partner_customer_event_v2": {
+      "source": "20260816170000_partner_api_v1_canonical_surface_events.sql",
+      "sourceSha256": "1faa62377d47df7159ccf5440d4dbee44acd12860d440a19b80b643a4fcd6a4b",
+      "programSha256": "546183193854b7674bdcb544fa1a8fb309888dc105a65e07ee8bf26d4f805fcf",
+      "bodyMd5": "0e0b19dbe81299200f46fda1bc36bc8a",
+      "securityDefiner": true
+    },
+    "gridex_partner_invoice_event_v2": {
+      "source": "20260816170000_partner_api_v1_canonical_surface_events.sql",
+      "sourceSha256": "1faa62377d47df7159ccf5440d4dbee44acd12860d440a19b80b643a4fcd6a4b",
+      "programSha256": "264a936800d5ef1b6b703f1098373983cad1a2a6e2e304c6f315ad18bfd489b7",
+      "bodyMd5": "2217afb6c7d8430a80d82a19efce7199",
+      "securityDefiner": true
+    },
+    "gridex_partner_poa_event_v2": {
+      "source": "20260816170000_partner_api_v1_canonical_surface_events.sql",
+      "sourceSha256": "1faa62377d47df7159ccf5440d4dbee44acd12860d440a19b80b643a4fcd6a4b",
+      "programSha256": "b78deb84d45b5d56abe3f93d22680099ba8743aaa67570f66ba8c9b194ac7076",
+      "bodyMd5": "05ddbc4d1113dcba07e50278a929935f",
+      "securityDefiner": true
+    },
+    "gridex_partner_site_event_v2": {
+      "source": "20260816170000_partner_api_v1_canonical_surface_events.sql",
+      "sourceSha256": "1faa62377d47df7159ccf5440d4dbee44acd12860d440a19b80b643a4fcd6a4b",
+      "programSha256": "af220ca225adf1ec90a4d975665771138cfa17be71b0ef10f04cca59f764ec4c",
+      "bodyMd5": "41ef4ed9ad0c6aab0eebda5c3cf3da50",
+      "securityDefiner": true
+    },
+    "gridex_require_locked_pricing_run_for_invoice_export": {
+      "source": "20260820113132_invoice_export_locked_pricing_guard.sql",
+      "sourceSha256": "db0235f01516a707ff055dacf42b3709ff7e083f25112a23f01bbbbf74e741c9",
+      "programSha256": "0b577180ec7d53ec3eb9712050d03a41873b6bd8ac461e79ce6a342f52ed083b",
+      "bodyMd5": "f9348c13952ad82e5e095c7de86450dc",
+      "securityDefiner": false
+    },
+    "gridex_select_provisional_grid_owner_from_unique_postal_city_v1": {
+      "source": "20260824080448_unique_postal_city_provisional_grid_owner.sql",
+      "sourceSha256": "6d45152f5fb419d3ca52468312b4986acf96cfe6301dc34f20aaa284c99d6580",
+      "programSha256": "efe1f3389fd55bbb50767d2e0e4039502097bd212811dc31cf5986e0e209e91a",
+      "bodyMd5": "a4719d04e213399a0e995c2f32fe12ae",
+      "securityDefiner": true
+    },
+    "gridex_validate_manual_inbound_tenant_graph": {
+      "source": "20260830103610_manual_inbound_tenant_graph_trigger_contract.sql",
+      "sourceSha256": "9847181ae630d904393af7faa4429ef1a9e5bd1821da17b9884c65fc87679aaf",
+      "programSha256": "e4daa893785ac3e2afc80adb80d2e0e5878b0cf1af214fc533841ab534ad8013",
+      "bodyMd5": "488e984ec14e696dc0f71c40dee742ee",
+      "securityDefiner": true
+    },
+    "normalize_website_application_legal_blockers": {
+      "source": "20260825140234_canonical_website_legal_response_payload_invariant.sql",
+      "sourceSha256": "afad7cb84bca4ec972c7b765ab64aad0b66c9a59e153b9d27ff923b6d7b9a5d5",
+      "programSha256": "196c390aeec1bf253923541281be045c638cea27e3a3eaf6da6273b297ebd752",
+      "bodyMd5": "47a2c5154367a4f2f6aaf87180699600",
+      "securityDefiner": false
+    },
+    "reconcile_website_application_terms_acceptance": {
+      "source": "20260825140234_canonical_website_legal_response_payload_invariant.sql",
+      "sourceSha256": "afad7cb84bca4ec972c7b765ab64aad0b66c9a59e153b9d27ff923b6d7b9a5d5",
+      "programSha256": "12e877fdc19d4c425d638b587943d11ca232844c0ebb905fc90a1ceb13e9272a",
+      "bodyMd5": "25ed0387219dbb57e01a1cbfdf585510",
+      "securityDefiner": false
+    },
+    "remove_terms_accepted_from_application_response": {
+      "source": "20260825140234_canonical_website_legal_response_payload_invariant.sql",
+      "sourceSha256": "afad7cb84bca4ec972c7b765ab64aad0b66c9a59e153b9d27ff923b6d7b9a5d5",
+      "programSha256": "0c88358076005a8bf53d018d73255676fa8d611c217c9bacd7cfd4b8da9a69ba",
+      "bodyMd5": "8624ae9021678117488d3da37ae8674b",
+      "securityDefiner": false
+    }
+  },
+  "schemaSourceSha256": "12fb80b8c13f7e105e4c5b63a6145e863872874fd4a2caaea9f669df5a80010d",
+  "schemaBlockSha256": "2cc7444fe462abfbd054559abc71e033e3191d1dc6b728c432c8f57396aca178"
+}

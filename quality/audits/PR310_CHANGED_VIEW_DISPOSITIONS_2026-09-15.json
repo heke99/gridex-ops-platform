@@ -1,0 +1,1674 @@
+{
+  "scope": "SOURCE_REVIEWED_CHANGED_VIEWS_REQUIRING_EXACT_NATIVE_WITNESS",
+  "schemaAccepted": false,
+  "sourceIntentDecisionsComplete": true,
+  "changedViewCount": 5,
+  "observedFullRowsReconstructed": false,
+  "nativeSourceWitnessExecuted": false,
+  "artifacts": [
+    {
+      "file": "pr310-schema-9f1ba7ae.zip",
+      "sha256": "0ee862d06ee0e4f33208aa33ceefe8ce5afa8c5e8ca1c9cd186f006c7364f2af",
+      "member": "full-schema-reference-diff.json",
+      "memberSha256": "aaee3685f99130f0d451ba6fe4829134873882ecf0053a38505a4b1005bf9772",
+      "referenceProjectionSha256": "e404dd6b8493da3332e15fde7622ef22098157d7933d98c0bc0d3992e3818106",
+      "replayProjectionSha256": "8517999aa05f2403937d47f4ca171435488b73f53d651e5926d6c466096707e9",
+      "foundationApplied": 144,
+      "timestampApplied": 514,
+      "forwardApplied": 4,
+      "schemaAccepted": false
+    },
+    {
+      "file": "pr310-schema-8d5b3e46.zip",
+      "sha256": "ef32946e5e9e5afd67cc0ca5d4b750755ceeb858c05298c8ba5585494228dd1b",
+      "member": "full-schema-reference-diff.json",
+      "memberSha256": "a6d2aca25f48ae9ce52a7af092d02ae7a5ddab71271d3d99a39170e965aa4fac",
+      "referenceProjectionSha256": "e404dd6b8493da3332e15fde7622ef22098157d7933d98c0bc0d3992e3818106",
+      "replayProjectionSha256": "8517999aa05f2403937d47f4ca171435488b73f53d651e5926d6c466096707e9",
+      "foundationApplied": 144,
+      "timestampApplied": 514,
+      "forwardApplied": 4,
+      "schemaAccepted": false
+    }
+  ],
+  "snapshotSourceSha256": "b46b90d7ff066d71964c9157044ac70b31b47cab114cfcbce5d270751012dd30",
+  "comparator": {
+    "path": "scripts/sql/gridex-db-parity-introspect.sql",
+    "pgGetViewdefPretty": true,
+    "rowFields": [
+      "nspname",
+      "relname",
+      "relkind",
+      "relrowsecurity",
+      "relforcerowsecurity",
+      "reloptions",
+      "view_definition",
+      "partition_key"
+    ],
+    "hashAlgorithm": "SHA256(sorted compact JSON, ensure_ascii=True)"
+  },
+  "coverage": {
+    "changedRelations": 5,
+    "addedViewsIncluded": 0,
+    "unchangedControlViewsIncluded": 0,
+    "addedOutputColumns": 9,
+    "changedOutputOrdinalsOnly": 71,
+    "removedOutputColumns": 0,
+    "relationGrantDeltas": 0
+  },
+  "runtimeRequirements": {
+    "EXACT_SOURCE_WITNESS": "On the admitted full owned replay, compile each pinned source query as a fresh temporary invoker view, normalize only witness namespace/name to the fixed public identity, capture with the actual comparator pg_get_viewdef(...,true), require complete actual=witness rows and exact observed replay SHA256. Freeze historical SELECT * expansion where later columns differ; do not copy a live definition into its own witness. Unknown or different definitions fail closed. Roll back all temporary objects and verify unchanged full catalog/rows/ledger.",
+    "COMPLETE_RELATION_SHAPE": "Check relkind v, RLS false, FORCE false, sorted reloptions exactly security_invoker=true and null partition_key for all five. No extra reloption or changed field admitted.",
+    "RETAINED_REFERENCE_UNCHANGED": "Retain immutable schema.sql and exact source pins. Restore/capture reference with actual comparator to bind all five reference hashes; raw pg_dump text is not asserted to have pg_get_viewdef(true) formatting.",
+    "SEPARATE_ACCESS_AND_DEPENDENCY_GATES": "Retain separate effective ACL/RLS and underlying relation/function acceptance. Grants are unchanged in both artifacts, which is not proof of every client read or full business result. Preserve July18 lifecycle and July9 platform service-only classification. Existing actor ranking fixture can be reused only with an actual admitted receipt.",
+    "FINAL_CLEANED_NATIVE_SCHEMA_GATE": "Require full foundation/timestamp/all promoted forwards, actual native lifecycle cleanup and exact full-schema disposition acceptance. No schema/type/ledger/release acceptance follows from this source register."
+  },
+  "sources": {
+    "supabase/schema.sql": {
+      "sha256": "b46b90d7ff066d71964c9157044ac70b31b47cab114cfcbce5d270751012dd30",
+      "citations": [
+        {
+          "lines": [
+            50651,
+            65623
+          ],
+          "purpose": "Immutable retained view definitions and separate ACL entries; exact per-view spans recorded below."
+        }
+      ]
+    },
+    "scripts/sql/gridex-db-parity-introspect.sql": {
+      "sha256": "99b5c602223153dac69cf3266babfcffce80c889dc5375ad625c18e24fb255b0",
+      "citations": [
+        {
+          "lines": [
+            12,
+            19
+          ],
+          "purpose": "Actual relation row capture uses pg_get_viewdef(c.oid,true), sorted reloptions and no OID."
+        }
+      ]
+    },
+    "scripts/canonical-full-schema-reference.py": {
+      "sha256": "d0deabbfe4cc36dff81ed35c43461a31c3f2302019a4059267986df2504d2b28",
+      "citations": [
+        {
+          "lines": [
+            41,
+            43
+          ],
+          "purpose": "Sorted compact ASCII JSON SHA256 row algorithm."
+        }
+      ]
+    },
+    "supabase/migrations/20260611190000_launch_linter_hardening_security_definer_rls.sql": {
+      "sha256": "b696379a5e1d26bde5fae150d7c51e9d40df029a9dfd605810ad9051b1fb74d1",
+      "citations": [
+        {
+          "lines": [
+            114,
+            137
+          ],
+          "purpose": "Every existing public view set security_invoker=true and PUBLIC/anon revoked; later sources reviewed separately."
+        }
+      ]
+    },
+    "supabase/migrations/20260728190000_contract_channel_permission_publication_completion.sql": {
+      "sha256": "dd0583262a7b0cc74a35ed79397fdd060776b9949f2cc826018c2e9b3f0e7f3e",
+      "citations": [
+        {
+          "lines": [
+            914,
+            1253
+          ],
+          "purpose": "Final selected source view definition or exact guarded view branch."
+        }
+      ]
+    },
+    "lib/customer-contracts/db.ts": {
+      "sha256": "cc67ca39c43a5463ac17a578c11118e08e8caf746ce102dad0e87435bc771340",
+      "citations": [
+        {
+          "lines": [
+            538,
+            620
+          ],
+          "purpose": "Actual repository consumer; source client and query reviewed, not exhaustive endpoint authorization."
+        }
+      ]
+    },
+    "lib/billing/pricingEngine.ts": {
+      "sha256": "a38b21220d711710631d511b153e7085ed2793d774ee444634acf2c1a0cfd5c9",
+      "citations": [
+        {
+          "lines": [
+            43,
+            60
+          ],
+          "purpose": "Actual repository consumer; source client and query reviewed, not exhaustive endpoint authorization."
+        }
+      ]
+    },
+    "app/admin/companies/[id]/TenantPlatformControls.tsx": {
+      "sha256": "785021820e5a628971cf3742ad2f4af006bd318241ce44cf92f074ee776ae4e7",
+      "citations": [
+        {
+          "lines": [
+            491,
+            506
+          ],
+          "purpose": "Actual repository consumer; source client and query reviewed, not exhaustive endpoint authorization."
+        }
+      ]
+    },
+    "supabase/migrations/20260718160000_v5_signature_switch_readiness_hardening.sql": {
+      "sha256": "1533df3d0ff7d56953d410434676c901bae21157a013e680fe7081a8ac112e45",
+      "citations": [
+        {
+          "lines": [
+            424,
+            539
+          ],
+          "purpose": "Final selected source view definition or exact guarded view branch."
+        },
+        {
+          "lines": [
+            541,
+            577
+          ],
+          "purpose": "Lifecycle view and asserting function explicitly revoke clients and grant service; no source grant reopening."
+        }
+      ]
+    },
+    "lib/customer-operations/customerSiteProcessContext.ts": {
+      "sha256": "db2b4fc94e452a221a3857240708c1891d3008fc85ec9a7e78da04309859a281",
+      "citations": [
+        {
+          "lines": [
+            255,
+            279
+          ],
+          "purpose": "Actual repository consumer; source client and query reviewed, not exhaustive endpoint authorization."
+        }
+      ]
+    },
+    "lib/customer-operations/switchReadiness.ts": {
+      "sha256": "c9b96e9f15f180215e09138c3ea70c8bc8410b91b037a7bef34aca446f27a03e",
+      "citations": [
+        {
+          "lines": [
+            247,
+            280
+          ],
+          "purpose": "Actual repository consumer; source client and query reviewed, not exhaustive endpoint authorization."
+        }
+      ]
+    },
+    "supabase/migrations/20260521_batch_1_2_live_readiness_and_automation_hardening.sql": {
+      "sha256": "9f741fb9afc07661713e8448cb394f9ec950e25eaf56ee4422b0983886f81c34",
+      "citations": [
+        {
+          "lines": [
+            69,
+            113
+          ],
+          "purpose": "Final selected source view definition or exact guarded view branch."
+        }
+      ]
+    },
+    "lib/ediel/config.ts": {
+      "sha256": "e116206db49f2a696b1b83378fc208af6451066134ebeef6b2b5b0b38fdf519d",
+      "citations": [
+        {
+          "lines": [
+            219,
+            282
+          ],
+          "purpose": "Actual repository consumer; source client and query reviewed, not exhaustive endpoint authorization."
+        }
+      ]
+    },
+    "supabase/migrations/20260605160000_ediel_backend_automation_foundation.sql": {
+      "sha256": "281f3efa7a36367c05b6129ce24f29bcfc185432062aed6aca74f693658690b1",
+      "citations": [
+        {
+          "lines": [
+            336,
+            350
+          ],
+          "purpose": "Final selected source view definition or exact guarded view branch."
+        }
+      ]
+    },
+    "supabase/migrations/20260615203000_platform_go_live_route_resolver_message_center.sql": {
+      "sha256": "2d24018aa7e2e700146c4e4de101d2eb0aa6f99f3466beb904ad9157f283d856",
+      "citations": [
+        {
+          "lines": [
+            194,
+            248
+          ],
+          "purpose": "Final selected source view definition or exact guarded view branch."
+        }
+      ]
+    },
+    "lib/ediel/platformGoLive.ts": {
+      "sha256": "27249f525f41ea35a7f3a325e36744da399f9a807fa7456a783cdcb35b210ea1",
+      "citations": [
+        {
+          "lines": [
+            658,
+            684
+          ],
+          "purpose": "Actual repository consumer; source client and query reviewed, not exhaustive endpoint authorization."
+        }
+      ]
+    },
+    "supabase/migrations/20260519_final_saas_hardening.sql": {
+      "sha256": "2037dbc535d18d7575820d7f40d2a8ef4848b67060161e6851a01eb15990105e",
+      "citations": [
+        {
+          "lines": [
+            277,
+            294
+          ],
+          "purpose": "Explicit last_versioned_at and version_note contract offer additions before final July28 view."
+        }
+      ]
+    },
+    "supabase/migrations/20260521_batch3_pricing_billing_audit_roles_completion.sql": {
+      "sha256": "109ddeee3b532c70fc65ac5f920d4eae250a10037afd304ed5d14144cc30e27f",
+      "citations": [
+        {
+          "lines": [
+            16,
+            18
+          ],
+          "purpose": "Explicit contract_offers metadata addition before final July28 view."
+        }
+      ]
+    },
+    "supabase/migrations/20260601070000_ediel_production_readiness_hardening.sql": {
+      "sha256": "7a73e59f559ebb5291d3e7df74545e6918011ec9764e5c512df19fbaa5bdbc12",
+      "citations": [
+        {
+          "lines": [
+            148,
+            156
+          ],
+          "purpose": "Raw routing diagnostics added before June5 compatibility view."
+        }
+      ]
+    },
+    "supabase/migrations/20260601093000_ediel_actor_identity_source_of_truth.sql": {
+      "sha256": "f643bddd8fbaa8bedd1f55dcf57e2bb048e4409afca56ac078994e7af7fb1a67",
+      "citations": [
+        {
+          "lines": [
+            190,
+            198
+          ],
+          "purpose": "Repeated additive raw routing declarations before June5 view."
+        }
+      ]
+    },
+    "supabase/migrations/20260709162000_advisor_security_invoker_views.sql": {
+      "sha256": "58a0f64c84a26ad8a299f0afb8ee0a91298a6f9b5b2fd66c55423341835eaa6c",
+      "citations": [
+        {
+          "lines": [
+            27,
+            64
+          ],
+          "purpose": "Explicit platform_go_live_readiness_v service-only invoker classification and effective revocations."
+        }
+      ]
+    },
+    "scripts/canonical-residual-readiness-transitions.py": {
+      "sha256": "24a696b02fbe73d5ab290f03fc27802986cf6d6c388de07fca8a39a42651a39e",
+      "citations": [
+        {
+          "lines": [
+            20,
+            84
+          ],
+          "purpose": "Exact 28-column prefix plus rank projection; original preimage, OID/owner/ACL/options preservation guards."
+        }
+      ]
+    },
+    "scripts/canonical-residual-readiness-native.py": {
+      "sha256": "6dbdf14556f4d21ed44458eb98b61d5e385d9226b7987e88b00469144a60fad0",
+      "citations": [
+        {
+          "lines": [
+            82,
+            124
+          ],
+          "purpose": "Existing isolated native original-42P16, bad-preimage rollback and two-company/multi-role ranking fixture; code is not a new execution receipt."
+        }
+      ]
+    },
+    "supabase/migrations/20260522_db1_schema_repair_backfill_foundation.sql": {
+      "sha256": "aff5a3e4fb3aae6ebe682081cbce4876c5731be1c124650b19d8151abf6efc73",
+      "citations": [
+        {
+          "lines": [
+            1811,
+            1816
+          ],
+          "purpose": "Original actor active/date-filtered reference query and immutable original 28-column boundary authority."
+        }
+      ]
+    },
+    "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql": {
+      "sha256": "0413f4dca84aca387297954b900a163aa63d0f84552570c372c12e8f8abdd693",
+      "citations": [
+        {
+          "lines": [
+            658,
+            663
+          ],
+          "purpose": "Original actor view declaration."
+        }
+      ]
+    },
+    "scripts/canonical_added_view_witness.py": {
+      "sha256": "2801822134cd82e021be9f58374484262204ddce77fb2169972e72cd0bbb81fd",
+      "citations": [
+        {
+          "lines": [
+            151,
+            207
+          ],
+          "purpose": "Existing witness closes exactly 31 added identities, so cannot attest these five changed identities."
+        }
+      ]
+    }
+  },
+  "records": [
+    {
+      "ordinal": 1,
+      "fields": [
+        "view_definition"
+      ],
+      "identity": [
+        "public",
+        "canonical_internal_contract_offers_v"
+      ],
+      "referenceSha256": "aadde51bb9922e39da02a7e8ea38c2fc69654835c3d561fc576a4a4d33293c22",
+      "replaySha256": "b9d34d5a7c4e39b8ec5185ed3af7e3b9b2ae5e73991e5bb36271597127376eb6",
+      "decision": "PRESERVE_SOURCE_CHANNEL_READ_MODEL",
+      "sourceIntentReviewed": true,
+      "intent": "The final July28 source intentionally exposes offer.* and source.* alongside independent internal/website/API grant, channel, validity, publication-version and snapshot-integrity decisions. Preserve that definition and its three additive offer metadata fields. The 69 existing output changes are ordinal-only. No channel predicate relaxation is authorized.",
+      "schemaAcceptance": false,
+      "expectedRelationShape": {
+        "nspname": "public",
+        "relname": "canonical_internal_contract_offers_v",
+        "relkind": "v",
+        "relrowsecurity": false,
+        "relforcerowsecurity": false,
+        "reloptions": [
+          "security_invoker=true"
+        ],
+        "partition_key": null
+      },
+      "observedFullReferenceRow": null,
+      "observedFullReplayRow": null,
+      "observedFullRowsReconstructed": false,
+      "referenceDefinitionSource": {
+        "path": "supabase/schema.sql",
+        "startLine": 50651,
+        "endLine": 50902,
+        "query": " WITH source AS (\n         SELECT offer.id,\n            offer.company_id,\n            offer.name,\n            offer.slug,\n            offer.status,\n            offer.contract_type,\n            offer.campaign_name,\n            offer.campaign_code,\n            offer.campaign_version,\n            offer.price_version,\n            offer.terms_version,\n            offer.offer_version,\n            offer.terms_document_url,\n            offer.version_snapshot,\n            offer.max_customers,\n            offer.discount_value,\n            offer.discount_unit,\n            offer.start_fee_sek,\n            offer.admin_fee_sek,\n            offer.break_fee_sek,\n            offer.vat_rate,\n            offer.description,\n            offer.fixed_price_ore_per_kwh,\n            offer.spot_markup_ore_per_kwh,\n            offer.variable_fee_ore_per_kwh,\n            offer.monthly_fee_sek,\n            offer.green_fee_mode,\n            offer.green_fee_value,\n            offer.default_binding_months,\n            offer.default_notice_months,\n            offer.optional_fee_lines,\n            offer.is_active,\n            offer.valid_from,\n            offer.valid_to,\n            offer.created_at,\n            offer.updated_at,\n            offer.created_by,\n            offer.updated_by,\n            offer.version_number,\n            offer.published_at,\n            offer.archived_at,\n            offer.last_price_change_at,\n            offer.pricing_components,\n            offer.billing_validation_rules,\n            offer.price_plan_id,\n            offer.price_plan_version_id,\n            offer.price_book_id,\n            offer.commercial_snapshot,\n            offer.customer_type,\n            offer.automatic_renewal,\n            offer.power_of_attorney_required,\n            offer.legal_bundle_id,\n            offer.contract_product_id,\n            offer.contract_product_version_id,\n            offer.legal_bundle_version_id,\n            offer.invoice_fee_sek,\n            offer.version_series_id,\n            offer.supersedes_offer_id,\n            offer.superseded_at,\n            offer.lifecycle_status,\n            offer.discount_months,\n            offer.discount_calculation_base,\n            offer.discount_starts_on_mode,\n            offer.automatic_renewal_term_months,\n            offer.power_of_attorney_mode,\n            offer.closed_at,\n            offer.closed_by,\n            offer.close_reason,\n            offer.energy_direction,\n            offer.copied_from_contract_offer_id,\n            product.product_code AS canonical_product_code,\n            product.status AS canonical_product_status,\n            product_version.version_number AS canonical_version_number,\n            product_version.status AS canonical_version_status,\n            product_version.content_sha256 AS canonical_content_sha256,\n            assignment.id AS assignment_id,\n            COALESCE(assignment.status, 'missing'::text) AS assignment_status,\n            assignment.valid_from AS assignment_valid_from,\n            assignment.valid_to AS assignment_valid_to,\n            COALESCE(assignment.internal_sales_allowed, false) AS internal_sales_allowed,\n            COALESCE(assignment.website_publication_allowed, false) AS website_publication_allowed,\n            COALESCE(assignment.api_publication_allowed, false) AS api_publication_allowed,\n            company.status AS tenant_status,\n            internal_channel.status AS internal_channel_status_raw,\n            internal_channel.valid_from AS internal_channel_valid_from,\n            internal_channel.valid_to AS internal_channel_valid_to,\n            website_channel.status AS website_channel_status_raw,\n            website_channel.valid_from AS website_channel_valid_from,\n            website_channel.valid_to AS website_channel_valid_to,\n            api_channel.status AS api_channel_status_raw,\n            api_channel.valid_from AS api_channel_valid_from,\n            api_channel.valid_to AS api_channel_valid_to,\n            (COALESCE(publication_counts.active_count, (0)::bigint))::integer AS active_publication_version_count,\n            COALESCE(channel_readiness.internal, jsonb_build_object('ready', false, 'blockers', jsonb_build_array(jsonb_build_object('code', 'contract_assignment_not_found', 'message', 'Avtalstilldelningen saknas.')))) AS internal_readiness_source,\n            COALESCE(channel_readiness.website, jsonb_build_object('ready', false, 'blockers', jsonb_build_array(jsonb_build_object('code', 'contract_assignment_not_found', 'message', 'Avtalstilldelningen saknas.')))) AS website_readiness_source,\n            COALESCE(channel_readiness.api, jsonb_build_object('ready', false, 'blockers', jsonb_build_array(jsonb_build_object('code', 'contract_assignment_not_found', 'message', 'Avtalstilldelningen saknas.')))) AS api_readiness_source,\n            ((company.status = 'active'::text) AND (offer.lifecycle_status = ANY (ARRAY['published'::text, 'paused'::text])) AND (assignment.id IS NOT NULL) AND (assignment.status = ANY (ARRAY['active'::text, 'paused'::text])) AND ((assignment.valid_from IS NULL) OR (assignment.valid_from <= ((now() AT TIME ZONE 'Europe/Stockholm'::text))::date)) AND ((assignment.valid_to IS NULL) OR (assignment.valid_to >= ((now() AT TIME ZONE 'Europe/Stockholm'::text))::date)) AND (product_version.status = 'approved'::text) AND (product_version.locked_at IS NOT NULL) AND (offer.price_plan_version_id IS NOT NULL) AND (offer.legal_bundle_version_id IS NOT NULL) AND ((offer.valid_from IS NULL) OR (offer.valid_from <= ((now() AT TIME ZONE 'Europe/Stockholm'::text))::date)) AND ((offer.valid_to IS NULL) OR (offer.valid_to >= ((now() AT TIME ZONE 'Europe/Stockholm'::text))::date))) AS common_channel_ready,\n                CASE\n                    WHEN (offer.contract_product_version_id IS NULL) THEN 'missing_product_version'::text\n                    WHEN (product_version.id IS NULL) THEN 'broken_product_version'::text\n                    WHEN (product.id IS NULL) THEN 'missing_product'::text\n                    ELSE 'ok'::text\n                END AS relation_status\n           FROM (((((((((public.contract_offers offer\n             LEFT JOIN public.contract_product_versions product_version ON (((product_version.id = offer.contract_product_version_id) AND (product_version.contract_product_id = offer.contract_product_id))))\n             LEFT JOIN public.contract_products product ON ((product.id = offer.contract_product_id)))\n             LEFT JOIN public.tenant_contract_assignments assignment ON (((assignment.company_id = offer.company_id) AND (assignment.contract_product_version_id = offer.contract_product_version_id))))\n             LEFT JOIN public.companies company ON ((company.id = offer.company_id)))\n             LEFT JOIN public.tenant_contract_channels internal_channel ON (((internal_channel.assignment_id = assignment.id) AND (internal_channel.channel = 'internal'::text))))\n             LEFT JOIN public.tenant_contract_channels website_channel ON (((website_channel.assignment_id = assignment.id) AND (website_channel.channel = 'website'::text))))\n             LEFT JOIN public.tenant_contract_channels api_channel ON (((api_channel.assignment_id = assignment.id) AND (api_channel.channel = 'api'::text))))\n             LEFT JOIN LATERAL ( SELECT count(*) AS active_count\n                   FROM (public.contract_publications publication\n                     JOIN public.contract_publication_versions publication_version ON ((publication_version.contract_publication_id = publication.id)))\n                  WHERE ((publication.assignment_id = assignment.id) AND (publication.status = 'published'::text) AND (publication_version.status = 'published'::text))) publication_counts ON (true))\n             LEFT JOIN LATERAL ( SELECT public.gridex_validate_contract_channel_readiness(offer.company_id, assignment.id, 'internal'::text) AS internal,\n                    public.gridex_validate_contract_channel_readiness(offer.company_id, assignment.id, 'website'::text) AS website,\n                    public.gridex_validate_contract_channel_readiness(offer.company_id, assignment.id, 'api'::text) AS api) channel_readiness ON ((assignment.id IS NOT NULL)))\n        )\n SELECT id,\n    company_id,\n    name,\n    slug,\n    status,\n    contract_type,\n    campaign_name,\n    campaign_code,\n    campaign_version,\n    price_version,\n    terms_version,\n    offer_version,\n    terms_document_url,\n    version_snapshot,\n    max_customers,\n    discount_value,\n    discount_unit,\n    start_fee_sek,\n    admin_fee_sek,\n    break_fee_sek,\n    vat_rate,\n    description,\n    fixed_price_ore_per_kwh,\n    spot_markup_ore_per_kwh,\n    variable_fee_ore_per_kwh,\n    monthly_fee_sek,\n    green_fee_mode,\n    green_fee_value,\n    default_binding_months,\n    default_notice_months,\n    optional_fee_lines,\n    is_active,\n    valid_from,\n    valid_to,\n    created_at,\n    updated_at,\n    created_by,\n    updated_by,\n    version_number,\n    published_at,\n    archived_at,\n    last_price_change_at,\n    pricing_components,\n    billing_validation_rules,\n    price_plan_id,\n    price_plan_version_id,\n    price_book_id,\n    commercial_snapshot,\n    customer_type,\n    automatic_renewal,\n    power_of_attorney_required,\n    legal_bundle_id,\n    contract_product_id,\n    contract_product_version_id,\n    legal_bundle_version_id,\n    invoice_fee_sek,\n    version_series_id,\n    supersedes_offer_id,\n    superseded_at,\n    lifecycle_status,\n    discount_months,\n    discount_calculation_base,\n    discount_starts_on_mode,\n    automatic_renewal_term_months,\n    power_of_attorney_mode,\n    closed_at,\n    closed_by,\n    close_reason,\n    energy_direction,\n    copied_from_contract_offer_id,\n    canonical_product_code,\n    canonical_product_status,\n    canonical_version_number,\n    canonical_version_status,\n    canonical_content_sha256,\n    assignment_id,\n    assignment_status,\n    assignment_valid_from,\n    assignment_valid_to,\n    internal_sales_allowed,\n    website_publication_allowed,\n    api_publication_allowed,\n    tenant_status,\n    internal_channel_status_raw,\n    internal_channel_valid_from,\n    internal_channel_valid_to,\n    website_channel_status_raw,\n    website_channel_valid_from,\n    website_channel_valid_to,\n    api_channel_status_raw,\n    api_channel_valid_from,\n    api_channel_valid_to,\n    active_publication_version_count,\n    internal_readiness_source,\n    website_readiness_source,\n    api_readiness_source,\n    common_channel_ready,\n    relation_status,\n    id AS contract_offer_id,\n    status AS offer_status,\n    NULL::jsonb AS readiness,\n    NULL::jsonb AS deletion_preview,\n    COALESCE(internal_channel_status_raw, 'missing'::text) AS internal_channel_status,\n    COALESCE(website_channel_status_raw, 'missing'::text) AS website_channel_status,\n    COALESCE(api_channel_status_raw, 'missing'::text) AS api_channel_status,\n    (common_channel_ready AND internal_sales_allowed AND (assignment_status = 'active'::text) AND (internal_channel_status_raw = 'active'::text) AND ((internal_channel_valid_from IS NULL) OR (internal_channel_valid_from <= now())) AND ((internal_channel_valid_to IS NULL) OR (internal_channel_valid_to > now())) AND (EXISTS ( SELECT 1\n           FROM (public.contract_publications publication\n             JOIN public.contract_publication_versions publication_version ON ((publication_version.contract_publication_id = publication.id)))\n          WHERE ((publication.assignment_id = source.assignment_id) AND (publication.channel = 'internal'::text) AND (publication.status = 'published'::text) AND (publication_version.status = 'published'::text) AND (publication_version.contract_product_version_id = source.contract_product_version_id) AND (publication_version.content_sha256 = encode(extensions.digest((publication_version.publication_snapshot)::text, 'sha256'::text), 'hex'::text)) AND ((publication_version.valid_from IS NULL) OR (publication_version.valid_from <= now())) AND ((publication_version.valid_to IS NULL) OR (publication_version.valid_to > now())))))) AS internally_sellable_now,\n    (common_channel_ready AND website_publication_allowed AND (assignment_status = 'active'::text) AND (website_channel_status_raw = 'active'::text) AND ((website_channel_valid_from IS NULL) OR (website_channel_valid_from <= now())) AND ((website_channel_valid_to IS NULL) OR (website_channel_valid_to > now())) AND (EXISTS ( SELECT 1\n           FROM ((public.contract_publications publication\n             JOIN public.contract_publication_versions publication_version ON ((publication_version.contract_publication_id = publication.id)))\n             JOIN public.public_contract_offers public_offer ON ((public_offer.contract_publication_version_id = publication_version.id)))\n          WHERE ((publication.assignment_id = source.assignment_id) AND (publication.channel = 'website'::text) AND (publication.status = 'published'::text) AND (publication_version.status = 'published'::text) AND (public_offer.company_id = source.company_id) AND (public_offer.source_contract_offer_id = source.id) AND (public_offer.lifecycle_status = 'published'::text) AND (public_offer.publication_status = 'published'::text) AND public_offer.is_public AND public_offer.website_enabled AND public_offer.website_cta_enabled AND (EXISTS ( SELECT 1\n                   FROM public.contract_publication_graph_integrity_v graph\n                  WHERE ((graph.public_contract_offer_id = public_offer.id) AND graph.canonical_graph_consistent))))))) AS website_available_now,\n    (common_channel_ready AND api_publication_allowed AND (assignment_status = 'active'::text) AND (api_channel_status_raw = 'active'::text) AND ((api_channel_valid_from IS NULL) OR (api_channel_valid_from <= now())) AND ((api_channel_valid_to IS NULL) OR (api_channel_valid_to > now())) AND (EXISTS ( SELECT 1\n           FROM (public.contract_publications publication\n             JOIN public.contract_publication_versions publication_version ON ((publication_version.contract_publication_id = publication.id)))\n          WHERE ((publication.assignment_id = source.assignment_id) AND (publication.channel = 'api'::text) AND (publication.status = 'published'::text) AND (publication_version.status = 'published'::text) AND (publication_version.contract_product_version_id = source.contract_product_version_id) AND (publication_version.content_sha256 = encode(extensions.digest((publication_version.publication_snapshot)::text, 'sha256'::text), 'hex'::text)) AND ((publication_version.valid_from IS NULL) OR (publication_version.valid_from <= now())) AND ((publication_version.valid_to IS NULL) OR (publication_version.valid_to > now()))))) AND (EXISTS ( SELECT 1\n           FROM public.integration_api_clients client\n          WHERE ((client.company_id = source.company_id) AND (client.status = 'active'::text) AND ((client.expires_at IS NULL) OR (client.expires_at > now())) AND (COALESCE(client.scopes, '{}'::text[]) @> ARRAY['api_contracts.read'::text]))))) AS api_available_now,\n    (common_channel_ready AND internal_sales_allowed) AS internal_publication_ready,\n    jsonb_build_object('ready', COALESCE(((internal_readiness_source ->> 'ready'::text))::boolean, false), 'blockers', COALESCE((internal_readiness_source -> 'blockers'::text), '[]'::jsonb)) AS internal_readiness,\n    jsonb_build_object('ready', COALESCE(((website_readiness_source ->> 'ready'::text))::boolean, false), 'blockers', COALESCE((website_readiness_source -> 'blockers'::text), '[]'::jsonb)) AS website_readiness,\n    jsonb_build_object('ready', COALESCE(((api_readiness_source ->> 'ready'::text))::boolean, false), 'blockers', COALESCE((api_readiness_source -> 'blockers'::text), '[]'::jsonb)) AS api_readiness,\n    (common_channel_ready AND internal_sales_allowed AND (assignment_status = 'active'::text) AND (internal_channel_status_raw = 'active'::text) AND ((internal_channel_valid_from IS NULL) OR (internal_channel_valid_from <= now())) AND ((internal_channel_valid_to IS NULL) OR (internal_channel_valid_to > now())) AND (EXISTS ( SELECT 1\n           FROM (public.contract_publications publication\n             JOIN public.contract_publication_versions publication_version ON ((publication_version.contract_publication_id = publication.id)))\n          WHERE ((publication.assignment_id = source.assignment_id) AND (publication.channel = 'internal'::text) AND (publication.status = 'published'::text) AND (publication_version.status = 'published'::text) AND (publication_version.contract_product_version_id = source.contract_product_version_id) AND (publication_version.content_sha256 = encode(extensions.digest((publication_version.publication_snapshot)::text, 'sha256'::text), 'hex'::text)) AND ((publication_version.valid_from IS NULL) OR (publication_version.valid_from <= now())) AND ((publication_version.valid_to IS NULL) OR (publication_version.valid_to > now())))))) AS currently_sellable\n   FROM source",
+        "querySha256": "8c624786032b8ef92453e2e2f3d6b5d1705439e96f224cf4207499923fa365c5",
+        "format": "PG_DUMP_SOURCE_NOT_RUNTIME_PG_GET_VIEWDEF_TRUE"
+      },
+      "sourceQuery": {
+        "path": "supabase/migrations/20260728190000_contract_channel_permission_publication_completion.sql",
+        "declarationLine": 914,
+        "query": "with source as (\n  select\n    offer.*,\n    product.product_code as canonical_product_code,\n    product.status as canonical_product_status,\n    product_version.version_number as canonical_version_number,\n    product_version.status as canonical_version_status,\n    product_version.content_sha256 as canonical_content_sha256,\n    assignment.id as assignment_id,\n    coalesce(assignment.status,'missing') as assignment_status,\n    assignment.valid_from as assignment_valid_from,\n    assignment.valid_to as assignment_valid_to,\n    coalesce(assignment.internal_sales_allowed,false)\n      as internal_sales_allowed,\n    coalesce(assignment.website_publication_allowed,false)\n      as website_publication_allowed,\n    coalesce(assignment.api_publication_allowed,false)\n      as api_publication_allowed,\n    company.status as tenant_status,\n    internal_channel.status as internal_channel_status_raw,\n    internal_channel.valid_from as internal_channel_valid_from,\n    internal_channel.valid_to as internal_channel_valid_to,\n    website_channel.status as website_channel_status_raw,\n    website_channel.valid_from as website_channel_valid_from,\n    website_channel.valid_to as website_channel_valid_to,\n    api_channel.status as api_channel_status_raw,\n    api_channel.valid_from as api_channel_valid_from,\n    api_channel.valid_to as api_channel_valid_to,\n    coalesce(publication_counts.active_count,0)::integer\n      as active_publication_version_count,\n    coalesce(\n      channel_readiness.internal,\n      jsonb_build_object(\n        'ready',false,\n        'blockers',jsonb_build_array(jsonb_build_object(\n          'code','contract_assignment_not_found',\n          'message','Avtalstilldelningen saknas.'\n        ))\n      )\n    ) as internal_readiness_source,\n    coalesce(\n      channel_readiness.website,\n      jsonb_build_object(\n        'ready',false,\n        'blockers',jsonb_build_array(jsonb_build_object(\n          'code','contract_assignment_not_found',\n          'message','Avtalstilldelningen saknas.'\n        ))\n      )\n    ) as website_readiness_source,\n    coalesce(\n      channel_readiness.api,\n      jsonb_build_object(\n        'ready',false,\n        'blockers',jsonb_build_array(jsonb_build_object(\n          'code','contract_assignment_not_found',\n          'message','Avtalstilldelningen saknas.'\n        ))\n      )\n    ) as api_readiness_source,\n    (\n      company.status='active'\n      and offer.lifecycle_status in ('published','paused')\n      and assignment.id is not null\n      and assignment.status in ('active','paused')\n      and (\n        assignment.valid_from is null\n        or assignment.valid_from<=(now() at time zone 'Europe/Stockholm')::date\n      )\n      and (\n        assignment.valid_to is null\n        or assignment.valid_to>=(now() at time zone 'Europe/Stockholm')::date\n      )\n      and product_version.status='approved'\n      and product_version.locked_at is not null\n      and offer.price_plan_version_id is not null\n      and offer.legal_bundle_version_id is not null\n      and (\n        offer.valid_from is null\n        or offer.valid_from<=(now() at time zone 'Europe/Stockholm')::date\n      )\n      and (\n        offer.valid_to is null\n        or offer.valid_to>=(now() at time zone 'Europe/Stockholm')::date\n      )\n    ) as common_channel_ready,\n    case\n      when offer.contract_product_version_id is null\n        then 'missing_product_version'\n      when product_version.id is null\n        then 'broken_product_version'\n      when product.id is null\n        then 'missing_product'\n      else 'ok'\n    end as relation_status\n  from public.contract_offers offer\n  left join public.contract_product_versions product_version\n    on product_version.id=offer.contract_product_version_id\n   and product_version.contract_product_id=offer.contract_product_id\n  left join public.contract_products product\n    on product.id=offer.contract_product_id\n  left join public.tenant_contract_assignments assignment\n    on assignment.company_id=offer.company_id\n   and assignment.contract_product_version_id=offer.contract_product_version_id\n  left join public.companies company\n    on company.id=offer.company_id\n  left join public.tenant_contract_channels internal_channel\n    on internal_channel.assignment_id=assignment.id\n   and internal_channel.channel='internal'\n  left join public.tenant_contract_channels website_channel\n    on website_channel.assignment_id=assignment.id\n   and website_channel.channel='website'\n  left join public.tenant_contract_channels api_channel\n    on api_channel.assignment_id=assignment.id\n   and api_channel.channel='api'\n  left join lateral (\n    select count(*) as active_count\n    from public.contract_publications publication\n    join public.contract_publication_versions publication_version\n      on publication_version.contract_publication_id=publication.id\n    where publication.assignment_id=assignment.id\n      and publication.status='published'\n      and publication_version.status='published'\n  ) publication_counts on true\n  left join lateral (\n    select\n      public.gridex_validate_contract_channel_readiness(\n        offer.company_id,assignment.id,'internal'\n      ) as internal,\n      public.gridex_validate_contract_channel_readiness(\n        offer.company_id,assignment.id,'website'\n      ) as website,\n      public.gridex_validate_contract_channel_readiness(\n        offer.company_id,assignment.id,'api'\n      ) as api\n  ) channel_readiness on assignment.id is not null\n)\nselect\n  source.*,\n  source.id as contract_offer_id,\n  source.status as offer_status,\n  null::jsonb as readiness,\n  null::jsonb as deletion_preview,\n  coalesce(source.internal_channel_status_raw,'missing')\n    as internal_channel_status,\n  coalesce(source.website_channel_status_raw,'missing')\n    as website_channel_status,\n  coalesce(source.api_channel_status_raw,'missing')\n    as api_channel_status,\n  (\n    source.common_channel_ready\n    and source.internal_sales_allowed\n    and source.assignment_status='active'\n    and source.internal_channel_status_raw='active'\n    and (\n      source.internal_channel_valid_from is null\n      or source.internal_channel_valid_from<=now()\n    )\n    and (\n      source.internal_channel_valid_to is null\n      or source.internal_channel_valid_to>now()\n    )\n    and exists(\n      select 1\n      from public.contract_publications publication\n      join public.contract_publication_versions publication_version\n        on publication_version.contract_publication_id=publication.id\n      where publication.assignment_id=source.assignment_id\n        and publication.channel='internal'\n        and publication.status='published'\n        and publication_version.status='published'\n        and publication_version.contract_product_version_id\n          =source.contract_product_version_id\n        and publication_version.content_sha256=encode(\n          extensions.digest(\n            publication_version.publication_snapshot::text,\n            'sha256'\n          ),\n          'hex'\n        )\n        and (\n          publication_version.valid_from is null\n          or publication_version.valid_from<=now()\n        )\n        and (\n          publication_version.valid_to is null\n          or publication_version.valid_to>now()\n        )\n    )\n  ) as internally_sellable_now,\n  (\n    source.common_channel_ready\n    and source.website_publication_allowed\n    and source.assignment_status='active'\n    and source.website_channel_status_raw='active'\n    and (\n      source.website_channel_valid_from is null\n      or source.website_channel_valid_from<=now()\n    )\n    and (\n      source.website_channel_valid_to is null\n      or source.website_channel_valid_to>now()\n    )\n    and exists(\n      select 1\n      from public.contract_publications publication\n      join public.contract_publication_versions publication_version\n        on publication_version.contract_publication_id=publication.id\n      join public.public_contract_offers public_offer\n        on public_offer.contract_publication_version_id=publication_version.id\n      where publication.assignment_id=source.assignment_id\n        and publication.channel='website'\n        and publication.status='published'\n        and publication_version.status='published'\n        and public_offer.company_id=source.company_id\n        and public_offer.source_contract_offer_id=source.id\n        and public_offer.lifecycle_status='published'\n        and public_offer.publication_status='published'\n        and public_offer.is_public\n        and public_offer.website_enabled\n        and public_offer.website_cta_enabled\n        and exists(\n          select 1\n          from public.contract_publication_graph_integrity_v graph\n          where graph.public_contract_offer_id=public_offer.id\n            and graph.canonical_graph_consistent\n        )\n    )\n  ) as website_available_now,\n  (\n    source.common_channel_ready\n    and source.api_publication_allowed\n    and source.assignment_status='active'\n    and source.api_channel_status_raw='active'\n    and (\n      source.api_channel_valid_from is null\n      or source.api_channel_valid_from<=now()\n    )\n    and (\n      source.api_channel_valid_to is null\n      or source.api_channel_valid_to>now()\n    )\n    and exists(\n      select 1\n      from public.contract_publications publication\n      join public.contract_publication_versions publication_version\n        on publication_version.contract_publication_id=publication.id\n      where publication.assignment_id=source.assignment_id\n        and publication.channel='api'\n        and publication.status='published'\n        and publication_version.status='published'\n        and publication_version.contract_product_version_id\n          =source.contract_product_version_id\n        and publication_version.content_sha256=encode(\n          extensions.digest(\n            publication_version.publication_snapshot::text,\n            'sha256'\n          ),\n          'hex'\n        )\n        and (\n          publication_version.valid_from is null\n          or publication_version.valid_from<=now()\n        )\n        and (\n          publication_version.valid_to is null\n          or publication_version.valid_to>now()\n        )\n    )\n    and exists(\n      select 1\n      from public.integration_api_clients client\n      where client.company_id=source.company_id\n        and client.status='active'\n        and (client.expires_at is null or client.expires_at>now())\n        and coalesce(client.scopes,'{}'::text[])\n          @> array['api_contracts.read']::text[]\n    )\n  ) as api_available_now,\n  (\n    source.common_channel_ready\n    and source.internal_sales_allowed\n  ) as internal_publication_ready,\n  jsonb_build_object(\n    'ready',coalesce((source.internal_readiness_source->>'ready')::boolean,false),\n    'blockers',coalesce(source.internal_readiness_source->'blockers','[]'::jsonb)\n  ) as internal_readiness,\n  jsonb_build_object(\n    'ready',coalesce((source.website_readiness_source->>'ready')::boolean,false),\n    'blockers',coalesce(source.website_readiness_source->'blockers','[]'::jsonb)\n  ) as website_readiness,\n  jsonb_build_object(\n    'ready',coalesce((source.api_readiness_source->>'ready')::boolean,false),\n    'blockers',coalesce(source.api_readiness_source->'blockers','[]'::jsonb)\n  ) as api_readiness,\n  (\n    source.common_channel_ready\n    and source.internal_sales_allowed\n    and source.assignment_status='active'\n    and source.internal_channel_status_raw='active'\n    and (\n      source.internal_channel_valid_from is null\n      or source.internal_channel_valid_from<=now()\n    )\n    and (\n      source.internal_channel_valid_to is null\n      or source.internal_channel_valid_to>now()\n    )\n    and exists(\n      select 1\n      from public.contract_publications publication\n      join public.contract_publication_versions publication_version\n        on publication_version.contract_publication_id=publication.id\n      where publication.assignment_id=source.assignment_id\n        and publication.channel='internal'\n        and publication.status='published'\n        and publication_version.status='published'\n        and publication_version.contract_product_version_id\n          =source.contract_product_version_id\n        and publication_version.content_sha256=encode(\n          extensions.digest(\n            publication_version.publication_snapshot::text,\n            'sha256'\n          ),\n          'hex'\n        )\n        and (\n          publication_version.valid_from is null\n          or publication_version.valid_from<=now()\n        )\n        and (\n          publication_version.valid_to is null\n          or publication_version.valid_to>now()\n        )\n    )\n  ) as currently_sellable\nfrom source",
+        "queryBytes": 12664,
+        "querySha256": "11d053888ac9860d21e466e17c53320de1621a942f9be02c77ba1aa1ff5168ec",
+        "extraction": "Exact CREATE query bytes between AS whitespace and terminal semicolon; no query rewriting.",
+        "publicDependencies": [
+          "companies",
+          "contract_offers",
+          "contract_product_versions",
+          "contract_products",
+          "contract_publication_graph_integrity_v",
+          "contract_publication_versions",
+          "contract_publications",
+          "gridex_validate_contract_channel_readiness",
+          "integration_api_clients",
+          "public_contract_offers",
+          "tenant_contract_assignments",
+          "tenant_contract_channels"
+        ]
+      },
+      "callerEvidence": [
+        "lib/customer-contracts/db.ts",
+        "lib/billing/pricingEngine.ts",
+        "app/admin/companies/[id]/TenantPlatformControls.tsx"
+      ],
+      "callerSearchScope": "Listed direct service-client consumers; not exhaustive server-action authorization",
+      "columns": {
+        "added": [
+          {
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "last_versioned_at"
+            ],
+            "sha256": "95dc2da45b553541de8ecf9de0fa006d44d336d58f04e153e85b1466aa2d1e1f"
+          },
+          {
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "metadata"
+            ],
+            "sha256": "0dc166e64589385573a3691acee2bf46a4593eccf737e4ba432ca7dd725a1806"
+          },
+          {
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "version_note"
+            ],
+            "sha256": "6681fda656ace014e90db0036a09c04dd6ce3b1f4bf60419c2568b3dcff4cf58"
+          }
+        ],
+        "changed": [
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "active_publication_version_count"
+            ],
+            "referenceSha256": "9ed20c5c9f60092335a60628ab911328a264c882404a2ef28375e6f402ae06a6",
+            "replaySha256": "3c6d5baae4865a46cf73263984a356059f84d11bd117eec9888335d997fbb9bc"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "api_available_now"
+            ],
+            "referenceSha256": "79baecae4b39306c2e73f5aa5fe83372d225b94814763a4e9cc4b6ca81b8ca0f",
+            "replaySha256": "7c3284555e37a09e738fba454a4452d8093eb74fec428ccf8a2efd53a421c801"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "api_channel_status"
+            ],
+            "referenceSha256": "f8b4cb854eea2a3d19506483400a6f054bcf04955c983d73bcabf1ba026f0907",
+            "replaySha256": "74721e2b36f1e0a804887c6713c1fcb8b32ab0997dd9bded0cda0e7d3db9a005"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "api_channel_status_raw"
+            ],
+            "referenceSha256": "46013d607a18ed111f2b80fdf700f3684ae1a454416bb9e0371bcd68430362d2",
+            "replaySha256": "7234b1024148769d28048303b56c86b2686b3131e3bf8ece40143c5e430575b4"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "api_channel_valid_from"
+            ],
+            "referenceSha256": "86ffc60f9b1de708181806c52a7226e4302220fd18d61b6e7d15f1e36bd1698c",
+            "replaySha256": "9aae41b9dbb914dfe362cde9e93b023aac18040c809b1f3ef113a0299f790f0f"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "api_channel_valid_to"
+            ],
+            "referenceSha256": "1cfe999707ab34e6c306a739a62a13b447fdc4a3d492a33f16d9080ecb6a3336",
+            "replaySha256": "2a92a16e212966db4ef41b524c69a0cebd35d8b455fcc466ee113453970ee694"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "api_publication_allowed"
+            ],
+            "referenceSha256": "f1039edb462b8177eab009e10adcc411d86f664ff5c5bd257ba766e8ae68f219",
+            "replaySha256": "914217f8db4f4aaab0e5a42e0c68f89b42959d8489529214441c93633cfc691a"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "api_readiness"
+            ],
+            "referenceSha256": "70539c84f15173563789c7301eb369e968b1dda3669d544f67067fc74ed1238a",
+            "replaySha256": "ba6b309e16c3e4442269f43123e15d6a870d3cba380387c94f629a0c0fe3a7c0"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "api_readiness_source"
+            ],
+            "referenceSha256": "627f6faded1f3850777f1fe3361dd383289858bcbcf74cb946971e1f6bdc62e0",
+            "replaySha256": "e799f05ad9ba7a32835a8a670b083d690733e0175ec4105ad4a4a662f5b0cc25"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "assignment_id"
+            ],
+            "referenceSha256": "64917261c5879700ef2697b3ada80646968a6f65eaa4d1a4efbc92b119624f5d",
+            "replaySha256": "d1fdfd7a5decba467011cb61b31055a6294eebc08d507c16f5cea3ec7d057058"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "assignment_status"
+            ],
+            "referenceSha256": "8a0689788951c4557bc6e8a1ca471547acf22358a0428cb4e077df9e72e7ede5",
+            "replaySha256": "e00fef54f1c0636ae1615e954e78c92b485247ced8d699949361df7755e6ca86"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "assignment_valid_from"
+            ],
+            "referenceSha256": "ed23f874c59dcb6591827edc8149d64991163b40f362f09d79f151b9d62b6566",
+            "replaySha256": "2edac97506b4b5c36a53e9e6b042146dae99c77598349abe1d2a8d78d5a05d34"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "assignment_valid_to"
+            ],
+            "referenceSha256": "59db17da7a3b69c09597c2eb50e2c50f0d815984d170135e0433b2b2a05fb1ae",
+            "replaySha256": "5fc5dfa99b052f3b053411003039076ae28c14d97d9d7b90a884454b9e05f896"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "automatic_renewal"
+            ],
+            "referenceSha256": "7c0d5a5561d9a47c92379c3ebdcb50416ca2880e3dfb6eaa974392180bd4f513",
+            "replaySha256": "9d1b7c3718aa77de5b652ca604e5e80f0523a7c2ebcd6dd3d18b19916ed2efd8"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "automatic_renewal_term_months"
+            ],
+            "referenceSha256": "8fa64fca8f58069aa3d10e4a00793ed538a4ea80ccb2e7b6e66c255d8dcd7e6a",
+            "replaySha256": "a7ad4c915ecb573715e410425cc0b6d037084b635d81fabfb8933c4ada15efc3"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "canonical_content_sha256"
+            ],
+            "referenceSha256": "5f16566f30aec0a517330cb8b4db0116209bbc13e712c5de6c0b6047a85d6a07",
+            "replaySha256": "23d69ccd28a2af9b319a210b169caeff6805ef691b6971a1e69f68dbb3b78daf"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "canonical_product_code"
+            ],
+            "referenceSha256": "ace93380bbde3140356f2eb8bc987230afd3998011c8063a4170dd28a73f20a6",
+            "replaySha256": "ecab640fb33ac6db8ddf1fd9bd64b903e40d29e91629b0ade9bb24339571e8b0"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "canonical_product_status"
+            ],
+            "referenceSha256": "4f8c4b9eb0e9f3820a82df10b05d21a8a5d7b9ed76df432e966f049e37378fb4",
+            "replaySha256": "065f6b38076aad6ce194be24fb94ba6b1d9e49a353f888fee8bda88a64f65ade"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "canonical_version_number"
+            ],
+            "referenceSha256": "ecbdcba954b20f2798420986719867f9c432d9af2690dabc0e46a0772599919a",
+            "replaySha256": "ae30c17d244ea5e964108c149a1e33e10c2804980ac2de45027c5b31695fa666"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "canonical_version_status"
+            ],
+            "referenceSha256": "72d8e78aa086c3ff719bb9d324d6f1d3296f31ad2929944b9e82513ac9fd7f1f",
+            "replaySha256": "3c5c06f785b25fc4af8375d8b5a06dcf3de39925974621c36dcb546fcea3210c"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "close_reason"
+            ],
+            "referenceSha256": "26ddf23ae517ff14b4a75d9da01de523cb449a4dd83dd996a10a5bf913988bef",
+            "replaySha256": "a44e51f6b2bc6fb7de8c8e1998590bd5b23c48550b4cb2a07d822e74f519bff9"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "closed_at"
+            ],
+            "referenceSha256": "eccae5a9dbfad7f7fbf858c22dcd8336692d12e2a529fd33f7b4b01edf2f65a5",
+            "replaySha256": "9a30ab3d1ca92f88d7057967bec9851c962d501deebea15b9ce85e47b5430889"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "closed_by"
+            ],
+            "referenceSha256": "fa157290ad3537cb4b1da6fca296fd33c4ed3c2513fd4aa9818517832d031c33",
+            "replaySha256": "a97cea648d85fcf4fb03389fe4ab772342386aeefe48625f08fe8e723923fdcd"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "commercial_snapshot"
+            ],
+            "referenceSha256": "c44aa5a78d38b4da6570610cd96eb86cb17900e0a7cbcc493464c252c4c2cf5b",
+            "replaySha256": "e487a4ef1b0139869dc0cb2481f767d876925db154011f0452e3922e03a7ac95"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "common_channel_ready"
+            ],
+            "referenceSha256": "b06849c196567e9b28f261cd6ed70c353155b506fb67abf6a072d4ff6a4e8aae",
+            "replaySha256": "f69ebf0413f004c1f016f7f88e7d5e298559bf13c25e5a55250d73b4819372bc"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "contract_offer_id"
+            ],
+            "referenceSha256": "72dd26497ac96182fee1906be7309e23e293c82c926a084dcca1b48cc388a69f",
+            "replaySha256": "a25b8cd6993e2f5a8b2d115bd7290ea5410cf43aecafd1da8df109ba5462e204"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "contract_product_id"
+            ],
+            "referenceSha256": "9f93d98c23797ee3b1a95f4553c5b5d7e6704306d7d2898480df5d2c7ba28daa",
+            "replaySha256": "238e3119a641e55a19224ef874c6d36b0cf764b7982473eaf42c00086decac0a"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "contract_product_version_id"
+            ],
+            "referenceSha256": "0feb029bb3b8126a35a5f00093415aa69a374881e8cd6acb3d9f3dc4b690e809",
+            "replaySha256": "7e02847571476f7a3e38f8b42edce92f280f98cbbf049a55fc803b94a46c4f25"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "copied_from_contract_offer_id"
+            ],
+            "referenceSha256": "69f89c46d93efc99ddacf8f01a8ca7cb5d4f34ed18ecbf737910acb4d81e3f9b",
+            "replaySha256": "67c55703e2b4e7a870c2dfd013e284cc8133dafb152cb5e546538ed2589a9a1b"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "currently_sellable"
+            ],
+            "referenceSha256": "20cfc11f23bcb6f8008dcd706ec4df21245800782c001b4cb7d5c67831e31aff",
+            "replaySha256": "c73ad630662d48b8b7daeb7330da25cafbb9f3245dc5f0cbcb40558def9357d1"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "customer_type"
+            ],
+            "referenceSha256": "6bee1472fcb4e13e7335fce75eb065b4e8c8e594e8d5dc931c94eb7ca7d9d9a4",
+            "replaySha256": "0070cb976a528069970b90f959879d6b9416d6e10880b3a7d48cfa653b6dd5da"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "deletion_preview"
+            ],
+            "referenceSha256": "0851a94cca6314513bc6062596ed4ed958e0c9f051719169f4bf8ea8a6563d9f",
+            "replaySha256": "30c01916f4393cbf48428ca47c97be6fdbf0ae2cd5e1e0e83451f3b42ed92e8d"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "discount_calculation_base"
+            ],
+            "referenceSha256": "4084224a3f95ab32112b0a18a3ad5c2488320498034609ef8e7e2d477c036b3b",
+            "replaySha256": "3db8ed1703d32ba0537d0e7bca4390ab72f4f84a2ac278bc9e6428af08a0cef7"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "discount_months"
+            ],
+            "referenceSha256": "b50c714537ae90b1cedd2eb1d95b1885a9ebc00aaea53db7ce79948cc0cc7c81",
+            "replaySha256": "fad95014d00661876dcc48136e6295377dd404d7dcf2182eaf4f024a9eb3b551"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "discount_starts_on_mode"
+            ],
+            "referenceSha256": "b384dd94449e8e3dbe11c873ccf94e08ce7319b9e5933e3504b930bd3785e706",
+            "replaySha256": "d8ba81a68ebb25167b8374023ff5a2a66e420c2981a16d05055f58ec379800ff"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "energy_direction"
+            ],
+            "referenceSha256": "26479e21355fae5bcfa6cd7be3eafc0fa66e8dff9feb17e0dae45eacf35c55f2",
+            "replaySha256": "fa2868779719340b2868bfdac4fa16059e4d6d50bb7701a1b4aa6f5639caf744"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "internal_channel_status"
+            ],
+            "referenceSha256": "84d7e250fafc4b1bbb68e2bccaa700660b5cc9caa2f543c69505f55a92244e44",
+            "replaySha256": "4a7f1ae212abcddc02f41124d0f587785e6efb2dcff6da57f57033f703d48783"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "internal_channel_status_raw"
+            ],
+            "referenceSha256": "86c3fdfbe4f7db33244da88c67ffefeacca7dd49c7ab2919e7ac66eaafb1a54f",
+            "replaySha256": "3ea56bc4d23541ab5f266b6ca8a6e43caf615f038d1db220f505f0bab2e45f2e"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "internal_channel_valid_from"
+            ],
+            "referenceSha256": "bed3429be6cc72698c07c92882a0ae97a1d53d36e109935ec9a20c6733333bb7",
+            "replaySha256": "86ed9b3d8ef905e19b69a3f2eb97ee7142e84b1db417a386145d4b0846ca6141"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "internal_channel_valid_to"
+            ],
+            "referenceSha256": "3e99fef9919fa75d1476a878f6042e87a773f8a9ea0bd0578c9fb8cd599b5fa4",
+            "replaySha256": "9b2f21fce31cbc22f32997ddda758ce6df55e36737e8c182d2c29481503ea541"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "internal_publication_ready"
+            ],
+            "referenceSha256": "c1271b0979fdd3d5bbf434dd154d62f0455b14c5205db80123d9a1a38ac1e818",
+            "replaySha256": "630d4e4554e0be80e13a58244197961551e836299fcdf7190828225688ebf99e"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "internal_readiness"
+            ],
+            "referenceSha256": "86e65a0b1a48acfbf88e4896b74e62df6feff34151932e17830e6969e7fa7e91",
+            "replaySha256": "cf1d64e59e0511342f803616e13ec5d7d10a2fc14e6e0bded3c6677b66d51b06"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "internal_readiness_source"
+            ],
+            "referenceSha256": "53fe14da82c9a1d8a6c8a67b11ae15f497ab42dc4e569fb836dafb58c33877c4",
+            "replaySha256": "6976ec06ecd45801b1135c1a0c7da98d75e0acf3e08947f24a181dce07cc8b8c"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "internal_sales_allowed"
+            ],
+            "referenceSha256": "dcccdb8a50b9641c115f36c8b4f90e901a51a23a03ac96c0820f58f7f2a839f0",
+            "replaySha256": "ecf6f9f1b13b3679fad1d6b53ddecf98740e2911af13cd5bc98b4e3e2dadfd30"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "internally_sellable_now"
+            ],
+            "referenceSha256": "f4bc3484f709732bd551d65f224a8f8b0108d7c0703660dc4a675ec7e636fae5",
+            "replaySha256": "6037957e2585a5d931161f96d93ad45f90d812ab1cea9a837a41a149ffb28a33"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "invoice_fee_sek"
+            ],
+            "referenceSha256": "04a8e08f987d325acc79c41d08f8405adb042fbe3c9b75216eaf48b3704cbdbe",
+            "replaySha256": "6b5142111524e163bf7e361af69933ce20c3cf4850243dc333158c27adcb91a1"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "legal_bundle_id"
+            ],
+            "referenceSha256": "7ff7289021e1e33422cc9eba509aa0d0a688183c5eb2cb2158d5fba280e985af",
+            "replaySha256": "47006594c208834b379aecbd60c55cf299da99df6529e4cf85f20d5277a29e33"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "legal_bundle_version_id"
+            ],
+            "referenceSha256": "7cd92706df80dc8aa8ff5a559252ac25076267a3d38b1dbe81a3fee66c94471b",
+            "replaySha256": "eee2ac494631a9fa0822df8f03767d99371d3610e0388a28da49fbef92fa2751"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "lifecycle_status"
+            ],
+            "referenceSha256": "6d8ad9e8473ace5e04ec48ee3b79e9a30b4b9eda9ff1c41e33f9d4a0ec56dfbc",
+            "replaySha256": "328383c800238020c078fb82b821c3c3358a5139ceaf7ab223ecd32ceaef3ef3"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "offer_status"
+            ],
+            "referenceSha256": "7de27c2ebc45fbcae7960aeb1bf209c70afcaab48c0588da91af55447d1a48c1",
+            "replaySha256": "9dc9b96a6c522b1f8f3290fc853adbe75a481749b358e945267551fdbc5669cb"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "power_of_attorney_mode"
+            ],
+            "referenceSha256": "5578280d520eebb71314b421aa06c58a8571d454070d538f40f61517f1989253",
+            "replaySha256": "cd977aa96f56d43044d7ff304f0032ffe3e3c719f1db54a486978dd62dd6643e"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "power_of_attorney_required"
+            ],
+            "referenceSha256": "84ffc221c7debca4392124eb3ccc968b0345d9c61b4784d7328e23dd067d480d",
+            "replaySha256": "a6c3259aca15e91ae1593cea0e86176aa71256c6aac9dcb34c6765c8d5e38294"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "price_book_id"
+            ],
+            "referenceSha256": "60a799283953eb64e152b186d3b37ac98e5c0ad6be7589b8ea2c8f646ed6114f",
+            "replaySha256": "0138822568c40a9e3ddc28359baa8a59e9bc153e6853375f038d04a3af3aff98"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "price_plan_id"
+            ],
+            "referenceSha256": "4aa290793edd422bcbfd77f967712be5d7eaba030e2fdc50f87a94728b406e66",
+            "replaySha256": "90f1d1d9b0d454bac104c66c214e2aa4fd81ddef422d267fb692e75829c75467"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "price_plan_version_id"
+            ],
+            "referenceSha256": "1a6d70fb6747e905623ef882ffa36cdf89e2918c67b0bdf4f746cc5966f2131d",
+            "replaySha256": "4c7c48461f25b6921e9b126371f5144463b0e19eed8d9dcbd114007a6f55ee5b"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "readiness"
+            ],
+            "referenceSha256": "a13750ed309ee3661a8cca8e8468dc7d5afbafdc641074199fa131562f0dbe40",
+            "replaySha256": "77476460a669cbf82b66a79e5c5004751a2862ac0f7b72236cfcbda23bc7cfec"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "relation_status"
+            ],
+            "referenceSha256": "9e4bb72551bf833f72ad416507e18d531d901c9a243f3f00fdb03fef0a59867e",
+            "replaySha256": "b3c1ae607700d799204051ee8fba745c29841285e17f270a62b0100aac8a056c"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "superseded_at"
+            ],
+            "referenceSha256": "71708f23df605cfc61d4825efd4883702be0bfb9cf6ed477f943c5c8c085d2b0",
+            "replaySha256": "9d62ae624d915da8b495cae8a10a1f4f2c304807f976c7f8f43c134afc558f8c"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "supersedes_offer_id"
+            ],
+            "referenceSha256": "751f44259fbf448fed69b20a9f8cc92916f1e7522c2a8a577f4dc4f4ce8f6efe",
+            "replaySha256": "410cd312902c86b2367b35e929351840710d6062210370dcee3961d006e49f48"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "tenant_status"
+            ],
+            "referenceSha256": "3a8a7f68de02a41371c3ae8e8d47d3c17b01378023e83ca7ae0dc92f7c4f2e1d",
+            "replaySha256": "c53a4c59caca220d53167960941c919c610ff5504fa4ae70f4068aeceb564e3d"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "version_series_id"
+            ],
+            "referenceSha256": "037de7b65bbd9b5888664a6a61a36f0894cb6e8dabea88565d39cab418f6c4be",
+            "replaySha256": "91107f15f4a991b1d2afc185fb4ab14c123dc86040da814e2d6c0df8dbc33f25"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "website_available_now"
+            ],
+            "referenceSha256": "97a6fc4bad06916282b7efcfa616883ad59e853d68a649785fe42283a00a9105",
+            "replaySha256": "94349b1132ebde9eb0cf57b9b594508aa8f83e493c5d61e38de6aa80231b2e4b"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "website_channel_status"
+            ],
+            "referenceSha256": "32dd23ef9bb8338f944d9a3b94db2e251af26712f79c3c1defd721192ac8d430",
+            "replaySha256": "66d70a6e45d9ac139365de15992a348026642f87104191476534fd94e3d389d6"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "website_channel_status_raw"
+            ],
+            "referenceSha256": "e005806de35c202591f8f5a98d0b3ea5efd92d63caf936db93a62333d9c9f37a",
+            "replaySha256": "03a07643e75f2a3553ddc1cb6d77d2a1c9b360ed382d376517882a4cef3916b4"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "website_channel_valid_from"
+            ],
+            "referenceSha256": "fd117975448e72240b23534ea89a9f9104d46896351e8df0e92ad4d2d67b4234",
+            "replaySha256": "80047d6c1e43f9e387b5d7b9cea3d96a725703eda51d8175e9e3d52ed9f5a671"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "website_channel_valid_to"
+            ],
+            "referenceSha256": "72a8791a47a694050d49d3fe773555c3d26d384489975c16792b5304684665a9",
+            "replaySha256": "f4ab95f4b280a5ef4fc4cd2b3cda5fe7d2f9cf9262790f48e825c5dab1fc17e4"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "website_publication_allowed"
+            ],
+            "referenceSha256": "e52dbd66d0d8af7edde9af8b927b6005bda99936166b4416fd300abee5ad0f9b",
+            "replaySha256": "676d048ddc28bf3c8a2395025c98aef5cae2817b525be6e14d91bcaba12b0efd"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "website_readiness"
+            ],
+            "referenceSha256": "753f976bc34791f66c486036e87f08d1a08522cbb0a7d25939e4828cf56da55f",
+            "replaySha256": "dc7209f626f63ec68da276197aa6c2b39fbc3ee7e7990d72692b6b67ba6f2878"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "canonical_internal_contract_offers_v",
+              "website_readiness_source"
+            ],
+            "referenceSha256": "16b24f298b1f6520032c322682b6edabefa2a91b69c96386696e1d353d6496bf",
+            "replaySha256": "f20a2730452b121bbd3193cb2c65fbccbe4eed36aa29377693d5d13427ac638a"
+          }
+        ],
+        "removed": []
+      },
+      "relationGrantDeltaCount": 0,
+      "runtimeRequirements": [
+        "EXACT_SOURCE_WITNESS",
+        "COMPLETE_RELATION_SHAPE",
+        "RETAINED_REFERENCE_UNCHANGED",
+        "SEPARATE_ACCESS_AND_DEPENDENCY_GATES",
+        "FINAL_CLEANED_NATIVE_SCHEMA_GATE"
+      ]
+    },
+    {
+      "ordinal": 2,
+      "fields": [
+        "view_definition"
+      ],
+      "identity": [
+        "public",
+        "customer_contract_lifecycle_readiness_v"
+      ],
+      "referenceSha256": "21e1f686f94f0fbb1ea1f438f2a2d349283ccafaa41ff8c8ecca1f0eaaaa5190",
+      "replaySha256": "7007d704402744b49c4384e7746a69ce815094d90c88e88ed2fc2d2741aa7840",
+      "decision": "PRESERVE_SOURCE_EXACT_CONTRACT_READINESS",
+      "sourceIntentReviewed": true,
+      "intent": "Preserve the explicit final output projection and exact legal/signature/document/facility/metering/power-of-attorney/start-date gates. Internal c.*, e.* and s.* expansion can change deparsed CTE text when underlying column order/shape differs; this is a source-causal explanation to verify, not a reconstructed full observed definition. No output column addition/removal/change is observed.",
+      "schemaAcceptance": false,
+      "expectedRelationShape": {
+        "nspname": "public",
+        "relname": "customer_contract_lifecycle_readiness_v",
+        "relkind": "v",
+        "relrowsecurity": false,
+        "relforcerowsecurity": false,
+        "reloptions": [
+          "security_invoker=true"
+        ],
+        "partition_key": null
+      },
+      "observedFullReferenceRow": null,
+      "observedFullReplayRow": null,
+      "observedFullRowsReconstructed": false,
+      "referenceDefinitionSource": {
+        "path": "supabase/schema.sql",
+        "startLine": 53748,
+        "endLine": 54214,
+        "query": " WITH evidence AS (\n         SELECT c.id,\n            c.company_id,\n            c.customer_id,\n            c.site_id,\n            c.metering_point_id,\n            c.customer_site_id,\n            c.contract_offer_id,\n            c.source_type,\n            c.status,\n            c.contract_name,\n            c.contract_type,\n            c.campaign_name,\n            c.campaign_code,\n            c.campaign_version,\n            c.price_version,\n            c.terms_version,\n            c.contract_version,\n            c.signed_version,\n            c.terms_signed_version,\n            c.version_snapshot,\n            c.start_status,\n            c.old_supplier_start_at,\n            c.grid_owner_confirmed_start_at,\n            c.ediel_confirmed_start_at,\n            c.export_blocked,\n            c.export_block_reason,\n            c.price_snapshot,\n            c.campaign_snapshot,\n            c.billing_ready_status,\n            c.billing_blocker_reasons,\n            c.withdrawal_requested_at,\n            c.rejected_reason,\n            c.fixed_price_ore_per_kwh,\n            c.spot_markup_ore_per_kwh,\n            c.variable_fee_ore_per_kwh,\n            c.monthly_fee_sek,\n            c.green_fee_mode,\n            c.green_fee_value,\n            c.binding_months,\n            c.notice_months,\n            c.optional_fee_lines,\n            c.starts_at,\n            c.expected_start_at,\n            c.confirmed_start_at,\n            c.actual_start_at,\n            c.start_date_source,\n            c.ends_at,\n            c.signed_at,\n            c.termination_notice_date,\n            c.termination_reason,\n            c.auto_renew_enabled,\n            c.auto_renew_term_months,\n            c.override_reason,\n            c.invoice_recipient,\n            c.invoice_email,\n            c.invoice_reference,\n            c.billing_street,\n            c.billing_postal_code,\n            c.billing_city,\n            c.billing_country,\n            c.billing_address_same_as_site,\n            c.billing_level,\n            c.consolidated_invoice,\n            c.metadata,\n            c.created_at,\n            c.updated_at,\n            c.created_by,\n            c.updated_by,\n            c.requested_start_mode,\n            c.calculated_earliest_start_date,\n            c.price_area_used,\n            c.grid_area_code_used,\n            c.resolution_status,\n            c.onboarding_status,\n            c.onboarding_issues,\n            c.requested_start_date,\n            c.confirmed_start_date,\n            c.actual_start_date,\n            c.agreement_channel,\n            c.contract_number,\n            c.price_plan_id,\n            c.price_plan_version_id,\n            c.invoice_fee_sek,\n            c.markup_ore_per_kwh,\n            c.contract_price_snapshot_id,\n            c.legal_acceptance_snapshot,\n            c.legal_readiness_status,\n            c.legal_readiness_reasons,\n            c.application_snapshot,\n            c.website_application_id,\n            c.legal_bundle_id,\n            c.price_book_id,\n            c.snapshot_quality,\n            c.snapshot_hash,\n            c.billing_blocked_reason,\n            c.customer_number,\n            c.external_customer_id,\n            c.public_contract_offer_id,\n            c.offer_reference,\n            c.legal_versions_snapshot,\n            c.signature_snapshot,\n            c.signature_snapshot_sha256,\n            c.signed_ip_hash,\n            c.signed_user_agent,\n            c.contract_product_id,\n            c.contract_product_version_id,\n            c.contract_publication_version_id,\n            c.legal_bundle_version_id,\n            c.commercial_snapshot,\n            c.legal_snapshot,\n            c.document_sha256,\n            c.locked_at,\n            c.tenant_communication_snapshot,\n            c.tenant_communication_snapshot_sha256,\n            c.tenant_legal_party_snapshot,\n            c.lifecycle_stage,\n            ( SELECT count(*) AS count\n                   FROM public.legal_bundle_version_documents d\n                  WHERE (d.legal_bundle_version_id = c.legal_bundle_version_id)) AS legal_document_count,\n            ( SELECT count(DISTINCT a.legal_bundle_version_document_id) AS count\n                   FROM public.customer_legal_acceptances a\n                  WHERE ((a.company_id = c.company_id) AND (a.customer_id = c.customer_id) AND (a.contract_id = c.id) AND (a.legal_bundle_version_document_id IS NOT NULL))) AS accepted_document_count,\n            (EXISTS ( SELECT 1\n                   FROM public.customer_contract_documents d\n                  WHERE ((d.company_id = c.company_id) AND (d.customer_contract_id = c.id) AND (d.document_type = 'signed_contract_pdf'::text) AND (d.storage_path IS NOT NULL) AND (d.archived_at IS NOT NULL) AND (d.verified_at IS NOT NULL) AND (d.document_sha256 = c.document_sha256)))) AS signed_pdf_archived,\n            (EXISTS ( SELECT 1\n                   FROM public.customer_sites s\n                  WHERE ((s.id = COALESCE(c.customer_site_id, c.site_id)) AND (s.company_id = c.company_id) AND (s.customer_id = c.customer_id) AND (NULLIF(s.facility_id, ''::text) IS NOT NULL) AND (s.grid_owner_id IS NOT NULL) AND (NULLIF(s.grid_area_code, ''::text) IS NOT NULL) AND (s.price_area_code = ANY (ARRAY['SE1'::text, 'SE2'::text, 'SE3'::text, 'SE4'::text])) AND (s.status <> ALL (ARRAY['inactive'::text, 'closed'::text]))))) AS facility_data_ready,\n            (EXISTS ( SELECT 1\n                   FROM public.metering_points m\n                  WHERE ((m.id = COALESCE(c.metering_point_id, m.id)) AND (m.site_id = COALESCE(c.customer_site_id, c.site_id)) AND (m.company_id = c.company_id) AND (m.customer_id = c.customer_id) AND (NULLIF(COALESCE(m.meter_point_id, m.metering_point_id), ''::text) IS NOT NULL) AND (m.grid_owner_id IS NOT NULL) AND (m.price_area_code = ANY (ARRAY['SE1'::text, 'SE2'::text, 'SE3'::text, 'SE4'::text])) AND (m.status <> ALL (ARRAY['inactive'::text, 'closed'::text]))))) AS metering_data_ready,\n            (EXISTS ( SELECT 1\n                   FROM public.powers_of_attorney p\n                  WHERE ((p.company_id = c.company_id) AND (p.customer_id = c.customer_id) AND (COALESCE(p.contract_id, p.customer_contract_id) = c.id) AND (COALESCE(p.customer_site_id, p.site_id) = COALESCE(c.customer_site_id, c.site_id)) AND (p.status = ANY (ARRAY['signed'::text, 'active'::text, 'accepted'::text])) AND (COALESCE(p.accepted_at, p.signed_at) IS NOT NULL) AND (p.revoked_at IS NULL) AND ((COALESCE(p.valid_until, p.valid_to) IS NULL) OR (COALESCE(p.valid_until, p.valid_to) >= CURRENT_DATE))))) AS valid_power_of_attorney,\n            (COALESCE(c.requested_start_date, c.expected_start_at, c.starts_at) IS NOT NULL) AS start_date_ready\n           FROM public.customer_contracts c\n        ), stages AS (\n         SELECT e.id,\n            e.company_id,\n            e.customer_id,\n            e.site_id,\n            e.metering_point_id,\n            e.customer_site_id,\n            e.contract_offer_id,\n            e.source_type,\n            e.status,\n            e.contract_name,\n            e.contract_type,\n            e.campaign_name,\n            e.campaign_code,\n            e.campaign_version,\n            e.price_version,\n            e.terms_version,\n            e.contract_version,\n            e.signed_version,\n            e.terms_signed_version,\n            e.version_snapshot,\n            e.start_status,\n            e.old_supplier_start_at,\n            e.grid_owner_confirmed_start_at,\n            e.ediel_confirmed_start_at,\n            e.export_blocked,\n            e.export_block_reason,\n            e.price_snapshot,\n            e.campaign_snapshot,\n            e.billing_ready_status,\n            e.billing_blocker_reasons,\n            e.withdrawal_requested_at,\n            e.rejected_reason,\n            e.fixed_price_ore_per_kwh,\n            e.spot_markup_ore_per_kwh,\n            e.variable_fee_ore_per_kwh,\n            e.monthly_fee_sek,\n            e.green_fee_mode,\n            e.green_fee_value,\n            e.binding_months,\n            e.notice_months,\n            e.optional_fee_lines,\n            e.starts_at,\n            e.expected_start_at,\n            e.confirmed_start_at,\n            e.actual_start_at,\n            e.start_date_source,\n            e.ends_at,\n            e.signed_at,\n            e.termination_notice_date,\n            e.termination_reason,\n            e.auto_renew_enabled,\n            e.auto_renew_term_months,\n            e.override_reason,\n            e.invoice_recipient,\n            e.invoice_email,\n            e.invoice_reference,\n            e.billing_street,\n            e.billing_postal_code,\n            e.billing_city,\n            e.billing_country,\n            e.billing_address_same_as_site,\n            e.billing_level,\n            e.consolidated_invoice,\n            e.metadata,\n            e.created_at,\n            e.updated_at,\n            e.created_by,\n            e.updated_by,\n            e.requested_start_mode,\n            e.calculated_earliest_start_date,\n            e.price_area_used,\n            e.grid_area_code_used,\n            e.resolution_status,\n            e.onboarding_status,\n            e.onboarding_issues,\n            e.requested_start_date,\n            e.confirmed_start_date,\n            e.actual_start_date,\n            e.agreement_channel,\n            e.contract_number,\n            e.price_plan_id,\n            e.price_plan_version_id,\n            e.invoice_fee_sek,\n            e.markup_ore_per_kwh,\n            e.contract_price_snapshot_id,\n            e.legal_acceptance_snapshot,\n            e.legal_readiness_status,\n            e.legal_readiness_reasons,\n            e.application_snapshot,\n            e.website_application_id,\n            e.legal_bundle_id,\n            e.price_book_id,\n            e.snapshot_quality,\n            e.snapshot_hash,\n            e.billing_blocked_reason,\n            e.customer_number,\n            e.external_customer_id,\n            e.public_contract_offer_id,\n            e.offer_reference,\n            e.legal_versions_snapshot,\n            e.signature_snapshot,\n            e.signature_snapshot_sha256,\n            e.signed_ip_hash,\n            e.signed_user_agent,\n            e.contract_product_id,\n            e.contract_product_version_id,\n            e.contract_publication_version_id,\n            e.legal_bundle_version_id,\n            e.commercial_snapshot,\n            e.legal_snapshot,\n            e.document_sha256,\n            e.locked_at,\n            e.tenant_communication_snapshot,\n            e.tenant_communication_snapshot_sha256,\n            e.tenant_legal_party_snapshot,\n            e.lifecycle_stage,\n            e.legal_document_count,\n            e.accepted_document_count,\n            e.signed_pdf_archived,\n            e.facility_data_ready,\n            e.metering_data_ready,\n            e.valid_power_of_attorney,\n            e.start_date_ready,\n            ((e.contract_publication_version_id IS NOT NULL) AND (e.contract_product_version_id IS NOT NULL) AND (e.price_plan_version_id IS NOT NULL) AND (e.legal_bundle_version_id IS NOT NULL) AND (e.contract_price_snapshot_id IS NOT NULL)) AS agreement_ready,\n            ((e.status = 'signed'::text) AND (e.signed_at IS NOT NULL) AND (NULLIF(e.signature_snapshot_sha256, ''::text) IS NOT NULL) AND (e.legal_document_count > 0) AND (e.accepted_document_count = e.legal_document_count)) AS agreement_signed\n           FROM evidence e\n        ), readiness AS (\n         SELECT s.id,\n            s.company_id,\n            s.customer_id,\n            s.site_id,\n            s.metering_point_id,\n            s.customer_site_id,\n            s.contract_offer_id,\n            s.source_type,\n            s.status,\n            s.contract_name,\n            s.contract_type,\n            s.campaign_name,\n            s.campaign_code,\n            s.campaign_version,\n            s.price_version,\n            s.terms_version,\n            s.contract_version,\n            s.signed_version,\n            s.terms_signed_version,\n            s.version_snapshot,\n            s.start_status,\n            s.old_supplier_start_at,\n            s.grid_owner_confirmed_start_at,\n            s.ediel_confirmed_start_at,\n            s.export_blocked,\n            s.export_block_reason,\n            s.price_snapshot,\n            s.campaign_snapshot,\n            s.billing_ready_status,\n            s.billing_blocker_reasons,\n            s.withdrawal_requested_at,\n            s.rejected_reason,\n            s.fixed_price_ore_per_kwh,\n            s.spot_markup_ore_per_kwh,\n            s.variable_fee_ore_per_kwh,\n            s.monthly_fee_sek,\n            s.green_fee_mode,\n            s.green_fee_value,\n            s.binding_months,\n            s.notice_months,\n            s.optional_fee_lines,\n            s.starts_at,\n            s.expected_start_at,\n            s.confirmed_start_at,\n            s.actual_start_at,\n            s.start_date_source,\n            s.ends_at,\n            s.signed_at,\n            s.termination_notice_date,\n            s.termination_reason,\n            s.auto_renew_enabled,\n            s.auto_renew_term_months,\n            s.override_reason,\n            s.invoice_recipient,\n            s.invoice_email,\n            s.invoice_reference,\n            s.billing_street,\n            s.billing_postal_code,\n            s.billing_city,\n            s.billing_country,\n            s.billing_address_same_as_site,\n            s.billing_level,\n            s.consolidated_invoice,\n            s.metadata,\n            s.created_at,\n            s.updated_at,\n            s.created_by,\n            s.updated_by,\n            s.requested_start_mode,\n            s.calculated_earliest_start_date,\n            s.price_area_used,\n            s.grid_area_code_used,\n            s.resolution_status,\n            s.onboarding_status,\n            s.onboarding_issues,\n            s.requested_start_date,\n            s.confirmed_start_date,\n            s.actual_start_date,\n            s.agreement_channel,\n            s.contract_number,\n            s.price_plan_id,\n            s.price_plan_version_id,\n            s.invoice_fee_sek,\n            s.markup_ore_per_kwh,\n            s.contract_price_snapshot_id,\n            s.legal_acceptance_snapshot,\n            s.legal_readiness_status,\n            s.legal_readiness_reasons,\n            s.application_snapshot,\n            s.website_application_id,\n            s.legal_bundle_id,\n            s.price_book_id,\n            s.snapshot_quality,\n            s.snapshot_hash,\n            s.billing_blocked_reason,\n            s.customer_number,\n            s.external_customer_id,\n            s.public_contract_offer_id,\n            s.offer_reference,\n            s.legal_versions_snapshot,\n            s.signature_snapshot,\n            s.signature_snapshot_sha256,\n            s.signed_ip_hash,\n            s.signed_user_agent,\n            s.contract_product_id,\n            s.contract_product_version_id,\n            s.contract_publication_version_id,\n            s.legal_bundle_version_id,\n            s.commercial_snapshot,\n            s.legal_snapshot,\n            s.document_sha256,\n            s.locked_at,\n            s.tenant_communication_snapshot,\n            s.tenant_communication_snapshot_sha256,\n            s.tenant_legal_party_snapshot,\n            s.lifecycle_stage,\n            s.legal_document_count,\n            s.accepted_document_count,\n            s.signed_pdf_archived,\n            s.facility_data_ready,\n            s.metering_data_ready,\n            s.valid_power_of_attorney,\n            s.start_date_ready,\n            s.agreement_ready,\n            s.agreement_signed,\n            (s.facility_data_ready AND s.metering_data_ready) AS switch_data_ready,\n            (s.agreement_ready AND s.agreement_signed AND s.facility_data_ready AND s.metering_data_ready AND s.signed_pdf_archived AND s.valid_power_of_attorney AND s.start_date_ready AND (COALESCE(s.withdrawal_requested_at, '-infinity'::timestamp with time zone) = '-infinity'::timestamp with time zone) AND (COALESCE(s.export_blocked, false) = false)) AS switch_ready\n           FROM stages s\n        )\n SELECT id AS customer_contract_id,\n    company_id,\n    customer_id,\n    COALESCE(customer_site_id, site_id) AS customer_site_id,\n    metering_point_id,\n    agreement_ready,\n    agreement_signed,\n    facility_data_ready,\n    switch_data_ready,\n    switch_ready,\n    (agreement_signed AND (contract_price_snapshot_id IS NOT NULL)) AS billing_ready,\n    ((status = 'active'::text) AND (actual_start_at IS NOT NULL)) AS active,\n    signed_pdf_archived,\n    valid_power_of_attorney,\n    start_date_ready,\n    legal_document_count,\n    accepted_document_count,\n        CASE\n            WHEN ((status = 'active'::text) AND (actual_start_at IS NOT NULL)) THEN 'active'::text\n            WHEN (agreement_signed AND (contract_price_snapshot_id IS NOT NULL)) THEN\n            CASE\n                WHEN switch_ready THEN 'switch_ready'::text\n                ELSE\n                CASE\n                    WHEN switch_data_ready THEN 'switch_data_ready'::text\n                    ELSE\n                    CASE\n                        WHEN facility_data_ready THEN 'facility_data_ready'::text\n                        ELSE 'agreement_signed'::text\n                    END\n                END\n            END\n            ELSE 'agreement_ready'::text\n        END AS lifecycle_stage,\n    array_remove(ARRAY[\n        CASE\n            WHEN (NOT agreement_ready) THEN 'agreement_not_canonically_bound'::text\n            ELSE NULL::text\n        END,\n        CASE\n            WHEN (NOT agreement_signed) THEN 'agreement_not_signed_with_exact_evidence'::text\n            ELSE NULL::text\n        END,\n        CASE\n            WHEN (NOT facility_data_ready) THEN 'facility_data_not_ready'::text\n            ELSE NULL::text\n        END,\n        CASE\n            WHEN (NOT metering_data_ready) THEN 'metering_data_not_ready'::text\n            ELSE NULL::text\n        END,\n        CASE\n            WHEN (NOT signed_pdf_archived) THEN 'signed_pdf_not_archived_or_hash_mismatch'::text\n            ELSE NULL::text\n        END,\n        CASE\n            WHEN (NOT valid_power_of_attorney) THEN 'valid_power_of_attorney_missing'::text\n            ELSE NULL::text\n        END,\n        CASE\n            WHEN (NOT start_date_ready) THEN 'contract_start_date_missing'::text\n            ELSE NULL::text\n        END,\n        CASE\n            WHEN (withdrawal_requested_at IS NOT NULL) THEN 'withdrawal_requested'::text\n            ELSE NULL::text\n        END,\n        CASE\n            WHEN COALESCE(export_blocked, false) THEN 'contract_export_blocked'::text\n            ELSE NULL::text\n        END], NULL::text) AS blockers\n   FROM readiness r",
+        "querySha256": "157d18fed6f5c0f5e2751df07deaf582494b427b5a7cc4d6fa7ec7108b9b468b",
+        "format": "PG_DUMP_SOURCE_NOT_RUNTIME_PG_GET_VIEWDEF_TRUE"
+      },
+      "sourceQuery": {
+        "path": "supabase/migrations/20260718160000_v5_signature_switch_readiness_hardening.sql",
+        "declarationLine": 424,
+        "query": "with evidence as (\n  select\n    c.*,\n    (select count(*) from public.legal_bundle_version_documents d\n      where d.legal_bundle_version_id=c.legal_bundle_version_id) legal_document_count,\n    (select count(distinct a.legal_bundle_version_document_id)\n      from public.customer_legal_acceptances a\n      where a.company_id=c.company_id and a.customer_id=c.customer_id\n        and a.contract_id=c.id\n        and a.legal_bundle_version_document_id is not null) accepted_document_count,\n    exists(\n      select 1 from public.customer_contract_documents d\n      where d.company_id=c.company_id and d.customer_contract_id=c.id\n        and d.document_type='signed_contract_pdf'\n        and d.storage_path is not null and d.archived_at is not null\n        and d.verified_at is not null and d.document_sha256=c.document_sha256\n    ) signed_pdf_archived,\n    exists(\n      select 1 from public.customer_sites s\n      where s.id=coalesce(c.customer_site_id,c.site_id)\n        and s.company_id=c.company_id and s.customer_id=c.customer_id\n        and nullif(s.facility_id,'') is not null\n        and s.grid_owner_id is not null\n        and nullif(s.grid_area_code,'') is not null\n        and s.price_area_code in('SE1','SE2','SE3','SE4')\n        and s.status not in('inactive','closed')\n    ) facility_data_ready,\n    exists(\n      select 1\n      from public.metering_points m\n      where m.id=coalesce(c.metering_point_id,m.id)\n        and m.site_id=coalesce(c.customer_site_id,c.site_id)\n        and m.company_id=c.company_id\n        and m.customer_id=c.customer_id\n        and nullif(coalesce(m.meter_point_id,m.metering_point_id),'') is not null\n        and m.grid_owner_id is not null\n        and m.price_area_code in('SE1','SE2','SE3','SE4')\n        and m.status not in('inactive','closed')\n    ) metering_data_ready,\n    exists(\n      select 1 from public.powers_of_attorney p\n      where p.company_id=c.company_id and p.customer_id=c.customer_id\n        and coalesce(p.contract_id,p.customer_contract_id)=c.id\n        and coalesce(p.customer_site_id,p.site_id)=coalesce(c.customer_site_id,c.site_id)\n        and p.status in('signed','active','accepted')\n        and coalesce(p.accepted_at,p.signed_at) is not null\n        and p.revoked_at is null\n        and (coalesce(p.valid_until,p.valid_to) is null\n          or coalesce(p.valid_until,p.valid_to)>=current_date)\n    ) valid_power_of_attorney\n    ,coalesce(c.requested_start_date,c.expected_start_at,c.starts_at) is not null\n      as start_date_ready\n  from public.customer_contracts c\n), stages as (\n  select e.*,\n    (\n      e.contract_publication_version_id is not null\n      and e.contract_product_version_id is not null\n      and e.price_plan_version_id is not null\n      and e.legal_bundle_version_id is not null\n      and e.contract_price_snapshot_id is not null\n    ) agreement_ready,\n    (\n      e.status='signed' and e.signed_at is not null\n      and nullif(e.signature_snapshot_sha256,'') is not null\n      and e.legal_document_count>0\n      and e.accepted_document_count=e.legal_document_count\n    ) agreement_signed\n  from evidence e\n), readiness as (\n  select s.*,\n    (s.facility_data_ready and s.metering_data_ready) switch_data_ready,\n    (\n      s.agreement_ready and s.agreement_signed\n      and s.facility_data_ready and s.metering_data_ready\n      and s.signed_pdf_archived and s.valid_power_of_attorney\n      and s.start_date_ready\n      and coalesce(s.withdrawal_requested_at,'-infinity'::timestamptz)='-infinity'::timestamptz\n      and coalesce(s.export_blocked,false)=false\n    ) switch_ready\n  from stages s\n)\nselect\n  r.id customer_contract_id,r.company_id,r.customer_id,\n  coalesce(r.customer_site_id,r.site_id) customer_site_id,r.metering_point_id,\n  r.agreement_ready,r.agreement_signed,r.facility_data_ready,\n  r.switch_data_ready,r.switch_ready,\n  (r.agreement_signed and r.contract_price_snapshot_id is not null) billing_ready,\n  (r.status='active' and r.actual_start_at is not null) active,\n  r.signed_pdf_archived,r.valid_power_of_attorney,\n  r.start_date_ready,\n  r.legal_document_count,r.accepted_document_count,\n  case\n    when r.status='active' and r.actual_start_at is not null then 'active'\n    when r.agreement_signed and r.contract_price_snapshot_id is not null then\n      case when r.switch_ready then 'switch_ready' else\n        case when r.switch_data_ready then 'switch_data_ready' else\n          case when r.facility_data_ready then 'facility_data_ready' else 'agreement_signed' end\n        end\n      end\n    else 'agreement_ready'\n  end lifecycle_stage,\n  array_remove(array[\n    case when not r.agreement_ready then 'agreement_not_canonically_bound' end,\n    case when not r.agreement_signed then 'agreement_not_signed_with_exact_evidence' end,\n    case when not r.facility_data_ready then 'facility_data_not_ready' end,\n    case when not r.metering_data_ready then 'metering_data_not_ready' end,\n    case when not r.signed_pdf_archived then 'signed_pdf_not_archived_or_hash_mismatch' end,\n    case when not r.valid_power_of_attorney then 'valid_power_of_attorney_missing' end,\n    case when not r.start_date_ready then 'contract_start_date_missing' end,\n    case when r.withdrawal_requested_at is not null then 'withdrawal_requested' end,\n    case when coalesce(r.export_blocked,false) then 'contract_export_blocked' end\n  ],null) blockers\nfrom readiness r",
+        "queryBytes": 5360,
+        "querySha256": "d4223bd45a364d0adff7df4aff6293feab79a0c55634db60678092cd8fcb3326",
+        "extraction": "Exact CREATE query bytes between AS whitespace and terminal semicolon; no query rewriting.",
+        "publicDependencies": [
+          "customer_contract_documents",
+          "customer_contracts",
+          "customer_legal_acceptances",
+          "customer_sites",
+          "legal_bundle_version_documents",
+          "metering_points",
+          "powers_of_attorney"
+        ]
+      },
+      "callerEvidence": [
+        "lib/customer-operations/customerSiteProcessContext.ts",
+        "lib/customer-operations/switchReadiness.ts"
+      ],
+      "callerSearchScope": "Listed direct service-client consumers; not exhaustive server-action authorization",
+      "columns": {
+        "added": [],
+        "changed": [],
+        "removed": []
+      },
+      "relationGrantDeltaCount": 0,
+      "runtimeRequirements": [
+        "EXACT_SOURCE_WITNESS",
+        "COMPLETE_RELATION_SHAPE",
+        "RETAINED_REFERENCE_UNCHANGED",
+        "SEPARATE_ACCESS_AND_DEPENDENCY_GATES",
+        "FINAL_CLEANED_NATIVE_SCHEMA_GATE"
+      ]
+    },
+    {
+      "ordinal": 3,
+      "fields": [
+        "view_definition"
+      ],
+      "identity": [
+        "public",
+        "ediel_active_actor_settings_v"
+      ],
+      "referenceSha256": "3af082a6fe9722b7465b1874544387959876e8943811be3e3b5fb4718431fdf4",
+      "replaySha256": "2fa2efcf9a78065b47e662640eacb69fc48de021137b5adf011a6d82b3595aaf",
+      "decision": "PRESERVE_SOURCE_TENANT_ROLE_RANKING_TRANSITION",
+      "sourceIntentReviewed": true,
+      "intent": "Restore the explicit May21 per-company, environment and actor_role ranking, active-only filtering and runtime_rank=1. Preserve the historical 28-column public prefix in order and append runtime_rank, using the existing exact projection transition. Relative to the reference this is a semantic change: is_active NULL is excluded, the date-validity predicate is absent, and newest timestamps choose one row per partition. Those are the selected source semantics, not a harmless column-only delta.",
+      "schemaAcceptance": false,
+      "expectedRelationShape": {
+        "nspname": "public",
+        "relname": "ediel_active_actor_settings_v",
+        "relkind": "v",
+        "relrowsecurity": false,
+        "relforcerowsecurity": false,
+        "reloptions": [
+          "security_invoker=true"
+        ],
+        "partition_key": null
+      },
+      "observedFullReferenceRow": null,
+      "observedFullReplayRow": null,
+      "observedFullRowsReconstructed": false,
+      "referenceDefinitionSource": {
+        "path": "supabase/schema.sql",
+        "startLine": 55713,
+        "endLine": 55743,
+        "query": " SELECT id,\n    company_id,\n    actor_name,\n    actor_ediel_id,\n    actor_role,\n    environment,\n    is_active,\n    sender_name,\n    sender_sub_address,\n    default_application_reference,\n    default_timezone,\n    default_charset,\n    default_test_flag,\n    smtp_from_email,\n    smtp_reply_to_email,\n    mailbox,\n    brp_name,\n    brp_ediel_id,\n    brp_status,\n    esett_status,\n    valid_from,\n    valid_to,\n    notes,\n    metadata,\n    created_at,\n    updated_at,\n    created_by,\n    updated_by\n   FROM public.ediel_actor_settings\n  WHERE ((COALESCE(is_active, true) = true) AND ((valid_from IS NULL) OR (valid_from <= CURRENT_DATE)) AND ((valid_to IS NULL) OR (valid_to >= CURRENT_DATE)))",
+        "querySha256": "587bed4784a20234a39fe64b8ed1a9f5f9ecef0a007fab2fe2465cbdd38e2605",
+        "format": "PG_DUMP_SOURCE_NOT_RUNTIME_PG_GET_VIEWDEF_TRUE"
+      },
+      "sourceQuery": {
+        "path": "supabase/migrations/20260521_batch_1_2_live_readiness_and_automation_hardening.sql",
+        "declarationLine": 69,
+        "query": "select\n        ranked.id,\n        ranked.company_id,\n        ranked.actor_name,\n        ranked.actor_ediel_id,\n        ranked.actor_role,\n        ranked.environment,\n        ranked.is_active,\n        ranked.sender_name,\n        ranked.sender_sub_address,\n        ranked.default_application_reference,\n        ranked.default_timezone,\n        ranked.default_charset,\n        ranked.default_test_flag,\n        ranked.smtp_from_email,\n        ranked.smtp_reply_to_email,\n        ranked.mailbox,\n        ranked.brp_name,\n        ranked.brp_ediel_id,\n        ranked.brp_status,\n        ranked.esett_status,\n        ranked.valid_from,\n        ranked.valid_to,\n        ranked.notes,\n        ranked.metadata,\n        ranked.created_at,\n        ranked.updated_at,\n        ranked.created_by,\n        ranked.updated_by,\n        ranked.runtime_rank\n      from (\n        select\n          eas.*,\n          row_number() over (\n            partition by eas.company_id, eas.environment, eas.actor_role\n            order by\n              case when coalesce(eas.is_active, false) then 0 else 1 end,\n              eas.updated_at desc nulls last,\n              eas.created_at desc nulls last\n          ) as runtime_rank\n        from public.ediel_actor_settings eas\n        where coalesce(eas.is_active, false) = true\n      ) ranked\n      where ranked.runtime_rank = 1",
+        "queryBytes": 1346,
+        "querySha256": "c8ebc5ceb79b34dd7af0dcd4438659847b3a3486f588e33d6c59afcc29e4103e",
+        "extraction": "Exact existing reconstruct() changes only outer projection to historical 28 columns plus runtime_rank; inner eas.* and May21 rank/filter/order retained.",
+        "publicDependencies": [
+          "ediel_actor_settings"
+        ]
+      },
+      "callerEvidence": [
+        "lib/ediel/config.ts"
+      ],
+      "callerSearchScope": "Listed direct service-client consumers; not exhaustive server-action authorization",
+      "columns": {
+        "added": [
+          {
+            "identity": [
+              "public",
+              "ediel_active_actor_settings_v",
+              "runtime_rank"
+            ],
+            "sha256": "aad4f6c808982ba692fca25240cdc780fa8cdd732772a20f551943cbd6a3b41f"
+          }
+        ],
+        "changed": [],
+        "removed": []
+      },
+      "relationGrantDeltaCount": 0,
+      "runtimeRequirements": [
+        "EXACT_SOURCE_WITNESS",
+        "COMPLETE_RELATION_SHAPE",
+        "RETAINED_REFERENCE_UNCHANGED",
+        "SEPARATE_ACCESS_AND_DEPENDENCY_GATES",
+        "FINAL_CLEANED_NATIVE_SCHEMA_GATE"
+      ]
+    },
+    {
+      "ordinal": 4,
+      "fields": [
+        "view_definition"
+      ],
+      "identity": [
+        "public",
+        "ediel_unresolved_messages"
+      ],
+      "referenceSha256": "5aa790541d805f3a84596b721cf1b8f3c625587ea456bb28bdf41ef12b98949f",
+      "replaySha256": "854b17bd878c1e6a590f654ba8d0fad3826d4ef7b56903bd72382216372fc573",
+      "decision": "PRESERVE_SOURCE_UNRESOLVED_COMPATIBILITY_PROJECTION",
+      "sourceIntentReviewed": true,
+      "intent": "Preserve the guarded view branch that selects all columns from ediel_unresolved_items. Five raw-routing/diagnostic columns are intentional earlier additive source fields; two old columns shift ordinals. The view adds no filtering, join, mutation or cross-company resolution. Its invoker behavior and underlying access controls remain separate gates.",
+      "schemaAcceptance": false,
+      "expectedRelationShape": {
+        "nspname": "public",
+        "relname": "ediel_unresolved_messages",
+        "relkind": "v",
+        "relrowsecurity": false,
+        "relforcerowsecurity": false,
+        "reloptions": [
+          "security_invoker=true"
+        ],
+        "partition_key": null
+      },
+      "observedFullReferenceRow": null,
+      "observedFullReplayRow": null,
+      "observedFullRowsReconstructed": false,
+      "referenceDefinitionSource": {
+        "path": "supabase/schema.sql",
+        "startLine": 58747,
+        "endLine": 58774,
+        "query": " SELECT id,\n    company_id,\n    source_message_id,\n    issue_type,\n    severity,\n    extracted_identifiers,\n    suggested_matches,\n    status,\n    assigned_to,\n    resolved_by,\n    resolved_at,\n    created_at,\n    environment,\n    inbound_email_message_id,\n    ediel_message_id,\n    reason,\n    resolution_status,\n    candidate_company_ids,\n    parsed_sender_ediel_id,\n    parsed_receiver_ediel_id,\n    parsed_subaddress,\n    message_family,\n    message_code,\n    raw_payload,\n    created_by,\n    updated_at\n   FROM public.ediel_unresolved_items",
+        "querySha256": "cc61b0465fc9429f84088fb161ee74d6cdbdea769c0ed2d5953a40858358bce3",
+        "format": "PG_DUMP_SOURCE_NOT_RUNTIME_PG_GET_VIEWDEF_TRUE"
+      },
+      "sourceQuery": {
+        "path": "supabase/migrations/20260605160000_ediel_backend_automation_foundation.sql",
+        "declarationLine": 336,
+        "query": "select * from public.ediel_unresolved_items",
+        "queryBytes": 43,
+        "querySha256": "22623be478ff2ae51cb25dd62231f2269fcbffabbc1474b1543483b3c01c5bfb",
+        "extraction": "Literal query shared by absent-view and existing-view guarded EXECUTE branches; existing ordinary source table required.",
+        "publicDependencies": [
+          "ediel_unresolved_items"
+        ]
+      },
+      "callerEvidence": [],
+      "callerSearchScope": "app and lib exact relation-name search; no direct caller found",
+      "columns": {
+        "added": [
+          {
+            "identity": [
+              "public",
+              "ediel_unresolved_messages",
+              "raw_interchange_reference"
+            ],
+            "sha256": "713dc1ea9e7c003db60c070a99e84eee09fa38278f029db2f6d95212532bcbf2"
+          },
+          {
+            "identity": [
+              "public",
+              "ediel_unresolved_messages",
+              "raw_message_type"
+            ],
+            "sha256": "01e225aa9bb3e145fd66436e2237662679155ee95dfd55395fa76a511d6e8b33"
+          },
+          {
+            "identity": [
+              "public",
+              "ediel_unresolved_messages",
+              "raw_receiver"
+            ],
+            "sha256": "1696a4537d2e8f0a7da40e073874b5e8602c38faf6f5a40b9b6fce4ff5d88b2d"
+          },
+          {
+            "identity": [
+              "public",
+              "ediel_unresolved_messages",
+              "raw_sender"
+            ],
+            "sha256": "13cc4b8a963891ad7b4de0537738f19dfbb455fa83031e3467069a1c9197b266"
+          },
+          {
+            "identity": [
+              "public",
+              "ediel_unresolved_messages",
+              "suggested_company_id"
+            ],
+            "sha256": "f0e59147f374902dc31154fac7b1de6a3ad639366ea71441afe64aefaff36099"
+          }
+        ],
+        "changed": [
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "ediel_unresolved_messages",
+              "created_by"
+            ],
+            "referenceSha256": "c7889cb8b672823a667a639e8911600e080a90cde4cb172d3330749b0f8b982e",
+            "replaySha256": "a97a15cbfa17155408835eff7f54781425b8603cf8384ad1f9b370282ac22963"
+          },
+          {
+            "fields": [
+              "attnum"
+            ],
+            "identity": [
+              "public",
+              "ediel_unresolved_messages",
+              "updated_at"
+            ],
+            "referenceSha256": "0c088928f0e95e1d70c6fff21a89409d618e48b47428bd056818fed1042373e2",
+            "replaySha256": "e6c784367d5da51b70b90bde8a2d655dd0331c39667a2c005c7d070d51b3a22d"
+          }
+        ],
+        "removed": []
+      },
+      "relationGrantDeltaCount": 0,
+      "runtimeRequirements": [
+        "EXACT_SOURCE_WITNESS",
+        "COMPLETE_RELATION_SHAPE",
+        "RETAINED_REFERENCE_UNCHANGED",
+        "SEPARATE_ACCESS_AND_DEPENDENCY_GATES",
+        "FINAL_CLEANED_NATIVE_SCHEMA_GATE"
+      ]
+    },
+    {
+      "ordinal": 5,
+      "fields": [
+        "view_definition"
+      ],
+      "identity": [
+        "public",
+        "platform_go_live_readiness_v"
+      ],
+      "referenceSha256": "4e8e80b86a9b99bb77762f2c488381142032d7481dc4afe4b6a7ad442d750ff5",
+      "replaySha256": "949f5f409c90bb3c05257b4a71c33b047e5f5aad77f95277fa60f96bb56e5623",
+      "decision": "PRESERVE_SOURCE_PLATFORM_READINESS_PROJECTION",
+      "sourceIntentReviewed": true,
+      "intent": "Preserve company-scoped production actor/BRP/route/legal/sender existence decisions and the exact route-resolver call. The lateral SELECT * expansions are internal: the explicit public output signature has no observed change. Preserve the July9 service-only invoker hardening; no authenticated read grant is proposed.",
+      "schemaAcceptance": false,
+      "expectedRelationShape": {
+        "nspname": "public",
+        "relname": "platform_go_live_readiness_v",
+        "relkind": "v",
+        "relrowsecurity": false,
+        "relforcerowsecurity": false,
+        "reloptions": [
+          "security_invoker=true"
+        ],
+        "partition_key": null
+      },
+      "observedFullReferenceRow": null,
+      "observedFullReplayRow": null,
+      "observedFullRowsReconstructed": false,
+      "referenceDefinitionSource": {
+        "path": "supabase/schema.sql",
+        "startLine": 65503,
+        "endLine": 65623,
+        "query": " SELECT c.id AS company_id,\n    c.name AS company_name,\n    COALESCE(pa.ediel_id, pa.actor_ediel_id, c.production_ediel_id, c.ediel_id) AS ediel_id,\n    b.brp_ediel_id,\n    (EXISTS ( SELECT 1\n           FROM public.ediel_actor_settings a\n          WHERE ((a.company_id = c.id) AND (a.environment = 'production'::text) AND (COALESCE(a.is_active, true) = true) AND (COALESCE(a.ediel_id, a.actor_ediel_id) IS NOT NULL)))) AS has_actor_setting,\n    (EXISTS ( SELECT 1\n           FROM public.ediel_brp_settings brp\n          WHERE ((brp.company_id = c.id) AND (brp.environment = 'production'::text)))) AS has_brp,\n    (EXISTS ( SELECT 1\n           FROM public.ediel_route_profiles r\n          WHERE ((r.company_id = c.id) AND (r.environment = 'production'::text) AND (COALESCE(r.is_enabled, true) = true) AND (COALESCE(r.is_active, true) = true) AND (upper(COALESCE(r.message_family, r.application_reference, ''::text)) = 'PRODAT'::text)))) AS has_prodat_route,\n    (EXISTS ( SELECT 1\n           FROM public.ediel_route_profiles r\n          WHERE ((r.company_id = c.id) AND (r.environment = 'production'::text) AND (COALESCE(r.is_enabled, true) = true) AND (COALESCE(r.is_active, true) = true) AND (upper(COALESCE(r.message_family, r.application_reference, ''::text)) = 'UTILTS'::text)))) AS has_utilts_route,\n    (EXISTS ( SELECT 1\n           FROM public.ediel_mailboxes m\n          WHERE ((m.company_id IS NULL) AND (m.environment = 'production'::text) AND (COALESCE(m.is_active, true) = true)))) AS has_shared_mailbox,\n    (EXISTS ( SELECT 1\n           FROM public.legal_text_versions l\n          WHERE ((l.company_id = c.id) AND (l.type = 'terms'::text) AND (l.status = 'published'::text)))) AS has_terms,\n    (EXISTS ( SELECT 1\n           FROM public.legal_text_versions l\n          WHERE ((l.company_id = c.id) AND (l.type = 'privacy_policy'::text) AND (l.status = 'published'::text)))) AS has_privacy_policy,\n    (EXISTS ( SELECT 1\n           FROM public.legal_text_versions l\n          WHERE ((l.company_id = c.id) AND (l.type = 'withdrawal'::text) AND (l.status = 'published'::text)))) AS has_withdrawal,\n    (EXISTS ( SELECT 1\n           FROM public.legal_text_versions l\n          WHERE ((l.company_id = c.id) AND (l.type = 'power_of_attorney'::text) AND (l.status = 'published'::text)))) AS has_power_of_attorney_text,\n    (EXISTS ( SELECT 1\n           FROM public.legal_text_versions l\n          WHERE ((l.company_id = c.id) AND (l.type = 'price_terms'::text) AND (l.status = 'published'::text)))) AS has_price_terms,\n    (EXISTS ( SELECT 1\n           FROM public.price_plan_versions ppv\n          WHERE ((ppv.company_id = c.id) AND (ppv.status = ANY (ARRAY['active'::text, 'published'::text]))))) AS has_published_contracts,\n    (EXISTS ( SELECT 1\n           FROM public.company_email_settings s\n          WHERE ((s.company_id = c.id) AND (lower(COALESCE(s.verification_status, ''::text)) = ANY (ARRAY['verified'::text, 'completed'::text, 'active'::text]))))) AS has_sender_identity,\n    public.gridex_resolve_ediel_route_for_process(c.id, 'PRODAT'::text, 'supplier_switch'::text, NULL::text, NULL::text) AS prodat_route_decision,\n    now() AS evaluated_at\n   FROM ((public.companies c\n     LEFT JOIN LATERAL ( SELECT a.id,\n            a.company_id,\n            a.actor_name,\n            a.actor_ediel_id,\n            a.actor_role,\n            a.environment,\n            a.is_active,\n            a.sender_name,\n            a.sender_sub_address,\n            a.default_application_reference,\n            a.default_timezone,\n            a.default_charset,\n            a.default_test_flag,\n            a.smtp_from_email,\n            a.smtp_reply_to_email,\n            a.mailbox,\n            a.brp_name,\n            a.brp_ediel_id,\n            a.brp_status,\n            a.esett_status,\n            a.valid_from,\n            a.valid_to,\n            a.notes,\n            a.metadata,\n            a.created_at,\n            a.updated_at,\n            a.created_by,\n            a.updated_by,\n            a.market,\n            a.role,\n            a.ediel_id,\n            a.sender_subaddress,\n            a.receiver_subaddress,\n            a.receiver_sub_address,\n            a.application_reference,\n            a.legal_name,\n            a.organization_number,\n            a.market_roles,\n            a.test_status,\n            a.production_status,\n            a.production_send_lock_enabled,\n            a.first_production_send_approved,\n            a.first_production_message_id,\n            a.approved_by,\n            a.approved_at,\n            a.contact_email,\n            a.operations_contact_email,\n            a.sender_subaddress_prodat,\n            a.sender_subaddress_utilts,\n            a.default_transport_channel,\n            a.transport_profile_id,\n            a.subaddress_required,\n            a.receiver_message_subaddress\n           FROM public.ediel_actor_settings a\n          WHERE ((a.company_id = c.id) AND (a.environment = 'production'::text) AND (COALESCE(a.is_active, true) = true))\n          ORDER BY a.updated_at DESC NULLS LAST, a.created_at DESC NULLS LAST\n         LIMIT 1) pa ON (true))\n     LEFT JOIN LATERAL ( SELECT brp.id,\n            brp.company_id,\n            brp.environment,\n            brp.brp_ediel_id,\n            brp.brp_name,\n            brp.brp_email,\n            brp.brp_phone,\n            brp.contact_person,\n            brp.is_default,\n            brp.valid_from,\n            brp.valid_to,\n            brp.metadata,\n            brp.created_at,\n            brp.updated_at,\n            brp.created_by,\n            brp.updated_by\n           FROM public.ediel_brp_settings brp\n          WHERE ((brp.company_id = c.id) AND (brp.environment = 'production'::text))\n          ORDER BY brp.is_default DESC NULLS LAST, brp.updated_at DESC NULLS LAST, brp.created_at DESC NULLS LAST\n         LIMIT 1) b ON (true))",
+        "querySha256": "4bd6fa71aeeb93a9e96631e4fb9ce4eba7b0eac78e0193c2cdf2c2e82c09083b",
+        "format": "PG_DUMP_SOURCE_NOT_RUNTIME_PG_GET_VIEWDEF_TRUE"
+      },
+      "sourceQuery": {
+        "path": "supabase/migrations/20260615203000_platform_go_live_route_resolver_message_center.sql",
+        "declarationLine": 194,
+        "query": "select\n  c.id as company_id,\n  c.name as company_name,\n  coalesce(pa.ediel_id, pa.actor_ediel_id, c.production_ediel_id, c.ediel_id) as ediel_id,\n  b.brp_ediel_id,\n  exists (\n    select 1 from public.ediel_actor_settings a\n    where a.company_id = c.id and a.environment = 'production' and coalesce(a.is_active, true) = true and coalesce(a.ediel_id, a.actor_ediel_id) is not null\n  ) as has_actor_setting,\n  exists (\n    select 1 from public.ediel_brp_settings brp\n    where brp.company_id = c.id and brp.environment = 'production'\n  ) as has_brp,\n  exists (\n    select 1 from public.ediel_route_profiles r\n    where r.company_id = c.id and r.environment = 'production' and coalesce(r.is_enabled, true) = true and coalesce(r.is_active, true) = true and upper(coalesce(r.message_family, r.application_reference, '')) = 'PRODAT'\n  ) as has_prodat_route,\n  exists (\n    select 1 from public.ediel_route_profiles r\n    where r.company_id = c.id and r.environment = 'production' and coalesce(r.is_enabled, true) = true and coalesce(r.is_active, true) = true and upper(coalesce(r.message_family, r.application_reference, '')) = 'UTILTS'\n  ) as has_utilts_route,\n  exists (\n    select 1 from public.ediel_mailboxes m\n    where m.company_id is null and m.environment = 'production' and coalesce(m.is_active, true) = true\n  ) as has_shared_mailbox,\n  exists (select 1 from public.legal_text_versions l where l.company_id = c.id and l.type = 'terms' and l.status = 'published') as has_terms,\n  exists (select 1 from public.legal_text_versions l where l.company_id = c.id and l.type = 'privacy_policy' and l.status = 'published') as has_privacy_policy,\n  exists (select 1 from public.legal_text_versions l where l.company_id = c.id and l.type = 'withdrawal' and l.status = 'published') as has_withdrawal,\n  exists (select 1 from public.legal_text_versions l where l.company_id = c.id and l.type = 'power_of_attorney' and l.status = 'published') as has_power_of_attorney_text,\n  exists (select 1 from public.legal_text_versions l where l.company_id = c.id and l.type = 'price_terms' and l.status = 'published') as has_price_terms,\n  exists (\n    select 1 from public.price_plan_versions ppv\n    where ppv.company_id = c.id and ppv.status in ('active','published')\n  ) as has_published_contracts,\n  exists (\n    select 1 from public.company_email_settings s\n    where s.company_id = c.id\n      and lower(coalesce(s.verification_status, '')) in ('verified','completed','active')\n  ) as has_sender_identity,\n  public.gridex_resolve_ediel_route_for_process(c.id, 'PRODAT', 'supplier_switch', null, null) as prodat_route_decision,\n  now() as evaluated_at\nfrom public.companies c\nleft join lateral (\n  select * from public.ediel_actor_settings a\n  where a.company_id = c.id and a.environment = 'production' and coalesce(a.is_active, true) = true\n  order by a.updated_at desc nulls last, a.created_at desc nulls last\n  limit 1\n) pa on true\nleft join lateral (\n  select * from public.ediel_brp_settings brp\n  where brp.company_id = c.id and brp.environment = 'production'\n  order by brp.is_default desc nulls last, brp.updated_at desc nulls last, brp.created_at desc nulls last\n  limit 1\n) b on true",
+        "queryBytes": 3179,
+        "querySha256": "2cd66dcbe0c186941735eed867f166b0d001796d417b1fae8fa750764db92a46",
+        "extraction": "Exact CREATE query bytes between AS whitespace and terminal semicolon; no query rewriting.",
+        "publicDependencies": [
+          "companies",
+          "company_email_settings",
+          "ediel_actor_settings",
+          "ediel_brp_settings",
+          "ediel_mailboxes",
+          "ediel_route_profiles",
+          "gridex_resolve_ediel_route_for_process",
+          "legal_text_versions",
+          "price_plan_versions"
+        ]
+      },
+      "callerEvidence": [
+        "lib/ediel/platformGoLive.ts"
+      ],
+      "callerSearchScope": "Listed direct service-client consumers; not exhaustive server-action authorization",
+      "columns": {
+        "added": [],
+        "changed": [],
+        "removed": []
+      },
+      "relationGrantDeltaCount": 0,
+      "runtimeRequirements": [
+        "EXACT_SOURCE_WITNESS",
+        "COMPLETE_RELATION_SHAPE",
+        "RETAINED_REFERENCE_UNCHANGED",
+        "SEPARATE_ACCESS_AND_DEPENDENCY_GATES",
+        "FINAL_CLEANED_NATIVE_SCHEMA_GATE"
+      ]
+    }
+  ]
+}

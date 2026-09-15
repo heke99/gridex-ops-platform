@@ -1,0 +1,1300 @@
+{
+  "status": "CATALOG_OBSERVED_BEHAVIOR_UNVERIFIED",
+  "observed_on": "2026-09-09",
+  "project_id": "piidsfebjqjmnepdpnas",
+  "runtime_database_binding": "UNVERIFIED",
+  "scope": "Primary keys and company_id shape for 100 direct-FK child tables of public.customers. Nullable/missing company_id is not independently a defect; structural ownership classification is required. No row reads or mutations.",
+  "tables": [
+    {
+      "child": "ai_list_import_rows",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "ai_list_import_rows_pkey"
+        }
+      ]
+    },
+    {
+      "child": "authorization_scopes",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "authorization_scopes_pkey"
+        }
+      ]
+    },
+    {
+      "child": "billing_disputes",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "billing_disputes_pkey"
+        }
+      ]
+    },
+    {
+      "child": "billing_export_run_items",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "billing_export_run_items_pkey"
+        }
+      ]
+    },
+    {
+      "child": "billing_partner_customers",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "billing_partner_customers_pkey"
+        }
+      ]
+    },
+    {
+      "child": "billing_underlay_items",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "billing_underlay_items_pkey"
+        }
+      ]
+    },
+    {
+      "child": "billing_underlays",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "billing_underlays_pkey"
+        }
+      ]
+    },
+    {
+      "child": "canonical_energy_flow_events",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "canonical_energy_flow_events_pkey"
+        }
+      ]
+    },
+    {
+      "child": "communication_logs",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "communication_logs_pkey"
+        }
+      ]
+    },
+    {
+      "child": "contract_price_snapshots",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "contract_price_snapshots_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_addresses",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_addresses_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_application_intakes",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_application_intakes_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_application_workflows",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_application_workflows_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_authorization_documents",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_authorization_documents_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_blockers",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_blockers_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_case_events",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_case_events_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_cases",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_cases_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_communications",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_communications_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_contacts",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_contacts_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_contract_events",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_contract_events_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_contract_signature_requests",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_contract_signature_requests_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_contracts",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_contracts_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_correction_requests",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_correction_requests_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_data_tasks",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_data_tasks_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_documents",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_documents_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_duplicate_resolution_events",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_duplicate_resolution_events_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_events",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_events_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_external_auth_links",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_external_auth_links_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_import_rows",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_import_rows_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_info_request_events",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_info_request_events_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_info_requests",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_info_requests_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_internal_notes",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_internal_notes_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_invoices",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_invoices_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_legal_acceptances",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_legal_acceptances_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_lifecycle_decisions",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_lifecycle_decisions_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_lifecycle_events",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_lifecycle_events_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_match_review_cases",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_match_review_cases_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_merge_events",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_merge_events_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_monthly_metrics",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_monthly_metrics_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_notes",
+      "company_column": null,
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_notes_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_notifications",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_notifications_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_onboarding_applications",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_onboarding_applications_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_onboarding_legal_snapshots",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_onboarding_legal_snapshots_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_operation_events",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_operation_events_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_operation_jobs",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_operation_jobs_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_operation_request_snapshots",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_operation_request_snapshots_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_operation_tasks",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_operation_tasks_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_portal_accounts",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_portal_accounts_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_portal_api_access_logs",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_portal_api_access_logs_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_portal_claims",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_portal_claims_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_portal_completions",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_portal_completions_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_portal_events",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_portal_events_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_portal_identities",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_portal_identities_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_portal_requests",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_portal_requests_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_readiness_snapshots",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_readiness_snapshots_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_site_address_conflicts",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_site_address_conflicts_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_site_address_history",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_site_address_history_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_site_resolution",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_site_resolution_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_sites",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_sites_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_supply_periods",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_supply_periods_pkey"
+        }
+      ]
+    },
+    {
+      "child": "customer_sync_events",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "customer_sync_events_pkey"
+        }
+      ]
+    },
+    {
+      "child": "data_quality_findings",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "data_quality_findings_pkey"
+        }
+      ]
+    },
+    {
+      "child": "document_ai_extractions",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "document_ai_extractions_pkey"
+        }
+      ]
+    },
+    {
+      "child": "document_parse_jobs",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "document_parse_jobs_pkey"
+        }
+      ]
+    },
+    {
+      "child": "domain_events",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "domain_events_pkey"
+        }
+      ]
+    },
+    {
+      "child": "ediel_business_errors",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "ediel_business_errors_pkey"
+        }
+      ]
+    },
+    {
+      "child": "ediel_business_references",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "ediel_business_references_pkey"
+        }
+      ]
+    },
+    {
+      "child": "ediel_inbound_cases",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "ediel_inbound_cases_pkey"
+        }
+      ]
+    },
+    {
+      "child": "ediel_masterdata_reconciliation_items",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "ediel_masterdata_reconciliation_items_pkey"
+        }
+      ]
+    },
+    {
+      "child": "ediel_message_intents",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "ediel_message_intents_pkey"
+        }
+      ]
+    },
+    {
+      "child": "ediel_messages",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "ediel_messages_pkey"
+        }
+      ]
+    },
+    {
+      "child": "ediel_permission_cases",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "ediel_permission_cases_pkey"
+        }
+      ]
+    },
+    {
+      "child": "ediel_test_runs",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "ediel_test_runs_pkey"
+        }
+      ]
+    },
+    {
+      "child": "energy_service_permissions",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "energy_service_permissions_pkey"
+        }
+      ]
+    },
+    {
+      "child": "facility_data_quality_issues",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "facility_data_quality_issues_pkey"
+        }
+      ]
+    },
+    {
+      "child": "forecast_run_items",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "forecast_run_items_pkey"
+        }
+      ]
+    },
+    {
+      "child": "grid_owner_data_requests",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "grid_owner_data_requests_pkey"
+        }
+      ]
+    },
+    {
+      "child": "grid_owner_information_requests",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "grid_owner_information_requests_pkey"
+        }
+      ]
+    },
+    {
+      "child": "invoice_export_items",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "invoice_export_items_pkey"
+        }
+      ]
+    },
+    {
+      "child": "manual_inbound_messages",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "manual_inbound_messages_pkey"
+        }
+      ]
+    },
+    {
+      "child": "metering_period_gaps",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "metering_period_gaps_pkey"
+        }
+      ]
+    },
+    {
+      "child": "metering_permission_sites",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "metering_permission_sites_pkey"
+        }
+      ]
+    },
+    {
+      "child": "metering_permissions",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "metering_permissions_pkey"
+        }
+      ]
+    },
+    {
+      "child": "metering_points",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "metering_points_pkey"
+        }
+      ]
+    },
+    {
+      "child": "metering_requirements",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "metering_requirements_pkey"
+        }
+      ]
+    },
+    {
+      "child": "metering_values",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "metering_values_pkey"
+        }
+      ]
+    },
+    {
+      "child": "normalized_metering_values",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "normalized_metering_values_pkey"
+        }
+      ]
+    },
+    {
+      "child": "outbound_requests",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "outbound_requests_pkey"
+        }
+      ]
+    },
+    {
+      "child": "partner_exports",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "partner_exports_pkey"
+        }
+      ]
+    },
+    {
+      "child": "platform_customer_relationship_observations",
+      "company_column": null,
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "platform_customer_relationship_observations_pkey"
+        }
+      ]
+    },
+    {
+      "child": "power_of_attorney_scopes",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "power_of_attorney_scopes_pkey"
+        }
+      ]
+    },
+    {
+      "child": "powers_of_attorney",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "powers_of_attorney_pkey"
+        }
+      ]
+    },
+    {
+      "child": "pricing_runs",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "pricing_runs_pkey"
+        }
+      ]
+    },
+    {
+      "child": "route_decision_logs",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "route_decision_logs_pkey"
+        }
+      ]
+    },
+    {
+      "child": "sites",
+      "company_column": null,
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "sites_pkey"
+        }
+      ]
+    },
+    {
+      "child": "supplier_switch_requests",
+      "company_column": {
+        "not_null": false,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "supplier_switch_requests_pkey"
+        }
+      ]
+    },
+    {
+      "child": "tenant_email_outbox",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "tenant_email_outbox_pkey"
+        }
+      ]
+    },
+    {
+      "child": "tenant_portal_customer_links",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "tenant_portal_customer_links_pkey"
+        }
+      ]
+    },
+    {
+      "child": "website_application_review_items",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "website_application_review_items_pkey"
+        }
+      ]
+    },
+    {
+      "child": "website_customer_applications",
+      "company_column": {
+        "not_null": true,
+        "type": "uuid"
+      },
+      "primary_keys": [
+        {
+          "definition": "PRIMARY KEY (id)",
+          "name": "website_customer_applications_pkey"
+        }
+      ]
+    }
+  ]
+}

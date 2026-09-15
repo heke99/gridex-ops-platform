@@ -38,17 +38,34 @@ function text(body: Record<string, unknown>, ...keys: string[]): string | null {
   return null
 }
 
-function numeric(body: Record<string, unknown>, ...keys: string[]): number | null {
-  for (const key of keys) {
-    const value = body[key]
-    if (value === null || value === undefined || value === '') continue
-    const parsed =
-      typeof value === 'number'
-        ? value
-        : Number(String(value).replace(',', '.'))
-    if (Number.isFinite(parsed)) return parsed
+function positiveConsumption(body: Record<string, unknown>): number {
+  const value = body.annual_consumption_kwh
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    throw new OfferQuoteError(
+      'Årsförbrukning måste vara större än 0.',
+      'invalid_quote_input',
+      400,
+      'annual_consumption_kwh',
+    )
   }
-  return null
+  return value
+}
+
+function positiveSiteCount(body: Record<string, unknown>): number {
+  const value = body.site_count
+  if (
+    typeof value !== 'number' ||
+    !Number.isSafeInteger(value) ||
+    value < 1
+  ) {
+    throw new OfferQuoteError(
+      'site_count måste vara ett heltal större än 0.',
+      'invalid_site_count',
+      400,
+      'site_count',
+    )
+  }
+  return value
 }
 
 function stringArray(body: Record<string, unknown>, key: string): string[] {
@@ -194,6 +211,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const annualConsumptionKwh = positiveConsumption(body)
+    const siteCount = positiveSiteCount(body)
     const invoiceDeliveryMethod = text(body, 'invoice_delivery_method')
     if (
       !invoiceDeliveryMethod ||
@@ -213,8 +232,7 @@ export async function POST(request: NextRequest) {
       resolution_id: text(body, 'resolution_id'),
       offer_reference: text(body, 'offer_reference') ?? '',
       customer_type: text(body, 'customer_type'),
-      annual_consumption_kwh:
-        numeric(body, 'annual_consumption_kwh') ?? Number.NaN,
+      annual_consumption_kwh: annualConsumptionKwh,
       start_date: text(body, 'start_date'),
       price_option_reference: text(body, 'price_option_reference'),
       invoice_delivery_method:
@@ -223,7 +241,7 @@ export async function POST(request: NextRequest) {
         body,
         'selected_component_references',
       ),
-      site_count: numeric(body, 'site_count') ?? Number.NaN,
+      site_count: siteCount,
     }
 
     const claim = await claimIntegrationWriteIdempotency({

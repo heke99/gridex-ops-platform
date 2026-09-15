@@ -1,0 +1,50 @@
+name: Gridex native clone preflight
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-native-clone-preflight.yml'
+      - 'scripts/canonical-native-clone-preflight.py'
+      - 'scripts/canonical-native-supabase-lifecycle.py'
+      - 'scripts/canonical_native_timestamp_proof.py'
+      - 'scripts/canonical_native_clone_quiesce.py'
+      - 'scripts/test-canonical-native-clone-quiesce.py'
+      - 'scripts/canonical_native_typegen_preflight.py'
+      - 'scripts/test-canonical-native-typegen-preflight.py'
+      - 'scripts/test-canonical-native-timestamp-proof.py'
+      - 'scripts/canonical_native_live_sync_preflight.py'
+      - 'scripts/test-canonical-native-live-sync-preflight.py'
+permissions:
+  contents: read
+concurrency:
+  group: gridex-native-clone-preflight-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  owned-native-clone:
+    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/gridex-parity-remediation-20260905'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Verify owned clone and privacy rejection controls
+        run: |
+          python3 -B scripts/test-canonical-native-timestamp-proof.py
+          python3 -B scripts/test-canonical-native-clone-quiesce.py
+          python3 -B scripts/test-canonical-native-typegen-preflight.py
+          python3 -B scripts/test-canonical-native-live-sync-preflight.py
+          python3 -B scripts/canonical-native-supabase-lifecycle-selftest.py
+          python3 -B scripts/test-canonical-native-clone-preflight.py
+      - name: Qualify actual native clone before historical replay
+        run: python3 -B scripts/canonical-native-clone-preflight.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gridex-native-clone-preflight
+          path: artifacts/native-supabase-lifecycle.json
+          retention-days: 2
+          if-no-files-found: error

@@ -1,0 +1,35 @@
+{
+  "status": "OBSERVED_CURRENT_SEQUENCE_CONFIGURATION_AS_TEXT",
+  "project_id": "piidsfebjqjmnepdpnas",
+  "project_name": "gridex-ops-dev",
+  "runtime_binding": "UNPROVED",
+  "query": "select jsonb_build_object('observed_at',clock_timestamp(),'database',current_database(),'server_version',current_setting('server_version'),'ledger',(select jsonb_build_object('count',count(*),'tail',max(version)) from supabase_migrations.schema_migrations),'sequence',(select jsonb_build_object('oid',c.oid,'schema',n.nspname,'name',c.relname,'owner',pg_get_userbyid(c.relowner),'acl',c.relacl::text,'type_oid',s.seqtypid,'start',s.seqstart::text,'increment',s.seqincrement::text,'min',s.seqmin::text,'max',s.seqmax::text,'cache',s.seqcache::text,'cycle',s.seqcycle) from pg_class c join pg_namespace n on n.oid=c.relnamespace join pg_sequence s on s.seqrelid=c.oid where n.nspname='public' and c.relname='customer_number_seq')) as catalog_receipt;",
+  "catalog": {
+    "ledger": {
+      "tail": "20260904222450",
+      "count": 279
+    },
+    "database": "postgres",
+    "sequence": {
+      "acl": "{postgres=rwU/postgres,anon=rwU/postgres,authenticated=rwU/postgres,service_role=rwU/postgres}",
+      "max": "9223372036854775807",
+      "min": "1",
+      "oid": "33827",
+      "name": "customer_number_seq",
+      "cache": "1",
+      "cycle": false,
+      "owner": "postgres",
+      "start": "100000",
+      "schema": "public",
+      "type_oid": "20",
+      "increment": "1"
+    },
+    "observed_at": "2026-09-12T10:02:49.555187+00:00",
+    "server_version": "17.6"
+  },
+  "boundaries": [
+    "Every pg_sequence bigint configuration value cast to text in SQL before transport; no bigint JSON precision loss.",
+    "No current sequence value, is_called, last_value, nextval, currval or setval was read or invoked.",
+    "Separate later observation, not a rewritten timestamp for the wave2 catalog; only configuration metadata, not production or native acceptance."
+  ]
+}

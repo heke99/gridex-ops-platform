@@ -1,3 +1,5 @@
+import { readAdminJson } from '@/lib/http/adminJsonRequest'
+import { spotSettlementSchema } from '@/lib/admin/internalJsonSchemas'
 import { randomUUID } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
@@ -31,12 +33,20 @@ function knownLockError(error: unknown): { status: number; errorCode: string; me
 export async function POST(request: Request) {
   const correlationId = randomUUID()
   const access = await requireAdminApiAccess(['pricing.write'])
-  if ('response' in access) return access.response
+  if (access.response) return access.response
   const guard = access.guard
 
   try {
     await requireOperationalCompanyId(guard.userId)
-    const body = await request.json().catch(() => ({})) as Record<string, unknown>
+    const input = await readAdminJson(request, spotSettlementSchema)
+    if (!input.ok) {
+      const errorCode = input.code === 'invalid_request'
+        ? (input.field === 'price_area' || input.field === 'priceArea' ? 'invalid_price_area'
+          : input.field === 'billing_month' || input.field === 'billingMonth' ? 'invalid_spot_settlement_period' : input.code)
+        : input.code
+      return NextResponse.json({ error: input.error, error_code: errorCode, correlation_id: correlationId, retryable: false }, { status: input.status })
+    }
+    const body = input.data
     const billingMonth = typeof body.billing_month === 'string' ? body.billing_month.trim() : typeof body.billingMonth === 'string' ? body.billingMonth.trim() : ''
     const priceArea = typeof body.price_area === 'string' ? body.price_area.trim().toUpperCase() : typeof body.priceArea === 'string' ? body.priceArea.trim().toUpperCase() : ''
     const provider = typeof body.provider === 'string' && body.provider.trim() ? body.provider.trim().toLowerCase() : 'elprisetjustnu'

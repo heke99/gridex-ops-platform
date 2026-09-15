@@ -1,3 +1,4 @@
+import { underlayValidationErrors } from '@/lib/billing/underlayEvidence'
 import { createHash, randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
@@ -51,7 +52,7 @@ async function loadUnderlays(companyId: string, billingMonth: string) {
   for (let from = 0; ; from += 1_000) {
     const result = await supabaseService
       .from('billing_underlays')
-      .select('id,company_id,customer_id,site_id,customer_site_id,metering_point_id,contract_id,customer_contract_id,underlay_year,underlay_month,status,readiness_status,total_kwh,currency,billing_period_start,billing_period_end,missing_values_count,source_meter_value_count,price_area,pricing_snapshot_id,contract_price_snapshot_id,price_plan_id,price_plan_version_id,billing_block_reason,billing_configuration_snapshot_sha256,portfolio_id,portfolio_monthly_settlement_id,portfolio_settlement_revision,portfolio_settlement_sha256,vat_rate,energy_direction,settlement_type')
+      .select('id,company_id,customer_id,site_id,customer_site_id,metering_point_id,contract_id,customer_contract_id,underlay_year,underlay_month,status,readiness_status,readiness_issues,total_kwh,currency,billing_period_start,billing_period_end,missing_values_count,source_meter_value_count,price_area,pricing_snapshot_id,contract_price_snapshot_id,price_plan_id,price_plan_version_id,billing_block_reason,billing_configuration_snapshot_sha256,portfolio_id,portfolio_monthly_settlement_id,portfolio_settlement_revision,portfolio_settlement_sha256,vat_rate,energy_direction,settlement_type')
       .eq('company_id', companyId)
       .eq('underlay_year', year)
       .eq('underlay_month', month)
@@ -447,7 +448,7 @@ export async function prepareInvoiceDraftsForReview(input: {
 
   const underlayIds = underlays.map((row) => text(row.id)).filter((value): value is string => Boolean(value))
   const reservedUnderlays = await loadExistingUnderlayIds(input.companyId, underlayIds)
-  const ready = underlays.filter((row) => row.status === 'validated' && row.readiness_status === 'ready' && !reservedUnderlays.has(String(row.id)))
+  const ready = underlays.filter((row) => underlayValidationErrors(row).length === 0 && !reservedUnderlays.has(String(row.id)))
   const contractIds = Array.from(new Set(ready.map((row) => text(row.customer_contract_id) ?? text(row.contract_id)).filter((value): value is string => Boolean(value))))
   const contracts = await loadContracts(input.companyId, contractIds)
   let created = 0
@@ -476,7 +477,7 @@ export async function prepareInvoiceDraftsForReview(input: {
   for (let offset = 0; offset < jobs.length; offset += 10) {
     await Promise.all(jobs.slice(offset, offset + 10).map((run) => run()))
   }
-  const blocked = underlays.filter((row) => row.status !== 'validated' || row.readiness_status !== 'ready').length
+  const blocked = underlays.filter((row) => underlayValidationErrors(row).length > 0).length
   return {
     billingMonth: input.billingMonth,
     scope: {

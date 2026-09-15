@@ -21,6 +21,7 @@ const { createHash } = require('node:crypto')
 const { spawnSync } = require('node:child_process')
 const { existsSync, mkdirSync, readFileSync, writeFileSync } = require('node:fs')
 const { join, resolve } = require('node:path')
+const { validateSchemaDocument } = require('./gridex-schema-document.cjs')
 
 const ROOT = resolve(__dirname, '..')
 const INTROSPECT_SQL = join(ROOT, 'scripts/sql/gridex-db-parity-introspect.sql')
@@ -62,30 +63,7 @@ function run(command, commandArgs, label) {
   return result.stdout
 }
 
-const RESTRICT_TOKEN = 'gridex_canonical_schema_snapshot'
-
-/**
- * Two things in a plain pg_dump vary between runs of the same schema and carry
- * no schema information:
- *
- *   - the header banner naming the server and pg_dump versions, which differs
- *     between a CI shadow and any other machine;
- *   - the \restrict / \unrestrict psql guard tokens, which pg_dump randomizes
- *     on every invocation.
- *
- * The banner lines are dropped. The guard tokens are rewritten to one fixed
- * value rather than removed, so the artifact stays byte-stable and still a
- * valid psql script.
- */
-function normalizeDump(dump) {
-  return `${dump
-    .split('\n')
-    .filter((line) => !/^-- Dumped (from database version|by pg_dump version)/.test(line))
-    .map((line) => line.replace(/^\\(restrict|unrestrict)\s+\S+$/, `\\$1 ${RESTRICT_TOKEN}`))
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()}\n`
-}
+const { normalizeDump } = require('./gridex-schema-dump.cjs')
 
 function canonicalJson(value) {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`
@@ -142,6 +120,7 @@ function generate(url, schemas) {
       'schema introspection',
     ),
   )
+  validateSchemaDocument(introspection, schemas)
   return { dump, fingerprint: buildFingerprint(introspection, schemas) }
 }
 

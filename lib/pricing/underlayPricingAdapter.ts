@@ -1,3 +1,4 @@
+import { loadPricingRunEvidence } from "@/lib/billing/underlayEvidence";
 import { supabaseService } from "@/lib/supabase/service";
 import { calculatePricingPreviewForUnderlay } from "@/lib/pricing/engine";
 
@@ -184,33 +185,14 @@ export async function loadLockedUnderlayPricingWithCore(input: {
   if (runError && runError.code !== "PGRST116") throw runError;
   if (!run) return null;
 
-  const [
-    { data: lines, error: lineError },
-    { data: evidence, error: evidenceError },
-    { data: underlay, error: underlayError },
-  ] = await Promise.all([
-    supabaseService
-      .from("pricing_preview_lines")
-      .select("*")
-      .eq("company_id", input.companyId)
-      .eq("pricing_run_id", run.id)
+  const [{ data: lines, error: lineError }, validated] = await Promise.all([
+    supabaseService.from("pricing_preview_lines").select("*")
+      .eq("company_id", input.companyId).eq("pricing_run_id", run.id)
       .order("sort_order", { ascending: true }),
-    supabaseService
-      .from("pricing_interval_evidence")
-      .select("*")
-      .eq("company_id", input.companyId)
-      .eq("pricing_run_id", run.id)
-      .order("metering_interval_start", { ascending: true }),
-    supabaseService
-      .from("billing_underlays")
-      .select("energy_direction,settlement_type")
-      .eq("company_id", input.companyId)
-      .eq("id", input.billingUnderlayId)
-      .single(),
+    loadPricingRunEvidence({ ...input, pricingRunId: String(run.id) }),
   ]);
   if (lineError) throw lineError;
-  if (evidenceError) throw evidenceError;
-  if (underlayError) throw underlayError;
+  const { evidence, underlay } = validated;
 
   const warnings = Array.isArray(run.warnings) ? run.warnings.map(String) : [];
   const errors = Array.isArray(run.errors) ? run.errors.map(String) : [];

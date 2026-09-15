@@ -41,11 +41,34 @@ function text(body: Record<string, unknown>, key: string): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
-function numeric(body: Record<string, unknown>, key: string): number | null {
-  const value = body[key]
-  if (value === null || value === undefined || value === '') return null
-  const parsed = typeof value === 'number' ? value : Number(String(value).replace(',', '.'))
-  return Number.isFinite(parsed) ? parsed : null
+function positiveConsumption(body: Record<string, unknown>): number {
+  const value = body.annual_consumption_kwh
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    throw new WebsiteQuoteValidationError({
+      message: 'annual_consumption_kwh måste vara ett tal större än 0.',
+      code: 'invalid_quote_assertion',
+      status: 400,
+      field: 'annual_consumption_kwh',
+    })
+  }
+  return value
+}
+
+function positiveSiteCount(body: Record<string, unknown>): number {
+  const value = body.site_count
+  if (
+    typeof value !== 'number' ||
+    !Number.isSafeInteger(value) ||
+    value < 1
+  ) {
+    throw new WebsiteQuoteValidationError({
+      message: 'site_count måste vara ett heltal större än 0.',
+      code: 'invalid_quote_assertion',
+      status: 400,
+      field: 'site_count',
+    })
+  }
+  return value
 }
 
 function stringArray(
@@ -177,6 +200,8 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       )
     }
+    const annualConsumptionKwh = positiveConsumption(body)
+    const siteCount = positiveSiteCount(body)
     const quoteReference = text(body, 'quote_reference') ?? ''
     const offerReference = text(body, 'offer_reference') ?? ''
     const normalizedCustomerType = normalizeExternalCustomerType(text(body, 'customer_type'))
@@ -222,7 +247,7 @@ export async function POST(request: NextRequest) {
       resolutionId: text(body, 'resolution_id'),
       gridAreaCode: text(body, 'grid_area_code'),
       postalCode: text(body, 'postal_code'),
-      annualConsumptionKwh: numeric(body, 'annual_consumption_kwh'),
+      annualConsumptionKwh,
       startDate: text(body, 'start_date'),
       applicationId,
       priceOptionReference: text(body, 'price_option_reference'),
@@ -231,7 +256,7 @@ export async function POST(request: NextRequest) {
         body,
         'selected_component_references',
       ),
-      siteCount: numeric(body, 'site_count'),
+      siteCount,
     })
 
     await logIntegrationApiRequest({

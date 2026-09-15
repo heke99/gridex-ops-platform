@@ -1,0 +1,53 @@
+name: Gridex portable final invariant diagnostic
+
+on:
+  push:
+    branches:
+      - codex/ediel-masterplan-v2-alignment-20260915
+    paths:
+      - '.github/workflows/gridex-portable-invariants.yml'
+      - 'scripts/canonical-portable-invariants-diagnostic.py'
+      - 'scripts/test-canonical-portable-invariants.py'
+      - 'scripts/canonical_forward_sources.py'
+      - 'scripts/canonical_forward_portable.py'
+      - 'scripts/test-canonical-forward-portable.py'
+      - 'scripts/canonical_native_forward_runtime.py'
+      - 'scripts/canonical_native_final_sql.py'
+      - 'scripts/sql/tenant-isolation-invariants.sql'
+      - 'supabase/migrations/**'
+
+permissions:
+  contents: read
+
+jobs:
+  owned-portable-final-sql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify selection, closed diagnostics and failure propagation
+        run: |
+          python3 scripts/canonical-foundation-frontier-selftest.py
+          python3 scripts/canonical-timestamp-frontier-selftest.py
+          python3 scripts/test-canonical-forward-portable.py
+          python3 scripts/test-canonical-native-final-sql.py
+          python3 scripts/test-canonical-portable-invariants.py
+      - name: Execute selected 144 plus 514 plus forwards and pinned final SQL
+        run: python3 scripts/canonical-portable-invariants-diagnostic.py
+      - name: Remove only this diagnostic's owned container
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          path = Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve()
+          spec = importlib.util.spec_from_file_location('portable_cleanup', path)
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          module.load_controller().load_batch().cleanup_workflow_owned()
+          PY

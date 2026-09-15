@@ -3,7 +3,269 @@ on:
   pull_request:
   push:
     branches: [main]
+concurrency:
+  group: ops-hardening-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
+  ediel-source-effects:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gridex_ediel_test
+        ports:
+          - 55439:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d gridex_ediel_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify complete Ediel source effects on isolated PostgreSQL 17
+        run: python3 scripts/canonical-ediel-environment-selftest.py
+
+  auth-email-source-effects:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gridex_auth_test
+        ports:
+          - 55440:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d gridex_auth_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify redacted auth evidence collection
+        run: python3 -B scripts/test-canonical-auth-group-evidence.py
+      - name: Verify fixed journal ACL contract
+        run: python3 -B scripts/test-canonical-governance-journal-acl.py
+      - name: Verify published journal ACL controls on isolated PostgreSQL 17
+        run: python3 -B scripts/canonical-journal-acl-selftest.py
+      - name: Verify fixed auth and membership group on isolated PostgreSQL 17
+        run: python3 scripts/canonical-auth-membership-group.py --partition original16 --evidence
+      - name: Reject journal catalog deviations on isolated PostgreSQL 17
+        run: python3 -B scripts/canonical-governance-journal-acl-selftest.py
+      - name: Verify missing inline foreign keys and forward repair on isolated PostgreSQL 17
+        run: |
+          python3 -B scripts/test-canonical-existing-column-fk.py
+          python3 -B scripts/canonical-existing-column-fk-selftest.py
+      - name: Compare retained customer foreign-key behaviors on isolated PostgreSQL 17
+        run: |
+          python3 -B scripts/test_canonical_composite_customer_fk_selftest.py
+          python3 -B scripts/canonical-composite-customer-fk-selftest.py
+      - name: Upload redacted auth-group command evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-auth-membership-group
+          path: artifacts/auth-membership-group.json
+          if-no-files-found: error
+          retention-days: 7
+
+  auth-provisioning-legacy-proof:
+    runs-on: ubuntu-latest
+    # Original16 retain their own10min job. This separate owned-container lane
+    # budgets bootstrap/reference plus deterministic <=10s contention bounds.
+    timeout-minutes: 20
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify command17 whole legacy and actual staged replay on owned PostgreSQL 17
+        run: python3 scripts/canonical-auth-membership-group.py --partition legacy17
+      - name: Remove only the owned legacy container
+        if: always()
+        run: python3 scripts/canonical-auth-provisioning-legacy-selftest.py --cleanup-owned
+
+  user-rbac-repair-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-repair-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify command18 standalone and actual staged repair56 on private owned PostgreSQL 17
+        run: python3 scripts/canonical-auth-membership-group.py --partition repair18
+      - name: Remove only the owned repair proof container
+        if: always()
+        run: python3 scripts/canonical-user-rbac-repair-selftest.py --cleanup-owned
+
+  user-rbac-dedupe-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-dedupe-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify command19 full standalone H2 and actual staged dedupe57 on private owned PostgreSQL 17
+        run: python3 scripts/canonical-auth-membership-group.py --partition dedupe19
+      - name: Remove only the owned dedupe proof container
+        if: always()
+        run: python3 scripts/canonical-user-rbac-dedupe-selftest.py --cleanup-owned
+
+  user-rbac-fixed-target-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-fixed-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Characterize complete fixed-target sources on private owned PostgreSQL 17
+        run: python3 scripts/canonical-user-rbac-fixed-target-selftest.py
+      - name: Remove only the owned fixed-target proof container
+        if: always()
+        run: python3 scripts/canonical-user-rbac-fixed-target-selftest.py --cleanup-owned
+
+  user-rbac-fixed-target-continuation-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify once-only lossless group and actual staged fixed-target continuation
+        run: python3 scripts/canonical-user-rbac-fixed-target-continuation-selftest.py
+      - name: Remove only the owned continuation proof container
+        if: always()
+        run: python3 scripts/canonical-user-rbac-fixed-target-continuation-selftest.py --cleanup-owned
+
+  customer-operations-source-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Characterize complete customer and Ediel operations sources at owned actual68
+        run: python3 scripts/canonical-customer-operations-selftest.py
+      - name: Remove only the owned customer operations proof container
+        if: always()
+        run: python3 scripts/canonical-customer-operations-selftest.py --cleanup-owned
+
+  readiness-operations-source-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Characterize complete metering and readiness sources at owned actual71
+        run: python3 scripts/canonical-readiness-operations-selftest.py
+      - name: Remove only the owned readiness source proof container
+        if: always()
+        run: python3 scripts/canonical-readiness-operations-selftest.py --cleanup-owned
+
+  intake-governance-source-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Characterize complete intake and governance sources at owned actual74
+        run: python3 scripts/canonical-intake-governance-selftest.py
+      - name: Remove only the owned intake source proof container
+        if: always()
+        run: python3 scripts/canonical-intake-governance-selftest.py --cleanup-owned
+
+  intake-governance-continuation-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify actual77 intake and governance continuation on owned PostgreSQL 17
+        run: python3 scripts/canonical-intake-governance-continuation-selftest.py
+      - name: Remove only the owned intake continuation container
+        if: always()
+        run: python3 scripts/canonical-intake-governance-continuation-selftest.py --cleanup-owned
+
+  canonical-permission-native-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-permissions-${{ github.run_id }}-${{ github.run_attempt }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check finite permission source admission and fixture construction
+        run: |
+          python3 -B scripts/test-canonical-permission-native-admission.py
+          python3 -B scripts/test-canonical-permission-native-fixture.py
+          python3 -B scripts/test-canonical-permission-native-runner.py
+          python3 -B scripts/canonical-permission-native-runner.py --check
+      - name: Verify canonical permissions and private Storage on dedicated owned PostgreSQL 17
+        run: python3 -B scripts/canonical-permission-native-runner.py --native
+      - name: Remove only the owned permission proof container
+        if: always()
+        run: python3 -B scripts/canonical-permission-native-runner.py --cleanup-owned
+
+  readiness-operations-continuation-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify actual74 metering and readiness continuation on owned PostgreSQL 17
+        run: python3 scripts/canonical-readiness-operations-continuation-selftest.py
+      - name: Remove only the owned readiness continuation container
+        if: always()
+        run: python3 scripts/canonical-readiness-operations-continuation-selftest.py --cleanup-owned
+
+  customer-operations-continuation-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify actual71 customer and Ediel continuation on owned PostgreSQL 17
+        run: python3 scripts/canonical-customer-operations-continuation-selftest.py
+      - name: Remove only the owned operations continuation container
+        if: always()
+        run: python3 scripts/canonical-customer-operations-continuation-selftest.py --cleanup-owned
+
+  user-rbac-alignment-continuation-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify actual68 staged alignment continuation on owned PostgreSQL 17
+        run: python3 scripts/canonical-user-rbac-alignment-continuation-selftest.py
+      - name: Remove only the owned alignment continuation container
+        if: always()
+        run: python3 scripts/canonical-user-rbac-alignment-continuation-selftest.py --cleanup-owned
+
+  user-rbac-customer-alignment-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Characterize whole customer alignment on a private owned actual63 PostgreSQL 17 prefix
+        run: |
+          python3 scripts/canonical-alignment-diagnostics-selftest.py
+          python3 scripts/canonical-user-rbac-customer-alignment-selftest.py
+      - name: Remove only the owned customer alignment proof container
+        if: always()
+        run: python3 scripts/canonical-user-rbac-customer-alignment-selftest.py --cleanup-owned
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -16,6 +278,31 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Verify migration inventory and replay recovery regressions
+        run: |
+          node --experimental-vm-modules --test scripts/test-auth-email-action-contract.cjs
+          node --test scripts/test-agt-run-lock-contract.cjs
+          node scripts/canonical-migration-inventory-selftest.cjs
+          python3 scripts/gridex-aud-003-clean-replay-selftest.py
+          python3 scripts/gridex-replay-required-checks-selftest.py
+          node scripts/gridex-schema-document-selftest.cjs
+          python3 scripts/gridex-replay-input-accounting-selftest.py
+          python3 scripts/gridex-replay-review-groups-selftest.py
+          python3 scripts/canonical-auth-membership-group-selftest.py
+          npm run db:migrations:production-readiness
+      - name: Verify reconstruction and parity in isolated SQL fixtures
+        shell: bash
+        run: |
+          npm install --prefix "$RUNNER_TEMP/gridex-guard-test" --no-save --ignore-scripts @electric-sql/pglite@0.3.14
+          GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/canonical-tenant-guard-selftest.mjs
+          GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/gridex-db-parity-semantics-selftest.mjs
+          GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/canonical-portal-origin-replay-selftest.mjs
+          GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/canonical-customer-flow-replay-selftest.mjs
+          GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/canonical-actor-testing-replay-selftest.mjs
+          GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/canonical-billing-completion-replay-selftest.mjs
+          GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/canonical-request-status-replay-selftest.mjs
+          GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node scripts/canonical-profile-action-replay-selftest.mjs
+          GRIDEX_PGLITE_MODULE="$RUNNER_TEMP/gridex-guard-test/node_modules/@electric-sql/pglite/dist/index.js" node quality/audits/invitation-replay-effects-selftest.mjs
       - run: npm run db:migrations:check
       # F-15: service_role bypasses RLS, so every direct call site carries tenant
       # isolation on its own. The count may fall but never rise; new tenant-scoped
@@ -78,9 +365,13 @@ jobs:
 
   clean-migration-replay:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # 514 additional sources each create and apply a genuine CLI migration.
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
@@ -111,49 +402,36 @@ jobs:
         run: |
           set -o pipefail
           exec > >(tee rem002-clean-replay.log) 2>&1
-          source scripts/gridex-aud-003-clean-replay.sh
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
-          supabase gen types typescript --local > rem002-database.types.ts
-          # Typegen emits non-null Returns for nullable SQL columns on the
-          # field-511 resolver; apply the same durable override used on tip.
-          node scripts/apply-supabase-types-nullability-overrides.cjs rem002-database.types.ts
-          GENERATED_HASH="$(sha256sum rem002-database.types.ts | awk '{print $1}')"
-          MANIFEST_HASH="$(node -p "require('./scripts/supabase-types-manifest.json').sha256")"
-          echo "generated_types_sha256=$GENERATED_HASH"
-          if [[ "$GENERATED_HASH" != "$MANIFEST_HASH" ]]; then
-            echo "Generated Supabase types hash differs from manifest: $GENERATED_HASH != $MANIFEST_HASH" >&2
-            exit 1
-          fi
-          if ! cmp -s rem002-database.types.ts supabase/database.types.ts; then
-            echo "Generated Supabase types differ from committed supabase/database.types.ts" >&2
-            exit 1
-          fi
-
-          # Everything below runs in THIS step on purpose. The replay script is
-          # sourced, so its EXIT trap stops the local Supabase stack when this
-          # step's shell exits; a later step would find no database.
-          SHADOW_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
-
-          # The tenant isolation gate must hold for a system rebuilt from the
-          # repository, not only for the live database it was written against.
-          DATABASE_URL="$SHADOW_URL" npm run tenant:invariants
-
-          # A parity engine that stops detecting drift would make a green run
-          # read as proven parity, so it is checked against injected drift.
-          npm run db:parity:selftest -- "$SHADOW_URL"
-
-          npm run db:schema:snapshot -- --url "$SHADOW_URL" --out-dir rem002-schema-snapshot
-
-          # Activates by itself once a canonical baseline captured from this
-          # replay is committed to supabase/. Until then there is nothing to
-          # compare against.
-          if [[ -f supabase/schema.fingerprint.json ]]; then
-            npm run db:schema:check -- --url "$SHADOW_URL"
-          else
-            echo "no committed canonical schema baseline yet; snapshot uploaded as evidence"
-          fi
+          # The native parent executes database checks before disposal. Its
+          # final verifier then binds fresh receipts, schema decisions and types.
+          python3 -B scripts/test-canonical-native-historical-prefix.py
+          python3 -B scripts/test-canonical-native-timestamp-sources.py
+          python3 -B scripts/test-canonical-native-timestamp-proof.py
+          python3 -B scripts/test-canonical-native-clone-quiesce.py
+          python3 -B scripts/test-canonical-native-timestamp-runtime.py
+          python3 -B scripts/test-canonical-forward-sources.py
+          python3 -B scripts/test-canonical-native-forward-runtime.py
+          python3 -B scripts/test-canonical-native-ledger-readiness.py
+          python3 -B scripts/test-canonical-native-final-sql.py
+          python3 -B scripts/test-canonical-native-probe-cleanup.py
+          python3 -B scripts/test-canonical-native-schema-reference.py
+          python3 -B scripts/test-canonical-native-application-typegen.py
+          python3 -B scripts/test-canonical-native-parity-engine.py
+          python3 -B scripts/test_canonical_policy_actor_qualification.py
+          python3 -B scripts/test_canonical_removed_policy_formulas.py
+          python3 -B scripts/test_canonical_removed_policy_qualification.py
+          python3 -B scripts/test-canonical-added-view-witness.py
+          python3 -B scripts/test-canonical-changed-view-witness.py
+          python3 -B scripts/test-canonical-changed-function-witness.py
+          python3 -B scripts/test-canonical-changed-index-witness.py
+          python3 -B scripts/test-canonical-schema-physical-order-decisions.py
+          python3 -B scripts/test-canonical-uuid-inet-source-decisions.py
+          python3 -B scripts/test-canonical-added-nonunique-index-decisions.py
+          python3 -B scripts/test-canonical-schema-source-decisions.py
+          python3 -B scripts/test-canonical-native-dump-verify.py
+          python3 -B scripts/test-canonical-native-release-verify.py
+          python3 -B scripts/test-canonical-native-release-entry.py
+          python3 -B scripts/canonical-auth-provisioning-replay.py
       - name: Upload clean-replay evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -161,6 +439,9 @@ jobs:
           name: gridex-rem-002-clean-replay
           path: |
             rem002-clean-replay.log
-            rem002-database.types.ts
-            rem002-schema-snapshot/
+            artifacts/replay-input-accounting.json
+            artifacts/native-supabase-lifecycle.json
+            artifacts/native-full-schema-reference-diff.json
+            artifacts/native-application-database.types.candidate.ts
+            artifacts/native-release-verification.json
           if-no-files-found: error

@@ -1,0 +1,64 @@
+name: Gridex native Supabase lifecycle qualification
+on:
+  pull_request:
+    paths:
+      - 'scripts/canonical_storage_bootstrap.py'
+      - 'scripts/test-canonical-storage-bootstrap.py'
+      - '.github/workflows/gridex-native-supabase-lifecycle.yml'
+      - 'scripts/canonical-native-supabase-lifecycle*.py'
+      - 'scripts/canonical_native_cli_transport.py'
+      - 'scripts/canonical_native_historical_prefix.py'
+      - 'scripts/canonical_native_legacy_envelope.py'
+      - 'scripts/canonical_native_repair_envelope.py'
+      - 'scripts/canonical_native_provider_events.py'
+      - 'scripts/test-canonical-native-provider-events.py'
+      - 'scripts/canonical_native_trigger_diagnostics.py'
+      - 'scripts/test-canonical-native-trigger-diagnostics.py'
+      - 'scripts/test-canonical-native-repair-envelope.py'
+      - 'scripts/test-canonical-native-legacy-envelope.py'
+      - 'scripts/canonical_native_lock_boundary.py'
+      - 'scripts/test-canonical-native-lock-boundary.py'
+      - 'scripts/test-canonical-native-historical-prefix.py'
+      - 'scripts/canonical-native-ledger-regression.py'
+      - 'scripts/canonical_native_bootstrap_contract.py'
+      - 'scripts/canonical-native-bootstrap-contract-selftest.py'
+      - 'scripts/sql/gridex-supabase-compatible-bootstrap.sql'
+permissions:
+  contents: read
+concurrency:
+  group: gridex-native-supabase-lifecycle-310
+  cancel-in-progress: false
+jobs:
+  native-cli-lifecycle:
+    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/gridex-parity-remediation-20260905'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Verify local ownership, genuine-ledger and failure controls
+        run: |
+          python3 -B scripts/test-canonical-storage-bootstrap.py
+          python3 -B scripts/test-canonical-native-historical-prefix.py
+          python3 -B scripts/test-canonical-native-lock-boundary.py
+          python3 -B scripts/test-canonical-native-legacy-envelope.py
+          python3 -B scripts/test-canonical-native-repair-envelope.py
+          python3 -B scripts/canonical-native-ledger-regression.py
+          python3 -B scripts/canonical-native-supabase-lifecycle-selftest.py
+          python3 -B scripts/canonical-native-bootstrap-contract-selftest.py
+      - name: Qualify an empty native Supabase and real CLI migration ledger
+        run: python3 -B scripts/canonical-native-supabase-lifecycle.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gridex-native-supabase-lifecycle
+          path: artifacts/native-supabase-lifecycle.json
+          retention-days: 2
+          if-no-files-found: error

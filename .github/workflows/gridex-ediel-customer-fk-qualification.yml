@@ -1,0 +1,40 @@
+name: Gridex Ediel customer FK qualification
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-ediel-customer-fk-qualification.yml'
+      - 'scripts/canonical-ediel-customer-fk-qualification.py'
+      - 'scripts/canonical-ediel-customer-fk-admission-selftest.py'
+      - 'scripts/migration-history-manifest.runtime.additions.json'
+      - 'supabase/migrations/*.sql'
+      - 'scripts/sql/forward-candidates/ediel-intent-customer-company-fk.sql'
+permissions:
+  contents: read
+jobs:
+  native-fk-qualification:
+    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/gridex-parity-remediation-20260905'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-fk-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Verify exact registered migration and rejection controls
+        run: python3 scripts/canonical-ediel-customer-fk-admission-selftest.py
+      - name: Prove historical omission and safe customer deletion on owned PostgreSQL 17
+        run: python3 scripts/canonical-ediel-customer-fk-qualification.py
+      - name: Remove only the owned FK qualification database
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          p=Path('scripts/canonical-ediel-customer-fk-qualification.py').resolve()
+          s=importlib.util.spec_from_file_location('fk_cleanup',p)
+          m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+          m.load_legacy().cleanup_workflow_owned()
+          PY
