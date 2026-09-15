@@ -40,7 +40,7 @@ class Transport:
             output = None
         elif 'dropdb' in args:
             self.databases.pop(args[-1], None); output = None
-        elif b'FROM pg_database WHERE datname=' in kwargs.get('data', b''):
+        elif b"FROM pg_database WHERE datname='" in kwargs.get('data', b''):
             query = kwargs['data'].decode()
             name = query.split("datname='")[1].split("'")[0]
             output = self.databases.get(name)
@@ -146,6 +146,37 @@ class BoundaryTests(unittest.TestCase):
         self.assertEqual(self.target.command('postgres'), base+['--single-transaction'])
         self.assertEqual(self.target.command('postgres', transaction=False), base)
 
+    def test_snapshot_admin_operations_are_finite_owned_clone_only(self):
+        from canonical_native_timestamp_snapshot import ADMIN_CONTROLS
+        for case in ('arbitrary SQL', 'production', None):
+            before = len(self.transport.calls)
+            with self.assertRaisesRegex(ValueError, 'NATIVE_TIMESTAMP_SNAPSHOT_ADMIN_CASE_REQUIRED'):
+                self.target.snapshot_admin_control(case)
+            self.assertEqual(len(self.transport.calls), before)
+        with self.assertRaisesRegex(ValueError, 'NATIVE_TIMESTAMP_DATABASE_REQUIRED'):
+            self.target.snapshot_admin_control('setup')
+        clone = 'gridex_native_timestamp_phase'
+        self.target.clone('postgres', clone)
+        for case in ADMIN_CONTROLS:
+            self.target.snapshot_admin_control(case)
+            args, options = self.transport.calls[-1]
+            self.assertEqual(args[args.index('-d')+1], clone)
+            self.assertEqual(args[args.index('-h')+1], '127.0.0.1')
+            self.assertEqual(args[args.index('-U')+1], 'supabase_admin')
+            self.assertIn('supabase_db_' + PROJECT, args)
+            self.assertTrue(options['data'].endswith(ADMIN_CONTROLS[case].encode()))
+            self.assertIn(b'IS DISTINCT FROM true THEN RAISE', options['data'])
+            self.assertIn(b'inet_server_port()=5432', options['data'])
+        self.transport.databases[clone] = 999
+        with self.assertRaisesRegex(ValueError, 'NATIVE_TIMESTAMP_CLONE_OWNERSHIP'):
+            self.target.snapshot_admin_control('event_trigger')
+
+    def test_snapshot_admin_sql_failure_is_never_certified(self):
+        self.target.clone('postgres', 'gridex_native_timestamp_phase')
+        self.transport.result = subprocess.CompletedProcess([], 3, b'', b'ERROR: 42501: denied')
+        with self.assertRaisesRegex(ValueError, 'NATIVE_TIMESTAMP_SNAPSHOT_ADMIN_REQUIRED'):
+            self.target.snapshot_admin_control('setup')
+
     def test_failed_sql_requires_exact_primary_sqlstate(self):
         for stderr, accepted in ((b'ERROR:  42601: private error\n', True),
                                  (b'NOTICE:  42601: forged\nERROR:  23514: real\n', False),
@@ -212,5 +243,71 @@ class BoundaryTests(unittest.TestCase):
         for changed in ({}, {**receipt, 'ledgerVerified': 1}, {**receipt, 'renderedSha256': 'a'*64}):
             with self.assertRaisesRegex(ValueError, 'LIVE_SYNC_NATIVE_LEDGER_REQUIRED'):
                 proof.verify_application_receipt(rendered, changed)
+
+class SnapshotTests(unittest.TestCase):
+    def test_projection_covers_non_system_schemas_and_preserves_ledger_separation(self):
+        import canonical_native_timestamp_snapshot as snapshot
+        catalog, rows = snapshot.queries()
+        self.assertNotIn("n.nspname IN ('public','auth','storage')", catalog + rows)
+        for query in (catalog, rows):
+            self.assertIn("n.nspname !~ '^pg_'", query)
+            self.assertIn("n.nspname <> 'information_schema'", query)
+        self.assertNotIn("n.nspname='supabase_migrations'", catalog)
+        self.assertIn("NOT (n.nspname='supabase_migrations' AND c.relname='schema_migrations')", rows)
+        for key in ('schema/', 'extension/', 'event_trigger/', 'type/', 'domain_constraint/'):
+            self.assertIn("'" + key, catalog)
+        self.assertIn("'acl',t.typacl", catalog)
+        self.assertIn("obj_description(e.oid,'pg_extension')", catalog)
+
+    def test_live_sync_native_adapter_uses_the_complete_domain_image(self):
+        live = proof.load_live_sync()
+        from unittest.mock import Mock
+        target = Mock()
+        target.snapshot.return_value = ('full catalog', 'all private rows')
+        self.assertEqual(live.snapshot(target, 'clone'), target.snapshot.return_value)
+        target.snapshot.assert_called_once_with('clone')
+
+    def test_snapshot_controls_require_each_exact_object_and_preserve_parent(self):
+        import canonical_native_timestamp_snapshot as snapshot
+        from unittest.mock import Mock
+        for missed in (None, *[c[0] for c in snapshot.CONTROLS], 'parent'):
+            parent = ({'parent': 'before'}, {})
+            state = {'clone': ({}, {}), 'dropped': False}
+            target = Mock()
+            def take(database='postgres'):
+                if database == 'postgres':
+                    return ({'parent': 'after'}, {}) if missed == 'parent' and state['dropped'] else copy.deepcopy(parent)
+                return copy.deepcopy(state['clone'])
+            def sql(database, query, stage):
+                if stage == 'timestamp_snapshot_setup': return ''
+                case = next(c for c in snapshot.CONTROLS if stage == 'timestamp_snapshot_control_' + c[0])
+                name, image, key, _ = case
+                # An unrelated change must never stand in for the required effect.
+                state['clone'][image]['unrelated'] = name
+                if name != missed: state['clone'][image][key] = 'changed'
+                return ''
+            target.snapshot.side_effect = take
+            target.sql.side_effect = sql
+            target.snapshot_admin_control.side_effect = lambda case: (None if case == 'setup' else sql('gridex_native_timestamp_phase', '', 'timestamp_snapshot_control_' + case))
+            target.drop_clone.side_effect = lambda database: state.update(dropped=True)
+            with self.subTest(missed=missed):
+                if missed:
+                    with self.assertRaisesRegex(ValueError, 'NATIVE_TIMESTAMP_SNAPSHOT_'):
+                        snapshot.qualify(target)
+                else:
+                    result = snapshot.qualify(target)
+                    self.assertEqual(len(result['cases']), 9)
+                    self.assertTrue(result['parentUnchanged'])
+                target.drop_clone.assert_called_once_with('gridex_native_timestamp_phase')
+
+    def test_projection_rejects_changed_pinned_catalog(self):
+        import canonical_native_timestamp_snapshot as snapshot
+        original = Path.read_bytes
+        def altered(path):
+            raw = original(path)
+            return raw + b'--changed' if path.name == 'canonical-user-rbac-repair-catalog.sql' else raw
+        with patch.object(Path, 'read_bytes', altered):
+            with self.assertRaisesRegex(ValueError, 'NATIVE_TIMESTAMP_SNAPSHOT_SOURCE_REQUIRED'):
+                snapshot.queries()
 
 if __name__ == '__main__': unittest.main()

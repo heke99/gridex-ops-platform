@@ -182,3 +182,13 @@ proof16/runtime12 GREEN. Composite fixture offline4 PASS and independent
 ownership review approved; actual PG17 qualification pending. Four column
 types source/application audit added. No reference, historical SQL, types or
 production changes; acceptance remains false. See PR310_NATIVE_CLONE_NULL audit.
+
+## 2026-09-15 — complete timestamp snapshots
+
+Imported exact70ce549fa9facdec9add63f91db224ee4c2bc2bb/tree039f59bd30d5625b686c3145ff5fc0a5bdc25405.
+Preserved concurrent clone fix/tests, composite FK controls and source dispositions.
+Reapplied only reviewed non-overlapping snapshot work. Nine owned-clone SQL
+controls, finite synthetic admin cases and full non-system catalog/row scope;
+real canonical ledger rows remain separately verified. All23 proof tests pass.
+Native SQL pending; full514/schema/types/CI/E2E remain unaccepted. ReadinessOPEN.
+Evidence: quality/audits/PR310_NATIVE_TIMESTAMP_SNAPSHOT_2026-09-15.md.

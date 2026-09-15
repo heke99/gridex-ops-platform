@@ -4,6 +4,31 @@ Status: PARTIAL
 
 ## Active work and exact next action
 
+Current GitHub base70ce549fa9facdec9add63f91db224ee4c2bc2bb; exact tree
+039f59bd30d5625b686c3145ff5fc0a5bdc25405 was imported and verified. Preserve its
+clone-NULL fix, faithful regression, composite FK qualification and column
+disposition audits. The overlapping local NULL fix is superseded, not reapplied.
+
+Active correction: complete timestamp domain snapshots and nine real detection
+controls on an owned clone. Catalog includes all non-system schemas, ledger
+metadata, schema ownership/ACL, extensions, types/domain constraints and event
+triggers. Row fingerprints exclude only separately verified schema_migrations
+rows. Native live-sync uses the same complete domain snapshot.
+
+Three finite synthetic clone-only admin operations use the existing local
+infrastructure owner connection, with same-transaction role/loopback/OID guards,
+container/internal-network verification and no SQL/database input. Historical
+SQL remains under postgres; provider triggers remain unchanged. Independent
+review approved this scope; actual PostgreSQL execution remains mandatory.
+All23 proof tests pass including the preserved upstream NULL regression.
+Evidence: quality/audits/PR310_NATIVE_TIMESTAMP_SNAPSHOT_2026-09-15.md.
+
+Next: publish reviewed snapshot correction, inspect actual current-head native
+SQL and qualify ledger-dependent readinessT257/T262/T275/T351 without synthetic
+ledger aliases or asserting readiness when truth is blocked. Complete genuine
+full native/schema/types/mandatoryCI/E2E/review before whole-PR merge and main
+verification. Preserved evidence from the immediately preceding publication:
+
 Publication base 61d6748e7ef1b538e6df0833fe2637f0c4e6ea1f preserves the
 335f987f retained514 native integration and all approved auth corrections.
 The prior ledger fixture and exact601/347 continuity fixes are published; on

@@ -319,6 +319,9 @@ def execute(command, native, sql, work, project, parent, plan):
     shim = None
     try:
         runner = Runner(native, sql, target, work, parent)
+        from canonical_native_timestamp_snapshot import qualify
+        progress['snapshotQualification'] = qualify(target)
+        runner.unchanged()
         # This is capability evidence from the actual native server, not a
         # substitute portable image or a claim that extension creation succeeded.
         capability = sql("SELECT jsonb_build_object('version',current_setting('server_version_num'),"

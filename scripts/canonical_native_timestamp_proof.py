@@ -24,6 +24,9 @@ def load_live_sync():
         ROOT/'scripts/canonical-live-sync-proof.py')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    # The native adapter uses the broader domain image for the existing proof's
+    # clone comparisons too. Original SQL and all acceptance assertions remain.
+    module.snapshot = lambda target, database: target.snapshot(database)
     return module
 
 
@@ -175,12 +178,43 @@ class NativeTimestampTarget:
         raise ValueError('NATIVE_TIMESTAMP_DOCKER_COMMAND_REQUIRED')
 
     def catalog(self, database):
-        query = (ROOT/'scripts/sql/canonical-auth-provisioning-legacy-catalog.sql').read_text()
+        from canonical_native_timestamp_snapshot import queries
+        query, _ = queries()
         return json.loads(self.sql(database, query, 'timestamp_catalog'))
 
     def snapshot(self, database='postgres'):
-        live = load_live_sync()
-        return self.catalog(database), json.loads(self.sql(database, live.ROWS_SQL, 'timestamp_rows'))
+        from canonical_native_timestamp_snapshot import queries
+        _, rows = queries()
+        return self.catalog(database), json.loads(self.sql(database, rows, 'timestamp_rows'))
+
+    def snapshot_admin_control(self, case):
+        """Only three fixed synthetic operations on our already-owned probe clone.
+
+        Native postgres remains a non-superuser. Like the separate lifecycle
+        logging setup, this uses the existing container-local infrastructure
+        owner connection; it never runs historical SQL or changes provider events.
+        """
+        from canonical_native_timestamp_snapshot import ADMIN_CONTROLS
+        if type(case) is not str or case not in ADMIN_CONTROLS:
+            raise ValueError('NATIVE_TIMESTAMP_SNAPSHOT_ADMIN_CASE_REQUIRED')
+        clone = 'gridex_native_timestamp_phase'
+        self.assert_native_owned()
+        self.command(clone)  # Requires our retained OID; never claims an existing DB.
+        args = ['docker', 'exec', '-i', self.name, 'psql', '-X', '-qAt', '-w',
+                '-h', '127.0.0.1', '-p', '5432', '-U', 'supabase_admin', '-d', clone,
+                '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=verbose', '-f', '-', '--single-transaction']
+        check = ("DO $admit$ BEGIN IF (current_user='supabase_admin' "
+                 "AND current_database()='gridex_native_timestamp_phase' "
+                 "AND (SELECT rolsuper FROM pg_roles WHERE rolname=current_user) "
+                 "AND inet_client_addr()='127.0.0.1'::inet "
+                 "AND inet_server_addr()='127.0.0.1'::inet AND inet_server_port()=5432 "
+                 "AND (SELECT oid::text FROM pg_database WHERE datname=current_database())='"+
+                 self._owned[clone]+"') IS DISTINCT FROM true THEN RAISE EXCEPTION 'NATIVE_TIMESTAMP_SNAPSHOT_ADMIN_REQUIRED'; "
+                 "END IF; END $admit$;\n")
+        result = self._run(args, data=(check+ADMIN_CONTROLS[case]).encode(),
+                           timeout=60, allow_failure=True)
+        if result.returncode != 0:
+            raise ValueError('NATIVE_TIMESTAMP_SNAPSHOT_ADMIN_REQUIRED')
 
     def close(self):
         for database in tuple(self._owned):
