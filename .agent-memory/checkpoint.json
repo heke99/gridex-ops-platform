@@ -5,7 +5,7 @@
   "current_state": ".agent-memory/current-state.md",
   "active_group": "ediel_masterplan_v2_alignment",
   "evidence": "quality/audits/ediel-masterplan-v2/verification.md",
-  "next_action": "Publish reviewed Ediel repair batch, then reconcile locators/register validation and remaining F0-F7; preserve PR310 replay/schema/type gates before main merge.",
+  "next_action": "Inspect PR311 CI, reconcile locators/register validation and remaining F0-F7; preserve PR310 replay/schema/type gates before main merge.",
   "native_verified_code": "824f24d4a657d8a7563fc162aa5d7a9125d4e7b8",
   "native_verified_tree": "1de9922e02019c5ff2b148794257ab5e157a093c2",
   "native_run_id": 34974499849,
@@ -30,5 +30,8 @@
   "inventory_total": 607,
   "synthetic_cli_typegen_verified": true,
   "policy_actor_cases_verified": 2496,
-  "portable_added_view_cases_verified": 31
+  "portable_added_view_cases_verified": 31,
+  "ediel_pr": 311,
+  "ediel_published_code": "b06dc9f60af32e99902baf6cf89923b329b95a18",
+  "ediel_verified_tree": "10c8ea77104f01273582be78ff3ab1b2fb750e6f"
 }

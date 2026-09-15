@@ -25,3 +25,5 @@ The separate rule regression failure was reproduced on a detached pristine b9f73
 The initial final-tests typecheck caught a temporary reviewer reproduction fixture cast; the reviewer removed that temporary file after permanent regressions covered the same cases. A fresh tests typecheck then exited0.
 
 No generated database types or migration manifest refreshed. No tests or rules marked universally accepted from the specification import. No Supabase mutation or live Ediel send was performed.
+
+Publication: draft PR311, code commit b06dc9f60af32e99902baf6cf89923b329b95a18. GitHub-created tree10c8ea77104f01273582be78ff3ab1b2fb750e6f exactly matches the local tested tree, and fetched-content diff was empty. Terminal Git push lacked credentials; GitHub connector publication succeeded. Remote CI began; completion remains to be inspected.

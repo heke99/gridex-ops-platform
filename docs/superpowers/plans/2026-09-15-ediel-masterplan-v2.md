@@ -23,7 +23,7 @@ Baseline: b9f732d28ceaf090e3b984e71d13a9cbd27f6408, isolated branch codex/ediel-
 - [x] Classify DSNs before EDIFACT extraction in MIME/parser/processor/diagnostic paths, including attached reports and previously parsed rows. Keep report transport correlation unverified until a real attempt is identified.
 - [x] Distinguish SMTP outcomes where acceptance may have happened from definite pre-submission failures. Preserve existing retry/claim protections.
 - [x] Independent review, targeted suites, full Vitest, application/test typecheck, immutable source check and whitespace check.
-- [ ] Publish a stacked PR targeting PR310 branch. No main merge while inherited native replay/schema/types/E2E gates are open. Separate static rule-regression failure also remains open (reproduced unchanged at baseline).
+- [x] Publish stacked draft PR311 targeting PR310 branch. No main merge while inherited native replay/schema/types/E2E gates are open. Separate static rule-regression failure also remains open (reproduced unchanged at baseline).
 
 ## Remaining phases and concrete evidence gates
 | Phase | Existing code/data to extend | Required completion evidence | Current boundary |

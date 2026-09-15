@@ -8,7 +8,9 @@ Current batch repairs confirmed Z14N parent validation/rendering, UTILTS_ERR APE
 
 Live Supabase was inspected read-only: gridex-ops-dev ledger279/latest20260904222450. No live database modification, external Ediel send, resend or production activation.
 
-Next action: verify/publish this reviewed Ediel batch, then reconcile the source-backed field327/325/date locator and per-object/register validation gaps; implement the remaining F0–F7 requirements in the ordered plan. Provider/service/beneficiary grants are not implemented or certified. Original G01–G07 evidence gates and underlying PR310 full native replay/schema/types/final CI/E2E remain open. Do not merge main or claim the whole masterplan complete from these bounded repairs.
+Publication: PR311 (draft) at b06dc9f60af32e99902baf6cf89923b329b95a18; remote tree10c8ea77104f01273582be78ff3ab1b2fb750e6f equals locally tested tree. GitHub CI started; no final remote green claim.
+
+Next action: inspect PR311 CI, then reconcile the source-backed field327/325/date locator and per-object/register validation gaps; implement the remaining F0–F7 requirements in the ordered plan. Provider/service/beneficiary grants are not implemented or certified. Original G01–G07 evidence gates and underlying PR310 full native replay/schema/types/final CI/E2E remain open. Do not merge main or claim the whole masterplan complete from these bounded repairs.
 
 ## Underlying PR310 continuation (preserved)
 
