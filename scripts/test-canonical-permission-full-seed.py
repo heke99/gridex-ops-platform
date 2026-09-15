@@ -45,4 +45,37 @@ class FullSeedTests(unittest.TestCase):
         self.assertEqual(self.doc['permissions'][0]['id'],ids['permissions']['masterdata.read'])
         self.assertEqual(6,len(ids['permissions']))
 
+    def test_full_access_rosters_match_complete_tenant_policy(self):
+        f,bodies=seed.adapted_fixture(self.retained,self.doc)
+        cases=seed.build_cases(self.retained,self.doc)
+        for table,labels in [('company_memberships',range(5,9)),('user_roles',range(9,13))]:
+            for number in labels:
+                label=f'F{number:02d}'
+                for actor,company,foreign in [(f.UA,f.A,f.B),(f.UB,f.B,f.A)]:
+                    roster=f"array_agg(user_id order by user_id)=array[{f.lit(actor)}::uuid,{f.lit(f.UAB)}::uuid] from public.{table} where company_id={f.lit(company)}"
+                    self.assertIn(f.check(roster,'full_access_select_roster'),cases[label])
+                    self.assertIn(f.check(f'count(*)=0 from public.{table} where company_id={f.lit(foreign)}','access_select_foreign'),cases[label])
+                    self.assertNotIn(f.check(f'count(*)=1 from public.{table} where company_id={f.lit(company)}','access_select_own'),cases[label])
+                self.assertIn(f.check(f'count(*)=0 from public.{table} where company_id is null','full_access_no_global_row'),cases[label])
+                # Original writes, privileges and complete rollback assertions remain intact.
+                for line in bodies[label].splitlines():
+                    if 'access_select_own' not in line:
+                        self.assertIn(line,cases[label])
+
+    def test_full_access_adapter_is_exact_and_rejects_source_shape_drift(self):
+        f,bodies=seed.adapted_fixture(self.retained,self.doc)
+        for label,body in bodies.items():
+            adapted=seed.full_access_body(f,label,body)
+            if label not in {f'F{i:02d}' for i in range(5,13)}:
+                self.assertEqual(body,adapted)
+        original=bodies['F05']
+        for damaged in (original.replace('count(*)=1','count(*)=2'),original+original,original.replace('access_select_own','unknown')):
+            with self.assertRaisesRegex(ValueError,'PERMISSION_FULL_ACCESS_SOURCE_REQUIRED'):
+                seed.full_access_body(f,'F05',damaged)
+
+    def test_full_access_policy_source_is_retained(self):
+        path='supabase/migrations/20260826093000_platform_dashboard_and_rls_read_performance.sql'
+        self.assertIn(path,seed.PINS)
+        self.assertEqual(seed.PINS[path],seed.sha((seed.ROOT/path).read_bytes()))
+
 if __name__=='__main__':unittest.main()
