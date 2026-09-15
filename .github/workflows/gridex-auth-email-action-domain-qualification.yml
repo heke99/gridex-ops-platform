@@ -1,5 +1,19 @@
 name: Gridex auth email action domain qualification
 on:
+  push:
+    branches:
+      - 'codex/ediel-masterplan-v2-alignment-20260915'
+    paths:
+      - '.github/workflows/gridex-auth-email-action-domain-qualification.yml'
+      - 'scripts/canonical-auth-email-action-domain-selftest.py'
+      - 'scripts/canonical-composite-customer-fk-selftest.py'
+      - 'scripts/test_canonical_auth_email_action_domain.py'
+      - 'supabase/migrations/20260519_auth_callback_email_reset_sync.sql'
+      - 'supabase/migrations/20260520_direct_temporary_password_auth_sync_fix.sql'
+      - 'supabase/migrations/20260910140053_canonical_auth_provisioning_legacy_boundary.sql'
+      - 'scripts/sql/canonical-auth-provisioning-legacy-admission.sql'
+      - 'scripts/test-auth-email-action-contract.cjs'
+      - 'scripts/sql/forward-candidates/expand-auth-email-event-action-domain.sql'
   pull_request:
     paths:
       - '.github/workflows/gridex-auth-email-action-domain-qualification.yml'
@@ -16,6 +30,11 @@ permissions:
   contents: read
 jobs:
   auth-email-action-domain:
+    if: >-
+      github.repository == 'heke99/gridex-ops-platform' &&
+      ((github.event_name == 'push' && github.ref == 'refs/heads/codex/ediel-masterplan-v2-alignment-20260915') ||
+       (github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
@@ -83,6 +102,7 @@ jobs:
           assert qualification['schemaAccepted'] is False and qualification['productionModified'] is False
           files=list(root.glob('*.sql'))
           assert len(files)==1 and re.fullmatch(r'[0-9]{14}_expand_auth_email_event_action_domain.sql',files[0].name)
+          assert files[0].name[:14] > '20260915172543', 'CLI filename must follow retained-history forward'
           digest=hashlib.sha256(files[0].read_bytes()).hexdigest()
           assert digest=='69b8d5693f586209f37950be866e3f3dd8e5d910408c34ed9cb075daab85407c'
           receipt=dict(scope='CLI_FILENAME_AND_ISOLATED_SQL_NOT_SCHEMA_ACCEPTANCE',cliVersion='2.101.0',

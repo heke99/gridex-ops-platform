@@ -1,5 +1,20 @@
 name: Gridex canonical-access capability qualification
 on:
+  push:
+    branches:
+      - 'codex/ediel-masterplan-v2-alignment-20260915'
+    paths:
+      - '.github/workflows/gridex-access-table-capabilities-qualification.yml'
+      - 'scripts/canonical-access-table-capabilities-selftest.py'
+      - 'scripts/test_canonical_access_table_capabilities.py'
+      - 'scripts/canonical-composite-customer-fk-selftest.py'
+      - 'scripts/canonical-ediel-send-lock-client-writes-selftest.py'
+      - 'lib/auth/companyInvitationFlow.ts'
+      - 'lib/auth/companyUserAccess.ts'
+      - 'lib/admin/platformUserAccess.ts'
+      - 'scripts/sql/forward-candidates/restrict-canonical-access-table-capabilities.sql'
+      - 'supabase/migrations/**'
+      - 'scripts/test_canonical_composite_customer_fk_selftest.py'
   pull_request:
     paths:
       - '.github/workflows/gridex-access-table-capabilities-qualification.yml'
@@ -17,6 +32,11 @@ permissions:
   contents: read
 jobs:
   access-table-capabilities:
+    if: >-
+      github.repository == 'heke99/gridex-ops-platform' &&
+      ((github.event_name == 'push' && github.ref == 'refs/heads/codex/ediel-masterplan-v2-alignment-20260915') ||
+       (github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
@@ -85,6 +105,7 @@ jobs:
           import hashlib,json,os,pathlib,re,subprocess,sys
           original=pathlib.Path(sys.argv[1])
           assert not original.is_symlink() and re.fullmatch(r'[0-9]{14}_restrict_access_table_capabilities.sql',original.name)
+          assert original.name[:14] > '20260915172543', 'CLI filename must follow retained-history forward'
           skeleton=original.read_bytes()
           assert skeleton==b''
           source=pathlib.Path('scripts/sql/forward-candidates/restrict-canonical-access-table-capabilities.sql')
