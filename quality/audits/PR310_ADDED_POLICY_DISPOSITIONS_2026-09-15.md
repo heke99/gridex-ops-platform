@@ -1,0 +1,105 @@
+# PR310 — source dispositions for all 486 added policies
+
+Date: 2026-09-15. Scope: the **added** policy inventories from the retained 9f1ba7ae and 8d5b3e46 full-schema artifacts. These inventories are exactly equal. This report preserves source-defined policy families with the qualifications below; it does not accept a schema, all actor behavior, or equivalence to the immutable reference. Historical SQL, reference SQL and runtime were not changed for this audit.
+
+The companion JSON enumerates every identity and artifact row SHA256, 486 reconstructed full catalog rows, zero unresolved full rows, 29 source-file pins and exact overlap with the removed-policy review. The JSON is evidence, not an allowlist. The new checker binds it to both pinned ZIPs and current source bytes. **59 additions belong to the separate removed-policy disposition:** all 59 now have reconstructed rows. The two invitation write preimages were resolved here and supplied to the other reviewer. This report references those decisions rather than independently accepting them. There are consequently 427 full rows beyond that delegated overlap.
+
+Skill routing: source-contract review, differential review, false-positive checks, PostgreSQL/RLS reasoning and verification-before-completion were applied. The parent coordinates parallel ownership; no new delegation was needed. UI, performance tuning, production access, dependency scans and a repository-wide security audit are outside this finite artifact task.
+
+## Complete family mapping
+
+| Source-defined family | Added rows | Full row hashes reconstructed | Decision |
+| --- | ---: | ---: | --- |
+| T55 `gridex_mp_*` permissive consolidation | 310 | 310 | Preserve the exact source-derived role/action unions. Their semantics below are established; source preservation is distinct from reference equality. |
+| T354 restrictive lifecycle guards, with T442 SELECT rewrite | 84 | 84 | Preserve explicit tenant lifecycle restrictions. These constrain existing permissive grants; they do not authorize reads or writes themselves. |
+| T442 guarded permissive TRUE SELECT | 31 | 31 | Apply the existing policy audit's 18 conditional equivalents, six source-qualified existing-table read widenings and seven new-table cases. |
+| T336 platform ALL split plus subsequent restored SELECT | 20 | 20 | Preserve platform-only I/U/D and the deliberate repair restoring platform SELECT on five tables. |
+| DB1 explicit platform DELETE | 17 | 17 | Preserve the source's platform-admin deletion capability; do not generalize tenant-write permission to deletion. |
+| Explicit PUBLIC service-claim ALL | 11 | 11 | Preserve the literal service-claim predicate. A policy named service_role is not necessarily scoped to that SQL role. |
+| Explicit tenant CRUD | 8 | 8 | Preserve tenant reads, checked writes and platform deletes on contract_offers/customer_sync_events; note the final UPDATE distinction below. |
+| Company capability read/platform mutation split | 4 | 4 | Preserve authenticated tenant/platform reads and platform-only mutation. |
+| White-label membership recursion repair | 1 | 1 | Preserve the exact six-role SELECT and bounded definer recursion repair, together with the later anonymous helper-EXECUTE revocation. |
+| **Total** | **486** | **486** | **No schema or comprehensive actor acceptance.** |
+
+Canonical rows use the projection in `scripts/sql/gridex-db-parity-introspect.sql:78–90`: schema, table, policy, command, permissiveness, deparsed USING/WITH CHECK and role array. SHA256 input is sorted-key compact ASCII JSON. Reconstruction tried expressions from exact source statements, independently reconstructed replacement rows and deparsed-reference candidates; a candidate was retained only if its **entire row** matched the artifact hash. This is not a PostgreSQL execution claim. Each record links its primary pinned source family and, for the distinct nested/service/import cases, its specific source statements. Generated names were independently matched against all finite role/action candidates; all 310 have one source-name match, but that match alone establishes neither predicates nor actual role arrays.
+
+## Consolidation: what is preserved, and what is not proved
+
+`20260612143000_performance_policy_consolidation_and_index_cleanup.sql:93–295` snapshots old permissive policies, expands PUBLIC into an explicit current role inventory, and creates one policy per role/action. SELECT/DELETE OR the applicable USING expressions; INSERT ORs WITH CHECK, falling back to USING then TRUE; UPDATE builds the two unions separately. Ordering follows old policy names. Old permissive names are dropped only after creating replacements, within the table's exception boundary. Restrictive policies are left intact. The observed added names map to 145 authenticated policies (13 SELECT, 46 INSERT, 46 UPDATE, 40 DELETE) and 165 service-role policies (41/42/42/40). Full row proofs cover all of these commands and exact single-role arrays. No generated authenticated row has a literal TRUE OR branch. Among service-role rows, 70 USING expressions and 46 CHECK expressions have an independent TRUE branch (UPDATE appears in both counts); these are real unfiltered permissive predicates where RLS applies.
+
+The 310 full rows show actual repeated platform, company-read, company-write and service-claim terms, and some service policies contain literal TRUE. Repeated OR terms do not add authorization; an independent TRUE branch does. A platform branch, company-read branch and company-write branch have different meanings and are not interchangeable. UPDATE old-row USING and new-row WITH CHECK must both be considered. The JSON retains them separately, including cases whose USING includes a read branch but CHECK requires a write branch. T354's authenticated restrictive write guards, where present, further require `gridex_can_write_company` on both sides; the guard does not constrain a service-role policy merely because its predicate mentions company helpers.
+
+The finite PUBLIC expansion is deliberately not asserted equivalent for future roles, omitted roles or every inherited-role combination. Likewise, a generated policy addition relative to the reference is not proof that T55 invented that right: the replay's pre-compaction inventory contains earlier source policies absent from the reference. Relevant source terms include the May19 runtime-governance loop, May21 batch2b/2c tenant/platform/service policies and DB1 repair loop, followed by the June12 initplan rewrite. All these versions remain intact. The source-preservation decision is to keep the explicit compaction and lifecycle contract, with all 310 exact predicates established. Effective-role behavior and application acceptance remain separate runtime gates.
+
+The independently confirmed `ediel_send_locks` client-write defect is **not waived** by compaction. Its insert/update replacement behavior and separate staged seven-privilege correction belong to `PR310_REMOVED_POLICY_DISPOSITIONS_2026-09-15` and `PR310_EDIEL_SEND_LOCK_CLIENT_WRITES_2026-09-15`. The three inbound service-only ACL repair and operational TRUNCATE repairs likewise remain separate source/SQL qualifications. A policy audit cannot undo those confirmed ACL findings.
+
+## Lifecycle and read effects
+
+All 84 additions are four restrictive authenticated policies on 21 tables. Their exact rows are in the JSON. SELECT uses:
+
+```sql
+( SELECT gridex_is_current_session_allowed() AS gridex_is_current_session_allowed)
+AND (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)
+ OR (company_id IN ( SELECT gridex_user_company_ids() AS gridex_user_company_ids)))
+```
+
+INSERT CHECK, UPDATE USING/CHECK and DELETE USING are exactly `gridex_can_write_company(company_id)`. T354's helper definitions and comments explicitly support active/onboarding reads+writes, paused reads, denial for other lifecycle states, session restrictions, active membership and the owner/admin/company_admin/operations write roles. Platform read is an explicit alternative; write still requires the company's writable lifecycle state. These are tenant/lifecycle rules, not checks of arbitrary application permission keys. A NULL company row does not become ordinary tenant-readable; the platform SELECT alternative is distinct. Restrictive policies can narrow old self-read/self-update rules too, notably on `user_profiles`; this is not characterized as redundant or as proof of every account-management flow.
+
+The 21 tables are billing_disputes, billing_partner_customers, company_go_live_reviews, customer_import_batches, customer_import_rows, grid_owner_access_agreements, inbound_ediel_match_attempts, inbound_ediel_parse_results, inbound_email_attachments, tenant_governance_events, production_route_wizard_runs, customer_sync_events, customer_case_events, customer_lifecycle_events, data_quality_findings, ediel_agt_readiness, ediel_test_run_locks, ediel_unlinked_test_messages, tenant_email_domains, tenant_email_sender_profiles and user_profiles.
+
+A restrictive guard needs a matching permissive policy to allow a row. In particular, adding a company lifecycle guard to a service-claim-only table does not itself grant ordinary authenticated access. The 31 TRUE policies have the distinct, already analyzed effect of reducing permissive SELECT to TRUE while leaving the restrictive guard effective. The prior audit's six read widenings remain real differences, not newly discovered defects or reference equivalence. See `PR310_SCHEMA_POLICY_DISPOSITIONS_2026-09-15.md` for its exact source/caller and NULL/company qualifications.
+
+## Explicit platform and service families
+
+The five platform tables are ediel_test_expected_acks, ediel_test_expected_values, ediel_test_field_values, gridex_archived_customer_registry_rows and platform_session_revocations. June11 launch completion explicitly creates authenticated platform ALL. T336 splits it into platform INSERT/UPDATE/DELETE. `20260813070046_gridex_review_hardening_v2.sql:1–75` explicitly identifies the lost SELECT semantics and restores platform SELECT where absent. All 20 final rows target authenticated and have the exact statement-stable platform predicate; they provide no ordinary member authorization. This is a source-authored repair of a previous split, not an accidental new general read policy.
+
+The 17 DB1 DELETE rows target **PUBLIC**, with exact predicate `( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)`. They come from `20260522_db1_schema_repair_backfill_foundation.sql:2790–2851`, which includes DELETE. Do not attribute these to `03_db1_backfill_functions_rls_reports_and_finish.sql`, whose corresponding loop only creates SELECT/INSERT/UPDATE. Full table enumeration is in the JSON. PUBLIC scope does not grant table DELETE, schema USAGE or helper EXECUTE; those must independently exist, and restrictive policies applicable to the actual role remain relevant.
+
+The 11 ALL rows also target **PUBLIC**, using and checking exactly `(( SELECT auth.role() AS role)) = 'service_role'::text`. Their source creation is:
+
+| Tables | Versioned source |
+| --- | --- |
+| customer_case_events | May20 batch5 cases audit, lines186–208; explicitly says app server actions enforce tenant access |
+| customer_lifecycle_events | May19 move-out lifecycle, lines50–69 |
+| pricing_component_rules | May20 batch3/4 pricing/billing, lines260–293 |
+| data_quality_findings, tenant_email_domains, tenant_email_sender_profiles, page_performance_budgets, status_transition_rules | May31 system-readiness foundation, lines533–565 |
+| ediel_agt_readiness, ediel_test_run_locks, ediel_unlinked_test_messages | June2 operations hardening, lines364–409; describes operational service access |
+
+An ordinary authenticated JWT role claim does not satisfy that predicate. A SQL role name is not a JWT role claim. If the actual role has BYPASSRLS, RLS predicates do not constrain its row access, while SQL ACLs still matter. The PUBLIC policy is therefore neither proof of anonymous access nor a privilege grant to a service role. Preserve this exact source predicate and retain effective role/claim/ACL qualification; do not silently rewrite it to TO service_role.
+
+Representative actual callers use the service client: `lib/customer-cases/db.ts:118–149` reads/writes case events (its optional company filter is not certified here as a complete caller gate); `lib/tenant/emailBranding.ts:32–43` reads verified sender profiles by company; `lib/billing/pricingEngine.ts:59–68` reads pricing rules by company; `app/admin/ediel/test-center/page.tsx:84–91` reads active operational locks; `app/admin/customers/[id]/profile-actions.part-1.ts:741–750` records lifecycle events. These support the intended operational use, but neither service-client usage nor this sampled review proves authorization of every exposed server action.
+
+## Other explicit additions and remaining precision limits
+
+The eight tenant policies are the four actions on contract_offers and customer_sync_events. Their creation family is `20260519_batch_6d2_runtime_governance_completion.sql:210–286`: PUBLIC tenant-read SELECT, company-write INSERT, read USING/write CHECK UPDATE and platform DELETE. The full final rows prove contract_offers UPDATE has **write USING and write CHECK**, whereas customer_sync_events has read USING/write CHECK. The exact intervening source is `20260520_batch_6e_rbac_tenant_stats_whitelabel.sql:211–296`: it explicitly refreshes tenant policies and includes contract_offers in its table list but excludes customer_sync_events. Its UPDATE statement requires write on both sides. Preserve this deliberate write check for the old contract-offer row; the initial May19 loop alone is not the final authority. The role-specific lifecycle guard remains an independent requirement where present.
+
+Company-capability SELECT is authenticated platform OR company-read; its three mutations are authenticated platform-only. `20260801143000_canonical_multitenant_platform_hardening.sql:100–115` authors the contract and T336 splits mutations. `lib/tenant/capabilities.ts:47–56` uses the service client after `assertTenantContextCompany`. This app gate is distinct from the direct SQL policy. All four final catalog rows match the artifact exactly.
+
+The white-label source `20260829194612_white_label_membership_rls_recursion_fix.sql:8–65` deliberately moves recursive membership lookup into a stable SECURITY DEFINER helper. The full final row proves permissive SELECT to `[anon, authenticated, service_role, authenticator, dashboard_user, supabase_privileged_role]` in that catalog order, with exactly platform OR self OR `gridex_user_has_white_label_admin_membership(white_label_platform_id)`. The self subquery deparses as `user_id = (( SELECT auth.uid() AS uid))`; those literal parentheses and role-array order are included in the hash proof. The helper checks caller auth.uid, active status and owner/admin membership; it is not a general membership dump. `20260902100500_close_remaining_advisor_hygiene.sql:18–19` subsequently revokes helper EXECUTE from anon and PUBLIC while granting authenticated. The final policy still lists anon; effective access must honor that separate function ACL, not an assumption that the policy's role list was narrowed. An inaccessible helper can yield permission denial when evaluated; the policy is not a promise of a successful anonymous false result. Preserve both exact policy and later ACL hardening.
+
+`lib/ediel/actorTesting.ts:841–849` reads active owner/admin memberships through the service client for a supplied user ID. The related two generated `white_label_platforms` SELECT rows target authenticated/service_role and are exactly platform OR EXISTS(active caller membership on that platform) OR platform. This source from May21 actor-testing lines287–301 accepts any active membership for reading platform metadata, whereas the new helper requires owner/admin to read other membership rows. They are intentionally distinct predicates. The white-label helper repair prevents the membership policy itself from recursively selecting itself through an invoker subquery; this audit does not certify every service-client caller gate.
+
+The remaining nested predicates are also fully reconstructed, including literal PostgreSQL deparse newlines:
+
+| Exact added SELECT subset | Final source-intended effect and disposition |
+| --- | --- |
+| `tenant_governance_events`, authenticated and service_role | Platform OR company_id in `gridex_user_company_ids()` OR platform, from May19 runtime-governance lines317–321. Preserve tenant event visibility plus platform operations; the added authenticated lifecycle guard further bounds those reads. |
+| `auth_email_events`, authenticated and service_role | Service claim OR a caller user_roles/roles join with active status, active flag, and role key in `super_admin`, `superadmin`, `platform_admin`, **`admin`**. Source May19 auth-email lines216–249 explicitly spells this list. It has no company predicate inside that role lookup; do not misstate it as the narrower canonical platform-admin helper or global platform scope. Preserve the literal legacy-admin read contract together with authenticated lifecycle restrictions and current role-table RLS. This can add reference-relative reads: the reference has no permissive read policy here. It is a source-defined difference, not reference equivalence. |
+| `actor_test_results`, service_role | Literal TRUE from May21 batch2c service ALL OR tenant/platform branches and active white-label membership EXISTS. May21 actor-testing lines323–335 provides the EXISTS; May21 batch1/2 lines269–281 separately adds `actor_test_results_select` and replaces its write predicate. Thus the final service permissive union is unfiltered, with SQL ACL and actual BYPASSRLS behavior separate. Preserve intended service operation; do not attribute this row to authenticated actors. |
+| `company_go_live_reviews`, service_role | TRUE plus the separate old read/select/write platform/company-read branches. The same batch2c service source and May21 read/write refresh explain the repeated terms; preserve service access. |
+| `grid_owner_access_agreements`, service_role | Platform OR platform OR TRUE OR platform OR company-read. May28 route/inbound source lines304–358 supplies service operations and explicitly permits high-level tenant agreement reads while excluding technical mailbox/parser tables. Preserve that source distinction; the separate TRUNCATE correction still applies. |
+
+The exact auth-email role-key list is intentionally reported rather than generalized to “only platform admins.” The later canonical helper in `20260802190000_canonical_emergency_access_lockdown.sql:120–165` requires an active confirmed auth/profile identity and global platform-role scope (`ur.company_id IS NULL`); the legacy policy lookup is a different predicate. The policy enforces no fresh application permission-key check, and invoker subqueries observe their underlying RLS/ACLs. The source labels its policy superadmin-read but explicitly includes the legacy `admin` key; that naming discrepancy alone does not justify rewriting the preserved contract. The audit establishes the literal SQL effect and identifies the appropriate actor cases, without claiming the existing 128 changed-policy actor matrix tested this new read path.
+
+**All 486 expression, command, permissiveness, role-list and identity hashes are now closed.** All source families have a concrete preserve decision with their actual read/write semantics above. The final source transition for contract-offer UPDATE and final white-label row are resolved. No additional independently confirmed defect is established beyond the separately owned send-lock/ACL findings; those fixes are not waived by this report. What remains is runtime admission of these source decisions in the complete schema/application context, not absent catalog expressions or a hash-only waiver. The executed 128 changed-policy actor matrix is a separate finite set and is not relabeled as execution of these 486 additions.
+
+## Reproduction
+
+```sh
+python scripts/canonical-added-policy-disposition-check.py ../pr310-schema-9f1ba7ae.zip
+python scripts/canonical-added-policy-disposition-check.py ../pr310-schema-8d5b3e46.zip
+```
+
+Both returned EVIDENCE_MATCH: all 486 identities, 486 full-row hashes, zero unresolved rows, 59 delegated overlaps, all 29 source pins, with schemaAccepted=false and actorQualification=false. The checker does not execute SQL; it rehashes the independently reconstructed complete expressions and binds them to the retained artifact. All exact ZIP/member pins and canonical row preimages are retained in the companion JSON.
+
+Four in-memory audit-copy negative controls also rejected changed expression, changed identity, changed source pin and an asserted schema-acceptance flag with the respective fixed checker errors. They did not mutate retained sources, artifacts or the audit file.

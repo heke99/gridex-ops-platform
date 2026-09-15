@@ -17,11 +17,28 @@ CLONES = ('gridex_auth_legacy_dirty', 'gridex_auth_legacy_atomic',
           'gridex_auth_legacy_native', 'gridex_auth_legacy_helper',
           'gridex_native_timestamp_original', 'gridex_native_timestamp_candidate',
           'gridex_native_timestamp_phase')
+LIVE_SYNC_FIXTURE_SHA256 = 'fd58be14dfc5409a65f3e5d4d3d0d8b9073347a0f4a676839bf770d38cbc89ca'
+LIVE_SYNC_ACL_SQL = {
+    role: 'BEGIN; SET LOCAL ROLE '+role+"; SELECT set_config('request.jwt.claim.sub','',true); SELECT public.gridex_is_current_session_allowed(); ROLLBACK;"
+    for role in ('anon','authenticated','service_role')
+}
+LIVE_SYNC_LOGIN_SQL = """SELECT jsonb_build_object(
+'sessionUser',session_user,'currentUser',current_user,
+'login',r.rolcanlogin,'superuser',r.rolsuper,'bypassRls',r.rolbypassrls,
+'setRoles',jsonb_build_object('anon',pg_has_role(current_user,'anon','SET'),
+'authenticated',pg_has_role(current_user,'authenticated','SET'),
+'service_role',pg_has_role(current_user,'service_role','SET')))
+FROM pg_roles r WHERE r.rolname=session_user;"""
+LIVE_SYNC_LOGIN_EXPECTED = dict(sessionUser='authenticator',currentUser='authenticator',
+    login=True,superuser=False,bypassRls=False,
+    setRoles=dict(anon=True,authenticated=True,service_role=True))
+
 SQL_STAGES = {
     name: name.upper() for name in (
         'live_sync_behavior_fixture', 'live_sync_behavior_matrix',
         'live_sync_acl_anon', 'live_sync_acl_authenticated', 'live_sync_acl_service_role',
-        'timestamp_clone_identity', 'timestamp_catalog', 'timestamp_rows')
+        'timestamp_clone_identity', 'timestamp_catalog', 'timestamp_rows',
+        'live_sync_acl_login')
 }
 SQL_STATES = {
     '00000': 'SUCCESS', '42501': 'INSUFFICIENT_PRIVILEGE', '42601': 'SYNTAX',
@@ -143,6 +160,7 @@ class NativeTimestampTarget:
         self._owned = {}
         self._last_sql_failure = None
         self._recent_sql_failure = None
+        self._live_sync_acl_receipts = {}
         self.assert_native_owned()
 
     def _admit(self):
@@ -191,6 +209,44 @@ class NativeTimestampTarget:
         if (not isinstance(sql, str) or not re.fullmatch(r'[a-zA-Z0-9_-]{1,80}', stage)
                 or not re.fullmatch(r'[A-Z0-9]{5}', expect)):
             raise ValueError('NATIVE_TIMESTAMP_SQL_ARGUMENT_REQUIRED')
+        role = None
+        if stage.startswith('live_sync_acl_') or sql in LIVE_SYNC_ACL_SQL.values():
+            role = stage.removeprefix('live_sync_acl_')
+            if (role not in LIVE_SYNC_ACL_SQL or sql != LIVE_SYNC_ACL_SQL[role]
+                    or database != 'gridex_auth_legacy_helper' or transaction is not False
+                    or expect != ('42501' if role=='anon' else '00000')):
+                raise ValueError('NATIVE_LIVE_SYNC_ACL_BINDING_REQUIRED')
+            self._live_sync_acl_receipts.pop(role,None)
+            path=ROOT/'scripts/canonical-live-sync-proof.py'
+            if (path.resolve()!=path or not path.is_file() or path.stat().st_size>100_000
+                    or hashlib.sha256(path.read_bytes()).hexdigest()!=LIVE_SYNC_FIXTURE_SHA256):
+                raise ValueError('NATIVE_LIVE_SYNC_ACL_SOURCE_REQUIRED')
+            # Supabase image 17.6.1.106 has a reported SIGSEGV on a function
+            # permission denial after a superuser login SET ROLE (upstream issue 2409).
+            # Use the actual API login role; never SET SESSION AUTHORIZATION.
+            args[args.index('-U')+1]='authenticator'
+            args += ['-h','/var/run/postgresql','-w']
+            raw=self._execute_sql(args,LIVE_SYNC_LOGIN_SQL,'live_sync_acl_login','00000')
+            try:
+                identity=json.loads(raw)
+            except (TypeError,ValueError):
+                raise ValueError('NATIVE_LIVE_SYNC_AUTHENTICATOR_REQUIRED') from None
+            if identity != LIVE_SYNC_LOGIN_EXPECTED or any(type(identity.get(k)) is not bool
+                    for k in ('login','superuser','bypassRls')) or any(
+                    type(value) is not bool for value in identity['setRoles'].values()):
+                raise ValueError('NATIVE_LIVE_SYNC_AUTHENTICATOR_REQUIRED')
+        output=self._execute_sql(args,sql,stage,expect)
+        if role is not None:
+            self._live_sync_acl_receipts[role]=dict(
+                scope='EXACT_SESSION_FIXTURE_API_LOGIN_NOT_HISTORICAL_LEDGER',
+                login='authenticator',realLoginVerified=True,expectedStateVerified=True,
+                expectedSqlstate=expect,
+                sqlSha256=hashlib.sha256(sql.encode()).hexdigest(),
+                loginQuerySha256=hashlib.sha256(LIVE_SYNC_LOGIN_SQL.encode()).hexdigest(),
+                fixtureSourceSha256=LIVE_SYNC_FIXTURE_SHA256)
+        return output
+
+    def _execute_sql(self,args,sql,stage,expect):
         result = self._run(args, data=sql.encode(), timeout=420, allow_failure=True)
         # Verbose psql sends the primary SQLSTATE on an ERROR/FATAL/PANIC line.
         # Do not accept a NOTICE, arbitrary SQL echo or a second primary error.
@@ -326,13 +382,35 @@ class NativeTimestampTarget:
         self.active = False
 
 
+def admit_live_sync_acl_receipts(receipts):
+    if type(receipts) is not dict or set(receipts)!=set(LIVE_SYNC_ACL_SQL):
+        raise ValueError('NATIVE_LIVE_SYNC_ACL_RECEIPTS_REQUIRED')
+    for role,sql in LIVE_SYNC_ACL_SQL.items():
+        expected=dict(scope='EXACT_SESSION_FIXTURE_API_LOGIN_NOT_HISTORICAL_LEDGER',
+            login='authenticator',realLoginVerified=True,expectedStateVerified=True,
+            expectedSqlstate='42501' if role=='anon' else '00000',
+            sqlSha256=hashlib.sha256(sql.encode()).hexdigest(),
+            loginQuerySha256=hashlib.sha256(LIVE_SYNC_LOGIN_SQL.encode()).hexdigest(),
+            fixtureSourceSha256=LIVE_SYNC_FIXTURE_SHA256)
+        if (receipts[role]!=expected or receipts[role]['realLoginVerified'] is not True
+                or receipts[role]['expectedStateVerified'] is not True):
+            raise ValueError('NATIVE_LIVE_SYNC_ACL_RECEIPTS_REQUIRED')
+    return json.loads(json.dumps(receipts))
+
+
 def execute_live_sync(target, source_sql, progress, *, retained, apply_reconstruction):
     if type(target) is not NativeTimestampTarget:
         raise ValueError('LIVE_SYNC_NATIVE_TARGET_REQUIRED')
     target._last_sql_failure = None
+    target._live_sync_acl_receipts = {}
     try:
-        return load_live_sync().execute_boundary(ROOT, target, 'postgres', source_sql, progress,
+        result=load_live_sync().execute_boundary(ROOT, target, 'postgres', source_sql, progress,
                                                retained=retained, apply_reconstruction=apply_reconstruction)
+        if (progress.get('sessionReconstruction',{}).get('nativeBoundaryVerified') is not True
+                or any(name in target._owned for name in CLONES[:4])):
+            raise ValueError('NATIVE_LIVE_SYNC_ACL_RECEIPTS_REQUIRED')
+        progress['sessionReconstruction']['apiLoginAclQualification']=admit_live_sync_acl_receipts(target._live_sync_acl_receipts)
+        return result
     except Exception:
         if target._last_sql_failure is not None and 'sessionReconstruction' in progress:
             progress['sessionReconstruction']['nativeSqlFailure'] = dict(target._last_sql_failure)

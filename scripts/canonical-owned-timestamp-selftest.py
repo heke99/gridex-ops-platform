@@ -39,12 +39,26 @@ class OwnedTimestampTests(unittest.TestCase):
         tail.forward_retained = object()
         tail.actor_retained = object()
         tail.view_retained = object()
+        tail.removed_policy_retained=object()
+        import canonical_removed_policy_qualification as removed
+        removed_receipt={**removed.receipt_contract(native=False),
+                **{key:'a'*64 for key in ('policyContextSha256','roleAndAclContextSha256','helperAndRpcContextSha256',
+                                         'compositionProofSha256','reusedActorReceiptSha256')}}
+        def qualify_removed(actual,retained,progress,actor_receipt):
+            self.assertIs(actual,target)
+            self.assertIs(retained,tail.removed_policy_retained)
+            self.assertIs(actor_receipt,progress['policyActorQualification'])
+            return removed_receipt
+        removed_patch=patch('canonical_removed_policy_qualification.execute',side_effect=qualify_removed)
+        tail.removed_execute=removed_patch.start()
+        self.addCleanup(removed_patch.stop)
         import canonical_added_view_witness as views
         view_receipt=views.expected_receipt(views.contract(views.retain(ROOT)),native=False)
         def witness(actual, retained, progress):
             self.assertIs(actual,target)
             self.assertIs(retained,tail.view_retained)
             self.assertTrue(progress['policyActorQualification']['verified'])
+            self.assertTrue(progress['removedPolicyQualification']['verified'])
             return view_receipt
         view_patch=patch('canonical_added_view_witness.execute',side_effect=witness)
         tail.view_execute=view_patch.start()
@@ -82,6 +96,7 @@ class OwnedTimestampTests(unittest.TestCase):
         self.assertEqual(tail.state, 'executed')
         tail.actor_execute.assert_called_once()
         tail.view_execute.assert_called_once()
+        tail.removed_execute.assert_called_once()
         result = json.loads(output.getvalue())
         self.assertIs(result['originalsAbsentDuringTimestamp'], True)
         for field in ('completeReplayVerified', 'ledgerProvenanceVerified', 'generatedTypesVerified'):
@@ -91,6 +106,19 @@ class OwnedTimestampTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'BOUNDARY_REQUIRED'):
             tail.execute(loop, payload)
         self.assertEqual(tail.driver.execute_tail.call_count, 1)
+
+    def test_supplemental_failure_or_invalid_receipt_never_reaches_views(self):
+        for fail in (True,False):
+            _,loop,tail,payload=self.fixture()
+            if fail:tail.removed_execute.side_effect=ValueError('removed policy gate rejected')
+            else:
+                tail.removed_execute.side_effect=None
+                tail.removed_execute.return_value={}
+            with contextlib.redirect_stdout(io.StringIO()) as output:
+                with self.assertRaises(ValueError):tail.execute(loop,payload)
+            self.assertEqual(tail.state,'failed')
+            self.assertEqual(output.getvalue(),'')
+            tail.view_execute.assert_not_called()
 
     def test_view_failure_or_invalid_receipt_never_completes(self):
         for fail in (True,False):

@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 import re
 import secrets
+import subprocess
 
 import canonical_native_historical_prefix as p
 import canonical_policy_actor_qualification as actors
@@ -221,6 +222,38 @@ def validate_execution_receipt(receipt,*,native):
     return receipt
 
 
+def execute_query(target,retained,progress,*,native):
+    """Keep derived source literals in memory on both owned transports.
+
+    The portable owner normally retains each SQL fixture on disk. These exact
+    source queries include historical fixed literals, so a derived fixture is
+    inappropriate there. Its existing privacy inspection stays unchanged.
+    """
+    database,actual_native=actors._admit(target)
+    if actual_native is not native:
+        raise ValueError('ADDED_VIEW_WITNESS_OWNED_TARGET_REQUIRED')
+    actors._complete(progress,native)
+    sql=render(contract(retained))
+    if native:
+        return target.sql(database,sql,'added_view_source_witness',transaction=False)
+    controller=actors._controller()
+    legacy=controller.load_batch()
+    if (type(target) is not legacy.OwnedPostgres
+            or getattr(target.command,'__func__',None) is not legacy.OwnedPostgres.command
+            or getattr(target.verify_logging,'__func__',None) is not legacy.OwnedPostgres.verify_logging):
+        raise ValueError('ADDED_VIEW_WITNESS_OWNED_TARGET_REQUIRED')
+    target.verify_logging()
+    args=target.command(database,(),transaction=False)+['-f','-']
+    result=subprocess.run(args,input=sql.encode(),capture_output=True,timeout=120,
+                          env=legacy.clean_environment())
+    actors._admit(target)
+    target.verify_logging()
+    receipt=legacy.safe_receipt(result.stderr.decode(errors='replace'),result.returncode,'added_view_source_witness')
+    if receipt['sqlstate']!='00000' or result.returncode!=0:
+        raise ValueError('ADDED_VIEW_WITNESS_EXECUTION_REQUIRED')
+    return result.stdout.decode()
+
+
 def execute(target,retained,progress):
     """Parent supplies full Runner admission for native; this checks owned target
     and every admitted forward receipt in both modes, preserving ledger rows separately.
@@ -238,7 +271,7 @@ def execute(target,retained,progress):
     prior=ledger(target,database)
     try:
         try:
-            rows=json.loads(target.sql(database,render(specs),'added_view_source_witness',transaction=False))
+            rows=json.loads(execute_query(target,retained,progress,native=native))
             verify_rows(rows,specs)
         except Exception:
             raise ValueError('ADDED_VIEW_WITNESS_EXECUTION_REQUIRED') from None

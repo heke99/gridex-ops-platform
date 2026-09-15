@@ -29,6 +29,9 @@ class Transport:
         self.network = [{'Name': PROJECT+'-network', 'Internal': True,
                          'Labels': {'gridex.native.owner': PROJECT}}]
         self.result = None
+        self.acl_identity = dict(sessionUser='authenticator',currentUser='authenticator',
+                                 login=True,superuser=False,bypassRls=False,
+                                 setRoles=dict(anon=True,authenticated=True,service_role=True))
     def __call__(self, args, **kwargs):
         self.calls.append((args, kwargs))
         if args[:2] == ['docker', 'inspect']:
@@ -48,6 +51,8 @@ class Transport:
             # produces the bytes json.loads can decode for an absent database.
             if output is None and "'null'::json" not in query:
                 return subprocess.CompletedProcess(args, 0, b'\n', b'')
+        elif b"'sessionUser'" in kwargs.get('data',b''):
+            output = self.acl_identity
         elif self.result is not None:
             return self.result
         else:
@@ -287,12 +292,133 @@ class BoundaryTests(unittest.TestCase):
             self.target._last_sql_failure = None
             self.transport.result = subprocess.CompletedProcess([], code, stdout, stderr)
             with self.assertRaisesRegex(ValueError, '^NATIVE_TIMESTAMP_SQL_RESULT$'):
-                self.target.sql('postgres', 'private_sql', 'live_sync_acl_anon', expect='42501')
+                self.target.sql('postgres', 'private_sql', 'live_sync_behavior_fixture', expect='42501')
             diagnostic = self.target._last_sql_failure['transport']
             self.assertEqual(diagnostic['exitKind'], exit_kind)
             self.assertIn(signal, diagnostic['signals'])
             self.assertNotIn('private', json.dumps(diagnostic))
             self.assertEqual(self.target._last_sql_failure['actual'], 'NONE')
+
+    def test_live_sync_acl_uses_verified_real_authenticator_login_only(self):
+        database='gridex_auth_legacy_helper'
+        self.target.reset(database)
+        for role in ('anon','authenticated','service_role'):
+            sql=proof.LIVE_SYNC_ACL_SQL[role]
+            expected='42501' if role=='anon' else '00000'
+            self.transport.result=subprocess.CompletedProcess([],3 if role=='anon' else 0,b'',
+                b'psql:<stdin>:1: ERROR: 42501: denied\n' if role=='anon' else b'')
+            self.target.sql(database,sql,'live_sync_acl_'+role,expect=expected,transaction=False)
+            args, options=self.transport.calls[-1]
+            self.assertEqual(args[args.index('-U')+1],'authenticator')
+            self.assertEqual(args[args.index('-h')+1],'/var/run/postgresql')
+            self.assertIn('-w',args)
+            self.assertEqual(options['data'],sql.encode())
+            self.assertNotIn('--single-transaction',args)
+        receipts=self.target._live_sync_acl_receipts
+        self.assertEqual(set(receipts),{'anon','authenticated','service_role'})
+        self.assertTrue(all(r['realLoginVerified'] and r['expectedStateVerified'] for r in receipts.values()))
+        args=self.target.command('postgres')
+        self.assertEqual(args[args.index('-U')+1],'postgres')
+
+    def test_acl_binding_matches_unchanged_fixture_and_never_retains_failed_receipt(self):
+        from types import SimpleNamespace
+        calls=[]
+        live=proof.load_live_sync()
+        capture=SimpleNamespace(reset=lambda database:None,
+            sql=lambda database,sql,stage,**options:calls.append((database,sql,stage,options)))
+        with patch.object(live,'checkpoint'):
+            live.behavior(capture,dict(definition='SELECT 1',execute=dict(anon=False,authenticated=True,service_role=True)))
+        for database,sql,stage,options in calls[-3:]:
+            role=stage.removeprefix('live_sync_acl_')
+            self.assertEqual(database,'gridex_auth_legacy_helper')
+            self.assertEqual(sql,proof.LIVE_SYNC_ACL_SQL[role])
+            self.assertIs(options['transaction'],False)
+        database='gridex_auth_legacy_helper';self.target.reset(database)
+        self.transport.result=subprocess.CompletedProcess([],3,b'',b'ERROR: 42501: denied\n')
+        self.target.sql(database,proof.LIVE_SYNC_ACL_SQL['anon'],'live_sync_acl_anon',expect='42501',transaction=False)
+        self.assertIn('anon',self.target._live_sync_acl_receipts)
+        self.transport.result=subprocess.CompletedProcess([],3,b'',b'ERROR: 42601: wrong failure\n')
+        with self.assertRaisesRegex(ValueError,'NATIVE_TIMESTAMP_SQL_RESULT'):
+            self.target.sql(database,proof.LIVE_SYNC_ACL_SQL['anon'],'live_sync_acl_anon',expect='42501',transaction=False)
+        self.assertNotIn('anon',self.target._live_sync_acl_receipts)
+
+    def test_live_sync_acl_rejects_privileged_wrong_or_ungranted_login(self):
+        database='gridex_auth_legacy_helper';self.target.reset(database)
+        for change in (dict(sessionUser='postgres'),dict(currentUser='anon'),dict(login=False),
+                       dict(superuser=True),dict(bypassRls=True),
+                       dict(setRoles=dict(anon=False,authenticated=True,service_role=True)),
+                       dict(setRoles=dict(anon=True,authenticated=False,service_role=True)),
+                       dict(setRoles=dict(anon=True,authenticated=True,service_role=False))):
+            before=copy.deepcopy(self.transport.acl_identity)
+            self.transport.acl_identity.update(change);self.transport.calls=[]
+            with self.assertRaisesRegex(ValueError,'NATIVE_LIVE_SYNC_AUTHENTICATOR_REQUIRED'):
+                self.target.sql(database,proof.LIVE_SYNC_ACL_SQL['anon'],'live_sync_acl_anon',
+                                expect='42501',transaction=False)
+            self.assertFalse(any(k.get('data')==proof.LIVE_SYNC_ACL_SQL['anon'].encode() for _,k in self.transport.calls))
+            self.transport.acl_identity=before
+
+    def test_live_sync_acl_stage_body_database_and_expectation_are_bound(self):
+        database='gridex_auth_legacy_helper';self.target.reset(database)
+        sql=proof.LIVE_SYNC_ACL_SQL['anon']
+        for db,body,stage,expected,transaction in (
+            ('postgres',sql,'live_sync_acl_anon','42501',False),
+            (database,sql+' SELECT 1;','live_sync_acl_anon','42501',False),
+            (database,sql,'live_sync_acl_unknown','42501',False),
+            (database,sql,'fixture','42501',False),
+            (database,sql,'live_sync_acl_authenticated','00000',False),
+            (database,sql,'live_sync_acl_anon','00000',False),
+            (database,sql,'live_sync_acl_anon','42501',True)):
+            self.transport.calls=[]
+            with self.assertRaisesRegex(ValueError,'NATIVE_LIVE_SYNC_ACL_BINDING_REQUIRED'):
+                self.target.sql(db,body,stage,expect=expected,transaction=transaction)
+            self.assertFalse(any('-U' in a and a[a.index('-U')+1]=='authenticator' for a,_ in self.transport.calls))
+        with patch.object(proof,'LIVE_SYNC_FIXTURE_SHA256','0'*64):
+            with self.assertRaisesRegex(ValueError,'NATIVE_LIVE_SYNC_ACL_SOURCE_REQUIRED'):
+                self.target.sql(database,sql,'live_sync_acl_anon',expect='42501',transaction=False)
+
+    def test_acl_receipt_admission_requires_three_exact_executed_bindings(self):
+        database='gridex_auth_legacy_helper';self.target.reset(database)
+        for role in proof.LIVE_SYNC_ACL_SQL:
+            self.transport.result=subprocess.CompletedProcess([],3 if role=='anon' else 0,b'',
+                b'ERROR: 42501: denied\n' if role=='anon' else b'')
+            self.target.sql(database,proof.LIVE_SYNC_ACL_SQL[role],'live_sync_acl_'+role,
+                expect='42501' if role=='anon' else '00000',transaction=False)
+        receipts=self.target._live_sync_acl_receipts
+        self.assertEqual(proof.admit_live_sync_acl_receipts(receipts),receipts)
+        for key,value in [('login','postgres'),('sqlSha256','0'*64),('fixtureSourceSha256','0'*64),
+                          ('loginQuerySha256','0'*64),('expectedSqlstate','00000'),
+                          ('realLoginVerified',False),('expectedStateVerified',False)]:
+            mutated=copy.deepcopy(receipts);mutated['anon'][key]=value
+            with self.assertRaisesRegex(ValueError,'NATIVE_LIVE_SYNC_ACL_RECEIPTS_REQUIRED'):
+                proof.admit_live_sync_acl_receipts(mutated)
+        for mutated in ({},dict(anon=receipts['anon']),{**receipts,'other':receipts['anon']}):
+            with self.assertRaisesRegex(ValueError,'NATIVE_LIVE_SYNC_ACL_RECEIPTS_REQUIRED'):
+                proof.admit_live_sync_acl_receipts(mutated)
+
+    def test_native_boundary_publishes_acl_receipts_only_after_ledger_and_cleanup(self):
+        live=proof.load_live_sync()
+        for defect in (None,'ledger','cleanup','missing'):
+            progress={'sessionReconstruction':{'nativeBoundaryVerified':False}}
+            def boundary(*args,**kwargs):
+                database='gridex_auth_legacy_helper';self.target.reset(database)
+                for role in proof.LIVE_SYNC_ACL_SQL:
+                    self.transport.result=subprocess.CompletedProcess([],3 if role=='anon' else 0,b'',
+                        b'ERROR: 42501: denied\n' if role=='anon' else b'')
+                    self.target.sql(database,proof.LIVE_SYNC_ACL_SQL[role],'live_sync_acl_'+role,
+                        expect='42501' if role=='anon' else '00000',transaction=False)
+                progress['sessionReconstruction']['nativeBoundaryVerified']=defect!='ledger'
+                if defect!='cleanup':self.target.drop_clone(database)
+                if defect=='missing':self.target._live_sync_acl_receipts.pop('anon')
+            with patch.object(proof,'load_live_sync',return_value=live), \
+                 patch.object(live,'execute_boundary',side_effect=boundary):
+                if defect:
+                    with self.assertRaisesRegex(ValueError,'NATIVE_LIVE_SYNC_ACL_RECEIPTS_REQUIRED'):
+                        proof.execute_live_sync(self.target,'',progress,retained=None,apply_reconstruction=lambda _:None)
+                    self.assertNotIn('apiLoginAclQualification',progress['sessionReconstruction'])
+                else:
+                    proof.execute_live_sync(self.target,'',progress,retained=None,apply_reconstruction=lambda _:None)
+                    self.assertEqual(set(progress['sessionReconstruction']['apiLoginAclQualification']),set(proof.LIVE_SYNC_ACL_SQL))
+            self.target.drop_clone('gridex_auth_legacy_helper')
 
     def test_live_sync_failure_attaches_only_adapter_diagnostic(self):
         progress={'sessionReconstruction':{'nativeBoundaryVerified':False}}

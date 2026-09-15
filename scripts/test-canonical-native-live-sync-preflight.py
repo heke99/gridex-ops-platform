@@ -39,9 +39,10 @@ class Tests(unittest.TestCase):
         return target
 
     def test_unchanged_behavior_and_cleanup_required_before_success(self):
-        for defect in (None,'state','ledger','cleanup','behavior'):
+        for defect in (None,'state','ledger','cleanup','behavior','receipts'):
             with self.subTest(defect=defect):
                 target=self.fixture();parent={}
+                target._live_sync_acl_receipts={}
                 live=SimpleNamespace(fix=m.proof.load_live_sync().fix,behavior=Mock())
                 if defect=='cleanup':target.close.side_effect=ValueError('cleanup failed')
                 if defect=='behavior':
@@ -53,14 +54,17 @@ class Tests(unittest.TestCase):
                 with patch.object(m.proof,'NativeTimestampTarget',return_value=target),\
                      patch.object(m.proof,'load_live_sync',return_value=live),\
                      patch.object(m,'ledger',side_effect=[['actual'],['changed' if defect=='ledger' else 'actual']]),\
+                     patch.object(m.proof,'admit_live_sync_acl_receipts',side_effect=ValueError('missing receipts') if defect=='receipts' else None,return_value={'three':'qualified'}),\
                      patch.object(m.timestamp,'native_snapshot',side_effect=['before','after' if defect=='state' else 'before']):
                     if defect:
                         with self.assertRaises(ValueError):m.verify(Mock(),'owned',parent)
                         self.assertFalse(parent['nativeLiveSyncBehavior']['verified'])
+                        self.assertNotIn('apiLoginAclQualification',parent['nativeLiveSyncBehavior'])
                     else:
                         result=m.verify(Mock(),'owned',parent)
                         self.assertTrue(result['verified'])
                         self.assertTrue(result['clonesDisposed'])
+                        self.assertEqual(result['apiLoginAclQualification'],{'three':'qualified'})
                         self.assertFalse(result['historicalPrefixVerified'])
                         live.behavior.assert_called_once_with(target,m.contract()[0])
                 target.close.assert_called_once()

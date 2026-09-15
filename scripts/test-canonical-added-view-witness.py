@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
@@ -107,13 +108,15 @@ class Tests(unittest.TestCase):
             for defect in (None,'sql','json','hash','snapshot','ledger','source','owner'):
                 with self.subTest(native=native,defect=defect):
                     target=Mock();target.sql.return_value='[]';progress=self.progress(native)
-                    if defect=='sql':target.sql.side_effect=RuntimeError('private query and connection details')
-                    if defect=='json':target.sql.return_value='private bad JSON'
+                    query=Mock(return_value='[]')
+                    if defect=='sql':query.side_effect=RuntimeError('private query and connection details')
+                    if defect=='json':query.return_value='private bad JSON'
                     admit=[('owned',native),('owned',native)]
                     if defect=='owner':admit[-1]=ValueError('private ownership detail')
                     with patch.object(v.actors,'_admit',side_effect=admit),\
                          patch.object(v.actors,'_snapshot',side_effect=['before','changed' if defect=='snapshot' else 'before']),\
                          patch.object(v,'ledger',side_effect=[['before'],['changed' if defect=='ledger' else 'before']]),\
+                         patch.object(v,'execute_query',query),\
                          patch.object(v,'verify_rows',side_effect=ValueError('row mismatch') if defect=='hash' else None),\
                          patch.object(v,'sources_preserved',return_value=defect!='source'):
                         if defect:
@@ -126,8 +129,38 @@ class Tests(unittest.TestCase):
                             self.assertTrue(result['verified']);self.assertFalse(result['schemaAccepted'])
                             for key,value in [('verified',1),('temporaryViewsRolledBack',False),('actorAccessAccepted',True),('extra',True)]:
                                 with self.assertRaises(ValueError):v.validate_execution_receipt(dict(result,**{key:value}),native=native)
-                    target.sql.assert_called_once()
-                    self.assertFalse(target.sql.call_args.kwargs['transaction'])
+                    query.assert_called_once_with(target,retained,progress,native=native)
+
+    def test_portable_derived_query_uses_owned_stdin_without_any_file_writer(self):
+        class Owner:
+            def command(self,database,files,transaction):
+                self.arguments=(database,files,transaction)
+                return ['docker','exec','-i','owned','psql','-U','postgres','-d',database]
+            def verify_logging(self):self.logging_checks+=1
+            def private(self,*args):raise AssertionError('derived SQL written to disk')
+            def sql(self,*args,**kwargs):raise AssertionError('file-backed SQL path used')
+        target=Owner();target.logging_checks=0
+        legacy=SimpleNamespace(OwnedPostgres=Owner,clean_environment=lambda:{},
+            safe_receipt=lambda *args:dict(sqlstate='00000'))
+        controller=SimpleNamespace(load_batch=lambda:legacy)
+        retained=v.retain(v.ROOT);progress=self.progress(False)
+        process=SimpleNamespace(returncode=0,stdout=b'[]',stderr=b'')
+        with patch.object(v.actors,'_admit',return_value=('owned',False)),\
+             patch.object(v.actors,'_controller',return_value=controller),\
+             patch.object(v.subprocess,'run',return_value=process) as run:
+            self.assertEqual(v.execute_query(target,retained,progress,native=False),'[]')
+            self.assertEqual(run.call_args.args[0][-2:],['-f','-'])
+            self.assertIn(b'CREATE TEMP VIEW',run.call_args.kwargs['input'])
+            self.assertTrue(run.call_args.kwargs['capture_output'])
+            self.assertEqual(target.arguments,('owned',(),False))
+            self.assertEqual(target.logging_checks,2)
+            process.returncode=3;process.stderr=b'private SQL error'
+            with self.assertRaisesRegex(ValueError,'ADDED_VIEW_WITNESS_EXECUTION_REQUIRED'):
+                v.execute_query(target,retained,progress,native=False)
+            run.reset_mock();target.command=Mock()
+            with self.assertRaisesRegex(ValueError,'OWNED_TARGET_REQUIRED'):
+                v.execute_query(target,retained,progress,native=False)
+            run.assert_not_called()
 
 
 if __name__=='__main__':unittest.main()

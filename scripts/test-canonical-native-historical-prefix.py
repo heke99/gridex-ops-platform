@@ -319,6 +319,12 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
         cls.fixture=importlib.util.module_from_spec(spec);spec.loader.exec_module(cls.fixture)
         import canonical_forward_sources as forward_sources
         cls.forward_retained=forward_sources.retain(ROOT)
+        import canonical_added_view_witness as added_views
+        import canonical_removed_policy_qualification as removed_policies
+        # Retain and validate actual pinned bytes before entering the minimal
+        # fake lifecycle filesystem; only its I/O boundary is mocked below.
+        cls.view_retained=added_views.retain(ROOT)
+        cls.removed_policy_retained=removed_policies.retain(ROOT)
 
     def execute(self, fail=False, cleanup=False, legacy_fail=False, repair_fail=False, provider_fail=False, dedupe_fail=False, fixed_fail=False, alignment_fail=False, tail_fail=False, timestamp_fail=False):
         native=self.fixture.m
@@ -380,8 +386,12 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
         import canonical_native_timestamp_sources as timestamp_sources
         import canonical_native_timestamp_runtime as timestamp_runtime
         import canonical_forward_sources as forward_sources
-        def apply_timestamp(command,cli,sql,work,project,parent,plan,forward_retained):
+        import canonical_added_view_witness as added_views
+        import canonical_removed_policy_qualification as removed_policies
+        def apply_timestamp(command,cli,sql,work,project,parent,plan,forward_retained,view_retained,removed_policy_retained):
             self.assertIs(forward_retained,self.forward_retained)
+            self.assertIs(view_retained,self.view_retained)
+            self.assertIs(removed_policy_retained,self.removed_policy_retained)
             # This lifecycle transport fixture uses a sentinel at the compiler
             # boundary; the complete real compiler has its own executable suite.
             self.assertIs(plan,prepared_timestamp)
@@ -403,11 +413,16 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
              patch.object(tail,'execute',side_effect=apply_tail), \
              patch.object(foundation,'execute',side_effect=apply_foundation), \
              patch.object(timestamp_sources,'prepare',return_value=prepared_timestamp) as compile_tail, \
-             patch.object(forward_sources,'retain',return_value=self.forward_retained), \
+             patch.object(forward_sources,'retain',return_value=self.forward_retained) as retain_forward, \
+             patch.object(added_views,'retain',return_value=self.view_retained) as retain_views, \
+             patch.object(removed_policies,'retain',return_value=self.removed_policy_retained) as retain_policies, \
              patch.object(timestamp_runtime,'execute',side_effect=apply_timestamp) as execute_tail, \
              patch.object(native,'run',side_effect=lambda:original(historical_prefix=True)):
             result=self.fixture.NativeTests().execute_fixture('cleanup' if cleanup else None)
             compile_tail.assert_called_once_with()
+            retain_forward.assert_called_once()
+            retain_views.assert_called_once_with(*retain_forward.call_args.args)
+            retain_policies.assert_called_once_with(*retain_forward.call_args.args)
             if any((fail,legacy_fail,repair_fail,provider_fail,dedupe_fail,fixed_fail,alignment_fail,tail_fail)):
                 execute_tail.assert_not_called()
             else:

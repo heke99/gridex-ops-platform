@@ -217,6 +217,8 @@ def terminal_observer(controller, original, reference, before, result):
                     raise ValueError('FULL_SCHEMA_FORWARD_RECEIPT_REQUIRED')
                 import canonical_policy_actor_qualification as actors
                 actor_receipt = actors.validate_execution_receipt(tail.actor_receipt, native=False)
+                import canonical_removed_policy_qualification as removed
+                removed_receipt = removed.validate_execution_receipt(tail.removed_policy_receipt, native=False)
                 import canonical_added_view_witness as views
                 view_receipt = views.validate_execution_receipt(tail.view_receipt, native=False)
                 candidate = compare(reference, capture(handle, controller.DATABASE))
@@ -224,6 +226,7 @@ def terminal_observer(controller, original, reference, before, result):
                                  timestampApplied=len(tail.selected),
                                  forwardApplied=len(FORWARD_SOURCES),
                                  policyActorQualification=actor_receipt,
+                                 removedPolicyQualification=removed_receipt,
                                  addedViewSourceWitness=view_receipt,
                                  forwardSources=[dict(source=path, sourceSha256=digest) for path,digest in FORWARD_SOURCES])
         except Exception:

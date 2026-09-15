@@ -147,7 +147,7 @@ class ShellObservationTests(unittest.TestCase):
     def fixture(self):
         dedupe = SimpleNamespace(require_live=Mock(), _STATES={}, fail=None)
         # Match the real controller frame boundary, not an arbitrary callback.
-        def shell(h, observer, scope='full', state='executed', applied=True, status=1, view_defect=None):
+        def shell(h, observer, scope='full', state='executed', applied=True, status=1, view_defect=None, removed_defect=None):
             from canonical_forward_sources import FORWARD_SOURCES
             forward = dict(executed=True, inputsExecuted=len(FORWARD_SOURCES), sources=[dict(source=path,sourceSha256=digest,
                 executed=True,positiveAndRepeatVerified=True,rowsPreserved=True) for path,digest in FORWARD_SOURCES])
@@ -159,8 +159,15 @@ class ShellObservationTests(unittest.TestCase):
             if view_defect=='missing':view_receipt=None
             if view_defect=='unverified':view_receipt['verified']=False
             if view_defect=='hash':view_receipt['views'][-1]['relationSha256']='0'*64
+            import canonical_removed_policy_qualification as removed
+            removed_receipt={**removed.receipt_contract(native=False),
+                **{key:'a'*64 for key in ('policyContextSha256','roleAndAclContextSha256','helperAndRpcContextSha256',
+                                         'compositionProofSha256','reusedActorReceiptSha256')}}
+            if removed_defect=='missing':removed_receipt=None
+            if removed_defect=='unverified':removed_receipt['verified']=False
+            if removed_defect=='hash':removed_receipt['sourceSha256']='0'*64
             tail = SimpleNamespace(state=state, selected=[('test.sql', 'hash')], forward_receipt=forward, actor_receipt=receipt,
-                                   view_receipt=view_receipt)
+                                   view_receipt=view_receipt,removed_policy_receipt=removed_receipt)
             loop = SimpleNamespace(applied=applied)
             child = SimpleNamespace(poll=lambda:status)
             return observer(h)
@@ -229,6 +236,16 @@ class ShellObservationTests(unittest.TestCase):
             observer=m.terminal_observer(controller,original,document(),'original-bytes',result)
             with patch.object(m,'capture') as capture:
                 controller._serve_child(target,observer,view_defect=defect)
+            capture.assert_not_called()
+            original.assert_called_once()
+            self.assertEqual(result['collectionOutcome'],'EVIDENCE_UNAVAILABLE')
+
+    def test_missing_or_forged_supplemental_receipt_prevents_catalog_collection(self):
+        for defect in ('missing','unverified','hash'):
+            controller,dedupe,target,original,result=self.fixture()
+            observer=m.terminal_observer(controller,original,document(),'original-bytes',result)
+            with patch.object(m,'capture') as capture:
+                controller._serve_child(target,observer,removed_defect=defect)
             capture.assert_not_called()
             original.assert_called_once()
             self.assertEqual(result['collectionOutcome'],'EVIDENCE_UNAVAILABLE')

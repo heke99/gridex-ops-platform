@@ -121,6 +121,7 @@ def verify(command,project,parent):
             raise ValueError('NATIVE_LIVE_SYNC_PREFLIGHT_PRESERVATION_REQUIRED')
         if contract()!=(accepted,pins):
             raise ValueError('NATIVE_LIVE_SYNC_PREFLIGHT_SOURCE_REQUIRED')
+        acl_receipts=proof.admit_live_sync_acl_receipts(target._live_sync_acl_receipts)
         preserved=True
     except Exception:
         if target._last_sql_failure is not None:
@@ -139,5 +140,6 @@ def verify(command,project,parent):
             raise
     if preserved:
         report.update(verified=True,unchangedBehaviorFixtureExecuted=True,
+                      apiLoginAclQualification=acl_receipts,
                       catalogRowsProviderAndLedgerPreserved=True)
     return report

@@ -318,7 +318,24 @@ def execute_added_views(runner, retained, parent, forward_retained):
     return receipt
 
 
-def execute(command, native, sql, work, project, parent, plan, forward_retained, view_retained):
+def execute_removed_policies(runner, retained, parent, forward_retained):
+    """Bind the supplemental witness to the same real Runner and source ledger."""
+    from canonical_native_final_sql import admit_forward
+    import canonical_removed_policy_qualification as removed
+    admit_forward(runner, forward_retained, parent)
+    try:
+        receipt = removed.validate_execution_receipt(
+            removed.execute(runner.target, retained, parent, parent.get('policyActorQualification')), native=True)
+        admit_forward(runner, forward_retained, parent)
+    except BaseException:
+        if isinstance(parent.get('removedPolicyQualification'), dict):
+            parent['removedPolicyQualification']['verified'] = False
+        raise
+    parent['removedPolicyQualification'] = receipt
+    return receipt
+
+
+def execute(command, native, sql, work, project, parent, plan, forward_retained, view_retained, removed_policy_retained):
     import canonical_native_timestamp_sources as compiler
     from canonical_native_timestamp_proof import NativeTimestampTarget, execute_live_sync
     if ('historicalTimestampTail' in parent
@@ -329,6 +346,8 @@ def execute(command, native, sql, work, project, parent, plan, forward_retained,
     forward_programs(forward_retained)
     import canonical_added_view_witness as views
     views.contract(view_retained)
+    import canonical_removed_policy_qualification as removed
+    removed.validate_retained(removed_policy_retained)
     from canonical_native_final_sql import retain as retain_final_sql, execute as execute_final_sql
     final_sql = retain_final_sql(compiler.ROOT)
     import canonical_policy_actor_qualification as actors
@@ -422,6 +441,7 @@ def execute(command, native, sql, work, project, parent, plan, forward_retained,
         execute_final_sql(runner, final_sql, parent, forward_retained)
         parent['policyActorQualification'] = actors.validate_execution_receipt(
             actors.execute(target, actor_retained, parent), native=True)
+        execute_removed_policies(runner, removed_policy_retained, parent, forward_retained)
         execute_added_views(runner, view_retained, parent, forward_retained)
         runner.unchanged()
         from canonical_native_schema_reference import compare as compare_native_schema

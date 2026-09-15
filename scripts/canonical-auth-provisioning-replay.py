@@ -369,6 +369,8 @@ class OwnedTimestampTail:
         self.forward_retained = forward.retain(ROOT)
         import canonical_policy_actor_qualification as actors
         self.actor_retained = actors.retain(ROOT)
+        import canonical_removed_policy_qualification as removed
+        self.removed_policy_retained = removed.retain(ROOT)
         import canonical_added_view_witness as views
         self.view_retained = views.retain(ROOT)
         self.target = target
@@ -405,6 +407,10 @@ class OwnedTimestampTail:
             self.actor_receipt = actors.validate_execution_receipt(
                 actors.execute(self.target, self.actor_retained, progress), native=False)
             progress['policyActorQualification'] = self.actor_receipt
+            import canonical_removed_policy_qualification as removed
+            self.removed_policy_receipt = removed.validate_execution_receipt(
+                removed.execute(self.target, self.removed_policy_retained, progress, self.actor_receipt), native=False)
+            progress['removedPolicyQualification'] = self.removed_policy_receipt
             import canonical_added_view_witness as views
             self.view_receipt = views.validate_execution_receipt(
                 views.execute(self.target, self.view_retained, progress), native=False)

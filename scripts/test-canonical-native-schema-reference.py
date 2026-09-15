@@ -26,6 +26,10 @@ class Tests(unittest.TestCase):
             catalogAndRowsPreserved=True,nativeTarget=True,ledgerProvenanceAccepted=False)
         import canonical_added_view_witness as views
         parent['addedViewSourceWitness']=views.expected_receipt(views.contract(views.retain(views.ROOT)),native=True)
+        import canonical_removed_policy_qualification as removed
+        parent['removedPolicyQualification']={**removed.receipt_contract(native=True),
+            **{key:'a'*64 for key in ('policyContextSha256','roleAndAclContextSha256','helperAndRpcContextSha256',
+                                     'compositionProofSha256','reusedActorReceiptSha256')}}
         comparator.pinned.return_value = {'supabase/schema.sql': b'exact-reference'}
         comparator.compare.return_value = dict(schemaAccepted=False, generatedTypesVerified=False)
         comparator.capture.return_value = dict(relations=[dict(nspname="public",relname="gridex_native_lifecycle_probe")])
@@ -43,11 +47,13 @@ class Tests(unittest.TestCase):
         runner.unchanged.assert_called_once()
 
     def test_missing_final_sql_or_real_ledger_blocks_reference_restore(self):
-        for defect in ('checks', 'hash', 'ledger', 'actor', 'views', 'view_hash'):
+        for defect in ('checks', 'hash', 'ledger', 'actor', 'views', 'view_hash','removed','removed_count'):
             runner, parent, comparator = self.fixture()
             if defect == 'checks': parent['nativeFinalSql']['checks'].pop()
             if defect == 'hash': parent['nativeFinalSql']['checks'][0]['sourceSha256']='bad'
             if defect == 'actor': parent['policyActorQualification']={}
+            if defect=='removed':parent['removedPolicyQualification']={}
+            if defect=='removed_count':parent['removedPolicyQualification']['formulaComponentsProved']=74
             if defect == 'views': parent['addedViewSourceWitness']={}
             if defect == 'view_hash':parent['addedViewSourceWitness']['views'][-1]['relationSha256']='0'*64
             with patch('canonical_native_final_sql.admit_forward',side_effect=ValueError('ledger') if defect=='ledger' else None), patch.object(m,'load_comparator',return_value=comparator):

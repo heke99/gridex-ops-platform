@@ -465,11 +465,15 @@ class DB2DispositionTest(unittest.TestCase):
                                 text=True, capture_output=True, timeout=60)
         report = json.loads(result.stdout)
         self.assertEqual(result.returncode, 1, report)
-        self.assertEqual(report['counts'], {'FULL_FILE_SELECTED': 593, 'SUBSTITUTED': 2,
-                                          'UNCLASSIFIED': 5, 'EXPLICITLY_EXCLUDED': 5})
-        self.assertEqual(report['selectedInputCounts'], {'foundation': 144, 'timestamp': 518})
-        from canonical_forward_sources import historical_fixture_accounting
+        # Admit exact current inventory/source checksums and every registered
+        # suffix ordinal before projecting this historical exclusion fixture.
+        from canonical_forward_sources import FORWARD_SOURCES, historical_fixture_accounting
+        self.assertEqual(len(FORWARD_SOURCES), 6)
         historical = historical_fixture_accounting(report)
+        self.assertEqual(report['totalMigrations'], 607)
+        self.assertEqual(report['counts'], {'FULL_FILE_SELECTED': 595, 'SUBSTITUTED': 2,
+                                          'UNCLASSIFIED': 5, 'EXPLICITLY_EXCLUDED': 5})
+        self.assertEqual(report['selectedInputCounts'], {'foundation': 144, 'timestamp': 520})
         self.assertEqual(historical['totalMigrations'], 601)
         self.assertEqual(historical['counts']['FULL_FILE_SELECTED'], 589)
         rows = {row['path']: row for row in report['migrations']}

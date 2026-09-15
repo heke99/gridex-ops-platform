@@ -281,6 +281,7 @@ jobs:
       - name: Verify migration inventory and replay recovery regressions
         run: |
           node --experimental-vm-modules --test scripts/test-auth-email-action-contract.cjs
+          node --test scripts/test-agt-run-lock-contract.cjs
           node scripts/canonical-migration-inventory-selftest.cjs
           python3 scripts/gridex-aud-003-clean-replay-selftest.py
           python3 scripts/gridex-replay-required-checks-selftest.py
@@ -413,6 +414,8 @@ jobs:
           python3 -B scripts/test-canonical-native-probe-cleanup.py
           python3 -B scripts/test-canonical-native-schema-reference.py
           python3 -B scripts/test_canonical_policy_actor_qualification.py
+          python3 -B scripts/test_canonical_removed_policy_formulas.py
+          python3 -B scripts/test_canonical_removed_policy_qualification.py
           python3 -B scripts/test-canonical-added-view-witness.py
           python3 -B scripts/canonical-auth-provisioning-replay.py
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/sql/canonical-tenant-guard-catalog.sql

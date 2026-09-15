@@ -9,42 +9,54 @@ decisions, genuinely generate application types and manifest, pass final-head
 CI/E2E/review, then merge the entire PR310 to main. Already authorized; preserve
 all ancestry, ec503 auth repair and original601 migration hashes.
 
-Publication base dc011c008a198b3e848fbc9115c264e16bb25682, tree
-5f6f42d570c648a66a1df2651fd562a0b54a3f3c, fetched/index equality verified.
-Actual ordinary native824 run34974499849/job104398696940 proves144+231;
-T232 source/rollback/function/ACL/preimage controls pass before behavior stops.
-Actual short native dc0 run34983371143/job104429130148 narrows the failure:
-LIVE_SYNC_ACL_ANON returns client exit2/SERVER_CONNECTION_CLOSED withoutSQLSTATE;
-clone cleanup then receives DATABASE_RECOVERY. This is NOT an ACL-denial result.
-Outer owned/private disposal succeeds. New bounded owned-server log markers
-will distinguish server termination evidence; no server setting or authSQL changed.
+Publication base 437d3e028084d95de3a312d4bc18893dc5871cad, tree
+02d0373c802ce68a25a4f201d03fce7162212e6a, fetched/index equality verified.
+Actual portable437 run34984859975/job104434241551 completes144+514+6,
+2496 real policy actor cases and all31 exact source/current view witnesses.
+After this success the unmodified private-artifact guard rejects a derived SQL
+fixture containing source literals. The reviewed correction sends that fixed SQL
+through memory-only stdin; full actual rerun and reference comparison remain open.
+No reference overwrite or privacy exemption is introduced.
 
-Actual7f portable run34981240448/job104421807074 executes144+514+5 plus2496
-real-helper policy cases; independent schema remains unequal. No schema acceptance.
-Actual dc0 send-lock qualification34983371102/job104429131362 SUCCESS,
-artifact10402835959 ZIPsha6302804dc76fc4a64b6945aac9c310a0af055de0fc58b2c868cae41223ae6397.
-CLI-created20260915144319_restrict_ediel_send_lock_client_writes.sql exact411df92...
-is promoted as sixth source:607inventory/595FULL/520timestamps, historical514retained.
-It removes7authenticated nonSELECT capabilities; realPG17 negative/atomic/repeat/
-row/catalog/ACL/service/definer-mechanism andcleanup controls pass. Real businessRPC
-execution is not claimed. 31source-defined view witnesses are wired into both
-full runtimes with realnativeRunner/ledger binding; actualSQL execution pending.
+Actual short native437 run34984859686/job104434242782 did not reach SQL: a
+selftest still rejected the sixth admitted CLI ordinal. That fixture is corrected.
+Ordinary437 run34984859825/job104434541400 likewise stopped offline at temporary
+historical-prefix fixtures missing newly retained witness sources; those fixture
+repairs are tracked separately from actual native evidence. Verify job104434541356
+also found a stale593 FULL count versus595 actual. Auth104434541506 and quality
+104434542016 PASS. Browser/quality34984859841 PASS; full E2E34984859946 FAIL.
 
-Auth_email_events.action callers now supply action, but independent full-constraint
-review found actual7-action CHECK restored by historicalQ; three activecaller values
-need the source-authored11value domain. NEW bounded forward qualification is being
-prepared; never rewrite approvedQ/ec503. Prior15module mocks testedintended11,
-not the complete reconstructed7; audit/tests are being corrected explicitly.
-59removedpolicy supplemental metadata/formula proof is under finalreview, including
-anon SET-role closure. Remaining authTRUNCATE capabilities on company_invitations/
-user_roles require separate source-backed correction; no wholecapability acceptance.
+Latest actual ordinary native evidence remains824 run34974499849/job104398696940:
+144 foundations+231 timestamps; T232 fails during session ACL behavior. Actual dc0
+short34983371143/job104429130148 observes client exit2/SERVER_CONNECTION_CLOSED,
+then DATABASE_RECOVERY, rather than required42501. The reviewed exact three-query
+transport uses a genuine authenticator login with verified role attributes and
+SET permissions, preserving SQL, image, grants and historical source. This tests
+the cause hypothesis documented in upstream supabase/postgres issue2409; actual
+native rerun remains required. No new server crash reproduction is claimed.
 
-Actual8d5 authjob104414879377 andqualityrelease104414879855 SUCCESS. Verify/E2E
-still stop at generated-type tail guard. Synthetic nativeCLI typegen succeeds twice
-withidentical5019bytes only; genuine APPLICATION types remain ungenerated.
-Complete native514, probe cleanup, schema acceptance, final CI/E2E/review and whole
-PRmerge remain open. Main unchanged; PRdraft/open/unmerged. Next: publish6+views+
-ownedserverdiagnostic, inspect fastnativefailure, close newcandidates andfullschema.
+All6 promoted source files retain genuine CLI names and qualified exact bytes:
+607inventory/595FULL/520raw timestamps, original601 and historical514 immutable.
+59removed-policy supplemental formula/composition and actual capability gate is
+reviewed and wired in both runtimes; SQL execution pending. Added486 policies,
+211 constraints and451 indexes now have complete source-linked disposition
+registers. Registers alone do not grant schema acceptance. Five parent-delete
+behaviors and five changed-view source witnesses remain under completion.
+
+Two new source-backed forward candidates await real PG17 and CLI qualification:
+auth_email_events.action seven-value CHECK must include the source-authored four
+additional actions, including three active caller values; company_invitations and
+user_roles retain four nonSELECT capabilities each outside audited RPC writes.
+Neither candidate rewrites approved historical authQ/ec503 or enters the ledger
+before actual qualification. AGT caller now respects retained expired-but-unreleased
+locks covered by the real unique index; its five bounded module tests pass.
+
+Synthetic native CLI typegen succeeds twice with identical5019bytes only. Genuine
+APPLICATION types and manifest remain ungenerated. Complete native514, probe cleanup,
+exact schema acceptance, final CI/E2E/review and whole PR merge remain open. Main
+unchanged; PRdraft/open/unmerged. Next: publish reviewed transport, witnesses and
+qualification workflows, inspect short native result, promote only actual qualified
+sources, complete schema acceptance and real type generation, then merge wholePR310.
 
 ## Earlier evidence (superseded boundaries remain historical)
 
@@ -198,10 +210,10 @@ No production mutation, deployment, main merge or whole-replay acceptance claime
 
 ## Continuity contract
 
-Working-tree accounting is 605 inputs: 593 `FULL_FILE_SELECTED`, 2 `SUBSTITUTED`, 5 `UNCLASSIFIED`, and 5 `EXPLICITLY_EXCLUDED`.
+Working-tree accounting is 607 inputs: 595 `FULL_FILE_SELECTED`, 2 `SUBSTITUTED`, 5 `UNCLASSIFIED`, and 5 `EXPLICITLY_EXCLUDED`.
 
-The focused group contains 347 inputs: 335 selected, 2 substituted, 5 unclassified, and 5 excluded.
+The focused group contains 348 inputs: 336 selected, 2 substituted, 5 unclassified, and 5 excluded.
 
-The four admitted forward sources remain separate from the immutable historical selector.
+The six admitted forward sources remain separate from the immutable historical selector.
 No production mutation has been performed in this replay-verification batch.
 Push reviewed, coherent batches stepwise as requested.

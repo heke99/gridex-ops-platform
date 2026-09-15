@@ -10,11 +10,20 @@ const eventTypes = [
   'invite_sent', 'password_reset_sent', 'confirmation_sent', 'email_action_verified',
   'password_updated', 'company_invitation_accepted', 'direct_user_created',
 ]
-// Retained source contract; this is a mock boundary, not PostgreSQL execution.
+// Two explicit source domains: Q restores the May19 seven-value CHECK.
+// The staged forward candidate restores the May20 eleven-value intent.
+// These are mock boundaries, not PostgreSQL or final-schema qualification.
 const source = fs.readFileSync(path.join(root, 'supabase/migrations/20260520_direct_temporary_password_auth_sync_fix.sql'), 'utf8')
 const actionCheck = source.match(/add constraint auth_email_events_action_check\s+check \(action in \(([\s\S]*?)\)\)/i)
 assert.ok(actionCheck, 'Retained action CHECK must be located')
 const allowedActions = new Set([...actionCheck[1].matchAll(/'([^']+)'/g)].map(match => match[1]))
+const retainedSource = fs.readFileSync(path.join(root, 'supabase/migrations/20260519_auth_callback_email_reset_sync.sql'), 'utf8')
+const retainedCheck = retainedSource.match(/add constraint auth_email_events_action_check\s+check \(action in \(([\s\S]*?)\)\)/i)
+assert.ok(retainedCheck, 'Retained seven-value CHECK must be located')
+const retainedActions = new Set([...retainedCheck[1].matchAll(/'([^']+)'/g)].map(match => match[1]))
+assert.equal(retainedActions.size, 7)
+assert.equal(allowedActions.size, 11)
+assert.deepEqual([...allowedActions].filter(value => !retainedActions.has(value)), ['email_action_verified', 'company_invitation_accepted', 'direct_user_created', 'direct_user_linked'])
 
 async function load(relative, mocks) {
   const context = vm.createContext({ URL, Date, console })
@@ -30,7 +39,7 @@ async function load(relative, mocks) {
   return module.namespace
 }
 
-async function fixture({ company = true, smtpReady = true, eventError = null } = {}) {
+async function fixture({ company = true, smtpReady = true, eventError = null, actionDomain = allowedActions } = {}) {
   const events = [], sent = [], reset = [], updates = []
   const supabaseService = {
     auth: {
@@ -44,9 +53,9 @@ async function fixture({ company = true, smtpReady = true, eventError = null } =
       if (table === 'auth_email_events') return {
         insert: async payload => {
           events.push(JSON.parse(JSON.stringify(payload)))
-          // Faithful to the source NOT NULL/CHECK; reject the old omitted action.
+          // Enforce the chosen source domain and required action.
           if (payload.action == null) return { error: { code: '23502', message: 'required action' } }
-          if (!allowedActions.has(payload.action)) return { error: { code: '23514', message: 'invalid action' } }
+          if (!actionDomain.has(payload.action)) return { error: { code: '23514', message: 'invalid action' } }
           return { error: eventError }
         },
       }
@@ -76,7 +85,7 @@ async function fixture({ company = true, smtpReady = true, eventError = null } =
   return { authModule, resetModule, events, sent, reset, updates }
 }
 
-for (const eventType of eventTypes) test(`auth writer preserves payload and supplies source-valid ${eventType}`, async () => {
+for (const eventType of eventTypes) test(`auth writer preserves payload under intended eleven-value domain: ${eventType}`, async () => {
   const f = await fixture()
   await f.authModule.recordAuthEmailEvent({ userId: 'user-1', email: ' User@Example.Test ', eventType, status: 'verified', source: 'callback', actorUserId: 'actor-1', companyId: 'company-1', metadata: { tokenVerified: true } })
   assert.deepEqual(f.events, [{ user_id: 'user-1', email: 'user@example.test', action: eventType, event_type: eventType, status: 'verified', source: 'callback', actor_user_id: 'actor-1', company_id: 'company-1', metadata: { tokenVerified: true } }])
@@ -121,4 +130,19 @@ test('reset event integrity errors remain failures after branded or fallback del
     await assert.rejects(f.resetModule.sendTenantBrandedPasswordResetEmail({ email: 'user@example.test' }), actual => actual === error)
     assert.equal(f.updates.length, 0)
   }
+})
+
+// This reproduces the remaining final-schema incompatibility after the action
+// field correction: three active event types still fail until the new forward.
+test('retained seven-value domain rejects three active writes with 23514; intended eleven accepts them', async () => {
+  for (const eventType of eventTypes) {
+    const retained = await fixture({ actionDomain: retainedActions })
+    const promise = retained.authModule.recordAuthEmailEvent({ email: 'user@example.test', eventType })
+    if (retainedActions.has(eventType)) await promise
+    else await assert.rejects(promise, error => error.code === '23514')
+    assert.equal(retained.events[0].action, eventType)
+    const intended = await fixture({ actionDomain: allowedActions })
+    await intended.authModule.recordAuthEmailEvent({ email: 'user@example.test', eventType })
+  }
+  assert.equal(eventTypes.filter(value => !retainedActions.has(value)).length, 3)
 })
