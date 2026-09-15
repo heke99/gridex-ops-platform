@@ -8,11 +8,15 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import weakref
 import canonical_policy_actor_qualification as actors
 import canonical_forward_portable as snapshots
 ROOT=Path(__file__).resolve().parents[1]
 DATABASE='gridex_auth_legacy_replay'
 COLUMNS=('intake_missing_fields','intake_warnings')
+# Only main registers the fresh object it creates; full-parent callers still need
+# the existing published-reference and live-replay admission.
+_STANDALONE=weakref.WeakSet()
 PINS={'supabase/migrations/20260521_batch_customer_intake_debug_hardening.sql': '562c2447554c43a3aef96bbbcd88a9f36ad1cc884ba97268ca96bc455ec54e80', 'supabase/migrations/20260521_batch_customer_intake_batch2_hardening.sql': 'ab4bcf98d9baba596e3badde07ea8c035224512979104f6716d1fe39bbbb2594', 'supabase/migrations/20260526_batch_3a_3b_customer_intake_blockers_documents.sql': 'fad2a3336c1bab86cd67d05d5f965643589864c259b500eb67bbafbcaa78cba8', 'supabase/migrations/20260610123000_customer_application_review_flow.sql': '55bdc0a98d9a601437738f58cc1380b2828bf817d979e586e038331e0a622caf', 'supabase/migrations/20260610171000_customer_application_status_hardening.sql': '92c3c134200a9efa9279cf93e76522f55109e7801a6da331c29c057492ddd69f', 'lib/website/applicationReview.ts': '1848c38cafa3438b29ec3e49233a6db91ec5ae4840d85220393072ca0c18d37a', 'lib/website/customerApplicationShared.ts': 'a77d450b793e2dbfaac038c0f98aa9d60be5e80ac6c5923e7b46f518123aa19e', 'app/admin/website-applications/actions.ts': 'fc9ce4f8dd2b44a2db51f39b45617c22321b41c38482c09d9e7520cf465f63ad', 'lib/customers/getCustomers.ts': '10b2aa3048cfb9bdb2053673d5045b8038f7172c6764e7b0d92eadb0da2ab9ea'}
 
 
@@ -107,14 +111,26 @@ def load_legacy():
     return module.load_batch()
 
 
+def admit(target):
+    if target not in _STANDALONE:
+        return actors._admit(target)
+    legacy=load_legacy()
+    if (type(target) is not legacy.OwnedPostgres
+        or getattr(target.command,'__func__',None) is not legacy.OwnedPostgres.command
+        or getattr(target.verify_logging,'__func__',None) is not legacy.OwnedPostgres.verify_logging):
+        raise ValueError('INTAKE_OWNED_TARGET_REQUIRED')
+    actors._controller().load_repair().require_owned(target,reference=False)
+    return DATABASE,False
+
+
 def query(target,sql,label):
-    database,native=actors._admit(target)
+    database,native=admit(target)
     if native:return target.sql(database,sql,label,transaction=False).strip()
     legacy=load_legacy()
     if type(target) is not legacy.OwnedPostgres:raise ValueError('INTAKE_OWNED_TARGET_REQUIRED')
     target.verify_logging()
     result=subprocess.run(target.command(database,(),transaction=False)+['-f','-'],input=sql.encode(),capture_output=True,timeout=120,env=legacy.clean_environment())
-    actors._admit(target);target.verify_logging()
+    admit(target);target.verify_logging()
     receipt=legacy.safe_receipt(result.stderr.decode(errors='replace'),result.returncode,label)
     if result.returncode!=0 or receipt['sqlstate']!='00000':raise ValueError('INTAKE_SQL_QUALIFICATION_REQUIRED')
     return result.stdout.decode().strip()
@@ -122,7 +138,7 @@ def query(target,sql,label):
 
 def execute(target,retained):
     contract(retained)
-    database,native=actors._admit(target)
+    database,native=admit(target)
     before=actors._snapshot(target,database,native)
     if query(target,METADATA,'intake_metadata')!='t':raise ValueError('INTAKE_TWO_JSONB_COLUMNS_REQUIRED')
     if query(target,render(retained),'intake_behavior')!='t':raise ValueError('INTAKE_BEHAVIOR_REQUIRED')
@@ -139,9 +155,13 @@ def main():
     retained=retain();statements=contract(retained);legacy=load_legacy()
     with legacy.OwnedPostgres() as target:
         directory=Path(target.directory.name);target.reset(DATABASE)
-        if query(target,"select current_user='postgres' and current_setting('server_version_num')::int between 170000 and 179999;",'intake_pg17')!='t':raise ValueError('INTAKE_PG17_REQUIRED')
-        query(target,'CREATE TABLE public.customers(id integer PRIMARY KEY);\n'+'\n'.join(statements),'intake_source_declarations')
-        result=execute(target,retained)
+        _STANDALONE.add(target)
+        try:
+            if query(target,"select current_user='postgres' and current_setting('server_version_num')::int between 170000 and 179999;",'intake_pg17')!='t':raise ValueError('INTAKE_PG17_REQUIRED')
+            query(target,'CREATE TABLE public.customers(id integer PRIMARY KEY);\n'+'\n'.join(statements),'intake_source_declarations')
+            result=execute(target,retained)
+        finally:
+            _STANDALONE.discard(target)
     if target.active or target.directory is not None or directory.exists():raise ValueError('INTAKE_CLEANUP_REQUIRED')
     result['cleanupVerified']=True
     print(json.dumps(result,sort_keys=True))

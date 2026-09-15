@@ -46,6 +46,25 @@ class IntakeTests(unittest.TestCase):
                 else:
                     with self.assertRaises(ValueError):q.execute(object(),retained)
 
+    def test_only_registered_fresh_owned_instance_uses_standalone_admission(self):
+        legacy=q.load_legacy()
+        target=legacy.OwnedPostgres.__new__(legacy.OwnedPostgres)
+        target.active=True;target.name=target._created_name='gridex-auth-legacy-continuation-123-1'
+        target.directory=object()
+        with patch.object(q.actors,'_admit',side_effect=ValueError('FULL_PARENT_REFERENCE_REQUIRED')):
+            with self.assertRaisesRegex(ValueError,'FULL_PARENT_REFERENCE_REQUIRED'):q.admit(target)
+            q._STANDALONE.add(target)
+            try:
+                self.assertEqual(q.admit(target),(q.DATABASE,False))
+                target.active=False
+                with self.assertRaises(Exception):q.admit(target)
+                target.active=True;target.name='another-target'
+                with self.assertRaises(Exception):q.admit(target)
+                target.name=target._created_name;target.command=lambda *a,**k:[]
+                with self.assertRaises(ValueError):q.admit(target)
+            finally:q._STANDALONE.discard(target)
+            with self.assertRaisesRegex(ValueError,'FULL_PARENT_REFERENCE_REQUIRED'):q.admit(target)
+
     def test_external_target_stops_before_queries(self):
         with patch.object(q,'query') as sql:
             with self.assertRaises(ValueError):q.execute(object(),q.retain())
