@@ -406,6 +406,9 @@ def execute(command, native, sql, work, project, parent, plan, forward_retained)
         runner.unchanged()
         from canonical_native_schema_reference import compare as compare_native_schema
         parent['_nativeSchemaComparison'] = compare_native_schema(runner, forward_retained, parent)
+        from canonical_native_probe_cleanup import execute as cleanup_probe
+        cleanup_probe(runner, forward_retained, parent)
+        parent['_nativeSchemaComparison'] = compare_native_schema(runner, forward_retained, parent)
         return progress
     finally:
         target.close()

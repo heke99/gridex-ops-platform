@@ -17,6 +17,28 @@ CLONES = ('gridex_auth_legacy_dirty', 'gridex_auth_legacy_atomic',
           'gridex_auth_legacy_native', 'gridex_auth_legacy_helper',
           'gridex_native_timestamp_original', 'gridex_native_timestamp_candidate',
           'gridex_native_timestamp_phase')
+SQL_STAGES = {
+    name: name.upper() for name in (
+        'live_sync_behavior_fixture', 'live_sync_behavior_matrix',
+        'live_sync_acl_anon', 'live_sync_acl_authenticated', 'live_sync_acl_service_role',
+        'timestamp_clone_identity', 'timestamp_catalog', 'timestamp_rows')
+}
+SQL_STATES = {
+    '00000': 'SUCCESS', '42501': 'INSUFFICIENT_PRIVILEGE', '42601': 'SYNTAX',
+    '42P01': 'RELATION_MISSING', '42703': 'COLUMN_MISSING', '42883': 'FUNCTION_MISSING',
+    '23505': 'UNIQUE_VIOLATION', '23514': 'CHECK_VIOLATION', '55000': 'PREREQUISITE_STATE',
+    'P0001': 'ASSERTION', 'ZX001': 'INJECTED_FAULT', 'XX000': 'INTERNAL',
+    '3F000': 'SCHEMA_MISSING', '42P06': 'SCHEMA_EXISTS', '0A000': 'UNSUPPORTED',
+}
+
+
+def sql_failure_diagnostic(stage, expect, errors, returncode):
+    """Only finite labels escape private psql streams; unknown text stays private."""
+    actual = (SQL_STATES.get(errors[0].decode('ascii'), 'OTHER') if len(errors)==1
+              else 'NONE' if not errors else 'MULTIPLE')
+    return dict(stage=SQL_STAGES.get(stage,'OTHER'), expected=SQL_STATES.get(expect,'OTHER'),
+                actual=actual, primaryErrors='ONE' if len(errors)==1 else 'ZERO' if not errors else 'MULTIPLE',
+                exit='ZERO' if returncode==0 else 'NONZERO')
 
 
 def clone_create_failure(stderr, source):
@@ -70,6 +92,7 @@ class NativeTimestampTarget:
         self.name = self._created_name = 'supabase_db_'+project
         self.active = True
         self._owned = {}
+        self._last_sql_failure = None
         self.assert_native_owned()
 
     def _admit(self):
@@ -125,6 +148,8 @@ class NativeTimestampTarget:
                             result.stderr, re.M)
         if ((expect == '00000' and (result.returncode != 0 or errors))
                 or (expect != '00000' and (result.returncode == 0 or errors != [expect.encode()]))):
+            if self._last_sql_failure is None:
+                self._last_sql_failure = sql_failure_diagnostic(stage,expect,errors,result.returncode)
             raise ValueError('NATIVE_TIMESTAMP_SQL_RESULT')
         return result.stdout.decode()
 
@@ -251,5 +276,11 @@ class NativeTimestampTarget:
 def execute_live_sync(target, source_sql, progress, *, retained, apply_reconstruction):
     if type(target) is not NativeTimestampTarget:
         raise ValueError('LIVE_SYNC_NATIVE_TARGET_REQUIRED')
-    return load_live_sync().execute_boundary(ROOT, target, 'postgres', source_sql, progress,
-        retained=retained, apply_reconstruction=apply_reconstruction)
+    target._last_sql_failure = None
+    try:
+        return load_live_sync().execute_boundary(ROOT, target, 'postgres', source_sql, progress,
+                                               retained=retained, apply_reconstruction=apply_reconstruction)
+    except Exception:
+        if target._last_sql_failure is not None and 'sessionReconstruction' in progress:
+            progress['sessionReconstruction']['nativeSqlFailure'] = dict(target._last_sql_failure)
+        raise

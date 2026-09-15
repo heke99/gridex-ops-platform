@@ -38,7 +38,7 @@ class ForwardTests(unittest.TestCase):
         retained = sources.retain(ROOT)
         with patch.object(Path, 'read_bytes', side_effect=AssertionError('reopened source')):
             programs = forward.programs(retained)
-        self.assertEqual(len(programs), 4)
+        self.assertEqual(len(programs), 5)
         for ordinal, (original, program) in enumerate(zip(retained, programs), 1):
             body, transferred = compiler.transfer_outer(original.sql)
             self.assertTrue(transferred)
@@ -63,7 +63,7 @@ class ForwardTests(unittest.TestCase):
         return runner,program
 
     def test_negative_controls_require_exact_fault_and_restored_snapshot(self):
-        for ordinal,ledger in ((ordinal,ledger) for ordinal in (1,2,3,4) for ledger in (False,True)):
+        for ordinal,ledger in ((ordinal,ledger) for ordinal in (1,2,3,4,5) for ledger in (False,True)):
             with tempfile.TemporaryDirectory() as directory:
                 runner,program=self.failure_fixture(directory,ledger=ledger,ordinal=ordinal)
                 with patch.object(timestamp,'native_snapshot',side_effect=[({},[]),({},[])]):
@@ -90,7 +90,12 @@ class ForwardTests(unittest.TestCase):
                       'customer_import_batches','customer_import_rows','grid_owner_access_agreements','production_route_wizard_runs'):
             self.assertIn("'"+table+"'",tenant)
         self.assertIn("'TRUNCATE'",tenant)
-        for ordinal in (0,5):
+        remaining=forward.assertion(5)
+        self.assertIn('count(*)=22',remaining)
+        self.assertIn("pg_has_role('authenticated',c.relowner,'MEMBER')",remaining)
+        self.assertIn("'white_label_platform_memberships'",remaining)
+        self.assertIn("'ediel_test_run_locks'",remaining)
+        for ordinal in (0,6):
             with self.assertRaisesRegex(ValueError,'FORWARD_SOURCE_ORDINAL_REQUIRED'):
                 forward.assertion(ordinal)
 

@@ -148,7 +148,7 @@ class ShellObservationTests(unittest.TestCase):
         # Match the real controller frame boundary, not an arbitrary callback.
         def shell(h, observer, scope='full', state='executed', applied=True, status=1):
             from canonical_forward_sources import FORWARD_SOURCES
-            forward = dict(executed=True, inputsExecuted=4, sources=[dict(source=path,sourceSha256=digest,
+            forward = dict(executed=True, inputsExecuted=5, sources=[dict(source=path,sourceSha256=digest,
                 executed=True,positiveAndRepeatVerified=True,rowsPreserved=True) for path,digest in FORWARD_SOURCES])
             import canonical_policy_actor_qualification as actors
             receipt=dict(actors.expected_result(),source=actors.SOURCE,sourceSha256=actors.SOURCE_SHA256,
@@ -198,7 +198,7 @@ class ShellObservationTests(unittest.TestCase):
         self.assertIs(result['cleanupVerified'], True)
         self.assertIs(result['schemaAccepted'], False)
         self.assertEqual(result['timestampApplied'], 1)
-        self.assertEqual(result['forwardApplied'], 4)
+        self.assertEqual(result['forwardApplied'], 5)
 
     def test_capture_must_precede_original_privacy_and_disposal(self):
         controller, dedupe, target, original, result = self.fixture()

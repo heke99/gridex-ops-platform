@@ -1,4 +1,4 @@
-"""Apply exactly four reviewed forward sources after the complete retained prefix.
+"""Apply exactly five reviewed forward sources after the complete retained prefix.
 
 Uses the already admitted, live CLI Runner. No connection override, historical
 ledger alias, source rewrite, schema acceptance or typegen shortcut is provided.
@@ -146,6 +146,18 @@ def assertion(ordinal):
           FROM unnest(ARRAY['billing_disputes','billing_partner_customers','company_go_live_reviews',
           'customer_import_batches','customer_import_rows','grid_owner_access_agreements',
           'production_route_wizard_runs']) t(name))"""
+    if ordinal == 5:
+        return """(SELECT count(*)=22 AND bool_and(c.relkind='r' AND c.relrowsecurity
+          AND NOT c.relforcerowsecurity AND NOT has_table_privilege('authenticated',c.oid,'TRUNCATE')
+          AND NOT pg_has_role('authenticated',c.relowner,'MEMBER'))
+          FROM unnest(ARRAY['customer_case_events','customer_lifecycle_events','customer_sync_events',
+          'data_quality_findings','ediel_agt_readiness','ediel_test_customers','ediel_test_expected_acks',
+          'ediel_test_expected_values','ediel_test_facilities','ediel_test_field_values',
+          'ediel_test_metering_points','ediel_test_run_locks','ediel_unlinked_test_messages',
+          'gridex_archived_customer_registry_rows','page_performance_budgets','platform_session_revocations',
+          'status_transition_rules','tenant_email_domains','tenant_email_sender_profiles',
+          'tenant_governance_events','white_label_platform_memberships','white_label_platforms']) t(name)
+          JOIN pg_class c ON c.oid=to_regclass('public.'||t.name))"""
     raise ValueError('FORWARD_SOURCE_ORDINAL_REQUIRED')
 
 

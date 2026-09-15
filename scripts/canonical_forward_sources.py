@@ -20,6 +20,8 @@ FORWARD_SOURCES = (
      '0ee026c41d180768b23e20826d522387cc1c65e9c689304472f62cda39b19033'),
     ('migrations/20260915132227_restrict_new_tenant_table_truncate.sql',
      'c67328cde9b270efad94aa44ded06f3b435170f247af90b1ea93e01dfe08523a'),
+    ('migrations/20260915140647_restrict_remaining_rls_table_truncate.sql',
+     'cf85df9d7339e5368ceac7567b720dfa26cc2bf51fe2cd0f19b79b3af7eaab2b'),
 )
 
 
@@ -42,22 +44,22 @@ def _digest(rows):
 
 
 def partition_timestamps(selected):
-    """Require the original ordered 514 pairs followed by exactly four sources."""
+    """Require the original ordered 514 pairs followed by exactly five sources."""
     rows = _pairs(selected)
     historical, forward = rows[:514], rows[514:]
-    if (len(rows) != 518 or _digest(historical) != HISTORICAL_SELECTION_SHA
+    if (len(rows) != 519 or _digest(historical) != HISTORICAL_SELECTION_SHA
             or forward != FORWARD_SOURCES):
         raise ValueError('FORWARD_TIMESTAMP_PARTITION_REQUIRED')
     return historical, forward
 
 
 def partition_inventory(rows):
-    """Account all 605 files without changing any of the historical 601 pins."""
+    """Account all 606 files without changing any of the historical 601 pins."""
     pairs = _pairs(rows)
     paths = {path for path, _ in FORWARD_SOURCES}
     historical = tuple(sorted(row for row in pairs if row[0] not in paths))
     forward = tuple(sorted(row for row in pairs if row[0] in paths))
-    if (len(pairs) != 605 or len(historical) != 601
+    if (len(pairs) != 606 or len(historical) != 601
             or _digest(historical) != HISTORICAL_INVENTORY_SHA or forward != FORWARD_SOURCES):
         raise ValueError('FORWARD_INVENTORY_PARTITION_REQUIRED')
     return historical, forward
@@ -83,7 +85,7 @@ def validate_retained(retained):
 
 
 def retain(root):
-    """Read only the four registered canonical files before the replay's HOLD."""
+    """Read only the five registered canonical files before the replay's HOLD."""
     root = Path(root)
     retained = []
     try:
@@ -99,9 +101,9 @@ def retain(root):
 
 
 def historical_fixture_accounting(report):
-    """Qualify current605 input evidence, then expose the pinned601 fixture scope.
+    """Qualify current606 input evidence, then expose the pinned601 fixture scope.
 
-    Historical SQL fixture constructors predate the four forward sources and
+    Historical SQL fixture constructors predate the five forward sources and
     must continue testing their original prefix, without lying about inventory.
     This is a test/source-selection adapter; it creates no execution evidence.
     """
@@ -109,10 +111,10 @@ def historical_fixture_accounting(report):
     from collections import Counter
     rows = report['migrations']
     partition_inventory([(row['path'], row['sha256']) for row in rows])
-    expected_counts = dict(FULL_FILE_SELECTED=593,SUBSTITUTED=2,UNCLASSIFIED=5,EXPLICITLY_EXCLUDED=5)
-    if (report['totalMigrations'] != 605 or report['counts'] != expected_counts
+    expected_counts = dict(FULL_FILE_SELECTED=594,SUBSTITUTED=2,UNCLASSIFIED=5,EXPLICITLY_EXCLUDED=5)
+    if (report['totalMigrations'] != 606 or report['counts'] != expected_counts
             or dict(Counter(row['classification'] for row in rows)) != expected_counts
-            or report['selectedInputCounts'] != dict(foundation=144,timestamp=518)
+            or report['selectedInputCounts'] != dict(foundation=144,timestamp=519)
             or report['errors']):
         raise ValueError('FORWARD_FIXTURE_ACCOUNTING_REQUIRED')
     suffix = {path for path,_ in FORWARD_SOURCES}
@@ -126,7 +128,7 @@ def historical_fixture_accounting(report):
     result['totalMigrations'] = 601
     result['counts'] = dict(Counter(row['classification'] for row in result['migrations']))
     result['selectedInputCounts'] = dict(foundation=144,timestamp=514)
-    result['currentInventoryTotal'] = 605
+    result['currentInventoryTotal'] = 606
     result['fixtureScope'] = 'PINNED_HISTORICAL_601_INPUTS_NOT_CURRENT_TOTAL'
     return result
 
@@ -134,19 +136,19 @@ def historical_fixture_accounting(report):
 def historical_fixture_review_group(report):
     """Keep historical lexical fixture assertions after admitting a finite suffix.
 
-    A lexical group contains only the matching subset of the four forward files.
+    A lexical group contains only the matching subset of the five forward files.
     Retain the current global accounting; only fixture inputs are projected back.
     This is review-hint bookkeeping, never SQL or source-effect acceptance.
     """
     import copy
-    expected_counts = dict(FULL_FILE_SELECTED=593, SUBSTITUTED=2, UNCLASSIFIED=5, EXPLICITLY_EXCLUDED=5)
+    expected_counts = dict(FULL_FILE_SELECTED=594, SUBSTITUTED=2, UNCLASSIFIED=5, EXPLICITLY_EXCLUDED=5)
     provenance = report['accountingProvenance']
     if (report['errors'] or report['evidenceScope'] != 'LEXICAL_REVIEW_HINTS_ONLY'
             or report['effectsVerified'] is not False
-            or provenance['errors'] or provenance['totalMigrations'] != 605
+            or provenance['errors'] or provenance['totalMigrations'] != 606
             or provenance['counts'] != expected_counts
-            or provenance['selectedInputCounts'] != dict(foundation=144,timestamp=518)
-            or report['global']['totalMigrations'] != 605
+            or provenance['selectedInputCounts'] != dict(foundation=144,timestamp=519)
+            or report['global']['totalMigrations'] != 606
             or report['global']['classificationCounts'] != expected_counts):
         raise ValueError('FORWARD_FIXTURE_REVIEW_GROUP_REQUIRED')
     known = {path: (digest, ordinal) for ordinal,(path,digest) in enumerate(FORWARD_SOURCES,515)}

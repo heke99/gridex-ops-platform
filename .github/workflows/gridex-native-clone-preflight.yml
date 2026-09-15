@@ -11,6 +11,8 @@ on:
       - 'scripts/canonical_native_typegen_preflight.py'
       - 'scripts/test-canonical-native-typegen-preflight.py'
       - 'scripts/test-canonical-native-timestamp-proof.py'
+      - 'scripts/canonical_native_live_sync_preflight.py'
+      - 'scripts/test-canonical-native-live-sync-preflight.py'
 permissions:
   contents: read
 concurrency:
@@ -34,6 +36,7 @@ jobs:
           python3 -B scripts/test-canonical-native-timestamp-proof.py
           python3 -B scripts/test-canonical-native-clone-quiesce.py
           python3 -B scripts/test-canonical-native-typegen-preflight.py
+          python3 -B scripts/test-canonical-native-live-sync-preflight.py
           python3 -B scripts/canonical-native-supabase-lifecycle-selftest.py
           python3 -B scripts/test-canonical-native-clone-preflight.py
       - name: Qualify actual native clone before historical replay

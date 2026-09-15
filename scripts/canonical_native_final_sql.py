@@ -46,15 +46,21 @@ def admit_forward(runner, retained_forward, parent):
     report = parent.get('forwardSources', {})
     receipts = report.get('sources', [])
     count = len(programs)
+    cleanup_count = 0
+    if 'syntheticProbeCleanup' in parent:
+        from canonical_native_probe_cleanup import admit_completed
+        admit_completed(runner, parent)
+        cleanup_count = 1
     if (type(runner) is not timestamp.Runner or not hasattr(runner,'entries') or not hasattr(runner,'retained')
-            or len(runner.entries) != len(runner.retained) or len(runner.entries) < 65+514+4+count
-            or report.get('actualLedgerRows') != len(runner.entries)
-            or parent.get('historicalTimestampTail',{}).get('actualLedgerRows') != len(runner.entries)-count
+            or len(runner.entries) != len(runner.retained) or len(runner.entries) < 65+514+4+count+cleanup_count
+            or report.get('actualLedgerRows') != len(runner.entries)-cleanup_count
+            or parent.get('historicalTimestampTail',{}).get('actualLedgerRows') != len(runner.entries)-count-cleanup_count
             or len(receipts) != count):
         raise ValueError('NATIVE_FINAL_SQL_FORWARD_LEDGER_REQUIRED')
     runner.target.assert_native_owned()
     runner.unchanged()
-    for program,receipt,entry,retained in zip(programs,receipts,runner.entries[-count:],runner.retained[-count:]):
+    end = len(runner.entries)-cleanup_count
+    for program,receipt,entry,retained in zip(programs,receipts,runner.entries[end-count:end],runner.retained[end-count:end]):
         path,raw,physical = retained
         expected_cases=[dict(expectedSqlstate=state,programSha256=p.sha(body),
                              catalogAndRowsRestored=True,ledgerUnchanged=True)

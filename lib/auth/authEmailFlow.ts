@@ -90,6 +90,7 @@ export async function recordAuthEmailEvent(input: {
   const { error } = await supabaseService.from('auth_email_events').insert({
     user_id: input.userId ?? null,
     email: normalizeEmail(input.email),
+    action: input.eventType,
     event_type: input.eventType,
     status: input.status ?? 'sent',
     source: input.source ?? 'app',

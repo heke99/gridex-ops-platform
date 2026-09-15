@@ -93,4 +93,36 @@ class FinalSqlTests(unittest.TestCase):
             runner.target.sql.assert_not_called()
             self.assertNotIn('nativeFinalSql',parent)
 
+    def test_separate_cleanup_keeps_complete_forward_prefix_bound_to_real_ledger(self):
+        import canonical_native_probe_cleanup as cleanup
+        for fault in (None, 'cleanup_body', 'forward_body', 'old_count', 'extra_entry'):
+            runner,parent=self.fixture()
+            unit=cleanup.program()
+            earlier=copy.deepcopy(runner.entries)
+            path=runner.retained[-1][0].parent/('20260916000000_'+unit.name+'.sql')
+            path.write_bytes(unit.sql);path.chmod(0o600);stat=path.stat()
+            entry=dict(version=path.name[:14],name=unit.name,
+                statements=[' '.join(tokens) for tokens in p.identity(unit.sql.decode())])
+            runner.entries.append(entry);runner.retained.append((path,unit.sql,(stat.st_dev,stat.st_ino)))
+            runner.sql=Mock(return_value=True)
+            parent['syntheticProbeCleanup']=dict(actualLedgerRows=len(runner.entries),
+                priorLedgerRows=len(earlier),priorLedgerSha256=cleanup.ledger_hash(earlier),
+                sourcePins=cleanup.PINS,syntheticCleanupEntriesExecuted=1,verified=True,
+                probeAbsent=True,allOtherCatalogAndRowsPreserved=True,providerEventsPreserved=True,
+                noOpRepeatVerified=True,unchangedEarlierLedger=True,originalHistoricalVersionMarkedApplied=False,
+                cliFile=path.name,programSha256=p.sha(unit.sql),
+                ledgerStatementsSha256=p.sha(json.dumps(entry['statements'],separators=(',',':')).encode()),
+                cases=[dict(expectedSqlstate=state,programSha256=p.sha(body),
+                       catalogAndRowsRestored=True,ledgerUnchanged=True)
+                       for state,body in [('PC001',unit.sql+cleanup.POST),('PC002',unit.sql)]])
+            if fault=='cleanup_body':runner.entries[-1]['statements']=['SELECT 1']
+            elif fault=='forward_body':runner.retained[-2][0].write_bytes(b'changed')
+            elif fault=='old_count':parent['forwardSources']['actualLedgerRows']+=1
+            elif fault=='extra_entry':runner.entries.append(copy.deepcopy(entry));runner.retained.append(runner.retained[-1])
+            with self.subTest(fault=fault):
+                if fault:
+                    with self.assertRaises(ValueError):m.admit_forward(runner,self.forward,parent)
+                else:m.admit_forward(runner,self.forward,parent)
+            self.assertEqual(parent['historicalTimestampTail']['actualLedgerRows'],65+514+4)
+
 if __name__=='__main__':unittest.main()

@@ -4,12 +4,47 @@ Status: PARTIAL
 
 ## Active work and exact next action
 
-Current bounded task: collect complete native144+514+4, run real policy actors,
-qualify the remaining22 protected-table TRUNCATE repair, and finish schema/type
-gates before whole-PR merge. No new approval is needed.
-Publication base9f1ba7aeb042fefa1a545c75bc4ae6296573ee48, exact tree
-a58f001e5804cb64b256054de1f370c09d0e6250, fetched with exact equality verified.
+Current bounded task: diagnose native T232 behavior on the owned Supabase image,
+complete native144+514+5, and finish source/caller schema and type gates before
+whole-PR merge. No new approval is needed.
+8d5 auth-email-source-effects104414879377 SUCCESS after the lexical fixture fix;
+quality-release-gates104414879855 SUCCESS. Verify remains gated by real types.
+
+Publication base8d5b3e46d51ad9aae01aca903a72289294787889, exact tree
+5d45cd8faf7756b74e08557a18b384380e8ca1c9, fetched with exact equality verified.
 Preserve all ancestry and original601 migration hashes.
+
+Actual824 ordinary native34974499849/job104398696940 now proves144+231;T232
+session behavior stops with generic NATIVE_TIMESTAMP_SQL_RESULT. All preceding
+T232 source/rollback/function/ACL/preimage controls pass. No auth SQL defect is
+inferred. Closed substep diagnostics and a source-pinned short native behavior
+fixture are now wired after the synthetic typegen preflight; actual result pending. Artifact10400687958
+SHA647fd0f4ded73ea10f30a1779bd055d27f84a2aa1463a1334d544f64703c5376 verified.
+Cleanup/private cleanup true.9f1 native104403604836 remains a separate pendingrun.
+
+Actual8d5 full portable34979236704/job104414878993 executes144+514+4 plus all2496
+real-helper policy cases.76service changes are inert in actualclosedBYPASSRLS mode.
+Artifact10400788007 SHAef32946e5e9e5afd67cc0ca5d4b750755ceeb858c05298c8ba5585494228dd1b.
+Schema remains unequal with same projection; no acceptance bypass.
+
+Actual8d5 remaining22PG17 qualification34979236786/job104414896156 SUCCESS.
+Artifact10400931632 SHA917eff9e04a80b33d708301f1ecfeda7905c260a79750f3a92abc05fe58e5de7.
+Exact CLI-created20260915140647_restrict_remaining_rls_table_truncate.sql is now
+promoted locally as fifth source;606inventory/594FULL/519raw timestamps, retaining
+601historical/514timestamps. Full five-forward execution pending. Native synthetic
+probe cleanup is wired after firstcomparison and beforesecondcomparison, with
+one separately checked CLI ledger entry and no other state changes permitted;
+actual cleanup execution pending. Evidence and limits:
+quality/audits/PR310_NATIVE231_POLICY_ACTORS_AND_FIFTH_FORWARD_2026-09-15.md.
+
+The source/caller review reconstructed all937 added column hashes and found the
+required auth_email_events.action omitted by two active email-event writers.
+Both callers now supply the source-valid action;15 actual-module mock regressions
+pass and are wired intoOPSverify. Preserve the approved historicalauth SQL.
+A separately identified ediel_send_locks direct-write capability conflicts with
+canonical actor/readiness control; a bounded source-based candidate is pending.
+
+## Earlier evidence (superseded boundaries remain historical)
 
 Actual9f1 short native preflight34975955556/job104403603697 SUCCESS: clone
 preservation still passes; real CLI2.101.0 typegen runs twice against the owned

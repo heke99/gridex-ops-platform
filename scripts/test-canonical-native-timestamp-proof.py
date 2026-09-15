@@ -253,6 +253,44 @@ class BoundaryTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'NATIVE_TIMESTAMP_SQL_RESULT'):
                     self.target.sql('postgres', 'bad sql', expect='42601')
 
+    def test_sql_failure_diagnostic_is_closed_and_preserves_strict_rejection(self):
+        cases = (
+            (b'psql:<stdin>:3: ERROR:  42501: private object and user details\n', 3,
+             'INSUFFICIENT_PRIVILEGE', 'ONE', 'NONZERO'),
+            (b'NOTICE: 42501: forged\n', 3, 'NONE', 'ZERO', 'NONZERO'),
+            (b'ERROR: 42501: first\nERROR: 42601: second\n', 3, 'MULTIPLE', 'MULTIPLE', 'NONZERO'),
+            (b'ERROR: QQQQQ: private unrecognized code\n', 3, 'OTHER', 'ONE', 'NONZERO'),
+            (b'ERROR: 42501: inconsistent zero exit\n', 0, 'INSUFFICIENT_PRIVILEGE', 'ONE', 'ZERO'),
+        )
+        for stderr, code, state, count, exit_category in cases:
+            self.target._last_sql_failure = None
+            self.transport.result = subprocess.CompletedProcess([], code, b'private stdout', stderr)
+            with self.assertRaisesRegex(ValueError, '^NATIVE_TIMESTAMP_SQL_RESULT$'):
+                self.target.sql('postgres','SELECT private_data','live_sync_behavior_fixture')
+            self.assertEqual(self.target._last_sql_failure, dict(
+                stage='LIVE_SYNC_BEHAVIOR_FIXTURE',expected='SUCCESS',actual=state,
+                primaryErrors=count,exit=exit_category))
+        self.transport.result = subprocess.CompletedProcess([],3,b'',b'ERROR: 42601: private\n')
+        self.target._last_sql_failure = None
+        with self.assertRaises(ValueError): self.target.sql('postgres','private','arbitrary_private_stage',expect='QQQQQ')
+        self.assertEqual(self.target._last_sql_failure['stage'],'OTHER')
+        self.assertEqual(self.target._last_sql_failure['expected'],'OTHER')
+
+    def test_live_sync_failure_attaches_only_adapter_diagnostic(self):
+        progress={'sessionReconstruction':{'nativeBoundaryVerified':False}}
+        diagnostic=dict(stage='LIVE_SYNC_BEHAVIOR_MATRIX',expected='SUCCESS',actual='ASSERTION',
+                        primaryErrors='ONE',exit='NONZERO')
+        live=proof.load_live_sync()
+        def failure(*args,**kwargs):
+            self.target._last_sql_failure=diagnostic
+            raise ValueError('NATIVE_TIMESTAMP_SQL_RESULT')
+        with patch.object(proof,'load_live_sync',return_value=live), \
+             patch.object(live,'execute_boundary',side_effect=failure):
+            with self.assertRaisesRegex(ValueError,'NATIVE_TIMESTAMP_SQL_RESULT'):
+                proof.execute_live_sync(self.target,'',progress,retained=None,apply_reconstruction=lambda _:None)
+        self.assertEqual(progress['sessionReconstruction']['nativeSqlFailure'],diagnostic)
+        self.assertFalse(progress['sessionReconstruction']['nativeBoundaryVerified'])
+
     def test_mutated_target_rejected(self):
         self.target.name = 'production'
         with self.assertRaisesRegex(ValueError, 'NATIVE_TIMESTAMP_OWNER_REQUIRED'):

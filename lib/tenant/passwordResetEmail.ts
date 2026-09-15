@@ -105,6 +105,7 @@ async function recordPasswordResetEvent(input: {
   const { error } = await supabaseService.from('auth_email_events').insert({
     user_id: input.userId,
     email: input.email,
+    action: 'password_reset_sent',
     event_type: 'password_reset_sent',
     status: input.status,
     source: input.source,
