@@ -9,6 +9,11 @@ from unittest.mock import patch
 import canonical_native_timestamp_sources as timestamp_sources
 import canonical_forward_sources as forward_sources
 import canonical_added_view_witness as views
+import canonical_changed_view_witness as changed_views
+import canonical_changed_function_witness as changed_functions
+import canonical_changed_index_witness as changed_indexes
+import canonical_intake_jsonb_qualification as intake
+import canonical_added_nonunique_index_decisions as nonunique
 import canonical_removed_policy_qualification as removed_policies
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -88,6 +93,11 @@ class HistoricalDiagnosticTests(unittest.TestCase):
         cls.timestamp_plan = timestamp_sources.prepare()
         cls.forward_retained = forward_sources.retain(ROOT)
         cls.view_retained = views.retain(ROOT)
+        cls.changed_view_retained = changed_views.retain(ROOT)
+        cls.changed_function_retained = changed_functions.retain(ROOT)
+        cls.changed_index_retained = changed_indexes.retain(ROOT)
+        cls.intake_retained = intake.retain(ROOT)
+        cls.nonunique_retained = nonunique.retain(ROOT)
         cls.removed_policy_retained = removed_policies.retain(ROOT)
 
     def test_known_prefix_code_is_preserved_without_formatting_exception(self):
@@ -142,6 +152,11 @@ class HistoricalDiagnosticTests(unittest.TestCase):
              patch.object(timestamp_sources, 'prepare', return_value=self.timestamp_plan), \
              patch.object(forward_sources, 'retain', return_value=self.forward_retained), \
              patch.object(views, 'retain', return_value=self.view_retained), \
+             patch.object(changed_views, 'retain', return_value=self.changed_view_retained), \
+             patch.object(changed_functions, 'retain', return_value=self.changed_function_retained), \
+             patch.object(changed_indexes, 'retain', return_value=self.changed_index_retained), \
+             patch.object(intake, 'retain', return_value=self.intake_retained), \
+             patch.object(nonunique, 'retain', return_value=self.nonunique_retained), \
              patch.object(removed_policies, 'retain', return_value=self.removed_policy_retained) as retained, \
              patch.object(lifecycle.provider_events, 'bootstrap', return_value=lifecycle.provider_events.receipt()), \
              patch.object(lifecycle, 'run', side_effect=lambda: original(historical_prefix=True)):
