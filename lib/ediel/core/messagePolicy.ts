@@ -81,4 +81,3 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
     mode: 'parse',
   })
 }
-

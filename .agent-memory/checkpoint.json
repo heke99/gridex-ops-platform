@@ -3,8 +3,6 @@
   "updated_at": "2026-09-15",
   "status": "IN_PROGRESS",
   "current_state": ".agent-memory/current-state.md",
-  "publication_base": "a6ed690808b56b767c50191e52c4c9ad5997a3aa",
-  "published_tree": "812cc0fcf86c38ce1fec863fa27c95266a98039a",
   "main_merged": false,
-  "next_action": "Inspect fullpermissionclone actual24+129 case qualification; fix evidenced integration failures before genuine forward promotion, then full native/schema/types/final CI/main merge."
+  "next_action": "Inspect full permission clone run35025303437; satisfy native/schema/generated-type/final CI gates before PR310 main merge."
 }
