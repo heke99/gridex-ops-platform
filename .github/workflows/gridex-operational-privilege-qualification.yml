@@ -1,0 +1,71 @@
+name: Gridex operational privilege qualification
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-operational-privilege-qualification.yml'
+      - 'scripts/canonical-operational-privileges-selftest.py'
+      - 'scripts/canonical-composite-customer-fk-selftest.py'
+      - 'scripts/sql/forward-candidates/restrict-retained-operational-table-privileges.sql'
+permissions:
+  contents: read
+jobs:
+  operational-privileges:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gridex_auth_test
+        ports:
+          - 55440:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d gridex_auth_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Qualify scoped privileges in the owned PostgreSQL 17 service
+        run: |
+          psql 'postgresql://postgres:postgres@127.0.0.1:55440/gridex_auth_test' -X -v ON_ERROR_STOP=1 -c 'CREATE ROLE authenticated NOLOGIN; CREATE ROLE service_role NOLOGIN;'
+          python3 -B scripts/canonical-operational-privileges-selftest.py
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Create genuine CLI filename for the qualified staged candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(supabase --version)" == '2.101.0' ]]
+          candidate_root="$(mktemp -d)"
+          trap 'rm -rf -- "$candidate_root"' EXIT
+          supabase --workdir "$candidate_root" init
+          supabase --workdir "$candidate_root" migration new restrict_retained_operational_table_privileges
+          migration_files=("$candidate_root"/supabase/migrations/*_restrict_retained_operational_table_privileges.sql)
+          [[ "${#migration_files[@]}" == 1 && -f "${migration_files[0]}" ]]
+          cp scripts/sql/forward-candidates/restrict-retained-operational-table-privileges.sql "${migration_files[0]}"
+          mkdir -p artifacts/operational-privilege-candidate
+          cp "${migration_files[0]}" artifacts/operational-privilege-candidate/
+          python3 - <<'PY'
+          import hashlib,json,pathlib,re,subprocess
+          root=pathlib.Path('artifacts/operational-privilege-candidate')
+          files=list(root.glob('*.sql'))
+          assert len(files)==1 and re.fullmatch(r'[0-9]{14}_restrict_retained_operational_table_privileges.sql',files[0].name)
+          digest=hashlib.sha256(files[0].read_bytes()).hexdigest()
+          assert digest=='c8928d29f3cf5ad527513a7448b4819c4f7a80f07d9fe3b78c764e30759e134e'
+          receipt=dict(scope='CLI_FILENAME_AND_ISOLATED_SQL_NOT_SCHEMA_ACCEPTANCE',cliVersion='2.101.0',
+            sourceHead=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),file=files[0].name,
+            sha256=digest,isolatedPostgresVerified=True,selectedMigration=False,schemaAccepted=False,productionModified=False)
+          (root/'cli-creation.json').write_text(json.dumps(receipt,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gridex-operational-privilege-candidate
+          path: artifacts/operational-privilege-candidate/
+          if-no-files-found: error
+          retention-days: 7

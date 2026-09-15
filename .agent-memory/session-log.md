@@ -219,3 +219,15 @@ controls, finite synthetic admin cases and full non-system catalog/row scope;
 real canonical ledger rows remain separately verified. All23 proof tests pass.
 Native SQL pending; full514/schema/types/CI/E2E remain unaccepted. ReadinessOPEN.
 Evidence: quality/audits/PR310_NATIVE_TIMESTAMP_SNAPSHOT_2026-09-15.md.
+
+
+## 2026-09-15 — source-causal schema dispositions / operational privileges
+
+Published70ce549f preserves concurrent82cb5d00/61d6748e; exact tree verified.
+Combined native proof17/runtime19 PASS; current OPS34966099676 queued.
+Remaining14 non-physical column differences reconstructed28 exact hashes;
+index review proves7 UNIQUE equivalents and identifies2 open access paths.
+Actual24 extra authenticated administrative grants on6 BL001 tables motivate
+reviewed narrow candidate and fixed PG17 behavior qualification. Source/hash
+selection and YAML parse PASS; native SQL/CLI filename pending. No production,
+reference/type refresh or full acceptance. See schema grant/column/index audits.

@@ -29,7 +29,7 @@ ledger aliases or asserting readiness when truth is blocked. Complete genuine
 full native/schema/types/mandatoryCI/E2E/review before whole-PR merge and main
 verification. Preserved evidence from the immediately preceding publication:
 
-Publication base 61d6748e7ef1b538e6df0833fe2637f0c4e6ea1f preserves the
+Publication base807187224ae73ba4c10d38cc30d2a3f1bb040f92 preserves the
 335f987f retained514 native integration and all approved auth corrections.
 The prior ledger fixture and exact601/347 continuity fixes are published; on
 f5a5fa88 OPS34964141901 verify104364493403 passes inventory and isolated SQL
@@ -66,6 +66,23 @@ timestamp catalog/row coverage for private schemas/extensions/types/events,
 and real execution of LEDGER_DEPENDENT_READINESS qualifications. Verify ledger
 truth without inventing historical aliases or assuming deployment readiness.
 See PR310_NATIVE_TIMESTAMP_TRANSPORT and PR310_NATIVE_FOUNDATION_ADMISSION.
+
+The clone NULL correction and composite qualification are published at70ce549f
+with exact tree039f59bd30d5625b686c3145ff5fc0a5bdc25405. Rebased descendant
+preserves concurrent stdin/foundation admission commits; combined proof17 and
+runtime19 tests PASS. OPS34966099676/current native104370788723 and composite
+job104370788695 remain queued at this observation. No native success claim.
+
+Further schema dispositions cover remaining14 non-physical columns (28 exact
+row hashes), all51 removed/5 changed indexes, and relation/function/schema grants.
+Seven missing UNIQUE indexes have exact equivalents; two nonunique access paths
+remain open. A new reviewed candidate revokes only24 excess authenticated
+administrative privileges on6 retained operational tables. It preserves authored
+DML, policies, service_role and data; it remains an unselected staged source.
+A separate isolated PG17 workflow must prove original TRUNCATE/RLS behavior,
+repair42501, preservation/atomicity/repeat, then obtain a genuine CLI filename.
+Native SQL and all schema/type acceptance remain pending. Do not overwrite the
+reference or type manifest. New schema policy findings remain under review.
 
 The compiler prepares all522 possible units before creating the target. T201/202
 keep separate committed phases; four LOCK sources have exact source adapters;
