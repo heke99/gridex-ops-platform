@@ -26,6 +26,45 @@ def receipt(outcome, phase, progress):
                 ledgerProvenanceVerified=False, generatedTypesVerified=False, productionModified=False)
 
 
+# Identical F-14 predicate from the pinned gate; only one-way object identifiers
+# leave the owned database. No policy definition, role, row or object name exits.
+INERT_POLICY_HASH_SQL = """
+select coalesce(jsonb_agg(jsonb_build_object(
+  'tableSha256', encode(sha256(convert_to(c.relname::text, 'UTF8')), 'hex'),
+  'policySha256', encode(sha256(convert_to(pol.polname::text, 'UTF8')), 'hex')
+  ) order by c.relname, pol.polname), '[]'::jsonb)
+from pg_policy pol
+join pg_class c on c.oid = pol.polrelid
+join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
+where pol.polroles <> '{0}'::oid[]
+  and not exists (
+    select 1 from unnest(pol.polroles) as role_oid
+    join pg_roles r on r.oid = role_oid
+    where has_table_privilege(r.rolname, c.oid, 'SELECT, INSERT, UPDATE, DELETE')
+  );
+"""
+
+
+def inert_policy_hashes(target, diagnostic):
+    failures = [row for row in diagnostic.get('breaches', []) if row.get('rule') == 'F14_INERT_POLICY']
+    if diagnostic.get('status') != 'RECOGNIZED' or len(failures) != 1:
+        return None
+    expected = failures[0].get('affectedCount')
+    if type(expected) is not int or not 1 <= expected <= 10000:
+        raise ValueError('INERT_POLICY_DIAGNOSTIC_COUNT_REQUIRED')
+    before = forward_portable.snapshot(target)
+    rows = json.loads(target.sql(forward_portable.DATABASE, INERT_POLICY_HASH_SQL, 'inert_policy_hashes'))
+    if forward_portable.snapshot(target) != before:
+        raise ValueError('INERT_POLICY_DIAGNOSTIC_STATE_CHANGED')
+    if (type(rows) is not list or len(rows) != expected
+            or any(type(row) is not dict or set(row) != {'tableSha256', 'policySha256'}
+                   or any(type(value) is not str or re.fullmatch('[0-9a-f]{64}', value) is None
+                          for value in row.values()) for row in rows)
+            or len({(row['tableSha256'], row['policySha256']) for row in rows}) != expected):
+        raise ValueError('INERT_POLICY_DIAGNOSTIC_PROJECTION_REQUIRED')
+    return dict(count=expected, objects=rows)
+
+
 def execute_final(target, legacy, retained, progress):
     final_sql.validate(retained)
     if (progress.get('foundationApplied') != 144 or progress.get('timestampApplied') != 514
@@ -48,6 +87,9 @@ def execute_final(target, legacy, retained, progress):
             diagnostic = final_sql.invariant_failure_diagnostic('final_sql_'+str(ordinal), raw.decode(), '00000', errors, result)
             if diagnostic is not None:
                 item['tenantInvariants'] = diagnostic
+                hashes = inert_policy_hashes(target, diagnostic)
+                if hashes is not None:
+                    item['inertPolicyHashes'] = hashes
             raise ValueError('PORTABLE_FINAL_SQL_REJECTED')
         if forward_portable.snapshot(target) != before:
             raise ValueError('PORTABLE_FINAL_STATE_CHANGED')

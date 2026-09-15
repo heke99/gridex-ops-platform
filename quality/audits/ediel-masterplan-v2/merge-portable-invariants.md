@@ -57,3 +57,21 @@ uses the established continuation prefix with globally unique run ID/attempt.
 The admission guard remains unchanged. New real AcceptedInputs integration test
 admits the actual interpolated workflow owner and still rejects the old prefix.
 Seven local tests PASS. Actual replay/final SQL remain pending rerun.
+
+Actual rerun35001559027/job104490915869 at37844d94 completes144 foundations,
+514 timestamps and all six forward positive/repeat checks. The first four pinned
+final SQL checks pass and preserve catalog/rows. At17:33:49UTC the fifth rejects
+one recognized breach: F14_INERT_POLICY with affectedCount24. No other invariant
+rule fails. Owned cleanup, private removal and source preservation are true.
+This localizes the native-style final rejection to policies whose target roles
+have no table DML privileges. The count alone does not identify policies or
+justify changing privileges; exact source-backed identities remain to establish.
+
+Added a supplementary read-only query using the exact pinned F14 predicate. It
+returns only SHA256 table/policy identities in the fixed public schema. The
+projector requires the exact reported breach count, unique object pairs and
+strict hexadecimal hashes, and preserves full catalog/row snapshots. Any query,
+shape or preservation failure retains the original rejected invariant receipt;
+it cannot approve SQL. Nine local tests PASS, including malformed/extra fields,
+count mismatches, changed state and failed supplement retaining the24-policy
+rejection. Actual identity projection still requires the next owned rerun.

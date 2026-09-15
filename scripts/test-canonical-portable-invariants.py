@@ -95,6 +95,33 @@ class PortableTests(unittest.TestCase):
                 self.execute([subprocess.CompletedProcess([],code,b'private output',stderr)])
             self.assertNotIn('private',json.dumps(self.progress))
 
+    def test_f14_hash_projection_is_bounded_count_matched_and_state_preserving(self):
+        diagnostic=dict(status='RECOGNIZED', breaches=[dict(rule='F14_INERT_POLICY', affectedCount=1)])
+        row=dict(tableSha256='a'*64, policySha256='b'*64)
+        self.target.sql.return_value=json.dumps([row])
+        with patch.object(m.forward_portable,'snapshot',return_value=('catalog','rows')):
+            self.assertEqual(m.inert_policy_hashes(self.target,diagnostic),dict(count=1,objects=[row]))
+            for invalid in ([dict(row, name='private')],[],[dict(row,tableSha256='private')], [row,row]):
+                self.target.sql.return_value=json.dumps(invalid)
+                with self.assertRaisesRegex(ValueError,'INERT_POLICY_DIAGNOSTIC_PROJECTION_REQUIRED'):
+                    m.inert_policy_hashes(self.target,diagnostic)
+        self.target.sql.return_value=json.dumps([row])
+        with patch.object(m.forward_portable,'snapshot',side_effect=['before','after']):
+            with self.assertRaisesRegex(ValueError,'INERT_POLICY_DIAGNOSTIC_STATE_CHANGED'):
+                m.inert_policy_hashes(self.target,diagnostic)
+
+    def test_f14_supplement_never_turns_original_rejection_into_success(self):
+        stderr=(b'ERROR:  P0001: Tenant isolation invariants failed (1 breach(es)):\n'
+                b'  - F-14: 24 policy/policies target roles with no privileges on their table and are inert\n'
+                b'CONTEXT:  private context\nLOCATION:  private location\n')
+        self.target.sql.return_value='[]'
+        with self.assertRaisesRegex(ValueError,'INERT_POLICY_DIAGNOSTIC_PROJECTION_REQUIRED'):
+            self.execute([subprocess.CompletedProcess([],0,b'',b'')]*4+[subprocess.CompletedProcess([],3,b'',stderr)])
+        item=self.progress['finalChecks'][-1]
+        self.assertFalse(item['verified'])
+        self.assertEqual(item['tenantInvariants']['breaches'][0]['affectedCount'],24)
+        self.assertNotIn('inertPolicyHashes',item)
+
     def test_changed_state_rejects(self):
         with self.assertRaisesRegex(ValueError,'PORTABLE_FINAL_STATE_CHANGED'):
             self.execute([subprocess.CompletedProcess([],0,b'',b'')], snapshots=[('before',()),('after',())])
