@@ -4,6 +4,8 @@ on:
     paths:
       - '.github/workflows/gridex-full-schema-reference.yml'
       - 'scripts/canonical-*.py'
+      - 'scripts/canonical_*.py'
+      - 'quality/audits/ediel-masterplan-v2/changed-view-historical-columns.json'
       - 'scripts/canonical_forward*.py'
       - 'scripts/canonical_policy_actor_qualification.py'
       - 'scripts/sql/canonical-policy-actor-qualification.sql'
@@ -24,6 +26,8 @@ on:
     paths:
       - '.github/workflows/gridex-full-schema-reference.yml'
       - 'scripts/canonical-*.py'
+      - 'scripts/canonical_*.py'
+      - 'quality/audits/ediel-masterplan-v2/changed-view-historical-columns.json'
       - 'scripts/canonical_forward*.py'
       - 'scripts/canonical_policy_actor_qualification.py'
       - 'scripts/sql/canonical-policy-actor-qualification.sql'

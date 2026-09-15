@@ -11,10 +11,10 @@ matching source-witness receipts; disposed owned resources; exact positive schem
 decisions; genuine candidate bytes equal to committed types and the manifest;
 and the exact current migration tail. Unsupported differences remain failures.
 
-The schema decision engine currently maps 299 exact differences: 31 added views,
+The schema decision engine currently maps 301 exact differences: 31 added views,
 five changed views, 128 changed policies, 59 removed policies, five changed
 indexes, two intake columns, 51 removed indexes, 14 non-type column differences
-and four positive CHECK changes. These are explicit source decisions bound to
+and five positive CHECK changes plus the qualified intent customer/company FK. These are explicit source decisions bound to
 actual witness receipts, not approval inferred from the larger inventory.
 The two repaired removals are specifically ediel_send_locks tenant INSERT and
 UPDATE policies; they require exact forward six plus the full current forward
@@ -38,8 +38,8 @@ and the exact same validated receipt reaches schema comparison, application type
 generation and final verification. This integration does not change source SQL,
 ownership classes, snapshot implementations or production data.
 
-Local verification: source decisions seven tests, index/column decisions six,
-constraint decisions four, final release four, dump five,
+Local verification: source decisions eight tests, index/column decisions six,
+constraint decisions five, final release four, dump five,
 native schema four, application type candidate nine, historical lifecycle 166,
 and native timestamp runtime 25 pass. Tests use controlled fixtures and do not
 claim actual PostgreSQL execution. Root independently reviewed the workflow
@@ -48,5 +48,7 @@ The remaining source decisions, actual full run, genuine committed types and
 same-head final CI remain outstanding.
 
 Removed-index decisions additionally require the exact 48 added replacement
-rows and unchanged retained survivor context. Two sensitive constraint decisions
-remain unsupported; their presence in the source audit is not treated as approval.
+rows and unchanged retained survivor context. The membership-status constraint decision remains unsupported. The intent FK
+is now bound to its pinned standalone qualification and the complete native
+T514 source/program/ledger receipt in the same enclosing schema comparison.
+Missing, duplicated, changed or incomplete T514 receipts reject acceptance.

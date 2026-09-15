@@ -22,6 +22,15 @@ class Tests(unittest.TestCase):
    group=diff['sections'][r['section']];group[r['change']].append({k:r[k] for k in keys})
    group['replayCount']+=(1 if r['change']=='added' else -1 if r['change']=='removed' else 0)
    diff[r['witness']]={'fixture':True}
+  c=m.constraints
+  diff['historicalTimestampTail']=dict(executed=True,timestampInputsExecuted=514,
+   phase='ALL_SELECTED_TIMESTAMP_INPUTS_EXECUTED',noOpRepeatVerified=True,executionUnits=[dict(
+    kind='timestamp',ordinal=514,phase=1,phaseCount=1,source=c.INTENT_SOURCE,
+    sourceSha256=c.INTENT_SHA,phaseSha256=c.INTENT_SHA,executed=True,nativeVerified=True,
+    stage='EXECUTED_AND_LEDGER_VERIFIED',unchangedEarlierLedger=True,
+    originalHistoricalVersionMarkedApplied=False,programSha256=c.INTENT_PROGRAM_SHA,
+    outerTransactionTransferredToCli=True,ledgerStatementsSha256='a'*64,
+    cliFile='20260915123456_gridex_native_t0514_p01_'+c.INTENT_PROGRAM_SHA[:12]+'.sql')])
   from canonical_native_final_sql import PINS
   diff['nativeFinalSql']=dict(scope='POST_REPLAY_SQL_NOT_SCHEMA_OR_TYPE_ACCEPTANCE',verified=True,
    checks=[dict(source=p,sourceSha256=h,verified=True,catalogAndRowsPreserved=True,ledgerUnchanged=True) for p,h in PINS.items()],
@@ -35,7 +44,7 @@ class Tests(unittest.TestCase):
    return m.verify(diff)
  def test_reviewed_scope_is_closed_and_positive_only(self):
   records=m.approved()
-  self.assertEqual(len(records),299)
+  self.assertEqual(len(records),301)
   self.assertEqual(sum(r['section']=='policies' and r['change']=='removed' for r in records),59)
   self.assertFalse(any('REVIEW_REQUIRED' in r['decision'] for r in records))
  def test_exact_mapping_accepts_only_with_every_runtime_receipt(self):
@@ -68,6 +77,16 @@ class Tests(unittest.TestCase):
    with self.subTest(defect=defect),self.assertRaises(ValueError):self.verify(diff)
  def test_survivor_context_is_required_before_source_decisions(self):
   with self.assertRaises(ValueError):self.verify(self.fixture(),context=False)
+ def test_intent_mapping_requires_exact_complete_native_t514_proof(self):
+  for defect in ('missing','source','program','duplicate','ledger','incomplete'):
+   diff=self.fixture();tail=diff['historicalTimestampTail'];unit=tail['executionUnits'][0]
+   if defect=='missing':diff.pop('historicalTimestampTail')
+   if defect=='source':unit['sourceSha256']='0'*64
+   if defect=='program':unit['programSha256']='0'*64
+   if defect=='duplicate':tail['executionUnits'].append(copy.deepcopy(unit))
+   if defect=='ledger':unit['ledgerStatementsSha256']='missing'
+   if defect=='incomplete':tail['timestampInputsExecuted']=513
+   with self.subTest(defect=defect),self.assertRaises(ValueError):self.verify(diff)
  def test_inventory_bytes_cannot_be_changed_to_manufacture_approval(self):
   with patch.object(m,'DECISION_SHA','0'*64):
    with self.assertRaises(ValueError):m.approved()

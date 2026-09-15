@@ -1,0 +1,23 @@
+{
+  "conclusion": "success",
+  "headSha": "e7391be9bfa9342eaf40c6fcdbfd59c0ea28c6fa",
+  "jobId": 104521685548,
+  "receipt": {
+    "catalogAndRowsPreserved": true,
+    "cleanupVerified": true,
+    "deletedTestOnlyRemainsInactive": true,
+    "domainSize": 11,
+    "nullRemainsInactive": true,
+    "schemaAccepted": false,
+    "scope": "OWNED_MEMBERSHIP_STATUS_SOURCE_AND_TWO_CONSUMER_PREDICATES_ONLY",
+    "sourcePins": {
+      "lib/auth/companyUserAccess.ts": "9f83ab92080c2fdce9bb267c0f4a96c8a9482f0fa5691f4cd39171f2558da286",
+      "lib/tenant/scope.ts": "970d65586514860f8092dcc06e18fccdc56ffdb6746257e7b3f909c2a3afc98a",
+      "supabase/migrations/20260520_company_delete_backfill_and_admin_layout.sql": "72aef3d5609bd6a508299bccf1eed849b58a4f925844b097d44bb8bdca667d1f"
+    },
+    "statusActiveCombinations": 33,
+    "unknownRejected": 4,
+    "wholeApplicationAuthorizationVerified": false
+  },
+  "runId": 35010718935
+}

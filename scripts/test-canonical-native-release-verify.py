@@ -15,7 +15,8 @@ class Tests(unittest.TestCase):
    nativeFinalSql=dict(verified=True,checks=[dict(source=p,sourceSha256=h,verified=True,catalogAndRowsPreserved=True,ledgerUnchanged=True) for p,h in m.PINS.items()]),
    nativeParityEngineQualification={},nativeApplicationTypeCandidate=dict(genuineCliTypegenExecuted=True,repeatEqual=True,
     schemaRowsProviderEventsAndLedgerPreserved=True,exported=True,candidateSha256=m.types.sha(RAW),candidateBytes=len(RAW),nullabilityOverrideSha256=m.types.OVERRIDE_SHA))
-  diff={'sections':{},'nativeFinalSql':report['nativeFinalSql']}
+  report['historicalTimestampTail']={'fixture':'complete native source units'}
+  diff={'sections':{},'nativeFinalSql':report['nativeFinalSql'],'historicalTimestampTail':report['historicalTimestampTail']}
   for key in (*m.decisions.WITNESSES,'changedFunctionBehaviorWitness'):
    if key!='nativeFinalSql':report[key]=diff[key]={'fixture':key}
   report['nativeSchemaReferenceComparison']={**diff,'counts':{}};report['nativeSchemaReferenceComparison'].pop('sections')
@@ -51,12 +52,13 @@ class Tests(unittest.TestCase):
    for start in (0,True,time.time_ns()+10**12):
     with self.assertRaises(ValueError):self.invoke(root,start)
  def test_cleanup_source_decisions_and_actual_witness_binding_are_required(self):
-  for defect in ('cleanup','summary','witness','candidate','manifest','committed','decisions','dump'):
+  for defect in ('cleanup','summary','witness','candidate','manifest','committed','decisions','dump','tail'):
    with self.subTest(defect=defect),tempfile.TemporaryDirectory() as directory:
     root=Path(directory);start=time.time_ns();report,diff=self.fixture(root)
     if defect=='cleanup':report['cleanupVerified']=False
     if defect=='summary':report['nativeSchemaReferenceComparison']['extra']=True
     if defect=='witness':report['changedIndexSourceWitness']={}
+    if defect=='tail':report['historicalTimestampTail']={}
     if defect=='candidate':report['nativeApplicationTypeCandidate']['candidateSha256']='0'*64
     if defect=='manifest':
      p=root/'scripts/supabase-types-manifest.json';j=json.loads(p.read_bytes());j['latest_migration']='older.sql';p.write_text(json.dumps(j))

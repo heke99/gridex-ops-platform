@@ -19,6 +19,7 @@ class Tests(unittest.TestCase):
         parent = dict(nativeFinalSql=dict(verified=True, checks=[dict(source=path,sourceSha256=sha,
             verified=True,catalogAndRowsPreserved=True,ledgerUnchanged=True) for path,sha in PINS.items()]),
             forwardSources=dict(inputsExecuted=len(FORWARD_SOURCES)))
+        parent['historicalTimestampTail']={'fixture':'retained native source units'}
         comparator = Mock()
         import canonical_policy_actor_qualification as actors
         parent['policyActorQualification'] = dict(actors.expected_result(), source=actors.SOURCE,
@@ -49,6 +50,7 @@ class Tests(unittest.TestCase):
             result=m.compare(runner, (), parent)
         admit.assert_called_once_with(runner, (), parent)
         comparator.capture.assert_called_once_with(runner.target, 'postgres')
+        self.assertIs(result['historicalTimestampTail'],parent['historicalTimestampTail'])
         self.assertFalse(result['schemaAccepted'])
         self.assertFalse(result['cleanupVerified'])
         self.assertTrue(result['syntheticLifecycleProbeStillPresent'])

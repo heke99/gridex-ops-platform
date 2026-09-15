@@ -3,8 +3,8 @@
   "updated_at": "2026-09-15",
   "status": "IN_PROGRESS",
   "current_state": ".agent-memory/current-state.md",
-  "publication_base": "fe909783888bf8389d4f6a62c6b5a1aef3bc157b",
-  "published_tree": "39a4372c9a658e9a446d925b7d4a79e70d10f198",
+  "publication_base": "e7391be9bfa9342eaf40c6fcdbfd59c0ea28c6fa",
+  "published_tree": "4617ab72f577e4eb5e168896dbeb69f97fe61815",
   "main_merged": false,
-  "next_action": "Inspect fe909 full replay; review/publish native release integration; complete actual schema/types/CI gates and merge entire310 before next Ediel phase."
+  "next_action": "Run corrected135-column view via repaired fullschema trigger, resolve actualfunction/index results, finish native/schema/types/CI and mergewhole310."
 }

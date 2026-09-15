@@ -1,0 +1,42 @@
+{
+  "conclusion": "success",
+  "headSha": "01ee1d55e515dea336531a3f8820bdf9eafebaf0",
+  "jobId": 104484024743,
+  "receipt": {
+    "candidateSha256": "2b9cc5e9cb7fad14aa4b30e0bc98274a4a957f47379f456ed0d3c9663ef5f39b",
+    "cases": [
+      {
+        "clientGrants": false,
+        "parentNotNull": false
+      },
+      {
+        "clientGrants": false,
+        "parentNotNull": true
+      },
+      {
+        "clientGrants": true,
+        "parentNotNull": false
+      },
+      {
+        "clientGrants": true,
+        "parentNotNull": true
+      }
+    ],
+    "childTenantNullabilityUnchanged": true,
+    "cleanupVerified": true,
+    "crossTenantRejected": true,
+    "deletePreservesIntentTenantAndPayload": true,
+    "dirtyDataRejectedWithoutDeletion": true,
+    "exactHistoricalSourcesExecuted": true,
+    "fullReplayAccepted": false,
+    "idempotent": true,
+    "nullableParentRegressionReproduced": true,
+    "oldDeleteNotNullFailureReproduced": true,
+    "productionModified": false,
+    "scope": "EDIEL_CUSTOMER_FK_QUALIFICATION",
+    "unassignedParentReferencesRejected": true,
+    "unknownPredecessorRejected": true,
+    "unrelatedCatalogIncludingGrantsAndRlsUnchanged": true
+  },
+  "runId": 34999483490
+}

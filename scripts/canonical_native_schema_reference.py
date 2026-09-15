@@ -58,6 +58,7 @@ def compare(runner, retained_forward, parent):
                   foundationInputsExecuted=144, timestampInputsExecuted=514,
                   forwardInputsExecuted=parent['forwardSources']['inputsExecuted'],
                   forwardSources=parent['forwardSources'],
+                  historicalTimestampTail=parent['historicalTimestampTail'],
                   nativeFinalSql=parent['nativeFinalSql'],
                   intakeJsonbSourceWitness=intake_receipt,
                   actualLedgerRows=len(runner.entries), cleanupVerified=False,
