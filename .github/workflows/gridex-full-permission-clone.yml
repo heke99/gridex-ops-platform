@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - codex/ediel-masterplan-v2-alignment-20260915
+      - codex/gridex-parity-remediation-20260905
     paths:
       - '.github/workflows/gridex-full-permission-clone.yml'
       - 'scripts/canonical-portable-invariants-diagnostic.py'
@@ -48,7 +49,18 @@ jobs:
           python3 scripts/test-canonical-full-permission-clone.py
           python3 scripts/test-canonical-permission-full-seed.py
       - name: Qualify exact permission candidate after complete replay
-        run: python3 scripts/canonical-full-permission-clone-qualification.py
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/canonical-full-permission-clone-qualification.py | tee "$RUNNER_TEMP/gridex-full-permission-qualification.jsonl"
+      - name: Retain already sanitized qualification receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-full-permission-qualification
+          path: ${{ runner.temp }}/gridex-full-permission-qualification.jsonl
+          retention-days: 3
+          if-no-files-found: warn
       - name: Remove only this diagnostic's owned container
         if: always()
         run: |
