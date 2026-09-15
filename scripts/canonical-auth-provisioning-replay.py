@@ -393,7 +393,7 @@ class OwnedTimestampTail:
             from canonical_forward_portable import execute as execute_forward
             execute_forward(self.target, self.forward_retained, progress)
             self.forward_receipt = progress['forwardSources']
-            if (self.forward_receipt.get('executed') is not True or self.forward_receipt.get('inputsExecuted') != 2
+            if (self.forward_receipt.get('executed') is not True or self.forward_receipt.get('inputsExecuted') != 4
                     or list((ROOT/'supabase/migrations').glob('*.sql'))):
                 raise RuntimeError('OWNED_FORWARD_COMPLETION_REQUIRED')
         except BaseException:

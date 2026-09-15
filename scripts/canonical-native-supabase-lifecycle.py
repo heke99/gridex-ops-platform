@@ -180,6 +180,9 @@ def failure_code(error, historical):
         'NATIVE_TIMESTAMP_UTF8_REQUIRED', 'NATIVE_TIMESTAMP_CLONE_PREFLIGHT_REQUIRED',
         'NATIVE_FINAL_SQL_SOURCE_REQUIRED', 'NATIVE_FINAL_SQL_COMPLETE_PREFIX_REQUIRED',
         'NATIVE_FINAL_SQL_STATE_PRESERVATION_REQUIRED', 'NATIVE_FINAL_SQL_FORWARD_LEDGER_REQUIRED',
+        'NATIVE_TYPEGEN_PREFLIGHT_COMMAND_REQUIRED', 'NATIVE_TYPEGEN_PREFLIGHT_OUTPUT_REQUIRED',
+        'NATIVE_TYPEGEN_PREFLIGHT_PRESERVATION_REQUIRED', 'NATIVE_TYPEGEN_PREFLIGHT_REPEAT_REQUIRED',
+        'NATIVE_SCHEMA_FINAL_SQL_REQUIRED', 'NATIVE_SCHEMA_STATE_PRESERVATION_REQUIRED',
     })
     historical_codes = {
         'NATIVE_ALIGNMENT68_FINAL_REQUIRED',
@@ -441,6 +444,9 @@ def run(*, historical_prefix=False, clone_preflight=False):
                     Path(__file__).with_name('canonical-native-clone-preflight.py'))
                 clone_module = importlib.util.module_from_spec(spec); spec.loader.exec_module(clone_module)
                 report['nativeClonePreflight'] = clone_module.qualify(command, sql, project)
+                phase = 'SYNTHETIC_NATIVE_TYPEGEN_PREFLIGHT'
+                from canonical_native_typegen_preflight import qualify as qualify_typegen
+                report['nativeTypegenPreflight'] = qualify_typegen(command, native, sql, project)
             if historical_prefix:
                 phase = 'HISTORICAL_FIRST43_NATIVE_LEDGER'
                 # The failed synthetic file must not be retried ahead of the
@@ -535,9 +541,27 @@ def run(*, historical_prefix=False, clone_preflight=False):
         report['outcome'] = ('NATIVE_SELECTED_CHAIN_EXECUTED_NOT_FULL_ACCEPTANCE' if historical_prefix
                              else 'NATIVE_LIFECYCLE_VERIFIED')
     output = ROOT/'artifacts'; output.mkdir(exist_ok=True)
+    publish_schema_comparison(report, output)
     (output/'native-supabase-lifecycle.json').write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')
     print(json.dumps(report,sort_keys=True),flush=True)
     return 0 if success else 1
+
+
+
+def publish_schema_comparison(report, output):
+    comparison = report.pop('_nativeSchemaComparison', None)
+    if comparison is None:
+        return
+    if report.get('cleanupVerified') is not True or report.get('privateWorkspaceRemoved') is not True:
+        report['nativeSchemaReferenceComparison'] = dict(
+            available=False, reason='NATIVE_DISPOSAL_REQUIRED', schemaAccepted=False)
+        return
+    comparison.update(cleanupVerified=True, privateWorkspaceRemoved=True)
+    (output/'native-full-schema-reference-diff.json').write_text(json.dumps(comparison,sort_keys=True,indent=2)+'\n')
+    report['nativeSchemaReferenceComparison'] = {key:value for key,value in comparison.items() if key != 'sections'}
+    report['nativeSchemaReferenceComparison']['counts'] = {
+        section: {kind:len(values[kind]) for kind in ('added','removed','changed')}
+        for section,values in comparison['sections'].items()}
 
 
 def run_guarded(*, historical_prefix=False, clone_preflight=False):

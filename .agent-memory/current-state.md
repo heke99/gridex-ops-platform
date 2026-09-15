@@ -4,22 +4,21 @@ Status: PARTIAL
 
 ## Active work and exact next action
 
-Current bounded task: publish the reviewed, narrowly owned clone-quiescence
-correction and run the fast native preflight before accepting the historical chain.
-Actual139c837d preflight34971870647/job104389843483 FAILS with the precise
-NATIVE_TIMESTAMP_CLONE_CREATE_SOURCE_DATABASE_IN_USE category; cleanup passes.
-Artifact10398315121 is available. This resolves the previously unknown70ce549f
-clone failure. The new helper temporarily blocks new connections only to postgres
-inside the admitted isolated native container, drains only that source database,
-clones via template1, and restores exact database metadata/settings, full schema,
-rows and real ledger. Restoration is mandatory even when pause/create fails.
-Offline tests pass; actual SQL execution of this correction is still pending.
+Current bounded task: collect the complete native144+514+4 result, finish actor
+and schema acceptance, then genuinely generate and verify application types.
+824f24d4 preflight34974499990/job104398708790 SUCCESS proves the clone-quiescence
+correction on actual Supabase CLI2.101.0/PG17.6. Artifact10398429821 ZIP digest
+1b762725ef52c4e195d1c657d69f9c097b86a1eaac3a27136e5be6ced7bd4186.
+The exact source had2 provider background sessions (safe category other); actual
+source pause/drain/clone/restore and copied ledger/probe/parent preservation pass.
+Earlier139c837d preflight34971870647/job104389843483 had conclusively identified
+SOURCE_DATABASE_IN_USE. Preserve both receipts, not the older hypothesis.
+The current824f24d4 ordinary native34974499849/job104398696940 is running.
 
-Publication base139c837d108505b0071cef5080c01e438791eca4, exact tree
-83c3aa01c01c12d43b0eb911750b32d3437da7b0, published/fetched with equality verified.
-Preserve its entire ancestry, including auth ec503fc, compiler335f987f, stdin
-82cb5d00, foundation admission61d6748e, clone NULL70ce549f, complete snapshot
-80718722, operational qualificationfd4fb907 and forward integration163e8dfe.
+Publication base824f24d4a657d8a7563fc162aa5d7a9125d4e7b8, exact tree
+1de9922e02019c5ff2b148794257ab5e157a093c, fetched with exact equality verified.
+Preserve its full ancestry, especially auth ec503fc, native compiler335f987f and
+prior forward integration163e8dfe. All original601 migration hashes are unchanged.
 
 Actual163e8dfe portable34971038792/job104387127532 completes144+514+2 and all
 forward postcondition/repeat/row-preservation controls. Independent schema remains
@@ -32,19 +31,25 @@ Five unchanged, exact-byte-pinned existing final SQL checks are now wired inside
 the owned native lifecycle after complete historical and forward ledger admission,
 before disposal. They require per-check schema/row/ledger preservation; this is
 not schema or type acceptance and has not yet executed against the complete target.
-Two additional source-qualified privilege candidates are staged outside selection:
-7 new tenant tables lose authenticated TRUNCATE; 3 explicitly service-only inbound
-tables lose all authenticated table rights. Independent reviews/offline controls
-pass. Each dedicated PG17 workflow must actually qualify SQL and create a genuine
-CLI filename before promotion. Neither candidate is a migration yet.
+Two additional source-qualified privilege candidates now passed actual PG17 and
+are promoted byte-for-byte under their genuine CLI-created filenames:
+20260915132224_restrict_inbound_service_table_privileges.sql and
+20260915132227_restrict_new_tenant_table_truncate.sql. Runs34974499866 and
+34974499894/jobs104398695222 and104398694965 are SUCCESS; exact archives and
+receipts are recorded in PR310_FORWARD_PRIVILEGE_PROMOTION_2026-09-15.md.
+The runtime admits exactly4 forward sources AFTER unchanged144+514, with real
+CLI post-body/ledger failures, rows/ledger preservation and no-op repeats.
+Current605 inventory separately binds historical601 and historical514 selection.
+This promotion has not yet executed as a full144+514+4 native or portable chain.
 
-The forward integration is published: two genuine CLI-created, SQL-qualified forward sources
-AFTER the unchanged144 foundation and514 historical timestamp inputs, through
-the existing live native Runner and owned portable target. The inventory is
-603 files, with all original601 path/hash pairs separately pinned unchanged.
-Native forward controls require complete historical source/ledger/negative/repeat
-receipts, real CLI post-body/ledger rejection, row preservation and no-op repeat.
-Portable forward execution is explicitly not official-ledger acceptance.
+Synthetic CLI typegen preflight is now wired into the short clone workflow. It
+uses the actual2.101.0 --lang syntax on only the owned internal network; two
+identical outputs and full native state/ledger preservation are required. It
+exports only a hash/size, never application type acceptance. Actual typegen
+preflight is pending publication/run. Existing application types/manifest remain
+unchanged. A native full-schema comparison now runs after5existing final SQL
+checks while the native target remains live, and exports identities/hashes only
+after cleanup. It keeps the synthetic probe visible and schema acceptance false.
 
 The two new sources restore customer_documents.contract_id and
 ediel_route_profiles.actor_setting_id FKs, and revoke24 excess authenticated
@@ -125,10 +130,10 @@ No production mutation, deployment, main merge or whole-replay acceptance claime
 
 ## Continuity contract
 
-Working-tree accounting is 603 inputs: 591 `FULL_FILE_SELECTED`, 2 `SUBSTITUTED`, 5 `UNCLASSIFIED`, and 5 `EXPLICITLY_EXCLUDED`.
+Working-tree accounting is 605 inputs: 593 `FULL_FILE_SELECTED`, 2 `SUBSTITUTED`, 5 `UNCLASSIFIED`, and 5 `EXPLICITLY_EXCLUDED`.
 
 The focused group contains 347 inputs: 335 selected, 2 substituted, 5 unclassified, and 5 excluded.
 
-The staged FK draft remains outside the historical selector until separately admitted.
+The four admitted forward sources remain separate from the immutable historical selector.
 No production mutation has been performed in this replay-verification batch.
 Push reviewed, coherent batches stepwise as requested.

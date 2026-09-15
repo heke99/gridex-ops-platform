@@ -17,6 +17,7 @@ def cli_command(cli, work, project, arguments):
     network = project+'-network'
     allowed = {
         ('--network-id', network, 'db', 'start'),
+        ('--network-id', network, 'gen', 'types', '--local', '--lang', 'typescript', '--schema', 'public'),
         ('migration', 'new', 'native_lifecycle_proof'),
         ('migration', 'new', 'native_rollback_proof'),
         ('migration', 'up', '--local'),
@@ -41,7 +42,7 @@ def cli_command(cli, work, project, arguments):
     timestamp_name = (len(arguments) == 3 and tuple(arguments[:2]) == ('migration', 'new')
                       and re.fullmatch(r'gridex_native_t(?:000[1-9]|00[1-9][0-9]|0[1-4][0-9]{2}|050[0-9]|051[0-4])_(?:p0[12]|prerequisite|cleanup)_[a-f0-9]{12}', arguments[2]))
     forward_name = (len(arguments) == 3 and tuple(arguments[:2]) == ('migration', 'new')
-                    and re.fullmatch(r'gridex_native_forward_0[12]_[a-f0-9]{12}', arguments[2]))
+                    and re.fullmatch(r'gridex_native_forward_0[1-4]_[a-f0-9]{12}', arguments[2]))
     if tuple(arguments) not in allowed and not historical_name and not legacy_name and not repair_name and not dedupe_name and not fixed_name and not alignment_name and not operations_name and not foundation_name and not timestamp_name and not forward_name:
         raise ValueError('FIXED_NATIVE_CLI_COMMAND_REQUIRED')
     work = Path(work)

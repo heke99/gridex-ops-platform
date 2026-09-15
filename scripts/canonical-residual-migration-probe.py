@@ -35,7 +35,7 @@ def load(name):
 
 def bound_sources(report):
     from canonical_forward_sources import historical_fixture_accounting
-    if report['errors'] or report['totalMigrations'] != 603:
+    if report['errors'] or report['totalMigrations'] != 605:
         raise ValueError('RESIDUAL_INVENTORY_MISMATCH')
     sources = [(r['path'], r['sha256']) for r in report['migrations']
                if r['path'] in BASELINE_PATHS]

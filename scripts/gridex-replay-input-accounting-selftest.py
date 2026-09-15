@@ -465,9 +465,9 @@ class DB2DispositionTest(unittest.TestCase):
                                 text=True, capture_output=True, timeout=60)
         report = json.loads(result.stdout)
         self.assertEqual(result.returncode, 1, report)
-        self.assertEqual(report['counts'], {'FULL_FILE_SELECTED': 591, 'SUBSTITUTED': 2,
+        self.assertEqual(report['counts'], {'FULL_FILE_SELECTED': 593, 'SUBSTITUTED': 2,
                                           'UNCLASSIFIED': 5, 'EXPLICITLY_EXCLUDED': 5})
-        self.assertEqual(report['selectedInputCounts'], {'foundation': 144, 'timestamp': 516})
+        self.assertEqual(report['selectedInputCounts'], {'foundation': 144, 'timestamp': 518})
         from canonical_forward_sources import historical_fixture_accounting
         historical = historical_fixture_accounting(report)
         self.assertEqual(historical['totalMigrations'], 601)

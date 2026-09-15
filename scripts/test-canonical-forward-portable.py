@@ -24,7 +24,7 @@ class PortableTests(unittest.TestCase):
             return json.dumps(postcondition)
         target = SimpleNamespace(sql=Mock(side_effect=sql))
         progress = dict(foundationApplied=144, timestampApplied=514)
-        with patch.object(m, 'snapshot', side_effect=snapshots or [({}, [])]*6):
+        with patch.object(m, 'snapshot', side_effect=snapshots or [({}, [])]*12):
             try:
                 result = m.execute(target, self.retained, progress)
             except ValueError as error:
@@ -39,15 +39,15 @@ class PortableTests(unittest.TestCase):
                 m.execute(target,self.retained,progress)
             target.sql.assert_not_called()
 
-    def test_two_sources_execute_retained_bytes_and_repeat_without_nested_transaction(self):
+    def test_four_sources_execute_retained_bytes_and_repeat_without_nested_transaction(self):
         result, progress, calls = self.exercise()
         self.assertTrue(result['executed'])
-        self.assertEqual(result['inputsExecuted'],2)
+        self.assertEqual(result['inputsExecuted'],4)
         self.assertFalse(result['ledgerProvenanceVerified'])
         self.assertFalse(result['schemaAccepted'])
         source_calls=[c for c in calls if c[2].startswith(('forward_source_','forward_repeat_'))]
         self.assertEqual([c[1].encode() for c in source_calls],
-                         [self.retained[0].sql]*2+[self.retained[1].sql]*2)
+                         [source.sql for source in self.retained for _ in range(2)])
         self.assertTrue(all(c[0]==m.DATABASE and c[3]==dict(transaction=False) for c in source_calls))
 
     def test_row_mutation_blocks_repeat_and_second_source(self):

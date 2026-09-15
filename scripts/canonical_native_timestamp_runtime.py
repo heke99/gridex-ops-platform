@@ -399,6 +399,8 @@ def execute(command, native, sql, work, project, parent, plan, forward_retained)
                         noOpRepeatVerified=True, actualLedgerRows=len(runner.entries))
         execute_forward(runner, plan, forward_retained, parent)
         execute_final_sql(runner, final_sql, parent, forward_retained)
+        from canonical_native_schema_reference import compare as compare_native_schema
+        parent['_nativeSchemaComparison'] = compare_native_schema(runner, forward_retained, parent)
         return progress
     finally:
         target.close()

@@ -38,7 +38,7 @@ class ForwardTests(unittest.TestCase):
         retained = sources.retain(ROOT)
         with patch.object(Path, 'read_bytes', side_effect=AssertionError('reopened source')):
             programs = forward.programs(retained)
-        self.assertEqual(len(programs), 2)
+        self.assertEqual(len(programs), 4)
         for ordinal, (original, program) in enumerate(zip(retained, programs), 1):
             body, transferred = compiler.transfer_outer(original.sql)
             self.assertTrue(transferred)
@@ -47,8 +47,8 @@ class ForwardTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             forward.programs(tuple(reversed(retained)))
 
-    def failure_fixture(self, folder, *, ledger, result=None):
-        program = forward.programs(sources.retain(ROOT))[0]
+    def failure_fixture(self, folder, *, ledger, result=None, ordinal=1):
+        program = forward.programs(sources.retain(ROOT))[ordinal-1]
         runner = SimpleNamespace(directory=Path(folder),target=object(),
             unchanged=Mock(),sql=Mock(return_value=True),
             native=Mock(return_value=result or SimpleNamespace(returncode=1,
@@ -63,11 +63,11 @@ class ForwardTests(unittest.TestCase):
         return runner,program
 
     def test_negative_controls_require_exact_fault_and_restored_snapshot(self):
-        for ledger in (False,True):
+        for ordinal,ledger in ((ordinal,ledger) for ordinal in (1,2,3,4) for ledger in (False,True)):
             with tempfile.TemporaryDirectory() as directory:
-                runner,program=self.failure_fixture(directory,ledger=ledger)
+                runner,program=self.failure_fixture(directory,ledger=ledger,ordinal=ordinal)
                 with patch.object(timestamp,'native_snapshot',side_effect=[({},[]),({},[])]):
-                    receipt=forward.negative(runner,program,1,ledger=ledger)
+                    receipt=forward.negative(runner,program,ordinal,ledger=ledger)
                 self.assertEqual(receipt['expectedSqlstate'],'PF002' if ledger else 'PF001')
                 self.assertTrue(receipt['ledgerUnchanged'])
                 runner.unchanged.assert_called_once()
@@ -76,8 +76,23 @@ class ForwardTests(unittest.TestCase):
                     guard=runner.sql.call_args_list[0].args[0]
                     self.assertIn('NEW.name IS DISTINCT FROM',guard)
                     self.assertIn('PF009',guard)
-                    self.assertIn('c.convalidated',guard)
+                    self.assertIn(forward.assertion(ordinal),guard)
                     self.assertEqual(runner.sql.call_args_list[-1].args[0],forward.DROP)
+
+    def test_new_ordinal_assertions_cover_exact_qualified_privilege_targets(self):
+        inbound=forward.assertion(3)
+        for table in ('inbound_ediel_match_attempts','inbound_ediel_parse_results','inbound_email_attachments'):
+            self.assertIn("'"+table+"'",inbound)
+        self.assertIn('SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN',inbound)
+        self.assertIn('has_any_column_privilege',inbound)
+        tenant=forward.assertion(4)
+        for table in ('billing_disputes','billing_partner_customers','company_go_live_reviews',
+                      'customer_import_batches','customer_import_rows','grid_owner_access_agreements','production_route_wizard_runs'):
+            self.assertIn("'"+table+"'",tenant)
+        self.assertIn("'TRUNCATE'",tenant)
+        for ordinal in (0,5):
+            with self.assertRaisesRegex(ValueError,'FORWARD_SOURCE_ORDINAL_REQUIRED'):
+                forward.assertion(ordinal)
 
     def test_cli_success_wrong_or_ambiguous_error_cannot_pass_negative(self):
         results=[SimpleNamespace(returncode=0,stderr=b''),

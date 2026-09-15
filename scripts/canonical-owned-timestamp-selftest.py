@@ -40,7 +40,7 @@ class OwnedTimestampTests(unittest.TestCase):
             self.assertIs(actual, target)
             self.assertIs(retained, tail.forward_retained)
             self.assertEqual(progress['timestampApplied'], len(tail.selected))
-            progress['forwardSources'] = dict(executed=True, inputsExecuted=2)
+            progress['forwardSources'] = dict(executed=True, inputsExecuted=4)
         patched = patch('canonical_forward_portable.execute', side_effect=forward)
         tail.forward_execute = patched.start()
         self.addCleanup(patched.stop)
@@ -81,7 +81,7 @@ class OwnedTimestampTests(unittest.TestCase):
         for recreate in (False, True):
             root, loop, tail, payload = self.fixture()
             def partial(actual, retained, progress):
-                progress['forwardSources'] = dict(executed=recreate, inputsExecuted=2 if recreate else 1)
+                progress['forwardSources'] = dict(executed=recreate, inputsExecuted=4 if recreate else 1)
                 if recreate:
                     (root/'supabase/migrations/recreated.sql').write_text('-- invalid')
             tail.forward_execute.side_effect = partial

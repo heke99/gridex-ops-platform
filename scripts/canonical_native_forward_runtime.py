@@ -1,4 +1,4 @@
-"""Apply exactly two reviewed forward sources after the complete retained prefix.
+"""Apply exactly four reviewed forward sources after the complete retained prefix.
 
 Uses the already admitted, live CLI Runner. No connection override, historical
 ledger alias, source rewrite, schema acceptance or typegen shortcut is provided.
@@ -135,6 +135,17 @@ def assertion(ordinal):
           FROM unnest(ARRAY['batch4c_security_checks','customer_duplicate_resolution_events',
           'customer_lifecycle_decisions','customer_merge_events','customer_readiness_snapshots','document_ai_extractions']) t(name)
           CROSS JOIN unnest(ARRAY['TRUNCATE','REFERENCES','TRIGGER','MAINTAIN']) p(name))"""
+    if ordinal == 3:
+        return """(SELECT bool_and(NOT has_table_privilege('authenticated','public.'||t.name,
+          'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN')
+          AND NOT has_any_column_privilege('authenticated','public.'||t.name,'SELECT,INSERT,UPDATE,REFERENCES'))
+          FROM unnest(ARRAY['inbound_ediel_match_attempts','inbound_ediel_parse_results',
+          'inbound_email_attachments']) t(name))"""
+    if ordinal == 4:
+        return """(SELECT bool_and(NOT has_table_privilege('authenticated','public.'||t.name,'TRUNCATE'))
+          FROM unnest(ARRAY['billing_disputes','billing_partner_customers','company_go_live_reviews',
+          'customer_import_batches','customer_import_rows','grid_owner_access_agreements',
+          'production_route_wizard_runs']) t(name))"""
     raise ValueError('FORWARD_SOURCE_ORDINAL_REQUIRED')
 
 

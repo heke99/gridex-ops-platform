@@ -54,10 +54,10 @@ class AdmissionTests(unittest.TestCase):
 
     def test_complete_plan_accounts_601_without_claiming_sql_or_types(self):
         report = self.complete.account(ROOT)
-        self.assertEqual(report['totalMigrations'], 603)
-        self.assertEqual(report['rawSelectedInputCounts'], {'foundation':144, 'timestamp':516})
-        self.assertEqual(report['additionalForwardSourceCount'], 2)
-        self.assertEqual(len(report['additionalForwardSources']), 2)
+        self.assertEqual(report['totalMigrations'], 605)
+        self.assertEqual(report['rawSelectedInputCounts'], {'foundation':144, 'timestamp':518})
+        self.assertEqual(report['additionalForwardSourceCount'], 4)
+        self.assertEqual(len(report['additionalForwardSources']), 4)
         report = report['historicalAccounting']
         self.assertEqual(report['canonicalCounts'], {'wholeFileSelector':589,'reviewedResidualSources':7,
                                                     'explicitlyExcluded':5,'unresolved':0})
@@ -68,7 +68,7 @@ class AdmissionTests(unittest.TestCase):
             self.assertIs(self.contract[key], False)
 
     def test_original_selector_still_reports_its_own_seven_unresolved_sources(self):
-        self.assertEqual(self.selected['counts'], {'FULL_FILE_SELECTED':589 + 2,'SUBSTITUTED':2,
+        self.assertEqual(self.selected['counts'], {'FULL_FILE_SELECTED':589 + 4,'SUBSTITUTED':2,
                                                   'UNCLASSIFIED':5,'EXPLICITLY_EXCLUDED':5})
         result = subprocess.run([sys.executable,str(ROOT/'scripts/gridex-replay-input-accounting.py'),
                                  '--require-full-effects'],capture_output=True,text=True)
@@ -91,8 +91,8 @@ class AdmissionTests(unittest.TestCase):
         self.assertEqual(report['historicalAccounting']['selectedInputCounts'], {'foundation':144, 'timestamp':514})
         self.assertEqual(report['historicalAccounting']['totalMigrations'], 601)
         self.assertEqual(report['historicalAccounting']['canonicalCounts']['wholeFileSelector'], 589)
-        self.assertEqual(report['baseSelectorCounts']['FULL_FILE_SELECTED'], 591)
-        self.assertEqual(report['canonicalCounts']['additionalForwardSources'], 2)
+        self.assertEqual(report['baseSelectorCounts']['FULL_FILE_SELECTED'], 593)
+        self.assertEqual(report['canonicalCounts']['additionalForwardSources'], 4)
         for key in ('sqlExecutionVerified','ledgerProvenanceVerified','completeReplayVerified','generatedTypesVerified'):
             self.assertIs(report[key], False)
             for source in report['additionalForwardSources']:

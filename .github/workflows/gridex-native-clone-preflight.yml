@@ -8,6 +8,8 @@ on:
       - 'scripts/canonical_native_timestamp_proof.py'
       - 'scripts/canonical_native_clone_quiesce.py'
       - 'scripts/test-canonical-native-clone-quiesce.py'
+      - 'scripts/canonical_native_typegen_preflight.py'
+      - 'scripts/test-canonical-native-typegen-preflight.py'
       - 'scripts/test-canonical-native-timestamp-proof.py'
 permissions:
   contents: read
@@ -18,7 +20,7 @@ jobs:
   owned-native-clone:
     if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/gridex-parity-remediation-20260905'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,6 +33,7 @@ jobs:
         run: |
           python3 -B scripts/test-canonical-native-timestamp-proof.py
           python3 -B scripts/test-canonical-native-clone-quiesce.py
+          python3 -B scripts/test-canonical-native-typegen-preflight.py
           python3 -B scripts/canonical-native-supabase-lifecycle-selftest.py
           python3 -B scripts/test-canonical-native-clone-preflight.py
       - name: Qualify actual native clone before historical replay

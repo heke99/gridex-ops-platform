@@ -1,6 +1,6 @@
 # Native timestamp clone diagnostic — PR310
 
-Status: ACTUAL_CAUSE_VERIFIED; bounded correction implemented, native verification pending.
+Status: ACTUAL_CAUSE_AND_BOUNDED_CLONE_CORRECTION_VERIFIED; historical continuation pending.
 
 Actual70ce549f OPS34966099676/job104370788723 completes the144 foundations and
 all seven groups with actual ledger/fault/repeat proof. Timestamps1–7 pass.
@@ -54,3 +54,14 @@ No hosted address, caller database name, arbitrary SQL or PID can enter this pat
 Only finite failure categories are published. Failed restoration cannot be accepted
 and enclosing owned-container disposal remains mandatory. Offline quiescence6 and
 proof26 tests pass; actual native proof is required and is not asserted here.
+
+## Actual corrected native preflight
+
+824f24d4 run34974499990/job104398708790 SUCCESS. Artifact10398429821 ZIP digest
+1b762725ef52c4e195d1c657d69f9c097b86a1eaac3a27136e5be6ced7bd4186.
+CLI2.101.0 and official postgres17.6.1.106 image execute the real quiescence path.
+Safe backend count category other=2 explains the source-in-use reproduction.
+Copied actual ledger, synthetic probe rows, parent metadata/settings/snapshot and
+ledger preservation, clone disposal, container cleanup and private workspace
+removal all pass. This proves the bounded correction, not the historical chain.
+The ordinary824f24d4 native34974499849/job104398696940 is still in progress.

@@ -406,6 +406,7 @@ jobs:
           python3 -B scripts/test-canonical-native-forward-runtime.py
           python3 -B scripts/test-canonical-native-ledger-readiness.py
           python3 -B scripts/test-canonical-native-final-sql.py
+          python3 -B scripts/test-canonical-native-schema-reference.py
           python3 -B scripts/canonical-auth-provisioning-replay.py
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/sql/canonical-tenant-guard-catalog.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql
@@ -459,6 +460,7 @@ jobs:
             rem002-clean-replay.log
             artifacts/replay-input-accounting.json
             artifacts/native-supabase-lifecycle.json
+            artifacts/native-full-schema-reference-diff.json
             rem002-database.types.ts
             rem002-schema-snapshot/
           if-no-files-found: error

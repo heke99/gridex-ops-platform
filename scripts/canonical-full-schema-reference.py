@@ -209,8 +209,8 @@ def terminal_observer(controller, original, reference, before, result):
                     raise ValueError('SOURCE_RESTORATION_REQUIRED')
                 from canonical_forward_sources import FORWARD_SOURCES
                 forward = tail.forward_receipt
-                if (forward.get('executed') is not True or forward.get('inputsExecuted') != 2
-                        or len(forward.get('sources', [])) != 2
+                if (forward.get('executed') is not True or forward.get('inputsExecuted') != 4
+                        or len(forward.get('sources', [])) != 4
                         or any(entry.get('source') != path or entry.get('sourceSha256') != digest
                                or any(entry.get(flag) is not True for flag in ('executed','positiveAndRepeatVerified','rowsPreserved'))
                                for entry, (path, digest) in zip(forward['sources'], FORWARD_SOURCES))):
@@ -218,7 +218,7 @@ def terminal_observer(controller, original, reference, before, result):
                 candidate = compare(reference, capture(handle, controller.DATABASE))
                 candidate.update(foundationApplied=controller.SCOPES['full'],
                                  timestampApplied=len(tail.selected),
-                                 forwardApplied=2,
+                                 forwardApplied=4,
                                  forwardSources=[dict(source=path, sourceSha256=digest) for path,digest in FORWARD_SOURCES])
         except Exception:
             # Never publish exception strings, SQL, raw catalog values or paths.

@@ -16,6 +16,10 @@ FORWARD_SOURCES = (
      '5593bf9f66e2ea783ac37f23ca4f547132e70beb519a955dc5b2666a65db569c'),
     ('migrations/20260915121224_restrict_retained_operational_table_privileges.sql',
      'c8928d29f3cf5ad527513a7448b4819c4f7a80f07d9fe3b78c764e30759e134e'),
+    ('migrations/20260915132224_restrict_inbound_service_table_privileges.sql',
+     '0ee026c41d180768b23e20826d522387cc1c65e9c689304472f62cda39b19033'),
+    ('migrations/20260915132227_restrict_new_tenant_table_truncate.sql',
+     'c67328cde9b270efad94aa44ded06f3b435170f247af90b1ea93e01dfe08523a'),
 )
 
 
@@ -38,22 +42,22 @@ def _digest(rows):
 
 
 def partition_timestamps(selected):
-    """Require the original ordered 514 pairs followed by exactly two sources."""
+    """Require the original ordered 514 pairs followed by exactly four sources."""
     rows = _pairs(selected)
     historical, forward = rows[:514], rows[514:]
-    if (len(rows) != 516 or _digest(historical) != HISTORICAL_SELECTION_SHA
+    if (len(rows) != 518 or _digest(historical) != HISTORICAL_SELECTION_SHA
             or forward != FORWARD_SOURCES):
         raise ValueError('FORWARD_TIMESTAMP_PARTITION_REQUIRED')
     return historical, forward
 
 
 def partition_inventory(rows):
-    """Account all 603 files without changing any of the historical 601 pins."""
+    """Account all 605 files without changing any of the historical 601 pins."""
     pairs = _pairs(rows)
     paths = {path for path, _ in FORWARD_SOURCES}
     historical = tuple(sorted(row for row in pairs if row[0] not in paths))
     forward = tuple(sorted(row for row in pairs if row[0] in paths))
-    if (len(pairs) != 603 or len(historical) != 601
+    if (len(pairs) != 605 or len(historical) != 601
             or _digest(historical) != HISTORICAL_INVENTORY_SHA or forward != FORWARD_SOURCES):
         raise ValueError('FORWARD_INVENTORY_PARTITION_REQUIRED')
     return historical, forward
@@ -79,7 +83,7 @@ def validate_retained(retained):
 
 
 def retain(root):
-    """Read only the two registered canonical files before the replay's HOLD."""
+    """Read only the four registered canonical files before the replay's HOLD."""
     root = Path(root)
     retained = []
     try:
@@ -95,9 +99,9 @@ def retain(root):
 
 
 def historical_fixture_accounting(report):
-    """Qualify current603 input evidence, then expose the pinned601 fixture scope.
+    """Qualify current605 input evidence, then expose the pinned601 fixture scope.
 
-    Historical SQL fixture constructors predate the two forward sources and
+    Historical SQL fixture constructors predate the four forward sources and
     must continue testing their original prefix, without lying about inventory.
     This is a test/source-selection adapter; it creates no execution evidence.
     """
@@ -105,10 +109,10 @@ def historical_fixture_accounting(report):
     from collections import Counter
     rows = report['migrations']
     partition_inventory([(row['path'], row['sha256']) for row in rows])
-    expected_counts = dict(FULL_FILE_SELECTED=591,SUBSTITUTED=2,UNCLASSIFIED=5,EXPLICITLY_EXCLUDED=5)
-    if (report['totalMigrations'] != 603 or report['counts'] != expected_counts
+    expected_counts = dict(FULL_FILE_SELECTED=593,SUBSTITUTED=2,UNCLASSIFIED=5,EXPLICITLY_EXCLUDED=5)
+    if (report['totalMigrations'] != 605 or report['counts'] != expected_counts
             or dict(Counter(row['classification'] for row in rows)) != expected_counts
-            or report['selectedInputCounts'] != dict(foundation=144,timestamp=516)
+            or report['selectedInputCounts'] != dict(foundation=144,timestamp=518)
             or report['errors']):
         raise ValueError('FORWARD_FIXTURE_ACCOUNTING_REQUIRED')
     suffix = {path for path,_ in FORWARD_SOURCES}
@@ -122,6 +126,6 @@ def historical_fixture_accounting(report):
     result['totalMigrations'] = 601
     result['counts'] = dict(Counter(row['classification'] for row in result['migrations']))
     result['selectedInputCounts'] = dict(foundation=144,timestamp=514)
-    result['currentInventoryTotal'] = 603
+    result['currentInventoryTotal'] = 605
     result['fixtureScope'] = 'PINNED_HISTORICAL_601_INPUTS_NOT_CURRENT_TOTAL'
     return result
