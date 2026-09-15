@@ -42,7 +42,7 @@ def receipt(outcome,phase,progress):
         ledgerProvenanceVerified=False,generatedTypesVerified=False,productionModified=False)
 
 
-INPUT_PINS={'scripts/canonical_permission_full_seed.py': '040f745b3d6ceac56e7a4553e68365c81fce695ce3f2551f4849b889e53911f8', 'scripts/canonical_changed_function_witness.py': 'a1eff86d0efecc058af45dc54411bb9056bc4cd96e7fa5b057374ee8cdefcce3', 'scripts/canonical-permission-native-fixture.py': '47425b626551df891f6b13c86390ac9b23239cbe26a3651558572778eceab3a8', 'scripts/canonical-portable-invariants-diagnostic.py': '2737b29ea13cd8d666e16e501f81f5c11d270e5c89aac4a9a88291e6bed21cb9', 'scripts/canonical_native_timestamp_snapshot.py': 'e36911fc25dae81d5d8187ddf7de472af602bbad3e6ec68dc4c657dc6fe23757', 'scripts/sql/canonical-user-rbac-repair-catalog.sql': '1d6315ea6d4d542a01e4b697f1cc2b4528a227f2be7e7052f47c8a04166103c7'}
+INPUT_PINS={'scripts/canonical_permission_full_seed.py': 'd58f46ad1596cfb73a0bb6cd5769a94b6ffce2020269297015ea80445f0873ee', 'scripts/canonical_changed_function_witness.py': 'a1eff86d0efecc058af45dc54411bb9056bc4cd96e7fa5b057374ee8cdefcce3', 'scripts/canonical-permission-native-fixture.py': '47425b626551df891f6b13c86390ac9b23239cbe26a3651558572778eceab3a8', 'scripts/canonical-portable-invariants-diagnostic.py': '2737b29ea13cd8d666e16e501f81f5c11d270e5c89aac4a9a88291e6bed21cb9', 'scripts/canonical_native_timestamp_snapshot.py': 'e36911fc25dae81d5d8187ddf7de472af602bbad3e6ec68dc4c657dc6fe23757', 'scripts/sql/canonical-user-rbac-repair-catalog.sql': '1d6315ea6d4d542a01e4b697f1cc2b4528a227f2be7e7052f47c8a04166103c7'}
 
 
 def retained_inputs():
@@ -80,7 +80,16 @@ def private_sql(target,legacy,database,sql,stage,transaction=True):
     if safe['sqlstate']!='00000' or result.returncode:
         state=safe.get('sqlstate')
         if type(state) is not str or re.fullmatch('[A-Z0-9]{5}',state) is None:state='XXXXX'
-        print(json.dumps(dict(stage='permission_clone_sql_failure',phase=stage,sqlstate=state)),flush=True)
+        diagnostic=dict(stage='permission_clone_sql_failure',phase=stage,sqlstate=state)
+        if stage=='matrix_case' and state=='P0001':
+            labels={'actor_identity','actor_role_flags','access_select_own','access_select_foreign',
+                'full_access_select_roster','full_access_no_global_row','access_no_table_write',
+                'access_no_column_write','storage_visible_rows','expected_sqlstate_mismatch',
+                'affected_rows','unchanged_multisets'}
+            error=re.search(r'(?m)^(?:psql:<stdin>:[0-9]+: )?ERROR: +P0001: ([a-z_]+)$',
+                result.stderr.decode(errors='replace'))
+            if error and error[1] in labels:diagnostic['assertion']=error[1]
+        print(json.dumps(diagnostic),flush=True)
         raise ValueError('PERMISSION_CLONE_SQL_REQUIRED')
     return result.stdout.decode()
 
