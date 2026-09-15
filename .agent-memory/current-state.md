@@ -2,96 +2,65 @@
 
 Status: PARTIAL
 
-## Active correction / exact next action
+## Active work and exact next action
 
-Current inspected head d05408c228c5d38678503bfc0291944afbed2513; exact local
-source tree50a323536b39d9cd2e38a0e70b86288db8dfe8e3 verified. The previously
-published auth ACL correction and mandatory SQL controls are retained unchanged.
-The local overlapping auth candidate was superseded and stashed, not published.
+Publication base ec503fc7a63ee512a3e26048035402e9579a3610. This batch integrates
+the retained514 timestamp inputs with genuine native CLI units/statement ledger,
+plus isolated qualification of a staged forward repair for two skipped FKs.
+Fresh258 local tests pass. Actual native SQL and FK SQL acceptance is pending.
+Publish on the same PR, inspect actual current-commit CI artifacts and continue
+from the first evidenced failure. Receipt:
+quality/audits/PR310_NATIVE_TIMESTAMP_AND_FK_2026-09-15.md.
 
-Completed native diagnostic34958678292/job104346776068 on a59e0ce6,
-artifact10392753658, proves that the expected55000/R071 primary line includes
-its fixed reason plus322 trailing ASCII spaces. Reconstructing all426 bytes
-matches the artifact primary SHA256 exactly. The parser's strict fullmatch
-rejects this display padding; group7 remains unaccepted despite the correct
-underlying error. Strip only trailing ASCII spaces before the existing exact
-single-primary match. Required code/stage/reason, SQL controls and ledger guards
-remain unchanged. Two tests reproduce the failure and reject nonspace suffixes;
-all34 foundation tests pass after the correction. Actual native SQL is pending.
+The compiler prepares all522 possible units before creating the target. T201/202
+keep separate committed phases; four LOCK sources have exact source adapters;
+T232 retains its full proof and applies through the real CLI. All prior144
+foundation/seven residual proof and65 real ledger rows must pass admission.
+Source/ledger rollback, provider-event preservation, clone ownership, statement
+identity and no-op repeat remain mandatory. No original historical versions are
+marked applied through aliases. Full acceptance remains false until final gates.
 
-Publish this bounded parser repair on the same PR and inspect its ordinary
-native group7 controls/execution/ledger/repeat. Auth validation for the published
-ACL batch also remains pending. Then native timestamps, independent schema,
-types and all same-head CI/E2E/review gates must pass before whole-PR merge.
-Current receipt: quality/audits/PR310_NATIVE_PRIMARY_PADDING_2026-09-15.md.
+The forward FK repair has genuine CLI filename20260915111458 and is staged under
+scripts/sql/forward-candidates. It is not a deployed or selected historical source.
+Promote only after isolated SQL qualification and truthful additional-source
+registration; preserve existing514 authority as the historical prefix.
 
-## Preservation and access
+## Preserved history and access
 
-Preserve and eventually merge ALL PR310 changes. Starting head for this
-continuation is a59e0ce6aae821955cf5b07eb1e32598addd4144; repository
-heke99/gridex-ops-platform; branch codex/gridex-parity-remediation-20260905.
-Full original Git history is cloned. Before publication a concurrent commit
-8130ecf3ec7ab675ba4cb7fd791b071d59521fbe was discovered and fast-forwarded.
-It already contains the exact ACL correction; reuse its implementation unchanged. The previously local auth-evidence patch
-is published at43efaf895aaf080abadef84ce724bceafa3e3a79 and is an actual ancestor.
-Do not rebuild it. Backup ref backup/pr310-20260915-d8ace45c remains historical
-preservation evidence. No force update, selective merge or history rewrite.
+Repository heke99/gridex-ops-platform; PR310;
+branch codex/gridex-parity-remediation-20260905. Starting head a59e0ce6 is retained.
+Earlier local auth patch is already published at43efaf89 and is an ancestor.
+Exact journal ACL correction8130ecf3, required mutation controls d05408c2 and
+ASCII-only native primary padding repair ec503fc7 are retained unchanged.
+Concurrent publications were fast-forwarded; overlapping local drafts were
+superseded, not rebuilt or force-pushed. Preserve and merge ALL PR changes.
 
-Terminal, local Python tests and dependency installation work. Git terminal
-push lacks credentials; the GitHub connector successfully wrote an unchanged
-tree and performed a non-forced same-SHA ref update. Publish through it.
-PostgreSQL/Docker are unavailable locally; system package installation failed
-on setgroups/setuid restrictions. Native SQL acceptance must come from Actions.
-Main branch metadata reports protected=false and no rulesets were returned;
-reading the administration protection endpoint is forbidden (403). No formal
-PR reviews or inline threads were returned. No merge acceptance is inferred.
+Terminal/local Python/dependency installation and official CLI2.101.0 work.
+Terminal git push lacks credentials; GitHub connector non-forced publication
+works and tree/ref readback is mandatory. Local PostgreSQL/Docker unavailable;
+package installation failed setgroups/setuid restrictions. Use Actions for SQL.
+Main metadata protected=false, rulesets empty, admin-protection endpoint403;
+no formal reviews/threads returned. Never infer acceptance from these facts.
 
-## Auth correction already published
+## Actual evidence and remaining gates
 
-Actual starting-head OPS34958678141/job104346776007 and diagnostic
-34958678292/job104346776492 identify P0001 at the exact assertion
-6D2 journal exact owner/ACL/options/no source comments.
-The immutable source creates platform_session_revocations without ACL changes;
-the previously native-verified bootstrap supplies explicit managed defaults.
-The obsolete relacl IS NULL assumption is corrected to exact normalized
-32-entry ACL equality, retaining owner/options/comment checks. Eight real
-rollback-only mutation controls are mandatory in ordinary and diagnostic auth
-CI. No historical SQL, bootstrap, schema reference or type manifest changed.
+Current-base auth diagnostic34960996805/job104354284392 is SUCCESS; actual logs
+include complete fixture and all eight exact journal rejection/rollback controls.
+Native job104354284703 is still running at this checkpoint. Its predecessor
+artifact proved322 trailing ASCII spaces by exact426-byte header SHA; the parser
+repair preserves single-primary/code/stage/reason matching. Group7 SQL is not
+yet accepted in this checkpoint.
 
-The duplicate local implementation was superseded before commit. This batch
-adds CI wiring and stronger mutation controls around the published correction.
-The three adapted local guards and auth constructor pass; SQL acceptance is
-NOT claimed.
-The reviewed auth batch is published at d05408c2. Inspect its whole-source auth and its
-eight new mutation controls. The pinned fixture bytes remain unchanged.
-Auth receipt: quality/audits/PR310_AUTH_JOURNAL_ACL_2026-09-15.md.
+Full portable schema artifact10371643836 confirms144+514 execution before red
+diff. Two missing FKs are confirmed skipped-inline-reference effects. Seven
+composite FK replacements have different deletion/update actions;24 anon grant
+removals are source-explicit; policy equivalence remains unproved. Keep reference
+unchanged. Genuine type generation and all same-head CI/E2E/reviews remain required.
+No production mutation, deployment, main merge or whole-replay acceptance claimed.
 
-## Native replay, schema, types and final gates
+## Continuity contract
 
-Starting-head native diagnostics and ordinary replay were still running when
-this auth correction was prepared. Read their actual artifacts before any
-residual144 correction or acceptance. Prior accepted boundary remains144
-regular foundation inputs plus five residuals in six groups; group7 remains
-unaccepted. Never infer success from controller-only tests.
-
-The portable timestamp driver already retains514 inputs but has no official
-CLI ledger. Native integration is still absent. Static source compilation
-identifies interior transaction controls at T201/T202 and source-specific LOCK
-handling at T221/T222/T224/T225; T232 requires its full authored repair proof.
-Keep source pins, atomicity/rollback checks and genuine statement ledger.
-
-The independent schema comparison is already red after full portable144+514
-execution. Its differences must be causally reconciled, never copied into a
-reference to manufacture equality. Then genuinely generate types and pass all
-mandatory same-head CI/E2E and independent review before whole-PR merge.
-Verify all PR ancestry/content in main after merge. No production database
-mutation, deployment, main merge or completed masterplan step is claimed.
-
-## Machine-checked continuity contract
-
-Working-tree accounting is 601 inputs: 589 `FULL_FILE_SELECTED`, 2 `SUBSTITUTED`, 5 `UNCLASSIFIED`, and 5 `EXPLICITLY_EXCLUDED`.
-
-The focused group contains 347 inputs: 335 selected, 2 substituted, 5 unclassified, and 5 excluded.
-
-No production mutation has been performed in this replay-verification batch.
-Push reviewed, coherent batches stepwise as requested.
+Existing working-tree accounting remains601 inputs:589 FULL_FILE_SELECTED,
+2 SUBSTITUTED,5 UNCLASSIFIED,5 EXPLICITLY_EXCLUDED. Focused347:335 selected,
+2 substituted,5 unclassified,5 excluded. The staged FK draft is outside this
+historical selector until separately admitted. Push reviewed coherent batches.

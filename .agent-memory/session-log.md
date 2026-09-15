@@ -167,3 +167,7 @@ parser reproduction and34 foundation tests PASS; actual group7 re-execution
 PENDING. Preserve concurrently published8130ecf3/d05408c2 auth work. No
 production, schema-reference, SQL/ledger/control weakening or main change.
 See quality/audits/PR310_NATIVE_PRIMARY_PADDING_2026-09-15.md.
+
+## 2026-09-15 — native timestamp integration / staged FK qualification
+
+Publication base ec503fc7;258 fresh local tests PASS. Native source/phase/CLI ledger integration and fixed PG17 FK qualification wired; actual SQL pending. Current-base auth diagnostic34960996805/job104354284392 SUCCESS with8 mutation controls. No schema/type/full acceptance or production mutation. See quality/audits/PR310_NATIVE_TIMESTAMP_AND_FK_2026-09-15.md and current-state.md for active next action.

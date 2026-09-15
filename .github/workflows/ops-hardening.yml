@@ -53,6 +53,10 @@ jobs:
         run: python3 scripts/canonical-auth-membership-group.py --partition original16 --evidence
       - name: Reject journal catalog deviations on isolated PostgreSQL 17
         run: python3 -B scripts/canonical-governance-journal-acl-selftest.py
+      - name: Verify missing inline foreign keys and forward repair on isolated PostgreSQL 17
+        run: |
+          python3 -B scripts/test-canonical-existing-column-fk.py
+          python3 -B scripts/canonical-existing-column-fk-selftest.py
       - name: Upload redacted auth-group command evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -352,7 +356,8 @@ jobs:
 
   clean-migration-replay:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # 514 additional sources each create and apply a genuine CLI migration.
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
@@ -389,6 +394,9 @@ jobs:
           # remain nonzero until all historical envelopes AND final gates are
           # integrated; first43 is not permission to run the following checks.
           python3 -B scripts/test-canonical-native-historical-prefix.py
+          python3 -B scripts/test-canonical-native-timestamp-sources.py
+          python3 -B scripts/test-canonical-native-timestamp-proof.py
+          python3 -B scripts/test-canonical-native-timestamp-runtime.py
           python3 -B scripts/canonical-auth-provisioning-replay.py
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/sql/canonical-tenant-guard-catalog.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql

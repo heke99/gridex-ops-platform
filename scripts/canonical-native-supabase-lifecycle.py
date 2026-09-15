@@ -138,6 +138,34 @@ def failure_code(error, historical):
                        'CLI_GENERATED_MIGRATION_REQUIRED', 'GENUINE_NATIVE_LEDGER_REQUIRED',
                        'EXECUTED_NATIVE_STATEMENTS_REQUIRED', 'NATIVE_LEDGER_IDEMPOTENCE_REQUIRED',
                        'NEXT_CLI_MIGRATION_REQUIRED', 'NATIVE_FAILED_MIGRATION_ATOMICITY_REQUIRED'}
+    lifecycle_codes.update({
+        'LIVE_SYNC_NATIVE_LEDGER_REQUIRED', 'LIVE_SYNC_NATIVE_TARGET_REQUIRED',
+        'NATIVE_TIMESTAMP_BOUND_UNIT_REQUIRED', 'NATIVE_TIMESTAMP_BYTES_REQUIRED',
+        'NATIVE_TIMESTAMP_CLI_POSTIMAGE_EQUIVALENCE_REQUIRED', 'NATIVE_TIMESTAMP_CLONE_OWNERSHIP',
+        'NATIVE_TIMESTAMP_CLONE_REQUIRED', 'NATIVE_TIMESTAMP_COMPLETION_REQUIRED',
+        'NATIVE_TIMESTAMP_CONTAINER_REQUIRED', 'NATIVE_TIMESTAMP_DATABASE_REQUIRED',
+        'NATIVE_TIMESTAMP_DOCKER_COMMAND_REQUIRED', 'NATIVE_TIMESTAMP_EARLIER_LEDGER_CHANGED',
+        'NATIVE_TIMESTAMP_FAILED_UNIT_ROLLBACK_REQUIRED', 'NATIVE_TIMESTAMP_FAILURE_PROOF_REQUIRED',
+        'NATIVE_TIMESTAMP_FOUNDATION_REQUIRED', 'NATIVE_TIMESTAMP_GUARD_CLEANUP_REQUIRED',
+        'NATIVE_TIMESTAMP_INTERIOR_TRANSACTION_REQUIRED', 'NATIVE_TIMESTAMP_LEDGER_PROOF_REQUIRED',
+        'NATIVE_TIMESTAMP_LEDGER_REQUIRED', 'NATIVE_TIMESTAMP_LOCK_BYTES_REQUIRED',
+        'NATIVE_TIMESTAMP_LOCK_REQUIRED', 'NATIVE_TIMESTAMP_LOCK_SHAPE_REQUIRED',
+        'NATIVE_TIMESTAMP_LOCK_SOURCE_REQUIRED', 'NATIVE_TIMESTAMP_NETWORK_REQUIRED',
+        'NATIVE_TIMESTAMP_OWNER_REQUIRED', 'NATIVE_TIMESTAMP_POSTGIS_REQUIRED',
+        'NATIVE_TIMESTAMP_PREEXISTING_CLONE', 'NATIVE_TIMESTAMP_PROGRAM_REQUIRED',
+        'NATIVE_TIMESTAMP_RECONSTRUCTION_BYTES_REQUIRED', 'NATIVE_TIMESTAMP_REPEAT_REQUIRED',
+        'NATIVE_TIMESTAMP_RESTORATION_SOURCE_REQUIRED', 'NATIVE_TIMESTAMP_RETAINED_BUNDLE_REQUIRED',
+        'NATIVE_TIMESTAMP_RETAINED_PLAN_REQUIRED', 'NATIVE_TIMESTAMP_ROLLBACK_REQUIRED',
+        'NATIVE_TIMESTAMP_SELECTION_REQUIRED', 'NATIVE_TIMESTAMP_SERVER_MUTATION_REJECTED',
+        'NATIVE_TIMESTAMP_SETTINGS_REQUIRED', 'NATIVE_TIMESTAMP_SHIM_AUTHORITY_REQUIRED',
+        'NATIVE_TIMESTAMP_SHIM_PROBE_REQUIRED', 'NATIVE_TIMESTAMP_SOURCE_EQUIVALENCE_REQUIRED',
+        'NATIVE_TIMESTAMP_SOURCE_EXECUTION_REQUIRED', 'NATIVE_TIMESTAMP_SOURCE_ORDER_REQUIRED',
+        'NATIVE_TIMESTAMP_SPLIT_BOUNDARY_REQUIRED', 'NATIVE_TIMESTAMP_SPLIT_BYTES_REQUIRED',
+        'NATIVE_TIMESTAMP_SPLIT_SOURCE_REQUIRED', 'NATIVE_TIMESTAMP_SQL_ARGUMENT_REQUIRED',
+        'NATIVE_TIMESTAMP_SQL_RESULT', 'NATIVE_TIMESTAMP_TRANSACTION_REQUIRED',
+        'NATIVE_TIMESTAMP_TRANSACTION_TERMINATOR_REQUIRED', 'NATIVE_TIMESTAMP_UNIT_ACCOUNTING_REQUIRED',
+        'NATIVE_TIMESTAMP_UTF8_REQUIRED',
+    })
     historical_codes = {
         'NATIVE_ALIGNMENT68_FINAL_REQUIRED',
         'NATIVE_ALIGNMENT68_ORACLE_ROLLBACK_REQUIRED',
@@ -292,12 +320,17 @@ def run(*, historical_prefix=False):
     cli = shutil.which('supabase')
     if cli is None:
         raise ValueError('PINNED_NATIVE_CLI_REQUIRED')
-    report = {'scope':('FOUNDATION144_EXECUTION_NOT_FULL_REPLAY_ACCEPTANCE' if historical_prefix
+    report = {'scope':('SELECTED_CHAIN_EXECUTION_NOT_FULL_REPLAY_ACCEPTANCE' if historical_prefix
                        else 'SYNTHETIC_NATIVE_LIFECYCLE_NOT_GRIDEX_REPLAY_ACCEPTANCE'),
               'cliVersion':VERSION,'outcome':'BLOCKED','historicalGridexSourcesExecuted':False,
               'completeReplayVerified':False,'generatedTypesVerified':False,'productionModified':False}
     historical = load_historical_prefix() if historical_prefix else None
     programs = historical.prepare() if historical_prefix else None
+    # Reject any unsupported tail source before creating a database or applying
+    # the foundation. Retain immutable bytes for every later execution unit.
+    if historical_prefix:
+        from canonical_native_timestamp_sources import prepare as prepare_timestamp
+        timestamp_plan = prepare_timestamp()
     transport = load_transport()
     phase = 'PREFLIGHT'; created_network = False; attempted_start = False; success = False
     with tempfile.TemporaryDirectory(prefix=project+'-') as directory:
@@ -434,6 +467,9 @@ def run(*, historical_prefix=False):
                 phase = 'HISTORICAL_FOUNDATION78_144_NATIVE_LEDGER'
                 from canonical_native_foundation144 import execute as execute_foundation144
                 execute_foundation144(historical, native, sql, work, report)
+                phase = 'HISTORICAL_TIMESTAMP_NATIVE_LEDGER'
+                from canonical_native_timestamp_runtime import execute as execute_timestamp
+                execute_timestamp(command, native, sql, work, project, report, timestamp_plan)
             success = True
         except Exception as error:
             report.update(outcome='BLOCKED',phase=phase,errorType=type(error).__name__)
@@ -471,7 +507,7 @@ def run(*, historical_prefix=False):
                                                   and report.get('cleanupVerified'))
     success = success and report['privateWorkspaceRemoved']
     if success:
-        report['outcome'] = ('NATIVE_FOUNDATION144_EXECUTED_NOT_FULL_ACCEPTANCE' if historical_prefix
+        report['outcome'] = ('NATIVE_SELECTED_CHAIN_EXECUTED_NOT_FULL_ACCEPTANCE' if historical_prefix
                              else 'NATIVE_LIFECYCLE_VERIFIED')
     output = ROOT/'artifacts'; output.mkdir(exist_ok=True)
     (output/'native-supabase-lifecycle.json').write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')

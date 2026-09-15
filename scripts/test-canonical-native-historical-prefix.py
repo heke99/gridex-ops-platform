@@ -318,10 +318,11 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
         spec=importlib.util.spec_from_file_location('existing_native_fixture',ROOT/'scripts/canonical-native-supabase-lifecycle-selftest.py')
         cls.fixture=importlib.util.module_from_spec(spec);spec.loader.exec_module(cls.fixture)
 
-    def execute(self, fail=False, cleanup=False, legacy_fail=False, repair_fail=False, provider_fail=False, dedupe_fail=False, fixed_fail=False, alignment_fail=False, tail_fail=False):
+    def execute(self, fail=False, cleanup=False, legacy_fail=False, repair_fail=False, provider_fail=False, dedupe_fail=False, fixed_fail=False, alignment_fail=False, tail_fail=False, timestamp_fail=False):
         native=self.fixture.m
         original=native.run
         prepared=object()
+        prepared_timestamp=object()
         def apply(command,cli,sql,work,project,programs,progress):
             self.assertIs(programs,prepared)
             self.assertEqual(len(list((work/'supabase/migrations').glob('*.sql'))),1)
@@ -374,6 +375,19 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
             self.assertTrue(parent['historicalOperations77']['verified'])
             parent['historicalFoundation144']={'executed':True, 'fullSourceEffectsAccepted':False}
             parent['foundationInputsExecuted']=144
+        import canonical_native_timestamp_sources as timestamp_sources
+        import canonical_native_timestamp_runtime as timestamp_runtime
+        def apply_timestamp(command,cli,sql,work,project,parent,plan):
+            # This lifecycle transport fixture uses a sentinel at the compiler
+            # boundary; the complete real compiler has its own executable suite.
+            self.assertIs(plan,prepared_timestamp)
+            self.assertEqual(parent['foundationInputsExecuted'],144)
+            self.assertTrue(parent['historicalFoundation144']['executed'])
+            parent['historicalTimestampTail']={'executed':not timestamp_fail,
+                'timestampInputsExecuted':17 if timestamp_fail else 514,
+                'fullSourceEffectsAccepted':False}
+            parent['timestampInputsExecuted']=17 if timestamp_fail else 514
+            if timestamp_fail:raise ValueError('private timestamp SQL must not reach report')
         helper=SimpleNamespace(prepare=lambda:prepared,execute=apply)
         with patch.object(native,'load_historical_prefix',return_value=helper), \
              patch.object(native.provider_events,'bootstrap',side_effect=ValueError('NATIVE_PROVIDER_EVENT_IMAGE_REQUIRED') if provider_fail else None,return_value=native.provider_events.receipt()), \
@@ -384,8 +398,16 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
              patch.object(alignment,'execute',side_effect=apply_alignment), \
              patch.object(tail,'execute',side_effect=apply_tail), \
              patch.object(foundation,'execute',side_effect=apply_foundation), \
+             patch.object(timestamp_sources,'prepare',return_value=prepared_timestamp) as compile_tail, \
+             patch.object(timestamp_runtime,'execute',side_effect=apply_timestamp) as execute_tail, \
              patch.object(native,'run',side_effect=lambda:original(historical_prefix=True)):
-            return self.fixture.NativeTests().execute_fixture('cleanup' if cleanup else None)
+            result=self.fixture.NativeTests().execute_fixture('cleanup' if cleanup else None)
+            compile_tail.assert_called_once_with()
+            if any((fail,legacy_fail,repair_fail,provider_fail,dedupe_fail,fixed_fail,alignment_fail,tail_fail)):
+                execute_tail.assert_not_called()
+            else:
+                execute_tail.assert_called_once()
+            return result
 
     def test_wrong_provider_image_stops_before_historical_inputs(self):
         status,report=self.execute(provider_fail=True)
@@ -397,9 +419,12 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
     def test_bounded_native_success_cannot_certify_full_replay(self):
         status,report=self.execute()
         self.assertEqual(status,0)
-        self.assertEqual(report['outcome'],'NATIVE_FOUNDATION144_EXECUTED_NOT_FULL_ACCEPTANCE')
+        self.assertEqual(report['outcome'],'NATIVE_SELECTED_CHAIN_EXECUTED_NOT_FULL_ACCEPTANCE')
         self.assertEqual(report['foundationInputsExecuted'],144)
         self.assertTrue(report['historicalFoundation144']['executed'])
+        self.assertEqual(report['timestampInputsExecuted'],514)
+        self.assertTrue(report['historicalTimestampTail']['executed'])
+        self.assertFalse(report['historicalTimestampTail']['fullSourceEffectsAccepted'])
         self.assertFalse(report['historicalFoundation144']['fullSourceEffectsAccepted'])
         self.assertTrue(report['historicalOperations77']['verified'])
         self.assertTrue(report['historicalAlignment68']['verified'])
@@ -487,6 +512,22 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
         self.assertEqual(status,1)
         self.assertFalse(report['historicalPrivateInputsDisposed'])
         self.assertEqual(report['outcome'],'BLOCKED')
+
+    def test_timestamp_failure_retains_foundation_and_partial_tail_without_certifying(self):
+        status,report=self.execute(timestamp_fail=True)
+        self.assertEqual(status,1)
+        self.assertEqual(report['outcome'],'BLOCKED')
+        self.assertEqual(report['phase'],'HISTORICAL_TIMESTAMP_NATIVE_LEDGER')
+        self.assertEqual(report['foundationInputsExecuted'],144)
+        self.assertEqual(report['timestampInputsExecuted'],17)
+        self.assertTrue(report['historicalFoundation144']['executed'])
+        self.assertFalse(report['historicalTimestampTail']['executed'])
+        self.assertTrue(report['cleanupVerified'])
+        self.assertTrue(report['privateWorkspaceRemoved'])
+        self.assertTrue(report['historicalPrivateInputsDisposed'])
+        self.assertFalse(report['completeReplayVerified'])
+        self.assertFalse(report['generatedTypesVerified'])
+        self.assertNotIn('private timestamp SQL',str(report))
 
     def test_library_entry_restores_signal_handlers_even_on_failure(self):
         native=self.fixture.m

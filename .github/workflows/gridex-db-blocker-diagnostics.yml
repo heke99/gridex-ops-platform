@@ -44,7 +44,8 @@ jobs:
   native-transport:
     if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # Full timestamp execution follows the qualified foundation in this target.
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
         with:
@@ -53,7 +54,11 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
-      - run: python3 -B scripts/canonical-blocker-diagnostics.py native
+      - run: |
+          python3 -B scripts/test-canonical-native-timestamp-sources.py
+          python3 -B scripts/test-canonical-native-timestamp-proof.py
+          python3 -B scripts/test-canonical-native-timestamp-runtime.py
+          python3 -B scripts/canonical-blocker-diagnostics.py native
       - uses: actions/upload-artifact@v4
         if: always()
         with:

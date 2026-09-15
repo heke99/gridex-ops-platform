@@ -53,7 +53,16 @@ def check(condition, label):
         raise ValueError(label)
 
 
+def native_target(target):
+    from canonical_native_timestamp_proof import NativeTimestampTarget
+    return type(target) is NativeTimestampTarget
+
+
 def clone(target, source, destination):
+    if source == 'postgres' and native_target(target):
+        check(destination in CLONES, 'LIVE_SYNC_OWNED_CLONE_REQUIRED')
+        target.clone(source, destination)
+        return
     check(source == 'gridex_auth_legacy_replay' and destination in CLONES, 'LIVE_SYNC_OWNED_CLONE_REQUIRED')
     target.command(source)  # Existing owned target/database admission.
     target.docker(['exec',target.name,'dropdb','-U','postgres','--if-exists','--force',destination])
@@ -111,9 +120,15 @@ def behavior(target, accepted):
     checkpoint('bounded_session_and_caller_matrix')
 
 
-def execute_boundary(root,target,database,source_sql,progress,*,retained=None):
+def execute_boundary(root,target,database,source_sql,progress,*,retained=None,apply_reconstruction=None):
     """Prove on owned clones before applying the reconstruction to the replay."""
-    check(Path(root).resolve()==ROOT and database=='gridex_auth_legacy_replay','LIVE_SYNC_OWNED_TARGET_REQUIRED')
+    native = database == 'postgres' and native_target(target)
+    check(Path(root).resolve()==ROOT and (database=='gridex_auth_legacy_replay' or native),'LIVE_SYNC_OWNED_TARGET_REQUIRED')
+    if native:
+        check(callable(apply_reconstruction), 'LIVE_SYNC_NATIVE_APPLICATION_REQUIRED')
+        target.assert_native_owned()
+    else:
+        check(apply_reconstruction is None, 'LIVE_SYNC_NATIVE_APPLICATION_REQUIRED')
     rendered,evidence=fix.reconstruct(ROOT,source_sql,retained=retained)
     progress['sessionReconstruction']=dict(evidence,nativeBoundaryVerified=False)
     current_phase='original_failure'
@@ -155,7 +170,12 @@ def execute_boundary(root,target,database,source_sql,progress,*,retained=None):
         current_phase='behavior'
         behavior(target,accepted)
         current_phase='replay_application'
-        target.sql(database,rendered,'live_sync_reconstructed_source',transaction=False)
+        if native:
+            from canonical_native_timestamp_proof import verify_application_receipt
+            receipt = apply_reconstruction(rendered)
+            verify_application_receipt(rendered, receipt)
+        else:
+            target.sql(database,rendered,'live_sync_reconstructed_source',transaction=False)
         after=metadata(target,database)
         check(after['body']==expected and after['acl']==accepted['acl'],'LIVE_SYNC_REPLAY_POSTIMAGE_MISMATCH')
         progress['sessionReconstruction']['nativeBoundaryVerified']=True
