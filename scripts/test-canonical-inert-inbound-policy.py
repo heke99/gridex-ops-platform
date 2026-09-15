@@ -11,6 +11,46 @@ spec=importlib.util.spec_from_file_location('inert_qualification',ROOT/'scripts/
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 
 class InertPolicyTests(unittest.TestCase):
+    def test_six_original_public_platform_policies_are_required_and_never_dropped(self):
+        sql,rows,_=m.selection()
+        original=m.pinned(m.PLATFORM_SOURCE,m.PLATFORM_SOURCE_SHA)
+        platform=m.platform_policies()
+        self.assertIn(platform.split('end $$;')[0]+'end $$;',original)
+        fixture=m.setup(rows)
+        self.assertIn(platform,fixture)
+        last_drop=sql[sql.rindex('  for item in select * from (values'):]
+        for table in m.TABLES:
+            for suffix,command,check in (('select','r',''),('write','*','gridex_user_is_platform_admin()')):
+                name=table+'_platform_'+suffix
+                payload='\x1f'.join((command,'true','gridex_user_is_platform_admin()',check,'PUBLIC'))
+                digest=hashlib.sha256(payload.encode()).hexdigest()
+                self.assertEqual(sql.count("('%s', '%s', '%s')"%(table,name,digest)),2)
+                self.assertNotIn(name,last_drop)
+            self.assertIn(f'drop policy if exists {table}_service_role_all',platform)
+        self.assertIn('actual_hash is distinct from item.definition_hash',sql)
+        self.assertIn('INERT_INBOUND_RETAINED_PLATFORM_POLICY_REQUIRED',sql)
+        for path,digest in ((m.PLATFORM_SOURCE,m.PLATFORM_SOURCE_SHA),(m.CONVERGENCE,m.CONVERGENCE_SHA),
+                            (m.POSTCONDITION,m.POSTCONDITION_SHA),(m.OLD_CANDIDATE,m.OLD_CANDIDATE_SHA)):
+            self.assertEqual(hashlib.sha256((ROOT/path).read_bytes()).hexdigest(),digest)
+        predicate=m.pinned(m.POSTCONDITION,m.POSTCONDITION_SHA)
+        self.assertIn("count(*)=2 AND bool_and(p.polpermissive AND p.polroles='{0}'::oid[]",predicate)
+        self.assertIn('pg_function_is_visible',predicate)
+        self.assertIn("p.polname NOT IN (c.relname||'_platform_select',c.relname||'_platform_write')",predicate)
+
+    def test_all_six_platform_rows_and_their_dependencies_must_survive_delta(self):
+        _,rows,_=m.selection()
+        retained={f'policy/public.{table}/{table}_platform_{suffix}':{'definition':'exact-public-policy'}
+                  for table in m.TABLES for suffix in ('select','write')}
+        retained['dependency/public.platform_policy/public.platform_helper/n']='exact-dependency'
+        removed={'policy/public.'+r['identity'][1]+'/'+r['identity'][2]:{} for r in rows}
+        before=({**retained,**removed},{'rows':'same'})
+        after=(retained,{'rows':'same'})
+        m.verify_delta(before,after,rows)
+        for key in retained:
+            changed=copy.deepcopy(after);changed[0].pop(key)
+            with self.subTest(key=key),self.assertRaisesRegex(ValueError,'INERT_EXACT_POLICY_DELTA_REQUIRED'):
+                m.verify_delta(before,changed,rows)
+
     def test_exact_observed24_match_source_compiler_and_definition(self):
         sql,rows,revoke=m.selection()
         self.assertEqual(len(rows),24)

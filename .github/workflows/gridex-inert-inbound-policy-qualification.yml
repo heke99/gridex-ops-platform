@@ -8,6 +8,8 @@ on:
       - 'scripts/canonical-inert-inbound-policy-qualification.py'
       - 'scripts/test-canonical-inert-inbound-policy.py'
       - 'scripts/sql/forward-candidates/drop-inert-inbound-client-policies.sql'
+      - 'scripts/sql/forward-candidates/drop-inert-inbound-client-policies-preserve-platform.sql'
+      - 'scripts/sql/forward-candidates/inert-inbound-preserved-platform-postcondition.sql'
       - 'quality/audits/ediel-masterplan-v2/inert-policy-identities.json'
 permissions:
   contents: read
@@ -44,20 +46,23 @@ jobs:
           migration_files=("$candidate_root"/supabase/migrations/*_drop_inert_inbound_client_policies.sql)
           [[ "${#migration_files[@]}" == 1 && -f "${migration_files[0]}" ]]
           [[ ! -L "${migration_files[0]}" && ! -s "${migration_files[0]}" ]]
-          cp scripts/sql/forward-candidates/drop-inert-inbound-client-policies.sql "${migration_files[0]}"
+          cp scripts/sql/forward-candidates/drop-inert-inbound-client-policies-preserve-platform.sql "${migration_files[0]}"
           cp "${migration_files[0]}" artifacts/inert-inbound-policy-candidate/
           python3 - <<'PY'
           import hashlib,json,pathlib,re,subprocess
           root=pathlib.Path('artifacts/inert-inbound-policy-candidate')
           q=json.loads((root/'qualification.json').read_text())
-          digest='b04ce7766f0d3e4655778cdd6aa6fcde1bb3a0661867e381aa0939f015c9e2c1'
+          digest='5cd56392d5647196fe4f64e7d5a76fe5fa0a3a9a454efcfd34a6d8f754ac86a7'
           assert q['scope']=='OWNED_PG17_INERT_POLICY_QUALIFICATION_ONLY' and q['candidateSha256']==digest
-          assert q['redCount']==24 and q['greenCount']==0 and q['negativeShapeCases']==7
+          assert q['redCount']==24 and q['greenCount']==0 and q['negativeShapeCases']==29
+          assert q['retainedPlatformPolicyCount']==6 and q['originalCandidateRejectedSourcePlatformPolicies'] is True
+          assert q['candidatePostconditionVerified'] is True and q['postconditionNegativeCases']==22
+          assert q['candidatePostconditionSha256']=='baaa1053792c8e0d850fcde912b85a3561386756d4f7eec8d8b402591ce13c80'
           assert all(q[k] is True for k in ('exactPolicyOnlyDelta','repeatVerified','clientDenialVerified','serviceDmlVerified','cleanupVerified'))
           assert all(q[k] is False for k in ('schemaAccepted','nativeReplayAccepted','generatedTypesVerified','applicationHelpersVerified','productionModified'))
           files=list(root.glob('*.sql'))
           assert len(files)==1 and re.fullmatch(r'[0-9]{14}_drop_inert_inbound_client_policies.sql',files[0].name)
-          assert files[0].name[:14] > '20260915174614'
+          assert files[0].name[:14] > '20260915181448'
           assert hashlib.sha256(files[0].read_bytes()).hexdigest()==digest
           receipt=dict(scope='CLI_FILENAME_AND_ISOLATED_SQL_NOT_SCHEMA_ACCEPTANCE',cliVersion='2.101.0',
             sourceHead=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),file=files[0].name,

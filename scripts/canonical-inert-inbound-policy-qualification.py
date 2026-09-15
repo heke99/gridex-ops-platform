@@ -15,15 +15,23 @@ import sys
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[1]
 DATABASE = 'gridex_auth_legacy_replay'
-CANDIDATE = 'scripts/sql/forward-candidates/drop-inert-inbound-client-policies.sql'
-CANDIDATE_SHA = 'b04ce7766f0d3e4655778cdd6aa6fcde1bb3a0661867e381aa0939f015c9e2c1'
+OLD_CANDIDATE = 'scripts/sql/forward-candidates/drop-inert-inbound-client-policies.sql'
+OLD_CANDIDATE_SHA = 'b04ce7766f0d3e4655778cdd6aa6fcde1bb3a0661867e381aa0939f015c9e2c1'
+CANDIDATE = 'scripts/sql/forward-candidates/drop-inert-inbound-client-policies-preserve-platform.sql'
+CANDIDATE_SHA = '5cd56392d5647196fe4f64e7d5a76fe5fa0a3a9a454efcfd34a6d8f754ac86a7'
+PLATFORM_SOURCE = 'supabase/migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql'
+PLATFORM_SOURCE_SHA = 'a5ca82d1c68f44c8542820e5d209fd5d31356a16e7eb1ccc827843a61e0ba690'
+PLATFORM_BLOCK_SHA = 'f0b3fe093f519b2564674a89ce5bd6704a76a75bf408904228022dc593216368'
+CONVERGENCE = 'supabase/migrations/20260904120000_canonical_tenant_invariant_convergence.sql'
+CONVERGENCE_SHA = '3e40f894ec109a45e4dd7842edd819509caadac1e8d5e89a45d244224d0c77e1'
+POSTCONDITION = 'scripts/sql/forward-candidates/inert-inbound-preserved-platform-postcondition.sql'
+POSTCONDITION_SHA = 'baaa1053792c8e0d850fcde912b85a3561386756d4f7eec8d8b402591ce13c80'
 IDENTITIES = 'quality/audits/ediel-masterplan-v2/inert-policy-identities.json'
 IDENTITIES_SHA = 'daec1fbbd9c6cab178c9aeaf439dd8e61e2ccdbe84016dd564d4c134b323b42d'
 REVOKE = 'supabase/migrations/20260915132224_restrict_inbound_service_table_privileges.sql'
 REVOKE_SHA = '0ee026c41d180768b23e20826d522387cc1c65e9c689304472f62cda39b19033'
 TABLES = ('inbound_ediel_match_attempts','inbound_ediel_parse_results','inbound_email_attachments')
 import canonical_forward_portable as snapshots
-from canonical_native_forward_runtime import assertion
 
 
 def load_legacy():
@@ -41,6 +49,9 @@ def pinned(path, digest):
 
 def selection():
     candidate=pinned(CANDIDATE,CANDIDATE_SHA)
+    platform_policies()
+    pinned(OLD_CANDIDATE,OLD_CANDIDATE_SHA)
+    pinned(POSTCONDITION,POSTCONDITION_SHA)
     evidence=json.loads(pinned(IDENTITIES,IDENTITIES_SHA))
     records=evidence['records']
     if evidence['count']!=24 or len(records)!=24:
@@ -55,6 +66,29 @@ def selection():
         if hashlib.sha256(json.dumps(row,sort_keys=True,separators=(',',':'),ensure_ascii=True).encode()).hexdigest()!=r['sourceRowSha256']:
             raise ValueError('INERT_QUALIFICATION_ROW_REQUIRED')
     return candidate,records,pinned(REVOKE,REVOKE_SHA)
+
+
+def platform_policies():
+    """Execute the original bounded May28 block and September4 service drops.
+
+    Only the three target tables exist in this fixture. No hand-authored PUBLIC
+    policy replaces the source definition, and no application-helper behavior
+    is inferred from the fixture's deliberately false helper signatures.
+    """
+    source=pinned(PLATFORM_SOURCE,PLATFORM_SOURCE_SHA)
+    start=source.index('do $$',source.index('-- 5. RLS policies.'))
+    end=source.index('end $$;',start)+len('end $$;')
+    block=source[start:end]
+    if hashlib.sha256(block.encode()).hexdigest()!=PLATFORM_BLOCK_SHA:
+        raise ValueError('INERT_QUALIFICATION_SOURCE_REQUIRED')
+    convergence=pinned(CONVERGENCE,CONVERGENCE_SHA)
+    drops=[]
+    for table in TABLES:
+        statement=f'drop policy if exists {table}_service_role_all\n  on public.{table};'
+        if convergence.count(statement)!=1:
+            raise ValueError('INERT_QUALIFICATION_SOURCE_REQUIRED')
+        drops.append(statement)
+    return block+'\n'+'\n'.join(drops)
 
 
 def setup(records):
@@ -83,7 +117,7 @@ create policy retained_service on public.{table} to service_role using(true) wit
         if row['using_expression']:sql+=' using ('+row['using_expression']+')'
         if row['check_expression']:sql+=' with check ('+row['check_expression']+')'
         sql+=';\n'
-    return sql
+    return sql+platform_policies()+'\n'
 
 
 F14_COUNT="""select count(*) from pg_policy pol join pg_class c on c.oid=pol.polrelid
@@ -152,8 +186,13 @@ def run():
         target.sql(DATABASE,revoke,'original_whole_revocation',transaction=False)
         if target.sql(DATABASE,F14_COUNT,'inert_red24').strip()!='24':
             raise ValueError('INERT_EXACT24_REPRODUCTION_REQUIRED')
-        if target.sql(DATABASE,'select '+assertion(10),'inert_native_predicate_before').strip()!='f':
+        if target.sql(DATABASE,'select '+pinned(POSTCONDITION,POSTCONDITION_SHA),'inert_candidate_predicate_before').strip()!='f':
             raise ValueError('INERT_NATIVE_PREDICATE_BEFORE_REQUIRED')
+        before=snapshots.snapshot(target)
+        target.sql(DATABASE,pinned(OLD_CANDIDATE,OLD_CANDIDATE_SHA),
+                   'inert_original_rejects_source_platform_policies',expect='55000',transaction=False)
+        if snapshots.snapshot(target)!=before:
+            raise ValueError('INERT_REJECTION_NOT_ATOMIC')
         # Each rejected shape leaves the complete pre-call catalog and rows intact.
         last=records[-1]['row']; table=last['relname']; name=last['polname']
         cases=[
@@ -165,6 +204,22 @@ def run():
           (f'alter policy {name} on public.{table} rename to unexpected_inbound;',f'alter policy unexpected_inbound on public.{table} rename to {name};'),
           (f'create policy unexpected_inbound on public.{table} to authenticated using(false);',f'drop policy unexpected_inbound on public.{table};'),
         ]
+        cases.append((f'create policy unexpected_public on public.{table} using(false);',
+                      f'drop policy unexpected_public on public.{table};'))
+        for retained_table in TABLES:
+            for suffix in ('select','write'):
+                retained_name=retained_table+'_platform_'+suffix
+                cases.extend([
+                    (f'alter policy {retained_name} on public.{retained_table} using(false);',
+                     f'alter policy {retained_name} on public.{retained_table} using(public.gridex_user_is_platform_admin());'),
+                    (f'alter policy {retained_name} on public.{retained_table} to authenticated;',
+                     f'alter policy {retained_name} on public.{retained_table} to public;'),
+                    (f'alter policy {retained_name} on public.{retained_table} rename to unexpected_platform;',
+                     f'alter policy unexpected_platform on public.{retained_table} rename to {retained_name};'),
+                ])
+                if suffix=='write':
+                    cases.append((f'alter policy {retained_name} on public.{retained_table} with check(false);',
+                                  f'alter policy {retained_name} on public.{retained_table} with check(public.gridex_user_is_platform_admin());'))
         for i,(change,restore) in enumerate(cases):
             target.sql(DATABASE,change,'inert_negative_shape_'+str(i))
             before=snapshots.snapshot(target)
@@ -179,8 +234,19 @@ def run():
         verify_delta(before,after,records,dependencies)
         if target.sql(DATABASE,F14_COUNT,'inert_green0').strip()!='0':
             raise ValueError('INERT_ZERO_POSTCONDITION_REQUIRED')
-        if target.sql(DATABASE,'select '+assertion(10),'inert_native_predicate_after').strip()!='t':
+        if target.sql(DATABASE,'select '+pinned(POSTCONDITION,POSTCONDITION_SHA),'inert_candidate_predicate_after').strip()!='t':
             raise ValueError('INERT_NATIVE_PREDICATE_AFTER_REQUIRED')
+        # Once the 24 removable policies are absent, independently exercise the
+        # candidate postcondition's preserved-policy clauses. Otherwise its
+        # earlier false result could be explained solely by the 24 present rows.
+        for i,(change,restore) in enumerate(cases[7:]):
+            target.sql(DATABASE,change,'inert_postcondition_negative_'+str(i))
+            if target.sql(DATABASE,'select '+pinned(POSTCONDITION,POSTCONDITION_SHA),
+                          'inert_postcondition_reject_'+str(i)).strip()!='f':
+                raise ValueError('INERT_POSTCONDITION_NEGATIVE_REQUIRED')
+            target.sql(DATABASE,restore,'inert_postcondition_restore_'+str(i))
+            if snapshots.snapshot(target)!=after:
+                raise ValueError('INERT_POSTCONDITION_RESTORATION_REQUIRED')
         target.sql(DATABASE,candidate,'inert_repeat',transaction=False)
         if snapshots.snapshot(target)!=after:
             raise ValueError('INERT_REPEAT_STATE_CHANGED')
@@ -196,7 +262,11 @@ def run():
     if target.active or target.directory is not None or private_dir.exists():
         raise ValueError('INERT_CLEANUP_REQUIRED')
     result=dict(scope='OWNED_PG17_INERT_POLICY_QUALIFICATION_ONLY',candidateSha256=CANDIDATE_SHA,
-        redCount=24,greenCount=0,nativeForwardPredicateVerified=True,exactPolicyOnlyDelta=True,repeatVerified=True,negativeShapeCases=len(cases),
+        retainedPlatformPolicyCount=6,retainedPlatformSourceSha256=PLATFORM_SOURCE_SHA,
+        originalCandidateRejectedSourcePlatformPolicies=True,
+        redCount=24,greenCount=0,candidatePostconditionVerified=True,candidatePostconditionSha256=POSTCONDITION_SHA,
+        postconditionNegativeCases=len(cases[7:]),
+        exactPolicyOnlyDelta=True,repeatVerified=True,negativeShapeCases=len(cases),
         clientDenialVerified=True,serviceDmlVerified=True,cleanupVerified=True,schemaAccepted=False,
         nativeReplayAccepted=False,generatedTypesVerified=False,applicationHelpersVerified=False,productionModified=False)
     output=ROOT/'artifacts/inert-inbound-policy-candidate'
