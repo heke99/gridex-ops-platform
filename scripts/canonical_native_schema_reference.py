@@ -26,6 +26,8 @@ def compare(runner, retained_forward, parent):
                        ('verified', 'catalogAndRowsPreserved', 'ledgerUnchanged'))
                    for row in checks.get('checks', []))):
         raise ValueError('NATIVE_SCHEMA_FINAL_SQL_REQUIRED')
+    import canonical_policy_actor_qualification as actors
+    actor_receipt = actors.validate_execution_receipt(parent.get('policyActorQualification'), native=True)
     module = load_comparator()
     raw = module.pinned()['supabase/schema.sql']
     before = runner.target.snapshot()
@@ -44,6 +46,7 @@ def compare(runner, retained_forward, parent):
                   foundationInputsExecuted=144, timestampInputsExecuted=514,
                   forwardInputsExecuted=parent['forwardSources']['inputsExecuted'],
                   actualLedgerRows=len(runner.entries), cleanupVerified=False,
+                  policyActorQualification=actor_receipt,
                   syntheticLifecycleProbeStillPresent=any(
                       row["nspname"] == "public" and row["relname"] == "gridex_native_lifecycle_probe"
                       for row in actual["relations"]))

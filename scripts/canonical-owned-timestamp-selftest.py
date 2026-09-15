@@ -36,6 +36,18 @@ class OwnedTimestampTests(unittest.TestCase):
         tail.target, tail.state = target, 'prepared'
         tail.selected, tail.prerequisites, tail.retained = [('fixture', 'sha')], {}, object()
         tail.forward_retained = object()
+        tail.actor_retained = object()
+        import canonical_policy_actor_qualification as actors
+        actor_receipt = dict(actors.expected_result(), source=actors.SOURCE, sourceSha256=actors.SOURCE_SHA256,
+            completePolicyContextSha256='a'*64,catalogAndRowsPreserved=True,nativeTarget=False,ledgerProvenanceAccepted=False)
+        def actor(actual, retained, progress):
+            self.assertIs(actual,target)
+            self.assertIs(retained,tail.actor_retained)
+            self.assertEqual(progress['forwardSources']['inputsExecuted'],4)
+            return actor_receipt
+        actor_patch = patch('canonical_policy_actor_qualification.execute',side_effect=actor)
+        tail.actor_execute=actor_patch.start()
+        self.addCleanup(actor_patch.stop)
         def forward(actual, retained, progress):
             self.assertIs(actual, target)
             self.assertIs(retained, tail.forward_retained)
@@ -56,6 +68,7 @@ class OwnedTimestampTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()) as output:
             self.assertEqual(tail.execute(loop, payload), '')
         self.assertEqual(tail.state, 'executed')
+        tail.actor_execute.assert_called_once()
         result = json.loads(output.getvalue())
         self.assertIs(result['originalsAbsentDuringTimestamp'], True)
         for field in ('completeReplayVerified', 'ledgerProvenanceVerified', 'generatedTypesVerified'):
@@ -65,6 +78,18 @@ class OwnedTimestampTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'BOUNDARY_REQUIRED'):
             tail.execute(loop, payload)
         self.assertEqual(tail.driver.execute_tail.call_count, 1)
+
+    def test_actor_failure_or_invalid_receipt_never_completes(self):
+        for fail in (True,False):
+            _,loop,tail,payload=self.fixture()
+            if fail: tail.actor_execute.side_effect=ValueError('actor SQL rejected')
+            else:
+                tail.actor_execute.side_effect=None
+                tail.actor_execute.return_value={}
+            with contextlib.redirect_stdout(io.StringIO()) as output:
+                with self.assertRaises(ValueError): tail.execute(loop,payload)
+            self.assertEqual(tail.state,'failed')
+            self.assertEqual(output.getvalue(),'')
 
     def test_forward_failure_is_terminal_without_completion_receipt(self):
         _, loop, tail, payload = self.fixture()

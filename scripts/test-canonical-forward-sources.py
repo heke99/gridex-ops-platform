@@ -2,6 +2,9 @@
 """Offline admission tests; no SQL execution or schema acceptance."""
 import dataclasses
 import hashlib
+import copy
+import json
+import subprocess
 from pathlib import Path
 import sys
 import tempfile
@@ -64,6 +67,32 @@ class ForwardSourcesTests(unittest.TestCase):
                      inventory + list(forward.FORWARD_SOURCES) + [inventory[0]]):
             with self.subTest(size=len(rows)), self.assertRaises(ValueError):
                 forward.partition_inventory(rows)
+
+    def test_historical_auth_group_preserves_exact_old_scope_and_rejects_bad_suffix(self):
+        result = subprocess.run([sys.executable, 'scripts/gridex-replay-review-groups.py',
+                                 '--group', 'auth_membership_tenant'], cwd=ROOT,
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 1)
+        report = json.loads(result.stdout)
+        self.assertEqual(len(report['inputs']), 348)
+        original = copy.deepcopy(report)
+        converted = forward.historical_fixture_review_group(report)
+        self.assertEqual(report, original)
+        self.assertEqual(len(converted['inputs']), 347)
+        self.assertEqual(sum(r['classification']=='FULL_FILE_SELECTED' for r in converted['inputs']), 335)
+        suffix = [r for r in report['inputs'] if r['path'] in dict(forward.FORWARD_SOURCES)]
+        self.assertEqual(len(suffix), 1)  # Lexical group is a subset of four forwards.
+        self.assertEqual(suffix[0]['execution'], [dict(ordinal=518, stage='timestamp')])
+        for field, value in [('sha256', '0'*64), ('classification', 'SUBSTITUTED'),
+                             ('execution', [dict(ordinal=514,stage='timestamp')])]:
+            changed = copy.deepcopy(report)
+            next(r for r in changed['inputs'] if r['path']==suffix[0]['path'])[field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                forward.historical_fixture_review_group(changed)
+        changed = copy.deepcopy(report)
+        changed['inputs'].append(copy.deepcopy(suffix[0]))
+        with self.assertRaises(ValueError):
+            forward.historical_fixture_review_group(changed)
 
     def install(self, root):
         for name, _ in forward.FORWARD_SOURCES:

@@ -367,6 +367,8 @@ class OwnedTimestampTail:
         self.retained = self.driver.retain_sources(ROOT, self.selected, self.prerequisites)
         import canonical_forward_sources as forward
         self.forward_retained = forward.retain(ROOT)
+        import canonical_policy_actor_qualification as actors
+        self.actor_retained = actors.retain(ROOT)
         self.target = target
         self.state = 'prepared'
 
@@ -396,6 +398,10 @@ class OwnedTimestampTail:
             if (self.forward_receipt.get('executed') is not True or self.forward_receipt.get('inputsExecuted') != 4
                     or list((ROOT/'supabase/migrations').glob('*.sql'))):
                 raise RuntimeError('OWNED_FORWARD_COMPLETION_REQUIRED')
+            import canonical_policy_actor_qualification as actors
+            self.actor_receipt = actors.validate_execution_receipt(
+                actors.execute(self.target, self.actor_retained, progress), native=False)
+            progress['policyActorQualification'] = self.actor_receipt
         except BaseException:
             self.state = 'failed'
             raise

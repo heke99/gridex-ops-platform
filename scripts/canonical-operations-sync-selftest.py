@@ -92,7 +92,8 @@ def selection():
     by_path = {item['path']: item for item in account['migrations']}
     assert by_path[SOURCE]['classification'] == 'FULL_FILE_SELECTED'
     group_run = subprocess.run(['python3', 'scripts/gridex-replay-review-groups.py', '--group', 'auth_membership_tenant'], cwd=ROOT, text=True, capture_output=True)
-    group = json.loads(group_run.stdout)
+    from canonical_forward_sources import historical_fixture_review_group
+    group = historical_fixture_review_group(json.loads(group_run.stdout))
     # Admit exactly the new timestamp input, without changing this historical prefix.
     forward = [item for item in group['inputs'] if item['path'] ==
                'migrations/20260913211625_ediel_intent_customer_company_integrity.sql']

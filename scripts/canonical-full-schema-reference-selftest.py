@@ -150,7 +150,10 @@ class ShellObservationTests(unittest.TestCase):
             from canonical_forward_sources import FORWARD_SOURCES
             forward = dict(executed=True, inputsExecuted=4, sources=[dict(source=path,sourceSha256=digest,
                 executed=True,positiveAndRepeatVerified=True,rowsPreserved=True) for path,digest in FORWARD_SOURCES])
-            tail = SimpleNamespace(state=state, selected=[('test.sql', 'hash')], forward_receipt=forward)
+            import canonical_policy_actor_qualification as actors
+            receipt=dict(actors.expected_result(),source=actors.SOURCE,sourceSha256=actors.SOURCE_SHA256,
+                completePolicyContextSha256='a'*64,catalogAndRowsPreserved=True,nativeTarget=False,ledgerProvenanceAccepted=False)
+            tail = SimpleNamespace(state=state, selected=[('test.sql', 'hash')], forward_receipt=forward, actor_receipt=receipt)
             loop = SimpleNamespace(applied=applied)
             child = SimpleNamespace(poll=lambda:status)
             return observer(h)

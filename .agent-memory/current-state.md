@@ -4,21 +4,52 @@ Status: PARTIAL
 
 ## Active work and exact next action
 
-Current bounded task: collect the complete native144+514+4 result, finish actor
-and schema acceptance, then genuinely generate and verify application types.
-824f24d4 preflight34974499990/job104398708790 SUCCESS proves the clone-quiescence
-correction on actual Supabase CLI2.101.0/PG17.6. Artifact10398429821 ZIP digest
-1b762725ef52c4e195d1c657d69f9c097b86a1eaac3a27136e5be6ced7bd4186.
-The exact source had2 provider background sessions (safe category other); actual
-source pause/drain/clone/restore and copied ledger/probe/parent preservation pass.
-Earlier139c837d preflight34971870647/job104389843483 had conclusively identified
-SOURCE_DATABASE_IN_USE. Preserve both receipts, not the older hypothesis.
-The current824f24d4 ordinary native34974499849/job104398696940 is running.
+Current bounded task: collect complete native144+514+4, run real policy actors,
+qualify the remaining22 protected-table TRUNCATE repair, and finish schema/type
+gates before whole-PR merge. No new approval is needed.
+Publication base9f1ba7aeb042fefa1a545c75bc4ae6296573ee48, exact tree
+a58f001e5804cb64b256054de1f370c09d0e6250, fetched with exact equality verified.
+Preserve all ancestry and original601 migration hashes.
 
-Publication base824f24d4a657d8a7563fc162aa5d7a9125d4e7b8, exact tree
-1de9922e02019c5ff2b148794257ab5e157a093c, fetched with exact equality verified.
-Preserve its full ancestry, especially auth ec503fc, native compiler335f987f and
-prior forward integration163e8dfe. All original601 migration hashes are unchanged.
+Actual9f1 short native preflight34975955556/job104403603697 SUCCESS: clone
+preservation still passes; real CLI2.101.0 typegen runs twice against the owned
+synthetic public schema, identical5019bytes SHA256
+a118a1e22652e998c85c99da145487bb283f9fa291f06311d79b2f6d877b4d51.
+Schema/rows/ledger and cleanup preserved. Artifact10399357001 ZIP digest
+2061b67bede55e0a2181b16ef7d8939c79df99101d2a6cc9beb916c17489ce65.
+This proves transport, not application types: actual application types/manifest
+are untouched and their guard remains red.
+
+Actual9f1 full portable34975955635/job104403606680 completes144+514+4 with all
+four source postconditions/repeats/rows preserved. Independent schema remains red.
+Artifact10399581944 ZIP SHA256
+0ee862d06ee0e4f33208aa33ceefe8ce5afa8c5e8ca1c9cd186f006c7364f2af is downloaded
+and verified. Added grants1488 ->1457 exactly match24inbound+7tenant removals;
+other diff counts are unchanged. Replay document SHA256
+8517999aa05f2403937d47f4ca171435488b73f53d651e5926d6c466096707e9.
+824f24d4 ordinary native34974499849/job104398696940 and9f1 native34975955484/job104403604836 remain in progress.
+9f1 auth-email-source-effects104403605322 fails at canonical-governance-selftest.py;
+artifact10400015487 metadata identifies the failed command. Local reproduction
+confirms stale historical lexical-group count347 versus348 after exact forward
+ordinal518. A reviewed adapter admits the exact finite suffix before preserving
+347/335 historical fixture assertions in3 constructors.7 helper tests and3
+constructor modes pass; actual SQL rerun pending. Historical auth SQL unchanged.
+
+The next reviewed batch wires actual actor qualification after all4forwards on
+both owned runtimes. Exact128 changed policy hashes, actual auth helpers/role
+attributes,2496 typed-row policy cases and rollback are mandatory. This evaluates
+policy composition, not every business-table DML/trigger or application graph.
+A failed actor run prevents completed-tail/schema collection. The coverage audit
+and machine-readable1296-row register explicitly keep unresolved classes blocking;
+they are NOT a schema acceptance whitelist or a refreshed reference.
+
+A separate staged22-table TRUNCATE candidate completes the discovered added
+TRUNCATE base-table scope:29new protected base tables,7already repaired+22remaining.
+28other new-relation TRUNCATE rows are views and classified separately; they are
+not silently claimed inert. Exact22 source contracts and44catalog hashes are
+reviewed. Actual PG17 and genuine CLI filename are required before a fifth source
+is promoted; current runtime still has exactly4. The candidate rejects inherited
+owner authority and preserves every other principal/privilege/policy/row.
 
 Actual163e8dfe portable34971038792/job104387127532 completes144+514+2 and all
 forward postcondition/repeat/row-preservation controls. Independent schema remains
@@ -40,13 +71,13 @@ receipts are recorded in PR310_FORWARD_PRIVILEGE_PROMOTION_2026-09-15.md.
 The runtime admits exactly4 forward sources AFTER unchanged144+514, with real
 CLI post-body/ledger failures, rows/ledger preservation and no-op repeats.
 Current605 inventory separately binds historical601 and historical514 selection.
-This promotion has not yet executed as a full144+514+4 native or portable chain.
+The full portable144+514+4 chain is now verified above; full native evidence remains pending.
 
 Synthetic CLI typegen preflight is now wired into the short clone workflow. It
 uses the actual2.101.0 --lang syntax on only the owned internal network; two
 identical outputs and full native state/ledger preservation are required. It
-exports only a hash/size, never application type acceptance. Actual typegen
-preflight is pending publication/run. Existing application types/manifest remain
+exports only a hash/size, never application type acceptance. The actual synthetic typegen
+preflight is now verified above. Existing application types/manifest remain
 unchanged. A native full-schema comparison now runs after5existing final SQL
 checks while the native target remains live, and exports identities/hashes only
 after cleanup. It keeps the synthetic probe visible and schema acceptance false.
@@ -80,7 +111,7 @@ verify still fails the genuine generated-types migration-tail guard.
 
 Next: complete reviewed forward admission and actual ledger-dependent readiness
 T257/T262/T275/T351 behavior qualification without synthetic historical ledger
-aliases. Publish coherent reviewed batch, collect native144+514+2 SQL controls,
+aliases. Publish coherent reviewed batch, collect native144+514+4 SQL controls,
 resolve the remaining independent schema dispositions, run final gates while the
 owned native database remains live, genuinely generate types plus manifest from
 the accepted full schema, pass same-final-head CI/E2E/review, leave draft and

@@ -129,3 +129,38 @@ def historical_fixture_accounting(report):
     result['currentInventoryTotal'] = 605
     result['fixtureScope'] = 'PINNED_HISTORICAL_601_INPUTS_NOT_CURRENT_TOTAL'
     return result
+
+
+def historical_fixture_review_group(report):
+    """Keep historical lexical fixture assertions after admitting a finite suffix.
+
+    A lexical group contains only the matching subset of the four forward files.
+    Retain the current global accounting; only fixture inputs are projected back.
+    This is review-hint bookkeeping, never SQL or source-effect acceptance.
+    """
+    import copy
+    expected_counts = dict(FULL_FILE_SELECTED=593, SUBSTITUTED=2, UNCLASSIFIED=5, EXPLICITLY_EXCLUDED=5)
+    provenance = report['accountingProvenance']
+    if (report['errors'] or report['evidenceScope'] != 'LEXICAL_REVIEW_HINTS_ONLY'
+            or report['effectsVerified'] is not False
+            or provenance['errors'] or provenance['totalMigrations'] != 605
+            or provenance['counts'] != expected_counts
+            or provenance['selectedInputCounts'] != dict(foundation=144,timestamp=518)
+            or report['global']['totalMigrations'] != 605
+            or report['global']['classificationCounts'] != expected_counts):
+        raise ValueError('FORWARD_FIXTURE_REVIEW_GROUP_REQUIRED')
+    known = {path: (digest, ordinal) for ordinal,(path,digest) in enumerate(FORWARD_SOURCES,515)}
+    rows = report['inputs']
+    if len({row['path'] for row in rows}) != len(rows):
+        raise ValueError('FORWARD_FIXTURE_REVIEW_GROUP_REQUIRED')
+    for row in rows:
+        if row['path'] in known:
+            digest, ordinal = known[row['path']]
+            if (row['sha256'] != digest or row['classification'] != 'FULL_FILE_SELECTED'
+                    or row['execution'] != [dict(ordinal=ordinal,stage='timestamp')]):
+                raise ValueError('FORWARD_FIXTURE_REVIEW_GROUP_REQUIRED')
+    result = copy.deepcopy(report)
+    result['inputs'] = [row for row in result['inputs'] if row['path'] not in known]
+    result['currentFocusedInputCount'] = len(rows)
+    result['fixtureScope'] = 'PINNED_HISTORICAL_INPUTS_WITH_CURRENT_GLOBAL_REVIEW_COUNTS'
+    return result

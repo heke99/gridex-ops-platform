@@ -54,7 +54,8 @@ def selection():
     assert account.returncode == 1 and not data['errors']
     assert data['totalMigrations'] == 601 and data['counts'] == {'FULL_FILE_SELECTED':589,'SUBSTITUTED':2,'UNCLASSIFIED':5,'EXPLICITLY_EXCLUDED':5}, data['counts']
     grouped = subprocess.run(['python3','scripts/gridex-replay-review-groups.py','--group','auth_membership_tenant'],cwd=ROOT,text=True,capture_output=True)
-    group = json.loads(grouped.stdout)
+    from canonical_forward_sources import historical_fixture_review_group
+    group = historical_fixture_review_group(json.loads(grouped.stdout))
     # Admit exactly the new timestamp input, without changing this historical prefix.
     forward = [item for item in group['inputs'] if item['path'] ==
                'migrations/20260913211625_ediel_intent_customer_company_integrity.sql']

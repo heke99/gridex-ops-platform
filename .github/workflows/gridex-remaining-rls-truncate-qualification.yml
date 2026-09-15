@@ -1,0 +1,105 @@
+name: Gridex remaining RLS TRUNCATE qualification
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-remaining-rls-truncate-qualification.yml'
+      - 'scripts/canonical-remaining-rls-truncate-selftest.py'
+      - 'scripts/test_canonical_remaining_rls_truncate.py'
+      - 'scripts/canonical-composite-customer-fk-selftest.py'
+      - 'scripts/sql/forward-candidates/restrict-remaining-rls-table-truncate.sql'
+      - 'supabase/migrations/**'
+      - 'scripts/test_canonical_composite_customer_fk_selftest.py'
+permissions:
+  contents: read
+jobs:
+  tenant-truncate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gridex_auth_test
+        ports:
+          - 55440:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d gridex_auth_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify offline admission and preservation oracle
+        run: |
+          python3 -B -m unittest discover -s scripts -p test_canonical_remaining_rls_truncate.py
+          python3 -B -m unittest discover -s scripts -p test_canonical_composite_customer_fk_selftest.py
+      - name: Qualify the exact candidate in owned PostgreSQL 17
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql 'postgresql://postgres:postgres@127.0.0.1:55440/gridex_auth_test' -X -v ON_ERROR_STOP=1 -c 'CREATE ROLE authenticated NOLOGIN NOBYPASSRLS; CREATE ROLE service_role NOLOGIN NOBYPASSRLS; CREATE ROLE anon NOLOGIN NOBYPASSRLS;'
+          mkdir -p artifacts/remaining-rls-truncate-candidate
+          python3 -B scripts/canonical-remaining-rls-truncate-selftest.py > artifacts/remaining-rls-truncate-candidate/sql-proof.json
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Create a genuine CLI migration identity after successful SQL qualification
+        shell: bash
+        env:
+          QUALIFICATION_RUN_ID: ${{ github.run_id }}
+          QUALIFICATION_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          [[ "$(supabase --version)" == '2.101.0' ]]
+          python3 - <<'PY'
+          import json,pathlib
+          proof=json.loads(pathlib.Path('artifacts/remaining-rls-truncate-candidate/sql-proof.json').read_text())
+          assert proof['scope']=='LIMITED_PG17_REMAINING_RLS_TRUNCATE_FIXTURE'
+          assert proof['candidateSha256']=='cf85df9d7339e5368ceac7567b720dfa26cc2bf51fe2cd0f19b79b3af7eaab2b'
+          assert proof['tables']==22 and proof['fixedSqlstate']=='42501'
+          for key in ('originalTruncateBypassesRls','syntheticDenyAllVerified','serviceOperationsVerified','exactAclDeltaVerified',
+                      'rowsAndCatalogPreserved','shapeRejectionsVerified','atomicityVerified','repeatVerified','cleanupVerified'):
+            assert proof[key] is True
+          for key in ('actualAuthHelpersVerified','applicationGraphVerified','schemaAccepted','productionModified'):
+            assert proof[key] is False
+          PY
+          candidate_root="$(mktemp -d)"
+          trap 'rm -rf -- "$candidate_root"' EXIT
+          supabase --workdir "$candidate_root" init
+          supabase migration new --help > /dev/null
+          supabase --workdir "$candidate_root" migration new restrict_remaining_rls_table_truncate
+          migration_files=("$candidate_root"/supabase/migrations/*_restrict_remaining_rls_table_truncate.sql)
+          [[ "${#migration_files[@]}" == 1 && -f "${migration_files[0]}" ]]
+          python3 - "${migration_files[0]}" <<'PY'
+          import hashlib,json,os,pathlib,re,subprocess,sys
+          original=pathlib.Path(sys.argv[1])
+          assert not original.is_symlink() and re.fullmatch(r'[0-9]{14}_restrict_remaining_rls_table_truncate.sql',original.name)
+          skeleton=original.read_bytes()
+          assert skeleton==b''
+          source=pathlib.Path('scripts/sql/forward-candidates/restrict-remaining-rls-table-truncate.sql')
+          assert not source.is_symlink()
+          data=source.read_bytes()
+          digest=hashlib.sha256(data).hexdigest()
+          assert digest=='cf85df9d7339e5368ceac7567b720dfa26cc2bf51fe2cd0f19b79b3af7eaab2b'
+          original.write_bytes(data)
+          output=pathlib.Path('artifacts/remaining-rls-truncate-candidate')
+          (output/original.name).write_bytes(original.read_bytes())
+          receipt=dict(scope='CLI_FILENAME_AND_ISOLATED_SQL_NOT_SCHEMA_ACCEPTANCE',cliVersion='2.101.0',
+            sourceHead=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+            sourceTree=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+            file=original.name,sha256=digest,cliCreatedEmptySha256=hashlib.sha256(skeleton).hexdigest(),
+            sqlProofSha256=hashlib.sha256((output/'sql-proof.json').read_bytes()).hexdigest(),
+            runId=os.environ['QUALIFICATION_RUN_ID'],runAttempt=os.environ['QUALIFICATION_RUN_ATTEMPT'],
+            isolatedPostgresVerified=True,selectedMigration=False,schemaAccepted=False,productionModified=False)
+          (output/'cli-creation.json').write_text(json.dumps(receipt,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gridex-remaining-rls-truncate-candidate
+          path: artifacts/remaining-rls-truncate-candidate/
+          if-no-files-found: error
+          retention-days: 7

@@ -312,6 +312,8 @@ def execute(command, native, sql, work, project, parent, plan, forward_retained)
     forward_programs(forward_retained)
     from canonical_native_final_sql import retain as retain_final_sql, execute as execute_final_sql
     final_sql = retain_final_sql(compiler.ROOT)
+    import canonical_policy_actor_qualification as actors
+    actor_retained = actors.retain(compiler.ROOT)
     target = NativeTimestampTarget(command, project)
     progress = {'scope': 'NATIVE_TIMESTAMP_EXECUTION_NOT_FULL_SCHEMA_ACCEPTANCE',
                 'executed': False, 'timestampInputsExecuted': 0, 'prerequisitesExecuted': 0,
@@ -399,6 +401,9 @@ def execute(command, native, sql, work, project, parent, plan, forward_retained)
                         noOpRepeatVerified=True, actualLedgerRows=len(runner.entries))
         execute_forward(runner, plan, forward_retained, parent)
         execute_final_sql(runner, final_sql, parent, forward_retained)
+        parent['policyActorQualification'] = actors.validate_execution_receipt(
+            actors.execute(target, actor_retained, parent), native=True)
+        runner.unchanged()
         from canonical_native_schema_reference import compare as compare_native_schema
         parent['_nativeSchemaComparison'] = compare_native_schema(runner, forward_retained, parent)
         return progress

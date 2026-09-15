@@ -215,10 +215,13 @@ def terminal_observer(controller, original, reference, before, result):
                                or any(entry.get(flag) is not True for flag in ('executed','positiveAndRepeatVerified','rowsPreserved'))
                                for entry, (path, digest) in zip(forward['sources'], FORWARD_SOURCES))):
                     raise ValueError('FULL_SCHEMA_FORWARD_RECEIPT_REQUIRED')
+                import canonical_policy_actor_qualification as actors
+                actor_receipt = actors.validate_execution_receipt(tail.actor_receipt, native=False)
                 candidate = compare(reference, capture(handle, controller.DATABASE))
                 candidate.update(foundationApplied=controller.SCOPES['full'],
                                  timestampApplied=len(tail.selected),
                                  forwardApplied=4,
+                                 policyActorQualification=actor_receipt,
                                  forwardSources=[dict(source=path, sourceSha256=digest) for path,digest in FORWARD_SOURCES])
         except Exception:
             # Never publish exception strings, SQL, raw catalog values or paths.
