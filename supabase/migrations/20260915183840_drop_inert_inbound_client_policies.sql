@@ -2,6 +2,7 @@
 -- 20260904120000 defines these three parser tables as service-role only.
 -- 20260915132224 closes inherited authenticated grants, leaving exactly these
 -- 24 client policies inert. Preserve every ACL, other policy and table row.
+-- Preserve and require the six exact May28 PUBLIC platform policies as well.
 begin;
 set local lock_timeout = '5s';
 set local statement_timeout = '60s';
@@ -82,7 +83,34 @@ begin
     raise exception using errcode='55000', message='INERT_INBOUND_COMPLETE_POLICY_SET_REQUIRED';
   end if;
 
-  -- No unexpected client/PUBLIC policy may be silently accepted or removed.
+  -- These six PUBLIC policies are authored by the May28 platform-policy DO
+  -- block and retained by September4 convergence. They are not F14 inert
+  -- policies: PUBLIC is excluded by that exact rule. Require their complete
+  -- definitions, preserve them, and keep all client ACLs closed above.
+  for item in select * from (values
+    ('inbound_ediel_match_attempts', 'inbound_ediel_match_attempts_platform_select', '1458fdbc0891f395594e27293225f2ad81476c30a962a4b0002d67dd9965273e'),
+    ('inbound_ediel_match_attempts', 'inbound_ediel_match_attempts_platform_write', '3f49d6b6fafba1c4a3fd39288e310fe9680f3b750b3785a1e78c7abfdac24d96'),
+    ('inbound_ediel_parse_results', 'inbound_ediel_parse_results_platform_select', '1458fdbc0891f395594e27293225f2ad81476c30a962a4b0002d67dd9965273e'),
+    ('inbound_ediel_parse_results', 'inbound_ediel_parse_results_platform_write', '3f49d6b6fafba1c4a3fd39288e310fe9680f3b750b3785a1e78c7abfdac24d96'),
+    ('inbound_email_attachments', 'inbound_email_attachments_platform_select', '1458fdbc0891f395594e27293225f2ad81476c30a962a4b0002d67dd9965273e'),
+    ('inbound_email_attachments', 'inbound_email_attachments_platform_write', '3f49d6b6fafba1c4a3fd39288e310fe9680f3b750b3785a1e78c7abfdac24d96')
+  ) expected(table_name, policy_name, definition_hash)
+  loop
+    select encode(sha256(convert_to(
+      p.polcmd::text || chr(31) || p.polpermissive::text || chr(31) ||
+      coalesce(pg_get_expr(p.polqual,p.polrelid,true),'') || chr(31) ||
+      coalesce(pg_get_expr(p.polwithcheck,p.polrelid,true),'') || chr(31) ||
+      array_to_string(array(select case when r=0 then 'PUBLIC' else pg_get_userbyid(r) end
+                           from unnest(p.polroles) r order by 1), ','), 'UTF8')), 'hex')
+    into actual_hash
+    from pg_policy p
+    where p.polrelid=to_regclass('public.'||item.table_name) and p.polname=item.policy_name;
+    if actual_hash is distinct from item.definition_hash then
+      raise exception using errcode='55000', message='INERT_INBOUND_RETAINED_PLATFORM_POLICY_REQUIRED';
+    end if;
+  end loop;
+
+  -- No other client/PUBLIC policy may be silently accepted or removed.
   if exists(
     select 1 from pg_policy p join pg_class c on c.oid=p.polrelid
     join pg_namespace n on n.oid=c.relnamespace
@@ -115,6 +143,13 @@ begin
     ('inbound_email_attachments', 'tenant_lifecycle_insert_guard', 'd8e5065cf6147400a47c7b9107fb8fca0b52d13cdad6301c422b33f0670d1eec'),
     ('inbound_email_attachments', 'tenant_lifecycle_select_guard', 'cbc266371fd3116c7b9a333da726cbbd7b4ca98bc795e2cb630ad93c497666b9'),
     ('inbound_email_attachments', 'tenant_lifecycle_update_guard', 'd0eab374a33202561b689ceaf1ae95773b540a004620ea685d6c7f28def4e676')
+,
+    ('inbound_ediel_match_attempts', 'inbound_ediel_match_attempts_platform_select', '1458fdbc0891f395594e27293225f2ad81476c30a962a4b0002d67dd9965273e'),
+    ('inbound_ediel_match_attempts', 'inbound_ediel_match_attempts_platform_write', '3f49d6b6fafba1c4a3fd39288e310fe9680f3b750b3785a1e78c7abfdac24d96'),
+    ('inbound_ediel_parse_results', 'inbound_ediel_parse_results_platform_select', '1458fdbc0891f395594e27293225f2ad81476c30a962a4b0002d67dd9965273e'),
+    ('inbound_ediel_parse_results', 'inbound_ediel_parse_results_platform_write', '3f49d6b6fafba1c4a3fd39288e310fe9680f3b750b3785a1e78c7abfdac24d96'),
+    ('inbound_email_attachments', 'inbound_email_attachments_platform_select', '1458fdbc0891f395594e27293225f2ad81476c30a962a4b0002d67dd9965273e'),
+    ('inbound_email_attachments', 'inbound_email_attachments_platform_write', '3f49d6b6fafba1c4a3fd39288e310fe9680f3b750b3785a1e78c7abfdac24d96')
     ) expected(table_name,policy_name,definition_hash)
     where expected.table_name=c.relname and expected.policy_name=p.polname)
   ) then

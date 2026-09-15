@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Offline forward admission regressions; actual SQL remains a separate gate."""
 from dataclasses import replace
+import hashlib
 import tempfile
 from pathlib import Path
 from types import SimpleNamespace
@@ -16,6 +17,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ForwardTests(unittest.TestCase):
+    def test_tenth_predicate_is_exact_actual_qualified_public_preserving_expression(self):
+        raw=(ROOT/'scripts/sql/forward-candidates/inert-inbound-preserved-platform-postcondition.sql').read_bytes()
+        self.assertEqual(hashlib.sha256(raw).hexdigest(),
+                         'baaa1053792c8e0d850fcde912b85a3561386756d4f7eec8d8b402591ce13c80')
+        self.assertEqual(forward.assertion(10),raw.decode().rstrip())
+        self.assertIn("count(*)=2 AND bool_and(p.polpermissive AND p.polroles='{0}'::oid[]",forward.assertion(10))
+
     @classmethod
     def setUpClass(cls):
         cls.plan = compiler.prepare()

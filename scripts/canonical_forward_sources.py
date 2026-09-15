@@ -30,8 +30,8 @@ FORWARD_SOURCES = (
      '69b8d5693f586209f37950be866e3f3dd8e5d910408c34ed9cb075daab85407c'),
     ('migrations/20260915174614_restrict_access_table_capabilities.sql',
      'ddee41e3266948eef7f9082b331f873823602266448efe7cabcb03fdb3566683'),
-    ('migrations/20260915181448_drop_inert_inbound_client_policies.sql',
-     'b04ce7766f0d3e4655778cdd6aa6fcde1bb3a0661867e381aa0939f015c9e2c1'),
+    ('migrations/20260915183840_drop_inert_inbound_client_policies.sql',
+     '5cd56392d5647196fe4f64e7d5a76fe5fa0a3a9a454efcfd34a6d8f754ac86a7'),
 )
 
 

@@ -252,9 +252,21 @@ def assertion(ordinal):
             AND has_table_privilege('service_role',c.oid,'INSERT')
             AND has_table_privilege('service_role',c.oid,'UPDATE')
             AND has_table_privilege('service_role',c.oid,'DELETE')
+            AND (SELECT count(*)=2 AND bool_and(p.polpermissive AND p.polroles='{0}'::oid[]
+              AND p.polcmd::text=CASE WHEN p.polname=c.relname||'_platform_select' THEN 'r' ELSE '*' END
+              AND pg_get_expr(p.polqual,p.polrelid,true)=CASE
+                WHEN pg_function_is_visible('public.gridex_user_is_platform_admin()'::regprocedure)
+                THEN 'gridex_user_is_platform_admin()' ELSE 'public.gridex_user_is_platform_admin()' END
+              AND CASE WHEN p.polname=c.relname||'_platform_select' THEN p.polwithcheck IS NULL
+                ELSE pg_get_expr(p.polwithcheck,p.polrelid,true)=CASE
+                  WHEN pg_function_is_visible('public.gridex_user_is_platform_admin()'::regprocedure)
+                  THEN 'gridex_user_is_platform_admin()' ELSE 'public.gridex_user_is_platform_admin()' END END)
+            FROM pg_policy p WHERE p.polrelid=c.oid
+              AND p.polname IN (c.relname||'_platform_select',c.relname||'_platform_write'))
             AND NOT EXISTS(SELECT 1 FROM pg_policy p WHERE p.polrelid=c.oid
               AND (0=ANY(p.polroles) OR 'anon'::regrole::oid=ANY(p.polroles)
-                   OR 'authenticated'::regrole::oid=ANY(p.polroles))))
+                   OR 'authenticated'::regrole::oid=ANY(p.polroles))
+              AND p.polname NOT IN (c.relname||'_platform_select',c.relname||'_platform_write')))
           FROM unnest(ARRAY['inbound_ediel_match_attempts','inbound_ediel_parse_results','inbound_email_attachments']) t(name)
           JOIN pg_class c ON c.oid=to_regclass('public.'||t.name)))"""
     raise ValueError('FORWARD_SOURCE_ORDINAL_REQUIRED')

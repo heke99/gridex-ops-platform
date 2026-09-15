@@ -217,8 +217,8 @@ EIGHTH_SOURCE='migrations/20260915174610_expand_auth_email_event_action_domain.s
 EIGHTH_SHA='69b8d5693f586209f37950be866e3f3dd8e5d910408c34ed9cb075daab85407c'
 NINTH_SOURCE='migrations/20260915174614_restrict_access_table_capabilities.sql'
 NINTH_SHA='ddee41e3266948eef7f9082b331f873823602266448efe7cabcb03fdb3566683'
-TENTH_SOURCE='migrations/20260915181448_drop_inert_inbound_client_policies.sql'
-TENTH_SHA='b04ce7766f0d3e4655778cdd6aa6fcde1bb3a0661867e381aa0939f015c9e2c1'
+TENTH_SOURCE='migrations/20260915183840_drop_inert_inbound_client_policies.sql'
+TENTH_SHA='5cd56392d5647196fe4f64e7d5a76fe5fa0a3a9a454efcfd34a6d8f754ac86a7'
 
 
 def sha(raw):

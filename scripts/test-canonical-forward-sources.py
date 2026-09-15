@@ -48,7 +48,7 @@ class ForwardSourcesTests(unittest.TestCase):
         retained=forward.retain(ROOT)
         expected=(('20260915174610_expand_auth_email_event_action_domain.sql','expand-auth-email-event-action-domain.sql'),
                   ('20260915174614_restrict_access_table_capabilities.sql','restrict-canonical-access-table-capabilities.sql'),
-                  ('20260915181448_drop_inert_inbound_client_policies.sql','drop-inert-inbound-client-policies.sql'))
+                  ('20260915183840_drop_inert_inbound_client_policies.sql','drop-inert-inbound-client-policies-preserve-platform.sql'))
         for index,(filename,candidate) in enumerate(expected,7):
             source=retained[index]
             self.assertEqual(source.source,'migrations/'+filename)
