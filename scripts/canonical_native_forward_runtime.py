@@ -1,4 +1,4 @@
-"""Apply exactly seven reviewed forward sources after the complete retained prefix.
+"""Apply exactly nine reviewed forward sources after the complete retained prefix.
 
 Uses the already admitted, live CLI Runner. No connection override, historical
 ledger alias, source rewrite, schema acceptance or typegen shortcut is provided.
@@ -192,6 +192,30 @@ def assertion(ordinal):
             AND pa.attnum>0 AND NOT pa.attisdropped AND pa.atttypid='uuid'::regtype
           JOIN pg_attribute pb ON pb.attrelid=parent.oid AND pb.attname='company_id'
             AND pb.attnum>0 AND NOT pb.attisdropped AND pb.atttypid='uuid'::regtype)"""
+    if ordinal == 8:
+        return """(SELECT count(*)=1 AND bool_and(t.relkind='r' AND t.relrowsecurity
+          AND NOT t.relforcerowsecurity AND NOT EXISTS(SELECT 1 FROM pg_inherits WHERE inhrelid=t.oid OR inhparent=t.oid)
+          AND a.attnum>0 AND NOT a.attisdropped AND a.atttypid='text'::regtype AND a.atttypmod=-1
+          AND a.attnotnull AND a.attidentity='' AND a.attgenerated=''
+          AND a.attcollation=(SELECT typcollation FROM pg_type WHERE oid='text'::regtype)
+          AND NOT EXISTS(SELECT 1 FROM pg_attrdef WHERE adrelid=t.oid AND adnum=a.attnum)
+          AND c.contype='c' AND c.convalidated AND c.conislocal AND c.coninhcount=0 AND NOT c.connoinherit
+          AND c.conkey=ARRAY[a.attnum]::smallint[] AND obj_description(c.oid,'pg_constraint') IS NULL
+          AND (SELECT count(*) FROM pg_constraint WHERE conrelid=t.oid AND contype='c' AND a.attnum=ANY(conkey))=1
+          AND pg_get_constraintdef(c.oid,true)=$expected$CHECK (action = ANY (ARRAY['invite_sent'::text, 'password_reset_sent'::text, 'confirmation_sent'::text, 'email_confirmed'::text, 'password_updated'::text, 'auth_callback_completed'::text, 'auth_callback_failed'::text, 'email_action_verified'::text, 'company_invitation_accepted'::text, 'direct_user_created'::text, 'direct_user_linked'::text]))$expected$)
+          FROM pg_class t JOIN pg_attribute a ON a.attrelid=t.oid AND a.attname='action'
+          JOIN pg_constraint c ON c.conrelid=t.oid AND c.conname='auth_email_events_action_check'
+          WHERE t.oid=to_regclass('public.auth_email_events'))"""
+    if ordinal == 9:
+        return """(SELECT count(*)=2 AND bool_and(c.relkind='r' AND c.relrowsecurity
+          AND NOT c.relforcerowsecurity AND NOT pg_has_role('authenticated',c.relowner,'MEMBER')
+          AND has_table_privilege('authenticated',c.oid,'SELECT')
+          AND NOT EXISTS(SELECT 1 FROM pg_roles r WHERE pg_has_role('authenticated',r.oid,'MEMBER')
+            AND (r.rolsuper OR r.rolbypassrls
+              OR has_table_privilege(r.oid,c.oid,'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN')
+              OR has_any_column_privilege(r.oid,c.oid,'INSERT,UPDATE,REFERENCES'))))
+          FROM unnest(ARRAY['company_invitations','user_roles']) t(name)
+          JOIN pg_class c ON c.oid=to_regclass('public.'||t.name))"""
     raise ValueError('FORWARD_SOURCE_ORDINAL_REQUIRED')
 
 

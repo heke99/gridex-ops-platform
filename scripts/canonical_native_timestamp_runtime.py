@@ -318,6 +318,40 @@ def execute_added_views(runner, retained, parent, forward_retained):
     return receipt
 
 
+def execute_changed_views(runner, retained, parent, forward_retained):
+    """Bind source witness execution to the live Runner's real files/ledger."""
+    from canonical_native_final_sql import admit_forward
+    import canonical_changed_view_witness as views
+    admit_forward(runner, forward_retained, parent)
+    try:
+        receipt = views.validate_execution_receipt(
+            views.execute(runner.target, retained, parent), native=True)
+        admit_forward(runner, forward_retained, parent)
+    except BaseException:
+        if isinstance(parent.get('changedViewSourceWitness'), dict):
+            parent['changedViewSourceWitness']['verified'] = False
+        raise
+    parent['changedViewSourceWitness'] = receipt
+    return receipt
+
+
+def execute_changed_functions(runner, retained, parent, forward_retained):
+    """Bind source witness execution to the live Runner's real files/ledger."""
+    from canonical_native_final_sql import admit_forward
+    import canonical_changed_function_witness as views
+    admit_forward(runner, forward_retained, parent)
+    try:
+        receipt = views.validate_execution_receipt(
+            views.execute(runner.target, retained, parent), native=True)
+        admit_forward(runner, forward_retained, parent)
+    except BaseException:
+        if isinstance(parent.get('changedFunctionBehaviorWitness'), dict):
+            parent['changedFunctionBehaviorWitness']['verified'] = False
+        raise
+    parent['changedFunctionBehaviorWitness'] = receipt
+    return receipt
+
+
 def execute_removed_policies(runner, retained, parent, forward_retained):
     """Bind the supplemental witness to the same real Runner and source ledger."""
     from canonical_native_final_sql import admit_forward
@@ -335,7 +369,7 @@ def execute_removed_policies(runner, retained, parent, forward_retained):
     return receipt
 
 
-def execute(command, native, sql, work, project, parent, plan, forward_retained, view_retained, removed_policy_retained):
+def execute(command, native, sql, work, project, parent, plan, forward_retained, view_retained, removed_policy_retained, changed_view_retained, changed_function_retained):
     import canonical_native_timestamp_sources as compiler
     from canonical_native_timestamp_proof import NativeTimestampTarget, execute_live_sync
     if ('historicalTimestampTail' in parent
@@ -346,6 +380,10 @@ def execute(command, native, sql, work, project, parent, plan, forward_retained,
     forward_programs(forward_retained)
     import canonical_added_view_witness as views
     views.contract(view_retained)
+    import canonical_changed_view_witness as changed_views
+    changed_views.contract(changed_view_retained)
+    import canonical_changed_function_witness as changed_functions
+    changed_functions.contract(changed_function_retained)
     import canonical_removed_policy_qualification as removed
     removed.validate_retained(removed_policy_retained)
     from canonical_native_final_sql import retain as retain_final_sql, execute as execute_final_sql
@@ -443,12 +481,16 @@ def execute(command, native, sql, work, project, parent, plan, forward_retained,
             actors.execute(target, actor_retained, parent), native=True)
         execute_removed_policies(runner, removed_policy_retained, parent, forward_retained)
         execute_added_views(runner, view_retained, parent, forward_retained)
+        execute_changed_views(runner, changed_view_retained, parent, forward_retained)
+        execute_changed_functions(runner, changed_function_retained, parent, forward_retained)
         runner.unchanged()
         from canonical_native_schema_reference import compare as compare_native_schema
         parent['_nativeSchemaComparison'] = compare_native_schema(runner, forward_retained, parent)
         from canonical_native_probe_cleanup import execute as cleanup_probe
         cleanup_probe(runner, forward_retained, parent)
         parent['_nativeSchemaComparison'] = compare_native_schema(runner, forward_retained, parent)
+        from canonical_native_parity_engine import execute as qualify_production_parity
+        qualify_production_parity(runner, forward_retained, parent)
         from canonical_native_application_typegen import execute as generate_application_candidate
         generate_application_candidate(runner, forward_retained, parent, project)
         return progress

@@ -36,13 +36,24 @@ class ForwardSourcesTests(unittest.TestCase):
 
     def test_seventh_retained_source_is_the_actually_qualified_cli_named_candidate(self):
         retained = forward.retain(ROOT)
-        source = retained[-1]
-        self.assertEqual(len(retained), 7)
+        source = retained[6]
+        self.assertEqual(len(retained), 9)
         self.assertEqual(source.source, 'migrations/20260915172543_preserve_retained_customer_history_on_delete.sql')
         self.assertEqual(source.source_sha256, '00f8a844fc5c72274d697558d57f216acf56388b6d36f6aad6063ca255283734')
         self.assertEqual(source.sql, (ROOT/'scripts/sql/forward-candidates/preserve-retained-customer-history-on-delete.sql').read_bytes())
         with self.assertRaisesRegex(ValueError,'FORWARD_RETAINED_SOURCES_REQUIRED'):
-            forward.validate_retained((*retained[:-1],dataclasses.replace(source,sql=source.sql+b'\n')))
+            forward.validate_retained((*retained[:6],dataclasses.replace(source,sql=source.sql+b'\n'),*retained[7:]))
+
+    def test_later_qualified_candidates_are_exact_ordered_suffix(self):
+        retained=forward.retain(ROOT)
+        expected=(('20260915174610_expand_auth_email_event_action_domain.sql','expand-auth-email-event-action-domain.sql'),
+                  ('20260915174614_restrict_access_table_capabilities.sql','restrict-canonical-access-table-capabilities.sql'))
+        for index,(filename,candidate) in enumerate(expected,7):
+            source=retained[index]
+            self.assertEqual(source.source,'migrations/'+filename)
+            self.assertEqual(source.sql,(ROOT/'scripts/sql/forward-candidates'/candidate).read_bytes())
+            with self.assertRaisesRegex(ValueError,'FORWARD_RETAINED_SOURCES_REQUIRED'):
+                forward.validate_retained((*retained[:index],dataclasses.replace(source,sql=source.sql+b'changed'),*retained[index+1:]))
 
     def test_timestamp_changes_fail_closed(self):
         historical = self.historical()
@@ -84,14 +95,14 @@ class ForwardSourcesTests(unittest.TestCase):
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 1)
         report = json.loads(result.stdout)
-        self.assertEqual(len(report['inputs']), 348)
+        self.assertEqual(len(report['inputs']), 350)
         original = copy.deepcopy(report)
         converted = forward.historical_fixture_review_group(report)
         self.assertEqual(report, original)
         self.assertEqual(len(converted['inputs']), 347)
         self.assertEqual(sum(r['classification']=='FULL_FILE_SELECTED' for r in converted['inputs']), 335)
         suffix = [r for r in report['inputs'] if r['path'] in dict(forward.FORWARD_SOURCES)]
-        self.assertEqual(len(suffix), 1)  # Lexical group is a subset of four forwards.
+        self.assertEqual(len(suffix), 3)  # Lexical group includes three of the nine forwards.
         self.assertEqual(suffix[0]['execution'], [dict(ordinal=518, stage='timestamp')])
         for field, value in [('sha256', '0'*64), ('classification', 'SUBSTITUTED'),
                              ('execution', [dict(ordinal=514,stage='timestamp')])]:
@@ -163,7 +174,7 @@ class ForwardSourcesTests(unittest.TestCase):
         original=copy.deepcopy(current)
         historical=forward.historical_fixture_accounting(current)
         self.assertEqual(current,original)
-        self.assertEqual((historical['totalMigrations'],historical['currentInventoryTotal']),(601,608))
+        self.assertEqual((historical['totalMigrations'],historical['currentInventoryTotal']),(601,610))
         self.assertEqual(historical['selectedInputCounts'],dict(foundation=144,timestamp=514))
         self.assertEqual(historical['counts']['FULL_FILE_SELECTED'],589)
         mutations=[]

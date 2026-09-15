@@ -1,0 +1,705 @@
+{
+  "scope": "ACTUAL_HASH_IDENTITIES_MATCH_AUTHORED_SOURCE_NOT_SCHEMA_ACCEPTANCE",
+  "runId": 35002680872,
+  "jobId": 104494673280,
+  "commit": "ca4ab72a9743e101cdc40e736d120ac19c751ad4",
+  "count": 24,
+  "records": [
+    {
+      "identity": [
+        "public",
+        "inbound_ediel_match_attempts",
+        "gridex_mp_3301efeef4cd0d084cdd"
+      ],
+      "observedHashes": {
+        "policySha256": "c7c46437d72106cd86e420a754d9d4613bfbad551dc471b95ac8cdc71d270134",
+        "tableSha256": "69a3c9b28f8b4acaaab0db032ff27b7492a7d4b302492ceac603f6ebcfa90401"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_ediel_match_attempts",
+        "polname": "gridex_mp_3301efeef4cd0d084cdd",
+        "command": "a",
+        "permissive": true,
+        "using_expression": "",
+        "check_expression": "( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)",
+        "roles": [
+          "authenticated"
+        ]
+      },
+      "sourceRowSha256": "455d07f2159850a4f12f84b71b9cded71df632053d82b9c9e2f6efa1b26541db",
+      "definitionSha256": "061b393d72fa7bc6d011b0978814d1c5fe9f62455f77dc5279cd451c8a284cad",
+      "sourceEvidenceKeys": [
+        "20260612143000_performance_policy_consolidation_and_index_cleanup.sql",
+        "20260612123000_performance_batches_1_to_3_db_acceleration.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_ediel_match_attempts",
+        "gridex_mp_9802ed3e38447ba834ce"
+      ],
+      "observedHashes": {
+        "policySha256": "5e764c64d3c186cee117ca07c232374186fef2899a096ba972ccfdb3438bd3a9",
+        "tableSha256": "69a3c9b28f8b4acaaab0db032ff27b7492a7d4b302492ceac603f6ebcfa90401"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_ediel_match_attempts",
+        "polname": "gridex_mp_9802ed3e38447ba834ce",
+        "command": "w",
+        "permissive": true,
+        "using_expression": "( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)",
+        "check_expression": "( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)",
+        "roles": [
+          "authenticated"
+        ]
+      },
+      "sourceRowSha256": "2e783c2dd93a633d383e7dd922d6f4e73c4cc188eaf7770020fa13f9eb35baf2",
+      "definitionSha256": "c701386168892f2593f0a6af159c38d188a46d2df8392ea4e987c8023c262d00",
+      "sourceEvidenceKeys": [
+        "20260612143000_performance_policy_consolidation_and_index_cleanup.sql",
+        "20260612123000_performance_batches_1_to_3_db_acceleration.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_ediel_match_attempts",
+        "gridex_mp_e8ea9a7093dcf8ddc6a0"
+      ],
+      "observedHashes": {
+        "policySha256": "04d56c7a724e217387fd0239c06bd9739b21f4016dbf4e98cf6fb646c1490694",
+        "tableSha256": "69a3c9b28f8b4acaaab0db032ff27b7492a7d4b302492ceac603f6ebcfa90401"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_ediel_match_attempts",
+        "polname": "gridex_mp_e8ea9a7093dcf8ddc6a0",
+        "command": "r",
+        "permissive": true,
+        "using_expression": "( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)",
+        "check_expression": "",
+        "roles": [
+          "authenticated"
+        ]
+      },
+      "sourceRowSha256": "6a580a6d6d8934144a062d27ccfc98a9cd9898346d94d786da4cb87f16e7721a",
+      "definitionSha256": "39f0361efc9d400db3cdb2f6608f002397ac188e5c55cea1fe843cf274b58b9b",
+      "sourceEvidenceKeys": [
+        "20260612143000_performance_policy_consolidation_and_index_cleanup.sql",
+        "20260612123000_performance_batches_1_to_3_db_acceleration.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_ediel_match_attempts",
+        "gridex_mp_fb247ef9f51878aee4ed"
+      ],
+      "observedHashes": {
+        "policySha256": "07209ef9e950ad6f5b2c9ddcdeaa5d877f26b9f80b688fb5cf40438bbde12ade",
+        "tableSha256": "69a3c9b28f8b4acaaab0db032ff27b7492a7d4b302492ceac603f6ebcfa90401"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_ediel_match_attempts",
+        "polname": "gridex_mp_fb247ef9f51878aee4ed",
+        "command": "d",
+        "permissive": true,
+        "using_expression": "( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)",
+        "check_expression": "",
+        "roles": [
+          "authenticated"
+        ]
+      },
+      "sourceRowSha256": "f421353b737a0b2c143f9233d12822282582a0322f9f61a4f90253f392dc59fa",
+      "definitionSha256": "804b2cf7f93deec6d69e6a4e2c550cc569c59b57e476d1abc5f86c2d30ad4457",
+      "sourceEvidenceKeys": [
+        "20260612143000_performance_policy_consolidation_and_index_cleanup.sql",
+        "20260612123000_performance_batches_1_to_3_db_acceleration.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_ediel_match_attempts",
+        "tenant_lifecycle_delete_guard"
+      ],
+      "observedHashes": {
+        "policySha256": "417d49b5d25d0b81f0819c82134476c28aa0e3be255d5602b271f967aa113d03",
+        "tableSha256": "69a3c9b28f8b4acaaab0db032ff27b7492a7d4b302492ceac603f6ebcfa90401"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_ediel_match_attempts",
+        "polname": "tenant_lifecycle_delete_guard",
+        "command": "d",
+        "roles": [
+          "authenticated"
+        ],
+        "using_expression": "gridex_can_write_company(company_id)",
+        "check_expression": "",
+        "permissive": false
+      },
+      "sourceRowSha256": "226bccfa93df4a65b83cdc4682e7b9db4f1301436faef7fa272a382a7622d624",
+      "definitionSha256": "b66c07df6d70c60c949558de5bfc5054a08933d7e0deeba9c31cf72d9c325702",
+      "sourceEvidenceKeys": [
+        "20260814162500_tenant_rls_lifecycle_hardening.sql",
+        "20260826093000_platform_dashboard_and_rls_read_performance.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_ediel_match_attempts",
+        "tenant_lifecycle_insert_guard"
+      ],
+      "observedHashes": {
+        "policySha256": "455ff790e6c3568fe180bd44a1d13c7756d26e7437a201bf95dd721a0ee41697",
+        "tableSha256": "69a3c9b28f8b4acaaab0db032ff27b7492a7d4b302492ceac603f6ebcfa90401"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_ediel_match_attempts",
+        "polname": "tenant_lifecycle_insert_guard",
+        "command": "a",
+        "roles": [
+          "authenticated"
+        ],
+        "using_expression": "",
+        "check_expression": "gridex_can_write_company(company_id)",
+        "permissive": false
+      },
+      "sourceRowSha256": "0768590a0f8c76ad92de9476aa73037153f2acc7e8d27f081c0808ae4fbcdff9",
+      "definitionSha256": "d8e5065cf6147400a47c7b9107fb8fca0b52d13cdad6301c422b33f0670d1eec",
+      "sourceEvidenceKeys": [
+        "20260814162500_tenant_rls_lifecycle_hardening.sql",
+        "20260826093000_platform_dashboard_and_rls_read_performance.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_ediel_match_attempts",
+        "tenant_lifecycle_select_guard"
+      ],
+      "observedHashes": {
+        "policySha256": "5fbc42d52f574cb4f21ea305264aca314f09911c75e5cada8408d69833531d75",
+        "tableSha256": "69a3c9b28f8b4acaaab0db032ff27b7492a7d4b302492ceac603f6ebcfa90401"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_ediel_match_attempts",
+        "polname": "tenant_lifecycle_select_guard",
+        "command": "r",
+        "roles": [
+          "authenticated"
+        ],
+        "using_expression": "( SELECT gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT gridex_user_company_ids() AS gridex_user_company_ids)))",
+        "check_expression": "",
+        "permissive": false
+      },
+      "sourceRowSha256": "47b3b129d5f6c0160cb850eb22f75c17382039dc9edfbc46411ec307b0da3d21",
+      "definitionSha256": "cbc266371fd3116c7b9a333da726cbbd7b4ca98bc795e2cb630ad93c497666b9",
+      "sourceEvidenceKeys": [
+        "20260814162500_tenant_rls_lifecycle_hardening.sql",
+        "20260826093000_platform_dashboard_and_rls_read_performance.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_ediel_match_attempts",
+        "tenant_lifecycle_update_guard"
+      ],
+      "observedHashes": {
+        "policySha256": "eb4f66ba621ab26509440beb554d163ad191c12a8c93b3025f1950b7da2a5cdd",
+        "tableSha256": "69a3c9b28f8b4acaaab0db032ff27b7492a7d4b302492ceac603f6ebcfa90401"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_ediel_match_attempts",
+        "polname": "tenant_lifecycle_update_guard",
+        "command": "w",
+        "roles": [
+          "authenticated"
+        ],
+        "using_expression": "gridex_can_write_company(company_id)",
+        "check_expression": "gridex_can_write_company(company_id)",
+        "permissive": false
+      },
+      "sourceRowSha256": "4d7c0cd07c495df2e5239d2f2186b3af1159830fc68ea01bf1b18de52ca032e7",
+      "definitionSha256": "d0eab374a33202561b689ceaf1ae95773b540a004620ea685d6c7f28def4e676",
+      "sourceEvidenceKeys": [
+        "20260814162500_tenant_rls_lifecycle_hardening.sql",
+        "20260826093000_platform_dashboard_and_rls_read_performance.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_ediel_parse_results",
+        "gridex_mp_47529f480871943c554b"
+      ],
+      "observedHashes": {
+        "policySha256": "2bbd3205cb9e8818aaefd25fc2afa9abd2a4fe972e76115c53e2940d8e8eb6a0",
+        "tableSha256": "18afac662614064f6df0b84c0c77adcafbe2af98ff38e27c8d5ca7ddca4c99b9"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_ediel_parse_results",
+        "polname": "gridex_mp_47529f480871943c554b",
+        "command": "d",
+        "permissive": true,
+        "using_expression": "( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)",
+        "check_expression": "",
+        "roles": [
+          "authenticated"
+        ]
+      },
+      "sourceRowSha256": "1ce5e354f8b2e0168bc199cf09fc476c83acca21a84e796f20d737f3d4135d49",
+      "definitionSha256": "804b2cf7f93deec6d69e6a4e2c550cc569c59b57e476d1abc5f86c2d30ad4457",
+      "sourceEvidenceKeys": [
+        "20260612143000_performance_policy_consolidation_and_index_cleanup.sql",
+        "20260612123000_performance_batches_1_to_3_db_acceleration.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_ediel_parse_results",
+        "gridex_mp_53c367782f747fb5b538"
+      ],
+      "observedHashes": {
+        "policySha256": "f4917bd96d92128c37b4b6cfaf91bf36d5519cff654a5cfb18938146b4ccd546",
+        "tableSha256": "18afac662614064f6df0b84c0c77adcafbe2af98ff38e27c8d5ca7ddca4c99b9"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_ediel_parse_results",
+        "polname": "gridex_mp_53c367782f747fb5b538",
+        "command": "w",
+        "permissive": true,
+        "using_expression": "( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)",
+        "check_expression": "( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)",
+        "roles": [
+          "authenticated"
+        ]
+      },
+      "sourceRowSha256": "54dd35a28fa73af8fbbb4236cade89d4eaaad8113c88b09827ec980b77f621a9",
+      "definitionSha256": "c701386168892f2593f0a6af159c38d188a46d2df8392ea4e987c8023c262d00",
+      "sourceEvidenceKeys": [
+        "20260612143000_performance_policy_consolidation_and_index_cleanup.sql",
+        "20260612123000_performance_batches_1_to_3_db_acceleration.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_ediel_parse_results",
+        "gridex_mp_5ddce368309b6e713323"
+      ],
+      "observedHashes": {
+        "policySha256": "639e7e538456065c198deaf52c0fa0c5f3223410921dc0b101a4c5a4153767a9",
+        "tableSha256": "18afac662614064f6df0b84c0c77adcafbe2af98ff38e27c8d5ca7ddca4c99b9"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_ediel_parse_results",
+        "polname": "gridex_mp_5ddce368309b6e713323",
+        "command": "r",
+        "permissive": true,
+        "using_expression": "( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)",
+        "check_expression": "",
+        "roles": [
+          "authenticated"
+        ]
+      },
+      "sourceRowSha256": "2c81ee101d7c2654bc3085bc9591f9e3c290dd74abb80523984dba6006cb288a",
+      "definitionSha256": "39f0361efc9d400db3cdb2f6608f002397ac188e5c55cea1fe843cf274b58b9b",
+      "sourceEvidenceKeys": [
+        "20260612143000_performance_policy_consolidation_and_index_cleanup.sql",
+        "20260612123000_performance_batches_1_to_3_db_acceleration.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_ediel_parse_results",
+        "gridex_mp_c82ecc87ed234cc4ccf6"
+      ],
+      "observedHashes": {
+        "policySha256": "051f4e8fa5e62f6bffa672fa4d10d8f84450f046722d7e661a7ed0caf01b6a24",
+        "tableSha256": "18afac662614064f6df0b84c0c77adcafbe2af98ff38e27c8d5ca7ddca4c99b9"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_ediel_parse_results",
+        "polname": "gridex_mp_c82ecc87ed234cc4ccf6",
+        "command": "a",
+        "permissive": true,
+        "using_expression": "",
+        "check_expression": "( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)",
+        "roles": [
+          "authenticated"
+        ]
+      },
+      "sourceRowSha256": "8821ae71628c42f8362388c757f39f8ee0708c97ddbc458903a4807645162679",
+      "definitionSha256": "061b393d72fa7bc6d011b0978814d1c5fe9f62455f77dc5279cd451c8a284cad",
+      "sourceEvidenceKeys": [
+        "20260612143000_performance_policy_consolidation_and_index_cleanup.sql",
+        "20260612123000_performance_batches_1_to_3_db_acceleration.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_ediel_parse_results",
+        "tenant_lifecycle_delete_guard"
+      ],
+      "observedHashes": {
+        "policySha256": "417d49b5d25d0b81f0819c82134476c28aa0e3be255d5602b271f967aa113d03",
+        "tableSha256": "18afac662614064f6df0b84c0c77adcafbe2af98ff38e27c8d5ca7ddca4c99b9"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_ediel_parse_results",
+        "polname": "tenant_lifecycle_delete_guard",
+        "command": "d",
+        "roles": [
+          "authenticated"
+        ],
+        "using_expression": "gridex_can_write_company(company_id)",
+        "check_expression": "",
+        "permissive": false
+      },
+      "sourceRowSha256": "881e1ab4a48a695d874ef0b113abaa59fba500ba3ce4c93a5dbd0c0459d59cb3",
+      "definitionSha256": "b66c07df6d70c60c949558de5bfc5054a08933d7e0deeba9c31cf72d9c325702",
+      "sourceEvidenceKeys": [
+        "20260814162500_tenant_rls_lifecycle_hardening.sql",
+        "20260826093000_platform_dashboard_and_rls_read_performance.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_ediel_parse_results",
+        "tenant_lifecycle_insert_guard"
+      ],
+      "observedHashes": {
+        "policySha256": "455ff790e6c3568fe180bd44a1d13c7756d26e7437a201bf95dd721a0ee41697",
+        "tableSha256": "18afac662614064f6df0b84c0c77adcafbe2af98ff38e27c8d5ca7ddca4c99b9"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_ediel_parse_results",
+        "polname": "tenant_lifecycle_insert_guard",
+        "command": "a",
+        "roles": [
+          "authenticated"
+        ],
+        "using_expression": "",
+        "check_expression": "gridex_can_write_company(company_id)",
+        "permissive": false
+      },
+      "sourceRowSha256": "d127f99b36c4b4961e183a7ae766c331ea9216d76a75a4312e4b73beb2ab7cef",
+      "definitionSha256": "d8e5065cf6147400a47c7b9107fb8fca0b52d13cdad6301c422b33f0670d1eec",
+      "sourceEvidenceKeys": [
+        "20260814162500_tenant_rls_lifecycle_hardening.sql",
+        "20260826093000_platform_dashboard_and_rls_read_performance.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_ediel_parse_results",
+        "tenant_lifecycle_select_guard"
+      ],
+      "observedHashes": {
+        "policySha256": "5fbc42d52f574cb4f21ea305264aca314f09911c75e5cada8408d69833531d75",
+        "tableSha256": "18afac662614064f6df0b84c0c77adcafbe2af98ff38e27c8d5ca7ddca4c99b9"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_ediel_parse_results",
+        "polname": "tenant_lifecycle_select_guard",
+        "command": "r",
+        "roles": [
+          "authenticated"
+        ],
+        "using_expression": "( SELECT gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT gridex_user_company_ids() AS gridex_user_company_ids)))",
+        "check_expression": "",
+        "permissive": false
+      },
+      "sourceRowSha256": "709c139d4484a8b61a0e087205170da39ec972c54f428f325a3a169ddcb89906",
+      "definitionSha256": "cbc266371fd3116c7b9a333da726cbbd7b4ca98bc795e2cb630ad93c497666b9",
+      "sourceEvidenceKeys": [
+        "20260814162500_tenant_rls_lifecycle_hardening.sql",
+        "20260826093000_platform_dashboard_and_rls_read_performance.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_ediel_parse_results",
+        "tenant_lifecycle_update_guard"
+      ],
+      "observedHashes": {
+        "policySha256": "eb4f66ba621ab26509440beb554d163ad191c12a8c93b3025f1950b7da2a5cdd",
+        "tableSha256": "18afac662614064f6df0b84c0c77adcafbe2af98ff38e27c8d5ca7ddca4c99b9"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_ediel_parse_results",
+        "polname": "tenant_lifecycle_update_guard",
+        "command": "w",
+        "roles": [
+          "authenticated"
+        ],
+        "using_expression": "gridex_can_write_company(company_id)",
+        "check_expression": "gridex_can_write_company(company_id)",
+        "permissive": false
+      },
+      "sourceRowSha256": "176dfe2ef7a5860f5c6c5039a8a7bade82711d9de564b354eba8982693d94a0c",
+      "definitionSha256": "d0eab374a33202561b689ceaf1ae95773b540a004620ea685d6c7f28def4e676",
+      "sourceEvidenceKeys": [
+        "20260814162500_tenant_rls_lifecycle_hardening.sql",
+        "20260826093000_platform_dashboard_and_rls_read_performance.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_email_attachments",
+        "gridex_mp_0e54002bbe484cfdc875"
+      ],
+      "observedHashes": {
+        "policySha256": "f4a63881e33257ae83a88a7650b1c09903707d0c77d580b66a4de66bb9ba3fb8",
+        "tableSha256": "c822b1fe6fde637c97d14cc88a2848d899126459fbd201a1a8638f4c2dcb6872"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_email_attachments",
+        "polname": "gridex_mp_0e54002bbe484cfdc875",
+        "command": "r",
+        "permissive": true,
+        "using_expression": "( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)",
+        "check_expression": "",
+        "roles": [
+          "authenticated"
+        ]
+      },
+      "sourceRowSha256": "1b67ff854fccd9cd80fedd409fbcc7e62dd6132ec41453256187afc27051bb25",
+      "definitionSha256": "39f0361efc9d400db3cdb2f6608f002397ac188e5c55cea1fe843cf274b58b9b",
+      "sourceEvidenceKeys": [
+        "20260612143000_performance_policy_consolidation_and_index_cleanup.sql",
+        "20260612123000_performance_batches_1_to_3_db_acceleration.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_email_attachments",
+        "gridex_mp_ae96166528e4ca2afc20"
+      ],
+      "observedHashes": {
+        "policySha256": "22a3ac04cb97d6bd5c6daba31278af9d30cd794f177f21a5dd5829a0e2417ea2",
+        "tableSha256": "c822b1fe6fde637c97d14cc88a2848d899126459fbd201a1a8638f4c2dcb6872"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_email_attachments",
+        "polname": "gridex_mp_ae96166528e4ca2afc20",
+        "command": "a",
+        "permissive": true,
+        "using_expression": "",
+        "check_expression": "( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)",
+        "roles": [
+          "authenticated"
+        ]
+      },
+      "sourceRowSha256": "c08c273e480427612d2f525070e8079c84d3a2eab972612854260b5f72195b70",
+      "definitionSha256": "061b393d72fa7bc6d011b0978814d1c5fe9f62455f77dc5279cd451c8a284cad",
+      "sourceEvidenceKeys": [
+        "20260612143000_performance_policy_consolidation_and_index_cleanup.sql",
+        "20260612123000_performance_batches_1_to_3_db_acceleration.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_email_attachments",
+        "gridex_mp_aed40f0ee5d28cdcfb88"
+      ],
+      "observedHashes": {
+        "policySha256": "017789f433a98ae6108c14eda2761a4907e58ecabbad415df60189d728e5f8aa",
+        "tableSha256": "c822b1fe6fde637c97d14cc88a2848d899126459fbd201a1a8638f4c2dcb6872"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_email_attachments",
+        "polname": "gridex_mp_aed40f0ee5d28cdcfb88",
+        "command": "w",
+        "permissive": true,
+        "using_expression": "( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)",
+        "check_expression": "( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)",
+        "roles": [
+          "authenticated"
+        ]
+      },
+      "sourceRowSha256": "221d74ef61086d800baff25f796cc74d3b3ba12b77e1053ceb826ff31fc01c17",
+      "definitionSha256": "c701386168892f2593f0a6af159c38d188a46d2df8392ea4e987c8023c262d00",
+      "sourceEvidenceKeys": [
+        "20260612143000_performance_policy_consolidation_and_index_cleanup.sql",
+        "20260612123000_performance_batches_1_to_3_db_acceleration.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_email_attachments",
+        "gridex_mp_f7281fbf78fc174ca42c"
+      ],
+      "observedHashes": {
+        "policySha256": "fd47b99c947fadc36ebc7a1903af2b1720a854e4ed2cec10736dfbf69a4649ae",
+        "tableSha256": "c822b1fe6fde637c97d14cc88a2848d899126459fbd201a1a8638f4c2dcb6872"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_email_attachments",
+        "polname": "gridex_mp_f7281fbf78fc174ca42c",
+        "command": "d",
+        "permissive": true,
+        "using_expression": "( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)",
+        "check_expression": "",
+        "roles": [
+          "authenticated"
+        ]
+      },
+      "sourceRowSha256": "093eb6572217e36827a45184c3776e00166b01ab5bdcbf4732be6c694e556fb0",
+      "definitionSha256": "804b2cf7f93deec6d69e6a4e2c550cc569c59b57e476d1abc5f86c2d30ad4457",
+      "sourceEvidenceKeys": [
+        "20260612143000_performance_policy_consolidation_and_index_cleanup.sql",
+        "20260612123000_performance_batches_1_to_3_db_acceleration.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_email_attachments",
+        "tenant_lifecycle_delete_guard"
+      ],
+      "observedHashes": {
+        "policySha256": "417d49b5d25d0b81f0819c82134476c28aa0e3be255d5602b271f967aa113d03",
+        "tableSha256": "c822b1fe6fde637c97d14cc88a2848d899126459fbd201a1a8638f4c2dcb6872"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_email_attachments",
+        "polname": "tenant_lifecycle_delete_guard",
+        "command": "d",
+        "roles": [
+          "authenticated"
+        ],
+        "using_expression": "gridex_can_write_company(company_id)",
+        "check_expression": "",
+        "permissive": false
+      },
+      "sourceRowSha256": "2a964beb5db21cd2eb9f44f67433fab3ae0c271b8e6d4369f83f91805fa9195e",
+      "definitionSha256": "b66c07df6d70c60c949558de5bfc5054a08933d7e0deeba9c31cf72d9c325702",
+      "sourceEvidenceKeys": [
+        "20260814162500_tenant_rls_lifecycle_hardening.sql",
+        "20260826093000_platform_dashboard_and_rls_read_performance.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_email_attachments",
+        "tenant_lifecycle_insert_guard"
+      ],
+      "observedHashes": {
+        "policySha256": "455ff790e6c3568fe180bd44a1d13c7756d26e7437a201bf95dd721a0ee41697",
+        "tableSha256": "c822b1fe6fde637c97d14cc88a2848d899126459fbd201a1a8638f4c2dcb6872"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_email_attachments",
+        "polname": "tenant_lifecycle_insert_guard",
+        "command": "a",
+        "roles": [
+          "authenticated"
+        ],
+        "using_expression": "",
+        "check_expression": "gridex_can_write_company(company_id)",
+        "permissive": false
+      },
+      "sourceRowSha256": "e4b80a3916f4060f20be801d8748e8b0cbadcc735c5a4c48dd4d541fef2c62bc",
+      "definitionSha256": "d8e5065cf6147400a47c7b9107fb8fca0b52d13cdad6301c422b33f0670d1eec",
+      "sourceEvidenceKeys": [
+        "20260814162500_tenant_rls_lifecycle_hardening.sql",
+        "20260826093000_platform_dashboard_and_rls_read_performance.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_email_attachments",
+        "tenant_lifecycle_select_guard"
+      ],
+      "observedHashes": {
+        "policySha256": "5fbc42d52f574cb4f21ea305264aca314f09911c75e5cada8408d69833531d75",
+        "tableSha256": "c822b1fe6fde637c97d14cc88a2848d899126459fbd201a1a8638f4c2dcb6872"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_email_attachments",
+        "polname": "tenant_lifecycle_select_guard",
+        "command": "r",
+        "roles": [
+          "authenticated"
+        ],
+        "using_expression": "( SELECT gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT gridex_user_company_ids() AS gridex_user_company_ids)))",
+        "check_expression": "",
+        "permissive": false
+      },
+      "sourceRowSha256": "21769b48f8ca169b4b4e06a81d1a170f88ec162a676937cd7488ecd8c6e0824a",
+      "definitionSha256": "cbc266371fd3116c7b9a333da726cbbd7b4ca98bc795e2cb630ad93c497666b9",
+      "sourceEvidenceKeys": [
+        "20260814162500_tenant_rls_lifecycle_hardening.sql",
+        "20260826093000_platform_dashboard_and_rls_read_performance.sql"
+      ]
+    },
+    {
+      "identity": [
+        "public",
+        "inbound_email_attachments",
+        "tenant_lifecycle_update_guard"
+      ],
+      "observedHashes": {
+        "policySha256": "eb4f66ba621ab26509440beb554d163ad191c12a8c93b3025f1950b7da2a5cdd",
+        "tableSha256": "c822b1fe6fde637c97d14cc88a2848d899126459fbd201a1a8638f4c2dcb6872"
+      },
+      "row": {
+        "nspname": "public",
+        "relname": "inbound_email_attachments",
+        "polname": "tenant_lifecycle_update_guard",
+        "command": "w",
+        "roles": [
+          "authenticated"
+        ],
+        "using_expression": "gridex_can_write_company(company_id)",
+        "check_expression": "gridex_can_write_company(company_id)",
+        "permissive": false
+      },
+      "sourceRowSha256": "1377c610030bdf4cb0a3da55c90c53213d89abac66b1dcab19bbf0a4d08f2fc4",
+      "definitionSha256": "d0eab374a33202561b689ceaf1ae95773b540a004620ea685d6c7f28def4e676",
+      "sourceEvidenceKeys": [
+        "20260814162500_tenant_rls_lifecycle_hardening.sql",
+        "20260826093000_platform_dashboard_and_rls_read_performance.sql"
+      ]
+    }
+  ]
+}

@@ -139,6 +139,24 @@ def failure_code(error, historical):
                        'EXECUTED_NATIVE_STATEMENTS_REQUIRED', 'NATIVE_LEDGER_IDEMPOTENCE_REQUIRED',
                        'NEXT_CLI_MIGRATION_REQUIRED', 'NATIVE_FAILED_MIGRATION_ATOMICITY_REQUIRED'}
     lifecycle_codes.update({
+        'NATIVE_PARITY_ENGINE_SOURCE_REQUIRED',
+        'NATIVE_PARITY_ENGINE_PROGRAM_REQUIRED',
+        'NATIVE_PARITY_ENGINE_RETAINED_REQUIRED',
+        'NATIVE_PARITY_ENGINE_OUTPUT_REQUIRED',
+        'NATIVE_PARITY_ENGINE_ONCE_REQUIRED',
+        'NATIVE_PARITY_ENGINE_IDENTICAL_REQUIRED',
+        'NATIVE_PARITY_ENGINE_DRIFT_DETECTION_REQUIRED',
+        'NATIVE_PARITY_ENGINE_CLONE_DISPOSAL_REQUIRED',
+        'NATIVE_PARITY_ENGINE_PARENT_PRESERVATION_REQUIRED',
+        'NATIVE_PARITY_ENGINE_RECEIPT_REQUIRED',
+    })
+    lifecycle_codes.update({
+        'CHANGED_FUNCTION_SOURCE_REQUIRED',
+        'CHANGED_FUNCTION_RESULT_REQUIRED',
+        'CHANGED_FUNCTION_ONCE_REQUIRED',
+        'CHANGED_FUNCTION_OWNED_TARGET_REQUIRED',
+        'CHANGED_FUNCTION_BEHAVIOR_REQUIRED',
+        'CHANGED_FUNCTION_PRESERVATION_REQUIRED',
         'NATIVE_APPLICATION_TYPEGEN_PREREQUISITES_REQUIRED',
         'NATIVE_APPLICATION_TYPEGEN_WITNESS_REQUIRED',
         'NATIVE_APPLICATION_TYPEGEN_OUTPUT_REQUIRED',
@@ -387,6 +405,10 @@ def run(*, historical_prefix=False, clone_preflight=False):
         forward_programs(forward_retained)
         from canonical_added_view_witness import retain as retain_added_views
         view_retained = retain_added_views(ROOT)
+        from canonical_changed_view_witness import retain as retain_changed_views
+        changed_view_retained = retain_changed_views(ROOT)
+        from canonical_changed_function_witness import retain as retain_changed_functions
+        changed_function_retained = retain_changed_functions(ROOT)
         from canonical_removed_policy_qualification import retain as retain_removed_policies
         removed_policy_retained = retain_removed_policies(ROOT)
     transport = load_transport()
@@ -540,7 +562,7 @@ def run(*, historical_prefix=False, clone_preflight=False):
                 phase = 'HISTORICAL_TIMESTAMP_NATIVE_LEDGER'
                 from canonical_native_timestamp_runtime import execute as execute_timestamp
                 execute_timestamp(command, native, sql, work, project, report, timestamp_plan, forward_retained,
-                                  view_retained, removed_policy_retained)
+                                  view_retained, removed_policy_retained, changed_view_retained, changed_function_retained)
             success = True
         except Exception as error:
             report.update(outcome='BLOCKED',phase=phase,errorType=type(error).__name__)

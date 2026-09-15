@@ -221,6 +221,10 @@ def terminal_observer(controller, original, reference, before, result):
                 removed_receipt = removed.validate_execution_receipt(tail.removed_policy_receipt, native=False)
                 import canonical_added_view_witness as views
                 view_receipt = views.validate_execution_receipt(tail.view_receipt, native=False)
+                import canonical_changed_view_witness as changed_views
+                changed_view_receipt = changed_views.validate_execution_receipt(tail.changed_view_receipt, native=False)
+                import canonical_changed_function_witness as functions
+                changed_function_receipt = functions.validate_execution_receipt(tail.changed_function_receipt, native=False)
                 candidate = compare(reference, capture(handle, controller.DATABASE))
                 candidate.update(foundationApplied=controller.SCOPES['full'],
                                  timestampApplied=len(tail.selected),
@@ -228,6 +232,8 @@ def terminal_observer(controller, original, reference, before, result):
                                  policyActorQualification=actor_receipt,
                                  removedPolicyQualification=removed_receipt,
                                  addedViewSourceWitness=view_receipt,
+                                 changedViewSourceWitness=changed_view_receipt,
+                                 changedFunctionBehaviorWitness=changed_function_receipt,
                                  forwardSources=[dict(source=path, sourceSha256=digest) for path,digest in FORWARD_SOURCES])
         except Exception:
             # Never publish exception strings, SQL, raw catalog values or paths.

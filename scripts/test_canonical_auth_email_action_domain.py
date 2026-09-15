@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 ROOT=Path(__file__).resolve().parents[1]
 SCRIPT=ROOT/'scripts/canonical-auth-email-action-domain-selftest.py'
 
@@ -15,6 +16,16 @@ def load():
     return module
 
 class ActionDomainTests(unittest.TestCase):
+    def test_forward_postcondition_rejects_wrong_or_ambiguous_result(self):
+        module=load()
+        for expected,actual in ((False,"f"),(True,"t")):
+            with mock.patch.object(module.fixture,"sql",return_value=actual):
+                module.verify_forward_postcondition(expected)
+        for actual in ("f","","null","t\nprivate"):
+            with mock.patch.object(module.fixture,"sql",return_value=actual):
+                with self.assertRaisesRegex(ValueError,"FORWARD_POSTCONDITION_REQUIRED"):
+                    module.verify_forward_postcondition(True)
+
     def test_source_selection_without_sql_tools(self):
         result=subprocess.run([sys.executable,'-B',str(SCRIPT),'--selection-only'],cwd=ROOT,
           env={'PATH':''},capture_output=True,text=True)

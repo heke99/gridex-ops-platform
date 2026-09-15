@@ -1,3 +1,25 @@
+# Current work — PR310/311 green, merge main, then next Ediel v2 phase
+
+Status: IN PROGRESS; main merge and next phase remain pending. User renewed explicit authorization for all PR310 ancestry and Ediel311 work. Main remains eb9a25bc989c6de808903f41c2314d5465e9c07b. GitHub marks311 merged into310 feature history, not main. PR310 remains draft/open at01ee1d55e515dea336531a3f8820bdf9eafebaf0. Preserve original601 migration hashes, historical514 timestamp sources and ec503 auth repair.
+
+Keep PR310 native34999483575/job104484522245 running. New isolated fixes run on the closed311 continuation codex/ediel-masterplan-v2-alignment-20260915, published ca3e532d0f132fa9ab56dea00a0bac0e514550d9 (contains seventh forward and candidate type pipeline). Use GitHub actions/runs?event=push&head_sha=... to discover these push jobs. Do not mistake closed311 metadata for current branch head.
+
+Actual portable37844d94 run35001559027/job104490915869 completed144 foundations+514 timestamps+6 forwards. Four final SQL checks PASS; fifth reports only F14_INERT_POLICY affectedCount24. All source/state preservation and cleanup pass. Actual ca4ab72a run35002680872/job104494673280 identifies all24 by exact hashed pairs: eight each on inbound_ediel_match_attempts, inbound_ediel_parse_results and inbound_email_attachments. Four compiled authenticated and four restrictive lifecycle policies per table became inert after forward3 enforced authored service-only access. Narrow exact24 removal candidate with unchanged ACLs is under owned qualification; never grant privileges merely to silence this gate.
+
+Actual corrected schema5c1cda15 run35000914409/job104488827297 passes267 exact policy identities/hashes,59 removed-policy dispositions,55 compositions,2496 actor cases and31 added-view witnesses. Eighteen required schema checks PASS, but full fingerprint differs (actual4943bbb..., expectedc70fa2...). Schema acceptance remains false. Remaining work includes five changed-view runtime witnesses, two changed-function behavior checks and other source-backed dispositions; do not refresh a baseline blindly.
+
+Actual retained customer delete qualification35000914503/job104488786469 PASS:20 cases, five repaired relationships preserve tenant/history, real original CASCADE reproduced, exact source functions/triggers checked, cleanup true. GenuineCLI2.101.0 filename20260915172543_preserve_retained_customer_history_on_delete.sql, bytes SHA25600f8a844fc5c72274d697558d57f216acf56388b6d36f6aad6063ca255283734. Reviewed seventh-source admission with exact historical pins and actual predicate qualification is prepared in commit908aad1d48fdc01ccd77e62eddce6812dd2e7fd8 (published via ca3e532d at this checkpoint). Inventory608/raw timestamps521/full596. No old source bytes changed. Actual predicate7 qualification35003240449/job104496534088 PASS; full native seven-source replay pending.
+
+Same prepared commit adds reviewed genuine application type candidate generation inside the still-live owned native DB, two equal CLI outputs, pinned nullability override, catalog/ledger preservation and post-cleanup hash-checked export. Seven targeted tests PASS. This does not accept schema/types or modify committed type manifests; actual execution remains pending. Existing final refusal remains until true acceptance is implemented and verified.
+
+Actual auth35003240439/job104496533996 and access35003240432/job104496534411 PASS. Genuine CLI names20260915174610_expand_auth_email_event_action_domain.sql (69b8d5693f586209f37950be866e3f3dd8e5d910408c34ed9cb075daab85407c) and20260915174614_restrict_access_table_capabilities.sql (ddee41e3266948eef7f9082b331f873823602266448efe7cabcb03fdb3566683) registered as exact8/9 in this reviewed publication batch. Original601/514 and first7 unchanged; inventory610/raw timestamps523/full598. New8/9 native predicates need actual owned fixture rerun. Five changed-view catalog/query witnesses are integrated and independently reviewed (8 controls); actual SQL pending. Unchanged production parity engine has reviewed native20-drift qualification module and separate actualPG17 workflow prepared;6 local tests and applicationcandidate8 PASS. Two changed-function behavior witnesses are under review/integration and intentionally detect source-required permission override semantics currently missing. No acceptance flag/manifest is forged.
+
+Existing application verification:218 files/2134 tests PASS, application/test TypeScript PASS, tenant service-role ratchet2402 PASS,20 DSN tests PASS, Ediel/browser/quality workflows at01 PASS. Verify and E2E remain blocked on genuine generated-type coverage. No production database changes or external Ediel sends. Artifact receipt hashes are log metadata only where download returned403, not independent archive verification.
+
+Next action: inspect push runs for this9+view/function/parity/F14 qualification batch (resolve exact SHA with git); inspect actual assertions/candidates, resolve source-backed F14 and schema behavior gaps, regenerate genuine application types/manifest, pass final-head CI/E2E and review, merge entire310 to main, then start next Ediel v2 locator/register phase. Do not stop at a partial green subset.
+
+## Historical continuation records (superseded status)
+
 # Current work — merge to main before next Ediel phase, 2026-09-15
 
 Status: BLOCKED, active remediation. User explicitly authorized merging the entire work to main and starting the next phase afterward. Preserve all PR310 ancestry and original601 migration hashes. Published combined head1849497413325385b080e33f2bbfffd4073f488f (treebd3bab442377206b7ecb1a34664c1383632f7c3c, local/remote equality verified) contains all PR310 and PR311 ancestry plus reviewed diagnostics. Both feature refs advanced without force. GitHub confirms PR311 merged into PR310 branch at16:58:18UTC; PR310 remains draft/open/unmerged to main eb9a25bc989c6de808903f41c2314d5465e9c07b. Local branch remains the now-closed PR311 continuation.
@@ -18,7 +40,7 @@ New independent portable final-invariant diagnostic runs144+514+6 and exact five
 
 Next action: publish reviewed fixes+portable diagnostic to closed PR311 continuation only; inspect push workflow runs using github_fetch actions/runs?event=push&head_sha=<published SHA>. Keep PR310 native running. Resolve actual invariant/policy/deletion results, qualify any necessary forwards, combine into310, genuinely generate types and pass final-head CI/E2E/review, merge310 to main, then begin next Ediel locator/register phase. No main merge, production change or next-phase implementation claimed.
 
-## Historical continuation records (superseded status)
+
 
 # Prior Ediel batch — superseded status, retained evidence
 

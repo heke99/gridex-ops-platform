@@ -14,6 +14,16 @@ def load():
     spec=importlib.util.spec_from_file_location('access_capability_fixture',SCRIPT)
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);return module
 class AccessCapabilitiesTests(unittest.TestCase):
+    def test_forward_postcondition_rejects_wrong_or_ambiguous_result(self):
+        module=load()
+        for expected,actual in ((False,"f"),(True,"t")):
+            with mock.patch.object(module.fixture,"sql",return_value=actual):
+                module.verify_forward_postcondition(expected)
+        for actual in ("f","","null","t\nprivate"):
+            with mock.patch.object(module.fixture,"sql",return_value=actual):
+                with self.assertRaisesRegex(ValueError,"FORWARD_POSTCONDITION_REQUIRED"):
+                    module.verify_forward_postcondition(True)
+
     def test_selection_without_database_tools(self):
         self.assertTrue(SCRIPT.is_file(),'access capability fixture missing')
         result=subprocess.run([sys.executable,'-B',str(SCRIPT),'--selection-only'],cwd=ROOT,env={'PATH':''},capture_output=True,text=True)

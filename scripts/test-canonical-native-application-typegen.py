@@ -29,7 +29,8 @@ class Tests(unittest.TestCase):
    with self.subTest(defect=defect):
     runner=SimpleNamespace(target=Mock(),unchanged=Mock(),native=Mock())
     runner.native.side_effect=[SimpleNamespace(returncode=0,stdout=RAW),SimpleNamespace(returncode=1 if defect=='exit' else 0,stdout=RAW+b'\n' if defect=='repeat' else RAW)]
-    parent={}
+    from canonical_native_parity_engine import expected_receipt
+    parent={'nativeParityEngineQualification':expected_receipt()}
     with patch.object(m,'admit'),patch.object(m,'snapshot',side_effect=['same','changed' if defect=='state' else 'same','same']):
      if defect:
       with self.assertRaises(ValueError): m.execute(runner,(),parent,'owned-project')
@@ -60,6 +61,19 @@ class Tests(unittest.TestCase):
            'cleanupVerified':True,'privateWorkspaceRemoved':True}
    with self.assertRaises(ValueError):m.publish(parent,Path(tmp),success=True)
    self.assertEqual(list(Path(tmp).iterdir()),[])
+ def test_real_combined_order_parity_then_candidate_without_circular_admission(self):
+  import canonical_native_parity_engine as parity
+  runner=SimpleNamespace(target=Mock(spec=['assert_native_owned','reset','sql','drop_clone']),unchanged=Mock(),native=Mock(return_value=SimpleNamespace(returncode=0,stdout=RAW)))
+  runner.target.sql.return_value='{}'
+  parent={}
+  output='\n'.join(expected for _,expected in parity.retain()['expected'])
+  with patch.object(m,'admit'),patch.object(m,'snapshot',return_value='same'),patch.object(parity,'snapshot',return_value='same'),patch.object(parity,'run_engine',side_effect=[(0,''),(1,output)]):
+   with self.assertRaisesRegex(ValueError,'PARITY_ENGINE_RECEIPT'):m.execute(runner,(),parent,'owned-project')
+   runner.native.assert_not_called()
+   parity.execute(runner,(),parent)
+   m.execute(runner,(),parent,'owned-project')
+  self.assertIn('_nativeApplicationTypeCandidate',parent)
+  self.assertEqual(runner.native.call_count,2)
  def test_missing_prerequisites_reject_before_generation(self):
   with patch('canonical_native_final_sql.admit_forward'),patch('canonical_native_probe_cleanup.admit_completed'):
    with self.assertRaises(ValueError):m.admit(SimpleNamespace(),(),{})

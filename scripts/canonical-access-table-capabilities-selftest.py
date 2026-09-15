@@ -121,6 +121,11 @@ def rejected(candidate,setup_sql,restore_sql):
     if state()!=before:raise ValueError('FAILED_CANDIDATE_MUST_BE_ATOMIC')
     fixture.sql(restore_sql)
 
+def verify_forward_postcondition(expected):
+    from canonical_native_forward_runtime import assertion
+    if fixture.sql('select ('+assertion(9)+');') != ('t' if expected else 'f'):
+        raise ValueError('FORWARD_POSTCONDITION_REQUIRED')
+
 def run():
     if sys.argv[1:] not in ([],['--selection-only']):raise ValueError('NO_EXTERNAL_TARGET_OR_ACCEPTANCE_OPTIONS')
     candidate=selection()
@@ -131,7 +136,7 @@ def run():
     if fixture.sql("select count(*)=3 and bool_and(not rolsuper and not rolbypassrls and not rolcanlogin) from pg_roles where rolname in ('authenticated','service_role','anon')",admin=True)!='t':raise ValueError('FIXED_NONBYPASS_ROLES_REQUIRED')
     if fixture.sql("select not exists(select 1 from pg_auth_members where roleid='service_role'::regrole and member='authenticated'::regrole)",admin=True)!='t':raise ValueError('PREEXISTING_FIXTURE_ROLE_MEMBERSHIP_REFUSED')
     with fixture.owned_database():
-        setup();verify_reads_and_iud();verify_capabilities(True);verify_service_and_definer()
+        setup();verify_forward_postcondition(False);verify_reads_and_iud();verify_capabilities(True);verify_service_and_definer()
         rejected(candidate,'alter table public.user_roles rename to missing_last;','alter table public.missing_last rename to user_roles;')
         rejected(candidate,'alter table public.user_roles rename to original_last; create view public.user_roles as select * from public.original_last;',
           'drop view public.user_roles; alter table public.original_last rename to user_roles;')
@@ -149,7 +154,7 @@ def run():
                 before=state();fixture.sql(candidate,expected='55000')
                 if state()!=before:raise ValueError('INHERITED_AUTHORITY_MUST_ROLL_BACK')
             finally:fixture.sql('revoke service_role from authenticated;',admin=True)
-        before=state();fixture.sql(candidate);after=state();verify_delta(before,after)
+        before=state();fixture.sql(candidate);after=state();verify_delta(before,after);verify_forward_postcondition(True)
         verify_reads_and_iud();verify_capabilities(False);verify_service_and_definer()
         fixture.sql(candidate)
         if state()!=after:raise ValueError('REPEAT_MUST_PRESERVE_STATE')

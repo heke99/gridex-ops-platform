@@ -4,6 +4,8 @@ on:
     branches:
       - 'codex/ediel-masterplan-v2-alignment-20260915'
     paths:
+      - 'scripts/canonical_native_forward_runtime.py'
+      - 'scripts/canonical_forward_sources.py'
       - '.github/workflows/gridex-auth-email-action-domain-qualification.yml'
       - 'scripts/canonical-auth-email-action-domain-selftest.py'
       - 'scripts/canonical-composite-customer-fk-selftest.py'
@@ -16,6 +18,8 @@ on:
       - 'scripts/sql/forward-candidates/expand-auth-email-event-action-domain.sql'
   pull_request:
     paths:
+      - 'scripts/canonical_native_forward_runtime.py'
+      - 'scripts/canonical_forward_sources.py'
       - '.github/workflows/gridex-auth-email-action-domain-qualification.yml'
       - 'scripts/canonical-auth-email-action-domain-selftest.py'
       - 'scripts/canonical-composite-customer-fk-selftest.py'

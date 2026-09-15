@@ -8,6 +8,11 @@ on:
       - '.github/workflows/gridex-portable-invariants.yml'
       - 'scripts/canonical-portable-invariants-diagnostic.py'
       - 'scripts/test-canonical-portable-invariants.py'
+      - 'scripts/canonical_forward_sources.py'
+      - 'scripts/canonical_native_forward_runtime.py'
+      - 'scripts/canonical_native_final_sql.py'
+      - 'scripts/sql/tenant-isolation-invariants.sql'
+      - 'supabase/migrations/**'
 
 permissions:
   contents: read

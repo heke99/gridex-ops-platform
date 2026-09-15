@@ -32,6 +32,10 @@ def compare(runner, retained_forward, parent):
     removed_receipt = removed.validate_execution_receipt(parent.get('removedPolicyQualification'), native=True)
     import canonical_added_view_witness as views
     view_receipt = views.validate_execution_receipt(parent.get('addedViewSourceWitness'), native=True)
+    import canonical_changed_view_witness as changed_views
+    changed_view_receipt = changed_views.validate_execution_receipt(parent.get('changedViewSourceWitness'), native=True)
+    import canonical_changed_function_witness as functions
+    changed_function_receipt = functions.validate_execution_receipt(parent.get('changedFunctionBehaviorWitness'), native=True)
     module = load_comparator()
     raw = module.pinned()['supabase/schema.sql']
     before = runner.target.snapshot()
@@ -53,6 +57,8 @@ def compare(runner, retained_forward, parent):
                   policyActorQualification=actor_receipt,
                   removedPolicyQualification=removed_receipt,
                   addedViewSourceWitness=view_receipt,
+                  changedViewSourceWitness=changed_view_receipt,
+                  changedFunctionBehaviorWitness=changed_function_receipt,
                   syntheticLifecycleProbeStillPresent=any(
                       row["nspname"] == "public" and row["relname"] == "gridex_native_lifecycle_probe"
                       for row in actual["relations"]))

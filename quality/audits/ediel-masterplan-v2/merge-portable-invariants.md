@@ -75,3 +75,49 @@ shape or preservation failure retains the original rejected invariant receipt;
 it cannot approve SQL. Nine local tests PASS, including malformed/extra fields,
 count mismatches, changed state and failed supplement retaining the24-policy
 rejection. Actual identity projection still requires the next owned rerun.
+
+Actual identity run35002680872/job104494673280 atca4ab72a returns24 unique
+count-matched SHA256 table/policy pairs. Every pair matches exactly one authored
+full-row record in PR310_ADDED_POLICY_DISPOSITIONS_2026-09-15.json. Compiler names
+are independently reconstructed from the immutable md5 naming formula. All24
+are authenticated policies: four compiled permissive commands plus four
+restrictive lifecycle commands on each of inbound_ediel_match_attempts,
+inbound_ediel_parse_results and inbound_email_attachments. The exact mapping,
+source row hashes and derived definition fingerprints are recorded in
+inert-policy-identities.json. The unrelated suggested closed auth tables were
+not implicated and will not be changed.
+
+Confirmed cause: the third forward,20260915132224, correctly closes authenticated
+privileges according to20260904120000's service-only contract but preserves the
+now-inert client policies. The candidate removes only those24 exact identities;
+it requires exact definition/role hashes, closed anonymous/authenticated table
+and column DML (including inherited grants), ordinary RLS-enabled tables, no
+unexpected client/PUBLIC policies, and a whole24-or-zero set for repeat safety.
+All validation precedes removal inside one transaction and short owned locks.
+No privileges are added/revoked and all other policies/objects/rows remain.
+Existing267 removed-policy qualification identities have zero overlap with these
+three tables, independently checked by the schema agent; no set exception or
+policy-hash rewrite is needed.
+
+Candidate: scripts/sql/forward-candidates/drop-inert-inbound-client-policies.sql,
+SHA256 b04ce7766f0d3e4655778cdd6aa6fcde1bb3a0661867e381aa0939f015c9e2c1.
+It is not registered as a forward migration. New ownedPG17 qualification creates
+the exact source expression structures with synthetic helper signatures, executes
+the entire pinned prior revoke, requires F14 0→24, then24→0 after candidate,
+repeat equality and only24 catalog-policy removals with unchanged ACLs/rows.
+Seven negative shapes exercise reachable table/column/PUBLIC grants, changed
+roles/definitions, missing expected identity and unexpected client policy.
+Both clients must fail real DML with42501; service_role has NOBYPASSRLS and must
+retain real read/write access through the preserved service policy. Application
+helper semantics are explicitly outside this ACL-only qualification.
+
+Local source/admission/delta tests3 PASS and selection-only PASS. Actual owned
+PostgreSQL qualification, independent review and later full replay remain pending.
+
+The candidate qualification workflow includes pinned Supabase CLI2.101.0
+`migration new` after actual SQL qualification. It fills the genuine fresh file
+with exact candidate bytes, requires its timestamp to follow20260915174614,
+and uploads only that SQL file and the closed CLI receipt embedding the verified
+qualification fields. No local/manual timestamp promotion or remote database
+operation is performed. Independent review approved the bounded candidate/core
+harness; the final CLI receipt addition is separately under review.

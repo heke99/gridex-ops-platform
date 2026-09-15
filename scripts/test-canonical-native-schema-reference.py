@@ -26,6 +26,10 @@ class Tests(unittest.TestCase):
             catalogAndRowsPreserved=True,nativeTarget=True,ledgerProvenanceAccepted=False)
         import canonical_added_view_witness as views
         parent['addedViewSourceWitness']=views.expected_receipt(views.contract(views.retain(views.ROOT)),native=True)
+        import canonical_changed_view_witness as changed_views
+        parent['changedViewSourceWitness']=changed_views.expected_receipt(changed_views.contract(changed_views.retain(changed_views.ROOT)),native=True)
+        import canonical_changed_function_witness as functions
+        parent['changedFunctionBehaviorWitness']=functions.expected_receipt(native=True)
         import canonical_removed_policy_qualification as removed
         parent['removedPolicyQualification']={**removed.receipt_contract(native=True),
             **{key:'a'*64 for key in ('policyContextSha256','roleAndAclContextSha256','helperAndRpcContextSha256',
@@ -47,13 +51,16 @@ class Tests(unittest.TestCase):
         runner.unchanged.assert_called_once()
 
     def test_missing_final_sql_or_real_ledger_blocks_reference_restore(self):
-        for defect in ('checks', 'hash', 'ledger', 'actor', 'views', 'view_hash','removed','removed_count'):
+        for defect in ('checks', 'hash', 'ledger', 'actor', 'views', 'view_hash','changed_views','changed_view_hash','removed','removed_count','functions'):
             runner, parent, comparator = self.fixture()
             if defect == 'checks': parent['nativeFinalSql']['checks'].pop()
             if defect == 'hash': parent['nativeFinalSql']['checks'][0]['sourceSha256']='bad'
             if defect == 'actor': parent['policyActorQualification']={}
+            if defect == 'functions': parent['changedFunctionBehaviorWitness']={}
             if defect=='removed':parent['removedPolicyQualification']={}
             if defect=='removed_count':parent['removedPolicyQualification']['formulaComponentsProved']=74
+            if defect == 'changed_views': parent['changedViewSourceWitness']={}
+            if defect == 'changed_view_hash':parent['changedViewSourceWitness']['views'][-1]['relationSha256']='0'*64
             if defect == 'views': parent['addedViewSourceWitness']={}
             if defect == 'view_hash':parent['addedViewSourceWitness']['views'][-1]['relationSha256']='0'*64
             with patch('canonical_native_final_sql.admit_forward',side_effect=ValueError('ledger') if defect=='ledger' else None), patch.object(m,'load_comparator',return_value=comparator):

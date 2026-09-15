@@ -39,6 +39,12 @@ class OwnedTimestampTests(unittest.TestCase):
         tail.forward_retained = object()
         tail.actor_retained = object()
         tail.view_retained = object()
+        tail.changed_view_retained = object()
+        tail.changed_function_retained = object()
+        import canonical_changed_function_witness as functions
+        function_patch=patch.object(functions,'execute',return_value=functions.expected_receipt(native=False))
+        tail.changed_function_execute=function_patch.start()
+        self.addCleanup(function_patch.stop)
         tail.removed_policy_retained=object()
         import canonical_removed_policy_qualification as removed
         removed_receipt={**removed.receipt_contract(native=False),
@@ -63,6 +69,17 @@ class OwnedTimestampTests(unittest.TestCase):
         view_patch=patch('canonical_added_view_witness.execute',side_effect=witness)
         tail.view_execute=view_patch.start()
         self.addCleanup(view_patch.stop)
+        import canonical_changed_view_witness as views
+        changed_view_receipt=views.expected_receipt(views.contract(views.retain(ROOT)),native=False)
+        def witness(actual, retained, progress):
+            self.assertIs(actual,target)
+            self.assertIs(retained,tail.changed_view_retained)
+            self.assertTrue(progress['policyActorQualification']['verified'])
+            self.assertTrue(progress['removedPolicyQualification']['verified'])
+            return changed_view_receipt
+        changed_view_patch=patch('canonical_changed_view_witness.execute',side_effect=witness)
+        tail.changed_view_execute=changed_view_patch.start()
+        self.addCleanup(changed_view_patch.stop)
         import canonical_policy_actor_qualification as actors
         actor_receipt = dict(actors.expected_result(), source=actors.SOURCE, sourceSha256=actors.SOURCE_SHA256,
             completePolicyContextSha256='a'*64,catalogAndRowsPreserved=True,nativeTarget=False,ledgerProvenanceAccepted=False)
@@ -127,6 +144,30 @@ class OwnedTimestampTests(unittest.TestCase):
             else:
                 tail.view_execute.side_effect=None
                 tail.view_execute.return_value={}
+            with contextlib.redirect_stdout(io.StringIO()) as output:
+                with self.assertRaises(ValueError):tail.execute(loop,payload)
+            self.assertEqual(tail.state,'failed')
+            self.assertEqual(output.getvalue(),'')
+
+    def test_changed_view_failure_or_invalid_receipt_never_completes(self):
+        for fail in (True,False):
+            _,loop,tail,payload=self.fixture()
+            if fail:tail.changed_view_execute.side_effect=ValueError('view witness rejected')
+            else:
+                tail.changed_view_execute.side_effect=None
+                tail.changed_view_execute.return_value={}
+            with contextlib.redirect_stdout(io.StringIO()) as output:
+                with self.assertRaises(ValueError):tail.execute(loop,payload)
+            self.assertEqual(tail.state,'failed')
+            self.assertEqual(output.getvalue(),'')
+
+    def test_changed_function_failure_or_invalid_receipt_never_completes(self):
+        for fail in (True,False):
+            _,loop,tail,payload=self.fixture()
+            if fail:tail.changed_function_execute.side_effect=ValueError('view witness rejected')
+            else:
+                tail.changed_function_execute.side_effect=None
+                tail.changed_function_execute.return_value={}
             with contextlib.redirect_stdout(io.StringIO()) as output:
                 with self.assertRaises(ValueError):tail.execute(loop,payload)
             self.assertEqual(tail.state,'failed')

@@ -373,6 +373,10 @@ class OwnedTimestampTail:
         self.removed_policy_retained = removed.retain(ROOT)
         import canonical_added_view_witness as views
         self.view_retained = views.retain(ROOT)
+        import canonical_changed_view_witness as changed_views
+        self.changed_view_retained = changed_views.retain(ROOT)
+        import canonical_changed_function_witness as functions
+        self.changed_function_retained = functions.retain(ROOT)
         self.target = target
         self.state = 'prepared'
 
@@ -415,6 +419,14 @@ class OwnedTimestampTail:
             self.view_receipt = views.validate_execution_receipt(
                 views.execute(self.target, self.view_retained, progress), native=False)
             progress['addedViewSourceWitness'] = self.view_receipt
+            import canonical_changed_view_witness as changed_views
+            self.changed_view_receipt = changed_views.validate_execution_receipt(
+                changed_views.execute(self.target, self.changed_view_retained, progress), native=False)
+            progress['changedViewSourceWitness'] = self.changed_view_receipt
+            import canonical_changed_function_witness as functions
+            self.changed_function_receipt = functions.validate_execution_receipt(
+                functions.execute(self.target, self.changed_function_retained, progress), native=False)
+            progress['changedFunctionBehaviorWitness'] = self.changed_function_receipt
         except BaseException:
             self.state = 'failed'
             raise

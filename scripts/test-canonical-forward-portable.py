@@ -42,7 +42,7 @@ class PortableTests(unittest.TestCase):
     def test_registered_sources_execute_retained_bytes_and_repeat_without_nested_transaction(self):
         result, progress, calls = self.exercise()
         self.assertTrue(result['executed'])
-        self.assertEqual(result['inputsExecuted'],7)
+        self.assertEqual(result['inputsExecuted'],9)
         self.assertFalse(result['ledgerProvenanceVerified'])
         self.assertFalse(result['schemaAccepted'])
         source_calls=[c for c in calls if c[2].startswith(('forward_source_','forward_repeat_'))]

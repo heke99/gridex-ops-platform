@@ -263,11 +263,11 @@ class CliNetworkTests(unittest.TestCase):
                             ('--network-id','bridge','db','start')]:
                 with self.assertRaisesRegex(ValueError,'FIXED_NATIVE_CLI_COMMAND_REQUIRED'):
                     transport.cli_command(cli,work,PROJECT,command)
-            for ordinal in (1,2,3,4,5,6,7):
+            for ordinal in (1,2,3,4,5,6,7,8,9):
                 name=f'gridex_native_forward_{ordinal:02d}_'+'a'*12
                 result=transport.cli_command(cli,work,PROJECT,('migration','new',name))
                 self.assertEqual(result[-3:],['migration','new',name])
-            for name in ('gridex_native_forward_08_'+'a'*12,'gridex_native_forward_1_'+'a'*12,
+            for name in ('gridex_native_foundation_08_'+'a'*12,'gridex_native_forward_10_'+'a'*12,'gridex_native_forward_1_'+'a'*12,
                          'gridex_native_forward_01_'+'a'*11,'gridex_native_forward_01_'+'a'*13):
                 with self.assertRaisesRegex(ValueError,'FIXED_NATIVE_CLI_COMMAND_REQUIRED'):
                     transport.cli_command(cli,work,PROJECT,('migration','new',name))

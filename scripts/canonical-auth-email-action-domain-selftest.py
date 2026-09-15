@@ -150,6 +150,11 @@ def rejected(candidate,setup_sql,restore_sql):
     fixture.sql(restore_sql)
 
 
+def verify_forward_postcondition(expected):
+    from canonical_native_forward_runtime import assertion
+    if fixture.sql('select ('+assertion(8)+');') != ('t' if expected else 'f'):
+        raise ValueError('FORWARD_POSTCONDITION_REQUIRED')
+
 def run():
     if sys.argv[1:] not in ([],['--selection-only']):raise ValueError('NO_EXTERNAL_TARGET_OR_SQL_OPTIONS')
     candidate=selection()
@@ -165,7 +170,7 @@ def run():
     if fixture.sql("select count(*)=3 and bool_and(not rolsuper and not rolbypassrls and not rolcanlogin) from pg_roles where rolname in ('authenticated','service_role','anon')",admin=True)!='t':
         raise ValueError('FIXED_NONBYPASS_ROLES_REQUIRED')
     with fixture.owned_database():
-        setup();before=state()
+        setup();verify_forward_postcondition(False);before=state()
         for value in ADDED:
             fixture.sql(f"begin; set local role service_role; insert into public.auth_email_events(id,action) values(100,'{value}'); rollback;",expected='23514')
             if state()!=before:raise ValueError('OLD_DOMAIN_REJECTION_PRESERVATION_REQUIRED')
@@ -196,7 +201,7 @@ def run():
         injected=candidate.replace('\ncommit;\n',"\ndo $fault$ begin raise exception using errcode='ZX001',message='fixture rollback'; end $fault$;\ncommit;\n")
         fixture.sql(injected,expected='ZX001')
         if state()!=before:raise ValueError('POST_DDL_ROLLBACK_REQUIRED')
-        fixture.sql(candidate);after=state();verify_delta(before,after)
+        fixture.sql(candidate);after=state();verify_delta(before,after);verify_forward_postcondition(True)
         for value,expected in (("'unknown_action'",'23514'),('null','23502')):
             fixture.sql(f'begin; set local role service_role; insert into public.auth_email_events(id,action) values(100,{value}); rollback;',expected=expected)
             if state()!=after:raise ValueError('INVALID_ACTION_MUST_PRESERVE_STATE')

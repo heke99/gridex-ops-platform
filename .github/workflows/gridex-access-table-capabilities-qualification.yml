@@ -4,6 +4,8 @@ on:
     branches:
       - 'codex/ediel-masterplan-v2-alignment-20260915'
     paths:
+      - 'scripts/canonical_native_forward_runtime.py'
+      - 'scripts/canonical_forward_sources.py'
       - '.github/workflows/gridex-access-table-capabilities-qualification.yml'
       - 'scripts/canonical-access-table-capabilities-selftest.py'
       - 'scripts/test_canonical_access_table_capabilities.py'
@@ -17,6 +19,8 @@ on:
       - 'scripts/test_canonical_composite_customer_fk_selftest.py'
   pull_request:
     paths:
+      - 'scripts/canonical_native_forward_runtime.py'
+      - 'scripts/canonical_forward_sources.py'
       - '.github/workflows/gridex-access-table-capabilities-qualification.yml'
       - 'scripts/canonical-access-table-capabilities-selftest.py'
       - 'scripts/test_canonical_access_table_capabilities.py'

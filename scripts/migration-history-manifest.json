@@ -444,7 +444,9 @@
     "20260910140053_canonical_auth_provisioning_legacy_boundary.sql": "fcc6594b1b312e139ac094b811fee9395ee6ab780144d14d1c19e0c178a28983",
     "20260915140647_restrict_remaining_rls_table_truncate.sql": "cf85df9d7339e5368ceac7567b720dfa26cc2bf51fe2cd0f19b79b3af7eaab2b",
     "20260915144319_restrict_ediel_send_lock_client_writes.sql": "411df92fc01f8b84dd9a83600464594e76a4841d48928d52dfadfd97b3177705",
-    "20260915172543_preserve_retained_customer_history_on_delete.sql": "00f8a844fc5c72274d697558d57f216acf56388b6d36f6aad6063ca255283734"
+    "20260915172543_preserve_retained_customer_history_on_delete.sql": "00f8a844fc5c72274d697558d57f216acf56388b6d36f6aad6063ca255283734",
+    "20260915174610_expand_auth_email_event_action_domain.sql": "69b8d5693f586209f37950be866e3f3dd8e5d910408c34ed9cb075daab85407c",
+    "20260915174614_restrict_access_table_capabilities.sql": "ddee41e3266948eef7f9082b331f873823602266448efe7cabcb03fdb3566683"
   },
   "generatedAt": "2026-08-04T07:35:00.000Z",
   "schemaVersion": 1
