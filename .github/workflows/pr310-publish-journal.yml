@@ -1,0 +1,103 @@
+name: PR310 exact journal ACL publication
+on:
+  push:
+    branches: [codex/pr310-publish-journal-acl-20260915]
+permissions:
+  contents: write
+jobs:
+  verify-and-publish-candidate:
+    if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/codex/pr310-publish-journal-acl-20260915'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gridex_auth_test
+        ports: ['55440:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d gridex_auth_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a59e0ce6aae821955cf5b07eb1e32598addd4144
+      - name: Apply only the reviewed hash-bound patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = a59e0ce6aae821955cf5b07eb1e32598addd4144
+          cat > "$RUNNER_TEMP/journal.patch.gz.b64" <<'PATCH'
+          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
+          PATCH
+          base64 --decode "$RUNNER_TEMP/journal.patch.gz.b64" | gzip -d > "$RUNNER_TEMP/journal.patch"
+          echo "679f8235c971303d401262d1792fbdd969728ce1e09147bfab45c6cc1569d98a  $RUNNER_TEMP/journal.patch" | sha256sum -c -
+          git apply --check "$RUNNER_TEMP/journal.patch"
+          git apply "$RUNNER_TEMP/journal.patch"
+      - name: Verify exact ACL and rejection controls on actual PostgreSQL17
+        run: python3 -B scripts/canonical-journal-acl-selftest.py
+      - name: Verify the complete unchanged governance fixture
+        run: python3 -B scripts/canonical-blocker-diagnostics.py auth
+      - name: Publish only the exact verified candidate, never main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git add scripts/canonical_full_governance_sql.py scripts/canonical_journal_acl.py scripts/canonical-journal-acl-selftest.py
+          test "$(git write-tree)" = 3d6fafc0d2bda182641a0b747b18505e28f3f698
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix(db): verify journal against exact managed PG17 ACL'
+          git push origin HEAD:refs/heads/codex/pr310-journal-acl-verified-20260915
+          printf 'commit=%s\ntree=%s\nparent=a59e0ce6aae821955cf5b07eb1e32598addd4144\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" > artifacts/journal-publication.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gridex-journal-acl-publication
+          path: |
+            artifacts/blocker-auth.json
+            artifacts/journal-publication.txt
+          if-no-files-found: error
+          retention-days: 7
