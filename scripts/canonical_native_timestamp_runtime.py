@@ -72,6 +72,53 @@ def ledger_guard(name, assertion):
             "SELECT pg_catalog.to_json(true); COMMIT;")
 
 
+def verify_foundation_end(end):
+    if (end.get('executed') is not True or end.get('foundationInputsExecuted')!=67
+            or end.get('residualInputsExecuted')!=7 or end.get('cumulativeFoundationInputsExecuted')!=144
+            or len(end.get('groups',[]))!=7 or end.get('supportSha256')!=foundation.SUPPORT_PINS):
+        raise ValueError('NATIVE_TIMESTAMP_FOUNDATION_REQUIRED')
+    for current, old in zip(foundation.prepare(),end['groups']):
+        cases = old.get('cases',[])
+        modes = ([('portable','55000')] if current.index==7 else [])+[
+                 ('mid','P1480'),('post','P1481'),('ledger','P1482')]
+        sources = [{**s.receipt(),'nativeExecutionBodySha256':p.sha(foundation.native_body(s)),
+                    'nativeEnvironmentAdmissionTransferred':s.source==foundation.DB2_PREFLIGHT}
+                   for s in current.steps]
+        if (old.get('index')!=current.index or old.get('kind')!=current.kind
+                or any(old.get(k) is not True for k in ('executed','noOpRepeatVerified',
+                    'unchangedEarlierLedger','canonicalUnitAtomic','transactionControlsVerified'))
+                or [c.get('expectedSqlstate') for c in cases]!=[code for _,code in modes]
+                or any(c.get('programSha256')!=p.sha(foundation.render(current,failure=mode).sql)
+                       for c,(mode,_) in zip(cases,modes))
+                or any(c.get('catalogAndRowsRestored') is not True or c.get('ledgerUnchanged') is not True for c in cases)
+                or old.get('programSha256')!=p.sha(foundation.render(current).sql)
+                or old.get('sources')!=sources):
+            raise ValueError('NATIVE_TIMESTAMP_FOUNDATION_REQUIRED')
+
+
+def read_predecessor_ledger(sql,directory,units):
+    actual = sql(p.LEDGER_SQL)
+    if (len(units)!=65 or directory.resolve()!=directory or not directory.is_dir() or directory.stat().st_mode&0o077
+            or type(actual) is not list or len(actual)!=65
+            or len({u['cliFile'] for u in units})!=65
+            or [e['version'] for e in actual]!=sorted({e['version'] for e in actual})
+            or {f.name for f in directory.iterdir()}!={u['cliFile'] for u in units}):
+        raise ValueError('NATIVE_TIMESTAMP_FOUNDATION_REQUIRED')
+    retained = []
+    for entry,u in zip(actual,units):
+        path = directory/u['cliFile']
+        if path.parent!=directory or not path.is_file() or path.is_symlink():
+            raise ValueError('NATIVE_TIMESTAMP_FOUNDATION_REQUIRED')
+        raw = path.read_bytes(); stat = path.lstat(); identity = (stat.st_dev,stat.st_ino)
+        p.verify_private(path,raw,identity)
+        if p.sha(raw)!=u['programSha256']: raise ValueError('NATIVE_TIMESTAMP_FOUNDATION_REQUIRED')
+        p.verify_entry(entry,path.name,SimpleNamespace(name=entry['name'],sql=raw))
+        if 'ledgerStatementsSha256' in u and p.sha(json.dumps(entry['statements'],separators=(',',':')).encode())!=u['ledgerStatementsSha256']:
+            raise ValueError('NATIVE_TIMESTAMP_FOUNDATION_REQUIRED')
+        retained.append((path,raw,identity))
+    return copy.deepcopy(actual),retained
+
+
 def predecessor(sql, work, parent):
     last = parent.get('historicalFoundation144', {})
     required = {'historicalLegacy52': 52, 'historicalRepair56': 56, 'historicalDedupe57': 57,
@@ -102,31 +149,10 @@ def predecessor(sql, work, parent):
              parent['historicalAlignment68'], *parent['historicalOperations77']['groups'], *last['groups']]
     if len(first) != 43 or len(units) != 65:
         raise ValueError('NATIVE_TIMESTAMP_FOUNDATION_REQUIRED')
-    for group, receipt in zip(foundation.prepare(), last['groups']):
-        if receipt['programSha256'] != p.sha(foundation.render(group).sql):
-            raise ValueError('NATIVE_TIMESTAMP_FOUNDATION_REQUIRED')
+    verify_foundation_end(last)
     directory = work / 'supabase/migrations'
-    if (directory.resolve() != directory or not directory.is_dir() or directory.stat().st_mode & 0o077
-            or {path.name for path in directory.iterdir()} != {u['cliFile'] for u in units}):
-        raise ValueError('NATIVE_TIMESTAMP_FOUNDATION_REQUIRED')
-    actual = sql(p.LEDGER_SQL)
-    if type(actual) is not list or len(actual) != len(units):
-        raise ValueError('NATIVE_TIMESTAMP_FOUNDATION_REQUIRED')
-    retained = []
-    for entry, unit in zip(actual, units):
-        path = directory / unit['cliFile']
-        if path.is_symlink() or not path.is_file():
-            raise ValueError('NATIVE_TIMESTAMP_FOUNDATION_REQUIRED')
-        raw = path.read_bytes(); meta = path.stat(); physical = (meta.st_dev, meta.st_ino)
-        p.verify_private(path, raw, physical)
-        if p.sha(raw) != unit['programSha256']:
-            raise ValueError('NATIVE_TIMESTAMP_FOUNDATION_REQUIRED')
-        p.verify_entry(entry, path.name, SimpleNamespace(name=entry['name'], sql=raw))
-        if ('ledgerStatementsSha256' in unit and p.sha(json.dumps(entry['statements'], separators=(',', ':')).encode())
-                != unit['ledgerStatementsSha256']):
-            raise ValueError('NATIVE_TIMESTAMP_FOUNDATION_REQUIRED')
-        retained.append((path, raw, physical))
-    return directory, copy.deepcopy(actual), retained
+    actual, retained = read_predecessor_ledger(sql, directory, units)
+    return directory, actual, retained
 
 
 class Runner:

@@ -176,4 +176,108 @@ class RuntimeTests(unittest.TestCase):
                 runner.repeat()
 
 
+class FoundationReceipt(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.m=importlib.import_module('canonical_native_timestamp_runtime')
+        cls.groups=cls.m.foundation.prepare()
+        cls.end=dict(executed=True,foundationInputsExecuted=67,residualInputsExecuted=7,
+                     cumulativeFoundationInputsExecuted=144,supportSha256=dict(cls.m.foundation.SUPPORT_PINS),groups=[])
+        for g in cls.groups:
+            modes=(('portable','55000'),) if g.index==7 else ()
+            modes+=(('mid','P1480'),('post','P1481'),('ledger','P1482'))
+            cls.end['groups'].append(dict(index=g.index,kind=g.kind,executed=True,noOpRepeatVerified=True,
+                unchangedEarlierLedger=True,canonicalUnitAtomic=True,transactionControlsVerified=True,
+                cases=[dict(expectedSqlstate=code,catalogAndRowsRestored=True,ledgerUnchanged=True,
+                            programSha256=cls.m.p.sha(cls.m.foundation.render(g,failure=mode).sql))
+                       for mode,code in modes],
+                programSha256=cls.m.p.sha(cls.m.foundation.render(g).sql),
+                sources=[{**s.receipt(),'nativeExecutionBodySha256':cls.m.p.sha(cls.m.foundation.native_body(s)),
+                          'nativeEnvironmentAdmissionTransferred':s.source==cls.m.foundation.DB2_PREFLIGHT}
+                         for s in g.steps]))
+
+    def test_full_seven_group_receipt_matches_current_programs(self):
+        self.m.verify_foundation_end(self.end)
+
+    def test_wrong_control_program_hash_fails_even_with_matching_sqlstate(self):
+        for index in range(7):
+            value=copy.deepcopy(self.end)
+            value['groups'][index]['cases'][0]['programSha256']='0'*64
+            with self.subTest(group=index+1):
+                with self.assertRaises(ValueError): self.m.verify_foundation_end(value)
+
+    def test_changed_source_receipts_and_support_pins_are_rejected(self):
+        for index, group in enumerate(self.end['groups']):
+            for offset in range(len(group['sources'])):
+                value = copy.deepcopy(self.end)
+                value['groups'][index]['sources'][offset]['sourceSha256'] = '0' * 64
+                with self.subTest(group=index + 1, source=offset):
+                    with self.assertRaises(ValueError): self.m.verify_foundation_end(value)
+        value = copy.deepcopy(self.end)
+        value['supportSha256'] = {}
+        with self.assertRaises(ValueError): self.m.verify_foundation_end(value)
+
+    def test_missing_or_unproved_failure_case_is_rejected(self):
+        for index in range(7):
+            for field in ('catalogAndRowsRestored', 'ledgerUnchanged'):
+                value = copy.deepcopy(self.end)
+                value['groups'][index]['cases'][0][field] = False
+                with self.assertRaises(ValueError): self.m.verify_foundation_end(value)
+            value = copy.deepcopy(self.end)
+            value['groups'][index]['cases'].pop()
+            with self.assertRaises(ValueError): self.m.verify_foundation_end(value)
+
+    def test_missing_group7_or_incomplete_rollback_evidence_is_rejected(self):
+        for field in ('executed','noOpRepeatVerified','unchangedEarlierLedger','canonicalUnitAtomic','transactionControlsVerified'):
+            value=copy.deepcopy(self.end);value['groups'][-1][field]=False
+            with self.assertRaises(ValueError): self.m.verify_foundation_end(value)
+        value=copy.deepcopy(self.end);value['groups'].pop()
+        with self.assertRaises(ValueError): self.m.verify_foundation_end(value)
+
+
+class LedgerReadback(unittest.TestCase):
+    def exercise(self, fault=None):
+        from datetime import datetime,timedelta
+        m=importlib.import_module('canonical_native_timestamp_runtime');p=m.p
+        with tempfile.TemporaryDirectory() as root:
+            directory=Path(root);directory.chmod(0o700);units=[];entries=[]
+            for i in range(65):
+                version=(datetime(2026,9,15,12)+timedelta(seconds=i)).strftime('%Y%m%d%H%M%S')
+                name=f'prior_{i:02d}';body=f'SELECT {i};'.encode();filename=f'{version}_{name}.sql'
+                path=directory/filename;path.write_bytes(body);path.chmod(0o600)
+                statements=[f'SELECT {i}']
+                units.append(dict(cliFile=filename,programSha256=p.sha(body),
+                                  ledgerStatementsSha256=p.sha(json.dumps(statements,separators=(',',':')).encode())))
+                entries.append(dict(version=version,name=name,statements=statements))
+            target=directory/units[24]['cliFile']
+            if fault=='statements':entries[24]['statements']=['SELECT 999']
+            if fault=='bytes':target.write_bytes(b'SELECT 999;')
+            if fault=='hash':units[24]['programSha256']='0'*64
+            if fault=='ledger_hash':units[24]['ledgerStatementsSha256']='0'*64
+            if fault=='mode':target.chmod(0o644)
+            if fault=='symlink':target.unlink();target.symlink_to(directory/units[0]['cliFile'])
+            if fault=='extra':(directory/'unadmitted.sql').write_bytes(b'SELECT 1;')
+            if fault=='missing':entries.pop()
+            if fault=='order':entries[1],entries[2]=entries[2],entries[1]
+            if fault=='duplicate':entries[24]=copy.deepcopy(entries[23])
+            if fault=='duplicate_units':
+                target.unlink();entries[24]=copy.deepcopy(entries[23]);units[24]=copy.deepcopy(units[23])
+            if fault=='short_units':units.pop()
+            def sql(query):
+                self.assertEqual(query,p.LEDGER_SQL)
+                return copy.deepcopy(entries)
+            if fault:
+                with self.assertRaises(ValueError): m.read_predecessor_ledger(sql,directory,units)
+            else:
+                actual,retained=m.read_predecessor_ledger(sql,directory,units)
+                self.assertEqual(len(retained),65)
+                self.assertEqual(actual,entries)
+                for item in retained:p.verify_private(*item)
+
+    def test_all65_files_and_statements_are_read_back(self): self.exercise()
+    def test_earlier_ledger_or_file_mutations_are_rejected(self):
+        for fault in ('statements','bytes','hash','ledger_hash','mode','symlink','extra','missing','order','duplicate','duplicate_units','short_units'):
+            with self.subTest(fault=fault): self.exercise(fault)
+
+
 if __name__ == '__main__': unittest.main()

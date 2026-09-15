@@ -199,3 +199,14 @@ foundation144+7 independently verified at ec503 diagnostic10394223040; timestamp
 SQL/full acceptance remains pending. Foundation qualification admission, extended
 snapshots and ledger-readiness proofs remain OPEN. No production/reference/main
 change. See quality/audits/PR310_NATIVE_TIMESTAMP_TRANSPORT_2026-09-15.md.
+
+## 2026-09-15 — complete native foundation admission
+
+Publication base82cb5d0018028364cf17713e495d37c8f9f6749d. Preserved exact prior
+history and reused the reviewed T53 predecessor helpers without its superseded
+executor. Current runtime now checks all seven groups' source/program/control
+receipts and65 unique ordered ledger files/statements. Nineteen runtime tests
+pass. The actual ec503 artifact passes admission; seven altered control hashes
+reject before ledger readback. Full514/schema/types/CI/E2E acceptance remains
+unproved; snapshot and ledger-readiness qualification findings remain open.
+Evidence: quality/audits/PR310_NATIVE_FOUNDATION_ADMISSION_2026-09-15.md.

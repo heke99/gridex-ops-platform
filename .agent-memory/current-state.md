@@ -4,25 +4,29 @@ Status: PARTIAL
 
 ## Active work and exact next action
 
-Current publication base f5a5fa88e2e6271f4f644013206fc4996bf8b3dd; exact tree
-3f59f3c00bb4bd56d2c9180c94b553194a3045fc. Preserve full514 integration335f987f,
-ledger diagnostic fixture correctionbebe77a1 and continuity correctionf5a5fa88.
-Overlapping local T53 and fixture/continuity drafts were superseded and stashed.
+Current publication base 82cb5d0018028364cf17713e495d37c8f9f6749d; exact tree
+88c10adb770d49dbde4c3a52b4748984dc453d72. GitHub branch and PR readback confirm
+publication. Preserve full514 integration335f987f, fixturebebe77a1, continuityf5a5fa88
+and psql explicit-stdin transport82cb5d0. Overlapping drafts remain stashed.
 No history replacement, force push or partial-PR merge.
 
-Active correction: native timestamp proof transport supplied bare stdin to
-psql --single-transaction without required -c/-f. Add only -f - so private SQL
-is an explicit stdin script. transaction=False stays unwrapped. Exact argument
-regression was RED before correction; all16 proof tests now PASS. Independent
-review approved this transport correction. Actual new-head SQL is pending.
-Receipt: quality/audits/PR310_NATIVE_TIMESTAMP_TRANSPORT_2026-09-15.md.
+Active correction: admit the complete foundation qualification before timestamp
+execution. Reuse the preserved reviewed predecessor helpers from the superseded
+T53 draft; do not restore its partial executor. Match all seven group programs,
+negative-control programs and SQLSTATEs, all source/native-body receipts, support
+pins and rollback/repeat flags. Read back65 unique ordered real ledger rows and
+private CLI files. All19 runtime tests PASS, including74 source mutations and12
+ledger/file mutation modes. The real ec503 diagnostic artifact passes current
+admission; changing each group's control hash rejects before database readback.
+Receipt: quality/audits/PR310_NATIVE_FOUNDATION_ADMISSION_2026-09-15.md.
 
-Publish this reviewed descendant, inspect actual CI, then close three OPEN
-full-tail review findings: complete foundation control-program/source receipt
-admission; snapshot coverage of source-modified schemas/extensions/types/event
-triggers; execution/recording of all LEDGER_DEPENDENT_READINESS requirements.
-Do not accept unproved qualifications. Then genuine full native replay/schema/
-types/CI/E2E/review before whole-PR merge and main verification.
+Publish the reviewed descendant and inspect its actual CI. Remaining OPEN review
+findings: timestamp catalog/row coverage for private schemas/extensions/types/
+event triggers; execute and record all LEDGER_DEPENDENT_READINESS qualifications.
+Readiness qualification must verify real ledger truth, not invent historical
+aliases or require blocked deployment readiness to become true. Then genuine
+full native replay/schema/types/CI/E2E/review before whole-PR merge and main
+verification. Current82cb full schema and full E2E are red; native SQL is pending.
 
 Freshly verified ec503 diagnostic34960996805/job104354284703/artifact10394223040
 proves144 foundation+7 residual, all7 canonical groups with real CLI statement
