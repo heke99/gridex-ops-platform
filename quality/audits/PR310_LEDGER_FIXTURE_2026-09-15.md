@@ -34,3 +34,18 @@ were still in progress when inspected. Auth remains preserved; no production
 mutation, deployment, main merge or schema/type acceptance is claimed.
 
 Independent scoped code review: no findings. Reviewed actual failure/catch/privacy/cleanup path; production preflight and every assertion retained.
+
+## Subsequent publication and native receipt
+
+Published bebe77a1 exact treecbb1e179290e87cb0751cceb668acd704a50889f;
+current-head native job104363322072 passes the previously failing offline step.
+Actual previous ordinary native run34960996690/job104354284197 completed all144
+foundation and7 residual inputs, all group CLI ledger/negative/repeat controls.
+Group7 passes55000,P1480,P1481,P1482 with restored catalog/rows and unchanged
+ledger. Verified artifact10393844978 digest557fc15953fa17c9bcc200e8ecaaac2ea1de8a0ef3f49bfae2106bb58842c9f4.
+Full acceptance remains intentionally false; latest timestamp SQL is pending.
+
+Separate verify104361914531 failure reproduced locally: current-state wording
+violated exact existing markers derived from real accounting601 and focused347.
+Restored those truthful summaries and required safety/action markers. No test or
+accounting value changed. canonical-auth-membership-group-selftest.py then PASS.

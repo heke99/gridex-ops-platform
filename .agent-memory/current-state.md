@@ -19,8 +19,24 @@ ledger8, timestamp compiler12, lifecycle15 and bootstrap14 tests PASS (49 total)
 Native clean104361913858/current OPS34963346262 and older clean104354284197
 remain in progress at this observation. Full native acceptance is pending.
 
-Next: publish the reviewed fixture correction on this same PR, read actual native
-and FK SQL receipts, then continue schema reconciliation and genuine typegen.
+Fixture correction published atbebe77a10dfbda76a6583b53e78372699c1836c5 with
+exact local/remote treecbb1e179290e87cb0751cceb668acd704a50889f. On that head,
+native lifecycle job104363322072 passed the previously failing test step.
+
+Fresh OPS335f987f verify104361914531 revealed a separate continuity-text failure:
+current-state wording no longer matches the actual-accounting assertions. Restore
+the exact existing truthful601/347 summaries and required safety/next-action
+markers; do not change accounting values or remove assertions.
+
+Completed ordinary ec503fc7 run34960996690/job104354284197 proves all144
+foundation inputs and all7 residuals; all7 groups have real CLI ledger statements,
+negative controls, unchanged earlier ledger and no-op repeat. Group7 passes55000,
+P1480/P1481/P1482 with catalog/row restoration. Artifact10393844978 ZIP SHA256
+557fc15953fa17c9bcc200e8ecaaac2ea1de8a0ef3f49bfae2106bb58842c9f4 verified.
+Its final rejection is NATIVE_LATER_ENVELOPES_AND_FULL_ACCEPTANCE_REQUIRED,
+not a group7 failure. Native timestamp execution/current-head final gates remain
+pending. Next: publish verified continuity correction, collect native/FK SQL
+results, then source-causal schema reconciliation and genuine types.
 Receipt: quality/audits/PR310_LEDGER_FIXTURE_2026-09-15.md.
 
 The compiler prepares all522 possible units before creating the target. T201/202
@@ -57,10 +73,9 @@ no formal reviews/threads returned. Never infer acceptance from these facts.
 
 Current-base auth diagnostic34960996805/job104354284392 is SUCCESS; actual logs
 include complete fixture and all eight exact journal rejection/rollback controls.
-Native job104354284703 is still running at this checkpoint. Its predecessor
-artifact proved322 trailing ASCII spaces by exact426-byte header SHA; the parser
-repair preserves single-primary/code/stage/reason matching. Group7 SQL is not
-yet accepted in this checkpoint.
+Group7 native execution is now verified by the completed ordinary receipt above.
+All144+7 source execution is proved; full source/schema acceptance is separate.
+The parser repair retains single-primary/code/stage/reason matching.
 
 Full portable schema artifact10371643836 confirms144+514 execution before red
 diff. Two missing FKs are confirmed skipped-inline-reference effects. Seven
@@ -71,7 +86,10 @@ No production mutation, deployment, main merge or whole-replay acceptance claime
 
 ## Continuity contract
 
-Existing working-tree accounting remains601 inputs:589 FULL_FILE_SELECTED,
-2 SUBSTITUTED,5 UNCLASSIFIED,5 EXPLICITLY_EXCLUDED. Focused347:335 selected,
-2 substituted,5 unclassified,5 excluded. The staged FK draft is outside this
-historical selector until separately admitted. Push reviewed coherent batches.
+Working-tree accounting is 601 inputs: 589 `FULL_FILE_SELECTED`, 2 `SUBSTITUTED`, 5 `UNCLASSIFIED`, and 5 `EXPLICITLY_EXCLUDED`.
+
+The focused group contains 347 inputs: 335 selected, 2 substituted, 5 unclassified, and 5 excluded.
+
+The staged FK draft remains outside the historical selector until separately admitted.
+No production mutation has been performed in this replay-verification batch.
+Push reviewed, coherent batches stepwise as requested.

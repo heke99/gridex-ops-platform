@@ -187,3 +187,5 @@ Publication base ec503fc7;258 fresh local tests PASS. Native source/phase/CLI le
 ## 2026-09-15 — native ledger diagnostic fixture
 
 Actual335f987f job104361913787 fails two diagnostics because the timestamp selector is intercepted by the fixture subprocess mock. Reproduced2 errors, corrected fixture-only actual-plan preparation, ledger8/compiler12/lifecycle15/bootstrap14 PASS. Native SQL remains pending. See quality/audits/PR310_LEDGER_FIXTURE_2026-09-15.md.
+
+2026-09-15: bebe77a1 published/readback exact; native local-control CI step PASS. Actual ec503fc7 ordinary native144+7 ledger/negative/repeat proof verified from artifact10393844978; full acceptance false. Separate continuity-summary failure reproduced and corrected to actual601/347 values; canonical-auth-membership-group-selftest PASS. See PR310_LEDGER_FIXTURE receipt.
