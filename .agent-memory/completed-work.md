@@ -150,3 +150,13 @@ Publication base ec503fc7;258 fresh local tests PASS. Native source/phase/CLI le
 Actual335f987f job104361913787 fails two diagnostics because the timestamp selector is intercepted by the fixture subprocess mock. Reproduced2 errors, corrected fixture-only actual-plan preparation, ledger8/compiler12/lifecycle15/bootstrap14 PASS. Native SQL remains pending. See quality/audits/PR310_LEDGER_FIXTURE_2026-09-15.md.
 
 2026-09-15: bebe77a1 published/readback exact; native local-control CI step PASS. Actual ec503fc7 ordinary native144+7 ledger/negative/repeat proof verified from artifact10393844978; full acceptance false. Separate continuity-summary failure reproduced and corrected to actual601/347 values; canonical-auth-membership-group-selftest PASS. See PR310_LEDGER_FIXTURE receipt.
+
+## 2026-09-15 — native timestamp psql stdin contract
+
+Preserved concurrent335f987f/bebe77a1/f5a5fa88 exactly. Overlapping drafts stashed.
+Independent review found psql --single-transaction lacked required -c/-f; narrow
+-f - correction and exact two-mode regression pass all16 proof tests. Native
+foundation144+7 independently verified at ec503 diagnostic10394223040; timestamp
+SQL/full acceptance remains pending. Foundation qualification admission, extended
+snapshots and ledger-readiness proofs remain OPEN. No production/reference/main
+change. See quality/audits/PR310_NATIVE_TIMESTAMP_TRANSPORT_2026-09-15.md.

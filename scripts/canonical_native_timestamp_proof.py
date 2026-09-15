@@ -87,7 +87,7 @@ class NativeTimestampTarget:
             raise ValueError('NATIVE_TIMESTAMP_CLONE_OWNERSHIP')
         args = ['docker', 'exec', '-i', '-e', 'PGOPTIONS=-c search_path=public,extensions',
                 self.name, 'psql', '-X', '-U', 'postgres', '-d', database,
-                '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=verbose', '-qAt']
+                '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=verbose', '-qAt', '-f', '-']
         if transaction:
             args.append('--single-transaction')
         return args

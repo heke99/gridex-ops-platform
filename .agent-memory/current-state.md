@@ -4,40 +4,34 @@ Status: PARTIAL
 
 ## Active work and exact next action
 
-Current GitHub head335f987f0662da09e43eaf6cbd96158d657c9831 already publishes
-all514 timestamp integration and the staged FK qualification. The retained local
-batch exactly matches published tree550bdf91229481a5881a250a3f2ff3ab24476749.
-Do not republish or rebuild that integration or the approved auth correction.
+Current publication base f5a5fa88e2e6271f4f644013206fc4996bf8b3dd; exact tree
+3f59f3c00bb4bd56d2c9180c94b553194a3045fc. Preserve full514 integration335f987f,
+ledger diagnostic fixture correctionbebe77a1 and continuity correctionf5a5fa88.
+Overlapping local T53 and fixture/continuity drafts were superseded and stashed.
+No history replacement, force push or partial-PR merge.
 
-Active bounded correction: native lifecycle job104361913787/run34963346302
-fails two ledger diagnostic tests before SQL. New timestamp preparation runs
-inside the fixture's global subprocess mock, so the exact input selector never
-writes its accounting files. Compile the actual plan before entering that mock,
-then retain it for the diagnostic fixture. Production preflight and every failure,
-privacy and cleanup assertion remain unchanged. Red reproduction2 errors; fresh
-ledger8, timestamp compiler12, lifecycle15 and bootstrap14 tests PASS (49 total).
-Native clean104361913858/current OPS34963346262 and older clean104354284197
-remain in progress at this observation. Full native acceptance is pending.
+Active correction: native timestamp proof transport supplied bare stdin to
+psql --single-transaction without required -c/-f. Add only -f - so private SQL
+is an explicit stdin script. transaction=False stays unwrapped. Exact argument
+regression was RED before correction; all16 proof tests now PASS. Independent
+review approved this transport correction. Actual new-head SQL is pending.
+Receipt: quality/audits/PR310_NATIVE_TIMESTAMP_TRANSPORT_2026-09-15.md.
 
-Fixture correction published atbebe77a10dfbda76a6583b53e78372699c1836c5 with
-exact local/remote treecbb1e179290e87cb0751cceb668acd704a50889f. On that head,
-native lifecycle job104363322072 passed the previously failing test step.
+Publish this reviewed descendant, inspect actual CI, then close three OPEN
+full-tail review findings: complete foundation control-program/source receipt
+admission; snapshot coverage of source-modified schemas/extensions/types/event
+triggers; execution/recording of all LEDGER_DEPENDENT_READINESS requirements.
+Do not accept unproved qualifications. Then genuine full native replay/schema/
+types/CI/E2E/review before whole-PR merge and main verification.
 
-Fresh OPS335f987f verify104361914531 revealed a separate continuity-text failure:
-current-state wording no longer matches the actual-accounting assertions. Restore
-the exact existing truthful601/347 summaries and required safety/next-action
-markers; do not change accounting values or remove assertions.
-
-Completed ordinary ec503fc7 run34960996690/job104354284197 proves all144
-foundation inputs and all7 residuals; all7 groups have real CLI ledger statements,
-negative controls, unchanged earlier ledger and no-op repeat. Group7 passes55000,
-P1480/P1481/P1482 with catalog/row restoration. Artifact10393844978 ZIP SHA256
-557fc15953fa17c9bcc200e8ecaaac2ea1de8a0ef3f49bfae2106bb58842c9f4 verified.
-Its final rejection is NATIVE_LATER_ENVELOPES_AND_FULL_ACCEPTANCE_REQUIRED,
-not a group7 failure. Native timestamp execution/current-head final gates remain
-pending. Next: publish verified continuity correction, collect native/FK SQL
-results, then source-causal schema reconciliation and genuine types.
-Receipt: quality/audits/PR310_LEDGER_FIXTURE_2026-09-15.md.
+Freshly verified ec503 diagnostic34960996805/job104354284703/artifact10394223040
+proves144 foundation+7 residual, all7 canonical groups with real CLI statement
+ledgers, negative controls and repeats, plus cleanup/private-input disposal.
+ZIP SHA2565352f1730aa9afa662c47c93511ae57cd7c2871239ec7fa315059b714291ce5f
+matches GitHub metadata. All success/control program hashes and source receipts
+match current code. Group7 portable55000/P1480/P1481/P1482 all pass. This is not
+full timestamp/schema/types acceptance. Ordinary foundation receipt below is
+also recorded by the preserved upstream continuation.
 
 The compiler prepares all522 possible units before creating the target. T201/202
 keep separate committed phases; four LOCK sources have exact source adapters;

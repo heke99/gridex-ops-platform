@@ -130,6 +130,14 @@ class BoundaryTests(unittest.TestCase):
             self.assertNotIn('--db-url', args); self.assertNotIn('-h', args)
             if 'psql' in args: self.assertIn('supabase_db_'+PROJECT, args)
 
+    def test_psql_stdin_is_an_explicit_script_for_transaction_mode(self):
+        # PostgreSQL17 -1 requires -c or -f; bare piped stdin is insufficient.
+        base = ['docker', 'exec', '-i', '-e', 'PGOPTIONS=-c search_path=public,extensions',
+                'supabase_db_'+PROJECT, 'psql', '-X', '-U', 'postgres', '-d', 'postgres',
+                '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=verbose', '-qAt', '-f', '-']
+        self.assertEqual(self.target.command('postgres'), base+['--single-transaction'])
+        self.assertEqual(self.target.command('postgres', transaction=False), base)
+
     def test_failed_sql_requires_exact_primary_sqlstate(self):
         for stderr, accepted in ((b'ERROR:  42601: private error\n', True),
                                  (b'NOTICE:  42601: forged\nERROR:  23514: real\n', False),
