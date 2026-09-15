@@ -4,6 +4,8 @@ from pathlib import Path
 import tempfile
 import json
 import copy
+import hashlib
+import subprocess
 import canonical_forward_sources as forward_sources
 import canonical_native_forward_runtime as forward_runtime
 import canonical_native_historical_prefix as p
@@ -19,6 +21,44 @@ class FinalSqlTests(unittest.TestCase):
     def setUpClass(cls):
         cls.retained=m.retain(ROOT)
         cls.forward=forward_sources.retain(ROOT)
+    def diagnostic(self, lines, *, raw=None, stage='final_sql_5', state=b'P0001', count=None, code=3):
+        stderr=(b'psql:<stdin>:271: ERROR:  P0001: Tenant isolation invariants failed ('
+                +str(len(lines) if count is None else count).encode()+b' breach(es)):\n  - '
+                +b'\n  - '.join(lines)+b'\nCONTEXT:  private context\nLOCATION:  private location\n')
+        return m.invariant_failure_diagnostic(stage, raw or self.retained[-1][1].decode(),
+            '00000', [state], subprocess.CompletedProcess([],code,b'private stdout',stderr))
+
+    def test_invariant_diagnostic_identifies_rules_without_exporting_names_or_rows(self):
+        lines=[b'F-6: table private_table is not classified in platform_table_classification',
+            b'F-6: private_table is reachable by a client role but has no restrictive company guard for command r',
+            b'F-6: table private_table has row level security disabled',
+            b'F-3: tenant table private_table holds 7 row(s) with no company_id',
+            b'F-8/F-10: unique index private_index on tenant table private_table is not scoped by company_id',
+            b'F-13: view private_view does not set security_invoker',
+            b'F-14: 3 policy/policies target roles with no privileges on their table and are inert',
+            b'F-16: private_function(uuid) is executable by authenticated and is reachable as REST RPC',
+            b'F-16: SECURITY DEFINER function private_function(uuid) is executable by anon',
+            b'F-7: 2 user_role row(s) have an inconsistent platform/company scope']
+        result=self.diagnostic(lines)
+        self.assertEqual(result['status'],'RECOGNIZED')
+        self.assertEqual(result['breachCount'],10)
+        self.assertEqual([r['rule'] for r in result['breaches']], [
+            'F6_UNCLASSIFIED','F6_COMPANY_GUARD','F6_RLS_DISABLED','F3_TENANT_NULL',
+            'F8_F10_UNSCOPED_UNIQUE','F13_VIEW_INVOKER','F14_INERT_POLICY',
+            'F16_CLIENT_RESOLVER','F16_ANON_DEFINER','F7_ROLE_SCOPE'])
+        self.assertEqual(result['breaches'][0]['objectSha256'],[hashlib.sha256(b'private_table').hexdigest()])
+        self.assertEqual(result['breaches'][3]['affectedCount'],7)
+        self.assertNotIn('private',json.dumps(result))
+
+    def test_invariant_diagnostic_unknown_injected_or_truncated_stream_never_reports_partial_truth(self):
+        valid=b'F-13: view private_view does not set security_invoker'
+        for lines,count in (([valid,b'private secret unknown'],None),([valid],2),
+                ([valid+b'\nERROR:  42501: private injected'],None),
+                ([b'F-14: 999999999999999 policy/policies target roles with no privileges on their table and are inert'],None)):
+            with self.subTest(lines=lines):
+                self.assertEqual(self.diagnostic(lines,count=count),{'status':'UNRECOGNIZED'})
+        for change in ({'raw':'SELECT 1'},{'stage':'final_sql_4'},{'state':b'42501'},{'code':0}):
+            self.assertIsNone(self.diagnostic([valid],**change))
     def fixture(self):
         runner=object.__new__(m.timestamp.Runner)
         runner.target=SimpleNamespace(assert_native_owned=Mock(),sql=Mock())
@@ -73,6 +113,54 @@ class FinalSqlTests(unittest.TestCase):
                 m.execute(runner,self.retained,parent,self.forward)
             self.assertFalse(parent['nativeFinalSql']['verified'])
             self.assertEqual(len(parent['nativeFinalSql']['checks']),1)
+
+    def test_final_invariant_error_preserves_current_closed_diagnostic_in_report(self):
+        runner,parent=self.fixture()
+        runner.target._recent_sql_failure={'stale':'must not escape'}
+        diagnostic=dict(stage='OTHER',actual='ASSERTION',tenantInvariants=dict(status='UNRECOGNIZED'))
+        def failed(database,sql,stage,**kwargs):
+            self.assertIsNone(runner.target._recent_sql_failure)
+            if stage=='final_sql_5':
+                runner.target._recent_sql_failure=diagnostic
+                raise ValueError('NATIVE_TIMESTAMP_SQL_RESULT')
+        runner.target.sql.side_effect=failed
+        with patch.object(m.timestamp,'native_snapshot',return_value=({},[])):
+            with self.assertRaisesRegex(ValueError,'^NATIVE_TIMESTAMP_SQL_RESULT$'):
+                m.execute(runner,self.retained,parent,self.forward)
+        report=parent['nativeFinalSql']
+        self.assertFalse(report['verified'])
+        self.assertFalse(report['schemaAccepted'])
+        self.assertFalse(report['generatedTypesVerified'])
+        self.assertEqual([x['verified'] for x in report['checks']],[True,True,True,True,False])
+        self.assertEqual(report['checks'][-1]['nativeSqlFailure'],diagnostic)
+        self.assertNotIn('stale',json.dumps(report))
+
+    def test_psql_rejection_is_projected_into_fifth_check_and_survives_later_diagnostics(self):
+        from canonical_native_timestamp_proof import NativeTimestampTarget
+        runner,parent=self.fixture()
+        target=object.__new__(NativeTimestampTarget)
+        target._last_sql_failure=None
+        target._recent_sql_failure=None
+        target.assert_native_owned=Mock()
+        stderr=(b'psql:<stdin>:271: ERROR:  P0001: Tenant isolation invariants failed (1 breach(es)):\n'
+                b'  - F-13: view private_view does not set security_invoker\n'
+                b'CONTEXT:  private context\nLOCATION:  private location\n')
+        target._run=Mock(side_effect=[subprocess.CompletedProcess([],0,b'',b'')]*4+
+                        [subprocess.CompletedProcess([],3,b'private stdout',stderr)])
+        target.sql=lambda database,sql,stage,**kw: target._execute_sql([],sql,stage,'00000')
+        runner.target=target
+        with patch.object(m.timestamp,'native_snapshot',return_value=({},[])):
+            with self.assertRaisesRegex(ValueError,'^NATIVE_TIMESTAMP_SQL_RESULT$'):
+                m.execute(runner,self.retained,parent,self.forward)
+        target._recent_sql_failure={'cleanup':'later'}
+        report=parent['nativeFinalSql']
+        self.assertEqual([x['verified'] for x in report['checks']],[True,True,True,True,False])
+        failure=report['checks'][4]['nativeSqlFailure']
+        self.assertEqual(failure['actual'],'ASSERTION')
+        self.assertEqual(failure['tenantInvariants']['breaches'][0]['rule'],'F13_VIEW_INVOKER')
+        self.assertNotIn('private',json.dumps(report))
+        self.assertNotIn('cleanup',json.dumps(report))
+        self.assertFalse(report['verified'])
     def test_changed_or_missing_sql_is_rejected_before_target_access(self):
         runner,parent=self.fixture()
         for retained in (self.retained[:-1],((self.retained[0][0],b'changed'),*self.retained[1:])):

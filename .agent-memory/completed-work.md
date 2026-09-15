@@ -226,3 +226,8 @@ preflight3, historical166 offline tests PASS. Full native/schema/types remain OP
 
 
 2026-09-15 Ediel v2 repair batch: immutable specification imported; Z14N parent/render, UTILTS_ERR ACK, retained UTILTS policy/date, nested/legacy DSN quarantine and SMTP uncertainty repairs verified. Final Vitest218files/2127tests; tests/app TypeScript pass. Separate PRODAT rule regression still fails identically at baseline. Evidence: quality/audits/ediel-masterplan-v2/verification.md. Full plan/replay/schema/types/release remain PARTIAL; see sole current-state.md.
+
+
+## 2026-09-15 — main merge prerequisite diagnosis
+
+User authorized whole merge before next Ediel phase. Fresh native34989328503/job104450130810 reaches144+514+6 and ledger verification, then final tenant invariant fails. Schema34989327838 fails removed-policy validation before comparison. E2E and verify fail genuine generated-type tail check; no manifest refresh. Frontier stale exact counts corrected;16 frontier and50 adjacent tests pass. Safe diagnostics under review; main remains unchanged. Active status and next action: current-state.md.

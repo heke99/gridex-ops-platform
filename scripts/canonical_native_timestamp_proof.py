@@ -260,6 +260,11 @@ class NativeTimestampTarget:
                 or (expect != '00000' and (result.returncode == 0 or errors != [expect.encode()]))):
             diagnostic = sql_failure_diagnostic(stage,expect,errors,result.returncode)
             diagnostic['transport'] = sql_transport_diagnostic(result)
+            if stage == 'final_sql_5':
+                from canonical_native_final_sql import invariant_failure_diagnostic
+                invariant = invariant_failure_diagnostic(stage,sql,expect,errors,result)
+                if invariant is not None:
+                    diagnostic['tenantInvariants'] = invariant
             self._recent_sql_failure = diagnostic
             if self._last_sql_failure is None:
                 self._last_sql_failure = diagnostic

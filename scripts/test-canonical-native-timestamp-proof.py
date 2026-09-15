@@ -299,6 +299,28 @@ class BoundaryTests(unittest.TestCase):
             self.assertNotIn('private', json.dumps(diagnostic))
             self.assertEqual(self.target._last_sql_failure['actual'], 'NONE')
 
+    def test_pinned_final_invariant_failure_gets_private_diagnostic_but_still_rejects(self):
+        sql=(ROOT/'scripts/sql/tenant-isolation-invariants.sql').read_text()
+        stderr=(b'psql:<stdin>:271: ERROR:  P0001: Tenant isolation invariants failed (1 breach(es)):\n'
+                b'  - F-13: view private_view does not set security_invoker\n'
+                b'CONTEXT:  PL/pgSQL function inline_code_block line 271 at RAISE\n'
+                b'LOCATION:  exec_stmt_raise, pl_exec.c:3911\n')
+        for body,stream,expected in ((sql,stderr,'RECOGNIZED'),
+                (sql,stderr.replace(b'F-13: view',b'PRIVATE TOKEN'),'UNRECOGNIZED'),
+                (sql,b'NOTICE: private prior output\n'+stderr,'UNRECOGNIZED'),
+                (sql,stderr.replace(b'(1 breach(es))',b'(2 breach(es))'),'UNRECOGNIZED'),
+                ('SELECT 1',stderr,None),
+                (sql,stderr+b'ERROR:  42501: another private error\n',None)):
+            self.transport.result=subprocess.CompletedProcess([],3,b'private stdout',stream)
+            with self.assertRaisesRegex(ValueError,'^NATIVE_TIMESTAMP_SQL_RESULT$'):
+                self.target.sql('postgres',body,'final_sql_5')
+            diagnostic=self.target._recent_sql_failure
+            self.assertNotIn('private',json.dumps(diagnostic))
+            if expected:
+                self.assertEqual(diagnostic['tenantInvariants']['status'],expected)
+            else:
+                self.assertNotIn('tenantInvariants',diagnostic)
+
     def test_live_sync_acl_uses_verified_real_authenticator_login_only(self):
         database='gridex_auth_legacy_helper'
         self.target.reset(database)

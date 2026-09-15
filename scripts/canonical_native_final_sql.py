@@ -5,6 +5,7 @@ schema parity or type-generation acceptance, and accepts no target override.
 """
 import hashlib
 import json
+import re
 from pathlib import Path
 
 from canonical_forward_sources import FORWARD_SOURCES
@@ -18,6 +19,64 @@ PINS = {
     'scripts/sql/tenant-isolation-invariants.sql': '79d10e6b6ebf10b087142edeab3fe0bbebbe47bf325b27b9f42058ce6272b318',
 }
 TRANSACTIONAL = tuple(PINS)[1:4]
+
+
+def invariant_failure_diagnostic(stage, sql, expect, errors, result):
+    """Project only the pinned invariant assertion into closed rule IDs/hashes.
+
+    This explains a rejected command; it never accepts SQL or changes a gate.
+    Object tokens are hashed exactly as rendered by PostgreSQL, including any
+    identifier quoting. No names, signatures, row values or stderr escape.
+    Unknown/truncated message shapes produce no partial breach inventory.
+    """
+    if (stage != 'final_sql_5' or expect != '00000' or errors != [b'P0001']
+            or result.returncode != 3
+            or hashlib.sha256(sql.encode()).hexdigest() != PINS['scripts/sql/tenant-isolation-invariants.sql']):
+        return None
+    unknown = dict(status='UNRECOGNIZED')
+    if len(result.stderr) > 1_000_000:
+        return unknown
+    header = re.fullmatch(
+        rb'(?:psql:[^\r\n]*?:\d+:\s*)?ERROR: +P0001: Tenant isolation invariants failed \(([1-9][0-9]{0,4}) breach\(es\)\):\n'
+        rb'(?P<body>(?:  - [^\r\n]+\n)+)(?:CONTEXT: [^\r\n]*\n)?(?:LOCATION: [^\r\n]*\n)?',
+        result.stderr)
+    if header is None:
+        return unknown
+    lines = header['body'].splitlines()
+    if len(lines) != int(header[1]) or len(lines) > 10_000:
+        return unknown
+    # Exact pinned message templates, finite commands/roles, bounded integers.
+    token = rb'([^\r\n]{1,512})'
+    count = rb'([1-9][0-9]{0,9})'
+    patterns = (
+        ('F6_UNCLASSIFIED', rb'F-6: table '+token+rb' is not classified in platform_table_classification', (0,), None, None),
+        ('F6_COMPANY_GUARD', rb'F-6: '+token+rb' is reachable by a client role but has no restrictive company guard for command ([rawd])', (0,), 'command', 1),
+        ('F6_RLS_DISABLED', rb'F-6: table '+token+rb' has row level security disabled', (0,), None, None),
+        ('F3_TENANT_NULL', rb'F-3: tenant table '+token+rb' holds '+count+rb' row\(s\) with no company_id', (0,), 'affectedCount', 1),
+        ('F8_F10_UNSCOPED_UNIQUE', rb'F-8/F-10: unique index '+token+rb' on tenant table '+token+rb' is not scoped by company_id', (0,1), None, None),
+        ('F13_VIEW_INVOKER', rb'F-13: view '+token+rb' does not set security_invoker', (0,), None, None),
+        ('F14_INERT_POLICY', rb'F-14: '+count+rb' policy/policies target roles with no privileges on their table and are inert', (), 'affectedCount', 0),
+        ('F16_CLIENT_RESOLVER', rb'F-16: '+token+rb' is executable by (anon|authenticated) and is reachable as REST RPC', (0,), 'role', 1),
+        ('F16_ANON_DEFINER', rb'F-16: SECURITY DEFINER function '+token+rb' is executable by anon', (0,), None, None),
+        ('F7_ROLE_SCOPE', rb'F-7: '+count+rb' user_role row\(s\) have an inconsistent platform/company scope', (), 'affectedCount', 0),
+    )
+    breaches = []
+    for line in lines:
+        for rule, pattern, objects, field, field_index in patterns:
+            match = re.fullmatch(pattern, line[4:])
+            if match is None:
+                continue
+            values = match.groups()
+            item = dict(rule=rule)
+            if objects:
+                item['objectSha256'] = [hashlib.sha256(values[i]).hexdigest() for i in objects]
+            if field:
+                item[field] = int(values[field_index]) if field == 'affectedCount' else values[field_index].decode('ascii')
+            breaches.append(item)
+            break
+        else:
+            return unknown
+    return dict(status='RECOGNIZED', breachCount=len(breaches), breaches=breaches)
 
 
 def validate(retained):
@@ -96,8 +155,14 @@ def execute(runner, retained, parent, retained_forward):
         item=dict(source=path,sourceSha256=PINS[path],verified=False)
         report['checks'].append(item)
         before=timestamp.native_snapshot(runner.target)
-        runner.target.sql('postgres',raw.decode(), 'final_sql_'+str(len(report['checks'])),
-                          transaction=path not in TRANSACTIONAL)
+        runner.target._recent_sql_failure = None
+        try:
+            runner.target.sql('postgres',raw.decode(), 'final_sql_'+str(len(report['checks'])),
+                              transaction=path not in TRANSACTIONAL)
+        except ValueError:
+            if runner.target._recent_sql_failure is not None:
+                item['nativeSqlFailure'] = dict(runner.target._recent_sql_failure)
+            raise
         runner.unchanged()
         if timestamp.native_snapshot(runner.target)!=before:
             raise ValueError('NATIVE_FINAL_SQL_STATE_PRESERVATION_REQUIRED')

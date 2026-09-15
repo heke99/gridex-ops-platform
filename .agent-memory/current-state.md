@@ -1,4 +1,20 @@
-# Current work — Ediel masterplan v2 alignment, 2026-09-15
+# Current work — merge to main before next Ediel phase, 2026-09-15
+
+Status: BLOCKED, active remediation. User explicitly authorized merging the entire work to main and starting the next phase afterward. Preserve all PR310 ancestry and original601 migration hashes. Current local base is PR311 d4f7769e0f3104df59d2e53494ad1d679d49896e; PR310 head b9f732d28ceaf090e3b984e71d13a9cbd27f6408 and main eb9a25bc989c6de808903f41c2314d5465e9c07b were reverified. Neither PR has merged to main.
+
+Fresh actual native evidence supersedes the old T232 boundary: PR310 OPS run34989328503/job104450130810 executes144 foundations,514 timestamps and all6 forwards with nativeLedgerVerified=true. Four final SQL checks preserve catalog/rows/ledger; the fifth, scripts/sql/tenant-isolation-invariants.sql, fails NATIVE_TIMESTAMP_SQL_RESULT. All owned cleanup passes. CompleteReplay/schema/types acceptance remain false. Artifact10408271575 is advertised with ZIP SHA2561cec2c856bce6a17039d2ea08dbb0a20f7f7391100b36f8c3744c5179e2b594c; actual log inspected, archive digest not independently verified this turn.
+
+Fresh independent schema run34989327838/job104449553330 completes514+6 and policy actor SQL, then rejects removed-policy metadata/composition after successful metadata query. Counts={} means no schema comparison result. Exact rejection is hidden by current closed logging; add a reviewed finite diagnostic, preserve exception and all acceptance rules.
+
+PR311 d4f Ediel workflow34996128489 and browser workflow34996128574 PASS. E2E34996128566 smoke14/15 fails only generated-types tail; OPS verify104473224018 fails the same gate. Local db:migrations:check reproduces: inventory607/511, public contract and hardening pass, generated manifest does not cover20260915144319_restrict_ediel_send_lock_client_writes.sql. Never hand-edit it to manufacture acceptance. Full/runtime/real journeys were skipped.
+
+Current repair batch: correct stale frontier fixture counts605/518 to registered607/520 while preserving514 historical selection and all6 exact hash pins; add safe failure diagnostics for removed-policy and native final invariant rejection. Root frontier16 plus related50 tests pass. Bounded agents own schema/native diagnostics; root reviews and publishes. Details: quality/audits/ediel-masterplan-v2/merge-e2e.md, merge-schema.md, merge-native.md.
+
+Next action: publish reviewed diagnostic batch and incorporate stacked Ediel history into PR310 by non-forced fast-forward, so PR310-scoped workflows execute the combined source. Inspect actual diagnostic reruns, repair only evidenced causes with qualified forwards, close independent schema decisions, genuinely generate application types, pass final-head CI/E2E/review, merge whole PR310 to main, then begin the next source-backed Ediel locator/register phase. No main merge, database mutation, market message, production deployment or next-phase implementation is claimed.
+
+## Historical continuation records (superseded status)
+
+# Prior Ediel batch — superseded status, retained evidence
 
 Status: PARTIAL. User supplied the full Ediel v2 masterplan and authorized implementation against Gridex OPS. This isolated branch is codex/ediel-masterplan-v2-alignment-20260915, based on PR310 head b9f732d28ceaf090e3b984e71d13a9cbd27f6408. It is a stacked Ediel change; preserve and continue the underlying PR310 database work recorded below.
 

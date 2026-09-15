@@ -1,5 +1,8 @@
 """Closed supplemental evidence admission; live SQL requires a full owned target."""
 import copy
+import contextlib
+import io
+import json
 from dataclasses import replace
 import importlib
 from pathlib import Path
@@ -48,6 +51,39 @@ def metadata_fixture(q,retained):
 
 
 class RemovedPolicyQualificationTests(unittest.TestCase):
+    def test_execution_failure_diagnostics_are_closed_and_preserve_errors(self):
+        q=load()
+        cases=[
+            (ValueError('REMOVED_POLICY_EXACT_POLICY_SET_REQUIRED'),'REMOVED_POLICY_EXACT_POLICY_SET_REQUIRED'),
+            (ValueError('REMOVED_POLICY_FORMULA_EFFECTIVE_MISMATCH_CHECK'),'REMOVED_POLICY_FORMULA_EFFECTIVE_MISMATCH_CHECK'),
+            (ValueError('REMOVED_POLICY_EXACT_POLICY_SET_REQUIRED private SQL'),'UNCLASSIFIED'),
+            (ValueError('private SQL'),'UNCLASSIFIED'),
+            (ValueError('REMOVED_POLICY_METADATA_REQUIRED','private SQL'),'UNCLASSIFIED'),
+            (RuntimeError('REMOVED_POLICY_METADATA_REQUIRED'),'UNCLASSIFIED'),
+            (KeyError('private SQL'),'UNCLASSIFIED'),
+            (json.JSONDecodeError('private SQL','private catalog',0),'UNCLASSIFIED'),
+        ]
+        class Hostile:
+            def __str__(self):raise AssertionError('untrusted value rendered')
+            def __eq__(self,other):raise AssertionError('untrusted value compared')
+            def __hash__(self):raise AssertionError('untrusted value hashed')
+        class TextSubclass(str):pass
+        class ErrorSubclass(ValueError):pass
+        cases.extend([(ValueError(Hostile()),'UNCLASSIFIED'),
+                      (ValueError(TextSubclass('REMOVED_POLICY_METADATA_REQUIRED')),'UNCLASSIFIED'),
+                      (ErrorSubclass('REMOVED_POLICY_METADATA_REQUIRED'),'UNCLASSIFIED')])
+        for error,reason in cases:
+            output=io.StringIO()
+            with self.subTest(reason=reason), patch.object(q,'_execute',side_effect=error), contextlib.redirect_stdout(output):
+                with self.assertRaises(type(error)) as caught:q.execute(None,None,None,None)
+            self.assertIs(caught.exception,error)
+            self.assertEqual(json.loads(output.getvalue()),dict(stage='removed_policy_failure',reason=reason))
+        output=io.StringIO();result=object()
+        with patch.object(q,'_execute',return_value=result) as run, contextlib.redirect_stdout(output):
+            self.assertIs(q.execute('target','retained','progress','actor'),result)
+        run.assert_called_once_with('target','retained','progress','actor')
+        self.assertEqual(output.getvalue(),'')
+
     def test_retained_sql_register_and_source_bytes_are_closed(self):
         q=load(); retained=q.retain(ROOT)
         self.assertEqual(q.validate_retained(retained),retained)
@@ -183,8 +219,10 @@ class RemovedPolicyQualificationTests(unittest.TestCase):
                 with self.subTest(key=key),self.assertRaises(ValueError):
                     q.validate_execution_receipt({**receipt,key:value},native=False)
             with self.assertRaises(ValueError):q.validate_execution_receipt({**receipt,'extra':False},native=False)
-            with patch.object(q.actors,'_snapshot',side_effect=[{'unchanged':True},{'unchanged':False}]):
+            output=io.StringIO()
+            with patch.object(q.actors,'_snapshot',side_effect=[{'unchanged':True},{'unchanged':False}]), contextlib.redirect_stdout(output):
                 with self.assertRaisesRegex(ValueError,'STATE_PRESERVATION_REQUIRED'):q.execute(target,retained,{},actor)
+            self.assertEqual(json.loads(output.getvalue()),dict(stage='removed_policy_failure',reason='REMOVED_POLICY_STATE_PRESERVATION_REQUIRED'))
 
 
 if __name__=='__main__':unittest.main()
