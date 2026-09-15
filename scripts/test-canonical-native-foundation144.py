@@ -101,9 +101,46 @@ class PlanTests(unittest.TestCase):
         with self.assertRaises(ValueError):self.m.native_body(replace(s,source_sha256='0'*64))
 
     def test_db2_failure_hint_is_finite_and_not_an_arbitrary_error_message(self):
-        raw=b'SQLSTATE 55000 NATIVE_FOUNDATION_STAGE_R071 HINT: DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED'
+        raw=b'ERROR: NATIVE_FOUNDATION_STAGE_R071 REASON=DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED (SQLSTATE 55000)'
         self.assertEqual(self.m.failure_diagnostic(raw).get('reason'),'DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED')
         self.assertNotIn('secret',json.dumps(self.m.failure_diagnostic(raw.replace(b'DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED',b'secret@example.invalid'))))
+
+    def test_fixed_db2_reason_is_in_primary_message_not_hint_only(self):
+        # pgconn.PgError.Error() retains Message and Code, but not Hint.
+        rendered = self.m.render(self.plan[-1], failure='portable').sql
+        self.assertIn(b"MESSAGE='NATIVE_FOUNDATION_STAGE_R071' || CASE", rendered)
+        self.assertIn(b"THEN ' REASON=DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED'", rendered)
+        self.assertIn(b"WHEN SQLSTATE='55000' AND SQLERRM=", rendered)
+        self.assertNotIn(b"|| SQLERRM", rendered)
+
+    def test_cli_primary_message_retains_exact_reason_without_hint(self):
+        raw = b'ERROR: NATIVE_FOUNDATION_STAGE_R071 REASON=DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED (SQLSTATE 55000)\n'
+        self.assertEqual(self.m.failure_diagnostic(raw), {
+            'sqlstate': '55000', 'stage': 'R071',
+            'reason': 'DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED'})
+
+    def test_source_excerpt_cannot_supply_reason_for_unrelated_error(self):
+        raw = (b'ERROR: NATIVE_FOUNDATION_STAGE_R071 (SQLSTATE 55000)\n'
+               b'At statement 2:\n'
+               b"SELECT 'HINT: DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED';\n")
+        self.assertNotIn('reason', self.m.failure_diagnostic(raw))
+
+    def test_reason_requires_the_same_primary_stage_and_sqlstate(self):
+        for raw in (
+            b'ERROR: NATIVE_FOUNDATION_STAGE_R071 REASON=DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED (SQLSTATE 42501)',
+            b'ERROR: NATIVE_FOUNDATION_STAGE_R072 REASON=DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED (SQLSTATE 55000)',
+            b'ERROR: NATIVE_FOUNDATION_STAGE_R071 REASON=DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED_EXTRA (SQLSTATE 55000)',
+            b'ERROR: NATIVE_FOUNDATION_STAGE_R071 REASON=private@example.invalid (SQLSTATE 55000)',
+        ):
+            with self.subTest(raw=raw):
+                projection = self.m.failure_diagnostic(raw)
+                self.assertNotIn('reason', projection)
+                self.assertNotIn('private@', json.dumps(projection))
+
+    def test_two_primary_errors_are_not_single_error_proof(self):
+        raw = (b'ERROR: NATIVE_FOUNDATION_STAGE_R071 REASON=DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED (SQLSTATE 55000)\n'
+               b'ERROR: NATIVE_FOUNDATION_STAGE_R072 (SQLSTATE 42501)\n')
+        self.assertNotIn('reason', self.m.failure_diagnostic(raw))
 
     def test_whole_source_postconditions_and_index_oracles_are_not_dropped(self):
         raw=b'\n'.join(self.m.render(g).sql for g in self.plan)
@@ -192,7 +229,7 @@ class ExecutionControlTests(unittest.TestCase):
                 native_run=state['runs'];state['runs']+=1
                 phase=native_run%5
                 if native_run==30:
-                    return SimpleNamespace(returncode=1,stderr=b'SQLSTATE 55000 NATIVE_FOUNDATION_STAGE_R071 HINT: DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED')
+                    return SimpleNamespace(returncode=1,stderr=b'ERROR: NATIVE_FOUNDATION_STAGE_R071 REASON=DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED (SQLSTATE 55000)')
                 if native_run>30:phase=(native_run-1)%5
                 if fault=='file':old.write_bytes(b'SELECT 2;')
                 if phase<3:

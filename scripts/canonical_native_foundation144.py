@@ -267,11 +267,15 @@ def render(group,*,failure=None):
         if tag in s.sql.decode() or '$native_foundation$' in s.sql.decode():
             raise ValueError('NATIVE_FOUNDATION_PROGRAM_REQUIRED')
         # Preserve SQLSTATE but return only a fixed stage identifier publicly.
+        # pgconn's primary error string omits HINT. Retain only the fixed,
+        # allowlisted DB2 reason in MESSAGE as well; never concatenate SQLERRM.
         # Raw diagnostics from the native CLI stay in the parent's private logs.
         text=native_body(s,portable=failure=='portable').decode()
         pieces.append('BEGIN\nEXECUTE '+tag+text+tag+';\n'
             +s.postconditions+"\nEXCEPTION WHEN OTHERS THEN RAISE EXCEPTION USING ERRCODE=SQLSTATE,"
-            +" MESSAGE='NATIVE_FOUNDATION_STAGE_"+label+"',"
+            +" MESSAGE='NATIVE_FOUNDATION_STAGE_"+label+"' || CASE"
+            +" WHEN SQLSTATE='55000' AND SQLERRM='DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED'"
+            +" THEN ' REASON=DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED' ELSE '' END,"
             +" HINT=CASE WHEN SQLERRM='DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED'"
             +" THEN 'DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED' ELSE 'NATIVE_SOURCE_ERROR' END; END;\n")
         if failure=='mid' and i==1:
@@ -288,10 +292,18 @@ def render(group,*,failure=None):
 
 
 def failure_diagnostic(stderr):
-    state=re.search(rb'SQLSTATE[ :]+([A-Z0-9]{5})\b',stderr)
-    stage=re.search(rb'NATIVE_FOUNDATION_STAGE_(\d{4}|R0[1-7][1-3])\b',stderr)
+    # CLI error output can append the entire failing SQL statement. A token in
+    # that excerpt is not evidence of an executed exception. Bind the reason,
+    # stage and SQLSTATE to one complete primary pgconn error line instead.
+    primary=re.findall(rb'^ERROR:[^\r\n]*',stderr,re.MULTILINE)
+    diagnostic=primary[0] if primary else stderr
+    state=re.search(rb'SQLSTATE[ :]+([A-Z0-9]{5})\b',diagnostic)
+    stage=re.search(rb'NATIVE_FOUNDATION_STAGE_(\d{4}|R0[1-7][1-3])\b',diagnostic)
     result={'sqlstate':state[1].decode() if state else None,'stage':stage[1].decode() if stage else None}
-    if re.search(rb'HINT:\s+DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED\b',stderr):
+    if len(primary)==1 and re.fullmatch(
+            rb'ERROR: NATIVE_FOUNDATION_STAGE_R071 '
+            rb'REASON=DB2_INVITATION_INDEX_OWNED_DATABASE_REQUIRED \(SQLSTATE 55000\)',
+            primary[0]):
         result['reason']=DB2_TARGET_REASON
     return result
 

@@ -2,51 +2,55 @@
 
 Status: PARTIAL
 
-Preserve and eventually merge ALL PR310 changes, not a subset. The remote base
-for this batch is d8ace45ceedc29ef911352f249967d378fd3351a. A separate backup
-branch backup/pr310-20260915-d8ace45c preserves the full existing ancestry.
-Writer tools are available in this session; the previous read-only limitation
-is superseded. The ten-file local auth evidence patch is applied and included
-with the native DB2 correction. Do not build these components again.
+## Preservation and publication
 
-## Execution boundary
+Preserve and eventually merge ALL PR310 changes. All prior work is published at
+43efaf895aaf080abadef84ce724bceafa3e3a79, tree354d5295c392e15cdb741998b3b3451530e67506.
+The downloaded source archive and a fresh Git write-tree match that exact tree.
+The backup ref backup/pr310-20260915-d8ace45c was read back at
+ d8ace45ceedc29ef911352f249967d378fd3351a. PR310 remains draft and unmerged.
+The GitHub writer connection is now available. This publication includes the
+preserved primary-error diagnostic correction and its regression tests.
+Verify the published commit/tree and inspect its actual ordinary OPS result.
+Do not recreate the previously published ten-file auth patch or DB2 target fix.
 
-Native1-77 is verified by ordinary OPS34904445623/artifact10372124801.
-The newer OPS34939777875/artifact10385038918 executes all144 foundation inputs
-and five residual inputs in six successful canonical CLI groups. The seventh
-residual144 group is NOT accepted: original55000 atR071 instead of expectedP1480.
-The complete chain, timestamp execution, source-effect/schema parity, generated
-types and whole-PR merge are still NOT accepted. Owned/private cleanup passes.
+## Active correction / exact next action
 
-## Active correction / actual next action
+Native run34946750789/artifact10388556488 reaches144 regular foundation inputs
+and five residual inputs in six successful groups. Group7/residual144 stops on
+its portable55000 control atR071, with no fixed reason in the artifact. The
+reason is mandatory;55000/R071 alone does NOT prove expected rejection.
 
-The native DB2 preflight still admits only the portable fixture's two database
-names, not the real owned native postgres database. The new native-only body
-transfers exactly that environment predicate to postgres role/database plus
-private transaction/backend-bound context. Portable sources/rendered hashes,
-legacy scope rejection, all index preimage checks and domain locks remain.
-An extra mandatory negative control reproduces the old55000 with its exact
-R071 stage and fixed reason before the normal mid/body/ledger controls.
-27 local foundation tests PASS after four observed RED regressions;16 previous
-auth evidence tests PASS;601 historical migration checksums PASS.
-These local tests are NOT native SQL proof. Read the next actual OPS artifact.
+A reproduced transport defect is corrected in this publication: the safe allowlisted
+DB2 reason is included in the primary error MESSAGE as well as HINT. The reason
+parser binds it to a single complete primary error with the exact stage/code,
+not quoted SQL text. No admission, grant, source pin or release gate is relaxed.
+32 focused tests and163 aggregated native-prefix tests pass (overlapping suites),
+plus15 lifecycle controls and16 unchanged auth-evidence tests.601 migration
+files/505 version groups retain their checksums. These are NOT native SQL proof.
 
-The preserved auth patch produces gridex-auth-membership-group evidence with
-actual checkout/fixture hashes, first failed command and redacted traceback/
-SQLSTATE observations. It does not fix auth. Do not guess company_invitations
-or any other SQL cause without that evidence.
+Next: inspect the ordinary native job for this publication.
+A fresh local rerun passed all32 focused tests before publication. Inspect the retained reason and all group7 qualification/ledger/
+repeat controls; do not infer their result. No timestamps have been accepted.
+Then complete the native timestamp chain and independent schema reconciliation.
 
-After native foundation144: integrate admitted timestamp stages, settle full
-independent schema differences with source evidence, fix the actual auth-group
-failure, generate real types and pass required same-head CI/E2E/review before
-merging the ENTIRE PR. Never change only the type-tail manifest as a bypass.
-Existing app/API/company/white-label fields and paused price work are preserved.
-No hosted mutation/reset, historical SQL rewrite, forced update, deployment or
-main merge is included in this batch.
+## Auth and final gates
 
-Current receipt: quality/audits/DB_NATIVE144_TARGET_2026-09-15.md.
-Previous auth-patch receipt remains preserved as dated history:
-quality/audits/PR310_MERGE_BLOCKERS_2026-09-15.md.
+The latest redacted auth artifact identifies command15 and P0001 in
+canonical-full-governance-source-selftest.py:full_empty_lane line205 calling
+oracle.complete_postflight_sql(), with matching source SHA256. The individual
+failed assertion is not in the artifact. No missing table or RLS cause is proven.
+The local SQL test could not start because psql is unavailable. Auth is NOT fixed.
+
+After complete replay: fix the evidenced auth assertion/cause, genuinely generate
+types and pass required same-head CI, full E2E and independent review before
+merging the ENTIRE PR. No manifest-only refresh, cherry-pick subset or bypass.
+No production database mutation, reset, deployment or main merge was performed.
+
+Current receipt: quality/audits/PR310_NATIVE_DIAGNOSTIC_TRANSPORT_2026-09-15.md.
+The previous DB_NATIVE144_TARGET and auth-patch receipts remain dated history.
+Existing application/API/company/white-label fields and paused price work remain
+unchanged. Native1–77's prior acceptance is not restarted.
 
 ## Machine-checked continuity contract
 
