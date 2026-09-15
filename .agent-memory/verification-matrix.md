@@ -183,3 +183,7 @@ See quality/audits/PR310_NATIVE_PRIMARY_PADDING_2026-09-15.md.
 ## 2026-09-15 — native timestamp integration / staged FK qualification
 
 Publication base ec503fc7;258 fresh local tests PASS. Native source/phase/CLI ledger integration and fixed PG17 FK qualification wired; actual SQL pending. Current-base auth diagnostic34960996805/job104354284392 SUCCESS with8 mutation controls. No schema/type/full acceptance or production mutation. See quality/audits/PR310_NATIVE_TIMESTAMP_AND_FK_2026-09-15.md and current-state.md for active next action.
+
+## 2026-09-15 — native ledger diagnostic fixture
+
+Actual335f987f job104361913787 fails two diagnostics because the timestamp selector is intercepted by the fixture subprocess mock. Reproduced2 errors, corrected fixture-only actual-plan preparation, ledger8/compiler12/lifecycle15/bootstrap14 PASS. Native SQL remains pending. See quality/audits/PR310_LEDGER_FIXTURE_2026-09-15.md.

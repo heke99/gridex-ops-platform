@@ -4,13 +4,24 @@ Status: PARTIAL
 
 ## Active work and exact next action
 
-Publication base ec503fc7a63ee512a3e26048035402e9579a3610. This batch integrates
-the retained514 timestamp inputs with genuine native CLI units/statement ledger,
-plus isolated qualification of a staged forward repair for two skipped FKs.
-Fresh258 local tests pass. Actual native SQL and FK SQL acceptance is pending.
-Publish on the same PR, inspect actual current-commit CI artifacts and continue
-from the first evidenced failure. Receipt:
-quality/audits/PR310_NATIVE_TIMESTAMP_AND_FK_2026-09-15.md.
+Current GitHub head335f987f0662da09e43eaf6cbd96158d657c9831 already publishes
+all514 timestamp integration and the staged FK qualification. The retained local
+batch exactly matches published tree550bdf91229481a5881a250a3f2ff3ab24476749.
+Do not republish or rebuild that integration or the approved auth correction.
+
+Active bounded correction: native lifecycle job104361913787/run34963346302
+fails two ledger diagnostic tests before SQL. New timestamp preparation runs
+inside the fixture's global subprocess mock, so the exact input selector never
+writes its accounting files. Compile the actual plan before entering that mock,
+then retain it for the diagnostic fixture. Production preflight and every failure,
+privacy and cleanup assertion remain unchanged. Red reproduction2 errors; fresh
+ledger8, timestamp compiler12, lifecycle15 and bootstrap14 tests PASS (49 total).
+Native clean104361913858/current OPS34963346262 and older clean104354284197
+remain in progress at this observation. Full native acceptance is pending.
+
+Next: publish the reviewed fixture correction on this same PR, read actual native
+and FK SQL receipts, then continue schema reconciliation and genuine typegen.
+Receipt: quality/audits/PR310_LEDGER_FIXTURE_2026-09-15.md.
 
 The compiler prepares all522 possible units before creating the target. T201/202
 keep separate committed phases; four LOCK sources have exact source adapters;

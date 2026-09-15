@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
+import canonical_native_timestamp_sources as timestamp_sources
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -75,6 +76,14 @@ class LedgerTailTests(unittest.TestCase):
 
 
 class HistoricalDiagnosticTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Compile the actual source plan before the lifecycle fixture replaces
+        # subprocess.run. Its Docker/CLI fake cannot execute the input selector
+        # that writes the two accounting files. No timestamp SQL is reached in
+        # these deliberately failing foundation diagnostics.
+        cls.timestamp_plan = timestamp_sources.prepare()
+
     def test_known_prefix_code_is_preserved_without_formatting_exception(self):
         historical = lifecycle.load_historical_prefix()
         error = historical.PrefixError('NATIVE_EXECUTED_LEDGER_REQUIRED')
@@ -110,6 +119,7 @@ class HistoricalDiagnosticTests(unittest.TestCase):
                                prepare=lambda: (), execute=execute)
         original = lifecycle.run
         with patch.object(lifecycle, 'load_historical_prefix', return_value=fake), \
+             patch.object(timestamp_sources, 'prepare', return_value=self.timestamp_plan), \
              patch.object(lifecycle.provider_events, 'bootstrap', return_value=lifecycle.provider_events.receipt()), \
              patch.object(lifecycle, 'run', side_effect=lambda: original(historical_prefix=True)):
             return lifecycle_tests.NativeTests().execute_fixture()
