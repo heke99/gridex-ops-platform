@@ -30,7 +30,7 @@ import canonical_policy_actor_qualification as actors
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE='scripts/sql/canonical-removed-policy-qualification.sql'
 REGISTER='quality/audits/PR310_REMOVED_POLICY_DISPOSITIONS_2026-09-15.json'
-SOURCE_SHA='d0c0bac068ef398f4680cfa7019bcd109fe78d70604200d2ae361d46ab8bb69f'
+SOURCE_SHA='affa046451bc7aded834cbe37f2457e69f613e5746dbca32472ccf84c07a7138'
 REGISTER_SHA='c31aa24d507a2f927d93685299f0ebf84e588ce32134a5f91f9db4f1c864f189'
 TABLES=('audit_logs', 'auth_email_events', 'communication_routes', 'company_customer_number_sequences', 'company_invitations', 'customer_addresses', 'customer_authorization_documents', 'customer_contacts', 'customer_contract_events', 'customer_documents', 'customer_info_request_events', 'customer_internal_notes', 'customer_operation_tasks', 'ediel_actor_settings', 'ediel_route_profiles', 'ediel_send_locks', 'grid_owner_data_requests', 'inbound_processing_jobs', 'metering_permissions', 'outbound_dispatch_events', 'outbound_requests', 'partner_exports', 'user_roles')
 ADDED_POLICY_HASHES=(

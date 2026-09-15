@@ -3,7 +3,8 @@
 BEGIN READ ONLY;
 SET LOCAL statement_timeout='60s';
 SET LOCAL lock_timeout='5s';
-SET LOCAL search_path=public,auth,extensions,pg_catalog;
+-- Keep auth.role schema-qualified in pg_get_expr, as in retained policy hashes.
+SET LOCAL search_path=public,extensions,pg_catalog;
 WITH targets(name) AS (VALUES
   ('audit_logs'),
   ('auth_email_events'),

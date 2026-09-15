@@ -51,6 +51,31 @@ def metadata_fixture(q,retained):
 
 
 class RemovedPolicyQualificationTests(unittest.TestCase):
+    def test_metadata_deparser_keeps_auth_qualified_like_retained_policy_rows(self):
+        q=load();retained=q.retain(ROOT);expected=q.expected_policies(retained)
+        # Actual 01ee1d55 run34999483634/job104484026625 hashes. These five
+        # complete rows are retained source evidence, not refreshed expectations.
+        observed={
+            ('customer_info_request_events','gridex_mp_5aede207f5fa533f44df'):'adf46e3835fe29670314b6fe0cb48eb434f5afca77409f853d937978a970730d',
+            ('customer_info_request_events','gridex_mp_73114b6f8226a07cb343'):'84af7d68ace0a292857af0161e1d9659fe0fdce91ec19bef483ccce8255d8d8c',
+            ('customer_info_request_events','gridex_mp_f625bcbc0cffb824de0e'):'a9df72bf92fa6caae6b1c7e4b602170f5fd5426380190432488ce1f0049387dd',
+            ('metering_permissions','gridex_mp_2ec74ad3e1b0cd7abfb6'):'3c08b913127554c1323c673e87621a87b030094de8d997601a7e8f038253e246',
+            ('metering_permissions','gridex_mp_59ebea0afaa910af537c'):'08b92e39d63ed8f7bb9a7c3a1bdade3264cf51c14fbae2abbd6e721a1681ce88',
+        }
+        source={tuple(x['identity'][1:]):x['row'] for x in json.loads(retained.register)['replacementPolicies']}
+        for identity,digest in observed.items():
+            row=source[identity];self.assertEqual(q.sha(row),expected[('public',*identity)])
+            unqualified={k:v.replace('auth.role()','role()') if k in ('using_expression','check_expression') else v
+                         for k,v in row.items()}
+            self.assertEqual(q.sha(unqualified),digest)
+            self.assertNotEqual(q.sha(unqualified),q.sha(row))
+        # The metadata witness must not make auth.role visible for unqualified
+        # pg_get_expr output. SQL objects, exact hashes and predicates stay fixed.
+        self.assertTrue(b'SET LOCAL search_path=public,extensions,pg_catalog;' in retained.sql, 'fixed deparser path required')
+        self.assertFalse(b'SET LOCAL search_path=public,auth,extensions,pg_catalog;' in retained.sql, 'auth must remain outside deparser path')
+        self.assertEqual(len(expected),267)
+        self.assertEqual(q.sha(sorted(expected.items())),'d22964bce2efc5666f574644ae5e3a1fe4d8ec268fcf523f786fa7c75a478217')
+
     def test_policy_difference_diagnostic_exports_only_counts_ordinals_and_hashes(self):
         q=load();expected={('public','known_a','policy'):'a'*64,('public','known_b','policy'):'b'*64}
         actual={('public','known_a','policy'):'c'*64,('private catalog','private row','private policy'):'private SQL'}

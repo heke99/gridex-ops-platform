@@ -63,3 +63,38 @@ Job: https://github.com/heke99/gridex-ops-platform/actions/runs/34998326163/job/
 The exact changed/missing/extra policy remains UNVERIFIED: this run narrows the invariant but does not expose actual policy rows or hashes. The 267-member expected inventory and its source-pinned hashes were not changed. There is insufficient evidence to distinguish a missing/extra policy from an expression/hash serialization mismatch.
 
 The next diagnostic-only patch records finite expected/actual/row/missing/extra/changed counts, one-based positions in the sorted retained expected inventory, validated actual SHA256 values for changed positions, and the expected-set SHA256. It emits no raw identities, expressions or unknown names. Expected-set SHA256 is d22964bce2efc5666f574644ae5e3a1fe4d8ec268fcf523f786fa7c75a478217. The original exact-map and row-count rejection remains, including duplicate rows. New regression failed before implementation on missing diagnostic arguments, then qualification tests passed (9 tests). Formula tests passed (9 tests). This patch needs another actual owned run; it is not a schema repair or acceptance.
+
+## Actual 01ee1d55 policy difference and deparser correction
+
+Run 34999483634/job 104484026625, source 01ee1d55e515dea336531a3f8820bdf9eafebaf0, reaches all 144+514+6 and actors, then at 17:15:10 UTC reports exactly 267 policy rows and 267 unique identities, zero missing and zero extra identities, and 29 changed hashes. Expected-set SHA remains d22964bce2efc5666f574644ae5e3a1fe4d8ec268fcf523f786fa7c75a478217. Changed positions map to the unchanged sorted expected inventory:
+
+| Positions | Relation | Changed policies |
+| --- | --- | --- |
+| 12–19 | auth_email_events | 8 compiled policies |
+| 46–52 | company_invitations | 7 compiled policies |
+| 118–124 | customer_info_request_events | 7 compiled policies |
+| 211–217 | metering_permissions | 7 compiled policies |
+
+The actual schema report remains BLOCKED, counts empty, schemaAccepted=false; privacy/disposal and cleanup pass. Artifact 10409546403 is 630 bytes, advertised ZIP SHA256 b9f2c6cb49f3b991f910e9850397575cfa37c6f891099163b496c45e619200b4 (log evidence, no local archive hash claim).
+
+Job: https://github.com/heke99/gridex-ops-platform/actions/runs/34999483634/job/104484026625
+
+Confirmed harness defect: the removed-policy metadata SQL explicitly includes `auth` in its local search path. That changes the textual decompilation of an existing `auth.role()` call to `role()` in `pg_get_expr`, while the retained hashes bind the qualified spelling. This is a catalog presentation-context mismatch, not evidence of changed authorization predicates. PostgreSQL documents `pg_get_expr` as decompilation rather than original source text and describes schema visibility through the search path: https://www.postgresql.org/docs/17/functions-info.html . Supabase changelog fetch was attempted but its markdown content type was rejected by the web reader; no Supabase feature/API change is involved.
+
+Direct evidence: the retained register includes five complete policy rows in the affected set. Altering only `auth.role()` to `role()` in their expression strings reproduces all five actual hashes exactly:
+
+| Retained policy | Actual unqualified SHA256 |
+| --- | --- |
+| customer_info_request_events / gridex_mp_5aede207f5fa533f44df | adf46e3835fe29670314b6fe0cb48eb434f5afca77409f853d937978a970730d |
+| customer_info_request_events / gridex_mp_73114b6f8226a07cb343 | 84af7d68ace0a292857af0161e1d9659fe0fdce91ec19bef483ccce8255d8d8c |
+| customer_info_request_events / gridex_mp_f625bcbc0cffb824de0e | a9df72bf92fa6caae6b1c7e4b602170f5fd5426380190432488ce1f0049387dd |
+| metering_permissions / gridex_mp_2ec74ad3e1b0cd7abfb6 | 3c08b913127554c1323c673e87621a87b030094de8d997601a7e8f038253e246 |
+| metering_permissions / gridex_mp_59ebea0afaa910af537c | 08b92e39d63ed8f7bb9a7c3a1bdade3264cf51c14fbae2abbd6e721a1681ce88 |
+
+The correction removes only `auth` from this metadata witness's local search path, retaining public/extensions/pg_catalog, read-only transaction and all queried objects/expressions. Its SQL witness binding changes to affa046451bc7aded834cbe37f2457e69f613e5746dbca32472ccf84c07a7138. All 267 expected policy identities/hashes, register hash, immutable schema reference and migration sources stay unchanged. No expression normalization or new accepted hash is introduced. The remaining 24 individual decompilations and full corrected gate require the actual rerun; they are not inferred accepted from the five reproductions.
+
+Regression first reproduced all five hashes and failed on the original witness's auth-visible search path, then passed after correction. Qualification suite: PASS, 10 tests; formula suite: PASS, 9 tests. Reference/disclosure suite: PASS, 25 tests. The regression also pins the unchanged complete expected-set digest.
+
+Parent-authorized workflow extension allows push runs only for the existing closed Ediel continuation branch `codex/ediel-masterplan-v2-alignment-20260915`, with the identical narrow path filter. Same-repository PR310 admission remains; checkout uses the corresponding PR head or push SHA, concurrency separates the branch from PR310, and permissions/owned cleanup/privacy are unchanged. YAML parse, exact branch, identical path filter and contents-read permission checks pass. This enables owned qualification without canceling the long native PR310 run.
+
+Independent parent residual-source-admission fixture review: ACCEPT. The changes 605→607, 518→520, 593→595 and four→six align the existing exact six-forward partition; 601 historical inventory, 514 historical timestamps, original source hash checks and false SQL/type acceptance flags remain. Fresh `python3 -B scripts/canonical-residual-source-admission-selftest.py`: PASS, 20 tests.

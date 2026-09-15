@@ -17,14 +17,38 @@ on:
       - 'scripts/gridex-schema-dump*.cjs'
       - 'supabase/schema.sql'
       - 'supabase/migrations/*.sql'
+  push:
+    branches:
+      - 'codex/ediel-masterplan-v2-alignment-20260915'
+    paths:
+      - '.github/workflows/gridex-full-schema-reference.yml'
+      - 'scripts/canonical-*.py'
+      - 'scripts/canonical_policy_actor_qualification.py'
+      - 'scripts/sql/canonical-policy-actor-qualification.sql'
+      - 'scripts/test_canonical_policy_actor_qualification.py'
+      - 'scripts/canonical_removed_policy_*.py'
+      - 'scripts/test_canonical_removed_policy_*.py'
+      - 'scripts/sql/canonical-removed-policy-qualification.sql'
+      - 'quality/audits/PR310_REMOVED_POLICY_DISPOSITIONS_2026-09-15.json'
+      - 'scripts/canonical-reference-private-functions.json'
+      - 'scripts/sql/gridex-db-parity-introspect.sql'
+      - 'scripts/gridex-schema-document.cjs'
+      - 'scripts/gridex-schema-dump*.cjs'
+      - 'supabase/schema.sql'
+      - 'supabase/migrations/*.sql'
 permissions:
   contents: read
 concurrency:
-  group: gridex-full-schema-reference-${{ github.event.pull_request.number }}
+  group: gridex-full-schema-reference-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
   independent-public-reference:
-    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/gridex-parity-remediation-20260905'
+    if: >-
+      (github.event_name == 'pull_request' && github.event.pull_request.number == 310 &&
+       github.event.pull_request.head.repo.full_name == github.repository &&
+       github.event.pull_request.head.ref == 'codex/gridex-parity-remediation-20260905') ||
+      (github.event_name == 'push' &&
+       github.ref == 'refs/heads/codex/ediel-masterplan-v2-alignment-20260915')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -33,7 +57,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - name: Verify complete comparison and disclosure rejection controls
         run: |

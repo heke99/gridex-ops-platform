@@ -26,6 +26,7 @@ COLUMNS = 'quality/audits/PR310_ADDED_RELATION_COLUMN_CATALOG_2026-09-15.json'
 BASE = 'scripts/canonical-composite-customer-fk-selftest.py'
 GUARD = 'supabase/migrations/20260519_batch_6d2_runtime_governance_completion.sql'
 AUDIT = 'supabase/migrations/20260522_batch4e_switch_pdf_audit_rbac_completion.sql'
+HARDENING = 'supabase/migrations/20260611190000_launch_linter_hardening_security_definer_rls.sql'
 INTENT = 'quality/audits/PR310_ADDED_CONSTRAINT_INDEX_PARENT_DELETE_INTENT_2026-09-15.json'
 CANDIDATE = 'scripts/sql/forward-candidates/preserve-retained-customer-history-on-delete.sql'
 CANDIDATE_SHA = '00f8a844fc5c72274d697558d57f216acf56388b6d36f6aad6063ca255283734'
@@ -38,6 +39,7 @@ PINS = {
     COVERAGE: '64cc257b053c59fb4113b801b96d159cd2b638e644fe2c402e488de2c329c835',
     GUARD: 'b7d9d48b9cd3093b5546b04225f9c6151b0f674d2ae73441d8086f51922de9ab',
     AUDIT: 'e28a7956e18e6704de79b3be29245974faaef5a33aebcec4fa741c7daa06c98d',
+    HARDENING: 'b696379a5e1d26bde5fae150d7c51e9d40df029a9dfd605810ad9051b1fb74d1',
 }
 FUNCTION_MD5 = {'gridex_assert_company_operational_for_write': 'fcdd8e61b45af7096cf2654d767e12a0',
                 'gridex_audit_critical_row_change': '0bb25c59cc22963c529f3e7dce21d883'}
@@ -119,9 +121,14 @@ def selection():
         raise ValueError('EXACT_THREE_USER_TRIGGERS_REQUIRED')
     functions = [fixture.exactly_one(r'(create or replace function public\.gridex_assert_company_operational_for_write\(\).*?\$\$;)', files[GUARD]),
                  fixture.exactly_one(r'(create or replace function public\.gridex_audit_critical_row_change\(\).*?\$body\$;)', files[AUDIT])]
+    # The retained final function rows include the later source-authored
+    # search_path configuration. Replay that exact block, not rewritten bodies.
+    function_configuration = fixture.exactly_one(
+        r'-- Function search_path: every public function.*?\n(do \$\$.*?end \$\$;)', files[HARDENING])
     if [r['row'] for r in intent['foreignKeys']] != fks:
         raise ValueError('EXACT_INTENT_FOREIGN_KEYS_REQUIRED')
     return dict(fks=fks, triggers=triggers, functions=functions, columns=[r['row'] for r in columns],
+                functionConfiguration=function_configuration,
                 functionRows=[r['row'] for r in intent['functions']],
                 candidate=pinned(CANDIDATE, CANDIDATE_SHA))
 
@@ -202,6 +209,7 @@ def reset(selected, composite_first, repaired=False):
         fixture.sql('create table public.' + table + '(id uuid primary key,marker text default \'retained payload\',' + declaration + ');')
         fixture.sql('\n'.join(ordered_fks(rows, table, composite_first)))
     fixture.sql('\n'.join(selected['functions']))
+    fixture.sql(selected['functionConfiguration'])
     fixture.sql('\n'.join(row['definition'] + ';' for row in selected['triggers']))
     if catalog_rows() != rows:
         raise ValueError('NATIVE_EXACT_EIGHTEEN_FKS_REQUIRED')

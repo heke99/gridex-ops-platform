@@ -2,8 +2,10 @@
 """Offline source/selection controls; no PostgreSQL execution claim."""
 import copy
 import importlib.util
+import json
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location('parent_delete', ROOT / 'scripts/canonical-added-constraint-index-parent-delete-selftest.py')
@@ -12,6 +14,29 @@ SPEC.loader.exec_module(subject)
 
 
 class ParentDeleteSelectionTests(unittest.TestCase):
+    def test_reset_replays_source_configuration_before_comparing_final_function_rows(self):
+        selected = subject.selection()
+        calls = []
+        source = (ROOT / 'supabase/migrations/20260611190000_launch_linter_hardening_security_definer_rls.sql').read_text()
+        exact = subject.fixture.exactly_one(r'-- Function search_path: every public function.*?\n(do \$\$.*?end \$\$;)', source)
+        def sql(query):
+            calls.append(query)
+            if query.startswith('select jsonb_agg(jsonb_build_object(\'nspname\',n.nspname'):
+                return json.dumps(selected['fks'])
+            if query.startswith('select jsonb_object_agg(proname,md5'):
+                return json.dumps(subject.FUNCTION_MD5 if exact in calls else {
+                    'gridex_assert_company_operational_for_write':'87009076a9749a47238fb784e90355e7',
+                    'gridex_audit_critical_row_change':'f19fc1247acd96f0f15f9284ebad6ef0'})
+            if "'identity_arguments'" in query:
+                return json.dumps(sorted(selected['functionRows'],key=lambda r:r['proname']))
+            if "'tgname'" in query:
+                return json.dumps(sorted(selected['triggers'],key=lambda r:(r['relname'],r['tgname'])))
+            return ''
+        with patch.object(subject.fixture,'sql',side_effect=sql):
+            subject.reset(selected,False)
+        self.assertEqual(calls.count(exact),1)
+        self.assertLess(calls.index('\n'.join(selected['functions'])),calls.index(exact))
+
     def test_exact_coexisting_fk_set(self):
         selected = subject.selection()
         self.assertEqual(len(selected['fks']), 18)

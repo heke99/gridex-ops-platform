@@ -1,5 +1,21 @@
 name: Gridex retained customer history delete qualification
 on:
+  push:
+    branches:
+      - 'codex/ediel-masterplan-v2-alignment-20260915'
+    paths:
+      - '.github/workflows/gridex-retained-parent-delete-qualification.yml'
+      - 'scripts/canonical-added-constraint-index-parent-delete-*.py'
+      - 'scripts/canonical-composite-customer-fk-selftest.py'
+      - 'scripts/sql/forward-candidates/preserve-retained-customer-history-on-delete.sql'
+      - 'quality/audits/PR310_ADDED_CONSTRAINT_INDEX_*.json'
+      - 'quality/audits/PR310_SCHEMA_ACCEPTANCE_COVERAGE_2026-09-15.json'
+      - 'quality/audits/PR310_ADDED_RELATION_COLUMN_CATALOG_2026-09-15.json'
+      - 'supabase/migrations/*.sql'
+      - 'app/admin/customers/**'
+      - 'app/admin/platform/data-cleanup/actions.ts'
+      - 'lib/tenant/controlTower.ts'
+      - 'scripts/sql/tenant-isolation-invariants.sql'
   pull_request:
     paths:
       - '.github/workflows/gridex-retained-parent-delete-qualification.yml'
@@ -18,6 +34,11 @@ permissions:
   contents: read
 jobs:
   retained-parent-delete:
+    if: >-
+      github.repository == 'heke99/gridex-ops-platform' &&
+      ((github.event_name == 'push' && github.ref == 'refs/heads/codex/ediel-masterplan-v2-alignment-20260915') ||
+       (github.event_name == 'pull_request' && github.event.pull_request.number == 310 &&
+        github.event.pull_request.head.repo.full_name == github.repository))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
