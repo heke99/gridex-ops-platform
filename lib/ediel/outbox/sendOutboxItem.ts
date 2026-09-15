@@ -6,6 +6,7 @@ import { evaluateEdielRouteContract } from '@/lib/ediel/outbox/routeContract'
 import { claimEdielOutboxItem } from '@/lib/ediel/outbox/claimOutboxItems'
 import { projectSentEdielSourceState } from '@/lib/ediel/outbox/projectSentSources'
 import { getTenantOperationDecision } from '@/lib/tenant/operationPolicy'
+import { isSmtpDeliveryUncertain, SmtpDeliveryUncertainError } from '@/lib/ediel/transport/smtpOutcome'
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -301,10 +302,12 @@ export async function sendOutboxItem(params: {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
 
-    if (providerAccepted) {
+    if (providerAccepted || isSmtpDeliveryUncertain(error)) {
+      if (error instanceof SmtpDeliveryUncertainError) providerMessageId = error.smtpMessageId ?? providerMessageId
       try {
         await updateOutboxStatus({
           outboxItemId: params.outboxItemId,
+          sendAttemptId,
           workerId,
           payload: {
             status: 'delivery_uncertain',

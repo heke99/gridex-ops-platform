@@ -1,0 +1,210 @@
+[
+  {
+    "id": "CALL-01",
+    "entry_point": "UI/API/manual action",
+    "current_owner": "app/admin/* + kund/API-actions",
+    "target_contract": "Ediel command service (gemensam, föreslagen)",
+    "output": "Auktoriserat command + processavsikt",
+    "rule_ids": [
+      "TEN-01",
+      "TEN-03",
+      "TEN-14"
+    ],
+    "prohibition": "UI får inte direkt bygga EDIFACT eller ändra affärsstatus."
+  },
+  {
+    "id": "CALL-02",
+    "entry_point": "Affärsprocess",
+    "current_owner": "prodatLifecycle / inboundBusinessStateMachine",
+    "target_contract": "Processbeslut + resolveCanonicalEdielPolicy",
+    "output": "Rätt aktörsroll, meddelandevariant, mutationsplan och nästa åtgärd",
+    "rule_ids": [
+      "P-10",
+      "P-11",
+      "ESCO-01"
+    ],
+    "prohibition": "Behåll P-/ESCO-processer separata."
+  },
+  {
+    "id": "CALL-03",
+    "entry_point": "Render",
+    "current_owner": "prodat/builders/profileRenderer.ts + z09/z13",
+    "target_contract": "Publicerad fältprofil + explicit execution decision",
+    "output": "Positionsstabil segmentstruktur",
+    "rule_ids": [
+      "P-01",
+      "P-07",
+      "ENV-02"
+    ],
+    "prohibition": "Render får inte omvälja roll, datumversion eller field matrix."
+  },
+  {
+    "id": "CALL-04",
+    "entry_point": "Kuvert",
+    "current_owner": "core/edifactEnvelopeCodec.ts",
+    "target_contract": "Teknisk kvittens- och kuvertprofil",
+    "output": "UNB/UNH/UNT/UNZ och byteprofil",
+    "rule_ids": [
+      "ENV-03",
+      "ENV-04",
+      "ENV-05"
+    ],
+    "prohibition": "0031 ska komma från samma beslut som bevakningen."
+  },
+  {
+    "id": "CALL-05",
+    "entry_point": "Register",
+    "current_owner": "parseActorRegistryXml.ts och admin/ediel/actors/actions.ts",
+    "target_contract": "En gemensam importkärna med formatadaptrar",
+    "output": "Typed market actor/role/route snapshots",
+    "rule_ids": [
+      "IMP-01",
+      "IMP-02",
+      "IMP-03"
+    ],
+    "prohibition": "Avveckla dubbel auktoritet först efter paritetsbevis."
+  },
+  {
+    "id": "CALL-06",
+    "entry_point": "Pre-send",
+    "current_owner": "core/kernel.ts / outbound pipeline",
+    "target_contract": "Revalidate execution + route/cert security",
+    "output": "Aktuellt sändningsbeslut och immutabel payload",
+    "rule_ids": [
+      "GOV-04",
+      "TR-06",
+      "OPS-01"
+    ],
+    "prohibition": "Mode catalog_evidence eller historical_replay får aldrig skicka."
+  },
+  {
+    "id": "CALL-07",
+    "entry_point": "SMTP",
+    "current_owner": "lib/email/sendEdielEmail.ts",
+    "target_contract": "Transport attempt service",
+    "output": "Observerat försök, ej affärsacceptans",
+    "rule_ids": [
+      "TR-02",
+      "TR-03",
+      "TR-10"
+    ],
+    "prohibition": "SMTP-ledger skiljs från APERAK- och processledger."
+  },
+  {
+    "id": "CALL-08",
+    "entry_point": "Inkommande mail",
+    "current_owner": "lib/inbound-mail/*",
+    "target_contract": "MIME/DSN/AI/EDIFACT classifier",
+    "output": "Säker format- och mottagningskontext",
+    "rule_ids": [
+      "TR-04",
+      "TEN-06",
+      "AI-01"
+    ],
+    "prohibition": "DSN identifieras före extraktion av inbäddad EDIFACT."
+  },
+  {
+    "id": "CALL-09",
+    "entry_point": "Parser",
+    "current_owner": "core/canonicalEdifactAst.ts + tokenizer",
+    "target_contract": "Full grammar + immutable raw record",
+    "output": "Message/line/register/transaction/observation AST",
+    "rule_ids": [
+      "ENV-02",
+      "ENV-09",
+      "U-02"
+    ],
+    "prohibition": "Ingen första-träff som generell auktoritet."
+  },
+  {
+    "id": "CALL-10",
+    "entry_point": "Nationell P-kontroll",
+    "current_owner": "core/runtimeDecision.ts",
+    "target_contract": "resolveCanonicalEdielPolicy + field/group/reg selectors",
+    "output": "Objektvisa utfall med riktiga fältreferenser",
+    "rule_ids": [
+      "GOV-02",
+      "P-01",
+      "P-02"
+    ],
+    "prohibition": "Borttagna fel måste rättas i källan, inte döljas i gate."
+  },
+  {
+    "id": "CALL-11",
+    "entry_point": "Nationell U-kontroll",
+    "current_owner": "utiltsEngine.ts / utiltsInboundPolicyProcessor",
+    "target_contract": "Explicit shared rule selection + staged validation",
+    "output": "Headerresultat + per-IDE dispositions",
+    "rule_ids": [
+      "GOV-06",
+      "U-03",
+      "ACK-08"
+    ],
+    "prohibition": "Förmedla versionsbeslut, kör inte nytt now()-baserat policyval."
+  },
+  {
+    "id": "CALL-12",
+    "entry_point": "ACK",
+    "current_owner": "ack/canonicalAckEngine.ts + builders",
+    "target_contract": "Originalfamilj + disposition + korrelation",
+    "output": "CONTRL/P-AP/U-AP/ERR på rätt nivå",
+    "rule_ids": [
+      "ACK-01",
+      "ACK-02",
+      "ACK-03",
+      "ACK-05"
+    ],
+    "prohibition": "Kvittensfamilj väljs inte från tenantdefault."
+  },
+  {
+    "id": "CALL-13",
+    "entry_point": "Affärsmutation",
+    "current_owner": "Leverans-/kundinfo-/tillstånds-RPC",
+    "target_contract": "Validated mutation plan + DB guards",
+    "output": "Atomisk mutation, händelse, outbox",
+    "rule_ids": [
+      "DB-02",
+      "U-14",
+      "TEN-12"
+    ],
+    "prohibition": "Inga trustade client-provided tenant-id utan rättighetskontroll."
+  },
+  {
+    "id": "CALL-14",
+    "entry_point": "Intern distribution",
+    "current_owner": "ESCO data-access service (föreslagen)",
+    "target_contract": "Market permission + service assignment + grant",
+    "output": "Objekt-/period-/fältbegränsad projektion",
+    "rule_ids": [
+      "TEN-07",
+      "TEN-08",
+      "TEN-10"
+    ],
+    "prohibition": "Råfilen exponeras inte för varje beneficiary."
+  },
+  {
+    "id": "CALL-15",
+    "entry_point": "Timers/retry",
+    "current_owner": "deadlinePolicy + scheduled workers",
+    "target_contract": "Rule-specific timer policy + process state",
+    "output": "Bevakning, kontakt eller tillåten rättelse",
+    "rule_ids": [
+      "TR-05",
+      "OPS-02",
+      "GOV-04"
+    ],
+    "prohibition": "Ingen generell timeout→resend→active-kedja."
+  },
+  {
+    "id": "CALL-16",
+    "entry_point": "Readiness/release",
+    "current_owner": "Tenant readiness + CI/release",
+    "target_contract": "Dependency-scoped evidence",
+    "output": "Ett nytt versionslåst bevis per berörd scope",
+    "rule_ids": [
+      "OPS-01",
+      "OPS-03"
+    ],
+    "prohibition": "Gamla sändningar reprocessas inte automatiskt vid regeländring."
+  }
+]

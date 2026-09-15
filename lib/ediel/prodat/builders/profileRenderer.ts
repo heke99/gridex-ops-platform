@@ -21,6 +21,7 @@ import {
   prodatNowDate203,
 } from '@/lib/ediel/prodat/render/dates'
 import { validateProdatContext } from '@/lib/ediel/prodat/render/validate'
+import { isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
 import {
   resolveCanonicalEdielPolicy,
   type CanonicalEdielPolicy,
@@ -258,7 +259,9 @@ export function buildProfiledProdatSegments(input: {
     segments.push(`RFF+ANJ:${sanitizeProdatText(powerOfAttorneyReference)}`)
   }
 
-  if (!isSupplierZ09) {
+  if (!isSupplierZ09 && !isProdatFieldInInapplicableParent({
+    messageCode: policy.code, subtype: policy.subtype, fieldNumber: 'END_USER_GROUP',
+  })) {
     segments.push(prodatCustomerNadSegment({
       customerId: portalString(portalData, 'customerId') ?? context.customerId ?? null,
       customerIdCodeListQualifier: portalString(portalData, 'customerIdCodeListQualifier') ?? context.customerIdCodeListQualifier ?? null,
@@ -270,7 +273,10 @@ export function buildProfiledProdatSegments(input: {
     }))
   }
 
-  if (!isSupplierZ09 && policy.code !== 'Z03' && policy.code !== 'Z18') {
+  if (!isSupplierZ09 && policy.code !== 'Z03' && policy.code !== 'Z18'
+    && !isProdatFieldInInapplicableParent({
+      messageCode: policy.code, subtype: policy.subtype, fieldNumber: 'INSTALLATION_GROUP',
+    })) {
     segments.push(prodatInstallationNadSegment({
       meterPointId,
       address: portalString(portalData, 'siteAddress') ?? context.siteAddress ?? null,

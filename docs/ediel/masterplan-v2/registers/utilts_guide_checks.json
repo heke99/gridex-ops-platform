@@ -1,0 +1,1152 @@
+[
+  {
+    "id": "UG-121-2",
+    "locator": "UNB/0026",
+    "field_reference": "311",
+    "name_sv": "Application Reference",
+    "allowed_or_condition": "Giltiga koder för Application Reference, se ovan 3.7. För mer information se Ediels generella tekniska anvisning.",
+    "note": "",
+    "source": "U bilaga 1 s.121",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-121-3",
+    "locator": "UNH/S009/0065",
+    "field_reference": "-",
+    "name_sv": "",
+    "allowed_or_condition": "UTILTS",
+    "note": "",
+    "source": "U bilaga 1 s.121",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-121-4",
+    "locator": "UNH/S009/0052",
+    "field_reference": "-",
+    "name_sv": "",
+    "allowed_or_condition": "D",
+    "note": "",
+    "source": "U bilaga 1 s.121",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-121-5",
+    "locator": "UNH/S009/0054",
+    "field_reference": "-",
+    "name_sv": "",
+    "allowed_or_condition": "02B",
+    "note": "",
+    "source": "U bilaga 1 s.121",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-121-6",
+    "locator": "UNH/S009/0051",
+    "field_reference": "-",
+    "name_sv": "",
+    "allowed_or_condition": "UN",
+    "note": "",
+    "source": "U bilaga 1 s.121",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-121-7",
+    "locator": "UNH/S009/0057",
+    "field_reference": "312",
+    "name_sv": "Version",
+    "allowed_or_condition": "E5SE5A",
+    "note": "Aktuell samt föregående version (under en",
+    "source": "U bilaga 1 s.121",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-122-4",
+    "locator": "BGM/C002/1001",
+    "field_reference": "202",
+    "name_sv": "Dokumentnamn, kod",
+    "allowed_or_condition": "E30, E31, E66, E72, E73, E74, S01, S02, S03, S04, S05, S06, S07, ERR",
+    "note": "",
+    "source": "U bilaga 1 s.122",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-122-5",
+    "locator": "BGM/C002/1131",
+    "field_reference": "202",
+    "name_sv": "",
+    "allowed_or_condition": "SVK om 1001=S01–S07",
+    "note": "",
+    "source": "U bilaga 1 s.122",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-122-6",
+    "locator": "BGM/C002/3055",
+    "field_reference": "202",
+    "name_sv": "",
+    "allowed_or_condition": "260",
+    "note": "",
+    "source": "U bilaga 1 s.122",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-122-7",
+    "locator": "BGM/C106/1004",
+    "field_reference": "203",
+    "name_sv": "Dokument id",
+    "allowed_or_condition": "Ej blankt Kontrollera att dokument id är unikt över tid",
+    "note": "Felkod 42 används om dokument id ej är unikt över tid.",
+    "source": "U bilaga 1 s.122",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-122-8",
+    "locator": "BGM/1225",
+    "field_reference": "204",
+    "name_sv": "Meddelandefunktion",
+    "allowed_or_condition": "5, 9",
+    "note": "",
+    "source": "U bilaga 1 s.122",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-122-9",
+    "locator": "BGM/4343",
+    "field_reference": "313",
+    "name_sv": "Kvittensbegäran",
+    "allowed_or_condition": "AB, NA",
+    "note": "",
+    "source": "U bilaga 1 s.122",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-122-11",
+    "locator": "DTM+137/C507/2005",
+    "field_reference": "205 (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "137",
+    "note": "",
+    "source": "U bilaga 1 s.122",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-122-12",
+    "locator": "DTM+137/C507/2380",
+    "field_reference": "205",
+    "name_sv": "Meddelandedatum",
+    "allowed_or_condition": "Datum enligt format 203 (CCYYMMDDHHmm) Ej framtida datum",
+    "note": "",
+    "source": "U bilaga 1 s.122",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-122-13",
+    "locator": "DTM+137/C507/2379",
+    "field_reference": "205",
+    "name_sv": "",
+    "allowed_or_condition": "203",
+    "note": "",
+    "source": "U bilaga 1 s.122",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-122-15",
+    "locator": "DTM+735/C507/2005",
+    "field_reference": "206 (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "735",
+    "note": "",
+    "source": "U bilaga 1 s.122",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-122-16",
+    "locator": "DTM+735/C507/2380",
+    "field_reference": "206",
+    "name_sv": "Tidzon",
+    "allowed_or_condition": "+0100",
+    "note": "+0100 gäller endast samma tidzon som Sverige, i meddelanden från andra länder kan annan tidzon (offset till UTC) förekomma.",
+    "source": "U bilaga 1 s.122",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-122-17",
+    "locator": "DTM+735/C507/2379",
+    "field_reference": "206",
+    "name_sv": "",
+    "allowed_or_condition": "406",
+    "note": "",
+    "source": "U bilaga 1 s.122",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-122-19",
+    "locator": "MKS/7293",
+    "field_reference": "501",
+    "name_sv": "Marknad",
+    "allowed_or_condition": "23, 27",
+    "note": "",
+    "source": "U bilaga 1 s.122",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-122-20",
+    "locator": "MKS/C332/3496",
+    "field_reference": "502",
+    "name_sv": "Skede",
+    "allowed_or_condition": "E02, E03, E04",
+    "note": "",
+    "source": "U bilaga 1 s.122",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-122-21",
+    "locator": "MKS/C332/3055",
+    "field_reference": "502",
+    "name_sv": "",
+    "allowed_or_condition": "260",
+    "note": "",
+    "source": "U bilaga 1 s.122",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-122-23",
+    "locator": "SG2/NAD/3035",
+    "field_reference": "207 eller 208 (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "MS, MR",
+    "note": "",
+    "source": "U bilaga 1 s.122",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-122-24",
+    "locator": "SG2/NAD/C082/3039",
+    "field_reference": "207 eller 208",
+    "name_sv": "Avsändare eller Mottagare",
+    "allowed_or_condition": "Om 1131=SVK: Kontrollera femsiffrigt (Ediel-id) Om 3055=9 eller 305: kontrollera checksiffra.",
+    "note": "* Algoritm för kontroll av GS1-checksiffra, se längst ner i bilagan.",
+    "source": "U bilaga 1 s.122",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-123-2",
+    "locator": "SG2/NAD/C082/1131",
+    "field_reference": "207 eller 208",
+    "name_sv": "",
+    "allowed_or_condition": "SVK om 3055=260",
+    "note": "",
+    "source": "U bilaga 1 s.123",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-123-3",
+    "locator": "SG2/NAD/C082/3055",
+    "field_reference": "207 eller 208",
+    "name_sv": "",
+    "allowed_or_condition": "260, 9, 305",
+    "note": "",
+    "source": "U bilaga 1 s.123",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-123-5",
+    "locator": "SG2/NAD/3035",
+    "field_reference": "509",
+    "name_sv": "Underordnad roll",
+    "allowed_or_condition": "DDK, DDQ, DDX, DEA, DEC, DER, DGG, DGI, EZ, MDR, PQ",
+    "note": "DGG används i utbyten med leverantör av balanstjänster och koden behöver endast kontrolleras om man har sådan trafik.",
+    "source": "U bilaga 1 s.123",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-123-7",
+    "locator": "SG5/IDE/7495",
+    "field_reference": "505",
+    "name_sv": "",
+    "allowed_or_condition": "24",
+    "note": "",
+    "source": "U bilaga 1 s.123",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-123-8",
+    "locator": "SG5/IDE+24/C206/7402",
+    "field_reference": "505",
+    "name_sv": "Transaktionsnr",
+    "allowed_or_condition": "Ej blankt Kontrollera att transaktionsnr är unikt över tid",
+    "note": "Felkod 42 används om transaktionsnr ej är unikt över tid.",
+    "source": "U bilaga 1 s.123",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-123-10",
+    "locator": "SG5/LOC+172/3227",
+    "field_reference": "209 (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "172",
+    "note": "",
+    "source": "U bilaga 1 s.123",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-123-11",
+    "locator": "SG5/LOC+172/C517/3225",
+    "field_reference": "209",
+    "name_sv": "Anläggningsid",
+    "allowed_or_condition": "Ej blankt Om GS1-nr kontrollera GS1-checksiffra",
+    "note": "* Algoritm för kontroll av GS1-checksiffra, se längst ner i bilagan.",
+    "source": "U bilaga 1 s.123",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-123-12",
+    "locator": "SG5/LOC+172/C517/3055",
+    "field_reference": "209",
+    "name_sv": "",
+    "allowed_or_condition": "9, 89",
+    "note": "",
+    "source": "U bilaga 1 s.123",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-123-14",
+    "locator": "SG5/LOC+175/3227",
+    "field_reference": "533 (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "175",
+    "note": "",
+    "source": "U bilaga 1 s.123",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-123-15",
+    "locator": "SG5/LOC+175/C517/3225",
+    "field_reference": "533",
+    "name_sv": "Reglerobjektsid",
+    "allowed_or_condition": "Ej blankt Om GS1-nr kontrollera GS1-checksiffra",
+    "note": "* Algoritm för kontroll av GS1-checksiffra, se längst ner i bilagan.",
+    "source": "U bilaga 1 s.123",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-123-16",
+    "locator": "SG5/LOC+175/C517/3055",
+    "field_reference": "533",
+    "name_sv": "",
+    "allowed_or_condition": "9, 89",
+    "note": "",
+    "source": "U bilaga 1 s.123",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-123-18",
+    "locator": "SG5/LOC+232,233,239/3227",
+    "field_reference": "260a, 260b, 260c (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "232, 233, 239",
+    "note": "",
+    "source": "U bilaga 1 s.123",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-123-19",
+    "locator": "SG5/LOC+232,233,239/C517/3225",
+    "field_reference": "260a, 260b, 260c",
+    "name_sv": "Nätområdesid, Nätområde – utmatning, Nätområde – inmatning",
+    "allowed_or_condition": "Ej blankt, alltid tre tecken",
+    "note": "",
+    "source": "U bilaga 1 s.123",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-123-20",
+    "locator": "SG5/LOC+232,233,239/C517/1131",
+    "field_reference": "260a, 260b, 260c",
+    "name_sv": "",
+    "allowed_or_condition": "SVK",
+    "note": "",
+    "source": "U bilaga 1 s.123",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-123-21",
+    "locator": "SG5/LOC+232,233,239/C517/3055",
+    "field_reference": "260a, 260b, 260c",
+    "name_sv": "",
+    "allowed_or_condition": "260",
+    "note": "",
+    "source": "U bilaga 1 s.123",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-124-2",
+    "locator": "SG5/NAD/3035",
+    "field_reference": "262, 510, 524, 525, 526 (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "DDK, DDQ, BY, SE, EZ",
+    "note": "",
+    "source": "U bilaga 1 s.124",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-124-3",
+    "locator": "SG5/NAD/C082/3039",
+    "field_reference": "262, 510, 524, 525, 526",
+    "name_sv": "Balansansvarig, Leverantör, Köpare, Säljare, Systemansvarig",
+    "allowed_or_condition": "Kontrollera femsiffrigt (Ediel-id)",
+    "note": "",
+    "source": "U bilaga 1 s.124",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-124-4",
+    "locator": "SG5/NAD/C082/1131",
+    "field_reference": "262, 510, 524, 525, 526",
+    "name_sv": "",
+    "allowed_or_condition": "SVK",
+    "note": "",
+    "source": "U bilaga 1 s.124",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-124-5",
+    "locator": "SG5/NAD/C082/3055",
+    "field_reference": "262, 510, 524, 525, 526",
+    "name_sv": "",
+    "allowed_or_condition": "260",
+    "note": "",
+    "source": "U bilaga 1 s.124",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-124-7",
+    "locator": "SG5/LIN/C212/7140",
+    "field_reference": "506",
+    "name_sv": "Produkt id",
+    "allowed_or_condition": "8716867000016 (power active) 8716867000023 (power reactive) 8716867000030 (energy active) 8716867000047 (energy reactive) 8716867000054 (connection capacity) 8716867000061 (connection use) 8716867000078 (transport capacity) 8716867000085 (transport use) 8716867000139 (energy reactive capacitive) 8716867000146 (energy reactive inductive) 5410000100016 (natural gas) 7331507000013 (tid) 7331507000020 (belopp) 7331507000051 (frekvens)",
+    "note": "",
+    "source": "U bilaga 1 s.124",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-124-8",
+    "locator": "SG5/LIN/C212/3055",
+    "field_reference": "506",
+    "name_sv": "",
+    "allowed_or_condition": "9",
+    "note": "",
+    "source": "U bilaga 1 s.124",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-124-10",
+    "locator": "SG5/PIA/4347",
+    "field_reference": "511",
+    "name_sv": "",
+    "allowed_or_condition": "1",
+    "note": "",
+    "source": "U bilaga 1 s.124",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-124-11",
+    "locator": "SG5/PIA/C212/7140",
+    "field_reference": "511a, 511b, 511c, 511d, 511e",
+    "name_sv": "Tidsserieprodukt",
+    "allowed_or_condition": "Ej blankt",
+    "note": "",
+    "source": "U bilaga 1 s.124",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-124-12",
+    "locator": "SG5/PIS/C212/7143",
+    "field_reference": "511a, 511b, 511c, 511d, 511e",
+    "name_sv": "",
+    "allowed_or_condition": "PC, PT, OT, LOD, BAP",
+    "note": "",
+    "source": "U bilaga 1 s.124",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-124-13",
+    "locator": "SG5/PIA/C212/1131",
+    "field_reference": "511a, 511b, 511c, 511d, 511e",
+    "name_sv": "",
+    "allowed_or_condition": "SVK",
+    "note": "",
+    "source": "U bilaga 1 s.124",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-125-2",
+    "locator": "SG5/PIA/C212/3055",
+    "field_reference": "511a, 511b, 511c, 511d, 511e",
+    "name_sv": "",
+    "allowed_or_condition": "260",
+    "note": "",
+    "source": "U bilaga 1 s.125",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-125-4",
+    "locator": "SG5/DTM+324/C507/2005",
+    "field_reference": "245 (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "324",
+    "note": "",
+    "source": "U bilaga 1 s.125",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-125-5",
+    "locator": "SG5/DTM+324/C507/2380",
+    "field_reference": "245",
+    "name_sv": "Leveransperiod",
+    "allowed_or_condition": "Datum enligt format 719 (CCYYMMDDHHmmCCYYMMDDHHmm) Om meddelandetyp = E30, E31, E66, S01, S05 eller S07 kontrollera att ej framtida datum, för preliminära andelstal (S03, S04) och förbrukningsprognos (S02) är det tillåtet med framtida datum.",
+    "note": "",
+    "source": "U bilaga 1 s.125",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-125-6",
+    "locator": "SG5/DTM+324/C507/2379",
+    "field_reference": "245",
+    "name_sv": "",
+    "allowed_or_condition": "719",
+    "note": "",
+    "source": "U bilaga 1 s.125",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-125-8",
+    "locator": "SG5/DTM+354/C507/2005",
+    "field_reference": "508 (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "354",
+    "note": "",
+    "source": "U bilaga 1 s.125",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-125-9",
+    "locator": "SG5/DTM+354/C507/2380",
+    "field_reference": "508",
+    "name_sv": "Upplösning",
+    "allowed_or_condition": "1 om 2379 = 801, 802, 804 1519, 60 om 2379 = 806",
+    "note": "2379 = 801 och 804 är endast tillåtna efter överenskommelse. 60 för 2379 = 806 är för värden efter den 1 novem- ber 2023 endast tillåtet efter överenskommelse.",
+    "source": "U bilaga 1 s.125",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-125-10",
+    "locator": "SG5/DTM+354/C507/2379",
+    "field_reference": "508",
+    "name_sv": "",
+    "allowed_or_condition": "801, 802, 804, 806",
+    "note": "",
+    "source": "U bilaga 1 s.125",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-125-12",
+    "locator": "SG5/DTM+597/C507/2005",
+    "field_reference": "512 (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "597",
+    "note": "",
+    "source": "U bilaga 1 s.125",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-125-13",
+    "locator": "SG5/DTM+597/C507/2380",
+    "field_reference": "512",
+    "name_sv": "Registreringstidpunkt",
+    "allowed_or_condition": "Datum enligt format 203 (CCYYMMDDHHmm) Kontrollera att ej framtida datum",
+    "note": "",
+    "source": "U bilaga 1 s.125",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-125-14",
+    "locator": "SG5/DTM+597/C507/2379",
+    "field_reference": "512",
+    "name_sv": "",
+    "allowed_or_condition": "203",
+    "note": "",
+    "source": "U bilaga 1 s.125",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-125-16",
+    "locator": "SG5/DTM+368/C507/2005",
+    "field_reference": "532 (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "368",
+    "note": "",
+    "source": "U bilaga 1 s.125",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-125-17",
+    "locator": "SG5/DTM+368/C507/2380",
+    "field_reference": "532",
+    "name_sv": "Senaste uppdateringstidpunkt",
+    "allowed_or_condition": "Datum enligt format 203 (CCYYMMDDHHmm) Kontrollera att ej framtida datum",
+    "note": "",
+    "source": "U bilaga 1 s.125",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-125-18",
+    "locator": "SG5/DTM+368/C507/2379",
+    "field_reference": "532",
+    "name_sv": "",
+    "allowed_or_condition": "203",
+    "note": "",
+    "source": "U bilaga 1 s.125",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-125-20",
+    "locator": "SG5/STS+7/C601/9015",
+    "field_reference": "223 (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "7",
+    "note": "",
+    "source": "U bilaga 1 s.125",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-126-2",
+    "locator": "SG5/STS+7/C556/9013",
+    "field_reference": "223",
+    "name_sv": "Anledning till transaktionen",
+    "allowed_or_condition": "E03, E20, E23, E24, E25, E43, E44, E64, E67, E77, E88, Z01",
+    "note": "",
+    "source": "U bilaga 1 s.126",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-126-3",
+    "locator": "SG5/STS+7/C556/1131",
+    "field_reference": "223",
+    "name_sv": "",
+    "allowed_or_condition": "SVK om 9013=Z01",
+    "note": "",
+    "source": "U bilaga 1 s.126",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-126-4",
+    "locator": "SG5/STS+7/C556/3055",
+    "field_reference": "223",
+    "name_sv": "",
+    "allowed_or_condition": "260",
+    "note": "",
+    "source": "U bilaga 1 s.126",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-126-6",
+    "locator": "SG5/STS+E01/C601/9015",
+    "field_reference": "528 (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "E01",
+    "note": "",
+    "source": "U bilaga 1 s.126",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-126-7",
+    "locator": "SG5/STS+E01/C601/3055",
+    "field_reference": "528",
+    "name_sv": "",
+    "allowed_or_condition": "260",
+    "note": "",
+    "source": "U bilaga 1 s.126",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-126-8",
+    "locator": "SG5/STS+E01/C555/4405",
+    "field_reference": "528",
+    "name_sv": "Svarskod",
+    "allowed_or_condition": "41",
+    "note": "",
+    "source": "U bilaga 1 s.126",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-126-10",
+    "locator": "SG5/STS+E01/C556/9013",
+    "field_reference": "531",
+    "name_sv": "Avvisningsorsak",
+    "allowed_or_condition": "E10, E14, E16, E18, E29, E47, E49, E50, E51, E55, E61, E62, E73, E87, E90, E97, E98",
+    "note": "",
+    "source": "U bilaga 1 s.126",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-126-11",
+    "locator": "SG5/STS+E01/C556/3055",
+    "field_reference": "531",
+    "name_sv": "",
+    "allowed_or_condition": "260",
+    "note": "",
+    "source": "U bilaga 1 s.126",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-126-13",
+    "locator": "SG5/MEA/6311",
+    "field_reference": "264",
+    "name_sv": "",
+    "allowed_or_condition": "AAZ",
+    "note": "",
+    "source": "U bilaga 1 s.126",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-126-14",
+    "locator": "SG5/MEA/C174/6411",
+    "field_reference": "264",
+    "name_sv": "Enhet",
+    "allowed_or_condition": "KWH, KVR, KVA, KWT, MAW, 3B, GWH, K3, MWH, E08, MQH, MTQ, E46, D90, P1, HTZ",
+    "note": "",
+    "source": "U bilaga 1 s.126",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-126-16",
+    "locator": "SG6/RFF/C506/1153",
+    "field_reference": "503",
+    "name_sv": "Referens till meddelandetyp",
+    "allowed_or_condition": "E30, E31, E66, E72, E73, E74, S01, S02, S03, S04, S05, S06, S07",
+    "note": "",
+    "source": "U bilaga 1 s.126",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-126-17",
+    "locator": "SG6/RFF/C506/1154",
+    "field_reference": "504",
+    "name_sv": "Referens till meddelandeid",
+    "allowed_or_condition": "Om BGM/C002/1001=ERR: Ej blankt",
+    "note": "",
+    "source": "U bilaga 1 s.126",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-126-19",
+    "locator": "SG6/RFF/C506/1153",
+    "field_reference": "529",
+    "name_sv": "",
+    "allowed_or_condition": "TN",
+    "note": "",
+    "source": "U bilaga 1 s.126",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-126-20",
+    "locator": "SG6/RFF/C506/1154",
+    "field_reference": "529",
+    "name_sv": "Referens till transaktionsnr",
+    "allowed_or_condition": "Ej blankt",
+    "note": "",
+    "source": "U bilaga 1 s.126",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-126-22",
+    "locator": "SG6/RFF/C506/1153",
+    "field_reference": "226",
+    "name_sv": "",
+    "allowed_or_condition": "Fältet ska innehålla TN, men ingen avvisning sker av transaktionen om koden är felaktig.",
+    "note": "",
+    "source": "U bilaga 1 s.126",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-126-23",
+    "locator": "SG6/RFF/C506/1154",
+    "field_reference": "226",
+    "name_sv": "Referens till PRODAT- ärendereferens",
+    "allowed_or_condition": "Inga kontroller görs av fältet, se kapitel 3.6.12.",
+    "note": "",
+    "source": "U bilaga 1 s.126",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-126-25",
+    "locator": "SG7/CCI/C240/7037",
+    "field_reference": "507a (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "E02, E12, Z01",
+    "note": "",
+    "source": "U bilaga 1 s.126",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-126-26",
+    "locator": "SG7/CCI/C240/1131",
+    "field_reference": "507a",
+    "name_sv": "",
+    "allowed_or_condition": "SVK om 7037=Z01",
+    "note": "",
+    "source": "U bilaga 1 s.126",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-126-27",
+    "locator": "SG7/CCI/C240/3055",
+    "field_reference": "507a (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "260",
+    "note": "",
+    "source": "U bilaga 1 s.126",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-127-3",
+    "locator": "SG7/CAV/C889/7111",
+    "field_reference": "254 513",
+    "name_sv": "Avräkningsmetod Typ av anläggning(ar)",
+    "allowed_or_condition": "E01, E02 om CCI/C240/7037 = E02 E17, E18, E19, E20 om CCI/C240/7037 = E12",
+    "note": "",
+    "source": "U bilaga 1 s.127",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-127-4",
+    "locator": "SG7/CAV/C889/3055",
+    "field_reference": "254 eller 513",
+    "name_sv": "",
+    "allowed_or_condition": "260 om CCI/C240/7037 = E02 eller E12",
+    "note": "",
+    "source": "U bilaga 1 s.127",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-127-5",
+    "locator": "SG7/CAV/C889/7110",
+    "field_reference": "507a",
+    "name_sv": "Antal mätpunkter",
+    "allowed_or_condition": "Heltal >= 0 om CCI/C240/7037 = Z01",
+    "note": "",
+    "source": "U bilaga 1 s.127",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-127-7",
+    "locator": "SG8/SEQ/C286/1050",
+    "field_reference": "514",
+    "name_sv": "Observationsnr",
+    "allowed_or_condition": "Ej blankt",
+    "note": "",
+    "source": "U bilaga 1 s.127",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-127-9",
+    "locator": "SG8/RFF/C506/1153",
+    "field_reference": "224 (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "MG, SE",
+    "note": "",
+    "source": "U bilaga 1 s.127",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-127-10",
+    "locator": "SG8/RFF/C506/1154",
+    "field_reference": "224",
+    "name_sv": "Mätarnummer",
+    "allowed_or_condition": "Om 1153=SE, mätarnummer ska vara GS1-nr, kontrollera checksiffra. Om 1153=MG, ingen kontroll görs av (ev.) checksiffra.",
+    "note": "* Algoritm för kontroll av checksiffra, se längst ner i bilagan.",
+    "source": "U bilaga 1 s.127",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-127-12",
+    "locator": "SG8/RFF/C506/1153",
+    "field_reference": "527 (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "AES",
+    "note": "",
+    "source": "U bilaga 1 s.127",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-127-13",
+    "locator": "SG8/RFF/C506/1154",
+    "field_reference": "527",
+    "name_sv": "RegisterId",
+    "allowed_or_condition": "Ej blankt Den angivna koden kontrolleras mot ”master data” (strukturinformation), den kontrollen görs i Funktionskontrollen, se nedan.",
+    "note": "",
+    "source": "U bilaga 1 s.127",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-127-15",
+    "locator": "SG8/MOA/C516/5025",
+    "field_reference": "522",
+    "name_sv": "",
+    "allowed_or_condition": "9",
+    "note": "",
+    "source": "U bilaga 1 s.127",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-127-16",
+    "locator": "SG8/MOA/C516/5004",
+    "field_reference": "522",
+    "name_sv": "Belopp",
+    "allowed_or_condition": "Numeriskt",
+    "note": "",
+    "source": "U bilaga 1 s.127",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-127-17",
+    "locator": "SG8/MOA/C516/6345",
+    "field_reference": "269a",
+    "name_sv": "Valuta",
+    "allowed_or_condition": "Tre bokstäver (A-Z)",
+    "note": "",
+    "source": "U bilaga 1 s.127",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-127-19",
+    "locator": "SG10/PRI/C509/5125",
+    "field_reference": "523",
+    "name_sv": "",
+    "allowed_or_condition": "CAL",
+    "note": "",
+    "source": "U bilaga 1 s.127",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-127-20",
+    "locator": "SG10/PRI/C509/5118",
+    "field_reference": "523",
+    "name_sv": "Pris",
+    "allowed_or_condition": "Numeriskt",
+    "note": "",
+    "source": "U bilaga 1 s.127",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-127-21",
+    "locator": "SG10/CUX/C504/6347",
+    "field_reference": "269b",
+    "name_sv": "",
+    "allowed_or_condition": "2",
+    "note": "",
+    "source": "U bilaga 1 s.127",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-127-22",
+    "locator": "SG10/CUX/C504/6345",
+    "field_reference": "269b",
+    "name_sv": "Valuta",
+    "allowed_or_condition": "Tre bokstäver (A-Z)",
+    "note": "",
+    "source": "U bilaga 1 s.127",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-127-24",
+    "locator": "SG11/QTY/C186/6063",
+    "field_reference": "516, 515, 517, eller 521 (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "135, 136, 220, 42, 194, 195",
+    "note": "",
+    "source": "U bilaga 1 s.127",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-127-25",
+    "locator": "SG11/QTY/C186/6060",
+    "field_reference": "516, 515, 517, eller 521",
+    "name_sv": "Uppnådd periodisk kvantitet, Planerad",
+    "allowed_or_condition": "Numeriskt eller ”NULL”",
+    "note": "",
+    "source": "U bilaga 1 s.127",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-128-4",
+    "locator": "SG11/DTM/C507/2005",
+    "field_reference": "530a, 530b",
+    "name_sv": "",
+    "allowed_or_condition": "597",
+    "note": "",
+    "source": "U bilaga 1 s.128",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-128-5",
+    "locator": "SG11/DTM/C507/2380",
+    "field_reference": "530a, 530b",
+    "name_sv": "Datum för mätarställning, Tidpunkt för effektvärde",
+    "allowed_or_condition": "Datum enligt format 203 (CCYYMMDDHHmm) Kontrollera att ej framtida datum",
+    "note": "",
+    "source": "U bilaga 1 s.128",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-128-6",
+    "locator": "SG11/DTM/C507/2379",
+    "field_reference": "530a, 530b",
+    "name_sv": "",
+    "allowed_or_condition": "203",
+    "note": "",
+    "source": "U bilaga 1 s.128",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-128-8",
+    "locator": "SG11/STS/C601/9015",
+    "field_reference": "520 (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "8",
+    "note": "",
+    "source": "U bilaga 1 s.128",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-128-9",
+    "locator": "SG11/STS/C555/4405",
+    "field_reference": "520",
+    "name_sv": "Kvantitetskvalitet",
+    "allowed_or_condition": "21, 46, 56, 113, 125",
+    "note": "",
+    "source": "U bilaga 1 s.128",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-128-11",
+    "locator": "SG12/CCI/C240/7037",
+    "field_reference": "259 (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "E07",
+    "note": "",
+    "source": "U bilaga 1 s.128",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-128-12",
+    "locator": "SG12/CCI/C240/3055",
+    "field_reference": "259",
+    "name_sv": "",
+    "allowed_or_condition": "260",
+    "note": "",
+    "source": "U bilaga 1 s.128",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-128-14",
+    "locator": "SG12/CAV/C889/7111",
+    "field_reference": "259",
+    "name_sv": "Tidsintervall",
+    "allowed_or_condition": "E12",
+    "note": "",
+    "source": "U bilaga 1 s.128",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-128-15",
+    "locator": "SG12/CAV/C889/3055",
+    "field_reference": "259",
+    "name_sv": "",
+    "allowed_or_condition": "260",
+    "note": "",
+    "source": "U bilaga 1 s.128",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-128-17",
+    "locator": "SG12/CCI/C240/7037",
+    "field_reference": "309 (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "E22",
+    "note": "",
+    "source": "U bilaga 1 s.128",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-128-18",
+    "locator": "SG12/CCI/C240/3055",
+    "field_reference": "309",
+    "name_sv": "",
+    "allowed_or_condition": "260",
+    "note": "",
+    "source": "U bilaga 1 s.128",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-128-20",
+    "locator": "SG12/CAV/C889/7111",
+    "field_reference": "309",
+    "name_sv": "Mätaravläsare",
+    "allowed_or_condition": "E26, E27, E28",
+    "note": "",
+    "source": "U bilaga 1 s.128",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-128-21",
+    "locator": "SG12/CAV/C889/3055",
+    "field_reference": "309",
+    "name_sv": "",
+    "allowed_or_condition": "260",
+    "note": "",
+    "source": "U bilaga 1 s.128",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-128-23",
+    "locator": "SG12/CCI/C240/7037",
+    "field_reference": "507b (om möjligt)",
+    "name_sv": "",
+    "allowed_or_condition": "Z01",
+    "note": "",
+    "source": "U bilaga 1 s.128",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-128-24",
+    "locator": "SG12/CCI/C240/1131",
+    "field_reference": "507b",
+    "name_sv": "",
+    "allowed_or_condition": "SVK om 7037=Z01",
+    "note": "",
+    "source": "U bilaga 1 s.128",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-128-25",
+    "locator": "SG12/CCI/C240/3055",
+    "field_reference": "507b",
+    "name_sv": "",
+    "allowed_or_condition": "260",
+    "note": "",
+    "source": "U bilaga 1 s.128",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  },
+  {
+    "id": "UG-128-27",
+    "locator": "SG12/CAV/C889/7110",
+    "field_reference": "507b",
+    "name_sv": "Avvikande antal mätpunkter",
+    "allowed_or_condition": "Heltal >=0",
+    "note": "",
+    "source": "U bilaga 1 s.128",
+    "status": "Källvillkor avläst; tolka ihop med parent/meddelandeprofil och detaljerad segmentdefinition."
+  }
+]

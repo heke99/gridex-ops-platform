@@ -1,0 +1,23 @@
+[
+  {
+    "id": "PG-UD",
+    "scope": "SG17/NAD+UD",
+    "predicate": "message IN (Z01,Z02,Z03,Z04,Z05,Z08,Z13,Z15,Z18) OR (message IN (Z06,Z09) AND subtype == E) OR (message == Z14 AND subtype != N)",
+    "effect": "Använd gruppen och dess tillämpliga barn; annars ej använd. Z14N kräver därför inte 316 trots basmatrisens R.",
+    "source": "P §2.2 s.20–21"
+  },
+  {
+    "id": "PG-IT",
+    "scope": "SG17/NAD+IT",
+    "predicate": "message IN (Z02,Z04,Z05,Z06) OR (message == Z14 AND subtype != N); frivilligt val i Z01,Z03,Z08",
+    "effect": "233=209 och 234 krävs när gruppen används; ingen IT i Z14N. Postnr/ort enligt bilaga3.",
+    "source": "P §2.2 s.21; bilaga3"
+  },
+  {
+    "id": "PG-IV",
+    "scope": "SG17/NAD+IV",
+    "predicate": "message IN (Z03,Z04,Z05,Z06,Z08) OR (message == Z09 AND subtype == E); dessutom invoicee_address_differs_from_end_user",
+    "effect": "Identifiering, namn, postnr, ort, land samt tillämplig adress när gruppen används.",
+    "source": "P §2.2 s.22"
+  }
+]

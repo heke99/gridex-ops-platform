@@ -1,0 +1,1919 @@
+{
+  "spec_version": "2.0",
+  "spec_sha256": "eaeebd59153c31d16f0baa0f5462a239eea6c7e629bebbb1543a802d81482191",
+  "baseline_commit": "b9f732d28ceaf090e3b984e71d13a9cbd27f6408",
+  "scope": "Implementation evidence ledger; importing requirements does not verify behavior.",
+  "rules": [
+    {
+      "id": "GOV-01",
+      "acceptance_id": "AT-GOV-01",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GOV-02",
+      "acceptance_id": "AT-GOV-02",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GOV-03",
+      "acceptance_id": "AT-GOV-03",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GOV-04",
+      "acceptance_id": "AT-GOV-04",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GOV-05",
+      "acceptance_id": "AT-GOV-05",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GOV-06",
+      "acceptance_id": "AT-GOV-06",
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/context.md"
+      ]
+    },
+    {
+      "id": "GOV-07",
+      "acceptance_id": "AT-GOV-07",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GOV-08",
+      "acceptance_id": "AT-GOV-08",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TEN-01",
+      "acceptance_id": "AT-TEN-01",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TEN-02",
+      "acceptance_id": "AT-TEN-02",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TEN-03",
+      "acceptance_id": "AT-TEN-03",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TEN-04",
+      "acceptance_id": "AT-TEN-04",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TEN-05",
+      "acceptance_id": "AT-TEN-05",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TEN-06",
+      "acceptance_id": "AT-TEN-06",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TEN-07",
+      "acceptance_id": "AT-TEN-07",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TEN-08",
+      "acceptance_id": "AT-TEN-08",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TEN-09",
+      "acceptance_id": "AT-TEN-09",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TEN-10",
+      "acceptance_id": "AT-TEN-10",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TEN-11",
+      "acceptance_id": "AT-TEN-11",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TEN-12",
+      "acceptance_id": "AT-TEN-12",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TEN-13",
+      "acceptance_id": "AT-TEN-13",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TEN-14",
+      "acceptance_id": "AT-TEN-14",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "IMP-01",
+      "acceptance_id": "AT-IMP-01",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "IMP-02",
+      "acceptance_id": "AT-IMP-02",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "IMP-03",
+      "acceptance_id": "AT-IMP-03",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "IMP-04",
+      "acceptance_id": "AT-IMP-04",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "IMP-05",
+      "acceptance_id": "AT-IMP-05",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ENV-01",
+      "acceptance_id": "AT-ENV-01",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ENV-02",
+      "acceptance_id": "AT-ENV-02",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ENV-03",
+      "acceptance_id": "AT-ENV-03",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ENV-04",
+      "acceptance_id": "AT-ENV-04",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ENV-05",
+      "acceptance_id": "AT-ENV-05",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ENV-06",
+      "acceptance_id": "AT-ENV-06",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ENV-07",
+      "acceptance_id": "AT-ENV-07",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ENV-08",
+      "acceptance_id": "AT-ENV-08",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ENV-09",
+      "acceptance_id": "AT-ENV-09",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "P-01",
+      "acceptance_id": "AT-P-01",
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/protocol.md"
+      ]
+    },
+    {
+      "id": "P-02",
+      "acceptance_id": "AT-P-02",
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/protocol.md"
+      ]
+    },
+    {
+      "id": "P-03",
+      "acceptance_id": "AT-P-03",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "P-04",
+      "acceptance_id": "AT-P-04",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "P-05",
+      "acceptance_id": "AT-P-05",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "P-06",
+      "acceptance_id": "AT-P-06",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "P-07",
+      "acceptance_id": "AT-P-07",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "P-08",
+      "acceptance_id": "AT-P-08",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "P-09",
+      "acceptance_id": "AT-P-09",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "P-10",
+      "acceptance_id": "AT-P-10",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "P-11",
+      "acceptance_id": "AT-P-11",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "P-12",
+      "acceptance_id": "AT-P-12",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "P-13",
+      "acceptance_id": "AT-P-13",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "P-14",
+      "acceptance_id": "AT-P-14",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "P-15",
+      "acceptance_id": "AT-P-15",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "P-16",
+      "acceptance_id": "AT-P-16",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "P-17",
+      "acceptance_id": "AT-P-17",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ESCO-01",
+      "acceptance_id": "AT-ESCO-01",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ESCO-02",
+      "acceptance_id": "AT-ESCO-02",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ESCO-03",
+      "acceptance_id": "AT-ESCO-03",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ESCO-04",
+      "acceptance_id": "AT-ESCO-04",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ESCO-05",
+      "acceptance_id": "AT-ESCO-05",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ESCO-06",
+      "acceptance_id": "AT-ESCO-06",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ESCO-07",
+      "acceptance_id": "AT-ESCO-07",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ESCO-08",
+      "acceptance_id": "AT-ESCO-08",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ESCO-09",
+      "acceptance_id": "AT-ESCO-09",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ESCO-10",
+      "acceptance_id": "AT-ESCO-10",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ESCO-11",
+      "acceptance_id": "AT-ESCO-11",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ACK-01",
+      "acceptance_id": "AT-ACK-01",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ACK-02",
+      "acceptance_id": "AT-ACK-02",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ACK-03",
+      "acceptance_id": "AT-ACK-03",
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/protocol.md"
+      ]
+    },
+    {
+      "id": "ACK-04",
+      "acceptance_id": "AT-ACK-04",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ACK-05",
+      "acceptance_id": "AT-ACK-05",
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/protocol.md"
+      ]
+    },
+    {
+      "id": "ACK-06",
+      "acceptance_id": "AT-ACK-06",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ACK-07",
+      "acceptance_id": "AT-ACK-07",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ACK-08",
+      "acceptance_id": "AT-ACK-08",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ACK-09",
+      "acceptance_id": "AT-ACK-09",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "U-01",
+      "acceptance_id": "AT-U-01",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "U-02",
+      "acceptance_id": "AT-U-02",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "U-03",
+      "acceptance_id": "AT-U-03",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "U-04",
+      "acceptance_id": "AT-U-04",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "U-05",
+      "acceptance_id": "AT-U-05",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "U-06",
+      "acceptance_id": "AT-U-06",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "U-07",
+      "acceptance_id": "AT-U-07",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "U-08",
+      "acceptance_id": "AT-U-08",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "U-09",
+      "acceptance_id": "AT-U-09",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "U-10",
+      "acceptance_id": "AT-U-10",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "U-11",
+      "acceptance_id": "AT-U-11",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "U-12",
+      "acceptance_id": "AT-U-12",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "U-13",
+      "acceptance_id": "AT-U-13",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "U-14",
+      "acceptance_id": "AT-U-14",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TR-01",
+      "acceptance_id": "AT-TR-01",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TR-02",
+      "acceptance_id": "AT-TR-02",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TR-03",
+      "acceptance_id": "AT-TR-03",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TR-04",
+      "acceptance_id": "AT-TR-04",
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/transport.md"
+      ]
+    },
+    {
+      "id": "TR-05",
+      "acceptance_id": "AT-TR-05",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TR-06",
+      "acceptance_id": "AT-TR-06",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TR-07",
+      "acceptance_id": "AT-TR-07",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TR-08",
+      "acceptance_id": "AT-TR-08",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TR-09",
+      "acceptance_id": "AT-TR-09",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "TR-10",
+      "acceptance_id": "AT-TR-10",
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/transport.md"
+      ]
+    },
+    {
+      "id": "TR-11",
+      "acceptance_id": "AT-TR-11",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "AI-01",
+      "acceptance_id": "AT-AI-01",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "AI-02",
+      "acceptance_id": "AT-AI-02",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "AI-03",
+      "acceptance_id": "AT-AI-03",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "AI-04",
+      "acceptance_id": "AT-AI-04",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "AI-05",
+      "acceptance_id": "AT-AI-05",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "DB-01",
+      "acceptance_id": "AT-DB-01",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "DB-02",
+      "acceptance_id": "AT-DB-02",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "DB-03",
+      "acceptance_id": "AT-DB-03",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "DB-04",
+      "acceptance_id": "AT-DB-04",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "DB-05",
+      "acceptance_id": "AT-DB-05",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "DB-06",
+      "acceptance_id": "AT-DB-06",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "OPS-01",
+      "acceptance_id": "AT-OPS-01",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "OPS-02",
+      "acceptance_id": "AT-OPS-02",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "OPS-03",
+      "acceptance_id": "AT-OPS-03",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "OPS-04",
+      "acceptance_id": "AT-OPS-04",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "OPS-05",
+      "acceptance_id": "AT-OPS-05",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ENV-10",
+      "acceptance_id": "AT-ENV-10",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "ACK-10",
+      "acceptance_id": "AT-ACK-10",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "U-15",
+      "acceptance_id": "AT-U-15",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "U-16",
+      "acceptance_id": "AT-U-16",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "U-17",
+      "acceptance_id": "AT-U-17",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "U-18",
+      "acceptance_id": "AT-U-18",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    },
+    {
+      "id": "U-19",
+      "acceptance_id": "AT-U-19",
+      "status": "NOT_VERIFIED",
+      "evidence": []
+    }
+  ],
+  "acceptance_contracts": [
+    {
+      "id": "SC-001",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-002",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-003",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-004",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-005",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-006",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-007",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-008",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-009",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-010",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-011",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-012",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-013",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-014",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-015",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-016",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-017",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-018",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-019",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-020",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-021",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-022",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-023",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-024",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-025",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-026",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-027",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-028",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-029",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-030",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-031",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-032",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-033",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-034",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-035",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-036",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-037",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-038",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-039",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-040",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-041",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-042",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-043",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-044",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-045",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-046",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-047",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-048",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-049",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-050",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-051",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-052",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-053",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-054",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-055",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-056",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-057",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-058",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-059",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-060",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-061",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-062",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-063",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-064",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-065",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-066",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-067",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-068",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-069",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-070",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-071",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "SC-072",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-GOV-01",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-GOV-02",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-GOV-03",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-GOV-04",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-GOV-05",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-GOV-06",
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/context.md"
+      ]
+    },
+    {
+      "id": "AT-GOV-07",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-GOV-08",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TEN-01",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TEN-02",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TEN-03",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TEN-04",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TEN-05",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TEN-06",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TEN-07",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TEN-08",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TEN-09",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TEN-10",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TEN-11",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TEN-12",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TEN-13",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TEN-14",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-IMP-01",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-IMP-02",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-IMP-03",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-IMP-04",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-IMP-05",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ENV-01",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ENV-02",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ENV-03",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ENV-04",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ENV-05",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ENV-06",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ENV-07",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ENV-08",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ENV-09",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-P-01",
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/protocol.md"
+      ]
+    },
+    {
+      "id": "AT-P-02",
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/protocol.md"
+      ]
+    },
+    {
+      "id": "AT-P-03",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-P-04",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-P-05",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-P-06",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-P-07",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-P-08",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-P-09",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-P-10",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-P-11",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-P-12",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-P-13",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-P-14",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-P-15",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-P-16",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-P-17",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ESCO-01",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ESCO-02",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ESCO-03",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ESCO-04",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ESCO-05",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ESCO-06",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ESCO-07",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ESCO-08",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ESCO-09",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ESCO-10",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ESCO-11",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ACK-01",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ACK-02",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ACK-03",
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/protocol.md"
+      ]
+    },
+    {
+      "id": "AT-ACK-04",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ACK-05",
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/protocol.md"
+      ]
+    },
+    {
+      "id": "AT-ACK-06",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ACK-07",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ACK-08",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ACK-09",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-U-01",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-U-02",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-U-03",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-U-04",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-U-05",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-U-06",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-U-07",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-U-08",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-U-09",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-U-10",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-U-11",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-U-12",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-U-13",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-U-14",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TR-01",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TR-02",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TR-03",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TR-04",
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/transport.md"
+      ]
+    },
+    {
+      "id": "AT-TR-05",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TR-06",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TR-07",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TR-08",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TR-09",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-TR-10",
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/transport.md"
+      ]
+    },
+    {
+      "id": "AT-TR-11",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-AI-01",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-AI-02",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-AI-03",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-AI-04",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-AI-05",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-DB-01",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-DB-02",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-DB-03",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-DB-04",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-DB-05",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-DB-06",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-OPS-01",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-OPS-02",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-OPS-03",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-OPS-04",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-OPS-05",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ENV-10",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-ACK-10",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-U-15",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-U-16",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-U-17",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-U-18",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-U-19",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z01L-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z02L-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z03L-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z04L-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z05L-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z01LK-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z02LK-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z03LK-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z04LK-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z05LK-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z03C-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z04C-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z05C-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z04A-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z04D-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z03H-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z04H-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z05H-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z08H-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z08LK-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z06E-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z09E-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z06F-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z09F-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z06G-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z09G-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z09B-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z09D-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z10M-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z13V-ESCO",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z14V-ESCO",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z15V-ESCO",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z13VH-ESCO",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z14VH-ESCO",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z15VH-ESCO",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z14N-ESCO",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z15C-ESCO",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z18V-ESCO",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    }
+  ]
+}

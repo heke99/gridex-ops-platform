@@ -1,6 +1,7 @@
 // Extracted from edielMailboxPoller.ts; keep public imports on the facade module.
 import { ImapFlow } from "imapflow"
 import { createHash } from "crypto"
+import { isDeliveryStatusNotification } from './dsnClassifier'
 
 import { processInboundEmailMessage } from "@/lib/inbound-mail/edielInboundProcessor"
 
@@ -666,20 +667,46 @@ export async function processQueuedInboundProcessingJobs(
   return { processed, failed };
 }
 
-export async function listEdielMessageIdsForInboundEmails(
-  inboundEmailMessageIds: string[],
-): Promise<string[]> {
-  const ids = Array.from(new Set(inboundEmailMessageIds.filter(Boolean)));
+async function filterNonDsnInboundEmailIds(ids: string[]): Promise<string[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabaseService.from('inbound_email_messages')
+    .select('id,match_status,raw_email,body_text').in('id', ids);
+  if (error) throw error;
+  const safe = new Set(((data ?? []) as Array<Record<string, unknown>>)
+    .filter((row) => row.match_status !== 'dsn_transport_review' &&
+      !isDeliveryStatusNotification(stringOrNull(row.raw_email)) &&
+      !isDeliveryStatusNotification(stringOrNull(row.body_text)))
+    .map((row) => row.id));
+  return ids.filter((id) => safe.has(id));
+}
+
+type ExistingInboundEdielMessage = {
+  id?: string | null;
+  inbound_email_message_id?: string | null;
+};
+
+// Internal callers must screen these IDs through filterNonDsnInboundEmailIds.
+async function listEdielMessagesForNonDsnInboundEmails(
+  ids: string[],
+): Promise<ExistingInboundEdielMessage[]> {
   if (ids.length === 0) return [];
 
   const { data, error } = await supabaseService
     .from("ediel_messages")
-    .select("id")
+    .select("id,inbound_email_message_id")
     .in("inbound_email_message_id", ids)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return ((data ?? []) as Array<{ id?: string | null }>)
+  return (data ?? []) as ExistingInboundEdielMessage[];
+}
+
+export async function listEdielMessageIdsForInboundEmails(
+  inboundEmailMessageIds: string[],
+): Promise<string[]> {
+  const ids = await filterNonDsnInboundEmailIds(Array.from(new Set(inboundEmailMessageIds.filter(Boolean))));
+  const messages = await listEdielMessagesForNonDsnInboundEmails(ids);
+  return messages
     .map((row) => row.id)
     .filter((id): id is string => Boolean(id));
 }
@@ -706,22 +733,15 @@ export async function listRecentParsedInboundEmailIds(limit = 50): Promise<strin
 export async function ensureDiagnosticEdielMessagesForInboundEmails(
   inboundEmailMessageIds: string[],
 ): Promise<string[]> {
-  const ids = Array.from(new Set(inboundEmailMessageIds.filter(Boolean)));
+  const ids = await filterNonDsnInboundEmailIds(Array.from(new Set(inboundEmailMessageIds.filter(Boolean))));
   if (ids.length === 0) return [];
 
-  const existingIds = await listEdielMessageIdsForInboundEmails(ids);
-  const { data: existingMessages, error: existingError } = await supabaseService
-    .from("ediel_messages")
-    .select("inbound_email_message_id")
-    .in("inbound_email_message_id", ids);
-
-  if (existingError) throw existingError;
+  const existingMessages = await listEdielMessagesForNonDsnInboundEmails(ids);
+  const existingIds = existingMessages
+    .map((row) => row.id)
+    .filter((id): id is string => Boolean(id));
   const existingInboundIds = new Set(
-    (
-      (existingMessages ?? []) as Array<{
-        inbound_email_message_id?: string | null;
-      }>
-    )
+    existingMessages
       .map((row) => row.inbound_email_message_id)
       .filter((value): value is string => Boolean(value)),
   );
@@ -792,7 +812,7 @@ export async function ensureDiagnosticEdielMessagesForInboundEmails(
   if (missingPayloadIds.length > 0) {
     const { data: inboundRows, error: inboundError } = await supabaseService
       .from("inbound_email_messages")
-      .select("id,company_id,environment,internet_message_id,from_address,to_address,subject,received_at,processing_status,match_status,error_message,raw_edifact_payload,body_text,message_family,message_code,created_at")
+      .select("id,company_id,environment,internet_message_id,from_address,to_address,subject,received_at,processing_status,match_status,error_message,raw_email,raw_edifact_payload,body_text,message_family,message_code,created_at")
       .in("id", missingPayloadIds);
     if (inboundError) throw inboundError;
 
@@ -812,6 +832,9 @@ export async function ensureDiagnosticEdielMessagesForInboundEmails(
     }
 
     for (const row of (inboundRows ?? []) as Array<Record<string, unknown>>) {
+      if (row.match_status === 'dsn_transport_review' ||
+          isDeliveryStatusNotification(stringOrNull(row.raw_email)) ||
+          isDeliveryStatusNotification(stringOrNull(row.body_text))) continue;
       const inboundId = typeof row.id === "string" ? row.id : null;
       if (!inboundId) continue;
       const attachments = attachmentsByEmail.get(inboundId) ?? [];

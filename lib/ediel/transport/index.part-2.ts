@@ -22,6 +22,7 @@ import { describeCertificate, fullEdielAddress, resolveOutboundRecipientCertific
 
 import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
 import { sendEdielEmail } from '@/lib/email/sendEdielEmail'
+import { SmtpDeliveryUncertainError } from './smtpOutcome'
 
 import type { EdielSmtpMimeMode, SmtpSendResult } from './index.part-1'
 import { applyMessageFamilyEncryptionPolicy, assertRouteTransportSecurity, assertTransportFamily, buildInnerEdifactMimeForSmime, buildMultipartValidationBase64Mime, buildOuterSmimeMime, buildSinglePartEdielBase64Mime, buildSinglePartEdielMime, encodeBase64Mime, encryptSmimeEnvelopedData, encryptionModeFromMimeMode, extractEdielSubjectFromPayload, findRelatedOutboundForInboundAck, inferAckOutcomeFromPayload, inferAttachmentExtension, inferBodyText, inferMimeType, inspectCmsRecipientInfo, isEdifactMessage, normalizeEdifactForSmtp, parseEdifactEnvelope, requireActorUserId, resolveSmtpMimeMode, routeCertificateEnvironment, safePreview, sanitizeMimeToken, sha256, storeTransportPayloadSnapshot } from './index.part-1'
@@ -739,63 +740,69 @@ export async function sendEdielMessageViaSmtp(
 
     throw new Error(`SMTP accepterade inte mottagaren. accepted=${accepted.join(',') || 'tomt'} rejected=${rejected.join(',') || 'tomt'}`)
   }
-  await supabaseService
-    .from('ediel_messages')
-    .update({
-      transport_security_mode: mimeMode === 'ediel-smime-enveloped' ? 'required_encrypted' : 'unencrypted',
-      route_transport_security_mode: routeProfile?.transport_security_mode ?? routeProfile?.encryption_mode ?? null,
-      was_smime_encrypted: mimeMode === 'ediel-smime-enveloped',
-      expected_receiver_certificate_id: usedReceiverCertificateId,
-      cms_expected_receiver_present: cmsExpectedReceiverPresent,
-      updated_by: actorUserId,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', message.id)
-    .then(({ error }) => {
-      if (error) console.warn('[ediel-transport] Could not persist transport audit fields', error)
+  try {
+    await supabaseService
+      .from('ediel_messages')
+      .update({
+        transport_security_mode: mimeMode === 'ediel-smime-enveloped' ? 'required_encrypted' : 'unencrypted',
+        route_transport_security_mode: routeProfile?.transport_security_mode ?? routeProfile?.encryption_mode ?? null,
+        was_smime_encrypted: mimeMode === 'ediel-smime-enveloped',
+        expected_receiver_certificate_id: usedReceiverCertificateId,
+        cms_expected_receiver_present: cmsExpectedReceiverPresent,
+        updated_by: actorUserId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', message.id)
+      .then(({ error }) => {
+        if (error) throw error
+      })
+
+    await updateEdielMessageStatus({
+      actorUserId,
+      edielMessageId: message.id,
+      status: 'sent',
+      messageSentAt: new Date().toISOString(),
     })
 
-  await updateEdielMessageStatus({
-    actorUserId,
-    edielMessageId: message.id,
-    status: 'sent',
-    messageSentAt: new Date().toISOString(),
-  })
+    await createEdielMessageEvent({
+      actorUserId,
+      edielMessageId: message.id,
+      eventType: 'sent',
+      eventStatus: 'success',
+      message: 'Ediel-meddelande skickat via SMTP.',
+      payload: {
+        smtpMessageId: result.messageId ?? null,
+        smtpResponse: result.response ?? null,
+        accepted,
+        rejected,
+        mimeMode,
+        contentType,
+        contentTransferEncoding,
+        subject: smtpSubject,
+        fileName,
+        payloadLength: normalizedPayload.length,
+        payloadPreview: safePreview(normalizedPayload),
+        rawMimePreview,
+        decodedPayloadLength: normalizedPayload.length,
+        decodedPayloadHasLineBreaks: /[\r\n]/.test(normalizedPayload),
+        decodedPayloadPreview,
+        encodedPayloadPreview,
+        encryptedPayloadLength,
+        innerMimePreview,
+        wasSmimeEncrypted: mimeMode === 'ediel-smime-enveloped',
+        certificateId: usedReceiverCertificateId,
+        cmsExpectedReceiverPresent,
+      },
+    })
 
-  await createEdielMessageEvent({
-    actorUserId,
-    edielMessageId: message.id,
-    eventType: 'sent',
-    eventStatus: 'success',
-    message: 'Ediel-meddelande skickat via SMTP.',
-    payload: {
-      smtpMessageId: result.messageId ?? null,
-      smtpResponse: result.response ?? null,
+    return {
       accepted,
       rejected,
-      mimeMode,
-      contentType,
-      contentTransferEncoding,
-      subject: smtpSubject,
-      fileName,
-      payloadLength: normalizedPayload.length,
-      payloadPreview: safePreview(normalizedPayload),
-      rawMimePreview,
-      decodedPayloadLength: normalizedPayload.length,
-      decodedPayloadHasLineBreaks: /[\r\n]/.test(normalizedPayload),
-      decodedPayloadPreview,
-      encodedPayloadPreview,
-      encryptedPayloadLength,
-      innerMimePreview,
-      wasSmimeEncrypted: mimeMode === 'ediel-smime-enveloped',
-      certificateId: usedReceiverCertificateId,
-      cmsExpectedReceiverPresent,
-    },
-  })
-
-  return {
-    accepted,
-    rejected,
-    messageId: result.messageId ?? null,
+      messageId: result.messageId ?? null,
+    }
+  } catch (error) {
+    // SMTP already accepted. A failed status/event write cannot establish
+    // non-delivery and must not be surfaced as a definite transport failure.
+    throw new SmtpDeliveryUncertainError(error, result.messageId ?? null)
   }
 }

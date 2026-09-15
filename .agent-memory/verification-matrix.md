@@ -303,3 +303,5 @@ baseline comparison.
 Two CI failures were real defects this branch introduced and fixed, not flakes:
 a revoke from PUBLIC that did not remove Supabase's default-privilege grant to
 anon, and a pg_dump older than the pinned PostgreSQL 17 server.
+
+2026-09-15: Independent Ediel extraction from main: 201 files/1216 tests PASS on Node22, app/tests TypeScript PASS, original specification integrity PASS, tenant ratchet2399PASS. Partial delivery only; PR310 DB/schema/types remain deferred. Evidence: quality/audits/ediel-masterplan-v2/partial-main-merge.md.
