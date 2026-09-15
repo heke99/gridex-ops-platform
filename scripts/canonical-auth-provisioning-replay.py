@@ -350,6 +350,36 @@ def serve_child(b,h,command,scope='full'):
         raise
 
 
+def owned_tail_failure_category(error):
+    """Return only fixed witness failure codes; never exception text or SQL."""
+    allowed = {prefix + suffix
+        for prefix in ('ADDED_VIEW_WITNESS_', 'CHANGED_VIEW_WITNESS_')
+        for suffix in ('COMPARATOR_REQUIRED', 'EXECUTION_REQUIRED', 'LEDGER_REQUIRED',
+                       'ONCE_REQUIRED', 'OWNED_TARGET_REQUIRED', 'PRESERVATION_REQUIRED',
+                       'RELATION_REQUIRED', 'RESULT_REQUIRED', 'SOURCE_REQUIRED')}
+    allowed.update('CHANGED_FUNCTION_' + suffix for suffix in (
+        'SOURCE_REQUIRED', 'RESULT_REQUIRED', 'BEHAVIOR_REQUIRED',
+        'OWNED_TARGET_REQUIRED', 'ONCE_REQUIRED', 'PRESERVATION_REQUIRED'))
+    if (type(error) is ValueError and len(error.args) == 1
+            and type(error.args[0]) is str and error.args[0] in allowed):
+        return error.args[0]
+    return 'UNCLASSIFIED'
+
+
+def owned_tail_failed_cases(progress):
+    """Release only the finite authored function-oracle labels, or nothing."""
+    import re
+    import canonical_changed_function_witness as functions
+    known = set(re.findall(r"INSERT INTO changed_function_cases VALUES \('([^']+)'", functions.render()))
+    report = progress.get('changedFunctionBehaviorWitness') if type(progress) is dict else None
+    labels = report.get('failedCases') if type(report) is dict else None
+    if (type(labels) is not list or len(labels) > 24
+            or any(type(label) is not str or label not in known for label in labels)
+            or labels != sorted(set(labels))):
+        return []
+    return labels
+
+
 class OwnedTimestampTail:
     """Once-only continuation, retained before the child moves original sources.
 
@@ -434,8 +464,11 @@ class OwnedTimestampTail:
             self.changed_index_receipt = indexes.validate_execution_receipt(
                 indexes.execute(self.target, self.changed_index_retained, progress), native=False)
             progress['changedIndexSourceWitness'] = self.changed_index_receipt
-        except BaseException:
+        except BaseException as error:
             self.state = 'failed'
+            print(json.dumps({'stage': 'owned_timestamp_tail_failure',
+                              'cause': owned_tail_failure_category(error),
+                              'failedCases': owned_tail_failed_cases(progress)}, sort_keys=True), flush=True)
             raise
         self.state = 'executed'
         print(json.dumps({**progress, 'stage': 'actual_replay_timestamp_tail',

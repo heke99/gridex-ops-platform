@@ -11,10 +11,10 @@ matching source-witness receipts; disposed owned resources; exact positive schem
 decisions; genuine candidate bytes equal to committed types and the manifest;
 and the exact current migration tail. Unsupported differences remain failures.
 
-The schema decision engine currently maps 301 exact differences: 31 added views,
+The schema decision engine currently maps 1024 exact differences: 31 added views,
 five changed views, 128 changed policies, 59 removed policies, five changed
 indexes, two intake columns, 51 removed indexes, 14 non-type column differences
-and five positive CHECK changes plus the qualified intent customer/company FK. These are explicit source decisions bound to
+five positive CHECK changes, the qualified intent customer/company FK, and723 exact physical-ordinal-only differences. These are explicit source decisions bound to
 actual witness receipts, not approval inferred from the larger inventory.
 The two repaired removals are specifically ediel_send_locks tenant INSERT and
 UPDATE policies; they require exact forward six plus the full current forward
@@ -52,3 +52,5 @@ rows and unchanged retained survivor context. The membership-status constraint d
 is now bound to its pinned standalone qualification and the complete native
 T514 source/program/ledger receipt in the same enclosing schema comparison.
 Missing, duplicated, changed or incomplete T514 receipts reject acceptance.
+
+The723physical-order mappings require immutable comparison pairs plus both affected changed-view source witnesses. Ten pinned source/review/register files bind the reviewed comparator and named-object caller evidence. No generic ordinal ignore, external positional ABI claim or discharge of another schema section is introduced. Root independently reviewed the module; its author independently reviewed the central integration. Eight central tests pass at1024mappings.

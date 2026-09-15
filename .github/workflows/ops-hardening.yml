@@ -424,6 +424,7 @@ jobs:
           python3 -B scripts/test-canonical-changed-view-witness.py
           python3 -B scripts/test-canonical-changed-function-witness.py
           python3 -B scripts/test-canonical-changed-index-witness.py
+          python3 -B scripts/test-canonical-schema-physical-order-decisions.py
           python3 -B scripts/test-canonical-schema-source-decisions.py
           python3 -B scripts/test-canonical-native-dump-verify.py
           python3 -B scripts/test-canonical-native-release-verify.py

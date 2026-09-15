@@ -44,7 +44,7 @@ class Tests(unittest.TestCase):
    return m.verify(diff)
  def test_reviewed_scope_is_closed_and_positive_only(self):
   records=m.approved()
-  self.assertEqual(len(records),301)
+  self.assertEqual(len(records),1024)
   self.assertEqual(sum(r['section']=='policies' and r['change']=='removed' for r in records),59)
   self.assertFalse(any('REVIEW_REQUIRED' in r['decision'] for r in records))
  def test_exact_mapping_accepts_only_with_every_runtime_receipt(self):

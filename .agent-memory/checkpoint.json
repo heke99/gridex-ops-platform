@@ -3,8 +3,8 @@
   "updated_at": "2026-09-15",
   "status": "IN_PROGRESS",
   "current_state": ".agent-memory/current-state.md",
-  "publication_base": "e7391be9bfa9342eaf40c6fcdbfd59c0ea28c6fa",
-  "published_tree": "4617ab72f577e4eb5e168896dbeb69f97fe61815",
+  "publication_base": "58340b83dae892ac6247531e1a8f6137b6c92af2",
+  "published_tree": "885dde19702465ca5731838d3ac73babe55700fe",
   "main_merged": false,
-  "next_action": "Run corrected135-column view via repaired fullschema trigger, resolve actualfunction/index results, finish native/schema/types/CI and mergewhole310."
+  "next_action": "Inspect actual changed-function diagnostic; qualify evidenced repair, finish full native/schema/dump/types/CI and merge whole310."
 }

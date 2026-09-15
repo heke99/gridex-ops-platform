@@ -20,6 +20,34 @@ spec.loader.exec_module(m)
 
 
 class OwnedTimestampTests(unittest.TestCase):
+    def test_tail_failure_diagnostic_releases_only_fixed_view_codes(self):
+        for prefix in ('ADDED_VIEW_WITNESS_', 'CHANGED_VIEW_WITNESS_'):
+            code = prefix + 'SOURCE_REQUIRED'
+            self.assertEqual(m.owned_tail_failure_category(ValueError(code)), code)
+        for error in (ValueError('private SQL or values'),
+                      ValueError('ADDED_VIEW_WITNESS_SOURCE_REQUIRED', 'private'),
+                      RuntimeError('ADDED_VIEW_WITNESS_SOURCE_REQUIRED'),
+                      ValueError({'private': 'data'})):
+            self.assertEqual(m.owned_tail_failure_category(error), 'UNCLASSIFIED')
+
+    def test_tail_function_diagnostic_rejects_unknown_private_or_malformed_labels(self):
+        import re
+        import canonical_changed_function_witness as functions
+        known = sorted(set(re.findall(r"INSERT INTO changed_function_cases VALUES \('([^']+)'", functions.render())))
+        self.assertEqual(len(known), 24)
+        self.assertEqual(m.owned_tail_failure_category(ValueError('CHANGED_FUNCTION_BEHAVIOR_REQUIRED')),
+                         'CHANGED_FUNCTION_BEHAVIOR_REQUIRED')
+        self.assertEqual(m.owned_tail_failed_cases({'changedFunctionBehaviorWitness': {'failedCases': known}}), known)
+        for labels in (['private SQL'], [known[0], 'private'], [known[0], known[0]],
+                       list(reversed(known)), [1], {'private': 'data'}, None):
+            self.assertEqual(m.owned_tail_failed_cases({'changedFunctionBehaviorWitness': {'failedCases': labels}}), [])
+        self.assertEqual(m.owned_tail_failed_cases({}), [])
+
+    def assert_failure_only(self, output, cause='UNCLASSIFIED'):
+        self.assertEqual(output.getvalue(), json.dumps({
+            'stage': 'owned_timestamp_tail_failure', 'cause': cause,
+            'failedCases': []}, sort_keys=True) + '\n')
+
     def fixture(self):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
@@ -139,7 +167,7 @@ class OwnedTimestampTests(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()) as output:
                 with self.assertRaises(ValueError):tail.execute(loop,payload)
             self.assertEqual(tail.state,'failed')
-            self.assertEqual(output.getvalue(),'')
+            self.assert_failure_only(output)
             tail.view_execute.assert_not_called()
 
     def test_view_failure_or_invalid_receipt_never_completes(self):
@@ -152,7 +180,7 @@ class OwnedTimestampTests(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()) as output:
                 with self.assertRaises(ValueError):tail.execute(loop,payload)
             self.assertEqual(tail.state,'failed')
-            self.assertEqual(output.getvalue(),'')
+            self.assert_failure_only(output, 'UNCLASSIFIED' if fail else 'ADDED_VIEW_WITNESS_RESULT_REQUIRED')
 
     def test_changed_view_failure_or_invalid_receipt_never_completes(self):
         for fail in (True,False):
@@ -164,7 +192,7 @@ class OwnedTimestampTests(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()) as output:
                 with self.assertRaises(ValueError):tail.execute(loop,payload)
             self.assertEqual(tail.state,'failed')
-            self.assertEqual(output.getvalue(),'')
+            self.assert_failure_only(output, 'UNCLASSIFIED' if fail else 'CHANGED_VIEW_WITNESS_RESULT_REQUIRED')
 
     def test_changed_function_failure_or_invalid_receipt_never_completes(self):
         for fail in (True,False):
@@ -176,7 +204,7 @@ class OwnedTimestampTests(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()) as output:
                 with self.assertRaises(ValueError):tail.execute(loop,payload)
             self.assertEqual(tail.state,'failed')
-            self.assertEqual(output.getvalue(),'')
+            self.assert_failure_only(output, 'UNCLASSIFIED' if fail else 'CHANGED_FUNCTION_RESULT_REQUIRED')
 
     def test_changed_index_failure_or_invalid_receipt_never_completes(self):
         for fail in (True,False):
@@ -188,7 +216,7 @@ class OwnedTimestampTests(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()) as output:
                 with self.assertRaises(ValueError):tail.execute(loop,payload)
             self.assertEqual(tail.state,'failed')
-            self.assertEqual(output.getvalue(),'')
+            self.assert_failure_only(output)
 
     def test_actor_failure_or_invalid_receipt_never_completes(self):
         for fail in (True,False):
@@ -200,7 +228,7 @@ class OwnedTimestampTests(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()) as output:
                 with self.assertRaises(ValueError): tail.execute(loop,payload)
             self.assertEqual(tail.state,'failed')
-            self.assertEqual(output.getvalue(),'')
+            self.assert_failure_only(output)
 
     def test_forward_failure_is_terminal_without_completion_receipt(self):
         _, loop, tail, payload = self.fixture()
@@ -208,7 +236,7 @@ class OwnedTimestampTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()) as output:
             with self.assertRaisesRegex(RuntimeError, 'forward source rejected'):
                 tail.execute(loop, payload)
-        self.assertEqual(output.getvalue(), '')
+        self.assert_failure_only(output)
         self.assertEqual(tail.state, 'failed')
         with self.assertRaisesRegex(RuntimeError, 'BOUNDARY_REQUIRED'):
             tail.execute(loop, payload)
@@ -272,7 +300,7 @@ class OwnedTimestampTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()) as output:
             with self.assertRaisesRegex(RuntimeError, 'private diagnostic'):
                 tail.execute(loop, payload)
-        self.assertEqual(output.getvalue(), '')
+        self.assert_failure_only(output)
         self.assertEqual(tail.state, 'failed')
         with self.assertRaisesRegex(RuntimeError, 'BOUNDARY_REQUIRED'):
             tail.execute(loop, payload)

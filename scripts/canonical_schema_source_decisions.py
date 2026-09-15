@@ -15,6 +15,7 @@ import canonical_removed_policy_qualification as removed
 import canonical_intake_jsonb_qualification as intake
 import canonical_schema_index_column_decisions as index_columns
 import canonical_constraint_source_decisions as constraints
+import canonical_schema_physical_order_decisions as physical_order
 
 ROOT=Path(__file__).resolve().parents[1]
 DECISION_SOURCE='quality/audits/PR310_SCHEMA_REMAINING_GRANT_INDEX_DECISIONS_2026-09-15.md'
@@ -78,6 +79,7 @@ def approved():
     records.extend(intake.column_decisions())
     records.extend(index_columns.approved())
     records.extend(constraints.approved())
+    records.extend(physical_order.approved())
     return tuple(records)
 
 WITNESSES={'changedIndexSourceWitness':indexes,'addedViewSourceWitness':added_views,
@@ -95,6 +97,7 @@ def verify(diff):
         raise ValueError('SCHEMA_DECISION_NATIVE_PROJECTION_REQUIRED')
     index_columns.validate_context(diff)
     constraints.validate_native(diff)
+    physical_order.validate_context(diff)
     decisions=approved();mapping={}
     for row in decisions:
         key=(row['section'],row['change'],tuple(row['identity']))
