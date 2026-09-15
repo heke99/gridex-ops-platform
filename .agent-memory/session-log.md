@@ -198,3 +198,14 @@ pass. The actual ec503 artifact passes admission; seven altered control hashes
 reject before ledger readback. Full514/schema/types/CI/E2E acceptance remains
 unproved; snapshot and ledger-readiness qualification findings remain open.
 Evidence: quality/audits/PR310_NATIVE_FOUNDATION_ADMISSION_2026-09-15.md.
+
+
+## 2026-09-15 — native timestamp clone NULL / schema qualification
+
+Native335f987f ordinary run34963346262/job104361913858 proves144 foundation
+and timestamps1–7; T8 applies/ledger verifies but first restoration clone hits
+JSONDecodeError on SQL NULL. Faithful5-error RED, explicit JSON null correction,
+proof16/runtime12 GREEN. Composite fixture offline4 PASS and independent
+ownership review approved; actual PG17 qualification pending. Four column
+types source/application audit added. No reference, historical SQL, types or
+production changes; acceptance remains false. See PR310_NATIVE_CLONE_NULL audit.

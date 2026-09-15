@@ -44,6 +44,10 @@ class Transport:
             query = kwargs['data'].decode()
             name = query.split("datname='")[1].split("'")[0]
             output = self.databases.get(name)
+            # psql renders SQL NULL as an empty field; only explicit JSON null
+            # produces the bytes json.loads can decode for an absent database.
+            if output is None and "'null'::json" not in query:
+                return subprocess.CompletedProcess(args, 0, b'\n', b'')
         elif self.result is not None:
             return self.result
         else:
@@ -90,6 +94,10 @@ class BoundaryTests(unittest.TestCase):
         name = proof.CLONES[0]; self.transport.databases[name] = 123
         with self.assertRaisesRegex(ValueError, 'NATIVE_TIMESTAMP_PREEXISTING_CLONE'):
             self.target.clone('postgres', name)
+        self.assertFalse(any('dropdb' in args or 'createdb' in args for args, _ in self.transport.calls))
+
+    def test_absent_clone_identity_is_explicit_json_null(self):
+        self.assertIsNone(self.target._oid(proof.CLONES[0]))
         self.assertFalse(any('dropdb' in args or 'createdb' in args for args, _ in self.transport.calls))
 
     def test_owned_clone_replacement_checks_database_oid(self):

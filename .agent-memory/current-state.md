@@ -4,38 +4,43 @@ Status: PARTIAL
 
 ## Active work and exact next action
 
-Current publication base 82cb5d0018028364cf17713e495d37c8f9f6749d; exact tree
-88c10adb770d49dbde4c3a52b4748984dc453d72. GitHub branch and PR readback confirm
-publication. Preserve full514 integration335f987f, fixturebebe77a1, continuityf5a5fa88
-and psql explicit-stdin transport82cb5d0. Overlapping drafts remain stashed.
-No history replacement, force push or partial-PR merge.
+Publication base 61d6748e7ef1b538e6df0833fe2637f0c4e6ea1f preserves the
+335f987f retained514 native integration and all approved auth corrections.
+The prior ledger fixture and exact601/347 continuity fixes are published; on
+f5a5fa88 OPS34964141901 verify104364493403 passes inventory and isolated SQL
+fixtures and now stops at the unchanged generated-types migration-tail guard.
 
-Active correction: admit the complete foundation qualification before timestamp
-execution. Reuse the preserved reviewed predecessor helpers from the superseded
-T53 draft; do not restore its partial executor. Match all seven group programs,
-negative-control programs and SQLSTATEs, all source/native-body receipts, support
-pins and rollback/repeat flags. Read back65 unique ordered real ledger rows and
-private CLI files. All19 runtime tests PASS, including74 source mutations and12
-ledger/file mutation modes. The real ec503 diagnostic artifact passes current
-admission; changing each group's control hash rejects before database readback.
-Receipt: quality/audits/PR310_NATIVE_FOUNDATION_ADMISSION_2026-09-15.md.
+Ordinary native335f987f OPS34963346262/job104361913858 passes all144 foundation
+inputs, all7 residual controls, and timestamp1–7 with real CLI ledger entries.
+Timestamp8 source executes and its ledger row is verified, but the first source
+restoration clone identity read raises JSONDecodeError: SQL NULL from to_json
+is emitted by psql as an empty field. It is not a source8 SQL error. The new
+bounded COALESCE emits explicit JSON null; original database ownership/OID
+and clone protections remain. Faithful SQL-NULL reproduction5 errors; corrected
+native proof16 and runtime12 tests PASS. Actual re-execution remains required.
+Ordinary artifact10395480303; diagnostic10394374227 ZIP SHA256
+9c14aab272826678adf7bc4f3b3dfed9f1d99f36eb9246fac275694eced90112 verified.
 
-Publish the reviewed descendant and inspect its actual CI. Remaining OPEN review
-findings: timestamp catalog/row coverage for private schemas/extensions/types/
-event triggers; execute and record all LEDGER_DEPENDENT_READINESS qualifications.
-Readiness qualification must verify real ledger truth, not invent historical
-aliases or require blocked deployment readiness to become true. Then genuine
-full native replay/schema/types/CI/E2E/review before whole-PR merge and main
-verification. Current82cb full schema and full E2E are red; native SQL is pending.
+Full schema335f987f artifact10394485748 retains the same reference/replay hashes
+as the earlier independent comparison. Four type differences now have a pinned
+source/application disposition (PR310_SCHEMA_COLUMN_DISPOSITIONS audit).
+Seven composite customer FKs are validated alternate NO ACTION definitions,
+not missing tenant protection; reviewed bounded behavior qualification is wired
+to the existing isolated PG17 job, native SQL pending. Exact single-key repairs
+pass actual335f987f job104361913617; forward candidate is not promoted yet.
+No schema/type/full-PR acceptance. Next: collect native timestamp continuation
+and composite FK SQL receipts, resolve remaining deltas and integrate actual
+final gates/type generation before whole-PR merge. User authorized full merge.
+Receipt: quality/audits/PR310_NATIVE_CLONE_NULL_2026-09-15.md.
 
-Freshly verified ec503 diagnostic34960996805/job104354284703/artifact10394223040
-proves144 foundation+7 residual, all7 canonical groups with real CLI statement
-ledgers, negative controls and repeats, plus cleanup/private-input disposal.
-ZIP SHA2565352f1730aa9afa662c47c93511ae57cd7c2871239ec7fa315059b714291ce5f
-matches GitHub metadata. All success/control program hashes and source receipts
-match current code. Group7 portable55000/P1480/P1481/P1482 all pass. This is not
-full timestamp/schema/types acceptance. Ordinary foundation receipt below is
-also recorded by the preserved upstream continuation.
+Two concurrent published descendants are retained:82cb5d00 supplies explicit
+psql -f - for transaction stdin;61d6748e admits complete source/control/ledger
+foundation proofs before timestamp execution. Their audits and all regression
+tests remain. Remaining OPEN review findings from that continuation: complete
+timestamp catalog/row coverage for private schemas/extensions/types/events,
+and real execution of LEDGER_DEPENDENT_READINESS qualifications. Verify ledger
+truth without inventing historical aliases or assuming deployment readiness.
+See PR310_NATIVE_TIMESTAMP_TRANSPORT and PR310_NATIVE_FOUNDATION_ADMISSION.
 
 The compiler prepares all522 possible units before creating the target. T201/202
 keep separate committed phases; four LOCK sources have exact source adapters;

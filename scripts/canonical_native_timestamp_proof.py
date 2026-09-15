@@ -111,8 +111,8 @@ class NativeTimestampTarget:
         # Only finite locally authored names reach this literal.
         if database not in CLONES:
             raise ValueError('NATIVE_TIMESTAMP_CLONE_REQUIRED')
-        raw = self.sql('postgres', "SELECT to_json((SELECT oid::text FROM pg_database WHERE datname='"+
-                       database+"'));", 'timestamp_clone_identity')
+        raw = self.sql('postgres', "SELECT COALESCE(to_json((SELECT oid::text FROM pg_database WHERE datname='"+
+                       database+"')), 'null'::json);", 'timestamp_clone_identity')
         oid = json.loads(raw)
         if oid is not None and not re.fullmatch(r'[0-9]+', str(oid)):
             raise ValueError('NATIVE_TIMESTAMP_CLONE_OWNERSHIP')
