@@ -102,7 +102,9 @@ class Sources(unittest.TestCase):
     def test_lifecycle_runs_tail_before_accepting_bounded77(self):
         text=(ROOT/'scripts/canonical-native-supabase-lifecycle.py').read_text()
         self.assertIn('canonical_native_operations77',text)
-        self.assertIn('NATIVE_HISTORICAL_THROUGH77_VERIFIED',text)
+        self.assertIn('execute_operations77(historical, native, sql, work, report)',text)
+        self.assertLess(text.index('execute_operations77(historical, native, sql, work, report)'),
+                        text.index('execute_foundation144(historical, native, sql, work, report)'))
         self.assertIn('NATIVE_LATER_ENVELOPES_AND_FULL_ACCEPTANCE_REQUIRED',
                       (ROOT/'scripts/canonical-auth-provisioning-replay.py').read_text())
 

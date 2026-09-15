@@ -368,6 +368,12 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
             parent['historicalOperations77']={'verified':not tail_fail}
             parent['foundationInputsExecuted']=71 if tail_fail else 77
             if tail_fail:raise ValueError('private tail SQL must not reach report')
+        import canonical_native_foundation144 as foundation
+        def apply_foundation(prefix,cli,sql,work,parent):
+            self.assertEqual(parent['foundationInputsExecuted'],77)
+            self.assertTrue(parent['historicalOperations77']['verified'])
+            parent['historicalFoundation144']={'executed':True, 'fullSourceEffectsAccepted':False}
+            parent['foundationInputsExecuted']=144
         helper=SimpleNamespace(prepare=lambda:prepared,execute=apply)
         with patch.object(native,'load_historical_prefix',return_value=helper), \
              patch.object(native.provider_events,'bootstrap',side_effect=ValueError('NATIVE_PROVIDER_EVENT_IMAGE_REQUIRED') if provider_fail else None,return_value=native.provider_events.receipt()), \
@@ -377,6 +383,7 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
              patch.object(fixed,'execute',side_effect=apply_fixed), \
              patch.object(alignment,'execute',side_effect=apply_alignment), \
              patch.object(tail,'execute',side_effect=apply_tail), \
+             patch.object(foundation,'execute',side_effect=apply_foundation), \
              patch.object(native,'run',side_effect=lambda:original(historical_prefix=True)):
             return self.fixture.NativeTests().execute_fixture('cleanup' if cleanup else None)
 
@@ -390,8 +397,10 @@ class NativeLifecycleIntegrationTests(unittest.TestCase):
     def test_bounded_native_success_cannot_certify_full_replay(self):
         status,report=self.execute()
         self.assertEqual(status,0)
-        self.assertEqual(report['outcome'],'NATIVE_HISTORICAL_THROUGH77_VERIFIED')
-        self.assertEqual(report['foundationInputsExecuted'],77)
+        self.assertEqual(report['outcome'],'NATIVE_FOUNDATION144_EXECUTED_NOT_FULL_ACCEPTANCE')
+        self.assertEqual(report['foundationInputsExecuted'],144)
+        self.assertTrue(report['historicalFoundation144']['executed'])
+        self.assertFalse(report['historicalFoundation144']['fullSourceEffectsAccepted'])
         self.assertTrue(report['historicalOperations77']['verified'])
         self.assertTrue(report['historicalAlignment68']['verified'])
         self.assertTrue(report['historicalFixed63']['verified'])
@@ -498,6 +507,9 @@ def load_tests(loader, tests, pattern):
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     tests.addTests(loader.loadTestsFromModule(module))
     spec=importlib.util.spec_from_file_location('native77_tests',ROOT/'scripts/test-canonical-native-operations77.py')
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    tests.addTests(loader.loadTestsFromModule(module))
+    spec=importlib.util.spec_from_file_location('native144_tests',ROOT/'scripts/test-canonical-native-foundation144.py')
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     tests.addTests(loader.loadTestsFromModule(module))
     return tests

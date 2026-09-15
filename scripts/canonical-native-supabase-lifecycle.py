@@ -130,7 +130,7 @@ def failure_code(error, historical):
     historical boundary has its own ValueError subclass; excluding that exact
     class previously hid every first43 failure behind errorType=PrefixError.
     """
-    lifecycle_codes = {'NATIVE_COMMAND_FAILED', 'EXACT_NATIVE_CLI_VERSION_REQUIRED',
+    lifecycle_codes = {'NATIVE_FOUNDATION_SOURCE_REQUIRED','NATIVE_FOUNDATION_TRANSACTION_REQUIRED','NATIVE_FOUNDATION_PROGRAM_REQUIRED','NATIVE_FOUNDATION_PREFIX_REQUIRED','NATIVE_FOUNDATION_LEDGER_REQUIRED','NATIVE_FOUNDATION_CLEANUP_REQUIRED','NATIVE_FOUNDATION_PROOF_REQUIRED','NATIVE_FOUNDATION_ROLLBACK_REQUIRED','NATIVE_FOUNDATION_EXECUTION_REQUIRED','NATIVE_FOUNDATION_REPEAT_REQUIRED', 'NATIVE_COMMAND_FAILED', 'EXACT_NATIVE_CLI_VERSION_REQUIRED',
                        'NATIVE_PROVIDER_EVENT_IMAGE_REQUIRED', 'NATIVE_PROVIDER_EVENT_CONTRACT_REQUIRED',
                        'NATIVE_PROVIDER_EVENT_BOOTSTRAP_REQUIRED', 'NATIVE_PROVIDER_CATALOG_SOURCE_REQUIRED',
                        'PREEXISTING_NATIVE_PROJECT_REJECTED', 'EMPTY_UNLINKED_NATIVE_PROJECT_REQUIRED',
@@ -292,7 +292,7 @@ def run(*, historical_prefix=False):
     cli = shutil.which('supabase')
     if cli is None:
         raise ValueError('PINNED_NATIVE_CLI_REQUIRED')
-    report = {'scope':('BOUNDED_THROUGH77_NATIVE_HISTORY_NOT_FULL_REPLAY_ACCEPTANCE' if historical_prefix
+    report = {'scope':('FOUNDATION144_EXECUTION_NOT_FULL_REPLAY_ACCEPTANCE' if historical_prefix
                        else 'SYNTHETIC_NATIVE_LIFECYCLE_NOT_GRIDEX_REPLAY_ACCEPTANCE'),
               'cliVersion':VERSION,'outcome':'BLOCKED','historicalGridexSourcesExecuted':False,
               'completeReplayVerified':False,'generatedTypesVerified':False,'productionModified':False}
@@ -431,6 +431,9 @@ def run(*, historical_prefix=False):
                 phase = 'HISTORICAL_OPERATIONS69_77_NATIVE_LEDGER'
                 from canonical_native_operations77 import execute as execute_operations77
                 execute_operations77(historical, native, sql, work, report)
+                phase = 'HISTORICAL_FOUNDATION78_144_NATIVE_LEDGER'
+                from canonical_native_foundation144 import execute as execute_foundation144
+                execute_foundation144(historical, native, sql, work, report)
             success = True
         except Exception as error:
             report.update(outcome='BLOCKED',phase=phase,errorType=type(error).__name__)
@@ -468,7 +471,7 @@ def run(*, historical_prefix=False):
                                                   and report.get('cleanupVerified'))
     success = success and report['privateWorkspaceRemoved']
     if success:
-        report['outcome'] = ('NATIVE_HISTORICAL_THROUGH77_VERIFIED' if historical_prefix
+        report['outcome'] = ('NATIVE_FOUNDATION144_EXECUTED_NOT_FULL_ACCEPTANCE' if historical_prefix
                              else 'NATIVE_LIFECYCLE_VERIFIED')
     output = ROOT/'artifacts'; output.mkdir(exist_ok=True)
     (output/'native-supabase-lifecycle.json').write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')
