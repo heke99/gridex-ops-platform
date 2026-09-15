@@ -131,4 +131,20 @@ class Tests(unittest.TestCase):
         self.assertNotIn('GRANT ',sql.upper())
         self.assertNotIn('TRUNCATE ',sql.upper())
 
+    def test_matrix_error_exposes_only_closed_assertion_labels(self):
+        class Owned:
+            def command(self,*args,**kwargs):return ['owned']
+            def verify_logging(self):pass
+        legacy=SimpleNamespace(OwnedPostgres=Owned,clean_environment=lambda:{},safe_receipt=lambda *args:{'sqlstate':'P0001'})
+        for label,want in [('full_access_select_roster','full_access_select_roster'),
+                           ('access_select_foreign','access_select_foreign'),
+                           ('private_customer_identifier',None),
+                           ('access_select_foreign private data',None)]:
+            process=SimpleNamespace(returncode=1,stderr=('psql:<stdin>:12: ERROR:  P0001: '+label+'\nCONTEXT: private SQL\n').encode(),stdout=b'private row')
+            with patch.object(m.subprocess,'run',return_value=process),contextlib.redirect_stdout(io.StringIO()) as output:
+                with self.assertRaises(ValueError):m.private_sql(Owned(),legacy,m.ATOMIC,'private SQL','matrix_case',False)
+            result=json.loads(output.getvalue())
+            self.assertEqual(want,result.get('assertion'))
+            self.assertNotIn('private',output.getvalue())
+
 if __name__=='__main__':unittest.main()
