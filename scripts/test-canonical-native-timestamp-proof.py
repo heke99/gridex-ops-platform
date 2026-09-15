@@ -310,7 +310,12 @@ class BoundaryTests(unittest.TestCase):
             self.target.sql(database,sql,'live_sync_acl_'+role,expect=expected,transaction=False)
             args, options=self.transport.calls[-1]
             self.assertEqual(args[args.index('-U')+1],'authenticator')
-            self.assertEqual(args[args.index('-h')+1],'/var/run/postgresql')
+            self.assertEqual(args[args.index('-h')+1],'127.0.0.1')
+            self.assertEqual(args[args.index('-p')+1],'5432')
+            position=args.index('PGPASSWORD=postgres')
+            self.assertEqual(args[position-1],'-e')
+            self.assertLess(position,args.index(self.target.name))
+            self.assertNotIn('/var/run/postgresql',args)
             self.assertIn('-w',args)
             self.assertEqual(options['data'],sql.encode())
             self.assertNotIn('--single-transaction',args)

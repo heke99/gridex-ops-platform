@@ -9,6 +9,7 @@ from unittest.mock import patch
 import canonical_native_timestamp_sources as timestamp_sources
 import canonical_forward_sources as forward_sources
 import canonical_added_view_witness as views
+import canonical_removed_policy_qualification as removed_policies
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -87,6 +88,7 @@ class HistoricalDiagnosticTests(unittest.TestCase):
         cls.timestamp_plan = timestamp_sources.prepare()
         cls.forward_retained = forward_sources.retain(ROOT)
         cls.view_retained = views.retain(ROOT)
+        cls.removed_policy_retained = removed_policies.retain(ROOT)
 
     def test_known_prefix_code_is_preserved_without_formatting_exception(self):
         historical = lifecycle.load_historical_prefix()
@@ -140,9 +142,12 @@ class HistoricalDiagnosticTests(unittest.TestCase):
              patch.object(timestamp_sources, 'prepare', return_value=self.timestamp_plan), \
              patch.object(forward_sources, 'retain', return_value=self.forward_retained), \
              patch.object(views, 'retain', return_value=self.view_retained), \
+             patch.object(removed_policies, 'retain', return_value=self.removed_policy_retained) as retained, \
              patch.object(lifecycle.provider_events, 'bootstrap', return_value=lifecycle.provider_events.receipt()), \
              patch.object(lifecycle, 'run', side_effect=lambda: original(historical_prefix=True)):
-            return lifecycle_tests.NativeTests().execute_fixture()
+            result = lifecycle_tests.NativeTests().execute_fixture()
+            retained.assert_called_once()
+            return result
 
     def test_real_catch_path_reports_code_and_preserves_failure_and_cleanup(self):
         status, report = self.historical_failure('NATIVE_EXECUTED_LEDGER_REQUIRED')

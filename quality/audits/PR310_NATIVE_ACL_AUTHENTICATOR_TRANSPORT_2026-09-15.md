@@ -35,3 +35,27 @@ The short preflight admits all three receipts only after the existing unchanged 
 35 timestamp-proof tests and five short-preflight tests pass. New controls cover the exact payload produced by the unchanged behavior function, command login/socket arguments, wrong session/current identity, superuser/BYPASS/NOLOGIN, missing SET right to any API role, stage/body/database/result/source mutations, strict failure handling, stale receipt removal, altered/missing/extra receipt bindings, parent state/ledger preservation and cleanup-before-publication. The initial adapter and receipt-admission tests failed before implementation, then passed.
 
 Actual PostgreSQL execution of this authenticator path is pending the next ordinary native short preflight. This report does not claim that the image regression is fixed, that the complete native 144+514 replay passed, or that application/schema/type acceptance is achieved.
+
+## Actual efba preflight and loopback correction
+
+Run34988395643/job104446345073 on efba6c23, CLI2.101.0 and exact image17.6.1.106,
+passes clone preservation and two identical synthetic type generations. The exact
+login query then fails with PSQL_CONNECTION_ERROR / PEER_AUTHENTICATION_FAILED;
+no ACL request executes. The bounded server markers contain SERVER_READY, all
+helper clones are disposed, and owned/private cleanup is true. Artifact ZIP
+SHA25655efa35a29fc0255a79abf7756b515636a95d74c8ecdcf3ee5a1ef0bc2c30a4f.
+This is evidence that the socket login path is unsuitable, not an ACL result or
+another observed crash.
+
+The correction uses only the already admitted owned container's loopback
+127.0.0.1:5432 and fixed CLI-local PGPASSWORD=postgres, injected as one docker exec
+environment argument before that container. There is no configurable address,
+external credential read, password alteration, HBA change or permission change.
+CLI2.101.0 source independently confirms the [authenticator local password](https://github.com/supabase/cli/blob/v2.101.0/apps/cli-go/internal/utils/templates/globals.sql#L19)
+and [default database password](https://github.com/supabase/cli/blob/v2.101.0/apps/cli-go/pkg/config/config.go#L366).
+The lifecycle's private environment whitelist excludes caller database configuration;
+all exact SQL/source/clone-OID/login-role/SET-role/SQLSTATE gates remain unchanged.
+The role is a real non-superuser login, followed by the unchanged SET LOCAL ROLE.
+A new transport assertion is RED on the socket command, GREEN with fixed loopback,
+port and exact docker exec environment placement; all35 proof tests pass. Actual
+loopback qualification remains pending the next short native run.

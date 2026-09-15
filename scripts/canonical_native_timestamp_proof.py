@@ -225,7 +225,11 @@ class NativeTimestampTarget:
             # permission denial after a superuser login SET ROLE (upstream issue 2409).
             # Use the actual API login role; never SET SESSION AUTHORIZATION.
             args[args.index('-U')+1]='authenticator'
-            args += ['-h','/var/run/postgresql','-w']
+            # The owned CLI default role has password postgres; its Unix socket
+            # uses peer authentication and cannot log in as the API role.
+            # TCP is fixed to this already admitted container's loopback.
+            args[args.index(self.name):args.index(self.name)] = ['-e','PGPASSWORD=postgres']
+            args += ['-h','127.0.0.1','-p','5432','-w']
             raw=self._execute_sql(args,LIVE_SYNC_LOGIN_SQL,'live_sync_acl_login','00000')
             try:
                 identity=json.loads(raw)
