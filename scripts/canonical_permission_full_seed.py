@@ -1,10 +1,11 @@
 """Full-clone rollback seed for the existing 129 permission decisions.
-Only fixture identity/default adaptations; no production ACL or trigger changes.
+Fixture identity/default and exact full-policy roster adaptations only.
+No production ACL, trigger or permission-decision changes.
 """
 import hashlib,importlib.util,json,re
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-PINS={'scripts/canonical-permission-native-fixture.py': '47425b626551df891f6b13c86390ac9b23239cbe26a3651558572778eceab3a8', 'scripts/canonical-permission-native-admission.py': '515ddf6365f1c8a220f3f4ed5a5372f92c41ed702af70f0a57f3147acd20a216', 'scripts/sql/canonical-permission-native-sources.json': '3a020477332e330d5475fe237bd9ba61ed45d5777be22c1a8d4eec5577302830', 'scripts/canonical_changed_function_witness.py': 'a1eff86d0efecc058af45dc54411bb9056bc4cd96e7fa5b057374ee8cdefcce3', 'supabase/migrations/20260909120200_canonical_role_permission_identity_reconstruction.sql': '03bec0a08fb0852bf7cdad8c96f01fe509bd6a7c970793a6db2fd4230c49dca1'}
+PINS={'scripts/canonical-permission-native-fixture.py': '47425b626551df891f6b13c86390ac9b23239cbe26a3651558572778eceab3a8', 'scripts/canonical-permission-native-admission.py': '515ddf6365f1c8a220f3f4ed5a5372f92c41ed702af70f0a57f3147acd20a216', 'scripts/sql/canonical-permission-native-sources.json': '3a020477332e330d5475fe237bd9ba61ed45d5777be22c1a8d4eec5577302830', 'scripts/canonical_changed_function_witness.py': 'a1eff86d0efecc058af45dc54411bb9056bc4cd96e7fa5b057374ee8cdefcce3', 'supabase/migrations/20260909120200_canonical_role_permission_identity_reconstruction.sql': '03bec0a08fb0852bf7cdad8c96f01fe509bd6a7c970793a6db2fd4230c49dca1', 'supabase/migrations/20260826093000_platform_dashboard_and_rls_read_performance.sql': 'f9084068f4eead62330b1b394b6b4cab5f47ff68b411bdb144009314c2b85a2c'}
 
 def sha(raw):return hashlib.sha256(raw).hexdigest()
 
@@ -116,10 +117,34 @@ def seed(retained,document):
     sql+=f.check("to_regclass('public.user_roles_company_user_single_active_uidx') is not null",'single_role_constraint')
     return sql
 
+def full_access_body(f,label,body):
+    """Replace only the reduced fixture's self-row cardinality assumption.
+
+    The retained August 26 policy installs a permissive authenticated SELECT
+    under the restrictive company/session guard. The complete schema therefore
+    exposes the two fixture members of the actor's company, not only that actor.
+    Assert the exact roster (not just a larger count), retain every foreign-row
+    and write denial, and additionally deny platform/null-company rows.
+    """
+    tables={**{f'F{i:02d}':'company_memberships' for i in range(5,9)},
+            **{f'F{i:02d}':'user_roles' for i in range(9,13)}}
+    if label not in tables:return body
+    table=tables[label]
+    for actor,company in ((f.UA,f.A),(f.UB,f.B)):
+        old=f.check(f'count(*)=1 from public.{table} where company_id={f.lit(company)}','access_select_own')
+        if body.count(old)!=1:raise ValueError('PERMISSION_FULL_ACCESS_SOURCE_REQUIRED')
+        roster=(f'array_agg(user_id order by user_id)=array[{f.lit(actor)}::uuid,{f.lit(f.UAB)}::uuid] '
+                f'from public.{table} where company_id={f.lit(company)}')
+        replacement=f.check(roster,'full_access_select_roster')
+        replacement+=f.check(f'count(*)=0 from public.{table} where company_id is null','full_access_no_global_row')
+        body=body.replace(old,replacement)
+    return body
+
 def build_cases(retained,document):
     f,bodies=adapted_fixture(retained,document);seed_sql=seed(retained,document)
     adapted={}
     for label,body in bodies.items():
+        body=full_access_body(f,label,body)
         for table,column in [('canonical_platform_access_command_results','commands'),('canonical_platform_access_audit_events','audits')]:
             body=re.sub(r'count\(\*\)=([0-9]+) from public\.'+table+r"(?=\))", lambda m:'count(*)=(select '+column+' from fixture.baseline_counts)+'+m[1]+' from public.'+table,body)
         body=body.replace('count(*)=1 from public.user_permission_overrides where company_id is null and is_active', 'count(*)=(select overrides from fixture.baseline_counts)+1 from public.user_permission_overrides where company_id is null and is_active')
