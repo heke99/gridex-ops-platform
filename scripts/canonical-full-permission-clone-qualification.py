@@ -114,14 +114,20 @@ def verify_delta(before,after,specs):
         if len(matches)!=1:raise ValueError('PERMISSION_FUNCTION_IDENTITY_REQUIRED')
         function_keys.extend(matches)
     allowed=set(function_keys)|{'schema/gridex_private'}
-    # Only dependency edges from one of the eight exact authored functions are
-    # permitted; destination must be its declared schema/language/signature type.
-    for key in changed:
-        if not key.startswith('dependency/function '):continue
-        for spec in specs:
-            if not key.startswith('dependency/function '+spec['name']+'('):continue
-            if re.fullmatch(r'.*/(?:schema (?:public|gridex_private)|language (?:sql|plpgsql)|type (?:uuid|text|timestamp with time zone|jsonb|boolean|text\[\]))/n',key):
-                allowed.add(key)
+    # pg_describe_object uses visibility-aware function names: public functions
+    # on the admitted search_path omit public. Build only exact source signature
+    # edges, never a prefix exemption for arbitrary dependencies.
+    for spec in specs:
+        argtypes=[arg.strip().split(' ',1)[1] for arg in spec['arguments'].split(',')]
+        names=[spec['name']]
+        if spec['name'].startswith('public.'):names.append(spec['name'][7:])
+        destinations={'schema '+spec['name'].split('.')[0], 'language '+spec['language']}
+        destinations.update('type '+t for t in argtypes+[spec['result']])
+        for name in names:
+            for destination in destinations:
+                key='dependency/function '+name+'('+','.join(argtypes)+')/'+destination+'/n'
+                if key not in before['catalog'] and after['catalog'].get(key)=='n':
+                    allowed.add(key)
     if changed-allowed:
         print(json.dumps(dict(stage='permission_clone_catalog_rejected',
             unexpectedKeySha256=sorted(hashlib.sha256(k.encode()).hexdigest() for k in changed-allowed))),flush=True)

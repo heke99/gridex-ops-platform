@@ -46,6 +46,26 @@ class Tests(unittest.TestCase):
             else:bad['catalog'][defect+'/public.unknown']={}
             with contextlib.redirect_stdout(io.StringIO()),self.assertRaises(ValueError):m.verify_delta(before,bad,specs)
 
+    def test_actual_visible_diagnostic_dependency_hashes_are_exact(self):
+        import hashlib
+        before,after=self.snapshots();specs=m.function_specs(m.candidate())
+        keys={
+            'dependency/function canonical_get_platform_user_permission_diagnostic(uuid,uuid)/language plpgsql/n':
+                'c79fcb9d391a71b309cde0a934cad8d7468bc7ded65dc8b759a4b4f0b62c64e4',
+            'dependency/function canonical_get_platform_user_permission_diagnostic(uuid,uuid)/schema public/n':
+                'ca8986564c72532578d1242cd83d7b9e5f988c3e43fa4af30ca961ce9f6d887a'}
+        for key,digest in keys.items():
+            self.assertEqual(hashlib.sha256(key.encode()).hexdigest(),digest)
+            after['catalog'][key]='n'
+        self.assertEqual(len(m.verify_delta(before,after,specs)),10)
+        for key in keys:
+            for badkey in (key.replace('(uuid,uuid)','(text,uuid)'),key.replace('/n','/a'),
+                           key.replace('/language plpgsql/','/language sql/').replace('/schema public/','/schema secret/')):
+                bad=copy.deepcopy(after);bad['catalog'][badkey]='n'
+                with contextlib.redirect_stdout(io.StringIO()),self.assertRaises(ValueError):m.verify_delta(before,bad,specs)
+        bad=copy.deepcopy(after);bad['catalog'][next(iter(keys))]='a'
+        with contextlib.redirect_stdout(io.StringIO()),self.assertRaises(ValueError):m.verify_delta(before,bad,specs)
+
     def test_original24_baseline_and_repaired_must_match(self):
         baseline=['can_override_allow','can_override_deny']
         for failures in (baseline,[]):
