@@ -1,6 +1,6 @@
 # Retained parent-delete fixture repair — 2026-09-15
 
-Status: fixture correction offline verified; actual PostgreSQL 17 qualification remains required. Candidate migration and all existing acceptance hashes/checks are unchanged.
+Status: actual bounded PostgreSQL 17 qualification now PASS; candidate remains unpromoted. Candidate migration and all existing acceptance hashes/checks are unchanged.
 
 ## Actual failure
 
@@ -32,3 +32,15 @@ Repository systematic debugging and TDD applied to this bounded fixture repair. 
 - `git diff --check`: **PASS**.
 
 Next: run the workflow on the reviewed branch head. Only a successful complete PostgreSQL qualification may permit its genuine CLI filename step. No migration promotion, production change, whole-application graph acceptance, schema acceptance or main merge is inferred from these offline results.
+
+## Actual corrected qualification — PASS
+
+[Run 35000914503, job 104488786469](https://github.com/heke99/gridex-ops-platform/actions/runs/35000914503/job/104488786469), source head `5c1cda15bd0516d1b2741dfdd2ffe22548757219`, completed the actual PostgreSQL 17 qualification, CLI filename creation, artifact upload and container cleanup successfully.
+
+The actual receipt verifies all 20 combinations of five tables, both FK creation orders and original/repaired states. It reproduces four original CASCADE outcomes and both original sync-event tenant-loss outcomes; all ten repaired combinations retain the child row and known tenant. All cases verify rollback. Exact 18 FKs, three original triggers and both unchanged final function fingerprints pass after the source configuration repair.
+
+All six candidate controls are true: exact five-constraint delta, idempotent repeat, missing-last/unknown-shape rejection, post-DDL rollback, simultaneous parent deletion retaining five rows, and preservation of the preexisting null-company journal. `cleanupVerified=true`; whole-application graph, actual public catalog, schema acceptance and production-modified claims remain false.
+
+CLI 2.101.0 created `20260915172543_preserve_retained_customer_history_on_delete.sql` only after qualification. The workflow verified candidate SHA256 `00f8a844fc5c72274d697558d57f216acf56388b6d36f6aad6063ca255283734`. Artifact `10409074848` is advertised as 3181 bytes with ZIP SHA256 `3e974cd5bff2a71a50e55f94999181fbf0505cc7d5bd9180e9904e80a3587a40` in both upload logs and GitHub metadata. An artifact file reference was obtained, but independent local byte download returned HTTP403; the archive digest has **not** been independently recomputed locally.
+
+No migration was promoted or copied into the selected history. Next action belongs to the coordinating review: verify archived bytes before any exact-byte promotion decision, then qualify the full selected/native replay and independent schema effect. This bounded success does not clear the other main-merge gates.

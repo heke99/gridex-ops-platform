@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
-      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-portable-invariants-${{ github.run_id }}-${{ github.run_attempt }}
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
         with:

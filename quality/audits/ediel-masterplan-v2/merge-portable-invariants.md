@@ -47,3 +47,13 @@ Local verification:
 Actual SQL execution and independent review remain required. Portable success
 will not satisfy native replay, schema comparison, genuine type generation,
 application CI or main merge gates.
+
+Actual first run35000914570/job104488786738 at5c1cda15 reaches owned PG17.5
+but stops before foundations at PRIVATE_INPUT_ADMISSION. Cleanup, directory
+removal and source preservation pass. Source inspection locates the exact
+integration mismatch: the adapter admits only fixed/continuation owner prefixes;
+the new workflow had invented a portable-invariants prefix. The workflow now
+uses the established continuation prefix with globally unique run ID/attempt.
+The admission guard remains unchanged. New real AcceptedInputs integration test
+admits the actual interpolated workflow owner and still rejects the old prefix.
+Seven local tests PASS. Actual replay/final SQL remain pending rerun.

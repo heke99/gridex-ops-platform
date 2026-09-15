@@ -4,6 +4,7 @@ import importlib.util
 import json
 from pathlib import Path
 import subprocess
+import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
@@ -38,6 +39,26 @@ class PortableTests(unittest.TestCase):
         for key in ('completeReplayVerified','schemaAccepted','ledgerProvenanceVerified','generatedTypesVerified','productionModified'):
             self.assertIs(receipt[key],False)
         self.assertNotIn('private output',json.dumps(receipt))
+
+    def test_workflow_owner_is_admitted_by_real_private_input_boundary(self):
+        workflow=(ROOT/'.github/workflows/gridex-portable-invariants.yml').read_text()
+        owner_line=next(line for line in workflow.splitlines() if 'GRIDEX_LEGACY_CONTAINER_NAME:' in line)
+        owner=owner_line.split(':',1)[1].strip().replace('${{ github.run_id }}','35000914570').replace('${{ github.run_attempt }}','1')
+        controller=m.frontier.load_controller()
+        with patch.dict('os.environ', {'GRIDEX_LEGACY_CONTAINER_NAME': owner}):
+            target=controller.load_batch().OwnedPostgres(postgis=True)
+        with tempfile.TemporaryDirectory() as directory:
+            from types import SimpleNamespace
+            target.directory=SimpleNamespace(name=directory)
+            target.active=True
+            with controller.load_private().AcceptedInputs(target) as admission:
+                self.assertTrue(admission.active)
+            self.assertTrue(admission.closed)
+            # Original unadmitted prefix must still be rejected by the guard.
+            target.name=target._created_name='gridex-auth-legacy-portable-invariants-35000914570-1'
+            with self.assertRaisesRegex(controller.load_batch().BoundaryError,'FRESH_FIXED_PREPARATION_REQUIRED'):
+                with controller.load_private().AcceptedInputs(target):
+                    self.fail('unadmitted owner accepted')
 
     def test_real_owned_command_uses_explicit_stdin_script_for_transaction(self):
         legacy = m.frontier.load_controller().load_batch()
