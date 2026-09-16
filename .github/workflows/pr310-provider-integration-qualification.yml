@@ -1,0 +1,118 @@
+name: PR310 coherent provider and portable integration
+on:
+  push:
+    branches: ['codex/pr310-native-role-proof-20260916']
+    paths: ['.github/workflows/pr310-provider-integration-qualification.yml']
+permissions:
+  contents: read
+jobs:
+  qualify-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Combine both verified descendants and exact evidence updates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY'
+          import base64,hashlib,os,zlib
+          from pathlib import Path
+          patch=zlib.decompress(base64.b64decode(Path('pr310-provider-integration-notes.patch.zlib.b64').read_text().strip(),validate=True))
+          assert hashlib.sha256(patch).hexdigest()=='12ba65efd8499a28d413e3dfb5c89f258a46b555b7afd06e0f26c27fd18d2b33'
+          Path(os.environ['RUNNER_TEMP'],'integration-notes.patch').write_bytes(patch)
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout --detach 98afe8a21f1a75acfd9e127d7034f2df90f8ea94
+          git merge --no-ff --no-commit 36d0f80b2f0f7cfc39815e654a892daca4b8af26
+          test "$(git write-tree)" = 468e7fcc4ac085b9a3040c5021840a042fbeb8ac
+          git apply --check --index "$RUNNER_TEMP/integration-notes.patch"
+          git apply --index "$RUNNER_TEMP/integration-notes.patch"
+          test "$(git write-tree)" = 6dd19683f45a7d8f45ed8738ec745509dbd7f956
+          git diff --cached --check
+          test -z "$(git diff --cached --name-only 58dfddba6905ed797cb273e92e25d45893f08b64 -- supabase scripts/supabase-types-manifest.json)"
+      - name: Verify integrated regressions and existing auth memory contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            for test in test-canonical-native-provider-role-chain test_canonical_removed_policy_qualification test-canonical-forward-portable test-canonical-changed-function-decisions test-canonical-schema-source-decisions test-canonical-native-application-typegen test-canonical-native-schema-reference test-canonical-native-release-verify canonical-owned-timestamp-selftest canonical-native-supabase-lifecycle-selftest canonical-full-schema-reference-selftest canonical-auth-membership-group-selftest; do
+              python3 -B "scripts/$test.py"
+            done
+            node scripts/check-migration-versions.cjs
+            node scripts/check-agent-memory-git-state.cjs
+          } 2>&1 | tee "$RUNNER_TEMP/pr310-integration-tests.log"
+      - name: Requalify native provider admission on this exact integrated tree
+        run: python3 -B scripts/canonical-native-provider-role-qualification.py
+      - name: Store verified Git objects without updating any remote reference
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY'
+          import base64,hashlib,json,os,subprocess,urllib.request
+          from pathlib import Path
+          root=Path.cwd()
+          expected='6dd19683f45a7d8f45ed8738ec745509dbd7f956'
+          parent='98afe8a21f1a75acfd9e127d7034f2df90f8ea94'
+          other='36d0f80b2f0f7cfc39815e654a892daca4b8af26'
+          def git(*args):return subprocess.check_output(['git',*args]).decode().strip()
+          assert git('write-tree')==expected
+          subprocess.run(['git','diff-files','--quiet'],check=True)
+          proof=json.loads(Path('artifacts/native-provider-role-proof.json').read_bytes())
+          assert proof['validatorRejectedCaseCount']==10
+          assert proof['postgresRejectedCycles']==['authenticated_set_storage']
+          assert all(proof[k] is True for k in ['pristineOldFailureReproduced','rollbackAndRecoveryVerified','unrelatedUnprivilegedLoginAccepted','cleanupVerified','privateWorkspaceRemoved'])
+          assert all(proof[k] is False for k in ['productionModified','schemaAccepted','generatedTypesVerified'])
+          url='https://api.github.com/repos/heke99/gridex-ops-platform/git/'
+          def post(endpoint,data):
+              request=urllib.request.Request(url+endpoint,data=json.dumps(data).encode(),method='POST',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'})
+              with urllib.request.urlopen(request,timeout=60) as response:return json.load(response)
+          entries=[]
+          for name in git('diff','--cached','--name-only',parent).splitlines():
+              raw=(root/name).read_bytes()
+              digest=hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()
+              assert git('rev-parse',':'+name)==digest
+              blob=post('blobs',dict(content=base64.b64encode(raw).decode(),encoding='base64'))
+              assert blob['sha']==digest
+              mode=git('ls-files','-s','--',name).split()[0]
+              assert mode=='100644'
+              entries.append(dict(path=name,mode=mode,type='blob',sha=digest))
+          assert len(entries)==14
+          tree=post('trees',dict(base_tree=git('rev-parse',parent+'^{tree}'),tree=entries))
+          assert tree['sha']==expected
+          message='fix: integrate qualified native provider role and portable schema witnesses\n\nPreserve both verified descendants and all prior PR310 history. Native provider rejection/recovery and integrated regressions passed before object creation. Historical SQL, reference and type manifest unchanged. Complete native replay, schema acceptance, actual types and mandatory CI remain required. No production mutation.'
+          commit=post('commits',dict(message=message,tree=expected,parents=[parent,other]))
+          assert commit['tree']['sha']==expected
+          assert [p['sha'] for p in commit['parents']]==[parent,other]
+          receipt=dict(candidateCommit=commit['sha'],tree=expected,parents=[parent,other],entries=entries,roleProofSha256=hashlib.sha256(Path('artifacts/native-provider-role-proof.json').read_bytes()).hexdigest(),remoteReferencesUpdated=False,pr310Updated=False,mainModified=False,releaseAccepted=False)
+          Path(os.environ['RUNNER_TEMP'],'pr310-integration-git-objects.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          print(json.dumps(dict(candidateCommit=commit['sha'],tree=expected,remoteReferencesUpdated=False)))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr310-coherent-integration-${{ github.run_attempt }}
+          path: |
+            artifacts/native-provider-role-proof.json
+            artifacts/native-provider-role-diagnostic.json
+            artifacts/native-supabase-lifecycle.json
+            ${{ runner.temp }}/pr310-integration-tests.log
+            ${{ runner.temp }}/pr310-integration-git-objects.json
+          retention-days: 7
+          if-no-files-found: error
