@@ -1,0 +1,93 @@
+name: Independent Ediel v2 F1 source identity qualification
+on:
+  push:
+    branches: ['work/ediel-v2-f1-verify-20260916']
+    paths: ['f1-code.patch.zlib.b64', '.github/workflows/ediel-v2-f1-qualification.yml']
+permissions:
+  contents: read
+jobs:
+  verify-and-publish:
+    if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/work/ediel-v2-f1-verify-20260916'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Materialize only the exact five-file source candidate from main
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/f1-evidence"
+          python3 - <<'PY'
+          import base64,hashlib,os,pathlib,zlib
+          raw=zlib.decompress(base64.b64decode(pathlib.Path('f1-code.patch.zlib.b64').read_text().strip(),validate=True))
+          assert hashlib.sha256(raw).hexdigest()=='e7b92ec40286f9a3385d33742d4bd2d86d2e2885af1369dfdd008bcf53c3a5f6'
+          pathlib.Path(os.environ['RUNNER_TEMP'],'f1-evidence','candidate.patch').write_bytes(raw)
+          PY
+          git checkout --detach de098106c26d90069758cf1f753a94b073789ef2
+          git apply --check --index "$RUNNER_TEMP/f1-evidence/candidate.patch"
+          git apply --index "$RUNNER_TEMP/f1-evidence/candidate.patch"
+          test "$(git write-tree)" = f851b9dd04c4e0b784ed2d131d66f4b37b5551f5
+          test "$(git diff --cached --name-only | wc -l)" -eq 5
+          git diff --cached --check
+          test -z "$(git diff --cached --name-only -- .github/workflows supabase types docs/ediel/masterplan-v2)"
+      - name: Install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Execute actual source regression and immutable specification checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --experimental-vm-modules --test scripts/test-ediel-rule-pack-source-identity.cjs 2>&1 | tee "$RUNNER_TEMP/f1-evidence/source-tests.log"
+          npm run ediel:masterplan-v2:integrity 2>&1 | tee "$RUNNER_TEMP/f1-evidence/specification.log"
+      - name: Verify actual caller integration and existing protocol regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx vitest run __tests__/ediel-utilts-decision-reuse.test.ts __tests__/ediel-canonical-rule-pack-evidence-identity.test.ts __tests__/ediel-masterplan-protocol-regression.test.ts __tests__/ediel-utilts-processor-decision-reuse.test.ts __tests__/ediel-dsn-classification.test.ts __tests__/ediel-smtp-outcome.test.ts __tests__/ediel-smtp-post-acceptance.test.ts 2>&1 | tee "$RUNNER_TEMP/f1-evidence/integration-tests.log"
+      - name: Typecheck production and tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx tsc --noEmit -p tsconfig.app.json --incremental false 2>&1 | tee "$RUNNER_TEMP/f1-evidence/app-types.log"
+          npx tsc --noEmit -p tsconfig.tests.json --incremental false 2>&1 | tee "$RUNNER_TEMP/f1-evidence/test-types.log"
+      - name: Execute full unit suite and lint changed sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm test 2>&1 | tee "$RUNNER_TEMP/f1-evidence/full-tests.log"
+          npx eslint lib/ediel/core/runtimeDecision.ts lib/ediel/rulebook/canonicalRulePackRegistry.ts lib/ediel/rulebook/validator.ts __tests__/ediel-utilts-decision-reuse.test.ts scripts/test-ediel-rule-pack-source-identity.cjs 2>&1 | tee "$RUNNER_TEMP/f1-evidence/lint.log"
+      - name: Publish only the verified independent descendant, never main or PR310
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GIT_TERMINAL_PROMPT: '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=de098106c26d90069758cf1f753a94b073789ef2
+          tree=f851b9dd04c4e0b784ed2d131d66f4b37b5551f5
+          branch=codex/ediel-v2-f1-source-integrity-20260916
+          test "$(gh api repos/heke99/gridex-ops-platform/git/ref/heads/main --jq '.object.sha')" = "$base"
+          test "$(gh api "repos/heke99/gridex-ops-platform/git/ref/heads/$branch" --jq '.object.sha')" = "$base"
+          test "$(git write-tree)" = "$tree"
+          git diff-files --quiet
+          test -z "$(git diff --cached --name-only -- .github/workflows supabase types docs/ediel/masterplan-v2)"
+          commit=$(printf '%s\n' 'fix(ediel): preserve selected UTILTS source identity across activation evidence' | git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit-tree "$tree" -p "$base")
+          git -c credential.helper= -c 'credential.helper=!f() { printf "username=x-access-token\npassword=%s\n" "$GH_TOKEN"; }; f' push https://github.com/heke99/gridex-ops-platform.git "$commit:refs/heads/$branch"
+          test "$(gh api "repos/heke99/gridex-ops-platform/git/ref/heads/$branch" --jq '.object.sha')" = "$commit"
+          printf 'commit=%s\ntree=%s\nparent=%s\npr310_modified=false\nmain_modified=false\nfull_masterplan_accepted=false\n' "$commit" "$tree" "$base" > "$RUNNER_TEMP/f1-evidence/publication.txt"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ediel-v2-f1-independent-qualification
+          path: ${{ runner.temp }}/f1-evidence
+          retention-days: 30
+          if-no-files-found: error
