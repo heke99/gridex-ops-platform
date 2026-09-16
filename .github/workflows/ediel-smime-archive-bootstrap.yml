@@ -1,0 +1,225 @@
+name: Ediel S/MIME archive bootstrap
+
+on:
+  push:
+    branches:
+      - codex/ediel-v2-f4-smime-archive-20260916
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    if: startsWith(github.event.head_commit.message, 'ci: bootstrap smime archive patch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/ediel-v2-f4-smime-archive-20260916
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply bounded T04 archive correction
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('lib/ediel/transport/index.part-1.ts')
+          text = p.read_text()
+          old = '''export async function storeTransportPayloadSnapshot(input: {
+            message: EdielMessageRow
+            payloadKind: 'raw_edifact' | 'smime_enveloped'
+            rawPayload?: string | null
+            encryptedPayloadRef?: string | null
+            encryptionMode: 'none' | 'smime'
+            certificateFingerprint?: string | null
+            metadata?: Record<string, unknown>
+          }) {
+            const rawPayloadHash = input.rawPayload ? sha256(input.rawPayload) : null
+            await supabaseService.from('ediel_message_payloads').insert({
+              company_id: input.message.company_id ?? null,
+              ediel_message_id: input.message.id,
+              payload_kind: input.payloadKind,
+              raw_payload: input.rawPayload ?? null,
+              raw_payload_hash: rawPayloadHash,
+              encryption_mode: input.encryptionMode,
+              signing_mode: 'none',
+              security_status: input.encryptionMode === 'smime' ? 'encrypted' : 'stored',
+              certificate_fingerprint: input.certificateFingerprint ?? null,
+              certificate_fingerprint_sha256: input.certificateFingerprint ?? null,
+              encrypted_payload_ref: input.encryptedPayloadRef ?? null,
+              metadata: input.metadata ?? {},
+              status: 'stored',
+            })
+          }
+          '''
+          new = '''export async function storeTransportPayloadSnapshot(input: {
+            message: EdielMessageRow
+            payloadKind: 'raw_edifact' | 'smime_enveloped'
+            rawPayload?: string | null
+            encryptedPayloadRef?: string | null
+            archivePayload?: Buffer | null
+            encryptionMode: 'none' | 'smime'
+            certificateFingerprint?: string | null
+            metadata?: Record<string, unknown>
+          }) {
+            const rawPayloadHash = input.rawPayload ? sha256(input.rawPayload) : null
+            let encryptedPayloadRef = input.encryptedPayloadRef ?? null
+            let archivedMimeSha256: string | null = null
+            let rfcMessageId: string | null = null
+            let archivePath: string | null = null
+            let archiveBucket: ReturnType<typeof supabaseService.storage.from> | null = null
+
+            if (input.archivePayload) {
+              const archivePayload = Buffer.from(input.archivePayload)
+              archivedMimeSha256 = sha256(archivePayload)
+              rfcMessageId = extractHeaderValue(archivePayload.toString('ascii'), 'Message-ID')
+              archivePath = `transport/${input.message.company_id ?? 'platform'}/${input.message.id}/${archivedMimeSha256}.eml`
+              archiveBucket = supabaseService.storage.from('ediel-files')
+
+              const { error: uploadError } = await archiveBucket.upload(archivePath, archivePayload, {
+                contentType: 'message/rfc822',
+                cacheControl: '0',
+                upsert: true,
+              })
+              if (uploadError) throw uploadError
+
+              const { data: downloaded, error: downloadError } = await archiveBucket.download(archivePath)
+              if (downloadError || !downloaded) {
+                await archiveBucket.remove([archivePath]).catch(() => undefined)
+                throw downloadError ?? new Error('transport_archive_readback_missing')
+              }
+
+              const readback = Buffer.from(await downloaded.arrayBuffer())
+              if (!readback.equals(archivePayload) || sha256(readback) !== archivedMimeSha256) {
+                await archiveBucket.remove([archivePath]).catch(() => undefined)
+                throw new Error('transport_archive_readback_mismatch')
+              }
+
+              encryptedPayloadRef = `storage://ediel-files/${archivePath}`
+            }
+
+            const metadata = {
+              ...(input.metadata ?? {}),
+              ...(archivePath && archivedMimeSha256
+                ? {
+                    archive_bucket: 'ediel-files',
+                    archive_path: archivePath,
+                    archive_verified: true,
+                    archived_mime_sha256: archivedMimeSha256,
+                    archived_mime_bytes: input.archivePayload?.length ?? 0,
+                    archived_rfc_message_id: rfcMessageId,
+                    legacy_encrypted_payload_ref: input.encryptedPayloadRef ?? null,
+                  }
+                : {}),
+            }
+
+            const { error } = await supabaseService.from('ediel_message_payloads').insert({
+              company_id: input.message.company_id ?? null,
+              ediel_message_id: input.message.id,
+              payload_kind: input.payloadKind,
+              raw_payload: input.rawPayload ?? null,
+              raw_payload_hash: rawPayloadHash,
+              encryption_mode: input.encryptionMode,
+              signing_mode: 'none',
+              security_status: input.encryptionMode === 'smime' ? 'encrypted' : 'stored',
+              certificate_fingerprint: input.certificateFingerprint ?? null,
+              certificate_fingerprint_sha256: input.certificateFingerprint ?? null,
+              encrypted_payload_ref: encryptedPayloadRef,
+              metadata,
+              status: 'stored',
+            })
+
+            if (error) {
+              if (archiveBucket && archivePath) await archiveBucket.remove([archivePath]).catch(() => undefined)
+              throw error
+            }
+
+            return { encryptedPayloadRef, archivedMimeSha256, rfcMessageId }
+          }
+          '''
+          if old not in text:
+              raise SystemExit('storeTransportPayloadSnapshot source block not found')
+          p.write_text(text.replace(old, new, 1))
+
+          p = Path('lib/ediel/transport/index.part-2.ts')
+          text = p.read_text()
+          old = '''    await storeTransportPayloadSnapshot({
+              message,
+              payloadKind: 'smime_enveloped',
+              rawPayload: null,
+              encryptedPayloadRef,
+              encryptionMode: 'smime',
+              certificateFingerprint: outboundRecipientCertificate.fingerprintSha256,
+              metadata: {
+                mimeMode,
+                encryptedPayloadLength,
+                encryptedPayloadSha256: sha256(encryptedDer),
+                recipientCertPath,
+                expectedReceiverCertificate: describeCertificate(outboundRecipientCertificate.raw),
+                actualCmsRecipientSerials: cmsRecipientInfo.serialNumbers,
+                actual_cms_recipient_serial: cmsRecipientInfo.serialNumbers[0] ?? null,
+                cmsExpectedReceiverPresent: cmsRecipientInfo.expectedReceiverPresent,
+                expected_receiver_certificate_id: outboundRecipientCertificate.id,
+                expected_receiver_certificate_subject: outboundRecipientCertificate.subject,
+                expected_receiver_certificate_issuer: outboundRecipientCertificate.issuer,
+                expected_receiver_certificate_serial: outboundRecipientCertificate.serialNumber,
+                expected_receiver_certificate_fingerprint: outboundRecipientCertificate.fingerprintSha256,
+              },
+            }).catch((error) => {
+              console.warn('[ediel-transport] Could not store S/MIME payload snapshot', error)
+            })
+          '''
+          new = '''    await storeTransportPayloadSnapshot({
+              message,
+              payloadKind: 'smime_enveloped',
+              rawPayload: null,
+              encryptedPayloadRef,
+              archivePayload: rawMime,
+              encryptionMode: 'smime',
+              certificateFingerprint: outboundRecipientCertificate.fingerprintSha256,
+              metadata: {
+                mimeMode,
+                encryptedPayloadLength,
+                encryptedPayloadSha256: sha256(encryptedDer),
+                recipientCertPath,
+                routeProfileId: routeProfile?.id ?? null,
+                communicationRouteId: message.communication_route_id ?? null,
+                smtpTo: message.receiver_email,
+                expectedReceiverCertificate: describeCertificate(outboundRecipientCertificate.raw),
+                actualCmsRecipientSerials: cmsRecipientInfo.serialNumbers,
+                actual_cms_recipient_serial: cmsRecipientInfo.serialNumbers[0] ?? null,
+                cmsExpectedReceiverPresent: cmsRecipientInfo.expectedReceiverPresent,
+                expected_receiver_certificate_id: outboundRecipientCertificate.id,
+                expected_receiver_certificate_subject: outboundRecipientCertificate.subject,
+                expected_receiver_certificate_issuer: outboundRecipientCertificate.issuer,
+                expected_receiver_certificate_serial: outboundRecipientCertificate.serialNumber,
+                expected_receiver_certificate_fingerprint: outboundRecipientCertificate.fingerprintSha256,
+              },
+            })
+          '''
+          if old not in text:
+              raise SystemExit('S/MIME snapshot source block not found')
+          p.write_text(text.replace(old, new, 1))
+          PY
+          git diff --check
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Run archive regressions and typecheck
+        run: |
+          npx vitest run __tests__/ediel-smime-archive-storage.test.ts __tests__/ediel-smime-archive-send-guard.test.ts __tests__/ediel-smtp-post-acceptance.test.ts
+          npm run typecheck
+      - name: Commit verified correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/ediel/transport/index.part-1.ts lib/ediel/transport/index.part-2.ts
+          git diff --cached --quiet && { echo 'No source change produced'; exit 1; }
+          git commit -m 'fix(ediel): archive exact S/MIME bytes before SMTP'
+          git push origin HEAD:codex/ediel-v2-f4-smime-archive-20260916
