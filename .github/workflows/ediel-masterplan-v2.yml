@@ -9,6 +9,7 @@ on:
       - 'quality/audits/ediel-masterplan-v2/**'
       - 'scripts/check-ediel-masterplan-v2.cjs'
       - 'scripts/test-ediel-rule-pack-source-identity.cjs'
+      - 'scripts/test-ediel-prodat-source-locators.cjs'
       - 'package*.json'
       - '.github/workflows/ediel-masterplan-v2.yml'
   push:
@@ -30,6 +31,8 @@ jobs:
         run: npm run ediel:masterplan-v2:integrity
       - name: Verify selected source identity without database dependencies
         run: node --experimental-vm-modules --test scripts/test-ediel-rule-pack-source-identity.cjs
+      - name: Verify source-backed PRODAT fields and actual parser-renderer coherence
+        run: node --experimental-vm-modules --test scripts/test-ediel-prodat-source-locators.cjs
       - name: Verify protocol, retained UTILTS decisions and delivery-report isolation
         run: >-
           npx vitest run

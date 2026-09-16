@@ -167,23 +167,33 @@ export function buildProfiledProdatSegments(input: {
   }
 
   const startDate203 = prodatDate203AtStartOfDay(startDate)
-  if (policy.code === 'Z18') {
+  const negativePermissionResponse = policy.code === 'Z14' && policy.subtype === 'N'
+  const carriesPermissionIdentity = policy.code === 'Z18' || policy.code === 'Z15'
+    || (policy.code === 'Z14' && !negativePermissionResponse)
+  if (carriesPermissionIdentity) {
     const permissionCreatedAt = prodatDate203(
       portalString(portalData, 'permissionTimestamp') ?? context.permissionTimestamp,
     )
+    if (permissionCreatedAt) segments.push(`DTM+693:${permissionCreatedAt}:203`)
+  }
+  if (policy.code === 'Z18' || policy.code === 'Z15') {
     const reportingEndDate = prodatDate203(
       portalString(portalData, 'permissionEndDate') ?? context.permissionEndDate,
     )
-    if (permissionCreatedAt) segments.push(`DTM+693:${permissionCreatedAt}:203`)
     if (reportingEndDate) segments.push(`DTM+164:${reportingEndDate}:203`)
   } else if (policy.code === 'Z08') {
     const closureDate = prodatDate203AtStartOfDay(
       portalString(portalData, 'endDate') ?? context.endDate ?? context.permissionEndDate,
     )
     if (closureDate) segments.push(`DTM+93:${closureDate}:203`)
-  } else if ((policy.code === 'Z13' || policy.code === 'Z14') && startDate203) {
-    segments.push(`DTM+90:${startDate203}:203`)
-    if (isHistoricalPermission && reportEndDate203) segments.push(`DTM+91:${reportEndDate203}:203`)
+  } else if (policy.code === 'Z13' || policy.code === 'Z14') {
+    // Reporting time is distinct from a contractual start-of-day date. A
+    // finite end also applies to nonhistorical permissions (P fields302/321).
+    const reportStartDate203 = prodatDate203(portalString(portalData, 'reportStartDateTime') ?? context.startDate)
+    if (!negativePermissionResponse) {
+      if (reportStartDate203) segments.push(`DTM+90:${reportStartDate203}:203`)
+      if (reportEndDate203) segments.push(`DTM+91:${reportEndDate203}:203`)
+    }
   } else if (startDate203) {
     segments.push(`DTM+${isSupplierZ09 ? '157' : '92'}:${startDate203}:203`)
   }
@@ -252,10 +262,10 @@ export function buildProfiledProdatSegments(input: {
 
   const permissionId = portalString(portalData, 'permissionId') ?? context.permissionId ?? null
   const powerOfAttorneyReference = portalString(portalData, 'powerOfAttorneyReference') ?? context.powerOfAttorneyReference
-  if (policy.code === 'Z18') {
-    const z18PermissionId = sanitizeProdatText(permissionId ?? powerOfAttorneyReference ?? '')
-    if (z18PermissionId) segments.push(`RFF+Z09:${z18PermissionId}`)
-  } else if (!isSupplierZ09 && powerOfAttorneyReference) {
+  if (carriesPermissionIdentity) {
+    const canonicalPermissionId = sanitizeProdatText(permissionId ?? '')
+    if (canonicalPermissionId) segments.push(`RFF+Z09:${canonicalPermissionId}`)
+  } else if (!isSupplierZ09 && policy.code !== 'Z14' && powerOfAttorneyReference) {
     segments.push(`RFF+ANJ:${sanitizeProdatText(powerOfAttorneyReference)}`)
   }
 
