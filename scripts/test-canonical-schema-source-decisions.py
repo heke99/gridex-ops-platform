@@ -47,13 +47,13 @@ class Tests(unittest.TestCase):
    return m.verify(diff)
  def test_reviewed_scope_is_closed_and_positive_only(self):
   records=m.approved()
-  self.assertEqual(len(records),1388)
+  self.assertEqual(len(records),1390)
   self.assertEqual(sum(r['section']=='policies' and r['change']=='removed' for r in records),59)
   self.assertFalse(any('REVIEW_REQUIRED' in r['decision'] for r in records))
  def test_exact_mapping_requires_receipts_and_keeps_fk_acceptance_separate(self):
   diff=self.fixture();result=self.verify(diff)
   self.assertFalse(result['schemaAccepted']);self.assertFalse(result['referenceRewritten'])
-  self.assertEqual(len(result['matched']),1388)
+  self.assertEqual(len(result['matched']),1390)
   self.assertEqual([(r['section'],r['change']) for r in result['unsupported']],[('constraints','added')])
   for key in m.WITNESSES:
    with self.assertRaises(ValueError):self.verify(diff,fail=key)

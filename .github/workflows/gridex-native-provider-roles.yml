@@ -1,0 +1,48 @@
+name: Gridex native provider roles and replay boundary
+on:
+  pull_request:
+    paths:
+      - 'scripts/**'
+      - 'supabase/**'
+      - 'quality/audits/**'
+      - '.github/workflows/gridex-native-provider-roles.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  provider-role-and-boundary-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Verify exact role, portable ownership and reviewed function boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B scripts/test-canonical-native-provider-role-chain.py
+          python3 -B scripts/test_canonical_removed_policy_qualification.py
+          python3 -B scripts/test-canonical-forward-portable.py
+          python3 -B scripts/test-canonical-changed-function-decisions.py
+          python3 -B scripts/test-canonical-schema-source-decisions.py
+      - name: Verify pristine native role admission and actual rollback negatives
+        run: python3 -B scripts/canonical-native-provider-role-qualification.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gridex-native-provider-role-proof
+          path: |
+            artifacts/native-provider-role-proof.json
+            artifacts/native-provider-role-diagnostic.json
+            artifacts/native-supabase-lifecycle.json
+          if-no-files-found: error
+          retention-days: 7

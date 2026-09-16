@@ -4,5 +4,5 @@
   "status": "IN_PROGRESS",
   "current_state": ".agent-memory/current-state.md",
   "main_merged": false,
-  "next_action": "Publish and read back this verified descendant onto PR310; then keep its head stable for full native144/514/12 replay. Review actual terminal schema and type artifacts, adopt only genuinely generated candidate bytes with a matching manifest, and require current-head CI before any main merge."
+  "next_action": "Verify the integrated current-head native replay after the proved provider-role correction. Inspect actual terminal schema and generated-type artifacts, resolve only explicitly reviewed schema evolution, adopt real candidate bytes with a matching manifest, and require all mandatory CI before merging PR310 to main."
 }

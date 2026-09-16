@@ -335,3 +335,13 @@ types and final CI remain pending. No main or production mutation in this record
 ## 2026-09-16 — Native prerequisites and deterministic type tests
 
 Full native35100221898 on c6f7702a finished FAILED after144/514/10, at forward11 PF009; no application types were exported. The previous forward10 fix passed its full-chain boundary. Isolated native proof run35113176612 now verifies exact forward11 native provider ownership, both failure boundaries and preserved rows/ledger; complete synthetic cleanup also passes original25P01, PC001/PC002 rollback, correct lock lifetime, exact removal and repeat. Cleanup/private disposal passed. Parent15f82593 preserves the two verified type-wiring tests. The production release verifier is unchanged; only its test fixtures now use deterministic timestamps and exact rejection labels.54 focused Python tests and npm typecheck passed. Full native/schema/types acceptance and main merge remain unverified. See quality/audits/ediel-masterplan-v2/pr310-native-final-prerequisites-repair.md.
+
+## 2026-09-16 — native provider role proof and existing boundary integration
+
+Qualified native role prerequisite in35126794371 (clean98afe8a2):74 targeted
+regression tests, ten actual invalid-role rejections, one PostgreSQL cycle
+rejection, exact rollback/recovery and owned cleanup. Prior failed attempts are
+recorded separately, not counted as passes. Integrated existing36d0f80b's six
+qualified portable/routine files. Neither proof accepts the complete native
+schema, types, CI or main merge. Retained evidence and current next action are
+in current-state.md and pr310-native-provider-role-integration.md.
