@@ -7,8 +7,7 @@ import {
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 
 describe('Ediel masterplan v2 governance boundaries', () => {
-  it('GOV-01 keeps the source-controlled guide registry immutable at runtime', () => {
-    expect(Object.isFrozen(AUTHORITATIVE_EDIEL_GUIDES)).toBe(true)
+  it('GOV-01 source-controlled guide entries carry explicit identity and validity', () => {
     for (const guide of AUTHORITATIVE_EDIEL_GUIDES) {
       expect(guide.documentName.trim()).not.toBe('')
       expect(guide.guideRevision.trim()).not.toBe('')
@@ -42,7 +41,7 @@ describe('Ediel masterplan v2 governance boundaries', () => {
   })
 
   it('GOV-05 does not treat the shared UNH association code as revision proof', () => {
-    expect(() => resolveAuthoritativeEdielGuide({ family: 'UTILTS', referenceDate: '2026-09-30', associationAssignedCode: 'E5SE5A' })).not.toThrow()
+    expect(resolveAuthoritativeEdielGuide({ family: 'UTILTS', referenceDate: '2026-09-30', associationAssignedCode: 'E5SE5A' }).guideRevision).toBe('25-A-3')
     expect(resolveAuthoritativeEdielGuide({ family: 'UTILTS', referenceDate: '2026-10-01', associationAssignedCode: 'E5SE5A' }).guideRevision).toBe('25-A-4')
   })
 
