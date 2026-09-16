@@ -1,0 +1,82 @@
+name: PR310 complete downstream diagnostic
+on:
+  push:
+    branches: ['work/pr310-complete-verification-20260916']
+    paths: ['.github/workflows/pr310-complete-verification-temporary.yml']
+permissions:
+  contents: read
+jobs:
+  downstream-diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+      PYTHONDONTWRITEBYTECODE: '1'
+      DIAGNOSTIC_SHARD: ${{ matrix.shard }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 58dfddba6905ed797cb273e92e25d45893f08b64
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Execute every source-bound gate and retain each failure
+        shell: bash
+        run: |
+          python3 -B - <<'PY'
+          import hashlib,json,os,re,subprocess,time
+          from pathlib import Path
+          def sha(raw):
+              return hashlib.sha256(raw).hexdigest()
+          head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          assert head=='58dfddba6905ed797cb273e92e25d45893f08b64'
+          source=Path('.github/workflows/ops-hardening.yml').read_bytes()
+          assert sha(source)=='f27bb52da48c5d832b5c10606144a9dc353aaed5fd95921f2e4e28910d1cf929'
+          text=source.decode(); start=text.index('      - run: npm run db:migrations:check\n')
+          end=text.index('\n  quality-release-gates:',start)
+          commands=re.findall(r'^\s+(?:-\s+)?run:\s+([^\n]+)$',text[start:end],re.M)
+          assert len(commands)==25
+          assert sha(json.dumps(commands,separators=(',',':')).encode())=='ca0adef9d5ca919dd271a0edf4159ff0d030d34723e4cf18dbb2a9e593ea45a5'
+          shard=int(os.environ['DIAGNOSTIC_SHARD']); assert shard in range(4)
+          out=Path('artifacts/downstream-diagnostic'); out.mkdir(parents=True,exist_ok=True)
+          protected=('supabase/database.types.ts','scripts/supabase-types-manifest.json','supabase/schema.sql')
+          before={p:sha(Path(p).read_bytes()) for p in protected}
+          rows=[]
+          for i,command in enumerate(commands):
+              if i%4!=shard: continue
+              started=time.monotonic()
+              log=out/f'gate-{i+1:02d}.log'
+              with log.open('wb') as stream:
+                  try:
+                      result=subprocess.run(['bash','-e','-o','pipefail','-c',command],stdout=stream,stderr=subprocess.STDOUT,timeout=600)
+                      code=result.returncode
+                  except subprocess.TimeoutExpired:
+                      code=124
+              row=dict(ordinal=i+1,command=command,exitCode=code,passed=code==0,seconds=round(time.monotonic()-started,2))
+              rows.append(row)
+              print(json.dumps(row),flush=True)
+          after={p:sha(Path(p).read_bytes()) for p in protected}
+          dirty=subprocess.check_output(['git','diff','--name-only'],text=True).splitlines()
+          report=dict(scope='DIAGNOSTIC_ONLY_NOT_REQUIRED_CI_OR_SCHEMA_TYPE_ACCEPTANCE',sourceHead=head,
+              originalWorkflowSha256=sha(source),shard=shard,totalCommandCount=len(commands),results=rows,
+              protectedFilesBefore=before,protectedFilesAfter=after,protectedBytesUnchanged=before==after,
+              trackedChanges=dirty,sourceUnchanged=not dirty,productionModified=False,mainModified=False,
+              allExecutedCommandsPassed=all(r['passed'] for r in rows))
+          (out/f'report-{shard}.json').write_text(json.dumps(report,indent=2)+'\n')
+          raise SystemExit(0 if report['allExecutedCommandsPassed'] and before==after and not dirty else 1)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr310-downstream-diagnostic-${{ matrix.shard }}
+          path: artifacts/downstream-diagnostic/
+          if-no-files-found: error
+          retention-days: 7
