@@ -62,6 +62,34 @@ class PortableTests(unittest.TestCase):
                          [source.sql for source in self.retained for _ in range(2)])
         self.assertTrue(all(c[0]==m.DATABASE and c[3]==dict(transaction=False) for c in source_calls))
 
+    def test_storage_owner_contracts_are_separate_and_every_other_clause_identical(self):
+        import canonical_permission_forward_contract as contract
+        portable = m.assertion(11)
+        native = m.native_assertion(11)
+        self.assertEqual(portable, contract.storage_assertion())
+        portable_owner = "pg_get_userbyid(c.relowner)='postgres'"
+        native_owner = "pg_get_userbyid(c.relowner)='supabase_storage_admin'"
+        self.assertEqual(portable.count(portable_owner), 1)
+        self.assertNotIn(native_owner, portable)
+        self.assertEqual(native.count(native_owner), 1)
+        self.assertNotIn(portable_owner, native)
+        self.assertEqual(portable.replace(portable_owner, native_owner), native)
+        # The portable path must not call the native owner-specific assertion.
+        with patch.object(m, 'native_assertion', side_effect=AssertionError('wrong controller')):
+            self.assertEqual(m.assertion(11), portable)
+        for ordinal in range(1, 13):
+            if ordinal != 11:
+                self.assertEqual(m.assertion(ordinal), m.native_assertion(ordinal))
+
+    def test_full_portable_transport_uses_the_exact_portable_storage_contract(self):
+        result, _, calls = self.exercise()
+        self.assertTrue(result['executed'])
+        postconditions = [query for _, query, label, _ in calls if label == 'forward_postcondition']
+        self.assertEqual(len(postconditions), 12)
+        self.assertEqual(postconditions[10], 'SELECT to_json((' + m.assertion(11) + '));')
+        self.assertIn("pg_get_userbyid(c.relowner)='postgres'", postconditions[10])
+        self.assertNotIn("pg_get_userbyid(c.relowner)='supabase_storage_admin'", postconditions[10])
+
     def test_row_mutation_blocks_repeat_and_second_source(self):
         result, progress, calls = self.exercise(snapshots=[({},[]),({},['changed'])])
         self.assertEqual(str(result),'FORWARD_PORTABLE_POSTCONDITION_REQUIRED')

@@ -4,10 +4,22 @@ from pathlib import Path
 import re
 
 import canonical_forward_sources as sources
-from canonical_native_forward_runtime import assertion
+from canonical_native_forward_runtime import assertion as native_assertion
 from canonical_native_timestamp_snapshot import queries
 
 DATABASE = 'gridex_auth_legacy_replay'
+
+
+def assertion(ordinal):
+    # This compatible controller owns storage.objects as postgres. The native
+    # controller requires the provider owner supabase_storage_admin instead.
+    # Use the exact portable contract rather than accepting either owner; no
+    # source DDL, policy predicate, role list or privilege check is changed.
+    if ordinal == 11:
+        import canonical_permission_forward_contract as permission_contract
+        permission_contract.validate_promotion_evidence()
+        return permission_contract.storage_assertion()
+    return native_assertion(ordinal)
 
 
 def inert_failure_reason(target):

@@ -18,6 +18,7 @@ import canonical_constraint_source_decisions as constraints
 import canonical_schema_physical_order_decisions as physical_order
 import canonical_uuid_inet_source_decisions as uuid_inet
 import canonical_added_nonunique_index_decisions as nonunique_indexes
+import canonical_changed_function_decisions as function_decisions
 
 ROOT=Path(__file__).resolve().parents[1]
 DECISION_SOURCE='quality/audits/PR310_SCHEMA_REMAINING_GRANT_INDEX_DECISIONS_2026-09-15.md'
@@ -84,9 +85,11 @@ def approved():
     records.extend(physical_order.approved())
     records.extend(uuid_inet.approved())
     records.extend(nonunique_indexes.approved())
+    records.extend(function_decisions.approved())
     return tuple(records)
 
-WITNESSES={'changedIndexSourceWitness':indexes,'addedViewSourceWitness':added_views,
+WITNESSES={'changedFunctionBehaviorWitness':function_decisions,
+           'changedIndexSourceWitness':indexes,'addedViewSourceWitness':added_views,
            'changedViewSourceWitness':changed_views,'policyActorQualification':actors,
            'removedPolicyQualification':removed,'intakeJsonbSourceWitness':intake,'nativeFinalSql':constraints,nonunique_indexes.KEY:nonunique_indexes}
 
