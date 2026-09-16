@@ -142,3 +142,56 @@ test('PRODAT evidence keeps its existing technical-versus-semantic identity cont
   assert.equal(result.profileKey, 'prodat_z01_customer_identity_request')
   assert.equal(result.businessProcess, 'customer_masterdata')
 })
+
+// Activation metadata must describe the exact DB evidence, not a broader
+// normative guide window. The latter remains separate in profile.effective*.
+test('narrow activation window and its document-hash association survive resolution', async () => {
+  const row = evidence('S02', '3', {
+    valid_from: '2026-09-20', valid_to: '2026-09-30',
+    source_document: 'reviewed-activation-manifest-20260920', source_hash: 'b'.repeat(64),
+  })
+  const { resolve } = await resolver(row)
+  const result = await resolve(s02)
+  assert.equal(result.validFrom, '2026-09-20')
+  assert.equal(result.validTo, '2026-09-30')
+  assert.equal(result.sourceDocument, row.source_document)
+  assert.equal(result.sourceHash, row.source_hash)
+  assert.equal(result.profile.effectiveFrom, '2025-06-01')
+})
+test('an open DB activation cannot extend the selected guide past its end', async () => {
+  const { resolve } = await resolver(evidence('S02', '3', { valid_to: null }))
+  const result = await resolve(s02)
+  assert.equal(result.validTo, '2026-09-30')
+})
+for (const date of ['2026-02-30', '2025-02-29', '2026-04-31', '2026-00-01', '2026-13-01', '2026-09-00', '0000-01-01']) {
+  test(`invalid calendar business date ${date} never reaches the DB`, async () => {
+    const { resolve, calls } = await resolver(evidence('S02'))
+    await assert.rejects(resolve({ ...s02, businessDate: date }), /canonical_rule_pack_business_date_invalid/)
+    assert.equal(calls.length, 0)
+  })
+}
+for (const [label, overrides, code] of [
+  ['impossible start date', { valid_from: '2026-02-30' }, 'canonical_rule_pack_evidence_date_invalid:valid_from'],
+  ['impossible end date', { valid_to: '2026-09-31' }, 'canonical_rule_pack_evidence_date_invalid:valid_to'],
+  ['typed end date', { valid_to: 0 }, 'canonical_rule_pack_evidence_date_invalid:valid_to'],
+  ['blank end date', { valid_to: '' }, 'canonical_rule_pack_evidence_date_invalid:valid_to'],
+  ['absent end-date projection', { valid_to: undefined }, 'canonical_rule_pack_evidence_date_invalid:valid_to'],
+  ['inverted date window', { valid_from: '2026-09-30', valid_to: '2026-09-29' }, 'canonical_rule_pack_evidence_date_window_invalid'],
+  ['non-digest source hash', { source_hash: 'unverified-document' }, 'canonical_rule_pack_evidence_source_hash_invalid'],
+  ['wrong-length source hash', { source_hash: 'a'.repeat(63) }, 'canonical_rule_pack_evidence_source_hash_invalid'],
+  ['non-hex source hash', { source_hash: 'g'.repeat(64) }, 'canonical_rule_pack_evidence_source_hash_invalid'],
+]) {
+  test(`${label} cannot become activation evidence`, async () => {
+    const { resolve } = await resolver(evidence('S02', '3', overrides))
+    await assert.rejects(resolve(s02), new RegExp(code))
+  })
+}
+test('an activation ending before the guide never gains extra validity', async () => {
+  const { resolve } = await resolver(evidence('S02', '3', { valid_to: '2026-09-25' }))
+  assert.equal((await resolve({ ...s02, businessDate: '2026-09-25' })).validTo, '2026-09-25')
+})
+test('real leap dates remain usable with matching source and activation', async () => {
+  const { resolve, calls } = await resolver(evidence('S02', '4'))
+  assert.equal((await resolve({ ...s02, businessDate: '2028-02-29' })).guideVersion, '25-A-4')
+  assert.equal(calls.length, 1)
+})
