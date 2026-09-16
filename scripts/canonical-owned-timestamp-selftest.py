@@ -30,6 +30,17 @@ class OwnedTimestampTests(unittest.TestCase):
                       ValueError({'private': 'data'})):
             self.assertEqual(m.owned_tail_failure_category(error), 'UNCLASSIFIED')
 
+    def test_tail_index_diagnostics_are_closed_and_do_not_disclose_values(self):
+        codes=('CATALOG_REQUIRED','EXECUTION_REQUIRED','LEDGER_REQUIRED','ONCE_REQUIRED',
+               'OWNED_TARGET_REQUIRED','PRESERVATION_REQUIRED','RESULT_REQUIRED','SOURCE_REQUIRED')
+        for suffix in codes:
+            code='CHANGED_INDEX_WITNESS_'+suffix
+            self.assertEqual(m.owned_tail_failure_category(ValueError(code)),code)
+        for error in (ValueError('CHANGED_INDEX_WITNESS_private SQL'),
+                      ValueError('CHANGED_INDEX_WITNESS_EXECUTION_REQUIRED','private'),
+                      RuntimeError('CHANGED_INDEX_WITNESS_EXECUTION_REQUIRED')):
+            self.assertEqual(m.owned_tail_failure_category(error),'UNCLASSIFIED')
+
     def test_tail_function_diagnostic_rejects_unknown_private_or_malformed_labels(self):
         import re
         import canonical_changed_function_witness as functions
@@ -216,7 +227,7 @@ class OwnedTimestampTests(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()) as output:
                 with self.assertRaises(ValueError):tail.execute(loop,payload)
             self.assertEqual(tail.state,'failed')
-            self.assert_failure_only(output)
+            self.assert_failure_only(output, 'UNCLASSIFIED' if fail else 'CHANGED_INDEX_WITNESS_RESULT_REQUIRED')
 
     def test_actor_failure_or_invalid_receipt_never_completes(self):
         for fail in (True,False):

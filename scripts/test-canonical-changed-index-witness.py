@@ -26,6 +26,26 @@ class Tests(unittest.TestCase):
         self.assertNotIn('ALTER TABLE public.',sql)
         self.assertNotEqual(sql,w.render(specs))
 
+    def test_case_expression_is_parenthesized_inside_plpgsql_if(self):
+        # PL/pgSQL IF terminates its SQL expression at an unparenthesized THEN.
+        # The CASE's THEN must stay inside parentheses rather than ending IF.
+        sql=w.behavior_sql('synthetic_index_fixture')
+        self.assertIn('<>(CASE WHEN included THEN 1 ELSE 2 END)\n',sql)
+        self.assertNotIn('<>CASE WHEN included THEN',sql)
+        self.assertIn('cases<>12 OR rejected<>4 OR allowed<>8',sql)
+
+    def test_temporary_index_prefix_uses_postgresql_temp_alias_only(self):
+        spec=w.contract(w.retain(w.ROOT))[0]
+        row,state=w.capture(spec,'synthetic_index',temporary=True)
+        self.assertIn("CASE WHEN n.oid=pg_my_temp_schema() THEN 'pg_temp' ELSE n.nspname END",row)
+        self.assertIn('left(pg_get_indexdef(i.indexrelid),length(',row)
+        self.assertIn('substr(pg_get_indexdef(i.indexrelid),length(',row)
+        self.assertNotIn('regexp_replace',row)
+        self.assertIn("to_regclass('pg_temp.synthetic_index')",row)
+        live,_=w.capture(spec,'ignored',temporary=False)
+        self.assertNotIn('pg_my_temp_schema()',live)
+        self.assertIn("'definition',pg_get_indexdef(i.indexrelid)",live)
+
     def test_sources_order_missing_duplicates_and_mutation_rejected(self):
         retained=w.retain(w.ROOT)
         for bad in ((),retained[:-1],retained[::-1],retained+(retained[0],),

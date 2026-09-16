@@ -113,9 +113,12 @@ def contract(retained):
 
 def capture(spec,index_name,*,temporary=False):
     target='pg_temp.'+index_name if temporary else 'public.'+spec['name']
-    # pg_get_indexdef always qualifies the indexed relation. Only its exact
-    # generated identity prefix is normalized, never keys/predicates/options.
-    prefix="format('CREATE %sINDEX %I ON %I.%I USING ',CASE WHEN i.indisunique THEN 'UNIQUE ' ELSE '' END,ic.relname,n.nspname,c.relname)"
+    # PostgreSQL deparses the current temporary namespace as pg_temp, not its
+    # physical pg_temp_N catalog name (ruleutils.c / get_namespace_name_or_temp).
+    # Normalize only that exact generated identity prefix; the full authored
+    # index keys/predicates/options and live catalog still must match exactly.
+    namespace="CASE WHEN n.oid=pg_my_temp_schema() THEN 'pg_temp' ELSE n.nspname END"
+    prefix=f"format('CREATE %sINDEX %I ON %I.%I USING ',CASE WHEN i.indisunique THEN 'UNIQUE ' ELSE '' END,ic.relname,{namespace},c.relname)"
     raw='pg_get_indexdef(i.indexrelid)'
     canonical='CREATE '+('UNIQUE ' if spec['unique'] else '')+'INDEX '+spec['name']+' ON public.'+spec['table']+' USING '
     definition=(f"CASE WHEN left({raw},length({prefix}))={prefix} THEN '{canonical}'||substr({raw},length({prefix})+1) END"
@@ -164,7 +167,7 @@ BEGIN
    IF NOT included THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='CHANGED_INDEX_EXCLUDED_DUPLICATE_REJECTED'; END IF;
    rejected:=rejected+1;
   END;
-  IF (SELECT count(*) FROM pg_temp.{table})<>CASE WHEN included THEN 1 ELSE 2 END
+  IF (SELECT count(*) FROM pg_temp.{table})<>(CASE WHEN included THEN 1 ELSE 2 END)
    THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='CHANGED_INDEX_FIXTURE_ROWS_REQUIRED'; END IF;
  END LOOP;
  IF cases<>12 OR rejected<>4 OR allowed<>8
