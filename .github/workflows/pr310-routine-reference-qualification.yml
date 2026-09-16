@@ -56,10 +56,12 @@ jobs:
         run: |
           set -euo pipefail
           docker run --detach --name "$PG_CONTAINER" --network none --label gridex.pr310-index-proof="$GITHUB_RUN_ID" -e POSTGRES_HOST_AUTH_METHOD=trust postgres:17-alpine@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73 > /dev/null
-          for i in $(seq 1 40); do
-            if docker exec "$PG_CONTAINER" pg_isready -U postgres > /dev/null; then break; fi
+          ready=false
+          for i in $(seq 1 60); do
+            if docker exec "$PG_CONTAINER" pg_isready -h 127.0.0.1 -U postgres > /dev/null; then ready=true; break; fi
             sleep 1
           done
+          test "$ready" = true
           python3 -B - <<'PY'
           import hashlib,json,os,pathlib,re,subprocess,sys,types
           sys.path.insert(0,'scripts')
@@ -69,9 +71,13 @@ jobs:
           raw=subprocess.check_output(['git','show','767966d35bc3bc1df391bfa51bc9657123ccfb15:scripts/canonical_changed_index_witness.py'])
           assert hashlib.sha256(raw).hexdigest()=='515bbb7abc5cbfb6d547bc92f3051b78c527984f63bf55dad18f822233126b5b'
           exec(compile(raw,old.__file__,'exec'),old.__dict__)
-          args=['docker','exec','-i',os.environ['PG_CONTAINER'],'psql','-X','-q','-At','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose','-f','-']
+          args=['docker','exec','-i',os.environ['PG_CONTAINER'],'psql','-X','-q','-At','-h','127.0.0.1','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose','-f','-']
           def query(sql):
-              return subprocess.run(args,input=sql.encode(),capture_output=True,timeout=60)
+              result=subprocess.run(args,input=sql.encode(),capture_output=True,timeout=60)
+              if result.returncode:
+                  state=re.search(rb'ERROR:\s+([A-Z0-9]{5}):',result.stderr)
+                  print(json.dumps({'stage':'synthetic_query','exitCode':result.returncode,'sqlstate':state[1].decode() if state else 'TRANSPORT','stderrSha256':hashlib.sha256(result.stderr).hexdigest()}))
+              return result
           synthetic='CREATE TABLE public.customers(company_id uuid,customer_number text,email text,intake_status text,created_at timestamptz);\nCREATE TABLE public.user_roles(company_id uuid,user_id uuid,role_id uuid,status text,is_active boolean);\n'+'\n'.join(s['statement'] for s in specs)+'\n'
           assert query(synthetic).returncode==0,'SYNTHETIC_INDEX_SETUP_FAILED'
           results={}
@@ -85,17 +91,18 @@ jobs:
                   rows=json.loads(r.stdout);w.verify_rows(rows,specs)
                   entry.update(indexesVerified=5,predicateCases=12,duplicateRejected=4,duplicateAllowed=8)
               results[label]=entry
-          before=query("SELECT jsonb_build_object('customers',(SELECT count(*) FROM public.customers),'roles',(SELECT count(*) FROM public.user_roles),'indexes',(SELECT jsonb_agg(pg_get_indexdef(i.indexrelid) ORDER BY i.indexrelid) FROM pg_index i JOIN pg_class c ON c.oid=i.indrelid WHERE c.relnamespace='public'::regnamespace));")
-          assert before.returncode==0
+          snapshot="SELECT jsonb_build_object('customers',(SELECT count(*) FROM public.customers),'roles',(SELECT count(*) FROM public.user_roles),'indexes',(SELECT jsonb_agg(pg_get_indexdef(i.indexrelid) ORDER BY i.indexrelid) FROM pg_index i JOIN pg_class c ON c.oid=i.indrelid WHERE c.relnamespace='public'::regnamespace));"
+          before=query(snapshot);assert before.returncode==0
           poison='DROP INDEX public.customers_company_email_idx; CREATE INDEX customers_company_email_idx ON public.customers(company_id,upper(email));'
-          poisoned=w.render(specs).replace('SET LOCAL check_function_bodies=on;','SET LOCAL check_function_bodies=on;\n'+poison)
+          original=w.render(specs);assert original.count('SET LOCAL check_function_bodies=on;')==1
+          poisoned=original.replace('SET LOCAL check_function_bodies=on;','SET LOCAL check_function_bodies=on;\n'+poison)
           r=query(poisoned);assert r.returncode==0,'POISON_SQL_FAILED'
           try:w.verify_rows(json.loads(r.stdout),specs)
           except ValueError:results['wrong_live_index_rejected']=True
           else:raise AssertionError('WRONG_LIVE_INDEX_ADMITTED')
           r=query(w.render(specs));assert r.returncode==0;w.verify_rows(json.loads(r.stdout),specs)
           results['poison_rollback_and_recovery']=True
-          after=query("SELECT jsonb_build_object('customers',(SELECT count(*) FROM public.customers),'roles',(SELECT count(*) FROM public.user_roles),'indexes',(SELECT jsonb_agg(pg_get_indexdef(i.indexrelid) ORDER BY i.indexrelid) FROM pg_index i JOIN pg_class c ON c.oid=i.indrelid WHERE c.relnamespace='public'::regnamespace));")
+          after=query(snapshot)
           assert after.returncode==0 and after.stdout==before.stdout,'SYNTHETIC_PUBLIC_STATE_CHANGED'
           output=pathlib.Path('artifacts/pr310-isolated-index-qualified.json');output.parent.mkdir(exist_ok=True)
           output.write_text(json.dumps({'scope':'SYNTHETIC_INDEX_WITNESS_QUALIFIED_NOT_FULL_REPLAY','results':results,'catalogAndRowsPreserved':True,'productionModified':False,'schemaAccepted':False},sort_keys=True,indent=2)+'\n')
