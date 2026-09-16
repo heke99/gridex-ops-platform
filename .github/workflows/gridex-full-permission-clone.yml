@@ -6,6 +6,9 @@ on:
       - codex/ediel-masterplan-v2-alignment-20260915
       - codex/gridex-parity-remediation-20260905
     paths:
+      - 'scripts/canonical_storage_policy_scope.py'
+      - 'scripts/test-canonical-storage-policy-scope.py'
+      - 'scripts/sql/forward-candidates/restrict_grid_owner_storage_policy_roles.sql'
       - 'scripts/canonical-auth-provisioning-legacy-batch.py'
       - 'scripts/canonical-storage-reference-qualification.py'
       - 'scripts/canonical_storage_bootstrap.py'
@@ -44,6 +47,7 @@ jobs:
       - name: Verify selection, closed diagnostics and failure propagation
         run: |
           python3 -B scripts/test-canonical-storage-bootstrap.py
+          python3 -B scripts/test-canonical-storage-policy-scope.py
           python3 scripts/canonical-foundation-frontier-selftest.py
           python3 scripts/canonical-timestamp-frontier-selftest.py
           python3 scripts/test-canonical-forward-portable.py
@@ -60,6 +64,49 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/canonical-full-permission-clone-qualification.py | tee "$RUNNER_TEMP/gridex-full-permission-qualification.jsonl"
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Generate forward identities only after successful full clone proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase --help >/dev/null
+          supabase migration --help >/dev/null
+          supabase migration new --help >/dev/null
+          python3 - <<'PYGEN'
+          import hashlib, json, os, pathlib, subprocess, tempfile, time
+          root=pathlib.Path.cwd()
+          version=subprocess.check_output(['supabase','--version'],text=True).strip()
+          assert version=='2.101.0'
+          destination=root/'artifacts'/'pr310-forward-scaffolds'
+          destination.mkdir(parents=True,exist_ok=False)
+          sources=[
+              ('restrict_grid_owner_storage_policy_roles','scripts/sql/forward-candidates/restrict_grid_owner_storage_policy_roles.sql'),
+              ('canonical_permission_overrides_and_storage_write_guards','scripts/sql/forward-candidates/20260912052507_canonical_permission_overrides_and_storage_write_guards.sql')]
+          records=[]
+          with tempfile.TemporaryDirectory(prefix='gridex-forward-identities-') as temporary:
+              work=pathlib.Path(temporary)
+              (work/'supabase'/'migrations').mkdir(parents=True)
+              for name,source in sources:
+                  subprocess.run(['supabase','migration','new',name],cwd=work,check=True)
+                  matches=list((work/'supabase'/'migrations').glob('*_'+name+'.sql'))
+                  assert len(matches)==1 and not matches[0].read_bytes()
+                  raw=(root/source).read_bytes()
+                  (destination/matches[0].name).write_bytes(raw)
+                  records.append(dict(basename=matches[0].name,source=source,sha256=hashlib.sha256(raw).hexdigest()))
+                  time.sleep(1.1)
+          (destination/'receipt.json').write_text(json.dumps(dict(cliVersion=version,
+              sourceCommit=os.environ['GITHUB_SHA'],runId=os.environ['GITHUB_RUN_ID'],
+              generatedBy='supabase migration new',migrations=records,
+              promoted=False,productionModified=False),indent=2)+'\n')
+          PYGEN
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr310-forward-scaffolds
+          path: artifacts/pr310-forward-scaffolds/
+          retention-days: 7
+          if-no-files-found: error
       - name: Retain already sanitized qualification receipts
         if: always()
         uses: actions/upload-artifact@v4

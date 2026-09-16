@@ -17,6 +17,7 @@ import canonical_native_final_sql as final_sql
 import canonical_changed_function_witness as functions
 import canonical_permission_full_seed as full_seed
 import canonical_storage_bootstrap as storage_bootstrap
+import canonical_storage_policy_scope as storage_policy_scope
 from canonical_native_timestamp_snapshot import queries
 
 def load(name):
@@ -53,6 +54,10 @@ def retained_inputs():
         if path.resolve()!=path or hashlib.sha256(raw).hexdigest()!=digest:
             raise ValueError("PERMISSION_QUALIFICATION_SOURCE_REQUIRED")
         result.append((name,raw))
+    scope_source=ROOT/'scripts/canonical_storage_policy_scope.py'
+    if scope_source.resolve()!=scope_source or hashlib.sha256(scope_source.read_bytes()).hexdigest()!='3ee6247c931b564542ed61b969b7d2e8f1f0d87f2806862b7d10e0ac367530ec':
+        raise ValueError('PERMISSION_QUALIFICATION_SOURCE_REQUIRED')
+    storage_policy_scope.candidate()
     return tuple(result)
 
 
@@ -262,6 +267,11 @@ def qualify(target,legacy,progress):
     target.docker(['exec',target.name,'createdb','-U','postgres','-T',PARENT,ATOMIC])
     before=capture(target,legacy,ATOMIC)
     if before!=parent:raise ValueError('PERMISSION_CLONE_REQUIRED')
+    identities=json.loads(private_sql(target,legacy,ATOMIC,full_seed.identity_query(),'matrix_identities'))
+    s21=full_seed.build_cases(seed_retained,identities)['S21']
+    progress['storagePolicyScopeQualification']=storage_policy_scope.qualify(
+        target,legacy,ATOMIC,lambda: capture(target,legacy,ATOMIC),s21)
+    before=capture(target,legacy,ATOMIC)
     private_sql(target,legacy,ATOMIC,raw,'candidate_first',False)
     first=capture(target,legacy,ATOMIC)
     deltas=verify_delta(before,first,specs)
@@ -363,6 +373,7 @@ def run():
                 'PERMISSION_FULL_MATRIX_REQUIRED','PERMISSION_MATRIX_ROLLBACK_REQUIRED',
                 'PERMISSION_ACL_POISON_CONTROL_REQUIRED','PERMISSION_ACL_RECOVERY_REQUIRED',
                 'PERMISSION_QUALIFICATION_SOURCE_REQUIRED'}
+            allowed.update(storage_policy_scope.FAILURE_CODES)
             code=error.args[0] if type(error) is ValueError and len(error.args)==1 and type(error.args[0]) is str and error.args[0] in allowed else 'UNCLASSIFIED'
             progress['failureCode']=code
             result = receipt('BLOCKED', phase, progress)
