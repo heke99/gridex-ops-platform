@@ -1,0 +1,76 @@
+name: Independent Ediel v2 PRODAT locator qualification
+on:
+  push:
+    branches: [work/ediel-v2-independent-continuation-20260916]
+    paths: [.github/workflows/ediel-v2-f3-locator-qualification.yml]
+permissions:
+  contents: write
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Materialize exact independently reproduced locator candidate
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/f3-evidence"
+          python3 - <<'PY'
+          import base64,zlib,hashlib,os
+          from pathlib import Path
+          patch=zlib.decompress(base64.b64decode(Path('ediel-f3-locators.patch.zlib.b64').read_text().strip(),validate=True))
+          assert hashlib.sha256(patch).hexdigest()=='6c1c5e1deb9e01d2279f4dd21df284ced52a62e9115146cc95270d672ff7fe81'
+          Path(os.environ['RUNNER_TEMP'],'f3.patch').write_bytes(patch)
+          PY
+          git checkout --detach c83b9c51caf3614488cc7481a00ae221d60f2cf3
+          git apply --check --index "$RUNNER_TEMP/f3.patch"
+          git apply --index "$RUNNER_TEMP/f3.patch"
+          # Keep the normal workflow unchanged in this code-only publication.
+          # The authorized connector will add the new persistent test step later.
+          git restore --source=HEAD --staged --worktree .github/workflows/ediel-masterplan-v2.yml
+          test "$(git write-tree)" = 61e7fe5c6c4f1a72e02fb62c0a707b8fd00cb20b
+          git diff --cached --check
+      - name: Verify actual source and all locked regression consumers
+        run: |
+          set -euo pipefail
+          {
+            node --experimental-vm-modules --test scripts/test-ediel-prodat-source-locators.cjs
+            node --experimental-vm-modules --test scripts/test-ediel-rule-pack-source-identity.cjs
+            npm ci --ignore-scripts
+            npm run ediel:masterplan-v2:integrity
+            npm run db:migrations:check
+            npm run typecheck
+            npm run typecheck:tests
+            npm test
+            npm run lint
+          } 2>&1 | tee "$RUNNER_TEMP/f3-evidence/tests.log"
+      - name: Publish only the tested six-file descendant
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GIT_TERMINAL_PROMPT: '0'
+        run: |
+          set -euo pipefail
+          test "$(git write-tree)" = 61e7fe5c6c4f1a72e02fb62c0a707b8fd00cb20b
+          git diff --exit-code
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix: align PRODAT reporting and permission fields with source locators'
+          branch='codex/ediel-v2-f3-locators-20260916'
+          test "$(gh api "repos/heke99/gridex-ops-platform/git/ref/heads/$branch" --jq '.object.sha')" = c83b9c51caf3614488cc7481a00ae221d60f2cf3
+          git -c credential.helper= -c 'credential.helper=!f() { printf "username=x-access-token\npassword=%s\n" "$GH_TOKEN"; }; f' push https://github.com/heke99/gridex-ops-platform.git "HEAD:refs/heads/$branch"
+          git branch f3-qualified-output HEAD
+          git bundle create "$RUNNER_TEMP/f3-evidence/source.bundle" f3-qualified-output
+          git rev-parse HEAD HEAD^{tree} > "$RUNNER_TEMP/f3-evidence/source.txt"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ediel-v2-f3-locator-qualification
+          path: ${{ runner.temp }}/f3-evidence/
+          retention-days: 14
+          if-no-files-found: error
