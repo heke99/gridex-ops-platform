@@ -37,7 +37,13 @@ class Tests(unittest.TestCase):
       self.assertNotIn('_nativeApplicationTypeCandidate',parent)
      else:
       m.execute(runner,(),parent,'owned-project')
-      self.assertFalse(parent['nativeApplicationTypeCandidate']['generatedTypesVerified'])
+      receipt=parent['nativeApplicationTypeCandidate']
+      expected=m.apply_override(RAW)
+      self.assertFalse(receipt['generatedTypesVerified'])
+      self.assertNotEqual(expected,RAW)
+      self.assertEqual(parent['_nativeApplicationTypeCandidate'],expected)
+      self.assertEqual(receipt['candidateSha256'],m.sha(expected))
+      self.assertEqual(receipt['rawSha256'],m.sha(RAW))
       self.assertEqual(runner.native.call_count,2)
  def test_no_export_before_success_and_disposal(self):
   for success,cleanup,disposed in ((False,True,True),(True,False,True),(True,True,False)):
