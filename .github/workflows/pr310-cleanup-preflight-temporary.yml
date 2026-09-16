@@ -20,6 +20,25 @@ jobs:
         run: |
           cp .github/pr310-cleanup-native-preflight.py "$RUNNER_TEMP/cleanup-native-preflight.py"
           echo "4fda803aff4e3a454e1c98fcb11af5d0d3a71cabaeec5cd464677ce0accde505  $RUNNER_TEMP/cleanup-native-preflight.py" | sha256sum --check
+          python3 -B - <<'PY'
+          from pathlib import Path
+          import hashlib,os
+          p=Path(os.environ['RUNNER_TEMP'])/'cleanup-native-preflight.py'
+          raw=p.read_text()
+          replacements={
+          "report['phase']='ADAPTED_SUCCESS_AND_REPEAT'":"report['phase']='ADAPTED_EXPECTED_STATE_ADMISSION'",
+          "            expected=cleanup.expected_after(((baseline[0],baseline[1]),[]),list(cleanup.BASE_KEYS)+[cleanup.POLICY_KEY]+dependencies)[0]":"            keys=list(cleanup.BASE_KEYS)+[cleanup.POLICY_KEY]+dependencies\n            report['admissionCounts']=dict(dependencies=len(dependencies),uniqueDependencies=len(set(dependencies)),missingKeys=sum(k not in baseline[0] for k in keys),probeRowMatches=baseline[1].get(cleanup.TABLE)==[1,cleanup.ROW_HASH],dependencyPrefixMatches=all(k.startswith(tuple('dependency/policy '+cleanup.POLICY+' on table '+n+'/' for n in (cleanup.TABLE,cleanup.TABLE.removeprefix('public.')))) for k in dependencies))\n            expected=cleanup.expected_after(((baseline[0],baseline[1]),[]),keys)[0]\n            report['phase']='ADAPTED_REAL_CLI_SUCCESS'",
+          "            after=snapshot()":"            report['phase']='ADAPTED_COMPARE_FINAL_STATE'\n            after=snapshot()",
+          "            prefix.verify_entry(after[2][-1],path.name,SimpleNamespace(name=name,sql=candidate))":"            report['phase']='ADAPTED_VERIFY_REAL_LEDGER'\n            prefix.verify_entry(after[2][-1],path.name,SimpleNamespace(name=name,sql=candidate))\n            report['phase']='ADAPTED_REAL_CLI_REPEAT'",
+          "            report['failureCode']=error.args[0] if type(error) is ValueError and len(error.args)==1 and error.args[0] in known else 'UNCLASSIFIED'":"            known.update({'NATIVE_CLEANUP_EXACT_REMOVAL_REQUIRED','NATIVE_CLEANUP_UNRECOGNIZED_OBJECT_REQUIRED','NATIVE_EXECUTED_LEDGER_REQUIRED','NATIVE_EXECUTED_STATEMENTS_REQUIRED'})\n            report['failureCode']=error.args[0] if type(error) in (ValueError,prefix.PrefixError) and len(error.args)==1 and type(error.args[0]) is str and error.args[0] in known else 'UNCLASSIFIED'\n            report['failureKind']=type(error).__name__ if type(error) in (ValueError,prefix.PrefixError,TypeError,KeyError,AssertionError) else 'OTHER'",
+          }
+          for old,new in replacements.items():
+              assert raw.count(old)==1
+              raw=raw.replace(old,new)
+          assert hashlib.sha256(raw.encode()).hexdigest()=='55da6f25a1feb9e7b36d5081fd3db2bf6a3649a503722ed5f46c3ae95319c09a'
+          compile(raw,'fixed_cleanup_preflight','exec')
+          p.write_text(raw)
+          PY
       - uses: actions/checkout@v4
         with:
           ref: c6f7702a0214504bc44027d0526734e3adecf728
