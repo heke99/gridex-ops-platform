@@ -1,0 +1,13 @@
+diff --git a/scripts/canonical-native-provider-role-qualification.py b/scripts/canonical-native-provider-role-qualification.py
+index da08de38..c40a36fe 100644
+--- a/scripts/canonical-native-provider-role-qualification.py
++++ b/scripts/canonical-native-provider-role-qualification.py
+@@ -55,7 +55,7 @@ def run():
+             result=subprocess.run(command,input=query.encode(),capture_output=True,timeout=30)
+             if result.returncode:raise ValueError('NATIVE_ROLE_PROOF_SQL_REQUIRED')
+             return [json.loads(line) for line in result.stdout.splitlines() if line.strip()]
+-        if sql("SELECT current_user='supabase_admin' AND inet_client_addr()='127.0.0.1'::inet AND rolsuper FROM pg_roles WHERE rolname=current_user;")!=[True]:
++        if sql("SELECT to_json(current_user='supabase_admin' AND inet_client_addr()='127.0.0.1'::inet AND rolsuper) FROM pg_roles WHERE rolname=current_user;")!=[True]:
+             raise ValueError('NATIVE_ROLE_PROOF_OWNER_REQUIRED')
+         before=sql(snapshot)
+         context,rows=sql('BEGIN READ ONLY;\n'+body+principals+'\nROLLBACK;')
