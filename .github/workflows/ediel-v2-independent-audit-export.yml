@@ -1,0 +1,46 @@
+name: Independent Ediel v2 locked dependency inspection
+on:
+  push:
+    branches: [work/ediel-v2-independent-continuation-20260916]
+    paths: [.github/workflows/ediel-v2-independent-audit-export.yml]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: c83b9c51caf3614488cc7481a00ae221d60f2cf3
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Capture exact source without PR310 ancestry or private runtime data
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ediel-v2-inspection"
+          test "$(git rev-parse HEAD)" = c83b9c51caf3614488cc7481a00ae221d60f2cf3
+          git branch independent-inspection-source HEAD
+          git bundle create "$RUNNER_TEMP/ediel-v2-inspection/source.bundle" independent-inspection-source
+          git rev-parse HEAD HEAD^{tree} > "$RUNNER_TEMP/ediel-v2-inspection/source.txt"
+      - name: Read production dependency advisories without suppressing their reported status
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          set +e
+          npm audit --omit=dev --json > "$RUNNER_TEMP/ediel-v2-inspection/audit.json"
+          status=$?
+          set -e
+          printf '%s\n' "$status" > "$RUNNER_TEMP/ediel-v2-inspection/audit-exit-code.txt"
+          test "$status" -le 1
+          node -e 'const fs=require("fs");const p=process.env.RUNNER_TEMP+"/ediel-v2-inspection/audit.json";const a=JSON.parse(fs.readFileSync(p,"utf8"));if(a.error||!a.vulnerabilities||!a.metadata)process.exit(2);console.log(JSON.stringify(a.metadata.vulnerabilities));console.log(Object.keys(a.vulnerabilities).join("\n"));'
+          git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ediel-v2-c83-source-and-production-advisories
+          path: ${{ runner.temp }}/ediel-v2-inspection/
+          if-no-files-found: error
+          retention-days: 7
