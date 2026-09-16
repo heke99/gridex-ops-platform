@@ -83,10 +83,23 @@ class FinalSqlTests(unittest.TestCase):
             receipt.update(cliFile=path.name,programSha256=p.sha(program.sql),stage='VERIFIED',
                 unchangedEarlierLedger=True,outerTransactionTransferredToCli=True,originalHistoricalVersionMarkedApplied=False,
                 ledgerStatementsSha256=p.sha(json.dumps(entry['statements'],separators=(',',':')).encode()),
-                cases=[dict(expectedSqlstate=state,programSha256=p.sha(body),catalogAndRowsRestored=True,ledgerUnchanged=True)
-                       for state,body in [('PF001',program.sql+forward_runtime.POST),('PF002',program.sql)]])
+                cases=forward_runtime.expected_cases(program,i+1))
         parent['forwardSources']['actualLedgerRows']=len(runner.entries)
         return runner,parent
+    def test_forward10_requires_fresh_lock_and_settings_receipts(self):
+        for change in ('missing_lock', 'false_lock', 'old_post_body'):
+            runner, parent = self.fixture()
+            cases = parent['forwardSources']['sources'][9]['cases']
+            if change == 'missing_lock':
+                cases[0].pop('lockAndSettingsHeld')
+            elif change == 'false_lock':
+                cases[1]['lockAndSettingsHeld'] = False
+            else:
+                program = forward_runtime.programs(self.forward)[9]
+                cases[0]['programSha256'] = p.sha(program.sql+forward_runtime.POST)
+            with self.subTest(change=change), self.assertRaisesRegex(ValueError, 'NATIVE_FINAL_SQL_FORWARD_LEDGER_REQUIRED'):
+                m.admit_forward(runner, self.forward, parent)
+
     def test_real_pinned_bytes_are_used_without_reopening_after_admission(self):
         runner,parent=self.fixture()
         with patch.object(Path,'read_bytes',side_effect=AssertionError('reopened')),patch.object(

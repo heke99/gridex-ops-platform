@@ -280,3 +280,15 @@ bytes and pinned receipts are retained. Registered forward count is12; original
 144/514 historical chain remains byte-bound. Post-promotion qualification retains
 all129/24 and rollback controls. Native/schema/type/current-head CI and merge are
 still pending; no production mutation or external market message was performed.
+
+
+## 2026-09-16 — RPC/index/native-forward continuation
+
+Clean descendant43f39822 preserves767966d3 and4702d036. Portable run35093927540
+passes144/514/12, RPC/views,24 function behaviors, five index/twelve predicate cases
+and18 final assertions, then fails schema fingerprint; full diff collected.
+Original native35086800997 fails forward10 after144/514/9; cleanup verified.
+Isolated native35097129294 proves LOCK25P01, corrected context, both rollback
+boundaries, real CLI ledger and repeat. Exact source-bound adapter and lock receipt
+checks pass12 forward and11 final-SQL local tests. Full current-head native/schema/
+types and final CI remain pending. No main or production mutation in this record.

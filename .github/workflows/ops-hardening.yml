@@ -432,6 +432,7 @@ jobs:
           python3 -B scripts/test-canonical-native-dump-verify.py
           python3 -B scripts/test-canonical-native-release-verify.py
           python3 -B scripts/test-canonical-native-release-entry.py
+          python3 -B scripts/canonical-native-forward-lock-qualification.py
           python3 -B scripts/canonical-auth-provisioning-replay.py
       - name: Upload clean-replay evidence
         if: always()

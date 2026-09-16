@@ -4,5 +4,5 @@
   "status": "IN_PROGRESS",
   "current_state": ".agent-memory/current-state.md",
   "main_merged": false,
-  "next_action": "Publish/read back the qualified two-forward promotion; keep head stable for complete native replay, schema review, genuine type generation and all current-head CI, then merge PR310 to main."
+  "next_action": "Publish/read back the tested PR310 descendant with exact forward10 LOCK correction; complete native source replay, explicit schema decisions, real types and CI; review remaining old PR equivalence before safe main merge."
 }

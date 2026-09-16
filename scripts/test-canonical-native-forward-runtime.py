@@ -57,6 +57,37 @@ class ForwardTests(unittest.TestCase):
             forward.admit(runner, replace(self.plan, units=()), parent)
         runner.unchanged.assert_not_called()
 
+    def test_forward10_lock_is_a_single_exact_atomic_do_wrapper(self):
+        retained = sources.retain(ROOT)
+        programs = forward.programs(retained)
+        for index, (source, program) in enumerate(zip(retained, programs), 1):
+            statements = compiler.prefix.statements(program.sql.decode())
+            self.assertFalse(any(statement[0][0].upper() == 'LOCK' for statement in statements))
+            original, _ = compiler.transfer_outer(source.sql)
+            if index == 10:
+                opening = b'DO $gridex_native_forward_lock$ BEGIN\n'
+                closing = b'\nEND $gridex_native_forward_lock$;'
+                self.assertEqual(program.sql.count(opening), 1)
+                self.assertEqual(program.sql.count(closing), 1)
+                self.assertEqual(program.sql.replace(opening, b'').replace(closing, b''), original)
+            else:
+                self.assertEqual(program.sql, original)
+
+    def test_forward10_checks_all_three_locks_and_settings_before_both_faults(self):
+        for ledger in (False, True):
+            with tempfile.TemporaryDirectory() as directory:
+                runner, program = self.failure_fixture(directory, ledger=ledger, ordinal=10)
+                runner.create = Mock(wraps=runner.create)
+                with patch.object(timestamp, 'native_snapshot', side_effect=[({}, []), ({}, [])]):
+                    forward.negative(runner, program, 10, ledger=ledger)
+                sql = runner.sql.call_args_list[0].args[0] if ledger else runner.create.call_args.args[0].sql.decode()
+                for required in ('pg_locks', 'pg_backend_pid()', 'AccessExclusiveLock', 'lock_timeout',
+                                 'statement_timeout', 'search_path', 'inbound_ediel_match_attempts',
+                                 'inbound_ediel_parse_results', 'inbound_email_attachments'):
+                    self.assertIn(required, sql)
+                self.assertIn('PF009', sql)
+                self.assertIn('PF002' if ledger else 'PF001', sql)
+
     def test_forward_programs_retain_exact_original_sources_and_cli_transaction(self):
         retained = sources.retain(ROOT)
         with patch.object(Path, 'read_bytes', side_effect=AssertionError('reopened source')):
@@ -65,10 +96,29 @@ class ForwardTests(unittest.TestCase):
         for ordinal, (original, program) in enumerate(zip(retained, programs), 1):
             body, transferred = compiler.transfer_outer(original.sql)
             self.assertTrue(transferred)
-            self.assertEqual(program.sql, body)
+            self.assertEqual(program.sql, forward.lock_context.adapt(original, body))
             self.assertEqual((program.source, program.source_sha256), sources.FORWARD_SOURCES[ordinal-1])
         with self.assertRaises(ValueError):
             forward.programs(tuple(reversed(retained)))
+
+    def test_lock_adapter_rejects_source_body_identity_or_lock_scope_drift(self):
+        source = sources.retain(ROOT)[9]
+        body, _ = compiler.transfer_outer(source.sql)
+        cases = [
+            (replace(source, source='migrations/unreviewed.sql'), body),
+            (replace(source, source_sha256='0'*64), body),
+            (replace(source, sql=source.sql+b'\n'), body),
+            (source, body+b'\n'),
+            (source, body.replace(b'access exclusive', b'share')),
+            (source, body.replace(forward.lock_context.LOCK.encode(), b'')),
+            (source, body+forward.lock_context.LOCK.encode()),
+        ]
+        for original, sql in cases:
+            with self.subTest(), self.assertRaisesRegex(ValueError, 'FORWARD_LOCK_SOURCE_REQUIRED'):
+                forward.lock_context.adapt(original, sql)
+        for ordinal in (0, 13, True, '10'):
+            with self.assertRaisesRegex(ValueError, 'FORWARD_SOURCE_ORDINAL_REQUIRED'):
+                forward.lock_context.boundary(ordinal)
 
     def failure_fixture(self, folder, *, ledger, result=None, ordinal=1):
         program = forward.programs(sources.retain(ROOT))[ordinal-1]
@@ -93,6 +143,8 @@ class ForwardTests(unittest.TestCase):
                     receipt=forward.negative(runner,program,ordinal,ledger=ledger)
                 self.assertEqual(receipt['expectedSqlstate'],'PF002' if ledger else 'PF001')
                 self.assertTrue(receipt['ledgerUnchanged'])
+                self.assertEqual(receipt, forward.expected_cases(program, ordinal)[1 if ledger else 0])
+                self.assertEqual(receipt.get('lockAndSettingsHeld'), True if ordinal == 10 else None)
                 runner.unchanged.assert_called_once()
                 self.assertEqual(list(Path(directory).iterdir()),[])
                 if ledger:

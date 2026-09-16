@@ -119,11 +119,9 @@ def admit_forward(runner, retained_forward, parent):
     runner.target.assert_native_owned()
     runner.unchanged()
     end = len(runner.entries)-cleanup_count
-    for program,receipt,entry,retained in zip(programs,receipts,runner.entries[end-count:end],runner.retained[end-count:end]):
+    for ordinal,(program,receipt,entry,retained) in enumerate(zip(programs,receipts,runner.entries[end-count:end],runner.retained[end-count:end]),1):
         path,raw,physical = retained
-        expected_cases=[dict(expectedSqlstate=state,programSha256=p.sha(body),
-                             catalogAndRowsRestored=True,ledgerUnchanged=True)
-                        for state,body in [('PF001',program.sql+forward_runtime.POST),('PF002',program.sql)]]
+        expected_cases=forward_runtime.expected_cases(program,ordinal)
         if (raw != program.sql or receipt.get('cliFile') != path.name
                 or receipt.get('programSha256') != p.sha(program.sql)
                 or receipt.get('ledgerStatementsSha256') != p.sha(json.dumps(entry['statements'],separators=(',',':')).encode())

@@ -1,0 +1,31 @@
+{
+  "scope": "SYNTHETIC_FORWARD10_LOCK_CONTEXT_NOT_RELEASE_ACCEPTANCE",
+  "sourceSha256": "5cd56392d5647196fe4f64e7d5a76fe5fa0a3a9a454efcfd34a6d8f754ac86a7",
+  "productionModified": false,
+  "schemaAccepted": false,
+  "generatedTypesVerified": false,
+  "cases": [
+    {
+      "case": "original_top_level_lock",
+      "sqlstate": "25P01",
+      "rowsAndLedgerRestored": true
+    },
+    {
+      "case": "adapted_post_body_rollback",
+      "sqlstate": "PF001",
+      "rowsAndLedgerRestored": true
+    },
+    {
+      "case": "adapted_ledger_rollback",
+      "sqlstate": "PF002",
+      "rowsAndLedgerRestored": true
+    }
+  ],
+  "image": "public.ecr.aws/supabase/postgres:17.6.1.106",
+  "lockAndSettingsHeldAtLedger": true,
+  "genuineCliLedger": true,
+  "repeatVerified": true,
+  "cleanupVerified": true,
+  "privateWorkspaceRemoved": true,
+  "outcome": "LOCK_CONTEXT_QUALIFIED_NOT_RELEASE"
+}

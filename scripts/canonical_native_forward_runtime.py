@@ -11,6 +11,7 @@ import canonical_forward_sources as sources
 import canonical_native_historical_prefix as p
 import canonical_native_timestamp_runtime as timestamp
 import canonical_native_timestamp_sources as compiler
+import canonical_native_forward_lock as lock_context
 
 POST = b"\nDO $native_forward_fault$ BEGIN RAISE EXCEPTION 'NATIVE_FORWARD_POST_BODY' USING ERRCODE='PF001'; END $native_forward_fault$;\n"
 DROP = """BEGIN;
@@ -27,6 +28,7 @@ def programs(retained):
         body, transferred = compiler.transfer_outer(source.sql)
         if not transferred:
             raise ValueError('FORWARD_ATOMIC_SOURCE_REQUIRED')
+        body = lock_context.adapt(source, body)
         result.append(SimpleNamespace(name=f'gridex_native_forward_{ordinal:02d}_{p.sha(body)[:12]}',
                                       sql=body, source=source.source, source_sha256=source.source_sha256))
     return tuple(result)
@@ -276,8 +278,24 @@ def assertion(ordinal):
     raise ValueError('FORWARD_SOURCE_ORDINAL_REQUIRED')
 
 
+def post_suffix(ordinal):
+    boundary = lock_context.boundary(ordinal)
+    if ordinal != 10:
+        return POST
+    return ("\nDO $native_forward_fault$ BEGIN IF ("+boundary+") IS DISTINCT FROM true THEN "
+            "RAISE EXCEPTION 'NATIVE_FORWARD_BOUNDARY' USING ERRCODE='PF009'; END IF; "
+            "RAISE EXCEPTION 'NATIVE_FORWARD_POST_BODY' USING ERRCODE='PF001'; END $native_forward_fault$;\n").encode()
+
+
+def expected_cases(program, ordinal):
+    return [dict(expectedSqlstate=state, programSha256=p.sha(body),
+                 catalogAndRowsRestored=True, ledgerUnchanged=True,
+                 **({'lockAndSettingsHeld': True} if ordinal == 10 else {}))
+            for state, body in [('PF001', program.sql+post_suffix(ordinal)), ('PF002', program.sql)]]
+
+
 def negative(runner, program, ordinal, *, ledger):
-    body = program.sql if ledger else program.sql + POST
+    body = program.sql if ledger else program.sql + post_suffix(ordinal)
     probe = SimpleNamespace(name=program.name[:-12]+p.sha(body)[:12], sql=body)
     before = timestamp.native_snapshot(runner.target)
     files = {path.name for path in runner.directory.iterdir()}
@@ -288,7 +306,7 @@ def negative(runner, program, ordinal, *, ledger):
             guard = ("BEGIN; CREATE SCHEMA gridex_native_forward_probe; "
               "REVOKE ALL ON SCHEMA gridex_native_forward_probe FROM PUBLIC,anon,authenticated,service_role; "
               "CREATE FUNCTION gridex_native_forward_probe.reject_ledger() RETURNS trigger LANGUAGE plpgsql AS $guard$ BEGIN "
-              "IF NEW.name IS DISTINCT FROM '"+probe.name+"' OR ("+assertion(ordinal)+") IS DISTINCT FROM true THEN "
+              "IF NEW.name IS DISTINCT FROM '"+probe.name+"' OR (("+assertion(ordinal)+") AND ("+lock_context.boundary(ordinal)+")) IS DISTINCT FROM true THEN "
               "RAISE EXCEPTION 'NATIVE_FORWARD_BOUNDARY' USING ERRCODE='PF009'; END IF; "
               "RAISE EXCEPTION 'NATIVE_FORWARD_LEDGER_FAULT' USING ERRCODE='PF002'; END $guard$; "
               "REVOKE ALL ON FUNCTION gridex_native_forward_probe.reject_ledger() FROM PUBLIC,anon,authenticated,service_role; "
@@ -302,6 +320,11 @@ def negative(runner, program, ordinal, *, ledger):
         expected = b'ERROR: NATIVE_FORWARD_LEDGER_FAULT (SQLSTATE PF002)' if ledger else b'ERROR: NATIVE_FORWARD_POST_BODY (SQLSTATE PF001)'
         errors = [line.rstrip(b' ') for line in result.stderr.splitlines() if line.startswith(b'ERROR:')]
         if result.returncode == 0 or errors != [expected]:
+            # Release only a bounded SQLSTATE, never the private SQL/error text.
+            state = re.search(rb'\(SQLSTATE ([A-Z0-9]{5})\)', errors[0]) if len(errors) == 1 else None
+            print(json.dumps(dict(stage='native_forward_failure_control', ordinal=ordinal,
+                phase='ledger' if ledger else 'post_body',
+                observedSqlstate=state[1].decode() if state else None)), flush=True)
             raise ValueError('FORWARD_FAILURE_CONTROL_REQUIRED')
         runner.unchanged()
     finally:
@@ -311,8 +334,7 @@ def negative(runner, program, ordinal, *, ledger):
         path.unlink()
     if timestamp.native_snapshot(runner.target) != before or {path.name for path in runner.directory.iterdir()} != files:
         raise ValueError('FORWARD_ROLLBACK_REQUIRED')
-    return dict(expectedSqlstate='PF002' if ledger else 'PF001', programSha256=p.sha(body),
-                catalogAndRowsRestored=True, ledgerUnchanged=True)
+    return expected_cases(program, ordinal)[1 if ledger else 0]
 
 
 def execute(runner, historical_plan, retained, parent):
