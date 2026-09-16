@@ -1,0 +1,118 @@
+name: PR310 full Storage policy scope proof
+on:
+  push:
+    branches:
+      - repair/pr310-permission-forward-build-20260916
+    paths:
+      - .github/workflows/pr310-storage-policy-scope-verify.yml
+permissions:
+  contents: write
+concurrency:
+  group: pr310-storage-policy-scope-proof
+  cancel-in-progress: false
+jobs:
+  verify-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      BASE: a684f17cea548f037d09d14a38acd46f303f34e5
+      EXPECTED_TREE: 88de2e340792a081640b9f93626a77c4d8b738e4
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-scope-${{ github.run_id }}-${{ github.run_attempt }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Assemble only the reviewed five-file tree on its exact base
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add --detach "$RUNNER_TEMP/pr310-scope" "$BASE"
+          cd "$RUNNER_TEMP/pr310-scope"
+          git apply --index --check "$GITHUB_WORKSPACE/.github/pr310-storage-policy-scope.patch"
+          git apply --index "$GITHUB_WORKSPACE/.github/pr310-storage-policy-scope.patch"
+          python3 - <<'PY'
+          import hashlib,os
+          from pathlib import Path
+          original=Path('scripts/sql/forward-candidates/20260912052507_canonical_permission_overrides_and_storage_write_guards.sql').read_bytes()
+          assert hashlib.sha256(original).hexdigest()=='73eb8a8d89b8468783d69f2829658daeb71d7deda667b5f54a9c5650cd6c47ad'
+          assert original.endswith(b'commit;\n')
+          block=(Path(os.environ['GITHUB_WORKSPACE'])/'.github/pr310-storage-policy-scope.sql').read_bytes()
+          raw=original[:-len(b'commit;\n')]+block+b'commit;\n'
+          assert hashlib.sha256(raw).hexdigest()=='24a3a6376fadd2658dca5dfc10e04bc2040a3a206ace9eb36aca9c31ec32228e'
+          path=Path('scripts/sql/forward-candidates/20260916082853_canonical_permission_overrides_and_storage_write_guards.sql')
+          assert not path.exists()
+          path.write_bytes(raw)
+          PY
+          git add scripts/sql/forward-candidates/20260916082853_canonical_permission_overrides_and_storage_write_guards.sql
+          git diff --cached --check
+          test "$(git write-tree)" = "$EXPECTED_TREE"
+          test "$(git diff --cached --name-only | wc -l)" -eq 5
+      - name: Verify exact SQL changes, all case contracts and truthful state accounting
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/pr310-scope"
+          python3 -B scripts/test-canonical-full-permission-clone.py
+          python3 -B scripts/test-canonical-permission-full-seed.py
+          python3 -B scripts/test-canonical-storage-bootstrap.py
+          python3 -B scripts/test-canonical-native-legacy-envelope.py
+          python3 -B scripts/canonical-native-bootstrap-contract-selftest.py
+          python3 -B scripts/canonical-auth-membership-group-selftest.py
+      - name: Reproduce anonymous dependency failure and verify original129 plus agreement8 SQL cases
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/pr310-scope"
+          python3 -B scripts/canonical-full-permission-clone-qualification.py | tee "$RUNNER_TEMP/pr310-scope-proof.jsonl"
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          rows=[json.loads(line) for line in (Path(os.environ['RUNNER_TEMP'])/'pr310-scope-proof.jsonl').read_text().splitlines()]
+          result=rows[-1];proof=result['details']['permissionQualification']
+          assert result['outcome']=='PORTABLE_PERMISSION_CLONE_PASSED_NOT_CERTIFIED'
+          assert result['sourcePreserved'] and result['ownedCleanupVerified'] and result['privateWorkspaceRemoved']
+          assert proof['matrix129Verified'] and proof['matrixCases']==129 and proof['repairedCases']==24
+          assert proof['storageAgreementBehaviorCases']==8 and proof['storagePolicyRoleOnlyChanges']==2
+          assert proof['storagePublicDependencyBaselineVerified'] and proof['parentPreserved'] and proof['rowsPreserved']
+          assert proof['repeatVerified'] and proof['effectiveAclVerified'] and proof['fullCloneAclPoisonRecoveryVerified']
+          assert proof['candidateSha256']=='24a3a6376fadd2658dca5dfc10e04bc2040a3a206ace9eb36aca9c31ec32228e'
+          assert not result['productionModified'] and not result['schemaAccepted'] and not proof['promoted']
+          PY
+      - name: Publish exact SQL-qualified source tree to a candidate branch only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/pr310-scope"
+          test "$(git rev-parse HEAD)" = "$BASE"
+          test "$(git write-tree)" = "$EXPECTED_TREE"
+          git diff --exit-code
+          current=$(gh api repos/heke99/gridex-ops-platform/pulls/310 --jq .head.sha)
+          test "$current" = "$BASE" || { echo 'PR310 moved; publication refused'; exit 1; }
+          git config user.name 'heke99'
+          git config user.email '129280077+heke99@users.noreply.github.com'
+          candidate=$(printf '%s\n' 'fix: qualify permission candidate with authenticated-only agreement policies' | git commit-tree "$EXPECTED_TREE" -p "$BASE")
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" push origin "$candidate:refs/heads/repair/pr310-storage-policy-scope-verified-20260916"
+          printf 'candidate_commit=%s\nsource_tree=%s\nbase_commit=%s\n' "$candidate" "$EXPECTED_TREE" "$BASE" | tee "$RUNNER_TEMP/pr310-scope-candidate.txt"
+          cat "$RUNNER_TEMP/pr310-scope-candidate.txt" >> "$GITHUB_STEP_SUMMARY"
+      - name: Clean only this job's owned database
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/pr310-scope"
+          python3 -B scripts/canonical-auth-provisioning-legacy-selftest.py --cleanup-owned
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: pr310-scope-permission-proof
+          path: |
+            ${{ runner.temp }}/pr310-scope-proof.jsonl
+            ${{ runner.temp }}/pr310-scope-candidate.txt
+          if-no-files-found: warn
+          retention-days: 3
