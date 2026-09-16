@@ -1,0 +1,133 @@
+name: PR310 production dependency security repair
+on:
+  push:
+    branches: ['work/pr310-complete-verification-20260916']
+    paths: ['.github/workflows/pr310-production-dependency-repair-temporary.yml']
+permissions:
+  contents: write
+jobs:
+  security-repair-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 20d63aabcbb4c69a71de23c98b35191d0ff189c3
+          persist-credentials: false
+      - name: Retain offline compatibility regression
+        run: |
+          cp .github/pr310-mail-image-compatibility.test.ts "$RUNNER_TEMP/compatibility.test.ts"
+          echo "84cd30e8bde8706e21167f16f940675a68ce4e188ecce787c1bcd21e63cae685  $RUNNER_TEMP/compatibility.test.ts" | sha256sum --check
+      - uses: actions/checkout@v4
+        with:
+          ref: 58dfddba6905ed797cb273e92e25d45893f08b64
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Resolve real patched releases within the existing major versions
+        shell: bash
+        run: |
+          python3 -B - <<'PY'
+          import hashlib,json,re,subprocess
+          from pathlib import Path
+          out=Path('artifacts/dependency-repair');out.mkdir(parents=True,exist_ok=True)
+          pins={'package.json':'05c6c0e824b95c76d1da008ded0b5ac7114b47945a702e35c9ad7208db77a3c1','package-lock.json':'0d27655de63ad40ea015892b877006ca410b0ce450aac00831b1d970aea883f0'}
+          assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==h for p,h in pins.items())
+          selected={'next':'16.3.5','eslint-config-next':'16.3.5','sharp':'0.35.4','baseline-browser-mapping':'2.11.24'}
+          evidence=[]
+          for name,spec in [('nodemailer','>=9.1.1 <10'),('imapflow','>=1.5.1 <2')]:
+              p=subprocess.run(['npm','view',name+'@'+spec,'version','--json'],capture_output=True,text=True,timeout=90,check=True)
+              versions=json.loads(p.stdout);versions=[versions] if isinstance(versions,str) else versions
+              assert isinstance(versions,list) and versions and all(isinstance(v,str) and re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+',v) for v in versions)
+              selected[name]=max(versions,key=lambda v:tuple(map(int,v.split('.'))))
+          for name,version in selected.items():
+              p=subprocess.run(['npm','view',name+'@'+version,'version','engines','dependencies','peerDependencies','dist.integrity','repository','--json'],capture_output=True,text=True,timeout=90,check=True)
+              metadata=json.loads(p.stdout);assert metadata['version']==version and metadata['dist.integrity'].startswith('sha512-')
+              evidence.append(dict(name=name,version=version,metadata=metadata))
+          assert selected['nodemailer'].startswith('9.') and selected['imapflow'].startswith('1.')
+          (out/'upstream-versions.json').write_text(json.dumps(dict(sourceHead='58dfddba6905ed797cb273e92e25d45893f08b64',originalHashes=pins,selected=selected,evidence=evidence),indent=2)+'\n')
+          package=json.loads(Path('package.json').read_text())
+          for name in ('next','nodemailer','imapflow'):package['dependencies'][name]=selected[name]
+          package['devDependencies']['eslint-config-next']=selected['eslint-config-next']
+          package['overrides']['sharp']=selected['sharp']
+          Path('package.json').write_text(json.dumps(package,indent=2)+'\n')
+          print(json.dumps(selected),flush=True)
+          PY
+          npm install --package-lock-only --ignore-scripts
+          npm update baseline-browser-mapping --package-lock-only --ignore-scripts
+          cp "$RUNNER_TEMP/compatibility.test.ts" __tests__/mail-and-image-dependency-compatibility.test.ts
+      - run: npm ci
+      - name: Execute all security and compatibility gates without hiding downstream failures
+        shell: bash
+        run: |
+          python3 -B - <<'PY'
+          import hashlib,json,subprocess,time
+          from pathlib import Path
+          out=Path('artifacts/dependency-repair')
+          commands=[['npm','run','security:audit-production'],['npm','run','lint'],['npm','run','typecheck'],['npm','run','typecheck:scripts'],['npm','run','typecheck:tests'],['npm','test'],['npm','run','build']]
+          rows=[]
+          for i,command in enumerate(commands):
+              started=time.monotonic()
+              with (out/f'gate-{i+1}.log').open('wb') as log:
+                  try:p=subprocess.run(command,stdout=log,stderr=subprocess.STDOUT,timeout=1200);code=p.returncode
+                  except subprocess.TimeoutExpired:code=124
+              row=dict(command=command,exitCode=code,seconds=round(time.monotonic()-started,2));rows.append(row);print(json.dumps(row),flush=True)
+          p=subprocess.run(['npm','audit','--omit=dev','--json'],capture_output=True,text=True,timeout=180)
+          audit=json.loads(p.stdout);assert not audit.get('error') and isinstance(audit.get('metadata',{}).get('vulnerabilities'),dict)
+          (out/'audit.json').write_text(p.stdout)
+          counts=audit['metadata']['vulnerabilities']
+          # This remediation must remove moderate findings too; the ordinary gate is unchanged.
+          clean=all(counts.get(k,0)==0 for k in ('critical','high','moderate','low'))
+          selected=json.loads((out/'upstream-versions.json').read_text())['selected']
+          lock=json.loads(Path('package-lock.json').read_text())
+          installed={name:json.loads((Path('node_modules')/name/'package.json').read_text())['version'] for name in selected}
+          assert installed==selected,(installed,selected)
+          copies={name:[dict(path=p,version=v['version']) for p,v in lock['packages'].items() if p.endswith('/'+name)] for name in selected}
+          for name in ('nodemailer','imapflow','sharp','baseline-browser-mapping'):
+              assert copies[name] and all(r['version']==selected[name] for r in copies[name]),copies[name]
+          tracked=subprocess.check_output(['git','diff','--name-only'],text=True).splitlines()
+          assert set(tracked)=={'package.json','package-lock.json'},tracked
+          report=dict(scope='DEPENDENCY_SECURITY_AND_APPLICATION_COMPATIBILITY_NOT_DATABASE_RELEASE',sourceHead='58dfddba6905ed797cb273e92e25d45893f08b64',results=rows,auditCounts=counts,installed=installed,lockCopies=copies,productionAuditClean=clean,allChecksPassed=clean and all(r['exitCode']==0 for r in rows),productionModified=False,mainModified=False)
+          (out/'verification.json').write_text(json.dumps(report,indent=2)+'\n')
+          subprocess.run(['git','diff','--check'],check=True)
+          raise SystemExit(0 if report['allChecksPassed'] else 1)
+          PY
+      - name: Publish only the tested security changes to an isolated descendant
+        shell: bash
+        run: |
+          python3 -B - <<'PY'
+          import hashlib,json,subprocess
+          from pathlib import Path
+          out=Path('artifacts/dependency-repair');report=json.loads((out/'verification.json').read_text());assert report['allChecksPassed'] is True
+          files=['package.json','package-lock.json','__tests__/mail-and-image-dependency-compatibility.test.ts']
+          for p in ('supabase/database.types.ts','scripts/supabase-types-manifest.json','supabase/schema.sql','scripts/gridex-production-dependency-audit.cjs'):
+              assert Path(p).read_bytes()==subprocess.check_output(['git','show','58dfddba6905ed797cb273e92e25d45893f08b64:'+p])
+          subprocess.run(['git','add','--',*files],check=True)
+          assert set(subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines())==set(files)
+          subprocess.run(['git','config','user.name','github-actions[bot]'],check=True)
+          subprocess.run(['git','config','user.email','41898282+github-actions[bot]@users.noreply.github.com'],check=True)
+          subprocess.run(['git','commit','-m','fix: patch production Next image and mail dependencies with compatibility coverage'],check=True)
+          report['publishedHead']=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          report['publishedTree']=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip()
+          report['fileHashes']={p:hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in files}
+          (out/'verification.json').write_text(json.dumps(report,indent=2)+'\n')
+          PY
+          git push origin HEAD:refs/heads/work/pr310-security-qualified-${{ github.run_id }}
+      - name: Retain complete generated lock and results even on failure
+        if: always()
+        run: |
+          mkdir -p artifacts/dependency-repair
+          cp package.json package-lock.json artifacts/dependency-repair/
+          if test -f __tests__/mail-and-image-dependency-compatibility.test.ts; then cp __tests__/mail-and-image-dependency-compatibility.test.ts artifacts/dependency-repair/; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr310-dependency-security-repair
+          path: artifacts/dependency-repair/
+          if-no-files-found: error
+          retention-days: 7
