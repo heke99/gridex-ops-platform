@@ -1,0 +1,79 @@
+name: PR310 remaining PR equivalence on exact main
+on:
+  push:
+    branches: ['codex/pr310-source-export-20260916']
+    paths: ['.github/workflows/pr310-existing-main-fix-verification.yml']
+permissions:
+  contents: read
+jobs:
+  existing-main-fixes:
+    if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/codex/pr310-source-export-20260916'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: de098106c26d90069758cf1f753a94b073789ef2
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Compare full retained files and exact renamed SQL programs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          def git(*args): return subprocess.check_output(['git',*args])
+          main='de098106c26d90069758cf1f753a94b073789ef2'
+          assert git('rev-parse','HEAD').decode().strip()==main
+          records=[]
+          for path in ('lib/customer-operations/requestMissingFacilityInformation.ts',
+                       'scripts/gridex-website-poa-materialization-regression.cjs',
+                       'supabase/migrations/20260825093400_facility_geographic_owner_outbox_guard.sql'):
+              old=git('show','1bedcfccda12f39378d7a8f17675b17790fb5a34:'+path)
+              current=Path(path).read_bytes()
+              assert current==old
+              records.append(dict(pr=209,path=path,completeBytesEqual=True,sha256=hashlib.sha256(current).hexdigest()))
+          pairs=[
+              ('20260825154000_canonical_website_legal_blocker_invariant.sql','20260825135425_canonical_website_legal_blocker_invariant.sql',
+               'b749c5b83652dff8fe650addb4f7cdcecc0ecb04a5a72c69ee16dc62a3ac1441','fc81142bd964041876611ad24beae90405804ab3ef35fc68fc9af9058d6da934',
+               ['-- Canonical legal evidence is authoritative for website-application legal blockers.\n-- Keep genuine operational blockers untouched; only remove terms_accepted when a\n-- document-bound canonical terms acceptance already exists for the same tenant/app.\n\n',
+                '-- Repair only stale legal blockers that are already contradicted by canonical,\n-- document-bound legal evidence. Operational facility/switch blockers are preserved.\n']),
+              ('20260825154500_canonical_website_legal_response_payload_invariant.sql','20260825140234_canonical_website_legal_response_payload_invariant.sql',
+               'b0327744510389810afac9fcec6dd7b1e02d0d51e147f1ab8cf2aaf8023912e0','afad7cb84bca4ec972c7b765ab64aad0b66c9a59e153b9d27ff923b6d7b9a5d5',
+               ['-- Extend the canonical legal blocker invariant to the persisted API response\n-- snapshot so consumers cannot observe a stale terms_accepted blocker after\n-- canonical document-bound terms evidence has been stored.\n\n'])]
+          for oldname,name,oldsha,newsha,comments in pairs:
+              old=git('show','b61566a2b1b52731e6e19f91dcda348149c63394:supabase/migrations/'+oldname)
+              current=Path('supabase/migrations',name).read_bytes()
+              assert hashlib.sha256(old).hexdigest()==oldsha
+              assert hashlib.sha256(current).hexdigest()==newsha
+              for comment in comments:
+                  assert old.count(comment.encode())==1
+                  old=old.replace(comment.encode(),b'',1)
+              assert old==current
+              assert not Path('supabase/migrations',oldname).exists()
+              records.append(dict(pr=212,path='supabase/migrations/'+name,exactSqlPreserved=True,removedKnownCommentsOnly=True,sha256=newsha))
+          validator=Path('lib/ediel/rulebook/validator.ts').read_text()
+          assert 'associationAssignedCodeForPolicy' in validator
+          assert Path('__tests__/ediel-prodat-runtime-version-alias-regression.test.ts').is_file()
+          Path(os.environ['RUNNER_TEMP'],'existing-main-pr-source-proof.json').write_text(json.dumps(dict(mainCommit=main,records=records,productionModified=False,pr310Accepted=False),indent=2)+'\n')
+          print('PASS exact retained PR209 files and PR212 SQL alias programs; PRODAT behavior tested next')
+          PY
+      - run: npm ci
+      - name: Verify existing behavioral regressions and migration checksums
+        run: |
+          set -euo pipefail
+          node scripts/gridex-website-poa-materialization-regression.cjs
+          node scripts/check-migration-versions.cjs
+          npx vitest run __tests__/ediel-prodat-runtime-version-alias-regression.test.ts __tests__/website-legal-reference-contract.test.ts
+          git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr310-existing-main-pr-source-proof
+          path: ${{ runner.temp }}/existing-main-pr-source-proof.json
+          if-no-files-found: error
+          retention-days: 2
