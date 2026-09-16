@@ -1,0 +1,41 @@
+name: PR310 exact source and remaining PR review export
+on:
+  push:
+    branches: ['codex/pr310-source-export-20260916']
+permissions:
+  contents: read
+jobs:
+  source:
+    if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/codex/pr310-source-export-20260916'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 43f39822a3e3df4909e32b7a4eecbbf8fee56836
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Export immutable source and explicit PR refs without runtime data
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 43f39822a3e3df4909e32b7a4eecbbf8fee56836
+          test "$(git rev-parse 'HEAD^{tree}')" = 7c6ea085ee6028fea96a11d65b20be3bac00adeb
+          refs=()
+          for number in 157 209 212 230 273 288; do
+            git fetch --no-tags origin "refs/pull/$number/head:refs/heads/export-pr-$number"
+            refs+=("refs/heads/export-pr-$number")
+          done
+          out="$RUNNER_TEMP/pr310-source-export"
+          mkdir -p "$out"
+          git archive --format=tar.gz HEAD > "$out/source.tar.gz"
+          git bundle create "$out/source-history.bundle" HEAD refs/remotes/origin/main "${refs[@]}"
+          printf 'source_commit=%s\nsource_tree=%s\nmain_commit=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse 'HEAD^{tree}')" "$(git rev-parse refs/remotes/origin/main)" > "$out/receipt.txt"
+          git for-each-ref --format='%(refname) %(objectname)' refs/heads/export-pr- >> "$out/receipt.txt"
+          sha256sum "$out/source.tar.gz" "$out/source-history.bundle" >> "$out/receipt.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr310-source-43f39822-and-remaining-prs
+          path: ${{ runner.temp }}/pr310-source-export/
+          if-no-files-found: error
+          retention-days: 2
