@@ -31,6 +31,7 @@ export type EdielRouteContract = {
   routeId: string | null
   receiverEdielId: string | null
   receiverSubaddress: string | null
+  receiverEmail: string | null
   certificateId: string | null
   certificateFingerprint: string | null
   checks: string[]
@@ -101,65 +102,79 @@ async function loadCertificate(id: string): Promise<CertificateRow | null> {
 
 export async function evaluateEdielRouteContract(message: EdielMessageRow): Promise<EdielRouteContract> {
   if (message.direction !== 'outbound') {
-    return { ok: true, blocker: null, fingerprint: null, routeId: null, receiverEdielId: null, receiverSubaddress: null, certificateId: null, certificateFingerprint: null, checks: ['not_outbound'] }
+    return { ok: true, blocker: null, fingerprint: null, routeId: null, receiverEdielId: null, receiverSubaddress: null, receiverEmail: null, certificateId: null, certificateFingerprint: null, checks: ['not_outbound'] }
   }
 
   const routeId = clean(message.communication_route_id)
-  if (!routeId) return { ok: false, blocker: 'route_profile_missing', fingerprint: null, routeId: null, receiverEdielId: null, receiverSubaddress: null, certificateId: null, certificateFingerprint: null, checks: [] }
+  if (!routeId) return { ok: false, blocker: 'route_profile_missing', fingerprint: null, routeId: null, receiverEdielId: null, receiverSubaddress: null, receiverEmail: null, certificateId: null, certificateFingerprint: null, checks: [] }
   const runtime = await getEdielRouteRuntimeByCommunicationRouteId(routeId, { companyId: message.company_id ?? null })
   if (!runtime || runtime.is_enabled !== true || runtime.communication_route_active !== true) {
-    return { ok: false, blocker: 'route_not_active', fingerprint: null, routeId, receiverEdielId: null, receiverSubaddress: null, certificateId: null, certificateFingerprint: null, checks: [] }
+    return { ok: false, blocker: 'route_not_active', fingerprint: null, routeId, receiverEdielId: null, receiverSubaddress: null, receiverEmail: null, certificateId: null, certificateFingerprint: null, checks: [] }
   }
   if (runtime.environment !== message.environment) {
-    return { ok: false, blocker: 'route_environment_mismatch', fingerprint: null, routeId, receiverEdielId: null, receiverSubaddress: null, certificateId: null, certificateFingerprint: null, checks: [] }
+    return { ok: false, blocker: 'route_environment_mismatch', fingerprint: null, routeId, receiverEdielId: null, receiverSubaddress: null, receiverEmail: null, certificateId: null, certificateFingerprint: null, checks: [] }
   }
 
   const receiverEdielId = clean(runtime.receiver_ediel_id)
   const receiverSubaddress = effectiveRuntimeSubaddress(runtime)
-  if (!receiverEdielId) return { ok: false, blocker: 'route_receiver_ediel_id_missing', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, certificateId: null, certificateFingerprint: null, checks: [] }
+  if (!receiverEdielId) return { ok: false, blocker: 'route_receiver_ediel_id_missing', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, receiverEmail: null, certificateId: null, certificateFingerprint: null, checks: [] }
   if (clean(message.receiver_ediel_id) && !same(message.receiver_ediel_id, receiverEdielId)) {
-    return { ok: false, blocker: 'route_receiver_ediel_id_mismatch', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, certificateId: null, certificateFingerprint: null, checks: [] }
+    return { ok: false, blocker: 'route_receiver_ediel_id_mismatch', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, receiverEmail: null, certificateId: null, certificateFingerprint: null, checks: [] }
   }
   if (runtime.subaddress_required === true && !receiverSubaddress) {
-    return { ok: false, blocker: 'route_receiver_subaddress_missing', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, certificateId: null, certificateFingerprint: null, checks: [] }
+    return { ok: false, blocker: 'route_receiver_subaddress_missing', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, receiverEmail: null, certificateId: null, certificateFingerprint: null, checks: [] }
   }
   if (clean(message.receiver_sub_address) && receiverSubaddress && !same(message.receiver_sub_address, receiverSubaddress)) {
-    return { ok: false, blocker: 'route_receiver_subaddress_mismatch', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, certificateId: null, certificateFingerprint: null, checks: [] }
+    return { ok: false, blocker: 'route_receiver_subaddress_mismatch', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, receiverEmail: null, certificateId: null, certificateFingerprint: null, checks: [] }
   }
   if (clean(runtime.message_family) && !same(runtime.message_family, message.message_family)) {
-    return { ok: false, blocker: 'route_message_family_mismatch', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, certificateId: null, certificateFingerprint: null, checks: [] }
+    return { ok: false, blocker: 'route_message_family_mismatch', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, receiverEmail: null, certificateId: null, certificateFingerprint: null, checks: [] }
   }
   if (clean(runtime.business_code) && !same(runtime.business_code, message.message_code)) {
-    return { ok: false, blocker: 'route_message_code_mismatch', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, certificateId: null, certificateFingerprint: null, checks: [] }
+    return { ok: false, blocker: 'route_message_code_mismatch', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, receiverEmail: null, certificateId: null, certificateFingerprint: null, checks: [] }
+  }
+
+  // Queued routing evidence must bind the actual SMTP destination, not just
+  // the logical Ediel actor and certificate. Never silently retarget an older
+  // attempt after a route edit; it requires a new reviewed routing decision.
+  const receiverEmail = clean(runtime.target_email)
+  if (!receiverEmail) {
+    return { ok: false, blocker: 'route_receiver_email_missing', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, receiverEmail: null, certificateId: null, certificateFingerprint: null, checks: [] }
+  }
+  if (!clean(message.receiver_email)) {
+    return { ok: false, blocker: 'message_receiver_email_missing', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, receiverEmail: null, certificateId: null, certificateFingerprint: null, checks: [] }
+  }
+  if (!same(message.receiver_email, receiverEmail)) {
+    return { ok: false, blocker: 'route_receiver_email_mismatch', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, receiverEmail: null, certificateId: null, certificateFingerprint: null, checks: [] }
   }
 
   const requestType = requestTypeFor(message)
   const expectedReference = expectedApplicationReference(requestType)
   if (expectedReference && clean(message.application_reference) && !same(message.application_reference, expectedReference)) {
-    return { ok: false, blocker: 'route_application_reference_mismatch', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, certificateId: null, certificateFingerprint: null, checks: [] }
+    return { ok: false, blocker: 'route_application_reference_mismatch', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, receiverEmail: null, certificateId: null, certificateFingerprint: null, checks: [] }
   }
   if (expectedReference && clean(runtime.application_reference) && !same(runtime.application_reference, expectedReference)) {
-    return { ok: false, blocker: 'route_runtime_application_reference_mismatch', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, certificateId: null, certificateFingerprint: null, checks: [] }
+    return { ok: false, blocker: 'route_runtime_application_reference_mismatch', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, receiverEmail: null, certificateId: null, certificateFingerprint: null, checks: [] }
   }
 
   const transport = evaluateProductionTransportSecurity({ runtime, messageFamily: message.message_family })
   const transportFailure = transport.issues.find((issue) => issue.severity === 'error')
-  if (transportFailure) return { ok: false, blocker: transportFailure.key, fingerprint: null, routeId, receiverEdielId, receiverSubaddress, certificateId: null, certificateFingerprint: null, checks: transport.issues.map((issue) => issue.key) }
+  if (transportFailure) return { ok: false, blocker: transportFailure.key, fingerprint: null, routeId, receiverEdielId, receiverSubaddress, receiverEmail: null, certificateId: null, certificateFingerprint: null, checks: transport.issues.map((issue) => issue.key) }
 
   const certId = clean(runtime.receiver_certificate_id) ?? clean(runtime.certificate_id)
   let certificateFingerprint: string | null = null
   if (certificateRequired(runtime, message)) {
-    if (!certId) return { ok: false, blocker: 'receiver_certificate_missing', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, certificateId: null, certificateFingerprint: null, checks: [] }
+    if (!certId) return { ok: false, blocker: 'receiver_certificate_missing', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, receiverEmail: null, certificateId: null, certificateFingerprint: null, checks: [] }
     const cert = await loadCertificate(certId)
-    if (!cert) return { ok: false, blocker: 'receiver_certificate_not_found', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, certificateId: certId, certificateFingerprint: null, checks: [] }
+    if (!cert) return { ok: false, blocker: 'receiver_certificate_not_found', fingerprint: null, routeId, receiverEdielId, receiverSubaddress, receiverEmail: null, certificateId: certId, certificateFingerprint: null, checks: [] }
     const certificateBlocker = certificateUsable(cert, message, runtime)
-    if (certificateBlocker) return { ok: false, blocker: certificateBlocker, fingerprint: null, routeId, receiverEdielId, receiverSubaddress, certificateId: certId, certificateFingerprint: null, checks: [] }
+    if (certificateBlocker) return { ok: false, blocker: certificateBlocker, fingerprint: null, routeId, receiverEdielId, receiverSubaddress, receiverEmail: null, certificateId: certId, certificateFingerprint: null, checks: [] }
     certificateFingerprint = clean(cert.fingerprint_sha256) ?? clean(cert.certificate_fingerprint)
   }
 
   const fingerprint = [
     message.company_id ?? 'platform', routeId, message.environment, message.message_family, message.message_code,
-    receiverEdielId, receiverSubaddress ?? '-', expectedReference ?? clean(runtime.application_reference) ?? '-', certId ?? '-', certificateFingerprint ?? '-',
+    receiverEdielId, receiverSubaddress ?? '-', `smtp:${encodeURIComponent(receiverEmail.toLowerCase())}`, expectedReference ?? clean(runtime.application_reference) ?? '-', certId ?? '-', certificateFingerprint ?? '-',
   ].join('|')
-  return { ok: true, blocker: null, fingerprint, routeId, receiverEdielId, receiverSubaddress, certificateId: certId, certificateFingerprint, checks: ['route', 'environment', 'receiver', 'subaddress', 'message', 'application_reference', 'transport', 'certificate'] }
+  return { ok: true, blocker: null, fingerprint, routeId, receiverEdielId, receiverSubaddress, receiverEmail, certificateId: certId, certificateFingerprint, checks: ['route', 'environment', 'receiver', 'subaddress', 'smtp_destination', 'message', 'application_reference', 'transport', 'certificate'] }
 }
