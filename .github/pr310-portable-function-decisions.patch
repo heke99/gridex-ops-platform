@@ -1,0 +1,261 @@
+diff --git a/scripts/canonical_forward_portable.py b/scripts/canonical_forward_portable.py
+index 717ae00db..5c9f7d554 100644
+--- a/scripts/canonical_forward_portable.py
++++ b/scripts/canonical_forward_portable.py
+@@ -4,12 +4,24 @@ from pathlib import Path
+ import re
+ 
+ import canonical_forward_sources as sources
+-from canonical_native_forward_runtime import assertion
++from canonical_native_forward_runtime import assertion as native_assertion
+ from canonical_native_timestamp_snapshot import queries
+ 
+ DATABASE = 'gridex_auth_legacy_replay'
+ 
+ 
++def assertion(ordinal):
++    # This compatible controller owns storage.objects as postgres. The native
++    # controller requires the provider owner supabase_storage_admin instead.
++    # Use the exact portable contract rather than accepting either owner; no
++    # source DDL, policy predicate, role list or privilege check is changed.
++    if ordinal == 11:
++        import canonical_permission_forward_contract as permission_contract
++        permission_contract.validate_promotion_evidence()
++        return permission_contract.storage_assertion()
++    return native_assertion(ordinal)
++
++
+ def inert_failure_reason(target):
+     """Project only fixed migration guard names from the owner's private error."""
+     allowed={'INERT_INBOUND_RELATION_REQUIRED','INERT_INBOUND_CLIENT_MUST_BE_CLOSED',
+diff --git a/scripts/canonical_schema_source_decisions.py b/scripts/canonical_schema_source_decisions.py
+index 5641e8cea..b0b8af036 100644
+--- a/scripts/canonical_schema_source_decisions.py
++++ b/scripts/canonical_schema_source_decisions.py
+@@ -18,6 +18,7 @@ import canonical_constraint_source_decisions as constraints
+ import canonical_schema_physical_order_decisions as physical_order
+ import canonical_uuid_inet_source_decisions as uuid_inet
+ import canonical_added_nonunique_index_decisions as nonunique_indexes
++import canonical_changed_function_decisions as function_decisions
+ 
+ ROOT=Path(__file__).resolve().parents[1]
+ DECISION_SOURCE='quality/audits/PR310_SCHEMA_REMAINING_GRANT_INDEX_DECISIONS_2026-09-15.md'
+@@ -84,9 +85,11 @@ def approved():
+     records.extend(physical_order.approved())
+     records.extend(uuid_inet.approved())
+     records.extend(nonunique_indexes.approved())
++    records.extend(function_decisions.approved())
+     return tuple(records)
+ 
+-WITNESSES={'changedIndexSourceWitness':indexes,'addedViewSourceWitness':added_views,
++WITNESSES={'changedFunctionBehaviorWitness':function_decisions,
++           'changedIndexSourceWitness':indexes,'addedViewSourceWitness':added_views,
+            'changedViewSourceWitness':changed_views,'policyActorQualification':actors,
+            'removedPolicyQualification':removed,'intakeJsonbSourceWitness':intake,'nativeFinalSql':constraints,nonunique_indexes.KEY:nonunique_indexes}
+ 
+diff --git a/scripts/test-canonical-forward-portable.py b/scripts/test-canonical-forward-portable.py
+index 40555106b..56869ded2 100644
+--- a/scripts/test-canonical-forward-portable.py
++++ b/scripts/test-canonical-forward-portable.py
+@@ -62,6 +62,34 @@ class PortableTests(unittest.TestCase):
+                          [source.sql for source in self.retained for _ in range(2)])
+         self.assertTrue(all(c[0]==m.DATABASE and c[3]==dict(transaction=False) for c in source_calls))
+ 
++    def test_storage_owner_contracts_are_separate_and_every_other_clause_identical(self):
++        import canonical_permission_forward_contract as contract
++        portable = m.assertion(11)
++        native = m.native_assertion(11)
++        self.assertEqual(portable, contract.storage_assertion())
++        portable_owner = "pg_get_userbyid(c.relowner)='postgres'"
++        native_owner = "pg_get_userbyid(c.relowner)='supabase_storage_admin'"
++        self.assertEqual(portable.count(portable_owner), 1)
++        self.assertNotIn(native_owner, portable)
++        self.assertEqual(native.count(native_owner), 1)
++        self.assertNotIn(portable_owner, native)
++        self.assertEqual(portable.replace(portable_owner, native_owner), native)
++        # The portable path must not call the native owner-specific assertion.
++        with patch.object(m, 'native_assertion', side_effect=AssertionError('wrong controller')):
++            self.assertEqual(m.assertion(11), portable)
++        for ordinal in range(1, 13):
++            if ordinal != 11:
++                self.assertEqual(m.assertion(ordinal), m.native_assertion(ordinal))
++
++    def test_full_portable_transport_uses_the_exact_portable_storage_contract(self):
++        result, _, calls = self.exercise()
++        self.assertTrue(result['executed'])
++        postconditions = [query for _, query, label, _ in calls if label == 'forward_postcondition']
++        self.assertEqual(len(postconditions), 12)
++        self.assertEqual(postconditions[10], 'SELECT to_json((' + m.assertion(11) + '));')
++        self.assertIn("pg_get_userbyid(c.relowner)='postgres'", postconditions[10])
++        self.assertNotIn("pg_get_userbyid(c.relowner)='supabase_storage_admin'", postconditions[10])
++
+     def test_row_mutation_blocks_repeat_and_second_source(self):
+         result, progress, calls = self.exercise(snapshots=[({},[]),({},['changed'])])
+         self.assertEqual(str(result),'FORWARD_PORTABLE_POSTCONDITION_REQUIRED')
+diff --git a/scripts/test-canonical-schema-source-decisions.py b/scripts/test-canonical-schema-source-decisions.py
+index ae35caa18..bdf9d8c49 100644
+--- a/scripts/test-canonical-schema-source-decisions.py
++++ b/scripts/test-canonical-schema-source-decisions.py
+@@ -47,13 +47,13 @@ class Tests(unittest.TestCase):
+    return m.verify(diff)
+  def test_reviewed_scope_is_closed_and_positive_only(self):
+   records=m.approved()
+-  self.assertEqual(len(records),1388)
++  self.assertEqual(len(records),1390)
+   self.assertEqual(sum(r['section']=='policies' and r['change']=='removed' for r in records),59)
+   self.assertFalse(any('REVIEW_REQUIRED' in r['decision'] for r in records))
+  def test_exact_mapping_requires_receipts_and_keeps_fk_acceptance_separate(self):
+   diff=self.fixture();result=self.verify(diff)
+   self.assertFalse(result['schemaAccepted']);self.assertFalse(result['referenceRewritten'])
+-  self.assertEqual(len(result['matched']),1388)
++  self.assertEqual(len(result['matched']),1390)
+   self.assertEqual([(r['section'],r['change']) for r in result['unsupported']],[('constraints','added')])
+   for key in m.WITNESSES:
+    with self.assertRaises(ValueError):self.verify(diff,fail=key)
+diff --git a/scripts/canonical_changed_function_decisions.py b/scripts/canonical_changed_function_decisions.py
+new file mode 100644
+index 000000000..9ff48eb15
+--- /dev/null
++++ b/scripts/canonical_changed_function_decisions.py
+@@ -0,0 +1,66 @@
++"""Two reviewed routine changes, bound to their existing native actor witness.
++
++Reconstruct catalog-row hashes from the reviewed routine metadata, never from a
++new comparison inventory. The historical dump stays fixed. All other routine,
++ACL and schema differences remain independently gated.
++"""
++import hashlib
++import json
++from pathlib import Path
++
++import canonical_changed_function_witness as witness
++
++ROOT = Path(__file__).resolve().parents[1]
++AUDIT = 'quality/audits/PR310_SCHEMA_FUNCTION_DISPOSITIONS_2026-09-15.md'
++AUDIT_SHA = 'cb608b6ed33f5cd77419a69b42175c204324a7acff57b9088a4d494d5af66fe1'
++KEY = 'changedFunctionBehaviorWitness'
++# The source review distinguishes an intentional configuration change from an
++# intentional delegation change; it does not claim the old/new evaluators equal.
++SPECS = (
++    ('canonical_company_capability_enabled',
++     'p_company_id uuid, p_capability_code text',
++     '01f133c86205b8b749e88364ce5c5a21', 'eb2202c2400cb886e4c07485125ff1fa',
++     'PRESERVE_SOURCE_SEARCH_PATH_WITH_QUALIFIED_CAPABILITY_LOOKUP'),
++    ('gridex_can', 'p_permission text',
++     '67602cc5720ebcac27281b4466a0d744', '4492e24fb6777ba8c4ef045f78135218',
++     'PRESERVE_SHARED_PERMISSION_DELEGATION_AFTER_OVERRIDE_QUALIFICATION'),
++)
++
++
++def sha(value):
++    raw = value if type(value) is bytes else json.dumps(
++        value, sort_keys=True, separators=(',', ':')).encode()
++    return hashlib.sha256(raw).hexdigest()
++
++
++def catalog_row(name, arguments, body_md5):
++    return dict(nspname='public', proname=name, identity_arguments=arguments,
++                arguments=arguments, return_type='boolean', security_definer=False,
++                volatility='s', kind='f', body_md5=body_md5)
++
++
++def approved(root=ROOT):
++    root = Path(root).resolve()
++    audit = root / AUDIT
++    if audit.resolve() != audit or not audit.is_file() or sha(audit.read_bytes()) != AUDIT_SHA:
++        raise ValueError('CHANGED_FUNCTION_DECISION_SOURCE_REQUIRED')
++    witness.retain(root)
++    if (witness.CAPABILITY_MD5 != SPECS[0][3]
++            or witness.CAN_MD5 != SPECS[1][3]):
++        raise ValueError('CHANGED_FUNCTION_DECISION_WITNESS_BINDING_REQUIRED')
++    return tuple(dict(
++        section='functions', change='changed', identity=['public', name, args],
++        fields=['body_md5'], referenceSha256=sha(catalog_row(name, args, old)),
++        replaySha256=sha(catalog_row(name, args, new)), decision=decision,
++        decisionSourceSha256=AUDIT_SHA, witness=KEY,
++    ) for name, args, old, new, decision in SPECS)
++
++
++def validate_execution_receipt(receipt, *, native):
++    if native is not True or type(native) is not bool:
++        raise ValueError('CHANGED_FUNCTION_DECISION_NATIVE_WITNESS_REQUIRED')
++    approved()
++    # Existing executable witness checks exact full definitions plus 24 actor
++    # cases, including allow/deny precedence, inactive/future/expired overrides,
++    # foreign-company rejection and rollback. No new receipt is manufactured.
++    return witness.validate_execution_receipt(receipt, native=True)
+diff --git a/scripts/test-canonical-changed-function-decisions.py b/scripts/test-canonical-changed-function-decisions.py
+new file mode 100644
+index 000000000..f0982a0b6
+--- /dev/null
++++ b/scripts/test-canonical-changed-function-decisions.py
+@@ -0,0 +1,69 @@
++import copy
++import unittest
++from unittest.mock import patch
++
++import canonical_changed_function_decisions as m
++
++
++class Tests(unittest.TestCase):
++    def test_two_explicit_decisions_reconstruct_independent_review_hashes(self):
++        rows = m.approved()
++        self.assertEqual(len(rows), 2)
++        self.assertEqual([(r['referenceSha256'], r['replaySha256']) for r in rows], [
++            ('d0eefa1c185c314d4be901f7d078558d51e1b178325daa8c54cc2c3e99297b2c',
++             '57d302862488cd06fc2e824055907c9e86d910df5947a5f04620b000413f7c46'),
++            ('f46ab7dd1f81f7277cba046358e56f3ae4d0283cda300f84312029d8f170eeb0',
++             '7ba39f7eb46226646c8a02696cdfc89f9363d74cf6e6eb858121936360473695'),
++        ])
++        self.assertTrue(all(r['section'] == 'functions' and r['change'] == 'changed'
++                            and r['fields'] == ['body_md5'] and r['witness'] == m.KEY
++                            for r in rows))
++        self.assertNotIn('EQUIVALENT', rows[1]['decision'])
++
++    def test_native_actor_receipt_is_mandatory_not_portable_or_partial(self):
++        receipt = m.witness.expected_receipt(native=True)
++        self.assertEqual(m.validate_execution_receipt(receipt, native=True), receipt)
++        for native in (False, 1, None):
++            with self.subTest(native=native), self.assertRaises(ValueError):
++                m.validate_execution_receipt(receipt, native=native)
++        with self.assertRaises(ValueError):
++            m.validate_execution_receipt(m.witness.expected_receipt(native=False), native=True)
++        with self.assertRaises(ValueError):
++            m.validate_execution_receipt(None, native=True)
++
++    def test_no_relabelled_or_incomplete_receipt_can_accept_the_changes(self):
++        for key, value in (
++            ('verified', False), ('caseCount', 23), ('nativeTarget', False),
++            ('permissionOverridesVerified', False), ('fixturesRolledBack', False),
++            ('catalogAndRowsPreserved', False), ('ledgerUnchanged', False),
++            ('sqlSha256', '0' * 64), ('schemaAccepted', True),
++            ('sourcePins', {}),
++        ):
++            receipt = copy.deepcopy(m.witness.expected_receipt(native=True))
++            receipt[key] = value
++            with self.subTest(key=key), self.assertRaises(ValueError):
++                m.validate_execution_receipt(receipt, native=True)
++
++    def test_source_audit_and_actor_definitions_cannot_drift(self):
++        with patch.object(m, 'AUDIT_SHA', '0' * 64), self.assertRaises(ValueError):
++            m.approved()
++        with patch.object(m.witness, 'CAN_MD5', '0' * 32), self.assertRaises(ValueError):
++            m.approved()
++        with patch.object(m.witness, 'CAPABILITY_MD5', '0' * 32), self.assertRaises(ValueError):
++            m.approved()
++        with patch.object(m.witness, 'retain', side_effect=ValueError('source changed')):
++            with self.assertRaises(ValueError):
++                m.approved()
++
++    def test_privilege_signature_return_type_and_body_change_the_catalog_hash(self):
++        name, args, _, body, _ = m.SPECS[0]
++        base = m.catalog_row(name, args, body)
++        for field, value in (('security_definer', True), ('arguments', args + ' DEFAULT NULL'),
++                             ('return_type', 'text'), ('body_md5', '0' * 32),
++                             ('volatility', 'v'), ('kind', 'p')):
++            mutated = dict(base, **{field: value})
++            self.assertNotEqual(m.sha(mutated), m.sha(base), field)
++
++
++if __name__ == '__main__':
++    unittest.main()
