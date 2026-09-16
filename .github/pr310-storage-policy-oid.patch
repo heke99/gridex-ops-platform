@@ -1,0 +1,41 @@
+--- a/scripts/canonical-full-permission-clone-qualification.py
++++ b/scripts/canonical-full-permission-clone-qualification.py
+@@ -173,8 +173,8 @@
+             key='policy/storage.objects/'+name
+             a=before['catalog'].get(key);b=after['catalog'].get(key)
+             if (type(a) is not dict or type(b) is not dict or a.get('command')!=command
+-                    or a.get('permissive') is not True or a.get('roles')!=[0]
+-                    or b.get('roles')!=[authenticated_oid]
++                    or a.get('permissive') is not True or a.get('roles')!=['0']
++                    or b.get('roles')!=[str(authenticated_oid)]
+                     or {k:v for k,v in a.items() if k!='roles'}!={k:v for k,v in b.items() if k!='roles'}):
+                 raise ValueError('PERMISSION_STORAGE_POLICY_DELTA_REQUIRED')
+             allowed.add(key)
+@@ -352,7 +352,7 @@
+     parent=capture(target,legacy,PARENT)
+     storage_policy_baseline(target,legacy,seed_retained)
+     authenticated_oid=json.loads(private_sql(target,legacy,PARENT,
+-        "select to_json('authenticated'::regrole::oid);",'storage_policy_role'))
++        "select to_json('authenticated'::regrole::oid::bigint);",'storage_policy_role'))
+     if type(authenticated_oid) is not int or authenticated_oid<=0:
+         raise ValueError('PERMISSION_STORAGE_POLICY_ROLE_REQUIRED')
+     behavior(target,legacy,PARENT,['can_override_allow','can_override_deny'])
+--- a/scripts/test-canonical-full-permission-clone.py
++++ b/scripts/test-canonical-full-permission-clone.py
+@@ -235,12 +235,13 @@
+         before,after=self.snapshots();specs=m.function_specs(m.candidate())
+         for name,command in m.STORAGE_POLICY_COMMANDS.items():
+             key='policy/storage.objects/'+name
+-            before['catalog'][key]=dict(command=command,permissive=True,roles=[0],
++            before['catalog'][key]=dict(command=command,permissive=True,roles=['0'],
+                 using='historical read predicate' if command=='r' else None,
+                 check='historical insert predicate' if command=='a' else None)
+-            after['catalog'][key]={**before['catalog'][key],'roles':[16385]}
++            after['catalog'][key]={**before['catalog'][key],'roles':['16385']}
+         self.assertEqual(len(m.verify_delta(before,after,specs,authenticated_oid=16385)),10)
+-        for field,value in [('roles',[0]),('roles',[16385,16386]),('command','*'),
++        self.assertIn("select to_json('authenticated'::regrole::oid::bigint);",Path(m.__file__).read_text())
++        for field,value in [('roles',['0']),('roles',['16385','16386']),('roles',[16385]),('command','*'),
+                             ('permissive',False),('using','true'),('check','true')]:
+             bad=copy.deepcopy(after)
+             key='policy/storage.objects/grid_owner_agreements_platform_read'
