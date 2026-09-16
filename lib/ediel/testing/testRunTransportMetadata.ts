@@ -212,7 +212,6 @@ async function acquireAgtRunLock(input: {
     .eq('message_family', input.messageFamily)
     .eq('environment_type', input.environmentType)
     .is('released_at', null)
-    .gt('expires_at', new Date().toISOString())
     .limit(1)
     .maybeSingle()
 
@@ -221,7 +220,7 @@ async function acquireAgtRunLock(input: {
   }
 
   if (existing?.id) {
-    throw new Error('Ett AGT-test är redan aktivt. Avsluta eller markera det som misslyckat innan du startar ett nytt.')
+    throw new Error('Ett AGT-test har ett kvarvarande lås. Använd ”Släpp lås” i Test Center innan du startar ett nytt test.')
   }
 
   const { error } = await supabaseService
@@ -234,6 +233,9 @@ async function acquireAgtRunLock(input: {
       },
     })
 
+  if (error?.code === '23505') {
+    throw new Error('Ett AGT-test har redan fått låset. Kontrollera testet och använd ”Släpp lås” i Test Center innan du försöker igen.')
+  }
   if (error && !['42P01', '42703', 'PGRST204', 'PGRST205'].includes(error.code ?? '')) {
     throw error
   }

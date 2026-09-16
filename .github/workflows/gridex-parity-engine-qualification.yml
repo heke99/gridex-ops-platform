@@ -1,0 +1,54 @@
+name: Gridex production parity engine qualification
+
+on:
+  push:
+    branches:
+      - codex/ediel-masterplan-v2-alignment-20260915
+    paths:
+      - '.github/workflows/gridex-parity-engine-qualification.yml'
+      - 'scripts/gridex-db-parity-selftest.sh'
+      - 'scripts/gridex-db-parity.cjs'
+      - 'scripts/gridex-schema-document.cjs'
+      - 'scripts/sql/gridex-db-parity-introspect.sql'
+      - 'scripts/canonical_native_parity_engine.py'
+      - 'scripts/test-canonical-native-parity-engine.py'
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-parity-engine-qualification.yml'
+      - 'scripts/gridex-db-parity-selftest.sh'
+      - 'scripts/gridex-db-parity.cjs'
+      - 'scripts/gridex-schema-document.cjs'
+      - 'scripts/sql/gridex-db-parity-introspect.sql'
+      - 'scripts/canonical_native_parity_engine.py'
+      - 'scripts/test-canonical-native-parity-engine.py'
+
+permissions:
+  contents: read
+
+jobs:
+  injected-drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 54329:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify owned native adapter and exact source pins
+        run: python3 -B scripts/test-canonical-native-parity-engine.py
+      - name: Detect every injected drift with the unchanged production engine
+        run: bash scripts/gridex-db-parity-selftest.sh postgresql://postgres:postgres@127.0.0.1:54329/postgres

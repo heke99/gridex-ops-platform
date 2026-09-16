@@ -1,0 +1,131 @@
+{
+  "status": "VERIFIED_BOUNDED_API_STRICT_SCHEMA_APPLICATION",
+  "commit": "d731b76dd3dbd027cbbea4ebaf81d92faeeece73",
+  "tree": "cc25b413410613dc833e6a863b26aea00990407e",
+  "executed_pr_merge_commit": "8a6a4fa390b2eb3db013f8156242d8855110d448",
+  "merge_tree_equals_reviewed_head_tree": true,
+  "run_id": 34700095394,
+  "application_job_id": 103570207245,
+  "application_job_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/34700095394/job/103570207245",
+  "application": {
+    "runtime": "Node v22.23.2 hosted lane",
+    "files": 208,
+    "tests": 1604,
+    "new_strict_schema_test_blocks": 11,
+    "quality_files": 2,
+    "quality_tests": 45,
+    "checks": [
+      {
+        "name": "Run npm run lint",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run npm run typecheck:scripts",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run npm run typecheck:tests",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run bash quality/mechanical/verify.sh",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run npx vitest run --config quality/vitest.config.ts",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run npm test",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run npm run api:docs",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run npm run api:compatibility",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run npm run api:release:verify",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run npm run security:rbac",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run npm run quality:large-file-budget",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run npm run quality:performance",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run npm run build",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run npm run quality:bundle-budget",
+        "conclusion": "success"
+      }
+    ],
+    "evidence": [
+      "2026-09-12T14:43:08.2424292Z node: v22.23.2",
+      "2026-09-12T14:44:54.4584976Z  Test Files  2 passed (2)",
+      "2026-09-12T14:44:54.4585813Z       Tests  45 passed (45)",
+      "2026-09-12T14:44:56.5194993Z  ✓ __tests__/api-strict-schema-boundaries.test.ts (11 tests) 181ms",
+      "2026-09-12T14:45:59.8654560Z  Test Files  208 passed (208)",
+      "2026-09-12T14:45:59.8667106Z       Tests  1604 passed (1604)",
+      "2026-09-12T14:47:12.4562599Z ✓ Compiled successfully in 64s",
+      "2026-09-12T14:48:06.0765425Z   Finished TypeScript in 54s ...",
+      "2026-09-12T14:48:28.8766547Z Browser bundle budget passed: largest chunk 222348 bytes; 3 route budgets verified."
+    ]
+  },
+  "correction": {
+    "prior_head": "589eda875a3a00f1889a82d87b9f6ef90ae88c9c",
+    "prior_passed": 1601,
+    "prior_failed": 3,
+    "cause": "Shared synthetic area-price-SE3 reference fails actual lowercase commercial stable-reference schema.",
+    "test_only_change": "Use area-price-se3 and cloned JSON assertion diagnostics; expected201/201/200 and production bytes unchanged.",
+    "supported_resolution": "All11 permanent test blocks now pass with actual commercial/quote policy."
+  },
+  "native_regression": {
+    "job_id": 103570207251,
+    "candidate_cases": 129,
+    "baseline_cases": 10,
+    "construction_tests": 42,
+    "evidence": [
+      "2026-09-12T14:43:21.8414214Z PASS baseline10 source defect characterizations",
+      "2026-09-12T14:43:36.7532360Z PASS P28 C32 F16 S24 SX2 D27; repeat, ACL recovery and row preservation",
+      "2026-09-12T14:43:36.8499732Z PASS permission native owned-container cleanup",
+      "2026-09-12T14:43:36.9670261Z PASS owned-container cleanup"
+    ]
+  },
+  "source_review": {
+    "supplemental_source_cases": 52,
+    "supplemental_boundary": "Actual source with downstream quote/validate substitutes; full-engine acceptance comes from hosted permanent tests.",
+    "initial_review_sha256": "2108f6633626d37108556ca453c4fa412ada350326cd158960b136134ed609cb",
+    "ci1_review_sha256": "4b6ff5c623ac138fe8039fd953969d78fcfae2bbcd55788834110f3d6858016a",
+    "final_spec": "APPROVED",
+    "final_quality": "APPROVED",
+    "remaining_findings": 0
+  },
+  "full_gates": {
+    "verify_job_id": 103570207261,
+    "replay_job_id": 103570207264,
+    "status": "FAILED_UNCHANGED_CAUSES",
+    "evidence": [
+      "2026-09-12T14:44:26.6181899Z Supabase generated-types check failed:",
+      "2026-09-12T14:44:26.6184645Z - migration tail changed (20260911114443_canonical_user_rbac_customer_alignment_boundary.sql); regenerate Supabase types and update the manifest",
+      "2026-09-12T14:43:20.1926457Z unsupported replay target: use canonical-auth-provisioning-replay.py --owned-compatible; CLI/native and generic external modes require reviewed ownership/reference/private logging; NO ledger provenance"
+    ]
+  },
+  "boundaries": [
+    "Only Task10b1 strict notification/numeric schema increment accepted. Remaining internal company authority/admin schemas, partner price idempotency and move-out release are separate.",
+    "Synthetic DB/RPC/terminal I/O tests do not establish native API counters, provider delivery, full RLS or runtime production binding.",
+    "Full clean replay and generated-types gates remain red; SQL candidates are not registered. No production mutation, migration-ledger marking, merge or deployment."
+  ]
+}

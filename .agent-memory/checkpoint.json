@@ -1,10 +1,8 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-15",
-  "status": "PARTIAL",
+  "updated_at": "2026-09-16",
+  "status": "IN_PROGRESS",
   "current_state": ".agent-memory/current-state.md",
-  "branch": "codex/ediel-independent-main-20260915",
-  "base_head_sha": "eb9a25bc989c6de808903f41c2314d5465e9c07b",
-  "next_action": "Publish and merge independently verified Ediel patch; defer PR310 database work.",
-  "main_merged": false
+  "main_merged": false,
+  "next_action": "Verify the integrated current-head native replay after the proved provider-role correction. Inspect actual terminal schema and generated-type artifacts, resolve only explicitly reviewed schema evolution, adopt real candidate bytes with a matching manifest, and require all mandatory CI before merging PR310 to main."
 }

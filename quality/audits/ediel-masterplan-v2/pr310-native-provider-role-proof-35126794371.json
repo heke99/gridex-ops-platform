@@ -1,0 +1,32 @@
+{
+  "cleanupVerified": true,
+  "exactProviderChainSha256": "7a1ebc1d33bd51e1eb2cb9cfd2f840f0abffed12a350e128facfecf61f57e5a9",
+  "generatedTypesVerified": false,
+  "image": "public.ecr.aws/supabase/postgres:17.6.1.106",
+  "imageId": "sha256:9ff6402f578a9b0d4f2aa31f660bd398b8e378761d61d31efda6ff9ad92408e5",
+  "negativeCases": [
+    "anon_set_service",
+    "authenticated_set_service",
+    "authenticated_set_storage",
+    "unknown_login_set_service",
+    "unknown_login_set_storage",
+    "provider_inherit_authenticator",
+    "authenticator_inherit_service",
+    "provider_direct_service",
+    "provider_bypassrls",
+    "authenticator_admin_option",
+    "provider_membership_removed"
+  ],
+  "postgresRejectedCycles": [
+    "authenticated_set_storage"
+  ],
+  "pristineOldFailureReproduced": true,
+  "privateWorkspaceRemoved": true,
+  "productionModified": false,
+  "rollbackAndRecoveryVerified": true,
+  "schemaAccepted": false,
+  "scope": "NATIVE_PROVIDER_ROLE_PROOF_NOT_RELEASE_ACCEPTANCE",
+  "sourceCommit": "58dfddba6905ed797cb273e92e25d45893f08b64",
+  "unrelatedUnprivilegedLoginAccepted": true,
+  "validatorRejectedCaseCount": 10
+}

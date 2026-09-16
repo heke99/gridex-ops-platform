@@ -1,0 +1,441 @@
+{
+  "schemaAccepted": false,
+  "scope": "SOURCE_SELECTION_AND_TEST_PROPOSAL_NOT_SQL_EXECUTION",
+  "sourceProjectionExecuted": false,
+  "views": [
+    {
+      "declarationLine": 137,
+      "name": "billing_readiness_flags",
+      "observedRelationSha256": "6f51f33a7e0d3424654594d2e79cccaf9d4a0af2a93b0cae959190fa6debf82c",
+      "ordinal": 1,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 457,
+      "querySha256": "c5d143b860f73900b30fb873dc9951e97667920db7f0515d4e4f93a23a1007d2",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260519_batch_6c_metering_billing_readiness.sql",
+      "sourceSha256": "c44153ba502ab32f543f649d9001bfcc9685d90be054747520c2b11d67bfcb24"
+    },
+    {
+      "declarationLine": 66,
+      "name": "canonical_tenant_effective_legal_sources_v",
+      "observedRelationSha256": "6bf730747e7e32f6b9fd5f79abff4fb92949b4ea12d2c37e409de84b605578f5",
+      "ordinal": 2,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 60,
+      "querySha256": "706a644a512262ed7d5bd427e89255e6ddeb9d5d0cc6f934efa2a73048d72279",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260801143000_canonical_multitenant_platform_hardening.sql",
+      "sourceSha256": "4de56322077ea89f72596bd9cd2de9f2bdae67c2b74c4721779410553b3326b0"
+    },
+    {
+      "declarationLine": 338,
+      "name": "company_billing_volume_overview",
+      "observedRelationSha256": "06ac287ae5260dc3586a9b9a2fe5290e88d3f986fcf19b23f3dea2913caea180",
+      "ordinal": 3,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 2938,
+      "querySha256": "1575f85fd963ba120a5a79e2a7d370a96ec65b0683bf898249cef75025906907",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260520_batch_6e_rbac_tenant_stats_whitelabel.sql",
+      "sourceSha256": "47c24a0340da00d3ab765d87efdfcf17622a12102af3bf29c2327db5f4500c64"
+    },
+    {
+      "declarationLine": 355,
+      "name": "customer_data_quality_open_issues",
+      "observedRelationSha256": "06f931bb2fbc2173a0de675f90097d181b945a5c3e960501b211524390ca99fb",
+      "ordinal": 4,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 2007,
+      "querySha256": "92137bcc881d88edf79e0fd7c57178dfb1c26e733689449c518e2903c76af832",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260531111600_system_readiness_foundation.sql",
+      "sourceSha256": "e6ef68b18ede5729da067ce59a86cfca0db083d9d54a35ae0ed3a6c0968b96f2"
+    },
+    {
+      "declarationLine": 422,
+      "name": "customer_timeline_events",
+      "observedRelationSha256": "f522f81737e399a0027ab83ad607f81e690921fca521eb0f547d88207c314653",
+      "ordinal": 5,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 1102,
+      "querySha256": "b8cbb42b8f551972ea471be00d04cc3612b69e6aad02d626b19ed290a8944394",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260531111600_system_readiness_foundation.sql",
+      "sourceSha256": "e6ef68b18ede5729da067ce59a86cfca0db083d9d54a35ae0ed3a6c0968b96f2"
+    },
+    {
+      "declarationLine": 141,
+      "name": "gridex_batch3_role_action_security_v",
+      "observedRelationSha256": "babf512dda14dc8d7e93facde6e5241642834dc54218aca83ac2317deee73ffe",
+      "ordinal": 6,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 917,
+      "querySha256": "3892f069f0fc1aaae38d81e54f10756b56800919fd114f5ed577ca929f50b3c9",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260521_batch3_pricing_billing_audit_roles_completion.sql",
+      "sourceSha256": "109ddeee3b532c70fc65ac5f920d4eae250a10037afd304ed5d14144cc30e27f"
+    },
+    {
+      "declarationLine": 199,
+      "name": "gridex_batch4c_role_action_security_v",
+      "observedRelationSha256": "a910b8c3dd7aa3ea52ed7102085c729a33f0f3a91132cbb55f060dc9fce12b02",
+      "ordinal": 7,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 1023,
+      "querySha256": "d857480c1440e865dd9bb45363bd99dc97113b554cdc82e0c20e818edc322443",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260522_batch4c_billing_export_audit_quality_ai.sql",
+      "sourceSha256": "44206392cb41e8a2e97c617b633ddd86cb855b2fb4b6e152e99bd1c3601d2a34"
+    },
+    {
+      "declarationLine": 361,
+      "name": "gridex_batch7a_foundation_readiness_v",
+      "observedRelationSha256": "47b5cc86941e4abab3d51c3455af96afa4d664023cdb221f0b5a428474becf5d",
+      "ordinal": 8,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 639,
+      "querySha256": "2a33b4fea94042a4e1c3431b2d20466bd31bd53987972a7fc6d842382f81f9fc",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260528_batch_7a_route_inbound_mail_platform_ui.sql",
+      "sourceSha256": "a5ca82d1c68f44c8542820e5d209fd5d31356a16e7eb1ccc827843a61e0ba690"
+    },
+    {
+      "declarationLine": 256,
+      "name": "gridex_batch_2b_rls_status_v",
+      "observedRelationSha256": "51a8369079b682d4032a8c584060cb8bf83667744d4884002fc8fdd7abc338e4",
+      "ordinal": 9,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 995,
+      "querySha256": "e1792ae1325b6422713c6e00784ee1a91abe077af8bb1df39028809d3c3acf64",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260521_batch_2b_full_automation_and_live_ops.sql",
+      "sourceSha256": "20f6846c8857d04381e8956e55d683253eaa0805a88963294c12d9d942f19c4f"
+    },
+    {
+      "declarationLine": 87,
+      "name": "gridex_batch_2c_rls_policy_report_v",
+      "observedRelationSha256": "64ee2bd73b473c43ab0789af35b71bdce970a3c47daba4d047e3bd6b76a53677",
+      "ordinal": 10,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 2670,
+      "querySha256": "49c83eb2d42a04a909a41132f386fbb79ca4bb7414ef2ed575c6e2279b2542ef",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260521_batch_2c_end_to_end_operations.sql",
+      "sourceSha256": "ed0784a0fa59b447c48e90d4d7220c71e778a4cba5e70254dfad9eea6693d5dd"
+    },
+    {
+      "declarationLine": 234,
+      "name": "gridex_customer_intake_security_report_v",
+      "observedRelationSha256": "f81a543ac3d1a3e01aa1ef8fd89ba5a2120ba66a5094c95d1c136dcc8954b060",
+      "ordinal": 11,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 765,
+      "querySha256": "1f74f571cd5dbd0da6d82826f1c19ef6475516fc7ebe212b1e6c99fa9f295eb2",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260521_batch_customer_intake_batch2_hardening.sql",
+      "sourceSha256": "ab4bcf98d9baba596e3badde07ea8c035224512979104f6716d1fe39bbbb2594"
+    },
+    {
+      "declarationLine": 399,
+      "name": "gridex_db2_v4_schema_contract_v",
+      "observedRelationSha256": "d791539675cdc04ba1058f4fde5edbb38b7499804fbae22097b4779206579d59",
+      "ordinal": 12,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 1584,
+      "querySha256": "b271eaa074b555b8dbeb4b04baffe8157204ce7607184f63f60e79a5a3776dda",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/01_db2_full_view_preflight_schema_and_functions.sql",
+      "sourceSha256": "4de50050384d6892612c16484de8b198785c59cbb5d2ff03e7cea7e600d36cc9"
+    },
+    {
+      "declarationLine": 59,
+      "name": "gridex_db2b_final_readiness_v",
+      "observedRelationSha256": "2f56664921ce98d441439dc750266bd6708be0428f57ceb022428b79171c129b",
+      "ordinal": 13,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 2152,
+      "querySha256": "c85efa692937d5549a3b0a519c5945b73764433e2a746ff24b50628c04bb8b74",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/03_db2b_validation_views.sql",
+      "sourceSha256": "f84d355c54d20bd0fcd3f86426bcd0e56435a1e8713fad3ec7a239f480a2b5e5"
+    },
+    {
+      "declarationLine": 85,
+      "name": "gridex_db2b_preflight_v",
+      "observedRelationSha256": "69c443248ef18c26e1eb9c17fb8de68c54d8f5645bcc11c25a662206af79c635",
+      "ordinal": 14,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 769,
+      "querySha256": "54e6b6cbc34ac99206f5b4d5001f8614ce9bc4357977aa41bd78efb572234778",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/01_db2b_preflight_views.sql",
+      "sourceSha256": "884cc115dee1b169eae11ef37a2b319d894a85cff5971ebf050ad2be026e39d7"
+    },
+    {
+      "declarationLine": 127,
+      "name": "gridex_db2b_rbac_snapshot_v",
+      "observedRelationSha256": "863a3f6cce0edbe4d2ed7f2703c2b30dba06fac4a8286277af8c24e3bafc6ff3",
+      "ordinal": 15,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 776,
+      "querySha256": "d7b4a7b4d3d67f11c22e5f80f8d7cd9ccac82ebb2b8a7f2c7c91f1814d65bfa6",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/03_db2b_validation_views.sql",
+      "sourceSha256": "f84d355c54d20bd0fcd3f86426bcd0e56435a1e8713fad3ec7a239f480a2b5e5"
+    },
+    {
+      "declarationLine": 5,
+      "name": "gridex_db2b_superadmin_membership_v",
+      "observedRelationSha256": "6991031056cef9fe472b291a5aaaf0b62d0982829fd5581efc69222e83f6e007",
+      "ordinal": 16,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 1357,
+      "querySha256": "4ddcf9506ae5a9171de94953507a0e2ebeaac17eb78640a2188f818f236f6c5f",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/03_db2b_validation_views.sql",
+      "sourceSha256": "f84d355c54d20bd0fcd3f86426bcd0e56435a1e8713fad3ec7a239f480a2b5e5"
+    },
+    {
+      "declarationLine": 33,
+      "name": "gridex_db2b_superadmin_target_v",
+      "observedRelationSha256": "23b2af5c9b234ea2fd613c6b3059a0f0e5f9c2093abb23c25c81a5dbacb3f4db",
+      "ordinal": 17,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 1382,
+      "querySha256": "21877809a8e389c270f7848a77e9529a71f55b7ba803f736168862ad910ae8d7",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/01_db2b_preflight_views.sql",
+      "sourceSha256": "884cc115dee1b169eae11ef37a2b319d894a85cff5971ebf050ad2be026e39d7"
+    },
+    {
+      "declarationLine": 401,
+      "name": "gridex_db3_final_readiness_v",
+      "observedRelationSha256": "712d88b99aebedce8b96a83c02de99d4f8754d90d9c3f227558ea3bd4dd21fdd",
+      "ordinal": 18,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 1287,
+      "querySha256": "ce2662fb1f9fbc0eec70818839433eb181fca77eb3cc7715f95d615793ade909",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260523_db3_tenant_isolation_rbac_enforcement.sql",
+      "sourceSha256": "ac4d51086e0d6865de6012cc5e84ca524a59c094daccf987261afa2580a9f450"
+    },
+    {
+      "declarationLine": 377,
+      "name": "gridex_db3_rbac_snapshot_v",
+      "observedRelationSha256": "e68e21d5eeb61c1419b2e3f1fa3ce8c59ac72784de45788c6295473c5631351e",
+      "ordinal": 19,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 801,
+      "querySha256": "83f44dd59eb8627c30bcdc305ef841ace55425c61e8af36e1f04ee05eb53e30c",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260523_db3_tenant_isolation_rbac_enforcement.sql",
+      "sourceSha256": "ac4d51086e0d6865de6012cc5e84ca524a59c094daccf987261afa2580a9f450"
+    },
+    {
+      "declarationLine": 361,
+      "name": "gridex_db3_tenant_data_gaps_v",
+      "observedRelationSha256": "b96b6ae07c9fc6a487855855dfd758127f1a2e7af002761fb1afe3d837824274",
+      "ordinal": 20,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 1604,
+      "querySha256": "978132cf185690865ad30bdfcee43ba2320fd958153a9a330342de65cec369af",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260523_db3_tenant_isolation_rbac_enforcement.sql",
+      "sourceSha256": "ac4d51086e0d6865de6012cc5e84ca524a59c094daccf987261afa2580a9f450"
+    },
+    {
+      "declarationLine": 313,
+      "name": "gridex_db3_tenant_policy_gaps_v",
+      "observedRelationSha256": "3fe32e9314d7bb6aacdcd177f31d499891b6904a09b89b60102c2133cedab03b",
+      "ordinal": 21,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 1778,
+      "querySha256": "727b380ffd6c74f0eab255e9bf3a35bfa7c0d02f666003cbae256bbc71b10715",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260523_db3_tenant_isolation_rbac_enforcement.sql",
+      "sourceSha256": "ac4d51086e0d6865de6012cc5e84ca524a59c094daccf987261afa2580a9f450"
+    },
+    {
+      "declarationLine": 21,
+      "name": "gridex_db4b_customer_registry_visibility_v",
+      "observedRelationSha256": "eaa480f567ae4829647575afaaab29cee98ca5fd0fc84896a6631c8945aa53b6",
+      "ordinal": 22,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 599,
+      "querySha256": "f3572dc4195484e4c7049b6cce667861050a0812ac0c576c485452fa38742875",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260525_db4b_customer_registry_ediel_test_cleanup.sql",
+      "sourceSha256": "fcd67f80346b1e767e7f136c5983d5c73d1bdcbbe3e1e82637c6111bb2a6502e"
+    },
+    {
+      "declarationLine": 206,
+      "name": "gridex_debug_batch2_rbac_v",
+      "observedRelationSha256": "6779903fc1b15d27ee058600b0e4258574a5a87e8f214c0f6b2e5e270661fc16",
+      "ordinal": 23,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 552,
+      "querySha256": "437c393f9cf115f3adcd3d40d107c760c30beca02a70f8f0823398568e4d50c2",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260526_debug_step1_2c_full_schema_code_alignment.sql",
+      "sourceSha256": "5a4a2326232ab847d23fed32af2be13a046ee3e3a2dae41dead6f5b4eba16472"
+    },
+    {
+      "declarationLine": 76,
+      "name": "gridex_debug_batch2_tenant_policy_gaps_v",
+      "observedRelationSha256": "2e617563f30fb1fe097ab70edbd854d4f638c00972428098174d5db0f3db52e5",
+      "ordinal": 24,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 2159,
+      "querySha256": "332e6d0ca0fc2270c5ab82cdcac67b51ad97e601303154c564ba8e326c57e11b",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260526_debug_batch_2_tenant_rbac_server_actions.sql",
+      "sourceSha256": "f99af4186539ade7455e7241275339352a23c8572bda7cfd05aba987bac8c727"
+    },
+    {
+      "declarationLine": 239,
+      "name": "gridex_debug_step1_2_schema_alignment_v",
+      "observedRelationSha256": "8b331b80d59d13b3178defd711379852fb9e552e44ecf2deee050b5765681d27",
+      "ordinal": 25,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 1003,
+      "querySha256": "e86a0782de03ce2ad0e5f687aa4d631e91c54f609cc7aa079d38750106c18d96",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260526_debug_step1_2f_customer_import_foundation.sql",
+      "sourceSha256": "b2e764f4533f0539af021669831e9077582b1a90a257cbb8564777f42971465a"
+    },
+    {
+      "declarationLine": 161,
+      "name": "gridex_rbac_tenant_audit_summary",
+      "observedRelationSha256": "4a76f1ec26926a2aa0bf566b6d25d5a1fceca7c2765a300aaedeeb907400f234",
+      "ordinal": 26,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 522,
+      "querySha256": "09e874b4ed30e079b6010e0d2a8696ad48f4dc3b3adf9ff74d41bc32518fcb36",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260520_batch_6e_fix_rbac_backfill_security.sql",
+      "sourceSha256": "3e8858b6df6600d5d6fa3e35b7e99bc9f8a07814be64c6e402f172d7ed3d44fc"
+    },
+    {
+      "declarationLine": 213,
+      "name": "gridex_sensitive_action_audit_coverage_v",
+      "observedRelationSha256": "f6ddd71ea3f72e68634f01c6d675b08c9ec86cd1e84a8d39154f539fa85a53c2",
+      "ordinal": 27,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 653,
+      "querySha256": "1b5e5d2e304a317ae677117aed78f109121d0eb18fae7390807fe71030c27f0a",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260522_batch4e_switch_pdf_audit_rbac_completion.sql",
+      "sourceSha256": "e28a7956e18e6704de79b3be29245974faaef5a33aebcec4fa741c7daa06c98d"
+    },
+    {
+      "declarationLine": 87,
+      "name": "gridex_tenant_runtime_readiness",
+      "observedRelationSha256": "335dd5f5038e6065b0c3498586aa3bee236e6a011dcce172eb85d3e8c4e481f6",
+      "ordinal": 28,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 1509,
+      "querySha256": "81202f7bd73717344156ecc897df1b9f41288c51d2f695ed65b74a974c5d13bd",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260520_batch_1_2_saas_ediel_control_center.sql",
+      "sourceSha256": "7a198e941bbd735c0f56191d5ecf41cc85de03bbd89cea4f0b3369981127cdc8"
+    },
+    {
+      "declarationLine": 27,
+      "name": "gridex_user_auth_integrity_v",
+      "observedRelationSha256": "ca49d6ab389bd57f9b20fe6f4fca9ff3dcbca1a660bfe194348116a52b405b55",
+      "ordinal": 29,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 1024,
+      "querySha256": "8c9c7c6019bd7aa232d96ccc5edbc8a3cf3ea25ff753a5021b076e4692d34e16",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260528_auth_provisioning_runtime_guard.sql",
+      "sourceSha256": "0c2455cbc31553f4be1f1a3fa2800f516295c972bcead8fbbd77c448d3f98026"
+    },
+    {
+      "declarationLine": 532,
+      "name": "metering_billing_audit_overview",
+      "observedRelationSha256": "7cb5b6c1bc27630d2d66fa6df93b7cdfaeaafea888cf3ec0682533a2dda8e38d",
+      "ordinal": 30,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 2023,
+      "querySha256": "c85ca5f293049c0d591b0dd588cb744fafea9bd5d3a82ae93f1b636d5b66197a",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260519_batch_6d2_runtime_governance_completion.sql",
+      "sourceSha256": "b7d9d48b9cd3093b5546b04225f9c6151b0f674d2ae73441d8086f51922de9ab"
+    },
+    {
+      "declarationLine": 191,
+      "name": "platform_tenant_governance_overview",
+      "observedRelationSha256": "a28b8a38beea1c7ae0b5aa5f6c2fc975339ce79ae3d54949a9f54ef8ff9d1e7b",
+      "ordinal": 31,
+      "proposedReloptions": [
+        "security_invoker=true"
+      ],
+      "queryBytes": 1542,
+      "querySha256": "695edef74c432a230ea3d6312d4de772b03d258bb497eda00f9b8eb06effa45c",
+      "schemaAccepted": false,
+      "source": "supabase/migrations/20260519_batch_6d_superadmin_tenant_governance.sql",
+      "sourceSha256": "b54cc17584c7274862fe85711e324fff030ffca770d360c0fb721979f549cb47"
+    }
+  ]
+}

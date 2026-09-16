@@ -1,0 +1,68 @@
+{
+  "status": "VERIFIED_BOUNDED_DIAGNOSTIC_APPLICATION_AND_NATIVE",
+  "commit": "8f8d33119542a0b3cfd489eeb89107f8e686db33",
+  "tree": "d08de3d8e3efb40968c2714b71170dc1cf6708ed",
+  "run_id": 34686726854,
+  "application_job_id": 103534888973,
+  "native_job_id": 103534888891,
+  "application_job_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/34686726854/job/103534888973",
+  "native_job_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/34686726854/job/103534888891",
+  "application": {
+    "runtime": "Supported Node22 hosted lane",
+    "files": 206,
+    "tests": 1553,
+    "diagnostic_tests": 38,
+    "quality_files": 2,
+    "quality_tests": 45,
+    "checks": [
+      "lint",
+      "script typecheck",
+      "test typecheck",
+      "mechanical verification",
+      "quality tests",
+      "full Vitest",
+      "API documentation",
+      "API compatibility",
+      "immutable API release",
+      "RBAC",
+      "large-file budget",
+      "performance budget",
+      "production build",
+      "browser bundle budget"
+    ],
+    "evidence": [
+      "2026-09-12T09:49:20.3678749Z  Test Files  2 passed (2)",
+      "2026-09-12T09:49:20.3680169Z       Tests  45 passed (45)",
+      "2026-09-12T09:49:25.4215706Z  ✓ __tests__/permission-diagnostic.test.ts (38 tests) 48ms",
+      "2026-09-12T09:50:32.5564933Z  Test Files  206 passed (206)",
+      "2026-09-12T09:50:32.5575044Z       Tests  1553 passed (1553)",
+      "2026-09-12T09:51:50.0068510Z ✓ Compiled successfully in 68s",
+      "2026-09-12T09:52:49.4351237Z   Finished TypeScript in 59s ...",
+      "2026-09-12T09:53:15.8705258Z Browser bundle budget passed: largest chunk 222348 bytes; 3 route budgets verified."
+    ]
+  },
+  "native": {
+    "candidate_sha256": "73eb8a8d89b8468783d69f2829658daeb71d7deda667b5f54a9c5650cd6c47ad",
+    "construction_tests": 42,
+    "baseline_cases": 10,
+    "candidate_cases": 129,
+    "diagnostic_cases": 27,
+    "evidence": [
+      "2026-09-12T09:47:01.6507435Z PASS baseline10 source defect characterizations",
+      "2026-09-12T09:47:16.1027241Z PASS P28 C32 F16 S24 SX2 D27; repeat, ACL recovery and row preservation",
+      "2026-09-12T09:47:16.2013982Z PASS permission native owned-container cleanup",
+      "2026-09-12T09:47:16.3103553Z PASS owned-container cleanup"
+    ],
+    "first_acceptance_receipt": "quality/audits/PERMISSION_DIAGNOSTIC_NATIVE_ACCEPTANCE_2026-09-12.json"
+  },
+  "review": {
+    "initial": "APPROVED 0 findings",
+    "ci1": "APPROVED 0 findings; lexical supplemental-proof correction only"
+  },
+  "boundaries": [
+    "Existing lint warnings remain; this is a passing gate, not a pristine-warning claim.",
+    "Full clean replay and generated-types tail remain blocked; source/canonical-history/full-schema/production parity is not accepted.",
+    "SQL candidate is unregistered; no external SQL mutation, merge, deploy or ledger marking.",
+    "Current managed catalog observations and future100CRUD/18reference/16access fixtures remain separate from this bounded diagnostic acceptance."
+  ]
+}

@@ -13,6 +13,7 @@ import {
   type IntegrationApiClient,
   type IntegrationScopeRequirement,
 } from '@/lib/integrations/apiAuth'
+import { assertPublicWebhookTarget } from '@/lib/integrations/publicWebhookTransport'
 import { supabaseService } from '@/lib/supabase/service'
 import { PARTNER_API_VERSION, partnerOpenApi } from './openApi'
 
@@ -746,7 +747,36 @@ async function createWebhook(request: NextRequest) {
       ? body.event_types.map((item) => text(item)).filter((item): item is string => Boolean(item))
       : []
     if (!name) throw new PartnerApiError('name is required.', 'webhook_name_required', 422)
-    if (!endpointUrl || !endpointUrl.startsWith('https://')) throw new PartnerApiError('endpoint_url must use HTTPS.', 'webhook_https_required', 422)
+    if (!endpointUrl) throw new PartnerApiError('endpoint_url must use HTTPS.', 'webhook_https_required', 422)
+    try {
+      await assertPublicWebhookTarget(endpointUrl)
+    } catch {
+      await logIntegrationApiRequest({
+        client: context.client,
+        request,
+        statusCode: 422,
+        startedAt: context.startedAt,
+        errorCode: 'webhook_target_not_public',
+        metadata: { request_id: context.id, api_surface: 'partner_v1', operation: 'webhook.create.preflight' },
+      }).catch(() => undefined)
+      return NextResponse.json(
+        {
+          error: {
+            code: 'webhook_target_not_public',
+            message: 'target_url must be a publicly routable HTTPS endpoint.',
+          },
+          request_id: context.id,
+        },
+        {
+          status: 422,
+          headers: {
+            'Cache-Control': 'no-store',
+            'X-Request-ID': context.id,
+            'X-Gridex-API-Version': PARTNER_API_VERSION,
+          },
+        },
+      )
+    }
     if (!secret || secret.length < 32) throw new PartnerApiError('signing_secret must contain at least 32 characters.', 'webhook_secret_too_short', 422)
     if (!eventTypes.length) throw new PartnerApiError('event_types is required.', 'webhook_event_types_required', 422)
     const secretHash = createHash('sha256').update(secret).digest('hex')

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { supabaseService } from "@/lib/supabase/service";
 import { loadMarketPriceSourcePolicies } from "@/lib/pricing/marketPriceSources";
+import { billingPeriodInstant, completeEvidenceRows, loadUnderlayEvidence } from "@/lib/billing/underlayEvidence";
 import type { PriceArea } from "@/lib/pricing/types";
 
 export type IntervalPriceEvidence = {
@@ -83,28 +84,24 @@ export async function resolveIntervalSpotPricing(input: {
     };
   }
   const sourcePriority = new Map(eligiblePolicies.map((policy) => [policy.sourceKey, policy.priority]));
-  const [itemsResponse, pricesResponse] = await Promise.all([
-    supabaseService
-      .from("billing_underlay_items")
-      .select("id,period_start,period_end,quantity_kwh,quantity,unit,status")
-      .eq("company_id", input.companyId)
-      .eq("billing_underlay_id", input.billingUnderlayId)
-      .order("period_start", { ascending: true }),
-    supabaseService
-      .from("spot_price_intervals")
-      .select("id,source,time_start,time_end,sek_per_kwh,resolution,updated_at")
-      .in("source", eligiblePolicies.map((policy) => policy.sourceKey))
-      .eq("price_area", input.priceArea)
-      .lt("time_start", input.periodEnd)
-      .gt("time_end", input.periodStart)
-      .order("time_start", { ascending: true }),
-  ]);
+  const source = await loadUnderlayEvidence(input);
+  if (source.underlay.price_area !== input.priceArea ||
+    billingPeriodInstant(input.periodStart) !== source.period.start ||
+    billingPeriodInstant(input.periodEnd) !== source.period.end) {
+    throw new Error("billing_evidence_requested_period_or_area_mismatch");
+  }
+  const items = source.items;
+  const prices = await completeEvidenceRows((from, to) => supabaseService
+    .from("spot_price_intervals")
+    .select("id,source,time_start,time_end,sek_per_kwh,resolution,updated_at", { count: "exact" })
+    .in("source", eligiblePolicies.map((policy) => policy.sourceKey))
+    .eq("price_area", input.priceArea)
+    .lt("time_start", source.period.end)
+    .gt("time_end", source.period.start)
+    .order("time_start", { ascending: true })
+    .order("id", { ascending: true })
+    .range(from, to));
 
-  if (itemsResponse.error) throw itemsResponse.error;
-  if (pricesResponse.error) throw pricesResponse.error;
-
-  const items = (itemsResponse.data ?? []) as Row[];
-  const prices = (pricesResponse.data ?? []) as Row[];
   const errors: string[] = [];
   const evidence: IntervalPriceEvidence[] = [];
   let totalQuantity = 0;
@@ -153,7 +150,8 @@ export async function resolveIntervalSpotPricing(input: {
       return priceStart <= startMs && priceEnd >= endMs;
     }).sort((a, b) =>
       (sourcePriority.get(String(a.source)) ?? Number.MAX_SAFE_INTEGER) -
-      (sourcePriority.get(String(b.source)) ?? Number.MAX_SAFE_INTEGER)
+      (sourcePriority.get(String(b.source)) ?? Number.MAX_SAFE_INTEGER) ||
+      String(a.id).localeCompare(String(b.id))
     );
     if (candidates.length === 0) {
       errors.push(`Spotpris saknas för mätintervallet ${start}–${end}.`);

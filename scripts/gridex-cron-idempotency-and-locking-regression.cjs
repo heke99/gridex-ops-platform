@@ -15,7 +15,7 @@ function mustInclude(file, needle, why) {
   if (!read(file).includes(needle)) failures.push(`Missing "${needle}" in ${file} (${why})`)
 }
 
-const automation = 'lib/customer-operations/automation.ts'
+const automation = 'lib/customer-operations/automation.part-3.ts'
 const resume = 'lib/ediel/intent/resumeStuckIntents.ts'
 const migration = 'supabase/migrations/20260707120000_gridex_pipeline_hardening_guards.sql'
 const spotCron = 'app/api/cron/pricing/spot-prices/route.ts'

@@ -259,7 +259,12 @@ export async function requireAdminActionAccess(
   }
 
   const memberships = await listOperationalCompaniesForUser(base.userId)
-  if (!memberships.some((membership) => isCompanyWritableInTenantWorkspace(membership.companyStatus))) {
+  // Writability must belong to the same company as the resolved permissions.
+  // An active membership elsewhere cannot make a paused selected company writable.
+  if (!base.companyId || !memberships.some((membership) =>
+    membership.companyId === base.companyId &&
+    isCompanyWritableInTenantWorkspace(membership.companyStatus)
+  )) {
     throw new Error('Bolaget är pausat eller inte operativt. Ändringar är blockerade tills bolaget återaktiveras.')
   }
 
@@ -280,6 +285,11 @@ export async function requireCompanyScopedAdminAccess(
 
   if (isPlatformAdminContext(base)) {
     return base
+  }
+
+  // Require deliberate company selection before using company-scoped permissions.
+  if (!base.companyId || base.companyId !== companyId) {
+    redirect('/admin')
   }
 
   const memberships = await listOperationalCompaniesForUser(base.userId)
@@ -304,6 +314,10 @@ export async function requireCompanyScopedActionAccess(
 
   if (isPlatformAdminContext(base)) {
     return base
+  }
+
+  if (!base.companyId || base.companyId !== companyId) {
+    throw new Error('Du saknar behörighet för valt bolag. Välj bolaget innan du fortsätter.')
   }
 
   const memberships = await listOperationalCompaniesForUser(base.userId)

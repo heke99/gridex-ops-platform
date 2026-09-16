@@ -21,6 +21,13 @@
     "20260903162000_ediel_tenant_readiness_revalidation.sql": "bd83c15402a34c4f2a599393491d27466edfdda5fcce5de1afd13c4ddc7d795e",
     "20260903163000_ediel_system_readiness_snapshot_access.sql": "20d5ba43ddec5635f2a220ea9b5dfa84d7d89288fc98addc684882f09c0666eb",
     "20260903164000_ediel_readiness_trigger_convergence.sql": "56e532f4022bb421ccb387e8e541be62fe5664d961ddbf162b939f23e0d79793",
-    "20260903213000_z02_snapshot_market_context_guard.sql": "9ceaa0506831a7c2a10380eb4569ab38e26fc6919e9faf136d91e469d32f2300"
+    "20260903213000_z02_snapshot_market_context_guard.sql": "9ceaa0506831a7c2a10380eb4569ab38e26fc6919e9faf136d91e469d32f2300",
+    "20260913211625_ediel_intent_customer_company_integrity.sql": "2b9cc5e9cb7fad14aa4b30e0bc98274a4a957f47379f456ed0d3c9663ef5f39b",
+    "20260915111458_restore_existing_column_foreign_keys.sql": "5593bf9f66e2ea783ac37f23ca4f547132e70beb519a955dc5b2666a65db569c",
+    "20260915121224_restrict_retained_operational_table_privileges.sql": "c8928d29f3cf5ad527513a7448b4819c4f7a80f07d9fe3b78c764e30759e134e",
+    "20260915132224_restrict_inbound_service_table_privileges.sql": "0ee026c41d180768b23e20826d522387cc1c65e9c689304472f62cda39b19033",
+    "20260915132227_restrict_new_tenant_table_truncate.sql": "c67328cde9b270efad94aa44ded06f3b435170f247af90b1ea93e01dfe08523a",
+    "20260916095318_restrict_grid_owner_storage_policy_roles.sql": "626642f7466567003c4e3d800aa288748c7b0f973553ac4d91630cf71b863272",
+    "20260916095319_canonical_permission_overrides_and_storage_write_guards.sql": "73eb8a8d89b8468783d69f2829658daeb71d7deda667b5f54a9c5650cd6c47ad"
   }
 }

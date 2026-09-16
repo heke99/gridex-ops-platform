@@ -1,0 +1,110 @@
+{
+  "status": "READY_TO_AUTHOR_FINITE_CURRENT_OBSERVED_FIXTURE_INPUT",
+  "profile": "full normal + Partner API + portfolio; unchanged contract and integration addendum",
+  "native_acceptance": false,
+  "historical_admission": "BLOCKED",
+  "runtime_binding": "UNPROVED",
+  "full_replay": "NOT_ESTABLISHED",
+  "input": {
+    "path": "quality/audits/BILLING_EVENT_CATALOG_FRONTIER3_2026-09-12.json",
+    "bytes": 7525,
+    "sha256": "63c73ececcfe8ec8f4b36a37518190a02de785807d45c2a439fa2b7252b7722a",
+    "observed_at": "2026-09-12T14:17:26.32801+00:00",
+    "query_sha256": "7282abc1294347b433e958646c76d1d7a23e7d1d7406b0c14df1f0125cd94518"
+  },
+  "selectors": [
+    {
+      "selector": "/catalog/functions/0",
+      "start_byte": 3533,
+      "end_byte_exclusive": 4673,
+      "raw_sha256": "7ad89bfeec752b108f256b06631c2487dee04057890776169ab735bbca642208",
+      "canonical_sha256": "61c6238ebd2e130f702ef3565106761db6a28e0a6c9ccfeccbdf654c777cdb92"
+    },
+    {
+      "selector": "/catalog/functions/1",
+      "start_byte": 4681,
+      "end_byte_exclusive": 5961,
+      "raw_sha256": "99e7421b1a8c6304ff616959e91184cd28c28533a175380a447bf962b7bc9188",
+      "canonical_sha256": "29a1523b220e149f2e9e3d5300a04ef3dfe4c8ea4ce2b17961c5eabd4a96b688"
+    },
+    {
+      "selector": "/catalog/function_dependencies",
+      "start_byte": 6496,
+      "end_byte_exclusive": 7155,
+      "raw_sha256": "7c430cb38330e073223638d37ff5b56ec657fc1426d85cb8d85a1012117fe2eb",
+      "canonical_sha256": "bc2960f855d324f5b104109358a1b3ec0cdacb13fe317ec65b57c3bf0f93381a"
+    },
+    {
+      "selector": "/catalog/expected_functions",
+      "start_byte": 6263,
+      "end_byte_exclusive": 6465,
+      "raw_sha256": "d63fe161b840f884a0e6fdc9361ffeaf1eb88b6ae4039c4a361a25417fa1b1b0",
+      "canonical_sha256": "dd29446d2c34ca370b30522d3fb926c866c24035481edf32900a6bf6f7121216"
+    },
+    {
+      "selector": "/catalog/missing_functions",
+      "start_byte": 6233,
+      "end_byte_exclusive": 6235,
+      "raw_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "canonical_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "selector": "/catalog/ledger",
+      "start_byte": 3420,
+      "end_byte_exclusive": 3478,
+      "raw_sha256": "c4532ca21cd9eff5a9c742165ca3876efb60d231c9e7cd85bff5cff178b22e77",
+      "canonical_sha256": "bf1f98b15b12ec2bdf1a45b06fed6bc1ce5ca2036622c9633d20a71189faa787"
+    },
+    {
+      "selector": "/catalog/session_context",
+      "start_byte": 6076,
+      "end_byte_exclusive": 6206,
+      "raw_sha256": "cccc6e31dd8cc13acc658e0b37e87e44949d4c72919e653ea8f2130f78dacedb",
+      "canonical_sha256": "b88ace1012caf1353a8284e6c6a752562c45ba81415f193c1586ed92b0afec4a"
+    }
+  ],
+  "prior_manifest_pins": [
+    {
+      "path": ".superpowers/sdd/2026-09-12-current-and-plan77-85/task-12-source-admission-prep.md",
+      "bytes": 28123,
+      "sha256": "c708dc019277d2f3e8a83b4ca42076faf3037a961dd87cee22560a51cc81812d"
+    },
+    {
+      "path": ".superpowers/sdd/2026-09-12-current-and-plan77-85/task-12-source-admission-pins.json",
+      "bytes": 419593,
+      "sha256": "7a948c727a68f970c4173c650e45203d6dc2a8a3af9ac119b653213396dffe39"
+    },
+    {
+      "path": ".superpowers/sdd/2026-09-12-current-and-plan77-85/task-12-observed-catalog-delta.md",
+      "bytes": 19974,
+      "sha256": "5dd61d0ef5696ee1ecf41b4afedf348858aae114bb5598e17b8d3acf61f32786"
+    },
+    {
+      "path": ".superpowers/sdd/2026-09-12-current-and-plan77-85/task-12-observed-catalog-delta-pins.json",
+      "bytes": 68224,
+      "sha256": "c3c09e2ea1bf5f0f4feea8ee3231ad26b3755cbf10f8697916749dc2ecb1b839"
+    },
+    {
+      "path": ".superpowers/sdd/2026-09-12-current-and-plan77-85/task-12-frontier2-delta.md",
+      "bytes": 15757,
+      "sha256": "c716cb95ac61896f168a3d7d4ee36316c76f246a5a6dd6eae5965c4f957b2001"
+    },
+    {
+      "path": ".superpowers/sdd/2026-09-12-current-and-plan77-85/task-12-frontier2-delta-pins.json",
+      "bytes": 30522,
+      "sha256": "41583eb3111fcfdc17e2ef09b50e24363495c0e92bfca1e24c0810301159d731"
+    }
+  ],
+  "next_catalog_function_allowlist": [],
+  "next_catalog_relation_allowlist": [],
+  "comparison": {
+    "ledger_equal_frontier2": true,
+    "database_equal_frontier2": true,
+    "server_version_equal_frontier2": true,
+    "shared_session_context_equal_frontier2": true,
+    "roles_requeried": false,
+    "namespaces_requeried": false,
+    "default_acls_requeried": false,
+    "retained_objects_requeried": false
+  }
+}

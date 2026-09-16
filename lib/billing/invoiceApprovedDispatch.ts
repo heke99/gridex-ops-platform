@@ -1,3 +1,4 @@
+import { loadPricingRunEvidence } from '@/lib/billing/underlayEvidence'
 import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { assertOutboundAllowed } from '@/lib/platform/outboundFreeze'
@@ -94,6 +95,19 @@ async function loadItemContext(companyId: string, itemId: string) {
 }
 
 async function assertItemStillReady(context: Awaited<ReturnType<typeof loadItemContext>>) {
+  const validated = await loadPricingRunEvidence({ companyId: String(context.item.company_id), pricingRunId: String(context.pricingRun.id), billingUnderlayId: String(context.underlay.id) })
+  const snapshotEvidence = objectValue(context.invoice.calculation_snapshot).interval_evidence
+  if (validated.evidence.length) {
+    if (!Array.isArray(snapshotEvidence) || snapshotEvidence.length !== validated.evidence.length) throw new Error('billing_evidence_invoice_snapshot_incomplete')
+    const byId = new Map(snapshotEvidence.map(row => [text(objectValue(row).id), objectValue(row)]))
+    for (const row of validated.evidence) {
+      const saved = byId.get(String(row.id))
+      if (!saved || saved.billingUnderlayItemId !== row.billing_underlay_item_id || saved.evidenceSha256 !== row.evidence_sha256 ||
+        num(saved.consumptionKwh) !== num(row.consumption_kwh) || num(saved.priceSekPerKwh) !== num(row.price_sek_per_kwh) || num(saved.amountExVat) !== num(row.amount_ex_vat) ||
+        saved.priceSourceId !== row.price_source_id || saved.priceArea !== row.price_area || saved.resolution !== row.resolution ||
+        Date.parse(String(saved.meteringIntervalStart)) !== Date.parse(String(row.metering_interval_start)) || Date.parse(String(saved.meteringIntervalEnd)) !== Date.parse(String(row.metering_interval_end))) throw new Error('billing_evidence_invoice_snapshot_mismatch')
+    }
+  }
   if (context.underlay.status !== 'validated' || context.underlay.readiness_status !== 'ready') throw new Error('Faktureringsunderlaget är inte längre klart.')
   if ((num(context.underlay.missing_values_count) ?? 0) > 0) throw new Error('Mätvärden saknas fortfarande för kunden.')
   if (context.pricingRun.status !== 'locked' || !context.pricingRun.locked_at) throw new Error('Prisberäkningen är inte låst.')

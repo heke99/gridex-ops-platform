@@ -1,528 +1,335 @@
-## 2026-08-03 23:37 CEST — PHASE-41 runtime schema readiness v4
-
-- Inspected the supplied OPS archive, official Customer Portal API documentation
-  and connected `gridex-ops-dev` database.
-- Reproduced the mismatch: live capability view ready with fingerprint
-  `bb46302e...`, while app code pinned an obsolete different fingerprint and
-  returned `503 platform_schema_not_ready`.
-- Implemented capability-based runtime gating, tests, authoritative migration
-  filename reconciliation, forward migration v4 and idempotent post-apply.
-- Applied v4 through Supabase, registered its evidence and replayed post-apply.
-- Confirmed runtime, governance, canonical and compatibility readiness all true
-  with empty blockers.
-- Ran migration integrity, API contract/OpenAPI/docs/runtime parity,
-  single-key/idempotency/portal regressions successfully.
-- Full dependency install/build remains an operator/CI step because the sandbox
-  package mirror lacks one indirect package.
-
-## 2026-08-13 — Ediel production-engine delta
-
-- Continued PR #118 from the verified audit baseline and preserved no-rework boundaries.
-- Added canonical release-character-safe UTILTS parsing and dangling-release rejection.
-- Added exact supplied 25-A-3 common header and S02/S03/S04 R/D/O/X rules to active runtime profiles with checksums.
-- Added per-transaction guide/processability disposition, scoped APERAK/UTILTS-ERR, immutable/idempotent persistence and correction lineage.
-- Applied five forward migrations to gridex-ops-dev; fixed two rollback-discovered database defects with separate forward migrations.
-- Passed rolled-back live E2E, RLS/ACL/advisor checks, local tests, typecheck, lint, migrations, regressions, API/RBAC gates and production build.
-- Kept exact operation/request matrices, field-511 tuples and official TGT/AGT evidence as explicit external blockers rather than inventing protocol data.
-
-## 2026-08-06 — PHASE-45 after BL-002 (`fb8e`)
-
-- Trigger: main push `bb877506` (GRIDEX-OPS-BL-002 platform-global read isolation).
-- Merged health package from `6531` onto `cursor/codebase-health-and-stability-fb8e`.
-- Fixed H-011..H-015: `canonicalSwedishPriceArea`, public/portfolio filters,
-  application grid writers, quote grid persist/hash alignment.
-- Documented residual BL-002 RLS variants O-005..O-008 without a second migration.
-- Verified price-area, quote, AI/BI, OpenAPI local regressions; full npm gates blocked.
-
-# Session log
-
-## 2026-07-25
-
-- Read the master requirements and required repository context.
-- Installed permanent project memory and Cursor operating rules.
-- Compared local API/docs with the live developer page.
-- Implemented all enumerated P0 and P1 repository fixes.
-- Added forward-only billing/supply activation migration and manifest checksum.
-- Added resolver, public DTO, invoice, interval, cron, activation, quote-schema
-  and switch-state regressions.
-- Fixed anonymous auth logging so tenantless 401 requests do not wait on the
-  integration database.
-- Verified typecheck, 346 tests, API docs/parity, migration history, lint and
-  production build.
-- Confirmed database apply verification is blocked by the absent Supabase
-  runtime; recorded the exact staging continuation.
-
-## 2026-07-26
-
-- Traced contract deletion, tenant governance and integration API access across
-  database, server actions, UI, tests and documentation.
-- Added terminal contract closure and canonical tenant lifecycle RPCs in one
-  append-only migration with a registered checksum.
-- Added structured tenant activation blockers, close preconditions and
-  tenant-status enforcement for API clients.
-- Removed competing direct company-status mutation paths.
-- Synchronized the admin UI, API docs, OpenAPI files and delivery guide.
-- Verified typecheck, 354 tests, API docs/parity, migration history, dedicated
-  lifecycle regression, lint and production build.
-- Recorded that database application and transactional staging tests remain
-  blocked by the absent Supabase/PostgreSQL environment.
-- Reproduced the final-function overwrite behind SQLSTATE `42702` and mapped
-  the missing backfill, quote, portfolio and FK delete dependencies.
-- Added the forward-only canonical contract deletion graph completion.
-- Restricted delete/bulk semantics, removed legacy canonicalization-on-delete,
-  qualified all final `valid_to` updates and made close null-safe.
-- Added terminal list filters, server-side pagination, exact blocker display,
-  bulk item summaries and durable bulk error references.
-- Verified 302 migrations/207 groups, PostgreSQL parsing, typecheck, 354 tests,
-  targeted lifecycle regressions, lint with 0 errors and production build.
-- Repaired the final tenant lifecycle `valid_to` definition with a new
-  append-only migration and ended paused channels on tenant closure.
-- Revoked direct authenticated delete-preview execution and aligned the DB
-  lifecycle test with draft/ready-only permanent deletion.
-- Added company-scoped contract navigation, three distinct contract counts and
-  cross-surface revalidation.
-- Aligned API auth error codes and resolver capability gating across runtime
-  documentation, OpenAPI and the external integration guide.
-- Verified 303 migrations/208 groups, typecheck, 354 tests, API docs, targeted
-  regressions, lint with 0 errors and production build.
-
-## 2026-07-27
-
-- Isolated the contract list from readiness/delete graph failures and added
-  explicit error/empty states plus strict tenant selection.
-- Centralized platform role normalization in TypeScript and PostgreSQL.
-- Enforced legal-identity-only matching and verified portal customer IDs.
-- Routed every supply start through confirmed-only canonical activation.
-- Retained missing-meter-value periods as blocked underlays and made readiness
-  compare exact tenant/customer/contract/meter/period identities.
-- Replaced monthly legacy export with canonical invoice export items and an
-  atomic run/item/invoice-mirror reservation.
-- Added full portal invoice traceability, lazy admin chain tracing, OpenAPI and
-  deploy/rollback documentation.
-- Verified typecheck, lint, API docs, migration checksums, 40 contract tests
-  and 18 fixed-area tests. Focused identity/supply/billing tests pass 49/54;
-  five old fixtures omit required exact identities.
-
-## 2026-07-28
-
-- Ingested delivery 93 and the Docker-free live database audit export.
-- Compared active PostgreSQL definitions and schema objects against every
-  relevant runtime table, field and RPC path.
-- Confirmed the noncanonical remote/local migration history and avoided
-  replaying old migrations.
-- Implemented the single fail-closed forward repair migration, preflight,
-  post-apply and live-schema/code regression.
-- Repaired contract graph, crypto resolution, onboarding, legal, signature,
-  publication, invoices, provider events, EDIEL, metering, RBAC and API paths.
-- Verified all 41 exact function patches and all 23 live-lint errors.
-- Verified TypeScript, 357 tests, lint with 0 errors, API docs,
-  319 migrations/223 groups, P0/go-live suites, SQL parsing and production
-  build.
-- Produced the complete report and Docker-free production runbook.
-- Recorded that production is still NO-GO until authorized apply, postflight,
-  live lint and smoke tests pass.
-- Implemented canonical channel permission, readiness, publication and
-  availability for internal, website and API.
-- Unified both admin surfaces, separated grants from publish, hardened the
-  external DTO and aligned API/OpenAPI/ETag at `2026-07-28.2`.
-- Added the forward channel-completion migration, final-schema inspection and
-  dedicated regression coverage.
-- Verified 361 tests, all TypeScript targets, API docs, go-live/lifecycle
-  regressions, lint and production build.
-- Confirmed the historical `20260728170000...` checksum drift cannot be
-  repaired from the supplied artifacts; production remains NO-GO pending the
-  trusted original plus database scenarios A-H.
-
-## 2026-07-29
-
-- Read the complete commercial contract/price/quote/snapshot/billing assignment and traced the actual admin, SQL, API, onboarding and billing paths.
-- Searched supplied and prior available archives for the trusted historical migration; all available copies contain the same drifting bytes.
-- Implemented the v6 option/component model, type-driven admin editor and strict server validation.
-- Added server-owned selection to website quote and internal customer creation.
-- Fixed the reduced website contract snapshot and added database quote binding.
-- Added billing fail-closed identity and lifecycle charging semantics.
-- Added forward migration, backfill/review, RLS, trace fields, post-apply and regressions; synchronized API/docs at `2026-07-30.1`.
-- Verified 365 tests, TypeScript, changed-file lint, API docs, focused regression and a clean production build.
-- Preserved the historical checksum blocker and made no database-apply claim.
-
-## 2026-07-30
-
-- Traced the OPS-to-Web contract, legal, application, portal, event, OpenAPI sync and readiness paths.
-- Added the canonical release manifest and deterministic finalizer for version `2026-07-30.1`.
-- Implemented dynamic document-bound legal acceptance, strict canonical customer events and strict portal sync identity.
-- Added the forward-only atomic portal identity/account migration and registered its exact checksum.
-- Synchronized Web snapshots/generated types and fail-closed live/readiness evidence.
-- Verified all TypeScript targets, zero-error lint, 58 files/370 tests, API docs/parity, tenant/idempotency/portal/webhook regressions and both production builds.
-- Confirmed Web migration integrity passes, OPS migration integrity has exactly the known historical drift, and the live release-manifest endpoint returns HTTP 404.
-- Preserved an honest NO-GO pending trusted historical recovery, authorized database apply, deployment, live sync, full staging, provider/concurrency and two-tenant proof.
-- Searched prior synchronized artifacts and recovered the exact trusted
-  `20260728170000...` bytes matching manifest SHA-256 `881e1bc...`.
-- Added registered forward migration `20260730130000...` for the delta that had
-  incorrectly been placed in immutable history.
-- Found and fixed the release-manifest serialization mismatch: manifest hashes
-  now use the exact pretty-printed bytes served by the OpenAPI routes.
-- Centralized canonical error normalization, removed duplicate `meta`/`quote`
-  response aliases, and projected webhooks with tenant-bound opaque references
-  and no raw database IDs.
-- Regenerated OpenAPI and verified migration integrity, 373 tests, every
-  TypeScript profile, API/docs/parity, error/tenant gates, lint and production
-  build.
-- Confirmed live HTTP/version availability but not hash parity. Kept production
-  NO-GO for duplicate migration provenance, database replay, missing Web source
-  and full environment E2E.
-- Completed strict customer sync, tenant-bound public references, portal
-  pagination/completeness and atomic external-reference move-out.
-- Added and registered `20260730153000...`, repaired v3 quote onboarding, and
-  synchronized API/OpenAPI/docs at `2026-07-30.2`.
-- Verified 324 migrations/228 groups, every TypeScript target, 58 files/373
-  tests, API docs/parity/compatibility/release, zero-error lint and production
-  build.
-- Preserved NO-GO for duplicate migration provenance, PostgreSQL apply,
-  deployment/live hashes, missing Gridex Web and full staging/provider E2E.
-- Completed publication-bound canonical price options, deterministic
-  backfill/review, publish validation and the immutable quote/application
-  assertion chain.
-- Added top-level public `price_options`, aligned legal document identity and
-  strengthened schema reachability, runtime fixture, documentation and release
-  checks at `2026-07-30.3`.
-- Final go-live verification found and repaired portal contract
-  `signature_snapshot_sha256` DTO/OpenAPI drift.
-- Verified 325 migrations/229 groups, all TypeScript targets, 58 files/376
-  tests, API docs/parity/compatibility/release, 0-error lint and production
-  build with a temporary 4096 MB Node heap.
-- Preserved NO-GO for migration-ledger provenance, PostgreSQL apply/post-apply,
-  deployment/live hashes, missing Gridex Web and full environment E2E.
-
-## 2026-08-01
-
-- Traced Public Contracts from database/publication snapshots through Website/API sources, shared DTO mapping, routes, OpenAPI finalization, release manifest, fixture, tests and `/developers/customer-portal-api`.
-- Identified recursive `_id` sanitization as the legal version loss, database/runtime/OpenAPI disagreement around `is_default`/`default`, and API-channel omission of canonical legal data.
-- Implemented strict explicit serializers, canonical alias/legal invariants, structured errors and safe correlation diagnostics.
-- Added forward migration `20260801003000...` with exact locked legal snapshot and idempotent dry-run-first audited backfill.
-- Regenerated release `2026-08-01.1`, exact OpenAPI hashes, production-like fixture and complete human documentation.
-- Added route-to-served-OpenAPI and static parity/version/checksum/docs/migration gates; aligned stale regressions to canonical imported versions, current views and atomic quote consumption.
-- Verified all dependency-free API/docs/release checks, focused domain regressions, changed TS/TSX syntax and isolated strict canonical-core typing.
-- Dependency installation could not complete because npm registry DNS is unavailable; full TS/Vitest/lint/build were not claimed.
-- Final history review found the uploaded `20260730220000...` bytes differ from the trusted manifest. Reverted the temporary attempted manifest blessing, preserved the trusted checksum and recorded the inherited release blocker.
-
-## 2026-08-01 14:45 CEST — PHASE-37 canonical multi-tenant hardening
-
-Reviewed the supplied OPS archive against the all-tenant canonical target. Implemented trusted tenant context propagation, client-tenant mismatch rejection, provider webhook tenant resolution from persisted relations, neutral canonical DB aliases, fail-closed numbers/senders, capability/readiness storage, tenant-qualified relational guards, all-tenant remediation SQL, tests and architecture/runbook/delivery documentation. Static and focused regressions pass. `npm ci` failed on a registry 404; migration integrity remains blocked by inherited history; database/staging and external repositories were unavailable. Final decision: NO-GO pending executed environment proof.
-
-## 2026-08-02 12:45 CEST — PHASE-38 canonical production hardening
-
-Inspected the uploaded archive and complete master target, then compared the
-implementation with the connected `gridex-ops-dev` schema and migration ledger.
-Fixed five TypeScript errors, removed all high/critical production dependency
-findings, repaired Ediel evidence v2 so PostgreSQL derives and immutably records
-the complete tenant/run/snapshot/message chain, replaced GUC-only pass guards,
-and added the atomic website application commit event projection. Preflight
-found 153 unresolved null-tenant legacy runs, which remain fail-closed quarantine
-candidates. Both migrations compiled inside confirmed rolled-back database
-transactions. Clean Node 22 install, all TypeScript targets, 417 tests, migration
-integrity, hardening regressions and full build pass. Release remains NO-GO for
-ledger reconciliation, controlled apply and environment security/E2E proof.
-
-## 2026-08-02 14:45 CEST — PHASE-39 canonical security convergence
-
-Added and registered the forward-only canonical convergence migration, then
-routed company provisioning, verified invitations, lifecycle, Ediel production,
-first-send, profile and route writes through actor-authenticated fail-closed
-database boundaries. Added request-hash idempotency, one-time first-live approval,
-explicit profile identity, read-only readiness, last-owner/admin protection and
-least-privilege/RLS hardening. Read-only Supabase reconciliation proved principal
-A-C function-body parity but not complete catalog parity; preflight retained 153
-unscoped test runs and found one duplicate active profile group plus one missing
-production snapshot. No database mutation was performed. PostgreSQL parsing, all
-TypeScript targets, 417 tests, 337-file/241-group migration integrity, canonical
-and security regressions, zero-vulnerability audit and the Node 22 production
-build pass. Delivery/runbook artifacts and a guarded staging sync script are
-present. Release remains NO-GO pending deterministic staging cleanup, exact
-ledger/schema reconciliation, controlled apply and environment proof.
-
-## 2026-08-02 — A-C parity and multi-role Ediel identity correction
-
-- Verified complete A-C catalog, grants and seed invariants read-only against
-  `gridex-ops-dev`; guarded ledger repair is now authorized for that inspected
-  project state.
-- Identified the supplier/test duplicate as an unreferenced 21660 legacy row;
-  canonical 92825/test and 21660/production rows already exist.
-- Found and fixed an additional convergence defect: environment-only identity
-  collapsed supplier and ESCO profiles. Identity and mutations are now scoped
-  by company, environment and actor role.
-- Added safe preflight, deterministic Gridex profile repair and post-apply SQL.
-- PostgreSQL parsing, canonical hardening regression, migration integrity and
-  `git diff --check` pass. No remote mutation was performed.
-
-## 2026-08-02 15:59 CEST — PostgreSQL UUID aggregate repair
-
-- Reproduced the preflight failure as unsupported `min(uuid)` and found the
-  same defect in the pending convergence migration before staging apply.
-- Changed the preflight to accept a child-message tenant only when exactly one
-  distinct non-null tenant exists, using `min(company_id::text)::uuid`.
-- Changed the single-row profile identity seed to `min(id::text)::uuid` and
-  added a static regression preventing reintroduction of `min(id)`.
-- The full corrected preflight and the corrected aggregate query execute
-  read-only on `gridex-ops-dev`; migration integrity, canonical hardening and
-  RBAC audit pass. No remote database mutation was performed.
-
-## 2026-08-02 18:56 CEST — PHASE-40 V2 emergency access lockdown
-
-- Reconciled the real `gridex-ops-dev` ledger and superseded stale memory: all
-  canonical migrations through `20260802180000` are registered.
-- Captured read-only catalog, privilege, RLS, advisor and data evidence. The
-  pre-lockdown release decision is FAIL/NO-GO.
-- Added and registered `20260802190000_canonical_emergency_access_lockdown.sql`,
-  a static regression, a read-only metadata postflight and focused reports.
-- Emergency regression, 339-file/243-group migration integrity and the 24-check
-  RBAC audit pass locally.
-- A safety review rejected the persistent remote ACL/view/RLS/helper/trigger
-  mutation pending explicit user approval. No workaround and no remote or
-  GitHub mutation occurred.
-- Located connected GitHub repository `heke99/gridex-ops-platform` and observed
-  `main` head `8374b70ef902caac1510b85d1f01f3630629a09e`; archive parity remains unproven.
-- Installed 446 locked dependencies in a writable cache and reran the complete
-  local app gates: all TypeScript targets, 62 files/417 tests, lint with 0
-  errors/125 inherited warnings, 0-vulnerability production audit and the full
-  Next.js build pass on Node 24.14.0. Node 22 parity and PostgreSQL compile of
-  the pending migration remain NOT VERIFIED.
-
-## 2026-08-04T13:03:20+02:00 — PHASE-42
-
-Reviewed the supplied `gridex-ops-platform-main(133).zip` against the 21-item
-website application target. Implemented one tenant-neutral readiness and
-provisioning path, fail-closed portal ownership, exact application status,
-durable continuation/mail/webhook evidence, resumable partial applications and
-canonical tenant status events. Added migration `20260804121000`, OpenAPI
-`2026-08-04.1`, regressions, safe ledger repair, postflight and sync tooling.
-Rollback-compiled the migration against live Supabase and verified prior missing
-ledger migrations by exact function hashes without mutating live data. Full
-static/broad regressions pass. Clean npm install/build remains environment-blocked;
-database apply/deployment/two-tenant E2E remain pending.
-
-## 2026-08-04 — PHASE-43 SVK geodata and billing price-area convergence
-
-- Compared the repository importer with the current official SVK ArcGIS service and
-  found an obsolete source/layer plus missing exact field aliases.
-- Found billing readiness deriving area from mutable meter/site data instead of the
-  immutable contract pricing evidence.
-- Updated importer, cron, underlay generation, invoice readiness, public developer
-  documentation and release evidence.
-- Added and applied migrations
-  `20260804190000_svk_geodata_and_billing_price_area_canonicalization` and
-  `20260804193000_contract_price_snapshot_company_guard_fix` to
-  `gridex-ops-dev`, aligned its live migration-ledger version and closed the old
-  running import/version.
-- Verified a real staged BRL/SE3 feature through the new live parser inside a
-  rollback transaction. A second rollback E2E exposed and repaired the broken
-  contract-snapshot tenant guard, then proved SE3 canonicalization and SE4 rejection.
-  Existing persistent contract/snapshot/underlay counts remained zero.
-- Static regression, migration integrity and changed-source syntax checks pass.
-- Full npm-backed gates remain pending because the sandbox cannot resolve the npm
-  registry and the uploaded archive contains no dependencies.
-- Updated application deployment and full current-source import remain pending;
-  active official SVK geometry rows are currently zero.
-
-## 2026-08-05T15:14:58+02:00 — PHASE-44
-
-Implemented the three-document multitenant legal package, retained immutable
-module evidence, corrected Customer Portal grouped acceptance expansion, and
-hardened POA scope reuse through the supplier-switch authorization chain. Local
-regressions and API release checks pass. Dependency-backed build gates and live
-tenant E2E remain pending.
-
-## 2026-08-05T15:20:07+02:00
-- Re-ran legal package, platform POA, website POA, API version/compatibility/examples/runtime/release gates: all passed.
-- Re-ran TypeScript 5.8.3 syntax transpilation for 17 changed TS/TSX files: passed.
-- Kept full dependency-backed build blocked by package mirror 404 for zod-validation-error@4.0.2.
-
-## 2026-08-06T08:50:00Z — PHASE-45
-
-Completed incomplete OpenAPI `2026-08-05.2` health package on
-`cursor/codebase-health-and-stability-ec6b`: quote timestamptz/grid-area
-integrity, fail-closed immutable release verify, market-price example required
-fields, developer-guide version sync, and case-insensitive application /
-metering-point area compares. Local regressions pass. Full npm gates and live
-quote E2E remain pending. Sibling PR #80 overlaps a subset of the package.
-
-## 2026-08-11 — post-#110 health residuals on 0f25
-- Cherry-picked post-#108 security residual onto post-#110 tip.
-- Hardened login/update-password error flash allowlists and next-path backslash rejection.
-- Verification: vitest 12/12, post-108 residual regression, migration/types, app tsc PASS.
-
-## 2026-08-13 — post-f2c6a729 health residuals on a029
-
-- Reviewed main tip `f2c6a729` Field 511 generated-types sync.
-- Replayed open `#121`/`c107` auth/SVK/UTILTS/L653Q/packaging residuals onto tip.
-- Fixed tip-specific resolver Returns nullability for `description`/`valid_to`.
-- Verification: vitest 35/35, residual regressions, migration/types, app tsc PASS.
-
-## 2026-08-13 — post-2eb61986 health residuals on 0a00
-
-- Reviewed main tip `2eb61986` production dependency remediation (lockfile only).
-- Replayed open `#122`/`a029` residuals onto tip, then closed tip-specific auth
-  flash, fail-closed base URL, auth-action retry context, and override pin gaps.
-- Verification: vitest 43/43, residual regressions, migration/types, audit 0,
-  app tsc PASS; ggshield BLOCKED.
-
-## 2026-08-13 — post-3cad481b health residuals on 13b2
-
-- Reviewed main tip `3cad481b` after `#123` merge.
-- Restored durable field-511 Returns nullability against typegen regen, gated
-  post-332 residuals in ops-hardening, allowlisted public/portal flashes,
-  mapped disabled-session login reason, unified getSafeNextPath, and
-  synthesized null UTILTS match transaction ids.
-- Verification: vitest 50/50, residual regressions, types, audit 0, app tsc
-  PASS; ggshield BLOCKED.
-## 2026-08-14
-- Closed post-#134 tip residuals on `cursor/codebase-health-and-stability-b4c7` (receipt binding, UTILTS identity, circuit telemetry, lifecycle/go-live guards).
-- Closed post-#135 tip residuals on `cursor/codebase-health-and-stability-9740` (lifecycle resume activation guard, permissions promote pause, shared tenant-website classifier).
-- Closed post-#143 tip residual on `cursor/codebase-health-and-stability-996c` (sticky review_resolved_at after Köa om → reprocess → manual_review; legacy completed→done; UI Swedish error pass-through). Local verification PASS; hosted CI pending.
-- Closed post-#144 tip residuals on `cursor/codebase-health-and-stability-e76c` (worker invents review owner/priority/reason/SLA on manual_review entry; Processa om syncs active inbound_processing_jobs; forward metadata backfill). Local verification PASS; hosted CI pending.
-
-## 2026-08-15 — PR #149 production closure
-
-- Pinned generated Supabase TypeScript types and the three missing migration checksums; restored ordinary CI migration diagnostics.
-- Removed implicit AGT/runtime role fallbacks and added explicit supplier/ESCO isolation, including rejection of `system_supplier` as a tenant supplier.
-- Confirmed Gridex El remains live on production Ediel ID `21660`; `92825` is reserved for new system tests.
-- Repaired stale regression harnesses after canonical production approval and website runtime module splits; fixed limiter-unavailable HTTP classification.
-- Local verify, quality, production build, tenant isolation, website intake, contract publication, legal snapshot, and API scope checks pass. Hosted clean replay/merge/deploy remain next.
-- Supabase security advisor review found the two new privileged restoration/integrity RPCs on the authenticated API surface. Added forward migration `20260815210353` to restrict both to `service_role`; re-verification follows before merge.
-- Hosted clean replay on PR #149 exposed that the verified live-schema helper `canonical_current_ediel_engine_schema_version()` was present as a bootstrap artifact but absent from the replay plan. Declared it as hash-bound verified-live-schema evidence and interleaved it after `20260815002945` and before its first consumer `20260815003554`. Static provenance and the full migration/type contract check pass locally.
-- The next hosted replay reached `20260815095427` and exposed the second omitted source prerequisite: `ediel_test_runs.environment_type`, originally defined by a checksum-pinned migration whose replay is replaced by a narrower enum foundation. Added a minimal hash-bound derived artifact at the exact chronological boundary; static provenance and migration/type contracts pass locally.
-- Hosted replay then completed the entire empty-database history, verified the CLI ledger and schema fingerprint, and produced the authoritative generated TypeScript contract. Replaced `supabase/database.types.ts` with that artifact, normalized typegen EOF deterministically in the existing override script, and locked hash `d39755f6e8a9de374e494faaab9e5519bdd3c199577d985b761dcd85324b130a`; all TypeScript targets and migration/type checks pass locally.
-
-## 2026-08-20 — production masterplan P0 execution
-
-- Audited repository main, Vercel production deployment/telemetry, and Supabase development schema against the 50-section production masterplan.
-- Removed invented billing provider defaults, enabled per-underlay readiness, required locked pricing in runtime and database, and made the settlement cron lock imported months.
-- Replaced the notification UUID write boundary with tenant-bound opaque public references and released immutable OpenAPI `2026-08-20.1`.
-- Applied and verified the locked-pricing trigger in `gridex-ops-dev`; trigger is security invoker and not executable by anon/authenticated roles.
-- Local typecheck, 697 tests, OpenAPI gates, migration integrity, dependency audit, and production build pass. Publication, production database parity, authenticated smoke, and timeout remediation remain blocked.
-
-## 2026-08-20 — production masterplan P1/P2 continuation
-
-- Moved best-effort website API usage telemetry behind Next.js `after` with a deterministic non-request fallback; the historical usage insert timeout can no longer hold a successful external response open.
-- Proved the current live public-contract fingerprint is an O(1) revision lookup (6.693 ms warm, no disk/temp I/O) and classified the older 19-timeout cluster as remediated/non-reproducing on the current deployment.
-- Added an authenticated k6 full-feed plus ETag/304 profile with independent p95/p99 thresholds; live execution remains staging-credential gated.
-- Added a 1,800-line source ratchet: 19 grandfathered files cannot grow and new large source files fail the gate.
-- Re-triaged 16 security and 1,100 performance advisor notices. Service-only no-policy tables and the authenticated definer allowlist are intentional; there are no exact duplicate public indexes, so no blind DDL was applied.
-- Repaired the `2026-08-20.1` fixture-generation residual and replaced stale public-contract `tenant_reference` schema metadata with `organization_reference` before rematerializing the local immutable release draft.
-- Verification passes: 98 files / 699 tests, both TypeScript targets, API docs/parity/release bytes, migration integrity, P0/advisor/E2E/large-file regressions, and full Next.js production build.
-## 2026-08-20 — masterplan P1/P2 continuation and publication authorization
-
-- Received explicit authorization for staging k6 smoke/load/spike/ETag/soak, all 19 legacy-file splits, production-parity/E2E/performance work, and Git stage/commit/push/deploy flow.
-- Split every grandfathered source file behind stable public facades; zero app/lib/script files exceed 1,800 lines.
-- Preserved Next.js server-action semantics with local async facade wrappers and verified the production build.
-- Batched portal-claim candidate reads and continuation-reconciliation job reads; added an AST N+1 gate with only explicit bounded schema/pagination exceptions.
-- Added checked browser-bundle and k6 SLO budgets to the OPS CI workflow.
-- Re-ran local CI: 98/98 Vitest files and 699/699 tests, app/script/test typecheck, lint with zero errors, API/migration/security gates and production build pass.
-- Supabase connector still exposes only `gridex-ops-dev` for OPS; no unrelated project was treated as production.
-- Published byte-identical tree `b59d1a8322ee11590ae9663ceb7aadeb05b36751` as draft PR #169 (remote commit `d8d54e78f2499eac85f2ddb7f77b298c4b307704`).
-- Added a maintainer-label trigger restricted to same-repository PRs so the authorized staging browser/k6/ZAP matrix can consume repository secrets without exposing them locally.
-
-## 2026-09-04 — master plan P0-C (database parity, canonical schema artifacts)
-
-Started from the GRIDEX OPS master remediation plan with no narrower brief, so
-routed by the plan's own work order (§35) rather than picking a phase.
-
-Deliberately did not trust `.agent-memory`: it was stale (checkpoint dated
-2026-08-25, `completed-work.md` ending 2026-09-02, while HEAD was `62272e9`
-from the Z01 SLA watchdog work). Established the position from code instead —
-`package.json` scripts, `.github/workflows/`, `scripts/`, `supabase/` — and
-recorded the findings before changing anything.
-
-P0-A and P0-B turned out to be implemented already (clean replay with a pinned
-Supabase CLI, local typegen, a generated-types manifest pinned to the migration
-tail). P0-C was entirely absent, which made it the first real gap in the plan's
-order. Four findings were raised from code evidence: no parity engine, no
-canonical `schema.sql`, a fingerprint covering only thirteen tables, and
-`db:types:gen` generating from `--linked`.
-
-Built and shipped in four commits, each verified before the next started. A
-real PostgreSQL cluster was started locally so the tools were checked against
-actual databases rather than reasoned about. Two defects in my own work were
-caught that way and fixed before commit: the comparator ignored view
-definitions, so a view silently losing its tenant filter compared as identical;
-and `pg_dump` randomizes its `\restrict` guard tokens per run, so the schema
-artifact was not byte-stable.
-
-Left honestly incomplete: no canonical baseline is committed, because the
-Supabase CLI is not in this container and clean replay cannot run here. The CI
-step that would verify the baseline is written and guarded on its existence, so
-it switches on by itself once the artifact is committed from a CI run.
-Production parity stays blocked on the production Supabase project.
-
-## 2026-09-04 (continued) — PR #307 driven to green
-
-Opened PR #307 after the user approved it, then drove it to green across six
-heads. Two of the failures were genuine defects this branch introduced, and CI
-caught both where the local harness could not:
-
-1. Revoking EXECUTE from PUBLIC does not remove Supabase's explicit
-   default-privilege grant to anon. The bootstrap now reproduces that default
-   privilege for functions, so the harness detects the class instead of hiding
-   it; verified by re-granting and watching the gate fail again.
-2. pg_dump refuses to dump a newer server, and installing the newer client is
-   not enough because pg_wrapper does not resolve to the newest major. The
-   binary is now named explicitly, with the major read out of config.toml.
-
-The canonical schema baseline was captured from a green replay artifact and
-committed, which activated the byte-for-byte schema gate; the same run that
-activated it also validated it.
-
-Also resolved a conflict of my own making: the dockerless replay wrote the
-Supabase ledger and then verified its own writes. The provenance regression was
-right to reject that, and it was NOT weakened — external mode now writes nothing
-to the ledger, which costs nothing because two shadows with and without it
-compare identical under the parity engine.
-
-Left scoped but unstarted, deliberately: typed Supabase clients (487 files) and
-readiness policy versioning. Neither belongs in a green PR about schema truth.
-
-## 2026-09-04 — Steg 3: production reconciliation (writes to production)
-
-Authorised: "vi har ingen data idag som ar viktigt sa gor det korrekt och
-produktionmassigt".
-
-Applied to production project `piidsfebjqjmnepdpnas`, in ledger order, each
-preflighted and then verified by introspection:
-
-1. `gridex_inbound_operations_foundation` → ledger `20260904221046`.
-   Creates `inbound_operation_events`. Closes F-PROD-1: manual inbound
-   ingestion (`lib/inbound-mail/manualInboundIngestion.ts:207`) no longer
-   throws in production.
-2. `z02_snapshot_market_context_guard` → ledger `20260904221936`.
-   Creates the Z02 snapshot-freshness gate, the atomic apply core and its
-   trigger gate. Applied before (3) because (3) revokes a function (2) creates.
-3. `canonical_tenant_invariant_convergence` → ledger `20260904222045`.
-   Closes F-PROD-2. Post-state: 0/6 helpers anon-executable, 0/6
-   authenticated-executable, 6/6 service_role, 8/8 RLS on, 3/3 classified,
-   0 inert policies, 3/3 views `security_invoker`.
-
-NOT applied: `20260831095000_admin_signed_contract_import_canonicalization`.
-Behavioural change in a live contract path. Presented to the user for a
-decision. It is the only remaining canonical/production object gap
-(`gridex_finalize_admin_imported_signed_agreement_v1`).
-
-No secrets recorded. No direct schema editing — every change went through a
-migration applied from the repo file verbatim.
-
-4. `admin_signed_contract_import_canonicalization` -> ledger `20260904222450`.
-   The behavioural one. Preflight showed zero missing dependencies, all three
-   `on conflict` targets constrained, and zero of the 4 existing
-   `customer_authorization_documents` rows matching the new trigger guard, so
-   no stored row was reprocessed. Post-state: function present, trigger
-   present, `canonical_onboard_customer_graph` at 1741 chars (guarded) instead
-   of 254 (passthrough), neither function reachable by anon or authenticated.
-
-Canonical -> production gap is now zero. Remaining drift is production-only
-surface, which is plan 3.4/3.5 and is next.
-
-### Merged
-
-PR #308 -> main `15e6b48`, squash, all seven relevant gates green. Direct push
-to main was blocked by the permission classifier, so the merge went through a
-pull request, which is the convention this repository already used for #307.
+# Session evidence log
+
+Earlier entries are preserved byte-for-byte in [the pre-database-frontier archive](archive/pre-db-frontier-20260912/session-log.md). Current campaign status is only in [current-state.md](current-state.md).
+
+## 2026-09-12 — database-first continuation of PR310
+
+The user selected database/types -> two runtime faults -> full RLS -> billing transactions -> jobs/point86 -> paused API -> final review/merge/deploy. The earlier publication-only next action is superseded. Completed API work and the unapplied candidate remain intact.
+
+Recovered the exact source tree from the hosted artifact, extended the pinned118-input foundation through508 timestamp/interleaved inputs, and published1ba0f7b. Native run34714610111 reached timestamp45 and identified missing PostGIS. Added a closed PostGIS profile retaining existing owned-target isolation and privacy; publishedeacc6d4 after21 targeted local tests and exact-tree verification.
+
+Native run34715245340/job103611207798 verified the environment fix, passed118+228 inputs, then stopped at historical live-schema sync with42601. Source inspection and the existing forward repair identify invalid intermediate session-guard compilation; this is the next database task, not a completed fix. Accounting remains unchanged with37 unresolved source effects. No types, source-history rewrite, live SQL, main merge or deployment were performed.
+
+Evidence and current state are recorded in DB_SELECTED_CHAIN_FRONTIER_2026-09-12.md and DB_SELECTED_CHAIN_RECEIPT_2026-09-12.json. Large prior evidence logs were moved without byte changes into archive/pre-db-frontier-20260912 and remain directly linked; no historical evidence was discarded.
+
+## 2026-09-12 — native session reconstruction completed, source acceptance still open
+
+The user explicitly asked to resolve42601 and verify continuation, not reopen API work. Reconstructed only the invalid session block using the complete pinned forward-repair function. Native admission exposed an incorrect assumed security preimage; the June11 hardening source proved the actual invoker predecessor, now pinned and enforced. The invoker-to-definer transition follows the versioned repair; function OID/owner/ACL and effective execute rights are verified retained.
+
+Published8cacda, temporary diagnosis0b6f328, corrected0bdd572, and cleanup1d40e33 without force. The final shared executor is restored to its original bytes. Both0bdd572 and1d40e33 passed118+508 native stages,35 constructor tests and six boundary proof groups. Final run34718792993/job103620685321 and cleanup completed successfully. Fourteen new tests passed locally. Only individual changed blobs, not a full current local tree, were verified in this session; CI checked out the exact published head.
+
+Current state/checkpoint now supersede the solved timestamp229 blocker and point to the37 unverified source dispositions, reconstruction review, supported canonical CLI integration and then accepted types. The normal clean-replay/type job remains failed. No source-history rewrite, API change, generated types, managed SQL, merge or deployment occurred. Evidence is in DB_SESSION_RECONSTRUCTION_2026-09-12.md and its companion JSON.
+
+## 2026-09-13 — residual originals and staging integration
+
+Continued user's eleven-migration request fromb88642d. Restored four whole
+originals in775d581/85149c4, verified native144+513 with negative controls and
+repeated the regular frontier on the published code. Accounting now588/2/5/5.
+Found stale standalone count guards and an original-directory reopen after HOLD
+staging; implemented retained-byte/fixture follow-up with local regressions.
+Seven genuine source dispositions and ordinary canonical/types remain OPEN.
+No main merge, production mutation or generated-type replacement. Current-state
+and the residual audit are the active evidence; old progress archived.
+
+
+## 2026-09-13 — local true-only gate patch against published22c923bb
+
+Preserved the separately published shared residual integration on22c923bb; its
+native selected/staged job103737335752 passed. Discarded the overlapping local
+scheduler rather than overwrite that work. Added strict true-only validation for
+the 18 existing final replay predicates, its 12 regression tests and CI wiring.
+Restored accurate exact accounting summaries in current-state; the existing full
+membership selftest now passes unchanged. Total156 enumerated tests plus that
+full program pass locally. All three ordinary replay/full-effects/type gates still
+exit1. No push, main merge, accepted type regeneration or production mutation.
+See quality/audits/DB_REPLAY_TRUE_ONLY_GATE_CANDIDATE_2026-09-13.md.
+
+## 2026-09-13 — publication authorized
+
+User reconnected GitHub/Supabase and requested all delivered changes be published
+before continuing the remaining gates. Recovered checksum-verified22c923bb source;
+its branch head is unchanged. Reapplied delivered patch cleanly. Eight focused
+suites rerun successfully; longer local membership invocation exceeded tool limit.
+No new membership/native pass claimed. Published blobs are compared to local Git
+blob hashes before an atomic non-force branch update. Default Supabase branch
+has no separate test database; no destructive or production SQL is used.
+
+## 2026-09-13 — Source admission and actual owned timestamp integration
+Published6064 index fix; read green native34776030335 and actual red ordinary
+job103774182283. Added exact seven-source dispositions and parent-owned retained
+timestamp transport; kept original source files, schema fingerprint, required
+checks, real-ledger and type gates unchanged. Fresh native integration pending.
+No main merge, production mutation, deployment or paused API-patch application.
+See current-state and DB_SOURCE_ADMISSION_OWNED_TAIL_2026-09-13.md.
+
+## 2026-09-13 — recovered real ordinary execution
+
+Published1f09dcc exact reviewed source/tail implementation; then6a65e75 corrects
+workflow identity without widening private-input admission. Native34779330429 now
+executes actual ordinary144/7/513 and all18 required predicates, exposes final
+fingerprint mismatch and SOURCE_LITERAL_IN_PRIVATE_ARTIFACT; cleanup verified.
+Added a bounded readonly terminal diagnostic and13 tests, not an acceptance fix.
+No production/main/type changes. Active next action remains in current-state.md.
+
+## 2026-09-13 — final diagnostic verified; genuine blockers retained
+
+Read completed7c6a7aa run34780512868, including actual final projection and private
+census. Verified source authority for7 added company fields and source hashes for
+5 unrecorded whole inputs. Missing customer/company FK remains; grant-dependent
+classification is a lead, not a proved root cause. Saved exact bounded native
+evidence without raw literals. No privacy/source/schema gate, accepted baseline,
+production data or main changed. Current-state supersedes diagnostic-pending text.
+
+
+## 2026-09-14 — local native entry increment
+
+Prepared unpublished patch against2a1cfcdb. Activated debugging, verification-before-completion and Supabase/Postgres skills for CLI/private-file/ledger boundaries. No UI or deployment changes; browser/design skills not applicable. Native tooling and GitHub write actions unavailable. See current-state.md for the single active status.
+
+
+## 2026-09-14 — read back and close ordinal27, keep full replay open
+
+User requested the transaction-boundary correction with main/hosted DB unchanged.
+Live PR read showed the correction already published at20be4640/a7622e16.
+Recovered exact source and native CI artifacts; reviewed the adapter/caller/
+ledger probes instead of reapplying the old patch. Actual native first43 and
+three fault-injection paths pass.62 local regressions and601 migration hashes
+pass; all43 native source/program receipts independently match. Documentation
+now supersedes the stale ordinal27 failure and points to atomic44–52.
+Activated Supabase/debugging/differential-review/verification skills; no UI,
+performance, deployment or broad security scan scope. No new runtime patch,
+hosted call, main merge or full-acceptance claim in this receipt increment.
+Evidence:quality/audits/DB_NATIVE_LOCK27_VERIFIED_2026-09-14.md.
+
+## 2026-09-14 — close stale provider42501 status
+
+User quoted run34868620937, but current603e68a5 has genuine through52 success
+in34873361878. Source/negative-proof inspection identifies the old provider
+SHARE denial and the subsequent comment-scan correction; no broad permission
+change is needed. Revalidated native/source artifact hashes and all52 source
+receipts, ran62 focused tests and601-file integrity, and prepared this atomic
+documentation publication. Supabase/debugging/differential/verification scope;
+no unrelated UI, performance, hosted audit or deployment. Active continuation
+is53–56, not another44–52 implementation. Existing runtime is unchanged.
+Evidence:quality/audits/DB_NATIVE52_VERIFIED_2026-09-14.md.
+
+## Native53–56 implementation — 2026-09-14
+
+One source-bound R2/E2/S2/W atomic CLI unit implemented;128 local simulated
+unit/regression tests plus601-file integrity and complete accounting PASS.
+Native53–56 NOT VERIFIED; prior1–52 remains accepted. No hosted write,
+original-source rewrite, type/fingerprint refresh or main merge.
+Evidence: quality/audits/DB_NATIVE53_56_2026-09-14.md.
+
+## 2026-09-15 — local merge preparation on91575a3b, NOT published
+
+Rechecked existing native1–77 evidence against77 source/43 program/19 support
+hashes and fresh artifact digests. Added local optional redacted auth command
+evidence and always-upload wiring; this is NOT an auth SQL fix.234 local unit
+controls, the original auth-group self-test (exit0), AST/workflow checks and
+601-file migration integrity pass. No new native SQL, push, deployment or merge.
+The current GitHub connector has no write actions. Full native78+/schema/auth/
+types/required CI remain blocked. Evidence:quality/audits/PR310_MERGE_BLOCKERS_2026-09-15.md.
+
+## 2026-09-15 — PR310 preserved; DB2 target transfer candidate
+
+Full PR ancestry backed up at backup/pr310-20260915-d8ace45c. Prior auth
+evidence patch applied without rebuilding it. Native latest run reaches144
+inputs but residual144 rejects R071/55000; no full-chain acceptance. Native
+DB2 target-only transfer implemented with an original-error negative control.
+27 foundation +16 auth evidence local tests PASS;601 migration checksums PASS.
+CI result pending; no main merge or hosted write. Current receipt:
+quality/audits/DB_NATIVE144_TARGET_2026-09-15.md.
+
+## 2026-09-15 — exact auth journal ACL continuation
+
+Starting PR310 head a59e0ce6; full history and43efaf89 preservation ancestry
+verified. GitHub connector tree/ref write works; terminal push has no credentials.
+Actual OPS104346776007 and diagnostic104346776492 identify the journal ACL
+assertion P0001. Exact32-entry ACL correction retains owner/options/comments;
+eight rollback-only SQL controls added to ordinary/diagnostic auth CI. Local
+3 regression guards,16 preserved auth-evidence tests and601-file integrity pass.
+Independent source review found no severity findings; actual PostgreSQL SQL
+acceptance pending publication/Actions. No production or reference changes.
+See quality/audits/PR310_AUTH_JOURNAL_ACL_2026-09-15.md; current-state.md is active.
+
+Pre-publication head changed to8130ecf3, which already published the exact ACL
+correction. Full branch fast-forwarded; duplicated local implementation not
+committed. This batch reuses upstream implementation unchanged and wires the
+existing native ACL selftest plus8 stronger whole-assertion mutation controls.
+The3 adapted guards, upstream selection check and membership constructor pass.
+
+
+## 2026-09-15 — native primary padding
+
+Actual diagnostic34958678292/artifact10392753658 identifies exact426-byte
+primary55000/R071/reason plus322 ASCII spaces (matching SHA256). RED/GREEN
+parser reproduction and34 foundation tests PASS; actual group7 re-execution
+PENDING. Preserve concurrently published8130ecf3/d05408c2 auth work. No
+production, schema-reference, SQL/ledger/control weakening or main change.
+See quality/audits/PR310_NATIVE_PRIMARY_PADDING_2026-09-15.md.
+
+## 2026-09-15 — native timestamp integration / staged FK qualification
+
+Publication base ec503fc7;258 fresh local tests PASS. Native source/phase/CLI ledger integration and fixed PG17 FK qualification wired; actual SQL pending. Current-base auth diagnostic34960996805/job104354284392 SUCCESS with8 mutation controls. No schema/type/full acceptance or production mutation. See quality/audits/PR310_NATIVE_TIMESTAMP_AND_FK_2026-09-15.md and current-state.md for active next action.
+
+## 2026-09-15 — native ledger diagnostic fixture
+
+Actual335f987f job104361913787 fails two diagnostics because the timestamp selector is intercepted by the fixture subprocess mock. Reproduced2 errors, corrected fixture-only actual-plan preparation, ledger8/compiler12/lifecycle15/bootstrap14 PASS. Native SQL remains pending. See quality/audits/PR310_LEDGER_FIXTURE_2026-09-15.md.
+
+2026-09-15: bebe77a1 published/readback exact; native local-control CI step PASS. Actual ec503fc7 ordinary native144+7 ledger/negative/repeat proof verified from artifact10393844978; full acceptance false. Separate continuity-summary failure reproduced and corrected to actual601/347 values; canonical-auth-membership-group-selftest PASS. See PR310_LEDGER_FIXTURE receipt.
+
+## 2026-09-15 — native timestamp psql stdin contract
+
+Preserved concurrent335f987f/bebe77a1/f5a5fa88 exactly. Overlapping drafts stashed.
+Independent review found psql --single-transaction lacked required -c/-f; narrow
+-f - correction and exact two-mode regression pass all16 proof tests. Native
+foundation144+7 independently verified at ec503 diagnostic10394223040; timestamp
+SQL/full acceptance remains pending. Foundation qualification admission, extended
+snapshots and ledger-readiness proofs remain OPEN. No production/reference/main
+change. See quality/audits/PR310_NATIVE_TIMESTAMP_TRANSPORT_2026-09-15.md.
+
+## 2026-09-15 — complete native foundation admission
+
+Publication base82cb5d0018028364cf17713e495d37c8f9f6749d. Preserved exact prior
+history and reused the reviewed T53 predecessor helpers without its superseded
+executor. Current runtime now checks all seven groups' source/program/control
+receipts and65 unique ordered ledger files/statements. Nineteen runtime tests
+pass. The actual ec503 artifact passes admission; seven altered control hashes
+reject before ledger readback. Full514/schema/types/CI/E2E acceptance remains
+unproved; snapshot and ledger-readiness qualification findings remain open.
+Evidence: quality/audits/PR310_NATIVE_FOUNDATION_ADMISSION_2026-09-15.md.
+
+
+## 2026-09-15 — native timestamp clone NULL / schema qualification
+
+Native335f987f ordinary run34963346262/job104361913858 proves144 foundation
+and timestamps1–7; T8 applies/ledger verifies but first restoration clone hits
+JSONDecodeError on SQL NULL. Faithful5-error RED, explicit JSON null correction,
+proof16/runtime12 GREEN. Composite fixture offline4 PASS and independent
+ownership review approved; actual PG17 qualification pending. Four column
+types source/application audit added. No reference, historical SQL, types or
+production changes; acceptance remains false. See PR310_NATIVE_CLONE_NULL audit.
+
+## 2026-09-15 — complete timestamp snapshots
+
+Imported exact70ce549fa9facdec9add63f91db224ee4c2bc2bb/tree039f59bd30d5625b686c3145ff5fc0a5bdc25405.
+Preserved concurrent clone fix/tests, composite FK controls and source dispositions.
+Reapplied only reviewed non-overlapping snapshot work. Nine owned-clone SQL
+controls, finite synthetic admin cases and full non-system catalog/row scope;
+real canonical ledger rows remain separately verified. All23 proof tests pass.
+Native SQL pending; full514/schema/types/CI/E2E remain unaccepted. ReadinessOPEN.
+Evidence: quality/audits/PR310_NATIVE_TIMESTAMP_SNAPSHOT_2026-09-15.md.
+
+
+## 2026-09-15 — source-causal schema dispositions / operational privileges
+
+Published70ce549f preserves concurrent82cb5d00/61d6748e; exact tree verified.
+Combined native proof17/runtime19 PASS; current OPS34966099676 queued.
+Remaining14 non-physical column differences reconstructed28 exact hashes;
+index review proves7 UNIQUE equivalents and identifies2 open access paths.
+Actual24 extra authenticated administrative grants on6 BL001 tables motivate
+reviewed narrow candidate and fixed PG17 behavior qualification. Source/hash
+selection and YAML parse PASS; native SQL/CLI filename pending. No production,
+reference/type refresh or full acceptance. See schema grant/column/index audits.
+
+2026-09-15 — PR310 forward-source integration atop fd4fb907. Promoted unchanged
+genuine CLI sources20260915111458 and20260915121224 after pinned144+514; inventory
+603 preserves exact601 historical checksums. Operational PG17 job104375184474
+SUCCESS/artifact10395677716 SHA3965feecf1326870dc28148559aa27a4765eeefae257bc806c5ab30dd048fe72.
+Composite SQL characterization70ce549f job104370788695 SUCCESS with limited
+7FK/2trigger scope. Native/portable forward ownership, rollback/repeat, exact
+source/ledger admission and native readiness behavior reviewed without remaining
+findings. Offline auth group passes after explicit601/603 fixture partition;
+actual full native/schema/types/finalCI/merge remain OPEN. See PR310_FORWARD_SOURCE_PROMOTION_2026-09-15.md.
+
+2026-09-15 —163e8dfe published, fetched exact treece438cdd43a15fd90fea33142d1697f594ca68a4.
+Native70ce549f run34966099676/job104370788723 now fails at T8 restoration clone
+after its actual source/CLI ledger succeeds; error NATIVE_COMMAND_FAILED, exit1,
+command1449, cleanuptrue. Artifact10396872362. The prior SQL-NULL parse defect is
+gone; exact new clone cause is unobserved. Added reviewed finite utility-error
+categories and early synthetic native clone qualification without changing
+permissions/sessions/clone semantics. Proof26, runtime19, lifecycle15, ledger8,
+preflight3, historical166 offline tests PASS. Full native/schema/types remain OPEN.
+
+
+2026-09-15 Ediel v2 repair batch: immutable specification imported; Z14N parent/render, UTILTS_ERR ACK, retained UTILTS policy/date, nested/legacy DSN quarantine and SMTP uncertainty repairs verified. Final Vitest218files/2127tests; tests/app TypeScript pass. Separate PRODAT rule regression still fails identically at baseline. Evidence: quality/audits/ediel-masterplan-v2/verification.md. Full plan/replay/schema/types/release remain PARTIAL; see sole current-state.md.
+
+
+## 2026-09-15 — main merge prerequisite diagnosis
+
+User authorized whole merge before next Ediel phase. Fresh native34989328503/job104450130810 reaches144+514+6 and ledger verification, then final tenant invariant fails. Schema34989327838 fails removed-policy validation before comparison. E2E and verify fail genuine generated-type tail check; no manifest refresh. Frontier stale exact counts corrected;16 frontier and50 adjacent tests pass. Safe diagnostics under review; main remains unchanged. Active status and next action: current-state.md.
+
+Published1849497413325385b080e33f2bbfffd4073f488f, reviewed treebd3bab442377206b7ecb1a34664c1383632f7c3c equality verified. Non-forced refs retain complete ancestry. GitHub confirms PR311 merged into PR310 branch; PR310 remains unmerged to main. Actual schema34998326163/frontier34998326022/OPS34998326584 started; no acceptance yet.
+
+Follow-up DSN lookup sharing independently reviewed; local service ratchet2402 unchanged PASS, DSN20 PASS, app/tests TypeScript PASS. Full Node22 Vitest218 files/2134 tests PASS. Schema exact267 mismatch has further closed counts/ordinal/hash diagnostics only; no acceptance or manifest change.
+
+Follow-up published01ee1d55e515dea336531a3f8820bdf9eafebaf0, exact reviewed treeac3de5c3f7cac10b78ee86adb63aff46c1cf0aae verified. New schema34999483634/tenant34999483625/OPS34999483575 queued/running. PR310 main merge remains false; next phase not started. Receipt stays on closed PR311 branch to preserve running310 evidence.
+
+2026-09-15 renewed merge continuation: source-backed policy deparser and parent-delete fixture fixes independently reviewed; root qualification10/parent8/residual20/portable6 PASS. Separate closedbranch push diagnostics preserve running310 native. All actual corrected SQL results still pending; no main/production/nextphase claim. See merge-gates/schema/parent-delete/portable-invariants audits.
+
+
+2026-09-15 merge continuation: actual customer-delete35000914503/job104488786469 PASS20 cases; actual schema35000914409/job104488827297 PASS267 policy/59 removal/55 composition/2496 actor/31 view checks but genuine schema fingerprint remains rejected. Portable35001559027/job104490915869 confirms only F14 count24 after144+514+6; ca4ab72a publishes read-only identity diagnosis. Prepared908aad1d admits exact CLI-qualified seventh migration and unaccepted owned applicationtype candidates (7 local tests), no main merge or production change. Sole active boundary: current-state.md.
+
+
+2026-09-15 continued authorized main merge remediation: actual35eab5da inert qualification35006218472/job104506509692 PASS24→0, seven atomic negatives, unchanged ACL/rows, repeat/client denial/service CRUD and owned cleanup. GenuineCLI20260915181448_drop_inert_inbound_client_policies.sql SHA b04ce7766f0d3e4655778cdd6aa6fcde1bb3a0661867e381aa0939f015c9e2c1. Reviewed source10 admission prepared; original601/514+first9 hashes unchanged. Actualab0 schema35004825267 identifies historic SELECT* witness mismatch while current view hashes still exactly expected; source-declaration expansion fix prepared with fixed expected hashes. Main and nextphase remain pending; current-state.md is authoritative.
+
+### 2026-09-15 — preserve historical PUBLIC policies in the unapplied tenth forward
+
+Published fe909783888bf8389d4f6a62c6b5a1aef3bc157b (tree39a4372c9a658e9a446d925b7d4a79e70d10f198). Actual revised policy qualification35008661212/job104514750830 PASS reproduces oldcandidate55000 and preserves6source-authored PUBLIC policies while removing24inert authenticated policies.29candidate/22postcondition negatives, exactdelta/repeat/clientdenial/serviceDML/cleanupPASS; genuineCLI2.101.0 filename183840. Withdrawn181448 was UNAPPLIED; original601/514/first9 unchanged.115local supersession testsPASS. Actual standalone intake35009115834/job104516307686 PASS; native integration remains pending. Native01 finalresultF14only24, not pending. Full fe909 portable/schema runs ongoing. No main merge, next Ediel phase, live DB write or provider send.
+
+Actual fe909 follow-up: portable35009249815/job104516757959 PASS144+514+10 and all5finalSQL; exactstate/cleanupPASS. Retained-history35009250077PASS. Schema35009249751/job104516758408 now onlychanged-viewordinal2 reconstruction mismatch; actual equals expected sourcehash, other4changedviewsPASS. No native/schema/types/main acceptance.
+
+2026-09-15: Actual schema35011417125 advances past135-column changed-view checks and fails inside changed-function execution/preservation. Added closed diagnostic, no acceptance waiver. Reviewed723 attnum-only decisions (6 tests) + central1024 (8 tests) PASS; UUID/inet bounded qualifier5 controls PASS, actual PG17 pending. Main not merged.
+
+2026-09-15: fa29schema35013041700/job104529480114 confirmed overrideallow/deny failures only,22othercasesPASS/cleanupverified. Fullpermissionclone qualification+valid129seed reviewed,13offline controlsPASS; actualSQLpending. UUID/inet actual35013041767PASS;2exacttype decisions+362source nonuniqueindex nativequeryintegration reviewed,central1388/9testsPASS. Nativeintegration suites7/4/9/4/26/166PASS; actualnativequerypending. Mainnotmerged.
+
+2026-09-15: Actuala6ed fullclone35014838672/job104535546142 reachedcandidateapply after144/514/10+5SQL; stopped2visiblepublicdiagnostic dependencylabel mismatches, exactlysource-reconstructed/rootverified. Correctedfiniteidentitymatching9testsPASS; candidate/first10immutable, actual129pending,cleanupverified.
 
 2026-09-15: Independent Ediel extraction from main: 201 files/1216 tests PASS on Node22, app/tests TypeScript PASS, original specification integrity PASS, tenant ratchet2399PASS. Partial delivery only; PR310 DB/schema/types remain deferred. Evidence: quality/audits/ediel-masterplan-v2/partial-main-merge.md.
+
+2026-09-15: User resumed full PR310 remediation. Continuation8c943b61 was fast-forwarded into PR310; the F05-F12 full-clone roster adapter now checks exact tenant members and retains foreign/global/write denials. Offline tests: full seed8, clone boundary10, original native fixture10 PASS (28 total). Main de098106 is integrated into the PR branch, not vice versa. Historical state is archived; no historical migration, candidate SQL or live database changed. Full permission database run35025303437 was launched but its result is not assumed here. Native replay, reviewed schema, genuine generated types and final CI remain release gates.
+
+## 2026-09-16 — PR310 OID snapshot representation repair
+
+Confirmed PostgreSQL17 oid[] JSON strings versus integer-only Python expectations.
+Red/green reproduced;6 scope+17 clone+8 seed+10 bootstrap offline tests PASS.
+Source-pin retained and updated to the exact repaired verifier bytes. No SQL,
+ACL, migration or baseline changes. Full clone/native/schema/types remain open;
+see current-state.md.
+
+
+## 2026-09-16 — Qualified permission and Storage forward promotion
+
+Full-clone run35080283797 on8297f2e3 PASSED all129 SQL cases,24 function behaviors,
+8 exact definitions/ACLs, repeat/negative-recovery and parent/row/ledger preservation.
+Official CLI2.101.0 then generated20260916095318/20260916095319; exact candidate
+bytes and pinned receipts are retained. Registered forward count is12; original
+144/514 historical chain remains byte-bound. Post-promotion qualification retains
+all129/24 and rollback controls. Native/schema/type/current-head CI and merge are
+still pending; no production mutation or external market message was performed.
+
+
+## 2026-09-16 — RPC/index/native-forward continuation
+
+Clean descendant43f39822 preserves767966d3 and4702d036. Portable run35093927540
+passes144/514/12, RPC/views,24 function behaviors, five index/twelve predicate cases
+and18 final assertions, then fails schema fingerprint; full diff collected.
+Original native35086800997 fails forward10 after144/514/9; cleanup verified.
+Isolated native35097129294 proves LOCK25P01, corrected context, both rollback
+boundaries, real CLI ledger and repeat. Exact source-bound adapter and lock receipt
+checks pass12 forward and11 final-SQL local tests. Full current-head native/schema/
+types and final CI remain pending. No main or production mutation in this record.
+
+## 2026-09-16 — Native prerequisites and deterministic type tests
+
+Full native35100221898 on c6f7702a finished FAILED after144/514/10, at forward11 PF009; no application types were exported. The previous forward10 fix passed its full-chain boundary. Isolated native proof run35113176612 now verifies exact forward11 native provider ownership, both failure boundaries and preserved rows/ledger; complete synthetic cleanup also passes original25P01, PC001/PC002 rollback, correct lock lifetime, exact removal and repeat. Cleanup/private disposal passed. Parent15f82593 preserves the two verified type-wiring tests. The production release verifier is unchanged; only its test fixtures now use deterministic timestamps and exact rejection labels.54 focused Python tests and npm typecheck passed. Full native/schema/types acceptance and main merge remain unverified. See quality/audits/ediel-masterplan-v2/pr310-native-final-prerequisites-repair.md.
+
+## 2026-09-16 — native provider role proof and existing boundary integration
+
+Qualified native role prerequisite in35126794371 (clean98afe8a2):74 targeted
+regression tests, ten actual invalid-role rejections, one PostgreSQL cycle
+rejection, exact rollback/recovery and owned cleanup. Prior failed attempts are
+recorded separately, not counted as passes. Integrated existing36d0f80b's six
+qualified portable/routine files. Neither proof accepts the complete native
+schema, types, CI or main merge. Retained evidence and current next action are
+in current-state.md and pr310-native-provider-role-integration.md.

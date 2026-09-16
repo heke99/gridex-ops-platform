@@ -246,6 +246,7 @@ export async function processManualEmailOutbox(input?: {
       result.errors.push(`claim ${id}: company_id saknas`)
       continue
     }
+    let claimOwned = false
     let providerAccepted = false
     let deliveryPersisted = false
     let providerMessageId: string | null = null
@@ -269,8 +270,10 @@ export async function processManualEmailOutbox(input?: {
       if (claim.error) throw claim.error
       if (!claim.data) {
         result.skipped += 1
+        result.errors.push(`claim ${id}: claim_lost_before_send`)
         continue
       }
+      claimOwned = true
       result.claimed += 1
 
       const toEmail = clean(row.to_email)
@@ -361,6 +364,14 @@ export async function processManualEmailOutbox(input?: {
       const attempts = Number(row.attempts ?? 0) + 1
       const message = sendError instanceof Error ? sendError.message : String(sendError)
 
+      // A failed claim response may hide a committed claim. Only an acknowledged
+      // claim permits a transition; stale recovery handles unconfirmed leases.
+      if (!claimOwned) {
+        result.skipped += 1
+        result.errors.push(`preclaim ${id}: ${message}`)
+        continue
+      }
+
       if (providerAccepted && !deliveryPersisted) {
         const uncertainUpdate = await supabaseService
           .from('manual_email_outbox')
@@ -387,15 +398,16 @@ export async function processManualEmailOutbox(input?: {
           result.errors.push(`delivery-uncertain-update ${id}: ${uncertainUpdate.error.message}`)
         } else if (!uncertainUpdate.data) {
           result.errors.push(`delivery-uncertain-update ${id}: claim_lost_before_uncertain_persistence`)
+        } else {
+          await markLinkedRequestFailed({
+            companyId,
+            requestId: clean(row.request_id),
+            errorCode: 'delivery_uncertain',
+            message: 'E-postprovidern accepterade utskicket men lokal slutstatus kunde inte bekräftas. Kontrollera providerstatus före återköning.',
+          }).catch((error) => {
+            result.errors.push(`linked-request ${id}: ${error instanceof Error ? error.message : String(error)}`)
+          })
         }
-        await markLinkedRequestFailed({
-          companyId,
-          requestId: clean(row.request_id),
-          errorCode: 'delivery_uncertain',
-          message: 'E-postprovidern accepterade utskicket men lokal slutstatus kunde inte bekräftas. Kontrollera providerstatus före återköning.',
-        }).catch((error) => {
-          result.errors.push(`linked-request ${id}: ${error instanceof Error ? error.message : String(error)}`)
-        })
         result.deliveryUncertain += 1
         result.errors.push(`send ${id}: delivery_uncertain: ${message}`)
         continue
@@ -417,7 +429,16 @@ export async function processManualEmailOutbox(input?: {
         })
         .eq('company_id', companyId)
         .eq('id', id)
-      if (failureUpdate.error) result.errors.push(`failure-update ${id}: ${failureUpdate.error.message}`)
+        .eq('status', 'sending')
+        .eq('locked_by', workerId)
+        .select('id')
+        .maybeSingle()
+      if (failureUpdate.error || !failureUpdate.data) {
+        result.skipped += 1
+        result.errors.push(`failure-update ${id}: ${failureUpdate.error?.message ?? 'claim_lost_before_failure_persistence'}`)
+        result.errors.push(`send ${id}: ${message}`)
+        continue
+      }
       if (permanentlyFailed) {
         await markLinkedRequestFailed({ companyId, requestId: clean(row.request_id), errorCode: 'send_failed', message }).catch((error) => {
           result.errors.push(`linked-request ${id}: ${error instanceof Error ? error.message : String(error)}`)

@@ -1,0 +1,277 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-13",
+  "status": "PARTIAL",
+  "scope": "SELECTED_CHAIN_AND_BOUNDED_RESTORED_SOURCE_PROOFS_NOT_FULL_DATABASE_ACCEPTANCE",
+  "repository": "heke99/gridex-ops-platform",
+  "branch": "codex/gridex-parity-remediation-20260905",
+  "pullRequest": 310,
+  "startingCommit": "b88642d89ddab502a3f74671f8fcde8c093434d8",
+  "verifiedCodeCommit": "85149c49108e24884d82e92df9f70c6302d89c5b",
+  "verifiedTree": "0485f1c435f2f374b6209013c2a47035b510063a",
+  "implementedCodeCommits": [
+    "775d58171737ed2bd4bde779db0e18da7182280a",
+    "85149c49108e24884d82e92df9f70c6302d89c5b"
+  ],
+  "inputCounts": {
+    "FULL_FILE_SELECTED": 588,
+    "SUBSTITUTED": 2,
+    "EXPLICITLY_EXCLUDED": 5,
+    "UNCLASSIFIED": 5
+  },
+  "inventoryTotal": 600,
+  "selectedInputs": {
+    "foundation": 144,
+    "timestamp": 513
+  },
+  "restoredWholeOriginals": [
+    {
+      "path": "migrations/20260528_batch_2_completion_rulebook_actions_regression.sql",
+      "sha256": "7374dcf5f7ac5b2081a0ba752a103e60fc292f2d55f49c9f45e1db23872436f9",
+      "execution": [
+        {
+          "stage": "foundation",
+          "ordinal": 87
+        }
+      ],
+      "boundedPostconditions": 13,
+      "negativeControlVerified": true,
+      "wholeOriginalExecuted": true,
+      "independentReviewComplete": false
+    },
+    {
+      "path": "migrations/20260528_batch_7a1_inbound_hardening.sql",
+      "sha256": "4653d576effa13161ef8bdd713cb928ba9f57e8f2a16084d0f5dff2bc3d83959",
+      "execution": [
+        {
+          "stage": "foundation",
+          "ordinal": 142
+        }
+      ],
+      "boundedPostconditions": 11,
+      "negativeControlVerified": true,
+      "wholeOriginalExecuted": true,
+      "independentReviewComplete": false
+    },
+    {
+      "path": "migrations/20260529_batch_2_rulebook_hardening_and_systemtest_ui.sql",
+      "sha256": "7f71410f8b9f498286226dae76a2bc8ab1073cb43e07442ed8b5e0eb5de869be",
+      "execution": [
+        {
+          "stage": "foundation",
+          "ordinal": 144
+        }
+      ],
+      "boundedPostconditions": 30,
+      "negativeControlVerified": true,
+      "wholeOriginalExecuted": true,
+      "independentReviewComplete": false
+    },
+    {
+      "path": "migrations/20260615_multitenant_integrity_and_claim_locks.sql",
+      "sha256": "046c7ec8c885eca46d8dde306bc1b289aa7bccea3f9d4ebdd5f8580c07ca9a37",
+      "execution": [
+        {
+          "stage": "timestamp",
+          "ordinal": 69
+        }
+      ],
+      "boundedPostconditions": 19,
+      "negativeControlVerified": true,
+      "wholeOriginalExecuted": true,
+      "independentReviewComplete": false
+    }
+  ],
+  "unresolvedOriginals": [
+    {
+      "path": "migrations/01_db2_full_view_preflight_schema_and_functions.sql",
+      "sha256": "4de50050384d6892612c16484de8b198785c59cbb5d2ff03e7cea7e600d36cc9",
+      "classification": "UNCLASSIFIED",
+      "execution": [],
+      "derivedArtifacts": [],
+      "reason": "No whole-file execution, selected derived source, or explicit exclusion",
+      "diagnosticSqlstate": "42P01",
+      "remainingWork": "Historical DB2 support views refer to customer_profiles and other legacy relations without a source-backed canonical prerequisite. The file also contains generic DDL; do not silently exclude the whole file or fabricate empty legacy tables.",
+      "sqlstateScope": "LOCAL_SOURCE_ONLY_CHECKPOINT_DIAGNOSIS_NOT_CURRENT_PRODUCTION_FAILURE"
+    },
+    {
+      "path": "migrations/03_db2_validation_and_finish.sql",
+      "sha256": "74579e9fb883c1aba60933b1c82460164534d6bf171a7fb094b528f5bbb7224e",
+      "classification": "UNCLASSIFIED",
+      "execution": [],
+      "derivedArtifacts": [],
+      "reason": "No whole-file execution, selected derived source, or explicit exclusion",
+      "diagnosticSqlstate": "42883",
+      "remainingWork": "Depends on the preceding unresolved gridex_db2_v4_assert_ready and DB2 support definitions. Its source and effects must be classified together with DB2, not relabeled as a read-only SELECT.",
+      "sqlstateScope": "LOCAL_SOURCE_ONLY_CHECKPOINT_DIAGNOSIS_NOT_CURRENT_PRODUCTION_FAILURE"
+    },
+    {
+      "path": "migrations/20260521_batch_1_2_live_readiness_and_automation_hardening.sql",
+      "sha256": "9f741fb9afc07661713e8448cb394f9ec950e25eaf56ee4422b0983886f81c34",
+      "classification": "UNCLASSIFIED",
+      "execution": [],
+      "derivedArtifacts": [],
+      "reason": "No whole-file execution, selected derived source, or explicit exclusion",
+      "diagnosticSqlstate": "42P16",
+      "remainingWork": "Conflicting output-column order in ediel_active_actor_settings_v on late replay. Verify a complete early prerequisite sequence and final company-scoped definition; do not drop tenant checks to compile it.",
+      "sqlstateScope": "LOCAL_SOURCE_ONLY_CHECKPOINT_DIAGNOSIS_NOT_CURRENT_PRODUCTION_FAILURE"
+    },
+    {
+      "path": "migrations/20260521_batch_customer_intake_batch2_completion.sql",
+      "sha256": "9cf593a45de464b273eb0642645d21d4b831fbc6e2458cb41711dcfdb90fff6a",
+      "classification": "UNCLASSIFIED",
+      "execution": [],
+      "derivedArtifacts": [],
+      "reason": "No whole-file execution, selected derived source, or explicit exclusion",
+      "diagnosticSqlstate": "42703",
+      "remainingWork": "Authored tenant read policies use roles.role_key while the canonical relation uses roles.key. An isolated atomic rename experiment passed, but has no implemented guarded envelope or full policy/runtime proof; remains unresolved.",
+      "sqlstateScope": "LOCAL_SOURCE_ONLY_CHECKPOINT_DIAGNOSIS_NOT_CURRENT_PRODUCTION_FAILURE"
+    },
+    {
+      "path": "migrations/20260522_db1_schema_repair_backfill_foundation.sql",
+      "sha256": "aff5a3e4fb3aae6ebe682081cbce4876c5731be1c124650b19d8151abf6efc73",
+      "classification": "UNCLASSIFIED",
+      "execution": [],
+      "derivedArtifacts": [],
+      "reason": "No whole-file execution, selected derived source, or explicit exclusion",
+      "diagnosticSqlstate": "42P16",
+      "remainingWork": "Full DB1 source conflicts with already-redefined late views. It runs on an early source-only prefix; placement and preservation of canonical RESTRICT foreign keys require native proof. Early placement changes protected prefix contracts.",
+      "sqlstateScope": "LOCAL_SOURCE_ONLY_CHECKPOINT_DIAGNOSIS_NOT_CURRENT_PRODUCTION_FAILURE"
+    },
+    {
+      "path": "migrations/20260525_debug_fix_batch_1b_schema_code_alignment.sql",
+      "sha256": "c846be376c5f878965ea6a831d23611da959d4721cd0ebfb853fa46b10bccf68",
+      "classification": "SUBSTITUTED",
+      "execution": [],
+      "derivedArtifacts": [
+        {
+          "artifact": "bootstrap/20260525_customer_invoice_lines_runtime_foundation.sql",
+          "artifactSha256": "5a40429f7370068f4ce588cb84e63f748920c922d4a9945d0c2266a4369341ef",
+          "preserveSourceReplay": false,
+          "stage": "foundation",
+          "ordinal": 82
+        },
+        {
+          "artifact": "bootstrap/20260616_customer_portal_user_email_prerequisite.sql",
+          "artifactSha256": "09beeca9a8e0c70fbab2888cb2b6bb0993a0e5f09e516ed8518b90c5106c95c6",
+          "preserveSourceReplay": false,
+          "stage": "timestamp",
+          "ordinal": 89
+        },
+        {
+          "artifact": "bootstrap/20260716_billing_export_run_items_runtime_prerequisite.sql",
+          "artifactSha256": "e259335304bf3fa66d75183eb546a1430698dcfc0672f73423990801c443a910",
+          "preserveSourceReplay": false,
+          "stage": "timestamp",
+          "ordinal": 176
+        }
+      ],
+      "effectsStatus": "PARTIAL_EFFECTS_UNRESOLVED",
+      "diagnosticSqlstate": "42P13",
+      "remainingWork": "A function return shape conflicts with its later definition. The original runs on an early source-only prefix, but correct order, retained effects and all downstream proof boundaries are not implemented.",
+      "sqlstateScope": "LOCAL_SOURCE_ONLY_CHECKPOINT_DIAGNOSIS_NOT_CURRENT_PRODUCTION_FAILURE"
+    },
+    {
+      "path": "migrations/20260601070000_ediel_production_readiness_hardening.sql",
+      "sha256": "7a73e59f559ebb5291d3e7df74545e6918011ec9764e5c512df19fbaa5bdbc12",
+      "classification": "SUBSTITUTED",
+      "execution": [],
+      "derivedArtifacts": [
+        {
+          "artifact": "bootstrap/20260601_ediel_production_readiness_foundation.sql",
+          "artifactSha256": "31d5c9773e0f745ff3f767266bfb85f39d34c15b0a75a99aedcf7fa941f6ac66",
+          "preserveSourceReplay": false,
+          "stage": "foundation",
+          "ordinal": 100
+        }
+      ],
+      "effectsStatus": "PARTIAL_EFFECTS_UNRESOLVED",
+      "diagnosticSqlstate": "42703 / 23502",
+      "remainingWork": "Early checkpoint lacks send-lock environment; late checkpoint requires a lock_key omitted by the old seed insert. Reconcile the source-defined per-company/environment lock model without weakening the canonical uniqueness/ownership requirements.",
+      "sqlstateScope": "LOCAL_SOURCE_ONLY_CHECKPOINT_DIAGNOSIS_NOT_CURRENT_PRODUCTION_FAILURE"
+    }
+  ],
+  "nativeEvidence": [
+    {
+      "runId": 34754897290,
+      "jobId": 103717510264,
+      "tree": "e561e8d38ecbfd4d9555d440f3ae074986bc9a90",
+      "foundation": 143,
+      "timestamp": 513,
+      "sourceSelftests": 145,
+      "result": "PASS"
+    },
+    {
+      "runId": 34755559678,
+      "jobId": 103719212176,
+      "tree": "0485f1c435f2f374b6209013c2a47035b510063a",
+      "foundation": 144,
+      "timestamp": 513,
+      "sourceSelftests": 150,
+      "result": "PASS",
+      "artifactId": 10318065451,
+      "artifactSha256": "8f0193deffda28354feb9a3ead4f3ff00eefa729d3348b8e8770a32cc9119bf9"
+    },
+    {
+      "runId": 34755799372,
+      "jobId": 103719840158,
+      "commit": "85149c49108e24884d82e92df9f70c6302d89c5b",
+      "foundation": 144,
+      "timestamp": 513,
+      "result": "PASS",
+      "scope": "REPEATED_ON_PUBLISHED_CODE"
+    }
+  ],
+  "regularGates": {
+    "codeCommit": "85149c49108e24884d82e92df9f70c6302d89c5b",
+    "opsRunId": 34755799360,
+    "qualityReleaseJob": {
+      "id": 103719840231,
+      "result": "PASS"
+    },
+    "permissionNativeJob": {
+      "id": 103719840272,
+      "result": "PASS"
+    },
+    "cleanReplayTypesJob": {
+      "id": 103719840293,
+      "result": "FAIL"
+    },
+    "fullE2ERun": {
+      "id": 34755799382,
+      "result": "FAIL"
+    },
+    "tenantIntegrityRun": {
+      "id": 34755799381,
+      "result": "PASS"
+    },
+    "browserQualityRun": {
+      "id": 34755799452,
+      "result": "PASS"
+    }
+  },
+  "followupInThisTree": {
+    "status": "IMPLEMENTED_LOCAL_SOURCE_TESTS_PASSED_NATIVE_RECHECK_REQUIRED",
+    "changes": [
+      "Exact source bytes retained through HOLD are used by residual selection and rulebook seed checks; the original migration directory is not reopened.",
+      "Standalone proof counts and protected suffix assertions follow the verified 144-input selection; no old SQL or ownership/rollback gates are removed."
+    ],
+    "newRetainedByteTests": 4,
+    "residualSourceTests": 19,
+    "localNamedScopeConstructors": "legacy52, repair56, dedupe57, fixed-target, alignment68, operations71, readiness74, intake77 PASS; no native claim",
+    "localAuthGroupSelftest": "PASS"
+  },
+  "securityScanStatus": {
+    "ggshield": "NOT_AVAILABLE_NOT_RUN",
+    "dependencyAudit": "npm ci in verify job103719840438 reported11 vulnerabilities (6 moderate,4 high,1 critical); applicability and remediation not investigated in this database batch."
+  },
+  "historicalSqlModified": false,
+  "historicalChecksumManifestsModified": false,
+  "generatedTypesModified": false,
+  "productionModified": false,
+  "fullCanonicalReplayAccepted": false,
+  "ledgerProvenanceVerified": false,
+  "generatedTypesVerified": false,
+  "mainMerged": false,
+  "vercelApiOperation": false
+}

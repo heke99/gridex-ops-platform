@@ -1,0 +1,125 @@
+name: Gridex retained customer history delete qualification
+on:
+  push:
+    branches:
+      - 'codex/ediel-masterplan-v2-alignment-20260915'
+    paths:
+      - '.github/workflows/gridex-retained-parent-delete-qualification.yml'
+      - 'scripts/canonical-added-constraint-index-parent-delete-*.py'
+      - 'scripts/canonical_native_forward_runtime.py'
+      - 'scripts/canonical_forward_sources.py'
+      - 'scripts/canonical-composite-customer-fk-selftest.py'
+      - 'scripts/sql/forward-candidates/preserve-retained-customer-history-on-delete.sql'
+      - 'quality/audits/PR310_ADDED_CONSTRAINT_INDEX_*.json'
+      - 'quality/audits/PR310_SCHEMA_ACCEPTANCE_COVERAGE_2026-09-15.json'
+      - 'quality/audits/PR310_ADDED_RELATION_COLUMN_CATALOG_2026-09-15.json'
+      - 'supabase/migrations/*.sql'
+      - 'app/admin/customers/**'
+      - 'app/admin/platform/data-cleanup/actions.ts'
+      - 'lib/tenant/controlTower.ts'
+      - 'scripts/sql/tenant-isolation-invariants.sql'
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-retained-parent-delete-qualification.yml'
+      - 'scripts/canonical-added-constraint-index-parent-delete-*.py'
+      - 'scripts/canonical_native_forward_runtime.py'
+      - 'scripts/canonical_forward_sources.py'
+      - 'scripts/canonical-composite-customer-fk-selftest.py'
+      - 'scripts/sql/forward-candidates/preserve-retained-customer-history-on-delete.sql'
+      - 'quality/audits/PR310_ADDED_CONSTRAINT_INDEX_*.json'
+      - 'quality/audits/PR310_SCHEMA_ACCEPTANCE_COVERAGE_2026-09-15.json'
+      - 'quality/audits/PR310_ADDED_RELATION_COLUMN_CATALOG_2026-09-15.json'
+      - 'supabase/migrations/*.sql'
+      - 'app/admin/customers/**'
+      - 'app/admin/platform/data-cleanup/actions.ts'
+      - 'lib/tenant/controlTower.ts'
+      - 'scripts/sql/tenant-isolation-invariants.sql'
+permissions:
+  contents: read
+jobs:
+  retained-parent-delete:
+    if: >-
+      github.repository == 'heke99/gridex-ops-platform' &&
+      ((github.event_name == 'push' && github.ref == 'refs/heads/codex/ediel-masterplan-v2-alignment-20260915') ||
+       (github.event_name == 'pull_request' && github.event.pull_request.number == 310 &&
+        github.event.pull_request.head.repo.full_name == github.repository))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gridex_auth_test
+        ports:
+          - 55440:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d gridex_auth_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Qualify both FK orders and exact five-constraint candidate in owned PostgreSQL 17
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/retained-parent-delete-candidate
+          python3 -B scripts/canonical-added-constraint-index-parent-delete-tests.py
+          python3 -B scripts/canonical-added-constraint-index-parent-delete-selftest.py | tee artifacts/retained-parent-delete-candidate/qualification.json
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Create genuine CLI filename only after successful SQL qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(supabase --version)" == '2.101.0' ]]
+          python3 - <<'PY'
+          import json,pathlib
+          result=json.loads(pathlib.Path('artifacts/retained-parent-delete-candidate/qualification.json').read_text())
+          assert result['scope']=='LIMITED_FIVE_PARENT_DELETE_FK_AND_REAL_TRIGGER_FIXTURE'
+          assert result['candidateSha256']=='00f8a844fc5c72274d697558d57f216acf56388b6d36f6aad6063ca255283734'
+          assert [result[k] for k in ('foreignKeys','realUserTriggers','realFunctionBodies')]==[18,3,2]
+          assert result['cleanupVerified'] is True and result['candidateMigrationExecuted'] is True
+          assert all(result[k] is False for k in ('fullApplicationGraphVerified','actualPublicCatalogVerified','schemaAccepted','productionModified'))
+          controls=('exactFiveConstraintDeltaVerified','repeatVerified','missingLastAndUnknownShapeRejected','postDdlRollbackVerified','simultaneousParentDeleteRetainsFiveRows','preexistingNullJournalPreserved')
+          assert set(result['candidateControls'])==set(controls)
+          assert all(result['candidateControls'][k] is True for k in controls)
+          tables={'billing_disputes','customer_import_rows','customer_sync_events','data_quality_findings','document_parse_jobs'}
+          cases=result['cases']
+          assert len(cases)==20 and {(c['table'],c['compositeCreatedFirst'],c['repaired']) for c in cases}=={(t,o,r) for t in tables for o in (False,True) for r in (False,True)}
+          assert all(c['rollbackVerified'] is True and c['measuredDeleteTriggerOrder'] for c in cases)
+          assert all(c['parentDelete']=='RETAIN' and c['knownTenantPreserved'] is True for c in cases if c['repaired'])
+          assert sum(c['parentDelete']=='CASCADE' for c in cases)==4
+          assert all(c['knownTenantPreserved'] is False for c in cases if not c['repaired'] and c['table']=='customer_sync_events')
+          PY
+          candidate_root="$(mktemp -d)"
+          trap 'rm -rf -- "$candidate_root"' EXIT
+          supabase --workdir "$candidate_root" init
+          supabase --workdir "$candidate_root" migration new preserve_retained_customer_history_on_delete
+          migration_files=("$candidate_root"/supabase/migrations/*_preserve_retained_customer_history_on_delete.sql)
+          [[ "${#migration_files[@]}" == 1 && -f "${migration_files[0]}" ]]
+          cp scripts/sql/forward-candidates/preserve-retained-customer-history-on-delete.sql "${migration_files[0]}"
+          cp "${migration_files[0]}" artifacts/retained-parent-delete-candidate/
+          python3 - <<'PY'
+          import hashlib,json,pathlib,re,subprocess
+          root=pathlib.Path('artifacts/retained-parent-delete-candidate')
+          files=list(root.glob('*.sql'))
+          assert len(files)==1 and re.fullmatch(r'[0-9]{14}_preserve_retained_customer_history_on_delete.sql',files[0].name)
+          digest=hashlib.sha256(files[0].read_bytes()).hexdigest()
+          assert digest=='00f8a844fc5c72274d697558d57f216acf56388b6d36f6aad6063ca255283734'
+          receipt=dict(scope='CLI_FILENAME_AND_ISOLATED_SQL_NOT_SCHEMA_ACCEPTANCE',cliVersion='2.101.0',
+            sourceHead=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),file=files[0].name,
+            sha256=digest,isolatedPostgresVerified=True,selectedMigration=False,schemaAccepted=False,productionModified=False)
+          (root/'cli-creation.json').write_text(json.dumps(receipt,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gridex-retained-parent-delete-candidate
+          path: artifacts/retained-parent-delete-candidate/
+          if-no-files-found: error
+          retention-days: 7

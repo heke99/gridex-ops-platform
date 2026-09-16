@@ -1,0 +1,75 @@
+name: Gridex bounded database blocker diagnostics
+on:
+  pull_request:
+    paths:
+      - 'scripts/canonical-blocker-diagnostics.py'
+      - '.github/workflows/gridex-db-blocker-diagnostics.yml'
+permissions:
+  contents: read
+jobs:
+  auth-assertion:
+    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gridex_auth_test
+        ports:
+          - 55440:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d gridex_auth_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Verify published journal ACL controls on isolated PostgreSQL 17
+        run: python3 -B scripts/canonical-journal-acl-selftest.py
+      - run: python3 -B scripts/canonical-blocker-diagnostics.py auth
+      - name: Reject journal catalog deviations on isolated PostgreSQL 17
+        run: python3 -B scripts/canonical-governance-journal-acl-selftest.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gridex-auth-exact-assertion
+          path: artifacts/blocker-auth.json
+          if-no-files-found: error
+          retention-days: 7
+  native-transport:
+    if: github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    # Full timestamp execution follows the qualified foundation in this target.
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - run: |
+          python3 -B scripts/test-canonical-native-timestamp-sources.py
+          python3 -B scripts/test-canonical-native-timestamp-proof.py
+          python3 -B scripts/test-canonical-native-clone-quiesce.py
+          python3 -B scripts/test-canonical-native-timestamp-runtime.py
+          python3 -B scripts/test-canonical-forward-sources.py
+          python3 -B scripts/test-canonical-native-forward-runtime.py
+          python3 -B scripts/test-canonical-native-ledger-readiness.py
+          python3 -B scripts/test-canonical-native-final-sql.py
+          python3 -B scripts/canonical-blocker-diagnostics.py native
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gridex-native-exact-transport
+          path: |
+            artifacts/blocker-native.json
+            artifacts/native-supabase-lifecycle.json
+          if-no-files-found: error
+          retention-days: 7

@@ -54,6 +54,13 @@ begin new.email := lower(new.email); return new; end $$;
 create trigger customers_normalize before insert on customers for each row execute function selftest_normalize();
 create view active_customers as select id, company_id from customers where email is not null;
 grant select on customers to public;
+-- Built-in monitoring role exists in each throwaway database; no cluster role
+-- creation or cleanup is needed for grant-option comparison.
+grant select on customers to pg_monitor;
+grant execute on function selftest_normalize() to pg_monitor;
+grant usage on schema public to pg_monitor;
+create view secure_customers with (security_invoker=true, security_barrier=true)
+  as select id, company_id from customers;
 SQL
 }
 apply_base "$CANON_URL"
@@ -86,6 +93,11 @@ drop trigger customers_normalize on customers;
 create or replace function selftest_normalize() returns trigger language plpgsql as $$
 begin return new; end $$;
 revoke select on customers from public;
+alter view secure_customers set (security_invoker=false, security_barrier=false);
+alter table companies set (fillfactor=80);
+grant select on customers to pg_monitor with grant option;
+grant execute on function selftest_normalize() to pg_monitor with grant option;
+grant usage on schema public to pg_monitor with grant option;
 SQL
 psql "$CANON_URL" -X -q -v ON_ERROR_STOP=1 -c "alter type parity_selftest_state add value 'cancelled';"
 
@@ -121,5 +133,11 @@ expect "changed function body"       "function public.selftest_normalize(): body
 expect "revoked grant"               "relation grant public.customers SELECT -> PUBLIC: in canonical, missing in target"
 expect "added enum value"            "enum value public.parity_selftest_state.cancelled: in canonical, missing in target"
 expect "silently rewritten view"     "relation public.active_customers: view_definition differs"
+
+expect "view security options"       "relation public.secure_customers: reloptions differs"
+expect "table relation options"      "relation public.companies: reloptions differs"
+expect "relation grant delegation"   "relation grant public.customers SELECT -> pg_monitor: is_grantable differs"
+expect "function grant delegation"   "function grant public.selftest_normalize() EXECUTE -> pg_monitor: is_grantable differs"
+expect "schema grant delegation"     "schema grant public USAGE -> pg_monitor: is_grantable differs"
 
 echo "[parity selftest] PASS: every required drift class is detected"

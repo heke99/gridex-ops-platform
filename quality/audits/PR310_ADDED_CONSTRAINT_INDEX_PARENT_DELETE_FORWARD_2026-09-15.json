@@ -1,0 +1,141 @@
+{
+  "candidate": "scripts/sql/forward-candidates/preserve-retained-customer-history-on-delete.sql",
+  "candidateSha256": "00f8a844fc5c72274d697558d57f216acf56388b6d36f6aad6063ca255283734",
+  "foreignKeyContext": 18,
+  "intentRegister": "quality/audits/PR310_ADDED_CONSTRAINT_INDEX_PARENT_DELETE_INTENT_2026-09-15.json",
+  "intentRegisterSha256": "09349ed1b95aaea0aa60d7e10188e07e15c7998ef524be00ba8955157709f562",
+  "nativeSqlExecuted": false,
+  "productionModified": false,
+  "realFunctionContext": 2,
+  "realTriggerContext": 3,
+  "records": [
+    {
+      "identity": [
+        "public",
+        "billing_disputes",
+        "billing_disputes_customer_company_fk"
+      ],
+      "observedRow": {
+        "conname": "billing_disputes_customer_company_fk",
+        "contype": "f",
+        "convalidated": true,
+        "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+        "nspname": "public",
+        "relname": "billing_disputes"
+      },
+      "observedSha256": "1e7d42c4d4c83bfee570e243310f8f424faa728ad2cc1685f1f9a6c904d0daae",
+      "proposedRow": {
+        "conname": "billing_disputes_customer_company_fk",
+        "contype": "f",
+        "convalidated": true,
+        "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL (customer_id)",
+        "nspname": "public",
+        "relname": "billing_disputes"
+      },
+      "proposedSha256": "183b313298169000315f56d0102bb908c1e0a803c8313f0e5502ce617324c112"
+    },
+    {
+      "identity": [
+        "public",
+        "customer_import_rows",
+        "customer_import_rows_customer_company_fk"
+      ],
+      "observedRow": {
+        "conname": "customer_import_rows_customer_company_fk",
+        "contype": "f",
+        "convalidated": true,
+        "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+        "nspname": "public",
+        "relname": "customer_import_rows"
+      },
+      "observedSha256": "b66b2e270299a2b186d2cda94058f9eb29ba7319681190652c4a27072f3cb3e7",
+      "proposedRow": {
+        "conname": "customer_import_rows_customer_company_fk",
+        "contype": "f",
+        "convalidated": true,
+        "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL (customer_id)",
+        "nspname": "public",
+        "relname": "customer_import_rows"
+      },
+      "proposedSha256": "0564a2984c67c89cdc5ac57a27b4729b79fae2f3edf62f27c8b3461b776c8381"
+    },
+    {
+      "identity": [
+        "public",
+        "customer_sync_events",
+        "customer_sync_events_customer_company_fk"
+      ],
+      "observedRow": {
+        "conname": "customer_sync_events_customer_company_fk",
+        "contype": "f",
+        "convalidated": true,
+        "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL",
+        "nspname": "public",
+        "relname": "customer_sync_events"
+      },
+      "observedSha256": "81ccd65a6947960b1b6523582cc9542dba375e17e454a21ba97892da3e1d6980",
+      "proposedRow": {
+        "conname": "customer_sync_events_customer_company_fk",
+        "contype": "f",
+        "convalidated": true,
+        "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL (customer_id)",
+        "nspname": "public",
+        "relname": "customer_sync_events"
+      },
+      "proposedSha256": "f9c759b324ec80cb2725d8b8ece32a139cdf214f9f119961e8348a9796258059"
+    },
+    {
+      "identity": [
+        "public",
+        "data_quality_findings",
+        "data_quality_findings_customer_company_fk"
+      ],
+      "observedRow": {
+        "conname": "data_quality_findings_customer_company_fk",
+        "contype": "f",
+        "convalidated": true,
+        "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+        "nspname": "public",
+        "relname": "data_quality_findings"
+      },
+      "observedSha256": "8f8bbc3fd359d097c365cb00650240de5547a6bf063549486363aee9395215bd",
+      "proposedRow": {
+        "conname": "data_quality_findings_customer_company_fk",
+        "contype": "f",
+        "convalidated": true,
+        "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL (customer_id)",
+        "nspname": "public",
+        "relname": "data_quality_findings"
+      },
+      "proposedSha256": "fabe7e85d90f056971ced9fc3c4b4b6ecf2910bfd53c4159d360fbd7c83ca27e"
+    },
+    {
+      "identity": [
+        "public",
+        "document_parse_jobs",
+        "document_parse_jobs_customer_company_fk"
+      ],
+      "observedRow": {
+        "conname": "document_parse_jobs_customer_company_fk",
+        "contype": "f",
+        "convalidated": true,
+        "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+        "nspname": "public",
+        "relname": "document_parse_jobs"
+      },
+      "observedSha256": "b1343fdc2c85899dde079e8fd689cedd31b43c60a61888050aa4659a5b7e832d",
+      "proposedRow": {
+        "conname": "document_parse_jobs_customer_company_fk",
+        "contype": "f",
+        "convalidated": true,
+        "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL (customer_id)",
+        "nspname": "public",
+        "relname": "document_parse_jobs"
+      },
+      "proposedSha256": "dc0bdfda4073c79d96c9f2645fad33c77c2e7ec4718b2ea0e294c642eb72e7b5"
+    }
+  ],
+  "schemaAccepted": false,
+  "scope": "FIVE_SOURCE_BACKED_FORWARD_ROWS_PENDING_SQL_QUALIFICATION",
+  "selectedMigration": false
+}

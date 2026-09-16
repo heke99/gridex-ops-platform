@@ -10,8 +10,9 @@ import { supabaseService } from '@/lib/supabase/service'
  * read.
  *
  * `tenantDb(companyId)` removes the opportunity to forget: the company predicate
- * is applied by the wrapper, and inserts are stamped with it. A query built here
- * cannot be constructed without a company.
+ * is applied by the wrapper, inserts are stamped with it, and updates cannot
+ * change it. A query built here cannot be constructed without a company. Callers
+ * remain responsible for resolving an authorized company before construction.
  *
  * This is the migration path, not the destination. The destination is a database
  * role without BYPASSRLS so the policies do the work; see
@@ -43,7 +44,10 @@ export type TenantScopedTable = {
   update: (values: Record<string, unknown>) => unknown
   /** DELETE, already filtered to this company. */
   delete: () => unknown
-  /** UPSERT, with company_id stamped onto every row. */
+  /**
+   * Unsupported until the table and a company-qualified conflict target have
+   * been audited together.
+   */
   upsert: (
     values: Record<string, unknown> | Record<string, unknown>[],
     options?: Parameters<ServiceTable['upsert']>[1],
@@ -71,6 +75,19 @@ function stampCompany(
   return { ...values, company_id: companyId }
 }
 
+function prepareUpdate(values: Record<string, unknown>, companyId: string) {
+  const copiedValues = { ...values }
+
+  if (Object.prototype.hasOwnProperty.call(copiedValues, 'company_id')) {
+    if (copiedValues.company_id !== companyId) {
+      throw new Error('company_id i en tenantbunden uppdatering måste matcha det valda bolaget.')
+    }
+    delete copiedValues.company_id
+  }
+
+  return copiedValues
+}
+
 export function tenantDb(companyId: string | null | undefined): TenantScopedDb {
   const scopedCompanyId = requireCompanyId(companyId)
 
@@ -86,11 +103,16 @@ export function tenantDb(companyId: string | null | undefined): TenantScopedDb {
 
         insert: (values) => base().insert(stampCompany(values, scopedCompanyId)),
 
-        upsert: (values, options) =>
-          base().upsert(stampCompany(values, scopedCompanyId), options),
+        upsert: () => {
+          throw new Error(
+            'Generisk tenantbunden upsert stöds inte utan en tabellspecifik, granskad konfliktdefinition.',
+          )
+        },
 
-        update: (values) =>
-          base().update(values).eq('company_id', scopedCompanyId),
+        update: (values) => {
+          const copiedValues = prepareUpdate(values, scopedCompanyId)
+          return base().update(copiedValues).eq('company_id', scopedCompanyId)
+        },
 
         delete: () => base().delete().eq('company_id', scopedCompanyId),
       }

@@ -248,11 +248,19 @@ check(
   opsHardening.includes('gridex:post-332-field-511-health-residuals-regression'),
   'ops-hardening must gate the post-332 field-511 residuals regression',
 )
+// The native owner now keeps the raw CLI output private, applies the same
+// overrides, and exports only after verified cleanup. Check that actual path,
+// not the obsolete shell command that wrote rem002-database.types.ts.
+const nativeTimestampRuntime = read('scripts/canonical_native_timestamp_runtime.py')
+const nativeApplicationTypegen = read('scripts/canonical_native_application_typegen.py')
 check(
-  opsHardening.includes(
-    'apply-supabase-types-nullability-overrides.cjs rem002-database.types.ts',
-  ),
-  'clean-migration-replay must apply nullability overrides after typegen',
+  opsHardening.includes('python3 -B scripts/test-canonical-native-application-typegen.py') &&
+    opsHardening.includes('python3 -B scripts/canonical-auth-provisioning-replay.py') &&
+    /generate_application_candidate\(\s*runner,\s*forward_retained,\s*parent,\s*project\s*\)/.test(nativeTimestampRuntime) &&
+    nativeApplicationTypegen.includes('scripts/apply-supabase-types-nullability-overrides.cjs') &&
+    /candidate\s*=\s*apply_override\(outputs\[0\]\)/.test(nativeApplicationTypegen) &&
+    /parent\['_nativeApplicationTypeCandidate'\]\s*=\s*candidate/.test(nativeApplicationTypegen),
+  'clean-migration-replay must apply and test nullability overrides in the native typegen path',
 )
 check(
   npmPackageJson.includes('db:types:gen') &&

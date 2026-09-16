@@ -1,3 +1,13 @@
+# 2026-09-13 — current database reconstruction checkpoint
+
+Current status is only in current-state.md. Verified85149c4 selects144 foundation
+plus513 continuation stages; four additional whole originals have native positive
+and negative proof, seven dispositions remain(588FULL/2SUB/5UNCLASS/5EXCLUDED).
+Normal clean-replay/types remains red. Never refresh accepted schema/type baselines
+from the isolated selected chain. See DB_RESIDUAL_WHOLE_SOURCES_2026-09-13 audit.
+Retained HOLD-byte follow-up is implemented/local-tested and needs native recheck.
+All sections below are historical, not current release acceptance.
+
 # 2026-08-03 — Runtime readiness reconciliation v4
 
 - Never edit already-applied history. This repair uses forward migration

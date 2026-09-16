@@ -1,0 +1,39 @@
+name: Gridex exact source for database remediation
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/gridex-db-source-once.yml'
+  push:
+    branches:
+      - 'codex/gridex-parity-remediation-20260905'
+    paths:
+      - '.github/workflows/gridex-db-source-once.yml'
+permissions:
+  contents: read
+jobs:
+  exact-source:
+    if: (github.event_name == 'pull_request' && github.event.pull_request.number == 310 && github.event.pull_request.head.repo.full_name == github.repository) || (github.event_name == 'push' && github.ref == 'refs/heads/codex/gridex-parity-remediation-20260905')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Archive tracked source and merge ancestry without credentials or runtime data
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/gridex-db-source"
+          mkdir -p "$out"
+          git archive --format=tar.gz HEAD > "$out/source.tar.gz"
+          git bundle create "$out/source-history.bundle" HEAD refs/remotes/origin/main
+          printf 'source_commit=%s\nsource_tree=%s\nmain_commit=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" "$(git rev-parse refs/remotes/origin/main)" > "$out/receipt.txt"
+          sha256sum "$out/source.tar.gz" "$out/source-history.bundle" >> "$out/receipt.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gridex-db-source
+          path: ${{ runner.temp }}/gridex-db-source/
+          retention-days: 1
+          if-no-files-found: error

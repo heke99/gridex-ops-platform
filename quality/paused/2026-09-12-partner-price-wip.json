@@ -1,0 +1,12 @@
+{
+  "base_commit": "52b2de4d81cae370bf250e5a80f12c300bbddd16",
+  "base_tree": "76e633e2c7189807ae8b7de297a6d2e6e2343234",
+  "patch_sha256": "3eea97b0d8014c3ba0e1121617b31632d83e3950f38b252a84c70a2d9f3db0b4",
+  "file_sha256": {
+    "lib/partner-api/business.ts": "9a175c8555729f9328648db3cf235fe73cb7abc8ebc0e77a6a3a0efeb16d5024",
+    "lib/partner-api/businessOpenApi.ts": "588d8e84728afff889c151067b1ff71498ac57eee26bf90b98b132eaba99816a",
+    "lib/partner-api/openApi.ts": "e80522e9e94b4368a4032830c03033bfed8b033e6518213cf0b65e240a419d9e",
+    "__tests__/partner-price-idempotency.test.ts": "0c66b1a88fbba54504f629d11578c736f2018d7010e528483c791411e994c86e"
+  },
+  "status": "PAUSED_NOT_RELEASED"
+}

@@ -1,0 +1,29 @@
+{
+  "cli_version": "2.101.0",
+  "migrations": [
+    {
+      "basename": "20260912052507_canonical_permission_overrides_and_storage_write_guards.sql",
+      "content": "",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "basename": "20260912052508_billing_underlay_evidence_guards.sql",
+      "content": "",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "basename": "20260912052509_invoice_provider_event_atomic_apply.sql",
+      "content": "",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "receipt_version": 1,
+  "provenance": {
+    "repository": "heke99/gridex-ops-platform",
+    "commit": "02577f8ca902cf367f3af64e67a5e4043dbd8099",
+    "workflow_run": 34675511702,
+    "job": 103504560679,
+    "conclusion": "success",
+    "scope": "CLI scaffold generation in owned runner temporary directory; no database connection or migration application"
+  }
+}

@@ -1,0 +1,25 @@
+# Permission candidate readiness — conditional follow-up only
+
+No current failure is inferred from this review. The running full-schema witness must establish its actual result before any permission repair is selected. No migration, runtime function, ledger, first10 forward source or qualification contract was changed here.
+
+The archived candidate `scripts/sql/forward-candidates/20260912052507_canonical_permission_overrides_and_storage_write_guards.sql` currently hashes to73eb8a8d89b8468783d69f2829658daeb71d7deda667b5f54a9c5650cd6c47ad. Actual OPS run34999483575/job104484522059 at01ee1d55 succeeds with this exact digest: baseline10 source defect characterizations, P28/C32/F16/S24/SX2/D27, repeat, ACL recovery, row preservation and owned cleanup. The construction receipt states129 cases/1128 assertions and source composition8a32dff110dd64586dfe68b0ae071fa44241a85771ec76e2ff74318e60b2a6ef. Actual SQL PASS follows, distinct from the construction-only native=NOT_RUN line.
+
+The existing native fixture admits33 source files,82 source slices and79 ordered composition entries. All33 original pins still match. This is a bounded source-composed database, not the complete144/514/10 final target. Its success does not certify compatibility with every final helper, grant, policy or trigger.
+
+## Exact candidate surfaces
+
+The transaction creates/replaces eight functions: private effective_company_permissions, private platform_permissions, public gridex_get_user_permissions_in_company, public gridex_get_user_permissions, public canonical_authenticated_tenant_context_v1_scoped, private customer_document_path_allows, public canonical_manage_platform_user_access and public canonical_get_platform_user_permission_diagnostic. It also controls gridex_private schema usage and function ACLs, including revoking inherited/custom-role access to five arbitrary-user internals. The storage predicate keeps authenticated/service execution. Administrative writer/diagnostic remain service-only.
+
+The ordinary evaluator requires active canonical identity, company membership and active role-definition admission. It combines role/direct/active time-windowed override allows, subtracts applicable denies, and the shared evaluator unions each company's independently evaluated result. Platform admission remains separate. The administrative writer includes the two UUID-typed global NULL corrections proven by P07. The candidate does not issue table DDL, policy replacements or a data backfill, but its function behavior changes reach permission, tenant context, document storage, administrative writes and diagnostics.
+
+Dependencies include auth.users/profiles, companies/memberships, roles/user_roles, permissions/role_permissions/user_permissions/user_permission_overrides, customers/customer_sites, platform audit and command-result tables, canonical platform admission, tenant operation decisions, company read/write checks and permission helpers. The first10 forwards change other FK/ACL/policy/domain surfaces and remain immutable; their presence does not prove this candidate's compatibility.
+
+A concrete full-parent integration conflict must be addressed if the whole candidate is selected: `canonical-removed-policy-qualification.sql` validates the existing canonical_manage_platform_user_access RPC source/metadata. This candidate changes that function. Updating that qualification requires an explicit source-backed behavior/ACL decision with actual SQL evidence, not merely replacing an expected hash. Final schema diff, source decisions and genuine type generation would also need to include any new/current function metadata.
+
+## CLI identity evidence and safe options
+
+`MIGRATION_SCAFFOLD_RECEIPT_2026-09-12.json` proves CLI2.101.0 generated20260912052507 in job103504560679/run34675511702. Its receipt is for empty scaffold bytes (e3b0c442...), not the current73eb8... candidate. Subsequent actual permission runs prove candidate SQL, but no current genuine candidate scaffold later than20260915183840 was found. Any new promotion should use a freshly generated CLI identity after the current tenth source and preserve the historical scaffold/candidate records.
+
+If the next actual full-parent witness confirms shared override omission, the broad option is to qualify this exact whole candidate on an owned clone of the complete144/514/10 state, rerun the real permission cases and changed-function witness, verify the exact eight-function/schema-ACL delta, other rows/catalog preservation, repeat and cleanup, and then obtain the fresh CLI identity. The smaller option is a separately reviewed permission-evaluator-only candidate; it would need its own exact byte hash, source/runtime cases, full-parent qualification and CLI identity because the broad candidate receipt cannot certify an extracted subset. Neither option is selected or promoted by this readiness review.
+
+Skill routing: source tracing, differential review and evidence-before-completion for a read-only readiness task. No new SQL execution, live Supabase access, migration generation or publication occurred in this subtask.

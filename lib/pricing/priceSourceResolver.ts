@@ -942,6 +942,30 @@ export async function resolveBasePriceSourceValues(input: {
   };
 }
 
+// Billing evidence must resolve the same frozen commercial legs as pricing.
+// Keep normalization, legacy snapshot support, applicability and deduplication
+// together; callers must not infer spot weights from the raw snapshot arrays.
+export function resolveFrozenBaseComponents(
+  snapshot: Record<string, unknown>,
+  underlay: BillingUnderlayInput,
+): BasePriceComponent[] {
+  const snapshotBase = Array.isArray(snapshot.base_price_components_snapshot)
+    ? snapshot.base_price_components_snapshot
+    : Array.isArray(snapshot.base_price_components)
+      ? snapshot.base_price_components
+      : [];
+  const normalizedSnapshotBase = snapshotBase
+    .map((row) => (isObject(row) ? normalizeBaseComponent(row) : null))
+    .filter((row): row is BasePriceComponent => Boolean(row));
+  assertNoMidPeriodBoundaries(normalizedSnapshotBase, underlay, "Baskomponenten");
+  return filterBaseComponentsForUnderlay(
+    normalizedSnapshotBase.length > 0
+      ? normalizedSnapshotBase
+      : baseComponentsFromLegacySnapshot(snapshot),
+    underlay,
+  );
+}
+
 export async function resolvePricingConfiguration(input: {
   companyId: string;
   underlay: BillingUnderlayInput;
@@ -963,31 +987,13 @@ export async function resolvePricingConfiguration(input: {
     Object.keys(underlaySnapshot).length > 0
       ? underlaySnapshot
       : contractSnapshot;
-  const snapshotBase = Array.isArray(snapshot.base_price_components_snapshot)
-    ? snapshot.base_price_components_snapshot
-    : Array.isArray(snapshot.base_price_components)
-      ? snapshot.base_price_components
-      : [];
   const snapshotComponents = Array.isArray(snapshot.price_components_snapshot)
     ? snapshot.price_components_snapshot
     : Array.isArray(snapshot.price_components)
       ? snapshot.price_components
       : [];
 
-  const normalizedSnapshotBase = snapshotBase
-    .map((row) => (isObject(row) ? normalizeBaseComponent(row) : null))
-    .filter((row): row is BasePriceComponent => Boolean(row));
-  assertNoMidPeriodBoundaries(
-    normalizedSnapshotBase,
-    input.underlay,
-    "Baskomponenten",
-  );
-  const baseComponents = filterBaseComponentsForUnderlay(
-    normalizedSnapshotBase.length > 0
-      ? normalizedSnapshotBase
-      : baseComponentsFromLegacySnapshot(snapshot),
-    input.underlay,
-  );
+  const baseComponents = resolveFrozenBaseComponents(snapshot, input.underlay);
 
   const priceComponents = snapshotComponents
     .map((row) => (isObject(row) ? normalizePriceComponent(row) : null))

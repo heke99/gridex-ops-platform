@@ -1,0 +1,122 @@
+name: Gridex auth email action domain qualification
+on:
+  push:
+    branches:
+      - 'codex/ediel-masterplan-v2-alignment-20260915'
+    paths:
+      - 'scripts/canonical_native_forward_runtime.py'
+      - 'scripts/canonical_forward_sources.py'
+      - '.github/workflows/gridex-auth-email-action-domain-qualification.yml'
+      - 'scripts/canonical-auth-email-action-domain-selftest.py'
+      - 'scripts/canonical-composite-customer-fk-selftest.py'
+      - 'scripts/test_canonical_auth_email_action_domain.py'
+      - 'supabase/migrations/20260519_auth_callback_email_reset_sync.sql'
+      - 'supabase/migrations/20260520_direct_temporary_password_auth_sync_fix.sql'
+      - 'supabase/migrations/20260910140053_canonical_auth_provisioning_legacy_boundary.sql'
+      - 'scripts/sql/canonical-auth-provisioning-legacy-admission.sql'
+      - 'scripts/test-auth-email-action-contract.cjs'
+      - 'scripts/sql/forward-candidates/expand-auth-email-event-action-domain.sql'
+  pull_request:
+    paths:
+      - 'scripts/canonical_native_forward_runtime.py'
+      - 'scripts/canonical_forward_sources.py'
+      - '.github/workflows/gridex-auth-email-action-domain-qualification.yml'
+      - 'scripts/canonical-auth-email-action-domain-selftest.py'
+      - 'scripts/canonical-composite-customer-fk-selftest.py'
+      - 'scripts/test_canonical_auth_email_action_domain.py'
+      - 'supabase/migrations/20260519_auth_callback_email_reset_sync.sql'
+      - 'supabase/migrations/20260520_direct_temporary_password_auth_sync_fix.sql'
+      - 'supabase/migrations/20260910140053_canonical_auth_provisioning_legacy_boundary.sql'
+      - 'scripts/sql/canonical-auth-provisioning-legacy-admission.sql'
+      - 'scripts/test-auth-email-action-contract.cjs'
+      - 'scripts/sql/forward-candidates/expand-auth-email-event-action-domain.sql'
+permissions:
+  contents: read
+jobs:
+  auth-email-action-domain:
+    if: >-
+      github.repository == 'heke99/gridex-ops-platform' &&
+      ((github.event_name == 'push' && github.ref == 'refs/heads/codex/ediel-masterplan-v2-alignment-20260915') ||
+       (github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gridex_auth_test
+        ports:
+          - 55440:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d gridex_auth_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Qualify the exact seven-to-eleven action CHECK in the owned PostgreSQL 17 service
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql 'postgresql://postgres:postgres@127.0.0.1:55440/gridex_auth_test' -X -v ON_ERROR_STOP=1 -c 'CREATE ROLE authenticated NOLOGIN; CREATE ROLE service_role NOLOGIN; CREATE ROLE anon NOLOGIN;'
+          mkdir -p artifacts/auth-email-action-domain-candidate
+          python3 -B -m unittest discover -s scripts -p test_canonical_auth_email_action_domain.py
+          python3 -B scripts/canonical-auth-email-action-domain-selftest.py | tee artifacts/auth-email-action-domain-candidate/qualification.json
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Create genuine CLI filename for the qualified staged candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(supabase --version)" == '2.101.0' ]]
+          python3 - <<'PY'
+          import json,pathlib
+          root=pathlib.Path('artifacts/auth-email-action-domain-candidate')
+          qualification=json.loads((root/'qualification.json').read_text())
+          assert qualification['scope']=='LIMITED_PG17_AUTH_EMAIL_ACTION_DOMAIN_FIXTURE'
+          assert qualification['candidateSha256']=='69b8d5693f586209f37950be866e3f3dd8e5d910408c34ed9cb075daab85407c'
+          assert all(qualification[k] is True for k in ('oldDomainRejectsAddedValues','allSourceValuesAccepted','exactConstraintDeltaVerified','otherCatalogAclPoliciesRowsPreserved','serviceDmlVerified','shapeRejectionsVerified','postDdlRollbackVerified','repeatVerified','cleanupVerified'))
+          assert qualification['schemaAccepted'] is False and qualification['productionModified'] is False
+          assert (qualification['oldValueCount'],qualification['newValueCount'])==(7,11)
+          assert [qualification[k] for k in ('invalidValueSqlstate','nullValueSqlstate','clientInsertSqlstate')]==['23514','23502','42501']
+          assert qualification['actualAuthHelpersVerified'] is False and qualification['providerEmailDeliveryVerified'] is False
+          PY
+          candidate_root="$(mktemp -d)"
+          trap 'rm -rf -- "$candidate_root"' EXIT
+          supabase --workdir "$candidate_root" init
+          supabase --workdir "$candidate_root" migration new expand_auth_email_event_action_domain
+          migration_files=("$candidate_root"/supabase/migrations/*_expand_auth_email_event_action_domain.sql)
+          [[ "${#migration_files[@]}" == 1 && -f "${migration_files[0]}" ]]
+          cp scripts/sql/forward-candidates/expand-auth-email-event-action-domain.sql "${migration_files[0]}"
+          mkdir -p artifacts/auth-email-action-domain-candidate
+          cp "${migration_files[0]}" artifacts/auth-email-action-domain-candidate/
+          python3 - <<'PY'
+          import hashlib,json,pathlib,re,subprocess
+          root=pathlib.Path('artifacts/auth-email-action-domain-candidate')
+          qualification=json.loads((root/'qualification.json').read_text())
+          assert qualification['scope']=='LIMITED_PG17_AUTH_EMAIL_ACTION_DOMAIN_FIXTURE'
+          assert qualification['candidateSha256']=='69b8d5693f586209f37950be866e3f3dd8e5d910408c34ed9cb075daab85407c'
+          assert all(qualification[k] is True for k in ('oldDomainRejectsAddedValues','allSourceValuesAccepted','exactConstraintDeltaVerified','otherCatalogAclPoliciesRowsPreserved','serviceDmlVerified','shapeRejectionsVerified','postDdlRollbackVerified','repeatVerified','cleanupVerified'))
+          assert qualification['schemaAccepted'] is False and qualification['productionModified'] is False
+          files=list(root.glob('*.sql'))
+          assert len(files)==1 and re.fullmatch(r'[0-9]{14}_expand_auth_email_event_action_domain.sql',files[0].name)
+          assert files[0].name[:14] > '20260915172543', 'CLI filename must follow retained-history forward'
+          digest=hashlib.sha256(files[0].read_bytes()).hexdigest()
+          assert digest=='69b8d5693f586209f37950be866e3f3dd8e5d910408c34ed9cb075daab85407c'
+          receipt=dict(scope='CLI_FILENAME_AND_ISOLATED_SQL_NOT_SCHEMA_ACCEPTANCE',cliVersion='2.101.0',
+            sourceHead=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),file=files[0].name,
+            sha256=digest,isolatedPostgresVerified=True,selectedMigration=False,schemaAccepted=False,productionModified=False)
+          (root/'cli-creation.json').write_text(json.dumps(receipt,sort_keys=True,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gridex-auth-email-action-domain-candidate
+          path: artifacts/auth-email-action-domain-candidate/
+          if-no-files-found: error
+          retention-days: 7

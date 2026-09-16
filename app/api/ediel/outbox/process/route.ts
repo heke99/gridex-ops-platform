@@ -2,9 +2,12 @@ import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { processEdielOutbox } from '@/lib/ediel/outbox/processEdielOutbox'
 import { resolveConfiguredEdielAutomationActorId } from '@/lib/ediel/automationActor'
+import { readJsonWithLimit } from '@/lib/http/payloadLimit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+const MAX_BODY_BYTES = 256_000
 
 type EdielEnvironment = 'test' | 'production'
 
@@ -48,11 +51,15 @@ function parseLimit(value: unknown): number {
   return Math.min(Math.floor(parsed), 100)
 }
 
-async function readPostBody(request: NextRequest): Promise<Record<string, unknown>> {
-  return request.json().catch(() => ({} as Record<string, unknown>))
+async function readPostBody(request: NextRequest): Promise<Record<string, unknown> | null> {
+  const parsed = await readJsonWithLimit(request, MAX_BODY_BYTES)
+  if (!parsed.ok) return parsed.code === 'payload_too_large' ? null : {}
+  return parsed.body && typeof parsed.body === 'object' && !Array.isArray(parsed.body)
+    ? parsed.body as Record<string, unknown>
+    : {}
 }
 
-async function runOutboxProcessor(request: NextRequest, body: Record<string, unknown> = {}) {
+async function runOutboxProcessor(request: NextRequest, readBody = false) {
   if (expectedSecrets().length === 0) {
     return NextResponse.json(
       { ok: false, error: 'EDIEL_CRON_SECRET or CRON_SECRET is not configured.' },
@@ -62,6 +69,11 @@ async function runOutboxProcessor(request: NextRequest, body: Record<string, unk
 
   if (!isAuthorized(request)) {
     return NextResponse.json({ ok: false, error: 'Unauthorized.' }, { status: 401 })
+  }
+
+  const body = readBody ? await readPostBody(request) : {}
+  if (!body) {
+    return NextResponse.json({ ok: false, error: 'Payload för stor.', code: 'payload_too_large' }, { status: 413 })
   }
 
   const searchParams = request.nextUrl.searchParams
@@ -110,5 +122,5 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  return runOutboxProcessor(request, await readPostBody(request))
+  return runOutboxProcessor(request, true)
 }
