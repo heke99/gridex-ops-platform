@@ -392,6 +392,21 @@ export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEval
     const nadIv = first(rawSegments, 'NAD+IV+')
 
     switch (rule.fieldNumber) {
+      case '302':
+      case '321':
+      case '325':
+      case '326':
+      case '327': {
+        // P §2.6: qualifiers name fields; they are not their values. Preserve
+        // empty composite positions so e.g. DTM+164::203 cannot count as a date.
+        // Even an empty forbidden field must still be rejected.
+        if (rule.requirement === 'forbidden' || rule.requirement === 'not_used') {
+          return pathPresence(rawSegments, rule.segmentPath)
+        }
+        const prefix = `${normalizeSegmentPath(rule.segmentPath)}:`
+        return rawSegments.some(segment => segment.toUpperCase().startsWith(prefix)
+          && Boolean(segment.slice(prefix.length).split(':')[0]?.trim()))
+      }
       case '315': {
         const nadFr = first(rawSegments, 'NAD+FR+')
         const identity = components(element(nadFr, 2))
