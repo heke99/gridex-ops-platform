@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 3
+          fetch-depth: 4
           persist-credentials: false
       - name: Verify pinned publication program and canonical Git object delta
         env:
@@ -30,14 +30,32 @@ jobs:
           assert hashlib.sha1(b'blob '+str(len(old)).encode()+b'\0'+old).hexdigest() == 'c56fc181a43f683818cf54a53b055e0dc408fcb4'
           code = textwrap.dedent(old.decode().split("          python3 - <<'PY'\n",1)[1].split('          PY\n',1)[0])
           changes = [
-              ("==BASE, 'PARENT_REQUIRED'", "=='fc9b6acc172e634bfd90bd622cb0965680b6bd24', 'PARENT_REQUIRED'"),
+              ("==BASE, 'PARENT_REQUIRED'", "=='22e06af9908407a41920c7caf64ea47aadfea07d', 'PARENT_REQUIRED'"),
               ("fullpatch=cmd(['git','diff','--cached','--binary',BASE_TREE])", "fullpatch=cmd(['git','diff','--cached','--raw','--no-renames','--no-abbrev','-z',BASE_TREE])"),
               ("39224ab04afe94e54ac7575f802fe8357c002affa25035a8299f18e639479847','FULL_PATCH_REQUIRED'", "3255d256726ea50b70625862d92f5dfae1cb446ba35bf219e08595d347cf8ccc','FULL_OBJECT_DELTA_REQUIRED'"),
           ]
           for before, after in changes:
               assert code.count(before) == 1
               code = code.replace(before, after)
-          exec(compile(code,'verified-pr310-publication','exec'))
+          boundary = "    entries.append({'path':WORKFLOW,'mode':'100644','type':'blob','sha':None})\n"
+          assert code.count(boundary) == 1
+          prefix, tail = code.split(boundary,1)
+          ending = tail[tail.index('\ntry: main()'):]
+          blob_writer = """
+              for entry in entries:
+                  raw = entry.pop('content').encode('utf-8')
+                  digest = blob(raw)
+                  result = api('git/blobs',{'content':base64.b64encode(raw).decode(),'encoding':'base64'})
+                  require(result.get('sha')==digest,'REMOTE_BLOB_REQUIRED')
+                  entry['sha'] = digest
+              entries.append({'path':WORKFLOW,'mode':'100644','type':'blob','sha':None})
+              final={'repository':REPO,'base_commit':BASE,'publisher_commit':head,'tree':TARGET,'entries':entries,'file_count':30,'tests':tests,'ref_updated':False,'main_merged':False}
+              (Path(os.environ['RUNNER_TEMP'])/'pr310-promotion-publication.json').write_text(json.dumps(final,indent=2)+'\\n')
+              print(json.dumps(final),flush=True)
+          """
+          code = prefix + textwrap.indent(textwrap.dedent(blob_writer).strip(),'    ') + '\n' + ending
+          code = code.replace("'error_type':type(error).__name__,", "'error_type':type(error).__name__,'http_status':error.code if isinstance(error,urllib.error.HTTPError) else None,")
+          exec(compile(code,'verified-pr310-blob-publication','exec'))
           DRIVER
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
