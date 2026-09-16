@@ -1,0 +1,314 @@
+diff --git a/.github/workflows/gridex-full-permission-clone.yml b/.github/workflows/gridex-full-permission-clone.yml
+index fe91ff18c..76d272390 100644
+--- a/.github/workflows/gridex-full-permission-clone.yml
++++ b/.github/workflows/gridex-full-permission-clone.yml
+@@ -6,6 +6,8 @@ on:
+       - codex/ediel-masterplan-v2-alignment-20260915
+       - codex/gridex-parity-remediation-20260905
+     paths:
++      - 'scripts/canonical-auth-provisioning-legacy-batch.py'
++      - 'scripts/canonical-storage-reference-qualification.py'
+       - 'scripts/canonical_storage_bootstrap.py'
+       - 'scripts/test-canonical-storage-bootstrap.py'
+       - '.github/workflows/gridex-full-permission-clone.yml'
+@@ -51,6 +53,8 @@ jobs:
+         run: |
+           python3 scripts/test-canonical-full-permission-clone.py
+           python3 scripts/test-canonical-permission-full-seed.py
++      - name: Prove aligned independent Storage references and mismatch rejection
++        run: python3 -B scripts/canonical-storage-reference-qualification.py
+       - name: Qualify exact permission candidate after complete replay
+         shell: bash
+         run: |
+diff --git a/scripts/canonical-auth-provisioning-legacy-batch.py b/scripts/canonical-auth-provisioning-legacy-batch.py
+index 47d64532c..e46dc0fea 100644
+--- a/scripts/canonical-auth-provisioning-legacy-batch.py
++++ b/scripts/canonical-auth-provisioning-legacy-batch.py
+@@ -170,10 +170,12 @@ def literal(value):
+ 
+ class OwnedPostgres:
+     """Created and destroyed here; no external-target constructor or URL fallback."""
+-    def __init__(self, *, postgis=False):
+-        if type(postgis) is not bool:
++    def __init__(self, *, postgis=False, storage_dml=False):
++        if type(postgis) is not bool or type(storage_dml) is not bool:
+             raise BoundaryError('OWNED_PROFILE_REQUIRED')
+         self._postgis=postgis
++        self._storage_dml=storage_dml
++        self._created_storage_dml=storage_dml
+         self.name=os.environ.get('GRIDEX_LEGACY_CONTAINER_NAME') or ('gridex-auth-legacy-'+secrets.token_hex(8))
+         if not re.fullmatch(r'gridex-auth-legacy-[a-z0-9-]{8,80}',self.name):
+             raise BoundaryError('OWNED_TARGET_REQUIRED')
+@@ -285,9 +287,26 @@ class OwnedPostgres:
+         self.docker(['exec',self.name,'dropdb','-U','postgres','--if-exists','--force',database])
+         self.docker(['exec',self.name,'createdb','-U','postgres',database])
+ 
++    def bootstrap_sql(self):
++        """One fixed profile for both independent references and replay targets.
++
++        Default users retain the historical bootstrap byte-for-byte. The full
++        Storage clone opts into the already-qualified platform DML substrate
++        before either reference or replay is constructed; no catalog is edited
++        after capture and no mismatch is excluded from comparison.
++        """
++        if (type(self._storage_dml) is not bool or
++                self._storage_dml is not self._created_storage_dml):
++            raise BoundaryError('OWNED_PROFILE_REQUIRED')
++        original=(ROOT/'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_bytes()
++        if self._storage_dml:
++            import canonical_storage_bootstrap
++            return canonical_storage_bootstrap.render(original)
++        return original.decode('utf-8')
++
+     def prefix(self,database):
+         self.reset(database)
+-        bootstrap=(ROOT/'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_text()
++        bootstrap=self.bootstrap_sql()
+         # R owns a BEGIN/COMMIT, so prefix is intentionally outside the batch
+         # transaction; whole immutable prefix bytes are never stripped.
+         files=[self.private('bootstrap.sql',bootstrap),self.private('prefix-search-path.sql','SET search_path = public,extensions;')]
+diff --git a/scripts/canonical-full-permission-clone-qualification.py b/scripts/canonical-full-permission-clone-qualification.py
+index 4bdf7d94e..deb313aad 100644
+--- a/scripts/canonical-full-permission-clone-qualification.py
++++ b/scripts/canonical-full-permission-clone-qualification.py
+@@ -43,7 +43,7 @@ def receipt(outcome,phase,progress):
+         ledgerProvenanceVerified=False,generatedTypesVerified=False,productionModified=False)
+ 
+ 
+-INPUT_PINS={'scripts/canonical_storage_bootstrap.py': '5bf70f4c989f40a79ff3a6db71d24851edf340cb4f604411d23578429c787b79', 'scripts/canonical_permission_full_seed.py': 'd58f46ad1596cfb73a0bb6cd5769a94b6ffce2020269297015ea80445f0873ee', 'scripts/canonical_changed_function_witness.py': 'a1eff86d0efecc058af45dc54411bb9056bc4cd96e7fa5b057374ee8cdefcce3', 'scripts/canonical-permission-native-fixture.py': '47425b626551df891f6b13c86390ac9b23239cbe26a3651558572778eceab3a8', 'scripts/canonical-portable-invariants-diagnostic.py': '2737b29ea13cd8d666e16e501f81f5c11d270e5c89aac4a9a88291e6bed21cb9', 'scripts/canonical_native_timestamp_snapshot.py': 'e36911fc25dae81d5d8187ddf7de472af602bbad3e6ec68dc4c657dc6fe23757', 'scripts/sql/canonical-user-rbac-repair-catalog.sql': '1d6315ea6d4d542a01e4b697f1cc2b4528a227f2be7e7052f47c8a04166103c7'}
++INPUT_PINS={'scripts/canonical_storage_bootstrap.py': '312e287ed12353fa7b39073d6af6f69cb9e80fbeaeb8239d1f46a6128626325b', 'scripts/canonical_permission_full_seed.py': 'd58f46ad1596cfb73a0bb6cd5769a94b6ffce2020269297015ea80445f0873ee', 'scripts/canonical_changed_function_witness.py': 'a1eff86d0efecc058af45dc54411bb9056bc4cd96e7fa5b057374ee8cdefcce3', 'scripts/canonical-permission-native-fixture.py': '47425b626551df891f6b13c86390ac9b23239cbe26a3651558572778eceab3a8', 'scripts/canonical-portable-invariants-diagnostic.py': '2737b29ea13cd8d666e16e501f81f5c11d270e5c89aac4a9a88291e6bed21cb9', 'scripts/canonical_native_timestamp_snapshot.py': 'e36911fc25dae81d5d8187ddf7de472af602bbad3e6ec68dc4c657dc6fe23757', 'scripts/sql/canonical-user-rbac-repair-catalog.sql': '1d6315ea6d4d542a01e4b697f1cc2b4528a227f2be7e7052f47c8a04166103c7'}
+ 
+ 
+ def retained_inputs():
+@@ -309,7 +309,7 @@ def run():
+     result = None
+     phase = 'OWNED_TARGET'
+     progress = {'foundationApplied': 0, 'timestampApplied': 0}
+-    with legacy.OwnedPostgres(postgis=True) as target:
++    with legacy.OwnedPostgres(postgis=True, storage_dml=True) as target:
+         private_directory = Path(target.directory.name)
+         try:
+             phase = 'SPATIAL_RUNTIME_ADMISSION'
+@@ -335,7 +335,7 @@ def run():
+                 loop.validate(str(hold), paths)
+                 phase = 'PLATFORM_BOOTSTRAP'
+                 target.sql(controller.DATABASE,
+-                           storage_bootstrap.render((ROOT / 'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_bytes()),
++                           target.bootstrap_sql(),
+                            'frontier_bootstrap', transaction=False)
+                 storage_bootstrap.validate(json.loads(target.sql(controller.DATABASE, storage_bootstrap.CAPTURE,
+                     'storage_bootstrap_dml_profile')), allowed=True)
+diff --git a/scripts/canonical-storage-reference-qualification.py b/scripts/canonical-storage-reference-qualification.py
+new file mode 100644
+index 000000000..7ce8d1a92
+--- /dev/null
++++ b/scripts/canonical-storage-reference-qualification.py
+@@ -0,0 +1,107 @@
++#!/usr/bin/env python3
++"""Prove Storage bootstrap/reference alignment on isolated PostgreSQL only.
++
++Reproduce the exact two-ACL mismatch and 42804, then independently construct
++matching references and execute all nine original foundation44-52 sources.
++No production target, RLS exemption, migration rewrite or schema acceptance.
++"""
++import importlib.util
++import json
++from pathlib import Path
++import signal
++import sys
++import canonical_storage_bootstrap as storage
++
++ROOT = Path(__file__).resolve().parents[1]
++spec = importlib.util.spec_from_file_location('storage_reference_legacy',
++    ROOT/'scripts/canonical-auth-provisioning-legacy-batch.py')
++legacy = importlib.util.module_from_spec(spec)
++sys.modules[spec.name] = legacy
++spec.loader.exec_module(legacy)
++REFERENCE = 'gridex_auth_legacy_reference'
++REPLAY = 'gridex_auth_legacy_replay'
++
++
++def check(condition):
++    if not condition:
++        raise ValueError('STORAGE_REFERENCE_PROOF_REQUIRED')
++
++
++def rejected(target):
++    before = target.catalog(REPLAY)
++    try:
++        legacy.execute(target,REPLAY,legacy.reviewed_paths())
++    except legacy.BoundaryError as error:
++        check(type(error) is legacy.BoundaryError and error.args==('UNEXPECTED_SQL_RESULT',))
++        raw = (Path(target.directory.name)/'client-last.out').read_text(errors='replace')
++        check(legacy.safe_receipt(raw,3,'profile_negative')['sqlstate']=='42804')
++    else:
++        raise ValueError('STORAGE_REFERENCE_NEGATIVE_REQUIRED')
++    check(target.catalog(REPLAY)==before)
++
++
++def run():
++    if len(sys.argv)!=1:
++        raise ValueError('NO_TARGET_OR_SCOPE_ARGUMENTS_ACCEPTED')
++    def interrupted(_signum,_frame):
++        raise ValueError('STORAGE_REFERENCE_INTERRUPTED')
++    signal.signal(signal.SIGTERM,interrupted)
++    signal.signal(signal.SIGINT,interrupted)
++    original = (ROOT/'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_bytes()
++    sources = tuple((p,p.read_bytes()) for p in legacy.reviewed_paths())
++    # Negative control reproduces the old caller: default references, but
++    # Storage DML initialized only on replay, before any historical source.
++    with legacy.OwnedPostgres(postgis=True) as target:
++        negative_dir = Path(target.directory.name)
++        target.prefix(REFERENCE)
++        before = target.catalog(REFERENCE)
++        target.reset(REPLAY)
++        files = [target.private('bootstrap.sql',storage.render(original)),
++                 target.private('prefix-search-path.sql','SET search_path = public,extensions;')]
++        files.extend(target.private('prefix-'+str(i)+'.sql',sql)
++                     for i,(_,sql) in enumerate(legacy.verified_prefix(),1))
++        target.run_files(REPLAY,files,'mismatched_first43',transaction=False)
++        after = target.catalog(REPLAY)
++        changed = {key for key in set(before)|set(after) if before.get(key)!=after.get(key)}
++        check(changed=={'relation/storage.buckets','relation/storage.objects'})
++        for key in changed:
++            check({k:v for k,v in before[key].items() if k!='acl'}==
++                  {k:v for k,v in after[key].items() if k!='acl'})
++        target.reference = (before,None)
++        rejected(target)
++        check(target.catalog(REFERENCE)==before)
++    check(not target.active and not negative_dir.exists())
++    print(json.dumps(dict(case='mismatched_storage_substrate',sqlstate='42804',
++        exactAclDeltas=2,rollbackVerified=True,cleanupVerified=True)),flush=True)
++    # The opt-in profile is selected before both independent constructions.
++    # Original source bytes and all catalog equality/negative gates stay intact.
++    with legacy.OwnedPostgres(postgis=True,storage_dml=True) as target:
++        positive_dir = Path(target.directory.name)
++        legacy.prepare_reference(target)
++        target.prefix(REPLAY)
++        check(target.catalog(REPLAY)==target.reference[0])
++        result = legacy.execute(target,REPLAY,legacy.reviewed_paths())
++        check(result['sources']==9 and target.catalog(REPLAY)==target.reference[1])
++        legacy.execute(target,REPLAY,legacy.reviewed_paths())
++        check(target.catalog(REPLAY)==target.reference[1])
++        storage.validate(json.loads(target.sql(REPLAY,storage.CAPTURE,'storage_profile')),allowed=True)
++        target.sql(REPLAY,'GRANT TRUNCATE ON storage.objects TO authenticated;','unexpected_acl')
++        rejected(target)
++    check(not target.active and not positive_dir.exists())
++    check((ROOT/'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_bytes()==original)
++    check(all(p.read_bytes()==raw for p,raw in sources))
++    print(json.dumps(dict(scope='STORAGE_REFERENCE_FOUNDATION52_ONLY',outcome='PASS',
++        independentCatalogsEqual=True,originalSourcesExecuted=9,repeatVerified=True,
++        unexpectedAclRejected=True,storageDmlChecks=24,sourcePreserved=True,
++        cleanupVerified=True,completeReplayVerified=False,schemaAccepted=False,
++        productionModified=False)),flush=True)
++    return 0
++
++
++if __name__=='__main__':
++    try:
++        raise SystemExit(run())
++    except Exception:
++        print(json.dumps(dict(scope='STORAGE_REFERENCE_FOUNDATION52_ONLY',outcome='FAIL',
++            completeReplayVerified=False,productionModified=False)),flush=True)
++        raise SystemExit(1) from None
+diff --git a/scripts/canonical_native_legacy_envelope.py b/scripts/canonical_native_legacy_envelope.py
+index a4c00b586..4ddadf919 100644
+--- a/scripts/canonical_native_legacy_envelope.py
++++ b/scripts/canonical_native_legacy_envelope.py
+@@ -18,7 +18,7 @@ from pathlib import Path
+ 
+ ROOT = Path(__file__).resolve().parents[1]
+ PINS = {
+-    'canonical-auth-provisioning-legacy-batch.py': 'adad170c149ddacf5d7c1f2ba9d0255518bd5c20b50def8b705ad38b54bf57b8',
++    'canonical-auth-provisioning-legacy-batch.py': '41954e58d88017ba4b4ab8b6ededec0e9df89d6f0883268f4723756e69d2c92b',
+     'sql/canonical-auth-provisioning-legacy-admission.sql': '164298b223d28d7fb28cb0d96189892da2dbbca04dc354ae39302ed58645afa5',
+     'sql/canonical-auth-provisioning-legacy-assertions.sql': 'df55959f4205fe9c1c3caea4edbb0ee0c8e083798e40332e0b4f08adc7255caa',
+     'sql/canonical-auth-provisioning-legacy-catalog.sql': '50ecb6deb8e160bc8c98fcca11bb8c976a852ad9d8f1f98aafe185dd18246fcb',
+diff --git a/scripts/canonical_storage_bootstrap.py b/scripts/canonical_storage_bootstrap.py
+index 5a3ec76f5..5785ca1e5 100644
+--- a/scripts/canonical_storage_bootstrap.py
++++ b/scripts/canonical_storage_bootstrap.py
+@@ -29,7 +29,7 @@ INITIALIZE = """
+ -- Test substrate only. Existing owned-runtime checks are also mandatory.
+ DO $storage_bootstrap$
+ BEGIN
+-  IF current_database() NOT IN ('gridex_auth_legacy_replay','gridex_auth_legacy_native','gridex_auth_legacy_atomic')
++  IF current_database() NOT IN ('gridex_auth_legacy_reference','gridex_auth_legacy_replay','gridex_auth_legacy_native','gridex_auth_legacy_atomic')
+      OR to_regclass('public.companies') IS NOT NULL
+      OR to_regclass('public.company_memberships') IS NOT NULL
+      OR EXISTS (SELECT FROM storage.buckets)
+diff --git a/scripts/test-canonical-storage-bootstrap.py b/scripts/test-canonical-storage-bootstrap.py
+index 522eed7cb..845a73ce0 100644
+--- a/scripts/test-canonical-storage-bootstrap.py
++++ b/scripts/test-canonical-storage-bootstrap.py
+@@ -2,6 +2,9 @@
+ """Offline boundaries for owned Storage initialization, not SQL acceptance."""
+ import copy
+ import hashlib
++import importlib.util
++import sys
++from unittest.mock import patch
+ import canonical_storage_bootstrap as m
+ from pathlib import Path
+ import unittest
+@@ -12,11 +15,58 @@ ROOT = Path(__file__).resolve().parents[1]
+ class RoutingTests(unittest.TestCase):
+     def test_full_clone_initializes_storage_before_any_foundation_source(self):
+         source = (ROOT/'scripts/canonical-full-permission-clone-qualification.py').read_text()
+-        self.assertTrue('storage_bootstrap.render(' in source)
+-        self.assertLess(source.index('storage_bootstrap.render('), source.index('loop.run(str(hold), paths)'))
++        self.assertTrue('target.bootstrap_sql()' in source)
++        self.assertLess(source.index('target.bootstrap_sql()'), source.index('loop.run(str(hold), paths)'))
+         self.assertNotIn('GRANT SELECT', source[source.index('def matrix('):source.index('def qualify(')])
+ 
+ 
++class RuntimeProfileTests(unittest.TestCase):
++    @classmethod
++    def setUpClass(cls):
++        path = ROOT/'scripts/canonical-auth-provisioning-legacy-batch.py'
++        spec = importlib.util.spec_from_file_location('storage_profile_legacy',path)
++        cls.legacy = importlib.util.module_from_spec(spec)
++        sys.modules[spec.name] = cls.legacy
++        spec.loader.exec_module(cls.legacy)
++
++    def test_profile_is_explicit_and_default_bytes_stay_unchanged(self):
++        original = (ROOT/'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_bytes()
++        default = self.legacy.OwnedPostgres()
++        selected = self.legacy.OwnedPostgres(storage_dml=True)
++        self.assertEqual(default.bootstrap_sql(),original.decode())
++        self.assertEqual(selected.bootstrap_sql(),m.render(original))
++        for value in (None,1,'true',{},[]):
++            with self.assertRaises(self.legacy.BoundaryError):
++                self.legacy.OwnedPostgres(storage_dml=value)
++
++    def test_changed_profile_cannot_be_used_after_construction(self):
++        target = self.legacy.OwnedPostgres(storage_dml=True)
++        target._storage_dml = False
++        with self.assertRaisesRegex(self.legacy.BoundaryError,'OWNED_PROFILE_REQUIRED'):
++            target.bootstrap_sql()
++
++    def test_independent_prefix_uses_the_same_selected_bootstrap(self):
++        target = self.legacy.OwnedPostgres(storage_dml=True)
++        originals = self.legacy.verified_prefix()
++        seen = []
++        def private(name,raw):
++            seen.append((name,raw))
++            return name
++        with patch.object(target,'reset'),patch.object(target,'private',side_effect=private), \
++             patch.object(target,'run_files') as run:
++            target.prefix('gridex_auth_legacy_reference')
++        self.assertEqual(seen[0],('bootstrap.sql',target.bootstrap_sql()))
++        self.assertEqual([raw for _,raw in seen[2:]],[raw for _,raw in originals])
++        self.assertEqual(run.call_args.kwargs,{'transaction':False})
++        self.assertEqual(len(seen),45)
++
++    def test_full_clone_selects_profile_before_independent_reference_creation(self):
++        source = (ROOT/'scripts/canonical-full-permission-clone-qualification.py').read_text()
++        self.assertTrue('with legacy.OwnedPostgres(postgis=True, storage_dml=True) as target:' in source)
++        self.assertLess(source.index('storage_dml=True'),source.index('prepare_reference(target'))
++        self.assertIn('target.bootstrap_sql()',source)
++
++
+ class ContractTests(unittest.TestCase):
+     def profile(self, allowed=True):
+         return [{'object_name': table, 'role_name': role, 'privilege_name': privilege,
