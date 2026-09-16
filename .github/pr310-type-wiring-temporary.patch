@@ -1,0 +1,48 @@
+diff --git a/scripts/gridex-ops-post-332-field-511-health-residuals-regression.cjs b/scripts/gridex-ops-post-332-field-511-health-residuals-regression.cjs
+index 28b7b85b..e4022069 100644
+--- a/scripts/gridex-ops-post-332-field-511-health-residuals-regression.cjs
++++ b/scripts/gridex-ops-post-332-field-511-health-residuals-regression.cjs
+@@ -248,11 +248,19 @@ check(
+   opsHardening.includes('gridex:post-332-field-511-health-residuals-regression'),
+   'ops-hardening must gate the post-332 field-511 residuals regression',
+ )
+-check(
+-  opsHardening.includes(
+-    'apply-supabase-types-nullability-overrides.cjs rem002-database.types.ts',
+-  ),
+-  'clean-migration-replay must apply nullability overrides after typegen',
++// The native owner now keeps the raw CLI output private, applies the same
++// overrides, and exports only after verified cleanup. Check that actual path,
++// not the obsolete shell command that wrote rem002-database.types.ts.
++const nativeTimestampRuntime = read('scripts/canonical_native_timestamp_runtime.py')
++const nativeApplicationTypegen = read('scripts/canonical_native_application_typegen.py')
++check(
++  opsHardening.includes('python3 -B scripts/test-canonical-native-application-typegen.py') &&
++    opsHardening.includes('python3 -B scripts/canonical-auth-provisioning-replay.py') &&
++    /generate_application_candidate\(\s*runner,\s*forward_retained,\s*parent,\s*project\s*\)/.test(nativeTimestampRuntime) &&
++    nativeApplicationTypegen.includes('scripts/apply-supabase-types-nullability-overrides.cjs') &&
++    /candidate\s*=\s*apply_override\(outputs\[0\]\)/.test(nativeApplicationTypegen) &&
++    /parent\['_nativeApplicationTypeCandidate'\]\s*=\s*candidate/.test(nativeApplicationTypegen),
++  'clean-migration-replay must apply and test nullability overrides in the native typegen path',
+ )
+ check(
+   npmPackageJson.includes('db:types:gen') &&
+diff --git a/scripts/test-canonical-native-application-typegen.py b/scripts/test-canonical-native-application-typegen.py
+index 581e8696..d3ae0b55 100644
+--- a/scripts/test-canonical-native-application-typegen.py
++++ b/scripts/test-canonical-native-application-typegen.py
+@@ -37,7 +37,13 @@ class Tests(unittest.TestCase):
+       self.assertNotIn('_nativeApplicationTypeCandidate',parent)
+      else:
+       m.execute(runner,(),parent,'owned-project')
+-      self.assertFalse(parent['nativeApplicationTypeCandidate']['generatedTypesVerified'])
++      receipt=parent['nativeApplicationTypeCandidate']
++      expected=m.apply_override(RAW)
++      self.assertFalse(receipt['generatedTypesVerified'])
++      self.assertNotEqual(expected,RAW)
++      self.assertEqual(parent['_nativeApplicationTypeCandidate'],expected)
++      self.assertEqual(receipt['candidateSha256'],m.sha(expected))
++      self.assertEqual(receipt['rawSha256'],m.sha(RAW))
+       self.assertEqual(runner.native.call_count,2)
+  def test_no_export_before_success_and_disposal(self):
+   for success,cleanup,disposed in ((False,True,True),(True,False,True),(True,True,False)):
