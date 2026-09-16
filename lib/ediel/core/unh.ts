@@ -1,4 +1,4 @@
-import { splitComposite, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
+import { segmentComposite, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 
 export type ParsedUnh = {
@@ -14,7 +14,7 @@ export type ParsedUnh = {
 export function parseUnh(segment: EdifactTokenizedSegment | null | undefined, una: EdifactServiceStringAdvice): ParsedUnh | null {
   if (!segment || segment.tag !== 'UNH') return null
   const token = segment.elements[2] ?? ''
-  const parts = splitComposite(token, una)
+  const parts = segmentComposite(segment, 2, una)
 
   return {
     messageReference: segment.elements[1] || null,
