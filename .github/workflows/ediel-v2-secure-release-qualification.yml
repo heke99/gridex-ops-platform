@@ -1,0 +1,125 @@
+name: Independent Ediel v2 secure release qualification
+on:
+  push:
+    branches: [work/ediel-v2-independent-continuation-20260916]
+    paths: [.github/workflows/ediel-v2-secure-release-qualification.yml]
+permissions:
+  contents: write
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: gridex-public-browser-e2e-anon-key
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Materialize reviewed source and genuine locked security updates
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ediel-secure"
+          echo '6d7837c63ec2e720feeb3fd21184909a304723809e9e2497abb122b7bbd519b5  security-candidate/next.config.ts' | sha256sum --check
+          echo 'd8cfa33687de96d5fbcd62c2b270122663a34399140ab4e89a6e53001e12ef9b  security-candidate/next-navigation-chunks.test.ts' | sha256sum --check
+          cp -r security-candidate "$RUNNER_TEMP/ediel-secure/input"
+          git checkout --detach c83b9c51caf3614488cc7481a00ae221d60f2cf3
+          cp "$RUNNER_TEMP/ediel-secure/input/next.config.ts" next.config.ts
+          cp "$RUNNER_TEMP/ediel-secure/input/next-navigation-chunks.test.ts" __tests__/next-navigation-chunks.test.ts
+          node <<'JS'
+          const fs=require('fs'),p=JSON.parse(fs.readFileSync('package.json','utf8'));
+          Object.assign(p.dependencies,{next:'16.3.5',nodemailer:'9.1.1',imapflow:'1.7.8'});
+          p.devDependencies['eslint-config-next']='16.3.5';p.overrides.sharp='0.35.4';
+          fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n');
+          JS
+          npm install --package-lock-only --ignore-scripts --no-audit
+          npm update baseline-browser-mapping --package-lock-only --ignore-scripts --no-audit
+          npm ci --ignore-scripts
+          npm audit --omit=dev --json > "$RUNNER_TEMP/ediel-secure/audit-after.json"
+          npm run security:audit-production
+          npm ls next eslint-config-next nodemailer imapflow sharp baseline-browser-mapping > "$RUNNER_TEMP/ediel-secure/dependencies.txt"
+      - name: Test mail boundaries without sending and actual native image bindings
+        run: |
+          node <<'JS'
+          const assert=require('node:assert/strict'),mailer=require('nodemailer'),sharp=require('sharp');
+          (async()=>{
+            const transport=mailer.createTransport({streamTransport:true,buffer:true,disableFileAccess:true,disableUrlAccess:true});
+            const result=await transport.sendMail({from:'sender@example.invalid',to:'receiver@example.invalid',subject:'Ediel regression',messageId:'<ediel-security-test@example.invalid>',text:'UNB+UNOC:3+SENDER+RECEIVER'});
+            assert.deepEqual(result.envelope.to,['receiver@example.invalid']);
+            assert.match(result.message.toString(),/Message-ID: <ediel-security-test@example.invalid>/);
+            await assert.rejects(transport.sendMail({from:'sender@example.invalid',to:'receiver@example.invalid',attachments:[{path:'/nonexistent-ediel-test-file'}]}),/File access rejected/);
+            await assert.rejects(transport.sendMail({from:'sender@example.invalid',to:'receiver@example.invalid',attachments:[{href:'https://example.invalid/ediel-test'}]}),/Url access rejected/);
+            const image=await sharp({create:{width:2,height:2,channels:3,background:{r:0,g:0,b:0}}}).resize(1,1).png().toBuffer();
+            assert.equal((await sharp(image).metadata()).width,1);
+            console.log('PASS stream-only mail, denied file/URL access and Sharp native roundtrip');
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+      - name: Verify source identity, all types and tests, lint, production build and unchanged budgets
+        run: |
+          set -euo pipefail
+          {
+            node --experimental-vm-modules --test scripts/test-ediel-rule-pack-source-identity.cjs
+            npm run ediel:masterplan-v2:integrity
+            npm run db:migrations:check
+            npm run typecheck
+            npm run typecheck:tests
+            npm run typecheck:scripts
+            npm test
+            npm run lint
+            npm run api:compatibility
+            npm run security:rbac
+            npm run build
+            npm run quality:bundle-budget
+          } 2>&1 | tee "$RUNNER_TEMP/ediel-secure/tests.log"
+          node <<'JS'
+          const fs=require('fs'),p='.next/static/chunks';
+          const chunks=fs.readdirSync(p).filter(f=>f.endsWith('.js')).map(file=>({file,bytes:fs.statSync(p+'/'+file).size})).sort((a,b)=>b.bytes-a.bytes);
+          if(!chunks.some(c=>c.file.startsWith('gridex-navigation-cache-')))throw Error('Expected measured navigation cache chunk missing');
+          fs.writeFileSync(process.env.RUNNER_TEMP+'/ediel-secure/client-chunks.json',JSON.stringify({totalRootChunkBytes:chunks.reduce((a,c)=>a+c.bytes,0),chunks},null,2));
+          JS
+      - name: Verify actual production browser navigation and accessibility on localhost only
+        run: |
+          set -euo pipefail
+          npx playwright install --with-deps chromium > "$RUNNER_TEMP/ediel-secure/browser-install.log" 2>&1
+          cat > playwright.security-production.config.mjs <<'JS'
+          import base from './playwright.config.mjs';
+          export default {...base,webServer:{...base.webServer,command:'npm run start -- --hostname 127.0.0.1',reuseExistingServer:false}};
+          JS
+          npx playwright test e2e/browser/public.spec.mjs --config=playwright.security-production.config.mjs 2>&1 | tee "$RUNNER_TEMP/ediel-secure/browser-production.log"
+          rm playwright.security-production.config.mjs
+      - name: Publish only verified four-file descendant, not main or paused PR310
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GIT_TERMINAL_PROMPT: '0'
+        run: |
+          set -euo pipefail
+          node <<'JS'
+          const {execFileSync}=require('child_process'),assert=require('assert/strict');
+          assert.deepEqual(execFileSync('git',['diff','--name-only'],{encoding:'utf8'}).trim().split('\n').sort(),['next.config.ts','package-lock.json','package.json']);
+          JS
+          git add package.json package-lock.json next.config.ts __tests__/next-navigation-chunks.test.ts
+          test "$(git diff --cached --name-only | wc -l)" -eq 4
+          git diff --cached --check
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix: secure production dependencies and isolate measured navigation cache chunk'
+          branch='codex/ediel-v2-security-verified-20260916'
+          test "$(gh api "repos/heke99/gridex-ops-platform/git/ref/heads/$branch" --jq '.object.sha')" = c83b9c51caf3614488cc7481a00ae221d60f2cf3
+          git -c credential.helper= -c 'credential.helper=!f() { printf "username=x-access-token\npassword=%s\n" "$GH_TOKEN"; }; f' push https://github.com/heke99/gridex-ops-platform.git "HEAD:refs/heads/$branch"
+          git branch security-qualified-output HEAD
+          git bundle create "$RUNNER_TEMP/ediel-secure/qualified.bundle" security-qualified-output
+          git rev-parse HEAD HEAD^{tree} > "$RUNNER_TEMP/ediel-secure/qualified.txt"
+          git diff HEAD^ HEAD -- package.json package-lock.json next.config.ts __tests__/next-navigation-chunks.test.ts > "$RUNNER_TEMP/ediel-secure/qualified.patch"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ediel-v2-secure-release-evidence
+          path: |
+            ${{ runner.temp }}/ediel-secure/
+            e2e-artifacts/
+          retention-days: 14
+          if-no-files-found: error
