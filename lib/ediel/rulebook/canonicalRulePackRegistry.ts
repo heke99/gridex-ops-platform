@@ -82,6 +82,17 @@ function booleanValue(row: DbRow, key: keyof DbRow): boolean {
   return row[key] as boolean
 }
 
+function isCalendarDate(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value) || value.startsWith('0000-')) return false
+  const date = new Date(`${value}T00:00:00.000Z`)
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
+}
+
+function evidenceDate(value: unknown, field: 'valid_from' | 'valid_to'): string {
+  if (!isCalendarDate(value)) throw new Error(`canonical_rule_pack_evidence_date_invalid:${field}`)
+  return value
+}
+
 function normalizeDbEvidence(value: unknown): CanonicalRulePackResolution {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error('canonical_rule_pack_result_invalid')
@@ -93,6 +104,13 @@ function normalizeDbEvidence(value: unknown): CanonicalRulePackResolution {
   }
   const market = requiredText(row, 'market')
   if (market !== 'electricity') throw new Error(`canonical_rule_pack_market_invalid:${market}`)
+  const validFrom = evidenceDate(row.valid_from, 'valid_from')
+  const validTo = row.valid_to === null ? null : evidenceDate(row.valid_to, 'valid_to')
+  if (validTo && validTo < validFrom) throw new Error('canonical_rule_pack_evidence_date_window_invalid')
+  const sourceHash = requiredText(row, 'source_hash')
+  // Matches the existing SQL constraint; format validation is not proof that
+  // the source document itself has been independently acquired/certified.
+  if (!/^[a-f0-9]{64}$/.test(sourceHash)) throw new Error('canonical_rule_pack_evidence_source_hash_invalid')
   return {
     rulePackId: requiredText(row, 'rule_pack_id'),
     messageProfileId: requiredText(row, 'message_profile_id'),
@@ -101,10 +119,10 @@ function normalizeDbEvidence(value: unknown): CanonicalRulePackResolution {
     guideVersion: requiredText(row, 'guide_version'),
     guideRevision: requiredText(row, 'guide_revision'),
     unhAssociationCode: requiredText(row, 'unh_association_code'),
-    validFrom: requiredText(row, 'valid_from'),
-    validTo: nullableText(row.valid_to),
+    validFrom,
+    validTo,
     sourceDocument: requiredText(row, 'source_document'),
-    sourceHash: requiredText(row, 'source_hash'),
+    sourceHash,
     fieldMatrixVersion: nullableText(row.field_matrix_version),
     profileKey: requiredText(row, 'profile_key'),
     businessProcess: requiredText(row, 'business_process'),
@@ -306,7 +324,7 @@ export async function resolveCanonicalRulePack(params: {
   requireBuilder?: boolean
   requireStateMachine?: boolean
 }): Promise<CanonicalRulePackResolution> {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(params.businessDate)) {
+  if (!isCalendarDate(params.businessDate)) {
     throw new Error('canonical_rule_pack_business_date_invalid')
   }
 
@@ -348,9 +366,14 @@ export async function resolveCanonicalRulePack(params: {
     guideVersion: source.policy.guide.guideRevision,
     guideRevision: source.policy.guide.guideRevision,
     unhAssociationCode: source.associationAssignedCode,
-    validFrom: source.policy.guide.effectiveFrom,
-    validTo: source.policy.guide.effectiveTo,
-    sourceDocument: source.policy.guide.documentName,
+    // Activation may be narrower than the normative guide. Never widen it,
+    // and keep its document paired with its hash. Normative dates/document
+    // belong to the source policy, not to invented activation evidence.
+    validFrom: evidence.validFrom > source.policy.guide.effectiveFrom
+      ? evidence.validFrom : source.policy.guide.effectiveFrom,
+    validTo: evidence.validTo && source.policy.guide.effectiveTo
+      ? (evidence.validTo < source.policy.guide.effectiveTo ? evidence.validTo : source.policy.guide.effectiveTo)
+      : evidence.validTo ?? source.policy.guide.effectiveTo,
     profileKey: source.profileKey,
     businessProcess: source.businessProcess,
     phase: source.phase,
