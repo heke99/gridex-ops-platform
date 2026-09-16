@@ -1,0 +1,85 @@
+diff --git a/scripts/canonical-native-provider-role-qualification.py b/scripts/canonical-native-provider-role-qualification.py
+index c40a36fe..9105b4d5 100644
+--- a/scripts/canonical-native-provider-role-qualification.py
++++ b/scripts/canonical-native-provider-role-qualification.py
+@@ -5,6 +5,7 @@ historical schema, application DML, accepted baseline or hosted target is touche
+ """
+ import importlib.util
+ import json
++import re
+ from pathlib import Path
+ import subprocess
+ import sys
+@@ -43,7 +44,8 @@ def run():
+     snapshot="SELECT jsonb_build_object('roles',(SELECT jsonb_agg(jsonb_build_object('name',rolname,'super',rolsuper,'bypass',rolbypassrls,'login',rolcanlogin,'inherit',rolinherit,'createdb',rolcreatedb,'createrole',rolcreaterole,'replication',rolreplication) ORDER BY rolname) FROM pg_roles),'edges',(SELECT jsonb_agg(jsonb_build_object('role',pg_get_userbyid(roleid),'member',pg_get_userbyid(member),'grantor',pg_get_userbyid(grantor),'admin',admin_option,'inherit',inherit_option,'set',set_option) ORDER BY roleid,member,grantor) FROM pg_auth_members));"
+     original=life.check_container
+     proofs=[]
+-    def checked(data,project,network):
++    phase=['owner']
++    def checked_impl(data,project,network):
+         meta=original(data,project,network)
+         if proofs:raise ValueError('NATIVE_ROLE_PROOF_ONCE_REQUIRED')
+         # The local infrastructure owner is used only for rolled-back poison
+@@ -51,22 +53,31 @@ def run():
+         def sql(query):
+             original(data,project,network)
+             command=['docker','exec','-i','supabase_db_'+project,'psql','-XqAt','-w',
+-                     '-h','127.0.0.1','-p','5432','-U','supabase_admin','-d','postgres','-v','ON_ERROR_STOP=1']
++                     '-h','127.0.0.1','-p','5432','-U','supabase_admin','-d','postgres','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose']
+             result=subprocess.run(command,input=query.encode(),capture_output=True,timeout=30)
+-            if result.returncode:raise ValueError('NATIVE_ROLE_PROOF_SQL_REQUIRED')
++            if result.returncode:
++                found=re.findall(rb'ERROR: +([A-Z0-9]{5}):',result.stderr)
++                state=found[0].decode() if len(found)==1 else 'XXXXX'
++                print(json.dumps(dict(stage='native_role_proof_sql_failure',phase=phase[0],sqlstate=state)),flush=True)
++                raise ValueError('NATIVE_ROLE_PROOF_SQL_REQUIRED')
+             return [json.loads(line) for line in result.stdout.splitlines() if line.strip()]
+         if sql("SELECT to_json(current_user='supabase_admin' AND inet_client_addr()='127.0.0.1'::inet AND rolsuper) FROM pg_roles WHERE rolname=current_user;")!=[True]:
+             raise ValueError('NATIVE_ROLE_PROOF_OWNER_REQUIRED')
++        phase[0]='baseline_capture'
+         before=sql(snapshot)
+         context,rows=sql('BEGIN READ ONLY;\n'+body+principals+'\nROLLBACK;')
++        phase[0]='exact_native_context'
+         digest=provider.validate(context)
++        phase[0]='old_guard_rejection'
+         try:policy.validate_role_graph(rows)
+         except ValueError as error:
+             if error.args!=('REMOVED_POLICY_ROLE_GRAPH_REQUIRED',):raise
+         else:raise ValueError('PRISTINE_OLD_FAILURE_REQUIRED')
++        phase[0]='new_guard_admission'
+         policy.validate_role_graph(rows,context)
+         rejected=[]
+         for name,mutation in CASES:
++            phase[0]=name
+             changed_context,changed_rows=sql('BEGIN;\n'+mutation+'\n'+body+principals+'\nROLLBACK;')
+             try:policy.validate_role_graph(changed_rows,changed_context)
+             except ValueError as error:
+@@ -77,6 +88,7 @@ def run():
+             policy.validate_role_graph(restored_rows,restored_context)
+             if restored_context!=context or restored_rows!=rows:raise ValueError('NATIVE_ROLE_RECOVERY_REQUIRED')
+             rejected.append(name)
++        phase[0]='unrelated_unprivileged_login'
+         final_context,final_rows=sql('BEGIN; CREATE ROLE gridex_role_probe LOGIN NOINHERIT;\n'+body+principals+'\nROLLBACK;')
+         policy.validate_role_graph(final_rows,final_context)
+         if sql(snapshot)!=before:raise ValueError('NATIVE_ROLE_POISON_ROLLBACK_REQUIRED')
+@@ -86,6 +98,20 @@ def run():
+             rollbackAndRecoveryVerified=True,unrelatedUnprivilegedLoginAccepted=True,
+             schemaAccepted=False,generatedTypesVerified=False,productionModified=False))
+         return meta
++    def checked(data,project,network):
++        try:return checked_impl(data,project,network)
++        except Exception as error:
++            allowed={'NATIVE_ROLE_PROOF_ONCE_REQUIRED','NATIVE_ROLE_PROOF_SQL_REQUIRED',
++                'NATIVE_ROLE_PROOF_OWNER_REQUIRED','PRISTINE_OLD_FAILURE_REQUIRED',
++                'NATIVE_ROLE_NEGATIVE_REJECTED_REQUIRED','NATIVE_ROLE_POISON_ROLLBACK_REQUIRED',
++                'NATIVE_ROLE_RECOVERY_REQUIRED','REMOVED_POLICY_ROLE_GRAPH_REQUIRED',
++                'REMOVED_POLICY_NATIVE_PROVIDER_CHAIN_REQUIRED'}
++            reason=error.args[0] if type(error) is ValueError and len(error.args)==1 and error.args[0] in allowed else 'UNCLASSIFIED'
++            diagnostic=dict(scope='NATIVE_ROLE_PROOF_DIAGNOSTIC_NOT_ACCEPTANCE',phase=phase[0],reason=reason)
++            (ROOT/'artifacts').mkdir(exist_ok=True)
++            (ROOT/'artifacts/native-provider-role-diagnostic.json').write_text(json.dumps(diagnostic)+'\n')
++            print(json.dumps(diagnostic),flush=True)
++            raise
+     life.check_container=checked
+     rc=life.run_guarded()
+     report=json.loads((ROOT/'artifacts/native-supabase-lifecycle.json').read_bytes())
