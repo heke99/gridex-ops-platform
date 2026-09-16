@@ -1,0 +1,124 @@
+name: PR310 exact native lock integration qualification
+on:
+  push:
+    branches: ['codex/pr310-source-export-20260916']
+    paths:
+      - '.github/workflows/pr310-native-lock-integration.yml'
+      - 'pr310-native-lock-integration.zlib.b64'
+permissions:
+  contents: read
+jobs:
+  qualify-and-publish:
+    if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/codex/pr310-source-export-20260916'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Materialize only the checksum-bound fourteen-file candidate
+        id: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY'
+          import base64, hashlib, os, zlib
+          from pathlib import Path
+          raw = Path('pr310-native-lock-integration.zlib.b64').read_bytes()
+          assert hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest() == '2bbf1db54d3ab1210c65537a63bafa07bce21fe6'
+          text = raw.decode().strip()
+          # Correct two known transport-only transcription duplications. Both
+          # the incoming object and decoded patch/tree remain independently pinned.
+          for old, new in [('mfebVjVjV2','mfebVjV2'), ('ei2rNXNfNq9','ei2rNXNq9')]:
+              assert text.count(old) == 1
+              text = text.replace(old, new)
+          patch = zlib.decompress(base64.b64decode(text, validate=True))
+          assert hashlib.sha256(patch).hexdigest() == 'fa32a51c38662d0e5915e1ccf99a85b9216568c50fb259c3dcdeceabcd602bc4'
+          Path(os.environ['RUNNER_TEMP'], 'pr310-native-lock.patch').write_bytes(patch)
+          PY
+          git checkout --detach 43f39822a3e3df4909e32b7a4eecbbf8fee56836
+          test "$(git rev-parse 'HEAD^{tree}')" = 7c6ea085ee6028fea96a11d65b20be3bac00adeb
+          git apply --check --index "$RUNNER_TEMP/pr310-native-lock.patch"
+          git apply --index "$RUNNER_TEMP/pr310-native-lock.patch"
+          test "$(git write-tree)" = 5111b71af6dd735260dc66f121c0b4703bd9f5aa
+          test "$(git diff --cached --name-only | wc -l)" -eq 14
+          commit=$(printf '%s\n' 'fix: preserve forward10 lock context through native CLI ledger verification' | git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit-tree 5111b71af6dd735260dc66f121c0b4703bd9f5aa -p 43f39822a3e3df4909e32b7a4eecbbf8fee56836)
+          git checkout --detach "$commit"
+          echo "sha=$commit" >> "$GITHUB_OUTPUT"
+          printf 'candidate=%s\ntree=%s\nparent=%s\n' "$commit" "$(git rev-parse 'HEAD^{tree}')" 43f39822a3e3df4909e32b7a4eecbbf8fee56836 > "$RUNNER_TEMP/pr310-lock-receipt.txt"
+      - name: Verify compiler, metadata, source integrity and unchanged release gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            python3 -B scripts/test-canonical-native-forward-runtime.py
+            python3 -B scripts/test-canonical-native-final-sql.py
+            python3 -B scripts/test-canonical-native-application-typegen.py
+            python3 -B scripts/test-canonical-native-schema-reference.py
+            python3 -B scripts/test-canonical-native-release-verify.py
+            python3 -B scripts/canonical-native-supabase-lifecycle-selftest.py
+            python3 -B scripts/canonical-auth-membership-group-selftest.py
+            python3 -B scripts/test-canonical-promoted-routine-reference.py
+            python3 -B scripts/test-canonical-changed-index-witness.py
+            python3 -B scripts/canonical-owned-timestamp-selftest.py
+            node scripts/check-migration-versions.cjs
+            node scripts/check-public-contract-legal-migration.cjs
+            node scripts/check-database-contract-hardening.cjs
+          } 2>&1 | tee "$RUNNER_TEMP/pr310-lock-tests.log"
+      - name: Verify the actual compiler wrapper with the official isolated native CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(supabase --version)" = 2.101.0
+          supabase migration new --help
+          supabase migration up --help
+          python3 -B scripts/canonical-native-forward-lock-qualification.py
+          python3 -B - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('artifacts/forward-lock-preflight.json').read_bytes())
+          assert report['outcome'] == 'LOCK_CONTEXT_QUALIFIED_NOT_RELEASE'
+          assert report['compiledProgramSha256'] == '595d3f0d3cb0a5469bb64e11904219eacf52f0982d21200f3251eea9655e3560'
+          assert report['completeSourceByteRoundtripVerified'] is True
+          assert report['cleanupVerified'] is True and report['privateWorkspaceRemoved'] is True
+          assert report['productionModified'] is False and report['schemaAccepted'] is False
+          assert report['generatedTypesVerified'] is False
+          PY
+          git diff --exit-code
+          test "$(git rev-parse 'HEAD^{tree}')" = 5111b71af6dd735260dc66f121c0b4703bd9f5aa
+      - name: Publish only the tested descendant to its existing qualification branch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GIT_TERMINAL_PROMPT: '0'
+          CANDIDATE_SHA: ${{ steps.candidate.outputs.sha }}
+        run: |
+          set -euo pipefail
+          branch='codex/pr310-routine-reference-qualified-20260916'
+          current=$(gh api "repos/heke99/gridex-ops-platform/git/ref/heads/$branch" --jq '.object.sha')
+          test "$current" = 43f39822a3e3df4909e32b7a4eecbbf8fee56836
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          git -c credential.helper= -c 'credential.helper=!f() { printf "username=x-access-token\npassword=%s\n" "$GH_TOKEN"; }; f' push "https://github.com/heke99/gridex-ops-platform.git" "HEAD:refs/heads/$branch"
+          test "$(gh api "repos/heke99/gridex-ops-platform/git/ref/heads/$branch" --jq '.object.sha')" = "$CANDIDATE_SHA"
+          printf 'published=%s\nmain_modified=false\nrelease_accepted=false\n' "$CANDIDATE_SHA" >> "$RUNNER_TEMP/pr310-lock-receipt.txt"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr310-native-lock-integration-qualification
+          path: |
+            ${{ runner.temp }}/pr310-lock-receipt.txt
+            ${{ runner.temp }}/pr310-lock-tests.log
+            artifacts/forward-lock-preflight.json
+          if-no-files-found: error
+          retention-days: 2
