@@ -55,7 +55,7 @@ def retained_inputs():
             raise ValueError("PERMISSION_QUALIFICATION_SOURCE_REQUIRED")
         result.append((name,raw))
     scope_source=ROOT/'scripts/canonical_storage_policy_scope.py'
-    if scope_source.resolve()!=scope_source or hashlib.sha256(scope_source.read_bytes()).hexdigest()!='3ee6247c931b564542ed61b969b7d2e8f1f0d87f2806862b7d10e0ac367530ec':
+    if scope_source.resolve()!=scope_source or hashlib.sha256(scope_source.read_bytes()).hexdigest()!='56d94278c8956ee774311ac1cacdafe80c6063edb4f705aef73c5927f78fd43e':
         raise ValueError('PERMISSION_QUALIFICATION_SOURCE_REQUIRED')
     storage_policy_scope.candidate()
     return tuple(result)

@@ -8,11 +8,11 @@ class ScopeTests(unittest.TestCase):
     def snapshots(self):
         before = dict(catalog={'unrelated': {'unchanged': True}}, rows={'storage.objects': [2,'hash']}, ledger=[])
         for key,command in zip(m.KEYS,('r','a')):
-            before['catalog'][key] = dict(command=command,permissive=True,roles=[0],
+            before['catalog'][key] = dict(command=command,permissive=True,roles=['0'],
                 using='original predicate' if command=='r' else None,
                 check='original predicate' if command=='a' else None)
         after=copy.deepcopy(before)
-        for key in m.KEYS:after['catalog'][key]['roles']=[123]
+        for key in m.KEYS:after['catalog'][key]['roles']=['123']
         return before,after
 
     def test_only_two_policy_role_lists_may_change(self):
@@ -32,10 +32,18 @@ class ScopeTests(unittest.TestCase):
         for value in (None,True,'123',0,-1):
             with self.assertRaises(ValueError):m.verify_delta(before,after,value)
         for key in m.KEYS:
-            for role in ([123],[],[0,123]):
+            for role in ([0],[True],['00'],['123'],[],['0','123']):
                 bad=copy.deepcopy(before);bad['catalog'][key]['roles']=role
                 with self.assertRaises(ValueError):m.verify_delta(bad,after,123)
         self.assertEqual(before,self.snapshots()[0])
+
+    def test_numeric_or_noncanonical_postimage_role_is_rejected(self):
+        before,after=self.snapshots()
+        for value in ([123],[True],[123.0],['0123'],['0'],['123','0']):
+            bad=copy.deepcopy(after)
+            bad['catalog'][m.KEYS[0]]['roles']=value
+            with self.subTest(value=value),self.assertRaises(ValueError):
+                m.verify_delta(before,bad,123)
 
     def test_errors_are_closed_and_never_disclose_free_text(self):
         for table in ('roles','user_roles'):

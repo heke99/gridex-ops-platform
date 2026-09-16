@@ -83,11 +83,12 @@ def verify_delta(before, after, role):
         policy = expected['catalog'].get(key)
         if (type(policy) is not dict or set(policy) != {'command','permissive','roles','using','check'}
                 or policy['command'] != command or policy['permissive'] is not True
-                or policy['roles'] != [0]
+                or policy['roles'] != ['0']
                 or (command == 'r' and (not policy['using'] or policy['check'] is not None))
                 or (command == 'a' and (policy['using'] is not None or not policy['check']))):
             raise ValueError('STORAGE_POLICY_SCOPE_PREIMAGE_REQUIRED')
-        policy['roles'] = [role]
+        # pg_policy.polroles is oid[]: PostgreSQL JSON encodes OIDs as strings.
+        policy['roles'] = [str(role)]
     if expected != after:
         raise ValueError('STORAGE_POLICY_SCOPE_UNEXPECTED_DELTA')
 
@@ -121,7 +122,7 @@ def qualify(target, legacy, database, capture, s21):
         'ALTER POLICY grid_owner_agreements_platform_read ON storage.objects TO PUBLIC;',
         'scope_negative_setup')
     negative = copy.deepcopy(after)
-    negative['catalog'][KEYS[0]]['roles'] = [0]
+    negative['catalog'][KEYS[0]]['roles'] = ['0']
     if capture() != negative:
         raise ValueError('STORAGE_POLICY_SCOPE_NEGATIVE_DELTA_REQUIRED')
     if sql(target, legacy, database, s21, 'scope_negative_s21', '42501') != denied:
