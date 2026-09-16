@@ -1,0 +1,39 @@
+name: PR310 isolated native forward lock preflight
+on:
+  push:
+    branches: ['codex/pr310-source-export-20260916']
+    paths:
+      - 'scripts/canonical-native-forward-lock-preflight.py'
+      - '.github/workflows/pr310-forward-lock-preflight.yml'
+permissions:
+  contents: read
+jobs:
+  lock-context:
+    if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/codex/pr310-source-export-20260916'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Discover the pinned native CLI commands
+        run: |
+          set -euo pipefail
+          test "$(supabase --version)" = 2.101.0
+          supabase db start --help
+          supabase migration new --help
+          supabase migration up --help
+      - name: Qualify original lock rejection, atomic context and ledger lifetime
+        run: python3 -B scripts/canonical-native-forward-lock-preflight.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr310-native-forward-lock-preflight
+          path: artifacts/forward-lock-preflight.json
+          retention-days: 2
+          if-no-files-found: error
