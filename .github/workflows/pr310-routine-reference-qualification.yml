@@ -37,6 +37,7 @@ jobs:
           assert hashlib.sha256(raw).hexdigest()=='1ceb0631761cfbb2fc37f4c4f225a4f60138a4f10c3a70a78a1cc21492e91042','PATCH_TRANSPORT_BYTES_CHANGED'
           PY
           git read-tree "$base"
+          git update-index --refresh
           git apply --check --index "$RUNNER_TEMP/reviewed.patch"
           git apply --index "$RUNNER_TEMP/reviewed.patch"
           test "$(git write-tree)" = '164c5bb0cb6e438e5c19543351b6f60c12c207c0'
