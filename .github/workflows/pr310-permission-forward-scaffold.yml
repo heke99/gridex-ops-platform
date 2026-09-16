@@ -1,0 +1,60 @@
+name: PR310 permission forward scaffold
+on:
+  push:
+    branches:
+      - repair/pr310-permission-forward-build-20260916
+    paths:
+      - .github/workflows/pr310-permission-forward-scaffold.yml
+permissions:
+  contents: read
+jobs:
+  scaffold-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: a684f17cea548f037d09d14a38acd46f303f34e5
+          persist-credentials: false
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Generate one real forward identity in an isolated empty directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/permission-forward-scaffold"
+          mkdir -m 700 "$work"
+          supabase --version | tee "$RUNNER_TEMP/scaffold-cli-version.txt"
+          test "$(supabase --version)" = '2.101.0'
+          supabase --help > "$RUNNER_TEMP/scaffold-cli-help.txt"
+          supabase init --help > "$RUNNER_TEMP/scaffold-init-help.txt"
+          supabase migration new --help > "$RUNNER_TEMP/scaffold-new-help.txt"
+          supabase --workdir "$work" init
+          supabase --workdir "$work" migration new canonical_permission_overrides_and_storage_write_guards
+          export SCAFFOLD_WORK="$work"
+          python3 - <<'PY'
+          import hashlib,json,os,re,shutil
+          from pathlib import Path
+          work=Path(os.environ['SCAFFOLD_WORK'])
+          files=list((work/'supabase/migrations').glob('*.sql'))
+          assert len(files)==1
+          path=files[0]
+          assert re.fullmatch(r'[0-9]{14}_canonical_permission_overrides_and_storage_write_guards.sql',path.name)
+          assert path.name[:14]>'20260915183840'
+          original=Path('scripts/sql/forward-candidates/20260912052507_canonical_permission_overrides_and_storage_write_guards.sql')
+          raw=original.read_bytes()
+          assert hashlib.sha256(raw).hexdigest()=='73eb8a8d89b8468783d69f2829658daeb71d7deda667b5f54a9c5650cd6c47ad'
+          scaffold_sha=hashlib.sha256(path.read_bytes()).hexdigest()
+          path.write_bytes(raw)
+          out=Path('artifacts/pr310-forward-scaffold');out.mkdir(parents=True)
+          shutil.copyfile(path,out/path.name)
+          (out/'receipt.json').write_text(json.dumps(dict(scope='GENUINE_CLI_SCAFFOLD_ONLY_NOT_PROMOTED',cliVersion='2.101.0',file=path.name,scaffoldSha256=scaffold_sha,candidateSha256=hashlib.sha256(raw).hexdigest(),baseCommit='a684f17cea548f037d09d14a38acd46f303f34e5',runId=os.environ['GITHUB_RUN_ID'],sqlExecuted=False,productionModified=False),indent=2)+'\n')
+          print((out/'receipt.json').read_text())
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pr310-forward-scaffold
+          path: artifacts/pr310-forward-scaffold
+          if-no-files-found: error
+          retention-days: 3
