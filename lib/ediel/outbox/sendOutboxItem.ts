@@ -19,12 +19,6 @@ function lockMatchesEnvironment(row: Record<string, unknown>, environment: strin
 }
 
 function lockIsActive(row: Record<string, unknown>): boolean {
-  // `ediel_send_locks.locked` is the canonical, NOT NULL lock state. The older
-  // `status` column defaults to `active` and is intentionally not projected by
-  // canonical_transition_ediel_production. Treating status='active' as a lock
-  // therefore re-locks a tenant immediately after the canonical transition has
-  // set locked=false. Keep expiry as an additional release condition, but let
-  // the canonical boolean own the decision.
   const locked = row.locked === true
   const expiresAt = clean(row.expires_at)
   const expired = expiresAt ? Date.parse(expiresAt) <= Date.now() : false
@@ -72,7 +66,6 @@ async function updateOutboxStatus(params: {
   if (error) throw error
   if (!data) throw new Error('ediel_outbox_claim_lost_before_status_update')
 }
-
 
 export async function sendOutboxItem(params: {
   actorUserId: string
@@ -228,6 +221,7 @@ export async function sendOutboxItem(params: {
           route_id: routeContract.routeId,
           receiver_ediel_id: routeContract.receiverEdielId,
           receiver_subaddress: routeContract.receiverSubaddress,
+          receiver_email: routeContract.receiverEmail,
           receiver_certificate_id: routeContract.certificateId,
           receiver_certificate_fingerprint: routeContract.certificateFingerprint,
           checks: routeContract.checks,
@@ -264,11 +258,6 @@ export async function sendOutboxItem(params: {
     providerAccepted = true
     providerMessageId = result.messageId ?? null
 
-    // sendEdielMessageViaSmtp persists the canonical technical send first. Read
-    // it back and project that exact timestamp into linked source records before
-    // the outbox is allowed to become `sent`. If this projection fails after
-    // SMTP acceptance, the catch path marks the outbox delivery_uncertain so a
-    // retry cannot accidentally resend the already accepted message.
     const persistedMessage = await getEdielMessageById(edielMessageId, { companyId })
     if (!persistedMessage || !['provider_accepted', 'sent', 'delivered', 'acknowledged'].includes(String(persistedMessage.status))) {
       throw new Error('ediel_post_send_canonical_message_not_persisted')
