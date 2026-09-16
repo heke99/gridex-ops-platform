@@ -8,6 +8,7 @@ on:
       - 'docs/ediel/masterplan-v2/**'
       - 'quality/audits/ediel-masterplan-v2/**'
       - 'scripts/check-ediel-masterplan-v2.cjs'
+      - 'scripts/test-ediel-rule-pack-source-identity.cjs'
       - 'package*.json'
       - '.github/workflows/ediel-masterplan-v2.yml'
   push:
@@ -27,6 +28,8 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Verify immutable specification and evidence references
         run: npm run ediel:masterplan-v2:integrity
+      - name: Verify selected source identity without database dependencies
+        run: node --experimental-vm-modules --test scripts/test-ediel-rule-pack-source-identity.cjs
       - name: Verify protocol, retained UTILTS decisions and delivery-report isolation
         run: >-
           npx vitest run
@@ -36,3 +39,4 @@ jobs:
           __tests__/ediel-dsn-classification.test.ts
           __tests__/ediel-smtp-outcome.test.ts
           __tests__/ediel-smtp-post-acceptance.test.ts
+          __tests__/ediel-canonical-rule-pack-evidence-identity.test.ts
