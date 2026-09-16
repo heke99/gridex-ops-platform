@@ -5,7 +5,7 @@ on:
 permissions:
   contents: read
 jobs:
-  index-source-qualification:
+  native-transport-source-qualification:
     if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/codex/pr310-routine-reference-qualification-20260916'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -15,7 +15,6 @@ jobs:
       sha: ${{ steps.publish.outputs.sha }}
     env:
       PYTHONDONTWRITEBYTECODE: '1'
-      PG_CONTAINER: gridex-pr310-index-syntax-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -24,114 +23,40 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Materialize exact five-file repair on already-qualified parent
-        shell: bash
+      - name: Materialize exact three-file native admission repair
         run: |
           set -euo pipefail
           python3 -B - <<'PY'
           import hashlib,os,pathlib
-          raw=pathlib.Path('pr310-index-witness.patch').read_bytes()
-          assert hashlib.sha256(raw).hexdigest()=='1962afae7e029b84d71c725a14279f62de29ded402a110f27ad39e4330fec087','PATCH_TRANSPORT_BYTES_CHANGED'
-          pathlib.Path(os.environ['RUNNER_TEMP'],'index.patch').write_bytes(raw)
+          raw=pathlib.Path('pr310-native-forward-transport.patch').read_bytes()
+          assert hashlib.sha256(raw).hexdigest()=='c34c3096e0c0119a891ce9b711c31994d8809dcf415c572a1b498480c815d707'
+          pathlib.Path(os.environ['RUNNER_TEMP'],'native-forward.patch').write_bytes(raw)
           PY
-          git checkout --detach 767966d35bc3bc1df391bfa51bc9657123ccfb15
-          git apply --check --index "$RUNNER_TEMP/index.patch"
-          git apply --index "$RUNNER_TEMP/index.patch"
-          test "$(git write-tree)" = 8de019f9f2cc5a48beae1f10ca9468f1d6acce74
+          git checkout --detach 4702d0360873aad7d7971a93c04163113a1fe333
+          git apply --check --index "$RUNNER_TEMP/native-forward.patch"
+          git apply --index "$RUNNER_TEMP/native-forward.patch"
+          test "$(git write-tree)" = 7c6ea085ee6028fea96a11d65b20be3bac00adeb
           git diff --cached --check
-      - name: Run new and unchanged adjacent regression groups
+      - name: Verify actual twelve compiled forward names and unchanged boundary controls
         run: |
           set -euo pipefail
-          python3 -B scripts/test-canonical-changed-index-witness.py
-          python3 -B scripts/test-canonical-promoted-routine-reference.py
-          python3 -B scripts/test_canonical_removed_policy_qualification.py
-          python3 -B scripts/test_canonical_removed_policy_formulas.py
+          python3 -B scripts/canonical-native-supabase-lifecycle-selftest.py
+          python3 -B scripts/test-canonical-native-forward-runtime.py
           python3 -B scripts/test-canonical-native-application-typegen.py
           python3 -B scripts/test-canonical-native-schema-reference.py
           python3 -B scripts/test-canonical-schema-source-decisions.py
           python3 -B scripts/canonical-owned-timestamp-selftest.py
-          python3 -B scripts/canonical-full-schema-reference-selftest.py
-      - name: Verify five exact source-defined indexes and twelve predicate cases on isolated PostgreSQL 17
-        shell: bash
-        run: |
-          set -euo pipefail
-          docker run --detach --name "$PG_CONTAINER" --network none --label gridex.pr310-index-proof="$GITHUB_RUN_ID" -e POSTGRES_HOST_AUTH_METHOD=trust postgres:17-alpine@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73 > /dev/null
-          ready=false
-          for i in $(seq 1 60); do
-            if docker exec "$PG_CONTAINER" pg_isready -h 127.0.0.1 -U postgres > /dev/null; then ready=true; break; fi
-            sleep 1
-          done
-          test "$ready" = true
-          python3 -B - <<'PY'
-          import hashlib,json,os,pathlib,re,subprocess,sys,types
-          sys.path.insert(0,'scripts')
-          import canonical_changed_index_witness as w
-          specs=w.contract(w.retain(w.ROOT))
-          old=types.ModuleType('original_index_renderer');old.__file__=str(w.ROOT/'scripts/canonical_changed_index_witness.py')
-          raw=subprocess.check_output(['git','show','767966d35bc3bc1df391bfa51bc9657123ccfb15:scripts/canonical_changed_index_witness.py'])
-          assert hashlib.sha256(raw).hexdigest()=='515bbb7abc5cbfb6d547bc92f3051b78c527984f63bf55dad18f822233126b5b'
-          exec(compile(raw,old.__file__,'exec'),old.__dict__)
-          args=['docker','exec','-i',os.environ['PG_CONTAINER'],'psql','-X','-q','-At','-h','127.0.0.1','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose','-f','-']
-          def query(sql):
-              result=subprocess.run(args,input=sql.encode(),capture_output=True,timeout=60)
-              if result.returncode:
-                  state=re.search(rb'ERROR:\s+([A-Z0-9]{5}):',result.stderr)
-                  print(json.dumps({'stage':'synthetic_query','exitCode':result.returncode,'sqlstate':state[1].decode() if state else 'TRANSPORT','stderrSha256':hashlib.sha256(result.stderr).hexdigest()}))
-              return result
-          synthetic='CREATE TABLE public.customers(company_id uuid,customer_number text,email text,intake_status text,created_at timestamptz);\nCREATE TABLE public.user_roles(company_id uuid,user_id uuid,role_id uuid,status text,is_active boolean);\n'+'\n'.join(s['statement'] for s in specs)+'\n'
-          assert query(synthetic).returncode==0,'SYNTHETIC_INDEX_SETUP_FAILED'
-          results={}
-          for label,sql in [('original',old.render(specs)),('fixed',w.render(specs)),('repeat',w.render(specs))]:
-              r=query(sql);error=r.stderr.decode(errors='replace');state=re.search(r'ERROR:\s+([A-Z0-9]{5}):',error)
-              entry={'exitCode':r.returncode,'sqlstate':state[1] if state else ('00000' if r.returncode==0 else 'UNKNOWN'),'sourceSha256':hashlib.sha256(sql.encode()).hexdigest()}
-              if label=='original':
-                  assert r.returncode==3 and entry['sqlstate']=='42601','ORIGINAL_42601_NOT_REPRODUCED'
-              else:
-                  assert r.returncode==0,'FIXED_WITNESS_SQL_FAILED'
-                  rows=json.loads(r.stdout);w.verify_rows(rows,specs)
-                  entry.update(indexesVerified=5,predicateCases=12,duplicateRejected=4,duplicateAllowed=8)
-              results[label]=entry
-          snapshot="SELECT jsonb_build_object('customers',(SELECT count(*) FROM public.customers),'roles',(SELECT count(*) FROM public.user_roles),'indexes',(SELECT jsonb_agg(pg_get_indexdef(i.indexrelid) ORDER BY i.indexrelid) FROM pg_index i JOIN pg_class c ON c.oid=i.indrelid WHERE c.relnamespace='public'::regnamespace));"
-          before=query(snapshot);assert before.returncode==0
-          poison='DROP INDEX public.customers_company_email_idx; CREATE INDEX customers_company_email_idx ON public.customers(company_id,upper(email));'
-          original=w.render(specs);assert original.count('SET LOCAL check_function_bodies=on;')==1
-          poisoned=original.replace('SET LOCAL check_function_bodies=on;','SET LOCAL check_function_bodies=on;\n'+poison)
-          r=query(poisoned);assert r.returncode==0,'POISON_SQL_FAILED'
-          try:w.verify_rows(json.loads(r.stdout),specs)
-          except ValueError:results['wrong_live_index_rejected']=True
-          else:raise AssertionError('WRONG_LIVE_INDEX_ADMITTED')
-          r=query(w.render(specs));assert r.returncode==0;w.verify_rows(json.loads(r.stdout),specs)
-          results['poison_rollback_and_recovery']=True
-          after=query(snapshot)
-          assert after.returncode==0 and after.stdout==before.stdout,'SYNTHETIC_PUBLIC_STATE_CHANGED'
-          output=pathlib.Path('artifacts/pr310-isolated-index-qualified.json');output.parent.mkdir(exist_ok=True)
-          output.write_text(json.dumps({'scope':'SYNTHETIC_INDEX_WITNESS_QUALIFIED_NOT_FULL_REPLAY','results':results,'catalogAndRowsPreserved':True,'productionModified':False,'schemaAccepted':False},sort_keys=True,indent=2)+'\n')
-          print(output.read_text())
-          PY
-      - name: Remove only this job's test container
-        if: always()
-        run: |
-          set -euo pipefail
-          if docker inspect "$PG_CONTAINER" > /dev/null 2>&1; then
-            test "$(docker inspect --format '{{index .Config.Labels "gridex.pr310-index-proof"}}' "$PG_CONTAINER")" = "$GITHUB_RUN_ID"
-            docker rm -f "$PG_CONTAINER" > /dev/null
-          fi
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: pr310-isolated-index-qualified
-          path: artifacts/pr310-isolated-index-qualified.json
-          retention-days: 2
-          if-no-files-found: error
-      - name: Publish tested source-only descendant without changing PR310
+          python3 -B scripts/test-canonical-promoted-routine-reference.py
+          python3 -B scripts/test-canonical-changed-index-witness.py
+      - name: Publish tested source descendant without moving PR310
         id: publish
         env:
           GH_TOKEN: ${{ github.token }}
           GIT_TERMINAL_PROMPT: '0'
         run: |
           set -euo pipefail
-          base=767966d35bc3bc1df391bfa51bc9657123ccfb15
-          tree=8de019f9f2cc5a48beae1f10ca9468f1d6acce74
+          base=4702d0360873aad7d7971a93c04163113a1fe333
+          tree=7c6ea085ee6028fea96a11d65b20be3bac00adeb
           target=refs/heads/codex/pr310-routine-reference-qualified-20260916
           test "$(git write-tree)" = "$tree"
           git diff-files --quiet
@@ -139,47 +64,69 @@ jobs:
           test "$(git ls-remote https://github.com/heke99/gridex-ops-platform.git "$target" | cut -f1)" = "$base"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          commit="$(printf '%s\n' 'fix: compile and precisely normalize changed-index witnesses' | git commit-tree "$tree" -p "$base")"
+          commit="$(printf '%s\n' 'fix: admit all twelve source-bound native forward migrations' | git commit-tree "$tree" -p "$base")"
           git -c credential.helper= -c 'credential.helper=!f() { printf "username=x-access-token\npassword=%s\n" "$GH_TOKEN"; }; f' push https://github.com/heke99/gridex-ops-platform.git "$commit:$target"
           printf 'sha=%s\n' "$commit" >> "$GITHUB_OUTPUT"
           printf 'candidate_commit=%s\ncandidate_tree=%s\npr310_updated=false\n' "$commit" "$tree"
-  independent-schema-diagnostic:
-    needs: index-source-qualification
+  native-release-qualification:
+    needs: native-transport-source-qualification
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      PYTHONDONTWRITEBYTECODE: '1'
-      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.index-source-qualification.outputs.sha }}
+          ref: ${{ needs.native-transport-source-qualification.outputs.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Execute unchanged full owned source replay and independent schema comparison
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Require exact tested source and matching PostgreSQL client
         run: |
-          set -o pipefail
-          test "$(git rev-parse 'HEAD^{tree}')" = 8de019f9f2cc5a48beae1f10ca9468f1d6acce74
-          python3 -B scripts/canonical-full-schema-reference.py 2>&1 | tee "$RUNNER_TEMP/index-schema-diagnostic.log"
-      - name: Remove only the owned qualification database
-        if: always()
+          set -euo pipefail
+          test "$(git rev-parse 'HEAD^{tree}')" = 7c6ea085ee6028fea96a11d65b20be3bac00adeb
+          git diff-files --quiet
+          server_major="$(python3 -c "import re,pathlib;print(re.search(r'^major_version\s*=\s*(\d+)', pathlib.Path('supabase/config.toml').read_text(), re.M).group(1))")"
+          test "$server_major" = 17
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -sS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-client-$server_major"
+          echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
+          "/usr/lib/postgresql/$server_major/bin/pg_dump" --version
+      - name: Execute every command from the exact ordinary native CI step
+        shell: bash
         run: |
-          python3 -B - <<'PY'
-          import importlib.util
-          from pathlib import Path
-          p=Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve()
-          s=importlib.util.spec_from_file_location('cleanup',p)
-          m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
-          m.load_controller().load_batch().cleanup_workflow_owned()
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,os,pathlib
+          raw=pathlib.Path('.github/workflows/ops-hardening.yml').read_bytes()
+          assert hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()=='5a5be1253f91a3b5e6ed8b58e110596fdd590149'
+          text=raw.decode()
+          start='      - name: Clean empty-database replay and verify generated types\n        shell: bash\n        run: |\n'
+          end='      - name: Upload clean-replay evidence\n'
+          assert text.count(start)==text.count(end)==1
+          body=text.split(start)[1].split(end)[0]
+          assert all(line.startswith('          ') or not line for line in body.splitlines())
+          script='\n'.join(line[10:] if line else '' for line in body.splitlines())+'\n'
+          assert script.count('python3 -B scripts/canonical-auth-provisioning-replay.py')==1
+          pathlib.Path(os.environ['RUNNER_TEMP'],'ordinary-native-step.sh').write_text(script)
           PY
-      - uses: actions/upload-artifact@v4
+          bash -e -o pipefail "$RUNNER_TEMP/ordinary-native-step.sh"
+      - name: Upload genuine native results without changing acceptance
+        uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: pr310-index-full-schema-diagnostic
+          name: pr310-twelve-forward-native-release
           path: |
-            artifacts/full-schema-reference-diff.json
-            ${{ runner.temp }}/index-schema-diagnostic.log
+            rem002-clean-replay.log
+            artifacts/replay-input-accounting.json
+            artifacts/native-supabase-lifecycle.json
+            artifacts/native-full-schema-reference-diff.json
+            artifacts/native-application-database.types.candidate.ts
+            artifacts/native-release-verification.json
           retention-days: 2
           if-no-files-found: error
