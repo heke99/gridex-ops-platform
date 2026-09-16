@@ -1,0 +1,92 @@
+name: PR310 verified Storage reference repair
+on:
+  push:
+    branches:
+      - repair/pr310-storage-profile-build-20260916
+    paths:
+      - .github/workflows/pr310-storage-profile-publish.yml
+permissions:
+  contents: write
+concurrency:
+  group: pr310-storage-profile-publication
+  cancel-in-progress: false
+jobs:
+  verify-and-publish:
+    if: github.repository == 'heke99/gridex-ops-platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BASE: 708aa98d2581363950e8a900f9cd931fa6c35482
+      EXPECTED_TREE: 2e21d3bc7282b2ccfcc81a8ca1582750c7c1d0ad
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-profile-${{ github.run_id }}-${{ github.run_attempt }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Apply only the reviewed patch to its exact base
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s  %s\n' '52fcde32dc504233d2546dc9e647d8444034b3cd825d8f53d825822d75a67d99' '.github/pr310-storage-profile.patch' | sha256sum --check
+          git worktree add --detach "$RUNNER_TEMP/pr310-profile" "$BASE"
+          cd "$RUNNER_TEMP/pr310-profile"
+          git apply --index --check "$GITHUB_WORKSPACE/.github/pr310-storage-profile.patch"
+          git apply --index "$GITHUB_WORKSPACE/.github/pr310-storage-profile.patch"
+          git diff --cached --check
+          test "$(git write-tree)" = "$EXPECTED_TREE"
+          test "$(git diff --cached --name-only | wc -l)" -eq 7
+      - name: Run source and regression controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/pr310-profile"
+          python3 -B scripts/test-canonical-storage-bootstrap.py
+          python3 -B scripts/test-canonical-full-permission-clone.py
+          python3 -B scripts/test-canonical-permission-full-seed.py
+          python3 -B scripts/test-canonical-native-legacy-envelope.py
+          python3 -B scripts/canonical-native-bootstrap-contract-selftest.py
+          python3 -B scripts/canonical-auth-provisioning-legacy-selftest.py --selection-only
+      - name: Reproduce 42804 and verify repaired independent references on PostgreSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/pr310-profile"
+          python3 -B scripts/canonical-storage-reference-qualification.py | tee "$RUNNER_TEMP/pr310-storage-proof.jsonl"
+      - name: Publish exact verified tree to a new candidate branch only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/pr310-profile"
+          test "$(git rev-parse HEAD)" = "$BASE"
+          test "$(git write-tree)" = "$EXPECTED_TREE"
+          git diff --exit-code
+          current=$(gh api repos/heke99/gridex-ops-platform/pulls/310 --jq .head.sha)
+          test "$current" = "$BASE" || { echo 'PR310 moved; publication refused'; exit 1; }
+          git config user.name 'heke99'
+          git config user.email '129280077+heke99@users.noreply.github.com'
+          candidate=$(printf '%s\n' 'fix: align independently constructed Storage replay references' | git commit-tree "$EXPECTED_TREE" -p "$BASE")
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" push origin "$candidate:refs/heads/repair/pr310-storage-profile-verified-20260916"
+          printf 'candidate_commit=%s\nsource_tree=%s\nbase_commit=%s\n' "$candidate" "$EXPECTED_TREE" "$BASE" | tee "$RUNNER_TEMP/pr310-storage-candidate.txt"
+          cat "$RUNNER_TEMP/pr310-storage-candidate.txt" >> "$GITHUB_STEP_SUMMARY"
+      - name: Clean up only this job's owned PostgreSQL container
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/pr310-profile"
+          python3 -B scripts/canonical-auth-provisioning-legacy-selftest.py --cleanup-owned
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: pr310-storage-reference-proof
+          path: |
+            ${{ runner.temp }}/pr310-storage-proof.jsonl
+            ${{ runner.temp }}/pr310-storage-candidate.txt
+          if-no-files-found: warn
+          retention-days: 3
