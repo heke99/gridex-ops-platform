@@ -5,63 +5,101 @@ on:
 permissions:
   contents: read
 jobs:
-  isolated-index-witness:
+  index-source-qualification:
     if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/codex/pr310-routine-reference-qualification-20260916'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    outputs:
+      sha: ${{ steps.publish.outputs.sha }}
     env:
       PYTHONDONTWRITEBYTECODE: '1'
       PG_CONTAINER: gridex-pr310-index-syntax-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 767966d35bc3bc1df391bfa51bc9657123ccfb15
+          fetch-depth: 0
           persist-credentials: false
-      - name: Reproduce exact index witness on a new network-disabled empty database
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Materialize exact five-file repair on already-qualified parent
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse 'HEAD^{tree}')" = 164c5bb0cb6e438e5c19543351b6f60c12c207c0
+          python3 -B - <<'PY'
+          import hashlib,os,pathlib
+          raw=pathlib.Path('pr310-index-witness.patch').read_bytes()
+          assert hashlib.sha256(raw).hexdigest()=='1962afae7e029b84d71c725a14279f62de29ded402a110f27ad39e4330fec087','PATCH_TRANSPORT_BYTES_CHANGED'
+          pathlib.Path(os.environ['RUNNER_TEMP'],'index.patch').write_bytes(raw)
+          PY
+          git checkout --detach 767966d35bc3bc1df391bfa51bc9657123ccfb15
+          git apply --check --index "$RUNNER_TEMP/index.patch"
+          git apply --index "$RUNNER_TEMP/index.patch"
+          test "$(git write-tree)" = 8de019f9f2cc5a48beae1f10ca9468f1d6acce74
+          git diff --cached --check
+      - name: Run new and unchanged adjacent regression groups
+        run: |
+          set -euo pipefail
+          python3 -B scripts/test-canonical-changed-index-witness.py
+          python3 -B scripts/test-canonical-promoted-routine-reference.py
+          python3 -B scripts/test_canonical_removed_policy_qualification.py
+          python3 -B scripts/test_canonical_removed_policy_formulas.py
+          python3 -B scripts/test-canonical-native-application-typegen.py
+          python3 -B scripts/test-canonical-native-schema-reference.py
+          python3 -B scripts/test-canonical-schema-source-decisions.py
+          python3 -B scripts/canonical-owned-timestamp-selftest.py
+          python3 -B scripts/canonical-full-schema-reference-selftest.py
+      - name: Verify five exact source-defined indexes and twelve predicate cases on isolated PostgreSQL 17
+        shell: bash
+        run: |
+          set -euo pipefail
           docker run --detach --name "$PG_CONTAINER" --network none --label gridex.pr310-index-proof="$GITHUB_RUN_ID" -e POSTGRES_HOST_AUTH_METHOD=trust postgres:17-alpine@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73 > /dev/null
           for i in $(seq 1 40); do
             if docker exec "$PG_CONTAINER" pg_isready -U postgres > /dev/null; then break; fi
             sleep 1
           done
           python3 -B - <<'PY'
-          import hashlib,json,os,pathlib,re,subprocess,sys
+          import hashlib,json,os,pathlib,re,subprocess,sys,types
           sys.path.insert(0,'scripts')
           import canonical_changed_index_witness as w
           specs=w.contract(w.retain(w.ROOT))
-          synthetic='CREATE TABLE public.customers(company_id uuid,customer_number text,email text,intake_status text,created_at timestamptz);\nCREATE TABLE public.user_roles(company_id uuid,user_id uuid,role_id uuid,status text,is_active boolean);\n'
-          synthetic+='\n'.join(s['statement'] for s in specs)+'\n'
+          old=types.ModuleType('original_index_renderer');old.__file__=str(w.ROOT/'scripts/canonical_changed_index_witness.py')
+          raw=subprocess.check_output(['git','show','767966d35bc3bc1df391bfa51bc9657123ccfb15:scripts/canonical_changed_index_witness.py'])
+          assert hashlib.sha256(raw).hexdigest()=='515bbb7abc5cbfb6d547bc92f3051b78c527984f63bf55dad18f822233126b5b'
+          exec(compile(raw,old.__file__,'exec'),old.__dict__)
           args=['docker','exec','-i',os.environ['PG_CONTAINER'],'psql','-X','-q','-At','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose','-f','-']
-          setup=subprocess.run(args,input=synthetic.encode(),capture_output=True,timeout=60)
-          assert setup.returncode==0,'SYNTHETIC_INDEX_SETUP_FAILED'
+          def query(sql):
+              return subprocess.run(args,input=sql.encode(),capture_output=True,timeout=60)
+          synthetic='CREATE TABLE public.customers(company_id uuid,customer_number text,email text,intake_status text,created_at timestamptz);\nCREATE TABLE public.user_roles(company_id uuid,user_id uuid,role_id uuid,status text,is_active boolean);\n'+'\n'.join(s['statement'] for s in specs)+'\n'
+          assert query(synthetic).returncode==0,'SYNTHETIC_INDEX_SETUP_FAILED'
           results={}
-          source=w.render(specs)
-          for label,sql in [('original',source),('parenthesized_case',source.replace('<>CASE WHEN included THEN 1 ELSE 2 END\n','<>(CASE WHEN included THEN 1 ELSE 2 END)\n'))]:
-              result=subprocess.run(args,input=sql.encode(),capture_output=True,timeout=60)
-              error=result.stderr.decode(errors='replace')
-              state=re.search(r'ERROR:\s+([A-Z0-9]{5}):',error)
-              entry={'exitCode':result.returncode,'sqlstate':state[1] if state else ('00000' if result.returncode==0 else 'UNKNOWN'),'syntaxError':'syntax error' in error,'sourceSha256':hashlib.sha256(sql.encode()).hexdigest(),'stderrSha256':hashlib.sha256(result.stderr).hexdigest(),'allFiveCatalogRowsAnd12PredicateCasesPassed':False}
+          for label,sql in [('original',old.render(specs)),('fixed',w.render(specs)),('repeat',w.render(specs))]:
+              r=query(sql);error=r.stderr.decode(errors='replace');state=re.search(r'ERROR:\s+([A-Z0-9]{5}):',error)
+              entry={'exitCode':r.returncode,'sqlstate':state[1] if state else ('00000' if r.returncode==0 else 'UNKNOWN'),'sourceSha256':hashlib.sha256(sql.encode()).hexdigest()}
+              if label=='original':
+                  assert r.returncode==3 and entry['sqlstate']=='42601','ORIGINAL_42601_NOT_REPRODUCED'
+              else:
+                  assert r.returncode==0,'FIXED_WITNESS_SQL_FAILED'
+                  rows=json.loads(r.stdout);w.verify_rows(rows,specs)
+                  entry.update(indexesVerified=5,predicateCases=12,duplicateRejected=4,duplicateAllowed=8)
               results[label]=entry
-              if result.returncode==0:
-                  rows=json.loads(result.stdout)
-                  # This database has only the two new explicitly synthetic tables,
-                  # with public source-defined indexes. Never read business data.
-                  entry['syntheticCatalogRows']=rows
-                  try:
-                      w.verify_rows(rows,specs)
-                      entry['allFiveCatalogRowsAnd12PredicateCasesPassed']=True
-                  except ValueError:
-                      entry['catalogMismatch']=True
-          output=pathlib.Path('artifacts/pr310-isolated-index-reproduction.json');output.parent.mkdir(exist_ok=True)
-          output.write_text(json.dumps({'scope':'SYNTHETIC_EMPTY_INDEX_REPRODUCTION_NOT_FULL_REPLAY','results':results,'productionModified':False,'schemaAccepted':False},sort_keys=True,indent=2)+'\n')
+          before=query("SELECT jsonb_build_object('customers',(SELECT count(*) FROM public.customers),'roles',(SELECT count(*) FROM public.user_roles),'indexes',(SELECT jsonb_agg(pg_get_indexdef(i.indexrelid) ORDER BY i.indexrelid) FROM pg_index i JOIN pg_class c ON c.oid=i.indrelid WHERE c.relnamespace='public'::regnamespace));")
+          assert before.returncode==0
+          poison='DROP INDEX public.customers_company_email_idx; CREATE INDEX customers_company_email_idx ON public.customers(company_id,upper(email));'
+          poisoned=w.render(specs).replace('SET LOCAL check_function_bodies=on;','SET LOCAL check_function_bodies=on;\n'+poison)
+          r=query(poisoned);assert r.returncode==0,'POISON_SQL_FAILED'
+          try:w.verify_rows(json.loads(r.stdout),specs)
+          except ValueError:results['wrong_live_index_rejected']=True
+          else:raise AssertionError('WRONG_LIVE_INDEX_ADMITTED')
+          r=query(w.render(specs));assert r.returncode==0;w.verify_rows(json.loads(r.stdout),specs)
+          results['poison_rollback_and_recovery']=True
+          after=query("SELECT jsonb_build_object('customers',(SELECT count(*) FROM public.customers),'roles',(SELECT count(*) FROM public.user_roles),'indexes',(SELECT jsonb_agg(pg_get_indexdef(i.indexrelid) ORDER BY i.indexrelid) FROM pg_index i JOIN pg_class c ON c.oid=i.indrelid WHERE c.relnamespace='public'::regnamespace));")
+          assert after.returncode==0 and after.stdout==before.stdout,'SYNTHETIC_PUBLIC_STATE_CHANGED'
+          output=pathlib.Path('artifacts/pr310-isolated-index-qualified.json');output.parent.mkdir(exist_ok=True)
+          output.write_text(json.dumps({'scope':'SYNTHETIC_INDEX_WITNESS_QUALIFIED_NOT_FULL_REPLAY','results':results,'catalogAndRowsPreserved':True,'productionModified':False,'schemaAccepted':False},sort_keys=True,indent=2)+'\n')
           print(output.read_text())
-          if any(entry['allFiveCatalogRowsAnd12PredicateCasesPassed'] for entry in results.values()):
-              print('ONE_SYNTHETIC_VARIANT_PASSED_NOT_FULL_REPLAY')
-          else:
-              raise SystemExit('SYNTHETIC_INDEX_WITNESS_STILL_FAILS')
           PY
       - name: Remove only this job's test container
         if: always()
@@ -74,7 +112,67 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: pr310-isolated-index-reproduction
-          path: artifacts/pr310-isolated-index-reproduction.json
+          name: pr310-isolated-index-qualified
+          path: artifacts/pr310-isolated-index-qualified.json
+          retention-days: 2
+          if-no-files-found: error
+      - name: Publish tested source-only descendant without changing PR310
+        id: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GIT_TERMINAL_PROMPT: '0'
+        run: |
+          set -euo pipefail
+          base=767966d35bc3bc1df391bfa51bc9657123ccfb15
+          tree=8de019f9f2cc5a48beae1f10ca9468f1d6acce74
+          target=refs/heads/codex/pr310-routine-reference-qualified-20260916
+          test "$(git write-tree)" = "$tree"
+          git diff-files --quiet
+          test -z "$(git diff --cached --name-only "$base" -- .github/workflows)"
+          test "$(git ls-remote https://github.com/heke99/gridex-ops-platform.git "$target" | cut -f1)" = "$base"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          commit="$(printf '%s\n' 'fix: compile and precisely normalize changed-index witnesses' | git commit-tree "$tree" -p "$base")"
+          git -c credential.helper= -c 'credential.helper=!f() { printf "username=x-access-token\npassword=%s\n" "$GH_TOKEN"; }; f' push https://github.com/heke99/gridex-ops-platform.git "$commit:$target"
+          printf 'sha=%s\n' "$commit" >> "$GITHUB_OUTPUT"
+          printf 'candidate_commit=%s\ncandidate_tree=%s\npr310_updated=false\n' "$commit" "$tree"
+  independent-schema-diagnostic:
+    needs: index-source-qualification
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.index-source-qualification.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Execute unchanged full owned source replay and independent schema comparison
+        run: |
+          set -o pipefail
+          test "$(git rev-parse 'HEAD^{tree}')" = 8de019f9f2cc5a48beae1f10ca9468f1d6acce74
+          python3 -B scripts/canonical-full-schema-reference.py 2>&1 | tee "$RUNNER_TEMP/index-schema-diagnostic.log"
+      - name: Remove only the owned qualification database
+        if: always()
+        run: |
+          python3 -B - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          p=Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve()
+          s=importlib.util.spec_from_file_location('cleanup',p)
+          m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+          m.load_controller().load_batch().cleanup_workflow_owned()
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr310-index-full-schema-diagnostic
+          path: |
+            artifacts/full-schema-reference-diff.json
+            ${{ runner.temp }}/index-schema-diagnostic.log
           retention-days: 2
           if-no-files-found: error
