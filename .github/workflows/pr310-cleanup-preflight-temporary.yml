@@ -1,0 +1,43 @@
+name: PR310 exact cleanup native preflight
+on:
+  push:
+    branches: ['work/pr310-native-type-adoption-20260916']
+    paths: ['.github/workflows/pr310-cleanup-preflight-temporary.yml']
+permissions:
+  contents: read
+jobs:
+  exact-cleanup-cli-program:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Retain the fixed preflight outside the source checkout
+        run: |
+          cp .github/pr310-cleanup-native-preflight.py "$RUNNER_TEMP/cleanup-native-preflight.py"
+          echo "4fda803aff4e3a454e1c98fcb11af5d0d3a71cabaeec5cd464677ce0accde505  $RUNNER_TEMP/cleanup-native-preflight.py" | sha256sum --check
+      - uses: actions/checkout@v4
+        with:
+          ref: c6f7702a0214504bc44027d0526734e3adecf728
+          persist-credentials: false
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Prove original rejection, complete corrected program, rollback and exact cleanup
+        run: python3 -B "$RUNNER_TEMP/cleanup-native-preflight.py"
+      - name: Confirm no tracked source was changed
+        if: always()
+        run: |
+          git diff --exit-code
+          test "$(git rev-parse HEAD)" = c6f7702a0214504bc44027d0526734e3adecf728
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr310-exact-cleanup-preflight
+          path: artifacts/cleanup-native-preflight.json
+          if-no-files-found: error
+          retention-days: 2
