@@ -28,7 +28,15 @@ class ForwardTests(unittest.TestCase):
         import canonical_permission_forward_contract as contract
         contract.validate_promotion_evidence(ROOT)
         self.assertEqual(sources.FORWARD_SOURCES[-2:], contract.PROMOTED_SOURCES)
-        self.assertEqual(forward.assertion(11), contract.storage_assertion())
+        portable=contract.storage_assertion()
+        native=forward.assertion(11)
+        marker="pg_get_userbyid(c.relowner)='postgres'"
+        self.assertEqual(portable.count(marker),1)
+        self.assertEqual(native,portable.replace(marker,"pg_get_userbyid(c.relowner)='supabase_storage_admin'"))
+        self.assertNotEqual(native,portable)
+        with patch.object(contract,'storage_assertion',return_value=portable.replace(marker,'true')):
+            with self.assertRaisesRegex(ValueError,'STORAGE_OWNER_CONTRACT'):
+                forward.assertion(11)
         self.assertEqual(forward.assertion(12), contract.permission_assertion())
         raw = contract.retain(ROOT)
         for (name, digest), content in zip(contract.PROMOTED_SOURCES, raw):

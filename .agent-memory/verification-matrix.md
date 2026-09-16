@@ -331,3 +331,7 @@ Isolated native35097129294 proves LOCK25P01, corrected context, both rollback
 boundaries, real CLI ledger and repeat. Exact source-bound adapter and lock receipt
 checks pass12 forward and11 final-SQL local tests. Full current-head native/schema/
 types and final CI remain pending. No main or production mutation in this record.
+
+## 2026-09-16 — Native prerequisites and deterministic type tests
+
+Full native35100221898 on c6f7702a finished FAILED after144/514/10, at forward11 PF009; no application types were exported. The previous forward10 fix passed its full-chain boundary. Isolated native proof run35113176612 now verifies exact forward11 native provider ownership, both failure boundaries and preserved rows/ledger; complete synthetic cleanup also passes original25P01, PC001/PC002 rollback, correct lock lifetime, exact removal and repeat. Cleanup/private disposal passed. Parent15f82593 preserves the two verified type-wiring tests. The production release verifier is unchanged; only its test fixtures now use deterministic timestamps and exact rejection labels.54 focused Python tests and npm typecheck passed. Full native/schema/types acceptance and main merge remain unverified. See quality/audits/ediel-masterplan-v2/pr310-native-final-prerequisites-repair.md.

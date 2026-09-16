@@ -1,0 +1,91 @@
+{
+  "admissionCounts": {
+    "dependencies": 9,
+    "dependencyPrefixMatches": true,
+    "missingKeys": 0,
+    "probeRowMatches": true,
+    "uniqueDependencies": 9
+  },
+  "allOtherCatalogAndRowsPreserved": true,
+  "candidateProgramSha256": "8c964056afb5ddb1bc8ed60cbdc5b8eb613efbbb3faa0eacddf7c94c7068a60a",
+  "cases": [
+    {
+      "case": "original_top_level_lock",
+      "catalogRowsAndLedgerRestored": true,
+      "sqlstate": "25P01"
+    },
+    {
+      "case": "adapted_full_program_post_body_rollback",
+      "catalogRowsAndLedgerRestored": true,
+      "sqlstate": "PC001"
+    },
+    {
+      "case": "adapted_full_program_ledger_rollback",
+      "catalogRowsAndLedgerRestored": true,
+      "sqlstate": "PC002"
+    }
+  ],
+  "cleanupVerified": true,
+  "completeProgramByteRoundtripVerified": true,
+  "earlierLedgerPreserved": true,
+  "exactFullProgramPassed": true,
+  "generatedTypesVerified": false,
+  "image": "public.ecr.aws/supabase/postgres:17.6.1.106",
+  "lockHeldThroughLedger": true,
+  "originalProgramSha256": "6b1e462e5c7738a51f504878bb2710ac9bd2372a6b43aa93433127bdd325830f",
+  "outcome": "EXACT_CLEANUP_CONTEXT_QUALIFIED_NOT_RELEASE",
+  "phase": "ADAPTED_REAL_CLI_REPEAT",
+  "privateWorkspaceRemoved": true,
+  "productionModified": false,
+  "proofRunId": "35113176612",
+  "realCliLedgerVerified": true,
+  "repeatVerified": true,
+  "schemaAccepted": false,
+  "scope": "SYNTHETIC_EXACT_CLEANUP_PREFLIGHT_NOT_FULL_SOURCE_OR_TYPE_ACCEPTANCE",
+  "sourceHead": "c6f7702a0214504bc44027d0526734e3adecf728",
+  "sourcePins": {
+    "supabase/migrations/20260611190000_launch_linter_hardening_security_definer_rls.sql": "b696379a5e1d26bde5fae150d7c51e9d40df029a9dfd605810ad9051b1fb74d1",
+    "supabase/migrations/20260612123000_performance_batches_1_to_3_db_acceleration.sql": "1711c1f0fb6a50a453db3c66c554c0a0bcd2d4c0b63f96996254707e05ea93a1"
+  },
+  "storageOwnerQualification": {
+    "allOtherCatalogRowsAndEarlierLedgerPreserved": true,
+    "cases": [
+      {
+        "case": "portable_owner_rejected_on_native",
+        "catalogRowsAndLedgerRestored": true,
+        "sqlstate": "PF009"
+      },
+      {
+        "case": "native_full_program_post_body_rollback",
+        "catalogRowsAndLedgerRestored": true,
+        "sqlstate": "PF001"
+      },
+      {
+        "case": "native_full_program_ledger_rollback",
+        "catalogRowsAndLedgerRestored": true,
+        "sqlstate": "PF002"
+      },
+      {
+        "case": "public_policy_role",
+        "catalogRowsAndLedgerRestored": true,
+        "rejected": true
+      },
+      {
+        "case": "provider_owner_write_denied",
+        "catalogRowsAndLedgerRestored": true,
+        "providerOwnerUnchanged": true,
+        "sqlstate": "42501"
+      }
+    ],
+    "changedPolicyRoleLists": 2,
+    "legacyPolicySourceSha256": "4653d576effa13161ef8bdd713cb928ba9f57e8f2a16084d0f5dff2bc3d83959",
+    "nativeOwner": "supabase_storage_admin",
+    "noOpRepeatVerified": true,
+    "programSha256": "c38c1d7b7ef512f7552b2359fe5c8aaf110871e2058bb25580a1ccc706d5815c",
+    "providerOwnerUnchanged": true,
+    "realCliStatementLedgerVerified": true,
+    "scope": "NATIVE_STORAGE_OWNER_AND_EXACT_FORWARD11_NOT_FULL_REPLAY",
+    "sourceSha256": "626642f7466567003c4e3d800aa288748c7b0f973553ac4d91630cf71b863272",
+    "verified": true
+  }
+}

@@ -274,7 +274,17 @@ def assertion(ordinal):
     if ordinal in (11, 12):
         import canonical_permission_forward_contract as permission_contract
         permission_contract.validate_promotion_evidence()
-        return permission_contract.storage_assertion() if ordinal == 11 else permission_contract.permission_assertion()
+        if ordinal == 11:
+            # The compatible clone owns storage.objects as postgres. The native
+            # Supabase PG17 image owns it as supabase_storage_admin. Preserve
+            # that platform ownership; never change the provider table to make
+            # the clone predicate pass. Every other policy condition is exact.
+            sql=permission_contract.storage_assertion()
+            portable_owner="pg_get_userbyid(c.relowner)='postgres'"
+            if sql.count(portable_owner)!=1:
+                raise ValueError('NATIVE_STORAGE_OWNER_CONTRACT_REQUIRED')
+            return sql.replace(portable_owner,"pg_get_userbyid(c.relowner)='supabase_storage_admin'")
+        return permission_contract.permission_assertion()
     raise ValueError('FORWARD_SOURCE_ORDINAL_REQUIRED')
 
 

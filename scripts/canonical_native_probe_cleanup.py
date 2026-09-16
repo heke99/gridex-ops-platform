@@ -22,6 +22,13 @@ ROOT = Path(__file__).resolve().parents[1]
 TABLE = 'public.gridex_native_lifecycle_probe'
 POLICY = 'gridex_linter_platform_only'
 POLICY_KEY = 'policy/'+TABLE+'/'+POLICY
+# The CLI inserts its ledger entry in the same batch. Give the exact first
+# LOCK a non-top-level context without inserting an early BEGIN/COMMIT.
+# All remaining admitted cleanup checks and RESTRICT drops stay byte-identical.
+ORIGINAL_PROGRAM_SHA = '6b1e462e5c7738a51f504878bb2710ac9bd2372a6b43aa93433127bdd325830f'
+LOCK = b'LOCK TABLE public.gridex_native_lifecycle_probe IN ACCESS EXCLUSIVE MODE;'
+LOCK_OPEN = b'DO $gridex_native_cleanup_lock$ BEGIN\n'
+LOCK_CLOSE = b'\nEND $gridex_native_cleanup_lock$;'
 BASE_KEYS = ('relation/'+TABLE, 'column/'+TABLE+'/id',
              'constraint/'+TABLE+'/gridex_native_lifecycle_probe_pkey',
              'index/public.gridex_native_lifecycle_probe_pkey')
@@ -150,10 +157,12 @@ END $cleanup_absent$;
 
 # The only variable identities returned are dependencies of this fixed policy.
 # Their definitions and dependency edges are independently admitted inside BODY.
-DEPENDENCIES = """SELECT coalesce(jsonb_agg('dependency/'||pg_describe_object(d.classid,d.objid,d.objsubid)||'/'||
- pg_describe_object(d.refclassid,d.refobjid,d.refobjsubid)||'/'||d.deptype::text ORDER BY d.refclassid,d.refobjid,d.refobjsubid),'[]')
+DEPENDENCIES = """SELECT coalesce(jsonb_agg(identity ORDER BY identity),'[]') FROM (
+ SELECT DISTINCT 'dependency/'||pg_describe_object(d.classid,d.objid,d.objsubid)||'/'||
+ pg_describe_object(d.refclassid,d.refobjid,d.refobjsubid)||'/'||d.deptype::text AS identity
  FROM pg_depend d JOIN pg_policy pol ON d.classid='pg_policy'::regclass AND d.objid=pol.oid
- WHERE pol.polrelid='public.gridex_native_lifecycle_probe'::regclass AND pol.polname='gridex_linter_platform_only';"""
+ WHERE pol.polrelid='public.gridex_native_lifecycle_probe'::regclass
+ AND pol.polname='gridex_linter_platform_only') dependency_keys;"""
 
 
 def program():
@@ -169,7 +178,13 @@ def program():
     if len(match)!=1 or "v := replace(v, 'auth.uid()', '(select auth.uid())');" not in retained[1]:
         raise ValueError('NATIVE_CLEANUP_POLICY_SOURCE_REQUIRED')
     expression=match[0].replace("''", "'").replace('auth.uid()', '(select auth.uid())')
-    body=BODY.replace('__POLICY__',expression).replace('__CLOSURE__',CLOSURE).encode()
+    original=BODY.replace('__POLICY__',expression).replace('__CLOSURE__',CLOSURE).encode()
+    if (p.sha(original)!=ORIGINAL_PROGRAM_SHA or not original.startswith(LOCK)
+            or original.count(LOCK)!=1 or LOCK_OPEN in original or LOCK_CLOSE in original):
+        raise ValueError('NATIVE_CLEANUP_LOCK_SOURCE_REQUIRED')
+    body=LOCK_OPEN+LOCK+LOCK_CLOSE+original[len(LOCK):]
+    if body.replace(LOCK_OPEN,b'').replace(LOCK_CLOSE,b'')!=original:
+        raise ValueError('NATIVE_CLEANUP_LOCK_SOURCE_REQUIRED')
     return SimpleNamespace(name='gridex_native_probe_cleanup_'+p.sha(body)[:12], sql=body)
 
 

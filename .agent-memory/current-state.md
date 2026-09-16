@@ -4,8 +4,8 @@ Updated: 2026-09-16
 Status: IN_PROGRESS
 
 Active task: complete PR310 and merge to main only after required verification.
-Active subtask: integrate the verified RPC/index/ordinal corrections and the
-source-bound forward10 LOCK correction, then complete native/schema/types/CI.
+Active subtask: complete genuine native type generation after the verified
+forward11 provider-owner and atomic synthetic-cleanup prerequisite repairs.
 Also review remaining PRs without reintroducing obsolete code or temporary probes.
 
 ## Verified and preserved
@@ -71,10 +71,7 @@ Push reviewed, coherent batches stepwise as requested.
 
 ## Remaining gates and exact next action
 
-Publish/read back the coherent tested descendant onto PR310, never main directly.
-Inspect the exact current-head native results; do not reuse run35095406934 on
-43f39822 as verification of the later LOCK correction. That run predates this fix.
-Keep a complete tested head stable while its expensive native replay runs.
+Publish and read back this verified descendant onto PR310; then keep its head stable for full native144/514/12 replay. Review actual terminal schema and type artifacts, adopt only genuinely generated candidate bytes with a matching manifest, and require current-head CI before any main merge.
 
 The collected portable schema diff has substantial additive changes as well as
 reviewed mappings. Review unsupported objects against authored source intent;
@@ -90,3 +87,7 @@ manifests, tests or canonical runtime with old branches merely to close their PR
 
 PR310 is not merged. No production database mutation, deployment or external
 market message is implied by this batch. These notes do not certify all gates.
+
+## 2026-09-16 — Native prerequisites and deterministic type tests
+
+Full native35100221898 on c6f7702a finished FAILED after144/514/10, at forward11 PF009; no application types were exported. The previous forward10 fix passed its full-chain boundary. Isolated native proof run35113176612 now verifies exact forward11 native provider ownership, both failure boundaries and preserved rows/ledger; complete synthetic cleanup also passes original25P01, PC001/PC002 rollback, correct lock lifetime, exact removal and repeat. Cleanup/private disposal passed. Parent15f82593 preserves the two verified type-wiring tests. The production release verifier is unchanged; only its test fixtures now use deterministic timestamps and exact rejection labels.54 focused Python tests and npm typecheck passed. Full native/schema/types acceptance and main merge remain unverified. See quality/audits/ediel-masterplan-v2/pr310-native-final-prerequisites-repair.md.

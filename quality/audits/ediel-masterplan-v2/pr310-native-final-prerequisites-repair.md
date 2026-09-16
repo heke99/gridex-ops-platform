@@ -1,0 +1,13 @@
+# Native prerequisites before genuine application type generation
+
+The full native run35100221898 on c6f7702a executed144 foundation inputs,514 timestamps and ten forwards. Forward11 stopped at its ledger negative control with PF009 rather than required PF002. No application type candidate was exported.
+
+The shared portable Storage postcondition requires owner postgres. The genuine pinned Supabase PG17 provider owns storage.objects as supabase_storage_admin. Only the native assertion now requires that exact provider owner. No migration, ACL, predicate, provider owner or portable proof changes. The real CLI differential reproduces the old PF009 and verifies the exact source with corrected native context, PF001/PF002 rollback, only two policy-role-list deltas and no-op repeat. The provider itself rejects ownership mutation with42501; no extra privileges are granted to make that destructive mutation possible.
+
+Synthetic cleanup separately contained a top-level LOCK rejected25P01 by the official CLI and repeated pg_depend edges projecting to duplicate catalog identities. Only the exact first LOCK moves into a DO context; removing that wrapper recovers the complete original pinned SHA. Dependency projection now returns distinct canonical identities, while the original SQL closure guard and exact removal allowlist remain mandatory. PC001/PC002 restore catalog, rows and ledger. Corrected success holds the lock through authentic ledger insertion, removes only the known synthetic probe and repeats without change.
+
+The release-verifier unit fixture raced filesystem write timestamps against time.time_ns(). Run35112031445 passed real SQL but failed that fixture. This patch assigns explicit synthetic timestamps, tests each artifact one nanosecond before/at/after the freshness boundary and requires ten exact rejection reasons. The production verifier is byte-identical; no timestamp is altered on genuine evidence.
+
+Companion proof: pr310-native-final-prerequisites-proof.json. The two type-wiring fixes remain through parent15f82593.54 focused Python tests and npm typecheck pass on the integrated code. Skill routing: systematic debugging, TDD, Supabase, differential review and verification before completion; deployment and UI changes are outside this prerequisite batch.
+
+This is isolated native fixture qualification, NOT complete historical replay, schema acceptance or generated application types. The actual type file, manifest, historical SQL and independent schema reference remain unchanged. Full new-head native reconstruction, reviewed schema evolution, genuine type adoption and required CI remain mandatory before merge.

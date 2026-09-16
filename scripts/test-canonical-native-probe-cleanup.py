@@ -33,6 +33,21 @@ class Tests(unittest.TestCase):
             with self.subTest(defect=defect), self.assertRaises(ValueError):
                 m.expected_after(value, removed)
 
+    def test_policy_dependency_query_projects_unique_catalog_identities(self):
+        # pg_depend can contain separate edges for USING and WITH CHECK that
+        # project to one canonical catalog key. Preserve the native dependency
+        # closure guard, while requesting the same distinct identity set as
+        # the snapshot instead of rejecting valid repeated references.
+        self.assertIn('SELECT DISTINCT',m.DEPENDENCIES)
+        self.assertIn('jsonb_agg(identity ORDER BY identity)',m.DEPENDENCIES)
+        self.assertIn("pol.polrelid='public.gridex_native_lifecycle_probe'::regclass",m.DEPENDENCIES)
+        self.assertIn("pol.polname='gridex_linter_platform_only'",m.DEPENDENCIES)
+        before,keys=self.snapshot()
+        duplicate=keys+[keys[0]]
+        with self.assertRaisesRegex(ValueError,'EXACT_REMOVAL'):
+            m.expected_after(before,duplicate)
+        self.assertIn('NATIVE_CLEANUP_DEPENDENCY',m.program().sql.decode())
+
     def test_program_pins_policy_evolution_and_only_fixed_restrict_drop(self):
         program = m.program()
         self.assertEqual(program.name, 'gridex_native_probe_cleanup_'+m.p.sha(program.sql)[:12])
@@ -44,6 +59,27 @@ class Tests(unittest.TestCase):
         self.assertIn('NATIVE_CLEANUP_DEPENDENCY', text)
         with patch.object(m, 'PINS', {**m.PINS, next(iter(m.PINS)): '0'*64}):
             with self.assertRaisesRegex(ValueError, 'SOURCE'): m.program()
+
+    def test_cleanup_lock_uses_cli_owned_context_without_changing_remaining_sql(self):
+        program = m.program()
+        text = program.sql.decode()
+        # A top-level LOCK fails with 25P01 in the official CLI's prepared
+        # statement batch. Only the exact first LOCK may move inside a DO.
+        statements = m.p.statements(text)
+        self.assertEqual(statements[0][0][0].upper(), 'DO')
+        self.assertFalse(any(row[0][0].upper() in ('LOCK', 'BEGIN', 'COMMIT')
+                             for row in statements))
+        self.assertEqual(program.sql.count(m.LOCK_OPEN), 1)
+        self.assertEqual(program.sql.count(m.LOCK_CLOSE), 1)
+        original = program.sql.replace(m.LOCK_OPEN, b'').replace(m.LOCK_CLOSE, b'')
+        self.assertEqual(m.p.sha(original), m.ORIGINAL_PROGRAM_SHA)
+        self.assertTrue(original.startswith(m.LOCK))
+        self.assertEqual(original.count(m.LOCK), 1)
+        # Changed source or lock bytes cannot silently enter the native lane.
+        for body in (m.BODY.replace('ACCESS EXCLUSIVE', 'ACCESS SHARE'),
+                     m.BODY + '\nSELECT 1;'):
+            with patch.object(m, 'BODY', body), self.assertRaisesRegex(ValueError, 'LOCK_SOURCE'):
+                m.program()
 
     def test_negative_control_requires_exact_error_and_full_restoration(self):
         for ledger, wrong_error, changed in ((False,False,False),(True,False,False),(False,True,False),
