@@ -31,6 +31,7 @@ export type ParsedProdatLineItem = {
   permissionEndReason: string | null
   permissionId: string | null
   permissionTimestamp: string | null
+  permissionEndTimestamp: string | null
   contractStartDate: string | null
   contractEndDate: string | null
   reportStartDate: string | null
@@ -169,11 +170,12 @@ export function parseProdatMessage(input: EdielMessageRow | string): ParsedProda
       permissionStatus: cciCavValue(line.segments, 'Z23'),
       permissionPurpose: cciCavValue(line.segments, 'Z24'),
       permissionEndReason: cciCavValue(line.segments, 'Z25'),
-      permissionId:
-        line.segments.map((segment) => segment.raw).find((raw) => raw.startsWith('RFF+Z09:'))?.replace(/^RFF\+Z09:/, '').split(':')[0]?.trim() ??
-        line.segments.map((segment) => segment.raw).find((raw) => raw.startsWith('RFF+Z07:'))?.replace(/^RFF\+Z07:/, '').split(':')[0]?.trim() ??
-        null,
-      permissionTimestamp: lineDateTimeValue(line.segments, ['265', '324', '597']),
+      // P fields325–327: never treat an object reference or an observation
+      // timestamp as authority for a permission lifecycle transition.
+      permissionId: line.segments.find(segment => segment.raw.startsWith('RFF+Z09:'))
+        ?.raw.slice('RFF+Z09:'.length).split(':')[0]?.trim() || null,
+      permissionTimestamp: lineDateTimeValue(line.segments, ['693']),
+      permissionEndTimestamp: lineDateTimeValue(line.segments, ['164']),
       contractStartDate: lineDateTimeValue(line.segments, ['92', '157']),
       contractEndDate: lineDateTimeValue(line.segments, ['93', '157']),
       reportStartDate: lineDateTimeValue(line.segments, ['90']),
