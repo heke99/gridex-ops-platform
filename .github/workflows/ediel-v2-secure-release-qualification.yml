@@ -37,6 +37,12 @@ jobs:
           Object.assign(p.dependencies,{next:'16.3.5',nodemailer:'9.1.1',imapflow:'1.7.8'});
           p.devDependencies['eslint-config-next']='16.3.5';p.overrides.sharp='0.35.4';
           fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n');
+          const testPath='__tests__/auth-outage-cron-production-safety.test.ts';
+          let test=fs.readFileSync(testPath,'utf8');
+          const before="    process.env.NODE_ENV = 'production'";
+          if(test.split(before).length!==2)throw Error('Exact environment fixture required');
+          test=test.replace(before,"    process.env = { ...process.env, NODE_ENV: 'production' }");
+          fs.writeFileSync(testPath,test);
           JS
           npm install --package-lock-only --ignore-scripts --no-audit
           npm update baseline-browser-mapping --package-lock-only --ignore-scripts --no-audit
@@ -93,7 +99,7 @@ jobs:
           JS
           npx playwright test e2e/browser/public.spec.mjs --config=playwright.security-production.config.mjs 2>&1 | tee "$RUNNER_TEMP/ediel-secure/browser-production.log"
           rm playwright.security-production.config.mjs
-      - name: Publish only verified four-file descendant, not main or paused PR310
+      - name: Publish only verified five-file descendant, not main or paused PR310
         env:
           GH_TOKEN: ${{ github.token }}
           GIT_TERMINAL_PROMPT: '0'
@@ -101,10 +107,10 @@ jobs:
           set -euo pipefail
           node <<'JS'
           const {execFileSync}=require('child_process'),assert=require('assert/strict');
-          assert.deepEqual(execFileSync('git',['diff','--name-only'],{encoding:'utf8'}).trim().split('\n').sort(),['next.config.ts','package-lock.json','package.json']);
+          assert.deepEqual(execFileSync('git',['diff','--name-only'],{encoding:'utf8'}).trim().split('\n').sort(),['__tests__/auth-outage-cron-production-safety.test.ts','next.config.ts','package-lock.json','package.json']);
           JS
-          git add package.json package-lock.json next.config.ts __tests__/next-navigation-chunks.test.ts
-          test "$(git diff --cached --name-only | wc -l)" -eq 4
+          git add package.json package-lock.json next.config.ts __tests__/next-navigation-chunks.test.ts __tests__/auth-outage-cron-production-safety.test.ts
+          test "$(git diff --cached --name-only | wc -l)" -eq 5
           git diff --cached --check
           git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix: secure production dependencies and isolate measured navigation cache chunk'
           branch='codex/ediel-v2-security-verified-20260916'
@@ -113,7 +119,7 @@ jobs:
           git branch security-qualified-output HEAD
           git bundle create "$RUNNER_TEMP/ediel-secure/qualified.bundle" security-qualified-output
           git rev-parse HEAD HEAD^{tree} > "$RUNNER_TEMP/ediel-secure/qualified.txt"
-          git diff HEAD^ HEAD -- package.json package-lock.json next.config.ts __tests__/next-navigation-chunks.test.ts > "$RUNNER_TEMP/ediel-secure/qualified.patch"
+          git diff HEAD^ HEAD -- package.json package-lock.json next.config.ts __tests__/next-navigation-chunks.test.ts __tests__/auth-outage-cron-production-safety.test.ts > "$RUNNER_TEMP/ediel-secure/qualified.patch"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
