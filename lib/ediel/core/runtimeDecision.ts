@@ -462,6 +462,7 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message: Ediel
       family: base.policy.family,
       messageCode: base.policy.code,
       transactionSubtype: base.policy.subtype,
+      applicationReference: base.policy.applicationReference,
       direction: message.direction,
       businessDate: base.policy.referenceDate,
       requireBuilder: false,

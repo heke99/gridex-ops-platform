@@ -2,10 +2,12 @@ import { describe, expect, it, vi } from 'vitest'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import * as utiltsRuntime from '@/lib/ediel/utiltsEngine'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
-import { resolveCanonicalRuntimeDecision } from '@/lib/ediel/core/runtimeDecision'
+import { resolveCanonicalRuntimeDecision, resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/runtimeDecision'
+import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
 import { processInboundUtiltsMessageByCanonicalPolicy } from '@/lib/ediel/flows/utiltsInboundPolicyProcessor'
 
-const mocks = vi.hoisted(() => ({ getMessage: vi.fn(), processActual: vi.fn() }))
+const mocks = vi.hoisted(() => ({ getMessage: vi.fn(), processActual: vi.fn(), rpc: vi.fn() }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: mocks.rpc } }))
 vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: mocks.getMessage }))
 vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => id }))
 vi.mock('@/lib/ediel/flows/utiltsDataRequest.part-1', () => ({ resolveUtiltsRuntimeTestCaseCode: vi.fn().mockResolvedValue(null) }))
@@ -117,5 +119,54 @@ describe('UTILTS decision reuse across document and receipt dates', () => {
     } finally {
       runtimeSpy.mockRestore()
     }
+  })
+})
+
+// Database activation evidence is synthetic; protocol/policy/validator code is real.
+function activationEvidence(revision: '3' | '4') {
+  const version = `25-A-${revision}`
+  return {
+    rule_pack_id: '11111111-1111-4111-8111-111111111111',
+    message_profile_id: '22222222-2222-4222-8222-222222222222',
+    market: 'electricity', family: 'UTILTS', guide_version: version, guide_revision: revision,
+    unh_association_code: 'E5SE5A', valid_from: revision === '3' ? '2025-06-01' : '2026-10-01',
+    valid_to: revision === '3' ? '2026-09-30' : null,
+    source_document: `UTILTS ${version}`, source_hash: 'a'.repeat(64),
+    field_matrix_version: version, profile_key: `UTILTS:E66:E5SE5A:${revision}`,
+    business_process: 'metering_values', phase: null,
+    profile: { family: 'UTILTS', messageCode: 'E66', guideVersion: version, guideRevision: revision },
+    parser_ready: true, builder_ready: true, validator_ready: true, ack_ready: true, state_machine_ready: true,
+  }
+}
+
+describe('UTILTS selected reference survives registry verification', () => {
+  it.each([
+    ['2026-09-30', '2026-10-01', '3'],
+    ['2026-10-01', '2026-09-30', '4'],
+  ] as const)('runtime preserves document date %s and selected reference when receipt is %s', async (date, received, revision) => {
+    mocks.rpc.mockReset().mockResolvedValue({ data: [activationEvidence(revision)], error: null })
+    const source = message(date, received)
+    const result = await resolveCanonicalRuntimeDecisionWithRegistry(source)
+    expect(result.syntaxDecision).toBe('accepted')
+    expect(result.policy?.referenceDate).toBe(date)
+    expect(result.policy?.applicationReference).toBe('23-DDQ-E66-S')
+    expect(result.issues.some(issue => issue.code === 'CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE')).toBe(false)
+    expect(result.validationReport).toHaveProperty('rulePackEvidence.rulePackId', activationEvidence(revision).rule_pack_id)
+    expect(mocks.rpc).toHaveBeenCalledOnce()
+    expect(mocks.rpc).toHaveBeenCalledWith('resolve_canonical_ediel_rule_pack', expect.objectContaining({ p_business_date: date, p_family: 'UTILTS' }))
+  })
+
+  it.each([['2026-09-30', '3'], ['2026-10-01', '4']] as const)('public validator retains E66 reference on %s', async (date, revision) => {
+    mocks.rpc.mockReset().mockResolvedValue({ data: [activationEvidence(revision)], error: null })
+    const source = message(date, date)
+    const result = await validateRulebookMessageWithRegistry({
+      family: 'UTILTS', code: 'E66', direction: 'inbound', mode: 'parse',
+      businessDate: date, applicationReference: source.application_reference,
+      rawPayload: source.raw_payload?.replace('QTY+136:500', 'QTY+136:1000'), version: 'E5SE5A',
+    })
+    expect(result.blocking).toBe(false)
+    expect(result.fieldRuleSource).toBe('registry')
+    expect(result.rulePackSnapshot?.profileVersionId).toBe(activationEvidence(revision).message_profile_id)
+    expect(mocks.rpc).toHaveBeenCalledOnce()
   })
 })

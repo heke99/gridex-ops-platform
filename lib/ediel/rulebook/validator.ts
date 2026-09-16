@@ -379,6 +379,7 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
       family: familyValue,
       messageCode: policy.code,
       transactionSubtype: policy.subtype,
+      applicationReference: policy.applicationReference,
       direction: dir,
       businessDate: policy.referenceDate,
       requireBuilder: dir === 'outbound' && input.mode === 'send',

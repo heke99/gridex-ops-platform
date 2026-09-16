@@ -1,10 +1,25 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-15",
+  "updated_at": "2026-09-16",
   "status": "PARTIAL",
   "current_state": ".agent-memory/current-state.md",
-  "branch": "codex/ediel-independent-main-20260915",
-  "base_head_sha": "eb9a25bc989c6de808903f41c2314d5465e9c07b",
-  "next_action": "Publish and merge independently verified Ediel patch; defer PR310 database work.",
-  "main_merged": false
+  "branch": "codex/ediel-v2-f1-source-integrity-20260916",
+  "base_head_sha": "de098106c26d90069758cf1f753a94b073789ef2",
+  "active_item": "F1-A independent source-identity correction; normal PR verification",
+  "next_action": "Inspect current-head PR CI before merge; then continue independent F1 source/provenance review. Do not resume PR310 without the user's instruction.",
+  "source_state": {
+    "verified_git_sha": "66d51ec087e8855e1c672c09e13764f6c008d921",
+    "verified_tree": "f851b9dd04c4e0b784ed2d131d66f4b37b5551f5",
+    "qualification_run": 35133517653,
+    "scope": "five-file runtime/test candidate only; subsequent documentation/workflow still requires current-head PR CI"
+  },
+  "main_merged": false,
+  "deferred_work": {
+    "pr": 310,
+    "state": "PAUSED",
+    "head": "e961135199f292b8210884f07de3b616a670161a",
+    "backup_branch": "backup/pr310-paused-20260916-e9611351",
+    "resume_document": "quality/audits/ediel-masterplan-v2/pr310-paused-resume.md"
+  },
+  "historical_memory_archive": ".agent-memory/archive/20260916-main-de098106"
 }

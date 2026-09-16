@@ -161,27 +161,32 @@ function resolveSourceCanonical(params: {
   family: 'PRODAT' | 'UTILTS'
   messageCode: string
   transactionSubtype?: string | null
+  applicationReference?: string | null
+  requestedMessageCode?: string | null
   direction: EdielDirection
   businessDate: string
 }): SourceCanonicalResolution {
-  // Catalog/evidence mode is non-operational. A first policy resolution obtains
-  // the canonical application reference without inventing a local code mapping;
-  // the second resolution uses the real direction and the same policy authority.
-  const bootstrap = resolveCanonicalEdielPolicy({
-    family: params.family,
-    messageCode: params.messageCode,
-    subtypeOrReasonCode: params.transactionSubtype,
-    direction: 'outbound',
-    referenceDate: params.businessDate,
-    mode: 'catalog_evidence',
-  })
+  // Preserve the caller's selected wire context. UTILTS references can be
+  // multi-valued and must never be guessed by an outbound bootstrap.
+  // PRODAT's established single-authority fallback is retained for callers
+  // that have not supplied an Application Reference.
+  const applicationReference = params.applicationReference || (params.family === 'PRODAT'
+    ? resolveCanonicalEdielPolicy({
+      family: params.family,
+      messageCode: params.messageCode,
+      subtypeOrReasonCode: params.transactionSubtype,
+      direction: 'outbound',
+      referenceDate: params.businessDate,
+      mode: 'catalog_evidence',
+    }).applicationReference : null)
   const policy = resolveCanonicalEdielPolicy({
     family: params.family,
     messageCode: params.messageCode,
     subtypeOrReasonCode: params.transactionSubtype,
     direction: params.direction,
     referenceDate: params.businessDate,
-    applicationReference: bootstrap.applicationReference,
+    applicationReference,
+    requestedMessageCode: params.requestedMessageCode,
     mode: 'catalog_evidence',
   })
   assertPolicyDirection(policy, params.direction)
@@ -255,6 +260,28 @@ function assertDbEvidenceMatchesSource(input: {
     }
   }
 
+  if (source.family === 'UTILTS') {
+    // E5SE5A is shared by the retained guide revisions; it cannot prove which
+    // revision the activation row evidences. The existing SQL projection stores
+    // the complete guide version and a separate numeric revision.
+    const expectedVersion = normalizeIdentifier(source.policy.guide.guideRevision)
+    const expectedRevision = /-(\d+)$/.exec(source.policy.guide.guideRevision)?.[1]
+    if (!expectedRevision) throw new Error('canonical_source_guide_revision_missing')
+    if (normalizeIdentifier(evidence.guideVersion) !== expectedVersion) {
+      throw new Error('canonical_rule_pack_evidence_guide_mismatch')
+    }
+    if (evidence.guideRevision !== expectedRevision) {
+      throw new Error('canonical_rule_pack_evidence_guide_revision_mismatch')
+    }
+    if (normalizeIdentifier(requiredProfileText(evidence.profile, 'guideVersion')) !== expectedVersion) {
+      throw new Error('canonical_rule_pack_evidence_profile_guide_mismatch')
+    }
+    if (requiredProfileText(evidence.profile, 'guideRevision') !== expectedRevision) {
+      throw new Error('canonical_rule_pack_evidence_profile_revision_mismatch')
+    }
+    return
+  }
+
   const dbGuideTokens = [evidence.guideVersion, evidence.guideRevision].map(normalizeIdentifier)
   const sourceGuideTokens = [source.policy.guide.guideRevision, source.associationAssignedCode].map(normalizeIdentifier)
   if (!dbGuideTokens.some((token) => sourceGuideTokens.includes(token))) {
@@ -272,6 +299,8 @@ export async function resolveCanonicalRulePack(params: {
   family: 'PRODAT' | 'UTILTS'
   messageCode: string
   transactionSubtype?: string | null
+  applicationReference?: string | null
+  requestedMessageCode?: string | null
   direction: EdielDirection
   businessDate: string
   requireBuilder?: boolean
