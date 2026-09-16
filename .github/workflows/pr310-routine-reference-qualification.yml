@@ -5,111 +5,69 @@ on:
 permissions:
   contents: read
 jobs:
-  independent-schema-diagnostic:
+  isolated-index-witness:
     if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/codex/pr310-routine-reference-qualification-20260916'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     env:
       PYTHONDONTWRITEBYTECODE: '1'
-      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+      PG_CONTAINER: gridex-pr310-index-syntax-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: 767966d35bc3bc1df391bfa51bc9657123ccfb15
           persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Require exact source already tested in run 35091357414
-        run: |
-          test "$(git rev-parse HEAD)" = 767966d35bc3bc1df391bfa51bc9657123ccfb15
-          test "$(git rev-parse 'HEAD^{tree}')" = 164c5bb0cb6e438e5c19543351b6f60c12c207c0
-          git diff-files --quiet
-      - name: Execute unchanged full owned source replay and independent schema comparison
-        run: |
-          set -o pipefail
-          python3 -B scripts/canonical-full-schema-reference.py 2>&1 | tee "$RUNNER_TEMP/routine-schema-diagnostic.log"
-      - name: Remove only the owned qualification database
-        if: always()
-        run: |
-          python3 -B - <<'PY'
-          import importlib.util
-          from pathlib import Path
-          p=Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve()
-          s=importlib.util.spec_from_file_location('cleanup',p)
-          m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
-          m.load_controller().load_batch().cleanup_workflow_owned()
-          PY
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: pr310-routine-schema-diagnostic
-          path: |
-            artifacts/full-schema-reference-diff.json
-            ${{ runner.temp }}/routine-schema-diagnostic.log
-          retention-days: 2
-          if-no-files-found: error
-  native-release-qualification:
-    if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/codex/pr310-routine-reference-qualification-20260916'
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: 767966d35bc3bc1df391bfa51bc9657123ccfb15
-          persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - uses: supabase/setup-cli@v1
-        with:
-          version: 2.101.0
-      - name: Require exact tested tree and matching PostgreSQL client
-        run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = 767966d35bc3bc1df391bfa51bc9657123ccfb15
-          test "$(git rev-parse 'HEAD^{tree}')" = 164c5bb0cb6e438e5c19543351b6f60c12c207c0
-          git diff-files --quiet
-          server_major="$(python3 -c "import re,pathlib;print(re.search(r'^major_version\s*=\s*(\d+)', pathlib.Path('supabase/config.toml').read_text(), re.M).group(1))")"
-          test "$server_major" = 17
-          sudo install -d /usr/share/postgresql-common/pgdg
-          sudo curl -sS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
-          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq "postgresql-client-$server_major"
-          echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
-          "/usr/lib/postgresql/$server_major/bin/pg_dump" --version
-      - name: Execute every command from the exact ordinary native CI step
+      - name: Reproduce exact index witness on a new network-disabled empty database
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import hashlib,os,pathlib
-          path=pathlib.Path('.github/workflows/ops-hardening.yml')
-          raw=path.read_bytes()
-          assert hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()=='5a5be1253f91a3b5e6ed8b58e110596fdd590149'
-          text=raw.decode()
-          start='      - name: Clean empty-database replay and verify generated types\n        shell: bash\n        run: |\n'
-          end='      - name: Upload clean-replay evidence\n'
-          assert text.count(start)==text.count(end)==1
-          body=text.split(start)[1].split(end)[0]
-          assert all(line.startswith('          ') or not line for line in body.splitlines())
-          script='\n'.join(line[10:] if line else '' for line in body.splitlines())+'\n'
-          assert script.count('python3 -B scripts/canonical-auth-provisioning-replay.py')==1
-          pathlib.Path(os.environ['RUNNER_TEMP'],'ordinary-native-step.sh').write_text(script)
+          test "$(git rev-parse 'HEAD^{tree}')" = 164c5bb0cb6e438e5c19543351b6f60c12c207c0
+          docker run --detach --name "$PG_CONTAINER" --network none --label gridex.pr310-index-proof="$GITHUB_RUN_ID" -e POSTGRES_HOST_AUTH_METHOD=trust postgres:17-alpine > /dev/null
+          for i in $(seq 1 40); do
+            if docker exec "$PG_CONTAINER" pg_isready -U postgres > /dev/null; then break; fi
+            sleep 1
+          done
+          python3 -B - <<'PY'
+          import hashlib,json,os,pathlib,re,subprocess,sys
+          sys.path.insert(0,'scripts')
+          import canonical_changed_index_witness as w
+          specs=w.contract(w.retain(w.ROOT))
+          synthetic='CREATE TABLE public.customers(company_id uuid,customer_number text,email text,intake_status text,created_at timestamptz);\nCREATE TABLE public.user_roles(company_id uuid,user_id uuid,role_id uuid,status text,is_active boolean);\n'
+          synthetic+='\n'.join(s['statement'] for s in specs)+'\n'
+          args=['docker','exec','-i',os.environ['PG_CONTAINER'],'psql','-X','-q','-At','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose','-f','-']
+          setup=subprocess.run(args,input=synthetic.encode(),capture_output=True,timeout=60)
+          assert setup.returncode==0,'SYNTHETIC_INDEX_SETUP_FAILED'
+          results={}
+          source=w.render(specs)
+          for label,sql in [('original',source),('parenthesized_case',source.replace('<>CASE WHEN included THEN 1 ELSE 2 END\n','<>(CASE WHEN included THEN 1 ELSE 2 END)\n'))]:
+              result=subprocess.run(args,input=sql.encode(),capture_output=True,timeout=60)
+              error=result.stderr.decode(errors='replace')
+              state=re.search(r'ERROR:\s+([A-Z0-9]{5}):',error)
+              results[label]={'exitCode':result.returncode,'sqlstate':state[1] if state else '00000','syntaxError':'syntax error' in error,'sourceSha256':hashlib.sha256(sql.encode()).hexdigest(),'stderrSha256':hashlib.sha256(result.stderr).hexdigest()}
+              if result.returncode==0:
+                  rows=json.loads(result.stdout)
+                  w.verify_rows(rows,specs)
+                  results[label]['allFiveCatalogRowsAnd12PredicateCasesPassed']=True
+              else:
+                  results[label]['allFiveCatalogRowsAnd12PredicateCasesPassed']=False
+          output=pathlib.Path('artifacts/pr310-isolated-index-reproduction.json');output.parent.mkdir(exist_ok=True)
+          output.write_text(json.dumps({'scope':'SYNTHETIC_EMPTY_INDEX_REPRODUCTION_NOT_FULL_REPLAY','results':results,'productionModified':False,'schemaAccepted':False},sort_keys=True,indent=2)+'\n')
+          print(output.read_text())
+          assert results['original']['sqlstate']=='42601','ORIGINAL_SYNTAX_FAILURE_NOT_REPRODUCED'
+          assert results['parenthesized_case']['allFiveCatalogRowsAnd12PredicateCasesPassed'] is True,'PARENTHESIZED_CASE_NOT_QUALIFIED'
           PY
-          bash -e -o pipefail "$RUNNER_TEMP/ordinary-native-step.sh"
-      - name: Upload genuine native artifacts without changing acceptance
-        uses: actions/upload-artifact@v4
+      - name: Remove only this job's test container
+        if: always()
+        run: |
+          set -euo pipefail
+          if docker inspect "$PG_CONTAINER" > /dev/null 2>&1; then
+            test "$(docker inspect --format '{{index .Config.Labels "gridex.pr310-index-proof"}}' "$PG_CONTAINER")" = "$GITHUB_RUN_ID"
+            docker rm -f "$PG_CONTAINER" > /dev/null
+          fi
+      - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: pr310-routine-native-release
-          path: |
-            rem002-clean-replay.log
-            artifacts/replay-input-accounting.json
-            artifacts/native-supabase-lifecycle.json
-            artifacts/native-full-schema-reference-diff.json
-            artifacts/native-application-database.types.candidate.ts
-            artifacts/native-release-verification.json
+          name: pr310-isolated-index-reproduction
+          path: artifacts/pr310-isolated-index-reproduction.json
           retention-days: 2
           if-no-files-found: error
