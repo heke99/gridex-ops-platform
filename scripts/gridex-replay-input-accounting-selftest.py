@@ -468,12 +468,12 @@ class DB2DispositionTest(unittest.TestCase):
         # Admit exact current inventory/source checksums and every registered
         # suffix ordinal before projecting this historical exclusion fixture.
         from canonical_forward_sources import FORWARD_SOURCES, historical_fixture_accounting
-        self.assertEqual(len(FORWARD_SOURCES), 10)
+        self.assertEqual(len(FORWARD_SOURCES), 12)
         historical = historical_fixture_accounting(report)
-        self.assertEqual(report['totalMigrations'], 611)
-        self.assertEqual(report['counts'], {'FULL_FILE_SELECTED': 599, 'SUBSTITUTED': 2,
+        self.assertEqual(report['totalMigrations'], 613)
+        self.assertEqual(report['counts'], {'FULL_FILE_SELECTED': 601, 'SUBSTITUTED': 2,
                                           'UNCLASSIFIED': 5, 'EXPLICITLY_EXCLUDED': 5})
-        self.assertEqual(report['selectedInputCounts'], {'foundation': 144, 'timestamp': 524})
+        self.assertEqual(report['selectedInputCounts'], {'foundation': 144, 'timestamp': 526})
         self.assertEqual(historical['totalMigrations'], 601)
         self.assertEqual(historical['counts']['FULL_FILE_SELECTED'], 589)
         rows = {row['path']: row for row in report['migrations']}

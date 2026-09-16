@@ -44,7 +44,7 @@ def receipt(outcome,phase,progress):
         ledgerProvenanceVerified=False,generatedTypesVerified=False,productionModified=False)
 
 
-INPUT_PINS={'scripts/canonical_storage_bootstrap.py': '312e287ed12353fa7b39073d6af6f69cb9e80fbeaeb8239d1f46a6128626325b', 'scripts/canonical_permission_full_seed.py': 'd58f46ad1596cfb73a0bb6cd5769a94b6ffce2020269297015ea80445f0873ee', 'scripts/canonical_changed_function_witness.py': 'a1eff86d0efecc058af45dc54411bb9056bc4cd96e7fa5b057374ee8cdefcce3', 'scripts/canonical-permission-native-fixture.py': '47425b626551df891f6b13c86390ac9b23239cbe26a3651558572778eceab3a8', 'scripts/canonical-portable-invariants-diagnostic.py': '2737b29ea13cd8d666e16e501f81f5c11d270e5c89aac4a9a88291e6bed21cb9', 'scripts/canonical_native_timestamp_snapshot.py': 'e36911fc25dae81d5d8187ddf7de472af602bbad3e6ec68dc4c657dc6fe23757', 'scripts/sql/canonical-user-rbac-repair-catalog.sql': '1d6315ea6d4d542a01e4b697f1cc2b4528a227f2be7e7052f47c8a04166103c7'}
+INPUT_PINS={'scripts/canonical_permission_forward_contract.py': 'a4e78bf86814c5e68100cf1a93adb85165a8771f0a1d29477d0c2888d3fcfdec', 'scripts/canonical_storage_bootstrap.py': '312e287ed12353fa7b39073d6af6f69cb9e80fbeaeb8239d1f46a6128626325b', 'scripts/canonical_permission_full_seed.py': 'd58f46ad1596cfb73a0bb6cd5769a94b6ffce2020269297015ea80445f0873ee', 'scripts/canonical_changed_function_witness.py': 'a1eff86d0efecc058af45dc54411bb9056bc4cd96e7fa5b057374ee8cdefcce3', 'scripts/canonical-permission-native-fixture.py': '47425b626551df891f6b13c86390ac9b23239cbe26a3651558572778eceab3a8', 'scripts/canonical-portable-invariants-diagnostic.py': '2737b29ea13cd8d666e16e501f81f5c11d270e5c89aac4a9a88291e6bed21cb9', 'scripts/canonical_native_timestamp_snapshot.py': 'e36911fc25dae81d5d8187ddf7de472af602bbad3e6ec68dc4c657dc6fe23757', 'scripts/sql/canonical-user-rbac-repair-catalog.sql': '1d6315ea6d4d542a01e4b697f1cc2b4528a227f2be7e7052f47c8a04166103c7'}
 
 
 def retained_inputs():
@@ -111,7 +111,8 @@ def matrix_sql_diagnostic(stderr,stage,state):
 def private_sql(target,legacy,database,sql,stage,transaction=True):
     stages={'snapshot_catalog','snapshot_rows','snapshot_ledger','changed_function24',
         'eight_function_metadata','effective_acl','candidate_first','candidate_repeat',
-        'matrix_identities','matrix_case','local_acl_poison','candidate_acl_recovery'}
+        'matrix_identities','matrix_case','local_acl_poison','candidate_acl_recovery',
+        'promoted_postconditions','local_storage_scope_poison'}
     if (stage not in stages or database not in (PARENT,ATOMIC) or type(target) is not legacy.OwnedPostgres
             or getattr(target.command,'__func__',None) is not legacy.OwnedPostgres.command
             or getattr(target.verify_logging,'__func__',None) is not legacy.OwnedPostgres.verify_logging):
@@ -287,6 +288,7 @@ def qualify(target,legacy,progress):
     if capture(target,legacy,ATOMIC)!=first:raise ValueError('PERMISSION_ACL_RECOVERY_REQUIRED')
     acl_check(target,legacy)
     matrix_count=matrix(target,legacy,seed_retained,first)
+    if matrix_count!=129:raise ValueError('PERMISSION_FULL_MATRIX_REQUIRED')
     if full_seed.retain(ROOT)!=seed_retained:raise ValueError('PERMISSION_QUALIFICATION_SOURCE_REQUIRED')
     if capture(target,legacy,PARENT)!=parent or candidate()!=raw or retained_inputs()!=retained:
         raise ValueError('PERMISSION_PARENT_SOURCE_PRESERVATION_REQUIRED')
@@ -295,6 +297,71 @@ def qualify(target,legacy,progress):
         repeatVerified=True,rowsPreserved=True,ledgerPreserved=True,parentPreserved=True,
         effectiveAclVerified=True,fullCloneAclPoisonRecoveryVerified=True,customRoleInheritedRecoveryVerified=False,
         matrix129Verified=matrix_count==129,matrixCases=matrix_count,promoted=False)
+
+
+def qualify_promoted(target,legacy,progress):
+    """Verify the full registered frontier; old red/green proof is source-bound.
+
+    Unlike pre-promotion qualification, both forwards must already be applied by
+    the ordinary replay. Reapplying either candidate must be a catalog/row/ledger
+    no-op. All original 129 decision cases, exact bodies/ACLs, and controlled
+    Storage-role and function-ACL regressions execute again on the owned clone.
+    """
+    import copy
+    import canonical_permission_forward_contract as contract
+    contract.validate_promotion_evidence()
+    if tuple(forward_sources.FORWARD_SOURCES[-2:])!=contract.PROMOTED_SOURCES:
+        raise ValueError('PERMISSION_FORWARD_CLI_IDENTITY_REQUIRED')
+    functions.actors._complete(progress,False)
+    retained=retained_inputs()
+    seed_retained=full_seed.retain(ROOT)
+    raw=candidate();scope_raw=storage_policy_scope.candidate();specs=function_specs(raw)
+    parent=capture(target,legacy,PARENT)
+    behavior(target,legacy,PARENT,[])
+    if capture(target,legacy,PARENT)!=parent:raise ValueError('PERMISSION_PARENT_BASELINE_DRIFT')
+    target.reset(ATOMIC)
+    target.docker(['exec',target.name,'dropdb','-U','postgres',ATOMIC])
+    target.docker(['exec',target.name,'createdb','-U','postgres','-T',PARENT,ATOMIC])
+    first=capture(target,legacy,ATOMIC)
+    if first!=parent:raise ValueError('PERMISSION_CLONE_REQUIRED')
+    verify_functions(target,legacy,specs)
+    acl_check(target,legacy)
+    postcondition='SELECT to_json(('+contract.storage_assertion()+') AND ('+contract.permission_assertion()+'));'
+    if json.loads(private_sql(target,legacy,ATOMIC,postcondition,'promoted_postconditions')) is not True:
+        raise ValueError('PERMISSION_PROMOTED_POSTCONDITIONS_REQUIRED')
+    for statement in (scope_raw,raw):
+        private_sql(target,legacy,ATOMIC,statement,'candidate_repeat',False)
+        if capture(target,legacy,ATOMIC)!=first:raise ValueError('PERMISSION_REPEAT_REQUIRED')
+    identities=json.loads(private_sql(target,legacy,ATOMIC,full_seed.identity_query(),'matrix_identities'))
+    s21=full_seed.build_cases(seed_retained,identities)['S21']
+    poison='ALTER POLICY grid_owner_agreements_platform_read ON storage.objects TO PUBLIC;'
+    private_sql(target,legacy,ATOMIC,poison,'local_storage_scope_poison')
+    expected=copy.deepcopy(first)
+    expected['catalog'][storage_policy_scope.KEYS[0]]['roles']=['0']
+    if capture(target,legacy,ATOMIC)!=expected:raise ValueError('STORAGE_POLICY_SCOPE_NEGATIVE_DELTA_REQUIRED')
+    storage_policy_scope.sql(target,legacy,ATOMIC,s21,'scope_negative_s21','42501')
+    if capture(target,legacy,ATOMIC)!=expected:raise ValueError('STORAGE_POLICY_SCOPE_NEGATIVE_ROLLBACK_REQUIRED')
+    private_sql(target,legacy,ATOMIC,scope_raw,'candidate_acl_recovery',False)
+    if capture(target,legacy,ATOMIC)!=first:raise ValueError('STORAGE_POLICY_SCOPE_RECOVERY_REQUIRED')
+    storage_policy_scope.complete_s21(private_sql(target,legacy,ATOMIC,s21,'matrix_case',False))
+    if capture(target,legacy,ATOMIC)!=first:raise ValueError('STORAGE_POLICY_SCOPE_ROLLBACK_REQUIRED')
+    private_sql(target,legacy,ATOMIC,local_acl_poison(),'local_acl_poison')
+    if capture(target,legacy,ATOMIC)==first:raise ValueError('PERMISSION_ACL_POISON_CONTROL_REQUIRED')
+    private_sql(target,legacy,ATOMIC,raw,'candidate_acl_recovery',False)
+    if capture(target,legacy,ATOMIC)!=first:raise ValueError('PERMISSION_ACL_RECOVERY_REQUIRED')
+    acl_check(target,legacy)
+    behavior(target,legacy,ATOMIC,[])
+    matrix_count=matrix(target,legacy,seed_retained,first)
+    if matrix_count!=129:raise ValueError('PERMISSION_FULL_MATRIX_REQUIRED')
+    if (capture(target,legacy,PARENT)!=parent or candidate()!=raw or retained_inputs()!=retained
+            or storage_policy_scope.candidate()!=scope_raw or full_seed.retain(ROOT)!=seed_retained):
+        raise ValueError('PERMISSION_PARENT_SOURCE_PRESERVATION_REQUIRED')
+    return dict(scope='REGISTERED_FORWARD_FULL_CLONE_VERIFICATION',candidateSha256=CANDIDATE_SHA,
+        qualifiedPrePromotionCommit=contract.QUALIFIED_COMMIT,prePromotionProofRetained=True,
+        repairedCases=24,exactFunctions=8,repeatVerified=True,rowsPreserved=True,
+        ledgerPreserved=True,parentPreserved=True,effectiveAclVerified=True,
+        fullCloneAclPoisonRecoveryVerified=True,storagePolicyNegativeAndRecoveryVerified=True,
+        matrix129Verified=matrix_count==129,matrixCases=matrix_count,promoted=True)
 
 
 def run():
@@ -360,7 +427,7 @@ def run():
                 phase = 'PINNED_FINAL_SQL'
                 execute_final(target, legacy, final, progress)
                 phase = 'FULL_PERMISSION_CLONE_QUALIFICATION'
-                progress['permissionQualification'] = qualify(target, legacy, progress)
+                progress['permissionQualification'] = qualify_promoted(target, legacy, progress)
                 result = receipt('PORTABLE_PERMISSION_CLONE_PASSED_NOT_CERTIFIED', phase, progress)
         except Exception as error:
             allowed={'PERMISSION_CANDIDATE_SOURCE_REQUIRED','PERMISSION_EIGHT_FUNCTIONS_REQUIRED',
@@ -374,6 +441,8 @@ def run():
                 'PERMISSION_ACL_POISON_CONTROL_REQUIRED','PERMISSION_ACL_RECOVERY_REQUIRED',
                 'PERMISSION_QUALIFICATION_SOURCE_REQUIRED'}
             allowed.update(storage_policy_scope.FAILURE_CODES)
+            allowed.update({'PERMISSION_FORWARD_CLI_IDENTITY_REQUIRED','PERMISSION_FORWARD_PROMOTION_PROOF_REQUIRED',
+                'PERMISSION_PROMOTED_POSTCONDITIONS_REQUIRED','PERMISSION_FORWARD_SOURCE_REQUIRED'})
             code=error.args[0] if type(error) is ValueError and len(error.args)==1 and type(error.args[0]) is str and error.args[0] in allowed else 'UNCLASSIFIED'
             progress['failureCode']=code
             result = receipt('BLOCKED', phase, progress)

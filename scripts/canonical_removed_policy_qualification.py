@@ -324,20 +324,22 @@ def require_policy_hashes(actual,expected,*,row_count=None):
 
 def complete(progress,native):
     from canonical_forward_sources import FORWARD_SOURCES
+    from canonical_permission_forward_contract import PROMOTED_SOURCES
     foundation='foundationInputsExecuted' if native else 'foundationApplied'
     timestamp='timestampInputsExecuted' if native else 'timestampApplied'
     flags=('executed','noOpRepeatVerified','rowsPreserved') if native else ('executed','positiveAndRepeatVerified','rowsPreserved')
     report=progress.get('forwardSources',{});receipts=report.get('sources',[])
     if (type(progress.get(foundation)) is not int or progress[foundation]!=144
             or type(progress.get(timestamp)) is not int or progress[timestamp]!=514
-            or len(FORWARD_SOURCES)!=10 or FORWARD_SOURCES[:5]!=FIRST_FIVE
+            or len(FORWARD_SOURCES)!=12 or FORWARD_SOURCES[:5]!=FIRST_FIVE
             or FORWARD_SOURCES[5]!=(SIXTH_SOURCE,SIXTH_SHA)
             or FORWARD_SOURCES[6]!=(SEVENTH_SOURCE,SEVENTH_SHA)
             or FORWARD_SOURCES[7]!=(EIGHTH_SOURCE,EIGHTH_SHA)
             or FORWARD_SOURCES[8]!=(NINTH_SOURCE,NINTH_SHA)
             or FORWARD_SOURCES[9]!=(TENTH_SOURCE,TENTH_SHA)
+            or FORWARD_SOURCES[10:]!=PROMOTED_SOURCES
             or report.get('executed') is not True or type(report.get('inputsExecuted')) is not int
-            or report['inputsExecuted']!=10 or type(receipts) is not list or len(receipts)!=10
+            or report['inputsExecuted']!=12 or type(receipts) is not list or len(receipts)!=12
             or any(type(row) is not dict or (row.get('source'),row.get('sourceSha256'))!=pair
                    or any(row.get(flag) is not True for flag in flags) for row,pair in zip(receipts,FORWARD_SOURCES))):
         raise ValueError('REMOVED_POLICY_TEN_FORWARD_RECEIPTS_REQUIRED')

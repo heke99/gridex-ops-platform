@@ -210,8 +210,8 @@ def _complete(progress, native):
     flags = ('executed', 'noOpRepeatVerified', 'rowsPreserved') if native else (
         'executed', 'positiveAndRepeatVerified', 'rowsPreserved')
     if (progress.get(foundation) != 144 or progress.get(timestamps) != 514
-            or len(FORWARD_SOURCES) != 10 or report.get('executed') is not True
-            or report.get('inputsExecuted') != 10 or len(receipts) != 10
+            or len(FORWARD_SOURCES) != 12 or report.get('executed') is not True
+            or report.get('inputsExecuted') != 12 or len(receipts) != 12
             or any((r.get('source'), r.get('sourceSha256')) != pair
                    or any(r.get(flag) is not True for flag in flags)
                    for r, pair in zip(receipts, FORWARD_SOURCES))):

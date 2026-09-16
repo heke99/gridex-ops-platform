@@ -71,7 +71,7 @@ class FinalSqlTests(unittest.TestCase):
         runner.entries=[None]*(65+514+4);runner.retained=[None]*len(runner.entries)
         parent['historicalTimestampTail']=dict(actualLedgerRows=len(runner.entries))
         for i,(program,receipt) in enumerate(zip(forward_runtime.programs(self.forward),parent['forwardSources']['sources'])):
-            path=Path(directory.name)/(f'2026091523590{i}_'+program.name+'.sql')
+            path=Path(directory.name)/(f'202609152359{i:02d}_'+program.name+'.sql')
             path.write_bytes(program.sql);path.chmod(0o600);stat=path.stat()
             source=program.sql.decode();fragments=[];start=0
             for token,_,end in p.sql_tokens(source):

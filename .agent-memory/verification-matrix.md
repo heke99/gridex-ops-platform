@@ -300,3 +300,22 @@ Actual fe909 follow-up: portable35009249815/job104516757959 PASS144+514+10 and a
 2026-09-15: Independent Ediel extraction from main: 201 files/1216 tests PASS on Node22, app/tests TypeScript PASS, original specification integrity PASS, tenant ratchet2399PASS. Partial delivery only; PR310 DB/schema/types remain deferred. Evidence: quality/audits/ediel-masterplan-v2/partial-main-merge.md.
 
 2026-09-15: User resumed full PR310 remediation. Continuation8c943b61 was fast-forwarded into PR310; the F05-F12 full-clone roster adapter now checks exact tenant members and retains foreign/global/write denials. Offline tests: full seed8, clone boundary10, original native fixture10 PASS (28 total). Main de098106 is integrated into the PR branch, not vice versa. Historical state is archived; no historical migration, candidate SQL or live database changed. Full permission database run35025303437 was launched but its result is not assumed here. Native replay, reviewed schema, genuine generated types and final CI remain release gates.
+
+## 2026-09-16 — PR310 OID snapshot representation repair
+
+Confirmed PostgreSQL17 oid[] JSON strings versus integer-only Python expectations.
+Red/green reproduced;6 scope+17 clone+8 seed+10 bootstrap offline tests PASS.
+Source-pin retained and updated to the exact repaired verifier bytes. No SQL,
+ACL, migration or baseline changes. Full clone/native/schema/types remain open;
+see current-state.md.
+
+
+## 2026-09-16 — Qualified permission and Storage forward promotion
+
+Full-clone run35080283797 on8297f2e3 PASSED all129 SQL cases,24 function behaviors,
+8 exact definitions/ACLs, repeat/negative-recovery and parent/row/ledger preservation.
+Official CLI2.101.0 then generated20260916095318/20260916095319; exact candidate
+bytes and pinned receipts are retained. Registered forward count is12; original
+144/514 historical chain remains byte-bound. Post-promotion qualification retains
+all129/24 and rollback controls. Native/schema/type/current-head CI and merge are
+still pending; no production mutation or external market message was performed.

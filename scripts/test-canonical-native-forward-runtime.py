@@ -24,6 +24,21 @@ class ForwardTests(unittest.TestCase):
         self.assertEqual(forward.assertion(10),raw.decode().rstrip())
         self.assertIn("count(*)=2 AND bool_and(p.polpermissive AND p.polroles='{0}'::oid[]",forward.assertion(10))
 
+    def test_promoted_ordinals_use_exact_qualified_contract_and_cli_sources(self):
+        import canonical_permission_forward_contract as contract
+        contract.validate_promotion_evidence(ROOT)
+        self.assertEqual(sources.FORWARD_SOURCES[-2:], contract.PROMOTED_SOURCES)
+        self.assertEqual(forward.assertion(11), contract.storage_assertion())
+        self.assertEqual(forward.assertion(12), contract.permission_assertion())
+        raw = contract.retain(ROOT)
+        for (name, digest), content in zip(contract.PROMOTED_SOURCES, raw):
+            self.assertEqual((ROOT/'supabase'/name).read_bytes(), content)
+            self.assertEqual(hashlib.sha256(content).hexdigest(), digest)
+        with patch.object(contract, 'validate_promotion_evidence', side_effect=ValueError('missing-proof')):
+            for ordinal in (11,12):
+                with self.assertRaisesRegex(ValueError, '^missing-proof$'):
+                    forward.assertion(ordinal)
+
     @classmethod
     def setUpClass(cls):
         cls.plan = compiler.prepare()
@@ -46,7 +61,7 @@ class ForwardTests(unittest.TestCase):
         retained = sources.retain(ROOT)
         with patch.object(Path, 'read_bytes', side_effect=AssertionError('reopened source')):
             programs = forward.programs(retained)
-        self.assertEqual(len(programs), 10)
+        self.assertEqual(len(programs), 12)
         for ordinal, (original, program) in enumerate(zip(retained, programs), 1):
             body, transferred = compiler.transfer_outer(original.sql)
             self.assertTrue(transferred)
@@ -71,7 +86,7 @@ class ForwardTests(unittest.TestCase):
         return runner,program
 
     def test_negative_controls_require_exact_fault_and_restored_snapshot(self):
-        for ordinal,ledger in ((ordinal,ledger) for ordinal in (1,2,3,4,5,6,7,8,9,10) for ledger in (False,True)):
+        for ordinal,ledger in ((ordinal,ledger) for ordinal in range(1,13) for ledger in (False,True)):
             with tempfile.TemporaryDirectory() as directory:
                 runner,program=self.failure_fixture(directory,ledger=ledger,ordinal=ordinal)
                 with patch.object(timestamp,'native_snapshot',side_effect=[({},[]),({},[])]):
@@ -108,7 +123,7 @@ class ForwardTests(unittest.TestCase):
         self.assertIn("'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN'",send_lock)
         self.assertIn('has_any_column_privilege',send_lock)
         self.assertIn("has_table_privilege('authenticated',c.oid,'SELECT')",send_lock)
-        for ordinal in (0,11):
+        for ordinal in (0,13):
             with self.assertRaisesRegex(ValueError,'FORWARD_SOURCE_ORDINAL_REQUIRED'):
                 forward.assertion(ordinal)
 

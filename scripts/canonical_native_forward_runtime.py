@@ -1,4 +1,4 @@
-"""Apply exactly ten reviewed forward sources after the complete retained prefix.
+"""Apply exactly twelve reviewed forward sources after the complete retained prefix.
 
 Uses the already admitted, live CLI Runner. No connection override, historical
 ledger alias, source rewrite, schema acceptance or typegen shortcut is provided.
@@ -269,6 +269,10 @@ def assertion(ordinal):
               AND p.polname NOT IN (c.relname||'_platform_select',c.relname||'_platform_write')))
           FROM unnest(ARRAY['inbound_ediel_match_attempts','inbound_ediel_parse_results','inbound_email_attachments']) t(name)
           JOIN pg_class c ON c.oid=to_regclass('public.'||t.name)))"""
+    if ordinal in (11, 12):
+        import canonical_permission_forward_contract as permission_contract
+        permission_contract.validate_promotion_evidence()
+        return permission_contract.storage_assertion() if ordinal == 11 else permission_contract.permission_assertion()
     raise ValueError('FORWARD_SOURCE_ORDINAL_REQUIRED')
 
 

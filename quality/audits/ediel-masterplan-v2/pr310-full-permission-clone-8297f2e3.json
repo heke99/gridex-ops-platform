@@ -1,0 +1,231 @@
+{
+  "completeReplayVerified": false,
+  "details": {
+    "finalChecks": [
+      {
+        "catalogAndRowsPreserved": true,
+        "source": "scripts/sql/canonical-tenant-guard-catalog.sql",
+        "sourceSha256": "c8b21322ef6f1288cfe06e0b8178b82f119de7884f0ca319f414c8e0cb38f7c9",
+        "verified": true
+      },
+      {
+        "catalogAndRowsPreserved": true,
+        "source": "scripts/manual-inbound-tenant-graph-regression.sql",
+        "sourceSha256": "343de68bf4b980e004342deb5c6ccfdaae4c86666e873ec49d0b9c0d41b20b96",
+        "verified": true
+      },
+      {
+        "catalogAndRowsPreserved": true,
+        "source": "scripts/gridex-canonical-provision-request-hash-regression.sql",
+        "sourceSha256": "9c8a4d7a5c672bd599d4b0ecf139ba68e2740c068da76f7291afbeffc5b11318",
+        "verified": true
+      },
+      {
+        "catalogAndRowsPreserved": true,
+        "source": "scripts/pr164-review-remediation-regression.sql",
+        "sourceSha256": "6ccfb55a21e60b035fd580a0b2f8008056ee0dc0a514e341de44e79d541e832b",
+        "verified": true
+      },
+      {
+        "catalogAndRowsPreserved": true,
+        "source": "scripts/sql/tenant-isolation-invariants.sql",
+        "sourceSha256": "79d10e6b6ebf10b087142edeab3fe0bbebbe47bf325b27b9f42058ce6272b318",
+        "verified": true
+      }
+    ],
+    "forwardSources": {
+      "executed": true,
+      "generatedTypesVerified": false,
+      "inputsExecuted": 10,
+      "ledgerProvenanceVerified": false,
+      "schemaAccepted": false,
+      "scope": "OWNED_FORWARD_SQL_NOT_NATIVE_LEDGER_ACCEPTANCE",
+      "sources": [
+        {
+          "executed": true,
+          "positiveAndRepeatVerified": true,
+          "rowsPreserved": true,
+          "source": "migrations/20260915111458_restore_existing_column_foreign_keys.sql",
+          "sourceSha256": "5593bf9f66e2ea783ac37f23ca4f547132e70beb519a955dc5b2666a65db569c"
+        },
+        {
+          "executed": true,
+          "positiveAndRepeatVerified": true,
+          "rowsPreserved": true,
+          "source": "migrations/20260915121224_restrict_retained_operational_table_privileges.sql",
+          "sourceSha256": "c8928d29f3cf5ad527513a7448b4819c4f7a80f07d9fe3b78c764e30759e134e"
+        },
+        {
+          "executed": true,
+          "positiveAndRepeatVerified": true,
+          "rowsPreserved": true,
+          "source": "migrations/20260915132224_restrict_inbound_service_table_privileges.sql",
+          "sourceSha256": "0ee026c41d180768b23e20826d522387cc1c65e9c689304472f62cda39b19033"
+        },
+        {
+          "executed": true,
+          "positiveAndRepeatVerified": true,
+          "rowsPreserved": true,
+          "source": "migrations/20260915132227_restrict_new_tenant_table_truncate.sql",
+          "sourceSha256": "c67328cde9b270efad94aa44ded06f3b435170f247af90b1ea93e01dfe08523a"
+        },
+        {
+          "executed": true,
+          "positiveAndRepeatVerified": true,
+          "rowsPreserved": true,
+          "source": "migrations/20260915140647_restrict_remaining_rls_table_truncate.sql",
+          "sourceSha256": "cf85df9d7339e5368ceac7567b720dfa26cc2bf51fe2cd0f19b79b3af7eaab2b"
+        },
+        {
+          "executed": true,
+          "positiveAndRepeatVerified": true,
+          "rowsPreserved": true,
+          "source": "migrations/20260915144319_restrict_ediel_send_lock_client_writes.sql",
+          "sourceSha256": "411df92fc01f8b84dd9a83600464594e76a4841d48928d52dfadfd97b3177705"
+        },
+        {
+          "executed": true,
+          "positiveAndRepeatVerified": true,
+          "rowsPreserved": true,
+          "source": "migrations/20260915172543_preserve_retained_customer_history_on_delete.sql",
+          "sourceSha256": "00f8a844fc5c72274d697558d57f216acf56388b6d36f6aad6063ca255283734"
+        },
+        {
+          "executed": true,
+          "positiveAndRepeatVerified": true,
+          "rowsPreserved": true,
+          "source": "migrations/20260915174610_expand_auth_email_event_action_domain.sql",
+          "sourceSha256": "69b8d5693f586209f37950be866e3f3dd8e5d910408c34ed9cb075daab85407c"
+        },
+        {
+          "executed": true,
+          "positiveAndRepeatVerified": true,
+          "rowsPreserved": true,
+          "source": "migrations/20260915174614_restrict_access_table_capabilities.sql",
+          "sourceSha256": "ddee41e3266948eef7f9082b331f873823602266448efe7cabcb03fdb3566683"
+        },
+        {
+          "executed": true,
+          "positiveAndRepeatVerified": true,
+          "rowsPreserved": true,
+          "source": "migrations/20260915183840_drop_inert_inbound_client_policies.sql",
+          "sourceSha256": "5cd56392d5647196fe4f64e7d5a76fe5fa0a3a9a454efcfd34a6d8f754ac86a7"
+        }
+      ]
+    },
+    "foundationApplied": 144,
+    "permissionQualification": {
+      "baselineFailedCases": [
+        "can_override_allow",
+        "can_override_deny"
+      ],
+      "candidateSha256": "73eb8a8d89b8468783d69f2829658daeb71d7deda667b5f54a9c5650cd6c47ad",
+      "catalogDeltaSha256": "f57e3c5fd06da5e8e2b221160d442e07160d1a255554e7a2ac8d73a6c5a29ab2",
+      "customRoleInheritedRecoveryVerified": false,
+      "effectiveAclVerified": true,
+      "exactFunctions": 8,
+      "fullCloneAclPoisonRecoveryVerified": true,
+      "ledgerPreserved": true,
+      "matrix129Verified": true,
+      "matrixCases": 129,
+      "parentPreserved": true,
+      "promoted": false,
+      "repairedCases": 24,
+      "repeatVerified": true,
+      "rowsPreserved": true
+    },
+    "phase": "SELECTED_CHAIN_EXECUTED_NOT_CERTIFIED",
+    "restoredWholeSources": [
+      {
+        "boundedPostconditions": 8,
+        "fullDatabaseAcceptance": false,
+        "negativeControlVerified": true,
+        "source": "migrations/20260531111600_system_readiness_foundation.sql",
+        "sourceSha256": "e6ef68b18ede5729da067ce59a86cfca0db083d9d54a35ae0ed3a6c0968b96f2",
+        "timestampOrdinal": 8,
+        "wholeOriginalExecuted": true
+      },
+      {
+        "boundedPostconditions": 8,
+        "fullDatabaseAcceptance": false,
+        "negativeControlVerified": true,
+        "source": "migrations/20260609162000_batch_7_website_integration_foundation.sql",
+        "sourceSha256": "1809f5c8926ec6bda991eb861cc3ba7a24738e8655b47e94f4ab086d5f2afb0b",
+        "timestampOrdinal": 38,
+        "wholeOriginalExecuted": true
+      },
+      {
+        "boundedPostconditions": 11,
+        "fullDatabaseAcceptance": false,
+        "negativeControlVerified": true,
+        "source": "migrations/20260801143000_canonical_multitenant_platform_hardening.sql",
+        "sourceSha256": "4de56322077ea89f72596bd9cd2de9f2bdae67c2b74c4721779410553b3326b0",
+        "timestampOrdinal": 243,
+        "wholeOriginalExecuted": true
+      },
+      {
+        "boundedPostconditions": 5,
+        "fullDatabaseAcceptance": false,
+        "negativeControlVerified": true,
+        "source": "migrations/20260802232000_migration_truth_readiness.sql",
+        "sourceSha256": "dc977bb14a66bc4f12939437428198d3daf7bd174ada16ff42133b44405ef1e2",
+        "timestampOrdinal": 257,
+        "wholeOriginalExecuted": true
+      }
+    ],
+    "runtime": {
+      "image": "postgis/postgis:17-3.5",
+      "imageId": "sha256:2ed748fc602dd3031c6724db8cb289e1578c2deb552a4f6e291f6f7e5e6e4f69",
+      "postgisVersion": "3.5.2",
+      "serverVersionNum": 170005
+    },
+    "sessionReconstruction": {
+      "completeSourceEffectsAccepted": false,
+      "historicalBytesModified": false,
+      "lastPhase": "replay_application",
+      "nativeBoundaryVerified": true,
+      "preservedPrefixSha256": "6f729479f0b9ee8bc57d7cd25db7404f7bd189f0d6de74df0ad46180034ad24c",
+      "preservedSuffixSha256": "2ac7f7c743fee92f6a2c38e15dc1d630d488131eff58f281cd083e7d6c9b08e6",
+      "priorSecurityAuthority": "migrations/20260611190000_launch_linter_hardening_security_definer_rls.sql",
+      "priorSecurityAuthoritySha256": "b696379a5e1d26bde5fae150d7c51e9d40df029a9dfd605810ad9051b1fb74d1",
+      "reconstructedSha256": "fd565e2b67987679e682e45890c4834877d9bea8dde796007180ee8fb07e1c95",
+      "replacedBlockSha256": "d08ffe183fee4f134bbf3bc4fbc2362f6d27c77f13d2b3017f3c84a9f97cbfcc",
+      "replacementAuthority": "migrations/20260730130000_historical_sync_forward_repair.sql",
+      "replacementAuthoritySha256": "3e204b00fa33badbfdc7a11c0304df3bc5385b16e0854e40af2df1c06b32b50b",
+      "securityModeTransition": {
+        "authority": "migrations/20260730130000_historical_sync_forward_repair.sql",
+        "from": "invoker",
+        "to": "definer"
+      },
+      "source": "migrations/20260728170000_live_schema_code_canonical_sync.sql",
+      "sourceSha256": "4b1af824f75423faa393d60b845d3b39a3998bcfc7d7ea1cec2a54aa8d3bd400"
+    },
+    "source": "migrations/20260913211625_ediel_intent_customer_company_integrity.sql",
+    "sourceSha256": "2b9cc5e9cb7fad14aa4b30e0bc98274a4a957f47379f456ed0d3c9663ef5f39b",
+    "storageBootstrapDmlChecks": 24,
+    "storagePolicyScopeQualification": {
+      "allOtherCatalogRowsAndLedgerPreserved": true,
+      "candidateSha256": "626642f7466567003c4e3d800aa288748c7b0f973553ac4d91630cf71b863272",
+      "changedPolicyRoleLists": 2,
+      "deniedObject": "table:user_roles",
+      "negativeAndRecoveryVerified": true,
+      "originalSqlstate": "42501",
+      "productionModified": false,
+      "promoted": false,
+      "repeatVerified": true,
+      "unchangedS21Verified": true
+    },
+    "timestampApplied": 514,
+    "timestampOrdinal": 514
+  },
+  "generatedTypesVerified": false,
+  "ledgerProvenanceVerified": false,
+  "outcome": "PORTABLE_PERMISSION_CLONE_PASSED_NOT_CERTIFIED",
+  "ownedCleanupVerified": true,
+  "phase": "FULL_PERMISSION_CLONE_QUALIFICATION",
+  "privateWorkspaceRemoved": true,
+  "productionModified": false,
+  "schemaAccepted": false,
+  "scope": "FULL_PORTABLE_PERMISSION_CLONE_QUALIFICATION_NOT_PROMOTION",
+  "sourcePreserved": true
+}

@@ -26,6 +26,8 @@
     "20260915111458_restore_existing_column_foreign_keys.sql": "5593bf9f66e2ea783ac37f23ca4f547132e70beb519a955dc5b2666a65db569c",
     "20260915121224_restrict_retained_operational_table_privileges.sql": "c8928d29f3cf5ad527513a7448b4819c4f7a80f07d9fe3b78c764e30759e134e",
     "20260915132224_restrict_inbound_service_table_privileges.sql": "0ee026c41d180768b23e20826d522387cc1c65e9c689304472f62cda39b19033",
-    "20260915132227_restrict_new_tenant_table_truncate.sql": "c67328cde9b270efad94aa44ded06f3b435170f247af90b1ea93e01dfe08523a"
+    "20260915132227_restrict_new_tenant_table_truncate.sql": "c67328cde9b270efad94aa44ded06f3b435170f247af90b1ea93e01dfe08523a",
+    "20260916095318_restrict_grid_owner_storage_policy_roles.sql": "626642f7466567003c4e3d800aa288748c7b0f973553ac4d91630cf71b863272",
+    "20260916095319_canonical_permission_overrides_and_storage_write_guards.sql": "73eb8a8d89b8468783d69f2829658daeb71d7deda667b5f54a9c5650cd6c47ad"
   }
 }

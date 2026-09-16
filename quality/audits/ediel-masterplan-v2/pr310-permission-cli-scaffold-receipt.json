@@ -1,0 +1,20 @@
+{
+  "cliVersion": "2.101.0",
+  "sourceCommit": "8297f2e3d161ca859f72712be4e2bce8333da604",
+  "runId": "35080283797",
+  "generatedBy": "supabase migration new",
+  "migrations": [
+    {
+      "basename": "20260916095318_restrict_grid_owner_storage_policy_roles.sql",
+      "source": "scripts/sql/forward-candidates/restrict_grid_owner_storage_policy_roles.sql",
+      "sha256": "626642f7466567003c4e3d800aa288748c7b0f973553ac4d91630cf71b863272"
+    },
+    {
+      "basename": "20260916095319_canonical_permission_overrides_and_storage_write_guards.sql",
+      "source": "scripts/sql/forward-candidates/20260912052507_canonical_permission_overrides_and_storage_write_guards.sql",
+      "sha256": "73eb8a8d89b8468783d69f2829658daeb71d7deda667b5f54a9c5650cd6c47ad"
+    }
+  ],
+  "promoted": false,
+  "productionModified": false
+}
