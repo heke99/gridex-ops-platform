@@ -17,132 +17,28 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 2
+          fetch-depth: 3
           persist-credentials: false
-      - name: Verify exact qualified files and create Git objects without moving any ref
+      - name: Verify pinned publication program and canonical Git object delta
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          python3 - <<'PY'
-          import base64, gzip, hashlib, io, json, os, subprocess, urllib.request, urllib.error, zipfile
-          from pathlib import Path
-          REPO = 'heke99/gridex-ops-platform'
-          REF = 'refs/heads/codex/gridex-parity-remediation-20260905'
-          BASE = '1ad24a17f8c83500f0638bb66f8ed292a02937c9'
-          BASE_TREE = '1f84dd74705732f43a1712fd6e8a765a891294ca'
-          TARGET = 'a646a448c1f838691845384b90cf4c5cb6142f2c'
-          WORKFLOW = '.github/workflows/pr310-publish-qualified-permission-forward.yml'
-          PARTS = [('58104ffb00a9616a638ba091956f812461825e84',3750),('fcd0130eb43b9eee8653b4ac1cd69c3d9c61c50d',3750),('c4e9a85b4b26a3de53ea1c257e6e6ca4046c4adf',1250),('b4f208363edf2db6a20e7ccba9976467424b763a',1250),('80b61e52e162d66ef9c2b35130f0e05dd4e8d9e8',1250),('eb7fcf608f98f8c6724caae5bac70386dae90792',1250),('9a375a7d0f87f1bd8062e50fb83f3c6d1484a1c5',1250),('03155970a163e982b4fdd1965d027f5b91022adf',1250),('567d35425a088bc0e5376b3f844eadfd9dc769dd',1250),('1e6addd6e4ec0164c7bca5127f0225eb88ea1feb',1250),('197880afa47dfdcf5119386643d5b590280fbe9d',1250),('86f6d04be22f28ad1b42889ec5cd7f56a3bae533',1123)]
-          TOKEN = os.environ['GH_TOKEN']
-          CLEAN_ENV = {k:v for k,v in os.environ.items() if k not in ('GH_TOKEN','GITHUB_TOKEN')}
-          
-          def require(ok, code):
-              if not ok: raise RuntimeError(code)
-          
-          def sha(raw): return hashlib.sha256(raw).hexdigest()
-          def blob(raw): return hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()
-          def cmd(args, data=None, timeout=600):
-              result = subprocess.run(args,input=data,capture_output=True,env=CLEAN_ENV,timeout=timeout)
-              require(result.returncode==0, 'COMMAND_FAILED_'+Path(args[-1]).name[:80])
-              return result.stdout
-          
-          def api(path, data=None):
-              require(path.startswith(('git/','actions/artifacts/')), 'API_PATH_REQUIRED')
-              request=urllib.request.Request('https://api.github.com/repos/'+REPO+'/'+path,
-                  data=None if data is None else json.dumps(data).encode(),
-                  headers={'Authorization':'Bearer '+TOKEN,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'})
-              with urllib.request.urlopen(request,timeout=60) as response:
-                  return json.load(response)
-          
-          class NoRedirect(urllib.request.HTTPRedirectHandler):
-              def redirect_request(self,*args,**kwargs): return None
-          
-          def artifact(ident, digest):
-              request=urllib.request.Request('https://api.github.com/repos/'+REPO+'/actions/artifacts/'+str(ident)+'/zip',headers={'Authorization':'Bearer '+TOKEN,'Accept':'application/vnd.github+json'})
-              try:
-                  with urllib.request.build_opener(NoRedirect).open(request,timeout=60) as response:
-                      raw=response.read(1000001)
-              except urllib.error.HTTPError as error:
-                  require(error.code==302, 'ARTIFACT_DOWNLOAD_REQUIRED')
-                  location=error.headers['Location']
-                  require(location.startswith('https://'), 'HTTPS_ARTIFACT_REQUIRED')
-                  # Signed artifact URL is read WITHOUT the GitHub authorization header.
-                  with urllib.request.urlopen(location,timeout=60) as response: raw=response.read(1000001)
-              require(len(raw)<=1000000 and sha(raw)==digest,'ARTIFACT_HASH_REQUIRED')
-              return zipfile.ZipFile(io.BytesIO(raw))
-          
-          def main():
-              require(os.environ['GITHUB_REPOSITORY']==REPO and os.environ['GITHUB_REF']==REF, 'EXACT_REPOSITORY_REF_REQUIRED')
-              head=cmd(['git','rev-parse','HEAD']).decode().strip()
-              require(head==os.environ['GITHUB_SHA'], 'CHECKOUT_REQUIRED')
-              require(cmd(['git','rev-parse','HEAD^']).decode().strip()==BASE, 'PARENT_REQUIRED')
-              require(cmd(['git','rev-parse',BASE+'^{tree}']).decode().strip()==BASE_TREE,'BASE_TREE_REQUIRED')
-              require(cmd(['git','diff','--name-only',BASE,head]).decode().splitlines()==[WORKFLOW],'WORKFLOW_ONLY_REQUIRED')
-              pieces=[]
-              for digest,size in PARTS:
-                  item=api('git/blobs/'+digest)
-                  require(item.get('encoding')=='base64','ENCODING_REQUIRED')
-                  raw=base64.b64decode(item['content'])
-                  require(len(raw)==size and blob(raw)==digest, 'CHUNK_HASH_REQUIRED')
-                  pieces.append(raw)
-              compressed=b''.join(pieces)
-              require(blob(compressed)=='c9b5df3069dbaedc6271f17fd607accf3bee5497','PAYLOAD_HASH_REQUIRED')
-              with gzip.GzipFile(fileobj=io.BytesIO(compressed)) as gz: patch=gz.read(200001)
-              require(len(patch)==76868 and sha(patch)=='db5c10bd3efd999f06f6fc7fdfc659332ee08057d25a189b2b1b110cc927a60e','PATCH_REQUIRED')
-              cmd(['git','apply','--check','-'],patch)
-              cmd(['git','apply','--index','-'],patch)
-              root=Path.cwd()
-              audit=root/'quality/audits/ediel-masterplan-v2'
-              proofzip=artifact(10440317323,'dd0cdfbf83b93d0a68ee13d4cc2d37fd7254d099207814e8b72ab26c74912300')
-              require(proofzip.namelist()==['gridex-full-permission-qualification.jsonl'],'PROOF_MEMBER_REQUIRED')
-              require(proofzip.getinfo(proofzip.namelist()[0]).file_size<200000,'PROOF_SIZE_REQUIRED')
-              records=[json.loads(line) for line in proofzip.read(proofzip.namelist()[0]).splitlines() if line.strip()]
-              proof=(json.dumps(records[-1],indent=2,sort_keys=True)+'\n').encode()
-              require(sha(proof)=='fe03f2651610054044adce6b272585c3567f39be89eb9fcf739f62a2df02cad4','PROOF_BYTES_REQUIRED')
-              (audit/'pr310-full-permission-clone-8297f2e3.json').write_bytes(proof)
-              scaffolds=artifact(10439749327,'6fc1fb52215782286d9e5f504412ca3663fad1d40cc0af1a8b53e2e665761831')
-              for name,digest,candidate in [('20260916095318_restrict_grid_owner_storage_policy_roles.sql','626642f7466567003c4e3d800aa288748c7b0f973553ac4d91630cf71b863272','restrict_grid_owner_storage_policy_roles.sql'),('20260916095319_canonical_permission_overrides_and_storage_write_guards.sql','73eb8a8d89b8468783d69f2829658daeb71d7deda667b5f54a9c5650cd6c47ad','20260912052507_canonical_permission_overrides_and_storage_write_guards.sql')]:
-                  require(scaffolds.getinfo(name).file_size<50000,'SCAFFOLD_SIZE_REQUIRED')
-                  raw=scaffolds.read(name)
-                  require(sha(raw)==digest and raw==(root/'scripts/sql/forward-candidates'/candidate).read_bytes(),'QUALIFIED_SOURCE_REQUIRED')
-                  (root/'supabase/migrations'/name).write_bytes(raw)
-                  cmd(['git','add','--','supabase/migrations/'+name])
-              receipt=scaffolds.read('receipt.json')
-              require(sha(receipt)=='068d29ccceb5d66526e7aeacf0dba001a8ea0a01ace58217932f336661c01dc1','CLI_RECEIPT_REQUIRED')
-              (audit/'pr310-permission-cli-scaffold-receipt.json').write_bytes(receipt)
-              cmd(['git','add','--',str(audit/'pr310-full-permission-clone-8297f2e3.json'),str(audit/'pr310-permission-cli-scaffold-receipt.json')])
-              cmd(['git','rm','--',WORKFLOW])
-              tests=['test-canonical-permission-forward-contract.py','test-canonical-promoted-permission-clone.py','test-canonical-forward-sources.py','test-canonical-native-forward-runtime.py','test-canonical-forward-portable.py','test-canonical-full-permission-clone.py','test-canonical-native-final-sql.py','canonical-auth-membership-group-selftest.py','gridex-replay-input-accounting-selftest.py']
-              for name in tests:
-                  cmd(['python3','-B','scripts/'+name])
-                  print(json.dumps({'test':name,'result':'PASS'}),flush=True)
-              cmd(['git','diff','--exit-code'])
-              require(cmd(['git','write-tree']).decode().strip()==TARGET,'FINAL_TREE_REQUIRED')
-              fullpatch=cmd(['git','diff','--cached','--binary',BASE_TREE])
-              require(sha(fullpatch)=='39224ab04afe94e54ac7575f802fe8357c002affa25035a8299f18e639479847','FULL_PATCH_REQUIRED')
-              changed=cmd(['git','diff','--cached','--name-only',BASE_TREE]).decode().splitlines()
-              require(len(changed)==30 and all(not x.startswith('/') and '..' not in Path(x).parts for x in changed),'EXACT_FILESET_REQUIRED')
-              entries=[]
-              for name in changed:
-                  path=root/name
-                  require(path.resolve()==path and path.is_file(),'REGULAR_FILE_REQUIRED')
-                  mode=cmd(['git','ls-files','-s','--',name]).decode().split()[0]
-                  entries.append({'path':name,'mode':mode,'type':'blob','content':path.read_text()})
-              entries.append({'path':WORKFLOW,'mode':'100644','type':'blob','sha':None})
-              result=api('git/trees',{'base_tree':cmd(['git','rev-parse',head+'^{tree}']).decode().strip(),'tree':entries})
-              require(result.get('sha')==TARGET,'REMOTE_TREE_REQUIRED')
-              commit=api('git/commits',{'message':'fix: promote verified full-clone permission and Storage forwards\n\nPreserve qualified source bytes, true CLI identities and origin proof. Require fresh post-promotion129-case matrix, native ledger, schema, types and all CI before merge. No production database mutation or release acceptance.','tree':TARGET,'parents':[head]})
-              require(commit.get('tree',{}).get('sha')==TARGET and [x['sha'] for x in commit.get('parents',[])]==[head],'COMMIT_IDENTITY_REQUIRED')
-              final={'repository':REPO,'base_commit':BASE,'publisher_commit':head,'commit':commit['sha'],'tree':TARGET,'file_count':30,'tests':tests,'ref_updated':False,'main_merged':False}
-              (Path(os.environ['RUNNER_TEMP'])/'pr310-promotion-publication.json').write_text(json.dumps(final,indent=2)+'\n')
-              print(json.dumps(final),flush=True)
-          
-          try: main()
-          except Exception as error:
-              print(json.dumps({'publication':'FAILED','error_type':type(error).__name__,'code':str(error) if type(error) is RuntimeError else 'PRIVATE_DETAILS_WITHHELD'}),flush=True)
-              raise SystemExit(1) from None
-          PY
+          python3 - <<'DRIVER'
+          import hashlib, subprocess, textwrap
+          old = subprocess.check_output(['git','show','fc9b6acc172e634bfd90bd622cb0965680b6bd24:.github/workflows/pr310-publish-qualified-permission-forward.yml'])
+          assert hashlib.sha1(b'blob '+str(len(old)).encode()+b'\0'+old).hexdigest() == 'c56fc181a43f683818cf54a53b055e0dc408fcb4'
+          code = textwrap.dedent(old.decode().split("          python3 - <<'PY'\n",1)[1].split('          PY\n',1)[0])
+          changes = [
+              ("==BASE, 'PARENT_REQUIRED'", "=='fc9b6acc172e634bfd90bd622cb0965680b6bd24', 'PARENT_REQUIRED'"),
+              ("fullpatch=cmd(['git','diff','--cached','--binary',BASE_TREE])", "fullpatch=cmd(['git','diff','--cached','--raw','--no-renames','--no-abbrev','-z',BASE_TREE])"),
+              ("39224ab04afe94e54ac7575f802fe8357c002affa25035a8299f18e639479847','FULL_PATCH_REQUIRED'", "3255d256726ea50b70625862d92f5dfae1cb446ba35bf219e08595d347cf8ccc','FULL_OBJECT_DELTA_REQUIRED'"),
+          ]
+          for before, after in changes:
+              assert code.count(before) == 1
+              code = code.replace(before, after)
+          exec(compile(code,'verified-pr310-publication','exec'))
+          DRIVER
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: pr310-verified-forward-publication
