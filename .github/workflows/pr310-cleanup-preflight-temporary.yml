@@ -4,27 +4,33 @@ on:
     branches: ['work/pr310-native-type-adoption-20260916']
     paths: ['.github/workflows/pr310-cleanup-preflight-temporary.yml']
 permissions:
-  contents: read
+  contents: write
 jobs:
   exact-cleanup-cli-program:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 874aed02bd4fec72c95a773b2fcc0c51c136673e
+          ref: 3baf0f914cf95e8bcacb8d9f3640b5412595fd40
           persist-credentials: false
       - name: Retain exact test inputs outside the source checkout
-        run: python3 -B .github/pr310-prepare-final-preflight.py
+        run: |
+          python3 -B .github/pr310-prepare-final-preflight.py
+          python3 -B .github/pr310-correct-provider-mutation-test.py
       - uses: actions/checkout@v4
         with:
           ref: c6f7702a0214504bc44027d0526734e3adecf728
-          persist-credentials: false
+          persist-credentials: true
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
       - name: Apply and verify exact bounded repair files
         run: |
           git apply --check "$RUNNER_TEMP/native-final-guards.patch"
@@ -40,7 +46,6 @@ jobs:
       - name: Prove original rejections, complete corrected programs and exact rollback
         run: python3 -B "$RUNNER_TEMP/cleanup-native-preflight.py"
       - name: Confirm no additional tracked sources changed
-        if: always()
         run: |
           git diff --check
           test "$(git rev-parse HEAD)" = c6f7702a0214504bc44027d0526734e3adecf728
@@ -49,10 +54,78 @@ jobs:
           expected={'scripts/canonical_native_forward_runtime.py','scripts/canonical_native_probe_cleanup.py','scripts/test-canonical-native-forward-runtime.py','scripts/test-canonical-native-probe-cleanup.py'}
           assert set(subprocess.check_output(['git','diff','--name-only'],text=True).splitlines())==expected
           PY
+      - name: Integrate on the previously verified type-wiring descendant
+        run: |
+          git fetch --no-tags origin 15f82593b16b69a77ecd5f2fb371a0dc51f96af9
+          git merge-base --is-ancestor c6f7702a0214504bc44027d0526734e3adecf728 15f82593b16b69a77ecd5f2fb371a0dc51f96af9
+          git checkout --detach 15f82593b16b69a77ecd5f2fb371a0dc51f96af9
+          echo 'dec285a406e39d5c56f6b0ecd36973c4a8279ae87bb2da0a3f0aaa4d3da22486  scripts/gridex-ops-post-332-field-511-health-residuals-regression.cjs' | sha256sum --check
+          echo 'c825d8be2303058322b371778bda8b75d67fdd782e08bc65e9ea839b2bf5f88a  scripts/test-canonical-native-application-typegen.py' | sha256sum --check
+          echo '771f3f163f4c8870d738c28b08fd5ee86bbf72d1cb93fc912d1421a034ac84ef  scripts/canonical_native_forward_runtime.py' | sha256sum --check
+          echo 'e5c23fe4f11f3d9ef47750d340956ae3242a43c7d5299a183e4e765c6a2635a7  scripts/canonical_native_probe_cleanup.py' | sha256sum --check
+          python3 -B scripts/test-canonical-native-forward-runtime.py
+          python3 -B scripts/test-canonical-native-probe-cleanup.py
+          python3 -B scripts/test-canonical-permission-forward-contract.py
+          python3 -B scripts/test-canonical-native-final-sql.py
+          python3 -B scripts/test-canonical-native-application-typegen.py
+          python3 -B scripts/test-canonical-native-release-verify.py
+          python3 -B scripts/test-canonical-native-release-entry.py
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Preserve exact source evidence and the unresolved native release gates
+        run: |
+          python3 -B - <<'PY'
+          import hashlib,json,os,subprocess
+          from pathlib import Path
+          report=json.loads(Path('artifacts/cleanup-native-preflight.json').read_text())
+          assert report['outcome']=='EXACT_CLEANUP_CONTEXT_QUALIFIED_NOT_RELEASE'
+          assert report['sourceHead']=='c6f7702a0214504bc44027d0526734e3adecf728'
+          for k in ('cleanupVerified','privateWorkspaceRemoved','exactFullProgramPassed','lockHeldThroughLedger','realCliLedgerVerified','repeatVerified','allOtherCatalogAndRowsPreserved'):
+              assert report[k] is True
+          assert report['storageOwnerQualification']['verified'] is True
+          root=Path('quality/audits/ediel-masterplan-v2')
+          (root/'pr310-native-final-prerequisites-proof.json').write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')
+          (root/'pr310-native-final-prerequisites-repair.md').write_text('''# Native prerequisites before genuine application type generation
+
+          The full native run 35100221898 on c6f7702a executed 144 foundation inputs, 514 timestamps and ten forwards. Forward11 stopped at the ledger negative control with PF009, not the required PF002. No application type candidate was exported.
+
+          The portable Storage postcondition requires owner postgres, whereas the real pinned Supabase PG17 provider owns storage.objects as supabase_storage_admin. Only the native assertion now uses that exact provider owner. This does not change any migration, ACL, predicate, provider owner or portable proof. The isolated real CLI differential reproduces the original PF009 and verifies the exact source after that correction, PF001/PF002 rollback, only two policy-role-list deltas and repeat. The provider itself rejects an attempted ownership change with 42501; the test does not request extra privileges to make that mutation possible.
+
+          The synthetic probe cleanup had two separate defects: a top-level LOCK rejected by the official CLI with 25P01, and repeated pg_depend rows projecting to duplicate canonical identities. Only the exact first LOCK moves inside a DO context; the original complete program round-trips to its fixed SHA. Dependency selection now returns the same distinct identities as the catalog map, while the original SQL closure guard and exact removal allowlist remain mandatory. Real PC001/PC002 failures roll back catalog, rows and ledger; corrected success holds the lock through the authentic ledger insertion, removes only the known synthetic probe and repeats without change.
+
+          Companion proof: pr310-native-final-prerequisites-proof.json. This is an isolated native fixture proof, NOT complete historical replay, schema approval, regenerated application types, or a release certificate. The two earlier type-wiring tests are preserved through parent15f82593. The real type file, manifest, historical SQL and schema reference remain unchanged. Full current-head native reconstruction, reviewed schema evolution, genuine type adoption and required CI still block merge.
+          '''.replace('\n          ','\n'))
+          for target in ('supabase/database.types.ts','scripts/supabase-types-manifest.json','supabase/schema.sql'):
+              original=subprocess.check_output(['git','show','c6f7702a0214504bc44027d0526734e3adecf728:'+target])
+              assert Path(target).read_bytes()==original
+          PY
+      - name: Publish verified code-only descendant without mutating main or PR310
+        run: |
+          test "$GITHUB_REPOSITORY" = heke99/gridex-ops-platform
+          test "$GITHUB_REF" = refs/heads/work/pr310-native-type-adoption-20260916
+          test "$(git rev-parse HEAD)" = 15f82593b16b69a77ecd5f2fb371a0dc51f96af9
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/canonical_native_forward_runtime.py scripts/canonical_native_probe_cleanup.py scripts/test-canonical-native-forward-runtime.py scripts/test-canonical-native-probe-cleanup.py quality/audits/ediel-masterplan-v2/pr310-native-final-prerequisites-proof.json quality/audits/ediel-masterplan-v2/pr310-native-final-prerequisites-repair.md
+          test "$(git diff --cached --name-only | wc -l)" = 6
+          git diff --cached --check
+          git commit -m 'fix: qualify native Storage owner and atomic synthetic cleanup before typegen'
+          branch="work/pr310-final-prerequisites-verified-${GITHUB_RUN_ID}"
+          test -z "$(git ls-remote --heads origin "refs/heads/$branch")"
+          git push origin "HEAD:refs/heads/$branch"
+          test "$(git ls-remote --heads origin "refs/heads/$branch" | cut -f1)" = "$(git rev-parse HEAD)"
+          python3 -B - <<'PY'
+          import json,os,subprocess
+          from pathlib import Path
+          get=lambda *args:subprocess.check_output(['git',*args],text=True).strip()
+          Path('artifacts/native-prerequisite-publication.json').write_text(json.dumps(dict(head=get('rev-parse','HEAD'),tree=get('rev-parse','HEAD^{tree}'),parent=get('rev-parse','HEAD^'),branch='work/pr310-final-prerequisites-verified-'+os.environ['GITHUB_RUN_ID'],mainModified=False,pr310Modified=False,scope='VERIFIED_PREREQUISITES_NOT_COMPLETE_REPLAY_OR_TYPE_ACCEPTANCE'),indent=2)+'\n')
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: pr310-exact-cleanup-preflight
-          path: artifacts/cleanup-native-preflight.json
+          path: |
+            artifacts/cleanup-native-preflight.json
+            artifacts/native-prerequisite-publication.json
           if-no-files-found: error
           retention-days: 2
