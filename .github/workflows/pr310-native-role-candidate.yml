@@ -1,0 +1,111 @@
+name: PR310 exact native provider role candidate
+on:
+  push:
+    branches: ['codex/pr310-native-role-proof-20260916']
+    paths: ['.github/workflows/pr310-native-role-candidate.yml']
+permissions:
+  contents: read
+jobs:
+  verify-provider-chain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Materialize exact four-file source candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY'
+          import base64,hashlib,os,zlib
+          from pathlib import Path
+          raw=Path('pr310-native-provider-role.patch.zlib.b64').read_text().strip()
+          patch=zlib.decompress(base64.b64decode(raw,validate=True))
+          assert hashlib.sha256(patch).hexdigest()=='4182dfbb73eed0bcd9e31ea637d6576fee7359c8ecda9396d57e6f423c583f8d'
+          Path(os.environ['RUNNER_TEMP'],'provider-role.patch').write_bytes(patch)
+          PY
+          git checkout --detach 58dfddba6905ed797cb273e92e25d45893f08b64
+          git apply --check --index "$RUNNER_TEMP/provider-role.patch"
+          git apply --index "$RUNNER_TEMP/provider-role.patch"
+          test "$(git write-tree)" = 8461493cff9d1d027b4c93d1acaf90323fd6b66b
+          test "$(git diff --cached --name-only | wc -l)" -eq 4
+          git diff --cached --check
+      - name: Preserve all existing policy, type and release rejection controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            python3 -B scripts/test-canonical-native-provider-role-chain.py
+            python3 -B scripts/test_canonical_removed_policy_qualification.py
+            python3 -B scripts/test-canonical-native-application-typegen.py
+            python3 -B scripts/test-canonical-native-schema-reference.py
+            python3 -B scripts/test-canonical-native-release-verify.py
+            python3 -B scripts/canonical-owned-timestamp-selftest.py
+            python3 -B scripts/canonical-native-supabase-lifecycle-selftest.py
+            node scripts/check-migration-versions.cjs
+          } 2>&1 | tee "$RUNNER_TEMP/pr310-provider-unit.log"
+      - name: Prove the genuine native provider chain and eleven rollback negatives
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(supabase --version)" = 2.101.0
+          supabase db start --help
+          python3 -B scripts/canonical-native-provider-role-qualification.py
+          python3 -B - <<'PY'
+          import json
+          from pathlib import Path
+          data=json.loads(Path('artifacts/native-provider-role-proof.json').read_bytes())
+          assert data['pristineOldFailureReproduced'] is True
+          assert len(data['negativeCases'])==11
+          assert data['rollbackAndRecoveryVerified'] is True
+          assert data['cleanupVerified'] is True and data['privateWorkspaceRemoved'] is True
+          assert data['unrelatedUnprivilegedLoginAccepted'] is True
+          assert data['productionModified'] is False
+          assert data['schemaAccepted'] is False and data['generatedTypesVerified'] is False
+          PY
+          git diff-files --quiet
+          test "$(git write-tree)" = 8461493cff9d1d027b4c93d1acaf90323fd6b66b
+      - name: Publish only verified clean descendant to qualification branch
+        id: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GIT_TERMINAL_PROMPT: '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=58dfddba6905ed797cb273e92e25d45893f08b64
+          tree=8461493cff9d1d027b4c93d1acaf90323fd6b66b
+          branch=codex/pr310-native-role-qualified-20260916
+          test "$(gh api "repos/heke99/gridex-ops-platform/git/ref/heads/$branch" --jq '.object.sha')" = "$base"
+          test "$(git write-tree)" = "$tree"
+          test -z "$(git diff --cached --name-only "$base" -- .github/workflows supabase)"
+          commit=$(printf '%s\n' 'fix: qualify exact native provider role chain without allowing client escalation' | git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit-tree "$tree" -p "$base")
+          git -c credential.helper= -c 'credential.helper=!f() { printf "username=x-access-token\npassword=%s\n" "$GH_TOKEN"; }; f' push https://github.com/heke99/gridex-ops-platform.git "$commit:refs/heads/$branch"
+          test "$(gh api "repos/heke99/gridex-ops-platform/git/ref/heads/$branch" --jq '.object.sha')" = "$commit"
+          printf 'candidate=%s\ntree=%s\nbase=%s\npr310_updated=false\nmain_modified=false\n' "$commit" "$tree" "$base" > "$RUNNER_TEMP/pr310-provider-published.txt"
+          git update-ref refs/heads/pr310-provider-qualified-export "$commit"
+          git bundle create "$RUNNER_TEMP/pr310-provider-qualified.bundle" refs/heads/pr310-provider-qualified-export "^$base"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr310-native-provider-role-candidate
+          path: |
+            artifacts/native-provider-role-proof.json
+            artifacts/native-supabase-lifecycle.json
+            ${{ runner.temp }}/pr310-provider-unit.log
+            ${{ runner.temp }}/pr310-provider-published.txt
+            ${{ runner.temp }}/pr310-provider-qualified.bundle
+          retention-days: 7
+          if-no-files-found: warn
