@@ -1,0 +1,143 @@
+name: Qualify reviewed APERAK caller contract
+on:
+  push:
+    branches: [codex/qualify-ediel-aperak-callers-20260916]
+permissions:
+  contents: read
+concurrency:
+  group: qualify-reviewed-aperak-callers
+  cancel-in-progress: false
+jobs:
+  qualify:
+    if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/codex/qualify-ediel-aperak-callers-20260916'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+      EXPECTED_TREE: 4ea220781a9119f17686704fb127f4bba4a49be1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Materialize exact reviewed source and remove qualification-only files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/aperak-qualification"
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess
+          root = pathlib.Path.cwd().resolve()
+          base = '71dc255e5d698e4fb8c9102562b518777db6b1b0'
+          workflow = '.github/workflows/qualify-aperak-callers-once.yml'
+          parts = {
+            'quality/qualification/aperak-callers-part1.json': '572d6d53cda45c72d091028f68b36d553addd3bf9a5bb9f82cd0a2ba76ab481a',
+            'quality/qualification/aperak-callers-part2.json': 'fe7eb6c248b32fd6815acc0ad3396d097a7655ccd6a40592c357769056dcc002',
+            'quality/qualification/aperak-callers-part3.json': '44faa87febb290f8f361a837372e4a02837279569adaa51083ca8c2ca4255cdb',
+            'quality/qualification/aperak-callers-part4.json': '49109af349025fb64dc769b5301456d2743f1b8e9d3f14ab324fc7f9c76def32',
+          }
+          def git(*args): return subprocess.check_output(['git', *args]).decode().strip()
+          def blob(data): return hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
+          assert not git('status', '--porcelain'), 'Dirty checkout'
+          subprocess.run(['git','merge-base','--is-ancestor',base,'HEAD'],check=True)
+          assert set(git('diff','--name-only',base,'HEAD').splitlines()) == set(parts) | {workflow}, 'Unexpected bootstrap changes'
+          records = []
+          for name, digest in parts.items():
+            data = pathlib.Path(name).read_bytes()
+            assert hashlib.sha256(data).hexdigest() == digest, name+' recipe checksum mismatch'
+            records.extend(json.loads(data))
+          assert len(records) == 42
+          planned = {}
+          for row in records:
+            name = row['path']; target = (root/name).resolve()
+            assert target.is_relative_to(root) and '..' not in pathlib.PurePosixPath(name).parts
+            assert name.startswith(('.agent-memory/','lib/ediel/','app/admin/','scripts/','quality/audits/ediel-masterplan-v2/')) or name == '.github/workflows/ediel-masterplan-v2.yml'
+            assert name not in planned
+            if row['before'] is None:
+              assert not target.exists(), name+' unexpectedly exists'
+              if 'copy_from' in row:
+                data = subprocess.check_output(['git','show',base+':'+row['copy_from']])
+                assert blob(data) == row['copy_sha']
+              else: data = row['content'].encode()
+            else:
+              original = target.read_bytes()
+              assert blob(original) == row['before'], name+' baseline changed'
+              lines = original.decode().splitlines(keepends=True)
+              end = 0
+              for start, stop, replacement in row['edits']:
+                assert end <= start <= stop <= len(lines)
+                end = stop
+              for start, stop, replacement in reversed(row['edits']): lines[start:stop] = [replacement]
+              data = ''.join(lines).encode()
+            assert blob(data) == row['after'], name+' target bytes differ'
+            planned[name] = data
+          for name, data in planned.items():
+            target = root/name; target.parent.mkdir(parents=True,exist_ok=True); target.write_bytes(data)
+          for name in [*parts,workflow]: pathlib.Path(name).unlink()
+          subprocess.run(['git','add','-A'],check=True)
+          tree = git('write-tree')
+          assert tree == os.environ['EXPECTED_TREE'], 'Reviewed source tree mismatch: '+tree
+          evidence = pathlib.Path(os.environ['RUNNER_TEMP'])/'aperak-qualification'
+          (evidence/'provenance.json').write_text(json.dumps({'base':base,'bootstrap':git('rev-parse','HEAD'),'candidate_tree':tree,'scope':'Exact reviewed source; preliminary qualification, not normal PR CI or production acceptance'},indent=2)+'\n')
+          PY
+          git -c user.name='Gridex CI qualification' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix(ediel): complete APERAK caller propagation and corroborate raw profiles'
+          printf 'CANDIDATE_SHA=%s\n' "$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          git rev-parse HEAD > "$RUNNER_TEMP/aperak-qualification/candidate-sha.txt"
+          git archive --format=tar.gz --output="$RUNNER_TEMP/aperak-qualification/source.tar.gz" HEAD
+          (cd "$RUNNER_TEMP/aperak-qualification" && sha256sum source.tar.gz > SHA256SUMS)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install exact locked dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci 2>&1 | tee "$RUNNER_TEMP/aperak-qualification/npm-ci.log"
+      - name: Qualify real source and application contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec > >(tee "$RUNNER_TEMP/aperak-qualification/qualification.log") 2>&1
+          node --experimental-vm-modules --test scripts/test-ediel-aperak-caller-contract.cjs scripts/test-ediel-rule-pack-source-identity.cjs scripts/test-ediel-prodat-source-locators.cjs scripts/test-ediel-component-escaping.cjs
+          node scripts/gridex-aperak-canonical-evidence-regression.cjs
+          node scripts/check-ediel-masterplan-v2.cjs
+          node scripts/check-agent-memory-git-state.cjs
+          npm run typecheck
+          npm run typecheck:scripts
+          npm run typecheck:tests
+          npm run lint
+          npm test
+          npm run db:migrations:check
+          npm run tenant:service-role-ratchet
+          npm run security:rbac
+          npm run quality:large-file-budget
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          test "$(git rev-parse 'HEAD^{tree}')" = "$EXPECTED_TREE"
+          git diff --exit-code HEAD
+          printf 'Preliminary qualification passed; normal exact-head PR CI is still required.\n' > "$RUNNER_TEMP/aperak-qualification/qualification-result.txt"
+      - name: Publish only the tested candidate to a new non-production branch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          branch=codex/ediel-v2-aperak-caller-contract-20260916
+          gh auth setup-git
+          test -z "$(git ls-remote --heads origin "refs/heads/$branch")" || { echo 'Candidate branch already exists; refusing to overwrite it.' >&2; exit 1; }
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          test "$(git rev-parse 'HEAD^{tree}')" = "$EXPECTED_TREE"
+          git push origin "$CANDIDATE_SHA:refs/heads/$branch"
+          printf '%s\n' "$branch" > "$RUNNER_TEMP/aperak-qualification/published-branch.txt"
+      - name: Retain source and actual qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aperak-caller-qualification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/aperak-qualification/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
