@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  // Keep the established Turbopack development server explicit when the
+  // production-only webpack chunk hook below is present (Next 16).
+  turbopack: {},
   webpack(config, { isServer, dev }) {
     // Next16.3's measured client navigation-cache modules otherwise share one
     // oversized router chunk. Cache that cohesive module group separately;

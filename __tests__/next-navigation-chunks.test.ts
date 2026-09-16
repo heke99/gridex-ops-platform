@@ -3,6 +3,9 @@ import nextConfig from '../next.config'
 
 const resource = /[\\/]next[\\/]dist[\\/]client[\\/]components[\\/]segment-cache[\\/]/
 describe('production navigation cache chunk boundary', () => {
+  it('explicitly retains Turbopack development alongside production-only webpack', () => {
+    expect(nextConfig.turbopack).toEqual({})
+  })
   function baseConfig() {
     return { optimization: { minimize: true, splitChunks: { chunks: 'all', cacheGroups: {
       framework: { name: 'framework', priority: 40 }, lib: { name: 'lib', priority: 30 },
