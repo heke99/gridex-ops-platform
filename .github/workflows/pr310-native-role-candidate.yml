@@ -35,11 +35,17 @@ jobs:
           patch=zlib.decompress(base64.b64decode(raw,validate=True))
           assert hashlib.sha256(patch).hexdigest()=='4182dfbb73eed0bcd9e31ea637d6576fee7359c8ecda9396d57e6f423c583f8d'
           Path(os.environ['RUNNER_TEMP'],'provider-role.patch').write_bytes(patch)
+          correction=Path('pr310-native-provider-json.patch').read_bytes()
+          assert hashlib.sha256(correction).hexdigest()=='45938731472b32969871c857cb73f857b11a44aaddf3c14fa5cee4c9afe2d1d4'
+          Path(os.environ['RUNNER_TEMP'],'provider-json.patch').write_bytes(correction)
           PY
           git checkout --detach 58dfddba6905ed797cb273e92e25d45893f08b64
           git apply --check --index "$RUNNER_TEMP/provider-role.patch"
           git apply --index "$RUNNER_TEMP/provider-role.patch"
           test "$(git write-tree)" = 8461493cff9d1d027b4c93d1acaf90323fd6b66b
+          git apply --check --index "$RUNNER_TEMP/provider-json.patch"
+          git apply --index "$RUNNER_TEMP/provider-json.patch"
+          test "$(git write-tree)" = a4d0c34f4667d13d6997b924a165b31a432a96c1
           test "$(git diff --cached --name-only | wc -l)" -eq 4
           git diff --cached --check
       - name: Preserve all existing policy, type and release rejection controls
@@ -76,7 +82,7 @@ jobs:
           assert data['schemaAccepted'] is False and data['generatedTypesVerified'] is False
           PY
           git diff-files --quiet
-          test "$(git write-tree)" = 8461493cff9d1d027b4c93d1acaf90323fd6b66b
+          test "$(git write-tree)" = a4d0c34f4667d13d6997b924a165b31a432a96c1
       - name: Publish only verified clean descendant to qualification branch
         id: publish
         env:
@@ -86,7 +92,7 @@ jobs:
         run: |
           set -euo pipefail
           base=58dfddba6905ed797cb273e92e25d45893f08b64
-          tree=8461493cff9d1d027b4c93d1acaf90323fd6b66b
+          tree=a4d0c34f4667d13d6997b924a165b31a432a96c1
           branch=codex/pr310-native-role-qualified-20260916
           test "$(gh api "repos/heke99/gridex-ops-platform/git/ref/heads/$branch" --jq '.object.sha')" = "$base"
           test "$(git write-tree)" = "$tree"
@@ -100,7 +106,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: pr310-native-provider-role-candidate
+          name: pr310-native-provider-role-candidate-${{ github.run_attempt }}
           path: |
             artifacts/native-provider-role-proof.json
             artifacts/native-supabase-lifecycle.json
