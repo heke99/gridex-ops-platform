@@ -16,10 +16,14 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-      - name: Retain the fixed preflight outside the source checkout
+      - name: Retain exact probe and repair inputs outside the source checkout
         run: |
           cp .github/pr310-cleanup-native-preflight.py "$RUNNER_TEMP/cleanup-native-preflight.py"
+          cp .github/storage_owner_preflight.py "$RUNNER_TEMP/storage_owner_preflight.py"
+          cp .github/pr310-native-final-guards.patch "$RUNNER_TEMP/native-final-guards.patch"
           echo "4fda803aff4e3a454e1c98fcb11af5d0d3a71cabaeec5cd464677ce0accde505  $RUNNER_TEMP/cleanup-native-preflight.py" | sha256sum --check
+          echo "c3c9df95cf6ba4b0b58af90094169c9d97f3b1870f06624192de657a74b86f08  $RUNNER_TEMP/storage_owner_preflight.py" | sha256sum --check
+          echo "16da701b4842f52fb941033c0d8cb2584bbfffddc24dbf2fca1d2a52b6aca663  $RUNNER_TEMP/native-final-guards.patch" | sha256sum --check
           python3 -B - <<'PY'
           from pathlib import Path
           import hashlib,os
@@ -36,6 +40,16 @@ jobs:
               assert raw.count(old)==1
               raw=raw.replace(old,new)
           assert hashlib.sha256(raw.encode()).hexdigest()=='55da6f25a1feb9e7b36d5081fd3db2bf6a3649a503722ed5f46c3ae95319c09a'
+          replacements={
+          '    original = cleanup.program().sql':"    candidate = cleanup.program().sql\n    original = candidate.replace(OPEN,b'').replace(CLOSE,b'')",
+          '    candidate = OPEN + LOCK + CLOSE + original[len(LOCK):]':"    if candidate != OPEN + LOCK + CLOSE + original[len(LOCK):]:\n        raise ValueError('EXACT_COMPILED_PROGRAM_REQUIRED')",
+          '            baseline=snapshot();oid=sql(':"            report['phase']='NATIVE_STORAGE_OWNER_DIFFERENTIAL'\n            import storage_owner_preflight\n            report['storageOwnerQualification']=storage_owner_preflight.qualify(ROOT,sql,native,snapshot,migrations)\n            baseline=snapshot();oid=sql(",
+          "            known.update({'NATIVE_CLEANUP_EXACT_REMOVAL_REQUIRED'":"            known.update({'STORAGE_SOURCE_REQUIRED','STORAGE_OWNER_CONTRACT_REQUIRED','STORAGE_PROVIDER_OWNER_REQUIRED','STORAGE_ROLE_REQUIRED','STORAGE_CLI_FILE_REQUIRED','STORAGE_GUARD_REQUIRED','STORAGE_FAILURE_CONTROL_REQUIRED','STORAGE_ROLLBACK_REQUIRED','STORAGE_PREIMAGE_REQUIRED','STORAGE_EXACT_EFFECT_REQUIRED','STORAGE_OWNER_DIFFERENTIAL_REQUIRED','STORAGE_REPEAT_REQUIRED','STORAGE_NEGATIVE_OWNER_OR_ROLE_REQUIRED','STORAGE_NEGATIVE_ROLLBACK_REQUIRED','NATIVE_CLEANUP_EXACT_REMOVAL_REQUIRED'",
+          }
+          for old,new in replacements.items():
+              assert raw.count(old)==1
+              raw=raw.replace(old,new)
+          assert hashlib.sha256(raw.encode()).hexdigest()=='53d0e6ab0fd9057b78dc175218d522a89ef4352f47ff159e16e5327280c280fc'
           compile(raw,'fixed_cleanup_preflight','exec')
           p.write_text(raw)
           PY
@@ -46,13 +60,30 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
-      - name: Prove original rejection, complete corrected program, rollback and exact cleanup
+      - name: Apply and verify exact bounded repair files
+        run: |
+          git apply --check "$RUNNER_TEMP/native-final-guards.patch"
+          git apply "$RUNNER_TEMP/native-final-guards.patch"
+          echo '771f3f163f4c8870d738c28b08fd5ee86bbf72d1cb93fc912d1421a034ac84ef  scripts/canonical_native_forward_runtime.py' | sha256sum --check
+          echo 'e5c23fe4f11f3d9ef47750d340956ae3242a43c7d5299a183e4e765c6a2635a7  scripts/canonical_native_probe_cleanup.py' | sha256sum --check
+          echo '718545889254c6634fccdf528541f658916b30244f7bb608b839e305763e544f  scripts/test-canonical-native-forward-runtime.py' | sha256sum --check
+          echo '9ae8edf14318936700ccef48a087503b6f9cbbd3352be7b478ba1ba3092ea719  scripts/test-canonical-native-probe-cleanup.py' | sha256sum --check
+          python3 -B scripts/test-canonical-native-forward-runtime.py
+          python3 -B scripts/test-canonical-native-probe-cleanup.py
+          python3 -B scripts/test-canonical-permission-forward-contract.py
+          python3 -B scripts/test-canonical-native-final-sql.py
+      - name: Prove original rejections, complete corrected programs and exact rollback
         run: python3 -B "$RUNNER_TEMP/cleanup-native-preflight.py"
-      - name: Confirm no tracked source was changed
+      - name: Confirm no additional tracked sources changed
         if: always()
         run: |
-          git diff --exit-code
+          git diff --check
           test "$(git rev-parse HEAD)" = c6f7702a0214504bc44027d0526734e3adecf728
+          python3 -B - <<'PY'
+          import subprocess
+          expected={'scripts/canonical_native_forward_runtime.py','scripts/canonical_native_probe_cleanup.py','scripts/test-canonical-native-forward-runtime.py','scripts/test-canonical-native-probe-cleanup.py'}
+          assert set(subprocess.check_output(['git','diff','--name-only'],text=True).splitlines())==expected
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
