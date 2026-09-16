@@ -64,6 +64,45 @@ def candidate():
     return raw
 
 
+def matrix_sql_diagnostic(stderr,stage,state):
+    """Project one known error header into fixed labels, never SQL or row values.
+
+    Unqualified PostgreSQL object names stay unqualified: ``table:objects``
+    does not prove a schema or authorize any ACL change. This is diagnostic
+    metadata only; the caller must still raise the original failure.
+    """
+    if (stage!='matrix_case' or state not in ('P0001','42501')
+            or type(stderr) is not bytes or len(stderr)>65536 or b'\x00' in stderr):
+        return {}
+    try:
+        text=stderr.decode('utf-8')
+    except UnicodeDecodeError:
+        return {}
+    # Reject multiple/ambiguous errors, including errors from a different
+    # file. DETAIL, HINT, CONTEXT and SQL lines are never copied into receipts.
+    headers=[line.rstrip('\r') for line in text.split('\n')
+        if re.match(r'^(?:psql:[^\r\n]+:[0-9]+: )?(?:ERROR|FATAL|PANIC):',line)]
+    if len(headers)!=1:
+        return {}
+    error=re.fullmatch(r'(?:psql:<stdin>:[0-9]+: )?ERROR: +([A-Z0-9]{5}): (.{1,160})',headers[0])
+    if error is None or error[1]!=state:
+        return {}
+    if state=='P0001':
+        labels={'actor_identity','actor_role_flags','access_select_own','access_select_foreign',
+            'full_access_select_roster','full_access_no_global_row','access_no_table_write',
+            'access_no_column_write','storage_visible_rows','expected_sqlstate_mismatch',
+            'affected_rows','unchanged_multisets'}
+        return {'assertion':error[2]} if error[2] in labels else {}
+    denials={
+        'permission denied for schema storage':'schema:storage',
+        'permission denied for table objects':'table:objects',
+        'permission denied for schema gridex_private':'schema:gridex_private',
+        'permission denied for function customer_document_path_allows':'function:customer_document_path_allows',
+    }
+    label=denials.get(error[2])
+    return {'deniedObject':label} if label is not None else {}
+
+
 def private_sql(target,legacy,database,sql,stage,transaction=True):
     stages={'snapshot_catalog','snapshot_rows','snapshot_ledger','changed_function24',
         'eight_function_metadata','effective_acl','candidate_first','candidate_repeat',
@@ -82,14 +121,7 @@ def private_sql(target,legacy,database,sql,stage,transaction=True):
         state=safe.get('sqlstate')
         if type(state) is not str or re.fullmatch('[A-Z0-9]{5}',state) is None:state='XXXXX'
         diagnostic=dict(stage='permission_clone_sql_failure',phase=stage,sqlstate=state)
-        if stage=='matrix_case' and state=='P0001':
-            labels={'actor_identity','actor_role_flags','access_select_own','access_select_foreign',
-                'full_access_select_roster','full_access_no_global_row','access_no_table_write',
-                'access_no_column_write','storage_visible_rows','expected_sqlstate_mismatch',
-                'affected_rows','unchanged_multisets'}
-            error=re.search(r'(?m)^(?:psql:<stdin>:[0-9]+: )?ERROR: +P0001: ([a-z_]+)$',
-                result.stderr.decode(errors='replace'))
-            if error and error[1] in labels:diagnostic['assertion']=error[1]
+        diagnostic.update(matrix_sql_diagnostic(result.stderr,stage,state))
         print(json.dumps(diagnostic),flush=True)
         raise ValueError('PERMISSION_CLONE_SQL_REQUIRED')
     return result.stdout.decode()
