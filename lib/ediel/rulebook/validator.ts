@@ -140,6 +140,13 @@ function canonicalMessageCode(family: ActiveCanonicalFamily, code: string): stri
   return code
 }
 
+function parsedAssociationAssignedCode(parsed: ParsedRulebookMessage): string | null {
+  const unh = parsed.rawSegments.find((segment) => /^UNH\+/i.test(segment)) ?? null
+  const messageType = unh?.split('+')[2]?.split(':') ?? []
+  const association = normalizeIdentifier(messageType[4])
+  return association || null
+}
+
 function associationAssignedCodeForPolicy(input: {
   family: ActiveCanonicalFamily
   code: string
@@ -158,9 +165,9 @@ function associationAssignedCodeForPolicy(input: {
     if (sourceFamily === 'PRODAT') return 'E2SE6A'
     if (usesUtiltsAperakProfile(sourceFamily)) return 'E5SE5A'
 
-    // Inbound APERAK does not necessarily carry our internal source metadata.
-    // Its actual UNH association is still enough to select the source-bound
-    // guide. Legacy 16B is deliberately not accepted as an APERAK identity.
+    // Inbound APERAK and raw-payload preflight do not necessarily carry our
+    // internal source metadata. The actual UNH association is still sufficient
+    // to select the source-bound guide. Legacy 16B is deliberately not accepted.
     if (provided === 'E2SE6A') return 'E2SE6A'
     if (provided === 'E5SE5A') return 'E5SE5A'
     throw new Error(`canonical_aperak_source_profile_required:${sourceFamily || provided || 'missing'}`)
@@ -247,10 +254,11 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
   const referenceDate = businessDate(input, parsed)
   const sourceBoundAck = isSourceBoundAckFamily(familyValue)
   const sourceMessageFamily = record(input.parsedPayload)?.canonicalSourceMessageFamily as string | null | undefined
+  const providedVersion = input.version ?? (familyValue === 'APERAK' ? parsedAssociationAssignedCode(parsed) : null)
   const associationAssignedCode = associationAssignedCodeForPolicy({
     family: familyValue,
     code,
-    providedVersion: input.version,
+    providedVersion,
     referenceDate,
     sourceBoundAck,
     sourceMessageFamily,
@@ -273,7 +281,7 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
   if (sourceBoundAck) {
     assertAckFamilyRuntimeVersion({
       family: familyValue,
-      providedVersion: input.version,
+      providedVersion,
       referenceDate,
       policy,
       sourceMessageFamily,
