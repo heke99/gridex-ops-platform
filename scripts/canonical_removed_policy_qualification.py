@@ -405,7 +405,28 @@ def expected_routines(retained):
     return result
 
 
-def validate_metadata(metadata,retained):
+def validate_role_graph(rows,native_provider=None):
+    principals={p['rolname']:p for p in rows}
+    if (len(principals)!=len(rows) or not {'authenticated','anon','service_role'}<=principals.keys()
+            or any(principals[r]['rolsuper'] or principals[r]['rolbypassrls'] for r in ('authenticated','anon'))
+            or not (principals['service_role']['rolsuper'] or principals['service_role']['rolbypassrls'])):
+        raise ValueError('REMOVED_POLICY_ROLE_GRAPH_REQUIRED')
+    provider_verified=False
+    if native_provider is not None:
+        from canonical_native_provider_role_chain import allows_service_origin
+        provider_verified=allows_service_origin(rows,native_provider)
+    for p in principals.values():
+        if (p['authenticated_member'] or p['anon_member']) and (p['rolsuper'] or p['rolbypassrls']):
+            raise ValueError('REMOVED_POLICY_ROLE_GRAPH_REQUIRED')
+        if p['unreviewed_login_member'] and (p['rolsuper'] or p['rolbypassrls']):
+            if not (provider_verified and p['rolname']=='service_role'):
+                raise ValueError('REMOVED_POLICY_ROLE_GRAPH_REQUIRED')
+        if p['rolname']!='service_role' and not p['rolsuper'] and not p['rolbypassrls'] and p['service_usage']:
+            raise ValueError('REMOVED_POLICY_ROLE_GRAPH_REQUIRED')
+    return principals
+
+
+def validate_metadata(metadata,retained,*,native_provider=None):
     keys={'scope','postgres17','readOnly','policies','relations','principals','authority','routines'}
     if (type(metadata) is not dict or set(metadata)!=keys or metadata['scope']!='REMOVED_POLICY_READ_ONLY_METADATA'
             or metadata['postgres17'] is not True or metadata['readOnly'] is not True
@@ -416,17 +437,7 @@ def validate_metadata(metadata,retained):
     require_policy_hashes(actual,expected_policies(retained),row_count=len(rows))
     expected_relations=[dict(name=t,kind='r',rls=True,force=False,owner='postgres') for t in TABLES]
     if metadata['relations']!=expected_relations:raise ValueError('REMOVED_POLICY_RELATION_SHAPE_REQUIRED')
-    principals={p['rolname']:p for p in metadata['principals']}
-    if (len(principals)!=len(metadata['principals']) or not {'authenticated','anon','service_role'}<=principals.keys()
-            or any(principals[r]['rolsuper'] or principals[r]['rolbypassrls'] for r in ('authenticated','anon'))
-            or not (principals['service_role']['rolsuper'] or principals['service_role']['rolbypassrls'])):
-        raise ValueError('REMOVED_POLICY_ROLE_GRAPH_REQUIRED')
-    # Neither SET-only nor inherited authority may enlarge client capabilities.
-    for p in principals.values():
-        if (p['authenticated_member'] or p['anon_member'] or p['unreviewed_login_member']) and (p['rolsuper'] or p['rolbypassrls']):
-            raise ValueError('REMOVED_POLICY_ROLE_GRAPH_REQUIRED')
-        if p['rolname']!='service_role' and not p['rolsuper'] and not p['rolbypassrls'] and p['service_usage']:
-            raise ValueError('REMOVED_POLICY_ROLE_GRAPH_REQUIRED')
+    principals=validate_role_graph(metadata['principals'],native_provider)
     authority={(a['name'],a['rolname']):a for a in metadata['authority']}
     if len(authority)!=len(TABLES)*len(principals) or len(authority)!=len(metadata['authority']):
         raise ValueError('REMOVED_POLICY_AUTHORITY_SET_REQUIRED')
@@ -525,6 +536,8 @@ _FAILURE_REASONS=frozenset((
     'REMOVED_POLICY_HELPER_EXECUTE_REQUIRED',
     'REMOVED_POLICY_HELPER_SET_REQUIRED',
     'REMOVED_POLICY_METADATA_REQUIRED',
+    'REMOVED_POLICY_NATIVE_PROVIDER_CHAIN_REQUIRED',
+    'REMOVED_POLICY_NATIVE_PROVIDER_TARGET_REQUIRED',
     'REMOVED_POLICY_QUALIFIED_SERVICE_BYPASS_REQUIRED',
     'REMOVED_POLICY_REFERENCE_GUARD_REQUIRED',
     'REMOVED_POLICY_REFERENCE_HELPER_REQUIRED',
@@ -562,7 +575,11 @@ def _execute(target,retained,progress,actor_receipt):
     if actors._policy_context(target,database)!=actor_receipt['completePolicyContextSha256']:
         raise ValueError('REMOVED_POLICY_CURRENT_ACTOR_CONTEXT_REQUIRED')
     metadata=json.loads(target.sql(database,retained.sql.decode(),'removed_policy_metadata',transaction=False))
-    result=validate_metadata(metadata,retained)
+    native_provider=None
+    if native:
+        from canonical_native_provider_role_chain import capture
+        native_provider=capture(target)
+    result=validate_metadata(metadata,retained,native_provider=native_provider)
     from canonical_removed_policy_formulas import prove_replacements,prove_component
     proof=prove_replacements(json.loads(retained.register))
     principals={p['rolname']:p for p in metadata['principals']}
@@ -578,7 +595,11 @@ def _execute(target,retained,progress,actor_receipt):
     actors._admit(target)
     if actors._snapshot(target,database,native)!=before:
         raise ValueError('REMOVED_POLICY_STATE_PRESERVATION_REQUIRED')
-    receipt=dict(scope='SOURCE_FORMULAS_AND_LIVE_METADATA_NOT_BUSINESS_DML',verified=True,
+    if native:
+        if capture(target)!=native_provider:
+            raise ValueError('REMOVED_POLICY_STATE_PRESERVATION_REQUIRED')
+    receipt=dict(nativeStorageRoleChainVerified=native_provider is not None,
+        scope='SOURCE_FORMULAS_AND_LIVE_METADATA_NOT_BUSINESS_DML',verified=True,
         source=SOURCE,sourceSha256=SOURCE_SHA,registerSha256=REGISTER_SHA,**result,
         removedPolicyCount=59,replacementPolicyCount=59,reconstructedReplacementRows=57,
         formulaProofSha256=sha(proof),formulaRowsProved=57,formulaComponentsProved=75,
@@ -592,7 +613,7 @@ def _execute(target,retained,progress,actor_receipt):
 
 def receipt_contract(*,native):
     """Fixed receipt fields only; live execution must supply context hashes."""
-    return dict(scope='SOURCE_FORMULAS_AND_LIVE_METADATA_NOT_BUSINESS_DML',verified=True,
+    return dict(nativeStorageRoleChainVerified=native,scope='SOURCE_FORMULAS_AND_LIVE_METADATA_NOT_BUSINESS_DML',verified=True,
         source=SOURCE,sourceSha256=SOURCE_SHA,registerSha256=REGISTER_SHA,
         policyCount=267,relationCount=23,anonymousClosedTables=3,directInsertUpdateDeleteDeniedTables=3,
         sendLockNonSelectPrivilegesDenied=7,helperBodiesVerified=6,canonicalRpcMetadataVerified=6,
