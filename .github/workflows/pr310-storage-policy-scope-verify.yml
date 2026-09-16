@@ -16,8 +16,8 @@ jobs:
     timeout-minutes: 40
     env:
       BASE: a684f17cea548f037d09d14a38acd46f303f34e5
-      EXPECTED_TREE: 88de2e340792a081640b9f93626a77c4d8b738e4
-      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-scope-${{ github.run_id }}-${{ github.run_attempt }}
+      EXPECTED_TREE: b2ff9aa30019f8801a4047f77a72ffd7ac59ae8c
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -33,6 +33,8 @@ jobs:
           cd "$RUNNER_TEMP/pr310-scope"
           git apply --index --check "$GITHUB_WORKSPACE/.github/pr310-storage-policy-scope.patch"
           git apply --index "$GITHUB_WORKSPACE/.github/pr310-storage-policy-scope.patch"
+          git apply --index --check "$GITHUB_WORKSPACE/.github/pr310-storage-policy-oid.patch"
+          git apply --index "$GITHUB_WORKSPACE/.github/pr310-storage-policy-oid.patch"
           python3 - <<'PY'
           import hashlib,os
           from pathlib import Path
