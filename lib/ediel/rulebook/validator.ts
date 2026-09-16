@@ -140,16 +140,39 @@ function canonicalMessageCode(family: ActiveCanonicalFamily, code: string): stri
   return code
 }
 
+function parsedAssociationAssignedCode(parsed: ParsedRulebookMessage): string | null {
+  const unh = parsed.rawSegments.find((segment) => /^UNH\+/i.test(segment)) ?? null
+  const messageType = unh?.split('+')[2]?.split(':') ?? []
+  const association = normalizeIdentifier(messageType[4])
+  return association || null
+}
+
 function associationAssignedCodeForPolicy(input: {
   family: ActiveCanonicalFamily
   code: string
   providedVersion: string | null | undefined
   referenceDate: string
   sourceBoundAck: boolean
+  sourceMessageFamily?: string | null
 }): string | null {
-  if (input.sourceBoundAck) return null
-
   const providedRaw = String(input.providedVersion ?? '').trim()
+  const provided = normalizeIdentifier(providedRaw)
+
+  if (input.sourceBoundAck) {
+    if (input.family !== 'APERAK') return null
+
+    const sourceFamily = normalize(input.sourceMessageFamily)
+    if (sourceFamily === 'PRODAT') return 'E2SE6A'
+    if (usesUtiltsAperakProfile(sourceFamily)) return 'E5SE5A'
+
+    // Inbound APERAK and raw-payload preflight do not necessarily carry our
+    // internal source metadata. The actual UNH association is still sufficient
+    // to select the source-bound guide. Legacy 16B is deliberately not accepted.
+    if (provided === 'E2SE6A') return 'E2SE6A'
+    if (provided === 'E5SE5A') return 'E5SE5A'
+    throw new Error(`canonical_aperak_source_profile_required:${sourceFamily || provided || 'missing'}`)
+  }
+
   if (!providedRaw) return null
   if (input.family !== 'PRODAT') return providedRaw
 
@@ -157,7 +180,6 @@ function associationAssignedCodeForPolicy(input: {
   // message version, while the UNH association-assigned code is E2SE6A. Do not
   // feed a guide revision into the association-code selector. Unknown versions
   // are deliberately returned unchanged so canonical policy still fails closed.
-  const provided = normalizeIdentifier(providedRaw)
   const selection = selectRulebookVersion({
     family: 'PRODAT',
     code: input.code,
@@ -179,12 +201,18 @@ function assertAckFamilyRuntimeVersion(input: {
   const provided = normalizeIdentifier(input.providedVersion)
   if (!provided) return
 
+  let sourceFamily = normalize(input.sourceMessageFamily)
+  if (input.family === 'APERAK' && !sourceFamily) {
+    if (provided === 'E2SE6A') sourceFamily = 'PRODAT'
+    if (provided === 'E5SE5A') sourceFamily = 'UTILTS'
+  }
+
   const selection = selectRulebookVersion({
     family: input.family,
     code: input.policy.code,
     referenceDate: input.referenceDate,
+    sourceMessageFamily: input.family === 'APERAK' ? sourceFamily : null,
   })
-  const sourceFamily = normalize(input.sourceMessageFamily)
   const accepted = new Set([
     normalizeIdentifier(selection.selectedVersion),
     normalizeIdentifier(input.policy.guide.guideRevision),
@@ -225,12 +253,15 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
   if (!dir) throw new Error(`canonical_policy_direction_required:${familyValue}:${code}`)
   const referenceDate = businessDate(input, parsed)
   const sourceBoundAck = isSourceBoundAckFamily(familyValue)
+  const sourceMessageFamily = record(input.parsedPayload)?.canonicalSourceMessageFamily as string | null | undefined
+  const providedVersion = input.version ?? (familyValue === 'APERAK' ? parsedAssociationAssignedCode(parsed) : null)
   const associationAssignedCode = associationAssignedCodeForPolicy({
     family: familyValue,
     code,
-    providedVersion: input.version,
+    providedVersion,
     referenceDate,
     sourceBoundAck,
+    sourceMessageFamily,
   })
 
   const policy = resolveCanonicalEdielPolicy({
@@ -239,9 +270,9 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
     subtypeOrReasonCode: parsed.subtype,
     direction: dir,
     referenceDate,
-    // Runtime guide aliases such as PRODAT 26A and APERAK/CONTRL aliases are
-    // not UNH association codes. associationAssignedCodeForPolicy preserves
-    // actual association codes and lets unknown values fail closed.
+    // Runtime guide aliases such as PRODAT 26A and CONTRL aliases are not UNH
+    // association codes. APERAK is the exception: its source-bound association
+    // is required to select the correct P- or U-family guide.
     associationAssignedCode,
     applicationReference: input.applicationReference ?? parsed.applicationReference ?? null,
     mode: input.mode === 'send' ? 'catalog_evidence' : 'parse',
@@ -250,10 +281,10 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
   if (sourceBoundAck) {
     assertAckFamilyRuntimeVersion({
       family: familyValue,
-      providedVersion: input.version,
+      providedVersion,
       referenceDate,
       policy,
-      sourceMessageFamily: record(input.parsedPayload)?.canonicalSourceMessageFamily as string | null | undefined,
+      sourceMessageFamily,
     })
   }
 
