@@ -1,0 +1,48 @@
+name: PR310 bounded native role fixture diagnosis
+on:
+  push:
+    branches: ['codex/pr310-native-role-proof-20260916']
+    paths: ['.github/workflows/pr310-native-role-diagnostic.yml']
+permissions:
+  contents: read
+jobs:
+  role-fixture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Materialize exact candidate and bounded diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY'
+          import base64,hashlib,subprocess,zlib
+          from pathlib import Path
+          patches=[(zlib.decompress(base64.b64decode(Path('pr310-native-provider-role.patch.zlib.b64').read_text().strip(),validate=True)),'4182dfbb73eed0bcd9e31ea637d6576fee7359c8ecda9396d57e6f423c583f8d'),(Path('pr310-native-provider-json.patch').read_bytes(),'45938731472b32969871c857cb73f857b11a44aaddf3c14fa5cee4c9afe2d1d4'),(Path('pr310-native-provider-diagnostic.patch').read_bytes(),'0531d8e992531a0649e2de2fa8068bc1b16bdc2d848161e8eca8086f08e9da3a')]
+          subprocess.run(['git','fetch','--depth=1','origin','58dfddba6905ed797cb273e92e25d45893f08b64'],check=True)
+          subprocess.run(['git','checkout','--detach','58dfddba6905ed797cb273e92e25d45893f08b64'],check=True)
+          for raw,digest in patches:
+              assert hashlib.sha256(raw).hexdigest()==digest
+              subprocess.run(['git','apply','--index','-'],input=raw,check=True)
+          assert subprocess.check_output(['git','write-tree']).decode().strip()=='0b65c9afa210303154c7810674a405f578c40ea4'
+          PY
+          git diff --cached --check
+      - name: Exercise actual native SQL and retain closed diagnostic
+        run: python3 -B scripts/canonical-native-provider-role-qualification.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr310-bounded-role-diagnostic-${{ github.run_attempt }}
+          path: |
+            artifacts/native-provider-role-diagnostic.json
+            artifacts/native-provider-role-proof.json
+            artifacts/native-supabase-lifecycle.json
+          retention-days: 7
+          if-no-files-found: error
