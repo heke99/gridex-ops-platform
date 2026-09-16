@@ -1,0 +1,98 @@
+name: PR310 native role complete qualification
+on:
+  push:
+    branches: ['codex/pr310-native-role-proof-20260916']
+    paths: ['.github/workflows/pr310-provider-final-qualification.yml']
+permissions:
+  contents: read
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Materialize exact four-file descendant
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY'
+          import base64,hashlib,subprocess,zlib
+          from pathlib import Path
+          patches=[(zlib.decompress(base64.b64decode(Path('pr310-native-provider-role.patch.zlib.b64').read_text().strip(),validate=True)),'4182dfbb73eed0bcd9e31ea637d6576fee7359c8ecda9396d57e6f423c583f8d')]
+          for name,digest in [('json','45938731472b32969871c857cb73f857b11a44aaddf3c14fa5cee4c9afe2d1d4'),('diagnostic','0531d8e992531a0649e2de2fa8068bc1b16bdc2d848161e8eca8086f08e9da3a'),('cycle','3efbff325310c334a864627193f9e5415775784a9c55bcd247833256d31c1502')]:
+              patches.append((Path('pr310-native-provider-'+name+'.patch').read_bytes(),digest))
+          subprocess.run(['git','checkout','--detach','58dfddba6905ed797cb273e92e25d45893f08b64'],check=True)
+          for raw,digest in patches:
+              assert hashlib.sha256(raw).hexdigest()==digest
+              subprocess.run(['git','apply','--index','-'],input=raw,check=True)
+          assert subprocess.check_output(['git','write-tree']).decode().strip()=='3b70eec7b4cc5d1db5369fe6921cc764aef0779d'
+          PY
+          git diff --cached --check
+      - name: Run unchanged adjacent regressions and new role rejection tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            for test in test-canonical-native-provider-role-chain test_canonical_removed_policy_qualification test-canonical-native-application-typegen test-canonical-native-schema-reference test-canonical-native-release-verify canonical-owned-timestamp-selftest canonical-native-supabase-lifecycle-selftest; do
+              python3 -B "scripts/$test.py"
+            done
+            node scripts/check-migration-versions.cjs
+          } 2>&1 | tee "$RUNNER_TEMP/pr310-provider-tests.log"
+      - name: Verify actual native provider path and rollback negatives
+        run: python3 -B scripts/canonical-native-provider-role-qualification.py
+      - name: Publish verified code without temporary workflows or payloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GIT_TERMINAL_PROMPT: '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('artifacts/native-provider-role-proof.json').read_bytes())
+          assert p['pristineOldFailureReproduced'] is True and len(p['negativeCases'])==11
+          assert p['validatorRejectedCaseCount']==10 and p['postgresRejectedCycles']==['authenticated_set_storage']
+          assert all(p[k] is True for k in ['rollbackAndRecoveryVerified','unrelatedUnprivilegedLoginAccepted','cleanupVerified','privateWorkspaceRemoved'])
+          assert all(p[k] is False for k in ['productionModified','schemaAccepted','generatedTypesVerified'])
+          PY
+          base=58dfddba6905ed797cb273e92e25d45893f08b64
+          tree=3b70eec7b4cc5d1db5369fe6921cc764aef0779d
+          branch=codex/pr310-native-role-qualified-20260916
+          test "$(gh api "repos/heke99/gridex-ops-platform/git/ref/heads/$branch" --jq '.object.sha')" = "$base"
+          test "$(git write-tree)" = "$tree"
+          git diff-files --quiet
+          test -z "$(git diff --cached --name-only "$base" -- .github/workflows supabase)"
+          commit=$(printf '%s\n' 'fix: qualify exact native Storage provider role chain without client escalation' | git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit-tree "$tree" -p "$base")
+          git -c credential.helper= -c 'credential.helper=!f() { printf "username=x-access-token\npassword=%s\n" "$GH_TOKEN"; }; f' push https://github.com/heke99/gridex-ops-platform.git "$commit:refs/heads/$branch"
+          test "$(gh api "repos/heke99/gridex-ops-platform/git/ref/heads/$branch" --jq '.object.sha')" = "$commit"
+          printf 'candidate=%s\ntree=%s\nbase=%s\npr310_updated=false\nmain_modified=false\n' "$commit" "$tree" "$base" > "$RUNNER_TEMP/pr310-provider-published.txt"
+          git update-ref refs/heads/pr310-provider-export "$commit"
+          git update-ref refs/heads/pr310-existing-portable-export 36d0f80b2f0f7cfc39815e654a892daca4b8af26
+          git bundle create "$RUNNER_TEMP/pr310-qualified-source.bundle" refs/heads/pr310-provider-export refs/heads/pr310-existing-portable-export "^$base"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr310-native-provider-complete-${{ github.run_attempt }}
+          path: |
+            artifacts/native-provider-role-proof.json
+            artifacts/native-provider-role-diagnostic.json
+            artifacts/native-supabase-lifecycle.json
+            ${{ runner.temp }}/pr310-provider-tests.log
+            ${{ runner.temp }}/pr310-provider-published.txt
+            ${{ runner.temp }}/pr310-qualified-source.bundle
+          retention-days: 7
+          if-no-files-found: error
