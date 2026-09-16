@@ -1,0 +1,74 @@
+name: PR310 pristine native role admission proof
+on:
+  push:
+    branches: ['codex/pr310-native-role-proof-20260916']
+    paths: ['.github/workflows/pr310-native-role-proof.yml']
+permissions:
+  contents: read
+jobs:
+  pristine-role-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 58dfddba6905ed797cb273e92e25d45893f08b64
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Capture only non-secret role metadata on pristine owned native database
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase --version
+          supabase db start --help
+          python3 -B - <<'PY'
+          import importlib.util, json, pathlib, subprocess, sys
+          root=pathlib.Path.cwd()
+          sys.path.insert(0,str(root/'scripts'))
+          spec=importlib.util.spec_from_file_location('native_role_lifecycle',root/'scripts/canonical-native-supabase-lifecycle.py')
+          life=importlib.util.module_from_spec(spec);spec.loader.exec_module(life)
+          import canonical_removed_policy_qualification as q
+          retained=q.retain(root)
+          text=retained.sql.decode()
+          assert text.count('), principals AS (\n')==text.count('), authority AS (')==1
+          select=text.split('), principals AS (\n')[1].split('), authority AS (')[0]
+          capture='BEGIN READ ONLY; WITH principals AS (\n'+select+') SELECT jsonb_agg(to_jsonb(p) ORDER BY rolname) FROM principals p; ROLLBACK;'
+          edges="BEGIN READ ONLY; SELECT jsonb_agg(jsonb_build_object('role',pg_get_userbyid(roleid),'member',pg_get_userbyid(member),'grantor',pg_get_userbyid(grantor),'admin',admin_option,'inherit',inherit_option,'set',set_option) ORDER BY pg_get_userbyid(roleid),pg_get_userbyid(member),pg_get_userbyid(grantor)) FROM pg_auth_members; ROLLBACK;"
+          captured=[]
+          check=life.check_container
+          def checked(data,project,network):
+              result=check(data,project,network)
+              def sql(query):
+                  p=subprocess.run(['docker','exec','-i','supabase_db_'+project,'psql','-XqAt','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1'],input=query.encode(),capture_output=True,timeout=30)
+                  if p.returncode:raise ValueError('ROLE_CAPTURE_FAILED')
+                  return json.loads(p.stdout)
+              captured.append(dict(principals=sql(capture),memberships=sql(edges),image=result['Config']['Image'],imageId=result['Image']))
+              return result
+          life.check_container=checked
+          rc=life.run_guarded()
+          report=json.loads((root/'artifacts/native-supabase-lifecycle.json').read_bytes())
+          assert rc==0 and report['cleanupVerified'] is True and report['privateWorkspaceRemoved'] is True
+          assert len(captured)==1
+          data=captured[0]
+          bad=[]
+          for p in data['principals']:
+              if (p['authenticated_member'] or p['anon_member'] or p['unreviewed_login_member']) and (p['rolsuper'] or p['rolbypassrls']):bad.append(dict(role=p['rolname'],reason='CLIENT_OR_LOGIN_REACHES_BYPASS',metadata=p))
+              if p['rolname']!='service_role' and not p['rolsuper'] and not p['rolbypassrls'] and p['service_usage']:bad.append(dict(role=p['rolname'],reason='NON_BYPASS_SERVICE_USAGE',metadata=p))
+          data.update(scope='PRISTINE_NATIVE_ROLE_METADATA_NOT_RELEASE_ACCEPTANCE',currentWitnessFailures=bad,cleanupVerified=True,productionModified=False,schemaAccepted=False,generatedTypesVerified=False)
+          (root/'artifacts/pr310-pristine-roles.json').write_text(json.dumps(data,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(dict(pristineWitnessFailureCount=len(bad),cleanupVerified=True)))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr310-pristine-native-roles
+          path: |
+            artifacts/pr310-pristine-roles.json
+            artifacts/native-supabase-lifecycle.json
+          retention-days: 7
+          if-no-files-found: error
