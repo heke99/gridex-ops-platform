@@ -18,7 +18,7 @@ not a fabricated formula proof. Source register evidence still marks whole-schem
 acceptance false; no new table name or metadata hash alone authorizes a business
 operation. Canonical RPC bodies/ACLs are metadata-preservation checks, not an
 execution of their business graphs. Parent guards bind the actor receipt and
-owned target to the same ten-source execution and retain ledger responsibility.
+owned target to the same twelve-source execution and retain ledger responsibility.
 """
 from dataclasses import dataclass, field
 import hashlib
@@ -220,6 +220,14 @@ NINTH_SHA='ddee41e3266948eef7f9082b331f873823602266448efe7cabcb03fdb3566683'
 TENTH_SOURCE='migrations/20260915183840_drop_inert_inbound_client_policies.sql'
 TENTH_SHA='5cd56392d5647196fe4f64e7d5a76fe5fa0a3a9a454efcfd34a6d8f754ac86a7'
 
+# The twelve-forward replay deliberately supersedes this one RPC body. The
+# independent reference and the other eleven routines remain immutable.
+PROMOTED_RPC='canonical_manage_platform_user_access(jsonb)'
+PROMOTED_SOURCE='supabase/migrations/20260916095319_canonical_permission_overrides_and_storage_write_guards.sql'
+PROMOTED_SHA='73eb8a8d89b8468783d69f2829658daeb71d7deda667b5f54a9c5650cd6c47ad'
+PROMOTED_BODY_SHA='3067d995d0a92c0b1bbfaf5029e8508b8db57d79b2de90ac205e90d9fc46ca07'
+REFERENCE_BODY_SHA='00ec6fa609f9187565f6149d78659271753e89af7d528071f00a6b975e8e4708'
+
 
 def sha(raw):
     if type(raw) is not bytes:
@@ -234,13 +242,21 @@ class Retained:
     evidence: tuple = field(repr=False)
 
 
+def evidence_pins(register):
+    expected={r['path']:r['sha256'] for r in [register['referenceSource'],*register['sourceEvidence'].values()]}
+    if PROMOTED_SOURCE in expected:
+        raise ValueError('REMOVED_POLICY_RETAINED_SOURCE_REQUIRED')
+    expected[PROMOTED_SOURCE]=PROMOTED_SHA
+    return expected
+
+
 def validate_retained(retained):
     if (type(retained) is not Retained or type(retained.sql) is not bytes
             or sha(retained.sql)!=SOURCE_SHA or type(retained.register) is not bytes
             or sha(retained.register)!=REGISTER_SHA or type(retained.evidence) is not tuple):
         raise ValueError('REMOVED_POLICY_RETAINED_SOURCE_REQUIRED')
     register=json.loads(retained.register)
-    expected={r['path']:r['sha256'] for r in [register['referenceSource'],*register['sourceEvidence'].values()]}
+    expected=evidence_pins(register)
     if (len(retained.evidence)!=len(expected) or any(type(x) is not tuple or len(x)!=3 for x in retained.evidence)
             or {(p,h) for p,h,_ in retained.evidence}!=set(expected.items())
             or any(type(raw) is not bytes or sha(raw)!=h for _,h,raw in retained.evidence)):
@@ -259,7 +275,7 @@ def retain(root):
         raw=read(REGISTER)
         if sha(raw)!=REGISTER_SHA:raise ValueError('REMOVED_POLICY_RETAINED_SOURCE_REQUIRED')
         register=json.loads(raw)
-        expected={r['path']:r['sha256'] for r in [register['referenceSource'],*register['sourceEvidence'].values()]}
+        expected=evidence_pins(register)
         return validate_retained(Retained(read(SOURCE),raw,tuple((p,h,read(p)) for p,h in sorted(expected.items()))))
     except (OSError,KeyError,TypeError):
         raise ValueError('REMOVED_POLICY_RETAINED_SOURCE_REQUIRED') from None
@@ -346,6 +362,7 @@ def complete(progress,native):
 
 
 def expected_routines(retained):
+    validate_retained(retained)
     reference=dict((p,raw.decode()) for p,_,raw in retained.evidence)['supabase/schema.sql']
     signatures=re.findall(r"  \('([a-z_]+\([^']*\))'\)",retained.sql.decode())
     result={}
@@ -367,6 +384,24 @@ def expected_routines(retained):
             provolatile='i' if 'IMMUTABLE' in declaration else 's' if 'STABLE' in declaration else 'v',
             prokind='f',proconfig=config or None,lanname=language[1],owner='postgres',acl=acl)
     if len(result)!=12:raise ValueError('REMOVED_POLICY_REFERENCE_HELPER_REQUIRED')
+    from canonical_permission_forward_contract import function_specs
+    source=next(raw for path,_,raw in retained.evidence if path==PROMOTED_SOURCE)
+    specs=function_specs(source)
+    overlaps=[spec for spec in specs if spec['name'].startswith('public.')
+              and any(signature.split('(')[0]==spec['name'].split('.')[1] for signature in result)]
+    if len(overlaps)!=1 or overlaps[0]['name']!='public.'+PROMOTED_RPC.split('(')[0]:
+        raise ValueError('REMOVED_POLICY_RETAINED_SOURCE_REQUIRED')
+    spec=overlaps[0]; previous=result[PROMOTED_RPC]
+    # The already-qualified migration changes only prosrc for this witness.
+    # Do not allow it to relax identity, volatility, owner, search_path or ACLs.
+    if (spec['arguments']!='p_command jsonb' or spec['defaults'] is not None
+            or spec['result']!='jsonb' or sha(spec['body'].encode())!=PROMOTED_BODY_SHA
+            or sha(previous['prosrc'].encode())!=REFERENCE_BODY_SHA
+            or any(previous[key]!=spec[field] for key,field in (
+                ('prosecdef','definer'),('provolatile','volatility'),('proconfig','config'),
+                ('lanname','language'),('owner','owner')))):
+        raise ValueError('REMOVED_POLICY_RETAINED_SOURCE_REQUIRED')
+    result[PROMOTED_RPC]={**previous,'prosrc':spec['body']}
     return result
 
 
@@ -437,7 +472,8 @@ def validate_metadata(metadata,retained):
     return dict(policyContextSha256=sha(rows),roleAndAclContextSha256=sha({k:metadata[k] for k in ('relations','principals','authority')}),
                 helperAndRpcContextSha256=sha(metadata['routines']),policyCount=267,relationCount=23,
                 anonymousClosedTables=3,directInsertUpdateDeleteDeniedTables=3,sendLockNonSelectPrivilegesDenied=7,
-                helperBodiesVerified=6,canonicalRpcMetadataVerified=6,canonicalRpcBusinessBehaviorVerified=False)
+                helperBodiesVerified=6,canonicalRpcMetadataVerified=6,canonicalRpcBusinessBehaviorVerified=False,
+                promotedRoutineSourceSha256=PROMOTED_SHA,promotedRoutineBodySha256=PROMOTED_BODY_SHA)
 
 
 # Only reviewed constant invariant names may leave the owned replay. Never emit
@@ -560,7 +596,8 @@ def receipt_contract(*,native):
         source=SOURCE,sourceSha256=SOURCE_SHA,registerSha256=REGISTER_SHA,
         policyCount=267,relationCount=23,anonymousClosedTables=3,directInsertUpdateDeleteDeniedTables=3,
         sendLockNonSelectPrivilegesDenied=7,helperBodiesVerified=6,canonicalRpcMetadataVerified=6,
-        canonicalRpcBusinessBehaviorVerified=False,removedPolicyCount=59,replacementPolicyCount=59,
+        canonicalRpcBusinessBehaviorVerified=False,promotedRoutineSourceSha256=PROMOTED_SHA,
+        promotedRoutineBodySha256=PROMOTED_BODY_SHA,removedPolicyCount=59,replacementPolicyCount=59,
         reconstructedReplacementRows=57,formulaProofSha256=FORMULA_PROOF_SHA,formulaRowsProved=57,
         formulaComponentsProved=75,compositionCount=55,
         reusedActorCoverage='REAL_HELPER_TRUTH_ONLY_NOT_NEW_POLICY_IDENTITIES',

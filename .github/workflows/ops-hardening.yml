@@ -420,6 +420,7 @@ jobs:
           python3 -B scripts/test_canonical_policy_actor_qualification.py
           python3 -B scripts/test_canonical_removed_policy_formulas.py
           python3 -B scripts/test_canonical_removed_policy_qualification.py
+          python3 -B scripts/test-canonical-promoted-routine-reference.py
           python3 -B scripts/test-canonical-added-view-witness.py
           python3 -B scripts/test-canonical-changed-view-witness.py
           python3 -B scripts/test-canonical-changed-function-witness.py

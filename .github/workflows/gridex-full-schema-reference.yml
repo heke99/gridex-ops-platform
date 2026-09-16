@@ -70,6 +70,7 @@ jobs:
           python3 -B scripts/test_canonical_policy_actor_qualification.py
           python3 -B scripts/test_canonical_removed_policy_formulas.py
           python3 -B scripts/test_canonical_removed_policy_qualification.py
+          python3 -B scripts/test-canonical-promoted-routine-reference.py
           node scripts/gridex-schema-dump-selftest.cjs
           python3 -B scripts/canonical-reference-restore-selftest.py
           python3 -B scripts/canonical-reference-dependencies-selftest.py
