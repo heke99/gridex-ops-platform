@@ -1,0 +1,109 @@
+name: Independent Ediel v2 security update qualification
+on:
+  push:
+    branches: [work/ediel-v2-independent-continuation-20260916]
+    paths: [.github/workflows/ediel-v2-security-qualification.yml]
+permissions:
+  contents: write
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: c83b9c51caf3614488cc7481a00ae221d60f2cf3
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Materialize only reviewed package versions and npm's genuine lockfile
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ediel-security"
+          node <<'JS'
+          const fs = require('fs');
+          const p = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          if (p.dependencies.next !== '16.2.12' || p.overrides.sharp !== '0.35.3') throw new Error('unexpected base');
+          p.dependencies.next = '16.3.5';
+          p.devDependencies['eslint-config-next'] = '16.3.5';
+          p.dependencies.nodemailer = '9.1.1';
+          p.dependencies.imapflow = '1.7.8';
+          p.overrides.sharp = '0.35.4';
+          fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n');
+          JS
+          npm install --package-lock-only --ignore-scripts --no-audit
+          npm update baseline-browser-mapping --package-lock-only --ignore-scripts --no-audit
+          npm ci --ignore-scripts
+          npm ls next eslint-config-next nodemailer imapflow sharp baseline-browser-mapping > "$RUNNER_TEMP/ediel-security/dependencies.txt"
+          npm audit --omit=dev --json > "$RUNNER_TEMP/ediel-security/audit-after.json"
+          npm run security:audit-production
+          find node_modules/next/dist/docs -maxdepth 2 -type f | head -20 > "$RUNNER_TEMP/ediel-security/next-doc-index.txt" || true
+      - name: Verify actual mail composition and native image bindings without delivery
+        run: |
+          node <<'JS'
+          const assert = require('node:assert/strict');
+          const mailer = require('nodemailer');
+          const sharp = require('sharp');
+          (async () => {
+            const transport = mailer.createTransport({streamTransport:true,buffer:true,disableFileAccess:true,disableUrlAccess:true});
+            const result = await transport.sendMail({from:'sender@example.invalid',to:'receiver@example.invalid',subject:'Ediel regression',messageId:'<ediel-security-test@example.invalid>',text:'UNB+UNOC:3+SENDER+RECEIVER'});
+            assert.deepEqual(result.envelope.to,['receiver@example.invalid']);
+            assert.match(result.message.toString(),/Message-ID: <ediel-security-test@example.invalid>/);
+            await assert.rejects(transport.sendMail({from:'sender@example.invalid',to:'receiver@example.invalid',attachments:[{path:'/nonexistent-ediel-test-file'}]}), /File access rejected/);
+            await assert.rejects(transport.sendMail({from:'sender@example.invalid',to:'receiver@example.invalid',attachments:[{href:'https://example.invalid/ediel-test'}]}), /Url access rejected/);
+            const image = await sharp({create:{width:2,height:2,channels:3,background:{r:0,g:0,b:0}}}).resize(1,1).png().toBuffer();
+            assert.equal((await sharp(image).metadata()).width,1);
+            console.log('PASS: stream-only mail, blocked file/URL access, native Sharp roundtrip');
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+      - name: Verify source identity, contracts, types, full tests and build
+        run: |
+          set -euo pipefail
+          {
+            node --experimental-vm-modules --test scripts/test-ediel-rule-pack-source-identity.cjs
+            npm run ediel:masterplan-v2:integrity
+            npm run db:migrations:check
+            npm run typecheck
+            npm run typecheck:tests
+            npm run typecheck:scripts
+            npm test
+            npm run lint
+            npm run api:compatibility
+            npm run security:rbac
+            npm run build
+            npm run quality:bundle-budget
+          } 2>&1 | tee "$RUNNER_TEMP/ediel-security/tests.log"
+      - name: Publish only the verified two-file descendant for connector review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GIT_TERMINAL_PROMPT: '0'
+        run: |
+          set -euo pipefail
+          node <<'JS'
+          const {execFileSync} = require('child_process');
+          const assert = require('assert/strict');
+          const paths=execFileSync('git',['diff','--name-only'],{encoding:'utf8'}).trim().split('\n').sort();
+          assert.deepEqual(paths,['package-lock.json','package.json']);
+          JS
+          git diff --check
+          git add package.json package-lock.json
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix: update vulnerable production dependencies with verified compatible releases'
+          branch='codex/ediel-v2-security-verified-20260916'
+          test "$(gh api "repos/heke99/gridex-ops-platform/git/ref/heads/$branch" --jq '.object.sha')" = c83b9c51caf3614488cc7481a00ae221d60f2cf3
+          git -c credential.helper= -c 'credential.helper=!f() { printf "username=x-access-token\npassword=%s\n" "$GH_TOKEN"; }; f' push https://github.com/heke99/gridex-ops-platform.git "HEAD:refs/heads/$branch"
+          git branch security-qualified-output HEAD
+          git bundle create "$RUNNER_TEMP/ediel-security/qualified.bundle" security-qualified-output
+          git rev-parse HEAD HEAD^{tree} > "$RUNNER_TEMP/ediel-security/qualified.txt"
+          git diff HEAD^ HEAD -- package.json package-lock.json > "$RUNNER_TEMP/ediel-security/packages.patch"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ediel-v2-security-update-evidence
+          path: ${{ runner.temp }}/ediel-security/
+          if-no-files-found: error
+          retention-days: 14
