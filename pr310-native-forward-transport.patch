@@ -1,0 +1,68 @@
+diff --git a/quality/audits/ediel-masterplan-v2/pr310-native-forward-transport-repair.md b/quality/audits/ediel-masterplan-v2/pr310-native-forward-transport-repair.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..84bedaeebbd64ee4440b1742ba4860cef2c3b0bf
+--- /dev/null
++++ b/quality/audits/ediel-masterplan-v2/pr310-native-forward-transport-repair.md
+@@ -0,0 +1,23 @@
++# PR310 native forward transport repair — 2026-09-16
++
++Parent source: `4702d0360873aad7d7971a93c04163113a1fe333`.
++This is a bounded CLI admission repair, not native replay or release acceptance.
++
++The registered forward compiler produces exactly twelve source-bound programs.
++The CLI transport still only admits ordinals01–10, so the two registered
++20260916095318/20260916095319 migrations cannot reach the official CLI via this
++path. The lifecycle test also hard-codes ten examples and wrongly requires11
++be rejected. No terminal result of the long native run is inferred here.
++
++Replaced the example-only positive loop with all twelve actual compiler outputs,
++retaining an explicit count12. This reproduced FIXED_NATIVE_CLI_COMMAND_REQUIRED
++before changing transport. Expand only the bounded ordinal pattern to01–12.
++Ordinals00,13,100, missing leading zero, short/long hashes, shared workspaces,
++foreign networks, linked/remote targets, unexpected typegen flags, incomplete
++CLI bundles and failed cleanup remain rejected by the unchanged adjacent tests.
++All15 lifecycle/transport tests pass locally after the one-line correction.
++The test is already present in the ordinary OPS native verification step.
++
++No migration bytes, SQL role/grant, reference, ledger or type manifest is changed.
++The real native run must still apply each registered source through CLI2.101.0,
++record genuine statements, verify rollback/repeat, and satisfy every final gate.
+diff --git a/scripts/canonical-native-supabase-lifecycle-selftest.py b/scripts/canonical-native-supabase-lifecycle-selftest.py
+index 87e772c8cf366f088754a0bcb1f90f5cf5b7737b..2d9a413cdff8ba4f0c4aa077cb8f402b86cf57ff 100644
+--- a/scripts/canonical-native-supabase-lifecycle-selftest.py
++++ b/scripts/canonical-native-supabase-lifecycle-selftest.py
+@@ -263,11 +263,18 @@ class CliNetworkTests(unittest.TestCase):
+                             ('--network-id','bridge','db','start')]:
+                 with self.assertRaisesRegex(ValueError,'FIXED_NATIVE_CLI_COMMAND_REQUIRED'):
+                     transport.cli_command(cli,work,PROJECT,command)
+-            for ordinal in (1,2,3,4,5,6,7,8,9,10):
+-                name=f'gridex_native_forward_{ordinal:02d}_'+'a'*12
++            # Derive positive names from the real registered source compiler,
++            # so a promoted forward cannot be omitted by an older hand-written test.
++            import canonical_forward_sources as forwards
++            import canonical_native_forward_runtime as runtime
++            programs=runtime.programs(forwards.retain(ROOT))
++            self.assertEqual(len(programs),12)
++            for program in programs:
++                name=program.name
+                 result=transport.cli_command(cli,work,PROJECT,('migration','new',name))
+                 self.assertEqual(result[-3:],['migration','new',name])
+-            for name in ('gridex_native_foundation_08_'+'a'*12,'gridex_native_forward_11_'+'a'*12,'gridex_native_forward_1_'+'a'*12,
++            for name in ('gridex_native_foundation_08_'+'a'*12,'gridex_native_forward_00_'+'a'*12,
++                         'gridex_native_forward_13_'+'a'*12,'gridex_native_forward_100_'+'a'*12,'gridex_native_forward_1_'+'a'*12,
+                          'gridex_native_forward_01_'+'a'*11,'gridex_native_forward_01_'+'a'*13):
+                 with self.assertRaisesRegex(ValueError,'FIXED_NATIVE_CLI_COMMAND_REQUIRED'):
+                     transport.cli_command(cli,work,PROJECT,('migration','new',name))
+diff --git a/scripts/canonical_native_cli_transport.py b/scripts/canonical_native_cli_transport.py
+index 4891b96e5a6c4135f2909195ad6769ae192243a0..159b5138c4be43ffcb5ba5441d2507f41c1d0ebe 100644
+--- a/scripts/canonical_native_cli_transport.py
++++ b/scripts/canonical_native_cli_transport.py
+@@ -42,7 +42,7 @@ def cli_command(cli, work, project, arguments):
+     timestamp_name = (len(arguments) == 3 and tuple(arguments[:2]) == ('migration', 'new')
+                       and re.fullmatch(r'gridex_native_t(?:000[1-9]|00[1-9][0-9]|0[1-4][0-9]{2}|050[0-9]|051[0-4])_(?:p0[12]|prerequisite|cleanup)_[a-f0-9]{12}', arguments[2]))
+     forward_name = (len(arguments) == 3 and tuple(arguments[:2]) == ('migration', 'new')
+-                    and re.fullmatch(r'gridex_native_forward_(?:0[1-9]|10)_[a-f0-9]{12}', arguments[2]))
++                    and re.fullmatch(r'gridex_native_forward_(?:0[1-9]|1[0-2])_[a-f0-9]{12}', arguments[2]))
+     cleanup_name = (len(arguments) == 3 and tuple(arguments[:2]) == ('migration', 'new')
+                     and re.fullmatch(r'gridex_native_probe_cleanup_[a-f0-9]{12}', arguments[2]))
+     if tuple(arguments) not in allowed and not historical_name and not legacy_name and not repair_name and not dedupe_name and not fixed_name and not alignment_name and not operations_name and not foundation_name and not timestamp_name and not forward_name and not cleanup_name:
