@@ -1,0 +1,109 @@
+name: PR310 routine reference repair qualification
+on:
+  push:
+    branches: ['codex/pr310-routine-reference-qualification-20260916']
+permissions:
+  contents: read
+jobs:
+  qualify-source:
+    if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/codex/pr310-routine-reference-qualification-20260916'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    outputs:
+      sha: ${{ steps.publish.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Materialize only the reviewed five-file repair
+        env:
+          PATCH_PAYLOAD: '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'
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=4c7b3a1a5be0d5c9bb499876c0f573411ec17f76
+          test "$(git diff --name-only "$base" HEAD)" = '.github/workflows/pr310-routine-reference-qualification.yml'
+          python3 - <<'PY'
+          import base64, hashlib, os, pathlib, zlib
+          raw = zlib.decompress(base64.b64decode(os.environ['PATCH_PAYLOAD'], validate=True))
+          assert hashlib.sha256(raw).hexdigest() == '1ceb0631761cfbb2fc37f4c4f225a4f60138a4f10c3a70a78a1cc21492e91042'
+          pathlib.Path(os.environ['RUNNER_TEMP'], 'reviewed.patch').write_bytes(raw)
+          PY
+          git read-tree "$base"
+          git apply --check --index "$RUNNER_TEMP/reviewed.patch"
+          git apply --index "$RUNNER_TEMP/reviewed.patch"
+          test "$(git write-tree)" = '164c5bb0cb6e438e5c19543351b6f60c12c207c0'
+          git diff --cached --check "$base"
+      - name: Run new regressions and unchanged adjacent acceptance tests
+        run: |
+          set -euo pipefail
+          python3 -B scripts/test-canonical-promoted-routine-reference.py
+          python3 -B scripts/test_canonical_removed_policy_qualification.py
+          python3 -B scripts/test_canonical_removed_policy_formulas.py
+          python3 -B scripts/test-canonical-native-application-typegen.py
+          python3 -B scripts/test-canonical-native-schema-reference.py
+          python3 -B scripts/test-canonical-schema-source-decisions.py
+          python3 -B scripts/canonical-owned-timestamp-selftest.py
+          python3 -B scripts/canonical-full-schema-reference-selftest.py
+      - name: Publish exact tested tree to a new qualification branch only
+        id: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GIT_TERMINAL_PROMPT: '0'
+        run: |
+          set -euo pipefail
+          base=4c7b3a1a5be0d5c9bb499876c0f573411ec17f76
+          tree=164c5bb0cb6e438e5c19543351b6f60c12c207c0
+          test "$(git write-tree)" = "$tree"
+          git diff-files --quiet
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          commit="$(printf '%s\n' 'fix: bind removed-policy RPC witness to qualified forward source' | git commit-tree "$tree" -p "$base")"
+          git -c credential.helper= -c 'credential.helper=!f() { printf "username=x-access-token\npassword=%s\n" "$GH_TOKEN"; }; f' push https://github.com/heke99/gridex-ops-platform.git "$commit:refs/heads/codex/pr310-routine-reference-qualified-20260916"
+          printf 'sha=%s\n' "$commit" >> "$GITHUB_OUTPUT"
+          printf 'candidate_commit=%s\ncandidate_tree=%s\npr310_updated=false\n' "$commit" "$tree"
+  independent-schema-diagnostic:
+    needs: qualify-source
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.qualify-source.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Execute unchanged full owned source replay and independent schema comparison
+        run: |
+          set -o pipefail
+          python3 -B scripts/canonical-full-schema-reference.py 2>&1 | tee "$RUNNER_TEMP/routine-schema-diagnostic.log"
+      - name: Remove only the owned qualification database
+        if: always()
+        run: |
+          python3 -B - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          p=Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve()
+          s=importlib.util.spec_from_file_location('cleanup',p)
+          m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+          m.load_controller().load_batch().cleanup_workflow_owned()
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr310-routine-schema-diagnostic
+          path: |
+            artifacts/full-schema-reference-diff.json
+            ${{ runner.temp }}/routine-schema-diagnostic.log
+          retention-days: 2
+          if-no-files-found: error
