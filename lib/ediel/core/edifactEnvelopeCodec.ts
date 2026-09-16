@@ -1,4 +1,4 @@
-import { tokenizeEdifact, splitComposite, firstCompositeComponent, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
+import { tokenizeEdifact, segmentComposite, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import { DEFAULT_UNA, parseUna, serializeUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 
 export type EdifactEnvironment = 'test' | 'production'
@@ -146,14 +146,13 @@ function encodeMessage(message: EdifactEnvelopeMessageInput): string[] {
   ]
 }
 
-function parseParty(value: string | null | undefined, una: EdifactServiceStringAdvice): {
+function parseParty(parts: string[]): {
   id: string | null
   qualifier: string | null
   subAddress: string | null
 } {
-  const parts = splitComposite(value, una)
   return {
-    id: firstCompositeComponent(value, una),
+    id: trimOrNull(parts[0]),
     qualifier: trimOrNull(parts[1]),
     subAddress: trimOrNull(parts[2]),
   }
@@ -177,9 +176,9 @@ export class EdifactEnvelopeCodec {
     const tokenized = tokenizeEdifact(raw)
     const unb = tokenized.segments.find((segment) => segment.tag === 'UNB') ?? null
     const unz = tokenized.segments.find((segment) => segment.tag === 'UNZ') ?? null
-    const sender = parseParty(unb?.elements[UNB.SENDER], tokenized.una)
-    const receiver = parseParty(unb?.elements[UNB.RECEIVER], tokenized.una)
-    const datetime = splitComposite(unb?.elements[UNB.DATETIME], tokenized.una)
+    const sender = parseParty(segmentComposite(unb, UNB.SENDER, tokenized.una))
+    const receiver = parseParty(segmentComposite(unb, UNB.RECEIVER, tokenized.una))
+    const datetime = segmentComposite(unb, UNB.DATETIME, tokenized.una)
     const testIndicator = trimOrNull(unb?.elements[UNB.TEST_INDICATOR])
     const declaredMessageCount = Number(unz?.elements[1])
 
