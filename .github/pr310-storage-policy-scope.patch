@@ -1,0 +1,328 @@
+diff --git a/.agent-memory/checkpoint.json b/.agent-memory/checkpoint.json
+index 3db66dc2f..6e25faaca 100644
+--- a/.agent-memory/checkpoint.json
++++ b/.agent-memory/checkpoint.json
+@@ -1,8 +1,8 @@
+ {
+   "project": "gridex-ops-platform",
+-  "updated_at": "2026-09-15",
++  "updated_at": "2026-09-16",
+   "status": "IN_PROGRESS",
+   "current_state": ".agent-memory/current-state.md",
+   "main_merged": false,
+-  "next_action": "Inspect full permission clone run35025303437; satisfy native/schema/generated-type/final CI gates before PR310 main merge."
++  "next_action": "Qualify complete revised permission candidate, require original129 and agreement8 cases, then register genuine forward SQL and finish native schema/type/CI verification before main merge."
+ }
+diff --git a/.agent-memory/current-state.md b/.agent-memory/current-state.md
+index 8943765c4..30437e280 100644
+--- a/.agent-memory/current-state.md
++++ b/.agent-memory/current-state.md
+@@ -1,18 +1,34 @@
+ # Current state
+ 
+-Updated: 2026-09-15
++Updated: 2026-09-16
++Status: IN_PROGRESS
+ 
+-Active task: finish PR310 and merge to main only after the required verification. This supersedes the earlier instruction to defer database work.
++Active task: finish PR310 and merge to main only after all required checks pass.
+ 
+ ## Published and preserved
+ 
+-- PR310: codex/gridex-parity-remediation-20260905. The 20 continuation commits through8c943b61 are preserved by fast-forward. PR312 independent Ediel work is already on main de098106. This reconciliation merges that main into PR310, not PR310 into main.
+-- F05-F12 full permission fixture now checks exact company membership/role rosters under the retained August26 policy, plus zero foreign and global rows. All original write/column-ACL/SQLSTATE denials and rollback checks remain. No RLS grants or production permissions were broadened.
+-- Offline tests:8 full-seed +10 clone-boundary +10 original native-fixture PASS. Full database qualification run35025303437 on a27d4329 was started; inspect its actual result before promotion.
+-- Both pre-reconciliation current-state documents are retained verbatim under .agent-memory/archive/. Appended historical evidence from both branches is preserved.
++- PR310 branch: `codex/gridex-parity-remediation-20260905`. Current published code includes the Storage reference-profile repair `a684f17cea548f037d09d14a38acd46f303f34e5` after `708aa98d`.
++- Main `de098106` and the independent Ediel work from PR312 are preserved. Main was merged INTO PR310 by `141af7d1`; PR310 has NOT been merged into main.
++- The two permission diagnostic files and their 17 regression tests are published. They never change SQL decisions or print arbitrary SQL/row values.
++- The full permission clone now chooses one explicit Storage DML bootstrap profile before constructing either independent references or replay targets. The default historical bootstrap remains byte-identical; captured catalogs are not edited or exempted.
++- Real PostgreSQL proof in run35072876558 reproduced the old `42804` from exactly two Storage relation ACL differences, then executed all nine original foundation44–52 sources and their repeat successfully. An unexpected TRUNCATE grant was still rejected with rollback. All24 Storage DML checks and owned cleanup passed. Offline controls:10 storage +17 clone +8 seed +22 envelope +14 native bootstrap =71 tests passed. The workflow's later GITHUB_TOKEN publication was rejected for workflow-file permissions; the already-tested exact tree was published through the authorized GitHub connection and read back on PR310.
++- Full clone qualification run35073195752 on a684f17c executed144 foundation inputs,514 timestamp inputs and all10 forward sources, and passed the five final invariant SQL checks. It stopped later at Storage anonymous case S21 with42501. The exact failing dependency is being verified before candidate qualification; neither the 129-case matrix nor full release is accepted.
++- A new permission candidate retains the complete original eight-function body and narrows only the two legacy grid-owner agreement Storage policies from PUBLIC to authenticated. It adds a mandatory exact pre-fix anonymous role-table denial control and eight agreement-role behavior cases; all129 original cases remain unchanged. Real full-clone qualification is required before migration registration or promotion.
++- A genuine new CLI2.101.0 scaffold20260916082853 was generated in run35073973368; the revised candidate is not a registered or applied migration. The status-document contract now passes locally without changing its checks.
++- Both pre-reconciliation state documents remain in `.agent-memory/archive/`.
++
++## Source accounting (input evidence, not execution acceptance)
++
++Working-tree accounting is 611 inputs: 599 `FULL_FILE_SELECTED`, 2 `SUBSTITUTED`, 5 `UNCLASSIFIED`, and 5 `EXPLICITLY_EXCLUDED`.
++The focused group contains 350 inputs: 338 selected, 2 substituted, 5 unclassified, and 5 excluded.
++The selected historical chain contains144 foundation inputs and514 timestamp inputs, followed by10 separately registered forward sources. The accounting classifications must not be described as successful SQL execution or approved schema effects.
+ 
+ ## Remaining gates
+ 
+-The permission candidate has not been promoted. Require complete129-case clone qualification and24 behavior cases; then a genuine new forward identity, source/provenance updates, full native replay, explicit schema review, genuine generated types and all required CI. A portable replay pass is not native/schema/type release acceptance. Do not mark these gates green from an offline fixture pass.
++The permission candidate is not promoted. Require complete129-case full-clone qualification and24 function behaviors, repeat, ACL recovery and preservation. Then register a genuine new forward identity, update source provenance, execute the full native chain, review actual schema differences, regenerate real types, and pass the ordinary required CI.
++The observed pre-repair full-schema run35070709272 reached the changed-function witness and rejected `can_override_allow` and `can_override_deny`; it did not produce accepted schema parity. Generated types and the manifest remain unchanged and unverified for the current migration tail.
++
++No production mutation has been performed in this replay-verification batch.
++Push reviewed, coherent batches stepwise as requested.
+ 
+-PR310 is not merged to main. No live database mutation, production deployment or market message is authorized by this integration receipt or was performed by its script.
++Do not infer main merge or release acceptance from targeted tests, input counts, or a green synthetic lifecycle job.
+diff --git a/scripts/canonical-full-permission-clone-qualification.py b/scripts/canonical-full-permission-clone-qualification.py
+index deb313aad..ec7ad9b65 100644
+--- a/scripts/canonical-full-permission-clone-qualification.py
++++ b/scripts/canonical-full-permission-clone-qualification.py
+@@ -27,8 +27,11 @@ portable=load('canonical-portable-invariants-diagnostic')
+ frontier=portable.frontier
+ execute_final=portable.execute_final
+ fixture=load('canonical-permission-native-fixture')
+-CANDIDATE='scripts/sql/forward-candidates/20260912052507_canonical_permission_overrides_and_storage_write_guards.sql'
+-CANDIDATE_SHA='73eb8a8d89b8468783d69f2829658daeb71d7deda667b5f54a9c5650cd6c47ad'
++ORIGINAL_CANDIDATE='scripts/sql/forward-candidates/20260912052507_canonical_permission_overrides_and_storage_write_guards.sql'
++ORIGINAL_CANDIDATE_SHA='73eb8a8d89b8468783d69f2829658daeb71d7deda667b5f54a9c5650cd6c47ad'
++CANDIDATE='scripts/sql/forward-candidates/20260916082853_canonical_permission_overrides_and_storage_write_guards.sql'
++CANDIDATE_SHA='24a3a6376fadd2658dca5dfc10e04bc2040a3a206ace9eb36aca9c31ec32228e'
++STORAGE_POLICY_COMMANDS={'grid_owner_agreements_platform_read':'r','grid_owner_agreements_platform_write':'a'}
+ ATOMIC='gridex_auth_legacy_atomic'
+ PARENT='gridex_auth_legacy_replay'
+ NAMES=('gridex_private.effective_company_permissions','gridex_private.platform_permissions',
+@@ -61,6 +64,12 @@ def candidate():
+     raw=path.read_bytes()
+     if path.resolve()!=path or hashlib.sha256(raw).hexdigest()!=CANDIDATE_SHA:
+         raise ValueError('PERMISSION_CANDIDATE_SOURCE_REQUIRED')
++    original=ROOT/ORIGINAL_CANDIDATE
++    original_raw=original.read_bytes()
++    if (original.resolve()!=original or hashlib.sha256(original_raw).hexdigest()!=ORIGINAL_CANDIDATE_SHA
++            or not original_raw.endswith(b'commit;\n')
++            or not raw.startswith(original_raw[:-len(b'commit;\n')])):
++        raise ValueError('PERMISSION_ORIGINAL_CANDIDATE_REQUIRED')
+     return raw
+ 
+ 
+@@ -106,7 +115,8 @@ def matrix_sql_diagnostic(stderr,stage,state):
+ def private_sql(target,legacy,database,sql,stage,transaction=True):
+     stages={'snapshot_catalog','snapshot_rows','snapshot_ledger','changed_function24',
+         'eight_function_metadata','effective_acl','candidate_first','candidate_repeat',
+-        'matrix_identities','matrix_case','local_acl_poison','candidate_acl_recovery'}
++        'matrix_identities','matrix_case','local_acl_poison','candidate_acl_recovery',
++        'storage_policy_role','storage_policy_baseline','storage_policy_behavior'}
+     if (stage not in stages or database not in (PARENT,ATOMIC) or type(target) is not legacy.OwnedPostgres
+             or getattr(target.command,'__func__',None) is not legacy.OwnedPostgres.command
+             or getattr(target.verify_logging,'__func__',None) is not legacy.OwnedPostgres.verify_logging):
+@@ -146,7 +156,7 @@ def function_specs(raw):
+     return specs
+ 
+ 
+-def verify_delta(before,after,specs):
++def verify_delta(before,after,specs,authenticated_oid=None):
+     if before['rows']!=after['rows'] or before['ledger']!=after['ledger']:
+         raise ValueError('PERMISSION_ROWS_LEDGER_CHANGED')
+     changed={k for k in set(before['catalog'])|set(after['catalog']) if before['catalog'].get(k)!=after['catalog'].get(k)}
+@@ -156,6 +166,19 @@ def verify_delta(before,after,specs):
+         if len(matches)!=1:raise ValueError('PERMISSION_FUNCTION_IDENTITY_REQUIRED')
+         function_keys.extend(matches)
+     allowed=set(function_keys)|{'schema/gridex_private'}
++    if authenticated_oid is not None:
++        if type(authenticated_oid) is not int or authenticated_oid<=0:
++            raise ValueError('PERMISSION_STORAGE_POLICY_ROLE_REQUIRED')
++        for name,command in STORAGE_POLICY_COMMANDS.items():
++            key='policy/storage.objects/'+name
++            a=before['catalog'].get(key);b=after['catalog'].get(key)
++            if (type(a) is not dict or type(b) is not dict or a.get('command')!=command
++                    or a.get('permissive') is not True or a.get('roles')!=[0]
++                    or b.get('roles')!=[authenticated_oid]
++                    or {k:v for k,v in a.items() if k!='roles'}!={k:v for k,v in b.items() if k!='roles'}):
++                raise ValueError('PERMISSION_STORAGE_POLICY_DELTA_REQUIRED')
++            allowed.add(key)
++
+     # pg_describe_object uses visibility-aware function names: public functions
+     # on the admitted search_path omit public. Build only exact source signature
+     # edges, never a prefix exemption for arbitrary dependencies.
+@@ -249,12 +272,89 @@ def matrix(target,legacy,retained,first):
+     return len(cases)
+ 
+ 
++def storage_policy_baseline_sql(seed_sql):
++    # This invoker-only fixture verifies the actual pre-fix S21 dependency
++    # failure. It cannot read role tables or replace production authorization.
++    return "BEGIN;\n"+seed_sql+"""
++create function fixture.storage_public_dependency() returns text
++language plpgsql security invoker as $probe$
++declare got text;
++begin
++  begin
++    perform count(*) from storage.objects where bucket_id='customer-documents';
++  exception when insufficient_privilege then
++    get stacked diagnostics got=message_text;
++  end;
++  if got='permission denied for table user_roles' then return 'table:user_roles'; end if;
++  if got='permission denied for table roles' then return 'table:roles'; end if;
++  raise exception using errcode='23514',message='STORAGE_PUBLIC_DEPENDENCY_BASELINE_REQUIRED';
++end
++$probe$;
++revoke all on function fixture.storage_public_dependency() from public;
++grant execute on function fixture.storage_public_dependency() to anon;
++"""+fixture.as_role(None,'anon')+"SELECT fixture.storage_public_dependency();\nRESET ROLE; ROLLBACK;\n"
++
++
++def storage_policy_baseline(target,legacy,retained):
++    before=capture(target,legacy,PARENT)
++    identities=json.loads(private_sql(target,legacy,PARENT,full_seed.identity_query(),'matrix_identities'))
++    sql=storage_policy_baseline_sql(full_seed.seed(retained,identities))
++    output=private_sql(target,legacy,PARENT,sql,'storage_policy_baseline',False)
++    lines=[line for line in output.splitlines() if line.strip()]
++    if len(lines)!=1 or lines[0] not in ('table:user_roles','table:roles'):
++        raise ValueError('PERMISSION_STORAGE_BASELINE_REQUIRED')
++    if capture(target,legacy,PARENT)!=before:
++        raise ValueError('PERMISSION_STORAGE_BASELINE_PRESERVATION_REQUIRED')
++    print(json.dumps(dict(stage='permission_storage_public_policy_baseline',
++        deniedObject=lines[0],sqlstate='42501',rollbackVerified=True)),flush=True)
++
++
++def storage_policy_case_bodies(f):
++    read="count(*)=1 from storage.objects where bucket_id='grid-owner-agreements'"
++    invisible="count(*)=0 from storage.objects where bucket_id='grid-owner-agreements'"
++    insert="insert into storage.objects(bucket_id,name,metadata) values ('grid-owner-agreements','new-fixture.pdf','{}')"
++    return {
++        'platform_read':f.as_role(f.PLATFORM)+f.check(read,'agreement_platform_read'),
++        'ordinary_read':f.as_role(f.UA)+f.check(invisible,'agreement_ordinary_read_denied'),
++        'anon_read':f.as_role(None,'anon')+f.check(invisible,'agreement_anon_read_denied'),
++        'platform_insert':f.as_role(f.PLATFORM)+f.affected(insert,1),
++        'ordinary_insert_denied':f.as_role(f.UA)+f.error(insert,'42501'),
++        'anon_insert_denied':f.as_role(None,'anon')+f.error(insert,'42501'),
++        'platform_update_denied':f.as_role(f.PLATFORM)+f.affected("update storage.objects set metadata='{}' where bucket_id='grid-owner-agreements'",0),
++        'platform_delete_denied':f.as_role(f.PLATFORM)+f.affected("delete from storage.objects where bucket_id='grid-owner-agreements'",0),
++    }
++
++
++def storage_policy_behavior(target,legacy,retained,first):
++    identities=json.loads(private_sql(target,legacy,ATOMIC,full_seed.identity_query(),'matrix_identities'))
++    f,_=full_seed.adapted_fixture(retained,identities)
++    seed_sql=full_seed.seed(retained,identities)
++    seed_sql+="insert into storage.objects(bucket_id,name,metadata) values ('grid-owner-agreements','fixture.pdf','{}');\n"
++    cases=storage_policy_case_bodies(f)
++    for label,body in cases.items():
++        sql="BEGIN;\n"+seed_sql+body+"\nRESET ROLE; ROLLBACK; SELECT 'AGREEMENT_CASE_COMPLETE';\n"
++        try:
++            output=private_sql(target,legacy,ATOMIC,sql,'storage_policy_behavior',False)
++            lines=[line for line in output.splitlines() if line.strip()]
++            if lines!=['AGREEMENT_CASE_COMPLETE'] or capture(target,legacy,ATOMIC)!=first:
++                raise ValueError('PERMISSION_STORAGE_BEHAVIOR_PRESERVATION_REQUIRED')
++        except Exception:
++            print(json.dumps(dict(stage='permission_storage_policy_failure',case=label)),flush=True)
++            raise
++    return len(cases)
++
++
+ def qualify(target,legacy,progress):
+     functions.actors._complete(progress,False)
+     retained=retained_inputs()
+     seed_retained=full_seed.retain(ROOT)
+     raw=candidate();specs=function_specs(raw)
+     parent=capture(target,legacy,PARENT)
++    storage_policy_baseline(target,legacy,seed_retained)
++    authenticated_oid=json.loads(private_sql(target,legacy,PARENT,
++        "select to_json('authenticated'::regrole::oid);",'storage_policy_role'))
++    if type(authenticated_oid) is not int or authenticated_oid<=0:
++        raise ValueError('PERMISSION_STORAGE_POLICY_ROLE_REQUIRED')
+     behavior(target,legacy,PARENT,['can_override_allow','can_override_deny'])
+     if capture(target,legacy,PARENT)!=parent:raise ValueError('PERMISSION_PARENT_BASELINE_DRIFT')
+     target.reset(ATOMIC)
+@@ -264,7 +364,7 @@ def qualify(target,legacy,progress):
+     if before!=parent:raise ValueError('PERMISSION_CLONE_REQUIRED')
+     private_sql(target,legacy,ATOMIC,raw,'candidate_first',False)
+     first=capture(target,legacy,ATOMIC)
+-    deltas=verify_delta(before,first,specs)
++    deltas=verify_delta(before,first,specs,authenticated_oid=authenticated_oid)
+     verify_functions(target,legacy,specs)
+     acl_check(target,legacy)
+     behavior(target,legacy,ATOMIC,[])
+@@ -276,6 +376,7 @@ def qualify(target,legacy,progress):
+     private_sql(target,legacy,ATOMIC,raw,'candidate_acl_recovery',False)
+     if capture(target,legacy,ATOMIC)!=first:raise ValueError('PERMISSION_ACL_RECOVERY_REQUIRED')
+     acl_check(target,legacy)
++    storage_cases=storage_policy_behavior(target,legacy,seed_retained,first)
+     matrix_count=matrix(target,legacy,seed_retained,first)
+     if full_seed.retain(ROOT)!=seed_retained:raise ValueError('PERMISSION_QUALIFICATION_SOURCE_REQUIRED')
+     if capture(target,legacy,PARENT)!=parent or candidate()!=raw or retained_inputs()!=retained:
+@@ -284,7 +385,9 @@ def qualify(target,legacy,progress):
+         repairedCases=24,exactFunctions=8,catalogDeltaSha256=hashlib.sha256(json.dumps(deltas).encode()).hexdigest(),
+         repeatVerified=True,rowsPreserved=True,ledgerPreserved=True,parentPreserved=True,
+         effectiveAclVerified=True,fullCloneAclPoisonRecoveryVerified=True,customRoleInheritedRecoveryVerified=False,
+-        matrix129Verified=matrix_count==129,matrixCases=matrix_count,promoted=False)
++        matrix129Verified=matrix_count==129,matrixCases=matrix_count,
++        storagePolicyRoleOnlyChanges=2,storagePublicDependencyBaselineVerified=True,
++        storageAgreementBehaviorCases=storage_cases,promoted=False)
+ 
+ 
+ def run():
+@@ -362,7 +465,10 @@ def run():
+                 'PERMISSION_REPEAT_REQUIRED','PERMISSION_PARENT_SOURCE_PRESERVATION_REQUIRED',
+                 'PERMISSION_FULL_MATRIX_REQUIRED','PERMISSION_MATRIX_ROLLBACK_REQUIRED',
+                 'PERMISSION_ACL_POISON_CONTROL_REQUIRED','PERMISSION_ACL_RECOVERY_REQUIRED',
+-                'PERMISSION_QUALIFICATION_SOURCE_REQUIRED'}
++                'PERMISSION_QUALIFICATION_SOURCE_REQUIRED','PERMISSION_ORIGINAL_CANDIDATE_REQUIRED',
++                'PERMISSION_STORAGE_POLICY_ROLE_REQUIRED','PERMISSION_STORAGE_POLICY_DELTA_REQUIRED',
++                'PERMISSION_STORAGE_BASELINE_REQUIRED','PERMISSION_STORAGE_BASELINE_PRESERVATION_REQUIRED',
++                'PERMISSION_STORAGE_BEHAVIOR_PRESERVATION_REQUIRED'}
+             code=error.args[0] if type(error) is ValueError and len(error.args)==1 and type(error.args[0]) is str and error.args[0] in allowed else 'UNCLASSIFIED'
+             progress['failureCode']=code
+             result = receipt('BLOCKED', phase, progress)
+diff --git a/scripts/test-canonical-full-permission-clone.py b/scripts/test-canonical-full-permission-clone.py
+index e554abf98..c439b450b 100644
+--- a/scripts/test-canonical-full-permission-clone.py
++++ b/scripts/test-canonical-full-permission-clone.py
+@@ -230,4 +230,61 @@ class Tests(unittest.TestCase):
+             self.assertNotIn('private',output.getvalue())
+             self.assertEqual(run.call_count,1)
+ 
++
++    def test_storage_policy_delta_requires_exact_roles_and_preserved_predicates(self):
++        before,after=self.snapshots();specs=m.function_specs(m.candidate())
++        for name,command in m.STORAGE_POLICY_COMMANDS.items():
++            key='policy/storage.objects/'+name
++            before['catalog'][key]=dict(command=command,permissive=True,roles=[0],
++                using='historical read predicate' if command=='r' else None,
++                check='historical insert predicate' if command=='a' else None)
++            after['catalog'][key]={**before['catalog'][key],'roles':[16385]}
++        self.assertEqual(len(m.verify_delta(before,after,specs,authenticated_oid=16385)),10)
++        for field,value in [('roles',[0]),('roles',[16385,16386]),('command','*'),
++                            ('permissive',False),('using','true'),('check','true')]:
++            bad=copy.deepcopy(after)
++            key='policy/storage.objects/grid_owner_agreements_platform_read'
++            bad['catalog'][key][field]=value
++            with self.subTest(field=field,value=value),self.assertRaises(ValueError):
++                m.verify_delta(before,bad,specs,authenticated_oid=16385)
++        for oid in (None,True,0,-1,'16385'):
++            with contextlib.redirect_stdout(io.StringIO()),self.assertRaises(ValueError):
++                m.verify_delta(before,after,specs,authenticated_oid=oid)
++        bad=copy.deepcopy(after);del bad['catalog']['policy/storage.objects/grid_owner_agreements_platform_write']
++        with self.assertRaises(ValueError):m.verify_delta(before,bad,specs,authenticated_oid=16385)
++
++    def test_new_candidate_retains_every_original_function_byte(self):
++        import hashlib
++        original=(m.ROOT/m.ORIGINAL_CANDIDATE).read_bytes()
++        self.assertEqual(hashlib.sha256(original).hexdigest(),m.ORIGINAL_CANDIDATE_SHA)
++        raw=m.candidate()
++        self.assertTrue(raw.startswith(original[:-len(b'commit;\n')]))
++        appended=raw[len(original)-len(b'commit;\n'):].decode()
++        self.assertEqual(appended.lower().count('alter policy '),2)
++        self.assertNotIn('grant ',appended.lower())
++        self.assertNotIn('create policy',appended.lower())
++        self.assertNotIn('disable row',appended.lower())
++        self.assertTrue(appended.endswith('commit;\n'))
++
++    def test_storage_policy_baseline_and_behavior_are_additional_not_replacements(self):
++        source=Path(m.__file__).read_text()
++        self.assertIn("storage_policy_baseline(target,legacy,seed_retained)",source)
++        self.assertIn("storage_policy_behavior(target,legacy,seed_retained,first)",source)
++        self.assertIn("matrix_count=matrix(target,legacy,seed_retained,first)",source)
++        baseline=m.storage_policy_baseline_sql('FIXTURE_SEED;')
++        self.assertTrue(baseline.startswith('BEGIN;'))
++        self.assertTrue(baseline.rstrip().endswith('ROLLBACK;'))
++        self.assertIn("permission denied for table user_roles",baseline)
++        self.assertIn("permission denied for table roles",baseline)
++        self.assertIn('security invoker',baseline.lower())
++        self.assertNotIn('security definer',baseline.lower())
++        cases=m.storage_policy_case_bodies(m.fixture)
++        self.assertEqual(len(cases),8)
++        self.assertEqual(set(cases),{'platform_read','ordinary_read','anon_read','platform_insert',
++            'ordinary_insert_denied','anon_insert_denied','platform_update_denied','platform_delete_denied'})
++        for body in cases.values():
++            self.assertNotIn('grant ',body.lower())
++            self.assertNotIn('alter policy',body.lower())
++            self.assertNotIn('drop policy',body.lower())
++
+ if __name__=='__main__':unittest.main()
