@@ -1,5 +1,5 @@
 import {
-  splitComposite,
+  segmentComposite,
   tokenizeEdifact,
   type EdifactTokenizedSegment,
 } from '@/lib/ediel/core/edifactTokenizer'
@@ -91,7 +91,7 @@ export function canonicalComposite(
   index: number,
   una: EdifactServiceStringAdvice,
 ): string[] {
-  return splitComposite(segment?.elements[index] ?? null, una)
+  return segmentComposite(segment, index, una)
 }
 
 export function canonicalFirstComponent(
@@ -183,8 +183,8 @@ function scalarTokenSet(
   const tokens = new Set<string>()
   for (const segment of segments) {
     tokens.add(segment.tag.toUpperCase())
-    for (const value of segment.elements.slice(1)) {
-      for (const component of splitComposite(value, una)) {
+    for (let index = 1; index < segment.elements.length; index += 1) {
+      for (const component of segmentComposite(segment, index, una)) {
         const token = clean(component)?.toUpperCase()
         if (token) tokens.add(token)
       }
