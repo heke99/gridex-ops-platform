@@ -1,0 +1,42 @@
+name: PR310 patched dependency version evidence
+on:
+  push:
+    branches: ['work/pr310-complete-verification-20260916']
+    paths: ['.github/workflows/pr310-patched-dependency-versions-temporary.yml']
+permissions:
+  contents: read
+jobs:
+  upstream-versions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 58dfddba6905ed797cb273e92e25d45893f08b64
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Resolve published upstream patch candidates and compatibility metadata
+        shell: bash
+        run: |
+          python3 -B - <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          packages=['next@16.3.5','eslint-config-next@16.3.5','nodemailer@latest','imapflow@latest','sharp@latest','baseline-browser-mapping@latest']
+          result=[]
+          for package in packages:
+              command=['npm','view',package,'version','engines','dependencies','peerDependencies','optionalDependencies','dist.integrity','dist.tarball','repository','--json']
+              p=subprocess.run(command,capture_output=True,text=True,timeout=90,check=True)
+              row=dict(request=package,metadata=json.loads(p.stdout)); result.append(row)
+              print(json.dumps(row),flush=True)
+          out=Path('artifacts/patched-dependency-versions.json');out.parent.mkdir(parents=True,exist_ok=True)
+          out.write_text(json.dumps(dict(sourceHead='58dfddba6905ed797cb273e92e25d45893f08b64',source='npm registry metadata',packages=result,packageFilesModified=False),indent=2)+'\n')
+          assert not subprocess.check_output(['git','diff','--name-only'])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr310-patched-dependency-versions
+          path: artifacts/patched-dependency-versions.json
+          if-no-files-found: error
+          retention-days: 7
