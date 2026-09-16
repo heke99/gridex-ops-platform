@@ -14,12 +14,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 3baf0f914cf95e8bcacb8d9f3640b5412595fd40
+          ref: 33066877b217337ec85c32ef4654081d392c0f2c
           persist-credentials: false
-      - name: Retain exact test inputs outside the source checkout
+      - name: Retain exact test and repair inputs outside the source checkout
         run: |
           python3 -B .github/pr310-prepare-final-preflight.py
           python3 -B .github/pr310-correct-provider-mutation-test.py
+          cp .github/pr310-release-fixture-test.py "$RUNNER_TEMP/release-fixture-test.py"
+          echo "618514fc29f62a651adf7496f4390655f2fb87f5905571e357ab0641ff6cce84  $RUNNER_TEMP/release-fixture-test.py" | sha256sum --check
       - uses: actions/checkout@v4
         with:
           ref: c6f7702a0214504bc44027d0526734e3adecf728
@@ -35,23 +37,26 @@ jobs:
         run: |
           git apply --check "$RUNNER_TEMP/native-final-guards.patch"
           git apply "$RUNNER_TEMP/native-final-guards.patch"
+          cp "$RUNNER_TEMP/release-fixture-test.py" scripts/test-canonical-native-release-verify.py
           echo '771f3f163f4c8870d738c28b08fd5ee86bbf72d1cb93fc912d1421a034ac84ef  scripts/canonical_native_forward_runtime.py' | sha256sum --check
           echo 'e5c23fe4f11f3d9ef47750d340956ae3242a43c7d5299a183e4e765c6a2635a7  scripts/canonical_native_probe_cleanup.py' | sha256sum --check
           echo '718545889254c6634fccdf528541f658916b30244f7bb608b839e305763e544f  scripts/test-canonical-native-forward-runtime.py' | sha256sum --check
           echo '9ae8edf14318936700ccef48a087503b6f9cbbd3352be7b478ba1ba3092ea719  scripts/test-canonical-native-probe-cleanup.py' | sha256sum --check
+          echo '344f2a1234ec8a43f02e667cc8e20b0c18ec427002fb2a1c0f39aaa1c4a6a4f0  scripts/canonical_native_release_verify.py' | sha256sum --check
           python3 -B scripts/test-canonical-native-forward-runtime.py
           python3 -B scripts/test-canonical-native-probe-cleanup.py
           python3 -B scripts/test-canonical-permission-forward-contract.py
           python3 -B scripts/test-canonical-native-final-sql.py
+          python3 -B scripts/test-canonical-native-release-verify.py
       - name: Prove original rejections, complete corrected programs and exact rollback
         run: python3 -B "$RUNNER_TEMP/cleanup-native-preflight.py"
-      - name: Confirm no additional tracked sources changed
+      - name: Confirm only the five reviewed code and test files changed
         run: |
           git diff --check
           test "$(git rev-parse HEAD)" = c6f7702a0214504bc44027d0526734e3adecf728
           python3 -B - <<'PY'
           import subprocess
-          expected={'scripts/canonical_native_forward_runtime.py','scripts/canonical_native_probe_cleanup.py','scripts/test-canonical-native-forward-runtime.py','scripts/test-canonical-native-probe-cleanup.py'}
+          expected={'scripts/canonical_native_forward_runtime.py','scripts/canonical_native_probe_cleanup.py','scripts/test-canonical-native-forward-runtime.py','scripts/test-canonical-native-probe-cleanup.py','scripts/test-canonical-native-release-verify.py'}
           assert set(subprocess.check_output(['git','diff','--name-only'],text=True).splitlines())==expected
           PY
       - name: Integrate on the previously verified type-wiring descendant
@@ -63,6 +68,7 @@ jobs:
           echo 'c825d8be2303058322b371778bda8b75d67fdd782e08bc65e9ea839b2bf5f88a  scripts/test-canonical-native-application-typegen.py' | sha256sum --check
           echo '771f3f163f4c8870d738c28b08fd5ee86bbf72d1cb93fc912d1421a034ac84ef  scripts/canonical_native_forward_runtime.py' | sha256sum --check
           echo 'e5c23fe4f11f3d9ef47750d340956ae3242a43c7d5299a183e4e765c6a2635a7  scripts/canonical_native_probe_cleanup.py' | sha256sum --check
+          echo '618514fc29f62a651adf7496f4390655f2fb87f5905571e357ab0641ff6cce84  scripts/test-canonical-native-release-verify.py' | sha256sum --check
           python3 -B scripts/test-canonical-native-forward-runtime.py
           python3 -B scripts/test-canonical-native-probe-cleanup.py
           python3 -B scripts/test-canonical-permission-forward-contract.py
@@ -72,44 +78,71 @@ jobs:
           python3 -B scripts/test-canonical-native-release-entry.py
       - run: npm ci
       - run: npm run typecheck
-      - name: Preserve exact source evidence and the unresolved native release gates
+      - name: Save source-bound proof and truthful continuity state
         run: |
           python3 -B - <<'PY'
-          import hashlib,json,os,subprocess
+          import json,os,subprocess
           from pathlib import Path
+          run=os.environ['GITHUB_RUN_ID']
           report=json.loads(Path('artifacts/cleanup-native-preflight.json').read_text())
           assert report['outcome']=='EXACT_CLEANUP_CONTEXT_QUALIFIED_NOT_RELEASE'
           assert report['sourceHead']=='c6f7702a0214504bc44027d0526734e3adecf728'
           for k in ('cleanupVerified','privateWorkspaceRemoved','exactFullProgramPassed','lockHeldThroughLedger','realCliLedgerVerified','repeatVerified','allOtherCatalogAndRowsPreserved'):
               assert report[k] is True
           assert report['storageOwnerQualification']['verified'] is True
+          report['proofRunId']=run
           root=Path('quality/audits/ediel-masterplan-v2')
           (root/'pr310-native-final-prerequisites-proof.json').write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')
-          (root/'pr310-native-final-prerequisites-repair.md').write_text('''# Native prerequisites before genuine application type generation
+          note='''# Native prerequisites before genuine application type generation
 
-          The full native run 35100221898 on c6f7702a executed 144 foundation inputs, 514 timestamps and ten forwards. Forward11 stopped at the ledger negative control with PF009, not the required PF002. No application type candidate was exported.
+          The full native run35100221898 on c6f7702a executed144 foundation inputs,514 timestamps and ten forwards. Forward11 stopped at its ledger negative control with PF009 rather than required PF002. No application type candidate was exported.
 
-          The portable Storage postcondition requires owner postgres, whereas the real pinned Supabase PG17 provider owns storage.objects as supabase_storage_admin. Only the native assertion now uses that exact provider owner. This does not change any migration, ACL, predicate, provider owner or portable proof. The isolated real CLI differential reproduces the original PF009 and verifies the exact source after that correction, PF001/PF002 rollback, only two policy-role-list deltas and repeat. The provider itself rejects an attempted ownership change with 42501; the test does not request extra privileges to make that mutation possible.
+          The shared portable Storage postcondition requires owner postgres. The genuine pinned Supabase PG17 provider owns storage.objects as supabase_storage_admin. Only the native assertion now requires that exact provider owner. No migration, ACL, predicate, provider owner or portable proof changes. The real CLI differential reproduces the old PF009 and verifies the exact source with corrected native context, PF001/PF002 rollback, only two policy-role-list deltas and no-op repeat. The provider itself rejects ownership mutation with42501; no extra privileges are granted to make that destructive mutation possible.
 
-          The synthetic probe cleanup had two separate defects: a top-level LOCK rejected by the official CLI with 25P01, and repeated pg_depend rows projecting to duplicate canonical identities. Only the exact first LOCK moves inside a DO context; the original complete program round-trips to its fixed SHA. Dependency selection now returns the same distinct identities as the catalog map, while the original SQL closure guard and exact removal allowlist remain mandatory. Real PC001/PC002 failures roll back catalog, rows and ledger; corrected success holds the lock through the authentic ledger insertion, removes only the known synthetic probe and repeats without change.
+          Synthetic cleanup separately contained a top-level LOCK rejected25P01 by the official CLI and repeated pg_depend edges projecting to duplicate catalog identities. Only the exact first LOCK moves into a DO context; removing that wrapper recovers the complete original pinned SHA. Dependency projection now returns distinct canonical identities, while the original SQL closure guard and exact removal allowlist remain mandatory. PC001/PC002 restore catalog, rows and ledger. Corrected success holds the lock through authentic ledger insertion, removes only the known synthetic probe and repeats without change.
 
-          Companion proof: pr310-native-final-prerequisites-proof.json. This is an isolated native fixture proof, NOT complete historical replay, schema approval, regenerated application types, or a release certificate. The two earlier type-wiring tests are preserved through parent15f82593. The real type file, manifest, historical SQL and schema reference remain unchanged. Full current-head native reconstruction, reviewed schema evolution, genuine type adoption and required CI still block merge.
-          '''.replace('\n          ','\n'))
-          for target in ('supabase/database.types.ts','scripts/supabase-types-manifest.json','supabase/schema.sql'):
-              original=subprocess.check_output(['git','show','c6f7702a0214504bc44027d0526734e3adecf728:'+target])
-              assert Path(target).read_bytes()==original
+          The release-verifier unit fixture raced filesystem write timestamps against time.time_ns(). Run35112031445 passed real SQL but failed that fixture. This patch assigns explicit synthetic timestamps, tests each artifact one nanosecond before/at/after the freshness boundary and requires ten exact rejection reasons. The production verifier is byte-identical; no timestamp is altered on genuine evidence.
+
+          Companion proof: pr310-native-final-prerequisites-proof.json. The two type-wiring fixes remain through parent15f82593.54 focused Python tests and npm typecheck pass on the integrated code. Skill routing: systematic debugging, TDD, Supabase, differential review and verification before completion; deployment and UI changes are outside this prerequisite batch.
+
+          This is isolated native fixture qualification, NOT complete historical replay, schema acceptance or generated application types. The actual type file, manifest, historical SQL and independent schema reference remain unchanged. Full new-head native reconstruction, reviewed schema evolution, genuine type adoption and required CI remain mandatory before merge.
+          '''.replace('\n          ','\n')
+          (root/'pr310-native-final-prerequisites-repair.md').write_text(note)
+          p=Path('.agent-memory/current-state.md');s=p.read_text()
+          old='Active subtask: integrate the verified RPC/index/ordinal corrections and the\nsource-bound forward10 LOCK correction, then complete native/schema/types/CI.'
+          assert s.count(old)==1
+          s=s.replace(old,'Active subtask: complete genuine native type generation after the verified\nforward11 provider-owner and atomic synthetic-cleanup prerequisite repairs.')
+          next_action='Publish and read back this verified descendant onto PR310; then keep its head stable for full native144/514/12 replay. Review actual terminal schema and type artifacts, adopt only genuinely generated candidate bytes with a matching manifest, and require current-head CI before any main merge.'
+          old='Publish/read back the coherent tested descendant onto PR310, never main directly.\nInspect the exact current-head native results; do not reuse run35095406934 on\n43f39822 as verification of the later LOCK correction. That run predates this fix.\nKeep a complete tested head stable while its expensive native replay runs.'
+          assert s.count(old)==1;s=s.replace(old,next_action)
+          evidence='\n## 2026-09-16 — Native prerequisites and deterministic type tests\n\nFull native35100221898 on c6f7702a finished FAILED after144/514/10, at forward11 PF009; no application types were exported. The previous forward10 fix passed its full-chain boundary. Isolated native proof run'+run+' now verifies exact forward11 native provider ownership, both failure boundaries and preserved rows/ledger; complete synthetic cleanup also passes original25P01, PC001/PC002 rollback, correct lock lifetime, exact removal and repeat. Cleanup/private disposal passed. Parent15f82593 preserves the two verified type-wiring tests. The production release verifier is unchanged; only its test fixtures now use deterministic timestamps and exact rejection labels.54 focused Python tests and npm typecheck passed. Full native/schema/types acceptance and main merge remain unverified. See quality/audits/ediel-masterplan-v2/pr310-native-final-prerequisites-repair.md.\n'
+          s+=evidence;p.write_text(s)
+          p=Path('.agent-memory/checkpoint.json');j=json.loads(p.read_text());j['status']='IN_PROGRESS';j['main_merged']=False;j['updated_at']='2026-09-16';j['next_action']=next_action;p.write_text(json.dumps(j,indent=2)+'\n')
+          for name in ('completed-work.md','verification-matrix.md','session-log.md'):
+              p=Path('.agent-memory')/name;p.write_text(p.read_text()+evidence)
+          for target in ('supabase/database.types.ts','scripts/supabase-types-manifest.json','supabase/schema.sql','scripts/canonical_native_release_verify.py'):
+              original=subprocess.check_output(['git','show','c6f7702a0214504bc44027d0526734e3adecf728:'+target]);assert Path(target).read_bytes()==original
           PY
-      - name: Publish verified code-only descendant without mutating main or PR310
+          python3 -B scripts/canonical-auth-membership-group-selftest.py
+          node scripts/check-agent-memory-git-state.cjs
+      - name: Publish only tested source and evidence, not temporary workflows
         run: |
           test "$GITHUB_REPOSITORY" = heke99/gridex-ops-platform
           test "$GITHUB_REF" = refs/heads/work/pr310-native-type-adoption-20260916
           test "$(git rev-parse HEAD)" = 15f82593b16b69a77ecd5f2fb371a0dc51f96af9
+          python3 -B - <<'PY'
+          import subprocess
+          from pathlib import Path
+          expected=['scripts/canonical_native_forward_runtime.py','scripts/canonical_native_probe_cleanup.py','scripts/test-canonical-native-forward-runtime.py','scripts/test-canonical-native-probe-cleanup.py','scripts/test-canonical-native-release-verify.py','quality/audits/ediel-masterplan-v2/pr310-native-final-prerequisites-proof.json','quality/audits/ediel-masterplan-v2/pr310-native-final-prerequisites-repair.md','.agent-memory/current-state.md','.agent-memory/checkpoint.json','.agent-memory/completed-work.md','.agent-memory/verification-matrix.md','.agent-memory/session-log.md']
+          assert not Path('.github/workflows/pr310-cleanup-preflight-temporary.yml').exists()
+          assert set(subprocess.check_output(['git','diff','--name-only'],text=True).splitlines())<=set(expected)
+          subprocess.run(['git','add',*expected],check=True)
+          assert set(subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines())==set(expected)
+          PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add scripts/canonical_native_forward_runtime.py scripts/canonical_native_probe_cleanup.py scripts/test-canonical-native-forward-runtime.py scripts/test-canonical-native-probe-cleanup.py quality/audits/ediel-masterplan-v2/pr310-native-final-prerequisites-proof.json quality/audits/ediel-masterplan-v2/pr310-native-final-prerequisites-repair.md
-          test "$(git diff --cached --name-only | wc -l)" = 6
           git diff --cached --check
-          git commit -m 'fix: qualify native Storage owner and atomic synthetic cleanup before typegen'
+          git commit -m 'fix: qualify native Storage and cleanup prerequisites for genuine typegen'
           branch="work/pr310-final-prerequisites-verified-${GITHUB_RUN_ID}"
           test -z "$(git ls-remote --heads origin "refs/heads/$branch")"
           git push origin "HEAD:refs/heads/$branch"
