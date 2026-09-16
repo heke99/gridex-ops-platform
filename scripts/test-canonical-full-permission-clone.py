@@ -147,4 +147,87 @@ class Tests(unittest.TestCase):
             self.assertEqual(want,result.get('assertion'))
             self.assertNotIn('private',output.getvalue())
 
+    def test_matrix_42501_diagnostic_identifies_only_known_denials(self):
+        examples={
+            'permission denied for schema storage':'schema:storage',
+            'permission denied for table objects':'table:objects',
+            'permission denied for schema gridex_private':'schema:gridex_private',
+            'permission denied for function customer_document_path_allows':'function:customer_document_path_allows',
+        }
+        for message,label in examples.items():
+            for prefix,ending in [('psql:<stdin>:12: ','\n'),('','\r\n')]:
+                with self.subTest(message=message,prefix=prefix):
+                    raw=(prefix+'ERROR:  42501: '+message+ending+'CONTEXT: private SQL'+ending).encode()
+                    self.assertEqual(m.matrix_sql_diagnostic(raw,'matrix_case','42501'),{'deniedObject':label})
+
+    def test_matrix_diagnostic_preserves_all_authored_assertion_labels(self):
+        labels={'actor_identity','actor_role_flags','access_select_own','access_select_foreign',
+            'full_access_select_roster','full_access_no_global_row','access_no_table_write',
+            'access_no_column_write','storage_visible_rows','expected_sqlstate_mismatch',
+            'affected_rows','unchanged_multisets'}
+        for label in labels:
+            with self.subTest(label=label):
+                raw=('psql:<stdin>:1: ERROR:  P0001: '+label+'\n').encode()
+                self.assertEqual(m.matrix_sql_diagnostic(raw,'matrix_case','P0001'),{'assertion':label})
+
+    def test_matrix_diagnostic_rejects_unknown_names_and_value_suffixes(self):
+        messages=[
+            'permission denied for table private_customer_identifier',
+            'permission denied for table objects private data',
+            'permission denied for schema storage; SELECT private_data',
+            'permission denied for function arbitrary_function',
+            'permission denied for table "objects"',
+            'permission denied for table public.objects',
+        ]
+        for message in messages:
+            with self.subTest(message=message):
+                raw=('ERROR:  42501: '+message+'\n').encode()
+                self.assertEqual(m.matrix_sql_diagnostic(raw,'matrix_case','42501'),{})
+        self.assertEqual(m.matrix_sql_diagnostic(b'ERROR: P0001: private_data\n','matrix_case','P0001'),{})
+
+    def test_matrix_diagnostic_rejects_multiple_or_non_stdin_errors(self):
+        known=b'psql:<stdin>:12: ERROR:  42501: permission denied for table objects\n'
+        ambiguous=[
+            known+known,
+            known+b'ERROR:  42501: private data\n',
+            known+b'psql:/private/file.sql:9: FATAL:  42501: private data\n',
+            known.replace(b'<stdin>',b'/private/file.sql'),
+            b'CONTEXT: '+known,
+            known.replace(b'ERROR:',b'FATAL:'),
+            b'ERROR: P0001: access_select_foreign\nERROR: P0001: actor_identity\n',
+        ]
+        for raw in ambiguous:
+            with self.subTest(raw=raw):
+                for state in ('P0001','42501'):
+                    self.assertEqual(m.matrix_sql_diagnostic(raw,'matrix_case',state),{})
+
+    def test_matrix_diagnostic_is_bounded_and_requires_valid_bytes(self):
+        known=b'ERROR:  42501: permission denied for table objects\n'
+        for raw in (None,known.decode(),bytearray(known),known+b'\xff',known+b'x'*65536,known+b'\x00'):
+            with self.subTest(kind=type(raw).__name__):
+                self.assertEqual(m.matrix_sql_diagnostic(raw,'matrix_case','42501'),{})
+
+    def test_matrix_diagnostic_never_applies_outside_its_sqlstate_and_phase(self):
+        raw=b'ERROR:  42501: permission denied for table objects\n'
+        for stage in ('candidate_first','effective_acl','snapshot_rows','arbitrary'):
+            self.assertEqual(m.matrix_sql_diagnostic(raw,stage,'42501'),{})
+        for state in ('P0001','00000','23514','XXXXX','42501 private data',None):
+            self.assertEqual(m.matrix_sql_diagnostic(raw,'matrix_case',state),{})
+
+    def test_matrix_42501_transport_still_fails_without_leaking_sql(self):
+        class Owned:
+            def command(self,*args,**kwargs):return ['owned']
+            def verify_logging(self):pass
+        legacy=SimpleNamespace(OwnedPostgres=Owned,clean_environment=lambda:{},safe_receipt=lambda *args:{'sqlstate':'42501'})
+        process=SimpleNamespace(returncode=1,stderr=b'psql:<stdin>:12: ERROR:  42501: permission denied for table objects\nCONTEXT: private SQL\n',stdout=b'private row')
+        for stage in ('matrix_case','candidate_first'):
+            with patch.object(m.subprocess,'run',return_value=process) as run,contextlib.redirect_stdout(io.StringIO()) as output:
+                with self.assertRaisesRegex(ValueError,'^PERMISSION_CLONE_SQL_REQUIRED$'):
+                    m.private_sql(Owned(),legacy,m.ATOMIC,'private SQL',stage,False)
+            expected={'stage':'permission_clone_sql_failure','phase':stage,'sqlstate':'42501'}
+            if stage=='matrix_case':expected['deniedObject']='table:objects'
+            self.assertEqual(json.loads(output.getvalue()),expected)
+            self.assertNotIn('private',output.getvalue())
+            self.assertEqual(run.call_count,1)
+
 if __name__=='__main__':unittest.main()
