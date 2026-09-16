@@ -14,65 +14,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Retain the exact reviewed patch outside the source checkout
+        run: |
+          cp .github/pr310-type-wiring-temporary.patch "$RUNNER_TEMP/type-wiring.patch"
+          echo "2a791b00f7669eb115f38ea0df295e066c0413536c01f1bbd827f67b8a0ac075  $RUNNER_TEMP/type-wiring.patch" | sha256sum --check
+      - uses: actions/checkout@v4
+        with:
           ref: c6f7702a0214504bc44027d0526734e3adecf728
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-      - name: Apply exactly two reviewed regression changes to the retained source
-        shell: bash
+      - name: Apply exactly the two reviewed regression changes
         run: |
-          python3 -B - <<'PY'
-          import hashlib
-          from pathlib import Path
-          import subprocess
-          assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()=='c6f7702a0214504bc44027d0526734e3adecf728'
-          assert not subprocess.check_output(['git','status','--porcelain','--untracked-files=no'])
-          p=Path('scripts/gridex-ops-post-332-field-511-health-residuals-regression.cjs')
-          raw=p.read_bytes()
-          assert hashlib.sha256(raw).hexdigest()=='2f0d3a5ad17e59d17aedd7d61f6bb7f45f2fcb24447fb3810958db4c4fe462fb'
-          old="""check(
-            opsHardening.includes(
-              'apply-supabase-types-nullability-overrides.cjs rem002-database.types.ts',
-            ),
-            'clean-migration-replay must apply nullability overrides after typegen',
-          )"""
-          new=r"""// The native owner now keeps the raw CLI output private, applies the same
-          // overrides, and exports only after verified cleanup. Check that actual path,
-          // not the obsolete shell command that wrote rem002-database.types.ts.
-          const nativeTimestampRuntime = read('scripts/canonical_native_timestamp_runtime.py')
-          const nativeApplicationTypegen = read('scripts/canonical_native_application_typegen.py')
-          check(
-            opsHardening.includes('python3 -B scripts/test-canonical-native-application-typegen.py') &&
-              opsHardening.includes('python3 -B scripts/canonical-auth-provisioning-replay.py') &&
-              /generate_application_candidate\(\s*runner,\s*forward_retained,\s*parent,\s*project\s*\)/.test(nativeTimestampRuntime) &&
-              nativeApplicationTypegen.includes('scripts/apply-supabase-types-nullability-overrides.cjs') &&
-              /candidate\s*=\s*apply_override\(outputs\[0\]\)/.test(nativeApplicationTypegen) &&
-              /parent\['_nativeApplicationTypeCandidate'\]\s*=\s*candidate/.test(nativeApplicationTypegen),
-            'clean-migration-replay must apply and test nullability overrides in the native typegen path',
-          )"""
-          text=raw.decode();assert text.count(old)==1
-          result=text.replace(old,new).encode()
-          assert hashlib.sha256(result).hexdigest()=='dec285a406e39d5c56f6b0ecd36973c4a8279ae87bb2da0a3f0aaa4d3da22486'
-          p.write_bytes(result)
-          p=Path('scripts/test-canonical-native-application-typegen.py');raw=p.read_bytes()
-          assert hashlib.sha256(raw).hexdigest()=='289e4f4d39887cebcb801cfb119c5f45e080a56e001ba2e10e16efc84ffc5deb'
-          old="      self.assertFalse(parent['nativeApplicationTypeCandidate']['generatedTypesVerified'])"
-          new="""      receipt=parent['nativeApplicationTypeCandidate']
-                expected=m.apply_override(RAW)
-                self.assertFalse(receipt['generatedTypesVerified'])
-                self.assertNotEqual(expected,RAW)
-                self.assertEqual(parent['_nativeApplicationTypeCandidate'],expected)
-                self.assertEqual(receipt['candidateSha256'],m.sha(expected))
-                self.assertEqual(receipt['rawSha256'],m.sha(RAW))"""
-          new='\n'.join(line[10:] if i else line for i,line in enumerate(new.splitlines()))
-          text=raw.decode();assert text.count(old)==1
-          result=text.replace(old,new).encode()
-          assert hashlib.sha256(result).hexdigest()=='c825d8be2303058322b371778bda8b75d67fdd782e08bc65e9ea839b2bf5f88a'
-          p.write_bytes(result)
-          subprocess.run(['git','diff','--check'],check=True)
-          PY
+          test "$(git rev-parse HEAD)" = c6f7702a0214504bc44027d0526734e3adecf728
+          test -z "$(git status --porcelain --untracked-files=no)"
+          git apply --check "$RUNNER_TEMP/type-wiring.patch"
+          git apply "$RUNNER_TEMP/type-wiring.patch"
+          echo 'dec285a406e39d5c56f6b0ecd36973c4a8279ae87bb2da0a3f0aaa4d3da22486  scripts/gridex-ops-post-332-field-511-health-residuals-regression.cjs' | sha256sum --check
+          echo 'c825d8be2303058322b371778bda8b75d67fdd782e08bc65e9ea839b2bf5f88a  scripts/test-canonical-native-application-typegen.py' | sha256sum --check
+          git diff --check
       - name: Verify private type transport and unchanged release gates
         run: |
           python3 -B scripts/test-canonical-native-application-typegen.py
@@ -80,17 +44,17 @@ jobs:
           python3 -B scripts/test-canonical-native-release-entry.py
       - run: npm ci
       - run: npm run typecheck
-      - name: Confirm the stale type gate remains closed and override removal is rejected
+      - name: Confirm stale types remain rejected and missing overrides fail
         shell: bash
         run: |
           python3 -B - <<'PY'
           from pathlib import Path
-          import hashlib,json,subprocess
+          import json,subprocess
           before={p:Path(p).read_bytes() for p in ('supabase/database.types.ts','scripts/supabase-types-manifest.json')}
           result=subprocess.run(['node','scripts/gridex-ops-post-332-field-511-health-residuals-regression.cjs'],capture_output=True,text=True)
           assert result.returncode==1
           failures=[s for s in result.stderr.splitlines() if s.startswith('- ')]
-          assert len(failures)==1 and 'migration' in failures[0].lower(),failures
+          assert len(failures)==1 and failures[0].startswith('- generated-types tip must match the latest timestamped migration'),failures
           path=Path('scripts/canonical_native_application_typegen.py');raw=path.read_bytes()
           try:
               assert raw.count(b'candidate=apply_override(outputs[0])')==1
