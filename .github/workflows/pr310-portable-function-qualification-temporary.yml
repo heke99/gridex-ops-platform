@@ -1,0 +1,124 @@
+name: PR310 portable boundary and routine decision qualification
+on:
+  push:
+    branches: ['work/pr310-complete-verification-20260916']
+    paths: ['.github/workflows/pr310-portable-function-qualification-temporary.yml']
+permissions:
+  contents: write
+jobs:
+  bounded-source-qualification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GRIDEX_LEGACY_CONTAINER_NAME: gridex-auth-legacy-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 65ce855e7fb042f5761040e7461cd132fda11978
+          persist-credentials: false
+      - name: Retain the exact reviewed six-file patch
+        run: |
+          cp .github/pr310-portable-function-decisions.patch "$RUNNER_TEMP/reviewed.patch"
+          echo "dce0a47f9ff71f4192934e42c7be92045ad29b29fe94c267a05026311d153e80  $RUNNER_TEMP/reviewed.patch" | sha256sum --check
+      - uses: actions/checkout@v4
+        with:
+          ref: 58dfddba6905ed797cb273e92e25d45893f08b64
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Apply only the reviewed source changes
+        run: |
+          git apply --check "$RUNNER_TEMP/reviewed.patch"
+          git apply "$RUNNER_TEMP/reviewed.patch"
+          git diff --check
+      - name: Verify separate owner contracts and unchanged rejection gates
+        run: |
+          python3 -B scripts/test-canonical-forward-portable.py
+          python3 -B scripts/test-canonical-native-forward-runtime.py
+          python3 -B scripts/test-canonical-permission-forward-contract.py
+          python3 -B scripts/test-canonical-changed-function-decisions.py
+          python3 -B scripts/test-canonical-changed-function-witness.py
+          python3 -B scripts/test-canonical-schema-source-decisions.py
+          python3 -B scripts/test-canonical-native-release-verify.py
+          python3 -B scripts/test-canonical-native-release-entry.py
+          python3 -B scripts/canonical-owned-timestamp-selftest.py
+          python3 -B scripts/canonical-full-schema-reference-selftest.py
+      - name: Execute complete portable source and preserve the independent schema failure
+        shell: bash
+        run: |
+          python3 -B - <<'PY'
+          import hashlib,json,subprocess,sys
+          from pathlib import Path
+          sys.path.insert(0,'scripts')
+          p=subprocess.run(['python3','-B','scripts/canonical-full-schema-reference.py'],timeout=1000)
+          path=Path('artifacts/full-schema-reference-diff.json')
+          report=json.loads(path.read_text())
+          assert p.returncode==1,'The existing full schema gate must not be reported as accepted by this bounded repair'
+          assert report['scope']=='FULL_PUBLIC_SNAPSHOT_PROJECTION_NOT_RELEASE_ACCEPTANCE'
+          assert report['schemaAccepted'] is False and report['ordinaryReplaySucceeded'] is False and report['publicSnapshotEqual'] is False
+          assert report['collectionOutcome']=='COLLECTED'
+          assert (report['foundationApplied'],report['timestampApplied'],report['forwardApplied'])==(144,514,12)
+          assert all(report[k] is True for k in ('cleanupVerified','privacyVerified','originalsRestored','referenceRestored','referenceDisposed','databaseDisposed'))
+          import canonical_forward_sources as sources
+          assert report['forwardSources']==[dict(source=p,sourceSha256=h) for p,h in sources.FORWARD_SOURCES]
+          import canonical_changed_function_witness as functions
+          import canonical_changed_index_witness as indexes
+          import canonical_added_view_witness as added_views
+          import canonical_changed_view_witness as changed_views
+          import canonical_policy_actor_qualification as actors
+          import canonical_removed_policy_qualification as removed
+          for key,module in [('changedFunctionBehaviorWitness',functions),('changedIndexSourceWitness',indexes),('addedViewSourceWitness',added_views),('changedViewSourceWitness',changed_views),('policyActorQualification',actors),('removedPolicyQualification',removed)]:
+              module.validate_execution_receipt(report[key],native=False)
+          evidence=dict(scope='PORTABLE_BOUNDARY_REPAIR_QUALIFIED_NOT_SCHEMA_OR_NATIVE_TYPE_ACCEPTANCE',sourceHead='58dfddba6905ed797cb273e92e25d45893f08b64',patchSha256='dce0a47f9ff71f4192934e42c7be92045ad29b29fe94c267a05026311d153e80',fullPortableSourceExecuted=True,foundationApplied=144,timestampApplied=514,forwardApplied=12,comparisonSha256=hashlib.sha256(path.read_bytes()).hexdigest(),schemaAccepted=False,generatedTypesVerified=False,nativeLedgerVerified=False,productionModified=False,mainModified=False)
+          Path('artifacts/bounded-qualification.json').write_text(json.dumps(evidence,indent=2)+'\n')
+          PY
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Publish only the verified code descendant, never temporary workflows
+        shell: bash
+        run: |
+          python3 -B - <<'PY'
+          import hashlib,json,subprocess
+          from pathlib import Path
+          files={'scripts/canonical_forward_portable.py':'641cf54afb83972169f003c805bf2713ccd8c877063c3f02414fecd78d8deb7c','scripts/test-canonical-forward-portable.py':'5e4bc27da88a822dcb51f8d467ce843887335f9033212ebe744452c1dfdd0e41','scripts/canonical_schema_source_decisions.py':'38a2e66895d0bedee09626735d2ebdf981290d8994bdf167aced07657f1aa01b','scripts/test-canonical-schema-source-decisions.py':'0ef775ba13c0943012e89a39df4dd9b55254f025cab1a454ea9c2974c97e34c9','scripts/canonical_changed_function_decisions.py':'df5be61f584d0acb80b0feda80cf8ebc6103d0d4882caf92936f400f5e661032','scripts/test-canonical-changed-function-decisions.py':'1007fa2d150ebf36cd2b6d19d59e3fb2940f2a03c54258b374f2cfa56a263ba3'}
+          assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==h for p,h in files.items())
+          original='58dfddba6905ed797cb273e92e25d45893f08b64'
+          assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()==original
+          for p in ('supabase/database.types.ts','scripts/supabase-types-manifest.json','supabase/schema.sql','scripts/canonical_native_forward_runtime.py','scripts/canonical_native_release_verify.py'):
+              assert Path(p).read_bytes()==subprocess.check_output(['git','show',f'{original}:{p}'])
+          subprocess.run(['git','add','--',*files],check=True)
+          assert set(subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines())==set(files)
+          subprocess.run(['git','config','user.name','github-actions[bot]'],check=True)
+          subprocess.run(['git','config','user.email','41898282+github-actions[bot]@users.noreply.github.com'],check=True)
+          subprocess.run(['git','commit','-m','fix: separate portable Storage ownership and bind reviewed routine decisions'],check=True)
+          assert not subprocess.check_output(['git','diff','--name-only'])
+          out=Path('artifacts/bounded-qualification.json');report=json.loads(out.read_text())
+          report['publishedHead']=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          report['publishedTree']=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip()
+          report['fileHashes']=files
+          out.write_text(json.dumps(report,indent=2)+'\n')
+          PY
+          git push origin HEAD:refs/heads/work/pr310-portable-routine-qualified-${{ github.run_id }}
+      - name: Remove only this workflow's owned database
+        if: always()
+        run: |
+          python3 -B - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          path=Path('scripts/canonical-foundation-frontier-diagnostic.py').resolve()
+          spec=importlib.util.spec_from_file_location('cleanup',path)
+          module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+          module.load_controller().load_batch().cleanup_workflow_owned()
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr310-portable-routine-qualification
+          path: |
+            artifacts/full-schema-reference-diff.json
+            artifacts/bounded-qualification.json
+          if-no-files-found: error
+          retention-days: 7
