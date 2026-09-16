@@ -1,0 +1,74 @@
+name: Independent Ediel security client bundle inspection
+on:
+  push:
+    branches: [work/ediel-v2-independent-continuation-20260916]
+    paths: [.github/workflows/ediel-v2-bundle-inspection.yml]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: c83b9c51caf3614488cc7481a00ae221d60f2cf3
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Resolve the already exercised security package candidate
+        run: |
+          mkdir -p "$RUNNER_TEMP/bundle-inspection"
+          node <<'JS'
+          const fs=require('fs'),p=JSON.parse(fs.readFileSync('package.json','utf8'));
+          Object.assign(p.dependencies,{next:'16.3.5',nodemailer:'9.1.1',imapflow:'1.7.8'});
+          p.devDependencies['eslint-config-next']='16.3.5';p.overrides.sharp='0.35.4';
+          fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n');
+          JS
+          npm install --package-lock-only --ignore-scripts --no-audit
+          npm update baseline-browser-mapping --package-lock-only --ignore-scripts --no-audit
+          npm ci --ignore-scripts
+          cp package*.json "$RUNNER_TEMP/bundle-inspection/"
+          tar -czf "$RUNNER_TEMP/bundle-inspection/next-docs.tar.gz" -C node_modules/next/dist docs
+          node <<'JS'
+          const fs=require('fs');let s=fs.readFileSync('next.config.ts','utf8');
+          s='import { writeFileSync } from "node:fs";\n'+s;
+          s=s.replace('  reactCompiler: true,',`  reactCompiler: true,
+            webpack(config, { isServer }) {
+              if (!isServer) config.plugins.push({ apply(compiler: any) {
+                compiler.hooks.done.tap('MeasureClientChunks', (stats: any) => {
+                  writeFileSync(process.env.RUNNER_TEMP + '/bundle-inspection/client-stats.json', JSON.stringify(stats.toJson({all:false,chunks:true,chunkModules:true,modules:true,assets:true})));
+                });
+              }});
+              return config;
+            },`);
+          fs.writeFileSync('next.config.ts',s);
+          JS
+      - name: Build and capture measurements without accepting a failed budget
+        run: |
+          set -euo pipefail
+          npm run build > "$RUNNER_TEMP/bundle-inspection/build.log" 2>&1
+          set +e
+          npm run quality:bundle-budget > "$RUNNER_TEMP/bundle-inspection/budget.log" 2>&1
+          status=$?
+          set -e
+          echo "$status" > "$RUNNER_TEMP/bundle-inspection/budget-exit.txt"
+          test "$status" -le 1
+          node <<'JS'
+          const fs=require('fs'); const p='.next/static/chunks';
+          const chunks=fs.readdirSync(p).filter(f=>f.endsWith('.js')).map(f=>({file:f,bytes:fs.statSync(p+'/'+f).size})).sort((a,b)=>b.bytes-a.bytes);
+          fs.writeFileSync(process.env.RUNNER_TEMP+'/bundle-inspection/chunks.json',JSON.stringify(chunks,null,2));
+          console.log(chunks.slice(0,8));
+          for(const f of chunks.filter(x=>x.bytes>230000)) fs.copyFileSync(p+'/'+f.file,process.env.RUNNER_TEMP+'/bundle-inspection/'+f.file);
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ediel-security-client-bundle-inspection
+          path: ${{ runner.temp }}/bundle-inspection/
+          retention-days: 7
+          if-no-files-found: error
