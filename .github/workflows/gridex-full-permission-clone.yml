@@ -6,6 +6,8 @@ on:
       - codex/ediel-masterplan-v2-alignment-20260915
       - codex/gridex-parity-remediation-20260905
     paths:
+      - 'scripts/canonical-auth-provisioning-legacy-batch.py'
+      - 'scripts/canonical-storage-reference-qualification.py'
       - 'scripts/canonical_storage_bootstrap.py'
       - 'scripts/test-canonical-storage-bootstrap.py'
       - '.github/workflows/gridex-full-permission-clone.yml'
@@ -51,6 +53,8 @@ jobs:
         run: |
           python3 scripts/test-canonical-full-permission-clone.py
           python3 scripts/test-canonical-permission-full-seed.py
+      - name: Prove aligned independent Storage references and mismatch rejection
+        run: python3 -B scripts/canonical-storage-reference-qualification.py
       - name: Qualify exact permission candidate after complete replay
         shell: bash
         run: |

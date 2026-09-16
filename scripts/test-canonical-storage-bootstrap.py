@@ -2,6 +2,9 @@
 """Offline boundaries for owned Storage initialization, not SQL acceptance."""
 import copy
 import hashlib
+import importlib.util
+import sys
+from unittest.mock import patch
 import canonical_storage_bootstrap as m
 from pathlib import Path
 import unittest
@@ -12,9 +15,56 @@ ROOT = Path(__file__).resolve().parents[1]
 class RoutingTests(unittest.TestCase):
     def test_full_clone_initializes_storage_before_any_foundation_source(self):
         source = (ROOT/'scripts/canonical-full-permission-clone-qualification.py').read_text()
-        self.assertTrue('storage_bootstrap.render(' in source)
-        self.assertLess(source.index('storage_bootstrap.render('), source.index('loop.run(str(hold), paths)'))
+        self.assertTrue('target.bootstrap_sql()' in source)
+        self.assertLess(source.index('target.bootstrap_sql()'), source.index('loop.run(str(hold), paths)'))
         self.assertNotIn('GRANT SELECT', source[source.index('def matrix('):source.index('def qualify(')])
+
+
+class RuntimeProfileTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        path = ROOT/'scripts/canonical-auth-provisioning-legacy-batch.py'
+        spec = importlib.util.spec_from_file_location('storage_profile_legacy',path)
+        cls.legacy = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = cls.legacy
+        spec.loader.exec_module(cls.legacy)
+
+    def test_profile_is_explicit_and_default_bytes_stay_unchanged(self):
+        original = (ROOT/'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_bytes()
+        default = self.legacy.OwnedPostgres()
+        selected = self.legacy.OwnedPostgres(storage_dml=True)
+        self.assertEqual(default.bootstrap_sql(),original.decode())
+        self.assertEqual(selected.bootstrap_sql(),m.render(original))
+        for value in (None,1,'true',{},[]):
+            with self.assertRaises(self.legacy.BoundaryError):
+                self.legacy.OwnedPostgres(storage_dml=value)
+
+    def test_changed_profile_cannot_be_used_after_construction(self):
+        target = self.legacy.OwnedPostgres(storage_dml=True)
+        target._storage_dml = False
+        with self.assertRaisesRegex(self.legacy.BoundaryError,'OWNED_PROFILE_REQUIRED'):
+            target.bootstrap_sql()
+
+    def test_independent_prefix_uses_the_same_selected_bootstrap(self):
+        target = self.legacy.OwnedPostgres(storage_dml=True)
+        originals = self.legacy.verified_prefix()
+        seen = []
+        def private(name,raw):
+            seen.append((name,raw))
+            return name
+        with patch.object(target,'reset'),patch.object(target,'private',side_effect=private), \
+             patch.object(target,'run_files') as run:
+            target.prefix('gridex_auth_legacy_reference')
+        self.assertEqual(seen[0],('bootstrap.sql',target.bootstrap_sql()))
+        self.assertEqual([raw for _,raw in seen[2:]],[raw for _,raw in originals])
+        self.assertEqual(run.call_args.kwargs,{'transaction':False})
+        self.assertEqual(len(seen),45)
+
+    def test_full_clone_selects_profile_before_independent_reference_creation(self):
+        source = (ROOT/'scripts/canonical-full-permission-clone-qualification.py').read_text()
+        self.assertTrue('with legacy.OwnedPostgres(postgis=True, storage_dml=True) as target:' in source)
+        self.assertLess(source.index('storage_dml=True'),source.index('prepare_reference(target'))
+        self.assertIn('target.bootstrap_sql()',source)
 
 
 class ContractTests(unittest.TestCase):

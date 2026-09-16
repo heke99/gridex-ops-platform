@@ -170,10 +170,12 @@ def literal(value):
 
 class OwnedPostgres:
     """Created and destroyed here; no external-target constructor or URL fallback."""
-    def __init__(self, *, postgis=False):
-        if type(postgis) is not bool:
+    def __init__(self, *, postgis=False, storage_dml=False):
+        if type(postgis) is not bool or type(storage_dml) is not bool:
             raise BoundaryError('OWNED_PROFILE_REQUIRED')
         self._postgis=postgis
+        self._storage_dml=storage_dml
+        self._created_storage_dml=storage_dml
         self.name=os.environ.get('GRIDEX_LEGACY_CONTAINER_NAME') or ('gridex-auth-legacy-'+secrets.token_hex(8))
         if not re.fullmatch(r'gridex-auth-legacy-[a-z0-9-]{8,80}',self.name):
             raise BoundaryError('OWNED_TARGET_REQUIRED')
@@ -285,9 +287,26 @@ class OwnedPostgres:
         self.docker(['exec',self.name,'dropdb','-U','postgres','--if-exists','--force',database])
         self.docker(['exec',self.name,'createdb','-U','postgres',database])
 
+    def bootstrap_sql(self):
+        """One fixed profile for both independent references and replay targets.
+
+        Default users retain the historical bootstrap byte-for-byte. The full
+        Storage clone opts into the already-qualified platform DML substrate
+        before either reference or replay is constructed; no catalog is edited
+        after capture and no mismatch is excluded from comparison.
+        """
+        if (type(self._storage_dml) is not bool or
+                self._storage_dml is not self._created_storage_dml):
+            raise BoundaryError('OWNED_PROFILE_REQUIRED')
+        original=(ROOT/'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_bytes()
+        if self._storage_dml:
+            import canonical_storage_bootstrap
+            return canonical_storage_bootstrap.render(original)
+        return original.decode('utf-8')
+
     def prefix(self,database):
         self.reset(database)
-        bootstrap=(ROOT/'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_text()
+        bootstrap=self.bootstrap_sql()
         # R owns a BEGIN/COMMIT, so prefix is intentionally outside the batch
         # transaction; whole immutable prefix bytes are never stripped.
         files=[self.private('bootstrap.sql',bootstrap),self.private('prefix-search-path.sql','SET search_path = public,extensions;')]

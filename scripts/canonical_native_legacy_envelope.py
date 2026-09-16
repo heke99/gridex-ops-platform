@@ -18,7 +18,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PINS = {
-    'canonical-auth-provisioning-legacy-batch.py': 'adad170c149ddacf5d7c1f2ba9d0255518bd5c20b50def8b705ad38b54bf57b8',
+    'canonical-auth-provisioning-legacy-batch.py': '41954e58d88017ba4b4ab8b6ededec0e9df89d6f0883268f4723756e69d2c92b',
     'sql/canonical-auth-provisioning-legacy-admission.sql': '164298b223d28d7fb28cb0d96189892da2dbbca04dc354ae39302ed58645afa5',
     'sql/canonical-auth-provisioning-legacy-assertions.sql': 'df55959f4205fe9c1c3caea4edbb0ee0c8e083798e40332e0b4f08adc7255caa',
     'sql/canonical-auth-provisioning-legacy-catalog.sql': '50ecb6deb8e160bc8c98fcca11bb8c976a852ad9d8f1f98aafe185dd18246fcb',

@@ -43,7 +43,7 @@ def receipt(outcome,phase,progress):
         ledgerProvenanceVerified=False,generatedTypesVerified=False,productionModified=False)
 
 
-INPUT_PINS={'scripts/canonical_storage_bootstrap.py': '5bf70f4c989f40a79ff3a6db71d24851edf340cb4f604411d23578429c787b79', 'scripts/canonical_permission_full_seed.py': 'd58f46ad1596cfb73a0bb6cd5769a94b6ffce2020269297015ea80445f0873ee', 'scripts/canonical_changed_function_witness.py': 'a1eff86d0efecc058af45dc54411bb9056bc4cd96e7fa5b057374ee8cdefcce3', 'scripts/canonical-permission-native-fixture.py': '47425b626551df891f6b13c86390ac9b23239cbe26a3651558572778eceab3a8', 'scripts/canonical-portable-invariants-diagnostic.py': '2737b29ea13cd8d666e16e501f81f5c11d270e5c89aac4a9a88291e6bed21cb9', 'scripts/canonical_native_timestamp_snapshot.py': 'e36911fc25dae81d5d8187ddf7de472af602bbad3e6ec68dc4c657dc6fe23757', 'scripts/sql/canonical-user-rbac-repair-catalog.sql': '1d6315ea6d4d542a01e4b697f1cc2b4528a227f2be7e7052f47c8a04166103c7'}
+INPUT_PINS={'scripts/canonical_storage_bootstrap.py': '312e287ed12353fa7b39073d6af6f69cb9e80fbeaeb8239d1f46a6128626325b', 'scripts/canonical_permission_full_seed.py': 'd58f46ad1596cfb73a0bb6cd5769a94b6ffce2020269297015ea80445f0873ee', 'scripts/canonical_changed_function_witness.py': 'a1eff86d0efecc058af45dc54411bb9056bc4cd96e7fa5b057374ee8cdefcce3', 'scripts/canonical-permission-native-fixture.py': '47425b626551df891f6b13c86390ac9b23239cbe26a3651558572778eceab3a8', 'scripts/canonical-portable-invariants-diagnostic.py': '2737b29ea13cd8d666e16e501f81f5c11d270e5c89aac4a9a88291e6bed21cb9', 'scripts/canonical_native_timestamp_snapshot.py': 'e36911fc25dae81d5d8187ddf7de472af602bbad3e6ec68dc4c657dc6fe23757', 'scripts/sql/canonical-user-rbac-repair-catalog.sql': '1d6315ea6d4d542a01e4b697f1cc2b4528a227f2be7e7052f47c8a04166103c7'}
 
 
 def retained_inputs():
@@ -309,7 +309,7 @@ def run():
     result = None
     phase = 'OWNED_TARGET'
     progress = {'foundationApplied': 0, 'timestampApplied': 0}
-    with legacy.OwnedPostgres(postgis=True) as target:
+    with legacy.OwnedPostgres(postgis=True, storage_dml=True) as target:
         private_directory = Path(target.directory.name)
         try:
             phase = 'SPATIAL_RUNTIME_ADMISSION'
@@ -335,7 +335,7 @@ def run():
                 loop.validate(str(hold), paths)
                 phase = 'PLATFORM_BOOTSTRAP'
                 target.sql(controller.DATABASE,
-                           storage_bootstrap.render((ROOT / 'scripts/sql/gridex-supabase-compatible-bootstrap.sql').read_bytes()),
+                           target.bootstrap_sql(),
                            'frontier_bootstrap', transaction=False)
                 storage_bootstrap.validate(json.loads(target.sql(controller.DATABASE, storage_bootstrap.CAPTURE,
                     'storage_bootstrap_dml_profile')), allowed=True)

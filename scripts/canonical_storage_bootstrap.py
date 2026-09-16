@@ -29,7 +29,7 @@ INITIALIZE = """
 -- Test substrate only. Existing owned-runtime checks are also mandatory.
 DO $storage_bootstrap$
 BEGIN
-  IF current_database() NOT IN ('gridex_auth_legacy_replay','gridex_auth_legacy_native','gridex_auth_legacy_atomic')
+  IF current_database() NOT IN ('gridex_auth_legacy_reference','gridex_auth_legacy_replay','gridex_auth_legacy_native','gridex_auth_legacy_atomic')
      OR to_regclass('public.companies') IS NOT NULL
      OR to_regclass('public.company_memberships') IS NOT NULL
      OR EXISTS (SELECT FROM storage.buckets)
