@@ -4,6 +4,8 @@ export type EdifactTokenizedSegment = {
   index: number
   tag: string
   raw: string
+  // Legacy decoded element strings. Use segmentComposite for structured access:
+  // an escaped component separator cannot be distinguished after decoding.
   elements: string[]
 }
 
@@ -80,4 +82,21 @@ export function splitComposite(value: string | null | undefined, una: EdifactSer
 export function firstCompositeComponent(value: string | null | undefined, una?: EdifactServiceStringAdvice): string | null {
   const first = splitComposite(value, una)[0]?.trim() ?? ''
   return first.length > 0 ? first : null
+}
+
+/**
+ * Decode a composite from its wire segment, retaining release sequences through
+ * the outer data-element split. Splitting already-decoded `elements` would turn
+ * literal component separators into structure and decode question marks twice.
+ */
+export function segmentComposite(
+  segment: EdifactTokenizedSegment | null | undefined,
+  index: number,
+  una: EdifactServiceStringAdvice = parseUna(null),
+): string[] {
+  if (!segment) return ['']
+  const wireElements = splitReleased(segment.raw, una.dataElementSeparator, una.releaseCharacter, {
+    preserveReleaseSequence: true,
+  })
+  return splitComposite(wireElements[index], una)
 }

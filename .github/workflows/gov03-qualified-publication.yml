@@ -1,0 +1,150 @@
+name: GOV03 exact candidate qualification
+on:
+  push:
+    branches: [ci/ediel-gov03-publication-20260916]
+permissions:
+  contents: read
+concurrency:
+  group: gov03-exact-qualification
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.repository == 'heke99/gridex-ops-platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+      TARGET_TREE: 850d27765d490bd79345591b03e2cd21ab41fefe
+    outputs:
+      candidate: ${{ steps.bundle.outputs.candidate }}
+      bundle_hash: ${{ steps.bundle.outputs.bundle_hash }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Materialize exact reviewed candidate in isolated runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/gov03-evidence"
+          python3 - <<'PY'
+          import hashlib,json,lzma,os,pathlib,subprocess
+          root=pathlib.Path.cwd(); out=pathlib.Path(os.environ['RUNNER_TEMP'])/'gov03-evidence'
+          raw=b''.join((root/f'.github/gov03-packet/{i}.bin').read_bytes() for i in range(4))
+          assert len(raw)==32488
+          assert hashlib.sha256(raw).hexdigest()=='e7541f5f60d50ca6cb842077ca6c6c6de0c59d2af4dd00c40816566c16aab15a'
+          packet=json.loads(lzma.decompress(raw))
+          assert packet['schema_version']==1
+          assert packet['base_commit']=='fe1b63a347256fb404f572dd94c4e8c209b09d98'
+          assert packet['base_tree']=='fb0da2df576fca5f8a870edc3248d68cf9fe7469'
+          assert packet['target_tree']==os.environ['TARGET_TREE']
+          patch=packet['patch'].encode()
+          assert hashlib.sha256(patch).hexdigest()==packet['patch_sha256']=='a0aa72e7f93d2efa7979ae86445aded74369a29a50e47688d6d1b2e6fffec9bc'
+          assert len(packet['paths'])==49 and len(set(packet['paths']))==49
+          for p in packet['paths']:
+            assert not p.startswith(('/', 'supabase/', 'docs/ediel/masterplan-v2/', 'types/'))
+            assert '..' not in pathlib.PurePosixPath(p).parts
+          (out/'candidate.patch').write_bytes(patch)
+          (out/'packet.json').write_text(json.dumps({k:v for k,v in packet.items() if k!='patch'},indent=2))
+          subprocess.run(['git','read-tree','--reset','-u',packet['base_tree']],check=True)
+          subprocess.run(['git','apply','--index','--binary',str(out/'candidate.patch')],check=True)
+          tree=subprocess.check_output(['git','write-tree'],text=True).strip()
+          assert tree==packet['target_tree'],(tree,packet['target_tree'])
+          paths=subprocess.check_output(['git','diff','--cached','--name-only',packet['base_commit']],text=True).splitlines()
+          assert sorted(paths)==sorted(packet['paths'])
+          subprocess.run(['git','diff','--cached','--check',packet['base_commit']],check=True)
+          (out/'source-tree.txt').write_text(tree+'\n')
+          PY
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Actual source tests and immutable specification
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/check-ediel-masterplan-v2.cjs
+          node --experimental-vm-modules --test scripts/test-ediel-aperak-profile-governance.cjs scripts/test-ediel-aperak-source-scope.cjs scripts/test-ediel-rule-pack-source-identity.cjs scripts/test-ediel-prodat-source-locators.cjs scripts/test-ediel-component-escaping.cjs | tee "$RUNNER_TEMP/gov03-evidence/source-tests.log"
+          node scripts/gridex-aperak-canonical-evidence-regression.cjs
+          npm run db:migrations:check
+          npm run tenant:service-role-ratchet
+          node scripts/check-agent-memory-git-state.cjs
+      - name: Application script and test TypeScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run typecheck
+          npm run typecheck:scripts
+          npm run typecheck:tests
+      - name: Lint and full unit suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run lint
+          npm test | tee "$RUNNER_TEMP/gov03-evidence/vitest.log"
+          npx vitest run --config quality/vitest.config.ts
+          npm run security:audit-production
+      - name: Production build and unchanged budgets
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build | tee "$RUNNER_TEMP/gov03-evidence/build.log"
+          npm run quality:bundle-budget
+      - name: Commit only the exact tested tree and export incremental bundle
+        id: bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git write-tree)" = "$TARGET_TREE"
+          git diff --exit-code
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git -c core.hooksPath=/dev/null -c user.name='Gridex qualified publication' -c user.email='129280077+heke99@users.noreply.github.com' commit -m 'fix(ediel): enforce source-scoped APERAK across parser validator renderer and ACK consumers'
+          candidate="$(git rev-parse HEAD)"
+          git bundle create "$RUNNER_TEMP/gov03-evidence/candidate.bundle" HEAD "^$GITHUB_SHA"
+          hash="$(sha256sum "$RUNNER_TEMP/gov03-evidence/candidate.bundle" | cut -d' ' -f1)"
+          printf 'candidate=%s\nparent=%s\ntree=%s\nbundle_sha256=%s\nscope=isolated qualification; normal PR CI and review required\n' "$candidate" "$GITHUB_SHA" "$TARGET_TREE" "$hash" > "$RUNNER_TEMP/gov03-evidence/qualification.txt"
+          printf 'candidate=%s\nbundle_hash=%s\n' "$candidate" "$hash" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gov03-qualification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/gov03-evidence/
+          if-no-files-found: error
+          retention-days: 14
+  publish:
+    needs: verify
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CANDIDATE: ${{ needs.verify.outputs.candidate }}
+      EXPECTED_BUNDLE_HASH: ${{ needs.verify.outputs.bundle_hash }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: gov03-qualification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/gov03-qualified
+      - name: Publish verified commit to a separate new branch only
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$CANDIDATE" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$EXPECTED_BUNDLE_HASH" =~ ^[a-f0-9]{64}$ ]]
+          archive="$RUNNER_TEMP/gov03-qualified/candidate.bundle"
+          test "$(sha256sum "$archive" | cut -d' ' -f1)" = "$EXPECTED_BUNDLE_HASH"
+          git bundle verify "$archive"
+          git fetch "$archive" HEAD:refs/heads/gov03-verified-local
+          test "$(git rev-parse gov03-verified-local)" = "$CANDIDATE"
+          test "$(git rev-parse "$CANDIDATE^{tree}")" = 850d27765d490bd79345591b03e2cd21ab41fefe
+          test "$(git show -s --format=%P "$CANDIDATE")" = "$GITHUB_SHA"
+          branch="codex/ediel-v2-gov03-qualified-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          test -z "$(git ls-remote --heads origin "$branch")"
+          git push origin "$CANDIDATE:refs/heads/$branch"
+          test "$(git ls-remote --heads origin "$branch" | cut -f1)" = "$CANDIDATE"
+          printf 'Published %s on %s. Main, PR319, and paused PR310 are unchanged. Normal PR CI is still mandatory.\n' "$CANDIDATE" "$branch" >> "$GITHUB_STEP_SUMMARY"

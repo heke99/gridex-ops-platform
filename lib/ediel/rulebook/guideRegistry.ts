@@ -33,6 +33,12 @@ export type EdielGuideAcceptance = {
  * Swedish UTILTS guides 25-A-3 and 25-A-4 both use E5SE5A, while 25-A-4 does
  * not become effective until 2026-10-01. Runtime rule selection therefore has
  * to use both the association-assigned code and the business/reference date.
+ *
+ * APERAK is source-family bound. The 26-A/16-B label in the PRODAT document is
+ * the electricity/gas PRODAT scope and must never be modeled as a generic
+ * APERAK revision. PRODAT-origin APERAK follows the PRODAT source profile
+ * (E2SE6A); UTILTS-origin APERAK follows the corresponding UTILTS guide
+ * (E5SE5A). A caller that cannot identify that source profile must fail closed.
  */
 export const AUTHORITATIVE_EDIEL_GUIDES: readonly AuthoritativeEdielGuide[] = [
   {
@@ -79,17 +85,40 @@ export const AUTHORITATIVE_EDIEL_GUIDES: readonly AuthoritativeEdielGuide[] = [
   },
   {
     family: 'APERAK',
-    guideRevision: '16-B',
+    guideRevision: '26-A',
     associationAssignedCode: 'E2SE6A',
     documentName: '260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B',
     latestUpdated: '2026-06-30',
-    semanticEffectiveFrom: '2016-12-01',
     effectiveFrom: '2026-04-01',
     effectiveTo: null,
     authority: 'Svenska kraftnät',
     certificationScope: 'production_current',
-    // PRODAT APERAK BGM/function + ERC/FTX semantics are code-owned by the
-    // family-specific APERAK classifier/rulebook, not by mutable DB rows.
+    // This is the PRODAT-origin APERAK profile. 16-B in the source document is
+    // the GAS PRODAT profile, not an APERAK guide revision.
+    fieldMatrixStatus: 'certified',
+  },
+  {
+    family: 'APERAK',
+    guideRevision: '25-A-3',
+    associationAssignedCode: 'E5SE5A',
+    documentName: '251001_Ediel_UTILTS-APERAK_User_Guide_Version_25-A-3',
+    latestUpdated: '2025-10-01',
+    effectiveFrom: '2025-06-01',
+    effectiveTo: '2026-09-30',
+    authority: 'Svenska kraftnät',
+    certificationScope: 'production_current',
+    fieldMatrixStatus: 'certified',
+  },
+  {
+    family: 'APERAK',
+    guideRevision: '25-A-4',
+    associationAssignedCode: 'E5SE5A',
+    documentName: '260331_Ediel_UTILTS-APERAK_User_Guide_Version_25-A-4',
+    latestUpdated: '2026-08-05',
+    effectiveFrom: '2026-10-01',
+    effectiveTo: null,
+    authority: 'Svenska kraftnät',
+    certificationScope: 'future_effective',
     fieldMatrixStatus: 'certified',
   },
   {

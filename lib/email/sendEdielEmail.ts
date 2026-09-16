@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer'
 import type SMTPTransport from 'nodemailer/lib/smtp-transport'
 import { assertEdielSmtpReadiness, edielSmtpConfig } from '@/lib/ediel/mailReadiness'
+import { archiveSmimeRawMime, isSmimeRawMime } from '@/lib/ediel/transport/smimeTransportArchive'
 
 export type SendEdielEmailInput =
   | {
@@ -43,6 +44,14 @@ export async function sendEdielEmail(input: SendEdielEmailInput): Promise<{
   const transporter = nodemailer.createTransport(transportOptions)
 
   if ('raw' in input) {
+    // S/MIME transport is an evidence-bearing operation. The exact RFC822 bytes
+    // must be durably archived and read back before SMTP submission. The
+    // archive binder also upgrades the immediately preceding transport snapshot
+    // from its temporary smtp-smime:// reference to the private storage object.
+    if (isSmimeRawMime(input.raw)) {
+      await archiveSmimeRawMime(input.raw)
+    }
+
     const result = await transporter.sendMail({
       envelope: {
         from: input.envelopeFrom ?? config.from,
