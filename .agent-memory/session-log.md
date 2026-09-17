@@ -34,3 +34,34 @@ Continued from actual main5a741b2c after PR323. Implemented source-exact RFF pro
 ## 2026-09-17 — F3-E checkpoint
 
 Completed PR324 merge; next single itemF3-E BGM fields. Source-backed implementation and tests ready for full CI. PR310 untouched.
+
+## 2026-09-17 — Continue after merged PR325
+
+F3-F implemented all20NAD source slots and consumers; fixed wrong-party/cached-address and invalid candidate wildcard/tenant-scope defects. Added264actual-source cases and Vitest consumers;848combined localpass. Await exact-head ordinary CI/review; no full-plan or live approval. Paused PR310 untouched.
+
+## PR326 publication and qualification correction
+
+Initialaadcd597/treee3b2a640 published; ordinary initial CI not qualified.
+Verified locked dependency artifact10496783500 enabled actual local Vitest:
+initial1334pass/6fail; corrected1347/1347pass in209files, including50NAD cases.
+848source cases/integrity/budget pass. See f3-party-qualification.md for genuine
+UNA reader failures and documented synthetic fixture corrections. Final
+ordinary CI/review/merge remain required. PR310 paused, no production changes.
+
+## 2026-09-17 — PR326 four review findings (local implementation only)
+
+# Active state — PR326 review remediation
+
+Updated2026-09-17. Main2d65dc9 contains PR324/325. PR326 is the sole active item;
+old published head a7b4ddde has green CI but FOUR substantive review findings.
+The four fixes and87 new regression cases are now implemented locally.
+Unchanged old source30pass/57fail; corrected87pass. Full Vitest1434/1434,
+retained source848/848 and all3TypeScript groups pass. Changed ESLint0errors/
+8retained warnings; golden/route/integrity/unchanged large-source budget pass.
+
+Detailed evidence/scope: quality/audits/ediel-masterplan-v2/f3-party-review-remediation.md.
+Next: publish the exact correction, run NEW ordinary CI, address substantive
+review and merge with guarded exact head. Read live GitHub state; this is a
+pre-publication checkpoint and does not claim merge or whole-plan acceptance.
+After merge only, DTM/register/dependent work. PR310 remains paused at e9611351.
+No production mutation, SQL/generated types/grants or external Ediel messages.

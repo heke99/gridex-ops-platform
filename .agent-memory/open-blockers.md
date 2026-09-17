@@ -1,7 +1,9 @@
-# Open blockers — 2026-09-17
+# Active blockers
 
-PR325 final source/docs-head CI/review/merge is the current gate. Prior source
-publication blockers and the reproduced ACK escape failures are resolved, not
-reasons to reapply old source. Remaining NAD/DTM/register/110D/full grammar,
-F0 production evidence, full sources/TGT/ESCO grants and paused PR310 schema/types
-are separate requirements. No full F3/F7 or production approval is claimed.
+PR326 correction is implemented and locally tested, but NEW exact-head ordinary
+CI, substantive review resolution and merge are pending. Older green a7b4ddde
+is not qualified for the newly identified defects. See f3-party-review-remediation.md.
+
+PR310 paused/e9611351. Do not import its migrations, schema/types or replay proof
+machinery. Missing normative/TGT originals and full F0/F2/F3/F5/F7/live release
+approval remain explicit independent blockers; do not mark the campaign complete.

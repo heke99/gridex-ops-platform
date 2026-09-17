@@ -155,7 +155,7 @@ for(const id of ['', 'D'.repeat(36)])test(`profile renderer rejects invalid BGM 
  const a=await api;assert.throws(()=>a.buildProfiledProdatSegments({context:context(id),generatedAt:new Date('2026-09-17T12:00:00Z'),mode:'test'}))
 })
 for(const requestAck of [undefined,false,true])test(`compatibility builder emits source-valid BGM and explicit requested ACK (${String(requestAck)})`,async()=>{
- const a=await api,result=a.buildProdatMessage({companyId:'test',role:'supplier',businessCode:'Z03',sender:{edielId:'12345'},receiver:{edielId:'54321'},meteringPoint:{id:'OBJECT'},customer:{id:'CUSTOMER'},dates:{createdAt:'2026-09-17T12:00:00Z'},codedAttributes:{Z13:'Z22'},references:{documentReference:'DOC+1',LI:'CASE'},requestAck,environment:'test'})
+ const a=await api,result=a.buildProdatMessage({companyId:'test',role:'supplier',businessCode:'Z03',sender:{edielId:'12345'},receiver:{edielId:'54321'},meteringPoint:{id:'OBJECT'},customer:{id:'CUSTOMER',idAgency:'89',name:'Customer'},dates:{createdAt:'2026-09-17T12:00:00Z'},codedAttributes:{Z13:'Z22'},references:{documentReference:'DOC+1',LI:'CASE'},requestAck,environment:'test'})
  const bgm=a.tokenizeEdifact(result.rawEdifact).segments.find(s=>s.tag==='BGM')
  assert.equal(bgm.raw,`BGM+Z03+DOC?+1+9+${requestAck===false?'NA':'AB'}`)
 })

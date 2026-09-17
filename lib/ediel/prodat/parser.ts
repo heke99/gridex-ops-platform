@@ -1,3 +1,4 @@
+import { readProdatParty } from '@/lib/ediel/prodat/prodatPartyFields'
 import { prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { parseUna } from '@/lib/ediel/core/una'
@@ -16,6 +17,14 @@ export type ParsedProdatLineItem = {
   endUserId: string | null
   endUserIdQualifier: string | null
   endUserName: string | null
+  endUserNameLines?: string[]
+  endUserAddressLines?: string[]
+  invoiceeId?: string | null
+  invoiceeName?: string | null
+  invoiceeAddress?: string | null
+  invoiceePostcode?: string | null
+  invoiceeCity?: string | null
+  invoiceeCountry?: string | null
   endUserAddress: string | null
   endUserPostcode: string | null
   endUserCity: string | null
@@ -67,6 +76,8 @@ export type ParsedProdatMessage = {
   interchangeReference: string | null
   transactionReference: string | null
   applicationReference: string | null
+  legalSenderId?: string | null
+  legalReceiverId?: string | null
   senderEdielId: string | null
   receiverEdielId: string | null
   lineItems: ParsedProdatLineItem[]
@@ -81,40 +92,6 @@ function lineDateTimeValue(segments: { raw: string }[], qualifiers: string[]): s
   }
 
   return null
-}
-
-type ParsedNadParty = {
-  id: string | null
-  idQualifier: string | null
-  name: string | null
-  address: string | null
-  city: string | null
-  postalCode: string | null
-  country: string | null
-}
-
-function nadText(value: string | null | undefined): string | null {
-  const cleaned = String(value ?? '').trim()
-  return cleaned || null
-}
-
-function partyFromNad(segments: { raw: string; elements: string[] }[], qualifier: string): ParsedNadParty {
-  const segment = segments.find((item) => item.raw.startsWith(`NAD+${qualifier}+`))
-  const composite = segment?.elements[2] ?? ''
-  const parts = composite.split(':').map((part) => part.trim())
-  return {
-    id: nadText(parts[0]),
-    idQualifier: nadText(parts[1]),
-    name: nadText(segment?.elements[4]),
-    address: nadText(segment?.elements[5]),
-    city: nadText(segment?.elements[6]),
-    postalCode: nadText(segment?.elements[8]),
-    country: nadText(segment?.elements[9]),
-  }
-}
-
-function partyIdFromNad(segments: { raw: string; elements: string[] }[], qualifier: string): string | null {
-  return partyFromNad(segments, qualifier).id
 }
 
 export function parseProdatMessage(input: EdielMessageRow | string): ParsedProdatMessage {
@@ -133,27 +110,37 @@ export function parseProdatMessage(input: EdielMessageRow | string): ParsedProda
     applicationReference: typeof input === 'string' ? null : (input.application_reference ?? null),
     senderEdielId: typeof input === 'string' ? null : (input.sender_ediel_id ?? null),
     receiverEdielId: typeof input === 'string' ? null : (input.receiver_ediel_id ?? null),
+    legalSenderId: readProdatParty('FR', facts.segments, una).id,
+    legalReceiverId: readProdatParty('DO', facts.segments, una).id,
     rawPayload,
-    lineItems: facts.lineItems.map((line, index) => ({
+    lineItems: facts.lineItems.map((line, index) => {
+      const ud = readProdatParty('UD', line.segments, una)
+      const it = readProdatParty('IT', line.segments, una)
+      const iv = readProdatParty('IV', line.segments, una)
+      return {
       sourceOrder: index,
       meteringPointId: line.itemId ?? null,
       lineItemReference: line.rffLi ?? null,
       gridAreaId: line.rffZ05 ?? null,
       agreementReference: prodatReferenceValue('261', line.segments, una),
-      customerId: partyIdFromNad(line.segments, 'UD') ?? partyIdFromNad(line.segments, 'IV'),
-      endUserId: partyFromNad(line.segments, 'UD').id,
-      endUserIdQualifier: partyFromNad(line.segments, 'UD').idQualifier,
-      endUserName: partyFromNad(line.segments, 'UD').name,
-      endUserAddress: partyFromNad(line.segments, 'UD').address,
-      endUserPostcode: partyFromNad(line.segments, 'UD').postalCode,
-      endUserCity: partyFromNad(line.segments, 'UD').city,
-      endUserCountry: partyFromNad(line.segments, 'UD').country,
-      installationId: partyFromNad(line.segments, 'IT').id,
-      installationAddress: partyFromNad(line.segments, 'IT').address,
-      installationPostcode: partyFromNad(line.segments, 'IT').postalCode,
-      installationCity: partyFromNad(line.segments, 'IT').city,
-      installationCountry: partyFromNad(line.segments, 'IT').country,
-      balanceResponsibleId: partyIdFromNad(line.segments, 'Z02'),
+      customerId: ud.id,
+      endUserId: ud.id,
+      endUserIdQualifier: ud.idQualifier,
+      endUserName: ud.name,
+      endUserNameLines: ud.nameLines,
+      endUserAddressLines: ud.addressLines,
+      invoiceeId: iv.id, invoiceeName: iv.name, invoiceeAddress: iv.address,
+      invoiceePostcode: iv.postalCode, invoiceeCity: iv.city, invoiceeCountry: iv.country,
+      endUserAddress: ud.address,
+      endUserPostcode: ud.postalCode,
+      endUserCity: ud.city,
+      endUserCountry: ud.country,
+      installationId: it.id,
+      installationAddress: it.address,
+      installationPostcode: it.postalCode,
+      installationCity: it.city,
+      installationCountry: it.country,
+      balanceResponsibleId: readProdatParty('Z02', line.segments, una).id,
       reportingFrequency: prodatCharacteristicValue('222', line.segments, una),
       energyProductId: prodatCharacteristicValue('506', line.segments, una),
       installationDirection: prodatCharacteristicValue('513', line.segments, una),
@@ -186,6 +173,7 @@ export function parseProdatMessage(input: EdielMessageRow | string): ParsedProda
       hasDigitCount: line.hasDigitCount,
       hasMeterNumber: line.hasMeterNumber,
       rawSegments: line.segments.map((segment) => segment.raw),
-    })),
+      }
+    }),
   }
 }

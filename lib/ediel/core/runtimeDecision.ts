@@ -155,6 +155,7 @@ function applyProdatPolicyDecision(params: {
   const fieldIssues = validateCanonicalPolicyFields({
     policy: params.policy,
     rawSegments: params.canonical.rawSegments,
+    una: params.canonical.una,
     scope: 'all',
   })
   params.sourceRules.push('CANONICAL_EDIEL_POLICY', 'PRODAT_26A_POLICY_FIELD_VALIDATOR', 'PRODAT_DEPENDENT_CONDITION_ENGINE')

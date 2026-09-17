@@ -1,3 +1,4 @@
+import { parseProdatMessage as parseSourceProdat } from '@/lib/ediel/prodat/parser'
 import { prodatReferenceByQualifier } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatDocumentSegment, prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
@@ -966,6 +967,7 @@ export function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string,
   const wireFamily = segmentComposite(wireUnh, 2, wire.una)[0]?.trim().toUpperCase()
   const family = wireFamily || unhParts[0]?.trim() || fallbackFamily
   const referenceSource = family.toUpperCase() === 'PRODAT' ? wire : null
+  const partySource = referenceSource ? parseSourceProdat(rawPayload) : null
   function ref(qualifier: string): string | null {
     if (referenceSource) {
       return prodatReferenceByQualifier(qualifier, referenceSource.segments, referenceSource.una)
@@ -1007,6 +1009,7 @@ export function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string,
     externalReference,
     transactionReference: canonicalTransactionReference,
     parsedPayload: {
+      ...(partySource ? { legalSenderId: partySource.legalSenderId, legalReceiverId: partySource.legalReceiverId, lineItems: partySource.lineItems } : {}),
       rawSegments: referenceSource ? wire.segments.map(segment => segment.raw) : segments,
       segmentCount: referenceSource ? wire.segments.length : segments.length,
       unb: referenceSource ? wire.segments.find(segment => segment.tag === 'UNB')?.raw ?? null : unb,

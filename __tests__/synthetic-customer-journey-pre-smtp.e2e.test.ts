@@ -114,6 +114,8 @@ describe('synthetic customer journey stops immediately before external SMTP', ()
       },
     })
 
+    if (!application.site) throw new Error('synthetic_application_site_required')
+
     expect(application.customer.first_name).toBe('Anna')
     expect(application.settlement.model).toBe('market_hourly')
     expect(application.powerOfAttorney?.scope).toContain('supplier_switch')
@@ -183,7 +185,7 @@ describe('synthetic customer journey stops immediately before external SMTP', ()
         receiverEdielId: '99999',
         customerName: 'Anna Andersson',
         customerId: '199001011234',
-        customerIdCodeListQualifier: 'Z01',
+        customerIdCodeListQualifier: 'SE2',
         meterPointId: '735999999999999999',
         gridAreaId: 'STH',
         startDate: '2026-09-01',
@@ -191,6 +193,10 @@ describe('synthetic customer journey stops immediately before external SMTP', ()
         customerCity: 'Stockholm',
         customerPostalCode: '11122',
         customerCountry: 'SE',
+        siteAddress: application.site.street,
+        siteCity: application.site.city,
+        sitePostalCode: application.site.postal_code,
+        siteCountry: 'SE',
         powerOfAttorneyReference: 'POA-SYNTH-900001',
         dependentConditionFacts: {
           endUserAddressAvailable: true,
@@ -206,6 +212,8 @@ describe('synthetic customer journey stops immediately before external SMTP', ()
     expect(z03.segments.some((segment) => segment.startsWith('BGM+Z03+'))).toBe(true)
     expect(z03.segments.some((segment) => segment.includes('735999999999999999'))).toBe(true)
     expect(z03.segments.some((segment) => segment.startsWith('RFF+ANJ:POA-SYNTH-900001'))).toBe(true)
+    expect(z03.segments.some((segment) => segment.startsWith('NAD+UD+199001011234:SE2:260++Anna Andersson'))).toBe(true)
+    expect(z03.segments).toContain('NAD+IT+735999999999999999::9+++Testgatan 1+Stockholm++11122+SE')
 
     const certificate = evaluateCertificateStatus({
       usage: 'outbound_recipient',

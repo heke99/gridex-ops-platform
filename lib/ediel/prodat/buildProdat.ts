@@ -1,3 +1,6 @@
+import { isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
+import { prodatPartySegment, prodatCustomerNadSegment } from '@/lib/ediel/prodat/render/segments'
+import { PRODAT_26A_FIELD_MATRIX, PRODAT_26A_MESSAGE_CODES } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { renderProdatDocumentHeader } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { serializeEdifact, escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 import { generateEdielInterchangeReference } from '@/lib/ediel/core/referenceGenerator'
@@ -12,8 +15,13 @@ export type BuildProdatMessageInput = {
   transactionSubtype?: string | null
   sender: { edielId: string; subAddress?: string | null }
   receiver: { edielId: string; subAddress?: string | null }
+  /** Legal NAD parties may differ from the technical UNB gateway. Omission preserves legacy calls. */
+  legalSenderId?: string | null
+  legalReceiverId?: string | null
+  legalSenderCountry?: string | null
+  legalReceiverCountry?: string | null
   meteringPoint?: { id?: string | null; gridArea?: string | null } | null
-  customer?: { id?: string | null; name?: string | null; identity?: string | null } | null
+  customer?: { id?: string | null; name?: string | null; identity?: string | null; identityQualifier?: string | null; idAgency?: '89' | '260'; country?: string | null } | null
   gridOwner?: { edielId?: string | null; name?: string | null } | null
   brp?: { edielId?: string | null } | null
   dates?: Record<string, string | null | undefined>
@@ -81,19 +89,22 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
   const endDate = compactDate(input.dates?.endDate)
   const meteringPointId = input.meteringPoint?.id?.trim()
   const customerId = input.customer?.identity ?? input.customer?.id
+  const codeIndex = PRODAT_26A_MESSAGE_CODES.findIndex(code => code === businessCode)
+  const endUserAllowed = codeIndex >= 0 && PRODAT_26A_FIELD_MATRIX.find(row => row.fieldNumber === 'END_USER_GROUP')?.requirements[codeIndex] !== '-'
+    && !isProdatFieldInInapplicableParent({ messageCode: businessCode, subtype: input.transactionSubtype, fieldNumber: 'END_USER_GROUP' })
 
   const businessSegments = [
     renderProdatDocumentHeader({ code: businessCode, documentId: documentReference, acknowledgement: input.requestAck === false ? 'NA' : 'AB' }),
     `DTM+137:${compactDate(input.dates?.createdAt) ?? new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 12)}:203`,
     startDate ? `DTM+92:${startDate}:102` : null,
     endDate ? `DTM+93:${endDate}:102` : null,
-    `NAD+MS+${escapeEdifactValue(input.sender.edielId)}:SVK:260`,
-    `NAD+MR+${escapeEdifactValue(input.receiver.edielId)}:SVK:260`,
-    customerId ? `NAD+UD+${escapeEdifactValue(customerId)}:SVK:260` : null,
+    prodatPartySegment('FR', input.legalSenderId ?? input.sender.edielId, input.legalSenderCountry ?? 'SE'),
+    prodatPartySegment('DO', input.legalReceiverId ?? input.receiver.edielId, input.legalReceiverCountry ?? 'SE'),
     meteringPointId ? `LIN+1++${escapeEdifactValue(meteringPointId)}:Z01:260` : 'LIN+1',
     input.meteringPoint?.gridArea ? `RFF+Z05:${escapeEdifactValue(input.meteringPoint.gridArea)}` : null,
     ...referenceSegments(input.references),
     ...codedAttributeSegments(input.codedAttributes),
+    endUserAllowed && customerId ? prodatCustomerNadSegment({ customerId, customerIdCodeListQualifier: input.customer?.identityQualifier, idAgency: input.customer?.idAgency, customerName: input.customer?.name ?? '', country: input.customer?.country }) : null,
   ].filter((segment): segment is string => Boolean(segment))
 
   const rawEdifact = serializeEdifact({

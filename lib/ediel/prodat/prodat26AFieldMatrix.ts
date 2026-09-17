@@ -12,6 +12,10 @@ type MatrixRow = {
   cavComponent?: 0 | 3 | 4
   referenceScope?: 'sender' | 'line'
   documentElement?: 1 | 2 | 3 | 4
+  partyQualifier?: 'FR' | 'DO' | 'UD' | 'IT' | 'IV' | 'Z02'
+  partyElement?: 2 | 4 | 5 | 6 | 8 | 9
+  partyComponents?: 1 | 2 | 3
+  partyMaxLength?: number
   allowedValues?: readonly string[]
   requirements: readonly Prodat26ARequirement[]
 }
@@ -34,9 +38,9 @@ export const PRODAT_26A_FIELD_MATRIX: readonly MatrixRow[] = [
   {fieldNumber:'205',fieldKey:'document_date',segmentPath:'DTM+137',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
   {fieldNumber:'206',fieldKey:'timezone',segmentPath:'DTM+ZZZ',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
   {fieldNumber:'301',fieldKey:'free_text_header',segmentPath:'FTX',requirements:['O','O','O','O','O','O','O','O','O','O','O','O','O']},
-  {fieldNumber:'207',fieldKey:'sender_ediel_id',segmentPath:'UNB/S002',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'207',fieldKey:'sender_ediel_id',segmentPath:'NAD+FR/C082/3039 + NAD+FR/3207',partyQualifier:'FR',partyElement:2,partyComponents:1,partyMaxLength:35,requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
   {fieldNumber:'315',fieldKey:'sender_organisation_no',segmentPath:'RFF+XA',referenceScope:'sender',requirements:['-','-','O','-','-','-','-','-','-','-','-','-','-']},
-  {fieldNumber:'208',fieldKey:'receiver_ediel_id',segmentPath:'UNB/S003',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'208',fieldKey:'receiver_ediel_id',segmentPath:'NAD+DO/C082/3039 + NAD+DO/3207',partyQualifier:'DO',partyElement:2,partyComponents:1,partyMaxLength:35,requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
   {fieldNumber:'314',fieldKey:'sequence_number',segmentPath:'LIN',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
   {fieldNumber:'209',fieldKey:'line_item',segmentPath:'LIN',requirements:['R','R','R','R','R','R','R','R','R','-','D','R','R']},
   {fieldNumber:'258',fieldKey:'sub_line_number',segmentPath:'LIN',requirements:['-','-','-','D','-','D','-','-','D','-','-','-','-']},
@@ -82,26 +86,26 @@ export const PRODAT_26A_FIELD_MATRIX: readonly MatrixRow[] = [
   {fieldNumber:'226',fieldKey:'line_reference',segmentPath:'RFF+LI',referenceScope:'line',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
   {fieldNumber:'325',fieldKey:'permission_id',segmentPath:'RFF+Z09',referenceScope:'line',requirements:['-','-','-','-','-','-','-','-','-','-','D','R','R']},
   {fieldNumber:'END_USER_GROUP',fieldKey:'end_user_group',segmentPath:'NAD+UD',requirements:['R','R','R','R','R','D','R','D','-','R','D','R','R']},
-  {fieldNumber:'227',fieldKey:'end_user_id',segmentPath:'NAD+UD',requirements:['R','R','R','R','R','D','R','D','-','R','D','R','R']},
-  {fieldNumber:'228',fieldKey:'end_user_name',segmentPath:'NAD+UD',requirements:['R','R','R','R','R','D','R','D','-','R','D','R','R']},
-  {fieldNumber:'229',fieldKey:'end_user_address',segmentPath:'NAD+UD',requirements:['D','D','D','D','D','D','D','D','-','-','-','-','-']},
-  {fieldNumber:'231',fieldKey:'end_user_postcode',segmentPath:'NAD+UD',requirements:['R','R','R','R','R','D','R','D','-','-','-','-','-']},
-  {fieldNumber:'232',fieldKey:'end_user_city',segmentPath:'NAD+UD',requirements:['R','R','R','R','R','D','R','D','-','-','-','-','-']},
-  {fieldNumber:'316',fieldKey:'end_user_country',segmentPath:'NAD+UD',requirements:['R','R','R','R','R','D','R','D','-','R','R','R','R']},
+  {fieldNumber:'227',fieldKey:'end_user_id',segmentPath:'NAD+UD/C082/3039',partyQualifier:'UD',partyElement:2,partyComponents:1,partyMaxLength:35,requirements:['R','R','R','R','R','D','R','D','-','R','D','R','R']},
+  {fieldNumber:'228',fieldKey:'end_user_name',segmentPath:'NAD+UD/C080/3036[1..2]',partyQualifier:'UD',partyElement:4,partyComponents:2,partyMaxLength:35,requirements:['R','R','R','R','R','D','R','D','-','R','D','R','R']},
+  {fieldNumber:'229',fieldKey:'end_user_address',segmentPath:'NAD+UD/C059/3042[1..3]',partyQualifier:'UD',partyElement:5,partyComponents:3,partyMaxLength:35,requirements:['D','D','D','D','D','D','D','D','-','-','-','-','-']},
+  {fieldNumber:'231',fieldKey:'end_user_postcode',segmentPath:'NAD+UD/3251',partyQualifier:'UD',partyElement:8,partyComponents:1,partyMaxLength:9,requirements:['R','R','R','R','R','D','R','D','-','-','-','-','-']},
+  {fieldNumber:'232',fieldKey:'end_user_city',segmentPath:'NAD+UD/3164',partyQualifier:'UD',partyElement:6,partyComponents:1,partyMaxLength:35,requirements:['R','R','R','R','R','D','R','D','-','-','-','-','-']},
+  {fieldNumber:'316',fieldKey:'end_user_country',segmentPath:'NAD+UD/3207',partyQualifier:'UD',partyElement:9,partyComponents:1,partyMaxLength:3,requirements:['R','R','R','R','R','D','R','D','-','R','R','R','R']},
   {fieldNumber:'INSTALLATION_GROUP',fieldKey:'installation_group',segmentPath:'NAD+IT',requirements:['O','R','O','R','R','R','O','-','-','-','D','-','-']},
-  {fieldNumber:'233',fieldKey:'installation_id',segmentPath:'NAD+IT',requirements:['D','R','D','R','R','R','D','-','-','-','R','-','-']},
-  {fieldNumber:'234',fieldKey:'installation_address',segmentPath:'NAD+IT',requirements:['D','R','D','R','R','R','D','-','-','-','R','-','-']},
-  {fieldNumber:'235',fieldKey:'installation_postcode',segmentPath:'NAD+IT',requirements:['O','O','O','O','O','O','O','-','-','-','O','-','-']},
-  {fieldNumber:'236',fieldKey:'installation_city',segmentPath:'NAD+IT',requirements:['O','O','O','O','O','O','O','-','-','-','O','-','-']},
-  {fieldNumber:'237',fieldKey:'installation_country',segmentPath:'NAD+IT',requirements:['O','O','O','O','O','O','O','-','-','-','O','-','-']},
+  {fieldNumber:'233',fieldKey:'installation_id',segmentPath:'NAD+IT/C082/3039',partyQualifier:'IT',partyElement:2,partyComponents:1,partyMaxLength:25,requirements:['D','R','D','R','R','R','D','-','-','-','R','-','-']},
+  {fieldNumber:'234',fieldKey:'installation_address',segmentPath:'NAD+IT/C059/3042[1..3]',partyQualifier:'IT',partyElement:5,partyComponents:3,partyMaxLength:35,requirements:['D','R','D','R','R','R','D','-','-','-','R','-','-']},
+  {fieldNumber:'235',fieldKey:'installation_postcode',segmentPath:'NAD+IT/3251',partyQualifier:'IT',partyElement:8,partyComponents:1,partyMaxLength:9,requirements:['O','O','O','O','O','O','O','-','-','-','O','-','-']},
+  {fieldNumber:'236',fieldKey:'installation_city',segmentPath:'NAD+IT/3164',partyQualifier:'IT',partyElement:6,partyComponents:1,partyMaxLength:35,requirements:['O','O','O','O','O','O','O','-','-','-','O','-','-']},
+  {fieldNumber:'237',fieldKey:'installation_country',segmentPath:'NAD+IT/3207',partyQualifier:'IT',partyElement:9,partyComponents:1,partyMaxLength:3,requirements:['O','O','O','O','O','O','O','-','-','-','O','-','-']},
   {fieldNumber:'INVOICEE_GROUP',fieldKey:'invoicee_group',segmentPath:'NAD+IV',requirements:['-','-','D','D','D','D','D','D','-','-','-','-','-']},
-  {fieldNumber:'250',fieldKey:'invoicee_id',segmentPath:'NAD+IV',requirements:['-','-','D','D','D','D','D','D','-','-','-','-','-']},
-  {fieldNumber:'251',fieldKey:'invoicee_name',segmentPath:'NAD+IV',requirements:['-','-','D','D','D','D','D','D','-','-','-','-','-']},
-  {fieldNumber:'252',fieldKey:'invoicee_address',segmentPath:'NAD+IV',requirements:['-','-','D','D','D','D','D','D','-','-','-','-','-']},
-  {fieldNumber:'253',fieldKey:'invoicee_postcode',segmentPath:'NAD+IV',requirements:['-','-','D','D','D','D','D','D','-','-','-','-','-']},
-  {fieldNumber:'317',fieldKey:'invoicee_city',segmentPath:'NAD+IV',requirements:['-','-','D','D','D','D','D','D','-','-','-','-','-']},
-  {fieldNumber:'318',fieldKey:'invoicee_country',segmentPath:'NAD+IV',requirements:['-','-','D','D','D','D','D','D','-','-','-','-','-']},
-  {fieldNumber:'262',fieldKey:'balance_responsible',segmentPath:'NAD+Z02',requirements:['-','-','R','R','R','R','R','R','R','-','-','-','-']},
+  {fieldNumber:'250',fieldKey:'invoicee_id',segmentPath:'NAD+IV/C082/3039',partyQualifier:'IV',partyElement:2,partyComponents:1,partyMaxLength:35,requirements:['-','-','D','D','D','D','D','D','-','-','-','-','-']},
+  {fieldNumber:'251',fieldKey:'invoicee_name',segmentPath:'NAD+IV/C080/3036[1..2]',partyQualifier:'IV',partyElement:4,partyComponents:2,partyMaxLength:35,requirements:['-','-','D','D','D','D','D','D','-','-','-','-','-']},
+  {fieldNumber:'252',fieldKey:'invoicee_address',segmentPath:'NAD+IV/C059/3042[1..3]',partyQualifier:'IV',partyElement:5,partyComponents:3,partyMaxLength:35,requirements:['-','-','D','D','D','D','D','D','-','-','-','-','-']},
+  {fieldNumber:'253',fieldKey:'invoicee_postcode',segmentPath:'NAD+IV/3251',partyQualifier:'IV',partyElement:8,partyComponents:1,partyMaxLength:9,requirements:['-','-','D','D','D','D','D','D','-','-','-','-','-']},
+  {fieldNumber:'317',fieldKey:'invoicee_city',segmentPath:'NAD+IV/3164',partyQualifier:'IV',partyElement:6,partyComponents:1,partyMaxLength:35,requirements:['-','-','D','D','D','D','D','D','-','-','-','-','-']},
+  {fieldNumber:'318',fieldKey:'invoicee_country',segmentPath:'NAD+IV/3207',partyQualifier:'IV',partyElement:9,partyComponents:1,partyMaxLength:3,requirements:['-','-','D','D','D','D','D','D','-','-','-','-','-']},
+  {fieldNumber:'262',fieldKey:'balance_responsible',segmentPath:'NAD+Z02/C082/3039',partyQualifier:'Z02',partyElement:2,partyComponents:1,partyMaxLength:35,requirements:['-','-','R','R','R','R','R','R','R','-','-','-','-']},
 ] as const
 
 const REQUIREMENT_MAP: Record<Prodat26ARequirement, RulebookFieldRule['requirement']> = {

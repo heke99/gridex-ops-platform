@@ -53,7 +53,8 @@ describe('PRODAT reference projection through customer staging', () => {
     expect(result.meteringPoint.referenceToMeteringPoint).toBeNull()
     expect(result.contract.agreementReference).toBeNull()
     expect(result.site.gridAreaCode).toBeNull()
-    expect(result.customer.fullName).toBe('Retained')
+    // NAD source ownership: an absent wire party is not a cached customer.
+    expect(result.customer.fullName).toBeNull()
   })
   it('structured-only legacy input retains explicit values', () => {
     const result = parseInboundProdatBusinessData(message(null, { meterNumber: 'OLD', referenceToMeteringPoint: 'LINK', agreementReference: 'AUTH', gridAreaCode: 'AREA' }))

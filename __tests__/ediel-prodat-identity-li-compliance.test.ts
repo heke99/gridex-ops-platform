@@ -51,7 +51,7 @@ describe('PRODAT Swedish end-user identity compliance', () => {
     expect(normalizeProdatEndUserIdQualifier('260')).toBeNull()
   })
 
-  it('renders Swedish organisation and personal identities with Ediel Nordic Forum as code-list responsible', () => {
+  it('renders Swedish organisation and personal identities with ebIX260 as specified in P26.A r3 pp79/82', () => {
     const organisation = prodatCustomerNadSegment({
       customerId: '5566778899',
       customerIdCodeListQualifier: 'SE1',
@@ -65,10 +65,10 @@ describe('PRODAT Swedish end-user identity compliance', () => {
       country: 'SE',
     })
 
-    expect(organisation).toContain('NAD+UD+5566778899:SE1:ZZZ')
-    expect(person).toContain('NAD+UD+199001011234:SE2:ZZZ')
-    expect(organisation).not.toContain(':260')
-    expect(person).not.toContain(':260')
+    expect(organisation).toContain('NAD+UD+5566778899:SE1:260')
+    expect(person).toContain('NAD+UD+199001011234:SE2:260')
+    expect(organisation).not.toContain(':ZZZ')
+    expect(person).not.toContain(':ZZZ')
   })
 
   it('omits the legal party id instead of guessing a qualifier when it is missing', () => {

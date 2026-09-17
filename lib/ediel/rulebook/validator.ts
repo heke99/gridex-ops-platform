@@ -1,3 +1,5 @@
+import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
+import { parseUna } from '@/lib/ediel/core/una'
 import type { EdielDirection, EdielMessageRow } from '@/lib/ediel/types'
 import { parseRulebookListPayload, parseRulebookMessage, type ParsedRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
 import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
@@ -50,7 +52,7 @@ function issue(input: Omit<EdielRulebookIssue, 'blocking'> & { blocking?: boolea
 function parse(input: RulebookValidationInput): ParsedRulebookMessage | null {
   if (input.parsed) return input.parsed
   if (!input.rawPayload) return null
-  return input.rawPayload.includes("'")
+  return input.rawPayload.startsWith('UNA') || input.rawPayload.includes("'")
     ? parseRulebookMessage(input.rawPayload)
     : parseRulebookListPayload(input.rawPayload)
 }
@@ -58,11 +60,10 @@ function parse(input: RulebookValidationInput): ParsedRulebookMessage | null {
 function businessDate(input: RulebookValidationInput, parsed: ParsedRulebookMessage | null): string {
   const explicit = String(input.businessDate ?? '').trim().slice(0, 10)
   if (/^\d{4}-\d{2}-\d{2}$/.test(explicit)) return explicit
-  const raw = parsed?.rawSegments
-    .find((segment) => /^DTM\+137:/i.test(segment))
-    ?.replace(/^DTM\+137:/i, '')
-    .split(':')[0]
-    ?.replace(/\D/g, '') ?? ''
+  const una = parsed?.una ?? parseUna(input.rawPayload)
+  const tokens = tokenizeEdifact(`${una.raw}${(parsed?.rawSegments ?? []).join(una.segmentTerminator)}${una.segmentTerminator}`)
+  const segment = tokens.segments.find(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, una)[0] === '137')
+  const raw = segmentComposite(segment, 1, una)[1] ?? ''
   if (raw.length >= 8) return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`
   return new Intl.DateTimeFormat('sv-SE', {
     timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit',
@@ -141,8 +142,9 @@ function canonicalMessageCode(family: ActiveCanonicalFamily, code: string): stri
 }
 
 function parsedAssociationAssignedCode(parsed: ParsedRulebookMessage): string | null {
-  const unh = parsed.rawSegments.find((segment) => /^UNH\+/i.test(segment)) ?? null
-  const messageType = unh?.split('+')[2]?.split(':') ?? []
+  const una = parsed.una ?? parseUna(null)
+  const tokens = tokenizeEdifact(`${una.raw}${parsed.rawSegments.join(una.segmentTerminator)}${una.segmentTerminator}`)
+  const messageType = segmentComposite(tokens.segments.find(segment => segment.tag === 'UNH'), 2, una)
   const association = normalizeIdentifier(messageType[4])
   return association || null
 }
@@ -330,7 +332,7 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
       }))
     }
 
-    let fieldIssues = validateCanonicalPolicyFields({ policy, rawSegments: parsed.rawSegments })
+    let fieldIssues = validateCanonicalPolicyFields({ policy, rawSegments: parsed.rawSegments, una: parseUna(input.rawPayload) })
     if (input.mode === 'send' && input.environment !== 'production') {
       fieldIssues = fieldIssues.map((entry) =>
         entry.code === 'PRODAT_DEPENDENT_CONDITION_UNDETERMINED'

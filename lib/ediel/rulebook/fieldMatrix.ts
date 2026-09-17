@@ -1,3 +1,6 @@
+import { segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
+import { parseUna } from '@/lib/ediel/core/una'
+import { prodatPartyField, prodatPartyRuleScopes, prodatPartyState, prodatPartySegmentFromSource, readProdatParty } from '@/lib/ediel/prodat/prodatPartyFields'
 import { prodatDocumentField, prodatDocumentState, prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { prodatReferenceField, prodatReferencePresent, prodatReferenceValues } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicField, prodatCharacteristicPresent, prodatCharacteristicValues } from '@/lib/ediel/prodat/prodatCharacteristicFields'
@@ -177,6 +180,8 @@ function firstValueForPath(rawSegments: readonly string[] | null | undefined, pa
 
 function fieldValuesForRule(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): string[] {
   const rawSegments = input.rawSegments ?? []
+  const party = normalize(rule.family) === 'PRODAT' ? prodatPartyField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (party) return prodatPartyState(party.fieldNumber, rawSegments, input.una).values.map(normalize)
   const document = normalize(rule.family) === 'PRODAT' ? prodatDocumentField(rule.fieldNumber ?? rule.fieldKey) : null
   if (document) {
     const value = prodatDocumentValue(document.fieldNumber, rawSegments, input.una)
@@ -389,9 +394,28 @@ export function fieldRulesForMessage(family: string | null | undefined, code: st
   return STATIC_FIELD_RULES.filter((rule) => rule.family === f && (rule.code === '*' || rule.code === c))
 }
 
+/** Resolve only mapped NAD rules; other rule families retain their own scope. */
+function partyRoleForRule(rule: RulebookFieldRule) {
+  if (normalize(rule.family) !== 'PRODAT') return null
+  const groups = { END_USER_GROUP: 'UD', INSTALLATION_GROUP: 'IT', INVOICEE_GROUP: 'IV', party_fr: 'FR', party_do: 'DO' } as const
+  return prodatPartyField(rule.fieldNumber ?? rule.fieldKey)?.partyQualifier
+    ?? groups[(rule.fieldNumber ?? rule.fieldKey) as keyof typeof groups] ?? null
+}
+
 export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): boolean {
   const rawSegments = input.rawSegments ?? []
   const applicationReference = input.applicationReference ?? null
+  const partyRole = partyRoleForRule(rule)
+  if (partyRole) {
+    const party = prodatPartyField(rule.fieldNumber ?? rule.fieldKey)
+    const forbidden = rule.requirement === 'forbidden' || rule.requirement === 'not_used'
+    const present = prodatPartyRuleScopes(partyRole, rawSegments, input.una).map(scope => {
+      if (!party) return Boolean(prodatPartySegmentFromSource(partyRole, scope, input.una))
+      const state = prodatPartyState(party.fieldNumber, scope, input.una)
+      return forbidden ? state.present : Boolean(state.value)
+    })
+    return forbidden ? present.some(Boolean) : present.every(Boolean)
+  }
   const document = normalize(rule.family) === 'PRODAT' ? prodatDocumentField(rule.fieldNumber ?? rule.fieldKey) : null
   if (document) {
     const state = prodatDocumentState(document.fieldNumber, rawSegments, input.una)
@@ -413,73 +437,30 @@ export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEval
   // Resolve the shared-segment cells explicitly before the generic field-key
   // switch so PRODAT names such as net_area also cannot collide with UTILTS.
   if (normalize(rule.family) === 'PRODAT' && rule.source === 'static') {
-    const lin = first(rawSegments, 'LIN+')
-    const nadUd = first(rawSegments, 'NAD+UD+')
-    const nadIt = first(rawSegments, 'NAD+IT+')
-    const nadIv = first(rawSegments, 'NAD+IV+')
+    const una = input.una ?? parseUna(null)
+    const source = rawSegments.map((raw, index) => ({ raw, index, tag: raw.split(una.dataElementSeparator)[0].toUpperCase(), elements: [] }))
+    const lin = source.find(segment => segment.tag === 'LIN')
+    const flat = (index: number) => { const values = segmentComposite(lin, index, una); return values.length === 1 ? values[0]?.trim() : null }
+    // DTM presence semantics stay unchanged here; only the syntax boundary
+    // changes. The separate date-rule work owns full format/time semantics.
+    const dateQualifier = rule.segmentPath?.match(/^DTM\+([^/:]+)/)?.[1]
+    if (dateQualifier) {
+      const matches = source.filter(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, una)[0]?.toUpperCase() === dateQualifier.toUpperCase())
+      if (['302', '321', '326', '327', '508'].includes(rule.fieldNumber ?? '') && !['forbidden', 'not_used'].includes(rule.requirement)) {
+        return matches.some(segment => Boolean(segmentComposite(segment, 1, una)[1]?.trim()))
+      }
+      return matches.length > 0
+    }
 
     switch (rule.fieldNumber) {
-      case '302':
-      case '321':
-      case '326':
-      case '327':
-      case '508': {
-        // P §2.6: qualifiers name fields; they are not their values. Preserve
-        // empty composite positions so e.g. DTM+164::203 cannot count as a date.
-        // Even an empty forbidden field must still be rejected.
-        if (rule.requirement === 'forbidden' || rule.requirement === 'not_used') {
-          return pathPresence(rawSegments, rule.segmentPath)
-        }
-        const prefix = `${normalizeSegmentPath(rule.segmentPath)}:`
-        return rawSegments.some(segment => segment.toUpperCase().startsWith(prefix)
-          && Boolean(segment.slice(prefix.length).split(':')[0]?.trim()))
-      }
+      case '312':
+        return Boolean(segmentComposite(source.find(segment => segment.tag === 'UNH'), 2, una)[4]?.trim())
       case '314':
-        return Boolean(element(lin, 1))
+        return Boolean(flat(1))
       case '209':
-        return Boolean(components(element(lin, 3))[0])
+        return Boolean(segmentComposite(lin, 3, una)[0]?.trim())
       case '258':
-        return Boolean(element(lin, 4))
-      case 'END_USER_GROUP':
-        return Boolean(nadUd)
-      case '227':
-        return Boolean(element(nadUd, 2))
-      case '228':
-        return Boolean(element(nadUd, 4))
-      case '229':
-        return Boolean(element(nadUd, 5))
-      case '231':
-        return Boolean(element(nadUd, 8))
-      case '232':
-        return Boolean(element(nadUd, 6))
-      case '316':
-        return Boolean(element(nadUd, 9))
-      case 'INSTALLATION_GROUP':
-        return Boolean(nadIt)
-      case '233':
-        return Boolean(element(nadIt, 2))
-      case '234':
-        return Boolean(element(nadIt, 5))
-      case '235':
-        return Boolean(element(nadIt, 8))
-      case '236':
-        return Boolean(element(nadIt, 6))
-      case '237':
-        return Boolean(element(nadIt, 9))
-      case 'INVOICEE_GROUP':
-        return Boolean(nadIv)
-      case '250':
-        return Boolean(element(nadIv, 2))
-      case '251':
-        return Boolean(element(nadIv, 4))
-      case '252':
-        return Boolean(element(nadIv, 5))
-      case '253':
-        return Boolean(element(nadIv, 8))
-      case '317':
-        return Boolean(element(nadIv, 6))
-      case '318':
-        return Boolean(element(nadIv, 9))
+        return Boolean(flat(4))
       default:
         break
     }
@@ -591,68 +572,88 @@ export function validateFieldMatrixPayload(
   }
 
   for (const rule of rules) {
-    const present = fieldRulePresent(rule, { ...input, rawSegments })
-    if (rule.requirement === 'forbidden' || rule.requirement === 'not_used') {
-      if (!present) continue
-      issues.push(issue({
-        severity: 'error',
-        code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT',
-        title: `${rule.label} får inte skickas`,
-        description: `${rule.segmentPath ?? rule.fieldKey} är markerat som - för ${family} ${code} och blockeras.`,
-        fieldPath: rule.segmentPath,
-      }))
-      continue
-    }
+    const role = partyRoleForRule(rule)
+    const scopes = role ? prodatPartyRuleScopes(role, rawSegments, input.una).map(scope => scope.map(row => row.raw)) : [rawSegments]
+    for (const scopedSegments of scopes) {
+      const scopedInput = { ...input, rawSegments: scopedSegments }
+      const present = fieldRulePresent(rule, scopedInput)
+      if (rule.requirement === 'forbidden' || rule.requirement === 'not_used') {
+        if (!present) continue
+        issues.push(issue({
+          severity: 'error',
+          code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT',
+          title: `${rule.label} får inte skickas`,
+          description: `${rule.segmentPath ?? rule.fieldKey} är markerat som - för ${family} ${code} och blockeras.`,
+          fieldPath: rule.segmentPath,
+        }))
+        continue
+      }
 
-    const document = family === 'PRODAT' ? prodatDocumentField(rule.fieldNumber ?? rule.fieldKey) : null
-    const documentState = document ? prodatDocumentState(document.fieldNumber, rawSegments, input.una) : null
-    if (documentState?.malformed) {
-      issues.push(issue({
-        severity: rule.severity ?? 'error',
-        code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_FORMAT_INVALID',
-        title: `${rule.label} har fel struktur`,
-        description: `${rule.segmentPath} följer inte dokumentets element-/komponentstruktur (PRODAT 26.A s.42).`,
-        fieldPath: rule.segmentPath,
-      }))
-      continue
-    }
-    if (document?.fieldNumber === '203' && documentState?.value && documentState.value.length > 35) {
-      issues.push(issue({
-        severity: rule.severity ?? 'error',
-        code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_LENGTH_INVALID',
-        title: `${rule.label} är för långt`,
-        description: 'PRODAT BGM/1004 är an..35 (26.A s.42); escapetecken räknas inte dubbelt.',
-        fieldPath: rule.segmentPath,
-      }))
-      continue
-    }
-    const requiredByDependency = dependencyApplies(rule, { ...input, rawSegments })
-    const shouldEvaluate = rule.requirement === 'required' || requiredByDependency
-      || (rule.requirement === 'optional' && Boolean(documentState?.present))
-    if (!shouldEvaluate) continue
-    if (!present) {
-      const severity = rule.severity ?? (requiredByDependency ? 'error' : rule.requirement === 'dependent' ? 'warning' : 'error')
-      issues.push(issue({
-        severity,
-        code: rule.errorCodeIfMissing ?? 'FIELD_MATRIX_REQUIRED_FIELD_MISSING',
-        title: `${rule.label} saknas`,
-        description: `${rule.segmentPath ?? rule.fieldKey} krävs för ${family} ${code}${rule.condition ? ` (${rule.condition})` : ''}.`,
-        fieldPath: rule.segmentPath,
-      }))
-      continue
-    }
+      const party = family === 'PRODAT' ? prodatPartyField(rule.fieldNumber ?? rule.fieldKey) : null
+      const partyState = party ? prodatPartyState(party.fieldNumber, scopedSegments, input.una) : null
+      const forbiddenDateOfBirth = party?.fieldNumber === '227' && code === 'Z13'
+        && readProdatParty('UD', scopedSegments, input.una).idQualifier === '1'
+      if (partyState?.malformed || partyState?.tooLong || forbiddenDateOfBirth) {
+        issues.push(issue({
+          severity: rule.severity ?? 'error',
+          code: rule.errorCodeIfInvalid ?? (partyState?.tooLong ? 'FIELD_MATRIX_FIELD_LENGTH_INVALID' : 'FIELD_MATRIX_FIELD_FORMAT_INVALID'),
+          title: `${rule.label} följer inte NAD-fältets struktur`,
+          description: `${rule.segmentPath}: kontrollera komponent, kodlista, längd och part enligt PRODAT 26.A s.45–46,79–83.`,
+          fieldPath: rule.segmentPath,
+        }))
+        continue
+      }
+      const document = family === 'PRODAT' ? prodatDocumentField(rule.fieldNumber ?? rule.fieldKey) : null
+      const documentState = document ? prodatDocumentState(document.fieldNumber, scopedSegments, input.una) : null
+      if (documentState?.malformed) {
+        issues.push(issue({
+          severity: rule.severity ?? 'error',
+          code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_FORMAT_INVALID',
+          title: `${rule.label} har fel struktur`,
+          description: `${rule.segmentPath} följer inte dokumentets element-/komponentstruktur (PRODAT 26.A s.42).`,
+          fieldPath: rule.segmentPath,
+        }))
+        continue
+      }
+      if (document?.fieldNumber === '203' && documentState?.value && documentState.value.length > 35) {
+        issues.push(issue({
+          severity: rule.severity ?? 'error',
+          code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_LENGTH_INVALID',
+          title: `${rule.label} är för långt`,
+          description: 'PRODAT BGM/1004 är an..35 (26.A s.42); escapetecken räknas inte dubbelt.',
+          fieldPath: rule.segmentPath,
+        }))
+        continue
+      }
+      const requiredByDependency = dependencyApplies(rule, scopedInput)
+      const shouldEvaluate = rule.requirement === 'required' || requiredByDependency
+        || (rule.requirement === 'optional' && Boolean(documentState?.present))
+        || Boolean(partyState?.present)
+      if (!shouldEvaluate) continue
+      if (!present) {
+        const severity = rule.severity ?? (requiredByDependency ? 'error' : rule.requirement === 'dependent' ? 'warning' : 'error')
+        issues.push(issue({
+          severity,
+          code: rule.errorCodeIfMissing ?? 'FIELD_MATRIX_REQUIRED_FIELD_MISSING',
+          title: `${rule.label} saknas`,
+          description: `${rule.segmentPath ?? rule.fieldKey} krävs för ${family} ${code}${rule.condition ? ` (${rule.condition})` : ''}.`,
+          fieldPath: rule.segmentPath,
+        }))
+        continue
+      }
 
-    const allowedValues = (rule.allowedValues ?? []).map(normalize).filter(Boolean)
-    if (allowedValues.length === 0) continue
-    const actualValues = fieldValuesForRule(rule, { ...input, rawSegments })
-    if (actualValues.length === 0 || actualValues.some((value) => !allowedValues.includes(value))) {
-      issues.push(issue({
-        severity: rule.severity ?? 'error',
-        code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_CODE_LIST_INVALID',
-        title: `${rule.label} har otillåtet värde`,
-        description: `${rule.segmentPath ?? rule.fieldKey} måste vara ett av ${allowedValues.join(', ')}.`,
-        fieldPath: rule.segmentPath,
-      }))
+      const allowedValues = (rule.allowedValues ?? []).map(normalize).filter(Boolean)
+      if (allowedValues.length === 0) continue
+      const actualValues = fieldValuesForRule(rule, scopedInput)
+      if (actualValues.length === 0 || actualValues.some((value) => !allowedValues.includes(value))) {
+        issues.push(issue({
+          severity: rule.severity ?? 'error',
+          code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_CODE_LIST_INVALID',
+          title: `${rule.label} har otillåtet värde`,
+          description: `${rule.segmentPath ?? rule.fieldKey} måste vara ett av ${allowedValues.join(', ')}.`,
+          fieldPath: rule.segmentPath,
+        }))
+      }
     }
   }
 
