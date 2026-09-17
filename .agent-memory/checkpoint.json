@@ -1,17 +1,24 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-16",
-  "status": "PARTIAL",
+  "updated_at": "2026-09-17",
+  "status": "IMPLEMENTED_NOT_VERIFIED",
   "current_state": ".agent-memory/current-state.md",
-  "branch": "codex/ediel-v2-f1-source-integrity-20260916",
-  "base_head_sha": "de098106c26d90069758cf1f753a94b073789ef2",
-  "active_item": "F1-A independent source-identity correction; normal PR verification",
-  "next_action": "Inspect current-head PR CI before merge; then continue independent F1 source/provenance review. Do not resume PR310 without the user's instruction.",
+  "branch": "codex/ediel-v2-guide-governance-20260917",
+  "base_head_sha": "71dc255e5d698e4fb8c9102562b518777db6b1b0",
+  "active_item": "F1-C immutable guide registry and valid calendar dates",
+  "next_action": "Publish reviewed changes; verify exact-head mandatory CI and reviews, then merge. PR319 remains stale; PR310 paused.",
   "source_state": {
-    "verified_git_sha": "66d51ec087e8855e1c672c09e13764f6c008d921",
-    "verified_tree": "f851b9dd04c4e0b784ed2d131d66f4b37b5551f5",
-    "qualification_run": 35133517653,
-    "scope": "five-file runtime/test candidate only; subsequent documentation/workflow still requires current-head PR CI"
+    "verified_base_tree": "fb0da2df576fca5f8a870edc3248d68cf9fe7469",
+    "local_tests": {
+      "new_distinct_cases": 98,
+      "timezones": [
+        "UTC",
+        "Europe/Stockholm",
+        "Pacific/Apia"
+      ],
+      "retained_source_cases": 112
+    },
+    "scope": "Local actual-source checks only; normal GitHub CI/review required before merge."
   },
   "main_merged": false,
   "deferred_work": {

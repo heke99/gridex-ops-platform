@@ -1,25 +1,15 @@
 # Current state
 
-Updated: 2026-09-16. Status: PARTIAL.
+Updated: 2026-09-17. Status: IMPLEMENTED_NOT_VERIFIED (full CI pending).
+Single active item: F1-C immutable guide authority and valid reference dates.
+Branch: `codex/ediel-v2-guide-governance-20260917`, base main `71dc255e5d698e4fb8c9102562b518777db6b1b0`.
 
-The user paused PR310 and selected independent Ediel masterplan v2 work from main.
-The single active item is F1-A source identity and its normal PR verification on
-`codex/ediel-v2-f1-source-integrity-20260916`, based on main `de098106`.
+GitHub confirms PR318,320,321 merged. Do not reapply them or stale PR316/319.
+F1-C targeted98 cases pass in three timezones and existing112 source cases pass.
+Normal exact-head CI/review/merge remain next. Details:
+`quality/audits/ediel-masterplan-v2/f1-guide-governance.md`.
+No entire phase, normative-source certification or production approval is claimed.
 
-Five-file runtime/test candidate `66d51ec087e8855e1c672c09e13764f6c008d921`
-passed actual qualification35133517653: 23 source tests, 62 targeted Vitest cases,
-1220 tests in201 files, application/tests TypeScript and changed TS-file lint.
-The CJS test is ignored by existing ESLint config, but executed by Node tests.
-This is not full F1, whole-masterplan, database, live transport or release approval.
-The following documentation and persistent CI additions still require normal PR CI.
-
-PR310 remains open/draft and PAUSED at `e9611351`; recovery branch
-`backup/pr310-paused-20260916-e9611351`. Do not mutate its source, waive its gates
-or import its migrations/types/schema machinery into the independent branch.
-Resume instructions: `quality/audits/ediel-masterplan-v2/pr310-paused-resume.md`.
-F1 scope/evidence: `quality/audits/ediel-masterplan-v2/f1-source-identity.md`.
-
-Next action: inspect exact current-head PR CI, resolve newly introduced failures,
-and retain existing required gates. Main has not been changed by this work.
-All nine previous progress files are preserved byte-for-byte under
-`archive/20260916-main-de098106/`; historical claims are not current acceptance.
+PR310 remains PAUSED at `e961135199f292b8210884f07de3b616a670161a`.
+Its recovery branch and migration/schema/type machinery are not changed/imported.
+Previous progress is retained in Git history; the older F1-A active task is superseded.

@@ -22,6 +22,15 @@ export type EdielGuideAcceptance = {
   previousGuideGraceActive: boolean
 }
 
+function freezeGuideRegistry(guides: readonly AuthoritativeEdielGuide[]): readonly AuthoritativeEdielGuide[] {
+  for (const guide of guides) {
+    if (guide.activationDates) Object.freeze(guide.activationDates)
+    Object.freeze(guide)
+  }
+  return Object.freeze(guides)
+}
+
+
 /**
  * Effective-dated Swedish Ediel source registry.
  *
@@ -40,7 +49,7 @@ export type EdielGuideAcceptance = {
  * (E2SE6A); UTILTS-origin APERAK follows the corresponding UTILTS guide
  * (E5SE5A). A caller that cannot identify that source profile must fail closed.
  */
-export const AUTHORITATIVE_EDIEL_GUIDES: readonly AuthoritativeEdielGuide[] = [
+export const AUTHORITATIVE_EDIEL_GUIDES: readonly AuthoritativeEdielGuide[] = freezeGuideRegistry([
   {
     family: 'UTILTS',
     guideRevision: '25-A-3',
@@ -134,11 +143,19 @@ export const AUTHORITATIVE_EDIEL_GUIDES: readonly AuthoritativeEdielGuide[] = [
     certificationScope: 'technical_rules',
     fieldMatrixStatus: 'not_applicable',
   },
-] as const
+])
 
 function normalizeDate(value: string): string {
   const normalized = String(value ?? '').trim().slice(0, 10)
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) throw new Error('ediel_guide_reference_date_invalid')
+  // Keep the existing date-prefix contract; do not reinterpret a caller's
+  // timestamp in the server timezone. Reject dates JS would silently roll over.
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized) || normalized.startsWith('0000-')) {
+    throw new Error('ediel_guide_reference_date_invalid')
+  }
+  const date = new Date(`${normalized}T00:00:00.000Z`)
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== normalized) {
+    throw new Error('ediel_guide_reference_date_invalid')
+  }
   return normalized
 }
 

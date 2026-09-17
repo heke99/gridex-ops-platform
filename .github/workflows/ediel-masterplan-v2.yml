@@ -11,6 +11,7 @@ on:
       - 'scripts/test-ediel-rule-pack-source-identity.cjs'
       - 'scripts/test-ediel-prodat-source-locators.cjs'
       - 'scripts/test-ediel-component-escaping.cjs'
+      - 'scripts/test-ediel-guide-governance.cjs'
       - 'scripts/gridex-aperak-canonical-evidence-regression.cjs'
       - 'package*.json'
       - '.github/workflows/ediel-masterplan-v2.yml'
@@ -47,6 +48,13 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Verify immutable specification and evidence references
         run: npm run ediel:masterplan-v2:integrity
+      - name: Verify immutable guide authority and calendar boundaries in three timezones
+        shell: bash
+        run: |
+          set -euo pipefail
+          for zone in UTC Europe/Stockholm Pacific/Apia; do
+            TZ="$zone" node --experimental-vm-modules --test scripts/test-ediel-guide-governance.cjs
+          done
       - name: Verify selected source identity without database dependencies
         run: node --experimental-vm-modules --test scripts/test-ediel-rule-pack-source-identity.cjs
       - name: Verify source-backed PRODAT fields and actual parser-renderer coherence

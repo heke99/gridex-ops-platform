@@ -1,12 +1,10 @@
-# Open blockers — 2026-09-16
+# Open blockers — 2026-09-17
 
-1. PR310 is deliberately PAUSED, not completed. Its native/schema/type/final gates
-remain required. See `quality/audits/ediel-masterplan-v2/pr310-paused-resume.md`.
-2. Independent F1-A code passed qualification35133517653. Final normal PR checks
-including new documentation/workflow have not yet been certified by this note.
-3. Masterplan F0 live evidence, F2 database-dependent work, F7 release and G01–G07
-remain outside this bounded delivery. No source certification is inferred from mocks.
-4. PR157/273 are outside this work; do not blindly import historical migrations.
-
-Old blockers, including stale production-visibility claims, are archived unchanged
-at `archive/20260916-main-de098106/open-blockers.md`, not reasserted as current facts.
+- Active F1-C full CI/review/merge pending; local98+112 source cases passed.
+- PR319 is stale/draft: old generic APERAK16-B assertion must not be imported.
+- PR310 remains PAUSED, not approved. Native replay/schema/genuine type/final
+  gates remain governed by `quality/audits/ediel-masterplan-v2/pr310-paused-resume.md`.
+- Full F1 provenance, source-specific F3 register/field/grammar coverage, F0 live
+  evidence, database-dependent F2, F7 release and G01–G07 are not certified.
+- Local npm install was unavailable (ENOTCACHED); normal GitHub CI supplies full
+  dependency, typecheck, lint, test, build and security verification.
