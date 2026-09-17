@@ -1,0 +1,76 @@
+name: DTM source transfer (not release qualification)
+on:
+  push:
+    branches: [codex/dtm-source-transfer-20260917-4bd0ac8c]
+    paths: [.github/workflows/dtm-reviewed-source-transfer.yml]
+permissions:
+  contents: write
+jobs:
+  transfer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Verify reviewed patch and isolated application tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/dtm-proof"
+          printf 'base=31b4dbeb764874e252e8b6b510bf1fa78832f148\napplication_tree=fca1808787339cd5655a27acddb480e1d078871c\nfinal_tree_after_connector_workflow=f541995180f02b3ffa27400caa2afd1fcf141c27\nscope=source transfer and isolated tests only; ordinary PR CI and substantive review required\n' > "$RUNNER_TEMP/dtm-proof/provenance.txt"
+          cat .agent-transfer/dtm.0.b64 .agent-transfer/dtm.1.b64 .agent-transfer/dtm.2.b64 .agent-transfer/dtm.3.b64 | base64 -d | xz -d > "$RUNNER_TEMP/dtm.patch"
+          printf '%s  %s\n' '4bd0ac8cfd0e83941fdf62e028ecb7b58cc44357f39c3db79eba06a41869b50a' "$RUNNER_TEMP/dtm.patch" | sha256sum -c -
+          git fetch origin 31b4dbeb764874e252e8b6b510bf1fa78832f148
+          git checkout --detach 31b4dbeb764874e252e8b6b510bf1fa78832f148
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse 'HEAD^{tree}')" = d69e471e597ddf4817a402ce165fbad214184c7c
+          git apply --check "$RUNNER_TEMP/dtm.patch"
+          git apply --index "$RUNNER_TEMP/dtm.patch"
+          test "$(git write-tree)" = fca1808787339cd5655a27acddb480e1d078871c
+          git diff --cached --check
+          test -z "$(git diff --cached --name-only -- .github/workflows supabase/migrations types/supabase.ts docs/ediel/masterplan-v2)"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Qualify exact DTM application source
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx vitest run --reporter=json --outputFile="$RUNNER_TEMP/dtm-proof/vitest.json"
+          npm run typecheck
+          npm run typecheck:scripts
+          npm run typecheck:tests
+          npm run lint
+          npm run ediel:masterplan-v2:integrity
+          npm run quality:large-file-budget
+          for zone in UTC Europe/Stockholm Pacific/Apia; do
+            TZ="$zone" npx vitest run __tests__/ediel-prodat-date-fields.test.ts __tests__/ediel-prodat-date-consumers.test.ts __tests__/ediel-prodat-date-boundaries.test.ts
+          done
+      - name: Publish new isolated branch without transfer helpers or workflow changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git write-tree)" = fca1808787339cd5655a27acddb480e1d078871c
+          test -z "$(git diff --name-only)"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 31b4dbeb764874e252e8b6b510bf1fa78832f148
+          target=refs/heads/codex/ediel-v2-prodat-date-fields-20260917
+          test -z "$(git ls-remote origin "$target")"
+          git config user.name 'heke99'
+          git config user.email '129280077+heke99@users.noreply.github.com'
+          git commit -m 'fix(ediel): source-exact PRODAT DTM identities, standard-time rendering and consumers'
+          git push origin "HEAD:$target"
+          printf 'published_commit=%s\npublished_tree=%s\nordinary_workflow_restore_required=yes\n' "$(git rev-parse HEAD)" "$(git rev-parse 'HEAD^{tree}')" >> "$RUNNER_TEMP/dtm-proof/provenance.txt"
+          git archive --format=tar.gz --output="$RUNNER_TEMP/dtm-proof/source.tar.gz" HEAD
+          (cd "$RUNNER_TEMP/dtm-proof" && sha256sum source.tar.gz vitest.json > SHA256SUMS)
+      - name: Retain transfer provenance and executed results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dtm-transfer-${{ github.run_id }}
+          path: ${{ runner.temp }}/dtm-proof/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
