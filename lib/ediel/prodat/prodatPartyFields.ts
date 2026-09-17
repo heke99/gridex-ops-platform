@@ -63,6 +63,21 @@ export function prodatPartySegmentFromSource(
     && segmentComposite(row, 1, una)[0]?.trim() === role) ?? null
 }
 
+/** Rule evaluation visits each transaction independently. Scalar party readers
+ * deliberately still select the first object. Never flatten identities across
+ * objects or let the next UNH satisfy this message's requirements. */
+export function prodatPartyRuleScopes(
+  role: ProdatPartyQualifier,
+  segments: readonly Segment[],
+  una: EdifactServiceStringAdvice = parseUna(null),
+): EdifactTokenizedSegment[][] {
+  const rows = messageSegments(segments, una)
+  const starts = rows.flatMap((row, index) => row.tag === 'LIN' ? [index] : [])
+  if (role === 'FR' || role === 'DO') return [starts.length ? rows.slice(0, starts[0]) : rows]
+  if (!starts.length) return [rows]
+  return starts.map((start, index) => rows.slice(start, starts[index + 1]))
+}
+
 function text(parts: readonly string[]): string | null {
   // Preserve inner spaces and component positions; trailing unused positions
   // are not text. A released colon is content, not a new name/address line.

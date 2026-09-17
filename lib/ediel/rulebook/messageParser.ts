@@ -1,3 +1,4 @@
+import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { prodatReferenceByQualifier } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
@@ -6,6 +7,7 @@ import type { EdielMessageFamily } from '@/lib/ediel/types'
 import { processGroupForMessage } from '@/lib/ediel/rulebook/rulebook'
 
 export type ParsedRulebookMessage = {
+  una?: EdifactServiceStringAdvice
   family: EdielMessageFamily | 'BI_LIST' | 'UNKNOWN'
   code: string | null
   subtype: string | null
@@ -145,18 +147,25 @@ export function parseRulebookMessage(raw: string): ParsedRulebookMessage {
   const sourceFamily = segmentComposite(source.segments.find(segment => segment.tag === 'UNH'), 2, source.una)[0]?.trim().toUpperCase()
   const isProdat = sourceFamily === 'PRODAT'
   const rawSegments = isProdat ? source.segments.map(segment => segment.raw) : segments(raw)
-  const unb = first(rawSegments, 'UNB+')
-  const unh = first(rawSegments, 'UNH+')
-  const bgm = first(rawSegments, 'BGM+')
+  const sourceSegment = (tag: string) => source.segments.find(segment => segment.tag === tag)
+  const sourcePart = (tag: string, index: number): string | null => {
+    const parts = segmentComposite(sourceSegment(tag), index, source.una)
+    return parts.length === 1 ? parts[0]?.trim() || null : null
+  }
+  const unb = isProdat ? sourceSegment('UNB')?.raw ?? null : first(rawSegments, 'UNB+')
+  const unh = isProdat ? sourceSegment('UNH')?.raw ?? null : first(rawSegments, 'UNH+')
+  const bgm = isProdat ? sourceSegment('BGM')?.raw ?? null : first(rawSegments, 'BGM+')
   const lin = first(rawSegments, 'LIN+')
-  const sender = splitParty(part(unb, 2))
-  const receiver = splitParty(part(unb, 3))
+  const sourceSender = segmentComposite(sourceSegment('UNB'), 2, source.una)
+  const sourceReceiver = segmentComposite(sourceSegment('UNB'), 3, source.una)
+  const sender = isProdat ? { id: sourceSender[0]?.trim() || null, subAddress: sourceSender[2]?.trim() || null } : splitParty(part(unb, 2))
+  const receiver = isProdat ? { id: sourceReceiver[0]?.trim() || null, subAddress: sourceReceiver[2]?.trim() || null } : splitParty(part(unb, 3))
   const bgmCode = isProdat ? prodatDocumentValue('202', source.segments, source.una)?.toUpperCase() ?? null : parseBgmCode(bgm)
   const inferredFamily = isProdat ? 'PRODAT' : inferFamilyFromUnh(unh)
   const family = inferredFamily === 'UTILTS' && bgmCode === 'ERR' ? 'UTILTS_ERR' : inferredFamily
   const code = family === 'CONTRL' ? 'CONTRL' : family === 'APERAK' ? 'APERAK' : family === 'UTILTS_ERR' ? 'UTILTS_ERR' : bgmCode
-  const applicationReference = part(unb, 7)
-  const interchangeReference = part(unb, 5)
+  const applicationReference = isProdat ? sourcePart('UNB', 7) : part(unb, 7)
+  const interchangeReference = isProdat ? sourcePart('UNB', 5) : part(unb, 5)
   const messageReference = isProdat ? prodatDocumentValue('203', source.segments, source.una) : parseBgmReference(bgm) ?? part(unh, 1)
   const tokenized = family === 'PRODAT' ? source : null
   const reference = (qualifier: string): string | null => tokenized
@@ -164,16 +173,16 @@ export function parseRulebookMessage(raw: string): ParsedRulebookMessage {
   const transactionReference = reference('TN') ?? reference('LI') ?? reference('ACW')
   const relatedReference = reference('ACW') ?? reference('AGO') ?? reference('E31')
   const facilityId = reference('Z05') ?? null
-  const meteringPointId = lin?.split('+')[3]?.split(':')[0]?.trim() || null
+  const meteringPointId = isProdat ? segmentComposite(sourceSegment('LIN'), 3, source.una)[0]?.trim() || null : lin?.split('+')[3]?.split(':')[0]?.trim() || null
   const permissionId = family === 'PRODAT' ? reference('Z09') : reference('Z07') ?? reference('AHL')
   const processGroup = processGroupForMessage(family, code)
   const facts: Record<string, unknown> = {
     bgm,
     unh,
     unb,
-    nad: all(rawSegments, 'NAD+'),
-    rff: all(rawSegments, 'RFF+'),
-    dtm: all(rawSegments, 'DTM+'),
+    nad: isProdat ? source.segments.filter(segment => segment.tag === 'NAD').map(segment => segment.raw) : all(rawSegments, 'NAD+'),
+    rff: isProdat ? source.segments.filter(segment => segment.tag === 'RFF').map(segment => segment.raw) : all(rawSegments, 'RFF+'),
+    dtm: isProdat ? source.segments.filter(segment => segment.tag === 'DTM').map(segment => segment.raw) : all(rawSegments, 'DTM+'),
   }
   if (family === 'CONTRL') Object.assign(facts, parseContrlFacts(rawSegments))
   if (family === 'APERAK') Object.assign(facts, parseAperakFacts(rawSegments))
@@ -198,6 +207,7 @@ export function parseRulebookMessage(raw: string): ParsedRulebookMessage {
       : null
 
   return {
+    una: source.una,
     family,
     code,
     subtype: family === 'PRODAT' ? inferSubtype(raw) : null,

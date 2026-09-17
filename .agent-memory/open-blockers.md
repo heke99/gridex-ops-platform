@@ -1,11 +1,9 @@
-# Open blockers — 2026-09-17
+# Active blockers
 
-PR326: initial ordinary head failed; final qualified corrections must be
-published and pass exact-head CI/review. Local1347Vitest/848source results do
-not replace mandatory ordinary build/security/budgets/replay/certificate gates.
+PR326 correction is implemented and locally tested, but NEW exact-head ordinary
+CI, substantive review resolution and merge are pending. Older green a7b4ddde
+is not qualified for the newly identified defects. See f3-party-review-remediation.md.
 
-Whole-plan: remaining DTM/register/D/grammar; F0 live runtime/transport evidence,
-original source/TGT coverage, F2 tenant/schema integration, lifecycle/timer and
-metering/billing qualification, and F7 release evidence. PR310 remains explicitly
-paused; no native/schema/type evidence is approved by this independent work.
-No production mutation or external market send authorized here.
+PR310 paused/e9611351. Do not import its migrations, schema/types or replay proof
+machinery. Missing normative/TGT originals and full F0/F2/F3/F5/F7/live release
+approval remain explicit independent blockers; do not mark the campaign complete.

@@ -1,7 +1,8 @@
+import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import { parseProdatMessage as parseSourceProdat } from '@/lib/ediel/prodat/parser'
 import { prodatReferenceByQualifier } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
-import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { segmentComposite, tokenizeEdifact, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 // lib/ediel/prodat.ts
 
 import type {
@@ -107,74 +108,22 @@ function pushIssue(
   issues.push(issue)
 }
 
-function splitEdifactSegments(rawPayload: string): string[] {
-  return rawPayload
-    .split("'")
-    .map((segment) => segment.trim())
-    .filter(Boolean)
-}
-
-function firstSegmentValue(segments: string[], prefix: string): string | null {
-  const hit = segments.find((segment) => segment.startsWith(prefix))
-  return hit ?? null
-}
-
-function extractUnbIds(unb: string | null): {
-  senderEdielId: string | null
-  receiverEdielId: string | null
-  senderSubAddress: string | null
-  receiverSubAddress: string | null
-} {
-  if (!unb) {
-    return {
-      senderEdielId: null,
-      receiverEdielId: null,
-      senderSubAddress: null,
-      receiverSubAddress: null,
-    }
-  }
-
-  const parts = unb.split('+')
-  const senderRaw = parts[2] ?? ''
-  const receiverRaw = parts[3] ?? ''
-
-  const senderParts = senderRaw.split(':')
-  const receiverParts = receiverRaw.split(':')
-
-  return {
-    senderEdielId: senderParts[0]?.trim() || null,
-    senderSubAddress: senderParts[2]?.trim() || null,
-    receiverEdielId: receiverParts[0]?.trim() || null,
-    receiverSubAddress: receiverParts[2]?.trim() || null,
-  }
-}
-
 function extractReference(rawPayload: string, qualifier: string): string | null {
   const tokenized = tokenizeEdifact(rawPayload)
   return prodatReferenceByQualifier(qualifier, tokenized.segments, tokenized.una)
 }
 
-function extractApplicationReference(rawPayload: string): string | null {
-  const unb = rawPayload
-    .split("'")
-    .map((segment) => segment.trim())
-    .find((segment) => segment.startsWith('UNB+'))
-
-  if (!unb) return null
-
-  const parts = unb.split('+')
-  return parts[7]?.trim() || null
-}
-
-function extractDateFromDtm(segment: string | null): string | null {
-  if (!segment) return null
-  const match = segment.match(/:(\d{8,12})/)
-  if (!match) return null
-  const raw = match[1]
-  if (raw.length >= 8) {
-    return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`
-  }
-  return null
+/** Preserve this legacy date-only projection while reading the exact DTM value
+ * component with the declared syntax. Full DTM business semantics are separate. */
+function extractDateFromDtm(segment: EdifactTokenizedSegment | null | undefined, una: EdifactServiceStringAdvice): string | null {
+  const parts = segmentComposite(segment, 1, una)
+  const raw = parts[1] ?? ''
+  if (parts.length !== 3 || !((parts[2] === '102' && /^\d{8}$/.test(raw)) || (parts[2] === '203' && /^\d{12}$/.test(raw)))) return null
+  const date = `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`
+  const parsed = new Date(`${date}T00:00:00Z`)
+  if (raw.startsWith('0000') || !Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) return null
+  if (parts[2] === '203' && (Number(raw.slice(8, 10)) > 23 || Number(raw.slice(10, 12)) > 59)) return null
+  return date
 }
 
 function normalizeDate(value?: string | null): string | null {
@@ -802,18 +751,29 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
   const wire = tokenizeEdifact(rawPayload)
   const rawSegments = wire.segments.map(segment => segment.raw)
   const inferred = inferEdielFamilyAndCodeFromRawPayload(rawPayload)
-  const unb = firstSegmentValue(rawSegments, 'UNB+')
+  const unb = wire.segments.find(segment => segment.tag === 'UNB')
   const unh = wire.segments.find(segment => segment.tag === 'UNH')
-  const dtm7 = firstSegmentValue(rawSegments, 'DTM+7')
-  const dtm137 = firstSegmentValue(rawSegments, 'DTM+137')
-  const loc48 = firstSegmentValue(rawSegments, 'LOC+48')
-  const ids = extractUnbIds(unb)
+  const start = unh ? wire.segments.indexOf(unh) : 0
+  const end = wire.segments.findIndex((segment, index) => index > start && ['UNH', 'UNT', 'UNZ'].includes(segment.tag))
+  const message = wire.segments.slice(start, end < 0 ? undefined : end)
+  const firstLine = message.findIndex(segment => segment.tag === 'LIN')
+  const nextLine = message.findIndex((segment, index) => index > firstLine && segment.tag === 'LIN')
+  const header = firstLine < 0 ? message : message.slice(0, firstLine)
+  const firstObject = message.slice(Math.max(firstLine, 0), nextLine < 0 ? undefined : nextLine)
+  const dtm = (scope: readonly EdifactTokenizedSegment[], qualifier: string) => scope.find(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, wire.una)[0] === qualifier)
+  const dtm7 = dtm([...header, ...firstObject], '7')
+  const dtm137 = dtm(header, '137')
+  const loc48 = [...header, ...firstObject].find(segment => segment.tag === 'LOC' && segmentComposite(segment, 1, wire.una)[0] === '48')
+  const sender = segmentComposite(unb, 2, wire.una), receiver = segmentComposite(unb, 3, wire.una)
+  const application = segmentComposite(unb, 7, wire.una)
+  const ids = { senderEdielId: sender[0]?.trim() || null, receiverEdielId: receiver[0]?.trim() || null,
+    senderSubAddress: sender[2]?.trim() || null, receiverSubAddress: receiver[2]?.trim() || null }
 
   const bgmCode = prodatDocumentValue('202', wire.segments, wire.una) as ProdatSwitchCode | EdielKnownMessageCode | null
 
   const meterPointId = sourceLine?.meteringPointId ?? null
   const gridAreaId = sourceLine?.gridAreaId ?? null
-  const priceAreaCode = loc48?.split('+')[2]?.split(':')[0]?.trim() || null
+  const priceAreaCode = segmentComposite(loc48, 2, wire.una)[0]?.trim() || null
   const customerName = sourceLine?.endUserName ?? null
   const messageVersion = segmentComposite(unh, 2, wire.una)[4]?.trim() || null
 
@@ -827,7 +787,7 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
       extractReference(rawPayload, 'CR') ||
       extractReference(rawPayload, 'AAS'),
     externalReference: prodatDocumentValue('203', wire.segments, wire.una),
-    applicationReference: extractApplicationReference(rawPayload),
+    applicationReference: application.length === 1 ? application[0]?.trim() || null : null,
     senderEdielId: ids.senderEdielId,
     receiverEdielId: ids.receiverEdielId,
     senderSubAddress: ids.senderSubAddress,
@@ -839,8 +799,8 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
       gridAreaId,
       priceAreaCode,
       customerName,
-      requestedStartDate: extractDateFromDtm(dtm7),
-      createdDate: extractDateFromDtm(dtm137),
+      requestedStartDate: extractDateFromDtm(dtm7, wire.una),
+      createdDate: extractDateFromDtm(dtm137, wire.una),
       street: sourceLine?.installationAddress ?? null,
       postalCode: sourceLine?.installationPostcode ?? null,
       city: sourceLine?.installationCity ?? null,

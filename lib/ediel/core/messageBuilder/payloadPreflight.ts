@@ -1,9 +1,9 @@
 import { readProdatParty, prodatPartySyntaxIssues } from '@/lib/ediel/prodat/prodatPartyFields'
 import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
-import { parseUna } from '@/lib/ediel/core/una'
+import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import { prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
-import { misplacedProdatEnergyProducts } from '@/lib/ediel/prodat/prodatCharacteristicFields'
-import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { misplacedProdatEnergyProducts, prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
+import { tokenizeEdifact, segmentComposite, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 // lib/ediel/core/messageBuilder/payloadPreflight.ts
 
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -11,11 +11,8 @@ import { validateRulebookMessage } from '@/lib/ediel/rulebook/validator'
 import { parseCanonicalEdielPayload } from '@/lib/ediel/core/canonicalMessage'
 import {
   profileForMessage,
-  segmentCount as countProfileSegment,
-  tagOf,
   type EdielMessageProfile,
 } from '@/lib/ediel/core/messageBuilder/segmentSchema'
-import { compositeComponent, effectiveEdifactLength, segmentElement } from '@/lib/ediel/core/messageBuilder/fieldFormatter'
 
 export type EdielPayloadPreflightIssue = {
   severity: 'info' | 'warning' | 'error'
@@ -43,25 +40,22 @@ const RECOMMENDED_MAX_BYTES = 10 * 1024 * 1024
 const IDENTIFIER_QUALIFIERS = new Set(['UNB', 'UNH', 'BGM', 'RFF', 'LIN', 'LOC', 'NAD', 'IDE'])
 const IDENTIFIER_FORBIDDEN_CHARS = /[ÅÄÖåäö\s]/
 
-function issue(input: EdielPayloadPreflightIssue): EdielPayloadPreflightIssue {
-  return input
+type SourceSegment = EdifactTokenizedSegment
+
+/** Keep diagnostics tied to original wire bytes while validating decoded data. */
+function issue(input: Omit<EdielPayloadPreflightIssue, 'segment'> & { segment?: string | SourceSegment | null }): EdielPayloadPreflightIssue {
+  const { segment, ...details } = input
+  return { ...details, ...(segment !== undefined ? { segment: typeof segment === 'object' && segment !== null ? segment.raw : segment } : {}) }
 }
 
-function element(segment: string | null | undefined, index: number): string | null {
-  const value = segment?.split('+')[index]?.trim() ?? ''
-  return value.length > 0 ? value : null
+/** Read one flat element; a composite must not masquerade as a reference. */
+function element(segment: SourceSegment | null | undefined, index: number, una: EdifactServiceStringAdvice): string | null {
+  const parts = segmentComposite(segment, index, una)
+  return parts.length === 1 ? parts[0]?.trim() || null : null
 }
 
-function first(rawSegments: readonly string[], prefix: string): string | null {
-  return rawSegments.find((segment) => segment.toUpperCase().startsWith(prefix.toUpperCase())) ?? null
-}
-
-function all(rawSegments: readonly string[], prefix: string): string[] {
-  return rawSegments.filter((segment) => segment.toUpperCase().startsWith(prefix.toUpperCase()))
-}
-
-function splitComposite(value: string | null | undefined): string[] {
-  return String(value ?? '').split(':').map((part) => part.trim())
+function first(segments: readonly SourceSegment[], tag: string): SourceSegment | null {
+  return segments.find(segment => segment.tag === tag) ?? null
 }
 
 function numberOrNull(value: string | null): number | null {
@@ -76,10 +70,10 @@ function checkMaxLength(params: {
   max: number
   code: string
   title: string
-  segment?: string | null
+  segment?: string | SourceSegment | null
 }) {
   if (!params.value) return
-  const effectiveLength = params.value.replace(/\?.?/g, (match) => match.startsWith('?') ? match.slice(1) : match).length
+  const effectiveLength = params.value.length
   if (effectiveLength > params.max) {
     params.issues.push(issue({
       severity: 'error',
@@ -94,7 +88,7 @@ function checkMaxLength(params: {
 function checkIdentifierCharacters(params: {
   issues: EdielPayloadPreflightIssue[]
   value: string | null
-  segment?: string | null
+  segment?: string | SourceSegment | null
   label: string
 }) {
   if (!params.value) return
@@ -109,46 +103,36 @@ function checkIdentifierCharacters(params: {
   }
 }
 
-function markers(rawPayload: string): Record<string, boolean> {
-  return {
-    UNA: /^UNA/.test(rawPayload),
-    UNB: rawPayload.includes('UNB+'),
-    UNH: rawPayload.includes('UNH+'),
-    BGM: rawPayload.includes('BGM+'),
-    ERC: rawPayload.includes('ERC+'),
-    FTX: rawPayload.includes('FTX+'),
-    STS: rawPayload.includes('STS+'),
-    RFF: rawPayload.includes('RFF+'),
-    DOC: rawPayload.includes('DOC+'),
-    UNT: rawPayload.includes('UNT+'),
-    UNZ: rawPayload.includes('UNZ+'),
-  }
+function markers(rawPayload: string, segments: readonly SourceSegment[]): Record<string, boolean> {
+  const tags = new Set(segments.map(segment => segment.tag))
+  return { UNA: /^UNA/i.test(rawPayload), ...Object.fromEntries(
+    ['UNB', 'UNH', 'BGM', 'ERC', 'FTX', 'STS', 'RFF', 'DOC', 'UNT', 'UNZ'].map(tag => [tag, tags.has(tag)]),
+  ) }
 }
 
-
-function firstTagIndex(rawSegments: readonly string[], tag: string): number | null {
-  const index = rawSegments.findIndex((segment) => tagOf(segment) === tag.toUpperCase())
+function firstTagIndex(segments: readonly SourceSegment[], tag: string): number | null {
+  const index = segments.findIndex(segment => segment.tag === tag.toUpperCase())
   return index >= 0 ? index : null
 }
 
-function textForSegment(segment: string | null | undefined, elementIndex: number, componentIndex?: number | null): string | null {
-  const value = segmentElement(segment, elementIndex)
-  if (componentIndex === null || componentIndex === undefined) return value
-  return compositeComponent(value, componentIndex)
+function textForSegment(segment: SourceSegment | null | undefined, elementIndex: number, componentIndex: number | null | undefined, una: EdifactServiceStringAdvice): string | null {
+  if (componentIndex === null || componentIndex === undefined) return element(segment, elementIndex, una)
+  return segmentComposite(segment, elementIndex, una)[componentIndex]?.trim() || null
 }
 
 function validateFieldLimits(params: {
   profile: EdielMessageProfile
-  rawSegments: readonly string[]
+  segments: readonly SourceSegment[]
+  una: EdifactServiceStringAdvice
   issues: EdielPayloadPreflightIssue[]
 }) {
   for (const limit of params.profile.fieldLimits) {
-    for (const segment of params.rawSegments.filter((item) => tagOf(item) === limit.segment.toUpperCase())) {
+    for (const segment of params.segments.filter(item => item.tag === limit.segment.toUpperCase())) {
       const prodatDocument = params.profile.family === 'PRODAT' && limit.segment === 'BGM' && limit.elementIndex === 2
-      const value = prodatDocument ? prodatDocumentValue('203', params.rawSegments)
-        : textForSegment(segment, limit.elementIndex, limit.componentIndex)
+      const value = prodatDocument ? prodatDocumentValue('203', params.segments, params.una)
+        : textForSegment(segment, limit.elementIndex, limit.componentIndex, params.una)
       if (!value) continue
-      const actual = prodatDocument ? value.length : effectiveEdifactLength(value)
+      const actual = value.length
       if (actual > limit.max) {
         params.issues.push(issue({
           severity: limit.severity ?? 'error',
@@ -164,7 +148,8 @@ function validateFieldLimits(params: {
 
 function validateSegmentProfile(params: {
   profile: EdielMessageProfile | null
-  rawSegments: readonly string[]
+  segments: readonly SourceSegment[]
+  una: EdifactServiceStringAdvice
   canonicalFamily: string | null
   canonicalCode: string | null
   messageTypeToken: string | null
@@ -182,7 +167,7 @@ function validateSegmentProfile(params: {
   }
 
   for (const requirement of params.profile.requiredSegments) {
-    const count = countProfileSegment(params.rawSegments, requirement.tag)
+    const count = params.segments.filter(segment => segment.tag === requirement.tag).length
     if (typeof requirement.min === 'number' && count < requirement.min) {
       params.issues.push(issue({
         severity: params.mode === 'send' ? 'error' : 'warning',
@@ -202,7 +187,7 @@ function validateSegmentProfile(params: {
   }
 
   for (const forbidden of params.profile.forbiddenSegments ?? []) {
-    const count = countProfileSegment(params.rawSegments, forbidden.tag)
+    const count = params.segments.filter(segment => segment.tag === forbidden.tag).length
     if (count > 0) {
       params.issues.push(issue({
         severity: 'error',
@@ -226,12 +211,12 @@ function validateSegmentProfile(params: {
     }
   }
 
-  const bgm = params.rawSegments.find((segment) => tagOf(segment) === 'BGM') ?? null
+  const bgm = params.segments.find(segment => segment.tag === 'BGM') ?? null
   const bgmCode = params.profile.family === 'PRODAT'
-    ? prodatDocumentValue('202', params.rawSegments)?.toUpperCase() ?? null
-    : textForSegment(bgm, 1, 0)?.toUpperCase() ?? null
-  const unb = params.rawSegments.find((segment) => tagOf(segment) === 'UNB') ?? null
-  const applicationReference = textForSegment(unb, 7)
+    ? prodatDocumentValue('202', params.segments, params.una)?.toUpperCase() ?? null
+    : textForSegment(bgm, 1, 0, params.una)?.toUpperCase() ?? null
+  const unb = params.segments.find(segment => segment.tag === 'UNB') ?? null
+  const applicationReference = textForSegment(unb, 7, null, params.una)
   if (params.profile.family !== 'CONTRL' && !applicationReference && params.mode === 'send') {
     params.issues.push(issue({
       severity: 'error',
@@ -262,7 +247,7 @@ function validateSegmentProfile(params: {
 
   let previousIndex = -1
   for (const tag of params.profile.orderedTags) {
-    const index = firstTagIndex(params.rawSegments, tag)
+    const index = firstTagIndex(params.segments, tag)
     if (index === null) continue
     if (index < previousIndex) {
       params.issues.push(issue({
@@ -277,8 +262,8 @@ function validateSegmentProfile(params: {
   }
 
   if (params.profile.family === 'APERAK') {
-    const ercSegments = params.rawSegments.filter((segment) => tagOf(segment) === 'ERC')
-    const ftxSegments = params.rawSegments.filter((segment) => tagOf(segment) === 'FTX')
+    const ercSegments = params.segments.filter(segment => segment.tag === 'ERC')
+    const ftxSegments = params.segments.filter(segment => segment.tag === 'FTX')
     if (ercSegments.length > ftxSegments.length) {
       params.issues.push(issue({
         severity: params.mode === 'send' ? 'error' : 'warning',
@@ -287,8 +272,8 @@ function validateSegmentProfile(params: {
         description: 'Varje APERAK-status/felkod ska ha kort FTX-text. Interna långa feltexter ska inte skickas i payload.',
       }))
     }
-    const positiveErc = ercSegments.some((segment) => textForSegment(segment, 1, 0) === '100')
-    const ftxText = ftxSegments.map((segment) => segment.toUpperCase()).join(' ')
+    const positiveErc = ercSegments.some((segment) => textForSegment(segment, 1, 0, params.una) === '100')
+    const ftxText = ftxSegments.map(segment => segmentComposite(segment, 4, params.una).join(' ').toUpperCase()).join(' ')
     if (positiveErc && !ftxText.includes('OK')) {
       params.issues.push(issue({
         severity: params.mode === 'send' ? 'error' : 'warning',
@@ -298,8 +283,8 @@ function validateSegmentProfile(params: {
       }))
     }
 
-    const ercCodes = ercSegments.map((segment) => textForSegment(segment, 1, 0)).filter(Boolean)
-    const ftxCodes = ftxSegments.map((segment) => textForSegment(segment, 3, 0)).filter(Boolean)
+    const ercCodes = ercSegments.map((segment) => textForSegment(segment, 1, 0, params.una)).filter(Boolean)
+    const ftxCodes = ftxSegments.map((segment) => textForSegment(segment, 3, 0, params.una)).filter(Boolean)
     const isUtiltsE66IntervalAck =
       params.profile.key === 'APERAK_UTILTS_E5SE5A' &&
       String(applicationReference ?? '').toUpperCase().includes('E66-T') &&
@@ -311,7 +296,7 @@ function validateSegmentProfile(params: {
         code: 'APERAK_UTILTS_E66_GENERIC_ERC40_BLOCKED',
         title: 'Generisk APERAK-felkod blockerad för UTILTS E66-T',
         description: 'UTILTS E66-T med anvisningsfel får inte skickas med generisk ERC 40. Saknad/ogiltig DTM+597 ska skickas som ERC 41 och FTX 512 enligt runtime-beslut.',
-        segment: ercSegments.find((segment) => textForSegment(segment, 1, 0) === '40') ?? null,
+        segment: ercSegments.find((segment) => textForSegment(segment, 1, 0, params.una) === '40') ?? null,
       }))
     }
 
@@ -321,7 +306,7 @@ function validateSegmentProfile(params: {
         code: 'APERAK_UTILTS_E66_GENERIC_FTX40_BLOCKED',
         title: 'Generisk APERAK-FTX blockerad för UTILTS E66-T',
         description: 'UTILTS E66-T med anvisningsfel får inte skicka FTX-kod 40. Saknad/ogiltig DTM+597 ska skickas som FTX 512 MANDATORY FIELD MISSING.',
-        segment: ftxSegments.find((segment) => textForSegment(segment, 3, 0) === '40') ?? null,
+        segment: ftxSegments.find((segment) => textForSegment(segment, 3, 0, params.una) === '40') ?? null,
       }))
     }
   }
@@ -339,7 +324,7 @@ function validateSegmentProfile(params: {
     }
   }
 
-  validateFieldLimits({ profile: params.profile, rawSegments: params.rawSegments, issues: params.issues })
+  validateFieldLimits({ profile: params.profile, segments: params.segments, una: params.una, issues: params.issues })
 }
 
 function validateEdifactPayload(params: {
@@ -351,13 +336,15 @@ function validateEdifactPayload(params: {
   const canonical = parseCanonicalEdielPayload({ rawPayload, standardHint: 'edifact' })
   // Source document identities also occur in APERAK ACW. Preserve released
   // terminators for every EDIFACT family instead of splitting literal quotes.
-  const rawSegments = tokenizeEdifact(rawPayload).segments.map(segment => segment.raw)
+  const tokens = tokenizeEdifact(rawPayload)
+  const { segments, una } = tokens
+  const rawSegments = segments.map(segment => segment.raw)
   const issues: EdielPayloadPreflightIssue[] = []
-  const unb = first(rawSegments, 'UNB+')
-  const unh = first(rawSegments, 'UNH+')
-  const bgm = first(rawSegments, 'BGM+')
-  const unt = first(rawSegments, 'UNT+')
-  const unz = first(rawSegments, 'UNZ+')
+  const unb = first(segments, 'UNB')
+  const unh = first(segments, 'UNH')
+  const bgm = first(segments, 'BGM')
+  const unt = first(segments, 'UNT')
+  const unz = first(segments, 'UNZ')
   const payloadSizeBytes = new TextEncoder().encode(rawPayload).length
 
   if (!rawPayload.startsWith('UNA:+.? ')) {
@@ -381,24 +368,26 @@ function validateEdifactPayload(params: {
     issues.push(issue({ severity: 'error', code: 'PAYLOAD_TOO_LARGE', title: 'Payload är för stor', description: 'Rekommenderad maxstorlek är 10 MB. Dela på applikationsnivå före EDI-konvertering.' }))
   }
 
-  const declaredUntCount = numberOrNull(element(unt, 1))
-  const declaredUnzCount = numberOrNull(element(unz, 1))
-  const messageRef = element(unh, 1)
-  const untRef = element(unt, 2)
-  const unbRef = element(unb, 5)
-  const unzRef = element(unz, 2)
-  const unbSyntax = element(unb, 1)
-  const messageTypeToken = element(unh, 2)
+  const declaredUntCount = numberOrNull(element(unt, 1, una))
+  const declaredUnzCount = numberOrNull(element(unz, 1, una))
+  const messageRef = element(unh, 1, una)
+  const untRef = element(unt, 2, una)
+  const unbRef = element(unb, 5, una)
+  const unzRef = element(unz, 2, una)
+  const unbSyntax = segmentComposite(unb, 1, una).join(':')
+  const messageTypeToken = segmentComposite(unh, 2, una).join(':')
   const profile = profileForMessage({
     family: String(canonical.family),
     code: canonical.messageCode,
     messageTypeToken,
     rawSegments,
+    una,
   })
 
   validateSegmentProfile({
     profile,
-    rawSegments,
+    segments,
+    una,
     canonicalFamily: String(canonical.family),
     canonicalCode: canonical.messageCode,
     messageTypeToken,
@@ -407,7 +396,6 @@ function validateEdifactPayload(params: {
   })
 
   if (String(canonical.family).toUpperCase() === 'PRODAT') {
-    const tokens = tokenizeEdifact(params.rawPayload)
     for (const failure of prodatPartySyntaxIssues(tokens.segments, tokens.una)) {
       issues.push(issue({
         severity: 'error',
@@ -430,15 +418,15 @@ function validateEdifactPayload(params: {
   }
 
   if (String(canonical.family).toUpperCase() === 'PRODAT' && String(canonical.messageCode ?? '').toUpperCase() === 'Z13') {
-    const hasHistoricalSubtype = rawSegments.some((segment) => segment.toUpperCase() === 'CAV+S18')
-    const hasZ13vSubtype = rawSegments.some((segment) => segment.toUpperCase() === 'CAV+S17')
-    const endUser = readProdatParty('UD', rawSegments, parseUna(rawPayload))
+    const hasHistoricalSubtype = prodatCharacteristicValue('223', segments, una) === 'S18'
+    const hasZ13vSubtype = prodatCharacteristicValue('223', segments, una) === 'S17'
+    const endUser = readProdatParty('UD', rawSegments, una)
     const endUserSegment = endUser.raw
     const hasEndUser = Boolean(endUser.raw)
     const hasEndUserId = Boolean(endUser.id)
-    const hasReportStart = rawSegments.some((segment) => segment.toUpperCase().startsWith('DTM+90:'))
-    const hasReportEnd = rawSegments.some((segment) => segment.toUpperCase().startsWith('DTM+91:'))
-    const contractStart = rawSegments.find((segment) => segment.toUpperCase().startsWith('DTM+92:')) ?? null
+    const hasReportStart = segments.some(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, una)[0] === '90')
+    const hasReportEnd = segments.some(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, una)[0] === '91')
+    const contractStart = segments.find(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, una)[0] === '92') ?? null
 
     if (hasReportEnd && hasZ13vSubtype) {
       issues.push(issue({
@@ -496,11 +484,11 @@ function validateEdifactPayload(params: {
   }
 
   if (String(canonical.family).toUpperCase() === 'PRODAT' && String(canonical.messageCode ?? '').toUpperCase() === 'Z18') {
-    const hasEndUser = Boolean(readProdatParty('UD', rawSegments, parseUna(rawPayload)).id)
-    const installationParty = rawSegments.find((segment) => segment.toUpperCase().startsWith('NAD+IT+')) ?? null
-    const hasReportEnd = rawSegments.some((segment) => segment.toUpperCase().startsWith('DTM+164:'))
-    const hasPermissionCreatedAt = rawSegments.some((segment) => segment.toUpperCase().startsWith('DTM+693:'))
-    const hasPermissionId = Boolean(prodatReferenceValue('325', rawSegments, parseUna(rawPayload)))
+    const hasEndUser = Boolean(readProdatParty('UD', rawSegments, una).id)
+    const installationParty = segments.find(segment => segment.tag === 'NAD' && element(segment, 1, una) === 'IT') ?? null
+    const hasReportEnd = segments.some(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, una)[0] === '164')
+    const hasPermissionCreatedAt = segments.some(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, una)[0] === '693')
+    const hasPermissionId = Boolean(prodatReferenceValue('325', rawSegments, una))
 
     if (!hasEndUser) {
       issues.push(issue({
@@ -578,39 +566,39 @@ function validateEdifactPayload(params: {
   }
 
   if (declaredUntCount !== null && unh && unt) {
-    const unhIndex = rawSegments.indexOf(unh)
-    const untIndex = rawSegments.indexOf(unt)
+    const unhIndex = segments.indexOf(unh)
+    const untIndex = segments.indexOf(unt)
     const actual = unhIndex >= 0 && untIndex >= unhIndex ? untIndex - unhIndex + 1 : null
     if (actual !== null && actual !== declaredUntCount) {
       issues.push(issue({ severity: 'error', code: 'UNT_COUNT_MISMATCH', title: 'UNT-räknare stämmer inte', description: `UNT anger ${declaredUntCount}, faktiskt antal UNH→UNT är ${actual}.`, segment: unt }))
     }
   }
   if (declaredUnzCount !== null) {
-    const actualMessages = all(rawSegments, 'UNH+').length
+    const actualMessages = segments.filter(segment => segment.tag === 'UNH').length
     if (declaredUnzCount !== actualMessages) {
       issues.push(issue({ severity: 'error', code: 'UNZ_COUNT_MISMATCH', title: 'UNZ-räknare stämmer inte', description: `UNZ anger ${declaredUnzCount}, faktiskt antal UNH är ${actualMessages}.`, segment: unz }))
     }
   }
 
-  checkMaxLength({ issues, value: splitComposite(element(unb, 2))[0] ?? null, max: 35, code: 'UNB_SENDER_TOO_LONG', title: 'UNB avsändare för lång', segment: unb })
-  checkMaxLength({ issues, value: splitComposite(element(unb, 2))[2] ?? null, max: 14, code: 'UNB_SENDER_SUBADDRESS_TOO_LONG', title: 'UNB avsändar-subadress för lång', segment: unb })
-  checkMaxLength({ issues, value: splitComposite(element(unb, 3))[0] ?? null, max: 35, code: 'UNB_RECEIVER_TOO_LONG', title: 'UNB mottagare för lång', segment: unb })
-  checkMaxLength({ issues, value: splitComposite(element(unb, 3))[2] ?? null, max: 14, code: 'UNB_RECEIVER_SUBADDRESS_TOO_LONG', title: 'UNB mottagar-subadress för lång', segment: unb })
+  checkMaxLength({ issues, value: segmentComposite(unb, 2, una)[0] ?? null, max: 35, code: 'UNB_SENDER_TOO_LONG', title: 'UNB avsändare för lång', segment: unb })
+  checkMaxLength({ issues, value: segmentComposite(unb, 2, una)[2] ?? null, max: 14, code: 'UNB_SENDER_SUBADDRESS_TOO_LONG', title: 'UNB avsändar-subadress för lång', segment: unb })
+  checkMaxLength({ issues, value: segmentComposite(unb, 3, una)[0] ?? null, max: 35, code: 'UNB_RECEIVER_TOO_LONG', title: 'UNB mottagare för lång', segment: unb })
+  checkMaxLength({ issues, value: segmentComposite(unb, 3, una)[2] ?? null, max: 14, code: 'UNB_RECEIVER_SUBADDRESS_TOO_LONG', title: 'UNB mottagar-subadress för lång', segment: unb })
   checkMaxLength({ issues, value: unbRef, max: 14, code: 'UNB_REFERENCE_TOO_LONG', title: 'UNB interchange reference för lång', segment: unb })
-  checkMaxLength({ issues, value: element(unb, 7), max: 14, code: 'UNB_APPLICATION_REFERENCE_TOO_LONG', title: 'Application Reference för lång', segment: unb })
+  checkMaxLength({ issues, value: element(unb, 7, una), max: 14, code: 'UNB_APPLICATION_REFERENCE_TOO_LONG', title: 'Application Reference för lång', segment: unb })
   checkMaxLength({ issues, value: messageRef, max: 14, code: 'UNH_REFERENCE_TOO_LONG', title: 'UNH message reference för lång', segment: unh })
 
   checkIdentifierCharacters({ issues, value: unbRef, segment: unb, label: 'UNB interchange reference' })
   checkIdentifierCharacters({ issues, value: messageRef, segment: unh, label: 'UNH message reference' })
-  for (const segment of rawSegments) {
-    const tag = segment.split('+')[0]?.toUpperCase() ?? ''
+  for (const segment of segments) {
+    const tag = segment.tag
     if (!IDENTIFIER_QUALIFIERS.has(tag)) continue
     // PRODAT NAD identifiers are checked against their source C082 definition
     // above, not against a generic normalization/character heuristic.
     if (tag === 'NAD' && canonical.family === 'PRODAT') continue
-    const values = tag === 'NAD' ? segment.split('+').slice(2, 3) : segment.split('+').slice(1)
-    for (const value of values) {
-      const candidate = splitComposite(value)[0] ?? null
+    const indices = tag === 'NAD' ? [2] : segment.elements.slice(1).map((_, index) => index + 1)
+    for (const index of indices) {
+      const candidate = segmentComposite(segment, index, una)[0] ?? null
       if (candidate && /^[A-Za-z0-9ÅÄÖåäö _.-]{4,}$/.test(candidate)) {
         checkIdentifierCharacters({ issues, value: candidate, segment, label: `${tag} identifierare` })
       }
@@ -634,7 +622,7 @@ function validateEdifactPayload(params: {
     payloadSizeBytes,
     mimeType: mime,
     issues,
-    markers: markers(rawPayload),
+    markers: markers(rawPayload, segments),
   }
 }
 

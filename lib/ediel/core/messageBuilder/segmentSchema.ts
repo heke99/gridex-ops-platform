@@ -1,3 +1,5 @@
+import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
+import { segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 // lib/ediel/core/messageBuilder/segmentSchema.ts
 
@@ -187,13 +189,13 @@ function normalize(value: string | null | undefined): string {
   return String(value ?? '').trim().toUpperCase()
 }
 
-export function tagOf(segment: string | null | undefined): string {
-  return normalize(String(segment ?? '').split('+')[0] ?? '')
+export function tagOf(segment: string | null | undefined, una: EdifactServiceStringAdvice = parseUna(null)): string {
+  return normalize(String(segment ?? '').split(una.dataElementSeparator)[0] ?? '')
 }
 
-export function segmentCount(rawSegments: readonly string[], tag: string): number {
+export function segmentCount(rawSegments: readonly string[], tag: string, una?: EdifactServiceStringAdvice): number {
   const normalizedTag = normalize(tag)
-  return rawSegments.filter((segment) => tagOf(segment) === normalizedTag).length
+  return rawSegments.filter((segment) => tagOf(segment, una) === normalizedTag).length
 }
 
 export function profileForMessage(input: {
@@ -201,12 +203,15 @@ export function profileForMessage(input: {
   code?: string | null
   messageTypeToken?: string | null
   rawSegments?: readonly string[] | null
+  una?: EdifactServiceStringAdvice
 }): EdielMessageProfile | null {
   const family = normalize(input.family)
   const code = family === 'PRODAT' && input.rawSegments
-    ? normalize(prodatDocumentValue('202', input.rawSegments)) : normalize(input.code)
+    ? normalize(prodatDocumentValue('202', input.rawSegments, input.una)) : normalize(input.code)
   const token = normalize(input.messageTypeToken)
-  const bgm = family === 'PRODAT' ? code : input.rawSegments?.find((segment) => tagOf(segment) === 'BGM')?.split('+')[1]?.split(':')[0]?.trim().toUpperCase() ?? code
+  const bgmRaw = input.rawSegments?.find(segment => tagOf(segment, input.una) === 'BGM')
+  const bgm = family === 'PRODAT' ? code : bgmRaw
+    ? normalize(segmentComposite({ raw: bgmRaw, tag: 'BGM', index: 0, elements: [] }, 1, input.una)[0]) : code
 
   if (family === 'APERAK' || token.startsWith('APERAK')) {
     if (token.includes('D:04A') || token.includes('E5SE5A') || bgm === '312' || bgm === '313') {
