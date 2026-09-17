@@ -1,0 +1,44 @@
+name: F3-E exact-source diagnosis (not release qualification)
+on:
+  push:
+    branches: [codex/f3e-ci-diagnostic-20260917]
+    paths: ['.github/workflows/f3e-ci-diagnostic.yml']
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 70f5632d9ab8706f90b87837c44e43f516f424db
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Bind report to exact input
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/f3e-diagnostic"
+          test "$(git rev-parse HEAD)" = 70f5632d9ab8706f90b87837c44e43f516f424db
+          test "$(git rev-parse 'HEAD^{tree}')" = 10bbf64d42599f93e10fb1a19f7b407c97eb77b3
+          git rev-parse HEAD 'HEAD^{tree}' > "$RUNNER_TEMP/f3e-diagnostic/source.txt"
+          cp __tests__/ediel-prodat-document-consumers.test.ts "$RUNNER_TEMP/f3e-diagnostic/input-test.ts"
+          sha256sum __tests__/ediel-prodat-document-consumers.test.ts lib/ediel/core/messageBuilder/payloadPreflight.ts > "$RUNNER_TEMP/f3e-diagnostic/SOURCE_SHA256"
+      - run: npm ci
+      - name: Run the actual full test suite with retained JSON and console output
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx vitest run --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/f3e-diagnostic/vitest.json" 2>&1 | tee "$RUNNER_TEMP/f3e-diagnostic/vitest.log"
+      - name: Upload diagnostic results even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: f3e-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/f3e-diagnostic/
+          if-no-files-found: error
+          retention-days: 14
