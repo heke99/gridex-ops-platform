@@ -1,0 +1,57 @@
+name: PR327 review source transfer (not release qualification)
+on:
+  push:
+    branches: [codex/pr327-review-transfer-20260917-82d1babb]
+    paths: [.github/workflows/pr327-review-transfer.yml]
+permissions:
+  contents: write
+jobs:
+  transfer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Decode and verify exact reviewed source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/pr327-source-proof"
+          printf 'scope=source transport only; ordinary PR CI and substantive review required\n' > "$RUNNER_TEMP/pr327-source-proof/provenance.txt"
+          base64 -d .agent-transfer/pr327-review.b64 | xz -d > "$RUNNER_TEMP/pr327-review.patch"
+          printf '%s  %s\n' '82d1babb8499eba78ea05c63fc2a4f5a5fac4abfe3da84af64f1e34d3806c721' "$RUNNER_TEMP/pr327-review.patch" | sha256sum -c -
+          git fetch origin bb3e8301fd3d48161fd45c5431471e87caa6e54e
+          git checkout --detach bb3e8301fd3d48161fd45c5431471e87caa6e54e
+          test -z "$(git status --porcelain)"
+          test "$(git rev-parse 'HEAD^{tree}')" = f541995180f02b3ffa27400caa2afd1fcf141c27
+          git apply --check "$RUNNER_TEMP/pr327-review.patch"
+          git apply --index "$RUNNER_TEMP/pr327-review.patch"
+          git diff --cached --check
+          test "$(git write-tree)" = dbeffdc5d20e57f5a9b837bcfda336bd7aef637c
+          test -z "$(git diff --cached --name-only -- .github/workflows .agent-transfer supabase/migrations docs/ediel/masterplan-v2/registers)"
+          test -z "$(git diff --name-only)"
+          printf 'base=bb3e8301fd3d48161fd45c5431471e87caa6e54e\nreviewed_tree=dbeffdc5d20e57f5a9b837bcfda336bd7aef637c\npatch_sha256=82d1babb8499eba78ea05c63fc2a4f5a5fac4abfe3da84af64f1e34d3806c721\n' >> "$RUNNER_TEMP/pr327-source-proof/provenance.txt"
+      - name: Publish only a new isolated source branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          target=refs/heads/codex/pr327-reviewed-source-20260917-82d1babb
+          test -z "$(git ls-remote origin "$target")"
+          test "$(git write-tree)" = dbeffdc5d20e57f5a9b837bcfda336bd7aef637c
+          git config user.name 'heke99'
+          git config user.email '129280077+heke99@users.noreply.github.com'
+          git commit -m 'fix(ediel): staged PR327 subtype and explicit-null review corrections'
+          git push origin "HEAD:$target"
+          printf 'source_commit=%s\nsource_tree=%s\npr_branch_advanced=no\n' "$(git rev-parse HEAD)" "$(git rev-parse 'HEAD^{tree}')" >> "$RUNNER_TEMP/pr327-source-proof/provenance.txt"
+          git archive --format=tar.gz --output="$RUNNER_TEMP/pr327-source-proof/source.tar.gz" HEAD
+          (cd "$RUNNER_TEMP/pr327-source-proof" && sha256sum source.tar.gz > SHA256SUMS)
+      - name: Retain source identity evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr327-source-transfer-${{ github.run_id }}
+          path: ${{ runner.temp }}/pr327-source-proof/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
