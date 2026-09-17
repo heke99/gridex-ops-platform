@@ -125,7 +125,7 @@ export function inferEdielFamilyAndCodeFromRawPayload(
     }
   }
 
-  if (looksLikeCsvAiList(normalized)) {
+  if (!normalized.startsWith('UNA') && looksLikeCsvAiList(normalized)) {
     const upper = upperPayload(normalized)
     const listType =
       upper.includes('BI;') || upper.includes(';BI;') || upper.includes('BALANS')

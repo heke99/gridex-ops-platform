@@ -1,3 +1,4 @@
+import { prodatDocumentSegment, prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { tokenizeEdifact, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUnb, type ParsedUnb } from '@/lib/ediel/core/unb'
 import { parseUnh, type ParsedUnh } from '@/lib/ediel/core/unh'
@@ -29,10 +30,11 @@ export function parseEdifact(rawPayload: string | null | undefined): ParsedEdifa
   const tokenized = tokenizeEdifact(raw)
   const unbSegment = tokenized.segments.find((segment) => segment.tag === 'UNB')
   const unhSegment = tokenized.segments.find((segment) => segment.tag === 'UNH')
-  const bgm = tokenized.segments.find((segment) => segment.tag === 'BGM') ?? null
+  const legacyBgm = tokenized.segments.find((segment) => segment.tag === 'BGM') ?? null
   const untSegment = tokenized.segments.find((segment) => segment.tag === 'UNT')
   const unzSegment = tokenized.segments.find((segment) => segment.tag === 'UNZ')
   const unh = parseUnh(unhSegment, tokenized.una)
+  const bgm = unh?.messageType === 'PRODAT' ? prodatDocumentSegment(tokenized.segments, tokenized.una) : legacyBgm
 
   return {
     una: tokenized.una,
@@ -43,7 +45,7 @@ export function parseEdifact(rawPayload: string | null | undefined): ParsedEdifa
     unt: parseUnt(untSegment),
     unz: parseUnz(unzSegment),
     messageFamily: unh?.messageType ?? null,
-    businessCode: bgmCode(bgm),
+    businessCode: unh?.messageType === 'PRODAT' ? prodatDocumentValue('202', tokenized.segments, tokenized.una) : bgmCode(bgm),
     rawPayload: raw,
   }
 }

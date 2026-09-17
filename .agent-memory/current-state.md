@@ -1,25 +1,21 @@
-# Current state — F3-D published and code-qualified
+# Current state — F3-E document headers
 
-Updated: 2026-09-17. Active item: final qualification/merge of PR #324.
-Branch: `codex/ediel-v2-prodat-references-20260917`; base main `5a741b2c6e108d2db08b24aab9c0e6c4b71b1862`.
-Code-qualified head: `c343dfd155586b653989281c6bc07f621a5dbcce`, tree `800c68dcfc0f883ba9dae151f89016293d363d29`.
+Updated2026-09-17. Active item:F3-E BGM202/203/204/313 and identified consumers.
+Branch:codex/ediel-v2-prodat-document-fields-20260917.
+Base main:b0b3b395a36168757b0f8b4a765b7f7fadf6cceb after completed PR324.
 
-The saved candidate was published with exactly matching tree bytes. The separate
-source-transfer helper is NOT part of PR324 and is not qualification evidence.
-All four ordinary workflows on c343dfd1 completed SUCCESS: OPS35207689478,
-Ediel35207689453, Browser35207689469, FullE2E35207689487. They execute the21
-actual-module consumer cases, full types/tests/lint/API/RBAC/audit/build/budgets
-and existing-main replay. Fresh local source tests439/439 and immutable spec
-33files/121rules/231contracts pass. Source/DB mocks and public browser checks
-are not live market, full grammar or paused-PR310 certification.
+PR324 is MERGED. Exact tested headfd9c58bbc9a4cdf7ad765342b7fcffe389d6e0b8,
+tree8e32d24a4aebe25e245d49c8e5e5bd211d7786a2. Normal final-head OPS35208401905,
+Ediel35208401738,Browser35208401758,FullE2E35208401833 all SUCCESS before guarded
+merge; CodeRabbit success/no blocking reviews. The21 consumer cases ran in CI.
 
-This documentation update must itself pass normal exact-head CI before merge.
-Read PR324's actual current head, checks, reviews and merge status; do not assume
-this checkpoint's earlier code SHA is the latest head. No merge recorded here yet.
-After merge continue the remaining NAD/BGM/DTM projection work from actual main,
-not from a stale branch. Original saved-checkpoint details remain in Git history
-and the historical part of f3-reference-fields.md.
+Current F3-E source tests129/129 (base62pass/67fail), retained439/439 after the
+explicitly documented stale-BGM facit correction.19new Vitest consumer cases are
+wired into CI but not yet executed in this local environment. Full normal PR
+CI/review MUST run on the exact published head before merge. See audit
+quality/audits/ediel-masterplan-v2/f3-document-fields.md for scope/limits.
 
-PR310 stays PAUSED at `e961135199f292b8210884f07de3b616a670161a`; recovery ref
-`backup/pr310-paused-20260916-e9611351` unchanged. No SQL, types, grants,
-production DB/storage mutation or external market message was performed.
+Next after verified merge:NAD and DTM projections; then register/dependent rules.
+No parallel active task. PR310 remains PAUSED at e961135199f292b8210884f07de3b616a670161a,
+its recovery branch untouched. No live DB, source originals, types or permissions
+changed and no external market message. No whole-F3/F7/production approval.

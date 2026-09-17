@@ -1,6 +1,6 @@
 # Current task
 
-F3-D / PR324 final exact-head CI and SHA-guarded merge.
-Read current-state.md for the qualified code SHA and executed runs. Publication
-is no longer blocked. This docs commit needs ordinary CI too. Then continue
-NAD/BGM/DTM field projection from the actual merged main. PR310 stays paused.
+One active item:F3-E document headers. See current-state.md/checkpoint.json and
+f3-document-fields.md. Publish the reviewed source, run ordinary exact-head CI,
+fix actual failures without weakening tests, review and guarded merge. Then NAD/DTM
+from new main. PR324 already mergedb0b3; never reapply its old ZIP or resume PR310.

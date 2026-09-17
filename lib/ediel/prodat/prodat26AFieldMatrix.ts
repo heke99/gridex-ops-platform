@@ -11,6 +11,8 @@ type MatrixRow = {
   // Zero-based CAV/C889 component: 7111, first7110 or second7110.
   cavComponent?: 0 | 3 | 4
   referenceScope?: 'sender' | 'line'
+  documentElement?: 1 | 2 | 3 | 4
+  allowedValues?: readonly string[]
   requirements: readonly Prodat26ARequirement[]
 }
 
@@ -25,10 +27,10 @@ type MatrixRow = {
 export const PRODAT_26A_FIELD_MATRIX: readonly MatrixRow[] = [
   {fieldNumber:'311',fieldKey:'application_reference',segmentPath:'UNB/S005/0026',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
   {fieldNumber:'312',fieldKey:'association_assigned_code',segmentPath:'UNH/S009/0057',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
-  {fieldNumber:'202',fieldKey:'message_code',segmentPath:'BGM/C002/1001',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
-  {fieldNumber:'203',fieldKey:'message_id',segmentPath:'UNH/0062',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
-  {fieldNumber:'204',fieldKey:'message_function',segmentPath:'BGM/1225',requirements:['O','O','O','O','O','O','O','O','O','O','O','O','O']},
-  {fieldNumber:'313',fieldKey:'request_for_acknowledgement',segmentPath:'BGM/4343',requirements:['O','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'202',fieldKey:'message_code',segmentPath:'BGM/C002/1001',documentElement:1,allowedValues:PRODAT_26A_MESSAGE_CODES,requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'203',fieldKey:'message_id',segmentPath:'BGM/1004',documentElement:2,requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'204',fieldKey:'message_function',segmentPath:'BGM/1225',documentElement:3,allowedValues:['9','5'],requirements:['O','O','O','O','O','O','O','O','O','O','O','O','O']},
+  {fieldNumber:'313',fieldKey:'request_for_acknowledgement',segmentPath:'BGM/4343',documentElement:4,allowedValues:['AB','NA'],requirements:['O','R','R','R','R','R','R','R','R','R','R','R','R']},
   {fieldNumber:'205',fieldKey:'document_date',segmentPath:'DTM+137',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
   {fieldNumber:'206',fieldKey:'timezone',segmentPath:'DTM+ZZZ',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
   {fieldNumber:'301',fieldKey:'free_text_header',segmentPath:'FTX',requirements:['O','O','O','O','O','O','O','O','O','O','O','O','O']},
@@ -121,6 +123,7 @@ export function canonicalProdat26AFieldRules(code: string | null | undefined): R
     label: row.fieldKey,
     segmentPath: row.segmentPath,
     requirement: REQUIREMENT_MAP[row.requirements[index]],
+    ...(row.allowedValues ? { allowedValues: [...row.allowedValues] } : {}),
     source: 'static',
   }))
 }

@@ -1,6 +1,7 @@
+import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { prodatReferenceByQualifier } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
-import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import type { EdielMessageFamily } from '@/lib/ediel/types'
 import { processGroupForMessage } from '@/lib/ediel/rulebook/rulebook'
 
@@ -140,21 +141,24 @@ function parseUtiltsFacts(rawSegments: string[]): Record<string, unknown> {
 }
 
 export function parseRulebookMessage(raw: string): ParsedRulebookMessage {
-  const rawSegments = segments(raw)
+  const source = tokenizeEdifact(raw)
+  const sourceFamily = segmentComposite(source.segments.find(segment => segment.tag === 'UNH'), 2, source.una)[0]?.trim().toUpperCase()
+  const isProdat = sourceFamily === 'PRODAT'
+  const rawSegments = isProdat ? source.segments.map(segment => segment.raw) : segments(raw)
   const unb = first(rawSegments, 'UNB+')
   const unh = first(rawSegments, 'UNH+')
   const bgm = first(rawSegments, 'BGM+')
   const lin = first(rawSegments, 'LIN+')
   const sender = splitParty(part(unb, 2))
   const receiver = splitParty(part(unb, 3))
-  const bgmCode = parseBgmCode(bgm)
-  const inferredFamily = inferFamilyFromUnh(unh)
+  const bgmCode = isProdat ? prodatDocumentValue('202', source.segments, source.una)?.toUpperCase() ?? null : parseBgmCode(bgm)
+  const inferredFamily = isProdat ? 'PRODAT' : inferFamilyFromUnh(unh)
   const family = inferredFamily === 'UTILTS' && bgmCode === 'ERR' ? 'UTILTS_ERR' : inferredFamily
   const code = family === 'CONTRL' ? 'CONTRL' : family === 'APERAK' ? 'APERAK' : family === 'UTILTS_ERR' ? 'UTILTS_ERR' : bgmCode
   const applicationReference = part(unb, 7)
   const interchangeReference = part(unb, 5)
-  const messageReference = parseBgmReference(bgm) ?? part(unh, 1)
-  const tokenized = family === 'PRODAT' ? tokenizeEdifact(raw) : null
+  const messageReference = isProdat ? prodatDocumentValue('203', source.segments, source.una) : parseBgmReference(bgm) ?? part(unh, 1)
+  const tokenized = family === 'PRODAT' ? source : null
   const reference = (qualifier: string): string | null => tokenized
     ? prodatReferenceByQualifier(qualifier, tokenized.segments, tokenized.una) : extractRff(rawSegments, qualifier)
   const transactionReference = reference('TN') ?? reference('LI') ?? reference('ACW')

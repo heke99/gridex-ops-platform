@@ -1,5 +1,6 @@
 import { prodatReferenceByQualifier } from '@/lib/ediel/prodat/prodatReferenceFields'
-import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { prodatDocumentSegment, prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
+import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 // Extracted from index.ts; keep public imports on the facade module.
 import forge from 'node-forge'
 import { execFile } from 'child_process'
@@ -960,8 +961,11 @@ export function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string,
   const bgmParts = bgm?.split('+') ?? []
   const uciParts = uci?.split('+') ?? []
 
-  const family = unhParts[0]?.trim() || fallbackFamily
-  const referenceSource = family.toUpperCase() === 'PRODAT' ? tokenizeEdifact(rawPayload) : null
+  const wire = tokenizeEdifact(rawPayload)
+  const wireUnh = wire.segments.find(segment => segment.tag === 'UNH')
+  const wireFamily = segmentComposite(wireUnh, 2, wire.una)[0]?.trim().toUpperCase()
+  const family = wireFamily || unhParts[0]?.trim() || fallbackFamily
+  const referenceSource = family.toUpperCase() === 'PRODAT' ? wire : null
   function ref(qualifier: string): string | null {
     if (referenceSource) {
       return prodatReferenceByQualifier(qualifier, referenceSource.segments, referenceSource.una)
@@ -972,7 +976,9 @@ export function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string,
   }
 
   const originalInterchangeReference = uciParts[1]?.trim() || null
-  const bgmReference = bgmParts[2]?.trim() || null
+  const bgmReference = referenceSource
+    ? prodatDocumentValue('203', wire.segments, wire.una)
+    : bgmParts[2]?.trim() || null
   const acwReference = ref('ACW')
   const lineItemReference = ref('LI')
   const transactionReference = ref('TN') || ref('CR') || ref('AAS')
@@ -980,7 +986,7 @@ export function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string,
   const isAckFamily = family === 'CONTRL' || family === 'APERAK' || family === 'UTILTS_ERR'
   const externalReference = isAckFamily
     ? originalInterchangeReference || acwReference || bgmReference || ref('ACE') || null
-    : bgmReference || ref('ACE') || acwReference || originalInterchangeReference || null
+    : referenceSource ? bgmReference : bgmReference || ref('ACE') || acwReference || originalInterchangeReference || null
   const canonicalTransactionReference = isAckFamily
     ? originalInterchangeReference || acwReference || transactionReference || lineItemReference || null
     : lineItemReference || transactionReference || acwReference || originalInterchangeReference || null
@@ -990,8 +996,8 @@ export function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string,
     code:
       isAckFamily
         ? family
-        : bgmParts[1]?.split(':')[0]?.trim() || fallbackCode,
-    messageVersion: unhMessage,
+        : referenceSource ? prodatDocumentValue('202', wire.segments, wire.una) ?? '' : bgmParts[1]?.split(':')[0]?.trim() || fallbackCode,
+    messageVersion: referenceSource ? segmentComposite(wireUnh, 2, wire.una).join(':') : unhMessage,
     senderEdielId: envelope.sender,
     senderSubAddress: envelope.senderSubAddress,
     receiverEdielId: envelope.receiver,
@@ -1001,15 +1007,15 @@ export function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string,
     externalReference,
     transactionReference: canonicalTransactionReference,
     parsedPayload: {
-      rawSegments: segments,
-      segmentCount: segments.length,
-      unb,
-      unh,
+      rawSegments: referenceSource ? wire.segments.map(segment => segment.raw) : segments,
+      segmentCount: referenceSource ? wire.segments.length : segments.length,
+      unb: referenceSource ? wire.segments.find(segment => segment.tag === 'UNB')?.raw ?? null : unb,
+      unh: referenceSource ? wireUnh?.raw ?? null : unh,
       envelopeEnvironment: envelope.environment,
       testIndicator: envelope.testIndicator,
-      bgm,
+      bgm: referenceSource ? prodatDocumentSegment(wire.segments, wire.una)?.raw ?? null : bgm,
       uci,
-      rff: rffSegments,
+      rff: referenceSource ? wire.segments.filter(segment => segment.tag === 'RFF').map(segment => segment.raw) : rffSegments,
       bgmReference,
       documentReference: bgmReference,
       originalInterchangeReference,

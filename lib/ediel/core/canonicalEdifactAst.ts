@@ -1,3 +1,4 @@
+import { prodatDocumentSegment, prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { prodatReferenceEntries } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicCodes } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import {
@@ -209,15 +210,15 @@ export function parseCanonicalEdifactAst(rawPayload: string | null | undefined):
 
   const messages = messageSlices(tokenized.segments).map((segments, messageIndex) => {
     const unh = segments.find((segment) => segment.tag === 'UNH') ?? null
-    const bgm = segments.find((segment) => segment.tag === 'BGM') ?? null
     const family = canonicalFirstComponent(unh, 2, tokenized.una)?.toUpperCase().replace('-', '_') ?? null
+    const bgm = family === 'PRODAT' ? prodatDocumentSegment(segments, tokenized.una) : segments.find(segment => segment.tag === 'BGM') ?? null
     return {
       messageIndex,
       segments,
       family,
       messageReference: canonicalElement(unh, 1),
-      messageCode: canonicalFirstComponent(bgm, 1, tokenized.una)?.toUpperCase() ?? null,
-      documentReference: canonicalElement(bgm, 2),
+      messageCode: family === 'PRODAT' ? prodatDocumentValue('202', segments, tokenized.una)?.toUpperCase() ?? null : canonicalFirstComponent(bgm, 1, tokenized.una)?.toUpperCase() ?? null,
+      documentReference: family === 'PRODAT' ? prodatDocumentValue('203', segments, tokenized.una) : canonicalElement(bgm, 2),
       lineGroups: buildLineGroups(segments, tokenized.una, family),
     }
   })

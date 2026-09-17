@@ -130,7 +130,7 @@ describe('business-reference persistence uses real PRODAT references, not stale 
       const original = JSON.stringify(row)
       await createEdielMessage({ direction: 'inbound', messageFamily: 'PRODAT', messageCode: 'Z15', messageStandard: 'edifact', environment: 'test', rawPayload: row.raw_payload } as CreateEdielMessageInput)
       const ref = (type: string) => saved.find(item => item.reference_type === type)?.reference_value
-      expect(ref('BGM_REF')).toBe('DOCUMENT')
+      expect(ref('BGM_REF')).toBe(variant === 'undecodable' ? undefined : 'DOCUMENT')
       expect(ref('RFF_LI')).toBe(hasRefs ? 'CASE:1' : undefined)
       expect(ref('PERMISSION_ID')).toBe(hasRefs ? 'PERM:1' : undefined)
       expect(ref('RFF_Z07')).toBe(variant === 'undecodable' ? undefined : 'OBJECT:1')

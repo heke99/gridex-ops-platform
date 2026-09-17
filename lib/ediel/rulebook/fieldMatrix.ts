@@ -1,3 +1,4 @@
+import { prodatDocumentField, prodatDocumentState, prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { prodatReferenceField, prodatReferencePresent, prodatReferenceValues } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicField, prodatCharacteristicPresent, prodatCharacteristicValues } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
@@ -176,6 +177,11 @@ function firstValueForPath(rawSegments: readonly string[] | null | undefined, pa
 
 function fieldValuesForRule(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): string[] {
   const rawSegments = input.rawSegments ?? []
+  const document = normalize(rule.family) === 'PRODAT' ? prodatDocumentField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (document) {
+    const value = prodatDocumentValue(document.fieldNumber, rawSegments, input.una)
+    return value ? [normalize(value)] : []
+  }
   const reference = normalize(rule.family) === 'PRODAT' ? prodatReferenceField(rule.fieldNumber ?? rule.fieldKey) : null
   if (reference) return prodatReferenceValues(reference.fieldNumber, rawSegments, input.una).map(normalize)
   const characteristic = normalize(rule.family) === 'PRODAT' ? prodatCharacteristicField(rule.fieldNumber ?? rule.fieldKey) : null
@@ -386,6 +392,11 @@ export function fieldRulesForMessage(family: string | null | undefined, code: st
 export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): boolean {
   const rawSegments = input.rawSegments ?? []
   const applicationReference = input.applicationReference ?? null
+  const document = normalize(rule.family) === 'PRODAT' ? prodatDocumentField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (document) {
+    const state = prodatDocumentState(document.fieldNumber, rawSegments, input.una)
+    return rule.requirement === 'forbidden' || rule.requirement === 'not_used' ? state.present : Boolean(state.value)
+  }
   const reference = normalize(rule.family) === 'PRODAT' ? prodatReferenceField(rule.fieldNumber ?? rule.fieldKey) : null
   if (reference) return prodatReferencePresent(reference.fieldNumber, rawSegments, {
     una: input.una, forbidden: rule.requirement === 'forbidden' || rule.requirement === 'not_used',
@@ -593,8 +604,31 @@ export function validateFieldMatrixPayload(
       continue
     }
 
+    const document = family === 'PRODAT' ? prodatDocumentField(rule.fieldNumber ?? rule.fieldKey) : null
+    const documentState = document ? prodatDocumentState(document.fieldNumber, rawSegments, input.una) : null
+    if (documentState?.malformed) {
+      issues.push(issue({
+        severity: rule.severity ?? 'error',
+        code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_FORMAT_INVALID',
+        title: `${rule.label} har fel struktur`,
+        description: `${rule.segmentPath} följer inte dokumentets element-/komponentstruktur (PRODAT 26.A s.42).`,
+        fieldPath: rule.segmentPath,
+      }))
+      continue
+    }
+    if (document?.fieldNumber === '203' && documentState?.value && documentState.value.length > 35) {
+      issues.push(issue({
+        severity: rule.severity ?? 'error',
+        code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_LENGTH_INVALID',
+        title: `${rule.label} är för långt`,
+        description: 'PRODAT BGM/1004 är an..35 (26.A s.42); escapetecken räknas inte dubbelt.',
+        fieldPath: rule.segmentPath,
+      }))
+      continue
+    }
     const requiredByDependency = dependencyApplies(rule, { ...input, rawSegments })
     const shouldEvaluate = rule.requirement === 'required' || requiredByDependency
+      || (rule.requirement === 'optional' && Boolean(documentState?.present))
     if (!shouldEvaluate) continue
     if (!present) {
       const severity = rule.severity ?? (requiredByDependency ? 'error' : rule.requirement === 'dependent' ? 'warning' : 'error')
@@ -623,7 +657,7 @@ export function validateFieldMatrixPayload(
   }
 
   if (family === 'PRODAT') {
-    const bgm = bgmCode(rawSegments)
+    const bgm = prodatDocumentValue('202', rawSegments, input.una)?.toUpperCase() ?? null
     if (bgm && /^Z\d{2}[A-Z]+$/.test(bgm)) {
       issues.push(issue({ severity: 'error', code: 'PRODAT_COMPOSITE_BGM_CODE', title: 'Fel PRODAT BGM', description: 'BGM ska vara huvudfunktion, t.ex. Z13. Undertyp/status ska ligga i CCI/CAV.', fieldPath: 'BGM/C002/1001' }))
     }

@@ -191,8 +191,8 @@ function parseEdifactCanonical(rawPayload: string, direction: EdielMessageRow['d
   const unbRaw = facts.unb?.raw ?? firstSegment(rawSegments, 'UNB+')
   const unhRaw = facts.unh?.raw ?? firstSegment(rawSegments, 'UNH+')
   const bgmRaw = facts.bgm?.raw ?? firstSegment(rawSegments, 'BGM+')
-  const bgmCode = firstComponent(element(bgmRaw, 1))
-  const family = familyFromUnhAndBgm(unhRaw, bgmCode)
+  const bgmCode = facts.messageType === 'PRODAT' ? facts.messageCode : firstComponent(element(bgmRaw, 1))
+  const family = facts.messageType === 'PRODAT' ? 'PRODAT' : familyFromUnhAndBgm(unhRaw, bgmCode)
   const senderParty = partyIdAndSubAddress(element(unbRaw, 2))
   const receiverParty = partyIdAndSubAddress(element(unbRaw, 3))
   const references = family === 'PRODAT' ? prodatReferenceEntries(facts.segments, parseUna(rawPayload)) : referenceList(rawSegments)
@@ -229,7 +229,7 @@ function parseEdifactCanonical(rawPayload: string, direction: EdielMessageRow['d
     receiverSubAddress: receiverParty.subAddress,
     interchangeReference: facts.interchangeReference ?? element(unbRaw, 5),
     messageReference: facts.messageReference ?? element(unhRaw, 1),
-    documentReference: facts.documentReference ?? element(bgmRaw, 2),
+    documentReference: family === 'PRODAT' ? facts.documentReference : facts.documentReference ?? element(bgmRaw, 2),
     transactionReference,
     businessReference: referenceValue(references, 'LI', 'ACW', 'AGO', 'TN'),
     relatedReference: referenceValue(references, 'ACW', 'AGO', 'E31', 'Z07'),
@@ -349,7 +349,10 @@ export function parseCanonicalEdielPayload(params: {
     return parseXmlCanonical(rawPayload, params.direction ?? null)
   }
 
-  if (standardHint === 'ai_list' || (!rawPayload.includes("'") && rawPayload.includes(';'))) {
+  // A declared EDIFACT payload (or its UNA advice) outranks a CSV heuristic.
+  // Semicolon may be the actual data separator, including inside document ids.
+  const edifactDeclared = standardHint === 'edifact' || rawPayload.startsWith('UNA')
+  if (standardHint === 'ai_list' || (!edifactDeclared && !rawPayload.includes("'") && rawPayload.includes(';'))) {
     return parseAiOrBiCanonical(rawPayload, params.direction ?? null)
   }
 

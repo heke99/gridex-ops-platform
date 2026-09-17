@@ -1,3 +1,4 @@
+import { renderProdatDocumentHeader } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { serializeEdifact, escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 import { generateEdielInterchangeReference } from '@/lib/ediel/core/referenceGenerator'
 import { resolveApplicationReference } from '@/lib/ediel/core/applicationReferenceResolver'
@@ -82,7 +83,7 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
   const customerId = input.customer?.identity ?? input.customer?.id
 
   const businessSegments = [
-    `BGM+${businessCode}:SVK:260+${escapeEdifactValue(documentReference)}+9${input.requestAck ? '+AB' : ''}`,
+    renderProdatDocumentHeader({ code: businessCode, documentId: documentReference, acknowledgement: input.requestAck === false ? 'NA' : 'AB' }),
     `DTM+137:${compactDate(input.dates?.createdAt) ?? new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 12)}:203`,
     startDate ? `DTM+92:${startDate}:102` : null,
     endDate ? `DTM+93:${endDate}:102` : null,

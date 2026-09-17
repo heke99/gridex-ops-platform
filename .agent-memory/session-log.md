@@ -30,3 +30,7 @@ review/merge pending. See f3-characteristic-fields.md. PR310 untouched.
 ## 2026-09-17 — F3-D checkpoint
 
 Continued from actual main5a741b2c after PR323. Implemented source-exact RFF projections and consumers, tested real source modules and synthetic DB boundary. GitHub read-only action set and unavailable npm installation block publication/full CI. Work saved locally; no live mutation or PR310 changes.
+
+## 2026-09-17 — F3-E checkpoint
+
+Completed PR324 merge; next single itemF3-E BGM fields. Source-backed implementation and tests ready for full CI. PR310 untouched.

@@ -232,7 +232,7 @@ for(const variant of ['present','absent','undecodable']) {
   try {
    await a.createEdielMessage({direction:'inbound',messageFamily:'PRODAT',messageCode:'Z15',messageStandard:'edifact',environment:'test',rawPayload:raw})
    const ref=type=>a.boundary.saved.find(r=>r.reference_type===type)?.reference_value
-   assert.equal(ref('BGM_REF'),'DOCUMENT')
+   assert.equal(ref('BGM_REF'),variant==='undecodable'?undefined:'DOCUMENT')
    assert.equal(ref('RFF_LI'),hasRefs?'CASE:1':undefined)
    assert.equal(ref('PERMISSION_ID'),hasRefs?'PERM:1':undefined)
    assert.equal(ref('RFF_Z07'),variant==='undecodable'?undefined:'OBJECT:1')

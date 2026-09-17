@@ -1,3 +1,4 @@
+import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { parseUna } from '@/lib/ediel/core/una'
 import { prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { misplacedProdatEnergyProducts } from '@/lib/ediel/prodat/prodatCharacteristicFields'
@@ -152,9 +153,11 @@ function validateFieldLimits(params: {
 }) {
   for (const limit of params.profile.fieldLimits) {
     for (const segment of params.rawSegments.filter((item) => tagOf(item) === limit.segment.toUpperCase())) {
-      const value = textForSegment(segment, limit.elementIndex, limit.componentIndex)
+      const prodatDocument = params.profile.family === 'PRODAT' && limit.segment === 'BGM' && limit.elementIndex === 2
+      const value = prodatDocument ? prodatDocumentValue('203', params.rawSegments)
+        : textForSegment(segment, limit.elementIndex, limit.componentIndex)
       if (!value) continue
-      const actual = effectiveEdifactLength(value)
+      const actual = prodatDocument ? value.length : effectiveEdifactLength(value)
       if (actual > limit.max) {
         params.issues.push(issue({
           severity: limit.severity ?? 'error',
@@ -233,7 +236,9 @@ function validateSegmentProfile(params: {
   }
 
   const bgm = params.rawSegments.find((segment) => tagOf(segment) === 'BGM') ?? null
-  const bgmCode = textForSegment(bgm, 1, 0)?.toUpperCase() ?? null
+  const bgmCode = params.profile.family === 'PRODAT'
+    ? prodatDocumentValue('202', params.rawSegments)?.toUpperCase() ?? null
+    : textForSegment(bgm, 1, 0)?.toUpperCase() ?? null
   const unb = params.rawSegments.find((segment) => tagOf(segment) === 'UNB') ?? null
   const applicationReference = textForSegment(unb, 7)
   if (params.profile.family !== 'CONTRL' && !applicationReference && params.mode === 'send') {
@@ -352,14 +357,16 @@ function validateEdifactPayload(params: {
   mode: 'send' | 'parse'
 }): EdielPayloadPreflightResult {
   const rawPayload = params.rawPayload
-  const rawSegments = segments(rawPayload)
+  const canonical = parseCanonicalEdielPayload({ rawPayload, standardHint: 'edifact' })
+  // Preserve literal segment terminators inside an escaped PRODAT document id.
+  const rawSegments = canonical.family === 'PRODAT'
+    ? tokenizeEdifact(rawPayload).segments.map(segment => segment.raw) : segments(rawPayload)
   const issues: EdielPayloadPreflightIssue[] = []
   const unb = first(rawSegments, 'UNB+')
   const unh = first(rawSegments, 'UNH+')
   const bgm = first(rawSegments, 'BGM+')
   const unt = first(rawSegments, 'UNT+')
   const unz = first(rawSegments, 'UNZ+')
-  const canonical = parseCanonicalEdielPayload({ rawPayload, standardHint: 'edifact' })
   const payloadSizeBytes = new TextEncoder().encode(rawPayload).length
 
   if (!rawPayload.startsWith('UNA:+.? ')) {
@@ -702,7 +709,8 @@ export function preflightEdielPayload(params: {
   }
 
   if (params.messageStandard === 'xml' || rawPayload.startsWith('<')) return validateXmlPayload(rawPayload, params.mimeType ?? null)
-  if (params.messageStandard === 'ai_list' || (!rawPayload.includes("'") && rawPayload.includes(';'))) return validateListPayload(rawPayload)
+  const edifactDeclared = params.messageStandard === 'edifact' || rawPayload.startsWith('UNA')
+  if (params.messageStandard === 'ai_list' || (!edifactDeclared && !rawPayload.includes("'") && rawPayload.includes(';'))) return validateListPayload(rawPayload)
   return validateEdifactPayload({ rawPayload, mimeType: params.mimeType ?? null, mode: params.mode ?? 'parse' })
 }
 

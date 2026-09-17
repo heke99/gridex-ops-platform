@@ -17,7 +17,7 @@ export function parseProdat(rawPayload: string): ParsedProdat {
     ...parsed,
     messageCode: envelope.businessCode ?? parsed.messageCode,
     bgmCode: envelope.businessCode,
-    bgmReference: envelope.bgm?.elements[2] || null,
+    bgmReference: parsed.messageReference,
     unbSender: envelope.unb?.sender ?? null,
     unbReceiver: envelope.unb?.receiver ?? null,
     unhMessageTypeToken: envelope.unh?.messageTypeToken ?? null,

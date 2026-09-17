@@ -1,7 +1,6 @@
 # Next actions
 
-1. Read actual PR324 head and normal CI; this publication checkpoint requires
-   its own exact-head run. Resolve any real failure/review without weakening tests.
-2. When all required checks pass, mark ready and SHA-guard merge; record merge SHA.
-3. Continue remaining PRODAT NAD/BGM/DTM and affected consumers from that new main.
-4. Keep original source package, SQL/types and PR310/recovery branch unchanged.
+One active item:F3-E document headers. See current-state.md/checkpoint.json and
+f3-document-fields.md. Publish the reviewed source, run ordinary exact-head CI,
+fix actual failures without weakening tests, review and guarded merge. Then NAD/DTM
+from new main. PR324 already mergedb0b3; never reapply its old ZIP or resume PR310.
