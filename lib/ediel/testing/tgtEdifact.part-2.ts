@@ -1,3 +1,5 @@
+import { prodatDate203, prodatDate102 } from '@/lib/ediel/prodat/render/dates'
+import { buildProdatDateSegments } from '@/lib/ediel/prodat/render/dateSegments'
 // Extracted from tgtEdifact.ts; keep public imports on the facade module.
 import type { EdielMessageFamily } from "@/lib/ediel/types"
 
@@ -43,29 +45,30 @@ export function getPortalData(
     return { fieldCode: "", fieldName: "", value };
   };
 
-  const startDateRaw = valueFor([
-    "302 rapportstartdatum",
-    "302 report start date",
-    "rapportstartdatum",
-    "report start date",
-    "210 avtal",
-    "startdatum",
-    "leveransstart",
-  ]);
-  const validityDateRaw = valueFor([
-    "216 giltighetsdatum",
-    "216 validity",
-    "216 valid",
-  ]);
-  const endDateRaw = valueFor([
-    "211 avtal, slutdatum",
-    "211 slutdatum",
-    "211 end date",
-    "321 rapportslutdatum",
-    "327 tjänsten/rapporteringen upphör",
-    "327 tjansten/rapporteringen upphor",
-    "slutdatum",
-  ]);
+  // DTM identities are exact field numbers, not overlapping words such as
+  // "startdatum"/"slutdatum". Imported object/column selection stays intact.
+  const dateField = (fieldNumber: string): string | null => {
+    for (const group of data?.groups ?? []) {
+      const field = group.fields.find(row => row.fieldCode.trim() === fieldNumber);
+      if (!field) continue;
+      const columns = columnName ? [columnName] : getPreferredColumnsForStep(params, step, group.columns).map(row => row.name);
+      for (const column of columns) {
+        const value = field.values[column]?.trim();
+        if (value) return value;
+      }
+    }
+    return null;
+  };
+  const optionalDate = (fieldNumber: string) => {
+    const raw = dateField(fieldNumber);
+    return raw == null ? null : resolvePortalDateTime(raw);
+  };
+  const startDateRaw = dateField('210');
+  const validityDateRaw = dateField('216');
+  const endDateRaw = dateField('211');
+  const lengthRaw = dateField('508');
+  const lengthParts = lengthRaw?.match(/^(\d+)\s*(?::(801|802|804|806)|\(2379=(801|802|804|806)\))$/);
+  if (lengthRaw != null && !lengthParts) throw new Error('prodat_tgt_period_format_missing');
   const registers = columnName ? [] : buildRegistersFromTestData(params, step);
   const importedMeteringMethod = cleanOptionalCode(
     valueFor(["217 mätmetod", "217 matmetod"]),
@@ -108,7 +111,13 @@ export function getPortalData(
     sourceColumnName: sourceColumn?.name ?? columnName ?? null,
     sourceOrder: sourceColumn?.sourceOrder ?? sourceColumn?.index ?? null,
     meteringPointId,
-    agreementStartDateTime: resolvePortalDateTime(startDateRaw),
+    agreementStartDateTime: startDateRaw == null ? '' : resolvePortalDateTime(startDateRaw),
+    reportStartDate: optionalDate('302'),
+    reportEndDate: optionalDate('321'),
+    permissionEndDate: optionalDate('327'),
+    firstMeterReadingDate: optionalDate('212'),
+    observationLength: lengthParts?.[1] ?? null,
+    observationLengthFormat: lengthParts?.[2] ?? lengthParts?.[3] ?? null,
     validityDateTime: resolveTgtValidityDateTime(params, step, validityDateRaw),
     agreementEndDateTime: endDateRaw ? resolvePortalDateTime(endDateRaw) : null,
     annualEnergyUnit:
@@ -157,13 +166,7 @@ export function getPortalData(
       defaultPermissionId(params),
       35,
     ),
-    permissionTimestamp: resolvePortalDateTime(
-      valueFor([
-        "326 tillståndets tidstämpel",
-        "326 tillstandets timestampel",
-        "permission timestamp",
-      ]),
-    ),
+    permissionTimestamp: optionalDate('326'),
     energyProductId: cleanOptionalCode(
       valueFor([
         "506 produkt id",
@@ -263,16 +266,13 @@ export function getPortalData(
       valueFor(["318 land-fakturamottagare"]),
       3,
     ),
-    birthDate: cleanOptionalCode(
-      valueFor([
-        "249 födelsesdatum",
-        "249 födelsedatum",
-        "249 fodelsesdatum",
-        "249 fodelsedatum",
-      ]),
-      8,
-    ),
-    productCode: cleanOptionalCode(valueFor(["242 produktkod"]), 35),
+    birthDate: (() => {
+      const raw = dateField('249');
+      if (raw == null) return null;
+      const value = prodatDate102(raw.replace(/ \(optional\)$/i, ''));
+      if (!value) throw new Error('prodat_tgt_birth_date_invalid');
+      return value;
+    })(),    productCode: cleanOptionalCode(valueFor(["242 produktkod"]), 35),
     settlementMethod: cleanOptionalCode(
       valueFor([
         "254 avräkningsmetod",
@@ -475,28 +475,19 @@ export function withEscoPermissionAgtFallbacks(
 
   const meteringPointId =
     sanitizeCode(portalData.meteringPointId, "", 35) || fallbackMeteringPointId;
-  const agreementStartDateTime = isAgtZ13Vh
-    ? historicalReportStartDateTime()
-    : sanitizeCode(portalData.agreementStartDateTime, "", 12) ||
-      defaultAgreementStartDateTime();
-  const agreementEndDateTime = isAgtZ13Vh
-    ? historicalReportEndDateTime()
-    : isAgtZ18
-      ? sanitizeCode(portalData.agreementEndDateTime, "", 12) ||
-        agreementStartDateTime
-      : portalData.agreementEndDateTime;
+  const reportStartDate = portalData.reportStartDate ?? (isAgtZ13Vh ? historicalReportStartDateTime() : defaultAgreementStartDateTime());
+  const reportEndDate = portalData.reportEndDate ?? (isAgtZ13Vh ? historicalReportEndDateTime() : null);
+  const permissionEndDate = portalData.permissionEndDate ?? (isAgtZ18 ? defaultAgreementStartDateTime() : null);
 
   return {
     ...portalData,
     meteringPointId,
     gridAreaId:
       sanitizeCode(portalData.gridAreaId, "", 12) || fallbackGridAreaId,
-    agreementStartDateTime,
-    agreementEndDateTime,
-    permissionTimestamp: isAgtZ18
-      ? sanitizeCode(portalData.permissionTimestamp, "", 12) ||
-        agreementStartDateTime
-      : portalData.permissionTimestamp,
+    reportStartDate,
+    reportEndDate,
+    permissionEndDate,
+    permissionTimestamp: portalData.permissionTimestamp,
     permissionId: isAgtZ18
       ? sanitizeCode(portalData.permissionId, "", 35) ||
         defaultPermissionId(params)
@@ -633,23 +624,17 @@ export function getPortalDataRows(
   );
 }
 
-export function date102FromPortalDate(
-  value: string | null | undefined,
-  fallback: string,
-): string {
-  const token = firstToken(value);
-  if (token && /^\d{8,12}$/.test(token)) return token.slice(0, 8);
-  return fallback;
+/** Explicit date-only compatibility projection; invalid supplied input cannot
+ * become the fallback date. The actual line renderer retains minute precision. */
+export function date102FromPortalDate(value: string | null | undefined, fallback: string): string {
+  return date203FromPortalDate(value, fallback).slice(0, 8);
 }
 
-export function date203FromPortalDate(
-  value: string | null | undefined,
-  fallback: string,
-): string {
-  const token = firstToken(value);
-  if (token && /^\d{8,12}$/.test(token))
-    return token.length === 8 ? `${token}0000` : token.slice(0, 12);
-  return `${fallback}0000`;
+/** Null may opt into an explicitly supplied legacy default; malformed input may not. */
+export function date203FromPortalDate(value: string | null | undefined, fallback: string): string {
+  const minute = prodatDate203(value ?? fallback);
+  if (!minute) throw new Error('prodat_tgt_date_invalid');
+  return minute;
 }
 
 export function isZ09DTransaction(
@@ -672,21 +657,11 @@ export function buildZ09DLineDateSegments(
   portalData: TgtPortalCustomerData,
   refs: DraftReferences,
 ): string[] {
-  const startDate = date203FromPortalDate(
-    portalData.agreementStartDateTime,
-    refs.createdLongDate,
-  );
-  const endDate = portalData.agreementEndDateTime
-    ? date203FromPortalDate(
-        portalData.agreementEndDateTime,
-        refs.createdLongDate,
-      )
-    : null;
-
-  return [
-    `DTM+92:${startDate}:203`,
-    ...(endDate ? [`DTM+93:${endDate}:203`] : []),
-  ];
+  void refs;
+  return buildProdatDateSegments('Z09', 'D', {
+    contractStartDate: portalData.agreementStartDateTime || undefined,
+    contractEndDate: portalData.agreementEndDateTime,
+  }).line;
 }
 
 export function expectedZ09LineDateSegments(

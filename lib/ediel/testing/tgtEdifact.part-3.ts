@@ -1,3 +1,4 @@
+import { buildProdatDateSegments } from '@/lib/ediel/prodat/render/dateSegments'
 // Extracted from tgtEdifact.ts; keep public imports on the facade module.
 import type { EdielTestRoleCode, EdielTestSuite } from "@/lib/ediel/types"
 import { EDIEL_TGT_PRODAT_APPLICATION_REFERENCE } from "@/lib/ediel/fileEngine"
@@ -5,8 +6,8 @@ import { getEdielTgtTestCaseByCode, type EdielTgtExpectedStep } from "@/lib/edie
 
 import type { EdielSystemTestRuntimeContext } from "@/lib/ediel/systemTestSettings"
 import type { DraftReferences, EdielTgtDraftBuildParams, EdielTgtDraftOption, EdielTgtDraftValidationIssue, ParsedEdifactSegments, TgtPortalCustomerData, TgtProdatMutation } from './tgtEdifact.part-1'
-import { edifactEscape, fifteenthDayNextMonthDateTime, findTestValue, firstToken, historicalReportEndDateTime, historicalReportStartDateTime, isHistoricalPermissionTransaction, sanitize, sanitizeCode, testActorId, testPortalId, testReceiverSubaddress, testSenderSubaddress } from './tgtEdifact.part-1'
-import { applyProdatMutationToPortalData, buildInterchange, buildTgtProdatTransactionType, date102FromPortalDate, date203FromPortalDate, expectedZ09LineDateSegments, fallbackEscoPermissionGridAreaId, fallbackEscoPermissionMeteringPointId, getPortalData, getPortalDataRows, getTgtProdatMutation, isPermissionProdatCode, isZ09DTransaction, negativeAperakSegments, permissionPurposeForTransaction, positiveAperakSegments, reasonForProdatSubtype, resolvePermissionInstallationDirection, withEscoPermissionAgtFallbacks } from './tgtEdifact.part-2'
+import { edifactEscape, fifteenthDayNextMonthDateTime, findTestValue, firstToken, isHistoricalPermissionTransaction, sanitize, sanitizeCode, testActorId, testPortalId, testReceiverSubaddress, testSenderSubaddress } from './tgtEdifact.part-1'
+import { applyProdatMutationToPortalData, buildInterchange, buildTgtProdatTransactionType, date203FromPortalDate, expectedZ09LineDateSegments, fallbackEscoPermissionGridAreaId, fallbackEscoPermissionMeteringPointId, getPortalData, getPortalDataRows, getTgtProdatMutation, isPermissionProdatCode, isZ09DTransaction, negativeAperakSegments, permissionPurposeForTransaction, positiveAperakSegments, reasonForProdatSubtype, resolvePermissionInstallationDirection, withEscoPermissionAgtFallbacks } from './tgtEdifact.part-2'
 
 export function buildProdatPermissionLineSegments(params: {
   portalData: TgtPortalCustomerData;
@@ -54,16 +55,6 @@ export function buildProdatPermissionLineSegments(params: {
     lineNo === 1
       ? refs.externalRef
       : `${refs.externalRef}-${lineNo}`.slice(0, 35);
-  const startDate = date203FromPortalDate(
-    portalData.agreementStartDateTime,
-    refs.createdLongDate,
-  );
-  const endDate = portalData.agreementEndDateTime
-    ? date203FromPortalDate(
-        portalData.agreementEndDateTime,
-        refs.createdLongDate,
-      )
-    : null;
   const reasonForTransaction = isHistoricalPermissionTransaction(transactionType)
     ? "S18"
     : sanitizeCode(
@@ -112,10 +103,6 @@ export function buildProdatPermissionLineSegments(params: {
     12,
   );
   const permissionId = sanitizeCode(portalData.permissionId, "", 35);
-  const permissionTimestamp = date203FromPortalDate(
-    portalData.permissionTimestamp,
-    refs.createdLongDate,
-  );
   const powerOfAttorneyReference = sanitizeCode(
     portalData.powerOfAttorneyReference,
     "",
@@ -124,34 +111,12 @@ export function buildProdatPermissionLineSegments(params: {
 
   const segments: string[] = [`LIN+${lineNo}++${meteringPointId}:::9`];
 
-  if (step.code === "Z18") {
-    const permissionCreatedAt = date203FromPortalDate(
-      portalData.permissionTimestamp ?? portalData.agreementStartDateTime,
-      refs.createdLongDate,
-    );
-    const reportingEndDate = date203FromPortalDate(
-      portalData.agreementEndDateTime ?? portalData.agreementStartDateTime,
-      refs.createdLongDate,
-    );
-    segments.push(`DTM+693:${permissionCreatedAt}:203`);
-    segments.push(`DTM+164:${reportingEndDate}:203`);
-  } else if (step.code === "Z15") {
-    segments.push(`DTM+93:${endDate ?? startDate}:203`);
-  } else if (step.code === "Z13" || step.code === "Z14") {
-    // Fält 302/321 i PRODAT 26.A: permission-flöden använder
-    // rapportstart/rapportslut. De får inte renderas som avtalets DTM+92.
-    const reportStartDate = isHistoricalPermissionTransaction(transactionType)
-      ? historicalReportStartDateTime()
-      : startDate;
-    const reportEndDate = isHistoricalPermissionTransaction(transactionType)
-      ? historicalReportEndDateTime()
-      : endDate;
-
-    segments.push(`DTM+90:${reportStartDate}:203`);
-    if (reportEndDate) segments.push(`DTM+91:${reportEndDate}:203`);
-  } else {
-    segments.push(`DTM+92:${startDate}:203`);
-  }
+  const variant = transactionType.startsWith(step.code) ? transactionType.slice(step.code.length) : transactionType;
+  segments.push(...buildProdatDateSegments(step.code, variant, {
+    reportStartDate: portalData.reportStartDate, reportEndDate: portalData.reportEndDate,
+    permissionTimestamp: portalData.permissionTimestamp, permissionEndDate: portalData.permissionEndDate,
+    observationLength: portalData.observationLength, observationLengthFormat: portalData.observationLengthFormat,
+  }).line);
 
   segments.push("CCI++Z13", `CAV+${reasonForTransaction}`);
 
@@ -174,8 +139,6 @@ export function buildProdatPermissionLineSegments(params: {
     segments.push(`RFF+Z09:${permissionId}`);
   else if (permissionId && step.code !== "Z13")
     segments.push(`RFF+Z07:${permissionId}`);
-  if (permissionTimestamp && (step.code === "Z14" || step.code === "Z15"))
-    segments.push(`DTM+265:${permissionTimestamp}:203`);
 
   const siteAddressPlain = sanitize(portalData.siteAddress, "", 70);
   const siteCityPlain = sanitize(portalData.siteCity, "", 35);
@@ -234,10 +197,6 @@ export function buildProdatLineSegments(params: {
   }
   const isZ09 = step.code === "Z09";
   const isZ09D = isZ09DTransaction(transactionType);
-  const startDate = date102FromPortalDate(
-    portalData.agreementStartDateTime,
-    refs.createdLongDate,
-  );
 
   const meteringPointId = sanitizeCode(portalData.meteringPointId, "", 35);
   const customerId = sanitizeCode(portalData.customerId, "", 35);
@@ -278,22 +237,13 @@ export function buildProdatLineSegments(params: {
 
   const segments: string[] = [`LIN+${lineNo}++${meteringPointId}:::9`];
 
-  if (isZ09) {
-    segments.push(
-      ...expectedZ09LineDateSegments(
-        { ...portalData, prodatTransactionType: transactionType },
-        refs,
-      ),
-    );
-  } else if (step.code === "Z05") {
-    const endDate = date203FromPortalDate(
-      portalData.agreementEndDateTime ?? fifteenthDayNextMonthDateTime(),
-      refs.createdLongDate,
-    );
-    segments.push(`DTM+93:${endDate}:203`);
-  } else {
-    segments.push(`DTM+92:${startDate}0000:203`);
-  }
+  const variant = transactionType.startsWith(step.code) ? transactionType.slice(step.code.length) : transactionType;
+  segments.push(...buildProdatDateSegments(step.code, variant, {
+    contractStartDate: portalData.agreementStartDateTime || undefined, contractEndDate: portalData.agreementEndDateTime,
+    validityStartDate: portalData.validityDateTime, firstMeterReadingDate: portalData.firstMeterReadingDate,
+    birthDate: portalData.birthDate, reportStartDate: portalData.reportStartDate, reportEndDate: portalData.reportEndDate,
+    observationLength: portalData.observationLength, observationLengthFormat: portalData.observationLengthFormat,
+  }).line);
 
   segments.push("CCI++Z13");
   segments.push(`CAV+${reasonForTransaction}`);
@@ -376,8 +326,7 @@ export function buildPortalProdatSegments(
 
   const bodySegments: string[] = [
     `BGM+${step.code}+${refs.externalRef}+9+AB`,
-    `DTM+137:${refs.createdLongDate}${refs.createdTime}:203`,
-    "DTM+ZZZ:1:805",
+    ...buildProdatDateSegments(step.code, null, {messageDate:`${refs.createdLongDate}${refs.createdTime}`,timezoneOffset:'1'}).header,
     `NAD+FR+${testActorId(params)}:160:SVK+++++++SE`,
     `NAD+DO+${testPortalId(params)}:160:SVK+++++++SE`,
   ];

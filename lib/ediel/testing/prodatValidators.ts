@@ -1,3 +1,4 @@
+import { prodatDateField, prodatDateComparisonValue } from '@/lib/ediel/prodat/prodatDateFields'
 // lib/ediel/prodat/validator.ts
 
 import type { ParsedProdatLineItem, ParsedProdatMessage } from '@/lib/ediel/prodat/parser'
@@ -96,7 +97,10 @@ function compareField(params: {
   message: string
 }): void {
   if (!params.expected) return
-  if (sameValue(params.actual, params.expected)) return
+  const isDate = Boolean(prodatDateField(params.fieldCode))
+  const expectedDate = isDate ? prodatDateComparisonValue(params.fieldCode, params.expected) : null
+  if (isDate ? expectedDate !== null && expectedDate === prodatDateComparisonValue(params.fieldCode, params.actual)
+    : sameValue(params.actual, params.expected)) return
 
   params.issues.push(issue({
     type: params.type,

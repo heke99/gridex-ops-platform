@@ -1,3 +1,5 @@
+import { validateProdatDateFields } from '@/lib/ediel/prodat/prodatDateValidation'
+import { prodatDateValue } from '@/lib/ediel/prodat/prodatDateFields'
 import { readProdatParty, prodatPartySyntaxIssues } from '@/lib/ediel/prodat/prodatPartyFields'
 import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
@@ -396,6 +398,12 @@ function validateEdifactPayload(params: {
   })
 
   if (String(canonical.family).toUpperCase() === 'PRODAT') {
+    for (const failure of validateProdatDateFields(String(canonical.messageCode), tokens.segments, tokens.una)) {
+      const qualifier = failure.fieldPath?.split('+')[1]
+      const source = tokens.segments.find(row => row.tag === 'DTM' && segmentComposite(row, 1, tokens.una)[0] === qualifier)
+      issues.push(issue({ severity: 'error', code: failure.code, title: failure.title,
+        description: failure.description, segment: source?.raw }))
+    }
     for (const failure of prodatPartySyntaxIssues(tokens.segments, tokens.una)) {
       issues.push(issue({
         severity: 'error',
@@ -419,23 +427,13 @@ function validateEdifactPayload(params: {
 
   if (String(canonical.family).toUpperCase() === 'PRODAT' && String(canonical.messageCode ?? '').toUpperCase() === 'Z13') {
     const hasHistoricalSubtype = prodatCharacteristicValue('223', segments, una) === 'S18'
-    const hasZ13vSubtype = prodatCharacteristicValue('223', segments, una) === 'S17'
     const endUser = readProdatParty('UD', rawSegments, una)
     const endUserSegment = endUser.raw
     const hasEndUser = Boolean(endUser.raw)
     const hasEndUserId = Boolean(endUser.id)
-    const hasReportStart = segments.some(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, una)[0] === '90')
-    const hasReportEnd = segments.some(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, una)[0] === '91')
+    const hasReportStart = Boolean(prodatDateValue('302', segments, una))
+    const hasReportEnd = Boolean(prodatDateValue('321', segments, una))
     const contractStart = segments.find(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, una)[0] === '92') ?? null
-
-    if (hasReportEnd && hasZ13vSubtype) {
-      issues.push(issue({
-        severity: params.mode === 'send' ? 'error' : 'warning',
-        code: 'PRODAT_Z13VH_REASON_FOR_TRANSACTION_MISMATCH',
-        title: 'Z13VH skickas som Z13V',
-        description: 'PRODAT Z13 med DTM+91/rapportslut ska använda fält 223/CAV+S18. CAV+S17 hör till Z13V och får inte skickas för historiska mätvärden.',
-      }))
-    }
 
     if (hasHistoricalSubtype) {
       if (!hasReportStart) {
@@ -486,8 +484,7 @@ function validateEdifactPayload(params: {
   if (String(canonical.family).toUpperCase() === 'PRODAT' && String(canonical.messageCode ?? '').toUpperCase() === 'Z18') {
     const hasEndUser = Boolean(readProdatParty('UD', rawSegments, una).id)
     const installationParty = segments.find(segment => segment.tag === 'NAD' && element(segment, 1, una) === 'IT') ?? null
-    const hasReportEnd = segments.some(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, una)[0] === '164')
-    const hasPermissionCreatedAt = segments.some(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, una)[0] === '693')
+    const hasReportEnd = Boolean(prodatDateValue('327', segments, una))
     const hasPermissionId = Boolean(prodatReferenceValue('325', rawSegments, una))
 
     if (!hasEndUser) {
@@ -513,14 +510,6 @@ function validateEdifactPayload(params: {
         code: 'PRODAT_Z18_DTM_164_MISSING',
         title: 'Z18 saknar DTM+164',
         description: 'PRODAT Z18 ska ange när tjänsten/rapporteringen upphör i DTM+164.',
-      }))
-    }
-    if (!hasPermissionCreatedAt) {
-      issues.push(issue({
-        severity: params.mode === 'send' ? 'error' : 'warning',
-        code: 'PRODAT_Z18_DTM_693_MISSING',
-        title: 'Z18 saknar DTM+693',
-        description: 'PRODAT Z18 ska ange tillståndets skapandetid i DTM+693.',
       }))
     }
     if (!hasPermissionId) {

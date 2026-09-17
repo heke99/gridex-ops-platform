@@ -1,3 +1,4 @@
+import { buildProdatDateSegments, resolveProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
 import { isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
 import { prodatPartySegment, prodatCustomerNadSegment } from '@/lib/ediel/prodat/render/segments'
 import { PRODAT_26A_FIELD_MATRIX, PRODAT_26A_MESSAGE_CODES } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
@@ -41,11 +42,6 @@ export type BuiltProdatMessage = {
   validation: ReturnType<typeof validateProdat>
 }
 
-function compactDate(value: string | null | undefined): string | null {
-  if (!value) return null
-  return value.replace(/[^0-9]/g, '').slice(0, 12) || null
-}
-
 function referenceSegments(references: BuildProdatMessageInput['references']): string[] {
   return Object.entries(references ?? {}).flatMap(([qualifier, value]) => {
     const clean = String(value ?? '').trim()
@@ -85,8 +81,7 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
       receiver: input.receiver.edielId,
     })
 
-  const startDate = compactDate(input.dates?.startDate ?? input.dates?.requestedStartDate)
-  const endDate = compactDate(input.dates?.endDate)
+  const dates = buildProdatDateSegments(businessCode, input.transactionSubtype, resolveProdatDateInputs(businessCode, input.transactionSubtype, input.dates ?? {}))
   const meteringPointId = input.meteringPoint?.id?.trim()
   const customerId = input.customer?.identity ?? input.customer?.id
   const codeIndex = PRODAT_26A_MESSAGE_CODES.findIndex(code => code === businessCode)
@@ -95,12 +90,11 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
 
   const businessSegments = [
     renderProdatDocumentHeader({ code: businessCode, documentId: documentReference, acknowledgement: input.requestAck === false ? 'NA' : 'AB' }),
-    `DTM+137:${compactDate(input.dates?.createdAt) ?? new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 12)}:203`,
-    startDate ? `DTM+92:${startDate}:102` : null,
-    endDate ? `DTM+93:${endDate}:102` : null,
+    ...dates.header,
     prodatPartySegment('FR', input.legalSenderId ?? input.sender.edielId, input.legalSenderCountry ?? 'SE'),
     prodatPartySegment('DO', input.legalReceiverId ?? input.receiver.edielId, input.legalReceiverCountry ?? 'SE'),
     meteringPointId ? `LIN+1++${escapeEdifactValue(meteringPointId)}:Z01:260` : 'LIN+1',
+    ...dates.line,
     input.meteringPoint?.gridArea ? `RFF+Z05:${escapeEdifactValue(input.meteringPoint.gridArea)}` : null,
     ...referenceSegments(input.references),
     ...codedAttributeSegments(input.codedAttributes),

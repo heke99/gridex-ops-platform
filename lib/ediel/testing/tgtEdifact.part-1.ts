@@ -1,3 +1,4 @@
+import { prodatDate203, prodatNowDate203 } from '@/lib/ediel/prodat/render/dates'
 // Extracted from tgtEdifact.ts; keep public imports on the facade module.
 import type { CreateEdielMessageInput, EdielAckOutcome, EdielDirection, EdielMessageFamily, EdielTestRoleCode, EdielTestSuite } from "@/lib/ediel/types"
 
@@ -155,6 +156,12 @@ export type TgtPortalCustomerData = {
   prodatTransactionType?: string | null;
   meteringPointId: string;
   agreementStartDateTime: string;
+  reportStartDate?: string | null;
+  reportEndDate?: string | null;
+  permissionEndDate?: string | null;
+  firstMeterReadingDate?: string | null;
+  observationLength?: string | null;
+  observationLengthFormat?: string | null;
   validityDateTime?: string | null;
   agreementEndDateTime?: string | null;
   annualEnergyUnit: string;
@@ -250,8 +257,10 @@ export function buildTgtInterchangeReference(params: {
   );
 }
 
-export function nowRefs(testCaseCode: string, stepNo: number): DraftReferences {
-  const now = new Date();
+/** PRODAT timestamps use fixed UTC+1, not the host timezone/DST. Other
+ * families retain their established reference-clock contract. */
+export function nowRefs(testCaseCode: string, stepNo: number, prodatStandardTime = false): DraftReferences {
+  const now = new Date(Date.now() + (prodatStandardTime ? 3600000 : 0));
   const y = now.getUTCFullYear();
   const m = pad(now.getUTCMonth() + 1);
   const d = pad(now.getUTCDate());
@@ -700,7 +709,7 @@ export function senderControlledText(value: string | null | undefined): boolean 
 }
 
 export function defaultAgreementStartDateTime(): string {
-  const now = new Date();
+  const now = new Date(Date.now() + 3600000);
   const year = now.getUTCFullYear();
   const month = now.getUTCMonth();
   const nextMonth = new Date(Date.UTC(year, month + 1, 10, 0, 0, 0));
@@ -708,7 +717,7 @@ export function defaultAgreementStartDateTime(): string {
 }
 
 export function firstDayNextMonthDateTime(): string {
-  const now = new Date();
+  const now = new Date(Date.now() + 3600000);
   const firstDayNextMonth = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0),
   );
@@ -725,14 +734,14 @@ export function formatUtcDateTime(date: Date, includeTime = false): string {
 }
 
 export function firstDayPreviousMonthDateTime(): string {
-  const now = new Date();
+  const now = new Date(Date.now() + 3600000);
   return formatUtcDateTime(
     new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1, 0, 0, 0)),
   );
 }
 
 export function fifteenthDayPreviousMonthDateTime(): string {
-  const now = new Date();
+  const now = new Date(Date.now() + 3600000);
   return formatUtcDateTime(
     new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 15, 0, 0, 0),
@@ -741,7 +750,7 @@ export function fifteenthDayPreviousMonthDateTime(): string {
 }
 
 export function firstDaySameMonthPreviousYearDateTime(): string {
-  const now = new Date();
+  const now = new Date(Date.now() + 3600000);
   return formatUtcDateTime(
     new Date(Date.UTC(now.getUTCFullYear() - 1, now.getUTCMonth(), 1, 0, 0, 0)),
   );
@@ -763,7 +772,7 @@ export function isHistoricalPermissionTransaction(
 }
 
 export function currentDayDateTime(): string {
-  const now = new Date();
+  const now = new Date(Date.now() + 3600000);
   return formatUtcDateTime(
     new Date(
       Date.UTC(
@@ -779,11 +788,11 @@ export function currentDayDateTime(): string {
 }
 
 export function currentUtcMinuteDateTime(): string {
-  return formatUtcDateTime(new Date(), true);
+  return prodatNowDate203(new Date());
 }
 
 export function fifteenthDayNextMonthDateTime(): string {
-  const now = new Date();
+  const now = new Date(Date.now() + 3600000);
   const fifteenthDayNextMonth = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 15, 0, 0, 0),
   );
@@ -791,9 +800,9 @@ export function fifteenthDayNextMonthDateTime(): string {
 }
 
 export function resolvePortalDateTime(value: string | null | undefined): string {
-  const token = firstToken(value);
-  if (token && /^\d{8,12}$/.test(token))
-    return token.length === 8 ? `${token}0000` : token.slice(0, 12);
+  if (value == null) return defaultAgreementStartDateTime();
+  const compact = prodatDate203(value);
+  if (compact) return compact;
 
   const normalized = normalizeSearch(value);
   if (
@@ -829,7 +838,8 @@ export function resolvePortalDateTime(value: string | null | undefined): string 
   if (normalized.includes("10") && normalized.includes("nasta manad"))
     return defaultAgreementStartDateTime();
 
-  return defaultAgreementStartDateTime();
+  if (senderControlledText(value) && String(value).trim()) return defaultAgreementStartDateTime();
+  throw new Error('prodat_tgt_date_invalid');
 }
 
 export function defaultPowerOfAttorneyReference(

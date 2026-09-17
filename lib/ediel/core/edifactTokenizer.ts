@@ -100,3 +100,9 @@ export function segmentComposite(
   })
   return splitComposite(wireElements[index], una)
 }
+
+/** Count wire data elements before decoding. Empty trailing elements still count;
+ * release-escaped separators are literal content, not extra structure. */
+export function segmentElementCount(segment: Pick<EdifactTokenizedSegment, 'raw'>, una: EdifactServiceStringAdvice = parseUna(null)): number {
+  return splitReleased(segment.raw, una.dataElementSeparator, una.releaseCharacter, { preserveReleaseSequence: true }).length - 1
+}

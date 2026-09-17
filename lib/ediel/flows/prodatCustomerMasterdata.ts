@@ -125,11 +125,6 @@ function compactReference(
   );
 }
 
-function date102(value?: string | null): string | null {
-  if (!value) return null;
-  const digits = value.replace(/\D/g, "");
-  return digits.length >= 8 ? digits.slice(0, 8) : null;
-}
 
 function normalizeCustomerIdentity(
   customer: Awaited<ReturnType<typeof getCustomerExportContext>>["customer"],
@@ -542,8 +537,7 @@ export function buildProdatZ01Draft(params: {
         meterPointId,
         gridAreaId: resolveGridAreaId(context, params.gridOwner),
         startDate:
-          date102(context.site?.move_in_date) ??
-          date102(params.dataRequest.requested_at),
+          context.site?.move_in_date ?? params.dataRequest.requested_at,
         customerAddress: context.site?.street ?? null,
         customerPostalCode: context.site?.postal_code ?? null,
         customerCity: context.site?.city ?? null,

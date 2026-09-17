@@ -1,3 +1,4 @@
+import { prodatDateField } from '@/lib/ediel/prodat/prodatDateFields'
 // lib/ediel/prodat/expectedContext.ts
 
 import type { EdielTgtCaseTestData } from '@/lib/ediel/testing/tgtTestData'
@@ -64,7 +65,8 @@ function fieldsByColumn(testData: EdielTgtCaseTestData): ExpectedProdatObject[] 
       const fields: Record<string, string> = {}
 
       for (const field of group.fields) {
-        const cleaned = normalizeExpectedValue(field.values[column.name])
+        const raw = field.values[column.name]
+        const cleaned = prodatDateField(String(field.fieldCode)) ? (typeof raw === 'string' ? raw.trim() : null) : normalizeExpectedValue(raw)
         if (!cleaned) continue
         fields[String(field.fieldCode).toUpperCase()] = cleaned
       }

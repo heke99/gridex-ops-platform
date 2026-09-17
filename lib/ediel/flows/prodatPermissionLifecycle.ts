@@ -1,3 +1,6 @@
+import { prodatDateToIsoDate } from '@/lib/ediel/prodat/render/dates'
+import { prodatDateSyntaxIssues } from '@/lib/ediel/prodat/prodatDateFields'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { supabaseService } from '@/lib/supabase/service'
 import { createEdielMessageEvent, linkEdielMessage } from '@/lib/ediel/db'
 import { parseProdatMessage } from '@/lib/ediel/prodat/parser'
@@ -23,14 +26,6 @@ function text(value: unknown): string | null {
 
 function unique(values: Array<string | null | undefined>): string[] {
   return [...new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value)))]
-}
-
-function dateOnly(value: string | null): string | null {
-  if (!value) return null
-  const digits = value.replace(/\D/g, '')
-  if (digits.length >= 8) return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`
-  const parsed = new Date(value)
-  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10)
 }
 
 function permissionReferences(message: EdielMessageRow): string[] {
@@ -112,6 +107,15 @@ export async function applyInboundZ15PermissionState(params: {
     return { applied: false, permissionId: null, status: 'manual_review', reason: 'unsupported_z15_subtype' }
   }
 
+  const parsed = parseProdatMessage(params.message)
+  const firstLine = parsed.lineItems[0]
+  const wire = tokenizeEdifact(params.message.raw_payload)
+  // This handler applies one permission. A missing/invalid164 or multiple
+  // objects cannot be repaired from contract93/report91 or silently flattened.
+  if (parsed.lineItems.length !== 1 || !firstLine?.permissionEndTimestamp || prodatDateSyntaxIssues(wire.segments, wire.una).length) {
+    return { applied: false, permissionId: null, status: 'manual_review', reason: 'invalid_z15_permission_end_evidence' }
+  }
+
   const permission = await findSinglePermission(params.message)
   const permissionRowId = text(permission?.id)
   if (!permission || !permissionRowId || !params.message.company_id) {
@@ -130,8 +134,6 @@ export async function applyInboundZ15PermissionState(params: {
     return { applied: false, permissionId: null, status: 'manual_review', reason: 'no_unique_metering_permission' }
   }
 
-  const parsed = parseProdatMessage(params.message)
-  const firstLine = parsed.lineItems[0]
   const now = new Date().toISOString()
   const currentMetadata = record(permission.metadata)
   const nextStatus = subtype === 'C' ? 'active' : 'ended'
@@ -147,7 +149,9 @@ export async function applyInboundZ15PermissionState(params: {
         subtype,
         permissionId: firstLine?.permissionId ?? null,
         permissionEndReason: firstLine?.permissionEndReason ?? null,
-        contractEndDate: firstLine?.contractEndDate ?? null,
+        permissionEndTimestamp: firstLine.permissionEndTimestamp,
+        permissionTimestamp: firstLine.permissionTimestamp,
+        timezoneOffset: parsed.timezoneOffset ?? null,
         reportingContinues: subtype === 'C',
         appliedAt: now,
       },
@@ -159,7 +163,7 @@ export async function applyInboundZ15PermissionState(params: {
   // do not invent/clear contractual dates because the existing approved period
   // may have an independent end date.
   if (subtype !== 'C') {
-    const endDate = dateOnly(firstLine?.contractEndDate ?? firstLine?.reportEndDate ?? null)
+    const endDate = prodatDateToIsoDate(firstLine.permissionEndTimestamp)
     if (endDate) patch.approved_end_date = endDate
   }
 

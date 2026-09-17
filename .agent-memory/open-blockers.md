@@ -1,9 +1,8 @@
-# Active blockers
+# PR327 merge gates
 
-PR326 correction is implemented and locally tested, but NEW exact-head ordinary
-CI, substantive review resolution and merge are pending. Older green a7b4ddde
-is not qualified for the newly identified defects. See f3-party-review-remediation.md.
-
-PR310 paused/e9611351. Do not import its migrations, schema/types or replay proof
-machinery. Missing normative/TGT originals and full F0/F2/F3/F5/F7/live release
-approval remain explicit independent blockers; do not mark the campaign complete.
+The two substantive review defects are reproduced and fixed locally; the new
+published head must still pass all ordinary checks and a substantive rereview.
+There is no missing user authorization for the agreed GitHub PR/CI/merge work.
+Read actual refs/checks/review threads before advancing. Old green bb3e8301 is not
+qualification for a later head. PR310 remains paused and unchanged; whole F3,
+all national D/register rules, F5 transitions and F7/live acceptance remain separate.
