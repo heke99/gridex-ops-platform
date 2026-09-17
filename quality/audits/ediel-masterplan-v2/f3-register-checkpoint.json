@@ -1,0 +1,29 @@
+{
+  "status": "PARTIAL_NOT_MERGE_READY",
+  "date": "2026-09-17",
+  "base_remote_head": "28b2a9ad1d745acaa4ea7fe15af7608da95e7884",
+  "original_pdf_sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+  "tests": {
+    "new": 146,
+    "full_passed": 1960,
+    "full_total": 1960,
+    "files": 217,
+    "json_sha256": "cbf9bbbbed0aa59283980908ef1d996438a7c8b442d3f7d77702db4e6242069c",
+    "retained_source_passed": 848,
+    "retained_source_total": 848
+  },
+  "typechecks": {
+    "app": "passed",
+    "tests": "passed",
+    "scripts": "passed"
+  },
+  "immutable_package_integrity": "passed",
+  "normal_ci": "NOT_YET_VERIFIED",
+  "independent_review": "NOT_YET_COMPLETED",
+  "merged": false,
+  "production_database_changed": false,
+  "market_messages_sent": false,
+  "original_specification_changed": false,
+  "pr310": "PAUSED_UNCHANGED",
+  "remaining": "f3-register-progress.md#open-blocking-completion-work-one-active-register-unit"
+}

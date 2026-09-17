@@ -1,3 +1,9 @@
+# Checkpoint update — 2026-09-17 partial implementation
+
+This supersedes the preparation-only state below without claiming all checkboxes complete. Original source mapping and partial implementation/local verification are now done. The single next task is TGT source grouping/rendering, followed by all other explicit blockers in `quality/audits/ediel-masterplan-v2/f3-register-progress.md`. Ordinary final-head CI, substantive review and merge remain pending. PR310 stays paused. The historical plan follows unchanged.
+
+---
+
 # PRODAT register rules implementation plan
 
 **State:** IN_PROGRESS — source mapping and acceptance design only. No new register runtime implementation or passing register certificate is claimed.

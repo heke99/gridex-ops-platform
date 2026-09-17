@@ -8,6 +8,10 @@ type MatrixRow = {
   fieldNumber: string
   fieldKey: string
   segmentPath: string
+  // P §2.2 / annex2: unspecified line fields belong to the first register.
+  registerScope?: 'header' | 'local'
+  linElement?: 1 | 3 | 4
+  linComponent?: 0 | 1
   // Zero-based CAV/C889 component: 7111, first7110 or second7110.
   cavComponent?: 0 | 3 | 4
   referenceScope?: 'sender' | 'line'
@@ -32,21 +36,21 @@ type MatrixRow = {
  * they are not allowed to redefine these normative requirements at runtime.
  */
 export const PRODAT_26A_FIELD_MATRIX: readonly MatrixRow[] = [
-  {fieldNumber:'311',fieldKey:'application_reference',segmentPath:'UNB/S005/0026',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
-  {fieldNumber:'312',fieldKey:'association_assigned_code',segmentPath:'UNH/S009/0057',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
-  {fieldNumber:'202',fieldKey:'message_code',segmentPath:'BGM/C002/1001',documentElement:1,allowedValues:PRODAT_26A_MESSAGE_CODES,requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
-  {fieldNumber:'203',fieldKey:'message_id',segmentPath:'BGM/1004',documentElement:2,requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
-  {fieldNumber:'204',fieldKey:'message_function',segmentPath:'BGM/1225',documentElement:3,allowedValues:['9','5'],requirements:['O','O','O','O','O','O','O','O','O','O','O','O','O']},
-  {fieldNumber:'313',fieldKey:'request_for_acknowledgement',segmentPath:'BGM/4343',documentElement:4,allowedValues:['AB','NA'],requirements:['O','R','R','R','R','R','R','R','R','R','R','R','R']},
-  {fieldNumber:'205',fieldKey:'document_date',segmentPath:'DTM+137',dateQualifier:'137',dateScope:'header',dateKind:'minute',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
-  {fieldNumber:'206',fieldKey:'timezone',segmentPath:'DTM+ZZZ',dateQualifier:'ZZZ',dateScope:'header',dateKind:'offset',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
-  {fieldNumber:'301',fieldKey:'free_text_header',segmentPath:'FTX',requirements:['O','O','O','O','O','O','O','O','O','O','O','O','O']},
-  {fieldNumber:'207',fieldKey:'sender_ediel_id',segmentPath:'NAD+FR/C082/3039 + NAD+FR/3207',partyQualifier:'FR',partyElement:2,partyComponents:1,partyMaxLength:35,requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
-  {fieldNumber:'315',fieldKey:'sender_organisation_no',segmentPath:'RFF+XA',referenceScope:'sender',requirements:['-','-','O','-','-','-','-','-','-','-','-','-','-']},
-  {fieldNumber:'208',fieldKey:'receiver_ediel_id',segmentPath:'NAD+DO/C082/3039 + NAD+DO/3207',partyQualifier:'DO',partyElement:2,partyComponents:1,partyMaxLength:35,requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
-  {fieldNumber:'314',fieldKey:'sequence_number',segmentPath:'LIN',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
-  {fieldNumber:'209',fieldKey:'line_item',segmentPath:'LIN',requirements:['R','R','R','R','R','R','R','R','R','-','D','R','R']},
-  {fieldNumber:'258',fieldKey:'sub_line_number',segmentPath:'LIN',requirements:['-','-','-','D','-','D','-','-','D','-','-','-','-']},
+  {fieldNumber:'311',registerScope:'header',fieldKey:'application_reference',segmentPath:'UNB/S005/0026',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'312',registerScope:'header',fieldKey:'association_assigned_code',segmentPath:'UNH/S009/0057',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'202',registerScope:'header',fieldKey:'message_code',segmentPath:'BGM/C002/1001',documentElement:1,allowedValues:PRODAT_26A_MESSAGE_CODES,requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'203',registerScope:'header',fieldKey:'message_id',segmentPath:'BGM/1004',documentElement:2,requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'204',registerScope:'header',fieldKey:'message_function',segmentPath:'BGM/1225',documentElement:3,allowedValues:['9','5'],requirements:['O','O','O','O','O','O','O','O','O','O','O','O','O']},
+  {fieldNumber:'313',registerScope:'header',fieldKey:'request_for_acknowledgement',segmentPath:'BGM/4343',documentElement:4,allowedValues:['AB','NA'],requirements:['O','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'205',registerScope:'header',fieldKey:'document_date',segmentPath:'DTM+137',dateQualifier:'137',dateScope:'header',dateKind:'minute',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'206',registerScope:'header',fieldKey:'timezone',segmentPath:'DTM+ZZZ',dateQualifier:'ZZZ',dateScope:'header',dateKind:'offset',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'301',registerScope:'header',fieldKey:'free_text_header',segmentPath:'FTX',requirements:['O','O','O','O','O','O','O','O','O','O','O','O','O']},
+  {fieldNumber:'207',registerScope:'header',fieldKey:'sender_ediel_id',segmentPath:'NAD+FR/C082/3039 + NAD+FR/3207',partyQualifier:'FR',partyElement:2,partyComponents:1,partyMaxLength:35,requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'315',registerScope:'header',fieldKey:'sender_organisation_no',segmentPath:'RFF+XA',referenceScope:'sender',requirements:['-','-','O','-','-','-','-','-','-','-','-','-','-']},
+  {fieldNumber:'208',registerScope:'header',fieldKey:'receiver_ediel_id',segmentPath:'NAD+DO/C082/3039 + NAD+DO/3207',partyQualifier:'DO',partyElement:2,partyComponents:1,partyMaxLength:35,requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'314',linElement:1,linComponent:0,registerScope:'local',fieldKey:'sequence_number',segmentPath:'LIN',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'209',linElement:3,linComponent:0,registerScope:'local',fieldKey:'line_item',segmentPath:'LIN',requirements:['R','R','R','R','R','R','R','R','R','-','D','R','R']},
+  {fieldNumber:'258',linElement:4,linComponent:1,registerScope:'local',fieldKey:'sub_line_number',segmentPath:'LIN',requirements:['-','-','-','D','-','D','-','-','D','-','-','-','-']},
   {fieldNumber:'210',fieldKey:'contract_start_date',segmentPath:'DTM+92',dateQualifier:'92',dateScope:'line',dateKind:'minute',requirements:['R','-','R','R','-','D','-','D','D','-','-','-','-']},
   {fieldNumber:'211',fieldKey:'contract_stop_date',segmentPath:'DTM+93',dateQualifier:'93',dateScope:'line',dateKind:'minute',requirements:['-','-','-','-','R','O','R','D','-','-','-','-','-']},
   {fieldNumber:'302',fieldKey:'report_start_date',segmentPath:'DTM+90',dateQualifier:'90',dateScope:'line',dateKind:'minute',requirements:['-','-','-','O','-','-','-','-','-','R','D','-','-']},
@@ -58,18 +62,18 @@ export const PRODAT_26A_FIELD_MATRIX: readonly MatrixRow[] = [
   {fieldNumber:'326',fieldKey:'permission_creation_timestamp',segmentPath:'DTM+693',dateQualifier:'693',dateScope:'line',dateKind:'minute',requirements:['-','-','-','-','-','-','-','-','-','-','D','O','O']},
   {fieldNumber:'327',fieldKey:'processing_end_timestamp',segmentPath:'DTM+164',dateQualifier:'164',dateScope:'line',dateKind:'minute',requirements:['-','-','-','-','-','-','-','-','-','-','-','R','R']},
   {fieldNumber:'303',fieldKey:'free_text_item_level',segmentPath:'FTX',requirements:['O','O','O','O','O','O','O','-','O','-','-','-','-']},
-  {fieldNumber:'213',fieldKey:'estimated_annual_volume',segmentPath:'QTY+31',requirements:['-','-','O','R','-','O','-','-','O','-','-','-','-']},
-  {fieldNumber:'214',fieldKey:'constant',segmentPath:'CCI++Z02/CAV',cavComponent:3,requirements:['-','-','-','D','-','D','-','-','D','-','-','-','-']},
+  {fieldNumber:'213',registerScope:'local',fieldKey:'estimated_annual_volume',segmentPath:'QTY+31',requirements:['-','-','O','R','-','O','-','-','O','-','-','-','-']},
+  {fieldNumber:'214',registerScope:'local',fieldKey:'constant',segmentPath:'CCI++Z02/CAV',cavComponent:3,requirements:['-','-','-','D','-','D','-','-','D','-','-','-','-']},
   {fieldNumber:'215',fieldKey:'old_constant',segmentPath:'CCI++Z03/CAV',cavComponent:3,requirements:['-','-','-','-','-','-','-','-','O','-','-','-','-']},
   {fieldNumber:'217',fieldKey:'measure_method',segmentPath:'CCI++Z04/CAV',cavComponent:0,requirements:['-','R','R','R','-','D','-','D','R','R','D','-','-']},
-  {fieldNumber:'218',fieldKey:'number_of_digits',segmentPath:'CCI++Z05/CAV',cavComponent:3,requirements:['-','-','-','D','-','D','-','-','D','-','-','-','-']},
+  {fieldNumber:'218',registerScope:'local',fieldKey:'number_of_digits',segmentPath:'CCI++Z05/CAV',cavComponent:3,requirements:['-','-','-','D','-','D','-','-','D','-','-','-','-']},
   {fieldNumber:'219',fieldKey:'old_number_of_digits',segmentPath:'CCI++Z06/CAV',cavComponent:3,requirements:['-','-','-','-','-','-','-','-','O','-','-','-','-']},
   {fieldNumber:'306',fieldKey:'installation_status',segmentPath:'CCI++Z07/CAV',cavComponent:0,requirements:['-','-','-','R','-','D','-','-','-','-','-','-','-']},
   {fieldNumber:'307',fieldKey:'tariff_code',segmentPath:'CCI++Z08/CAV',cavComponent:0,requirements:['-','-','-','O','-','O','-','-','-','-','-','-','-']},
   {fieldNumber:'220',fieldKey:'priority',segmentPath:'CCI++Z09/CAV',cavComponent:0,requirements:['-','-','-','O','-','O','-','-','-','-','-','-','-']},
   {fieldNumber:'222',fieldKey:'reporting_frequency',segmentPath:'CCI++Z12/CAV',cavComponent:3,requirements:['-','-','-','R','-','R','-','-','R','R','D','-','-']},
   {fieldNumber:'223',fieldKey:'reason_for_transaction',segmentPath:'CCI++Z13/CAV',cavComponent:0,requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
-  {fieldNumber:'259',fieldKey:'meter_time_frame',segmentPath:'CCI++Z16/CAV',cavComponent:3,requirements:['-','-','-','D','-','D','-','-','D','-','-','-','-']},
+  {fieldNumber:'259',registerScope:'local',fieldKey:'meter_time_frame',segmentPath:'CCI++Z16/CAV',cavComponent:3,requirements:['-','-','-','D','-','D','-','-','D','-','-','-','-']},
   {fieldNumber:'254',fieldKey:'balance_settlement_method',segmentPath:'CCI++Z15/CAV',cavComponent:0,requirements:['-','-','-','R','-','D','-','-','D','-','-','-','-']},
   {fieldNumber:'242',fieldKey:'product_code',segmentPath:'CCI++Z14/CAV',cavComponent:3,requirements:['-','-','-','R','-','D','-','-','D','-','-','-','-']},
   {fieldNumber:'506',fieldKey:'energy_product',segmentPath:'CCI++Z14/CAV',cavComponent:4,requirements:['-','-','-','-','-','-','-','-','-','R','D','-','-']},
@@ -142,4 +146,12 @@ export function assertCanonicalProdat26AMatrixComplete(): void {
       throw new Error(`prodat_26a_field_matrix_width:${row.fieldNumber}:${row.requirements.length}`)
     }
   }
+}
+
+/** P26.A §2.2 p15 / annex2 pp114–116. The base usage columns remain immutable. */
+export function prodatRegisterFieldScope(fieldNumberOrKey: string): 'header' | 'local' | 'first' | null {
+  const row = PRODAT_26A_FIELD_MATRIX.find(row => row.fieldNumber === fieldNumberOrKey || row.fieldKey === fieldNumberOrKey)
+  if (row) return row.registerScope ?? 'first'
+  if (['party_fr', 'party_do'].includes(fieldNumberOrKey)) return 'header'
+  return null
 }

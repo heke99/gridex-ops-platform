@@ -1,3 +1,6 @@
+import { renderProdatRegisterObject } from '@/lib/ediel/prodat/render/registers'
+import type { ProdatMeterRegisterInput } from '@/lib/ediel/prodat/prodatRegisterInput'
+import type { ProdatDependentConditionFacts } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import { buildProdatDateSegments, resolveProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
 import { isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
 import { prodatPartySegment, prodatCustomerNadSegment } from '@/lib/ediel/prodat/render/segments'
@@ -21,7 +24,10 @@ export type BuildProdatMessageInput = {
   legalReceiverId?: string | null
   legalSenderCountry?: string | null
   legalReceiverCountry?: string | null
-  meteringPoint?: { id?: string | null; gridArea?: string | null } | null
+  meteringPoint?: { id?: string | null; gridArea?: string | null; identityAgency?: '9' | '89' } | null
+  registers?: readonly ProdatMeterRegisterInput[]
+  objects?: readonly BuildProdatObjectInput[]
+  dependentConditionFacts?: ProdatDependentConditionFacts
   customer?: { id?: string | null; name?: string | null; identity?: string | null; identityQualifier?: string | null; idAgency?: '89' | '260'; country?: string | null } | null
   gridOwner?: { edielId?: string | null; name?: string | null } | null
   brp?: { edielId?: string | null } | null
@@ -34,6 +40,9 @@ export type BuildProdatMessageInput = {
   applicationReference?: string | null
 }
 
+/** Object fields never fall through from another object or a root default. */
+export type BuildProdatObjectInput = Pick<BuildProdatMessageInput, 'meteringPoint' | 'customer' | 'gridOwner' | 'brp' | 'dates' | 'references' | 'codedAttributes' | 'registers'>
+
 export type BuiltProdatMessage = {
   rawEdifact: string
   businessCode: SupportedProdatBusinessCode
@@ -45,14 +54,16 @@ export type BuiltProdatMessage = {
 function referenceSegments(references: BuildProdatMessageInput['references']): string[] {
   return Object.entries(references ?? {}).flatMap(([qualifier, value]) => {
     const clean = String(value ?? '').trim()
-    return clean ? [`RFF+${escapeEdifactValue(qualifier)}:${escapeEdifactValue(clean)}`] : []
+    return clean && !['messageReference','documentReference','transactionReference'].includes(qualifier) ? [`RFF+${escapeEdifactValue(qualifier)}:${escapeEdifactValue(clean)}`] : []
   })
 }
 
-function codedAttributeSegments(attributes: BuildProdatMessageInput['codedAttributes']): string[] {
+function codedAttributeSegments(attributes: BuildProdatMessageInput['codedAttributes'], businessCode: string): string[] {
   return Object.entries(attributes ?? {}).flatMap(([code, value]) => {
     const clean = String(value ?? '').trim()
-    return clean ? [`CCI++${escapeEdifactValue(code)}`, `CAV+${escapeEdifactValue(clean)}`] : []
+    const messageIndex = PRODAT_26A_MESSAGE_CODES.findIndex(value => value === businessCode)
+    const descriptor = PRODAT_26A_FIELD_MATRIX.find(row => row.segmentPath === `CCI++${code}/CAV` && row.requirements[messageIndex] !== '-')
+    return clean ? [`CCI++${escapeEdifactValue(code)}`, `CAV+${':'.repeat(descriptor?.cavComponent ?? 0)}${escapeEdifactValue(clean)}`] : []
   })
 }
 
@@ -82,24 +93,41 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
     })
 
   const dates = buildProdatDateSegments(businessCode, input.transactionSubtype, resolveProdatDateInputs(businessCode, input.transactionSubtype, input.dates ?? {}))
-  const meteringPointId = input.meteringPoint?.id?.trim()
-  const customerId = input.customer?.identity ?? input.customer?.id
   const codeIndex = PRODAT_26A_MESSAGE_CODES.findIndex(code => code === businessCode)
   const endUserAllowed = codeIndex >= 0 && PRODAT_26A_FIELD_MATRIX.find(row => row.fieldNumber === 'END_USER_GROUP')?.requirements[codeIndex] !== '-'
     && !isProdatFieldInInapplicableParent({ messageCode: businessCode, subtype: input.transactionSubtype, fieldNumber: 'END_USER_GROUP' })
 
+  const objects = input.objects ?? [input]
+  if (!objects.length) throw new Error('prodat_register_objects_empty')
+  let nextLineSequence = 1
+  const identities = new Set<string>()
+  const objectSegments = objects.flatMap(object => {
+    const id = object.meteringPoint?.id?.trim()
+    const agency = object.meteringPoint?.identityAgency ?? '9'
+    const identity = JSON.stringify([id,agency])
+    if (id && identities.has(identity)) throw new Error('prodat_register_object_repeated_use_one_inventory')
+    if (id) identities.add(identity)
+    const customerId = object.customer?.identity ?? object.customer?.id
+    const objectDates = buildProdatDateSegments(businessCode,input.transactionSubtype,resolveProdatDateInputs(businessCode,input.transactionSubtype,object.dates ?? {}))
+    const rows = [
+      id ? `LIN+1++${escapeEdifactValue(id)}:::${agency}` : 'LIN+1',
+      ...objectDates.line,
+      ...codedAttributeSegments(object.codedAttributes,businessCode),
+      object.meteringPoint?.gridArea ? `RFF+Z05:${escapeEdifactValue(object.meteringPoint.gridArea)}` : null,
+      ...referenceSegments(object.references),
+      endUserAllowed && customerId ? prodatCustomerNadSegment({ customerId, customerIdCodeListQualifier: object.customer?.identityQualifier, idAgency: object.customer?.idAgency, customerName: object.customer?.name ?? '', country: object.customer?.country }) : null,
+    ].filter((segment): segment is string => segment !== null)
+    const expanded = renderProdatRegisterObject({code:businessCode,segments:rows,registers:object.registers,firstLineSequence:nextLineSequence})
+    nextLineSequence = expanded.nextLineSequence
+    return expanded.segments
+  })
   const businessSegments = [
     renderProdatDocumentHeader({ code: businessCode, documentId: documentReference, acknowledgement: input.requestAck === false ? 'NA' : 'AB' }),
     ...dates.header,
     prodatPartySegment('FR', input.legalSenderId ?? input.sender.edielId, input.legalSenderCountry ?? 'SE'),
     prodatPartySegment('DO', input.legalReceiverId ?? input.receiver.edielId, input.legalReceiverCountry ?? 'SE'),
-    meteringPointId ? `LIN+1++${escapeEdifactValue(meteringPointId)}:Z01:260` : 'LIN+1',
-    ...dates.line,
-    input.meteringPoint?.gridArea ? `RFF+Z05:${escapeEdifactValue(input.meteringPoint.gridArea)}` : null,
-    ...referenceSegments(input.references),
-    ...codedAttributeSegments(input.codedAttributes),
-    endUserAllowed && customerId ? prodatCustomerNadSegment({ customerId, customerIdCodeListQualifier: input.customer?.identityQualifier, idAgency: input.customer?.idAgency, customerName: input.customer?.name ?? '', country: input.customer?.country }) : null,
-  ].filter((segment): segment is string => Boolean(segment))
+    ...objectSegments,
+  ]
 
   const rawEdifact = serializeEdifact({
     sender: input.sender.edielId,
@@ -113,7 +141,7 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
     businessSegments,
     testIndicator: input.environment === 'production' ? 0 : 1,
   })
-  const validation = validateProdat(rawEdifact)
+  const validation = validateProdat(rawEdifact,{registerFacts:input.dependentConditionFacts,requireRegisterConditions:true})
 
   if (!validation.ok) {
     throw new Error(`PRODAT ${businessCode} kunde inte valideras: ${validation.issues.map((issue) => issue.message).join(' | ')}`)

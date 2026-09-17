@@ -1,3 +1,6 @@
+import { parseProdatMessage, parsedProdatObjects } from '@/lib/ediel/prodat/parser'
+import { prodatRegisterFieldValue } from '@/lib/ediel/prodat/prodatRegisterFields'
+import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
 import { prodatDateState, prodatDateValue } from '@/lib/ediel/prodat/prodatDateFields'
 import { prodatDateToIsoDate } from '@/lib/ediel/prodat/render/dates'
 import { readProdatParty } from '@/lib/ediel/prodat/prodatPartyFields'
@@ -96,26 +99,6 @@ function numberOrNull(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-function segmentsFromRawPayload(rawPayload?: string | null): string[] {
-  if (!rawPayload) return []
-
-  const normalized = rawPayload
-    .replace(/\r\n/g, '')
-    .replace(/\n/g, '')
-    .replace(/^UNA.{6}'/i, '')
-
-  return normalized
-    .split("'")
-    .map((segment) => segment.trim())
-    .filter(Boolean)
-}
-
-
-function readLinMeteringPoint(segments: string[]): string | null {
-  const lin = segments.find((row) => row.startsWith('LIN+'))
-  return trimOrNull(lin?.split('+')[3]?.split(':')[0])
-}
-
 function valueFromParsed(payload: JsonRecord, ...keys: string[]): string | null {
   for (const key of keys) {
     const value = trimOrNull(payload[key])
@@ -147,10 +130,11 @@ function buildInternalNotes(parsed: ParsedInboundProdat): string {
 
 export function parseInboundProdatBusinessData(message: EdielMessageRow): ParsedInboundProdat {
   const payload = message.parsed_payload ?? {}
-  const segments = segmentsFromRawPayload(message.raw_payload)
+  const source = parseProdatMessage(message)
+  const objects = parsedProdatObjects(source)
   const facts = parseEdifactMessageFacts(message.raw_payload)
   const hasWireSource = Boolean(message.raw_payload?.trim())
-  const sourceSegments = facts.lineItems[0]?.segments ?? facts.segments
+  const sourceSegments = facts.lineItems[0]?.effectiveSegments ?? []
   // Persisted legacy projections must not override or fill absent wire fields.
   // Retain their fallback only when this record has no EDIFACT source at all.
   const characteristic = (field: string, ...fallbackKeys: string[]): string | null => hasWireSource
@@ -160,16 +144,15 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
     ? prodatReferenceValue(field, sourceSegments, parseUna(message.raw_payload))
     : valueFromParsed(payload, ...fallbackKeys)
   const una = parseUna(message.raw_payload)
-  const ud = readProdatParty('UD', facts.segments, una)
-  const it = readProdatParty('IT', facts.segments, una)
-  const balanceResponsible = readProdatParty('Z02', facts.segments, una)
+  const ud = readProdatParty('UD', sourceSegments, una)
+  const it = readProdatParty('IT', sourceSegments, una)
+  const balanceResponsible = readProdatParty('Z02', sourceSegments, una)
   const partyValue = (value: string | null, ...fallbackKeys: string[]): string | null => hasWireSource
     ? value : valueFromParsed(payload, ...fallbackKeys)
   const messageCode = hasWireSource ? facts.messageCode ?? '' : String(message.message_code)
-  const meterPointId =
-    valueFromParsed(payload, 'meterPointId', 'meteringPointId', 'installationId', 'facilityId') ??
-    readLinMeteringPoint(segments)
-  const contractStart = hasWireSource ? prodatDateValue('210', facts.segments, una)
+  const meterPointId = hasWireSource ? source.lineItems[0]?.meteringPointId ?? null
+    : valueFromParsed(payload, 'meterPointId', 'meteringPointId', 'installationId', 'facilityId')
+  const contractStart = hasWireSource ? prodatDateValue('210', sourceSegments, una)
     : valueFromParsed(payload, 'contractStartDate', 'contract_start_date', 'startDate')
   const transactionType =
     characteristic('223', 'reasonForTransaction', 'reason_for_transaction', 'transactionType')
@@ -182,7 +165,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
   const installationStatus =
     characteristic('306', 'installationStatus', 'installation_status')
   const annualEnergy =
-    numberOrNull(valueFromParsed(payload, 'annualEnergy', 'estimatedAnnualEnergy', 'annual_consumption_kwh'))
+    numberOrNull(hasWireSource ? source.lineItems[0]?.annualConsumption : valueFromParsed(payload, 'annualEnergy', 'estimatedAnnualEnergy', 'annual_consumption_kwh'))
   const referenceToMeteringPoint =
     reference('319', 'referenceToMeteringPoint', 'reference_to_metering_point')
 
@@ -202,7 +185,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
     customerType: isBusiness ? 'business' : isPerson ? 'private' : null,
     personalNumber: isPerson ? nationalId : null,
     orgNumber: isBusiness ? nationalId : null,
-    birthDate: hasWireSource ? prodatDateValue('249', facts.segments, una) : valueFromParsed(payload, 'birthDate'),
+    birthDate: hasWireSource ? prodatDateValue('249', sourceSegments, una) : valueFromParsed(payload, 'birthDate'),
     fullName: customerName,
     companyName: isBusiness ? customerName : null,
     firstName: !isBusiness ? customerName?.split(' ')[0] ?? null : null,
@@ -223,22 +206,24 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
     country: partyValue(it.country, 'siteCountry', 'facilityCountry'),
     gridAreaCode: reference('260', 'gridAreaCode', 'networkAreaId'),
     annualEnergyKwh: annualEnergy,
-    validityStartDate: hasWireSource ? prodatDateValue('216', facts.segments, una) : valueFromParsed(payload, 'validityStartDate'),
+    validityStartDate: hasWireSource ? prodatDateValue('216', sourceSegments, una) : valueFromParsed(payload, 'validityStartDate'),
     contractStartDate: contractStart,
   }
 
   const meteringPoint = {
     meterPointId,
-    observationLength: hasWireSource ? prodatDateValue('508', facts.segments, una) : valueFromParsed(payload, 'observationLength'),
-    observationLengthFormat: hasWireSource ? prodatDateState('508', facts.segments, una).format : valueFromParsed(payload, 'observationLengthFormat'),
-    firstMeterReadingDate: hasWireSource ? prodatDateValue('212', facts.segments, una) : valueFromParsed(payload, 'firstMeterReadingDate'),
+    identityAgency: source.lineItems[0]?.identityAgency ?? null,
+    registers: objects[0]?.registers ?? [],
+    observationLength: hasWireSource ? prodatDateValue('508', sourceSegments, una) : valueFromParsed(payload, 'observationLength'),
+    observationLengthFormat: hasWireSource ? prodatDateState('508', sourceSegments, una).format : valueFromParsed(payload, 'observationLengthFormat'),
+    firstMeterReadingDate: hasWireSource ? prodatDateValue('212', sourceSegments, una) : valueFromParsed(payload, 'firstMeterReadingDate'),
     referenceToMeteringPoint,
     meteringMethod,
     meteringMethodLabel: edielCodeLabel('metering_method', meteringMethod),
     meterNumber: reference('224', 'meterNumber'),
-    meterConstant: numberOrNull(characteristic('214', 'meterConstant')),
-    meterDigits: numberOrNull(characteristic('218', 'meterDigits')),
-    meterInterval: characteristic('259', 'meterInterval'),
+    meterConstant: numberOrNull(hasWireSource ? prodatRegisterFieldValue('214',sourceSegments,una) : valueFromParsed(payload,'meterConstant')),
+    meterDigits: numberOrNull(hasWireSource ? prodatRegisterFieldValue('218',sourceSegments,una) : valueFromParsed(payload,'meterDigits')),
+    meterInterval: hasWireSource ? prodatRegisterFieldValue('259',sourceSegments,una) : valueFromParsed(payload,'meterInterval'),
     resolution: numberOrNull(valueFromParsed(payload, 'resolution')),
     readingFrequency: characteristic('222', 'readingFrequency'),
     measurementType: messageCode === 'Z04' && productCode === 'L641Q' ? 'production' : 'consumption',
@@ -278,6 +263,8 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
     contract,
     production,
     proposedAction: {
+      objects,
+      objectCount: objects.length,
       action: 'pending_admin_review',
       summary: 'Admin ska granska och godkänna innan kund/anläggning/mätpunkt skapas eller uppdateras.',
       labels: {
@@ -396,9 +383,13 @@ export async function createOrUpdateInboundProdatCase(params: {
   actorUserId: string
   message: EdielMessageRow
 }): Promise<EdielInboundCaseRow | null> {
+  const source = parseEdifactMessageFacts(params.message.raw_payload)
+  const registerIssues = validateProdatRegisterPayload({code:source.messageCode ?? '',rawSegments:source.rawSegments,una:parseUna(params.message.raw_payload)})
+  if (registerIssues.some(issue => issue.blocking)) throw new Error('PRODAT_REGISTER_STRUCTURE_INVALID: ' + registerIssues.map(issue=>issue.description).join(' | '))
   const parsed = parseInboundProdatBusinessData(params.message)
   const companyId = params.message.company_id ?? null
-  const match = await maybeFindExistingCustomer(parsed, companyId)
+  const match = Number(parsed.proposedAction.objectCount) > 1 ? {customerId:null,siteId:null,meteringPointId:null,confidence:0}
+    : await maybeFindExistingCustomer(parsed, companyId)
 
   const payload = {
     company_id: companyId,
@@ -570,6 +561,10 @@ export async function approveEdielInboundCase(params: {
     throw new Error('Inbound-caset saknar company_id och kan inte appliceras säkert i SaaS-läge.')
   }
 
+  if (Array.isArray(inboundCase.proposed_action.objects) && inboundCase.proposed_action.objects.length > 1) {
+    throw new Error('PRODAT_MULTIPLE_OBJECTS_REQUIRE_OBJECT_SCOPED_APPLICATION: Alla objekt finns i staging; ett enskilt kundgrafanrop får inte markera hela meddelandet som applicerat.')
+  }
+
   try {
     const mode = params.mode ?? (inboundCase.customer_id ? 'update_existing_customer' : 'create_new_customer')
     const selectedCustomerId = trimOrNull(params.selectedCustomerId) ?? inboundCase.customer_id
@@ -681,6 +676,8 @@ export async function approveEdielInboundCase(params: {
           edielMessageId: inboundCase.ediel_message_id,
           caseType: inboundCase.case_type,
           transactionType: inboundCase.transaction_type,
+          prodatObjects: inboundCase.proposed_action.objects ?? [],
+          prodatRegisters: parsedMeter.registers ?? [],
           mode,
         },
       },

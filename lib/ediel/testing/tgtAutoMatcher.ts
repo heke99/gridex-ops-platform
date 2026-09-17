@@ -1,3 +1,6 @@
+import { matchProdatRegisterExpectations } from '@/lib/ediel/testing/prodatRegisterExpectation'
+import { prodatRegisterFieldValue } from '@/lib/ediel/prodat/prodatRegisterFields'
+import { prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { prodatDateExpectation } from '@/lib/ediel/testing/prodatDateExpectation'
 import { prodatDateField, prodatDateState, prodatDateComparisonValue } from '@/lib/ediel/prodat/prodatDateFields'
 import { prodatPartyField, prodatPartyValue } from '@/lib/ediel/prodat/prodatPartyFields'
@@ -585,6 +588,9 @@ export function effectiveTgtTestCaseCodeForMessageRow(
 }
 
 export type EdielTgtPayloadComparisonIssue = {
+  registerIndex?: string | null
+  lineSequenceNumber?: string | null
+  identityAgency?: string | null
   fieldCode: string
   ercCode: string
   text: string
@@ -621,13 +627,15 @@ function normalizeExpectedValue(value: string | null | undefined): string | null
 
 function lineActualValue(line: ReturnType<typeof parseEdifactMessageFacts>['lineItems'][number], fieldCode: string, una: EdifactServiceStringAdvice): string | null {
   const code = fieldCode.toUpperCase()
+  if (prodatRegisterFieldScope(code) === 'local') return prodatRegisterFieldValue(code,line.segments,una)
+  const source = line.effectiveSegments
   if (prodatDateField(code)) {
-    const state = prodatDateState(code, line.segments, una)
+    const state = prodatDateState(code, source, una)
     return state.value && (code === '508' ? `${state.value}:${state.format}` : state.value)
   }
-  if (prodatCharacteristicField(code)) return prodatCharacteristicValue(code, line.segments, una)
-  if (prodatReferenceField(code)) return prodatReferenceValue(code, line.segments, una)
-  if (prodatPartyField(code)) return prodatPartyValue(code, line.segments, una)
+  if (prodatCharacteristicField(code)) return prodatCharacteristicValue(code, source, una)
+  if (prodatReferenceField(code)) return prodatReferenceValue(code, source, una)
+  if (prodatPartyField(code)) return prodatPartyValue(code, source, una)
 
   switch (code) {
     case '209':
@@ -702,7 +710,7 @@ function testDataObjects(testData: EdielTgtCaseTestData | null | undefined): Tgt
 
       for (const field of group.fields) {
         const rawValue = field.values[column.name]
-        const value = prodatReferenceField(String(field.fieldCode)) || prodatPartyField(String(field.fieldCode)) || prodatDateField(String(field.fieldCode))
+        const value = prodatRegisterFieldScope(String(field.fieldCode)) === 'local' || prodatReferenceField(String(field.fieldCode)) || prodatPartyField(String(field.fieldCode)) || prodatDateField(String(field.fieldCode))
           ? (String(rawValue ?? '').trim() || null) : normalizeExpectedValue(rawValue)
 
         if (!value) continue
@@ -730,115 +738,62 @@ function expectedFacilityIdsForObject(object: TgtObjectValues, messageCode?: str
     return [object.fields['233']]
   }
 
-  return [object.fields['209'], object.fields['233']].filter((value): value is string => Boolean(value && /^735\d{15}$/.test(value)))
-}
-
-function matchExpectedObjectForLine(objects: TgtObjectValues[], lineItemId: string | null, messageCode?: string | null): TgtObjectValues | null {
-  if (objects.length === 0) return null
-
-  if (lineItemId) {
-    const exact = objects.find((object) => expectedFacilityIdsForObject(object, messageCode).some((id) => normalizeCompare(id) === normalizeCompare(lineItemId)))
-    if (exact) return exact
-  }
-
-  return objects[0] ?? null
+  return [object.fields['209'], object.fields['233']].filter((value): value is string => Boolean(value))
 }
 
 export function compareInboundPayloadToTgtTestData(params: {
   message: EdielMessageRow
   testData: EdielTgtCaseTestData | null | undefined
 }): EdielTgtPayloadComparisonIssue[] {
-  const { message, testData } = params
-
+  const {message,testData}=params
   if (!testData) return []
-
-  const facts = parseEdifactMessageFacts(message.raw_payload)
-  const messageCode = String(message.message_code ?? facts.messageCode ?? '').toUpperCase()
-  const comparableFields = comparableFieldCodesForMessage(messageCode)
-  const objects = testDataObjects(testData)
-
-  if (objects.length === 0 || facts.lineItems.length === 0) return []
-
-  const issues: EdielTgtPayloadComparisonIssue[] = []
-
-  for (const line of facts.lineItems) {
-    const object = matchExpectedObjectForLine(objects, line.itemId, messageCode)
-    if (!object) continue
-
-    const expectedFacilities = expectedFacilityIdsForObject(object, messageCode)
-
-    if (expectedFacilities.length > 0 && line.itemId && !expectedFacilities.some((id) => normalizeCompare(id) === normalizeCompare(line.itemId))) {
-      issues.push({
-        fieldCode: '105',
-        ercCode: '40',
-        text: 'Anläggningen kan inte identifieras',
-        expected: expectedFacilities[0] ?? null,
-        actual: line.itemId,
-        referenceQualifier: 'Z07',
-        referenceNumber: line.itemId,
-        lineItemReference: line.rffLi,
-      })
-
-      issues.push({
-        fieldCode: '209',
-        ercCode: '42',
-        text: 'Anläggningsid avviker från Edielportalens testdata',
-        expected: expectedFacilities[0] ?? null,
-        actual: line.itemId,
-        referenceQualifier: 'Z07',
-        referenceNumber: line.itemId,
-        lineItemReference: line.rffLi,
-      })
-
+  const facts=parseEdifactMessageFacts(message.raw_payload)
+  const code=String(facts.messageCode ?? message.message_code ?? '').toUpperCase()
+  const una=parseUna(message.raw_payload)
+  const comparable=comparableFieldCodesForMessage(code)
+  const objects=testDataObjects(testData)
+  if (!objects.length) return []
+  const matched=matchProdatRegisterExpectations(
+    facts.lineItems.map((line,index)=>({data:line,id:line.itemId,index:line.registerIndex,agency:line.identityAgency,first:line.firstLineIndex===index,valid:line.validRegisterChain})),
+    objects.map(object=>({data:object,ids:expectedFacilityIdsForObject(object,code),index:object.fields['258'] ?? null})),
+  )
+  const issues:EdielTgtPayloadComparisonIssue[]=[]
+  for (const match of matched.matches) {
+    const line=match.line.data
+    const location={registerIndex:line.registerIndex,lineSequenceNumber:line.lineNo,identityAgency:line.identityAgency}
+    if (match.error) {
+      const fieldCode=match.error==='identity' ? '209' : '258'
+      const row=issueForField({fieldCode,expected:match.expected?.index ?? null,actual:fieldCode==='209' ? line.itemId : line.registerIndex,lineItemId:line.itemId,lineItemReference:line.rffLi})
+      issues.push({...row,...location})
+      if (fieldCode==='209') issues.push({...row,...location,fieldCode:'105',ercCode:'40',text:'Anläggningen kan inte identifieras'})
       continue
     }
-
-    for (const [fieldCode, expected] of Object.entries(object.fields)) {
-      if (!comparableFields.has(fieldCode) && !prodatPartyField(fieldCode) && !prodatDateField(fieldCode)) continue
-
-      const date = prodatDateField(fieldCode)
-      const actual = date?.dateScope === 'header' ? prodatDateState(fieldCode, facts.segments, parseUna(message.raw_payload)).value
-        : ['207', '208'].includes(fieldCode)
-        ? prodatPartyValue(fieldCode, facts.segments, parseUna(message.raw_payload))
-        : lineActualValue(line, fieldCode, parseUna(message.raw_payload))
-
-      if (!actual) {
-        issues.push(issueForField({ fieldCode, expected, actual: null, lineItemId: line.itemId, lineItemReference: line.rffLi }))
-        continue
-      }
-
-      const reference = prodatReferenceField(fieldCode) || prodatPartyField(fieldCode)
-      const expectedComparable = date ? prodatDateExpectation(fieldCode, expected) : reference ? expected.trim() : normalizeCompare(expected)
-      const actualComparable = date ? prodatDateComparisonValue(fieldCode, actual) : reference ? actual.trim() : normalizeCompare(actual)
-
-      if (expectedComparable === null || actualComparable === null || expectedComparable !== actualComparable) {
-        issues.push(issueForField({ fieldCode, expected, actual, lineItemId: line.itemId, lineItemReference: line.rffLi }))
-      }
+    if (!match.expected) continue
+    for (const [fieldCode,expected] of Object.entries(match.expected.data.fields)) {
+      const scope=prodatRegisterFieldScope(fieldCode)
+      if (scope==='first' && !match.line.first) continue
+      if (!comparable.has(fieldCode) && scope!=='local' && !prodatPartyField(fieldCode) && !prodatDateField(fieldCode)) continue
+      const date=prodatDateField(fieldCode)
+      const actual=date?.dateScope==='header' ? prodatDateState(fieldCode,facts.segments,una).value
+        : ['207','208'].includes(fieldCode) ? prodatPartyValue(fieldCode,facts.segments,una) : lineActualValue(line,fieldCode,una)
+      const exact=scope==='local' || prodatReferenceField(fieldCode) || prodatPartyField(fieldCode)
+      const want=date ? prodatDateExpectation(fieldCode,expected) : exact ? expected.trim() : normalizeCompare(expected)
+      const got=date ? prodatDateComparisonValue(fieldCode,actual) : exact ? actual : normalizeCompare(actual)
+      const equal=['314','258'].includes(fieldCode) && actual && /^\d{1,6}$/.test(expected) ? Number(expected)===Number(actual) : want!==null && got!==null && want===got
+      if (!actual || !equal) issues.push({...issueForField({fieldCode,expected,actual,lineItemId:line.itemId,lineItemReference:line.rffLi}),...location})
     }
   }
-
-  const dedupeKey = (issue: EdielTgtPayloadComparisonIssue) =>
-    [
-      issue.ercCode,
-      issue.fieldCode,
-      issue.referenceNumber ?? '',
-      issue.lineItemReference ?? '',
-      normalizeCompare(issue.expected),
-      normalizeCompare(issue.actual),
-    ].join('|')
-
-  const seen = new Set<string>()
-
-  return issues.filter((issue) => {
-    const key = dedupeKey(issue)
-
+  for (const missing of matched.missing) {
+    const fieldCode=missing.index ? '258' : '209'
+    issues.push({...issueForField({fieldCode,expected:missing.index ?? missing.ids[0] ?? null,actual:null,lineItemId:missing.ids[0] ?? null,lineItemReference:null}),registerIndex:missing.index})
+  }
+  const seen=new Set<string>()
+  return issues.filter(issue=>{
+    const key=JSON.stringify([issue.fieldCode,issue.ercCode,issue.referenceNumber,issue.identityAgency,issue.registerIndex,issue.lineSequenceNumber,issue.expected,issue.actual])
     if (seen.has(key)) return false
-
-    seen.add(key)
-    return true
+    seen.add(key); return true
   })
 }
-
 
 function utiltsApplicationReference(message: EdielMessageRow, rawText: string): string {
   return [
