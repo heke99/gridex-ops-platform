@@ -13,3 +13,10 @@
 |PR310/schema/live/TGT|PAUSED/NOT_CERTIFIED|Not accepted by this unit|
 
 Prior matrix archived unchanged under archive/20260917-before-dtm-f3g.
+
+## PR327 review correction (prepublication)
+
+New review tests:113/113 after45pass/68fail baseline; containing boundary143/143.
+All application tests1814/1814 in213 files; retained source848/848. Three-zone
+DTM suite380/380 in each zone. Counts overlap and must not be summed.
+Normal exact-head CI and rereview pending. No live database certification.

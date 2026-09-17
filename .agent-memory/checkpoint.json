@@ -5,25 +5,23 @@
   "current_state": ".agent-memory/current-state.md",
   "branch": "codex/ediel-v2-prodat-date-fields-20260917",
   "base_head_sha": "31b4dbeb764874e252e8b6b510bf1fa78832f148",
-  "active_item": "F3-G twelve PRODAT DTM fields and identified consumers",
-  "next_action": "Publish exact candidate; ordinary exact-head CI; substantive review; guarded merge; then registers/dependent rules.",
+  "active_item": "PR327 DTM review remediation",
+  "next_action": "Publish corrected exact tree, ordinary CI and substantive rereview, guarded merge; then register/dependent unit.",
   "main_merged": false,
-  "pull_request": null,
+  "pull_request": 327,
   "source_state": {
-    "base_tree": "d69e471e597ddf4817a402ce165fbad214184c7c",
     "correction_local_only": true,
-    "new_cases": 267,
-    "baseline_subset": {
-      "total": 237,
-      "passed": 66,
-      "failed": 171
+    "new_review_cases": 113,
+    "review_baseline": {
+      "passed": 45,
+      "failed": 68
     },
-    "local_full_tests": 1701,
+    "local_full_tests": 1814,
     "local_test_files": 213,
     "retained_source_cases": 848,
-    "local_types": "app/scripts/tests PASS",
     "normal_ci": "NEW_EXACT_HEAD_REQUIRED",
-    "substantive_review": "NEW_REVIEW_REQUIRED"
+    "substantive_review": "RECHECK_TWO_FINDINGS_REQUIRED",
+    "local_types": "APP_SCRIPTS_TESTS_PASS"
   },
   "prior_completed": {
     "pr": 326,
@@ -41,5 +39,7 @@
     "state": "PAUSED",
     "head": "e961135199f292b8210884f07de3b616a670161a",
     "backup_branch": "backup/pr310-paused-20260916-e9611351"
-  }
+  },
+  "review_base_sha": "bb3e8301fd3d48161fd45c5431471e87caa6e54e",
+  "review_base_tree": "f541995180f02b3ffa27400caa2afd1fcf141c27"
 }
