@@ -6,18 +6,24 @@
   "branch": "codex/ediel-v2-prodat-party-fields-20260917",
   "base_head_sha": "2d65dc9fdc66738cc66984ec91350adace34eb0d",
   "active_item": "F3-F all20 NAD fields and identified party consumers",
-  "next_action": "Publish exact reviewed tree; run ordinary CI, review and guarded merge. Then DTM/register/D fields.",
+  "next_action": "Publish qualification correction, run final ordinary exact-head CI/review, then guarded merge. DTM is next only after this item closes.",
   "main_merged": false,
   "source_state": {
-    "local_only": true,
+    "local_only": false,
     "new_source_cases": 264,
     "retained_source_cases": 584,
     "baseline": {
       "passed": 30,
       "failed": 234
     },
-    "consumer_cases_executed": false,
-    "normal_ci": "FINAL_HEAD_REQUIRED"
+    "consumer_cases_executed": true,
+    "normal_ci": "INITIAL_HEAD_FAILED; FINAL_HEAD_REQUIRED",
+    "published_head": "aadcd597ba59817d6396900f5e8409ed1efeaa09",
+    "published_tree": "e3b2a640bc65ce492109ebcba714149e9ff95aa5",
+    "consumer_cases": 50,
+    "local_full_tests": 1347,
+    "local_types": "app/scripts/tests PASS",
+    "local_changed_lint": "PASS"
   },
   "prior_completed": {
     "pr": 325,
@@ -35,5 +41,6 @@
     "state": "PAUSED",
     "head": "e961135199f292b8210884f07de3b616a670161a",
     "backup_branch": "backup/pr310-paused-20260916-e9611351"
-  }
+  },
+  "pull_request": 326
 }

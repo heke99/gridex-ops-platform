@@ -190,14 +190,23 @@ function cciCavSubtype(rawSegments: readonly string[]): string | null {
 
 function parseEdifactCanonical(rawPayload: string, direction: EdielMessageRow['direction'] | null): CanonicalEdielMessage {
   const facts = parseEdifactMessageFacts(rawPayload)
+  const una = parseUna(rawPayload)
   const rawSegments = facts.rawSegments
   const unbRaw = facts.unb?.raw ?? firstSegment(rawSegments, 'UNB+')
   const unhRaw = facts.unh?.raw ?? firstSegment(rawSegments, 'UNH+')
   const bgmRaw = facts.bgm?.raw ?? firstSegment(rawSegments, 'BGM+')
   const bgmCode = facts.messageType === 'PRODAT' ? facts.messageCode : firstComponent(element(bgmRaw, 1))
   const family = facts.messageType === 'PRODAT' ? 'PRODAT' : familyFromUnhAndBgm(unhRaw, bgmCode)
-  const senderParty = partyIdAndSubAddress(element(unbRaw, 2))
-  const receiverParty = partyIdAndSubAddress(element(unbRaw, 3))
+  // PRODAT policy selection must use the same UNA as its NAD field reader.
+  // Read structured wire components once; decoded colon/release data cannot be
+  // split again or confused with legal FR/DO identities.
+  const sourceParty = (index: number) => {
+    const parts = segmentComposite(facts.unb, index, una)
+    return { id: cleanString(parts[0]), subAddress: cleanString(parts[2]) }
+  }
+  const senderParty = family === 'PRODAT' ? sourceParty(2) : partyIdAndSubAddress(element(unbRaw, 2))
+  const receiverParty = family === 'PRODAT' ? sourceParty(3) : partyIdAndSubAddress(element(unbRaw, 3))
+  const sourceApplication = segmentComposite(facts.unb, 7, una)
   const references = family === 'PRODAT' ? prodatReferenceEntries(facts.segments, parseUna(rawPayload)) : referenceList(facts.segments, parseUna(rawPayload))
   const transactionReference =
     referenceValue(references, 'TN', 'LI', 'ACW') ??
@@ -224,9 +233,9 @@ function parseEdifactCanonical(rawPayload: string, direction: EdielMessageRow['d
       ? prodatCharacteristicValue('223', facts.segments, parseUna(rawPayload))?.toUpperCase() ?? null
       : cciCavSubtype(rawSegments),
     direction,
-    version: versionFromUnh(unhRaw),
-    applicationReference: element(unbRaw, 7),
-    una: parseUna(rawPayload),
+    version: family === 'PRODAT' ? cleanString(segmentComposite(facts.unh, 2, una)[4]) : versionFromUnh(unhRaw),
+    applicationReference: family === 'PRODAT' ? (sourceApplication.length === 1 ? cleanString(sourceApplication[0]) : null) : element(unbRaw, 7),
+    una,
     sender: senderParty.id,
     receiver: receiverParty.id,
     senderSubAddress: senderParty.subAddress,

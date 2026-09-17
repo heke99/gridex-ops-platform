@@ -72,14 +72,36 @@ describe('NAD read consumers use one source party identity', () => {
       expect(db.from).not.toHaveBeenCalled()
     })
     it(`passes the parsed UNA to the canonical NAD policy evaluator (${syntax.join('')})`, () => {
-      const raw = payload([nad('UD', {}, syntax), nad('IT', {}, syntax)], syntax)
+      const raw = payload([nad('UD', {}, syntax), nad('IT', {}, syntax), nad('Z02', {}, syntax)], syntax)
       const canonical = parseCanonicalEdielPayload({ rawPayload: raw, standardHint: 'edifact' })
-      const policy = resolveCanonicalEdielPolicy({ family: 'PRODAT', messageCode: 'Z04', subtypeOrReasonCode: 'Z22', direction: 'inbound', referenceDate: '2026-09-17', mode: 'catalog_evidence' })
+      expect(canonical).toMatchObject({ sender: '12345', receiver: '54321', applicationReference: '23-DDQ-PRODAT', version: 'E2SE6A' })
+      const policy = resolveCanonicalEdielPolicy({ family: 'PRODAT', messageCode: 'Z04', subtypeOrReasonCode: 'Z22', direction: 'inbound', referenceDate: '2026-09-17', applicationReference: canonical.applicationReference, mode: 'catalog_evidence' })
       const issues = validateCanonicalPolicyFields({ policy, rawSegments: canonical.rawSegments, una: canonical.una })
       // Other required/dependent fields are outside this synthetic NAD example.
       expect(issues.filter(issue => issue.fieldPath?.startsWith('NAD+') && !issue.code.startsWith('PRODAT_DEPENDENT_'))).toEqual([])
       expect(canonical.una?.dataElementSeparator).toBe(syntax[1])
       expect(db.from).not.toHaveBeenCalled()
+    })
+  }
+  for (const syntax of alphabets) {
+    it(`preserves technical route components without promoting legal parties (${syntax.join('')})`, () => {
+      const baseUnb = segment(['UNB', ['UNOC', '3'], ['12345', '14'], ['54321', '14'], ['260917', '1200'], 'INTERCHANGE', '', '23-DDQ-PRODAT'], syntax)
+      const actualUnb = segment(['UNB', ['UNOC', '3'], ["Sender:?+", '14', "S:?'"], ["Receiver:*;!", '14', 'R*;!'], ['260917', '1200'], 'INTERCHANGE', '', '23-DDQ-PRODAT'], syntax)
+      const raw = payload([nad('UD', {}, syntax)], syntax).replace(baseUnb, actualUnb)
+      expect(parseCanonicalEdielPayload({ rawPayload: raw, standardHint: 'edifact' })).toMatchObject({
+        sender: 'Sender:?+', receiver: 'Receiver:*;!', senderSubAddress: "S:?'", receiverSubAddress: 'R*;!',
+        applicationReference: '23-DDQ-PRODAT', version: 'E2SE6A',
+      })
+    })
+    it(`missing or composite application reference cannot select a policy (${syntax.join('')})`, () => {
+      for (const application of ['', '23-DDQ-PRODAT' + syntax[0] + 'OTHER']) {
+        const raw = payload([nad('UD', {}, syntax)], syntax).replace('23-DDQ-PRODAT', application)
+        const canonical = parseCanonicalEdielPayload({ rawPayload: raw, standardHint: 'edifact' })
+        expect(canonical.applicationReference).toBeNull()
+        expect(() => resolveCanonicalEdielPolicy({ family: 'PRODAT', messageCode: 'Z04', subtypeOrReasonCode: 'Z22',
+          direction: 'inbound', referenceDate: '2026-09-17', applicationReference: canonical.applicationReference, mode: 'catalog_evidence' }))
+          .toThrow('canonical_ediel_application_reference_required:PRODAT:Z04')
+      }
     })
   }
   for (const variant of ['absent', 'empty', 'header', 'later'] as const) {
@@ -131,7 +153,7 @@ describe('real preflight validates decoded source NAD components, not sanitized 
 describe('actual builders carry explicit parties without inventing substitutes', () => {
   it('the compatibility builder emits FR/DO and a line-level UD with ebIX260', () => {
     const built = buildProdatMessage({ companyId: 'tenant-A', role: 'supplier', businessCode: 'Z03', sender: { edielId: '12345' }, receiver: { edielId: '54321' },
-      meteringPoint: { id: point }, customer: { identity: '000a:B', identityQualifier: 'SE1', name: "Name?'" }, references: { LI: 'CASE' }, environment: 'test' })
+      meteringPoint: { id: point }, customer: { identity: '000a:B', identityQualifier: 'SE1', name: "Name?'" }, references: { LI: 'CASE' }, codedAttributes: { Z13: 'Z22' }, environment: 'test' })
     expect(built.rawEdifact).toContain('NAD+FR+12345:160:SVK+++++++SE')
     expect(built.rawEdifact).not.toContain('NAD+MS+')
     expect(built.rawEdifact.indexOf('NAD+UD+')).toBeGreaterThan(built.rawEdifact.indexOf('LIN+'))
@@ -148,13 +170,15 @@ describe('actual builders carry explicit parties without inventing substitutes',
     expect(result.segments).toContain('NAD+FR+00999:160:SVK+++++++DK')
     const noInvoicee = buildProfiledProdatSegments({ context: { ...context, code: 'Z13', reasonForTransaction: 'S17' }, generatedAt: new Date('2026-09-17T12:00:00Z') })
     expect(noInvoicee.segments.some(s => s.startsWith('NAD+IV+'))).toBe(false)
+    expect(() => buildProfiledProdatSegments({ context: { ...context, customerIdCodeListQualifier: 'Z01' }, generatedAt: new Date('2026-09-17T12:00:00Z') }))
+      .toThrow('prodat_party_code_list_invalid')
   })
 })
 
 describe('NAD permission matching at the declared service boundary', () => {
   for (const variant of ['matching', 'case', 'invoicee', 'bad-agency', 'other-tenant', 'headerless'] as const) {
     it(`handles ${variant} without crossing party or tenant boundaries`, async () => {
-      const candidate = message(payload([nad('UD'), 'RFF+LI:CASE'], defaultSyntax, 'Z13'), { id: 'candidate', direction: 'outbound', message_code: 'Z13' })
+      const candidate = message(payload([nad('UD'), 'RFF+LI:CASE'], defaultSyntax, 'Z13'), { id: 'candidate', direction: 'outbound', message_code: 'Z13', sender_ediel_id: '54321', receiver_ediel_id: '12345' })
       const inbound = message(payload([variant === 'invoicee' ? nad('IV') : nad('UD', variant === 'case' ? { 2: ['00A:B', '', '89'] } : {}), 'RFF+LI:CASE'], defaultSyntax, 'Z14'), { message_code: 'Z14' })
       if (variant === 'bad-agency') candidate.raw_payload = payload([nad('UD', { 2: ['00a:B', 'SE1', 'ZZZ'] }), 'RFF+LI:CASE'], defaultSyntax, 'Z13')
       if (variant === 'other-tenant') candidate.company_id = 'tenant-B'
@@ -169,6 +193,8 @@ describe('NAD permission matching at the declared service boundary', () => {
       const issues = await resolveProdatPermissionAperakValidationIssues({ message: inbound })
       expect(filters).toContainEqual(['company_id', 'tenant-A'])
       expect(filters).toContainEqual(['environment', 'test'])
+      expect(filters).toContainEqual(['sender_ediel_id', '54321'])
+      expect(filters).toContainEqual(['receiver_ediel_id', '12345'])
       expect(issues.length === 0).toBe(variant === 'matching')
       expect(JSON.stringify([candidate, inbound])).toBe(original)
     })

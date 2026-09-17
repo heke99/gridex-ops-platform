@@ -38,3 +38,12 @@ Completed PR324 merge; next single itemF3-E BGM fields. Source-backed implementa
 ## 2026-09-17 — Continue after merged PR325
 
 F3-F implemented all20NAD source slots and consumers; fixed wrong-party/cached-address and invalid candidate wildcard/tenant-scope defects. Added264actual-source cases and Vitest consumers;848combined localpass. Await exact-head ordinary CI/review; no full-plan or live approval. Paused PR310 untouched.
+
+## PR326 publication and qualification correction
+
+Initialaadcd597/treee3b2a640 published; ordinary initial CI not qualified.
+Verified locked dependency artifact10496783500 enabled actual local Vitest:
+initial1334pass/6fail; corrected1347/1347pass in209files, including50NAD cases.
+848source cases/integrity/budget pass. See f3-party-qualification.md for genuine
+UNA reader failures and documented synthetic fixture corrections. Final
+ordinary CI/review/merge remain required. PR310 paused, no production changes.

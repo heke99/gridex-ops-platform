@@ -1,12 +1,11 @@
 # Open blockers — 2026-09-17
 
-Active F3-F NAD unit: ordinary final-head qualification not yet executed;
-local848source cases and integrity checks do not substitute. Source/format
-projection is not actor-registry or live market/TGT acceptance.
+PR326: initial ordinary head failed; final qualified corrections must be
+published and pass exact-head CI/review. Local1347Vitest/848source results do
+not replace mandatory ordinary build/security/budgets/replay/certificate gates.
 
-Remaining whole-plan gates: other DTM/register/D/UNSM work, F0 live runtime
-and transport evidence, missing original source/TGT coverage, F2 tenant and
-schema integration, state-machine/timer and metering/billing paths, and F7
-formal release evidence. PR310 schema/types work remains explicitly paused.
-Do not mark its normalized/native schema evidence or generated types accepted.
-No production mutations or external market sends are authorized here.
+Whole-plan: remaining DTM/register/D/grammar; F0 live runtime/transport evidence,
+original source/TGT coverage, F2 tenant/schema integration, lifecycle/timer and
+metering/billing qualification, and F7 release evidence. PR310 remains explicitly
+paused; no native/schema/type evidence is approved by this independent work.
+No production mutation or external market send authorized here.

@@ -37,3 +37,12 @@ PR324 F3-D completed/mergedb0b3 after ordinary final-head CI success; no live ap
 ## 2026-09-17 — PR325 completed (observed GitHub)
 
 BGM unit merged as2d65dc9fdc66738cc66984ec91350adace34eb0d. Ordinary OPS35215628380, Ediel35215628501, Browser35215628412, FullE2E35215628437 passed before expected-head merge. New NAD unit is not yet qualified/merged.
+
+## PR326 publication and qualification correction
+
+Initialaadcd597/treee3b2a640 published; ordinary initial CI not qualified.
+Verified locked dependency artifact10496783500 enabled actual local Vitest:
+initial1334pass/6fail; corrected1347/1347pass in209files, including50NAD cases.
+848source cases/integrity/budget pass. See f3-party-qualification.md for genuine
+UNA reader failures and documented synthetic fixture corrections. Final
+ordinary CI/review/merge remain required. PR310 paused, no production changes.

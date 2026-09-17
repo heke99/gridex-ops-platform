@@ -76,13 +76,22 @@ describe('PRODAT characteristic consumers beyond the line parser', () => {
     ]), { productCode: 'STALE_PRODUCT' }))
     expect(result.production.productCode).toBeNull()
   })
-  it('wire fields take precedence over stale parsed characteristics, not over unrelated fields', () => {
+  it('wire characteristics remain exact without inventing an absent party', () => {
     const result = parseInboundProdatBusinessData(message(payload('Z04', ['CCI++Z14', 'CAV+:::L917']), { productCode: 'STALE', customerName: 'Preserved customer' }))
     expect(result.production.productCode).toBe('L917')
-    expect(result.customer.fullName).toBe('Preserved customer')
+    expect(result.customer.fullName).toBeNull()
+  })
+  it('present party data remains independent of characteristic projection', () => {
+    const result = parseInboundProdatBusinessData(message(payload('Z04', [
+      'CCI++Z14', 'CAV+:::L917', 'NAD+UD+001::89++Wire customer+++++SE',
+    ]), { productCode: 'STALE', customerName: 'Stale customer' }))
+    expect(result.production.productCode).toBe('L917')
+    expect(result.customer.fullName).toBe('Wire customer')
   })
   it('structured-only legacy records retain their explicit fallback', () => {
-    expect(parseInboundProdatBusinessData(message(null, { productCode: 'L917' })).production.productCode).toBe('L917')
+    const result = parseInboundProdatBusinessData(message(null, { productCode: 'L917', customerName: 'Legacy customer' }))
+    expect(result.production.productCode).toBe('L917')
+    expect(result.customer.fullName).toBe('Legacy customer')
   })
   it('first-object staging cannot borrow a product from the next LIN', () => {
     const result = parseInboundProdatBusinessData(message(payload('Z04', ['CCI++Z07', 'CAV+E23', 'LIN+2++OTHER:::9', 'CCI++Z14', 'CAV+:::L641Q'])))

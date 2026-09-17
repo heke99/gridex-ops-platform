@@ -42,3 +42,12 @@ F3-E129source cases129pass, corrected base62pass/67fail;439retained pass.19Vites
 ## F3-F local checkpoint
 
 Final264NAD cases: base30pass/234fail, candidate264pass. Combined848source casespass; immutable33/121/231 and unchanged large-source-file budgetpass. Real Vitest/full TS/lint/build/ordinary CIpending. Pure boundary mocks, no live DB or market acceptance.
+
+## PR326 publication and qualification correction
+
+Initialaadcd597/treee3b2a640 published; ordinary initial CI not qualified.
+Verified locked dependency artifact10496783500 enabled actual local Vitest:
+initial1334pass/6fail; corrected1347/1347pass in209files, including50NAD cases.
+848source cases/integrity/budget pass. See f3-party-qualification.md for genuine
+UNA reader failures and documented synthetic fixture corrections. Final
+ordinary CI/review/merge remain required. PR310 paused, no production changes.
