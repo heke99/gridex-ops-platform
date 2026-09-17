@@ -1,0 +1,81 @@
+name: F3-F exact source transfer (not release qualification)
+on:
+  push:
+    branches: [codex/f3f-source-transfer-20260917-e3b2a640]
+    paths: [.github/workflows/f3f-source-transfer.yml]
+permissions:
+  contents: write
+jobs:
+  transfer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decode and verify reviewed source bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/f3f-source"
+          python3 - <<'PY'
+          import base64, hashlib, lzma, os
+          from pathlib import Path
+          expected = [
+              'bcb435cf331dd463216b85d924042066f0ace879a2a28f28d0769e570cf5541e',
+              '227decd8fc9711a20f228d86f4861e3d7b1de459b77f75cf147a812504cfdde4',
+              '466f1ec3753d2a73583a1cc14cb151f0618e471324a03efff6f3f40bb9cd03c0',
+              'adbab0d02fe6dd8b7f8d92ce8021bad20c38ad833a5bdaaab5e62071f589f693',
+          ]
+          chunks = []
+          for i, digest in enumerate(expected):
+              data = Path(f'.agent-transfer/f3f.{i:02d}.b64').read_bytes()
+              assert len(data) == 11024 and hashlib.sha256(data).hexdigest() == digest, f'chunk {i} identity mismatch'
+              chunks.append(data)
+          compressed = base64.b64decode(b''.join(chunks), validate=True)
+          assert hashlib.sha256(compressed).hexdigest() == '5d37b615c5dbf3643194f6979a0aa8924c7ed71591f7573926df3cc374377846'
+          patch = lzma.decompress(compressed)
+          assert hashlib.sha256(patch).hexdigest() == '88cd5b91fecc6db970befef7bd16dff0f337a9d91069cb72e8a45abfeaafb33b'
+          Path(os.environ['RUNNER_TEMP'], 'f3f-source', 'reviewed.patch').write_bytes(patch)
+          PY
+      - name: Publish only the exact reviewed tree from its verified main parent
+        shell: bash
+        env:
+          BASE: 2d65dc9fdc66738cc66984ec91350adace34eb0d
+          EXPECTED_TREE: e3b2a640bc65ce492109ebcba714149e9ff95aa5
+          TARGET: codex/ediel-v2-prodat-party-fields-20260917
+        run: |
+          set -euo pipefail
+          existing="$(git ls-remote --heads origin "refs/heads/$TARGET")"
+          test -z "$existing" || { echo 'Target already exists; refuse to overwrite'; exit 1; }
+          git fetch --no-tags --depth=1 origin "$BASE"
+          git checkout --detach "$BASE"
+          test "$(git rev-parse 'HEAD^{tree}')" = be9ca7ee44f2594100efb50328006e114fca2f91
+          git apply --check --unidiff-zero "$RUNNER_TEMP/f3f-source/reviewed.patch"
+          git apply --index --unidiff-zero "$RUNNER_TEMP/f3f-source/reviewed.patch"
+          git diff --cached --check
+          test "$(git diff --cached --name-only | wc -l)" -eq 37
+          test "$(git write-tree)" = "$EXPECTED_TREE"
+          if git ls-files | grep -E '^\.agent-transfer/f3f\.|^\.github/workflows/f3f-source-transfer\.yml$'; then
+            echo 'Transfer helper must not enter the candidate'; exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(ediel): source-exact PRODAT NAD parties and tenant-scoped permission consumers' -m 'Restore the reviewed 37-file tree e3b2a640 from main2d65dc9. Local848 source cases pass; actual-module Vitest and ordinary exact-head CI remain required before merge. No PR310 migrations/types/proofs, production data or source-transfer helpers included.'
+          test "$(git rev-parse HEAD^)" = "$BASE"
+          test "$(git rev-parse 'HEAD^{tree}')" = "$EXPECTED_TREE"
+          git push origin "HEAD:refs/heads/$TARGET"
+          {
+            printf 'base=%s\nbranch=%s\ncommit=%s\ntree=%s\n' "$BASE" "$TARGET" "$(git rev-parse HEAD)" "$EXPECTED_TREE"
+            printf 'patch_sha256=88cd5b91fecc6db970befef7bd16dff0f337a9d91069cb72e8a45abfeaafb33b\n'
+            printf 'scope=source byte and tree identity only; not CI acceptance, production readiness or market certification\n'
+          } > "$RUNNER_TEMP/f3f-source/provenance.txt"
+          git archive --format=tar.gz --output="$RUNNER_TEMP/f3f-source/source.tar.gz" HEAD
+          (cd "$RUNNER_TEMP/f3f-source" && sha256sum source.tar.gz reviewed.patch > SHA256SUMS)
+      - name: Retain exact source provenance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: f3f-source-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/f3f-source/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
