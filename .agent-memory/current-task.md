@@ -1,6 +1,6 @@
-# Current task
+# Active work — F3-E PR325
 
-One active item:F3-E document headers. See current-state.md/checkpoint.json and
-f3-document-fields.md. Publish the reviewed source, run ordinary exact-head CI,
-fix actual failures without weakening tests, review and guarded merge. Then NAD/DTM
-from new main. PR324 already mergedb0b3; never reapply its old ZIP or resume PR310.
+See current-state.md and checkpoint.json. The source is published and the actual
+ACK escape failures corrected; final source/docs head requires ordinary CI,
+review and SHA-guarded merge. Do not substitute an older green head or isolated
+qualification. Then NAD/DTM from newly merged main. PR324 is merged; PR310 paused.

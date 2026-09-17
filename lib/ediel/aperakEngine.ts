@@ -176,7 +176,7 @@ export function renderAperakEdiel(params: {
   const utiltsBgmCode = params.outcome === 'positive' ? '312' : '313'
   const bgmFunction = '34'
   const sourceWire = params.source.messageFamily === 'PRODAT' ? tokenizeEdifact(params.source.rawPayload) : null
-  const hasProdatWire = sourceWire?.segments.some(segment => segment.tag === 'UNH' || segment.tag === 'BGM') ?? false
+  const hasProdatWire = params.source.messageFamily === 'PRODAT' && Boolean(params.source.rawPayload?.trim())
   const wireDocument = sourceWire ? prodatDocumentValue('203', sourceWire.segments, sourceWire.una) : null
   if (hasProdatWire && (!wireDocument || wireDocument.length > 35)) {
     // Missing/invalid original identity is a local correlation blocker, not a

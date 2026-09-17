@@ -6,19 +6,22 @@
   "branch": "codex/ediel-v2-prodat-document-fields-20260917",
   "base_head_sha": "b0b3b395a36168757b0f8b4a765b7f7fadf6cceb",
   "active_item": "F3-E all four BGM header fields and identified consumers",
-  "next_action": "Publish reviewed source, ordinary exact-head CI/review/merge; then NAD/DTM fields.",
+  "next_action": "Run normal CI on actual final PR325 head, review and SHA-guarded merge; then NAD/DTM from new main.",
   "main_merged": false,
   "source_state": {
-    "local_only": true,
-    "new_source_cases": 129,
+    "local_only": false,
+    "new_source_cases": 145,
     "retained_source_cases": 439,
     "baseline": {
       "passed": 62,
       "failed": 67
     },
     "consumer_cases": 19,
-    "consumer_cases_executed": false,
-    "normal_ci": "REQUIRED"
+    "consumer_cases_executed": true,
+    "normal_ci": "FINAL_HEAD_REQUIRED",
+    "qualified_code_head": "74bed19fa9372e81efb6cb24d9f1dc0a7e608925",
+    "isolated_qualification": 35214234089,
+    "full_vitest_passed": 1296
   },
   "prior_completed": {
     "pr": 324,
@@ -36,5 +39,6 @@
     "state": "PAUSED",
     "head": "e961135199f292b8210884f07de3b616a670161a",
     "backup_branch": "backup/pr310-paused-20260916-e9611351"
-  }
+  },
+  "pull_request": 325
 }

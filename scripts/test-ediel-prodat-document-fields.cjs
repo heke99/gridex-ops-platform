@@ -227,3 +227,10 @@ for (const id of ['DOC:1','DOC+1',"DOC'1",'DOC?','000aBc','D'.repeat(35)]) {
   assert.equal(r.issues.some(issue=>issue.code==='UNT_COUNT_MISMATCH'),false)
  })
 }
+
+for (const raw of ["UNB+UNOC:3+S+R+260917:1200+I'", "LIN+1'", "RFF+ACW:OTHER'", "UNRELATED"]) {
+ test(`APERAK cannot treat nonempty source without a BGM as structured-only legacy: ${raw}`,async()=>{
+  const a=await api
+  assert.throws(()=>a.renderAperakEdiel({source:{id:'LOCAL-UUID',messageFamily:'PRODAT',rawPayload:raw,externalReference:'STALE'},refs:{documentReference:'STALE'},externalReference:'ACK',transactionReference:'CASE',outcome:'positive'}),/aperak_prodat_document_reference_required/)
+ })
+}

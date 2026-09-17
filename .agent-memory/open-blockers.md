@@ -1,7 +1,7 @@
-# Open blockers
+# Open blockers — 2026-09-17
 
-F3-E: full dependency/test/type/build/ordinary exact-head CI and review required.
-Local npm is unavailable; GitHub normal CI provides dependency qualification.
-PR324 publication/qualification is resolved and merged, not an active blocker.
-Full F0/F1/F2/F3/F7, original TGT/legal scope and paused PR310 remain separate.
-Do not mistake source-bound synthetic fixtures for live or formal acceptance.
+PR325 final source/docs-head CI/review/merge is the current gate. Prior source
+publication blockers and the reproduced ACK escape failures are resolved, not
+reasons to reapply old source. Remaining NAD/DTM/register/110D/full grammar,
+F0 production evidence, full sources/TGT/ESCO grants and paused PR310 schema/types
+are separate requirements. No full F3/F7 or production approval is claimed.
