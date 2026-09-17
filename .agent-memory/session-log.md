@@ -17,3 +17,11 @@ Next: final PR CI and further bounded F1 work. Main/PR310 source/hosted DB untou
 ## 2026-09-17 — continuation
 
 Read live GitHub:318/320/321 merged; restored verified main71dc tree fromartifact10470382510. Reproduced guide immutability/calendar defects, implemented and locally tested F1-C; full CI next. PR310 untouched.
+
+## 2026-09-17 — verified merge322; F3-C in progress
+
+PR322 merged b1e07728 after OPS35191395738,Ediel35191395581,browser35191395542,
+fullE2E35191395541 success, successful CodeRabbit and no unresolved review threads.
+PR319 closed superseded. F3-C reproduced83/116 failures, now124/124 new source
+cases and210/210 retained pass. Full dependency consumer16 cases and normal CI/
+review/merge pending. See f3-characteristic-fields.md. PR310 untouched.

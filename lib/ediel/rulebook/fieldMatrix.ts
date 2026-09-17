@@ -1,3 +1,5 @@
+import { prodatCharacteristicField, prodatCharacteristicPresent, prodatCharacteristicValues } from '@/lib/ediel/prodat/prodatCharacteristicFields'
+import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import type { EdielRulebookIssue, EdielRulebookRequirement } from '@/lib/ediel/rulebook/rulebook'
 
 export type RulebookFieldRule = {
@@ -22,6 +24,7 @@ export type RulebookFieldRule = {
 }
 
 export type FieldMatrixEvaluationInput = {
+  una?: EdifactServiceStringAdvice
   family?: string | null
   code?: string | null
   rawSegments?: readonly string[] | null
@@ -172,6 +175,8 @@ function firstValueForPath(rawSegments: readonly string[] | null | undefined, pa
 
 function fieldValuesForRule(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): string[] {
   const rawSegments = input.rawSegments ?? []
+  const characteristic = normalize(rule.family) === 'PRODAT' ? prodatCharacteristicField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (characteristic) return prodatCharacteristicValues(characteristic.fieldNumber, rawSegments, input.una).map(normalize)
   const value = (() => {
     switch (rule.fieldKey) {
       case 'application_reference':
@@ -378,6 +383,10 @@ export function fieldRulesForMessage(family: string | null | undefined, code: st
 export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): boolean {
   const rawSegments = input.rawSegments ?? []
   const applicationReference = input.applicationReference ?? null
+  const characteristic = normalize(rule.family) === 'PRODAT' ? prodatCharacteristicField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (characteristic) return prodatCharacteristicPresent(characteristic.fieldNumber, rawSegments, {
+    una: input.una, forbidden: rule.requirement === 'forbidden' || rule.requirement === 'not_used',
+  })
 
   // The canonical PRODAT 26-A matrix is field-level, while several rows share
   // the same EDIFACT segment. Segment-level presence therefore cannot be used
@@ -396,7 +405,8 @@ export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEval
       case '321':
       case '325':
       case '326':
-      case '327': {
+      case '327':
+      case '508': {
         // P §2.6: qualifiers name fields; they are not their values. Preserve
         // empty composite positions so e.g. DTM+164::203 cannot count as a date.
         // Even an empty forbidden field must still be rejected.

@@ -1,3 +1,5 @@
+import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import type { AckFamily, AckOutcome, EdielAperakApplicationError } from '@/lib/ediel/ack'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { applyCertifiedUtiltsAckPolicy } from '@/lib/ediel/rulebook/utiltsAckPolicy'
@@ -100,28 +102,6 @@ function rawSegments(rawPayload?: string | null): string[] {
 function segmentStarts(rawPayload: string | null | undefined, prefix: string): boolean {
   const upperPrefix = prefix.toUpperCase()
   return rawSegments(rawPayload).some((segment) => segment.toUpperCase().startsWith(upperPrefix))
-}
-
-function firstCavAfterCci(rawPayload: string | null | undefined, qualifier: string): string | null {
-  const segments = rawSegments(rawPayload)
-  const expected = `CCI++${qualifier.toUpperCase()}`
-  const index = segments.findIndex((segment) => {
-    const upper = segment.toUpperCase()
-    return upper === expected || upper.startsWith(`${expected}+`)
-  })
-  if (index < 0) return null
-
-  for (let cursor = index + 1; cursor < segments.length; cursor += 1) {
-    const upper = segments[cursor]?.toUpperCase() ?? ''
-    if (upper.startsWith('CCI+')) return null
-    if (upper.startsWith('CAV+')) {
-      const raw = segments[cursor]?.split('+')[1] ?? ''
-      const value = raw.split(':').find((part) => part.trim().length > 0) ?? raw
-      return normalize(value) || null
-    }
-  }
-
-  return null
 }
 
 function firstReference(rawPayload: string | null | undefined, qualifier: string): string | null {
@@ -237,8 +217,9 @@ function buildKnownPermissionErrors(params: {
   const { rawPayload, classification } = params
   const code = normalize(classification.messageCode)
   const errors: EdielAperakApplicationError[] = []
-  const status = firstCavAfterCci(rawPayload, 'Z23')
-  const endReason = firstCavAfterCci(rawPayload, 'Z25')
+  const tokens = tokenizeEdifact(rawPayload)
+  const status = prodatCharacteristicValue('322', tokens.segments, tokens.una)
+  const endReason = prodatCharacteristicValue('324', tokens.segments, tokens.una)
 
   if (code === 'Z14' && classification.variant === 'unknown') {
     errors.push(errorForCode({
@@ -250,11 +231,11 @@ function buildKnownPermissionErrors(params: {
   }
 
   if (code === 'Z15') {
-    if (status && !['A75'].includes(status)) {
-      errors.push(errorForCode({ ercCode: '42', fieldCode: '322', text: `INCORRECT DATA - permission status ${status}`, rawPayload }))
+    if (!status || status !== 'A75') {
+      errors.push(errorForCode({ ercCode: status ? '42' : '41', fieldCode: '322', text: status ? `INCORRECT DATA - permission status ${status}` : 'MANDATORY FIELD MISSING - permission status', rawPayload }))
     }
-    if (endReason && !['B79', 'B80'].includes(endReason)) {
-      errors.push(errorForCode({ ercCode: '42', fieldCode: '324', text: `INCORRECT DATA - permission end reason ${endReason}`, rawPayload }))
+    if (!endReason || !['B79', 'B80'].includes(endReason)) {
+      errors.push(errorForCode({ ercCode: endReason ? '42' : '41', fieldCode: '324', text: endReason ? `INCORRECT DATA - permission end reason ${endReason}` : 'MANDATORY FIELD MISSING - permission end reason', rawPayload }))
     }
   }
 

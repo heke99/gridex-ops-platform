@@ -1,3 +1,5 @@
+import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
+import { parseUna } from '@/lib/ediel/core/una'
 // lib/ediel/prodat/permissionEngine.ts
 
 import { parseEdifactMessageFacts, type EdifactSegment } from '@/lib/ediel/core/edifactSegments'
@@ -110,23 +112,6 @@ function referencesByQualifier(segments: readonly EdifactSegment[]): Record<stri
   return refs
 }
 
-function cciCavValue(segments: readonly EdifactSegment[], cciCode: string): string | null {
-  for (let index = 0; index < segments.length; index += 1) {
-    const segment = segments[index]
-    if (segment?.raw !== `CCI++${cciCode}`) continue
-
-    const next = segments[index + 1]
-    if (!next || next.tag !== 'CAV') return null
-
-    const cleaned = next.raw.replace(/^CAV\+/i, '').trim()
-    if (!cleaned) return null
-    const parts = cleaned.split(':').map((part) => part.trim()).filter(Boolean)
-    return parts[parts.length - 1] ?? null
-  }
-
-  return null
-}
-
 function partyIdFromNad(segments: readonly EdifactSegment[], qualifier: string): string | null {
   const segment = segments.find((item) => item.raw.startsWith(`NAD+${qualifier}+`))
   return firstComponent(segment?.elements[2])
@@ -162,8 +147,8 @@ function readPermissionMessageFacts(message: EdielMessageRow): PermissionMessage
       lineReference: line.rffLi ?? null,
       customerId: partyIdFromNad(line.segments, 'UD') ?? partyIdFromNad(line.segments, 'IV'),
       agreementReference: agreementReferenceFromSegments(line.segments),
-      permissionStatus: cciCavValue(line.segments, 'Z23'),
-      permissionEndReason: cciCavValue(line.segments, 'Z25') ?? cciCavValue(line.segments, 'Z26'),
+      permissionStatus: prodatCharacteristicValue('322', line.segments, parseUna(message.raw_payload)),
+      permissionEndReason: prodatCharacteristicValue('324', line.segments, parseUna(message.raw_payload)),
       rawSegments: line.segments.map((segment) => segment.raw),
     })),
   }
@@ -496,24 +481,24 @@ function validatePermissionZ15(params: {
   const endReason = normalize(line.permissionEndReason)
   const issues: ProdatPermissionDecisionIssue[] = []
 
-  if (status && status !== 'A75') {
+  if (status !== 'A75') {
     issues.push(permissionDecisionIssue({
-      ruleKey: 'permission_status_invalid',
-      ercCode: '42',
+      ruleKey: status ? 'permission_status_invalid' : 'permission_status_missing',
+      ercCode: status ? '42' : '41',
       fieldCode: '322',
-      text: `Felaktigt tillståndets status ${status}`,
+      text: status ? `Felaktigt tillståndets status ${status}` : 'Tillståndets status saknas',
       line,
       actualValue: status,
       expectedValue: 'A75',
     }))
   }
 
-  if (endReason && !['B79', 'B80'].includes(endReason)) {
+  if (!['B79', 'B80'].includes(endReason)) {
     issues.push(permissionDecisionIssue({
-      ruleKey: 'permission_end_reason_invalid',
-      ercCode: '42',
+      ruleKey: endReason ? 'permission_end_reason_invalid' : 'permission_end_reason_missing',
+      ercCode: endReason ? '42' : '41',
       fieldCode: '324',
-      text: `Felaktig orsak till tillståndets upphörande ${endReason}`,
+      text: endReason ? `Felaktig orsak till tillståndets upphörande ${endReason}` : 'Orsak till tillståndets upphörande saknas',
       line,
       actualValue: endReason,
       expectedValue: 'B79/B80',

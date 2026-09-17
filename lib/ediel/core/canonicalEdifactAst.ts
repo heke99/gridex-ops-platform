@@ -1,3 +1,4 @@
+import { prodatCharacteristicCodes } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import {
   segmentComposite,
   tokenizeEdifact,
@@ -147,6 +148,7 @@ function cciCavMap(
 function buildLineGroups(
   segments: readonly EdifactTokenizedSegment[],
   una: EdifactServiceStringAdvice,
+  family: string | null,
 ): CanonicalEdifactLineGroup[] {
   const starts = segments.filter((segment) => segment.tag === 'LIN')
   return starts.map((line, index) => {
@@ -160,7 +162,7 @@ function buildLineGroups(
       itemId: canonicalFirstComponent(line, 3, una),
       segments: group,
       references: referenceMap(group, una),
-      cciCavCodes: cciCavMap(group, una),
+      cciCavCodes: family === 'PRODAT' ? prodatCharacteristicCodes(group, una) : cciCavMap(group, una),
     }
   })
 }
@@ -202,14 +204,15 @@ export function parseCanonicalEdifactAst(rawPayload: string | null | undefined):
   const messages = messageSlices(tokenized.segments).map((segments, messageIndex) => {
     const unh = segments.find((segment) => segment.tag === 'UNH') ?? null
     const bgm = segments.find((segment) => segment.tag === 'BGM') ?? null
+    const family = canonicalFirstComponent(unh, 2, tokenized.una)?.toUpperCase().replace('-', '_') ?? null
     return {
       messageIndex,
       segments,
-      family: canonicalFirstComponent(unh, 2, tokenized.una)?.toUpperCase().replace('-', '_') ?? null,
+      family,
       messageReference: canonicalElement(unh, 1),
       messageCode: canonicalFirstComponent(bgm, 1, tokenized.una)?.toUpperCase() ?? null,
       documentReference: canonicalElement(bgm, 2),
-      lineGroups: buildLineGroups(segments, tokenized.una),
+      lineGroups: buildLineGroups(segments, tokenized.una, family),
     }
   })
 
@@ -235,7 +238,9 @@ export function canonicalMessageFacts(rawPayload: string | null | undefined): {
 } {
   const ast = parseCanonicalEdifactAst(rawPayload)
   const message = ast.messages[0] ?? null
-  const cciCavCodes = cciCavMap(message?.segments ?? ast.segments, ast.una)
+  const cciCavCodes = message?.family === 'PRODAT'
+    ? prodatCharacteristicCodes(message.segments, ast.una)
+    : cciCavMap(message?.segments ?? ast.segments, ast.una)
   const dtmValues: Record<string, string[]> = {}
 
   for (const segment of message?.segments ?? ast.segments) {
