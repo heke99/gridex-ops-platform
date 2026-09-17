@@ -1,10 +1,10 @@
 # Open blockers — 2026-09-17
 
-- Active F3-D: GitHub branch/file/PR/merge actions are not exposed in this session.
-  Read connector and plugin directory were checked. No new remote changes exist.
-- Active F3-D: full dependency install/typecheck/Vitest/build and normal exact-head
-  CI remain unrun. 439 source tests are not a substitute. No completion certificate.
-- Further NAD/BGM/DTM and register rules, full provenance, permission semantics,
-  future capabilities and original TGT proof require their own implementation/evidence.
-- F0 live incident/environment evidence, DB-dependent F2 and F7 retain their gates.
-  PR310 is paused; its schema/types/replay are not accepted by current-main CI.
+- F3-D source publication and full code qualification blockers are resolved on
+  c343dfd1 in PR324. Final docs-head CI/review/merge must still be read back.
+- Local npm installation is unavailable; normal GitHub CI supplies dependency
+  qualification. Source-only tests do not substitute for those gates.
+- Remaining NAD/BGM/DTM/register/dependent rules and complete grammar have their
+  own evidence requirements. Full F1/F3/F7/masterplan approval is not claimed.
+- F0 live environment/incident evidence, original TGT scope, grants/permissions
+  and DB-dependent F2/F7 remain separate. PR310 remains paused and unaccepted.
