@@ -1,6 +1,6 @@
 import { canonicalProdatSubtypeAlias } from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
 import { PRODAT_26A_FIELD_MATRIX, PRODAT_26A_MESSAGE_CODES } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
-import { renderProdatDateField } from '@/lib/ediel/prodat/prodatDateFields'
+import { renderProdatDateField, prodatDateExcludedBySubtype } from '@/lib/ediel/prodat/prodatDateFields'
 import { prodatNowDate203 } from '@/lib/ediel/prodat/render/dates'
 
 /** Explicit business meanings. Legacy start/end aliases are resolved only at
@@ -26,11 +26,14 @@ const keys: Readonly<Record<string, keyof ProdatDateInputs>> = {
   '321':'reportEndDate', '326':'permissionTimestamp', '327':'permissionEndDate', '508':'observationLength',
 }
 
-/** A provided empty/non-string value is not an omitted optional date. */
-function pick(source: Readonly<Record<string, unknown>> | null | undefined, names: readonly string[]): string | undefined {
+/** The first own, defined alias is authoritative, including explicit null.
+ * Only absence/undefined permits a lower-priority alias or source fallback. */
+function pick(source: Readonly<Record<string, unknown>> | null | undefined, names: readonly string[]): string | null | undefined {
   for (const name of names) {
-    const value = source?.[name]
-    if (value == null) continue
+    if (!source || !Object.prototype.hasOwnProperty.call(source, name)) continue
+    const value = source[name]
+    if (value === undefined) continue
+    if (value === null) return null
     if (typeof value !== 'string') throw new Error(`prodat_date_input_invalid:${name}`)
     return value
   }
@@ -42,7 +45,10 @@ function pick(source: Readonly<Record<string, unknown>> | null | undefined, name
 export function resolveProdatDateInputs(code: string, variant: string | null | undefined,
   source: Readonly<Record<string, unknown>>, snapshot?: Readonly<Record<string, unknown>> | null): ProdatDateInputs {
   variant = canonicalProdatSubtypeAlias(variant, code)
-  const get = (names: string[]) => pick(snapshot, names) ?? pick(source, names)
+  const get = (names: string[]) => {
+    const value = pick(snapshot, names)
+    return value !== undefined ? value : pick(source, names)
+  }
   const report = code === 'Z13' || code === 'Z14'
   const validity = code === 'Z06' || code === 'Z10' || (code === 'Z09' && variant !== 'D')
   const contractStart = ['Z01','Z03','Z04'].includes(code) || (code === 'Z09' && variant === 'D')
@@ -72,8 +78,7 @@ export function buildProdatDateSegments(code: string, variant: string | null | u
   const header: string[] = [], line: string[] = []
   for (const field of PRODAT_26A_FIELD_MATRIX.filter(row => row.dateQualifier)) {
     if (field.requirements[codeIndex] === '-') continue
-    if (code === 'Z14' && variant === 'N' && ['302','321','326','508'].includes(field.fieldNumber)) continue
-    if (code === 'Z09' && (variant === 'D' ? field.fieldNumber === '216' : ['210','211'].includes(field.fieldNumber))) continue
+    if (prodatDateExcludedBySubtype(code, variant, field.fieldNumber)) continue
     const segment = renderProdatDateField(field.fieldNumber, values[keys[field.fieldNumber]], values.observationLengthFormat ?? undefined)
     if (segment) (field.dateScope === 'header' ? header : line).push(segment)
   }

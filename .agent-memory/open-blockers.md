@@ -1,10 +1,8 @@
-# Active blockers — F3-G
+# PR327 merge gates
 
-Ordinary new-head CI and substantive source/code review remain required before merge.
-No user authorization is missing for the agreed branch/test/PR flow. Read actual GitHub
-state before advancing; local green is not release approval.
-
-PR310 remains explicitly PAUSED at e961135199f292b8210884f07de3b616a670161a; schema,
-replay, generated types and dependent integration remain blocked, not accepted.
-Whole F0/F2/F5/F7/live/TGT approval and remaining registers/110D/full grammar are
-not supplied by this bounded PRODAT DTM implementation.
+The two substantive review defects are reproduced and fixed locally; the new
+published head must still pass all ordinary checks and a substantive rereview.
+There is no missing user authorization for the agreed GitHub PR/CI/merge work.
+Read actual refs/checks/review threads before advancing. Old green bb3e8301 is not
+qualification for a later head. PR310 remains paused and unchanged; whole F3,
+all national D/register rules, F5 transitions and F7/live acceptance remain separate.

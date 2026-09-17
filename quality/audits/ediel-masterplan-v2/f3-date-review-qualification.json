@@ -1,0 +1,85 @@
+{
+  "scope": "PR327 review correction local qualification; normal exact-head CI and rereview still required",
+  "main_base": "31b4dbeb764874e252e8b6b510bf1fa78832f148",
+  "published_review_base": "bb3e8301fd3d48161fd45c5431471e87caa6e54e",
+  "published_review_base_tree": "f541995180f02b3ffa27400caa2afd1fcf141c27",
+  "source_artifact": {
+    "id": 10507943040,
+    "sha256": "247d555e1d684953df403b0c28e0ba1015c3d43b21798e31265d8aa5553a00e2",
+    "tree_verified": true
+  },
+  "new_review_cases": 113,
+  "baseline_new_review": {
+    "passed": 45,
+    "failed": 68
+  },
+  "baseline_boundary_including_30_retained": {
+    "passed": 75,
+    "failed": 68,
+    "total": 143
+  },
+  "corrected_boundary": {
+    "passed": 143,
+    "failed": 0
+  },
+  "full_application": {
+    "passed": 1814,
+    "failed": 0,
+    "files": 213,
+    "review_cases_included": true
+  },
+  "dtm_suite_each_timezone": {
+    "passed": 380,
+    "failed": 0,
+    "zones": [
+      "UTC",
+      "Europe/Stockholm",
+      "Pacific/Apia"
+    ],
+    "same_cases_repeated": true
+  },
+  "retained_source": {
+    "passed": 848,
+    "failed": 0
+  },
+  "typecheck": {
+    "typecheck": 0,
+    "typecheck-scripts": 0,
+    "typecheck-tests": 0
+  },
+  "findings": {
+    "4039380735": "fixed locally; subtype exclusions shared by renderer and common matrix, per object",
+    "4039380743": "fixed locally; explicit null blocks alias/source fallback",
+    "4039380729": "readability companion; original archived source snapshots preserved",
+    "4039380751": "finding-level status matrix added to f3-date-fields.md"
+  },
+  "ordinary_ci": "NEW_EXACT_HEAD_REQUIRED",
+  "substantive_rereview": "REQUIRED",
+  "pr310": "PAUSED_UNCHANGED",
+  "local_attempts_note": "An unbounded-worker full test invocation and a bounded tool invocation of tsc timed out without a verdict. The subsequent same full suite with two workers and separately bounded type runs completed successfully; no test exclusions or assertion changes.",
+  "evidence_sha256": {
+    "typecheck-tests.log": "b215537d20de45f7a64cbd824e9e37d0715a4b39d3e0780f59355d2e037b4656",
+    "dtm-UTC.json": "be21d2e0fa8c7f39ca2bae7080cc2cede9eb0d8b7936209f70378f482c0be5a1",
+    "dtm-Europe-Stockholm.log": "a51817741265ad88c1a9d3f402e7f25a7f6da441c7ada2e3112099865b371e64",
+    "retained-source.log": "0e2e56fd3855c21890cc8e6d5f462e993c2eaa855c88192929030be53e824274",
+    "typecheck.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "typecheck.log": "4b1d0b478880d5443bfb6d57f349e9abc225f248df8c966d105dba22aaf1cbfc",
+    "typecheck-scripts.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "dtm-Europe-Stockholm.json": "6ed39e6065ae6ca3031417f70c1e3f04405e525410fdee6c88ff165a3563e98c",
+    "typecheck-scripts.log": "122902ab9bb4622846143a7b4d89493b7734657820f4cf78d01aea55a4e9701f",
+    "review-fixed.log": "a64ae7ef57c27f088850a57d4db913045e87c28b017244b3ca8ade3c55479113",
+    "full-fixed.json": "ddac3afeff7fc3e19c84126b7868468f9df0ba1646721d9cd5d66990569b6683",
+    "integrity.log": "6b69e14e634de940b6b47b8e579ee132ce867dfe9926a178061b05439e74c106",
+    "retained-source.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "dtm-Pacific-Apia.json": "67596745f0e0dbe88c47d63c466e4c70d176680f5de638f8b2d2125fd1a970ff",
+    "review-fixed.json": "963bc7c30d20eed56e2c5b70f484be73b64c7cf554f8f8b493fdc905776fe0b1",
+    "review-baseline.json": "869876eae5799daea216e84224f94983e6a404c3ab376699a609c41692694da7",
+    "budget.log": "2dcf4a82a59c409b6a8706d24d8d24b2b76fec42fdca4b4d609a5898a2103eba",
+    "dtm-Pacific-Apia.log": "15b7f4efd508b0fd081186c5f6a3881293000f07f589348a532141e84ac9b0c6",
+    "dtm-UTC.log": "9ae5a9f417d6c383c14b748303afccb84a20e364962957df203230f203495819",
+    "full-fixed.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "review-baseline.log": "94e49ef7c60d204d53be11879ce048da46efb322c557fe911cdf6ac55cdc0e78",
+    "typecheck-tests.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "full-fixed.log": "8bdf3af685935e5ac4ee08c420861236f4d9b95c6933dde9d2f73bbc95878c5a"
+  }
+}

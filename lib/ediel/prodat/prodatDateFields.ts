@@ -1,3 +1,4 @@
+import { canonicalProdatSubtypeAlias } from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
 import { segmentComposite, segmentElementCount, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import { PRODAT_26A_FIELD_MATRIX } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
@@ -9,6 +10,17 @@ export type ProdatDateState = { value: string | null; format: string | null; pre
 /** The existing canonical matrix owns the twelve P26.A r3 DTM identities. */
 export function prodatDateField(field: string) {
   return PRODAT_26A_FIELD_MATRIX.find(row => row.dateQualifier && (row.fieldNumber === field || row.fieldKey === field)) ?? null
+}
+
+
+/** Source-defined subtype exclusions shared by rendering and validation.
+ * P26.A §2.2 fields 210/211/216/302/321/326/508. This only forbids inapplicable
+ * fields; it does not infer missing national D-condition facts. */
+export function prodatDateExcludedBySubtype(code: string, variant: string | null | undefined, field: string): boolean {
+  const subtype = canonicalProdatSubtypeAlias(variant, code)
+  if (code === 'Z14' && subtype === 'N') return ['302', '321', '326', '508'].includes(field)
+  if (code === 'Z09') return subtype === 'D' ? field === '216' : ['210', '211'].includes(field)
+  return false
 }
 
 /** First-message boundary only; detached field/line fragments remain supported. */

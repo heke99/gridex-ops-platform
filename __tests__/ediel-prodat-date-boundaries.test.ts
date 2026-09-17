@@ -1,3 +1,8 @@
+import { validateProdatDateFields } from '@/lib/ediel/prodat/prodatDateValidation'
+import { validateProdat } from '@/lib/ediel/prodat/validateProdat'
+import { validateEdielTgtDraft } from '@/lib/ediel/testing/tgtEdifact.part-4'
+import { preflightEdielPayload } from '@/lib/ediel/core/messageBuilder/payloadPreflight'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { buildProdatDateSegments, resolveProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
 import { canonicalProdat26AFieldRules } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { describe, expect, it, vi, afterEach } from 'vitest'
@@ -109,5 +114,135 @@ describe('DTM subtype aliases use existing canonical subtype authority',()=>{
   it('Z04 requires its own observation length354 in addition to contract92',()=>{
     const result=buildProfiledProdatSegments({context:{...context,code:'Z04',reasonForTransaction:'Z22',contractStartDate:'202610011230'},variant:'L'})
     expect(result.issues.some(i=>i.severity==='error'&&i.description?.includes('354'))).toBe(true)
+  })
+})
+
+
+// Review reproductions use source-defined field/subtype exclusions, independent
+// of the implementation. Database/network calls are not used by these tests.
+const dateReviewAlphabets = [[":", "+", "?", "'"], ['*', ';', '!', '~'], ['^', '|', '!', '%']] as const
+const dateExclusions = [
+  ['Z14', 'Z96', 'S17', '302', '90', '202610011230', '203'],
+  ['Z14', 'Z96', 'S17', '321', '91', '202611011230', '203'],
+  ['Z14', 'Z96', 'S17', '326', '693', '202609171230', '203'],
+  ['Z14', 'Z96', 'S17', '508', '354', '15', '806'],
+  ['Z09', 'Z70', 'E34', '216', '157', '202610011230', '203'],
+  ['Z09', 'E34', 'Z70', '210', '92', '202610011230', '203'],
+  ['Z09', 'E34', 'Z70', '211', '93', '202611011230', '203'],
+] as const
+
+function dateReviewWire(code: string, objects: readonly (readonly string[])[], alphabet: readonly string[] = dateReviewAlphabets[0]): string {
+  const segments = ['UNH+M+PRODAT:D:97A:UN:E2SE6A', `BGM+${code}+DOCUMENT+9+AB`,
+    'DTM+137:202609171200:203', 'DTM+ZZZ:1:805',
+    'NAD+FR+12345:160:SVK+++++++SE', 'NAD+DO+54321:160:SVK+++++++SE',
+    ...objects.flatMap((body, index) => [`LIN+${index + 1}++POINT${index + 1}:::9`, `RFF+LI:CASE${index + 1}`, ...body])]
+  const raw = ['UNB+UNOC:3+12345:14+54321:14+260917:1200+I++23-DGI-PRODAT',
+    ...segments, `UNT+${segments.length + 1}+M`, 'UNZ+1+I'].join("'") + "'"
+  const replace: Record<string, string> = { ':': alphabet[0], '+': alphabet[1], '?': alphabet[2], "'": alphabet[3] }
+  return `UNA${alphabet[0]}${alphabet[1]}.${alphabet[2]} ${alphabet[3]}` + raw.replace(/[:+?']/g, value => replace[value])
+}
+const dateReason = (reason: string): string[] => ['CCI++Z13', `CAV+${reason}`]
+function dateReviewIssues(code: string, raw: string) {
+  const wire = tokenizeEdifact(raw)
+  return validateProdatDateFields(code, wire.segments, wire.una)
+}
+const isDateExclusion = (issue: { code: string; fieldPath?: string | null }, qualifier: string) =>
+  issue.code === 'FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT' && issue.fieldPath === `DTM+${qualifier}`
+
+describe('DTM review: subtype exclusions apply to actual validators, not just renderers', () => {
+  for (const [code, forbiddenReason, allowedReason, field, qualifier, value, format] of dateExclusions) {
+    for (const alphabet of dateReviewAlphabets) {
+      const label = `${code}/${forbiddenReason}/${field}/${alphabet.join('')}`
+      const date = `DTM+${qualifier}:${value}:${format}`
+      it(`rejects present forbidden field ${label}`, () => {
+        const issues = dateReviewIssues(code, dateReviewWire(code, [[...dateReason(forbiddenReason), date]], alphabet))
+        expect(issues.some(issue => isDateExclusion(issue, qualifier) && issue.blocking)).toBe(true)
+      })
+      it(`preserves allowed date as a positive control ${label}`, () => {
+        expect(dateReviewIssues(code, dateReviewWire(code, [[...dateReason(allowedReason), date]], alphabet))).toEqual([])
+      })
+      it(`canonical matrix also enforces the subtype ${label}`, () => {
+        const wire = tokenizeEdifact(dateReviewWire(code, [[...dateReason(forbiddenReason), date]], alphabet))
+        const rules = canonicalProdat26AFieldRules(code).filter(rule => rule.fieldNumber === field)
+        const issues = validateFieldMatrixPayload({ family: 'PRODAT', code, rawSegments: wire.segments.map(row => row.raw), una: wire.una, mode: 'parse' }, rules)
+        expect(issues.some(issue => isDateExclusion(issue, qualifier))).toBe(true)
+      })
+    }
+    it(`legacy validator, TGT and preflight all block ${code}/${field}`, () => {
+      const raw = dateReviewWire(code, [[...dateReason(forbiddenReason), `DTM+${qualifier}:${value}:${format}`]])
+      expect(validateProdat(raw).issues.some(issue => issue.code === 'prodat_date_structure_invalid' && issue.message.includes(`DTM+${qualifier}`))).toBe(true)
+      expect(validateEdielTgtDraft(raw, step(code)).some(issue => issue.code === 'prodat_date_invalid' && issue.description?.includes(`DTM+${qualifier}`))).toBe(true)
+      expect(preflightEdielPayload({ rawPayload: raw, messageStandard: 'edifact', mode: 'send' }).issues.some(issue => issue.code === 'FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT' && issue.description.includes(`DTM+${qualifier}`))).toBe(true)
+    })
+  }
+  for (const alphabet of dateReviewAlphabets) {
+    it(`later negative object does not escape exclusion ${alphabet.join('')}`, () => {
+      const raw = dateReviewWire('Z14', [[...dateReason('S17'), 'DTM+90:202610011230:203'], [...dateReason('Z96'), 'DTM+90:202610011230:203']], alphabet)
+      expect(dateReviewIssues('Z14', raw).filter(issue => isDateExclusion(issue, '90'))).toHaveLength(1)
+    })
+    it(`a negative first object cannot forbid a positive second object's date ${alphabet.join('')}`, () => {
+      expect(dateReviewIssues('Z14', dateReviewWire('Z14', [dateReason('Z96'), [...dateReason('S17'), 'DTM+90:202610011230:203']], alphabet))).toEqual([])
+    })
+    it(`a later message cannot supply subtype authority ${alphabet.join('')}`, () => {
+      const first = dateReviewWire('Z14', [[...dateReason('S17'), 'DTM+90:202610011230:203']], alphabet)
+      const second = dateReviewWire('Z14', [[...dateReason('Z96'), 'DTM+90:202610011230:203']], alphabet)
+      expect(dateReviewIssues('Z14', first + second.slice(9))).toEqual([])
+    })
+    it(`date-only validation does not invent a missing subtype or require every national D field ${alphabet.join('')}`, () => {
+      expect(dateReviewIssues('Z09', dateReviewWire('Z09', [['DTM+92:202610011230:203']], alphabet))).toEqual([])
+      expect(dateReviewIssues('Z14', dateReviewWire('Z14', [dateReason('S17')], alphabet))).toEqual([])
+    })
+  }
+})
+
+describe('DTM review: explicit snapshot null is authoritative, not an absent alias', () => {
+  const values = ['contractStartDate', 'contractEndDate', 'validityStartDate', 'firstMeterReadingDate',
+    'birthDate', 'reportStartDate', 'reportEndDate', 'permissionTimestamp', 'permissionEndDate', 'observationLength'] as const
+  for (const key of values) {
+    it(`does not restore cleared snapshot ${key} from context`, () => {
+      const source = { [key]: key === 'observationLength' ? '15' : '202610011230' }
+      expect(resolveProdatDateInputs('Z14', 'S17', source, { [key]: null })[key]).toBeNull()
+    })
+    it(`retains source compatibility only when snapshot ${key} is undefined`, () => {
+      const source = { [key]: key === 'observationLength' ? '15' : '202610011230' }
+      expect(resolveProdatDateInputs('Z14', 'S17', source, { [key]: undefined })[key]).toBe(source[key])
+    })
+  }
+  it('a primary cleared snapshot value cannot fall through to a stale legacy alias in the same snapshot', () => {
+    expect(resolveProdatDateInputs('Z13', 'VH', { startDate: '202610011230' }, { reportStartDate: null, startDate: '202610021230' }).reportStartDate).toBeNull()
+  })
+  it('a cleared primary context value cannot fall through to a legacy alias either', () => {
+    expect(resolveProdatDateInputs('Z13', 'VH', { reportStartDate: null, startDate: '202610011230' }).reportStartDate).toBeNull()
+  })
+  it('a primary valid snapshot date retains priority over a lower-priority null alias', () => {
+    expect(resolveProdatDateInputs('Z13', 'VH', {}, { reportStartDate: '202610011230', startDate: null }).reportStartDate).toBe('202610011230')
+  })
+  it('only own snapshot fields supply date authority', () => {
+    const inherited = Object.create({ reportStartDate: '202610021230' }) as Record<string, unknown>
+    expect(resolveProdatDateInputs('Z13', 'VH', { reportStartDate: '202610011230' }, inherited).reportStartDate).toBe('202610011230')
+  })
+  for (const value of [false, 0, {}, []]) {
+    it(`does not silently replace invalid snapshot types: ${JSON.stringify(value)}`, () => {
+      expect(() => resolveProdatDateInputs('Z13', 'VH', { startDate: '202610011230' }, { reportStartDate: value })).toThrow('prodat_date_input_invalid:reportStartDate')
+    })
+  }
+  it('the actual historical builder cannot restore cleared report90/91 from stale context aliases', () => {
+    const result = buildProfiledProdatSegments({ context: { ...context, startDate: '202608011230', permissionEndDate: '202608021230' },
+      portalSnapshot: { reportStartDate: null, reportEndDate: null }, variant: 'VH' })
+    expect(result.segments.some(segment => /^DTM\+(90|91):/.test(segment))).toBe(false)
+    expect(result.issues.some(issue => issue.code === 'prodat_z13vh_report_start_missing')).toBe(true)
+    expect(result.issues.some(issue => issue.code === 'prodat_z13vh_report_end_missing')).toBe(true)
+  })
+  it('the actual Z18 builder keeps cleared required termination164 missing', () => {
+    const result = buildProfiledProdatSegments({ context: { ...context, code: 'Z18', reasonForTransaction: 'S17', permissionEndDate: '202610011230' },
+      portalSnapshot: { permissionEndDate: null }, variant: 'V' })
+    expect(result.segments.some(segment => segment.startsWith('DTM+164:'))).toBe(false)
+    expect(result.issues.some(issue => issue.code === 'prodat_z18_end_date_missing')).toBe(true)
+  })
+  it('the actual Z04 builder keeps cleared required observation354 missing', () => {
+    const result = buildProfiledProdatSegments({ context: { ...context, code: 'Z04', reasonForTransaction: 'Z22', contractStartDate: '202610011230', observationLength: '15', observationLengthFormat: '806' },
+      portalSnapshot: { observationLength: null }, variant: 'L' })
+    expect(result.segments.some(segment => segment.startsWith('DTM+354:'))).toBe(false)
+    expect(result.issues.some(issue => issue.severity === 'error' && issue.description?.includes('354'))).toBe(true)
   })
 })

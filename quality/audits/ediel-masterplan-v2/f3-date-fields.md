@@ -47,6 +47,34 @@ of the comparison; format validity alone does not authorize a bilateral resoluti
 
 ## Confirmed defects and repair paths
 
+### Finding-level status (not the release gate)
+
+`fixed` below means repaired in code and exercised by the named local tests.
+It does not mean that the current PR head, release, or whole masterplan is
+approved. The exact-head CI and review gate remains separate below.
+
+| Finding | State | Repair and executable evidence |
+|---|---|---|
+| DTM-01: interchangeable contract/report/permission/validity aliases | fixed | `prodatDateFields.ts`; `ediel-prodat-date-fields.test.ts` and `ediel-prodat-date-consumers.test.ts`: distinct wire and consumer values. |
+| DTM-02: incorrect field 212 qualifier 9 | fixed | Matrix and field test tuples use 51; source field register 212 remains unchanged. |
+| DTM-03: contract clock truncated to date/midnight | fixed | `render/dates.ts`; real-builder and TGT clock assertions in the consumer/boundary suites. |
+| DTM-04: invalid calendars, clocks and text normalization | fixed | Field/boundary tests reject rollover, malformed components, precision and duplicates. |
+| DTM-05: UTC/DST-dependent rendering | fixed | Field and boundary suites check fixed UTC+1, including summer and day rollover. |
+| DTM-06: later-object/header/stale wire fallback | fixed | Field/consumer scope assertions; explicit snapshot-null repair and new boundary tests also cover the API fallback case. |
+| DTM-07: required date satisfied by another field/object | fixed | Matrix per-object date rules and negative required-field controls in field/boundary suites. This is not all national D predicates. |
+| DTM-08: old TGT date fabrication or aliasing | fixed | TGT builder and expected-context assertions in consumer/boundary suites. |
+| DTM-09: Z15 DATE persistence sourced from contract/report dates | fixed | Consumer lifecycle tests require the object's field 327/164 and retain source minute/zone. Full F5 correlation/concurrency is unverified. |
+| DTM-R1: renderer-only subtype date exclusions | fixed locally; new-head CI/review pending | Common matrix now applies the shared exclusion predicate per LIN object; the appended boundary tests reproduce the original acceptance and test every affected validation entry point. |
+| DTM-R2: cleared snapshot date restored from stale aliases | fixed locally; new-head CI/review pending | `resolveProdatDateInputs` preserves first defined own alias, including null; direct and real-profile negative/positive controls are appended to the boundary suite. |
+| Remaining national D predicates, register overlays and full F5/F3 release acceptance | unverified | Subsequent masterplan units; no inference from these test aggregates. |
+| Paused PR310 schema/replay/generated-type integration | blocked by user pause | Remains outside this PR at e9611351. No paused input has been imported. |
+
+No finding is classified as false-positive without evidence. No production
+incident count is inferred. Detailed review reproduction, exact source provenance,
+and the distinction between local qualification and ordinary CI are retained in
+`f3-date-review-remediation.md` and `f3-date-review-qualification.json`.
+
+
 High-impact data-integrity defects were reproduced in actual application modules:
 contract92/93, validity157, report90/91 and permission164 had interchangeable aliases;
 wrong field212 qualifier9; date102/midnight truncation of contract clocks; permissive

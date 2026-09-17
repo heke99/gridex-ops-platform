@@ -6,7 +6,8 @@ import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import type { EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 
 /** Structural/date-only view of the existing authority: R fields per scope,
- * forbidden fields, strict C507 formats and calendars. D business requirements
+ * forbidden fields (including per-object subtype exclusions in the matrix),
+ * strict C507 formats and calendars. D business requirements
  * are deliberately still evaluated by the canonical dependent-condition engine. */
 export function validateProdatDateFields(code: string, segments: readonly (string | Pick<EdifactTokenizedSegment, 'raw' | 'tag'>)[], una: EdifactServiceStringAdvice = parseUna(null)): EdielRulebookIssue[] {
   const rawSegments = segments.map(row => typeof row === 'string' ? row : row.raw)

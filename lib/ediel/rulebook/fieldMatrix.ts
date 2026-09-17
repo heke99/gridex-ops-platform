@@ -1,4 +1,4 @@
-import { prodatDateField, prodatDateRuleScopes, prodatDateState, prodatDateValue, prodatDateSyntaxIssues } from '@/lib/ediel/prodat/prodatDateFields'
+import { prodatDateExcludedBySubtype, prodatDateField, prodatDateRuleScopes, prodatDateState, prodatDateValue, prodatDateSyntaxIssues } from '@/lib/ediel/prodat/prodatDateFields'
 import { segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUna } from '@/lib/ediel/core/una'
 import { prodatPartyField, prodatPartyRuleScopes, prodatPartyState, prodatPartySegmentFromSource, readProdatParty } from '@/lib/ediel/prodat/prodatPartyFields'
@@ -578,12 +578,17 @@ export function validateFieldMatrixPayload(
     }
   }
 
-  for (const rule of rules) {
-    const role = partyRoleForRule(rule)
-    const date = family === 'PRODAT' ? prodatDateField(rule.fieldNumber ?? rule.fieldKey) : null
+  for (const baseRule of rules) {
+    const role = partyRoleForRule(baseRule)
+    const date = family === 'PRODAT' ? prodatDateField(baseRule.fieldNumber ?? baseRule.fieldKey) : null
     const scopes = role ? prodatPartyRuleScopes(role, rawSegments, input.una).map(scope => scope.map(row => row.raw))
       : date ? prodatDateRuleScopes(date.fieldNumber, rawSegments, input.una).map(scope => scope.map(row => row.raw)) : [rawSegments]
     for (const scopedSegments of scopes) {
+      // Read field223 only from this LIN object. A renderer's omission is not
+      // validation: an explicitly supplied inapplicable date must be rejected.
+      const excludedDate = date?.dateScope === 'line' && prodatCharacteristicValues('223', scopedSegments, input.una)
+        .some(reason => prodatDateExcludedBySubtype(code, reason, date.fieldNumber))
+      const rule: RulebookFieldRule = excludedDate ? { ...baseRule, requirement: 'forbidden' } : baseRule
       const scopedInput = { ...input, rawSegments: scopedSegments }
       const present = fieldRulePresent(rule, scopedInput)
       if (rule.requirement === 'forbidden' || rule.requirement === 'not_used') {
@@ -592,7 +597,9 @@ export function validateFieldMatrixPayload(
           severity: 'error',
           code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT',
           title: `${rule.label} får inte skickas`,
-          description: `${rule.segmentPath ?? rule.fieldKey} är markerat som - för ${family} ${code} och blockeras.`,
+          description: excludedDate
+            ? `${rule.segmentPath ?? rule.fieldKey} får inte skickas för objektets transaktionstyp i ${family} ${code} enligt P26.A §2.2.`
+            : `${rule.segmentPath ?? rule.fieldKey} är markerat som - för ${family} ${code} och blockeras.`,
           fieldPath: rule.segmentPath,
         }))
         continue
