@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const fs = require('fs')
 const path = require('path')
+const { execFileSync } = require('node:child_process')
 const root = process.cwd()
 // TypeScript sources are formatter-dependent (single vs double quotes); the
 // static assertions below are structural, so quotes are normalized for
@@ -18,7 +19,20 @@ const renderer = read('lib/ediel/prodat/engine.ts')
 const genericBuilder = read('lib/ediel/prodat/builders/profileRenderer.ts')
 
 assert((z01.includes("messageCode: 'Z01'") || z01.includes('messageCode: "Z01"')) && (z01.includes("messageFamily: 'PRODAT'") || z01.includes('messageFamily: "PRODAT"')), 'Z01 outbound path is explicitly PRODAT/Z01')
-assert(genericBuilder.includes('BGM+') || renderer.includes('BGM'), 'PRODAT renderer contains BGM segment support')
+// Header rendering is now delegated to the source-backed BGM projector.
+// Require the real call and execute its independent renderer/consumer tests;
+// a literal in a comment is no longer enough to claim BGM support.
+assert(genericBuilder.includes('renderProdatDocumentHeader({') && genericBuilder.includes('bgmSegment'), 'PRODAT renderer calls the source-backed BGM header renderer')
+try {
+  execFileSync(process.execPath, ['--experimental-vm-modules', '--test', 'scripts/test-ediel-prodat-document-fields.cjs'], {
+    cwd: root, encoding: 'utf8', timeout: 30000, maxBuffer: 4 * 1024 * 1024,
+  })
+  assert(true, 'actual BGM renderer and consumer positive/negative regressions pass')
+} catch (error) {
+  console.error(String(error.stdout || error.message))
+  if (error.stderr) console.error(String(error.stderr))
+  assert(false, 'actual BGM renderer and consumer positive/negative regressions pass')
+}
 assert(z01.includes('buildEdifactEnvelope') && (z01.includes('testFlag: params.routeContext.environment === \'production\' ? 0 : 1') || z01.includes('testFlag: params.routeContext.environment === "production" ? 0 : 1')), 'Z01 envelope sets production test flag correctly')
 assert(z01.includes('senderSubAddress') && z01.includes('receiverSubAddress') && z01.includes('applicationReference'), 'Z01 envelope uses route-controlled sender/receiver subaddress/application reference')
 assert(z01.includes('renderProdat26A') && (z01.includes("code: 'Z01'") || z01.includes('code: "Z01"')), 'Z01 uses canonical PRODAT 26A renderer')
