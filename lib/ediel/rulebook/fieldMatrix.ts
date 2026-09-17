@@ -1,3 +1,4 @@
+import { prodatDateField, prodatDateRuleScopes, prodatDateState, prodatDateValue, prodatDateSyntaxIssues } from '@/lib/ediel/prodat/prodatDateFields'
 import { segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUna } from '@/lib/ediel/core/una'
 import { prodatPartyField, prodatPartyRuleScopes, prodatPartyState, prodatPartySegmentFromSource, readProdatParty } from '@/lib/ediel/prodat/prodatPartyFields'
@@ -180,6 +181,8 @@ function firstValueForPath(rawSegments: readonly string[] | null | undefined, pa
 
 function fieldValuesForRule(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): string[] {
   const rawSegments = input.rawSegments ?? []
+  const date = normalize(rule.family) === 'PRODAT' ? prodatDateField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (date) { const value = prodatDateValue(date.fieldNumber, rawSegments, input.una); return value ? [value] : [] }
   const party = normalize(rule.family) === 'PRODAT' ? prodatPartyField(rule.fieldNumber ?? rule.fieldKey) : null
   if (party) return prodatPartyState(party.fieldNumber, rawSegments, input.una).values.map(normalize)
   const document = normalize(rule.family) === 'PRODAT' ? prodatDocumentField(rule.fieldNumber ?? rule.fieldKey) : null
@@ -405,6 +408,11 @@ function partyRoleForRule(rule: RulebookFieldRule) {
 export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): boolean {
   const rawSegments = input.rawSegments ?? []
   const applicationReference = input.applicationReference ?? null
+  const date = normalize(rule.family) === 'PRODAT' ? prodatDateField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (date) {
+    const states = prodatDateRuleScopes(date.fieldNumber, rawSegments, input.una).map(scope => prodatDateState(date.fieldNumber, scope, input.una))
+    return ['forbidden', 'not_used'].includes(rule.requirement) ? states.some(state => state.present) : states.every(state => Boolean(state.value))
+  }
   const partyRole = partyRoleForRule(rule)
   if (partyRole) {
     const party = prodatPartyField(rule.fieldNumber ?? rule.fieldKey)
@@ -441,17 +449,6 @@ export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEval
     const source = rawSegments.map((raw, index) => ({ raw, index, tag: raw.split(una.dataElementSeparator)[0].toUpperCase(), elements: [] }))
     const lin = source.find(segment => segment.tag === 'LIN')
     const flat = (index: number) => { const values = segmentComposite(lin, index, una); return values.length === 1 ? values[0]?.trim() : null }
-    // DTM presence semantics stay unchanged here; only the syntax boundary
-    // changes. The separate date-rule work owns full format/time semantics.
-    const dateQualifier = rule.segmentPath?.match(/^DTM\+([^/:]+)/)?.[1]
-    if (dateQualifier) {
-      const matches = source.filter(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, una)[0]?.toUpperCase() === dateQualifier.toUpperCase())
-      if (['302', '321', '326', '327', '508'].includes(rule.fieldNumber ?? '') && !['forbidden', 'not_used'].includes(rule.requirement)) {
-        return matches.some(segment => Boolean(segmentComposite(segment, 1, una)[1]?.trim()))
-      }
-      return matches.length > 0
-    }
-
     switch (rule.fieldNumber) {
       case '312':
         return Boolean(segmentComposite(source.find(segment => segment.tag === 'UNH'), 2, una)[4]?.trim())
@@ -571,9 +568,21 @@ export function validateFieldMatrixPayload(
     issues.push(issue({ severity: 'error', code: 'UTILTS_CODE_NOT_ALLOWED', title: 'UTILTS-kod saknar profil', description: `${code} finns inte i UTILTS E5SE5A-profilerna.`, fieldPath: 'BGM/C002/1001' }))
   }
 
+  if (family === 'PRODAT') {
+    // Scope errors cannot disappear just because an optional field is sought
+    // in its correct scope. Only evaluate fields present in the selected rules.
+    for (const failure of prodatDateSyntaxIssues(rawSegments, input.una).filter(value => value.kind === 'scope')) {
+      const rule = rules.find(value => value.fieldNumber === failure.fieldNumber)
+      if (rule) issues.push(issue({ severity: 'error', code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_FORMAT_INVALID',
+        title: `${rule.label} finns i fel segmentgrupp`, description: 'DTM måste tillhöra sitt eget meddelandehuvud eller LIN-objekt enligt P26.A s.43,49–52.', fieldPath: rule.segmentPath }))
+    }
+  }
+
   for (const rule of rules) {
     const role = partyRoleForRule(rule)
-    const scopes = role ? prodatPartyRuleScopes(role, rawSegments, input.una).map(scope => scope.map(row => row.raw)) : [rawSegments]
+    const date = family === 'PRODAT' ? prodatDateField(rule.fieldNumber ?? rule.fieldKey) : null
+    const scopes = role ? prodatPartyRuleScopes(role, rawSegments, input.una).map(scope => scope.map(row => row.raw))
+      : date ? prodatDateRuleScopes(date.fieldNumber, rawSegments, input.una).map(scope => scope.map(row => row.raw)) : [rawSegments]
     for (const scopedSegments of scopes) {
       const scopedInput = { ...input, rawSegments: scopedSegments }
       const present = fieldRulePresent(rule, scopedInput)
@@ -589,6 +598,13 @@ export function validateFieldMatrixPayload(
         continue
       }
 
+      const dateState = date ? prodatDateState(date.fieldNumber, scopedSegments, input.una) : null
+      if (dateState?.malformed) {
+        issues.push(issue({ severity: 'error', code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_FORMAT_INVALID',
+          title: `${rule.label} har ogiltigt datum eller format`,
+          description: `${rule.segmentPath}: kontrollera C507, format, kalender, tidszon och entydighet enligt P26.A s.43,49–52.`, fieldPath: rule.segmentPath }))
+        continue
+      }
       const party = family === 'PRODAT' ? prodatPartyField(rule.fieldNumber ?? rule.fieldKey) : null
       const partyState = party ? prodatPartyState(party.fieldNumber, scopedSegments, input.una) : null
       const forbiddenDateOfBirth = party?.fieldNumber === '227' && code === 'Z13'
@@ -628,7 +644,7 @@ export function validateFieldMatrixPayload(
       const requiredByDependency = dependencyApplies(rule, scopedInput)
       const shouldEvaluate = rule.requirement === 'required' || requiredByDependency
         || (rule.requirement === 'optional' && Boolean(documentState?.present))
-        || Boolean(partyState?.present)
+        || Boolean(partyState?.present) || Boolean(dateState?.present)
       if (!shouldEvaluate) continue
       if (!present) {
         const severity = rule.severity ?? (requiredByDependency ? 'error' : rule.requirement === 'dependent' ? 'warning' : 'error')

@@ -252,7 +252,7 @@ for(const code of ['Z01','Z02','Z03','Z04','Z05','Z06','Z08','Z09','Z10','Z13','
  for(const role of ['UD','IT','IV','Z02'])assert(!x.segments.some((s,i)=>s.startsWith(`NAD+${role}+`)&&i<first))
 })
 test('real profile builder carries explicit multicomponent customer/site/invoicee and legal header actors',async()=>{
- const a=await api,c={...context(),legalSenderId:'000LegalFr',legalReceiverId:'000LegalDo',legalSenderCountry:'DK',customerNameLines:['User  (1)',"Second?'"],customerAddressLines:['U:1','','U+3'],siteAddressLines:['S:1','S+2','S?3'],invoicee:{id:'Invoice:1',idAgency:'89',name:'Invoice',nameLines:['Invoice','Other'],addressLines:['I+1','','I:3'],city:'ITown',postalCode:'001 23',country:'NO'}}
+ const a=await api,c={...context(),contractStartDate:'202610011230',observationLength:'15',observationLengthFormat:'806',legalSenderId:'000LegalFr',legalReceiverId:'000LegalDo',legalSenderCountry:'DK',customerNameLines:['User  (1)',"Second?'"],customerAddressLines:['U:1','','U+3'],siteAddressLines:['S:1','S+2','S?3'],invoicee:{id:'Invoice:1',idAgency:'89',name:'Invoice',nameLines:['Invoice','Other'],addressLines:['I+1','','I:3'],city:'ITown',postalCode:'001 23',country:'NO'}}
  const x=a.buildProfiledProdatSegments({context:c,generatedAt:new Date('2026-09-17T12:00:00Z')}),p=a.parseProdatMessage(x.segments.join("'")+"'").lineItems[0]
  assert(x.segments.includes('NAD+FR+000LegalFr:160:SVK+++++++DK'))
  assert.equal(p.endUserName,"User  (1)\nSecond?'");assert.equal(p.endUserAddress,'U:1\n\nU+3');assert.equal(p.installationAddress,'S:1\nS+2\nS?3')

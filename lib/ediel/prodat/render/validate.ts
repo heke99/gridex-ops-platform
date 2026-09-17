@@ -1,3 +1,5 @@
+import { resolveProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
+import { prodatDate203 } from '@/lib/ediel/prodat/render/dates'
 // lib/ediel/prodat/render/validate.ts
 
 import type { ProdatEngineProductionContext, ProdatEngineValidationIssue } from '@/lib/ediel/prodat/types'
@@ -60,7 +62,8 @@ export function validateProdatContext(context: ProdatEngineProductionContext): P
       })
     }
 
-    if (isHistoricalRequest && !sanitizeProdatText(context.startDate)) {
+    const dates = resolveProdatDateInputs(context.code, isHistoricalRequest ? 'VH' : 'V', context)
+    if (isHistoricalRequest && !prodatDate203(dates.reportStartDate)) {
       issues.push({
         severity: 'error',
         code: 'prodat_z13vh_report_start_missing',
@@ -69,7 +72,7 @@ export function validateProdatContext(context: ProdatEngineProductionContext): P
       })
     }
 
-    if (isHistoricalRequest && !sanitizeProdatText(context.permissionEndDate)) {
+    if (isHistoricalRequest && !prodatDate203(dates.reportEndDate)) {
       issues.push({
         severity: 'error',
         code: 'prodat_z13vh_report_end_missing',
@@ -83,7 +86,7 @@ export function validateProdatContext(context: ProdatEngineProductionContext): P
     const hasEndUserIdentity = Boolean(sanitizeProdatText(context.customerId) || sanitizeProdatText(context.customerName))
     const hasPermissionId = Boolean(sanitizeProdatText(context.permissionId) || sanitizeProdatText(context.powerOfAttorneyReference))
     const hasEndReason = Boolean(sanitizeProdatText(context.permissionEndReason))
-    const hasEndDate = Boolean(sanitizeProdatText(context.permissionEndDate) || sanitizeProdatText(context.startDate))
+    const hasEndDate = Boolean(prodatDate203(context.permissionEndDate))
 
     if (!hasEndUserIdentity) {
       issues.push({

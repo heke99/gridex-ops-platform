@@ -1,3 +1,5 @@
+import { buildProdatDateSegments, resolveProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
+import { validateProdatDateFields } from '@/lib/ediel/prodat/prodatDateValidation'
 import { prodatPartySyntaxIssues } from '@/lib/ediel/prodat/prodatPartyFields'
 import { PRODAT_26A_FIELD_MATRIX, PRODAT_26A_MESSAGE_CODES } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
@@ -21,12 +23,6 @@ import {
   sanitizeProdatText,
   sanitizeProdatToken,
 } from '@/lib/ediel/prodat/render/segments'
-import {
-  prodatDate102,
-  prodatDate203,
-  prodatDate203AtStartOfDay,
-  prodatNowDate203,
-} from '@/lib/ediel/prodat/render/dates'
 import { validateProdatContext } from '@/lib/ediel/prodat/render/validate'
 import { isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
 import {
@@ -99,10 +95,6 @@ function portalObject(portalData: ProdatEnginePortalSnapshot, key: string): Reco
   return objectValue(portalData?.[key])
 }
 
-function portalDate102(portalData: ProdatEnginePortalSnapshot, key: string): string | null {
-  return prodatDate102(portalString(portalData, key))
-}
-
 function resolveMeteringMethod(portalData: ProdatEnginePortalSnapshot, fallback?: string | null): string | null {
   const override = portalString(portalObject(portalData, 'testCaseOverrides'), 'meteringMethod')
   return sanitizeProdatToken(override ?? portalString(portalData, 'meteringMethod') ?? fallback ?? null, 12)
@@ -160,7 +152,8 @@ export function buildProfiledProdatSegments(input: {
   const portalData = input.portalSnapshot ?? null
   const context = input.context
   const policy = rendererPolicy(input)
-  const issues = validateProdatContext(context)
+  const dateInputs = resolveProdatDateInputs(policy.code, policy.subtype, context, portalData)
+  const issues = validateProdatContext({ ...context, ...dateInputs })
 
   const bgmReference = context.bgmReference.trim()
   const bgmSegment = renderProdatDocumentHeader({ code: policy.code, documentId: bgmReference })
@@ -168,7 +161,6 @@ export function buildProfiledProdatSegments(input: {
   const isPermissionMessage = policy.processGroup === 'metering_access'
   const isSupplierZ09 = policy.code === 'Z09'
   const reasonForTransaction = policy.transactionReasonCode
-  const isHistoricalPermission = policy.semantics.historical
   const meteringMethod = resolveMeteringMethod(portalData, context.meteringMethod)
   const installationDirection = sanitizeProdatToken(
     portalString(portalData, 'installationDirection') ?? context.installationDirection ?? null,
@@ -183,24 +175,11 @@ export function buildProfiledProdatSegments(input: {
   const hasObjectIdentifier = meterPointId.trim().length > 0
 
   const gridAreaId = portalString(portalData, 'gridAreaId') ?? sanitizeProdatText(context.gridAreaId)
-  const startDate = isHistoricalPermission
-    ? portalDate102(portalData, 'reportStartDateTime') ?? prodatDate102(context.startDate)
-    : portalDate102(portalData, 'reportStartDateTime') ??
-      portalDate102(portalData, 'agreementStartDateTime') ??
-      prodatDate102(context.startDate)
-  const reportEndDate203 =
-    prodatDate203(
-      portalString(portalData, 'reportEndDateTime') ??
-      portalString(portalData, 'permissionEndDate') ??
-      context.permissionEndDate ??
-      (isHistoricalPermission ? null : portalString(portalData, 'agreementEndDateTime')) ??
-      null,
-    )
+  const dates = buildProdatDateSegments(policy.code, policy.subtype, dateInputs, input.generatedAt)
 
   const segments: string[] = [
     bgmSegment,
-    `DTM+137:${prodatNowDate203(input.generatedAt)}:203`,
-    'DTM+ZZZ:1:805',
+    ...dates.header,
     prodatPartySegment('FR', context.legalSenderId ?? context.senderEdielId, context.legalSenderCountry ?? 'SE'),
     prodatPartySegment('DO', context.legalReceiverId ?? context.receiverEdielId, context.legalReceiverCountry ?? 'SE'),
   ]
@@ -211,37 +190,10 @@ export function buildProfiledProdatSegments(input: {
     segments.push('LIN+1')
   }
 
-  const startDate203 = prodatDate203AtStartOfDay(startDate)
+  segments.push(...dates.line)
   const negativePermissionResponse = policy.code === 'Z14' && policy.subtype === 'N'
   const carriesPermissionIdentity = policy.code === 'Z18' || policy.code === 'Z15'
     || (policy.code === 'Z14' && !negativePermissionResponse)
-  if (carriesPermissionIdentity) {
-    const permissionCreatedAt = prodatDate203(
-      portalString(portalData, 'permissionTimestamp') ?? context.permissionTimestamp,
-    )
-    if (permissionCreatedAt) segments.push(`DTM+693:${permissionCreatedAt}:203`)
-  }
-  if (policy.code === 'Z18' || policy.code === 'Z15') {
-    const reportingEndDate = prodatDate203(
-      portalString(portalData, 'permissionEndDate') ?? context.permissionEndDate,
-    )
-    if (reportingEndDate) segments.push(`DTM+164:${reportingEndDate}:203`)
-  } else if (policy.code === 'Z08') {
-    const closureDate = prodatDate203AtStartOfDay(
-      portalString(portalData, 'endDate') ?? context.endDate ?? context.permissionEndDate,
-    )
-    if (closureDate) segments.push(`DTM+93:${closureDate}:203`)
-  } else if (policy.code === 'Z13' || policy.code === 'Z14') {
-    // Reporting time is distinct from a contractual start-of-day date. A
-    // finite end also applies to nonhistorical permissions (P fields302/321).
-    const reportStartDate203 = prodatDate203(portalString(portalData, 'reportStartDateTime') ?? context.startDate)
-    if (!negativePermissionResponse) {
-      if (reportStartDate203) segments.push(`DTM+90:${reportStartDate203}:203`)
-      if (reportEndDate203) segments.push(`DTM+91:${reportEndDate203}:203`)
-    }
-  } else if (startDate203) {
-    segments.push(`DTM+${isSupplierZ09 ? '157' : '92'}:${startDate203}:203`)
-  }
 
   if (reasonForTransaction) {
     segments.push('CCI++Z13', isPermissionMessage ? prodatCav(reasonForTransaction) : `CAV+${reasonForTransaction}`)
@@ -363,6 +315,11 @@ export function buildProfiledProdatSegments(input: {
   const balanceResponsibleId = portalPartyText(portalData, 'balanceResponsibleId') ?? context.balanceResponsibleId
   if (partyFieldAllowed('262') && balanceResponsibleId) {
     segments.push(prodatBalanceResponsibleSegment(balanceResponsibleId))
+  }
+
+  for (const failure of validateProdatDateFields(policy.code, segments)) {
+    issues.push({ severity: 'error', code: failure.code, title: failure.title,
+      description: failure.description })
   }
 
   for (const failure of prodatPartySyntaxIssues(segments)) {

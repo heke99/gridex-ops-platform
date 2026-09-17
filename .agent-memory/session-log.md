@@ -65,3 +65,7 @@ review and merge with guarded exact head. Read live GitHub state; this is a
 pre-publication checkpoint and does not claim merge or whole-plan acceptance.
 After merge only, DTM/register/dependent work. PR310 remains paused at e9611351.
 No production mutation, SQL/generated types/grants or external Ediel messages.
+
+## 2026-09-17 — PR326 merged; DTM implementation checkpoint
+
+GitHub confirms PR326 merged as 31b4dbeb764874e252e8b6b510bf1fa78832f148, exact tested fd10a812, four ordinary workflows successful and four review threads resolved. F3-G now active. Local1701 full tests and848 retained source cases pass; ordinary candidate CI/review/merge remain REQUIRED. Detailed f3-date-fields.md; PR310 paused.

@@ -112,8 +112,8 @@ test('product242 and energy506 are independent despite a shared CCI qualifier',a
 test('observation length508 is DTM354; an old meter constant is never its value',async()=>{
   const a=await api, rule=fieldRule(a,'508')
   assert.equal(a.PRODAT_26A_FIELD_MATRIX.find(r=>r.fieldNumber==='508').segmentPath,'DTM+354')
-  assert.equal(a.fieldRulePresent(rule,input(['DTM+354:000015:610'])),true)
-  for(const raw of [['CCI++Z03','CAV+:::20'],['DTM+354::610'],['DTM+354:   :610']]) assert.equal(a.fieldRulePresent(rule,input(raw)),false)
+  assert.equal(a.fieldRulePresent(rule,input(['DTM+354:15:806'])),true)
+  for(const raw of [['CCI++Z03','CAV+:::20'],['DTM+354:000015:610'],['DTM+354::610'],['DTM+354:   :610']]) assert.equal(a.fieldRulePresent(rule,input(raw)),false)
 })
 const parsedFields = { '217':'measuringMethod','222':'reportingFrequency','223':'reasonForTransaction','242':'timeSeriesProduct','506':'energyProductId','513':'installationDirection','322':'permissionStatus','323':'permissionPurpose','324':'permissionEndReason' }
 for(const [field,property] of Object.entries(parsedFields)) {

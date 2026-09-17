@@ -12,6 +12,9 @@ type MatrixRow = {
   cavComponent?: 0 | 3 | 4
   referenceScope?: 'sender' | 'line'
   documentElement?: 1 | 2 | 3 | 4
+  dateQualifier?: string
+  dateScope?: 'header' | 'line'
+  dateKind?: 'minute' | 'date' | 'offset' | 'period'
   partyQualifier?: 'FR' | 'DO' | 'UD' | 'IT' | 'IV' | 'Z02'
   partyElement?: 2 | 4 | 5 | 6 | 8 | 9
   partyComponents?: 1 | 2 | 3
@@ -35,8 +38,8 @@ export const PRODAT_26A_FIELD_MATRIX: readonly MatrixRow[] = [
   {fieldNumber:'203',fieldKey:'message_id',segmentPath:'BGM/1004',documentElement:2,requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
   {fieldNumber:'204',fieldKey:'message_function',segmentPath:'BGM/1225',documentElement:3,allowedValues:['9','5'],requirements:['O','O','O','O','O','O','O','O','O','O','O','O','O']},
   {fieldNumber:'313',fieldKey:'request_for_acknowledgement',segmentPath:'BGM/4343',documentElement:4,allowedValues:['AB','NA'],requirements:['O','R','R','R','R','R','R','R','R','R','R','R','R']},
-  {fieldNumber:'205',fieldKey:'document_date',segmentPath:'DTM+137',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
-  {fieldNumber:'206',fieldKey:'timezone',segmentPath:'DTM+ZZZ',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'205',fieldKey:'document_date',segmentPath:'DTM+137',dateQualifier:'137',dateScope:'header',dateKind:'minute',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'206',fieldKey:'timezone',segmentPath:'DTM+ZZZ',dateQualifier:'ZZZ',dateScope:'header',dateKind:'offset',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
   {fieldNumber:'301',fieldKey:'free_text_header',segmentPath:'FTX',requirements:['O','O','O','O','O','O','O','O','O','O','O','O','O']},
   {fieldNumber:'207',fieldKey:'sender_ediel_id',segmentPath:'NAD+FR/C082/3039 + NAD+FR/3207',partyQualifier:'FR',partyElement:2,partyComponents:1,partyMaxLength:35,requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
   {fieldNumber:'315',fieldKey:'sender_organisation_no',segmentPath:'RFF+XA',referenceScope:'sender',requirements:['-','-','O','-','-','-','-','-','-','-','-','-','-']},
@@ -44,16 +47,16 @@ export const PRODAT_26A_FIELD_MATRIX: readonly MatrixRow[] = [
   {fieldNumber:'314',fieldKey:'sequence_number',segmentPath:'LIN',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
   {fieldNumber:'209',fieldKey:'line_item',segmentPath:'LIN',requirements:['R','R','R','R','R','R','R','R','R','-','D','R','R']},
   {fieldNumber:'258',fieldKey:'sub_line_number',segmentPath:'LIN',requirements:['-','-','-','D','-','D','-','-','D','-','-','-','-']},
-  {fieldNumber:'210',fieldKey:'contract_start_date',segmentPath:'DTM+92',requirements:['R','-','R','R','-','D','-','D','D','-','-','-','-']},
-  {fieldNumber:'211',fieldKey:'contract_stop_date',segmentPath:'DTM+93',requirements:['-','-','-','-','R','O','R','D','-','-','-','-','-']},
-  {fieldNumber:'302',fieldKey:'report_start_date',segmentPath:'DTM+90',requirements:['-','-','-','O','-','-','-','-','-','R','D','-','-']},
-  {fieldNumber:'321',fieldKey:'report_end_date',segmentPath:'DTM+91',requirements:['-','-','-','-','-','-','-','-','-','D','D','-','-']},
-  {fieldNumber:'216',fieldKey:'validity_start_date',segmentPath:'DTM+157',requirements:['-','-','-','-','-','R','-','D','R','-','-','-','-']},
-  {fieldNumber:'212',fieldKey:'first_meter_reading_date',segmentPath:'DTM+9',requirements:['-','-','-','O','-','-','-','-','-','-','-','-','-']},
-  {fieldNumber:'249',fieldKey:'date_of_birth',segmentPath:'DTM+329',requirements:['O','O','O','O','O','O','O','-','-','-','-','-','-']},
-  {fieldNumber:'508',fieldKey:'observation_length',segmentPath:'DTM+354',requirements:['-','-','-','R','-','D','-','-','R','-','D','-','-']},
-  {fieldNumber:'326',fieldKey:'permission_creation_timestamp',segmentPath:'DTM+693',requirements:['-','-','-','-','-','-','-','-','-','-','D','O','O']},
-  {fieldNumber:'327',fieldKey:'processing_end_timestamp',segmentPath:'DTM+164',requirements:['-','-','-','-','-','-','-','-','-','-','-','R','R']},
+  {fieldNumber:'210',fieldKey:'contract_start_date',segmentPath:'DTM+92',dateQualifier:'92',dateScope:'line',dateKind:'minute',requirements:['R','-','R','R','-','D','-','D','D','-','-','-','-']},
+  {fieldNumber:'211',fieldKey:'contract_stop_date',segmentPath:'DTM+93',dateQualifier:'93',dateScope:'line',dateKind:'minute',requirements:['-','-','-','-','R','O','R','D','-','-','-','-','-']},
+  {fieldNumber:'302',fieldKey:'report_start_date',segmentPath:'DTM+90',dateQualifier:'90',dateScope:'line',dateKind:'minute',requirements:['-','-','-','O','-','-','-','-','-','R','D','-','-']},
+  {fieldNumber:'321',fieldKey:'report_end_date',segmentPath:'DTM+91',dateQualifier:'91',dateScope:'line',dateKind:'minute',requirements:['-','-','-','-','-','-','-','-','-','D','D','-','-']},
+  {fieldNumber:'216',fieldKey:'validity_start_date',segmentPath:'DTM+157',dateQualifier:'157',dateScope:'line',dateKind:'minute',requirements:['-','-','-','-','-','R','-','D','R','-','-','-','-']},
+  {fieldNumber:'212',fieldKey:'first_meter_reading_date',segmentPath:'DTM+51',dateQualifier:'51',dateScope:'line',dateKind:'minute',requirements:['-','-','-','O','-','-','-','-','-','-','-','-','-']},
+  {fieldNumber:'249',fieldKey:'date_of_birth',segmentPath:'DTM+329',dateQualifier:'329',dateScope:'line',dateKind:'date',requirements:['O','O','O','O','O','O','O','-','-','-','-','-','-']},
+  {fieldNumber:'508',fieldKey:'observation_length',segmentPath:'DTM+354',dateQualifier:'354',dateScope:'line',dateKind:'period',requirements:['-','-','-','R','-','D','-','-','R','-','D','-','-']},
+  {fieldNumber:'326',fieldKey:'permission_creation_timestamp',segmentPath:'DTM+693',dateQualifier:'693',dateScope:'line',dateKind:'minute',requirements:['-','-','-','-','-','-','-','-','-','-','D','O','O']},
+  {fieldNumber:'327',fieldKey:'processing_end_timestamp',segmentPath:'DTM+164',dateQualifier:'164',dateScope:'line',dateKind:'minute',requirements:['-','-','-','-','-','-','-','-','-','-','-','R','R']},
   {fieldNumber:'303',fieldKey:'free_text_item_level',segmentPath:'FTX',requirements:['O','O','O','O','O','O','O','-','O','-','-','-','-']},
   {fieldNumber:'213',fieldKey:'estimated_annual_volume',segmentPath:'QTY+31',requirements:['-','-','O','R','-','O','-','-','O','-','-','-','-']},
   {fieldNumber:'214',fieldKey:'constant',segmentPath:'CCI++Z02/CAV',cavComponent:3,requirements:['-','-','-','D','-','D','-','-','D','-','-','-','-']},

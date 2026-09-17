@@ -1,3 +1,4 @@
+import type { ProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
 // lib/ediel/prodat/types.ts
 
 import type { EdielAckStatus } from '@/lib/ediel/types'
@@ -61,7 +62,7 @@ export type ProdatEngineInvoiceeContext = {
   country?: string | null
 }
 
-export type ProdatEngineProductionContext = {
+export type ProdatEngineProductionContext = ProdatDateInputs & {
   code: ProdatEngineCode
   bgmReference: string
   transactionReference: string

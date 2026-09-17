@@ -1,15 +1,15 @@
-# Active state — PR326 review remediation
+# Active state — F3-G PRODAT DTM fields
 
-Updated2026-09-17. Main2d65dc9 contains PR324/325. PR326 is the sole active item;
-old published head a7b4ddde has green CI but FOUR substantive review findings.
-The four fixes and87 new regression cases are now implemented locally.
-Unchanged old source30pass/57fail; corrected87pass. Full Vitest1434/1434,
-retained source848/848 and all3TypeScript groups pass. Changed ESLint0errors/
-8retained warnings; golden/route/integrity/unchanged large-source budget pass.
+Main `31b4dbeb764874e252e8b6b510bf1fa78832f148` includes completed PR326. The one active unit is the twelve mapped
+PRODAT DTM fields and identified builders/readers/consumers, branch `codex/ediel-v2-prodat-date-fields-20260917`.
+Implementation and local tests complete; new ordinary exact-head CI, substantive
+review and guarded merge REQUIRED. Do not use old #326 green status as approval.
 
-Detailed evidence/scope: quality/audits/ediel-masterplan-v2/f3-party-review-remediation.md.
-Next: publish the exact correction, run NEW ordinary CI, address substantive
-review and merge with guarded exact head. Read live GitHub state; this is a
-pre-publication checkpoint and does not claim merge or whole-plan acceptance.
-After merge only, DTM/register/dependent work. PR310 remains paused at e9611351.
-No production mutation, SQL/generated types/grants or external Ediel messages.
+Local full suite1701/1701 in213files; new267 included. Pristine-base237 tests
+reproduced66pass/171fail. Retained source848/848. Application/script/test types pass.
+See quality/audits/ediel-masterplan-v2/f3-date-fields.md and qualification summary.
+No live certification; no SQL/generated types/grants or external Ediel message.
+
+Next: publish candidate, run all ordinary CI, resolve review, merge exact green
+head. Only then register/dependent rules. Keep PR310 paused at e9611351; no import
+of its schema/replay/types. This checkpoint is pre-publication, not a merge record.

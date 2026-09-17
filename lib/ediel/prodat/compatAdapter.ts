@@ -1,3 +1,4 @@
+import { prodatDateToIsoDate } from '@/lib/ediel/prodat/render/dates'
 import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import { parseProdatMessage as parseSourceProdat } from '@/lib/ediel/prodat/parser'
 import { prodatReferenceByQualifier } from '@/lib/ediel/prodat/prodatReferenceFields'
@@ -125,26 +126,6 @@ function extractDateFromDtm(segment: EdifactTokenizedSegment | null | undefined,
   if (parts[2] === '203' && (Number(raw.slice(8, 10)) > 23 || Number(raw.slice(10, 12)) > 59)) return null
   return date
 }
-
-function normalizeDate(value?: string | null): string | null {
-  if (!value) return null
-  const trimmed = value.trim()
-  if (!trimmed) return null
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    return `${trimmed}T00:00`
-  }
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(trimmed)) {
-    return trimmed
-  }
-  return trimmed
-}
-
-function formatDate102(value?: string | null): string | null {
-  const normalized = normalizeDate(value)
-  if (!normalized) return null
-  return normalized.slice(0, 10).replace(/-/g, '')
-}
-
 
 function inferMeterPointIdentifier(meteringPoint: MeteringPointRow): string {
   return String(meteringPoint.ediel_reference || meteringPoint.meter_point_id || '').trim()
@@ -484,9 +465,9 @@ function renderProdatSegments(params: {
   const meterPointId = portalPartyText(portalData, 'facilityId') ?? (inferMeterPointIdentifier(params.meteringPoint) || '')
   const gridAreaId = portalString(portalData, 'gridAreaId') ?? inferGridArea(params.gridOwner)
   const startDate =
-    portalDate102(portalString(portalData, 'agreementStartDateTime')) ||
-    formatDate102(params.switchRequest.requested_start_date) ||
-    formatDate102(params.site.move_in_date)
+    portalPartyText(portalData, 'agreementStartDateTime') ??
+    params.switchRequest.requested_start_date ??
+    params.site.move_in_date
 
   const rendered = renderProdat26A({
     portalSnapshot: portalData,
@@ -502,6 +483,8 @@ function renderProdatSegments(params: {
       meterPointId,
       gridAreaId,
       startDate,
+      // Z05 closes the supplier contract at the requested switch boundary.
+      contractEndDate: portalPartyText(portalData, 'agreementEndDateTime') ?? (params.code === 'Z05' ? startDate : null),
       customerAddress: portalPartyText(portalData, 'customerAddress'),
       customerPostalCode: portalPartyText(portalData, 'customerPostalCode'),
       customerCity: portalPartyText(portalData, 'customerCity'),
@@ -516,10 +499,8 @@ function renderProdatSegments(params: {
       permissionPurpose: portalString(portalData, 'permissionPurpose'),
       permissionEndReason: portalString(portalData, 'permissionEndReason'),
       permissionId: portalString(portalData, 'permissionId'),
-      permissionTimestamp: portalString(portalData, 'permissionTimestamp'),
-      permissionEndDate:
-        portalString(portalData, 'permissionEndDate') ??
-        portalString(portalData, 'agreementEndDateTime'),
+      permissionTimestamp: portalPartyText(portalData, 'permissionTimestamp'),
+      permissionEndDate: portalPartyText(portalData, 'permissionEndDate'),
       energyProductId: portalString(portalData, 'energyProductId'),
       powerOfAttorneyReference: portalString(portalData, 'powerOfAttorneyReference'),
       balanceResponsibleId: portalPartyText(portalData, 'balanceResponsibleId'),
@@ -762,7 +743,6 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
   const firstObject = message.slice(Math.max(firstLine, 0), nextLine < 0 ? undefined : nextLine)
   const dtm = (scope: readonly EdifactTokenizedSegment[], qualifier: string) => scope.find(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, wire.una)[0] === qualifier)
   const dtm7 = dtm([...header, ...firstObject], '7')
-  const dtm137 = dtm(header, '137')
   const loc48 = [...header, ...firstObject].find(segment => segment.tag === 'LOC' && segmentComposite(segment, 1, wire.una)[0] === '48')
   const sender = segmentComposite(unb, 2, wire.una), receiver = segmentComposite(unb, 3, wire.una)
   const application = segmentComposite(unb, 7, wire.una)
@@ -799,8 +779,16 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
       gridAreaId,
       priceAreaCode,
       customerName,
+      // Legacy DTM7 remains a separate compatibility field, not contract92.
       requestedStartDate: extractDateFromDtm(dtm7, wire.una),
-      createdDate: extractDateFromDtm(dtm137, wire.una),
+      createdDate: prodatDateToIsoDate(source.messageDate),
+      messageDate: source.messageDate ?? null, timezoneOffset: source.timezoneOffset ?? null,
+      contractStartDate: sourceLine?.contractStartDate ?? null, contractEndDate: sourceLine?.contractEndDate ?? null,
+      validityStartDate: sourceLine?.validityStartDate ?? null, firstMeterReadingDate: sourceLine?.firstMeterReadingDate ?? null,
+      birthDate: sourceLine?.birthDate ?? null, reportStartDate: sourceLine?.reportStartDate ?? null,
+      reportEndDate: sourceLine?.reportEndDate ?? null, permissionTimestamp: sourceLine?.permissionTimestamp ?? null,
+      permissionEndTimestamp: sourceLine?.permissionEndTimestamp ?? null,
+      observationLength: sourceLine?.observationLength ?? null, observationLengthFormat: sourceLine?.observationLengthFormat ?? null,
       street: sourceLine?.installationAddress ?? null,
       postalCode: sourceLine?.installationPostcode ?? null,
       city: sourceLine?.installationCity ?? null,

@@ -1,3 +1,4 @@
+import { prodatDateState, prodatDateValue } from '@/lib/ediel/prodat/prodatDateFields'
 import { readProdatParty } from '@/lib/ediel/prodat/prodatPartyFields'
 import { prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
@@ -44,6 +45,11 @@ export type ParsedProdatLineItem = {
   permissionId: string | null
   permissionTimestamp: string | null
   permissionEndTimestamp: string | null
+  validityStartDate?: string | null
+  firstMeterReadingDate?: string | null
+  birthDate?: string | null
+  observationLength?: string | null
+  observationLengthFormat?: string | null
   contractStartDate: string | null
   contractEndDate: string | null
   reportStartDate: string | null
@@ -69,6 +75,8 @@ export type ParsedProdatLineItem = {
 
 export type ParsedProdatMessage = {
   messageFamily: 'PRODAT'
+  messageDate?: string | null
+  timezoneOffset?: string | null
   messageCode: string
   /** BGM/1004 document identity; never the UNH0062 technical reference. */
   messageReference: string | null
@@ -84,16 +92,6 @@ export type ParsedProdatMessage = {
   rawPayload: string
 }
 
-function lineDateTimeValue(segments: { raw: string }[], qualifiers: string[]): string | null {
-  for (const qualifier of qualifiers) {
-    const segment = segments.find((item) => item.raw.startsWith(`DTM+${qualifier}:`))
-    const value = segment?.raw.replace(`DTM+${qualifier}:`, '').split(':')[0]?.trim() ?? ''
-    if (value) return value
-  }
-
-  return null
-}
-
 export function parseProdatMessage(input: EdielMessageRow | string): ParsedProdatMessage {
   const rawPayload = typeof input === 'string' ? input : (input.raw_payload ?? '')
   const facts = parseEdifactMessageFacts(rawPayload)
@@ -102,6 +100,8 @@ export function parseProdatMessage(input: EdielMessageRow | string): ParsedProda
 
   return {
     messageFamily: 'PRODAT',
+    messageDate: prodatDateValue('205', facts.segments, una),
+    timezoneOffset: prodatDateValue('206', facts.segments, una),
     messageCode: String(hasWire ? facts.messageCode ?? '' : typeof input === 'string' ? '' : input.message_code ?? '').toUpperCase(),
     messageReference: hasWire ? facts.documentReference : typeof input === 'string' ? null : input.external_reference ?? null,
     unhMessageReference: facts.messageReference,
@@ -150,15 +150,20 @@ export function parseProdatMessage(input: EdielMessageRow | string): ParsedProda
       // P fields325–327: never treat an object reference or an observation
       // timestamp as authority for a permission lifecycle transition.
       permissionId: prodatReferenceValue('325', line.segments, una),
-      permissionTimestamp: lineDateTimeValue(line.segments, ['693']),
-      permissionEndTimestamp: lineDateTimeValue(line.segments, ['164']),
-      contractStartDate: lineDateTimeValue(line.segments, ['92', '157']),
-      contractEndDate: lineDateTimeValue(line.segments, ['93', '157']),
-      reportStartDate: lineDateTimeValue(line.segments, ['90']),
-      reportEndDate: lineDateTimeValue(line.segments, ['91']),
-      historicalReportStartDate: lineDateTimeValue(line.segments, ['90']),
-      historicalReportEndDate: lineDateTimeValue(line.segments, ['91']),
-      isHistoricalMeteringRequest: prodatCharacteristicValue('223', line.segments, una) === 'S18' || Boolean(lineDateTimeValue(line.segments, ['90']) || lineDateTimeValue(line.segments, ['91'])),
+      permissionTimestamp: prodatDateValue('326', line.segments, una),
+      permissionEndTimestamp: prodatDateValue('327', line.segments, una),
+      validityStartDate: prodatDateValue('216', line.segments, una),
+      firstMeterReadingDate: prodatDateValue('212', line.segments, una),
+      birthDate: prodatDateValue('249', line.segments, una),
+      observationLength: prodatDateValue('508', line.segments, una),
+      observationLengthFormat: prodatDateState('508', line.segments, una).format,
+      contractStartDate: prodatDateValue('210', line.segments, una),
+      contractEndDate: prodatDateValue('211', line.segments, una),
+      reportStartDate: prodatDateValue('302', line.segments, una),
+      reportEndDate: prodatDateValue('321', line.segments, una),
+      historicalReportStartDate: prodatDateValue('302', line.segments, una),
+      historicalReportEndDate: prodatDateValue('321', line.segments, una),
+      isHistoricalMeteringRequest: prodatCharacteristicValue('223', line.segments, una) === 'S18',
       reasonForTransaction: prodatCharacteristicValue('223', line.segments, una),
       measuringMethod: prodatCharacteristicValue('217', line.segments, una),
       timeSeriesProduct: prodatCharacteristicValue('242', line.segments, una),

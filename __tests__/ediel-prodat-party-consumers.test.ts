@@ -153,7 +153,7 @@ describe('real preflight validates decoded source NAD components, not sanitized 
 describe('actual builders carry explicit parties without inventing substitutes', () => {
   it('the compatibility builder emits FR/DO and a line-level UD with ebIX260', () => {
     const built = buildProdatMessage({ companyId: 'tenant-A', role: 'supplier', businessCode: 'Z03', sender: { edielId: '12345' }, receiver: { edielId: '54321' },
-      meteringPoint: { id: point }, customer: { identity: '000a:B', identityQualifier: 'SE1', name: "Name?'" }, references: { LI: 'CASE' }, codedAttributes: { Z13: 'Z22' }, environment: 'test' })
+      meteringPoint: { id: point }, customer: { identity: '000a:B', identityQualifier: 'SE1', name: "Name?'" }, references: { LI: 'CASE' }, codedAttributes: { Z13: 'Z22' }, dates: { startDate: '2026-10-01' }, environment: 'test' })
     expect(built.rawEdifact).toContain('NAD+FR+12345:160:SVK+++++++SE')
     expect(built.rawEdifact).not.toContain('NAD+MS+')
     expect(built.rawEdifact.indexOf('NAD+UD+')).toBeGreaterThan(built.rawEdifact.indexOf('LIN+'))

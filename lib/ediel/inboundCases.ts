@@ -1,3 +1,5 @@
+import { prodatDateState, prodatDateValue } from '@/lib/ediel/prodat/prodatDateFields'
+import { prodatDateToIsoDate } from '@/lib/ediel/prodat/render/dates'
 import { readProdatParty } from '@/lib/ediel/prodat/prodatPartyFields'
 import { prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
@@ -84,14 +86,7 @@ function normalizeDigits(value: unknown): string | null {
 }
 
 function edifactDateToIsoDate(value: unknown): string | null {
-  const trimmed = trimOrNull(value)
-  if (!trimmed) return null
-  const compact = trimmed.replace(/\D/g, "")
-  if (/^\d{8}/.test(compact)) {
-    return `${compact.slice(0, 4)}-${compact.slice(4, 6)}-${compact.slice(6, 8)}`
-  }
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed
-  return null
+  return prodatDateToIsoDate(typeof value === 'string' ? value : null)
 }
 function numberOrNull(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value
@@ -115,11 +110,6 @@ function segmentsFromRawPayload(rawPayload?: string | null): string[] {
     .filter(Boolean)
 }
 
-
-function readFirstDtm(segments: string[], qualifier: string): string | null {
-  const segment = segments.find((row) => row.startsWith(`DTM+${qualifier}:`))
-  return trimOrNull(segment?.split('+')[1]?.split(':')[1])
-}
 
 function readLinMeteringPoint(segments: string[]): string | null {
   const lin = segments.find((row) => row.startsWith('LIN+'))
@@ -179,9 +169,8 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
   const meterPointId =
     valueFromParsed(payload, 'meterPointId', 'meteringPointId', 'installationId', 'facilityId') ??
     readLinMeteringPoint(segments)
-  const contractStart =
-    valueFromParsed(payload, 'contractStartDate', 'contract_start_date', 'startDate') ??
-    readFirstDtm(segments, '92')
+  const contractStart = hasWireSource ? prodatDateValue('210', facts.segments, una)
+    : valueFromParsed(payload, 'contractStartDate', 'contract_start_date', 'startDate')
   const transactionType =
     characteristic('223', 'reasonForTransaction', 'reason_for_transaction', 'transactionType')
   const meteringMethod =
@@ -213,6 +202,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
     customerType: isBusiness ? 'business' : isPerson ? 'private' : null,
     personalNumber: isPerson ? nationalId : null,
     orgNumber: isBusiness ? nationalId : null,
+    birthDate: hasWireSource ? prodatDateValue('249', facts.segments, una) : valueFromParsed(payload, 'birthDate'),
     fullName: customerName,
     companyName: isBusiness ? customerName : null,
     firstName: !isBusiness ? customerName?.split(' ')[0] ?? null : null,
@@ -233,11 +223,15 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
     country: partyValue(it.country, 'siteCountry', 'facilityCountry'),
     gridAreaCode: reference('260', 'gridAreaCode', 'networkAreaId'),
     annualEnergyKwh: annualEnergy,
+    validityStartDate: hasWireSource ? prodatDateValue('216', facts.segments, una) : valueFromParsed(payload, 'validityStartDate'),
     contractStartDate: contractStart,
   }
 
   const meteringPoint = {
     meterPointId,
+    observationLength: hasWireSource ? prodatDateValue('508', facts.segments, una) : valueFromParsed(payload, 'observationLength'),
+    observationLengthFormat: hasWireSource ? prodatDateState('508', facts.segments, una).format : valueFromParsed(payload, 'observationLengthFormat'),
+    firstMeterReadingDate: hasWireSource ? prodatDateValue('212', facts.segments, una) : valueFromParsed(payload, 'firstMeterReadingDate'),
     referenceToMeteringPoint,
     meteringMethod,
     meteringMethodLabel: edielCodeLabel('metering_method', meteringMethod),

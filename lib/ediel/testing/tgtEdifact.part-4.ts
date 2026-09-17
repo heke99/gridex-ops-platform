@@ -1,3 +1,4 @@
+import { validateProdatDateFields } from '@/lib/ediel/prodat/prodatDateValidation'
 import { misplacedProdatEnergyProducts } from "@/lib/ediel/prodat/prodatCharacteristicFields"
 import { tokenizeEdifact } from "@/lib/ediel/core/edifactTokenizer"
 // Extracted from tgtEdifact.ts; keep public imports on the facade module.
@@ -34,6 +35,12 @@ export function validateEdielTgtDraft(
   const expectedReceiverSubaddress =
     expected?.receiverSubaddress?.trim().toUpperCase() ?? null;
   const parsed = parseEdifactSegments(rawPayload);
+  if (step.family === 'PRODAT') {
+    const wire = tokenizeEdifact(rawPayload);
+    for (const failure of validateProdatDateFields(step.code, wire.segments, wire.una)) {
+      pushIssue(issues, 'error', 'prodat_date_invalid', 'PRODAT-datum är ogiltigt', failure.description);
+    }
+  }
 
   const requiredSegments = ["UNB", "UNH", "BGM", "UNT", "UNZ"];
   for (const segment of requiredSegments) {
@@ -363,7 +370,7 @@ export function buildEdielTgtDraft(
       "Detta steg ska komma från Edielportalen och kan inte genereras som Gridex-utkast.",
     );
 
-  const refs = nowRefs(params.testCaseCode, params.stepNo);
+  const refs = nowRefs(params.testCaseCode, params.stepNo, step.family === "PRODAT");
   const portalBuild =
     step.family === "PRODAT"
       ? buildPortalProdatSegments(params, step, refs)

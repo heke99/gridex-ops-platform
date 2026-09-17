@@ -1009,7 +1009,7 @@ export function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string,
     externalReference,
     transactionReference: canonicalTransactionReference,
     parsedPayload: {
-      ...(partySource ? { legalSenderId: partySource.legalSenderId, legalReceiverId: partySource.legalReceiverId, lineItems: partySource.lineItems } : {}),
+      ...(partySource ? { messageDate: partySource.messageDate, timezoneOffset: partySource.timezoneOffset, legalSenderId: partySource.legalSenderId, legalReceiverId: partySource.legalReceiverId, lineItems: partySource.lineItems } : {}),
       rawSegments: referenceSource ? wire.segments.map(segment => segment.raw) : segments,
       segmentCount: referenceSource ? wire.segments.length : segments.length,
       unb: referenceSource ? wire.segments.find(segment => segment.tag === 'UNB')?.raw ?? null : unb,

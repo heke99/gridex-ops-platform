@@ -1,3 +1,4 @@
+import { prodatDateValuesByQualifier } from '@/lib/ediel/prodat/prodatDateFields'
 import { prodatDocumentSegment, prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { prodatReferenceEntries } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicCodes } from '@/lib/ediel/prodat/prodatCharacteristicFields'
@@ -250,6 +251,11 @@ export function canonicalMessageFacts(rawPayload: string | null | undefined): {
     : cciCavMap(message?.segments ?? ast.segments, ast.una)
   const dtmValues: Record<string, string[]> = {}
 
+  if (message?.family === 'PRODAT') {
+    // P facts include only valid, unambiguous fields in their declared scope.
+    // Other families keep their independent date/resolution semantics.
+    Object.assign(dtmValues, prodatDateValuesByQualifier(message.segments, ast.una))
+  } else {
   for (const segment of message?.segments ?? ast.segments) {
     if (segment.tag !== 'DTM') continue
     const parts = canonicalComposite(segment, 1, ast.una)
@@ -257,6 +263,7 @@ export function canonicalMessageFacts(rawPayload: string | null | undefined): {
     const value = clean(parts[1] ?? null)?.toUpperCase() ?? null
     if (!qualifier || !value) continue
     dtmValues[qualifier] = [...(dtmValues[qualifier] ?? []), value]
+  }
   }
 
   return {

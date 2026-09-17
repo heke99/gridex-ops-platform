@@ -1,3 +1,5 @@
+import { prodatDateExpectation } from '@/lib/ediel/testing/prodatDateExpectation'
+import { prodatDateField, prodatDateState, prodatDateComparisonValue } from '@/lib/ediel/prodat/prodatDateFields'
 import { prodatPartyField, prodatPartyValue } from '@/lib/ediel/prodat/prodatPartyFields'
 import { prodatReferenceField, prodatReferenceValue, prodatReferenceValues } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicField, prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
@@ -617,19 +619,12 @@ function normalizeExpectedValue(value: string | null | undefined): string | null
 }
 
 
-function lineDateTimeValue(segments: ReturnType<typeof parseEdifactMessageFacts>['segments'], qualifiers: string[]): string | null {
-  for (const qualifier of qualifiers) {
-    const segment = segments.find((item) => item.raw.startsWith(`DTM+${qualifier}:`))
-    const value = segment?.raw.replace(`DTM+${qualifier}:`, '').split(':')[0]?.trim() ?? ''
-
-    if (value) return value
-  }
-
-  return null
-}
-
 function lineActualValue(line: ReturnType<typeof parseEdifactMessageFacts>['lineItems'][number], fieldCode: string, una: EdifactServiceStringAdvice): string | null {
   const code = fieldCode.toUpperCase()
+  if (prodatDateField(code)) {
+    const state = prodatDateState(code, line.segments, una)
+    return state.value && (code === '508' ? `${state.value}:${state.format}` : state.value)
+  }
   if (prodatCharacteristicField(code)) return prodatCharacteristicValue(code, line.segments, una)
   if (prodatReferenceField(code)) return prodatReferenceValue(code, line.segments, una)
   if (prodatPartyField(code)) return prodatPartyValue(code, line.segments, una)
@@ -637,8 +632,6 @@ function lineActualValue(line: ReturnType<typeof parseEdifactMessageFacts>['line
   switch (code) {
     case '209':
       return line.itemId
-    case '210':
-      return lineDateTimeValue(line.segments, ['92', '157'])
     default:
       return null
   }
@@ -709,7 +702,7 @@ function testDataObjects(testData: EdielTgtCaseTestData | null | undefined): Tgt
 
       for (const field of group.fields) {
         const rawValue = field.values[column.name]
-        const value = prodatReferenceField(String(field.fieldCode)) || prodatPartyField(String(field.fieldCode))
+        const value = prodatReferenceField(String(field.fieldCode)) || prodatPartyField(String(field.fieldCode)) || prodatDateField(String(field.fieldCode))
           ? (String(rawValue ?? '').trim() || null) : normalizeExpectedValue(rawValue)
 
         if (!value) continue
@@ -801,9 +794,11 @@ export function compareInboundPayloadToTgtTestData(params: {
     }
 
     for (const [fieldCode, expected] of Object.entries(object.fields)) {
-      if (!comparableFields.has(fieldCode) && !prodatPartyField(fieldCode)) continue
+      if (!comparableFields.has(fieldCode) && !prodatPartyField(fieldCode) && !prodatDateField(fieldCode)) continue
 
-      const actual = ['207', '208'].includes(fieldCode)
+      const date = prodatDateField(fieldCode)
+      const actual = date?.dateScope === 'header' ? prodatDateState(fieldCode, facts.segments, parseUna(message.raw_payload)).value
+        : ['207', '208'].includes(fieldCode)
         ? prodatPartyValue(fieldCode, facts.segments, parseUna(message.raw_payload))
         : lineActualValue(line, fieldCode, parseUna(message.raw_payload))
 
@@ -813,10 +808,10 @@ export function compareInboundPayloadToTgtTestData(params: {
       }
 
       const reference = prodatReferenceField(fieldCode) || prodatPartyField(fieldCode)
-      const expectedComparable = reference ? expected.trim() : normalizeCompare(expected)
-      const actualComparable = reference ? actual.trim() : normalizeCompare(actual)
+      const expectedComparable = date ? prodatDateExpectation(fieldCode, expected) : reference ? expected.trim() : normalizeCompare(expected)
+      const actualComparable = date ? prodatDateComparisonValue(fieldCode, actual) : reference ? actual.trim() : normalizeCompare(actual)
 
-      if (expectedComparable !== actualComparable) {
+      if (expectedComparable === null || actualComparable === null || expectedComparable !== actualComparable) {
         issues.push(issueForField({ fieldCode, expected, actual, lineItemId: line.itemId, lineItemReference: line.rffLi }))
       }
     }
