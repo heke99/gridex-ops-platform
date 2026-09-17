@@ -1,0 +1,119 @@
+name: Isolated F3 characteristics qualification
+on:
+  push:
+    branches: [codex/ediel-v2-characteristics-qualification-20260917]
+permissions:
+  contents: write
+concurrency:
+  group: f3-characteristics-qualification
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+      BASE_SHA: b1e077288c8a6865c413c1bf366797b3a23d07d8
+      EXPECTED_TREE: 4a2803344e5ba82db1091b5e6f4f2061bf330d7e
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Decode and validate exact reviewed patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/f3-evidence"
+          python3 - <<'PY'
+          import base64, hashlib, lzma, os, pathlib
+          parts = [pathlib.Path(f'qualification/f3-reviewed.patch.xz.b64.part{i}').read_text().strip() for i in (1,2)]
+          patch = lzma.decompress(base64.b64decode(''.join(parts), validate=True))
+          assert len(patch) == 92199
+          assert hashlib.sha256(patch).hexdigest() == '3987fa83a59f64342a68fdd71a7920fcf8aa672155500a5229a153f366cbc184'
+          pathlib.Path(os.environ['RUNNER_TEMP'], 'f3-evidence', 'reviewed.patch').write_bytes(patch)
+          PY
+          git checkout --detach "$BASE_SHA"
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          git apply --check "$RUNNER_TEMP/f3-evidence/reviewed.patch"
+          git apply --index "$RUNNER_TEMP/f3-evidence/reviewed.patch"
+          test "$(git write-tree)" = "$EXPECTED_TREE"
+          git diff --cached --check
+          if git diff --cached --name-only | grep -E '^(supabase/|docs/ediel/masterplan-v2/|lib/types/supabase)'; then
+            echo 'Forbidden schema/source-package change' >&2; exit 1
+          fi
+          git diff --cached --stat > "$RUNNER_TEMP/f3-evidence/diff-stat.txt"
+          printf 'base=%s\ntree=%s\n' "$BASE_SHA" "$EXPECTED_TREE" > "$RUNNER_TEMP/f3-evidence/provenance.txt"
+          node scripts/check-ediel-masterplan-v2.cjs
+          node scripts/check-agent-memory-git-state.cjs
+          node scripts/gridex-aperak-canonical-evidence-regression.cjs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install exact locked dependencies
+        id: deps
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci 2>&1 | tee "$RUNNER_TEMP/f3-evidence/npm-ci.log"
+      - name: Verify new and retained actual-source behavior
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --experimental-vm-modules --test scripts/test-ediel-guide-governance.cjs scripts/test-ediel-rule-pack-source-identity.cjs scripts/test-ediel-prodat-source-locators.cjs scripts/test-ediel-component-escaping.cjs scripts/test-ediel-prodat-characteristic-fields.cjs 2>&1 | tee "$RUNNER_TEMP/f3-evidence/source-tests.log"
+      - name: Verify actual production and TGT callsites
+        if: always() && steps.deps.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx vitest run __tests__/ediel-prodat-characteristic-preflight.test.ts 2>&1 | tee "$RUNNER_TEMP/f3-evidence/callsite-tests.log"
+      - name: Verify all TypeScript groups
+        if: always() && steps.deps.outcome == 'success'
+        shell: bash
+        run: |
+          set -uo pipefail
+          result=0
+          for script in typecheck typecheck:scripts typecheck:tests; do
+            npm run "$script" 2>&1 | tee "$RUNNER_TEMP/f3-evidence/${script//:/-}.log" || result=1
+          done
+          exit "$result"
+      - name: Verify lint
+        if: always() && steps.deps.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run lint 2>&1 | tee "$RUNNER_TEMP/f3-evidence/lint.log"
+      - name: Verify full existing test suite
+        if: always() && steps.deps.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm test 2>&1 | tee "$RUNNER_TEMP/f3-evidence/full-tests.log"
+      - name: Publish qualified tree to a new branch only
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          test "$(git write-tree)" = "$EXPECTED_TREE"
+          git diff --quiet
+          git config user.name 'Gridex verified implementation'
+          git config user.email '129280077+heke99@users.noreply.github.com'
+          sha=$(git commit-tree "$EXPECTED_TREE" -p "$BASE_SHA" -m 'fix(ediel): use source-exact PRODAT characteristic fields across consumers')
+          branch="codex/ediel-v2-characteristics-qualified-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" push origin "$sha:refs/heads/$branch"
+          printf 'qualified_commit=%s\nqualified_branch=%s\nqualification=success; normal PR CI still required\n' "$sha" "$branch" | tee -a "$RUNNER_TEMP/f3-evidence/provenance.txt"
+          git archive --format=tar.gz -o "$RUNNER_TEMP/f3-evidence/source.tar.gz" "$sha"
+      - name: Retain qualification evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: f3-characteristics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/f3-evidence/
+          if-no-files-found: error
+          retention-days: 14
