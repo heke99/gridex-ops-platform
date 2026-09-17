@@ -91,7 +91,7 @@ jobs:
         run: |
           set -euo pipefail
           npm test 2>&1 | tee "$RUNNER_TEMP/f3-evidence/full-tests.log"
-      - name: Publish qualified tree to a new branch only
+      - name: Publish application source only; authorized connector restores tested workflow
         if: success()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -103,12 +103,26 @@ jobs:
           git diff --quiet
           git config user.name 'Gridex verified implementation'
           git config user.email '129280077+heke99@users.noreply.github.com'
-          sha=$(git commit-tree "$EXPECTED_TREE" -p "$BASE_SHA" -m 'fix(ediel): use source-exact PRODAT characteristic fields across consumers')
+          workflow=.github/workflows/ediel-masterplan-v2.yml
+          base_blob=$(git rev-parse "$BASE_SHA:$workflow")
+          tested_blob=$(git rev-parse "$EXPECTED_TREE:$workflow")
+          # Actions has no workflows permission. Preserve that permission boundary:
+          # transport application files in a new branch with the unchanged base CI.
+          # The existing authorized connector must restore the exact tested workflow
+          # and verify EXPECTED_TREE before opening the ordinary PR for full CI.
+          index="$RUNNER_TEMP/f3-publish-index"
+          GIT_INDEX_FILE="$index" git read-tree "$EXPECTED_TREE"
+          GIT_INDEX_FILE="$index" git update-index --cacheinfo "100644,$base_blob,$workflow"
+          transport_tree=$(GIT_INDEX_FILE="$index" git write-tree)
+          test "$(git diff --name-only "$EXPECTED_TREE" "$transport_tree")" = "$workflow"
+          sha=$(git commit-tree "$transport_tree" -p "$BASE_SHA" -m 'fix(ediel): qualified PRODAT characteristic source; tested CI follows via authorized connector')
           branch="codex/ediel-v2-characteristics-qualified-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
           git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" push origin "$sha:refs/heads/$branch"
-          printf 'qualified_commit=%s\nqualified_branch=%s\nqualification=success; normal PR CI still required\n' "$sha" "$branch" | tee -a "$RUNNER_TEMP/f3-evidence/provenance.txt"
-          git archive --format=tar.gz -o "$RUNNER_TEMP/f3-evidence/source.tar.gz" "$sha"
+          printf 'transport_commit=%s\ntransport_branch=%s\ntransport_tree=%s\ntested_workflow_blob=%s\nqualification=tests passed on expected tree; connector workflow restoration and normal PR CI required\n' "$sha" "$branch" "$transport_tree" "$tested_blob" | tee -a "$RUNNER_TEMP/f3-evidence/provenance.txt"
+          git show "$EXPECTED_TREE:$workflow" > "$RUNNER_TEMP/f3-evidence/tested-workflow.yml"
+          git archive --format=tar.gz -o "$RUNNER_TEMP/f3-evidence/source.tar.gz" "$EXPECTED_TREE"
+          test "$(git write-tree)" = "$EXPECTED_TREE"
       - name: Retain qualification evidence even on failure
         if: always()
         uses: actions/upload-artifact@v4
