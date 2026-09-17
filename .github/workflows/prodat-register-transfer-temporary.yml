@@ -32,11 +32,17 @@ jobs:
           git apply --index --unidiff-zero "$RUNNER_TEMP/register.patch"
           python3 - <<'PY'
           import subprocess
+          from pathlib import Path
           paths = subprocess.check_output(['git','diff','--cached','--name-only'], text=True).splitlines()
           assert len(paths) == 34, paths
           for path in paths:
               assert path == '.github/workflows/ediel-masterplan-v2.yml' or path.startswith(('lib/ediel/', 'lib/onboarding/', '__tests__/', 'quality/audits/ediel-masterplan-v2/f3-register-')), path
           assert not any(p.startswith(('supabase/', 'docs/ediel/masterplan-v2/', '.source-transfer/')) for p in paths)
+          fixture = Path('__tests__/fixtures/prodat-register.ts')
+          text = fixture.read_text()
+          assert text.endswith('\n\n')
+          fixture.write_text(text.rstrip('\n')+'\n')
+          subprocess.run(['git','add',str(fixture)],check=True)
           PY
           git diff --cached --check
       - name: Save precise partial progress without rewriting the original specification
