@@ -12,3 +12,7 @@ Prior full history retained byte-for-byte: `archive/20260916-main-de098106/compl
 - Historical policy data, migrations, schema references, generated types and permissions unchanged.
 
 Not completed: final PR CI after this documentation, merge, full F1/masterplan or production acceptance.
+
+## 2026-09-17 — F1-C local verification
+
+Two guide-boundary defects reproduced and corrected;98 distinct tests in3 timezones and112 retained source cases pass. NOT full CI/merge acceptance; see F1-C audit.
