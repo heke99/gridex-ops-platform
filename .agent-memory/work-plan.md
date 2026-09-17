@@ -1,13 +1,11 @@
-# Active work plan — 2026-09-17
+# Work plan — 2026-09-17
 
-1. Active: finish F1-C calendar/immutability correction through exact-head CI and
-   review, then merge. Source tests pass; completion awaits that real CI.
-2. Reconcile/supersede stale319 without importing generic APERAK16-B assertions.
-3. Next independent F3 item: reconcile CCI/CAV fields and exact value components
-   against the immutable source field register; reproduce before fixing, follow
-   callers and consumers, retain golden/negative cases and run complete CI.
-4. Continue remaining independent F1–F6 acceptance work with bounded named tasks.
+1. Finish active F3-C exact characteristic-field projections and all identified
+   consumers through dependency tests, normal exact-head CI, review and merge.
+2. Next: source-backed non-characteristic PRODAT field projections / per-register
+   overlays. Reproduce against independent original locators; preserve old payloads.
+3. Continue remaining independent F1–F6 work. Full external source, TGT, rights and
+   release evidence stay separate from code-level regressions.
 
-Do not label an entire phase finished from a small regression suite. Source/TGT,
-real rights and release proofs stay separate. PR310 is PAUSED and can only resume
-on explicit instruction using its existing saved recovery checkpoint.
+Completed: PR322 guide immutability/calendar fix merged b1e07728 with four normal
+CI workflows successful. PR319 closed superseded, not merged. PR310 stays PAUSED.

@@ -1,3 +1,5 @@
+import { prodatCharacteristicField, prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
+import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 // lib/ediel/core/tgtAutoMatcher.ts
 
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -624,30 +626,6 @@ function normalizeExpectedValue(value: string | null | undefined): string | null
   return cleaned.length > 0 ? cleaned : null
 }
 
-function cavValue(raw: string | null | undefined): string | null {
-  const value = String(raw ?? '').replace(/^CAV\+/i, '').trim()
-
-  if (!value) return null
-
-  const parts = value.split(':').map((part) => part.trim()).filter(Boolean)
-  return parts.length > 0 ? parts[parts.length - 1] ?? null : null
-}
-
-function cciCavValue(lineSegments: ReturnType<typeof parseEdifactMessageFacts>['segments'], cciCode: string): string | null {
-  for (let index = 0; index < lineSegments.length; index += 1) {
-    const segment = lineSegments[index]
-
-    if (segment?.raw !== `CCI++${cciCode}`) continue
-
-    const next = lineSegments[index + 1]
-    if (!next || next.tag !== 'CAV') return null
-
-    return cavValue(next.raw)
-  }
-
-  return null
-}
-
 function segmentFirstValue(segments: ReturnType<typeof parseEdifactMessageFacts>['segments'], prefix: string): string | null {
   const segment = segments.find((item) => item.raw.startsWith(prefix))
 
@@ -676,8 +654,9 @@ function lineDateTimeValue(segments: ReturnType<typeof parseEdifactMessageFacts>
   return null
 }
 
-function lineActualValue(line: ReturnType<typeof parseEdifactMessageFacts>['lineItems'][number], fieldCode: string): string | null {
+function lineActualValue(line: ReturnType<typeof parseEdifactMessageFacts>['lineItems'][number], fieldCode: string, una: EdifactServiceStringAdvice): string | null {
   const code = fieldCode.toUpperCase()
+  if (prodatCharacteristicField(code)) return prodatCharacteristicValue(code, line.segments, una)
 
   switch (code) {
     case '209':
@@ -685,20 +664,8 @@ function lineActualValue(line: ReturnType<typeof parseEdifactMessageFacts>['line
       return line.itemId
     case '210':
       return lineDateTimeValue(line.segments, ['92', '157'])
-    case '214':
-      return cciCavValue(line.segments, 'Z02')
-    case '217':
-      return cciCavValue(line.segments, 'Z04')
-    case '218':
-      return cciCavValue(line.segments, 'Z16')
-    case '222':
-      return cciCavValue(line.segments, 'Z05')
-    case '223':
-      return cciCavValue(line.segments, 'Z13')
     case '224':
       return line.rffMg
-    case '254':
-      return cciCavValue(line.segments, 'Z02')
     case '260':
       return line.rffZ05
     case '261':
@@ -877,7 +844,7 @@ export function compareInboundPayloadToTgtTestData(params: {
     for (const [fieldCode, expected] of Object.entries(object.fields)) {
       if (!comparableFields.has(fieldCode)) continue
 
-      const actual = lineActualValue(line, fieldCode)
+      const actual = lineActualValue(line, fieldCode, parseUna(message.raw_payload))
 
       if (!actual) {
         issues.push(issueForField({ fieldCode, expected, actual: null, lineItemId: line.itemId, lineItemReference: line.rffLi }))

@@ -1,3 +1,4 @@
+import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 // Compatibility projections over the canonical UNA-aware EDIFACT tokenizer.
 // New runtime parsing must use canonicalEdifactAst/edifactTokenizer directly.
 
@@ -103,8 +104,8 @@ export function parseEdifactMessageFacts(rawPayload: string | null | undefined):
     hasQty31: group.segments.some((segment) =>
       segment.tag === 'QTY' && canonicalFirstComponent(segment, 1, ast.una)?.toUpperCase() === '31',
     ),
-    hasConstant: Boolean(group.cciCavCodes.Z02?.length),
-    hasDigitCount: Boolean(group.cciCavCodes.Z16?.length),
+    hasConstant: message?.family === 'PRODAT' ? Boolean(prodatCharacteristicValue('214', group.segments, ast.una)) : Boolean(group.cciCavCodes.Z02?.length),
+    hasDigitCount: message?.family === 'PRODAT' ? Boolean(prodatCharacteristicValue('218', group.segments, ast.una)) : Boolean(group.cciCavCodes.Z16?.length),
     hasMeterNumber: Boolean(group.references.MG?.length),
   }))
 

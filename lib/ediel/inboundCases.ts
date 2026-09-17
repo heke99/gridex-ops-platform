@@ -1,3 +1,6 @@
+import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
+import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
+import { parseUna } from '@/lib/ediel/core/una'
 // lib/ediel/inboundCases.ts
 
 import { supabaseService } from '@/lib/supabase/service'
@@ -110,27 +113,6 @@ function segmentsFromRawPayload(rawPayload?: string | null): string[] {
     .filter(Boolean)
 }
 
-function readCciCavMap(segments: string[]): Record<string, string> {
-  const map: Record<string, string> = {}
-  let currentProperty: string | null = null
-
-  for (const segment of segments) {
-    if (segment.startsWith('CCI+')) {
-      const parts = segment.split('+')
-      currentProperty = trimOrNull(parts[2]) ?? trimOrNull(parts[3])
-      continue
-    }
-
-    if (currentProperty && segment.startsWith('CAV+')) {
-      const value = trimOrNull(segment.split('+')[1]?.split(':')[0])
-      if (value) map[currentProperty] = value
-      currentProperty = null
-    }
-  }
-
-  return map
-}
-
 function readRffMap(segments: string[]): Record<string, string> {
   const map: Record<string, string> = {}
 
@@ -213,7 +195,14 @@ function buildInternalNotes(parsed: ParsedInboundProdat): string {
 export function parseInboundProdatBusinessData(message: EdielMessageRow): ParsedInboundProdat {
   const payload = message.parsed_payload ?? {}
   const segments = segmentsFromRawPayload(message.raw_payload)
-  const cci = readCciCavMap(segments)
+  const facts = parseEdifactMessageFacts(message.raw_payload)
+  const hasWireSource = facts.segments.some(segment => segment.tag === 'UNH' || segment.tag === 'BGM')
+  const sourceSegments = facts.lineItems[0]?.segments ?? facts.segments
+  // Persisted legacy projections must not override or fill absent wire fields.
+  // Retain their fallback only when this record has no EDIFACT source at all.
+  const characteristic = (field: string, ...fallbackKeys: string[]): string | null => hasWireSource
+    ? prodatCharacteristicValue(field, sourceSegments, parseUna(message.raw_payload))
+    : valueFromParsed(payload, ...fallbackKeys)
   const rff = readRffMap(segments)
   const ud = readNad(segments, 'UD')
   const balanceResponsible = readNad(segments, 'Z02')
@@ -225,17 +214,15 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
     valueFromParsed(payload, 'contractStartDate', 'contract_start_date', 'startDate') ??
     readFirstDtm(segments, '92')
   const transactionType =
-    valueFromParsed(payload, 'reasonForTransaction', 'reason_for_transaction', 'transactionType') ??
-    cci.Z13 ??
-    null
+    characteristic('223', 'reasonForTransaction', 'reason_for_transaction', 'transactionType')
   const meteringMethod =
-    valueFromParsed(payload, 'meteringMethod', 'metering_method') ?? cci.Z04 ?? null
+    characteristic('217', 'meteringMethod', 'metering_method')
   const productCode =
-    valueFromParsed(payload, 'productCode', 'product_code') ?? cci.Z07 ?? cci.Z09 ?? cci.Z10 ?? null
+    characteristic('242', 'productCode', 'product_code')
   const settlementMethod =
-    valueFromParsed(payload, 'settlementMethod', 'settlement_method') ?? cci.Z15 ?? cci.Z16 ?? null
+    characteristic('254', 'settlementMethod', 'settlement_method')
   const installationStatus =
-    valueFromParsed(payload, 'installationStatus', 'installation_status') ?? cci.Z11 ?? cci.Z12 ?? null
+    characteristic('306', 'installationStatus', 'installation_status')
   const annualEnergy =
     numberOrNull(valueFromParsed(payload, 'annualEnergy', 'estimatedAnnualEnergy', 'annual_consumption_kwh'))
   const referenceToMeteringPoint =
@@ -287,11 +274,11 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
     meteringMethod,
     meteringMethodLabel: edielCodeLabel('metering_method', meteringMethod),
     meterNumber: valueFromParsed(payload, 'meterNumber') ?? rff.MG ?? null,
-    meterConstant: numberOrNull(valueFromParsed(payload, 'meterConstant')),
-    meterDigits: numberOrNull(valueFromParsed(payload, 'meterDigits')),
-    meterInterval: valueFromParsed(payload, 'meterInterval') ?? cci.Z17 ?? null,
+    meterConstant: numberOrNull(characteristic('214', 'meterConstant')),
+    meterDigits: numberOrNull(characteristic('218', 'meterDigits')),
+    meterInterval: characteristic('259', 'meterInterval'),
     resolution: numberOrNull(valueFromParsed(payload, 'resolution')),
-    readingFrequency: valueFromParsed(payload, 'readingFrequency') ?? null,
+    readingFrequency: characteristic('222', 'readingFrequency'),
     measurementType: messageCode === 'Z04' && productCode === 'L641Q' ? 'production' : 'consumption',
   }
 

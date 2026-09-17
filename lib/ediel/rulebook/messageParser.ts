@@ -1,3 +1,5 @@
+import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import type { EdielMessageFamily } from '@/lib/ediel/types'
 import { processGroupForMessage } from '@/lib/ediel/rulebook/rulebook'
 
@@ -81,14 +83,9 @@ function parseBgmReference(bgm: string | null): string | null {
   return part(bgm, 2)?.split(':')[0]?.trim() || null
 }
 
-function inferSubtype(rawSegments: string[]): string | null {
-  const cci = rawSegments.find((segment) => segment.toUpperCase().startsWith('CCI++Z13'))
-  if (!cci) return null
-  const idx = rawSegments.indexOf(cci)
-  const cav = rawSegments[idx + 1]
-  if (!cav || !cav.toUpperCase().startsWith('CAV+')) return null
-  const raw = cav.slice(4).split(':').filter(Boolean).pop()
-  return raw?.trim().toUpperCase() || null
+function inferSubtype(raw: string): string | null {
+  const tokenized = tokenizeEdifact(raw)
+  return prodatCharacteristicValue('223', tokenized.segments, tokenized.una)?.toUpperCase() ?? null
 }
 
 function parseContrlFacts(rawSegments: string[]): Record<string, unknown> {
@@ -195,7 +192,7 @@ export function parseRulebookMessage(raw: string): ParsedRulebookMessage {
   return {
     family,
     code,
-    subtype: inferSubtype(rawSegments),
+    subtype: family === 'PRODAT' ? inferSubtype(raw) : null,
     sender: sender.id,
     receiver: receiver.id,
     senderSubAddress: sender.subAddress,

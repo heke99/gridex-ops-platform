@@ -1,3 +1,5 @@
+import { misplacedProdatEnergyProducts } from "@/lib/ediel/prodat/prodatCharacteristicFields"
+import { tokenizeEdifact } from "@/lib/ediel/core/edifactTokenizer"
 // Extracted from tgtEdifact.ts; keep public imports on the facade module.
 import type { EdielMessageFamily } from "@/lib/ediel/types"
 import { EDIEL_TGT_PRODAT_APPLICATION_REFERENCE, resolveEdielTgtProdatApplicationReference } from "@/lib/ediel/fileEngine"
@@ -136,21 +138,16 @@ export function validateEdielTgtDraft(
   }
 
   if (step.family === "PRODAT") {
-    for (let index = 0; index < parsed.segments.length; index += 1) {
-      const segment = parsed.segments[index]?.toUpperCase() ?? "";
-      if (!segment.startsWith("CCI++Z14")) continue;
-      const cav = parsed.segments[index + 1] ?? "";
-      const normalizedCav = cav.toUpperCase();
-      if (normalizedCav.startsWith("CAV+:::") && !normalizedCav.startsWith("CAV+::::")) {
-        pushIssue(
-          issues,
-          "error",
-          "energy_product_cav_component_mismatch",
-          "Energiprodukt ligger i fel CAV-komponent",
-          "PRODAT fält 506 Energiprodukt i CCI++Z14 ska skickas som CAV+::::<produkt-id>. CAV+:::<värde> placeras som produktkod/fält 242 och valideras fel av Edielportalen.",
-        );
-      }
-    }
+    const tokens = tokenizeEdifact(rawPayload);
+    misplacedProdatEnergyProducts(step.code, tokens.segments, tokens.una).forEach(() => {
+      pushIssue(
+        issues,
+        "error",
+        "energy_product_cav_component_mismatch",
+        "Energiprodukt ligger i fel CAV-komponent",
+        "PRODAT fält 506 Energiprodukt i CCI++Z14 ska skickas som CAV+::::<produkt-id>. CAV+:::<värde> placeras som produktkod/fält 242 och valideras fel av Edielportalen.",
+      );
+    });
   }
 
   if (step.family === "PRODAT" && step.code === "Z18") {

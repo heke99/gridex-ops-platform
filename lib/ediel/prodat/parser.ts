@@ -1,3 +1,5 @@
+import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
+import { parseUna } from '@/lib/ediel/core/una'
 // lib/ediel/prodat/parser.ts
 
 import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
@@ -69,23 +71,6 @@ function segmentFirstValue(raw: string | null | undefined, prefix: string): stri
   return value.length > 0 ? (value.split(':')[0]?.trim() || value) : null
 }
 
-function cciCavValue(segments: { raw: string; tag: string }[], cciCode: string): string | null {
-  for (let index = 0; index < segments.length; index += 1) {
-    const segment = segments[index]
-    if (segment?.raw !== `CCI++${cciCode}`) continue
-
-    const next = segments[index + 1]
-    if (!next || next.tag !== 'CAV') return null
-
-    const cleaned = next.raw.replace(/^CAV\+/i, '').trim()
-    if (!cleaned) return null
-    const parts = cleaned.split(':').map((part) => part.trim()).filter(Boolean)
-    return parts[parts.length - 1] ?? null
-  }
-
-  return null
-}
-
 function lineDateTimeValue(segments: { raw: string }[], qualifiers: string[]): string | null {
   for (const qualifier of qualifiers) {
     const segment = segments.find((item) => item.raw.startsWith(`DTM+${qualifier}:`))
@@ -133,6 +118,7 @@ function partyIdFromNad(segments: { raw: string; elements: string[] }[], qualifi
 export function parseProdatMessage(input: EdielMessageRow | string): ParsedProdatMessage {
   const rawPayload = typeof input === 'string' ? input : (input.raw_payload ?? '')
   const facts = parseEdifactMessageFacts(rawPayload)
+  const una = parseUna(rawPayload)
 
   return {
     messageFamily: 'PRODAT',
@@ -164,12 +150,12 @@ export function parseProdatMessage(input: EdielMessageRow | string): ParsedProda
       installationCity: partyFromNad(line.segments, 'IT').city,
       installationCountry: partyFromNad(line.segments, 'IT').country,
       balanceResponsibleId: partyIdFromNad(line.segments, 'Z02'),
-      reportingFrequency: cciCavValue(line.segments, 'Z12'),
-      energyProductId: cciCavValue(line.segments, 'Z14'),
-      installationDirection: cciCavValue(line.segments, 'Z22'),
-      permissionStatus: cciCavValue(line.segments, 'Z23'),
-      permissionPurpose: cciCavValue(line.segments, 'Z24'),
-      permissionEndReason: cciCavValue(line.segments, 'Z25'),
+      reportingFrequency: prodatCharacteristicValue('222', line.segments, una),
+      energyProductId: prodatCharacteristicValue('506', line.segments, una),
+      installationDirection: prodatCharacteristicValue('513', line.segments, una),
+      permissionStatus: prodatCharacteristicValue('322', line.segments, una),
+      permissionPurpose: prodatCharacteristicValue('323', line.segments, una),
+      permissionEndReason: prodatCharacteristicValue('324', line.segments, una),
       // P fields325–327: never treat an object reference or an observation
       // timestamp as authority for a permission lifecycle transition.
       permissionId: line.segments.find(segment => segment.raw.startsWith('RFF+Z09:'))
@@ -182,10 +168,10 @@ export function parseProdatMessage(input: EdielMessageRow | string): ParsedProda
       reportEndDate: lineDateTimeValue(line.segments, ['91']),
       historicalReportStartDate: lineDateTimeValue(line.segments, ['90']),
       historicalReportEndDate: lineDateTimeValue(line.segments, ['91']),
-      isHistoricalMeteringRequest: cciCavValue(line.segments, 'Z13') === 'S18' || Boolean(lineDateTimeValue(line.segments, ['90']) || lineDateTimeValue(line.segments, ['91'])),
-      reasonForTransaction: cciCavValue(line.segments, 'Z13'),
-      measuringMethod: cciCavValue(line.segments, 'Z04'),
-      timeSeriesProduct: cciCavValue(line.segments, 'Z05'),
+      isHistoricalMeteringRequest: prodatCharacteristicValue('223', line.segments, una) === 'S18' || Boolean(lineDateTimeValue(line.segments, ['90']) || lineDateTimeValue(line.segments, ['91'])),
+      reasonForTransaction: prodatCharacteristicValue('223', line.segments, una),
+      measuringMethod: prodatCharacteristicValue('217', line.segments, una),
+      timeSeriesProduct: prodatCharacteristicValue('242', line.segments, una),
       meterNumber: line.rffMg ?? segmentFirstValue(line.segments.find((item) => item.raw.startsWith('RFF+MG:'))?.raw, 'RFF+MG:'),
       hasAnnualConsumption: line.hasQty31,
       hasConstant: line.hasConstant,

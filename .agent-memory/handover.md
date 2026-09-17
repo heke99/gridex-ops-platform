@@ -1,9 +1,13 @@
 # Handover
 
-Updated: 2026-09-17. Read current-state/current-task/checkpoint.
-One active item: F1-C guide immutability and real calendar dates; local tests pass,
-full CI and exact-head merge pending. Do not reuse older F1-A checkpoint claims.
-Base main71dc255e contains merged318/320/321. PR319 is stale and cannot be merged
-as-is. Review notes and next independent work are in the F1-C audit/current-task.
-PR310 remains paused at e9611351; no SQL/type/replay inputs imported or changed.
-No live database mutations, deployment or external market messages performed.
+Updated: 2026-09-17. Status: IMPLEMENTED_NOT_VERIFIED (full CI pending).
+Active: F3-C exact PRODAT characteristic components and affected consumers.
+Branch: `codex/ediel-v2-prodat-characteristics-20260917`; base main `b1e077288c8a6865c413c1bf366797b3a23d07d8`.
+Audit: `quality/audits/ediel-masterplan-v2/f3-characteristic-fields.md`.
+
+PR322 MERGED as b1e07728 after exact-head full CI passed; PR319 closed superseded
+without importing its incorrect16-B assertion. PR318/320/321 are already merged.
+F3-C local124 new +210 retained source tests pass. Sixteen new full-dependency
+consumer tests plus ordinary exact-head CI/review/merge are next. No whole-phase
+or live/TGT certification is claimed. PR310 remains PAUSED at e9611351; no SQL,
+generated types, schema/replay inputs or recovery references are changed.

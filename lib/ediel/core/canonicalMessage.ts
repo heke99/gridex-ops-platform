@@ -1,3 +1,5 @@
+import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
+import { parseUna } from '@/lib/ediel/core/una'
 // lib/ediel/core/canonicalMessage.ts
 
 import type { EdielMessageFamily, EdielMessageRow, EdielMessageStandard } from '@/lib/ediel/types'
@@ -214,7 +216,9 @@ function parseEdifactCanonical(rawPayload: string, direction: EdielMessageRow['d
     messageFamilyForStorage: storageFamily(family),
     messageStandard: 'edifact',
     messageCode,
-    subtype: cciCavSubtype(rawSegments),
+    subtype: family === 'PRODAT'
+      ? prodatCharacteristicValue('223', facts.segments, parseUna(rawPayload))?.toUpperCase() ?? null
+      : cciCavSubtype(rawSegments),
     direction,
     version: versionFromUnh(unhRaw),
     applicationReference: element(unbRaw, 7),

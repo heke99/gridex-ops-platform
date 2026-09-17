@@ -21,3 +21,11 @@ Run35133517653 SUCCESS; artifact10462311090 ZIP SHA256
 ## 2026-09-17 — F1-C
 
 Before19/98; after98/98 underUTC,Europe/Stockholm,Pacific/Apia. Existing112/112 pass. APERAK guard/spec integrity/diff check pass. Full CI pending; npm local ENOTCACHED.
+
+## 2026-09-17 — verified merge322; F3-C in progress
+
+PR322 merged b1e07728 after OPS35191395738,Ediel35191395581,browser35191395542,
+fullE2E35191395541 success, successful CodeRabbit and no unresolved review threads.
+PR319 closed superseded. F3-C reproduced83/116 failures, now124/124 new source
+cases and210/210 retained pass. Full dependency consumer16 cases and normal CI/
+review/merge pending. See f3-characteristic-fields.md. PR310 untouched.
