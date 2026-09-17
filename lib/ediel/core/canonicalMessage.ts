@@ -1,3 +1,4 @@
+import { segmentComposite, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import { prodatReferenceEntries } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { parseUna } from '@/lib/ediel/core/una'
@@ -134,14 +135,15 @@ function storageFamily(family: ExtendedCanonicalFamily): EdielMessageFamily {
   return 'OTHER'
 }
 
-function referenceList(rawSegments: readonly string[]): CanonicalEdielReference[] {
-  return allSegments(rawSegments, 'RFF+').flatMap((segment) => {
-    const composite = element(segment, 1)
-    const parts = splitComposite(composite)
+function referenceList(segments: readonly EdifactTokenizedSegment[], una: ReturnType<typeof parseUna>): CanonicalEdielReference[] {
+  return segments.filter(segment => segment.tag === 'RFF').flatMap((segment) => {
+    // ACW carries the original PRODAT BGM identity into APERAK. Decode from
+    // wire once: a literal release at the end is data, not a dangling escape.
+    const parts = segmentComposite(segment, 1, una).map(part => part.trim())
     const qualifier = cleanString(parts[0] ?? null)
     const value = cleanString(parts.slice(1).join(':'))
     if (!qualifier || !value) return []
-    return [{ qualifier, value, raw: segment }]
+    return [{ qualifier, value, raw: segment.raw }]
   })
 }
 
@@ -195,7 +197,7 @@ function parseEdifactCanonical(rawPayload: string, direction: EdielMessageRow['d
   const family = facts.messageType === 'PRODAT' ? 'PRODAT' : familyFromUnhAndBgm(unhRaw, bgmCode)
   const senderParty = partyIdAndSubAddress(element(unbRaw, 2))
   const receiverParty = partyIdAndSubAddress(element(unbRaw, 3))
-  const references = family === 'PRODAT' ? prodatReferenceEntries(facts.segments, parseUna(rawPayload)) : referenceList(rawSegments)
+  const references = family === 'PRODAT' ? prodatReferenceEntries(facts.segments, parseUna(rawPayload)) : referenceList(facts.segments, parseUna(rawPayload))
   const transactionReference =
     referenceValue(references, 'TN', 'LI', 'ACW') ??
     facts.lineItems.find((line) => line.rffLi)?.rffLi ??

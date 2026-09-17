@@ -89,9 +89,17 @@ describe('masterplan UTILTS ERR acknowledgement profile', () => {
     expect(result.messageVersion).toBe('E5SE5A')
   })
   it('retains P-APERAK for PRODAT and rejects an ERR reply loop', () => {
-    const result = buildAckDraftForSource({ sourceMessage: { ...source, message_family: 'PRODAT', message_code: 'Z01' }, ackFamily: 'APERAK' })
+    // A P-family row must contain a P-family wire, not the UTILTS ERR wire
+    // from the shared fixture. Keep the original document and actor identities.
+    const prodatSource = { ...source, message_family: 'PRODAT', message_code: 'Z01',
+      raw_payload: "UNB+UNOC:3+12345:14+54321:14+260910:1200+I'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z01+ORIGINAL+9+AB'UNT+3+M'UNZ+1+I'",
+    } as EdielMessageRow
+    const result = buildAckDraftForSource({ sourceMessage: prodatSource, ackFamily: 'APERAK' })
     expect(result.rawPayload).toContain('APERAK:D:96A:UN:E2SE6A')
     expect(result.rawPayload).toContain('BGM+++34')
+    expect(result.rawPayload).toContain('RFF+ACW:ORIGINAL')
+    expect(() => buildAckDraftForSource({ sourceMessage: { ...source, message_family: 'PRODAT', message_code: 'Z01' }, ackFamily: 'APERAK' }))
+      .toThrow('aperak_prodat_document_reference_required')
     expect(() => buildAckDraftForSource({ sourceMessage: source, ackFamily: 'UTILTS_ERR' })).toThrow()
   })
 })

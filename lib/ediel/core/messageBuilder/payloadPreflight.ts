@@ -46,16 +46,6 @@ function issue(input: EdielPayloadPreflightIssue): EdielPayloadPreflightIssue {
   return input
 }
 
-function segments(rawPayload: string): string[] {
-  // UNA is exactly 9 characters including the segment terminator, e.g. "UNA:+.? '".
-  // Do not use trim/split before removing it, because the reserved blank before
-  // the terminator is significant in Ediel's default UNA.
-  const normalized = rawPayload.toUpperCase().startsWith('UNA')
-    ? rawPayload.slice(9)
-    : rawPayload
-  return normalized.split("'").map((segment) => segment.trim()).filter(Boolean)
-}
-
 function element(segment: string | null | undefined, index: number): string | null {
   const value = segment?.split('+')[index]?.trim() ?? ''
   return value.length > 0 ? value : null
@@ -358,9 +348,9 @@ function validateEdifactPayload(params: {
 }): EdielPayloadPreflightResult {
   const rawPayload = params.rawPayload
   const canonical = parseCanonicalEdielPayload({ rawPayload, standardHint: 'edifact' })
-  // Preserve literal segment terminators inside an escaped PRODAT document id.
-  const rawSegments = canonical.family === 'PRODAT'
-    ? tokenizeEdifact(rawPayload).segments.map(segment => segment.raw) : segments(rawPayload)
+  // Source document identities also occur in APERAK ACW. Preserve released
+  // terminators for every EDIFACT family instead of splitting literal quotes.
+  const rawSegments = tokenizeEdifact(rawPayload).segments.map(segment => segment.raw)
   const issues: EdielPayloadPreflightIssue[] = []
   const unb = first(rawSegments, 'UNB+')
   const unh = first(rawSegments, 'UNH+')

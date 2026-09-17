@@ -31,6 +31,7 @@ async function runtime(){
  export { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer';
  export { renderAperakEdiel } from '@/lib/ediel/aperakEngine';
  export { inferEdielFamilyAndCodeFromRawPayload } from '@/lib/ediel/classify';
+ export { preflightEdielPayload } from '@/lib/ediel/core/messageBuilder/payloadPreflight';
  export { profileForMessage } from '@/lib/ediel/core/messageBuilder/segmentSchema';
  export { validateProdatPermissionMessage } from '@/lib/ediel/testing/prodatPermissionEngine';
  export { parseInboundProdatBusinessData } from '@/lib/ediel/inboundCases';
@@ -198,3 +199,31 @@ for(const id of ['D'.repeat(35),'D'.repeat(36),'D'.repeat(32)+'?X?X'])test(`cano
  const a=await api,e=evaluation(a,wire([['BGM','Z03',id,'9','AB']]),'203')
  assert.equal(e.issues.some(x=>x.severity==='error'),id.length>35)
 })
+
+// Independent P-APERAK wires carry the source BGM identity in ACW. This tests
+// the real downstream canonical/preflight readers, not only the ACK renderer.
+function acknowledgementWire(id, a=alphabet) {
+ const rows=[['UNH','ACK',['APERAK','D','96A','UN','E2SE6A']], ['BGM','','','34'],
+  ['DTM',['137','202609171200','203']], ['RFF',['ACW',id]],
+  ['NAD','FR',['54321','160','SVK']], ['NAD','DO',['12345','160','SVK']],
+  ['ERC',['100','SVK','260']], ['FTX','AAO','','','OK'], ['UNT','9','ACK']]
+ return `UNA${a.component}${a.element}${a.decimal}${a.release}${a.reserved}${a.terminator}`+
+ [['UNB',['UNOC','3'],['54321','14'],['12345','14'],['260917','1200'],'INTERCHANGE','','23-DDQ-PRODAT'],...rows,['UNZ','1','INTERCHANGE']]
+ .map(row=>row.map(v=>Array.isArray(v)?v.map(x=>encode(x,a)).join(a.component):encode(v,a)).join(a.element)).join(a.terminator)+a.terminator
+}
+for (const id of ['DOC:1','DOC+1',"DOC'1",'DOC?','000aBc','D'.repeat(35)]) {
+ for (const a of [alphabet]) {
+  test(`canonical P-APERAK ACW preserves ${JSON.stringify(id)} with separator ${a.element}`,async()=>{
+   const r=(await api).parseCanonicalEdielPayload({rawPayload:acknowledgementWire(id,a),standardHint:'edifact'})
+   assert.equal(r.family,'APERAK')
+   assert.equal(r.references.find(ref=>ref.qualifier==='ACW')?.value,id)
+  })
+ }
+ test(`actual P-APERAK preflight counts escaped document ${JSON.stringify(id)} as one segment`,async()=>{
+  const r=(await api).preflightEdielPayload({rawPayload:acknowledgementWire(id),messageStandard:'edifact',mode:'send'})
+  assert.equal(r.family,'APERAK')
+  assert.equal(r.segmentCount,11)
+  assert.equal(r.declaredUntCount,9)
+  assert.equal(r.issues.some(issue=>issue.code==='UNT_COUNT_MISMATCH'),false)
+ })
+}
