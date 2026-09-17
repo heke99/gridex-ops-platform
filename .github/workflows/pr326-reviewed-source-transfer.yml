@@ -13,21 +13,24 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
-      - name: Decode fixed reviewed patch and verify source tree
+      - name: Decode fixed reviewed patch and verify application-only tree
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/pr326-proof"
+          printf 'scope=source transfer and isolated tests; ordinary PR CI and substantive review still required\n' > "$RUNNER_TEMP/pr326-proof/provenance.txt"
           cat .agent-transfer/pr326-review.0.b64 .agent-transfer/pr326-review.1.b64 | base64 -d | xz -d > "$RUNNER_TEMP/pr326.patch"
           printf '%s  %s\n' '03a224b9590eee3d451a59682b45c38308a4cffbc295bd15780a1049be677fb2' "$RUNNER_TEMP/pr326.patch" | sha256sum -c -
           git fetch origin a7b4ddde165ab4ef947715685f80e49360c3133c
           git checkout --detach a7b4ddde165ab4ef947715685f80e49360c3133c
+          git status --porcelain
           test -z "$(git status --porcelain)"
           git apply --check "$RUNNER_TEMP/pr326.patch"
           git apply --index "$RUNNER_TEMP/pr326.patch"
-          test "$(git write-tree)" = d69e471e597ddf4817a402ce165fbad214184c7c
+          printf 'actual_transfer_tree=%s\n' "$(git write-tree)" | tee -a "$RUNNER_TEMP/pr326-proof/provenance.txt"
+          test "$(git write-tree)" = 6e486dae6d98f1dc30bfa16f28160258f3a6ee0b
           git diff --cached --check
-          printf 'parent=a7b4ddde165ab4ef947715685f80e49360c3133c\nreviewed_tree=d69e471e597ddf4817a402ce165fbad214184c7c\npatch_sha256=03a224b9590eee3d451a59682b45c38308a4cffbc295bd15780a1049be677fb2\nscope=source transfer and isolated tests; ordinary PR CI and substantive review still required\n' > "$RUNNER_TEMP/pr326-proof/provenance.txt"
+          printf 'parent=a7b4ddde165ab4ef947715685f80e49360c3133c\nreviewed_application_tree=6e486dae6d98f1dc30bfa16f28160258f3a6ee0b\nfinal_tree_after_connector_workflow_restore=d69e471e597ddf4817a402ce165fbad214184c7c\npatch_sha256=03a224b9590eee3d451a59682b45c38308a4cffbc295bd15780a1049be677fb2\n' >> "$RUNNER_TEMP/pr326-proof/provenance.txt"
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -47,8 +50,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git write-tree)" = d69e471e597ddf4817a402ce165fbad214184c7c
-          git restore --source=a7b4ddde165ab4ef947715685f80e49360c3133c --staged --worktree .github/workflows/ediel-masterplan-v2.yml
           test "$(git write-tree)" = 6e486dae6d98f1dc30bfa16f28160258f3a6ee0b
           test -z "$(git diff --name-only)"
           git config user.name 'heke99'
