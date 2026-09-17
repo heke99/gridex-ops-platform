@@ -78,7 +78,7 @@ jobs:
       - name: Verify all twenty PRODAT NAD fields and real party consumers
         run: |
           node --experimental-vm-modules --test scripts/test-ediel-prodat-party-fields.cjs
-          npx vitest run __tests__/ediel-prodat-party-consumers.test.ts
+          npx vitest run __tests__/ediel-prodat-party-consumers.test.ts __tests__/ediel-prodat-party-review-regression.test.ts
       - name: Verify release-aware EDIFACT component parsing
         run: node --experimental-vm-modules --test scripts/test-ediel-component-escaping.cjs
       - name: Verify APERAK source-family guide binding
