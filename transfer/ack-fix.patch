@@ -1,0 +1,140 @@
+diff --git a/__tests__/ediel-masterplan-protocol-regression.test.ts b/__tests__/ediel-masterplan-protocol-regression.test.ts
+index 6138541..887a128 100644
+--- a/__tests__/ediel-masterplan-protocol-regression.test.ts
++++ b/__tests__/ediel-masterplan-protocol-regression.test.ts
+@@ -89,9 +89,17 @@ describe('masterplan UTILTS ERR acknowledgement profile', () => {
+     expect(result.messageVersion).toBe('E5SE5A')
+   })
+   it('retains P-APERAK for PRODAT and rejects an ERR reply loop', () => {
+-    const result = buildAckDraftForSource({ sourceMessage: { ...source, message_family: 'PRODAT', message_code: 'Z01' }, ackFamily: 'APERAK' })
++    // A P-family row must contain a P-family wire, not the UTILTS ERR wire
++    // from the shared fixture. Keep the original document and actor identities.
++    const prodatSource = { ...source, message_family: 'PRODAT', message_code: 'Z01',
++      raw_payload: "UNB+UNOC:3+12345:14+54321:14+260910:1200+I'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z01+ORIGINAL+9+AB'UNT+3+M'UNZ+1+I'",
++    } as EdielMessageRow
++    const result = buildAckDraftForSource({ sourceMessage: prodatSource, ackFamily: 'APERAK' })
+     expect(result.rawPayload).toContain('APERAK:D:96A:UN:E2SE6A')
+     expect(result.rawPayload).toContain('BGM+++34')
++    expect(result.rawPayload).toContain('RFF+ACW:ORIGINAL')
++    expect(() => buildAckDraftForSource({ sourceMessage: { ...source, message_family: 'PRODAT', message_code: 'Z01' }, ackFamily: 'APERAK' }))
++      .toThrow('aperak_prodat_document_reference_required')
+     expect(() => buildAckDraftForSource({ sourceMessage: source, ackFamily: 'UTILTS_ERR' })).toThrow()
+   })
+ })
+diff --git a/lib/ediel/core/canonicalMessage.ts b/lib/ediel/core/canonicalMessage.ts
+index 6453140..d5d97fc 100644
+--- a/lib/ediel/core/canonicalMessage.ts
++++ b/lib/ediel/core/canonicalMessage.ts
+@@ -1,3 +1,4 @@
++import { segmentComposite, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
+ import { prodatReferenceEntries } from '@/lib/ediel/prodat/prodatReferenceFields'
+ import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
+ import { parseUna } from '@/lib/ediel/core/una'
+@@ -134,14 +135,15 @@ function storageFamily(family: ExtendedCanonicalFamily): EdielMessageFamily {
+   return 'OTHER'
+ }
+ 
+-function referenceList(rawSegments: readonly string[]): CanonicalEdielReference[] {
+-  return allSegments(rawSegments, 'RFF+').flatMap((segment) => {
+-    const composite = element(segment, 1)
+-    const parts = splitComposite(composite)
++function referenceList(segments: readonly EdifactTokenizedSegment[], una: ReturnType<typeof parseUna>): CanonicalEdielReference[] {
++  return segments.filter(segment => segment.tag === 'RFF').flatMap((segment) => {
++    // ACW carries the original PRODAT BGM identity into APERAK. Decode from
++    // wire once: a literal release at the end is data, not a dangling escape.
++    const parts = segmentComposite(segment, 1, una).map(part => part.trim())
+     const qualifier = cleanString(parts[0] ?? null)
+     const value = cleanString(parts.slice(1).join(':'))
+     if (!qualifier || !value) return []
+-    return [{ qualifier, value, raw: segment }]
++    return [{ qualifier, value, raw: segment.raw }]
+   })
+ }
+ 
+@@ -195,7 +197,7 @@ function parseEdifactCanonical(rawPayload: string, direction: EdielMessageRow['d
+   const family = facts.messageType === 'PRODAT' ? 'PRODAT' : familyFromUnhAndBgm(unhRaw, bgmCode)
+   const senderParty = partyIdAndSubAddress(element(unbRaw, 2))
+   const receiverParty = partyIdAndSubAddress(element(unbRaw, 3))
+-  const references = family === 'PRODAT' ? prodatReferenceEntries(facts.segments, parseUna(rawPayload)) : referenceList(rawSegments)
++  const references = family === 'PRODAT' ? prodatReferenceEntries(facts.segments, parseUna(rawPayload)) : referenceList(facts.segments, parseUna(rawPayload))
+   const transactionReference =
+     referenceValue(references, 'TN', 'LI', 'ACW') ??
+     facts.lineItems.find((line) => line.rffLi)?.rffLi ??
+diff --git a/lib/ediel/core/messageBuilder/payloadPreflight.ts b/lib/ediel/core/messageBuilder/payloadPreflight.ts
+index 9ab3359..4ab86b0 100644
+--- a/lib/ediel/core/messageBuilder/payloadPreflight.ts
++++ b/lib/ediel/core/messageBuilder/payloadPreflight.ts
+@@ -46,16 +46,6 @@ function issue(input: EdielPayloadPreflightIssue): EdielPayloadPreflightIssue {
+   return input
+ }
+ 
+-function segments(rawPayload: string): string[] {
+-  // UNA is exactly 9 characters including the segment terminator, e.g. "UNA:+.? '".
+-  // Do not use trim/split before removing it, because the reserved blank before
+-  // the terminator is significant in Ediel's default UNA.
+-  const normalized = rawPayload.toUpperCase().startsWith('UNA')
+-    ? rawPayload.slice(9)
+-    : rawPayload
+-  return normalized.split("'").map((segment) => segment.trim()).filter(Boolean)
+-}
+-
+ function element(segment: string | null | undefined, index: number): string | null {
+   const value = segment?.split('+')[index]?.trim() ?? ''
+   return value.length > 0 ? value : null
+@@ -358,9 +348,9 @@ function validateEdifactPayload(params: {
+ }): EdielPayloadPreflightResult {
+   const rawPayload = params.rawPayload
+   const canonical = parseCanonicalEdielPayload({ rawPayload, standardHint: 'edifact' })
+-  // Preserve literal segment terminators inside an escaped PRODAT document id.
+-  const rawSegments = canonical.family === 'PRODAT'
+-    ? tokenizeEdifact(rawPayload).segments.map(segment => segment.raw) : segments(rawPayload)
++  // Source document identities also occur in APERAK ACW. Preserve released
++  // terminators for every EDIFACT family instead of splitting literal quotes.
++  const rawSegments = tokenizeEdifact(rawPayload).segments.map(segment => segment.raw)
+   const issues: EdielPayloadPreflightIssue[] = []
+   const unb = first(rawSegments, 'UNB+')
+   const unh = first(rawSegments, 'UNH+')
+diff --git a/scripts/test-ediel-prodat-document-fields.cjs b/scripts/test-ediel-prodat-document-fields.cjs
+index 8b1a5a9..5f712fb 100644
+--- a/scripts/test-ediel-prodat-document-fields.cjs
++++ b/scripts/test-ediel-prodat-document-fields.cjs
+@@ -31,6 +31,7 @@ async function runtime(){
+  export { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer';
+  export { renderAperakEdiel } from '@/lib/ediel/aperakEngine';
+  export { inferEdielFamilyAndCodeFromRawPayload } from '@/lib/ediel/classify';
++ export { preflightEdielPayload } from '@/lib/ediel/core/messageBuilder/payloadPreflight';
+  export { profileForMessage } from '@/lib/ediel/core/messageBuilder/segmentSchema';
+  export { validateProdatPermissionMessage } from '@/lib/ediel/testing/prodatPermissionEngine';
+  export { parseInboundProdatBusinessData } from '@/lib/ediel/inboundCases';
+@@ -198,3 +199,31 @@ for(const id of ['D'.repeat(35),'D'.repeat(36),'D'.repeat(32)+'?X?X'])test(`cano
+  const a=await api,e=evaluation(a,wire([['BGM','Z03',id,'9','AB']]),'203')
+  assert.equal(e.issues.some(x=>x.severity==='error'),id.length>35)
+ })
++
++// Independent P-APERAK wires carry the source BGM identity in ACW. This tests
++// the real downstream canonical/preflight readers, not only the ACK renderer.
++function acknowledgementWire(id, a=alphabet) {
++ const rows=[['UNH','ACK',['APERAK','D','96A','UN','E2SE6A']], ['BGM','','','34'],
++  ['DTM',['137','202609171200','203']], ['RFF',['ACW',id]],
++  ['NAD','FR',['54321','160','SVK']], ['NAD','DO',['12345','160','SVK']],
++  ['ERC',['100','SVK','260']], ['FTX','AAO','','','OK'], ['UNT','9','ACK']]
++ return `UNA${a.component}${a.element}${a.decimal}${a.release}${a.reserved}${a.terminator}`+
++ [['UNB',['UNOC','3'],['54321','14'],['12345','14'],['260917','1200'],'INTERCHANGE','','23-DDQ-PRODAT'],...rows,['UNZ','1','INTERCHANGE']]
++ .map(row=>row.map(v=>Array.isArray(v)?v.map(x=>encode(x,a)).join(a.component):encode(v,a)).join(a.element)).join(a.terminator)+a.terminator
++}
++for (const id of ['DOC:1','DOC+1',"DOC'1",'DOC?','000aBc','D'.repeat(35)]) {
++ for (const a of [alphabet]) {
++  test(`canonical P-APERAK ACW preserves ${JSON.stringify(id)} with separator ${a.element}`,async()=>{
++   const r=(await api).parseCanonicalEdielPayload({rawPayload:acknowledgementWire(id,a),standardHint:'edifact'})
++   assert.equal(r.family,'APERAK')
++   assert.equal(r.references.find(ref=>ref.qualifier==='ACW')?.value,id)
++  })
++ }
++ test(`actual P-APERAK preflight counts escaped document ${JSON.stringify(id)} as one segment`,async()=>{
++  const r=(await api).preflightEdielPayload({rawPayload:acknowledgementWire(id),messageStandard:'edifact',mode:'send'})
++  assert.equal(r.family,'APERAK')
++  assert.equal(r.segmentCount,11)
++  assert.equal(r.declaredUntCount,9)
++  assert.equal(r.issues.some(issue=>issue.code==='UNT_COUNT_MISMATCH'),false)
++ })
++}
