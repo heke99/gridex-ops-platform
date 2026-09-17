@@ -10,6 +10,7 @@ type MatrixRow = {
   segmentPath: string
   // Zero-based CAV/C889 component: 7111, first7110 or second7110.
   cavComponent?: 0 | 3 | 4
+  referenceScope?: 'sender' | 'line'
   requirements: readonly Prodat26ARequirement[]
 }
 
@@ -32,7 +33,7 @@ export const PRODAT_26A_FIELD_MATRIX: readonly MatrixRow[] = [
   {fieldNumber:'206',fieldKey:'timezone',segmentPath:'DTM+ZZZ',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
   {fieldNumber:'301',fieldKey:'free_text_header',segmentPath:'FTX',requirements:['O','O','O','O','O','O','O','O','O','O','O','O','O']},
   {fieldNumber:'207',fieldKey:'sender_ediel_id',segmentPath:'UNB/S002',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
-  {fieldNumber:'315',fieldKey:'sender_organisation_no',segmentPath:'NAD+FR',requirements:['-','-','O','-','-','-','-','-','-','-','-','-','-']},
+  {fieldNumber:'315',fieldKey:'sender_organisation_no',segmentPath:'RFF+XA',referenceScope:'sender',requirements:['-','-','O','-','-','-','-','-','-','-','-','-','-']},
   {fieldNumber:'208',fieldKey:'receiver_ediel_id',segmentPath:'UNB/S003',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
   {fieldNumber:'314',fieldKey:'sequence_number',segmentPath:'LIN',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
   {fieldNumber:'209',fieldKey:'line_item',segmentPath:'LIN',requirements:['R','R','R','R','R','R','R','R','R','-','D','R','R']},
@@ -68,16 +69,16 @@ export const PRODAT_26A_FIELD_MATRIX: readonly MatrixRow[] = [
   {fieldNumber:'322',fieldKey:'permission_status',segmentPath:'CCI++Z23/CAV',cavComponent:0,requirements:['-','-','-','-','-','-','-','-','-','-','R','R','-']},
   {fieldNumber:'323',fieldKey:'permission_purpose',segmentPath:'CCI++Z24/CAV',cavComponent:0,requirements:['-','-','-','-','-','-','-','-','-','D','D','-','-']},
   {fieldNumber:'324',fieldKey:'permission_end_reason',segmentPath:'CCI++Z25/CAV',cavComponent:0,requirements:['-','-','-','-','-','-','-','-','-','-','-','R','R']},
-  {fieldNumber:'224',fieldKey:'meter_number',segmentPath:'RFF+MG',requirements:['-','-','-','R','O','O','O','-','R','-','-','-','-']},
-  {fieldNumber:'225',fieldKey:'old_meter_number',segmentPath:'RFF+MG',requirements:['-','-','-','-','-','-','-','-','R','-','-','-','-']},
-  {fieldNumber:'308',fieldKey:'supplier_contract_no',segmentPath:'RFF+CT',requirements:['-','-','O','-','O','O','O','-','-','-','-','-','-']},
-  {fieldNumber:'260',fieldKey:'net_area',segmentPath:'RFF+Z05',requirements:['R','R','R','R','R','R','R','R','R','-','D','R','R']},
-  {fieldNumber:'320',fieldKey:'calorific_value_area',segmentPath:'RFF+Z10',requirements:['-','-','-','D','-','D','-','-','-','-','-','-','-']},
-  {fieldNumber:'240',fieldKey:'serial_id',segmentPath:'RFF+SI',requirements:['-','-','-','D','O','D','-','-','D','-','-','-','-']},
-  {fieldNumber:'319',fieldKey:'reference_to_metering_point',segmentPath:'RFF+Z07',requirements:['-','-','-','D','-','-','-','-','-','-','-','-','-']},
-  {fieldNumber:'261',fieldKey:'agreement_reference',segmentPath:'RFF+ANJ',requirements:['R','-','R','-','-','-','-','-','-','R','-','-','-']},
-  {fieldNumber:'226',fieldKey:'line_reference',segmentPath:'RFF+LI',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
-  {fieldNumber:'325',fieldKey:'permission_id',segmentPath:'RFF+Z09',requirements:['-','-','-','-','-','-','-','-','-','-','D','R','R']},
+  {fieldNumber:'224',fieldKey:'meter_number',segmentPath:'RFF+MG',referenceScope:'line',requirements:['-','-','-','R','O','O','O','-','R','-','-','-','-']},
+  {fieldNumber:'225',fieldKey:'old_meter_number',segmentPath:'RFF+Z02',referenceScope:'line',requirements:['-','-','-','-','-','-','-','-','R','-','-','-','-']},
+  {fieldNumber:'308',fieldKey:'supplier_contract_no',segmentPath:'RFF+VC',referenceScope:'line',requirements:['-','-','O','-','O','O','O','-','-','-','-','-','-']},
+  {fieldNumber:'260',fieldKey:'net_area',segmentPath:'RFF+Z05',referenceScope:'line',requirements:['R','R','R','R','R','R','R','R','R','-','D','R','R']},
+  {fieldNumber:'320',fieldKey:'calorific_value_area',segmentPath:'RFF+Z08',referenceScope:'line',requirements:['-','-','-','D','-','D','-','-','-','-','-','-','-']},
+  {fieldNumber:'240',fieldKey:'serial_id',segmentPath:'RFF+Z06',referenceScope:'line',requirements:['-','-','-','D','O','D','-','-','D','-','-','-','-']},
+  {fieldNumber:'319',fieldKey:'reference_to_metering_point',segmentPath:'RFF+Z07',referenceScope:'line',requirements:['-','-','-','D','-','-','-','-','-','-','-','-','-']},
+  {fieldNumber:'261',fieldKey:'agreement_reference',segmentPath:'RFF+ANJ',referenceScope:'line',requirements:['R','-','R','-','-','-','-','-','-','R','-','-','-']},
+  {fieldNumber:'226',fieldKey:'line_reference',segmentPath:'RFF+LI',referenceScope:'line',requirements:['R','R','R','R','R','R','R','R','R','R','R','R','R']},
+  {fieldNumber:'325',fieldKey:'permission_id',segmentPath:'RFF+Z09',referenceScope:'line',requirements:['-','-','-','-','-','-','-','-','-','-','D','R','R']},
   {fieldNumber:'END_USER_GROUP',fieldKey:'end_user_group',segmentPath:'NAD+UD',requirements:['R','R','R','R','R','D','R','D','-','R','D','R','R']},
   {fieldNumber:'227',fieldKey:'end_user_id',segmentPath:'NAD+UD',requirements:['R','R','R','R','R','D','R','D','-','R','D','R','R']},
   {fieldNumber:'228',fieldKey:'end_user_name',segmentPath:'NAD+UD',requirements:['R','R','R','R','R','D','R','D','-','R','D','R','R']},

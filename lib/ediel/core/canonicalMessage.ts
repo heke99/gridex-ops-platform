@@ -1,3 +1,4 @@
+import { prodatReferenceEntries } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { parseUna } from '@/lib/ediel/core/una'
 // lib/ediel/core/canonicalMessage.ts
@@ -194,7 +195,7 @@ function parseEdifactCanonical(rawPayload: string, direction: EdielMessageRow['d
   const family = familyFromUnhAndBgm(unhRaw, bgmCode)
   const senderParty = partyIdAndSubAddress(element(unbRaw, 2))
   const receiverParty = partyIdAndSubAddress(element(unbRaw, 3))
-  const references = referenceList(rawSegments)
+  const references = family === 'PRODAT' ? prodatReferenceEntries(facts.segments, parseUna(rawPayload)) : referenceList(rawSegments)
   const transactionReference =
     referenceValue(references, 'TN', 'LI', 'ACW') ??
     facts.lineItems.find((line) => line.rffLi)?.rffLi ??
@@ -235,7 +236,7 @@ function parseEdifactCanonical(rawPayload: string, direction: EdielMessageRow['d
     facilityId: referenceValue(references, 'Z05') ?? firstComponent(element(firstSegment(rawSegments, 'LOC+172+'), 2)),
     meteringPointId,
     gridArea: firstComponent(element(firstSegment(rawSegments, 'LOC+239+'), 2)),
-    permissionId: referenceValue(references, 'Z07', 'AHL'),
+    permissionId: family === 'PRODAT' ? referenceValue(references, 'Z09') : referenceValue(references, 'Z07', 'AHL'),
     period: dtmValue(rawSegments, '324') ?? dtmValue(rawSegments, '163') ?? dtmValue(rawSegments, '719'),
     quantities: quantities(rawSegments),
     statuses: statuses(rawSegments),

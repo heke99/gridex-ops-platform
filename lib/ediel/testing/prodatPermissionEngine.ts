@@ -1,5 +1,6 @@
+import { prodatReferenceEntries, prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
-import { parseUna } from '@/lib/ediel/core/una'
+import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 // lib/ediel/prodat/permissionEngine.ts
 
 import { parseEdifactMessageFacts, type EdifactSegment } from '@/lib/ediel/core/edifactSegments'
@@ -97,18 +98,11 @@ function firstComponent(value: string | null | undefined): string | null {
   return first.length > 0 ? first : null
 }
 
-function referencesByQualifier(segments: readonly EdifactSegment[]): Record<string, string[]> {
+function referencesByQualifier(segments: readonly EdifactSegment[], una: EdifactServiceStringAdvice): Record<string, string[]> {
   const refs: Record<string, string[]> = {}
-
-  for (const segment of segments) {
-    if (segment.tag !== 'RFF') continue
-    const composite = segment.elements[1] ?? ''
-    const qualifier = composite.split(':')[0]?.trim().toUpperCase() ?? ''
-    const value = composite.split(':')[1]?.trim() ?? ''
-    if (!qualifier || !value) continue
+  for (const { qualifier, value } of prodatReferenceEntries(segments, una)) {
     refs[qualifier] = [...(refs[qualifier] ?? []), value]
   }
-
   return refs
 }
 
@@ -117,12 +111,6 @@ function partyIdFromNad(segments: readonly EdifactSegment[], qualifier: string):
   return firstComponent(segment?.elements[2])
 }
 
-function agreementReferenceFromSegments(segments: readonly EdifactSegment[]): string | null {
-  const refs = referencesByQualifier(segments)
-  return refs.ANJ?.[0] ?? refs.ACW?.[0] ?? null
-}
-
-
 function permissionMessageCode(message: EdielMessageRow): string {
   const facts = parseEdifactMessageFacts(message.raw_payload)
   return String(facts.messageCode ?? message.message_code ?? '').toUpperCase()
@@ -130,12 +118,10 @@ function permissionMessageCode(message: EdielMessageRow): string {
 
 function readPermissionMessageFacts(message: EdielMessageRow): PermissionMessageFacts {
   const facts = parseEdifactMessageFacts(message.raw_payload)
-  const globalSegments = facts.segments.filter((segment) => {
-    if (segment.tag !== 'RFF') return false
-    const firstLine = facts.lineItems[0]
-    return !firstLine || segment.index < firstLine.segments[0]?.index
-  })
-  const globalReferences = referencesByQualifier(globalSegments)
+  const una = parseUna(message.raw_payload)
+  const firstLineIndex = facts.segments.findIndex(segment => segment.tag === 'LIN')
+  const globalSegments = firstLineIndex < 0 ? facts.segments : facts.segments.slice(0, firstLineIndex)
+  const globalReferences = referencesByQualifier(globalSegments, una)
 
   return {
     messageCode: String(facts.messageCode ?? message.message_code ?? '').toUpperCase(),
@@ -146,7 +132,7 @@ function readPermissionMessageFacts(message: EdielMessageRow): PermissionMessage
       meteringPointId: line.itemId ?? null,
       lineReference: line.rffLi ?? null,
       customerId: partyIdFromNad(line.segments, 'UD') ?? partyIdFromNad(line.segments, 'IV'),
-      agreementReference: agreementReferenceFromSegments(line.segments),
+      agreementReference: prodatReferenceValue('261', line.segments, una),
       permissionStatus: prodatCharacteristicValue('322', line.segments, parseUna(message.raw_payload)),
       permissionEndReason: prodatCharacteristicValue('324', line.segments, parseUna(message.raw_payload)),
       rawSegments: line.segments.map((segment) => segment.raw),

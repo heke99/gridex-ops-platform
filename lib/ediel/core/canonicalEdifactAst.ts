@@ -1,3 +1,4 @@
+import { prodatReferenceEntries } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicCodes } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import {
   segmentComposite,
@@ -106,8 +107,13 @@ export function canonicalFirstComponent(
 function referenceMap(
   segments: readonly EdifactTokenizedSegment[],
   una: EdifactServiceStringAdvice,
+  family: string | null,
 ): Record<string, string[]> {
   const result: Record<string, string[]> = {}
+  if (family === 'PRODAT') {
+    for (const entry of prodatReferenceEntries(segments, una)) result[entry.qualifier] = [...(result[entry.qualifier] ?? []), entry.value]
+    return result
+  }
   for (const segment of segments) {
     if (segment.tag !== 'RFF') continue
     const parts = canonicalComposite(segment, 1, una)
@@ -161,7 +167,7 @@ function buildLineGroups(
       lineNumber: canonicalElement(line, 1),
       itemId: canonicalFirstComponent(line, 3, una),
       segments: group,
-      references: referenceMap(group, una),
+      references: referenceMap(group, una, family),
       cciCavCodes: family === 'PRODAT' ? prodatCharacteristicCodes(group, una) : cciCavMap(group, una),
     }
   })

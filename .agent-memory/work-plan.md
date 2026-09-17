@@ -1,11 +1,7 @@
 # Work plan — 2026-09-17
 
-1. Finish active F3-C exact characteristic-field projections and all identified
-   consumers through dependency tests, normal exact-head CI, review and merge.
-2. Next: source-backed non-characteristic PRODAT field projections / per-register
-   overlays. Reproduce against independent original locators; preserve old payloads.
-3. Continue remaining independent F1–F6 work. Full external source, TGT, rights and
-   release evidence stay separate from code-level regressions.
-
-Completed: PR322 guide immutability/calendar fix merged b1e07728 with four normal
-CI workflows successful. PR319 closed superseded, not merged. PR310 stays PAUSED.
+Active: finalize PR324 (F3-D). Code-qualified c343dfd1; this docs head still needs
+normal CI, review and guarded merge. See current-state.md for exact runs.
+Next after merge: source-backed PRODAT NAD/BGM/DTM projections and consumers,
+then register2+/dependent-condition evidence and other independent F1–F6 work.
+Do not reopen completed F3-C or paused PR310; preserve every required gate.

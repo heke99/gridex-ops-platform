@@ -1,24 +1,35 @@
 {
   "project": "gridex-ops-platform",
   "updated_at": "2026-09-17",
-  "status": "IMPLEMENTED_NOT_VERIFIED",
+  "status": "IN_PROGRESS",
   "current_state": ".agent-memory/current-state.md",
-  "branch": "codex/ediel-v2-prodat-characteristics-20260917",
-  "base_head_sha": "b1e077288c8a6865c413c1bf366797b3a23d07d8",
-  "active_item": "F3-C exact PRODAT characteristic field projections",
-  "next_action": "Run full dependency qualification and normal exact-head PR CI; review and merge, then next source-backed field work. PR310 paused.",
+  "branch": "codex/ediel-v2-prodat-references-20260917",
+  "base_head_sha": "5a741b2c6e108d2db08b24aab9c0e6c4b71b1862",
+  "active_item": "F3-D PR324 final exact-head qualification and merge",
+  "next_action": "Read PR324 actual head, ordinary CI and review threads; merge only exact green head; then remaining PRODAT NAD/BGM/DTM projection from new main.",
   "source_state": {
-    "verified_base_tree": "c72835116cfbbfc78f1a4704814109208ec87a78",
+    "verified_base_tree": "4a2803344e5ba82db1091b5e6f4f2061bf330d7e",
+    "local_only": false,
+    "publication_status": "PUBLISHED_PR_324",
     "local_tests": {
-      "new_source_cases": 124,
-      "retained_source_cases": 210,
-      "initial_before": {
-        "passed": 33,
-        "failed": 83
-      },
-      "full_dependency_consumer_cases_pending": 16
+      "new_source_cases": 105,
+      "retained_source_cases": 334,
+      "before": {
+        "passed": 23,
+        "failed": 82
+      }
     },
-    "scope": "Local actual-source verification; normal CI required"
+    "scope": "Actual source-module tests with declared synthetic database/mutation boundaries; not full CI or live verification",
+    "code_qualified_head": "c343dfd155586b653989281c6bc07f621a5dbcce",
+    "code_qualified_tree": "800c68dcfc0f883ba9dae151f89016293d363d29",
+    "normal_ci_success": [
+      35207689478,
+      35207689453,
+      35207689469,
+      35207689487
+    ],
+    "documentation_head_ci": "REQUIRED",
+    "consumer_cases_executed_in_ci": 21
   },
   "main_merged": false,
   "deferred_work": {
@@ -28,16 +39,17 @@
     "backup_branch": "backup/pr310-paused-20260916-e9611351",
     "resume_document": "quality/audits/ediel-masterplan-v2/pr310-paused-resume.md"
   },
-  "historical_memory_archive": ".agent-memory/archive/20260916-main-de098106",
+  "historical_memory_archive": ".agent-memory/archive/20260917-main-5a741b2c",
   "prior_completed": {
-    "pr": 322,
-    "merge_sha": "b1e077288c8a6865c413c1bf366797b3a23d07d8",
-    "tested_head": "fb74d3057d418589088b0a0d49921400b3df80d9",
+    "pr": 323,
+    "merge_sha": "5a741b2c6e108d2db08b24aab9c0e6c4b71b1862",
+    "tested_head": "0bf787843416bdab259ff79b3ae8c3f841e16a93",
     "normal_ci_success": [
-      35191395738,
-      35191395581,
-      35191395542,
-      35191395541
+      35195499083,
+      35195499122,
+      35195499075,
+      35195499087
     ]
-  }
+  },
+  "pull_request": 324
 }

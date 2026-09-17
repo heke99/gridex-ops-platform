@@ -24,3 +24,8 @@ fullE2E35191395541 success, successful CodeRabbit and no unresolved review threa
 PR319 closed superseded. F3-C reproduced83/116 failures, now124/124 new source
 cases and210/210 retained pass. Full dependency consumer16 cases and normal CI/
 review/merge pending. See f3-characteristic-fields.md. PR310 untouched.
+
+
+## 2026-09-17 — F3-D checkpoint
+
+PR323 / F3-C was verified merged at main5a741b2c, tree4a280334, with normal exact-head OPS/Ediel/Browser/FullE2E success. F3-D is NOT completed.

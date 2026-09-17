@@ -1,3 +1,5 @@
+import { parseUna } from '@/lib/ediel/core/una'
+import { prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { misplacedProdatEnergyProducts } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 // lib/ediel/core/messageBuilder/payloadPreflight.ts
@@ -489,7 +491,7 @@ function validateEdifactPayload(params: {
     const installationParty = rawSegments.find((segment) => segment.toUpperCase().startsWith('NAD+IT+')) ?? null
     const hasReportEnd = rawSegments.some((segment) => segment.toUpperCase().startsWith('DTM+164:'))
     const hasPermissionCreatedAt = rawSegments.some((segment) => segment.toUpperCase().startsWith('DTM+693:'))
-    const hasPermissionId = rawSegments.some((segment) => segment.toUpperCase().startsWith('RFF+Z09:'))
+    const hasPermissionId = Boolean(prodatReferenceValue('325', rawSegments, parseUna(rawPayload)))
 
     if (!hasEndUser) {
       issues.push(issue({

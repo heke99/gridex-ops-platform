@@ -27,3 +27,8 @@
 - Published API/OpenAPI release 2026-08-05.1.
 
 - 2026-08-05T15:20:07+02:00: Customer Portal legal sync now prevalidates one acceptance format per request; draft/fallback POAs no longer emit signed events.
+
+
+## 2026-09-17 — F3-D checkpoint
+
+F3-D candidate:11 source RFF qualifiers/scopes; exact1154 with release preservation; Z02old meter/ANJauthorisation/Z09permission kept separate; staging/ACK/TGT/ingress/reference-index paths updated. Local-only, pending full CI.

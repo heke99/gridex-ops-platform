@@ -1,3 +1,4 @@
+import { prodatReferenceField, prodatReferencePresent, prodatReferenceValues } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicField, prodatCharacteristicPresent, prodatCharacteristicValues } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import type { EdielRulebookIssue, EdielRulebookRequirement } from '@/lib/ediel/rulebook/rulebook'
@@ -175,6 +176,8 @@ function firstValueForPath(rawSegments: readonly string[] | null | undefined, pa
 
 function fieldValuesForRule(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): string[] {
   const rawSegments = input.rawSegments ?? []
+  const reference = normalize(rule.family) === 'PRODAT' ? prodatReferenceField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (reference) return prodatReferenceValues(reference.fieldNumber, rawSegments, input.una).map(normalize)
   const characteristic = normalize(rule.family) === 'PRODAT' ? prodatCharacteristicField(rule.fieldNumber ?? rule.fieldKey) : null
   if (characteristic) return prodatCharacteristicValues(characteristic.fieldNumber, rawSegments, input.una).map(normalize)
   const value = (() => {
@@ -383,6 +386,10 @@ export function fieldRulesForMessage(family: string | null | undefined, code: st
 export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): boolean {
   const rawSegments = input.rawSegments ?? []
   const applicationReference = input.applicationReference ?? null
+  const reference = normalize(rule.family) === 'PRODAT' ? prodatReferenceField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (reference) return prodatReferencePresent(reference.fieldNumber, rawSegments, {
+    una: input.una, forbidden: rule.requirement === 'forbidden' || rule.requirement === 'not_used',
+  })
   const characteristic = normalize(rule.family) === 'PRODAT' ? prodatCharacteristicField(rule.fieldNumber ?? rule.fieldKey) : null
   if (characteristic) return prodatCharacteristicPresent(characteristic.fieldNumber, rawSegments, {
     una: input.una, forbidden: rule.requirement === 'forbidden' || rule.requirement === 'not_used',
@@ -403,7 +410,6 @@ export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEval
     switch (rule.fieldNumber) {
       case '302':
       case '321':
-      case '325':
       case '326':
       case '327':
       case '508': {
@@ -417,22 +423,12 @@ export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEval
         return rawSegments.some(segment => segment.toUpperCase().startsWith(prefix)
           && Boolean(segment.slice(prefix.length).split(':')[0]?.trim()))
       }
-      case '315': {
-        const nadFr = first(rawSegments, 'NAD+FR+')
-        const identity = components(element(nadFr, 2))
-        if (identity.length === 0) return false
-        // 160:SVK identifies the Ediel party carried by the mandatory NAD+FR
-        // segment. It is not the optional sender organisation-number field 315.
-        return !(normalize(identity[1]) === '160' && normalize(identity[2]) === 'SVK')
-      }
       case '314':
         return Boolean(element(lin, 1))
       case '209':
         return Boolean(components(element(lin, 3))[0])
       case '258':
         return Boolean(element(lin, 4))
-      case '260':
-        return hasPrefix(rawSegments, 'RFF+Z05:')
       case 'END_USER_GROUP':
         return Boolean(nadUd)
       case '227':

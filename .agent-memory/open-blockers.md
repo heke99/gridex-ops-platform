@@ -1,8 +1,10 @@
 # Open blockers — 2026-09-17
 
-- F3-C full dependency tests, normal CI/review and merge remain; local334 tests pass.
-- Complete PRODAT non-characteristic fields/register rules, source provenance,
-  full permission semantics, energy-sharing and original TGT proof not certified.
-- F0 actual incident/environment evidence, database-dependent F2 and F7 release
-  remain governed by their explicit evidence gates. PR310 remains PAUSED.
-- Local npm unavailable; CI runs full dependency tests. Never bypass a failed gate.
+- F3-D source publication and full code qualification blockers are resolved on
+  c343dfd1 in PR324. Final docs-head CI/review/merge must still be read back.
+- Local npm installation is unavailable; normal GitHub CI supplies dependency
+  qualification. Source-only tests do not substitute for those gates.
+- Remaining NAD/BGM/DTM/register/dependent rules and complete grammar have their
+  own evidence requirements. Full F1/F3/F7/masterplan approval is not claimed.
+- F0 live environment/incident evidence, original TGT scope, grants/permissions
+  and DB-dependent F2/F7 remain separate. PR310 remains paused and unaccepted.

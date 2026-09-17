@@ -1,3 +1,5 @@
+import { prodatReferenceValues } from "@/lib/ediel/prodat/prodatReferenceFields";
+import { parseUna } from "@/lib/ediel/core/una";
 // lib/ediel/core/aperakErrorRuleRegistry.ts
 
 import type { EdielAperakApplicationError } from "@/lib/ediel/ack";
@@ -558,19 +560,7 @@ function firstLineReferenceContext(
 }
 
 function firstMeterNumberFromMessage(message: EdielMessageRow): string | null {
-  const facts = parseEdifactMessageFacts(message.raw_payload);
-  for (const line of facts.lineItems) {
-    const segment = line.segments.find((item) =>
-      item.raw.startsWith("RFF+MG:"),
-    );
-    const value =
-      segment?.raw
-        .replace(/^RFF\+MG:/, "")
-        .split(":")[0]
-        ?.trim() ?? "";
-    if (value) return value;
-  }
-  return null;
+  return meterNumbersForMessage(message)[0] ?? null;
 }
 
 function messageHasMissingConstant(message: EdielMessageRow): boolean {
@@ -580,37 +570,16 @@ function messageHasMissingConstant(message: EdielMessageRow): boolean {
 
 function meterNumbersForMessage(message: EdielMessageRow): string[] {
   const facts = parseEdifactMessageFacts(message.raw_payload);
-  const values: string[] = [];
-  for (const line of facts.lineItems) {
-    for (const segment of line.segments) {
-      if (!segment.raw.startsWith("RFF+MG:")) continue;
-      const value =
-        segment.raw
-          .replace(/^RFF\+MG:/, "")
-          .split(":")[0]
-          ?.trim() ?? "";
-      if (value) values.push(value);
-    }
-  }
-  return Array.from(new Set(values));
+  const una = parseUna(message.raw_payload);
+  return Array.from(new Set(facts.lineItems.flatMap(line => prodatReferenceValues('224', line.segments, una))));
 }
 
-function messageLooksLikeSameMeterNumberChange(
-  message: EdielMessageRow,
-): boolean {
+function messageLooksLikeSameMeterNumberChange(message: EdielMessageRow): boolean {
   const facts = parseEdifactMessageFacts(message.raw_payload);
-  return facts.lineItems.some((line) => {
-    const values = line.segments
-      .filter((segment) => segment.raw.startsWith("RFF+MG:"))
-      .map(
-        (segment) =>
-          segment.raw
-            .replace(/^RFF\+MG:/, "")
-            .split(":")[0]
-            ?.trim() ?? "",
-      )
-      .filter(Boolean);
-    return values.length >= 2 && new Set(values).size < values.length;
+  const una = parseUna(message.raw_payload);
+  return facts.lineItems.some(line => {
+    const current = new Set(prodatReferenceValues('224', line.segments, una));
+    return prodatReferenceValues('225', line.segments, una).some(old => current.has(old));
   });
 }
 
@@ -1295,7 +1264,7 @@ export function deriveProdatAperakValidationIssues(params: {
       issues.push(
         issue({
           ruleKey: "meter_number_missing",
-          fieldPath: "SG5/RFF/Z09",
+          fieldPath: "SG16/RFF/MG",
           fieldValue: null,
           expectedValue: hasTestDataField(testData, "224")
             ? testDataValuesForField(testData, ["224"]).join(",")

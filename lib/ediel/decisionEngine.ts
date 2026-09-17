@@ -1,3 +1,4 @@
+import { prodatReferenceByQualifier } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import type { AckFamily, AckOutcome, EdielAperakApplicationError } from '@/lib/ediel/ack'
@@ -105,10 +106,8 @@ function segmentStarts(rawPayload: string | null | undefined, prefix: string): b
 }
 
 function firstReference(rawPayload: string | null | undefined, qualifier: string): string | null {
-  const prefix = `RFF+${qualifier}:`
-  const segment = rawSegments(rawPayload).find((item) => item.toUpperCase().startsWith(prefix.toUpperCase()))
-  if (!segment) return null
-  return segment.slice(prefix.length).split('+')[0]?.trim() || null
+  const tokenized = tokenizeEdifact(rawPayload)
+  return prodatReferenceByQualifier(qualifier, tokenized.segments, tokenized.una)
 }
 
 function firstLinObject(rawPayload: string | null | undefined): string | null {

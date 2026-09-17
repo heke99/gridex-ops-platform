@@ -1,3 +1,4 @@
+import { prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
 import { parseUna } from '@/lib/ediel/core/una'
@@ -113,21 +114,6 @@ function segmentsFromRawPayload(rawPayload?: string | null): string[] {
     .filter(Boolean)
 }
 
-function readRffMap(segments: string[]): Record<string, string> {
-  const map: Record<string, string> = {}
-
-  for (const segment of segments) {
-    if (!segment.startsWith('RFF+')) continue
-    const value = segment.slice(4)
-    const [qualifier, reference] = value.split(':')
-    const safeQualifier = trimOrNull(qualifier)
-    const safeReference = trimOrNull(reference)
-    if (safeQualifier && safeReference) map[safeQualifier] = safeReference
-  }
-
-  return map
-}
-
 function readNad(segments: string[], qualifier: string): JsonRecord | null {
   const segment = segments.find((row) => row.startsWith(`NAD+${qualifier}+`))
   if (!segment) return null
@@ -203,7 +189,9 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
   const characteristic = (field: string, ...fallbackKeys: string[]): string | null => hasWireSource
     ? prodatCharacteristicValue(field, sourceSegments, parseUna(message.raw_payload))
     : valueFromParsed(payload, ...fallbackKeys)
-  const rff = readRffMap(segments)
+  const reference = (field: string, ...fallbackKeys: string[]): string | null => hasWireSource
+    ? prodatReferenceValue(field, sourceSegments, parseUna(message.raw_payload))
+    : valueFromParsed(payload, ...fallbackKeys)
   const ud = readNad(segments, 'UD')
   const balanceResponsible = readNad(segments, 'Z02')
   const messageCode = readBgmCode(segments) ?? String(message.message_code)
@@ -226,10 +214,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
   const annualEnergy =
     numberOrNull(valueFromParsed(payload, 'annualEnergy', 'estimatedAnnualEnergy', 'annual_consumption_kwh'))
   const referenceToMeteringPoint =
-    valueFromParsed(payload, 'referenceToMeteringPoint', 'reference_to_metering_point') ??
-    rff.ADQ ??
-    rff.ACW ??
-    null
+    reference('319', 'referenceToMeteringPoint', 'reference_to_metering_point')
 
   const customerId = trimOrNull(ud?.id) ?? valueFromParsed(payload, 'customerId', 'endUserId')
   const customerIdQualifier =
@@ -263,7 +248,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
     postalCode: valueFromParsed(payload, 'sitePostalCode', 'facilityPostalCode') ?? trimOrNull(ud?.postalCode),
     city: valueFromParsed(payload, 'siteCity', 'facilityCity') ?? trimOrNull(ud?.city),
     country: valueFromParsed(payload, 'siteCountry', 'facilityCountry') ?? 'SE',
-    gridAreaCode: rff.Z05 ?? valueFromParsed(payload, 'gridAreaCode', 'networkAreaId'),
+    gridAreaCode: reference('260', 'gridAreaCode', 'networkAreaId'),
     annualEnergyKwh: annualEnergy,
     contractStartDate: contractStart,
   }
@@ -273,7 +258,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
     referenceToMeteringPoint,
     meteringMethod,
     meteringMethodLabel: edielCodeLabel('metering_method', meteringMethod),
-    meterNumber: valueFromParsed(payload, 'meterNumber') ?? rff.MG ?? null,
+    meterNumber: reference('224', 'meterNumber'),
     meterConstant: numberOrNull(characteristic('214', 'meterConstant')),
     meterDigits: numberOrNull(characteristic('218', 'meterDigits')),
     meterInterval: characteristic('259', 'meterInterval'),
@@ -284,9 +269,9 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
 
   const contract = {
     startDate: contractStart,
-    agreementReference: rff.ANJ ?? valueFromParsed(payload, 'agreementReference'),
+    agreementReference: reference('261', 'agreementReference'),
     balanceResponsibleId: trimOrNull(balanceResponsible?.id) ?? valueFromParsed(payload, 'balanceResponsibleId'),
-    gridAreaCode: rff.Z05 ?? null,
+    gridAreaCode: reference('260', 'gridAreaCode', 'networkAreaId'),
   }
 
   const production = {
