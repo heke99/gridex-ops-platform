@@ -34,3 +34,7 @@ Continued from actual main5a741b2c after PR323. Implemented source-exact RFF pro
 ## 2026-09-17 — F3-E checkpoint
 
 Completed PR324 merge; next single itemF3-E BGM fields. Source-backed implementation and tests ready for full CI. PR310 untouched.
+
+## 2026-09-17 — Continue after merged PR325
+
+F3-F implemented all20NAD source slots and consumers; fixed wrong-party/cached-address and invalid candidate wildcard/tenant-scope defects. Added264actual-source cases and Vitest consumers;848combined localpass. Await exact-head ordinary CI/review; no full-plan or live approval. Paused PR310 untouched.

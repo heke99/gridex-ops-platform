@@ -1,3 +1,4 @@
+import { readProdatParty } from '@/lib/ediel/prodat/prodatPartyFields'
 import { prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
@@ -114,26 +115,6 @@ function segmentsFromRawPayload(rawPayload?: string | null): string[] {
     .filter(Boolean)
 }
 
-function readNad(segments: string[], qualifier: string): JsonRecord | null {
-  const segment = segments.find((row) => row.startsWith(`NAD+${qualifier}+`))
-  if (!segment) return null
-
-  const parts = segment.split('+')
-  const idComposite = parts[2] ?? ''
-  const idParts = idComposite.split(':')
-
-  return {
-    partyQualifier: qualifier,
-    id: trimOrNull(idParts[0]),
-    codeListQualifier: trimOrNull(idParts[1]),
-    codeListAgency: trimOrNull(idParts[2]),
-    name: trimOrNull(parts[4]),
-    address: trimOrNull(parts[5]),
-    city: trimOrNull(parts[6]),
-    postalCode: trimOrNull(parts[8]),
-    country: normalizeUpper(parts[9]) ?? 'SE',
-  }
-}
 
 function readFirstDtm(segments: string[], qualifier: string): string | null {
   const segment = segments.find((row) => row.startsWith(`DTM+${qualifier}:`))
@@ -178,7 +159,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
   const payload = message.parsed_payload ?? {}
   const segments = segmentsFromRawPayload(message.raw_payload)
   const facts = parseEdifactMessageFacts(message.raw_payload)
-  const hasWireSource = facts.segments.some(segment => segment.tag === 'UNH' || segment.tag === 'BGM')
+  const hasWireSource = Boolean(message.raw_payload?.trim())
   const sourceSegments = facts.lineItems[0]?.segments ?? facts.segments
   // Persisted legacy projections must not override or fill absent wire fields.
   // Retain their fallback only when this record has no EDIFACT source at all.
@@ -188,8 +169,12 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
   const reference = (field: string, ...fallbackKeys: string[]): string | null => hasWireSource
     ? prodatReferenceValue(field, sourceSegments, parseUna(message.raw_payload))
     : valueFromParsed(payload, ...fallbackKeys)
-  const ud = readNad(segments, 'UD')
-  const balanceResponsible = readNad(segments, 'Z02')
+  const una = parseUna(message.raw_payload)
+  const ud = readProdatParty('UD', facts.segments, una)
+  const it = readProdatParty('IT', facts.segments, una)
+  const balanceResponsible = readProdatParty('Z02', facts.segments, una)
+  const partyValue = (value: string | null, ...fallbackKeys: string[]): string | null => hasWireSource
+    ? value : valueFromParsed(payload, ...fallbackKeys)
   const messageCode = hasWireSource ? facts.messageCode ?? '' : String(message.message_code)
   const meterPointId =
     valueFromParsed(payload, 'meterPointId', 'meteringPointId', 'installationId', 'facilityId') ??
@@ -212,38 +197,40 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
   const referenceToMeteringPoint =
     reference('319', 'referenceToMeteringPoint', 'reference_to_metering_point')
 
-  const customerId = trimOrNull(ud?.id) ?? valueFromParsed(payload, 'customerId', 'endUserId')
+  const customerId = partyValue(ud.id, 'customerId', 'endUserId')
   const customerIdQualifier =
-    trimOrNull(ud?.codeListQualifier) ??
-    valueFromParsed(payload, 'customerIdCodeListQualifier', 'end_user_id_code_list_qualifier')
-  const customerName = trimOrNull(ud?.name) ?? valueFromParsed(payload, 'customerName', 'endUserName')
+    partyValue(ud.idQualifier, 'customerIdCodeListQualifier', 'end_user_id_code_list_qualifier')
+  const customerName = partyValue(ud.name, 'customerName', 'endUserName')
 
   const isBusiness = customerIdQualifier === 'SE1'
+  const isPerson = customerIdQualifier === 'SE2'
+  // Keep unrecognised/distributor IDs as evidence, not invented national IDs.
+  const nationalId = (!hasWireSource || ud.identityValid) && customerId && /^[0-9]+(?:[-+][0-9]+)?$/.test(customerId) ? normalizeDigits(customerId) : null
   const customer = {
     customerId,
     customerIdQualifier,
     customerIdLabel: edielCodeLabel('customer_id_qualifier', customerIdQualifier),
-    customerType: isBusiness ? 'business' : 'private',
-    personalNumber: isBusiness ? null : normalizeDigits(customerId),
-    orgNumber: isBusiness ? normalizeDigits(customerId) : null,
+    customerType: isBusiness ? 'business' : isPerson ? 'private' : null,
+    personalNumber: isPerson ? nationalId : null,
+    orgNumber: isBusiness ? nationalId : null,
     fullName: customerName,
     companyName: isBusiness ? customerName : null,
     firstName: !isBusiness ? customerName?.split(' ')[0] ?? null : null,
     lastName: !isBusiness ? customerName?.split(' ').slice(1).join(' ') || null : null,
-    address: trimOrNull(ud?.address) ?? valueFromParsed(payload, 'customerAddress'),
-    postalCode: trimOrNull(ud?.postalCode) ?? valueFromParsed(payload, 'customerPostalCode'),
-    city: trimOrNull(ud?.city) ?? valueFromParsed(payload, 'customerCity'),
-    country: normalizeUpper(ud?.country) ?? 'SE',
+    address: partyValue(ud.address, 'customerAddress'),
+    postalCode: partyValue(ud.postalCode, 'customerPostalCode'),
+    city: partyValue(ud.city, 'customerCity'),
+    country: partyValue(ud.country, 'customerCountry'),
   }
 
   const site = {
     facilityId: meterPointId,
     siteName: meterPointId ? `Ediel ${meterPointId}` : 'Ediel inbound-anläggning',
     siteType: messageCode === 'Z04' && productCode === 'L641Q' ? 'production' : 'consumption',
-    street: valueFromParsed(payload, 'siteAddress', 'facilityAddress', 'installationAddress') ?? trimOrNull(ud?.address),
-    postalCode: valueFromParsed(payload, 'sitePostalCode', 'facilityPostalCode') ?? trimOrNull(ud?.postalCode),
-    city: valueFromParsed(payload, 'siteCity', 'facilityCity') ?? trimOrNull(ud?.city),
-    country: valueFromParsed(payload, 'siteCountry', 'facilityCountry') ?? 'SE',
+    street: partyValue(it.address, 'siteAddress', 'facilityAddress', 'installationAddress'),
+    postalCode: partyValue(it.postalCode, 'sitePostalCode', 'facilityPostalCode'),
+    city: partyValue(it.city, 'siteCity', 'facilityCity'),
+    country: partyValue(it.country, 'siteCountry', 'facilityCountry'),
     gridAreaCode: reference('260', 'gridAreaCode', 'networkAreaId'),
     annualEnergyKwh: annualEnergy,
     contractStartDate: contractStart,
@@ -266,7 +253,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
   const contract = {
     startDate: contractStart,
     agreementReference: reference('261', 'agreementReference'),
-    balanceResponsibleId: trimOrNull(balanceResponsible?.id) ?? valueFromParsed(payload, 'balanceResponsibleId'),
+    balanceResponsibleId: partyValue(balanceResponsible.id, 'balanceResponsibleId'),
     gridAreaCode: reference('260', 'gridAreaCode', 'networkAreaId'),
   }
 

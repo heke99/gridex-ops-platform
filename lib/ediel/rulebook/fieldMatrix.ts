@@ -1,3 +1,4 @@
+import { prodatPartyField, prodatPartyState, prodatPartySegmentFromSource, readProdatParty } from '@/lib/ediel/prodat/prodatPartyFields'
 import { prodatDocumentField, prodatDocumentState, prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { prodatReferenceField, prodatReferencePresent, prodatReferenceValues } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicField, prodatCharacteristicPresent, prodatCharacteristicValues } from '@/lib/ediel/prodat/prodatCharacteristicFields'
@@ -177,6 +178,8 @@ function firstValueForPath(rawSegments: readonly string[] | null | undefined, pa
 
 function fieldValuesForRule(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): string[] {
   const rawSegments = input.rawSegments ?? []
+  const party = normalize(rule.family) === 'PRODAT' ? prodatPartyField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (party) return prodatPartyState(party.fieldNumber, rawSegments, input.una).values.map(normalize)
   const document = normalize(rule.family) === 'PRODAT' ? prodatDocumentField(rule.fieldNumber ?? rule.fieldKey) : null
   if (document) {
     const value = prodatDocumentValue(document.fieldNumber, rawSegments, input.una)
@@ -392,6 +395,16 @@ export function fieldRulesForMessage(family: string | null | undefined, code: st
 export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): boolean {
   const rawSegments = input.rawSegments ?? []
   const applicationReference = input.applicationReference ?? null
+  const party = normalize(rule.family) === 'PRODAT' ? prodatPartyField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (party) {
+    const state = prodatPartyState(party.fieldNumber, rawSegments, input.una)
+    return rule.requirement === 'forbidden' || rule.requirement === 'not_used' ? state.present : Boolean(state.value)
+  }
+  if (normalize(rule.family) === 'PRODAT') {
+    const groupRoles: Record<string, 'UD' | 'IT' | 'IV' | 'FR' | 'DO'> = { END_USER_GROUP: 'UD', INSTALLATION_GROUP: 'IT', INVOICEE_GROUP: 'IV', party_fr: 'FR', party_do: 'DO' }
+    const role = groupRoles[rule.fieldNumber ?? rule.fieldKey]
+    if (role) return Boolean(prodatPartySegmentFromSource(role, rawSegments, input.una))
+  }
   const document = normalize(rule.family) === 'PRODAT' ? prodatDocumentField(rule.fieldNumber ?? rule.fieldKey) : null
   if (document) {
     const state = prodatDocumentState(document.fieldNumber, rawSegments, input.una)
@@ -414,9 +427,6 @@ export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEval
   // switch so PRODAT names such as net_area also cannot collide with UTILTS.
   if (normalize(rule.family) === 'PRODAT' && rule.source === 'static') {
     const lin = first(rawSegments, 'LIN+')
-    const nadUd = first(rawSegments, 'NAD+UD+')
-    const nadIt = first(rawSegments, 'NAD+IT+')
-    const nadIv = first(rawSegments, 'NAD+IV+')
 
     switch (rule.fieldNumber) {
       case '302':
@@ -440,46 +450,6 @@ export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEval
         return Boolean(components(element(lin, 3))[0])
       case '258':
         return Boolean(element(lin, 4))
-      case 'END_USER_GROUP':
-        return Boolean(nadUd)
-      case '227':
-        return Boolean(element(nadUd, 2))
-      case '228':
-        return Boolean(element(nadUd, 4))
-      case '229':
-        return Boolean(element(nadUd, 5))
-      case '231':
-        return Boolean(element(nadUd, 8))
-      case '232':
-        return Boolean(element(nadUd, 6))
-      case '316':
-        return Boolean(element(nadUd, 9))
-      case 'INSTALLATION_GROUP':
-        return Boolean(nadIt)
-      case '233':
-        return Boolean(element(nadIt, 2))
-      case '234':
-        return Boolean(element(nadIt, 5))
-      case '235':
-        return Boolean(element(nadIt, 8))
-      case '236':
-        return Boolean(element(nadIt, 6))
-      case '237':
-        return Boolean(element(nadIt, 9))
-      case 'INVOICEE_GROUP':
-        return Boolean(nadIv)
-      case '250':
-        return Boolean(element(nadIv, 2))
-      case '251':
-        return Boolean(element(nadIv, 4))
-      case '252':
-        return Boolean(element(nadIv, 5))
-      case '253':
-        return Boolean(element(nadIv, 8))
-      case '317':
-        return Boolean(element(nadIv, 6))
-      case '318':
-        return Boolean(element(nadIv, 9))
       default:
         break
     }
@@ -604,6 +574,20 @@ export function validateFieldMatrixPayload(
       continue
     }
 
+    const party = family === 'PRODAT' ? prodatPartyField(rule.fieldNumber ?? rule.fieldKey) : null
+    const partyState = party ? prodatPartyState(party.fieldNumber, rawSegments, input.una) : null
+    const forbiddenDateOfBirth = party?.fieldNumber === '227' && code === 'Z13'
+      && readProdatParty('UD', rawSegments, input.una).idQualifier === '1'
+    if (partyState?.malformed || partyState?.tooLong || forbiddenDateOfBirth) {
+      issues.push(issue({
+        severity: rule.severity ?? 'error',
+        code: rule.errorCodeIfInvalid ?? (partyState?.tooLong ? 'FIELD_MATRIX_FIELD_LENGTH_INVALID' : 'FIELD_MATRIX_FIELD_FORMAT_INVALID'),
+        title: `${rule.label} följer inte NAD-fältets struktur`,
+        description: `${rule.segmentPath}: kontrollera komponent, kodlista, längd och part enligt PRODAT 26.A s.45–46,79–83.`,
+        fieldPath: rule.segmentPath,
+      }))
+      continue
+    }
     const document = family === 'PRODAT' ? prodatDocumentField(rule.fieldNumber ?? rule.fieldKey) : null
     const documentState = document ? prodatDocumentState(document.fieldNumber, rawSegments, input.una) : null
     if (documentState?.malformed) {
@@ -629,6 +613,7 @@ export function validateFieldMatrixPayload(
     const requiredByDependency = dependencyApplies(rule, { ...input, rawSegments })
     const shouldEvaluate = rule.requirement === 'required' || requiredByDependency
       || (rule.requirement === 'optional' && Boolean(documentState?.present))
+      || Boolean(partyState?.present)
     if (!shouldEvaluate) continue
     if (!present) {
       const severity = rule.severity ?? (requiredByDependency ? 'error' : rule.requirement === 'dependent' ? 'warning' : 'error')

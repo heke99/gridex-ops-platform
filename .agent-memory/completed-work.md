@@ -33,3 +33,7 @@ PR323 / F3-C was verified merged at main5a741b2c, tree4a280334, with normal exac
 ## 2026-09-17 — F3-E checkpoint
 
 PR324 F3-D completed/mergedb0b3 after ordinary final-head CI success; no live approval.
+
+## 2026-09-17 — PR325 completed (observed GitHub)
+
+BGM unit merged as2d65dc9fdc66738cc66984ec91350adace34eb0d. Ordinary OPS35215628380, Ediel35215628501, Browser35215628412, FullE2E35215628437 passed before expected-head merge. New NAD unit is not yet qualified/merged.

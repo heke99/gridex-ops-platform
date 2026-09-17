@@ -1,3 +1,5 @@
+import { prodatPartySyntaxIssues } from '@/lib/ediel/prodat/prodatPartyFields'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { validateEdifactEnvelope, type EdifactValidationIssue } from '@/lib/ediel/core/edifactValidation'
 import { parseEdifact } from '@/lib/ediel/core/edifactParser'
 import { isSupportedProdatBusinessCode, requiredProdatSegmentsForCode } from '@/lib/ediel/prodat/prodatFieldRules'
@@ -13,6 +15,13 @@ export function validateProdat(rawPayload: string): ProdatValidationResult {
   const parsed = parseEdifact(rawPayload)
   const issues: EdifactValidationIssue[] = [...envelope.issues]
   const code = parsed.businessCode
+  if (parsed.unh?.messageType === 'PRODAT') {
+    const wire = tokenizeEdifact(rawPayload)
+    for (const failure of prodatPartySyntaxIssues(wire.segments, wire.una)) {
+      issues.push({ severity: 'error', code: failure.kind === 'length' ? 'prodat_party_length_invalid' : 'prodat_party_structure_invalid',
+        message: `PRODAT NAD fält ${failure.fieldNumber ?? 'part'} följer inte 26.A s.45–46,79–83.` })
+    }
+  }
 
   if (parsed.unh?.messageType !== 'PRODAT') {
     issues.push({ severity: 'error', code: 'not_prodat', message: 'UNH anger inte PRODAT.' })

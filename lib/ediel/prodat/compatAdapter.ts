@@ -1,3 +1,4 @@
+import { parseProdatMessage as parseSourceProdat } from '@/lib/ediel/prodat/parser'
 import { prodatReferenceByQualifier } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
@@ -195,20 +196,9 @@ function formatDate102(value?: string | null): string | null {
   return normalized.slice(0, 10).replace(/-/g, '')
 }
 
-function inferCustomerName(
-  switchRequest: SupplierSwitchRequestRow,
-  site: CustomerSiteRow
-): string {
-  return sanitize(
-    site.site_name ||
-      site.current_supplier_name ||
-      switchRequest.current_supplier_name ||
-      'Kund'
-  )
-}
 
 function inferMeterPointIdentifier(meteringPoint: MeteringPointRow): string {
-  return sanitize(meteringPoint.ediel_reference || meteringPoint.meter_point_id || '')
+  return String(meteringPoint.ediel_reference || meteringPoint.meter_point_id || '').trim()
 }
 
 function inferGridArea(gridOwner?: GridOwnerRow | null): string | null {
@@ -294,6 +284,13 @@ function portalString(portalData: Record<string, unknown> | null, key: string): 
   return typeof value === 'string' && value.trim().length > 0 ? sanitize(value) : null
 }
 
+function portalPartyText(portalData: Record<string, unknown> | null, key: string): string | null {
+  const value = portalData?.[key]
+  if (value == null) return null
+  if (typeof value !== 'string') throw new Error('prodat_party_snapshot_invalid')
+  return value.trim()
+}
+
 function portalObject(portalData: Record<string, unknown> | null, key: string): Record<string, unknown> | null {
   return objectValue(portalData?.[key])
 }
@@ -374,9 +371,6 @@ function date203AtStartOfDay(value: string | null): string | null {
   return digits.length >= 8 ? `${digits.slice(0, 8)}0000` : null
 }
 
-function partySegment(role: 'FR' | 'DO', edielId: string): string {
-  return `NAD+${role}+${sanitize(edielId)}:160:SVK+++++++SE`
-}
 
 function normalizeProdatReasonForTransaction(value: string | null): string {
   const normalized = sanitize(value).toUpperCase()
@@ -388,46 +382,8 @@ function normalizeProdatReasonForTransaction(value: string | null): string {
   return normalized || 'Z22'
 }
 
-function normalizeEndUserIdQualifier(value: string | null, customerId: string | null): 'SE1' | 'SE2' | '1' {
-  const normalized = sanitize(value).toUpperCase()
-  if (normalized === 'SE1' || normalized === 'SE2' || normalized === '1') return normalized
-  if (customerId && /^\d{10}$/.test(customerId)) return 'SE1'
-  if (customerId && /^\d{12}$/.test(customerId)) return 'SE2'
-  return 'SE2'
-}
 
-function customerNadSegment(params: {
-  customerId: string | null
-  customerIdCodeListQualifier: string | null
-  customerName: string
-  address: string | null
-  city: string | null
-  postalCode: string | null
-  country: string | null
-}): string {
-  const qualifier = normalizeEndUserIdQualifier(params.customerIdCodeListQualifier, params.customerId)
-  const id = params.customerId ? `${sanitize(params.customerId)}:${qualifier}:260` : ''
-  const name = sanitize(params.customerName) || 'KUND'
-  const address = sanitize(params.address)
-  const city = sanitize(params.city)
-  const postalCode = sanitize(params.postalCode)
-  const country = sanitize(params.country) || 'SE'
-  return `NAD+UD+${id}++${name}+${address}+${city}++${postalCode}+${country}`
-}
 
-function installationNadSegment(params: {
-  meterPointId: string
-  address: string | null
-  city: string | null
-  postalCode: string | null
-  country: string | null
-}): string {
-  const address = sanitize(params.address)
-  const city = sanitize(params.city)
-  const postalCode = sanitize(params.postalCode)
-  const country = sanitize(params.country) || 'SE'
-  return `NAD+IT+${sanitize(params.meterPointId)}::9+++${address}+${city}++${postalCode}+${country}`
-}
 
 export function isProdatSwitchCode(value: string | null | undefined): value is ProdatSwitchCode {
   return Boolean(value && PRODAT_SWITCH_CODE_SET.has(value))
@@ -571,11 +527,12 @@ function renderProdatSegments(params: {
   ackExpectation?: ReturnType<typeof renderProdat26A>['ackExpectation']
 } {
   const portalData = portalSnapshot(params.switchRequest)
-  const customerName = portalString(portalData, 'customerName') ?? inferCustomerName(params.switchRequest, params.site)
+  // A site label or previous supplier is not the legal end-user name.
+  const customerName = portalPartyText(portalData, 'customerName') ?? ''
   // No-placeholder: never fabricate 'UNKNOWN'. An empty id makes the generic
   // builder omit the LIN object identifier; codes that require LIN (e.g. Z03) are
   // then blocked by validation instead of silently sending a fake identifier.
-  const meterPointId = portalString(portalData, 'facilityId') ?? (inferMeterPointIdentifier(params.meteringPoint) || '')
+  const meterPointId = portalPartyText(portalData, 'facilityId') ?? (inferMeterPointIdentifier(params.meteringPoint) || '')
   const gridAreaId = portalString(portalData, 'gridAreaId') ?? inferGridArea(params.gridOwner)
   const startDate =
     portalDate102(portalString(portalData, 'agreementStartDateTime')) ||
@@ -591,19 +548,19 @@ function renderProdatSegments(params: {
       senderEdielId: params.senderEdielId,
       receiverEdielId: params.receiverEdielId,
       customerName,
-      customerId: portalString(portalData, 'customerId'),
-      customerIdCodeListQualifier: portalString(portalData, 'customerIdCodeListQualifier'),
+      customerId: portalPartyText(portalData, 'customerId'),
+      customerIdCodeListQualifier: portalPartyText(portalData, 'customerIdCodeListQualifier'),
       meterPointId,
       gridAreaId,
       startDate,
-      customerAddress: portalString(portalData, 'customerAddress') ?? sanitize(params.site.street),
-      customerPostalCode: portalString(portalData, 'customerPostalCode') ?? sanitize(params.site.postal_code),
-      customerCity: portalString(portalData, 'customerCity') ?? sanitize(params.site.city),
-      customerCountry: portalString(portalData, 'customerCountry') ?? 'SE',
-      siteAddress: portalString(portalData, 'siteAddress') ?? sanitize(params.site.street),
-      sitePostalCode: portalString(portalData, 'sitePostalCode') ?? sanitize(params.site.postal_code),
-      siteCity: portalString(portalData, 'siteCity') ?? sanitize(params.site.city),
-      siteCountry: portalString(portalData, 'siteCountry') ?? 'SE',
+      customerAddress: portalPartyText(portalData, 'customerAddress'),
+      customerPostalCode: portalPartyText(portalData, 'customerPostalCode'),
+      customerCity: portalPartyText(portalData, 'customerCity'),
+      customerCountry: portalPartyText(portalData, 'customerCountry') ?? 'SE',
+      siteAddress: portalPartyText(portalData, 'siteAddress') ?? params.site.street?.trim() ?? null,
+      sitePostalCode: portalPartyText(portalData, 'sitePostalCode') ?? params.site.postal_code?.trim() ?? null,
+      siteCity: portalPartyText(portalData, 'siteCity') ?? params.site.city?.trim() ?? null,
+      siteCountry: portalPartyText(portalData, 'siteCountry') ?? 'SE',
       reasonForTransaction: portalString(portalData, 'reasonForTransaction'),
       meteringMethod: resolveProdatMeteringMethod(portalData),
       permissionStatus: portalString(portalData, 'permissionStatus'),
@@ -616,7 +573,7 @@ function renderProdatSegments(params: {
         portalString(portalData, 'agreementEndDateTime'),
       energyProductId: portalString(portalData, 'energyProductId'),
       powerOfAttorneyReference: portalString(portalData, 'powerOfAttorneyReference'),
-      balanceResponsibleId: portalString(portalData, 'balanceResponsibleId'),
+      balanceResponsibleId: portalPartyText(portalData, 'balanceResponsibleId'),
     },
   })
 
@@ -840,6 +797,8 @@ function buildProdatSwitchOutboundDraft(
 }
 
 export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
+  const source = parseSourceProdat(rawPayload)
+  const sourceLine = source.lineItems[0]
   const wire = tokenizeEdifact(rawPayload)
   const rawSegments = wire.segments.map(segment => segment.raw)
   const inferred = inferEdielFamilyAndCodeFromRawPayload(rawPayload)
@@ -847,20 +806,15 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
   const unh = wire.segments.find(segment => segment.tag === 'UNH')
   const dtm7 = firstSegmentValue(rawSegments, 'DTM+7')
   const dtm137 = firstSegmentValue(rawSegments, 'DTM+137')
-  const loc172 = firstSegmentValue(rawSegments, 'LOC+172')
-  const loc239 = firstSegmentValue(rawSegments, 'LOC+239')
   const loc48 = firstSegmentValue(rawSegments, 'LOC+48')
-  const nadBy = firstSegmentValue(rawSegments, 'NAD+BY')
-  const adr = firstSegmentValue(rawSegments, 'ADR+')
   const ids = extractUnbIds(unb)
 
   const bgmCode = prodatDocumentValue('202', wire.segments, wire.una) as ProdatSwitchCode | EdielKnownMessageCode | null
 
-  const meterPointId = loc172?.split('+')[2]?.split(':')[0]?.trim() || null
-  const gridAreaId = loc239?.split('+')[2]?.split(':')[0]?.trim() || null
+  const meterPointId = sourceLine?.meteringPointId ?? null
+  const gridAreaId = sourceLine?.gridAreaId ?? null
   const priceAreaCode = loc48?.split('+')[2]?.split(':')[0]?.trim() || null
-  const customerName = nadBy?.split('+++')[1]?.trim() || null
-  const adrParts = adr?.split('+') ?? []
+  const customerName = sourceLine?.endUserName ?? null
   const messageVersion = segmentComposite(unh, 2, wire.una)[4]?.trim() || null
 
   return {
@@ -887,9 +841,18 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
       customerName,
       requestedStartDate: extractDateFromDtm(dtm7),
       createdDate: extractDateFromDtm(dtm137),
-      street: adrParts[1]?.trim() || null,
-      postalCode: adrParts[2]?.trim() || null,
-      city: adrParts[3]?.trim() || null,
+      street: sourceLine?.installationAddress ?? null,
+      postalCode: sourceLine?.installationPostcode ?? null,
+      city: sourceLine?.installationCity ?? null,
+      customerId: sourceLine?.endUserId ?? null,
+      customerIdCodeListQualifier: sourceLine?.endUserIdQualifier ?? null,
+      customerAddress: sourceLine?.endUserAddress ?? null,
+      customerPostalCode: sourceLine?.endUserPostcode ?? null,
+      customerCity: sourceLine?.endUserCity ?? null,
+      customerCountry: sourceLine?.endUserCountry ?? null,
+      legalSenderId: source.legalSenderId ?? null,
+      legalReceiverId: source.legalReceiverId ?? null,
+      invoiceeId: sourceLine?.invoiceeId ?? null,
       segmentCount: rawSegments.length,
       inferredFamily: inferred.messageFamily,
       inferredCode: inferred.messageCode,

@@ -1,17 +1,23 @@
+import { prodatPartySyntaxIssues } from '@/lib/ediel/prodat/prodatPartyFields'
+import { PRODAT_26A_FIELD_MATRIX, PRODAT_26A_MESSAGE_CODES } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 import { renderProdatDocumentHeader } from '@/lib/ediel/prodat/prodatDocumentFields'
 // lib/ediel/prodat/builders/profileRenderer.ts
 
 import type {
   ProdatEngineAckExpectation,
   ProdatEnginePortalSnapshot,
+  ProdatEngineInvoiceeContext,
   ProdatEngineProductionContext,
   ProdatEngineRenderResult,
 } from '@/lib/ediel/prodat/types'
 import {
   compactProdatReference,
   prodatCustomerNadSegment,
+  prodatInvoiceeNadSegment,
   prodatInstallationNadSegment,
   prodatPartySegment,
+  prodatBalanceResponsibleSegment,
   sanitizeProdatText,
   sanitizeProdatToken,
 } from '@/lib/ediel/prodat/render/segments'
@@ -52,6 +58,41 @@ function objectValue(value: unknown): Record<string, unknown> | null {
 function portalString(portalData: ProdatEnginePortalSnapshot, key: string): string | null {
   const value = portalData?.[key]
   return typeof value === 'string' && value.trim().length > 0 ? sanitizeProdatText(value) : null
+}
+
+function portalPartyText(portalData: ProdatEnginePortalSnapshot, key: string): string | null {
+  const value = portalData?.[key]
+  if (value == null) return null
+  if (typeof value !== 'string') throw new Error('prodat_party_snapshot_invalid')
+  return value.trim() // An explicitly empty party field must not borrow a fallback.
+}
+
+function portalPartyLines(portalData: ProdatEnginePortalSnapshot, key: string): readonly string[] | undefined {
+  const value = portalData?.[key]
+  if (value == null) return undefined
+  if (!Array.isArray(value) || !value.every(part => typeof part === 'string')) throw new Error('prodat_party_snapshot_invalid')
+  return value as string[]
+}
+
+function portalAgency<T extends string>(portalData: ProdatEnginePortalSnapshot, key: string, allowed: readonly T[]): T | undefined {
+  const value = portalPartyText(portalData, key)
+  if (value === null) return undefined
+  if (!allowed.includes(value as T)) throw new Error('prodat_party_code_list_invalid')
+  return value as T
+}
+
+function invoiceeContext(portalData: ProdatEnginePortalSnapshot, fallback: ProdatEngineInvoiceeContext | null | undefined): ProdatEngineInvoiceeContext | null {
+  if (!portalData || !Object.prototype.hasOwnProperty.call(portalData, 'invoicee')) return fallback ?? null
+  if (portalData.invoicee === null) return null
+  const data = objectValue(portalData.invoicee)
+  if (!data) throw new Error('prodat_party_snapshot_invalid')
+  return {
+    id: portalPartyText(data, 'id'), idCodeListQualifier: portalPartyText(data, 'idCodeListQualifier'),
+    idAgency: portalAgency(data, 'idAgency', ['89', '260'] as const),
+    name: portalPartyText(data, 'name') ?? '', nameLines: portalPartyLines(data, 'nameLines'),
+    address: portalPartyText(data, 'address'), addressLines: portalPartyLines(data, 'addressLines'),
+    city: portalPartyText(data, 'city'), postalCode: portalPartyText(data, 'postalCode'), country: portalPartyText(data, 'country'),
+  }
 }
 
 function portalObject(portalData: ProdatEnginePortalSnapshot, key: string): Record<string, unknown> | null {
@@ -138,7 +179,7 @@ export function buildProfiledProdatSegments(input: {
     12,
   )
 
-  const meterPointId = portalString(portalData, 'facilityId') ?? sanitizeProdatText(context.meterPointId)
+  const meterPointId = portalPartyText(portalData, 'facilityId') ?? context.meterPointId.trim()
   const hasObjectIdentifier = meterPointId.trim().length > 0
 
   const gridAreaId = portalString(portalData, 'gridAreaId') ?? sanitizeProdatText(context.gridAreaId)
@@ -160,12 +201,14 @@ export function buildProfiledProdatSegments(input: {
     bgmSegment,
     `DTM+137:${prodatNowDate203(input.generatedAt)}:203`,
     'DTM+ZZZ:1:805',
-    prodatPartySegment('FR', context.senderEdielId),
-    prodatPartySegment('DO', context.receiverEdielId),
+    prodatPartySegment('FR', context.legalSenderId ?? context.senderEdielId, context.legalSenderCountry ?? 'SE'),
+    prodatPartySegment('DO', context.legalReceiverId ?? context.receiverEdielId, context.legalReceiverCountry ?? 'SE'),
   ]
 
   if (hasObjectIdentifier) {
-    segments.push(`LIN+1++${sanitizeProdatText(meterPointId)}:::9`)
+    segments.push(`LIN+1++${escapeEdifactValue(meterPointId)}:::9`)
+  } else {
+    segments.push('LIN+1')
   }
 
   const startDate203 = prodatDate203AtStartOfDay(startDate)
@@ -271,36 +314,62 @@ export function buildProfiledProdatSegments(input: {
     segments.push(`RFF+ANJ:${sanitizeProdatText(powerOfAttorneyReference)}`)
   }
 
-  if (!isSupplierZ09 && !isProdatFieldInInapplicableParent({
-    messageCode: policy.code, subtype: policy.subtype, fieldNumber: 'END_USER_GROUP',
-  })) {
+  const partyFieldAllowed = (field: string) => {
+    const descriptor = PRODAT_26A_FIELD_MATRIX.find(row => row.fieldNumber === field)
+    const codeIndex = PRODAT_26A_MESSAGE_CODES.findIndex(code => code === policy.code)
+    return Boolean(descriptor) && codeIndex >= 0 && descriptor?.requirements[codeIndex] !== '-'
+      && !isProdatFieldInInapplicableParent({ messageCode: policy.code, subtype: policy.subtype, fieldNumber: field })
+  }
+
+  if (partyFieldAllowed('END_USER_GROUP')) {
     segments.push(prodatCustomerNadSegment({
-      customerId: portalString(portalData, 'customerId') ?? context.customerId ?? null,
-      customerIdCodeListQualifier: portalString(portalData, 'customerIdCodeListQualifier') ?? context.customerIdCodeListQualifier ?? null,
-      customerName: portalString(portalData, 'customerName') ?? context.customerName,
-      address: portalString(portalData, 'customerAddress') ?? context.customerAddress ?? null,
-      city: portalString(portalData, 'customerCity') ?? context.customerCity ?? null,
-      postalCode: portalString(portalData, 'customerPostalCode') ?? context.customerPostalCode ?? null,
-      country: portalString(portalData, 'customerCountry') ?? context.customerCountry ?? null,
+      customerId: portalPartyText(portalData, 'customerId') ?? context.customerId ?? null,
+      customerIdCodeListQualifier: portalPartyText(portalData, 'customerIdCodeListQualifier') ?? context.customerIdCodeListQualifier ?? null,
+      customerName: portalPartyText(portalData, 'customerName') ?? context.customerName,
+      nameLines: portalPartyLines(portalData, 'customerNameLines') ?? context.customerNameLines,
+      idAgency: portalAgency(portalData, 'customerIdAgency', ['89', '260'] as const) ?? context.customerIdAgency,
+      addressLines: partyFieldAllowed('229') ? portalPartyLines(portalData, 'customerAddressLines') ?? context.customerAddressLines : undefined,
+      address: partyFieldAllowed('229') ? portalPartyText(portalData, 'customerAddress') ?? context.customerAddress ?? null : null,
+      city: partyFieldAllowed('232') ? portalPartyText(portalData, 'customerCity') ?? context.customerCity ?? null : null,
+      postalCode: partyFieldAllowed('231') ? portalPartyText(portalData, 'customerPostalCode') ?? context.customerPostalCode ?? null : null,
+      country: portalPartyText(portalData, 'customerCountry') ?? context.customerCountry ?? null,
     }))
   }
 
-  if (!isSupplierZ09 && policy.code !== 'Z03' && policy.code !== 'Z18'
-    && !isProdatFieldInInapplicableParent({
-      messageCode: policy.code, subtype: policy.subtype, fieldNumber: 'INSTALLATION_GROUP',
-    })) {
+  const siteAddress = portalPartyText(portalData, 'siteAddress') ?? context.siteAddress ?? null
+  const siteAddressLines = portalPartyLines(portalData, 'siteAddressLines') ?? context.siteAddressLines
+  if (partyFieldAllowed('INSTALLATION_GROUP') && (policy.code !== 'Z03' || Boolean(siteAddress || siteAddressLines?.some(value => value.trim())))) {
     segments.push(prodatInstallationNadSegment({
       meterPointId,
-      address: portalString(portalData, 'siteAddress') ?? context.siteAddress ?? null,
-      city: portalString(portalData, 'siteCity') ?? context.siteCity ?? null,
-      postalCode: portalString(portalData, 'sitePostalCode') ?? context.sitePostalCode ?? null,
-      country: portalString(portalData, 'siteCountry') ?? context.siteCountry ?? null,
+      address: siteAddress,
+      addressLines: siteAddressLines,
+      idAgency: portalAgency(portalData, 'siteIdAgency', ['9', '89'] as const) ?? context.siteIdAgency,
+      city: portalPartyText(portalData, 'siteCity') ?? context.siteCity ?? null,
+      postalCode: portalPartyText(portalData, 'sitePostalCode') ?? context.sitePostalCode ?? null,
+      country: portalPartyText(portalData, 'siteCountry') ?? context.siteCountry ?? null,
     }))
   }
 
-  const balanceResponsibleId = portalString(portalData, 'balanceResponsibleId') ?? context.balanceResponsibleId
-  if (balanceResponsibleId) {
-    segments.push(`NAD+Z02+${sanitizeProdatText(balanceResponsibleId)}:160:SVK`)
+  const invoicee = partyFieldAllowed('INVOICEE_GROUP') ? invoiceeContext(portalData, context.invoicee) : null
+  if (invoicee) {
+    segments.push(prodatInvoiceeNadSegment({
+      customerId: invoicee.id, customerIdCodeListQualifier: invoicee.idCodeListQualifier,
+      idAgency: invoicee.idAgency, customerName: invoicee.name, nameLines: invoicee.nameLines,
+      address: invoicee.address, addressLines: invoicee.addressLines, city: invoicee.city,
+      postalCode: invoicee.postalCode, country: invoicee.country,
+    }))
+  }
+
+  const balanceResponsibleId = portalPartyText(portalData, 'balanceResponsibleId') ?? context.balanceResponsibleId
+  if (partyFieldAllowed('262') && balanceResponsibleId) {
+    segments.push(prodatBalanceResponsibleSegment(balanceResponsibleId))
+  }
+
+  for (const failure of prodatPartySyntaxIssues(segments)) {
+    issues.push({ severity: 'error', code: failure.kind === 'length' ? 'FIELD_MATRIX_FIELD_LENGTH_INVALID' : 'FIELD_MATRIX_FIELD_FORMAT_INVALID',
+      title: 'Ogiltigt PRODAT-partfält',
+      description: `NAD fält ${failure.fieldNumber ?? 'part'} följer inte PRODAT 26.A:s partsdefinition.`,
+    })
   }
 
   return {

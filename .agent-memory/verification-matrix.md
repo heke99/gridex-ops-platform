@@ -38,3 +38,7 @@ F3-D source-only:105 new cases (base23pass/82fail) +334 retained =>439pass. 21 V
 ## 2026-09-17 — F3-E checkpoint
 
 F3-E129source cases129pass, corrected base62pass/67fail;439retained pass.19Vitest cases pending normal CI. Audit:f3-document-fields.md.
+
+## F3-F local checkpoint
+
+Final264NAD cases: base30pass/234fail, candidate264pass. Combined848source casespass; immutable33/121/231 and unchanged large-source-file budgetpass. Real Vitest/full TS/lint/build/ordinary CIpending. Pure boundary mocks, no live DB or market acceptance.

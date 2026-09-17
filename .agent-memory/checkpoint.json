@@ -1,37 +1,33 @@
 {
   "project": "gridex-ops-platform",
   "updated_at": "2026-09-17",
-  "status": "IN_PROGRESS",
+  "status": "IMPLEMENTED_NOT_VERIFIED",
   "current_state": ".agent-memory/current-state.md",
-  "branch": "codex/ediel-v2-prodat-document-fields-20260917",
-  "base_head_sha": "b0b3b395a36168757b0f8b4a765b7f7fadf6cceb",
-  "active_item": "F3-E all four BGM header fields and identified consumers",
-  "next_action": "Run normal CI on actual final PR325 head, review and SHA-guarded merge; then NAD/DTM from new main.",
+  "branch": "codex/ediel-v2-prodat-party-fields-20260917",
+  "base_head_sha": "2d65dc9fdc66738cc66984ec91350adace34eb0d",
+  "active_item": "F3-F all20 NAD fields and identified party consumers",
+  "next_action": "Publish exact reviewed tree; run ordinary CI, review and guarded merge. Then DTM/register/D fields.",
   "main_merged": false,
   "source_state": {
-    "local_only": false,
-    "new_source_cases": 145,
-    "retained_source_cases": 439,
+    "local_only": true,
+    "new_source_cases": 264,
+    "retained_source_cases": 584,
     "baseline": {
-      "passed": 62,
-      "failed": 67
+      "passed": 30,
+      "failed": 234
     },
-    "consumer_cases": 19,
-    "consumer_cases_executed": true,
-    "normal_ci": "FINAL_HEAD_REQUIRED",
-    "qualified_code_head": "74bed19fa9372e81efb6cb24d9f1dc0a7e608925",
-    "isolated_qualification": 35214234089,
-    "full_vitest_passed": 1296
+    "consumer_cases_executed": false,
+    "normal_ci": "FINAL_HEAD_REQUIRED"
   },
   "prior_completed": {
-    "pr": 324,
-    "merge_sha": "b0b3b395a36168757b0f8b4a765b7f7fadf6cceb",
-    "tested_head": "fd9c58bbc9a4cdf7ad765342b7fcffe389d6e0b8",
+    "pr": 325,
+    "merge_sha": "2d65dc9fdc66738cc66984ec91350adace34eb0d",
+    "tested_head": "d28eb25155bfa64938a0ab51264e15b991dee64b",
     "normal_ci_success": [
-      35208401905,
-      35208401738,
-      35208401758,
-      35208401833
+      35215628380,
+      35215628501,
+      35215628412,
+      35215628437
     ]
   },
   "deferred_work": {
@@ -39,6 +35,5 @@
     "state": "PAUSED",
     "head": "e961135199f292b8210884f07de3b616a670161a",
     "backup_branch": "backup/pr310-paused-20260916-e9611351"
-  },
-  "pull_request": 325
+  }
 }

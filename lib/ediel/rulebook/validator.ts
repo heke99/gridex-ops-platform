@@ -1,3 +1,4 @@
+import { parseUna } from '@/lib/ediel/core/una'
 import type { EdielDirection, EdielMessageRow } from '@/lib/ediel/types'
 import { parseRulebookListPayload, parseRulebookMessage, type ParsedRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
 import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
@@ -330,7 +331,7 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
       }))
     }
 
-    let fieldIssues = validateCanonicalPolicyFields({ policy, rawSegments: parsed.rawSegments })
+    let fieldIssues = validateCanonicalPolicyFields({ policy, rawSegments: parsed.rawSegments, una: parseUna(input.rawPayload) })
     if (input.mode === 'send' && input.environment !== 'production') {
       fieldIssues = fieldIssues.map((entry) =>
         entry.code === 'PRODAT_DEPENDENT_CONDITION_UNDETERMINED'

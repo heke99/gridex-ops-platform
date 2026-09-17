@@ -47,13 +47,38 @@ export type ProdatEngineVersionContext = {
   selectedRuleId?: string | null
 }
 
+/** Explicit invoice recipient; never derived from the ultimate customer. */
+export type ProdatEngineInvoiceeContext = {
+  id?: string | null
+  idCodeListQualifier?: string | null
+  idAgency?: '89' | '260'
+  name: string
+  nameLines?: readonly string[]
+  address?: string | null
+  addressLines?: readonly string[]
+  city?: string | null
+  postalCode?: string | null
+  country?: string | null
+}
+
 export type ProdatEngineProductionContext = {
   code: ProdatEngineCode
   bgmReference: string
   transactionReference: string
   senderEdielId: string
   receiverEdielId: string
+  /** Legal counterparties may differ from the technical UNB routing actors. */
+  legalSenderId?: string | null
+  legalReceiverId?: string | null
+  legalSenderCountry?: string | null
+  legalReceiverCountry?: string | null
   customerName: string
+  customerNameLines?: readonly string[]
+  customerIdAgency?: '89' | '260'
+  customerAddressLines?: readonly string[]
+  siteAddressLines?: readonly string[]
+  siteIdAgency?: '9' | '89'
+  invoicee?: ProdatEngineInvoiceeContext | null
   customerId?: string | null
   customerIdCodeListQualifier?: string | null
   meterPointId: string

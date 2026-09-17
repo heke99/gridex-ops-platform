@@ -1,3 +1,4 @@
+import { readProdatParty } from '@/lib/ediel/prodat/prodatPartyFields'
 import { prodatReferenceEntries, prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
@@ -89,14 +90,17 @@ function sameValue(actual: string | null | undefined, expected: string | null | 
   return normalize(actual) === normalizedExpected
 }
 
+function samePartyValue(actual: string | null | undefined, expected: string | null | undefined): boolean {
+  // Preserve the existing optional-match contract, but never fold case or
+  // punctuation in a supplied distributor-assigned customer identity.
+  const target = String(expected ?? '').trim()
+  return !target || String(actual ?? '').trim() === target
+}
+
 function unique(values: Array<string | null | undefined>): string[] {
   return Array.from(new Set(values.map((value) => String(value ?? '').trim()).filter(Boolean)))
 }
 
-function firstComponent(value: string | null | undefined): string | null {
-  const first = String(value ?? '').split(':')[0]?.trim() ?? ''
-  return first.length > 0 ? first : null
-}
 
 function referencesByQualifier(segments: readonly EdifactSegment[], una: EdifactServiceStringAdvice): Record<string, string[]> {
   const refs: Record<string, string[]> = {}
@@ -106,21 +110,17 @@ function referencesByQualifier(segments: readonly EdifactSegment[], una: Edifact
   return refs
 }
 
-function partyIdFromNad(segments: readonly EdifactSegment[], qualifier: string): string | null {
-  const segment = segments.find((item) => item.raw.startsWith(`NAD+${qualifier}+`))
-  return firstComponent(segment?.elements[2])
-}
 
 function permissionMessageCode(message: EdielMessageRow): string {
   const facts = parseEdifactMessageFacts(message.raw_payload)
-  const hasWire = facts.segments.some(segment => segment.tag === 'UNH' || segment.tag === 'BGM')
+  const hasWire = Boolean(message.raw_payload?.trim())
   return String(hasWire ? facts.messageCode ?? '' : message.message_code ?? '').toUpperCase()
 }
 
 function readPermissionMessageFacts(message: EdielMessageRow): PermissionMessageFacts {
   const facts = parseEdifactMessageFacts(message.raw_payload)
   const una = parseUna(message.raw_payload)
-  const hasWire = facts.segments.some(segment => segment.tag === 'UNH' || segment.tag === 'BGM')
+  const hasWire = Boolean(message.raw_payload?.trim())
   const firstLineIndex = facts.segments.findIndex(segment => segment.tag === 'LIN')
   const globalSegments = firstLineIndex < 0 ? facts.segments : facts.segments.slice(0, firstLineIndex)
   const globalReferences = referencesByQualifier(globalSegments, una)
@@ -133,7 +133,7 @@ function readPermissionMessageFacts(message: EdielMessageRow): PermissionMessage
     lines: facts.lineItems.map((line) => ({
       meteringPointId: line.itemId ?? null,
       lineReference: line.rffLi ?? null,
-      customerId: partyIdFromNad(line.segments, 'UD') ?? partyIdFromNad(line.segments, 'IV'),
+      customerId: readProdatParty('UD', line.segments, una).identityValid ? readProdatParty('UD', line.segments, una).id : null,
       agreementReference: prodatReferenceValue('261', line.segments, una),
       permissionStatus: prodatCharacteristicValue('322', line.segments, parseUna(message.raw_payload)),
       permissionEndReason: prodatCharacteristicValue('324', line.segments, parseUna(message.raw_payload)),
@@ -174,9 +174,12 @@ async function loadOutboundPermissionRequestCandidates(params: {
   sourceMessage: EdielMessageRow
   expectedOutboundCode: 'Z13' | 'Z18'
 }): Promise<EdielMessageRow[]> {
+  const companyId = params.sourceMessage.company_id?.trim()
+  if (!companyId) throw new Error('prodat_permission_company_scope_required')
   const query = supabaseService
     .from('ediel_messages')
     .select('*')
+    .eq('company_id', companyId)
     .eq('direction', 'outbound')
     .eq('message_family', 'PRODAT')
     .eq('message_code', params.expectedOutboundCode)
@@ -194,7 +197,8 @@ async function loadOutboundPermissionRequestCandidates(params: {
 
   const { data, error } = await query
   if (error) throw error
-  return (data ?? []) as EdielMessageRow[]
+  // A privileged reader must never correlate a party identity across tenants.
+  return ((data ?? []) as EdielMessageRow[]).filter(candidate => candidate.company_id === companyId)
 }
 
 function scoreCandidate(params: {
@@ -208,7 +212,8 @@ function scoreCandidate(params: {
   const inboundRefs = params.inboundReferences.map(normalize).filter(Boolean)
   const referenceMatched = inboundRefs.some((ref) => candidateReferencesForMessage.has(ref))
 
-  const candidateLines = candidateFacts.lines.length > 0 ? candidateFacts.lines : [{
+  const candidateHasWire = Boolean(params.candidate.raw_payload?.trim())
+  const candidateLines = candidateFacts.lines.length > 0 ? candidateFacts.lines : candidateHasWire ? [] : [{
     meteringPointId: params.candidate.metering_point_id,
     lineReference: params.candidate.transaction_reference,
     customerId: params.candidate.customer_id,
@@ -219,14 +224,17 @@ function scoreCandidate(params: {
   }]
 
   for (const candidateLine of candidateLines) {
+    // Missing/malformed wire NAD must not turn into the legacy optional-match
+    // wildcard. Structured-only legacy input retains its previous contract.
+    if (candidateHasWire && !candidateLine.customerId) continue
     const objectMatched = sameValue(params.inboundLine.meteringPointId, candidateLine.meteringPointId)
-    const customerMatched = sameValue(params.inboundLine.customerId, candidateLine.customerId)
+    const customerMatched = samePartyValue(params.inboundLine.customerId, candidateLine.customerId)
     const agreementMatched = sameValue(params.inboundLine.agreementReference, candidateLine.agreementReference)
 
     if (referenceMatched || (objectMatched && customerMatched && agreementMatched)) {
       const missingHardMatch =
         !sameValue(params.inboundLine.meteringPointId, candidateLine.meteringPointId) ||
-        !sameValue(params.inboundLine.customerId, candidateLine.customerId)
+        !samePartyValue(params.inboundLine.customerId, candidateLine.customerId)
 
       return {
         matched: !missingHardMatch,
@@ -326,7 +334,7 @@ export async function resolveProdatPermissionAperakValidationIssues(params: {
           fallbackText: `Felaktigt anläggningsid ${line.meteringPointId ?? ''}`.trim(),
         }))
       }
-      if (match.expectedCustomerId && !sameValue(line.customerId, match.expectedCustomerId)) {
+      if (match.expectedCustomerId && !samePartyValue(line.customerId, match.expectedCustomerId)) {
         issues.push(issue({
           ruleKey: 'invoice_receiver_invalid',
           fieldPath: 'PRODAT/PERMISSION/NAD+UD',

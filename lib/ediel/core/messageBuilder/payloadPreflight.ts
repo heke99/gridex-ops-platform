@@ -1,3 +1,4 @@
+import { readProdatParty, prodatPartySyntaxIssues } from '@/lib/ediel/prodat/prodatPartyFields'
 import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { parseUna } from '@/lib/ediel/core/una'
 import { prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
@@ -407,6 +408,16 @@ function validateEdifactPayload(params: {
 
   if (String(canonical.family).toUpperCase() === 'PRODAT') {
     const tokens = tokenizeEdifact(params.rawPayload)
+    for (const failure of prodatPartySyntaxIssues(tokens.segments, tokens.una)) {
+      issues.push(issue({
+        severity: 'error',
+        code: failure.kind === 'length' ? 'PROFILE_FIELD_LENGTH_EXCEEDED' : 'FIELD_MATRIX_FIELD_FORMAT_INVALID',
+        title: 'PRODAT NAD-fält följer inte källspecifikationen',
+        description: `Fält ${failure.fieldNumber ?? 'NAD'} har fel komponent, part, kodlista, längd eller placering (26.A s.45–46,79–83).`,
+        segment: failure.raw,
+      }))
+    }
+
     for (const cav of misplacedProdatEnergyProducts(String(canonical.messageCode), tokens.segments, tokens.una)) {
       issues.push(issue({
         severity: params.mode === 'send' ? 'error' : 'warning',
@@ -421,9 +432,10 @@ function validateEdifactPayload(params: {
   if (String(canonical.family).toUpperCase() === 'PRODAT' && String(canonical.messageCode ?? '').toUpperCase() === 'Z13') {
     const hasHistoricalSubtype = rawSegments.some((segment) => segment.toUpperCase() === 'CAV+S18')
     const hasZ13vSubtype = rawSegments.some((segment) => segment.toUpperCase() === 'CAV+S17')
-    const endUserSegment = rawSegments.find((segment) => segment.toUpperCase().startsWith('NAD+UD+')) ?? null
-    const hasEndUser = Boolean(endUserSegment)
-    const hasEndUserId = Boolean(element(endUserSegment, 2))
+    const endUser = readProdatParty('UD', rawSegments, parseUna(rawPayload))
+    const endUserSegment = endUser.raw
+    const hasEndUser = Boolean(endUser.raw)
+    const hasEndUserId = Boolean(endUser.id)
     const hasReportStart = rawSegments.some((segment) => segment.toUpperCase().startsWith('DTM+90:'))
     const hasReportEnd = rawSegments.some((segment) => segment.toUpperCase().startsWith('DTM+91:'))
     const contractStart = rawSegments.find((segment) => segment.toUpperCase().startsWith('DTM+92:')) ?? null
@@ -484,7 +496,7 @@ function validateEdifactPayload(params: {
   }
 
   if (String(canonical.family).toUpperCase() === 'PRODAT' && String(canonical.messageCode ?? '').toUpperCase() === 'Z18') {
-    const hasEndUser = rawSegments.some((segment) => segment.toUpperCase().startsWith('NAD+UD+'))
+    const hasEndUser = Boolean(readProdatParty('UD', rawSegments, parseUna(rawPayload)).id)
     const installationParty = rawSegments.find((segment) => segment.toUpperCase().startsWith('NAD+IT+')) ?? null
     const hasReportEnd = rawSegments.some((segment) => segment.toUpperCase().startsWith('DTM+164:'))
     const hasPermissionCreatedAt = rawSegments.some((segment) => segment.toUpperCase().startsWith('DTM+693:'))
@@ -593,6 +605,9 @@ function validateEdifactPayload(params: {
   for (const segment of rawSegments) {
     const tag = segment.split('+')[0]?.toUpperCase() ?? ''
     if (!IDENTIFIER_QUALIFIERS.has(tag)) continue
+    // PRODAT NAD identifiers are checked against their source C082 definition
+    // above, not against a generic normalization/character heuristic.
+    if (tag === 'NAD' && canonical.family === 'PRODAT') continue
     const values = tag === 'NAD' ? segment.split('+').slice(2, 3) : segment.split('+').slice(1)
     for (const value of values) {
       const candidate = splitComposite(value)[0] ?? null

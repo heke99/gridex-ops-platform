@@ -1,7 +1,7 @@
 import { segmentComposite, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import { prodatReferenceEntries } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
-import { parseUna } from '@/lib/ediel/core/una'
+import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 // lib/ediel/core/canonicalMessage.ts
 
 import type { EdielMessageFamily, EdielMessageRow, EdielMessageStandard } from '@/lib/ediel/types'
@@ -55,6 +55,7 @@ export type CanonicalEdielMessage = {
   statuses: string[]
   references: CanonicalEdielReference[]
   processGroup: string
+  una?: EdifactServiceStringAdvice
   rawSegments: string[]
   facts: Record<string, unknown>
   parserWarnings: string[]
@@ -225,6 +226,7 @@ function parseEdifactCanonical(rawPayload: string, direction: EdielMessageRow['d
     direction,
     version: versionFromUnh(unhRaw),
     applicationReference: element(unbRaw, 7),
+    una: parseUna(rawPayload),
     sender: senderParty.id,
     receiver: receiverParty.id,
     senderSubAddress: senderParty.subAddress,

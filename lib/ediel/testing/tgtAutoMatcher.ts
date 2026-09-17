@@ -1,3 +1,4 @@
+import { prodatPartyField, prodatPartyValue } from '@/lib/ediel/prodat/prodatPartyFields'
 import { prodatReferenceField, prodatReferenceValue, prodatReferenceValues } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicField, prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
@@ -615,13 +616,6 @@ function normalizeExpectedValue(value: string | null | undefined): string | null
   return cleaned.length > 0 ? cleaned : null
 }
 
-function partyIdFromNad(segments: ReturnType<typeof parseEdifactMessageFacts>['segments'], qualifier: string): string | null {
-  const segment = segments.find((item) => item.raw.startsWith(`NAD+${qualifier}+`))
-  const composite = segment?.elements[2] ?? ''
-  const value = composite.split(':')[0]?.trim() ?? ''
-
-  return value.length > 0 ? value : null
-}
 
 function lineDateTimeValue(segments: ReturnType<typeof parseEdifactMessageFacts>['segments'], qualifiers: string[]): string | null {
   for (const qualifier of qualifiers) {
@@ -638,26 +632,13 @@ function lineActualValue(line: ReturnType<typeof parseEdifactMessageFacts>['line
   const code = fieldCode.toUpperCase()
   if (prodatCharacteristicField(code)) return prodatCharacteristicValue(code, line.segments, una)
   if (prodatReferenceField(code)) return prodatReferenceValue(code, line.segments, una)
+  if (prodatPartyField(code)) return prodatPartyValue(code, line.segments, una)
 
   switch (code) {
     case '209':
-    case '233':
       return line.itemId
     case '210':
       return lineDateTimeValue(line.segments, ['92', '157'])
-    case '262':
-      return partyIdFromNad(line.segments, 'Z02')
-    case '227':
-      return partyIdFromNad(line.segments, 'UD') ?? partyIdFromNad(line.segments, 'IV')
-    case '228':
-    case '229':
-    case '231':
-    case '232':
-    case '234':
-    case '235':
-    case '236':
-    case '237':
-      return line.segments.map((segment) => segment.raw).join(' ')
     default:
       return null
   }
@@ -700,7 +681,7 @@ function issueForField(params: {
 function comparableFieldCodesForMessage(messageCode: string): Set<string> {
   // Compare only fields explicitly supplied by the selected test source. Reading
   // a GAS-only descriptor here does not activate that capability for EL traffic.
-  const common = ['209', '262', '224', '225', '308', '260', '320', '240', '319', '261', '226', '325']
+  const common = ['207', '208', '227', '228', '229', '231', '232', '316', '233', '234', '235', '236', '237', '250', '251', '252', '253', '317', '318', '209', '262', '224', '225', '308', '260', '320', '240', '319', '261', '226', '325']
 
   if (messageCode === 'Z06') return new Set([...common, '210', '217', '218', '222', '223'])
   if (messageCode === 'Z10') return new Set([...common, '210', '214', '217', '218', '223', '224'])
@@ -728,7 +709,7 @@ function testDataObjects(testData: EdielTgtCaseTestData | null | undefined): Tgt
 
       for (const field of group.fields) {
         const rawValue = field.values[column.name]
-        const value = prodatReferenceField(String(field.fieldCode))
+        const value = prodatReferenceField(String(field.fieldCode)) || prodatPartyField(String(field.fieldCode))
           ? (String(rawValue ?? '').trim() || null) : normalizeExpectedValue(rawValue)
 
         if (!value) continue
@@ -820,25 +801,20 @@ export function compareInboundPayloadToTgtTestData(params: {
     }
 
     for (const [fieldCode, expected] of Object.entries(object.fields)) {
-      if (!comparableFields.has(fieldCode)) continue
+      if (!comparableFields.has(fieldCode) && !prodatPartyField(fieldCode)) continue
 
-      const actual = lineActualValue(line, fieldCode, parseUna(message.raw_payload))
+      const actual = ['207', '208'].includes(fieldCode)
+        ? prodatPartyValue(fieldCode, facts.segments, parseUna(message.raw_payload))
+        : lineActualValue(line, fieldCode, parseUna(message.raw_payload))
 
       if (!actual) {
         issues.push(issueForField({ fieldCode, expected, actual: null, lineItemId: line.itemId, lineItemReference: line.rffLi }))
         continue
       }
 
-      const reference = prodatReferenceField(fieldCode)
+      const reference = prodatReferenceField(fieldCode) || prodatPartyField(fieldCode)
       const expectedComparable = reference ? expected.trim() : normalizeCompare(expected)
       const actualComparable = reference ? actual.trim() : normalizeCompare(actual)
-
-      if (['228', '229', '231', '232', '234', '235', '236', '237'].includes(fieldCode)) {
-        if (!actualComparable.includes(expectedComparable)) {
-          issues.push(issueForField({ fieldCode, expected, actual, lineItemId: line.itemId, lineItemReference: line.rffLi }))
-        }
-        continue
-      }
 
       if (expectedComparable !== actualComparable) {
         issues.push(issueForField({ fieldCode, expected, actual, lineItemId: line.itemId, lineItemReference: line.rffLi }))

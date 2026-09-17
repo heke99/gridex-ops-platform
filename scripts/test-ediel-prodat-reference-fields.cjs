@@ -267,7 +267,8 @@ test('customer staging absent references cannot borrow header, other object or c
  assert.equal(result.meteringPoint.referenceToMeteringPoint,null)
  assert.equal(result.contract.agreementReference,null)
  assert.equal(result.site.gridAreaCode,null)
- assert.equal(result.customer.fullName,'Retained')
+ // F3-F: absent wire NAD228 cannot be manufactured from a cached name.
+ assert.equal(result.customer.fullName,null)
 })
 test('customer staging structured-only legacy reference fallback remains',async()=>{
  const a=await api

@@ -1,6 +1,6 @@
-# Active work — F3-E PR325
+# Active work — F3-F NAD qualification
 
-See current-state.md and checkpoint.json. The source is published and the actual
-ACK escape failures corrected; final source/docs head requires ordinary CI,
-review and SHA-guarded merge. Do not substitute an older green head or isolated
-qualification. Then NAD/DTM from newly merged main. PR324 is merged; PR310 paused.
+See current-state.md and f3-party-fields audit. Publish the exact reviewed
+candidate, run all ordinary final-head PR checks, repair actual failures,
+review and SHA-guarded merge. Then remaining DTM fields from new main.
+One active item; PR325 and324 merged, PR310 paused. No full plan approval.

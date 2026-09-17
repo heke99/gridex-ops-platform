@@ -1,3 +1,4 @@
+import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {
   fieldRulePresent,
@@ -22,6 +23,7 @@ export function validateCanonicalPolicyFields(input: {
   policy: CanonicalEdielPolicy
   rawSegments?: readonly string[] | null
   scope?: 'all' | 'dependent_only'
+  una?: EdifactServiceStringAdvice
 }): EdielRulebookIssue[] {
   const rules = input.policy.fieldRules.map(asRulebookFieldRule).flatMap((rule): RulebookFieldRule[] => {
     if (input.policy.family !== 'PRODAT' || !isProdatFieldInInapplicableParent({
@@ -31,6 +33,7 @@ export function validateCanonicalPolicyFields(input: {
     return input.policy.direction === 'outbound' ? [{ ...rule, requirement: 'forbidden' }] : []
   })
   const matrixInput: FieldMatrixEvaluationInput = {
+    una: input.una,
     family: input.policy.family,
     code: input.policy.code,
     rawSegments: input.rawSegments ?? null,
