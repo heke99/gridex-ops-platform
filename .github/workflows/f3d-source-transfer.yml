@@ -1,0 +1,70 @@
+name: Materialize reviewed F3-D source (not qualification)
+on:
+  push:
+    branches: [codex/f3d-source-transfer-20260917]
+    paths: ['transfer/**', '.github/workflows/f3d-source-transfer.yml']
+permissions:
+  contents: write
+concurrency:
+  group: f3d-source-transfer-20260917
+  cancel-in-progress: false
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify saved patch and restore only its exact base-descendant source
+        shell: bash
+        env:
+          BASE: 5a741b2c6e108d2db08b24aab9c0e6c4b71b1862
+          EXPECTED_TREE: 800c68dcfc0f883ba9dae151f89016293d363d29
+          TARGET: codex/ediel-v2-prodat-references-20260917
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/f3d-transfer"
+          python3 - <<'PY'
+          import base64, hashlib, lzma, os, pathlib
+          encoded = ''.join(pathlib.Path(f'transfer/f3d.patch.xz.b64.{i}').read_text().strip() for i in range(4))
+          compressed = base64.b64decode(encoded, validate=True)
+          assert hashlib.sha256(compressed).hexdigest() == 'cd893811600c7f0170409662c3246daae67f8e9f30c3d2f5592a1f62c00ca25c', 'Transfer checksum mismatch'
+          patch = lzma.decompress(compressed)
+          assert hashlib.sha256(patch).hexdigest() == '9c8cff43cfdc6ea1e2f18a65392e8c0e09f92fbadb010957b2e31171c0a64198', 'Reviewed patch checksum mismatch'
+          pathlib.Path(os.environ['RUNNER_TEMP'], 'f3d-transfer', 'reviewed.patch').write_bytes(patch)
+          PY
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$BASE"
+          test -z "$(git ls-remote origin "refs/heads/$TARGET")"
+          git checkout --detach "$BASE"
+          test "$(git rev-parse 'HEAD^{tree}')" = 4a2803344e5ba82db1091b5e6f4f2061bf330d7e
+          git apply --check "$RUNNER_TEMP/f3d-transfer/reviewed.patch"
+          git apply --index "$RUNNER_TEMP/f3d-transfer/reviewed.patch"
+          test "$(git write-tree)" = "$EXPECTED_TREE"
+          git diff --cached --check
+          test -z "$(git diff --cached --name-only -- supabase docs/ediel/masterplan-v2)"
+          git archive --format=tar.gz --output="$RUNNER_TEMP/f3d-transfer/source.tar.gz" "$EXPECTED_TREE"
+          cp .github/workflows/ediel-masterplan-v2.yml "$RUNNER_TEMP/f3d-transfer/reviewed-workflow.yml"
+          # Actions cannot publish workflow changes. The authorized connector
+          # will restore this reviewed file and verify exact tree equality before
+          # opening the ordinary PR. This helper never updates main or PR310.
+          git restore --source="$BASE" --staged --worktree .github/workflows/ediel-masterplan-v2.yml
+          test -z "$(git diff --cached --name-only -- .github/workflows)"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "$TARGET"
+          git commit -m 'fix(ediel): restore saved source-exact PRODAT references; full CI required'
+          {
+            printf 'base=%s\nbranch=%s\ntransport_commit=%s\ntransport_tree=%s\nreviewed_tree=%s\n' "$BASE" "$TARGET" "$(git rev-parse HEAD)" "$(git rev-parse 'HEAD^{tree}')" "$EXPECTED_TREE"
+            printf 'scope=source transfer only; no application test, database mutation or release certification\n'
+          } > "$RUNNER_TEMP/f3d-transfer/provenance.txt"
+          git push origin "HEAD:refs/heads/$TARGET"
+          cat "$RUNNER_TEMP/f3d-transfer/provenance.txt"
+      - name: Retain source-transfer evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: f3d-source-transfer-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/f3d-transfer/
+          if-no-files-found: error
+          retention-days: 14
