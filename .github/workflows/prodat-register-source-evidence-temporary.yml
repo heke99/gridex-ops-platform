@@ -1,0 +1,23 @@
+name: PRODAT register source evidence (temporary)
+on:
+  push:
+    branches: [codex/prodat-register-source-evidence-20260917]
+    paths: [.github/workflows/prodat-register-source-evidence-temporary.yml]
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Read public source pages (no credentials, no market writes)
+        run: |
+          mkdir -p evidence
+          curl --fail --location --max-time 60 'https://www.ediel.se/Info/edielanvisningar' -o evidence/anvisningar.html
+          curl --fail --location --max-time 60 'https://www.ediel.se/Portal/SystemMessage/EdielNews/2316' -o evidence/prodat-news.html
+          sha256sum evidence/* > evidence/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prodat-register-public-source-metadata
+          path: evidence/
+          retention-days: 5
