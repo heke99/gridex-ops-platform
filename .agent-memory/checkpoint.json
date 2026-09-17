@@ -1,45 +1,16 @@
 {
   "project": "gridex-ops-platform",
   "updated_at": "2026-09-17",
-  "status": "IMPLEMENTED_NOT_VERIFIED",
+  "status": "IN_PROGRESS",
   "current_state": ".agent-memory/current-state.md",
-  "branch": "codex/ediel-v2-prodat-date-fields-20260917",
-  "base_head_sha": "31b4dbeb764874e252e8b6b510bf1fa78832f148",
-  "active_item": "PR327 DTM review remediation",
-  "next_action": "Publish corrected exact tree, ordinary CI and substantive rereview, guarded merge; then register/dependent unit.",
+  "branch": "codex/ediel-v2-prodat-register-rules-20260917",
+  "base_head_sha": "51c73950515d771d2c2edcb97fde28ab087437a3",
+  "active_item": "PRODAT register-rule source mapping and acceptance design",
+  "next_action": "Read locked P26.A section2.2/annex2 and map first/additional-register behavior through actual consumers before new failing tests and implementation.",
   "main_merged": false,
-  "pull_request": 327,
-  "source_state": {
-    "correction_local_only": true,
-    "new_review_cases": 113,
-    "review_baseline": {
-      "passed": 45,
-      "failed": 68
-    },
-    "local_full_tests": 1814,
-    "local_test_files": 213,
-    "retained_source_cases": 848,
-    "normal_ci": "NEW_EXACT_HEAD_REQUIRED",
-    "substantive_review": "RECHECK_TWO_FINDINGS_REQUIRED",
-    "local_types": "APP_SCRIPTS_TESTS_PASS"
-  },
-  "prior_completed": {
-    "pr": 326,
-    "merge_sha": "31b4dbeb764874e252e8b6b510bf1fa78832f148",
-    "tested_head": "fd10a812a513b4e660063cf08b73f6eff24f2e0e",
-    "normal_ci_success": [
-      35237166707,
-      35237166753,
-      35237166847,
-      35237166747
-    ]
-  },
-  "deferred_work": {
-    "pr": 310,
-    "state": "PAUSED",
-    "head": "e961135199f292b8210884f07de3b616a670161a",
-    "backup_branch": "backup/pr310-paused-20260916-e9611351"
-  },
-  "review_base_sha": "bb3e8301fd3d48161fd45c5431471e87caa6e54e",
-  "review_base_tree": "f541995180f02b3ffa27400caa2afd1fcf141c27"
+  "pull_request": null,
+  "source_state": {"runtime_implementation_started": false, "register_tests_executed": false, "normal_ci": "NOT_STARTED", "scope": "planning and completion receipt only"},
+  "prior_completed": {"pr": 327, "merge_sha": "51c73950515d771d2c2edcb97fde28ab087437a3", "tested_head": "28b0e6ccb0473ee97fe021dc28aab462debc3a97", "tree": "dbeffdc5d20e57f5a9b837bcfda336bd7aef637c", "normal_ci_success": [35251524124, 35251524079, 35251524107, 35251524144], "review_findings_resolved": 4},
+  "deferred_work": {"pr": 310, "state": "PAUSED", "head": "e961135199f292b8210884f07de3b616a670161a", "backup_branch": "backup/pr310-paused-20260916-e9611351"},
+  "plan": "docs/superpowers/plans/2026-09-17-prodat-register-rules.md"
 }
