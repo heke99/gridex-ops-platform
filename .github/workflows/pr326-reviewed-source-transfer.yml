@@ -1,0 +1,71 @@
+name: PR326 reviewed source transfer (not release qualification)
+on:
+  push:
+    branches: [codex/pr326-review-source-transfer-20260917-03a224b9]
+    paths: [.github/workflows/pr326-reviewed-source-transfer.yml]
+permissions:
+  contents: write
+jobs:
+  transfer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Decode fixed reviewed patch and verify source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/pr326-proof"
+          cat .agent-transfer/pr326-review.0.b64 .agent-transfer/pr326-review.1.b64 | base64 -d | xz -d > "$RUNNER_TEMP/pr326.patch"
+          printf '%s  %s\n' '03a224b9590eee3d451a59682b45c38308a4cffbc295bd15780a1049be677fb2' "$RUNNER_TEMP/pr326.patch" | sha256sum -c -
+          git fetch origin a7b4ddde165ab4ef947715685f80e49360c3133c
+          git checkout --detach a7b4ddde165ab4ef947715685f80e49360c3133c
+          test -z "$(git status --porcelain)"
+          git apply --check "$RUNNER_TEMP/pr326.patch"
+          git apply --index "$RUNNER_TEMP/pr326.patch"
+          test "$(git write-tree)" = d69e471e597ddf4817a402ce165fbad214184c7c
+          git diff --cached --check
+          printf 'parent=a7b4ddde165ab4ef947715685f80e49360c3133c\nreviewed_tree=d69e471e597ddf4817a402ce165fbad214184c7c\npatch_sha256=03a224b9590eee3d451a59682b45c38308a4cffbc295bd15780a1049be677fb2\nscope=source transfer and isolated tests; ordinary PR CI and substantive review still required\n' > "$RUNNER_TEMP/pr326-proof/provenance.txt"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Run complete application suite and all type groups
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx vitest run --reporter=json --outputFile="$RUNNER_TEMP/pr326-proof/vitest.json"
+          npm run typecheck
+          npm run typecheck:scripts
+          npm run typecheck:tests
+          npm run ediel:masterplan-v2:integrity
+          npm run quality:large-file-budget
+      - name: Advance only the existing PR branch without helper or workflow files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git write-tree)" = d69e471e597ddf4817a402ce165fbad214184c7c
+          git restore --source=a7b4ddde165ab4ef947715685f80e49360c3133c --staged --worktree .github/workflows/ediel-masterplan-v2.yml
+          test "$(git write-tree)" = 6e486dae6d98f1dc30bfa16f28160258f3a6ee0b
+          test -z "$(git diff --name-only)"
+          git config user.name 'heke99'
+          git config user.email '129280077+heke99@users.noreply.github.com'
+          git commit -m 'fix(ediel): resolve four PR326 NAD/UNA review findings with regression evidence'
+          target=refs/heads/codex/ediel-v2-prodat-party-fields-20260917
+          test "$(git ls-remote origin "$target" | cut -f1)" = a7b4ddde165ab4ef947715685f80e49360c3133c
+          git push origin "HEAD:$target"
+          printf 'published_commit=%s\npublished_tree=%s\nworkflow_restore_required=yes\n' "$(git rev-parse HEAD)" "$(git rev-parse 'HEAD^{tree}')" >> "$RUNNER_TEMP/pr326-proof/provenance.txt"
+          git archive --format=tar.gz --output="$RUNNER_TEMP/pr326-proof/source.tar.gz" HEAD
+          (cd "$RUNNER_TEMP/pr326-proof" && sha256sum source.tar.gz vitest.json > SHA256SUMS)
+      - name: Retain exact provenance and test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr326-reviewed-transfer-${{ github.run_id }}
+          path: ${{ runner.temp }}/pr326-proof/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
