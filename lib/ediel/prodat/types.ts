@@ -1,3 +1,4 @@
+import type { ProdatMeterRegisterInput } from '@/lib/ediel/prodat/prodatRegisterInput'
 import type { ProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
 // lib/ediel/prodat/types.ts
 
@@ -62,7 +63,9 @@ export type ProdatEngineInvoiceeContext = {
   country?: string | null
 }
 
-export type ProdatEngineProductionContext = ProdatDateInputs & {
+export type ProdatEngineProductionContext = ProdatDateInputs & Omit<ProdatMeterRegisterInput, 'registerIndex'> & {
+  registers?: readonly ProdatMeterRegisterInput[]
+  meterPointIdAgency?: '9' | '89'
   code: ProdatEngineCode
   bgmReference: string
   transactionReference: string
@@ -149,6 +152,7 @@ export type ProdatEngineAckExpectation = {
 
 export type ProdatEngineDiagnostics = {
   engine: 'prodat'
+  registerCount?: number
   renderer: string
   code: ProdatEngineCode
   variant?: string | null

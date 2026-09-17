@@ -68,3 +68,12 @@ No production mutation, SQL/generated types/grants or external Ediel messages.
 ## 2026-09-17 — PR326 merged; DTM implementation checkpoint
 
 GitHub confirms PR326 merged as 31b4dbeb764874e252e8b6b510bf1fa78832f148, exact tested fd10a812, four ordinary workflows successful and four review threads resolved. F3-G now active. Local1701 full tests and848 retained source cases pass; ordinary candidate CI/review/merge remain REQUIRED. Detailed f3-date-fields.md; PR310 paused.
+
+
+## 2026-09-17 — partial register implementation checkpoint
+
+Original PRODAT26.A revision3 PDF was retrieved from the public Ediel portal and matched the locked SHA256 83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95. The first/additional-register source table is recorded in f3-register-source-map.md/json. Local final checks passed: 146 new register cases; full Vitest 1960/1960 in217 files; 848/848 retained source cases; application, test and script TypeScript; unchanged original package integrity. These are local checks, not ordinary GitHub CI or independent review. No complete GOV-02/P-05/F3 certificate is claimed.
+
+Implemented partial scope: distinct314/258, preserved raw and effective register data, object-isolated first-register authority, register overlays composed with the existing matrix/D engine, generic and profile builders, compatibility/staging preservation and one TGT comparison path. See the audit for exact boundaries, fail-first evidence, the retained Z06 subtype-fixture correction and CAV reader compatibility correction.
+
+Status: PARTIAL/NOT_MERGE_READY. Source transport is not qualification. Immediate next action: actual TGT source grouping/rendering tests and integration. Evidence: `quality/audits/ediel-masterplan-v2/f3-register-progress.md`, `quality/audits/ediel-masterplan-v2/f3-register-checkpoint.json`. PR310 paused; no production changes.

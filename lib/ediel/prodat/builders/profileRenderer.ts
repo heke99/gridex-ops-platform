@@ -1,3 +1,7 @@
+import { resolveProdatRegisterInputs } from '@/lib/ediel/prodat/prodatRegisterInput'
+import { renderProdatRegisterObject } from '@/lib/ediel/prodat/render/registers'
+import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
+import { prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { buildProdatDateSegments, resolveProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
 import { validateProdatDateFields } from '@/lib/ediel/prodat/prodatDateValidation'
 import { prodatPartySyntaxIssues } from '@/lib/ediel/prodat/prodatPartyFields'
@@ -101,6 +105,7 @@ function resolveMeteringMethod(portalData: ProdatEnginePortalSnapshot, fallback?
 }
 
 function rendererPolicy(input: {
+  portalSnapshot?: ProdatEnginePortalSnapshot
   context: ProdatEngineProductionContext
   generatedAt?: Date
   mode?: 'test' | 'production'
@@ -119,6 +124,7 @@ function rendererPolicy(input: {
     prodatDependentFacts: {
       market: 'electricity',
       ...(input.context.dependentConditionFacts ?? {}),
+      multipleMeterRegisters: resolveProdatRegisterInputs(input.context, input.portalSnapshot).length > 1,
     },
     mode: input.mode === 'production' ? 'send' : 'catalog_evidence',
   })
@@ -185,7 +191,7 @@ export function buildProfiledProdatSegments(input: {
   ]
 
   if (hasObjectIdentifier) {
-    segments.push(`LIN+1++${escapeEdifactValue(meterPointId)}:::9`)
+    segments.push(`LIN+1++${escapeEdifactValue(meterPointId)}:::${context.meterPointIdAgency ?? '9'}`)
   } else {
     segments.push('LIN+1')
   }
@@ -317,6 +323,13 @@ export function buildProfiledProdatSegments(input: {
     segments.push(prodatBalanceResponsibleSegment(balanceResponsibleId))
   }
 
+  const registers = resolveProdatRegisterInputs(context,portalData)
+  const expanded = renderProdatRegisterObject({code:policy.code,segments,registers})
+  segments.splice(0,segments.length,...expanded.segments)
+  const registerPolicy = {...policy, fieldRules:policy.fieldRules.filter(rule => 'fieldNumber' in rule && prodatRegisterFieldScope(String(rule.fieldNumber ?? rule.fieldKey)) === 'local')}
+  for (const failure of validateCanonicalPolicyFields({policy:registerPolicy,rawSegments:segments})) {
+    issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
+  }
   for (const failure of validateProdatDateFields(policy.code, segments)) {
     issues.push({ severity: 'error', code: failure.code, title: failure.title,
       description: failure.description })
@@ -335,6 +348,7 @@ export function buildProfiledProdatSegments(input: {
     ackExpectation: ackExpectationFromPolicy(policy),
     diagnostics: {
       engine: 'prodat',
+      registerCount: expanded.registerCount,
       renderer: input.renderer ?? 'prodat.engine.buildProfiledProdatSegments',
       code: context.code,
       variant: policy.subtype,

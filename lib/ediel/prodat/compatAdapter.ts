@@ -774,6 +774,7 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
     receiverSubAddress: ids.receiverSubAddress,
     rawSegments,
     parsedPayload: {
+      lineItems: source.lineItems,
       meterPointId,
       meteringPointId: meterPointId,
       gridAreaId,

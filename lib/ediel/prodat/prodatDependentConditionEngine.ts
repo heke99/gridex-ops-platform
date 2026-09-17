@@ -22,6 +22,14 @@ export type ProdatDependentConditionFacts = {
   customerKind?: 'private' | 'business' | null
   meterReadingsSentInUtilts?: boolean | null
   multipleMeterRegisters?: boolean | null
+  /** Explicit per-object evidence. When supplied, missing/duplicate identities
+   * do not borrow a message-wide fact. No count is inferred from field presence. */
+  registerObjects?: readonly {
+    meteringPointId: string
+    identityAgency: '9' | '89'
+    expectedRegisterCount?: number | null
+    meterReadingsSentInUtilts?: boolean | null
+  }[]
   endUserAddressAvailable?: boolean | null
   invoiceeAddressDiffersFromEndUser?: boolean | null
   /**
@@ -53,6 +61,15 @@ type PredicateContext = {
   fieldNumber: string
   id: string
   facts: ProdatDependentConditionFacts
+}
+
+function registerReadingFirstPredicate(context: PredicateContext): boolean | null {
+  if (context.messageCode === 'Z06') {
+    const subtype = normalized(context.facts.canonicalSubtype)
+    if (subtype === 'E' || subtype === 'G') return false
+    if (subtype !== 'F') return null
+  }
+  return booleanFact(context.facts.meterReadingsSentInUtilts)
 }
 
 type ConditionGroup = {
@@ -128,12 +145,12 @@ const GROUPS: readonly ConditionGroup[] = [
   { fieldNumber: '216', messageCodes: ['Z09'], conditionId: 'validity_start_business_rule', note: 'Datum när aktuell ändring börjar gälla.', predicate: explicitCellFact },
   { fieldNumber: '508', messageCodes: ['Z06', 'Z14'], conditionId: 'observation_length_business_rule', note: 'Kvart/tim/månad/år.', predicate: explicitCellFact },
   { fieldNumber: '326', messageCodes: ['Z14'], conditionId: 'z14_except_n', note: 'Skickas i Z14 utom Z14N.', predicate: subtypeIsNot('N') },
-  { fieldNumber: '214', messageCodes: ['Z04', 'Z06', 'Z10'], conditionId: 'meter_readings_sent_in_utilts', note: 'Obligatorisk om mätarställningar skickas i UTILTS.', predicate: ({ facts }) => booleanFact(facts.meterReadingsSentInUtilts) },
+  { fieldNumber: '214', messageCodes: ['Z04', 'Z06', 'Z10'], conditionId: 'meter_readings_sent_in_utilts', note: 'Obligatorisk om mätarställningar skickas i UTILTS.', predicate: registerReadingFirstPredicate },
   { fieldNumber: '217', messageCodes: ['Z06', 'Z09', 'Z14'], conditionId: 'measure_method_business_rule', note: 'Kvartsvis/timvis/månadsvis/årsvis mätning.', predicate: explicitCellFact },
-  { fieldNumber: '218', messageCodes: ['Z04', 'Z06', 'Z10'], conditionId: 'meter_readings_sent_in_utilts', note: 'Obligatorisk om mätarställningar skickas.', predicate: ({ facts }) => booleanFact(facts.meterReadingsSentInUtilts) },
+  { fieldNumber: '218', messageCodes: ['Z04', 'Z06', 'Z10'], conditionId: 'meter_readings_sent_in_utilts', note: 'Obligatorisk om mätarställningar skickas.', predicate: registerReadingFirstPredicate },
   { fieldNumber: '306', messageCodes: ['Z06'], conditionId: 'installation_status_business_rule', note: 'Aktiv eller ej inkopplad.', predicate: explicitCellFact },
   { fieldNumber: '222', messageCodes: ['Z14'], conditionId: 'reporting_frequency_business_rule', note: 'Hur ofta rapportering sker.', predicate: explicitCellFact },
-  { fieldNumber: '259', messageCodes: ['Z04', 'Z06', 'Z10'], conditionId: 'meter_time_frame_business_rule', note: 'Räkneverkskod.', predicate: explicitCellFact },
+  { fieldNumber: '259', messageCodes: ['Z04', 'Z06', 'Z10'], conditionId: 'meter_time_frame_business_rule', note: 'Räkneverkskod, P26.A §2.2 s.19–20; första registret.', predicate: registerReadingFirstPredicate },
   { fieldNumber: '254', messageCodes: ['Z06', 'Z10'], conditionId: 'balance_settlement_method_business_rule', note: 'Dygns-/månadsavräkning.', predicate: explicitCellFact },
   { fieldNumber: '242', messageCodes: ['Z06', 'Z10'], conditionId: 'product_code_business_rule', note: 'Tidsserieprodukt.', predicate: explicitCellFact },
   { fieldNumber: '506', messageCodes: ['Z14'], conditionId: 'energy_product_business_rule', note: 'Energiprodukt.', predicate: explicitCellFact },
@@ -257,3 +274,43 @@ export function resolveProdatDependentCondition(input: {
 // Fail immediately in any runtime/build path that imports the canonical engine if
 // the independently maintained executable registry drifts from the official D cells.
 assertCanonicalProdatDependentConditionCoverage()
+
+
+export type ProdatRegisterRequirement = 'required' | 'optional' | 'forbidden' | 'undetermined'
+
+/** The register overlay belongs to this same canonical condition engine.
+ * P26.A §2.2 pp15–20 / annex2 pp114–116. This does not rewrite the base matrix
+ * or treat arbitrary field presence as evidence: first-field presence is used
+ * only for the four express repetition conditions in annex2.
+ */
+export function resolveProdatRegisterRequirement(input: {
+  messageCode: string
+  fieldNumber: string
+  subtype: string | null
+  registerCount: number
+  registerPosition: number
+  firstFieldPresent: boolean
+  fieldPresent: boolean
+  market?: 'electricity' | 'gas' | null
+  meterReadingsSentInUtilts?: boolean | null
+}): ProdatRegisterRequirement | null {
+  const { messageCode: code, fieldNumber: field } = input
+  if (!['258','213','214','218','259'].includes(field)) return null
+  const row = PRODAT_26A_FIELD_MATRIX.find(row => row.fieldNumber === field)
+  const usage = row?.requirements[PRODAT_26A_MESSAGE_CODES.findIndex(value => value === code)]
+  if (usage === '-') return 'forbidden'
+  if (!['Z04','Z06','Z10'].includes(code)) return null
+  if (field === '258') return input.registerCount > 1 ? 'required' : 'forbidden'
+  if (field === '213') return code === 'Z04' || (input.registerPosition > 1 && input.firstFieldPresent) ? 'required' : 'optional'
+  const readings = input.meterReadingsSentInUtilts
+  if (field === '259' && readings === false) {
+    if (input.market === 'electricity') return 'forbidden' // §2.2 p20: only when readings are sent.
+    if (!input.market) return 'undetermined'
+  }
+  if (code === 'Z06' && ['E','G'].includes(input.subtype ?? '')) {
+    if (field === '259' && readings == null && input.fieldPresent && input.market !== 'gas') return 'undetermined'
+    return input.registerPosition > 1 && input.firstFieldPresent ? 'required' : 'optional'
+  }
+  if (code === 'Z06' && input.subtype !== 'F') return 'undetermined'
+  return readings === true ? 'required' : readings === false ? 'optional' : 'undetermined'
+}

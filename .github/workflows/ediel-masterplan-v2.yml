@@ -5,6 +5,7 @@ on:
       - 'lib/ediel/**'
       - 'lib/inbound-mail/**'
       - '__tests__/ediel-*.test.ts'
+      - '__tests__/fixtures/prodat-register.ts'
       - 'docs/ediel/masterplan-v2/**'
       - 'quality/audits/ediel-masterplan-v2/**'
       - 'scripts/check-ediel-masterplan-v2.cjs'
@@ -86,6 +87,13 @@ jobs:
           for zone in UTC Europe/Stockholm Pacific/Apia; do
             TZ="$zone" npx vitest run __tests__/ediel-prodat-date-fields.test.ts __tests__/ediel-prodat-date-consumers.test.ts __tests__/ediel-prodat-date-boundaries.test.ts
           done
+      - name: Verify PRODAT object and register preservation
+        run: >-
+          npx vitest run
+          __tests__/ediel-prodat-registers.test.ts
+          __tests__/ediel-prodat-register-conditions.test.ts
+          __tests__/ediel-prodat-register-builders.test.ts
+          __tests__/ediel-prodat-register-consumers.test.ts
       - name: Verify release-aware EDIFACT component parsing
         run: node --experimental-vm-modules --test scripts/test-ediel-component-escaping.cjs
       - name: Verify APERAK source-family guide binding

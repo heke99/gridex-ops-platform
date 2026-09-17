@@ -65,6 +65,7 @@ export type CanonicalEdielPolicy = {
   applicationReference: string | null
   fieldRules: readonly (RulebookFieldRule | UtiltsFieldRule)[]
   prodatDependentConditions: readonly ProdatDependentConditionEvaluation[]
+  prodatDependentFacts?: ProdatDependentConditionFacts
   ackRule: CanonicalAckMatrixRule
   utiltsProfile: UtiltsCanonicalProfile | null
   utiltsProcessability: UtiltsProcessabilityPolicy | null
@@ -245,6 +246,7 @@ export function resolveCanonicalEdielPolicy(input: ResolveCanonicalEdielPolicyIn
       applicationReference: providedApplicationReference || expectedApplicationReference,
       fieldRules: canonicalProdat26AFieldRules(code),
       prodatDependentConditions,
+      prodatDependentFacts: structuredClone(input.prodatDependentFacts ?? {}),
       ackRule,
       utiltsProfile: null,
       utiltsProcessability: null,

@@ -34,6 +34,12 @@ export type EdifactMessageFacts = {
 }
 
 export type EdifactLineItem = {
+  registerIndex: string | null
+  registerCount: number
+  firstLineIndex: number | null
+  validRegisterChain: boolean
+  effectiveSegments: EdifactSegment[]
+  identityAgency: string | null
   lineNo: string | null
   itemId: string | null
   segments: EdifactSegment[]
@@ -96,6 +102,12 @@ export function parseEdifactMessageFacts(rawPayload: string | null | undefined):
 
   const lineItems: EdifactLineItem[] = (message?.lineGroups ?? []).map((group) => ({
     lineNo: group.lineNumber,
+    registerIndex: group.registerIndex ?? null,
+    registerCount: group.registerCount ?? 1,
+    firstLineIndex: group.firstLineIndex ?? null,
+    validRegisterChain: group.validRegisterChain ?? true,
+    effectiveSegments: group.effectiveSegments ?? group.segments,
+    identityAgency: group.identityAgency ?? null,
     itemId: group.itemId,
     segments: group.segments,
     rffLi: group.references.LI?.[0] ?? null,
