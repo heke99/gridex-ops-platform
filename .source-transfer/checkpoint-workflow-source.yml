@@ -1,0 +1,119 @@
+name: PRODAT register checkpoint transport (temporary)
+on:
+  push:
+    branches: [codex/prodat-register-transfer-20260917]
+    paths: [.github/workflows/prodat-register-transfer-temporary.yml]
+permissions:
+  contents: write
+jobs:
+  transport:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: transfer
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: 28b2a9ad1d745acaa4ea7fe15af7608da95e7884
+          path: candidate
+      - name: Verify exact source bytes and apply only the scoped checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat transfer/.source-transfer/prodat-register.patch.xz.0{0,1,2} > "$RUNNER_TEMP/register.patch.xz"
+          echo "0f9f1658c25443a16544942d937ab3bc9c6a53fc148cd991c976997f38f75a46  $RUNNER_TEMP/register.patch.xz" | sha256sum -c -
+          xz --decompress --stdout "$RUNNER_TEMP/register.patch.xz" > "$RUNNER_TEMP/register.patch"
+          echo "ec20ff775b4c04f4902a52cd04228dee2fc4cec8b7f6071369354bbcbccde74a  $RUNNER_TEMP/register.patch" | sha256sum -c -
+          cd candidate
+          test "$(git rev-parse HEAD)" = 28b2a9ad1d745acaa4ea7fe15af7608da95e7884
+          git apply --check --unidiff-zero "$RUNNER_TEMP/register.patch"
+          git apply --index --unidiff-zero "$RUNNER_TEMP/register.patch"
+          python3 - <<'PY'
+          import subprocess
+          from pathlib import Path
+          paths = subprocess.check_output(['git','diff','--cached','--name-only'], text=True).splitlines()
+          assert len(paths) == 34, paths
+          for path in paths:
+              assert path == '.github/workflows/ediel-masterplan-v2.yml' or path.startswith(('lib/ediel/', 'lib/onboarding/', '__tests__/', 'quality/audits/ediel-masterplan-v2/f3-register-')), path
+          assert not any(p.startswith(('supabase/', 'docs/ediel/masterplan-v2/', '.source-transfer/')) for p in paths)
+          fixture = Path('__tests__/fixtures/prodat-register.ts')
+          text = fixture.read_text()
+          assert text.endswith('\n\n')
+          fixture.write_text(text.rstrip('\n')+'\n')
+          subprocess.run(['git','add',str(fixture)],check=True)
+          PY
+          git diff --cached --check
+      - name: Save precise partial progress without rewriting the original specification
+        working-directory: candidate
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('.agent-memory')
+          audit = 'quality/audits/ediel-masterplan-v2/f3-register-progress.md'
+          qualification = 'quality/audits/ediel-masterplan-v2/f3-register-checkpoint.json'
+          base = '28b2a9ad1d745acaa4ea7fe15af7608da95e7884'
+          merged = '51c73950515d771d2c2edcb97fde28ab087437a3'
+          proof = ('Original PRODAT26.A revision3 PDF was retrieved from the public Ediel portal and matched the locked SHA256 '
+            '83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95. '
+            'The first/additional-register source table is recorded in f3-register-source-map.md/json. '
+            'Local final checks passed: 146 new register cases; full Vitest 1960/1960 in217 files; '
+            '848/848 retained source cases; application, test and script TypeScript; unchanged original package integrity. '
+            'These are local checks, not ordinary GitHub CI or independent review. No complete GOV-02/P-05/F3 certificate is claimed.')
+          remaining = ('1. Complete the actual TGT source-column grouping and TGT message builder with the shared object/register serializer.\n'
+            '2. Complete the second expected-context/PRODAT comparison path and strict register identity, including source annotations.\n'
+            '3. Preserve trusted per-object dependent facts through engine snapshots/preflight and block unknown register conditions before sending; close dependent-only topology gaps.\n'
+            '4. Complete inventory edge cases and actual object-scoped multi-object customer application. The current multi-object approval guard blocks unsafe single-customer application. Qualify remaining 213 numeric syntax from the primary source.\n'
+            '5. Run unchanged ordinary CI on the final published head, resolve substantive review findings, and perform a guarded merge only after the whole register unit is complete.')
+          scope = ('Implemented partial scope: distinct314/258, preserved raw and effective register data, '
+            'object-isolated first-register authority, register overlays composed with the existing matrix/D engine, '
+            'generic and profile builders, compatibility/staging preservation and one TGT comparison path. '
+            'See the audit for exact boundaries, fail-first evidence, the retained Z06 subtype-fixture correction and CAV reader compatibility correction.')
+          prior = ('PR327 remains MERGED as ' + merged + '; its tested head28b0e6ccb0473ee97fe021dc28aab462debc3a97 '
+            'and prior ordinary-CI/review receipt remain authoritative. Do not restart or overwrite it. '
+            'PR310 remains PAUSED at e961135199f292b8210884f07de3b616a670161a and is excluded. '
+            'No SQL, schema, generated database types, grants, production data/storage, explicit deployment or market messages were changed.')
+          task = '# Single active task — complete PRODAT register delivery\n\nStatus: PARTIAL, NOT_MERGE_READY.\nBranch: `codex/ediel-v2-prodat-register-rules-20260917`.\nCheckpoint base: `' + base + '`.\n\n' + proof + '\n\n' + scope + '\n\n## Immediate next atomic action\nWrite failing actual-path tests for TGT source-column grouping and TGT message rendering, then use the existing shared register serializer. Do not create a parallel rules engine.\n\n## Remaining ordered gates\n' + remaining + '\n\n' + prior + '\n\nThe remaining110 original D-condition unit starts only after the complete register unit is reviewed and merged.\n'
+          (root/'current-task.md').write_text(task)
+          (root/'current-state.md').write_text('# Current state — partial register implementation\n\n' + prior + '\n\n' + proof + '\n\n' + scope + '\n\nThe prior planning-only checkpoint is superseded by this partial implementation. Runtime and tests now exist, but final ordinary CI, independent review and merge are NOT complete. Work continues from the single active task, not from the old source-mapping starting point.\n\nEvidence: `' + audit + '` and `' + qualification + '`.\n')
+          (root/'handover.md').write_text('# Handover — partial register delivery, not merge ready\n\nRead actual main, active branch and PR status first. This checkpoint is a draft publication, not completed delivery.\n\n' + prior + '\n\n' + proof + '\n\n' + scope + '\n\n## Continue in order\n' + remaining + '\n\nImmediate action: failing tests against TGT actual source parsing/rendering. Retain original source hashes and all existing test assertions. See `' + audit + '`. The remaining110D unit is sequentially deferred until register merge.\n')
+          (root/'open-blockers.md').write_text('# Open blockers — register delivery\n\nThe original PDF is available and hash-verified; source availability is not a blocker. PR327 publication/review blockers are closed.\n\n' + remaining + '\n\n' + prior + '\n\nLocal passing tests do not certify the uncompleted paths, all110D conditions, fullF3, live/TGT approval or pausedPR310. No new non-production GitHub authorization is required.\n')
+          (root/'work-plan.md').write_text('# Active plan — complete the partial register unit\n\n' + prior + '\n\nSingle active item: register overlays and all consumers (GOV-02/P-05).\n\n' + proof + '\n\n' + remaining + '\n\nDetailed source/execution record: `' + audit + '`. Original implementation plan: `docs/superpowers/plans/2026-09-17-prodat-register-rules.md`. After the complete register merge, begin the remaining original110D condition semantics as a separate unit.\n')
+          p = root/'checkpoint.json'
+          state = json.loads(p.read_text())
+          state.update(updated_at='2026-09-17', status='PARTIAL', active_item='Complete PRODAT register delivery: TGT source grouping and rendering', next_action='Add failing actual TGT source-column grouping/rendering tests, then integrate the shared object/register serializer before the other recorded gates.', main_merged=False, pull_request=None, implementation_checkpoint_base=base, evidence=audit)
+          state['source_state'] = dict(runtime_implementation_started=True, register_tests_executed=True, new_register_tests=146, full_vitest_passed=1960, source_cases_passed=848, typechecks=['application','tests','scripts'], normal_ci='NOT_YET_VERIFIED', independent_review='NOT_YET_COMPLETED', scope='Partial implementation, explicit remaining consumers and sending/application gates; not merge ready')
+          p.write_text(json.dumps(state, indent=2)+'\n')
+          plan = Path('docs/superpowers/plans/2026-09-17-prodat-register-rules.md')
+          plan.write_text('# Checkpoint update — 2026-09-17 partial implementation\n\nThis supersedes the preparation-only state below without claiming all checkboxes complete. Original source mapping and partial implementation/local verification are now done. The single next task is TGT source grouping/rendering, followed by all other explicit blockers in `' + audit + '`. Ordinary final-head CI, substantive review and merge remain pending. PR310 stays paused. The historical plan follows unchanged.\n\n---\n\n'+plan.read_text())
+          note = '\n\n## 2026-09-17 — partial register implementation checkpoint\n\n' + proof + '\n\n' + scope + '\n\nStatus: PARTIAL/NOT_MERGE_READY. Source transport is not qualification. Immediate next action: actual TGT source grouping/rendering tests and integration. Evidence: `' + audit + '`, `' + qualification + '`. PR310 paused; no production changes.\n'
+          for name in ('completed-work.md', 'verification-matrix.md', 'session-log.md'):
+              p = root/name
+              p.write_text((p.read_text() if p.exists() else '# '+name.removesuffix('.md')+'\n')+note)
+          PY
+      - name: Publish isolated candidate only (not a merge or CI certificate)
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add .agent-memory docs/superpowers/plans/2026-09-17-prodat-register-rules.md
+          git diff --cached --check
+          git config user.name 'heke99'
+          git config user.email '129280077+heke99@users.noreply.github.com'
+          git commit -m 'feat(ediel): preserve PRODAT registers and record partial qualification'
+          git push origin HEAD:refs/heads/codex/prodat-register-candidate-20260917
+          mkdir -p ../receipt
+          git rev-parse HEAD > ../receipt/candidate-commit.txt
+          git rev-parse HEAD^{tree} > ../receipt/candidate-tree.txt
+          git diff --name-only 28b2a9ad1d745acaa4ea7fe15af7608da95e7884 HEAD > ../receipt/changed-files.txt
+          git archive HEAD | gzip -n > ../receipt/source.tar.gz
+          cd ../receipt
+          sha256sum source.tar.gz > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prodat-register-checkpoint-transport-receipt
+          path: receipt/
+          retention-days: 7
