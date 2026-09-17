@@ -10,14 +10,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Read public source pages (no credentials, no market writes)
+      - name: Retrieve original identified by public portal and news item
         run: |
           mkdir -p evidence
-          curl --fail --location --max-time 60 'https://www.ediel.se/Info/edielanvisningar' -o evidence/anvisningar.html
-          curl --fail --location --max-time 60 'https://www.ediel.se/Portal/SystemMessage/EdielNews/2316' -o evidence/prodat-news.html
+          curl --fail --location --max-time 60 'https://www.ediel.se/Portal/Document/3338' -o evidence/PRODAT-26A-r3.pdf
+          echo '83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95  evidence/PRODAT-26A-r3.pdf' | sha256sum -c -
+          printf '%s\n' 'url=https://www.ediel.se/Portal/Document/3338' 'source=P (locked source_manifest.json)' 'expected_sha256=83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95' > evidence/provenance.txt
           sha256sum evidence/* > evidence/SHA256SUMS
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: prodat-register-public-source-metadata
+          name: prodat-register-original-source
           path: evidence/
           retention-days: 5
