@@ -14,6 +14,7 @@ on:
       - 'scripts/test-ediel-guide-governance.cjs'
       - 'scripts/test-ediel-prodat-characteristic-fields.cjs'
       - 'scripts/test-ediel-prodat-reference-fields.cjs'
+      - 'scripts/test-ediel-prodat-document-fields.cjs'
       - 'scripts/gridex-aperak-canonical-evidence-regression.cjs'
       - 'package*.json'
       - '.github/workflows/ediel-masterplan-v2.yml'
@@ -69,6 +70,10 @@ jobs:
         run: |
           node --experimental-vm-modules --test scripts/test-ediel-prodat-reference-fields.cjs
           npx vitest run __tests__/ediel-prodat-reference-consumers.test.ts
+      - name: Verify all four PRODAT BGM fields and their consumers
+        run: |
+          node --experimental-vm-modules --test scripts/test-ediel-prodat-document-fields.cjs
+          npx vitest run __tests__/ediel-prodat-document-consumers.test.ts
       - name: Verify release-aware EDIFACT component parsing
         run: node --experimental-vm-modules --test scripts/test-ediel-component-escaping.cjs
       - name: Verify APERAK source-family guide binding
