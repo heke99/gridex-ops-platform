@@ -1,0 +1,30 @@
+{
+  "status": "PARTIAL_PUBLISHED_DRAFT_NOT_MERGE_READY",
+  "date": "2026-09-17",
+  "pull_request": 328,
+  "draft": true,
+  "merged": false,
+  "repository": "heke99/gridex-ops-platform",
+  "branch": "codex/ediel-v2-prodat-register-rules-20260917",
+  "implementation_head": "4723c548ac982f2e1a5dfed39f543013bea24fb4",
+  "implementation_tree": "8a2042cffebee9fde927651557c911653ff446a1",
+  "base_head": "28b2a9ad1d745acaa4ea7fe15af7608da95e7884",
+  "local_tests": {"new_register_cases": 146, "all_vitest_pass": 1960, "all_vitest_fail": 0, "test_files": 217, "retained_source_pass": 848, "typescript": ["application", "tests", "scripts"], "post_fixture_eof_normalization_vitest_pass": 1960},
+  "original_source_sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+  "transport": {"compressed_patch_sha256": "0f9f1658c25443a16544942d937ab3bc9c6a53fc148cd991c976997f38f75a46", "patch_sha256": "ec20ff775b4c04f4902a52cd04228dee2fc4cec8b7f6071369354bbcbccde74a", "normalized_after_patch": "Remove one extra final blank line from __tests__/fixtures/prodat-register.ts; no assertions changed", "source_only_candidate": "213acd0d3de94fd553b67a1adc171d387190dd0d", "temporary_helpers_excluded": true, "ordinary_ci_replacement": false},
+  "first_ordinary_ci_observation": {
+    "head": "4723c548ac982f2e1a5dfed39f543013bea24fb4",
+    "status": "ALL_FOUR_IN_PROGRESS_NOT_QUALIFIED",
+    "runs": {"OPS hardening": 35261946949, "Gridex browser and quality E2E": 35261946932, "Ediel masterplan v2 regressions": 35261946975, "Gridex full E2E": 35261946936},
+    "warning": "This receipt is historical. Re-read current PR head and all associated ordinary runs before qualification; documentation commits are not covered by these head-specific observations."
+  },
+  "remaining_gates": ["Actual TGT source grouping and rendering", "Second expected-context/PRODAT comparison path", "Trusted object facts through snapshots/preflight and unknown-condition blocking", "Inventory edge cases, field213 numeric syntax and object-scoped multi-object application", "Full final-head ordinary CI and substantive review before merge"],
+  "review_completed": false,
+  "pr310": "PAUSED_UNCHANGED",
+  "pr327": "ALREADY_MERGED",
+  "database_changed": false,
+  "external_market_messages_sent": false,
+  "original_specification_changed": false,
+  "next_work_item": "Fail-first actual TGT source-column grouping/rendering tests, followed by shared serializer integration",
+  "following_unit": "The remaining110 original D-condition review starts only after the complete register delivery is merged."
+}

@@ -8,19 +8,17 @@
   "active_item": "Complete PRODAT register delivery: TGT source grouping and rendering",
   "next_action": "Add failing actual TGT source-column grouping/rendering tests, then integrate the shared object/register serializer before the other recorded gates.",
   "main_merged": false,
-  "pull_request": null,
+  "pull_request": 328,
+  "draft": true,
+  "published_implementation_head": "4723c548ac982f2e1a5dfed39f543013bea24fb4",
   "source_state": {
     "runtime_implementation_started": true,
     "register_tests_executed": true,
     "new_register_tests": 146,
     "full_vitest_passed": 1960,
     "source_cases_passed": 848,
-    "typechecks": [
-      "application",
-      "tests",
-      "scripts"
-    ],
-    "normal_ci": "NOT_YET_VERIFIED",
+    "typechecks": ["application", "tests", "scripts"],
+    "normal_ci": "PUBLISHED_HEAD_RUNS_STARTED_NOT_YET_QUALIFIED",
     "independent_review": "NOT_YET_COMPLETED",
     "scope": "Partial implementation, explicit remaining consumers and sending/application gates; not merge ready"
   },
@@ -29,12 +27,7 @@
     "merge_sha": "51c73950515d771d2c2edcb97fde28ab087437a3",
     "tested_head": "28b0e6ccb0473ee97fe021dc28aab462debc3a97",
     "tree": "dbeffdc5d20e57f5a9b837bcfda336bd7aef637c",
-    "normal_ci_success": [
-      35251524124,
-      35251524079,
-      35251524107,
-      35251524144
-    ],
+    "normal_ci_success": [35251524124, 35251524079, 35251524107, 35251524144],
     "review_findings_resolved": 4
   },
   "deferred_work": {
@@ -45,5 +38,6 @@
   },
   "plan": "docs/superpowers/plans/2026-09-17-prodat-register-rules.md",
   "implementation_checkpoint_base": "28b2a9ad1d745acaa4ea7fe15af7608da95e7884",
-  "evidence": "quality/audits/ediel-masterplan-v2/f3-register-progress.md"
+  "evidence": "quality/audits/ediel-masterplan-v2/f3-register-progress.md",
+  "publication_receipt": "quality/audits/ediel-masterplan-v2/pr328-publication-receipt.json"
 }
