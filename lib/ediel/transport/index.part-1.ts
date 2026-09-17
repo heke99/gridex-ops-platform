@@ -1,3 +1,5 @@
+import { prodatReferenceByQualifier } from '@/lib/ediel/prodat/prodatReferenceFields'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 // Extracted from index.ts; keep public imports on the facade module.
 import forge from 'node-forge'
 import { execFile } from 'child_process'
@@ -958,13 +960,17 @@ export function parseEdifactEnvelope(rawPayload: string, fallbackFamily: string,
   const bgmParts = bgm?.split('+') ?? []
   const uciParts = uci?.split('+') ?? []
 
+  const family = unhParts[0]?.trim() || fallbackFamily
+  const referenceSource = family.toUpperCase() === 'PRODAT' ? tokenizeEdifact(rawPayload) : null
   function ref(qualifier: string): string | null {
+    if (referenceSource) {
+      return prodatReferenceByQualifier(qualifier, referenceSource.segments, referenceSource.una)
+    }
     const prefix = 'RFF+' + qualifier.toUpperCase() + ':'
     const hit = rffSegments.find((segment) => segment.toUpperCase().startsWith(prefix))
     return hit?.split('+')[1]?.split(':').slice(1).join(':')?.trim() || null
   }
 
-  const family = unhParts[0]?.trim() || fallbackFamily
   const originalInterchangeReference = uciParts[1]?.trim() || null
   const bgmReference = bgmParts[2]?.trim() || null
   const acwReference = ref('ACW')

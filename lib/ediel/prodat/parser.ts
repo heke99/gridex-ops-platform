@@ -1,3 +1,4 @@
+import { prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { parseUna } from '@/lib/ediel/core/una'
 // lib/ediel/prodat/parser.ts
@@ -45,6 +46,11 @@ export type ParsedProdatLineItem = {
   measuringMethod: string | null
   timeSeriesProduct: string | null
   meterNumber: string | null
+  oldMeterNumber?: string | null
+  supplierContractNumber?: string | null
+  relatedMeteringPointId?: string | null
+  calorificValueArea?: string | null
+  serialId?: string | null
   hasAnnualConsumption: boolean
   hasConstant: boolean
   hasDigitCount: boolean
@@ -63,12 +69,6 @@ export type ParsedProdatMessage = {
   receiverEdielId: string | null
   lineItems: ParsedProdatLineItem[]
   rawPayload: string
-}
-
-function segmentFirstValue(raw: string | null | undefined, prefix: string): string | null {
-  if (!raw?.startsWith(prefix)) return null
-  const value = raw.slice(prefix.length).trim()
-  return value.length > 0 ? (value.split(':')[0]?.trim() || value) : null
 }
 
 function lineDateTimeValue(segments: { raw: string }[], qualifiers: string[]): string | null {
@@ -135,7 +135,7 @@ export function parseProdatMessage(input: EdielMessageRow | string): ParsedProda
       meteringPointId: line.itemId ?? null,
       lineItemReference: line.rffLi ?? null,
       gridAreaId: line.rffZ05 ?? null,
-      agreementReference: line.segments.map((segment) => segment.raw).find((raw) => raw.startsWith('RFF+ANJ:'))?.replace(/^RFF\+ANJ:/, '').split(':')[0]?.trim() ?? null,
+      agreementReference: prodatReferenceValue('261', line.segments, una),
       customerId: partyIdFromNad(line.segments, 'UD') ?? partyIdFromNad(line.segments, 'IV'),
       endUserId: partyFromNad(line.segments, 'UD').id,
       endUserIdQualifier: partyFromNad(line.segments, 'UD').idQualifier,
@@ -158,8 +158,7 @@ export function parseProdatMessage(input: EdielMessageRow | string): ParsedProda
       permissionEndReason: prodatCharacteristicValue('324', line.segments, una),
       // P fields325–327: never treat an object reference or an observation
       // timestamp as authority for a permission lifecycle transition.
-      permissionId: line.segments.find(segment => segment.raw.startsWith('RFF+Z09:'))
-        ?.raw.slice('RFF+Z09:'.length).split(':')[0]?.trim() || null,
+      permissionId: prodatReferenceValue('325', line.segments, una),
       permissionTimestamp: lineDateTimeValue(line.segments, ['693']),
       permissionEndTimestamp: lineDateTimeValue(line.segments, ['164']),
       contractStartDate: lineDateTimeValue(line.segments, ['92', '157']),
@@ -172,7 +171,12 @@ export function parseProdatMessage(input: EdielMessageRow | string): ParsedProda
       reasonForTransaction: prodatCharacteristicValue('223', line.segments, una),
       measuringMethod: prodatCharacteristicValue('217', line.segments, una),
       timeSeriesProduct: prodatCharacteristicValue('242', line.segments, una),
-      meterNumber: line.rffMg ?? segmentFirstValue(line.segments.find((item) => item.raw.startsWith('RFF+MG:'))?.raw, 'RFF+MG:'),
+      meterNumber: prodatReferenceValue('224', line.segments, una),
+      oldMeterNumber: prodatReferenceValue('225', line.segments, una),
+      supplierContractNumber: prodatReferenceValue('308', line.segments, una),
+      relatedMeteringPointId: prodatReferenceValue('319', line.segments, una),
+      calorificValueArea: prodatReferenceValue('320', line.segments, una),
+      serialId: prodatReferenceValue('240', line.segments, una),
       hasAnnualConsumption: line.hasQty31,
       hasConstant: line.hasConstant,
       hasDigitCount: line.hasDigitCount,

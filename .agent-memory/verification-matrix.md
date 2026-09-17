@@ -29,3 +29,8 @@ fullE2E35191395541 success, successful CodeRabbit and no unresolved review threa
 PR319 closed superseded. F3-C reproduced83/116 failures, now124/124 new source
 cases and210/210 retained pass. Full dependency consumer16 cases and normal CI/
 review/merge pending. See f3-characteristic-fields.md. PR310 untouched.
+
+
+## 2026-09-17 — F3-D checkpoint
+
+F3-D source-only:105 new cases (base23pass/82fail) +334 retained =>439pass. 21 Vitest consumer cases added, not executed. Full typecheck/build/CI/merge NOT verified.

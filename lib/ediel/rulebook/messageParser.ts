@@ -1,3 +1,4 @@
+import { prodatReferenceByQualifier } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import type { EdielMessageFamily } from '@/lib/ediel/types'
@@ -153,11 +154,14 @@ export function parseRulebookMessage(raw: string): ParsedRulebookMessage {
   const applicationReference = part(unb, 7)
   const interchangeReference = part(unb, 5)
   const messageReference = parseBgmReference(bgm) ?? part(unh, 1)
-  const transactionReference = extractRff(rawSegments, 'TN') ?? extractRff(rawSegments, 'LI') ?? extractRff(rawSegments, 'ACW')
-  const relatedReference = extractRff(rawSegments, 'ACW') ?? extractRff(rawSegments, 'AGO') ?? extractRff(rawSegments, 'E31')
-  const facilityId = extractRff(rawSegments, 'Z05') ?? null
+  const tokenized = family === 'PRODAT' ? tokenizeEdifact(raw) : null
+  const reference = (qualifier: string): string | null => tokenized
+    ? prodatReferenceByQualifier(qualifier, tokenized.segments, tokenized.una) : extractRff(rawSegments, qualifier)
+  const transactionReference = reference('TN') ?? reference('LI') ?? reference('ACW')
+  const relatedReference = reference('ACW') ?? reference('AGO') ?? reference('E31')
+  const facilityId = reference('Z05') ?? null
   const meteringPointId = lin?.split('+')[3]?.split(':')[0]?.trim() || null
-  const permissionId = extractRff(rawSegments, 'Z07') ?? extractRff(rawSegments, 'AHL') ?? null
+  const permissionId = family === 'PRODAT' ? reference('Z09') : reference('Z07') ?? reference('AHL')
   const processGroup = processGroupForMessage(family, code)
   const facts: Record<string, unknown> = {
     bgm,

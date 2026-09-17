@@ -25,3 +25,8 @@ fullE2E35191395541 success, successful CodeRabbit and no unresolved review threa
 PR319 closed superseded. F3-C reproduced83/116 failures, now124/124 new source
 cases and210/210 retained pass. Full dependency consumer16 cases and normal CI/
 review/merge pending. See f3-characteristic-fields.md. PR310 untouched.
+
+
+## 2026-09-17 — F3-D checkpoint
+
+Continued from actual main5a741b2c after PR323. Implemented source-exact RFF projections and consumers, tested real source modules and synthetic DB boundary. GitHub read-only action set and unavailable npm installation block publication/full CI. Work saved locally; no live mutation or PR310 changes.

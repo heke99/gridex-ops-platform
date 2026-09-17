@@ -1,0 +1,43 @@
+{
+  "project": "gridex-ops-platform",
+  "updated_at": "2026-09-17",
+  "status": "IMPLEMENTED_NOT_VERIFIED",
+  "current_state": ".agent-memory/current-state.md",
+  "branch": "codex/ediel-v2-prodat-characteristics-20260917",
+  "base_head_sha": "b1e077288c8a6865c413c1bf366797b3a23d07d8",
+  "active_item": "F3-C exact PRODAT characteristic field projections",
+  "next_action": "Run full dependency qualification and normal exact-head PR CI; review and merge, then next source-backed field work. PR310 paused.",
+  "source_state": {
+    "verified_base_tree": "c72835116cfbbfc78f1a4704814109208ec87a78",
+    "local_tests": {
+      "new_source_cases": 124,
+      "retained_source_cases": 210,
+      "initial_before": {
+        "passed": 33,
+        "failed": 83
+      },
+      "full_dependency_consumer_cases_pending": 16
+    },
+    "scope": "Local actual-source verification; normal CI required"
+  },
+  "main_merged": false,
+  "deferred_work": {
+    "pr": 310,
+    "state": "PAUSED",
+    "head": "e961135199f292b8210884f07de3b616a670161a",
+    "backup_branch": "backup/pr310-paused-20260916-e9611351",
+    "resume_document": "quality/audits/ediel-masterplan-v2/pr310-paused-resume.md"
+  },
+  "historical_memory_archive": ".agent-memory/archive/20260916-main-de098106",
+  "prior_completed": {
+    "pr": 322,
+    "merge_sha": "b1e077288c8a6865c413c1bf366797b3a23d07d8",
+    "tested_head": "fb74d3057d418589088b0a0d49921400b3df80d9",
+    "normal_ci_success": [
+      35191395738,
+      35191395581,
+      35191395542,
+      35191395541
+    ]
+  }
+}

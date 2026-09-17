@@ -1,3 +1,4 @@
+import { prodatReferenceField, prodatReferenceValue, prodatReferenceValues } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicField, prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 // lib/ediel/core/tgtAutoMatcher.ts
@@ -164,24 +165,12 @@ function payloadHasMissingConstant(message: EdielMessageRow): boolean {
   return facts.lineItems.some((line) => !line.hasConstant)
 }
 
-function meterNumbersForLine(line: ReturnType<typeof parseEdifactMessageFacts>['lineItems'][number]): string[] {
-  return unique(
-    line.segments
-      .filter((segment) => segment.raw.startsWith('RFF+MG:'))
-      .map((segment) => segment.raw.replace(/^RFF\+MG:/, '').split(':')[0]?.trim() ?? '')
-  )
-}
-
 function payloadHasSameMeterNumber(message: EdielMessageRow): boolean {
   const facts = parseEdifactMessageFacts(message.raw_payload)
-
-  return facts.lineItems.some((line) => {
-    const rawMeterNumbers = line.segments
-      .filter((segment) => segment.raw.startsWith('RFF+MG:'))
-      .map((segment) => segment.raw.replace(/^RFF\+MG:/, '').split(':')[0]?.trim() ?? '')
-      .filter(Boolean)
-
-    return rawMeterNumbers.length >= 2 && new Set(rawMeterNumbers).size < rawMeterNumbers.length
+  const una = parseUna(message.raw_payload)
+  return facts.lineItems.some(line => {
+    const current = new Set(prodatReferenceValues('224', line.segments, una))
+    return prodatReferenceValues('225', line.segments, una).some(old => current.has(old))
   })
 }
 
@@ -626,15 +615,6 @@ function normalizeExpectedValue(value: string | null | undefined): string | null
   return cleaned.length > 0 ? cleaned : null
 }
 
-function segmentFirstValue(segments: ReturnType<typeof parseEdifactMessageFacts>['segments'], prefix: string): string | null {
-  const segment = segments.find((item) => item.raw.startsWith(prefix))
-
-  if (!segment) return null
-
-  const value = segment.raw.slice(prefix.length).trim()
-  return value.length > 0 ? value.split(':')[0] ?? value : null
-}
-
 function partyIdFromNad(segments: ReturnType<typeof parseEdifactMessageFacts>['segments'], qualifier: string): string | null {
   const segment = segments.find((item) => item.raw.startsWith(`NAD+${qualifier}+`))
   const composite = segment?.elements[2] ?? ''
@@ -657,6 +637,7 @@ function lineDateTimeValue(segments: ReturnType<typeof parseEdifactMessageFacts>
 function lineActualValue(line: ReturnType<typeof parseEdifactMessageFacts>['lineItems'][number], fieldCode: string, una: EdifactServiceStringAdvice): string | null {
   const code = fieldCode.toUpperCase()
   if (prodatCharacteristicField(code)) return prodatCharacteristicValue(code, line.segments, una)
+  if (prodatReferenceField(code)) return prodatReferenceValue(code, line.segments, una)
 
   switch (code) {
     case '209':
@@ -664,12 +645,6 @@ function lineActualValue(line: ReturnType<typeof parseEdifactMessageFacts>['line
       return line.itemId
     case '210':
       return lineDateTimeValue(line.segments, ['92', '157'])
-    case '224':
-      return line.rffMg
-    case '260':
-      return line.rffZ05
-    case '261':
-      return line.rffLi ?? segmentFirstValue(line.segments, 'RFF+ANJ:')
     case '262':
       return partyIdFromNad(line.segments, 'Z02')
     case '227':
@@ -723,7 +698,9 @@ function issueForField(params: {
 }
 
 function comparableFieldCodesForMessage(messageCode: string): Set<string> {
-  const common = ['209', '260', '261', '262']
+  // Compare only fields explicitly supplied by the selected test source. Reading
+  // a GAS-only descriptor here does not activate that capability for EL traffic.
+  const common = ['209', '262', '224', '225', '308', '260', '320', '240', '319', '261', '226', '325']
 
   if (messageCode === 'Z06') return new Set([...common, '210', '217', '218', '222', '223'])
   if (messageCode === 'Z10') return new Set([...common, '210', '214', '217', '218', '223', '224'])
@@ -751,7 +728,8 @@ function testDataObjects(testData: EdielTgtCaseTestData | null | undefined): Tgt
 
       for (const field of group.fields) {
         const rawValue = field.values[column.name]
-        const value = normalizeExpectedValue(rawValue)
+        const value = prodatReferenceField(String(field.fieldCode))
+          ? (String(rawValue ?? '').trim() || null) : normalizeExpectedValue(rawValue)
 
         if (!value) continue
 
@@ -851,8 +829,9 @@ export function compareInboundPayloadToTgtTestData(params: {
         continue
       }
 
-      const expectedComparable = normalizeCompare(expected)
-      const actualComparable = normalizeCompare(actual)
+      const reference = prodatReferenceField(fieldCode)
+      const expectedComparable = reference ? expected.trim() : normalizeCompare(expected)
+      const actualComparable = reference ? actual.trim() : normalizeCompare(actual)
 
       if (['228', '229', '231', '232', '234', '235', '236', '237'].includes(fieldCode)) {
         if (!actualComparable.includes(expectedComparable)) {

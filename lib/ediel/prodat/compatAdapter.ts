@@ -1,3 +1,5 @@
+import { prodatReferenceByQualifier } from '@/lib/ediel/prodat/prodatReferenceFields'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 // lib/ediel/prodat.ts
 
 import type {
@@ -146,8 +148,8 @@ function extractUnbIds(unb: string | null): {
 }
 
 function extractReference(rawPayload: string, qualifier: string): string | null {
-  const regex = new RegExp(`RFF\\+${qualifier}:([A-Za-z0-9\\-_/.:]+)`, 'i')
-  return rawPayload.match(regex)?.[1] ?? null
+  const tokenized = tokenizeEdifact(rawPayload)
+  return prodatReferenceByQualifier(qualifier, tokenized.segments, tokenized.una)
 }
 
 function extractApplicationReference(rawPayload: string): string | null {
@@ -868,6 +870,7 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
     messageCode: bgmCode,
     messageVersion,
     transactionReference:
+      extractReference(rawPayload, 'LI') ||
       extractReference(rawPayload, 'TN') ||
       extractReference(rawPayload, 'CR') ||
       extractReference(rawPayload, 'AAS'),

@@ -1,3 +1,5 @@
+import { prodatReferenceEntries } from '@/lib/ediel/prodat/prodatReferenceFields'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 // lib/ediel/db.ts
 
 import { supabaseService } from '@/lib/supabase/service'
@@ -323,22 +325,35 @@ function referenceRowsForMessage(row: EdielMessageRow): Array<{
   reference_value: string
 }> {
   const parsed = row.parsed_payload ?? {}
-  const references = Array.isArray(parsed.references)
-    ? parsed.references as Array<{ qualifier?: unknown; value?: unknown }>
-    : []
+  let hasProdatWire = false
+  let references: Array<{ qualifier?: unknown; value?: unknown }> = Array.isArray(parsed.references)
+    ? parsed.references as Array<{ qualifier?: unknown; value?: unknown }> : []
+  if (row.message_family === 'PRODAT') {
+    try {
+      const wire = tokenizeEdifact(row.raw_payload)
+      hasProdatWire = wire.segments.some(segment => segment.tag === 'UNH' || segment.tag === 'BGM')
+      if (hasProdatWire) references = prodatReferenceEntries(wire.segments, wire.una)
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== 'edifact_dangling_release_character') throw error
+      // The original message must remain available for syntax/quarantine review.
+      // Undecodable wire cannot publish an identity from a stale parsed fallback.
+      hasProdatWire = true
+      references = []
+    }
+  }
   const rff = (qualifier: string) =>
     references.find((item) => item.qualifier === qualifier && typeof item.value === 'string')?.value as string | undefined
 
   const values: Array<[string, string | null | undefined]> = [
     ['UNB_REF', row.interchange_reference],
     ['BGM_REF', row.external_reference],
-    ['RFF_LI', rff('LI') ?? row.external_reference],
-    ['RFF_ACW', rff('ACW') ?? row.correlation_reference],
+    ['RFF_LI', rff('LI') ?? (hasProdatWire ? null : row.external_reference)],
+    ['RFF_ACW', rff('ACW') ?? (hasProdatWire ? null : row.correlation_reference)],
     ['RFF_Z07', rff('Z07')],
-    ['RFF_TN', rff('TN') ?? row.transaction_reference],
+    ['RFF_TN', rff('TN') ?? (hasProdatWire ? null : row.transaction_reference)],
     ['DOC_REF', typeof parsed.documentReference === 'string' ? parsed.documentReference : null],
-    ['IDE', typeof parsed.transactionReference === 'string' ? parsed.transactionReference : row.transaction_reference],
-    ['PERMISSION_ID', typeof parsed.permissionId === 'string' ? parsed.permissionId : null],
+    ['IDE', hasProdatWire ? null : typeof parsed.transactionReference === 'string' ? parsed.transactionReference : row.transaction_reference],
+    ['PERMISSION_ID', hasProdatWire ? rff('Z09') : typeof parsed.permissionId === 'string' ? parsed.permissionId : null],
     ['METERING_POINT_ID', typeof parsed.meteringPointId === 'string' ? parsed.meteringPointId : null],
   ]
 
