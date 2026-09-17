@@ -1,3 +1,4 @@
+import { renderProdatDocumentHeader } from '@/lib/ediel/prodat/prodatDocumentFields'
 // lib/ediel/prodat/builders/profileRenderer.ts
 
 import type {
@@ -120,7 +121,8 @@ export function buildProfiledProdatSegments(input: {
   const policy = rendererPolicy(input)
   const issues = validateProdatContext(context)
 
-  const bgmReference = compactProdatReference(context.bgmReference, 35)
+  const bgmReference = context.bgmReference.trim()
+  const bgmSegment = renderProdatDocumentHeader({ code: policy.code, documentId: bgmReference })
   const lineItemReference = compactProdatReference(context.transactionReference || context.bgmReference, 35)
   const isPermissionMessage = policy.processGroup === 'metering_access'
   const isSupplierZ09 = policy.code === 'Z09'
@@ -155,7 +157,7 @@ export function buildProfiledProdatSegments(input: {
     )
 
   const segments: string[] = [
-    `BGM+${policy.code}+${bgmReference}+9+AB`,
+    bgmSegment,
     `DTM+137:${prodatNowDate203(input.generatedAt)}:203`,
     'DTM+ZZZ:1:805',
     prodatPartySegment('FR', context.senderEdielId),

@@ -1,3 +1,6 @@
+import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 // lib/ediel/aperakEngine.ts
 
 export type AperakEngineOutcome = 'positive' | 'negative'
@@ -172,7 +175,15 @@ export function renderAperakEdiel(params: {
   const sourceWireCode = params.source.messageCode === 'UTILTS_ERR' ? 'ERR' : params.source.messageCode
   const utiltsBgmCode = params.outcome === 'positive' ? '312' : '313'
   const bgmFunction = '34'
-  const previousMessageReference =
+  const sourceWire = params.source.messageFamily === 'PRODAT' ? tokenizeEdifact(params.source.rawPayload) : null
+  const hasProdatWire = params.source.messageFamily === 'PRODAT' && Boolean(params.source.rawPayload?.trim())
+  const wireDocument = sourceWire ? prodatDocumentValue('203', sourceWire.segments, sourceWire.una) : null
+  if (hasProdatWire && (!wireDocument || wireDocument.length > 35)) {
+    // Missing/invalid original identity is a local correlation blocker, not a
+    // licence to acknowledge an unrelated UNH/row/UUID. Preserve the source.
+    throw new Error('aperak_prodat_document_reference_required')
+  }
+  const previousMessageReference = hasProdatWire ? wireDocument as string :
     sanitizeEdifactToken(params.refs.documentReference) ??
     sanitizeEdifactToken(params.refs.messageReference) ??
     sanitizeEdifactToken(params.source.externalReference, 14) ??
@@ -211,7 +222,7 @@ export function renderAperakEdiel(params: {
 
   if (!isUtiltsSource) {
     segments.push(
-      `RFF+ACW:${previousMessageReference}`,
+      `RFF+ACW:${hasProdatWire ? escapeEdifactValue(previousMessageReference) : previousMessageReference}`,
       `NAD+FR+${sanitizeEdifactToken(params.source.receiverEdielId) ?? 'UNKNOWN'}:160:SVK+++++++SE`,
       `NAD+DO+${sanitizeEdifactToken(params.source.senderEdielId) ?? 'UNKNOWN'}:160:SVK+++++++SE`
     )

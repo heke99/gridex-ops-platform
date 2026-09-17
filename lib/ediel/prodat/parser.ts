@@ -61,7 +61,9 @@ export type ParsedProdatLineItem = {
 export type ParsedProdatMessage = {
   messageFamily: 'PRODAT'
   messageCode: string
+  /** BGM/1004 document identity; never the UNH0062 technical reference. */
   messageReference: string | null
+  unhMessageReference?: string | null
   interchangeReference: string | null
   transactionReference: string | null
   applicationReference: string | null
@@ -119,11 +121,13 @@ export function parseProdatMessage(input: EdielMessageRow | string): ParsedProda
   const rawPayload = typeof input === 'string' ? input : (input.raw_payload ?? '')
   const facts = parseEdifactMessageFacts(rawPayload)
   const una = parseUna(rawPayload)
+  const hasWire = facts.segments.some(segment => ['UNH', 'BGM'].includes(segment.tag))
 
   return {
     messageFamily: 'PRODAT',
-    messageCode: String((typeof input === 'string' ? facts.messageCode : input.message_code) ?? facts.messageCode ?? '').toUpperCase(),
-    messageReference: typeof input === 'string' ? facts.messageReference : (input.external_reference ?? facts.messageReference ?? null),
+    messageCode: String(hasWire ? facts.messageCode ?? '' : typeof input === 'string' ? '' : input.message_code ?? '').toUpperCase(),
+    messageReference: hasWire ? facts.documentReference : typeof input === 'string' ? null : input.external_reference ?? null,
+    unhMessageReference: facts.messageReference,
     interchangeReference: typeof input === 'string' ? facts.interchangeReference : (input.interchange_reference ?? facts.interchangeReference ?? null),
     transactionReference: typeof input === 'string' ? null : (input.transaction_reference ?? null),
     applicationReference: typeof input === 'string' ? null : (input.application_reference ?? null),

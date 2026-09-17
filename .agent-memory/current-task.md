@@ -1,6 +1,6 @@
-# Current task
+# Active work — F3-E PR325
 
-F3-D / PR324 final exact-head CI and SHA-guarded merge.
-Read current-state.md for the qualified code SHA and executed runs. Publication
-is no longer blocked. This docs commit needs ordinary CI too. Then continue
-NAD/BGM/DTM field projection from the actual merged main. PR310 stays paused.
+See current-state.md and checkpoint.json. The source is published and the actual
+ACK escape failures corrected; final source/docs head requires ordinary CI,
+review and SHA-guarded merge. Do not substitute an older green head or isolated
+qualification. Then NAD/DTM from newly merged main. PR324 is merged; PR310 paused.

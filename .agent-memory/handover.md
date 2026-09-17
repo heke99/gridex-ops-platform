@@ -1,8 +1,6 @@
-# Handover
+# Active work — F3-E PR325
 
-Current single active task: finish PR324, then remaining PRODAT projections.
-See current-state.md and checkpoint.json. Source tree800c68dc is published and
-qualified; no merge is asserted in this checkpoint. Inspect the actual current
-PR head and all required checks/reviews before merge. Never replay the old ZIP
-blindly or start a competing publication. The transfer helper branch is excluded.
-Keep PR310 and its recovery reference untouched. No live traffic test occurred.
+See current-state.md and checkpoint.json. The source is published and the actual
+ACK escape failures corrected; final source/docs head requires ordinary CI,
+review and SHA-guarded merge. Do not substitute an older green head or isolated
+qualification. Then NAD/DTM from newly merged main. PR324 is merged; PR310 paused.

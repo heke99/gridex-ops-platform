@@ -3,53 +3,42 @@
   "updated_at": "2026-09-17",
   "status": "IN_PROGRESS",
   "current_state": ".agent-memory/current-state.md",
-  "branch": "codex/ediel-v2-prodat-references-20260917",
-  "base_head_sha": "5a741b2c6e108d2db08b24aab9c0e6c4b71b1862",
-  "active_item": "F3-D PR324 final exact-head qualification and merge",
-  "next_action": "Read PR324 actual head, ordinary CI and review threads; merge only exact green head; then remaining PRODAT NAD/BGM/DTM projection from new main.",
-  "source_state": {
-    "verified_base_tree": "4a2803344e5ba82db1091b5e6f4f2061bf330d7e",
-    "local_only": false,
-    "publication_status": "PUBLISHED_PR_324",
-    "local_tests": {
-      "new_source_cases": 105,
-      "retained_source_cases": 334,
-      "before": {
-        "passed": 23,
-        "failed": 82
-      }
-    },
-    "scope": "Actual source-module tests with declared synthetic database/mutation boundaries; not full CI or live verification",
-    "code_qualified_head": "c343dfd155586b653989281c6bc07f621a5dbcce",
-    "code_qualified_tree": "800c68dcfc0f883ba9dae151f89016293d363d29",
-    "normal_ci_success": [
-      35207689478,
-      35207689453,
-      35207689469,
-      35207689487
-    ],
-    "documentation_head_ci": "REQUIRED",
-    "consumer_cases_executed_in_ci": 21
-  },
+  "branch": "codex/ediel-v2-prodat-document-fields-20260917",
+  "base_head_sha": "b0b3b395a36168757b0f8b4a765b7f7fadf6cceb",
+  "active_item": "F3-E all four BGM header fields and identified consumers",
+  "next_action": "Run normal CI on actual final PR325 head, review and SHA-guarded merge; then NAD/DTM from new main.",
   "main_merged": false,
+  "source_state": {
+    "local_only": false,
+    "new_source_cases": 145,
+    "retained_source_cases": 439,
+    "baseline": {
+      "passed": 62,
+      "failed": 67
+    },
+    "consumer_cases": 19,
+    "consumer_cases_executed": true,
+    "normal_ci": "FINAL_HEAD_REQUIRED",
+    "qualified_code_head": "74bed19fa9372e81efb6cb24d9f1dc0a7e608925",
+    "isolated_qualification": 35214234089,
+    "full_vitest_passed": 1296
+  },
+  "prior_completed": {
+    "pr": 324,
+    "merge_sha": "b0b3b395a36168757b0f8b4a765b7f7fadf6cceb",
+    "tested_head": "fd9c58bbc9a4cdf7ad765342b7fcffe389d6e0b8",
+    "normal_ci_success": [
+      35208401905,
+      35208401738,
+      35208401758,
+      35208401833
+    ]
+  },
   "deferred_work": {
     "pr": 310,
     "state": "PAUSED",
     "head": "e961135199f292b8210884f07de3b616a670161a",
-    "backup_branch": "backup/pr310-paused-20260916-e9611351",
-    "resume_document": "quality/audits/ediel-masterplan-v2/pr310-paused-resume.md"
+    "backup_branch": "backup/pr310-paused-20260916-e9611351"
   },
-  "historical_memory_archive": ".agent-memory/archive/20260917-main-5a741b2c",
-  "prior_completed": {
-    "pr": 323,
-    "merge_sha": "5a741b2c6e108d2db08b24aab9c0e6c4b71b1862",
-    "tested_head": "0bf787843416bdab259ff79b3ae8c3f841e16a93",
-    "normal_ci_success": [
-      35195499083,
-      35195499122,
-      35195499075,
-      35195499087
-    ]
-  },
-  "pull_request": 324
+  "pull_request": 325
 }

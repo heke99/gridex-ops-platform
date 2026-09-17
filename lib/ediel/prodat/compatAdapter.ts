@@ -1,5 +1,6 @@
 import { prodatReferenceByQualifier } from '@/lib/ediel/prodat/prodatReferenceFields'
-import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
+import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 // lib/ediel/prodat.ts
 
 import type {
@@ -839,11 +840,11 @@ function buildProdatSwitchOutboundDraft(
 }
 
 export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
-  const rawSegments = splitEdifactSegments(rawPayload)
+  const wire = tokenizeEdifact(rawPayload)
+  const rawSegments = wire.segments.map(segment => segment.raw)
   const inferred = inferEdielFamilyAndCodeFromRawPayload(rawPayload)
   const unb = firstSegmentValue(rawSegments, 'UNB+')
-  const bgm = firstSegmentValue(rawSegments, 'BGM+')
-  const unh = firstSegmentValue(rawSegments, 'UNH+')
+  const unh = wire.segments.find(segment => segment.tag === 'UNH')
   const dtm7 = firstSegmentValue(rawSegments, 'DTM+7')
   const dtm137 = firstSegmentValue(rawSegments, 'DTM+137')
   const loc172 = firstSegmentValue(rawSegments, 'LOC+172')
@@ -853,17 +854,14 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
   const adr = firstSegmentValue(rawSegments, 'ADR+')
   const ids = extractUnbIds(unb)
 
-  const bgmParts = bgm?.split('+') ?? []
-  const bgmCode = (bgmParts[1]?.split(':')[0]?.trim() ||
-    inferred.messageCode ||
-    null) as ProdatSwitchCode | EdielKnownMessageCode | null
+  const bgmCode = prodatDocumentValue('202', wire.segments, wire.una) as ProdatSwitchCode | EdielKnownMessageCode | null
 
   const meterPointId = loc172?.split('+')[2]?.split(':')[0]?.trim() || null
   const gridAreaId = loc239?.split('+')[2]?.split(':')[0]?.trim() || null
   const priceAreaCode = loc48?.split('+')[2]?.split(':')[0]?.trim() || null
   const customerName = nadBy?.split('+++')[1]?.trim() || null
   const adrParts = adr?.split('+') ?? []
-  const messageVersion = unh?.split('+')[2]?.split(':')?.[4]?.trim() ?? unh?.split('+')[2]?.trim() ?? null
+  const messageVersion = segmentComposite(unh, 2, wire.una)[4]?.trim() || null
 
   return {
     messageFamily: 'PRODAT',
@@ -874,10 +872,7 @@ export function parseInboundProdat(rawPayload: string): ParsedProdatMessage {
       extractReference(rawPayload, 'TN') ||
       extractReference(rawPayload, 'CR') ||
       extractReference(rawPayload, 'AAS'),
-    externalReference:
-      bgmParts[2]?.trim() ||
-      extractReference(rawPayload, 'ON') ||
-      extractReference(rawPayload, 'ACE'),
+    externalReference: prodatDocumentValue('203', wire.segments, wire.una),
     applicationReference: extractApplicationReference(rawPayload),
     senderEdielId: ids.senderEdielId,
     receiverEdielId: ids.receiverEdielId,

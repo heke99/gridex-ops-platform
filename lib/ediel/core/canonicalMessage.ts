@@ -1,3 +1,4 @@
+import { segmentComposite, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import { prodatReferenceEntries } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { parseUna } from '@/lib/ediel/core/una'
@@ -134,14 +135,15 @@ function storageFamily(family: ExtendedCanonicalFamily): EdielMessageFamily {
   return 'OTHER'
 }
 
-function referenceList(rawSegments: readonly string[]): CanonicalEdielReference[] {
-  return allSegments(rawSegments, 'RFF+').flatMap((segment) => {
-    const composite = element(segment, 1)
-    const parts = splitComposite(composite)
+function referenceList(segments: readonly EdifactTokenizedSegment[], una: ReturnType<typeof parseUna>): CanonicalEdielReference[] {
+  return segments.filter(segment => segment.tag === 'RFF').flatMap((segment) => {
+    // ACW carries the original PRODAT BGM identity into APERAK. Decode from
+    // wire once: a literal release at the end is data, not a dangling escape.
+    const parts = segmentComposite(segment, 1, una).map(part => part.trim())
     const qualifier = cleanString(parts[0] ?? null)
     const value = cleanString(parts.slice(1).join(':'))
     if (!qualifier || !value) return []
-    return [{ qualifier, value, raw: segment }]
+    return [{ qualifier, value, raw: segment.raw }]
   })
 }
 
@@ -191,11 +193,11 @@ function parseEdifactCanonical(rawPayload: string, direction: EdielMessageRow['d
   const unbRaw = facts.unb?.raw ?? firstSegment(rawSegments, 'UNB+')
   const unhRaw = facts.unh?.raw ?? firstSegment(rawSegments, 'UNH+')
   const bgmRaw = facts.bgm?.raw ?? firstSegment(rawSegments, 'BGM+')
-  const bgmCode = firstComponent(element(bgmRaw, 1))
-  const family = familyFromUnhAndBgm(unhRaw, bgmCode)
+  const bgmCode = facts.messageType === 'PRODAT' ? facts.messageCode : firstComponent(element(bgmRaw, 1))
+  const family = facts.messageType === 'PRODAT' ? 'PRODAT' : familyFromUnhAndBgm(unhRaw, bgmCode)
   const senderParty = partyIdAndSubAddress(element(unbRaw, 2))
   const receiverParty = partyIdAndSubAddress(element(unbRaw, 3))
-  const references = family === 'PRODAT' ? prodatReferenceEntries(facts.segments, parseUna(rawPayload)) : referenceList(rawSegments)
+  const references = family === 'PRODAT' ? prodatReferenceEntries(facts.segments, parseUna(rawPayload)) : referenceList(facts.segments, parseUna(rawPayload))
   const transactionReference =
     referenceValue(references, 'TN', 'LI', 'ACW') ??
     facts.lineItems.find((line) => line.rffLi)?.rffLi ??
@@ -229,7 +231,7 @@ function parseEdifactCanonical(rawPayload: string, direction: EdielMessageRow['d
     receiverSubAddress: receiverParty.subAddress,
     interchangeReference: facts.interchangeReference ?? element(unbRaw, 5),
     messageReference: facts.messageReference ?? element(unhRaw, 1),
-    documentReference: facts.documentReference ?? element(bgmRaw, 2),
+    documentReference: family === 'PRODAT' ? facts.documentReference : facts.documentReference ?? element(bgmRaw, 2),
     transactionReference,
     businessReference: referenceValue(references, 'LI', 'ACW', 'AGO', 'TN'),
     relatedReference: referenceValue(references, 'ACW', 'AGO', 'E31', 'Z07'),
@@ -349,7 +351,10 @@ export function parseCanonicalEdielPayload(params: {
     return parseXmlCanonical(rawPayload, params.direction ?? null)
   }
 
-  if (standardHint === 'ai_list' || (!rawPayload.includes("'") && rawPayload.includes(';'))) {
+  // A declared EDIFACT payload (or its UNA advice) outranks a CSV heuristic.
+  // Semicolon may be the actual data separator, including inside document ids.
+  const edifactDeclared = standardHint === 'edifact' || rawPayload.startsWith('UNA')
+  if (standardHint === 'ai_list' || (!edifactDeclared && !rawPayload.includes("'") && rawPayload.includes(';'))) {
     return parseAiOrBiCanonical(rawPayload, params.direction ?? null)
   }
 

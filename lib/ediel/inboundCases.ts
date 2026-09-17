@@ -140,10 +140,6 @@ function readFirstDtm(segments: string[], qualifier: string): string | null {
   return trimOrNull(segment?.split('+')[1]?.split(':')[1])
 }
 
-function readBgmCode(segments: string[]): string | null {
-  return trimOrNull(segments.find((row) => row.startsWith('BGM+'))?.split('+')[1]?.split(':')[0])
-}
-
 function readLinMeteringPoint(segments: string[]): string | null {
   const lin = segments.find((row) => row.startsWith('LIN+'))
   return trimOrNull(lin?.split('+')[3]?.split(':')[0])
@@ -194,7 +190,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
     : valueFromParsed(payload, ...fallbackKeys)
   const ud = readNad(segments, 'UD')
   const balanceResponsible = readNad(segments, 'Z02')
-  const messageCode = readBgmCode(segments) ?? String(message.message_code)
+  const messageCode = hasWireSource ? facts.messageCode ?? '' : String(message.message_code)
   const meterPointId =
     valueFromParsed(payload, 'meterPointId', 'meteringPointId', 'installationId', 'facilityId') ??
     readLinMeteringPoint(segments)

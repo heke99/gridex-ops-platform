@@ -29,3 +29,7 @@ review/merge pending. See f3-characteristic-fields.md. PR310 untouched.
 ## 2026-09-17 — F3-D checkpoint
 
 PR323 / F3-C was verified merged at main5a741b2c, tree4a280334, with normal exact-head OPS/Ediel/Browser/FullE2E success. F3-D is NOT completed.
+
+## 2026-09-17 — F3-E checkpoint
+
+PR324 F3-D completed/mergedb0b3 after ordinary final-head CI success; no live approval.

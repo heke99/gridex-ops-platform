@@ -1,7 +1,6 @@
-# Work plan — 2026-09-17
+# Active work — F3-E PR325
 
-Active: finalize PR324 (F3-D). Code-qualified c343dfd1; this docs head still needs
-normal CI, review and guarded merge. See current-state.md for exact runs.
-Next after merge: source-backed PRODAT NAD/BGM/DTM projections and consumers,
-then register2+/dependent-condition evidence and other independent F1–F6 work.
-Do not reopen completed F3-C or paused PR310; preserve every required gate.
+See current-state.md and checkpoint.json. The source is published and the actual
+ACK escape failures corrected; final source/docs head requires ordinary CI,
+review and SHA-guarded merge. Do not substitute an older green head or isolated
+qualification. Then NAD/DTM from newly merged main. PR324 is merged; PR310 paused.

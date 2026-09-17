@@ -29,7 +29,7 @@ export function validateProdatContext(context: ProdatEngineProductionContext): P
       description: 'PRODAT engine kräver mätpunkt/anläggnings-id till LIN.',
     })
   }
-  if (!compactProdatReference(context.bgmReference, 35)) {
+  if (!context.bgmReference.trim()) {
     issues.push({
       severity: 'error',
       code: 'prodat_engine_bgm_reference_missing',

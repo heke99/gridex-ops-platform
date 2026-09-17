@@ -34,3 +34,7 @@ review/merge pending. See f3-characteristic-fields.md. PR310 untouched.
 ## 2026-09-17 — F3-D checkpoint
 
 F3-D source-only:105 new cases (base23pass/82fail) +334 retained =>439pass. 21 Vitest consumer cases added, not executed. Full typecheck/build/CI/merge NOT verified.
+
+## 2026-09-17 — F3-E checkpoint
+
+F3-E129source cases129pass, corrected base62pass/67fail;439retained pass.19Vitest cases pending normal CI. Audit:f3-document-fields.md.

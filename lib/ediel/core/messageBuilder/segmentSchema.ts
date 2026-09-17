@@ -1,3 +1,4 @@
+import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 // lib/ediel/core/messageBuilder/segmentSchema.ts
 
 export type EdielBuilderFamily = 'PRODAT' | 'UTILTS' | 'APERAK' | 'CONTRL' | 'UTILTS_ERR' | 'AI_LIST' | 'BI_LIST' | 'NBS_XML' | 'OTHER'
@@ -202,9 +203,10 @@ export function profileForMessage(input: {
   rawSegments?: readonly string[] | null
 }): EdielMessageProfile | null {
   const family = normalize(input.family)
-  const code = normalize(input.code)
+  const code = family === 'PRODAT' && input.rawSegments
+    ? normalize(prodatDocumentValue('202', input.rawSegments)) : normalize(input.code)
   const token = normalize(input.messageTypeToken)
-  const bgm = input.rawSegments?.find((segment) => tagOf(segment) === 'BGM')?.split('+')[1]?.split(':')[0]?.trim().toUpperCase() ?? code
+  const bgm = family === 'PRODAT' ? code : input.rawSegments?.find((segment) => tagOf(segment) === 'BGM')?.split('+')[1]?.split(':')[0]?.trim().toUpperCase() ?? code
 
   if (family === 'APERAK' || token.startsWith('APERAK')) {
     if (token.includes('D:04A') || token.includes('E5SE5A') || bgm === '312' || bgm === '313') {

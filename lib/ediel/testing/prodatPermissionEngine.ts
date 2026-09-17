@@ -113,19 +113,21 @@ function partyIdFromNad(segments: readonly EdifactSegment[], qualifier: string):
 
 function permissionMessageCode(message: EdielMessageRow): string {
   const facts = parseEdifactMessageFacts(message.raw_payload)
-  return String(facts.messageCode ?? message.message_code ?? '').toUpperCase()
+  const hasWire = facts.segments.some(segment => segment.tag === 'UNH' || segment.tag === 'BGM')
+  return String(hasWire ? facts.messageCode ?? '' : message.message_code ?? '').toUpperCase()
 }
 
 function readPermissionMessageFacts(message: EdielMessageRow): PermissionMessageFacts {
   const facts = parseEdifactMessageFacts(message.raw_payload)
   const una = parseUna(message.raw_payload)
+  const hasWire = facts.segments.some(segment => segment.tag === 'UNH' || segment.tag === 'BGM')
   const firstLineIndex = facts.segments.findIndex(segment => segment.tag === 'LIN')
   const globalSegments = firstLineIndex < 0 ? facts.segments : facts.segments.slice(0, firstLineIndex)
   const globalReferences = referencesByQualifier(globalSegments, una)
 
   return {
-    messageCode: String(facts.messageCode ?? message.message_code ?? '').toUpperCase(),
-    messageReference: facts.documentReference ?? message.external_reference ?? null,
+    messageCode: String(hasWire ? facts.messageCode ?? '' : message.message_code ?? '').toUpperCase(),
+    messageReference: hasWire ? facts.documentReference : message.external_reference ?? null,
     interchangeReference: facts.interchangeReference ?? message.interchange_reference ?? null,
     globalReferences,
     lines: facts.lineItems.map((line) => ({
@@ -142,7 +144,7 @@ function readPermissionMessageFacts(message: EdielMessageRow): PermissionMessage
 
 function candidateReferences(message: EdielMessageRow, facts: PermissionMessageFacts): string[] {
   return unique([
-    message.external_reference,
+    facts.messageReference,
     message.transaction_reference,
     message.original_transaction_id,
     message.correlation_reference,
@@ -229,7 +231,7 @@ function scoreCandidate(params: {
       return {
         matched: !missingHardMatch,
         expectedMessageId: params.candidate.id,
-        expectedReference: candidateFacts.messageReference ?? params.candidate.external_reference,
+        expectedReference: candidateFacts.messageReference,
         expectedMeteringPointId: candidateLine.meteringPointId,
         expectedCustomerId: candidateLine.customerId,
         expectedAgreementReference: candidateLine.agreementReference,
