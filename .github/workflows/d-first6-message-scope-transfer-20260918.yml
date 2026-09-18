@@ -1,0 +1,88 @@
+name: D message-scope exact source transport
+on:
+  push:
+    branches: ['codex/d-first6-message-scope-transfer-20260918']
+permissions:
+  contents: read
+jobs:
+  transport:
+    if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/codex/d-first6-message-scope-transfer-20260918'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: transport
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: b3afa40a24713c726aa89ad9342cb577649aa15d
+          path: source
+          fetch-depth: 0
+      - name: Verify exact patch, tree and execution-source hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/d-scope-evidence"
+          python3 - <<'PY'
+          import hashlib, json, lzma, os, pathlib, subprocess
+          w = pathlib.Path(os.environ['GITHUB_WORKSPACE']); s = w / 'source'
+          e = pathlib.Path(os.environ['RUNNER_TEMP']) / 'd-scope-evidence'
+          def git(*args): return subprocess.check_output(['git', *args], cwd=s)
+          def check(data, expected):
+              actual = hashlib.sha256(data).hexdigest()
+              if actual != expected: raise SystemExit(f'Hash mismatch: {actual} != {expected}')
+          base = 'b3afa40a24713c726aa89ad9342cb577649aa15d'
+          assert git('rev-parse', 'HEAD').decode().strip() == base
+          assert git('rev-parse', 'HEAD^{tree}').decode().strip() == 'c832d360ea7bbb399cdbb00b5583b191d6c702ac'
+          for ref, expected in {'main':'b916213e83871e9f4d15b9fd52a2b8c19394c9ca', 'codex/ediel-v2-dependent-conditions-20260918':base}.items():
+              observed = git('ls-remote', 'origin', f'refs/heads/{ref}').decode().split()
+              assert observed and observed[0] == expected, f'Concurrent ref movement: {ref}'
+          xz = (w / 'transport/.candidate-transfer/scope.patch.xz').read_bytes()
+          check(xz, '51e9dad20c97abc8c9a38987592522f3ce0352cceeb41b58dc84d01665399613')
+          patch = lzma.decompress(xz, memlimit=134217728)
+          check(patch, '8f7b27a8b19ccf5cd16a762f6cb4f0621807fccebbd3e28b33bf81f5b9b50a2a')
+          p = e / 'candidate.patch'; p.write_bytes(patch)
+          git('apply', '--check', '--index', str(p)); git('apply', '--index', str(p))
+          tree = git('write-tree').decode().strip()
+          assert tree == 'b10d70fad26e40a241d8eb679870076a851ae6d6', tree
+          paths = git('ls-files', '-z').decode().split('\0')
+          hashes = {p:hashlib.sha256((s/p).read_bytes()).hexdigest() for p in paths if p and not p.startswith(('.agent-memory/', 'quality/audits/'))}
+          assert len(hashes) == 3696
+          manifest = (json.dumps(hashes, indent=2, sort_keys=True) + '\n').encode()
+          check(manifest, 'b846751d8ada16437259e406b0c9645a1220b271356e69f231d7f65272d3a9c2')
+          assert not git('diff', '--cached', '--name-only', '--', '.github/workflows', 'supabase').strip()
+          assert not git('ls-files', '.candidate-transfer').strip()
+          git('archive', '--format=tar.gz', '--output='+str(e/'source.tar.gz'), tree)
+          receipt = {'base':base, 'tree':tree, 'patch_sha256':hashlib.sha256(patch).hexdigest(), 'execution_source_sha256':hashlib.sha256(manifest).hexdigest(), 'files':len(hashes), 'scope':'Exact byte transport only, not CI/review/release acceptance.'}
+          (e/'receipt.json').write_text(json.dumps(receipt, indent=2)+'\n'); print(json.dumps(receipt))
+          PY
+      - name: Publish only isolated source branch
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch='codex/d-first6-message-scope-source-20260918'
+          test -z "$(git ls-remote origin "refs/heads/$branch")"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Transport reviewed D message-scope correction; ordinary exact-head CI and independent review required'
+          git push origin "HEAD:refs/heads/$branch"
+          printf 'source_commit=%s\nsource_tree=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse 'HEAD^{tree}')" | tee "$RUNNER_TEMP/d-scope-evidence/published-source.txt"
+      - name: Hash evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/d-scope-evidence"
+          find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 -r sha256sum > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: d-scope-transport-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/d-scope-evidence/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
