@@ -1,0 +1,108 @@
+name: D first-six exact source transport 20260918
+on:
+  push:
+    branches: ['codex/d-first6-transfer-20260918-750920e8']
+permissions:
+  contents: read
+jobs:
+  transport:
+    if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/codex/d-first6-transfer-20260918-750920e8'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: transport
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: b916213e83871e9f4d15b9fd52a2b8c19394c9ca
+          path: source
+          fetch-depth: 0
+      - name: Decode and verify exact original candidate without executing its scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/d-first6-evidence"
+          python3 - <<'PY'
+          import hashlib, json, lzma, os, pathlib, subprocess
+          workspace = pathlib.Path(os.environ['GITHUB_WORKSPACE'])
+          source = workspace / 'source'
+          transport = workspace / 'transport' / '.candidate-transfer'
+          evidence = pathlib.Path(os.environ['RUNNER_TEMP']) / 'd-first6-evidence'
+          def git(*args):
+              return subprocess.check_output(['git', *args], cwd=source)
+          def check(data, expected):
+              actual = hashlib.sha256(data).hexdigest()
+              if actual != expected:
+                  raise SystemExit(f'Checksum mismatch: {actual} != {expected}')
+          base = 'b916213e83871e9f4d15b9fd52a2b8c19394c9ca'
+          assert git('rev-parse', 'HEAD').decode().strip() == base
+          assert git('rev-parse', 'HEAD^{tree}').decode().strip() == '54f9cf4fe56e42768ef132a23f6a79baea0632d5'
+          for ref in ('main', 'codex/ediel-v2-dependent-conditions-20260918'):
+              remote = git('ls-remote', 'origin', f'refs/heads/{ref}').decode().split()
+              assert remote and remote[0] == base, f'Concurrent movement: {ref}'
+          compressed = b''.join((transport / name).read_bytes() for name in ('part.00', 'part.01'))
+          check(compressed, '5f45eb90984527be2ee4d59686ab4e526a37340b93e8bb8ae577d2ebbdffd466')
+          patch = lzma.decompress(compressed, memlimit=134217728)
+          check(patch, '1f6ae4b227d434426a8df14a3d59c0cea83b8ea42990a99e3b7e8f11813a6465')
+          patch_path = evidence / 'transfer.patch'
+          patch_path.write_bytes(patch)
+          git('apply', '--check', '--index', str(patch_path))
+          git('apply', '--index', str(patch_path))
+          tracked = git('ls-files', '-z').decode().split('\0')
+          hashes = {p: hashlib.sha256((source / p).read_bytes()).hexdigest() for p in tracked if p and not p.startswith(('.agent-memory/', 'quality/audits/'))}
+          assert len(hashes) == 3693
+          map_bytes = (json.dumps(hashes, indent=2, sort_keys=True) + '\n').encode()
+          check(map_bytes, 'bf6ca76a1d3340baf489a85fc2d2c8d4f7729c553aedcc5cd484bddda850f798')
+          map_path = 'quality/audits/ediel-masterplan-v2/f3-d-subtype-execution-source-20260918.json'
+          (source / map_path).write_bytes(map_bytes)
+          git('add', '--', map_path)
+          tree = git('write-tree').decode().strip()
+          assert tree == 'aa624c9bf203ecfac9068fd53fb0cc9ca1a0f218', tree
+          original_patch = git('diff', '--cached', '--binary', '--full-index')
+          check(original_patch, '750920e8746ebb49fbcbb6f4884b84f761847f8caa8d4404cf072ef45a103333')
+          (evidence / 'candidate.patch').write_bytes(original_patch)
+          workflow_path = '.github/workflows/ediel-masterplan-v2.yml'
+          workflow_sha = git('rev-parse', ':' + workflow_path).decode().strip()
+          assert workflow_sha == 'e4d485312aeed05ccd4efdbda92fb9319fc0a4d4'
+          git('archive', '--format=tar.gz', '--output=' + str(evidence / 'source.tar.gz'), tree)
+          receipt = {'base_commit': base, 'base_tree': '54f9cf4fe56e42768ef132a23f6a79baea0632d5', 'candidate_tree': tree, 'workflow_path': workflow_path, 'workflow_blob': workflow_sha, 'patch_sha256': hashlib.sha256(original_patch).hexdigest(), 'source_map_sha256': hashlib.sha256(map_bytes).hexdigest(), 'scope': 'Exact byte transport only. No test/review/production acceptance.'}
+          (evidence / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          print(json.dumps(receipt, indent=2))
+          git('restore', '--source=' + base, '--staged', '--worktree', '--', workflow_path)
+          assert not git('diff', '--cached', '--name-only', '--', '.github/workflows').strip()
+          assert not git('ls-files', '.candidate-transfer').strip()
+          PY
+      - name: Publish only source to isolated candidate branch
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch='codex/d-first6-candidate-20260918-750920e8'
+          if [[ -n "$(git ls-remote origin "refs/heads/$branch")" ]]; then
+            echo 'Ref already exists; refusing to replace another candidate.' >&2
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Transport exact recovered first-six D source; ordinary CI and review still required'
+          git push origin "HEAD:refs/heads/$branch"
+          printf 'source_commit=%s\nsource_tree=%s\nsource_branch=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse 'HEAD^{tree}')" "$branch" | tee "$RUNNER_TEMP/d-first6-evidence/published-source.txt"
+      - name: Hash transport receipt and exact source archive
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/d-first6-evidence"
+          find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 -r sha256sum > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: d-first6-transport-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/d-first6-evidence/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
