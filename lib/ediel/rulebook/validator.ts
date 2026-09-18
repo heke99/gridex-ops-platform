@@ -1,3 +1,4 @@
+import { validateProdatSubtypePayload } from '@/lib/ediel/rulebook/prodatSubtypePolicy'
 import { readProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUna } from '@/lib/ediel/core/una'
@@ -339,7 +340,7 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
     let fieldIssues = validateCanonicalPolicyFields({ policy, rawSegments: parsed.rawSegments, una: parseUna(input.rawPayload) })
     if (input.mode === 'send' && input.environment !== 'production') {
       fieldIssues = fieldIssues.map((entry) =>
-        entry.code === 'PRODAT_DEPENDENT_CONDITION_UNDETERMINED' && entry.scope !== 'prodat_register'
+        entry.code === 'PRODAT_DEPENDENT_CONDITION_UNDETERMINED' && entry.scope !== 'prodat_register' && entry.scope !== 'prodat_dependent'
           ? { ...entry, severity: 'warning' as const, blocking: false }
           : entry,
       )
@@ -360,7 +361,11 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
     }
   } catch (error) {
     const description = error instanceof Error ? error.message : String(error)
-    const issues = [...parserIssues, issue({
+    // Missing/invalid root policy metadata must not hide source-derived D
+    // defects behind the legacy intentional-invalid-test escape hatch.
+    const protectedDependentIssues = family === 'PRODAT' && input.mode === 'send'
+      ? validateProdatSubtypePayload({family, code, rawSegments:parsed.rawSegments, una:parsed.una ?? parseUna(input.rawPayload)}) : []
+    const issues = [...parserIssues, ...protectedDependentIssues, issue({
       severity: 'error',
       code: description.startsWith('prodat_register_evidence_') ? 'PRODAT_REGISTER_EVIDENCE_INVALID' : 'CANONICAL_POLICY_VALIDATION_FAILED',
       ...(description.startsWith('prodat_register_evidence_') ? {scope:'prodat_register' as const} : {}),

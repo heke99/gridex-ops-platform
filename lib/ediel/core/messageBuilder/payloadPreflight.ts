@@ -1,3 +1,4 @@
+import { validateProdatSubtypePayload } from '@/lib/ediel/rulebook/prodatSubtypePolicy'
 import { readProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
 import { validateProdatDateFields } from '@/lib/ediel/prodat/prodatDateValidation'
@@ -710,6 +711,11 @@ export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' 
     const tokens = tokenizeEdifact(message.raw_payload)
     const rawSegments = tokens.segments.map(segment => segment.raw)
     const code = result.code ?? String(message.message_code ?? '')
+    if (mode === 'send') {
+      for (const failure of validateProdatSubtypePayload({family:'PRODAT', code, rawSegments, una:tokens.una})) {
+        result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
+      }
+    }
     const facts = mode === 'send' ? readProdatRegisterEvidence({code,rawSegments,una:tokens.una,parsedPayload:message.parsed_payload}) : undefined
     for (const failure of validateProdatRegisterPayload({code,rawSegments,una:tokens.una,facts,requireConditions:mode === 'send'})) {
       result.issues.push(issue({severity:'error',code:`PRODAT_REGISTER_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))

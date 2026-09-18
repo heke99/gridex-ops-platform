@@ -1,3 +1,20 @@
+## 2026-09-18 — current D-condition local checkpoint
+
+PR328 is verified merged as b916213e. Six subtype-derived D cells and their
+canonical/row/send gates are implemented locally. 2440 application cases
+(including 146 new cases), 851 retained source cases, three TS projects and
+unchanged coverage/quality gates pass. Final full local build and bundle budget
+pass with a 3072 MiB process cap. The first SIGKILL and second heap exhaustion
+remain recorded as failed attempts. No new publication, PR, remote CI or merge.
+Source audit: `quality/audits/ediel-masterplan-v2/f3-d-subtype-qualification-20260918.json`.
+Next: guarded publication and exact-head CI/build/replay/review before merge.
+The other 104 D cells and later masterplan phases are not certified by this unit.
+PR310 remains paused; no live operations or database/schema/dependency changes.
+
+---
+
+## Historical entries below — not current active-state instructions
+
 # Session log
 
 Historical log preserved byte-for-byte: `archive/20260916-main-de098106/session-log.md`.
