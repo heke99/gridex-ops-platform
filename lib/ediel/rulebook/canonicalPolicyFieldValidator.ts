@@ -1,3 +1,6 @@
+import { prodatEndUserObjectScopes } from '@/lib/ediel/rulebook/prodatEndUserPolicy'
+import { resolveProdatDependentCondition } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
+import { isSourceBoundEndUserField, isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
 import { prodatSourceSubtypeRule } from '@/lib/ediel/prodat/prodatSubtypeRequirement'
 import { validateProdatSubtypePolicy } from '@/lib/ediel/rulebook/prodatSubtypePolicy'
 import { prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
@@ -11,7 +14,6 @@ import {
   type RulebookFieldRule,
 } from '@/lib/ediel/rulebook/fieldMatrix'
 import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
-import { isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
 
 function asRulebookFieldRule(value: unknown): RulebookFieldRule {
   return value as RulebookFieldRule
@@ -31,6 +33,8 @@ export function validateCanonicalPolicyFields(input: {
   una?: EdifactServiceStringAdvice
 }): EdielRulebookIssue[] {
   const rules = input.policy.fieldRules.map(asRulebookFieldRule).flatMap((rule): RulebookFieldRule[] => {
+    // The new UD parent is selected per wire object below, never from a root snapshot.
+    if (['Z06', 'Z09'].includes(input.policy.code) && (rule.fieldNumber === '229' || isSourceBoundEndUserField(input.policy.code, rule.fieldNumber ?? ''))) return [rule]
     if (input.policy.family !== 'PRODAT' || !isProdatFieldInInapplicableParent({
       messageCode: input.policy.code, subtype: input.policy.subtype, fieldNumber: rule.fieldNumber,
     })) return [rule]
@@ -49,14 +53,17 @@ export function validateCanonicalPolicyFields(input: {
   }
 
   const baseRules = input.policy.family === 'PRODAT'
-    ? rules.filter(rule => !prodatSourceSubtypeRule(input.policy.code, rule.fieldNumber ?? '')) : rules
+    ? rules.filter(rule => isSourceBoundEndUserField(input.policy.code, rule.fieldNumber ?? '')
+      ? input.policy.direction === 'inbound'
+      : !prodatSourceSubtypeRule(input.policy.code, rule.fieldNumber ?? '')) : rules
   const issues = input.scope === 'dependent_only'
     ? input.policy.family === 'PRODAT'
       ? validateFieldMatrixPayload(matrixInput, baseRules.filter(rule => prodatRegisterFieldScope(rule.fieldNumber ?? '') === 'local'))
       : []
     : validateFieldMatrixPayload(matrixInput, baseRules)
   if (input.policy.family !== 'PRODAT') return issues
-  issues.push(...validateProdatSubtypePolicy(matrixInput, rules))
+  issues.push(...validateProdatSubtypePolicy(matrixInput, input.policy.direction === 'inbound'
+    ? rules.filter(rule => !isSourceBoundEndUserField(input.policy.code, rule.fieldNumber ?? '')) : rules))
   const register = validateProdatRegisterPolicy({code:input.policy.code, rawSegments:input.rawSegments ?? [], una:input.una, facts:input.policy.prodatDependentFacts, rules})
   issues.push(...register.issues)
 
@@ -66,8 +73,20 @@ export function validateCanonicalPolicyFields(input: {
 
   for (const rule of rules.filter((candidate) => candidate.requirement === 'dependent')) {
     const fieldNumber = String(rule.fieldNumber ?? '').trim()
-    if (register.handledFields.has(fieldNumber) || prodatSourceSubtypeRule(input.policy.code, fieldNumber)) continue
-    const condition = dependentByField.get(fieldNumber)
+    if (register.handledFields.has(fieldNumber) || prodatSourceSubtypeRule(input.policy.code, fieldNumber)
+      || isSourceBoundEndUserField(input.policy.code, fieldNumber)) continue
+    let condition = dependentByField.get(fieldNumber)
+    if (fieldNumber === '229' && ['Z06', 'Z09'].includes(input.policy.code) && input.policy.direction === 'outbound') {
+      const scopes = prodatEndUserObjectScopes(matrixInput)
+      if (scopes.length && scopes.every(scope => scope.requirement === 'forbidden')) continue
+      // Preserve the existing one-object explicit availability path, but do
+      // not let a stale subtype or a root flag decide multiple objects' address
+      // facts. Full field229 evidence qualification is a separate work item.
+      condition = resolveProdatDependentCondition({messageCode:input.policy.code,fieldNumber:'229',facts:{
+        canonicalSubtype:'E', endUserAddressAvailable:scopes.length === 1 && scopes[0].requirement === 'required'
+          ? input.policy.prodatDependentFacts?.endUserAddressAvailable : undefined,
+      }}) ?? undefined
+    }
     if (!condition) {
       issues.push({
         severity: 'error',

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { ud } from './fixtures/prodat-ud'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { validateEdielMessageRowWithRulebook, validateRulebookMessage, validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
 import { assertRulebookAllowsSend } from '@/lib/ediel/rulebook/sendGuards'
@@ -13,13 +14,13 @@ import { alphabets, characteristic, line, raw, type Parts } from './fixtures/pro
 // (segmentSchema.ts PRODAT max=1). First-object validation must not certify a
 // later message. P26.A r3 §2.2 p17 separately requires216 in the later Z09E.
 const scopeCode = 'PRODAT_DEPENDENT_MESSAGE_SCOPE_UNDETERMINED'
-function single(alphabet: readonly string[], body: readonly Parts[] = [line('1', 'A'), ...characteristic('Z13', 'E34')]): string {
+function single(alphabet: readonly string[], body: readonly Parts[] = [line('1', 'A'), ...characteristic('Z13', 'E34'), ud()]): string {
   return raw(body, 'Z06', alphabet)
 }
 function pair(alphabet: readonly string[], firstFamily = 'PRODAT', secondCode = 'Z09'): string {
   const [, element, , terminator] = alphabet
   const first = tokenizeEdifact(single(alphabet))
-  const second = tokenizeEdifact(raw([line('1', 'B'), ...characteristic('Z13', 'E34')], secondCode, alphabet))
+  const second = tokenizeEdifact(raw([line('1', 'B'), ...characteristic('Z13', 'E34'), ud()], secondCode, alphabet))
   const start = second.segments.findIndex(s => s.tag === 'UNH')
   const end = second.segments.findIndex(s => s.tag === 'UNT')
   const messages = [
@@ -83,7 +84,7 @@ describe('PR330 rereview: never certify an unvalidated later PRODAT message', ()
     })
     it(`${index}: released UNH-looking text is data, not a second message`, () => {
       const [,element,,terminator] = alphabet
-      const r = row(single(alphabet,[line('1',`A${terminator}UNH${element}M2${element}PRODAT`),...characteristic('Z13','E34')]))
+      const r = row(single(alphabet,[line('1',`A${terminator}UNH${element}M2${element}PRODAT`),...characteristic('Z13','E34'),ud()]))
       expect(tokenizeEdifact(r.raw_payload).segments.filter(s=>s.tag === 'UNH')).toHaveLength(1)
       expect(hasScope(validateEdielMessageRowWithRulebook(r,'send').issues)).toBe(false)
       expect(()=>assertRulebookAllowsSend(r)).not.toThrow()

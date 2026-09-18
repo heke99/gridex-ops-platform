@@ -1,3 +1,4 @@
+import { ud } from './fixtures/prodat-ud'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { resolveProdatDependentCondition } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
@@ -205,7 +206,7 @@ for (const environment of ['test','production'] as const) for (const alphabet of
       expect(() => assertEdielSendLock(message)).toThrow(/Z06:242/)
     })
     for (const code of ['E64','E32','E34']) it(`bounded positive ${code}`, () => {
-      const message = row([line('1','A'),...reason(code),...(code === 'E34' ? [] : product())],environment,alphabet)
+      const message = row([line('1','A'),...reason(code),...(code === 'E34' ? [ud()] : product())],environment,alphabet)
       expect(validateEdielMessageRowWithRulebook(message,'send').issues.filter(issue => issue.scope === 'prodat_dependent')).toEqual([])
       expect(blockers(preflightEdielMessageRow(message,'send').issues)).toEqual([])
       expect(() => assertRulebookAllowsSend(message)).not.toThrow()

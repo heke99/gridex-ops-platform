@@ -6,6 +6,7 @@ on:
       - 'lib/inbound-mail/**'
       - '__tests__/ediel-*.test.ts'
       - '__tests__/fixtures/prodat-register.ts'
+      - '__tests__/fixtures/prodat-ud.ts'
       - 'docs/ediel/masterplan-v2/**'
       - 'quality/audits/ediel-masterplan-v2/**'
       - 'scripts/check-ediel-masterplan-v2.cjs'

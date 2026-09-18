@@ -1,12 +1,25 @@
-## Review-repair checkpoint — 2026-09-18
+# Completed work — acceptance boundary
 
-PR334 predecessor17666970 passed ordinary CI but was not accepted: independent static review5734941292 found DDQ-only market classification. Local repaired code tree9741ef3dec4d083b24695629781d5d724ffafb24 recognizes both EL references while retaining the narrower Z06-DDQ process contract. New28-case baseline12fail/16pass becomes28pass; targeted205, fullapplication2791/240files and retainedsource913pass. Three types, lint0errors (99source+1generated-coverage warning), unchanged coverage/budgets and quality pass. See f3-d-z06-product-review-20260918 audit for exact evidence.
+Previously accepted on main: PR330 six numeric cells,331 Z04:319,334 Z06:242.
+In this execution only LOCAL implementation/qualification is complete: source
+UD parent and ten children, actual row/preflight/send/builder tests, fixed
+postcode/city retention, object-subtype omission and decoded-width guards.
+This section is not a new GitHub acceptance or masterplan completion.
 
-Status IMPLEMENTED_NOT_VERIFIED: publish native follow-up on17666970, repeat four ordinary exact-head workflows and substantive independent review, then guarded merge. Sevenaccepted+onecandidate+102other numericD and10parent occurrences remain. PR310 paused; issue332 full-main70/73 open/unwaived; no live operations. This newer checkpoint supersedes pre-review candidate totals below without rewriting historical audits. Live GitHub receipts have precedence.
+Base main `dcd0e5fa0f6e8949d614bd09b941b22d70acdd1f` / tree `8764838fa530791cfb82403f5c97a0c44f43e675` after accepted330/331/334.
+UD candidate tested code tree `fd360cb45d5976b818f0e36f636de6080faa6357`. Local application3093/3093,
+302new (subset), source919/919 (913retained+6new), all3types, lint0errors/99warnings,
+source integrity, RBAC/quality/budgets and unchanged coverage ratchet passed.
+No remote candidate commit/PR/CI/independent review/merge. GitHub tool discovery
+is read-only; local Git DNS fails. This is not a repository-permission diagnosis.
 
-# Completed work
+Eight accepted numeric D cells +ten candidates +92other=110. Two UD parent
+occurrences are candidates, eight others remain. Do not count eighteen accepted
+until ordinary exact-head CI, substantive independent review and guarded merge.
+Full field229 evidence, F3–F7/masterplan/liveTGT/release are incomplete. PR310 stays
+paused/excluded; issue332 historical70/73 stays open/unwaived. No SQL/grants/types,
+threshold/dependency/normative changes, liveDB/storage/market sends or deployment.
 
-PR330 accepted six numeric D cells; reviewed head831fa1fb, mergee4df8b58, four ordinary workflows passed and independent review5731278438.
-PR331 accepted Z04:319; reviewed head3e0397d1, merge7ff0d6b0, four ordinary workflows passed and independent final-head static review5732212033. Neither accepts the separate full-main release certificate.
-
-PC-242-Z06 is one locally qualified candidate, NOT yet accepted at this snapshot. See archive/2026-09-18-pr331-final-merged/completed-work.md for byte-preserved earlier history and links to preceding archives.
+Evidence: `quality/audits/ediel-masterplan-v2/f3-d-ud-20260919.md` and `.json`.
+Prior base memory: `archive/2026-09-19-pr334-final-merged/README.md` (byte-identical).
+The archive workbench root is synthetic and MUST NOT be published as repo ancestry.

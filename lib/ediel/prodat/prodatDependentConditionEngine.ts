@@ -237,8 +237,9 @@ export function evaluateProdatDependentConditions(input: {
   return PRODAT_26A_DEPENDENT_CONDITION_REGISTRY
     .filter((entry) => entry.messageCode === messageCode)
     .map((entry) => {
-      const requirement = resolveProdatSourceSubtypeRequirement({messageCode, fieldNumber: entry.fieldNumber, subtype: facts.canonicalSubtype, market: facts.market})
-      const sourceRule = prodatSourceSubtypeRule(messageCode, entry.fieldNumber)
+      const sourceField = entry.fieldNumber === 'END_USER_GROUP' && ['Z06', 'Z09'].includes(messageCode) ? '227' : entry.fieldNumber
+      const requirement = resolveProdatSourceSubtypeRequirement({messageCode, fieldNumber: sourceField, subtype: facts.canonicalSubtype, market: facts.market})
+      const sourceRule = prodatSourceSubtypeRule(messageCode, sourceField)
       const value = requirement !== null
         ? requirement === 'undetermined' ? null : requirement === 'required'
         : isProdatFieldInInapplicableParent({

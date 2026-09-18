@@ -1,10 +1,14 @@
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { prodatRegisterTokens } from '@/lib/ediel/prodat/prodatRegisterFields'
+import { parseUna } from '@/lib/ediel/core/una'
+import { prodatEndUserWireSubtype, validateProdatEndUserPolicy } from '@/lib/ediel/rulebook/prodatEndUserPolicy'
 import { renderProdatRegisterObject } from '@/lib/ediel/prodat/render/registers'
 import { prodatObjectIdentityAgency, type ProdatMeterRegisterInput } from '@/lib/ediel/prodat/prodatRegisterInput'
 import type { ProdatDependentConditionFacts } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import { buildProdatDateSegments, resolveProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
 import { isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
 import { prodatPartySegment, prodatCustomerNadSegment } from '@/lib/ediel/prodat/render/segments'
-import { PRODAT_26A_FIELD_MATRIX, PRODAT_26A_MESSAGE_CODES } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+import { canonicalProdat26AFieldRules, PRODAT_26A_FIELD_MATRIX, PRODAT_26A_MESSAGE_CODES } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { renderProdatDocumentHeader } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { serializeEdifact, escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 import { generateEdielInterchangeReference } from '@/lib/ediel/core/referenceGenerator'
@@ -28,7 +32,12 @@ export type BuildProdatMessageInput = {
   registers?: readonly ProdatMeterRegisterInput[]
   objects?: readonly BuildProdatObjectInput[]
   dependentConditionFacts?: ProdatDependentConditionFacts
-  customer?: { id?: string | null; name?: string | null; identity?: string | null; identityQualifier?: string | null; idAgency?: '89' | '260'; country?: string | null } | null
+  customer?: {
+    id?: string | null; name?: string | null; identity?: string | null
+    identityQualifier?: string | null; idAgency?: '89' | '260'; country?: string | null
+    nameLines?: readonly string[]; address?: string | null; addressLines?: readonly string[]
+    city?: string | null; postalCode?: string | null
+  } | null
   gridOwner?: { edielId?: string | null; name?: string | null } | null
   brp?: { edielId?: string | null } | null
   dates?: Record<string, string | null | undefined>
@@ -97,7 +106,7 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
   const dates = buildProdatDateSegments(businessCode, input.transactionSubtype, resolveProdatDateInputs(businessCode, input.transactionSubtype, input.dates ?? {}))
   const codeIndex = PRODAT_26A_MESSAGE_CODES.findIndex(code => code === businessCode)
   const endUserAllowed = codeIndex >= 0 && PRODAT_26A_FIELD_MATRIX.find(row => row.fieldNumber === 'END_USER_GROUP')?.requirements[codeIndex] !== '-'
-    && !isProdatFieldInInapplicableParent({ messageCode: businessCode, subtype: input.transactionSubtype, fieldNumber: 'END_USER_GROUP' })
+    && (['Z06', 'Z09'].includes(businessCode) || !isProdatFieldInInapplicableParent({ messageCode: businessCode, subtype: input.transactionSubtype, fieldNumber: 'END_USER_GROUP' }))
 
   const objects = input.objects ?? [input]
   if (!objects.length) throw new Error('prodat_register_objects_empty')
@@ -110,14 +119,25 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
     if (id && identities.has(identity)) throw new Error('prodat_register_object_repeated_use_one_inventory')
     if (id) identities.add(identity)
     const customerId = object.customer?.identity ?? object.customer?.id
+    const attributes = codedAttributeSegments(object.codedAttributes, businessCode)
+    const objectSubtype = ['Z06', 'Z09'].includes(businessCode)
+      ? prodatEndUserWireSubtype(businessCode, prodatRegisterTokens(attributes), parseUna(null)) : input.transactionSubtype
+    const objectEndUserAllowed = endUserAllowed && !isProdatFieldInInapplicableParent({
+      messageCode:businessCode,subtype:objectSubtype,fieldNumber:'END_USER_GROUP',
+    })
     const objectDates = buildProdatDateSegments(businessCode,input.transactionSubtype,resolveProdatDateInputs(businessCode,input.transactionSubtype,object.dates ?? {}))
     const rows = [
       id ? `LIN+1++${escapeEdifactValue(id)}:::${agency}` : 'LIN+1',
       ...objectDates.line,
-      ...codedAttributeSegments(object.codedAttributes,businessCode),
+      ...attributes,
       object.meteringPoint?.gridArea ? `RFF+Z05:${escapeEdifactValue(object.meteringPoint.gridArea)}` : null,
       ...referenceSegments(object.references),
-      endUserAllowed && customerId ? prodatCustomerNadSegment({ customerId, customerIdCodeListQualifier: object.customer?.identityQualifier, idAgency: object.customer?.idAgency, customerName: object.customer?.name ?? '', country: object.customer?.country }) : null,
+      objectEndUserAllowed && customerId ? prodatCustomerNadSegment({
+        customerId,customerIdCodeListQualifier:object.customer?.identityQualifier,idAgency:object.customer?.idAgency,
+        customerName:object.customer?.name ?? '',nameLines:object.customer?.nameLines,country:object.customer?.country,
+        address:object.customer?.address,addressLines:object.customer?.addressLines,
+        city:object.customer?.city,postalCode:object.customer?.postalCode,
+      }) : null,
     ].filter((segment): segment is string => segment !== null)
     const expanded = renderProdatRegisterObject({code:businessCode,segments:rows,registers:object.registers,firstLineSequence:nextLineSequence})
     nextLineSequence = expanded.nextLineSequence
@@ -144,6 +164,15 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
     testIndicator: input.environment === 'production' ? 0 : 1,
   })
   const validation = validateProdat(rawEdifact,{registerFacts:input.dependentConditionFacts,requireRegisterConditions:true})
+  // A generic builder must not label an E message valid after discarding its
+  // required customer fields. Keep this bounded UD check out of inbound parsing.
+  if (['Z06', 'Z09'].includes(businessCode)) {
+    const wire = tokenizeEdifact(rawEdifact)
+    const failures = validateProdatEndUserPolicy({family:'PRODAT',code:businessCode,
+      rawSegments:wire.segments.map(segment => segment.raw),una:wire.una}, canonicalProdat26AFieldRules(businessCode))
+    validation.issues.push(...failures.map(failure => ({severity:'error' as const,code:failure.code,message:failure.description})))
+    if (failures.length) validation.ok = false
+  }
 
   if (!validation.ok) {
     throw new Error(`PRODAT ${businessCode} kunde inte valideras: ${validation.issues.map((issue) => issue.message).join(' | ')}`)

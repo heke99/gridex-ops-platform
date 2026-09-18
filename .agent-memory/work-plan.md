@@ -1,7 +1,25 @@
-# Work plan
+# Active work plan
 
-1. PC-242-Z06: implement EL-qualified source rule, scoped product pairs and actual-wire market/reason boundaries; local tests completed, ordinary CI/review/merge pending.
-2. After acceptance, coherent UD/parent unit for Z06/Z09 E fields and parent/address applicability, then Z14 and remaining register/date/context rules from issue333.
-3. Each unit requires source-backed negative/positive tests, all ordinary exact-head workflows, substantive independent review and expected-head merge. Broader release/live evidence remains separate.
+Only active item: finish publication/CI/review/merge of the saved ten-cell UD
+candidate from dcd0e5fa. Do not start another implementation branch until this
+unit is accepted. Remaining92 numeric cells/other parents need their own source
+qualification; field229 is not automatically done. Full plan and release are
+incomplete; keep310 paused and332 open.
 
-Seven cells previously accepted; one candidate;102others/10parent occurrences unaccepted. PR310 stays paused. Issue332 full-main blockers are retained. This plan is not full-masterplan completion.
+Base main `dcd0e5fa0f6e8949d614bd09b941b22d70acdd1f` / tree `8764838fa530791cfb82403f5c97a0c44f43e675` after accepted330/331/334.
+UD candidate tested code tree `fd360cb45d5976b818f0e36f636de6080faa6357`. Local application3093/3093,
+302new (subset), source919/919 (913retained+6new), all3types, lint0errors/99warnings,
+source integrity, RBAC/quality/budgets and unchanged coverage ratchet passed.
+No remote candidate commit/PR/CI/independent review/merge. GitHub tool discovery
+is read-only; local Git DNS fails. This is not a repository-permission diagnosis.
+
+Eight accepted numeric D cells +ten candidates +92other=110. Two UD parent
+occurrences are candidates, eight others remain. Do not count eighteen accepted
+until ordinary exact-head CI, substantive independent review and guarded merge.
+Full field229 evidence, F3–F7/masterplan/liveTGT/release are incomplete. PR310 stays
+paused/excluded; issue332 historical70/73 stays open/unwaived. No SQL/grants/types,
+threshold/dependency/normative changes, liveDB/storage/market sends or deployment.
+
+Evidence: `quality/audits/ediel-masterplan-v2/f3-d-ud-20260919.md` and `.json`.
+Prior base memory: `archive/2026-09-19-pr334-final-merged/README.md` (byte-identical).
+The archive workbench root is synthetic and MUST NOT be published as repo ancestry.
