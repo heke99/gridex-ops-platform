@@ -1,0 +1,67 @@
+name: PR328 review source transport (temporary)
+on:
+  push:
+    branches: [codex/pr328-review-transfer-20260918]
+    paths: [.github/workflows/pr328-review-transfer-temporary.yml]
+permissions:
+  contents: write
+jobs:
+  transport:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: transfer
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 06493a26d4cb320ed31f38de8e308bf87b50bb1c
+          path: candidate
+      - name: Verify exact patch, scope and target tree (transport only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat transfer/.source-transfer/pr328-review.patch.xz.0{0,1,2,3} > "$RUNNER_TEMP/review.patch.xz"
+          echo "b897534390d71aef00db404ca0060c72d20f72c82b82b0e8792dc2ab9f3eb03e  $RUNNER_TEMP/review.patch.xz" | sha256sum -c -
+          xz -dc "$RUNNER_TEMP/review.patch.xz" > "$RUNNER_TEMP/review.patch"
+          echo "047ff4d92861acce1072d91fdbd459564d38f5340a5f407d0b66b43fb4e5040d  $RUNNER_TEMP/review.patch" | sha256sum -c -
+          cd candidate
+          test "$(git rev-parse HEAD)" = 06493a26d4cb320ed31f38de8e308bf87b50bb1c
+          test "$(git rev-parse HEAD^{tree})" = f0a60721506c92171e2a15df9e5d8ac8a56e702d
+          git apply --check "$RUNNER_TEMP/review.patch"
+          git apply --index "$RUNNER_TEMP/review.patch"
+          git diff --cached --check
+          python3 - <<'PY'
+          import subprocess
+          paths = subprocess.check_output(['git','diff','--cached','--name-only'], text=True).splitlines()
+          assert len(paths) == 37, paths
+          for path in paths:
+              assert path.startswith(('.agent-memory/','__tests__/ediel-prodat-register','app/admin/ediel/','lib/ediel/','quality/audits/ediel-masterplan-v2/f3-register-')), path
+          assert not any(path.startswith(('.github/', '.source-transfer/', 'supabase/', 'docs/ediel/masterplan-v2/')) for path in paths)
+          PY
+          test "$(git write-tree)" = c83c6b489bda82d12a34a07c8f3ad8cc7421ab10
+      - name: Save source-only candidate (not acceptance or merge)
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'heke99'
+          git config user.email '129280077+heke99@users.noreply.github.com'
+          git commit -m 'fix(ediel): PR328 review findings and actual-path coverage'
+          test "$(git rev-parse HEAD^{tree})" = c83c6b489bda82d12a34a07c8f3ad8cc7421ab10
+          git push origin HEAD:refs/heads/codex/pr328-review-candidate-20260918
+          mkdir -p ../receipt
+          git rev-parse HEAD > ../receipt/candidate-commit.txt
+          git rev-parse HEAD^{tree} > ../receipt/candidate-tree.txt
+          git diff --name-only 06493a26d4cb320ed31f38de8e308bf87b50bb1c HEAD > ../receipt/changed-files.txt
+          git archive HEAD | gzip -n > ../receipt/source.tar.gz
+          printf '%s\n' 'scope=source transport only; ordinary CI and substantive rereview required before merge' > ../receipt/provenance.txt
+          cd ../receipt
+          sha256sum source.tar.gz > SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pr328-review-source-transport-receipt
+          path: receipt/
+          if-no-files-found: error
+          retention-days: 14
