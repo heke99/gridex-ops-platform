@@ -1,0 +1,52 @@
+name: PR328 recovery source transfer (temporary)
+on:
+  push:
+    branches: [codex/pr328-recovery-transfer-20260918]
+permissions:
+  contents: write
+jobs:
+  transfer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: transfer
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          path: candidate
+          ref: 2c11f276cdf30e80d234752d96c9914e7b30af5d
+      - name: Verify recovered bytes and exact resulting tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '70e504d6ddc831b006f3bed8e16ca6606b673189cb7a76d8b16edcea8b3b6557  transfer/.recovery-transfer/checkpoint-a.patch.xz' | sha256sum -c -
+          xz -dc transfer/.recovery-transfer/checkpoint-a.patch.xz > "$RUNNER_TEMP/checkpoint.patch"
+          echo "2df11c7251f06f68b1ec32ffb846536d5f04466163e36b9b3a84f22308eeeb77  $RUNNER_TEMP/checkpoint.patch" | sha256sum -c -
+          cd candidate
+          test "$(git rev-parse HEAD)" = 2c11f276cdf30e80d234752d96c9914e7b30af5d
+          git apply --check --unidiff-zero "$RUNNER_TEMP/checkpoint.patch"
+          git apply --index --unidiff-zero "$RUNNER_TEMP/checkpoint.patch"
+          git diff --cached --check
+          python3 - <<'PY'
+          import subprocess
+          paths = subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines()
+          assert len(paths)==13, paths
+          assert all(p.startswith(('lib/ediel/testing/','.agent-memory/','quality/audits/ediel-masterplan-v2/')) or p=='__tests__/ediel-prodat-register-tgt.test.ts' for p in paths), paths
+          PY
+          test "$(git write-tree)" = 28f09089d2ad06dddb37759642aea13a4829b4de
+          git config user.name 'heke99'
+          git config user.email '129280077+heke99@users.noreply.github.com'
+          git commit -m 'fix(ediel): recover TGT register source grouping and comparison checkpoint'
+          git push origin HEAD:refs/heads/codex/pr328-recovered-tgt-20260918
+          mkdir -p ../receipt
+          git rev-parse HEAD > ../receipt/commit.txt
+          git rev-parse HEAD^{tree} > ../receipt/tree.txt
+          git archive HEAD | gzip -n > ../receipt/source.tar.gz
+          (cd ../receipt && sha256sum source.tar.gz > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr328-recovery-source-receipt
+          path: receipt/
+          retention-days: 14
