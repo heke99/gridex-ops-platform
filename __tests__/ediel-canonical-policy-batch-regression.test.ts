@@ -94,7 +94,8 @@ describe('canonical Ediel policy batch regression', () => {
   })
 
   it('evaluates every official D condition without undetermined when complete explicit facts are supplied', () => {
-    // Z06/Z09 accept F; V belongs to sharing messages, not their complete facts.
+    // Z04 accepts D and Z06/Z09 accept F. V belongs to sharing messages.
+    // This explicit-facts catalog test is not validation of all110 wire D cells.
     // Retain the same full-registry coverage and no-undetermined assertions.
     const byCell = Object.fromEntries(PRODAT_26A_DEPENDENT_CONDITION_REGISTRY.map((entry) => [entry.id, true]))
 
@@ -102,7 +103,7 @@ describe('canonical Ediel policy batch regression', () => {
       const results = evaluateProdatDependentConditions({
         messageCode,
         facts: {
-          canonicalSubtype: ['Z06', 'Z09'].includes(messageCode) ? 'F' : 'V',
+          canonicalSubtype: messageCode === 'Z04' ? 'D' : ['Z06', 'Z09'].includes(messageCode) ? 'F' : 'V',
           businessContext: 'death',
           market: 'gas',
           customerKind: 'private',
@@ -120,13 +121,22 @@ describe('canonical Ediel policy batch regression', () => {
       evaluateProdatDependentConditions({
         messageCode,
         facts: {
-          canonicalSubtype: ['Z06', 'Z09'].includes(messageCode) ? 'F' : 'V', businessContext: 'death', market: 'gas', customerKind: 'private',
+          canonicalSubtype: messageCode === 'Z04' ? 'D' : ['Z06', 'Z09'].includes(messageCode) ? 'F' : 'V', businessContext: 'death', market: 'gas', customerKind: 'private',
           meterReadingsSentInUtilts: true, multipleMeterRegisters: true, endUserAddressAvailable: true,
           invoiceeAddressDiffersFromEndUser: true, byCell,
         },
       }).map((entry) => entry.id),
     ).sort()
     expect(evaluatedIds).toEqual(PRODAT_26A_DEPENDENT_CONDITION_REGISTRY.map((entry) => entry.id).sort())
+  })
+
+  it('keeps Z04:319 undetermined for a wrong-code subtype despite complete byCell flags', () => {
+    const byCell = Object.fromEntries(PRODAT_26A_DEPENDENT_CONDITION_REGISTRY.map((entry) => [entry.id, true]))
+    const results = evaluateProdatDependentConditions({messageCode:'Z04',facts:{canonicalSubtype:'V',byCell}})
+    const linkedConsumption = results.find((entry) => entry.fieldNumber === '319')
+    expect(linkedConsumption).toBeDefined()
+    expect(linkedConsumption?.requirement).toBe('undetermined')
+    expect(linkedConsumption?.status).toBe('undetermined')
   })
 
   it('preserves the Z01 ACK exception while allowing negative application rejection', () => {

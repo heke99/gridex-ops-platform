@@ -1,71 +1,49 @@
 {
   "project": "gridex-ops-platform",
   "updated_at": "2026-09-18",
-  "status": "IN_PROGRESS",
-  "branch": "codex/ediel-v2-dependent-conditions-20260918",
-  "base_head_sha": "b916213e83871e9f4d15b9fd52a2b8c19394c9ca",
-  "base_tree": "54f9cf4fe56e42768ef132a23f6a79baea0632d5",
-  "active_item": "PR330 second-message scope review correction and exact-head merge",
-  "next_action": "Read live PR330/head/CI/review. Publish exact message-scope correction if pending; ordinary same-SHA CI and substantive rereview before guarded merge; then original D inventory.",
-  "main_merged": false,
-  "pull_request": 330,
-  "published_implementation_head": "b3afa40a24713c726aa89ad9342cb577649aa15d",
-  "local_candidate_only": false,
+  "status": "IMPLEMENTED_NOT_VERIFIED",
+  "branch": "codex/ediel-v2-dependent-z04-reference-20260918",
+  "base_head_sha": "e4df8b58e0277bf57f3f755cd9ec8c5c4cac9527",
+  "base_tree": "b10d70fad26e40a241d8eb679870076a851ae6d6",
+  "active_item": "PR331 Z04:319 fixture correction \u2014 fresh local qualification; new-head CI/review required",
+  "next_action": "Read live GitHub; publish candidate, exact-head ordinary CI and independent review before guarded merge; then remaining D inventory.",
   "prior_completed": {
-    "status": "VERIFIED_MERGED",
-    "pull_request": 328,
-    "repository": "heke99/gridex-ops-platform",
-    "merge_sha": "b916213e83871e9f4d15b9fd52a2b8c19394c9ca",
-    "merged_at": "2026-09-18T10:25:48Z",
-    "reviewed_head": "e191c703bd8e2c9800e9c33d91923a6ad319ec00",
-    "tree": "54f9cf4fe56e42768ef132a23f6a79baea0632d5",
-    "observed_via": [
-      "GitHub.get_pr_info",
-      "GitHub.get_users_recent_prs_in_repo",
-      "GitHub.compare_commits",
-      "GitHub.fetch git commit"
-    ],
-    "merge_record_url": "https://api.github.com/repos/heke99/gridex-ops-platform/git/commits/b916213e83871e9f4d15b9fd52a2b8c19394c9ca",
-    "merge_record_reports": {
-      "exact_head_ci_success": [
-        35331773883,
-        35331773849,
-        35331773846,
-        35331773847
-      ],
-      "substantive_review_comment": 5728342783,
-      "nullable_cas_review_comment": 4045678379,
-      "formal_approval_disabled": true,
-      "protection_bypassed": false
-    },
-    "new_unit_branch_observed": "codex/ediel-v2-dependent-conditions-20260918",
-    "new_unit_remote_ahead_by": 0,
-    "scope": "Existing accepted register delivery; not acceptance of this local D-condition candidate or all F3/F7.",
-    "pr310": {
-      "state": "PAUSED",
-      "head": "e961135199f292b8210884f07de3b616a670161a"
-    }
+    "pr": 330,
+    "merge_sha": "e4df8b58e0277bf57f3f755cd9ec8c5c4cac9527",
+    "head_sha": "831fa1fb27e91c47ff7374e5a0a6513fdb27a897",
+    "review": 5731278438,
+    "successful_workflows": [
+      35354989775,
+      35354989756,
+      35354989687,
+      35354989676
+    ]
   },
   "source_state": {
-    "snapshot_boundary": "second-message correction prepublication; query live PR",
-    "numeric_cells_in_this_unit": 6,
-    "remaining_cells_not_recertified": 104,
+    "snapshot_boundary": "prepublication fixture-corrected follow-up; live GitHub higher authority",
+    "numeric_D_total": 110,
+    "accepted_in_predecessor": 6,
+    "candidate_cells": [
+      "Z04:319"
+    ],
+    "other_not_reviewed": 103,
+    "parent_group_occurrences": 10,
     "full_masterplan": "NOT_COMPLETE",
-    "previous_head_ci": "FOUR_ORDINARY_WORKFLOWS_SUCCESS_b3afa40a_ONLY",
-    "independent_review": "5731012182_LOCALLY_REPAIRED_REREVIEW_REQUIRED",
-    "full_vitest_passed": 2502,
-    "retained_source_passed": 851,
-    "review_cases": 62,
-    "source_drift": [],
+    "source_tests": 62,
+    "retained_source_tests": 851,
+    "new_vitest_authored_not_run_locally": 0,
     "new_head_ci": "REQUIRED",
-    "new_head_build_and_replay": "REQUIRED",
-    "automatic_deployment": "Existing Vercel Git integration observed on mainb916; future main merge may auto-deploy.",
-    "source_sha256": "b846751d8ada16437259e406b0c9645a1220b271356e69f231d7f65272d3a9c2"
+    "independent_review": "REQUIRED",
+    "application_tests_pass": 2594,
+    "z04_vitest_subset_pass": 91,
+    "local_application_typecheck_first_exit": 137,
+    "local_application_typecheck_serial_retry_exit": 0
   },
   "deferred_work": {
+    "pr": 310,
     "state": "PAUSED",
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
-  "plan": ".agent-memory/work-plan.md",
-  "evidence": "quality/audits/ediel-masterplan-v2/f3-d-message-scope-review-20260918.json"
+  "evidence": "quality/audits/ediel-masterplan-v2/f3-d-z04-fixture-qualification-20260918.json",
+  "published_parent_sha": "acbab21f2b130b827d5e7ed258cf97aa730eeb33"
 }
