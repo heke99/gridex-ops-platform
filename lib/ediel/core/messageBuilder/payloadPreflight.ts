@@ -706,9 +706,13 @@ export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' 
     messageStandard: message.message_standard,
     mode,
   })
-  if (message.message_family !== 'PRODAT' || !message.raw_payload) return result
+  if (!message.raw_payload || (result.family !== 'PRODAT' && message.message_family !== 'PRODAT')) return result
   try {
     const tokens = tokenizeEdifact(message.raw_payload)
+    // A row label cannot hide a real PRODAT header or turn another family into
+    // PRODAT. Detached fragments retain their explicit row-family fallback.
+    const header = tokens.segments.find(segment => segment.tag === 'UNH')
+    if (header && segmentComposite(header, 2, tokens.una)[0]?.trim().toUpperCase() !== 'PRODAT') return result
     const rawSegments = tokens.segments.map(segment => segment.raw)
     const code = result.code ?? String(message.message_code ?? '')
     if (mode === 'send') {

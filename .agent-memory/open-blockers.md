@@ -1,16 +1,12 @@
-# Open blockers — D-condition continuation
+# Active PR330 review correction
 
-1. Publication is blocked in this session: GitHub has read tools only and no
-   usable CLI write session. The patch is local, not a new remote head or PR.
-2. The new head requires all ordinary CI and independent review before merge.
-   Old PR328 CI and its review are historical acceptance of the base only.
-3. The other 104 original numeric D cells have not been recertified here; the
-   three parent groups, external business facts and other F3 boundaries still
-   need their own evidence. Read the inventory; do not reset accepted overlays.
-4. F4–F7 have not been completed or certified by this unit; actual routing,
-   transport, lifecycle, data and final release evidence remain separately gated.
-5. Full original PDF bytes were unavailable for a fresh rehash; six rules were
-   checked against the supplied printed page images and frozen projection.
+Status: IN_PROGRESS. The sole current work item and exact next action are in
+`current-state.md`; review/qualification detail is in
+`../quality/audits/ediel-masterplan-v2/f3-d-review-remediation-20260918.md`.
 
-PR310 stays paused/excluded. No production mutation, deployment or market send.
-See the qualification audit for actual command exits, not speculative green status.
+Original recovery is complete. Do not reapply the ZIP over later changes.
+Read live PR330/head/CI/review state, publish/qualify the correction if pending,
+merge only after substantive exact-head review and ordinary checks. Then resume
+the remaining original D inventory. PR310 stays paused;104 numeric D cells and
+full masterplan/release remain unverified. Existing main certificate failures
+remain separate; main merges may auto-deploy through the existing Vercel Git link.

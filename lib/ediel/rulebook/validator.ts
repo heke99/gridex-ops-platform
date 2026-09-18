@@ -59,6 +59,19 @@ function parse(input: RulebookValidationInput): ParsedRulebookMessage | null {
     : parseRulebookListPayload(input.rawPayload)
 }
 
+/** A real PRODAT header selects the policy before any row/cached metadata.
+ * Reparse its bytes rather than trusting a caller's parsed code or family. Other
+ * formats and genuinely detached/structured inputs keep their existing path.
+ */
+function sourceBoundProdatInput(input: RulebookValidationInput): RulebookValidationInput {
+  if (!input.rawPayload || !/^(?:UNA|UNB|UNH)/.test(input.rawPayload.trimStart())) return input
+  const tokens = tokenizeEdifact(input.rawPayload)
+  const header = tokens.segments.find(segment => segment.tag === 'UNH')
+  if (segmentComposite(header, 2, tokens.una)[0]?.trim().toUpperCase() !== 'PRODAT') return input
+  const parsed = parseRulebookMessage(input.rawPayload)
+  return { ...input, family: 'PRODAT', code: parsed.code, parsed }
+}
+
 function businessDate(input: RulebookValidationInput, parsed: ParsedRulebookMessage | null): string {
   const explicit = String(input.businessDate ?? '').trim().slice(0, 10)
   if (/^\d{4}-\d{2}-\d{2}$/.test(explicit)) return explicit
@@ -377,6 +390,7 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
 }
 
 export function validateRulebookMessage(input: RulebookValidationInput): RulebookValidationResult {
+  input = sourceBoundProdatInput(input)
   const parsed = parse(input)
   const family = normalize(input.family ?? parsed?.family)
   if (!isActiveCanonicalFamily(family)) return validateLegacyRulebookMessage(input)
@@ -384,6 +398,7 @@ export function validateRulebookMessage(input: RulebookValidationInput): Ruleboo
 }
 
 export async function validateRulebookMessageWithRegistry(input: RulebookValidationInput): Promise<RulebookValidationResult> {
+  input = sourceBoundProdatInput(input)
   const parsed = parse(input)
   const familyValue = normalize(input.family ?? parsed?.family)
   if (!isActiveCanonicalFamily(familyValue)) return validateLegacyRulebookMessageWithRegistry(input)
