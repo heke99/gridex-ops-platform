@@ -1,7 +1,5 @@
-# Work plan
+# Active work plan
 
-1. PC-242-Z06: implement EL-qualified source rule, scoped product pairs and actual-wire market/reason boundaries; local tests completed, ordinary CI/review/merge pending.
-2. After acceptance, coherent UD/parent unit for Z06/Z09 E fields and parent/address applicability, then Z14 and remaining register/date/context rules from issue333.
-3. Each unit requires source-backed negative/positive tests, all ordinary exact-head workflows, substantive independent review and expected-head merge. Broader release/live evidence remains separate.
+One active unit: Z06/Z09 UD, ten numericD cells and two parent occurrences. Source p22/p79, per-object first-register reason, non-bypassable send and builder paths. Local code/tests done; publish, ordinary CI, independent review, repair and guarded merge remain. Then continue source-defined remaining D/parent decomposition; field229 is separate and requires scoped availability evidence. Preserve previous8accepted and all source files/thresholds. No paused310 imports; full-main332 certificate remains a release gate.
 
-Seven cells previously accepted; one candidate;102others/10parent occurrences unaccepted. PR310 stays paused. Issue332 full-main blockers are retained. This plan is not full-masterplan completion.
+Follow-up: first published f2ed530b passed CI but is not accepted. Own source review fixed inbound/outbound UD exclusion with37new tests;447targeted/3238application/913source and3types/unchangedquality pass. New exact-head CI/review and guarded merge required. See f3-d-ud-inbound-review-20260919;229/332/310 boundaries unchanged.

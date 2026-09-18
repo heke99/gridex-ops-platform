@@ -1,28 +1,43 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-18",
+  "updated_at": "2026-09-18T22:53:32Z",
   "status": "IMPLEMENTED_NOT_VERIFIED",
-  "branch": "codex/ediel-v2-dependent-z06-product-20260918",
-  "base_head_sha": "7ff0d6b0aa2082c3942d36d743977ae85cde2a4f",
-  "base_tree": "b0cd2dc6cb1426172316b70c457e3530359d6255",
-  "active_item": "PC-242-Z06 review repair: both EL references, unchanged Z06-DDQ permission; new-head CI/review pending",
-  "next_action": "Publish native follow-up on17666970, repeat ordinary exact-head CI and independent review; guarded merge then UD/parent unit.",
+  "branch": "codex/ediel-v2-dependent-ud-20260919",
+  "base_head_sha": "dcd0e5fa0f6e8949d614bd09b941b22d70acdd1f",
+  "base_tree": "8764838fa530791cfb82403f5c97a0c44f43e675",
+  "active_item": "PR335 UD inbound-direction repair; exact-head CI and independent review required",
+  "next_action": "Publish qualified follow-up with real parent f2ed530b, inspect independent findings, run normal final-head CI and guarded merge.",
   "source_state": {
-    "snapshot_boundary": "review repair prepublication; live GitHub has precedence",
-    "tested_code_tree": "9741ef3dec4d083b24695629781d5d724ffafb24",
-    "numeric_D_total": 110,
-    "accepted_predecessors": 7,
-    "candidate_cells": [
-      "Z06:242"
+    "snapshot_boundary": "prepublication; live GitHub takes precedence",
+    "tested_code_tree": "7ab3397bd6b52854aa17cdc8f2a721851b9fa201",
+    "accepted_predecessor_numeric_D": 8,
+    "candidate_numeric_D": [
+      "Z06:227",
+      "Z06:228",
+      "Z06:231",
+      "Z06:232",
+      "Z06:316",
+      "Z09:227",
+      "Z09:228",
+      "Z09:231",
+      "Z09:232",
+      "Z09:316"
     ],
-    "other_unaccepted": 102,
-    "parent_group_occurrences": 10,
-    "application_tests_pass": 2791,
-    "new_test_subset": 197,
+    "other_numeric_D": 92,
+    "candidate_parent_occurrences": [
+      "UD:Z06",
+      "UD:Z09"
+    ],
+    "other_parent_occurrences": 8,
+    "address_229": "NOT_ACCEPTED",
+    "full_masterplan": "NOT_COMPLETE",
+    "application_tests_pass": 3238,
+    "new_test_subset": 447,
     "retained_source_tests_pass": 913,
     "new_head_CI": "REQUIRED",
     "independent_review": "REQUIRED",
-    "full_masterplan": "NOT_COMPLETE"
+    "published_predecessor": "f2ed530b6c93469ad09aba6d46fa57f093fcb957",
+    "first_head_CI": "ALL_FOUR_PASS_BUT_INBOUND_DEFECT_NOT_ACCEPTED"
   },
   "deferred_work": {
     "pr": 310,
@@ -30,7 +45,5 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "open_release_issue": 332,
-  "evidence": "quality/audits/ediel-masterplan-v2/f3-d-z06-product-review-20260918.json",
-  "last_published_head": "1766697092dbec29f812adba6d590f9d9411513f",
-  "review_finding": 5734941292
+  "evidence": "quality/audits/ediel-masterplan-v2/f3-d-ud-inbound-review-20260919.json"
 }

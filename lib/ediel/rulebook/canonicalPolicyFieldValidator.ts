@@ -1,4 +1,5 @@
-import { prodatSourceSubtypeRule } from '@/lib/ediel/prodat/prodatSubtypeRequirement'
+import { prodatEndUserContexts } from '@/lib/ediel/rulebook/prodatEndUserPolicy'
+import { isSourceBoundProdatEndUserField, prodatSourceSubtypeRule } from '@/lib/ediel/prodat/prodatSubtypeRequirement'
 import { validateProdatSubtypePolicy } from '@/lib/ediel/rulebook/prodatSubtypePolicy'
 import { prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { validateProdatRegisterPolicy } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
@@ -31,6 +32,10 @@ export function validateCanonicalPolicyFields(input: {
   una?: EdifactServiceStringAdvice
 }): EdielRulebookIssue[] {
   const rules = input.policy.fieldRules.map(asRulebookFieldRule).flatMap((rule): RulebookFieldRule[] => {
+    // The new UD unit recomputes parent activation from each actual object.
+    // A stale policy subtype must not forbid an E object's address or parent.
+    if (isSourceBoundProdatEndUserField(input.policy.code, 'END_USER_GROUP')
+      && (isSourceBoundProdatEndUserField(input.policy.code, rule.fieldNumber ?? '') || rule.fieldNumber === '229')) return [rule]
     if (input.policy.family !== 'PRODAT' || !isProdatFieldInInapplicableParent({
       messageCode: input.policy.code, subtype: input.policy.subtype, fieldNumber: rule.fieldNumber,
     })) return [rule]
@@ -56,7 +61,7 @@ export function validateCanonicalPolicyFields(input: {
       : []
     : validateFieldMatrixPayload(matrixInput, baseRules)
   if (input.policy.family !== 'PRODAT') return issues
-  issues.push(...validateProdatSubtypePolicy(matrixInput, rules))
+  issues.push(...validateProdatSubtypePolicy(matrixInput, rules, input.policy.direction))
   const register = validateProdatRegisterPolicy({code:input.policy.code, rawSegments:input.rawSegments ?? [], una:input.una, facts:input.policy.prodatDependentFacts, rules})
   issues.push(...register.issues)
 
@@ -67,6 +72,19 @@ export function validateCanonicalPolicyFields(input: {
   for (const rule of rules.filter((candidate) => candidate.requirement === 'dependent')) {
     const fieldNumber = String(rule.fieldNumber ?? '').trim()
     if (register.handledFields.has(fieldNumber) || prodatSourceSubtypeRule(input.policy.code, fieldNumber)) continue
+    if (fieldNumber === '229' && isSourceBoundProdatEndUserField(input.policy.code, 'END_USER_GROUP')) {
+      // Inactive UD cannot require an address. Active/unknown UD still needs
+      // independently scoped address evidence; neither byCell nor a cached
+      // message-wide address flag is that evidence. Keep this cell unaccepted.
+      for (const context of prodatEndUserContexts(matrixInput).contexts) {
+        if (context.requirement === 'forbidden') continue
+        const outbound = input.policy.direction === 'outbound'
+        issues.push({severity:outbound ? 'error' : 'warning',blocking:outbound,
+          code:'PRODAT_DEPENDENT_CONDITION_UNDETERMINED',title:'PRODAT adressvillkor behöver eget underlag',
+          description:`${context.label}; ${input.policy.code}:229: adressens tillgänglighet kräver eget objektbundet underlag; UD-aktivering eller fältförekomst räcker inte.`,fieldPath:rule.segmentPath})
+      }
+      continue
+    }
     const condition = dependentByField.get(fieldNumber)
     if (!condition) {
       issues.push({

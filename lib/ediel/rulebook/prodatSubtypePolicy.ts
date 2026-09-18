@@ -1,3 +1,4 @@
+import { validateProdatEndUserPolicy } from '@/lib/ediel/rulebook/prodatEndUserPolicy'
 import { prodatProductMarket, validateProdatProductScope } from '@/lib/ediel/rulebook/prodatProductScope'
 import { validateProdatDependentReferenceScope } from '@/lib/ediel/rulebook/prodatDependentReferenceScope'
 import { prodatDateSyntaxIssues } from '@/lib/ediel/prodat/prodatDateFields'
@@ -7,7 +8,7 @@ import { segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUna } from '@/lib/ediel/core/una'
 import { prodatCharacteristicPresent, prodatCharacteristicValues } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { prodatRegisterRuleScopes } from '@/lib/ediel/prodat/prodatRegisterGroups'
-import { prodatSourceSubtypeRule, resolveProdatSourceSubtypeRequirement } from '@/lib/ediel/prodat/prodatSubtypeRequirement'
+import { isSourceBoundProdatEndUserField, prodatSourceSubtypeRule, resolveProdatSourceSubtypeRequirement } from '@/lib/ediel/prodat/prodatSubtypeRequirement'
 import { findProdatSubtypeRule } from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
 import { validateFieldMatrixPayload, type FieldMatrixEvaluationInput, type RulebookFieldRule } from '@/lib/ediel/rulebook/fieldMatrix'
 import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
@@ -16,10 +17,10 @@ import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
  * scope. A root snapshot, another object, or a later register is not authority.
  * The matrix owns field descriptors; bounded source overlays retain domain and scope restrictions.
  */
-export function validateProdatSubtypePolicy(input: FieldMatrixEvaluationInput, rules: readonly RulebookFieldRule[]): EdielRulebookIssue[] {
+export function validateProdatSubtypePolicy(input: FieldMatrixEvaluationInput, rules: readonly RulebookFieldRule[], direction: 'inbound' | 'outbound' = 'outbound'): EdielRulebookIssue[] {
   const code = input.code ?? ''
   const una = input.una ?? parseUna(null)
-  const issues: EdielRulebookIssue[] = [...validateProdatDependentReferenceScope(input, rules), ...validateProdatProductScope(input, rules)]
+  const issues: EdielRulebookIssue[] = [...validateProdatEndUserPolicy(input, rules, direction), ...validateProdatDependentReferenceScope(input, rules), ...validateProdatProductScope(input, rules)]
   // Local scoping must not hide a supplied DTM in the message header. Keep
   // the shared global placement check before narrowing to individual objects.
   for (const failure of prodatDateSyntaxIssues(input.rawSegments ?? [], una)) {
@@ -31,7 +32,7 @@ export function validateProdatSubtypePolicy(input: FieldMatrixEvaluationInput, r
   }
   for (const rule of rules) {
     const sourceRule = prodatSourceSubtypeRule(code, rule.fieldNumber ?? '')
-    if (!sourceRule) continue
+    if (!sourceRule || isSourceBoundProdatEndUserField(code, sourceRule.fieldNumber)) continue
     for (const segments of prodatRegisterRuleScopes(sourceRule.fieldNumber, input.rawSegments ?? [], una, code) ?? []) {
       const reasonSegments = segments.filter(segment => segment.tag === 'CCI' && segmentComposite(segment, 2, una)[0] === 'Z13')
       const reasons = prodatCharacteristicValues('223', segments, una)

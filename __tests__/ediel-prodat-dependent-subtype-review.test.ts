@@ -7,7 +7,7 @@ import { evaluateProdatDependentConditions } from '@/lib/ediel/prodat/prodatDepe
 import { parseRulebookMessage, parseRulebookListPayload } from '@/lib/ediel/rulebook/messageParser'
 import { PRODAT_SOURCE_SUBTYPE_REQUIREMENTS, prodatSourceSubtypeRule, resolveProdatSourceSubtypeRequirement } from '@/lib/ediel/prodat/prodatSubtypeRequirement'
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import { alphabets, characteristic, line, raw, type Parts } from './fixtures/prodat-register'
+import { endUser, alphabets, characteristic, line, raw, type Parts } from './fixtures/prodat-register'
 
 // Independent oracle: P26.A r3 §2.2 p17, Z09E requires field216;
 // Z06E does not. A shared E34 reason must not allow metadata to choose Z06.
@@ -62,7 +62,7 @@ describe('PR330 review: wire-specific D rules survive mismatched row metadata', 
     expect(result.fieldRuleSource).toBe('static')
   })
   it.each(alphabets)('keeps a real Z06E optional, rather than inventing a Z09:216 rule from metadata: %j', (...alphabet) => {
-    const row = message(missingValidity(), 'Z06', 'test', alphabet)
+    const row = message([...missingValidity(), endUser()], 'Z06', 'test', alphabet)
     row.message_code = 'Z09'
     const result = validateEdielMessageRowWithRulebook(row, 'send')
     expect(result.issues.filter(issue => issue.scope === 'prodat_dependent')).toEqual([])

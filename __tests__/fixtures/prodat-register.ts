@@ -37,3 +37,6 @@ export function validate(payload: string, fields = ['314','209','258'], code = '
   return validateFieldMatrixPayload(input(payload,code),fields.map(field => rule(field,code)))
 }
 export const blocked = (payload: string, fields?: string[], code?: string) => validate(payload,fields,code).some(i => i.blocking)
+
+// P26.A p22/79: independent UD prerequisites for E subtype fixtures.
+export const endUser = (): Parts => ['NAD','UD',['SYNTHETIC','','89'],'','Synthetic','','Town','','00123','SE']
