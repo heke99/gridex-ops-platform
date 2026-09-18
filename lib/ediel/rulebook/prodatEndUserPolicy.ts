@@ -59,7 +59,7 @@ export function prodatEndUserContexts(input: FieldMatrixEvaluationInput) {
  * an empty/duplicate/forbidden parent cannot hide behind an absent child value.
  * Field229's availability condition is not adopted by this bounded migration.
  */
-export function validateProdatEndUserPolicy(input: FieldMatrixEvaluationInput, rules: readonly RulebookFieldRule[]): EdielRulebookIssue[] {
+export function validateProdatEndUserPolicy(input: FieldMatrixEvaluationInput, rules: readonly RulebookFieldRule[], direction: 'inbound' | 'outbound' = 'outbound'): EdielRulebookIssue[] {
   const code = input.code ?? ''
   const selected = rules.filter(rule => isSourceBoundProdatEndUserField(code, rule.fieldNumber ?? ''))
   if (!selected.length) return []
@@ -81,7 +81,10 @@ export function validateProdatEndUserPolicy(input: FieldMatrixEvaluationInput, r
       continue
     }
     if (requirement === 'forbidden') {
-      if (groups.length) add('PRODAT_DEPENDENT_UD_FORBIDDEN','UD-gruppen får inte skickas för denna transaktionsorsak',label)
+      // P bilaga4 p119/P-02: valid non-applicable national data is not
+      // an outbound violation on reception. The raw payload and separate
+      // syntax checks remain intact; this does not enable it in builders.
+      if (direction === 'outbound' && groups.length) add('PRODAT_DEPENDENT_UD_FORBIDDEN','UD-gruppen får inte skickas för denna transaktionsorsak',label)
       continue
     }
     if (groups.length !== 1) {

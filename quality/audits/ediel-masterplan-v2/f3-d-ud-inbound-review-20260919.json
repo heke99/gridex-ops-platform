@@ -1,0 +1,74 @@
+{
+  "status": "IMPLEMENTED_NOT_VERIFIED",
+  "base_head": "dcd0e5fa0f6e8949d614bd09b941b22d70acdd1f",
+  "published_predecessor": "f2ed530b6c93469ad09aba6d46fa57f093fcb957",
+  "tested_code_tree": "7ab3397bd6b52854aa17cdc8f2a721851b9fa201",
+  "finding": "Own source review: new outbound-only UD exclusion leaked into canonical inbound validation, contrary frozen P-02. Initial green CI does not waive the defect.",
+  "repair": "Pass canonical direction through subtype policy to UD helper; do not reject valid inactive UD solely for outbound exclusion when receiving. Direct send adapter and builders retain outbound default. No broad P-02 projection certification.",
+  "tests": {
+    "inbound_cases": 37,
+    "predecessor_failed": 24,
+    "predecessor_passed": 13,
+    "targeted_passed": 447,
+    "application_passed": 3238,
+    "application_files": 244,
+    "retained_source_passed": 913,
+    "typescript_projects_passed": 3,
+    "lint_errors": 0,
+    "lint_source_warnings": 99,
+    "lint_generated_untracked_warnings": 1,
+    "quality_cases_passed": 45,
+    "coverage": {
+      "lines": 35.92,
+      "branches": 27.43,
+      "functions": 41.47,
+      "statements": 34.56
+    },
+    "unchanged_ratchet": "PASS",
+    "integrity": "33 original files,121 rules,231 contracts; not conformance",
+    "quality": "Mechanical, RBAC, size/performance budgets passed"
+  },
+  "limits": [
+    "Original full PDF not rehashed or visually inspected; unchanged user-supplied projections used.",
+    "The existing first-message E34 business-context gate is retained; direct canonical field tests use a valid policy and actual-row mixed-object tests use first F/second E. No bilateral/process checks were disabled.",
+    "Field229 remains unaccepted; no full inbound business projection or all-P-02 acceptance claim.",
+    "No local build/browser/disposable replay; ordinary new-head CI and independent review required.",
+    "PR310 paused; issue332 full-main70/73 remains open; no live DB/storage/market sends or explicit deployment/settings changes."
+  ],
+  "initial_ci": {
+    "head": "f2ed530b6c93469ad09aba6d46fa57f093fcb957",
+    "OPS": 35402939251,
+    "Ediel": 35402939255,
+    "Browser": 35402939266,
+    "FullE2E_PR": 35402939291,
+    "result": "All four succeeded, but own-review defect prevents predecessor acceptance."
+  },
+  "command_exit_codes": {
+    "38-full-tests.exit": 0,
+    "39-types-tests.exit": 0,
+    "40-types-scripts.exit": 0,
+    "41-types-app.exit": 0,
+    "42-source-tests.exit": 0,
+    "43-lint.exit": 0,
+    "44-coverage.exit": 0,
+    "45-ratchet.exit": 0,
+    "46-integrity.exit": 0,
+    "47-quality.exit": 0
+  },
+  "log_sha256": {
+    "35-inbound-red.log": "ca30d0ad67691791b1e4432d8767c890f1e6f2b2a00410b66b69164dad9a14be",
+    "36-inbound-qualified-red.log": "7f2c22a74390df21cf94f4f827daab793c5c47f94260f7a316f8bc53c99e0831",
+    "37-inbound-fix-targeted.log": "e971d06da4aa71f55ae8e4c52d3755bec2f9560bdf94ebc5e31e14f83a09c442",
+    "38-full-tests.log": "7764392118dbd0c136cb2dc3ee86e02296b899b64301b38f183f8d9122f5df42",
+    "39-types-tests.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "40-types-scripts.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "41-types-app.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "42-source-tests.log": "5392d15c8ae196fc25f2ac1cdeb2411b5e1f18c648653da959d47b2d6747fc9f",
+    "43-lint.log": "4feccbfc59815a12df02e397ca0d8e421c8369abb282580392d8c56eb6d2dcfc",
+    "44-coverage.log": "2eb7e02b9d2b1873efdce07e2c463b5b90b6358916c7f21f794ea2a4a745bce8",
+    "45-ratchet.log": "193768c2bcbb25b1fae3730af96617446905856ee435b62af5214c5490f3e1ba",
+    "46-integrity.log": "6b69e14e634de940b6b47b8e579ee132ce867dfe9926a178061b05439e74c106",
+    "47-quality.log": "b86043376b445561f871ca319784e83b52cf634ece57d75cd4230b4b2caa007d"
+  },
+  "scope": "8 accepted +10 candidate+92 other numeric D;2 candidate+8 other parent occurrences. Full masterplan incomplete."
+}

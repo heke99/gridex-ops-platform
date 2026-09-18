@@ -61,7 +61,7 @@ export function validateCanonicalPolicyFields(input: {
       : []
     : validateFieldMatrixPayload(matrixInput, baseRules)
   if (input.policy.family !== 'PRODAT') return issues
-  issues.push(...validateProdatSubtypePolicy(matrixInput, rules))
+  issues.push(...validateProdatSubtypePolicy(matrixInput, rules, input.policy.direction))
   const register = validateProdatRegisterPolicy({code:input.policy.code, rawSegments:input.rawSegments ?? [], una:input.una, facts:input.policy.prodatDependentFacts, rules})
   issues.push(...register.issues)
 
