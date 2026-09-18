@@ -1,10 +1,6 @@
 # Completed work
 
-## 2026-09-18 — PR330 accepted and merged
-Expected-head merge to e4df8b58; reviewed head831fa1fb/treeb10d70fa. All four ordinary
-PR workflows passed; independent static rereview5731278438 confirmed the repaired blocker.
-Original user ZIP74package/38candidate checksums and exact ordinary CI source tree reverified.
-This accepts six D cells, not the104other cells or full-main release.
+PR330 accepted six numeric D cells; reviewed head831fa1fb, mergee4df8b58, four ordinary workflows passed and independent review5731278438.
+PR331 accepted Z04:319; reviewed head3e0397d1, merge7ff0d6b0, four ordinary workflows passed and independent final-head static review5732212033. Neither accepts the separate full-main release certificate.
 
-The next Z04:319 unit is a candidate, NOT completed/accepted work.
-All previous entries are preserved verbatim in [the historical log](archive/2026-09-18-pr330-final-merged/completed-work.md).
+PC-242-Z06 is one locally qualified candidate, NOT yet accepted at this snapshot. See archive/2026-09-18-pr331-final-merged/completed-work.md for byte-preserved earlier history and links to preceding archives.

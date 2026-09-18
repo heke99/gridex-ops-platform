@@ -1,8 +1,5 @@
-# Active Z04:319 source-bound reference candidate
+# Next actions
 
-Status: IMPLEMENTED_NOT_VERIFIED. Read current-state.md and the Z04 audit.
-PR330 is already merged at e4df8b58; its old pending snapshots are archived, not current work.
-Publish this one-cell candidate, run exact-head ordinary CI and independent review,
-resolve real findings and merge only when accepted. Never reapply the old ZIP.
-Six D cells accepted, one candidate,103 others and10parent groups not certified.
-PR310 paused; existing full-main release failures remain; no live operations.
+Publish the complete Z06:242 candidate with native Git tree equality and actual main parent. Run all four ordinary applicable workflows; obtain substantive independent exact-head source/assertion review. Fix findings, rerun/review changed heads, inspect fresh refs/checks/threads and merge only the accepted expected head.
+
+Then continue the Z06/Z09 E/UD ten-child-cell and parent/address rules as a coherent bounded unit. Scope unknown facts by object and preserve parent activation; a missing internal fact is not automatically a sender protocol violation. Issue333 retains the remaining inventory; issue332 and paused310 remain separate.

@@ -7,15 +7,17 @@ type SourceRule = Readonly<{
   messageCode: 'Z04' | 'Z06' | 'Z09'
   fieldNumber: string
   page: 17 | 18 | 19 | 20 | 21
+  market?: 'electricity'
   outcomes: Readonly<Partial<Record<ProdatSubtype, DeterminedRequirement>>>
 }>
 
-/** Bounded source migration: seven of the original 110 numeric D cells.
+/** Bounded source migration: eight of the original 110 numeric D cells.
  * P26.A revision 3, §2.2. No field presence or operator byCell flag supplies a
  * subtype-only condition. Other cells retain their existing unresolved gates.
  */
 export const PRODAT_SOURCE_SUBTYPE_REQUIREMENTS: readonly SourceRule[] = [
   { messageCode: 'Z04', fieldNumber: '319', page: 21, outcomes: { D: 'required', L: 'forbidden', LK: 'forbidden', C: 'forbidden', H: 'forbidden', A: 'forbidden' } },
+  { messageCode: 'Z06', fieldNumber: '242', page: 20, market: 'electricity', outcomes: { F: 'required', G: 'required', E: 'optional' } },
   { messageCode: 'Z06', fieldNumber: '508', page: 18, outcomes: { F: 'required', E: 'optional', G: 'optional' } },
   { messageCode: 'Z06', fieldNumber: '217', page: 18, outcomes: { F: 'required', E: 'optional', G: 'optional' } },
   { messageCode: 'Z06', fieldNumber: '306', page: 19, outcomes: { F: 'required', G: 'required', E: 'optional' } },
@@ -41,10 +43,13 @@ export function prodatSourceSubtypeRule(messageCode: string, fieldNumber: string
  * Unknown, coercible objects, and subtypes belonging to another code stay unknown.
  */
 export function resolveProdatSourceSubtypeRequirement(input: {
-  messageCode: string; fieldNumber: string; subtype: unknown
+  messageCode: string; fieldNumber: string; subtype: unknown; market?: unknown
 }): ProdatSubtypeRequirement | null {
   const rule = prodatSourceSubtypeRule(input.messageCode, input.fieldNumber)
   if (!rule) return null
+  // P26.A p20 limits Z06 product requirements to EL. Gas is not an
+  // optional branch of this rule, and operator flags cannot activate it.
+  if (rule.market && input.market !== rule.market) return 'undetermined'
   if (typeof input.subtype !== 'string') return 'undetermined'
   const subtype = input.subtype.trim().toUpperCase()
   const known = findProdatSubtypeRule(subtype, input.messageCode)

@@ -1,8 +1,5 @@
-# Active Z04:319 source-bound reference candidate
+# Current task
 
-Status: IMPLEMENTED_NOT_VERIFIED. Read current-state.md and the Z04 audit.
-PR330 is already merged at e4df8b58; its old pending snapshots are archived, not current work.
-Publish this one-cell candidate, run exact-head ordinary CI and independent review,
-resolve real findings and merge only when accepted. Never reapply the old ZIP.
-Six D cells accepted, one candidate,103 others and10parent groups not certified.
-PR310 paused; existing full-main release failures remain; no live operations.
+PC-242-Z06 only, from accepted main7ff0d6b0. Preserve EL-only field note; F/G required,E optional. Derive first-register reason and first-UNB market from actual wire, validate the first7110 product separately from field506 and retain scope/domain/context checks. Status: IMPLEMENTED_NOT_VERIFIED.
+
+Next: native exact-tree publication with actual main parent, four ordinary applicable workflows and substantive independent exact-head review. Repair findings and repeat CI/review before expected-head merge. Then the coherent UD/parent unit in issue333. Do not redo PR330/331 or resume PR310.

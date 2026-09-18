@@ -1,8 +1,7 @@
-# Active Z04:319 source-bound reference candidate
+# Work plan
 
-Status: IMPLEMENTED_NOT_VERIFIED. Read current-state.md and the Z04 audit.
-PR330 is already merged at e4df8b58; its old pending snapshots are archived, not current work.
-Publish this one-cell candidate, run exact-head ordinary CI and independent review,
-resolve real findings and merge only when accepted. Never reapply the old ZIP.
-Six D cells accepted, one candidate,103 others and10parent groups not certified.
-PR310 paused; existing full-main release failures remain; no live operations.
+1. PC-242-Z06: implement EL-qualified source rule, scoped product pairs and actual-wire market/reason boundaries; local tests completed, ordinary CI/review/merge pending.
+2. After acceptance, coherent UD/parent unit for Z06/Z09 E fields and parent/address applicability, then Z14 and remaining register/date/context rules from issue333.
+3. Each unit requires source-backed negative/positive tests, all ordinary exact-head workflows, substantive independent review and expected-head merge. Broader release/live evidence remains separate.
+
+Seven cells previously accepted; one candidate;102others/10parent occurrences unaccepted. PR310 stays paused. Issue332 full-main blockers are retained. This plan is not full-masterplan completion.

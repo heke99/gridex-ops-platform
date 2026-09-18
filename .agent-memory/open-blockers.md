@@ -1,8 +1,7 @@
-# Active Z04:319 source-bound reference candidate
+# Open blockers
 
-Status: IMPLEMENTED_NOT_VERIFIED. Read current-state.md and the Z04 audit.
-PR330 is already merged at e4df8b58; its old pending snapshots are archived, not current work.
-Publish this one-cell candidate, run exact-head ordinary CI and independent review,
-resolve real findings and merge only when accepted. Never reapply the old ZIP.
-Six D cells accepted, one candidate,103 others and10parent groups not certified.
-PR310 paused; existing full-main release failures remain; no live operations.
+Current Z06:242 unit: ordinary exact-head CI and substantive independent review/merge not yet established at this snapshot; local qualification is not acceptance.
+
+Issue332: full-main certificates70/73, migration inventory14unregistered entries, Z18 certification and installation-NAD assertion. These are unwaived and not14proven live DB defects. PR310 remains paused/excluded; no historical checksum adoption or schema/type imports through this D unit.
+
+102other numeric D cells,10parent-group occurrences, laterF3–F7/masterplan/liveTGT/production release remain outside acceptance. No gate/threshold/source was disabled to obtain green.

@@ -93,7 +93,7 @@ jobs:
       - name: Verify source-derived Z04 consumption-point reference boundaries
         run: node --experimental-vm-modules --test scripts/test-ediel-prodat-d-z04-reference.cjs
       - name: Verify source-derived PRODAT subtype D conditions and non-bypassable send gates
-        run: npx vitest run __tests__/ediel-prodat-dependent-subtype*.test.ts
+        run: npx vitest run __tests__/ediel-prodat-dependent-subtype*.test.ts __tests__/ediel-prodat-dependent-z06-product.test.ts
       - name: Verify release-aware EDIFACT component parsing
         run: node --experimental-vm-modules --test scripts/test-ediel-component-escaping.cjs
       - name: Verify APERAK source-family guide binding

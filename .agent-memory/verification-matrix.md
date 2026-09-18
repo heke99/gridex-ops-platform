@@ -1,13 +1,7 @@
-# Current fixture-corrected PR331 qualification
+# Verification matrix — Z06:242
 
-Fresh2594 application/913 source cases,all3types,lint0errors/99warnings,coverage and quality/RBAC/budgets pass. Initial targeted73pass/25fail corrected to99pass including one new negative control. First concurrent app-typecheck exited137, separate retry passed. See f3-d-z04-fixture-qualification-20260918 audit; new-head CI/review required before merge. Prior initial candidate records below are historical, not current acceptance.
+Local exact code tree4aa03f9b:2763/2763 application cases in239files;169new product cases are a subset. Retained standalone source913/913. All3TypeScript projects pass after correcting partial-row fixture typing; no suppressions. Lint0errors/99warnings. Source integrity33files/121rules/231contracts. RBAC,mechanical,45quality tests,unchanged size/performance budgets pass.
 
-# Verification matrix
+Coverage:statements34.39%,branches27.30%,functions41.24%,lines35.78%; unchanged ratchet passes. Historical qualified148case red128fail/20pass; added169case red18fail then9fail; actual element-decoding repair passes. Catalog market correction preserves all registry/no-undetermined assertions. Interrupted foreground attempts are incomplete, not passed.
 
-PR330831fa1fb: four ordinary workflows SUCCESS; exact static rereview and guarded merge confirmed.
-Z04:319 next unit: unchanged-base source tests1pass/61fail; source-row-only44pass/18fail; final62pass/0fail.
-Retained source848+3=851pass, specification integrity33files/121rules/231contracts pass.
-New91 Vitest cases authored; no local dependency-backed test/type/lint/build/coverage claim.
-New exact-head CI and independent review REQUIRED. Original thresholds and normative files unchanged.
-Full-main release35334649693 remains70/73 with3failures, not waived by green PR CI.
-Previous entries preserved verbatim in [the historical matrix](archive/2026-09-18-pr330-final-merged/verification-matrix.md).
+Ordinary CI, build/browser/disposable replay and independent final-head review/merge REQUIRED. Full-main70/73 remains unwaived in332. Full source/log hashes in the unit audit. These numbers do not certify all110D or live production.
