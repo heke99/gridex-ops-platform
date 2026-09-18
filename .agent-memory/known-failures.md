@@ -138,3 +138,18 @@ BEFORE ROW tenant-attribution guard triggers that the canonical chain does not
 build at all. The harness that produced the original claim could not see them.
 Evidence and the full register: `quality/audits/GRIDEX-PROD-PARITY-2026-09-04.md`,
 finding F-PARITY-4.
+
+## 2026-09-18 — D-subtype scoping and local build resource limitations
+
+Status: PARTIAL (local corrections verified; publication/ordinary CI/review pending).
+
+Per-object narrowing initially hid selected DTM fields in the message header.
+Four negative tests reproduced that introduced regression; shared global date
+placement checks now execute before object narrowing. Keep those tests.
+
+The first local full build exceeded the 4 GiB container's aggregate memory and
+was SIGKILLed; a 2304 MiB heap retry exhausted V8 during type checking. The same
+full build passed with a local 3072 MiB process cap, followed by the unchanged
+bundle budget. Do not mark earlier failures as passes or copy the memory cap
+into committed configuration to suppress an acceptance gate. Read the separate
+three-attempt audit. GitHub write/CI capability was unavailable in this session.

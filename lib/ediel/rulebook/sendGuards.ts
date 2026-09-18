@@ -13,6 +13,8 @@ export function assertRulebookAllowsSend(message: EdielMessageRow): void {
   const errors = validation.issues.filter((issue) => issue.severity === 'error' || issue.blocking)
   const registerErrors = errors.filter(issue => issue.scope === 'prodat_register')
   if (registerErrors.length) throw new Error('PRODAT register blockerar skick: ' + registerErrors.map(issue => issue.code + ': ' + issue.description).join(' | '))
+  const dependentErrors = errors.filter(issue => issue.scope === 'prodat_dependent')
+  if (dependentErrors.length) throw new Error('PRODAT D-villkor blockerar skick: ' + dependentErrors.map(issue => issue.code + ': ' + issue.description).join(' | '))
   if (parsedPayload.rulebookAllowInvalidSend === true) return
   if (errors.length === 0) return
 

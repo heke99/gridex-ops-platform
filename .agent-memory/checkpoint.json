@@ -1,51 +1,70 @@
 {
   "project": "gridex-ops-platform",
   "updated_at": "2026-09-18",
-  "status": "LOCAL_PASS_PENDING_CI_REVIEW",
-  "current_state": ".agent-memory/current-state.md",
-  "branch": "codex/ediel-v2-prodat-register-rules-20260917",
-  "base_head_sha": "51c73950515d771d2c2edcb97fde28ab087437a3",
-  "active_item": "Publish and qualify PR328 null-rejection rereview follow-up",
-  "next_action": "Publish the null-aware rejection fix and historical-log correction, complete new-head CI and substantive rereview, then guarded merge.",
+  "status": "BLOCKED",
+  "branch": "codex/ediel-v2-dependent-conditions-20260918",
+  "base_head_sha": "b916213e83871e9f4d15b9fd52a2b8c19394c9ca",
+  "base_tree": "54f9cf4fe56e42768ef132a23f6a79baea0632d5",
+  "active_item": "F3 source-defined subtype D subset: six numeric cells",
+  "next_action": "Read qualification audit; publish exact candidate through write-capable environment; ordinary CI and independent review before merge; then continue original D inventory.",
   "main_merged": false,
-  "pull_request": 328,
-  "draft": false,
-  "published_implementation_head": "97f7505153fc268551d16112428cc9eaf0581b0d",
+  "pull_request": null,
+  "published_implementation_head": null,
+  "local_candidate_only": true,
+  "prior_completed": {
+    "status": "VERIFIED_MERGED",
+    "pull_request": 328,
+    "repository": "heke99/gridex-ops-platform",
+    "merge_sha": "b916213e83871e9f4d15b9fd52a2b8c19394c9ca",
+    "merged_at": "2026-09-18T10:25:48Z",
+    "reviewed_head": "e191c703bd8e2c9800e9c33d91923a6ad319ec00",
+    "tree": "54f9cf4fe56e42768ef132a23f6a79baea0632d5",
+    "observed_via": [
+      "GitHub.get_pr_info",
+      "GitHub.get_users_recent_prs_in_repo",
+      "GitHub.compare_commits",
+      "GitHub.fetch git commit"
+    ],
+    "merge_record_url": "https://api.github.com/repos/heke99/gridex-ops-platform/git/commits/b916213e83871e9f4d15b9fd52a2b8c19394c9ca",
+    "merge_record_reports": {
+      "exact_head_ci_success": [
+        35331773883,
+        35331773849,
+        35331773846,
+        35331773847
+      ],
+      "substantive_review_comment": 5728342783,
+      "nullable_cas_review_comment": 4045678379,
+      "formal_approval_disabled": true,
+      "protection_bypassed": false
+    },
+    "new_unit_branch_observed": "codex/ediel-v2-dependent-conditions-20260918",
+    "new_unit_remote_ahead_by": 0,
+    "scope": "Existing accepted register delivery; not acceptance of this local D-condition candidate or all F3/F7.",
+    "pr310": {
+      "state": "PAUSED",
+      "head": "e961135199f292b8210884f07de3b616a670161a"
+    }
+  },
   "source_state": {
     "runtime_implementation_started": true,
-    "register_tests_executed": true,
-    "full_vitest_passed": 2294,
-    "source_cases_passed": 851,
-    "register_cases_passed": 480,
-    "register_test_files": 20,
-    "new_cases_vs_recovered06493": 137,
-    "same_source_local": "PASS",
-    "normal_ci": "PREVIOUS97_GREEN_NEW_FOLLOWUP_PENDING",
-    "independent_review": "NULL_REJECTION_AND_FINAL_HEAD_REREVIEW_PENDING",
-    "scope": "Bounded register delivery; not fullF3/110D/live acceptance",
-    "qualification_manifest_sha256": "226632cbdcdcab2d8f97ed451acb7e31d13e08c41caed623a2a60d3d60c2a52d"
-  },
-  "prior_completed": {
-    "pr": 327,
-    "merge_sha": "51c73950515d771d2c2edcb97fde28ab087437a3",
-    "tested_head": "28b0e6ccb0473ee97fe021dc28aab462debc3a97",
-    "tree": "dbeffdc5d20e57f5a9b837bcfda336bd7aef637c",
-    "normal_ci_success": [
-      35251524124,
-      35251524079,
-      35251524107,
-      35251524144
-    ],
-    "review_findings_resolved": 4
+    "numeric_cells_in_this_unit": 6,
+    "remaining_cells_not_recertified": 104,
+    "normal_ci": "NOT_RUN_NEW_CANDIDATE_UNPUBLISHED",
+    "independent_review": "PENDING",
+    "full_masterplan": "NOT_COMPLETE",
+    "full_vitest_passed": 2440,
+    "new_subtype_cases": 146,
+    "retained_source_passed": 851,
+    "same_execution_source": "PASS_TESTS_TYPES_COVERAGE_QUALITY_LOCAL_BUILD_BUNDLE",
+    "production_build": "LOCAL_FULL_BUILD_PASS_3072_MIB_PROCESS_CAP",
+    "execution_source_sha256": "95fe205ed8a1f0a2ebb8c2ebb55e4e36bd8996988cd51194b2e716ef4c799ae2",
+    "bundle_budget": "PASS_UNCHANGED"
   },
   "deferred_work": {
-    "pr": 310,
     "state": "PAUSED",
-    "head": "e961135199f292b8210884f07de3b616a670161a",
-    "backup_branch": "backup/pr310-paused-20260916-e9611351"
+    "head": "e961135199f292b8210884f07de3b616a670161a"
   },
-  "plan": "docs/superpowers/plans/2026-09-17-prodat-register-rules.md",
-  "implementation_checkpoint_base": "97f7505153fc268551d16112428cc9eaf0581b0d",
-  "evidence": "quality/audits/ediel-masterplan-v2/f3-register-null-rejection-review-20260918.json",
-  "publication_receipt": "quality/audits/ediel-masterplan-v2/pr328-publication-receipt.json"
+  "plan": ".agent-memory/work-plan.md",
+  "evidence": "quality/audits/ediel-masterplan-v2/f3-d-subtype-qualification-20260918.json"
 }

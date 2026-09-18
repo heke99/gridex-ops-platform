@@ -4,8 +4,8 @@ import { evaluateEdielProductionSendLock } from '@/lib/ediel/core/productionGuar
 
 export function assertEdielSendLock(message: EdielMessageRow): void {
   const preflight = preflightEdielMessageRow(message, 'send')
-  const registerErrors = preflight.issues.filter(issue => issue.code.startsWith('PRODAT_REGISTER_') && issue.severity === 'error')
-  if (registerErrors.length) throw new Error(registerErrors.map(issue => `${issue.code}: ${issue.description}`).join(' | '))
+  const protocolErrors = preflight.issues.filter(issue => (issue.code.startsWith('PRODAT_REGISTER_') || issue.code.startsWith('PRODAT_DEPENDENT_PREFLIGHT_')) && issue.severity === 'error')
+  if (protocolErrors.length) throw new Error(protocolErrors.map(issue => `${issue.code}: ${issue.description}`).join(' | '))
   const lock = evaluateEdielProductionSendLock(message, preflight)
   if (lock.status === 'blocked') {
     throw new Error(lock.issues.map((issue) => issue.message).join(' | ') || 'Ediel send lock blockerade utskick.')

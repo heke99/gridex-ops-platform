@@ -89,6 +89,8 @@ jobs:
           done
       - name: Verify PRODAT object and register preservation
         run: npx vitest run __tests__/ediel-prodat-register*.test.ts
+      - name: Verify source-derived PRODAT subtype D conditions and non-bypassable send gates
+        run: npx vitest run __tests__/ediel-prodat-dependent-subtype*.test.ts
       - name: Verify release-aware EDIFACT component parsing
         run: node --experimental-vm-modules --test scripts/test-ediel-component-escaping.cjs
       - name: Verify APERAK source-family guide binding

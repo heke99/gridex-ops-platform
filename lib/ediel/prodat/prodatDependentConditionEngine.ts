@@ -3,6 +3,7 @@ import {
   PRODAT_26A_MESSAGE_CODES,
   type Prodat26AMessageCode,
 } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+import { prodatSourceSubtypeRule, resolveProdatSourceSubtypeRequirement, type ProdatSubtypeRequirement } from '@/lib/ediel/prodat/prodatSubtypeRequirement'
 import { isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
 
 export const PRODAT_26A_DEPENDENT_SOURCE_DOCUMENT =
@@ -53,6 +54,8 @@ export type ProdatDependentConditionEvaluation = {
   fieldNumber: string
   conditionId: string
   status: ProdatDependentConditionStatus
+  /** Present only for source-migrated cells; not_required alone does not mean optional. */
+  requirement?: ProdatSubtypeRequirement
   source: ProdatDependentConditionSource
 }
 
@@ -234,7 +237,11 @@ export function evaluateProdatDependentConditions(input: {
   return PRODAT_26A_DEPENDENT_CONDITION_REGISTRY
     .filter((entry) => entry.messageCode === messageCode)
     .map((entry) => {
-      const value = isProdatFieldInInapplicableParent({
+      const requirement = resolveProdatSourceSubtypeRequirement({messageCode, fieldNumber: entry.fieldNumber, subtype: facts.canonicalSubtype})
+      const sourceRule = prodatSourceSubtypeRule(messageCode, entry.fieldNumber)
+      const value = requirement !== null
+        ? requirement === 'undetermined' ? null : requirement === 'required'
+        : isProdatFieldInInapplicableParent({
         messageCode, subtype: normalized(facts.canonicalSubtype), fieldNumber: entry.fieldNumber,
       }) ? false : entry.predicate({
         messageCode: entry.messageCode,
@@ -248,7 +255,8 @@ export function evaluateProdatDependentConditions(input: {
         fieldNumber: entry.fieldNumber,
         conditionId: entry.conditionId,
         status: value === null ? 'undetermined' : value ? 'required' : 'not_required',
-        source: entry.source,
+        ...(requirement === null ? {} : {requirement}),
+        source: sourceRule ? {...entry.source, section: `${entry.source.section}; P26.A §2.2 s.${sourceRule.page}`} : entry.source,
       }
     })
 }

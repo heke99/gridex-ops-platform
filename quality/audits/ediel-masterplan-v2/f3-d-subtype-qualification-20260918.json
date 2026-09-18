@@ -1,0 +1,368 @@
+{
+  "status": "LOCAL_QUALIFIED_UNPUBLISHED_PENDING_ORDINARY_CI_AND_REVIEW",
+  "base_main": "b916213e83871e9f4d15b9fd52a2b8c19394c9ca",
+  "base_tree": "54f9cf4fe56e42768ef132a23f6a79baea0632d5",
+  "date": "2026-09-18",
+  "repository": "heke99/gridex-ops-platform",
+  "branch": "codex/ediel-v2-dependent-conditions-20260918",
+  "published": false,
+  "pull_request": null,
+  "merged": false,
+  "skill_routing": {
+    "used": [
+      "acquire-codebase-knowledge",
+      "executing-plans",
+      "systematic-debugging",
+      "test-driven-development",
+      "spec-to-code-compliance",
+      "differential-review",
+      "verification-before-completion"
+    ],
+    "purpose": "Continue an existing source-bound protocol plan; reproduce conditions, trace consumers, protect tenant/source/identity boundaries and retain actual verification evidence.",
+    "not_activated": {
+      "database_and_infrastructure": "No SQL, grants, generated schema types, deployment, infrastructure or live data changes",
+      "UI_design": "No UI layout changes",
+      "dependency_and_provider_setup": "Pinned dependencies unchanged; no account/provider setup",
+      "parallel_agents": "No independent subagent runner available; self-review is not independent review"
+    }
+  },
+  "findings": [
+    {
+      "id": "D-SUBTYPE-001",
+      "severity": "major",
+      "status": "FIXED_LOCAL",
+      "detail": "Six subtype-derived cells depended on arbitrary byCell flags and lost the optional/forbidden distinction. Resolve from a validated subtype using the existing reason registry; retain legacy status for compatibility and add explicit requirement only to migrated cells.",
+      "files": [
+        "lib/ediel/prodat/prodatSubtypeRequirement.ts",
+        "lib/ediel/prodat/prodatDependentConditionEngine.ts"
+      ],
+      "red_evidence": "d-subtype-red.json: 19 pass / 102 fail, 121 cases, before implementation"
+    },
+    {
+      "id": "D-SUBTYPE-002",
+      "severity": "major",
+      "status": "FIXED_LOCAL",
+      "detail": "A root condition status and message-wide field presence could hide a sibling object defect. Re-evaluate selected cells from each actual first-register scope, exact identity/agency and first-message boundary; no alias/duplicate/dangling reason authority.",
+      "files": [
+        "lib/ediel/rulebook/prodatSubtypePolicy.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts"
+      ],
+      "tests": "Both all/dependent_only, three UNA alphabets, separate identities/agencies, two-object exhaustive combinations, missing/duplicate/alias input, first-register and next-message boundaries"
+    },
+    {
+      "id": "D-SUBTYPE-003",
+      "severity": "major",
+      "status": "FIXED_LOCAL",
+      "detail": "The new field errors could still be hidden by the legacy test-send flag or downgraded to test warnings. A protected prodat_dependent scope, root-policy error fallback, wire-BGM selected row preflight and transport guard preserve blocking outcomes.",
+      "files": [
+        "lib/ediel/rulebook/validator.ts",
+        "lib/ediel/rulebook/sendGuards.ts",
+        "lib/ediel/transport/sendLock.ts",
+        "lib/ediel/core/messageBuilder/payloadPreflight.ts"
+      ],
+      "red_evidence": "Corrected consumer fixture: 12 pass / 6 fail of 18 before the guard changes. New code must not be credited for preliminary fixture errors."
+    },
+    {
+      "id": "D-SUBTYPE-004",
+      "severity": "minor",
+      "status": "FIXTURE_CORRECTED_ASSERTIONS_RETAINED",
+      "detail": "The retained complete-facts fixture used V for Z09, although V belongs to sharing messages. Only two subtype fixture expressions and their comment changed to F for Z09 (as for Z06); all existing registry/no-undetermined assertions remain. V is retained as an explicit rejected input in the new tests.",
+      "files": [
+        "__tests__/ediel-canonical-policy-batch-regression.test.ts"
+      ]
+    },
+    {
+      "id": "D-SUBTYPE-005",
+      "severity": "major",
+      "status": "INTRODUCED_DURING_WORK_REPRODUCED_AND_FIXED",
+      "detail": "Moving selected dates into object scopes initially dropped global header-placement checks. Four new red tests reproduced the omission; the shared date scope checker now executes before narrowing.",
+      "red_evidence": "d-date-scope-red.json: four executed failures; 123 other tests skipped by the targeted name filter, not counted as executed."
+    },
+    {
+      "id": "D-SUBTYPE-006",
+      "severity": "informational",
+      "status": "TEST_FIXTURE_FINDINGS_NOT_PRODUCT_DEFECTS",
+      "detail": "The preliminary consumer suite used the wrong Z09 application reference, an it.each array argument error and assumed an absent canonical code list. Corrected fixtures use DDQ, wrapped array parameters, and explicitly verify retention of a supplied matrix code list. Preliminary 5 pass / 13 fail is not an accepted product red baseline."
+    }
+  ],
+  "vitest": {
+    "passed": 2440,
+    "failed": 0,
+    "files": 235,
+    "new_subtype_cases": 146,
+    "new_subtype_files": 2,
+    "new_cases_are_subset_not_additional_total": true
+  },
+  "retained_source": {
+    "passed": 851,
+    "failed": 0,
+    "unchanged_assertions": true,
+    "log": "qualified-retained-source.log"
+  },
+  "coverage": {
+    "lines": {
+      "total": 34376,
+      "covered": 12203,
+      "skipped": 0,
+      "pct": 35.49
+    },
+    "statements": {
+      "total": 40408,
+      "covered": 13765,
+      "skipped": 0,
+      "pct": 34.06
+    },
+    "functions": {
+      "total": 6963,
+      "covered": 2848,
+      "skipped": 0,
+      "pct": 40.9
+    },
+    "branches": {
+      "total": 54263,
+      "covered": 14644,
+      "skipped": 0,
+      "pct": 26.98
+    },
+    "branchesTrue": {
+      "total": 0,
+      "covered": 0,
+      "skipped": 0,
+      "pct": 100
+    }
+  },
+  "unchanged_thresholds": {
+    "lines": 35.32,
+    "statements": 32.91,
+    "branches": 25.25,
+    "functions": 34.81
+  },
+  "same_execution_source_commands": [
+    {
+      "name": "types-app",
+      "command": "node --max-old-space-size=3072 node_modules/typescript/bin/tsc --noEmit -p tsconfig.app.json",
+      "exit": 0,
+      "started_at": "2026-09-18T12:27:26.719375+00:00",
+      "seconds": 26.5,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "execution_source_sha256": "95fe205ed8a1f0a2ebb8c2ebb55e4e36bd8996988cd51194b2e716ef4c799ae2",
+      "source_drift": []
+    },
+    {
+      "name": "types-tests",
+      "command": "node --max-old-space-size=3072 node_modules/typescript/bin/tsc --noEmit -p tsconfig.tests.json",
+      "exit": 0,
+      "started_at": "2026-09-18T12:27:53.218489+00:00",
+      "seconds": 10.21,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "execution_source_sha256": "95fe205ed8a1f0a2ebb8c2ebb55e4e36bd8996988cd51194b2e716ef4c799ae2",
+      "source_drift": []
+    },
+    {
+      "name": "types-scripts",
+      "command": "node --max-old-space-size=3072 node_modules/typescript/bin/tsc --noEmit -p tsconfig.scripts.json",
+      "exit": 0,
+      "started_at": "2026-09-18T12:28:03.433219+00:00",
+      "seconds": 1.2,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "execution_source_sha256": "95fe205ed8a1f0a2ebb8c2ebb55e4e36bd8996988cd51194b2e716ef4c799ae2",
+      "source_drift": []
+    },
+    {
+      "name": "coverage",
+      "command": "node node_modules/vitest/vitest.mjs run --coverage --reporter=json --outputFile=/mnt/data/gridex-work/evidence/d-final-vitest.json",
+      "exit": 0,
+      "started_at": "2026-09-18T12:28:04.630916+00:00",
+      "seconds": 28.29,
+      "log_sha256": "e2d1bd7d7ba9aceaa55f23fd69e9d2d68b92c87fe902699c999b1a6e5ce8b40c",
+      "execution_source_sha256": "95fe205ed8a1f0a2ebb8c2ebb55e4e36bd8996988cd51194b2e716ef4c799ae2",
+      "source_drift": []
+    },
+    {
+      "name": "retained-source",
+      "command": "node --experimental-vm-modules --test scripts/test-ediel-component-escaping.cjs scripts/test-ediel-guide-governance.cjs scripts/test-ediel-prodat-characteristic-fields.cjs scripts/test-ediel-prodat-document-fields.cjs scripts/test-ediel-prodat-party-fields.cjs scripts/test-ediel-prodat-reference-fields.cjs scripts/test-ediel-prodat-source-locators.cjs scripts/test-ediel-route-destination.cjs scripts/test-ediel-rule-pack-source-identity.cjs",
+      "exit": 0,
+      "started_at": "2026-09-18T12:28:32.924003+00:00",
+      "seconds": 3.38,
+      "log_sha256": "ab060fa98b3c7ddaa3cc012b87b37c66af3f213ddad8808ed88a396d65222d34",
+      "execution_source_sha256": "95fe205ed8a1f0a2ebb8c2ebb55e4e36bd8996988cd51194b2e716ef4c799ae2",
+      "source_drift": []
+    },
+    {
+      "name": "lint",
+      "command": "node --max-old-space-size=2560 node_modules/eslint/bin/eslint.js",
+      "exit": 0,
+      "started_at": "2026-09-18T12:28:36.305493+00:00",
+      "seconds": 70.26,
+      "log_sha256": "4126965fbf353712e4a2cda94167429944f15f94246da69238d6cc18b59edace",
+      "execution_source_sha256": "95fe205ed8a1f0a2ebb8c2ebb55e4e36bd8996988cd51194b2e716ef4c799ae2",
+      "source_drift": []
+    },
+    {
+      "name": "integrity",
+      "command": "npm run ediel:masterplan-v2:integrity",
+      "exit": 0,
+      "started_at": "2026-09-18T12:29:46.571659+00:00",
+      "seconds": 0.29,
+      "log_sha256": "6b69e14e634de940b6b47b8e579ee132ce867dfe9926a178061b05439e74c106",
+      "execution_source_sha256": "95fe205ed8a1f0a2ebb8c2ebb55e4e36bd8996988cd51194b2e716ef4c799ae2",
+      "source_drift": []
+    },
+    {
+      "name": "mechanical",
+      "command": "bash quality/mechanical/verify.sh",
+      "exit": 0,
+      "started_at": "2026-09-18T12:29:46.862864+00:00",
+      "seconds": 0.19,
+      "log_sha256": "af300e3d959634dcfebeb6acfaca7580f541c38a7487b18c2cc884ca8c1434c3",
+      "execution_source_sha256": "95fe205ed8a1f0a2ebb8c2ebb55e4e36bd8996988cd51194b2e716ef4c799ae2",
+      "source_drift": []
+    },
+    {
+      "name": "quality-tests",
+      "command": "node node_modules/vitest/vitest.mjs run --config quality/vitest.config.ts",
+      "exit": 0,
+      "started_at": "2026-09-18T12:29:47.050814+00:00",
+      "seconds": 1.14,
+      "log_sha256": "91c94f2c0e2f76561c3a5aa10e28e0c0dade5ea8208afb7425e484ffda52a8f2",
+      "execution_source_sha256": "95fe205ed8a1f0a2ebb8c2ebb55e4e36bd8996988cd51194b2e716ef4c799ae2",
+      "source_drift": []
+    },
+    {
+      "name": "rbac",
+      "command": "npm run security:rbac",
+      "exit": 0,
+      "started_at": "2026-09-18T12:29:48.192624+00:00",
+      "seconds": 0.49,
+      "log_sha256": "aec57f4c06e1c1c0a1f2e58e7eb188c82fe4c01c35ba3dd002634abb9c73601d",
+      "execution_source_sha256": "95fe205ed8a1f0a2ebb8c2ebb55e4e36bd8996988cd51194b2e716ef4c799ae2",
+      "source_drift": []
+    },
+    {
+      "name": "large-files",
+      "command": "npm run quality:large-file-budget",
+      "exit": 0,
+      "started_at": "2026-09-18T12:29:48.684556+00:00",
+      "seconds": 0.34,
+      "log_sha256": "2dcf4a82a59c409b6a8706d24d8d24b2b76fec42fdca4b4d609a5898a2103eba",
+      "execution_source_sha256": "95fe205ed8a1f0a2ebb8c2ebb55e4e36bd8996988cd51194b2e716ef4c799ae2",
+      "source_drift": []
+    },
+    {
+      "name": "tenant-ratchet",
+      "command": "npm run tenant:service-role-ratchet",
+      "exit": 0,
+      "started_at": "2026-09-18T12:29:49.029830+00:00",
+      "seconds": 0.29,
+      "log_sha256": "f34ce97ed9b4f5cd5ebbd7c72a5305c6f2f0f601a30d9ee11840de5f9f2f20d8",
+      "execution_source_sha256": "95fe205ed8a1f0a2ebb8c2ebb55e4e36bd8996988cd51194b2e716ef4c799ae2",
+      "source_drift": []
+    },
+    {
+      "name": "diff-check",
+      "command": "git diff --check",
+      "exit": 0,
+      "started_at": "2026-09-18T12:29:49.323824+00:00",
+      "seconds": 0.13,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "execution_source_sha256": "95fe205ed8a1f0a2ebb8c2ebb55e4e36bd8996988cd51194b2e716ef4c799ae2",
+      "source_drift": []
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "exit": 1,
+      "started_at": "2026-09-18T12:29:49.456071+00:00",
+      "seconds": 43.82,
+      "log_sha256": "23548cd5a51ceaf892f2cf398f14e4e404b5c3ac9bf177b64103e0c58baf76ab",
+      "execution_source_sha256": "95fe205ed8a1f0a2ebb8c2ebb55e4e36bd8996988cd51194b2e716ef4c799ae2",
+      "source_drift": []
+    }
+  ],
+  "execution_source_manifest": "quality/audits/ediel-masterplan-v2/f3-d-subtype-execution-source-20260918.json",
+  "execution_source_sha256": "95fe205ed8a1f0a2ebb8c2ebb55e4e36bd8996988cd51194b2e716ef4c799ae2",
+  "build_retry": {
+    "command": "NODE_OPTIONS=--max-old-space-size=2304 NEXT_TELEMETRY_DISABLED=1 node --max-old-space-size=2304 node_modules/next/dist/bin/next build --webpack",
+    "exit": 1,
+    "seconds": 100.51,
+    "log_sha256": "5a29e39fde7f866578c2b77c930a50f058f0044c6515916120f750696a27aadc"
+  },
+  "limitations": [
+    "GitHub in this session exposes only read operations; no new commit/PR was published and no ordinary CI ran for this candidate.",
+    "The first ordinary local npm run build failed with SIGKILL/OOM; the 2304 MiB retry exhausted its heap during type checking. The same full Next.js webpack build passed with a local 3072 MiB process cap, followed by the unchanged bundle budget. All attempts are preserved separately; this is not ordinary new-head GitHub CI.",
+    "An initial standard typecheck attempt was interrupted at the tool time limit and is not counted as a pass. Final equivalent tsc projects passed with a local 3072 MiB heap cap; source/configuration/thresholds unchanged.",
+    "Original PDF bytes were not available for a fresh rehash. Four supplied printed page images and the frozen projection support the selected six cells; original full-source/live certification is not claimed.",
+    "The remaining 104 numeric D cells are not recertified by this bounded unit. Existing parent/external-fact/register/date behavior is preserved, not declared absent or fully accepted.",
+    "Full generic-builder/TGT/admin data acquisition, national negative APERAK mapping, grammar, real counterparties and F3–F7 are not certified by these outbound/canonical-field tests.",
+    "No independent reviewer ran in this workbench. Self-review caught and corrected the header-placement regression; substantive independent final-head review remains required."
+  ],
+  "production_mutations": false,
+  "sql_schema_types_grants_changed": false,
+  "dependencies_changed": false,
+  "specification_changed": false,
+  "pr310": "PAUSED_EXCLUDED",
+  "build_attempts": [
+    {
+      "name": "build",
+      "command": "npm run build",
+      "exit": 1,
+      "started_at": "2026-09-18T12:29:49.456071+00:00",
+      "seconds": 43.82,
+      "log_sha256": "23548cd5a51ceaf892f2cf398f14e4e404b5c3ac9bf177b64103e0c58baf76ab",
+      "execution_source_sha256": "95fe205ed8a1f0a2ebb8c2ebb55e4e36bd8996988cd51194b2e716ef4c799ae2",
+      "source_drift": [],
+      "log": "qualified-build.log"
+    },
+    {
+      "command": "NODE_OPTIONS=--max-old-space-size=2304 NEXT_TELEMETRY_DISABLED=1 node --max-old-space-size=2304 node_modules/next/dist/bin/next build --webpack",
+      "exit": 1,
+      "seconds": 100.51,
+      "log_sha256": "5a29e39fde7f866578c2b77c930a50f058f0044c6515916120f750696a27aadc",
+      "log": "qualified-build-low-memory.log",
+      "reason": "V8 heap exhausted during type checking at local 2304 MiB cap"
+    },
+    {
+      "command": "NODE_OPTIONS=--max-old-space-size=3072 NEXT_TELEMETRY_DISABLED=1 node --max-old-space-size=3072 node_modules/next/dist/bin/next build --webpack",
+      "exit": 0,
+      "seconds": 123.32,
+      "log_sha256": "a25096816031cd7fbdd2e04f4e160ae235ca4c6acca1999acab2e3dc38210bff",
+      "name": "build-3072",
+      "log": "qualified-build-3072.log",
+      "execution_source_sha256": "95fe205ed8a1f0a2ebb8c2ebb55e4e36bd8996988cd51194b2e716ef4c799ae2",
+      "source_drift_at_post_build_check": [],
+      "configuration_note": "Local process memory cap only; same Next.js webpack build, source, TypeScript checks and repository settings. No committed memory or quality budget changes."
+    }
+  ],
+  "final_local_build": {
+    "command": "NODE_OPTIONS=--max-old-space-size=3072 NEXT_TELEMETRY_DISABLED=1 node --max-old-space-size=3072 node_modules/next/dist/bin/next build --webpack",
+    "exit": 0,
+    "seconds": 123.32,
+    "log_sha256": "a25096816031cd7fbdd2e04f4e160ae235ca4c6acca1999acab2e3dc38210bff",
+    "name": "build-3072",
+    "log": "qualified-build-3072.log",
+    "execution_source_sha256": "95fe205ed8a1f0a2ebb8c2ebb55e4e36bd8996988cd51194b2e716ef4c799ae2",
+    "source_drift_at_post_build_check": [],
+    "configuration_note": "Local process memory cap only; same Next.js webpack build, source, TypeScript checks and repository settings. No committed memory or quality budget changes."
+  },
+  "bundle_budget": {
+    "name": "bundle-budget",
+    "command": "npm run quality:bundle-budget",
+    "exit": 0,
+    "seconds": 0.14,
+    "log_sha256": "3b39846fcc8530013f5e9cec26c420681e45783167ae8b4799e6ec07731f287f",
+    "execution_source_sha256": "95fe205ed8a1f0a2ebb8c2ebb55e4e36bd8996988cd51194b2e716ef4c799ae2",
+    "source_drift": []
+  },
+  "remote_final_observation": {
+    "repository": "heke99/gridex-ops-platform",
+    "branch": "codex/ediel-v2-dependent-conditions-20260918",
+    "base": "main",
+    "observed_date": "2026-09-18",
+    "source": "GitHub.compare_commits",
+    "status": "identical",
+    "ahead_by": 0,
+    "behind_by": 0,
+    "main_sha": "b916213e83871e9f4d15b9fd52a2b8c19394c9ca",
+    "candidate_published": false
+  }
+}

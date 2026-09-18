@@ -1,52 +1,43 @@
-## 2026-09-18 — null-rejection rereview follow-up (not merged)
+# Active unit — source-bound PRODAT subtype D conditions
 
-Published97f75051 fixed the initial review set and passed all four ordinary CI
-workflows, including coverage/build/replay. Rereview4045597721 then identified
-the omitted nullable-company rejection variant: two failing status cases were
-reproduced and fixed; the38-case application suite now passes. The old PR326
-active-state heading is explicitly historical. Latest same-source local checks
-pass2294 application cases (480 register subset),851 retained source cases,
-all3 TypeScript projects, lint, coverage and other retained quality gates.
-The current follow-up still requires publication, final-head ordinary CI and
-substantive rereview before guarded merge. Earlier2291/477 numbers and97f75051
-CI qualify only their historical head, not this new follow-up.
-Evidence: `quality/audits/ediel-masterplan-v2/f3-register-null-rejection-review-20260918.json`.
-PR310 stays paused; no SQL/schema/types or live market/production changes.
+Status: BLOCKED for publication; tests, types, coverage, retained quality gates, final local full build and bundle budget pass; publication, ordinary CI and independent review remain open.
+Branch: `codex/ediel-v2-dependent-conditions-20260918`.
+Remote base: `b916213e83871e9f4d15b9fd52a2b8c19394c9ca`.
+Exact baseline tree: `54f9cf4fe56e42768ef132a23f6a79baea0632d5`.
 
----
+PR328 is merged. Do not restore register code or redo its closed review findings.
+The existing D branch was read from GitHub and was identical to main. This unit's
+changes exist only in the local candidate/patch: no new PR, push, CI or merge.
+The current connector exposes read tools only; no CLI write credentials/network
+are available in this workbench. Do not weaken protection or use another
+service's secrets as an indirect GitHub write channel.
 
-# PR328 register review remediation — single active task
+## Implemented scope
 
-Status: LOCAL_PASS_PENDING_NEW_HEAD_CI_AND_REVIEW.
-Branch: `codex/ediel-v2-prodat-register-rules-20260917`. PR328 is open and ready
-for review, not merged. Base for these fixes is `06493a26d4cb320ed31f38de8e308bf87b50bb1c`
-(tree `f0a60721506c92171e2a15df9e5d8ac8a56e702d`), not old2c11f27.
-The recovered implementation is already in GitHub; do not restart recovery.
+Six original numeric cells: Z06:508/217/306/254 and Z09:216/217. Subtype
+requirements are required/optional/forbidden/undetermined, not an unrestricted
+byCell checkbox. Actual first-register field223 is authoritative per object;
+other objects/agencies/registers/messages and stored root statuses cannot supply
+it. Canonical all/dependent-only validation and row/send guards use this source
+rule. Mandatory/forbidden/unknown outcomes cannot use the intentional-invalid-
+test-send bypass. Shared date placement/format checks remain in force.
 
-Nine review findings and three additional source-selection/dependency findings
-were addressed. Real admin-to-orchestrator tests now prove multi-object approval
-and B-only retry after A committed; per-company write permission is enforced
-before facts are stored. Both builders reject invalid runtime agency; unsupported
-coded attributes reject; null-company CAS, Z05 source identity and source-message
-marker identity are corrected. Historical source qualification is explicitly
-corrected rather than rewriting failed exit1. Read the review audit for details.
+This does not certify the other 104 D cells, full grammar/ACK mapping, F3–F7,
+any live market test or release. Prior register/date acceptance is not undone.
+No schema, SQL, generated database types, dependencies, privileges, production
+data, storage or actual market messages were changed. PR310 remains paused at
+`e961135199f292b8210884f07de3b616a670161a` and is excluded.
 
-Fresh same-source local qualification: 2291/2291 application tests in233 files,
-477 register cases in20 files (subset of2291), 851/851 unchanged retained source
-tests, all three TypeScript projects, lint, integrity, mechanical, quality tests,
-RBAC and size budgets pass. Coverage passes unchanged thresholds. New source
-manifest and command/log digests are in the review JSON; source drift is empty.
-No claim of new-head ordinary GitHub CI or completed independent rereview yet.
+## Exact next action
 
-Next action: publish exactly this candidate, re-read the actual head, request
-substantive rereview of all nine threads, run all four ordinary workflows including
-build/replay/coverage, fix any real findings and requalify before guarded merge.
-Evidence: `quality/audits/ediel-masterplan-v2/f3-register-review-20260918.md`
-and `.json`. Old local/CI evidence is historical, not new-head acceptance.
+Read the completed local qualification audit, then publish the guarded patch on
+this existing branch through a write-capable environment. Read current main and
+branch first; never overwrite an advanced branch. Run all ordinary workflows on
+the exact published head, obtain independent substantive review, resolve findings,
+and merge only after the gates pass. Continue the original D inventory afterward;
+never mark the remaining 104 or later masterplan phases complete from this unit.
 
-PR310 remains PAUSED at e961135199f292b8210884f07de3b616a670161a and excluded.
-PR327 remains MERGED as51c73950515d771d2c2edcb97fde28ab087437a3.
-No schema/SQL/generated types, original specification, dependencies, production
-data/storage, explicit deployment or real market messages changed. Existing
-per-object atomicity, original-actor retry and legacy-namespace blocks remain.
-The separate original110D condition review starts only after register merge.
+Evidence: `quality/audits/ediel-masterplan-v2/f3-d-subtype-qualification-20260918.json`,
+`f3-d-subtype-review-20260918.md`, `f3-d-condition-inventory-20260918.json` and
+`pr328-merge-receipt.json`. Historical prepublication memory is archived under
+`.agent-memory/archive/2026-09-18-pr328-merged/` without alteration.
