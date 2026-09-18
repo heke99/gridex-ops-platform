@@ -6,6 +6,8 @@ import type { EdielTgtCaseTestData } from '@/lib/ediel/testing/tgtTestData'
 import type { ProdatDependentConditionFacts } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import { preflightEdielMessageRow } from '@/lib/ediel/core/messageBuilder/payloadPreflight'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import { getEdielTgtDraftOptionsForCase } from '@/lib/ediel/testing/tgtEdifact.part-3'
+import { raw, line } from './fixtures/prodat-register'
 import { parseProdatMessage } from '@/lib/ediel/prodat/parser'
 
 // Actual public draft entry point and existing 1.2.5 step definition. Source
@@ -70,5 +72,53 @@ describe('TGT full draft retains all source objects and validates before readine
  it('does not silently build an empty PRODAT when all supplied columns are for another function',()=>{
   const p=params(); p.importedTestData!.groups=p.importedTestData!.groups.map(g=>({...g,columns:g.columns.map(c=>({...c,name:c.name.replace('Z04D','Z06F')}))}))
   expect(()=>buildEdielTgtDraft(p)).toThrow(/source|register/)
+ })
+})
+
+
+describe('TGT register draft choices and envelope safeguards',()=>{
+ it('exposes only operator-built steps as generatable, never the portal response',()=>{
+  const options=getEdielTgtDraftOptionsForCase('PRODAT','supplier','1.2.5')
+  expect(options.find(o=>o.stepNo===4)).toMatchObject({code:'Z04',canGenerate:true,disabledReason:null})
+  expect(options.filter(o=>!o.canGenerate).length).toBeGreaterThan(0)
+  for(const option of options.filter(o=>!o.canGenerate))expect(option.disabledReason).toContain('Edielportalen')
+  expect(getEdielTgtDraftOptionsForCase('PRODAT','supplier','NOT_REGISTERED')).toEqual([])
+ })
+ it('reports absent envelope components explicitly instead of treating empty input as a valid register draft',()=>{
+  const draft=buildEdielTgtDraft(params())
+  const issues=validateEdielTgtDraft('',draft.step,null,{registerFacts:facts})
+  expect(issues.filter(i=>i.severity==='error').map(i=>i.code)).toEqual(expect.arrayContaining(['missing_unb','missing_unh','missing_bgm','missing_unt','missing_unz']))
+ })
+ it('rejects inconsistent/overlong envelope references and dummy object data even with supplied facts',()=>{
+  const draft=buildEdielTgtDraft(params())
+  const payload=raw([line('1','UNKNOWN')]).replace('+I++23-DDQ-PRODAT', '+INTERCHANGEREFERENCETOOLONG++23-DDQ-PRODAT').replace('UNZ+1+I', 'UNZ+2+OTHERREFERENCETOOLONG')
+  const issues=validateEdielTgtDraft(payload,draft.step,null,{registerFacts:facts,receiverSubaddress:'MISSING_SUBADDRESS'})
+  expect(issues.filter(i=>i.severity==='error').map(i=>i.code)).toEqual(expect.arrayContaining(['unz_reference_mismatch','interchange_reference_too_long','unz_reference_too_long','dummy_test_data_detected']))
+  expect(issues.map(i=>i.code)).toEqual(expect.arrayContaining(['unz_count_not_one','missing_prodat_subaddress']))
+ })
+})
+
+// Exercise the real public dispatch boundary, not only its internal renderer.
+describe('TGT register entry-point and source inventory boundaries',()=>{
+ it('rejects an unregistered test case before constructing a draft',()=>{
+  expect(()=>buildEdielTgtDraft({...params(),testCaseCode:'NOT_REGISTERED'})).toThrow('Okänt TGT-testfall')
+ })
+ it('rejects a nonexistent step rather than silently using the first definition',()=>{
+  expect(()=>buildEdielTgtDraft({...params(),stepNo:999})).toThrow('Steg 999 finns inte')
+ })
+ it('refuses to generate a portal-owned step as a Gridex register message',()=>{
+  const step=getEdielTgtDraftOptionsForCase('PRODAT','supplier','1.2.5').find(option=>!option.canGenerate)!
+  expect(()=>buildEdielTgtDraft({...params(),stepNo:step.stepNo})).toThrow('ska komma från Edielportalen')
+ })
+ it('detects a missing register from source inventory even when a replacement payload is a valid single-register object',()=>{
+  const p=params();const draft=buildEdielTgtDraft(p)
+  const replacement=raw([line('1','A',undefined,'9'),line('2','B',undefined,'9')])
+  const issues=validateEdielTgtDraft(replacement,draft.step,null,{sourceTestData:p.importedTestData!})
+  expect(issues).toContainEqual(expect.objectContaining({code:'PRODAT_REGISTER_COUNT_MISMATCH',severity:'error'}))
+ })
+ it('rejects an empty source inventory instead of letting the payload supply its own expected objects',()=>{
+  const draft=buildEdielTgtDraft(params())
+  const issues=validateEdielTgtDraft(draft.rawPayload,draft.step,null,{sourceTestData:{...testData(),groups:[]},registerFacts:facts})
+  expect(issues).toContainEqual(expect.objectContaining({code:'PRODAT_REGISTER_EXPECTED_OBJECT_MISSING',severity:'error'}))
  })
 })

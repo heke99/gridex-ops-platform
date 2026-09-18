@@ -48,7 +48,6 @@ import { createEdielPortalTestCustomerGraph } from "@/lib/ediel/portalTestCustom
 
 import { approveSafeMasterdataChanges, rejectSafeMasterdataChanges } from "@/lib/ediel/safeApplyReview"
 import type { EdielEnvironment } from "@/lib/ediel/types"
-import { type EdielInboundCaseActionMode } from "@/lib/ediel/inboundCases"
 import { formNumber, formString, getProdatDraftBuilder, parseEdielTestRoleCode, parseEdielTestSuite, requireScopedEdielMessageForAction, revalidateEdiel, revalidateRelatedMessage } from './actions.part-1'
 import { REPLACEABLE_TGT_ACK_STATUSES } from './actions.part-3'
 
@@ -1123,10 +1122,5 @@ export async function processEdielUtiltsBillingAction(formData: FormData) {
   await revalidateRelatedMessage(edielMessageId);
 }
 
-export function parseInboundCaseMode(
-  value: FormDataEntryValue | null,
-): EdielInboundCaseActionMode {
-  if (value === "create_new_customer") return "create_new_customer";
-  if (value === "link_existing_only") return "link_existing_only";
-  return "update_existing_customer";
-}
+// Compatibility export; the pure form codec no longer imports action dependencies.
+export { parseInboundCaseMode } from '@/lib/ediel/inboundCaseForm'

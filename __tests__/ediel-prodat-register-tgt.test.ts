@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getPortalDataRows } from '@/lib/ediel/testing/tgtEdifact.part-2'
+import { getPortalData, getPortalDataRows } from '@/lib/ediel/testing/tgtEdifact.part-2'
 import { buildPortalProdatSegments } from '@/lib/ediel/testing/tgtEdifact.part-3'
 import { nowRefs, type EdielTgtDraftBuildParams } from '@/lib/ediel/testing/tgtEdifact.part-1'
 import { parseProdatMessage } from '@/lib/ediel/prodat/parser'
@@ -107,6 +107,21 @@ for (const alphabet of alphabets) describe(`both TGT comparators ${alphabet.join
 
 
 describe('source columns cannot silently choose one of several functions',()=>{
+ it('Z05 direct draft data uses expected233 before source209, retaining punctuation',()=>{
+  const td=source([[{name:'Z05L',fields:{'209':'SENT:local','233':'EXPECTED:local'}}]])
+  expect(getPortalData(params(td),{...step,code:'Z05'}).meteringPointId).toBe('EXPECTED:local')
+ })
+ it('Z05 falls back to209 only when233 is absent',()=>{
+  const td=source([[{name:'Z05L',fields:{'209':'ONLY:local'}}]])
+  expect(getPortalData(params(td),{...step,code:'Z05'}).meteringPointId).toBe('ONLY:local')
+ })
+ it.each([undefined,'1'])('identity-mismatch diagnostic shows the only expected object, not register%s',index=>{
+  const td=source([[{name:'Z04',fields:{'209':'EXPECTED:local',...(index ? {'258':index}: {})}}]])
+  const msg={message_family:'PRODAT',message_code:'Z04',raw_payload:raw([line('1','OTHER:local')],'Z04')} as EdielMessageRow
+  const issue=compareInboundPayloadToTgtTestData({message:msg,testData:td}).find(i=>i.fieldCode==='209' && i.actual==='OTHER:local')
+  expect(issue).toMatchObject({expected:'EXPECTED:local',actual:'OTHER:local'})
+ })
+
  it('rejects an unqualified register column in a mixed-function group',()=>{
   const td=source([[{name:'Z04L register 1',fields:first('A')},{name:'Z06F register 1',fields:first('B')},{name:'register 2',fields:{'209':'A','213':'20'}}]])
   expect(()=>getPortalDataRows(params(td),step)).toThrow('prodat_register_source_function_ambiguous')

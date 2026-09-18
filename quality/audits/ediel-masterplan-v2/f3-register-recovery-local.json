@@ -10,10 +10,17 @@
     "register_files": 16
   },
   "source_cases": {
-    "passed": 851,
-    "failed": 0,
+    "passed": null,
+    "failed": null,
     "old_test_assertions_unchanged": true,
-    "loader_only_harness_update": true
+    "loader_only_harness_update": true,
+    "status": "HISTORICAL_SUMMARY_RETRACTED_NOT_SAME_SOURCE_QUALIFIED",
+    "historical_claim": {
+      "passed": 851,
+      "failed": 0,
+      "old_test_assertions_unchanged": true,
+      "loader_only_harness_update": true
+    }
   },
   "commands": {
     "typecheck": {
@@ -174,6 +181,7 @@
     }
   },
   "limitations": [
+    "Historical retained-source command exited 1. The claimed 851/0 summary is retracted here: three source-loader files changed later, so this command record does not establish a passing same-source result. See f3-register-review-20260918.json for fresh qualification; this failed command and its timestamps are preserved.",
     "Local Next build worker SIGKILL; ordinary CI build required",
     "No live customer mutations or market sends",
     "Mocked DB boundaries do not certify production",
@@ -181,5 +189,11 @@
   ],
   "production_changes": false,
   "original_specification_changed": false,
-  "pr310": "PAUSED"
+  "pr310": "PAUSED",
+  "review_correction": {
+    "finding": 4045191715,
+    "previous_blob_sha": "1697c379d189a0015af89c030051c1672dfd30ef",
+    "failed_command_exit_preserved": true,
+    "scope": "Correct interpretation only; no old failed exit is rewritten as successful."
+  }
 }

@@ -91,7 +91,11 @@ export function getPortalData(
   const customerId = cleanOptionalCode(customerIdField?.value, 35) ?? "";
 
   const sourceColumn = columnName ? findSourceColumn(params, columnName) : null;
-  const rawMeteringPointId = step.family === 'PRODAT' ? tgtProdatSourceValue('209', valueFor(['209 anläggningsid', '233 anläggningsid'])) : cleanOptionalCode(
+  const rawMeteringPointId = step.family === 'PRODAT'
+    ? step.code === 'Z05'
+      ? (tgtProdatSourceValue('233', valueFor(['233 anläggningsid'])) ?? tgtProdatSourceValue('209', valueFor(['209 anläggningsid'])))
+      : (tgtProdatSourceValue('209', valueFor(['209 anläggningsid'])) ?? tgtProdatSourceValue('233', valueFor(['233 anläggningsid'])))
+    : cleanOptionalCode(
     valueFor([
       "209 anläggningsid",
       "209 anlaggningsid",

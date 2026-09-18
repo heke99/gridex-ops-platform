@@ -1,38 +1,29 @@
 {
   "project": "gridex-ops-platform",
   "updated_at": "2026-09-18",
-  "status": "IMPLEMENTED_NOT_VERIFIED",
+  "status": "LOCAL_PASS_PENDING_CI_REVIEW",
   "current_state": ".agent-memory/current-state.md",
   "branch": "codex/ediel-v2-prodat-register-rules-20260917",
   "base_head_sha": "51c73950515d771d2c2edcb97fde28ab087437a3",
-  "active_item": "Qualify and publish recovered register continuation",
-  "next_action": "Finish same-source verification, publish to PR328, then ordinary exact-head CI and substantive independent review before guarded merge.",
+  "active_item": "Publish and qualify PR328 review remediation",
+  "next_action": "Publish exact locally qualified candidate, get all four ordinary CI workflows and substantive rereview, then guarded merge.",
   "main_merged": false,
   "pull_request": 328,
-  "draft": true,
-  "published_implementation_head": "4723c548ac982f2e1a5dfed39f543013bea24fb4",
+  "draft": false,
+  "published_implementation_head": "06493a26d4cb320ed31f38de8e308bf87b50bb1c",
   "source_state": {
     "runtime_implementation_started": true,
     "register_tests_executed": true,
-    "register_cases_passed": 343,
-    "new_cases_vs_published_pr328": 197,
-    "earlier_fresh_full_suite": {
-      "passed": 2152,
-      "failed": 0,
-      "files": 229
-    },
-    "final_same_source_local": "TESTED_BUILD_RESOURCE_BLOCKED",
-    "normal_ci": "PENDING_NEW_HEAD",
-    "independent_review": "PENDING",
-    "scope": "Implemented register continuation, freshly tested locally; ordinary final-head CI/build and substantive review remain pending. Local build worker SIGKILL is not success. No full F3/110D/live certification.",
-    "full_vitest_passed": 2157,
+    "full_vitest_passed": 2291,
     "source_cases_passed": 851,
-    "typechecks": [
-      "application",
-      "tests",
-      "scripts"
-    ],
-    "local_build": "SIGKILL_NOT_PASSED"
+    "register_cases_passed": 477,
+    "register_test_files": 20,
+    "new_cases_vs_recovered06493": 134,
+    "same_source_local": "PASS",
+    "normal_ci": "PENDING_NEW_REVIEW_HEAD",
+    "independent_review": "REREVIEW_REQUIRED",
+    "scope": "Bounded register delivery; not fullF3/110D/live acceptance",
+    "qualification_manifest_sha256": "fba2ef5df5b9f80f864bb52d5ed5dbcea7d8cb2afab37accdd640efc6aae6b72"
   },
   "prior_completed": {
     "pr": 327,
@@ -54,7 +45,7 @@
     "backup_branch": "backup/pr310-paused-20260916-e9611351"
   },
   "plan": "docs/superpowers/plans/2026-09-17-prodat-register-rules.md",
-  "implementation_checkpoint_base": "2c11f276cdf30e80d234752d96c9914e7b30af5d",
-  "evidence": "quality/audits/ediel-masterplan-v2/f3-register-recovery-20260918.md",
+  "implementation_checkpoint_base": "06493a26d4cb320ed31f38de8e308bf87b50bb1c",
+  "evidence": "quality/audits/ediel-masterplan-v2/f3-register-review-20260918.json",
   "publication_receipt": "quality/audits/ediel-masterplan-v2/pr328-publication-receipt.json"
 }

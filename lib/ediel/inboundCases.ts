@@ -446,11 +446,13 @@ export async function createOrUpdateInboundProdatCase(params: {
     const saved = existing as EdielInboundCaseRow
     if (saved.company_id !== companyId) throw new Error('TENANT_CONTEXT_MISMATCH')
     if (saved.review_decision?.objectApplication || ['applied','approved','rejected'].includes(saved.status)) return saved
-    const { data, error } = await supabaseService
+    const update = supabaseService
       .from('ediel_inbound_cases')
       .update(payload)
       .eq('id', saved.id)
-      .eq('company_id', companyId)
+    // Unresolved tenant identity remains null; never broaden to every tenant.
+    const scopedUpdate = companyId === null ? update.is('company_id', null) : update.eq('company_id', companyId)
+    const { data, error } = await scopedUpdate
       .eq('updated_at', saved.updated_at)
       .eq('status', saved.status)
       .select('*')

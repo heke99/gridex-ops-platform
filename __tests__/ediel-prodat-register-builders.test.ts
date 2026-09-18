@@ -11,6 +11,22 @@ const request: BuildProdatMessageInput = {companyId:'tenant',role:'supplier',bus
 const parsedSegments = (segments: string[]) => parseProdatMessage("UNH+M+PRODAT:D:97A:UN:E2SE6A'"+segments.join("'")+"'UNT+1+M'")
 
 describe('one register emission path for generic and profiled PRODAT builders', () => {
+  it.each(['', 'bad', 9, "9'LIN+999++OTHER:::89", '9:89'])('rejects invalid runtime object agency %s before interpolation', agency => {
+    expect(() => buildProfiledProdatSegments({context:{...context,meterPointIdAgency:agency as never},variant:'L'})).toThrow(/agency/)
+    expect(() => buildProdatMessage({...request,registers,meteringPoint:{...request.meteringPoint,identityAgency:agency as never}})).toThrow(/agency/)
+  })
+  it.each(['9','89',null,undefined])('retains supported/default object agency %s', agency => {
+    const result=buildProfiledProdatSegments({context:{...context,meterPointIdAgency:agency as never},variant:'L'})
+    expect(parsedSegments(result.segments).lineItems[0].identityAgency).toBe(agency ?? '9')
+  })
+  it.each(['UNMAPPED', 'Z25'])('rejects non-empty unknown or inapplicable coded attribute %s', code => {
+    expect(() => buildProdatMessage({...request, registers, codedAttributes:{...request.codedAttributes,[code]:'BAD'}})).toThrow('prodat_coded_attribute_not_allowed')
+  })
+  it('ignores an empty unsupported attribute without emitting CCI/CAV', () => {
+    const result=buildProdatMessage({...request,registers,codedAttributes:{...request.codedAttributes,UNMAPPED:''}})
+    expect(result.rawEdifact).not.toContain('UNMAPPED')
+  })
+
   it('profile emits every register, not only the first line', () => {
     const result = buildProfiledProdatSegments({context:{...context,registers},variant:'L'})
     expect(parsedSegments(result.segments).lineItems).toMatchObject([

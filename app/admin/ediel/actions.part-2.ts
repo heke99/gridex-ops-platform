@@ -897,6 +897,9 @@ export async function saveEdielTgtRegisterFactsAction(formData:FormData) {
   const stepNo=formNumber(formData.get('stepNo'));
   if (!testRunId || !stepNo) throw new Error('PRODAT_REGISTER_SOURCE_EVIDENCE_INVALID');
   const run=await requireScopedEdielTestRunForAction(testRunId,context);
+  await requireCompanyScopedActionAccess(run.company_id, {
+    anyOf: ['ediel_testing.write', 'communication.write'],
+  });
   await requireCompanyOperationalForWrites(run.company_id);
   const step=getEdielTgtTestCaseByCode(run.test_suite,run.role_code,run.test_case_code)?.expectedSteps.find(candidate=>candidate.stepNo===stepNo);
   if (!step || step.actor!=='gridex' || step.family!=='PRODAT' || !['Z04','Z06','Z10'].includes(step.code)) throw new Error('PRODAT_REGISTER_SOURCE_EVIDENCE_INVALID');
