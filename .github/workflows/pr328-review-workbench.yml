@@ -1,0 +1,39 @@
+name: PR328 isolated review workbench
+on:
+  push:
+    branches: [codex/pr328-review-workbench-20260918]
+    paths: [.github/workflows/pr328-review-workbench.yml]
+permissions:
+  contents: read
+jobs:
+  dependencies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 06493a26d4cb320ed31f38de8e308bf87b50bb1c
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Verify published source and install exact locked dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 06493a26d4cb320ed31f38de8e308bf87b50bb1c
+          test "$(git rev-parse HEAD^{tree})" = f0a60721506c92171e2a15df9e5d8ac8a56e702d
+          npm ci --ignore-scripts --no-audit --no-fund
+          git diff --exit-code
+          mkdir -p /tmp/pr328-dependencies
+          tar -czf /tmp/pr328-dependencies/node_modules.tar.gz node_modules
+          sha256sum package-lock.json > /tmp/pr328-dependencies/package-lock.sha256
+          (cd /tmp/pr328-dependencies && sha256sum node_modules.tar.gz > SHA256SUMS)
+          printf '%s\n' 'source=06493a26d4cb320ed31f38de8e308bf87b50bb1c' 'scope=offline dependency transfer only; not acceptance or CI qualification' > /tmp/pr328-dependencies/provenance.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr328-locked-dependencies
+          path: /tmp/pr328-dependencies
+          compression-level: 0
+          retention-days: 1
