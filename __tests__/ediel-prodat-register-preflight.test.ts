@@ -57,7 +57,11 @@ describe('register evidence is carried from server rendering to the actual row s
    const m={...message(raw([line('1','A'),...reason(),qty('10')])),environment}
    const result=validateEdielMessageRowWithRulebook(m,'send')
    expect(result.blocking).toBe(true)
-   expect(result.issues.filter(i=>i.code==='PRODAT_DEPENDENT_CONDITION_UNDETERMINED' && localIssue(i)).every(i=>i.severity==='error' && i.blocking)).toBe(true)
+   const issues=environment==='production'
+    ? result.issues.filter(i=>i.code==='CANONICAL_POLICY_VALIDATION_FAILED' && i.description.startsWith('prodat_canonical_policy_snapshot_missing:Z04'))
+    : result.issues.filter(i=>i.code==='PRODAT_DEPENDENT_CONDITION_UNDETERMINED' && localIssue(i))
+   expect(issues.length).toBeGreaterThan(0)
+   expect(issues.every(i=>i.severity==='error' && i.blocking)).toBe(true)
   })
  }
  it('even the explicit invalid-test-send escape cannot suppress register uncertainty',()=>{

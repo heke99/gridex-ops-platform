@@ -1,3 +1,4 @@
+import { getEdielTgtTestCases } from './tgtRegistry'
 import { readTgtProdatSourceColumns, sourceExpectationIndex } from './tgtProdatSource'
 import { matchProdatRegisterExpectations } from '@/lib/ediel/testing/prodatRegisterExpectation'
 import { prodatRegisterFieldValue } from '@/lib/ediel/prodat/prodatRegisterFields'
@@ -738,7 +739,13 @@ export function compareInboundPayloadToTgtTestData(params: {
     const location={registerIndex:line.registerIndex,lineSequenceNumber:line.lineNo,identityAgency:line.identityAgency}
     if (match.error) {
       const fieldCode=match.error==='identity' ? '209' : '258'
-      const row=issueForField({fieldCode,expected:match.expected?.index ?? null,actual:fieldCode==='209' ? line.itemId : line.registerIndex,lineItemId:line.itemId,lineItemReference:line.rffLi})
+      // A mismatch is not a successful match. Only name a unique expected
+      // facility; never infer an object by register/column ordinal.
+      const expectedIds = [...new Set(objects.flatMap(object => expectedFacilityIdsForObject(object,code)))]
+      const expectedValue = fieldCode === '209'
+        ? expectedIds.length === 1 ? expectedIds[0] : null
+        : match.expected?.index ?? null
+      const row=issueForField({fieldCode,expected:expectedValue,actual:fieldCode==='209' ? line.itemId : line.registerIndex,lineItemId:line.itemId,lineItemReference:line.rffLi})
       issues.push({...row,...location})
       if (fieldCode==='209') issues.push({...row,...location,fieldCode:'105',ercCode:'40',text:'Anläggningen kan inte identifieras'})
       continue
@@ -982,10 +989,24 @@ export function inferTgtTestCaseCodeForInboundTestData(params: {
   return messageCodePrefixesForTgtAutoMatch(message)[0] ? `${messageCodePrefixesForTgtAutoMatch(message)[0]}.1` : 'AUTO'
 }
 
-function tgtCaseCodeMatchesMessage(message: EdielMessageRow, testCaseCode: string | null | undefined): boolean {
+function tgtCaseCodeMatchesMessage(message: EdielMessageRow, testCaseCode: string | null | undefined, roleCode?: string): boolean {
   const code = String(testCaseCode ?? '').toUpperCase()
 
   if (!code || code === 'AUTO') return true
+
+  // The registered steps own case/function compatibility. In particular, a
+  // multi-step case may contain Z03 and Z04 although the legacy search hint
+  // associates its numeric prefix only with Z03. Hints are a fallback for
+  // unmapped legacy imports, never a reason to discard a registered step.
+  if (String(message.message_family ?? '').toUpperCase() === 'PRODAT') {
+    const definitions = getEdielTgtTestCases().filter(definition =>
+      definition.suite === 'PRODAT' && definition.testCaseCode.toUpperCase() === code)
+    if (definitions.length > 0) {
+      return definitions.some(definition => (!roleCode || definition.roleCode === roleCode) &&
+        definition.expectedSteps.some(step => step.family === 'PRODAT' &&
+          step.code.toUpperCase() === String(message.message_code ?? '').toUpperCase()))
+    }
+  }
 
   const prefixes = messageCodePrefixesForTgtAutoMatch(message)
 
@@ -1014,7 +1035,7 @@ export function scoreTgtTestDataForMessage(message: EdielMessageRow, row: EdielT
   const actualFacilities = messageFacilityIds(message)
   const rowCode = effectiveTgtTestCaseCodeForMessageRow(message, row).toUpperCase()
 
-  if (!tgtCaseCodeMatchesMessage(message, rowCode)) return -1
+  if (!tgtCaseCodeMatchesMessage(message, rowCode, row.roleCode)) return -1
 
   const facilityMismatch = hasFacilityMismatch(message, row.parsedPayload)
 
@@ -1110,13 +1131,14 @@ export function sourceMessageMarker(sourceMessageId: string): string {
 }
 
 export function rawTextHasSourceMessageMarker(rawText: string | null | undefined, sourceMessageId: string): boolean {
-  const text = String(rawText ?? '')
-
-  return (
-    text.includes(sourceMessageMarker(sourceMessageId)) ||
-    text.includes(`GridCore source_message_id=${sourceMessageId}`) ||
-    text.includes(`source_message_id=${sourceMessageId}`)
+  if (!sourceMessageId || sourceMessageId !== sourceMessageId.trim()) return false
+  const escapedId = sourceMessageId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  // Match a complete marker token, not UUID-prefix text or another field name.
+  // Both current and historical marker spellings remain accepted.
+  const pattern = new RegExp(
+    String.raw`(?:^|[\s([{"'\`])(?:GRIDCORE_SOURCE_MESSAGE_ID:|(?:GridCore )?source_message_id=)${escapedId}(?=$|[\s)\]}"'\`,;])`,
   )
+  return pattern.test(String(rawText ?? ''))
 }
 
 export function findExactTgtTestDataForMessage(

@@ -1,5 +1,5 @@
 import { renderProdatRegisterObject } from '@/lib/ediel/prodat/render/registers'
-import type { ProdatMeterRegisterInput } from '@/lib/ediel/prodat/prodatRegisterInput'
+import { prodatObjectIdentityAgency, type ProdatMeterRegisterInput } from '@/lib/ediel/prodat/prodatRegisterInput'
 import type { ProdatDependentConditionFacts } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import { buildProdatDateSegments, resolveProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
 import { isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
@@ -63,7 +63,9 @@ function codedAttributeSegments(attributes: BuildProdatMessageInput['codedAttrib
     const clean = String(value ?? '').trim()
     const messageIndex = PRODAT_26A_MESSAGE_CODES.findIndex(value => value === businessCode)
     const descriptor = PRODAT_26A_FIELD_MATRIX.find(row => row.segmentPath === `CCI++${code}/CAV` && row.requirements[messageIndex] !== '-')
-    return clean ? [`CCI++${escapeEdifactValue(code)}`, `CAV+${':'.repeat(descriptor?.cavComponent ?? 0)}${escapeEdifactValue(clean)}`] : []
+    if (!clean) return []
+    if (!descriptor) throw new Error('prodat_coded_attribute_not_allowed')
+    return [`CCI++${escapeEdifactValue(code)}`, `CAV+${':'.repeat(descriptor.cavComponent ?? 0)}${escapeEdifactValue(clean)}`]
   })
 }
 
@@ -103,7 +105,7 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
   const identities = new Set<string>()
   const objectSegments = objects.flatMap(object => {
     const id = object.meteringPoint?.id?.trim()
-    const agency = object.meteringPoint?.identityAgency ?? '9'
+    const agency = prodatObjectIdentityAgency(object.meteringPoint?.identityAgency)
     const identity = JSON.stringify([id,agency])
     if (id && identities.has(identity)) throw new Error('prodat_register_object_repeated_use_one_inventory')
     if (id) identities.add(identity)

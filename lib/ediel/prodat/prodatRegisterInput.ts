@@ -17,6 +17,13 @@ const aliases = {
   meterDigitCount:['meterDigitCount','meterDigits'],
   meterTimeFrame:['meterTimeFrame','meterTimeInterval'],
 } as const
+/** P26.A LIN/C212/3055: validate at runtime before either builder interpolates
+ * caller input. Nullish means the existing default; no coercion or sanitizing. */
+export function prodatObjectIdentityAgency(value: unknown): '9' | '89' {
+  if (value == null) return '9'
+  if (value !== '9' && value !== '89') throw new Error('prodat_register_identity_agency_invalid')
+  return value
+}
 function record(value: unknown): Record<string,unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('prodat_register_input_invalid')
   return value as Record<string,unknown>

@@ -1,0 +1,304 @@
+{
+  "status": "LOCAL_PASS_PENDING_NEW_HEAD_CI_AND_INDEPENDENT_REVIEW",
+  "date": "2026-09-18",
+  "base_head": "06493a26d4cb320ed31f38de8e308bf87b50bb1c",
+  "base_tree": "f0a60721506c92171e2a15df9e5d8ac8a56e702d",
+  "vitest": {
+    "passed": 2291,
+    "failed": 0,
+    "files": 233,
+    "register_cases": 477,
+    "register_files": 20,
+    "new_vs_base": 134
+  },
+  "retained_source": {
+    "passed": 851,
+    "failed": 0,
+    "all_old_source_test_files_unchanged": true
+  },
+  "coverage": {
+    "lines": {
+      "total": 34323,
+      "covered": 12132,
+      "skipped": 0,
+      "pct": 35.34
+    },
+    "statements": {
+      "total": 40339,
+      "covered": 13671,
+      "skipped": 0,
+      "pct": 33.89
+    },
+    "functions": {
+      "total": 6948,
+      "covered": 2829,
+      "skipped": 0,
+      "pct": 40.71
+    },
+    "branches": {
+      "total": 54169,
+      "covered": 14534,
+      "skipped": 0,
+      "pct": 26.83
+    },
+    "branchesTrue": {
+      "total": 0,
+      "covered": 0,
+      "skipped": 0,
+      "pct": 100
+    }
+  },
+  "thresholds": {
+    "measured_from_pr": 163,
+    "measured_at": "2026-08-17",
+    "vitest": "4.1.9",
+    "provider": "v8",
+    "statements": 32.91,
+    "branches": 25.25,
+    "functions": 34.81,
+    "lines": 35.32
+  },
+  "commands": {
+    "typecheck": {
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:24:07.612236+00:00",
+      "finished": "2026-09-18T09:24:12.258537+00:00",
+      "source_drift": [],
+      "log_sha256": "4b1d0b478880d5443bfb6d57f349e9abc225f248df8c966d105dba22aaf1cbfc"
+    },
+    "typecheck-tests": {
+      "command": [
+        "npm",
+        "run",
+        "typecheck:tests"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:24:12.338899+00:00",
+      "finished": "2026-09-18T09:24:15.115451+00:00",
+      "source_drift": [],
+      "log_sha256": "b215537d20de45f7a64cbd824e9e37d0715a4b39d3e0780f59355d2e037b4656"
+    },
+    "typecheck-scripts": {
+      "command": [
+        "npm",
+        "run",
+        "typecheck:scripts"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:24:15.211857+00:00",
+      "finished": "2026-09-18T09:24:16.156525+00:00",
+      "source_drift": [],
+      "log_sha256": "122902ab9bb4622846143a7b4d89493b7734657820f4cf78d01aea55a4e9701f"
+    },
+    "coverage": {
+      "command": [
+        "npm",
+        "run",
+        "test:coverage"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:24:16.247983+00:00",
+      "finished": "2026-09-18T09:24:44.359593+00:00",
+      "source_drift": [],
+      "log_sha256": "83de6f66e7025479e1455696598871a046a6bf67bba59c52b7dbbaf4ac053803"
+    },
+    "retained-source": {
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "--test",
+        "scripts/test-ediel-component-escaping.cjs",
+        "scripts/test-ediel-guide-governance.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/test-ediel-prodat-document-fields.cjs",
+        "scripts/test-ediel-prodat-party-fields.cjs",
+        "scripts/test-ediel-prodat-reference-fields.cjs",
+        "scripts/test-ediel-prodat-source-locators.cjs",
+        "scripts/test-ediel-route-destination.cjs",
+        "scripts/test-ediel-rule-pack-source-identity.cjs"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:24:44.435161+00:00",
+      "finished": "2026-09-18T09:24:47.627697+00:00",
+      "source_drift": [],
+      "log_sha256": "e7bbe0e93261fe8f541864d22aa014fcce37614b40669c1db1f1abe6f197f977"
+    },
+    "lint": {
+      "command": [
+        "npm",
+        "run",
+        "lint"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:24:47.712662+00:00",
+      "finished": "2026-09-18T09:25:55.701688+00:00",
+      "source_drift": [],
+      "log_sha256": "dac58046f350a0438f44d8283d8934622816b611ec73f2b278c513370f82b692"
+    },
+    "integrity": {
+      "command": [
+        "npm",
+        "run",
+        "ediel:masterplan-v2:integrity"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:25:55.778816+00:00",
+      "finished": "2026-09-18T09:25:55.924355+00:00",
+      "source_drift": [],
+      "log_sha256": "6b69e14e634de940b6b47b8e579ee132ce867dfe9926a178061b05439e74c106"
+    },
+    "mechanical": {
+      "command": [
+        "bash",
+        "quality/mechanical/verify.sh"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:25:55.997954+00:00",
+      "finished": "2026-09-18T09:25:56.061079+00:00",
+      "source_drift": [],
+      "log_sha256": "af300e3d959634dcfebeb6acfaca7580f541c38a7487b18c2cc884ca8c1434c3"
+    },
+    "quality-tests": {
+      "command": [
+        "npx",
+        "vitest",
+        "run",
+        "--config",
+        "quality/vitest.config.ts"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:25:56.133914+00:00",
+      "finished": "2026-09-18T09:25:57.414826+00:00",
+      "source_drift": [],
+      "log_sha256": "66435cd87683d573881b5e495e7cc59a7d4b3ad8cded1871ddac7ac7bac1450a"
+    },
+    "rbac": {
+      "command": [
+        "npm",
+        "run",
+        "security:rbac"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:25:57.488274+00:00",
+      "finished": "2026-09-18T09:25:57.784437+00:00",
+      "source_drift": [],
+      "log_sha256": "aec57f4c06e1c1c0a1f2e58e7eb188c82fe4c01c35ba3dd002634abb9c73601d"
+    },
+    "size-budget": {
+      "command": [
+        "npm",
+        "run",
+        "quality:large-file-budget"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:25:57.879007+00:00",
+      "finished": "2026-09-18T09:25:58.095751+00:00",
+      "source_drift": [],
+      "log_sha256": "2dcf4a82a59c409b6a8706d24d8d24b2b76fec42fdca4b4d609a5898a2103eba"
+    },
+    "diff-check": {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:25:58.170453+00:00",
+      "finished": "2026-09-18T09:25:58.176396+00:00",
+      "source_drift": [],
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "qualification_manifest_sha256": "fba2ef5df5b9f80f864bb52d5ed5dbcea7d8cb2afab37accdd640efc6aae6b72",
+  "changed_code_sha256": {
+    "__tests__/ediel-prodat-register-admin-actions.test.ts": "8404f03953bde8b704ae1b1cf2cc86a88001a26b4f546d449aa732a02193f944",
+    "__tests__/ediel-prodat-register-autopilot-flow.test.ts": "341223b6f5dae95a6ceaa6990dd52e3421d98541a053d751d923cb80570526d4",
+    "__tests__/ediel-prodat-register-batch-application.test.ts": "90d50c45ee5260dcf45bbffe8c325a12cc2cc44052654d9ffd52c9239a370ab6",
+    "__tests__/ediel-prodat-register-builders.test.ts": "c50b083d94b84f8c270ec1a9fef59db475b686015424fa6e16f9e4d279469e3e",
+    "__tests__/ediel-prodat-register-compat-outbound.test.ts": "e44071c6e81cc2d8ffb9a2d157969316f1d25983b5a3721d5d7488d856736fb0",
+    "__tests__/ediel-prodat-register-preflight.test.ts": "0f3e331bc6433b7fc31e1b917de1a9c42fce531e08d4bda80d6bb1ceb5fd5b42",
+    "__tests__/ediel-prodat-register-source-selection.test.ts": "4f26afbfa23c91dc4f491c1ad25a418c08743b14587e41c956eccb45baaa63df",
+    "__tests__/ediel-prodat-register-tgt-actions.test.ts": "46772c4b5c301fafe1e1d6029af25c74c6cade9e0821b8bf19eb5c271e214a5f",
+    "__tests__/ediel-prodat-register-tgt-draft.test.ts": "7ea17eeb09acc9e48db5c1ee6248f1deb9cef656ec257284ff977433ed8cc31e",
+    "__tests__/ediel-prodat-register-tgt-workflow.test.ts": "bfb52aa18f28f62794546d881a798bc2d979dc532bced44c0564741aa95d81ed",
+    "__tests__/ediel-prodat-register-tgt.test.ts": "0a4622875581fbfd33bed91ac477e1964357a5dcfdef062ddccb7226d9c79ce9",
+    "app/admin/ediel/actions.part-2.ts": "81703a7e36e23ed87ee573a2c8fcb406bd5f669fa62c60c43992a03c486db5c5",
+    "app/admin/ediel/actions.part-4.ts": "f71d6b56a467caacda6aa406dd03a0b8fb6ec1b466dbbdfe8085d2c8a1ae85c6",
+    "app/admin/ediel/actions.part-5.ts": "4c8adcf78968388dc531d2255f77466b492a037a9b3ad1f50da9e47498f22a97",
+    "lib/ediel/fileEngine.ts": "73beabb83953cc6638c82132eaa2dbc06857f83432791f55803e7913192cf53f",
+    "lib/ediel/fileEngineConstants.ts": "481b02ff01b0b4ad192595651394ab0e4fc2ff3b82564115efadd35f0929053a",
+    "lib/ediel/inboundCaseForm.ts": "3fa9d0df6ce546e4f80a0f6d5008921c2aa9d64769951f4abd0c8d5d252f8c47",
+    "lib/ediel/inboundCases.ts": "5f3a073fdece33cd61e26724a3b8b2f31a1e1732a919f72723bfff4c880d932c",
+    "lib/ediel/prodat/buildProdat.ts": "88386ffa32dbcdeaf9f5da4b1be1417cfbc624b1cad770786dfd3d6266857cc6",
+    "lib/ediel/prodat/builders/profileRenderer.ts": "6e5288842c295a2248dec932a63fe2505f701fe1da5c6b18bee1e5c533f7eaf1",
+    "lib/ediel/prodat/prodatRegisterInput.ts": "e8991f6d17624ed25dda347357a71c55f927c0766a79d24e0503e52c45bd1e17",
+    "lib/ediel/testing/tgtAutoMatcher.ts": "cc6b432d96acc4580b79f92dc7b051198ca250cf2e0f62e1716d6fdabb8f96ed",
+    "lib/ediel/testing/tgtEdifact.part-2.ts": "4be4ee366a72e52a9e715ffc9e32ca585332890448db982a2c2f3c2a75068ac6",
+    "lib/ediel/testing/tgtRegistry.part-3.ts": "944515f6b904b0a4efc2706543dde772da8b1980de749fe4bee9cd5cca1649cc"
+  },
+  "review_findings": {
+    "4045191630": "FIXED_LOCALLY_REREVIEW_PENDING",
+    "4045191645": "FIXED_LOCALLY_REREVIEW_PENDING",
+    "4045191650": "FIXED_LOCALLY_REREVIEW_PENDING",
+    "4045191661": "FIXED_LOCALLY_REREVIEW_PENDING",
+    "4045191681": "FIXED_LOCALLY_REREVIEW_PENDING",
+    "4045191686": "FIXED_LOCALLY_REREVIEW_PENDING",
+    "4045191696": "FIXED_LOCALLY_REREVIEW_PENDING",
+    "4045191706": "FIXED_LOCALLY_REREVIEW_PENDING",
+    "4045191715": "FIXED_LOCALLY_REREVIEW_PENDING"
+  },
+  "additional_findings": [
+    "S1 registry-defined PRODAT source applicability",
+    "S2 full source-message marker identity",
+    "S3 registry constants separated from file-engine execution"
+  ],
+  "failed_intermediate_evidence": {
+    "review_red_refined": {
+      "passed": 128,
+      "failed": 14,
+      "log_sha256": "5d8657626105525d4543a6ce13e83bfbf73fa685ff0787b54a4f9b9a5db90f9c"
+    },
+    "first_same_source_retained_run": {
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "--test",
+        "scripts/test-ediel-component-escaping.cjs",
+        "scripts/test-ediel-guide-governance.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/test-ediel-prodat-document-fields.cjs",
+        "scripts/test-ediel-prodat-party-fields.cjs",
+        "scripts/test-ediel-prodat-reference-fields.cjs",
+        "scripts/test-ediel-prodat-source-locators.cjs",
+        "scripts/test-ediel-route-destination.cjs",
+        "scripts/test-ediel-rule-pack-source-identity.cjs"
+      ],
+      "exit": 1,
+      "started": "2026-09-18T09:17:28.399546+00:00",
+      "finished": "2026-09-18T09:17:31.562556+00:00",
+      "source_drift": [],
+      "log_sha256": "e6cc4abb5f53d5733912666d7b8e00b60a99fc8d06d2a756ecd7a2cd71d31e72"
+    },
+    "warning": "Historical failed commands are not rewritten as passed; all final commands ran again after the last code correction."
+  },
+  "unchanged": {
+    "original_specification": true,
+    "coverage_configuration": true,
+    "dependencies": true,
+    "sql_schema_and_generated_types": true,
+    "pr310": "PAUSED"
+  },
+  "boundaries": [
+    "External database/network boundaries mocked, not live certification",
+    "No production data/storage, explicit deployment or market send",
+    "Per-object atomicity and original-actor retry, not whole-batch atomicity",
+    "Legacy identity namespaces remain explicitly blocked",
+    "Final-head ordinary CI and independent rereview still required before merge"
+  ],
+  "following_unit": "Remaining110 original D conditions only after register merge"
+}

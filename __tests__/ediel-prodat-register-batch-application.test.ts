@@ -3,6 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { approveEdielInboundCase, createOrUpdateInboundProdatCase, parseInboundProdatBusinessData, rejectEdielInboundCase, type EdielInboundCaseRow } from '@/lib/ediel/inboundCases'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { line, qty, common, raw } from './fixtures/prodat-register'
+import { approveEdielInboundCaseAction } from '@/app/admin/ediel/actions.part-5'
+vi.mock('@/lib/admin/guards',()=>({requireAdminActionAccess:vi.fn(async()=>({userId:'actor'})),requireCompanyScopedActionAccess:vi.fn(async()=>({userId:'actor'}))}))
+vi.mock('next/cache',()=>({revalidatePath:vi.fn()}))
+vi.mock('@/app/admin/ediel/actions.part-1',()=>({formString:(v:unknown)=>typeof v==='string'?v.trim()||null:null,revalidateEdiel:vi.fn()}))
+
 
 // Database and canonical graph RPC boundaries are explicit in-memory fakes.
 // These tests exercise the actual orchestration, not a live database commit.
@@ -25,7 +30,7 @@ beforeEach(()=>{
  stored={id:'case',company_id:'company',ediel_message_id:'message',case_type:parsed.caseType,message_family:'PRODAT',message_code:'Z04',transaction_type:parsed.transactionType,status:'pending_review',customer_id:null,site_id:null,metering_point_id:null,match_confidence:0,parsed_customer:parsed.customer,parsed_site:parsed.site,parsed_metering_point:parsed.meteringPoint,parsed_contract:parsed.contract,parsed_production:parsed.production,proposed_action:parsed.proposedAction,review_decision:null,reviewed_by:null,reviewed_at:null,applied_at:null,failure_reason:null,created_at:'0',updated_at:'0',created_by:'actor',updated_by:'actor'}
  boundary.from.mockImplementation((table:string)=>{
   let change:Record<string,unknown>|null=null;const filters:((row:Record<string,unknown>)=>boolean)[]=[]
-  const query={select:vi.fn(()=>query),update:vi.fn((p:Record<string,unknown>)=>{change=p;return query}),insert:vi.fn(()=>query),eq:vi.fn((k:string,v:unknown)=>{filters.push(row=>k==='review_decision' ? JSON.stringify(keyValue(row,k))===JSON.stringify(JSON.parse(v as string)) : keyValue(row,k)===v);return query}),is:vi.fn((k:string,v:unknown)=>{filters.push(row=>keyValue(row,k)===v);return query}),in:vi.fn((k:string,v:unknown[])=>{filters.push(row=>v.includes(keyValue(row,k)));return query}),or:vi.fn(()=>query),limit:vi.fn(()=>query),maybeSingle:vi.fn(async()=>execute()),single:vi.fn(async()=>execute()),then:undefined as unknown}
+  const query={select:vi.fn(()=>query),update:vi.fn((p:Record<string,unknown>)=>{change=p;return query}),insert:vi.fn(()=>query),eq:vi.fn((k:string,v:unknown)=>{filters.push(row=>k==='review_decision' ? JSON.stringify(keyValue(row,k))===JSON.stringify(JSON.parse(v as string)) : v!==null && keyValue(row,k)===v);return query}),is:vi.fn((k:string,v:unknown)=>{filters.push(row=>keyValue(row,k)===v);return query}),in:vi.fn((k:string,v:unknown[])=>{filters.push(row=>v.includes(keyValue(row,k)));return query}),or:vi.fn(()=>query),limit:vi.fn(()=>query),maybeSingle:vi.fn(async()=>execute()),single:vi.fn(async()=>execute()),then:undefined as unknown}
   function execute(){
    if(table==='grid_owners')return {data:null,error:null}
    if(table==='ediel_messages')return {data:filters.every(f=>f(message as unknown as Record<string,unknown>))?structuredClone(message):null,error:null}
@@ -55,6 +60,23 @@ const params=()=>({actorUserId:'actor',caseId:'case',companyId:'company',objectD
 const batch=()=>stored.review_decision?.objectApplication as {receipts:unknown[]}|undefined
 
 describe('explicit object-scoped customer graph application with durable receipts',()=>{
+ it('actual admin action completes and resumes per-object choices without a legacy mode',async()=>{
+  const f=new FormData();f.set('caseId','case')
+  for(const id of ['A','B'])for(const [key,value] of Object.entries({objectMeteringPointId:id,objectIdentityAgency:'89',objectMode:'create_new_customer',objectCustomerId:'',objectSiteId:'',objectMeteringPointDbId:''}))f.append(key,value)
+  failB=true
+  await expect(approveEdielInboundCaseAction(f)).rejects.toThrow('B deliberately failed')
+  expect(batch()?.receipts).toHaveLength(1)
+  failB=false;await approveEdielInboundCaseAction(f)
+  expect(stored.status).toBe('applied');expect(committed.size).toBe(2)
+  expect(boundary.graph.mock.calls.map(c=>c[0].metering_point.meter_point_id)).toEqual(['A','B','B'])
+ })
+ it('reprocesses an unresolved-company case with IS NULL, not eq null',async()=>{
+  message.company_id=null;stored.company_id=null
+  const result=await createOrUpdateInboundProdatCase({actorUserId:'actor',message})
+  expect(result?.company_id).toBeNull();expect(result?.status).toBe('pending_review')
+  expect(stored.updated_at).not.toBe('0')
+ })
+
  it('applies A and B separately, preserves their registers, and never links a whole message to the first customer',async()=>{
   const result=await approve(params())
   expect(result.status).toBe('applied');expect(boundary.graph).toHaveBeenCalledTimes(2)

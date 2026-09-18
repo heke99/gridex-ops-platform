@@ -1,6 +1,6 @@
 import { resolveProdatRegisterConditionFacts } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
-import { resolveProdatRegisterInputs } from '@/lib/ediel/prodat/prodatRegisterInput'
+import { resolveProdatRegisterInputs, prodatObjectIdentityAgency } from '@/lib/ediel/prodat/prodatRegisterInput'
 import { renderProdatRegisterObject } from '@/lib/ediel/prodat/render/registers'
 import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
 import { prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
@@ -181,6 +181,7 @@ export function buildProfiledProdatSegments(input: {
 
   const meterPointId = portalPartyText(portalData, 'facilityId') ?? context.meterPointId.trim()
   const hasObjectIdentifier = meterPointId.trim().length > 0
+  const identityAgency = prodatObjectIdentityAgency(context.meterPointIdAgency)
 
   const gridAreaId = portalString(portalData, 'gridAreaId') ?? sanitizeProdatText(context.gridAreaId)
   const dates = buildProdatDateSegments(policy.code, policy.subtype, dateInputs, input.generatedAt)
@@ -193,7 +194,7 @@ export function buildProfiledProdatSegments(input: {
   ]
 
   if (hasObjectIdentifier) {
-    segments.push(`LIN+1++${escapeEdifactValue(meterPointId)}:::${context.meterPointIdAgency ?? '9'}`)
+    segments.push(`LIN+1++${escapeEdifactValue(meterPointId)}:::${identityAgency}`)
   } else {
     segments.push('LIN+1')
   }

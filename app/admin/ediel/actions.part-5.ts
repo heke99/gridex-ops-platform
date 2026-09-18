@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache'
 import { requireAdminActionAccess, requireCompanyScopedActionAccess } from '@/lib/admin/guards'
 import { approveEdielInboundCase, getEdielInboundCaseById, rejectEdielInboundCase, type EdielInboundObjectDecision } from '@/lib/ediel/inboundCases'
 import { formString, revalidateEdiel } from './actions.part-1'
-import { parseInboundCaseMode } from './actions.part-4'
+import { parseInboundCaseMode } from '@/lib/ediel/inboundCaseForm'
 
 const permissions = { allOf: ['communication.write', 'masterdata.write'] }
 async function caseAccess(formData: FormData) {
@@ -35,13 +35,17 @@ function objectChoices(form: FormData): EdielInboundObjectDecision[] | undefined
 
 export async function approveEdielInboundCaseAction(formData: FormData) {
   const access = await caseAccess(formData)
+  const objectDecisions = objectChoices(formData)
   await approveEdielInboundCase({
     ...access,
-    objectDecisions: objectChoices(formData),
-    mode: parseInboundCaseMode(formData.get('mode')),
-    selectedCustomerId: formString(formData.get('selectedCustomerId')),
-    selectedSiteId: formString(formData.get('selectedSiteId')),
-    selectedMeteringPointId: formString(formData.get('selectedMeteringPointId')),
+    objectDecisions,
+    // Per-object choices and legacy root defaults are mutually exclusive.
+    ...(objectDecisions ? {} : {
+      mode: parseInboundCaseMode(formData.get('mode')),
+      selectedCustomerId: formString(formData.get('selectedCustomerId')),
+      selectedSiteId: formString(formData.get('selectedSiteId')),
+      selectedMeteringPointId: formString(formData.get('selectedMeteringPointId')),
+    }),
     note: formString(formData.get('note')),
   })
   revalidateEdiel()

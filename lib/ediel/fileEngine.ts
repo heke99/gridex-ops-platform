@@ -18,18 +18,17 @@ import { createEdielMessageEvent } from "@/lib/ediel/db";
 import { syncActorTestingForMessage } from "@/lib/ediel/actorTestingEngine";
 import { formatErrorMessage } from "@/lib/errors";
 
-export const GRIDEX_TGT_EDIEL_ID = "92825";
-// Backwards-compatible alias used by the TGT/file-engine views only.
-// Actor/AGT identity must come from ediel_actor_settings and route profiles.
-export const GRIDEX_EDIEL_ID = GRIDEX_TGT_EDIEL_ID;
-export const EDIEL_TGT_TESTSYSTEM_EDIEL_ID = "91100";
-export const EDIEL_TGT_TESTSYSTEM_EMAIL = "91100@ediel.se";
-export const EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS = "PRODAT";
-// In the PRODAT 26.A EDIFACT interchange, Edielportalens testsystem uses
-// receiver subaddress PRODAT. This is separate from SMTP address 91100@ediel.se.
-export const EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS = "PRODAT";
-export const EDIEL_TGT_PRODAT_APPLICATION_REFERENCE = "23-DDQ-PRODAT";
-export const EDIEL_TGT_PRODAT_ESCO_APPLICATION_REFERENCE = "23-DGI-PRODAT";
+export {
+  GRIDEX_TGT_EDIEL_ID,
+  GRIDEX_EDIEL_ID,
+  EDIEL_TGT_TESTSYSTEM_EDIEL_ID,
+  EDIEL_TGT_TESTSYSTEM_EMAIL,
+  EDIEL_TGT_PRODAT_SENDER_SUB_ADDRESS,
+  EDIEL_TGT_PRODAT_RECEIVER_SUB_ADDRESS,
+  EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
+  EDIEL_TGT_PRODAT_ESCO_APPLICATION_REFERENCE
+} from './fileEngineConstants';
+import { EDIEL_TGT_PRODAT_APPLICATION_REFERENCE, EDIEL_TGT_PRODAT_ESCO_APPLICATION_REFERENCE } from './fileEngineConstants';
 
 export function resolveEdielTgtProdatApplicationReference(params?: {
   roleCode?: string | null;

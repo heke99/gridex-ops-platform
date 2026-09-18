@@ -21,7 +21,7 @@ const facts={market:'electricity',registerObjects:[{meteringPointId:'A',identity
 const form=()=>{const f=new FormData();for(const [k,v] of Object.entries({testRunId:'run',testSuite:'PRODAT',roleCode:'supplier',testCaseCode:'1.2.5',stepNo:'4'}))f.set(k,v);return f}
 let filters:[string,unknown][],saved:Record<string,unknown>|null,saveResult:unknown
 beforeEach(()=>{
- vi.clearAllMocks();filters=[];saved=null;saveResult={id:'run'}
+ vi.resetAllMocks();filters=[];saved=null;saveResult={id:'run'}
  b.access.mockResolvedValue({userId:'actor'});b.scoped.mockResolvedValue({...run});b.company.mockResolvedValue({userId:'actor'});b.operational.mockResolvedValue(undefined)
  b.runtime.mockResolvedValue({companyId:'tenant'});b.source.mockResolvedValue({suite:'PRODAT',roleCode:'supplier',testCaseCode:'1.2.5',groups:[]});b.readFacts.mockReturnValue(facts);b.writeFacts.mockReturnValue('checked-notes')
  b.build.mockReturnValue({step,validationIssues:[],messageInput:{companyId:'tenant',parsedPayload:{prodatEngine:{registerEvidence:'binding'}}}});b.create.mockResolvedValue({id:'message'});b.attach.mockResolvedValue(undefined)
@@ -30,6 +30,14 @@ beforeEach(()=>{
  const q={update:vi.fn((v:Record<string,unknown>)=>{saved=v;return q}),eq:vi.fn((k:string,v:unknown)=>{filters.push([k,v]);return q}),select:vi.fn(()=>q),maybeSingle:vi.fn(async()=>({data:saveResult,error:null}))};b.from.mockReturnValue(q)
 })
 describe('actual TGT admin and autopilot register-fact wiring',()=>{
+ it('denied company write permission blocks operator facts before any persistence',async()=>{
+  const f=form(); f.set('registerFacts',JSON.stringify(facts)); f.set('sourceNote','Operator assertion for synthetic source')
+  b.company.mockRejectedValueOnce(new Error('company write denied'))
+  await expect(saveEdielTgtRegisterFactsAction(f)).rejects.toThrow('company write denied')
+  expect(b.company).toHaveBeenCalledWith('tenant',{anyOf:['ediel_testing.write','communication.write']})
+  expect(b.writeFacts).not.toHaveBeenCalled();expect(saved).toBeNull()
+ })
+
  it('admin reads authorized run facts and passes them through the existing builder',async()=>{
   await createEdielTgtDraftAction(form());expect(b.scoped).toHaveBeenCalledWith('run',expect.objectContaining({userId:'actor'}))
   expect(b.readFacts).toHaveBeenCalledWith(expect.objectContaining({run:expect.objectContaining({company_id:'tenant'}),stepNo:4,code:'Z04'}))
