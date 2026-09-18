@@ -482,6 +482,11 @@ function issueFromTgtComparison(
 }
 
 const CANONICAL_PRODAT_ISSUE_RULE_KEYS: Record<ProdatValidationIssue['type'], string> = {
+  // Semantic failures stay explicit. An absent qualified APERAK rule must block
+  // acknowledgement generation; never guess a national numeric code.
+  register_identity_invalid: 'prodat_register_identity_invalid',
+  register_value_invalid: 'prodat_register_value_invalid',
+  expected_object_missing: 'prodat_expected_object_missing',
   facility_not_identified: 'facility_not_identified',
   metering_point_id_mismatch: 'metering_point_id_mismatch',
   grid_area_id_invalid: 'grid_area_id_invalid',

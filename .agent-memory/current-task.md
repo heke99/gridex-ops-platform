@@ -1,3 +1,9 @@
+# Recovery checkpoint A — 2026-09-18
+
+The TGT adapter/serializer and two comparators have been reconstructed and passed fresh tests. See `quality/audits/ediel-masterplan-v2/pr328-recovery-20260918.md`. Full draft facts, inventory/error boundaries, admin/autopilot and safe object application remain. Not merge ready.
+
+---
+
 # Single active task — complete PRODAT register delivery
 
 Status: PARTIAL, NOT_MERGE_READY.

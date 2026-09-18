@@ -1,3 +1,5 @@
+import { renderProdatRegisterObject } from '@/lib/ediel/prodat/render/registers'
+import { PRODAT_26A_FIELD_MATRIX, PRODAT_26A_MESSAGE_CODES } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { buildProdatDateSegments } from '@/lib/ediel/prodat/render/dateSegments'
 // Extracted from tgtEdifact.ts; keep public imports on the facade module.
 import type { EdielTestRoleCode, EdielTestSuite } from "@/lib/ediel/types"
@@ -198,8 +200,8 @@ export function buildProdatLineSegments(params: {
   const isZ09 = step.code === "Z09";
   const isZ09D = isZ09DTransaction(transactionType);
 
-  const meteringPointId = sanitizeCode(portalData.meteringPointId, "", 35);
-  const customerId = sanitizeCode(portalData.customerId, "", 35);
+  const meteringPointId = edifactEscape(portalData.meteringPointId.trim());
+  const customerId = edifactEscape(portalData.customerId.trim());
   const customerNamePlain = sanitize(portalData.customerName, "", 70);
   const customerName = edifactEscape(customerNamePlain);
   const customerAddressPlain = sanitize(portalData.customerAddress, "", 70);
@@ -228,14 +230,14 @@ export function buildProdatLineSegments(params: {
     12,
   );
   const meteringMethod = sanitizeCode(portalData.meteringMethod, "", 12);
-  const gridAreaId = sanitizeCode(portalData.gridAreaId, "", 12);
+  const gridAreaId = edifactEscape(portalData.gridAreaId.trim());
   const powerOfAttorneyReference = sanitizeCode(
     portalData.powerOfAttorneyReference,
     "",
     35,
   );
 
-  const segments: string[] = [`LIN+${lineNo}++${meteringPointId}:::9`];
+  const segments: string[] = [`LIN+${lineNo}++${meteringPointId}:::${portalData.identityAgency ?? "9"}`];
 
   const variant = transactionType.startsWith(step.code) ? transactionType.slice(step.code.length) : transactionType;
   segments.push(...buildProdatDateSegments(step.code, variant, {
@@ -253,6 +255,22 @@ export function buildProdatLineSegments(params: {
     segments.push(`CAV+${meteringMethod}`);
   }
 
+  const messageIndex = PRODAT_26A_MESSAGE_CODES.findIndex(code => code === step.code);
+  for (const [number, value] of [
+    ['222', portalData.reportingFrequency], ['306', portalData.installationStatus],
+    ['307', portalData.tariffCode], ['220', portalData.priority],
+    ['254', portalData.settlementMethod], ['242', portalData.productCode],
+  ] as const) {
+    if (!value) continue;
+    const descriptor = PRODAT_26A_FIELD_MATRIX.find(row => row.fieldNumber === number)!;
+    if (messageIndex < 0 || descriptor.requirements[messageIndex] === '-') continue;
+    segments.push(descriptor.segmentPath.slice(0, -4), `CAV+${':'.repeat(descriptor.cavComponent!)}${edifactEscape(value)}`);
+  }
+  for (const [number, value] of [['224', portalData.meterNumber], ['225', portalData.oldMeterNumber]] as const) {
+    if (!value) continue;
+    const descriptor = PRODAT_26A_FIELD_MATRIX.find(row => row.fieldNumber === number)!;
+    if (messageIndex >= 0 && descriptor.requirements[messageIndex] !== '-') segments.push(`${descriptor.segmentPath}:${edifactEscape(value)}`);
+  }
   if (!mutation.omitLineItem) {
     segments.push(`RFF+LI:${lineReference}`);
   }
@@ -261,7 +279,7 @@ export function buildProdatLineSegments(params: {
     segments.push(`RFF+Z05:${gridAreaId}`);
   }
 
-  if (!isZ09 && powerOfAttorneyReference) {
+  if (!isZ09 && powerOfAttorneyReference && messageIndex >= 0 && PRODAT_26A_FIELD_MATRIX.find(row => row.fieldNumber === '261')!.requirements[messageIndex] !== '-') {
     segments.push(`RFF+ANJ:${powerOfAttorneyReference}`);
   }
 
@@ -305,7 +323,7 @@ export function buildPortalProdatSegments(
   const transactionType = buildTgtProdatTransactionType(params, step);
   const mutation = getTgtProdatMutation(params, step);
   const sourceRows =
-    step.code === "Z03" ||
+    ["Z03", "Z04", "Z06", "Z10"].includes(step.code) ||
     (params.roleCode === "esco" &&
       step.code === "Z13" &&
       params.testCaseCode === "8.1.1")
@@ -331,50 +349,23 @@ export function buildPortalProdatSegments(
     `NAD+DO+${testPortalId(params)}:160:SVK+++++++SE`,
   ];
 
-  portalRows.forEach((portalData, index) => {
-    bodySegments.push(
-      ...buildProdatLineSegments({
-        portalData,
-        step,
-        refs,
-        transactionType,
-        mutation,
-        lineNo: index + 1,
-        testSuite: params.testSuite,
-        roleCode: params.roleCode,
-        testCaseCode: params.testCaseCode,
-        systemTestContext: params.systemTestContext,
-      }),
-    );
-  });
-
-  if (step.code === "Z06") {
-    if (params.testCaseCode === "2.1.1") {
-      bodySegments.push("CCI++Z10");
-      bodySegments.push(
-        `CAV+${sanitizeCode(primaryPortalData.settlementMethod ?? "Z32", "Z32", 12)}`,
-      );
-      bodySegments.push("CCI++Z04");
-      bodySegments.push(
-        `CAV+${sanitizeCode(primaryPortalData.meteringMethod ?? "Z04", "Z04", 12)}`,
-      );
-      bodySegments.push("CCI++Z12");
-      bodySegments.push(
-        `CAV+${sanitizeCode(primaryPortalData.reportingFrequency ?? "D", "D", 12)}`,
-      );
-    }
-
-    if (params.testCaseCode === "2.1.2") {
-      const register = primaryPortalData.registers[0];
-      bodySegments.push("CCI++Z04");
-      bodySegments.push(
-        `CAV+${sanitizeCode(primaryPortalData.meteringMethod ?? "Z04", "Z04", 12)}`,
-      );
-      bodySegments.push("CCI++Z08");
-      bodySegments.push(
-        `CAV+${sanitizeCode(register?.meterTimeInterval ?? "901", "901", 12)}`,
-      );
-    }
+  let nextLineSequence = 1;
+  for (const portalData of portalRows) {
+    const segments = buildProdatLineSegments({
+      portalData, step, refs, transactionType, mutation, lineNo:nextLineSequence,
+      testSuite:params.testSuite, roleCode:params.roleCode, testCaseCode:params.testCaseCode,
+      systemTestContext:params.systemTestContext,
+    });
+    const expanded = renderProdatRegisterObject({
+      code:step.code, segments, firstLineSequence:nextLineSequence,
+      registers:portalData.registers.length ? portalData.registers.map(row => ({
+        registerIndex:row.registerIndex ?? undefined, annualConsumption:row.annualEnergyKwh,
+        annualConsumptionUnit:row.annualEnergyUnit ?? portalData.annualEnergyUnit,
+        meterConstant:row.meterConstant, meterDigitCount:row.meterDigits, meterTimeFrame:row.meterTimeInterval,
+      })) : undefined,
+    });
+    bodySegments.push(...expanded.segments);
+    nextLineSequence = expanded.nextLineSequence;
   }
 
   return { bodySegments, portalData: primaryPortalData };

@@ -8,11 +8,12 @@ export function matchProdatRegisterExpectations<A,E>(actual:readonly ActualRegis
   const used = new Set<ExpectedRegister<E>>()
   const objectCount = new Set(actual.map(line=>JSON.stringify([line.id,line.agency]))).size
   const matches = actual.map(line=>{
+    if (!line.valid) return {line,expected:null,error:'register' as const}
     const scoped = expected.filter(row=>row.ids.includes(line.id ?? '') && (!row.agency || row.agency===line.agency))
     const anonymous = expected.filter(row=>row.ids.length===0)
     const rows = scoped.length ? scoped : objectCount===1 && anonymous.length===expected.length ? anonymous : []
     const explicitlyIndexed = rows.some(row=>row.index!==null)
-    let candidates = rows.filter(row=>explicitlyIndexed ? numericIndex(row.index)!==null && numericIndex(row.index)===numericIndex(line.index) : row.index===null)
+    let candidates = rows.filter(row=>!used.has(row)).filter(row=>explicitlyIndexed ? numericIndex(row.index)!==null && numericIndex(row.index)===numericIndex(line.index) : row.index===null)
     const sameIdAgencies = new Set(actual.filter(other=>other.id===line.id).map(other=>other.agency))
     if (sameIdAgencies.size>1 && candidates.some(row=>!row.agency)) candidates=[]
     // One unindexed source column is a partial first-register expectation, not
