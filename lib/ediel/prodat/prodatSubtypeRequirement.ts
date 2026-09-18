@@ -4,17 +4,18 @@ export type ProdatSubtypeRequirement = 'required' | 'optional' | 'forbidden' | '
 type DeterminedRequirement = Exclude<ProdatSubtypeRequirement, 'undetermined'>
 
 type SourceRule = Readonly<{
-  messageCode: 'Z06' | 'Z09'
+  messageCode: 'Z04' | 'Z06' | 'Z09'
   fieldNumber: string
-  page: 17 | 18 | 19 | 20
+  page: 17 | 18 | 19 | 20 | 21
   outcomes: Readonly<Partial<Record<ProdatSubtype, DeterminedRequirement>>>
 }>
 
-/** Bounded source migration: six of the original 110 numeric D cells.
+/** Bounded source migration: seven of the original 110 numeric D cells.
  * P26.A revision 3, §2.2. No field presence or operator byCell flag supplies a
  * subtype-only condition. Other cells retain their existing unresolved gates.
  */
 export const PRODAT_SOURCE_SUBTYPE_REQUIREMENTS: readonly SourceRule[] = [
+  { messageCode: 'Z04', fieldNumber: '319', page: 21, outcomes: { D: 'required', L: 'forbidden', LK: 'forbidden', C: 'forbidden', H: 'forbidden', A: 'forbidden' } },
   { messageCode: 'Z06', fieldNumber: '508', page: 18, outcomes: { F: 'required', E: 'optional', G: 'optional' } },
   { messageCode: 'Z06', fieldNumber: '217', page: 18, outcomes: { F: 'required', E: 'optional', G: 'optional' } },
   { messageCode: 'Z06', fieldNumber: '306', page: 19, outcomes: { F: 'required', G: 'required', E: 'optional' } },

@@ -1,0 +1,115 @@
+{
+  "status": "IMPLEMENTED_NOT_VERIFIED",
+  "base_sha": "e4df8b58e0277bf57f3f755cd9ec8c5c4cac9527",
+  "base_tree": "b10d70fad26e40a241d8eb679870076a851ae6d6",
+  "active_cell": "PC-319-Z04",
+  "source": {
+    "basis": "Unchanged user-supplied frozen primary-source projections; full original PDF not rehashed or visually inspected in this continuation.",
+    "fields_sha256": "e1248f8f4ec025aa5d71e3b3249ee70b6e9e0d8e0e48a4ec6f0db11e31178354",
+    "conditional_cells_sha256": "55d44fcf337b5a7c9508c50bd25b9f204128ae2939ee36e49e74072b031a4b5d",
+    "field_note": "P26.A r3 section2.2 p21: Z04D/Z70 mandatory; PC-319-Z04 false branch X.",
+    "locator": "SG16/RFF[1153=Z07]/C506/1154; section2.6 p78, max25characters,1156/4000 unused.",
+    "original_33_files_unchanged": true
+  },
+  "skills": {
+    "applied": [
+      "test-driven-development: fail-first actual-source cases",
+      "systematic-debugging: distinguish absent subtype decision from global scope/format loss",
+      "spec-to-code-compliance: exact frozen field note/locator/conditional row",
+      "fp-check: positive controls and staged red/green",
+      "verification-before-completion: fresh source runs, separate unrun CI",
+      "requesting-code-review: exact-head independent review required"
+    ],
+    "conditional": [
+      "receiving-code-review and finishing-a-development-branch after CI/review"
+    ],
+    "skipped": {
+      "DB/schema/Supabase/SQL": "no database access or schema/type/grant changes",
+      "UI/Next/React/performance": "no interface or app framework changes",
+      "parallel_agents": "one bounded sequential item; no subagent tool available",
+      "CodeQL/Semgrep/SARIF/supply-chain": "no broad audit, new dependency, configuration security changes or scan reports"
+    }
+  },
+  "execution": {
+    "command_new": "node --experimental-vm-modules --test scripts/test-ediel-prodat-d-z04-reference.cjs",
+    "unchanged_base": {
+      "pass": 1,
+      "fail": 61
+    },
+    "source_row_without_scope_format_guard": {
+      "pass": 44,
+      "fail": 18
+    },
+    "final": {
+      "pass": 62,
+      "fail": 0
+    },
+    "retained": {
+      "eight_source_suites_pass": 848,
+      "route_destination_pass": 3,
+      "total": 851,
+      "assertions_unchanged": true
+    },
+    "integrity": {
+      "originalFiles": 33,
+      "rules": 121,
+      "acceptanceContracts": 231
+    },
+    "vitest": {
+      "authored_cases": 91,
+      "local_execution": false,
+      "reason": "No node_modules and network DNS unavailable; ordinary CI required for dependency-backed gates."
+    },
+    "log_checksums": {
+      "d-z04-red.log": {
+        "sha256": "278ce87ec8a0defd8353c65aef011b4a2c594e02bf9111176615ac5d455344f0",
+        "bytes": 50234
+      },
+      "d-z04-row-only-red.log": {
+        "sha256": "d93b55593c6533bd27b7cd394d99b75975b3ce20fafba0d764f6f9d40d6281ef",
+        "bytes": 22289
+      },
+      "d-z04-green.log": {
+        "sha256": "aae925fc557f28c7e84fffc23517a206c27dd0c993ea3cecff32f709798aad2c",
+        "bytes": 12023
+      },
+      "d-z04-retained.log": {
+        "sha256": "3163b67b297e910a6f9baa1dcf14a585599c7a5548d88798c106658811974589",
+        "bytes": 174963
+      },
+      "d-z04-retained-route.log": {
+        "sha256": "3695fe0ba831d550b2b13da3a395451007c15554fbf59bc1226a758ba1ee66f0",
+        "bytes": 635
+      },
+      "d-z04-integrity.log": {
+        "sha256": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157",
+        "bytes": 197
+      }
+    }
+  },
+  "inventory": {
+    "original_numeric_D_cells": 110,
+    "accepted_in_PR330": 6,
+    "candidate": [
+      "Z04:319"
+    ],
+    "other_cells_not_reviewed": 103,
+    "parent_group_occurrences": 10,
+    "full_masterplan": "NOT_COMPLETE",
+    "original_inventory_retained": "f3-d-condition-inventory-20260918.json"
+  },
+  "merge_gates": [
+    "publish on real main parent, not synthetic archive history",
+    "ordinary current-head CI including91new Vitest cases, all3typechecks, coverage/build/clean replay",
+    "substantive independent source/assertion review; fix and repeat for head changes",
+    "fresh refs/checks/reviews and expected-head merge"
+  ],
+  "boundaries": {
+    "PR310": "PAUSED and excluded",
+    "live_DB_storage": false,
+    "explicit_deployment": false,
+    "market_messages": false,
+    "main_auto_deploy": "Existing Git integration may deploy an authorized merge.",
+    "full_main_release": "Prior35334649693 had70/73;3failures remain recorded, not waived."
+  }
+}

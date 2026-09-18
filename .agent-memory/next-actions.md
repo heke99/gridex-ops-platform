@@ -1,10 +1,8 @@
-# Active PR330 second-message review correction
+# Active Z04:319 source-bound reference candidate
 
-Status: IN_PROGRESS. Read `current-state.md` and
-`../quality/audits/ediel-masterplan-v2/f3-d-message-scope-review-20260918.md` for the only active work item.
-
-Last published headb3afa40a has green CI but outstanding independent finding5731012182.
-The second-message scope correction is locally qualified, not yet published/accepted.
-Fresh exact-head CI and substantive rereview are required before guarded merge.
-Then continue the remaining D inventory. Do not reapply the ZIP. PR310 remains
-paused;104D/10parent/fullmasterplan and full-main release are not certified.
+Status: IMPLEMENTED_NOT_VERIFIED. Read current-state.md and the Z04 audit.
+PR330 is already merged at e4df8b58; its old pending snapshots are archived, not current work.
+Publish this one-cell candidate, run exact-head ordinary CI and independent review,
+resolve real findings and merge only when accepted. Never reapply the old ZIP.
+Six D cells accepted, one candidate,103 others and10parent groups not certified.
+PR310 paused; existing full-main release failures remain; no live operations.

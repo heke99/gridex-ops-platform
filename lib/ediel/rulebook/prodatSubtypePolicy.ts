@@ -1,3 +1,4 @@
+import { validateProdatDependentReferenceScope } from '@/lib/ediel/rulebook/prodatDependentReferenceScope'
 import { prodatDateSyntaxIssues } from '@/lib/ediel/prodat/prodatDateFields'
 import { canonicalProdat26AFieldRules } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
@@ -17,7 +18,7 @@ import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
 export function validateProdatSubtypePolicy(input: FieldMatrixEvaluationInput, rules: readonly RulebookFieldRule[]): EdielRulebookIssue[] {
   const code = input.code ?? ''
   const una = input.una ?? parseUna(null)
-  const issues: EdielRulebookIssue[] = []
+  const issues: EdielRulebookIssue[] = validateProdatDependentReferenceScope(input, rules)
   // Local scoping must not hide a supplied DTM in the message header. Keep
   // the shared global placement check before narrowing to individual objects.
   for (const failure of prodatDateSyntaxIssues(input.rawSegments ?? [], una)) {

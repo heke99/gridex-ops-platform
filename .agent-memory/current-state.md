@@ -1,28 +1,34 @@
-# PR330 — second-message review correction
+# Active: Z04:319 consumption-point reference
 
-Status: IN_PROGRESS. Original candidate recovered and published as0a89e102. First
-review correction is published asb3afa40a (treec832d360), with all four ordinary
-CI workflows green. Independent rereview5731012182 confirmed the first fixes but
-found the later-message standalone send boundary. It is locally repaired and
-qualified; publication, fresh CI/build/replay and substantive rereview remain.
+Status: IMPLEMENTED_NOT_VERIFIED. Only this next D cell is active.
 
-Branch: codex/ediel-v2-dependent-conditions-20260918. PR330. Main baseb916213e.
-Read live GitHub state before continuing; this committed memory is a prepublication
-snapshot. Do not reapply the original ZIP over newer reviewed changes. Once merged,
-do not restart this unit: continue the remaining original D inventory.
+## Completed predecessor
+PR330 merged to main as e4df8b58e0277bf57f3f755cd9ec8c5c4cac9527.
+Tested/reviewed head831fa1fb27e91c47ff7374e5a0a6513fdb27a897; treeb10d70fad26e40a241d8eb679870076a851ae6d6.
+OPS35354989775, Ediel35354989756, Browser35354989687 and FullE2E35354989676 completed SUCCESS.
+Independent static source/assertion review5731278438 confirmed the final blocker repair; no test execution claimed by reviewer.
+Expected-head merge and main readback verified. Do not reapply the user's original ZIP over newer corrections.
 
-Shared outbound token scope check rejects multiple UNH headers if any message
-is PRODAT, before policy selection, row preflight and test-send exceptions. It
-does not change inbound multi-message parsing.28 new actual-path cases reproduce
-21 failures on unchanged b3afa (7positive/control cases pass). Final2502/2502
-application tests in237files include208 subtype cases;851/851 retained source
-cases pass. All3TS/lint/coverage/quality/RBAC/source budget gates pass. Historical
-failed harness/type-check attempts are explicitly retained as failures. See
-`quality/audits/ediel-masterplan-v2/f3-d-message-scope-review-20260918.md` and `.json` for exact checks and source hashes.
+## Current bounded candidate
+Z04:319 is required for actual first-register field223 Z70/D; forbidden for other valid Z04 reasons.
+Unknown/duplicate/aliased reasons stay blocked. Header/party/later-register RFFZ07 cannot be hidden.
+C506/1154 is at most25 decoded characters; forbidden1156/4000 values cannot supply a reference.
+Source: unchanged user normative projections, P26.A r3 §2.2 p21/§2.6 p78; original full PDF not rehashed in this unit.
 
-Required next: publish, run exact-head ordinary CI, obtain substantive independent
-review, resolve findings, fresh head/base/readiness checks, expected-head merge.
-PR310 stays paused/excluded. Scope only6numeric D cells; remaining104,10parent
-conditions, fullmasterplan/livecert remain unverified. Existing main full-release
-35334649693 failures stay open. Existing Vercel Git integration auto-deploys main;
-no explicit deployment/settings change, DB mutation or market send performed here.
+Fresh standalone regression62/62; unchanged retained source851/851 (848+3); immutable specification33files passes.
+91 added actual-row/send Vitest cases are authored but NOT locally executed (dependencies unavailable).
+Ordinary CI must establish all tests, typechecks, lint, coverage, build and replay on the published exact head.
+Substantive independent review is required; never count a skipped automatic review as acceptance.
+
+Six numeric D cells are accepted by PR330. One is a candidate;103 other numeric D cells and10parent groups remain unreviewed by these units.
+Original110cell inventory is retained; full masterplan/F3–F7/live TGT and release are NOT complete.
+
+## Safety / outstanding independent blockers
+PR310 remains PAUSED at e961135199f292b8210884f07de3b616a670161a; no imports of its migrations/types/grants.
+Existing main35334649693 had70/73 full-release steps pass: migration inventory, Z18 certification and installation-NAD assertions failed.
+No historical migration checksum may be silently adopted. Green PR smoke is not full-main release acceptance.
+No live DB/storage mutation, explicit deployment/settings changes or market messages. Authorized main merges may auto-deploy via existing Git integration.
+
+Next: inspect live main/branch, publish this exact candidate from e4df8b58, run ordinary CI and independent review; repair/reverify before expected-head merge.
+Then continue the remaining D inventory. Detailed evidence: ../../quality/audits/ediel-masterplan-v2/f3-d-z04-reference-20260918.json.
+Historical logs: archive/2026-09-18-pr330-final-merged/.
