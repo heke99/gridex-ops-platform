@@ -5,25 +5,25 @@
   "current_state": ".agent-memory/current-state.md",
   "branch": "codex/ediel-v2-prodat-register-rules-20260917",
   "base_head_sha": "51c73950515d771d2c2edcb97fde28ab087437a3",
-  "active_item": "Publish and qualify PR328 review remediation",
-  "next_action": "Publish exact locally qualified candidate, get all four ordinary CI workflows and substantive rereview, then guarded merge.",
+  "active_item": "Publish and qualify PR328 null-rejection rereview follow-up",
+  "next_action": "Publish the null-aware rejection fix and historical-log correction, complete new-head CI and substantive rereview, then guarded merge.",
   "main_merged": false,
   "pull_request": 328,
   "draft": false,
-  "published_implementation_head": "06493a26d4cb320ed31f38de8e308bf87b50bb1c",
+  "published_implementation_head": "97f7505153fc268551d16112428cc9eaf0581b0d",
   "source_state": {
     "runtime_implementation_started": true,
     "register_tests_executed": true,
-    "full_vitest_passed": 2291,
+    "full_vitest_passed": 2294,
     "source_cases_passed": 851,
-    "register_cases_passed": 477,
+    "register_cases_passed": 480,
     "register_test_files": 20,
-    "new_cases_vs_recovered06493": 134,
+    "new_cases_vs_recovered06493": 137,
     "same_source_local": "PASS",
-    "normal_ci": "PENDING_NEW_REVIEW_HEAD",
-    "independent_review": "REREVIEW_REQUIRED",
+    "normal_ci": "PREVIOUS97_GREEN_NEW_FOLLOWUP_PENDING",
+    "independent_review": "NULL_REJECTION_AND_FINAL_HEAD_REREVIEW_PENDING",
     "scope": "Bounded register delivery; not fullF3/110D/live acceptance",
-    "qualification_manifest_sha256": "fba2ef5df5b9f80f864bb52d5ed5dbcea7d8cb2afab37accdd640efc6aae6b72"
+    "qualification_manifest_sha256": "226632cbdcdcab2d8f97ed451acb7e31d13e08c41caed623a2a60d3d60c2a52d"
   },
   "prior_completed": {
     "pr": 327,
@@ -45,7 +45,7 @@
     "backup_branch": "backup/pr310-paused-20260916-e9611351"
   },
   "plan": "docs/superpowers/plans/2026-09-17-prodat-register-rules.md",
-  "implementation_checkpoint_base": "06493a26d4cb320ed31f38de8e308bf87b50bb1c",
-  "evidence": "quality/audits/ediel-masterplan-v2/f3-register-review-20260918.json",
+  "implementation_checkpoint_base": "97f7505153fc268551d16112428cc9eaf0581b0d",
+  "evidence": "quality/audits/ediel-masterplan-v2/f3-register-null-rejection-review-20260918.json",
   "publication_receipt": "quality/audits/ediel-masterplan-v2/pr328-publication-receipt.json"
 }

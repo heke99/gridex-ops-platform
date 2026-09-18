@@ -121,3 +121,19 @@ No schema/SQL/generated types, original specification, dependencies, production
 data/storage, explicit deployment or real market messages changed. Existing
 per-object atomicity, original-actor retry and legacy-namespace blocks remain.
 The separate original110D condition review starts only after register merge.
+
+
+## 2026-09-18 — null-rejection rereview follow-up (not merged)
+
+Published97f75051 fixed the initial review set and passed all four ordinary CI
+workflows, including coverage/build/replay. Rereview4045597721 then identified
+the omitted nullable-company rejection variant: two failing status cases were
+reproduced and fixed; the38-case application suite now passes. The old PR326
+active-state heading is explicitly historical. Latest same-source local checks
+pass2294 application cases (480 register subset),851 retained source cases,
+all3 TypeScript projects, lint, coverage and other retained quality gates.
+The current follow-up still requires publication, final-head ordinary CI and
+substantive rereview before guarded merge. Earlier2291/477 numbers and97f75051
+CI qualify only their historical head, not this new follow-up.
+Evidence: `quality/audits/ediel-masterplan-v2/f3-register-null-rejection-review-20260918.json`.
+PR310 stays paused; no SQL/schema/types or live market/production changes.

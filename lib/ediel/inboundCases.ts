@@ -840,7 +840,7 @@ export async function rejectEdielInboundCase(params: {
   if (params.companyId && params.companyId !== existing.company_id) throw new Error('TENANT_CONTEXT_MISMATCH')
   if (existing.review_decision?.objectApplication) throw new Error('PRODAT_OBJECT_APPLICATION_IN_PROGRESS')
   if (!['pending_review','failed'].includes(existing.status)) throw new Error('PRODAT_INBOUND_CASE_CHANGED')
-  const { data, error } = await supabaseService
+  let update = supabaseService
     .from('ediel_inbound_cases')
     .update({
       status: 'rejected',
@@ -853,9 +853,12 @@ export async function rejectEdielInboundCase(params: {
       updated_by: params.actorUserId,
     })
     .eq('id', params.caseId)
-    .eq('company_id', existing.company_id)
     .eq('updated_at', existing.updated_at)
     .eq('status', existing.status)
+  update = existing.company_id === null
+    ? update.is('company_id', null)
+    : update.eq('company_id', existing.company_id)
+  const { data, error } = await update
     .select('*')
     .maybeSingle()
 

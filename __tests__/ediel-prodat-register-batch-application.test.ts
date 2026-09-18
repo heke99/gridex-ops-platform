@@ -60,6 +60,22 @@ const params=()=>({actorUserId:'actor',caseId:'case',companyId:'company',objectD
 const batch=()=>stored.review_decision?.objectApplication as {receipts:unknown[]}|undefined
 
 describe('explicit object-scoped customer graph application with durable receipts',()=>{
+ for (const status of ['pending_review', 'failed'] as const) it(`rejects an unresolved-company ${status} case with a null-aware CAS`, async()=>{
+  stored.company_id=null;stored.status=status
+  const result=await rejectEdielInboundCase({actorUserId:'actor',caseId:'case',note:'manual review'})
+  expect(result).toMatchObject({company_id:null,status:'rejected',reviewed_by:'actor',updated_by:'actor',review_decision:{decision:'rejected',note:'manual review'}})
+  expect(writes).toEqual(['rejected'])
+  expect(boundary.graph).not.toHaveBeenCalled()
+  expect(boundary.link).not.toHaveBeenCalled()
+ })
+ it('keeps a non-null company rejection scoped and refuses a mismatching caller company',async()=>{
+  await expect(rejectEdielInboundCase({actorUserId:'actor',caseId:'case',companyId:'other-company'})).rejects.toThrow('TENANT_CONTEXT_MISMATCH')
+  expect(writes).toEqual([])
+  expect((await rejectEdielInboundCase({actorUserId:'actor',caseId:'case',companyId:'company'})).status).toBe('rejected')
+  expect(writes).toEqual(['rejected'])
+  expect(boundary.graph).not.toHaveBeenCalled()
+ })
+
  it('actual admin action completes and resumes per-object choices without a legacy mode',async()=>{
   const f=new FormData();f.set('caseId','case')
   for(const id of ['A','B'])for(const [key,value] of Object.entries({objectMeteringPointId:id,objectIdentityAgency:'89',objectMode:'create_new_customer',objectCustomerId:'',objectSiteId:'',objectMeteringPointDbId:''}))f.append(key,value)
