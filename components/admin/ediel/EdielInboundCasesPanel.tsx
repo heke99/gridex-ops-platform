@@ -1,6 +1,7 @@
 // components/admin/ediel/EdielInboundCasesPanel.tsx
 
 import Link from 'next/link'
+import EdielInboundObjectReview, { inboundObjectReview } from './EdielInboundObjectReview'
 import type { EdielInboundCaseRow } from '@/lib/ediel/inboundCases'
 import { edielCodeLabel } from '@/lib/ediel/codeLabels'
 import {
@@ -41,7 +42,8 @@ function CaseRow({ item }: { item: EdielInboundCaseRow }) {
  const meteringPoint = item.parsed_metering_point ?? {}
  const contract = item.parsed_contract ?? {}
  const production = item.parsed_production ?? {}
- const isPending = item.status === 'pending_review' || item.status === 'failed'
+ const objectReview = inboundObjectReview(item)
+ const isPending = item.status === 'pending_review' || item.status === 'failed' || (item.status === 'approved' && objectReview.locked)
 
  return (
  <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -56,7 +58,7 @@ function CaseRow({ item }: { item: EdielInboundCaseRow }) {
  </span>
  </div>
  <h3 className="mt-2 text-base font-semibold text-slate-950">
- {text(customer.fullName ?? customer.companyName)}
+ {objectReview.multi ? `${objectReview.objects.length} anläggningar i samma meddelande` : text(customer.fullName ?? customer.companyName)}
  </h3>
  <p className="mt-1 text-xs text-slate-700">
  Skapad {formatDateTime(item.created_at)} · matchning {item.match_confidence ?? 0}%
@@ -70,7 +72,7 @@ function CaseRow({ item }: { item: EdielInboundCaseRow }) {
  </Link>
  </div>
 
- <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+ {!objectReview.multi ? <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
  <Detail label="Kund-id" value={`${text(customer.customerId)} · ${text(customer.customerIdLabel)}`} />
  <Detail label="Anläggnings-/mätpunkt-id" value={meteringPoint.meterPointId ?? site.facilityId} />
  <Detail label="Nätområde" value={site.gridAreaCode ?? contract.gridAreaCode} />
@@ -79,9 +81,10 @@ function CaseRow({ item }: { item: EdielInboundCaseRow }) {
  <Detail label="Mätmetod" value={meteringPoint.meteringMethodLabel ?? edielCodeLabel('metering_method', String(meteringPoint.meteringMethod ?? ''))} />
  <Detail label="Produkt" value={production.productCodeLabel ?? edielCodeLabel('product_code', String(production.productCode ?? ''))} />
  <Detail label="Referens mätpunkt" value={production.referenceToMeteringPoint ?? meteringPoint.referenceToMeteringPoint} />
- </div>
+ </div> : null}
+ {objectReview.multi && !isPending ? <div className="mt-4"><EdielInboundObjectReview item={item} editable={false} /></div> : null}
 
- {production.isMicroProduction === true ? (
+ {!objectReview.multi && production.isMicroProduction === true ? (
  <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
  <div className="font-semibold">Mottagningspliktig mikroproduktion</div>
  <p className="mt-1 text-xs leading-5">
@@ -100,6 +103,7 @@ function CaseRow({ item }: { item: EdielInboundCaseRow }) {
  <div className="mt-4 grid gap-3 lg:grid-cols-[2fr_1fr]">
  <form action={approveEdielInboundCaseAction} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
  <input type="hidden" name="caseId" value={item.id} />
+ {objectReview.multi ? <EdielInboundObjectReview item={item} editable /> : <>
  <label className="text-xs font-semibold text-slate-700" htmlFor={`mode-${item.id}`}>
  Godkänn som
  </label>
@@ -113,6 +117,7 @@ function CaseRow({ item }: { item: EdielInboundCaseRow }) {
  <option value="update_existing_customer">Koppla/uppdatera befintlig kund om matchning finns</option>
  <option value="link_existing_only">Koppla till befintligt underlag utan att skapa ny kund</option>
  </select>
+ </>}
  <textarea
  name="note"
  rows={2}
@@ -120,11 +125,11 @@ function CaseRow({ item }: { item: EdielInboundCaseRow }) {
  className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
  />
  <button className="mt-2 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
- Godkänn och applicera
+ {objectReview.locked ? 'Återuppta återstående objekt' : 'Godkänn och applicera'}
  </button>
  </form>
 
- <form action={rejectEdielInboundCaseAction} className="rounded-2xl border border-slate-200 bg-white p-3">
+ {!objectReview.locked ? <form action={rejectEdielInboundCaseAction} className="rounded-2xl border border-slate-200 bg-white p-3">
  <input type="hidden" name="caseId" value={item.id} />
  <label className="text-xs font-semibold text-slate-700" htmlFor={`reject-${item.id}`}>
  Avvisa / kräver manuell handläggning
@@ -139,7 +144,7 @@ function CaseRow({ item }: { item: EdielInboundCaseRow }) {
  <button className="mt-2 rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100">
  Avvisa case
  </button>
- </form>
+ </form> : null}
  </div>
  ) : null}
  </article>
@@ -147,7 +152,7 @@ function CaseRow({ item }: { item: EdielInboundCaseRow }) {
 }
 
 export default function EdielInboundCasesPanel({ cases }: { cases: EdielInboundCaseRow[] }) {
- const pending = cases.filter((item) => item.status === 'pending_review' || item.status === 'failed')
+ const pending = cases.filter((item) => item.status === 'pending_review' || item.status === 'failed' || (item.status === 'approved' && inboundObjectReview(item).locked))
  const handled = cases.filter((item) => !pending.includes(item)).slice(0, 8)
 
  return (
@@ -156,7 +161,7 @@ export default function EdielInboundCasesPanel({ cases }: { cases: EdielInboundC
  <div>
  <h2 className="text-lg font-semibold text-slate-950">Inbound PRODAT – admin-godkännande</h2>
  <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-700">
- Inkommande PRODAT skapar ett staging-case. Masterdata ändras först när admin godkänner. Det gör flödet säkert för produktion, TGT och framtida multi-tenant där varje elhandelsbolag bara ska se sitt eget scope.
+ Inkommande PRODAT skapar ett staging-case. Masterdata ändras först när admin godkänner. Meddelanden med flera anläggningar granskas objektvis. Vid avbrott sparas redan slutförda objekt för återkörning; hela meddelandet är inte en gemensam databastransaktion.
  </p>
  </div>
  <div className="flex gap-2 text-xs font-semibold">

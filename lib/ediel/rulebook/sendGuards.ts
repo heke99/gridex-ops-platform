@@ -8,10 +8,12 @@ function objectValue(value: unknown): Record<string, unknown> | null {
 export function assertRulebookAllowsSend(message: EdielMessageRow): void {
   if (message.direction !== 'outbound') return
   const parsedPayload = objectValue(message.parsed_payload) ?? {}
-  if (parsedPayload.rulebookAllowInvalidSend === true) return
 
   const validation = validateEdielMessageRowWithRulebook(message, 'send')
   const errors = validation.issues.filter((issue) => issue.severity === 'error' || issue.blocking)
+  const registerErrors = errors.filter(issue => issue.scope === 'prodat_register')
+  if (registerErrors.length) throw new Error('PRODAT register blockerar skick: ' + registerErrors.map(issue => issue.code + ': ' + issue.description).join(' | '))
+  if (parsedPayload.rulebookAllowInvalidSend === true) return
   if (errors.length === 0) return
 
   throw new Error(

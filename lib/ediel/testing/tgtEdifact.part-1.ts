@@ -1,3 +1,4 @@
+import type { ProdatDependentConditionFacts } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import { prodatDate203, prodatNowDate203 } from '@/lib/ediel/prodat/render/dates'
 // Extracted from tgtEdifact.ts; keep public imports on the facade module.
 import type { CreateEdielMessageInput, EdielAckOutcome, EdielDirection, EdielMessageFamily, EdielTestRoleCode, EdielTestSuite } from "@/lib/ediel/types"
@@ -5,7 +6,7 @@ import type { CreateEdielMessageInput, EdielAckOutcome, EdielDirection, EdielMes
 import { type EdielTgtExpectedStep } from "@/lib/ediel/testing/tgtRegistry"
 import { getEdielTgtTestDataForCase, type EdielTgtCaseTestData } from "@/lib/ediel/testing/tgtTestData"
 import type { EdielSystemTestRuntimeContext } from "@/lib/ediel/systemTestSettings"
-import { getPreferredColumnsForStep } from './tgtEdifact.part-2'
+import { getPreferredColumnsForStep, getPortalDataRows } from './tgtEdifact.part-2'
 
 export type EdielTgtDraftValidationIssue = {
   severity: "error" | "warning" | "info";
@@ -21,6 +22,8 @@ export type EdielTgtDraftBuildParams = {
   testCaseCode: string;
   stepNo: number;
   importedTestData?: EdielTgtCaseTestData | null;
+  /** Explicit server-side business facts; never inferred from source field presence. */
+  registerFacts?: ProdatDependentConditionFacts;
   systemTestContext: EdielSystemTestRuntimeContext;
 };
 
@@ -131,6 +134,11 @@ export type ParsedEdifactSegments = {
 };
 
 export type TgtPortalRegister = {
+  registerIndex?: string | null;
+  sourceGroupIndex?: number;
+  sourceColumnName?: string;
+  rawFields?: Record<string,string>;
+  annualEnergyUnit?: string;
   label: string;
   annualEnergyKwh: string;
   meterConstant: string;
@@ -149,6 +157,9 @@ export type TgtProdatMutation = {
 };
 
 export type TgtPortalCustomerData = {
+  identityAgency?: string | null;
+  sourceGroupIndex?: number;
+  oldMeterNumber?: string | null;
   source: "tgt_test_data_registry" | "missing_test_data";
   testCustomerLabel: string;
   sourceColumnName?: string | null;
@@ -422,6 +433,8 @@ export type TestDataLookupParams = Pick<
   | "systemTestContext"
 > & {
   importedTestData?: EdielTgtCaseTestData | null;
+  /** Explicit server-side business facts; never inferred from source field presence. */
+  registerFacts?: ProdatDependentConditionFacts;
 };
 
 export function getTgtTestData(
@@ -471,7 +484,7 @@ export function findTestValue(
 
     for (const field of group.fields) {
       const haystack = normalizeSearch(`${field.fieldCode} ${field.fieldName}`);
-      if (!normalizedSelectors.some((selector) => haystack.includes(selector)))
+      if (!normalizedSelectors.some((selector) => /^\d{3}\b/.test(selector) ? field.fieldCode.trim() === selector.slice(0,3) : haystack.includes(selector)))
         continue;
 
       for (const column of candidateColumns) {
@@ -529,7 +542,7 @@ export function findTestFieldForStep(
 
     for (const field of group.fields) {
       const haystack = normalizeSearch(`${field.fieldCode} ${field.fieldName}`);
-      if (!normalizedSelectors.some((selector) => haystack.includes(selector)))
+      if (!normalizedSelectors.some((selector) => /^\d{3}\b/.test(selector) ? field.fieldCode.trim() === selector.slice(0,3) : haystack.includes(selector)))
         continue;
 
       for (const column of candidateColumns) {
@@ -592,7 +605,7 @@ export function findFieldValueForColumn(
   for (const group of data.groups) {
     for (const field of group.fields) {
       const haystack = normalizeSearch(`${field.fieldCode} ${field.fieldName}`);
-      if (!normalizedSelectors.some((selector) => haystack.includes(selector)))
+      if (!normalizedSelectors.some((selector) => /^\d{3}\b/.test(selector) ? field.fieldCode.trim() === selector.slice(0,3) : haystack.includes(selector)))
         continue;
       const trimmed = field.values[columnName]?.trim();
       if (trimmed) return trimmed;
@@ -627,56 +640,11 @@ export function buildRegistersFromTestData(
   params: TestDataLookupParams,
   step: EdielTgtExpectedStep,
 ): TgtPortalRegister[] {
-  const columns = selectedRegisterColumns(params, step);
-  const registers = columns.map((columnName, index) => {
-    const annualEnergyRaw = firstToken(
-      findFieldValueForColumn(params, columnName, ["213 uppskattad årsenergi"]),
-    );
-    const meterConstantRaw = firstToken(
-      findFieldValueForColumn(params, columnName, ["214 konstant"]),
-    );
-    const meterDigitsRaw = firstToken(
-      findFieldValueForColumn(params, columnName, ["218 antal siffror"]),
-    );
-    const intervalRaw = firstToken(
-      findFieldValueForColumn(params, columnName, [
-        "259 mätare, tidsintervall",
-        "259 matare",
-      ]),
-    );
-    const resolutionRaw = firstToken(
-      findFieldValueForColumn(params, columnName, [
-        "508b upplösning",
-        "508 upplösning",
-        "508 tidslängd",
-      ]),
-    );
-
-    return {
-      label: `register_${index + 1}`,
-      annualEnergyKwh:
-        annualEnergyRaw && /^\d+$/.test(annualEnergyRaw) ? annualEnergyRaw : "",
-      meterConstant:
-        meterConstantRaw && /^\d+(?:[.,]\d+)?$/.test(meterConstantRaw)
-          ? meterConstantRaw.replace(",", ".")
-          : "",
-      meterDigits:
-        meterDigitsRaw && /^\d+$/.test(meterDigitsRaw) ? meterDigitsRaw : "",
-      meterTimeInterval:
-        intervalRaw && /^\d+$/.test(intervalRaw) ? intervalRaw : "",
-      resolution:
-        resolutionRaw && /^\d+$/.test(resolutionRaw) ? resolutionRaw : null,
-    };
-  });
-
-  return registers.filter(
-    (register) =>
-      register.annualEnergyKwh ||
-      register.meterConstant ||
-      register.meterDigits ||
-      register.meterTimeInterval ||
-      register.resolution,
-  );
+  const data = getTgtTestData(params);
+  if (!data || step.family !== 'PRODAT') return [];
+  const rows = getPortalDataRows(params,step);
+  if (rows.length > 1) throw new Error('prodat_register_source_requires_object_scope');
+  return rows[0]?.registers ?? [];
 }
 
 export function cleanOptional(

@@ -24,6 +24,8 @@ export type EdielRulebookProcessGroup =
 export type EdielRulebookRequirement = 'required' | 'dependent' | 'optional' | 'not_used' | 'forbidden'
 
 export type EdielRulebookIssue = {
+  /** Non-bypassable protocol evidence boundary, including test sends. */
+  scope?: 'prodat_register'
   severity: 'error' | 'warning'
   code: string
   title: string

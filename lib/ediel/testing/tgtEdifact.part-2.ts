@@ -1,3 +1,4 @@
+import { readTgtProdatSourceColumns, groupTgtProdatSourceObjects, sourceExpectationIndex, tgtProdatSourceValue } from './tgtProdatSource'
 import { prodatDate203, prodatDate102 } from '@/lib/ediel/prodat/render/dates'
 import { buildProdatDateSegments } from '@/lib/ediel/prodat/render/dateSegments'
 // Extracted from tgtEdifact.ts; keep public imports on the facade module.
@@ -14,7 +15,13 @@ export function getPortalData(
   step: EdielTgtExpectedStep,
   columnName?: string | null,
 ): TgtPortalCustomerData {
-  const data = getTgtTestData(params);
+  let data = getTgtTestData(params);
+  if (columnName && data && step.family === 'PRODAT') {
+    const matches = data.groups.filter(group => group.columns.some(column => column.name === columnName));
+    if (matches.length !== 1) throw new Error('prodat_register_source_column_ambiguous');
+    data = {...data,groups:matches};
+    params = {...params,importedTestData:data};
+  }
   const valueFor = (selectors: readonly string[]) =>
     columnName
       ? findFieldValueForColumn(params, columnName, selectors)
@@ -31,7 +38,7 @@ export function getPortalData(
           `${field.fieldCode} ${field.fieldName}`,
         );
         if (
-          normalizedSelectors.some((selector) => haystack.includes(selector))
+          normalizedSelectors.some((selector) => /^\d{3}\b/.test(selector) ? field.fieldCode.trim() === selector.slice(0,3) : haystack.includes(selector))
         ) {
           return {
             fieldCode: field.fieldCode,
@@ -84,7 +91,7 @@ export function getPortalData(
   const customerId = cleanOptionalCode(customerIdField?.value, 35) ?? "";
 
   const sourceColumn = columnName ? findSourceColumn(params, columnName) : null;
-  const rawMeteringPointId = cleanOptionalCode(
+  const rawMeteringPointId = step.family === 'PRODAT' ? tgtProdatSourceValue('209', valueFor(['209 anläggningsid', '233 anläggningsid'])) : cleanOptionalCode(
     valueFor([
       "209 anläggningsid",
       "209 anlaggningsid",
@@ -186,11 +193,9 @@ export function getPortalData(
       ]),
       12,
     ),
-    meterNumber: cleanOptionalCode(
-      valueFor(["224 mätarnummer", "224 matarnummer"]),
-      35,
-    ),
-    customerId,
+    meterNumber: tgtProdatSourceValue('224',valueFor(['224 mätarnummer'])),
+    oldMeterNumber: tgtProdatSourceValue('225',valueFor(['225 gammalt mätarnummer'])),
+    customerId: tgtProdatSourceValue('227', customerIdField?.value) ?? '',
     customerIdCodeListQualifier: inferCustomerIdCodeListQualifier(
       customerIdField?.fieldName,
       customerId,
@@ -281,11 +286,7 @@ export function getPortalData(
       ]),
       12,
     ),
-    gridAreaId:
-      cleanOptionalCode(
-        valueFor(["260 nätområdesid", "260 natomradesid"]),
-        12,
-      ) ?? "",
+    gridAreaId: tgtProdatSourceValue('260',valueFor(['260 nätområdesid'])) ?? '',
     powerOfAttorneyReference: resolveSenderControlledCode(
       poaRaw,
       defaultPowerOfAttorneyReference(params),
@@ -392,7 +393,7 @@ export function findFirstTgtFieldValueAcrossColumns(
 
     for (const field of group.fields) {
       const haystack = normalizeSearch(`${field.fieldCode} ${field.fieldName}`);
-      if (!normalizedSelectors.some((selector) => haystack.includes(selector)))
+      if (!normalizedSelectors.some((selector) => /^\d{3}\b/.test(selector) ? field.fieldCode.trim() === selector.slice(0,3) : haystack.includes(selector)))
         continue;
 
       for (const column of candidateColumns) {
@@ -522,7 +523,7 @@ export function resolveEscoZ13MeteringPointId(
   currentMeteringPointId: string | null | undefined,
   sourceColumnName?: string | null,
 ): string {
-  const cleanCurrent = cleanOptionalCode(currentMeteringPointId, 35);
+  const cleanCurrent = tgtProdatSourceValue('209',currentMeteringPointId);
   if (cleanCurrent) return cleanCurrent;
   if (
     params.testSuite !== "PRODAT" ||
@@ -617,11 +618,25 @@ export function getPortalDataRows(
   params: TestDataLookupParams,
   step: EdielTgtExpectedStep,
 ): TgtPortalCustomerData[] {
-  const columnNames = getPortalDataColumnNames(params, step);
-  if (columnNames.length === 0) return [getPortalData(params, step)];
-  return columnNames.map((columnName) =>
-    getPortalData(params, step, columnName),
-  );
+  const data = getTgtTestData(params);
+  if (step.family !== 'PRODAT' || !data) {
+    const names = getPortalDataColumnNames(params,step);
+    return names.length ? names.map(name => getPortalData(params,step,name)) : [getPortalData(params,step)];
+  }
+  const columns = readTgtProdatSourceColumns(data,step.code);
+  if (['Z04','Z06','Z10'].includes(step.code) && columns.some(row => !row.fields['209'])) throw new Error('prodat_register_source_object_required');
+  return groupTgtProdatSourceObjects(columns).map(siblings => {
+    const first = siblings[0];
+    const scoped = {...params,importedTestData:{...data,groups:[{...first.group,columns:[first.column]}]}};
+    const portal = getPortalData(scoped,step,first.column.name);
+    return {...portal,meteringPointId:first.fields['209'] ?? portal.meteringPointId,identityAgency:first.identityAgency ?? '9',sourceGroupIndex:first.groupIndex,
+      registers:siblings.map(row => ({
+        label:row.column.name, registerIndex:sourceExpectationIndex(row,siblings),
+        sourceGroupIndex:row.groupIndex, sourceColumnName:row.column.name, rawFields:row.rawFields,
+        annualEnergyKwh:row.fields['213'] ?? '', annualEnergyUnit:portal.annualEnergyUnit,
+        meterConstant:row.fields['214'] ?? '', meterDigits:row.fields['218'] ?? '', meterTimeInterval:row.fields['259'] ?? '',
+      }))};
+  });
 }
 
 /** Explicit date-only compatibility projection; invalid supplied input cannot

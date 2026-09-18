@@ -25,8 +25,19 @@ export function validateProdatRegisterPolicy(input: {
   const facts = input.facts ?? {}
   const add = (field: string, line: number, code: string, description: string) => {
     const rule = input.rules.find(rule => rule.fieldNumber === field)
-    if (rule) issues.push({severity:'error',blocking:true,code,title:'PRODAT registervillkor',fieldPath:rule.segmentPath,
+    if (rule) issues.push({scope:'prodat_register',severity:'error',blocking:true,code,title:'PRODAT registervillkor',fieldPath:rule.segmentPath,
       description:`LIN ${line + 1}, fält ${field}: ${description} (P26.A §2.2 / bilaga2 s.114–116).`})
+  }
+  if (facts.registerObjects) {
+    const expected = new Set<string>()
+    for (const fact of facts.registerObjects) {
+      const identity = JSON.stringify([fact.meteringPointId,fact.identityAgency])
+      if (expected.has(identity)) issues.push({scope:'prodat_register',severity:'error',blocking:true,code:'PRODAT_REGISTER_EVIDENCE_UNDETERMINED',title:'Tvetydigt registerunderlag',description:'Objektets faktaunderlag förekommer mer än en gång.',fieldPath:'LIN/C829/1082'})
+      expected.add(identity)
+      if (!groups.some(group=>group.itemId===fact.meteringPointId && group.identityAgency===fact.identityAgency)) {
+        issues.push({scope:'prodat_register',severity:'error',blocking:true,code:'PRODAT_REGISTER_EXPECTED_OBJECT_MISSING',title:'Förväntat objekt saknas',description:'Ett objekt i det uttryckliga faktaunderlaget saknas i meddelandet.',fieldPath:'LIN/C212/7140'})
+      }
+    }
   }
   const tariffs = new Map<number, Set<string>>()
   for (const group of groups) {

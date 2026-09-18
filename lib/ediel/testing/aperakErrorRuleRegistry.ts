@@ -1,3 +1,4 @@
+import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy';
 import { prodatReferenceValues } from "@/lib/ediel/prodat/prodatReferenceFields";
 import { parseUna } from "@/lib/ediel/core/una";
 // lib/ediel/core/aperakErrorRuleRegistry.ts
@@ -481,7 +482,7 @@ function issueFromTgtComparison(
   });
 }
 
-const CANONICAL_PRODAT_ISSUE_RULE_KEYS: Record<ProdatValidationIssue['type'], string> = {
+const CANONICAL_PRODAT_ISSUE_RULE_KEYS: Record<Exclude<ProdatValidationIssue['type'], 'register_invalid'|'register_value_invalid'>, string> = {
   facility_not_identified: 'facility_not_identified',
   metering_point_id_mismatch: 'metering_point_id_mismatch',
   grid_area_id_invalid: 'grid_area_id_invalid',
@@ -506,6 +507,7 @@ const CANONICAL_PRODAT_ISSUE_RULE_KEYS: Record<ProdatValidationIssue['type'], st
 function issueFromCanonicalProdatValidationIssue(
   validationIssue: ProdatValidationIssue,
 ): EdielAperakValidationIssue | null {
+  if (validationIssue.type==='register_invalid' || validationIssue.type==='register_value_invalid') throw new Error('PRODAT_REGISTER_ACK_REVIEW_REQUIRED');
   const ruleKey = CANONICAL_PRODAT_ISSUE_RULE_KEYS[validationIssue.type];
   if (!ruleKey) return null;
 
@@ -1082,7 +1084,20 @@ export function deriveProdatAperakValidationIssues(params: {
   const { message, testData } = params;
   if (message.message_family !== "PRODAT") return [];
 
+  const registerParsed=parseProdatMessage(message);
+  const registerWire=parseEdifactMessageFacts(message.raw_payload);
+  const registerFailures=validateProdatRegisterPayload({code:registerParsed.messageCode,
+    rawSegments:registerWire.rawSegments,una:parseUna(message.raw_payload),requireConditions:false});
+  if (registerFailures.length) throw new Error('PRODAT_REGISTER_ACK_REVIEW_REQUIRED');
   if (testData) {
+    // A scenario's "positive" label cannot hide a broken register chain or own
+    // measurements copied from another register. Do not invent a national ERC
+    // mapping for these new scoped failures; require review before any DB write.
+    const expected=resolveTgtExpectedProdatContext({parsed:registerParsed,testData});
+    const comparisons=validateParsedProdatAgainstExpected({parsed:registerParsed,expected});
+    if (comparisons.some(item=>item.type==='register_invalid' || item.type==='register_value_invalid')) {
+      throw new Error('PRODAT_REGISTER_ACK_REVIEW_REQUIRED');
+    }
     return deriveTgtAperakValidationIssues({ message, testData });
   }
 

@@ -1,3 +1,13 @@
+# 2026-09-18 recovered continuation (supersedes preparation-only status)
+
+TGT rendering/comparisons, fact propagation/admin/autopilot, register inventory and
+object-scoped customer application are implemented and targeted tests pass.
+The current gate is same-source full verification, publication and independent
+review, not restarting source mapping. The historical plan below is retained.
+See `quality/audits/ediel-masterplan-v2/f3-register-recovery-20260918.md` for exact scope and schema-dependent exclusions.
+
+---
+
 # Checkpoint update — 2026-09-17 partial implementation
 
 This supersedes the preparation-only state below without claiming all checkboxes complete. Original source mapping and partial implementation/local verification are now done. The single next task is TGT source grouping/rendering, followed by all other explicit blockers in `quality/audits/ediel-masterplan-v2/f3-register-progress.md`. Ordinary final-head CI, substantive review and merge remain pending. PR310 stays paused. The historical plan follows unchanged.

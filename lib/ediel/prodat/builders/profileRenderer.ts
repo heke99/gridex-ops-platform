@@ -1,3 +1,5 @@
+import { resolveProdatRegisterConditionFacts } from '@/lib/ediel/prodat/prodatRegisterEvidence'
+import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { resolveProdatRegisterInputs } from '@/lib/ediel/prodat/prodatRegisterInput'
 import { renderProdatRegisterObject } from '@/lib/ediel/prodat/render/registers'
 import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
@@ -123,7 +125,7 @@ function rendererPolicy(input: {
     bilateralCapabilityVerified: input.context.bilateralCapabilityVerified ?? undefined,
     prodatDependentFacts: {
       market: 'electricity',
-      ...(input.context.dependentConditionFacts ?? {}),
+      ...resolveProdatRegisterConditionFacts(input.context.dependentConditionFacts,input.portalSnapshot),
       multipleMeterRegisters: resolveProdatRegisterInputs(input.context, input.portalSnapshot).length > 1,
     },
     mode: input.mode === 'production' ? 'send' : 'catalog_evidence',
@@ -349,6 +351,7 @@ export function buildProfiledProdatSegments(input: {
     diagnostics: {
       engine: 'prodat',
       registerCount: expanded.registerCount,
+      registerEvidence: createProdatRegisterEvidence({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts}),
       renderer: input.renderer ?? 'prodat.engine.buildProfiledProdatSegments',
       code: context.code,
       variant: policy.subtype,

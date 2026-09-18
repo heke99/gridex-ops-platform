@@ -1,0 +1,185 @@
+{
+  "status": "LOCAL_CHECKPOINT_NOT_MERGE_CERTIFICATE",
+  "base_head": "2c11f276cdf30e80d234752d96c9914e7b30af5d",
+  "date": "2026-09-18",
+  "vitest": {
+    "passed": 2157,
+    "failed": 0,
+    "files": 229,
+    "register_cases": 343,
+    "register_files": 16
+  },
+  "source_cases": {
+    "passed": 851,
+    "failed": 0,
+    "old_test_assertions_unchanged": true,
+    "loader_only_harness_update": true
+  },
+  "commands": {
+    "typecheck": {
+      "exit": 0,
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "started_at": "2026-09-18T07:59:19.178818+00:00",
+      "finished_at": "2026-09-18T07:59:34.098068+00:00",
+      "source_drift": []
+    },
+    "typecheck-tests": {
+      "exit": 0,
+      "command": [
+        "npm",
+        "run",
+        "typecheck:tests"
+      ],
+      "started_at": "2026-09-18T07:59:34.098335+00:00",
+      "finished_at": "2026-09-18T07:59:38.157144+00:00",
+      "source_drift": []
+    },
+    "typecheck-scripts": {
+      "exit": 0,
+      "command": [
+        "npm",
+        "run",
+        "typecheck:scripts"
+      ],
+      "started_at": "2026-09-18T07:59:38.157555+00:00",
+      "finished_at": "2026-09-18T07:59:39.612201+00:00",
+      "source_drift": []
+    },
+    "full-vitest": {
+      "exit": 0,
+      "command": [
+        "npm",
+        "test",
+        "--",
+        "--reporter=json",
+        "--outputFile=/mnt/data/gridex-recovery/evidence/full-vitest-final.json"
+      ],
+      "started_at": "2026-09-18T07:59:39.612459+00:00",
+      "finished_at": "2026-09-18T08:00:12.198601+00:00",
+      "source_drift": []
+    },
+    "retained-source": {
+      "exit": 1,
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "--test",
+        "scripts/test-ediel-component-escaping.cjs",
+        "scripts/test-ediel-guide-governance.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/test-ediel-prodat-document-fields.cjs",
+        "scripts/test-ediel-prodat-party-fields.cjs",
+        "scripts/test-ediel-prodat-reference-fields.cjs",
+        "scripts/test-ediel-prodat-source-locators.cjs",
+        "scripts/test-ediel-route-destination.cjs",
+        "scripts/test-ediel-rule-pack-source-identity.cjs"
+      ],
+      "started_at": "2026-09-18T08:00:12.199768+00:00",
+      "finished_at": "2026-09-18T08:00:18.296188+00:00",
+      "source_drift": []
+    },
+    "lint": {
+      "exit": 0,
+      "command": [
+        "npm",
+        "run",
+        "lint"
+      ],
+      "started_at": "2026-09-18T08:00:18.296456+00:00",
+      "finished_at": "2026-09-18T08:01:57.410911+00:00",
+      "source_drift": []
+    },
+    "integrity": {
+      "exit": 0,
+      "command": [
+        "npm",
+        "run",
+        "ediel:masterplan-v2:integrity"
+      ],
+      "started_at": "2026-09-18T08:01:57.412278+00:00",
+      "finished_at": "2026-09-18T08:01:57.726260+00:00",
+      "source_drift": []
+    },
+    "large-file-budget": {
+      "exit": 0,
+      "command": [
+        "npm",
+        "run",
+        "quality:large-file-budget"
+      ],
+      "started_at": "2026-09-18T08:01:57.726519+00:00",
+      "finished_at": "2026-09-18T08:01:58.173543+00:00",
+      "source_drift": []
+    },
+    "mechanical": {
+      "exit": 0,
+      "command": [
+        "bash",
+        "quality/mechanical/verify.sh"
+      ],
+      "started_at": "2026-09-18T08:01:58.173809+00:00",
+      "finished_at": "2026-09-18T08:01:58.360872+00:00",
+      "source_drift": []
+    },
+    "quality-tests": {
+      "exit": 0,
+      "command": [
+        "npx",
+        "vitest",
+        "run",
+        "--config",
+        "quality/vitest.config.ts"
+      ],
+      "started_at": "2026-09-18T08:01:58.361153+00:00",
+      "finished_at": "2026-09-18T08:02:02.212977+00:00",
+      "source_drift": [
+        "scripts/test-ediel-prodat-document-fields.cjs",
+        "scripts/test-ediel-prodat-party-fields.cjs",
+        "scripts/test-ediel-prodat-reference-fields.cjs"
+      ]
+    },
+    "rbac": {
+      "exit": 0,
+      "command": [
+        "npm",
+        "run",
+        "security:rbac"
+      ],
+      "started_at": "2026-09-18T08:02:02.213283+00:00",
+      "finished_at": "2026-09-18T08:02:02.512040+00:00",
+      "source_drift": [
+        "scripts/test-ediel-prodat-document-fields.cjs",
+        "scripts/test-ediel-prodat-party-fields.cjs",
+        "scripts/test-ediel-prodat-reference-fields.cjs"
+      ]
+    },
+    "build": {
+      "exit": 1,
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "started_at": "2026-09-18T08:02:02.512319+00:00",
+      "finished_at": "2026-09-18T08:03:07.064621+00:00",
+      "source_drift": [
+        "scripts/test-ediel-prodat-document-fields.cjs",
+        "scripts/test-ediel-prodat-party-fields.cjs",
+        "scripts/test-ediel-prodat-reference-fields.cjs"
+      ]
+    }
+  },
+  "limitations": [
+    "Local Next build worker SIGKILL; ordinary CI build required",
+    "No live customer mutations or market sends",
+    "Mocked DB boundaries do not certify production",
+    "Final source qualification requires ordinary CI and independent review"
+  ],
+  "production_changes": false,
+  "original_specification_changed": false,
+  "pr310": "PAUSED"
+}

@@ -14,8 +14,9 @@ async function runtime(){
  const blocked=new Map([
  ['@/lib/customers/canonicalOnboarding',['canonicalIdempotencyKey','onboardCustomerGraph']],
  ['@/lib/tenant/context',['createTenantContext']],
+    ['@/lib/supabase/tenantDb', ['tenantDb']],
  ].map(([name,keys])=>[name,new SyntheticModule(keys,function(){for(const key of keys)this.setExport(key,()=>{throw new Error('Unexpected mutation')})})]))
- const crypto=new SyntheticModule(['randomUUID'],function(){this.setExport('randomUUID',require('node:crypto').randomUUID)})
+ const crypto=new SyntheticModule(['randomUUID','createHash'],function(){this.setExport('randomUUID',require('node:crypto').randomUUID);this.setExport('createHash',require('node:crypto').createHash)})
  const entry=new SourceTextModule(`
  export { PRODAT_26A_FIELD_MATRIX, canonicalProdat26AFieldRules } from '@/lib/ediel/prodat/prodat26AFieldMatrix';
  export { fieldRulePresent, validateFieldMatrixPayload } from '@/lib/ediel/rulebook/fieldMatrix';

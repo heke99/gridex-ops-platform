@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
+import EdielInboundCasesPanel from '@/components/admin/ediel/EdielInboundCasesPanel'
+import { getEdielInboundCaseForMessage } from '@/lib/ediel/inboundCases'
 import { isPlatformAdminContext, requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { getTenantLiveAccessForAdmin } from '@/lib/tenant/liveAccess'
@@ -364,7 +366,7 @@ export default async function AdminEdielMessageDetailPage({
  )
  }
 
- const [relatedAckMessages, linkedMessage, routeRuntime, versionWindow] = await Promise.all([
+ const [relatedAckMessages, linkedMessage, routeRuntime, versionWindow, inboundReview] = await Promise.all([
  message.direction === 'inbound'
  ? listAckMessagesForSource({ sourceMessageId: message.id, companyId })
  : Promise.resolve([]),
@@ -389,6 +391,9 @@ export default async function AdminEdielMessageDetailPage({
  fallback: message.message_version,
  environment: message.environment,
  }),
+ message.direction === 'inbound' && message.message_family === 'PRODAT' && message.company_id
+ ? getEdielInboundCaseForMessage(message.company_id, message.id)
+ : Promise.resolve(null),
  ])
 
  const sendReadiness =
@@ -438,6 +443,7 @@ export default async function AdminEdielMessageDetailPage({
  />
 
  <div className="space-y-8 p-8">
+ {inboundReview ? <EdielInboundCasesPanel cases={[inboundReview]} /> : null}
  <section className="rounded-3xl border border-slate-200 bg-white p-6">
  <div className="flex flex-wrap items-start justify-between gap-4">
  <div>
