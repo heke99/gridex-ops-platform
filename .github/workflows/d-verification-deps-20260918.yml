@@ -1,0 +1,43 @@
+name: Isolated D verification dependencies
+on:
+  push:
+    branches: ['codex/d-verification-deps-20260918']
+permissions:
+  contents: read
+jobs:
+  dependencies:
+    if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/codex/d-verification-deps-20260918'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 0a89e102956fc582f879b391b3ab466d40c5f178
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install exact lockfile without lifecycle scripts
+        run: npm ci --ignore-scripts
+      - name: Package only installed dependencies and public provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/d-deps"
+          tar -czf "$RUNNER_TEMP/d-deps/node_modules.tar.gz" node_modules
+          cp package-lock.json "$RUNNER_TEMP/d-deps/package-lock.json"
+          {
+            printf 'source_head=%s\nsource_tree=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse 'HEAD^{tree}')"
+            node --version
+            npm --version
+            printf 'scope=installed lockfile dependencies only; no test or production acceptance\n'
+          } > "$RUNNER_TEMP/d-deps/provenance.txt"
+          (cd "$RUNNER_TEMP/d-deps" && sha256sum node_modules.tar.gz package-lock.json provenance.txt > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: d-verification-deps-${{ github.run_id }}
+          path: ${{ runner.temp }}/d-deps/
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
