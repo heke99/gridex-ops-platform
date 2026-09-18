@@ -1,0 +1,246 @@
+{
+  "status": "LOCAL_PASS_PENDING_FINAL_HEAD_CI_AND_REREVIEW",
+  "base_head": "97f7505153fc268551d16112428cc9eaf0581b0d",
+  "base_tree": "c83c6b489bda82d12a34a07c8f3ad8cc7421ab10",
+  "date": "2026-09-18",
+  "findings": [
+    {
+      "id": "4045191661",
+      "rereview": "4045597721",
+      "status": "fixed_local_pending_rereview",
+      "detail": "97f75051 fixed nullable-company reprocessing but omitted rejectEdielInboundCase. Rejection now uses is(null) for null, eq for non-null and retains id/status/revision. Two status cases reproduced failures before fix; non-null/mismatching-company behavior retained.",
+      "red": {
+        "failed": 2,
+        "passed": 36,
+        "log_sha256": "db92d5c3153e005bc10062cf24e510fddc3edc664c343212d4d194365c4c0447"
+      },
+      "green": {
+        "passed": 38,
+        "failed": 0,
+        "log_sha256": "45f590778e575f8b0969ead5ef66eecb836e0474a0f86079caf4dfb8c32b8e97"
+      }
+    },
+    {
+      "id": "PRR_5245914846_session-log_outside-diff",
+      "status": "fixed_local_pending_rereview",
+      "detail": "Retitled obsolete PR326 active-state section historical, with current PR328 pointer; historical narrative retained."
+    }
+  ],
+  "vitest": {
+    "passed": 2294,
+    "failed": 0,
+    "files": 233,
+    "register_cases": 480,
+    "register_files": 20,
+    "new_vs_97f75051": 3
+  },
+  "retained_source": {
+    "passed": 851,
+    "failed": 0
+  },
+  "coverage": {
+    "lines": {
+      "total": 34325,
+      "covered": 12139,
+      "skipped": 0,
+      "pct": 35.36
+    },
+    "statements": {
+      "total": 40341,
+      "covered": 13679,
+      "skipped": 0,
+      "pct": 33.9
+    },
+    "functions": {
+      "total": 6948,
+      "covered": 2829,
+      "skipped": 0,
+      "pct": 40.71
+    },
+    "branches": {
+      "total": 54171,
+      "covered": 14542,
+      "skipped": 0,
+      "pct": 26.84
+    },
+    "branchesTrue": {
+      "total": 0,
+      "covered": 0,
+      "skipped": 0,
+      "pct": 100
+    }
+  },
+  "all_existing_thresholds_unchanged": true,
+  "same_source_commands": {
+    "typecheck": {
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:43:25.920305+00:00",
+      "finished": "2026-09-18T09:43:43.754938+00:00",
+      "source_drift": [],
+      "log_sha256": "4b1d0b478880d5443bfb6d57f349e9abc225f248df8c966d105dba22aaf1cbfc"
+    },
+    "typecheck-tests": {
+      "command": [
+        "npm",
+        "run",
+        "typecheck:tests"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:43:43.837140+00:00",
+      "finished": "2026-09-18T09:43:47.265270+00:00",
+      "source_drift": [],
+      "log_sha256": "b215537d20de45f7a64cbd824e9e37d0715a4b39d3e0780f59355d2e037b4656"
+    },
+    "typecheck-scripts": {
+      "command": [
+        "npm",
+        "run",
+        "typecheck:scripts"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:43:47.347113+00:00",
+      "finished": "2026-09-18T09:43:48.301507+00:00",
+      "source_drift": [],
+      "log_sha256": "122902ab9bb4622846143a7b4d89493b7734657820f4cf78d01aea55a4e9701f"
+    },
+    "coverage": {
+      "command": [
+        "npm",
+        "run",
+        "test:coverage"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:43:48.374236+00:00",
+      "finished": "2026-09-18T09:44:15.031587+00:00",
+      "source_drift": [],
+      "log_sha256": "ca865a649b6654d2bfd8cb8b3e8b1aafd3400a387a74ea2086e47ee35f6b4ef8"
+    },
+    "retained-source": {
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "--test",
+        "scripts/test-ediel-component-escaping.cjs",
+        "scripts/test-ediel-guide-governance.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/test-ediel-prodat-document-fields.cjs",
+        "scripts/test-ediel-prodat-party-fields.cjs",
+        "scripts/test-ediel-prodat-reference-fields.cjs",
+        "scripts/test-ediel-prodat-source-locators.cjs",
+        "scripts/test-ediel-route-destination.cjs",
+        "scripts/test-ediel-rule-pack-source-identity.cjs"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:44:15.105167+00:00",
+      "finished": "2026-09-18T09:44:18.160846+00:00",
+      "source_drift": [],
+      "log_sha256": "d986ceb170e7cb45df16a20156b73797aea78d3cb5b72c423b5841b6a4c4547e"
+    },
+    "lint": {
+      "command": [
+        "npm",
+        "run",
+        "lint"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:44:18.234591+00:00",
+      "finished": "2026-09-18T09:45:27.522307+00:00",
+      "source_drift": [],
+      "log_sha256": "dac58046f350a0438f44d8283d8934622816b611ec73f2b278c513370f82b692"
+    },
+    "integrity": {
+      "command": [
+        "npm",
+        "run",
+        "ediel:masterplan-v2:integrity"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:45:27.605868+00:00",
+      "finished": "2026-09-18T09:45:27.742574+00:00",
+      "source_drift": [],
+      "log_sha256": "6b69e14e634de940b6b47b8e579ee132ce867dfe9926a178061b05439e74c106"
+    },
+    "mechanical": {
+      "command": [
+        "bash",
+        "quality/mechanical/verify.sh"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:45:27.820170+00:00",
+      "finished": "2026-09-18T09:45:27.890594+00:00",
+      "source_drift": [],
+      "log_sha256": "af300e3d959634dcfebeb6acfaca7580f541c38a7487b18c2cc884ca8c1434c3"
+    },
+    "quality-tests": {
+      "command": [
+        "npx",
+        "vitest",
+        "run",
+        "--config",
+        "quality/vitest.config.ts"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:45:27.967903+00:00",
+      "finished": "2026-09-18T09:45:29.225917+00:00",
+      "source_drift": [],
+      "log_sha256": "3f122ba3c4d5104076f33531cc791c7c4b72cb3ba66c90e03c34fa5ca99d6e81"
+    },
+    "rbac": {
+      "command": [
+        "npm",
+        "run",
+        "security:rbac"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:45:29.310983+00:00",
+      "finished": "2026-09-18T09:45:29.467001+00:00",
+      "source_drift": [],
+      "log_sha256": "aec57f4c06e1c1c0a1f2e58e7eb188c82fe4c01c35ba3dd002634abb9c73601d"
+    },
+    "size-budget": {
+      "command": [
+        "npm",
+        "run",
+        "quality:large-file-budget"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:45:29.725178+00:00",
+      "finished": "2026-09-18T09:45:29.931090+00:00",
+      "source_drift": [],
+      "log_sha256": "2dcf4a82a59c409b6a8706d24d8d24b2b76fec42fdca4b4d609a5898a2103eba"
+    },
+    "diff-check": {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit": 0,
+      "started": "2026-09-18T09:45:30.008734+00:00",
+      "finished": "2026-09-18T09:45:30.018516+00:00",
+      "source_drift": [],
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "source_manifest_sha256": "226632cbdcdcab2d8f97ed451acb7e31d13e08c41caed623a2a60d3d60c2a52d",
+  "previous_head_ci": {
+    "head": "97f7505153fc268551d16112428cc9eaf0581b0d",
+    "runs": {
+      "OPS": 35330639918,
+      "Ediel": 35330640010,
+      "BrowserQuality": 35330640023,
+      "FullE2E": 35330640047
+    },
+    "status": "all_success",
+    "qualifies_new_head": false
+  },
+  "independent_rereview": "pending",
+  "main_merged": false,
+  "production_mutations": false,
+  "pr310": "paused_unchanged"
+}
