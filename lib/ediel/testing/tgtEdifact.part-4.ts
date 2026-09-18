@@ -1,3 +1,9 @@
+import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
+import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
+import { parsedProdatObjects, parseProdatMessage } from '@/lib/ediel/prodat/parser'
+import type { ProdatDependentConditionFacts } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
+import type { EdielTgtCaseTestData } from './tgtTestData'
+import { groupTgtProdatSourceObjects, readTgtProdatSourceColumns } from './tgtProdatSource'
 import { validateProdatDateFields } from '@/lib/ediel/prodat/prodatDateValidation'
 import { misplacedProdatEnergyProducts } from "@/lib/ediel/prodat/prodatCharacteristicFields"
 import { tokenizeEdifact } from "@/lib/ediel/core/edifactTokenizer"
@@ -21,6 +27,9 @@ export function validateEdielTgtDraft(
     testPortalEdielId?: string | null;
     receiverSubaddress?: string | null;
     applicationReference?: string | null;
+    sourceTestData?: EdielTgtCaseTestData | null;
+    portalRows?: TgtPortalCustomerData[];
+    registerFacts?: ProdatDependentConditionFacts;
   },
 ): EdielTgtDraftValidationIssue[] {
   const issues: EdielTgtDraftValidationIssue[] = [];
@@ -37,6 +46,27 @@ export function validateEdielTgtDraft(
   const parsed = parseEdifactSegments(rawPayload);
   if (step.family === 'PRODAT') {
     const wire = tokenizeEdifact(rawPayload);
+    for (const failure of validateProdatRegisterPayload({code:step.code,
+      rawSegments:wire.segments.map(segment=>segment.raw),una:wire.una,
+      facts:expected?.registerFacts,requireConditions:true})) {
+      pushIssue(issues,'error',failure.code,failure.title,failure.description);
+    }
+    // The expected inventory comes from the unfiltered source, not from the
+    // payload being validated. This cannot establish meter-reading facts.
+    if (expected?.sourceTestData && ['Z04','Z06','Z10'].includes(step.code)) {
+      const columns=readTgtProdatSourceColumns(expected.sourceTestData,step.code);
+      const sourceObjects=groupTgtProdatSourceObjects(columns);
+      if (!sourceObjects.length) pushIssue(issues,'error','PRODAT_REGISTER_EXPECTED_OBJECT_MISSING','Objektunderlag saknas','Källan innehåller inget objekt för meddelandefunktionen.');
+      const objects=parsedProdatObjects(parseProdatMessage(rawPayload));
+      for (const source of sourceObjects) {
+        const id=source[0].fields['209'] ?? source[0].fields['233'];
+        const agency=source[0].identityAgency ?? '9';
+        const matches=objects.filter(object=>object.meteringPointId===id && object.identityAgency===agency);
+        if (matches.length !== 1) pushIssue(issues,'error','PRODAT_REGISTER_EXPECTED_OBJECT_MISSING','Förväntat objekt saknas','Källobjektet saknas eller kan inte identifieras entydigt i meddelandet.');
+        else if (matches[0].registers.length!==source.length) pushIssue(issues,'error','PRODAT_REGISTER_COUNT_MISMATCH','Fel registerantal','Antalet register avviker från det ursprungliga objektunderlaget.');
+      }
+    }
+
     for (const failure of validateProdatDateFields(step.code, wire.segments, wire.una)) {
       pushIssue(issues, 'error', 'prodat_date_invalid', 'PRODAT-datum är ogiltigt', failure.description);
     }
@@ -330,7 +360,18 @@ export function validateEdielTgtDraft(
     );
   }
 
-  validatePortalDataCoverage(issues, rawPayload, step, portalData);
+  const coverageRows=expected?.portalRows ?? (portalData ? [portalData] : []);
+  if (step.family==='PRODAT' && coverageRows.length>1) {
+    const wire=tokenizeEdifact(rawPayload);
+    const objects=parsedProdatObjects(parseProdatMessage(rawPayload));
+    for (const row of coverageRows) {
+      const object=objects.find(item=>item.meteringPointId===row.meteringPointId && item.identityAgency===(row.identityAgency ?? '9'));
+      // Keep legacy non-register coverage checks object-local. Another object's
+      // name/reference/date cannot satisfy this object's expected source values.
+      const body=object?.registers.flatMap(register=>register.rawSegments).join(wire.una.segmentTerminator) ?? '';
+      validatePortalDataCoverage(issues,body,step,row);
+    }
+  } else validatePortalDataCoverage(issues,rawPayload,step,portalData);
 
   if (issues.length === 0) {
     pushIssue(
@@ -406,6 +447,9 @@ export function buildEdielTgtDraft(
       testPortalEdielId: testPortalId(params),
       receiverSubaddress: testReceiverSubaddress(params),
       applicationReference: prodatApplicationReference,
+      sourceTestData:params.importedTestData,
+      portalRows:portalBuild?.portalRows,
+      registerFacts:params.registerFacts,
     },
   );
   const hasErrors = validationIssues.some(
@@ -477,6 +521,12 @@ export function buildEdielTgtDraft(
       rawPayload,
       parsedPayload: {
         source: "tgt_draft_generator_portal_ready_v4",
+        ...(step.family==='PRODAT' ? {
+          portalRows:portalBuild?.portalRows ?? [],
+          prodatEngine:{registerEvidence:createProdatRegisterEvidence({code:step.code,
+            rawSegments:tokenizeEdifact(rawPayload).segments.map(segment=>segment.raw),
+            una:tokenizeEdifact(rawPayload).una,facts:params.registerFacts})},
+        } : {}),
         testSuite: params.testSuite,
         roleCode: params.roleCode,
         testCaseCode: params.testCaseCode,

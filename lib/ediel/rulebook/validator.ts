@@ -1,3 +1,4 @@
+import { readProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUna } from '@/lib/ediel/core/una'
 import type { EdielDirection, EdielMessageRow } from '@/lib/ediel/types'
@@ -270,6 +271,9 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
     family: familyValue,
     messageCode: code,
     subtypeOrReasonCode: parsed.subtype,
+    prodatDependentFacts: familyValue === 'PRODAT' && input.mode === 'send'
+      ? readProdatRegisterEvidence({code,rawSegments:parsed.rawSegments,una:parseUna(input.rawPayload),parsedPayload:input.parsedPayload})
+      : undefined,
     direction: dir,
     referenceDate,
     // Runtime guide aliases such as PRODAT 26A and CONTRL aliases are not UNH
@@ -335,7 +339,7 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
     let fieldIssues = validateCanonicalPolicyFields({ policy, rawSegments: parsed.rawSegments, una: parseUna(input.rawPayload) })
     if (input.mode === 'send' && input.environment !== 'production') {
       fieldIssues = fieldIssues.map((entry) =>
-        entry.code === 'PRODAT_DEPENDENT_CONDITION_UNDETERMINED'
+        entry.code === 'PRODAT_DEPENDENT_CONDITION_UNDETERMINED' && entry.scope !== 'prodat_register'
           ? { ...entry, severity: 'warning' as const, blocking: false }
           : entry,
       )
@@ -358,7 +362,8 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
     const description = error instanceof Error ? error.message : String(error)
     const issues = [...parserIssues, issue({
       severity: 'error',
-      code: 'CANONICAL_POLICY_VALIDATION_FAILED',
+      code: description.startsWith('prodat_register_evidence_') ? 'PRODAT_REGISTER_EVIDENCE_INVALID' : 'CANONICAL_POLICY_VALIDATION_FAILED',
+      ...(description.startsWith('prodat_register_evidence_') ? {scope:'prodat_register' as const} : {}),
       title: 'Canonical Ediel-policy blockerade validering',
       description,
     })]

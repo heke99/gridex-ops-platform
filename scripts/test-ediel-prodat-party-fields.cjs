@@ -11,7 +11,7 @@ const { test } = require('node:test')
 const root = path.resolve(__dirname, '..')
 async function runtime() {
   const modules = new Map()
-  const crypto = new SyntheticModule(['randomUUID'], function(){this.setExport('randomUUID', require('node:crypto').randomUUID)})
+  const crypto = new SyntheticModule(['randomUUID','createHash'], function(){this.setExport('randomUUID', require('node:crypto').randomUUID);this.setExport('createHash',require('node:crypto').createHash)})
   let fixture = null
   const saved = []
   const calls = []
@@ -50,6 +50,7 @@ async function runtime() {
   const unreachable = new Map([
     ['@/lib/customers/canonicalOnboarding', ['canonicalIdempotencyKey','onboardCustomerGraph']],
     ['@/lib/tenant/context', ['createTenantContext']],
+    ['@/lib/supabase/tenantDb', ['tenantDb']],
   ].map(([specifier,names])=>[specifier,new SyntheticModule(names,function(){
     for(const name of names) this.setExport(name,()=>{throw new Error(`Unexpected mutation/context call: ${specifier}/${name}`)})
   })]))

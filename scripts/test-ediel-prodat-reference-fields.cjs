@@ -11,6 +11,9 @@ const { test } = require('node:test')
 const root = path.resolve(__dirname, '..')
 async function runtime() {
   const modules = new Map()
+  const crypto = new SyntheticModule(['randomUUID','createHash'], function(){
+    for (const name of ['randomUUID','createHash']) this.setExport(name,require('node:crypto')[name])
+  })
   let fixture = null
   const saved = []
   const calls = []
@@ -47,10 +50,12 @@ async function runtime() {
   const unreachable = new Map([
     ['@/lib/customers/canonicalOnboarding', ['canonicalIdempotencyKey','onboardCustomerGraph']],
     ['@/lib/tenant/context', ['createTenantContext']],
+    ['@/lib/supabase/tenantDb', ['tenantDb']],
   ].map(([specifier,names])=>[specifier,new SyntheticModule(names,function(){
     for(const name of names) this.setExport(name,()=>{throw new Error(`Unexpected mutation/context call: ${specifier}/${name}`)})
   })]))
   await entry.link((specifier, parent) => {
+    if (specifier === 'crypto' || specifier === 'node:crypto') return crypto
     if (specifier === '@/lib/supabase/service') return service
     if (unreachable.has(specifier)) return unreachable.get(specifier)
     assert(specifier.startsWith('@/lib/ediel/') || specifier.startsWith('.'), `Unexpected dependency ${specifier}`)

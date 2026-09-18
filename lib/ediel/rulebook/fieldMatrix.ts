@@ -1,3 +1,5 @@
+import { prodatRegisterFieldState } from '@/lib/ediel/prodat/prodatRegisterFields'
+import { prodatRegisterGroups, prodatRegisterRuleScopes, prodatRegisterMessageSegments } from '@/lib/ediel/prodat/prodatRegisterGroups'
 import { prodatDateExcludedBySubtype, prodatDateField, prodatDateRuleScopes, prodatDateState, prodatDateValue, prodatDateSyntaxIssues } from '@/lib/ediel/prodat/prodatDateFields'
 import { segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUna } from '@/lib/ediel/core/una'
@@ -406,8 +408,17 @@ function partyRoleForRule(rule: RulebookFieldRule) {
 }
 
 export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): boolean {
+  const scopes = normalize(rule.family) === 'PRODAT' ? prodatRegisterRuleScopes(rule.fieldNumber ?? rule.fieldKey, input.rawSegments ?? [], input.una, input.code) : null
+  if (!scopes) return fieldRulePresentInScope(rule, input)
+  const values = scopes.map(scope => fieldRulePresentInScope(rule, { ...input, rawSegments: scope.map(row => row.raw) }))
+  return ['forbidden', 'not_used'].includes(rule.requirement) ? values.some(Boolean) : values.every(Boolean)
+}
+
+function fieldRulePresentInScope(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): boolean {
   const rawSegments = input.rawSegments ?? []
   const applicationReference = input.applicationReference ?? null
+  const register = normalize(rule.family) === 'PRODAT' ? prodatRegisterFieldState(rule.fieldNumber ?? rule.fieldKey, rawSegments, input.una) : null
+  if (register) return ['forbidden','not_used'].includes(rule.requirement) ? register.present : Boolean(register.value) && !register.malformed
   const date = normalize(rule.family) === 'PRODAT' ? prodatDateField(rule.fieldNumber ?? rule.fieldKey) : null
   if (date) {
     const states = prodatDateRuleScopes(date.fieldNumber, rawSegments, input.una).map(scope => prodatDateState(date.fieldNumber, scope, input.una))
@@ -447,17 +458,9 @@ export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEval
   if (normalize(rule.family) === 'PRODAT' && rule.source === 'static') {
     const una = input.una ?? parseUna(null)
     const source = rawSegments.map((raw, index) => ({ raw, index, tag: raw.split(una.dataElementSeparator)[0].toUpperCase(), elements: [] }))
-    const lin = source.find(segment => segment.tag === 'LIN')
-    const flat = (index: number) => { const values = segmentComposite(lin, index, una); return values.length === 1 ? values[0]?.trim() : null }
     switch (rule.fieldNumber) {
       case '312':
         return Boolean(segmentComposite(source.find(segment => segment.tag === 'UNH'), 2, una)[4]?.trim())
-      case '314':
-        return Boolean(flat(1))
-      case '209':
-        return Boolean(segmentComposite(lin, 3, una)[0]?.trim())
-      case '258':
-        return Boolean(flat(4))
       default:
         break
     }
@@ -569,6 +572,11 @@ export function validateFieldMatrixPayload(
   }
 
   if (family === 'PRODAT') {
+    for (const problem of prodatRegisterGroups(prodatRegisterMessageSegments(rawSegments, input.una), input.una, code).problems) {
+      const rule = rules.find(rule => rule.fieldNumber === problem.fieldNumber)
+      if (rule) issues.push(issue({severity:'error', code:'PRODAT_REGISTER_STRUCTURE_INVALID', title:'Ogiltig PRODAT-registerstruktur',
+        description:`Fält ${problem.fieldNumber}, LIN ${problem.lineIndex + 1}: ${problem.reason} (P26.A s.47,114–116).`, fieldPath:rule.segmentPath}))
+    }
     // Scope errors cannot disappear just because an optional field is sought
     // in its correct scope. Only evaluate fields present in the selected rules.
     for (const failure of prodatDateSyntaxIssues(rawSegments, input.una).filter(value => value.kind === 'scope')) {
@@ -581,7 +589,9 @@ export function validateFieldMatrixPayload(
   for (const baseRule of rules) {
     const role = partyRoleForRule(baseRule)
     const date = family === 'PRODAT' ? prodatDateField(baseRule.fieldNumber ?? baseRule.fieldKey) : null
-    const scopes = role ? prodatPartyRuleScopes(role, rawSegments, input.una).map(scope => scope.map(row => row.raw))
+    const registerScopes = family === 'PRODAT' ? prodatRegisterRuleScopes(baseRule.fieldNumber ?? baseRule.fieldKey, rawSegments, input.una, code) : null
+    const scopes = registerScopes ? registerScopes.map(scope => scope.map(row => row.raw))
+      : role ? prodatPartyRuleScopes(role, rawSegments, input.una).map(scope => scope.map(row => row.raw))
       : date ? prodatDateRuleScopes(date.fieldNumber, rawSegments, input.una).map(scope => scope.map(row => row.raw)) : [rawSegments]
     for (const scopedSegments of scopes) {
       // Read field223 only from this LIN object. A renderer's omission is not
@@ -590,7 +600,7 @@ export function validateFieldMatrixPayload(
         .some(reason => prodatDateExcludedBySubtype(code, reason, date.fieldNumber))
       const rule: RulebookFieldRule = excludedDate ? { ...baseRule, requirement: 'forbidden' } : baseRule
       const scopedInput = { ...input, rawSegments: scopedSegments }
-      const present = fieldRulePresent(rule, scopedInput)
+      const present = fieldRulePresentInScope(rule, scopedInput)
       if (rule.requirement === 'forbidden' || rule.requirement === 'not_used') {
         if (!present) continue
         issues.push(issue({
@@ -605,6 +615,12 @@ export function validateFieldMatrixPayload(
         continue
       }
 
+      const registerState = family === 'PRODAT' ? prodatRegisterFieldState(rule.fieldNumber ?? rule.fieldKey, scopedSegments, input.una) : null
+      if (registerState?.malformed) {
+        issues.push(issue({severity:'error',code:rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_FORMAT_INVALID',title:`${rule.label} har ogiltig registerstruktur`,
+          description:'Kontrollera LIN/C829, QTY/C186 och registerlokala CCI/CAV enligt P26.A s.47,54–58,67,114–116.',fieldPath:rule.segmentPath}))
+        continue
+      }
       const dateState = date ? prodatDateState(date.fieldNumber, scopedSegments, input.una) : null
       if (dateState?.malformed) {
         issues.push(issue({ severity: 'error', code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_FORMAT_INVALID',

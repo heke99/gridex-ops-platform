@@ -1,3 +1,5 @@
+import { prodatSemanticMessageSegments } from '@/lib/ediel/prodat/prodatRegisterGroups'
+import { prodatRegisterGroups, type ProdatRegisterGroup } from '@/lib/ediel/prodat/prodatRegisterGroups'
 import { prodatDateValuesByQualifier } from '@/lib/ediel/prodat/prodatDateFields'
 import { prodatDocumentSegment, prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { prodatReferenceEntries } from '@/lib/ediel/prodat/prodatReferenceFields'
@@ -9,7 +11,7 @@ import {
 } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 
-export type CanonicalEdifactLineGroup = {
+export type CanonicalEdifactLineGroup = Partial<Omit<ProdatRegisterGroup, 'lineIndex' | 'lineNumber' | 'itemId' | 'segments'>> & {
   lineIndex: number
   lineNumber: string | null
   itemId: string | null
@@ -158,6 +160,10 @@ function buildLineGroups(
   una: EdifactServiceStringAdvice,
   family: string | null,
 ): CanonicalEdifactLineGroup[] {
+  if (family === 'PRODAT') return prodatRegisterGroups(segments, una).groups.map(group => ({
+    ...group, references: referenceMap(group.effectiveSegments, una, family),
+    cciCavCodes: prodatCharacteristicCodes(group.effectiveSegments, una),
+  }))
   const starts = segments.filter((segment) => segment.tag === 'LIN')
   return starts.map((line, index) => {
     const next = starts[index + 1]
@@ -246,15 +252,16 @@ export function canonicalMessageFacts(rawPayload: string | null | undefined): {
 } {
   const ast = parseCanonicalEdifactAst(rawPayload)
   const message = ast.messages[0] ?? null
+  const semantic = message?.family === 'PRODAT' ? prodatSemanticMessageSegments(message.segments,ast.una) : message?.segments ?? ast.segments
   const cciCavCodes = message?.family === 'PRODAT'
-    ? prodatCharacteristicCodes(message.segments, ast.una)
+    ? prodatCharacteristicCodes(semantic, ast.una)
     : cciCavMap(message?.segments ?? ast.segments, ast.una)
   const dtmValues: Record<string, string[]> = {}
 
   if (message?.family === 'PRODAT') {
     // P facts include only valid, unambiguous fields in their declared scope.
     // Other families keep their independent date/resolution semantics.
-    Object.assign(dtmValues, prodatDateValuesByQualifier(message.segments, ast.una))
+    Object.assign(dtmValues, prodatDateValuesByQualifier(semantic, ast.una))
   } else {
   for (const segment of message?.segments ?? ast.segments) {
     if (segment.tag !== 'DTM') continue
@@ -272,7 +279,7 @@ export function canonicalMessageFacts(rawPayload: string | null | undefined): {
     applicationReference: ast.applicationReference,
     cciCavCodes,
     dtmValues,
-    scalarTokens: ast.scalarTokens,
+    scalarTokens: message?.family === 'PRODAT' ? scalarTokenSet([...ast.segments.filter(token => token.tag === 'UNB'),...semantic],ast.una) : ast.scalarTokens,
   }
 }
 

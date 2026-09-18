@@ -1,3 +1,8 @@
+import { getEdielTgtTestCases } from './tgtRegistry'
+import { readTgtProdatSourceColumns, sourceExpectationIndex } from './tgtProdatSource'
+import { matchProdatRegisterExpectations } from '@/lib/ediel/testing/prodatRegisterExpectation'
+import { prodatRegisterFieldValue } from '@/lib/ediel/prodat/prodatRegisterFields'
+import { prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { prodatDateExpectation } from '@/lib/ediel/testing/prodatDateExpectation'
 import { prodatDateField, prodatDateState, prodatDateComparisonValue } from '@/lib/ediel/prodat/prodatDateFields'
 import { prodatPartyField, prodatPartyValue } from '@/lib/ediel/prodat/prodatPartyFields'
@@ -585,6 +590,9 @@ export function effectiveTgtTestCaseCodeForMessageRow(
 }
 
 export type EdielTgtPayloadComparisonIssue = {
+  registerIndex?: string | null
+  lineSequenceNumber?: string | null
+  identityAgency?: string | null
   fieldCode: string
   ercCode: string
   text: string
@@ -596,6 +604,10 @@ export type EdielTgtPayloadComparisonIssue = {
 }
 
 type TgtObjectValues = {
+  agency?: string | null
+  registerIndex?: string | null
+  sourceGroupIndex?: number
+  sourceRawFields?: Record<string,string>
   columnName: string
   sourceOrder: number
   fields: Record<string, string>
@@ -621,13 +633,15 @@ function normalizeExpectedValue(value: string | null | undefined): string | null
 
 function lineActualValue(line: ReturnType<typeof parseEdifactMessageFacts>['lineItems'][number], fieldCode: string, una: EdifactServiceStringAdvice): string | null {
   const code = fieldCode.toUpperCase()
+  if (prodatRegisterFieldScope(code) === 'local') return prodatRegisterFieldValue(code,line.segments,una)
+  const source = line.effectiveSegments
   if (prodatDateField(code)) {
-    const state = prodatDateState(code, line.segments, una)
+    const state = prodatDateState(code, source, una)
     return state.value && (code === '508' ? `${state.value}:${state.format}` : state.value)
   }
-  if (prodatCharacteristicField(code)) return prodatCharacteristicValue(code, line.segments, una)
-  if (prodatReferenceField(code)) return prodatReferenceValue(code, line.segments, una)
-  if (prodatPartyField(code)) return prodatPartyValue(code, line.segments, una)
+  if (prodatCharacteristicField(code)) return prodatCharacteristicValue(code, source, una)
+  if (prodatReferenceField(code)) return prodatReferenceValue(code, source, una)
+  if (prodatPartyField(code)) return prodatPartyValue(code, source, una)
 
   switch (code) {
     case '209':
@@ -686,159 +700,82 @@ function comparableFieldCodesForMessage(messageCode: string): Set<string> {
   return new Set(common)
 }
 
-function testDataObjects(testData: EdielTgtCaseTestData | null | undefined): TgtObjectValues[] {
-  if (!testData) return []
-
-  const objects: TgtObjectValues[] = []
-
-  for (const group of testData.groups) {
-    const columns = [...group.columns].sort((a, b) => {
-      const sourceOrderDiff = Number(a.sourceOrder ?? a.index) - Number(b.sourceOrder ?? b.index)
-      return sourceOrderDiff !== 0 ? sourceOrderDiff : a.index - b.index
-    })
-
-    for (const column of columns) {
-      const fields: Record<string, string> = {}
-
-      for (const field of group.fields) {
-        const rawValue = field.values[column.name]
-        const value = prodatReferenceField(String(field.fieldCode)) || prodatPartyField(String(field.fieldCode)) || prodatDateField(String(field.fieldCode))
-          ? (String(rawValue ?? '').trim() || null) : normalizeExpectedValue(rawValue)
-
-        if (!value) continue
-
-        fields[String(field.fieldCode).toUpperCase()] = value
-      }
-
-      if (Object.keys(fields).length > 0) {
-        objects.push({
-          columnName: column.name,
-          sourceOrder: Number(column.sourceOrder ?? column.index),
-          fields,
-        })
-      }
-    }
-  }
-
-  return objects.sort((a, b) => a.sourceOrder - b.sourceOrder)
+function testDataObjects(testData: EdielTgtCaseTestData | null | undefined, code?: string): TgtObjectValues[] {
+  const rows=readTgtProdatSourceColumns(testData,code)
+  return rows.map(row=>({columnName:row.column.name,sourceOrder:Number(row.column.sourceOrder ?? row.column.index),
+    sourceGroupIndex:row.groupIndex,agency:row.identityAgency,registerIndex:sourceExpectationIndex(row,rows),
+    fields:row.fields,sourceRawFields:row.rawFields}))
 }
 
 function expectedFacilityIdsForObject(object: TgtObjectValues, messageCode?: string | null): string[] {
   const code = String(messageCode ?? '').toUpperCase()
 
-  if (code === 'Z05' && object.fields['233'] && /^735\d{15}$/.test(object.fields['233'])) {
+  if (code === 'Z05' && object.fields['233']) {
     return [object.fields['233']]
   }
 
-  return [object.fields['209'], object.fields['233']].filter((value): value is string => Boolean(value && /^735\d{15}$/.test(value)))
-}
-
-function matchExpectedObjectForLine(objects: TgtObjectValues[], lineItemId: string | null, messageCode?: string | null): TgtObjectValues | null {
-  if (objects.length === 0) return null
-
-  if (lineItemId) {
-    const exact = objects.find((object) => expectedFacilityIdsForObject(object, messageCode).some((id) => normalizeCompare(id) === normalizeCompare(lineItemId)))
-    if (exact) return exact
-  }
-
-  return objects[0] ?? null
+  return [object.fields['209'], object.fields['233']].filter((value): value is string => Boolean(value))
 }
 
 export function compareInboundPayloadToTgtTestData(params: {
   message: EdielMessageRow
   testData: EdielTgtCaseTestData | null | undefined
 }): EdielTgtPayloadComparisonIssue[] {
-  const { message, testData } = params
-
+  const {message,testData}=params
   if (!testData) return []
-
-  const facts = parseEdifactMessageFacts(message.raw_payload)
-  const messageCode = String(message.message_code ?? facts.messageCode ?? '').toUpperCase()
-  const comparableFields = comparableFieldCodesForMessage(messageCode)
-  const objects = testDataObjects(testData)
-
-  if (objects.length === 0 || facts.lineItems.length === 0) return []
-
-  const issues: EdielTgtPayloadComparisonIssue[] = []
-
-  for (const line of facts.lineItems) {
-    const object = matchExpectedObjectForLine(objects, line.itemId, messageCode)
-    if (!object) continue
-
-    const expectedFacilities = expectedFacilityIdsForObject(object, messageCode)
-
-    if (expectedFacilities.length > 0 && line.itemId && !expectedFacilities.some((id) => normalizeCompare(id) === normalizeCompare(line.itemId))) {
-      issues.push({
-        fieldCode: '105',
-        ercCode: '40',
-        text: 'Anläggningen kan inte identifieras',
-        expected: expectedFacilities[0] ?? null,
-        actual: line.itemId,
-        referenceQualifier: 'Z07',
-        referenceNumber: line.itemId,
-        lineItemReference: line.rffLi,
-      })
-
-      issues.push({
-        fieldCode: '209',
-        ercCode: '42',
-        text: 'Anläggningsid avviker från Edielportalens testdata',
-        expected: expectedFacilities[0] ?? null,
-        actual: line.itemId,
-        referenceQualifier: 'Z07',
-        referenceNumber: line.itemId,
-        lineItemReference: line.rffLi,
-      })
-
+  const facts=parseEdifactMessageFacts(message.raw_payload)
+  const code=String(facts.messageCode ?? message.message_code ?? '').toUpperCase()
+  const una=parseUna(message.raw_payload)
+  const comparable=comparableFieldCodesForMessage(code)
+  const objects=testDataObjects(testData,code)
+  if (!objects.length) return []
+  const matched=matchProdatRegisterExpectations(
+    facts.lineItems.map((line,index)=>({data:line,id:line.itemId,index:line.registerIndex,agency:line.identityAgency,first:line.firstLineIndex===index,valid:line.validRegisterChain})),
+    objects.map(object=>({data:object,ids:expectedFacilityIdsForObject(object,code),index:object.registerIndex ?? null,agency:object.agency})),
+  )
+  const issues:EdielTgtPayloadComparisonIssue[]=[]
+  for (const match of matched.matches) {
+    const line=match.line.data
+    const location={registerIndex:line.registerIndex,lineSequenceNumber:line.lineNo,identityAgency:line.identityAgency}
+    if (match.error) {
+      const fieldCode=match.error==='identity' ? '209' : '258'
+      // A mismatch is not a successful match. Only name a unique expected
+      // facility; never infer an object by register/column ordinal.
+      const expectedIds = [...new Set(objects.flatMap(object => expectedFacilityIdsForObject(object,code)))]
+      const expectedValue = fieldCode === '209'
+        ? expectedIds.length === 1 ? expectedIds[0] : null
+        : match.expected?.index ?? null
+      const row=issueForField({fieldCode,expected:expectedValue,actual:fieldCode==='209' ? line.itemId : line.registerIndex,lineItemId:line.itemId,lineItemReference:line.rffLi})
+      issues.push({...row,...location})
+      if (fieldCode==='209') issues.push({...row,...location,fieldCode:'105',ercCode:'40',text:'Anläggningen kan inte identifieras'})
       continue
     }
-
-    for (const [fieldCode, expected] of Object.entries(object.fields)) {
-      if (!comparableFields.has(fieldCode) && !prodatPartyField(fieldCode) && !prodatDateField(fieldCode)) continue
-
-      const date = prodatDateField(fieldCode)
-      const actual = date?.dateScope === 'header' ? prodatDateState(fieldCode, facts.segments, parseUna(message.raw_payload)).value
-        : ['207', '208'].includes(fieldCode)
-        ? prodatPartyValue(fieldCode, facts.segments, parseUna(message.raw_payload))
-        : lineActualValue(line, fieldCode, parseUna(message.raw_payload))
-
-      if (!actual) {
-        issues.push(issueForField({ fieldCode, expected, actual: null, lineItemId: line.itemId, lineItemReference: line.rffLi }))
-        continue
-      }
-
-      const reference = prodatReferenceField(fieldCode) || prodatPartyField(fieldCode)
-      const expectedComparable = date ? prodatDateExpectation(fieldCode, expected) : reference ? expected.trim() : normalizeCompare(expected)
-      const actualComparable = date ? prodatDateComparisonValue(fieldCode, actual) : reference ? actual.trim() : normalizeCompare(actual)
-
-      if (expectedComparable === null || actualComparable === null || expectedComparable !== actualComparable) {
-        issues.push(issueForField({ fieldCode, expected, actual, lineItemId: line.itemId, lineItemReference: line.rffLi }))
-      }
+    if (!match.expected) continue
+    for (const [fieldCode,expected] of Object.entries(match.expected.data.fields)) {
+      const scope=prodatRegisterFieldScope(fieldCode)
+      if (scope==='first' && !match.line.first) continue
+      if (!comparable.has(fieldCode) && scope!=='local' && !prodatPartyField(fieldCode) && !prodatDateField(fieldCode)) continue
+      const date=prodatDateField(fieldCode)
+      const actual=date?.dateScope==='header' ? prodatDateState(fieldCode,facts.segments,una).value
+        : ['207','208'].includes(fieldCode) ? prodatPartyValue(fieldCode,facts.segments,una) : lineActualValue(line,fieldCode,una)
+      const exact=scope==='local' || prodatReferenceField(fieldCode) || prodatPartyField(fieldCode)
+      const want=date ? prodatDateExpectation(fieldCode,expected) : exact ? expected.trim() : normalizeCompare(expected)
+      const got=date ? prodatDateComparisonValue(fieldCode,actual) : exact ? actual : normalizeCompare(actual)
+      const equal=['314','258'].includes(fieldCode) && actual && /^\d{1,6}$/.test(expected) ? Number(expected)===Number(actual) : want!==null && got!==null && want===got
+      if (!actual || !equal) issues.push({...issueForField({fieldCode,expected,actual,lineItemId:line.itemId,lineItemReference:line.rffLi}),...location})
     }
   }
-
-  const dedupeKey = (issue: EdielTgtPayloadComparisonIssue) =>
-    [
-      issue.ercCode,
-      issue.fieldCode,
-      issue.referenceNumber ?? '',
-      issue.lineItemReference ?? '',
-      normalizeCompare(issue.expected),
-      normalizeCompare(issue.actual),
-    ].join('|')
-
-  const seen = new Set<string>()
-
-  return issues.filter((issue) => {
-    const key = dedupeKey(issue)
-
+  for (const missing of matched.missing) {
+    const fieldCode=missing.index ? '258' : '209'
+    issues.push({...issueForField({fieldCode,expected:missing.index ?? missing.ids[0] ?? null,actual:null,lineItemId:missing.ids[0] ?? null,lineItemReference:null}),registerIndex:missing.index})
+  }
+  const seen=new Set<string>()
+  return issues.filter(issue=>{
+    const key=JSON.stringify([issue.fieldCode,issue.ercCode,issue.referenceNumber,issue.identityAgency,issue.registerIndex,issue.lineSequenceNumber,issue.expected,issue.actual])
     if (seen.has(key)) return false
-
-    seen.add(key)
-    return true
+    seen.add(key); return true
   })
 }
-
 
 function utiltsApplicationReference(message: EdielMessageRow, rawText: string): string {
   return [
@@ -1052,10 +989,24 @@ export function inferTgtTestCaseCodeForInboundTestData(params: {
   return messageCodePrefixesForTgtAutoMatch(message)[0] ? `${messageCodePrefixesForTgtAutoMatch(message)[0]}.1` : 'AUTO'
 }
 
-function tgtCaseCodeMatchesMessage(message: EdielMessageRow, testCaseCode: string | null | undefined): boolean {
+function tgtCaseCodeMatchesMessage(message: EdielMessageRow, testCaseCode: string | null | undefined, roleCode?: string): boolean {
   const code = String(testCaseCode ?? '').toUpperCase()
 
   if (!code || code === 'AUTO') return true
+
+  // The registered steps own case/function compatibility. In particular, a
+  // multi-step case may contain Z03 and Z04 although the legacy search hint
+  // associates its numeric prefix only with Z03. Hints are a fallback for
+  // unmapped legacy imports, never a reason to discard a registered step.
+  if (String(message.message_family ?? '').toUpperCase() === 'PRODAT') {
+    const definitions = getEdielTgtTestCases().filter(definition =>
+      definition.suite === 'PRODAT' && definition.testCaseCode.toUpperCase() === code)
+    if (definitions.length > 0) {
+      return definitions.some(definition => (!roleCode || definition.roleCode === roleCode) &&
+        definition.expectedSteps.some(step => step.family === 'PRODAT' &&
+          step.code.toUpperCase() === String(message.message_code ?? '').toUpperCase()))
+    }
+  }
 
   const prefixes = messageCodePrefixesForTgtAutoMatch(message)
 
@@ -1084,7 +1035,7 @@ export function scoreTgtTestDataForMessage(message: EdielMessageRow, row: EdielT
   const actualFacilities = messageFacilityIds(message)
   const rowCode = effectiveTgtTestCaseCodeForMessageRow(message, row).toUpperCase()
 
-  if (!tgtCaseCodeMatchesMessage(message, rowCode)) return -1
+  if (!tgtCaseCodeMatchesMessage(message, rowCode, row.roleCode)) return -1
 
   const facilityMismatch = hasFacilityMismatch(message, row.parsedPayload)
 
@@ -1180,13 +1131,14 @@ export function sourceMessageMarker(sourceMessageId: string): string {
 }
 
 export function rawTextHasSourceMessageMarker(rawText: string | null | undefined, sourceMessageId: string): boolean {
-  const text = String(rawText ?? '')
-
-  return (
-    text.includes(sourceMessageMarker(sourceMessageId)) ||
-    text.includes(`GridCore source_message_id=${sourceMessageId}`) ||
-    text.includes(`source_message_id=${sourceMessageId}`)
+  if (!sourceMessageId || sourceMessageId !== sourceMessageId.trim()) return false
+  const escapedId = sourceMessageId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  // Match a complete marker token, not UUID-prefix text or another field name.
+  // Both current and historical marker spellings remain accepted.
+  const pattern = new RegExp(
+    String.raw`(?:^|[\s([{"'\`])(?:GRIDCORE_SOURCE_MESSAGE_ID:|(?:GridCore )?source_message_id=)${escapedId}(?=$|[\s)\]}"'\`,;])`,
   )
+  return pattern.test(String(rawText ?? ''))
 }
 
 export function findExactTgtTestDataForMessage(

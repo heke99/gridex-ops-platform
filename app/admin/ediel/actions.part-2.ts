@@ -1,3 +1,6 @@
+import { buildTgtRegisterFactNotes, readTgtRegisterFacts } from '@/lib/ediel/testing/tgtRegisterFacts'
+import { getEdielTgtTestDataForCase } from '@/lib/ediel/testing/tgtTestData'
+import { requireCompanyScopedActionAccess } from '@/lib/admin/guards'
 // Extracted from actions.ts; keep public imports on the facade module.
 
 import { revalidatePath } from "next/cache"
@@ -815,16 +818,10 @@ export async function createEdielTgtDraftAction(formData: FormData) {
   if (!stepNo) throw new Error("Välj vilket TGT-steg som ska genereras");
 
   let companyId = formString(formData.get("companyId"));
-  if (testRunId) {
-    const { data, error } = await supabaseService
-      .from("ediel_test_runs")
-      .select("company_id")
-      .eq("id", testRunId)
-      .maybeSingle();
-    if (error) throw error;
-    companyId =
-      companyId ??
-      (typeof data?.company_id === "string" ? data.company_id : null);
+  const run=testRunId ? await requireScopedEdielTestRunForAction(testRunId,context) : null;
+  if (run) {
+    if ((companyId && companyId!==run.company_id) || run.role_code!==roleCode || run.test_case_code!==testCaseCode) throw new Error('TGT_RUN_CONTEXT_MISMATCH');
+    companyId=run.company_id;
   }
   if (!companyId) {
     const scope = await getOperationalCompanyScope(context.userId);
@@ -835,6 +832,7 @@ export async function createEdielTgtDraftAction(formData: FormData) {
       "Välj bolag innan TGT-utkast skapas. Utkastet måste använda bolagets Ediel-ID från databasen.",
     );
   }
+  await requireCompanyScopedActionAccess(companyId,{anyOf:['ediel_testing.write','communication.write']});
   await requireCompanyOperationalForWrites(companyId);
   const systemTestContext = await requireEdielSystemTestRuntimeContext({
     companyId,
@@ -848,6 +846,9 @@ export async function createEdielTgtDraftAction(formData: FormData) {
     testCaseCode,
   );
 
+  const step=getEdielTgtTestCaseByCode(testSuite,roleCode,testCaseCode)?.expectedSteps.find(candidate=>candidate.stepNo===stepNo);
+  const registerFacts=run && step?.family==='PRODAT' ? readTgtRegisterFacts({run,stepNo,code:step.code,
+    testData:importedTestData ?? getEdielTgtTestDataForCase(testSuite,roleCode,testCaseCode)}) : undefined;
   const draft = buildEdielTgtDraft({
     actorUserId: context.userId,
     testSuite,
@@ -855,6 +856,7 @@ export async function createEdielTgtDraftAction(formData: FormData) {
     testCaseCode,
     stepNo,
     importedTestData,
+    registerFacts,
     systemTestContext,
   });
 
@@ -885,6 +887,34 @@ export async function createEdielTgtDraftAction(formData: FormData) {
 
   await revalidateRelatedMessage(message.id);
   revalidateEdiel(message.id);
+}
+
+/** An explicit operator assertion attached to this authorized test run. This
+ * stores evidence only: no status promotion, message creation or market send. */
+export async function saveEdielTgtRegisterFactsAction(formData:FormData) {
+  const context=await requireEdielWriteActionAccess();
+  const testRunId=formString(formData.get('testRunId'));
+  const stepNo=formNumber(formData.get('stepNo'));
+  if (!testRunId || !stepNo) throw new Error('PRODAT_REGISTER_SOURCE_EVIDENCE_INVALID');
+  const run=await requireScopedEdielTestRunForAction(testRunId,context);
+  await requireCompanyScopedActionAccess(run.company_id, {
+    anyOf: ['ediel_testing.write', 'communication.write'],
+  });
+  await requireCompanyOperationalForWrites(run.company_id);
+  const step=getEdielTgtTestCaseByCode(run.test_suite,run.role_code,run.test_case_code)?.expectedSteps.find(candidate=>candidate.stepNo===stepNo);
+  if (!step || step.actor!=='gridex' || step.family!=='PRODAT' || !['Z04','Z06','Z10'].includes(step.code)) throw new Error('PRODAT_REGISTER_SOURCE_EVIDENCE_INVALID');
+  const raw=formString(formData.get('registerFacts'));
+  const sourceNote=formString(formData.get('sourceNote'));
+  if (!raw || raw.length>32768 || !sourceNote) throw new Error('PRODAT_REGISTER_SOURCE_EVIDENCE_INVALID');
+  const facts:unknown=JSON.parse(raw);
+  const imported=await getEdielTgtDynamicTestDataForCase(run.test_suite,run.role_code,run.test_case_code);
+  const notes=buildTgtRegisterFactNotes({run,stepNo,code:step.code,actorId:context.userId,sourceNote,facts,
+    testData:imported ?? getEdielTgtTestDataForCase(run.test_suite,run.role_code,run.test_case_code)});
+  const {data,error}=await supabaseService.from('ediel_test_runs').update({notes,updated_by:context.userId})
+    .eq('company_id',run.company_id).eq('id',run.id).eq('updated_at',run.updated_at).select('id').maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error('PRODAT_REGISTER_FACTS_CONCURRENT_UPDATE');
+  revalidateEdiel();
 }
 
 export async function runEdielTgtAutopilotAction(formData: FormData) {

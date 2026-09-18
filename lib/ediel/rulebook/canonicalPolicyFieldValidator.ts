@@ -1,3 +1,5 @@
+import { prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+import { validateProdatRegisterPolicy } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
 import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {
@@ -44,9 +46,13 @@ export function validateCanonicalPolicyFields(input: {
   }
 
   const issues = input.scope === 'dependent_only'
-    ? []
+    ? input.policy.family === 'PRODAT'
+      ? validateFieldMatrixPayload(matrixInput, rules.filter(rule => prodatRegisterFieldScope(rule.fieldNumber ?? '') === 'local'))
+      : []
     : validateFieldMatrixPayload(matrixInput, rules)
   if (input.policy.family !== 'PRODAT') return issues
+  const register = validateProdatRegisterPolicy({code:input.policy.code, rawSegments:input.rawSegments ?? [], una:input.una, facts:input.policy.prodatDependentFacts, rules})
+  issues.push(...register.issues)
 
   const dependentByField = new Map(
     input.policy.prodatDependentConditions.map((condition) => [condition.fieldNumber, condition] as const),
@@ -54,6 +60,7 @@ export function validateCanonicalPolicyFields(input: {
 
   for (const rule of rules.filter((candidate) => candidate.requirement === 'dependent')) {
     const fieldNumber = String(rule.fieldNumber ?? '').trim()
+    if (register.handledFields.has(fieldNumber)) continue
     const condition = dependentByField.get(fieldNumber)
     if (!condition) {
       issues.push({

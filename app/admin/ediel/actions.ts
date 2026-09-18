@@ -222,3 +222,7 @@ export async function approveEdielInboundCaseAction(...args: Parameters<typeof i
 export async function rejectEdielInboundCaseAction(...args: Parameters<typeof implementation5.rejectEdielInboundCaseAction>) {
   return implementation5.rejectEdielInboundCaseAction(...args)
 }
+
+export async function saveEdielTgtRegisterFactsAction(...args: Parameters<typeof implementation2.saveEdielTgtRegisterFactsAction>) {
+  return implementation2.saveEdielTgtRegisterFactsAction(...args)
+}

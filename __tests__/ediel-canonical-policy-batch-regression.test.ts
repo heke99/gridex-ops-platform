@@ -94,13 +94,15 @@ describe('canonical Ediel policy batch regression', () => {
   })
 
   it('evaluates every official D condition without undetermined when complete explicit facts are supplied', () => {
+    // Z06 accepts E/G/F; V belongs to sharing messages, not a complete Z06 fact.
+    // Retain the same full-registry coverage and no-undetermined assertions.
     const byCell = Object.fromEntries(PRODAT_26A_DEPENDENT_CONDITION_REGISTRY.map((entry) => [entry.id, true]))
 
     for (const messageCode of EXPECTED_PRODAT_CODES) {
       const results = evaluateProdatDependentConditions({
         messageCode,
         facts: {
-          canonicalSubtype: 'V',
+          canonicalSubtype: messageCode === 'Z06' ? 'F' : 'V',
           businessContext: 'death',
           market: 'gas',
           customerKind: 'private',
@@ -118,7 +120,7 @@ describe('canonical Ediel policy batch regression', () => {
       evaluateProdatDependentConditions({
         messageCode,
         facts: {
-          canonicalSubtype: 'V', businessContext: 'death', market: 'gas', customerKind: 'private',
+          canonicalSubtype: messageCode === 'Z06' ? 'F' : 'V', businessContext: 'death', market: 'gas', customerKind: 'private',
           meterReadingsSentInUtilts: true, multipleMeterRegisters: true, endUserAddressAvailable: true,
           invoiceeAddressDiffersFromEndUser: true, byCell,
         },

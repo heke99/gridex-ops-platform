@@ -1,3 +1,4 @@
+import { prodatRegisterFieldValue } from '@/lib/ediel/prodat/prodatRegisterFields'
 import { prodatDateState, prodatDateValue } from '@/lib/ediel/prodat/prodatDateFields'
 import { readProdatParty } from '@/lib/ediel/prodat/prodatPartyFields'
 import { prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
@@ -9,6 +10,16 @@ import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 export type ParsedProdatLineItem = {
+  lineSequenceNumber: string | null
+  registerIndex: string | null
+  registerCount: number
+  firstRegisterSourceOrder: number | null
+  validRegisterChain: boolean
+  identityAgency: string | null
+  annualConsumption: string | null
+  meterConstant: string | null
+  meterDigitCount: string | null
+  meterTimeFrame: string | null
   sourceOrder: number
   meteringPointId: string | null
   lineItemReference: string | null
@@ -114,15 +125,26 @@ export function parseProdatMessage(input: EdielMessageRow | string): ParsedProda
     legalReceiverId: readProdatParty('DO', facts.segments, una).id,
     rawPayload,
     lineItems: facts.lineItems.map((line, index) => {
-      const ud = readProdatParty('UD', line.segments, una)
-      const it = readProdatParty('IT', line.segments, una)
-      const iv = readProdatParty('IV', line.segments, una)
+      const semantic = line.effectiveSegments
+      const ud = readProdatParty('UD', semantic, una)
+      const it = readProdatParty('IT', semantic, una)
+      const iv = readProdatParty('IV', semantic, una)
       return {
       sourceOrder: index,
+      lineSequenceNumber: line.lineNo,
+      registerIndex: line.registerIndex,
+      registerCount: line.registerCount,
+      firstRegisterSourceOrder: line.firstLineIndex,
+      validRegisterChain: line.validRegisterChain,
+      identityAgency: line.identityAgency,
+      annualConsumption: prodatRegisterFieldValue('213', line.segments, una),
+      meterConstant: prodatRegisterFieldValue('214', line.segments, una),
+      meterDigitCount: prodatRegisterFieldValue('218', line.segments, una),
+      meterTimeFrame: prodatRegisterFieldValue('259', line.segments, una),
       meteringPointId: line.itemId ?? null,
       lineItemReference: line.rffLi ?? null,
       gridAreaId: line.rffZ05 ?? null,
-      agreementReference: prodatReferenceValue('261', line.segments, una),
+      agreementReference: prodatReferenceValue('261', semantic, una),
       customerId: ud.id,
       endUserId: ud.id,
       endUserIdQualifier: ud.idQualifier,
@@ -140,39 +162,39 @@ export function parseProdatMessage(input: EdielMessageRow | string): ParsedProda
       installationPostcode: it.postalCode,
       installationCity: it.city,
       installationCountry: it.country,
-      balanceResponsibleId: readProdatParty('Z02', line.segments, una).id,
-      reportingFrequency: prodatCharacteristicValue('222', line.segments, una),
-      energyProductId: prodatCharacteristicValue('506', line.segments, una),
-      installationDirection: prodatCharacteristicValue('513', line.segments, una),
-      permissionStatus: prodatCharacteristicValue('322', line.segments, una),
-      permissionPurpose: prodatCharacteristicValue('323', line.segments, una),
-      permissionEndReason: prodatCharacteristicValue('324', line.segments, una),
+      balanceResponsibleId: readProdatParty('Z02', semantic, una).id,
+      reportingFrequency: prodatCharacteristicValue('222', semantic, una),
+      energyProductId: prodatCharacteristicValue('506', semantic, una),
+      installationDirection: prodatCharacteristicValue('513', semantic, una),
+      permissionStatus: prodatCharacteristicValue('322', semantic, una),
+      permissionPurpose: prodatCharacteristicValue('323', semantic, una),
+      permissionEndReason: prodatCharacteristicValue('324', semantic, una),
       // P fields325–327: never treat an object reference or an observation
       // timestamp as authority for a permission lifecycle transition.
-      permissionId: prodatReferenceValue('325', line.segments, una),
-      permissionTimestamp: prodatDateValue('326', line.segments, una),
-      permissionEndTimestamp: prodatDateValue('327', line.segments, una),
-      validityStartDate: prodatDateValue('216', line.segments, una),
-      firstMeterReadingDate: prodatDateValue('212', line.segments, una),
-      birthDate: prodatDateValue('249', line.segments, una),
-      observationLength: prodatDateValue('508', line.segments, una),
-      observationLengthFormat: prodatDateState('508', line.segments, una).format,
-      contractStartDate: prodatDateValue('210', line.segments, una),
-      contractEndDate: prodatDateValue('211', line.segments, una),
-      reportStartDate: prodatDateValue('302', line.segments, una),
-      reportEndDate: prodatDateValue('321', line.segments, una),
-      historicalReportStartDate: prodatDateValue('302', line.segments, una),
-      historicalReportEndDate: prodatDateValue('321', line.segments, una),
-      isHistoricalMeteringRequest: prodatCharacteristicValue('223', line.segments, una) === 'S18',
-      reasonForTransaction: prodatCharacteristicValue('223', line.segments, una),
-      measuringMethod: prodatCharacteristicValue('217', line.segments, una),
-      timeSeriesProduct: prodatCharacteristicValue('242', line.segments, una),
-      meterNumber: prodatReferenceValue('224', line.segments, una),
-      oldMeterNumber: prodatReferenceValue('225', line.segments, una),
-      supplierContractNumber: prodatReferenceValue('308', line.segments, una),
-      relatedMeteringPointId: prodatReferenceValue('319', line.segments, una),
-      calorificValueArea: prodatReferenceValue('320', line.segments, una),
-      serialId: prodatReferenceValue('240', line.segments, una),
+      permissionId: prodatReferenceValue('325', semantic, una),
+      permissionTimestamp: prodatDateValue('326', semantic, una),
+      permissionEndTimestamp: prodatDateValue('327', semantic, una),
+      validityStartDate: prodatDateValue('216', semantic, una),
+      firstMeterReadingDate: prodatDateValue('212', semantic, una),
+      birthDate: prodatDateValue('249', semantic, una),
+      observationLength: prodatDateValue('508', semantic, una),
+      observationLengthFormat: prodatDateState('508', semantic, una).format,
+      contractStartDate: prodatDateValue('210', semantic, una),
+      contractEndDate: prodatDateValue('211', semantic, una),
+      reportStartDate: prodatDateValue('302', semantic, una),
+      reportEndDate: prodatDateValue('321', semantic, una),
+      historicalReportStartDate: prodatDateValue('302', semantic, una),
+      historicalReportEndDate: prodatDateValue('321', semantic, una),
+      isHistoricalMeteringRequest: prodatCharacteristicValue('223', semantic, una) === 'S18',
+      reasonForTransaction: prodatCharacteristicValue('223', semantic, una),
+      measuringMethod: prodatCharacteristicValue('217', semantic, una),
+      timeSeriesProduct: prodatCharacteristicValue('242', semantic, una),
+      meterNumber: prodatReferenceValue('224', semantic, una),
+      oldMeterNumber: prodatReferenceValue('225', semantic, una),
+      supplierContractNumber: prodatReferenceValue('308', semantic, una),
+      relatedMeteringPointId: prodatReferenceValue('319', semantic, una),
+      calorificValueArea: prodatReferenceValue('320', semantic, una),
+      serialId: prodatReferenceValue('240', semantic, una),
       hasAnnualConsumption: line.hasQty31,
       hasConstant: line.hasConstant,
       hasDigitCount: line.hasDigitCount,
@@ -181,4 +203,17 @@ export function parseProdatMessage(input: EdielMessageRow | string): ParsedProda
       }
     }),
   }
+}
+
+/** Lossless object projection for consumers. Invalid chains stay separate;
+ * they are never merged into an apparent first-register authority. */
+export function parsedProdatObjects(parsed: ParsedProdatMessage) {
+  const objects = new Map<number, {meteringPointId:string | null; identityAgency:string | null; validRegisterChain:boolean; registers:ParsedProdatLineItem[]}>()
+  for (const line of parsed.lineItems) {
+    const key = line.validRegisterChain ? line.firstRegisterSourceOrder ?? line.sourceOrder : line.sourceOrder
+    const object = objects.get(key) ?? {meteringPointId:line.meteringPointId,identityAgency:line.identityAgency,validRegisterChain:line.validRegisterChain,registers:[]}
+    object.registers.push(line)
+    objects.set(key,object)
+  }
+  return [...objects.values()]
 }
