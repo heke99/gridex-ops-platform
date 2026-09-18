@@ -1,0 +1,699 @@
+{
+  "status": "IMPLEMENTED_NOT_VERIFIED",
+  "qualification": "local execution complete; remote CI and independent review not performed",
+  "base_commit": "dcd0e5fa0f6e8949d614bd09b941b22d70acdd1f",
+  "base_tree": "8764838fa530791cfb82403f5c97a0c44f43e675",
+  "tested_code_tree": "fd360cb45d5976b818f0e36f636de6080faa6357",
+  "recorded_at": "2026-09-18T22:43:14.575243+00:00",
+  "publication": {
+    "remote_branch_created": false,
+    "remote_candidate_commit": null,
+    "pull_request": null,
+    "merge": false,
+    "ordinary_ci": "NOT_STARTED",
+    "independent_review": "NOT_STARTED",
+    "blocker": "Discovered GitHub tools are read-only; local Git cannot resolve github.com. No claim that account/repository permissions are wrong."
+  },
+  "source_basis": {
+    "kind": "unchanged user-provided primary-source projections",
+    "pages": "P26.A r3 p22 and p79",
+    "original_pdf_rehashed_or_visually_inspected": false,
+    "sha256": {
+      "registers/prodat_fields.json": "e1248f8f4ec025aa5d71e3b3249ee70b6e9e0d8e0e48a4ec6f0db11e31178354",
+      "registers/prodat_conditional_cells.json": "55d44fcf337b5a7c9508c50bd25b9f204128ae2939ee36e49e74072b031a4b5d",
+      "registers/prodat_message_cases.json": "77c5023457d8e405d6a560b2d2515679c2d7b59bf968800f35c16070e5f8eeee",
+      "annex/source_tables.json": "a23e928bdbe7e4bd514df99c789482023aea1d2f70f2a26f4a7ae5c05c973728"
+    }
+  },
+  "provenance": {
+    "ci_source_artifact": 10563883771,
+    "source_zip_sha256": "0b37826d5dd79b27030f26ec0133a307352b050e5ed276d67d2c1020ee1a2311",
+    "source_tar_sha256": "51523ed743a841f55c061b304a31fdfc3f167112443afc16522b1a43239d5a7f",
+    "dependencies_artifact": 10549052365,
+    "dependencies_zip_sha256": "ac7f9415abb7dab14a6cd5cd6d0415d17239399aa0469f21f401e51ace5e7508",
+    "lockfile_sha256": "88f4f36c97b4896442c3ce9cb837ea7f93a0fee55e6b63b477421b33b4b73d6b",
+    "node_version": "v22.16.0",
+    "local_workbench_history": "synthetic archive root; never publish its history",
+    "real_base_object": "Signed GitHub base commit independently reconstructed to exact dcd0e5fa for application-script tests; no remote write"
+  },
+  "inventory": {
+    "numeric_total": 110,
+    "accepted": [
+      "Z06:508",
+      "Z06:217",
+      "Z06:306",
+      "Z06:254",
+      "Z09:216",
+      "Z09:217",
+      "Z04:319",
+      "Z06:242"
+    ],
+    "candidate": [
+      "Z06:227",
+      "Z06:228",
+      "Z06:231",
+      "Z06:232",
+      "Z06:316",
+      "Z09:227",
+      "Z09:228",
+      "Z09:231",
+      "Z09:232",
+      "Z09:316"
+    ],
+    "other_unaccepted": [
+      "Z01:229",
+      "Z01:233",
+      "Z01:234",
+      "Z02:229",
+      "Z03:229",
+      "Z03:233",
+      "Z03:234",
+      "Z03:250",
+      "Z03:251",
+      "Z03:252",
+      "Z03:253",
+      "Z03:317",
+      "Z03:318",
+      "Z04:214",
+      "Z04:218",
+      "Z04:229",
+      "Z04:240",
+      "Z04:250",
+      "Z04:251",
+      "Z04:252",
+      "Z04:253",
+      "Z04:258",
+      "Z04:259",
+      "Z04:317",
+      "Z04:318",
+      "Z04:320",
+      "Z05:229",
+      "Z05:250",
+      "Z05:251",
+      "Z05:252",
+      "Z05:253",
+      "Z05:310",
+      "Z05:317",
+      "Z05:318",
+      "Z06:210",
+      "Z06:214",
+      "Z06:218",
+      "Z06:229",
+      "Z06:240",
+      "Z06:250",
+      "Z06:251",
+      "Z06:252",
+      "Z06:253",
+      "Z06:258",
+      "Z06:259",
+      "Z06:310",
+      "Z06:317",
+      "Z06:318",
+      "Z06:320",
+      "Z08:229",
+      "Z08:233",
+      "Z08:234",
+      "Z08:250",
+      "Z08:251",
+      "Z08:252",
+      "Z08:253",
+      "Z08:317",
+      "Z08:318",
+      "Z09:210",
+      "Z09:211",
+      "Z09:229",
+      "Z09:250",
+      "Z09:251",
+      "Z09:252",
+      "Z09:253",
+      "Z09:310",
+      "Z09:317",
+      "Z09:318",
+      "Z10:210",
+      "Z10:214",
+      "Z10:218",
+      "Z10:240",
+      "Z10:242",
+      "Z10:254",
+      "Z10:258",
+      "Z10:259",
+      "Z13:321",
+      "Z13:323",
+      "Z14:209",
+      "Z14:217",
+      "Z14:222",
+      "Z14:227",
+      "Z14:228",
+      "Z14:260",
+      "Z14:302",
+      "Z14:321",
+      "Z14:323",
+      "Z14:325",
+      "Z14:326",
+      "Z14:506",
+      "Z14:508",
+      "Z14:513"
+    ],
+    "parent_occurrences_total": 10,
+    "candidate_parent_occurrences": [
+      "Z06:END_USER_GROUP",
+      "Z09:END_USER_GROUP"
+    ],
+    "other_parent_occurrences": 8,
+    "field229": "No full address-evidence qualification; inactive-parent suppression and existing one-object availability path only"
+  },
+  "verification": {
+    "application_pass": 3093,
+    "application_files": 242,
+    "new_vitest_subset": 302,
+    "standalone_source_pass": 919,
+    "retained_standalone_cases": 913,
+    "added_standalone_cases": 6,
+    "new_suite_on_unchanged_base": {
+      "fail": 264,
+      "pass": 38
+    },
+    "added_source_negatives_on_unchanged_base": {
+      "fail": 6
+    },
+    "typescript_projects": 3,
+    "lint_errors": 0,
+    "lint_warnings": 99,
+    "coverage": {
+      "lines": 35.94,
+      "statements": 34.58,
+      "functions": 41.48,
+      "branches": 27.48
+    },
+    "coverage_thresholds_unchanged": true,
+    "source_integrity_original_files": 33,
+    "source_integrity_rules": 121,
+    "source_integrity_contracts": 231,
+    "quality_test_pass": 45,
+    "completed_checks": [
+      "30-full-final",
+      "31-types-app",
+      "32-types-scripts",
+      "33-types-tests",
+      "34-lint",
+      "35-source-integrity",
+      "36-retained-source",
+      "37-rbac",
+      "38-mechanical",
+      "39-quality-tests",
+      "40-size-budget",
+      "41-performance",
+      "42-coverage",
+      "43-coverage-ratchet"
+    ],
+    "local_build": "NOT_RUN",
+    "browser": "NOT_RUN",
+    "database_replay": "NOT_RUN",
+    "live_or_production_certificate": "NOT_RUN"
+  },
+  "boundaries": {
+    "pr310": "PAUSED/excluded at e961135199f292b8210884f07de3b616a670161a",
+    "issue332": "OPEN/unwaived historical full-main70/73; not rerun by this unit",
+    "full_masterplan": "NOT_COMPLETE",
+    "sql_dependencies_thresholds": "UNCHANGED",
+    "production_database_storage_market_messages_explicit_deployments": "NOT_CHANGED",
+    "country_semantics": "Preserves existing code shape/descriptors; no new ISO registry or identity lookup is qualified",
+    "builder_scope": "UD parent and field retention only; unrelated object date/context rules remain outside this unit"
+  },
+  "code_and_test_files_sha256": {
+    ".github/workflows/ediel-masterplan-v2.yml": "715b87dbf8c1b5ead2e59f31fb863168936442083b3260f1dea5591187322883",
+    "__tests__/ediel-prodat-dependent-subtype-message-scope.test.ts": "3e8030fe6d5d1f243a428ee1baf1a1f21c42a9941e94347e6895b6da8fd1d353",
+    "__tests__/ediel-prodat-dependent-subtype-review.test.ts": "261fe0ba819b119c7620d506b3e0f849688f0b7d25566295ec9b8edeae5e2a68",
+    "__tests__/ediel-prodat-dependent-subtype-ud-boundaries.test.ts": "b10aa167a30dc8a7a8a73a8b19cc82599969a3cb195e71854d506adc9e3aabfa",
+    "__tests__/ediel-prodat-dependent-subtype-ud.test.ts": "af5d266f64cd2b85435ff489f1542ea19930fad53cf2ff66dd134aec50c86483",
+    "__tests__/ediel-prodat-dependent-z06-product.test.ts": "2e4cb31a52639b6eb15d73c6cad534b90f6a9f681f10ac84fde1bb94995b6457",
+    "__tests__/fixtures/prodat-ud.ts": "d586691e0056727a1d3249337b2dc82197f83d34277dd9e427eebe4413a76f51",
+    "lib/ediel/prodat/buildProdat.ts": "5a06f82b5b2997762891b6546094a499fdac0ecbbc078719417de895ce41a046",
+    "lib/ediel/prodat/prodatDependentConditionEngine.ts": "2aafe11b56f5c7fe58b7ea5c7dcf105b4757035acc226a706f3b29230147d22f",
+    "lib/ediel/prodat/prodatParentApplicability.ts": "260ab636f50f1bf1885e95858d0a9df21121dab34e05a54fe5f302b930f72cf3",
+    "lib/ediel/prodat/prodatSubtypeRequirement.ts": "629a72976d3d7b84254125b423b24f09f4cc5783780093a50b117d4d2a71a8b3",
+    "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts": "8b77e06550d2a048122a3a146ed0ab1d0d047bf44f27fb39a7203a15b68a288c",
+    "lib/ediel/rulebook/prodatEndUserPolicy.ts": "d046ed2d5807d15384e624e05708415426c6d6ace195153b1fa96bc86e096bc7",
+    "lib/ediel/rulebook/prodatSubtypePolicy.ts": "e1da930ff88e1abe090c9957422d947612c381cf54017edf6555fda749733025",
+    "quality/audits/ediel-masterplan-v2/f3-d-ud-plan-20260919.md": "d059a8c18991d0b2d0ae945aafbe519c9ed0d85336985743c9927232f6a997bb",
+    "scripts/test-ediel-prodat-party-fields.cjs": "19a2e71e3eec6c457283fef46c4b1ac5c2a64b9e64328049ae9ae2f4935d32da"
+  },
+  "log_sha256": {
+    "01-ud-baseline.log": "289348ee79e92bbd7688afdbaf78fd85c20b1f7357cc975f26ab5c630a8135b6",
+    "02-ud-first-implementation.log": "34aadcf6e77b1aa8d6f0849b02371e97cf8cfff198a8562191c97e9625aa4ea0",
+    "03-full-first.log": "d63432b4cf6b20ed1df50ef1bf199fd194d4a0e2cc9c46a4126ebf6f90e25368",
+    "04-ud-boundaries-initial.log": "dd6bb67a438e8f868a0dd3f4166ccc01039ab32d4ae855343fe80271db19031c",
+    "05-ud-boundaries-valid-fixtures.log": "27dd3a2efb04a7cb9697441d31b33b2da9f5a5499e539802516f346d70b4d115",
+    "06-ud-builder-fix.log": "62f76e30b66501fbd1e5791082c4853ab4aa23608a9006adaffad33c151dc020",
+    "07-types-tests-initial.log": "b215537d20de45f7a64cbd824e9e37d0715a4b39d3e0780f59355d2e037b4656",
+    "08-full-two-workers.log": "8e578b4dd71b9d1106235096b8905edf179c903f2becd23f40dc40fe2bdc826b",
+    "08-runner.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "09-full-valid-retained-fixtures.log": "e26a48b50b088d39f65ef0f31488a23d08b2bca2b1ca1240e2b61a3b4fc2cc92",
+    "09-runner.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "10-runner.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "10-ud-expanded.log": "ccdde2fce341385177268f48707f24e12b7e27a73192c5a2d0b6d4f9777fc196",
+    "11-runner.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "11-ud-full-baseline.log": "13ff70addd9da0a63cfc59cd7842ee7e49d52ac60ce726e76d11bd788833ed8f",
+    "12-full-final.log": "3df6863ac6d1b3b586f00b1bbb2fa02313b184832a26d9b4311b3254ee358d76",
+    "13-types-app.log": "4b1d0b478880d5443bfb6d57f349e9abc225f248df8c966d105dba22aaf1cbfc",
+    "14-types-scripts.log": "122902ab9bb4622846143a7b4d89493b7734657820f4cf78d01aea55a4e9701f",
+    "15-types-tests.log": "9643e73def3257d9391edc3973466da66deaacd54540c1d696a03a3249373c6e",
+    "16-lint.log": "df2913a11ffb909dfaaee0a5ffb01f7f347ba061a15367550b4b7776d227af2e",
+    "17-source-integrity.log": "6b69e14e634de940b6b47b8e579ee132ce867dfe9926a178061b05439e74c106",
+    "18-retained-source.log": "22f866bab6b4d2526aa73128fbb4b80158e9be8ec07c17e9f91ee7bc14d56c5c",
+    "19-rbac.log": "aec57f4c06e1c1c0a1f2e58e7eb188c82fe4c01c35ba3dd002634abb9c73601d",
+    "20-mechanical.log": "af300e3d959634dcfebeb6acfaca7580f541c38a7487b18c2cc884ca8c1434c3",
+    "21-quality-tests.log": "eb81375c86b690eba4c17b04a5117ffd81350d5e45cb5d1b4beef5f93e498d0a",
+    "22-size-budget.log": "2dcf4a82a59c409b6a8706d24d8d24b2b76fec42fdca4b4d609a5898a2103eba",
+    "23-performance.log": "0e033858775971ca78fe00dbfbe13b8adcec47d1fbc007eb51e0f8903a39a32b",
+    "24-coverage.log": "f29a06b0afe41a2f7e831ed1fd938f40137583a3c9ce139de80e6b0aa391c1b8",
+    "25-ud-width-regression-red.log": "1328a6c2839acc14dd9721d3fcd550173a27a972a328247fb348c533af5b479b",
+    "26-ud-width-regression-green.log": "6316056bf54cb93fbd9c472bb4c9a537a3be7503d852382d2bb9d79605f06657",
+    "27-ud-width-and-country-green.log": "e24be96a8d3cb531bd57d108a86b4b5d3dd5d498b46deaca954806531f786702",
+    "28-ud-final-targeted.log": "9e4a4d868a2a967880daa87c82bb532847be5037573f8396031c81f9624d992f",
+    "29-ud-final-baseline.log": "255e905cc4681e6e2f249ffe98b71da028d9d76513e973c30f965b4534daaf8e",
+    "29b-party-baseline.log": "586f32daaf78f0efe589ed3896af3d61d51913d6723940dbf9074da980d77233",
+    "30-full-final.log": "d7552f2e6abd16e57b456332a12a6175f8592d2b3d837e5f63b636b5cf3bb450",
+    "31-types-app.log": "4b1d0b478880d5443bfb6d57f349e9abc225f248df8c966d105dba22aaf1cbfc",
+    "32-types-scripts.log": "122902ab9bb4622846143a7b4d89493b7734657820f4cf78d01aea55a4e9701f",
+    "33-types-tests.log": "b215537d20de45f7a64cbd824e9e37d0715a4b39d3e0780f59355d2e037b4656",
+    "34-lint.log": "df2913a11ffb909dfaaee0a5ffb01f7f347ba061a15367550b4b7776d227af2e",
+    "35-source-integrity.log": "6b69e14e634de940b6b47b8e579ee132ce867dfe9926a178061b05439e74c106",
+    "36-retained-source.log": "daadf725d2dc2662dfcfbe74df801c201eb9602c0589e495efba09fa24be8115",
+    "37-rbac.log": "aec57f4c06e1c1c0a1f2e58e7eb188c82fe4c01c35ba3dd002634abb9c73601d",
+    "38-mechanical.log": "af300e3d959634dcfebeb6acfaca7580f541c38a7487b18c2cc884ca8c1434c3",
+    "39-quality-tests.log": "0008bd223b57758bb2044edf382c77cac2a5359be307326a52d49ea35db4dc99",
+    "40-size-budget.log": "2dcf4a82a59c409b6a8706d24d8d24b2b76fec42fdca4b4d609a5898a2103eba",
+    "41-performance.log": "0e033858775971ca78fe00dbfbe13b8adcec47d1fbc007eb51e0f8903a39a32b",
+    "42-coverage.log": "cf3f129f62249a65b40814dd40b798a7b3df18a792555c5bf9c9380d697b798f",
+    "43-coverage-ratchet.log": "6374af5b44b6a3b4e308bd2c05aa68a685116115a0446d35b22b6ab318281916"
+  },
+  "command_results": {
+    "08-full-two-workers.result.json": {
+      "command": [
+        "npm",
+        "test",
+        "--",
+        "--maxWorkers=2"
+      ],
+      "exit": 1,
+      "seconds": 57.75
+    },
+    "09-full-valid-retained-fixtures.result.json": {
+      "command": [
+        "npm",
+        "test",
+        "--",
+        "--maxWorkers=2"
+      ],
+      "exit": 0,
+      "seconds": 53.7
+    },
+    "10-ud-expanded.result.json": {
+      "command": [
+        "npx",
+        "vitest",
+        "run",
+        "__tests__/ediel-prodat-dependent-subtype-ud.test.ts",
+        "__tests__/ediel-prodat-dependent-subtype-ud-boundaries.test.ts",
+        "--maxWorkers=2"
+      ],
+      "exit": 0,
+      "seconds": 6.81
+    },
+    "11-ud-full-baseline.result.json": {
+      "command": [
+        "bash",
+        "-lc",
+        "cd /mnt/data/ud-baseline && ./node_modules/.bin/vitest run __tests__/ediel-prodat-dependent-subtype-ud.test.ts __tests__/ediel-prodat-dependent-subtype-ud-boundaries.test.ts --maxWorkers=2"
+      ],
+      "exit": 1,
+      "seconds": 4.01
+    },
+    "12-full-final.result.json": {
+      "command": [
+        "npm",
+        "test",
+        "--",
+        "--maxWorkers=2"
+      ],
+      "exit": 0,
+      "seconds": 59.66
+    },
+    "13-types-app.result.json": {
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "exit": 0,
+      "seconds": 74.57
+    },
+    "14-types-scripts.result.json": {
+      "command": [
+        "npm",
+        "run",
+        "typecheck:scripts"
+      ],
+      "exit": 0,
+      "seconds": 2.57
+    },
+    "15-types-tests.result.json": {
+      "command": [
+        "npm",
+        "run",
+        "typecheck:tests"
+      ],
+      "exit": 2,
+      "seconds": 23.82
+    },
+    "16-lint.result.json": {
+      "command": [
+        "npm",
+        "run",
+        "lint"
+      ],
+      "exit": 0,
+      "seconds": 96.7
+    },
+    "17-source-integrity.result.json": {
+      "command": [
+        "npm",
+        "run",
+        "ediel:masterplan-v2:integrity"
+      ],
+      "exit": 0,
+      "seconds": 0.27
+    },
+    "18-retained-source.result.json": {
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "--test",
+        "scripts/test-ediel-component-escaping.cjs",
+        "scripts/test-ediel-guide-governance.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/test-ediel-prodat-d-z04-reference.cjs",
+        "scripts/test-ediel-prodat-document-fields.cjs",
+        "scripts/test-ediel-prodat-party-fields.cjs",
+        "scripts/test-ediel-prodat-reference-fields.cjs",
+        "scripts/test-ediel-prodat-source-locators.cjs",
+        "scripts/test-ediel-rule-pack-source-identity.cjs",
+        "scripts/test-ediel-route-destination.cjs"
+      ],
+      "exit": 1,
+      "seconds": 5.23
+    },
+    "19-rbac.result.json": {
+      "command": [
+        "npm",
+        "run",
+        "security:rbac"
+      ],
+      "exit": 0,
+      "seconds": 0.27
+    },
+    "20-mechanical.result.json": {
+      "command": [
+        "bash",
+        "quality/mechanical/verify.sh"
+      ],
+      "exit": 0,
+      "seconds": 0.17
+    },
+    "21-quality-tests.result.json": {
+      "command": [
+        "npx",
+        "vitest",
+        "run",
+        "--config",
+        "quality/vitest.config.ts",
+        "--maxWorkers=2"
+      ],
+      "exit": 0,
+      "seconds": 2.34
+    },
+    "22-size-budget.result.json": {
+      "command": [
+        "npm",
+        "run",
+        "quality:large-file-budget"
+      ],
+      "exit": 0,
+      "seconds": 0.32
+    },
+    "23-performance.result.json": {
+      "command": [
+        "npm",
+        "run",
+        "quality:performance"
+      ],
+      "exit": 0,
+      "seconds": 1.61
+    },
+    "24-coverage.result.json": {
+      "command": [
+        "npm",
+        "run",
+        "test:coverage",
+        "--",
+        "--maxWorkers=2"
+      ],
+      "exit": 1,
+      "seconds": 73.12
+    },
+    "25-ud-width-regression-red.result.json": {
+      "command": [
+        "npx",
+        "vitest",
+        "run",
+        "__tests__/ediel-prodat-dependent-subtype-ud.test.ts",
+        "__tests__/ediel-prodat-dependent-subtype-ud-boundaries.test.ts",
+        "--maxWorkers=2"
+      ],
+      "exit": 1,
+      "seconds": 6.98
+    },
+    "26-ud-width-regression-green.result.json": {
+      "command": [
+        "npx",
+        "vitest",
+        "run",
+        "__tests__/ediel-prodat-dependent-subtype-ud.test.ts",
+        "__tests__/ediel-prodat-dependent-subtype-ud-boundaries.test.ts",
+        "--maxWorkers=2"
+      ],
+      "exit": 1,
+      "seconds": 6.48
+    },
+    "27-ud-width-and-country-green.result.json": {
+      "command": [
+        "npx",
+        "vitest",
+        "run",
+        "__tests__/ediel-prodat-dependent-subtype-ud.test.ts",
+        "__tests__/ediel-prodat-dependent-subtype-ud-boundaries.test.ts",
+        "--maxWorkers=2"
+      ],
+      "exit": 1,
+      "seconds": 7.32
+    },
+    "28-ud-final-targeted.result.json": {
+      "command": [
+        "npx",
+        "vitest",
+        "run",
+        "__tests__/ediel-prodat-dependent-subtype-ud.test.ts",
+        "__tests__/ediel-prodat-dependent-subtype-ud-boundaries.test.ts",
+        "--maxWorkers=2"
+      ],
+      "exit": 0,
+      "seconds": 6.73
+    },
+    "29-ud-final-baseline.result.json": {
+      "command": [
+        "bash",
+        "-lc",
+        "cd /mnt/data/ud-baseline && ./node_modules/.bin/vitest run __tests__/ediel-prodat-dependent-subtype-ud.test.ts __tests__/ediel-prodat-dependent-subtype-ud-boundaries.test.ts --maxWorkers=2"
+      ],
+      "exit": 1,
+      "seconds": 3.44
+    },
+    "29b-party-baseline.result.json": {
+      "command": [
+        "bash",
+        "-lc",
+        "cd /mnt/data/ud-baseline && node --experimental-vm-modules --test scripts/test-ediel-prodat-party-fields.cjs"
+      ],
+      "exit": 1,
+      "seconds": 0.82
+    },
+    "30-full-final.result.json": {
+      "command": [
+        "npm",
+        "test",
+        "--",
+        "--maxWorkers=2"
+      ],
+      "exit": 0,
+      "seconds": 58.49
+    },
+    "31-types-app.result.json": {
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "exit": 0,
+      "seconds": 36.36
+    },
+    "32-types-scripts.result.json": {
+      "command": [
+        "npm",
+        "run",
+        "typecheck:scripts"
+      ],
+      "exit": 0,
+      "seconds": 1.56
+    },
+    "33-types-tests.result.json": {
+      "command": [
+        "npm",
+        "run",
+        "typecheck:tests"
+      ],
+      "exit": 0,
+      "seconds": 12.2
+    },
+    "34-lint.result.json": {
+      "command": [
+        "npm",
+        "run",
+        "lint"
+      ],
+      "exit": 0,
+      "seconds": 85.86
+    },
+    "35-source-integrity.result.json": {
+      "command": [
+        "npm",
+        "run",
+        "ediel:masterplan-v2:integrity"
+      ],
+      "exit": 0,
+      "seconds": 0.22
+    },
+    "36-retained-source.result.json": {
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "--test",
+        "scripts/test-ediel-component-escaping.cjs",
+        "scripts/test-ediel-guide-governance.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/test-ediel-prodat-d-z04-reference.cjs",
+        "scripts/test-ediel-prodat-document-fields.cjs",
+        "scripts/test-ediel-prodat-party-fields.cjs",
+        "scripts/test-ediel-prodat-reference-fields.cjs",
+        "scripts/test-ediel-prodat-source-locators.cjs",
+        "scripts/test-ediel-rule-pack-source-identity.cjs",
+        "scripts/test-ediel-route-destination.cjs"
+      ],
+      "exit": 0,
+      "seconds": 5.9
+    },
+    "37-rbac.result.json": {
+      "command": [
+        "npm",
+        "run",
+        "security:rbac"
+      ],
+      "exit": 0,
+      "seconds": 0.27
+    },
+    "38-mechanical.result.json": {
+      "command": [
+        "bash",
+        "quality/mechanical/verify.sh"
+      ],
+      "exit": 0,
+      "seconds": 0.11
+    },
+    "39-quality-tests.result.json": {
+      "command": [
+        "npx",
+        "vitest",
+        "run",
+        "--config",
+        "quality/vitest.config.ts",
+        "--maxWorkers=2"
+      ],
+      "exit": 0,
+      "seconds": 2.64
+    },
+    "40-size-budget.result.json": {
+      "command": [
+        "npm",
+        "run",
+        "quality:large-file-budget"
+      ],
+      "exit": 0,
+      "seconds": 0.32
+    },
+    "41-performance.result.json": {
+      "command": [
+        "npm",
+        "run",
+        "quality:performance"
+      ],
+      "exit": 0,
+      "seconds": 1.48
+    },
+    "42-coverage.result.json": {
+      "command": [
+        "npm",
+        "run",
+        "test:coverage",
+        "--",
+        "--maxWorkers=2"
+      ],
+      "exit": 0,
+      "seconds": 70.32
+    },
+    "43-coverage-ratchet.result.json": {
+      "command": [
+        "node",
+        "scripts/check-coverage-ratchet.cjs"
+      ],
+      "exit": 0,
+      "seconds": 0.06
+    }
+  },
+  "incomplete_attempts": [
+    "03-full-first.log: foreground tool timeout, no final result",
+    "07-types-tests-initial.log: foreground tool timeout, no final result"
+  ],
+  "failure_history": [
+    "Initial147-case baseline129fail/18pass; first runtime147pass.",
+    "Boundary118 fixtures initially56fail/62pass; independent prerequisite repairs left2 genuine builder failures.",
+    "Builder repaired lost postcode/city and root-subtype UD omission; wrong test parser property then corrected to endUserPostcode.",
+    "First full3056-case run15fail/3041pass: former E positive controls lacked required UD; same assertions retained with valid E wire prerequisite.",
+    "Test TS2322 fixed with literal code tuple as const, no suppression.",
+    "Initial retained source run911/913: positive NAD profile fixtures chose non-E variants where UD is forbidden. Source-correct E positive fixtures preserve all assertions; six new non-E negatives added.",
+    "Self-review width matrix18fail/284pass; raw width checks added. Country token padding needed separate exact code-shape check. First repair remained red; one edit helper had a syntax error and changed no files. All failed attempts retained.",
+    "Final302-case new suite passes; same new suite on original base264fail/38pass. Final application3093, source919 and all listed quality gates pass."
+  ],
+  "archive_sha256": {
+    "checkpoint.json": "52dc0564eb8b251fd81c5d8b55aece8931c75ba81e4889540054cbc9f88fe437",
+    "completed-work.md": "4236e4f60bb18c95572a0826d25b93f83cb171717e3b25367a2378585fdcafdd",
+    "current-state.md": "200eeb73a52d08570aa9f6515ad4eb6ae6fd6c431a47224b810c5c56680cc0a8",
+    "current-task.md": "a5fcf04ac710c76fac6106d20d2d08e76fcd3c71b796b5ca2366200fed524be2",
+    "handover.md": "86e6cd29ffab6bbcb5bcd399d9c7d386fa8fa7f764b62f8c2bc7a707d44c4bb4",
+    "next-actions.md": "8cb2ba8da06ccf9df2ba81bb64d7435d6960bb7f6aeab0437676e6d872adc4c6",
+    "open-blockers.md": "580b0c42457e269122c182e14d72e036ef8a97b727f29d07535580f71838337f",
+    "recent-changes.md": "7158d45fbb5ecae73567c93fe6174979f80ceb853f662b4b7736da373fa2224a",
+    "session-log.md": "919716b79686e341093f9b595085c05c4789124d612803927d42585a811b6d05",
+    "verification-matrix.md": "8c695b7e850ba8a4c0f04d02c082cd9c20bf3f344a5d9213f69ec3bb821a40d1",
+    "work-plan.md": "616dbcc40a0d6a8157d054b22ca857d4574c32a9b82d4074bd386b7253ba8dbd"
+  }
+}

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { ud } from './fixtures/prodat-ud'
 import { validateEdielMessageRowWithRulebook, validateRulebookMessage, validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
 import { assertRulebookAllowsSend } from '@/lib/ediel/rulebook/sendGuards'
 import { preflightEdielMessageRow } from '@/lib/ediel/core/messageBuilder/payloadPreflight'
@@ -23,7 +24,7 @@ function message(body: Parts[], code = 'Z09', environment: 'test' | 'production'
   // Deliberately partial synthetic persistence boundary, not a database row certificate.
   return row as EdielMessageRow
 }
-const missingValidity = () => [line('1', 'A'), ...characteristic('Z13', 'E34')]
+const missingValidity = () => [line('1', 'A'), ...characteristic('Z13', 'E34'), ud()]
 const hasWire216 = (issues: { scope?: string; description: string; severity: string; blocking?: boolean }[]) =>
   issues.some(issue => issue.scope === 'prodat_dependent' && issue.description.includes('Z09:216') && issue.severity === 'error' && issue.blocking)
 

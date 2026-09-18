@@ -1,13 +1,24 @@
-## Review-repair checkpoint — 2026-09-18
+# Verification matrix — LOCAL only
 
-PR334 predecessor17666970 passed ordinary CI but was not accepted: independent static review5734941292 found DDQ-only market classification. Local repaired code tree9741ef3dec4d083b24695629781d5d724ffafb24 recognizes both EL references while retaining the narrower Z06-DDQ process contract. New28-case baseline12fail/16pass becomes28pass; targeted205, fullapplication2791/240files and retainedsource913pass. Three types, lint0errors (99source+1generated-coverage warning), unchanged coverage/budgets and quality pass. See f3-d-z06-product-review-20260918 audit for exact evidence.
+Application3093/242files; new302subset; source919; all3types; lint0/99warnings;
+integrity33files/121rules/231contracts; quality45; RBAC/mechanical/size/performance;
+coverage ratchet all passed. Build/browser/replay, remoteCI and independent
+review are NOT RUN. Local tests do not certify live transport or full release.
 
-Status IMPLEMENTED_NOT_VERIFIED: publish native follow-up on17666970, repeat four ordinary exact-head workflows and substantive independent review, then guarded merge. Sevenaccepted+onecandidate+102other numericD and10parent occurrences remain. PR310 paused; issue332 full-main70/73 open/unwaived; no live operations. This newer checkpoint supersedes pre-review candidate totals below without rewriting historical audits. Live GitHub receipts have precedence.
+Base main `dcd0e5fa0f6e8949d614bd09b941b22d70acdd1f` / tree `8764838fa530791cfb82403f5c97a0c44f43e675` after accepted330/331/334.
+UD candidate tested code tree `fd360cb45d5976b818f0e36f636de6080faa6357`. Local application3093/3093,
+302new (subset), source919/919 (913retained+6new), all3types, lint0errors/99warnings,
+source integrity, RBAC/quality/budgets and unchanged coverage ratchet passed.
+No remote candidate commit/PR/CI/independent review/merge. GitHub tool discovery
+is read-only; local Git DNS fails. This is not a repository-permission diagnosis.
 
-# Verification matrix — Z06:242
+Eight accepted numeric D cells +ten candidates +92other=110. Two UD parent
+occurrences are candidates, eight others remain. Do not count eighteen accepted
+until ordinary exact-head CI, substantive independent review and guarded merge.
+Full field229 evidence, F3–F7/masterplan/liveTGT/release are incomplete. PR310 stays
+paused/excluded; issue332 historical70/73 stays open/unwaived. No SQL/grants/types,
+threshold/dependency/normative changes, liveDB/storage/market sends or deployment.
 
-Local exact code tree4aa03f9b:2763/2763 application cases in239files;169new product cases are a subset. Retained standalone source913/913. All3TypeScript projects pass after correcting partial-row fixture typing; no suppressions. Lint0errors/99warnings. Source integrity33files/121rules/231contracts. RBAC,mechanical,45quality tests,unchanged size/performance budgets pass.
-
-Coverage:statements34.39%,branches27.30%,functions41.24%,lines35.78%; unchanged ratchet passes. Historical qualified148case red128fail/20pass; added169case red18fail then9fail; actual element-decoding repair passes. Catalog market correction preserves all registry/no-undetermined assertions. Interrupted foreground attempts are incomplete, not passed.
-
-Ordinary CI, build/browser/disposable replay and independent final-head review/merge REQUIRED. Full-main70/73 remains unwaived in332. Full source/log hashes in the unit audit. These numbers do not certify all110D or live production.
+Evidence: `quality/audits/ediel-masterplan-v2/f3-d-ud-20260919.md` and `.json`.
+Prior base memory: `archive/2026-09-19-pr334-final-merged/README.md` (byte-identical).
+The archive workbench root is synthetic and MUST NOT be published as repo ancestry.
