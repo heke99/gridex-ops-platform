@@ -1,0 +1,98 @@
+name: D first-six reviewed source transport 20260918
+on:
+  push:
+    branches: ['codex/d-first6-review-transfer-20260918']
+permissions:
+  contents: read
+jobs:
+  transport:
+    if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/codex/d-first6-review-transfer-20260918'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: transport
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: 0a89e102956fc582f879b391b3ab466d40c5f178
+          path: source
+          fetch-depth: 0
+      - name: Verify exact reviewed source without running candidate scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/d-review-evidence"
+          python3 - <<'PY'
+          import hashlib, json, lzma, os, pathlib, subprocess
+          workspace = pathlib.Path(os.environ['GITHUB_WORKSPACE'])
+          source = workspace / 'source'
+          evidence = pathlib.Path(os.environ['RUNNER_TEMP']) / 'd-review-evidence'
+          def git(*args):
+              return subprocess.check_output(['git', *args], cwd=source)
+          def check(data, expected):
+              actual = hashlib.sha256(data).hexdigest()
+              if actual != expected:
+                  raise SystemExit(f'Checksum mismatch: {actual} != {expected}')
+          base = '0a89e102956fc582f879b391b3ab466d40c5f178'
+          assert git('rev-parse', 'HEAD').decode().strip() == base
+          assert git('rev-parse', 'HEAD^{tree}').decode().strip() == 'aa624c9bf203ecfac9068fd53fb0cc9ca1a0f218'
+          expected_refs = {'main': 'b916213e83871e9f4d15b9fd52a2b8c19394c9ca', 'codex/ediel-v2-dependent-conditions-20260918': base}
+          for ref, expected in expected_refs.items():
+              remote = git('ls-remote', 'origin', f'refs/heads/{ref}').decode().split()
+              assert remote and remote[0] == expected, f'Concurrent movement: {ref}'
+          compressed = (workspace / 'transport' / '.candidate-transfer' / 'review.patch.xz').read_bytes()
+          check(compressed, 'ef57ede88b840662cd238d8d753b61a79c30554a0c123f101bfc613da4378b63')
+          patch = lzma.decompress(compressed, memlimit=134217728)
+          check(patch, '51bc4cdb9d652a1126dfd1059734c2f03fddb31f97b51576527ec3625865652c')
+          patch_path = evidence / 'review.patch'
+          patch_path.write_bytes(patch)
+          git('apply', '--check', '--index', str(patch_path))
+          git('apply', '--index', str(patch_path))
+          tree = git('write-tree').decode().strip()
+          assert tree == 'c832d360ea7bbb399cdbb00b5583b191d6c702ac', tree
+          tracked = git('ls-files', '-z').decode().split('\0')
+          hashes = {p: hashlib.sha256((source / p).read_bytes()).hexdigest() for p in tracked if p and not p.startswith(('.agent-memory/', 'quality/audits/'))}
+          assert len(hashes) == 3694
+          map_bytes = (json.dumps(hashes, indent=2, sort_keys=True) + '\n').encode()
+          check(map_bytes, 'ac65c6d9b8a9c122ff60069fd569b7218b7cf3662c2f8a9b386e1b15036e0c3e')
+          assert not git('diff', '--cached', '--name-only', '--', '.github/workflows').strip()
+          assert not git('ls-files', '.candidate-transfer').strip()
+          git('archive', '--format=tar.gz', '--output=' + str(evidence / 'source.tar.gz'), tree)
+          receipt = {'base_commit': base, 'candidate_tree': tree, 'patch_sha256': hashlib.sha256(patch).hexdigest(), 'execution_source_sha256': hashlib.sha256(map_bytes).hexdigest(), 'execution_source_files': len(hashes), 'scope': 'Exact source transport only; not CI, review or production acceptance.'}
+          (evidence / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          print(json.dumps(receipt, indent=2))
+          PY
+      - name: Publish source to isolated candidate branch only
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch='codex/d-first6-reviewed-source-20260918'
+          if [[ -n "$(git ls-remote origin "refs/heads/$branch")" ]]; then
+            echo 'Ref already exists; refusing to replace another candidate.' >&2
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Transport first-six D review corrections; exact-head CI and independent rereview still required'
+          git push origin "HEAD:refs/heads/$branch"
+          printf 'source_commit=%s\nsource_tree=%s\nsource_branch=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse 'HEAD^{tree}')" "$branch" | tee "$RUNNER_TEMP/d-review-evidence/published-source.txt"
+      - name: Hash transport evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/d-review-evidence"
+          find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 -r sha256sum > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: d-first6-review-transport-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/d-review-evidence/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
