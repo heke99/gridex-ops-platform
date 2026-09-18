@@ -1,15 +1,3 @@
-## Review-repair checkpoint — 2026-09-18
+# Current state
 
-PR334 predecessor17666970 passed ordinary CI but was not accepted: independent static review5734941292 found DDQ-only market classification. Local repaired code tree9741ef3dec4d083b24695629781d5d724ffafb24 recognizes both EL references while retaining the narrower Z06-DDQ process contract. New28-case baseline12fail/16pass becomes28pass; targeted205, fullapplication2791/240files and retainedsource913pass. Three types, lint0errors (99source+1generated-coverage warning), unchanged coverage/budgets and quality pass. See f3-d-z06-product-review-20260918 audit for exact evidence.
-
-Status IMPLEMENTED_NOT_VERIFIED: publish native follow-up on17666970, repeat four ordinary exact-head workflows and substantive independent review, then guarded merge. Sevenaccepted+onecandidate+102other numericD and10parent occurrences remain. PR310 paused; issue332 full-main70/73 open/unwaived; no live operations. This newer checkpoint supersedes pre-review candidate totals below without rewriting historical audits. Live GitHub receipts have precedence.
-
-# Current state — 2026-09-18
-
-Live main read: 7ff0d6b0aa2082c3942d36d743977ae85cde2a4f after accepted PR330/331. Seven of110 numeric D cells accepted. Active unit: PC-242-Z06, IMPLEMENTED_NOT_VERIFIED pending exact-head ordinary CI and independent review. One candidate,102 other numeric D cells and10parent-group occurrences remain unaccepted.
-
-Local:2763 application tests,913 retained standalone source cases, all3types, lint0errors/99warnings, source integrity33files/121rules/231contracts, unchanged coverage/budgets and quality checks passed. Initial failures/timeouts remain documented in the qualification audit. Local build/browser/disposable replay not claimed; CI must execute them where applicable.
-
-PR310 stays paused/excluded at e9611351. Issue332 retains full-main70/73 blockers and is not waived by green PR smoke. No live DB/storage/market send or explicit deployment/settings changes. Authorized main merge may trigger existing Git deployment. FullF3–F7/masterplan/liveTGT/release remain incomplete.
-
-This is a prepublication snapshot. Live refs/PR receipts take precedence. Historical active files are byte-identically preserved in archive/2026-09-18-pr331-final-merged/.
+Main read back dcd0e5fa after accepted330/331/334:8numeric D cells. Local UD candidate adds10numeric cells and2parent occurrences; not accepted until exact-head CI/review/merge. Full local3201application/913source and410new cases pass. Source-backed field229 remains unaccepted; active address availability cannot be guessed. Full masterplan incomplete. PR310 paused; issue332 open. See f3-d-ud-20260919 audit.

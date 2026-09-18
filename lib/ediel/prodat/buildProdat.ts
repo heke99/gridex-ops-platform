@@ -1,10 +1,12 @@
+import { prodatEndUserContexts, validateProdatEndUserPolicy } from '@/lib/ediel/rulebook/prodatEndUserPolicy'
+import { isSourceBoundProdatEndUserField } from '@/lib/ediel/prodat/prodatSubtypeRequirement'
 import { renderProdatRegisterObject } from '@/lib/ediel/prodat/render/registers'
 import { prodatObjectIdentityAgency, type ProdatMeterRegisterInput } from '@/lib/ediel/prodat/prodatRegisterInput'
 import type { ProdatDependentConditionFacts } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import { buildProdatDateSegments, resolveProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
 import { isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
 import { prodatPartySegment, prodatCustomerNadSegment } from '@/lib/ediel/prodat/render/segments'
-import { PRODAT_26A_FIELD_MATRIX, PRODAT_26A_MESSAGE_CODES } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+import { PRODAT_26A_FIELD_MATRIX, PRODAT_26A_MESSAGE_CODES, canonicalProdat26AFieldRules } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { renderProdatDocumentHeader } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { serializeEdifact, escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 import { generateEdielInterchangeReference } from '@/lib/ediel/core/referenceGenerator'
@@ -28,7 +30,7 @@ export type BuildProdatMessageInput = {
   registers?: readonly ProdatMeterRegisterInput[]
   objects?: readonly BuildProdatObjectInput[]
   dependentConditionFacts?: ProdatDependentConditionFacts
-  customer?: { id?: string | null; name?: string | null; identity?: string | null; identityQualifier?: string | null; idAgency?: '89' | '260'; country?: string | null } | null
+  customer?: { id?: string | null; name?: string | null; nameLines?: readonly string[]; identity?: string | null; identityQualifier?: string | null; idAgency?: '89' | '260'; country?: string | null; city?: string | null; postalCode?: string | null; address?: string | null; addressLines?: readonly string[] } | null
   gridOwner?: { edielId?: string | null; name?: string | null } | null
   brp?: { edielId?: string | null } | null
   dates?: Record<string, string | null | undefined>
@@ -117,8 +119,18 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
       ...codedAttributeSegments(object.codedAttributes,businessCode),
       object.meteringPoint?.gridArea ? `RFF+Z05:${escapeEdifactValue(object.meteringPoint.gridArea)}` : null,
       ...referenceSegments(object.references),
-      endUserAllowed && customerId ? prodatCustomerNadSegment({ customerId, customerIdCodeListQualifier: object.customer?.identityQualifier, idAgency: object.customer?.idAgency, customerName: object.customer?.name ?? '', country: object.customer?.country }) : null,
     ].filter((segment): segment is string => segment !== null)
+    // Z06/Z09 objects can have different wire reasons. Root subtype metadata
+    // must not drop an E customer's data or emit it for another object's F/G.
+    const ownEndUserAllowed = isSourceBoundProdatEndUserField(businessCode, 'END_USER_GROUP')
+      ? prodatEndUserContexts({code:businessCode,rawSegments:rows}).contexts[0]?.requirement !== 'forbidden'
+      : endUserAllowed
+    if (ownEndUserAllowed && customerId) rows.push(prodatCustomerNadSegment({
+      customerId, customerIdCodeListQualifier:object.customer?.identityQualifier, idAgency:object.customer?.idAgency,
+      customerName:object.customer?.name ?? '', nameLines:object.customer?.nameLines,
+      country:object.customer?.country, city:object.customer?.city, postalCode:object.customer?.postalCode,
+      address:object.customer?.address, addressLines:object.customer?.addressLines,
+    }))
     const expanded = renderProdatRegisterObject({code:businessCode,segments:rows,registers:object.registers,firstLineSequence:nextLineSequence})
     nextLineSequence = expanded.nextLineSequence
     return expanded.segments
@@ -143,6 +155,8 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
     businessSegments,
     testIndicator: input.environment === 'production' ? 0 : 1,
   })
+  const endUserIssues = validateProdatEndUserPolicy({code:businessCode,rawSegments:businessSegments},canonicalProdat26AFieldRules(businessCode))
+  if (endUserIssues.length) throw new Error(`PRODAT elanvändargrupp kunde inte valideras: ${endUserIssues.map(issue=>issue.description).join(' | ')}`)
   const validation = validateProdat(rawEdifact,{registerFacts:input.dependentConditionFacts,requireRegisterConditions:true})
 
   if (!validation.ok) {

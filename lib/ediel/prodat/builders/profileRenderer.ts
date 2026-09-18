@@ -1,3 +1,4 @@
+import { validateProdatEndUserPolicy } from '@/lib/ediel/rulebook/prodatEndUserPolicy'
 import { resolveProdatRegisterConditionFacts } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { resolveProdatRegisterInputs, prodatObjectIdentityAgency } from '@/lib/ediel/prodat/prodatRegisterInput'
@@ -7,7 +8,7 @@ import { prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatri
 import { buildProdatDateSegments, resolveProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
 import { validateProdatDateFields } from '@/lib/ediel/prodat/prodatDateValidation'
 import { prodatPartySyntaxIssues } from '@/lib/ediel/prodat/prodatPartyFields'
-import { PRODAT_26A_FIELD_MATRIX, PRODAT_26A_MESSAGE_CODES } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+import { PRODAT_26A_FIELD_MATRIX, PRODAT_26A_MESSAGE_CODES, canonicalProdat26AFieldRules } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 import { renderProdatDocumentHeader } from '@/lib/ediel/prodat/prodatDocumentFields'
 // lib/ediel/prodat/builders/profileRenderer.ts
@@ -338,6 +339,9 @@ export function buildProfiledProdatSegments(input: {
       description: failure.description })
   }
 
+  for (const failure of validateProdatEndUserPolicy({code:policy.code,rawSegments:segments},canonicalProdat26AFieldRules(policy.code))) {
+    issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
+  }
   for (const failure of prodatPartySyntaxIssues(segments)) {
     issues.push({ severity: 'error', code: failure.kind === 'length' ? 'FIELD_MATRIX_FIELD_LENGTH_INVALID' : 'FIELD_MATRIX_FIELD_FORMAT_INVALID',
       title: 'Ogiltigt PRODAT-partfält',

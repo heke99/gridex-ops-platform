@@ -13,7 +13,7 @@ import { preflightEdielMessageRow } from '@/lib/ediel/core/messageBuilder/payloa
 import { assertEdielSendLock } from '@/lib/ediel/transport/sendLock'
 import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import { alphabets, characteristic, input, line, qty, raw, type Parts } from './fixtures/prodat-register'
+import { endUser, alphabets, characteristic, input, line, qty, raw, type Parts } from './fixtures/prodat-register'
 
 // Independent oracle: retained P26.A r3 field242 note p20, C889 table p68,
 // electricity product table p69, field311 p16. The literal conditional-cell
@@ -205,7 +205,7 @@ for (const environment of ['test','production'] as const) for (const alphabet of
       expect(() => assertEdielSendLock(message)).toThrow(/Z06:242/)
     })
     for (const code of ['E64','E32','E34']) it(`bounded positive ${code}`, () => {
-      const message = row([line('1','A'),...reason(code),...(code === 'E34' ? [] : product())],environment,alphabet)
+      const message = row([line('1','A'),...reason(code),...(code === 'E34' ? [endUser()] : product())],environment,alphabet)
       expect(validateEdielMessageRowWithRulebook(message,'send').issues.filter(issue => issue.scope === 'prodat_dependent')).toEqual([])
       expect(blockers(preflightEdielMessageRow(message,'send').issues)).toEqual([])
       expect(() => assertRulebookAllowsSend(message)).not.toThrow()

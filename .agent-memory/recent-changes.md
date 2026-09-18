@@ -1,5 +1,3 @@
 # Recent changes
 
-Z06:242 candidate adds EL qualification to the frozen source rule, carries market through pure condition evaluation, validates actual first-UNB/first-register reason and product scope, checks exact EL product codes/components and supplied method consistency. Adds169actual-module tests; corrects only Z06 complete-facts catalog market. Existing Ediel workflow gains the new test path without losing any command or threshold.
-
-No normative file, SQL/grant/generated type, dependency or other workflow changes. Old active memory is preserved byte-for-byte in archive/2026-09-18-pr331-final-merged/; see its recent-changes.md for previous records.
+Bounded UD source registry and wire-scoped parent/child validation, per-object builder applicability, explicit party component forwarding and missing-family adapter repair. Active229 remains undetermined; inactive UD suppresses false address requirements. Positive E test fixtures supplied valid UD; two source-profile contexts corrected F/B to E without dropping assertions. No frozen source, dependency, SQL/types/grants or workflow-threshold changes.

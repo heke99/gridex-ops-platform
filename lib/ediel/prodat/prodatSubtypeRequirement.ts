@@ -6,16 +6,28 @@ type DeterminedRequirement = Exclude<ProdatSubtypeRequirement, 'undetermined'>
 type SourceRule = Readonly<{
   messageCode: 'Z04' | 'Z06' | 'Z09'
   fieldNumber: string
-  page: 17 | 18 | 19 | 20 | 21
+  page: 17 | 18 | 19 | 20 | 21 | 22
   market?: 'electricity'
   outcomes: Readonly<Partial<Record<ProdatSubtype, DeterminedRequirement>>>
 }>
 
-/** Bounded source migration: eight of the original 110 numeric D cells.
+/** Bounded source migration: eighteen of the original 110 numeric D cells, plus two UD parents.
  * P26.A revision 3, §2.2. No field presence or operator byCell flag supplies a
  * subtype-only condition. Other cells retain their existing unresolved gates.
  */
+export const PRODAT_END_USER_FIELDS: readonly string[] = Object.freeze(['END_USER_GROUP', '227', '228', '231', '232', '316'])
+
+export function isSourceBoundProdatEndUserField(messageCode: string, fieldNumber: string): boolean {
+  return (messageCode === 'Z06' || messageCode === 'Z09') && PRODAT_END_USER_FIELDS.includes(fieldNumber)
+}
+
 export const PRODAT_SOURCE_SUBTYPE_REQUIREMENTS: readonly SourceRule[] = [
+  ...(['Z06', 'Z09'] as const).flatMap((messageCode): SourceRule[] => PRODAT_END_USER_FIELDS.map(fieldNumber => ({
+    messageCode, fieldNumber, page: 22,
+    outcomes: messageCode === 'Z06'
+      ? { E: 'required', F: 'forbidden', G: 'forbidden' }
+      : { E: 'required', B: 'forbidden', D: 'forbidden', F: 'forbidden', G: 'forbidden' },
+  }))),
   { messageCode: 'Z04', fieldNumber: '319', page: 21, outcomes: { D: 'required', L: 'forbidden', LK: 'forbidden', C: 'forbidden', H: 'forbidden', A: 'forbidden' } },
   { messageCode: 'Z06', fieldNumber: '242', page: 20, market: 'electricity', outcomes: { F: 'required', G: 'required', E: 'optional' } },
   { messageCode: 'Z06', fieldNumber: '508', page: 18, outcomes: { F: 'required', E: 'optional', G: 'optional' } },

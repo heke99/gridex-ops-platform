@@ -241,7 +241,11 @@ for(const [qual,agency] of [['SE1','ZZZ'],['','89'],['1','260']])test(`staging $
 })
 const context=(code='Z04')=>({code,bgmReference:'DOC',transactionReference:'CASE',senderEdielId:'TECH-SENDER',receiverEdielId:'TECH-RECEIVER',customerId:'000Customer',customerIdCodeListQualifier:'SE1',customerName:'User',customerAddress:'UD Street',customerCity:'UD Town',customerPostalCode:'001 23',customerCountry:'DK',meterPointId:'735999999999999999',siteAddress:'IT Street',siteCity:'IT Town',sitePostalCode:'004 56',siteCountry:'SE',balanceResponsibleId:'000BRP',reasonForTransaction:({Z06:'E64',Z08:'Z25',Z09:'Z27',Z10:'E58',Z13:'S17',Z14:'S17',Z15:'S17',Z18:'S17'}[code]??'Z22')})
 for(const code of ['Z01','Z02','Z03','Z04','Z05','Z06','Z08','Z09','Z10','Z13','Z14','Z15','Z18'])test(`profile ${code}: NAD parent and child exclusions use unchanged source usages`,async()=>{
- const a=await api,x=a.buildProfiledProdatSegments({context:context(code),generatedAt:new Date('2026-09-17T12:00:00Z'),mode:'test'})
+ // P22: this populated-party fixture must use E for Z06/Z09. The former
+ // F/B defaults forbid UD; matrix D alone never meant every subtype uses it.
+ const c={...context(code),...(['Z06','Z09'].includes(code)?{reasonForTransaction:'E34'}:{})}
+ const a=await api,x=a.buildProfiledProdatSegments({context:c,generatedAt:new Date('2026-09-17T12:00:00Z'),mode:'test'})
+ if(['Z06','Z09'].includes(code)) assert(x.segments.includes('CAV+E34'),'P22 active UD fixture uses actual E reason')
  const rules=a.canonicalProdat26AFieldRules(code),inp=input(a,x.segments.join("'")+"'",code)
  for(const id of ['END_USER_GROUP','INSTALLATION_GROUP','229','232','231','262']) {
    const r=rules.find(r=>r.fieldNumber===id)

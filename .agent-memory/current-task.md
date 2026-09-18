@@ -1,11 +1,3 @@
-## Review-repair checkpoint — 2026-09-18
+# Active task
 
-PR334 predecessor17666970 passed ordinary CI but was not accepted: independent static review5734941292 found DDQ-only market classification. Local repaired code tree9741ef3dec4d083b24695629781d5d724ffafb24 recognizes both EL references while retaining the narrower Z06-DDQ process contract. New28-case baseline12fail/16pass becomes28pass; targeted205, fullapplication2791/240files and retainedsource913pass. Three types, lint0errors (99source+1generated-coverage warning), unchanged coverage/budgets and quality pass. See f3-d-z06-product-review-20260918 audit for exact evidence.
-
-Status IMPLEMENTED_NOT_VERIFIED: publish native follow-up on17666970, repeat four ordinary exact-head workflows and substantive independent review, then guarded merge. Sevenaccepted+onecandidate+102other numericD and10parent occurrences remain. PR310 paused; issue332 full-main70/73 open/unwaived; no live operations. This newer checkpoint supersedes pre-review candidate totals below without rewriting historical audits. Live GitHub receipts have precedence.
-
-# Current task
-
-PC-242-Z06 only, from accepted main7ff0d6b0. Preserve EL-only field note; F/G required,E optional. Derive first-register reason and first-UNB market from actual wire, validate the first7110 product separately from field506 and retain scope/domain/context checks. Status: IMPLEMENTED_NOT_VERIFIED.
-
-Next: native exact-tree publication with actual main parent, four ordinary applicable workflows and substantive independent exact-head review. Repair findings and repeat CI/review before expected-head merge. Then the coherent UD/parent unit in issue333. Do not redo PR330/331 or resume PR310.
+IMPLEMENTED_NOT_VERIFIED: Z06/Z09 UD parent and fields227/228/231/232/316. Continue from actual main dcd0e5fa, never oldZIP or paused310. Tested code tree a1cc6bcc6de6fa285c5ed85cef1673d11a96e75a. Next: native publication, ordinary exact-head CI, independent source/assertion review and expected-head merge. Review/CI pending; live PR state supersedes this snapshot.

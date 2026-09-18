@@ -1,0 +1,134 @@
+{
+  "status": "IMPLEMENTED_NOT_VERIFIED",
+  "captured_at_utc": "2026-09-18T22:43:06.648598+00:00",
+  "base_head": "dcd0e5fa0f6e8949d614bd09b941b22d70acdd1f",
+  "base_tree": "8764838fa530791cfb82403f5c97a0c44f43e675",
+  "tested_code_tree": "a1cc6bcc6de6fa285c5ed85cef1673d11a96e75a",
+  "scope": {
+    "accepted_predecessor_numeric_D": 8,
+    "candidate_numeric_D": [
+      "Z06:227",
+      "Z06:228",
+      "Z06:231",
+      "Z06:232",
+      "Z06:316",
+      "Z09:227",
+      "Z09:228",
+      "Z09:231",
+      "Z09:232",
+      "Z09:316"
+    ],
+    "other_numeric_D": 92,
+    "candidate_parent_occurrences": [
+      "UD:Z06",
+      "UD:Z09"
+    ],
+    "other_parent_occurrences": 8,
+    "address_229": "NOT_ACCEPTED",
+    "full_masterplan": "NOT_COMPLETE"
+  },
+  "source_basis": "Unchanged user-supplied P26.A r3 full field/parent/table projections p22 and p79. Original PDF not recovered, rehashed or visually inspected.",
+  "source_sha256": {
+    "docs/ediel/masterplan-v2/registers/prodat_conditional_cells.json": "55d44fcf337b5a7c9508c50bd25b9f204128ae2939ee36e49e74072b031a4b5d",
+    "docs/ediel/masterplan-v2/registers/prodat_fields.json": "e1248f8f4ec025aa5d71e3b3249ee70b6e9e0d8e0e48a4ec6f0db11e31178354",
+    "docs/ediel/masterplan-v2/registers/prodat_parent_groups.json": "89d3d00ae091f85a11b88aff5761f63328023e7f553e1d44b04ff74a736a95c7",
+    "docs/ediel/masterplan-v2/annex/source_tables.json": "a23e928bdbe7e4bd514df99c789482023aea1d2f70f2a26f4a7ae5c05c973728"
+  },
+  "code_blobs": {
+    "__tests__/ediel-prodat-dependent-subtype-message-scope.test.ts": "241cbea8c9c6960a9b733a4f7c7872d5857f3140",
+    "__tests__/ediel-prodat-dependent-subtype-review.test.ts": "c7a79c564d00b7e694c5a7d65b478051918b1a29",
+    "__tests__/ediel-prodat-dependent-subtype-ud-builders.test.ts": "b9a75a75f28fd69bb8c02cf3eb2317e00c942230",
+    "__tests__/ediel-prodat-dependent-subtype-ud-send.test.ts": "0b4aec621a8cb008b24c8bbb81fdf1405727283a",
+    "__tests__/ediel-prodat-dependent-subtype-ud.test.ts": "b982726815e42549df979ce43b1192c127056ee7",
+    "__tests__/ediel-prodat-dependent-z06-product.test.ts": "80ecf54c1ef9b8f4ee468c9d3eb80ab156d13ca1",
+    "__tests__/fixtures/prodat-register.ts": "72c8afc6d89118a424af042923381b802d3a9d5e",
+    "lib/ediel/prodat/buildProdat.ts": "296b541dd1c7133e017f0e9ed61e43272a8f8b85",
+    "lib/ediel/prodat/builders/profileRenderer.ts": "cef596e36d57c2706057ec807935e6bf4aa75cbf",
+    "lib/ediel/prodat/prodatParentApplicability.ts": "06389d2e596597c11d1d3446dbb1e1f30ebfaf1a",
+    "lib/ediel/prodat/prodatSubtypeRequirement.ts": "6c047e07869a8013fd2ac8e0ddc25ac750e4bc4c",
+    "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts": "5c3118935c6b84c316bdfc20389ba841e419735c",
+    "lib/ediel/rulebook/prodatEndUserPolicy.ts": "4757618488eea79402ccf19be7b826c0e62ad3b6",
+    "lib/ediel/rulebook/prodatSubtypePolicy.ts": "9ac07cfaed2f593913c38881dde2fdd2e38eebf7",
+    "scripts/test-ediel-prodat-party-fields.cjs": "2f2983a70565fbca91819ffde51c4d7f06743319"
+  },
+  "checks": {
+    "new_cases": {
+      "total": 410,
+      "accepted_base_pass": 78,
+      "accepted_base_fail": 332,
+      "candidate_pass": 410,
+      "suites": {
+        "source_and_scope": 176,
+        "builders": 13,
+        "send": 221
+      }
+    },
+    "full_application": {
+      "passed": 3201,
+      "files": 243
+    },
+    "retained_source": {
+      "passed": 913,
+      "note": "One source harness changed only two Z06/Z09 populated-UD fixtures to valid E; all original assertions preserved, plus actual-E assertion."
+    },
+    "typescript": "All three projects passed; app retry with 3200MiB heap after interrupted attempts and 2560MiB OOM, no source/tsconfig relaxation. Ordinary CI remains required.",
+    "lint": {
+      "errors": 0,
+      "warnings": 99
+    },
+    "integrity": {
+      "original_files": 33,
+      "rules": 121,
+      "contracts": 231
+    },
+    "quality": "Mechanical, 45 quality cases, RBAC, existing size/performance budgets passed.",
+    "coverage": {
+      "lines": 35.92,
+      "branches": 27.42,
+      "functions": 41.47,
+      "statements": 34.56,
+      "unchanged_ratchet": "PASS"
+    },
+    "CI": "PENDING_PUBLICATION",
+    "independent_review": "REQUIRED",
+    "local_build_browser_replay": "NOT_RUN"
+  },
+  "log_sha256": {
+    "31-final-test-baseline.log": "12f71a208e8640db8217fa6a68d6daca18a34da2959af33e78c0859061c1242b",
+    "32-final-targeted.log": "88e18439ea2eb326a419195cd16b402540964e93d595e39b6add490ebdbd2903",
+    "15-full-tests.log": "6f7440e313710e084d2723e010e47b2b939d956e5541d636d901082b91b869b2",
+    "18-source-tests.log": "3116d2062e8fa2822563e7fa765dc3b3484da261a60a61706bae6c9fbdc482ab",
+    "17-types-tests.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "17-types-scripts.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "29-types-app.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "25-lint.log": "c2106671cef1b9dfd45f923713b471914266127480bc45212652ff9a05203d14",
+    "26-integrity.log": "6b69e14e634de940b6b47b8e579ee132ce867dfe9926a178061b05439e74c106",
+    "27-quality.log": "80cb8e0bbe7a855060415630684d29e30f0da29fed272a8e2c610ad4473c25b1",
+    "28-coverage.log": "1e7bce3836e0eb2567ee3da7229a664393aeff62fcb6b0387ef224fd3c13ec11",
+    "30-coverage-ratchet.log": "28c35befad5ae0b53e4065f2ec55737daab82bcd32155b59dc5a65792b918a14",
+    "01-red-unit.log": "e2d353076f2c7455473a4822333289a7d28f817dd2ed01c1b424c237f6b43d65",
+    "05-full-tests.log": "ddd9c26f59ff82749af1ec290955f936f4aaab25667c5b5aba346efd347674ed",
+    "08-green-builders.log": "d957756c30e6db3c19cb7fa549b37edff80925e88255572ffdfad1ee6454acd9",
+    "16-source-tests.log": "a739fc88b825f8e90e12abaaef501526bd51339855e0ff367331467bdb2116e0",
+    "24-types-app.log": "0192cf599ec0d9f1eb59cf4f2606567bf590b2cfeb3b2ba503b618239088a659"
+  },
+  "recovery": {
+    "source_artifact": 10563883771,
+    "source_zip_sha256": "0b37826d5dd79b27030f26ec0133a307352b050e5ed276d67d2c1020ee1a2311",
+    "inner_sha256": "51523ed743a841f55c061b304a31fdfc3f167112443afc16522b1a43239d5a7f",
+    "reconstructed_tree": "8764838fa530791cfb82403f5c97a0c44f43e675",
+    "dependency_artifact": 10549052365,
+    "dependency_zip_sha256": "ac7f9415abb7dab14a6cd5cd6d0415d17239399aa0469f21f401e51ace5e7508",
+    "lockfile_byte_identity": true,
+    "git_history": "Local archive snapshot never published; native commit must use actual main parent."
+  },
+  "safety": {
+    "paused_pr": 310,
+    "paused_head": "e961135199f292b8210884f07de3b616a670161a",
+    "open_release_issue": 332,
+    "prior_full_main": "70/73; migration inventory, Z18 certification, installation-NAD remain unwaived",
+    "live_DB_storage_market_send": false,
+    "explicit_deployment_or_settings_change": false,
+    "git_merge_may_autodeploy": true
+  }
+}
