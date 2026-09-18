@@ -1,3 +1,19 @@
+## 2026-09-18 — PR330 recovery and review correction (current snapshot)
+
+Original exact candidate0a89e102 published;four ordinary workflows green.
+Independent reviews5730637320/5730659831 identified row-code suppression of
+wire-requiredZ09:216. Refined33-case red baseline32fail/1pass;34 review cases
+now pass (one additional list regression reproduced and repaired). Fresh2474
+application/851retained-source cases and all3types/coverage/quality gates pass.
+New-head CI/build/replay and substantive rereview are still required before
+merge. See `current-state.md` and f3-d-review-remediation-20260918 audit.
+Existing main70/73 certificate and automatic Vercel Git deployment are recorded,
+not hidden or certified by this PR. PR310 paused;other104D/full plan unverified.
+
+---
+
+## Older entries below are historical
+
 # Known failures
 
 ## KF-001 — Overloaded energy `automation_allowed`

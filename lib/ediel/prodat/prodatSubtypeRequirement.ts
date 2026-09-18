@@ -3,12 +3,12 @@ import { findProdatSubtypeRule, type ProdatSubtype } from '@/lib/ediel/rulebook/
 export type ProdatSubtypeRequirement = 'required' | 'optional' | 'forbidden' | 'undetermined'
 type DeterminedRequirement = Exclude<ProdatSubtypeRequirement, 'undetermined'>
 
-type SourceRule = {
+type SourceRule = Readonly<{
   messageCode: 'Z06' | 'Z09'
   fieldNumber: string
   page: 17 | 18 | 19 | 20
   outcomes: Readonly<Partial<Record<ProdatSubtype, DeterminedRequirement>>>
-}
+}>
 
 /** Bounded source migration: six of the original 110 numeric D cells.
  * P26.A revision 3, §2.2. No field presence or operator byCell flag supplies a
@@ -22,6 +22,14 @@ export const PRODAT_SOURCE_SUBTYPE_REQUIREMENTS: readonly SourceRule[] = [
   { messageCode: 'Z09', fieldNumber: '216', page: 17, outcomes: { B: 'required', E: 'required', F: 'required', G: 'required', D: 'forbidden' } },
   { messageCode: 'Z09', fieldNumber: '217', page: 19, outcomes: { F: 'required', G: 'required', B: 'forbidden', D: 'forbidden', E: 'forbidden' } },
 ]
+
+// Runtime immutability matters as well as TypeScript readonly: callers receive
+// these very source records, never a mutable protocol-authority escape hatch.
+for (const rule of PRODAT_SOURCE_SUBTYPE_REQUIREMENTS) {
+  Object.freeze(rule.outcomes)
+  Object.freeze(rule)
+}
+Object.freeze(PRODAT_SOURCE_SUBTYPE_REQUIREMENTS)
 
 export function prodatSourceSubtypeRule(messageCode: string, fieldNumber: string): SourceRule | null {
   return PRODAT_SOURCE_SUBTYPE_REQUIREMENTS.find(rule => rule.messageCode === messageCode && rule.fieldNumber === fieldNumber) ?? null

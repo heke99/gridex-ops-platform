@@ -1,16 +1,16 @@
 {
   "project": "gridex-ops-platform",
   "updated_at": "2026-09-18",
-  "status": "IN_PROGRESS",
+  "status": "BLOCKED",
   "branch": "codex/ediel-v2-dependent-conditions-20260918",
   "base_head_sha": "b916213e83871e9f4d15b9fd52a2b8c19394c9ca",
   "base_tree": "54f9cf4fe56e42768ef132a23f6a79baea0632d5",
-  "active_item": "PR330 exact-head review correction and conditional merge",
-  "next_action": "Read actual PR330/head/checks/review; publish and qualify correction if pending; expected-head merge only after exact-head CI and substantive review; then remaining D inventory.",
+  "active_item": "F3 source-defined subtype D subset: six numeric cells",
+  "next_action": "Read qualification audit; publish exact candidate through write-capable environment; ordinary CI and independent review before merge; then continue original D inventory.",
   "main_merged": false,
-  "pull_request": 330,
-  "published_implementation_head": "0a89e102956fc582f879b391b3ab466d40c5f178",
-  "local_candidate_only": false,
+  "pull_request": null,
+  "published_implementation_head": null,
+  "local_candidate_only": true,
   "prior_completed": {
     "status": "VERIFIED_MERGED",
     "pull_request": 328,
@@ -47,24 +47,24 @@
     }
   },
   "source_state": {
-    "snapshot_boundary": "review-correction prepublication; query actual PR before continuing",
+    "runtime_implementation_started": true,
     "numeric_cells_in_this_unit": 6,
     "remaining_cells_not_recertified": 104,
+    "normal_ci": "NOT_RUN_NEW_CANDIDATE_UNPUBLISHED",
+    "independent_review": "PENDING",
     "full_masterplan": "NOT_COMPLETE",
-    "previous_head_ci": "FOUR_ORDINARY_WORKFLOWS_SUCCESS_0a89e102_ONLY",
-    "independent_review": "BLOCKER_ON_0a89e102_LOCALLY_REPAIRED_REREVIEW_REQUIRED",
-    "full_vitest_passed": 2474,
+    "full_vitest_passed": 2440,
+    "new_subtype_cases": 146,
     "retained_source_passed": 851,
-    "review_cases": 34,
-    "source_drift": [],
-    "new_head_ci": "REQUIRED",
-    "new_head_build_and_replay": "REQUIRED",
-    "automatic_deployment": "Existing Vercel Git integration observed on mainb916; future main merge may auto-deploy."
+    "same_execution_source": "PASS_TESTS_TYPES_COVERAGE_QUALITY_LOCAL_BUILD_BUNDLE",
+    "production_build": "LOCAL_FULL_BUILD_PASS_3072_MIB_PROCESS_CAP",
+    "execution_source_sha256": "95fe205ed8a1f0a2ebb8c2ebb55e4e36bd8996988cd51194b2e716ef4c799ae2",
+    "bundle_budget": "PASS_UNCHANGED"
   },
   "deferred_work": {
     "state": "PAUSED",
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "plan": ".agent-memory/work-plan.md",
-  "evidence": "quality/audits/ediel-masterplan-v2/f3-d-review-remediation-20260918.json"
+  "evidence": "quality/audits/ediel-masterplan-v2/f3-d-subtype-qualification-20260918.json"
 }
