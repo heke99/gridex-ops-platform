@@ -1,3 +1,19 @@
+## 2026-09-18 — PR330 recovery and review correction (current snapshot)
+
+Original exact candidate0a89e102 published;four ordinary workflows green.
+Independent reviews5730637320/5730659831 identified row-code suppression of
+wire-requiredZ09:216. Refined33-case red baseline32fail/1pass;34 review cases
+now pass (one additional list regression reproduced and repaired). Fresh2474
+application/851retained-source cases and all3types/coverage/quality gates pass.
+New-head CI/build/replay and substantive rereview are still required before
+merge. See `current-state.md` and f3-d-review-remediation-20260918 audit.
+Existing main70/73 certificate and automatic Vercel Git deployment are recorded,
+not hidden or certified by this PR. PR310 paused;other104D/full plan unverified.
+
+---
+
+## Older entries below are historical
+
 # Active decisions
 
 ## ADR-001 — One progress system
@@ -92,3 +108,15 @@ Customer-facing legal documents are grouped into agreement, POA and withdrawal.
 Canonical module rows are never merged or deleted; they remain the immutable
 version/hash evidence. A grouped acceptance is expanded to all covered modules.
 POA scope and legal identity are immutable and may never be widened on reuse.
+
+## 2026-09-18 — source-derived subtype D requirement and object authority
+
+Status: PARTIAL (six cells locally qualified, not published or independently reviewed).
+
+Z06:508/217/306/254 and Z09:216/217 derive required/optional/forbidden/
+undetermined outcomes from the original field notes and existing subtype registry.
+Do not collapse optional and forbidden or allow byCell flags to override these
+source rules. Actual first-register field223 and object/agency boundaries own
+authority; root snapshots and sibling objects cannot fill missing wire evidence.
+Protected outbound D issues precede the legacy invalid-test-send exception.
+The remaining original cells require their own evidence; no blanket completion.

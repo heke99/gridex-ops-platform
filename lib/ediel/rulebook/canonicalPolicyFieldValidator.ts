@@ -1,3 +1,5 @@
+import { prodatSourceSubtypeRule } from '@/lib/ediel/prodat/prodatSubtypeRequirement'
+import { validateProdatSubtypePolicy } from '@/lib/ediel/rulebook/prodatSubtypePolicy'
 import { prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { validateProdatRegisterPolicy } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
 import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
@@ -19,7 +21,8 @@ function asRulebookFieldRule(value: unknown): RulebookFieldRule {
  * Field validation consumes a previously resolved canonical policy snapshot.
  * The legacy field-matrix dependency fallback is deliberately disabled by
  * running the structural/base validation in parse mode; PRODAT D cardinality is
- * then decided only by policy.prodatDependentConditions.
+ * then decided by source-bound wire rules for migrated cells and the existing
+ * policy conditions for cells not yet migrated. Register overlays stay separate.
  */
 export function validateCanonicalPolicyFields(input: {
   policy: CanonicalEdielPolicy
@@ -45,12 +48,15 @@ export function validateCanonicalPolicyFields(input: {
     mode: 'parse',
   }
 
+  const baseRules = input.policy.family === 'PRODAT'
+    ? rules.filter(rule => !prodatSourceSubtypeRule(input.policy.code, rule.fieldNumber ?? '')) : rules
   const issues = input.scope === 'dependent_only'
     ? input.policy.family === 'PRODAT'
-      ? validateFieldMatrixPayload(matrixInput, rules.filter(rule => prodatRegisterFieldScope(rule.fieldNumber ?? '') === 'local'))
+      ? validateFieldMatrixPayload(matrixInput, baseRules.filter(rule => prodatRegisterFieldScope(rule.fieldNumber ?? '') === 'local'))
       : []
-    : validateFieldMatrixPayload(matrixInput, rules)
+    : validateFieldMatrixPayload(matrixInput, baseRules)
   if (input.policy.family !== 'PRODAT') return issues
+  issues.push(...validateProdatSubtypePolicy(matrixInput, rules))
   const register = validateProdatRegisterPolicy({code:input.policy.code, rawSegments:input.rawSegments ?? [], una:input.una, facts:input.policy.prodatDependentFacts, rules})
   issues.push(...register.issues)
 
@@ -60,7 +66,7 @@ export function validateCanonicalPolicyFields(input: {
 
   for (const rule of rules.filter((candidate) => candidate.requirement === 'dependent')) {
     const fieldNumber = String(rule.fieldNumber ?? '').trim()
-    if (register.handledFields.has(fieldNumber)) continue
+    if (register.handledFields.has(fieldNumber) || prodatSourceSubtypeRule(input.policy.code, fieldNumber)) continue
     const condition = dependentByField.get(fieldNumber)
     if (!condition) {
       issues.push({

@@ -1,3 +1,5 @@
+import { prodatSendMessageScopeIssue } from '@/lib/ediel/prodat/prodatSendMessageScope'
+import { validateProdatSubtypePayload } from '@/lib/ediel/rulebook/prodatSubtypePolicy'
 import { readProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
 import { validateProdatDateFields } from '@/lib/ediel/prodat/prodatDateValidation'
@@ -705,11 +707,26 @@ export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' 
     messageStandard: message.message_standard,
     mode,
   })
-  if (message.message_family !== 'PRODAT' || !message.raw_payload) return result
+  if (!message.raw_payload || (result.family !== 'PRODAT' && message.message_family !== 'PRODAT' && !/^(?:UNA|UNB|UNH)/.test(message.raw_payload.trimStart()))) return result
   try {
     const tokens = tokenizeEdifact(message.raw_payload)
+    const scopeFailure = mode === 'send' ? prodatSendMessageScopeIssue(tokens) : null
+    if (scopeFailure) {
+      result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${scopeFailure.code}`,title:scopeFailure.title,description:scopeFailure.description}))
+      return {...result, ok:false, blocking:true}
+    }
+    if (result.family !== 'PRODAT' && message.message_family !== 'PRODAT') return result
+    // A row label cannot hide a real PRODAT header or turn another family into
+    // PRODAT. Detached fragments retain their explicit row-family fallback.
+    const header = tokens.segments.find(segment => segment.tag === 'UNH')
+    if (header && segmentComposite(header, 2, tokens.una)[0]?.trim().toUpperCase() !== 'PRODAT') return result
     const rawSegments = tokens.segments.map(segment => segment.raw)
     const code = result.code ?? String(message.message_code ?? '')
+    if (mode === 'send') {
+      for (const failure of validateProdatSubtypePayload({family:'PRODAT', code, rawSegments, una:tokens.una})) {
+        result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
+      }
+    }
     const facts = mode === 'send' ? readProdatRegisterEvidence({code,rawSegments,una:tokens.una,parsedPayload:message.parsed_payload}) : undefined
     for (const failure of validateProdatRegisterPayload({code,rawSegments,una:tokens.una,facts,requireConditions:mode === 'send'})) {
       result.issues.push(issue({severity:'error',code:`PRODAT_REGISTER_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))

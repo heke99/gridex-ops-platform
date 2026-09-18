@@ -1,3 +1,43 @@
+## 2026-09-18 — PR330 message-scope correction, LOCAL ONLY
+
+Finding5731012182 reproduced and repaired;2502 application/851source cases,
+3TS/coverage/quality pass. New28cases included, not added twice. Remote b3afa
+not accepted for merge. Fresh publication/CI/review required; see current-state
+and f3-d-message-scope-review-20260918. Earlier entries below remain historical.
+
+## 2026-09-18 — PR330 recovery and review correction (current snapshot)
+
+Original exact candidate0a89e102 published;four ordinary workflows green.
+Independent reviews5730637320/5730659831 identified row-code suppression of
+wire-requiredZ09:216. Refined33-case red baseline32fail/1pass;34 review cases
+now pass (one additional list regression reproduced and repaired). Fresh2474
+application/851retained-source cases and all3types/coverage/quality gates pass.
+New-head CI/build/replay and substantive rereview are still required before
+merge. See `current-state.md` and f3-d-review-remediation-20260918 audit.
+Existing main70/73 certificate and automatic Vercel Git deployment are recorded,
+not hidden or certified by this PR. PR310 paused;other104D/full plan unverified.
+
+---
+
+## Older entries below are historical
+
+## 2026-09-18 — current D-condition local checkpoint
+
+PR328 is verified merged as b916213e. Six subtype-derived D cells and their
+canonical/row/send gates are implemented locally. 2440 application cases
+(including 146 new cases), 851 retained source cases, three TS projects and
+unchanged coverage/quality gates pass. Final full local build and bundle budget
+pass with a 3072 MiB process cap. The first SIGKILL and second heap exhaustion
+remain recorded as failed attempts. No new publication, PR, remote CI or merge.
+Source audit: `quality/audits/ediel-masterplan-v2/f3-d-subtype-qualification-20260918.json`.
+Next: guarded publication and exact-head CI/build/replay/review before merge.
+The other 104 D cells and later masterplan phases are not certified by this unit.
+PR310 remains paused; no live operations or database/schema/dependency changes.
+
+---
+
+## Historical entries below — not current active-state instructions
+
 # Session log
 
 Historical log preserved byte-for-byte: `archive/20260916-main-de098106/session-log.md`.
