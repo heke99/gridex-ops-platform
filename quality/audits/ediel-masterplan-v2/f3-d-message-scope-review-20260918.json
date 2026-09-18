@@ -1,0 +1,310 @@
+{
+  "status": "LOCALLY_QUALIFIED_PUBLICATION_CI_REREVIEW_REQUIRED",
+  "published_base_head": "b3afa40a24713c726aa89ad9342cb577649aa15d",
+  "published_base_tree": "c832d360ea7bbb399cdbb00b5583b191d6c702ac",
+  "independent_finding": {
+    "comment_id": 5731012182,
+    "reviewer": "coderabbitai[bot]",
+    "kind": "static source/test inspection, not execution",
+    "state": "REPRODUCED_AND_LOCALLY_REPAIRED_REVIEW_REQUIRED",
+    "issue": "Later PRODAT message outside the first-message rulebook scope could be sent through the independently callable guard."
+  },
+  "scope": "Outbound one-UNH constraint for a payload containing PRODAT. No new national D outcome or inbound interchange semantics.",
+  "baseline": {
+    "head": "b3afa40a24713c726aa89ad9342cb577649aa15d",
+    "refined_cases": 28,
+    "passed": 7,
+    "failed": 21,
+    "report_sha256": "bc9643e40662a9a2079f514ff650dcc0927b2a1158811e0c94303889224ebb70",
+    "test_type_correction": "Final fixture is explicitly Partial<EdielMessageRow> before the existing synthetic cast; no runtime fixture value or assertion changed.",
+    "earlier_harness_failure": "Initial test-only UNT reference rewrite produced invalid RegExp for default UNA. Corrected before credited baseline; initial 6pass/22fail not used as application failures.",
+    "probe_sha256": "e5d60cfec0b53288a10600d58256e51bfa7d6d1e067b1ddc2ac780fa5c7ef76f",
+    "probe_observation": "Old standalone guard allowed in test and production; old transport allowed in test, but production transport already blocked on separate routing/profile failures. No production transport success claim.",
+    "new_assertions": [
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message test/0/PRODAT: blocks the whole multi-message send before every override",
+        "status": "failed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message test/0/UTILTS: blocks the whole multi-message send before every override",
+        "status": "failed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message test/0/APERAK: blocks the whole multi-message send before every override",
+        "status": "failed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message test/1/PRODAT: blocks the whole multi-message send before every override",
+        "status": "failed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message test/1/UTILTS: blocks the whole multi-message send before every override",
+        "status": "failed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message test/1/APERAK: blocks the whole multi-message send before every override",
+        "status": "failed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message test/2/PRODAT: blocks the whole multi-message send before every override",
+        "status": "failed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message test/2/UTILTS: blocks the whole multi-message send before every override",
+        "status": "failed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message test/2/APERAK: blocks the whole multi-message send before every override",
+        "status": "failed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message production/0/PRODAT: blocks the whole multi-message send before every override",
+        "status": "failed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message production/0/UTILTS: blocks the whole multi-message send before every override",
+        "status": "failed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message production/0/APERAK: blocks the whole multi-message send before every override",
+        "status": "failed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message production/1/PRODAT: blocks the whole multi-message send before every override",
+        "status": "failed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message production/1/UTILTS: blocks the whole multi-message send before every override",
+        "status": "failed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message production/1/APERAK: blocks the whole multi-message send before every override",
+        "status": "failed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message production/2/PRODAT: blocks the whole multi-message send before every override",
+        "status": "failed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message production/2/UTILTS: blocks the whole multi-message send before every override",
+        "status": "failed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message production/2/APERAK: blocks the whole multi-message send before every override",
+        "status": "failed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message 0: preserves the single-message first-D-scope positive control",
+        "status": "passed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message 0: even two individually D-valid messages require separate sends",
+        "status": "failed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message 0: released UNH-looking text is data, not a second message",
+        "status": "passed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message 1: preserves the single-message first-D-scope positive control",
+        "status": "passed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message 1: even two individually D-valid messages require separate sends",
+        "status": "failed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message 1: released UNH-looking text is data, not a second message",
+        "status": "passed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message 2: preserves the single-message first-D-scope positive control",
+        "status": "passed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message 2: even two individually D-valid messages require separate sends",
+        "status": "failed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message 2: released UNH-looking text is data, not a second message",
+        "status": "passed"
+      },
+      {
+        "name": "PR330 rereview: never certify an unvalidated later PRODAT message does not replace inbound syntax diagnostics with an outbound D-scope claim",
+        "status": "passed"
+      }
+    ]
+  },
+  "qualification": {
+    "application_cases": 2502,
+    "test_files": 237,
+    "new_message_scope_cases": 28,
+    "subtype_suite_cases": 208,
+    "retained_source_cases": 851,
+    "retained_source_log_sha256": "a99fb765647ea6c8049fdba6b769d0ae36a42d9d79f1ecdbd73ae9ffcd2cc1bb",
+    "source_map_sha256": "b846751d8ada16437259e406b0c9645a1220b271356e69f231d7f65272d3a9c2",
+    "source_file_count": 3696,
+    "source_drift": [],
+    "commands": [
+      {
+        "name": "app-types",
+        "command": [
+          "node",
+          "--max-old-space-size=3072",
+          "node_modules/typescript/bin/tsc",
+          "--noEmit",
+          "-p",
+          "tsconfig.app.json"
+        ],
+        "exit_code": 0,
+        "duration_seconds": 5.2,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "scripts-types",
+        "command": [
+          "node",
+          "node_modules/typescript/bin/tsc",
+          "--noEmit",
+          "-p",
+          "tsconfig.scripts.json"
+        ],
+        "exit_code": 0,
+        "duration_seconds": 1.0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "test-types",
+        "command": [
+          "node",
+          "node_modules/typescript/bin/tsc",
+          "--noEmit",
+          "-p",
+          "tsconfig.tests.json"
+        ],
+        "exit_code": 0,
+        "duration_seconds": 2.6,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "coverage",
+        "command": [
+          "node",
+          "node_modules/vitest/vitest.mjs",
+          "run",
+          "--coverage",
+          "--reporter=json",
+          "--outputFile=/mnt/data/d-multimessage-final-qualification/vitest.json"
+        ],
+        "exit_code": 0,
+        "duration_seconds": 31.5,
+        "log_sha256": "808092266e9582e7a08479926375b59fb7b6e19d9b6e8ccfb6049b7d43a6256f"
+      },
+      {
+        "name": "lint",
+        "command": [
+          "npm",
+          "run",
+          "lint"
+        ],
+        "exit_code": 0,
+        "duration_seconds": 70.6,
+        "log_sha256": "b7b778104f30bb62eb0b6ce91e69b780c43cc8463055d9e7ce57200a11625864"
+      },
+      {
+        "name": "integrity",
+        "command": [
+          "npm",
+          "run",
+          "ediel:masterplan-v2:integrity"
+        ],
+        "exit_code": 0,
+        "duration_seconds": 0.2,
+        "log_sha256": "6b69e14e634de940b6b47b8e579ee132ce867dfe9926a178061b05439e74c106"
+      },
+      {
+        "name": "mechanical",
+        "command": [
+          "bash",
+          "quality/mechanical/verify.sh"
+        ],
+        "exit_code": 0,
+        "duration_seconds": 0.1,
+        "log_sha256": "af300e3d959634dcfebeb6acfaca7580f541c38a7487b18c2cc884ca8c1434c3"
+      },
+      {
+        "name": "quality-tests",
+        "command": [
+          "node",
+          "node_modules/vitest/vitest.mjs",
+          "run",
+          "--config",
+          "quality/vitest.config.ts"
+        ],
+        "exit_code": 0,
+        "duration_seconds": 1.2,
+        "log_sha256": "9d2d0715586f89dd2d2bc3a5081eac61a1f9124d368e886c0821f3b0a8ed0c29"
+      },
+      {
+        "name": "rbac",
+        "command": [
+          "npm",
+          "run",
+          "security:rbac"
+        ],
+        "exit_code": 0,
+        "duration_seconds": 0.2,
+        "log_sha256": "aec57f4c06e1c1c0a1f2e58e7eb188c82fe4c01c35ba3dd002634abb9c73601d"
+      },
+      {
+        "name": "source-budget",
+        "command": [
+          "npm",
+          "run",
+          "quality:large-file-budget"
+        ],
+        "exit_code": 0,
+        "duration_seconds": 0.2,
+        "log_sha256": "2dcf4a82a59c409b6a8706d24d8d24b2b76fec42fdca4b4d609a5898a2103eba"
+      }
+    ],
+    "vitest_report_sha256": "fe118186863ee8b51cf5c06058cbc9de62bca85d30031ad624168d78f6dea6ce",
+    "coverage": {
+      "lines": {
+        "total": 34404,
+        "covered": 12235,
+        "skipped": 0,
+        "pct": 35.56
+      },
+      "statements": {
+        "total": 40448,
+        "covered": 13811,
+        "skipped": 0,
+        "pct": 34.14
+      },
+      "branches": {
+        "total": 54295,
+        "covered": 14699,
+        "skipped": 0,
+        "pct": 27.07
+      },
+      "functions": {
+        "total": 6969,
+        "covered": 2854,
+        "skipped": 0,
+        "pct": 40.95
+      }
+    },
+    "lint": "0 errors, 100 existing warnings",
+    "prior_qualification_attempt": {
+      "result_sha256": "fbf6e2c74bcf25d7fec4e3d507a2b610dd96464bc5ba005e26c756c7f5113dde",
+      "not_accepted": "Test TypeScript failed on a direct partial fixture cast. Corrected fixture annotation and reran all commands on the final source; no acceptance gate removed."
+    }
+  },
+  "boundaries": [
+    "Only original six numeric D cells, not remaining104/10parent groups/full masterplan.",
+    "No PR310, SQL, types, grants, normative fixtures or threshold changes.",
+    "No live DB/storage or market send. Existing Git-linked Vercel deployment may occur after authorized main merge.",
+    "Existing main full-release35334649693 failures remain; passing ordinary PR smoke is not full release acceptance."
+  ]
+}

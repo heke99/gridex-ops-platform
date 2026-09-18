@@ -1,3 +1,4 @@
+import { prodatSendMessageScopeIssue } from '@/lib/ediel/prodat/prodatSendMessageScope'
 import { validateProdatSubtypePayload } from '@/lib/ediel/rulebook/prodatSubtypePolicy'
 import { readProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
@@ -706,9 +707,15 @@ export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' 
     messageStandard: message.message_standard,
     mode,
   })
-  if (!message.raw_payload || (result.family !== 'PRODAT' && message.message_family !== 'PRODAT')) return result
+  if (!message.raw_payload || (result.family !== 'PRODAT' && message.message_family !== 'PRODAT' && !/^(?:UNA|UNB|UNH)/.test(message.raw_payload.trimStart()))) return result
   try {
     const tokens = tokenizeEdifact(message.raw_payload)
+    const scopeFailure = mode === 'send' ? prodatSendMessageScopeIssue(tokens) : null
+    if (scopeFailure) {
+      result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${scopeFailure.code}`,title:scopeFailure.title,description:scopeFailure.description}))
+      return {...result, ok:false, blocking:true}
+    }
+    if (result.family !== 'PRODAT' && message.message_family !== 'PRODAT') return result
     // A row label cannot hide a real PRODAT header or turn another family into
     // PRODAT. Detached fragments retain their explicit row-family fallback.
     const header = tokens.segments.find(segment => segment.tag === 'UNH')

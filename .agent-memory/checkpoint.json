@@ -5,11 +5,11 @@
   "branch": "codex/ediel-v2-dependent-conditions-20260918",
   "base_head_sha": "b916213e83871e9f4d15b9fd52a2b8c19394c9ca",
   "base_tree": "54f9cf4fe56e42768ef132a23f6a79baea0632d5",
-  "active_item": "PR330 exact-head review correction and conditional merge",
-  "next_action": "Read actual PR330/head/checks/review; publish and qualify correction if pending; expected-head merge only after exact-head CI and substantive review; then remaining D inventory.",
+  "active_item": "PR330 second-message scope review correction and exact-head merge",
+  "next_action": "Read live PR330/head/CI/review. Publish exact message-scope correction if pending; ordinary same-SHA CI and substantive rereview before guarded merge; then original D inventory.",
   "main_merged": false,
   "pull_request": 330,
-  "published_implementation_head": "0a89e102956fc582f879b391b3ab466d40c5f178",
+  "published_implementation_head": "b3afa40a24713c726aa89ad9342cb577649aa15d",
   "local_candidate_only": false,
   "prior_completed": {
     "status": "VERIFIED_MERGED",
@@ -47,24 +47,25 @@
     }
   },
   "source_state": {
-    "snapshot_boundary": "review-correction prepublication; query actual PR before continuing",
+    "snapshot_boundary": "second-message correction prepublication; query live PR",
     "numeric_cells_in_this_unit": 6,
     "remaining_cells_not_recertified": 104,
     "full_masterplan": "NOT_COMPLETE",
-    "previous_head_ci": "FOUR_ORDINARY_WORKFLOWS_SUCCESS_0a89e102_ONLY",
-    "independent_review": "BLOCKER_ON_0a89e102_LOCALLY_REPAIRED_REREVIEW_REQUIRED",
-    "full_vitest_passed": 2474,
+    "previous_head_ci": "FOUR_ORDINARY_WORKFLOWS_SUCCESS_b3afa40a_ONLY",
+    "independent_review": "5731012182_LOCALLY_REPAIRED_REREVIEW_REQUIRED",
+    "full_vitest_passed": 2502,
     "retained_source_passed": 851,
-    "review_cases": 34,
+    "review_cases": 62,
     "source_drift": [],
     "new_head_ci": "REQUIRED",
     "new_head_build_and_replay": "REQUIRED",
-    "automatic_deployment": "Existing Vercel Git integration observed on mainb916; future main merge may auto-deploy."
+    "automatic_deployment": "Existing Vercel Git integration observed on mainb916; future main merge may auto-deploy.",
+    "source_sha256": "b846751d8ada16437259e406b0c9645a1220b271356e69f231d7f65272d3a9c2"
   },
   "deferred_work": {
     "state": "PAUSED",
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "plan": ".agent-memory/work-plan.md",
-  "evidence": "quality/audits/ediel-masterplan-v2/f3-d-review-remediation-20260918.json"
+  "evidence": "quality/audits/ediel-masterplan-v2/f3-d-message-scope-review-20260918.json"
 }

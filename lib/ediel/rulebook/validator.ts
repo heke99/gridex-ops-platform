@@ -1,3 +1,4 @@
+import { prodatSendMessageScopeIssue } from '@/lib/ediel/prodat/prodatSendMessageScope'
 import { validateProdatSubtypePayload } from '@/lib/ediel/rulebook/prodatSubtypePolicy'
 import { readProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
@@ -63,13 +64,19 @@ function parse(input: RulebookValidationInput): ParsedRulebookMessage | null {
  * Reparse its bytes rather than trusting a caller's parsed code or family. Other
  * formats and genuinely detached/structured inputs keep their existing path.
  */
-function sourceBoundProdatInput(input: RulebookValidationInput): RulebookValidationInput {
-  if (!input.rawPayload || !/^(?:UNA|UNB|UNH)/.test(input.rawPayload.trimStart())) return input
+function sourceBoundProdatInput(input: RulebookValidationInput): { input: RulebookValidationInput; failure?: RulebookValidationResult } {
+  if (!input.rawPayload || !/^(?:UNA|UNB|UNH)/.test(input.rawPayload.trimStart())) return { input }
   const tokens = tokenizeEdifact(input.rawPayload)
+  const scopeFailure = input.mode === 'send' ? prodatSendMessageScopeIssue(tokens) : null
+  if (scopeFailure) return { input, failure: {
+    ok: false, blocking: true, family: 'PRODAT', code: null, processGroup: 'unknown',
+    expectedApplicationReference: null, parsed: null, issues: [scopeFailure],
+    fieldRuleSource: 'static', rulePackSnapshot: null,
+  } }
   const header = tokens.segments.find(segment => segment.tag === 'UNH')
-  if (segmentComposite(header, 2, tokens.una)[0]?.trim().toUpperCase() !== 'PRODAT') return input
+  if (segmentComposite(header, 2, tokens.una)[0]?.trim().toUpperCase() !== 'PRODAT') return { input }
   const parsed = parseRulebookMessage(input.rawPayload)
-  return { ...input, family: 'PRODAT', code: parsed.code, parsed }
+  return { input: { ...input, family: 'PRODAT', code: parsed.code, parsed } }
 }
 
 function businessDate(input: RulebookValidationInput, parsed: ParsedRulebookMessage | null): string {
@@ -390,7 +397,9 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
 }
 
 export function validateRulebookMessage(input: RulebookValidationInput): RulebookValidationResult {
-  input = sourceBoundProdatInput(input)
+  const source = sourceBoundProdatInput(input)
+  if (source.failure) return source.failure
+  input = source.input
   const parsed = parse(input)
   const family = normalize(input.family ?? parsed?.family)
   if (!isActiveCanonicalFamily(family)) return validateLegacyRulebookMessage(input)
@@ -398,7 +407,9 @@ export function validateRulebookMessage(input: RulebookValidationInput): Ruleboo
 }
 
 export async function validateRulebookMessageWithRegistry(input: RulebookValidationInput): Promise<RulebookValidationResult> {
-  input = sourceBoundProdatInput(input)
+  const source = sourceBoundProdatInput(input)
+  if (source.failure) return source.failure
+  input = source.input
   const parsed = parse(input)
   const familyValue = normalize(input.family ?? parsed?.family)
   if (!isActiveCanonicalFamily(familyValue)) return validateLegacyRulebookMessageWithRegistry(input)

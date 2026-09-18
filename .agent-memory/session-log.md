@@ -1,3 +1,10 @@
+## 2026-09-18 — PR330 message-scope correction, LOCAL ONLY
+
+Finding5731012182 reproduced and repaired;2502 application/851source cases,
+3TS/coverage/quality pass. New28cases included, not added twice. Remote b3afa
+not accepted for merge. Fresh publication/CI/review required; see current-state
+and f3-d-message-scope-review-20260918. Earlier entries below remain historical.
+
 ## 2026-09-18 — PR330 recovery and review correction (current snapshot)
 
 Original exact candidate0a89e102 published;four ordinary workflows green.
