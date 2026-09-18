@@ -1,0 +1,116 @@
+name: Ediel masterplan v2 regressions
+on:
+  pull_request:
+    paths:
+      - 'lib/ediel/**'
+      - 'lib/inbound-mail/**'
+      - '__tests__/ediel-*.test.ts'
+      - '__tests__/fixtures/prodat-register.ts'
+      - 'docs/ediel/masterplan-v2/**'
+      - 'quality/audits/ediel-masterplan-v2/**'
+      - 'scripts/check-ediel-masterplan-v2.cjs'
+      - 'scripts/test-ediel-rule-pack-source-identity.cjs'
+      - 'scripts/test-ediel-prodat-source-locators.cjs'
+      - 'scripts/test-ediel-component-escaping.cjs'
+      - 'scripts/test-ediel-guide-governance.cjs'
+      - 'scripts/test-ediel-prodat-characteristic-fields.cjs'
+      - 'scripts/test-ediel-prodat-reference-fields.cjs'
+      - 'scripts/test-ediel-prodat-document-fields.cjs'
+      - 'scripts/test-ediel-prodat-party-fields.cjs'
+      - 'scripts/gridex-aperak-canonical-evidence-regression.cjs'
+      - 'package*.json'
+      - '.github/workflows/ediel-masterplan-v2.yml'
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  targeted-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Record exact source under test
+        shell: bash
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ediel-source-evidence"
+          git archive --format=tar.gz --output="$RUNNER_TEMP/ediel-source-evidence/source.tar.gz" HEAD
+          {
+            printf 'checked_out_commit=%s\n' "$(git rev-parse HEAD)"
+            printf 'checked_out_tree=%s\n' "$(git rev-parse 'HEAD^{tree}')"
+            printf 'pr_head=%s\npr_base=%s\n' "$PR_HEAD_SHA" "$PR_BASE_SHA"
+            printf 'scope=exact source only; not an acceptance or production certificate\n'
+          } > "$RUNNER_TEMP/ediel-source-evidence/provenance.txt"
+          (cd "$RUNNER_TEMP/ediel-source-evidence" && sha256sum source.tar.gz > SHA256SUMS)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Verify immutable specification and evidence references
+        run: npm run ediel:masterplan-v2:integrity
+      - name: Verify immutable guide authority and calendar boundaries in three timezones
+        shell: bash
+        run: |
+          set -euo pipefail
+          for zone in UTC Europe/Stockholm Pacific/Apia; do
+            TZ="$zone" node --experimental-vm-modules --test scripts/test-ediel-guide-governance.cjs
+          done
+      - name: Verify selected source identity without database dependencies
+        run: node --experimental-vm-modules --test scripts/test-ediel-rule-pack-source-identity.cjs
+      - name: Verify source-backed PRODAT fields and actual parser-renderer coherence
+        run: node --experimental-vm-modules --test scripts/test-ediel-prodat-source-locators.cjs
+      - name: Verify PRODAT characteristic-field components and real preflight consumers
+        run: |
+          node --experimental-vm-modules --test scripts/test-ediel-prodat-characteristic-fields.cjs
+          npx vitest run __tests__/ediel-prodat-characteristic-preflight.test.ts
+      - name: Verify PRODAT reference identity and affected consumers
+        run: |
+          node --experimental-vm-modules --test scripts/test-ediel-prodat-reference-fields.cjs
+          npx vitest run __tests__/ediel-prodat-reference-consumers.test.ts
+      - name: Verify all four PRODAT BGM fields and their consumers
+        run: |
+          node --experimental-vm-modules --test scripts/test-ediel-prodat-document-fields.cjs
+          npx vitest run __tests__/ediel-prodat-document-consumers.test.ts
+      - name: Verify all twenty PRODAT NAD fields and real party consumers
+        run: |
+          node --experimental-vm-modules --test scripts/test-ediel-prodat-party-fields.cjs
+          npx vitest run __tests__/ediel-prodat-party-consumers.test.ts __tests__/ediel-prodat-party-review-regression.test.ts
+      - name: Verify twelve PRODAT DTM fields and real consumer boundaries in three timezones
+        shell: bash
+        run: |
+          set -euo pipefail
+          for zone in UTC Europe/Stockholm Pacific/Apia; do
+            TZ="$zone" npx vitest run __tests__/ediel-prodat-date-fields.test.ts __tests__/ediel-prodat-date-consumers.test.ts __tests__/ediel-prodat-date-boundaries.test.ts
+          done
+      - name: Verify PRODAT object and register preservation
+        run: npx vitest run __tests__/ediel-prodat-register*.test.ts
+      - name: Verify release-aware EDIFACT component parsing
+        run: node --experimental-vm-modules --test scripts/test-ediel-component-escaping.cjs
+      - name: Verify APERAK source-family guide binding
+        run: >-
+          node scripts/gridex-aperak-canonical-evidence-regression.cjs &&
+          npx vitest run __tests__/ediel-aperak-source-profile-regression.test.ts
+      - name: Verify protocol, retained UTILTS decisions and delivery-report isolation
+        run: >-
+          npx vitest run
+          __tests__/ediel-masterplan-protocol-regression.test.ts
+          __tests__/ediel-utilts-decision-reuse.test.ts
+          __tests__/ediel-utilts-processor-decision-reuse.test.ts
+          __tests__/ediel-dsn-classification.test.ts
+          __tests__/ediel-smtp-outcome.test.ts
+          __tests__/ediel-smtp-post-acceptance.test.ts
+          __tests__/ediel-canonical-rule-pack-evidence-identity.test.ts
+      - name: Retain exact source evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-source-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ediel-source-evidence/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0

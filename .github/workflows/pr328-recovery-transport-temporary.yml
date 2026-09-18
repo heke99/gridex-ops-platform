@@ -1,0 +1,72 @@
+name: PR328 recovered source transport (temporary)
+on:
+  push:
+    branches: [codex/pr328-recovery-transport-20260918]
+    paths: [.github/workflows/pr328-recovery-transport-temporary.yml]
+permissions:
+  contents: write
+jobs:
+  transport:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: transfer
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: 2c11f276cdf30e80d234752d96c9914e7b30af5d
+          path: candidate
+      - name: Verify exact recovered bytes and complete target tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat transfer/.source-transfer/pr328-recovery.patch.xz.0{0,1,2,3,4} > "$RUNNER_TEMP/recovery.patch.xz"
+          echo "f8466ad59320cd8f19762574a425e38f25d6435ad423e80404c0751843795287  $RUNNER_TEMP/recovery.patch.xz" | sha256sum -c -
+          xz -dc "$RUNNER_TEMP/recovery.patch.xz" > "$RUNNER_TEMP/recovery.patch"
+          echo "1d42de24b8d3ec1072753b0418fce9cad04a8fd76007eb7f2b0e8b727ceb1d30  $RUNNER_TEMP/recovery.patch" | sha256sum -c -
+          cd candidate
+          test "$(git rev-parse HEAD)" = 2c11f276cdf30e80d234752d96c9914e7b30af5d
+          git apply --check "$RUNNER_TEMP/recovery.patch"
+          git apply --index "$RUNNER_TEMP/recovery.patch"
+          test "$(git write-tree)" = f0a60721506c92171e2a15df9e5d8ac8a56e702d
+          python3 - <<'PY'
+          import subprocess
+          paths = subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines()
+          assert len(paths) == 60, paths
+          allowed = ('.agent-memory/','app/admin/ediel/','components/admin/ediel/','lib/ediel/','__tests__/','quality/audits/ediel-masterplan-v2/f3-register-recovery-','scripts/test-ediel-prodat-','docs/superpowers/plans/')
+          for path in paths:
+              assert path == '.github/workflows/ediel-masterplan-v2.yml' or path.startswith(allowed), path
+          assert not any(p.startswith(('supabase/','docs/ediel/masterplan-v2/','.source-transfer/')) for p in paths)
+          PY
+          git diff --cached --check
+          mkdir -p ../receipt
+          cp .github/workflows/ediel-masterplan-v2.yml ../receipt/intended-ediel-masterplan-v2.yml
+          cmp .github/workflows/ediel-masterplan-v2.yml ../transfer/.source-transfer/intended-ediel-ci.yml
+          printf '%s\n' 'verified_complete_target_tree=f0a60721506c92171e2a15df9e5d8ac8a56e702d' 'scope=source transport only; not ordinary CI or acceptance' > ../receipt/provenance.txt
+          # Contents-only Actions token does not modify any workflow. The authorized native connector applies the exact CI blob later.
+          git restore --source=2c11f276cdf30e80d234752d96c9914e7b30af5d --staged --worktree .github/workflows/ediel-masterplan-v2.yml
+          test -z "$(git diff --cached --name-only -- .github/workflows .source-transfer supabase docs/ediel/masterplan-v2)"
+          git diff --cached --check
+      - name: Publish source-only candidate without changing the active PR or main
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'heke99'
+          git config user.email '129280077+heke99@users.noreply.github.com'
+          git commit -m 'feat(ediel): restore PR328 TGT register continuation and verification checkpoint'
+          git push origin HEAD:refs/heads/codex/pr328-recovery-candidate-20260918
+          git rev-parse HEAD > ../receipt/candidate-commit.txt
+          git rev-parse HEAD^{tree} > ../receipt/candidate-tree.txt
+          git diff --name-only 2c11f276cdf30e80d234752d96c9914e7b30af5d HEAD > ../receipt/changed-files.txt
+          git archive HEAD | gzip -n > ../receipt/source.tar.gz
+          cd ../receipt
+          sha256sum source.tar.gz intended-ediel-masterplan-v2.yml > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr328-recovery-transport-receipt
+          path: receipt/
+          retention-days: 7
