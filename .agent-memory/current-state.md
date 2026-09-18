@@ -1,29 +1,15 @@
-# Active: PR331 Z04:319 — fixture-corrected candidate
+## Review-repair checkpoint — 2026-09-18
 
-Status: IMPLEMENTED_NOT_VERIFIED. Read live PR331 before continuing.
+PR334 predecessor17666970 passed ordinary CI but was not accepted: independent static review5734941292 found DDQ-only market classification. Local repaired code tree9741ef3dec4d083b24695629781d5d724ffafb24 recognizes both EL references while retaining the narrower Z06-DDQ process contract. New28-case baseline12fail/16pass becomes28pass; targeted205, fullapplication2791/240files and retainedsource913pass. Three types, lint0errors (99source+1generated-coverage warning), unchanged coverage/budgets and quality pass. See f3-d-z06-product-review-20260918 audit for exact evidence.
 
-Initial head acbab21f failed Ediel/OPS/FullE2E; Browser passed. Its static independent review5731951173 found no production defect but did not execute tests. The correction supplies real field213 QTY in test fixtures and a valid Z04 subtype in the complete-facts catalog, retaining all assertions and adding wrong-subtype/register-prerequisite controls. Production modules and thresholds are unchanged from acbab.
+Status IMPLEMENTED_NOT_VERIFIED: publish native follow-up on17666970, repeat four ordinary exact-head workflows and substantive independent review, then guarded merge. Sevenaccepted+onecandidate+102other numericD and10parent occurrences remain. PR310 paused; issue332 full-main70/73 open/unwaived; no live operations. This newer checkpoint supersedes pre-review candidate totals below without rewriting historical audits. Live GitHub receipts have precedence.
 
-Fresh local2594/2594 application tests in238files with unchanged coverage thresholds;913/913 source cases (62new+851retained), all3TypeScript projects, lint0errors/99warnings and quality/RBAC/budgets pass. The initial concurrent app-typecheck exited137; separate unchanged-source retry passed. Dependencies were recovered from an existing same-lockfile artifact. New exact-head CI/build/replay and independent rereview still REQUIRED.
+# Current state — 2026-09-18
 
-Evidence: ../quality/audits/ediel-masterplan-v2/f3-d-z04-fixture-qualification-20260918.md and companion JSON. The initial source-only audit is historical. Do not reapply the original ZIP or earlier candidate over this follow-up.
+Live main read: 7ff0d6b0aa2082c3942d36d743977ae85cde2a4f after accepted PR330/331. Seven of110 numeric D cells accepted. Active unit: PC-242-Z06, IMPLEMENTED_NOT_VERIFIED pending exact-head ordinary CI and independent review. One candidate,102 other numeric D cells and10parent-group occurrences remain unaccepted.
 
-## Completed predecessor
-PR330 merged to main as e4df8b58e0277bf57f3f755cd9ec8c5c4cac9527.
-Tested/reviewed head831fa1fb27e91c47ff7374e5a0a6513fdb27a897; treeb10d70fad26e40a241d8eb679870076a851ae6d6.
-OPS35354989775, Ediel35354989756, Browser35354989687 and FullE2E35354989676 completed SUCCESS.
-Independent static source/assertion review5731278438 confirmed the final blocker repair; no test execution claimed by reviewer.
-Expected-head merge and main readback verified. Do not reapply the user's original ZIP over newer corrections.
+Local:2763 application tests,913 retained standalone source cases, all3types, lint0errors/99warnings, source integrity33files/121rules/231contracts, unchanged coverage/budgets and quality checks passed. Initial failures/timeouts remain documented in the qualification audit. Local build/browser/disposable replay not claimed; CI must execute them where applicable.
 
-## Current bounded scope
-Z04:319 requires actual first-register Z70/D and forbids other valid Z04 reasons. Unknown reasons stay blocked; malformed/header/party/later-register references are protected. Source: unchanged frozen primary projections P26.A r3 p21/p78. Six D cells accepted by330, one candidate,103 others and10parent groups outside acceptance. Full masterplan remains NOT_COMPLETE.
+PR310 stays paused/excluded at e9611351. Issue332 retains full-main70/73 blockers and is not waived by green PR smoke. No live DB/storage/market send or explicit deployment/settings changes. Authorized main merge may trigger existing Git deployment. FullF3–F7/masterplan/liveTGT/release remain incomplete.
 
-## Safety / outstanding independent blockers
-PR310 remains PAUSED at e961135199f292b8210884f07de3b616a670161a; no imports of its migrations/types/grants.
-Issue332 preserves main35334649693 and fresh35358260956, both70/73: migration inventory, Z18 certification and installation-NAD assertions failed.
-No historical migration checksum may be silently adopted. Green PR smoke is not full-main release acceptance.
-No live DB/storage mutation, explicit deployment/settings changes or market messages. Authorized main merges may auto-deploy via existing Git integration.
-
-Next: inspect live main/branch; fast-forward the existing PR331 branch from acbab21f with this follow-up (main base e4df8b58). Run new-head ordinary CI and independent review; repair/reverify before expected-head merge.
-Then continue the remaining D inventory; the initial source-only audit remains historical.
-Historical logs: archive/2026-09-18-pr330-final-merged/.
+This is a prepublication snapshot. Live refs/PR receipts take precedence. Historical active files are byte-identically preserved in archive/2026-09-18-pr331-final-merged/.

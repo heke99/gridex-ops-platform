@@ -1,3 +1,4 @@
+import { prodatProductMarket, validateProdatProductScope } from '@/lib/ediel/rulebook/prodatProductScope'
 import { validateProdatDependentReferenceScope } from '@/lib/ediel/rulebook/prodatDependentReferenceScope'
 import { prodatDateSyntaxIssues } from '@/lib/ediel/prodat/prodatDateFields'
 import { canonicalProdat26AFieldRules } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
@@ -11,14 +12,14 @@ import { findProdatSubtypeRule } from '@/lib/ediel/rulebook/prodatSubtypeRegistr
 import { validateFieldMatrixPayload, type FieldMatrixEvaluationInput, type RulebookFieldRule } from '@/lib/ediel/rulebook/fieldMatrix'
 import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
 
-/** Recompute migrated subtype-only D cells from each actual first-register
+/** Recompute migrated subtype-dependent D cells from each actual first-register
  * scope. A root snapshot, another object, or a later register is not authority.
- * The matrix remains the sole syntax/code-list validator after cardinality is resolved.
+ * The matrix owns field descriptors; bounded source overlays retain domain and scope restrictions.
  */
 export function validateProdatSubtypePolicy(input: FieldMatrixEvaluationInput, rules: readonly RulebookFieldRule[]): EdielRulebookIssue[] {
   const code = input.code ?? ''
   const una = input.una ?? parseUna(null)
-  const issues: EdielRulebookIssue[] = validateProdatDependentReferenceScope(input, rules)
+  const issues: EdielRulebookIssue[] = [...validateProdatDependentReferenceScope(input, rules), ...validateProdatProductScope(input, rules)]
   // Local scoping must not hide a supplied DTM in the message header. Keep
   // the shared global placement check before narrowing to individual objects.
   for (const failure of prodatDateSyntaxIssues(input.rawSegments ?? [], una)) {
@@ -34,18 +35,20 @@ export function validateProdatSubtypePolicy(input: FieldMatrixEvaluationInput, r
     for (const segments of prodatRegisterRuleScopes(sourceRule.fieldNumber, input.rawSegments ?? [], una, code) ?? []) {
       const reasonSegments = segments.filter(segment => segment.tag === 'CCI' && segmentComposite(segment, 2, una)[0] === 'Z13')
       const reasons = prodatCharacteristicValues('223', segments, una)
-      const reason = reasons.length === 1 && reasonSegments.length === 1 ? reasons[0] : null
+      const parentStart = segments.findIndex(segment => ['RFF','NAD'].includes(segment.tag))
+      const reasonInScope = !sourceRule.market || parentStart < 0 || (reasonSegments[0] && segments.indexOf(reasonSegments[0]) < parentStart)
+      const reason = reasonInScope && reasons.length === 1 && reasonSegments.length === 1 ? reasons[0] : null
       const known = reason ? findProdatSubtypeRule(reason, code) : null
       // Runtime compatibility aliases and a duplicate/dangling CCI are not a
       // valid transaction reason on the wire, even if a snapshot supplies F.
       const subtype = known?.transactionReasonCode === reason ? known.subtype : null
-      const requirement = resolveProdatSourceSubtypeRequirement({messageCode:code, fieldNumber:sourceRule.fieldNumber, subtype})
+      const requirement = resolveProdatSourceSubtypeRequirement({messageCode:code, fieldNumber:sourceRule.fieldNumber, subtype, market:sourceRule.market ? prodatProductMarket(input) : undefined})
       const lin = segments.find(segment => segment.tag === 'LIN')
       const identity = lin ? segmentComposite(lin, 3, una) : []
       const context = `Objekt ${identity[0] || '(saknar identitet)'} / ${identity[3] || '(saknar kod)'}; ${code}:${sourceRule.fieldNumber}, P26.A §2.2 s.${sourceRule.page}`
       if (requirement === 'undetermined' || requirement === null) {
         issues.push({scope:'prodat_dependent', severity:'error', blocking:true, code:'PRODAT_DEPENDENT_CONDITION_UNDETERMINED',
-          title:'PRODAT D-villkor kan inte avgöras', description:`${context}: exakt en giltig transaktionsorsak i objektets fält 223 krävs.`, fieldPath:rule.segmentPath})
+          title:'PRODAT D-villkor kan inte avgöras', description:`${context}: exakt en giltig transaktionsorsak i objektets fält 223 krävs${sourceRule.market ? '; EL-marknad måste styrkas av rätt Application Reference i meddelandets UNB' : ''}.`, fieldPath:rule.segmentPath})
         continue
       }
       // Optional CCI/CAV values must still satisfy their ordinary code list

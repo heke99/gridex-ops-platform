@@ -1,15 +1,11 @@
-# Current fixture-corrected PR331 qualification
+## Review-repair checkpoint — 2026-09-18
 
-Fresh2594 application/913 source cases,all3types,lint0errors/99warnings,coverage and quality/RBAC/budgets pass. Initial targeted73pass/25fail corrected to99pass including one new negative control. First concurrent app-typecheck exited137, separate retry passed. See f3-d-z04-fixture-qualification-20260918 audit; new-head CI/review required before merge. Prior initial candidate records below are historical, not current acceptance.
+PR334 predecessor17666970 passed ordinary CI but was not accepted: independent static review5734941292 found DDQ-only market classification. Local repaired code tree9741ef3dec4d083b24695629781d5d724ffafb24 recognizes both EL references while retaining the narrower Z06-DDQ process contract. New28-case baseline12fail/16pass becomes28pass; targeted205, fullapplication2791/240files and retainedsource913pass. Three types, lint0errors (99source+1generated-coverage warning), unchanged coverage/budgets and quality pass. See f3-d-z06-product-review-20260918 audit for exact evidence.
 
-# Session log — 2026-09-18
+Status IMPLEMENTED_NOT_VERIFIED: publish native follow-up on17666970, repeat four ordinary exact-head workflows and substantive independent review, then guarded merge. Sevenaccepted+onecandidate+102other numericD and10parent occurrences remain. PR310 paused; issue332 full-main70/73 open/unwaived; no live operations. This newer checkpoint supersedes pre-review candidate totals below without rewriting historical audits. Live GitHub receipts have precedence.
 
-Recovered user ZIP matched the already-published original; retained both later PR330 corrections.
-Inspected exact831fa1fb CI, independent review, current refs, threads and rules; performed
-expected-head merge to e4df8b58 and read main back. No test/review exemption used.
-Downloaded and verified actual ordinary source artifact10550439297 and treeb10d70fa.
-Continued one next D cell, Z04:319; reproduced missing requirement/scope/format protection
-with executable actual-source assertions and implemented the bounded correction.
-Fresh62source cases and851unchanged cases pass. Published CI/review remain required for this next unit.
-PR310 and production/live market operations untouched; automatic Git deployment is possible on merge.
-Earlier sessions preserved verbatim in [historical log](archive/2026-09-18-pr330-final-merged/session-log.md).
+# Session log — 2026-09-18 continuation
+
+Recovered actual PR331 CI source archive and existing lockfile-pinned dependency artifact; reconstructed base treeb0cd2dc6 and verified current main7ff0d6b0. Read issue333 and full field242 notes/table rather than inventing subtype-only authority. Implemented and locally qualified PC-242-Z06; recorded failed experiments, corrected fixtures and successful checks.
+
+Publication/CI/review/merge pending at this snapshot. No production operation, market send, explicit deployment, settings change or PR310 import. Older session bytes preserved in archive/2026-09-18-pr331-final-merged/session-log.md. Live GitHub receipts supersede this prepublication note.
