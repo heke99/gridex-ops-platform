@@ -151,7 +151,7 @@ for (const alphabet of alphabets) for (const scope of ['payload','all','dependen
       expect(check([line('1','A','1'),...reason(),...product(),line('2','A','3'),...reason()],alphabet,scope).length).toBeGreaterThan(0)
     })
     it('derives market from the actual UNB, never an EL snapshot or product presence', () => {
-      for (const reference of ['27-DDQ-PRODAT','23-DGI-PRODAT','','INVALID']) {
+      for (const reference of ['27-DDQ-PRODAT','23-DDQ-UTILTS','','INVALID']) {
         expect(check([line('1','A'),...reason(),...product()],alphabet,scope,reference).some(issue => issue.code === 'PRODAT_DEPENDENT_CONDITION_UNDETERMINED')).toBe(true)
       }
     })

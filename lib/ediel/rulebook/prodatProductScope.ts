@@ -12,7 +12,12 @@ export const PRODAT_EL_AGGREGATION_PRODUCTS: readonly string[] = Object.freeze([
   'L637Q', 'L638Q', 'L641Q', 'L642Q', 'L651Q', 'L652Q', 'L653Q',
 ])
 
-/** Field311 (P p16): the actual first interchange supplies the market/process.
+/** Field311 P16 defines both electricity references. Market evidence does not
+ * authorize a process: the unchanged canonical policy separately binds Z06 to DDQ.
+ */
+const PRODAT_ELECTRICITY_REFERENCES: readonly string[] = Object.freeze(['23-DDQ-PRODAT', '23-DGI-PRODAT'])
+
+/** Field311 (P p16): the actual first interchange supplies the market.
  * Full messages cannot borrow a cached EL label when UNB is missing/invalid.
  * Only genuinely detached field fragments may use an explicit application ref.
  */
@@ -23,13 +28,13 @@ export function prodatProductMarket(input: FieldMatrixEvaluationInput): 'electri
   const first = end < 0 ? tokens : tokens.slice(0, end)
   const unbs = first.filter(token => token.tag === 'UNB')
   if (!tokens.some(token => ['UNB', 'UNH', 'BGM', 'UNT', 'UNZ'].includes(token.tag))) {
-    return input.applicationReference === '23-DDQ-PRODAT' ? 'electricity' : null
+    return typeof input.applicationReference === 'string' && PRODAT_ELECTRICITY_REFERENCES.includes(input.applicationReference) ? 'electricity' : null
   }
   if (unbs.length !== 1) return null
   const body = first.find(token => ['UNH', 'BGM', 'LIN'].includes(token.tag))
   if (!body || unbs[0].index >= body.index) return null
   const reference = segmentComposite(unbs[0], 7, una)
-  return reference.length === 1 && reference[0] === '23-DDQ-PRODAT' ? 'electricity' : null
+  return reference.length === 1 && PRODAT_ELECTRICITY_REFERENCES.includes(reference[0]) ? 'electricity' : null
 }
 
 function hasPopulatedTrailingElements(segment: EdifactTokenizedSegment, last: number, una: EdifactServiceStringAdvice): boolean {

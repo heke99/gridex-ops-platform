@@ -5,11 +5,11 @@
   "branch": "codex/ediel-v2-dependent-z06-product-20260918",
   "base_head_sha": "7ff0d6b0aa2082c3942d36d743977ae85cde2a4f",
   "base_tree": "b0cd2dc6cb1426172316b70c457e3530359d6255",
-  "active_item": "PC-242-Z06 EL-qualified product; exact-head CI/review/merge pending",
-  "next_action": "Read live refs; publish exact native tree, ordinary CI, independent review, guarded merge; then coherent UD/parent unit.",
+  "active_item": "PC-242-Z06 review repair: both EL references, unchanged Z06-DDQ permission; new-head CI/review pending",
+  "next_action": "Publish native follow-up on17666970, repeat ordinary exact-head CI and independent review; guarded merge then UD/parent unit.",
   "source_state": {
-    "snapshot_boundary": "prepublication; live GitHub has precedence",
-    "tested_code_tree": "4aa03f9ba727b4d8bd732fb2872b8011e5554df3",
+    "snapshot_boundary": "review repair prepublication; live GitHub has precedence",
+    "tested_code_tree": "9741ef3dec4d083b24695629781d5d724ffafb24",
     "numeric_D_total": 110,
     "accepted_predecessors": 7,
     "candidate_cells": [
@@ -17,8 +17,8 @@
     ],
     "other_unaccepted": 102,
     "parent_group_occurrences": 10,
-    "application_tests_pass": 2763,
-    "new_test_subset": 169,
+    "application_tests_pass": 2791,
+    "new_test_subset": 197,
     "retained_source_tests_pass": 913,
     "new_head_CI": "REQUIRED",
     "independent_review": "REQUIRED",
@@ -30,5 +30,7 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "open_release_issue": 332,
-  "evidence": "quality/audits/ediel-masterplan-v2/f3-d-z06-product-20260918.json"
+  "evidence": "quality/audits/ediel-masterplan-v2/f3-d-z06-product-review-20260918.json",
+  "last_published_head": "1766697092dbec29f812adba6d590f9d9411513f",
+  "review_finding": 5734941292
 }
