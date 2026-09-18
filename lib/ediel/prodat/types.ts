@@ -1,3 +1,4 @@
+import type { ProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import type { ProdatMeterRegisterInput } from '@/lib/ediel/prodat/prodatRegisterInput'
 import type { ProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
 // lib/ediel/prodat/types.ts
@@ -153,6 +154,7 @@ export type ProdatEngineAckExpectation = {
 export type ProdatEngineDiagnostics = {
   engine: 'prodat'
   registerCount?: number
+  registerEvidence?: ProdatRegisterEvidence
   renderer: string
   code: ProdatEngineCode
   variant?: string | null

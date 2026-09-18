@@ -17,7 +17,8 @@ export function matchProdatRegisterExpectations<A,E>(actual:readonly ActualRegis
     if (sameIdAgencies.size>1 && candidates.some(row=>!row.agency)) candidates=[]
     // One unindexed source column is a partial first-register expectation, not
     // an invented copy of every register's own measurements.
-    if (!line.first && !explicitlyIndexed) return {line,expected:null,error:null}
+    if (!line.valid) return {line,expected:null,error:'register'}
+    if (!line.first && !explicitlyIndexed && rows.length === 1) return {line,expected:null,error:null}
     const found=candidates.length===1 ? candidates[0] : null
     if (found) used.add(found)
     return {line,expected:found,error:!line.valid ? 'register' : found ? null : rows.length ? 'register' : 'identity'}

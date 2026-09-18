@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { parseProdatMessage, parsedProdatObjects } from '@/lib/ediel/prodat/parser'
 import { prodatRegisterFieldValue } from '@/lib/ediel/prodat/prodatRegisterFields'
 import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
@@ -11,13 +12,16 @@ import { parseUna } from '@/lib/ediel/core/una'
 // lib/ediel/inboundCases.ts
 
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 import { createEdielMessageEvent, linkEdielMessage } from '@/lib/ediel/db'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { describeProdatCaseType, edielCodeLabel } from '@/lib/ediel/codeLabels'
-import { canonicalIdempotencyKey, onboardCustomerGraph } from '@/lib/customers/canonicalOnboarding'
+import { canonicalIdempotencyKey, onboardCustomerGraph, type CanonicalOnboardingCommand, type CanonicalOnboardingSuccess } from '@/lib/customers/canonicalOnboarding'
 import { createTenantContext } from '@/lib/tenant/context'
 
 type JsonRecord = Record<string, unknown>
+type ScopedSelect = ReturnType<ReturnType<typeof supabaseService.from>['select']>
+type ScopedUpdate = ReturnType<ReturnType<typeof supabaseService.from>['update']>
 
 export type EdielInboundCaseStatus =
   | 'pending_review'
@@ -61,7 +65,7 @@ export type EdielInboundCaseRow = {
   updated_by: string | null
 }
 
-type ParsedInboundProdat = {
+export type ParsedInboundProdat = {
   caseType: string
   transactionType: string | null
   customer: JsonRecord
@@ -128,13 +132,18 @@ function buildInternalNotes(parsed: ParsedInboundProdat): string {
   return rows.join('\n')
 }
 
-export function parseInboundProdatBusinessData(message: EdielMessageRow): ParsedInboundProdat {
+export function parseInboundProdatBusinessData(message: EdielMessageRow, object?: {meteringPointId:string;identityAgency:string}): ParsedInboundProdat {
   const payload = message.parsed_payload ?? {}
   const source = parseProdatMessage(message)
-  const objects = parsedProdatObjects(source)
+  const allObjects = parsedProdatObjects(source)
+  const objects = object ? allObjects.filter(row => row.meteringPointId === object.meteringPointId && row.identityAgency === object.identityAgency) : allObjects
+  if (object && (objects.length !== 1 || !objects[0].validRegisterChain || !message.raw_payload?.trim())) {
+    throw new Error('PRODAT_OBJECT_SELECTION_INVALID')
+  }
+  const selectedLine = object ? objects[0].registers[0] : source.lineItems[0]
   const facts = parseEdifactMessageFacts(message.raw_payload)
   const hasWireSource = Boolean(message.raw_payload?.trim())
-  const sourceSegments = facts.lineItems[0]?.effectiveSegments ?? []
+  const sourceSegments = facts.lineItems[selectedLine?.sourceOrder ?? 0]?.effectiveSegments ?? []
   // Persisted legacy projections must not override or fill absent wire fields.
   // Retain their fallback only when this record has no EDIFACT source at all.
   const characteristic = (field: string, ...fallbackKeys: string[]): string | null => hasWireSource
@@ -150,7 +159,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
   const partyValue = (value: string | null, ...fallbackKeys: string[]): string | null => hasWireSource
     ? value : valueFromParsed(payload, ...fallbackKeys)
   const messageCode = hasWireSource ? facts.messageCode ?? '' : String(message.message_code)
-  const meterPointId = hasWireSource ? source.lineItems[0]?.meteringPointId ?? null
+  const meterPointId = hasWireSource ? selectedLine?.meteringPointId ?? null
     : valueFromParsed(payload, 'meterPointId', 'meteringPointId', 'installationId', 'facilityId')
   const contractStart = hasWireSource ? prodatDateValue('210', sourceSegments, una)
     : valueFromParsed(payload, 'contractStartDate', 'contract_start_date', 'startDate')
@@ -165,7 +174,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
   const installationStatus =
     characteristic('306', 'installationStatus', 'installation_status')
   const annualEnergy =
-    numberOrNull(hasWireSource ? source.lineItems[0]?.annualConsumption : valueFromParsed(payload, 'annualEnergy', 'estimatedAnnualEnergy', 'annual_consumption_kwh'))
+    numberOrNull(hasWireSource ? selectedLine?.annualConsumption : valueFromParsed(payload, 'annualEnergy', 'estimatedAnnualEnergy', 'annual_consumption_kwh'))
   const referenceToMeteringPoint =
     reference('319', 'referenceToMeteringPoint', 'reference_to_metering_point')
 
@@ -212,7 +221,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow): Parsed
 
   const meteringPoint = {
     meterPointId,
-    identityAgency: source.lineItems[0]?.identityAgency ?? null,
+    identityAgency: selectedLine?.identityAgency ?? null,
     registers: objects[0]?.registers ?? [],
     observationLength: hasWireSource ? prodatDateValue('508', sourceSegments, una) : valueFromParsed(payload, 'observationLength'),
     observationLengthFormat: hasWireSource ? prodatDateState('508', sourceSegments, una).format : valueFromParsed(payload, 'observationLengthFormat'),
@@ -434,13 +443,20 @@ export async function createOrUpdateInboundProdatCase(params: {
   }
 
   if (existing) {
+    const saved = existing as EdielInboundCaseRow
+    if (saved.company_id !== companyId) throw new Error('TENANT_CONTEXT_MISMATCH')
+    if (saved.review_decision?.objectApplication || ['applied','approved','rejected'].includes(saved.status)) return saved
     const { data, error } = await supabaseService
       .from('ediel_inbound_cases')
       .update(payload)
-      .eq('id', (existing as { id: string }).id)
+      .eq('id', saved.id)
+      .eq('company_id', companyId)
+      .eq('updated_at', saved.updated_at)
+      .eq('status', saved.status)
       .select('*')
-      .single()
+      .maybeSingle()
     if (error) throw error
+    if (!data) throw new Error('PRODAT_INBOUND_CASE_CHANGED')
     return data as EdielInboundCaseRow
   }
 
@@ -508,14 +524,21 @@ export async function getEdielInboundCaseById(caseId: string): Promise<EdielInbo
   return (data as EdielInboundCaseRow | null) ?? null
 }
 
+/** Load a review only after the caller has authorized the source message. */
+export async function getEdielInboundCaseForMessage(companyId: string, messageId: string): Promise<EdielInboundCaseRow | null> {
+  const { data, error } = await (tenantDb(companyId).from('ediel_inbound_cases').select('*') as ScopedSelect)
+    .eq('ediel_message_id', messageId).maybeSingle()
+  if (error) throw error
+  return (data as EdielInboundCaseRow | null) ?? null
+}
+
 async function getGridOwnerIdByGridArea(companyId: string, gridAreaCode: string | null): Promise<string | null> {
   if (!gridAreaCode) return null
   const { data, error } = await supabaseService
     .from('grid_owners')
     .select('id,owner_code')
     .eq('company_id', companyId)
-    .or(`owner_code.eq.${gridAreaCode},name.ilike.${gridAreaCode}`)
-    .limit(1)
+    .eq('owner_code', gridAreaCode)
     .maybeSingle()
 
   if (error) throw error
@@ -543,35 +566,13 @@ async function insertAuditLog(params: {
   if (error) throw error
 }
 
-export async function approveEdielInboundCase(params: {
-  actorUserId: string
-  caseId: string
-  mode?: EdielInboundCaseActionMode
-  selectedCustomerId?: string | null
-  selectedSiteId?: string | null
-  selectedMeteringPointId?: string | null
-  note?: string | null
-}): Promise<EdielInboundCaseRow> {
-  const inboundCase = await getEdielInboundCaseById(params.caseId)
-  if (!inboundCase) throw new Error('Inbound-caset hittades inte.')
-  if (!['pending_review', 'failed'].includes(inboundCase.status)) {
-    throw new Error(`Inbound-caset har status ${inboundCase.status} och kan inte godkännas.`)
-  }
-  if (!inboundCase.company_id) {
-    throw new Error('Inbound-caset saknar company_id och kan inte appliceras säkert i SaaS-läge.')
-  }
-
-  if (Array.isArray(inboundCase.proposed_action.objects) && inboundCase.proposed_action.objects.length > 1) {
-    throw new Error('PRODAT_MULTIPLE_OBJECTS_REQUIRE_OBJECT_SCOPED_APPLICATION: Alla objekt finns i staging; ett enskilt kundgrafanrop får inte markera hela meddelandet som applicerat.')
-  }
-
-  try {
-    const mode = params.mode ?? (inboundCase.customer_id ? 'update_existing_customer' : 'create_new_customer')
-    const selectedCustomerId = trimOrNull(params.selectedCustomerId) ?? inboundCase.customer_id
-    if (mode === 'link_existing_only' && !selectedCustomerId) {
-      throw new Error('Välj en befintlig kund. Link existing only får aldrig skapa en ny kund.')
-    }
-
+function inboundCustomerCommand(params: {
+  inboundCase: EdielInboundCaseRow; actorUserId:string; mode:EdielInboundCaseActionMode;
+  selectedCustomerId:string|null; selectedSiteId?:string|null; selectedMeteringPointId?:string|null;
+  gridOwnerId:string|null; sourceId?:string;
+}): CanonicalOnboardingCommand {
+  const {inboundCase,mode,selectedCustomerId,gridOwnerId}=params
+  if (!inboundCase.company_id) throw new Error('TENANT_CONTEXT_REQUIRED')
     const parsedCustomer = inboundCase.parsed_customer
     const parsedSite = inboundCase.parsed_site
     const parsedMeter = inboundCase.parsed_metering_point
@@ -580,25 +581,16 @@ export async function approveEdielInboundCase(params: {
     const fullName = trimOrNull(parsedCustomer.fullName) ?? trimOrNull(parsedCustomer.companyName) ?? 'Ediel inbound-kund'
     const meterPointId = trimOrNull(parsedMeter.meterPointId) ?? trimOrNull(parsedMeter.referenceToMeteringPoint)
     if (!meterPointId) throw new Error('Mätpunkt/anläggnings-id saknas i inbound-caset.')
-    const gridOwnerId = await getGridOwnerIdByGridArea(inboundCase.company_id, trimOrNull(parsedSite.gridAreaCode))
     const siteType = production.isMicroProduction === true ? 'production' : trimOrNull(parsedSite.siteType) ?? 'consumption'
 
-    const tenantContext = createTenantContext({
-      companyId: inboundCase.company_id,
-      actorType: 'user',
-      actorId: params.actorUserId,
-      permissions: ['ediel.inbound.apply'],
-      sourceChannel: 'ediel_inbound',
-    })
-
-    const result = await onboardCustomerGraph({
+    const command:CanonicalOnboardingCommand = {
       company_id: inboundCase.company_id,
       actor_user_id: params.actorUserId,
       channel: 'ediel_inbound',
       idempotency_key: canonicalIdempotencyKey({
         channel: 'ediel_inbound',
         companyId: inboundCase.company_id,
-        sourceId: inboundCase.id,
+        sourceId: params.sourceId ?? inboundCase.id,
       }),
       matching_policy: mode === 'create_new_customer' ? 'create_separate' : 'link_selected',
       existing_customer_id: mode === 'create_new_customer' ? null : selectedCustomerId,
@@ -670,7 +662,7 @@ export async function approveEdielInboundCase(params: {
       },
       application: {
         source_record_type: 'ediel_inbound_case',
-        source_record_id: inboundCase.id,
+        source_record_id: params.sourceId ?? inboundCase.id,
         status: 'committed',
         payload_snapshot: {
           edielMessageId: inboundCase.ediel_message_id,
@@ -681,7 +673,73 @@ export async function approveEdielInboundCase(params: {
           mode,
         },
       },
-    }, tenantContext)
+    }
+    if (!params.sourceId || mode==='create_new_customer') return command
+    // Selected graph IDs are checked against the exact source object before any
+    // RPC. The existing RPC updates selected site/meter rows even when its
+    // update_existing flag is false, so link-only carries identity fields only.
+    if (mode==='link_existing_only') return {...command,update_existing:false,customer:{},
+      site:{facility_id:meterPointId},metering_point:{meter_point_id:meterPointId}}
+    const withoutNulls=(value:Record<string,unknown>):Record<string,unknown>=>Object.fromEntries(Object.entries(value).filter(([,v])=>v!==null && v!==undefined))
+    const customer=withoutNulls(command.customer), site=withoutNulls(command.site ?? {}), meter=withoutNulls(command.metering_point ?? {})
+    for(const record of [customer,site,meter]) for(const key of ['status','created_by']) delete record[key]
+    delete customer.metadata;delete customer.source
+    if (!trimOrNull(parsedCustomer.customerType)) delete customer.customer_type
+    if (!trimOrNull(parsedCustomer.fullName) && !trimOrNull(parsedCustomer.companyName)) {delete customer.full_name;delete customer.company_name}
+    for(const key of ['site_name','site_type','internal_notes']) delete site[key]
+    if (!trimOrNull(parsedSite.country)) delete site.country
+    delete meter.measurement_type;delete meter.is_settlement_relevant
+    if (!['D','M'].includes(trimOrNull(parsedMeter.readingFrequency) ?? '')) delete meter.reading_frequency
+    return {...command,customer,site,metering_point:meter}
+
+}
+
+export async function approveEdielInboundCase(params: {
+  companyId?: string
+  objectDecisions?: readonly EdielInboundObjectDecision[]
+  actorUserId: string
+  caseId: string
+  mode?: EdielInboundCaseActionMode
+  selectedCustomerId?: string | null
+  selectedSiteId?: string | null
+  selectedMeteringPointId?: string | null
+  note?: string | null
+}): Promise<EdielInboundCaseRow> {
+  const inboundCase = await getEdielInboundCaseById(params.caseId)
+  if (!inboundCase) throw new Error('Inbound-caset hittades inte.')
+  if (params.companyId && params.companyId !== inboundCase.company_id) throw new Error('TENANT_CONTEXT_MISMATCH')
+  if (inboundCase.review_decision?.objectApplication || (Array.isArray(inboundCase.proposed_action.objects) && inboundCase.proposed_action.objects.length > 1)) {
+    if (!params.objectDecisions) throw new Error('PRODAT_MULTIPLE_OBJECTS_REQUIRE_OBJECT_SCOPED_APPLICATION')
+    if (!params.companyId || params.companyId !== inboundCase.company_id) throw new Error('TENANT_CONTEXT_REQUIRED')
+    if (params.mode || params.selectedCustomerId || params.selectedSiteId || params.selectedMeteringPointId) throw new Error('PRODAT_OBJECT_DECISION_REQUIRED')
+    return applyInboundObjects({...params,companyId:params.companyId,inboundCase,objectDecisions:params.objectDecisions})
+  }
+  if (!['pending_review', 'failed'].includes(inboundCase.status)) {
+    throw new Error(`Inbound-caset har status ${inboundCase.status} och kan inte godkännas.`)
+  }
+  if (!inboundCase.company_id) {
+    throw new Error('Inbound-caset saknar company_id och kan inte appliceras säkert i SaaS-läge.')
+  }
+
+  try {
+    const mode = params.mode ?? (inboundCase.customer_id ? 'update_existing_customer' : 'create_new_customer')
+    const selectedCustomerId = trimOrNull(params.selectedCustomerId) ?? inboundCase.customer_id
+    if (mode === 'link_existing_only' && !selectedCustomerId) {
+      throw new Error('Välj en befintlig kund. Link existing only får aldrig skapa en ny kund.')
+    }
+
+    const gridOwnerId = await getGridOwnerIdByGridArea(inboundCase.company_id, trimOrNull(inboundCase.parsed_site.gridAreaCode))
+    const tenantContext = createTenantContext({
+      companyId: inboundCase.company_id,
+      actorType: 'user',
+      actorId: params.actorUserId,
+      permissions: ['ediel.inbound.apply'],
+      sourceChannel: 'ediel_inbound',
+    })
+
+    const result = await onboardCustomerGraph(inboundCustomerCommand({
+      ...params,inboundCase,mode,selectedCustomerId,gridOwnerId,
+    }),tenantContext)
 
     if (!result.ok) {
       throw new Error(`Tvetydig kundmatchning blockerade Ediel-caset. Referens: ${result.correlation_id}.`)
@@ -772,8 +830,14 @@ export async function approveEdielInboundCase(params: {
 export async function rejectEdielInboundCase(params: {
   actorUserId: string
   caseId: string
+  companyId?: string
   note?: string | null
 }): Promise<EdielInboundCaseRow> {
+  const existing = await getEdielInboundCaseById(params.caseId)
+  if (!existing) throw new Error('Inbound-caset hittades inte.')
+  if (params.companyId && params.companyId !== existing.company_id) throw new Error('TENANT_CONTEXT_MISMATCH')
+  if (existing.review_decision?.objectApplication) throw new Error('PRODAT_OBJECT_APPLICATION_IN_PROGRESS')
+  if (!['pending_review','failed'].includes(existing.status)) throw new Error('PRODAT_INBOUND_CASE_CHANGED')
   const { data, error } = await supabaseService
     .from('ediel_inbound_cases')
     .update({
@@ -787,9 +851,243 @@ export async function rejectEdielInboundCase(params: {
       updated_by: params.actorUserId,
     })
     .eq('id', params.caseId)
+    .eq('company_id', existing.company_id)
+    .eq('updated_at', existing.updated_at)
+    .eq('status', existing.status)
     .select('*')
-    .single()
+    .maybeSingle()
 
   if (error) throw error
+  if (!data) throw new Error('PRODAT_INBOUND_CASE_CHANGED')
   return data as EdielInboundCaseRow
+}
+
+export type EdielInboundObjectDecision = {
+  meteringPointId: string
+  identityAgency: string
+  mode: EdielInboundCaseActionMode
+  selectedCustomerId?: string | null
+  selectedSiteId?: string | null
+  selectedMeteringPointId?: string | null
+}
+
+type ObjectReceipt = { key:string; result:CanonicalOnboardingSuccess }
+type ObjectApplication = {
+  version:1; revision:number; fingerprint:string; sourceHash:string; originalActorId:string
+  decisions:EdielInboundObjectDecision[]; commands:CanonicalOnboardingCommand[]
+  commandHash:string; receipts:ObjectReceipt[]
+}
+const objectKey = (object:Pick<EdielInboundObjectDecision,'meteringPointId'|'identityAgency'>):string => JSON.stringify([object.meteringPointId,object.identityAgency])
+function stableObjectJson(value:unknown):string {
+  const sort=(item:unknown):unknown=>Array.isArray(item) ? item.map(sort) : item && typeof item==='object'
+    ? Object.fromEntries(Object.entries(item).sort(([a],[b])=>a<b ? -1 : a>b ? 1 : 0).map(([key,entry])=>[key,sort(entry)])) : item
+  // Match JSON transport semantics, including omission of undefined properties.
+  // JSONB does not preserve object key order; array order remains meaningful.
+  return JSON.stringify(sort(JSON.parse(JSON.stringify(value))))
+}
+const digestObject = (value:unknown):string => createHash('sha256').update(stableObjectJson(value)).digest('hex')
+
+/** Existing JSON staging envelope holds an immutable decision/command plan and
+ * per-object canonical-RPC receipts. Each graph transaction remains atomic;
+ * the entire message is explicitly resumable, NOT an all-or-nothing DB batch.
+ * Compare-and-set writes prevent lost receipts or changed choices on retries.
+ */
+function objectApplication(row:EdielInboundCaseRow):ObjectApplication|null {
+  const value=row.review_decision?.objectApplication
+  if (value == null) return null
+  if (typeof value !== 'object' || Array.isArray(value)) throw new Error('PRODAT_OBJECT_APPLICATION_PLAN_INVALID')
+  const plan=value as ObjectApplication
+  if (plan.version !== 1 || !Number.isSafeInteger(plan.revision) || plan.revision<1 || !Array.isArray(plan.decisions) || !Array.isArray(plan.commands) || !Array.isArray(plan.receipts) ||
+    plan.decisions.length !== plan.commands.length || !plan.decisions.length || digestObject(plan.commands) !== plan.commandHash ||
+    typeof plan.originalActorId !== 'string' || !plan.originalActorId) throw new Error('PRODAT_OBJECT_APPLICATION_PLAN_INVALID')
+  const keys=new Set(plan.decisions.map(objectKey))
+  if (keys.size !== plan.decisions.length || new Set(plan.receipts.map(receipt=>receipt.key)).size !== plan.receipts.length ||
+    plan.receipts.some(receipt=>!keys.has(receipt.key) || !receipt.result?.ok || !receipt.result.operation_id || !receipt.result.customer_id || !receipt.result.site_id || !receipt.result.metering_point_id || !receipt.result.application_id)) throw new Error('PRODAT_OBJECT_APPLICATION_PLAN_INVALID')
+  for (const command of plan.commands) {
+    if (command.company_id !== row.company_id || command.channel !== 'ediel_inbound' || !command.idempotency_key) throw new Error('PRODAT_OBJECT_APPLICATION_PLAN_INVALID')
+  }
+  return plan
+}
+
+async function compareAndSetObjectCase(row:EdielInboundCaseRow, patch:JsonRecord):Promise<EdielInboundCaseRow|null> {
+  const plan=objectApplication(row)
+  let query=(tenantDb(row.company_id).from('ediel_inbound_cases').update(patch) as ScopedUpdate)
+    .eq('id',row.id).eq('updated_at',row.updated_at).eq('status',row.status)
+  // A small explicit revision prevents lost updates even if timestamps collide;
+  // do not place a whole command/receipt JSON document in a URL filter.
+  query=plan ? query.eq('review_decision->objectApplication->>fingerprint',plan.fingerprint)
+    .eq('review_decision->objectApplication->>revision',String(plan.revision))
+    : query.is('review_decision->objectApplication',null)
+  const {data,error}=await query.select('*').maybeSingle()
+  if (error) throw error
+  return data as EdielInboundCaseRow|null
+}
+
+async function readObjectCase(caseId:string,companyId:string):Promise<EdielInboundCaseRow> {
+  const {data,error}=await (tenantDb(companyId).from('ediel_inbound_cases').select('*') as ScopedSelect).eq('id',caseId).maybeSingle()
+  if (error) throw error
+  if (!data) throw new Error('PRODAT_OBJECT_APPLICATION_CASE_MISSING')
+  return data as EdielInboundCaseRow
+}
+
+async function mutateObjectPlan(input:{caseId:string;companyId:string;fingerprint:string;actorUserId:string}, change:(row:EdielInboundCaseRow,plan:ObjectApplication)=>JsonRecord):Promise<EdielInboundCaseRow> {
+  for(let attempt=0;attempt<8;attempt++) {
+    const row=await readObjectCase(input.caseId,input.companyId)
+    const plan=objectApplication(row)
+    if (!plan || plan.fingerprint !== input.fingerprint) throw new Error('PRODAT_OBJECT_APPLICATION_PLAN_MISMATCH')
+    if (row.status === 'applied') {
+      if (plan.receipts.length !== plan.commands.length) throw new Error('PRODAT_OBJECT_APPLICATION_PLAN_INVALID')
+      return row
+    }
+    if (!['approved','failed'].includes(row.status)) throw new Error('PRODAT_OBJECT_APPLICATION_CASE_CHANGED')
+    const patch=change(row,plan)
+    const review=(patch.review_decision ?? row.review_decision) as JsonRecord
+    const next=(review.objectApplication ?? plan) as ObjectApplication
+    const saved=await compareAndSetObjectCase(row,{...patch,review_decision:{...review,objectApplication:{...next,revision:plan.revision+1}},updated_by:input.actorUserId})
+    if (saved) return saved
+  }
+  throw new Error('PRODAT_OBJECT_APPLICATION_CONCURRENT_UPDATE')
+}
+
+/** Selection must name the same source object, not merely some graph owned by
+ * the customer. The existing RPC remains the transactional tenant authority. */
+async function validateSelectedObjectGraphs(companyId: string, decisions: readonly EdielInboundObjectDecision[]): Promise<void> {
+  const sites = new Set<string>(), meters = new Set<string>()
+  for (const decision of decisions) {
+    for (const [id, seen] of [[decision.selectedSiteId, sites], [decision.selectedMeteringPointId, meters]] as const) {
+      if (id && seen.has(id)) throw new Error('PRODAT_OBJECT_GRAPH_SELECTION_INVALID')
+      if (id) seen.add(id)
+    }
+    if (decision.selectedCustomerId) {
+      const { data, error } = await (tenantDb(companyId).from('customers').select('id') as ScopedSelect)
+        .eq('id', decision.selectedCustomerId).maybeSingle()
+      if (error) throw error
+      if (!data) throw new Error('PRODAT_OBJECT_GRAPH_SELECTION_INVALID')
+    }
+    if (decision.selectedSiteId) {
+      const { data, error } = await (tenantDb(companyId).from('customer_sites').select('id') as ScopedSelect)
+        .eq('id', decision.selectedSiteId).eq('customer_id', decision.selectedCustomerId)
+        .eq('facility_id', decision.meteringPointId).maybeSingle()
+      if (error) throw error
+      if (!data) throw new Error('PRODAT_OBJECT_GRAPH_SELECTION_INVALID')
+    }
+    if (decision.selectedMeteringPointId) {
+      let query = (tenantDb(companyId).from('metering_points').select('id') as ScopedSelect)
+        .eq('id', decision.selectedMeteringPointId).eq('customer_id', decision.selectedCustomerId)
+        .eq('meter_point_id', decision.meteringPointId)
+      if (decision.selectedSiteId) query = query.eq('site_id', decision.selectedSiteId)
+      const { data, error } = await query.maybeSingle()
+      if (error) throw error
+      if (!data) throw new Error('PRODAT_OBJECT_GRAPH_SELECTION_INVALID')
+    }
+  }
+}
+
+async function applyInboundObjects(params:{actorUserId:string;caseId:string;companyId:string;inboundCase:EdielInboundCaseRow;objectDecisions:readonly EdielInboundObjectDecision[];note?:string|null}):Promise<EdielInboundCaseRow> {
+  const {data,error}=await (tenantDb(params.companyId).from('ediel_messages').select('*') as ScopedSelect)
+    .eq('id',params.inboundCase.ediel_message_id).maybeSingle()
+  if (error) throw error
+  const message=data as EdielMessageRow|null
+  if (!message?.raw_payload || message.direction !== 'inbound' || message.message_family !== 'PRODAT') throw new Error('PRODAT_OBJECT_APPLICATION_SOURCE_REQUIRED')
+  const facts=parseEdifactMessageFacts(message.raw_payload)
+  if (validateProdatRegisterPayload({code:facts.messageCode ?? '',rawSegments:facts.rawSegments,una:parseUna(message.raw_payload)}).some(issue=>issue.blocking)) throw new Error('PRODAT_OBJECT_SELECTION_INVALID')
+  const parsed=parseProdatMessage(message)
+  const objects=parsedProdatObjects(parsed)
+  if (objects.length < 2 || objects.some(object=>!object.meteringPointId || !object.identityAgency || !object.validRegisterChain)) throw new Error('PRODAT_OBJECT_SELECTION_INVALID')
+  // The current customer graph stores one facility_id namespace. Never collapse
+  // equal IDs from different agencies into that same masterdata identity.
+  if (new Set(objects.map(object=>object.meteringPointId)).size !== objects.length) throw new Error('PRODAT_OBJECT_APPLICATION_NAMESPACE_UNSUPPORTED')
+  // The existing canonical RPC uppercases and removes non-ASCII-alphanumerics.
+  // Preserve every wire identity in staging, but never let that RPC silently
+  // rewrite a local ID. Exact namespaced masterdata needs separate DB qualification.
+  if (objects.some(object=>!object.meteringPointId || !/^[A-Z0-9]+$/.test(object.meteringPointId))) throw new Error('PRODAT_OBJECT_APPLICATION_IDENTITY_SCHEMA_REQUIRED')
+  if (!Array.isArray(params.objectDecisions) || params.objectDecisions.length !== objects.length) throw new Error('PRODAT_OBJECT_DECISION_REQUIRED')
+  const decisions=objects.map(object=>{
+    const matching=params.objectDecisions.filter(decision=>decision && decision.meteringPointId===object.meteringPointId && decision.identityAgency===object.identityAgency)
+    if (matching.length !== 1) throw new Error('PRODAT_OBJECT_DECISION_REQUIRED')
+    const decision=matching[0]
+    if (!['create_new_customer','update_existing_customer','link_existing_only'].includes(decision.mode)) throw new Error('PRODAT_OBJECT_DECISION_REQUIRED')
+    const result:EdielInboundObjectDecision={meteringPointId:object.meteringPointId!,identityAgency:object.identityAgency!,mode:decision.mode,
+      selectedCustomerId:trimOrNull(decision.selectedCustomerId),selectedSiteId:trimOrNull(decision.selectedSiteId),selectedMeteringPointId:trimOrNull(decision.selectedMeteringPointId)}
+    if (result.mode!=='create_new_customer' && !result.selectedCustomerId) throw new Error('PRODAT_OBJECT_DECISION_REQUIRED')
+    if (result.mode==='create_new_customer' && (result.selectedCustomerId || result.selectedSiteId || result.selectedMeteringPointId)) throw new Error('PRODAT_OBJECT_DECISION_REQUIRED')
+    for (const id of [result.selectedCustomerId,result.selectedSiteId,result.selectedMeteringPointId]) {
+      if (id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) throw new Error('PRODAT_OBJECT_SELECTION_ID_INVALID')
+    }
+    return result
+  })
+  const sourceHash=createHash('sha256').update(message.raw_payload).digest('hex')
+  const fingerprint=digestObject([params.companyId,params.caseId,message.id,sourceHash,decisions])
+  let current=params.inboundCase
+  let plan=objectApplication(current)
+  if (plan && plan.originalActorId!==params.actorUserId) throw new Error('PRODAT_OBJECT_APPLICATION_ACTOR_MISMATCH')
+  if (plan && (plan.fingerprint !== fingerprint || plan.sourceHash!==sourceHash || stableObjectJson(plan.decisions)!==stableObjectJson(decisions))) throw new Error('PRODAT_OBJECT_APPLICATION_PLAN_MISMATCH')
+  for (const decision of decisions) {
+    if (decision.selectedMeteringPointId && !decision.selectedSiteId) throw new Error('PRODAT_OBJECT_GRAPH_SELECTION_INVALID')
+    if (decision.mode==='link_existing_only' && (!decision.selectedSiteId || !decision.selectedMeteringPointId)) throw new Error('PRODAT_OBJECT_GRAPH_SELECTION_INVALID')
+  }
+    await validateSelectedObjectGraphs(params.companyId, decisions)
+    const commands:CanonicalOnboardingCommand[]=[]
+    for (const decision of decisions) {
+      const projection=parseInboundProdatBusinessData(message,decision)
+      const scopedCase:EdielInboundCaseRow={...current,customer_id:null,site_id:null,metering_point_id:null,
+        case_type:projection.caseType,transaction_type:projection.transactionType,parsed_customer:projection.customer,parsed_site:projection.site,
+        parsed_metering_point:projection.meteringPoint,parsed_contract:projection.contract,parsed_production:projection.production,proposed_action:projection.proposedAction}
+      const gridOwnerId=await getGridOwnerIdByGridArea(params.companyId,trimOrNull(projection.site.gridAreaCode))
+      // Object identity, not register index or array position, owns replay and
+      // application identity. Changing a later decision cannot create a new key.
+      const sourceId=`${current.id}:object:${digestObject([decision.meteringPointId,decision.identityAgency])}`
+      commands.push(inboundCustomerCommand({...decision,inboundCase:scopedCase,actorUserId:plan?.originalActorId ?? params.actorUserId,
+        selectedCustomerId:decision.selectedCustomerId ?? null,gridOwnerId,sourceId}))
+    }
+  // Checksums detect accidental drift, not authority. Rebuild the only allowed
+  // command shape from the wire and choices, even when stored commands are present.
+  if (plan && (plan.originalActorId !== current.reviewed_by || digestObject(commands) !== plan.commandHash)) throw new Error('PRODAT_OBJECT_APPLICATION_PLAN_MISMATCH')
+  if (!plan) {
+    if (!['pending_review','failed'].includes(current.status)) throw new Error('PRODAT_OBJECT_APPLICATION_CASE_CHANGED')
+    plan={version:1,revision:1,fingerprint,sourceHash,originalActorId:params.actorUserId,decisions,commands,commandHash:digestObject(commands),receipts:[]}
+    const saved=await compareAndSetObjectCase(current,{status:'approved',review_decision:{objectApplication:plan,note:trimOrNull(params.note)},
+      reviewed_by:params.actorUserId,reviewed_at:new Date().toISOString(),failure_reason:null,updated_by:params.actorUserId})
+    current=saved ?? await readObjectCase(params.caseId,params.companyId)
+    plan=objectApplication(current)
+    if (!plan || plan.fingerprint !== fingerprint) throw new Error('PRODAT_OBJECT_APPLICATION_PLAN_MISMATCH')
+  }
+  const mutation={caseId:params.caseId,companyId:params.companyId,fingerprint,actorUserId:params.actorUserId}
+  try {
+    for (const [index,command] of commands.entries()) {
+      current=await readObjectCase(params.caseId,params.companyId)
+      const latest=objectApplication(current)
+      if (!latest || latest.fingerprint !== fingerprint) throw new Error('PRODAT_OBJECT_APPLICATION_PLAN_MISMATCH')
+      const key=objectKey(plan.decisions[index])
+      if (latest.receipts.some(receipt=>receipt.key===key)) continue
+      if (!['approved','failed'].includes(current.status)) throw new Error('PRODAT_OBJECT_APPLICATION_CASE_CHANGED')
+      const context=createTenantContext({companyId:params.companyId,actorType:'user',actorId:params.actorUserId,permissions:['ediel.inbound.apply'],sourceChannel:'ediel_inbound'})
+      const result=await onboardCustomerGraph(command,context)
+      if (!result.ok) throw new Error(`PRODAT_OBJECT_APPLICATION_MATCH_UNRESOLVED: ${result.correlation_id}`)
+      if ([result.operation_id,result.customer_id,result.site_id,result.metering_point_id,result.application_id].some(value=>!trimOrNull(value))) throw new Error('PRODAT_OBJECT_APPLICATION_RECEIPT_INVALID')
+      current=await mutateObjectPlan(mutation,(row,record)=>{
+        const previous=record.receipts.find(receipt=>receipt.key===key)
+        if (previous && (previous.result.operation_id!==result.operation_id || previous.result.customer_id!==result.customer_id || previous.result.site_id!==result.site_id || previous.result.metering_point_id!==result.metering_point_id)) throw new Error('PRODAT_OBJECT_APPLICATION_RECEIPT_MISMATCH')
+        return {status:'approved',failure_reason:null,review_decision:{...row.review_decision,objectApplication:{...record,receipts:previous ? record.receipts : [...record.receipts,{key,result}]}}}
+      })
+    }
+    current=await readObjectCase(params.caseId,params.companyId)
+    const completed=objectApplication(current)
+    if (!completed || completed.fingerprint!==fingerprint || completed.receipts.length!==completed.commands.length) throw new Error('PRODAT_OBJECT_APPLICATION_INCOMPLETE')
+    if (current.status==='applied') return current
+    const results={objectCount:completed.commands.length,receipts:completed.receipts,fingerprint,sourceHash}
+    // Audit/event failure keeps the durable per-object receipts and allows
+    // retry. No singleton message link misattributes B's data to customer A.
+    await insertAuditLog({actorUserId:params.actorUserId,companyId:params.companyId,entityType:'ediel_inbound_case',entityId:params.caseId,
+      action:'ediel_inbound_objects_applied',newValues:results,metadata:{edielMessageId:message.id,fingerprint}})
+    await createEdielMessageEvent({actorUserId:params.actorUserId,edielMessageId:message.id,eventType:'validated',eventStatus:'success',
+      message:'Samtliga PRODAT-objekt har egna kanoniska kundtransaktioner och sparade kvitton.',payload:results})
+    return await mutateObjectPlan(mutation,()=>({status:'applied',customer_id:null,site_id:null,metering_point_id:null,
+      failure_reason:null,applied_at:new Date().toISOString()}))
+  } catch (error) {
+    const reason=error instanceof Error ? error.message : 'PRODAT_OBJECT_APPLICATION_FAILED'
+    const row=await mutateObjectPlan(mutation,()=>({status:'failed',failure_reason:reason}))
+    if (row.status==='applied') return row // An identical concurrent retry finished.
+    throw error
+  }
 }

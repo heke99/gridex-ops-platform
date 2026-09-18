@@ -1,3 +1,5 @@
+import { readTgtRegisterFacts } from '@/lib/ediel/testing/tgtRegisterFacts'
+import { getEdielTgtTestDataForCase } from '@/lib/ediel/testing/tgtTestData'
 // lib/ediel/tgtAutopilot.ts
 
 import {
@@ -348,7 +350,7 @@ async function getRunEvaluation(
     listEdielTestRunMessages({ companyId, testRunId }),
   ]);
   const run = runs.find((candidate) => candidate.id === testRunId);
-  if (!run) throw new Error("TGT-run saknas eller är arkiverad.");
+  if (!run || run.company_id!==companyId) throw new Error("TGT-run saknas eller är arkiverad.");
 
   const linkedRows = await listEdielMessagesByIds(
     links.map((link) => link.ediel_message_id),
@@ -389,6 +391,9 @@ async function createDraftForStep(params: {
     testCaseCode: params.evaluation.definition.testCaseCode,
     stepNo: params.step.stepNo,
     importedTestData,
+    registerFacts:params.step.family==='PRODAT' ? readTgtRegisterFacts({run:params.evaluation.testRun,
+      stepNo:params.step.stepNo,code:params.step.code,testData:importedTestData ?? getEdielTgtTestDataForCase(
+        params.evaluation.definition.suite,params.evaluation.definition.roleCode,params.evaluation.definition.testCaseCode)}) : undefined,
     systemTestContext,
   });
   const routeProfileId = String(params.evaluation.testRun.route_profile_id ?? "").trim();
@@ -505,6 +510,10 @@ export async function runTgtAutopilotForRun(params: {
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      if (message.startsWith('PRODAT_REGISTER_') || message.startsWith('prodat_register_')) {
+        return {testRunId:params.testRunId,action:'blocked',messageId:null,stepNo:step.stepNo,
+          description:`Registerunderlaget måste granskas för detta steg: ${message}. Uppdatera objektens faktaunderlag i TGT-vyn.`};
+      }
       if (message.startsWith("TGT-utkastet är blockerat:")) {
         const isAgtRuntime = runtimeSuiteForRun(evaluation.testRun) === "AGT";
         return {

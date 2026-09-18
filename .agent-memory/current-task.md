@@ -1,23 +1,29 @@
-# Single active task — complete PRODAT register delivery
+# Recovered PRODAT register continuation — single active task
 
-Status: PARTIAL, NOT_MERGE_READY.
-Branch: `codex/ediel-v2-prodat-register-rules-20260917`.
-Checkpoint base: `28b2a9ad1d745acaa4ea7fe15af7608da95e7884`.
+Status: IMPLEMENTED_NOT_VERIFIED (final delivery).
+Branch: `codex/ediel-v2-prodat-register-rules-20260917`; PR328 remains draft.
+Recovery base: `2c11f276cdf30e80d234752d96c9914e7b30af5d`.
 
-Original PRODAT26.A revision3 PDF was retrieved from the public Ediel portal and matched the locked SHA256 83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95. The first/additional-register source table is recorded in f3-register-source-map.md/json. Local final checks passed: 146 new register cases; full Vitest 1960/1960 in217 files; 848/848 retained source cases; application, test and script TypeScript; unchanged original package integrity. These are local checks, not ordinary GitHub CI or independent review. No complete GOV-02/P-05/F3 certificate is claimed.
+The later original complete worktree was unavailable; fourteen complete files
+were recovered with matching blob hashes and the remainder reconstructed against
+source and fail-first tests. Do not repeat recovery or trust historical test counts
+as current qualification. See `quality/audits/ediel-masterplan-v2/f3-register-recovery-20260918.md`.
 
-Implemented partial scope: distinct314/258, preserved raw and effective register data, object-isolated first-register authority, register overlays composed with the existing matrix/D engine, generic and profile builders, compatibility/staging preservation and one TGT comparison path. See the audit for exact boundaries, fail-first evidence, the retained Z06 subtype-fixture correction and CAV reader compatibility correction.
+TGT source/rendering, both comparisons, source-bound facts through admin/autopilot
+and send gates, snapshot precedence, expected inventory, and durable per-object
+customer decisions are implemented.343 register cases pass. Local tests/typechecks pass; build hit a resource limit; final-head ordinary CI and independent review
+are pending. Supabase inspection was read-only. No live market messages were sent.
 
-## Immediate next atomic action
-Write failing actual-path tests for TGT source-column grouping and TGT message rendering, then use the existing shared register serializer. Do not create a parallel rules engine.
+Masterdata graph writes for normalization-changing or same-ID/different-agency
+objects remain explicitly blocked by the existing schema. Parsing/staging retain
+all identities. No broad F3 or live certification is asserted. A different actor
+cannot silently resume an existing object's transaction plan.
 
-## Remaining ordered gates
-1. Complete the actual TGT source-column grouping and TGT message builder with the shared object/register serializer.
-2. Complete the second expected-context/PRODAT comparison path and strict register identity, including source annotations.
-3. Preserve trusted per-object dependent facts through engine snapshots/preflight and block unknown register conditions before sending; close dependent-only topology gaps.
-4. Complete inventory edge cases and actual object-scoped multi-object customer application. The current multi-object approval guard blocks unsafe single-customer application. Qualify remaining 213 numeric syntax from the primary source.
-5. Run unchanged ordinary CI on the final published head, resolve substantive review findings, and perform a guarded merge only after the whole register unit is complete.
+Next action: complete qualification, publish to PR328 and review the exact head.
+Fix actual CI/review findings, then guarded merge only when accepted. After the
+register unit merges, begin the separate remaining110D review. PR310 remains
+PAUSED at e961135199f292b8210884f07de3b616a670161a. PR327 remains MERGED as
+51c73950515d771d2c2edcb97fde28ab087437a3. No schema, SQL, generated DB types, dependencies or original specification
+were changed. No further authorization is needed for agreed non-production work.
 
-PR327 remains MERGED as 51c73950515d771d2c2edcb97fde28ab087437a3; its tested head28b0e6ccb0473ee97fe021dc28aab462debc3a97 and prior ordinary-CI/review receipt remain authoritative. Do not restart or overwrite it. PR310 remains PAUSED at e961135199f292b8210884f07de3b616a670161a and is excluded. No SQL, schema, generated database types, grants, production data/storage, explicit deployment or market messages were changed.
-
-The remaining110 original D-condition unit starts only after the complete register unit is reviewed and merged.
+Publication checkpoint:2157 application tests,343 register tests,851 retained source cases and all three TypeScript projects pass. Local build SIGKILL; ordinary CI production build and substantive review are required before merge.

@@ -88,12 +88,7 @@ jobs:
             TZ="$zone" npx vitest run __tests__/ediel-prodat-date-fields.test.ts __tests__/ediel-prodat-date-consumers.test.ts __tests__/ediel-prodat-date-boundaries.test.ts
           done
       - name: Verify PRODAT object and register preservation
-        run: >-
-          npx vitest run
-          __tests__/ediel-prodat-registers.test.ts
-          __tests__/ediel-prodat-register-conditions.test.ts
-          __tests__/ediel-prodat-register-builders.test.ts
-          __tests__/ediel-prodat-register-consumers.test.ts
+        run: npx vitest run __tests__/ediel-prodat-register*.test.ts
       - name: Verify release-aware EDIFACT component parsing
         run: node --experimental-vm-modules --test scripts/test-ediel-component-escaping.cjs
       - name: Verify APERAK source-family guide binding

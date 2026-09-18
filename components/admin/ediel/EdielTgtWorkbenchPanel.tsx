@@ -12,6 +12,7 @@ import {
  markEdielTgtRunStatusAction,
  runEdielTgtAutopilotAction,
  saveEdielTgtPortalTestDataAction,
+ saveEdielTgtRegisterFactsAction,
 } from '@/app/admin/ediel/actions'
 import {
  evaluateEdielTgtRun,
@@ -728,6 +729,23 @@ function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluati
  <Badge tone={tone}>{nextActionKindLabel(nextAction.kind)}</Badge>
  </div>
 
+ {nextStep?.actor === 'gridex' && nextStep.family === 'PRODAT' && ['Z04','Z06','Z10'].includes(nextStep.code) ? (
+ <details className="mt-3 rounded-xl border border-slate-300 p-3">
+ <summary className="cursor-pointer text-sm font-semibold">Objektens registerunderlag för steg {nextStep.stepNo}</summary>
+ <p className="mt-2 text-sm">Ange ett separat objekt med exakt anläggnings-id, kodlista (9 eller 89), förväntat registerantal och om mätarställningar skickas i UTILTS. Välj inte detta utifrån att ett fält råkar finnas. Okänt anges som null och blockerar sändning. Ändrat testunderlag kräver ny granskning.</p>
+ <form action={saveEdielTgtRegisterFactsAction} className="mt-3 grid gap-2">
+ <input type="hidden" name="testRunId" value={evaluation.testRun.id} />
+ <input type="hidden" name="stepNo" value={nextStep.stepNo} />
+ <label className="text-sm">Registerfakta som JSON
+ <textarea name="registerFacts" required maxLength={32768} rows={6} className="mt-1 block w-full rounded border p-2 font-mono text-xs" placeholder={'{"market":"electricity","registerObjects":[{"meteringPointId":"EXAKT-ID","identityAgency":"9","expectedRegisterCount":2,"meterReadingsSentInUtilts":null}]}'} />
+ </label>
+ <label className="text-sm">Källa för uppgiften om mätarställningar
+ <input name="sourceNote" required maxLength={2000} className="mt-1 block w-full rounded border p-2" placeholder="Ange rapporteringsöverenskommelse eller annat verifierat underlag" />
+ </label>
+ <button className="w-fit rounded bg-emerald-700 px-3 py-2 text-sm font-semibold text-white">Spara granskat faktaunderlag för detta steg</button>
+ </form>
+ </details>
+ ) : null}
  <div className="mt-3 flex flex-wrap gap-2">
  {!shouldUseCustomerProdat && !isAckLikeNextStep ? (
  <form action={runEdielTgtAutopilotAction}>

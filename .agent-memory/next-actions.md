@@ -1,10 +1,29 @@
-# Next actions
+# Recovered PRODAT register continuation — single active task
 
-Active item: register overlays (GOV-02 / P-05), following merged PR327.
+Status: IMPLEMENTED_NOT_VERIFIED (final delivery).
+Branch: `codex/ediel-v2-prodat-register-rules-20260917`; PR328 remains draft.
+Recovery base: `2c11f276cdf30e80d234752d96c9914e7b30af5d`.
 
-1. Cross-check locked P26.A §2.2 and annex2 against the original field and acceptance registers; record exact per-field first/additional-register requirements and source locators.
-2. Trace fields314/258 and all line objects through actual parser/AST, matrix, builders and consumers. Establish source-backed positive/negative cases before implementation.
-3. Complete that implementation unit, preserve existing gates, run normal exact-head CI, obtain substantive review and merge without overwriting newer work.
-4. Then address the remaining P-03 true/false/unknown national dependent-condition outcomes, using per-note optional/forbidden semantics rather than a blanket rule.
+The later original complete worktree was unavailable; fourteen complete files
+were recovered with matching blob hashes and the remainder reconstructed against
+source and fail-first tests. Do not repeat recovery or trust historical test counts
+as current qualification. See `quality/audits/ediel-masterplan-v2/f3-register-recovery-20260918.md`.
 
-No register runtime change has yet been published. PR310 remains paused. Full F3/F7/masterplan acceptance remains separate.
+TGT source/rendering, both comparisons, source-bound facts through admin/autopilot
+and send gates, snapshot precedence, expected inventory, and durable per-object
+customer decisions are implemented.343 register cases pass. Local tests/typechecks pass; build hit a resource limit; final-head ordinary CI and independent review
+are pending. Supabase inspection was read-only. No live market messages were sent.
+
+Masterdata graph writes for normalization-changing or same-ID/different-agency
+objects remain explicitly blocked by the existing schema. Parsing/staging retain
+all identities. No broad F3 or live certification is asserted. A different actor
+cannot silently resume an existing object's transaction plan.
+
+Next action: complete qualification, publish to PR328 and review the exact head.
+Fix actual CI/review findings, then guarded merge only when accepted. After the
+register unit merges, begin the separate remaining110D review. PR310 remains
+PAUSED at e961135199f292b8210884f07de3b616a670161a. PR327 remains MERGED as
+51c73950515d771d2c2edcb97fde28ab087437a3. No schema, SQL, generated DB types, dependencies or original specification
+were changed. No further authorization is needed for agreed non-production work.
+
+Publication checkpoint:2157 application tests,343 register tests,851 retained source cases and all three TypeScript projects pass. Local build SIGKILL; ordinary CI production build and substantive review are required before merge.

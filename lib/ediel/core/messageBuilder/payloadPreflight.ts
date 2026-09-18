@@ -1,3 +1,5 @@
+import { readProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
+import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
 import { validateProdatDateFields } from '@/lib/ediel/prodat/prodatDateValidation'
 import { prodatDateValue } from '@/lib/ediel/prodat/prodatDateFields'
 import { readProdatParty, prodatPartySyntaxIssues } from '@/lib/ediel/prodat/prodatPartyFields'
@@ -697,10 +699,25 @@ export function preflightEdielPayload(params: {
 }
 
 export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' | 'parse' = 'send'): EdielPayloadPreflightResult {
-  return preflightEdielPayload({
+  const result = preflightEdielPayload({
     rawPayload: message.raw_payload,
     mimeType: message.mime_type,
     messageStandard: message.message_standard,
     mode,
   })
+  if (message.message_family !== 'PRODAT' || !message.raw_payload) return result
+  try {
+    const tokens = tokenizeEdifact(message.raw_payload)
+    const rawSegments = tokens.segments.map(segment => segment.raw)
+    const code = result.code ?? String(message.message_code ?? '')
+    const facts = mode === 'send' ? readProdatRegisterEvidence({code,rawSegments,una:tokens.una,parsedPayload:message.parsed_payload}) : undefined
+    for (const failure of validateProdatRegisterPayload({code,rawSegments,una:tokens.una,facts,requireConditions:mode === 'send'})) {
+      result.issues.push(issue({severity:'error',code:`PRODAT_REGISTER_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
+    }
+  } catch {
+    result.issues.push(issue({severity:'error',code:'PRODAT_REGISTER_EVIDENCE_INVALID',title:'Ogiltigt registerunderlag',description:'Registerunderlaget är ogiltigt eller hör till en annan meddelandeversion. Bygg om med verifierade objektfakta.'}))
+  }
+  result.blocking = result.issues.some(issue => issue.severity === 'error')
+  result.ok = !result.blocking
+  return result
 }

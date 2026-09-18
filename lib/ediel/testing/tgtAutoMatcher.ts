@@ -1,3 +1,4 @@
+import { readTgtProdatSourceColumns, sourceExpectationIndex } from './tgtProdatSource'
 import { matchProdatRegisterExpectations } from '@/lib/ediel/testing/prodatRegisterExpectation'
 import { prodatRegisterFieldValue } from '@/lib/ediel/prodat/prodatRegisterFields'
 import { prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
@@ -602,6 +603,10 @@ export type EdielTgtPayloadComparisonIssue = {
 }
 
 type TgtObjectValues = {
+  agency?: string | null
+  registerIndex?: string | null
+  sourceGroupIndex?: number
+  sourceRawFields?: Record<string,string>
   columnName: string
   sourceOrder: number
   fields: Record<string, string>
@@ -694,47 +699,17 @@ function comparableFieldCodesForMessage(messageCode: string): Set<string> {
   return new Set(common)
 }
 
-function testDataObjects(testData: EdielTgtCaseTestData | null | undefined): TgtObjectValues[] {
-  if (!testData) return []
-
-  const objects: TgtObjectValues[] = []
-
-  for (const group of testData.groups) {
-    const columns = [...group.columns].sort((a, b) => {
-      const sourceOrderDiff = Number(a.sourceOrder ?? a.index) - Number(b.sourceOrder ?? b.index)
-      return sourceOrderDiff !== 0 ? sourceOrderDiff : a.index - b.index
-    })
-
-    for (const column of columns) {
-      const fields: Record<string, string> = {}
-
-      for (const field of group.fields) {
-        const rawValue = field.values[column.name]
-        const value = prodatRegisterFieldScope(String(field.fieldCode)) === 'local' || prodatReferenceField(String(field.fieldCode)) || prodatPartyField(String(field.fieldCode)) || prodatDateField(String(field.fieldCode))
-          ? (String(rawValue ?? '').trim() || null) : normalizeExpectedValue(rawValue)
-
-        if (!value) continue
-
-        fields[String(field.fieldCode).toUpperCase()] = value
-      }
-
-      if (Object.keys(fields).length > 0) {
-        objects.push({
-          columnName: column.name,
-          sourceOrder: Number(column.sourceOrder ?? column.index),
-          fields,
-        })
-      }
-    }
-  }
-
-  return objects.sort((a, b) => a.sourceOrder - b.sourceOrder)
+function testDataObjects(testData: EdielTgtCaseTestData | null | undefined, code?: string): TgtObjectValues[] {
+  const rows=readTgtProdatSourceColumns(testData,code)
+  return rows.map(row=>({columnName:row.column.name,sourceOrder:Number(row.column.sourceOrder ?? row.column.index),
+    sourceGroupIndex:row.groupIndex,agency:row.identityAgency,registerIndex:sourceExpectationIndex(row,rows),
+    fields:row.fields,sourceRawFields:row.rawFields}))
 }
 
 function expectedFacilityIdsForObject(object: TgtObjectValues, messageCode?: string | null): string[] {
   const code = String(messageCode ?? '').toUpperCase()
 
-  if (code === 'Z05' && object.fields['233'] && /^735\d{15}$/.test(object.fields['233'])) {
+  if (code === 'Z05' && object.fields['233']) {
     return [object.fields['233']]
   }
 
@@ -751,11 +726,11 @@ export function compareInboundPayloadToTgtTestData(params: {
   const code=String(facts.messageCode ?? message.message_code ?? '').toUpperCase()
   const una=parseUna(message.raw_payload)
   const comparable=comparableFieldCodesForMessage(code)
-  const objects=testDataObjects(testData)
+  const objects=testDataObjects(testData,code)
   if (!objects.length) return []
   const matched=matchProdatRegisterExpectations(
     facts.lineItems.map((line,index)=>({data:line,id:line.itemId,index:line.registerIndex,agency:line.identityAgency,first:line.firstLineIndex===index,valid:line.validRegisterChain})),
-    objects.map(object=>({data:object,ids:expectedFacilityIdsForObject(object,code),index:object.fields['258'] ?? null})),
+    objects.map(object=>({data:object,ids:expectedFacilityIdsForObject(object,code),index:object.registerIndex ?? null,agency:object.agency})),
   )
   const issues:EdielTgtPayloadComparisonIssue[]=[]
   for (const match of matched.matches) {
