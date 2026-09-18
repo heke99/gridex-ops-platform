@@ -1,3 +1,7 @@
+# Current fixture-corrected PR331 qualification
+
+Fresh2594 application/913 source cases,all3types,lint0errors/99warnings,coverage and quality/RBAC/budgets pass. Initial targeted73pass/25fail corrected to99pass including one new negative control. First concurrent app-typecheck exited137, separate retry passed. See f3-d-z04-fixture-qualification-20260918 audit; new-head CI/review required before merge. Prior initial candidate records below are historical, not current acceptance.
+
 # Session log — 2026-09-18
 
 Recovered user ZIP matched the already-published original; retained both later PR330 corrections.

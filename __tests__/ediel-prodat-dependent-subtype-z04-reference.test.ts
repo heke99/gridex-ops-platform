@@ -7,7 +7,7 @@ import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterE
 import { resolveProdatDependentCondition } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import { validateProdatSubtypePayload } from '@/lib/ediel/rulebook/prodatSubtypePolicy'
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import { alphabets, characteristic, input, line, raw, type Parts } from './fixtures/prodat-register'
+import { alphabets, characteristic, input, line, qty, raw, type Parts } from './fixtures/prodat-register'
 
 // Independent source oracle: P26.A r3 §2.2 p21 / §2.6 p78, original
 // PC-319-Z04: D/Z70 requires the linked consumption-point RFF/Z07, other
@@ -15,7 +15,10 @@ import { alphabets, characteristic, input, line, raw, type Parts } from './fixtu
 const reason = (value = 'Z70') => characteristic('Z13', value)
 const reference = (value = '000-CONSUMPTION'): Parts => ['RFF', ['Z07', value]]
 function message(body: Parts[], environment: 'test' | 'production', alphabet: readonly string[]): EdielMessageRow {
-  const payload = raw(body, 'Z04', alphabet)
+  // Satisfy the independent field213 prerequisite with real wire values,
+  // not a fabricated UTILTS exception, so each case reaches the D guard.
+  const wireBody = body.flatMap((parts): Parts[] => parts[0] === 'LIN' ? [parts, qty('1')] : [parts])
+  const payload = raw(wireBody, 'Z04', alphabet)
   const wire = input(payload, 'Z04')
   const registerEvidence = createProdatRegisterEvidence({code:'Z04',rawSegments:wire.rawSegments,una:wire.una,
     facts:{market:'electricity',meterReadingsSentInUtilts:false}})
@@ -49,6 +52,7 @@ describe('Z04:319 protected actual outbound boundaries',()=>{
       for(const override of [false,true]) {
         row.parsed_payload={...row.parsed_payload,rulebookAllowInvalidSend:override}
         const result=validateEdielMessageRowWithRulebook(row,'send')
+        expect(result.issues.filter(i=>i.scope==='prodat_register'&&(i.blocking||i.severity==='error'))).toEqual([])
         expect(result.issues.some(i=>protected319(i)&&i.blocking&&i.severity==='error')).toBe(true)
         expect(()=>assertRulebookAllowsSend(row)).toThrow(/Z04:319/)
         expect(preflightEdielMessageRow(row,'send').issues.some(i=>protected319(i)&&i.severity==='error')).toBe(true)
@@ -58,7 +62,9 @@ describe('Z04:319 protected actual outbound boundaries',()=>{
     it(`${environment}/${alphabet.join('')}: stale family/code cannot hide Z04D`,()=>{
       const row=message([line('1','A'),...reason()],environment,alphabet)
       row.message_family='UTILTS'; row.message_code='Z06'
-      expect(validateEdielMessageRowWithRulebook(row,'send').issues.some(protected319)).toBe(true)
+      const issues=validateEdielMessageRowWithRulebook(row,'send').issues
+      expect(issues.filter(i=>i.scope==='prodat_register'&&(i.blocking||i.severity==='error'))).toEqual([])
+      expect(issues.some(protected319)).toBe(true)
       expect(()=>assertRulebookAllowsSend(row)).toThrow(/Z04:319/)
       expect(()=>assertEdielSendLock(row)).toThrow(/Z04:319/)
     })
