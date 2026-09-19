@@ -45,7 +45,7 @@ diff checks. Older `f3-remaining-dependencies-20260919.md` is orientation only.
   SHA256 `83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95`.
   Hash verified. Full p20 and both p67–68 segment tables were rendered and
   visually inspected, including their notes, table components and page labels.
-  Context also read at pp21–22,50,57,64–70,76,78,110,114–116,119,123.
+  Context also read at pp21–22,50,57,64–70,76,78,110,114–116,119,122–123.
 * Exact workbook: `/workspace/scratch/2a201d6d5897/reporting-permission-probes/TGT_PRODAT_Bilaga_1-Testdata_per_testkund_version_el_4-0-5.xlsx`,
   SHA256 `475131fa17fe0b4a611bae4ecf3f42cd78c9565b963a7c7cbd918213721332c7`.
   Hash verified; read cell coordinates, test/customer mapping and surrounding
@@ -74,8 +74,10 @@ Z01 or Z04 with settlement Z31; the other listed products permit Z04/Z32.
 Existing pure field parsers/validators and the accepted Z06 product policy
 remain authoritative for their existing scope; do not change Z06 behavior to
 implement Z10. Share a source table or add a bounded Z10 wrapper rather than
-broaden Z06 guards accidentally. Supplied Z10 values still need exact slot,
+broaden Z06 guards accidentally. Outbound supplied Z10 values need exact slot,
 length, code, adjacency, unique occurrence and compatible supplied context.
+Inbound field-content checks are subject to the p119 applicability gate below;
+pure validator correctness does not authorize calling it for ignored extra data.
 
 ### Three-valued and optional semantics
 
@@ -96,11 +98,13 @@ threshold regime may yield false only from an independently referenced
 applicability assessment; unassessed applicability is unknown. A true first
 operand still determines R when the second is unknown.
 
-False means optional, never forbidden. Optional omission is valid only after
-the predicate is independently known false; omission is not its proof. A
-supplied optional value must equal the independently assessed new value and
-satisfy field syntax. A known R with an unknown new output value remains
-unrenderable. Unknown facts stay U even if a plausible value is present.
+For an outbound EL selection, false means optional, never forbidden. Outbound
+optional omission is qualified only after the predicate is independently known
+false; omission is not its proof. An outbound supplied optional value must equal
+the independently assessed new value and satisfy field syntax. A known R with
+an unknown new output value remains unrenderable. Unknown facts stay U even if
+a plausible value is present. These sender requirements do not override the
+different inbound APERAK applicability rules below.
 
 The general gas examples 6109/6113 on pp20/68 do not remove “Z10: Endast
 elmarknaden.” This audit reads that as no GAS Z10 field242 authorization, not
@@ -134,12 +138,94 @@ misplaced first-register CCI/CAV, a pair after RFF/NAD, another object's pair,
 another UNH, or a wrong slot cannot supply the selected field. Keep existing
 later-repeat semantic ignoring and independent syntax/structure checks.
 
-P119 remains binding for inbound: absence of *local* historical/threshold facts
-does not establish a sender error or justify negative APERAK. Extra X/D data
-when the condition is not fulfilled must not be rejected on that basis. Do not
-route this new outbound fact-qualification failure into inbound negatives;
-retain applicable syntax, date and structural validation and existing distinct
-old/new meter validation.
+### Direction, applicability and validation precedence (round1 correction)
+
+P119 requires checking §2.2 function/subtype applicability **before** the
+individual field controls. For received extra information marked X, or D with
+its condition known not fulfilled, the recipient need not read or check the
+content. Crucially, **even if it is checked and found incorrect, that incorrect
+extra content must not result in negative APERAK**. This is stronger than merely
+not rejecting its presence. It governs selected254/242 value/code/field-content
+diagnostics as well as their presence. The outbound false-O branch is unchanged.
+
+P122 separately lists the received-content controls:254 permits Z31/Z32;
+242 refers to the electricity product table and lists the general gas codes.
+Those controls apply only after p119/§2.2 applicability is resolved. U is neither
+known false nor permission to exempt all supplied content from p122 checks.
+Use the actual message market/function/object scope; output codes and a root
+byCell flag cannot establish the change predicate.
+
+| Direction and independently resolved condition, active EL Z10 | Selected field absent | Selected field supplied |
+|---|---|---|
+| Outbound true/R | Protected required-field error; do not send. | Validate own first-register field content, exact new value and identity; source/authority must also qualify. |
+| Outbound false/O | Permitted omission once facts/authority qualify. | Optional inclusion still requires valid own content and agreement with the independently assessed new value. No inbound ignore rule is used for sending. |
+| Outbound U | Protected undetermined/unqualified error. | Same U block; field presence or a valid code cannot establish the missing business facts. |
+| Inbound true/R | Missing required field is a sender defect, provided true is independently established for this actual object/event. | Apply p122 and applicable field structure/content controls; report independently established defects normally. No invented local value-equality requirement. |
+| Inbound false, or source-known X/inapplicable | No selected-field missing/U error. | Ignore this extra selected field for APERAK. Invalid254/242 content, even if a reusable validator inspected it, must not produce negative APERAK. |
+| Inbound U because local change/threshold history is absent or unresolved | No selected-field missing or blocking-UNDETERMINED error based only on that local gap; keep U as unresolved knowledge. | Do not infer true/false from presence. Apply independently applicable supplied-content controls from p122 and the known EL/function scope; U does not waive an independently provable invalid supplied code or field structure. Do not demand unknown local history, new-value equality or sender authority. |
+
+Required consumer order for these two cells:
+
+1. Perform ordinary release-aware parsing and independent interchange/message
+   lexical/structural/date checks. Determine actual function, market, object,
+   first-register occurrence and direction without treating metadata or data
+   containing tag text as protocol structure.
+2. Resolve selected254/242 applicability independently of their contents, and
+   classify the result as outbound R/O/U or inbound true/false/inapplicable/U.
+   Gate **before** calling reusable selected-field content validators. Do not
+   first accumulate a254/242 error and hope a later aggregate stage ignores it.
+3. For inbound false/inapplicable, exclude these cells from all selected-field
+   missing, code/value, content and conditional-required checks, including the
+   migrated cells' legacy generic content/D paths. Do not globally filter
+   protected issues after collection. Optional observations of ignored content
+   must be nonblocking from their creation and outside the APERAK error path.
+   Preserve raw received data; do not rewrite source or weaken the pure
+   validator to achieve this.
+4. For inbound U, suppress only claims that require the unresolved predicate or
+   unavailable local evidence. Still validate supplied content where p122 and
+   the independently known wire scope establish the control. For outbound,
+   enforce the sender rows above and separately require persisted authority.
+5. Preserve genuinely independent EDIFACT lexical/envelope/segment-structure
+   faults, the p119 date-format provision and existing other-field controls
+   (including distinct old/new meters). A field-content error on ignored extra
+   254/242 cannot be relabeled “syntax” to recover a negative APERAK. Conversely,
+   this exemption does not legalize malformed interchanges, alter CONTRL syntax
+   handling or suppress errors in accepted Z06 or other units.
+
+The concrete U/content boundary adjudicated by root in round1 is: with EL Z10
+and the selected occurrence established independently, check a supplied254 code
+against Z31/Z32 and a supplied242 code against the EL product table. Interpret
+their actual CCI qualifier and CAV component using the unchanged field rules;
+only an independently established occurrence/field scope permits a placement
+or slot defect. That attribution must never be inferred from the wrong or
+missing selected content itself. These controls do not need historical change
+evidence. A
+compatibility check involving several characteristics must first establish
+each participating field's applicability and identity independently; ignored
+false/inapplicable content cannot drive a negative on its partner. Any defect
+that additionally needs an unresolved change predicate, threshold, prior value
+or occurrence applicability remains a nonblocking diagnostic. Never require a
+local saved-fact envelope from the inbound sender. This is an explicit bounded
+policy inference combining p119's exception with p122's supplied-code controls,
+not a claim that p119 expressly enumerates every U/content combination.
+Root approved this boundary after reading the full original p119/p122; scoped
+independent rereview is still required before runtime authorization.
+
+Future focused inbound verification must cover independently true, false and U
+objects separately: missing true field; tokenizable BAD/INVALID selected content
+under false without a selected-field negative; U without local facts without a
+blocking U/missing error; U supplied invalid code under established scope; and
+U-dependent compatibility or ambiguous occurrence remaining diagnostic. Include
+independent malformed-wire/date/other-field failures beside ignored extra
+content to prove those protections survive. These are required future tests,
+not results claimed by the current two consumer observations.
+
+This ordering belongs in every active canonical/inbound consumer that invokes
+the selected checks, not solely in the new pure evaluator or final error text.
+Outbound normal/catch paths retain protected source failures. Whether an
+inbound canonical diagnostic reaches final negative APERAK must be demonstrated
+through that actual downstream consumer; a validator result alone is not proof
+of complete APERAK behavior.
 
 ## Workbook evidence does not prove all change predicates
 
@@ -200,6 +286,13 @@ all future meter/billing implementations. No live records were inspected.
    actual-module probe, both absent fields produce zero D-only errors with root
    false, and two U errors with unknown. This does **not** prove SMTP would send:
    existing date/register/role/version gates remain independently operative.
+   Independent review additionally characterized the actual inbound canonical
+   selected-rule path: no local facts produced two blocking UNDETERMINED errors;
+   rootfalse direct policy produced none for BAD/INVALID supplied content.
+   These expose missing direction/applicability ordering and the absence of
+   qualified fact interpretation; they are consumer characterizations, not
+   proof of a complete negative-APERAK outcome. The rootfalse observation does
+   not certify p119 correctness because rootfalse is not independent authority.
 3. `prodatRegisterEvidence.ts` explicitly copies approved fact subsets and
    body-binds decoded wire content. It drops byCell and any proposed meter-change
    aggregate. Its integrity binding is not a signature or persisted authority.
@@ -247,14 +340,15 @@ type Product = 'L639Q'|'L640Q'|'L654Q'|'L917'|'L633Q'|'L634Q'|'L635Q'
   |'L636Q'|'L637Q'|'L638Q'|'L641Q'|'L642Q'|'L651Q'|'L652Q'|'L653Q';
 type Party = {id: Id; qualifier: string; agency: string};
 type Ref = {key: Id; revision: Id; eventKey: Id; reference: string};
+type SourceDocumentRef = {key:Id; revision:Id; reference:string};
 type Known<T> = {kind:'unknown'} | {kind:'known'; value:T; evidence:Ref};
 type Selector = {workbookSha256:string; sheet:string; entityLabel:string;
   blockIndex:number; columnName:string; columnIndex:number};
 type CustomerScope = {kind:'test_customer'; selector:Selector}
   | {kind:'domain_customer'; customerKey:Id; revision:Id};
 type Threshold = {kind:'unknown'}
-  | {kind:'applicable'; below:boolean; regime:Ref; assessment:Ref}
-  | {kind:'not_applicable'; regime:Ref; assessment:Ref};
+  | {kind:'applicable'; below:boolean; regime:SourceDocumentRef; assessment:Ref}
+  | {kind:'not_applicable'; regime:SourceDocumentRef; assessment:Ref};
 type MeterChangeObject = {
   objectKey:Id; event:Ref; customer:CustomerScope;
   installation:{id:Id; agency:'9'|'89'};
@@ -317,8 +411,15 @@ through the explicit union branches. Missing entire selection remains U for a
 pure caller and unqualified for sender; null clear invalidates old authority,
 not “both predicates false”. Preserve unrelated existing note fields.
 
-All refs must carry the same eventKey and current fact revision for their
-object; old/new meter numbers are different, nonblank an..35 original business
+Event/observation/assessment `Ref` values must carry the same eventKey and
+current fact revision for their object. A regime `SourceDocumentRef` instead
+identifies the independently referenced source document and its own revision;
+it has no eventKey and must not be coerced to the aggregate fact revision.
+The event-bound assessment explicitly records which regime key/revision it
+used. Material reassessment updates the aggregate revision while preserving
+the actual referenced document revision; changing that regime invalidates the
+prior assessment until reassessed. Old/new meter numbers are different,
+nonblank an..35 original business
 identities, never invented UUID substitutions. Installation agency9/89 and
 value must match own wire LIN, E58 and LI must match own first occurrence, and
 effectiveMinute must match field216. Technical event/object keys may be
@@ -355,7 +456,10 @@ asserted old/new IDs and event time against original source constraints.
    per-first-register identity selection and the truth tables above. Route both
    cells out of the legacy condition loop; no root snapshots/byCell override.
    Keep Z06 and all pure field validators unchanged. Outbound unknown/invalid
-   source gets protected D issues. Inbound uses p119 semantics separately.
+   source gets protected D issues. Inbound must implement the direction and
+   applicability table above **before** reusable254/242 content validators;
+   no blocking U from local missing facts, no negative APERAK for even-invalid
+   known-extra content, and no blanket p122 exemption for supplied content in U.
 2. Extend canonical builder/profile renderer and generic `buildProdat.ts`, TGT
    renderer and `validateEdielTgtDraft`, fact copying/evidence, normal/catch
    rulebook, raw/row preflight and both protected guards consistently. Reuse
@@ -444,6 +548,15 @@ read to understand its original-source fixtures and loader; it was not changed.
 | First scratch configuration attempt | Startup failed on an absolute Vitest package-export import. Corrected only scratch config to `vitest/config`; successful characterization follows. No production/immutable loader modification. |
 | `npm run ediel:masterplan-v2:integrity` | PASS:33 original files,121 rules,231 acceptance contracts; application conformance/production readiness explicitly false. |
 | `git diff --check` | PASS; staged audit also checked before commit. |
+
+Round1 documentation correction follows the independent source/architecture
+review at `z10-change-facts-source-review-report.md`: explicit six-way
+direction/applicability table, early per-object selected-cell gating, the
+bounded U/content proposal, and separate regime/document versus aggregate
+assessment revisions. Original p119 and p122 were reread. The reviewer's two
+actual-module inbound observations are recorded above as consumer evidence,
+not final APERAK proof. Integrity and diff checks were rerun for this correction;
+no runtime or old assertions changed and no application suite was rerun.
 
 Confirmed gaps are source-contract/architecture findings, not verified market
 sends or security exploits. False positives ruled out: “no Z10 builder” (pure

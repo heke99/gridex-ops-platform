@@ -4,8 +4,8 @@
   "status": "IN_PROGRESS",
   "branch": "codex/ediel-z10-change-facts-20260919",
   "base_head_sha": "0271e118a5ab4f7adebe5e5b7a041dda01a5547a",
-  "active_item": "Source qualification of Z10 fields254/242",
-  "next_action": "Complete Z10 source/producer qualification, independent source/spec and architecture review before runtime",
+  "active_item": "Z10 bounded OptionA runtime implementation",
+  "next_action": "Original implementer completes RED/GREEN/gates then independent runtime reviews and exact-head CI",
   "accepted_numeric_D": 98,
   "merged_numeric_D": 98,
   "numeric_D_total": 110,
@@ -25,14 +25,13 @@
     "total": 73,
     "node": "22.23.2"
   },
-  "source_qualification_commit": "49604a204a4df44a996de852abfc6d2cd237d313",
-  "runtime_authorized": false,
+  "runtime_authorized": true,
   "last_accepted_pr": 346,
-  "source_fix_round": 2,
+  "source_fix_round": 1,
   "source_remote_checkpoint": {
-    "head": "0fcff7e52dc3be5b4540dfa365ca3f236531c652",
-    "tree": "bdfea2a2f1eeb4d4745bf6a20e3278facc866612",
-    "local_equivalent": "1749c9a2356dc3d0a7bc62ad9240d8f42b954697",
+    "head": "f4e7f381ccb2c66a623c40efa7a4f5be98df5825",
+    "tree": "b37fe2e196f2c17b77705655edcd4a5133303895",
+    "local_equivalent": "b13987d19f7077f1d2ff04fdc90849706546a2c8",
     "pr": null
   },
   "runtime_local_head": "3c37c467c22837978cad798dcbc72bc2219e0b32",
@@ -48,5 +47,8 @@
       105941346686
     ],
     "conclusion": "success"
-  }
+  },
+  "source_candidate_commit": "5eaf5b7da147021fd84c6c7f6cc4ecda3cd15d33",
+  "source_review": "SOURCE/SPEC and ARCHITECTURE APPROVE R1",
+  "runtime_scope": "OptionA only; positive persisted Z10 producer unqualified"
 }
