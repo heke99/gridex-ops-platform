@@ -2,12 +2,12 @@
   "project": "gridex-ops-platform",
   "updated_at": "2026-09-19",
   "status": "IN_PROGRESS",
-  "branch": "codex/ediel-reporting-permission-20260919",
-  "base_head_sha": "0a82c9ce51ef5c95868ed9c25907f1e10819d079",
-  "active_item": "PR346 independent runtime review and exact-head CI",
-  "next_action": "Consolidate review findings; original implementer fixes, scoped rereview and new exact-head CI before guarded merge/main receipt",
-  "accepted_numeric_D": 96,
-  "merged_numeric_D": 96,
+  "branch": "codex/ediel-z10-change-facts-20260919",
+  "base_head_sha": "0271e118a5ab4f7adebe5e5b7a041dda01a5547a",
+  "active_item": "Source qualification of Z10 fields254/242",
+  "next_action": "Complete Z10 source/producer qualification, independent source/spec and architecture review before runtime",
+  "accepted_numeric_D": 98,
+  "merged_numeric_D": 98,
   "numeric_D_total": 110,
   "accepted_parents": 10,
   "merged_parents": 10,
@@ -19,15 +19,15 @@
   },
   "full_masterplan": "NOT_COMPLETE",
   "main_full_certificate": {
-    "run": 35453204332,
-    "job": 105923836983,
+    "run": 35459742971,
+    "job": 105941346806,
     "passed": 73,
     "total": 73,
     "node": "22.23.2"
   },
   "source_qualification_commit": "49604a204a4df44a996de852abfc6d2cd237d313",
-  "runtime_authorized": true,
-  "last_accepted_pr": 345,
+  "runtime_authorized": false,
+  "last_accepted_pr": 346,
   "source_fix_round": 2,
   "source_remote_checkpoint": {
     "head": "0fcff7e52dc3be5b4540dfa365ca3f236531c652",
@@ -35,8 +35,18 @@
     "local_equivalent": "1749c9a2356dc3d0a7bc62ad9240d8f42b954697",
     "pr": null
   },
-  "runtime_local_head": "93c24fbebc5d81da7300cbcd03224702722f0450",
-  "runtime_published_head": "58385ec58306b3a67fee5c66974b37ca8be70c48",
-  "runtime_tree": "863f1762012ab21dd499041e0dbb96bbb38cc5e3",
-  "active_pr": 346
+  "runtime_local_head": "3c37c467c22837978cad798dcbc72bc2219e0b32",
+  "runtime_published_head": "8ea493a08666db3375e967ce127ef7aae9a38f64",
+  "runtime_tree": "eafbb0f4dcab6132d66d6c6fc589aac23f5ea579",
+  "active_pr": null,
+  "last_merged_pr": 346,
+  "main_ops_receipt": {
+    "run": 35459743008,
+    "jobs": [
+      105941346498,
+      105941346677,
+      105941346686
+    ],
+    "conclusion": "success"
+  }
 }
