@@ -1,3 +1,6 @@
+import type {MeterChangeSelection} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
+import {meterChangeSendIssue} from '@/lib/ediel/prodat/prodatMeterChangeAuthority'
+import {validateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy'
 import {reportingAuthorityIssue} from '@/lib/ediel/prodat/prodatReportingPermissionAuthority'
 import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
 import {validateProdatReportingPermission} from '@/lib/ediel/rulebook/prodatReportingPermissionPolicy'
@@ -348,6 +351,7 @@ function validateEdifactPayload(params: {
   parsedPayload?: unknown
   dateEventRow?:ProdatDateEventRow
   dateEventContext?:TgtDateEventValidationContext
+  meterChange?:MeterChangeSelection
   reportingContext?:ExpectedContext
   companyId?: string | null
 }): EdielPayloadPreflightResult {
@@ -359,6 +363,8 @@ function validateEdifactPayload(params: {
   const { segments, una } = tokens
   const rawSegments = segments.map(segment => segment.raw)
   const issues: EdielPayloadPreflightIssue[] = []
+  const meterBoundary=params.mode==='send'?meterChangeSendIssue({message_family:'PRODAT',raw_payload:rawPayload}):null
+  if(meterBoundary)issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${meterBoundary.code}`,title:meterBoundary.title,description:meterBoundary.description}))
   const unb = first(segments, 'UNB')
   const unh = first(segments, 'UNH')
   const bgm = first(segments, 'BGM')
@@ -539,6 +545,7 @@ function validateEdifactPayload(params: {
     }
   }
 
+  if(params.mode==='parse'&&canonical.family==='PRODAT')for(const failure of validateProdatMeterChange({code:canonical.messageCode??'',rawSegments,una,direction:'inbound',facts:{meterChange:params.meterChange}}))issues.push(issue({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description}))
   if(params.mode==='parse'&&canonical.family==='PRODAT')for(const failure of validateProdatDateEvents({code:canonical.messageCode??'',rawSegments,una,direction:'inbound'}))issues.push(issue({severity:'error',code:failure.code,title:failure.title,description:failure.description}))
 
   const rulebookValidation = validateRulebookMessage({
@@ -548,7 +555,7 @@ function validateEdifactPayload(params: {
     applicationReference: canonical.applicationReference,
     rawPayload,
     companyId: params.companyId,
-    dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext,
+    dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext,meterChange:params.meterChange,
     ...(params.mode==='send'?{environment:params.dateEventRow?.environment,direction:params.dateEventRow?.direction}:{}),
     mode: params.mode === 'send' ? 'send' : 'parse',
     parsedPayload: params.parsedPayload && typeof params.parsedPayload === 'object' && !Array.isArray(params.parsedPayload)
@@ -700,6 +707,7 @@ export function preflightEdielPayload(params: {
   parsedPayload?: unknown
   dateEventRow?:ProdatDateEventRow
   dateEventContext?:TgtDateEventValidationContext
+  meterChange?:MeterChangeSelection
   reportingContext?:ExpectedContext
   companyId?: string | null
 }): EdielPayloadPreflightResult {
@@ -724,7 +732,7 @@ export function preflightEdielPayload(params: {
   if (params.messageStandard === 'xml' || rawPayload.startsWith('<')) return validateXmlPayload(rawPayload, params.mimeType ?? null)
   const edifactDeclared = params.messageStandard === 'edifact' || rawPayload.startsWith('UNA')
   if (params.messageStandard === 'ai_list' || (!edifactDeclared && !rawPayload.includes("'") && rawPayload.includes(';'))) return validateListPayload(rawPayload)
-  return validateEdifactPayload({ rawPayload, mimeType: params.mimeType ?? null, mode: params.mode ?? 'parse', parsedPayload:params.parsedPayload,companyId:params.companyId,dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext })
+  return validateEdifactPayload({ rawPayload, mimeType: params.mimeType ?? null, mode: params.mode ?? 'parse', parsedPayload:params.parsedPayload,companyId:params.companyId,dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext,meterChange:params.meterChange })
 }
 
 export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' | 'parse' = 'send', dateEventContext?:TgtDateEventValidationContext,reportingContext?:ExpectedContext): EdielPayloadPreflightResult {
@@ -736,6 +744,8 @@ export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' 
     parsedPayload:message.parsed_payload,
     companyId:message.company_id,dateEventRow:message,dateEventContext,reportingContext,
   })
+  const meterBoundary=mode==='send'?meterChangeSendIssue(message):null
+  if(meterBoundary){result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${meterBoundary.code}`,title:meterBoundary.title,description:meterBoundary.description}));result.ok=false;result.blocking=true}
   if (!message.raw_payload || (result.family !== 'PRODAT' && message.message_family !== 'PRODAT' && !/^(?:UNA|UNB|UNH)/.test(message.raw_payload.trimStart()))) return result
   try {
     const tokens = tokenizeEdifact(message.raw_payload)

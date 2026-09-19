@@ -1,3 +1,4 @@
+import {assertMeterChangeSendBoundary} from '@/lib/ediel/prodat/prodatMeterChangeAuthority'
 import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
 import type {TgtDateEventValidationContext} from '@/lib/ediel/prodat/prodatDateEventAuthority'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -9,6 +10,7 @@ function objectValue(value: unknown): Record<string, unknown> | null {
 
 export function assertRulebookAllowsSend(message: EdielMessageRow,dateEventContext?:TgtDateEventValidationContext,reportingContext?:ExpectedContext): void {
   if (message.direction !== 'outbound') return
+  assertMeterChangeSendBoundary(message)
   const parsedPayload = objectValue(message.parsed_payload) ?? {}
 
   const validation = validateEdielMessageRowWithRulebook(message, 'send',dateEventContext,reportingContext)

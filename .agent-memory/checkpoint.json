@@ -29,10 +29,11 @@
   "last_accepted_pr": 346,
   "source_fix_round": 1,
   "source_remote_checkpoint": {
-    "head": "f4e7f381ccb2c66a623c40efa7a4f5be98df5825",
-    "tree": "b37fe2e196f2c17b77705655edcd4a5133303895",
-    "local_equivalent": "b13987d19f7077f1d2ff04fdc90849706546a2c8",
-    "pr": null
+    "head": "87ece9c155afef7b805daf56ada8e2ad4eb1843e",
+    "tree": "c8a8f50b620e8db1b97f110f1d5271ca2b3f3c7f",
+    "local_equivalent": "60a69722",
+    "pr": null,
+    "verification": "public fetch and exact diff0"
   },
   "runtime_local_head": "3c37c467c22837978cad798dcbc72bc2219e0b32",
   "runtime_published_head": "8ea493a08666db3375e967ce127ef7aae9a38f64",

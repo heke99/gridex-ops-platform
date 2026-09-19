@@ -93,11 +93,11 @@ describe('canonical Ediel policy batch regression', () => {
     expect([...coveredCodes].sort()).toEqual([...EXPECTED_PRODAT_CODES].sort())
   })
 
-  it('preserves catalog coverage while root hints cannot qualify the four date conditions', () => {
+  it('preserves catalog coverage while root hints cannot qualify date/reporting/meter-change conditions', () => {
     // Z04 accepts D and Z06/Z09 accept F. V belongs to sharing messages.
     // Z06:242 (P26.A p20) and Z14:217 (p57) are EL-only; other catalog gas cases remain.
     // This explicit-facts catalog test is not validation of all110 wire D cells.
-    // Preserve full-registry coverage and other determined hints; dates/reporting need per-object evidence.
+    // Preserve full-registry coverage and other determined hints; dates/reporting/meter-change need per-object evidence.
     const byCell = Object.fromEntries(PRODAT_26A_DEPENDENT_CONDITION_REGISTRY.map((entry) => [entry.id, true]))
 
     const unknownIds:string[]=[]
@@ -120,7 +120,7 @@ describe('canonical Ediel policy batch regression', () => {
       unknownIds.push(...results.filter(entry=>entry.status==='undetermined').map(entry=>entry.id))
     }
 
-    expect(unknownIds.sort()).toEqual(['Z06:210','Z09:210','Z09:211','Z10:210','Z13:321','Z13:323','Z14:321','Z14:323'])
+    expect(unknownIds.sort()).toEqual(['Z06:210','Z09:210','Z09:211','Z10:210','Z10:242','Z10:254','Z13:321','Z13:323','Z14:321','Z14:323'])
     const evaluatedIds = EXPECTED_PRODAT_CODES.flatMap((messageCode) =>
       evaluateProdatDependentConditions({
         messageCode,

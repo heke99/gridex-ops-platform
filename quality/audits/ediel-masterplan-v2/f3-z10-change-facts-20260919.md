@@ -1,9 +1,12 @@
 # Z10 meter-change facts: source and architecture qualification
 
-Status: **SOURCE/ARCHITECTURE PROPOSAL; independent review pending.**
-Scope is exactly PC-254-Z10 and PC-242-Z10. No runtime, legacy assertion,
-original specification, acceptance ledger, schema, generated type, loader,
-budget, threshold, codec or root-memory change. No external operation was run.
+Status: **Option A implemented; runtime verification and independent review
+handoff recorded below.** Source/spec and architecture R1 were independently
+approved after5eaf5b7d; root explicitly authorized bounded runtime. Scope remains
+PC-254-Z10 and PC-242-Z10. No original specification, acceptance ledger, schema,
+generated type, loader, budget, threshold, codec or root-memory change. One
+individually adjudicated catalog assertion changes; see runtime receipt below.
+No external operation was run by this worker.
 PR310 remains paused at `e961135199f292b8210884f07de3b616a670161a`; this
 proposal neither imports it nor establishes a dependency on it.
 
@@ -574,3 +577,146 @@ acceptance counts and positive persisted Z14 qualification are not asserted.
 No unrelated full suite or runtime acceptance suite was run in this source
 phase. Scratch observations and expected RED contracts are the entire executed
 application probe scope.
+
+
+## Authorized Option A runtime implementation
+
+The earlier source/proposal sections are the historical investigation. Root
+subsequently dispatched `z10-change-facts-runtime-brief.md` after independent
+SOURCE/SPEC and ARCHITECTURE approval in
+`z10-change-facts-source-r1-review-report.md`. Option B remains unauthorized.
+Runtime skill routing: executing-plans, TDD, review-feedback, scoped code review
+and verification-before-completion; finishing uses the already authorized local
+commit/handoff. Whole-project quality-playbook generation, new worktree, UI,
+DB/schema, security scanners, deployment and subagents remain out of scope.
+Root exclusively owns memory, publication, independent review and acceptance.
+
+### Implemented boundaries
+
+- `prodatMeterChangeFacts.ts` is the strict pure owner. Mandatory exact nested
+  shapes, explicit unknown unions, bounded business identities, distinct meters,
+  real EL midnight, event/revision consistency and deep copies. Threshold
+  assessment additionally records `regimeKey` and `regimeRevision`, matching
+  its independently versioned source document. No numeric threshold is invented.
+  Duplicate object/event/LIN-agency/LI/source selectors fail. The implemented
+  selection accepts only `caller_selection`; future TGT/notes types from the
+  proposal are deliberately not activated.
+- The condition engine ignores byCell for these two cells; evidence/snapshot
+  copying retains the strictly validated aggregate, while persisted evidence
+  rejects pure meter-change authority. A recomputed body binding is not authority.
+- `prodatMeterChangePolicy.ts` binds own first register, EL/function/reason,
+  original old/new meter refs, LI, effective date and legal header parties before
+  evaluating per-object conditions. Incoming context mismatch/unknown local
+  history is diagnostic, not a sender-history/equality error. Known false is
+  gated before selected validators; U gets only independently scoped supplied
+  controls. Product/method and product/settlement compatibility are separately
+  gated so ignored content can neither create nor suppress another applicable
+  check. Reusable validators and Z06 behavior are unchanged.
+- Actual profile and generic builders and TGT renderer/draft validation use
+  that owner. Profile Z10 emits independently known required values and meter
+  references. Optional fields remain optional. Unknown output remains blocked
+  by the selected policy. Z10 LI bypasses lossy compacting and uses the shared
+  escaping helper; combined service characters and tag-looking references are
+  tested through the actual builder, not only constructed wire fixtures.
+- `prodatMeterChangeAuthority.ts` makes persisted Z10 unqualified unconditionally,
+  selected by raw OR row code, including mislabeled/malformed evidence and
+  intentional-invalid flags. Rulebook/preflight and both guards enforce it;
+  actual shared SMTP invokes the protected guards before DB/provider/snapshot
+  edges. There is no new saved producer, active role, form or association writer.
+- Canonical normal/catch and raw preflight share incoming policy. Any explicit
+  receiver `meterChange` parameter is pure caller context, never loaded from
+  incoming parsed metadata. No currently trusted production history loader is
+  claimed by those tests.
+- Actual `decisionEngine.decideProdatAperak` now returns negative selected-field
+  application errors for independently established code defects and positive
+  for false extra content/U absent facts. New error references use their own
+  failing LIN/LI, not the first object's identity. The separate manual/TGT
+  registry has no qualified254/242 mapping: it raises
+  `PRODAT_METER_CHANGE_ACK_REVIEW_REQUIRED` before positive shortcuts or writes.
+  Existing error mappings are preserved; this is not a blanket manual positive
+  ACK guarantee and does not invent a new registry mapping.
+
+### TDD and self-review receipts
+
+All JSON/log receipts are under the scratch `z10-source-probes` directory.
+Initial23-test RED:14 expected failures,9 observations pass; after owner/policy,
+23/23 passed. Boundary RED:19/26 failures,7 pass; corrected a missing production
+`segmentComposite` import on the first GREEN attempt, then49/49 passed.
+Builder RED had two meaningful new integration failures plus two incomplete
+fixture failures (missing independent register/date facts); those fixtures were
+fixed and a counterfactual RED of only the new generic integration confirmed
+both generic assertions fail without the change. No incomplete fixture failure
+is claimed as proof of the targeted builder defect.
+
+Concrete later RED/fixes: false optional outgoing compatibility; actual profile
+LI service-character loss; wrong-object APERAK error references; ignored false
+settlement suppressing an independently applicable product/method defect. The
+new fixtures use independent literals rather than reading expected outputs from
+the implementation. Broad selected failure assertions are supplemented by exact
+field/code checks, real APERAK decisions and actual unmocked SMTP/guard calls.
+Only external DB/provider edges are mocked; these must remain uncalled.
+
+First full Vitest:4184/4185, one obsolete catalog assertion. Root individually
+approved `__tests__/ediel-canonical-policy-batch-regression.test.ts:123` after
+reading the source and fixture: add exactly Z10:242 and Z10:254 to the expected
+unknown list because root byCell/GAS hints lack meterChange facts. The title and
+comment now mention date/reporting/meter-change. All110 evaluated-ID equality
+and every other old assertion remain unchanged. No other assertion edit was
+requested or authorized.
+
+### Acceptance limits
+
+Option A is normative pure/inbound hardening plus an explicit persisted-send
+barrier. The current production/manual incoming paths have no qualified local
+historical producer and therefore use U, except explicit pure test contexts.
+No positive persisted Z10 producer, notes UI, grid-owner role, GAS or live path
+was enabled. No notes lifecycle/CAS/association implementation is implied.
+Pure green fixtures cannot accept either full end-to-end cell. Counts remain
+root's98/110 and10/10 parents; PR310 remains paused. Application conformance,
+production readiness and full-masterplan completion remain unasserted.
+
+
+Final source-refutation check: an added full-canonical test initially expected
+false242 to suppress an independently populated506 in CAV's fifth component.
+That expectation was **refuted**, not fixed in runtime. Root and the independent
+source reviewer confirmed p68's fourth-component242 versus fifth-component506
+identity; a shared `fieldPath` is not proof of the same field. No sibling
+projection or506 rule was changed. The corrected new test asserts ignored
+invalid fourth-component242 while preserving the independent506 result. Its
+initial RED is retained as a test-oracle error. General p119 disposition of
+inbound extra506 remains a separately unreviewed question; this two-cell change
+does not claim to source-certify it or broaden its scope.
+
+
+### Final executed verification
+
+Runtime/test candidate has82 new focused tests. Final full Vitest passes
+4188/4188, zero failures, with the required static-read preload. The final
+new sibling test is the source-refuted assertion corrected above; no production
+change followed the143/143-per-zone checks. Final gate commands and exit codes
+are retained in scratch `gate-results.json`; all13 exit0. The earlier failure
+receipts remain separate (`runtime-red`, `boundary-red`, `builder-red`,
+`builder-corrected-red`, `builder-escaping-red`, `isolation-red-corrected`,
+`inbound-red`, `aperak-object-red`, `compatibility-precedence-red`,
+`inbound-sibling-check`, `full-vitest-red`).
+
+| Command / exact gate | Result |
+|---|---|
+| `NODE_OPTIONS='--max-old-space-size=4096 --require=./scripts/lib/refactor-safe-static-read.cjs' node node_modules/vitest/vitest.mjs run --reporter=json --outputFile=/workspace/scratch/2a201d6d5897/z10-source-probes/full-vitest-final.json` | 4188/4188 PASS,0 failed. |
+| `npm run typecheck`; `npm run typecheck:scripts`; `npm run typecheck:tests` | Each exit0. First app check's optional-facts dereference was fixed; its failure receipt is retained. |
+| `npm run lint` | exit0;100 warnings,0 errors. No lint rule or suppression changed. |
+| `npm run quality:large-file-budget`; `npm run quality:performance` | Each exit0; budgets/gates unchanged. |
+| `npm run ediel:masterplan-v2:integrity` | 33 originals/121 rules/231 contracts; conformance/readiness false. |
+| `node scripts/gridex-tenant-integrity-regression.cjs`; `node scripts/gridex-tenant-shutdown-regression.cjs`; `node scripts/check-service-role-tenant-ratchet.cjs` | Each exit0; actual2401, unchanged baseline2402. |
+| `node --experimental-vm-modules --test scripts/test-ediel-rule-pack-source-identity.cjs scripts/test-ediel-prodat-source-locators.cjs scripts/test-ediel-prodat-characteristic-fields.cjs scripts/test-ediel-prodat-reference-fields.cjs scripts/test-ediel-prodat-document-fields.cjs scripts/test-ediel-prodat-party-fields.cjs scripts/test-ediel-prodat-d-z04-reference.cjs scripts/test-ediel-component-escaping.cjs` | 818/818 PASS; unchanged loaders/scripts. |
+| `NODE_OPTIONS='--max-old-space-size=4096 --require=./scripts/lib/refactor-safe-static-read.cjs' npm run gridex:route-readiness-regression` | exit0. |
+| `TZ=UTC`, `TZ=Europe/Stockholm`, `TZ=Pacific/Apia`: new meter-change suites + existing date-events + canonical-policy-batch tests | Each143/143 PASS; exact argument arrays in `tz-results.json`. |
+| `git diff --check`; staged diff check | PASS. |
+
+Self-review covered the complete modified owner → builders → copying/evidence
+→ canonical normal/catch → preflight → both guards → actual SMTP and actual
+APERAK consumers. The proven corrections and source-refuted test expectation
+are separated above. Existing Z06 behavior and all immutable source scripts
+remain green. Local runtime is Node24.19.0; root must obtain independent
+exact-head Node22 CI/review before publication/merge/acceptance. No live records,
+SMTP/provider calls, DB writes, settings changes or explicit deployment occurred.

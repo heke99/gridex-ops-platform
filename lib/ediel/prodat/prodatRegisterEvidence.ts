@@ -1,3 +1,4 @@
+import {copyMeterChangeSelection} from './prodatMeterChangeFacts'
 import {assertReportingAuthority} from './prodatReportingPermissionAuthority'
 import type {ExpectedContext,PureSelection,TgtEvidence} from './prodatReportingPermissionContext'
 import {copyReportingSelection} from './prodatReportingPermissionContext'
@@ -16,7 +17,7 @@ export type ProdatRegisterEvidence = {
   /** Decoded message body, without transport envelope. Integrity binding only,
    * NOT authorization or a signature. Facts require a server-owned row. */
   bodyBinding: string
-  facts: Pick<ProdatDependentConditionFacts, 'market' | 'meterReadingsSentInUtilts' | 'registerObjects' | 'endUserAddressObjects' | 'invoiceeObjects' | 'dateEventObjects' | 'dateEventSource'> & {reportingPermission?:TgtEvidence|Omit<PureSelection,'evaluationUtcMs'>|null}
+  facts: Pick<ProdatDependentConditionFacts, 'market' | 'meterReadingsSentInUtilts' | 'registerObjects' | 'endUserAddressObjects' | 'invoiceeObjects' | 'dateEventObjects' | 'dateEventSource' | 'meterChange'> & {reportingPermission?:TgtEvidence|Omit<PureSelection,'evaluationUtcMs'>|null}
 }
 const record = (value: unknown): Record<string,unknown> | null => value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string,unknown> : null
 const invalid = (): never => { throw new Error('prodat_register_evidence_invalid') }
@@ -51,6 +52,7 @@ export function copyProdatRegisterFacts(value: unknown): ProdatDependentConditio
   if(source.dateEventObjects!==undefined)facts.dateEventObjects=copyProdatDateEventObjects(source.dateEventObjects)
   if(source.dateEventSource!==undefined)facts.dateEventSource=copyProdatDateEventSource(source.dateEventSource)
   if(Object.hasOwn(source,'reportingPermission') && source.reportingPermission!==undefined) facts.reportingPermission=source.reportingPermission===null?null:copyReportingSelection(source.reportingPermission)
+  if(Object.hasOwn(source,'meterChange') && source.meterChange!==undefined) facts.meterChange=source.meterChange===null?null:copyMeterChangeSelection(source.meterChange)
   return facts
 }
 function bodyBinding(rawSegments: readonly string[], una: EdifactServiceStringAdvice): string {
@@ -68,6 +70,7 @@ export function readProdatRegisterEvidence(input:{code:string;rawSegments:readon
   if (!engine || !Object.hasOwn(engine,'registerEvidence')) return undefined
   const evidence=record(engine.registerEvidence)
   if (!evidence || evidence.version!==1 || evidence.code!==input.code || evidence.bodyBinding!==bodyBinding(input.rawSegments,input.una ?? parseUna(null))) return invalid()
+  if(record(evidence.facts)?.meterChange != null) return invalid() // No persisted Z10 producer is qualified.
   if(record(record(record(evidence.facts)?.reportingPermission)?.source)?.kind==='caller_selection')return invalid()
   const facts=copyProdatRegisterFacts(evidence.facts)
   assertProdatAddressOwnership(facts.endUserAddressObjects,input)
@@ -89,6 +92,7 @@ export function resolveProdatRegisterConditionFacts(contextFacts:ProdatDependent
   if (!data) return invalid()
   const checked=copyProdatRegisterFacts(data)
   return {...data,
+    ...(Object.hasOwn(data,'meterChange') ? {meterChange:checked.meterChange} : {}),
     ...(Object.hasOwn(data,'reportingPermission') ? {reportingPermission:checked.reportingPermission} : {}),
     ...(Object.hasOwn(data,'dateEventObjects') ? {dateEventObjects:checked.dateEventObjects} : {}),
     ...(Object.hasOwn(data,'dateEventSource') ? {dateEventSource:checked.dateEventSource} : {}),

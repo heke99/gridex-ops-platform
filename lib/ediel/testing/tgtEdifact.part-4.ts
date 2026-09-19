@@ -1,3 +1,4 @@
+import {validateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy'
 import {getCanonicalProdatProfile} from '@/lib/ediel/rulebook/prodatRulebook'
 import {assertTgtReportingDraft} from './tgtReportingPermissionDraft'
 import {validateProdatReportingPermission} from '@/lib/ediel/rulebook/prodatReportingPermissionPolicy'
@@ -67,10 +68,11 @@ export function validateEdielTgtDraft(
     EDIEL_TGT_PRODAT_APPLICATION_REFERENCE;
   const expectedReceiverSubaddress =
     expected?.receiverSubaddress?.trim().toUpperCase() ?? null;
-  const parsed = step.family === 'PRODAT' && step.code === 'Z13' && expected?.reportingContext
+  const parsed = step.family === 'PRODAT' && (step.code === 'Z10' || step.code === 'Z13' && expected?.reportingContext)
     ? parseReportingEnvelope(rawPayload) : parseEdifactSegments(rawPayload);
   if (step.family === 'PRODAT') {
     const wire = tokenizeEdifact(rawPayload);
+    for(const failure of validateProdatMeterChange({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts,direction:step.actor==='portal'?'inbound':'outbound'}))pushIssue(issues,failure.severity,failure.code,failure.title,failure.description);
     for(const failure of validateProdatReportingPermission({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts,reportingContext:expected?.reportingContext}))pushIssue(issues,'error',failure.code,failure.title,failure.description);
     for(const failure of validateProdatDateEvents({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts}))pushIssue(issues,'error',failure.code,failure.title,failure.description);
     for(const failure of validateProdatInvoicee({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts}))pushIssue(issues,'error',failure.code,failure.title,failure.description);

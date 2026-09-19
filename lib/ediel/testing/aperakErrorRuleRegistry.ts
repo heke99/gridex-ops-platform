@@ -1,3 +1,4 @@
+import {validateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy';
 import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy';
 import { prodatReferenceValues } from "@/lib/ediel/prodat/prodatReferenceFields";
 import { parseUna } from "@/lib/ediel/core/una";
@@ -1086,6 +1087,10 @@ export function deriveProdatAperakValidationIssues(params: {
 
   const registerParsed=parseProdatMessage(message);
   const registerWire=parseEdifactMessageFacts(message.raw_payload);
+  // The manual/TGT registry has no qualified254/242 error mapping. Do not let
+  // its positive-case shortcut silently accept genuine scoped code defects.
+  const meterFailures=validateProdatMeterChange({code:registerParsed.messageCode,rawSegments:registerWire.rawSegments,una:parseUna(message.raw_payload),direction:'inbound'});
+  if(meterFailures.some(i=>i.blocking||i.severity==='error'))throw new Error('PRODAT_METER_CHANGE_ACK_REVIEW_REQUIRED');
   const registerFailures=validateProdatRegisterPayload({code:registerParsed.messageCode,
     rawSegments:registerWire.rawSegments,una:parseUna(message.raw_payload),requireConditions:false});
   if (registerFailures.length) throw new Error('PRODAT_REGISTER_ACK_REVIEW_REQUIRED');

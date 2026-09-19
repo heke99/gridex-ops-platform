@@ -1,3 +1,4 @@
+import {validateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy'
 import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 import {prodatInvoiceeNadSegment} from '@/lib/ediel/prodat/render/segments'
 import {prodatCustomerNadSegment} from '@/lib/ediel/prodat/render/segments'
@@ -379,6 +380,10 @@ export function buildPortalProdatSegments(
     nextLineSequence = expanded.nextLineSequence;
   }
 
+  if(step.code==='Z10'&&step.actor==='gridex'){
+    const failures=validateProdatMeterChange({code:step.code,rawSegments:bodySegments,facts:params.registerFacts,applicationReference:EDIEL_TGT_PRODAT_APPLICATION_REFERENCE});
+    if(failures.some(i=>i.blocking||i.severity==='error'))throw new Error(failures.map(i=>i.code).join(','));
+  }
   return { bodySegments, portalData: primaryPortalData, portalRows };
 }
 
