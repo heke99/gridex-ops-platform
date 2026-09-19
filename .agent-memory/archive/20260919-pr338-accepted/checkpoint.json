@@ -1,0 +1,25 @@
+{
+  "project": "gridex-ops-platform",
+  "updated_at": "2026-09-19",
+  "status": "IN_PROGRESS",
+  "branch": "codex/ediel-z14-dependent-20260919",
+  "base_head_sha": "168c21336bedcebef02da27bada55a6ea63f805e",
+  "active_item": "Qualify twelve Z14 dependent cells",
+  "next_action": "Independent review and ordinary exact-head CI; repair then guarded merge",
+  "source_state": {
+    "local_code_commit": "ad1b6a8689b322759e70c9b09598f06e83a2c807",
+    "numeric_D_total": 110,
+    "accepted_predecessors": 18,
+    "candidate_count": 12,
+    "other_unaccepted": 80,
+    "application_tests_pass": 3220,
+    "new_tests_pass": 104,
+    "full_masterplan": "NOT_COMPLETE"
+  },
+  "deferred_work": {
+    "pr": 310,
+    "state": "PAUSED",
+    "head": "e961135199f292b8210884f07de3b616a670161a"
+  },
+  "closed_release_issue": 332
+}
