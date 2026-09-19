@@ -1,0 +1,300 @@
+{
+  "status": "BOUNDED_RUNTIME_CANDIDATE_PENDING_INDEPENDENT_REVIEW_AND_NODE22_CI",
+  "date": "2026-09-19",
+  "source_contract_commit": "ed45d5322d6ba2c881537a42dcdd80247c989876",
+  "accepted_runtime_base": "51c6c06b5fd7f56f447c0bd907373dc3a76d4676",
+  "counts": {
+    "numeric_total": 110,
+    "historically_accepted": 98,
+    "bounded_without_full_cell_acceptance": 12,
+    "parent_occurrences": 10,
+    "historically_accepted_parents": 10,
+    "new_acceptance": 0
+  },
+  "node": "v24.19.0",
+  "evidence_root": "/workspace/scratch/2a201d6d5897/f3-field-identity-probes",
+  "tests": {
+    "initial-red": {
+      "files": 1,
+      "passed": 3,
+      "failed": 11,
+      "success": false
+    },
+    "first-green": {
+      "files": 1,
+      "passed": 14,
+      "failed": 0,
+      "success": true
+    },
+    "owners-inbound-red": {
+      "files": 2,
+      "passed": 14,
+      "failed": 5,
+      "success": false
+    },
+    "owners-inbound-green": {
+      "files": 2,
+      "passed": 17,
+      "failed": 2,
+      "success": false
+    },
+    "specialized-red": {
+      "files": 1,
+      "passed": 0,
+      "failed": 5,
+      "success": false
+    },
+    "qualified-focused": {
+      "files": 3,
+      "passed": 24,
+      "failed": 0,
+      "success": true
+    },
+    "affected": {
+      "files": 91,
+      "passed": 3129,
+      "failed": 0,
+      "success": true
+    },
+    "full-suite": {
+      "files": 291,
+      "passed": 4354,
+      "failed": 0,
+      "success": true
+    },
+    "focused-final": {
+      "files": 3,
+      "passed": 29,
+      "failed": 0,
+      "success": true
+    }
+  },
+  "final_gates": [
+    {
+      "gate": "typecheck",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "exit": 0,
+      "log": "typecheck-final.log"
+    },
+    {
+      "gate": "typecheck-scripts",
+      "command": [
+        "npm",
+        "run",
+        "typecheck:scripts"
+      ],
+      "exit": 0,
+      "seconds": 1.0
+    },
+    {
+      "gate": "typecheck-tests",
+      "command": [
+        "npm",
+        "run",
+        "typecheck:tests"
+      ],
+      "exit": 0,
+      "log": "typecheck-tests-final.log",
+      "supersedes_exit": 2
+    },
+    {
+      "gate": "lint",
+      "command": [
+        "npm",
+        "run",
+        "lint"
+      ],
+      "exit": 0,
+      "seconds": 57.75
+    },
+    {
+      "gate": "large-files",
+      "command": [
+        "npm",
+        "run",
+        "quality:large-file-budget"
+      ],
+      "exit": 0,
+      "seconds": 0.26
+    },
+    {
+      "gate": "performance",
+      "command": [
+        "npm",
+        "run",
+        "quality:performance"
+      ],
+      "exit": 0,
+      "seconds": 1.1
+    },
+    {
+      "gate": "integrity",
+      "command": [
+        "npm",
+        "run",
+        "ediel:masterplan-v2:integrity"
+      ],
+      "exit": 0,
+      "seconds": 0.18
+    },
+    {
+      "gate": "tenant-integrity",
+      "command": [
+        "node",
+        "scripts/gridex-tenant-integrity-regression.cjs"
+      ],
+      "exit": 0,
+      "seconds": 0.05
+    },
+    {
+      "gate": "tenant-shutdown",
+      "command": [
+        "node",
+        "scripts/gridex-tenant-shutdown-regression.cjs"
+      ],
+      "exit": 0,
+      "seconds": 0.05
+    },
+    {
+      "gate": "ratchet",
+      "command": [
+        "node",
+        "scripts/check-service-role-tenant-ratchet.cjs"
+      ],
+      "exit": 0,
+      "seconds": 0.12
+    },
+    {
+      "gate": "ediel-eight",
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "--test",
+        "scripts/test-ediel-rule-pack-source-identity.cjs",
+        "scripts/test-ediel-prodat-source-locators.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/test-ediel-prodat-reference-fields.cjs",
+        "scripts/test-ediel-prodat-document-fields.cjs",
+        "scripts/test-ediel-prodat-party-fields.cjs",
+        "scripts/test-ediel-prodat-d-z04-reference.cjs",
+        "scripts/test-ediel-component-escaping.cjs"
+      ],
+      "exit": 0,
+      "seconds": 1.83
+    },
+    {
+      "gate": "route-readiness",
+      "command": [
+        "npm",
+        "run",
+        "gridex:route-readiness-regression"
+      ],
+      "exit": 0,
+      "seconds": 0.72
+    },
+    {
+      "gate": "diffcheck",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit": 0,
+      "seconds": 0.01
+    },
+    {
+      "gate": "lint-final-scoped",
+      "command": [
+        "npx",
+        "eslint",
+        "lib/ediel/prodat/prodatFieldDiagnostic.ts",
+        "lib/ediel/prodat/prodatDiagnosticProjection.ts",
+        "lib/ediel/flows/inboundProcessing.ts"
+      ],
+      "exit": 0,
+      "log": "lint-final-scoped.log"
+    }
+  ],
+  "after_full_receipt_changes": [
+    "Source locator/component and group specificity (P45 SG4, P46 SG6, P54 SG12)",
+    "Finite typed-occurrence metadata validation in projection",
+    "Internal-review event warning and disposition payload"
+  ],
+  "final_scope_verified_by": "focused-final29/29, final application/test typecheck and scoped lint; exact final Node22 full CI pending root",
+  "immutable_sha256": {
+    "docs/ediel/masterplan-v2/MASTERMASTERPLAN_v2.md": "eaeebd59153c31d16f0baa0f5462a239eea6c7e629bebbb1543a802d81482191",
+    "docs/ediel/masterplan-v2/annex/D_Acceptanskontrakt.md": "5acc706bd5f328daf1878ebf0311488ac01db7bd5a2d97520b766548c1923912",
+    "docs/ediel/masterplan-v2/registers/prodat_conditional_cells.json": "55d44fcf337b5a7c9508c50bd25b9f204128ae2939ee36e49e74072b031a4b5d",
+    "quality/audits/ediel-masterplan-v2/f3-remaining-dependencies-20260919.json": "c42fafa8166404c32ccdd37bc023c373d4c097c69f85e4f48ab1f7453826310b",
+    "/workspace/scratch/2a201d6d5897/prodat-original-source/PRODAT-26A-r3.pdf": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+    "/workspace/scratch/2a201d6d5897/f3-closure-probes/observations.test.ts": "b542ed6d012a12b8a29cf7ba0856ef62c0b1ac86c7e4a5daa5e0dab822dfd548",
+    "/workspace/scratch/2a201d6d5897/f3-closure-independent-probes/consumer.test.ts": "0932d61272694d3602c4c9615d39c770622286b2cc80d402317a8b0f2b57c940",
+    "/workspace/scratch/2a201d6d5897/f3-closure-independent-probes/results-observations.json": "2a75f98d6ed585a14e81e3eb3b495a32c3ca8507b666d3642b5ddca1a2f8668d"
+  },
+  "receipt_sha256": {
+    "affected.json": "f7e51b5733cf08b080be1fb00b44e14a6ce926d10e4e2893104f4ce597554268",
+    "affected.log": "4d3316877e2f447b314d99149984dc767c74a2be2667a6bc311f1d130546147d",
+    "all-focused-green.json": "8ae6f8fb91a7c689ab9354ec1ea02d3c0a65a7016bc9822e32f3e2c6bce4ed29",
+    "all-focused-green.log": "b542fc6aaeb554cfc0f4d0a3b5d0507acc36a3f22acc74c43fd85dc1cc105f15",
+    "contract-controls.json": "0490a0916cc5ba49c058d22a487de38c252427875c87aa766d227e688d8fa2a8",
+    "contract-controls.log": "22a2899c403513e45351f5258249bc7962d37a743bd62c6fad06e51971a214f0",
+    "first-green.json": "50e4e5f31027a791e843233882546f22419af8fde448c9e70339ccf4bae5ad5f",
+    "first-green.log": "85a2bbd3aaff514164f50dc621fb261a159b84affbd450716d369c1a90b10a1e",
+    "focused-final.json": "ac13f762790326624fec51432a93a1b3cd01ebe06e5fef0807a3291e0b4fbd3f",
+    "focused-final.log": "a3d0c5719667e73e4105c0f79fa3fef1daace42ad0cdc1d9c1072a298cd8f7b8",
+    "full-suite.json": "970611c0f772e2b19472fad56f7125b1103595db87fa3022b334dc5be1f29d51",
+    "full-suite.log": "2b6bb1b2bd9e7b1fd4b90925917b5da23d6477100bff95c84c7d6fcc1fe3551b",
+    "gates/diffcheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "gates/ediel-eight.log": "2f95e68b4dbba55d42d9d6ece27fded330a1b8061b4d542081edbd55a50b0ac2",
+    "gates/gate-results-final.json": "09f4f25791c4503adbdba289543ec2cfa5bc894189da21796efcf251799fcd2f",
+    "gates/gate-results.json": "76f8cf0d629145c62acbff838905c71758a40e2ca3a6490404f4a149275a2b5f",
+    "gates/integrity.log": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+    "gates/large-files.log": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e",
+    "gates/lint-final-scoped.log": "305f3136bd1c5bca4cc41fcc9ca7cc6375e74ce7c8a520f5285befb460853e81",
+    "gates/lint.log": "348e0621522ef8f8ba93775cb3a5b483c7e748251c87d4aa63f2389b25d426bd",
+    "gates/performance.log": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629",
+    "gates/ratchet.log": "2939bdd3580914b982fe2853b29618eb469b55a6babf2afc431a87c06d96f74f",
+    "gates/route-readiness.log": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82",
+    "gates/tenant-integrity.log": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690",
+    "gates/tenant-shutdown.log": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e",
+    "gates/typecheck-final.log": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+    "gates/typecheck-scripts.log": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae",
+    "gates/typecheck-tests-final.log": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+    "gates/typecheck-tests.log": "529f8d198da158f1bce5e03bbb725b559e57b54906061dd787332c1154e365bd",
+    "gates/typecheck.log": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+    "inbound-debug.json": "2266b6528d0d483ff549e13486d55122024662490710ed4fa8111646bedc105b",
+    "inbound-debug.log": "d069f7fb9c9604255c291665b2b40efeb8c5474cfb54251b77db30ba1917c35b",
+    "initial-red.json": "226efc566030f5eeac0f35477e929130f5a582a7c8c6a5a4688af488403da7f1",
+    "initial-red.log": "5d0532d1d07e81f868a78740acdd6477d159818eb498d5f8f0e0391183b32252",
+    "owners-inbound-green.json": "ef2e128077774187f4cf06b5625966165670237bc775194b89aac7dea7957c75",
+    "owners-inbound-green.log": "840c0822a442cc6b797396be17ab83937993c4f6a1cc9e05cf6adbe73d75087f",
+    "owners-inbound-red.json": "cb9bff81fc255dd70429ea3faa384ccde59168458cfaeaf537517d946314e34e",
+    "owners-inbound-red.log": "8980de12b6dd3ee4cf0531cd19b5172098764514346ddd7e59343214dab62ce9",
+    "qualified-focused.json": "a18a12bbcc106da3e25f1efb80a241151d3e16aa98c3bb8e213f06df1874e1e7",
+    "qualified-focused.log": "b11abe167228f0534325c564e1312c0d70762684b73b59899f2bd976ef6af8a6",
+    "rule-regression-first.log": "d4c9962dfda1806edde34cc00e813848cc9d05abad720e8bceba6af710b12d40",
+    "run-gates.py": "5184ae97f69ec3928bde0d3dc7a37a6d530d406782ec0bdcc6c8385a98750079",
+    "script-proposal-debug.json": "b1e6c9c88a1432cee500515798d8c971a3e17cf41e188e446e7bb29f297ff667",
+    "script-proposal-debug.log": "2607256c923e96aeae521c07455f029449af06704ea623bbf7ef42664c87261b",
+    "script-qualification.json": "db851381846c792d6a8f823857984e0d65cd47c1048a6bba4b73d501bf1294fa",
+    "script-qualification.log": "1c7cacd24f535b634e5e1241360511173ca97ef5352778851aa5d61b5338d563",
+    "script-qualified.json": "febfb6f7236e1a9a08f2a280220f9b4d35c04bbceb280635fcc4ce1f03c311ee",
+    "script-qualified.log": "fc1ef791aefbceef23a27b73536637a36337b478d065192ecb1b88fc8a6fa183",
+    "specialized-red.json": "3eae0f14c8cb936ef07d5f8c3ac87e52f74acf32b41e6d35ec418ce3a26d49ed",
+    "specialized-red.log": "71901e3c0108dd36a0bec324b96563436606fdfb61bb8c81eaac06308763b256",
+    "typecheck-initial.log": "ede000c0439c956f9a51c27fdc1e59a7f97254962e0e0bf8d533e85f81348750"
+  },
+  "existing_assertion_change": "Only individually root-approved scripts/ediel-rule-regression.cjs qualified Z03 minus226 fixture, inbound direction, typed missing226 assertion and negative41/226 assertion. No old test files changed.",
+  "residuals": [
+    "General506/p119 applicability and false-extra rules outside selected already qualified branches",
+    "P94 A905 full text and customer227 fallback text",
+    "Full multi-message grammar",
+    "Policy-resolution and registry-evidence catch paths",
+    "Positive persisted/live producer eligibility and12 partially accepted numeric cells",
+    "Independent reviews and exact Node22 publication/main gates"
+  ]
+}

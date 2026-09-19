@@ -1,3 +1,4 @@
+import type {ProdatErrorOccurrence, ProdatDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
@@ -11,6 +12,8 @@ export function usesUtiltsAperakProfile(messageFamily: string): boolean {
 }
 
 export type AperakEngineApplicationError = {
+  prodatOccurrence?: ProdatErrorOccurrence
+  prodatFieldDiagnostic?: ProdatDiagnostic
   ercCode: string
   fieldCode?: string | null
   text: string
@@ -139,8 +142,10 @@ function normalizeAperakErrors(
       fieldCode: sanitizeEdifactToken(error.fieldCode ?? null, 12),
       text: escapeEdifactText(error.text, 140),
       referenceQualifier: sanitizeEdifactToken(error.referenceQualifier ?? null, 12),
-      referenceNumber: sanitizeEdifactToken(error.referenceNumber ?? null, 35),
-      lineItemReference: sanitizeEdifactToken(error.lineItemReference ?? null, 35),
+      referenceNumber: error.referenceNumber ?? null,
+      lineItemReference: error.lineItemReference ?? null,
+      prodatOccurrence: error.prodatOccurrence,
+      prodatFieldDiagnostic: error.prodatFieldDiagnostic,
     }))
     .filter((error) => error.ercCode.length > 0 && error.text.length > 0)
 
@@ -234,7 +239,7 @@ export function renderAperakEdiel(params: {
     )
   }
 
-  const errors =
+  const errors: AperakEngineApplicationError[] =
     params.outcome === 'positive'
       ? [
           {
@@ -267,15 +272,15 @@ export function renderAperakEdiel(params: {
 
     const errorReferenceQualifier = error.referenceQualifier ?? (error.referenceNumber ? 'Z07' : null)
     if (errorReferenceQualifier && error.referenceNumber) {
-      segments.push(`RFF+${errorReferenceQualifier}:${error.referenceNumber}`)
+      segments.push(`RFF+${errorReferenceQualifier}:${escapeEdifactValue(error.referenceNumber)}`)
     }
 
     if (error.lineItemReference) {
-      segments.push(`RFF+LI:${error.lineItemReference}`)
+      segments.push(`RFF+LI:${escapeEdifactValue(error.lineItemReference)}`)
     }
   }
 
-  const hasPerErrorReference = errors.some((error) => error.referenceNumber)
+  const hasPerErrorReference = errors.some((error) => error.prodatOccurrence || error.referenceNumber)
 
   if (!isUtiltsSource && !hasPerErrorReference && params.refs.meteringPointId) {
     segments.push(`RFF+Z07:${params.refs.meteringPointId}`)

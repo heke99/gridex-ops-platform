@@ -1,3 +1,4 @@
+import {prodatFieldDiagnostic,prodatLocalDiagnostic,type ProdatDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import { isProdatReadingField, prodatRegisterReadingMarket, prodatRegisterReadingState, prodatRegisterReadingSubtype } from '@/lib/ediel/prodat/prodatRegisterReadings'
 import { canonicalProdat26AFieldRules, prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { validateFieldMatrixPayload } from '@/lib/ediel/rulebook/fieldMatrix'
@@ -57,9 +58,9 @@ export function validateProdatRegisterPolicy(input: {
     && ['Z04','Z06','Z10'].includes(input.code.toUpperCase())
   const market = requireIndependentInventory
     ? prodatRegisterReadingMarket(prodatRegisterTokens(input.rawSegments, una), una, input.applicationReference) : facts.market
-  const add = (field: string, line: number, code: string, description: string) => {
+  const add = (field: string, line: number, code: string, description: string, diagnostic?: ProdatDiagnostic) => {
     const rule = input.rules.find(rule => rule.fieldNumber === field)
-    if (rule) issues.push({scope:'prodat_register',severity:'error',blocking:true,code,title:'PRODAT registervillkor',fieldPath:field === '258' ? 'LIN/C829/1082' : rule.segmentPath,
+    if (rule) issues.push({prodatDiagnostic:diagnostic ?? prodatFieldDiagnostic(field,'invalid',input,[], 'PRODAT26A:P47/114–116',line),scope:'prodat_register',severity:'error',blocking:true,code,title:'PRODAT registervillkor',fieldPath:field === '258' ? 'LIN/C829/1082' : rule.segmentPath,
       description:`LIN ${line + 1}, fält ${field}: ${description} (P26.A §2.2 / bilaga2 s.114–116).`})
   }
   if (requireIndependentInventory) {
@@ -73,10 +74,10 @@ export function validateProdatRegisterPolicy(input: {
     const expected = new Set<string>()
     for (const fact of facts.registerObjects) {
       const identity = JSON.stringify([fact.meteringPointId,fact.identityAgency])
-      if (expected.has(identity)) issues.push({scope:'prodat_register',severity:'error',blocking:true,code:'PRODAT_REGISTER_EVIDENCE_UNDETERMINED',title:'Tvetydigt registerunderlag',description:'Objektets faktaunderlag förekommer mer än en gång.',fieldPath:'LIN/C829/1082'})
+      if (expected.has(identity)) issues.push({prodatDiagnostic:prodatLocalDiagnostic('local_evidence','PRODAT26A:register-inventory','Ambiguous local inventory'),scope:'prodat_register',severity:'error',blocking:true,code:'PRODAT_REGISTER_EVIDENCE_UNDETERMINED',title:'Tvetydigt registerunderlag',description:'Objektets faktaunderlag förekommer mer än en gång.',fieldPath:'LIN/C829/1082'})
       expected.add(identity)
       if (!groups.some(group=>group.itemId===fact.meteringPointId && group.identityAgency===fact.identityAgency)) {
-        issues.push({scope:'prodat_register',severity:'error',blocking:true,code:'PRODAT_REGISTER_EXPECTED_OBJECT_MISSING',title:'Förväntat objekt saknas',description:'Ett objekt i det uttryckliga faktaunderlaget saknas i meddelandet.',fieldPath:'LIN/C212/7140'})
+        issues.push({prodatDiagnostic:prodatLocalDiagnostic('local_evidence','PRODAT26A:register-inventory','Local inventory object absent'),scope:'prodat_register',severity:'error',blocking:true,code:'PRODAT_REGISTER_EXPECTED_OBJECT_MISSING',title:'Förväntat objekt saknas',description:'Ett objekt i det uttryckliga faktaunderlaget saknas i meddelandet.',fieldPath:'LIN/C212/7140'})
       }
     }
   }
@@ -92,13 +93,13 @@ export function validateProdatRegisterPolicy(input: {
     if (requireIndependentInventory && !reportedInventory.has(inventoryKey)) {
       reportedInventory.add(inventoryKey)
       if (facts.registerObjects !== undefined && objectFacts?.length === 0) {
-        add('258',group.lineIndex,'PRODAT_REGISTER_UNEXPECTED_OBJECT','Meddelandet innehåller ett objekt som saknas i det uttryckliga registerunderlaget')
-        add('258',group.lineIndex,'PRODAT_REGISTER_EVIDENCE_UNDETERMINED','Objektets faktaunderlag saknas; ett annat objekt eller ett rotvärde kan inte fylla det')
+        add('258',group.lineIndex,'PRODAT_REGISTER_UNEXPECTED_OBJECT','Meddelandet innehåller ett objekt som saknas i det uttryckliga registerunderlaget',prodatLocalDiagnostic('local_evidence','PRODAT26A:register-inventory','Local inventory evidence mismatch'))
+        add('258',group.lineIndex,'PRODAT_REGISTER_EVIDENCE_UNDETERMINED','Objektets faktaunderlag saknas; ett annat objekt eller ett rotvärde kan inte fylla det',prodatLocalDiagnostic('local_evidence','PRODAT26A:register-inventory','Local inventory evidence mismatch'))
       } else if (!objectFacts || objectFacts.length !== 1 || !Number.isInteger(fact?.expectedRegisterCount)
         || (fact?.expectedRegisterCount as number) < 1 || (fact?.expectedRegisterCount as number) > 999999) {
-        add('258',group.lineIndex,'PRODAT_REGISTER_EVIDENCE_UNDETERMINED','Objektets oberoende registerantal saknas eller är tvetydigt')
+        add('258',group.lineIndex,'PRODAT_REGISTER_EVIDENCE_UNDETERMINED','Objektets oberoende registerantal saknas eller är tvetydigt',prodatLocalDiagnostic('local_evidence','PRODAT26A:register-inventory','Local inventory evidence mismatch'))
       } else if (fact!.expectedRegisterCount !== group.registerCount) {
-        add('258',group.lineIndex,'PRODAT_REGISTER_COUNT_MISMATCH','Antalet register stämmer inte med det uttryckliga objektunderlaget')
+        add('258',group.lineIndex,'PRODAT_REGISTER_COUNT_MISMATCH','Antalet register stämmer inte med det uttryckliga objektunderlaget',prodatLocalDiagnostic('local_evidence','PRODAT26A:register-inventory','Local inventory evidence mismatch'))
       }
     }
     const subtype = first ? requireIndependentInventory
@@ -126,8 +127,8 @@ export function validateProdatRegisterPolicy(input: {
         readingsDecisions.set(field, previous === 'undetermined' || next === 'undetermined' ? 'undetermined' : previous === 'required' || next === 'required' ? 'required' : 'not_required')
         if (state.present && state.malformed) add(field, group.lineIndex, 'PRODAT_REGISTER_READING_INVALID', 'Angiven CCI/CAV måste vara ett unikt, korrekt placerat registervärde i källans komponent')
       }
-      if (status === 'undetermined') add(field,group.lineIndex,'PRODAT_DEPENDENT_CONDITION_UNDETERMINED','Villkoret kan inte avgöras från objektets källstyrda fakta')
-      else if (status === 'required' && (!state.value || state.malformed)) add(field,group.lineIndex,rule.errorCodeIfMissing ?? 'PRODAT_DEPENDENT_FIELD_MISSING','Eget giltigt registervärde krävs; inget annat register kan fylla det')
+      if (status === 'undetermined') add(field,group.lineIndex,'PRODAT_DEPENDENT_CONDITION_UNDETERMINED','Villkoret kan inte avgöras från objektets källstyrda fakta', prodatLocalDiagnostic('local_unknown','PRODAT26A:register-readings','Receiver-local readings condition unknown'))
+      else if (status === 'required' && (!state.value || state.malformed)) add(field,group.lineIndex,rule.errorCodeIfMissing ?? 'PRODAT_DEPENDENT_FIELD_MISSING','Eget giltigt registervärde krävs; inget annat register kan fylla det', prodatFieldDiagnostic(field,state.malformed ? 'invalid' : 'missing',input,[],'PRODAT26A:P47/114–116',group.lineIndex))
       else if (status === 'forbidden' && state.present) add(field,group.lineIndex,rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT','Fältet får inte anges i denna registerkontext')
       // p116: register tariff codes differ, even when quantities/constants do not.
       if (field === '259' && state.value && !state.malformed && group.registerCount > 1 && first) {

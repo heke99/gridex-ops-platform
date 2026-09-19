@@ -1,3 +1,4 @@
+import {prodatFieldDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import { prodatRegisterFieldState } from '@/lib/ediel/prodat/prodatRegisterFields'
 import { prodatRegisterGroups, prodatRegisterRuleScopes, prodatRegisterMessageSegments } from '@/lib/ediel/prodat/prodatRegisterGroups'
 import { prodatDateExcludedBySubtype, prodatDateField, prodatDateRuleScopes, prodatDateState, prodatDateValue, prodatDateSyntaxIssues } from '@/lib/ediel/prodat/prodatDateFields'
@@ -575,6 +576,7 @@ export function validateFieldMatrixPayload(
     for (const problem of prodatRegisterGroups(prodatRegisterMessageSegments(rawSegments, input.una), input.una, code).problems) {
       const rule = rules.find(rule => rule.fieldNumber === problem.fieldNumber)
       if (rule) issues.push(issue({scope:'prodat_register', severity:'error', code:'PRODAT_REGISTER_STRUCTURE_INVALID', title:'Ogiltig PRODAT-registerstruktur',
+        prodatDiagnostic: prodatFieldDiagnostic(problem.fieldNumber, prodatRegisterFieldState(problem.fieldNumber, prodatRegisterGroups(prodatRegisterMessageSegments(rawSegments,input.una),input.una,code).groups[problem.lineIndex]?.segments ?? [],input.una)?.present ? 'invalid' : 'missing', input, [], 'PRODAT26A:P47/114–116', problem.lineIndex),
         description:`Fält ${problem.fieldNumber}, LIN ${problem.lineIndex + 1}: ${problem.reason} (P26.A s.47,114–116).`, fieldPath:rule.segmentPath}))
     }
     // Scope errors cannot disappear just because an optional field is sought
@@ -582,6 +584,7 @@ export function validateFieldMatrixPayload(
     for (const failure of prodatDateSyntaxIssues(rawSegments, input.una).filter(value => value.kind === 'scope')) {
       const rule = rules.find(value => value.fieldNumber === failure.fieldNumber)
       if (rule) issues.push(issue({ severity: 'error', code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_FORMAT_INVALID',
+        prodatDiagnostic: prodatFieldDiagnostic(rule.fieldNumber,'invalid',input,[],'PRODAT26A:P43/49–52',undefined,'header'),
         title: `${rule.label} finns i fel segmentgrupp`, description: 'DTM måste tillhöra sitt eget meddelandehuvud eller LIN-objekt enligt P26.A s.43,49–52.', fieldPath: rule.segmentPath }))
     }
   }
@@ -600,10 +603,11 @@ export function validateFieldMatrixPayload(
         .some(reason => prodatDateExcludedBySubtype(code, reason, date.fieldNumber))
       const rule: RulebookFieldRule = excludedDate ? { ...baseRule, requirement: 'forbidden' } : baseRule
       const scopedInput = { ...input, rawSegments: scopedSegments }
+      const emit = (finding: Omit<EdielRulebookIssue, 'blocking'>, kind: 'missing' | 'invalid' = 'invalid') => issues.push(issue({...finding, ...(family === 'PRODAT' ? {prodatDiagnostic:prodatFieldDiagnostic(rule.fieldNumber,kind,input,scopedSegments,`PRODAT26A:§2.2:${code}:${rule.fieldNumber}`)} : {})}))
       const present = fieldRulePresentInScope(rule, scopedInput)
       if (rule.requirement === 'forbidden' || rule.requirement === 'not_used') {
         if (!present) continue
-        issues.push(issue({
+        emit({
           severity: 'error',
           code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT',
           title: `${rule.label} får inte skickas`,
@@ -611,21 +615,21 @@ export function validateFieldMatrixPayload(
             ? `${rule.segmentPath ?? rule.fieldKey} får inte skickas för objektets transaktionstyp i ${family} ${code} enligt P26.A §2.2.`
             : `${rule.segmentPath ?? rule.fieldKey} är markerat som - för ${family} ${code} och blockeras.`,
           fieldPath: rule.segmentPath,
-        }))
+        })
         continue
       }
 
       const registerState = family === 'PRODAT' ? prodatRegisterFieldState(rule.fieldNumber ?? rule.fieldKey, scopedSegments, input.una) : null
       if (registerState?.malformed) {
-        issues.push(issue({severity:'error',code:rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_FORMAT_INVALID',title:`${rule.label} har ogiltig registerstruktur`,
-          description:'Kontrollera LIN/C829, QTY/C186 och registerlokala CCI/CAV enligt P26.A s.47,54–58,67,114–116.',fieldPath:rule.segmentPath}))
+        emit({severity:'error',code:rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_FORMAT_INVALID',title:`${rule.label} har ogiltig registerstruktur`,
+          description:'Kontrollera LIN/C829, QTY/C186 och registerlokala CCI/CAV enligt P26.A s.47,54–58,67,114–116.',fieldPath:rule.segmentPath})
         continue
       }
       const dateState = date ? prodatDateState(date.fieldNumber, scopedSegments, input.una) : null
       if (dateState?.malformed) {
-        issues.push(issue({ severity: 'error', code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_FORMAT_INVALID',
+        emit({ severity: 'error', code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_FORMAT_INVALID',
           title: `${rule.label} har ogiltigt datum eller format`,
-          description: `${rule.segmentPath}: kontrollera C507, format, kalender, tidszon och entydighet enligt P26.A s.43,49–52.`, fieldPath: rule.segmentPath }))
+          description: `${rule.segmentPath}: kontrollera C507, format, kalender, tidszon och entydighet enligt P26.A s.43,49–52.`, fieldPath: rule.segmentPath })
         continue
       }
       const party = family === 'PRODAT' ? prodatPartyField(rule.fieldNumber ?? rule.fieldKey) : null
@@ -633,35 +637,35 @@ export function validateFieldMatrixPayload(
       const forbiddenDateOfBirth = party?.fieldNumber === '227' && code === 'Z13'
         && readProdatParty('UD', scopedSegments, input.una).idQualifier === '1'
       if (partyState?.malformed || partyState?.tooLong || forbiddenDateOfBirth) {
-        issues.push(issue({
+        emit({
           severity: rule.severity ?? 'error',
           code: rule.errorCodeIfInvalid ?? (partyState?.tooLong ? 'FIELD_MATRIX_FIELD_LENGTH_INVALID' : 'FIELD_MATRIX_FIELD_FORMAT_INVALID'),
           title: `${rule.label} följer inte NAD-fältets struktur`,
           description: `${rule.segmentPath}: kontrollera komponent, kodlista, längd och part enligt PRODAT 26.A s.45–46,79–83.`,
           fieldPath: rule.segmentPath,
-        }))
+        })
         continue
       }
       const document = family === 'PRODAT' ? prodatDocumentField(rule.fieldNumber ?? rule.fieldKey) : null
       const documentState = document ? prodatDocumentState(document.fieldNumber, scopedSegments, input.una) : null
       if (documentState?.malformed) {
-        issues.push(issue({
+        emit({
           severity: rule.severity ?? 'error',
           code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_FORMAT_INVALID',
           title: `${rule.label} har fel struktur`,
           description: `${rule.segmentPath} följer inte dokumentets element-/komponentstruktur (PRODAT 26.A s.42).`,
           fieldPath: rule.segmentPath,
-        }))
+        })
         continue
       }
       if (document?.fieldNumber === '203' && documentState?.value && documentState.value.length > 35) {
-        issues.push(issue({
+        emit({
           severity: rule.severity ?? 'error',
           code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_LENGTH_INVALID',
           title: `${rule.label} är för långt`,
           description: 'PRODAT BGM/1004 är an..35 (26.A s.42); escapetecken räknas inte dubbelt.',
           fieldPath: rule.segmentPath,
-        }))
+        })
         continue
       }
       const requiredByDependency = dependencyApplies(rule, scopedInput)
@@ -671,13 +675,13 @@ export function validateFieldMatrixPayload(
       if (!shouldEvaluate) continue
       if (!present) {
         const severity = rule.severity ?? (requiredByDependency ? 'error' : rule.requirement === 'dependent' ? 'warning' : 'error')
-        issues.push(issue({
+        emit({
           severity,
           code: rule.errorCodeIfMissing ?? 'FIELD_MATRIX_REQUIRED_FIELD_MISSING',
           title: `${rule.label} saknas`,
           description: `${rule.segmentPath ?? rule.fieldKey} krävs för ${family} ${code}${rule.condition ? ` (${rule.condition})` : ''}.`,
           fieldPath: rule.segmentPath,
-        }))
+        }, 'missing')
         continue
       }
 
@@ -685,13 +689,13 @@ export function validateFieldMatrixPayload(
       if (allowedValues.length === 0) continue
       const actualValues = fieldValuesForRule(rule, scopedInput)
       if (actualValues.length === 0 || actualValues.some((value) => !allowedValues.includes(value))) {
-        issues.push(issue({
+        emit({
           severity: rule.severity ?? 'error',
           code: rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_CODE_LIST_INVALID',
           title: `${rule.label} har otillåtet värde`,
           description: `${rule.segmentPath ?? rule.fieldKey} måste vara ett av ${allowedValues.join(', ')}.`,
           fieldPath: rule.segmentPath,
-        }))
+        })
       }
     }
   }
@@ -699,7 +703,7 @@ export function validateFieldMatrixPayload(
   if (family === 'PRODAT') {
     const bgm = prodatDocumentValue('202', rawSegments, input.una)?.toUpperCase() ?? null
     if (bgm && /^Z\d{2}[A-Z]+$/.test(bgm)) {
-      issues.push(issue({ severity: 'error', code: 'PRODAT_COMPOSITE_BGM_CODE', title: 'Fel PRODAT BGM', description: 'BGM ska vara huvudfunktion, t.ex. Z13. Undertyp/status ska ligga i CCI/CAV.', fieldPath: 'BGM/C002/1001' }))
+      issues.push(issue({ severity: 'error', prodatDiagnostic:prodatFieldDiagnostic('202','invalid',input,rawSegments,'PRODAT26A:P42'), code: 'PRODAT_COMPOSITE_BGM_CODE', title: 'Fel PRODAT BGM', description: 'BGM ska vara huvudfunktion, t.ex. Z13. Undertyp/status ska ligga i CCI/CAV.', fieldPath: 'BGM/C002/1001' }))
     }
     if (input.expectedApplicationReference && input.applicationReference && normalize(input.expectedApplicationReference) !== normalize(input.applicationReference)) {
       issues.push(issue({ severity: 'error', code: 'APPLICATION_REFERENCE_MISMATCH', title: 'Fel Application Reference', description: `${code} ska använda ${input.expectedApplicationReference}, men payload har ${input.applicationReference}.`, fieldPath: 'UNB/S005/0026' }))

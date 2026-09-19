@@ -1,3 +1,4 @@
+import {prodatTokenFieldDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import { segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUna } from '@/lib/ediel/core/una'
 import { prodatRegisterGroups, prodatRegisterMessageSegments } from '@/lib/ediel/prodat/prodatRegisterGroups'
@@ -33,7 +34,7 @@ export function validateProdatDependentReferenceScope(input: FieldMatrixEvaluati
     const misplaced = !permitted.has(token.index)
     const malformed = (parts[1]?.length ?? 0) > 25 || parts.slice(2).some(part => part.trim().length > 0)
     if (!misplaced && !malformed) return []
-    return [{scope:'prodat_dependent', severity:'error', blocking:true,
+    return [{prodatDiagnostic:prodatTokenFieldDiagnostic('319',input,token,'PRODAT26A:P21/78'),scope:'prodat_dependent', severity:'error', blocking:true,
       code:misplaced ? 'PRODAT_DEPENDENT_REFERENCE_SCOPE_INVALID' : 'PRODAT_DEPENDENT_REFERENCE_FORMAT_INVALID',
       title:'Ogiltig PRODAT D-referens', fieldPath:'RFF+Z07',
       description:`Z04:319, P26.A §2.2 s.21 / §2.6 s.78: ${misplaced ? 'referensen måste ligga i första registrets SG16, före NAD' : 'C506/1154 får ha högst 25 tecken; 1156/4000 får inte anges'}.`}]

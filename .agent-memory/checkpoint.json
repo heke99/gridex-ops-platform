@@ -4,8 +4,8 @@
   "status": "IN_PROGRESS",
   "branch": "codex/ediel-f3-closure-20260919",
   "base_head_sha": "51c6c06b5fd7f56f447c0bd907373dc3a76d4676",
-  "active_item": "Source/evidence-only F3 closure qualification",
-  "next_action": "Original author source-only disposition matrix correction; scoped independent rereview; runtime remains unauthorized",
+  "active_item": "Bounded typed PRODAT ACK field identity and diagnostic disposition implementation",
+  "next_action": "AuthorRED/GREENactualconsumers+fullgates, rootindividualoldassertionrulings, independentcompletedruntime review",
   "accepted_numeric_D": 98,
   "merged_numeric_D": 98,
   "numeric_D_total": 110,
@@ -27,13 +27,13 @@
     "node": "22.23.2",
     "completed_at": "2026-09-19T22:25:24Z"
   },
-  "runtime_authorized": false,
+  "runtime_authorized": true,
   "last_accepted_pr": 349,
   "source_fix_round": 1,
   "source_remote_checkpoint": {
-    "head": "630a6bc2d14e2fd7cc060b59441001ef69491686",
-    "tree": "af93e1e8c87b1921bfa101c0183cf02541b2844a",
-    "local_equivalent": "c35b79a91af5a2d41febff6f442b9f0205b6a92b",
+    "head": "af86e7f8994eaea4f32c5d5214253d65df82def9",
+    "tree": "c81d9ab89955f1b3877450fd871ea5af7b729f57",
+    "local_equivalent": "ed45d5322d6ba2c881537a42dcdd80247c989876",
     "pr": null,
     "verification": "publicfetchdiff0"
   },
@@ -51,11 +51,11 @@
     ],
     "conclusion": "success"
   },
-  "source_candidate_commit": "c35b79a91af5a2d41febff6f442b9f0205b6a92b",
-  "source_review": "REQUEST_CHANGES R-F3-C1: reachable U/nonfield sole and mixed disposition contract",
-  "runtime_scope": "FiveGAScells purehistoricalcondition-only240 +ELexclusion/marketbinding +selectedZ04/Z06/Z10persistedguard; no GASproducer",
-  "runtime_fix_round": 1,
-  "runtime_review": "TASK/SPEC APPROVE; QUALITY APPROVE; WHOLE-BRANCH APPROVE (R1 closed)",
+  "source_candidate_commit": "ed45d5322d6ba2c881537a42dcdd80247c989876",
+  "source_review": "SOURCE/SPEC APPROVE; ARCHITECTURE APPROVE; auditTASK/QUALITY APPROVE R1",
+  "runtime_scope": "Source-ownedfield/kind/occurrence metadata; F/U/L/I disposition, narrowIinboundguard, exactACKrefs; no506applicability/P94fulltextclaim",
+  "runtime_fix_round": 0,
+  "runtime_review": "PENDING",
   "applicable_pr_workflows": 4,
   "main_pending": null
 }

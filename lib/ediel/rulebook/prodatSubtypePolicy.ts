@@ -1,3 +1,4 @@
+import {prodatFieldDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import { validateProdatZ14Policy, z14DependentRules } from '@/lib/ediel/rulebook/prodatZ14Policy'
 import { validateProdatEndUserPolicy } from '@/lib/ediel/rulebook/prodatEndUserPolicy'
 import { validateProdatOptionalInstallationPolicy } from '@/lib/ediel/rulebook/prodatOptionalInstallationPolicy'
@@ -30,7 +31,7 @@ export function validateProdatSubtypePolicy(input: FieldMatrixEvaluationInput, r
   for (const failure of prodatDateSyntaxIssues(input.rawSegments ?? [], una)) {
     const rule = rules.find(rule => rule.fieldNumber === failure.fieldNumber && prodatSourceSubtypeRule(code, failure.fieldNumber))
     if (failure.kind !== 'scope' || !rule) continue
-    issues.push({scope:'prodat_dependent', severity:'error', blocking:true,
+    issues.push({prodatDiagnostic:prodatFieldDiagnostic(rule.fieldNumber,'invalid',input,[],'PRODAT26A:P49–52',undefined,'header'),scope:'prodat_dependent', severity:'error', blocking:true,
       code:rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_FORMAT_INVALID', title:'PRODAT D-datum ligger i fel segmentgrupp',
       description:`Fält ${failure.fieldNumber}: DTM måste tillhöra sitt LIN-objekt, inte meddelandehuvudet (P26.A s.49–52).`, fieldPath:rule.segmentPath})
   }
@@ -52,7 +53,7 @@ export function validateProdatSubtypePolicy(input: FieldMatrixEvaluationInput, r
       const identity = lin ? segmentComposite(lin, 3, una) : []
       const context = `Objekt ${identity[0] || '(saknar identitet)'} / ${identity[3] || '(saknar kod)'}; ${code}:${sourceRule.fieldNumber}, P26.A §2.2 s.${sourceRule.page}`
       if (requirement === 'undetermined' || requirement === null) {
-        issues.push({scope:'prodat_dependent', severity:'error', blocking:true, code:'PRODAT_DEPENDENT_CONDITION_UNDETERMINED',
+        issues.push({prodatDiagnostic:prodatFieldDiagnostic(subtype ? '311' : '223',!subtype && reasonSegments.length === 0 ? 'missing' : 'invalid',input,segments.map(s=>s.raw),'PRODAT26A:P16/122'),scope:'prodat_dependent', severity:'error', blocking:true, code:'PRODAT_DEPENDENT_CONDITION_UNDETERMINED',
           title:'PRODAT D-villkor kan inte avgöras', description:`${context}: exakt en giltig transaktionsorsak i objektets fält 223 krävs${sourceRule.market ? '; EL-marknad måste styrkas av rätt Application Reference i meddelandets UNB' : ''}.`, fieldPath:rule.segmentPath})
         continue
       }
@@ -62,7 +63,8 @@ export function validateProdatSubtypePolicy(input: FieldMatrixEvaluationInput, r
       const suppliedCharacteristic = prodatCharacteristicPresent(sourceRule.fieldNumber, segments, {una, forbidden:true})
       const effectiveRule: RulebookFieldRule = {...rule, requirement:requirement === 'optional' && suppliedCharacteristic ? 'required' : requirement}
       const failures = validateFieldMatrixPayload({...input, rawSegments:segments.map(segment => segment.raw), mode:'parse'}, [effectiveRule])
-      issues.push(...failures.map(failure => ({...failure, scope:'prodat_dependent' as const, description:`${context}: ${failure.description}`})))
+      issues.push(...failures.map(failure => ({...failure,
+        ...(requirement === 'optional' && suppliedCharacteristic && failure.prodatDiagnostic?.kind === 'field' ? {prodatDiagnostic:{...failure.prodatDiagnostic,errorKind:'invalid' as const}} : {}), scope:'prodat_dependent' as const, description:`${context}: ${failure.description}`})))
     }
   }
   return issues

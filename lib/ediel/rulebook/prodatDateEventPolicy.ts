@@ -1,3 +1,5 @@
+import {prodatRegisterFieldState} from '@/lib/ediel/prodat/prodatRegisterFields'
+import {prodatFieldDiagnostic,prodatLocalDiagnostic,prodatErrorOccurrence,type ProdatDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import type { TgtDateEventValidationContext } from '@/lib/ediel/prodat/prodatDateEventAuthority';
 import { segmentComposite, segmentElementCount } from '@/lib/ediel/core/edifactTokenizer';
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una';
@@ -24,7 +26,8 @@ export function evaluateProdatDateEvents(input: ProdatDatePolicyInput) {
     const fields = input.code === 'Z09' ? ['210', '211'] : ['210'];
     for (const field of fields)
         statuses.set(field, 'not_required');
-    const fail = (code: string, detail: string, field = '210') => { issues.push({ scope: 'prodat_dependent', severity: 'error', blocking: true, code: `PRODAT_DATE_EVENT_${code}`, title: 'PRODAT-datum saknar giltigt underlag', description: `${input.code}:${field}, P26.A s.17/50/109/112: ${detail}`, fieldPath: field === '211' ? 'DTM+93' : 'DTM+92' }); if (code !== 'ROUTE_MISMATCH')
+    let diagnosticScope: string[] = [];
+    const fail = (code: string, detail: string, field = '210', diagnostic: ProdatDiagnostic = prodatLocalDiagnostic('internal','PRODAT26A:date-event',detail)) => { issues.push({ prodatDiagnostic:diagnostic, scope: 'prodat_dependent', severity: 'error', blocking: true, code: `PRODAT_DATE_EVENT_${code}`, title: 'PRODAT-datum saknar giltigt underlag', description: `${input.code}:${field}, P26.A s.17/50/109/112: ${detail}`, fieldPath: field === '211' ? 'DTM+93' : 'DTM+92' }); if (code !== 'ROUTE_MISMATCH')
         statuses.set(field, 'undetermined'); };
     const una = input.una ?? parseUna(null), tokens = prodatRegisterMessageSegments(input.rawSegments, una), grouped = prodatRegisterGroups(tokens, una, input.code), outbound = input.direction !== 'inbound';
     let facts: ProdatDateEventObject[] = [];
@@ -35,12 +38,13 @@ export function evaluateProdatDateEvents(input: ProdatDatePolicyInput) {
     catch {
         fail('EVIDENCE_INVALID', 'ogiltiga händelsefakta');
     }
-    if (grouped.problems.length)
-        fail('SCOPE_INVALID', 'ogiltig registerstruktur');
+    for (const problem of grouped.problems)
+        fail('SCOPE_INVALID', 'ogiltig registerstruktur',problem.fieldNumber,prodatFieldDiagnostic(problem.fieldNumber,prodatRegisterFieldState(problem.fieldNumber,grouped.groups[problem.lineIndex].segments,una)?.present?'invalid':'missing',input,[],'PRODAT26A:P47/114–116',problem.lineIndex));
     const first = grouped.groups.filter(g => g.registerPosition === 1), seen = new Set<string>();
     if (!first.length)
         fail('SCOPE_INVALID', 'första objekt saknas');
     for (const group of first) {
+        diagnosticScope = group.segments.map(t=>t.raw);
         const key = JSON.stringify([group.itemId, group.identityAgency]);
         seen.add(key);
         let subtype = prodatEndUserWireSubtype(input.code, group.segments, una);
@@ -50,12 +54,12 @@ export function evaluateProdatDateEvents(input: ProdatDatePolicyInput) {
         const selected = (q: string) => group.segments.filter(s => s.tag === 'DTM' && segmentComposite(s, 1, una)[0]?.trim() === q);
         const starts = selected('92'), ends = selected('93');
         if (ownD && starts.length + ends.length !== 1)
-            fail('XOR', 'Z09D kräver exakt ett av start/slutdatum');
+            fail('XOR', 'Z09D kräver exakt ett av start/slutdatum', '210', starts.length && ends.length ? {kind:'application',ercCode:'40',applicationCode:'109',sourceRule:'PRODAT26A:P17/93/121',occurrence:prodatErrorOccurrence(input,diagnosticScope,'object')!} : prodatLocalDiagnostic('internal','PRODAT26A:P17/112','Unrepresented missing either/or date'));
         if (outbound || ownD)
             for (const s of [...starts, ...(input.code === 'Z09' ? ends : [])]) {
                 const v = segmentComposite(s, 1, una);
                 if (v.length !== 3 || !['92', '93'].includes(v[0]) || v[2] !== '203' || !isProdatCalendarMinute(v[1]) || segmentElementCount(s, una) !== 1)
-                    fail('FORMAT_INVALID', 'datum måste vara exakt format203', v[0]?.trim() === '93' ? '211' : '210');
+                    fail('FORMAT_INVALID', 'datum måste vara exakt format203', v[0]?.trim() === '93' ? '211' : '210', prodatFieldDiagnostic(v[0]?.trim() === '93' ? '211' : '210','invalid',input,diagnosticScope,'PRODAT26A:P50/119'));
             }
         if (!outbound) {
             continue;

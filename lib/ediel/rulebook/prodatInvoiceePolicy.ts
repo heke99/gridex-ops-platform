@@ -1,3 +1,5 @@
+import {prodatRegisterFieldState} from '@/lib/ediel/prodat/prodatRegisterFields'
+import {prodatFieldDiagnostic,prodatLocalDiagnostic,type ProdatDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import { segmentComposite, segmentElementCount, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer';
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una';
 import { prodatRegisterGroups, prodatRegisterMessageSegments } from '@/lib/ediel/prodat/prodatRegisterGroups';
@@ -22,8 +24,8 @@ export function evaluateProdatInvoicee(input: Input): {
     const issues: EdielRulebookIssue[] = [], statuses = new Map<string, ProdatDependentConditionStatus>();
     for (const field of INVOICEE_FIELDS)
         statuses.set(field, 'not_required');
-    const fail = (code: string, detail: string, field = 'INVOICEE_GROUP') => {
-        issues.push({ scope: 'prodat_dependent', severity: 'error', blocking: true, code: code === 'UNDETERMINED' ? 'PRODAT_DEPENDENT_CONDITION_UNDETERMINED' : `PRODAT_INVOICEE_${code}`, title: 'Fakturamottagaren saknar giltigt underlag', description: `${input.code}:${field}, P26.A s.23/82/109: ${detail}`, fieldPath: 'NAD+IV' });
+    const fail = (code: string, detail: string, field = 'INVOICEE_GROUP', diagnostic:ProdatDiagnostic=prodatLocalDiagnostic('internal','PRODAT26A:P23/82/109',detail)) => {
+        issues.push({ prodatDiagnostic:diagnostic, scope: 'prodat_dependent', severity: 'error', blocking: true, code: code === 'UNDETERMINED' ? 'PRODAT_DEPENDENT_CONDITION_UNDETERMINED' : `PRODAT_INVOICEE_${code}`, title: 'Fakturamottagaren saknar giltigt underlag', description: `${input.code}:${field}, P26.A s.23/82/109: ${detail}`, fieldPath: 'NAD+IV' });
         statuses.set(field, 'undetermined');
     };
     const outbound = input.direction !== 'inbound', una = input.una ?? parseUna(null), tokens = prodatRegisterMessageSegments(input.rawSegments, una);
@@ -42,8 +44,8 @@ export function evaluateProdatInvoicee(input: Input): {
         facts = [];
     }
     const grouped = prodatRegisterGroups(tokens, una, input.code), first = grouped.groups.filter(g => g.registerPosition === 1);
-    if (grouped.problems.length)
-        fail('SCOPE_INVALID', 'ogiltig registerstruktur');
+    for (const problem of grouped.problems)
+        fail('SCOPE_INVALID', 'ogiltig registerstruktur',problem.fieldNumber,prodatFieldDiagnostic(problem.fieldNumber,prodatRegisterFieldState(problem.fieldNumber,grouped.groups[problem.lineIndex].segments,una)?.present?'invalid':'missing',input,[],'PRODAT26A:P47/114–116',problem.lineIndex));
     const seen = new Set<string>(), allowed = new Set(first.flatMap(g => g.segments.filter(iv).map(s => s.index)));
     // Later repeats are nonlocal per appendix2. They cannot satisfy the first register.
     const later = new Set(grouped.groups.filter(g => g.registerPosition > 1).flatMap(g => g.segments.filter(iv).map(s => s.index)));
@@ -68,10 +70,10 @@ export function evaluateProdatInvoicee(input: Input): {
             if (parts.length > maxima.length || parts.some((v, i) => v.length > maxima[i] || /[\x00-\x1f\x7f]/.test(v)))
                 fail('FORMAT_INVALID', 'komponenter överskrider tillåtna positioner/längder');
         }
-        if (prodatPartySyntaxIssues([party], una).length)
-            fail('FORMAT_INVALID', 'angiven part saknar obligatoriska eller har ogiltiga komponenter');
+        for (const finding of prodatPartySyntaxIssues([party], una))
+            fail('FORMAT_INVALID', 'angiven part saknar obligatoriska eller har ogiltiga komponenter',finding.fieldNumber??'INVOICEE_GROUP',prodatFieldDiagnostic(finding.fieldNumber,'invalid',input,grouped.groups.find(g=>g.segments.includes(party))?.segments.map(t=>t.raw)??[],'PRODAT26A:P82/119'));
         if (/\s/.test(segmentComposite(party, 8, una)[0] ?? ''))
-            fail('FORMAT_INVALID', 'postnummer ska vara oredigerat', '253');
+            fail('FORMAT_INVALID', 'postnummer ska vara oredigerat', '253',prodatFieldDiagnostic('253','invalid',input,grouped.groups.find(g=>g.segments.includes(party))?.segments.map(t=>t.raw)??[],'PRODAT26A:P82/119'));
     }
     function matchIdentity(party: EdifactTokenizedSegment, id: InvoiceeIdentity) { const v = segmentComposite(party, 2, una); return v[0] === id.id && (v[1] ?? '') === id.qualifier && v[2] === id.agency; }
     function matchAddress(party: EdifactTokenizedSegment, a: InvoiceeAddress, includeLines: boolean) {

@@ -1,3 +1,4 @@
+import {prodatFieldDiagnostic,prodatLocalDiagnostic,type ProdatDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import { segmentComposite as composite, segmentElementCount, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer';
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una';
 import { prodatRegisterGroups, prodatRegisterMessageSegments } from '@/lib/ediel/prodat/prodatRegisterGroups';
@@ -21,7 +22,7 @@ export function evaluateProdatReportingPermission(input: ReportingPolicyInput) {
         return { issues, statuses };
     for (const f of ['321', '323'])
         statuses.set(f, 'not_required');
-    const fail = (code: string, detail: string, field = '321') => { issues.push({ scope: 'prodat_dependent', severity: 'error', blocking: true, code: `PRODAT_REPORTING_${code}`, title: 'Rapporteringens underlag är inte giltigt', description: `${input.code}:${field}, P26.A s.17/21/43/49/74: ${detail}`, fieldPath: field === '321' ? 'DTM+91' : 'CCI++Z24/CAV' }); statuses.set(field, 'undetermined'); };
+    const fail = (code: string, detail: string, field = '321', diagnostic:ProdatDiagnostic=prodatLocalDiagnostic('local_evidence','PRODAT26A:reporting-source',detail)) => { issues.push({ prodatDiagnostic:diagnostic, scope: 'prodat_dependent', severity: 'error', blocking: true, code: `PRODAT_REPORTING_${code}`, title: 'Rapporteringens underlag är inte giltigt', description: `${input.code}:${field}, P26.A s.17/21/43/49/74: ${detail}`, fieldPath: field === '321' ? 'DTM+91' : 'CCI++Z24/CAV' }); statuses.set(field, 'undetermined'); };
     const una = input.una ?? parseUna(null), tokens = prodatRegisterMessageSegments(input.rawSegments, una), { groups, problems } = prodatRegisterGroups(tokens, una, input.code), outbound = input.direction !== 'inbound';
     const c = (t: EdifactTokenizedSegment, p: number) => composite(t, p, una);
     const isDate = (t: EdifactTokenizedSegment) => t.tag === 'DTM' && c(t, 1)[0]?.trim() === '91';
@@ -30,7 +31,7 @@ export function evaluateProdatReportingPermission(input: ReportingPolicyInput) {
     for (const token of tokens.filter(isDate)) {
         const parts = c(token, 1);
         if (parts.length !== 3 || parts[0] !== '91' || parts[2] !== '203' || !isProdatCalendarMinute(parts[1]) || segmentElementCount(token, una) !== 1)
-            fail('FORMAT_INVALID', 'rapportens slut kräver exakt Gregorian minut/203');
+            fail('FORMAT_INVALID', 'rapportens slut kräver exakt Gregorian minut/203', '321', prodatFieldDiagnostic('321','invalid',input,groups.find(g=>g.segments.includes(token))?.segments.map(t=>t.raw)??[],'PRODAT26A:P43/49/74/119'));
     }
     if (!outbound)
         return { issues, statuses }; // p119: local source knowledge is not sender validity.

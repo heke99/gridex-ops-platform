@@ -1,3 +1,4 @@
+import {prodatFieldDiagnostic,prodatLocalDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import {copyGasSerialChangeSelection,gasRequirement,gasStatus,gasWireMessages,isGasApplicabilityField,type GasRequirement,type GasSerialChangeObject} from '@/lib/ediel/prodat/prodatGasApplicability'
 import {prodatRegisterTokens} from '@/lib/ediel/prodat/prodatRegisterFields'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
@@ -15,7 +16,9 @@ export function evaluateProdatGasApplicability(input:GasPolicyInput){
   const tokens=prodatRegisterTokens(input.rawSegments,una),messages=gasWireMessages(tokens,una,input.applicationReference)
   const issues:GasIssue[]=[],requirements=new Map<string,GasRequirement>()
   let objects:readonly GasSerialChangeObject[]=[]
-  const fail=(field:string,suffix:string,detail:string,location?:{meteringPointId:string|null;lineItemReference:string|null},blocking=outbound)=>issues.push({
+  let diagnosticScope:string[]=[];let diagnosticInput=input
+  const fail=(field:string,suffix:string,detail:string,location?:{meteringPointId:string|null;lineItemReference:string|null},blocking=outbound,kind:'missing'|'invalid'|'local_evidence'='local_evidence')=>issues.push({
+    prodatDiagnostic:kind==='local_evidence'?prodatLocalDiagnostic(kind,'PRODAT26A:gas-applicability',detail):prodatFieldDiagnostic(field,kind,diagnosticInput,diagnosticScope,'PRODAT26A:P21/77/119/123'),
     ...location,scope:'prodat_dependent',severity:blocking?'error':'warning',blocking,code:`PRODAT_GAS_${field?field+'_':''}${suffix}`,
     title:'PRODAT naturgasfält',description:`P26.A s.21/77/119/123${field?', fält '+field:''}: ${detail}`,fieldPath:field==='320'?'RFF+Z08':field==='240'?'RFF+Z06':undefined,
   })
@@ -42,6 +45,7 @@ export function evaluateProdatGasApplicability(input:GasPolicyInput){
     requirements.set(field,!old?value:old==='undetermined'||value==='undetermined'?'undetermined':old===value?value:old==='required'||value==='required'?'required':'undetermined')
   }
   for(const message of scoped){
+    diagnosticInput={...input,code:message.code,rawSegments:message.segments.map(t=>t.raw)}
     const fields=['320','240'].filter(f=>isGasApplicabilityField(message.code,f)&&(!input.fields||input.fields.includes(f)))
     const first=message.groups.filter(g=>g.registerPosition===1||!g.validRegisterChain)
     for(const field of fields){
@@ -49,12 +53,13 @@ export function evaluateProdatGasApplicability(input:GasPolicyInput){
       const occurrences=message.segments.filter(t=>t.tag==='RFF'&&segmentComposite(t,1,una)[0]?.trim().toUpperCase()===qualifier)
       // Source false/X precedence applies before checking placement, blankness or components.
       if(message.market==='electricity'){
-        add(field,'forbidden');if(outbound&&occurrences.length)fail(field,'FORBIDDEN','fältet får inte skickas i elmarknaden',undefined,true)
+        add(field,'forbidden');if(outbound&&occurrences.length)fail(field,'FORBIDDEN','fältet får inte skickas i elmarknaden',undefined,true,'invalid')
         continue
       }
       if(!first.length){add(field,'undetermined');if(outbound)fail(field,'SCOPE_INVALID','eget första LIN-objekt saknas');continue}
       if(outbound&&occurrences.some(t=>!first.some(g=>g.segments.includes(t))))fail(field,'OCCURRENCE_INVALID','fältet ligger utanför eget första register')
       for(const group of first){
+        diagnosticScope=group.segments.map(t=>t.raw)
         const subtype=prodatRegisterReadingSubtype(message.code,group.segments,una),li=liValue(group.segments)
         const location={meteringPointId:group.itemId,lineItemReference:li}
         const scope=Boolean(group.itemId)&&['9','89'].includes(group.identityAgency??'')&&group.validRegisterChain&&Boolean(subtype)
@@ -68,16 +73,16 @@ export function evaluateProdatGasApplicability(input:GasPolicyInput){
         if(!outbound&&(field==='240'||requirement==='forbidden'))continue // Grey permission adopted as bounded no-new-rejection policy.
         if(requirement==='undetermined'){fail(field,'UNDETERMINED','egen marknad/process eller oberoende händelsebedömning saknas',location);continue}
         const found=group.segments.filter(t=>occurrences.includes(t))
-        if(requirement==='forbidden'){if(found.length)fail(field,'FORBIDDEN','fältet får inte skickas för egen process',location,true);continue}
+        if(requirement==='forbidden'){if(found.length)fail(field,'FORBIDDEN','fältet får inte skickas för egen process',location,true,'invalid');continue}
         const ownRefs=new Set(prodatReferenceEntries(group.segments,una).filter(e=>e.qualifier===qualifier).map(e=>e.raw))
         const party=group.segments.findIndex(t=>t.tag==='NAD')
         // Blank values still need their own source-backed content diagnostic.
         const placed=found.every(t=>(party<0||group.segments.indexOf(t)<party)&&(ownRefs.has(t.raw)||!segmentComposite(t,1,una)[1]))
-        if(found.length>1||!placed){fail(field,'OCCURRENCE_INVALID','en entydig RFF i eget SG16 krävs',location,true);continue}
-        if(!found.length){if(requirement==='required')fail(field,'REQUIRED','värdet saknas i eget första register',location,true);continue}
+        if(found.length>1||!placed){fail(field,'OCCURRENCE_INVALID','en entydig RFF i eget SG16 krävs',location,true,'invalid');continue}
+        if(!found.length){if(requirement==='required')fail(field,'REQUIRED','värdet saknas i eget första register',location,true,'missing');continue}
         const token=found[0],parts=segmentComposite(token,1,una),value=parts[1]??''
-        if(parts[0]!==qualifier||!value.trim()||value.length>35||(field==='240'&&/[åäöÅÄÖ]/.test(value)))fail(field,'VALUE_INVALID','1154 ska vara ett giltigt icke-tomt an..35-värde',location,true)
-        if(outbound&&(parts.slice(2).some(Boolean)||segmentElementCount(token,una)>1))fail(field,'UNUSED_COMPONENT','1156/4000 och övriga oanvända delar får inte skickas',location,true)
+        if(parts[0]!==qualifier||!value.trim()||value.length>35||(field==='240'&&/[åäöÅÄÖ]/.test(value)))fail(field,'VALUE_INVALID','1154 ska vara ett giltigt icke-tomt an..35-värde',location,true,'invalid')
+        if(outbound&&(parts.slice(2).some(Boolean)||segmentElementCount(token,una)>1))fail(field,'UNUSED_COMPONENT','1156/4000 och övriga oanvända delar får inte skickas',location,true,'invalid')
       }
     }
   }

@@ -121,16 +121,21 @@ assert(
 )
 
 const rawProdatMissingR =
-  "UNA:+.? 'UNB+UNOC:3+SENDER:14+RECEIVER:14+260530:1832+1++++23-DDQ-PRODAT'UNH+1+PRODAT:D:96A:UN:E2SE6A'BGM+Z03+DOC1+9'DTM+137:202605301832:203'DTM+ZZZ:202605301832:203'NAD+FR+SENDER::9'NAD+DO+RECEIVER::9'LIN+1++735999999999999999:Z07'UNT+8+1'UNZ+1+1'"
+  "UNA:+.? 'UNB+UNOC:3+S+R+260917:1200+I++23-DDQ-PRODAT'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z03+D+9+AB'DTM+137:202609171200:203'DTM+ZZZ:1:805'NAD+FR+12345:160:SVK+++++++SE'NAD+DO+54321:160:SVK+++++++SE'LIN+1++735123456789012345:::9'DTM+92:202610010000:203'CCI++Z13'CAV+Z22'CCI++Z04'CAV+Z01'RFF+Z05:NET'RFF+ANJ:AGREEMENT'NAD+UD+001::89++Synthetic+Street+City++12345+SE'NAD+Z02+54321:160:SVK+++++++SE'UNT+17+M'UNZ+1+I'"
 
 const validation = validateRulebookMessage({
   family: 'PRODAT',
   code: 'Z03',
+  direction: 'inbound',
   rawPayload: rawProdatMissingR,
   applicationReference: '23-DDQ-PRODAT',
   mode: 'parse',
 })
-assert(validation.issues.some((issue) => issue.code === 'RFF_LI_MISSING'), 'static PRODAT RFF_LI_MISSING regression')
+assert(validation.issues.some((issue) =>
+  issue.prodatDiagnostic?.kind === 'field' &&
+  issue.prodatDiagnostic.fieldNumber === '226' &&
+  issue.prodatDiagnostic.errorKind === 'missing'
+), 'source-owned PRODAT mandatory226 missing regression')
 
 const now = new Date().toISOString()
 const message = {
@@ -205,7 +210,8 @@ const message = {
 
 const decision = resolveCanonicalRuntimeDecision(message)
 assert(
-  decision.responsePlan.some((item) => item.family === 'APERAK' && item.outcome === 'negative'),
+  decision.responsePlan.some((item) => item.family === 'APERAK' && item.outcome === 'negative' &&
+    item.applicationErrors?.some((error) => error.ercCode === '41' && error.fieldCode === '226')),
   'missing R must plan negative APERAK'
 )
 
