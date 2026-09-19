@@ -222,7 +222,12 @@ for (const environment of ['test','production'] as const) for (const alphabet of
       const preflight=preflightEdielMessageRow(message,'send',dateContext)
       expect(blockers(result.issues)).toEqual([])
       expect(blockers(preflight.issues)).toEqual([])
-      if(environment==='test'){
+      if(environment==='test'&&code==='E34'){
+        // Independently approved unresolved persisted Z06E hold; field242 remains valid.
+        expect(result.issues).toContainEqual(expect.objectContaining({scope:'prodat_dependent',code:'PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED',blocking:true}))
+        expect(()=>assertRulebookAllowsSend(message,dateContext)).toThrow('PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED')
+        expect(()=>assertEdielSendLock(message,dateContext)).toThrow('PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED')
+      }else if(environment==='test'){
         expect(result.issues.filter(issue=>issue.scope==='prodat_dependent')).toEqual([])
         expect(()=>assertRulebookAllowsSend(message,dateContext)).not.toThrow()
         expect(()=>assertEdielSendLock(message,dateContext)).not.toThrow()

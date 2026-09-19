@@ -1,3 +1,4 @@
+import {copyDeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
 import { resolveCanonicalAckMatrixRule, type CanonicalAckMatrixRule } from '@/lib/ediel/ack/canonicalAckEngine'
 import { canonicalProdat26AFieldRules } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import {
@@ -199,6 +200,7 @@ export function resolveCanonicalEdielPolicy(input: ResolveCanonicalEdielPolicyIn
       messageCode: code,
       subtypeOrReasonCode: subtype.subtype,
       businessContext: input.businessContext,
+      allowUnknownContext: input.direction === 'inbound',
       bilateralCapabilityVerified,
     })
     if (!contextual.ok) throw new Error(contextual.reason ?? `canonical_ediel_prodat_context_invalid:${code}:${subtype.subtype}`)
@@ -215,10 +217,18 @@ export function resolveCanonicalEdielPolicy(input: ResolveCanonicalEdielPolicyIn
       throw new Error(`canonical_ediel_application_reference_required:${family}:${code}`)
     }
 
+    // Receiver-local evidence cannot turn pre-wire aggregation into a protocol
+    // failure. Keep the original facts below for the wire owner's diagnostic.
+    let preWireDeathStatus = input.prodatDependentFacts?.deathStatus
+    if (input.direction === 'inbound' && preWireDeathStatus != null) {
+      try { preWireDeathStatus = copyDeathSelection(preWireDeathStatus) }
+      catch { preWireDeathStatus = null }
+    }
     const prodatDependentConditions = evaluateProdatDependentConditions({
       messageCode: code,
       facts: {
         ...(input.prodatDependentFacts ?? {}),
+        deathStatus: preWireDeathStatus,
         canonicalSubtype: subtype.subtype,
         businessContext: input.businessContext ?? input.prodatDependentFacts?.businessContext ?? null,
       },

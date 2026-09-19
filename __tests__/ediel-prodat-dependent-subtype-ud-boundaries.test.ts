@@ -1,3 +1,4 @@
+import {deathSelection} from './fixtures/prodat-death-status'
 import {qualifyDateEventTestRow,changeDateFact} from './fixtures/prodat-date-events'
 import {evaluateEdielProductionSendLock} from '@/lib/ediel/core/productionGuards'
 import { describe, expect, it } from 'vitest'
@@ -70,10 +71,10 @@ for (const code of ['Z06','Z09'] as const) for (const environment of ['test','pr
         expect(()=>assertEdielSendLock(row)).toThrow('PRODAT_DATE_EVENT_SOURCE_UNQUALIFIED')
         expect(evaluateEdielProductionSendLock(row,preflight).issues.some(i=>i.message.includes('Produktionsmeddelande saknar'))).toBe(true)
       }else{
-        expect(result.issues.filter(i=>i.scope==='prodat_dependent')).toEqual([])
-        expect(()=>assertRulebookAllowsSend(row,dateContext)).not.toThrow()
-        if(environment==='test')expect(()=>assertEdielSendLock(row,dateContext)).not.toThrow()
-        else expect(()=>assertEdielSendLock(row)).toThrow(/Produktionsmeddelande saknar/)
+        // UD validity is independent of the approved persisted E34 producer hold.
+        expect(result.issues).toContainEqual(expect.objectContaining({code:'PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED',blocking:true}))
+        expect(()=>assertRulebookAllowsSend(row,dateContext)).toThrow('PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED')
+        expect(()=>assertEdielSendLock(row,dateContext)).toThrow('PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED')
       }
     })
     it('persisted wrong code/family/old cache does not disable wire-selected UD', () => {
@@ -116,10 +117,15 @@ describe('UD message, inbound and unresolved-address boundaries', () => {
 })
 
 describe('UD builder and read-consumer effects', () => {
+  // Fixed independent pure nondeath selection; never reconstructed from emitted UD or status.
+  const nonDeath = (li:string) => {const selection=deathSelection('not_death'),own=selection.objects[0];
+    own.installation.agency='9';own.customer.id='00-CUSTOMER';own.lineItemReference=li;
+    own.legalGridOwner={id:'12345',qualifier:'160',agency:'SVK'};own.legalSupplier={id:'54321',qualifier:'160',agency:'SVK'};return selection}
+
   const base: BuildProdatMessageInput = {companyId:'synthetic-company',role:'supplier',businessCode:'Z06',transactionSubtype:'E',
     sender:{edielId:'12345'},receiver:{edielId:'54321'},meteringPoint:{id:'A'},environment:'test',
     customer:{identity:'00-CUSTOMER',idAgency:'89',name:'User',country:'SE'},codedAttributes:{Z13:'E34'},
-    dates:{validityStartDate:'2026-10-01'},references:{LI:'CASE'},dependentConditionFacts:{dateEventObjects:[changeDateFact('A','9')],dateEventSource:{kind:'caller_selection',reference:'independent-change'},market:'electricity',endUserAddressObjects:[selectedAddressFact('A','synthetic-company','9','00-CUSTOMER')],invoiceeObjects:[selectedInvoiceeFact('A','synthetic-company','9','00-CUSTOMER',[],'','001 23','Town')],meterReadingsSentInUtilts:false,
+    dates:{validityStartDate:'2026-10-01'},references:{LI:'CASE'},dependentConditionFacts:{deathStatus:nonDeath('CASE'),dateEventObjects:[changeDateFact('A','9')],dateEventSource:{kind:'caller_selection',reference:'independent-change'},market:'electricity',endUserAddressObjects:[selectedAddressFact('A','synthetic-company','9','00-CUSTOMER')],invoiceeObjects:[selectedInvoiceeFact('A','synthetic-company','9','00-CUSTOMER',[],'','001 23','Town')],meterReadingsSentInUtilts:false,
       registerObjects:[{meteringPointId:'A',identityAgency:'9',expectedRegisterCount:1,meterReadingsSentInUtilts:false}]}}
   for (const code of ['Z06','Z09'] as const) for (const subtype of ['E','F','G']) it(`${code}/${subtype}: profiled renderer follows actual emitted reason and retains source text`, () => {
     const context: ProdatEngineProductionContext = {code,bgmReference:'DOCUMENT',transactionReference:'CASE',senderEdielId:'12345',receiverEdielId:'54321',meterPointId:'A',
@@ -142,7 +148,7 @@ describe('UD builder and read-consumer effects', () => {
   })
   it('generic multi-object builder must not use a root F subtype to omit one object E customer', () => {
     const customer = {...base.customer!,postalCode:'001 23',city:'Town'}
-    const built = buildProdatMessage({...base,transactionSubtype:'F',dependentConditionFacts:{...base.dependentConditionFacts,dateEventObjects:[changeDateFact('A','9'),changeDateFact('B','9')],invoiceeObjects:[selectedInvoiceeFact('A','synthetic-company','9','00-CUSTOMER',[],'','001 23','Town'),selectedInvoiceeFact('B','synthetic-company','9','00-CUSTOMER',[],'','001 23','Town')],registerObjects:[
+    const built = buildProdatMessage({...base,transactionSubtype:'F',dependentConditionFacts:{...base.dependentConditionFacts,deathStatus:nonDeath('CASE-A'),dateEventObjects:[changeDateFact('A','9'),changeDateFact('B','9')],invoiceeObjects:[selectedInvoiceeFact('A','synthetic-company','9','00-CUSTOMER',[],'','001 23','Town'),selectedInvoiceeFact('B','synthetic-company','9','00-CUSTOMER',[],'','001 23','Town')],registerObjects:[
       {meteringPointId:'A',identityAgency:'9',expectedRegisterCount:1,meterReadingsSentInUtilts:false},
       {meteringPointId:'B',identityAgency:'9',expectedRegisterCount:1,meterReadingsSentInUtilts:false},
     ]},objects:[

@@ -1,3 +1,5 @@
+import {projectDeathStatus} from './prodatDeathStatus'
+import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
 import {validateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy'
 import {validateProdatReportingPermission} from '@/lib/ediel/rulebook/prodatReportingPermissionPolicy'
 import type {ExpectedContext} from './prodatReportingPermissionContext'
@@ -139,6 +141,7 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
     if (id) identities.add(identity)
     const customerId = object.customer?.identity ?? object.customer?.id
     const attributes = codedAttributeSegments(object.codedAttributes, businessCode)
+    if(!object.codedAttributes?.Z17)attributes.push(...projectDeathStatus({code:businessCode,reason:object.codedAttributes?.Z13,installation:{id:id??'',agency},selection:input.dependentConditionFacts?.deathStatus}))
     const objectSubtype = ['Z06', 'Z09', 'Z14'].includes(businessCode)
       ? prodatEndUserWireSubtype(businessCode, prodatRegisterTokens(attributes), parseUna(null)) : input.transactionSubtype
     const objectEndUserAllowed = endUserAllowed && !isProdatFieldInInapplicableParent({
@@ -189,7 +192,7 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
     testIndicator: input.environment === 'production' ? 0 : 1,
   })
   assertInvoiceeOwnership(input.dependentConditionFacts?.invoiceeObjects,{companyId:input.companyId,code:businessCode})
-  const invoiceeFailures=[...validateProdatMeterChange({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts,applicationReference}),...validateProdatReportingPermission({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts,reportingContext:input.reportingContext}),...validateProdatDateEvents({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts}),...validateProdatInvoicee({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts})]
+  const invoiceeFailures=[...validateProdatDeathStatus({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts}),...validateProdatMeterChange({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts,applicationReference}),...validateProdatReportingPermission({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts,reportingContext:input.reportingContext}),...validateProdatDateEvents({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts}),...validateProdatInvoicee({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts})]
   const validation = validateProdat(rawEdifact,{registerFacts:input.dependentConditionFacts,requireRegisterConditions:true})
   validation.issues.push(...invoiceeFailures.map(f=>({severity:'error' as const,code:f.code,message:f.description})))
   if(invoiceeFailures.length)validation.ok=false

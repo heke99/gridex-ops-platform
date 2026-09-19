@@ -60,8 +60,8 @@ describe('PRODAT 26-A dependent-condition engine', () => {
     expect(resolveProdatDependentCondition({ messageCode: 'Z04', fieldNumber: '319', facts: { canonicalSubtype: 'D' } })?.status).toBe('required')
     expect(resolveProdatDependentCondition({ messageCode: 'Z04', fieldNumber: '319', facts: { canonicalSubtype: 'A' } })?.status).toBe('not_required')
 
-    expect(resolveProdatDependentCondition({ messageCode: 'Z05', fieldNumber: '310', facts: { businessContext: 'death' } })?.status).toBe('required')
-    expect(resolveProdatDependentCondition({ messageCode: 'Z05', fieldNumber: '310', facts: { businessContext: 'bankruptcy' } })?.status).toBe('not_required')
+    expect(resolveProdatDependentCondition({ messageCode: 'Z05', fieldNumber: '310', facts: { businessContext: 'death' } })?.status).toBe('undetermined')
+    expect(resolveProdatDependentCondition({ messageCode: 'Z05', fieldNumber: '310', facts: { businessContext: 'bankruptcy' } })?.status).toBe('undetermined')
 
     expect(resolveProdatDependentCondition({ messageCode: 'Z04', fieldNumber: '320', facts: { market: 'gas' } })?.status).toBe('required')
     expect(resolveProdatDependentCondition({ messageCode: 'Z04', fieldNumber: '320', facts: { market: 'electricity' } })?.status).toBe('not_required')
