@@ -1,3 +1,5 @@
+import {assertTgtDateEventDraft} from './tgtDateEventSource'
+import {validateProdatDateEvents} from '@/lib/ediel/rulebook/prodatDateEventPolicy'
 import {validateProdatInvoicee} from '@/lib/ediel/rulebook/prodatInvoiceePolicy'
 import {validateProdatEndUserAddress} from '@/lib/ediel/rulebook/prodatEndUserAddressPolicy'
 import {assertTgtAddressFactSource} from './tgtRegisterFacts'
@@ -49,6 +51,7 @@ export function validateEdielTgtDraft(
   const parsed = parseEdifactSegments(rawPayload);
   if (step.family === 'PRODAT') {
     const wire = tokenizeEdifact(rawPayload);
+    for(const failure of validateProdatDateEvents({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts}))pushIssue(issues,'error',failure.code,failure.title,failure.description);
     for(const failure of validateProdatInvoicee({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts}))pushIssue(issues,'error',failure.code,failure.title,failure.description);
     for(const failure of validateProdatEndUserAddress({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts}))pushIssue(issues,'error',failure.code,failure.title,failure.description);
     for (const failure of validateProdatRegisterPayload({code:step.code,
@@ -472,7 +475,7 @@ export function buildEdielTgtDraft(
           : "D96A";
   const fileName = `gridex_tgt_${params.testSuite.toLowerCase()}_${params.testCaseCode.replace(/\./g, "_")}_s${params.stepNo}_${messageFamily.toLowerCase()}_${step.code.toLowerCase()}.edi`;
 
-  return {
+  const result:EdielTgtDraftBuildResult = {
     step,
     fileName,
     rawPayload,
@@ -491,7 +494,9 @@ export function buildEdielTgtDraft(
       testFlag: 1,
       status: hasErrors ? "draft" : "prepared",
       transportType: "manual_upload",
-      mailbox: "tgt-file-engine",
+      communicationRouteId:params.dateEventContext?.source.route.communicationRouteId??null,
+      routeProfileId:params.dateEventContext?.source.route.routeProfileId??null,
+      mailbox: params.dateEventContext?.source.route.mailbox??"tgt-file-engine",
       mailboxMessageId: refs.interchangeRef,
       senderEdielId: testActorId(params),
       senderSubAddress:
@@ -605,4 +610,6 @@ export function buildEdielTgtDraft(
       messageCreatedAt: new Date().toISOString(),
     },
   };
+  assertTgtDateEventDraft(result.messageInput,params.dateEventContext);
+  return result;
 }

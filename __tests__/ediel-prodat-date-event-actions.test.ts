@@ -1,0 +1,37 @@
+import { beforeEach, it, expect, vi } from 'vitest';
+import { tgtDateRun, tgtDateData, tgtDateRuntime } from './fixtures/tgt-date-events';
+import type { CreateEdielMessageInput } from '@/lib/ediel/types';
+const io = vi.hoisted(() => ({ from: vi.fn(), scoped: vi.fn(), access: vi.fn(), company: vi.fn(), operational: vi.fn(), source: vi.fn(), runtime: vi.fn(), create: vi.fn(), attach: vi.fn(), runs: vi.fn(), messages: vi.fn(), links: vi.fn(), byIds: vi.fn() }));
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from } }));
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
+vi.mock('@/lib/admin/guards', () => ({ requireCompanyScopedActionAccess: io.company, isPlatformAdminContext: () => false, requirePlatformAdminActionAccess: io.access }));
+vi.mock('@/lib/ediel/actionAccess', () => ({ requireEdielWriteActionAccess: io.access, requireEdielSendActionAccess: io.access }));
+vi.mock('@/lib/tenant/governance', () => ({ requireCompanyOperationalForWrites: io.operational }));
+vi.mock('@/lib/ediel/systemTestSettings', () => ({ requireEdielSystemTestRuntimeContext: io.runtime, getEdielSystemTestSettings: vi.fn() }));
+vi.mock('@/lib/ediel/testing/tgtTestDataStore', () => ({ getEdielTgtDynamicTestDataForCase: io.source, upsertEdielTgtDynamicTestData: vi.fn() }));
+vi.mock('@/lib/ediel/db', () => ({ createEdielMessage: io.create, attachEdielMessageToTestRun: io.attach, listEdielTestRuns: io.runs, listEdielMessages: io.messages, listEdielMessagesByIds: io.byIds, listEdielTestRunMessages: io.links, createEdielMessageEvent: vi.fn(), getEdielMessageById: vi.fn(), createEdielTestRun: vi.fn(), listAckMessagesForSource: vi.fn(), updateEdielMessageStatus: vi.fn(), updateEdielTestRunStatus: vi.fn() }));
+vi.mock('@/app/admin/ediel/actions.part-1', () => ({ requireScopedEdielTestRunForAction: io.scoped, formString: (v: unknown) => typeof v === 'string' ? v.trim() || null : null, formNumber: (v: unknown) => Number(v) || null, parseEdielTestSuite: (v: unknown) => v, parseEdielTestRoleCode: (v: unknown) => v, revalidateEdiel: vi.fn(), revalidateRelatedMessage: vi.fn() }));
+import { createEdielTgtDraftAction, saveEdielTgtRegisterFactsAction } from '@/app/admin/ediel/actions.part-2';
+import { runTgtAutopilotForRun } from '@/lib/ediel/testing/tgtAutopilot';
+let run: ReturnType<typeof tgtDateRun>, runtime: ReturnType<typeof tgtDateRuntime>, created: CreateEdielMessageInput[];
+const form = () => { const f = new FormData(); for (const [k, v] of Object.entries({ testRunId: 'RUN', testSuite: 'PRODAT', roleCode: 'supplier', testCaseCode: '2.5.3', stepNo: '1', sourceNote: 'Independent contract signing', registerFacts: JSON.stringify({ market: 'electricity', dateEventObjects: [{ meteringPointId: 'A', identityAgency: '9', kind: 'production_contract', direction: 'production', contract: { reference: 'contract', revision: '1' }, event: { kind: 'signed', reference: 'event', revision: '1' }, supplyBoundaryAt: '202610010000' }] }) }))
+    f.set(k, v); return f; };
+beforeEach(() => { vi.resetAllMocks(); run = tgtDateRun(); run.route_profile_id = null; run.created_at = '2026-09-19T00:00:00Z'; runtime = tgtDateRuntime(); runtime.settings!.routeProfileId = null; created = []; io.scoped.mockResolvedValue(run); io.access.mockResolvedValue({ userId: 'ACTOR' }); io.company.mockResolvedValue({ userId: 'ACTOR' }); io.runtime.mockResolvedValue(runtime); io.source.mockResolvedValue(tgtDateData()); io.runs.mockResolvedValue([run]); io.messages.mockResolvedValue([]); io.links.mockResolvedValue([]); io.byIds.mockResolvedValue([]); io.create.mockImplementation(async (input: CreateEdielMessageInput) => { created.push(input); return { id: 'MSG', company_id: 'tenant', direction: 'outbound', environment: 'test' }; }); io.from.mockImplementation((table: string) => { let update: Record<string, unknown> | undefined; const q = { update: (v: Record<string, unknown>) => { update = v; return q; }, eq: () => q, select: () => q, maybeSingle: async () => { if (table !== 'ediel_test_runs')
+        throw new Error('Unexpected table'); if (update)
+        run.notes = String(update.notes); return { data: { id: 'RUN' }, error: null }; } }; return q; }); });
+it('authorized action saves domain assertion then actual manual draft retains verified scope', async () => { await saveEdielTgtRegisterFactsAction(form()); expect(JSON.parse(run.notes!).prodatRegisterFacts.steps['1'].facts.dateEventSource).toMatchObject({ kind: 'tgt', runId: 'RUN', actorId: 'ACTOR', route: { settingsId: 'SETTINGS' } }); await createEdielTgtDraftAction(form()); expect(created).toHaveLength(1); expect(created[0].rawPayload).toContain('DTM+92:202610010000:203'); expect(created[0].parsedPayload?.readyForDownload).toBe(true); });
+it('actual autopilot resolves the same independently saved source before persistence', async () => { await saveEdielTgtRegisterFactsAction(form()); await runTgtAutopilotForRun({ actorUserId: 'ACTOR', companyId: 'tenant', testRunId: 'RUN' }); expect(created).toHaveLength(1); expect(created[0].parsedPayload?.readyForDownload).toBe(true); });
+it('revoked current test runtime prevents both constructors from persisting', async () => { await saveEdielTgtRegisterFactsAction(form()); runtime.settings!.isActive = false; await expect(createEdielTgtDraftAction(form())).rejects.toThrow('PRODAT_DATE_EVENT_SOURCE_CONTEXT_INVALID'); await expect(runTgtAutopilotForRun({ actorUserId: 'ACTOR', companyId: 'tenant', testRunId: 'RUN' })).rejects.toThrow('PRODAT_DATE_EVENT_SOURCE_CONTEXT_INVALID'); expect(created).toEqual([]); });
+it('write denial precedes source stamping and persistence', async () => { io.company.mockRejectedValue(new Error('DENIED')); await expect(saveEdielTgtRegisterFactsAction(form())).rejects.toThrow('DENIED'); expect(run.notes).toBeNull(); expect(created).toEqual([]); });
+function utiltsForm(stepNo=2){run.test_suite='UTILTS';run.test_case_code='U2.1';io.source.mockResolvedValue(null);runtime.settings!.messageFamily='UTILTS';const f=form();f.set('testSuite','UTILTS');f.set('testCaseCode','U2.1');f.set('stepNo',String(stepNo));return f}
+for(const stepNo of [2,3])it(`manual UTILTS ACK step${stepNo} uses source case profile`,async()=>{
+ const f=utiltsForm(stepNo);const stop=new Error('EXPECTED_RUNTIME_BOUNDARY');io.runtime.mockRejectedValue(stop)
+ await expect(createEdielTgtDraftAction(f)).rejects.toBe(stop)
+ expect(io.runtime).toHaveBeenCalledWith(expect.objectContaining({companyId:'tenant',messageFamily:'UTILTS'}));expect(created).toEqual([])
+})
+it('autopilot UTILTS ACK inherits source profile after actual inbound step match',async()=>{
+ utiltsForm();io.messages.mockResolvedValue([{id:'INBOUND',company_id:'tenant',direction:'inbound',environment:'test',message_family:'UTILTS',message_code:'E66',status:'received',created_at:'2026-09-19T00:01:00Z'}]);const stop=new Error('EXPECTED_RUNTIME_BOUNDARY');io.runtime.mockRejectedValue(stop)
+ await expect(runTgtAutopilotForRun({actorUserId:'ACTOR',companyId:'tenant',testRunId:'RUN'})).rejects.toBe(stop)
+ expect(io.runtime).toHaveBeenCalledWith(expect.objectContaining({companyId:'tenant',messageFamily:'UTILTS'}));expect(created).toEqual([])
+})
+it('invalid requested step is rejected before runtime profile lookup',async()=>{const f=form();f.set('stepNo','999');await expect(createEdielTgtDraftAction(f)).rejects.toThrow('TGT_STEP_CONTEXT_INVALID');expect(io.runtime).not.toHaveBeenCalled()})

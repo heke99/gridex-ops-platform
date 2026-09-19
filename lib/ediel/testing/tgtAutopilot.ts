@@ -1,4 +1,5 @@
-import { readTgtRegisterFacts } from '@/lib/ediel/testing/tgtRegisterFacts'
+import {resolveTgtDateEventBuildContext} from './tgtDateEventContext'
+import {assertTgtDateEventDraft} from './tgtDateEventSource'
 import { getEdielTgtTestDataForCase } from '@/lib/ediel/testing/tgtTestData'
 // lib/ediel/tgtAutopilot.ts
 
@@ -376,6 +377,8 @@ async function createDraftForStep(params: {
     companyId: params.evaluation.testRun.company_id,
     testSuite: runtimeSuite,
     actorRole: params.evaluation.definition.roleCode,
+    // ACK wire families inherit the selected case's source-family profile.
+    messageFamily:params.evaluation.definition.suite,
   });
 
   const importedTestData = await getEdielTgtDynamicTestDataForCase(
@@ -384,6 +387,7 @@ async function createDraftForStep(params: {
     params.evaluation.definition.testCaseCode,
   );
 
+  const dateBuild=params.step.family==='PRODAT'?await resolveTgtDateEventBuildContext({run:params.evaluation.testRun,stepNo:params.step.stepNo,code:params.step.code,runtime:systemTestContext,testData:importedTestData??getEdielTgtTestDataForCase(params.evaluation.definition.suite,params.evaluation.definition.roleCode,params.evaluation.definition.testCaseCode)}):undefined;
   const draft = buildEdielTgtDraft({
     actorUserId: params.actorUserId,
     testSuite: params.evaluation.definition.suite,
@@ -392,9 +396,7 @@ async function createDraftForStep(params: {
     stepNo: params.step.stepNo,
     importedTestData,
     testRunId:params.evaluation.testRun.id,
-    registerFacts:params.step.family==='PRODAT' ? readTgtRegisterFacts({run:params.evaluation.testRun,
-      stepNo:params.step.stepNo,code:params.step.code,testData:importedTestData ?? getEdielTgtTestDataForCase(
-        params.evaluation.definition.suite,params.evaluation.definition.roleCode,params.evaluation.definition.testCaseCode)}) : undefined,
+    registerFacts:dateBuild?.facts,dateEventContext:dateBuild?.context,
     systemTestContext,
   });
   const routeProfileId = String(params.evaluation.testRun.route_profile_id ?? "").trim();
@@ -438,6 +440,7 @@ async function createDraftForStep(params: {
     );
   }
 
+  assertTgtDateEventDraft(draft.messageInput,dateBuild?.context);
   const message = await createEdielMessage(draft.messageInput);
   await attachEdielMessageToTestRun({
     companyId: params.evaluation.testRun.company_id,

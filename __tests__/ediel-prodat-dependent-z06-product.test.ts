@@ -1,3 +1,5 @@
+import {qualifyDateEventTestRow,changeDateFact} from './fixtures/prodat-date-events'
+import {evaluateEdielProductionSendLock} from '@/lib/ediel/core/productionGuards'
 import { ud, udInvoiceeFact, udAddressFact } from './fixtures/prodat-ud'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
@@ -215,11 +217,21 @@ for (const environment of ['test','production'] as const) for (const alphabet of
     })
     for (const code of ['E64','E32','E34']) it(`bounded positive ${code}`, () => {
       const message = row([line('1','A'),...reason(code),...(code === 'E34' ? [ud()] : product())],environment,alphabet)
-      expect(validateEdielMessageRowWithRulebook(message,'send').issues.filter(issue => issue.scope === 'prodat_dependent')).toEqual([])
-      expect(blockers(preflightEdielMessageRow(message,'send').issues)).toEqual([])
-      expect(() => assertRulebookAllowsSend(message)).not.toThrow()
-      if (environment === 'test') expect(() => assertEdielSendLock(message)).not.toThrow()
-      else expect(() => assertEdielSendLock(message)).toThrow(/Produktionsmeddelande saknar/) // Independent live-readiness guard is retained.
+      const dateContext=environment==='test'?qualifyDateEventTestRow(message):undefined
+      const result=validateEdielMessageRowWithRulebook(message,'send',dateContext)
+      const preflight=preflightEdielMessageRow(message,'send',dateContext)
+      expect(blockers(result.issues)).toEqual([])
+      expect(blockers(preflight.issues)).toEqual([])
+      if(environment==='test'){
+        expect(result.issues.filter(issue=>issue.scope==='prodat_dependent')).toEqual([])
+        expect(()=>assertRulebookAllowsSend(message,dateContext)).not.toThrow()
+        expect(()=>assertEdielSendLock(message,dateContext)).not.toThrow()
+      }else{
+        expect(result.issues).toContainEqual(expect.objectContaining({scope:'prodat_dependent',code:'PRODAT_DATE_EVENT_SOURCE_UNQUALIFIED',blocking:true}))
+        expect(()=>assertRulebookAllowsSend(message)).toThrow('PRODAT_DATE_EVENT_SOURCE_UNQUALIFIED')
+        expect(()=>assertEdielSendLock(message)).toThrow('PRODAT_DATE_EVENT_SOURCE_UNQUALIFIED')
+        expect(evaluateEdielProductionSendLock(message,preflight).issues.some(i=>i.message.includes('Produktionsmeddelande saknar'))).toBe(true)
+      }
     })
   })
 }

@@ -127,3 +127,25 @@ Runtime83ab46a0; local3812/3812, all3types, lint0errors/99warnings and required 
 DraftPR344 published61249522d8d935baafdd9991fed2b3697d808078, exact localtreef715c8e4219e9e17bbca24e4da1e9bfd69257a96. Independent task/spec REQUEST_CHANGES, quality NEEDS_FIXES, wholebranch NOT_READY on two Important TGT producer defects: R1 absentUD comparison source in exactZ06F/G; R2 blank positionalIV slots fabricate inclusion. Actual probes2fail/4controls and2fail/2controls. Original implementer owns combined fix round1; sourceF1approval remains. No acceptanceincrease; PR310paused. Next scoped rereview of fix, then new exactheadCI; no merge while findings open.
 
 Runtime fixfa827c172931890854052dc53702689246cee7f6 addresses R1/R2 in TGT helper;259/259 targeted, original probes6/6+4/4, all3types and changedfilelint pass. Scoped independent rereview active; final exactheadCI still required. Acceptance unchanged.
+
+## PR344 merged
+Main `c9d795275fc22b284db51e70b25ec4ccb7d00d3a` includes PR344. Final head `4d2b3d6dbb105fb36d3d33104587ba90c61f43b0`, tree `a5c848a14a9fa9d43ca12a90e8b41533d24947de`. Source, task/spec, task quality and wholebranch APPROVE after R1 absentUD source and R2 blankIV choice fixes. No open findings. Exacthead CI allSUCCESS: OPS35447939691, Ediel35447939715, Browser35447939694, Full35447939726. Coverage105910018253 actual3846/3846 in256files Node22.23.2. Main full35448212060 and OPS35448212075 pending. Prior PR343 main actual73/73 remains last accepted certificate.
+
+Accepted56/110 numeric plus36 merged pending mainreceipt;18 other numeric remain. Parents4/10 plus6 merged pending receipt. Fullmasterplan/F3–F7/live NOT_COMPLETE. PR310 remains PAUSED unchanged e961135199f292b8210884f07de3b616a670161a. No imports of paused SQL/types/grants/proof, no live DB/storage/market send/explicitdeployment/settings. Existing automatic Vercel integration may deploy main merges. Issue332closed,335unmerged.
+
+
+## Main344 accepted receipt
+Mainc9d795275fc22b284db51e70b25ec4ccb7d00d3a full35448212060/job105910734306 SUCCESS: actual73/73,0failed onNode22.23.2 at2026-09-19T14:24:54Z. MainOPS35448212075 all3jobsSUCCESS. PR344 accepted36numeric+6parents after independentreview/exactheadCI/mainreceipt. Total92/110numeric,18remaining;10/10parents. Fullmasterplan/F3–F7/live still NOT_COMPLETE;PR310PAUSED. Oneactive source-only fourdate/eventconditions.
+
+Sourceaudit f4f9235d42496352574df70f29230648a1db94eb qualifies fourdatecells; independent date_events_review active before runtime.19characterization cases across3timezones record baseline gaps, notfixes. Proposedcontract has separate change-before-supply and production-signed/ceased facts, exactobject/ownreason, sourcedminute semantics, futurelegalrecipient/testsubstitution and protectedconsumers. Reviewfocus: falseXprojection vs actualnotes, Z06E p109 exclusion, inboundXOR/ignore and trustedproducer. No runtimeauthorizedyet.
+
+Independent date source/spec APPROVE; architecture REQUEST_CHANGES R1 server-owned run/route-bound TGT substitution and R2 purecaller-to-persisted authority boundary. Original implementer owns source-document fixround1, no runtimeauthorized. Full report /workspace/scratch/2a201d6d5897/date-events-source-review-report.md. Required exactrowenvironment/rawlegalDO/technicalroute checks, no callerbypass, one source-scope owner, deep-copy/null semantics and protectednormal/fallback consumers. Then scopedarchitecture rereview.
+
+Date source correction953c9a8d independently source/spec+architectureAPPROVE, R1/R2addressed, nofindings. Rootauthorized allfourdate runtime via appended samebrief, oneimplementerdate_events. Completecorrected source/routeauthority contract binding, purecaller neverpersistedsend/production, TGTonlytrustedservercontext/testenvironment, protectednormal/fallback paths. ActualRED/GREEN and fullrequiredgates then independent runtime/wholebranchreview. Accepted92/110numeric10/10parents unchanged;PR310paused.
+
+## PR345 review checkpoint
+Completed runtime1e69de127b4e327afc612af601a8cbe8fd61e594 published as draft PR345 headc06db12b19c4a12a545c804e80cd156003b7cc81, exactsame treeb3631e196761777604665602442105b89011e933. Local3968/3968, all3types/lint/818scripts/integrity/budgets/performance/route/TZ passed; Node24local. Initial CI coverage105920925174 independently confirms3968/3968 in262files onNode22.23.2. Initial Tenant andOPS verify fail service-role ratchet2404 versuslimit2402; this is not accepted CI.
+
+Separate fixbd4a268f70c9cb594a6a49ee7eeb23bf04458c1f converts allTHREE added resolver queries to actual tenantDb(companyId), injectedcompanyfilters plusID/ownerchecks. Actualcount2401; immutablelimit2402 unchanged. Focused70/70, all3types/lint andactualtenantworkflowcommands pass. Not yet published.
+
+Independent completed-runtime review has confirmed three additional findings: actual inbound ownZ09B extra210 incorrectly reachesfieldmatrixforbidden; returned trustedcontext aliases mutablefacts; manualUTILTS runtimecontext selected asPRODAT. Await finalreport, sameimplementer scopedfix and independentrereview. No new acceptance:92/110numeric,10/10parents. Fullmasterplanincomplete,PR310paused.

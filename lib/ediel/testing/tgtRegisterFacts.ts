@@ -1,3 +1,5 @@
+import {buildTgtDateEventSource,assertTgtDateEventSelection} from './tgtDateEventSource'
+import type {ProdatDateEventRoute} from '@/lib/ediel/prodat/prodatDateEvents'
 import {assertTgtInvoiceeSource} from './tgtInvoiceeSource'
 import {END_USER_ADDRESS_CODES} from '@/lib/ediel/prodat/prodatEndUserAddress'
 import {tgtEndUserAddressSourceLines} from './tgtEndUserAddressSource'
@@ -8,7 +10,7 @@ import type { EdielTestRunRow } from '@/lib/ediel/types'
 import type { EdielTgtCaseTestData } from './tgtTestData'
 import { groupTgtProdatSourceObjects, readTgtProdatSourceColumns } from './tgtProdatSource'
 
-type Context = { run: EdielTestRunRow; stepNo:number; code:string; testData:EdielTgtCaseTestData|null|undefined }
+type Context = { dateEventRoute?:ProdatDateEventRoute; run: EdielTestRunRow; stepNo:number; code:string; testData:EdielTgtCaseTestData|null|undefined }
 type SourceContext = Omit<Context,'run'> & {run:Pick<EdielTestRunRow,'id'|'company_id'|'role_code'|'test_case_code'|'test_suite'>}
 type Entry = {code:string;sourceDigest:string;facts:ProdatDependentConditionFacts;actorId:string;sourceNote:string;recordedAt:string}
 type FactNotes = {version:1;companyId:string;runId:string;roleCode:string;caseCode:string;suite:string;steps:Record<string,Entry>}
@@ -59,6 +61,7 @@ function checkedFacts(ctx:SourceContext,value:unknown):ProdatDependentConditionF
     }
   }
   assertTgtInvoiceeSource(ctx.code,objects,facts.invoiceeObjects)
+  assertTgtDateEventSelection(ctx.code,objects,facts)
   return facts
 }
 /** Factual operator assertion, not a certification flag or authentication token.
@@ -68,7 +71,13 @@ export function buildTgtRegisterFactNotes(ctx:Context & {facts:unknown;actorId:s
   if (!ctx.actorId.trim() || !ctx.sourceNote.trim() || ctx.sourceNote.length>2000) return invalid()
   const raw=notes(ctx.run)
   const previous=envelope(ctx.run,raw)
+  const operator=record(ctx.facts)
+  if(operator?.dateEventSource!==undefined||operator?.dateEventObjects!==undefined&&['source','kind','environment','route','authority','testSubstitution','isAuthorized'].some(key=>Object.hasOwn(operator,key)))return invalid()
   const facts=checkedFacts(ctx,ctx.facts)
+  if(facts.dateEventObjects){
+    if(!ctx.dateEventRoute)return invalid()
+    facts.dateEventSource=buildTgtDateEventSource({run:ctx.run,stepNo:ctx.stepNo,code:ctx.code,sourceDigest:source(ctx).digest,actorId:ctx.actorId,reference:ctx.sourceNote.trim(),route:ctx.dateEventRoute,facts})
+  }
   if(facts.endUserAddressObjects) facts.endUserAddressObjects=facts.endUserAddressObjects.map(fact=>({...fact,source:{kind:'tgt',companyId:ctx.run.company_id,runId:ctx.run.id,stepNo:ctx.stepNo,code:ctx.code,sourceDigest:source(ctx).digest,reference:ctx.sourceNote.trim()}}))
   if(facts.invoiceeObjects)facts.invoiceeObjects=facts.invoiceeObjects.map(fact=>({...fact,source:{kind:'tgt',companyId:ctx.run.company_id,runId:ctx.run.id,stepNo:ctx.stepNo,code:ctx.code,sourceDigest:source(ctx).digest,reference:ctx.sourceNote.trim()}}))
   const next:FactNotes=previous ?? {version:1,companyId:ctx.run.company_id,runId:ctx.run.id,roleCode:ctx.run.role_code,caseCode:ctx.run.test_case_code,suite:ctx.run.test_suite,steps:{}}
@@ -90,6 +99,11 @@ export function readTgtRegisterFacts(ctx:Context):ProdatDependentConditionFacts|
   }
   if (entry.code!==ctx.code || entry.sourceDigest!==source(ctx).digest || typeof entry.actorId!=='string' || !entry.actorId.trim() || typeof entry.sourceNote!=='string' || !entry.sourceNote.trim()) return invalid()
   const facts=checkedFacts(ctx,entry.facts)
+  if(facts.dateEventObjects||facts.dateEventSource){
+    if(!ctx.dateEventRoute||facts.dateEventSource?.kind!=='tgt')return invalid()
+    const expected=buildTgtDateEventSource({run:ctx.run,stepNo:ctx.stepNo,code:ctx.code,sourceDigest:source(ctx).digest,actorId:entry.actorId,reference:entry.sourceNote.trim(),route:ctx.dateEventRoute,facts})
+    if(JSON.stringify(expected)!==JSON.stringify(facts.dateEventSource))return invalid()
+  }
   for(const fact of [...facts.endUserAddressObjects??[],...facts.invoiceeObjects??[]])if(fact.source.kind!=='tgt' || fact.source.companyId!==ctx.run.company_id || fact.source.runId!==ctx.run.id || fact.source.stepNo!==ctx.stepNo || fact.source.code!==ctx.code || fact.source.sourceDigest!==source(ctx).digest)return invalid()
   return facts
 }
@@ -97,9 +111,16 @@ export function readTgtRegisterFacts(ctx:Context):ProdatDependentConditionFacts|
 /** Recheck source selection at the draft boundary after notes have been read.
  * Scope comes from the authorized build context, never from the fact itself. */
 export function assertTgtAddressFactSource(input:{companyId:string;runId?:string|null;stepNo:number;code:string;roleCode:EdielTestRunRow['role_code'];caseCode:string;suite:EdielTestRunRow['test_suite'];testData:EdielTgtCaseTestData|null|undefined;facts:ProdatDependentConditionFacts|undefined}) {
-  if(!input.facts?.endUserAddressObjects?.length&&!input.facts?.invoiceeObjects?.length)return
+  if(!input.facts?.endUserAddressObjects?.length&&!input.facts?.invoiceeObjects?.length&&!input.facts?.dateEventObjects?.length)return
   if(!input.runId)return invalid()
   const ctx:SourceContext={stepNo:input.stepNo,code:input.code,testData:input.testData,run:{id:input.runId,company_id:input.companyId,role_code:input.roleCode,test_case_code:input.caseCode,test_suite:input.suite}}
   const facts=checkedFacts(ctx,input.facts), selected=source(ctx)
+  if(facts.dateEventObjects){const dateSource=facts.dateEventSource;if(dateSource?.kind!=='tgt'||dateSource.companyId!==input.companyId||dateSource.runId!==input.runId||dateSource.stepNo!==input.stepNo||dateSource.code!==input.code||dateSource.roleCode!==input.roleCode||dateSource.caseCode!==input.caseCode||dateSource.suite!==input.suite||dateSource.sourceDigest!==selected.digest)return invalid()}
   for(const fact of [...facts.endUserAddressObjects??[],...facts.invoiceeObjects??[]])if(fact.source.kind!=='tgt' || fact.source.companyId!==input.companyId || fact.source.runId!==input.runId || fact.source.stepNo!==input.stepNo || fact.source.code!==input.code || fact.source.sourceDigest!==selected.digest)return invalid()
+}
+
+/** Selects the resolver only; readTgtRegisterFacts still authenticates the complete envelope. */
+export function tgtHasDateEventFacts(run:EdielTestRunRow,stepNo:number):boolean {
+ const entry=record(envelope(run,notes(run))?.steps[String(stepNo)]),facts=record(entry?.facts)
+ return !!facts&&(Object.hasOwn(facts,'dateEventObjects')||Object.hasOwn(facts,'dateEventSource'))
 }

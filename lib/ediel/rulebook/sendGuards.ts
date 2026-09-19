@@ -1,3 +1,4 @@
+import type {TgtDateEventValidationContext} from '@/lib/ediel/prodat/prodatDateEventAuthority'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { validateEdielMessageRowWithRulebook } from '@/lib/ediel/rulebook/validator'
 
@@ -5,11 +6,11 @@ function objectValue(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null
 }
 
-export function assertRulebookAllowsSend(message: EdielMessageRow): void {
+export function assertRulebookAllowsSend(message: EdielMessageRow,dateEventContext?:TgtDateEventValidationContext): void {
   if (message.direction !== 'outbound') return
   const parsedPayload = objectValue(message.parsed_payload) ?? {}
 
-  const validation = validateEdielMessageRowWithRulebook(message, 'send')
+  const validation = validateEdielMessageRowWithRulebook(message, 'send',dateEventContext)
   const errors = validation.issues.filter((issue) => issue.severity === 'error' || issue.blocking)
   const registerErrors = errors.filter(issue => issue.scope === 'prodat_register')
   const dependentErrors = errors.filter(issue => issue.scope === 'prodat_dependent')

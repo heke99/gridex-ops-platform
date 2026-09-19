@@ -1,3 +1,7 @@
+import {hasProdatDateEventMessage} from '@/lib/ediel/prodat/prodatDateEventAuthority'
+import {loadTgtDateEventValidationContext} from '@/lib/ediel/testing/tgtDateEventContext'
+import {assertRulebookAllowsSend} from '@/lib/ediel/rulebook/sendGuards'
+import {assertEdielSendLock} from './sendLock'
 // Extracted from index.ts; keep public imports on the facade module.
 
 
@@ -314,6 +318,11 @@ export async function sendEdielMessageViaSmtp(
 }> {
   const actorUserId = requireActorUserId(params?.actorUserId)
   assertTransportFamily(message.message_family, 'sendEdielMessageViaSmtp')
+  if(hasProdatDateEventMessage(message)){
+    const dateEventContext=await loadTgtDateEventValidationContext(message)
+    assertRulebookAllowsSend(message,dateEventContext)
+    assertEdielSendLock(message,dateEventContext)
+  }
 
   if (!message.receiver_email?.trim()) {
     throw new Error(`Kan inte skicka Ediel-meddelande ${message.id} utan receiver_email.`)

@@ -152,6 +152,8 @@ export type ProdatEngineAckExpectation = {
 }
 
 export type ProdatEngineDiagnostics = {
+  dateEventReadiness?:'unqualified'|'not_applicable'
+
   engine: 'prodat'
   registerCount?: number
   registerEvidence?: ProdatRegisterEvidence

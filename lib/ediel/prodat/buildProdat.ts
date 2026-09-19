@@ -1,3 +1,4 @@
+import {validateProdatDateEvents} from '@/lib/ediel/rulebook/prodatDateEventPolicy'
 import {validateProdatInvoicee} from '@/lib/ediel/rulebook/prodatInvoiceePolicy'
 import {assertInvoiceeOwnership} from './prodatInvoicee'
 import type {ProdatEngineInvoiceeContext} from './types'
@@ -68,6 +69,7 @@ export type BuiltProdatMessage = {
   businessCode: SupportedProdatBusinessCode
   applicationReference: string
   interchangeReference: string
+  dateEventReadiness: 'unqualified' | 'not_applicable'
   registerEvidence: ProdatRegisterEvidence
   validation: ReturnType<typeof validateProdat>
 }
@@ -137,7 +139,7 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
     const objectEndUserAllowed = endUserAllowed && !isProdatFieldInInapplicableParent({
       messageCode:businessCode,subtype:objectSubtype,fieldNumber:'END_USER_GROUP',
     })
-    const dateSubtype = businessCode === 'Z14' ? objectSubtype : input.transactionSubtype
+    const dateSubtype = ['Z14','Z09'].includes(businessCode) ? objectSubtype : input.transactionSubtype
     const objectDateInputs = resolveProdatDateInputs(businessCode,dateSubtype,object.dates ?? {})
     const objectDates = buildProdatDateSegments(businessCode,dateSubtype,objectDateInputs)
     const rows = [
@@ -182,7 +184,7 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
     testIndicator: input.environment === 'production' ? 0 : 1,
   })
   assertInvoiceeOwnership(input.dependentConditionFacts?.invoiceeObjects,{companyId:input.companyId,code:businessCode})
-  const invoiceeFailures=validateProdatInvoicee({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts})
+  const invoiceeFailures=[...validateProdatDateEvents({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts}),...validateProdatInvoicee({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts})]
   const validation = validateProdat(rawEdifact,{registerFacts:input.dependentConditionFacts,requireRegisterConditions:true})
   validation.issues.push(...invoiceeFailures.map(f=>({severity:'error' as const,code:f.code,message:f.description})))
   if(invoiceeFailures.length)validation.ok=false
@@ -223,6 +225,7 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
 
   return {
     rawEdifact,
+    dateEventReadiness:['Z06','Z09','Z10'].includes(businessCode)?'unqualified':'not_applicable',
     registerEvidence:createProdatRegisterEvidence({code:businessCode,rawSegments:addressWire.segments.map(s=>s.raw),una:addressWire.una,facts:input.dependentConditionFacts}),
     businessCode,
     applicationReference,
