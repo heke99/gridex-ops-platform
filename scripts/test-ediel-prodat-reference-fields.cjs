@@ -191,14 +191,17 @@ for (const [label, body, expected] of [
   })
 }
 for(const [id,q] of refs.filter(r=>r[0]!=='315')) {
-  test(`TGT comparison retains exact field ${id} identity`,async()=>{
+  test(id==='240' ? 'TGT comparison ignores grey incoming field240 content' : `TGT comparison retains exact field ${id} identity`,async()=>{
     const a=await api
     const message={message_family:'PRODAT',message_code:'Z10',raw_payload:wire('Z10',[lin,`RFF+${q}:RIGHT:LINE:REV`])}
     const testData={groups:[{columns:[{name:'A',index:0}],fields:[{fieldCode:id,values:{A:'RIGHT'}}]}]}
     const original=JSON.stringify(testData)
     assert(!a.compareInboundPayloadToTgtTestData({message,testData}).some(i=>i.fieldCode===id))
     const wrong={...message,raw_payload:wire('Z10',[lin,`RFF+${q}:WRONG:RIGHT`])}
-    assert(a.compareInboundPayloadToTgtTestData({message:wrong,testData}).some(i=>i.fieldCode===id))
+    // P26.A p119/p123 grey240: adopted incoming policy adds no content rejection.
+    const mismatch=a.compareInboundPayloadToTgtTestData({message:wrong,testData}).some(i=>i.fieldCode===id)
+    if(id==='240') assert(!mismatch)
+    else assert(mismatch)
     assert.equal(JSON.stringify(testData),original,'Expected source data stays unchanged')
   })
 }

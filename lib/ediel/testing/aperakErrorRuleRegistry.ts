@@ -1,3 +1,4 @@
+import {validateProdatGasApplicability} from '@/lib/ediel/rulebook/prodatGasApplicabilityPolicy'
 import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
 import {validateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy';
 import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy';
@@ -1090,6 +1091,8 @@ export function deriveProdatAperakValidationIssues(params: {
   const registerWire=parseEdifactMessageFacts(message.raw_payload);
   // The manual/TGT registry has no qualified254/242 error mapping. Do not let
   // its positive-case shortcut silently accept genuine scoped code defects.
+  const gasFailures=validateProdatGasApplicability({code:registerParsed.messageCode,rawSegments:registerWire.rawSegments,una:parseUna(message.raw_payload),direction:'inbound'});
+  if(gasFailures.some(i=>i.blocking||i.severity==='error'))throw new Error('PRODAT_GAS_ACK_REVIEW_REQUIRED');
   const deathFailures=validateProdatDeathStatus({code:registerParsed.messageCode,rawSegments:registerWire.rawSegments,una:parseUna(message.raw_payload),direction:'inbound'});
   if(deathFailures.some(i=>i.blocking||i.severity==='error'))throw new Error('PRODAT_DEATH_STATUS_ACK_REVIEW_REQUIRED');
   const meterFailures=validateProdatMeterChange({code:registerParsed.messageCode,rawSegments:registerWire.rawSegments,una:parseUna(message.raw_payload),direction:'inbound'});

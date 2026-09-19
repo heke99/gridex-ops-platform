@@ -1,3 +1,4 @@
+import {copyGasSerialChangeSelection} from '@/lib/ediel/prodat/prodatGasApplicability'
 import {copyDeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
 import { resolveCanonicalAckMatrixRule, type CanonicalAckMatrixRule } from '@/lib/ediel/ack/canonicalAckEngine'
 import { canonicalProdat26AFieldRules } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
@@ -224,11 +225,15 @@ export function resolveCanonicalEdielPolicy(input: ResolveCanonicalEdielPolicyIn
       try { preWireDeathStatus = copyDeathSelection(preWireDeathStatus) }
       catch { preWireDeathStatus = null }
     }
+    let preWireGas = input.prodatDependentFacts?.gasSerialChange
+    if(input.direction==='inbound' && preWireGas!=null){try{preWireGas=copyGasSerialChangeSelection(preWireGas)}catch{preWireGas=null}}
     const prodatDependentConditions = evaluateProdatDependentConditions({
       messageCode: code,
       facts: {
         ...(input.prodatDependentFacts ?? {}),
         deathStatus: preWireDeathStatus,
+        gasSerialChange: preWireGas,
+        market: 'electricity', // This resolved active canonical profile is EL; wire validation resolves its own market.
         canonicalSubtype: subtype.subtype,
         businessContext: input.businessContext ?? input.prodatDependentFacts?.businessContext ?? null,
       },

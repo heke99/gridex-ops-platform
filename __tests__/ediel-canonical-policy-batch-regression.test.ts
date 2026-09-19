@@ -120,7 +120,7 @@ describe('canonical Ediel policy batch regression', () => {
       unknownIds.push(...results.filter(entry=>entry.status==='undetermined').map(entry=>entry.id))
     }
 
-    expect(unknownIds.sort()).toEqual(['Z05:310','Z06:210','Z09:210','Z09:211','Z10:210','Z10:242','Z10:254','Z13:321','Z13:323','Z14:321','Z14:323'])
+    expect(unknownIds.sort()).toEqual(['Z05:310','Z06:210','Z09:210','Z09:211','Z10:210','Z10:240','Z10:242','Z10:254','Z13:321','Z13:323','Z14:321','Z14:323'])
     const evaluatedIds = EXPECTED_PRODAT_CODES.flatMap((messageCode) =>
       evaluateProdatDependentConditions({
         messageCode,

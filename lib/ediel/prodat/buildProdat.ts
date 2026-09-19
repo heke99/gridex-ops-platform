@@ -1,3 +1,4 @@
+import {validateProdatGasApplicability} from '@/lib/ediel/rulebook/prodatGasApplicabilityPolicy'
 import {projectDeathStatus} from './prodatDeathStatus'
 import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
 import {validateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy'
@@ -192,7 +193,7 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
     testIndicator: input.environment === 'production' ? 0 : 1,
   })
   assertInvoiceeOwnership(input.dependentConditionFacts?.invoiceeObjects,{companyId:input.companyId,code:businessCode})
-  const invoiceeFailures=[...validateProdatDeathStatus({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts}),...validateProdatMeterChange({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts,applicationReference}),...validateProdatReportingPermission({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts,reportingContext:input.reportingContext}),...validateProdatDateEvents({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts}),...validateProdatInvoicee({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts})]
+  const invoiceeFailures=[...validateProdatGasApplicability({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts,applicationReference}),...validateProdatDeathStatus({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts}),...validateProdatMeterChange({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts,applicationReference}),...validateProdatReportingPermission({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts,reportingContext:input.reportingContext}),...validateProdatDateEvents({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts}),...validateProdatInvoicee({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts})]
   const validation = validateProdat(rawEdifact,{registerFacts:input.dependentConditionFacts,requireRegisterConditions:true})
   validation.issues.push(...invoiceeFailures.map(f=>({severity:'error' as const,code:f.code,message:f.description})))
   if(invoiceeFailures.length)validation.ok=false

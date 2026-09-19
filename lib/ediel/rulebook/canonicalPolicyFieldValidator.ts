@@ -1,3 +1,5 @@
+import {isGasApplicabilityField} from '@/lib/ediel/prodat/prodatGasApplicability'
+import {validateProdatGasApplicability} from './prodatGasApplicabilityPolicy'
 import {validateProdatDeathStatus} from './prodatDeathStatusPolicy'
 import {isMeterChangeField} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
 import {validateProdatMeterChange} from './prodatMeterChangePolicy'
@@ -67,6 +69,7 @@ export function validateCanonicalPolicyFields(input: {
 
   const baseRules = input.policy.family === 'PRODAT' ? rules.filter(rule => {
     const field = rule.fieldNumber ?? ''
+    if(isGasApplicabilityField(input.policy.code,field))return false
     if(field==='310'&&['Z05','Z06','Z09'].includes(input.policy.code))return false
     if(isMeterChangeField(input.policy.code,field))return false
     if(isReportingPermissionField(input.policy.code,field)||isProdatDateEventField(input.policy.code,field))return false
@@ -106,12 +109,15 @@ export function validateCanonicalPolicyFields(input: {
 
   if(rules.some(rule=>rule.fieldNumber==='310'))issues.push(...validateProdatDeathStatus({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound'}))
 
+  if(rules.some(rule=>isGasApplicabilityField(input.policy.code,rule.fieldNumber??'')))issues.push(...validateProdatGasApplicability({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound',applicationReference:input.policy.applicationReference,fields:rules.map(rule=>rule.fieldNumber??'')}))
+
   const dependentByField = new Map(
     input.policy.prodatDependentConditions.map((condition) => [condition.fieldNumber, condition] as const),
   )
 
   for (const rule of rules.filter((candidate) => candidate.requirement === 'dependent')) {
     const fieldNumber = String(rule.fieldNumber ?? '').trim()
+    if(isGasApplicabilityField(input.policy.code,fieldNumber))continue
     if(fieldNumber==='310')continue
     if(isMeterChangeField(input.policy.code,fieldNumber))continue
     if(isReportingPermissionField(input.policy.code,fieldNumber)||isProdatDateEventField(input.policy.code,fieldNumber))continue

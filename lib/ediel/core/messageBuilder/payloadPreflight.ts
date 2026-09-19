@@ -1,3 +1,6 @@
+import {gasApplicabilitySendIssue} from '@/lib/ediel/prodat/prodatGasAuthority'
+import {validateProdatGasApplicability} from '@/lib/ediel/rulebook/prodatGasApplicabilityPolicy'
+import type {GasSerialChangeSelection} from '@/lib/ediel/prodat/prodatGasApplicability'
 import {deathStatusSendIssue} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
 import type {DeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
@@ -354,6 +357,7 @@ function validateEdifactPayload(params: {
   parsedPayload?: unknown
   dateEventRow?:ProdatDateEventRow
   dateEventContext?:TgtDateEventValidationContext
+  gasSerialChange?:GasSerialChangeSelection
   deathStatus?:DeathSelection
   meterChange?:MeterChangeSelection
   reportingContext?:ExpectedContext
@@ -367,6 +371,8 @@ function validateEdifactPayload(params: {
   const { segments, una } = tokens
   const rawSegments = segments.map(segment => segment.raw)
   const issues: EdielPayloadPreflightIssue[] = []
+  const gasBoundary=params.mode==='send'?gasApplicabilitySendIssue({raw_payload:rawPayload,parsed_payload:params.parsedPayload}):null
+  if(gasBoundary)issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${gasBoundary.code}`,title:gasBoundary.title,description:gasBoundary.description}))
   const deathBoundary=params.mode==='send'?deathStatusSendIssue({message_family:'PRODAT',raw_payload:rawPayload,parsed_payload:params.parsedPayload}):null
   if(deathBoundary)issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${deathBoundary.code}`,title:deathBoundary.title,description:deathBoundary.description}))
   const meterBoundary=params.mode==='send'?meterChangeSendIssue({message_family:'PRODAT',raw_payload:rawPayload}):null
@@ -551,6 +557,7 @@ function validateEdifactPayload(params: {
     }
   }
 
+  if(canonical.family==='PRODAT')for(const failure of validateProdatGasApplicability({code:canonical.messageCode??'',rawSegments,una,direction:params.mode==='send'?'outbound':'inbound',facts:{gasSerialChange:params.mode==='send'?undefined:params.gasSerialChange}}))issues.push(issue({severity:failure.severity,code:params.mode==='send'?`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`:failure.code,title:failure.title,description:failure.description}))
   if(params.mode==='parse'&&canonical.family==='PRODAT')for(const failure of validateProdatDeathStatus({code:canonical.messageCode??'',rawSegments,una,direction:'inbound',facts:{deathStatus:params.deathStatus}}))issues.push(issue({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description}))
   if(params.mode==='parse'&&canonical.family==='PRODAT')for(const failure of validateProdatMeterChange({code:canonical.messageCode??'',rawSegments,una,direction:'inbound',facts:{meterChange:params.meterChange}}))issues.push(issue({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description}))
   if(params.mode==='parse'&&canonical.family==='PRODAT')for(const failure of validateProdatDateEvents({code:canonical.messageCode??'',rawSegments,una,direction:'inbound'}))issues.push(issue({severity:'error',code:failure.code,title:failure.title,description:failure.description}))
@@ -562,7 +569,7 @@ function validateEdifactPayload(params: {
     applicationReference: canonical.applicationReference,
     rawPayload,
     companyId: params.companyId,
-    dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext,deathStatus:params.deathStatus,meterChange:params.meterChange,
+    dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext,gasSerialChange:params.gasSerialChange,deathStatus:params.deathStatus,meterChange:params.meterChange,
     ...(params.mode==='send'?{environment:params.dateEventRow?.environment,direction:params.dateEventRow?.direction}:{}),
     mode: params.mode === 'send' ? 'send' : 'parse',
     parsedPayload: params.parsedPayload && typeof params.parsedPayload === 'object' && !Array.isArray(params.parsedPayload)
@@ -714,6 +721,7 @@ export function preflightEdielPayload(params: {
   parsedPayload?: unknown
   dateEventRow?:ProdatDateEventRow
   dateEventContext?:TgtDateEventValidationContext
+  gasSerialChange?:GasSerialChangeSelection
   deathStatus?:DeathSelection
   meterChange?:MeterChangeSelection
   reportingContext?:ExpectedContext
@@ -739,13 +747,13 @@ export function preflightEdielPayload(params: {
 
   // Actual Z10 must reach its EDIFACT send boundary before caller format hints
   // can select XML/list early returns. Preserve ordinary syntax validation there.
-  if (params.mode === 'send' && (deathStatusSendIssue({raw_payload:rawPayload,parsed_payload:params.parsedPayload}) || meterChangeSendIssue({raw_payload:rawPayload}))) {
+  if (params.mode === 'send' && (gasApplicabilitySendIssue({raw_payload:rawPayload,parsed_payload:params.parsedPayload}) || deathStatusSendIssue({raw_payload:rawPayload,parsed_payload:params.parsedPayload}) || meterChangeSendIssue({raw_payload:rawPayload}))) {
     return validateEdifactPayload({...params,rawPayload,mode:'send'})
   }
   if (params.messageStandard === 'xml' || rawPayload.startsWith('<')) return validateXmlPayload(rawPayload, params.mimeType ?? null)
   const edifactDeclared = params.messageStandard === 'edifact' || rawPayload.startsWith('UNA')
   if (params.messageStandard === 'ai_list' || (!edifactDeclared && !rawPayload.includes("'") && rawPayload.includes(';'))) return validateListPayload(rawPayload)
-  return validateEdifactPayload({ rawPayload, mimeType: params.mimeType ?? null, mode: params.mode ?? 'parse', parsedPayload:params.parsedPayload,companyId:params.companyId,dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext,deathStatus:params.deathStatus,meterChange:params.meterChange })
+  return validateEdifactPayload({ rawPayload, mimeType: params.mimeType ?? null, mode: params.mode ?? 'parse', parsedPayload:params.parsedPayload,companyId:params.companyId,dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext,gasSerialChange:params.gasSerialChange,deathStatus:params.deathStatus,meterChange:params.meterChange })
 }
 
 export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' | 'parse' = 'send', dateEventContext?:TgtDateEventValidationContext,reportingContext?:ExpectedContext): EdielPayloadPreflightResult {
@@ -757,6 +765,8 @@ export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' 
     parsedPayload:message.parsed_payload,
     companyId:message.company_id,dateEventRow:message,dateEventContext,reportingContext,
   })
+  const gasBoundary=mode==='send'?gasApplicabilitySendIssue(message):null
+  if(gasBoundary){result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${gasBoundary.code}`,title:gasBoundary.title,description:gasBoundary.description}));result.ok=false;result.blocking=true}
   const deathBoundary=mode==='send'?deathStatusSendIssue(message):null
   if(deathBoundary){result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${deathBoundary.code}`,title:deathBoundary.title,description:deathBoundary.description}));result.ok=false;result.blocking=true}
   const meterBoundary=mode==='send'?meterChangeSendIssue(message):null

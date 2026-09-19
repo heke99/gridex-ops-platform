@@ -1,4 +1,6 @@
-import {assertDeathStatusSendBoundary} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
+import {validateEdielMessageRowWithRulebook} from '@/lib/ediel/rulebook/validator'
+import {assertGasApplicabilitySendBoundary,gasApplicabilitySendIssue,gasApplicabilitySendFieldIssues} from '@/lib/ediel/prodat/prodatGasAuthority'
+import {deathStatusSendIssue} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 import {meterChangeSendIssue} from '@/lib/ediel/prodat/prodatMeterChangeAuthority'
 import {hasReportingPermissionMessage} from '@/lib/ediel/prodat/prodatReportingPermissionAuthority'
 import {loadTgtReportingValidationContext} from '@/lib/ediel/testing/tgtReportingPermissionContext'
@@ -321,7 +323,18 @@ export async function sendEdielMessageViaSmtp(
   messageId: string | null
 }> {
   const actorUserId = requireActorUserId(params?.actorUserId)
-  assertDeathStatusSendBoundary(message)
+  const sourceHolds=[gasApplicabilitySendIssue(message),...gasApplicabilitySendFieldIssues(message),deathStatusSendIssue(message)].filter(Boolean)
+  if(sourceHolds.length){
+    const messages=sourceHolds.map(i=>`${i!.code}: ${i!.description}`)
+    // Add the existing pure protected diagnostics before this new early hold;
+    // no route/context loader or provider is invoked for a GAS boundary defect.
+    if(sourceHolds.some(i=>i?.code.startsWith('PRODAT_GAS_'))){
+      try{for(const issue of validateEdielMessageRowWithRulebook(message,'send').issues){
+        if((issue.scope==='prodat_dependent'||issue.scope==='prodat_register')&&(issue.blocking||issue.severity==='error'))messages.push(`${issue.code}: ${issue.description}`)
+      }}catch(error){messages.push(error instanceof Error?error.message:String(error))}
+    }
+    throw new Error([...new Set(messages)].join(' | '))
+  }
   if(meterChangeSendIssue(message)){assertRulebookAllowsSend(message);assertEdielSendLock(message)}
   assertTransportFamily(message.message_family, 'sendEdielMessageViaSmtp')
   if(hasReportingPermissionMessage(message)){
@@ -344,6 +357,7 @@ export async function sendEdielMessageViaSmtp(
         companyId: message.company_id ?? null,
       })
     : null
+  assertGasApplicabilitySendBoundary({...message,routeApplicationReference:routeProfile?.application_reference})
   const overrideEncryptionMode = encryptionModeFromMimeMode(params?.smtpMimeMode)
   const requestedEncryptionMode =
     overrideEncryptionMode ??

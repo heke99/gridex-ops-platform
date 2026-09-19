@@ -1,3 +1,5 @@
+import {isGasApplicabilityField} from '@/lib/ediel/prodat/prodatGasApplicability'
+import {evaluateProdatGasApplicability} from '@/lib/ediel/rulebook/prodatGasApplicabilityPolicy'
 import {projectDeathStatus,isDeathStatusField} from '@/lib/ediel/prodat/prodatDeathStatus'
 import {evaluateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
 import {isMeterChangeField,meterChangeCondition} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
@@ -392,6 +394,8 @@ export function buildProfiledProdatSegments(input: {
   const renderedReadings = validateProdatRegisterPolicy({code:policy.code,rawSegments:segments,
     facts:policy.prodatDependentFacts,rules:registerPolicy.fieldRules.filter((rule): rule is RulebookFieldRule => 'family' in rule),applicationReference:policy.applicationReference,
     requireIndependentInventory:policy.direction === 'outbound'}).readings
+  const gasDecision=evaluateProdatGasApplicability({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts,applicationReference:policy.applicationReference,direction:policy.direction as 'inbound'|'outbound'})
+  for(const failure of gasDecision.issues)issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
   const deathDecision=evaluateProdatDeathStatus({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts,direction:policy.direction as 'inbound'|'outbound'})
   for(const failure of deathDecision.issues)issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
   const meterChangeDecision=evaluateProdatMeterChange({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts,applicationReference:policy.applicationReference})
@@ -403,6 +407,7 @@ export function buildProfiledProdatSegments(input: {
   const invoiceeDecision=evaluateProdatInvoicee({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts})
   for(const failure of invoiceeDecision.issues) issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
   const dependentConditionStatuses = policy.prodatDependentConditions.map(condition =>
+    isGasApplicabilityField(policy.code,condition.fieldNumber)?{...condition,status:gasDecision.statuses.get(condition.fieldNumber)??'undetermined',requirement:gasDecision.requirements.get(condition.fieldNumber)??'undetermined',decisionPhase:'rendered_wire_gas' as const}:
     isDeathStatusField(policy.code,condition.fieldNumber)?{...condition,status:deathDecision.statuses.get('310')??'undetermined',decisionPhase:'rendered_wire_death_status' as const}:
     isMeterChangeField(policy.code,condition.fieldNumber)?{...condition,status:meterChangeDecision.statuses.get(condition.fieldNumber)??'undetermined',decisionPhase:'rendered_wire_meter_change' as const}:
     isReportingPermissionField(policy.code,condition.fieldNumber)?{...condition,status:reportingDecision.statuses.get(condition.fieldNumber)??'undetermined',decisionPhase:'rendered_wire_reporting' as const}:

@@ -1,3 +1,9 @@
+## Current — PR349 independent review and CI
+
+PR348 accepted bounded death unit at main4e41b85f, actual73/73 and allOPS verified. PR349 is OPEN DRAFT at84b612c562ae2765df0fad5a7a138583a06121d4, exacttree db947e953abe95b9cf5809335d134b95c8398fea, local4318/4318 and13gates green. Independent runtime review and four exact-head Node22 workflows pending. No current implementation failure; review/CI remain acceptance gates. Counts98/110numeric and10/10parents unchanged. Positivepersisted Z14/Z10/death producers and GAS/TIM-SCH identity remain unqualified; no artificial producer or role activation. PR310 remains paused. Next: findings through original author, scoped review, exact CI, guardedmerge and actualmain73+OPS; then continue available masterplan work with capability-specific blockers.
+
+Historical entries below are superseded where status differs.
+
 # work-plan
 
 PR347 complete: main16d93f38387c203b1d277064948199fb905220aa actualfull35464884519/job105955294810 SUCCESS73/73,0failed onNode22.23.2 at2026-09-19T19:43:38Z. MainOPS35464884585 all3SUCCESS:verify105955294866,replay105955294847,quality105955294763. AllmainworkflowsSUCCESS includingbrowser35464884501,Ediel35464884499,automaticVercel35464884514. Accept boundedZ10OptionAcodeunit, no full-cell/countincrease;98/110numeric and10/10parents unchanged. Source-onlydeath310Z05/Z06/Z09 active with death_status; no runtimeauthorizeduntil independent source/spec+architecture review. PR310paused.
@@ -39,3 +45,9 @@ Main0271e118a5ab4f7adebe5e5b7a041dda01a5547a: full35459742971/job105941346806 SU
 
 ## Death310 source approval/runtime dispatch, 2026-09-19
 Death310 source R1 independent SOURCE/SPEC and ARCHITECTURE APPROVE6b95f6de02e5854953dddef1a5b26b384854173a, report death-status-source-r1-review-report.md. Root explicitly authorized original death_status implementer for bounded OptionA runtime under /workspace/scratch/2a201d6d5897/death-status-runtime-brief.md. Pure/source-valid Z09E requires310 without eventfacts; independently scoped Z05LK/Z06E assessment, p119 matrix, actual consumer/APerak and separate narrow persisted authority holds. No positiveproducer/UI/role/schema activation or counts increase. Next implementation TDD/gates, individual oldassertion adjudication, independent runtime review then exactCI/merge/main73+OPS. PR310paused.
+
+PR348 merged4e41b85f0318c5871ffd62b493cbfc038522c81e exacttreea9327ea047243a8ffa3a48e87ff9a840bfa8315d freshfetchdiff0. Source/task/spec/quality/wholebranchapproved afterR310-2fixed; all4exactheadCIpassed:OPS35468408935,Full35468408942,Browser35468408938,Ediel35468408932. Actual4262/4262in283filesNode22.23.2coverage105964849550. Mainfull35468734623 andOPS35468734627 pending; rootmustverifyactual73/73+allOPS. MainautomaticVercel35468734615SUCCESS, noexplicitdeploy.
+
+One active SOURCE-ONLY unit: fiveGAS-applicabilitycells320Z04/Z06+240Z04/Z06/Z10 oncodex/ediel-gas-applicability-20260919. Brief /workspace/scratch/2a201d6d5897/gas-applicability-task-brief.md. No runtimeuntilindependentsource/architectureapproval plusrootauthorization; noGAS/DSOproduceractivation. Counts98/110+10unchanged;boundeddeathOptionAdoesnotqualifypositiveproducer/fullcells. PR310paused unchangede961135199f292b8210884f07de3b616a670161a.
+
+GASsourceR1 independentSOURCE/SPEC+ARCHITECTURE APPROVE4fc1eaf2115a6d1697f559605f98fa044c2a1fba. Root explicitlyauthorized originalgas_applicability forboundedfivecellruntime under /workspace/scratch/2a201d6d5897/gas-applicability-runtime-brief.md. Strictcondition-only240, ELexclusion/wiremarketbinding, historicaldiagnostics andselectedZ04/Z06/Z10outboundguard; activeGASlock preserved, noTIM/SCHdomainidentity/positiveproducer/UI/role/schemaactivation. Oldassertionsindividualrulingsonly. NextTDD/gates, independentcompletedruntime review, exactCI/merge/main73+OPS. Counts98/110+10,PR310paused.
