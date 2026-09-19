@@ -857,6 +857,7 @@ export async function createEdielTgtDraftAction(formData: FormData) {
     stepNo,
     importedTestData,
     registerFacts,
+    testRunId:run?.id ?? null,
     systemTestContext,
   });
 
@@ -902,7 +903,7 @@ export async function saveEdielTgtRegisterFactsAction(formData:FormData) {
   });
   await requireCompanyOperationalForWrites(run.company_id);
   const step=getEdielTgtTestCaseByCode(run.test_suite,run.role_code,run.test_case_code)?.expectedSteps.find(candidate=>candidate.stepNo===stepNo);
-  if (!step || step.actor!=='gridex' || step.family!=='PRODAT' || !['Z04','Z06','Z10'].includes(step.code)) throw new Error('PRODAT_REGISTER_SOURCE_EVIDENCE_INVALID');
+  if (!step || step.actor!=='gridex' || step.family!=='PRODAT' || !['Z01','Z02','Z03','Z04','Z05','Z06','Z08','Z09','Z10'].includes(step.code)) throw new Error('PRODAT_REGISTER_SOURCE_EVIDENCE_INVALID');
   const raw=formString(formData.get('registerFacts'));
   const sourceNote=formString(formData.get('sourceNote'));
   if (!raw || raw.length>32768 || !sourceNote) throw new Error('PRODAT_REGISTER_SOURCE_EVIDENCE_INVALID');

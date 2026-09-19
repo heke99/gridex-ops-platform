@@ -1,3 +1,6 @@
+import {validateProdatEndUserAddress} from '@/lib/ediel/rulebook/prodatEndUserAddressPolicy'
+import {createProdatRegisterEvidence,type ProdatRegisterEvidence} from './prodatRegisterEvidence'
+import {assertProdatAddressOwnership} from './prodatEndUserAddress'
 import { validateProdatZ14Policy, z14DependentRules } from '@/lib/ediel/rulebook/prodatZ14Policy'
 import { optionalInstallationRules, validateProdatOptionalInstallationPolicy } from '@/lib/ediel/rulebook/prodatOptionalInstallationPolicy'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
@@ -61,6 +64,7 @@ export type BuiltProdatMessage = {
   businessCode: SupportedProdatBusinessCode
   applicationReference: string
   interchangeReference: string
+  registerEvidence: ProdatRegisterEvidence
   validation: ReturnType<typeof validateProdat>
 }
 
@@ -199,12 +203,18 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
     if (failures.length) validation.ok = false
   }
 
+  const addressWire=tokenizeEdifact(rawEdifact)
+  assertProdatAddressOwnership(input.dependentConditionFacts?.endUserAddressObjects,{companyId:input.companyId,code:businessCode})
+  const addressFailures=validateProdatEndUserAddress({code:businessCode,rawSegments:addressWire.segments.map(s=>s.raw),una:addressWire.una,facts:input.dependentConditionFacts})
+  validation.issues.push(...addressFailures.map(f=>({severity:'error' as const,code:f.code,message:f.description})))
+  if(addressFailures.length)validation.ok=false
   if (!validation.ok) {
     throw new Error(`PRODAT ${businessCode} kunde inte valideras: ${validation.issues.map((issue) => issue.message).join(' | ')}`)
   }
 
   return {
     rawEdifact,
+    registerEvidence:createProdatRegisterEvidence({code:businessCode,rawSegments:addressWire.segments.map(s=>s.raw),una:addressWire.una,facts:input.dependentConditionFacts}),
     businessCode,
     applicationReference,
     interchangeReference,

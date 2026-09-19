@@ -391,6 +391,7 @@ async function createDraftForStep(params: {
     testCaseCode: params.evaluation.definition.testCaseCode,
     stepNo: params.step.stepNo,
     importedTestData,
+    testRunId:params.evaluation.testRun.id,
     registerFacts:params.step.family==='PRODAT' ? readTgtRegisterFacts({run:params.evaluation.testRun,
       stepNo:params.step.stepNo,code:params.step.code,testData:importedTestData ?? getEdielTgtTestDataForCase(
         params.evaluation.definition.suite,params.evaluation.definition.roleCode,params.evaluation.definition.testCaseCode)}) : undefined,

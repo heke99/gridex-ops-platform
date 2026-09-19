@@ -1,3 +1,4 @@
+import {validateProdatEndUserAddress} from '@/lib/ediel/rulebook/prodatEndUserAddressPolicy'
 import { prodatSendMessageScopeIssue } from '@/lib/ediel/prodat/prodatSendMessageScope'
 import { validateProdatSubtypePayload } from '@/lib/ediel/rulebook/prodatSubtypePolicy'
 import { readProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
@@ -338,6 +339,7 @@ function validateEdifactPayload(params: {
   mimeType?: string | null
   mode: 'send' | 'parse'
   parsedPayload?: unknown
+  companyId?: string | null
 }): EdielPayloadPreflightResult {
   const rawPayload = params.rawPayload
   const canonical = parseCanonicalEdielPayload({ rawPayload, standardHint: 'edifact' })
@@ -533,6 +535,7 @@ function validateEdifactPayload(params: {
     processGroup: canonical.processGroup,
     applicationReference: canonical.applicationReference,
     rawPayload,
+    companyId: params.companyId,
     mode: params.mode === 'send' ? 'send' : 'parse',
     parsedPayload: params.parsedPayload && typeof params.parsedPayload === 'object' && !Array.isArray(params.parsedPayload)
       ? params.parsedPayload as Record<string, unknown> : null,
@@ -681,6 +684,7 @@ export function preflightEdielPayload(params: {
   /** Optional persisted renderer metadata. PRODAT register facts are accepted
    * only through their body-bound evidence envelope in the rulebook validator. */
   parsedPayload?: unknown
+  companyId?: string | null
 }): EdielPayloadPreflightResult {
   const rawPayload = String(params.rawPayload ?? '').trim()
   const payloadSizeBytes = new TextEncoder().encode(rawPayload).length
@@ -703,7 +707,7 @@ export function preflightEdielPayload(params: {
   if (params.messageStandard === 'xml' || rawPayload.startsWith('<')) return validateXmlPayload(rawPayload, params.mimeType ?? null)
   const edifactDeclared = params.messageStandard === 'edifact' || rawPayload.startsWith('UNA')
   if (params.messageStandard === 'ai_list' || (!edifactDeclared && !rawPayload.includes("'") && rawPayload.includes(';'))) return validateListPayload(rawPayload)
-  return validateEdifactPayload({ rawPayload, mimeType: params.mimeType ?? null, mode: params.mode ?? 'parse', parsedPayload:params.parsedPayload })
+  return validateEdifactPayload({ rawPayload, mimeType: params.mimeType ?? null, mode: params.mode ?? 'parse', parsedPayload:params.parsedPayload,companyId:params.companyId })
 }
 
 export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' | 'parse' = 'send'): EdielPayloadPreflightResult {
@@ -713,6 +717,7 @@ export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' 
     messageStandard: message.message_standard,
     mode,
     parsedPayload:message.parsed_payload,
+    companyId:message.company_id,
   })
   if (!message.raw_payload || (result.family !== 'PRODAT' && message.message_family !== 'PRODAT' && !/^(?:UNA|UNB|UNH)/.test(message.raw_payload.trimStart()))) return result
   try {
@@ -734,7 +739,8 @@ export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' 
         result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
       }
     }
-    const facts = mode === 'send' ? readProdatRegisterEvidence({code,rawSegments,una:tokens.una,parsedPayload:message.parsed_payload}) : undefined
+    const facts = mode === 'send' ? readProdatRegisterEvidence({code,rawSegments,una:tokens.una,parsedPayload:message.parsed_payload,companyId:message.company_id,runId:typeof message.parsed_payload?.testRunId==='string'?message.parsed_payload.testRunId:null,stepNo:typeof message.parsed_payload?.stepNo==='number'?message.parsed_payload.stepNo:null}) : undefined
+    if(mode==='send')for(const failure of validateProdatEndUserAddress({code,rawSegments,una:tokens.una,facts}))result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
     for (const failure of validateProdatRegisterPayload({code,rawSegments,una:tokens.una,facts,requireConditions:mode === 'send',applicationReference:message.application_reference})) {
       result.issues.push(issue({severity:'error',code:`PRODAT_REGISTER_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
     }

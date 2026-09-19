@@ -1,3 +1,4 @@
+import type {ProdatEndUserAddressObject} from './prodatEndUserAddress'
 import {
   PRODAT_26A_FIELD_MATRIX,
   PRODAT_26A_MESSAGE_CODES,
@@ -32,6 +33,8 @@ export type ProdatDependentConditionFacts = {
     expectedRegisterCount?: number | null
     meterReadingsSentInUtilts?: boolean | null
   }[]
+  endUserAddressObjects?: readonly ProdatEndUserAddressObject[]
+  /** Legacy descriptive pre-wire hint only; outbound229 requires per-object source facts. */
   endUserAddressAvailable?: boolean | null
   invoiceeAddressDiffersFromEndUser?: boolean | null
   /**
@@ -58,7 +61,7 @@ export type ProdatDependentConditionEvaluation = {
    * means there is no blanket child requirement; it is not evidence that every
    * object lacks the optional parent. Render/validation must decide per wire. */
   status: ProdatDependentConditionStatus
-  decisionPhase?: 'pre_wire_parent' | 'rendered_wire_parent' | 'pre_wire_inventory_aggregate' | 'rendered_wire_inventory' | 'pre_wire_readings_aggregate' | 'rendered_wire_readings'
+  decisionPhase?: 'pre_wire_parent' | 'rendered_wire_parent' | 'pre_wire_inventory_aggregate' | 'rendered_wire_inventory' | 'pre_wire_readings_aggregate' | 'rendered_wire_readings' | 'legacy_pre_wire_address_hint' | 'rendered_wire_address'
   /** Present only for source-migrated cells; not_required alone does not mean optional. */
   requirement?: ProdatSubtypeRequirement
   source: ProdatDependentConditionSource
@@ -297,7 +300,9 @@ export function evaluateProdatDependentConditions(input: {
         fieldNumber: entry.fieldNumber,
         conditionId: entry.conditionId,
         status: value === null ? 'undetermined' : value ? 'required' : 'not_required',
-        ...(isProdatReadingField(entry.fieldNumber)
+        ...(entry.fieldNumber === '229'
+          ? {decisionPhase:'legacy_pre_wire_address_hint' as const}
+          : isProdatReadingField(entry.fieldNumber)
           ? { decisionPhase: 'pre_wire_readings_aggregate' as const }
           : entry.conditionId === 'optional_installation_wire_parent'
           ? { decisionPhase: 'pre_wire_parent' as const }

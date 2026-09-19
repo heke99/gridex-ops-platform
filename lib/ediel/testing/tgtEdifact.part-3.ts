@@ -1,3 +1,7 @@
+import {prodatCustomerNadSegment} from '@/lib/ediel/prodat/render/segments'
+import {END_USER_ADDRESS_CODES} from '@/lib/ediel/prodat/prodatEndUserAddress'
+import {resolveProdatEndUserGroupRequirement} from '@/lib/ediel/prodat/prodatParentApplicability'
+import {findProdatSubtypeRule} from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
 import { renderProdatRegisterObject } from '@/lib/ediel/prodat/render/registers'
 import { PRODAT_26A_FIELD_MATRIX, PRODAT_26A_MESSAGE_CODES } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { buildProdatDateSegments } from '@/lib/ediel/prodat/render/dateSegments'
@@ -284,9 +288,13 @@ export function buildProdatLineSegments(params: {
     segments.push(`RFF+ANJ:${powerOfAttorneyReference}`);
   }
 
-  if (customerId && customerNamePlain && !isZ09D) {
+  const ownSubtype=findProdatSubtypeRule(reasonForTransaction,step.code)?.subtype
+  if (customerId && customerNamePlain && !isZ09D && resolveProdatEndUserGroupRequirement(step.code,ownSubtype)!=='forbidden') {
     segments.push(
-      `NAD+UD+${customerId}:${sanitizeCode(portalData.customerIdCodeListQualifier, "SE2", 8)}:260++${customerName}+${customerAddress}+${customerCity}++${customerPostalCode}+${customerCountry}`,
+      END_USER_ADDRESS_CODES.includes(step.code) ? prodatCustomerNadSegment({customerId:portalData.customerId,customerIdCodeListQualifier:portalData.customerIdCodeListQualifier,
+        customerName:portalData.customerName,addressLines:portalData.customerAddressLines,
+        address:portalData.customerAddress,city:portalData.customerCity,postalCode:portalData.customerPostalCode,country:portalData.customerCountry})
+        : `NAD+UD+${customerId}:${sanitizeCode(portalData.customerIdCodeListQualifier, "SE2", 8)}:260++${customerName}+${customerAddress}+${customerCity}++${customerPostalCode}+${customerCountry}`,
     );
   }
 
@@ -325,7 +333,7 @@ export function buildPortalProdatSegments(
   const transactionType = buildTgtProdatTransactionType(params, step);
   const mutation = getTgtProdatMutation(params, step);
   const sourceRows =
-    ["Z03","Z04","Z06","Z10"].includes(step.code) ||
+    [...END_USER_ADDRESS_CODES,"Z10"].includes(step.code) ||
     (params.roleCode === "esco" &&
       step.code === "Z13" &&
       params.testCaseCode === "8.1.1")

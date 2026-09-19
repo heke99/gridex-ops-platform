@@ -1,3 +1,4 @@
+import {prodatEndUserAddressWireLines} from '@/lib/ediel/prodat/prodatEndUserAddress'
 import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 // lib/ediel/prodat/render/segments.ts
 
@@ -74,7 +75,7 @@ function customerParty(role: 'UD' | 'IV', params: CustomerPartyInput): string {
 }
 
 export function prodatCustomerNadSegment(params: CustomerPartyInput): string {
-  return customerParty('UD', params)
+  return customerParty('UD', {...params,addressLines:params.addressLines ? prodatEndUserAddressWireLines(params.addressLines) : undefined})
 }
 
 export function prodatInvoiceeNadSegment(params: CustomerPartyInput): string {

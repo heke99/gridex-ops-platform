@@ -1,3 +1,4 @@
+import { selectedAddressFact } from './fixtures/prodat-ud'
 import { describe, expect, it } from 'vitest'
 import { preflightEdielPayload } from '@/lib/ediel/core/messageBuilder/payloadPreflight'
 import { parseInboundProdat } from '@/lib/ediel/prodat/compatAdapter'
@@ -95,7 +96,7 @@ describe('PR326 review: compatibility metadata remains source-backed', () => {
 })
 
 describe('PR326 review: legacy builder separates legal and transport identities', () => {
-  const base = { companyId: 'tenant-A', role: 'supplier', businessCode: 'Z03', sender: { edielId: 'TECH-S' }, receiver: { edielId: 'TECH-R' },
+  const base = { dependentConditionFacts:{endUserAddressObjects:[selectedAddressFact(point,'tenant-A','9','User-1')]}, companyId: 'tenant-A', role: 'supplier', businessCode: 'Z03', sender: { edielId: 'TECH-S' }, receiver: { edielId: 'TECH-R' },
     meteringPoint: { id: point }, customer: { identity: 'User-1', idAgency: '89' as const, name: 'Test User' }, references: { LI: 'CASE' }, codedAttributes: { Z13: 'Z22' }, dates: { startDate: '2026-10-01' }, environment: 'test' }
   it('uses explicit legal parties and countries only in NAD', () => {
     const input = { ...base, legalSenderId: '00Legal:+?', legalReceiverId: 'Receiver:1', legalSenderCountry: 'DK', legalReceiverCountry: 'NO' }

@@ -1,8 +1,10 @@
+import {validateProdatEndUserAddress} from '@/lib/ediel/rulebook/prodatEndUserAddressPolicy'
+import {assertTgtAddressFactSource} from './tgtRegisterFacts'
 import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
 import { parsedProdatObjects, parseProdatMessage } from '@/lib/ediel/prodat/parser'
 import type { ProdatDependentConditionFacts } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
-import type { EdielTgtCaseTestData } from './tgtTestData'
+import {getEdielTgtTestDataForCase,type EdielTgtCaseTestData} from './tgtTestData'
 import { groupTgtProdatSourceObjects, readTgtProdatSourceColumns } from './tgtProdatSource'
 import { validateProdatDateFields } from '@/lib/ediel/prodat/prodatDateValidation'
 import { misplacedProdatEnergyProducts } from "@/lib/ediel/prodat/prodatCharacteristicFields"
@@ -46,6 +48,7 @@ export function validateEdielTgtDraft(
   const parsed = parseEdifactSegments(rawPayload);
   if (step.family === 'PRODAT') {
     const wire = tokenizeEdifact(rawPayload);
+    for(const failure of validateProdatEndUserAddress({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts}))pushIssue(issues,'error',failure.code,failure.title,failure.description);
     for (const failure of validateProdatRegisterPayload({code:step.code,
       rawSegments:wire.segments.map(segment=>segment.raw),una:wire.una,
       facts:expected?.registerFacts,requireConditions:true})) {
@@ -452,6 +455,7 @@ export function buildEdielTgtDraft(
       registerFacts:params.registerFacts,
     },
   );
+  assertTgtAddressFactSource({companyId:params.systemTestContext.companyId,runId:params.testRunId,stepNo:params.stepNo,code:step.code,roleCode:params.roleCode,caseCode:params.testCaseCode,suite:params.testSuite,testData:params.importedTestData ?? getEdielTgtTestDataForCase(params.testSuite,params.roleCode,params.testCaseCode),facts:params.registerFacts});
   const hasErrors = validationIssues.some(
     (issue) => issue.severity === "error",
   );
@@ -520,6 +524,7 @@ export function buildEdielTgtDraft(
               : null,
       rawPayload,
       parsedPayload: {
+        testRunId:params.testRunId ?? null,
         source: "tgt_draft_generator_portal_ready_v4",
         ...(step.family==='PRODAT' ? {
           portalRows:portalBuild?.portalRows ?? [],

@@ -11,6 +11,8 @@ type BuildEdifactEnvelopeInput = {
   testFlag?: 0 | 1 | number | null
   messageTypeToken: string
   segments: string[]
+  companyId?: string | null
+  parsedPayload?: Record<string, unknown> | null
 }
 
 type BuiltEdifactEnvelope = {
@@ -46,6 +48,8 @@ export function buildEdifactEnvelope(input: BuildEdifactEnvelopeInput): BuiltEdi
     mimeType: 'application/EDIFACT',
     messageStandard: 'edifact',
     mode: 'send',
+    companyId: input.companyId,
+    parsedPayload: input.parsedPayload,
   })
   if (preflight.blocking) {
     throw new Error(`EDIFACT envelope stoppades av payload preflight: ${preflight.issues

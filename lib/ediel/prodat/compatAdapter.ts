@@ -620,6 +620,8 @@ function buildProdatSwitchOutboundDraft(
       testFlag,
       messageTypeToken: `PRODAT:D:${canonicalProfile.edifactDirectory.slice(1)}:UN:${canonicalProfile.associationAssignedCode}`,
       segments: prodatRendered.segments,
+      companyId: input.switchRequest.company_id,
+      parsedPayload: {prodatEngine: prodatRendered.diagnostics},
     })
 
     const ack = deriveEdielAckDefaults({

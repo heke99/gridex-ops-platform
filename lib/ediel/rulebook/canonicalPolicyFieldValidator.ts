@@ -1,7 +1,7 @@
+import {validateProdatEndUserAddress} from './prodatEndUserAddressPolicy'
+import {END_USER_ADDRESS_CODES} from '@/lib/ediel/prodat/prodatEndUserAddress'
 import { isZ14DependentField } from '@/lib/ediel/rulebook/prodatZ14Policy'
-import { prodatEndUserObjectScopes } from '@/lib/ediel/rulebook/prodatEndUserPolicy'
 import { isSourceBoundOptionalInstallationField, validateProdatOptionalInstallationPolicy } from '@/lib/ediel/rulebook/prodatOptionalInstallationPolicy'
-import { resolveProdatDependentCondition } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import { isSourceBoundEndUserField, isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
 import { prodatSourceSubtypeRule } from '@/lib/ediel/prodat/prodatSubtypeRequirement'
 import { validateProdatSubtypePolicy } from '@/lib/ediel/rulebook/prodatSubtypePolicy'
@@ -81,6 +81,7 @@ export function validateCanonicalPolicyFields(input: {
     applicationReference:input.policy.applicationReference,
   })
   issues.push(...register.issues)
+  if(input.policy.direction==='outbound' && rules.some(rule=>rule.fieldNumber==='229')) issues.push(...validateProdatEndUserAddress({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts}))
 
   const dependentByField = new Map(
     input.policy.prodatDependentConditions.map((condition) => [condition.fieldNumber, condition] as const),
@@ -88,22 +89,13 @@ export function validateCanonicalPolicyFields(input: {
 
   for (const rule of rules.filter((candidate) => candidate.requirement === 'dependent')) {
     const fieldNumber = String(rule.fieldNumber ?? '').trim()
+    if(fieldNumber==='229' && END_USER_ADDRESS_CODES.includes(input.policy.code)) continue
     if (input.policy.code === 'Z14' && input.policy.direction === 'outbound' && isZ14DependentField(fieldNumber)) continue
     if (register.handledFields.has(fieldNumber) || prodatSourceSubtypeRule(input.policy.code, fieldNumber)
       || isSourceBoundEndUserField(input.policy.code, fieldNumber)
       || isSourceBoundOptionalInstallationField(input.policy.code, fieldNumber)) continue
-    let condition = dependentByField.get(fieldNumber)
-    if (fieldNumber === '229' && ['Z06', 'Z09'].includes(input.policy.code) && input.policy.direction === 'outbound') {
-      const scopes = prodatEndUserObjectScopes(matrixInput)
-      if (scopes.length && scopes.every(scope => scope.requirement === 'forbidden')) continue
-      // Preserve the existing one-object explicit availability path, but do
-      // not let a stale subtype or a root flag decide multiple objects' address
-      // facts. Full field229 evidence qualification is a separate work item.
-      condition = resolveProdatDependentCondition({messageCode:input.policy.code,fieldNumber:'229',facts:{
-        canonicalSubtype:'E', endUserAddressAvailable:scopes.length === 1 && scopes[0].requirement === 'required'
-          ? input.policy.prodatDependentFacts?.endUserAddressAvailable : undefined,
-      }}) ?? undefined
-    }
+    const condition = dependentByField.get(fieldNumber)
+
     if (!condition) {
       issues.push({
         severity: 'error',

@@ -1,3 +1,4 @@
+import { ud, selectedAddressFact } from './fixtures/prodat-ud'
 import { describe, expect, it } from 'vitest'
 import { buildProfiledProdatSegments } from '@/lib/ediel/prodat/builders/profileRenderer'
 import { buildProdatMessage, type BuildProdatMessageInput } from '@/lib/ediel/prodat/buildProdat'
@@ -5,7 +6,7 @@ import { parseProdatMessage } from '@/lib/ediel/prodat/parser'
 import type { ProdatEngineProductionContext } from '@/lib/ediel/prodat/types'
 
 const registers = [{annualConsumption:'10',meterConstant:'1',meterDigitCount:'6',meterTimeFrame:'111'}, {annualConsumption:'20',meterConstant:'3',meterDigitCount:'7',meterTimeFrame:'112'}]
-const facts = {market:'electricity' as const,meterReadingsSentInUtilts:true,multipleMeterRegisters:true,
+const facts = {endUserAddressObjects:[selectedAddressFact('735999999999999999','tenant','9','USR')],market:'electricity' as const,meterReadingsSentInUtilts:true,multipleMeterRegisters:true,
   registerObjects:[{meteringPointId:'735999999999999999',identityAgency:'9' as const,expectedRegisterCount:2,meterReadingsSentInUtilts:true}]}
 const context: ProdatEngineProductionContext = {code:'Z04',bgmReference:'D',transactionReference:'CASE',senderEdielId:'12345',receiverEdielId:'54321',meterPointId:'735999999999999999',customerId:'USR',customerName:'Synthetic',customerIdAgency:'89',gridAreaId:'TES',startDate:'202610010000',observationLength:'15',observationLengthFormat:'806',reasonForTransaction:'Z22',dependentConditionFacts:facts}
 const request: BuildProdatMessageInput = {companyId:'tenant',role:'supplier',businessCode:'Z04',transactionSubtype:'L',sender:{edielId:'12345'},receiver:{edielId:'54321'},meteringPoint:{id:'735999999999999999',gridArea:'TES'},customer:{id:'USR',name:'Synthetic',idAgency:'89'},dates:{contractStartDate:'202610010000',observationLength:'15',observationLengthFormat:'806'},references:{LI:'CASE'},codedAttributes:{Z13:'Z22'},environment:'test',dependentConditionFacts:facts}
@@ -45,7 +46,7 @@ describe('one register emission path for generic and profiled PRODAT builders', 
     expect(result.validation.ok).toBe(true)
   })
   it('generic multi-object builder increments 314 globally and restarts 258 locally', () => {
-    const result = buildProdatMessage({...request,dependentConditionFacts:{...facts,registerObjects:[
+    const result = buildProdatMessage({...request,dependentConditionFacts:{...facts,endUserAddressObjects:[selectedAddressFact('A:+?','tenant','89','USR'),selectedAddressFact('B','tenant','89','USR')],registerObjects:[
       {meteringPointId:'A:+?',identityAgency:'89',expectedRegisterCount:1,meterReadingsSentInUtilts:true},
       {meteringPointId:'B',identityAgency:'89',expectedRegisterCount:2,meterReadingsSentInUtilts:true},
     ]},objects:[

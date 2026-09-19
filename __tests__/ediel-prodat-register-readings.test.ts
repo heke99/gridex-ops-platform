@@ -1,3 +1,4 @@
+import { ud, udAddressFact } from './fixtures/prodat-ud'
 import { describe, expect, it } from 'vitest'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
@@ -89,8 +90,8 @@ describe('only exact own-first wire reasons and fields can establish reading con
 const context:ProdatEngineProductionContext={code:'Z04',bgmReference:'DOC',transactionReference:'CASE',senderEdielId:'12345',receiverEdielId:'54321',meterPointId:'A',meterPointIdAgency:'89',customerId:'USR',customerName:'Synthetic',customerIdAgency:'89',gridAreaId:'TES',startDate:'202610010000',observationLength:'15',observationLengthFormat:'806',reasonForTransaction:'Z22'}
 const generic:BuildProdatMessageInput={companyId:'tenant',role:'supplier',businessCode:'Z04',transactionSubtype:'L',sender:{edielId:'12345'},receiver:{edielId:'54321'},meteringPoint:{id:'A',identityAgency:'89',gridArea:'TES'},customer:{id:'USR',name:'Synthetic',idAgency:'89'},dates:{contractStartDate:'202610010000',observationLength:'15',observationLengthFormat:'806'},references:{LI:'CASE'},codedAttributes:{Z13:'Z22'},environment:'test'}
 function row(body:Parts[],f:ProdatDependentConditionFacts):EdielMessageRow {
-  const payload=raw(body),wire=input(payload)
-  return {message_family:'PRODAT',message_code:'Z04',message_version:'26A',direction:'outbound',environment:'test',message_standard:'edifact',application_reference:'23-DDQ-PRODAT',company_id:'tenant',raw_payload:payload,mime_type:'application/EDIFACT',parsed_payload:{rulebookAllowInvalidSend:true,prodatEngine:{registerEvidence:createProdatRegisterEvidence({...wire,code:'Z04',facts:f})}}} as unknown as EdielMessageRow
+  const payload=raw([...body,ud()]),wire=input(payload)
+  return {message_family:'PRODAT',message_code:'Z04',message_version:'26A',direction:'outbound',environment:'test',message_standard:'edifact',application_reference:'23-DDQ-PRODAT',company_id:'tenant',raw_payload:payload,mime_type:'application/EDIFACT',parsed_payload:{rulebookAllowInvalidSend:true,prodatEngine:{registerEvidence:createProdatRegisterEvidence({...wire,code:'Z04',facts:{...f,endUserAddressObjects:[udAddressFact('A','tenant')]}})}}} as unknown as EdielMessageRow
 }
 describe('reading facts and decisions reach renderers and protected send boundaries',()=>{
   it('prewire diagnostics use independent readings, never root/byCell',()=>{

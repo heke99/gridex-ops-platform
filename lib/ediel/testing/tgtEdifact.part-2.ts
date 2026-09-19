@@ -1,3 +1,5 @@
+import {tgtEndUserAddressSourceLines} from './tgtEndUserAddressSource'
+import {END_USER_ADDRESS_CODES} from '@/lib/ediel/prodat/prodatEndUserAddress'
 import { readTgtProdatSourceColumns, groupTgtProdatSourceObjects, sourceExpectationIndex, tgtProdatSourceValue } from './tgtProdatSource'
 import { prodatDate203, prodatDate102 } from '@/lib/ediel/prodat/render/dates'
 import { buildProdatDateSegments } from '@/lib/ediel/prodat/render/dateSegments'
@@ -633,7 +635,7 @@ export function getPortalDataRows(
     const first = siblings[0];
     const scoped = {...params,importedTestData:{...data,groups:[{...first.group,columns:[first.column]}]}};
     const portal = getPortalData(scoped,step,first.column.name);
-    return {...portal,meteringPointId:first.fields['209'] ?? portal.meteringPointId,identityAgency:first.identityAgency ?? '9',sourceGroupIndex:first.groupIndex,
+    return {...portal,...(END_USER_ADDRESS_CODES.includes(step.code)?{customerAddressLines:tgtEndUserAddressSourceLines(first)}:{}),meteringPointId:first.fields['209'] ?? portal.meteringPointId,identityAgency:first.identityAgency ?? '9',sourceGroupIndex:first.groupIndex,
       registers:siblings.map(row => ({
         label:row.column.name, registerIndex:sourceExpectationIndex(row,siblings),
         sourceGroupIndex:row.groupIndex, sourceColumnName:row.column.name, rawFields:row.rawFields,
