@@ -2,24 +2,24 @@
   "project": "gridex-ops-platform",
   "updated_at": "2026-09-19",
   "status": "IN_PROGRESS",
-  "branch": "codex/ediel-332-release-regressions-20260919",
-  "base_head_sha": "fda3420e471862b58b55f9beec948ca9efc38f3b",
-  "active_item": "Issue332 release-regression remediation",
-  "next_action": "Publish candidate and qualify ordinary CI, independent review and full certificate before guarded merge.",
+  "branch": "codex/ediel-z14-dependent-20260919",
+  "base_head_sha": "168c21336bedcebef02da27bada55a6ea63f805e",
+  "active_item": "Qualify twelve Z14 dependent cells",
+  "next_action": "Independent review and ordinary exact-head CI; repair then guarded merge",
   "source_state": {
-    "snapshot_boundary": "local prepublication checkpoint; live GitHub has precedence",
+    "local_code_commit": "ad1b6a8689b322759e70c9b09598f06e83a2c807",
     "numeric_D_total": 110,
     "accepted_predecessors": 18,
-    "other_unaccepted": 92,
-    "full_masterplan": "NOT_COMPLETE",
-    "application_tests_pass": 3116,
-    "targeted_tests_pass": 23,
-    "full_certificate": "IN_PROGRESS"
+    "candidate_count": 12,
+    "other_unaccepted": 80,
+    "application_tests_pass": 3220,
+    "new_tests_pass": 104,
+    "full_masterplan": "NOT_COMPLETE"
   },
   "deferred_work": {
     "pr": 310,
     "state": "PAUSED",
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
-  "open_release_issue": 332
+  "closed_release_issue": 332
 }

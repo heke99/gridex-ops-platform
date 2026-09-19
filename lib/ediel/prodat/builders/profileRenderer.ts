@@ -1,3 +1,4 @@
+import { validateProdatZ14Policy, z14DependentRules } from '@/lib/ediel/rulebook/prodatZ14Policy'
 import { resolveProdatRegisterConditionFacts } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { resolveProdatRegisterInputs, prodatObjectIdentityAgency } from '@/lib/ediel/prodat/prodatRegisterInput'
@@ -332,6 +333,13 @@ export function buildProfiledProdatSegments(input: {
   const registerPolicy = {...policy, fieldRules:policy.fieldRules.filter(rule => 'fieldNumber' in rule && prodatRegisterFieldScope(String(rule.fieldNumber ?? rule.fieldKey)) === 'local')}
   for (const failure of validateCanonicalPolicyFields({policy:registerPolicy,rawSegments:segments})) {
     issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
+  }
+  if (policy.code === 'Z14') {
+    const firstLine = segments.findIndex(segment => segment.startsWith('LIN+'))
+    const failures = [
+      ...validateProdatZ14Policy({family:'PRODAT',code:'Z14',rawSegments:segments.slice(firstLine),applicationReference:policy.applicationReference}, z14DependentRules()),
+    ]
+    for (const failure of failures) issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
   }
   for (const failure of validateProdatDateFields(policy.code, segments)) {
     issues.push({ severity: 'error', code: failure.code, title: failure.title,
