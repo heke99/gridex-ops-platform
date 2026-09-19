@@ -1,3 +1,4 @@
+import { isZ14DependentField } from '@/lib/ediel/rulebook/prodatZ14Policy'
 import { prodatEndUserObjectScopes } from '@/lib/ediel/rulebook/prodatEndUserPolicy'
 import { resolveProdatDependentCondition } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import { isSourceBoundEndUserField, isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
@@ -33,6 +34,7 @@ export function validateCanonicalPolicyFields(input: {
   una?: EdifactServiceStringAdvice
 }): EdielRulebookIssue[] {
   const rules = input.policy.fieldRules.map(asRulebookFieldRule).flatMap((rule): RulebookFieldRule[] => {
+    if (input.policy.code === 'Z14' && input.policy.direction === 'outbound' && isZ14DependentField(rule.fieldNumber ?? '')) return [rule]
     // The new UD parent is selected per wire object below, never from a root snapshot.
     if (['Z06', 'Z09'].includes(input.policy.code) && (rule.fieldNumber === '229' || isSourceBoundEndUserField(input.policy.code, rule.fieldNumber ?? ''))) return [rule]
     if (input.policy.family !== 'PRODAT' || !isProdatFieldInInapplicableParent({
@@ -52,10 +54,13 @@ export function validateCanonicalPolicyFields(input: {
     mode: 'parse',
   }
 
-  const baseRules = input.policy.family === 'PRODAT'
-    ? rules.filter(rule => isSourceBoundEndUserField(input.policy.code, rule.fieldNumber ?? '')
-      ? input.policy.direction === 'inbound'
-      : !prodatSourceSubtypeRule(input.policy.code, rule.fieldNumber ?? '')) : rules
+  const baseRules = input.policy.family === 'PRODAT' ? rules.filter(rule => {
+    const field = rule.fieldNumber ?? ''
+    if ((input.policy.code === 'Z14' && isZ14DependentField(field)) || isSourceBoundEndUserField(input.policy.code, field)) {
+      return input.policy.direction === 'inbound'
+    }
+    return !prodatSourceSubtypeRule(input.policy.code, field)
+  }) : rules
   const issues = input.scope === 'dependent_only'
     ? input.policy.family === 'PRODAT'
       ? validateFieldMatrixPayload(matrixInput, baseRules.filter(rule => prodatRegisterFieldScope(rule.fieldNumber ?? '') === 'local'))
@@ -63,7 +68,7 @@ export function validateCanonicalPolicyFields(input: {
     : validateFieldMatrixPayload(matrixInput, baseRules)
   if (input.policy.family !== 'PRODAT') return issues
   issues.push(...validateProdatSubtypePolicy(matrixInput, input.policy.direction === 'inbound'
-    ? rules.filter(rule => !isSourceBoundEndUserField(input.policy.code, rule.fieldNumber ?? '')) : rules))
+    ? rules.filter(rule => !(input.policy.code === 'Z14' && isZ14DependentField(rule.fieldNumber ?? '')) && !isSourceBoundEndUserField(input.policy.code, rule.fieldNumber ?? '')) : rules))
   const register = validateProdatRegisterPolicy({code:input.policy.code, rawSegments:input.rawSegments ?? [], una:input.una, facts:input.policy.prodatDependentFacts, rules})
   issues.push(...register.issues)
 
@@ -73,6 +78,7 @@ export function validateCanonicalPolicyFields(input: {
 
   for (const rule of rules.filter((candidate) => candidate.requirement === 'dependent')) {
     const fieldNumber = String(rule.fieldNumber ?? '').trim()
+    if (input.policy.code === 'Z14' && input.policy.direction === 'outbound' && isZ14DependentField(fieldNumber)) continue
     if (register.handledFields.has(fieldNumber) || prodatSourceSubtypeRule(input.policy.code, fieldNumber)
       || isSourceBoundEndUserField(input.policy.code, fieldNumber)) continue
     let condition = dependentByField.get(fieldNumber)

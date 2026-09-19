@@ -46,7 +46,8 @@ describe('masterplan PRODAT parent applicability', () => {
     expect(issues.some(issue => issue.title === 'end_user_country saknas')).toBe(true)
   })
   it('ignores incoming inapplicable groups but blocks their outgoing construction', () => {
-    const rawSegments = ['NAD+IT+OBJECT+++STREET', 'NAD+UD+CUSTOMER++NAME+++++SE']
+    // The object wire reason, not the policy snapshot, selects Z14N.
+    const rawSegments = ['CCI++Z13', 'CAV+Z96', 'NAD+IT+OBJECT+++STREET', 'NAD+UD+CUSTOMER++NAME+++++SE']
     expect(validateCanonicalPolicyFields({ policy: parentPolicy('N'), rawSegments })).toEqual([])
     expect(validateCanonicalPolicyFields({ policy: parentPolicy('N', 'outbound'), rawSegments })
       .some(issue => issue.code === 'FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT')).toBe(true)

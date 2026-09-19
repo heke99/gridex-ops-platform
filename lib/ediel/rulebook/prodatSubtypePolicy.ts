@@ -1,3 +1,4 @@
+import { validateProdatZ14Policy, z14DependentRules } from '@/lib/ediel/rulebook/prodatZ14Policy'
 import { validateProdatEndUserPolicy } from '@/lib/ediel/rulebook/prodatEndUserPolicy'
 import { isSourceBoundEndUserField } from '@/lib/ediel/prodat/prodatParentApplicability'
 import { prodatProductMarket, validateProdatProductScope } from '@/lib/ediel/rulebook/prodatProductScope'
@@ -20,6 +21,7 @@ import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
  */
 export function validateProdatSubtypePolicy(input: FieldMatrixEvaluationInput, rules: readonly RulebookFieldRule[]): EdielRulebookIssue[] {
   const code = input.code ?? ''
+  if (code === 'Z14') return validateProdatZ14Policy(input, rules)
   const una = input.una ?? parseUna(null)
   const issues: EdielRulebookIssue[] = [...validateProdatDependentReferenceScope(input, rules), ...validateProdatProductScope(input, rules), ...validateProdatEndUserPolicy(input, rules)]
   // Local scoping must not hide a supplied DTM in the message header. Keep
@@ -70,6 +72,7 @@ export function validateProdatSubtypePolicy(input: FieldMatrixEvaluationInput, r
  */
 export function validateProdatSubtypePayload(input: FieldMatrixEvaluationInput): EdielRulebookIssue[] {
   const code = prodatDocumentValue('202', input.rawSegments ?? [], input.una)?.trim().toUpperCase() ?? input.code ?? ''
+  if (code === 'Z14') return validateProdatZ14Policy({...input, code}, z14DependentRules())
   const rules = canonicalProdat26AFieldRules(code).filter(rule => prodatSourceSubtypeRule(code, rule.fieldNumber ?? ''))
   return validateProdatSubtypePolicy({...input, code}, rules)
 }

@@ -95,7 +95,7 @@ describe('canonical Ediel policy batch regression', () => {
 
   it('evaluates every official D condition without undetermined when complete explicit facts are supplied', () => {
     // Z04 accepts D and Z06/Z09 accept F. V belongs to sharing messages.
-    // Z06:242 is explicitly EL-only (P26.A p20); other catalog gas cases remain.
+    // Z06:242 (P26.A p20) and Z14:217 (p57) are EL-only; other catalog gas cases remain.
     // This explicit-facts catalog test is not validation of all110 wire D cells.
     // Retain the same full-registry coverage and no-undetermined assertions.
     const byCell = Object.fromEntries(PRODAT_26A_DEPENDENT_CONDITION_REGISTRY.map((entry) => [entry.id, true]))
@@ -106,7 +106,7 @@ describe('canonical Ediel policy batch regression', () => {
         facts: {
           canonicalSubtype: messageCode === 'Z04' ? 'D' : ['Z06', 'Z09'].includes(messageCode) ? 'F' : 'V',
           businessContext: 'death',
-          market: messageCode === 'Z06' ? 'electricity' : 'gas',
+          market: ['Z06', 'Z14'].includes(messageCode) ? 'electricity' : 'gas',
           customerKind: 'private',
           meterReadingsSentInUtilts: true,
           multipleMeterRegisters: true,
@@ -122,7 +122,7 @@ describe('canonical Ediel policy batch regression', () => {
       evaluateProdatDependentConditions({
         messageCode,
         facts: {
-          canonicalSubtype: messageCode === 'Z04' ? 'D' : ['Z06', 'Z09'].includes(messageCode) ? 'F' : 'V', businessContext: 'death', market: messageCode === 'Z06' ? 'electricity' : 'gas', customerKind: 'private',
+          canonicalSubtype: messageCode === 'Z04' ? 'D' : ['Z06', 'Z09'].includes(messageCode) ? 'F' : 'V', businessContext: 'death', market: ['Z06', 'Z14'].includes(messageCode) ? 'electricity' : 'gas', customerKind: 'private',
           meterReadingsSentInUtilts: true, multipleMeterRegisters: true, endUserAddressAvailable: true,
           invoiceeAddressDiffersFromEndUser: true, byCell,
         },

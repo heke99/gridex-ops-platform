@@ -1,3 +1,4 @@
+import { validateProdatZ14Policy, z14DependentRules } from '@/lib/ediel/rulebook/prodatZ14Policy'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { prodatRegisterTokens } from '@/lib/ediel/prodat/prodatRegisterFields'
 import { parseUna } from '@/lib/ediel/core/una'
@@ -7,7 +8,7 @@ import { prodatObjectIdentityAgency, type ProdatMeterRegisterInput } from '@/lib
 import type { ProdatDependentConditionFacts } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import { buildProdatDateSegments, resolveProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
 import { isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
-import { prodatPartySegment, prodatCustomerNadSegment } from '@/lib/ediel/prodat/render/segments'
+import { prodatPartySegment, prodatCustomerNadSegment, prodatInstallationNadSegment } from '@/lib/ediel/prodat/render/segments'
 import { canonicalProdat26AFieldRules, PRODAT_26A_FIELD_MATRIX, PRODAT_26A_MESSAGE_CODES } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { renderProdatDocumentHeader } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { serializeEdifact, escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
@@ -38,6 +39,8 @@ export type BuildProdatMessageInput = {
     nameLines?: readonly string[]; address?: string | null; addressLines?: readonly string[]
     city?: string | null; postalCode?: string | null
   } | null
+  /** Z14 positive-response installation parent (P26.A p22). */
+  installation?: { address?: string | null; addressLines?: readonly string[]; idAgency?: '9' | '89'; city?: string | null; postalCode?: string | null; country?: string | null } | null
   gridOwner?: { edielId?: string | null; name?: string | null } | null
   brp?: { edielId?: string | null } | null
   dates?: Record<string, string | null | undefined>
@@ -50,7 +53,7 @@ export type BuildProdatMessageInput = {
 }
 
 /** Object fields never fall through from another object or a root default. */
-export type BuildProdatObjectInput = Pick<BuildProdatMessageInput, 'meteringPoint' | 'customer' | 'gridOwner' | 'brp' | 'dates' | 'references' | 'codedAttributes' | 'registers'>
+export type BuildProdatObjectInput = Pick<BuildProdatMessageInput, 'meteringPoint' | 'customer' | 'gridOwner' | 'brp' | 'dates' | 'references' | 'codedAttributes' | 'registers' | 'installation'>
 
 export type BuiltProdatMessage = {
   rawEdifact: string
@@ -106,7 +109,7 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
   const dates = buildProdatDateSegments(businessCode, input.transactionSubtype, resolveProdatDateInputs(businessCode, input.transactionSubtype, input.dates ?? {}))
   const codeIndex = PRODAT_26A_MESSAGE_CODES.findIndex(code => code === businessCode)
   const endUserAllowed = codeIndex >= 0 && PRODAT_26A_FIELD_MATRIX.find(row => row.fieldNumber === 'END_USER_GROUP')?.requirements[codeIndex] !== '-'
-    && (['Z06', 'Z09'].includes(businessCode) || !isProdatFieldInInapplicableParent({ messageCode: businessCode, subtype: input.transactionSubtype, fieldNumber: 'END_USER_GROUP' }))
+    && (['Z06', 'Z09', 'Z14'].includes(businessCode) || !isProdatFieldInInapplicableParent({ messageCode: businessCode, subtype: input.transactionSubtype, fieldNumber: 'END_USER_GROUP' }))
 
   const objects = input.objects ?? [input]
   if (!objects.length) throw new Error('prodat_register_objects_empty')
@@ -120,12 +123,14 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
     if (id) identities.add(identity)
     const customerId = object.customer?.identity ?? object.customer?.id
     const attributes = codedAttributeSegments(object.codedAttributes, businessCode)
-    const objectSubtype = ['Z06', 'Z09'].includes(businessCode)
+    const objectSubtype = ['Z06', 'Z09', 'Z14'].includes(businessCode)
       ? prodatEndUserWireSubtype(businessCode, prodatRegisterTokens(attributes), parseUna(null)) : input.transactionSubtype
     const objectEndUserAllowed = endUserAllowed && !isProdatFieldInInapplicableParent({
       messageCode:businessCode,subtype:objectSubtype,fieldNumber:'END_USER_GROUP',
     })
-    const objectDates = buildProdatDateSegments(businessCode,input.transactionSubtype,resolveProdatDateInputs(businessCode,input.transactionSubtype,object.dates ?? {}))
+    const dateSubtype = businessCode === 'Z14' ? objectSubtype : input.transactionSubtype
+    const objectDateInputs = resolveProdatDateInputs(businessCode,dateSubtype,object.dates ?? {})
+    const objectDates = buildProdatDateSegments(businessCode,dateSubtype,objectDateInputs)
     const rows = [
       id ? `LIN+1++${escapeEdifactValue(id)}:::${agency}` : 'LIN+1',
       ...objectDates.line,
@@ -138,6 +143,7 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
         address:object.customer?.address,addressLines:object.customer?.addressLines,
         city:object.customer?.city,postalCode:object.customer?.postalCode,
       }) : null,
+      businessCode === 'Z14' && objectSubtype !== 'N' && object.installation ? prodatInstallationNadSegment({meterPointId:id ?? '',...object.installation}) : null,
     ].filter((segment): segment is string => segment !== null)
     const expanded = renderProdatRegisterObject({code:businessCode,segments:rows,registers:object.registers,firstLineSequence:nextLineSequence})
     nextLineSequence = expanded.nextLineSequence
@@ -171,6 +177,13 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
     const failures = validateProdatEndUserPolicy({family:'PRODAT',code:businessCode,
       rawSegments:wire.segments.map(segment => segment.raw),una:wire.una}, canonicalProdat26AFieldRules(businessCode))
     validation.issues.push(...failures.map(failure => ({severity:'error' as const,code:failure.code,message:failure.description})))
+    if (failures.length) validation.ok = false
+  }
+
+  if (businessCode === 'Z14') {
+    const wire = tokenizeEdifact(rawEdifact)
+    const failures = validateProdatZ14Policy({family:'PRODAT',code:businessCode,rawSegments:wire.segments.map(s=>s.raw),una:wire.una},z14DependentRules())
+    validation.issues.push(...failures.map(failure=>({severity:'error' as const,code:failure.code,message:failure.description})))
     if (failures.length) validation.ok = false
   }
 
