@@ -9,7 +9,7 @@ vi.mock('@/lib/tenant/governance',()=>({requireCompanyOperationalForWrites:b.ope
 vi.mock('@/lib/ediel/systemTestSettings',()=>({requireEdielSystemTestRuntimeContext:b.runtime,getEdielSystemTestSettings:vi.fn()}))
 vi.mock('@/lib/ediel/testing/tgtTestDataStore',()=>({getEdielTgtDynamicTestDataForCase:b.source,upsertEdielTgtDynamicTestData:vi.fn()}))
 vi.mock('@/lib/ediel/testing/tgtEdifact',()=>({buildEdielTgtDraft:b.build}))
-vi.mock('@/lib/ediel/testing/tgtRegisterFacts',()=>({readTgtRegisterFacts:b.readFacts,buildTgtRegisterFactNotes:b.writeFacts}))
+vi.mock('@/lib/ediel/testing/tgtRegisterFacts',async (importOriginal)=>({...(await importOriginal<typeof import('@/lib/ediel/testing/tgtRegisterFacts')>()),readTgtRegisterFacts:b.readFacts,buildTgtRegisterFactNotes:b.writeFacts}))
 vi.mock('@/lib/ediel/db',()=>({createEdielMessage:b.create,attachEdielMessageToTestRun:b.attach,listEdielTestRuns:b.runs,listEdielMessages:b.messages,listEdielMessagesByIds:b.byIds,listEdielTestRunMessages:b.links,createEdielMessageEvent:vi.fn(),getEdielMessageById:vi.fn(),createEdielTestRun:vi.fn(),listAckMessagesForSource:vi.fn(),updateEdielMessageStatus:vi.fn(),updateEdielTestRunStatus:vi.fn()}))
 vi.mock('@/app/admin/ediel/actions.part-1',()=>({requireScopedEdielTestRunForAction:b.scoped,formString:(v:unknown)=>typeof v==='string'?v.trim()||null:null,formNumber:(v:unknown)=>Number(v)||null,parseEdielTestSuite:(v:unknown)=>v,parseEdielTestRoleCode:(v:unknown)=>v,revalidateEdiel:b.revalidate,revalidateRelatedMessage:b.revalidate}))
 vi.mock('@/lib/ediel/testing/tgtRegistry',async original=>({...await original<typeof import('@/lib/ediel/testing/tgtRegistry')>(),evaluateEdielTgtRun:b.evaluate,getEdielTgtNextAction:b.next}))

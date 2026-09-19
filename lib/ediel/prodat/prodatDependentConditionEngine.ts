@@ -1,3 +1,4 @@
+import {isProdatDateEventField,type ProdatDateEventObject,type ProdatDateEventSource} from './prodatDateEvents'
 import type {ProdatInvoiceeObject} from './prodatInvoicee'
 import type {ProdatEndUserAddressObject} from './prodatEndUserAddress'
 import {
@@ -37,6 +38,8 @@ export type ProdatDependentConditionFacts = {
   endUserAddressObjects?: readonly ProdatEndUserAddressObject[]
   /** Legacy descriptive pre-wire hint only; outbound229 requires per-object source facts. */
   endUserAddressAvailable?: boolean | null
+  dateEventObjects?: readonly ProdatDateEventObject[]
+  dateEventSource?: ProdatDateEventSource
   invoiceeObjects?: readonly ProdatInvoiceeObject[]
   /** Legacy descriptive hint; never outbound IV evidence. */
   invoiceeAddressDiffersFromEndUser?: boolean | null
@@ -64,7 +67,7 @@ export type ProdatDependentConditionEvaluation = {
    * means there is no blanket child requirement; it is not evidence that every
    * object lacks the optional parent. Render/validation must decide per wire. */
   status: ProdatDependentConditionStatus
-  decisionPhase?: 'pre_wire_parent' | 'rendered_wire_parent' | 'pre_wire_inventory_aggregate' | 'rendered_wire_inventory' | 'pre_wire_readings_aggregate' | 'rendered_wire_readings' | 'legacy_pre_wire_address_hint' | 'rendered_wire_address' | 'rendered_wire_invoicee'
+  decisionPhase?: 'pre_wire_parent' | 'rendered_wire_parent' | 'pre_wire_inventory_aggregate' | 'rendered_wire_inventory' | 'pre_wire_readings_aggregate' | 'rendered_wire_readings' | 'legacy_pre_wire_address_hint' | 'rendered_wire_address' | 'rendered_wire_invoicee' | 'rendered_wire_date_event'
   /** Present only for source-migrated cells; not_required alone does not mean optional. */
   requirement?: ProdatSubtypeRequirement
   source: ProdatDependentConditionSource
@@ -287,7 +290,7 @@ export function evaluateProdatDependentConditions(input: {
       const sourceField = entry.fieldNumber === 'END_USER_GROUP' && ['Z06', 'Z09', 'Z14'].includes(messageCode) ? '227' : entry.fieldNumber === 'INSTALLATION_GROUP' && messageCode === 'Z14' ? '209' : entry.fieldNumber
       const requirement = resolveProdatSourceSubtypeRequirement({messageCode, fieldNumber: sourceField, subtype: facts.canonicalSubtype, market: facts.market})
       const sourceRule = prodatSourceSubtypeRule(messageCode, sourceField)
-      const value = requirement !== null
+      const value = isProdatDateEventField(messageCode,entry.fieldNumber) ? null : requirement !== null
         ? requirement === 'undetermined' ? null : requirement === 'required'
         : isProdatFieldInInapplicableParent({
         messageCode, subtype: normalized(facts.canonicalSubtype), fieldNumber: entry.fieldNumber,

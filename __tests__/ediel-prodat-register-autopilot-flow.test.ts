@@ -12,7 +12,7 @@ vi.mock('@/lib/ediel/testing/tgtRegistry', () => ({ evaluateEdielTgtRun: io.eval
 vi.mock('@/lib/ediel/systemTestSettings', () => ({ requireEdielSystemTestRuntimeContext: io.runtime }))
 vi.mock('@/lib/ediel/testing/tgtTestDataStore', () => ({ getEdielTgtDynamicTestDataForCase: io.source }))
 vi.mock('@/lib/ediel/testing/tgtTestData', () => ({ getEdielTgtTestDataForCase: io.staticSource }))
-vi.mock('@/lib/ediel/testing/tgtRegisterFacts', () => ({ readTgtRegisterFacts: io.readFacts }))
+vi.mock('@/lib/ediel/testing/tgtRegisterFacts', async (importOriginal) => ({...(await importOriginal<typeof import('@/lib/ediel/testing/tgtRegisterFacts')>()), readTgtRegisterFacts: io.readFacts }))
 vi.mock('@/lib/ediel/testing/tgtEdifact', () => ({ buildEdielTgtDraft: io.build }))
 import { runTgtAutopilotForRun, createMockPortalMessageForNextStep, autoAttachImportedMessageToActiveTgtRun } from '@/lib/ediel/testing/tgtAutopilot'
 

@@ -79,10 +79,10 @@ describe('PRODAT 26-A dependent-condition engine', () => {
     expect(resolveProdatDependentCondition({ messageCode: 'Z03', fieldNumber: 'INVOICEE_GROUP', facts: { invoiceeAddressDiffersFromEndUser: false } })?.status).toBe('not_required')
   })
 
-  it('requires explicit facts for source rules that cannot safely be inferred', () => {
+  it('rejects byCell as date-event authority', () => {
     const id = 'Z06:210'
     expect(resolveProdatDependentCondition({ messageCode: 'Z06', fieldNumber: '210' })?.status).toBe('undetermined')
-    expect(resolveProdatDependentCondition({ messageCode: 'Z06', fieldNumber: '210', facts: { byCell: { [id]: true } } })?.status).toBe('required')
-    expect(resolveProdatDependentCondition({ messageCode: 'Z06', fieldNumber: '210', facts: { byCell: { [id]: false } } })?.status).toBe('not_required')
+    expect(resolveProdatDependentCondition({ messageCode: 'Z06', fieldNumber: '210', facts: { byCell: { [id]: true } } })?.status).toBe('undetermined')
+    expect(resolveProdatDependentCondition({ messageCode: 'Z06', fieldNumber: '210', facts: { byCell: { [id]: false } } })?.status).toBe('undetermined')
   })
 })

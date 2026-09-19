@@ -1,3 +1,5 @@
+import {qualifyDateEventTestRow,changeDateFact} from './fixtures/prodat-date-events'
+import {evaluateEdielProductionSendLock} from '@/lib/ediel/core/productionGuards'
 import { describe, expect, it } from 'vitest'
 import { validateEdielMessageRowWithRulebook, validateRulebookMessage } from '@/lib/ediel/rulebook/validator'
 import { assertRulebookAllowsSend } from '@/lib/ediel/rulebook/sendGuards'
@@ -57,12 +59,22 @@ for (const code of ['Z06','Z09'] as const) for (const environment of ['test','pr
     })
     it('accepts the bounded E data while retaining independent production-readiness checks', () => {
       const row = message([line('1','A'),...reason(),ud()],code,environment,alphabet)
-      expect(validateEdielMessageRowWithRulebook(row,'send').issues.filter(i=>i.scope==='prodat_dependent')).toEqual([])
+      const dateContext=code==='Z06'&&environment==='test'?qualifyDateEventTestRow(row):undefined
+      const result=validateEdielMessageRowWithRulebook(row,'send',dateContext),preflight=preflightEdielMessageRow(row,'send',dateContext)
+      expect(result.issues.filter(target)).toEqual([])
       expect(validateProdatSubtypePayload(input(row.raw_payload!,code))).toEqual([])
-      expect(preflightEdielMessageRow(row,'send').issues.filter(target)).toEqual([])
-      expect(()=>assertRulebookAllowsSend(row)).not.toThrow()
-      if (environment === 'test') expect(()=>assertEdielSendLock(row)).not.toThrow()
-      else expect(()=>assertEdielSendLock(row)).toThrow(/Produktionsmeddelande saknar/)
+      expect(preflight.issues.filter(target)).toEqual([])
+      if(code==='Z06'&&environment==='production'){
+        expect(result.issues).toContainEqual(expect.objectContaining({scope:'prodat_dependent',code:'PRODAT_DATE_EVENT_SOURCE_UNQUALIFIED',blocking:true}))
+        expect(()=>assertRulebookAllowsSend(row)).toThrow('PRODAT_DATE_EVENT_SOURCE_UNQUALIFIED')
+        expect(()=>assertEdielSendLock(row)).toThrow('PRODAT_DATE_EVENT_SOURCE_UNQUALIFIED')
+        expect(evaluateEdielProductionSendLock(row,preflight).issues.some(i=>i.message.includes('Produktionsmeddelande saknar'))).toBe(true)
+      }else{
+        expect(result.issues.filter(i=>i.scope==='prodat_dependent')).toEqual([])
+        expect(()=>assertRulebookAllowsSend(row,dateContext)).not.toThrow()
+        if(environment==='test')expect(()=>assertEdielSendLock(row,dateContext)).not.toThrow()
+        else expect(()=>assertEdielSendLock(row)).toThrow(/Produktionsmeddelande saknar/)
+      }
     })
     it('persisted wrong code/family/old cache does not disable wire-selected UD', () => {
       const row = message([line('1','A'),...reason()],code,environment,alphabet)
@@ -107,7 +119,7 @@ describe('UD builder and read-consumer effects', () => {
   const base: BuildProdatMessageInput = {companyId:'synthetic-company',role:'supplier',businessCode:'Z06',transactionSubtype:'E',
     sender:{edielId:'12345'},receiver:{edielId:'54321'},meteringPoint:{id:'A'},environment:'test',
     customer:{identity:'00-CUSTOMER',idAgency:'89',name:'User',country:'SE'},codedAttributes:{Z13:'E34'},
-    dates:{validityStartDate:'2026-10-01'},references:{LI:'CASE'},dependentConditionFacts:{market:'electricity',endUserAddressObjects:[selectedAddressFact('A','synthetic-company','9','00-CUSTOMER')],invoiceeObjects:[selectedInvoiceeFact('A','synthetic-company','9','00-CUSTOMER',[],'','001 23','Town')],meterReadingsSentInUtilts:false,
+    dates:{validityStartDate:'2026-10-01'},references:{LI:'CASE'},dependentConditionFacts:{dateEventObjects:[changeDateFact('A','9')],dateEventSource:{kind:'caller_selection',reference:'independent-change'},market:'electricity',endUserAddressObjects:[selectedAddressFact('A','synthetic-company','9','00-CUSTOMER')],invoiceeObjects:[selectedInvoiceeFact('A','synthetic-company','9','00-CUSTOMER',[],'','001 23','Town')],meterReadingsSentInUtilts:false,
       registerObjects:[{meteringPointId:'A',identityAgency:'9',expectedRegisterCount:1,meterReadingsSentInUtilts:false}]}}
   for (const code of ['Z06','Z09'] as const) for (const subtype of ['E','F','G']) it(`${code}/${subtype}: profiled renderer follows actual emitted reason and retains source text`, () => {
     const context: ProdatEngineProductionContext = {code,bgmReference:'DOCUMENT',transactionReference:'CASE',senderEdielId:'12345',receiverEdielId:'54321',meterPointId:'A',
@@ -130,7 +142,7 @@ describe('UD builder and read-consumer effects', () => {
   })
   it('generic multi-object builder must not use a root F subtype to omit one object E customer', () => {
     const customer = {...base.customer!,postalCode:'001 23',city:'Town'}
-    const built = buildProdatMessage({...base,transactionSubtype:'F',dependentConditionFacts:{...base.dependentConditionFacts,invoiceeObjects:[selectedInvoiceeFact('A','synthetic-company','9','00-CUSTOMER',[],'','001 23','Town'),selectedInvoiceeFact('B','synthetic-company','9','00-CUSTOMER',[],'','001 23','Town')],registerObjects:[
+    const built = buildProdatMessage({...base,transactionSubtype:'F',dependentConditionFacts:{...base.dependentConditionFacts,dateEventObjects:[changeDateFact('A','9'),changeDateFact('B','9')],invoiceeObjects:[selectedInvoiceeFact('A','synthetic-company','9','00-CUSTOMER',[],'','001 23','Town'),selectedInvoiceeFact('B','synthetic-company','9','00-CUSTOMER',[],'','001 23','Town')],registerObjects:[
       {meteringPointId:'A',identityAgency:'9',expectedRegisterCount:1,meterReadingsSentInUtilts:false},
       {meteringPointId:'B',identityAgency:'9',expectedRegisterCount:1,meterReadingsSentInUtilts:false},
     ]},objects:[

@@ -1,3 +1,5 @@
+import {assertProdatDateEventAuthority,type ProdatDateEventRow,type TgtDateEventValidationContext} from './prodatDateEventAuthority'
+import {copyProdatDateEventObjects,copyProdatDateEventSource} from './prodatDateEvents'
 import {copyProdatInvoiceeObjects,assertInvoiceeOwnership} from './prodatInvoicee'
 import {copyProdatEndUserAddressObjects,assertProdatAddressOwnership} from './prodatEndUserAddress'
 import { segmentComposite, segmentElementCount } from '@/lib/ediel/core/edifactTokenizer'
@@ -11,7 +13,7 @@ export type ProdatRegisterEvidence = {
   /** Decoded message body, without transport envelope. Integrity binding only,
    * NOT authorization or a signature. Facts require a server-owned row. */
   bodyBinding: string
-  facts: Pick<ProdatDependentConditionFacts, 'market' | 'meterReadingsSentInUtilts' | 'registerObjects' | 'endUserAddressObjects' | 'invoiceeObjects'>
+  facts: Pick<ProdatDependentConditionFacts, 'market' | 'meterReadingsSentInUtilts' | 'registerObjects' | 'endUserAddressObjects' | 'invoiceeObjects' | 'dateEventObjects' | 'dateEventSource'>
 }
 const record = (value: unknown): Record<string,unknown> | null => value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string,unknown> : null
 const invalid = (): never => { throw new Error('prodat_register_evidence_invalid') }
@@ -43,6 +45,8 @@ export function copyProdatRegisterFacts(value: unknown): ProdatRegisterEvidence[
   }
   if(Object.hasOwn(source,'endUserAddressObjects') && source.endUserAddressObjects!==undefined) facts.endUserAddressObjects=copyProdatEndUserAddressObjects(source.endUserAddressObjects)
   if(Object.hasOwn(source,'invoiceeObjects') && source.invoiceeObjects!==undefined) facts.invoiceeObjects=copyProdatInvoiceeObjects(source.invoiceeObjects)
+  if(source.dateEventObjects!==undefined)facts.dateEventObjects=copyProdatDateEventObjects(source.dateEventObjects)
+  if(source.dateEventSource!==undefined)facts.dateEventSource=copyProdatDateEventSource(source.dateEventSource)
   return facts
 }
 function bodyBinding(rawSegments: readonly string[], una: EdifactServiceStringAdvice): string {
@@ -53,7 +57,7 @@ function bodyBinding(rawSegments: readonly string[], una: EdifactServiceStringAd
 export function createProdatRegisterEvidence(input:{code:string;rawSegments:readonly string[];una?:EdifactServiceStringAdvice;facts?:ProdatDependentConditionFacts}):ProdatRegisterEvidence {
   return {version:1,code:input.code,bodyBinding:bodyBinding(input.rawSegments,input.una ?? parseUna(null)),facts:copyProdatRegisterFacts(input.facts ?? {})}
 }
-export function readProdatRegisterEvidence(input:{code:string;rawSegments:readonly string[];una?:EdifactServiceStringAdvice;parsedPayload?:unknown;companyId?:string|null;runId?:string|null;stepNo?:number|null}):ProdatRegisterEvidence['facts']|undefined {
+export function readProdatRegisterEvidence(input:{code:string;rawSegments:readonly string[];una?:EdifactServiceStringAdvice;parsedPayload?:unknown;companyId?:string|null;runId?:string|null;stepNo?:number|null;dateEventRow?:ProdatDateEventRow;dateEventContext?:TgtDateEventValidationContext}):ProdatRegisterEvidence['facts']|undefined {
   const engine=record(record(input.parsedPayload)?.prodatEngine)
   if (!engine || !Object.hasOwn(engine,'registerEvidence')) return undefined
   const evidence=record(engine.registerEvidence)
@@ -61,6 +65,7 @@ export function readProdatRegisterEvidence(input:{code:string;rawSegments:readon
   const facts=copyProdatRegisterFacts(evidence.facts)
   assertProdatAddressOwnership(facts.endUserAddressObjects,input)
   assertInvoiceeOwnership(facts.invoiceeObjects,input)
+  assertProdatDateEventAuthority({...input,facts,row:input.dateEventRow,expected:input.dateEventContext})
   return facts
 }
 
@@ -75,6 +80,8 @@ export function resolveProdatRegisterConditionFacts(contextFacts:ProdatDependent
   if (!data) return invalid()
   const checked=copyProdatRegisterFacts(data)
   return {...data,
+    ...(Object.hasOwn(data,'dateEventObjects') ? {dateEventObjects:checked.dateEventObjects} : {}),
+    ...(Object.hasOwn(data,'dateEventSource') ? {dateEventSource:checked.dateEventSource} : {}),
     ...(Object.hasOwn(data,'market') ? {market:checked.market} : {}),
     ...(Object.hasOwn(data,'meterReadingsSentInUtilts') ? {meterReadingsSentInUtilts:checked.meterReadingsSentInUtilts} : {}),
     ...(Object.hasOwn(data,'registerObjects') ? {registerObjects:checked.registerObjects} : {}),

@@ -1,4 +1,6 @@
-import { buildTgtRegisterFactNotes, readTgtRegisterFacts } from '@/lib/ediel/testing/tgtRegisterFacts'
+import {resolveTgtDateEventRoute,resolveTgtDateEventBuildContext,dateEventRuntimeSuite} from '@/lib/ediel/testing/tgtDateEventContext'
+import {assertTgtDateEventDraft} from '@/lib/ediel/testing/tgtDateEventSource'
+import { buildTgtRegisterFactNotes } from '@/lib/ediel/testing/tgtRegisterFacts'
 import { getEdielTgtTestDataForCase } from '@/lib/ediel/testing/tgtTestData'
 import { requireCompanyScopedActionAccess } from '@/lib/admin/guards'
 // Extracted from actions.ts; keep public imports on the facade module.
@@ -836,8 +838,9 @@ export async function createEdielTgtDraftAction(formData: FormData) {
   await requireCompanyOperationalForWrites(companyId);
   const systemTestContext = await requireEdielSystemTestRuntimeContext({
     companyId,
-    testSuite: "TGT",
+    testSuite: run?dateEventRuntimeSuite(run):"TGT",
     actorRole: roleCode,
+    messageFamily:"PRODAT",
   });
 
   const importedTestData = await getEdielTgtDynamicTestDataForCase(
@@ -847,8 +850,9 @@ export async function createEdielTgtDraftAction(formData: FormData) {
   );
 
   const step=getEdielTgtTestCaseByCode(testSuite,roleCode,testCaseCode)?.expectedSteps.find(candidate=>candidate.stepNo===stepNo);
-  const registerFacts=run && step?.family==='PRODAT' ? readTgtRegisterFacts({run,stepNo,code:step.code,
+  const dateBuild=run && step?.family==='PRODAT' ? await resolveTgtDateEventBuildContext({run,stepNo,code:step.code,runtime:systemTestContext,
     testData:importedTestData ?? getEdielTgtTestDataForCase(testSuite,roleCode,testCaseCode)}) : undefined;
+  const registerFacts=dateBuild?.facts;
   const draft = buildEdielTgtDraft({
     actorUserId: context.userId,
     testSuite,
@@ -856,7 +860,7 @@ export async function createEdielTgtDraftAction(formData: FormData) {
     testCaseCode,
     stepNo,
     importedTestData,
-    registerFacts,
+    registerFacts,dateEventContext:dateBuild?.context,
     testRunId:run?.id ?? null,
     systemTestContext,
   });
@@ -872,6 +876,7 @@ export async function createEdielTgtDraftAction(formData: FormData) {
     );
   }
 
+  assertTgtDateEventDraft(draft.messageInput,dateBuild?.context);
   const message = await createEdielMessage(draft.messageInput);
 
   if (testRunId) {
@@ -909,7 +914,9 @@ export async function saveEdielTgtRegisterFactsAction(formData:FormData) {
   if (!raw || raw.length>32768 || !sourceNote) throw new Error('PRODAT_REGISTER_SOURCE_EVIDENCE_INVALID');
   const facts:unknown=JSON.parse(raw);
   const imported=await getEdielTgtDynamicTestDataForCase(run.test_suite,run.role_code,run.test_case_code);
-  const notes=buildTgtRegisterFactNotes({run,stepNo,code:step.code,actorId:context.userId,sourceNote,facts,
+  const dateEventRoute=facts && typeof facts==='object' && 'dateEventObjects' in facts
+    ? await resolveTgtDateEventRoute(run,step.code,await requireEdielSystemTestRuntimeContext({companyId:run.company_id,testSuite:dateEventRuntimeSuite(run),actorRole:run.role_code,messageFamily:'PRODAT'})):undefined;
+  const notes=buildTgtRegisterFactNotes({run,stepNo,code:step.code,actorId:context.userId,sourceNote,facts,dateEventRoute,
     testData:imported ?? getEdielTgtTestDataForCase(run.test_suite,run.role_code,run.test_case_code)});
   const {data,error}=await supabaseService.from('ediel_test_runs').update({notes,updated_by:context.userId})
     .eq('company_id',run.company_id).eq('id',run.id).eq('updated_at',run.updated_at).select('id').maybeSingle();

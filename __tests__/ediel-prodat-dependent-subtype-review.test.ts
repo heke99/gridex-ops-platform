@@ -1,3 +1,4 @@
+import {qualifyDateEventTestRow} from './fixtures/prodat-date-events'
 import { describe, expect, it } from 'vitest'
 import { ud, udInvoiceeFact, udAddressFact } from './fixtures/prodat-ud'
 import { validateEdielMessageRowWithRulebook, validateRulebookMessage, validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
@@ -66,13 +67,18 @@ describe('PR330 review: wire-specific D rules survive mismatched row metadata', 
     expect(hasWire216(result.issues)).toBe(true)
     expect(result.fieldRuleSource).toBe('static')
   })
-  it.each(alphabets)('keeps a real Z06E optional, rather than inventing a Z09:216 rule from metadata: %j', (...alphabet) => {
+  it.each(alphabets)('uses actual Z06E rules while enforcing row/source consistency: %j', (...alphabet) => {
     const row = message(missingValidity(), 'Z06', 'test', alphabet)
+    const dateContext=qualifyDateEventTestRow(row)
+    expect(validateEdielMessageRowWithRulebook(row,'send',dateContext).issues.filter(i=>i.scope==='prodat_dependent')).toEqual([])
+    expect(()=>assertRulebookAllowsSend(row,dateContext)).not.toThrow()
+    expect(()=>assertEdielSendLock(row,dateContext)).not.toThrow()
     row.message_code = 'Z09'
-    const result = validateEdielMessageRowWithRulebook(row, 'send')
-    expect(result.issues.filter(issue => issue.scope === 'prodat_dependent')).toEqual([])
-    expect(() => assertRulebookAllowsSend(row)).not.toThrow()
-    expect(() => assertEdielSendLock(row)).not.toThrow()
+    const result = validateEdielMessageRowWithRulebook(row, 'send',dateContext)
+    expect(hasWire216(result.issues)).toBe(false)
+    expect(result.issues).toContainEqual(expect.objectContaining({scope:'prodat_dependent',code:'PRODAT_DATE_EVENT_SCOPE_MISMATCH',blocking:true}))
+    expect(() => assertRulebookAllowsSend(row,dateContext)).toThrow('PRODAT_DATE_EVENT_SCOPE_MISMATCH')
+    expect(() => assertEdielSendLock(row,dateContext)).toThrow('PRODAT_DATE_EVENT_SCOPE_MISMATCH')
   })
   it('cannot use the system-test ACK marker to bypass Z09:216', () => {
     const row = message(missingValidity(), 'Z09')

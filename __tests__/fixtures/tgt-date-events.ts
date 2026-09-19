@@ -1,0 +1,11 @@
+import type { EdielTestRunRow, EdielMessageRow } from '@/lib/ediel/types';
+import type { EdielTgtCaseTestData } from '@/lib/ediel/testing/tgtTestData';
+import type { EdielSystemTestRuntimeContext, EdielSystemTestSettings } from '@/lib/ediel/systemTestSettings';
+export const tgtDateRun = () => ({ id: 'RUN', company_id: 'tenant', role_code: 'supplier', test_case_code: '2.5.3', test_suite: 'PRODAT', notes: null, route_profile_id: 'ROUTE' } as EdielTestRunRow);
+export const tgtDateData = (): EdielTgtCaseTestData => {
+    const columns = [{ name: 'Z09D', index: 0, sourceOrder: 0, testCase: '2.5.3' }];
+    const fields = Object.entries({ '209': 'A', '223': 'Z70', '210': '202610010000', '260': 'TES', '262': '11111' }).map(([fieldCode, value]) => ({ fieldCode, fieldName: fieldCode, values: { Z09D: value } }));
+    return { suite: 'PRODAT', roleCode: 'supplier', testCaseCode: '2.5.3', title: 'Synthetic', sourceNote: 'Synthetic', groups: [{ columns, fields, block: { kind: 'PRODAT', sourceWorkbook: 'synthetic', sourceSheet: 'synthetic', entityLabel: 'A', entityNumbers: ['1'], columns, fields } }] };
+};
+export const tgtDateRuntime = (): EdielSystemTestRuntimeContext => ({ companyId: 'tenant', testSuite: 'TGT', actorSettingId: 'ACTORSETTING', actorEdielId: '12345', actorName: null, senderSubaddress: null, testPortalEdielId: '54321', testPortalName: null, testPortalEmail: null, defaultReceiverSubaddress: 'PRODAT', testBrpEdielId: null, testBrpName: null, settings: { id: 'SETTINGS', companyId: 'tenant', environment: 'test', testSuite: 'TGT', routeProfileId: 'ROUTE', transportProfileId: null, isActive: true, applicationReference: '23-DDQ-PRODAT', metadata: { unrelatedConfiguration: 'must not copy' }, testPortalCounterpartyId: null, testPortalEdielId: '54321', testPortalName: null, testPortalEmail: null, testBrpCounterpartyId: null, testBrpEdielId: null, testBrpName: null, defaultReceiverSubaddress: 'PRODAT', defaultSenderSubaddress: null, setupPackage: null, actorRole: 'supplier', messageFamily: 'PRODAT', environmentType: 'tgt', certificateEnvironment: null, transportEnvironment: null, smtpProvider: null } satisfies EdielSystemTestSettings });
+export const tgtDateRow = () => ({ id: 'MSG', company_id: 'tenant', message_family: 'PRODAT', message_code: 'Z09', environment: 'test', direction: 'outbound' } as EdielMessageRow);

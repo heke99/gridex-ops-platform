@@ -1,3 +1,5 @@
+import {evaluateProdatDateEvents} from '@/lib/ediel/rulebook/prodatDateEventPolicy'
+import {isProdatDateEventField} from '@/lib/ediel/prodat/prodatDateEvents'
 import {evaluateProdatInvoicee} from '@/lib/ediel/rulebook/prodatInvoiceePolicy'
 import {INVOICEE_FIELDS} from '@/lib/ediel/prodat/prodatInvoicee'
 import {evaluateProdatEndUserAddress} from '@/lib/ediel/rulebook/prodatEndUserAddressPolicy'
@@ -373,9 +375,12 @@ export function buildProfiledProdatSegments(input: {
   const renderedReadings = validateProdatRegisterPolicy({code:policy.code,rawSegments:segments,
     facts:policy.prodatDependentFacts,rules:registerPolicy.fieldRules.filter((rule): rule is RulebookFieldRule => 'family' in rule),applicationReference:policy.applicationReference,
     requireIndependentInventory:policy.direction === 'outbound'}).readings
+  const dateDecision=evaluateProdatDateEvents({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts})
+  for(const failure of dateDecision.issues)issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
   const invoiceeDecision=evaluateProdatInvoicee({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts})
   for(const failure of invoiceeDecision.issues) issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
   const dependentConditionStatuses = policy.prodatDependentConditions.map(condition =>
+    isProdatDateEventField(policy.code,condition.fieldNumber)?{...condition,status:dateDecision.statuses.get(condition.fieldNumber)??'undetermined',decisionPhase:'rendered_wire_date_event' as const}:
     INVOICEE_FIELDS.includes(condition.fieldNumber)
       ? {...condition,status:invoiceeDecision.statuses.get(condition.fieldNumber) ?? 'undetermined',decisionPhase:'rendered_wire_invoicee' as const}
       :
@@ -419,6 +424,7 @@ export function buildProfiledProdatSegments(input: {
       rulebookProcessGroup: policy.processGroup,
       rulebookApplicationReference: policy.applicationReference,
       canonicalPolicySourceTrace: policy.sourceTrace as unknown as Array<Record<string, unknown>>,
+      dateEventReadiness:['Z06','Z09','Z10'].includes(policy.code)?'unqualified':'not_applicable',
       dependentConditionStatuses: dependentConditionStatuses as unknown as Array<Record<string, unknown>>,
     },
   }

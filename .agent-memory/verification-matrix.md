@@ -96,3 +96,12 @@ PR343 main full35444527599/job105901061175 actual73/73,0failed Node22.23.2 SUCCE
 Runtime83ab46a0; local3812/3812, all3types, lint0errors/99warnings and required integrity/budget/performance/route/Ediel pipeline passed. Independent review active. Extra legacy static RFF_LI_MISSING failure reproduces unchanged baseline per report; no assertion rewritten. Acceptance56/110numeric,4/10parents unchanged; PR310 paused.
 
 PR344 initial head61249522 exactheadCI allSUCCESS: OPS35447170063, Ediel35447170087, Browser35447170054, Full35447170052. Coverage105907985393 actual3812/3812 in256files Node22.23.2. Independent R1/R2 remain merge blockers; green initialCI does not waive them.
+
+## PR344 merged
+Main `c9d795275fc22b284db51e70b25ec4ccb7d00d3a` includes PR344. Final head `4d2b3d6dbb105fb36d3d33104587ba90c61f43b0`, tree `a5c848a14a9fa9d43ca12a90e8b41533d24947de`. Source, task/spec, task quality and wholebranch APPROVE after R1 absentUD source and R2 blankIV choice fixes. No open findings. Exacthead CI allSUCCESS: OPS35447939691, Ediel35447939715, Browser35447939694, Full35447939726. Coverage105910018253 actual3846/3846 in256files Node22.23.2. Main full35448212060 and OPS35448212075 pending. Prior PR343 main actual73/73 remains last accepted certificate.
+
+Accepted56/110 numeric plus36 merged pending mainreceipt;18 other numeric remain. Parents4/10 plus6 merged pending receipt. Fullmasterplan/F3–F7/live NOT_COMPLETE. PR310 remains PAUSED unchanged e961135199f292b8210884f07de3b616a670161a. No imports of paused SQL/types/grants/proof, no live DB/storage/market send/explicitdeployment/settings. Existing automatic Vercel integration may deploy main merges. Issue332closed,335unmerged.
+
+
+## Main344 accepted receipt
+Mainc9d795275fc22b284db51e70b25ec4ccb7d00d3a full35448212060/job105910734306 SUCCESS: actual73/73,0failed onNode22.23.2 at2026-09-19T14:24:54Z. MainOPS35448212075 all3jobsSUCCESS. PR344 accepted36numeric+6parents after independentreview/exactheadCI/mainreceipt. Total92/110numeric,18remaining;10/10parents. Fullmasterplan/F3–F7/live still NOT_COMPLETE;PR310PAUSED. Oneactive source-only fourdate/eventconditions.

@@ -1,3 +1,4 @@
+import type {TgtDateEventValidationContext} from '@/lib/ediel/prodat/prodatDateEventAuthority'
 import type {ProdatEngineInvoiceeContext} from '@/lib/ediel/prodat/types'
 import type { ProdatDependentConditionFacts } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import { prodatDate203, prodatNowDate203 } from '@/lib/ediel/prodat/render/dates'
@@ -17,6 +18,7 @@ export type EdielTgtDraftValidationIssue = {
 };
 
 export type EdielTgtDraftBuildParams = {
+  dateEventContext?:TgtDateEventValidationContext;
   actorUserId: string;
   testRunId?: string | null;
   testSuite: EdielTestSuite;
