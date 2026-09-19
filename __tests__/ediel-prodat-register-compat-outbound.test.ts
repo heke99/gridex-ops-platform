@@ -1,3 +1,4 @@
+import { selectedAddressFact } from './fixtures/prodat-ud'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   buildProdatZ03FromSwitch, buildProdatZ04FromSwitch, buildProdatZ06FromSwitch, buildProdatZ10FromSwitch,
@@ -28,7 +29,7 @@ describe('saved switch compatibility respects operational direction',()=>{
   expect(io.from).not.toHaveBeenCalled()
  })
  it('retains the supported single-object Z03 flow while the shared renderer handles registers elsewhere',async()=>{
-  const p=input();p.switchRequest.validation_snapshot={portalData:{...source(),registers:[],dependentConditionFacts:{market:'electricity'}}}
+  const p=input();p.switchRequest.validation_snapshot={portalData:{...source(),registers:[],dependentConditionFacts:{market:'electricity',endUserAddressObjects:[selectedAddressFact(id,'company','9','USER',['Street'])]}}}
   const draft=await buildProdatZ03FromSwitch(p)
   const parsed=parseProdatMessage(draft.rawPayload!)
   expect(parsed.lineItems.map(line=>[line.meteringPointId,line.lineSequenceNumber,line.registerIndex])).toEqual([[id,'1',null]])

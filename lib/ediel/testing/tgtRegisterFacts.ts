@@ -1,3 +1,5 @@
+import {END_USER_ADDRESS_CODES} from '@/lib/ediel/prodat/prodatEndUserAddress'
+import {tgtEndUserAddressSourceLines} from './tgtEndUserAddressSource'
 import { createHash } from 'node:crypto'
 import { copyProdatRegisterFacts } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import type { ProdatDependentConditionFacts } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
@@ -6,6 +8,7 @@ import type { EdielTgtCaseTestData } from './tgtTestData'
 import { groupTgtProdatSourceObjects, readTgtProdatSourceColumns } from './tgtProdatSource'
 
 type Context = { run: EdielTestRunRow; stepNo:number; code:string; testData:EdielTgtCaseTestData|null|undefined }
+type SourceContext = Omit<Context,'run'> & {run:Pick<EdielTestRunRow,'id'|'company_id'|'role_code'|'test_case_code'|'test_suite'>}
 type Entry = {code:string;sourceDigest:string;facts:ProdatDependentConditionFacts;actorId:string;sourceNote:string;recordedAt:string}
 type FactNotes = {version:1;companyId:string;runId:string;roleCode:string;caseCode:string;suite:string;steps:Record<string,Entry>}
 const invalid=():never=>{throw new Error('PRODAT_REGISTER_SOURCE_EVIDENCE_INVALID')}
@@ -22,23 +25,37 @@ function envelope(run:EdielTestRunRow, raw:Record<string,unknown>):FactNotes|und
   if (!value || value.version!==1 || value.companyId!==run.company_id || value.runId!==run.id || value.roleCode!==run.role_code || value.caseCode!==run.test_case_code || value.suite!==run.test_suite || !record(value.steps)) return invalid()
   return value as FactNotes
 }
-function source(ctx:Context) {
-  if (!Number.isSafeInteger(ctx.stepNo) || ctx.stepNo<1 || !ctx.testData || ctx.testData.roleCode!==ctx.run.role_code || ctx.testData.testCaseCode!==ctx.run.test_case_code) return invalid()
+function source(ctx:SourceContext) {
+  if (!Number.isSafeInteger(ctx.stepNo) || ctx.stepNo<1 || !ctx.testData || ctx.testData.suite!==ctx.run.test_suite || ctx.testData.roleCode!==ctx.run.role_code || ctx.testData.testCaseCode!==ctx.run.test_case_code) return invalid()
   const columns=readTgtProdatSourceColumns(ctx.testData,ctx.code)
   const objects=groupTgtProdatSourceObjects(columns)
   if (!objects.length || objects.some(rows=>!rows[0].fields['209'])) return invalid()
   return {objects,digest:digest(columns.map(row=>({groupIndex:row.groupIndex,source:row.group.block,column:row.column,rawFields:row.rawFields})))}
 }
-function checkedFacts(ctx:Context,value:unknown):ProdatDependentConditionFacts {
+function checkedFacts(ctx:SourceContext,value:unknown):ProdatDependentConditionFacts {
   const facts=copyProdatRegisterFacts(value)
   const {objects}=source(ctx)
   // Scope must be explicit for every source object. A global boolean cannot
   // stand in for a decision about B merely because A was configured.
+  if (facts.registerObjects || ['Z04','Z06','Z10'].includes(ctx.code)) {
   if (!facts.registerObjects || facts.registerObjects.length!==objects.length) return invalid()
   for (const rows of objects) {
     const first=rows[0], id=first.fields['209'], agency=first.identityAgency ?? '9'
     const matches=facts.registerObjects.filter(fact=>fact.meteringPointId===id && fact.identityAgency===agency)
     if (matches.length!==1 || matches[0].expectedRegisterCount!==rows.length) return invalid()
+  }
+  }
+  if(facts.endUserAddressObjects) {
+    if(!END_USER_ADDRESS_CODES.includes(ctx.code))return invalid()
+    for(const fact of facts.endUserAddressObjects) {
+      const rows=objects.find(rows=>rows[0].fields['209']===fact.meteringPointId && (rows[0].identityAgency??'9')===fact.identityAgency)
+      if(!rows || rows[0].fields['227']!==fact.endUser.id)return invalid()
+      const first=rows[0],lines=tgtEndUserAddressSourceLines(first)
+      if(fact.availability==='available' && (!lines.some(v=>v && v!=='.') || [0,1,2].some(i=>(lines[i]??'')!==(fact.addressLines[i]??''))))return invalid()
+      if(fact.availability==='unavailable' && lines.some(Boolean))return invalid()
+      if(first.fields['227.QUALIFIER']!==undefined && first.fields['227.QUALIFIER']!==fact.endUser.qualifier)return invalid()
+      if(first.fields['227.AGENCY']!==undefined && first.fields['227.AGENCY']!==fact.endUser.agency)return invalid()
+    }
   }
   return facts
 }
@@ -50,6 +67,7 @@ export function buildTgtRegisterFactNotes(ctx:Context & {facts:unknown;actorId:s
   const raw=notes(ctx.run)
   const previous=envelope(ctx.run,raw)
   const facts=checkedFacts(ctx,ctx.facts)
+  if(facts.endUserAddressObjects) facts.endUserAddressObjects=facts.endUserAddressObjects.map(fact=>({...fact,source:{kind:'tgt',companyId:ctx.run.company_id,runId:ctx.run.id,stepNo:ctx.stepNo,code:ctx.code,sourceDigest:source(ctx).digest,reference:ctx.sourceNote.trim()}}))
   const next:FactNotes=previous ?? {version:1,companyId:ctx.run.company_id,runId:ctx.run.id,roleCode:ctx.run.role_code,caseCode:ctx.run.test_case_code,suite:ctx.run.test_suite,steps:{}}
   const entry:Entry={code:ctx.code,sourceDigest:source(ctx).digest,facts,actorId:ctx.actorId,sourceNote:ctx.sourceNote.trim(),recordedAt:new Date().toISOString()}
   const result=JSON.stringify({...raw,prodatRegisterFacts:{...next,steps:{...next.steps,[ctx.stepNo]:entry}}})
@@ -68,5 +86,17 @@ export function readTgtRegisterFacts(ctx:Context):ProdatDependentConditionFacts|
     return undefined
   }
   if (entry.code!==ctx.code || entry.sourceDigest!==source(ctx).digest || typeof entry.actorId!=='string' || !entry.actorId.trim() || typeof entry.sourceNote!=='string' || !entry.sourceNote.trim()) return invalid()
-  return checkedFacts(ctx,entry.facts)
+  const facts=checkedFacts(ctx,entry.facts)
+  for(const fact of facts.endUserAddressObjects??[])if(fact.source.kind!=='tgt' || fact.source.companyId!==ctx.run.company_id || fact.source.runId!==ctx.run.id || fact.source.stepNo!==ctx.stepNo || fact.source.code!==ctx.code || fact.source.sourceDigest!==source(ctx).digest)return invalid()
+  return facts
+}
+
+/** Recheck source selection at the draft boundary after notes have been read.
+ * Scope comes from the authorized build context, never from the fact itself. */
+export function assertTgtAddressFactSource(input:{companyId:string;runId?:string|null;stepNo:number;code:string;roleCode:EdielTestRunRow['role_code'];caseCode:string;suite:EdielTestRunRow['test_suite'];testData:EdielTgtCaseTestData|null|undefined;facts:ProdatDependentConditionFacts|undefined}) {
+  if(!input.facts?.endUserAddressObjects?.length)return
+  if(!input.runId)return invalid()
+  const ctx:SourceContext={stepNo:input.stepNo,code:input.code,testData:input.testData,run:{id:input.runId,company_id:input.companyId,role_code:input.roleCode,test_case_code:input.caseCode,test_suite:input.suite}}
+  const facts=checkedFacts(ctx,input.facts), selected=source(ctx)
+  for(const fact of facts.endUserAddressObjects??[])if(fact.source.kind!=='tgt' || fact.source.companyId!==input.companyId || fact.source.runId!==input.runId || fact.source.stepNo!==input.stepNo || fact.source.code!==input.code || fact.source.sourceDigest!==selected.digest)return invalid()
 }

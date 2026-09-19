@@ -1,3 +1,4 @@
+import {copyProdatEndUserAddressObjects,assertProdatAddressOwnership} from './prodatEndUserAddress'
 import { segmentComposite, segmentElementCount } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import { prodatRegisterMessageSegments } from '@/lib/ediel/prodat/prodatRegisterGroups'
@@ -9,7 +10,7 @@ export type ProdatRegisterEvidence = {
   /** Decoded message body, without transport envelope. Integrity binding only,
    * NOT authorization or a signature. Facts require a server-owned row. */
   bodyBinding: string
-  facts: Pick<ProdatDependentConditionFacts, 'market' | 'meterReadingsSentInUtilts' | 'registerObjects'>
+  facts: Pick<ProdatDependentConditionFacts, 'market' | 'meterReadingsSentInUtilts' | 'registerObjects' | 'endUserAddressObjects'>
 }
 const record = (value: unknown): Record<string,unknown> | null => value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string,unknown> : null
 const invalid = (): never => { throw new Error('prodat_register_evidence_invalid') }
@@ -39,6 +40,7 @@ export function copyProdatRegisterFacts(value: unknown): ProdatRegisterEvidence[
         ...(row.meterReadingsSentInUtilts === undefined ? {} : {meterReadingsSentInUtilts:optionalBoolean(row.meterReadingsSentInUtilts)})}
     })
   }
+  if(Object.hasOwn(source,'endUserAddressObjects') && source.endUserAddressObjects!==undefined) facts.endUserAddressObjects=copyProdatEndUserAddressObjects(source.endUserAddressObjects)
   return facts
 }
 function bodyBinding(rawSegments: readonly string[], una: EdifactServiceStringAdvice): string {
@@ -49,12 +51,14 @@ function bodyBinding(rawSegments: readonly string[], una: EdifactServiceStringAd
 export function createProdatRegisterEvidence(input:{code:string;rawSegments:readonly string[];una?:EdifactServiceStringAdvice;facts?:ProdatDependentConditionFacts}):ProdatRegisterEvidence {
   return {version:1,code:input.code,bodyBinding:bodyBinding(input.rawSegments,input.una ?? parseUna(null)),facts:copyProdatRegisterFacts(input.facts ?? {})}
 }
-export function readProdatRegisterEvidence(input:{code:string;rawSegments:readonly string[];una?:EdifactServiceStringAdvice;parsedPayload?:unknown}):ProdatRegisterEvidence['facts']|undefined {
+export function readProdatRegisterEvidence(input:{code:string;rawSegments:readonly string[];una?:EdifactServiceStringAdvice;parsedPayload?:unknown;companyId?:string|null;runId?:string|null;stepNo?:number|null}):ProdatRegisterEvidence['facts']|undefined {
   const engine=record(record(input.parsedPayload)?.prodatEngine)
   if (!engine || !Object.hasOwn(engine,'registerEvidence')) return undefined
   const evidence=record(engine.registerEvidence)
   if (!evidence || evidence.version!==1 || evidence.code!==input.code || evidence.bodyBinding!==bodyBinding(input.rawSegments,input.una ?? parseUna(null))) return invalid()
-  return copyProdatRegisterFacts(evidence.facts)
+  const facts=copyProdatRegisterFacts(evidence.facts)
+  assertProdatAddressOwnership(facts.endUserAddressObjects,input)
+  return facts
 }
 
 /** Snapshot overrides are authoritative, including an explicit clear. Keep the
@@ -71,5 +75,6 @@ export function resolveProdatRegisterConditionFacts(contextFacts:ProdatDependent
     ...(Object.hasOwn(data,'market') ? {market:checked.market} : {}),
     ...(Object.hasOwn(data,'meterReadingsSentInUtilts') ? {meterReadingsSentInUtilts:checked.meterReadingsSentInUtilts} : {}),
     ...(Object.hasOwn(data,'registerObjects') ? {registerObjects:checked.registerObjects} : {}),
+    ...(Object.hasOwn(data,'endUserAddressObjects') ? {endUserAddressObjects:checked.endUserAddressObjects} : {}),
   } as ProdatDependentConditionFacts
 }

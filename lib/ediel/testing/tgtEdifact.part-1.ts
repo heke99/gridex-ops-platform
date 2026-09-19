@@ -17,6 +17,7 @@ export type EdielTgtDraftValidationIssue = {
 
 export type EdielTgtDraftBuildParams = {
   actorUserId: string;
+  testRunId?: string | null;
   testSuite: EdielTestSuite;
   roleCode: EdielTestRoleCode;
   testCaseCode: string;
@@ -157,6 +158,7 @@ export type TgtProdatMutation = {
 };
 
 export type TgtPortalCustomerData = {
+  customerAddressLines?: readonly string[];
   identityAgency?: string | null;
   sourceGroupIndex?: number;
   oldMeterNumber?: string | null;

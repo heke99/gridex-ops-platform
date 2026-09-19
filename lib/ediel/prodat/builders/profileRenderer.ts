@@ -1,3 +1,4 @@
+import {evaluateProdatEndUserAddress} from '@/lib/ediel/rulebook/prodatEndUserAddressPolicy'
 import { validateProdatZ14Policy, z14DependentRules } from '@/lib/ediel/rulebook/prodatZ14Policy'
 import { resolveProdatRegisterConditionFacts } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
@@ -285,6 +286,9 @@ export function buildProfiledProdatSegments(input: {
       && !isProdatFieldInInapplicableParent({ messageCode: policy.code, subtype: policy.subtype, fieldNumber: field })
   }
 
+  const addressOverridden=portalData && (Object.hasOwn(portalData,'customerAddressLines') || Object.hasOwn(portalData,'customerAddress'))
+  const ownAddressLines=addressOverridden ? Object.hasOwn(portalData,'customerAddressLines') ? portalPartyLines(portalData,'customerAddressLines') ?? [] : undefined : context.customerAddressLines
+  const ownAddress=addressOverridden ? portalPartyText(portalData,'customerAddress') : context.customerAddress
   if (partyFieldAllowed('END_USER_GROUP')) {
     segments.push(prodatCustomerNadSegment({
       customerId: portalPartyText(portalData, 'customerId') ?? context.customerId ?? null,
@@ -292,8 +296,8 @@ export function buildProfiledProdatSegments(input: {
       customerName: portalPartyText(portalData, 'customerName') ?? context.customerName,
       nameLines: portalPartyLines(portalData, 'customerNameLines') ?? context.customerNameLines,
       idAgency: portalAgency(portalData, 'customerIdAgency', ['89', '260'] as const) ?? context.customerIdAgency,
-      addressLines: partyFieldAllowed('229') ? portalPartyLines(portalData, 'customerAddressLines') ?? context.customerAddressLines : undefined,
-      address: partyFieldAllowed('229') ? portalPartyText(portalData, 'customerAddress') ?? context.customerAddress ?? null : null,
+      addressLines: partyFieldAllowed('229') ? ownAddressLines : undefined,
+      address: partyFieldAllowed('229') ? ownAddress ?? null : null,
       city: partyFieldAllowed('232') ? portalPartyText(portalData, 'customerCity') ?? context.customerCity ?? null : null,
       postalCode: partyFieldAllowed('231') ? portalPartyText(portalData, 'customerPostalCode') ?? context.customerPostalCode ?? null : null,
       country: portalPartyText(portalData, 'customerCountry') ?? context.customerCountry ?? null,
@@ -362,11 +366,15 @@ export function buildProfiledProdatSegments(input: {
     })
   }
 
+  const addressDecision=evaluateProdatEndUserAddress({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts})
+  for(const failure of addressDecision.issues) issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
   const renderedReadings = validateProdatRegisterPolicy({code:policy.code,rawSegments:segments,
     facts:policy.prodatDependentFacts,rules:registerPolicy.fieldRules.filter((rule): rule is RulebookFieldRule => 'family' in rule),applicationReference:policy.applicationReference,
     requireIndependentInventory:policy.direction === 'outbound'}).readings
   const dependentConditionStatuses = policy.prodatDependentConditions.map(condition =>
-    isProdatReadingField(condition.fieldNumber)
+    condition.fieldNumber==='229'
+      ? {...condition,status:addressDecision.status,decisionPhase:'rendered_wire_address' as const}
+      : isProdatReadingField(condition.fieldNumber)
       ? { ...condition, status: renderedReadings.get(condition.fieldNumber) ?? 'undetermined' as const,
         decisionPhase: 'rendered_wire_readings' as const }
       : condition.conditionId === 'optional_installation_wire_parent'
