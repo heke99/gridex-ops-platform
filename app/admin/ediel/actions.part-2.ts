@@ -822,7 +822,7 @@ export async function createEdielTgtDraftAction(formData: FormData) {
   let companyId = formString(formData.get("companyId"));
   const run=testRunId ? await requireScopedEdielTestRunForAction(testRunId,context) : null;
   if (run) {
-    if ((companyId && companyId!==run.company_id) || run.role_code!==roleCode || run.test_case_code!==testCaseCode) throw new Error('TGT_RUN_CONTEXT_MISMATCH');
+    if ((companyId && companyId!==run.company_id) || run.role_code!==roleCode || run.test_case_code!==testCaseCode || run.test_suite!==testSuite) throw new Error('TGT_RUN_CONTEXT_MISMATCH');
     companyId=run.company_id;
   }
   if (!companyId) {
@@ -836,11 +836,15 @@ export async function createEdielTgtDraftAction(formData: FormData) {
   }
   await requireCompanyScopedActionAccess(companyId,{anyOf:['ediel_testing.write','communication.write']});
   await requireCompanyOperationalForWrites(companyId);
+  const definition=getEdielTgtTestCaseByCode(testSuite,roleCode,testCaseCode);
+  const step=definition?.expectedSteps.find(candidate=>candidate.stepNo===stepNo);
+  if (!definition || !step || step.actor !== 'gridex') throw new Error('TGT_STEP_CONTEXT_INVALID');
   const systemTestContext = await requireEdielSystemTestRuntimeContext({
     companyId,
     testSuite: run?dateEventRuntimeSuite(run):"TGT",
     actorRole: roleCode,
-    messageFamily:"PRODAT",
+    // ACKs use the selected case's source-family profile.
+    messageFamily:definition.suite,
   });
 
   const importedTestData = await getEdielTgtDynamicTestDataForCase(
@@ -849,7 +853,6 @@ export async function createEdielTgtDraftAction(formData: FormData) {
     testCaseCode,
   );
 
-  const step=getEdielTgtTestCaseByCode(testSuite,roleCode,testCaseCode)?.expectedSteps.find(candidate=>candidate.stepNo===stepNo);
   const dateBuild=run && step?.family==='PRODAT' ? await resolveTgtDateEventBuildContext({run,stepNo,code:step.code,runtime:systemTestContext,
     testData:importedTestData ?? getEdielTgtTestDataForCase(testSuite,roleCode,testCaseCode)}) : undefined;
   const registerFacts=dateBuild?.facts;

@@ -23,3 +23,15 @@ it('authorized action saves domain assertion then actual manual draft retains ve
 it('actual autopilot resolves the same independently saved source before persistence', async () => { await saveEdielTgtRegisterFactsAction(form()); await runTgtAutopilotForRun({ actorUserId: 'ACTOR', companyId: 'tenant', testRunId: 'RUN' }); expect(created).toHaveLength(1); expect(created[0].parsedPayload?.readyForDownload).toBe(true); });
 it('revoked current test runtime prevents both constructors from persisting', async () => { await saveEdielTgtRegisterFactsAction(form()); runtime.settings!.isActive = false; await expect(createEdielTgtDraftAction(form())).rejects.toThrow('PRODAT_DATE_EVENT_SOURCE_CONTEXT_INVALID'); await expect(runTgtAutopilotForRun({ actorUserId: 'ACTOR', companyId: 'tenant', testRunId: 'RUN' })).rejects.toThrow('PRODAT_DATE_EVENT_SOURCE_CONTEXT_INVALID'); expect(created).toEqual([]); });
 it('write denial precedes source stamping and persistence', async () => { io.company.mockRejectedValue(new Error('DENIED')); await expect(saveEdielTgtRegisterFactsAction(form())).rejects.toThrow('DENIED'); expect(run.notes).toBeNull(); expect(created).toEqual([]); });
+function utiltsForm(stepNo=2){run.test_suite='UTILTS';run.test_case_code='U2.1';io.source.mockResolvedValue(null);runtime.settings!.messageFamily='UTILTS';const f=form();f.set('testSuite','UTILTS');f.set('testCaseCode','U2.1');f.set('stepNo',String(stepNo));return f}
+for(const stepNo of [2,3])it(`manual UTILTS ACK step${stepNo} uses source case profile`,async()=>{
+ const f=utiltsForm(stepNo);const stop=new Error('EXPECTED_RUNTIME_BOUNDARY');io.runtime.mockRejectedValue(stop)
+ await expect(createEdielTgtDraftAction(f)).rejects.toBe(stop)
+ expect(io.runtime).toHaveBeenCalledWith(expect.objectContaining({companyId:'tenant',messageFamily:'UTILTS'}));expect(created).toEqual([])
+})
+it('autopilot UTILTS ACK inherits source profile after actual inbound step match',async()=>{
+ utiltsForm();io.messages.mockResolvedValue([{id:'INBOUND',company_id:'tenant',direction:'inbound',environment:'test',message_family:'UTILTS',message_code:'E66',status:'received',created_at:'2026-09-19T00:01:00Z'}]);const stop=new Error('EXPECTED_RUNTIME_BOUNDARY');io.runtime.mockRejectedValue(stop)
+ await expect(runTgtAutopilotForRun({actorUserId:'ACTOR',companyId:'tenant',testRunId:'RUN'})).rejects.toBe(stop)
+ expect(io.runtime).toHaveBeenCalledWith(expect.objectContaining({companyId:'tenant',messageFamily:'UTILTS'}));expect(created).toEqual([])
+})
+it('invalid requested step is rejected before runtime profile lookup',async()=>{const f=form();f.set('stepNo','999');await expect(createEdielTgtDraftAction(f)).rejects.toThrow('TGT_STEP_CONTEXT_INVALID');expect(io.runtime).not.toHaveBeenCalled()})

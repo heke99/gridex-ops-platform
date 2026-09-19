@@ -1,4 +1,4 @@
-import { supabaseService } from '@/lib/supabase/service';
+import { tenantDb } from '@/lib/supabase/tenantDb';
 import { requireEdielSystemTestRuntimeContext, type EdielSystemTestRuntimeContext } from '@/lib/ediel/systemTestSettings';
 import { isAgtSystemTestCase } from '@/lib/ediel/systemTestPackages';
 import { resolveEdielTgtProdatApplicationReference } from '@/lib/ediel/fileEngine';
@@ -6,9 +6,16 @@ import { getEdielTgtTestCaseByCode } from './tgtRegistry';
 import { getEdielTgtTestDataForCase, type EdielTgtCaseTestData } from './tgtTestData';
 import { getEdielTgtDynamicTestDataForCase } from './tgtTestDataStore';
 import { readTgtRegisterFacts, tgtHasDateEventFacts } from './tgtRegisterFacts';
-import { copyProdatDateEventRoute, type ProdatDateEventRoute } from '@/lib/ediel/prodat/prodatDateEvents';
+import { copyProdatDateEventObjects, copyProdatDateEventSource, copyProdatDateEventRoute, type ProdatDateEventRoute } from '@/lib/ediel/prodat/prodatDateEvents';
 import type { TgtDateEventValidationContext } from '@/lib/ediel/prodat/prodatDateEventAuthority';
-import type { EdielTestRunRow, EdielMessageRow } from '@/lib/ediel/types';
+import type { EdielTestRunRow, EdielMessageRow, EdielRouteProfileRow, EdielTestRunMessageRow } from '@/lib/ediel/types';
+// tenantDb has an intentionally unknown query return; describe only this read surface.
+type ScopedSelect<T> = {
+    eq(column: string, value: unknown): ScopedSelect<T>;
+    maybeSingle(): PromiseLike<{data: T | null; error: unknown}>;
+    limit(count: number): PromiseLike<{data: T[] | null; error: unknown}>;
+};
+type RunLink = Pick<EdielTestRunMessageRow, 'test_run_id' | 'step_no' | 'expected_family' | 'expected_code' | 'expected_direction'>;
 const invalid = (): never => { throw new Error('PRODAT_DATE_EVENT_SOURCE_CONTEXT_INVALID'); };
 const upper = (v: string | null) => v?.trim().toUpperCase() || null;
 export function dateEventRuntimeSuite(run: EdielTestRunRow): 'AGT' | 'TGT' { return isAgtSystemTestCase({ runtimeTestSuite: String((run as EdielTestRunRow & {
@@ -28,7 +35,7 @@ export async function resolveTgtDateEventRoute(run: EdielTestRunRow, code: strin
     if (settings.applicationReference && settings.applicationReference !== applicationReference)
         return invalid();
     if (selected) {
-        const { data, error } = await supabaseService.from('ediel_route_profiles').select('*').eq('id', selected).eq('company_id', run.company_id).maybeSingle();
+        const { data, error } = await (tenantDb(run.company_id).from('ediel_route_profiles').select('*') as ScopedSelect<EdielRouteProfileRow>).eq('id', selected).maybeSingle();
         if (error)
             throw error;
         if (!data || data.company_id !== run.company_id || data.environment !== 'test' || data.is_enabled !== true || data.is_active === false)
@@ -52,14 +59,19 @@ export async function resolveTgtDateEventBuildContext(input: {
         return { facts: readTgtRegisterFacts(input), context: undefined };
     const dateEventRoute = await resolveTgtDateEventRoute(input.run, input.code, input.runtime);
     const facts = readTgtRegisterFacts({ ...input, dateEventRoute });
-    const context: TgtDateEventValidationContext | undefined = facts?.dateEventSource?.kind === 'tgt' ? { source: facts.dateEventSource, objects: facts.dateEventObjects ?? [] } : undefined;
+    let context: TgtDateEventValidationContext | undefined;
+    if (facts?.dateEventSource?.kind === 'tgt') {
+        const source = copyProdatDateEventSource(facts.dateEventSource);
+        if (source.kind !== 'tgt') return invalid();
+        context = { source, objects: copyProdatDateEventObjects(facts.dateEventObjects ?? []) };
+    }
     return { facts, context };
 }
 /** The association is loaded independently of payload/evidence, with tenant filters. */
 export async function loadTgtDateEventValidationContext(message: EdielMessageRow): Promise<TgtDateEventValidationContext | undefined> {
     if (message.environment !== 'test' || message.direction !== 'outbound' || message.message_family !== 'PRODAT' || !['Z06', 'Z09', 'Z10'].includes(message.message_code))
         return undefined;
-    const { data: links, error: linkError } = await supabaseService.from('ediel_test_run_messages').select('test_run_id,step_no,expected_family,expected_code,expected_direction').eq('company_id', message.company_id).eq('ediel_message_id', message.id).limit(2);
+    const { data: links, error: linkError } = await (tenantDb(message.company_id).from('ediel_test_run_messages').select('test_run_id,step_no,expected_family,expected_code,expected_direction') as ScopedSelect<RunLink>).eq('ediel_message_id', message.id).limit(2);
     if (linkError)
         throw linkError;
     if (!links?.length)
@@ -69,7 +81,7 @@ export async function loadTgtDateEventValidationContext(message: EdielMessageRow
     const link = links[0];
     if (link.expected_family !== 'PRODAT' || link.expected_code !== message.message_code || link.expected_direction !== 'outbound' || !link.step_no)
         return invalid();
-    const { data: run, error } = await supabaseService.from('ediel_test_runs').select('*').eq('company_id', message.company_id).eq('id', link.test_run_id).maybeSingle();
+    const { data: run, error } = await (tenantDb(message.company_id).from('ediel_test_runs').select('*') as ScopedSelect<EdielTestRunRow>).eq('id', link.test_run_id).maybeSingle();
     if (error)
         throw error;
     if (!run || run.company_id !== message.company_id)

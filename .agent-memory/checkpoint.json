@@ -5,7 +5,7 @@
   "branch": "codex/ediel-date-events-20260919",
   "base_head_sha": "c9d795275fc22b284db51e70b25ec4ccb7d00d3a",
   "active_item": "Implement four date and production-event conditions",
-  "next_action": "Finish date runtime including actual SMTP boundary and final gates; independent completed-runtime review before publication",
+  "next_action": "Resolve three confirmed runtime review findings, independent scoped review, republish exacttree and all triggered CI",
   "accepted_numeric_D": 92,
   "merged_numeric_D": 92,
   "numeric_D_total": 110,
@@ -27,5 +27,8 @@
   },
   "source_qualification_commit": "953c9a8d81d632e16da79777f205977eb324fd4f",
   "source_fix_round": 1,
-  "runtime_authorization_commit": "fd7c4d58"
+  "runtime_authorization_commit": "fd7c4d58",
+  "pr": 345,
+  "published_head": "c06db12b19c4a12a545c804e80cd156003b7cc81",
+  "tenant_correction": "bd4a268f70c9cb594a6a49ee7eeb23bf04458c1f"
 }

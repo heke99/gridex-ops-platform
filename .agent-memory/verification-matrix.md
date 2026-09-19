@@ -105,3 +105,10 @@ Accepted56/110 numeric plus36 merged pending mainreceipt;18 other numeric remain
 
 ## Main344 accepted receipt
 Mainc9d795275fc22b284db51e70b25ec4ccb7d00d3a full35448212060/job105910734306 SUCCESS: actual73/73,0failed onNode22.23.2 at2026-09-19T14:24:54Z. MainOPS35448212075 all3jobsSUCCESS. PR344 accepted36numeric+6parents after independentreview/exactheadCI/mainreceipt. Total92/110numeric,18remaining;10/10parents. Fullmasterplan/F3–F7/live still NOT_COMPLETE;PR310PAUSED. Oneactive source-only fourdate/eventconditions.
+
+## PR345 review checkpoint
+Completed runtime1e69de127b4e327afc612af601a8cbe8fd61e594 published as draft PR345 headc06db12b19c4a12a545c804e80cd156003b7cc81, exactsame treeb3631e196761777604665602442105b89011e933. Local3968/3968, all3types/lint/818scripts/integrity/budgets/performance/route/TZ passed; Node24local. Initial CI coverage105920925174 independently confirms3968/3968 in262files onNode22.23.2. Initial Tenant andOPS verify fail service-role ratchet2404 versuslimit2402; this is not accepted CI.
+
+Separate fixbd4a268f70c9cb594a6a49ee7eeb23bf04458c1f converts allTHREE added resolver queries to actual tenantDb(companyId), injectedcompanyfilters plusID/ownerchecks. Actualcount2401; immutablelimit2402 unchanged. Focused70/70, all3types/lint andactualtenantworkflowcommands pass. Not yet published.
+
+Independent completed-runtime review has confirmed three additional findings: actual inbound ownZ09B extra210 incorrectly reachesfieldmatrixforbidden; returned trustedcontext aliases mutablefacts; manualUTILTS runtimecontext selected asPRODAT. Await finalreport, sameimplementer scopedfix and independentrereview. No new acceptance:92/110numeric,10/10parents. Fullmasterplanincomplete,PR310paused.

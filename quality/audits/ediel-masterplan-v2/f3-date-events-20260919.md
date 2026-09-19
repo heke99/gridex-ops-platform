@@ -637,3 +637,66 @@ Local verification used Node24.19.0 (known workspace environment); package/CI
 uses Node22.23.2. Lint exit0 has100 repository warnings and0 errors. Independent
 exact-head CI and main73/73 on Node22 remain required; local receipts do not
 replace those root-owned acceptance gates.
+
+### CI correction: tenant service-role ratchet
+
+Published draft PR345 triggered Tenant integrity regression35452098502, which
+reported2404 direct service calls against the unchanged2402 baseline. Reproduced
+locally (exit1). The new resolver had three direct reads; accepted code was2401,
+so those three exceeded the baseline by two. Route profiles, run associations and
+runs now use the actual `tenantDb(companyId)` wrapper, which applies the company
+predicate before caller ID filters and refuses a missing company. No unscoped
+escape, client alias, baseline/loader/gate/schema change was used. Returned owner
+checks and original database errors remain. External client mocks execute the real
+wrapper; four additional controls test missing tenant and all three read errors.
+
+Correction verification:70/70 tests in6 affected resolver/admin/autopilot/SMTP
+suites, all3 typechecks, lint exit0 (100 warnings/0 errors), both tenant integrity
+and shutdown contracts, and ratchet2401<=2402 all pass. An initial generic query
+return type lost selected row inference; replaced by a bounded typed read surface,
+then all types passed. No full-suite rerun is claimed for this narrow correction;
+3968 was the preceding runtime receipt. Independent runtime findings received
+from root remain a separate pending correction round, not resolved by this change.
+
+### Scoped independent runtime review correction R1–R3
+
+Root authorized the three findings in date-events-runtime-review-report.md after
+review at1e69de12. The separate tenant correction remains bd4a268f, independently
+approved. Original reviewer probes/config are preserved: same three assertions
+reproduced RED3/3 and pass GREEN3/3 after the following scoped corrections.
+
+R1: actual raw/row parse now passes inbound direction into the existing date-only
+validator. Only210/211 DTM in a known own non-D Z09 scope is ignored by that
+validator, per p119. Selection uses decoded own scope and retained token indices,
+not root reason or text-wide replacement. Header dates, unknown own reason,
+applicable dates, other codes/cells and outbound validation retain their existing
+rules. Shared ownD XOR and malformed-date protection still runs on original wire.
+No ACK behavior or global field-matrix/date codec was changed. Fourteen new raw/
+row controls cover valid extra210/211, ownD both/neither/malformed dates and
+outbound nonD exclusion. This fixes the observed parse finding, not an asserted
+negative ACK or lifecycle effect.
+
+R2: manual action resolves/validates the actual case and Gridex step before
+runtime lookup, and run suite must match selected suite. Runtime messageFamily
+comes from that validated case's source suite; thus UTILTS U2.1 CONTRL/APERAK use
+UTILTS, while PRODAT dates use PRODAT. Autopilot uses the same case-suite source
+profile, not the ACK wire family. Controls exercise both manual ACK steps and
+actual autopilot matching of its inbound UTILTS first step, stopping at a mocked
+runtime boundary and asserting the exact UTILTS selector. They do not claim ACK
+emission/provider behavior. Invalid step is rejected before runtime lookup.
+
+R3: expected context separately copies both source (including nested route) and
+objects from returned mutable facts. Six event/source/route mutation controls
+run in both directions, through real source resolver and draft comparison;
+mutating one side leaves the peer unchanged and the subsequent draft rejects.
+Existing persisted independent reload is retained; no persisted bypass was
+claimed by the review or correction.
+
+No old assertions were changed in this round. Fresh focused48/48 pass; full
+3996/3996 in263 files includes the four tenant tests and24 review controls.
+Affected eight node scripts818/818, date suites530/530 in10files per UTC,
+Europe/Stockholm/Pacific/Apia, unchanged budgets/performance/integrity, both tenant
+contracts and ratchet2401<=2402, and required-preload route gate all pass. Exact
+commands, type/lint receipts and local Node24 limitation are in the same task
+report. These supersede prior full3968 locally; independent scoped re-review and
+exact-head Node22 CI/main receipts remain root-owned and pending.

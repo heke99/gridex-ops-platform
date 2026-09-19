@@ -42,3 +42,29 @@ for (const change of ['runCompany', 'step', 'duplicate', 'source', 'route'] as c
     } if (change === 'route')
         Object.assign(records.ediel_route_profiles!, { communication_route_id: 'CHANGED' }); await expect(loadTgtDateEventValidationContext(row())).rejects.toThrow(); });
 it('no resolver can make a production lifecycle source', async () => { expect(await loadTgtDateEventValidationContext({ ...row(), environment: 'production' })).toBeUndefined(); expect(filters).toEqual([]); });
+it('persisted tenant scope is required before any service-role read', async () => {
+    await expect(loadTgtDateEventValidationContext({ ...row(), company_id: '' })).rejects.toThrow('Bolag krävs');
+    expect(io.from).not.toHaveBeenCalled();
+});
+for (const table of ['ediel_route_profiles', 'ediel_test_run_messages', 'ediel_test_runs']) it(`scoped ${table} read preserves database errors`, async () => {
+    const error = new Error(`synthetic ${table} unavailable`);
+    io.from.mockImplementation((selected: string) => {
+        const q = { select: () => q, eq: () => q, maybeSingle: async () => ({ data: records[selected], error: selected === table ? error : null }), limit: async () => ({ data: records[selected], error: selected === table ? error : null }) };
+        return q;
+    });
+    const result = table === 'ediel_route_profiles' ? resolveTgtDateEventRoute(run(), 'Z09', runtime()) : loadTgtDateEventValidationContext(row());
+    await expect(result).rejects.toBe(error);
+});
+import {resolveTgtDateEventBuildContext} from '@/lib/ediel/testing/tgtDateEventContext'
+import {buildEdielTgtDraft} from '@/lib/ediel/testing/tgtEdifact.part-4'
+for(const side of ['facts','context'] as const)for(const nested of ['event','source','route'] as const)it(`resolved ${side} ${nested} mutation cannot change its independently retained peer`,async()=>{
+ const r=await saved(),rt=runtime(),result=await resolveTgtDateEventBuildContext({run:r,stepNo:1,code:'Z09',runtime:rt,testData:data()})
+ const before=JSON.stringify(side==='facts'?result.context:result.facts)
+ const source=side==='facts'?result.facts!.dateEventSource!:result.context!.source
+ const objects=side==='facts'?result.facts!.dateEventObjects!:result.context!.objects
+ if(nested==='event'){const o=objects[0];if(o.kind!=='production_contract')throw new Error('wrong fixture');o.event.reference='MUTATED'}
+ if(nested==='source')source.reference='MUTATED'
+ if(nested==='route'){if(source.kind!=='tgt')throw new Error('wrong fixture');source.route.legalRecipient.id='MUTATED'}
+ expect(JSON.stringify(side==='facts'?result.context:result.facts)).toBe(before)
+ expect(()=>buildEdielTgtDraft({actorUserId:'ACTOR',testRunId:r.id,testSuite:r.test_suite,roleCode:r.role_code,testCaseCode:r.test_case_code,stepNo:1,systemTestContext:rt,importedTestData:data(),registerFacts:result.facts,dateEventContext:result.context})).toThrow()
+})

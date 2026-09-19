@@ -377,7 +377,8 @@ async function createDraftForStep(params: {
     companyId: params.evaluation.testRun.company_id,
     testSuite: runtimeSuite,
     actorRole: params.evaluation.definition.roleCode,
-    messageFamily:params.step.family,
+    // ACK wire families inherit the selected case's source-family profile.
+    messageFamily:params.evaluation.definition.suite,
   });
 
   const importedTestData = await getEdielTgtDynamicTestDataForCase(

@@ -411,7 +411,7 @@ function validateEdifactPayload(params: {
   })
 
   if (String(canonical.family).toUpperCase() === 'PRODAT') {
-    for (const failure of validateProdatDateFields(String(canonical.messageCode), tokens.segments, tokens.una)) {
+    for (const failure of validateProdatDateFields(String(canonical.messageCode), tokens.segments, tokens.una, params.mode === 'parse' ? 'inbound' : 'outbound')) {
       const qualifier = failure.fieldPath?.split('+')[1]
       const source = tokens.segments.find(row => row.tag === 'DTM' && segmentComposite(row, 1, tokens.una)[0] === qualifier)
       issues.push(issue({ severity: 'error', code: failure.code, title: failure.title,
