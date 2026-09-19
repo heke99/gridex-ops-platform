@@ -1,3 +1,4 @@
+import {validateProdatGasApplicability} from '@/lib/ediel/rulebook/prodatGasApplicabilityPolicy'
 import {projectDeathStatus} from '@/lib/ediel/prodat/prodatDeathStatus'
 import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
 import type {ProdatDependentConditionFacts} from '@/lib/ediel/prodat/prodatDependentConditionEngine'
@@ -386,7 +387,7 @@ export function buildPortalProdatSegments(
   }
 
   if(step.actor==='gridex'){
-    const failures=validateProdatDeathStatus({code:step.code,rawSegments:bodySegments,facts:params.registerFacts});
+    const failures=[...validateProdatGasApplicability({code:step.code,rawSegments:bodySegments,facts:params.registerFacts,applicationReference:EDIEL_TGT_PRODAT_APPLICATION_REFERENCE}),...validateProdatDeathStatus({code:step.code,rawSegments:bodySegments,facts:params.registerFacts})];
     if(failures.some(i=>i.blocking||i.severity==='error'))throw new Error(failures.map(i=>i.code).join(','));
   }
   if(step.code==='Z10'&&step.actor==='gridex'){

@@ -4,8 +4,8 @@
   "status": "IN_PROGRESS",
   "branch": "codex/ediel-gas-applicability-20260919",
   "base_head_sha": "4e41b85f0318c5871ffd62b493cbfc038522c81e",
-  "active_item": "Five GAS applicability cells source qualification",
-  "next_action": "CompleteGASsourceaudit, independent source/spec+architecture review, boundedruntimeonlyafterapproval",
+  "active_item": "Bounded five GAS applicability runtime implementation",
+  "next_action": "ImplementationRED/GREEN/gates, individualoldassertionrulings, independentruntime review",
   "accepted_numeric_D": 98,
   "merged_numeric_D": 98,
   "numeric_D_total": 110,
@@ -27,10 +27,16 @@
     "node": "22.23.2",
     "completed_at": "2026-09-19T21:00:05Z"
   },
-  "runtime_authorized": false,
+  "runtime_authorized": true,
   "last_accepted_pr": 348,
-  "source_fix_round": 0,
-  "source_remote_checkpoint": null,
+  "source_fix_round": 1,
+  "source_remote_checkpoint": {
+    "head": "f0773fc7a5635fc5cc1fa57167dd7dda6bad9963",
+    "tree": "1ed1501db2bd41ba71794a915e664e8947a4dc9d",
+    "local_equivalent": "91c40f6839c43d913242778254ed21d25a11068a",
+    "pr": null,
+    "verification": "publicfetchdiff0"
+  },
   "runtime_local_head": "5593cb2d7f63ee6aa9dc7dbd5b92c46318d215d9",
   "runtime_published_head": "afe61d339359cb04d9c2def947b73cd84746a5c9",
   "runtime_tree": "a9327ea047243a8ffa3a48e87ff9a840bfa8315d",
@@ -45,11 +51,11 @@
     ],
     "conclusion": "success"
   },
-  "source_candidate_commit": null,
-  "source_review": "PENDING",
-  "runtime_scope": "Death310 OptionA pure/inbound and narrowly protected persisted outbound; no positiveproducer",
-  "runtime_fix_round": 1,
-  "runtime_review": "PriorPR348APPROVED; no currentGASruntime",
+  "source_candidate_commit": "4fc1eaf2115a6d1697f559605f98fa044c2a1fba",
+  "source_review": "SOURCE/SPEC APPROVE; ARCHITECTURE APPROVE",
+  "runtime_scope": "FiveGAScells purehistoricalcondition-only240 +ELexclusion/marketbinding +selectedZ04/Z06/Z10persistedguard; no GASproducer",
+  "runtime_fix_round": 0,
+  "runtime_review": "PENDING",
   "applicable_pr_workflows": 4,
   "main_pending": null
 }

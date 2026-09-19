@@ -1,3 +1,5 @@
+import {gasWireMessages,gasRequirement,isGasApplicabilityField} from '@/lib/ediel/prodat/prodatGasApplicability'
+import {prodatRegisterReadingSubtype} from '@/lib/ediel/prodat/prodatRegisterReadings'
 import { getEdielTgtTestCases } from './tgtRegistry'
 import { readTgtProdatSourceColumns, sourceExpectationIndex } from './tgtProdatSource'
 import { matchProdatRegisterExpectations } from '@/lib/ediel/testing/prodatRegisterExpectation'
@@ -727,6 +729,7 @@ export function compareInboundPayloadToTgtTestData(params: {
   const code=String(facts.messageCode ?? message.message_code ?? '').toUpperCase()
   const una=parseUna(message.raw_payload)
   const comparable=comparableFieldCodesForMessage(code)
+  const gasMarket=gasWireMessages(facts.segments,una)[0]?.market??null
   const objects=testDataObjects(testData,code)
   if (!objects.length) return []
   const matched=matchProdatRegisterExpectations(
@@ -752,6 +755,7 @@ export function compareInboundPayloadToTgtTestData(params: {
     }
     if (!match.expected) continue
     for (const [fieldCode,expected] of Object.entries(match.expected.data.fields)) {
+      if(isGasApplicabilityField(code,fieldCode)&&(fieldCode==='240'||gasRequirement(code,fieldCode,gasMarket,prodatRegisterReadingSubtype(code,line.segments,una))!=='required'))continue
       const scope=prodatRegisterFieldScope(fieldCode)
       if (scope==='first' && !match.line.first) continue
       if (!comparable.has(fieldCode) && scope!=='local' && !prodatPartyField(fieldCode) && !prodatDateField(fieldCode)) continue

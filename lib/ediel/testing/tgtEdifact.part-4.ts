@@ -1,3 +1,4 @@
+import {validateProdatGasApplicability} from '@/lib/ediel/rulebook/prodatGasApplicabilityPolicy'
 import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
 import {validateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy'
 import {getCanonicalProdatProfile} from '@/lib/ediel/rulebook/prodatRulebook'
@@ -73,6 +74,7 @@ export function validateEdielTgtDraft(
     ? parseReportingEnvelope(rawPayload) : parseEdifactSegments(rawPayload);
   if (step.family === 'PRODAT') {
     const wire = tokenizeEdifact(rawPayload);
+    for(const failure of validateProdatGasApplicability({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts,direction:step.actor==='portal'?'inbound':'outbound'}))pushIssue(issues,failure.severity,failure.code,failure.title,failure.description);
     for(const failure of validateProdatDeathStatus({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts,direction:step.actor==='portal'?'inbound':'outbound'}))pushIssue(issues,failure.severity,failure.code,failure.title,failure.description);
     for(const failure of validateProdatMeterChange({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts,direction:step.actor==='portal'?'inbound':'outbound'}))pushIssue(issues,failure.severity,failure.code,failure.title,failure.description);
     for(const failure of validateProdatReportingPermission({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts,reportingContext:expected?.reportingContext}))pushIssue(issues,'error',failure.code,failure.title,failure.description);

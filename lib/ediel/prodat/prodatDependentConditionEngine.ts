@@ -1,3 +1,4 @@
+import {gasAggregate,gasStatus,isGasApplicabilityField,type GasSerialChangeSelection} from './prodatGasApplicability'
 import {deathAggregate,isDeathStatusField,type DeathSelection} from './prodatDeathStatus'
 import {isMeterChangeField,meterChangeAggregate,type MeterChangeSelection} from './prodatMeterChangeFacts'
 import {isReportingPermissionField,type ReportingSelection} from './prodatReportingPermissionContext'
@@ -41,6 +42,7 @@ export type ProdatDependentConditionFacts = {
   endUserAddressObjects?: readonly ProdatEndUserAddressObject[]
   /** Legacy descriptive pre-wire hint only; outbound229 requires per-object source facts. */
   endUserAddressAvailable?: boolean | null
+  gasSerialChange?: GasSerialChangeSelection | null
   deathStatus?: DeathSelection | null
   meterChange?: MeterChangeSelection | null
   reportingPermission?: ReportingSelection | null
@@ -73,7 +75,7 @@ export type ProdatDependentConditionEvaluation = {
    * means there is no blanket child requirement; it is not evidence that every
    * object lacks the optional parent. Render/validation must decide per wire. */
   status: ProdatDependentConditionStatus
-  decisionPhase?: 'pre_wire_parent' | 'rendered_wire_parent' | 'pre_wire_inventory_aggregate' | 'rendered_wire_inventory' | 'pre_wire_readings_aggregate' | 'rendered_wire_readings' | 'legacy_pre_wire_address_hint' | 'rendered_wire_address' | 'rendered_wire_invoicee' | 'rendered_wire_date_event' | 'rendered_wire_meter_change' | 'rendered_wire_death_status'
+  decisionPhase?: 'pre_wire_parent' | 'rendered_wire_parent' | 'pre_wire_inventory_aggregate' | 'rendered_wire_inventory' | 'pre_wire_readings_aggregate' | 'rendered_wire_readings' | 'legacy_pre_wire_address_hint' | 'rendered_wire_address' | 'rendered_wire_invoicee' | 'rendered_wire_date_event' | 'rendered_wire_meter_change' | 'rendered_wire_death_status' | 'rendered_wire_gas'
   /** Present only for source-migrated cells; not_required alone does not mean optional. */
   requirement?: ProdatSubtypeRequirement
   source: ProdatDependentConditionSource
@@ -172,11 +174,9 @@ function subtypeIsNot(expected: string) {
 
 
 
-function marketIs(expected: 'electricity' | 'gas') {
-  return (context: PredicateContext): boolean | null => {
-    const market = context.facts.market ?? null
-    return market ? market === expected : null
-  }
+function gasPredicate(context:PredicateContext):boolean|null {
+  const requirement=gasAggregate(context.messageCode,context.fieldNumber,context.facts.market,context.facts.canonicalSubtype,context.facts.gasSerialChange)
+  return requirement==='undetermined'?null:requirement==='required'
 }
 
 function privateCustomerExceptZ14N(context: PredicateContext): boolean | null {
@@ -212,8 +212,8 @@ const GROUPS: readonly ConditionGroup[] = [
   { fieldNumber: '513', messageCodes: ['Z14'], conditionId: 'installation_direction_business_rule', note: 'Flödesriktning vid mätpunkten.', predicate: explicitCellFact },
   { fieldNumber: '323', messageCodes: ['Z13', 'Z14'], conditionId: 'private_customer_except_z14n', note: 'Ska anges för privatkunder i Z13/Z14, utom Z14N.', predicate: privateCustomerExceptZ14N },
   { fieldNumber: '260', messageCodes: ['Z14'], conditionId: 'net_area_business_rule', note: '3-ställig nätområdeskod.', predicate: explicitCellFact },
-  { fieldNumber: '320', messageCodes: ['Z04', 'Z06'], conditionId: 'gas_market_only', note: 'Endast naturgasmarknaden.', predicate: marketIs('gas') },
-  { fieldNumber: '240', messageCodes: ['Z04', 'Z06', 'Z10'], conditionId: 'gas_market_only', note: 'Endast naturgasmarknaden.', predicate: marketIs('gas') },
+  { fieldNumber: '320', messageCodes: ['Z04', 'Z06'], conditionId: 'gas_market_only', note: 'Naturgas: Z04 samt Z06F/G krävs; Z06E får inte skickas.', predicate: gasPredicate },
+  { fieldNumber: '240', messageCodes: ['Z04', 'Z06', 'Z10'], conditionId: 'gas_market_only', note: 'Naturgas: Z04 krävs; Z06E frivillig; Z06F/G och Z10M krävs endast vid egen kausal serie-id-ändring.', predicate: gasPredicate },
   { fieldNumber: '319', messageCodes: ['Z04'], conditionId: 'z04d_only', note: 'Obligatorisk i Z04D.', predicate: subtypeIs('D') },
   { fieldNumber: '325', messageCodes: ['Z14'], conditionId: 'z14_except_n', note: 'Tillståndets id skickas ej i Z14N.', predicate: subtypeIsNot('N') },
   { fieldNumber: 'END_USER_GROUP', messageCodes: ['Z06', 'Z09', 'Z14'], conditionId: 'end_user_group_business_rule', note: 'Elanvändare.', predicate: explicitCellFact },
@@ -289,7 +289,7 @@ export function evaluateProdatDependentConditions(input: {
     .filter((entry) => entry.messageCode === messageCode)
     .map((entry) => {
       const sourceField = entry.fieldNumber === 'END_USER_GROUP' && ['Z06', 'Z09', 'Z14'].includes(messageCode) ? '227' : entry.fieldNumber === 'INSTALLATION_GROUP' && messageCode === 'Z14' ? '209' : entry.fieldNumber
-      const requirement = resolveProdatSourceSubtypeRequirement({messageCode, fieldNumber: sourceField, subtype: facts.canonicalSubtype, market: facts.market})
+      const requirement = isGasApplicabilityField(messageCode,entry.fieldNumber) ? gasAggregate(messageCode,entry.fieldNumber,facts.market,facts.canonicalSubtype,facts.gasSerialChange) : resolveProdatSourceSubtypeRequirement({messageCode, fieldNumber: sourceField, subtype: facts.canonicalSubtype, market: facts.market})
       const sourceRule = prodatSourceSubtypeRule(messageCode, sourceField)
       const value = isDeathStatusField(messageCode,entry.fieldNumber) ? deathAggregate(messageCode,facts.canonicalSubtype,facts.deathStatus) : isMeterChangeField(messageCode,entry.fieldNumber) ? meterChangeAggregate(facts.meterChange,entry.fieldNumber) : (isReportingPermissionField(messageCode,entry.fieldNumber) || isProdatDateEventField(messageCode,entry.fieldNumber)) ? null : requirement !== null
         ? requirement === 'undetermined' ? null : requirement === 'required'
@@ -306,7 +306,7 @@ export function evaluateProdatDependentConditions(input: {
         messageCode: entry.messageCode,
         fieldNumber: entry.fieldNumber,
         conditionId: entry.conditionId,
-        status: value === null ? 'undetermined' : value ? 'required' : 'not_required',
+        status: isGasApplicabilityField(messageCode,entry.fieldNumber) ? gasStatus(requirement!) : value === null ? 'undetermined' : value ? 'required' : 'not_required',
         ...(entry.fieldNumber === '229'
           ? {decisionPhase:'legacy_pre_wire_address_hint' as const}
           : isProdatReadingField(entry.fieldNumber)

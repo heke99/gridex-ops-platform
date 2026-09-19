@@ -1,3 +1,4 @@
+import {copyGasSerialChangeSelection} from './prodatGasApplicability'
 import {copyDeathSelection} from './prodatDeathStatus'
 import {copyMeterChangeSelection} from './prodatMeterChangeFacts'
 import {assertReportingAuthority} from './prodatReportingPermissionAuthority'
@@ -18,7 +19,7 @@ export type ProdatRegisterEvidence = {
   /** Decoded message body, without transport envelope. Integrity binding only,
    * NOT authorization or a signature. Facts require a server-owned row. */
   bodyBinding: string
-  facts: Pick<ProdatDependentConditionFacts, 'market' | 'meterReadingsSentInUtilts' | 'registerObjects' | 'endUserAddressObjects' | 'invoiceeObjects' | 'dateEventObjects' | 'dateEventSource' | 'meterChange' | 'deathStatus'> & {reportingPermission?:TgtEvidence|Omit<PureSelection,'evaluationUtcMs'>|null}
+  facts: Pick<ProdatDependentConditionFacts, 'market' | 'meterReadingsSentInUtilts' | 'registerObjects' | 'endUserAddressObjects' | 'invoiceeObjects' | 'dateEventObjects' | 'dateEventSource' | 'meterChange' | 'deathStatus' | 'gasSerialChange'> & {reportingPermission?:TgtEvidence|Omit<PureSelection,'evaluationUtcMs'>|null}
 }
 const record = (value: unknown): Record<string,unknown> | null => value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string,unknown> : null
 const invalid = (): never => { throw new Error('prodat_register_evidence_invalid') }
@@ -55,6 +56,7 @@ export function copyProdatRegisterFacts(value: unknown): ProdatDependentConditio
   if(Object.hasOwn(source,'reportingPermission') && source.reportingPermission!==undefined) facts.reportingPermission=source.reportingPermission===null?null:copyReportingSelection(source.reportingPermission)
   if(Object.hasOwn(source,'deathStatus') && source.deathStatus!==undefined) facts.deathStatus=source.deathStatus===null?null:copyDeathSelection(source.deathStatus)
   if(Object.hasOwn(source,'meterChange') && source.meterChange!==undefined) facts.meterChange=source.meterChange===null?null:copyMeterChangeSelection(source.meterChange)
+  if(Object.hasOwn(source,'gasSerialChange'))facts.gasSerialChange=source.gasSerialChange==null?null:copyGasSerialChangeSelection(source.gasSerialChange)
   return facts
 }
 function bodyBinding(rawSegments: readonly string[], una: EdifactServiceStringAdvice): string {
@@ -72,6 +74,7 @@ export function readProdatRegisterEvidence(input:{code:string;rawSegments:readon
   if (!engine || !Object.hasOwn(engine,'registerEvidence')) return undefined
   const evidence=record(engine.registerEvidence)
   if (!evidence || evidence.version!==1 || evidence.code!==input.code || evidence.bodyBinding!==bodyBinding(input.rawSegments,input.una ?? parseUna(null))) return invalid()
+  if(record(evidence.facts)?.gasSerialChange != null) return invalid() // No persisted GAS event producer is qualified.
   if(record(evidence.facts)?.deathStatus != null) return invalid() // No persisted death assessment producer is qualified.
   if(record(evidence.facts)?.meterChange != null) return invalid() // No persisted Z10 producer is qualified.
   if(record(record(record(evidence.facts)?.reportingPermission)?.source)?.kind==='caller_selection')return invalid()
@@ -95,6 +98,7 @@ export function resolveProdatRegisterConditionFacts(contextFacts:ProdatDependent
   if (!data) return invalid()
   const checked=copyProdatRegisterFacts(data)
   return {...data,
+    ...(Object.hasOwn(data,'gasSerialChange') ? {gasSerialChange:checked.gasSerialChange} : {}),
     ...(Object.hasOwn(data,'deathStatus') ? {deathStatus:checked.deathStatus} : {}),
     ...(Object.hasOwn(data,'meterChange') ? {meterChange:checked.meterChange} : {}),
     ...(Object.hasOwn(data,'reportingPermission') ? {reportingPermission:checked.reportingPermission} : {}),
