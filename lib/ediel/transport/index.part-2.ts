@@ -1,3 +1,5 @@
+import {hasReportingPermissionMessage} from '@/lib/ediel/prodat/prodatReportingPermissionAuthority'
+import {loadTgtReportingValidationContext} from '@/lib/ediel/testing/tgtReportingPermissionContext'
 import {hasProdatDateEventMessage} from '@/lib/ediel/prodat/prodatDateEventAuthority'
 import {loadTgtDateEventValidationContext} from '@/lib/ediel/testing/tgtDateEventContext'
 import {assertRulebookAllowsSend} from '@/lib/ediel/rulebook/sendGuards'
@@ -318,6 +320,11 @@ export async function sendEdielMessageViaSmtp(
 }> {
   const actorUserId = requireActorUserId(params?.actorUserId)
   assertTransportFamily(message.message_family, 'sendEdielMessageViaSmtp')
+  if(hasReportingPermissionMessage(message)){
+    const reportingContext=await loadTgtReportingValidationContext(message)
+    assertRulebookAllowsSend(message,undefined,reportingContext)
+    assertEdielSendLock(message,undefined,reportingContext)
+  }
   if(hasProdatDateEventMessage(message)){
     const dateEventContext=await loadTgtDateEventValidationContext(message)
     assertRulebookAllowsSend(message,dateEventContext)

@@ -1,3 +1,5 @@
+import {resolveTgtReportingBuildContext} from '@/lib/ediel/testing/tgtReportingPermissionContext'
+import {assertTgtReportingDraft} from '@/lib/ediel/testing/tgtReportingPermissionDraft'
 import {resolveTgtDateEventRoute,resolveTgtDateEventBuildContext,dateEventRuntimeSuite} from '@/lib/ediel/testing/tgtDateEventContext'
 import {assertTgtDateEventDraft} from '@/lib/ediel/testing/tgtDateEventSource'
 import { buildTgtRegisterFactNotes } from '@/lib/ediel/testing/tgtRegisterFacts'
@@ -855,15 +857,16 @@ export async function createEdielTgtDraftAction(formData: FormData) {
 
   const dateBuild=run && step?.family==='PRODAT' ? await resolveTgtDateEventBuildContext({run,stepNo,code:step.code,runtime:systemTestContext,
     testData:importedTestData ?? getEdielTgtTestDataForCase(testSuite,roleCode,testCaseCode)}) : undefined;
-  const registerFacts=dateBuild?.facts;
+  const reportingBuild=run&&step.family==='PRODAT'&&step.code==='Z13'?await resolveTgtReportingBuildContext({run,stepNo,runtime:systemTestContext}):undefined;
+  const registerFacts=reportingBuild?.facts??dateBuild?.facts;
   const draft = buildEdielTgtDraft({
     actorUserId: context.userId,
     testSuite,
     roleCode,
     testCaseCode,
     stepNo,
-    importedTestData,
-    registerFacts,dateEventContext:dateBuild?.context,
+    importedTestData:reportingBuild?.testData??importedTestData,
+    registerFacts,dateEventContext:dateBuild?.context,reportingContext:reportingBuild?.context,
     testRunId:run?.id ?? null,
     systemTestContext,
   });
@@ -880,6 +883,7 @@ export async function createEdielTgtDraftAction(formData: FormData) {
   }
 
   assertTgtDateEventDraft(draft.messageInput,dateBuild?.context);
+  assertTgtReportingDraft(draft.messageInput,reportingBuild?.context);
   const message = await createEdielMessage(draft.messageInput);
 
   if (testRunId) {

@@ -28,5 +28,11 @@
   "source_qualification_commit": "49604a204a4df44a996de852abfc6d2cd237d313",
   "runtime_authorized": true,
   "last_accepted_pr": 345,
-  "source_fix_round": 2
+  "source_fix_round": 2,
+  "source_remote_checkpoint": {
+    "head": "0fcff7e52dc3be5b4540dfa365ca3f236531c652",
+    "tree": "bdfea2a2f1eeb4d4745bf6a20e3278facc866612",
+    "local_equivalent": "1749c9a2356dc3d0a7bc62ad9240d8f42b954697",
+    "pr": null
+  }
 }

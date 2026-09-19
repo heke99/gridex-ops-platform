@@ -1,3 +1,4 @@
+import {reportingZ14Selection} from './fixtures/prodat-reporting-permission'
 import { describe, expect, it } from 'vitest'
 import { resolveProdatDependentCondition } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import { validateProdatSubtypePayload } from '@/lib/ediel/rulebook/prodatSubtypePolicy'
@@ -14,14 +15,14 @@ const positive = (id = 'A', sequence = '1', transaction = 'S17'): Parts[] => [
   line(sequence,id), ['DTM',['90','202610010000','203']], ['DTM',['354','15','806']], ['DTM',['693','202609191200','203']],
   ...reason(transaction), ...characteristic('Z04','Z04'), ...characteristic('Z12','D',3),
   ...characteristic('Z14','8716867000030',4), ...characteristic('Z22','E17'),
-  ['RFF',['Z05','ABC']], ['RFF',['Z09','PERMISSION']], ud, ['NAD','IT',[id,'','89'],'','','Site'],
+  ['RFF',['LI','CASE']],['RFF',['Z05','ABC']], ['RFF',['Z09','PERMISSION']], ud, ['NAD','IT',[id,'','89'],'','','Site'],
 ]
 const target = (i: {scope?: string; description: string}) => i.scope === 'prodat_dependent' && i.description.includes('Z14:')
-function check(body: Parts[], alphabet: readonly string[] = alphabets[0], mode = 'payload', root = 'N') {
+function check(body: Parts[], alphabet: readonly string[] = alphabets[0], mode = 'payload', root = 'N', reporting:ReturnType<typeof reportingZ14Selection>|null=reportingZ14Selection('S17','89')) {
   const wire = input(raw(body,'Z14',alphabet),'Z14')
   if (mode === 'payload') return validateProdatSubtypePayload(wire).filter(target)
   const policy = resolveCanonicalEdielPolicy({family:'PRODAT',messageCode:'Z14',subtypeOrReasonCode:root,direction:'outbound',referenceDate:'2026-09-19',mode:'catalog_evidence',
-    prodatDependentFacts:{canonicalSubtype:root,market:'electricity',byCell:Object.fromEntries(fields.map(f=>[`Z14:${f}`,false]))}})
+    prodatDependentFacts:{reportingPermission:reporting,canonicalSubtype:root,market:'electricity',byCell:Object.fromEntries(fields.map(f=>[`Z14:${f}`,false]))}})
   return validateCanonicalPolicyFields({policy,rawSegments:wire.rawSegments,una:wire.una,scope:mode as 'all'|'dependent_only'})
     .filter(i=>target(i)|| /NAD\+(?:UD|IT)/.test(i.fieldPath ?? ''))
 }
@@ -41,8 +42,8 @@ describe('Z14 source outcomes', () => {
 for (const alphabet of alphabets) for (const mode of ['payload','all','dependent_only']) describe(`Z14 ${alphabet.join('')} ${mode}`, () => {
   it('accepts V/VH and empty N despite opposite stale root subtype', () => {
     expect(check(positive(),alphabet,mode)).toEqual([])
-    expect(check(positive('A','1','S18'),alphabet,mode)).toEqual([])
-    expect(check([['LIN','1'],...reason('Z96')],alphabet,mode,'V')).toEqual([])
+    expect(check(positive('A','1','S18'),alphabet,mode,'N',reportingZ14Selection('S18','89'))).toEqual([])
+    expect(check([['LIN','1'],...reason('Z96')],alphabet,mode,'V',null)).toEqual([])
   })
   it('requires each positive field independently', () => {
     const missing: Parts[][] = [
@@ -82,7 +83,7 @@ for (const alphabet of alphabets) for (const mode of ['payload','all','dependent
     expect(check([...b,...reason()],alphabet,mode).some(i=>i.code==='PRODAT_DEPENDENT_CONDITION_UNDETERMINED')).toBe(true)
   })
   it('parent activation suppresses N children but checks positive parent children', () => {
-    expect(check([['LIN','1'],...reason('Z96')],alphabet,mode,'V')).toEqual([])
+    expect(check([['LIN','1'],...reason('Z96')],alphabet,mode,'V',null)).toEqual([])
     expect(check(positive().map(p=>p===ud?['NAD','UD',['ID','','89'],'','User']:p),alphabet,mode).length).toBeGreaterThan(0)
     expect(check(positive().filter(p=>!(p[0]==='NAD'&&p[1]==='IT')),alphabet,mode).length).toBeGreaterThan(0)
   })

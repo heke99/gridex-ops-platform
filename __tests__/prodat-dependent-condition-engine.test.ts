@@ -68,9 +68,9 @@ describe('PRODAT 26-A dependent-condition engine', () => {
   })
 
   it('evaluates customer, address and invoicee dependencies without deriving them from field presence', () => {
-    expect(resolveProdatDependentCondition({ messageCode: 'Z13', fieldNumber: '323', facts: { customerKind: 'private' } })?.status).toBe('required')
-    expect(resolveProdatDependentCondition({ messageCode: 'Z13', fieldNumber: '323', facts: { customerKind: 'business' } })?.status).toBe('not_required')
-    expect(resolveProdatDependentCondition({ messageCode: 'Z14', fieldNumber: '323', facts: { canonicalSubtype: 'N', customerKind: 'private' } })?.status).toBe('not_required')
+    expect(resolveProdatDependentCondition({ messageCode: 'Z13', fieldNumber: '323', facts: { customerKind: 'private' } })?.status).toBe('undetermined')
+    expect(resolveProdatDependentCondition({ messageCode: 'Z13', fieldNumber: '323', facts: { customerKind: 'business' } })?.status).toBe('undetermined')
+    expect(resolveProdatDependentCondition({ messageCode: 'Z14', fieldNumber: '323', facts: { canonicalSubtype: 'N', customerKind: 'private' } })?.status).toBe('undetermined')
 
     expect(resolveProdatDependentCondition({ messageCode: 'Z01', fieldNumber: '229', facts: { endUserAddressAvailable: true } })?.status).toBe('required')
     expect(resolveProdatDependentCondition({ messageCode: 'Z01', fieldNumber: '229', facts: { endUserAddressAvailable: false } })?.status).toBe('not_required')

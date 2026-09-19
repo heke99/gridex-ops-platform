@@ -1,16 +1,18 @@
-# Reporting term and permission purpose: source/architecture qualification
+# Reporting term and permission purpose: approved contract and bounded runtime
 
 Date: 2026-09-19. Scope: PC-321-Z13, PC-321-Z14, PC-323-Z13, PC-323-Z14.
-Source review only; **no runtime authorization or accepted-cell increment**.
+Source/architecture approval is complete; the bounded runtime authorized by root is
+implemented and locally verified below. **No accepted-cell increment is claimed.**
 Application base is merged main `0a82c9ce51ef5c95868ed9c25907f1e10819d079`
-(PR345), with root-owned memory commits through `eaf42589` at architecture correction round 1.
+(PR345), with source-contract corrections `410a73a4`, `3ab45d02`, `49604a2`
+and root-owned memory through `75133c97` before runtime handoff.
 Root separately verified main345 full 73/73 and OPS; current aggregate 96/110
 numeric and 10/10 parent occurrences does not include these four cells.
 
-## Decision offered for independent review
+## Approved source decision and runtime scope
 
-A bounded implementation can support per-object pure policy for both codes and
-extend the already authorized, server-owned ESCO **outbound Z13 test process**.
+The bounded implementation supports per-object pure policy for both codes and
+extends the already authorized, server-owned ESCO **outbound Z13 test process**.
 There is no current registered Gridex outbound Z14 test producer. Positive Z14
 persisted qualification therefore remains blocked even if its pure policy is
 implemented and tested. Existing inbound Z14 processing is not outbound authority.
@@ -24,12 +26,15 @@ interpretation**: private => required; independently classified nonprivate Z13
 request presence/value equality; unknown => unresolved; exact Z14N => forbidden.
 Private Z14 with absent request purpose is inconsistent. Frozen false=>X remains
 unchanged as an explicitly adjudicated projection tension; no blanket old-assertion
-rewrite is approved. Independent rereview closed R1 and core R2; the scoped R2.1 active-association
-correction below still needs rereview before any runtime authorization.
+rewrite is approved. Independent final source/architecture review approved `49604a2`
+and closed R1, R2 and R2.1; root then explicitly authorized runtime. Five exact
+legacy-test exceptions were individually adjudicated during implementation and
+are recorded in the runtime section below.
 
 PR310 stays PAUSED at `e961135199f292b8210884f07de3b616a670161a`; nothing was
-imported. Originals/projections, schemas, assertions, runtime, gates, thresholds,
-loaders, budgets and root memory are unchanged. No live database/provider/send,
+imported. Originals/projections, schemas, gates, thresholds, loaders and budgets
+remain unchanged. Runtime and the five authorized test files changed; root memory
+was maintained only by root. No live database/provider/send,
 settings or deployment operation was performed. Read-only retrieval of the exact
 official workbook was explicitly authorized by root.
 
@@ -41,11 +46,14 @@ workflow with root owning independent review, publication and acceptance. Applie
 spec-to-code-compliance, false-positive checking and verification-before-completion;
 reviewed acquire-codebase-knowledge/quality-playbook routing. The supplied brief is
 the bounded plan. PDF and spreadsheet reading skills support original table
-inspection; Supabase routing supports source-only tenant-reader inspection, with
-no DB execution. Global audit regeneration/fan-out, UI/Next.js implementation,
-performance, infrastructure, skill authoring and deployment workflows are outside
-this source-only unit. Implementation/TDD and review-remediation workflows become
-relevant only after explicit source approval.
+inspection; Supabase routing covers the typed tenant-reader/writer boundary, with
+no live DB execution. After explicit runtime approval, applied TDD, receiving-code-review,
+writing-good-tests and verification-before-completion to the approved contract.
+Read installed Next.js forms/authentication guidance before the active form/action.
+The web-design-guidelines fetch was blocked by the available web transport; local
+Next guidance and existing accessible labeled native controls were used. Global
+audit regeneration/fan-out, infrastructure, skill authoring and deployment remain
+out of scope. Performance work here is the unchanged required regression gate.
 
 | Original evidence | Identity and verification |
 | --- | --- |
@@ -750,3 +758,130 @@ No runtime, new broad probes, normative files or existing assertions changed.
 Round 2 is scoped to R2.1 only: active create/send and direct-send retain the
 independently validated unique association. R1/core R2 remain closed; no runtime,
 other fact-family work, schema or existing-row repair is included.
+
+## Runtime implementation and executed evidence (2026-09-19)
+
+This section supersedes the historical source-only readiness statements above.
+The approved contract remains the design authority; root alone owns publication,
+independent completed review, exact-head CI, merge and main acceptance.
+
+### Actual owners and consumer chain
+
+| Boundary | Implemented owner and behavior |
+| --- | --- |
+| Pure strict types/copy/clock | `prodatReportingPermissionTypes.ts`, `prodatReportingPermissionStrict.ts`, `prodatReportingPermissionContext.ts`. Exact aggregate and nested keys, bounded arrays/strings, explicit null versus missing, refs/revisions/request ownership, deep independent copies. Fixed UTC+1 Gregorian minute; seconds/fractions cannot silently change a declared end. Exact empty NAD1131 is retained for legitimate `ID::89`; ID/agency stay required and TGT's original SE1/SE2:260 source requirements stay strict. |
+| Per-object321/323 | `rulebook/prodatReportingPermissionPolicy.ts`. Own first-register reason, exact LI/UD/ANJ request association, explicit term/classification/assessment, physical placement/cardinality/qualifier/vocabulary, and independent Z14 request presence/value/installation correspondence. N requires no positive facts; inbound p119 does not reinterpret local unknown as sender-invalid. |
+| Pure builders / diagnostics | Generic `buildProdat.ts` and profiled renderer consume the shared policy; root hints never decide these four cells. Pure results remain `reportingReadiness=unqualified`. Serialized pure evidence omits the evaluation instant and cannot authorize persisted send. |
+| Evidence and protected consumers | `prodatRegisterEvidence.ts`, canonical fields, normal/catch rulebook, raw/row preflight and both send guards carry independent expected context. Whole context is not serialized. Body binding is integrity only. Intentional-invalid flags cannot bypass protected reporting failures. |
+| Canonical persisted source | `testing/tgtReportingPermissionContext.ts` is the source/scope/route/read/write owner. Uses actual typed `tenantDb(companyId)` for new company-owned reads and CAS writes; current selected metadata reader is global catalog data. Dynamic malformed/mismatched/duplicate selection cannot fall back to built-in. E3/E4 need their selected dynamic source. |
+| Notes and operator boundary | `tgtReportingPermissionAssertions.ts`, `tgtReportingPermissionNotes.ts`, `tgtReportingPermissionForm.ts`. Only operator declarations enter the form. Server creates stable test-only request/authorization keys, 33-character LI/ANJ, immutable source identity, facts revision and frozen source-expression anchor. Explicit refresh rotates revision/recomputes the anchor; clear creates tombstone; save uses updated_at plus previous notes CAS. No-op save still evaluates current historical-end clock. |
+| Active authorized entrypoint | `app/admin/ediel/system-tests/cases/[id]/page.tsx` renders `EdielReportingPermissionForm.tsx` in each applicable run card. `reporting-permission-action.ts` authenticates, checks company permissions and operational state, reloads the run, then dispatches notes-only save/clear to the canonical owner. Swedish labeled controls show workbook/sheet/customer/reason/end/purpose source details. Generated authority is not editable. |
+| Manual and autopilot production | Actual manual draft action and `tgtAutopilot.ts` independently resolve current reporting source and pass copied facts/expected context to the TGT builder. `tgtReportingPermissionDraft.ts` verifies again after actual route attachment and before message insert. Original8.1.1 projected209 borrowing and fixed ANJ are corrected against the original workbook; identityless requests retain generated stable references. |
+| Active create/send and direct-send | R2.1 branch selects row OR raw Z13, authenticates company access, independently loads exactly one tenant/message association before run/step filtering, validates registered step and supplied selectors, and retains that association without null-step reattach. Omitted step resolves from the validated link. Missing/ambiguous/wrong-tenant/wrong-step rows fail; no newest/filter/dedup/repair/global-attach/schema workaround. Send intent records the independently validated step and does not establish authority. |
+| Orchestrator and actual SMTP | Orchestrator reloads context for preflight. The shared `sendEdielMessageViaSmtp` reloads current source/run/step/route/association/clock independently and executes both protected guards before archive/provider edges. The existing `manual_upload` route shape remains compatible with the actual SMTP dispatch. |
+
+Two actual-chain blockers were evidenced and fixed without guard suppression:
+
+1. Active create/send and direct-send added a second null-step association after
+   real autopilot had already inserted the exact link. Initial actual-chain RED
+   rejected both with `PRODAT_REPORTING_ASSOCIATION_INVALID`; the bounded R2.1
+   owner now validates and retains the one existing link.
+2. Qualified TGT reporting drafts used legacy `process_type=tgt_prodat_portal_test`,
+   rejected by the real canonical SMTP guard against Z13 `metering_access`.
+   Qualified reporting drafts now obtain the process group from the existing
+   `getCanonicalProdatProfile`; no standalone replacement map or test-row patch.
+
+The positive original8.1.3 builder also exposed a generic coverage check demanding
+contract start210 where Z13 uses report start302. The qualified Z13 branch now
+checks source report-start DTM90; other codes retain existing mandatory-date
+coverage. The old literal inference “DTM91 means S18” is removed: independent
+bounded S17 is valid. Original historical S18 still requires its bounded nonfuture
+end. Tests never manually patch produced message rows to pass the positive chain.
+
+### Exact legacy assertion adjudications
+
+The first full run was 4012/4027 with15 failures: two new active-chain RED cases
+and13 old cases. Root read all five files and approved only these changes:
+
+1. `ediel-canonical-policy-batch-regression.test.ts`: add exactly
+   Z13/Z14:321/323 to undetermined IDs; keep full catalog and four date cells.
+2. `prodat-dependent-condition-engine.test.ts`: the three root323 hints become
+   undetermined. Actual own-wire N exclusions remain independently tested.
+3. `ediel-prodat-dependent-z14.test.ts`: retain every older12-field/negative
+   assertion and reporting diagnostic; add fixed independent request fixtures
+   and fixed LI. Explicit S17/S18 fixture selection is an input, never inferred
+   from the rendered response. N supplies no positive facts. No filtering away
+   reporting failures was used.
+4. `ediel-prodat-dependent-z14-boundaries.test.ts`: the two positive pure builder
+   controls receive fixed request facts; installation assertions are unchanged.
+   Fixtures remain pure and do not claim a persisted Z14 producer.
+5. `ediel-prodat-dependent-z14-date-padding.test.ts`: only positive V send-lock
+   control now expects explicit `SOURCE_UNQUALIFIED`, while all three date-field
+   controls explicitly have zero errors. N still passes; malformed controls stay.
+
+Basis is the approved per-object authority contract, P pp17/21/49/74, exactN and
+original corporate8.1.3 plus the separately adjudicated precedence tension. Frozen
+normative files, prior accepted field semantics and all other assertions remain.
+
+### RED to GREEN and scope of execution
+
+Retained scratch receipts are in
+`/workspace/scratch/2a201d6d5897/reporting-permission-probes/`.
+Initial runtime policy had8/11 failing cases; separate fabricated-TGT authority
+case failed then passed. Notes producer initially failed5 positive controls;
+unknown/no-op and fresh-clock lifecycle cases separately failed then passed.
+The two initial real SMTP negatives previously reached the mock readiness/provider
+boundary (`PROVIDER_BOUNDARY_REACHED`) and now stop before it. This is not evidence
+of a real external send. Pure-clock serialization and legitimate empty NAD1131
+were separately RED before their fixes. The original source40-case characterization
+is retained as historical evidence; the runtime tests cover its applicable gaps
+with independently supplied current-contract facts rather than rewriting probes
+into acceptance certificates.
+
+Six new suites contain100 distinct tests. The active-chain suite has37 cases:
+actual active form/action, real source metadata reader and typed DAL/CAS,
+manual and autopilot builders, real message/link DB functions, actual create/send
+and direct-send, real orchestrator/send consistency, both guards and real shared
+SMTP. Only external authentication/runtime-config/DB/archive/mail-provider/Next
+navigation edges are mocked. The fake DB returns copied records and implements
+filtering and CAS; no owner, guard, builder, autopilot, association or orchestrator
+is mocked. Positive cases cover original private8.1.1/8.1.2 and nonprivate8.1.3.
+Adversarial cases include missing/double links, wrong tenant/step, omitted step,
+repeat send, stale labels, stale/cleared/changed source, changed route, changed
+clock, missing/pure/altered evidence, concurrent notes write, authorization denial,
+post-autopilot route mutation and deep-copy isolation.
+
+### Acceptance limits
+
+Pure policy for both codes is qualified by these local tests. Persisted ESCO Z13
+source coverage is implemented and tested through the active original test path.
+This makes only PC-321-Z13 and PC-323-Z13 candidates for later root acceptance.
+No current positive persisted Z14 producer exists or was invented; PC-321-Z14 and
+PC-323-Z14 still need the separately source-qualified DSO producer unit. Pure
+fixtures and numeric coverage do not certify a UI/browser session, live market
+workflow, external provider delivery or production authority. No live I/O occurred.
+PR310 remains paused; root aggregate96/110 and10/10 parents is unchanged here.
+
+### Final required verification receipts
+
+Local runtime is Node24.19.0; required Node22.23.2 exact-head CI remains root-owned.
+`final-gates.json` records every command, environment, duration and exit; all14
+entries are exit0. `final-tz-gates.json` records all6 timezone entries, also exit0.
+
+| Executed command | Final result |
+| --- | --- |
+| `NODE_OPTIONS='--max-old-space-size=4096 --require=./scripts/lib/refactor-safe-static-read.cjs' npx vitest run --reporter=json --outputFile=/workspace/scratch/2a201d6d5897/reporting-permission-probes/final-full.json` | 4096/4096 in269 files,0 failed;100 new cases over3996. |
+| `npm run typecheck`; `npm run typecheck:scripts`; `npm run typecheck:tests` | Each exit0. Initial new-test literal/nullability errors fixed; no type suppressions or generated-type edits. |
+| `npm run lint` | Exit0,0 errors,100 existing repository warnings; no new-module warnings retained. |
+| `npm run quality:large-file-budget`; `npm run quality:performance` | Each exit0; source cap1800, API tenant/performance, N+1 and SLO budgets unchanged. |
+| `node scripts/check-ediel-masterplan-v2.cjs` | Exit0:33 originals,121 rules,231 contracts; conformance/readiness flags remain false. |
+| `node scripts/gridex-tenant-integrity-regression.cjs`; `node scripts/gridex-tenant-shutdown-regression.cjs`; `node scripts/check-service-role-tenant-ratchet.cjs` | Each exit0; actual call sites2401, immutable baseline2402. No suppression, alias-count workaround or schema change. |
+| `node --experimental-vm-modules --test scripts/test-ediel-rule-pack-source-identity.cjs scripts/test-ediel-prodat-source-locators.cjs scripts/test-ediel-prodat-characteristic-fields.cjs scripts/test-ediel-prodat-reference-fields.cjs scripts/test-ediel-prodat-document-fields.cjs scripts/test-ediel-prodat-party-fields.cjs scripts/test-ediel-prodat-d-z04-reference.cjs scripts/test-ediel-component-escaping.cjs` | 818/818 exit0; isolated loaders/scripts unchanged. |
+| `TZ=<zone> node --experimental-vm-modules --test scripts/test-ediel-guide-governance.cjs` and `TZ=<zone> npx vitest run __tests__/ediel-prodat-date*.test.ts __tests__/ediel-prodat-reporting*.test.ts --reporter=json --outputFile=<zone receipt>` | Each of UTC, Europe/Stockholm, Pacific/Apia:98/98 governance and630/630 date/reporting cases in16 files. These are repeated timezone runs, not multiplied distinct coverage. |
+| `NODE_OPTIONS='--max-old-space-size=4096 --require=./scripts/lib/refactor-safe-static-read.cjs' npm run gridex:route-readiness-regression` | Exit0 with required existing preload. |
+| `git diff --check` | Exit0; repeated after this derived audit update. |
+
+No package, codec, loader, workflow, schema/SQL, generated type, frozen normative,
+threshold, budget, service-role baseline or PR310 file was changed. Source audit
+and runtime constitute one bounded unit; no automatic acceptance follows from
+these local receipts.
