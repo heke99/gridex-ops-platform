@@ -300,12 +300,18 @@ export function buildProfiledProdatSegments(input: {
 
   const siteAddress = portalPartyText(portalData, 'siteAddress') ?? context.siteAddress ?? null
   const siteAddressLines = portalPartyLines(portalData, 'siteAddressLines') ?? context.siteAddressLines
-  if (partyFieldAllowed('INSTALLATION_GROUP') && (policy.code !== 'Z03' || Boolean(siteAddress || siteAddressLines?.some(value => value.trim())))) {
+  const optionalInstallation = ['Z01', 'Z03', 'Z08'].includes(policy.code)
+  const installationAddressSupplied = Boolean(siteAddress?.trim() || siteAddressLines?.some(value => value.trim()))
+  // P26.A p22 makes this parent optional for Z01/Z03/Z08. Complete,
+  // installation-specific object data selects it; an incomplete optional group
+  // is omitted rather than emitted with one of its mandatory children missing.
+  const installationSelected = !optionalInstallation || (hasObjectIdentifier && installationAddressSupplied)
+  if (partyFieldAllowed('INSTALLATION_GROUP') && installationSelected) {
     segments.push(prodatInstallationNadSegment({
       meterPointId,
       address: siteAddress,
       addressLines: siteAddressLines,
-      idAgency: portalAgency(portalData, 'siteIdAgency', ['9', '89'] as const) ?? context.siteIdAgency,
+      idAgency: portalAgency(portalData, 'siteIdAgency', ['9', '89'] as const) ?? context.siteIdAgency ?? (optionalInstallation ? identityAgency : undefined),
       city: portalPartyText(portalData, 'siteCity') ?? context.siteCity ?? null,
       postalCode: portalPartyText(portalData, 'sitePostalCode') ?? context.sitePostalCode ?? null,
       country: portalPartyText(portalData, 'siteCountry') ?? context.siteCountry ?? null,
@@ -353,6 +359,12 @@ export function buildProfiledProdatSegments(input: {
     })
   }
 
+  const dependentConditionStatuses = policy.prodatDependentConditions.map(condition =>
+    condition.conditionId === 'optional_installation_wire_parent'
+      ? { ...condition, status: installationSelected ? 'required' as const : 'not_required' as const,
+        decisionPhase: 'rendered_wire_parent' as const }
+      : condition)
+
   return {
     segments,
     issues,
@@ -379,7 +391,7 @@ export function buildProfiledProdatSegments(input: {
       rulebookProcessGroup: policy.processGroup,
       rulebookApplicationReference: policy.applicationReference,
       canonicalPolicySourceTrace: policy.sourceTrace as unknown as Array<Record<string, unknown>>,
-      dependentConditionStatuses: policy.prodatDependentConditions as unknown as Array<Record<string, unknown>>,
+      dependentConditionStatuses: dependentConditionStatuses as unknown as Array<Record<string, unknown>>,
     },
   }
 }

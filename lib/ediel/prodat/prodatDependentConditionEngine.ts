@@ -53,7 +53,11 @@ export type ProdatDependentConditionEvaluation = {
   messageCode: Prodat26AMessageCode
   fieldNumber: string
   conditionId: string
+  /** A wire-parent condition may use not_required as its pre-wire default. That
+   * means there is no blanket child requirement; it is not evidence that every
+   * object lacks the optional parent. Render/validation must decide per wire. */
   status: ProdatDependentConditionStatus
+  decisionPhase?: 'pre_wire_parent' | 'rendered_wire_parent'
   /** Present only for source-migrated cells; not_required alone does not mean optional. */
   requirement?: ProdatSubtypeRequirement
   source: ProdatDependentConditionSource
@@ -98,6 +102,13 @@ function normalized(value: string | null | undefined): string | null {
 
 function explicitCellFact(context: PredicateContext): boolean | null {
   return booleanFact(context.facts.byCell?.[context.id])
+}
+
+/** The Z01/Z03/Z08 IT parent is optional until selected per wire object. A
+ * message/root byCell flag cannot select it. The bounded wire-parent validator
+ * and renderer diagnostics replace this default when an object emits NAD+IT. */
+function optionalInstallationWireParent(): false {
+  return false
 }
 
 function subtypeIs(expected: string) {
@@ -173,8 +184,8 @@ const GROUPS: readonly ConditionGroup[] = [
   { fieldNumber: '232', messageCodes: ['Z06', 'Z09'], conditionId: 'end_user_city_business_rule', note: 'Postort.', predicate: explicitCellFact },
   { fieldNumber: '316', messageCodes: ['Z06', 'Z09'], conditionId: 'end_user_country_business_rule', note: 'Land.', predicate: explicitCellFact },
   { fieldNumber: 'INSTALLATION_GROUP', messageCodes: ['Z14'], conditionId: 'installation_group_business_rule', note: 'Anläggningsadress.', predicate: explicitCellFact },
-  { fieldNumber: '233', messageCodes: ['Z01', 'Z03', 'Z08'], conditionId: 'installation_id_business_rule', note: 'Samma värde som fält 209.', predicate: explicitCellFact },
-  { fieldNumber: '234', messageCodes: ['Z01', 'Z03', 'Z08'], conditionId: 'installation_address_business_rule', note: '1-3 rader.', predicate: explicitCellFact },
+  { fieldNumber: '233', messageCodes: ['Z01', 'Z03', 'Z08'], conditionId: 'optional_installation_wire_parent', note: 'När IT väljs: samma värde som fält 209.', predicate: optionalInstallationWireParent },
+  { fieldNumber: '234', messageCodes: ['Z01', 'Z03', 'Z08'], conditionId: 'optional_installation_wire_parent', note: 'När IT väljs: 1-3 adressrader.', predicate: optionalInstallationWireParent },
   { fieldNumber: 'INVOICEE_GROUP', messageCodes: ['Z03', 'Z04', 'Z05', 'Z06', 'Z08', 'Z09'], conditionId: 'invoicee_address_differs', note: 'Skickas om fakturamottagarens adress skiljer sig från elanvändarens.', predicate: ({ facts }) => booleanFact(facts.invoiceeAddressDiffersFromEndUser) },
   { fieldNumber: '250', messageCodes: ['Z03', 'Z04', 'Z05', 'Z06', 'Z08', 'Z09'], conditionId: 'invoicee_address_differs', note: 'När fakturamottagare skickas anges id.', predicate: ({ facts }) => booleanFact(facts.invoiceeAddressDiffersFromEndUser) },
   { fieldNumber: '251', messageCodes: ['Z03', 'Z04', 'Z05', 'Z06', 'Z08', 'Z09'], conditionId: 'invoicee_address_differs', note: '1-2 rader.', predicate: ({ facts }) => booleanFact(facts.invoiceeAddressDiffersFromEndUser) },
@@ -256,6 +267,9 @@ export function evaluateProdatDependentConditions(input: {
         fieldNumber: entry.fieldNumber,
         conditionId: entry.conditionId,
         status: value === null ? 'undetermined' : value ? 'required' : 'not_required',
+        ...(entry.conditionId === 'optional_installation_wire_parent'
+          ? { decisionPhase: 'pre_wire_parent' as const }
+          : {}),
         ...(requirement === null ? {} : {requirement}),
         source: sourceRule ? {...entry.source, section: `${entry.source.section}; P26.A §2.2 s.${sourceRule.page}`} : entry.source,
       }

@@ -1,5 +1,6 @@
 import { validateProdatZ14Policy, z14DependentRules } from '@/lib/ediel/rulebook/prodatZ14Policy'
 import { validateProdatEndUserPolicy } from '@/lib/ediel/rulebook/prodatEndUserPolicy'
+import { validateProdatOptionalInstallationPolicy } from '@/lib/ediel/rulebook/prodatOptionalInstallationPolicy'
 import { isSourceBoundEndUserField } from '@/lib/ediel/prodat/prodatParentApplicability'
 import { prodatProductMarket, validateProdatProductScope } from '@/lib/ediel/rulebook/prodatProductScope'
 import { validateProdatDependentReferenceScope } from '@/lib/ediel/rulebook/prodatDependentReferenceScope'
@@ -74,5 +75,8 @@ export function validateProdatSubtypePayload(input: FieldMatrixEvaluationInput):
   const code = prodatDocumentValue('202', input.rawSegments ?? [], input.una)?.trim().toUpperCase() ?? input.code ?? ''
   if (code === 'Z14') return validateProdatZ14Policy({...input, code}, z14DependentRules())
   const rules = canonicalProdat26AFieldRules(code).filter(rule => prodatSourceSubtypeRule(code, rule.fieldNumber ?? ''))
-  return validateProdatSubtypePolicy({...input, code}, rules)
+  return [
+    ...validateProdatOptionalInstallationPolicy({...input, code}),
+    ...validateProdatSubtypePolicy({...input, code}, rules),
+  ]
 }
