@@ -33,7 +33,9 @@ for(const alphabet of alphabets) for(const subtype of ['N','V'] as const) descri
   it('accepts its valid control before inserting the malformed additional field',()=>{
     const message=row(body(),alphabet)
     expect(validateProdatSubtypePayload(input(message.raw_payload!,'Z14'))).toEqual([])
-    expect(()=>assertEdielSendLock(message)).not.toThrow()
+    expect(preflightEdielMessageRow(message,'send').issues.filter(target)).toEqual([])
+    if(subtype==='N')expect(()=>assertEdielSendLock(message)).not.toThrow()
+    else expect(()=>assertEdielSendLock(message)).toThrow(/SOURCE_UNQUALIFIED/)
   })
   for(const [field,q,value,format] of dates) for(const padding of ['leading','trailing'] as const) for(const placement of ['header','object','party'] as const) {
     it(`${field}/${padding}/${placement} cannot hide behind a valid field or test-send override`,()=>{

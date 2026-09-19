@@ -1,3 +1,5 @@
+import {isReportingPermissionField,type ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
+import {validateProdatReportingPermission} from './prodatReportingPermissionPolicy'
 import {isProdatDateEventField} from '@/lib/ediel/prodat/prodatDateEvents'
 import {validateProdatDateEvents} from './prodatDateEventPolicy'
 import {validateProdatInvoicee} from './prodatInvoiceePolicy'
@@ -33,6 +35,7 @@ function asRulebookFieldRule(value: unknown): RulebookFieldRule {
  * policy conditions for cells not yet migrated. Register overlays stay separate.
  */
 export function validateCanonicalPolicyFields(input: {
+  reportingContext?: ExpectedContext
   policy: CanonicalEdielPolicy
   rawSegments?: readonly string[] | null
   scope?: 'all' | 'dependent_only'
@@ -61,7 +64,7 @@ export function validateCanonicalPolicyFields(input: {
 
   const baseRules = input.policy.family === 'PRODAT' ? rules.filter(rule => {
     const field = rule.fieldNumber ?? ''
-    if(isProdatDateEventField(input.policy.code,field))return false
+    if(isReportingPermissionField(input.policy.code,field)||isProdatDateEventField(input.policy.code,field))return false
     if ((input.policy.code === 'Z14' && isZ14DependentField(field)) || isSourceBoundEndUserField(input.policy.code, field)) {
       return input.policy.direction === 'inbound'
     }
@@ -74,7 +77,7 @@ export function validateCanonicalPolicyFields(input: {
     : validateFieldMatrixPayload(matrixInput, baseRules)
   if (input.policy.family !== 'PRODAT') return issues
   issues.push(...validateProdatSubtypePolicy(matrixInput, input.policy.direction === 'inbound'
-    ? rules.filter(rule => !isProdatDateEventField(input.policy.code,rule.fieldNumber??'') && !(input.policy.code === 'Z14' && (isZ14DependentField(rule.fieldNumber ?? '') || ['321','323'].includes(rule.fieldNumber ?? ''))) && !isSourceBoundEndUserField(input.policy.code, rule.fieldNumber ?? '')) : rules.filter(rule=>!isProdatDateEventField(input.policy.code,rule.fieldNumber??''))))
+    ? rules.filter(rule => !isReportingPermissionField(input.policy.code,rule.fieldNumber??'') && !isProdatDateEventField(input.policy.code,rule.fieldNumber??'') && !(input.policy.code === 'Z14' && (isZ14DependentField(rule.fieldNumber ?? '') || ['321','323'].includes(rule.fieldNumber ?? ''))) && !isSourceBoundEndUserField(input.policy.code, rule.fieldNumber ?? '')) : rules.filter(rule=>!isReportingPermissionField(input.policy.code,rule.fieldNumber??'') && !isProdatDateEventField(input.policy.code,rule.fieldNumber??''))))
   if (input.policy.direction === 'outbound') issues.push(...validateProdatOptionalInstallationPolicy(matrixInput, rules))
   const register = validateProdatRegisterPolicy({
     code:input.policy.code,
@@ -92,13 +95,15 @@ export function validateCanonicalPolicyFields(input: {
 
   if(rules.some(rule=>isProdatDateEventField(input.policy.code,rule.fieldNumber??'')))issues.push(...validateProdatDateEvents({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound'}))
 
+  if(rules.some(rule=>isReportingPermissionField(input.policy.code,rule.fieldNumber??'')))issues.push(...validateProdatReportingPermission({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound',reportingContext:input.reportingContext}))
+
   const dependentByField = new Map(
     input.policy.prodatDependentConditions.map((condition) => [condition.fieldNumber, condition] as const),
   )
 
   for (const rule of rules.filter((candidate) => candidate.requirement === 'dependent')) {
     const fieldNumber = String(rule.fieldNumber ?? '').trim()
-    if(isProdatDateEventField(input.policy.code,fieldNumber))continue
+    if(isReportingPermissionField(input.policy.code,fieldNumber)||isProdatDateEventField(input.policy.code,fieldNumber))continue
     if(INVOICEE_FIELDS.includes(fieldNumber)) continue
     if(fieldNumber==='229' && END_USER_ADDRESS_CODES.includes(input.policy.code)) continue
     if (input.policy.code === 'Z14' && input.policy.direction === 'outbound' && isZ14DependentField(fieldNumber)) continue

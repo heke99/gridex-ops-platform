@@ -1,3 +1,6 @@
+import {reportingAuthorityIssue} from '@/lib/ediel/prodat/prodatReportingPermissionAuthority'
+import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
+import {validateProdatReportingPermission} from '@/lib/ediel/rulebook/prodatReportingPermissionPolicy'
 import {prodatDateEventAuthorityIssue} from '@/lib/ediel/prodat/prodatDateEventAuthority'
 import {validateProdatDateEvents} from './prodatDateEventPolicy'
 import type {ProdatDateEventRow,TgtDateEventValidationContext} from '@/lib/ediel/prodat/prodatDateEventAuthority'
@@ -31,6 +34,7 @@ export type RulebookValidationInput = LegacyRulebookValidationInput & {
    * PRODAT D-conditions were already resolved with the original business facts. */
   dateEventRow?:ProdatDateEventRow
   dateEventContext?:TgtDateEventValidationContext
+  reportingContext?:ExpectedContext
   parsedPayload?: Record<string, unknown> | null
 }
 
@@ -301,7 +305,7 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
     messageCode: code,
     subtypeOrReasonCode: parsed.subtype,
     prodatDependentFacts: familyValue === 'PRODAT' && input.mode === 'send'
-      ? readProdatRegisterEvidence({dateEventRow:input.dateEventRow,dateEventContext:input.dateEventContext,code,rawSegments:parsed.rawSegments,una:parseUna(input.rawPayload),parsedPayload:input.parsedPayload,companyId:input.companyId,runId:typeof input.parsedPayload?.testRunId==='string'?input.parsedPayload.testRunId:null,stepNo:typeof input.parsedPayload?.stepNo==='number'?input.parsedPayload.stepNo:null})
+      ? readProdatRegisterEvidence({dateEventRow:input.dateEventRow,dateEventContext:input.dateEventContext,reportingContext:input.reportingContext,code,rawSegments:parsed.rawSegments,una:parseUna(input.rawPayload),parsedPayload:input.parsedPayload,companyId:input.companyId,runId:typeof input.parsedPayload?.testRunId==='string'?input.parsedPayload.testRunId:null,stepNo:typeof input.parsedPayload?.stepNo==='number'?input.parsedPayload.stepNo:null})
       : undefined,
     direction: dir,
     referenceDate,
@@ -365,7 +369,7 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
       }))
     }
 
-    let fieldIssues = validateCanonicalPolicyFields({ policy, rawSegments: parsed.rawSegments, una: parseUna(input.rawPayload) })
+    let fieldIssues = validateCanonicalPolicyFields({reportingContext:input.reportingContext, policy, rawSegments: parsed.rawSegments, una: parseUna(input.rawPayload) })
     if (input.mode === 'send' && input.environment !== 'production') {
       fieldIssues = fieldIssues.map((entry) =>
         entry.code === 'PRODAT_DEPENDENT_CONDITION_UNDETERMINED' && entry.scope !== 'prodat_register' && entry.scope !== 'prodat_dependent'
@@ -373,6 +377,7 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
           : entry,
       )
     }
+    if(input.mode==='send'&&policy.family==='PRODAT')fieldIssues.push(...validateProdatReportingPermission({code:policy.code,rawSegments:parsed.rawSegments,una:parseUna(input.rawPayload),facts:policy.prodatDependentFacts,requireAuthority:true,reportingContext:input.reportingContext}))
     if(input.mode==='send'&&policy.family==='PRODAT')fieldIssues.push(...validateProdatDateEvents({code:policy.code,rawSegments:parsed.rawSegments,una:parseUna(input.rawPayload),facts:policy.prodatDependentFacts,requireAuthority:true,dateEventContext:input.dateEventContext}))
     const issues = [...parserIssues, ...fieldIssues]
     const blocking = issues.some((entry) => entry.severity === 'error' || entry.blocking)
@@ -402,7 +407,8 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
       try {
         const wireCode = parsed.code ?? code
         const una = parsed.una ?? parseUna(input.rawPayload)
-        const facts = readProdatRegisterEvidence({dateEventRow:input.dateEventRow,dateEventContext:input.dateEventContext,code:wireCode,rawSegments:parsed.rawSegments,una,parsedPayload:input.parsedPayload,companyId:input.companyId,runId:typeof input.parsedPayload?.testRunId==='string'?input.parsedPayload.testRunId:null,stepNo:typeof input.parsedPayload?.stepNo==='number'?input.parsedPayload.stepNo:null})
+        const facts = readProdatRegisterEvidence({dateEventRow:input.dateEventRow,dateEventContext:input.dateEventContext,reportingContext:input.reportingContext,code:wireCode,rawSegments:parsed.rawSegments,una,parsedPayload:input.parsedPayload,companyId:input.companyId,runId:typeof input.parsedPayload?.testRunId==='string'?input.parsedPayload.testRunId:null,stepNo:typeof input.parsedPayload?.stepNo==='number'?input.parsedPayload.stepNo:null})
+        protectedRegisterIssues.push(...validateProdatReportingPermission({code:wireCode,rawSegments:parsed.rawSegments,una,facts,requireAuthority:true,reportingContext:input.reportingContext}))
         protectedRegisterIssues.push(...validateProdatDateEvents({code:wireCode,rawSegments:parsed.rawSegments,una,facts,requireAuthority:true,dateEventContext:input.dateEventContext}))
         protectedRegisterIssues.push(...validateProdatInvoicee({code:wireCode,rawSegments:parsed.rawSegments,una,facts}))
         protectedRegisterIssues.push(...validateProdatEndUserAddress({code:wireCode,rawSegments:parsed.rawSegments,una,facts}))
@@ -413,7 +419,7 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
           title:'Ogiltigt registerunderlag',description:'Registerfakta kunde inte knytas till det aktuella meddelandet.'})
       }
     }
-    const authorityIssue=prodatDateEventAuthorityIssue(error)
+    const authorityIssue=reportingAuthorityIssue(error)??prodatDateEventAuthorityIssue(error)
     const issues = [...parserIssues, ...protectedDependentIssues, ...protectedRegisterIssues, ...(authorityIssue?[authorityIssue]:[]), issue({
       severity: 'error',
       code: description.startsWith('prodat_register_evidence_') ? 'PRODAT_REGISTER_EVIDENCE_INVALID' : 'CANONICAL_POLICY_VALIDATION_FAILED',
@@ -511,9 +517,10 @@ export function validateEdielMessageRowWithRulebook(
   message: EdielMessageRow,
   mode: 'send' | 'parse' | 'test' = 'send',
   dateEventContext?:TgtDateEventValidationContext,
+  reportingContext?:ExpectedContext,
 ): RulebookValidationResult {
   return validateRulebookMessage({
-    dateEventRow:message,dateEventContext,
+    dateEventRow:message,dateEventContext,reportingContext,
     family: message.message_family,
     code: String(message.message_code ?? ''),
     processGroup: message.process_type ?? message.route_scope ?? null,

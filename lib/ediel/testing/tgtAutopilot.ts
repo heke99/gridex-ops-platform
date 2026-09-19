@@ -1,3 +1,5 @@
+import {resolveTgtReportingBuildContext} from './tgtReportingPermissionContext'
+import {assertTgtReportingDraft} from './tgtReportingPermissionDraft'
 import {resolveTgtDateEventBuildContext} from './tgtDateEventContext'
 import {assertTgtDateEventDraft} from './tgtDateEventSource'
 import { getEdielTgtTestDataForCase } from '@/lib/ediel/testing/tgtTestData'
@@ -388,15 +390,16 @@ async function createDraftForStep(params: {
   );
 
   const dateBuild=params.step.family==='PRODAT'?await resolveTgtDateEventBuildContext({run:params.evaluation.testRun,stepNo:params.step.stepNo,code:params.step.code,runtime:systemTestContext,testData:importedTestData??getEdielTgtTestDataForCase(params.evaluation.definition.suite,params.evaluation.definition.roleCode,params.evaluation.definition.testCaseCode)}):undefined;
+  const reportingBuild=params.step.family==='PRODAT'&&params.step.code==='Z13'?await resolveTgtReportingBuildContext({run:params.evaluation.testRun,stepNo:params.step.stepNo,runtime:systemTestContext}):undefined;
   const draft = buildEdielTgtDraft({
     actorUserId: params.actorUserId,
     testSuite: params.evaluation.definition.suite,
     roleCode: params.evaluation.definition.roleCode,
     testCaseCode: params.evaluation.definition.testCaseCode,
     stepNo: params.step.stepNo,
-    importedTestData,
+    importedTestData:reportingBuild?.testData??importedTestData,
     testRunId:params.evaluation.testRun.id,
-    registerFacts:dateBuild?.facts,dateEventContext:dateBuild?.context,
+    registerFacts:reportingBuild?.facts??dateBuild?.facts,dateEventContext:dateBuild?.context,reportingContext:reportingBuild?.context,
     systemTestContext,
   });
   const routeProfileId = String(params.evaluation.testRun.route_profile_id ?? "").trim();
@@ -441,6 +444,7 @@ async function createDraftForStep(params: {
   }
 
   assertTgtDateEventDraft(draft.messageInput,dateBuild?.context);
+  assertTgtReportingDraft(draft.messageInput,reportingBuild?.context);
   const message = await createEdielMessage(draft.messageInput);
   await attachEdielMessageToTestRun({
     companyId: params.evaluation.testRun.company_id,

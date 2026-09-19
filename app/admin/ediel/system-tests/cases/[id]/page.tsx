@@ -1,3 +1,4 @@
+import EdielReportingPermissionForm from '../../EdielReportingPermissionForm'
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { EdielMessageRow, EdielTestRunMessageRow } from "@/lib/ediel/types";
@@ -1282,6 +1283,7 @@ export default async function SystemTestCasePage({
                       />
                     </div>
                   </div>
+                  <EdielReportingPermissionForm run={evaluation.testRun}/>
                   {evaluation.testRun.failure_reason ? (
                     <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
                       <strong>Senaste fel:</strong>{" "}

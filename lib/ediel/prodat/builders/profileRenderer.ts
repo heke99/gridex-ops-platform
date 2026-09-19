@@ -1,3 +1,5 @@
+import {evaluateProdatReportingPermission} from '@/lib/ediel/rulebook/prodatReportingPermissionPolicy'
+import {isReportingPermissionField} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
 import {evaluateProdatDateEvents} from '@/lib/ediel/rulebook/prodatDateEventPolicy'
 import {isProdatDateEventField} from '@/lib/ediel/prodat/prodatDateEvents'
 import {evaluateProdatInvoicee} from '@/lib/ediel/rulebook/prodatInvoiceePolicy'
@@ -347,7 +349,7 @@ export function buildProfiledProdatSegments(input: {
   const expanded = renderProdatRegisterObject({code:policy.code,segments,registers})
   segments.splice(0,segments.length,...expanded.segments)
   const registerPolicy = {...policy, fieldRules:policy.fieldRules.filter(rule => 'fieldNumber' in rule && prodatRegisterFieldScope(String(rule.fieldNumber ?? rule.fieldKey)) === 'local')}
-  const registerFailures = validateCanonicalPolicyFields({policy:registerPolicy,rawSegments:segments})
+  const registerFailures = validateCanonicalPolicyFields({policy:registerPolicy,rawSegments:segments,reportingContext:context.reportingContext})
   for (const failure of registerFailures) {
     issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
   }
@@ -375,11 +377,14 @@ export function buildProfiledProdatSegments(input: {
   const renderedReadings = validateProdatRegisterPolicy({code:policy.code,rawSegments:segments,
     facts:policy.prodatDependentFacts,rules:registerPolicy.fieldRules.filter((rule): rule is RulebookFieldRule => 'family' in rule),applicationReference:policy.applicationReference,
     requireIndependentInventory:policy.direction === 'outbound'}).readings
+  const reportingDecision=evaluateProdatReportingPermission({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts,reportingContext:context.reportingContext})
+  for(const failure of reportingDecision.issues)issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
   const dateDecision=evaluateProdatDateEvents({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts})
   for(const failure of dateDecision.issues)issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
   const invoiceeDecision=evaluateProdatInvoicee({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts})
   for(const failure of invoiceeDecision.issues) issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
   const dependentConditionStatuses = policy.prodatDependentConditions.map(condition =>
+    isReportingPermissionField(policy.code,condition.fieldNumber)?{...condition,status:reportingDecision.statuses.get(condition.fieldNumber)??'undetermined',decisionPhase:'rendered_wire_reporting' as const}:
     isProdatDateEventField(policy.code,condition.fieldNumber)?{...condition,status:dateDecision.statuses.get(condition.fieldNumber)??'undetermined',decisionPhase:'rendered_wire_date_event' as const}:
     INVOICEE_FIELDS.includes(condition.fieldNumber)
       ? {...condition,status:invoiceeDecision.statuses.get(condition.fieldNumber) ?? 'undetermined',decisionPhase:'rendered_wire_invoicee' as const}
@@ -424,6 +429,7 @@ export function buildProfiledProdatSegments(input: {
       rulebookProcessGroup: policy.processGroup,
       rulebookApplicationReference: policy.applicationReference,
       canonicalPolicySourceTrace: policy.sourceTrace as unknown as Array<Record<string, unknown>>,
+      reportingReadiness:['Z13','Z14'].includes(policy.code)?'unqualified':'not_applicable',
       dateEventReadiness:['Z06','Z09','Z10'].includes(policy.code)?'unqualified':'not_applicable',
       dependentConditionStatuses: dependentConditionStatuses as unknown as Array<Record<string, unknown>>,
     },

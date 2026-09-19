@@ -123,3 +123,5 @@ The remaining original cells require their own evidence; no blanket completion.
 
 ## Continue after338
 Keep310paused and335unmerged. Accept boundedZ14 unit only; next321/323 context requires independent per-object evidence, never field-presence/byCell inference.
+
+Independent reporting source/spec APPROVE; rootexplicit323adjudication privateR,qualifiednonprivateZ13include/omitwithassessedincludedpurpose,positiveZ14independentrequestpresence/valueequality,Nforbidden. Originalworkbook+fullp21/p74/p32 and§7.3support;frozenoriginalunchanged. ARCHITECTURE REQUEST_CHANGES R1exactclock/minute/UTC+1/anchor;R2strictaggregate/envelopes andkey/LI/ANJ/revision/CAS/clearlifecycle. Originalimplementerreporting_permissionownsdoc-onlycorrectionround1; no runtimeauthorized. Report /workspace/scratch/2a201d6d5897/reporting-permission-source-review-report.md. Counts96/110,10/10parents unchanged;positivepersistedZ14producer separate.

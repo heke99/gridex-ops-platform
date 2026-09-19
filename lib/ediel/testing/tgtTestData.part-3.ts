@@ -269,7 +269,7 @@ export function prodatEscoPermissionData(testCaseCode: '8.1.1' | '8.1.2' | '8.1.
         { fieldCode: '236', fieldName: 'Postort-anläggning', values: values('STOCKHOLM') },
         { fieldCode: '237', fieldName: 'Land-anläggning', values: values('SE') },
       ] : [
-        { fieldCode: '209', fieldName: 'Anläggningsid', values: values('735999888000000109', '735999888000000109', '735999888000000710') },
+        { fieldCode: '209', fieldName: 'Anläggningsid', values: values('', '735999888000000109', '735999888000000710') },
         { fieldCode: '302', fieldName: 'Rapportstartdatum', values: values('sätts av avsändaren (15:e i föregående månad)', 'Samma som Z13V', 'Samma som Z13V') },
         { fieldCode: '508', fieldName: 'Tidslängd', values: values('', '15 (kvart)', '15 (kvart)') },
         { fieldCode: '326', fieldName: 'Tillståndets tidstämpel', values: values('', 'Tidpunkten när tillståndet skapas', 'Tidpunkten när tillståndet skapas') },
@@ -281,7 +281,7 @@ export function prodatEscoPermissionData(testCaseCode: '8.1.1' | '8.1.2' | '8.1.
         { fieldCode: '322', fieldName: 'Tillståndets status', values: values('', 'A74 (Validated)', 'A74 (Validated)') },
         { fieldCode: '323', fieldName: 'Tillståndets syfte', values: values('B71 (Samtycke)', 'B71 (Samtycke)', 'B71 (Samtycke)') },
         { fieldCode: '260', fieldName: 'Nätområdesid', values: values('', 'TES', 'TES') },
-        { fieldCode: '261', fieldName: 'Referens till avtal/fullmakt', values: values('AVTALE5', '-', '-') },
+        { fieldCode: '261', fieldName: 'Referens till avtal/fullmakt', values: values('sätts av avsändaren', '-', '-') },
         { fieldCode: '226', fieldName: 'Ärendereferens', values: values('sätts av avsändaren', 'Samma som Z13V', 'Samma som Z13V') },
         { fieldCode: '325', fieldName: 'Tillståndets id', values: values('', 'Sätts av avsändaren', 'Sätts av avsändaren') },
         { fieldCode: '227', fieldName: 'Kund-id (DE 1131=SE2, 3055=260)', values: values('195503072026', '195503072026', '195503072026') },

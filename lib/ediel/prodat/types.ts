@@ -1,3 +1,4 @@
+import type {ExpectedContext} from './prodatReportingPermissionContext'
 import type { ProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import type { ProdatMeterRegisterInput } from '@/lib/ediel/prodat/prodatRegisterInput'
 import type { ProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
@@ -120,6 +121,7 @@ export type ProdatEngineProductionContext = ProdatDateInputs & Omit<ProdatMeterR
    * Factual inputs for every official PRODAT D cell. Production rendering fails
    * closed when the central condition engine cannot determine a D condition.
    */
+  reportingContext?:ExpectedContext
   dependentConditionFacts?: ProdatDependentConditionFacts | null
 }
 
@@ -152,6 +154,7 @@ export type ProdatEngineAckExpectation = {
 }
 
 export type ProdatEngineDiagnostics = {
+  reportingReadiness?:'unqualified'|'not_applicable'
   dateEventReadiness?:'unqualified'|'not_applicable'
 
   engine: 'prodat'

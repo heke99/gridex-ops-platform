@@ -1,3 +1,7 @@
+import {hasReportingPermissionMessage} from '@/lib/ediel/prodat/prodatReportingPermissionAuthority'
+import {requireTgtReportingSendAssociation} from '@/lib/ediel/testing/tgtReportingPermissionContext'
+import {requireCompanyScopedActionAccess} from '@/lib/admin/guards'
+import {requireCompanyOperationalForWrites} from '@/lib/tenant/governance'
 // Extracted from actions.ts; keep public imports on the facade module.
 
 
@@ -37,9 +41,9 @@ import { findLinkedSystemTestOutboundBusinessMessage, isSystemTestOutboundBusine
 export async function sendSystemTestOutboundMessageAction(formData: FormData) {
   const context = await requirePlatformAdminActionAccess();
   const edielMessageId = formString(formData.get("edielMessageId"));
-  const testRunId = formString(formData.get("testRunId"));
-  const testCaseCode = formString(formData.get("testCaseCode"));
-  const stepNo = formNumber(formData.get("stepNo"));
+  let testRunId = formString(formData.get("testRunId"));
+  let testCaseCode = formString(formData.get("testCaseCode"));
+  let stepNo = formNumber(formData.get("stepNo"));
 
   if (!edielMessageId) throw new Error("edielMessageId saknas");
 
@@ -51,7 +55,13 @@ export async function sendSystemTestOutboundMessageAction(formData: FormData) {
     );
   }
 
-  if (testRunId) {
+  if(hasReportingPermissionMessage(message,['Z13'])){
+    if(!message.company_id)throw new Error('PRODAT_REPORTING_ASSOCIATION_INVALID');
+    await requireCompanyScopedActionAccess(message.company_id,{anyOf:['ediel_testing.write','communication.write']});
+    await requireCompanyOperationalForWrites(message.company_id);
+    const association=await requireTgtReportingSendAssociation(message.company_id,message.id,{runId:testRunId,caseCode:testCaseCode,stepNo});
+    testRunId=association.runId;testCaseCode=association.caseCode;stepNo=association.stepNo;
+  } else if (testRunId) {
     if (!message.company_id) throw new Error("Outbound-meddelandet saknar tenantkoppling");
     const run = await requireSystemTestRun(testRunId);
     if (run.company_id !== message.company_id) throw new Error("Meddelande och run tillhör olika tenants");
@@ -138,13 +148,14 @@ export async function createAndSendSystemTestOutboundForRunAction(formData: Form
   const testRunId = formString(formData.get("testRunId"));
   const testCaseCode = formString(formData.get("testCaseCode"));
   const preferredMessageId = formString(formData.get("edielMessageId"));
+  const selectedStepNo=formNumber(formData.get("stepNo"));
 
   if (!testRunId) throw new Error("testRunId saknas");
 
   const redirectParams = new URLSearchParams();
   const { data: runRow, error: runError } = await supabaseService
     .from("ediel_test_runs")
-    .select("id, company_id, test_case_code")
+    .select("id, company_id, test_case_code, test_suite, role_code")
     .eq("id", testRunId)
     .maybeSingle();
   if (runError) throw runError;
@@ -152,6 +163,10 @@ export async function createAndSendSystemTestOutboundForRunAction(formData: Form
 
   const runCompanyId = typeof runRow.company_id === "string" ? runRow.company_id : null;
   if (!runCompanyId) throw new Error("Testkörningen saknar tenantkoppling");
+  if(runRow.test_suite==='PRODAT'&&runRow.role_code==='esco'&&['E3','E4','8.1.1','8.1.2','8.1.3'].includes(String(runRow.test_case_code))){
+    await requireCompanyScopedActionAccess(runCompanyId,{anyOf:['ediel_testing.write','communication.write']});
+    await requireCompanyOperationalForWrites(runCompanyId);
+  }
   redirectParams.set("companyId", runCompanyId);
   const effectiveTestCaseCode = testCaseCode ?? String(runRow.test_case_code ?? "");
 
@@ -192,6 +207,13 @@ export async function createAndSendSystemTestOutboundForRunAction(formData: Form
 
   if (!message) throw new Error("Systemtest saknar outbound-meddelande efter autopilot");
 
+  let linkedStepNo:number|null=null;
+  if(hasReportingPermissionMessage(message,['Z13'])){
+    await requireCompanyScopedActionAccess(runCompanyId,{anyOf:['ediel_testing.write','communication.write']});
+    await requireCompanyOperationalForWrites(runCompanyId);
+    const association=await requireTgtReportingSendAssociation(runCompanyId,message.id,{runId:testRunId,caseCode:effectiveTestCaseCode,stepNo:selectedStepNo});
+    linkedStepNo=association.stepNo;
+  } else {
   await attachEdielMessageToTestRun({
     companyId: runCompanyId,
     testRunId,
@@ -201,13 +223,14 @@ export async function createAndSendSystemTestOutboundForRunAction(formData: Form
     expectedFamily: message.message_family,
     expectedCode: String(message.message_code ?? ""),
   });
+  }
 
   await markSystemTestOutboundSendIntent({
     actorUserId: context.userId,
     message,
     testRunId,
     testCaseCode: effectiveTestCaseCode,
-    stepNo: null,
+    stepNo: linkedStepNo,
     source: "system_test_create_and_send_outbound_action",
   });
 

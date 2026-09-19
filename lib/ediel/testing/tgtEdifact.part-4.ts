@@ -1,3 +1,7 @@
+import {getCanonicalProdatProfile} from '@/lib/ediel/rulebook/prodatRulebook'
+import {assertTgtReportingDraft} from './tgtReportingPermissionDraft'
+import {validateProdatReportingPermission} from '@/lib/ediel/rulebook/prodatReportingPermissionPolicy'
+import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
 import {assertTgtDateEventDraft} from './tgtDateEventSource'
 import {validateProdatDateEvents} from '@/lib/ediel/rulebook/prodatDateEventPolicy'
 import {validateProdatInvoicee} from '@/lib/ediel/rulebook/prodatInvoiceePolicy'
@@ -11,17 +15,31 @@ import {getEdielTgtTestDataForCase,type EdielTgtCaseTestData} from './tgtTestDat
 import { groupTgtProdatSourceObjects, readTgtProdatSourceColumns } from './tgtProdatSource'
 import { validateProdatDateFields } from '@/lib/ediel/prodat/prodatDateValidation'
 import { misplacedProdatEnergyProducts } from "@/lib/ediel/prodat/prodatCharacteristicFields"
-import { tokenizeEdifact } from "@/lib/ediel/core/edifactTokenizer"
+import { tokenizeEdifact, segmentComposite } from "@/lib/ediel/core/edifactTokenizer"
 // Extracted from tgtEdifact.ts; keep public imports on the facade module.
 import type { EdielMessageFamily } from "@/lib/ediel/types"
 import { EDIEL_TGT_PRODAT_APPLICATION_REFERENCE, resolveEdielTgtProdatApplicationReference } from "@/lib/ediel/fileEngine"
 import { getEdielTgtTestCaseByCode, type EdielTgtExpectedStep } from "@/lib/ediel/testing/tgtRegistry"
 
 
-import type { EdielTgtDraftBuildParams, EdielTgtDraftBuildResult, EdielTgtDraftValidationIssue, TgtPortalCustomerData } from './tgtEdifact.part-1'
+import type { ParsedEdifactSegments, EdielTgtDraftBuildParams, EdielTgtDraftBuildResult, EdielTgtDraftValidationIssue, TgtPortalCustomerData } from './tgtEdifact.part-1'
 import { nowRefs, testActorId, testPortalEmail, testPortalId, testReceiverSubaddress, testSenderSubaddress } from './tgtEdifact.part-1'
 import { buildInterchange } from './tgtEdifact.part-2'
 import { buildAckDraft, buildPortalProdatSegments, buildUtiltsDraft, parseEdifactSegments, pushIssue, validatePortalDataCoverage } from './tgtEdifact.part-3'
+
+/** Qualified reporting references may contain released characters, including apparent tags. */
+function parseReportingEnvelope(rawPayload: string): ParsedEdifactSegments {
+  const wire = tokenizeEdifact(rawPayload), names = wire.segments.map(s => s.tag);
+  const unhIndex = names.indexOf('UNH'), untIndex = names.indexOf('UNT');
+  const find = (tag: string) => wire.segments.find(s => s.tag === tag);
+  const value = (tag: string, index: number) => segmentComposite(find(tag), index, wire.una)[0] || null;
+  return {
+    segments: wire.segments.map(s => s.raw), segmentNames: names,
+    unhRef: value('UNH', 1), untRef: value('UNT', 2), untCount: Number(value('UNT', 1)) || null,
+    countedMessageSegments: unhIndex >= 0 && untIndex >= unhIndex ? untIndex - unhIndex + 1 : null,
+    unbRef: value('UNB', 5), unzRef: value('UNZ', 2), unzCount: Number(value('UNZ', 1)) || null,
+  };
+}
 
 export function validateEdielTgtDraft(
   rawPayload: string,
@@ -35,6 +53,7 @@ export function validateEdielTgtDraft(
     sourceTestData?: EdielTgtCaseTestData | null;
     portalRows?: TgtPortalCustomerData[];
     registerFacts?: ProdatDependentConditionFacts;
+    reportingContext?:ExpectedContext;
   },
 ): EdielTgtDraftValidationIssue[] {
   const issues: EdielTgtDraftValidationIssue[] = [];
@@ -48,9 +67,11 @@ export function validateEdielTgtDraft(
     EDIEL_TGT_PRODAT_APPLICATION_REFERENCE;
   const expectedReceiverSubaddress =
     expected?.receiverSubaddress?.trim().toUpperCase() ?? null;
-  const parsed = parseEdifactSegments(rawPayload);
+  const parsed = step.family === 'PRODAT' && step.code === 'Z13' && expected?.reportingContext
+    ? parseReportingEnvelope(rawPayload) : parseEdifactSegments(rawPayload);
   if (step.family === 'PRODAT') {
     const wire = tokenizeEdifact(rawPayload);
+    for(const failure of validateProdatReportingPermission({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts,reportingContext:expected?.reportingContext}))pushIssue(issues,'error',failure.code,failure.title,failure.description);
     for(const failure of validateProdatDateEvents({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts}))pushIssue(issues,'error',failure.code,failure.title,failure.description);
     for(const failure of validateProdatInvoicee({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts}))pushIssue(issues,'error',failure.code,failure.title,failure.description);
     for(const failure of validateProdatEndUserAddress({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts}))pushIssue(issues,'error',failure.code,failure.title,failure.description);
@@ -215,21 +236,6 @@ export function validateEdielTgtDraft(
         "Edielportalen kräver SG17[UD] för Z18 och markerar SG17[IT] som används inte.",
       );
     }
-  }
-
-  if (
-    step.family === "PRODAT" &&
-    step.code === "Z13" &&
-    normalized.includes("DTM+91:") &&
-    normalized.includes("CAV+S17")
-  ) {
-    pushIssue(
-      issues,
-      "error",
-      "z13vh_reason_for_transaction_mismatch",
-      "Z13VH skickas som Z13V",
-      "Historisk Z13-begäran med DTM+91 ska använda fält 223/CAV+S18. CAV+S17 hör till Z13V och blockeras före sändning.",
-    );
   }
 
   if (
@@ -457,7 +463,7 @@ export function buildEdielTgtDraft(
       applicationReference: prodatApplicationReference,
       sourceTestData:params.importedTestData,
       portalRows:portalBuild?.portalRows,
-      registerFacts:params.registerFacts,
+      registerFacts:params.registerFacts,reportingContext:params.reportingContext,
     },
   );
   assertTgtAddressFactSource({companyId:params.systemTestContext.companyId,runId:params.testRunId,stepNo:params.stepNo,code:step.code,roleCode:params.roleCode,caseCode:params.testCaseCode,suite:params.testSuite,testData:params.importedTestData ?? getEdielTgtTestDataForCase(params.testSuite,params.roleCode,params.testCaseCode),facts:params.registerFacts});
@@ -489,14 +495,14 @@ export function buildEdielTgtDraft(
       messageCode: step.code,
       messageVersion,
       processType:
-        step.family === "PRODAT" ? "tgt_prodat_portal_test" : "tgt_ack_test",
+        params.reportingContext ? getCanonicalProdatProfile(step.code)!.processGroup : step.family === "PRODAT" ? "tgt_prodat_portal_test" : "tgt_ack_test",
       environment: "test",
       testFlag: 1,
       status: hasErrors ? "draft" : "prepared",
       transportType: "manual_upload",
-      communicationRouteId:params.dateEventContext?.source.route.communicationRouteId??null,
-      routeProfileId:params.dateEventContext?.source.route.routeProfileId??null,
-      mailbox: params.dateEventContext?.source.route.mailbox??"tgt-file-engine",
+      communicationRouteId:(params.reportingContext??params.dateEventContext)?.source.route.communicationRouteId??null,
+      routeProfileId:(params.reportingContext??params.dateEventContext)?.source.route.routeProfileId??null,
+      mailbox: (params.reportingContext??params.dateEventContext)?.source.route.mailbox??"tgt-file-engine",
       mailboxMessageId: refs.interchangeRef,
       senderEdielId: testActorId(params),
       senderSubAddress:
@@ -611,5 +617,6 @@ export function buildEdielTgtDraft(
     },
   };
   assertTgtDateEventDraft(result.messageInput,params.dateEventContext);
+  assertTgtReportingDraft(result.messageInput,params.reportingContext);
   return result;
 }

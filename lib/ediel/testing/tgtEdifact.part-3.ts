@@ -1,3 +1,4 @@
+import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 import {prodatInvoiceeNadSegment} from '@/lib/ediel/prodat/render/segments'
 import {prodatCustomerNadSegment} from '@/lib/ediel/prodat/render/segments'
 import {END_USER_ADDRESS_CODES} from '@/lib/ediel/prodat/prodatEndUserAddress'
@@ -41,7 +42,7 @@ export function buildProdatPermissionLineSegments(params: {
     systemTestContext,
   } = params;
   const meteringPointId = sanitizeCode(
-    portalData.meteringPointId ||
+    portalData.reportingRequest?'':portalData.meteringPointId ||
       fallbackEscoPermissionMeteringPointId(
         { testSuite, roleCode, testCaseCode, systemTestContext },
         step,
@@ -58,10 +59,10 @@ export function buildProdatPermissionLineSegments(params: {
     "",
     12,
   );
-  const lineReference =
+  const lineReference = portalData.lineReference ?? (
     lineNo === 1
       ? refs.externalRef
-      : `${refs.externalRef}-${lineNo}`.slice(0, 35);
+      : `${refs.externalRef}-${lineNo}`.slice(0, 35));
   const reasonForTransaction = isHistoricalPermissionTransaction(transactionType)
     ? "S18"
     : sanitizeCode(
@@ -92,7 +93,7 @@ export function buildProdatPermissionLineSegments(params: {
           transactionType,
         })
       : sanitizeCode(portalData.installationDirection, "", 12);
-  const permissionPurpose =
+  const permissionPurpose = portalData.reportingRequest ? portalData.permissionPurpose :
     step.code === "Z13" || step.code === "Z14"
       ? permissionPurposeForTransaction(
           transactionType,
@@ -110,13 +111,13 @@ export function buildProdatPermissionLineSegments(params: {
     12,
   );
   const permissionId = sanitizeCode(portalData.permissionId, "", 35);
-  const powerOfAttorneyReference = sanitizeCode(
+  const powerOfAttorneyReference = portalData.reportingRequest ? portalData.powerOfAttorneyReference : sanitizeCode(
     portalData.powerOfAttorneyReference,
     "",
     35,
   );
 
-  const segments: string[] = [`LIN+${lineNo}++${meteringPointId}:::9`];
+  const segments: string[] = [portalData.reportingRequest?`LIN+${lineNo}`:`LIN+${lineNo}++${meteringPointId}:::9`];
 
   const variant = transactionType.startsWith(step.code) ? transactionType.slice(step.code.length) : transactionType;
   segments.push(...buildProdatDateSegments(step.code, variant, {
@@ -138,9 +139,9 @@ export function buildProdatPermissionLineSegments(params: {
   if (permissionEndReason)
     segments.push("CCI++Z25", `CAV+${permissionEndReason}`);
 
-  if (!mutation.omitLineItem) segments.push(`RFF+LI:${lineReference}`);
+  if (!mutation.omitLineItem) segments.push(`RFF+LI:${portalData.reportingRequest ? escapeEdifactValue(lineReference) : lineReference}`);
   if (powerOfAttorneyReference && step.code === "Z13")
-    segments.push(`RFF+ANJ:${powerOfAttorneyReference}`);
+    segments.push(`RFF+ANJ:${portalData.reportingRequest ? escapeEdifactValue(powerOfAttorneyReference) : powerOfAttorneyReference}`);
   if (gridAreaId) segments.push(`RFF+Z05:${gridAreaId}`);
   if (permissionId && step.code === "Z18")
     segments.push(`RFF+Z09:${permissionId}`);
@@ -336,14 +337,12 @@ export function buildPortalProdatSegments(
   const mutation = getTgtProdatMutation(params, step);
   const sourceRows =
     [...END_USER_ADDRESS_CODES,"Z10"].includes(step.code) ||
-    (params.roleCode === "esco" &&
-      step.code === "Z13" &&
-      params.testCaseCode === "8.1.1")
+    (params.roleCode === "esco" && step.code === "Z13")
       ? getPortalDataRows(params, step)
       : [getPortalData(params, step)];
   if (sourceRows.length === 0) throw new Error("prodat_register_source_objects_missing");
   const portalRows = sourceRows.map((row) =>
-    withEscoPermissionAgtFallbacks(params, step, {
+    row.reportingRequest ? {...row,prodatTransactionType: transactionType} : withEscoPermissionAgtFallbacks(params, step, {
       ...applyProdatMutationToPortalData(row, mutation),
       prodatTransactionType: transactionType,
     }),
@@ -896,6 +895,10 @@ export function validatePortalDataCoverage(
         "Z05 ska använda DTM+93 från fält 211 Avtal/slutdatum. I TGT används 15:e nästkommande månad när testdata anger att datum sätts av avsändaren.",
       );
     }
+  } else if (step.code === "Z13" && portalData.reportingRequest) {
+    // Original ESCO requests use 302 report start, never 210 contract start.
+    const start=date203FromPortalDate(portalData.reportStartDate,"");
+    if(!rawPayload.includes(`DTM+90:${start}:203`))pushIssue(issues,"error","missing_z13_report_start","Rapportstart saknas","Z13 kräver rapportstart från fält 302 i det valda testunderlaget.");
   } else if (!portalData.agreementStartDateTime) {
     pushIssue(
       issues,

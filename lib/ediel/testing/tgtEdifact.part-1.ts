@@ -1,3 +1,4 @@
+import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
 import type {TgtDateEventValidationContext} from '@/lib/ediel/prodat/prodatDateEventAuthority'
 import type {ProdatEngineInvoiceeContext} from '@/lib/ediel/prodat/types'
 import type { ProdatDependentConditionFacts } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
@@ -19,6 +20,7 @@ export type EdielTgtDraftValidationIssue = {
 
 export type EdielTgtDraftBuildParams = {
   dateEventContext?:TgtDateEventValidationContext;
+  reportingContext?:ExpectedContext;
   actorUserId: string;
   testRunId?: string | null;
   testSuite: EdielTestSuite;
@@ -161,6 +163,8 @@ export type TgtProdatMutation = {
 };
 
 export type TgtPortalCustomerData = {
+  reportingRequest?: boolean;
+  lineReference?: string;
   customerAddressLines?: readonly string[];
   identityAgency?: string | null;
   sourceGroupIndex?: number;

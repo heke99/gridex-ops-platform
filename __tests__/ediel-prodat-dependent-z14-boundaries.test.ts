@@ -1,3 +1,4 @@
+import {reportingZ14Selection} from './fixtures/prodat-reporting-permission'
 import { describe, expect, it } from 'vitest'
 import { validateEdielMessageRowWithRulebook, validateRulebookMessage } from '@/lib/ediel/rulebook/validator'
 import { assertRulebookAllowsSend } from '@/lib/ediel/rulebook/sendGuards'
@@ -42,7 +43,7 @@ for (const alphabet of alphabets) for (const environment of ['test','production'
     expect(validateRulebookMessage({rawPayload:message.raw_payload!,family:'PRODAT',code:'Z14',direction:'inbound',mode:'parse',environment}).issues.filter(target)).toEqual([])
   })
 })
-const context:ProdatEngineProductionContext={code:'Z14',bgmReference:'DOC',transactionReference:'CASE',senderEdielId:'12345',receiverEdielId:'54321',
+const context:ProdatEngineProductionContext={dependentConditionFacts:{reportingPermission:reportingZ14Selection()},code:'Z14',bgmReference:'DOC',transactionReference:'CASE',senderEdielId:'12345',receiverEdielId:'54321',
   meterPointId:'A',gridAreaId:'ABC',customerId:'ID',customerIdAgency:'89',customerName:'User',customerCountry:'SE',siteAddress:'Site',siteCountry:'SE',reasonForTransaction:'S17',
   reportStartDate:'202610010000',permissionTimestamp:'202609191200',observationLength:'15',observationLengthFormat:'806',
   meteringMethod:'Z04',reportingFrequency:'D',energyProductId:'8716867000030',installationDirection:'E17',permissionId:'PERMISSION'}
@@ -61,7 +62,7 @@ describe('Z14 builder and parser integration',()=>{
 })
 
 it('generic positive Z14 can represent and validate its installation parent',()=>{
-  const base = {companyId:'synthetic',role:'energy_service_company',businessCode:'Z14',transactionSubtype:'V',
+  const base = {dependentConditionFacts:{reportingPermission:reportingZ14Selection()},companyId:'synthetic',role:'energy_service_company',businessCode:'Z14',transactionSubtype:'V',
     sender:{edielId:'12345'},receiver:{edielId:'54321'},meteringPoint:{id:'A',gridArea:'ABC'},environment:'test',
     codedAttributes:{Z13:'S17',Z04:'Z04',Z12:'D',Z14:'8716867000030',Z22:'E17'},
     references:{LI:'CASE',Z09:'PERMISSION'},customer:{id:'ID',name:'User',idAgency:'89' as const,country:'SE'},

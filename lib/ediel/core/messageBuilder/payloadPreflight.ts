@@ -1,3 +1,6 @@
+import {reportingAuthorityIssue} from '@/lib/ediel/prodat/prodatReportingPermissionAuthority'
+import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
+import {validateProdatReportingPermission} from '@/lib/ediel/rulebook/prodatReportingPermissionPolicy'
 import {prodatDateEventAuthorityIssue} from '@/lib/ediel/prodat/prodatDateEventAuthority'
 import {validateProdatDateEvents} from '@/lib/ediel/rulebook/prodatDateEventPolicy'
 import type {TgtDateEventValidationContext,ProdatDateEventRow} from '@/lib/ediel/prodat/prodatDateEventAuthority'
@@ -345,6 +348,7 @@ function validateEdifactPayload(params: {
   parsedPayload?: unknown
   dateEventRow?:ProdatDateEventRow
   dateEventContext?:TgtDateEventValidationContext
+  reportingContext?:ExpectedContext
   companyId?: string | null
 }): EdielPayloadPreflightResult {
   const rawPayload = params.rawPayload
@@ -544,7 +548,7 @@ function validateEdifactPayload(params: {
     applicationReference: canonical.applicationReference,
     rawPayload,
     companyId: params.companyId,
-    dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,
+    dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext,
     ...(params.mode==='send'?{environment:params.dateEventRow?.environment,direction:params.dateEventRow?.direction}:{}),
     mode: params.mode === 'send' ? 'send' : 'parse',
     parsedPayload: params.parsedPayload && typeof params.parsedPayload === 'object' && !Array.isArray(params.parsedPayload)
@@ -696,6 +700,7 @@ export function preflightEdielPayload(params: {
   parsedPayload?: unknown
   dateEventRow?:ProdatDateEventRow
   dateEventContext?:TgtDateEventValidationContext
+  reportingContext?:ExpectedContext
   companyId?: string | null
 }): EdielPayloadPreflightResult {
   const rawPayload = String(params.rawPayload ?? '').trim()
@@ -719,17 +724,17 @@ export function preflightEdielPayload(params: {
   if (params.messageStandard === 'xml' || rawPayload.startsWith('<')) return validateXmlPayload(rawPayload, params.mimeType ?? null)
   const edifactDeclared = params.messageStandard === 'edifact' || rawPayload.startsWith('UNA')
   if (params.messageStandard === 'ai_list' || (!edifactDeclared && !rawPayload.includes("'") && rawPayload.includes(';'))) return validateListPayload(rawPayload)
-  return validateEdifactPayload({ rawPayload, mimeType: params.mimeType ?? null, mode: params.mode ?? 'parse', parsedPayload:params.parsedPayload,companyId:params.companyId,dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext })
+  return validateEdifactPayload({ rawPayload, mimeType: params.mimeType ?? null, mode: params.mode ?? 'parse', parsedPayload:params.parsedPayload,companyId:params.companyId,dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext })
 }
 
-export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' | 'parse' = 'send', dateEventContext?:TgtDateEventValidationContext): EdielPayloadPreflightResult {
+export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' | 'parse' = 'send', dateEventContext?:TgtDateEventValidationContext,reportingContext?:ExpectedContext): EdielPayloadPreflightResult {
   const result = preflightEdielPayload({
     rawPayload: message.raw_payload,
     mimeType: message.mime_type,
     messageStandard: message.message_standard,
     mode,
     parsedPayload:message.parsed_payload,
-    companyId:message.company_id,dateEventRow:message,dateEventContext,
+    companyId:message.company_id,dateEventRow:message,dateEventContext,reportingContext,
   })
   if (!message.raw_payload || (result.family !== 'PRODAT' && message.message_family !== 'PRODAT' && !/^(?:UNA|UNB|UNH)/.test(message.raw_payload.trimStart()))) return result
   try {
@@ -751,7 +756,8 @@ export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' 
         result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
       }
     }
-    const facts = mode === 'send' ? readProdatRegisterEvidence({dateEventRow:message,dateEventContext,code,rawSegments,una:tokens.una,parsedPayload:message.parsed_payload,companyId:message.company_id,runId:typeof message.parsed_payload?.testRunId==='string'?message.parsed_payload.testRunId:null,stepNo:typeof message.parsed_payload?.stepNo==='number'?message.parsed_payload.stepNo:null}) : undefined
+    const facts = mode === 'send' ? readProdatRegisterEvidence({dateEventRow:message,dateEventContext,reportingContext,code,rawSegments,una:tokens.una,parsedPayload:message.parsed_payload,companyId:message.company_id,runId:typeof message.parsed_payload?.testRunId==='string'?message.parsed_payload.testRunId:null,stepNo:typeof message.parsed_payload?.stepNo==='number'?message.parsed_payload.stepNo:null}) : undefined
+    if(mode==='send')for(const failure of validateProdatReportingPermission({code,rawSegments,una:tokens.una,facts,requireAuthority:true,reportingContext}))result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
     if(mode==='send')for(const failure of validateProdatDateEvents({code,rawSegments,una:tokens.una,facts,requireAuthority:true,dateEventContext}))result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
     if(mode==='send')for(const failure of validateProdatInvoicee({code,rawSegments,una:tokens.una,facts}))result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
     if(mode==='send')for(const failure of validateProdatEndUserAddress({code,rawSegments,una:tokens.una,facts}))result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
@@ -759,7 +765,7 @@ export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' 
       result.issues.push(issue({severity:'error',code:`PRODAT_REGISTER_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
     }
   } catch (error) {
-    const authorityIssue=prodatDateEventAuthorityIssue(error)
+    const authorityIssue=reportingAuthorityIssue(error)??prodatDateEventAuthorityIssue(error)
     if(authorityIssue)result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${authorityIssue.code}`,title:authorityIssue.title,description:authorityIssue.description}))
     result.issues.push(issue({severity:'error',code:'PRODAT_REGISTER_EVIDENCE_INVALID',title:'Ogiltigt registerunderlag',description:'Registerunderlaget är ogiltigt eller hör till en annan meddelandeversion. Bygg om med verifierade objektfakta.'}))
   }

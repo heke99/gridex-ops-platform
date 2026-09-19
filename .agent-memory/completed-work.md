@@ -79,3 +79,13 @@ Accepted56/110 numeric plus36 merged pending mainreceipt;18 other numeric remain
 
 ## Main344 accepted receipt
 Mainc9d795275fc22b284db51e70b25ec4ccb7d00d3a full35448212060/job105910734306 SUCCESS: actual73/73,0failed onNode22.23.2 at2026-09-19T14:24:54Z. MainOPS35448212075 all3jobsSUCCESS. PR344 accepted36numeric+6parents after independentreview/exactheadCI/mainreceipt. Total92/110numeric,18remaining;10/10parents. Fullmasterplan/F3–F7/live still NOT_COMPLETE;PR310PAUSED. Oneactive source-only fourdate/eventconditions.
+
+## PR345 merged, mainreceiptpending
+Main0a82c9ce51ef5c95868ed9c25907f1e10819d079 includes mergedPR345. Finalheaddea1a085f9e23f412487b7852daa1abc18f629fe/tree4547fa31036badf626574682b0f7924d32b85fcc independently matches local7949c892. Source/spec, taskquality andwholebranch APPROVE after tenantbd4a268f andR1–R3fix7949c892. No open reviewfindings. All5exactheadCI SUCCESS: OPS35452877689, Ediel35452877690, Browser35452877684, Full35452877713, Tenant35452877693. Coverage105922980564 actual3996/3996 in263files onNode22.23.2. Mainfull35453204332 andOPS35453204329 pending; prior main34473/73 remains lastacceptedcertificate.
+
+Accepted92/110numeric plus4mergedpendingmainreceipt;14othernumericremain. Parents10/10accepted. Fullmasterplan/F3–F7/live NOT_COMPLETE. PR310PAUSED unchangede961135199f292b8210884f07de3b616a670161a. No pausedimports, liveDB/storage/market sends or explicitdeployment/settings; automaticmainVerceldeploy remains separate. Issue332closed,333open,335unmerged.
+
+OneactiveSOURCEONLY unit: PC-321-Z13/Z14 andPC-323-Z13/Z14. Branchcodex/ediel-reporting-permission-20260919 frommergedPR345. Freshimplementer follows /workspace/scratch/2a201d6d5897/reporting-permission-task-brief.md. Re-readoriginalfullnotes/tables; qualify actualperobject reportingintent/customer/permissionprocess facts and legitimateidentitylessZ13 scope. V doesnotproveindefinite; absence/purpose/identifier/byCell/rootcustomerKind arenotauthority. Preserve priorNexclusions and explicit frozen323X tension pendingpositive sourceevidence. CurrentTGTpatterns may supporttestsource; do notclaimliveauthority or reactivatefacades. Rootindependentsource/architecture review BEFOREruntimeauthorization. Rootchecks main345receipt inparallel.
+
+## Main345 accepted receipt
+Main0a82c9ce51ef5c95868ed9c25907f1e10819d079 full35453204332/job105923836983SUCCESS: actual73/73,0failed onNode22.23.2 at2026-09-19T16:01:50Z. MainOPS35453204329all3SUCCESS. PR345fourdatecellsaccepted after independentreview/exactheadCI/mainreceipt. Total96/110numeric,14remaining;10/10parents. Fullmasterplan/F3–F7/liveNOT_COMPLETE;PR310PAUSED. Oneactivesourceonlyfour321/323reportingpermissionconditions.

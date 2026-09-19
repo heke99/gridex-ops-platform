@@ -1,3 +1,4 @@
+import {loadTgtReportingValidationContext} from '@/lib/ediel/testing/tgtReportingPermissionContext'
 import {loadTgtDateEventValidationContext} from '@/lib/ediel/testing/tgtDateEventContext'
 // lib/ediel/orchestrator.ts
 
@@ -248,7 +249,8 @@ export async function sendQueuedEdielMessage(params: {
   }
 
   const dateEventContext=await loadTgtDateEventValidationContext(message)
-  const preflight = preflightEdielMessageRow(message, 'send',dateEventContext)
+  const reportingContext=await loadTgtReportingValidationContext(message)
+  const preflight = preflightEdielMessageRow(message, 'send',dateEventContext,reportingContext)
   await createEdielMessageEvent({
     actorUserId,
     edielMessageId: message.id,

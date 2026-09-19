@@ -1,3 +1,6 @@
+import {assertReportingAuthority} from './prodatReportingPermissionAuthority'
+import type {ExpectedContext,PureSelection,TgtEvidence} from './prodatReportingPermissionContext'
+import {copyReportingSelection} from './prodatReportingPermissionContext'
 import {assertProdatDateEventAuthority,type ProdatDateEventRow,type TgtDateEventValidationContext} from './prodatDateEventAuthority'
 import {copyProdatDateEventObjects,copyProdatDateEventSource} from './prodatDateEvents'
 import {copyProdatInvoiceeObjects,assertInvoiceeOwnership} from './prodatInvoicee'
@@ -13,7 +16,7 @@ export type ProdatRegisterEvidence = {
   /** Decoded message body, without transport envelope. Integrity binding only,
    * NOT authorization or a signature. Facts require a server-owned row. */
   bodyBinding: string
-  facts: Pick<ProdatDependentConditionFacts, 'market' | 'meterReadingsSentInUtilts' | 'registerObjects' | 'endUserAddressObjects' | 'invoiceeObjects' | 'dateEventObjects' | 'dateEventSource'>
+  facts: Pick<ProdatDependentConditionFacts, 'market' | 'meterReadingsSentInUtilts' | 'registerObjects' | 'endUserAddressObjects' | 'invoiceeObjects' | 'dateEventObjects' | 'dateEventSource'> & {reportingPermission?:TgtEvidence|Omit<PureSelection,'evaluationUtcMs'>|null}
 }
 const record = (value: unknown): Record<string,unknown> | null => value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string,unknown> : null
 const invalid = (): never => { throw new Error('prodat_register_evidence_invalid') }
@@ -21,12 +24,12 @@ const optionalBoolean = (value: unknown): boolean | null => value == null ? null
 
 /** Only factual register inputs are copied; statuses or field presence cannot
  * prove that meter readings will be sent. */
-export function copyProdatRegisterFacts(value: unknown): ProdatRegisterEvidence['facts'] {
+export function copyProdatRegisterFacts(value: unknown): ProdatDependentConditionFacts {
   const source = record(value)
   if (!source) return invalid()
   const market = source.market
   if (market != null && market !== 'electricity' && market !== 'gas') return invalid()
-  const facts: ProdatRegisterEvidence['facts'] = {market:market ?? null,meterReadingsSentInUtilts:optionalBoolean(source.meterReadingsSentInUtilts)}
+  const facts: ProdatDependentConditionFacts = {market:market ?? null,meterReadingsSentInUtilts:optionalBoolean(source.meterReadingsSentInUtilts)}
   if (Object.hasOwn(source,'registerObjects') && source.registerObjects !== undefined) {
     if (!Array.isArray(source.registerObjects)) return invalid()
     const seen = new Set<string>()
@@ -47,6 +50,7 @@ export function copyProdatRegisterFacts(value: unknown): ProdatRegisterEvidence[
   if(Object.hasOwn(source,'invoiceeObjects') && source.invoiceeObjects!==undefined) facts.invoiceeObjects=copyProdatInvoiceeObjects(source.invoiceeObjects)
   if(source.dateEventObjects!==undefined)facts.dateEventObjects=copyProdatDateEventObjects(source.dateEventObjects)
   if(source.dateEventSource!==undefined)facts.dateEventSource=copyProdatDateEventSource(source.dateEventSource)
+  if(Object.hasOwn(source,'reportingPermission') && source.reportingPermission!==undefined) facts.reportingPermission=source.reportingPermission===null?null:copyReportingSelection(source.reportingPermission)
   return facts
 }
 function bodyBinding(rawSegments: readonly string[], una: EdifactServiceStringAdvice): string {
@@ -55,16 +59,21 @@ function bodyBinding(rawSegments: readonly string[], una: EdifactServiceStringAd
     .map(segment=>[segment.tag,...Array.from({length:segmentElementCount(segment,una)},(_,i)=>segmentComposite(segment,i+1,una))]))
 }
 export function createProdatRegisterEvidence(input:{code:string;rawSegments:readonly string[];una?:EdifactServiceStringAdvice;facts?:ProdatDependentConditionFacts}):ProdatRegisterEvidence {
-  return {version:1,code:input.code,bodyBinding:bodyBinding(input.rawSegments,input.una ?? parseUna(null)),facts:copyProdatRegisterFacts(input.facts ?? {})}
+  const copied=copyProdatRegisterFacts(input.facts ?? {}), selection=copied.reportingPermission
+  const facts:ProdatRegisterEvidence['facts']={...copied,...(selection?.source.kind==='caller_selection'?{reportingPermission:{source:selection.source,objects:selection.objects}}:{})}
+  return {version:1,code:input.code,bodyBinding:bodyBinding(input.rawSegments,input.una ?? parseUna(null)),facts}
 }
-export function readProdatRegisterEvidence(input:{code:string;rawSegments:readonly string[];una?:EdifactServiceStringAdvice;parsedPayload?:unknown;companyId?:string|null;runId?:string|null;stepNo?:number|null;dateEventRow?:ProdatDateEventRow;dateEventContext?:TgtDateEventValidationContext}):ProdatRegisterEvidence['facts']|undefined {
+export function readProdatRegisterEvidence(input:{code:string;rawSegments:readonly string[];una?:EdifactServiceStringAdvice;parsedPayload?:unknown;companyId?:string|null;runId?:string|null;stepNo?:number|null;dateEventRow?:ProdatDateEventRow;dateEventContext?:TgtDateEventValidationContext;reportingContext?:ExpectedContext}):ProdatDependentConditionFacts|undefined {
   const engine=record(record(input.parsedPayload)?.prodatEngine)
   if (!engine || !Object.hasOwn(engine,'registerEvidence')) return undefined
   const evidence=record(engine.registerEvidence)
   if (!evidence || evidence.version!==1 || evidence.code!==input.code || evidence.bodyBinding!==bodyBinding(input.rawSegments,input.una ?? parseUna(null))) return invalid()
+  if(record(record(record(evidence.facts)?.reportingPermission)?.source)?.kind==='caller_selection')return invalid()
   const facts=copyProdatRegisterFacts(evidence.facts)
   assertProdatAddressOwnership(facts.endUserAddressObjects,input)
   assertInvoiceeOwnership(facts.invoiceeObjects,input)
+  if(facts.reportingPermission && facts.reportingPermission.source.kind==='caller_selection') return invalid()
+  assertReportingAuthority({...input,facts,row:input.dateEventRow,expected:input.reportingContext})
   assertProdatDateEventAuthority({...input,facts,row:input.dateEventRow,expected:input.dateEventContext})
   return facts
 }
@@ -80,6 +89,7 @@ export function resolveProdatRegisterConditionFacts(contextFacts:ProdatDependent
   if (!data) return invalid()
   const checked=copyProdatRegisterFacts(data)
   return {...data,
+    ...(Object.hasOwn(data,'reportingPermission') ? {reportingPermission:checked.reportingPermission} : {}),
     ...(Object.hasOwn(data,'dateEventObjects') ? {dateEventObjects:checked.dateEventObjects} : {}),
     ...(Object.hasOwn(data,'dateEventSource') ? {dateEventSource:checked.dateEventSource} : {}),
     ...(Object.hasOwn(data,'market') ? {market:checked.market} : {}),
