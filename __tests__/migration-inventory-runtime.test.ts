@@ -16,7 +16,9 @@ function run(manifests: Record<string, Record<string, string>>, content = sql) {
     mkdirSync(join(root, 'scripts')); mkdirSync(join(root, 'supabase/migrations'), { recursive: true })
     writeFileSync(join(root, 'supabase/migrations', name), content)
     for (const [file, files] of Object.entries({ [sources[0]]: {}, ...manifests })) writeFileSync(join(root, 'scripts', file), JSON.stringify({ files }))
-    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' })
+    // Load inherited Node preloads in the real repo first, then give the actual
+    // generator its isolated fixture cwd. Relative NODE_OPTIONS remain valid.
+    const result = spawnSync(process.execPath, ['-e', 'process.chdir(process.argv[1]); require(process.argv[2])', root, script], { encoding: 'utf8' })
     let inventory = null
     try { inventory = JSON.parse(readFileSync(join(root, 'artifacts/migration-inventory-2026-08-03.json'), 'utf8')) } catch { /* early conflict has no inventory */ }
     return { status: result.status, output: result.stdout + result.stderr, inventory }

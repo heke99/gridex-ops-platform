@@ -17,3 +17,9 @@ On unmodified main both Ediel source regressions exit1: six Z18 textual assertio
 
 ## Root cause and proof
 Runtime manifest predates this work (latest7bc0f697); existing22entries include all14missing entries. Independent review traces additive inventory contract to ce6d6d16, runtime introduction59cf46e8, integrity consumption327761b8 and replaye0fb9425. No hashes adopted. New isolated inventory suite reproduced4fail/7pass before fix, then11pass. Rendering12cases pass existing code and replace stale checks at original entrypoints. Both entrypoints and readiness now pass. Full application3116/3116; test types corrected after two fixture typing failures and passed. Full certificate in progress. Scoped independent static/source review plus23 executed tests found no blocking defect. Added distinct production contract dates per minor recommendation.
+
+## Full-run fixture correction
+The first full run exposed inherited relative NODE_OPTIONS preloads failing before the inventory subprocess when its cwd was the temporary fixture. This was a test-harness defect, not a migration mismatch. The subprocess now loads preloads from the real repository then changes cwd inside its bootstrap before requiring the actual inventory generator. No environment flags or gates removed. Same full-run NODE_OPTIONS targeted rerun passes11/11. Prior full-run failure remains recorded and is not acceptance.
+
+## PR335 reconciliation
+Independent source review found its receiving fix addresses its older predecessor; current main already avoids that outbound-only UD violation through its deliberate inbound parse-only boundary. No concrete remaining main defect was established. Do not merge335 wholesale or import stronger incoming requirements without separately qualifying their source and scope.

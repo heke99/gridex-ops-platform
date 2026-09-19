@@ -7,3 +7,5 @@ Issue332 is an issue, not a PR. Its three retained failures were reproduced and 
 PR335 overlaps336 and contains an unmerged receiving-direction correction that must be reconciled before further D work.
 
 Read live refs/PRs before applying anything. Do not reapply older archives. After332 reconcile335 incoming UD correction, then remaining D units and later phases.
+
+PR335 reviewed against main: its original inbound defect is already avoided by main parse-only handling. Leave unmerged; no source-qualified remaining bug established. Issue332 full run exposed relative Node preload cwd in new fixture; fixed without disabling preload. New head requires fresh CI/full run.
