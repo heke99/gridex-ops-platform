@@ -4,8 +4,8 @@
   "status": "IN_PROGRESS",
   "branch": "codex/ediel-death-status-20260919",
   "base_head_sha": "16d93f38387c203b1d277064948199fb905220aa",
-  "active_item": "Bounded death310 OptionA runtime implementation",
-  "next_action": "Implementation RED/GREEN/gates, individual legacy assertion rulings, then independent runtime review",
+  "active_item": "PR348 bounded R310-2 correction",
+  "next_action": "Originalauthor fix, unchangedreviewerprobe, scopedrereview, exactnewCI",
   "accepted_numeric_D": 98,
   "merged_numeric_D": 98,
   "numeric_D_total": 110,
@@ -37,10 +37,10 @@
     "pr": null,
     "verification": "publicfetchdiff0"
   },
-  "runtime_local_head": "829b2d665d5ff4e334c16e1ebf236b7f65e6a134",
-  "runtime_published_head": "f150918681b083221293f208984fb3f3e25a5755",
-  "runtime_tree": "6c45c4c65dde68b61fdded4431c9e39dc211ac94",
-  "active_pr": null,
+  "runtime_local_head": "83c0c475da8e733372179d8e6ec8253025a436c2",
+  "runtime_published_head": "9a60622f9e01a03545848ed769a1bc8050dd6133",
+  "runtime_tree": "99e25442c60c7535deb47a8e2de93d8838cff71b",
+  "active_pr": 348,
   "last_merged_pr": 347,
   "main_ops_receipt": {
     "run": 35464884585,
@@ -54,8 +54,8 @@
   "source_candidate_commit": "6b95f6de02e5854953dddef1a5b26b384854173a",
   "source_review": "SOURCE/SPEC APPROVE; ARCHITECTURE APPROVE",
   "runtime_scope": "Death310 OptionA pure/inbound and narrowly protected persisted outbound; no positiveproducer",
-  "runtime_fix_round": 0,
-  "runtime_review": "PENDING",
+  "runtime_fix_round": 1,
+  "runtime_review": "REQUEST_CHANGES R310-2",
   "applicable_pr_workflows": 4,
   "main_pending": null
 }
