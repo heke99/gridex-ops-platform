@@ -1,3 +1,4 @@
+import type {ProdatInvoiceeObject} from './prodatInvoicee'
 import type {ProdatEndUserAddressObject} from './prodatEndUserAddress'
 import {
   PRODAT_26A_FIELD_MATRIX,
@@ -36,6 +37,8 @@ export type ProdatDependentConditionFacts = {
   endUserAddressObjects?: readonly ProdatEndUserAddressObject[]
   /** Legacy descriptive pre-wire hint only; outbound229 requires per-object source facts. */
   endUserAddressAvailable?: boolean | null
+  invoiceeObjects?: readonly ProdatInvoiceeObject[]
+  /** Legacy descriptive hint; never outbound IV evidence. */
   invoiceeAddressDiffersFromEndUser?: boolean | null
   /**
    * Explicit source-backed facts for D conditions that cannot be derived from the
@@ -61,7 +64,7 @@ export type ProdatDependentConditionEvaluation = {
    * means there is no blanket child requirement; it is not evidence that every
    * object lacks the optional parent. Render/validation must decide per wire. */
   status: ProdatDependentConditionStatus
-  decisionPhase?: 'pre_wire_parent' | 'rendered_wire_parent' | 'pre_wire_inventory_aggregate' | 'rendered_wire_inventory' | 'pre_wire_readings_aggregate' | 'rendered_wire_readings' | 'legacy_pre_wire_address_hint' | 'rendered_wire_address'
+  decisionPhase?: 'pre_wire_parent' | 'rendered_wire_parent' | 'pre_wire_inventory_aggregate' | 'rendered_wire_inventory' | 'pre_wire_readings_aggregate' | 'rendered_wire_readings' | 'legacy_pre_wire_address_hint' | 'rendered_wire_address' | 'rendered_wire_invoicee'
   /** Present only for source-migrated cells; not_required alone does not mean optional. */
   requirement?: ProdatSubtypeRequirement
   source: ProdatDependentConditionSource

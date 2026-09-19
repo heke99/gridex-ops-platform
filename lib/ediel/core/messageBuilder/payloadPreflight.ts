@@ -1,3 +1,4 @@
+import {validateProdatInvoicee} from '@/lib/ediel/rulebook/prodatInvoiceePolicy'
 import {validateProdatEndUserAddress} from '@/lib/ediel/rulebook/prodatEndUserAddressPolicy'
 import { prodatSendMessageScopeIssue } from '@/lib/ediel/prodat/prodatSendMessageScope'
 import { validateProdatSubtypePayload } from '@/lib/ediel/rulebook/prodatSubtypePolicy'
@@ -740,6 +741,7 @@ export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' 
       }
     }
     const facts = mode === 'send' ? readProdatRegisterEvidence({code,rawSegments,una:tokens.una,parsedPayload:message.parsed_payload,companyId:message.company_id,runId:typeof message.parsed_payload?.testRunId==='string'?message.parsed_payload.testRunId:null,stepNo:typeof message.parsed_payload?.stepNo==='number'?message.parsed_payload.stepNo:null}) : undefined
+    if(mode==='send')for(const failure of validateProdatInvoicee({code,rawSegments,una:tokens.una,facts}))result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
     if(mode==='send')for(const failure of validateProdatEndUserAddress({code,rawSegments,una:tokens.una,facts}))result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
     for (const failure of validateProdatRegisterPayload({code,rawSegments,una:tokens.una,facts,requireConditions:mode === 'send',applicationReference:message.application_reference})) {
       result.issues.push(issue({severity:'error',code:`PRODAT_REGISTER_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))

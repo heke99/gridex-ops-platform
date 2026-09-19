@@ -155,10 +155,15 @@ for(const id of ['000aBc','DOC:1','DOC+1',"DOC'1",'DOC?','D'.repeat(35)])test(`p
 for(const id of ['', 'D'.repeat(36)])test(`profile renderer rejects invalid BGM reference length ${id.length} instead of truncating`,async()=>{
  const a=await api;assert.throws(()=>a.buildProfiledProdatSegments({context:context(id),generatedAt:new Date('2026-09-17T12:00:00Z'),mode:'test'}))
 })
+// Independently declared equal postal selections permit the existing optional
+// omission. These fixed facts do not come from BGM or rendered NAD values.
+const invoiceeAddress={lines:['','',''],postalCode:'',city:'',country:'SE',representation:{convention:'fixed positional synthetic source',reference:'document fixture selection',mode:1}}
+const invoiceeIdentity={id:'CUSTOMER',qualifier:'',agency:'89'}
+const invoiceeFacts=[{meteringPointId:'OBJECT',identityAgency:'9',endUser:{identity:invoiceeIdentity,address:invoiceeAddress},invoicee:{identity:invoiceeIdentity,nameLines:['Invoicee'],address:invoiceeAddress,availability:'unavailable'},event:{state:'none',reference:'synthetic no change'},source:{kind:'caller_selection',companyId:'test',reference:'synthetic-document-ack-fixture'}}]
 for(const requestAck of [undefined,false,true])test(`compatibility builder emits source-valid BGM and explicit requested ACK (${String(requestAck)})`,async()=>{
  // Fixed synthetic source: this CUSTOMER has no selected address. This fact is
  // independent of the BGM/ACK output exercised below.
- const a=await api,result=a.buildProdatMessage({dependentConditionFacts:{endUserAddressObjects:[{meteringPointId:'OBJECT',identityAgency:'9',endUser:{id:'CUSTOMER',qualifier:'',agency:'89'},availability:'unavailable',addressLines:[],source:{kind:'caller_selection',companyId:'test',reference:'synthetic-document-ack-fixture'}}]},companyId:'test',role:'supplier',businessCode:'Z03',sender:{edielId:'12345'},receiver:{edielId:'54321'},meteringPoint:{id:'OBJECT'},customer:{id:'CUSTOMER',idAgency:'89',name:'Customer'},dates:{createdAt:'2026-09-17T12:00:00Z',startDate:'2026-10-01'},codedAttributes:{Z13:'Z22'},references:{documentReference:'DOC+1',LI:'CASE'},requestAck,environment:'test'})
+ const a=await api,result=a.buildProdatMessage({dependentConditionFacts:{invoiceeObjects:invoiceeFacts,endUserAddressObjects:[{meteringPointId:'OBJECT',identityAgency:'9',endUser:{id:'CUSTOMER',qualifier:'',agency:'89'},availability:'unavailable',addressLines:[],source:{kind:'caller_selection',companyId:'test',reference:'synthetic-document-ack-fixture'}}]},companyId:'test',role:'supplier',businessCode:'Z03',sender:{edielId:'12345'},receiver:{edielId:'54321'},meteringPoint:{id:'OBJECT'},customer:{id:'CUSTOMER',idAgency:'89',name:'Customer'},dates:{createdAt:'2026-09-17T12:00:00Z',startDate:'2026-10-01'},codedAttributes:{Z13:'Z22'},references:{documentReference:'DOC+1',LI:'CASE'},requestAck,environment:'test'})
  const bgm=a.tokenizeEdifact(result.rawEdifact).segments.find(s=>s.tag==='BGM')
  assert.equal(bgm.raw,`BGM+Z03+DOC?+1+9+${requestAck===false?'NA':'AB'}`)
 })

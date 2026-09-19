@@ -1,4 +1,4 @@
-import { selectedAddressFact } from './fixtures/prodat-ud'
+import { selectedAddressFact, selectedInvoiceeFact } from './fixtures/prodat-ud'
 import { describe, expect, it } from 'vitest'
 import { parseProdatMessage } from '@/lib/ediel/prodat/parser'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
@@ -126,7 +126,7 @@ describe('DTM: parser and actual legacy builder', () => {
   it('does not project malformed source dates as usable business values', () => {
     expect(parseProdatMessage(raw([dtm('92','202402301200','203')])).lineItems[0].contractStartDate).toBeNull()
   })
-  const input = {customer:{id:'USR',name:'Synthetic',idAgency:'89' as const},dependentConditionFacts:{endUserAddressObjects:[selectedAddressFact('POINT','tenant','9','USR')]},companyId:'tenant', role:'supplier',businessCode:'Z03',sender:{edielId:'S'},receiver:{edielId:'R'},meteringPoint:{id:'POINT'},environment:'test',references:{LI:'CASE'},codedAttributes:{Z13:'Z22'},dates:{startDate:'2026-10-01T12:30',createdAt:'2026-07-01T12:30:00Z'}}
+  const input = {customer:{id:'USR',name:'Synthetic',idAgency:'89' as const},dependentConditionFacts:{endUserAddressObjects:[selectedAddressFact('POINT','tenant','9','USR')],invoiceeObjects:[selectedInvoiceeFact('POINT','tenant','9','USR')]},companyId:'tenant', role:'supplier',businessCode:'Z03',sender:{edielId:'S'},receiver:{edielId:'R'},meteringPoint:{id:'POINT'},environment:'test',references:{LI:'CASE'},codedAttributes:{Z13:'Z22'},dates:{startDate:'2026-10-01T12:30',createdAt:'2026-07-01T12:30:00Z'}}
   it('renders header UTC+1 and contract203 after LIN in the real builder', () => {
     const built = buildProdatMessage(input)
     const wire = tokenizeEdifact(built.rawEdifact).segments

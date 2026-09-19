@@ -1,3 +1,4 @@
+import {validateProdatInvoicee} from '@/lib/ediel/rulebook/prodatInvoiceePolicy'
 import {validateProdatEndUserAddress} from './prodatEndUserAddressPolicy'
 import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
 import { prodatSendMessageScopeIssue } from '@/lib/ediel/prodat/prodatSendMessageScope'
@@ -396,6 +397,7 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
         const wireCode = parsed.code ?? code
         const una = parsed.una ?? parseUna(input.rawPayload)
         const facts = readProdatRegisterEvidence({code:wireCode,rawSegments:parsed.rawSegments,una,parsedPayload:input.parsedPayload,companyId:input.companyId,runId:typeof input.parsedPayload?.testRunId==='string'?input.parsedPayload.testRunId:null,stepNo:typeof input.parsedPayload?.stepNo==='number'?input.parsedPayload.stepNo:null})
+        protectedRegisterIssues.push(...validateProdatInvoicee({code:wireCode,rawSegments:parsed.rawSegments,una,facts}))
         protectedRegisterIssues.push(...validateProdatEndUserAddress({code:wireCode,rawSegments:parsed.rawSegments,una,facts}))
         protectedRegisterIssues.push(...validateProdatRegisterPayload({code:wireCode,rawSegments:parsed.rawSegments,una,facts,
           applicationReference:parsed.applicationReference ?? input.applicationReference,requireConditions:true}))

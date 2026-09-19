@@ -1,4 +1,4 @@
-import { ud, udAddressFact } from './fixtures/prodat-ud'
+import { ud, udInvoiceeFact, udAddressFact } from './fixtures/prodat-ud'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { resolveProdatDependentCondition } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
@@ -166,7 +166,7 @@ function row(body: Parts[], environment: 'test' | 'production', alphabet: readon
     ...characteristic('Z04','Z04'),...characteristic('Z07','E22'),...characteristic('Z15','Z32')] : [part])
   const payload = raw(wireBody,'Z06',alphabet).replace('23-DDQ-PRODAT',reference)
   const wire = input(payload,'Z06')
-  const evidence = createProdatRegisterEvidence({code:'Z06',rawSegments:wire.rawSegments,una:wire.una,facts:{market:'electricity',endUserAddressObjects:[udAddressFact()],
+  const evidence = createProdatRegisterEvidence({code:'Z06',rawSegments:wire.rawSegments,una:wire.una,facts:{market:'electricity',endUserAddressObjects:[udAddressFact()],invoiceeObjects:[udInvoiceeFact()],
     registerObjects:[{meteringPointId:'A',identityAgency:'89',expectedRegisterCount:1,meterReadingsSentInUtilts:false}]}})
   const synthetic: Partial<EdielMessageRow> = {message_family:'PRODAT',message_code:'Z06',message_version:'26A',direction:'outbound',environment,message_standard:'edifact',
     application_reference:'23-DDQ-PRODAT',company_id:'synthetic-company',raw_payload:payload,mime_type:'application/EDIFACT',validation_report:{systemTestAckSend:{enabled:true,source:'system_test_ack_action'}},

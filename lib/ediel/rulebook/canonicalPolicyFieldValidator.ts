@@ -1,3 +1,5 @@
+import {validateProdatInvoicee} from './prodatInvoiceePolicy'
+import {INVOICEE_FIELDS} from '@/lib/ediel/prodat/prodatInvoicee'
 import {validateProdatEndUserAddress} from './prodatEndUserAddressPolicy'
 import {END_USER_ADDRESS_CODES} from '@/lib/ediel/prodat/prodatEndUserAddress'
 import { isZ14DependentField } from '@/lib/ediel/rulebook/prodatZ14Policy'
@@ -83,12 +85,15 @@ export function validateCanonicalPolicyFields(input: {
   issues.push(...register.issues)
   if(input.policy.direction==='outbound' && rules.some(rule=>rule.fieldNumber==='229')) issues.push(...validateProdatEndUserAddress({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts}))
 
+  if(rules.some(rule=>INVOICEE_FIELDS.includes(rule.fieldNumber??''))) issues.push(...validateProdatInvoicee({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound'}))
+
   const dependentByField = new Map(
     input.policy.prodatDependentConditions.map((condition) => [condition.fieldNumber, condition] as const),
   )
 
   for (const rule of rules.filter((candidate) => candidate.requirement === 'dependent')) {
     const fieldNumber = String(rule.fieldNumber ?? '').trim()
+    if(INVOICEE_FIELDS.includes(fieldNumber)) continue
     if(fieldNumber==='229' && END_USER_ADDRESS_CODES.includes(input.policy.code)) continue
     if (input.policy.code === 'Z14' && input.policy.direction === 'outbound' && isZ14DependentField(fieldNumber)) continue
     if (register.handledFields.has(fieldNumber) || prodatSourceSubtypeRule(input.policy.code, fieldNumber)

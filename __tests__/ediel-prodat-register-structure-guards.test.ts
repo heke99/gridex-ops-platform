@@ -1,4 +1,4 @@
-import { ud, udAddressFact } from './fixtures/prodat-ud'
+import { ud, udInvoiceeFact, udAddressFact } from './fixtures/prodat-ud'
 import { describe, expect, it } from 'vitest'
 import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { preflightEdielMessageRow } from '@/lib/ediel/core/messageBuilder/payloadPreflight'
@@ -32,7 +32,7 @@ function message(context: Context, chain: Chain): EdielMessageRow {
       rulebookAllowInvalidSend: true,
       prodatEngine: {
         registerEvidence: createProdatRegisterEvidence({ ...input(payload), code: 'Z04', facts: {
-          market: 'electricity', endUserAddressObjects:[udAddressFact('A','tenant')], registerObjects: [{ meteringPointId: 'A', identityAgency: '89',
+          market: 'electricity', endUserAddressObjects:[udAddressFact('A','tenant')],invoiceeObjects:[udInvoiceeFact('A','tenant')], registerObjects: [{ meteringPointId: 'A', identityAgency: '89',
             expectedRegisterCount: 2, meterReadingsSentInUtilts: true }],
         } }),
         ...(context === 'stale snapshot'

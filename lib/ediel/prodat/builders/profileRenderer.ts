@@ -1,3 +1,5 @@
+import {evaluateProdatInvoicee} from '@/lib/ediel/rulebook/prodatInvoiceePolicy'
+import {INVOICEE_FIELDS} from '@/lib/ediel/prodat/prodatInvoicee'
 import {evaluateProdatEndUserAddress} from '@/lib/ediel/rulebook/prodatEndUserAddressPolicy'
 import { validateProdatZ14Policy, z14DependentRules } from '@/lib/ediel/rulebook/prodatZ14Policy'
 import { resolveProdatRegisterConditionFacts } from '@/lib/ediel/prodat/prodatRegisterEvidence'
@@ -371,7 +373,12 @@ export function buildProfiledProdatSegments(input: {
   const renderedReadings = validateProdatRegisterPolicy({code:policy.code,rawSegments:segments,
     facts:policy.prodatDependentFacts,rules:registerPolicy.fieldRules.filter((rule): rule is RulebookFieldRule => 'family' in rule),applicationReference:policy.applicationReference,
     requireIndependentInventory:policy.direction === 'outbound'}).readings
+  const invoiceeDecision=evaluateProdatInvoicee({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts})
+  for(const failure of invoiceeDecision.issues) issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
   const dependentConditionStatuses = policy.prodatDependentConditions.map(condition =>
+    INVOICEE_FIELDS.includes(condition.fieldNumber)
+      ? {...condition,status:invoiceeDecision.statuses.get(condition.fieldNumber) ?? 'undetermined',decisionPhase:'rendered_wire_invoicee' as const}
+      :
     condition.fieldNumber==='229'
       ? {...condition,status:addressDecision.status,decisionPhase:'rendered_wire_address' as const}
       : isProdatReadingField(condition.fieldNumber)

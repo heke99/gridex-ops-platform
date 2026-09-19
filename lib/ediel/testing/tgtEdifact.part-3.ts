@@ -1,3 +1,4 @@
+import {prodatInvoiceeNadSegment} from '@/lib/ediel/prodat/render/segments'
 import {prodatCustomerNadSegment} from '@/lib/ediel/prodat/render/segments'
 import {END_USER_ADDRESS_CODES} from '@/lib/ediel/prodat/prodatEndUserAddress'
 import {resolveProdatEndUserGroupRequirement} from '@/lib/ediel/prodat/prodatParentApplicability'
@@ -311,6 +312,7 @@ export function buildProdatLineSegments(params: {
     }
   }
 
+  if(portalData.invoicee){const iv=portalData.invoicee;segments.push(prodatInvoiceeNadSegment({customerId:iv.id,customerIdCodeListQualifier:iv.idCodeListQualifier,idAgency:iv.idAgency,customerName:iv.name,nameLines:iv.nameLines,address:iv.address,addressLines:iv.addressLines,city:iv.city,postalCode:iv.postalCode,country:iv.country}));}
   const balanceResponsibleId = portalData.balanceResponsibleId;
   if (balanceResponsibleId) {
     segments.push(

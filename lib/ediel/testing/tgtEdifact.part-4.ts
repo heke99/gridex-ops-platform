@@ -1,3 +1,4 @@
+import {validateProdatInvoicee} from '@/lib/ediel/rulebook/prodatInvoiceePolicy'
 import {validateProdatEndUserAddress} from '@/lib/ediel/rulebook/prodatEndUserAddressPolicy'
 import {assertTgtAddressFactSource} from './tgtRegisterFacts'
 import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
@@ -48,6 +49,7 @@ export function validateEdielTgtDraft(
   const parsed = parseEdifactSegments(rawPayload);
   if (step.family === 'PRODAT') {
     const wire = tokenizeEdifact(rawPayload);
+    for(const failure of validateProdatInvoicee({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts}))pushIssue(issues,'error',failure.code,failure.title,failure.description);
     for(const failure of validateProdatEndUserAddress({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts}))pushIssue(issues,'error',failure.code,failure.title,failure.description);
     for (const failure of validateProdatRegisterPayload({code:step.code,
       rawSegments:wire.segments.map(segment=>segment.raw),una:wire.una,
