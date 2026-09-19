@@ -2,24 +2,33 @@
   "project": "gridex-ops-platform",
   "updated_at": "2026-09-19",
   "status": "IN_PROGRESS",
-  "branch": "codex/ediel-z14-dependent-20260919",
-  "base_head_sha": "168c21336bedcebef02da27bada55a6ea63f805e",
-  "active_item": "Qualify twelve Z14 dependent cells",
-  "next_action": "Independent review and ordinary exact-head CI; repair then guarded merge",
-  "source_state": {
-    "local_code_commit": "ad1b6a8689b322759e70c9b09598f06e83a2c807",
-    "numeric_D_total": 110,
-    "accepted_predecessors": 18,
-    "candidate_count": 12,
-    "other_unaccepted": 80,
-    "application_tests_pass": 3220,
-    "new_tests_pass": 104,
-    "full_masterplan": "NOT_COMPLETE"
-  },
+  "branch": "codex/ediel-reporting-context-20260919",
+  "base_head_sha": "11d9e55621f422bafb2a36818e08fee4fbb93241",
+  "active_item": "Qualify narrow Z14N321/323 exclusion fix; positive producer blocked",
+  "next_action": "Independent review and exact-head CI of f6ceb556, repair then guarded merge; six optional IT cells next",
+  "accepted_numeric_D": 30,
+  "numeric_D_total": 110,
+  "accepted_parents": 4,
+  "parent_total": 10,
+  "candidate_cells": [
+    "PC-321-Z13",
+    "PC-321-Z14",
+    "PC-323-Z13",
+    "PC-323-Z14"
+  ],
   "deferred_work": {
     "pr": 310,
     "state": "PAUSED",
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
-  "closed_release_issue": 332
+  "full_masterplan": "NOT_COMPLETE",
+  "local_candidate": "f6ceb556d029b873379f5ac9e3f0186a15644b3f",
+  "application_tests": 3376,
+  "main338_full_certificate": "73/73 SUCCESS run35434421699",
+  "blocked_cells": [
+    "PC-321-Z13",
+    "PC-321-Z14",
+    "PC-323-Z13",
+    "PC-323-Z14"
+  ]
 }

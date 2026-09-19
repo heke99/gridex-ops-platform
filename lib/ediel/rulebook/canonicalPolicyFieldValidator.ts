@@ -68,7 +68,7 @@ export function validateCanonicalPolicyFields(input: {
     : validateFieldMatrixPayload(matrixInput, baseRules)
   if (input.policy.family !== 'PRODAT') return issues
   issues.push(...validateProdatSubtypePolicy(matrixInput, input.policy.direction === 'inbound'
-    ? rules.filter(rule => !(input.policy.code === 'Z14' && isZ14DependentField(rule.fieldNumber ?? '')) && !isSourceBoundEndUserField(input.policy.code, rule.fieldNumber ?? '')) : rules))
+    ? rules.filter(rule => !(input.policy.code === 'Z14' && (isZ14DependentField(rule.fieldNumber ?? '') || ['321','323'].includes(rule.fieldNumber ?? ''))) && !isSourceBoundEndUserField(input.policy.code, rule.fieldNumber ?? '')) : rules))
   const register = validateProdatRegisterPolicy({code:input.policy.code, rawSegments:input.rawSegments ?? [], una:input.una, facts:input.policy.prodatDependentFacts, rules})
   issues.push(...register.issues)
 

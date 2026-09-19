@@ -169,3 +169,9 @@ full build passed with a local 3072 MiB process cap, followed by the unchanged
 bundle budget. Do not mark earlier failures as passes or copy the memory cap
 into committed configuration to suppress an acceptance gate. Read the separate
 three-attempt audit. GitHub write/CI capability was unavailable in this session.
+
+## Resolved PR338 R1 and local command mismatch
+Padded Z14 DTM90/354/693 qualifiers bypassed protected checks;108red then115regressions green, independent original9escapes nowblocked. Minimal recognition-plus-exact-spelling rejection. Full certificate must use workflow NODE_OPTIONS preload; omitting it yields9legacy source-string failures (64/73), correct invocation73/73.
+
+## Still open positive reporting/customer authority
+Ten archived RED probe cases remain, fourcells unaccepted. Missing per-object verified producer; do not enable blocked stubs or promote arbitrary portalData. NarrowNexclusions repaired locally pendingreview. Audit f3-reporting-context-20260919.md contains actualsource/callpaths,redcounts and separate producerdesign.

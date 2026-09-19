@@ -28,7 +28,7 @@ export function isZ14DependentField(field: string): boolean {
 /** Outbound only. Scan supplied data before narrowing, then evaluate each
  * actual object reason. Never use a root snapshot, byCell, or another message. */
 export function validateProdatZ14Policy(input: FieldMatrixEvaluationInput, rules: readonly RulebookFieldRule[]): EdielRulebookIssue[] {
-  if (input.code !== 'Z14' || !rules.some(rule => isZ14DependentField(rule.fieldNumber ?? ''))) return []
+  if (input.code !== 'Z14' || !rules.some(rule => isZ14DependentField(rule.fieldNumber ?? '') || ['321','323'].includes(rule.fieldNumber ?? ''))) return []
   const una = input.una ?? parseUna(null)
   const selected = rules.filter(rule => isZ14DependentField(rule.fieldNumber ?? ''))
   const { groups, tokens } = prodatRegisterGroups(prodatRegisterMessageSegments(input.rawSegments ?? [], una), una, 'Z14')
@@ -52,6 +52,27 @@ export function validateProdatZ14Policy(input: FieldMatrixEvaluationInput, rules
       if (token.tag === 'NAD') beforeParty = false
       if (['NAD','RFF'].includes(token.tag)) beforeReference = false
       allowed.set(token.index,{scope,beforeReference,beforeParty})
+    }
+  }
+  // P26.A p17/p21: explicit N exclusions require no reporting/customer
+  // facts. Positive cardinality remains unqualified. Recognize padded supplied
+  // qualifiers only to reject them, never as valid value/reason evidence.
+  const contextFields = rules.filter(rule => ['321','323'].includes(rule.fieldNumber ?? ''))
+  const suppliedContext = (field: string, token: EdifactTokenizedSegment) => field === '321'
+    ? token.tag === 'DTM' && segmentComposite(token,1,una)[0]?.trim() === '91'
+    : token.tag === 'CCI' && segmentComposite(token,2,una)[0]?.trim().toUpperCase() === 'Z24'
+  const contextFailure = (rule: RulebookFieldRule, code: string, detail: string) => {
+    issues.push({scope:'prodat_dependent',severity:'error',blocking:true,code,
+      title:'PRODAT Z14 rapporteringskontext följer inte källregeln',fieldPath:rule.segmentPath,
+      description:`Z14:${rule.fieldNumber}, P26.A §2.2 s.17/21: ${detail}.`})
+  }
+  // Unowned/header/late data is a placement error, not a fact borrowed from
+  // the next object's reason. Check it before selecting N objects.
+  for (const rule of contextFields) for (const token of tokens.filter(token => suppliedContext(rule.fieldNumber!,token))) {
+    const placement = allowed.get(token.index)
+    const firstChild = placement?.scope.find(part => ['CCI','RFF','NAD'].includes(part.tag))
+    if (!placement || (rule.fieldNumber === '321' ? firstChild && token.index >= firstChild.index : !placement.beforeReference)) {
+      contextFailure(rule,'PRODAT_DEPENDENT_FIELD_SCOPE_INVALID','angivet fält ligger utanför sitt första SG8/SG14')
     }
   }
   const extra = (token: EdifactTokenizedSegment, last: number) => {
@@ -134,6 +155,11 @@ export function validateProdatZ14Policy(input: FieldMatrixEvaluationInput, rules
     const reasonIndex=scope.findIndex(t=>t.tag==='CCI'&&segmentComposite(t,2,una)[0]==='Z13')
     const rawReason=reasonIndex<0?null:segmentComposite(scope[reasonIndex+1],1,una)[0]
     const subtype=rawReason===rawReason?.trim()?prodatEndUserWireSubtype('Z14',scope,una):null
+    if (subtype === 'N') for (const rule of contextFields) {
+      if (scope.some(token => suppliedContext(rule.fieldNumber!,token))) {
+        contextFailure(rule,'PRODAT_DEPENDENT_FIELD_FORBIDDEN','fältet får inte skickas i objektets Z14N')
+      }
+    }
     const identity=segmentComposite(scope.find(t=>t.tag==='LIN'),3,una)[0]
     const context=`Objekt ${identity || '(saknar identitet)'}`
     for (const rule of selected) {
@@ -166,6 +192,6 @@ export function validateProdatZ14Policy(input: FieldMatrixEvaluationInput, rules
 }
 
 export function z14DependentRules(): RulebookFieldRule[] {
-  return canonicalProdat26AFieldRules('Z14').filter(rule=>isZ14DependentField(rule.fieldNumber ?? ''))
+  return canonicalProdat26AFieldRules('Z14').filter(rule=>isZ14DependentField(rule.fieldNumber ?? '') || ['321','323'].includes(rule.fieldNumber ?? ''))
 }
 

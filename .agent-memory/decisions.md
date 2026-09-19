@@ -120,3 +120,6 @@ source rules. Actual first-register field223 and object/agency boundaries own
 authority; root snapshots and sibling objects cannot fill missing wire evidence.
 Protected outbound D issues precede the legacy invalid-test-send exception.
 The remaining original cells require their own evidence; no blanket completion.
+
+## Continue after338
+Keep310paused and335unmerged. Accept boundedZ14 unit only; next321/323 context requires independent per-object evidence, never field-presence/byCell inference.
