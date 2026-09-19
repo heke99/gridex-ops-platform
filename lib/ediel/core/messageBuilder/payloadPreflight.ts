@@ -337,6 +337,7 @@ function validateEdifactPayload(params: {
   rawPayload: string
   mimeType?: string | null
   mode: 'send' | 'parse'
+  parsedPayload?: unknown
 }): EdielPayloadPreflightResult {
   const rawPayload = params.rawPayload
   const canonical = parseCanonicalEdielPayload({ rawPayload, standardHint: 'edifact' })
@@ -533,6 +534,8 @@ function validateEdifactPayload(params: {
     applicationReference: canonical.applicationReference,
     rawPayload,
     mode: params.mode === 'send' ? 'send' : 'parse',
+    parsedPayload: params.parsedPayload && typeof params.parsedPayload === 'object' && !Array.isArray(params.parsedPayload)
+      ? params.parsedPayload as Record<string, unknown> : null,
   })
 
   for (const rulebookIssue of rulebookValidation.issues) {
@@ -675,6 +678,9 @@ export function preflightEdielPayload(params: {
   mimeType?: string | null
   messageStandard?: EdielMessageRow['message_standard'] | null
   mode?: 'send' | 'parse'
+  /** Optional persisted renderer metadata. PRODAT register facts are accepted
+   * only through their body-bound evidence envelope in the rulebook validator. */
+  parsedPayload?: unknown
 }): EdielPayloadPreflightResult {
   const rawPayload = String(params.rawPayload ?? '').trim()
   const payloadSizeBytes = new TextEncoder().encode(rawPayload).length
@@ -697,7 +703,7 @@ export function preflightEdielPayload(params: {
   if (params.messageStandard === 'xml' || rawPayload.startsWith('<')) return validateXmlPayload(rawPayload, params.mimeType ?? null)
   const edifactDeclared = params.messageStandard === 'edifact' || rawPayload.startsWith('UNA')
   if (params.messageStandard === 'ai_list' || (!edifactDeclared && !rawPayload.includes("'") && rawPayload.includes(';'))) return validateListPayload(rawPayload)
-  return validateEdifactPayload({ rawPayload, mimeType: params.mimeType ?? null, mode: params.mode ?? 'parse' })
+  return validateEdifactPayload({ rawPayload, mimeType: params.mimeType ?? null, mode: params.mode ?? 'parse', parsedPayload:params.parsedPayload })
 }
 
 export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' | 'parse' = 'send'): EdielPayloadPreflightResult {
@@ -706,6 +712,7 @@ export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' 
     mimeType: message.mime_type,
     messageStandard: message.message_standard,
     mode,
+    parsedPayload:message.parsed_payload,
   })
   if (!message.raw_payload || (result.family !== 'PRODAT' && message.message_family !== 'PRODAT' && !/^(?:UNA|UNB|UNH)/.test(message.raw_payload.trimStart()))) return result
   try {

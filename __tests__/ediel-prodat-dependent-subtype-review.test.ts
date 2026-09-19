@@ -5,19 +5,23 @@ import { assertRulebookAllowsSend } from '@/lib/ediel/rulebook/sendGuards'
 import { preflightEdielMessageRow } from '@/lib/ediel/core/messageBuilder/payloadPreflight'
 import { assertEdielSendLock } from '@/lib/ediel/transport/sendLock'
 import { evaluateProdatDependentConditions } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
+import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { parseRulebookMessage, parseRulebookListPayload } from '@/lib/ediel/rulebook/messageParser'
 import { PRODAT_SOURCE_SUBTYPE_REQUIREMENTS, prodatSourceSubtypeRule, resolveProdatSourceSubtypeRequirement } from '@/lib/ediel/prodat/prodatSubtypeRequirement'
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import { alphabets, characteristic, line, raw, type Parts } from './fixtures/prodat-register'
+import { alphabets, characteristic, input, line, raw, type Parts } from './fixtures/prodat-register'
 
 // Independent oracle: P26.A r3 §2.2 p17, Z09E requires field216;
 // Z06E does not. A shared E34 reason must not allow metadata to choose Z06.
 function message(body: Parts[], code = 'Z09', environment: 'test' | 'production' = 'test', alphabet: readonly string[] = alphabets[0]): EdielMessageRow {
   const payload = raw(body,code,alphabet)
+  const wire = input(payload,code)
+  const registerEvidence = createProdatRegisterEvidence({code,rawSegments:wire.rawSegments,una:wire.una,
+    facts:{market:'electricity',registerObjects:[{meteringPointId:'A',identityAgency:'89',expectedRegisterCount:1,meterReadingsSentInUtilts:false}]}})
   const row: Partial<EdielMessageRow> = {message_family:'PRODAT',message_code:code,message_version:'26A',direction:'outbound',environment,
     message_standard:'edifact',application_reference:'23-DDQ-PRODAT',
     company_id:'synthetic-company',raw_payload:payload,mime_type:'application/EDIFACT',
-    parsed_payload:{rulebookAllowInvalidSend:true,prodatEngine:{
+    parsed_payload:{rulebookAllowInvalidSend:true,prodatEngine:{registerEvidence,
       dependentConditionStatuses:evaluateProdatDependentConditions({messageCode:code,facts:{canonicalSubtype:'F'}})
         .map(condition=>({...condition,status:'not_required'}))}},
   }

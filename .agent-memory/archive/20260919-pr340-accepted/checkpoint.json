@@ -1,0 +1,36 @@
+{
+  "project": "gridex-ops-platform",
+  "updated_at": "2026-09-19",
+  "status": "IN_PROGRESS",
+  "branch": "codex/ediel-optional-installation-20260919",
+  "base_head_sha": "19ca7e074d4a337620bd041394b22e637e83a9b4",
+  "active_item": "Qualify six optional IT child cells",
+  "next_action": "Independent review and ordinary exact-head CI of optionalIT candidate; repair then guarded merge",
+  "accepted_numeric_D": 30,
+  "numeric_D_total": 110,
+  "accepted_parents": 4,
+  "parent_total": 10,
+  "candidate_cells": [
+    "PC-233-Z01",
+    "PC-234-Z01",
+    "PC-233-Z03",
+    "PC-234-Z03",
+    "PC-233-Z08",
+    "PC-234-Z08"
+  ],
+  "blocked_cells": [
+    "PC-321-Z13",
+    "PC-323-Z13",
+    "PC-321-Z14",
+    "PC-323-Z14"
+  ],
+  "deferred_work": {
+    "pr": 310,
+    "state": "PAUSED",
+    "head": "e961135199f292b8210884f07de3b616a670161a"
+  },
+  "full_masterplan": "NOT_COMPLETE",
+  "local_candidate": "eb1a5abce783c8fd399f106ee93987dada44f7b7",
+  "application_tests": 3411,
+  "main339_full_certificate": "73/73 SUCCESS run35435423862"
+}

@@ -1,0 +1,2943 @@
+{
+  "status": "DERIVED_DEPENDENCY_QUALIFICATION_ONLY",
+  "date": "2026-09-19",
+  "accepted_base": "1bbe4483f86d5b9fd93dfcb6e846341fd9762a42",
+  "analysis_head": "c1df0ea80dd84df1cc34188763716d29dea424da",
+  "counts": {
+    "numeric_total": 110,
+    "accepted_prior": 36,
+    "remaining": 74,
+    "remaining_parent_dependent": 44,
+    "remaining_other_context": 30,
+    "parent_occurrences": 10,
+    "parent_accepted_prior": 4,
+    "parent_remaining": 6,
+    "new_acceptance": 0
+  },
+  "accepted_numeric_ids": [
+    "PC-209-Z14",
+    "PC-216-Z09",
+    "PC-217-Z06",
+    "PC-217-Z09",
+    "PC-217-Z14",
+    "PC-222-Z14",
+    "PC-227-Z06",
+    "PC-227-Z09",
+    "PC-227-Z14",
+    "PC-228-Z06",
+    "PC-228-Z09",
+    "PC-228-Z14",
+    "PC-231-Z06",
+    "PC-231-Z09",
+    "PC-232-Z06",
+    "PC-232-Z09",
+    "PC-233-Z01",
+    "PC-233-Z03",
+    "PC-233-Z08",
+    "PC-234-Z01",
+    "PC-234-Z03",
+    "PC-234-Z08",
+    "PC-242-Z06",
+    "PC-254-Z06",
+    "PC-260-Z14",
+    "PC-302-Z14",
+    "PC-306-Z06",
+    "PC-316-Z06",
+    "PC-316-Z09",
+    "PC-319-Z04",
+    "PC-325-Z14",
+    "PC-326-Z14",
+    "PC-506-Z14",
+    "PC-508-Z06",
+    "PC-508-Z14",
+    "PC-513-Z14"
+  ],
+  "prior_blocked_ids": [
+    "PC-321-Z13",
+    "PC-321-Z14",
+    "PC-323-Z13",
+    "PC-323-Z14"
+  ],
+  "source_sha256": {
+    "docs/ediel/masterplan-v2/registers/prodat_conditional_cells.json": "55d44fcf337b5a7c9508c50bd25b9f204128ae2939ee36e49e74072b031a4b5d",
+    "docs/ediel/masterplan-v2/registers/prodat_fields.json": "e1248f8f4ec025aa5d71e3b3249ee70b6e9e0d8e0e48a4ec6f0db11e31178354",
+    "docs/ediel/masterplan-v2/registers/prodat_parent_groups.json": "89d3d00ae091f85a11b88aff5761f63328023e7f553e1d44b04ff74a736a95c7",
+    "docs/ediel/masterplan-v2/registers/prodat_group_conditions.json": "2a8e27f377f22adf475fea11a496b8105ce77802878361cbaaeb406cdc4fff93",
+    "docs/ediel/masterplan-v2/registers/source_manifest.json": "ae5561799f6c81d78a139e4f5f82e74228bb765369fc6876668ae99ac338892d",
+    "docs/ediel/masterplan-v2/annex/source_tables.json": "a23e928bdbe7e4bd514df99c789482023aea1d2f70f2a26f4a7ae5c05c973728",
+    "docs/ediel/masterplan-v2/annex/B_PRODAT_falt_och_villkor.md": "f126a477440d852d9f15f6e725e391065a93685e5c38dba70542b0ab6526313e"
+  },
+  "original_document_manifest": [
+    {
+      "id": "P",
+      "filename": "260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B(6).pdf",
+      "sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+      "pages": 140
+    },
+    {
+      "id": "T",
+      "filename": "260220_Ediel-anvisning-generella_tekniska_regler_version_24-A-6(4).pdf",
+      "sha256": "5204d4514774b04b8eedb039e1f4799ed447c7fef14554577935e2d7bd93f951",
+      "pages": 60
+    },
+    {
+      "id": "U",
+      "filename": "260331_Ediel_UTILTS-APERAK_Anvisning_version_25-A-4.pdf",
+      "sha256": "0524c18f38864ebe081dec9d3d53f1797b224ef0af7b01986627e895f47d99be",
+      "pages": 135
+    },
+    {
+      "id": "UE",
+      "filename": "260331_Ediel_UTILTS-APERAK_User_Guide_Version_25-A-4 (2).pdf",
+      "sha256": "a2f2018077b253bb012ef0255c6dc98dcfffeb65b9e707af5ca131838990a92a",
+      "pages": 135
+    },
+    {
+      "id": "AI",
+      "filename": "250401_Ediel_AI-listan_Anvisning_version_14-A-3 Giltig fr_n 2025-10-01(5).pdf",
+      "sha256": "c5815bacbc40beb1ee1b36cb03c71a089fbc18cda3368811afadcdca78899351",
+      "pages": 11
+    },
+    {
+      "id": "OE",
+      "filename": "UTILTS-APERAK_ver_E5SE5A_exempelsamling_objekt_el_250430 (1).pdf",
+      "sha256": "36741ce40f0b67c12cc7df655afd4e260fef86712f3d0272bd6ee61dd76aee6d",
+      "pages": 57
+    },
+    {
+      "id": "AP",
+      "filename": "260807_ANVISNING_APERAK_VERSION05.B.5(4).pdf",
+      "sha256": "0bc4790af2509d19c682748c4aeb85d7acc75cd30214636bae259e2c6c3594bd",
+      "pages": 26
+    }
+  ],
+  "original_pdf_rehashed_this_task": false,
+  "original_evidence_limitation": "Full retained field notes and relevant retained source tables inspected; original PDF bytes not mounted or fetched. Prior original register-page inspection recorded in f3-register-source-map.md; no new original-image review claimed.",
+  "groups": {
+    "register_inventory": {
+      "fields": [
+        "258"
+      ],
+      "wire_derivable": "Exact object identity+agency, actual LIN/C829 sequence and observed register count. Observed count does not prove physical completeness.",
+      "external_prerequisites": "Independent expectedRegisterCount for each object; explicit unknown when absent.",
+      "current_path": "registerObjects in ProdatDependentConditionFacts -> register evidence; authorized TGT run facts already provide a source-bound producer. prodatRegisterPolicy checks supplied expected count against observed wire count.",
+      "next_dependency": "NEXT: qualify three 258 cells with mandatory independent inventory for outbound business-condition resolution, preserve structural parse checks and existing TGT path.",
+      "interpretation": "R for independently established multiple registers, X for established singleton; unknown cannot become singleton merely because one LIN was serialized. C829 indicator 1, numeric index 1..m; different from global field314.",
+      "classification": "STATIC_DEPENDENCY_MAP_NOT_RUNTIME_PROOF"
+    },
+    "register_readings": {
+      "fields": [
+        "214",
+        "218",
+        "259"
+      ],
+      "wire_derivable": "Exact object first-register reason; later-register repetition predicate expressly derives from first-register field presence under appendix2.",
+      "external_prerequisites": "Per-object declaration of whether meter standings will be sent in UTILTS; market, independently scoped inventory.",
+      "current_path": "Existing registerObjects.meterReadingsSentInUtilts, TGT run facts, registerEvidence and register policy overlay. Root fallback exists when object facts omitted.",
+      "next_dependency": "After 258, qualify source-exact reason/false outcomes and per-object readings authority; do not erase accepted register overlay.",
+      "interpretation": "Frozen R/X projection is retained verbatim per cell. Full notes expressly allow first-register Z06E/G 214/218/259; EL259 additionally requires standings. Current overlay uses optional for no-readings 214/218 in Z04/Z06F/Z10, unlike frozen X: resolve this source interpretation before claiming nine cells; do not silently rewrite register. Appendix2 later repeats differ from first-register rules.",
+      "classification": "STATIC_DEPENDENCY_MAP_NOT_RUNTIME_PROOF"
+    },
+    "pre_supply_change": {
+      "fields": [
+        "210"
+      ],
+      "wire_derivable": "Own exact DTM157 validity start and DTM92 contract start can be compared when both valid, but absent 210 cannot prove no future supply.",
+      "external_prerequisites": "Exact object supply-start and change-effective timestamps/process revision; future-recipient relation from business source.",
+      "current_path": "Date inputs/renderers validate values; remaining D engine uses byCell Z06:210/Z10:210. compatAdapter start-date aliases are output inputs, not independent change-before-supply evidence.",
+      "next_dependency": "Build bounded per-object change-context producer from exact process/contract association; retain unknown when supply start is absent.",
+      "interpretation": "R when change precedes supply start, frozen X otherwise; full note also requires future supplier routing. Do not select latest contract or infer predicate from 210 presence.",
+      "classification": "STATIC_DEPENDENCY_MAP_NOT_RUNTIME_PROOF"
+    },
+    "production_event": {
+      "fields": [
+        "210",
+        "211"
+      ],
+      "wire_derivable": "Exact first-register Z09 reason Z70 establishes D; non-D is an exclusion. Valid 92/93 cannot coexist in D.",
+      "external_prerequisites": "Independent production-contract event start/end and exact object/customer/process association.",
+      "current_path": "Date parser/renderer enforce non-D exclusion and start/end exclusivity; dependent engine still consumes byCell; Z09 builder transforms dates through canonical render semantics.",
+      "next_dependency": "Add production-event fact contract to a dedicated producer; unknown for D without event. No activation of blocked supplier-switch Z09 facade.",
+      "interpretation": "Z09D start=>210 R,211 X; end=>211 R,210 X; unknown event remains unknown. Date presence alone cannot identify event.",
+      "classification": "STATIC_DEPENDENCY_MAP_NOT_RUNTIME_PROOF"
+    },
+    "reporting_term": {
+      "fields": [
+        "321"
+      ],
+      "wire_derivable": "Exact own reason can establish Z14N exclusion; VH requires end per retained prior qualification. V does not prove indefinite.",
+      "external_prerequisites": "Bounded/indefinite reporting intent associated with exact permission request object/revision.",
+      "current_path": "byCell in dependent engine; profile/generic builders carry dates; register evidence deliberately omits reporting facts. Prior four-cell audit inspected permission facade/lifecycle.",
+      "next_dependency": "Retain prior BLOCKED four-cell qualification; establish dedicated authorized permission producer/evidence transport, including identity-less Z13.",
+      "interpretation": "R bounded; X indefinite; Z14N X before external fact. Unknown is not absent end. Retain prior VH and p121 temporal constraints separately.",
+      "classification": "STATIC_DEPENDENCY_MAP_NOT_RUNTIME_PROOF"
+    },
+    "permission_customer": {
+      "fields": [
+        "323"
+      ],
+      "wire_derivable": "Exact own Z14N reason excludes 323; purpose code B71-B76 is output, not customer classification.",
+      "external_prerequisites": "Independent private/nonprivate customer classification and exact permission-to-customer/object association.",
+      "current_path": "customerKind root fact and parsed/report projection; candidate customer_type reader is unrelated to outgoing permission authority.",
+      "next_dependency": "Same permission prerequisite as321; no new schema just because business source has not yet been connected.",
+      "interpretation": "Frozen true R/false X retained; no invented nonprivate optional branch. Source note requires private customer, does not independently settle universal nonprivate prohibition. Prior qualification remains BLOCKED.",
+      "classification": "STATIC_DEPENDENCY_MAP_NOT_RUNTIME_PROOF"
+    },
+    "meter_replacement": {
+      "fields": [
+        "254",
+        "242"
+      ],
+      "wire_derivable": "Exact object reason/market and supplied new Z15/Z14 values; wire has no complete before/after business context.",
+      "external_prerequisites": "254: changed settlement method OR new meter below profile threshold. 242: aggregation product changed during replacement, active EL.",
+      "current_path": "Both Z10 predicates use byCell; profile/snapshot renders values; no dedicated before/after producer found in relevant callers.",
+      "next_dependency": "Bounded meter-replacement event contract with old/new source revision and explicit threshold applicability; missing fact stays unknown.",
+      "interpretation": "R when predicate true, O false. 254 OR uses three-valued logic: either known true sufficient; both false needed for false. EL242 only; GAS not activated.",
+      "classification": "STATIC_DEPENDENCY_MAP_NOT_RUNTIME_PROOF"
+    },
+    "death_event": {
+      "fields": [
+        "310"
+      ],
+      "wire_derivable": "Exact own reason restricts eligible Z05LK(Z23), Z06E/Z09E(E34). Reason E34 also appears in other contexts and is not death evidence.",
+      "external_prerequisites": "Authorized death event for exact customer/object/process; distinguish explicit nondeath from missing information.",
+      "current_path": "Dependent engine businessContext death; profile context, ackPolicy/lifecycle parsed businessContext readers. These consumers are not dedicated authoritative outgoing death producers.",
+      "next_dependency": "Define typed per-object death-event input from a legitimate domain producer and preserve unknown; do not reuse bankruptcy flag or status field as death proof.",
+      "interpretation": "R death AND eligible subtype; X known nondeath or source-excluded subtype; unknown event on eligible subtype stays unknown. Only CAV Z41 permitted by p71.",
+      "classification": "STATIC_DEPENDENCY_MAP_NOT_RUNTIME_PROOF"
+    },
+    "gas_boundary": {
+      "fields": [
+        "320",
+        "240"
+      ],
+      "wire_derivable": "Active application market is EL; exact own subtype is wire-derived. GAS series-change intent is external.",
+      "external_prerequisites": "GAS-only positive branches require separately authorized market/process capability;240 also before/after series-id change.",
+      "current_path": "marketIs(gas) legacy predicates; canonical message policy and profile defaults use electricity; compatibility direction/capability guards remain.",
+      "next_dependency": "Qualify active EL exclusion only if chosen later; do not claim full five-cell GAS acceptance or enable GAS.",
+      "interpretation": "320 GAS Z04 or Z06F/G=>R; other branches X. 240 GAS Z04=>R; Z06F/G or Z10 changed=>R, unchanged O; Z06E O. Active EL240 is X by full source despite unqualified frozen false O in Z06/Z10; source precedence must be explicit.",
+      "classification": "STATIC_DEPENDENCY_MAP_NOT_RUNTIME_PROOF"
+    },
+    "end_user_address": {
+      "fields": [
+        "229"
+      ],
+      "wire_derivable": "UD is mandatory in Z01/02/03/04/05/08; own exact E activates UD in Z06/09. Inactive parent excludes children. NAD street presence is not evidence of external availability.",
+      "external_prerequisites": "End-user address availability for exact customer/object, with explicit unavailable vs unknown.",
+      "current_path": "Actual Z01 renderer reads getCustomerExportContext and computes root availability from site.street; profile consumes root fact, canonical Z06/09 special-cases one object. Existing customer_addresses reader is elsewhere, not connected to producer.",
+      "next_dependency": "Bounded Z01 source adapter must select actual end-user address and relationship, then carry per-object evidence to row/guards. Generalize after its source/absence semantics are proved.",
+      "interpretation": "R active UD AND address available; X inactive parent or explicitly unavailable; unknown on active parent blocks outbound. Site installation address is not automatically end-user address. Missing query/row is not automatically proof that none exists.",
+      "classification": "STATIC_DEPENDENCY_MAP_NOT_RUNTIME_PROOF"
+    },
+    "invoicee_children": {
+      "fields": [
+        "250",
+        "251",
+        "253",
+        "317",
+        "318"
+      ],
+      "wire_derivable": "If IV is actually sent, its own id/name/postcode/city/country are required by full note; this structural consequence does not establish that IV was business-required. Exact Z09 non-E excludes IV.",
+      "external_prerequisites": "Per-object independent invoicee-vs-end-user address comparison controls required parent; source-selected invoicee/customer association.",
+      "current_path": "Root invoiceeAddressDiffersFromEndUser reused for parent and all children; profile invoicee object/portal snapshot renderer exists; generic BuildProdatObjectInput has no invoicee input.",
+      "next_dependency": "Build source-selected party/parent fact contract and object-aware IV policy; conditional mandatory children can be a bounded prerequisite but not full parent/cell acceptance.",
+      "interpretation": "R active IV, X inactive IV; parent unknown remains unknown. Equal addresses are not optional IT-style structural choice. Z09 only E, regardless of root flag.",
+      "classification": "STATIC_DEPENDENCY_MAP_NOT_RUNTIME_PROOF"
+    },
+    "invoicee_address": {
+      "fields": [
+        "252"
+      ],
+      "wire_derivable": "Own IV address syntax and supplied-parent scope; presence does not prove business availability.",
+      "external_prerequisites": "Parent IV applicability plus independent applicable/available invoicee address.",
+      "current_path": "Current predicate reuses invoiceeAddressDiffersFromEndUser; no separate invoiceeAddressApplicable fact in input type or producer.",
+      "next_dependency": "Extend exact source-selected party contract with explicit available/unavailable/unknown address; preserve distinct IV difference and address applicability decisions.",
+      "interpretation": "R active IV AND address applicable; X inactive/not-applicable; unknown blocks outbound. p82 says address if possible, not unconditional R when IV differs.",
+      "classification": "STATIC_DEPENDENCY_MAP_NOT_RUNTIME_PROOF"
+    }
+  },
+  "remaining_cells": [
+    {
+      "id": "PC-258-Z04",
+      "field": "258",
+      "message": "Z04",
+      "partition": "other_context",
+      "dependency_group": "register_inventory",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "register_count > 1",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "register",
+      "parent_group": null,
+      "source_field_ref": "258"
+    },
+    {
+      "id": "PC-258-Z06",
+      "field": "258",
+      "message": "Z06",
+      "partition": "other_context",
+      "dependency_group": "register_inventory",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "register_count > 1",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "register",
+      "parent_group": null,
+      "source_field_ref": "258"
+    },
+    {
+      "id": "PC-258-Z10",
+      "field": "258",
+      "message": "Z10",
+      "partition": "other_context",
+      "dependency_group": "register_inventory",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "register_count > 1",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "register",
+      "parent_group": null,
+      "source_field_ref": "258"
+    },
+    {
+      "id": "PC-210-Z06",
+      "field": "210",
+      "message": "Z06",
+      "partition": "other_context",
+      "dependency_group": "pre_supply_change",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "change_effective_at < supply_start_at",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "object",
+      "parent_group": null,
+      "source_field_ref": "210"
+    },
+    {
+      "id": "PC-210-Z09",
+      "field": "210",
+      "message": "Z09",
+      "partition": "other_context",
+      "dependency_group": "production_event",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "subtype == D AND production_contract_event == start",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "object",
+      "parent_group": null,
+      "source_field_ref": "210"
+    },
+    {
+      "id": "PC-210-Z10",
+      "field": "210",
+      "message": "Z10",
+      "partition": "other_context",
+      "dependency_group": "pre_supply_change",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "change_effective_at < supply_start_at",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "object",
+      "parent_group": null,
+      "source_field_ref": "210"
+    },
+    {
+      "id": "PC-211-Z09",
+      "field": "211",
+      "message": "Z09",
+      "partition": "other_context",
+      "dependency_group": "production_event",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "subtype == D AND production_contract_event == end",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "Z09D: 210 XOR 211. Båda ger APERAK 40/109 vid mottagning.",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "object",
+      "parent_group": null,
+      "source_field_ref": "211"
+    },
+    {
+      "id": "PC-321-Z13",
+      "field": "321",
+      "message": "Z13",
+      "partition": "other_context",
+      "dependency_group": "reporting_term",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "reporting_end_is_bounded",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "VH kräver slut; V tills vidare har inget slut.",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "object",
+      "parent_group": null,
+      "source_field_ref": "321"
+    },
+    {
+      "id": "PC-321-Z14",
+      "field": "321",
+      "message": "Z14",
+      "partition": "other_context",
+      "dependency_group": "reporting_term",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "subtype != N AND reporting_end_is_bounded",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "object",
+      "parent_group": null,
+      "source_field_ref": "321"
+    },
+    {
+      "id": "PC-214-Z04",
+      "field": "214",
+      "message": "Z04",
+      "partition": "other_context",
+      "dependency_group": "register_readings",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "meter_stands_expected",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "register",
+      "parent_group": null,
+      "source_field_ref": "214"
+    },
+    {
+      "id": "PC-214-Z06",
+      "field": "214",
+      "message": "Z06",
+      "partition": "other_context",
+      "dependency_group": "register_readings",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "subtype == F AND meter_stands_expected",
+        "when_true": "R",
+        "when_false": "O if subtype IN (E,G) else X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "register",
+      "parent_group": null,
+      "source_field_ref": "214"
+    },
+    {
+      "id": "PC-214-Z10",
+      "field": "214",
+      "message": "Z10",
+      "partition": "other_context",
+      "dependency_group": "register_readings",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "meter_stands_expected",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "register",
+      "parent_group": null,
+      "source_field_ref": "214"
+    },
+    {
+      "id": "PC-218-Z04",
+      "field": "218",
+      "message": "Z04",
+      "partition": "other_context",
+      "dependency_group": "register_readings",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "meter_stands_expected",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "register",
+      "parent_group": null,
+      "source_field_ref": "218"
+    },
+    {
+      "id": "PC-218-Z06",
+      "field": "218",
+      "message": "Z06",
+      "partition": "other_context",
+      "dependency_group": "register_readings",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "subtype == F AND meter_stands_expected",
+        "when_true": "R",
+        "when_false": "O if subtype IN (E,G) else X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "register",
+      "parent_group": null,
+      "source_field_ref": "218"
+    },
+    {
+      "id": "PC-218-Z10",
+      "field": "218",
+      "message": "Z10",
+      "partition": "other_context",
+      "dependency_group": "register_readings",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "meter_stands_expected",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "register",
+      "parent_group": null,
+      "source_field_ref": "218"
+    },
+    {
+      "id": "PC-259-Z04",
+      "field": "259",
+      "message": "Z04",
+      "partition": "other_context",
+      "dependency_group": "register_readings",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "meter_stands_expected",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "register",
+      "parent_group": null,
+      "source_field_ref": "259"
+    },
+    {
+      "id": "PC-259-Z06",
+      "field": "259",
+      "message": "Z06",
+      "partition": "other_context",
+      "dependency_group": "register_readings",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "subtype == F AND meter_stands_expected",
+        "when_true": "R",
+        "when_false": "O if subtype IN (E,G) AND meter_stands_expected else X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "Ytterligare EL-villkor: utan rapportering av mätarställningar får 259 inte skickas alls; då X, inte O.",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "register",
+      "parent_group": null,
+      "source_field_ref": "259"
+    },
+    {
+      "id": "PC-259-Z10",
+      "field": "259",
+      "message": "Z10",
+      "partition": "other_context",
+      "dependency_group": "register_readings",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "meter_stands_expected",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "register",
+      "parent_group": null,
+      "source_field_ref": "259"
+    },
+    {
+      "id": "PC-254-Z10",
+      "field": "254",
+      "message": "Z10",
+      "partition": "other_context",
+      "dependency_group": "meter_replacement",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "settlement_method_changed OR new_meter_below_profile_threshold",
+        "when_true": "R",
+        "when_false": "O",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "object",
+      "parent_group": null,
+      "source_field_ref": "254"
+    },
+    {
+      "id": "PC-242-Z10",
+      "field": "242",
+      "message": "Z10",
+      "partition": "other_context",
+      "dependency_group": "meter_replacement",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "market == EL AND aggregation_product_changed",
+        "when_true": "R",
+        "when_false": "O",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "object",
+      "parent_group": null,
+      "source_field_ref": "242"
+    },
+    {
+      "id": "PC-310-Z05",
+      "field": "310",
+      "message": "Z05",
+      "partition": "other_context",
+      "dependency_group": "death_event",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "customer_event == death AND ((message == Z05 AND subtype == LK) OR (message IN (Z06,Z09) AND subtype == E))",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "Inte generell status för konkurs.",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "customer",
+      "parent_group": null,
+      "source_field_ref": "310"
+    },
+    {
+      "id": "PC-310-Z06",
+      "field": "310",
+      "message": "Z06",
+      "partition": "other_context",
+      "dependency_group": "death_event",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "customer_event == death AND ((message == Z05 AND subtype == LK) OR (message IN (Z06,Z09) AND subtype == E))",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "Inte generell status för konkurs.",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "customer",
+      "parent_group": null,
+      "source_field_ref": "310"
+    },
+    {
+      "id": "PC-310-Z09",
+      "field": "310",
+      "message": "Z09",
+      "partition": "other_context",
+      "dependency_group": "death_event",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "customer_event == death AND ((message == Z05 AND subtype == LK) OR (message IN (Z06,Z09) AND subtype == E))",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "Inte generell status för konkurs.",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "customer",
+      "parent_group": null,
+      "source_field_ref": "310"
+    },
+    {
+      "id": "PC-323-Z13",
+      "field": "323",
+      "message": "Z13",
+      "partition": "other_context",
+      "dependency_group": "permission_customer",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "customer_kind == private",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "permission",
+      "parent_group": null,
+      "source_field_ref": "323"
+    },
+    {
+      "id": "PC-323-Z14",
+      "field": "323",
+      "message": "Z14",
+      "partition": "other_context",
+      "dependency_group": "permission_customer",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "subtype != N AND customer_kind == private",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "permission",
+      "parent_group": null,
+      "source_field_ref": "323"
+    },
+    {
+      "id": "PC-320-Z04",
+      "field": "320",
+      "message": "Z04",
+      "partition": "other_context",
+      "dependency_group": "gas_boundary",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "market == GAS AND (message == Z04 OR subtype IN (F,G))",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "object",
+      "parent_group": null,
+      "source_field_ref": "320"
+    },
+    {
+      "id": "PC-320-Z06",
+      "field": "320",
+      "message": "Z06",
+      "partition": "other_context",
+      "dependency_group": "gas_boundary",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "market == GAS AND (message == Z04 OR subtype IN (F,G))",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "object",
+      "parent_group": null,
+      "source_field_ref": "320"
+    },
+    {
+      "id": "PC-240-Z04",
+      "field": "240",
+      "message": "Z04",
+      "partition": "other_context",
+      "dependency_group": "gas_boundary",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "market == GAS AND (message == Z04 OR series_id_changed)",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "EL: alltid X. Nationella gasregler ska inte tillämpas som elregler.",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "object",
+      "parent_group": null,
+      "source_field_ref": "240"
+    },
+    {
+      "id": "PC-240-Z06",
+      "field": "240",
+      "message": "Z06",
+      "partition": "other_context",
+      "dependency_group": "gas_boundary",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "market == GAS AND (message == Z04 OR series_id_changed)",
+        "when_true": "R",
+        "when_false": "O",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "EL: alltid X. Nationella gasregler ska inte tillämpas som elregler.",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "object",
+      "parent_group": null,
+      "source_field_ref": "240"
+    },
+    {
+      "id": "PC-240-Z10",
+      "field": "240",
+      "message": "Z10",
+      "partition": "other_context",
+      "dependency_group": "gas_boundary",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "market == GAS AND (message == Z04 OR series_id_changed)",
+        "when_true": "R",
+        "when_false": "O",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "EL: alltid X. Nationella gasregler ska inte tillämpas som elregler.",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "object",
+      "parent_group": null,
+      "source_field_ref": "240"
+    },
+    {
+      "id": "PC-229-Z01",
+      "field": "229",
+      "message": "Z01",
+      "partition": "parent_dependent",
+      "dependency_group": "end_user_address",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_UD_active AND end_user_address_available",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "Barnkrav gäller endast när elanvändargruppen används.",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "customer",
+      "parent_group": "UD",
+      "source_field_ref": "229"
+    },
+    {
+      "id": "PC-229-Z02",
+      "field": "229",
+      "message": "Z02",
+      "partition": "parent_dependent",
+      "dependency_group": "end_user_address",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_UD_active AND end_user_address_available",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "Barnkrav gäller endast när elanvändargruppen används.",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "customer",
+      "parent_group": "UD",
+      "source_field_ref": "229"
+    },
+    {
+      "id": "PC-229-Z03",
+      "field": "229",
+      "message": "Z03",
+      "partition": "parent_dependent",
+      "dependency_group": "end_user_address",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_UD_active AND end_user_address_available",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "Barnkrav gäller endast när elanvändargruppen används.",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "customer",
+      "parent_group": "UD",
+      "source_field_ref": "229"
+    },
+    {
+      "id": "PC-229-Z04",
+      "field": "229",
+      "message": "Z04",
+      "partition": "parent_dependent",
+      "dependency_group": "end_user_address",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_UD_active AND end_user_address_available",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "Barnkrav gäller endast när elanvändargruppen används.",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "customer",
+      "parent_group": "UD",
+      "source_field_ref": "229"
+    },
+    {
+      "id": "PC-229-Z05",
+      "field": "229",
+      "message": "Z05",
+      "partition": "parent_dependent",
+      "dependency_group": "end_user_address",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_UD_active AND end_user_address_available",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "Barnkrav gäller endast när elanvändargruppen används.",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "customer",
+      "parent_group": "UD",
+      "source_field_ref": "229"
+    },
+    {
+      "id": "PC-229-Z06",
+      "field": "229",
+      "message": "Z06",
+      "partition": "parent_dependent",
+      "dependency_group": "end_user_address",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_UD_active AND end_user_address_available",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "Barnkrav gäller endast när elanvändargruppen används.",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "customer",
+      "parent_group": "UD",
+      "source_field_ref": "229"
+    },
+    {
+      "id": "PC-229-Z08",
+      "field": "229",
+      "message": "Z08",
+      "partition": "parent_dependent",
+      "dependency_group": "end_user_address",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_UD_active AND end_user_address_available",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "Barnkrav gäller endast när elanvändargruppen används.",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "customer",
+      "parent_group": "UD",
+      "source_field_ref": "229"
+    },
+    {
+      "id": "PC-229-Z09",
+      "field": "229",
+      "message": "Z09",
+      "partition": "parent_dependent",
+      "dependency_group": "end_user_address",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_UD_active AND end_user_address_available",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "Barnkrav gäller endast när elanvändargruppen används.",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "customer",
+      "parent_group": "UD",
+      "source_field_ref": "229"
+    },
+    {
+      "id": "PC-250-Z03",
+      "field": "250",
+      "message": "Z03",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "250"
+    },
+    {
+      "id": "PC-250-Z04",
+      "field": "250",
+      "message": "Z04",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "250"
+    },
+    {
+      "id": "PC-250-Z05",
+      "field": "250",
+      "message": "Z05",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "250"
+    },
+    {
+      "id": "PC-250-Z06",
+      "field": "250",
+      "message": "Z06",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "250"
+    },
+    {
+      "id": "PC-250-Z08",
+      "field": "250",
+      "message": "Z08",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "250"
+    },
+    {
+      "id": "PC-250-Z09",
+      "field": "250",
+      "message": "Z09",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "250"
+    },
+    {
+      "id": "PC-251-Z03",
+      "field": "251",
+      "message": "Z03",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "251"
+    },
+    {
+      "id": "PC-251-Z04",
+      "field": "251",
+      "message": "Z04",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "251"
+    },
+    {
+      "id": "PC-251-Z05",
+      "field": "251",
+      "message": "Z05",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "251"
+    },
+    {
+      "id": "PC-251-Z06",
+      "field": "251",
+      "message": "Z06",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "251"
+    },
+    {
+      "id": "PC-251-Z08",
+      "field": "251",
+      "message": "Z08",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "251"
+    },
+    {
+      "id": "PC-251-Z09",
+      "field": "251",
+      "message": "Z09",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "251"
+    },
+    {
+      "id": "PC-252-Z03",
+      "field": "252",
+      "message": "Z03",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_address",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active AND invoicee_address_applicable",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "252"
+    },
+    {
+      "id": "PC-252-Z04",
+      "field": "252",
+      "message": "Z04",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_address",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active AND invoicee_address_applicable",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "252"
+    },
+    {
+      "id": "PC-252-Z05",
+      "field": "252",
+      "message": "Z05",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_address",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active AND invoicee_address_applicable",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "252"
+    },
+    {
+      "id": "PC-252-Z06",
+      "field": "252",
+      "message": "Z06",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_address",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active AND invoicee_address_applicable",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "252"
+    },
+    {
+      "id": "PC-252-Z08",
+      "field": "252",
+      "message": "Z08",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_address",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active AND invoicee_address_applicable",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "252"
+    },
+    {
+      "id": "PC-252-Z09",
+      "field": "252",
+      "message": "Z09",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_address",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active AND invoicee_address_applicable",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "252"
+    },
+    {
+      "id": "PC-253-Z03",
+      "field": "253",
+      "message": "Z03",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "253"
+    },
+    {
+      "id": "PC-253-Z04",
+      "field": "253",
+      "message": "Z04",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "253"
+    },
+    {
+      "id": "PC-253-Z05",
+      "field": "253",
+      "message": "Z05",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "253"
+    },
+    {
+      "id": "PC-253-Z06",
+      "field": "253",
+      "message": "Z06",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "253"
+    },
+    {
+      "id": "PC-253-Z08",
+      "field": "253",
+      "message": "Z08",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "253"
+    },
+    {
+      "id": "PC-253-Z09",
+      "field": "253",
+      "message": "Z09",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "253"
+    },
+    {
+      "id": "PC-317-Z03",
+      "field": "317",
+      "message": "Z03",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "317"
+    },
+    {
+      "id": "PC-317-Z04",
+      "field": "317",
+      "message": "Z04",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "317"
+    },
+    {
+      "id": "PC-317-Z05",
+      "field": "317",
+      "message": "Z05",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "317"
+    },
+    {
+      "id": "PC-317-Z06",
+      "field": "317",
+      "message": "Z06",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "317"
+    },
+    {
+      "id": "PC-317-Z08",
+      "field": "317",
+      "message": "Z08",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "317"
+    },
+    {
+      "id": "PC-317-Z09",
+      "field": "317",
+      "message": "Z09",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "317"
+    },
+    {
+      "id": "PC-318-Z03",
+      "field": "318",
+      "message": "Z03",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "318"
+    },
+    {
+      "id": "PC-318-Z04",
+      "field": "318",
+      "message": "Z04",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "318"
+    },
+    {
+      "id": "PC-318-Z05",
+      "field": "318",
+      "message": "Z05",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "318"
+    },
+    {
+      "id": "PC-318-Z06",
+      "field": "318",
+      "message": "Z06",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "318"
+    },
+    {
+      "id": "PC-318-Z08",
+      "field": "318",
+      "message": "Z08",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "318"
+    },
+    {
+      "id": "PC-318-Z09",
+      "field": "318",
+      "message": "Z09",
+      "partition": "parent_dependent",
+      "dependency_group": "invoicee_children",
+      "acceptance": "UNACCEPTED",
+      "frozen_condition": {
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "source_field_ref": "318"
+    }
+  ],
+  "parent_occurrences": [
+    {
+      "id": "PG-UD-Z06",
+      "group": "UD",
+      "message": "Z06",
+      "acceptance": "ACCEPTED_PRIOR",
+      "dependency_group": null
+    },
+    {
+      "id": "PG-UD-Z09",
+      "group": "UD",
+      "message": "Z09",
+      "acceptance": "ACCEPTED_PRIOR",
+      "dependency_group": null
+    },
+    {
+      "id": "PG-UD-Z14",
+      "group": "UD",
+      "message": "Z14",
+      "acceptance": "ACCEPTED_PRIOR",
+      "dependency_group": null
+    },
+    {
+      "id": "PG-IT-Z14",
+      "group": "IT",
+      "message": "Z14",
+      "acceptance": "ACCEPTED_PRIOR",
+      "dependency_group": null
+    },
+    {
+      "id": "PG-IV-Z03",
+      "group": "IV",
+      "message": "Z03",
+      "acceptance": "UNACCEPTED",
+      "dependency_group": "invoicee_children"
+    },
+    {
+      "id": "PG-IV-Z04",
+      "group": "IV",
+      "message": "Z04",
+      "acceptance": "UNACCEPTED",
+      "dependency_group": "invoicee_children"
+    },
+    {
+      "id": "PG-IV-Z05",
+      "group": "IV",
+      "message": "Z05",
+      "acceptance": "UNACCEPTED",
+      "dependency_group": "invoicee_children"
+    },
+    {
+      "id": "PG-IV-Z06",
+      "group": "IV",
+      "message": "Z06",
+      "acceptance": "UNACCEPTED",
+      "dependency_group": "invoicee_children"
+    },
+    {
+      "id": "PG-IV-Z08",
+      "group": "IV",
+      "message": "Z08",
+      "acceptance": "UNACCEPTED",
+      "dependency_group": "invoicee_children"
+    },
+    {
+      "id": "PG-IV-Z09",
+      "group": "IV",
+      "message": "Z09",
+      "acceptance": "UNACCEPTED",
+      "dependency_group": "invoicee_children"
+    }
+  ],
+  "remaining_field_sources": {
+    "210": {
+      "field": "210",
+      "name_en": "Contract start date",
+      "name_sv": "Avtal, startdatum",
+      "usage": {
+        "Z01": "R",
+        "Z02": "-",
+        "Z03": "R",
+        "Z04": "R",
+        "Z05": "-",
+        "Z06": "D",
+        "Z08": "-",
+        "Z09": "D",
+        "Z10": "D",
+        "Z13": "-",
+        "Z14": "-",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "Avser det datum som leverans startar. Giltigt startdatum, se Handboken. Z06/Z10: Om ändring gäller en ändring som sker före leveransstart är ”avtal startdatum” obligatoriskt och meddelande ska skickas till den framtida leverantören. Z09: Används enbart i Z09D och då endast i anslutning till att avtal om produktion tecknas.",
+      "source_pages": [
+        16,
+        17
+      ],
+      "locator": "SG8/DTM[2005=92]/C507/2380",
+      "scope": "object",
+      "parent_group": null,
+      "value_contract": "203 CCYYMMDDHHmm; leverans-/avtalsstart",
+      "locator_source": "P §2.6 s.50; §2.2 s.16, 17",
+      "implementation_status": "Ej verifierad i runtime",
+      "syntax_definition": "Kompletteras av segmenttabellens datatyp/längd i annex/source_tables.json och den fulla UNSM-grammatiken; använd inte nationell R/D/O som syntax-M.",
+      "segment_table_evidence": [
+        {
+          "page": 50,
+          "table": 1,
+          "row": [
+            "C507\n2005\n2380\n2379",
+            "DATE/TIME/PERIOD\nDate/time/period\nqualifier\nDate/time/period\nDate/time/period format\nqualifier",
+            "M\nM\nR\nR",
+            "an..3\nan..35\nan..3",
+            "M\nM\nR\nR",
+            "92 Contract start date\nAvtal, startdatum, fält 210.\n203 CCYYMMDDHHmm"
+          ],
+          "wire_types": [
+            "an..3",
+            "an..35",
+            "an..3"
+          ]
+        }
+      ]
+    },
+    "211": {
+      "field": "211",
+      "name_en": "Contract stop date",
+      "name_sv": "Avtal, slutdatum",
+      "usage": {
+        "Z01": "-",
+        "Z02": "-",
+        "Z03": "-",
+        "Z04": "-",
+        "Z05": "R",
+        "Z06": "O",
+        "Z08": "R",
+        "Z09": "D",
+        "Z10": "-",
+        "Z13": "-",
+        "Z14": "-",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "Avser det datum som leverans slutar. Z09: Används enbart i Z09D och då endast i anslutning till att avtal om produktion avslutas. Får ej anges samtidigt som Avtal, startdatum i Z09D, vid fel används kod 109 i APERAK fält A903. Giltigt slutdatum, se Handboken.",
+      "source_pages": [
+        17
+      ],
+      "locator": "SG8/DTM[2005=93]/C507/2380",
+      "scope": "object",
+      "parent_group": null,
+      "value_contract": "203; leverans-/avtalsslut",
+      "locator_source": "P §2.6 s.50; §2.2 s.17",
+      "implementation_status": "Ej verifierad i runtime",
+      "syntax_definition": "Kompletteras av segmenttabellens datatyp/längd i annex/source_tables.json och den fulla UNSM-grammatiken; använd inte nationell R/D/O som syntax-M.",
+      "segment_table_evidence": [
+        {
+          "page": 50,
+          "table": 2,
+          "row": [
+            "C507\n2005\n2380\n2379",
+            "DATE/TIME/PERIOD\nDate/time/period\nqualifier\nDate/time/period\nDate/time/period format\nqualifier",
+            "M\nM\nR\nR",
+            "an..3\nan..35\nan..3",
+            "M\nM\nR\nR",
+            "93 Contract stop date\nAvtal, slutdatum, fält 211.\n203 CCYYMMDDHHmm"
+          ],
+          "wire_types": [
+            "an..3",
+            "an..35",
+            "an..3"
+          ]
+        }
+      ]
+    },
+    "214": {
+      "field": "214",
+      "name_en": "Constant",
+      "name_sv": "Konstant för mätare",
+      "usage": {
+        "Z01": "-",
+        "Z02": "-",
+        "Z03": "-",
+        "Z04": "D",
+        "Z05": "-",
+        "Z06": "D",
+        "Z08": "-",
+        "Z09": "-",
+        "Z10": "D",
+        "Z13": "-",
+        "Z14": "-",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "Tal som uppgiven mätarställning skall multipliceras med för att få värdet i rätt måttenhet, vanligen kWh. Z04, Z10: Obligatorisk om mätarställningar skickas i MSCONS/UTILTS. Z06: Obligatorisk i Z06F (transaktionstyp=E64) då mätarställningar skickas i MSCONS/UTILTS. Frivillig i Z06E och Z06G.",
+      "source_pages": [
+        18
+      ],
+      "locator": "SG14/CCI[C502/6313=Z02] → CAV/C889/7110[1]",
+      "scope": "register",
+      "parent_group": null,
+      "value_contract": "Konstant för mätare; fjärde komponenten i C889",
+      "locator_source": "P §2.6 s.55; §2.2 s.18",
+      "implementation_status": "Ej verifierad i runtime",
+      "syntax_definition": "Kompletteras av segmenttabellens datatyp/längd i annex/source_tables.json och den fulla UNSM-grammatiken; använd inte nationell R/D/O som syntax-M.",
+      "segment_table_evidence": [
+        {
+          "page": 55,
+          "table": 2,
+          "row": [
+            "C889\n7111\n1131\n3055\n7110\n7110",
+            "CHARACTERISTIC\nVALUE\nCharacteristic value,\ncoded\nCode list qualifier\nCode list responsible\nagency, coded\nCharacteristic value\nCharacteristic value",
+            "M\nD\nX\nD\nD\nX",
+            "an..3\nan..3\nan..3\nan..35\nan..35",
+            "M\nX\nX\nR",
+            "Konstant, fält 214"
+          ],
+          "wire_types": [
+            "an..3",
+            "an..3",
+            "an..3",
+            "an..35",
+            "an..35"
+          ]
+        }
+      ]
+    },
+    "218": {
+      "field": "218",
+      "name_en": "Number of digits",
+      "name_sv": "Antal siffror, mätare",
+      "usage": {
+        "Z01": "-",
+        "Z02": "-",
+        "Z03": "-",
+        "Z04": "D",
+        "Z05": "-",
+        "Z06": "D",
+        "Z08": "-",
+        "Z09": "-",
+        "Z10": "D",
+        "Z13": "-",
+        "Z14": "-",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "Antalet heltalssiffror på mätaren. Z04, Z10: Obligatorisk om mätarställningar skickas i MSCONS/UTILTS. Z06: Obligatorisk i Z06F (transaktionstyp=E64) då mätarställningar skickas i MSCONS/UTILTS. Frivillig i Z06E och Z06G.",
+      "source_pages": [
+        19
+      ],
+      "locator": "SG14/CCI[C502/6313=Z05] → CAV/C889/7110[1]",
+      "scope": "register",
+      "parent_group": null,
+      "value_contract": "Antal heltalssiffror i mätaren; fjärde komponenten",
+      "locator_source": "P §2.6 s.58; §2.2 s.19",
+      "implementation_status": "Ej verifierad i runtime",
+      "syntax_definition": "Kompletteras av segmenttabellens datatyp/längd i annex/source_tables.json och den fulla UNSM-grammatiken; använd inte nationell R/D/O som syntax-M.",
+      "segment_table_evidence": [
+        {
+          "page": 58,
+          "table": 2,
+          "row": [
+            "C889\n7111\n1131\n3055\n7110\n7110",
+            "CHARACTERISTIC\nVALUE\nCharacteristic value,\ncoded\nCode list qualifier\nCode list responsible\nagency, coded\nCharacteristic value\nCharacteristic value",
+            "M\nD\nX\nD\nD\nX",
+            "an..3\nan..3\nan..3\nan..35\nan..35",
+            "M\nX\nX\nR",
+            "Antal siffror, fält 218"
+          ],
+          "wire_types": [
+            "an..3",
+            "an..3",
+            "an..3",
+            "an..35",
+            "an..35"
+          ]
+        }
+      ]
+    },
+    "229": {
+      "field": "229",
+      "name_en": "End user Address",
+      "name_sv": "Adress-elanvändare",
+      "usage": {
+        "Z01": "D",
+        "Z02": "D",
+        "Z03": "D",
+        "Z04": "D",
+        "Z05": "D",
+        "Z06": "D",
+        "Z08": "D",
+        "Z09": "D",
+        "Z10": "-",
+        "Z13": "-",
+        "Z14": "-",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "1-3 rader. När elanvändaren anges ska adressen fyllas i om den finns. Adressuppgifter anges ej i Z13, Z14, Z15 och Z18.",
+      "source_pages": [
+        22
+      ],
+      "locator": "SG17/NAD[3035=UD]/C059/3042[1..3]",
+      "scope": "customer",
+      "parent_group": "UD",
+      "value_contract": "Gatuadress 1–3 komponenter; ej Z13/Z14/Z15/Z18",
+      "locator_source": "P §2.6 s.79; §2.2 s.22",
+      "implementation_status": "Ej verifierad i runtime",
+      "syntax_definition": "Kompletteras av segmenttabellens datatyp/längd i annex/source_tables.json och den fulla UNSM-grammatiken; använd inte nationell R/D/O som syntax-M.",
+      "segment_table_evidence": [
+        {
+          "page": 79,
+          "table": 1,
+          "row": [
+            "C059\n3042\n3042\n3042",
+            "STREET\nStreet and no/P.O. Box\nStreet and no/P.O. Box\nStreet and no/P.O. Box",
+            "D\nO\nO\nO",
+            "an..35\nan..35\nan..35",
+            "O\nO\nO\nO",
+            "Adress1, fält 229-1\nAdress2, fält 229-2\nAdress3, fält 229-3"
+          ],
+          "wire_types": [
+            "an..35",
+            "an..35",
+            "an..35"
+          ]
+        }
+      ]
+    },
+    "240": {
+      "field": "240",
+      "name_en": "Serial Id",
+      "name_sv": "Serie-id",
+      "usage": {
+        "Z01": "-",
+        "Z02": "-",
+        "Z03": "-",
+        "Z04": "D",
+        "Z05": "O",
+        "Z06": "D",
+        "Z08": "-",
+        "Z09": "-",
+        "Z10": "D",
+        "Z13": "-",
+        "Z14": "-",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "Fältet används endast i naturgasmarknaden och då med följande regler: Z04: Ska anges. Z06: Obligatoriskt om serie-id har ändrats pga ändringen. Obligatoriet gäller Z06F och Z06G. Frivillig i Z06E. Z10: Obligatoriskt om serie-id har ändrats pga mätarbytet.",
+      "source_pages": [
+        21
+      ],
+      "locator": "SG16/RFF[1153=Z06]/C506/1154",
+      "scope": "object",
+      "parent_group": null,
+      "value_contract": "Endast GAS; ej produktionsaktiverat i denna EL-specifikation",
+      "locator_source": "P §2.6 s.77; §2.2 s.21",
+      "implementation_status": "Ej verifierad i runtime",
+      "syntax_definition": "Kompletteras av segmenttabellens datatyp/längd i annex/source_tables.json och den fulla UNSM-grammatiken; använd inte nationell R/D/O som syntax-M.",
+      "segment_table_evidence": [
+        {
+          "page": 77,
+          "table": 3,
+          "row": [
+            "C506\n1153\n1154\n1156\n4000",
+            "REFERENCE\nReference qualifier\nReference number\nLine number\nReference version\nnumber",
+            "M\nM\nR\nX\nX",
+            "an..3\nan..35\nan..6\nan..35",
+            "M\nM\nR",
+            "Z06 Serial id\nSerie-id (serie-id som används vid\nrapportering i MSCONS), fält 240."
+          ],
+          "wire_types": [
+            "an..3",
+            "an..35",
+            "an..6",
+            "an..35"
+          ]
+        }
+      ]
+    },
+    "242": {
+      "field": "242",
+      "name_en": "Product code",
+      "name_sv": "Produktkod",
+      "usage": {
+        "Z01": "-",
+        "Z02": "-",
+        "Z03": "-",
+        "Z04": "R",
+        "Z05": "-",
+        "Z06": "D",
+        "Z08": "-",
+        "Z09": "-",
+        "Z10": "D",
+        "Z13": "-",
+        "Z14": "-",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "För anläggningar i elmarknaden anges här den tidsserieprodukt vilken används när anläggningens mätvärden aggregeras på elhandelsföretagsnivå, se vidare Handboken. Z10: Endast elmarknaden. Obligatorisk om produktkoden har ändrats i samband med mätarbyte. Z06: Endast elmarknaden. Obligatorisk i Z06F (transaktionstyp=E64) och Z06G (transaktionstyp=E32). Frivillig i Z06E. För naturgasmarknaden används en av följande två koder - 6109 (för dygnsavlästa anläggningar) - 6113 (för månads- eller årsavlästa anläggningar)",
+      "source_pages": [
+        20
+      ],
+      "locator": "SG14/CCI[C502/6313=Z14] → CAV/C889/7110[1]",
+      "scope": "object",
+      "parent_group": null,
+      "value_contract": "L-tidsserieprodukt för aggregat, fjärde komponenten; inte generiskt energi-id",
+      "locator_source": "P §2.6 s.68; §2.2 s.20",
+      "implementation_status": "Ej verifierad i runtime",
+      "syntax_definition": "Kompletteras av segmenttabellens datatyp/längd i annex/source_tables.json och den fulla UNSM-grammatiken; använd inte nationell R/D/O som syntax-M.",
+      "segment_table_evidence": [
+        {
+          "page": 68,
+          "table": 2,
+          "row": [
+            "C889\n7111\n1131\n3055\n7110\n7110",
+            "CHARACTERISTIC\nVALUE\nCharacteristic value,\ncoded\nCode list qualifier\nCode list responsible\nagency, coded\nCharacteristic value\nCharacteristic value",
+            "M\nD\nX\nD\nD\nD",
+            "an..3\nan..3\nan..3\nan..35\nan..35",
+            "M\nX\nX\nD\nD",
+            "Produktkod, fält 242\nElmarknaden:\nTidsserieproduktkod för när\nanläggningen ingår i aggregerad\nserie till elhandelsföretaget. Se tabell\nnedan.\nAnvänds i Z04, Z06 och Z10.\nNaturgasmarknaden:\n6109 Slutliga mätvärden dygnsavläst\ninmatnings-/uttagspunkt\n6113 Avläst uttagspunkt, månad/år\nEnergiprodukt, fält 506\nAnvänds i Z13 och Z14\n8716867000030 (aktiv energi)"
+          ],
+          "wire_types": [
+            "an..3",
+            "an..3",
+            "an..3",
+            "an..35",
+            "an..35"
+          ]
+        }
+      ]
+    },
+    "250": {
+      "field": "250",
+      "name_en": "Invoicee ID",
+      "name_sv": "Fakturamottagare ID",
+      "usage": {
+        "Z01": "-",
+        "Z02": "-",
+        "Z03": "D",
+        "Z04": "D",
+        "Z05": "D",
+        "Z06": "D",
+        "Z08": "D",
+        "Z09": "D",
+        "Z10": "-",
+        "Z13": "-",
+        "Z14": "-",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "När fakturamottagare skickas så anges alltid dess id.",
+      "source_pages": [
+        23
+      ],
+      "locator": "SG17/NAD[3035=IV]/C082/3039",
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "value_contract": "Identifiering av fakturamottagare; endast när gruppen tillämplig",
+      "locator_source": "P §2.6 s.82; §2.2 s.23",
+      "implementation_status": "Ej verifierad i runtime",
+      "syntax_definition": "Kompletteras av segmenttabellens datatyp/längd i annex/source_tables.json och den fulla UNSM-grammatiken; använd inte nationell R/D/O som syntax-M.",
+      "segment_table_evidence": [
+        {
+          "page": 82,
+          "table": 1,
+          "row": [
+            "C082\n3039\n1131\n3055",
+            "PARTY ID DETAILS\nParty id identification\nCode list qualifier\nCode list responsible\nagency, coded",
+            "R\nM\nD\nR",
+            "an..35\nan..3\nan..3",
+            "R\nM\nD\nR",
+            "Fakturamottagare-id, fält 250\n1 Date of birth\nSE1 Swedish company\nregistration number\nSE2 Swedish personal identity\nnumber\n89 Assigned by distributor\n(net-owner)\n260 ebIX®\n(DE1131 = 1, SE1 el SE2)"
+          ],
+          "wire_types": [
+            "an..35",
+            "an..3",
+            "an..3"
+          ]
+        }
+      ]
+    },
+    "251": {
+      "field": "251",
+      "name_en": "Invoicee Name",
+      "name_sv": "Namn-fakturamottagare",
+      "usage": {
+        "Z01": "-",
+        "Z02": "-",
+        "Z03": "D",
+        "Z04": "D",
+        "Z05": "D",
+        "Z06": "D",
+        "Z08": "D",
+        "Z09": "D",
+        "Z10": "-",
+        "Z13": "-",
+        "Z14": "-",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "1-2 rader. När fakturamottagare skickas så anges alltid dess namn.",
+      "source_pages": [
+        23
+      ],
+      "locator": "SG17/NAD[3035=IV]/C080/3036[1..2]",
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "value_contract": "Fakturamottagarens namn",
+      "locator_source": "P §2.6 s.82; §2.2 s.23",
+      "implementation_status": "Ej verifierad i runtime",
+      "syntax_definition": "Kompletteras av segmenttabellens datatyp/längd i annex/source_tables.json och den fulla UNSM-grammatiken; använd inte nationell R/D/O som syntax-M.",
+      "segment_table_evidence": [
+        {
+          "page": 82,
+          "table": 1,
+          "row": [
+            "C080\n3036\n3036\n3036\n3036\n3036\n3045",
+            "PARTY NAME\nParty name\nParty name\nParty name\nParty name\nParty name\nParty name format, coded",
+            "D\nO\nO\nX\nX\nX\nX",
+            "an..35\nan..35\nan..35\nan..35\nan..35\nan..3",
+            "R\nM\nO",
+            "Namn1, fält 251-1\nNamn2, fält 251-2"
+          ],
+          "wire_types": [
+            "an..35",
+            "an..35",
+            "an..35",
+            "an..35",
+            "an..35",
+            "an..3"
+          ]
+        }
+      ]
+    },
+    "252": {
+      "field": "252",
+      "name_en": "Invoicee Address",
+      "name_sv": "Adress-fakturamottagare",
+      "usage": {
+        "Z01": "-",
+        "Z02": "-",
+        "Z03": "D",
+        "Z04": "D",
+        "Z05": "D",
+        "Z06": "D",
+        "Z08": "D",
+        "Z09": "D",
+        "Z10": "-",
+        "Z13": "-",
+        "Z14": "-",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "1-3 rader. När fakturamottagare skickas så anges alltid, i förekommande fall, dess adress.",
+      "source_pages": [
+        23
+      ],
+      "locator": "SG17/NAD[3035=IV]/C059/3042[1..3]",
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "value_contract": "Fakturamottagarens adress om tillämplig/finns",
+      "locator_source": "P §2.6 s.82; §2.2 s.23",
+      "implementation_status": "Ej verifierad i runtime",
+      "syntax_definition": "Kompletteras av segmenttabellens datatyp/längd i annex/source_tables.json och den fulla UNSM-grammatiken; använd inte nationell R/D/O som syntax-M.",
+      "segment_table_evidence": [
+        {
+          "page": 82,
+          "table": 1,
+          "row": [
+            "C059\n3042\n3042\n3042",
+            "STREET\nStreet and no/P.O. Box\nStreet and no/P.O. Box\nStreet and no/P.O. Box",
+            "D\nO\nO\nO",
+            "an..35\nan..35\nan..35",
+            "D\nM\nO\nO",
+            "Anges om möjligt\nAdress1, fält 252-1\nAdress2, fält 252-2\nAdress3, fält 252-3"
+          ],
+          "wire_types": [
+            "an..35",
+            "an..35",
+            "an..35"
+          ]
+        }
+      ]
+    },
+    "253": {
+      "field": "253",
+      "name_en": "Invoicee Postcode",
+      "name_sv": "Postnr-fakturamottgare",
+      "usage": {
+        "Z01": "-",
+        "Z02": "-",
+        "Z03": "D",
+        "Z04": "D",
+        "Z05": "D",
+        "Z06": "D",
+        "Z08": "D",
+        "Z09": "D",
+        "Z10": "-",
+        "Z13": "-",
+        "Z14": "-",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "När fakturamottagare skickas så anges alltid dess postnr.",
+      "source_pages": [
+        23
+      ],
+      "locator": "SG17/NAD[3035=IV]/3251",
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "value_contract": "Fakturamottagarens postnummer",
+      "locator_source": "P §2.6 s.82; §2.2 s.23",
+      "implementation_status": "Ej verifierad i runtime",
+      "syntax_definition": "Kompletteras av segmenttabellens datatyp/längd i annex/source_tables.json och den fulla UNSM-grammatiken; använd inte nationell R/D/O som syntax-M.",
+      "segment_table_evidence": [
+        {
+          "page": 82,
+          "table": 1,
+          "row": [
+            "3251",
+            "POSTCODE ID",
+            "D",
+            "an..9",
+            "R",
+            "Postnummer – oredigerat, fält 253"
+          ],
+          "wire_types": [
+            "an..9"
+          ]
+        }
+      ]
+    },
+    "254": {
+      "field": "254",
+      "name_en": "Method for balance Settlement",
+      "name_sv": "Avräkningsmetod (dygns/månads)",
+      "usage": {
+        "Z01": "-",
+        "Z02": "-",
+        "Z03": "-",
+        "Z04": "R",
+        "Z05": "-",
+        "Z06": "D",
+        "Z08": "-",
+        "Z09": "-",
+        "Z10": "D",
+        "Z13": "-",
+        "Z14": "-",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "Anger om dygnsavräkning (balansavräkning) eller månadsavräkning skall användas. Z10: Obligatorisk om avräkningsmetod har ändrats för ny mätare och/eller nya mätare är under gränsen för schablon. Z06: Obligatorisk i Z06F (transaktionstyp=E64) och Z06G (transaktionstyp=E32). Frivillig i Z06E.",
+      "source_pages": [
+        20
+      ],
+      "locator": "SG14/CCI[C502/6313=Z15] → CAV/C889/7111",
+      "scope": "object",
+      "parent_group": null,
+      "value_contract": "Z31 månadsavräkning, Z32 dygnsavräkning",
+      "locator_source": "P §2.6 s.67; §2.2 s.20",
+      "implementation_status": "Ej verifierad i runtime",
+      "syntax_definition": "Kompletteras av segmenttabellens datatyp/längd i annex/source_tables.json och den fulla UNSM-grammatiken; använd inte nationell R/D/O som syntax-M.",
+      "segment_table_evidence": [
+        {
+          "page": 67,
+          "table": 2,
+          "row": [
+            "C889\n7111\n1131\n3055\n7110\n7110",
+            "CHARACTERISTIC\nVALUE\nCharacteristic value,\ncoded\nCode list qualifier\nCode list responsible\nagency, coded\nCharacteristic value\nCharacteristic value",
+            "M\nD\nX\nD\nD\nX",
+            "an..3\nan..3\nan..3\nan..35\nan..35",
+            "M\nR\nX\nX",
+            "Avräkningsmetod, fält 254.\nZ31 Profiled settlement, meter\ndependent (månadsavräkning\nenligt mätare)\nZ32 Continuous based settlement\n(dygnsavräkning)"
+          ],
+          "wire_types": [
+            "an..3",
+            "an..3",
+            "an..3",
+            "an..35",
+            "an..35"
+          ]
+        }
+      ]
+    },
+    "258": {
+      "field": "258",
+      "name_en": "Sub-line number",
+      "name_sv": "Sekvensnummer",
+      "usage": {
+        "Z01": "-",
+        "Z02": "-",
+        "Z03": "-",
+        "Z04": "D",
+        "Z05": "-",
+        "Z06": "D",
+        "Z08": "-",
+        "Z09": "-",
+        "Z10": "D",
+        "Z13": "-",
+        "Z14": "-",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "Sekvensnummer för varje register för aktuell anläggning/mätare. Obligatorisk för anläggningar (mätare) med fler register. Anges ej för anläggningar med endast ett register. För detaljerad information om uppgifter för register 2 och högre, se bilaga 2.",
+      "source_pages": [
+        16
+      ],
+      "locator": "SG8/LIN/C829/1082",
+      "scope": "register",
+      "parent_group": null,
+      "value_contract": "C829/5495=1; registerindex 1..m per objekt; inte samma som 314",
+      "locator_source": "P §2.6 s.47; §2.2 s.16",
+      "implementation_status": "Ej verifierad i runtime",
+      "syntax_definition": "Kompletteras av segmenttabellens datatyp/längd i annex/source_tables.json och den fulla UNSM-grammatiken; använd inte nationell R/D/O som syntax-M.",
+      "segment_table_evidence": [
+        {
+          "page": 47,
+          "table": 1,
+          "row": [
+            "C829\n5495\n1082",
+            "SUB-LINE\nINFORMATION\nSub-line indicator, coded\nLine item number",
+            "D\nR\nR",
+            "an..3\nn..6",
+            "D\nR\nR",
+            "Obligatoriskt om anläggning/mätare\nhar fler register (används endast i\nZ04, Z06 och Z10).\n1 Sub-line information\nSub-line number (sekvensnummer\nför varje register för aktuell\nanläggning/mätare), fält 258."
+          ],
+          "wire_types": [
+            "an..3",
+            "n..6"
+          ]
+        }
+      ]
+    },
+    "259": {
+      "field": "259",
+      "name_en": "Meter time frame",
+      "name_sv": "Mätare, tidsintervall (räkneverkskod)",
+      "usage": {
+        "Z01": "-",
+        "Z02": "-",
+        "Z03": "-",
+        "Z04": "D",
+        "Z05": "-",
+        "Z06": "D",
+        "Z08": "-",
+        "Z09": "-",
+        "Z10": "D",
+        "Z13": "-",
+        "Z14": "-",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "Kod som anger typ av tidstariff, enkeltariff eller typ av dubbeltariff. För mätare med flera register ska kod för respektive register anges. Använd Svenska kraftnäts kodlista för räkneverkskoder. Z04, Z10: Obligatorisk om mätarställningar skickas i MSCONS/UTILTS. Z06: Obligatorisk i Z06F (transaktionstyp=E64) då mätarställningar skickas i MSCONS/UTILTS. Frivillig i Z06E och Z06G. Får enbart skickas i elmarknaden då även mätarställningar skickas i UTILTS. Därmed vet mottagaren att endast om räkneverkskod anges i PRODAT så kommer mätarställningar skickas i UTILTS. För naturgasmarknaden gäller andra regler, se kapitel 2.4.5.",
+      "source_pages": [
+        19,
+        20
+      ],
+      "locator": "SG14/CCI[C502/6313=Z16] → CAV/C889/7110[1]",
+      "scope": "register",
+      "parent_group": null,
+      "value_contract": "Räkneverkskod; endast EL när mätarställningar rapporteras",
+      "locator_source": "P §2.6 s.66; §2.2 s.19, 20",
+      "implementation_status": "Ej verifierad i runtime",
+      "syntax_definition": "Kompletteras av segmenttabellens datatyp/längd i annex/source_tables.json och den fulla UNSM-grammatiken; använd inte nationell R/D/O som syntax-M.",
+      "segment_table_evidence": [
+        {
+          "page": 66,
+          "table": 2,
+          "row": [
+            "C889\n7111\n1131\n3055\n7110\n7110",
+            "CHARACTERISTIC\nVALUE\nCharacteristic value,\ncoded\nCode list qualifier\nCode list responsible\nagency, coded\nCharacteristic value\nCharacteristic value",
+            "M\nD\nX\nD\nD\nX",
+            "an..3\nan..3\nan..3\nan..35\nan..35",
+            "M\nX\nX\nR",
+            "Mätare, tidsintervall\n(räkneverkskod), fält 259"
+          ],
+          "wire_types": [
+            "an..3",
+            "an..3",
+            "an..3",
+            "an..35",
+            "an..35"
+          ]
+        }
+      ]
+    },
+    "310": {
+      "field": "310",
+      "name_en": "Party connected to grid status",
+      "name_sv": "Kundstatus",
+      "usage": {
+        "Z01": "-",
+        "Z02": "-",
+        "Z03": "-",
+        "Z04": "-",
+        "Z05": "D",
+        "Z06": "D",
+        "Z08": "-",
+        "Z09": "D",
+        "Z10": "-",
+        "Z13": "-",
+        "Z14": "-",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "Fältet används endast i anslutning till dödsfall. Z05: Obligatorisk då i Z05LK (transaktionstyp Z23) Z06: Obligatorisk i Z06E (transaktionstyp E34) Z09: Obligatorisk i Z09E (transaktionstyp E34)",
+      "source_pages": [
+        20,
+        21
+      ],
+      "locator": "SG14/CCI[C502/6313=Z17] → CAV/C889/7111",
+      "scope": "customer",
+      "parent_group": null,
+      "value_contract": "Kundstatus endast enligt dödsfallsregeln; inte allmän konkursstatus",
+      "locator_source": "P §2.6 s.71; §2.2 s.20, 21",
+      "implementation_status": "Ej verifierad i runtime",
+      "syntax_definition": "Kompletteras av segmenttabellens datatyp/längd i annex/source_tables.json och den fulla UNSM-grammatiken; använd inte nationell R/D/O som syntax-M.",
+      "segment_table_evidence": [
+        {
+          "page": 71,
+          "table": 2,
+          "row": [
+            "C889\n7111\n1131\n3055\n7110\n7110",
+            "CHARACTERISTIC\nVALUE\nCharacteristic value,\ncoded\nCode list qualifier\nCode list responsible\nagency, coded\nCharacteristic value\nCharacteristic value",
+            "M\nD\nX\nD\nD\nX",
+            "an..3\nan..3\nan..3\nan..35\nan..35",
+            "M\nR\nX\nX",
+            "Kundstatus, fält 310.\nZ41 Death (dödsfall)"
+          ],
+          "wire_types": [
+            "an..3",
+            "an..3",
+            "an..3",
+            "an..35",
+            "an..35"
+          ]
+        }
+      ]
+    },
+    "317": {
+      "field": "317",
+      "name_en": "Invoicee City name",
+      "name_sv": "Postort-fakturamottagare",
+      "usage": {
+        "Z01": "-",
+        "Z02": "-",
+        "Z03": "D",
+        "Z04": "D",
+        "Z05": "D",
+        "Z06": "D",
+        "Z08": "D",
+        "Z09": "D",
+        "Z10": "-",
+        "Z13": "-",
+        "Z14": "-",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "När fakturamottagare skickas så anges alltid dess postort.",
+      "source_pages": [
+        23
+      ],
+      "locator": "SG17/NAD[3035=IV]/3164",
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "value_contract": "Fakturamottagarens postort",
+      "locator_source": "P §2.6 s.82; §2.2 s.23",
+      "implementation_status": "Ej verifierad i runtime",
+      "syntax_definition": "Kompletteras av segmenttabellens datatyp/längd i annex/source_tables.json och den fulla UNSM-grammatiken; använd inte nationell R/D/O som syntax-M.",
+      "segment_table_evidence": [
+        {
+          "page": 82,
+          "table": 1,
+          "row": [
+            "3164",
+            "CITY NAME",
+            "D",
+            "an..35",
+            "R",
+            "Postort, fält 317"
+          ],
+          "wire_types": [
+            "an..35"
+          ]
+        }
+      ]
+    },
+    "318": {
+      "field": "318",
+      "name_en": "Invoicee Country",
+      "name_sv": "Land-fakturamottagare",
+      "usage": {
+        "Z01": "-",
+        "Z02": "-",
+        "Z03": "D",
+        "Z04": "D",
+        "Z05": "D",
+        "Z06": "D",
+        "Z08": "D",
+        "Z09": "D",
+        "Z10": "-",
+        "Z13": "-",
+        "Z14": "-",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "När fakturamottagare skickas så anges alltid dess land.",
+      "source_pages": [
+        23
+      ],
+      "locator": "SG17/NAD[3035=IV]/3207",
+      "scope": "invoicee",
+      "parent_group": "IV",
+      "value_contract": "Fakturamottagarens land",
+      "locator_source": "P §2.6 s.82; §2.2 s.23",
+      "implementation_status": "Ej verifierad i runtime",
+      "syntax_definition": "Kompletteras av segmenttabellens datatyp/längd i annex/source_tables.json och den fulla UNSM-grammatiken; använd inte nationell R/D/O som syntax-M.",
+      "segment_table_evidence": [
+        {
+          "page": 82,
+          "table": 1,
+          "row": [
+            "3207",
+            "COUNTRY, CODED",
+            "O",
+            "an..3",
+            "R",
+            "Landkod enligt ISO 3166,\nfält 318, t.ex.:\nDK Denmark\nFI Finland\nDE Germany\nNL Netherlands\nNO Norway\nSE Sweden\nGB United Kingdom"
+          ],
+          "wire_types": [
+            "an..3"
+          ]
+        }
+      ]
+    },
+    "320": {
+      "field": "320",
+      "name_en": "Calorific Value Area",
+      "name_sv": "Värmevärdesområde",
+      "usage": {
+        "Z01": "-",
+        "Z02": "-",
+        "Z03": "-",
+        "Z04": "D",
+        "Z05": "-",
+        "Z06": "D",
+        "Z08": "-",
+        "Z09": "-",
+        "Z10": "-",
+        "Z13": "-",
+        "Z14": "-",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "Värmevärdesområde. Används enbart i naturgasmarknaden och då med följande regler: Z04: Ska anges. Z06: Ska anges i Z06F och Z06G (ändras via Z06G). Anges ej i Z06E.",
+      "source_pages": [
+        21
+      ],
+      "locator": "SG16/RFF[1153=Z08]/C506/1154",
+      "scope": "object",
+      "parent_group": null,
+      "value_contract": "Endast GAS; ej produktionsaktiverat i denna EL-specifikation",
+      "locator_source": "P §2.6 s.77; §2.2 s.21",
+      "implementation_status": "Ej verifierad i runtime",
+      "syntax_definition": "Kompletteras av segmenttabellens datatyp/längd i annex/source_tables.json och den fulla UNSM-grammatiken; använd inte nationell R/D/O som syntax-M.",
+      "segment_table_evidence": [
+        {
+          "page": 77,
+          "table": 2,
+          "row": [
+            "C506\n1153\n1154\n1156\n4000",
+            "REFERENCE\nReference qualifier\nReference number\nLine number\nReference version\nnumber",
+            "M\nM\nR\nX\nX",
+            "an..3\nan..35\nan..6\nan..35",
+            "M\nM\nR",
+            "Z08 Calorific Value Area\nVärmevärdesområde, id för\nvärmevärdesområde, fält 320."
+          ],
+          "wire_types": [
+            "an..3",
+            "an..35",
+            "an..6",
+            "an..35"
+          ]
+        }
+      ]
+    },
+    "321": {
+      "field": "321",
+      "name_en": "Report end date",
+      "name_sv": "Rapportslutdatum",
+      "usage": {
+        "Z01": "-",
+        "Z02": "-",
+        "Z03": "-",
+        "Z04": "-",
+        "Z05": "-",
+        "Z06": "-",
+        "Z08": "-",
+        "Z09": "-",
+        "Z10": "-",
+        "Z13": "D",
+        "Z14": "D",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "Avser ”tidstämpel för avslutande av rapportering”. Anges i Z13 och Z14 såvida inte rapporteringen avses ske tills vidare. Skickas ej heller i Z14N.",
+      "source_pages": [
+        17
+      ],
+      "locator": "SG8/DTM[2005=91]/C507/2380",
+      "scope": "object",
+      "parent_group": null,
+      "value_contract": "203; rapportens sluttid, inte 164",
+      "locator_source": "P §2.6 s.49; §2.2 s.17",
+      "implementation_status": "Ej verifierad i runtime",
+      "syntax_definition": "Kompletteras av segmenttabellens datatyp/längd i annex/source_tables.json och den fulla UNSM-grammatiken; använd inte nationell R/D/O som syntax-M.",
+      "segment_table_evidence": [
+        {
+          "page": 49,
+          "table": 3,
+          "row": [
+            "C507\n2005\n2380\n2379",
+            "DATE/TIME/PERIOD\nDate/time/period\nqualifier\nDate/time/period\nDate/time/period format\nqualifier",
+            "M\nM\nR\nR",
+            "an..3\nan..35\nan..3",
+            "M\nM\nR\nR",
+            "91 Report end date\nRapportslutdatum, fält 321.\n203 CCYYMMDDHHmm"
+          ],
+          "wire_types": [
+            "an..3",
+            "an..35",
+            "an..3"
+          ]
+        }
+      ]
+    },
+    "323": {
+      "field": "323",
+      "name_en": "Purpose",
+      "name_sv": "Tillståndets syfte",
+      "usage": {
+        "Z01": "-",
+        "Z02": "-",
+        "Z03": "-",
+        "Z04": "-",
+        "Z05": "-",
+        "Z06": "-",
+        "Z08": "-",
+        "Z09": "-",
+        "Z10": "-",
+        "Z13": "D",
+        "Z14": "D",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "Avser tillståndets syfte. Ska anges för privatkunder i Z13 och Z14, utom i Z14N.",
+      "source_pages": [
+        21
+      ],
+      "locator": "SG14/CCI[C502/6313=Z24] → CAV/C889/7111",
+      "scope": "permission",
+      "parent_group": null,
+      "value_contract": "B71–B76; privatkundsvillkor; exempel med A02 får inte bli kodlista",
+      "locator_source": "P §2.6 s.74; §2.2 s.21",
+      "implementation_status": "Ej verifierad i runtime",
+      "syntax_definition": "Kompletteras av segmenttabellens datatyp/längd i annex/source_tables.json och den fulla UNSM-grammatiken; använd inte nationell R/D/O som syntax-M.",
+      "segment_table_evidence": [
+        {
+          "page": 74,
+          "table": 2,
+          "row": [
+            "C889\n7111\n1131\n3055\n7110\n7110",
+            "CHARACTERISTIC\nVALUE\nCharacteristic value,\ncoded\nCode list qualifier\nCode list responsible\nagency, coded\nCharacteristic value\nCharacteristic value",
+            "M\nD\nX\nD\nD\nX",
+            "an..3\nan..3\nan..3\nan..35\nan..35",
+            "M\nR\nX\nX",
+            "Tillståndets syfte, fält 323.\nB71 (Explicit) Permission from the\ncustomer (Samtycke)\nB72 In execution of a contract with\nthe customer (Execution of\ncontract) (Avtal)\nB73 Legal obligations (Rättslig\nförpliktelse)\nB74 In protection of vital interests\nof the customer (Skydd av\ngrundläggande intresse)\nB75 In order to perform a duty of\ncommon (national) interest\n(Myndighetsutövning)\nB76 Justified interest of the\ndataprocessee\n(Intresseavvägning)"
+          ],
+          "wire_types": [
+            "an..3",
+            "an..3",
+            "an..3",
+            "an..35",
+            "an..35"
+          ]
+        }
+      ]
+    }
+  },
+  "parent_sources": [
+    {
+      "group_id": "UD",
+      "field": "-",
+      "name_en": "End user",
+      "name_sv": "Elanvändare",
+      "usage": {
+        "Z01": "R",
+        "Z02": "R",
+        "Z03": "R",
+        "Z04": "R",
+        "Z05": "R",
+        "Z06": "D",
+        "Z08": "R",
+        "Z09": "D",
+        "Z10": "-",
+        "Z13": "R",
+        "Z14": "D",
+        "Z15": "R",
+        "Z18": "R"
+      },
+      "notes": "Elanvändaren anges i Z06E, men inte i Z06F eller Z06G. Elanvändaren anges även i Z09E men inte i Z09B, Z09D, Z09F eller Z09G. Elanvändaren anges i Z14, utom i Z14N.",
+      "source_pages": [
+        22
+      ]
+    },
+    {
+      "group_id": "IT",
+      "field": "-",
+      "name_en": "Installation",
+      "name_sv": "Anläggning",
+      "usage": {
+        "Z01": "O",
+        "Z02": "R",
+        "Z03": "O",
+        "Z04": "R",
+        "Z05": "R",
+        "Z06": "R",
+        "Z08": "O",
+        "Z09": "-",
+        "Z10": "-",
+        "Z13": "-",
+        "Z14": "D",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "Anläggningsadressen anges alltid här i Z02, Z04, Z05, Z06, oavsett om den är samma eller inte som adressen för elanvändaren. Anläggningsadressen anges även i Z14 (utom Z14N), när den då skickas ska fält 233 och 234 vara med. Anläggningsadressen behöver inte finnas med i Z01, Z03 eller Z08.",
+      "source_pages": [
+        22
+      ]
+    },
+    {
+      "group_id": "IV",
+      "field": "-",
+      "name_en": "Invoicee",
+      "name_sv": "Fakturamottagare",
+      "usage": {
+        "Z01": "-",
+        "Z02": "-",
+        "Z03": "D",
+        "Z04": "D",
+        "Z05": "D",
+        "Z06": "D",
+        "Z08": "D",
+        "Z09": "D",
+        "Z10": "-",
+        "Z13": "-",
+        "Z14": "-",
+        "Z15": "-",
+        "Z18": "-"
+      },
+      "notes": "Fakturamottagare skall skickas om fakturamottagarens adress skiljer sig från elanvändarens adress. I Z09 kan fakturamottagare enbart anges för Z09E.",
+      "source_pages": [
+        23
+      ]
+    }
+  ],
+  "parent_conditions": [
+    {
+      "id": "PG-UD",
+      "scope": "SG17/NAD+UD",
+      "predicate": "message IN (Z01,Z02,Z03,Z04,Z05,Z08,Z13,Z15,Z18) OR (message IN (Z06,Z09) AND subtype == E) OR (message == Z14 AND subtype != N)",
+      "effect": "Använd gruppen och dess tillämpliga barn; annars ej använd. Z14N kräver därför inte 316 trots basmatrisens R.",
+      "source": "P §2.2 s.20–21"
+    },
+    {
+      "id": "PG-IT",
+      "scope": "SG17/NAD+IT",
+      "predicate": "message IN (Z02,Z04,Z05,Z06) OR (message == Z14 AND subtype != N); frivilligt val i Z01,Z03,Z08",
+      "effect": "233=209 och 234 krävs när gruppen används; ingen IT i Z14N. Postnr/ort enligt bilaga3.",
+      "source": "P §2.2 s.21; bilaga3"
+    },
+    {
+      "id": "PG-IV",
+      "scope": "SG17/NAD+IV",
+      "predicate": "message IN (Z03,Z04,Z05,Z06,Z08) OR (message == Z09 AND subtype == E); dessutom invoicee_address_differs_from_end_user",
+      "effect": "Identifiering, namn, postnr, ort, land samt tillämplig adress när gruppen används.",
+      "source": "P §2.2 s.22"
+    }
+  ],
+  "next_unit": {
+    "kind": "BOUNDED_PREREQUISITE_AND_RUNTIME_QUALIFICATION",
+    "ids": [
+      "PC-258-Z04",
+      "PC-258-Z06",
+      "PC-258-Z10"
+    ],
+    "existing_producer": "Authorized TGT run source-bound register facts",
+    "ready_reason": "No new domain schema or paused310 needed; expectedRegisterCount already exists and source-bound TGT run path reaches body-bound evidence and protected guards.",
+    "prerequisite": "Separate independent expected physical inventory from observed wire topology; outbound missing expected count remains unknown. This mapping supplies no runtime proof and authorizes no new market/direction.",
+    "acceptance_after_this_task": 0
+  },
+  "runtime_defects_confirmed_this_task": []
+}

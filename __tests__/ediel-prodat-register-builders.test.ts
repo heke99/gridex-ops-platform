@@ -5,7 +5,8 @@ import { parseProdatMessage } from '@/lib/ediel/prodat/parser'
 import type { ProdatEngineProductionContext } from '@/lib/ediel/prodat/types'
 
 const registers = [{annualConsumption:'10',meterConstant:'1',meterDigitCount:'6',meterTimeFrame:'111'}, {annualConsumption:'20',meterConstant:'3',meterDigitCount:'7',meterTimeFrame:'112'}]
-const facts = {market:'electricity' as const,meterReadingsSentInUtilts:true,multipleMeterRegisters:true}
+const facts = {market:'electricity' as const,meterReadingsSentInUtilts:true,multipleMeterRegisters:true,
+  registerObjects:[{meteringPointId:'735999999999999999',identityAgency:'9' as const,expectedRegisterCount:2,meterReadingsSentInUtilts:true}]}
 const context: ProdatEngineProductionContext = {code:'Z04',bgmReference:'D',transactionReference:'CASE',senderEdielId:'12345',receiverEdielId:'54321',meterPointId:'735999999999999999',customerId:'USR',customerName:'Synthetic',customerIdAgency:'89',gridAreaId:'TES',startDate:'202610010000',observationLength:'15',observationLengthFormat:'806',reasonForTransaction:'Z22',dependentConditionFacts:facts}
 const request: BuildProdatMessageInput = {companyId:'tenant',role:'supplier',businessCode:'Z04',transactionSubtype:'L',sender:{edielId:'12345'},receiver:{edielId:'54321'},meteringPoint:{id:'735999999999999999',gridArea:'TES'},customer:{id:'USR',name:'Synthetic',idAgency:'89'},dates:{contractStartDate:'202610010000',observationLength:'15',observationLengthFormat:'806'},references:{LI:'CASE'},codedAttributes:{Z13:'Z22'},environment:'test',dependentConditionFacts:facts}
 const parsedSegments = (segments: string[]) => parseProdatMessage("UNH+M+PRODAT:D:97A:UN:E2SE6A'"+segments.join("'")+"'UNT+1+M'")
@@ -44,7 +45,10 @@ describe('one register emission path for generic and profiled PRODAT builders', 
     expect(result.validation.ok).toBe(true)
   })
   it('generic multi-object builder increments 314 globally and restarts 258 locally', () => {
-    const result = buildProdatMessage({...request,objects:[
+    const result = buildProdatMessage({...request,dependentConditionFacts:{...facts,registerObjects:[
+      {meteringPointId:'A:+?',identityAgency:'89',expectedRegisterCount:1,meterReadingsSentInUtilts:true},
+      {meteringPointId:'B',identityAgency:'89',expectedRegisterCount:2,meterReadingsSentInUtilts:true},
+    ]},objects:[
       {meteringPoint:{id:'A:+?',identityAgency:'89',gridArea:'TES'},dates:request.dates,references:{LI:'A'},codedAttributes:{Z13:'Z22'},customer:request.customer,registers:[registers[0]]},
       {meteringPoint:{id:'B',identityAgency:'89',gridArea:'TES'},dates:request.dates,references:{LI:'B'},codedAttributes:{Z13:'Z22'},customer:request.customer,registers},
     ]})
@@ -63,7 +67,8 @@ describe('one register emission path for generic and profiled PRODAT builders', 
     expect(() => buildProfiledProdatSegments({context:{...context,registers},portalSnapshot:{registers:null},variant:'L'})).toThrow()
   })
   it('a single register omits C829 even when register values are present', () => {
-    const result = buildProfiledProdatSegments({context:{...context,registers:[registers[0]]},variant:'L'})
+    const result = buildProfiledProdatSegments({context:{...context,registers:[registers[0]],dependentConditionFacts:{...facts,
+      registerObjects:[{meteringPointId:'735999999999999999',identityAgency:'9',expectedRegisterCount:1,meterReadingsSentInUtilts:true}]}},variant:'L'})
     expect(parsedSegments(result.segments).lineItems).toMatchObject([{registerIndex:null,registerCount:1,annualConsumption:'10'}])
   })
   it('does not inherit missing annual energy from root context or register one', () => {
