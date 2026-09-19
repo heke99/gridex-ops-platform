@@ -3,7 +3,7 @@ import {prodatFieldDiagnostic,prodatLocalDiagnostic,type ProdatDiagnostic} from 
 import { segmentComposite, segmentElementCount, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer';
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una';
 import { prodatRegisterGroups, prodatRegisterMessageSegments } from '@/lib/ediel/prodat/prodatRegisterGroups';
-import { prodatPartySyntaxIssues } from '@/lib/ediel/prodat/prodatPartyFields';
+import { prodatPartySyntaxIssues, prodatPartyState } from '@/lib/ediel/prodat/prodatPartyFields';
 import { prodatEndUserAddressWireLines } from '@/lib/ediel/prodat/prodatEndUserAddress';
 import { INVOICEE_CODES, INVOICEE_FIELDS, copyProdatInvoiceeObjects, invoiceeMandatory, type InvoiceeAddress, type InvoiceeIdentity, type ProdatInvoiceeObject } from '@/lib/ediel/prodat/prodatInvoicee';
 import type { ProdatDependentConditionFacts, ProdatDependentConditionStatus } from '@/lib/ediel/prodat/prodatDependentConditionEngine';
@@ -71,7 +71,7 @@ export function evaluateProdatInvoicee(input: Input): {
                 fail('FORMAT_INVALID', 'komponenter överskrider tillåtna positioner/längder');
         }
         for (const finding of prodatPartySyntaxIssues([party], una))
-            fail('FORMAT_INVALID', 'angiven part saknar obligatoriska eller har ogiltiga komponenter',finding.fieldNumber??'INVOICEE_GROUP',prodatFieldDiagnostic(finding.fieldNumber,'invalid',input,grouped.groups.find(g=>g.segments.includes(party))?.segments.map(t=>t.raw)??[],'PRODAT26A:P82/119'));
+            fail('FORMAT_INVALID', 'angiven part saknar obligatoriska eller har ogiltiga komponenter',finding.fieldNumber??'INVOICEE_GROUP',prodatFieldDiagnostic(finding.fieldNumber,finding.fieldNumber && !prodatPartyState(finding.fieldNumber,[party],una).present ? 'missing' : 'invalid',input,grouped.groups.find(g=>g.segments.includes(party))?.segments.map(t=>t.raw)??[],'PRODAT26A:P82/119'));
         if (/\s/.test(segmentComposite(party, 8, una)[0] ?? ''))
             fail('FORMAT_INVALID', 'postnummer ska vara oredigerat', '253',prodatFieldDiagnostic('253','invalid',input,grouped.groups.find(g=>g.segments.includes(party))?.segments.map(t=>t.raw)??[],'PRODAT26A:P82/119'));
     }

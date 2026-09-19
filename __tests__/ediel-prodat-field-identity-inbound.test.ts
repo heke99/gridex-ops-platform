@@ -1,10 +1,10 @@
 import {beforeEach,it,expect,vi} from 'vitest'
 import {raw} from './fixtures/prodat-register'
-import {source,z10} from './fixtures/prodat-identity'
+import {source,z10,head,own} from './fixtures/prodat-identity'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import type {EdielRulebookIssue} from '@/lib/ediel/rulebook/rulebook'
-const state=vi.hoisted(()=>({message:{} as EdielMessageRow, effects:[] as string[], drafts:[] as Record<string,unknown>[], events:[] as Record<string,unknown>[], inject:false}))
-vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',()=>({resolveCanonicalRulePack:async()=>({profileKey:'synthetic',sourceHash:'evidence',messageProfileId:'profile',rulePackId:'pack'})}))
+const state=vi.hoisted(()=>({message:{} as EdielMessageRow, effects:[] as string[], drafts:[] as Record<string,unknown>[], events:[] as Record<string,unknown>[], inject:false,registryFailure:false}))
+vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',()=>({resolveCanonicalRulePack:async()=>{if(state.registryFailure)throw Error('Injected registry failure');return {profileKey:'synthetic',sourceHash:'evidence',messageProfileId:'profile',rulePackId:'pack'}}}))
 vi.mock('@/lib/ediel/rulebook/canonicalPolicyFieldValidator',async importOriginal=>{
  const actual=await importOriginal<typeof import('@/lib/ediel/rulebook/canonicalPolicyFieldValidator')>()
  return {...actual,validateCanonicalPolicyFields:(input:Parameters<typeof actual.validateCanonicalPolicyFields>[0])=>[...actual.validateCanonicalPolicyFields(input),...(state.inject && input.policy.family==='PRODAT' ?[{severity:'error',blocking:true,code:'FIELD_MATRIX_REQUIRED_FIELD_MISSING',title:'Injected metadata loss',description:'Invariant test: owner failed to retain typed source identity'} as EdielRulebookIssue]:[])]}
@@ -23,7 +23,7 @@ vi.mock('@/lib/ediel/operationalVerification',()=>({buildSafeMasterdataProposal:
 vi.mock('@/lib/ediel/orchestrator/edielProcessingPipeline',()=>({analyzeEdielProcessingPipeline:async()=>null}))
 vi.mock('@/lib/inbound-mail/edielMailboxPoller',()=>({runInboundEdielMailEngine:async()=>null}))
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
-beforeEach(()=>{state.message={...source(raw(z10(),'Z10'),'Z10'),status:'received',company_id:'tenant',parsed_payload:{fileEngine:{mode:'agt'}}} as EdielMessageRow;state.effects=[];state.drafts=[];state.events=[];state.inject=false})
+beforeEach(()=>{state.message={...source(raw(z10(),'Z10'),'Z10'),status:'received',company_id:'tenant',parsed_payload:{fileEngine:{mode:'agt'}}} as EdielMessageRow;state.effects=[];state.drafts=[];state.events=[];state.inject=false;state.registryFailure=false})
 const run=()=>processInboundEdielMessage({actorUserId:'00000000-0000-4000-8000-000000000002',edielMessageId:state.message.id})
 it('persists U as diagnostics and continues guarded inbound staging with the prescribed ACK',async()=>{
  await run();expect(state.message.validation_report.prodatProcessingDisposition).toMatchObject({kind:'continue'});expect(state.effects).toEqual(['actor-auto','facility','link','case','z02','z14','business'])
@@ -36,4 +36,21 @@ it('holds only the message with missing owner metadata before actor auto-send/bu
 it('retains the real missing226 negative through persistence/draft while a separate invariant holds business',async()=>{
  state.inject=true;state.message.raw_payload=raw(z10(false),'Z10');await run();expect(state.effects).toEqual([]);expect(state.message.validation_report).toMatchObject({applicationDecision:'rejected',functionalDecision:'manual_review'})
  const wire=state.drafts.map(d=>d.rawPayload).join('');expect(wire).toContain('ERC+41::260');expect(wire).toContain('FTX+AAO++226::260');expect(wire).not.toContain('ERC+42::260');expect(wire).not.toContain('ERC+100::260');expect(wire).not.toContain('CACHED-UNRELATED')
+})
+
+for(const missing of [false,true])it(`internal review plus registry failure emits only qualified negatives: missing226=${missing}`,async()=>{
+ state.inject=true;state.registryFailure=true;if(missing)state.message.raw_payload=raw(z10(false),'Z10');await run();
+ expect(state.effects).toEqual([]);expect(state.message.validation_report.prodatProcessingDisposition).toMatchObject({kind:'internal_review'});
+ const wire=state.drafts.map(d=>d.rawPayload).join('');
+ expect(state.drafts.some(d=>d.messageFamily==='CONTRL')).toBe(true);
+ if(missing){expect(wire).toContain('ERC+41::260');expect(wire).toContain('FTX+AAO++226::260')}else{expect(wire).not.toContain('ERC+')}
+ expect(wire).not.toContain('ERC+40::260');expect(wire).not.toContain('CACHED-UNRELATED');
+})
+
+it('internal review retains qualified special109 with both Z09D dates',async()=>{
+ const body=[...head(),...own('1','735123456789012345','CASE')].map(p=>p[0]==='CAV'?['CAV','Z70']:p);
+ body.splice(4,0,['DTM',['93','202611010000','203']]);
+ state.message={...state.message,...source(raw(body,'Z09'),'Z09')};state.inject=true;await run();
+ expect(state.effects).toEqual([]);expect(state.message.validation_report.prodatProcessingDisposition).toMatchObject({kind:'internal_review'});
+ const wire=state.drafts.map(d=>d.rawPayload).join('');expect(wire).toContain('ERC+40::260');expect(wire).toContain('FTX+AAO++109::260');expect(wire).not.toContain('ERC+100::260');
 })

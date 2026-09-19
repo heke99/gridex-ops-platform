@@ -4,8 +4,8 @@
   "status": "IN_PROGRESS",
   "branch": "codex/ediel-f3-closure-20260919",
   "base_head_sha": "51c6c06b5fd7f56f447c0bd907373dc3a76d4676",
-  "active_item": "Bounded typed PRODAT ACK field identity and diagnostic disposition implementation",
-  "next_action": "AuthorRED/GREENactualconsumers+fullgates, rootindividualoldassertionrulings, independentcompletedruntime review",
+  "active_item": "PR350 original-author correction of four runtime review findings",
+  "next_action": "Complete RT1-RT4 fixes; immutable probes GREEN; scoped independent rereview; publish exact corrected tree and CI; guarded merge and main73+OPS",
   "accepted_numeric_D": 98,
   "merged_numeric_D": 98,
   "numeric_D_total": 110,
@@ -37,10 +37,10 @@
     "pr": null,
     "verification": "publicfetchdiff0"
   },
-  "runtime_local_head": "8ccead182667938beb9a0072c8a2571e0acdaac3",
-  "runtime_published_head": "4c7835355fad784441fa2884b91e1d6f7bdee168",
-  "runtime_tree": "103912123ccce2ad916a3109bceadc9dac610236",
-  "active_pr": null,
+  "runtime_local_head": "7a201033b7b66fb15827a995c060b0a52dfb58db",
+  "runtime_published_head": "b17946efd2b7c4a348a5556b2ee5f87030d3c389",
+  "runtime_tree": "18996c3dd209067fd3c82c3cc1d23b09306dadb9",
+  "active_pr": 350,
   "last_merged_pr": 349,
   "main_ops_receipt": {
     "run": 35472852618,
@@ -54,8 +54,9 @@
   "source_candidate_commit": "ed45d5322d6ba2c881537a42dcdd80247c989876",
   "source_review": "SOURCE/SPEC APPROVE; ARCHITECTURE APPROVE; auditTASK/QUALITY APPROVE R1",
   "runtime_scope": "Source-ownedfield/kind/occurrence metadata; F/U/L/I disposition, narrowIinboundguard, exactACKrefs; no506applicability/P94fulltextclaim",
-  "runtime_fix_round": 0,
-  "runtime_review": "PENDING",
+  "runtime_fix_round": 1,
+  "runtime_review": "REQUEST_CHANGES RT1 P1; RT2/RT3/RT4 P2",
   "applicable_pr_workflows": 4,
-  "main_pending": null
+  "main_pending": null,
+  "initial_runtime_ci": "All4SUCCESS; Node22.23.2 4354/4354 in291files"
 }

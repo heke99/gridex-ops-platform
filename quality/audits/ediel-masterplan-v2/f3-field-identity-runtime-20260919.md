@@ -1,5 +1,37 @@
 # Bounded F3 field identity runtime candidate — 2026-09-19
 
+## Runtime review correction round 1 — current candidate
+
+The initial candidate was **REQUEST_CHANGES** under R-F3-RT1–RT4. Its broad green receipts did not establish the four contracts below. The source/architecture approval remains unchanged; this wave corrects implementation only. Current status: correction implemented, new local evidence below; scoped independent rereview and exact Node22 CI remain required. Earlier sections are the initial candidate's historical record and are superseded where these corrections apply.
+
+| Finding | Bounded correction | Direct proof |
+| --- | --- | --- |
+| RT1: I plus registry failure emitted generic negative | The per-message internal-review ACK guard filters to complete source-owned numeric/special negatives with matching ERC/field. A negative outcome alone is insufficient. The existing registry catch is unchanged. | Actual persisted inbound orchestration now emits technical-only for I+registry failure; F+I+registry retains41/226; qualified special40/109 remains deliverable beside I. U still proceeds normally. |
+| RT2: absent IV child emitted42 | Supplied IV child findings use the existing child field-state presence, distinguishing absent mandatory value from supplied-invalid content. Numeric source ownership is retained for the whole child path, without making absent optional parents mandatory. | Actual qualified Z03 missing251 emits41/251. Additional250/251/253/317/318 absence/invalid controls retain41/42 respectively. |
+| RT3: subtype fragment lost original occurrence | Validation remains scoped to the selected subtype fragment; emitted field metadata is rebound to the original message and its physical register group using original token position. | Second-object217 retains UNH M, physical lineIndex1, LIN2, own object/agency/register/LI in canonical issue and application plan; real draft contains LI B, never A. |
+| RT4: incomplete metadata qualified | One finite qualifier checks numeric descriptor locator/group and all required component metadata, source rule, valid occurrence integer ranges and header/absent-object shape. Special109 also requires its source rule and valid occurrence. The same qualifier guards I-negative delivery. | Missing/empty/wrong component, negative index/register, zero register and absent-line-with-object mutations become I. Complete field and special109 controls remain qualified; blank special source does not. |
+
+No changes to general registry/policy catches, source catalogs, schema, shared codecs/loaders, workflows/gates/budgets or old assertions. The initial author inbound test only gains new controls and the needed registry-failure mock switch; its existing assertions remain unchanged. Two new repository review test files retain independently specified outcomes. Existing local U/L and authority behavior, exact decoded references, missing-object/header contracts and all residual exclusions remain in force.
+
+New receipts are under `/workspace/scratch/2a201d6d5897/f3-field-identity-r1-probes/`:
+
+- Original independent normative assertions, unchanged: **5 PASS / 5 FAIL RED → 10/10 GREEN**. Passing F+I+registry control preserved.
+- Permanent repository review/inbound tests: **5 PASS / 5 FAIL RED**. Extended metadata boundary RED:2 PASS/7 FAIL (the header/object control already passed). Final focused family **48/48**.
+- Final implementation full suite: **4373/4373 in293 files**, Node v24.19.0. No runtime changes after this receipt. Subsequent test-only explicit type annotations and a draft assertion were verified by final focused48/48 and tests typing. This supersedes the initial candidate's pre-final4354 limitation for local verification only; exact Node22 publication CI remains separate.
+- App/scripts/tests typing, lint, source integrity33/121/231, eight Ediel scripts818/818, tenant integrity/shutdown, service-role ratchet, large-file/performance and route readiness gates pass. Exact commands, exits and hashes are in the companion JSON's correction-round entry. Initial full lint rejected six explicit-any annotations in new repository tests copied from independent probes; replacement explicit types exposed a temporary Partial occurrence typing error. Both were corrected without production changes; initial failed receipts remain, and a separate final gate ledger records PASS.
+
+### Observation provenance incident
+
+The first correction RED run kept the independent test files and assertions unchanged and selected a new Vitest result path. Four probes nevertheless contain hard-coded `writeFileSync` observation paths. That run regenerated `registry-observation.json`, `mixed-registry-observation.json`, `missing-component-observation.json` and `invalid-occurrence-observation.json` in the independent probe directory; timestamps/ACK IDs changed their bytes. The root/reviewer confirmed no original-byte backup exists. These four files **cannot be claimed byte-immutable or exactly restored**. Copies named `regenerated-red-*.json` preserve this rerun output separately.
+
+The original SHA256 manifest is untouched and continues to show the original hashes. Original probe source files, original result receipts, review report, owner observation artifact and all other manifest entries remain unchanged. The independent RED assertions and original reviewer result receipts remain the original evidence. A separate external Vitest setup now redirects only `node:fs.writeFileSync` observation destinations into the R1 evidence directory; it changes no oracle input/assertion or production behavior. The redirected unchanged probes pass10/10. The companion JSON records both original manifest hashes and regenerated hashes without replacing original evidence identities.
+
+The current local result is ready for scoped rereview, not accepted F3 closure. Historical **98/110 numeric +10/10 parents** remains unchanged. General506/p119, P94 fullA905/customer227 text, full grammar, positive persisted/live producer eligibility and PR310 remain outside this correction.
+
+---
+
+## Initial candidate record (historical)
+
 Status: implemented and locally verified; independent runtime review and exact Node22 CI remain with root. This is derived evidence, not an acceptance-count change or full F3/P-APERAK/live-producer claim. Historical counts remain **98/110 numeric cells and 10/10 parents**, with 12 bounded numeric cells still lacking full acceptance.
 
 ## Authority and source boundary

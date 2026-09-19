@@ -175,3 +175,6 @@ Padded Z14 DTM90/354/693 qualifiers bypassed protected checks;108red then115regr
 
 ## Still open positive reporting/customer authority
 Ten archived RED probe cases remain, fourcells unaccepted. Missing per-object verified producer; do not enable blocked stubs or promote arbitrary portalData. NarrowNexclusions repaired locally pendingreview. Audit f3-reporting-context-20260919.md contains actualsource/callpaths,redcounts and separate producerdesign.
+
+## PR350 independent probe output preservation incident
+Original author reran unchanged independent probes with a new reporter path, but probe-owned fs writes replaced four observation JSONs (registry, mixed-registry, missing-component, invalid-occurrence). Original test files, SHA manifest and three test result receipts remain hash-identical. Reviewer read-only search found no complete original observation backups; do not claim byte recovery. Original review and captured wire corroborate the findings. Preserve original manifest, label regenerated observations as rerun evidence and redirect future observation writes outside original paths without modifying assertions.

@@ -1,5 +1,5 @@
 {
-  "status": "BOUNDED_RUNTIME_CANDIDATE_PENDING_INDEPENDENT_REVIEW_AND_NODE22_CI",
+  "status": "RUNTIME_CORRECTION_R1_PENDING_SCOPED_REREVIEW_AND_EXACT_NODE22_CI",
   "date": "2026-09-19",
   "source_contract_commit": "ed45d5322d6ba2c881537a42dcdd80247c989876",
   "accepted_runtime_base": "51c6c06b5fd7f56f447c0bd907373dc3a76d4676",
@@ -296,5 +296,295 @@
     "Policy-resolution and registry-evidence catch paths",
     "Positive persisted/live producer eligibility and12 partially accepted numeric cells",
     "Independent reviews and exact Node22 publication/main gates"
-  ]
+  ],
+  "runtime_correction_round1": {
+    "reviewed_candidate": "7a201033b7b66fb15827a995c060b0a52dfb58db",
+    "review_report": "/workspace/scratch/2a201d6d5897/f3-field-identity-runtime-review-report.md",
+    "findings": [
+      "R-F3-RT1",
+      "R-F3-RT2",
+      "R-F3-RT3",
+      "R-F3-RT4"
+    ],
+    "status": "AUTHOR_CORRECTIONS_VERIFIED_PENDING_INDEPENDENT_REREVIEW",
+    "evidence_root": "/workspace/scratch/2a201d6d5897/f3-field-identity-r1-probes",
+    "node": "v24.19.0",
+    "tests": {
+      "independent-red": {
+        "files": 4,
+        "passed": 5,
+        "failed": 5,
+        "success": false
+      },
+      "repo-red": {
+        "files": 3,
+        "passed": 5,
+        "failed": 5,
+        "success": false
+      },
+      "metadata-complete-red": {
+        "files": 1,
+        "passed": 2,
+        "failed": 7,
+        "success": false
+      },
+      "focused-green-first": {
+        "files": 5,
+        "passed": 42,
+        "failed": 0,
+        "success": true
+      },
+      "independent-green": {
+        "files": 4,
+        "passed": 10,
+        "failed": 0,
+        "success": true
+      },
+      "focused-green": {
+        "files": 5,
+        "passed": 48,
+        "failed": 0,
+        "success": true
+      },
+      "focused-final": {
+        "files": 5,
+        "passed": 48,
+        "failed": 0,
+        "success": true
+      },
+      "focused-final-typed": {
+        "files": 5,
+        "passed": 48,
+        "failed": 0,
+        "success": true
+      },
+      "full-suite": {
+        "files": 293,
+        "passed": 4373,
+        "failed": 0,
+        "success": true
+      }
+    },
+    "gates": [
+      {
+        "gate": "typecheck",
+        "command": [
+          "npm",
+          "run",
+          "typecheck"
+        ],
+        "exit": 0,
+        "seconds": 6.12
+      },
+      {
+        "gate": "typecheck-scripts",
+        "command": [
+          "npm",
+          "run",
+          "typecheck:scripts"
+        ],
+        "exit": 0,
+        "seconds": 1.17
+      },
+      {
+        "gate": "typecheck-tests",
+        "command": [
+          "npm",
+          "run",
+          "typecheck:tests"
+        ],
+        "exit": 0,
+        "log": "typecheck-tests-corrected.log",
+        "note": "Original passed; subsequent new-test explicit typing correction temporarily failed in typecheck-tests-final.log; corrected receipt passed."
+      },
+      {
+        "gate": "lint",
+        "command": [
+          "npm",
+          "run",
+          "lint"
+        ],
+        "exit": 0,
+        "log": "lint-final.log",
+        "supersedes_exit": 1
+      },
+      {
+        "gate": "large-files",
+        "command": [
+          "npm",
+          "run",
+          "quality:large-file-budget"
+        ],
+        "exit": 0,
+        "seconds": 0.47
+      },
+      {
+        "gate": "performance",
+        "command": [
+          "npm",
+          "run",
+          "quality:performance"
+        ],
+        "exit": 0,
+        "seconds": 1.76
+      },
+      {
+        "gate": "integrity",
+        "command": [
+          "npm",
+          "run",
+          "ediel:masterplan-v2:integrity"
+        ],
+        "exit": 0,
+        "seconds": 0.25
+      },
+      {
+        "gate": "tenant-integrity",
+        "command": [
+          "node",
+          "scripts/gridex-tenant-integrity-regression.cjs"
+        ],
+        "exit": 0,
+        "seconds": 0.11
+      },
+      {
+        "gate": "tenant-shutdown",
+        "command": [
+          "node",
+          "scripts/gridex-tenant-shutdown-regression.cjs"
+        ],
+        "exit": 0,
+        "seconds": 0.11
+      },
+      {
+        "gate": "ratchet",
+        "command": [
+          "node",
+          "scripts/check-service-role-tenant-ratchet.cjs"
+        ],
+        "exit": 0,
+        "seconds": 0.15
+      },
+      {
+        "gate": "ediel-eight",
+        "command": [
+          "node",
+          "--experimental-vm-modules",
+          "--test",
+          "scripts/test-ediel-rule-pack-source-identity.cjs",
+          "scripts/test-ediel-prodat-source-locators.cjs",
+          "scripts/test-ediel-prodat-characteristic-fields.cjs",
+          "scripts/test-ediel-prodat-reference-fields.cjs",
+          "scripts/test-ediel-prodat-document-fields.cjs",
+          "scripts/test-ediel-prodat-party-fields.cjs",
+          "scripts/test-ediel-prodat-d-z04-reference.cjs",
+          "scripts/test-ediel-component-escaping.cjs"
+        ],
+        "exit": 0,
+        "seconds": 2.77
+      },
+      {
+        "gate": "route-readiness",
+        "command": [
+          "npm",
+          "run",
+          "gridex:route-readiness-regression"
+        ],
+        "exit": 0,
+        "seconds": 0.93
+      },
+      {
+        "gate": "diffcheck",
+        "command": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "exit": 0,
+        "seconds": 0.01
+      }
+    ],
+    "runtime_changed_after_full_receipt": false,
+    "test_only_changes_after_full_receipt": "Explicit test typing annotations, plus direct draft251 assertion; final focused and typecheck passed.",
+    "counts_changed": false,
+    "observation_preservation_incident": {
+      "cause": "Original unchanged probe hard-coded writes regenerated four observations during first RED rerun despite new outputFile. No original-byte backup available.",
+      "original_manifest_sha256": "ecd574d35cb782700a49b1c8fd09168b0bcfb8241da747be04e55e3aacdb3143",
+      "original_manifest_unmodified": true,
+      "original_probe_sources_and_result_receipts_unmodified": true,
+      "four_regenerated_not_immutable": {
+        "invalid-occurrence-observation.json": {
+          "original_manifest_sha256": "0526bae46093d0fcd583a0496c994a9f1ae5001670e119937017c37c6ad633bc",
+          "regenerated_red_sha256": "e7c25d8b6bd1985386894511a3a0293869cfbe52ead3ce736b64d96859f93a0c"
+        },
+        "missing-component-observation.json": {
+          "original_manifest_sha256": "8c69ea6322a4d3e1ca1a1888f9052c336e6cc0ae3aa3e70b4ad82ce81fc0f18c",
+          "regenerated_red_sha256": "df8a40e9f3b63eb910b3881066403abacb3a8f31ba5f1540fc367dec35436e42"
+        },
+        "mixed-registry-observation.json": {
+          "original_manifest_sha256": "e3b91c1c99c12ec632ff6add70c173dc3e17e07c9dd709772e225ba5703608e0",
+          "regenerated_red_sha256": "f1ee7a82487d92eadb8cb5fa89491ab044f75f00f799c5ecbf496ab29c9ef909"
+        },
+        "registry-observation.json": {
+          "original_manifest_sha256": "8905068a877f468a90b2f7fd45c101d4148a14e096a716337739572291583531",
+          "regenerated_red_sha256": "f01c4ff97820b3c96dda4b055ac7ee6874f938d1229a1a3b40a0e6f7997bfc44"
+        }
+      },
+      "rerun_copies": "regenerated-red-*.json",
+      "subsequent_output_redirect": "External redirect-observations.ts setup redirects only node:fs observation destinations; unchanged oracle assertions.",
+      "original_owner_observation_unmodified": true
+    },
+    "receipt_sha256": {
+      "build-audit.py": "f52f16ea160560802ae173c0f2550ed47a17171114fc516d0d0ff493efff282b",
+      "focused-final-typed.json": "b035b524daee5571d9ef0f5161bc86cb1d5d094de79fbb254d6c5e67d167820a",
+      "focused-final-typed.log": "8a4c10da7467cbeba5adc00e1faa2ec6d0c13e3adcc0822d7636cf94fb5efa88",
+      "focused-final.json": "e79e51248381e613e43a9c8a188119b324601604fafb193fa35f7377ec3b1909",
+      "focused-final.log": "5010d49197ea64c9f3cae565baba431e91a46aaee144be2d4fc896827dedd918",
+      "focused-green-first.json": "af06eb8734e2aca576a9edbcd19459792c580e27637dffe27775c33cc9ec6543",
+      "focused-green-first.log": "5a07540f9c745f74c13391980f40406970b56f13b617c8e5c186c584d5f904f7",
+      "focused-green.json": "2f675d5fbda87f693b54211c54b2edb5dcf93649f282a60fcf3f9239cea976d2",
+      "focused-green.log": "39547fd7102a3c20ffdb198d97fddff5bcc6f8d5646c12e4280467e1be584c13",
+      "full-suite.json": "863ea818b4a11dbc23d1509388bc6d54b0e4f3137e4cbe4bc9fcfe523c724f14",
+      "full-suite.log": "9954c3ef036934f1c6571c3fc77bc261d2f94792750a971c52272b975a757722",
+      "gate-run.log": "c0202a9d1bde66c3803ed3611cfcc0d625809179e5fbcf490276feeac96f532a",
+      "gates/diffcheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gates/ediel-eight.log": "8b04fca1adf87a8602f0075170c6623b0564ccac33e828183b9cf72113141c43",
+      "gates/gate-results-final.json": "da8ccf519780100d26c416050e0f1a5341cb6cf87f3b41ad58118fbed3227a7a",
+      "gates/gate-results.json": "bf2660a7811ec73b95ad1f931cfe68e1dedaf774fbe26fc439140ddd49327abb",
+      "gates/integrity.log": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+      "gates/large-files.log": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e",
+      "gates/lint-final.log": "34599fc8b9e056875149a5b7432b14efb3db357d9156d7fe4982aaa475043801",
+      "gates/lint.log": "05ebf5abc8d427ac7799af6ae880942347c9d80e95fd254b1be9e07f1debd294",
+      "gates/performance.log": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629",
+      "gates/ratchet.log": "2939bdd3580914b982fe2853b29618eb469b55a6babf2afc431a87c06d96f74f",
+      "gates/route-readiness.log": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82",
+      "gates/tenant-integrity.log": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690",
+      "gates/tenant-shutdown.log": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e",
+      "gates/typecheck-scripts.log": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae",
+      "gates/typecheck-tests-corrected.log": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+      "gates/typecheck-tests-final.log": "dddc66a72fb684f92c66aadc49e21c4967618f9c15cceddb57668aec2d996152",
+      "gates/typecheck-tests.log": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+      "gates/typecheck.log": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+      "independent-green.json": "dc67d81222ea65e304bdd3b82ab1fc6e5d14618e1920d72d4d1f3f8a4a29c134",
+      "independent-green.log": "8d16717d718c2c672686c4b48ede98bf60050bfb381d341b490da2041cd1159d",
+      "independent-red.json": "36f9e2f313a86fef273c359e3a1e8c8e6175bc7a0b3a99b9439928f5ad6d95ba",
+      "independent-red.log": "3d2e1e23dde894ebfcce46aade7c2ce80c5feb89eb9fc6f581df926b96382f31",
+      "invalid-occurrence-observation.json": "1e3d7b446d18e4103a005817f6d53ae2624b38ed23cbb752eccb31562f847ea9",
+      "metadata-complete-red.json": "df4e46a6484e2741a84220b07fed38c9d82a401f22836283499abcd59d7d41d8",
+      "metadata-complete-red.log": "96a29c9cd72ae0764de4b626f2975f7bcc47be40ca2ca97e70706184b2f21088",
+      "missing-component-observation.json": "b9b9f4d069330d8b2cb35912e0f276a3b47982a5eda51e5c69ab7f9e44ca158f",
+      "mixed-registry-observation.json": "d87b8165a91681024165864a0951068a6645991850a82e5e0b8d88967bc2f2e0",
+      "redirect-observations.ts": "045df24bb9810dcdbe05da73cc64946aee4878f212bea57fe29e19263e0e5181",
+      "regenerated-red-invalid-occurrence-observation.json": "e7c25d8b6bd1985386894511a3a0293869cfbe52ead3ce736b64d96859f93a0c",
+      "regenerated-red-missing-component-observation.json": "df8a40e9f3b63eb910b3881066403abacb3a8f31ba5f1540fc367dec35436e42",
+      "regenerated-red-mixed-registry-observation.json": "f1ee7a82487d92eadb8cb5fa89491ab044f75f00f799c5ecbf496ab29c9ef909",
+      "regenerated-red-registry-observation.json": "f01c4ff97820b3c96dda4b055ac7ee6874f938d1229a1a3b40a0e6f7997bfc44",
+      "registry-observation.json": "c0b31eb9e68fdf8c9f20738a8b77f96fe8ea548fdac5d1ca5556aa681df75195",
+      "repo-red.json": "e49194003a0426445275c2f1d2959435d70232420d64fcedc59710d26fab1013",
+      "repo-red.log": "6a4d3c002f9679248699dcc826a7d89dcc94da46590472f800d7fff9869b6a80",
+      "run-gates.py": "fdd92c2a087857ee74be4c292cd88227850b2bda7c4f32538f9be7673756f4b7",
+      "typecheck-first.log": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+      "vitest.config.mjs": "ca37b21f80321e267c15c60233fe1ef02064825540ca40a91a37a1f4960f13da"
+    }
+  }
 }

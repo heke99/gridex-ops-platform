@@ -11,7 +11,7 @@ import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUna } from '@/lib/ediel/core/una'
 import { prodatCharacteristicPresent, prodatCharacteristicValues } from '@/lib/ediel/prodat/prodatCharacteristicFields'
-import { prodatRegisterRuleScopes } from '@/lib/ediel/prodat/prodatRegisterGroups'
+import { prodatRegisterRuleScopes, prodatRegisterGroups, prodatRegisterMessageSegments } from '@/lib/ediel/prodat/prodatRegisterGroups'
 import { prodatSourceSubtypeRule, resolveProdatSourceSubtypeRequirement } from '@/lib/ediel/prodat/prodatSubtypeRequirement'
 import { findProdatSubtypeRule } from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
 import { validateFieldMatrixPayload, type FieldMatrixEvaluationInput, type RulebookFieldRule } from '@/lib/ediel/rulebook/fieldMatrix'
@@ -63,8 +63,14 @@ export function validateProdatSubtypePolicy(input: FieldMatrixEvaluationInput, r
       const suppliedCharacteristic = prodatCharacteristicPresent(sourceRule.fieldNumber, segments, {una, forbidden:true})
       const effectiveRule: RulebookFieldRule = {...rule, requirement:requirement === 'optional' && suppliedCharacteristic ? 'required' : requirement}
       const failures = validateFieldMatrixPayload({...input, rawSegments:segments.map(segment => segment.raw), mode:'parse'}, [effectiveRule])
+      const originalGroup = prodatRegisterGroups(prodatRegisterMessageSegments(input.rawSegments ?? [],una),una,code).groups
+        .find(group => group.segments[0]?.index === lin?.index)
       issues.push(...failures.map(failure => ({...failure,
-        ...(requirement === 'optional' && suppliedCharacteristic && failure.prodatDiagnostic?.kind === 'field' ? {prodatDiagnostic:{...failure.prodatDiagnostic,errorKind:'invalid' as const}} : {}), scope:'prodat_dependent' as const, description:`${context}: ${failure.description}`})))
+        ...(failure.prodatDiagnostic?.kind === 'field' ? {prodatDiagnostic:prodatFieldDiagnostic(
+          failure.prodatDiagnostic.fieldNumber,
+          requirement === 'optional' && suppliedCharacteristic ? 'invalid' : failure.prodatDiagnostic.errorKind,
+          input, segments.map(segment => segment.raw), failure.prodatDiagnostic.sourceRule, originalGroup?.lineIndex,
+        )} : {}), scope:'prodat_dependent' as const, description:`${context}: ${failure.description}`})))
     }
   }
   return issues

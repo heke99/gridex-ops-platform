@@ -1,4 +1,5 @@
 // lib/ediel/flows/inboundProcessing.ts
+import {isQualifiedProdatApplicationError} from "@/lib/ediel/prodat/prodatDiagnosticProjection";
 
 import {
   createEdielMessageEvent,
@@ -493,8 +494,12 @@ async function createAutomaticPositiveAcks(params: {
         params.sourceMessage.message_family === "PRODAT" ||
         params.sourceMessage.message_family === "UTILTS"),
   );
+  const internalReview = prodatInternalReview(params.sourceMessage);
+  const applicationErrors = internalReview
+    ? aperakPlan?.applicationErrors?.filter(isQualifiedProdatApplicationError)
+    : aperakPlan?.applicationErrors;
   if ((policy.shouldSendPositiveAperak || shouldSendAperakFromPlan) &&
-      (!prodatInternalReview(params.sourceMessage) || aperakPlan?.outcome === "negative")) {
+      (!internalReview || aperakPlan?.outcome === "negative" && Boolean(applicationErrors?.length))) {
     try {
       const aperak = await createAckIfMissing({
         actorUserId: params.actorUserId,
@@ -502,7 +507,7 @@ async function createAutomaticPositiveAcks(params: {
         ackFamily: "APERAK",
         outcome: aperakPlan?.outcome === "negative" ? "negative" : "positive",
         messageText: aperakPlan?.reason ?? "Automatiskt APERAK.",
-        applicationErrors: aperakPlan?.applicationErrors ?? null,
+        applicationErrors: applicationErrors ?? null,
       });
       createdIds.push(aperak.id);
     } catch (error) {

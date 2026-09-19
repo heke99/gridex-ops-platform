@@ -33,6 +33,10 @@ export function prodatFieldDiagnostic(fieldNumber: string | null | undefined, er
   }
   const occurrence = prodatErrorOccurrence(input, scopedSegments, occurrenceScope ?? (field.registerScope === 'header' ? 'header' : field.registerScope === 'local' ? 'register' : 'object'), lineIndex)
   if (!occurrence) return prodatLocalDiagnostic('internal', sourceRule, 'Source finding has no unambiguous own occurrence')
+  return {kind:'field', fieldNumber:field.fieldNumber, errorKind, sourceRule, ...sourceFieldMetadata(field), occurrence}
+}
+
+function sourceFieldMetadata(field: typeof PRODAT_26A_FIELD_MATRIX[number]) {
   const component: Record<string,string|number> = {locator:field.segmentPath}
   if (field.referenceScope) component.valueElement = 'C506/1154'
   if (field.dateQualifier) { component.valueElement = 'C507/2380'; component.formatElement = 'C507/2379' }
@@ -45,7 +49,7 @@ export function prodatFieldDiagnostic(fieldNumber: string | null | undefined, er
   const group = field.referenceScope === 'sender' ? 'SG6' : field.registerScope === 'header' ? (field.partyQualifier ? 'SG4' : 'header')
     : field.cavComponent !== undefined ? 'SG8/SG14' : field.referenceScope === 'line' ? 'SG8/SG16'
     : field.partyQualifier ? 'SG8/SG17' : field.fieldNumber === '213' ? 'SG8/SG12' : 'SG8'
-  return {kind:'field', fieldNumber:field.fieldNumber, errorKind, sourceRule, segmentPath:field.segmentPath, group, component, occurrence}
+  return {segmentPath:field.segmentPath,group,component}
 }
 
 export function prodatErrorOccurrence(input: DiagnosticInput, scopedSegments: readonly string[], scope: ProdatErrorOccurrence['scope'], lineIndex?: number): ProdatErrorOccurrence | null {
@@ -76,9 +80,26 @@ export function prodatTokenFieldDiagnostic(field: string | undefined, input: Dia
 
 export function validProdatErrorOccurrence(value: ProdatErrorOccurrence | undefined): value is ProdatErrorOccurrence {
   if (!value || !['header','object','register'].includes(value.scope)) return false
-  const nullableText = (v: unknown) => v === null || typeof v === 'string'
-  const nullableNumber = (v: unknown) => v === null || typeof v === 'number' && Number.isInteger(v)
-  return [value.messageReference,value.lineNumber,value.objectId,value.identityAgency,value.lineItemReference].every(nullableText)
-    && [value.lineIndex,value.registerPosition].every(nullableNumber)
-    && (value.scope !== 'header' || value.objectId === null && value.lineItemReference === null && value.lineIndex === null)
+  const nullableText = (v: unknown) => v === null || typeof v === 'string' && v.length > 0
+  const ownReferences = [value.lineNumber,value.objectId,value.identityAgency,value.lineItemReference]
+  if (![value.messageReference,...ownReferences].every(nullableText)) return false
+  // Header and explicitly absent object have no physical occurrence or own refs.
+  if (value.scope === 'header' || value.lineIndex === null) {
+    return value.lineIndex === null && value.registerPosition === null && ownReferences.every(v => v === null)
+  }
+  return Number.isInteger(value.lineIndex) && value.lineIndex! >= 0
+    && Number.isInteger(value.registerPosition) && value.registerPosition! >= 1
+    && value.registerPosition! <= value.lineIndex! + 1
+}
+
+/** Qualify complete owned metadata, not arbitrary digits or a merely typed object. */
+export function validProdatWireDiagnostic(value: ProdatDiagnostic | undefined): value is Extract<ProdatDiagnostic,{kind:'field'|'application'}> {
+  if (!value || !['field','application'].includes(value.kind) || typeof value.sourceRule !== 'string' || !value.sourceRule.trim()) return false
+  if (value.kind === 'application') return value.ercCode === '40' && value.applicationCode === '109' && validProdatErrorOccurrence(value.occurrence)
+  if (value.kind !== 'field' || !['missing','invalid'].includes(value.errorKind) || !validProdatErrorOccurrence(value.occurrence)) return false
+  const field = PRODAT_26A_FIELD_MATRIX.find(f => f.fieldNumber === value.fieldNumber && !f.fieldNumber.includes('_'))
+  if (!field || !value.component || typeof value.component !== 'object' || Array.isArray(value.component)) return false
+  const expected = sourceFieldMetadata(field)
+  return value.segmentPath === expected.segmentPath && value.group === expected.group
+    && Object.entries(expected.component).every(([key,item]) => value.component[key] === item)
 }
