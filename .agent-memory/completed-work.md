@@ -64,3 +64,9 @@ PR310remainsPAUSED ate961135199f292b8210884f07de3b616a670161a;335unmergedoverlap
 Main5549a065318f39bc4aba99f3fab0b0924a2bc91e includes merged PR342: nine first-register214/218/259 cells Z04/Z06/Z10. Publishedc4b744238f657b621466fd4edcc898f3ce353eee exactreviewedtree406483d2bcb9b0a1ce8690edf202673ccad6d07b. Independent task/spec and wholebranch APPROVE after R1 protected structure-scope/snapshot-catch fix. All exact-head CI SUCCESS: OPS35441185075,Ediel35441184968,Browser35441184976,Full35441185104. Coveragejob105892129424 actually3544/3544 in252files Node22.23.2. Automatic mainfull certificate pending; no claim of its success yet. Prior main341full35439250983/job105887101866 actual73/73Node22.23.2SUCCESS.
 
 PR342 main certificate verified: run35441439468/job105892787566 actual73/73,0failed Node22.23.2 at2026-09-19T12:04:03Z; mainOPS35441439455all3jobsSUCCESS. Numeric acceptance48/110,62remaining;parents4/10. Fullmasterplan/live remainsNOT_COMPLETE;PR310paused.
+
+## PR343 merged; main certificate pending
+
+Main `43101b1eed8c5ce97224a5d21530aaebf265d765` includes PR343: eight field229 cells with independently selected per-object address facts. Final published head `f63d58c7b31eb95dd0e11325b1b8055dd122fae4`, exact reviewed tree `16b21c16fe074e00f799a8121a72666a01f89ef9`. Source, task/spec, task quality and whole-branch reviews APPROVE; no open findings. Exact-head CI SUCCESS: OPS35444207357, Ediel35444207364, Browser35444207408, FullE2E35444207358. Coverage job105900229191 actually ran3668/3668 in254files onNode22.23.2. Automatic main full verification is pending, not yet certified.
+
+PR343 main full35444527599/job105901061175 actual73/73,0failed Node22.23.2 SUCCESS at2026-09-19T13:09:54Z; mainOPS35444527583 all3jobsSUCCESS. Eight229cells accepted:56/110numeric,54remaining,parents4/10. Fullmasterplan/live remainsNOT_COMPLETE;PR310paused.

@@ -1,3 +1,4 @@
+import {assertTgtInvoiceeSource} from './tgtInvoiceeSource'
 import {END_USER_ADDRESS_CODES} from '@/lib/ediel/prodat/prodatEndUserAddress'
 import {tgtEndUserAddressSourceLines} from './tgtEndUserAddressSource'
 import { createHash } from 'node:crypto'
@@ -57,6 +58,7 @@ function checkedFacts(ctx:SourceContext,value:unknown):ProdatDependentConditionF
       if(first.fields['227.AGENCY']!==undefined && first.fields['227.AGENCY']!==fact.endUser.agency)return invalid()
     }
   }
+  assertTgtInvoiceeSource(ctx.code,objects,facts.invoiceeObjects)
   return facts
 }
 /** Factual operator assertion, not a certification flag or authentication token.
@@ -68,6 +70,7 @@ export function buildTgtRegisterFactNotes(ctx:Context & {facts:unknown;actorId:s
   const previous=envelope(ctx.run,raw)
   const facts=checkedFacts(ctx,ctx.facts)
   if(facts.endUserAddressObjects) facts.endUserAddressObjects=facts.endUserAddressObjects.map(fact=>({...fact,source:{kind:'tgt',companyId:ctx.run.company_id,runId:ctx.run.id,stepNo:ctx.stepNo,code:ctx.code,sourceDigest:source(ctx).digest,reference:ctx.sourceNote.trim()}}))
+  if(facts.invoiceeObjects)facts.invoiceeObjects=facts.invoiceeObjects.map(fact=>({...fact,source:{kind:'tgt',companyId:ctx.run.company_id,runId:ctx.run.id,stepNo:ctx.stepNo,code:ctx.code,sourceDigest:source(ctx).digest,reference:ctx.sourceNote.trim()}}))
   const next:FactNotes=previous ?? {version:1,companyId:ctx.run.company_id,runId:ctx.run.id,roleCode:ctx.run.role_code,caseCode:ctx.run.test_case_code,suite:ctx.run.test_suite,steps:{}}
   const entry:Entry={code:ctx.code,sourceDigest:source(ctx).digest,facts,actorId:ctx.actorId,sourceNote:ctx.sourceNote.trim(),recordedAt:new Date().toISOString()}
   const result=JSON.stringify({...raw,prodatRegisterFacts:{...next,steps:{...next.steps,[ctx.stepNo]:entry}}})
@@ -87,16 +90,16 @@ export function readTgtRegisterFacts(ctx:Context):ProdatDependentConditionFacts|
   }
   if (entry.code!==ctx.code || entry.sourceDigest!==source(ctx).digest || typeof entry.actorId!=='string' || !entry.actorId.trim() || typeof entry.sourceNote!=='string' || !entry.sourceNote.trim()) return invalid()
   const facts=checkedFacts(ctx,entry.facts)
-  for(const fact of facts.endUserAddressObjects??[])if(fact.source.kind!=='tgt' || fact.source.companyId!==ctx.run.company_id || fact.source.runId!==ctx.run.id || fact.source.stepNo!==ctx.stepNo || fact.source.code!==ctx.code || fact.source.sourceDigest!==source(ctx).digest)return invalid()
+  for(const fact of [...facts.endUserAddressObjects??[],...facts.invoiceeObjects??[]])if(fact.source.kind!=='tgt' || fact.source.companyId!==ctx.run.company_id || fact.source.runId!==ctx.run.id || fact.source.stepNo!==ctx.stepNo || fact.source.code!==ctx.code || fact.source.sourceDigest!==source(ctx).digest)return invalid()
   return facts
 }
 
 /** Recheck source selection at the draft boundary after notes have been read.
  * Scope comes from the authorized build context, never from the fact itself. */
 export function assertTgtAddressFactSource(input:{companyId:string;runId?:string|null;stepNo:number;code:string;roleCode:EdielTestRunRow['role_code'];caseCode:string;suite:EdielTestRunRow['test_suite'];testData:EdielTgtCaseTestData|null|undefined;facts:ProdatDependentConditionFacts|undefined}) {
-  if(!input.facts?.endUserAddressObjects?.length)return
+  if(!input.facts?.endUserAddressObjects?.length&&!input.facts?.invoiceeObjects?.length)return
   if(!input.runId)return invalid()
   const ctx:SourceContext={stepNo:input.stepNo,code:input.code,testData:input.testData,run:{id:input.runId,company_id:input.companyId,role_code:input.roleCode,test_case_code:input.caseCode,test_suite:input.suite}}
   const facts=checkedFacts(ctx,input.facts), selected=source(ctx)
-  for(const fact of facts.endUserAddressObjects??[])if(fact.source.kind!=='tgt' || fact.source.companyId!==input.companyId || fact.source.runId!==input.runId || fact.source.stepNo!==input.stepNo || fact.source.code!==input.code || fact.source.sourceDigest!==selected.digest)return invalid()
+  for(const fact of [...facts.endUserAddressObjects??[],...facts.invoiceeObjects??[]])if(fact.source.kind!=='tgt' || fact.source.companyId!==input.companyId || fact.source.runId!==input.runId || fact.source.stepNo!==input.stepNo || fact.source.code!==input.code || fact.source.sourceDigest!==selected.digest)return invalid()
 }

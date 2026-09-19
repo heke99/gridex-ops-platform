@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ud, udAddressFact } from './fixtures/prodat-ud'
+import { ud, udInvoiceeFact, udAddressFact } from './fixtures/prodat-ud'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { validateEdielMessageRowWithRulebook, validateRulebookMessage, validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
 import { assertRulebookAllowsSend } from '@/lib/ediel/rulebook/sendGuards'
@@ -34,7 +34,7 @@ function pair(alphabet: readonly string[], firstFamily = 'PRODAT', secondCode = 
 function row(payload: string, environment: 'test' | 'production' = 'test', meteringPointId = 'A'): EdielMessageRow {
   const wire = tokenizeEdifact(payload)
   const registerEvidence = createProdatRegisterEvidence({code:'Z06',rawSegments:wire.segments.map(segment=>segment.raw),una:wire.una,
-    facts:{market:'electricity',endUserAddressObjects:[udAddressFact(meteringPointId)],registerObjects:[{meteringPointId,identityAgency:'89',expectedRegisterCount:1,meterReadingsSentInUtilts:false}]}})
+    facts:{market:'electricity',endUserAddressObjects:[udAddressFact(meteringPointId)],invoiceeObjects:[udInvoiceeFact(meteringPointId)],registerObjects:[{meteringPointId,identityAgency:'89',expectedRegisterCount:1,meterReadingsSentInUtilts:false}]}})
   const fixture: Partial<EdielMessageRow> = { message_family:'PRODAT', message_code:'Z06', message_version:'26A', direction:'outbound', environment,
     message_standard:'edifact', application_reference:'23-DDQ-PRODAT', company_id:'synthetic-company', raw_payload:payload, mime_type:'application/EDIFACT',
     // Synthetic in-memory boundary; snapshot/markers may not certify another UNH.

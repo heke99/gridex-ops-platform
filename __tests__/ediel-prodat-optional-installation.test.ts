@@ -1,5 +1,5 @@
 import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
-import { ud, udAddressFact, selectedAddressFact } from './fixtures/prodat-ud'
+import { ud, udInvoiceeFact, udAddressFact, selectedAddressFact, selectedInvoiceeFact } from './fixtures/prodat-ud'
 import { describe, expect, it } from 'vitest'
 import { buildProdatMessage, type BuildProdatMessageInput } from '@/lib/ediel/prodat/buildProdat'
 import { buildProfiledProdatSegments } from '@/lib/ediel/prodat/builders/profileRenderer'
@@ -58,7 +58,7 @@ function row(code: typeof CODES[number], parts: Parts[], alphabet: readonly stri
     mime_type: 'application/EDIFACT', parsed_payload: {
       rulebookAllowInvalidSend: true,
       prodatEngine: {
-        registerEvidence:createProdatRegisterEvidence({...input(raw(parts,code,alphabet),code),code,facts:{endUserAddressObjects:[udAddressFact('OBJECT-A')]}}),
+        registerEvidence:createProdatRegisterEvidence({...input(raw(parts,code,alphabet),code),code,facts:{endUserAddressObjects:[udAddressFact('OBJECT-A')],invoiceeObjects:[udInvoiceeFact('OBJECT-A')]}}),
         // Even a complete persisted snapshot claiming no requirements cannot
         // override an actually supplied object-scoped parent on the wire.
         dependentConditionStatuses: policy(code).prodatDependentConditions
@@ -179,7 +179,7 @@ describe('optional installation builders', () => {
   })
 
   const genericBase: BuildProdatMessageInput = {
-    dependentConditionFacts:{endUserAddressObjects:[selectedAddressFact('OBJECT-A','synthetic-company','89','USER')]},
+    dependentConditionFacts:{endUserAddressObjects:[selectedAddressFact('OBJECT-A','synthetic-company','89','USER')],invoiceeObjects:[selectedInvoiceeFact('OBJECT-A','synthetic-company','89','USER')]},
     companyId: 'synthetic-company', role: 'supplier', businessCode: 'Z03', transactionSubtype: 'L',
     sender: { edielId: '12345' }, receiver: { edielId: '54321' },
     meteringPoint: { id: 'OBJECT-A', identityAgency: '89' }, environment: 'test',

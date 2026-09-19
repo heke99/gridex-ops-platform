@@ -1,3 +1,6 @@
+import {validateProdatInvoicee} from '@/lib/ediel/rulebook/prodatInvoiceePolicy'
+import {assertInvoiceeOwnership} from './prodatInvoicee'
+import type {ProdatEngineInvoiceeContext} from './types'
 import {validateProdatEndUserAddress} from '@/lib/ediel/rulebook/prodatEndUserAddressPolicy'
 import {createProdatRegisterEvidence,type ProdatRegisterEvidence} from './prodatRegisterEvidence'
 import {assertProdatAddressOwnership} from './prodatEndUserAddress'
@@ -12,7 +15,7 @@ import { prodatObjectIdentityAgency, type ProdatMeterRegisterInput } from '@/lib
 import type { ProdatDependentConditionFacts } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import { buildProdatDateSegments, resolveProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
 import { isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
-import { prodatPartySegment, prodatCustomerNadSegment, prodatInstallationNadSegment } from '@/lib/ediel/prodat/render/segments'
+import { prodatPartySegment, prodatInvoiceeNadSegment, prodatCustomerNadSegment, prodatInstallationNadSegment } from '@/lib/ediel/prodat/render/segments'
 import { canonicalProdat26AFieldRules, PRODAT_26A_FIELD_MATRIX, PRODAT_26A_MESSAGE_CODES } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { renderProdatDocumentHeader } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { serializeEdifact, escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
@@ -36,6 +39,7 @@ export type BuildProdatMessageInput = {
   meteringPoint?: { id?: string | null; gridArea?: string | null; identityAgency?: '9' | '89' } | null
   registers?: readonly ProdatMeterRegisterInput[]
   objects?: readonly BuildProdatObjectInput[]
+  invoicee?: ProdatEngineInvoiceeContext | null
   dependentConditionFacts?: ProdatDependentConditionFacts
   customer?: {
     id?: string | null; name?: string | null; identity?: string | null
@@ -57,7 +61,7 @@ export type BuildProdatMessageInput = {
 }
 
 /** Object fields never fall through from another object or a root default. */
-export type BuildProdatObjectInput = Pick<BuildProdatMessageInput, 'meteringPoint' | 'customer' | 'gridOwner' | 'brp' | 'dates' | 'references' | 'codedAttributes' | 'registers' | 'installation'>
+export type BuildProdatObjectInput = Pick<BuildProdatMessageInput, 'meteringPoint' | 'customer' | 'gridOwner' | 'brp' | 'dates' | 'references' | 'codedAttributes' | 'registers' | 'installation' | 'invoicee'>
 
 export type BuiltProdatMessage = {
   rawEdifact: string
@@ -148,6 +152,7 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
         address:object.customer?.address,addressLines:object.customer?.addressLines,
         city:object.customer?.city,postalCode:object.customer?.postalCode,
       }) : null,
+      object.invoicee ? prodatInvoiceeNadSegment({customerId:object.invoicee.id,customerIdCodeListQualifier:object.invoicee.idCodeListQualifier,idAgency:object.invoicee.idAgency,customerName:object.invoicee.name,nameLines:object.invoicee.nameLines,address:object.invoicee.address,addressLines:object.invoicee.addressLines,city:object.invoicee.city,postalCode:object.invoicee.postalCode,country:object.invoicee.country}) : null,
       ((['Z01', 'Z03', 'Z08'].includes(businessCode)) || (businessCode === 'Z14' && objectSubtype !== 'N')) && object.installation
         ? prodatInstallationNadSegment({meterPointId:id ?? '',...object.installation,
           ...(['Z01', 'Z03', 'Z08'].includes(businessCode) ? {idAgency:object.installation.idAgency ?? agency} : {})}) : null,
@@ -176,7 +181,11 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
     businessSegments,
     testIndicator: input.environment === 'production' ? 0 : 1,
   })
+  assertInvoiceeOwnership(input.dependentConditionFacts?.invoiceeObjects,{companyId:input.companyId,code:businessCode})
+  const invoiceeFailures=validateProdatInvoicee({code:businessCode,rawSegments:businessSegments,facts:input.dependentConditionFacts})
   const validation = validateProdat(rawEdifact,{registerFacts:input.dependentConditionFacts,requireRegisterConditions:true})
+  validation.issues.push(...invoiceeFailures.map(f=>({severity:'error' as const,code:f.code,message:f.description})))
+  if(invoiceeFailures.length)validation.ok=false
   // A generic builder must not label an E message valid after discarding its
   // required customer fields. Keep this bounded UD check out of inbound parsing.
   if (['Z06', 'Z09'].includes(businessCode)) {

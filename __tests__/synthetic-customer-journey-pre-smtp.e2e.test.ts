@@ -1,4 +1,4 @@
-import { selectedAddressFact } from './fixtures/prodat-ud'
+import { selectedAddressFact, selectedInvoiceeFact } from './fixtures/prodat-ud'
 import { describe, expect, it } from 'vitest'
 import { ApplicationSchema } from '@/lib/website/customerApplicationSchemas'
 import { contractLegalMailEvidenceReady } from '@/lib/website/contractLegalMailEvidence'
@@ -201,7 +201,7 @@ describe('synthetic customer journey stops immediately before external SMTP', ()
         powerOfAttorneyReference: 'POA-SYNTH-900001',
         dependentConditionFacts: {
           endUserAddressAvailable: true,
-          endUserAddressObjects:[selectedAddressFact('735999999999999999','00000000-0000-4000-8000-000000000001','9','199001011234',['Testgatan 1'],'SE2')],
+          endUserAddressObjects:[selectedAddressFact('735999999999999999','00000000-0000-4000-8000-000000000001','9','199001011234',['Testgatan 1'],'SE2')],invoiceeObjects:[selectedInvoiceeFact('735999999999999999','00000000-0000-4000-8000-000000000001','9','199001011234',['Testgatan 1'],'SE2','11122','Stockholm')],
           invoiceeAddressDiffersFromEndUser: false,
           byCell: {
             'Z03:233': true,

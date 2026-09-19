@@ -1,3 +1,4 @@
+import {selectedInvoiceeFact} from './fixtures/prodat-ud'
 import type {EdielTgtCaseTestData} from '@/lib/ediel/testing/tgtTestData'
 import type {EdielTgtDraftBuildParams} from '@/lib/ediel/testing/tgtEdifact.part-1'
 import type {EdielTestRunRow,EdielMessageRow} from '@/lib/ediel/types'
@@ -19,7 +20,7 @@ const data=():EdielTgtCaseTestData=>({suite:'PRODAT',roleCode:'supplier',testCas
 const run=():EdielTestRunRow=>({id:'RUN',company_id:'tenant',role_code:'supplier',test_case_code:'1.2.5',test_suite:'PRODAT',notes:null,approval_version:null,title:'Synthetic',status:'draft',customer_id:null,site_id:null,metering_point_id:null,grid_owner_id:null,started_at:null,completed_at:null,failure_reason:null,created_at:'2026-09-19T00:00:00Z',updated_at:'2026-09-19T00:00:00Z',created_by:null,updated_by:null})
 const facts=():{endUserAddressObjects:MutableAddress[]}=>({endUserAddressObjects:['A','B'].map(id=>({meteringPointId:id,identityAgency:'9',endUser:{id:'199001011234',qualifier:'SE2',agency:'260'},availability:'available',addressLines:['',`BOX ${id}`,"c/o :+?'"],source:{kind:'caller_selection',companyId:'tenant',reference:'synthetic-source'}}))})
 const ctx=()=>({run:run(),testData:data(),code:'Z03',stepNo:1})
-const saved=()=>{const c=ctx();c.run.notes=buildTgtRegisterFactNotes({...c,facts:facts(),actorId:'ACTOR',sourceNote:'Original selected customer addresses'});return c}
+const saved=()=>{const c=ctx();c.run.notes=buildTgtRegisterFactNotes({...c,facts:{...facts(),invoiceeObjects:['A','B'].map(id=>selectedInvoiceeFact(id,'tenant','9','199001011234',['',`BOX ${id}`,"c/o :+?'"],'SE2','12345','Town'))},actorId:'ACTOR',sourceNote:'Original selected customer addresses'});return c}
 describe('TGT independent address source ownership',()=>{
  it('supports address facts without inventing register inventory',()=>{
   const c=saved();const result=readTgtRegisterFacts(c)!

@@ -1,3 +1,4 @@
+import type {ProdatEngineInvoiceeContext} from '@/lib/ediel/prodat/types'
 import type { ProdatDependentConditionFacts } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import { prodatDate203, prodatNowDate203 } from '@/lib/ediel/prodat/render/dates'
 // Extracted from tgtEdifact.ts; keep public imports on the facade module.
@@ -198,6 +199,7 @@ export type TgtPortalCustomerData = {
   customerCity?: string | null;
   customerCountry?: string | null;
   birthDate?: string | null;
+  invoicee?: ProdatEngineInvoiceeContext | null;
   billingRecipientId?: string | null;
   billingRecipientName?: string | null;
   billingRecipientAddress?: string | null;

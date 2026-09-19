@@ -79,7 +79,7 @@ export function prodatCustomerNadSegment(params: CustomerPartyInput): string {
 }
 
 export function prodatInvoiceeNadSegment(params: CustomerPartyInput): string {
-  return customerParty('IV', params)
+  return customerParty('IV', {...params,country:params.country ?? '',addressLines:params.addressLines ? prodatEndUserAddressWireLines(params.addressLines) : undefined})
 }
 
 export function prodatInstallationNadSegment(params: {
