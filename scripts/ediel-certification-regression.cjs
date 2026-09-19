@@ -73,16 +73,8 @@ if (!tgtEdifact.includes('fallbackEscoPermissionGridAreaId')) failures.push('E3/
 if (!tgtEdifact.includes('["E3", "E4", "E8"].includes(params.testCaseCode)')) failures.push('AGT actor-to-portal E3/E4/E8 must not be blocked by missing TGT portal testdata')
 if (!tgtEdifact.includes('735999888000000113')) failures.push('E8 Z18V must have deterministic synthetic metering point fallback for Systemtest outbound')
 
-if (!tgtEdifact.includes('DTM+693:${permissionCreatedAt}:203')) failures.push('E8/Z18 Systemtest must render DTM+693 for permission creation timestamp')
-if (!tgtEdifact.includes('DTM+164:${reportingEndDate}:203')) failures.push('E8/Z18 Systemtest must render DTM+164 for report end timestamp')
-if (!tgtEdifact.includes('RFF+Z09:${permissionId}')) failures.push('E8/Z18 Systemtest must render RFF+Z09 for permission id')
-if (!tgtEdifact.includes('step.code !== "Z13" && step.code !== "Z18"')) failures.push('E8/Z18 Systemtest must not render SG17 NAD+IT; it must render SG17 NAD+UD')
 if (!tgtEdifact.includes('GRIDEX TESTKUND')) failures.push('E8/Z18 Systemtest must have deterministic end-user fallback for AGT validation')
 if (!prodatGenericBuilder.includes("policy.code === 'Z18'")) failures.push('Production PRODAT builder must have explicit Z18 branch')
-if (!prodatGenericBuilder.includes('DTM+693:${permissionCreatedAt}:203')) failures.push('Production PRODAT Z18 must render DTM+693')
-if (!prodatGenericBuilder.includes('DTM+164:${reportingEndDate}:203')) failures.push('Production PRODAT Z18 must render DTM+164')
-if (!prodatGenericBuilder.includes('RFF+Z09:${z18PermissionId}')) failures.push('Production PRODAT Z18 must render RFF+Z09')
-if (!prodatGenericBuilder.includes("policy.code !== 'Z03' && policy.code !== 'Z18'")) failures.push('Production PRODAT Z18 must not render NAD+IT')
 if (!prodatRenderValidate.includes('prodat_z18_end_user_missing')) failures.push('Production PRODAT Z18 must block/manual-review when end-user data is missing')
 if (!prodatRenderValidate.includes('prodat_z18_permission_id_missing')) failures.push('Production PRODAT Z18 must block/manual-review when permission id is missing')
 if (!payloadPreflight.includes('PRODAT_Z18_NAD_IT_FORBIDDEN')) failures.push('Send preflight must block PRODAT Z18 with NAD+IT')
@@ -95,4 +87,9 @@ if (failures.length > 0) {
   process.exit(1)
 }
 
+// Exercise the actual renderers; template-string layout is not the contract.
+require('node:child_process').execFileSync(process.execPath, [
+  'node_modules/vitest/vitest.mjs', 'run', '__tests__/ediel-release-rendering-regression.test.ts',
+  '-t', 'Z18 release rendering contract',
+], { cwd: root, stdio: 'inherit' })
 console.log('Certification regression ok')

@@ -8,6 +8,11 @@ const migrationsDirectory = path.join(root, 'supabase', 'migrations')
 const outputDirectory = path.join(root, 'artifacts')
 const historyManifestPath = path.join(root, 'scripts', 'migration-history-manifest.json')
 const additionsManifestPath = path.join(root, 'scripts', 'migration-history-manifest.additions.json')
+const runtimeManifestPath = path.join(root, 'scripts', 'migration-history-manifest.runtime.additions.json')
+const runtimeManifest = fs.existsSync(runtimeManifestPath)
+  ? JSON.parse(fs.readFileSync(runtimeManifestPath, 'utf8'))
+  : { files: {} }
+const runtimeChecksums = runtimeManifest.files ?? {}
 const verifiedTailPath = path.join(root, 'scripts', 'migration-history-verified-tail.json')
 const historyManifest = JSON.parse(fs.readFileSync(historyManifestPath, 'utf8'))
 const additionsManifest = fs.existsSync(additionsManifestPath)
@@ -40,10 +45,20 @@ for (const [filename, checksum] of Object.entries(tailChecksums)) {
     )
   }
 }
+// Runtime registrations are established provenance already consumed by the
+// integrity/replay checks, not hashes inferred from this working tree.
+for (const [filename, checksum] of Object.entries(runtimeChecksums)) {
+  for (const [source, checksums] of Object.entries({ baseline: baselineChecksums, additions: additionsChecksums, tail: tailChecksums })) {
+    if (Object.hasOwn(checksums, filename) && checksums[filename] !== checksum) {
+      throw new Error(`Runtime migration manifest conflicts with ${source} for ${filename}`)
+    }
+  }
+}
 const registeredChecksums = {
   ...baselineChecksums,
   ...additionsChecksums,
   ...tailChecksums,
+  ...runtimeChecksums,
 }
 
 function sha256(buffer) {
@@ -100,6 +115,7 @@ const result = {
     ...(Object.keys(additionsChecksums).length > 0
       ? [path.relative(root, additionsManifestPath)]
       : []),
+    ...(Object.keys(runtimeChecksums).length > 0 ? [path.relative(root, runtimeManifestPath)] : []),
     ...(Object.keys(tailChecksums).length > 0 ? [path.relative(root, verifiedTailPath)] : []),
   ],
   verification_state: 'LOCAL_INVENTORY_ONLY',
