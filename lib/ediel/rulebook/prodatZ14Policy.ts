@@ -64,7 +64,13 @@ export function validateProdatZ14Policy(input: FieldMatrixEvaluationInput, rules
     const field = rule.fieldNumber!
     const date = prodatDateField(field)
     if (date) for (const token of tokens) {
-      if (token.tag !== 'DTM' || segmentComposite(token,1,una)[0] !== date.dateQualifier) continue
+      const qualifier = segmentComposite(token,1,una)[0]
+      if (token.tag !== 'DTM' || qualifier?.trim() !== date.dateQualifier) continue
+      // Recognize malformed supplied fields without accepting normalization as
+      // valid C507/2005 evidence. Padding inside a qualifier survives tokenizing.
+      if (qualifier !== date.dateQualifier) {
+        fail(field,'PRODAT_DEPENDENT_FIELD_FORMAT_INVALID','DTM-kvalificeraren måste vara exakt utan utfyllnad')
+      }
       const scope = allowed.get(token.index)?.scope
       const firstChildGroup = scope?.find(t => ['CCI','RFF','NAD'].includes(t.tag))
       if (!scope || (firstChildGroup && token.index >= firstChildGroup.index)) {
