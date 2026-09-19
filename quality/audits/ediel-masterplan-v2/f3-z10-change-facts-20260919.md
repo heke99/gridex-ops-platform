@@ -720,3 +720,60 @@ are separated above. Existing Z06 behavior and all immutable source scripts
 remain green. Local runtime is Node24.19.0; root must obtain independent
 exact-head Node22 CI/review before publication/merge/acceptance. No live records,
 SMTP/provider calls, DB writes, settings changes or explicit deployment occurred.
+
+## Runtime review correction wave R1
+
+Independent runtime review of4224c40a requested changes R2/R3/R4. Its original
+seven assertions were preserved unchanged (SHA256
+`710a47ea22a0ddb6459ecd2dfbcb214539bd0257d4419086b1277b6ebbc8756f`).
+Author reproduced1 PASS/6 FAIL in `author-r1-reviewer-red.json`; this supersedes
+any implication that the initial green82 tests established complete bounded
+consumer correctness. The review found no persisted-send exploit: the row,
+guards and actual SMTP remained fail-closed.
+
+- R2: distinguish absent fourth-component242 from independently supplied
+  fifth-component506 before selected validation. A required242 still produces
+  its own missing-field issue. When both occur, validate242's own component and
+  leave506 to its independent controls. No whole-pair projection or506 rule
+  change; general506/p119 disposition remains outside this unit.
+- R3: outgoing254/242 reject unused3055 content, including supplied optional
+  values. The added predicate is explicitly outbound-only and follows the
+  existing incoming-known-false gate. No new inbound unused-X policy or Z06
+  change is introduced.
+- R4: actual raw Z10 enters EDIFACT send validation before XML/list metadata
+  early returns. Existing EDIFACT syntax handling and valid non-Z10 XML/list
+  routing remain intact; the detector still uses the shared tokenizer.
+
+Ten new fixed regression cases cover actual policy, canonical and APERAK
+consumers; required/optional3055; separate and simultaneous242/506; three UNA
+alphabets; misleading format metadata and valid XML/list preservation. No old
+assertion changed in this wave. New fixture corrections are retained honestly:
+initial test code used `errorCode` rather than actual `ercCode`, corrected before
+implementation; the list preservation expectation initially named BI_LIST
+although its content yields AI_LIST. These are test-author errors, not runtime
+fix evidence. Corrected preimplementation RED had8 meaningful failures plus
+that one incorrect list expectation; the original independent6 failures remain
+the primary unchanged RED evidence.
+
+Original reviewer probe now7/7 PASS (`author-r1-reviewer-green.json`). Full suite
+now4198/4198 PASS (`author-r1-full.json`) with the required static-read preload.
+New regression suite10/10 and previous82/82 are included in that full run.
+The earlier focused92 run had91 PASS/1 FAIL solely from the corrected new list
+expectation (`author-r1-focused-green.json`), retained rather than overwritten.
+Initial and final raw-format summaries remain separate. This wave's gate logs
+and command receipts are under scratch `runtime-r1-gates/`; previous gate/TZ
+receipts remain historical and untouched. No date/time implementation changed,
+so the previously executed143-per-zone receipt is not claimed as a fresh run.
+
+Self-review: only two production files change, plus a new test and this audit.
+Original reviewer assertions, originals, codecs, source rules, schema/loaders,
+old assertions, root memory and acceptance counts remain unchanged. Option A
+still cannot accept full cells or qualify a positive persisted producer. Root
+owns independent scoped rereview and exact-head Node22 CI; local Node24 only.
+
+Fresh R1 gates: all13 exit0 in `runtime-r1-gates/gate-results.json`, using the
+same exact command set listed above. Source/escaping818/818 PASS; integrity33
+originals/121 rules/231 contracts, conformance/readiness false; lint100 warnings,
+zero errors; tenant ratchet2401 versus unchanged2402 baseline. Final staged
+and unstaged diff checks PASS. No remaining code/test blocker is claimed before
+independent scoped rereview.

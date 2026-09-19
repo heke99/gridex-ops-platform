@@ -729,6 +729,11 @@ export function preflightEdielPayload(params: {
     }
   }
 
+  // Actual Z10 must reach its EDIFACT send boundary before caller format hints
+  // can select XML/list early returns. Preserve ordinary syntax validation there.
+  if (params.mode === 'send' && meterChangeSendIssue({raw_payload:rawPayload})) {
+    return validateEdifactPayload({...params,rawPayload,mode:'send'})
+  }
   if (params.messageStandard === 'xml' || rawPayload.startsWith('<')) return validateXmlPayload(rawPayload, params.mimeType ?? null)
   const edifactDeclared = params.messageStandard === 'edifact' || rawPayload.startsWith('UNA')
   if (params.messageStandard === 'ai_list' || (!edifactDeclared && !rawPayload.includes("'") && rawPayload.includes(';'))) return validateListPayload(rawPayload)

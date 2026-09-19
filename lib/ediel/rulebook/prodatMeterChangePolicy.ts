@@ -97,7 +97,14 @@ export function evaluateProdatMeterChange(input: MeterChangePolicyInput) {
                 fail('SCOPE_UNDETERMINED', 'förekomst/EL/funktion kan inte avgöras', field, outbound);
                 continue;
             }
-            const supplied = group.segments.filter(t => t.tag === 'CCI' && segmentComposite(t, 2, una)[0]?.trim().toUpperCase() === qualifier);
+            const supplied = group.segments.filter((t, index) => {
+                if (t.tag !== 'CCI' || segmentComposite(t, 2, una)[0]?.trim().toUpperCase() !== qualifier)
+                    return false;
+                const cav = group.segments[index + 1], parts = cav?.tag === 'CAV' ? segmentComposite(cav, 1, una) : [];
+                // P68: fifth-component506 is independently present, not evidence
+                // of absent fourth-component242. Leave the sibling's own controls intact.
+                return field !== '242' || Boolean(parts[3]?.trim()) || !parts[4]?.trim();
+            });
             if (!supplied.length) {
                 if (condition === true)
                     fail('REQUIRED', 'obligatoriskt eget fält saknas', field);
@@ -113,7 +120,8 @@ export function evaluateProdatMeterChange(input: MeterChangePolicyInput) {
             const value = parts[position] ?? '', allowed: readonly string[] = field === '254' ? ['Z31', 'Z32'] : PRODAT_EL_AGGREGATION_PRODUCTS;
             const trailing = (t: EdifactTokenizedSegment | undefined, last: number) => t ? Array.from({ length: Math.max(0, segmentElementCount(t, una) - last) }, (_, i) => segmentComposite(t, last + i + 1, una)).flat().some(v => v.trim()) : false;
             const malformed = supplied.length !== 1 || !common.includes(cci) || !allowed.includes(value) || segmentComposite(cci, 2, una)[0] !== qualifier || segmentComposite(cci, 1, una).some(v => v.trim()) || segmentComposite(cci, 2, una).slice(1).some(v => v.trim()) || trailing(cci, 2) || trailing(cav, 1) || group.segments[index + 2]?.tag === 'CAV'
-                || parts.some((v, i) => i !== position && i !== 2 && v.trim()) || (parts[2]?.length ?? 0) > 3;
+                || parts.some((v, i) => i !== position && i !== 2 && !(field === '242' && i === 4) && v.trim()) || (parts[2]?.length ?? 0) > 3
+                || outbound && Boolean(parts[2]?.trim()); // P67/68: outgoing3055 is X, even for optional supplied values.
             if (malformed)
                 fail('FIELD_INVALID', 'kod, komponent, par, placering eller kardinalitet är ogiltig', field);
             if (outbound && fact) {

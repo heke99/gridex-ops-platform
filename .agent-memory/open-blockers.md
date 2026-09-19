@@ -6,3 +6,7 @@ Reporting implementation and review are complete; main346receipt accepted. Z10so
 
 ## PR346 acceptance receipt
 Main0271e118a5ab4f7adebe5e5b7a041dda01a5547a: full35459742971/job105941346806 SUCCESS, actual73/73 passed,0failed at2026-09-19T18:07:41Z. MainOPS35459743008 allthreeSUCCESS:verify105941346498,replay105941346677,quality105941346686. Therefore accept only PC-321-Z13 andPC-323-Z13; aggregate98/110numeric,12remaining,10/10parents. PositivepersistedZ14two cells remain separate/unqualified. Fullmasterplan/live incomplete,PR310paused.
+
+PR347 runtime review and exact-headCI pending. General inbound506/p119 final-disposition source question separate from242; no shared-pair suppression authorized. Positive persistedZ10 unavailable; counts98/110 unchanged.
+
+PR347 runtime review REQUEST_CHANGES all3verdicts: R2 incomingU506 fifthcomponent misattributed242(actualAPERAK); R3 outgoingunused3055accepted; R4 rawpreflight xml/ai_list metadataearlyreturn. Persistedguards/SMTP remainprotected. Independent82/82PASS; original7probes1PASS/6FAIL retained. Originalauthor z10_change_facts dispatched ONE consolidatedfixwave (runtime_fix_round1), no additionaloldassertions authorized. Report z10-change-facts-runtime-review-report.md; rootnext scopedrereview and newexactheadCI. Four applicableordinaryCI workflows, conditionaltenantpathfilterdoesnotmatch (unchanged); localtenantgatespassed. No acceptanceincrement.

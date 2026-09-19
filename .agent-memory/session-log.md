@@ -186,3 +186,6 @@ One active source-only unit: PC-254-Z10 andPC-242-Z10 meter-replacement facts. B
 Main0271e118a5ab4f7adebe5e5b7a041dda01a5547a: full35459742971/job105941346806 SUCCESS, actual73/73 passed,0failed at2026-09-19T18:07:41Z. MainOPS35459743008 allthreeSUCCESS:verify105941346498,replay105941346677,quality105941346686. Therefore accept only PC-321-Z13 andPC-323-Z13; aggregate98/110numeric,12remaining,10/10parents. PositivepersistedZ14two cells remain separate/unqualified. Fullmasterplan/live incomplete,PR310paused.
 
 Z10sourceauditb13987d1 published source-onlycheckpointf4e7f381/treeb37fe2e1 exactdiff0, independentOptionAreviewinprogress. No runtimeauthorization/PR/acceptanceincrement. Main346 allworkflows verifiedSUCCESS in fresh REST read.
+
+## PR347 candidate checkpoint
+Active PR347 DRAFT: bounded Z10 OptionA implemented at local4224c40a65e891166f13d7c4261c9193bc70e796, publishedbcf86515fefd862e34f9b377f6b6e84cef03906d, exacttree04c8db3a9b6898f401a96b0a7ad0921b25fc4927 verified by public fetch/diff0. Source/spec+architecture approved R1; completed runtime task/spec+quality+wholebranch review active with z10_change_facts_review. All13local gates pass, final4188/4188 tests,818scripts,143/143 inUTC/Stockholm/Apia. Exact-head Node22CI pending; no merge/acceptance yet.
