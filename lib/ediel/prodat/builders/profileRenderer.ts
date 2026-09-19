@@ -1,3 +1,5 @@
+import {projectDeathStatus,isDeathStatusField} from '@/lib/ediel/prodat/prodatDeathStatus'
+import {evaluateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
 import {isMeterChangeField,meterChangeCondition} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
 import {evaluateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy'
 import {evaluateProdatReportingPermission} from '@/lib/ediel/rulebook/prodatReportingPermissionPolicy'
@@ -177,7 +179,8 @@ export function buildProfiledProdatSegments(input: {
 
   const bgmReference = context.bgmReference.trim()
   const bgmSegment = renderProdatDocumentHeader({ code: policy.code, documentId: bgmReference })
-  const lineItemReference = policy.code==='Z10' ? context.transactionReference : compactProdatReference(context.transactionReference || context.bgmReference, 35)
+  const exactLineReference=policy.code==='Z10'||policy.code==='Z05'&&policy.subtype==='LK'||['Z06','Z09'].includes(policy.code)&&policy.subtype==='E'
+  const lineItemReference = exactLineReference ? context.transactionReference : compactProdatReference(context.transactionReference || context.bgmReference, 35)
   const isPermissionMessage = policy.processGroup === 'metering_access'
   const isSupplierZ09 = policy.code === 'Z09'
   const reasonForTransaction = policy.transactionReasonCode
@@ -272,6 +275,7 @@ export function buildProfiledProdatSegments(input: {
     segments.push('CCI++Z25', prodatCav(contractClosureReason))
   }
 
+  segments.push(...projectDeathStatus({code:policy.code,reason:reasonForTransaction,installation:{id:meterPointId,agency:identityAgency},selection:policy.prodatDependentFacts?.deathStatus}))
   if(policy.code==='Z10'){
     const own=policy.prodatDependentFacts?.meterChange?.objects.find(o=>o.installation.id===meterPointId&&o.installation.agency===identityAgency)
     if(own){
@@ -281,7 +285,7 @@ export function buildProfiledProdatSegments(input: {
       segments.push(`RFF+MG:${escapeEdifactValue(own.newMeter.number)}`,`RFF+Z02:${escapeEdifactValue(own.oldMeter.number)}`)
     }
   }
-  segments.push(`RFF+LI:${policy.code==='Z10'?escapeEdifactValue(lineItemReference):lineItemReference}`)
+  segments.push(`RFF+LI:${exactLineReference?escapeEdifactValue(lineItemReference):lineItemReference}`)
 
   if (gridAreaId) {
     segments.push(`RFF+Z05:${sanitizeProdatText(gridAreaId)}`)
@@ -388,6 +392,8 @@ export function buildProfiledProdatSegments(input: {
   const renderedReadings = validateProdatRegisterPolicy({code:policy.code,rawSegments:segments,
     facts:policy.prodatDependentFacts,rules:registerPolicy.fieldRules.filter((rule): rule is RulebookFieldRule => 'family' in rule),applicationReference:policy.applicationReference,
     requireIndependentInventory:policy.direction === 'outbound'}).readings
+  const deathDecision=evaluateProdatDeathStatus({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts,direction:policy.direction as 'inbound'|'outbound'})
+  for(const failure of deathDecision.issues)issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
   const meterChangeDecision=evaluateProdatMeterChange({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts,applicationReference:policy.applicationReference})
   for(const failure of meterChangeDecision.issues)issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
   const reportingDecision=evaluateProdatReportingPermission({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts,reportingContext:context.reportingContext})
@@ -397,6 +403,7 @@ export function buildProfiledProdatSegments(input: {
   const invoiceeDecision=evaluateProdatInvoicee({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts})
   for(const failure of invoiceeDecision.issues) issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
   const dependentConditionStatuses = policy.prodatDependentConditions.map(condition =>
+    isDeathStatusField(policy.code,condition.fieldNumber)?{...condition,status:deathDecision.statuses.get('310')??'undetermined',decisionPhase:'rendered_wire_death_status' as const}:
     isMeterChangeField(policy.code,condition.fieldNumber)?{...condition,status:meterChangeDecision.statuses.get(condition.fieldNumber)??'undetermined',decisionPhase:'rendered_wire_meter_change' as const}:
     isReportingPermissionField(policy.code,condition.fieldNumber)?{...condition,status:reportingDecision.statuses.get(condition.fieldNumber)??'undetermined',decisionPhase:'rendered_wire_reporting' as const}:
     isProdatDateEventField(policy.code,condition.fieldNumber)?{...condition,status:dateDecision.statuses.get(condition.fieldNumber)??'undetermined',decisionPhase:'rendered_wire_date_event' as const}:

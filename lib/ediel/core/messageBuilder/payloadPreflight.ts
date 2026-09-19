@@ -1,3 +1,6 @@
+import {deathStatusSendIssue} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
+import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
+import type {DeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
 import type {MeterChangeSelection} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
 import {meterChangeSendIssue} from '@/lib/ediel/prodat/prodatMeterChangeAuthority'
 import {validateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy'
@@ -351,6 +354,7 @@ function validateEdifactPayload(params: {
   parsedPayload?: unknown
   dateEventRow?:ProdatDateEventRow
   dateEventContext?:TgtDateEventValidationContext
+  deathStatus?:DeathSelection
   meterChange?:MeterChangeSelection
   reportingContext?:ExpectedContext
   companyId?: string | null
@@ -363,6 +367,8 @@ function validateEdifactPayload(params: {
   const { segments, una } = tokens
   const rawSegments = segments.map(segment => segment.raw)
   const issues: EdielPayloadPreflightIssue[] = []
+  const deathBoundary=params.mode==='send'?deathStatusSendIssue({message_family:'PRODAT',raw_payload:rawPayload,parsed_payload:params.parsedPayload}):null
+  if(deathBoundary)issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${deathBoundary.code}`,title:deathBoundary.title,description:deathBoundary.description}))
   const meterBoundary=params.mode==='send'?meterChangeSendIssue({message_family:'PRODAT',raw_payload:rawPayload}):null
   if(meterBoundary)issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${meterBoundary.code}`,title:meterBoundary.title,description:meterBoundary.description}))
   const unb = first(segments, 'UNB')
@@ -545,6 +551,7 @@ function validateEdifactPayload(params: {
     }
   }
 
+  if(params.mode==='parse'&&canonical.family==='PRODAT')for(const failure of validateProdatDeathStatus({code:canonical.messageCode??'',rawSegments,una,direction:'inbound',facts:{deathStatus:params.deathStatus}}))issues.push(issue({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description}))
   if(params.mode==='parse'&&canonical.family==='PRODAT')for(const failure of validateProdatMeterChange({code:canonical.messageCode??'',rawSegments,una,direction:'inbound',facts:{meterChange:params.meterChange}}))issues.push(issue({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description}))
   if(params.mode==='parse'&&canonical.family==='PRODAT')for(const failure of validateProdatDateEvents({code:canonical.messageCode??'',rawSegments,una,direction:'inbound'}))issues.push(issue({severity:'error',code:failure.code,title:failure.title,description:failure.description}))
 
@@ -555,7 +562,7 @@ function validateEdifactPayload(params: {
     applicationReference: canonical.applicationReference,
     rawPayload,
     companyId: params.companyId,
-    dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext,meterChange:params.meterChange,
+    dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext,deathStatus:params.deathStatus,meterChange:params.meterChange,
     ...(params.mode==='send'?{environment:params.dateEventRow?.environment,direction:params.dateEventRow?.direction}:{}),
     mode: params.mode === 'send' ? 'send' : 'parse',
     parsedPayload: params.parsedPayload && typeof params.parsedPayload === 'object' && !Array.isArray(params.parsedPayload)
@@ -707,6 +714,7 @@ export function preflightEdielPayload(params: {
   parsedPayload?: unknown
   dateEventRow?:ProdatDateEventRow
   dateEventContext?:TgtDateEventValidationContext
+  deathStatus?:DeathSelection
   meterChange?:MeterChangeSelection
   reportingContext?:ExpectedContext
   companyId?: string | null
@@ -731,13 +739,13 @@ export function preflightEdielPayload(params: {
 
   // Actual Z10 must reach its EDIFACT send boundary before caller format hints
   // can select XML/list early returns. Preserve ordinary syntax validation there.
-  if (params.mode === 'send' && meterChangeSendIssue({raw_payload:rawPayload})) {
+  if (params.mode === 'send' && (deathStatusSendIssue({raw_payload:rawPayload,parsed_payload:params.parsedPayload}) || meterChangeSendIssue({raw_payload:rawPayload}))) {
     return validateEdifactPayload({...params,rawPayload,mode:'send'})
   }
   if (params.messageStandard === 'xml' || rawPayload.startsWith('<')) return validateXmlPayload(rawPayload, params.mimeType ?? null)
   const edifactDeclared = params.messageStandard === 'edifact' || rawPayload.startsWith('UNA')
   if (params.messageStandard === 'ai_list' || (!edifactDeclared && !rawPayload.includes("'") && rawPayload.includes(';'))) return validateListPayload(rawPayload)
-  return validateEdifactPayload({ rawPayload, mimeType: params.mimeType ?? null, mode: params.mode ?? 'parse', parsedPayload:params.parsedPayload,companyId:params.companyId,dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext,meterChange:params.meterChange })
+  return validateEdifactPayload({ rawPayload, mimeType: params.mimeType ?? null, mode: params.mode ?? 'parse', parsedPayload:params.parsedPayload,companyId:params.companyId,dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext,deathStatus:params.deathStatus,meterChange:params.meterChange })
 }
 
 export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' | 'parse' = 'send', dateEventContext?:TgtDateEventValidationContext,reportingContext?:ExpectedContext): EdielPayloadPreflightResult {
@@ -749,6 +757,8 @@ export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' 
     parsedPayload:message.parsed_payload,
     companyId:message.company_id,dateEventRow:message,dateEventContext,reportingContext,
   })
+  const deathBoundary=mode==='send'?deathStatusSendIssue(message):null
+  if(deathBoundary){result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${deathBoundary.code}`,title:deathBoundary.title,description:deathBoundary.description}));result.ok=false;result.blocking=true}
   const meterBoundary=mode==='send'?meterChangeSendIssue(message):null
   if(meterBoundary){result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${meterBoundary.code}`,title:meterBoundary.title,description:meterBoundary.description}));result.ok=false;result.blocking=true}
   if (!message.raw_payload || (result.family !== 'PRODAT' && message.message_family !== 'PRODAT' && !/^(?:UNA|UNB|UNH)/.test(message.raw_payload.trimStart()))) return result

@@ -4,8 +4,8 @@
   "status": "IN_PROGRESS",
   "branch": "codex/ediel-death-status-20260919",
   "base_head_sha": "16d93f38387c203b1d277064948199fb905220aa",
-  "active_item": "Death-status source/architecture qualification on verified main347",
-  "next_action": "Complete source-only death audit, independent source/spec and architecture review, then bounded explicit runtime authorization",
+  "active_item": "Bounded death310 OptionA runtime implementation",
+  "next_action": "Implementation RED/GREEN/gates, individual legacy assertion rulings, then independent runtime review",
   "accepted_numeric_D": 98,
   "merged_numeric_D": 98,
   "numeric_D_total": 110,
@@ -27,15 +27,15 @@
     "node": "22.23.2",
     "completed_at": "2026-09-19T19:43:38Z"
   },
-  "runtime_authorized": false,
+  "runtime_authorized": true,
   "last_accepted_pr": 347,
-  "source_fix_round": 0,
+  "source_fix_round": 1,
   "source_remote_checkpoint": {
-    "head": "87ece9c155afef7b805daf56ada8e2ad4eb1843e",
-    "tree": "c8a8f50b620e8db1b97f110f1d5271ca2b3f3c7f",
-    "local_equivalent": "60a69722",
+    "head": "b792ab541b098e250e1d2920cb2b85049cf0ccbf",
+    "tree": "9e9bd59f516762a76be7e7413fc4c65ac44d5c30",
+    "local_equivalent": "a98dfef8ff62ffca7e590a45ed7874eb0705d873",
     "pr": null,
-    "verification": "public fetch and exact diff0"
+    "verification": "publicfetchdiff0"
   },
   "runtime_local_head": "829b2d665d5ff4e334c16e1ebf236b7f65e6a134",
   "runtime_published_head": "f150918681b083221293f208984fb3f3e25a5755",
@@ -51,11 +51,11 @@
     ],
     "conclusion": "success"
   },
-  "source_candidate_commit": null,
-  "source_review": "SOURCE/SPEC and ARCHITECTURE APPROVE R1",
-  "runtime_scope": "OptionA only; positive persisted Z10 producer unqualified",
-  "runtime_fix_round": 2,
-  "runtime_review": "Prior PR347 allindependentverdictsAPPROVE; nextunit source-only",
+  "source_candidate_commit": "6b95f6de02e5854953dddef1a5b26b384854173a",
+  "source_review": "SOURCE/SPEC APPROVE; ARCHITECTURE APPROVE",
+  "runtime_scope": "Death310 OptionA pure/inbound and narrowly protected persisted outbound; no positiveproducer",
+  "runtime_fix_round": 0,
+  "runtime_review": "PENDING",
   "applicable_pr_workflows": 4,
   "main_pending": null
 }

@@ -1,10 +1,14 @@
+import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
+import {deathStatusAperakErrors} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
+import type {DeathSelection} from './prodatDeathStatus'
 import type { EdielAperakApplicationError } from '@/lib/ediel/ack'
 import { decideProdatAperak as decideProdatAperakFromEngine } from '@/lib/ediel/decisionEngine'
 import { validateProdatBusinessRules } from '@/lib/ediel/prodat/prodatBusinessRules'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
-export function prodatIssuesToAperakErrors(rawPayload: string): EdielAperakApplicationError[] {
-  return validateProdatBusinessRules(rawPayload)
+export function prodatIssuesToAperakErrors(rawPayload: string, deathStatus?:DeathSelection): EdielAperakApplicationError[] {
+  const wire=tokenizeEdifact(rawPayload),bgm=wire.segments.find(t=>t.tag==='BGM')
+  const errors=validateProdatBusinessRules(rawPayload)
     .filter((issue) => issue.severity === 'error')
     .map((issue) => ({
       ercCode: issue.code.includes('missing') ? '41' : '42',
@@ -14,9 +18,11 @@ export function prodatIssuesToAperakErrors(rawPayload: string): EdielAperakAppli
       referenceNumber: null,
       lineItemReference: null,
     }))
+  return [...errors,...deathStatusAperakErrors({code:segmentComposite(bgm,1,wire.una)[0]??'',rawSegments:wire.segments.map(t=>t.raw),una:wire.una,facts:{deathStatus}})]
 }
 
 export function decideProdatAperak(params: {
+  deathStatus?:DeathSelection
   message?: EdielMessageRow | null
   rawPayload?: string | null
   testKind?: 'TGT' | 'AGT' | 'bilateral' | 'production' | 'unknown' | null
@@ -24,6 +30,7 @@ export function decideProdatAperak(params: {
   expectedOutcome?: 'positive' | 'negative' | null
 }) {
   return decideProdatAperakFromEngine({
+    deathStatus:params.deathStatus,
     message: params.message ?? null,
     rawPayload: params.rawPayload ?? params.message?.raw_payload ?? null,
     testKind: params.testKind ?? null,
@@ -33,6 +40,7 @@ export function decideProdatAperak(params: {
 }
 
 export function decideProdatAperakOutcome(rawPayload: string, context?: {
+  deathStatus?:DeathSelection
   message?: EdielMessageRow | null
   testKind?: 'TGT' | 'AGT' | 'bilateral' | 'production' | 'unknown' | null
   testCaseCode?: string | null
@@ -42,6 +50,7 @@ export function decideProdatAperakOutcome(rawPayload: string, context?: {
   applicationErrors: EdielAperakApplicationError[]
 } {
   const decision = decideProdatAperak({
+    deathStatus:context?.deathStatus,
     message: context?.message ?? null,
     rawPayload,
     testKind: context?.testKind ?? null,

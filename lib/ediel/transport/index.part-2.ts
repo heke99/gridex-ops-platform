@@ -1,3 +1,4 @@
+import {assertDeathStatusSendBoundary} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 import {meterChangeSendIssue} from '@/lib/ediel/prodat/prodatMeterChangeAuthority'
 import {hasReportingPermissionMessage} from '@/lib/ediel/prodat/prodatReportingPermissionAuthority'
 import {loadTgtReportingValidationContext} from '@/lib/ediel/testing/tgtReportingPermissionContext'
@@ -320,6 +321,7 @@ export async function sendEdielMessageViaSmtp(
   messageId: string | null
 }> {
   const actorUserId = requireActorUserId(params?.actorUserId)
+  assertDeathStatusSendBoundary(message)
   if(meterChangeSendIssue(message)){assertRulebookAllowsSend(message);assertEdielSendLock(message)}
   assertTransportFamily(message.message_family, 'sendEdielMessageViaSmtp')
   if(hasReportingPermissionMessage(message)){

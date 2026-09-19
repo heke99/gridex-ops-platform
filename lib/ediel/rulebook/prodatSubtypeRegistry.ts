@@ -58,8 +58,8 @@ export const PRODAT_SUBTYPE_RULES: readonly ProdatSubtypeRule[] = [
   { subtype: 'D',  transactionReasonCode: 'Z70', meaning: 'Obligation to receive production', allowedMessageCodes: ['Z04', 'Z09'], source },
   { subtype: 'B',  transactionReasonCode: 'Z27', meaning: 'Change of balance responsible', allowedMessageCodes: ['Z09'], source },
   { subtype: 'N',  transactionReasonCode: 'Z96', meaning: 'Rejected reporting', allowedMessageCodes: ['Z14'], source },
-  // E34 is context-sensitive. Death/bankruptcy is the normal Handbook process;
-  // other Z06E/Z09E use requires counterparty-specific bilateral capability.
+  // E34 death is source-defined; bankruptcy alone does not establish death;
+  // Other Z06E use requires counterparty-specific bilateral capability; Z09E is death-only.
   // That condition is evaluated by resolveProdatBusinessContext below rather
   // than by bilateralOnlyFor, because it cannot be decided from code alone.
   { subtype: 'E',  transactionReasonCode: 'E34', meaning: 'Customer/consumer masterdata update', allowedMessageCodes: ['Z06', 'Z09'], source },
@@ -148,7 +148,7 @@ export function resolveProdatSubtype(input: {
  * Evaluate business-context conditions that cannot be inferred from field 223.
  *
  * Handbook 26A chapter 4.4 and PRODAT 26.A p.65:
- * - Z06E/Z09E are normally used for death/bankruptcy and require customer status.
+ * - Z09E is death-only (p112); Z06E permits other bilateral customer updates (p65/109).
  * - Other customer-identity/masterdata purposes require a bilateral agreement
  *   with the exact counterparty. A bilateral flag for one actor must never
  *   authorize another actor.
@@ -157,6 +157,7 @@ export function resolveProdatBusinessContext(input: {
   messageCode: string | null | undefined
   subtypeOrReasonCode: string | null | undefined
   businessContext?: ProdatBusinessContext | null
+  allowUnknownContext?: boolean
   bilateralCapabilityVerified?: boolean
 }): ProdatBusinessContextResolution {
   const base = resolveProdatSubtype({
@@ -174,7 +175,12 @@ export function resolveProdatBusinessContext(input: {
     return { ...base, businessContext, customerStatusRequired: false, bilateralReason: null }
   }
 
-  const normalDeathProcess = businessContext === 'death' || businessContext === 'bankruptcy'
+  if (code === 'Z09') {
+    const valid = businessContext == null || businessContext === 'unknown' || businessContext === 'death'
+    return {...base,ok:valid,businessContext,customerStatusRequired:valid,bilateralRequired:false,bilateralReason:null,reason:valid?null:'prodat_z09e_death_only'}
+  }
+  if (input.allowUnknownContext && (businessContext == null || businessContext === 'unknown')) return {...base,businessContext,customerStatusRequired:false,bilateralReason:null}
+  const normalDeathProcess = businessContext === 'death'
   if (normalDeathProcess) {
     return {
       ...base,

@@ -1,3 +1,6 @@
+import {projectDeathStatus} from '@/lib/ediel/prodat/prodatDeathStatus'
+import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
+import type {ProdatDependentConditionFacts} from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import {validateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy'
 import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 import {prodatInvoiceeNadSegment} from '@/lib/ediel/prodat/render/segments'
@@ -189,6 +192,7 @@ export function buildProdatPermissionLineSegments(params: {
 }
 
 export function buildProdatLineSegments(params: {
+  registerFacts?: ProdatDependentConditionFacts;
   portalData: TgtPortalCustomerData;
   step: EdielTgtExpectedStep;
   refs: DraftReferences;
@@ -256,6 +260,7 @@ export function buildProdatLineSegments(params: {
 
   segments.push("CCI++Z13");
   segments.push(`CAV+${reasonForTransaction}`);
+  segments.push(...projectDeathStatus({code:step.code,reason:reasonForTransaction,installation:{id:portalData.meteringPointId.trim(),agency:portalData.identityAgency??'9'},selection:params.registerFacts?.deathStatus}));
 
   if (meteringMethod && !(isZ09 && isZ09D)) {
     segments.push("CCI++Z04");
@@ -367,7 +372,7 @@ export function buildPortalProdatSegments(
     const segments = buildProdatLineSegments({
       portalData,step,refs,transactionType,mutation,lineNo:nextLineSequence,
       testSuite:params.testSuite,roleCode:params.roleCode,testCaseCode:params.testCaseCode,
-      systemTestContext:params.systemTestContext,
+      systemTestContext:params.systemTestContext,registerFacts:params.registerFacts,
     });
     const expanded = renderProdatRegisterObject({code:step.code,segments,firstLineSequence:nextLineSequence,
       registers:portalData.registers.length ? portalData.registers.map(row => ({
@@ -380,6 +385,10 @@ export function buildPortalProdatSegments(
     nextLineSequence = expanded.nextLineSequence;
   }
 
+  if(step.actor==='gridex'){
+    const failures=validateProdatDeathStatus({code:step.code,rawSegments:bodySegments,facts:params.registerFacts});
+    if(failures.some(i=>i.blocking||i.severity==='error'))throw new Error(failures.map(i=>i.code).join(','));
+  }
   if(step.code==='Z10'&&step.actor==='gridex'){
     const failures=validateProdatMeterChange({code:step.code,rawSegments:bodySegments,facts:params.registerFacts,applicationReference:EDIEL_TGT_PRODAT_APPLICATION_REFERENCE});
     if(failures.some(i=>i.blocking||i.severity==='error'))throw new Error(failures.map(i=>i.code).join(','));

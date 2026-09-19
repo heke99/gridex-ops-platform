@@ -70,9 +70,10 @@ describe('PR330 review: wire-specific D rules survive mismatched row metadata', 
   it.each(alphabets)('uses actual Z06E rules while enforcing row/source consistency: %j', (...alphabet) => {
     const row = message(missingValidity(), 'Z06', 'test', alphabet)
     const dateContext=qualifyDateEventTestRow(row)
-    expect(validateEdielMessageRowWithRulebook(row,'send',dateContext).issues.filter(i=>i.scope==='prodat_dependent')).toEqual([])
-    expect(()=>assertRulebookAllowsSend(row,dateContext)).not.toThrow()
-    expect(()=>assertEdielSendLock(row,dateContext)).not.toThrow()
+    // Actual E34 is scoped correctly but has no qualified persisted death assessment.
+    expect(validateEdielMessageRowWithRulebook(row,'send',dateContext).issues).toContainEqual(expect.objectContaining({code:'PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED',blocking:true}))
+    expect(()=>assertRulebookAllowsSend(row,dateContext)).toThrow('PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED')
+    expect(()=>assertEdielSendLock(row,dateContext)).toThrow('PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED')
     row.message_code = 'Z09'
     const result = validateEdielMessageRowWithRulebook(row, 'send',dateContext)
     expect(hasWire216(result.issues)).toBe(false)

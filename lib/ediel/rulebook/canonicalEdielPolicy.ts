@@ -199,6 +199,7 @@ export function resolveCanonicalEdielPolicy(input: ResolveCanonicalEdielPolicyIn
       messageCode: code,
       subtypeOrReasonCode: subtype.subtype,
       businessContext: input.businessContext,
+      allowUnknownContext: input.direction === 'inbound',
       bilateralCapabilityVerified,
     })
     if (!contextual.ok) throw new Error(contextual.reason ?? `canonical_ediel_prodat_context_invalid:${code}:${subtype.subtype}`)

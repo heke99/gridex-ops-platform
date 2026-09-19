@@ -79,9 +79,10 @@ describe('PR330 rereview: never certify an unvalidated later PRODAT message', ()
     it(`${index}: preserves the single-message first-D-scope positive control`, () => {
       const r = row(single(alphabet))
       const dateContext=qualifyDateEventTestRow(r)
-      expect(validateEdielMessageRowWithRulebook(r,'send',dateContext).issues.filter(i=>i.scope === 'prodat_dependent')).toEqual([])
-      expect(()=>assertRulebookAllowsSend(r,dateContext)).not.toThrow()
-      expect(()=>assertEdielSendLock(r,dateContext)).not.toThrow()
+      // Source-valid single-message scope does not qualify a persisted Z06E producer.
+      expect(validateEdielMessageRowWithRulebook(r,'send',dateContext).issues).toContainEqual(expect.objectContaining({code:'PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED',blocking:true}))
+      expect(()=>assertRulebookAllowsSend(r,dateContext)).toThrow('PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED')
+      expect(()=>assertEdielSendLock(r,dateContext)).toThrow('PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED')
     })
     it(`${index}: even two individually D-valid messages require separate sends`, () => {
       const r = row(pair(alphabet,'PRODAT','Z06'))
@@ -93,10 +94,11 @@ describe('PR330 rereview: never certify an unvalidated later PRODAT message', ()
       const id = `A${terminator}UNH${element}M2${element}PRODAT`
       const r = row(single(alphabet,[line('1',id),...characteristic('Z13','E34'),ud()]),'test',id)
       const dateContext=qualifyDateEventTestRow(r,[changeDateFact(id)])
+      // Released data remains one message; the separate producer hold still applies.
       expect(tokenizeEdifact(r.raw_payload).segments.filter(s=>s.tag === 'UNH')).toHaveLength(1)
       expect(hasScope(validateEdielMessageRowWithRulebook(r,'send',dateContext).issues)).toBe(false)
-      expect(()=>assertRulebookAllowsSend(r,dateContext)).not.toThrow()
-      expect(()=>assertEdielSendLock(r,dateContext)).not.toThrow()
+      expect(()=>assertRulebookAllowsSend(r,dateContext)).toThrow('PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED')
+      expect(()=>assertEdielSendLock(r,dateContext)).toThrow('PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED')
     })
   }
   it('does not replace inbound syntax diagnostics with an outbound D-scope claim', () => {

@@ -36,3 +36,6 @@ Next: root verifies actualmain73/73+allOPS; original fresh source implementer qu
 
 ## PR346 acceptance receipt
 Main0271e118a5ab4f7adebe5e5b7a041dda01a5547a: full35459742971/job105941346806 SUCCESS, actual73/73 passed,0failed at2026-09-19T18:07:41Z. MainOPS35459743008 allthreeSUCCESS:verify105941346498,replay105941346677,quality105941346686. Therefore accept only PC-321-Z13 andPC-323-Z13; aggregate98/110numeric,12remaining,10/10parents. PositivepersistedZ14two cells remain separate/unqualified. Fullmasterplan/live incomplete,PR310paused.
+
+## Death310 source approval/runtime dispatch, 2026-09-19
+Death310 source R1 independent SOURCE/SPEC and ARCHITECTURE APPROVE6b95f6de02e5854953dddef1a5b26b384854173a, report death-status-source-r1-review-report.md. Root explicitly authorized original death_status implementer for bounded OptionA runtime under /workspace/scratch/2a201d6d5897/death-status-runtime-brief.md. Pure/source-valid Z09E requires310 without eventfacts; independently scoped Z05LK/Z06E assessment, p119 matrix, actual consumer/APerak and separate narrow persisted authority holds. No positiveproducer/UI/role/schema activation or counts increase. Next implementation TDD/gates, individual oldassertion adjudication, independent runtime review then exactCI/merge/main73+OPS. PR310paused.

@@ -1,3 +1,4 @@
+import {deathAggregate,isDeathStatusField,type DeathSelection} from './prodatDeathStatus'
 import {isMeterChangeField,meterChangeAggregate,type MeterChangeSelection} from './prodatMeterChangeFacts'
 import {isReportingPermissionField,type ReportingSelection} from './prodatReportingPermissionContext'
 import {isProdatDateEventField,type ProdatDateEventObject,type ProdatDateEventSource} from './prodatDateEvents'
@@ -40,6 +41,7 @@ export type ProdatDependentConditionFacts = {
   endUserAddressObjects?: readonly ProdatEndUserAddressObject[]
   /** Legacy descriptive pre-wire hint only; outbound229 requires per-object source facts. */
   endUserAddressAvailable?: boolean | null
+  deathStatus?: DeathSelection | null
   meterChange?: MeterChangeSelection | null
   reportingPermission?: ReportingSelection | null
   dateEventObjects?: readonly ProdatDateEventObject[]
@@ -71,7 +73,7 @@ export type ProdatDependentConditionEvaluation = {
    * means there is no blanket child requirement; it is not evidence that every
    * object lacks the optional parent. Render/validation must decide per wire. */
   status: ProdatDependentConditionStatus
-  decisionPhase?: 'pre_wire_parent' | 'rendered_wire_parent' | 'pre_wire_inventory_aggregate' | 'rendered_wire_inventory' | 'pre_wire_readings_aggregate' | 'rendered_wire_readings' | 'legacy_pre_wire_address_hint' | 'rendered_wire_address' | 'rendered_wire_invoicee' | 'rendered_wire_date_event' | 'rendered_wire_meter_change'
+  decisionPhase?: 'pre_wire_parent' | 'rendered_wire_parent' | 'pre_wire_inventory_aggregate' | 'rendered_wire_inventory' | 'pre_wire_readings_aggregate' | 'rendered_wire_readings' | 'legacy_pre_wire_address_hint' | 'rendered_wire_address' | 'rendered_wire_invoicee' | 'rendered_wire_date_event' | 'rendered_wire_meter_change' | 'rendered_wire_death_status'
   /** Present only for source-migrated cells; not_required alone does not mean optional. */
   requirement?: ProdatSubtypeRequirement
   source: ProdatDependentConditionSource
@@ -168,12 +170,7 @@ function subtypeIsNot(expected: string) {
   }
 }
 
-function businessContextIs(expected: string) {
-  return (context: PredicateContext): boolean | null => {
-    const businessContext = normalized(context.facts.businessContext)
-    return businessContext ? businessContext === expected.toUpperCase() : null
-  }
-}
+
 
 function marketIs(expected: 'electricity' | 'gas') {
   return (context: PredicateContext): boolean | null => {
@@ -211,7 +208,7 @@ const GROUPS: readonly ConditionGroup[] = [
   { fieldNumber: '254', messageCodes: ['Z06', 'Z10'], conditionId: 'balance_settlement_method_business_rule', note: 'Dygns-/månadsavräkning.', predicate: explicitCellFact },
   { fieldNumber: '242', messageCodes: ['Z06', 'Z10'], conditionId: 'product_code_business_rule', note: 'Tidsserieprodukt.', predicate: explicitCellFact },
   { fieldNumber: '506', messageCodes: ['Z14'], conditionId: 'energy_product_business_rule', note: 'Energiprodukt.', predicate: explicitCellFact },
-  { fieldNumber: '310', messageCodes: ['Z05', 'Z06', 'Z09'], conditionId: 'death_context_only', note: 'Används endast i anslutning till dödsfall.', predicate: businessContextIs('death') },
+  { fieldNumber: '310', messageCodes: ['Z05', 'Z06', 'Z09'], conditionId: 'death_context_only', note: 'Används endast i anslutning till dödsfall.', predicate: context => deathAggregate(context.messageCode,context.facts.canonicalSubtype,context.facts.deathStatus) },
   { fieldNumber: '513', messageCodes: ['Z14'], conditionId: 'installation_direction_business_rule', note: 'Flödesriktning vid mätpunkten.', predicate: explicitCellFact },
   { fieldNumber: '323', messageCodes: ['Z13', 'Z14'], conditionId: 'private_customer_except_z14n', note: 'Ska anges för privatkunder i Z13/Z14, utom Z14N.', predicate: privateCustomerExceptZ14N },
   { fieldNumber: '260', messageCodes: ['Z14'], conditionId: 'net_area_business_rule', note: '3-ställig nätområdeskod.', predicate: explicitCellFact },
@@ -294,7 +291,7 @@ export function evaluateProdatDependentConditions(input: {
       const sourceField = entry.fieldNumber === 'END_USER_GROUP' && ['Z06', 'Z09', 'Z14'].includes(messageCode) ? '227' : entry.fieldNumber === 'INSTALLATION_GROUP' && messageCode === 'Z14' ? '209' : entry.fieldNumber
       const requirement = resolveProdatSourceSubtypeRequirement({messageCode, fieldNumber: sourceField, subtype: facts.canonicalSubtype, market: facts.market})
       const sourceRule = prodatSourceSubtypeRule(messageCode, sourceField)
-      const value = isMeterChangeField(messageCode,entry.fieldNumber) ? meterChangeAggregate(facts.meterChange,entry.fieldNumber) : (isReportingPermissionField(messageCode,entry.fieldNumber) || isProdatDateEventField(messageCode,entry.fieldNumber)) ? null : requirement !== null
+      const value = isDeathStatusField(messageCode,entry.fieldNumber) ? deathAggregate(messageCode,facts.canonicalSubtype,facts.deathStatus) : isMeterChangeField(messageCode,entry.fieldNumber) ? meterChangeAggregate(facts.meterChange,entry.fieldNumber) : (isReportingPermissionField(messageCode,entry.fieldNumber) || isProdatDateEventField(messageCode,entry.fieldNumber)) ? null : requirement !== null
         ? requirement === 'undetermined' ? null : requirement === 'required'
         : isProdatFieldInInapplicableParent({
         messageCode, subtype: normalized(facts.canonicalSubtype), fieldNumber: entry.fieldNumber,

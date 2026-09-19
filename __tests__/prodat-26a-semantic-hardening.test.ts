@@ -157,14 +157,14 @@ describe('PRODAT 26.A semantic hardening', () => {
       messageCode: 'Z09',
       subtypeOrReasonCode: 'E',
       businessContext: 'identity_change',
-    })).toMatchObject({ ok: false, bilateralRequired: true })
+    })).toMatchObject({ ok: false, bilateralRequired: false })
 
     expect(resolveProdatBusinessContext({
       messageCode: 'Z09',
       subtypeOrReasonCode: 'E',
       businessContext: 'identity_change',
       bilateralCapabilityVerified: true,
-    })).toMatchObject({ ok: true, bilateralRequired: true })
+    })).toMatchObject({ ok: false, bilateralRequired: false })
   })
 
   it('treats Z05C and Z15C as reversals instead of terminations', () => {
