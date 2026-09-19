@@ -187,3 +187,64 @@ and deliberately preserve unknown when it does not. No other numeric D cell,
 parent occurrence, GAS path, role/capability expansion or market activation is
 included. Root review, exact-head CI, publication, merge and any later acceptance
 accounting remain pending.
+
+## Round 1 review remediation — rendered diagnostic scope
+
+Independent task and whole-branch review found one Important diagnostic-scope
+defect at reviewed head `e248b596f6a3eef820ba8e9629048d4952ec99f9`.
+Canonical register enforcement already blocked object/agency inventory gaps,
+but the profile renderer copied the pre-wire aggregate field-258 status into its
+rendered diagnostics. For example, rendered B/89 with two registers and facts
+only for A/89 count 1 exported `not_required` while register policy reported the
+expected/missing object errors. This was a diagnostic/spec defect, not a newly
+demonstrated unsafe-send bypass.
+
+The pre-wire aggregate now carries
+`decisionPhase: pre_wire_inventory_aggregate`. After the renderer has actual
+wire scope, it uses the canonical register-policy issue result to reconcile
+field 258. `PRODAT_REGISTER_EVIDENCE_UNDETERMINED`,
+`PRODAT_REGISTER_EXPECTED_OBJECT_MISSING` or
+`PRODAT_REGISTER_UNEXPECTED_OBJECT` makes the rendered status `undetermined`
+and tags `decisionPhase: rendered_wire_inventory`. The issue-to-scope helper
+lives beside `validateProdatRegisterPolicy`; it interprets that validator's
+result and adds no independent count, object or business-rule authority.
+
+Complete exact singleton and multiple inventories retain `not_required` and
+`required`. A complete pre-wire mixed A=1/B=2 inventory retains its scoped
+aggregate meaning of `required`. Observed wire count is never promoted into an
+expected count. Duplicate evidence remains rejected by the evidence envelope;
+its direct pre-wire diagnostic is explicitly undetermined.
+
+### Round 1 RED/GREEN evidence
+
+- First focused RED on unchanged runtime:
+  `npx vitest run __tests__/ediel-prodat-register-inventory.test.ts` ran
+  21 tests, 17 passed / 4 failed. The first version established the missing
+  phase qualification but short-circuited before independently proving every
+  semantic mismatch.
+- The suite was split into independent status cases and rerun against the
+  original runtime before the fix: 27 tests, 16 passed / 11 failed. It directly
+  reproduced the wrong rendered results for a different object (`not_required`),
+  wrong agency (`not_required`) and an extra mixed object (`required`) where
+  exact rendered scope had to remain `undetermined`. Separate cases covered
+  missing entry, null count, duplicate evidence, complete singleton/multiple
+  controls and complete mixed aggregate scope.
+- Focused GREEN after the fix: the same inventory test passed 27/27.
+- Consumer verification:
+  `npx vitest run __tests__/ediel-prodat-register-inventory.test.ts
+  __tests__/ediel-prodat-register-builders.test.ts
+  __tests__/ediel-prodat-register-preflight.test.ts
+  __tests__/ediel-prodat-register-snapshot-facts.test.ts
+  __tests__/ediel-prodat-optional-installation.test.ts
+  __tests__/ediel-prodat-dependent-subtype-ud-boundaries.test.ts` passed
+  6 files and 246/246 tests.
+- `npm run typecheck`: pass.
+- `npm run typecheck:tests`: pass.
+- `git diff --check`: pass after the audit/report update and again against the
+  remediation commit.
+
+The full application suite and unchanged broad gates were not repeated for this
+focused diagnostic correction. The preceding candidate evidence remains recorded
+above; updated exact-head CI owns the new full run. No normative, memory,
+database, live-action, remote, role, market or acceptance-accounting change is
+part of this remediation.

@@ -4,6 +4,7 @@ import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterE
 import { resolveProdatRegisterInputs, prodatObjectIdentityAgency } from '@/lib/ediel/prodat/prodatRegisterInput'
 import { renderProdatRegisterObject } from '@/lib/ediel/prodat/render/registers'
 import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
+import { reconcileProdatRegisterInventoryStatus } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
 import { prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { buildProdatDateSegments, resolveProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
 import { validateProdatDateFields } from '@/lib/ediel/prodat/prodatDateValidation'
@@ -336,7 +337,8 @@ export function buildProfiledProdatSegments(input: {
   const expanded = renderProdatRegisterObject({code:policy.code,segments,registers})
   segments.splice(0,segments.length,...expanded.segments)
   const registerPolicy = {...policy, fieldRules:policy.fieldRules.filter(rule => 'fieldNumber' in rule && prodatRegisterFieldScope(String(rule.fieldNumber ?? rule.fieldKey)) === 'local')}
-  for (const failure of validateCanonicalPolicyFields({policy:registerPolicy,rawSegments:segments})) {
+  const registerFailures = validateCanonicalPolicyFields({policy:registerPolicy,rawSegments:segments})
+  for (const failure of registerFailures) {
     issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
   }
   if (policy.code === 'Z14') {
@@ -362,6 +364,10 @@ export function buildProfiledProdatSegments(input: {
     condition.conditionId === 'optional_installation_wire_parent'
       ? { ...condition, status: installationSelected ? 'required' as const : 'not_required' as const,
         decisionPhase: 'rendered_wire_parent' as const }
+      : condition.conditionId === 'multiple_meter_registers'
+        ? { ...condition,
+          status: reconcileProdatRegisterInventoryStatus(condition.status, registerFailures),
+          decisionPhase: 'rendered_wire_inventory' as const }
       : condition)
 
   return {

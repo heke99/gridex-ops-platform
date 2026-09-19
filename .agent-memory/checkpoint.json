@@ -5,7 +5,7 @@
   "branch": "codex/ediel-remaining-dependencies-20260919",
   "base_head_sha": "1bbe4483f86d5b9fd93dfcb6e846341fd9762a42",
   "active_item": "Three field258 cells: independent physical register inventory",
-  "next_action": "Independent task/spec and whole-branch review, then exact-head publication/CI and guarded merge of three258candidate; no new acceptance yet.",
+  "next_action": "Publish R1 exacttree, scoped independent rereview and fresh exact-headCI; no acceptance until allgreen.",
   "accepted_numeric_D": 36,
   "numeric_D_total": 110,
   "accepted_parents": 4,
@@ -30,5 +30,6 @@
     "total": 73,
     "node": "22.23.2"
   },
-  "implementation_head": "fa60c7418ba6bdd7c9ea26cd84466392959055c8"
+  "implementation_head": "e346b334fc65ea8cd5486aabf347f1e701c7534b",
+  "fix_round": 1
 }

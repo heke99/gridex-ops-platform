@@ -11,6 +11,7 @@ import type { ProdatEngineProductionContext } from '@/lib/ediel/prodat/types'
 import { preflightEdielMessageRow, preflightEdielPayload } from '@/lib/ediel/core/messageBuilder/payloadPreflight'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
+import { reconcileProdatRegisterInventoryStatus } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
 import { assertRulebookAllowsSend } from '@/lib/ediel/rulebook/sendGuards'
 import { validateEdielMessageRowWithRulebook } from '@/lib/ediel/rulebook/validator'
 import { assertEdielSendLock } from '@/lib/ediel/transport/sendLock'
@@ -81,22 +82,22 @@ describe('field 258 uses independent physical register inventory', () => {
         messageCode: code,
         fieldNumber: '258',
         facts: { multipleMeterRegisters: true, byCell: { [`${code}:258`]: true } },
-      })?.status).toBe('undetermined')
+      })).toMatchObject({ status: 'undetermined', decisionPhase: 'pre_wire_inventory_aggregate' })
       expect(resolveProdatDependentCondition({
         messageCode: code,
         fieldNumber: '258',
         facts: { registerObjects: [objectFact('A', 1)] },
-      })?.status).toBe('not_required')
+      })).toMatchObject({ status: 'not_required', decisionPhase: 'pre_wire_inventory_aggregate' })
       expect(resolveProdatDependentCondition({
         messageCode: code,
         fieldNumber: '258',
         facts: { registerObjects: [objectFact('A', 2)] },
-      })?.status).toBe('required')
+      })).toMatchObject({ status: 'required', decisionPhase: 'pre_wire_inventory_aggregate' })
       expect(resolveProdatDependentCondition({
         messageCode: code,
         fieldNumber: '258',
         facts: { registerObjects: [objectFact('A', null)] },
-      })?.status).toBe('undetermined')
+      })).toMatchObject({ status: 'undetermined', decisionPhase: 'pre_wire_inventory_aggregate' })
     },
   )
 
@@ -107,11 +108,29 @@ describe('field 258 uses independent physical register inventory', () => {
     expect(field258Issues('Z04', [line('1', 'A', '1'), ...reason('L'), qty('10'), line('2', 'A', '2'), qty('20')], {
       registerObjects: [objectFact('A', 2)],
     })).toEqual([])
-    expect(field258Issues('Z04', [
+    const mixedBody = [
       line('1', 'A'), ...reason('L'), qty('10'),
       line('2', 'B', '1'), ...reason('L'), qty('20'),
       line('3', 'B', '2'), qty('30'),
-    ], { registerObjects: [objectFact('A', 1), objectFact('B', 2)] })).toEqual([])
+    ]
+    const completeFacts = { registerObjects: [objectFact('A', 1), objectFact('B', 2)] }
+    const completeIssues = field258Issues('Z04', mixedBody, completeFacts)
+    expect(completeIssues).toEqual([])
+    const completeAggregate = resolveProdatDependentCondition({
+      messageCode: 'Z04',
+      fieldNumber: '258',
+      facts: completeFacts,
+    })!
+    expect(completeAggregate).toMatchObject({ status: 'required', decisionPhase: 'pre_wire_inventory_aggregate' })
+    expect(reconcileProdatRegisterInventoryStatus(completeAggregate.status, completeIssues)).toBe('required')
+
+    const partialFacts = { registerObjects: [objectFact('A', 1)] }
+    const partialIssues = field258Issues('Z04', mixedBody, partialFacts)
+    const partialAggregate = resolveProdatDependentCondition({
+      messageCode: 'Z04', fieldNumber: '258', facts: partialFacts,
+    })!
+    expect(partialAggregate.status).toBe('not_required')
+    expect(reconcileProdatRegisterInventoryStatus(partialAggregate.status, partialIssues)).toBe('undetermined')
   })
 
   it('rejects an omitted trailing register and missing/null counts', () => {
@@ -171,7 +190,7 @@ describe('field 258 uses independent physical register inventory', () => {
 describe('field 258 inventory reaches builders and protected send guards', () => {
   const profileContext: ProdatEngineProductionContext = {
     code: 'Z04', bgmReference: 'DOC', transactionReference: 'CASE', senderEdielId: '12345', receiverEdielId: '54321',
-    meterPointId: 'A', meterPointIdAgency: '89', customerId: 'USER', customerName: 'Synthetic', customerIdAgency: '89', gridAreaId: 'TES',
+    meterPointId: 'B', meterPointIdAgency: '89', customerId: 'USER', customerName: 'Synthetic', customerIdAgency: '89', gridAreaId: 'TES',
     startDate: '202610010000', observationLength: '15', observationLengthFormat: '806', reasonForTransaction: 'Z22',
     registers: [{ annualConsumption: '10' }, { annualConsumption: '20' }],
     dependentConditionFacts: { market: 'electricity', meterReadingsSentInUtilts: false, multipleMeterRegisters: true },
@@ -186,11 +205,58 @@ describe('field 258 inventory reaches builders and protected send guards', () =>
     references: { LI: 'CASE' }, codedAttributes: { Z13: 'Z22' }, environment: 'test',
     dependentConditionFacts: { market: 'electricity', meterReadingsSentInUtilts: false, multipleMeterRegisters: true },
   }
+  const renderInventory = (
+    registerObjects: ProdatDependentConditionFacts['registerObjects'],
+    registers = profileContext.registers,
+  ) => buildProfiledProdatSegments({
+    context: {
+      ...profileContext,
+      registers,
+      dependentConditionFacts: { market: 'electricity', registerObjects },
+    },
+    variant: 'L',
+    mode: 'test',
+  })
+  const rendered258 = (result: ReturnType<typeof renderInventory>) => result.diagnostics.dependentConditionStatuses
+    ?.find(value => value.fieldNumber === '258')
+  const inventoryCodes = (result: ReturnType<typeof renderInventory>) => result.issues
+    .filter(issue => ['PRODAT_REGISTER_EXPECTED_OBJECT_MISSING', 'PRODAT_REGISTER_UNEXPECTED_OBJECT', 'PRODAT_REGISTER_EVIDENCE_UNDETERMINED'].includes(issue.code))
+    .map(issue => issue.code)
 
   it('profile and generic builders preserve unknown inventory instead of deriving count from rendered rows', () => {
     const profiled = buildProfiledProdatSegments({ context: profileContext, variant: 'L', mode: 'test' })
     expect(profiled.issues).toContainEqual(expect.objectContaining({ code: 'PRODAT_REGISTER_EVIDENCE_UNDETERMINED' }))
     expect(() => buildProdatMessage(genericInput)).toThrow(/registerunderlag|registerantal|register inventory|PRODAT_REGISTER_EVIDENCE_UNDETERMINED/i)
+  })
+
+  it('keeps complete singleton and multiple rendered diagnostics resolved for the exact object scope', () => {
+    const completeMultiple = renderInventory([objectFact('B', 2)])
+    expect(rendered258(completeMultiple)).toMatchObject({ status: 'required', decisionPhase: 'rendered_wire_inventory' })
+    expect(inventoryCodes(completeMultiple)).toEqual([])
+
+    const completeSingleton = renderInventory([objectFact('B', 1)], [{ annualConsumption: '10' }])
+    expect(rendered258(completeSingleton)).toMatchObject({ status: 'not_required', decisionPhase: 'rendered_wire_inventory' })
+    expect(inventoryCodes(completeSingleton)).toEqual([])
+  })
+
+  it.each([
+    ['missing inventory entry', undefined],
+    ['null count', [objectFact('B', null)]],
+    ['different object', [objectFact('A', 1)]],
+    ['wrong agency', [objectFact('B', 1, '9')]],
+    ['extra mixed object', [objectFact('B', 2), objectFact('A', 1)]],
+  ] as const)('keeps rendered field 258 undetermined for %s', (_name, inventory) => {
+      const result = renderInventory(inventory)
+      expect(rendered258(result)).toMatchObject({ status: 'undetermined', decisionPhase: 'rendered_wire_inventory' })
+      expect(inventoryCodes(result).length).toBeGreaterThan(0)
+  })
+
+  it('keeps duplicate inventory diagnostics pre-wire undetermined and rejects persistence', () => {
+    const duplicate = [objectFact('B', 2), objectFact('B', 2)]
+    expect(resolveProdatDependentCondition({
+      messageCode: 'Z04', fieldNumber: '258', facts: { registerObjects: duplicate },
+    })).toMatchObject({ status: 'undetermined', decisionPhase: 'pre_wire_inventory_aggregate' })
+    expect(() => renderInventory(duplicate)).toThrow(/prodat_register_evidence_invalid/)
   })
 
   it('bare public send preflight blocks when body-bound inventory metadata is unavailable', () => {

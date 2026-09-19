@@ -3,11 +3,33 @@ import { validateFieldMatrixPayload } from '@/lib/ediel/rulebook/fieldMatrix'
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import { canonicalProdatSubtypeAlias } from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
-import { resolveProdatRegisterRequirement, type ProdatDependentConditionFacts } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
+import { resolveProdatRegisterRequirement, type ProdatDependentConditionFacts, type ProdatDependentConditionStatus } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import { prodatRegisterFieldState } from '@/lib/ediel/prodat/prodatRegisterFields'
 import { prodatRegisterGroups, prodatRegisterMessageSegments } from '@/lib/ediel/prodat/prodatRegisterGroups'
 import type { RulebookFieldRule } from '@/lib/ediel/rulebook/fieldMatrix'
 import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
+
+const PRODAT_REGISTER_UNDETERMINED_SCOPE_CODES = new Set([
+  'PRODAT_REGISTER_EVIDENCE_UNDETERMINED',
+  'PRODAT_REGISTER_EXPECTED_OBJECT_MISSING',
+  'PRODAT_REGISTER_UNEXPECTED_OBJECT',
+])
+
+/** Interpret the canonical register-policy result for rendered diagnostics.
+ * This adds no rule authority: it only prevents a pre-wire aggregate from being
+ * exported as resolved after exact wire object/agency validation found a gap. */
+function isProdatRegisterInventoryScopeUndetermined(
+  issues: readonly Pick<EdielRulebookIssue, 'code'>[],
+): boolean {
+  return issues.some(issue => PRODAT_REGISTER_UNDETERMINED_SCOPE_CODES.has(issue.code))
+}
+
+export function reconcileProdatRegisterInventoryStatus(
+  aggregateStatus: ProdatDependentConditionStatus,
+  issues: readonly Pick<EdielRulebookIssue, 'code'>[],
+): ProdatDependentConditionStatus {
+  return isProdatRegisterInventoryScopeUndetermined(issues) ? 'undetermined' : aggregateStatus
+}
 
 /** Compose register decisions with an already resolved policy, never introduce
  * an independent rule store. Structure/base field checks stay in fieldMatrix. */

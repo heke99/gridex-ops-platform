@@ -57,7 +57,7 @@ export type ProdatDependentConditionEvaluation = {
    * means there is no blanket child requirement; it is not evidence that every
    * object lacks the optional parent. Render/validation must decide per wire. */
   status: ProdatDependentConditionStatus
-  decisionPhase?: 'pre_wire_parent' | 'rendered_wire_parent'
+  decisionPhase?: 'pre_wire_parent' | 'rendered_wire_parent' | 'pre_wire_inventory_aggregate' | 'rendered_wire_inventory'
   /** Present only for source-migrated cells; not_required alone does not mean optional. */
   requirement?: ProdatSubtypeRequirement
   source: ProdatDependentConditionSource
@@ -290,6 +290,8 @@ export function evaluateProdatDependentConditions(input: {
         status: value === null ? 'undetermined' : value ? 'required' : 'not_required',
         ...(entry.conditionId === 'optional_installation_wire_parent'
           ? { decisionPhase: 'pre_wire_parent' as const }
+          : entry.conditionId === 'multiple_meter_registers'
+            ? { decisionPhase: 'pre_wire_inventory_aggregate' as const }
           : {}),
         ...(requirement === null ? {} : {requirement}),
         source: sourceRule ? {...entry.source, section: `${entry.source.section}; P26.A §2.2 s.${sourceRule.page}`} : entry.source,
