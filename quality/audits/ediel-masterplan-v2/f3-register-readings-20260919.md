@@ -363,3 +363,70 @@ remote CI, merge, numeric acceptance, live readiness or broad F3–F7 completion
 is claimed by these local checks. Raw segment-boundary whitespace, preserved
 later214/218 negative overlay, and unqualified positive GAS/production fact
 producer remain the stated limits.
+
+
+## Independent review R1 remediation — round 1/5
+
+Base: `7a8c2a30abb22a6325031fa2b433d2e42fd53371` (same tree as published
+`74fb9a40b8c6c3fd50112249b59873a951caa65c`). Root approved this bounded repair.
+The review report is `/workspace/scratch/2a201d6d5897/register-readings-review-report.md`.
+
+R1 is a confirmed inherited rulebook-boundary gap, not a nine-cell regression
+or an end-to-end send bypass. The independent reviewer reproduced the global
+LIN chain gap against archived runtime base `e8b386ba`; this remediation did
+not rerun that baseline archive. Actual RED on the current base independently
+confirmed both reported malformed chains. Transport and preflight already
+blocked them in all tested contexts.
+
+The existing matrix produces `PRODAT_REGISTER_STRUCTURE_INVALID` for invalid
+global LIN numbering and own C829 register numbering. Its error previously
+lacked the protected register scope, so the normal rulebook intentional-invalid
+override could suppress it. The snapshot exception path reran only register
+business policy, which intentionally leaves topology to the matrix. This
+explains both paths without changing any source outcome.
+
+Fix: classify the existing matrix structural error with `scope: prodat_register`
+and call the existing `validateProdatRegisterPayload` (matrix plus business
+policy, `requireConditions: true`) in the snapshot fallback. Body-bound facts
+are still re-read and actual wire context still governs. No new rule store,
+catch exemption or duplicated structure implementation is added. The existing
+combined register/dependent242 guard diagnostic and protection-before-override
+order are unchanged. Existing inbound syntax validation receives only the
+scope annotation; no new inbound business facts are required.
+
+Added `__tests__/ediel-prodat-register-structure-guards.test.ts`: 36 independently
+asserted cases across normal test validation, production missing snapshot and
+production stale snapshot. Each uses actual EL UNB, body-bound A/89 facts,
+independent expected count2, readings=true, both QTY31 values, complete own
+214/218/259 values with distinct111/112 tariffs, and Z22 on both registers.
+Malformed variants are global LIN7,9/C8291,2 and global LIN1,2/C8291,1. Each
+context/variant independently asserts protected validator output, rulebook
+rejection, preflight rejection and transport rejection; no early validator
+assertion hides a guard result. Valid global1,2/C8291,2 controls independently
+cover all four boundaries. Production controls retain unrelated production
+readiness blocks and explicitly verify the canonical snapshot failure.
+
+| Verification (Node24.19.0, unchanged configuration) | Actual result |
+| --- | --- |
+| `node node_modules/vitest/vitest.mjs run __tests__/ediel-prodat-register-structure-guards.test.ts --reporter=verbose` before runtime edits | Exit1: 12 failed,24 passed,36 total. Six protected-validator assertions and six independent rulebook-guard assertions fail. All six malformed preflight and six malformed transport assertions pass; all twelve valid controls pass. |
+| `node node_modules/vitest/vitest.mjs run __tests__/ediel-prodat-register*.test.ts __tests__/ediel-prodat-dependent-z06-product.test.ts --reporter=dot` after fix | Exit0: 782 passed in24 files, including all36 new cases and unchanged readings/inventory/structural/inbound/preflight/guard/242 controls. |
+| `npm run typecheck` | Exit0. |
+| `npm run typecheck:tests` | Exit0. |
+| `git diff --check` | Exit0. |
+| `git diff --quiet -- docs/ediel/masterplan-v2 .github/workflows quality/coverage-baseline.json` | Exit0; unchanged originals/workflows/baseline. |
+
+Retained external logs under `/workspace/scratch/2a201d6d5897/`:
+`register-readings-r1-red.log`, `register-readings-r1-green.log`,
+`register-readings-r1-types-app.log`, `register-readings-r1-types-tests.log`.
+No old assertion, fixture, gate or threshold changed. No full-suite rerun is
+claimed for R1; root requested covering tests and relevant types, and owns
+updated exact-head Node22 CI and scoped independent re-review. Source limits,
+39/110 numeric acceptance,4/10 parents and paused PR310 remain unchanged.
+No whole-register or full-grammar certification is implied.
+
+Skill routing: receiving-code-review for evidence-based response; the prior
+systematic-debugging, test-driven-development and verification-before-completion
+workflow continues. Independent public-module RED supplies direct false-positive
+verification. This is a two-site validation repair, with no UI, DB, deployment,
+performance or supply-chain change triggering those broader skill groups. Root
+owns active memory, publication and review; its session-log edit is excluded.

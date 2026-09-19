@@ -1,5 +1,4 @@
-import { canonicalProdat26AFieldRules, prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
-import { validateProdatRegisterPolicy } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
+import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
 import { prodatSendMessageScopeIssue } from '@/lib/ediel/prodat/prodatSendMessageScope'
 import { validateProdatSubtypePayload } from '@/lib/ediel/rulebook/prodatSubtypePolicy'
 import { readProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
@@ -388,7 +387,7 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
     const protectedDependentIssues = family === 'PRODAT' && input.mode === 'send'
       ? validateProdatSubtypePayload({family, code, rawSegments:parsed.rawSegments, una:parsed.una ?? parseUna(input.rawPayload)}) : []
     // A missing/stale production snapshot cannot bypass the same protected
-    // register policy used on the normal path. Body-bound facts are re-read;
+    // register structure and policy used on the normal path. Body-bound facts are re-read;
     // snapshot statuses and intentional-invalid labels supply no authority.
     const protectedRegisterIssues: EdielRulebookIssue[] = []
     if (family === 'PRODAT' && input.mode === 'send' && !description.startsWith('prodat_register_evidence_')) {
@@ -396,9 +395,8 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
         const wireCode = parsed.code ?? code
         const una = parsed.una ?? parseUna(input.rawPayload)
         const facts = readProdatRegisterEvidence({code:wireCode,rawSegments:parsed.rawSegments,una,parsedPayload:input.parsedPayload})
-        protectedRegisterIssues.push(...validateProdatRegisterPolicy({code:wireCode,rawSegments:parsed.rawSegments,una,facts,
-          applicationReference:parsed.applicationReference ?? input.applicationReference,
-          rules:canonicalProdat26AFieldRules(wireCode).filter(rule=>prodatRegisterFieldScope(rule.fieldNumber ?? '') === 'local')}).issues)
+        protectedRegisterIssues.push(...validateProdatRegisterPayload({code:wireCode,rawSegments:parsed.rawSegments,una,facts,
+          applicationReference:parsed.applicationReference ?? input.applicationReference,requireConditions:true}))
       } catch {
         protectedRegisterIssues.push({scope:'prodat_register',severity:'error',blocking:true,code:'PRODAT_REGISTER_EVIDENCE_INVALID',
           title:'Ogiltigt registerunderlag',description:'Registerfakta kunde inte knytas till det aktuella meddelandet.'})
