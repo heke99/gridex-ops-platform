@@ -17,15 +17,20 @@ export function validateProdatRegisterPolicy(input: {
   una?: EdifactServiceStringAdvice
   facts?: ProdatDependentConditionFacts
   rules: readonly RulebookFieldRule[]
+  /** Outbound business validation requires independent physical inventory.
+   * Parse-only inbound validation keeps structural topology checks only. */
+  requireIndependentInventory?: boolean
 }): { issues: EdielRulebookIssue[]; handledFields: Set<string> } {
   const una = input.una ?? parseUna(null)
   const { groups } = prodatRegisterGroups(prodatRegisterMessageSegments(input.rawSegments,una),una,input.code)
   const handledFields = new Set<string>()
   const issues: EdielRulebookIssue[] = []
   const facts = input.facts ?? {}
+  const requireIndependentInventory = (input.requireIndependentInventory ?? true)
+    && ['Z04','Z06','Z10'].includes(input.code.toUpperCase())
   const add = (field: string, line: number, code: string, description: string) => {
     const rule = input.rules.find(rule => rule.fieldNumber === field)
-    if (rule) issues.push({scope:'prodat_register',severity:'error',blocking:true,code,title:'PRODAT registervillkor',fieldPath:rule.segmentPath,
+    if (rule) issues.push({scope:'prodat_register',severity:'error',blocking:true,code,title:'PRODAT registervillkor',fieldPath:field === '258' ? 'LIN/C829/1082' : rule.segmentPath,
       description:`LIN ${line + 1}, fält ${field}: ${description} (P26.A §2.2 / bilaga2 s.114–116).`})
   }
   if (facts.registerObjects) {
@@ -40,25 +45,39 @@ export function validateProdatRegisterPolicy(input: {
     }
   }
   const tariffs = new Map<number, Set<string>>()
+  const reportedInventory = new Set<string>()
   for (const group of groups) {
     const first = group.firstLineIndex === null ? null : groups.find(row => row.lineIndex === group.firstLineIndex)
     const objectFacts = facts.registerObjects?.filter(row => row.meteringPointId === group.itemId && row.identityAgency === group.identityAgency)
     const fact = objectFacts?.length === 1 ? objectFacts[0] : null
     // An explicit object inventory has exact scope; no fallback from A to B.
     const readings = facts.registerObjects === undefined ? facts.meterReadingsSentInUtilts : fact?.meterReadingsSentInUtilts
-    if (objectFacts && objectFacts.length !== 1) add('258',group.lineIndex,'PRODAT_REGISTER_EVIDENCE_UNDETERMINED','Objektets faktaunderlag saknas eller är tvetydigt')
-    if (fact?.expectedRegisterCount != null && (!Number.isInteger(fact.expectedRegisterCount) || fact.expectedRegisterCount < 1 || fact.expectedRegisterCount > 999999 || fact.expectedRegisterCount !== group.registerCount)) {
-      add('258',group.lineIndex,'PRODAT_REGISTER_COUNT_MISMATCH','Antalet register stämmer inte med det uttryckliga objektunderlaget')
+    const inventoryKey = JSON.stringify([group.itemId, group.identityAgency])
+    if (requireIndependentInventory && !reportedInventory.has(inventoryKey)) {
+      reportedInventory.add(inventoryKey)
+      if (facts.registerObjects !== undefined && objectFacts?.length === 0) {
+        add('258',group.lineIndex,'PRODAT_REGISTER_UNEXPECTED_OBJECT','Meddelandet innehåller ett objekt som saknas i det uttryckliga registerunderlaget')
+        add('258',group.lineIndex,'PRODAT_REGISTER_EVIDENCE_UNDETERMINED','Objektets faktaunderlag saknas; ett annat objekt eller ett rotvärde kan inte fylla det')
+      } else if (!objectFacts || objectFacts.length !== 1 || !Number.isInteger(fact?.expectedRegisterCount)
+        || (fact?.expectedRegisterCount as number) < 1 || (fact?.expectedRegisterCount as number) > 999999) {
+        add('258',group.lineIndex,'PRODAT_REGISTER_EVIDENCE_UNDETERMINED','Objektets oberoende registerantal saknas eller är tvetydigt')
+      } else if (fact!.expectedRegisterCount !== group.registerCount) {
+        add('258',group.lineIndex,'PRODAT_REGISTER_COUNT_MISMATCH','Antalet register stämmer inte med det uttryckliga objektunderlaget')
+      }
     }
     const subtype = first ? canonicalProdatSubtypeAlias(prodatCharacteristicValue('223',first.segments,una),input.code) : null
     for (const rule of input.rules) {
       const field = rule.fieldNumber ?? ''
       const state = prodatRegisterFieldState(field,group.segments,una)
       if (!state) continue
+      if (field === '258' && !requireIndependentInventory) {
+        handledFields.add(field)
+        continue
+      }
       const status = resolveProdatRegisterRequirement({messageCode:input.code,fieldNumber:field,subtype,
         registerCount:group.registerCount,registerPosition:group.registerPosition,fieldPresent:state.present,
         firstFieldPresent:first ? Boolean(prodatRegisterFieldState(field,first.segments,una)?.present) : false,
-        meterReadingsSentInUtilts:readings,market:facts.market})
+        meterReadingsSentInUtilts:readings,market:facts.market,expectedRegisterCount:fact?.expectedRegisterCount})
       if (status === null) continue
       handledFields.add(field)
       if (status === 'undetermined') add(field,group.lineIndex,'PRODAT_DEPENDENT_CONDITION_UNDETERMINED','Villkoret kan inte avgöras från objektets källstyrda fakta')
@@ -83,6 +102,6 @@ export function validateProdatRegisterPayload(input: {
 }): EdielRulebookIssue[] {
   const rules = canonicalProdat26AFieldRules(input.code).filter(rule => prodatRegisterFieldScope(rule.fieldNumber ?? '') === 'local')
   const issues = validateFieldMatrixPayload({family:'PRODAT',code:input.code,rawSegments:input.rawSegments,una:input.una,mode:'parse'},rules)
-  if (input.requireConditions) issues.push(...validateProdatRegisterPolicy({...input,rules}).issues)
+  if (input.requireConditions) issues.push(...validateProdatRegisterPolicy({...input,rules,requireIndependentInventory:true}).issues)
   return issues
 }

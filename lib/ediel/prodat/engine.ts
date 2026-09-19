@@ -1,5 +1,4 @@
 import { resolveProdatRegisterConditionFacts } from '@/lib/ediel/prodat/prodatRegisterEvidence'
-import { resolveProdatRegisterInputs } from '@/lib/ediel/prodat/prodatRegisterInput'
 // lib/ediel/prodat/engine.ts
 
 import type {
@@ -92,7 +91,6 @@ function resolveRenderPolicy(input: ProdatEngineInput): CanonicalEdielPolicy {
     prodatDependentFacts: {
       market: 'electricity',
       ...resolveProdatRegisterConditionFacts(input.context.dependentConditionFacts,input.portalSnapshot),
-      multipleMeterRegisters: resolveProdatRegisterInputs(input.context, input.portalSnapshot).length > 1,
     },
     mode: input.mode === 'production' ? 'send' : 'catalog_evidence',
   })
@@ -202,7 +200,6 @@ export function renderProdat26A(input: {
     prodatDependentFacts: {
       market: 'electricity',
       ...resolveProdatRegisterConditionFacts(input.context.dependentConditionFacts,input.portalSnapshot),
-      multipleMeterRegisters: resolveProdatRegisterInputs(input.context, input.portalSnapshot).length > 1,
     },
     mode: input.portalSnapshot ? 'catalog_evidence' : 'send',
   })

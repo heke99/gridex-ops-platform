@@ -104,6 +104,27 @@ function explicitCellFact(context: PredicateContext): boolean | null {
   return booleanFact(context.facts.byCell?.[context.id])
 }
 
+/** Field 258 describes physical inventory, so rendered LIN cardinality, a root
+ * boolean and byCell statuses are not evidence. Message-level diagnostics can
+ * say whether any independently inventoried object is multiple; exact per-object
+ * enforcement remains in prodatRegisterPolicy where wire identity is available. */
+function independentRegisterInventory(context: PredicateContext): boolean | null {
+  const objects = context.facts.registerObjects
+  if (!objects?.length) return null
+  const seen = new Set<string>()
+  let multiple = false
+  for (const object of objects) {
+    const id = object.meteringPointId
+    const count = object.expectedRegisterCount
+    const identity = JSON.stringify([id, object.identityAgency])
+    if (!id || !['9', '89'].includes(object.identityAgency) || seen.has(identity)
+      || !Number.isInteger(count) || (count as number) < 1 || (count as number) > 999999) return null
+    seen.add(identity)
+    if ((count as number) > 1) multiple = true
+  }
+  return multiple
+}
+
 /** The Z01/Z03/Z08 IT parent is optional until selected per wire object. A
  * message/root byCell flag cannot select it. The bounded wire-parent validator
  * and renderer diagnostics replace this default when an object emits NAD+IT. */
@@ -151,7 +172,7 @@ function privateCustomerExceptZ14N(context: PredicateContext): boolean | null {
 
 const GROUPS: readonly ConditionGroup[] = [
   { fieldNumber: '209', messageCodes: ['Z14'], conditionId: 'z14_except_n', note: 'Skickas i Z14 utom Z14N.', predicate: subtypeIsNot('N') },
-  { fieldNumber: '258', messageCodes: ['Z04', 'Z06', 'Z10'], conditionId: 'multiple_meter_registers', note: 'Obligatorisk för anläggningar/mätare med flera register.', predicate: ({ facts }) => booleanFact(facts.multipleMeterRegisters) },
+  { fieldNumber: '258', messageCodes: ['Z04', 'Z06', 'Z10'], conditionId: 'multiple_meter_registers', note: 'Obligatorisk för anläggningar/mätare med flera register.', predicate: independentRegisterInventory },
   { fieldNumber: '210', messageCodes: ['Z06', 'Z09', 'Z10'], conditionId: 'contract_start_date_business_rule', note: 'Giltigt startdatum enligt Handboken.', predicate: explicitCellFact },
   { fieldNumber: '211', messageCodes: ['Z09'], conditionId: 'contract_stop_date_business_rule', note: 'Giltigt slutdatum enligt Handboken.', predicate: explicitCellFact },
   { fieldNumber: '302', messageCodes: ['Z14'], conditionId: 'report_start_timestamp_business_rule', note: 'Tidstämpel för påbörjande av rapportering.', predicate: explicitCellFact },
@@ -316,6 +337,9 @@ export function resolveProdatRegisterRequirement(input: {
   fieldPresent: boolean
   market?: 'electricity' | 'gas' | null
   meterReadingsSentInUtilts?: boolean | null
+  /** Independent physical inventory for this exact object. Observed LIN count
+   * must never be supplied here as a fallback. */
+  expectedRegisterCount?: number | null
 }): ProdatRegisterRequirement | null {
   const { messageCode: code, fieldNumber: field } = input
   if (!['258','213','214','218','259'].includes(field)) return null
@@ -323,7 +347,11 @@ export function resolveProdatRegisterRequirement(input: {
   const usage = row?.requirements[PRODAT_26A_MESSAGE_CODES.findIndex(value => value === code)]
   if (usage === '-') return 'forbidden'
   if (!['Z04','Z06','Z10'].includes(code)) return null
-  if (field === '258') return input.registerCount > 1 ? 'required' : 'forbidden'
+  if (field === '258') {
+    const count = input.expectedRegisterCount
+    if (!Number.isInteger(count) || (count as number) < 1 || (count as number) > 999999) return 'undetermined'
+    return (count as number) > 1 ? 'required' : 'forbidden'
+  }
   if (field === '213') return code === 'Z04' || (input.registerPosition > 1 && input.firstFieldPresent) ? 'required' : 'optional'
   const readings = input.meterReadingsSentInUtilts
   if (field === '259' && readings === false) {

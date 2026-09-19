@@ -14,14 +14,14 @@ import { alphabets, characteristic, input, line, qty, raw, type Parts } from './
 // valid Z04 reasons forbid it. This does not certify other D cells or live DBs.
 const reason = (value = 'Z70') => characteristic('Z13', value)
 const reference = (value = '000-CONSUMPTION'): Parts => ['RFF', ['Z07', value]]
-function message(body: Parts[], environment: 'test' | 'production', alphabet: readonly string[]): EdielMessageRow {
+function message(body: Parts[], environment: 'test' | 'production', alphabet: readonly string[], expectedRegisterCount = 1): EdielMessageRow {
   // Satisfy the independent field213 prerequisite with real wire values,
   // not a fabricated UTILTS exception, so each case reaches the D guard.
   const wireBody = body.flatMap((parts): Parts[] => parts[0] === 'LIN' ? [parts, qty('1')] : [parts])
   const payload = raw(wireBody, 'Z04', alphabet)
   const wire = input(payload, 'Z04')
   const registerEvidence = createProdatRegisterEvidence({code:'Z04',rawSegments:wire.rawSegments,una:wire.una,
-    facts:{market:'electricity',meterReadingsSentInUtilts:false}})
+    facts:{market:'electricity',registerObjects:[{meteringPointId:'A',identityAgency:'89',expectedRegisterCount,meterReadingsSentInUtilts:false}]}})
   const row: Partial<EdielMessageRow> = {
     message_family:'PRODAT',message_code:'Z04',message_version:'26A',direction:'outbound',environment,
     message_standard:'edifact',application_reference:'23-DDQ-PRODAT',company_id:'synthetic-company',
@@ -35,20 +35,20 @@ function message(body: Parts[], environment: 'test' | 'production', alphabet: re
 const protected319 = (issue: {scope?:string;code:string;description:string;fieldPath?:string|null}) =>
   (issue.scope === 'prodat_dependent' && issue.fieldPath === 'RFF+Z07') ||
   (issue.code.startsWith('PRODAT_DEPENDENT_PREFLIGHT_') && issue.description.includes('Z04:319'))
-const defects: {name:string;body:Parts[]}[] = [
+const defects: {name:string;body:Parts[];expectedRegisterCount?:number}[] = [
   {name:'missing required reference',body:[line('1','A'),...reason()]},
   {name:'forbidden reference',body:[line('1','A'),...reason('Z22'),reference()]},
   {name:'missing wire reason',body:[line('1','A'),reference()]},
   {name:'header reference despite valid object',body:[reference(),line('1','A'),...reason(),reference()]},
   {name:'party reference despite valid object',body:[line('1','A'),...reason(),reference(),['NAD','UD','CUSTOMER'],reference()]},
-  {name:'later register introduces common reference',body:[line('1','A','1'),...reason('Z22'),line('2','A','2'),reference()]},
+  {name:'later register introduces common reference',body:[line('1','A','1'),...reason('Z22'),line('2','A','2'),reference()],expectedRegisterCount:2},
   {name:'overlong reference',body:[line('1','A'),...reason(),reference('x'.repeat(26))]},
   {name:'non-value components',body:[line('1','A'),...reason(),['RFF',['Z07','VALID','1156-IS-NOT-USED']]]},
 ]
 describe('Z04:319 protected actual outbound boundaries',()=>{
   for(const environment of ['test','production'] as const) for(const alphabet of alphabets) {
     for(const defect of defects) it(`${environment}/${alphabet.join('')}: ${defect.name}`,()=>{
-      const row=message(defect.body,environment,alphabet)
+      const row=message(defect.body,environment,alphabet,defect.expectedRegisterCount)
       for(const override of [false,true]) {
         row.parsed_payload={...row.parsed_payload,rulebookAllowInvalidSend:override}
         const result=validateEdielMessageRowWithRulebook(row,'send')

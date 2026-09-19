@@ -2,22 +2,14 @@
   "project": "gridex-ops-platform",
   "updated_at": "2026-09-19",
   "status": "IN_PROGRESS",
-  "branch": "codex/ediel-optional-installation-20260919",
-  "base_head_sha": "19ca7e074d4a337620bd041394b22e637e83a9b4",
-  "active_item": "Qualify six optional IT child cells",
-  "next_action": "Independent review and ordinary exact-head CI of optionalIT candidate; repair then guarded merge",
-  "accepted_numeric_D": 30,
+  "branch": "codex/ediel-remaining-dependencies-20260919",
+  "base_head_sha": "1bbe4483f86d5b9fd93dfcb6e846341fd9762a42",
+  "active_item": "Three field258 cells: independent physical register inventory",
+  "next_action": "Independent task/spec and whole-branch review, then exact-head publication/CI and guarded merge of three258candidate; no new acceptance yet.",
+  "accepted_numeric_D": 36,
   "numeric_D_total": 110,
   "accepted_parents": 4,
   "parent_total": 10,
-  "candidate_cells": [
-    "PC-233-Z01",
-    "PC-234-Z01",
-    "PC-233-Z03",
-    "PC-234-Z03",
-    "PC-233-Z08",
-    "PC-234-Z08"
-  ],
   "blocked_cells": [
     "PC-321-Z13",
     "PC-323-Z13",
@@ -30,7 +22,13 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "full_masterplan": "NOT_COMPLETE",
-  "local_candidate": "eb1a5abce783c8fd399f106ee93987dada44f7b7",
-  "application_tests": 3411,
-  "main339_full_certificate": "73/73 SUCCESS run35435423862"
+  "dependency_audit_commit": "2b35bd0da227d83a9c02a424ffd7af1bfe4c12da",
+  "main_full_certificate": {
+    "run": 35436864870,
+    "job": 105880907305,
+    "passed": 73,
+    "total": 73,
+    "node": "22.23.2"
+  },
+  "implementation_head": "fa60c7418ba6bdd7c9ea26cd84466392959055c8"
 }

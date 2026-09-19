@@ -127,7 +127,6 @@ function rendererPolicy(input: {
     prodatDependentFacts: {
       market: 'electricity',
       ...resolveProdatRegisterConditionFacts(input.context.dependentConditionFacts,input.portalSnapshot),
-      multipleMeterRegisters: resolveProdatRegisterInputs(input.context, input.portalSnapshot).length > 1,
     },
     mode: input.mode === 'production' ? 'send' : 'catalog_evidence',
   })

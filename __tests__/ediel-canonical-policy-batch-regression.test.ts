@@ -110,6 +110,7 @@ describe('canonical Ediel policy batch regression', () => {
           customerKind: 'private',
           meterReadingsSentInUtilts: true,
           multipleMeterRegisters: true,
+          registerObjects: [{ meteringPointId: 'CATALOG-OBJECT', identityAgency: '89', expectedRegisterCount: 2 }],
           endUserAddressAvailable: true,
           invoiceeAddressDiffersFromEndUser: true,
           byCell,
@@ -123,7 +124,8 @@ describe('canonical Ediel policy batch regression', () => {
         messageCode,
         facts: {
           canonicalSubtype: messageCode === 'Z04' ? 'D' : ['Z06', 'Z09'].includes(messageCode) ? 'F' : 'V', businessContext: 'death', market: ['Z06', 'Z14'].includes(messageCode) ? 'electricity' : 'gas', customerKind: 'private',
-          meterReadingsSentInUtilts: true, multipleMeterRegisters: true, endUserAddressAvailable: true,
+          meterReadingsSentInUtilts: true, multipleMeterRegisters: true,
+          registerObjects: [{ meteringPointId: 'CATALOG-OBJECT', identityAgency: '89', expectedRegisterCount: 2 }], endUserAddressAvailable: true,
           invoiceeAddressDiffersFromEndUser: true, byCell,
         },
       }).map((entry) => entry.id),

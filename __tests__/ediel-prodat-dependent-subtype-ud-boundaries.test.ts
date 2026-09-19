@@ -25,7 +25,8 @@ function message(body: Parts[], code: 'Z06'|'Z09', environment: 'test'|'producti
     ...(code === 'Z06' ? [qty('1'), ['DTM',['354','15','806']],...characteristic('Z04','Z04'),...characteristic('Z07','E22'),
       ...characteristic('Z15','Z32'),...characteristic('Z14','L639Q',3)] as Parts[] : [['DTM',['157','202610010000','203']]] as Parts[])] : [part])
   const payload = raw(wireBody,code,alphabet), wire = input(payload,code)
-  const registerEvidence = createProdatRegisterEvidence({code,rawSegments:wire.rawSegments,una:wire.una,facts:{market:'electricity',meterReadingsSentInUtilts:false}})
+  const registerEvidence = createProdatRegisterEvidence({code,rawSegments:wire.rawSegments,una:wire.una,facts:{market:'electricity',
+    registerObjects:[{meteringPointId:'A',identityAgency:'89',expectedRegisterCount:1,meterReadingsSentInUtilts:false}]}})
   const partial: Partial<EdielMessageRow> = {message_family:'PRODAT',message_code:code,message_version:'26A',direction:'outbound',environment,message_standard:'edifact',
     company_id:'synthetic-company',application_reference:'23-DDQ-PRODAT',raw_payload:payload,mime_type:'application/EDIFACT',
     validation_report:{systemTestAckSend:{enabled:true,source:'system_test_ack_action'}},
@@ -106,7 +107,8 @@ describe('UD builder and read-consumer effects', () => {
   const base: BuildProdatMessageInput = {companyId:'synthetic-company',role:'supplier',businessCode:'Z06',transactionSubtype:'E',
     sender:{edielId:'12345'},receiver:{edielId:'54321'},meteringPoint:{id:'A'},environment:'test',
     customer:{identity:'00-CUSTOMER',idAgency:'89',name:'User',country:'SE'},codedAttributes:{Z13:'E34'},
-    dates:{validityStartDate:'2026-10-01'},references:{LI:'CASE'},dependentConditionFacts:{market:'electricity',meterReadingsSentInUtilts:false}}
+    dates:{validityStartDate:'2026-10-01'},references:{LI:'CASE'},dependentConditionFacts:{market:'electricity',meterReadingsSentInUtilts:false,
+      registerObjects:[{meteringPointId:'A',identityAgency:'9',expectedRegisterCount:1,meterReadingsSentInUtilts:false}]}}
   for (const code of ['Z06','Z09'] as const) for (const subtype of ['E','F','G']) it(`${code}/${subtype}: profiled renderer follows actual emitted reason and retains source text`, () => {
     const context: ProdatEngineProductionContext = {code,bgmReference:'DOCUMENT',transactionReference:'CASE',senderEdielId:'12345',receiverEdielId:'54321',meterPointId:'A',
       customerId:'000-CUSTOMER',customerIdAgency:'89',customerName:'User',customerNameLines:['User','Second'],customerPostalCode:'001 23',customerCity:'Town',customerCountry:'SE',
@@ -128,7 +130,10 @@ describe('UD builder and read-consumer effects', () => {
   })
   it('generic multi-object builder must not use a root F subtype to omit one object E customer', () => {
     const customer = {...base.customer!,postalCode:'001 23',city:'Town'}
-    const built = buildProdatMessage({...base,transactionSubtype:'F',objects:[
+    const built = buildProdatMessage({...base,transactionSubtype:'F',dependentConditionFacts:{...base.dependentConditionFacts,registerObjects:[
+      {meteringPointId:'A',identityAgency:'9',expectedRegisterCount:1,meterReadingsSentInUtilts:false},
+      {meteringPointId:'B',identityAgency:'9',expectedRegisterCount:1,meterReadingsSentInUtilts:false},
+    ]},objects:[
       {meteringPoint:{id:'A'},codedAttributes:{Z13:'E34'},customer,dates:base.dates,references:{LI:'CASE-A'}},
       {meteringPoint:{id:'B'},codedAttributes:{Z13:'E64'},customer,dates:base.dates,references:{LI:'CASE-B'},registers:[{annualConsumption:'1'}]},
     ]})

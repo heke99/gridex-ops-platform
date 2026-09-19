@@ -6,6 +6,7 @@ import { assertRulebookAllowsSend } from '@/lib/ediel/rulebook/sendGuards'
 import { preflightEdielMessageRow } from '@/lib/ediel/core/messageBuilder/payloadPreflight'
 import { assertEdielSendLock } from '@/lib/ediel/transport/sendLock'
 import { evaluateProdatDependentConditions } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
+import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { parseRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { alphabets, characteristic, line, raw, type Parts } from './fixtures/prodat-register'
@@ -30,11 +31,14 @@ function pair(alphabet: readonly string[], firstFamily = 'PRODAT', secondCode = 
   ]
   return first.una.raw + messages.join(terminator) + terminator
 }
-function row(payload: string, environment: 'test' | 'production' = 'test'): EdielMessageRow {
+function row(payload: string, environment: 'test' | 'production' = 'test', meteringPointId = 'A'): EdielMessageRow {
+  const wire = tokenizeEdifact(payload)
+  const registerEvidence = createProdatRegisterEvidence({code:'Z06',rawSegments:wire.segments.map(segment=>segment.raw),una:wire.una,
+    facts:{market:'electricity',registerObjects:[{meteringPointId,identityAgency:'89',expectedRegisterCount:1,meterReadingsSentInUtilts:false}]}})
   const fixture: Partial<EdielMessageRow> = { message_family:'PRODAT', message_code:'Z06', message_version:'26A', direction:'outbound', environment,
     message_standard:'edifact', application_reference:'23-DDQ-PRODAT', company_id:'synthetic-company', raw_payload:payload, mime_type:'application/EDIFACT',
     // Synthetic in-memory boundary; snapshot/markers may not certify another UNH.
-    parsed_payload:{rulebookAllowInvalidSend:true, prodatEngine:{dependentConditionStatuses:evaluateProdatDependentConditions({messageCode:'Z06',facts:{canonicalSubtype:'E'}}).map(c=>({...c,status:'not_required'}))}},
+    parsed_payload:{rulebookAllowInvalidSend:true, prodatEngine:{registerEvidence,dependentConditionStatuses:evaluateProdatDependentConditions({messageCode:'Z06',facts:{canonicalSubtype:'E'}}).map(c=>({...c,status:'not_required'}))}},
     validation_report:{systemTestAckSend:{enabled:true,source:'system_test_ack_action'}},
   }
   // This in-memory fixture models only the fields consumed by these boundaries.
@@ -84,7 +88,8 @@ describe('PR330 rereview: never certify an unvalidated later PRODAT message', ()
     })
     it(`${index}: released UNH-looking text is data, not a second message`, () => {
       const [,element,,terminator] = alphabet
-      const r = row(single(alphabet,[line('1',`A${terminator}UNH${element}M2${element}PRODAT`),...characteristic('Z13','E34'),ud()]))
+      const id = `A${terminator}UNH${element}M2${element}PRODAT`
+      const r = row(single(alphabet,[line('1',id),...characteristic('Z13','E34'),ud()]),'test',id)
       expect(tokenizeEdifact(r.raw_payload).segments.filter(s=>s.tag === 'UNH')).toHaveLength(1)
       expect(hasScope(validateEdielMessageRowWithRulebook(r,'send').issues)).toBe(false)
       expect(()=>assertRulebookAllowsSend(r)).not.toThrow()

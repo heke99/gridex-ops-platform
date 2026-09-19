@@ -71,7 +71,14 @@ export function validateCanonicalPolicyFields(input: {
   issues.push(...validateProdatSubtypePolicy(matrixInput, input.policy.direction === 'inbound'
     ? rules.filter(rule => !(input.policy.code === 'Z14' && (isZ14DependentField(rule.fieldNumber ?? '') || ['321','323'].includes(rule.fieldNumber ?? ''))) && !isSourceBoundEndUserField(input.policy.code, rule.fieldNumber ?? '')) : rules))
   if (input.policy.direction === 'outbound') issues.push(...validateProdatOptionalInstallationPolicy(matrixInput, rules))
-  const register = validateProdatRegisterPolicy({code:input.policy.code, rawSegments:input.rawSegments ?? [], una:input.una, facts:input.policy.prodatDependentFacts, rules})
+  const register = validateProdatRegisterPolicy({
+    code:input.policy.code,
+    rawSegments:input.rawSegments ?? [],
+    una:input.una,
+    facts:input.policy.prodatDependentFacts,
+    rules,
+    requireIndependentInventory:input.policy.direction === 'outbound',
+  })
   issues.push(...register.issues)
 
   const dependentByField = new Map(
