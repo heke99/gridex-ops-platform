@@ -94,3 +94,5 @@ PR343 main full35444527599/job105901061175 actual73/73,0failed Node22.23.2 SUCCE
 
 ## Invoicee runtime handoff
 Runtime83ab46a0; local3812/3812, all3types, lint0errors/99warnings and required integrity/budget/performance/route/Ediel pipeline passed. Independent review active. Extra legacy static RFF_LI_MISSING failure reproduces unchanged baseline per report; no assertion rewritten. Acceptance56/110numeric,4/10parents unchanged; PR310 paused.
+
+PR344 initial head61249522 exactheadCI allSUCCESS: OPS35447170063, Ediel35447170087, Browser35447170054, Full35447170052. Coverage105907985393 actual3812/3812 in256files Node22.23.2. Independent R1/R2 remain merge blockers; green initialCI does not waive them.

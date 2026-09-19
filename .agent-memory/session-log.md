@@ -122,3 +122,8 @@ IV source F1 resolved atbf2492567392ddc76b64c3d7eb24e68806925fb3; scoped indepen
 
 ## Invoicee runtime handoff
 Runtime83ab46a0; local3812/3812, all3types, lint0errors/99warnings and required integrity/budget/performance/route/Ediel pipeline passed. Independent review active. Extra legacy static RFF_LI_MISSING failure reproduces unchanged baseline per report; no assertion rewritten. Acceptance56/110numeric,4/10parents unchanged; PR310 paused.
+
+## PR344 review fix wave
+DraftPR344 published61249522d8d935baafdd9991fed2b3697d808078, exact localtreef715c8e4219e9e17bbca24e4da1e9bfd69257a96. Independent task/spec REQUEST_CHANGES, quality NEEDS_FIXES, wholebranch NOT_READY on two Important TGT producer defects: R1 absentUD comparison source in exactZ06F/G; R2 blank positionalIV slots fabricate inclusion. Actual probes2fail/4controls and2fail/2controls. Original implementer owns combined fix round1; sourceF1approval remains. No acceptanceincrease; PR310paused. Next scoped rereview of fix, then new exactheadCI; no merge while findings open.
+
+Runtime fixfa827c172931890854052dc53702689246cee7f6 addresses R1/R2 in TGT helper;259/259 targeted, original probes6/6+4/4, all3types and changedfilelint pass. Scoped independent rereview active; final exactheadCI still required. Acceptance unchanged.

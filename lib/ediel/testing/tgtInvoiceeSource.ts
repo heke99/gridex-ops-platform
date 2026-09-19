@@ -3,8 +3,25 @@ import type { ProdatEngineInvoiceeContext } from '@/lib/ediel/prodat/types';
 import type { TgtProdatSourceColumn } from './tgtProdatSource';
 const invalid = (): never => { throw new Error('PRODAT_INVOICEE_SOURCE_INVALID'); };
 const clean = (v: string | undefined) => !v?.trim() || v.trim() === '-' ? '' : v.trim();
+/** Empty scalar/positional schema slots are not an invoicee choice. */
+function hasInvoiceeSourceChoice(row: TgtProdatSourceColumn): boolean {
+    return Object.entries(row.rawFields).some(([field, value]) =>
+        (['250', '251', '252', '253', '317', '318'].includes(field) || /^25[12]-/.test(field)) && Boolean(clean(value)));
+}
+/** Only these own source reasons omit UD on the wire. Preserve the existing
+ * independently referenced selection; never obtain it from IV or another column.
+ * The built-in workbook annotates its exact reason as "E64 (Z06F)". */
+function allowsIndependentEndUser(code: string, row: TgtProdatSourceColumn): boolean {
+    if (code !== 'Z06') return false;
+    const reason = row.fields['223'];
+    const subtype = reason === 'E64' || reason === 'E64 (Z06F)' ? 'F'
+        : reason === 'E32' || reason === 'E32 (Z06G)' ? 'G' : null;
+    const columnSubtype = row.column.name.match(/\bZ06([A-Z])\b/i)?.[1]?.toUpperCase();
+    return subtype !== null && (!columnSubtype || columnSubtype === subtype);
+}
 export function tgtPartySourceLines(row: TgtProdatSourceColumn, field: string, max: number): string[] {
-    const keys = Array.from({ length: max }, (_, i) => `${field}-${i + 1}`), split = keys.some(k => Object.hasOwn(row.rawFields, k));
+    const keys = Array.from({ length: max }, (_, i) => `${field}-${i + 1}`), split = keys.some(k => Boolean(clean(row.rawFields[k])));
+    if (Object.keys(row.rawFields).some(key => key.startsWith(`${field}-`) && !keys.includes(key) && clean(row.rawFields[key]))) return invalid();
     const lines = split ? keys.map(k => clean(row.rawFields[k])) : [clean(row.rawFields[field])];
     if (lines.some(v => v.length > 35 || /[\x00-\x1f\x7f]/.test(v)))
         return invalid();
@@ -27,16 +44,17 @@ export function assertTgtInvoiceeSource(code: string, rows: readonly TgtProdatSo
             return invalid();
         if (f.event.state === 'changed_to_same' && (code !== 'Z06' || row.fields['223'] !== 'E34'))
             return invalid();
-        const verify = (a: InvoiceeAddress, field: string, postcode: string, city: string, country: string) => {
+        const independentEndUser = allowsIndependentEndUser(code, row);
+        const verify = (a: InvoiceeAddress, field: string, postcode: string, city: string, country: string, suppliedOnly = false) => {
             const lines = tgtPartySourceLines(row, field, 3);
             for (let i = 0; i < 3; i++)
-                if (typeof a.lines[i] === 'string' && a.lines[i] !== (lines[i] ?? ''))
+                if (typeof a.lines[i] === 'string' && (!suppliedOnly || Boolean(lines[i])) && a.lines[i] !== (lines[i] ?? ''))
                     return invalid();
             for (const [key, value] of [[postcode, a.postalCode], [city, a.city], [country, a.country]] as const)
-                if (typeof value === 'string' && value !== clean(row.rawFields[key]))
+                if (typeof value === 'string' && (!suppliedOnly || Boolean(clean(row.rawFields[key]))) && value !== clean(row.rawFields[key]))
                     return invalid();
         };
-        if (row.fields['227'] !== f.endUser.identity.id)
+        if ((!independentEndUser || row.fields['227']) && row.fields['227'] !== f.endUser.identity.id)
             return invalid();
         if (row.fields['250'] && row.fields['250'] !== f.invoicee.identity.id)
             return invalid();
@@ -46,10 +64,13 @@ export function assertTgtInvoiceeSource(code: string, rows: readonly TgtProdatSo
             if (row.fields[`${field}.AGENCY`] !== undefined && row.fields[`${field}.AGENCY`] !== id.agency)
                 return invalid();
         }
-        verify(f.endUser.address, '229', '231', '232', '316');
+        // copyProdatInvoiceeObjects already requires the independent source reference
+        // and retains the UD representation reference (or explicit unknown). The
+        // authorized notes bind that assertion to this exact run/source column.
+        verify(f.endUser.address, '229', '231', '232', '316', independentEndUser);
         // An omitted optional IV can have a separately asserted comparison source.
         // Supplied current IV cells must match that selection exactly.
-        if (['250', '251', '252', '253', '317', '318'].some(k => row.fields[k] !== undefined) || Object.keys(row.rawFields).some(k => /^25[12]-/.test(k))) {
+        if (hasInvoiceeSourceChoice(row)) {
             verify(f.invoicee.address, '252', '253', '317', '318');
             const names = tgtPartySourceLines(row, '251', 2);
             if ([0, 1].some(i => (f.invoicee.nameLines[i] ?? '') !== (names[i] ?? '')))
@@ -62,7 +83,7 @@ export function assertTgtInvoiceeSource(code: string, rows: readonly TgtProdatSo
     }
 }
 export function tgtInvoiceeChoice(row: TgtProdatSourceColumn, fact: ProdatInvoiceeObject | undefined): ProdatEngineInvoiceeContext | null {
-    if (!['250', '251', '252', '253', '317', '318'].some(k => row.fields[k] !== undefined) && !Object.keys(row.rawFields).some(k => /^25[12]-/.test(k)))
+    if (!hasInvoiceeSourceChoice(row))
         return null;
     return { id: row.fields['250'] ?? null, idCodeListQualifier: row.fields['250.QUALIFIER'] ?? fact?.invoicee.identity.qualifier,
         idAgency: (row.fields['250.AGENCY'] ?? fact?.invoicee.identity.agency) as '89' | '260' | undefined,

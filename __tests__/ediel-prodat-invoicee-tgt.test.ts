@@ -160,3 +160,130 @@ for (const change of ['wrong-reason', 'prior-equal', 'current-different', 'missi
             row.event.reference = '';
         expect(() => buildTgtRegisterFactNotes({ ...c, facts: f, actorId: 'ACTOR', sourceNote: 'Independent change event' })).toThrow();
     });
+
+function noWireUdSource(reason: 'E64' | 'E32') {
+    const c = ctx(), f = facts();
+    const caseCode = reason === 'E64' ? '2.1.1' : '2.1.3';
+    const columnName = reason === 'E64' ? 'Z06F' : 'Z06G';
+    c.code = 'Z06'; c.run.test_case_code = caseCode; c.testData.testCaseCode = caseCode;
+    for (const group of c.testData.groups) {
+        group.fields = group.fields.filter(field => !/^(227|228|229|231|232|316)([.-]|$)/.test(field.fieldCode));
+        for (const column of group.columns) { column.name = columnName; column.testCase = caseCode; }
+        for (const field of group.fields) field.values = { [columnName]: field.fieldCode === '223' ? reason : field.fieldCode === '217' ? 'Z06' : field.values.Z03D };
+    }
+    delete f.endUserAddressObjects;
+    f.registerObjects = ['A', 'B'].map(id => ({ meteringPointId: id, identityAgency: '9', expectedRegisterCount: 1, meterReadingsSentInUtilts: false }));
+    for (const row of f.invoiceeObjects!) {
+        row.source.reference = `Independent current UD and IV records for ${row.meteringPointId}; UD is comparison-only`;
+        row.endUser.address.representation!.reference = `Independent UD postal selection ${row.meteringPointId}`;
+    }
+    return { c, f, columnName, caseCode };
+}
+function saveAndDraft(c: ReturnType<typeof ctx>, f: ProdatDependentConditionFacts) {
+    c.run.notes = buildTgtRegisterFactNotes({ ...c, facts: f, actorId: 'ACTOR', sourceNote: 'Independent comparison-only UD selections A/B and original IV cells, qualified positional convention' });
+    const read = readTgtRegisterFacts(c)!;
+    const params = draft();
+    params.testCaseCode = c.run.test_case_code; params.importedTestData = c.testData; params.registerFacts = read;
+    return { read, built: buildEdielTgtDraft(params) };
+}
+for (const reason of ['E64', 'E32'] as const) {
+    it(`${reason}: notes/read/draft retain independent UD comparison without emitting UD`, () => {
+        const { c, f } = noWireUdSource(reason), { read, built } = saveAndDraft(c, f);
+        expect(read.invoiceeObjects!.map(row => row.endUser)).toEqual(f.invoiceeObjects!.map(row => row.endUser));
+        const wire = tokenizeEdifact(built.rawPayload);
+        expect(wire.segments.some(s => s.tag === 'NAD' && segmentComposite(s, 1, wire.una)[0] === 'UD')).toBe(false);
+        expect(wire.segments.filter(s => s.tag === 'NAD' && segmentComposite(s, 1, wire.una)[0] === 'IV').map(s => segmentComposite(s, 2, wire.una)[0])).toEqual(['BILL-A', 'BILL-B']);
+        expect(built.validationIssues.filter(i => i.code.includes('INVOICEE'))).toEqual([]);
+    });
+    for (const [fieldCode, value] of [['227', 'OTHER'], ['227.QUALIFIER', 'SE1'], ['227.AGENCY', '89'], ['229-2', 'OTHER'], ['231', '00000'], ['232', 'Other'], ['316', 'NO']] as const)
+        it(`${reason}: supplied comparison-only ${fieldCode} must match`, () => {
+            const { c, f, columnName } = noWireUdSource(reason);
+            c.testData.groups[0].fields = [...c.testData.groups[0].fields, { fieldCode, fieldName: fieldCode, values: { [columnName]: value } }];
+            expect(() => buildTgtRegisterFactNotes({ ...c, facts: f, actorId: 'ACTOR', sourceNote: 'Independent current selections' })).toThrow();
+        });
+    it(`${reason}: unknown independent UD representation remains unknown`, () => {
+        const { c, f } = noWireUdSource(reason);
+        f.invoiceeObjects![0].endUser.address.representation = null;
+        const { read, built } = saveAndDraft(c, f);
+        expect(read.invoiceeObjects![0].endUser.address.representation).toBeNull();
+        expect(built.validationIssues.some(i => i.code === 'PRODAT_DEPENDENT_CONDITION_UNDETERMINED' && i.description?.includes('INVOICEE_GROUP'))).toBe(true);
+    });
+}
+for (const shape of ['absent', 'scalar-blank', 'positional-blank'] as const)
+    it(`${shape}: equal selected source preserves actual TGT IV omission`, () => {
+        const c = ctx(), f = facts();
+        for (const row of f.invoiceeObjects!) row.invoicee.address = { ...row.endUser.address, lines: [...row.endUser.address.lines] };
+        for (const group of c.testData.groups) {
+            group.fields = group.fields.filter(field => !/^(250|251|252|253|317|318)([.-]|$)/.test(field.fieldCode));
+            const blankFields = shape === 'absent' ? [] : shape === 'scalar-blank' ? ['250', '251', '252', '253', '317', '318'] : ['251-1', '251-2', '252-1', '252-2', '252-3'];
+            group.fields = [...group.fields, ...blankFields.map(fieldCode => ({ fieldCode, fieldName: fieldCode, values: { Z03D: ' ' } }))];
+        }
+        const { built } = saveAndDraft(c, f);
+        expect(built.rawPayload).not.toContain('NAD+IV');
+        expect(built.validationIssues.filter(i => i.code.includes('INVOICEE'))).toEqual([]);
+    });
+
+for (const reason of ['E64', 'E32'] as const) {
+    it(`${reason}: supplied partial UD matches while absent components retain independent values`, () => {
+        const { c, f, columnName } = noWireUdSource(reason);
+        c.testData.groups[0].fields = [...c.testData.groups[0].fields,
+            { fieldCode: '227', fieldName: '227', values: { [columnName]: '199001011234' } },
+            { fieldCode: '229-1', fieldName: '229-1', values: { [columnName]: 'Street' } },
+            { fieldCode: '231', fieldName: '231', values: { [columnName]: '12345' } }];
+        const { read, built } = saveAndDraft(c, f);
+        expect(read.invoiceeObjects![0].endUser.address.city).toBe('Town');
+        expect(built.rawPayload).not.toContain('NAD+UD');
+        expect(built.validationIssues.filter(i => i.code.includes('INVOICEE'))).toEqual([]);
+    });
+    it(`${reason}: independent comparison still requires explicit source provenance`, () => {
+        const { c, f } = noWireUdSource(reason); f.invoiceeObjects![0].source.reference = '';
+        expect(() => buildTgtRegisterFactNotes({ ...c, facts: f, actorId: 'ACTOR', sourceNote: 'Independent selections' })).toThrow();
+    });
+}
+for (const sourceReason of ['E34', 'E64 (Z06G)', 'E64 unknown'])
+    it(`absent UD exception cannot be selected by ${sourceReason}`, () => {
+        const { c, f, columnName } = noWireUdSource('E64');
+        c.testData.groups[0].fields.find(field => field.fieldCode === '223')!.values[columnName] = sourceReason;
+        expect(() => buildTgtRegisterFactNotes({ ...c, facts: f, actorId: 'ACTOR', sourceNote: 'Independent selections' })).toThrow();
+    });
+it('ordinary Z03 source still requires its selected UD identity', () => {
+    const c = ctx(), f = facts(); delete f.endUserAddressObjects;
+    c.testData.groups[0].fields = c.testData.groups[0].fields.filter(field => !field.fieldCode.startsWith('227'));
+    expect(() => buildTgtRegisterFactNotes({ ...c, facts: f, actorId: 'ACTOR', sourceNote: 'Independent selections' })).toThrow();
+});
+for (const change of ['incomplete', 'excess-position', 'scalar-conflict'])
+    it(`material IV selection still rejects ${change}`, () => {
+        const c = ctx(), f = facts(), group = c.testData.groups[0];
+        if (change === 'incomplete') group.fields = group.fields.filter(field => field.fieldCode !== '253');
+        if (change === 'excess-position') group.fields = [...group.fields, { fieldCode: '252-4', fieldName: '252-4', values: { Z03D: 'Dropped?' } }];
+        if (change === 'scalar-conflict') group.fields = [...group.fields, { fieldCode: '252', fieldName: '252', values: { Z03D: 'Conflict' } }];
+        expect(() => buildTgtRegisterFactNotes({ ...c, facts: f, actorId: 'ACTOR', sourceNote: 'Independent selections' })).toThrow();
+    });
+import { getEdielTgtAvailableTestDataBlocks } from '@/lib/ediel/testing/tgtTestData';
+it('built-in Testkund1 Z06F uses its annotated own reason with independently referenced absent UD', () => {
+    const block = getEdielTgtAvailableTestDataBlocks().find(b => b.kind === 'PRODAT' && b.entityLabel === 'Testkund 1')!;
+    const c = ctx(); c.code = 'Z06'; c.run.test_case_code = '2.1.2';
+    c.testData = { ...c.testData, testCaseCode: '2.1.2', groups: [{ block, columns: block.columns, fields: block.fields }] };
+    const selected = selectedInvoiceeFact('735999888000000017', 'tenant', '9', 'SYNTHETIC-UD', ['Independent selected street'], '', '11122', 'STOCKHOLM');
+    selected.source.reference = 'Independent test UD selection, not another workbook column';
+    selected.invoicee = { identity: { id: '10011', qualifier: '', agency: '89' }, nameLines: ['CONNY PAULSSON'], address: { ...selected.invoicee.address, lines: ['ÅGATAN 145', '', ''], postalCode: '11543' }, availability: 'available' };
+    const f: ProdatDependentConditionFacts = { invoiceeObjects: [selected], registerObjects: [{ meteringPointId: '735999888000000017', identityAgency: '9', expectedRegisterCount: 1, meterReadingsSentInUtilts: false }] };
+    const { read, built } = saveAndDraft(c, f);
+    expect(read.invoiceeObjects![0].endUser.identity.id).toBe('SYNTHETIC-UD');
+    expect(built.rawPayload).not.toContain('NAD+UD');
+    expect(built.rawPayload).toContain('NAD+IV+10011::89');
+    expect(built.validationIssues.filter(i => i.code.includes('INVOICEE'))).toEqual([]);
+});
+it('blank positional schema slots do not replace supplied scalar IV values', () => {
+    const c = ctx(), f = facts();
+    for (const row of f.invoiceeObjects!) { row.invoicee.nameLines = ['Invoicee']; row.invoicee.address.lines = ['Invoice street', '', '']; }
+    for (const group of c.testData.groups) {
+        for (const field of group.fields) if (/^25[12]-/.test(field.fieldCode)) field.values.Z03D = '';
+        group.fields = [...group.fields,
+            { fieldCode: '251', fieldName: '251', values: { Z03D: 'Invoicee' } },
+            { fieldCode: '252', fieldName: '252', values: { Z03D: 'Invoice street' } }];
+    }
+    const { built } = saveAndDraft(c, f), wire = tokenizeEdifact(built.rawPayload);
+    expect(wire.segments.filter(s => s.tag === 'NAD' && segmentComposite(s, 1, wire.una)[0] === 'IV').map(s => segmentComposite(s, 5, wire.una))).toEqual([['Invoice street'], ['Invoice street']]);
+    expect(built.validationIssues.filter(i => i.code.includes('INVOICEE'))).toEqual([]);
+});

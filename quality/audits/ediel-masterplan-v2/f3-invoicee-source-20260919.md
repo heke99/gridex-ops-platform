@@ -527,3 +527,49 @@ array annotation; lint PASS (0 errors,99 existing warnings); final full runtime
 suite3812/3812; final frozen integrity33/121/231 and diff check PASS. No prior
 assertion was removed or weakened. Independent runtime and whole-branch review
 remain required; this commit grants no acceptance or publication authority.
+
+## Runtime review fix round1 — R1/R2 TGT producer shapes
+
+Independent runtime/task/quality/whole-branch review requested two Important
+fixes against83ab46a0. Both were reproduced before editing. Reviewer's R1 probe
+was2failed/4controls; R2 was2failed/2controls. Added repository notes/read/draft
+regressions reproduced5failed/43passed. The receiving-code-review skill was
+applied to verify the reported source shapes before correction.
+
+R1: the TGT source helper now retains the already explicitly referenced current
+UD comparison selection for exact own Z06F/E64 or Z06G/E32 columns whose UD data
+is absent. It also accepts the source's exact matching parenthetical annotation
+(e.g. built-in `E64 (Z06F)`); conflicting column/subtype labels or unrelated
+reason text do not select this path. No comparison values are copied from IV,
+installation, another column or generated wire. Existing mandatory source
+reference, representation reference (or explicit unknown) and authorized
+actor/source-note/run/CAS ownership remain the authority for independent facts.
+Materially supplied UD identity/qualifier/agency and known postal components
+must still match that independent selection. Missing/blank source cells do not
+replace it with empty values. Null representation/components remain unknown.
+Ordinary UD-required source checks are unchanged; Z06E cannot use this exception.
+This does not cause UD wire emission or activate a live process capability.
+
+R2: source checking and emission choice share one predicate for material IV
+values. Absent, scalar-empty and all-blank positional schema slots preserve
+omission. Once material content selects IV, source qualification/required child
+checks still apply. Empty positional schema slots also do not overwrite a
+supplied scalar name/address; genuinely populated sparse positions retain their
+indices and dot projection remains at the wire boundary. Conflicting scalar
+and positional values or material unsupported positions are rejected rather
+than silently dropped. No inclusion flag or new authority field was added.
+
+Only `tgtInvoiceeSource.ts` runtime changed. The shared policy, facts/evidence
+shape, guards, original sources, prior assertions, schema/gates and root memory
+are unchanged.34 regression cases were appended to the existing TGT test file
+(now61); they cover both notes/read/draft paths, partial supplied values and
+contradictions, missing provenance, preserved unknowns, ordinary-source
+exclusions, omitted/blank/scalar choice, malformed selections and the actual
+built-in Testkund1 Z06F source with comparison-only independent UD data.
+
+Final scoped results:259/259 across7 IV/TGT consumer files; independent reviewer
+probes6/6 and4/4; app/scripts/tests typechecks PASS; changed-runtime/test ESLint
+PASS with no diagnostics; diff check PASS. Exact commands and log paths are in
+the appended handoff. The full3812 suite and broad required gates above describe
+the previous runtime commit, not a new full-suite run for this bounded fix.
+Scoped rereview and new exact-head CI remain root-owned; no acceptance advance.
