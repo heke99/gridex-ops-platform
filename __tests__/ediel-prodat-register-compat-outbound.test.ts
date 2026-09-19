@@ -1,4 +1,4 @@
-import { ud, selectedAddressFact } from './fixtures/prodat-ud'
+import { selectedAddressFact } from './fixtures/prodat-ud'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   buildProdatZ03FromSwitch, buildProdatZ04FromSwitch, buildProdatZ06FromSwitch, buildProdatZ10FromSwitch,

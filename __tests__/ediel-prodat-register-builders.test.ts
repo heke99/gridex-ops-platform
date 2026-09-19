@@ -1,4 +1,4 @@
-import { ud, selectedAddressFact } from './fixtures/prodat-ud'
+import { selectedAddressFact } from './fixtures/prodat-ud'
 import { describe, expect, it } from 'vitest'
 import { buildProfiledProdatSegments } from '@/lib/ediel/prodat/builders/profileRenderer'
 import { buildProdatMessage, type BuildProdatMessageInput } from '@/lib/ediel/prodat/buildProdat'

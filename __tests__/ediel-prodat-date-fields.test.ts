@@ -1,4 +1,4 @@
-import { ud, selectedAddressFact } from './fixtures/prodat-ud'
+import { selectedAddressFact } from './fixtures/prodat-ud'
 import { describe, expect, it } from 'vitest'
 import { parseProdatMessage } from '@/lib/ediel/prodat/parser'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'

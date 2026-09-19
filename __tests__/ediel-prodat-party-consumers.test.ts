@@ -1,4 +1,4 @@
-import { ud, selectedAddressFact } from './fixtures/prodat-ud'
+import { selectedAddressFact } from './fixtures/prodat-ud'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { parseEdifactEnvelope } from '@/lib/ediel/transport/index.part-1'
 import { parseInboundProdat } from '@/lib/ediel/prodat/compatAdapter'
