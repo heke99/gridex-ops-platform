@@ -5,7 +5,7 @@
   "branch": "codex/ediel-end-user-address-20260919",
   "base_head_sha": "5549a065318f39bc4aba99f3fab0b0924a2bc91e",
   "active_item": "Implement eight end-user address cells",
-  "next_action": "Independent completed-runtime review, separate scripts/test types, publish exacttree and CI; no new acceptance yet",
+  "next_action": "Publish CI fixture/type correction, independent scoped delta review, fresh exactheadCI before merge",
   "accepted_numeric_D": 48,
   "numeric_D_total": 110,
   "accepted_parents": 4,
@@ -30,7 +30,7 @@
     "node": "22.23.2"
   },
   "source_qualification_commit": "30775e1bf7f9c0a4c0e364385a84c9b95e3c47c7",
-  "implementation_head": "dd6b7008edd333da6dadda421b5ae6b6a24ab456",
+  "implementation_head": "00ec37543d8c2975a30d2bb0e59e46f90ae53b75",
   "fix_round": 1,
   "merged_numeric_D": 48
 }

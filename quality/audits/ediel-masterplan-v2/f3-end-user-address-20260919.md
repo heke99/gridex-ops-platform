@@ -467,3 +467,7 @@ Live Z01 remains unqualified/U: site.street is not independent customer address
 authority. Caller protocol selections are not authorization. TGT is source/run-
 bound test evidence only. This unit does not claim live completeness, certify
 other numeric cells/parents, or complete the masterplan.
+
+## Initial CI correction receipt
+
+PR343 first published candidate c94df2f0 had CI failures: Ediel document-field script three missing synthetic address sources (142/145), shared route-readiness smoke14/15, and lint20 no-explicit-any errors in new tests. Coverage independently passed3668/3668Node22.23.2. Correction00ec3754 changes only three test files: fixed OBJECT/9→CUSTOMER/89 unavailable source plus explicit test types, no assertions/runtime/gates/suppressions changed. Document145/145, all downstream Ediel workflow commands (three date timezones), route-readiness, address124/124, testtypes and lint(0errors,103existingwarnings) PASS. Final delta review and newheadCI pending; acceptance48/110unchanged.

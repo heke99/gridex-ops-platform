@@ -1,8 +1,12 @@
+import type {ProdatEndUserAddressObject} from '@/lib/ediel/prodat/prodatEndUserAddress'
+import type {ProdatDependentConditionFacts} from '@/lib/ediel/prodat/prodatDependentConditionEngine'
+import type {ProdatEngineProductionContext,ProdatEngineDiagnostics} from '@/lib/ediel/prodat/types'
+import type {EdielMessageRow} from '@/lib/ediel/types'
 import { copyProdatEndUserAddressObjects } from '@/lib/ediel/prodat/prodatEndUserAddress'
 import {describe,it,expect} from 'vitest'
 import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {validateCanonicalPolicyFields} from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
-import {createProdatRegisterEvidence,readProdatRegisterEvidence} from '@/lib/ediel/prodat/prodatRegisterEvidence'
+import {readProdatRegisterEvidence} from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import {buildProfiledProdatSegments} from '@/lib/ediel/prodat/builders/profileRenderer'
 import {buildProdatMessage} from '@/lib/ediel/prodat/buildProdat'
 import {assertRulebookAllowsSend} from '@/lib/ediel/rulebook/sendGuards'
@@ -15,16 +19,16 @@ import {alphabets,raw,type Parts} from './fixtures/prodat-register'
 
 const codes=['Z01','Z02','Z03','Z04','Z05','Z06','Z08','Z09']
 // Independent synthetic source selection. Never read output to manufacture facts.
-export const selection=(id='A',availability='available',addressLines=['Street:+?'],agency='89')=>({meteringPointId:id,identityAgency:agency,
+export const selection=(id='A',availability:ProdatEndUserAddressObject['availability']='available',addressLines=['Street:+?'],agency:ProdatEndUserAddressObject['identityAgency']='89'):ProdatEndUserAddressObject=>({meteringPointId:id,identityAgency:agency,
  endUser:{id:'USER',qualifier:'',agency:'89'},availability,addressLines:availability==='available'?addressLines:[],
  source:{kind:'caller_selection',companyId:'tenant',reference:'synthetic-request-1'}})
 const body=(code:string,address:string[]|string=['Street:+?'],id='A',reason='E34'):Parts[]=>[
  ['LIN','1','',[id,'','','89']],...(['Z06','Z09'].includes(code)?[['CCI','','Z13'],['CAV',reason]] as Parts[]:[]),
  ['NAD','UD',['USER','','89'],'','Synthetic',address,'Town','','12345','SE']]
-const evaluate=(code:string,parts:Parts[],facts:any={},direction='outbound',alphabet:readonly string[]=alphabets[0])=>{
+const evaluate=(code:string,parts:Parts[],facts:unknown={},direction:'outbound'|'inbound'='outbound',alphabet:readonly string[]=alphabets[0])=>{
  const wire=tokenizeEdifact(raw(parts,code,alphabet))
- const policy=resolveCanonicalEdielPolicy({family:'PRODAT',messageCode:code,direction,subtypeOrReasonCode:['Z06','Z09'].includes(code)?'E':code==='Z08'?'H':'L',referenceDate:'2026-09-19',applicationReference:'23-DDQ-PRODAT',mode:'catalog_evidence',prodatDependentFacts:facts} as never)
- return validateCanonicalPolicyFields({policy:{...policy,fieldRules:policy.fieldRules.filter((r:any)=>r.fieldNumber==='229')},rawSegments:wire.segments.map(s=>s.raw),una:wire.una})
+ const policy=resolveCanonicalEdielPolicy({family:'PRODAT',messageCode:code,direction,subtypeOrReasonCode:['Z06','Z09'].includes(code)?'E':code==='Z08'?'H':'L',referenceDate:'2026-09-19',applicationReference:'23-DDQ-PRODAT',mode:'catalog_evidence',prodatDependentFacts:facts as ProdatDependentConditionFacts})
+ return validateCanonicalPolicyFields({policy:{...policy,fieldRules:policy.fieldRules.filter(r=>'fieldNumber' in r && r.fieldNumber==='229')},rawSegments:wire.segments.map(s=>s.raw),una:wire.una})
 }
 for(const code of codes)describe(code,()=>{
  it('requires independent address selection despite root, byCell and populated output',()=>expect(evaluate(code,body(code),{endUserAddressAvailable:true,byCell:{[`${code}:229`]:true}}).some(i=>i.blocking)).toBe(true))
@@ -52,12 +56,14 @@ describe('identity, parent and p118',()=>{
  })
  it('does not borrow another object address',()=>expect(evaluate('Z01',[...body('Z01'),...body('Z01','', 'B').map(p=>p[0]==='LIN'?['LIN','2',...p.slice(2)] as Parts:p)],{endUserAddressObjects:[selection(),selection('B')]}).some(i=>i.blocking)).toBe(true))
 })
-const context:any={code:'Z01',bgmReference:'D',transactionReference:'CASE',senderEdielId:'12345',receiverEdielId:'54321',meterPointId:'A',meterPointIdAgency:'89',customerId:'USER',customerIdAgency:'89',customerName:'Synthetic',customerAddressLines:['','BOX','c/o Name'],customerCity:'Town',customerPostalCode:'12345',customerCountry:'SE',reasonForTransaction:'E03',powerOfAttorneyReference:'POA',gridAreaId:'TES',startDate:'202610010000',dependentConditionFacts:{endUserAddressObjects:[selection('A','available',['','BOX','c/o Name'])]}}
-const row=(r:any)=>({company_id:'tenant',direction:'outbound',environment:'test',message_family:'PRODAT',message_code:'Z01',message_version:'26A',application_reference:'23-DDQ-PRODAT',mime_type:'application/edifact',message_standard:'edifact',raw_payload:"UNH+M+PRODAT:D:97A:UN:E2SE6A'"+r.segments.join("'")+"'UNT+1+M'",parsed_payload:{prodatEngine:r.diagnostics,rulebookAllowInvalidSend:true}} as any)
+const context:ProdatEngineProductionContext={code:'Z01',bgmReference:'D',transactionReference:'CASE',senderEdielId:'12345',receiverEdielId:'54321',meterPointId:'A',meterPointIdAgency:'89',customerId:'USER',customerIdAgency:'89',customerName:'Synthetic',customerAddressLines:['','BOX','c/o Name'],customerCity:'Town',customerPostalCode:'12345',customerCountry:'SE',reasonForTransaction:'E03',powerOfAttorneyReference:'POA',gridAreaId:'TES',startDate:'202610010000',dependentConditionFacts:{endUserAddressObjects:[selection('A','available',['','BOX','c/o Name'])]}}
+type FixtureRow=Omit<EdielMessageRow,'parsed_payload'> & {parsed_payload:{prodatEngine:ProdatEngineDiagnostics;rulebookAllowInvalidSend:boolean}}
+// Partial synthetic row: only fields consumed by these guard boundaries.
+const row=(r:ReturnType<typeof buildProfiledProdatSegments>):FixtureRow=>({company_id:'tenant',direction:'outbound',environment:'test',message_family:'PRODAT',message_code:'Z01',message_version:'26A',application_reference:'23-DDQ-PRODAT',mime_type:'application/edifact',message_standard:'edifact',raw_payload:"UNH+M+PRODAT:D:97A:UN:E2SE6A'"+r.segments.join("'")+"'UNT+1+M'",parsed_payload:{prodatEngine:r.diagnostics,rulebookAllowInvalidSend:true}} as FixtureRow)
 describe('builders and persisted protected consumers',()=>{
  it('profile projects p118 without changing selected source and transports the fact',()=>{
   const r=buildProfiledProdatSegments({context,variant:'L',mode:'test'});expect(parseProdatMessage(r.segments.join("'")+"'").lineItems[0].endUserAddressLines).toEqual(['.','BOX','c/o Name'])
-  expect((r.diagnostics as any).registerEvidence.facts.endUserAddressObjects[0].addressLines).toEqual(['','BOX','c/o Name'])
+  expect(r.diagnostics.registerEvidence!.facts.endUserAddressObjects![0].addressLines).toEqual(['','BOX','c/o Name'])
  })
  for(const clear of [null,[],undefined])it(`explicit snapshot clear does not inherit stale address ${String(clear)}`,()=>{
   const r=buildProfiledProdatSegments({context,variant:'L',mode:'test',portalSnapshot:{customerAddressLines:clear,customerAddress:null}})
@@ -111,7 +117,7 @@ for(const snapshot of ['missing','stale'] as const)it(`production ${snapshot} sn
 })
 it('generic builder persists independently selected source without replacing source empty street',()=>{
  const selected=selection('A','available',['','BOX',"c/o :+?'"])
- const built=buildProdatMessage({companyId:'tenant',role:'supplier',businessCode:'Z01',transactionSubtype:'L',sender:{edielId:'12345'},receiver:{edielId:'54321'},meteringPoint:{id:'A',identityAgency:'89',gridArea:'TES'},customer:{id:'USER',idAgency:'89',name:'Synthetic',addressLines:['','BOX',"c/o :+?'"]},dates:{contractStartDate:'202610010000'},references:{LI:'CASE',ANJ:'POA'},codedAttributes:{Z13:'E03'},environment:'test',dependentConditionFacts:{endUserAddressObjects:[selected]} as any})
+ const built=buildProdatMessage({companyId:'tenant',role:'supplier',businessCode:'Z01',transactionSubtype:'L',sender:{edielId:'12345'},receiver:{edielId:'54321'},meteringPoint:{id:'A',identityAgency:'89',gridArea:'TES'},customer:{id:'USER',idAgency:'89',name:'Synthetic',addressLines:['','BOX',"c/o :+?'"]},dates:{contractStartDate:'202610010000'},references:{LI:'CASE',ANJ:'POA'},codedAttributes:{Z13:'E03'},environment:'test',dependentConditionFacts:{endUserAddressObjects:[selected]}})
  const wire=tokenizeEdifact(built.rawEdifact), parsedPayload={prodatEngine:{registerEvidence:built.registerEvidence}}
  expect(readProdatRegisterEvidence({code:'Z01',rawSegments:wire.segments.map(s=>s.raw),una:wire.una,companyId:'tenant',parsedPayload})?.endUserAddressObjects).toEqual([selected])
  expect(parseProdatMessage(built.rawEdifact).lineItems[0].endUserAddressLines).toEqual(['.','BOX',"c/o :+?'"])
