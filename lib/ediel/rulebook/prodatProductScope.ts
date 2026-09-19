@@ -7,10 +7,8 @@ import type { FieldMatrixEvaluationInput, RulebookFieldRule } from '@/lib/ediel/
 import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
 
 /** Frozen P26.A r3 p69 table, not a prefix matcher or mutable registry. */
-export const PRODAT_EL_AGGREGATION_PRODUCTS: readonly string[] = Object.freeze([
-  'L639Q', 'L640Q', 'L654Q', 'L917', 'L633Q', 'L634Q', 'L635Q', 'L636Q',
-  'L637Q', 'L638Q', 'L641Q', 'L642Q', 'L651Q', 'L652Q', 'L653Q',
-])
+export {PRODAT_EL_AGGREGATION_PRODUCTS} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
+import {PRODAT_EL_AGGREGATION_PRODUCTS} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
 
 /** Field311 P16 defines both electricity references. Market evidence does not
  * authorize a process: the unchanged canonical policy separately binds Z06 to DDQ.
@@ -101,7 +99,7 @@ export function validateProdatProductScope(
     const value = parts[3]?.trim().toUpperCase() ?? ''
     const scope = permitted.get(token.index)
     const misplaced = !scope
-    const malformed = duplicates.has(token.index) || !PRODAT_EL_AGGREGATION_PRODUCTS.includes(value)
+    const malformed = duplicates.has(token.index) || !(PRODAT_EL_AGGREGATION_PRODUCTS as readonly string[]).includes(value)
       || segmentComposite(token, 1, una).some(part => part.trim()) || descriptor.slice(1).some(part => part.trim())
       || hasPopulatedTrailingElements(token, 2, una)
       || (cav && hasPopulatedTrailingElements(cav, 1, una))

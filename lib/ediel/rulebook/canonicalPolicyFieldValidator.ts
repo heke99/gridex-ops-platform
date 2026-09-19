@@ -1,3 +1,5 @@
+import {isMeterChangeField} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
+import {validateProdatMeterChange} from './prodatMeterChangePolicy'
 import {isReportingPermissionField,type ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
 import {validateProdatReportingPermission} from './prodatReportingPermissionPolicy'
 import {isProdatDateEventField} from '@/lib/ediel/prodat/prodatDateEvents'
@@ -64,6 +66,7 @@ export function validateCanonicalPolicyFields(input: {
 
   const baseRules = input.policy.family === 'PRODAT' ? rules.filter(rule => {
     const field = rule.fieldNumber ?? ''
+    if(isMeterChangeField(input.policy.code,field))return false
     if(isReportingPermissionField(input.policy.code,field)||isProdatDateEventField(input.policy.code,field))return false
     if ((input.policy.code === 'Z14' && isZ14DependentField(field)) || isSourceBoundEndUserField(input.policy.code, field)) {
       return input.policy.direction === 'inbound'
@@ -97,12 +100,15 @@ export function validateCanonicalPolicyFields(input: {
 
   if(rules.some(rule=>isReportingPermissionField(input.policy.code,rule.fieldNumber??'')))issues.push(...validateProdatReportingPermission({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound',reportingContext:input.reportingContext}))
 
+  if(rules.some(rule=>isMeterChangeField(input.policy.code,rule.fieldNumber??'')))issues.push(...validateProdatMeterChange({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound',applicationReference:input.policy.applicationReference}))
+
   const dependentByField = new Map(
     input.policy.prodatDependentConditions.map((condition) => [condition.fieldNumber, condition] as const),
   )
 
   for (const rule of rules.filter((candidate) => candidate.requirement === 'dependent')) {
     const fieldNumber = String(rule.fieldNumber ?? '').trim()
+    if(isMeterChangeField(input.policy.code,fieldNumber))continue
     if(isReportingPermissionField(input.policy.code,fieldNumber)||isProdatDateEventField(input.policy.code,fieldNumber))continue
     if(INVOICEE_FIELDS.includes(fieldNumber)) continue
     if(fieldNumber==='229' && END_USER_ADDRESS_CODES.includes(input.policy.code)) continue

@@ -1,6 +1,8 @@
+import {validateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy'
+import type {MeterChangeSelection} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
 import { prodatReferenceByQualifier } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
-import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import type { AckFamily, AckOutcome, EdielAperakApplicationError } from '@/lib/ediel/ack'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { applyCertifiedUtiltsAckPolicy } from '@/lib/ediel/rulebook/utiltsAckPolicy'
@@ -36,6 +38,9 @@ export type EdielEngineDecision = {
 }
 
 export type ProdatAperakDecisionInput = {
+  /** Explicit independent receiver knowledge only; never read from incoming metadata. */
+  meterChange?:MeterChangeSelection
+
   message?: EdielMessageRow | null
   rawPayload?: string | null
   family?: string | null
@@ -321,7 +326,9 @@ export function decideProdatAperak(input: ProdatAperakDecisionInput): EdielEngin
     .map((item) => prodatBusinessIssueToAperakError(rawPayload, item))
   const knownPermissionErrors = buildKnownPermissionErrors({ rawPayload, classification })
 
-  const applicationErrors = [...businessErrors, ...knownPermissionErrors]
+  const changeWire=tokenizeEdifact(rawPayload??''),changeBgm=changeWire.segments.find(t=>t.tag==='BGM')
+  const changeErrors=validateProdatMeterChange({code:segmentComposite(changeBgm,1,changeWire.una)[0]??'',rawSegments:changeWire.segments.map(t=>t.raw),una:changeWire.una,direction:'inbound',facts:{meterChange:input.meterChange}}).filter(i=>i.blocking||i.severity==='error').map(i=>({...errorForCode({rawPayload,ercCode:i.code==='PRODAT_METER_CHANGE_REQUIRED'?'41':'42',fieldCode:i.fieldPath==='CCI++Z14/CAV'?'242':'254',text:i.description}),referenceQualifier:i.meteringPointId?'Z07':null,referenceNumber:i.meteringPointId??null,lineItemReference:i.lineItemReference??null}))
+  const applicationErrors = [...businessErrors, ...knownPermissionErrors,...changeErrors]
   if (portalFeedback?.expectedNegativeAperak && portalFeedback.actualWasPositiveAperak) {
     applicationErrors.unshift(portalFeedbackError(portalFeedback, rawPayload))
   }

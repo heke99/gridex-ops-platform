@@ -1,3 +1,5 @@
+import {isMeterChangeField,meterChangeCondition} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
+import {evaluateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy'
 import {evaluateProdatReportingPermission} from '@/lib/ediel/rulebook/prodatReportingPermissionPolicy'
 import {isReportingPermissionField} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
 import {evaluateProdatDateEvents} from '@/lib/ediel/rulebook/prodatDateEventPolicy'
@@ -175,7 +177,7 @@ export function buildProfiledProdatSegments(input: {
 
   const bgmReference = context.bgmReference.trim()
   const bgmSegment = renderProdatDocumentHeader({ code: policy.code, documentId: bgmReference })
-  const lineItemReference = compactProdatReference(context.transactionReference || context.bgmReference, 35)
+  const lineItemReference = policy.code==='Z10' ? context.transactionReference : compactProdatReference(context.transactionReference || context.bgmReference, 35)
   const isPermissionMessage = policy.processGroup === 'metering_access'
   const isSupplierZ09 = policy.code === 'Z09'
   const reasonForTransaction = policy.transactionReasonCode
@@ -270,7 +272,16 @@ export function buildProfiledProdatSegments(input: {
     segments.push('CCI++Z25', prodatCav(contractClosureReason))
   }
 
-  segments.push(`RFF+LI:${lineItemReference}`)
+  if(policy.code==='Z10'){
+    const own=policy.prodatDependentFacts?.meterChange?.objects.find(o=>o.installation.id===meterPointId&&o.installation.agency===identityAgency)
+    if(own){
+      for(const [field,qualifier,value,position] of [['254','Z15',own.newMeter.settlement,0],['242','Z14',own.newMeter.product,3]] as const){
+        if(meterChangeCondition(own,field)===true&&value.kind==='known')segments.push(`CCI++${qualifier}`,`CAV+${':'.repeat(position)}${escapeEdifactValue(value.value)}`)
+      }
+      segments.push(`RFF+MG:${escapeEdifactValue(own.newMeter.number)}`,`RFF+Z02:${escapeEdifactValue(own.oldMeter.number)}`)
+    }
+  }
+  segments.push(`RFF+LI:${policy.code==='Z10'?escapeEdifactValue(lineItemReference):lineItemReference}`)
 
   if (gridAreaId) {
     segments.push(`RFF+Z05:${sanitizeProdatText(gridAreaId)}`)
@@ -377,6 +388,8 @@ export function buildProfiledProdatSegments(input: {
   const renderedReadings = validateProdatRegisterPolicy({code:policy.code,rawSegments:segments,
     facts:policy.prodatDependentFacts,rules:registerPolicy.fieldRules.filter((rule): rule is RulebookFieldRule => 'family' in rule),applicationReference:policy.applicationReference,
     requireIndependentInventory:policy.direction === 'outbound'}).readings
+  const meterChangeDecision=evaluateProdatMeterChange({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts,applicationReference:policy.applicationReference})
+  for(const failure of meterChangeDecision.issues)issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
   const reportingDecision=evaluateProdatReportingPermission({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts,reportingContext:context.reportingContext})
   for(const failure of reportingDecision.issues)issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
   const dateDecision=evaluateProdatDateEvents({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts})
@@ -384,6 +397,7 @@ export function buildProfiledProdatSegments(input: {
   const invoiceeDecision=evaluateProdatInvoicee({code:policy.code,rawSegments:segments,facts:policy.prodatDependentFacts})
   for(const failure of invoiceeDecision.issues) issues.push({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description})
   const dependentConditionStatuses = policy.prodatDependentConditions.map(condition =>
+    isMeterChangeField(policy.code,condition.fieldNumber)?{...condition,status:meterChangeDecision.statuses.get(condition.fieldNumber)??'undetermined',decisionPhase:'rendered_wire_meter_change' as const}:
     isReportingPermissionField(policy.code,condition.fieldNumber)?{...condition,status:reportingDecision.statuses.get(condition.fieldNumber)??'undetermined',decisionPhase:'rendered_wire_reporting' as const}:
     isProdatDateEventField(policy.code,condition.fieldNumber)?{...condition,status:dateDecision.statuses.get(condition.fieldNumber)??'undetermined',decisionPhase:'rendered_wire_date_event' as const}:
     INVOICEE_FIELDS.includes(condition.fieldNumber)

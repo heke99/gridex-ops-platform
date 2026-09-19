@@ -1,3 +1,6 @@
+import type {MeterChangeSelection} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
+import {meterChangeSendIssue} from '@/lib/ediel/prodat/prodatMeterChangeAuthority'
+import {validateProdatMeterChange} from './prodatMeterChangePolicy'
 import {reportingAuthorityIssue} from '@/lib/ediel/prodat/prodatReportingPermissionAuthority'
 import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
 import {validateProdatReportingPermission} from '@/lib/ediel/rulebook/prodatReportingPermissionPolicy'
@@ -30,6 +33,8 @@ import {
 import type { ProdatDependentConditionEvaluation } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 
 export type RulebookValidationInput = LegacyRulebookValidationInput & {
+  /** Explicit pure receiver knowledge, never incoming parsed metadata. */
+  meterChange?:MeterChangeSelection
   /** Draft metadata from the canonical renderer. Used to verify that production
    * PRODAT D-conditions were already resolved with the original business facts. */
   dateEventRow?:ProdatDateEventRow
@@ -306,7 +311,7 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
     subtypeOrReasonCode: parsed.subtype,
     prodatDependentFacts: familyValue === 'PRODAT' && input.mode === 'send'
       ? readProdatRegisterEvidence({dateEventRow:input.dateEventRow,dateEventContext:input.dateEventContext,reportingContext:input.reportingContext,code,rawSegments:parsed.rawSegments,una:parseUna(input.rawPayload),parsedPayload:input.parsedPayload,companyId:input.companyId,runId:typeof input.parsedPayload?.testRunId==='string'?input.parsedPayload.testRunId:null,stepNo:typeof input.parsedPayload?.stepNo==='number'?input.parsedPayload.stepNo:null})
-      : undefined,
+      : input.meterChange?{meterChange:input.meterChange}:undefined,
     direction: dir,
     referenceDate,
     // Runtime guide aliases such as PRODAT 26A and CONTRL aliases are not UNH
@@ -402,7 +407,7 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
     // A missing/stale production snapshot cannot bypass the same protected
     // register structure and policy used on the normal path. Body-bound facts are re-read;
     // snapshot statuses and intentional-invalid labels supply no authority.
-    const protectedRegisterIssues: EdielRulebookIssue[] = []
+    const protectedRegisterIssues: EdielRulebookIssue[] = input.mode==='parse'&&family==='PRODAT'?validateProdatMeterChange({code:parsed.code??code,rawSegments:parsed.rawSegments,una:parsed.una??parseUna(input.rawPayload),direction:'inbound',applicationReference:parsed.applicationReference,facts:{meterChange:input.meterChange}}):[]
     if (family === 'PRODAT' && input.mode === 'send' && !description.startsWith('prodat_register_evidence_')) {
       try {
         const wireCode = parsed.code ?? code
@@ -432,6 +437,8 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
 }
 
 export function validateRulebookMessage(input: RulebookValidationInput): RulebookValidationResult {
+  const meterBoundary=input.mode==='send'?meterChangeSendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload}):null
+  if(meterBoundary)return {ok:false,blocking:true,family:'PRODAT',code:'Z10',processGroup:'unknown',expectedApplicationReference:null,parsed:null,issues:[meterBoundary],fieldRuleSource:'static',rulePackSnapshot:null}
   const source = sourceBoundProdatInput(input)
   if (source.failure) return source.failure
   input = source.input
@@ -442,6 +449,8 @@ export function validateRulebookMessage(input: RulebookValidationInput): Ruleboo
 }
 
 export async function validateRulebookMessageWithRegistry(input: RulebookValidationInput): Promise<RulebookValidationResult> {
+  const meterBoundary=input.mode==='send'?meterChangeSendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload}):null
+  if(meterBoundary)return {ok:false,blocking:true,family:'PRODAT',code:'Z10',processGroup:'unknown',expectedApplicationReference:null,parsed:null,issues:[meterBoundary],fieldRuleSource:'static',rulePackSnapshot:null}
   const source = sourceBoundProdatInput(input)
   if (source.failure) return source.failure
   input = source.input

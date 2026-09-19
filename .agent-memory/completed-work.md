@@ -89,3 +89,15 @@ OneactiveSOURCEONLY unit: PC-321-Z13/Z14 andPC-323-Z13/Z14. Branchcodex/ediel-re
 
 ## Main345 accepted receipt
 Main0a82c9ce51ef5c95868ed9c25907f1e10819d079 full35453204332/job105923836983SUCCESS: actual73/73,0failed onNode22.23.2 at2026-09-19T16:01:50Z. MainOPS35453204329all3SUCCESS. PR345fourdatecellsaccepted after independentreview/exactheadCI/mainreceipt. Total96/110numeric,14remaining;10/10parents. Fullmasterplan/F3–F7/liveNOT_COMPLETE;PR310PAUSED. Oneactivesourceonlyfour321/323reportingpermissionconditions.
+
+## PR346 merged; main receipt pending
+PR346 merged at0271e118a5ab4f7adebe5e5b7a041dda01a5547a, exacttreeeafbb0f4dcab6132d66d6c6fc589aac23f5ea579, reviewed local3c37c467 andpublished8ea493a08666db3375e967ce127ef7aae9a38f64. Independent source/task/spec/quality/wholebranch APPROVE after both runtime findings corrected; reviewer6/6+49/49. Final all5exactheadCI SUCCESS:OPS35459371759,full35459371736,browser35459371873,Ediel35459371988,tenant35459371965. Coverage105940332554 actual4106/4106 in269files Node22.23.2. Initialcandidate registry outage not vulnerability, correctedcandidate auditpassed with no gate changes. Mainfull35459742971/job105941346806 andmainOPS35459743008 still pending; actual main73/73 must be read before accepting twoZ13cells. Positive persistedZ14 remains separate.
+
+One active source-only unit: PC-254-Z10 andPC-242-Z10 meter-replacement facts. Branchcodex/ediel-z10-change-facts-20260919 from mergedmain0271e118. Fresh implementer z10_change_facts will own source audit, concrete producer architecture and scratch characterizations only. No runtime or old-assertion changes until independent source/architecture approval plus root authorization. Brief/workreport /workspace/scratch/2a201d6d5897/z10-change-facts-task-brief.md and sameprefix-task-report.md. Root owns memory/CI/publication/acceptance.
+
+
+## PR346 acceptance receipt
+Main0271e118a5ab4f7adebe5e5b7a041dda01a5547a: full35459742971/job105941346806 SUCCESS, actual73/73 passed,0failed at2026-09-19T18:07:41Z. MainOPS35459743008 allthreeSUCCESS:verify105941346498,replay105941346677,quality105941346686. Therefore accept only PC-321-Z13 andPC-323-Z13; aggregate98/110numeric,12remaining,10/10parents. PositivepersistedZ14two cells remain separate/unqualified. Fullmasterplan/live incomplete,PR310paused.
+
+## PR347 candidate checkpoint
+Active PR347 DRAFT: bounded Z10 OptionA implemented at local4224c40a65e891166f13d7c4261c9193bc70e796, publishedbcf86515fefd862e34f9b377f6b6e84cef03906d, exacttree04c8db3a9b6898f401a96b0a7ad0921b25fc4927 verified by public fetch/diff0. Source/spec+architecture approved R1; completed runtime task/spec+quality+wholebranch review active with z10_change_facts_review. All13local gates pass, final4188/4188 tests,818scripts,143/143 inUTC/Stockholm/Apia. Exact-head Node22CI pending; no merge/acceptance yet.
