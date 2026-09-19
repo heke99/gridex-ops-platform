@@ -986,5 +986,163 @@
     "tests_failed": 0,
     "meaning": "observations of current defects, not normative pass or conformance"
   },
-  "not_freshly_retested": "Prior98 cell and10parent receipt suites; PR Node22 CI independently reported by root."
+  "not_freshly_retested": "Prior98 cell and10parent receipt suites; PR Node22 CI independently reported by root.",
+  "r_f3_c1_correction": {
+    "status": "proposed source/architecture contract; independent re-review required; no runtime authorization",
+    "preserved_root_memory": "22573549",
+    "review_report": "/workspace/scratch/2a201d6d5897/f3-closure-review-report.md",
+    "independent_observations": {
+      "probe_path": "/workspace/scratch/2a201d6d5897/f3-closure-independent-probes/consumer.test.ts",
+      "probe_sha256": "0932d61272694d3602c4c9615d39c770622286b2cc80d402317a8b0f2b57c940",
+      "results_path": "/workspace/scratch/2a201d6d5897/f3-closure-independent-probes/results-observations.json",
+      "results_sha256": "2a75f98d6ed585a14e81e3eb3b495a32c3ca8507b666d3642b5ddca1a2f8668d",
+      "receipt": "3/3 observational tests; 12 Z01 registry/draft cases + escaped reference + unknown-only Z10; defect reproduction, not normative success",
+      "unknown_only_z10": "accepted syntax, exactly three PRODAT_DEPENDENT_CONDITION_UNDETERMINED issues214/218/259; actual registry/draft currently rejected with three42/no numeric FTX",
+      "reference_defects": [
+        "header or missing second LI borrows first object/cached row LI",
+        "decoded CASE:A+B?C sanitized to CASEABC"
+      ]
+    },
+    "producer_row_schema": [
+      "owner_and_actual_producer",
+      "source_classification_boundary",
+      "outcome"
+    ],
+    "producer_dispositions": [
+      [
+        "`fieldMatrix.ts`: descriptor `errorCodeIfMissing` / `FIELD_MATRIX_REQUIRED_FIELD_MISSING`; known-required residual branch of `canonicalPolicyFieldValidator.ts`",
+        "Owner knows rule requirement and actual absence: typed numeric field+missing. Ordinary226,327,207 use their actual descriptors, never RFF/DTM/C082 numbers. A malformed supplied value in a branch historically named MISSING must be classified invalid from the actual state. P§2.2, specific descriptor locator, P93/103/104.",
+        "F:41/actual field only when mandatory absent."
+      ],
+      [
+        "`fieldMatrix.ts`: descriptor invalid codes, `FIELD_MATRIX_FIELD_FORMAT_INVALID`, `FIELD_MATRIX_FIELD_LENGTH_INVALID`, `FIELD_MATRIX_CODE_LIST_INVALID`; `PRODAT_COMPOSITE_BGM_CODE`",
+        "Actual supplied content, length, qualifier or placement violation. Owner's numeric descriptor controls42; composite BGM belongs202, header207 stays header. `PRODAT_CODE_NOT_ALLOWED` can be202 only if actual wire code is the proven wrong value, not a missing policy table. `APPLICATION_REFERENCE_MISMATCH` requires independent expected authority and actual311 violation; equal self-derived values are not evidence.",
+        "F:42/actual field; adapter/configuration gaps instead I."
+      ],
+      [
+        "`fieldMatrix.ts` `PRODAT_REGISTER_STRUCTURE_INVALID`, from `prodatRegisterGroups`",
+        "Already numeric, not an unmapped parent: original problem carries314(global LIN sequence),258(C829 indicator/index or per-object chain),209(required object identity), line and segment. Preserve original problem and actual state; mandatory missing→41, present malformed/sequence→42. P47/114–116 and the owning field descriptor. Never blanket-map all structure to258 or label a malformed sequence missing.",
+        "F, with exact own occurrence."
+      ],
+      [
+        "`prodatRegisterPolicy.ts`: `PRODAT_DEPENDENT_FIELD_MISSING`/descriptor missing, `PRODAT_REGISTER_READING_INVALID`, `PRODAT_REGISTER_READING_SCOPE_INVALID`, `PRODAT_REGISTER_TARIFF_DUPLICATE`",
+        "Required branch currently combines empty and malformed: split typed kind at owner, retain its field214/218/259/etc. Repeated tariff is42/259 under P116; malformed supplied register content remains42 when its applicable source check independently holds, even with U requiredness.",
+        "F; never infer kind from suffix."
+      ],
+      [
+        "`prodatRegisterPolicy.ts` `PRODAT_DEPENDENT_CONDITION_UNDETERMINED` for214/218/259 with no `meterReadingsSentInUtilts`",
+        "Actual reproduced receiver-local U. Inbound passes `requireIndependentInventory:false`; runtime `messagePolicy.ts` supplies no per-object register inventory. Absence of local readings fact is not missing PRODAT data. AT-P-03 is own-send authority, not receiver rejection.",
+        "U."
+      ],
+      [
+        "Residual `canonicalPolicyFieldValidator.ts` `PRODAT_DEPENDENT_CONDITION_UNDETERMINED`; `prodatSubtypePolicy.ts` same code",
+        "Branch must distinguish receiver-local absent fact (U) from malformed/missing actual223 or311. Retain independently qualified mandatory223/311 or supplied qualifier errors as F. Unknown own reason is not automatically receiver-local U; no new requiredness may be inferred from this code. `PRODAT_DEPENDENT_CONDITION_MISSING` means executable policy absent, not received field absent.",
+        "U only with local-fact provenance; known wire fault F; missing policy/otherwise unclassified I."
+      ],
+      [
+        "`prodatMeterChangePolicy.ts` `PRODAT_METER_CHANGE_REQUIRED`, `PRODAT_METER_CHANGE_FIELD_INVALID`, `PRODAT_METER_CHANGE_COMPATIBILITY`; `prodatDeathStatusPolicy.ts` `PRODAT_DEATH_STATUS_REQUIRED`, `VALUE_INVALID`, `QUALIFIER_INVALID`, `OCCURRENCE_INVALID`; `prodatGasApplicabilityPolicy.ts` `PRODAT_GAS_320_REQUIRED`, `PRODAT_GAS_320_VALUE_INVALID`, `PRODAT_GAS_320_OCCURRENCE_INVALID`",
+        "Existing selected fields254/242,310,320 remain owner-controlled after applicability. Required+absent→41; actual invalid supplied field→42; preserve own object/LI and accepted qualifier interpretation. Meter U with valid own EL/E58 scope still checks supplied254/242; death U still checks supplied310; known false skips first. P20/67–69/119/122 and accepted selected-unit audits. No240 domain inference.",
+        "F, or U diagnostic alone as below."
+      ],
+      [
+        "`prodatReportingPermissionPolicy.ts` inbound `PRODAT_REPORTING_FORMAT_INVALID`; `prodatDateEventPolicy.ts` inbound `PRODAT_DATE_EVENT_FORMAT_INVALID`",
+        "Reporting inbound returns immediately after supplied321 date check; local reporting facts are never consulted there. Date event inbound retains actual210/211 format checks. Preserve42/actual field with owner context, not DTM91/92/93. P43/49–52/74/119.",
+        "F."
+      ],
+      [
+        "`prodatDateEventPolicy.ts` `PRODAT_DATE_EVENT_XOR`",
+        "Distinguish actual both210+211 in Z09D from zero dates. Both have explicit P17/P93/P121 exception40 with A903=109 (accepted date-event source audit); preserve a separately typed explicit application error, not field109. Zero dates do not justify choosing arbitrary210 or211: unrepresented either/or finding is I until this owner has an independently qualified exact mapping. Duplicate or malformed supplied dates keep independent F.",
+        "Explicit source error for both; otherwise I for unrepresented alternative constraint."
+      ],
+      [
+        "`prodatInvoiceePolicy.ts` `PRODAT_INVOICEE_SCOPE_INVALID`, `FORMAT_INVALID`, `CARDINALITY_INVALID`; date-event `SCOPE_INVALID`",
+        "Do not park known numeric errors: register `grouped.problems` retain their numeric314/258/209 F above; `prodatPartySyntaxIssues` numeric results and postcode253 retain F. A aggregate-only `INVOICEE_GROUP` error for duplicate IV, wrong parent placement/role or excess whole-NAD shape has no numeric child identified by this producer; missing first object aggregate likewise is not a numeric field assertion. Keep this exact aggregate diagnostic I, alongside any independently proven numeric child F. P79–83 does not authorize choosing an arbitrary child from the parent label.",
+        "F when numeric source finding exists; genuine aggregate I."
+      ],
+      [
+        "`prodatEndUserPolicy.ts` `PRODAT_DEPENDENT_END_USER_SCOPE_INVALID`, `INVALID`, `CARDINALITY_INVALID`, and `prodatZ14Policy.ts` `PRODAT_DEPENDENT_FIELD_SCOPE_INVALID`",
+        "Generic missing UD/IT/group label is not a national field. Numeric child findings already emitted by matrix/party syntax must remain F, e.g. required227 under a proven required UD; no conversion of END_USER_GROUP→227 merely to get green. Parent-only placement/cardinality/shape with no source-owned numeric or explicit application-error mapping is I. These specialized UD/Z14 parent branches are excluded from the ordinary inbound subtype call; direct outbound consumers remain unchanged. Inbound base matrix numeric fields still run.",
+        "Reachability-qualified F/I; no new inbound parent rule."
+      ],
+      [
+        "Local evidence/authority: register `PRODAT_REGISTER_EVIDENCE_UNDETERMINED`, `EXPECTED_OBJECT_MISSING`, `UNEXPECTED_OBJECT`, `COUNT_MISMATCH`; reporting/date `*_EVIDENCE_INVALID`, `*_SOURCE_UNQUALIFIED`, `*_UNDETERMINED`; invoicee/end-user-address/optional-installation source checks",
+        "Outgoing inventory/send/authority checks remain blocking in their own consumers. Ordinary actual runtime `messagePolicy.ts` reads only selected scalar/byCell facts, not `registerObjects`, date/reporting/invoicee authority selections; reporting/date inbound return before authority checks, optional installation/end-user-address only execute outbound. Do not broaden this adapter into those gates. Direct validator callers can supply more facts: classify evidence failures local, never national41/42 or field inferred from a path.",
+        "L when a local diagnostic is explicitly reachable; existing own-send capability stays blocked. Unexpected unclassified adapter input I."
+      ],
+      [
+        "Selected inbound local diagnostics `PRODAT_METER_CHANGE_EVIDENCE_INVALID`, `CONTEXT_MISMATCH`, `SCOPE_UNDETERMINED`; death/GAS evidence/context/scope warnings",
+        "No national ACK from local evidence absence/mismatch. Discard invalid local selection as existing owner does, retaining independently checkable supplied content. Actual ordinary runtime does not populate these rich local selections. A warning about wire context is not permission to ignore a separately proven mandatory or invalid wire field.",
+        "L/U, plus any F."
+      ],
+      [
+        "Any expected typed F with missing/invalid descriptor, kind, source or occurrence metadata; any unclassified blocking issue",
+        "Internal adapter invariant/evidence failure, not a received field error. No code/path regex, no automatic40/41/42, no forced accept. Metadata absence on a known nonfield U/L is not this failure.",
+        "I, narrowly this message."
+      ]
+    ],
+    "composition_row_schema": [
+      "inputs",
+      "application_functional_states",
+      "response_plan",
+      "persisted_diagnostic_downstream_effect"
+    ],
+    "inbound_composition": [
+      [
+        "No findings, U only, L only, or U+L",
+        "accepted / accepted",
+        "Ordinary prescribed positive/no application response plus technical ACK; Z10 U-only gets prescribed positive APERAK, no40/41/42 for214/218/259.",
+        "Keep original U/L code, field/condition/source and raw payload in validation report as non-wire warning, retaining original producer severity separately. Normal guarded inbound processing continues. Acceptance here is protocol disposition, not evidence of local fact or authority; no default readings/registration facts or automatic send authority. Existing Z06/Z10 safe proposal remains `appliedAutomatically:false`/reviewRequired; ordinary independent business checks remain."
+      ],
+      [
+        "F, or F+U/L",
+        "rejected / accepted (existing canonical field-rejection state)",
+        "Exact negative application error(s) F; no positive APERAK; technical ACK unchanged. U/L adds no ERC.",
+        "Persist all findings and exact F metadata/plan. Preserve current downstream business guards and staging behavior; this unit does not use U/L to add a hold or grant authority. Current pipeline does not stop business processing just because applicationDecision is rejected: no new general rejection gate is claimed here."
+      ],
+      [
+        "I only, I+U/L",
+        "manual_review / not_applicable",
+        "Technical ACK only; application ACK explicitly pending internal review, never inferred positive and never generic40/41/42.",
+        "Persist original issue plus typed internal-disposition reason/source/occurrence. Hold this message's automatic business processing and application response; raw receipt, audit and required technical ACK continue. This is local unresolved processing, not a sender rejection or protocol-complete claim."
+      ],
+      [
+        "F+I, with or without U/L",
+        "rejected / manual_review",
+        "Keep every qualified F negative ACK and technical ACK; no ERC for I and no positive fallback.",
+        "Persist both classes; same narrow message business hold for I. Known negative remains reportable even though another finding is unresolved. No fabricated per-object approval for unresolved parts."
+      ]
+    ],
+    "internal_disposition_architecture": {
+      "proposed_type": "prodatProcessingDisposition: {kind: 'continue' | 'internal_review', reasons: [...]}",
+      "persist": "canonical result -> applyCanonicalRuntimeDecision -> validation_report/parsed_payload; no schema change",
+      "consumer": "processInboundEdielMessage before syncActorTestingGlobally automatic response/send and before processInboundProdatMessage",
+      "internal_review_effect": "retain receipt/audit; technical ACK and qualified negative F only; skip business processing for this message; explicitly suppress createAutomaticPositiveAcks policy.shouldSendPositiveAperak fallback",
+      "normal_effect": "U/L-only never sets internal_review; normal guarded business processing and prescribed ACKs; no local fact/authority inference",
+      "source_status": "proposed bounded internal safeguard inferred from masterplan18.1/19/21; not an Ediel national rejection; independent approval required",
+      "legacy": "rows without marker retain legacy behavior; new canonical PRODAT results always carry marker",
+      "excluded": [
+        "CANONICAL_POLICY_RESOLUTION_FAILED catch",
+        "CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE wrapper catch",
+        "syntax/guide-date handling",
+        "general registry/release/tenant gates"
+      ]
+    },
+    "reference_contract": {
+      "scope": "explicit header/object/register vs legacy unknown discriminant",
+      "absence": "explicit own absent refs prevent row/first-object fallback",
+      "normalizers": "ack.ts and aperakEngine.ts must retain typed scope and exact decoded LI/object+agency",
+      "serialization": "existing UNA-aware serializer escaping; no sanitization/truncation/double escaping of identities; shared codec unchanged"
+    },
+    "normative_oracles_not_executed_as_fixes": [
+      "existing registry/draft missing226->41/226, invalid207->42/207; header/second-object no fallback and escaped identity under three alphabets",
+      "independent complete U-only Z10 -> accepted/accepted; prescribed positive APERAK; warnings persisted; normal guarded processing",
+      "same U-only Z10 remove ownLI -> rejected/accepted; only qualified41/226 plus retained U warnings",
+      "U requiredness preserves source-qualified supplied254/242/310 invalid42; known false ignores selected extras before content; applicable siblings remain",
+      "genuine nonnumeric parent aggregate and injected missing typed metadata -> manual_review/not_applicable, technical only, persisted internal_review; actual downstream and positive fallback blocked",
+      "mixed F+I -> rejected/manual_review; retain exact F negative draft and technical ACK; internal message business hold",
+      "U/L never triggers internal hold; outbound authority owners and excluded policy/registry catches unchanged"
+    ],
+    "a905_p94_residual": "Exact field41/42 wording and customer227 text when209/226 absent remain outside identity/disposition unit; no full A905/P-APERAK or F3 closure claim",
+    "verification": "documentation correction only; no new probes or broad suites; original audit data/hash fields unchanged"
+  }
 }

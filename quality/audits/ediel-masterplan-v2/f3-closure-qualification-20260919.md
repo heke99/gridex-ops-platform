@@ -29,7 +29,9 @@ Read the task brief first, AGENTS and required memory, active work-plan, relevan
 canonical flows/domain/integrations and decisions/known failures; inspected local
 skill inventory and actual implementations. Applied bounded spec-to-code tracing,
 caller/callee review, direct false-positive verification and
-verification-before-completion. The PDF skill was used read-only. The
+verification-before-completion. R-F3-C1 additionally activates receiving-code-review:
+verified its actual producer/consumer claims before this source-only correction.
+The PDF skill was used read-only. The
 spec-to-code skill's normal further delegation is superseded by this explicit
 one-author/no-subagents dispatch; root supplies independent review.
 Using-superpowers exempts dispatched agents. Full repository mapping/playbook,
@@ -39,7 +41,7 @@ runtime TDD triggers are absent; none of their global deliverables is claimed.
 Original PDF `/workspace/scratch/2a201d6d5897/prodat-original-source/PRODAT-26A-r3.pdf`
 was freshly rehashed as
 `83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95`.
-Read full p20,68,90,93,103–105,119,122; visually inspected p68,119,122,
+Read full p20,68,90,93,94,103–105,119,122; visually inspected p68,119,122,
 including non-gray506. Prior accepted audits retain original field/parent/register
 notes and workbook evidence; those units were not reimplemented or retested.
 Read frozen masterplan §§18–21, AT-P-01–17, SC-043 and AT-ACK-04. Frozen status
@@ -223,19 +225,23 @@ consumer or all74values is newly audited follows from these probes.
 |Legacy formats|PR347 audit R4 records accepted-base0271e118 `UNH;` list→register-evidence error in row dispatch and quote-bearing list throwing in rulebook guard. Raw-routing fix was bounded.|Preserve those concrete remaining limitations; no blanket XML/list acceptance or reclassification as new GAS regression.|
 |Live source/capability / release|Z14/Z10/death positive producers, current GAS240 identity, source/rights/transport/formal test scopes remain individually unqualified.|No invented GAS/DSO role, producer, agreement, certification or count credit. F4 registry market loss/import-routing remains later cross-reference, not activated here.|
 
-The Z10 observation also exposes canonical runtime's reading214/218/259 U issues
-without receiver-local facts. This is a **separate composition warning requiring
-source/consumer qualification**, not a new adjudication of the accepted outbound
-readings unit. The current audit neither accepts that receiving behavior nor
-changes its tests. F3 closure must inspect actual canonical/runtime ACK composition,
-not only the newer direct decision-engine paths.
+The original Z10 observation exposed a composition warning. Independent review
+subsequently isolated a complete **U-only Z10**, accepted syntax and exactly three
+`PRODAT_DEPENDENT_CONDITION_UNDETERMINED` findings for214/218/259: actual registry
+runtime and draft emit three42 entries without fields. This confirms a separate
+reachable disposition defect inside the same adapter. The R-F3-C1 contract below
+supersedes the earlier deferral of this case; it does not reopen outbound readings
+acceptance or infer local receiving facts.
 
 ## Next executable unit: typed PRODAT field errors through P-APERAK
 
 This is a proposed source/architecture contract for independent review, not runtime
 authorization. It requires no external producer, role, schema, source, SQL or gate
-change. Keep the existing presence/content decisions and national ERC meanings;
-change how a known field result reaches its actual ACK consumer.
+change. Preserve source-qualified presence/content findings and national ERC
+meanings. Correct the proven U-only projection as well as field attribution;
+current generic rejection of every blocking diagnostic is not a preserved rule.
+The producer/disposition matrix below is normative for the proposed unit and
+supersedes any broader reading of the seven implementation steps.
 
 1. **Authority and type.** The field owner supplies the existing numeric
    `RulebookFieldRule.fieldNumber`/source descriptor, the applicable group/component,
@@ -272,9 +278,9 @@ change how a known field result reaches its actual ACK consumer.
    P/U layouts and already explicit application errors. Policy/authority/unknown
    diagnostics are not automatically field errors: no invented national field,
    generic41/42 or invented business outcome may be supplied to hide missing
-   metadata. Any genuinely unmapped producer must be made explicit as a bounded
-   review/unqualified disposition and independently reviewed before broad routing
-   changes; don't claim this unit closes the remaining manual/grammar gates.
+   metadata. Use the explicit per-producer dispositions below, including the narrow internal
+   failure outcome and mixed-error composition. There is no catch-all national
+   ERC and no later-discovery placeholder in this adapter contract.
 5. **Real consumer.** Verify the response plan carried by
    `resolveCanonicalRuntimeDecisionWithRegistry` and persisted by
    `applyCanonicalRuntimeDecision` remains the plan consumed by
@@ -300,7 +306,162 @@ by AT-P-01/P93. F3-Q2 should follow as its own coherent applicability unit; the
 field-identity change must not also suppress506. Counts and frozen statuses stay
 unchanged until independent acceptance adjudication.
 
+## R-F3-C1 correction: bounded producer and disposition contract
+
+**Proposed, pending independent SOURCE/SPEC and ARCHITECTURE approval.** No runtime
+approval follows from this correction. Root memory22573549 is preserved. Original
+probe inputs, results, hashes and all110/10 rows remain unchanged.
+
+The entry point is `applyProdatPolicyDecision` calling
+`validateCanonicalPolicyFields(scope: all)`. Classification must be supplied at the
+owner's decision branch, before flattening. A code string or known field number
+alone never proves mandatory absence, invalid content or receiver-local U.
+P103 authorizes41 only for mandatory-under-the-actual-condition absence,42 for
+actual wrong content. P119 applicability precedes field checks: known false/X
+extra cannot cause a negative ACK, even if malformed. Unknown requiredness alone
+is not false and does not erase independent source-qualified supplied-content or
+qualifier checks. This unit preserves the accepted death/meter/GAS supplied-value
+rules and other concrete field negatives. The separately evidenced generic506
+false/X defect remains F3-Q2; do not expand this unit into an applicability rewrite
+or claim all P119 behavior is fixed.
+
+### Producer matrix
+
+Paths below are under `lib/ediel/rulebook/` unless named otherwise. Outcome labels
+refer to the exhaustive composition table following this one. They are internal
+classifications, not replacement national codes. Keep original code, source,
+field/group/component, occurrence, raw evidence and local diagnostic provenance.
+
+| Owner and actual producer | Classification and exact boundary | Outcome |
+| --- | --- | --- |
+| `fieldMatrix.ts`: descriptor `errorCodeIfMissing` / `FIELD_MATRIX_REQUIRED_FIELD_MISSING`; known-required residual branch of `canonicalPolicyFieldValidator.ts` | Owner knows rule requirement and actual absence: typed numeric field+missing. Ordinary226,327,207 use their actual descriptors, never RFF/DTM/C082 numbers. A malformed supplied value in a branch historically named MISSING must be classified invalid from the actual state. P§2.2, specific descriptor locator, P93/103/104. | F:41/actual field only when mandatory absent. |
+| `fieldMatrix.ts`: descriptor invalid codes, `FIELD_MATRIX_FIELD_FORMAT_INVALID`, `FIELD_MATRIX_FIELD_LENGTH_INVALID`, `FIELD_MATRIX_CODE_LIST_INVALID`; `PRODAT_COMPOSITE_BGM_CODE` | Actual supplied content, length, qualifier or placement violation. Owner's numeric descriptor controls42; composite BGM belongs202, header207 stays header. `PRODAT_CODE_NOT_ALLOWED` can be202 only if actual wire code is the proven wrong value, not a missing policy table. `APPLICATION_REFERENCE_MISMATCH` requires independent expected authority and actual311 violation; equal self-derived values are not evidence. | F:42/actual field; adapter/configuration gaps instead I. |
+| `fieldMatrix.ts` `PRODAT_REGISTER_STRUCTURE_INVALID`, from `prodatRegisterGroups` | Already numeric, not an unmapped parent: original problem carries314(global LIN sequence),258(C829 indicator/index or per-object chain),209(required object identity), line and segment. Preserve original problem and actual state; mandatory missing→41, present malformed/sequence→42. P47/114–116 and the owning field descriptor. Never blanket-map all structure to258 or label a malformed sequence missing. | F, with exact own occurrence. |
+| `prodatRegisterPolicy.ts`: `PRODAT_DEPENDENT_FIELD_MISSING`/descriptor missing, `PRODAT_REGISTER_READING_INVALID`, `PRODAT_REGISTER_READING_SCOPE_INVALID`, `PRODAT_REGISTER_TARIFF_DUPLICATE` | Required branch currently combines empty and malformed: split typed kind at owner, retain its field214/218/259/etc. Repeated tariff is42/259 under P116; malformed supplied register content remains42 when its applicable source check independently holds, even with U requiredness. | F; never infer kind from suffix. |
+| `prodatRegisterPolicy.ts` `PRODAT_DEPENDENT_CONDITION_UNDETERMINED` for214/218/259 with no `meterReadingsSentInUtilts` | Actual reproduced receiver-local U. Inbound passes `requireIndependentInventory:false`; runtime `messagePolicy.ts` supplies no per-object register inventory. Absence of local readings fact is not missing PRODAT data. AT-P-03 is own-send authority, not receiver rejection. | U. |
+| Residual `canonicalPolicyFieldValidator.ts` `PRODAT_DEPENDENT_CONDITION_UNDETERMINED`; `prodatSubtypePolicy.ts` same code | Branch must distinguish receiver-local absent fact (U) from malformed/missing actual223 or311. Retain independently qualified mandatory223/311 or supplied qualifier errors as F. Unknown own reason is not automatically receiver-local U; no new requiredness may be inferred from this code. `PRODAT_DEPENDENT_CONDITION_MISSING` means executable policy absent, not received field absent. | U only with local-fact provenance; known wire fault F; missing policy/otherwise unclassified I. |
+| `prodatMeterChangePolicy.ts` `PRODAT_METER_CHANGE_REQUIRED`, `PRODAT_METER_CHANGE_FIELD_INVALID`, `PRODAT_METER_CHANGE_COMPATIBILITY`; `prodatDeathStatusPolicy.ts` `PRODAT_DEATH_STATUS_REQUIRED`, `VALUE_INVALID`, `QUALIFIER_INVALID`, `OCCURRENCE_INVALID`; `prodatGasApplicabilityPolicy.ts` `PRODAT_GAS_320_REQUIRED`, `PRODAT_GAS_320_VALUE_INVALID`, `PRODAT_GAS_320_OCCURRENCE_INVALID` | Existing selected fields254/242,310,320 remain owner-controlled after applicability. Required+absent→41; actual invalid supplied field→42; preserve own object/LI and accepted qualifier interpretation. Meter U with valid own EL/E58 scope still checks supplied254/242; death U still checks supplied310; known false skips first. P20/67–69/119/122 and accepted selected-unit audits. No240 domain inference. | F, or U diagnostic alone as below. |
+| `prodatReportingPermissionPolicy.ts` inbound `PRODAT_REPORTING_FORMAT_INVALID`; `prodatDateEventPolicy.ts` inbound `PRODAT_DATE_EVENT_FORMAT_INVALID` | Reporting inbound returns immediately after supplied321 date check; local reporting facts are never consulted there. Date event inbound retains actual210/211 format checks. Preserve42/actual field with owner context, not DTM91/92/93. P43/49–52/74/119. | F. |
+| `prodatDateEventPolicy.ts` `PRODAT_DATE_EVENT_XOR` | Distinguish actual both210+211 in Z09D from zero dates. Both have explicit P17/P93/P121 exception40 with A903=109 (accepted date-event source audit); preserve a separately typed explicit application error, not field109. Zero dates do not justify choosing arbitrary210 or211: unrepresented either/or finding is I until this owner has an independently qualified exact mapping. Duplicate or malformed supplied dates keep independent F. | Explicit source error for both; otherwise I for unrepresented alternative constraint. |
+| `prodatInvoiceePolicy.ts` `PRODAT_INVOICEE_SCOPE_INVALID`, `FORMAT_INVALID`, `CARDINALITY_INVALID`; date-event `SCOPE_INVALID` | Do not park known numeric errors: register `grouped.problems` retain their numeric314/258/209 F above; `prodatPartySyntaxIssues` numeric results and postcode253 retain F. A aggregate-only `INVOICEE_GROUP` error for duplicate IV, wrong parent placement/role or excess whole-NAD shape has no numeric child identified by this producer; missing first object aggregate likewise is not a numeric field assertion. Keep this exact aggregate diagnostic I, alongside any independently proven numeric child F. P79–83 does not authorize choosing an arbitrary child from the parent label. | F when numeric source finding exists; genuine aggregate I. |
+| `prodatEndUserPolicy.ts` `PRODAT_DEPENDENT_END_USER_SCOPE_INVALID`, `INVALID`, `CARDINALITY_INVALID`, and `prodatZ14Policy.ts` `PRODAT_DEPENDENT_FIELD_SCOPE_INVALID` | Generic missing UD/IT/group label is not a national field. Numeric child findings already emitted by matrix/party syntax must remain F, e.g. required227 under a proven required UD; no conversion of END_USER_GROUP→227 merely to get green. Parent-only placement/cardinality/shape with no source-owned numeric or explicit application-error mapping is I. These specialized UD/Z14 parent branches are excluded from the ordinary inbound subtype call; direct outbound consumers remain unchanged. Inbound base matrix numeric fields still run. | Reachability-qualified F/I; no new inbound parent rule. |
+| Local evidence/authority: register `PRODAT_REGISTER_EVIDENCE_UNDETERMINED`, `EXPECTED_OBJECT_MISSING`, `UNEXPECTED_OBJECT`, `COUNT_MISMATCH`; reporting/date `*_EVIDENCE_INVALID`, `*_SOURCE_UNQUALIFIED`, `*_UNDETERMINED`; invoicee/end-user-address/optional-installation source checks | Outgoing inventory/send/authority checks remain blocking in their own consumers. Ordinary actual runtime `messagePolicy.ts` reads only selected scalar/byCell facts, not `registerObjects`, date/reporting/invoicee authority selections; reporting/date inbound return before authority checks, optional installation/end-user-address only execute outbound. Do not broaden this adapter into those gates. Direct validator callers can supply more facts: classify evidence failures local, never national41/42 or field inferred from a path. | L when a local diagnostic is explicitly reachable; existing own-send capability stays blocked. Unexpected unclassified adapter input I. |
+| Selected inbound local diagnostics `PRODAT_METER_CHANGE_EVIDENCE_INVALID`, `CONTEXT_MISMATCH`, `SCOPE_UNDETERMINED`; death/GAS evidence/context/scope warnings | No national ACK from local evidence absence/mismatch. Discard invalid local selection as existing owner does, retaining independently checkable supplied content. Actual ordinary runtime does not populate these rich local selections. A warning about wire context is not permission to ignore a separately proven mandatory or invalid wire field. | L/U, plus any F. |
+| Any expected typed F with missing/invalid descriptor, kind, source or occurrence metadata; any unclassified blocking issue | Internal adapter invariant/evidence failure, not a received field error. No code/path regex, no automatic40/41/42, no forced accept. Metadata absence on a known nonfield U/L is not this failure. | I, narrowly this message. |
+
+Producer names identify current branches, not a string-dispatch implementation.
+The meter owner combines code/component/pair/placement/cardinality in FIELD_INVALID;
+COMPATIBILITY is blocking only where the owner proves the requisite conditions,
+otherwise diagnostic only. No code suffix constitutes authority. Source
+descriptors remain the existing rules.
+
+### Inbound composition and actual downstream effects
+
+`F` is a qualified numeric field error or the explicit source-qualified Z09D
+both-date application error. `U` is receiver-local unknown condition only. `L` is
+an explicitly classified local evidence/capability diagnostic. `I` is an actual
+internal/unmapped failure from the finite branches above. Existing syntax handling
+runs first; technical CONTRL follows accepted/rejected syntax and its ACK matrix.
+
+| Inputs after applicability | Application / functional decision | Response plan | Persisted diagnostic and downstream effect |
+| --- | --- | --- | --- |
+| No findings, U only, L only, or U+L | accepted / accepted | Ordinary prescribed positive/no application response plus technical ACK; Z10 U-only gets prescribed positive APERAK, no40/41/42 for214/218/259. | Keep original U/L code, field/condition/source and raw payload in validation report as non-wire warning, retaining original producer severity separately. Normal guarded inbound processing continues. Acceptance here is protocol disposition, not evidence of local fact or authority; no default readings/registration facts or automatic send authority. Existing Z06/Z10 safe proposal remains `appliedAutomatically:false`/reviewRequired; ordinary independent business checks remain. |
+| F, or F+U/L | rejected / accepted (existing canonical field-rejection state) | Exact negative application error(s) F; no positive APERAK; technical ACK unchanged. U/L adds no ERC. | Persist all findings and exact F metadata/plan. Preserve current downstream business guards and staging behavior; this unit does not use U/L to add a hold or grant authority. Current pipeline does not stop business processing just because applicationDecision is rejected: no new general rejection gate is claimed here. |
+| I only, I+U/L | manual_review / not_applicable | Technical ACK only; application ACK explicitly pending internal review, never inferred positive and never generic40/41/42. | Persist original issue plus typed internal-disposition reason/source/occurrence. Hold this message's automatic business processing and application response; raw receipt, audit and required technical ACK continue. This is local unresolved processing, not a sender rejection or protocol-complete claim. |
+| F+I, with or without U/L | rejected / manual_review | Keep every qualified F negative ACK and technical ACK; no ERC for I and no positive fallback. | Persist both classes; same narrow message business hold for I. Known negative remains reportable even though another finding is unresolved. No fabricated per-object approval for unresolved parts. |
+
+The I hold is a **proposed bounded internal processing safeguard**, inferred from
+masterplan §§18.1/19/21 safe receipt, no invented ACK and no guessed business
+mutation. It is not an Ediel national rejection rule or a substitute for complete
+parent/grammar mapping. The table settles the executable outcome now; completion
+of the remaining protocol mapping is separately reviewable without reopening this
+adapter. No blanket review state for U, no registry/release/tenant-wide switch and
+no source/capability invention is allowed.
+
+Make the I disposition a typed internal JSON member, for example
+`prodatProcessingDisposition: { kind: 'continue' | 'internal_review', reasons: [...] }`,
+in the canonical result and persisted validation report/parsed payload. No new DB
+column, enum or schema. Preserve it in `applyCanonicalRuntimeDecision`, then read
+it in `processInboundEdielMessage` **before** `syncActorTestingGlobally` automatic
+response/send and before `processInboundProdatMessage` (facility recognition,
+linking, Z02/Z14 updates and business state machine). For internal_review, retain
+receipt/audit and execute only the allowed technical/qualified-negative plan,
+then return; no business mutation or alternative auto-response path may bypass
+it. `createAutomaticPositiveAcks` must honor this explicit marker before
+`policy.shouldSendPositiveAperak`; an absent APERAK plan alone does not suppress
+its existing positive fallback. Known negative F still goes through normal
+`createAckIfMissing`, tenant/idempotency/transport guards unchanged. Legacy rows
+with no marker retain legacy behavior; new canonical PRODAT results always carry
+an explicit disposition. This narrowly adds the actual consumer guard needed for
+I; it does not silently redesign normal rejected-message business processing.
+
+Separate paths are explicitly excluded: syntax rejection precedes this adapter;
+`CANONICAL_POLICY_RESOLUTION_FAILED` in `resolveCanonicalRuntimeDecision` and
+`CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE` in its registry wrapper have their own
+catch/response behavior. They are not entries returned by the field validator.
+Do not change or reclassify their ACKs, activation policy, guide-date gate or
+registry evidence in this unit. Preserve existing explicitly mapped P/U outcomes.
+
+### Identity and focused consumer oracles
+
+Use an explicit discriminant for `header` versus `object/register` and for known
+present/absent own references; legacy unknown scope is a separate variant. A null
+reference alone is insufficient. Header207 must not acquire first-object Z07 or
+cached row LI. Missing second-object226 retains second object's decoded identity
+and explicitly absent LI; neither `ack.ts:parseEdifactRefs` nor renderer fallback
+may replace either with first-object or `transaction_reference` values. Thread the
+discriminant through both ACK normalizers and P renderer. Preserve exact decoded
+LI `CASE:A+B?C` and object+agency with the existing serializer's UNA-aware escaping;
+do not sanitize away service characters, double escape, trim or truncate them to
+invent a different identity. Shared tokenizer/codec is unchanged; U-family legacy
+layout has an independent unchanged control.
+
+Required bounded implementation oracles (not executed as runtime fixes here):
+
+1. Reuse immutable author controls missing226, invalid207 and independent
+   second-object/default+two-alternate-alphabet registry→actual-draft observations.
+   Assert correct41/226,42/207, header absence, second own object, absent ownLI,
+   exact decoded escapedLI and no `CACHED-UNRELATED` borrowing.
+2. Reuse independent complete U-only Z10: exactly214/218/259 U, accepted/accepted,
+   positive prescribed application ACK and normal guarded downstream call. Add
+   missingLI to this same wire: rejected/accepted, exactly qualified41/226 (no U
+   ERC), all U diagnostics retained. This mixed input is a specified normative
+   oracle, not claimed as an already executed correction PASS.
+3. Under U requiredness, a source-qualified malformed supplied254/242 or310 keeps
+   its exact42; with known false its selected extra produces no negative. Retain
+   applicable sibling checks and separate506 boundary. Preserve missing327→41/327,
+   exact repeated-register258/314/259 and malformed qualifier ownership controls.
+4. Supply one genuine parent-only aggregate (e.g. `PRODAT_INVOICEE_CARDINALITY_INVALID`
+   with no source numeric identity) and one missing-metadata internal injection:
+   manual_review/not_applicable, technical-only plan, persisted internal_review;
+   actual inbound orchestration must not invoke actor auto-response/send, facility
+   recognition, business updates or positive ACK fallback. Independent numeric
+   child findings must still be preserved; test with F present as mixed F+I to
+   require rejected/manual_review and exact F negative ACK through actual draft.
+5. U/L-only control must **not** enter that guard. Local outbound source/authority
+   owner controls remain blocked as before. Registry/policy catch controls remain
+   separate; no reinterpretation of their current behavior is claimed.
+
+The independent observation receipt is3/3 tests, twelve Z01 registry/draft cases,
+one escaped-reference case and one U-only Z10; it reproduces defects, not normative
+success. Paths and hashes are in the companion JSON. No fresh probe or broad suite
+was needed for this documentation correction; original observations remain intact.
+
+**Explicit residual P94/A905:** field41 text must name the source field; field42
+text must name the field and wrong value; when209 and/or226 is absent, description
+must reference customer227. Positive100 text is OK. Full wording/customer-ID text
+composition is outside this identity/disposition unit and remains open; preserving
+existing text does not certify full A905/P-APERAK compliance. No F3 closure or
+acceptance-count credit may be taken from this bounded proposal.
+
 ## Verification record
+
+- R-F3-C1 correction: all original JSON members compare equal to c35b79a9;
+  original author/reviewer probe, reviewer results and PDF hashes unchanged.
+  Fourteen producer rows and four composition rows added. Frozen integrity
+  rerun PASS33/121/231; scoped diff check PASS; only these two audits changed.
+  Root22573549 and subsequent d05cbcf8 memory commits are preserved ancestors.
+  No new observation test or runtime acceptance was executed.
 
 - Fresh original PDF hash matches the immutable source identity above.
 - Read-only source extraction/visual inspection and actual callsite traces as

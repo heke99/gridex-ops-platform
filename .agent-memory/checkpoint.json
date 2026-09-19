@@ -5,7 +5,7 @@
   "branch": "codex/ediel-f3-closure-20260919",
   "base_head_sha": "51c6c06b5fd7f56f447c0bd907373dc3a76d4676",
   "active_item": "Source/evidence-only F3 closure qualification",
-  "next_action": "Complete and independently review F3 closure evidence and next bounded field-identity/506 gap; no runtime until source contract approved",
+  "next_action": "Original author source-only disposition matrix correction; scoped independent rereview; runtime remains unauthorized",
   "accepted_numeric_D": 98,
   "merged_numeric_D": 98,
   "numeric_D_total": 110,
@@ -31,9 +31,9 @@
   "last_accepted_pr": 349,
   "source_fix_round": 1,
   "source_remote_checkpoint": {
-    "head": "f0773fc7a5635fc5cc1fa57167dd7dda6bad9963",
-    "tree": "1ed1501db2bd41ba71794a915e664e8947a4dc9d",
-    "local_equivalent": "91c40f6839c43d913242778254ed21d25a11068a",
+    "head": "630a6bc2d14e2fd7cc060b59441001ef69491686",
+    "tree": "af93e1e8c87b1921bfa101c0183cf02541b2844a",
+    "local_equivalent": "c35b79a91af5a2d41febff6f442b9f0205b6a92b",
     "pr": null,
     "verification": "publicfetchdiff0"
   },
@@ -51,8 +51,8 @@
     ],
     "conclusion": "success"
   },
-  "source_candidate_commit": "4fc1eaf2115a6d1697f559605f98fa044c2a1fba",
-  "source_review": "SOURCE/SPEC APPROVE; ARCHITECTURE APPROVE",
+  "source_candidate_commit": "c35b79a91af5a2d41febff6f442b9f0205b6a92b",
+  "source_review": "REQUEST_CHANGES R-F3-C1: reachable U/nonfield sole and mixed disposition contract",
   "runtime_scope": "FiveGAScells purehistoricalcondition-only240 +ELexclusion/marketbinding +selectedZ04/Z06/Z10persistedguard; no GASproducer",
   "runtime_fix_round": 1,
   "runtime_review": "TASK/SPEC APPROVE; QUALITY APPROVE; WHOLE-BRANCH APPROVE (R1 closed)",
