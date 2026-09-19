@@ -72,10 +72,10 @@ describe('installation identity release rendering contract', () => {
     expect(prodatInstallationNadSegment({ meterPointId: '735999999999999999' }))
       .toBe('NAD+IT+735999999999999999::9+++++++SE')
   })
-  it('actual Z01 profile renders address-only IT and empty LIN when identity is missing', () => {
+  it('actual Z01 profile omits optional IT when its own identity is missing', () => {
     const result = buildProfiledProdatSegments({ context: { ...context, code: 'Z01', meterPointId: '', reasonForTransaction: 'E03' }, variant: 'L' })
     expect(result.segments).toContain('LIN+1')
-    expect(result.segments.filter(s => s.startsWith('NAD+IT'))).toEqual(['NAD+IT++++Synthetic Road 1+Test City++12345+SE'])
+    expect(result.segments.filter(s => s.startsWith('NAD+IT'))).toEqual([])
     expect(result.segments.some(s => /UNKNOWN|MISSING|PLACEHOLDER/.test(s))).toBe(false)
   })
 })

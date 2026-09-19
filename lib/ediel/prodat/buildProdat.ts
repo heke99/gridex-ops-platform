@@ -1,4 +1,5 @@
 import { validateProdatZ14Policy, z14DependentRules } from '@/lib/ediel/rulebook/prodatZ14Policy'
+import { optionalInstallationRules, validateProdatOptionalInstallationPolicy } from '@/lib/ediel/rulebook/prodatOptionalInstallationPolicy'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { prodatRegisterTokens } from '@/lib/ediel/prodat/prodatRegisterFields'
 import { parseUna } from '@/lib/ediel/core/una'
@@ -143,7 +144,9 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
         address:object.customer?.address,addressLines:object.customer?.addressLines,
         city:object.customer?.city,postalCode:object.customer?.postalCode,
       }) : null,
-      businessCode === 'Z14' && objectSubtype !== 'N' && object.installation ? prodatInstallationNadSegment({meterPointId:id ?? '',...object.installation}) : null,
+      ((['Z01', 'Z03', 'Z08'].includes(businessCode)) || (businessCode === 'Z14' && objectSubtype !== 'N')) && object.installation
+        ? prodatInstallationNadSegment({meterPointId:id ?? '',...object.installation,
+          ...(['Z01', 'Z03', 'Z08'].includes(businessCode) ? {idAgency:object.installation.idAgency ?? agency} : {})}) : null,
     ].filter((segment): segment is string => segment !== null)
     const expanded = renderProdatRegisterObject({code:businessCode,segments:rows,registers:object.registers,firstLineSequence:nextLineSequence})
     nextLineSequence = expanded.nextLineSequence
@@ -184,6 +187,15 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
     const wire = tokenizeEdifact(rawEdifact)
     const failures = validateProdatZ14Policy({family:'PRODAT',code:businessCode,rawSegments:wire.segments.map(s=>s.raw),una:wire.una},z14DependentRules())
     validation.issues.push(...failures.map(failure=>({severity:'error' as const,code:failure.code,message:failure.description})))
+    if (failures.length) validation.ok = false
+  }
+
+  if (['Z01', 'Z03', 'Z08'].includes(businessCode)) {
+    const wire = tokenizeEdifact(rawEdifact)
+    const failures = validateProdatOptionalInstallationPolicy({
+      family: 'PRODAT', code: businessCode, rawSegments: wire.segments.map(segment => segment.raw), una: wire.una, mode: 'parse',
+    }, optionalInstallationRules(businessCode))
+    validation.issues.push(...failures.map(failure => ({severity:'error' as const,code:failure.code,message:failure.description})))
     if (failures.length) validation.ok = false
   }
 

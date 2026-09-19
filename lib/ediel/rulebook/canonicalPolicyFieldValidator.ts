@@ -1,5 +1,6 @@
 import { isZ14DependentField } from '@/lib/ediel/rulebook/prodatZ14Policy'
 import { prodatEndUserObjectScopes } from '@/lib/ediel/rulebook/prodatEndUserPolicy'
+import { isSourceBoundOptionalInstallationField, validateProdatOptionalInstallationPolicy } from '@/lib/ediel/rulebook/prodatOptionalInstallationPolicy'
 import { resolveProdatDependentCondition } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import { isSourceBoundEndUserField, isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
 import { prodatSourceSubtypeRule } from '@/lib/ediel/prodat/prodatSubtypeRequirement'
@@ -69,6 +70,7 @@ export function validateCanonicalPolicyFields(input: {
   if (input.policy.family !== 'PRODAT') return issues
   issues.push(...validateProdatSubtypePolicy(matrixInput, input.policy.direction === 'inbound'
     ? rules.filter(rule => !(input.policy.code === 'Z14' && (isZ14DependentField(rule.fieldNumber ?? '') || ['321','323'].includes(rule.fieldNumber ?? ''))) && !isSourceBoundEndUserField(input.policy.code, rule.fieldNumber ?? '')) : rules))
+  if (input.policy.direction === 'outbound') issues.push(...validateProdatOptionalInstallationPolicy(matrixInput, rules))
   const register = validateProdatRegisterPolicy({code:input.policy.code, rawSegments:input.rawSegments ?? [], una:input.una, facts:input.policy.prodatDependentFacts, rules})
   issues.push(...register.issues)
 
@@ -80,7 +82,8 @@ export function validateCanonicalPolicyFields(input: {
     const fieldNumber = String(rule.fieldNumber ?? '').trim()
     if (input.policy.code === 'Z14' && input.policy.direction === 'outbound' && isZ14DependentField(fieldNumber)) continue
     if (register.handledFields.has(fieldNumber) || prodatSourceSubtypeRule(input.policy.code, fieldNumber)
-      || isSourceBoundEndUserField(input.policy.code, fieldNumber)) continue
+      || isSourceBoundEndUserField(input.policy.code, fieldNumber)
+      || isSourceBoundOptionalInstallationField(input.policy.code, fieldNumber)) continue
     let condition = dependentByField.get(fieldNumber)
     if (fieldNumber === '229' && ['Z06', 'Z09'].includes(input.policy.code) && input.policy.direction === 'outbound') {
       const scopes = prodatEndUserObjectScopes(matrixInput)

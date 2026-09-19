@@ -170,7 +170,8 @@ export function renderProdat(input: ProdatEngineInput): ProdatEngineRenderResult
       rulebookApplicationReference: policy.applicationReference,
       rulebookIssues: policyFieldIssues as unknown as Array<Record<string, unknown>>,
       canonicalPolicySourceTrace: policy.sourceTrace as unknown as Array<Record<string, unknown>>,
-      dependentConditionStatuses: policy.prodatDependentConditions as unknown as Array<Record<string, unknown>>,
+      dependentConditionStatuses: result.diagnostics.dependentConditionStatuses
+        ?? policy.prodatDependentConditions as unknown as Array<Record<string, unknown>>,
     },
   }
 
