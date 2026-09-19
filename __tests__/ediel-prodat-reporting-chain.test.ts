@@ -153,3 +153,57 @@ it('authorized manual draft action uses the same saved source and separate send 
     form.set(k, v); await createEdielTgtDraftAction(form); expect(db.ediel_messages).toHaveLength(1); expect(db.ediel_test_run_messages).toHaveLength(1); expect(io.send).not.toHaveBeenCalled(); const send = new FormData(); send.set('edielMessageId', String(db.ediel_messages[0].id)); await expect(sendSystemTestOutboundMessageAction(send)).rejects.toThrow(/ackStatus=sent/); expect(io.send).toHaveBeenCalledTimes(1); });
 it('company authorization precedes active reporting create/autopilot effects', async () => { await saveFromActiveForm(); io.authorize.mockRejectedValueOnce(new Error('DENIED')); const form = new FormData(); form.set('testRunId', reportingId(11)); form.set('testCaseCode', '8.1.3'); await expect(createAndSendSystemTestOutboundForRunAction(form)).rejects.toThrow('DENIED'); expect(db.ediel_messages).toHaveLength(0); expect(db.ediel_test_run_messages).toHaveLength(0); expect(io.send).not.toHaveBeenCalled(); });
 for(const caseCode of ['8.1.1','8.1.2'])it(`original private ${caseCode} has explicit indefinite term and B71 in the actual chain`,async()=>{db.ediel_test_runs[0].test_case_code=caseCode;await saveFromActiveForm({'object.0.term':'indefinite','object.0.classification':'private','object.0.classificationRationale':'Original private test customer','object.0.purpose':'B71','object.0.purposeRationale':'Explicit synthetic consent assessment'});const form=new FormData();form.set('testRunId',reportingId(11));form.set('testCaseCode',caseCode);await expect(createAndSendSystemTestOutboundForRunAction(form)).rejects.toThrow(/ackStatus=sent/);expect(String(db.ediel_messages[0].raw_payload)).toContain("LIN+1'");expect(String(db.ediel_messages[0].raw_payload)).not.toContain('DTM+91:');expect(io.send).toHaveBeenCalledTimes(1)})
+
+function formText(node: ReactNode): string { if (Array.isArray(node)) return node.map(formText).join(' '); if (typeof node === 'string' || typeof node === 'number') return String(node); return node && typeof node === 'object' && 'props' in node ? formText((node as ReactElement<{children?:ReactNode}>).props.children) : ''; }
+async function currentForm() { return EdielReportingPermissionForm({run:db.ediel_test_runs[0] as unknown as ReturnType<typeof reportingPrepared>['run']}); }
+function formDefaults(tree: ReactNode) {
+ const form=elements(tree).find(e=>e.type==='form')!, data=new FormData();
+ for(const e of elements(form)) if(typeof e.props.name==='string') data.set(e.props.name,String(e.props.value??e.props.defaultValue??''));
+ return {form,data};
+}
+it('active form reviews saved revision, anchor and assessments; note-only edit preserves facts',async()=>{
+ await saveFromActiveForm();
+ const before=JSON.parse(String(db.ediel_test_runs[0].notes)).prodatReportingPermission.steps['1'];
+ const tree=await currentForm(), text=formText(tree),{form,data}=formDefaults(tree);
+ expect(text).toContain(before.factsRevision);
+ expect(text).toContain('202608010000');
+ expect(text).toContain(new Date(before.objects[0].resolutionAnchorUtcMs).toISOString());
+ expect(data.get('object.0.term')).toBe('bounded_source');expect(data.get('object.0.minuteOfDay')).toBe('00:00');
+ expect(data.get('object.0.classification')).toBe('nonprivate');expect(data.get('object.0.purpose')).toBe('B72');
+ expect(data.get('sourceNote')).toBe(before.sourceNote);
+ data.set('sourceNote','Only the review note changed');await (form.props.action as (f:FormData)=>Promise<void>)(data);
+ const after=JSON.parse(String(db.ediel_test_runs[0].notes)).prodatReportingPermission.steps['1'];
+ expect(after.objects.map((o:{assertion:unknown})=>o.assertion)).toEqual(before.objects.map((o:{assertion:unknown})=>o.assertion));
+ expect(after.objects[0].resolutionAnchorUtcMs).toBe(before.objects[0].resolutionAnchorUtcMs);
+ expect(after.objects[0].object.requestKey).toBe(before.objects[0].object.requestKey);expect(after.factsRevision).not.toBe(before.factsRevision);
+ expect(db.ediel_messages).toHaveLength(0);expect(db.ediel_test_run_messages).toHaveLength(0);expect(io.send).not.toHaveBeenCalled();
+});
+it('active form distinguishes missing and cleared revisions without repopulating revoked facts',async()=>{
+ expect(formText(await currentForm())).toContain('Inget sparat rapporteringsunderlag');await saveFromActiveForm();
+ const tree=await currentForm(),clear=elements(tree).filter(e=>e.type==='form')[1],data=new FormData();
+ for(const e of elements(clear))if(typeof e.props.name==='string')data.set(e.props.name,String(e.props.value??''));
+ data.set('sourceNote','Assessment withdrawn');await (clear.props.action as (f:FormData)=>Promise<void>)(data);
+ const cleared=JSON.parse(String(db.ediel_test_runs[0].notes)).prodatReportingPermission.steps['1'],current=await currentForm();
+ expect(formText(current)).toContain('Underlaget är rensat');expect(formText(current)).toContain(cleared.factsRevision);expect(formText(current)).toContain('Assessment withdrawn');
+ expect(formDefaults(current).data.get('object.0.term')).toBe('unknown');expect(formDefaults(current).data.get('sourceNote')).toBe('');
+ expect(db.ediel_messages).toHaveLength(0);expect(io.send).not.toHaveBeenCalled();
+});
+for(const change of ['source','route','invalid'] as const)it(`active form marks ${change} notes unusable without displaying stale saved declarations`,async()=>{
+ await saveFromActiveForm();const revision=JSON.parse(String(db.ediel_test_runs[0].notes)).prodatReportingPermission.steps['1'].factsRevision;
+ if(change==='source')db.ediel_tgt_test_data=[{id:reportingId(90),test_suite:'PRODAT',role_code:'esco',test_case_code:'8.1.3',updated_at:'2026-09-19',raw_text:'changed',parsed_payload:reportingPrepared().testData}];
+ if(change==='route')db.ediel_route_profiles[0].mailbox='changed';
+ if(change==='invalid')db.ediel_test_runs[0].notes='{invalid';
+ const tree=await currentForm(),{data}=formDefaults(tree);
+ expect(formText(tree)).toContain('Underlaget kan inte användas');expect(formText(tree)).not.toContain(revision);
+ expect(data.get('object.0.term')).toBe('unknown');expect(data.get('object.0.classification')).toBe('unknown');expect(data.get('object.0.purpose')).toBe('unknown');expect(data.get('sourceNote')).toBe('');
+ expect(db.ediel_messages).toHaveLength(0);expect(io.send).not.toHaveBeenCalled();
+});
+
+it('prescribed LI and ANJ service characters survive active notes, actual builder and shared SMTP guards',async()=>{
+ const data=structuredClone(reportingPrepared().testData);
+ for(const [field,value]of [['226',"REQ+ONE:TWO?THREE'UNT+1"],['261',"AUTH:ONE+TWO?THREE'UNT+1"]])data.groups[0].fields.find(f=>f.fieldCode===field)!.values['Testdata - Z13VH']=value;
+ db.ediel_tgt_test_data=[{id:reportingId(90),test_suite:'PRODAT',role_code:'esco',test_case_code:'8.1.3',updated_at:'2026-09-19T11:00:00Z',raw_text:'Independent prescribed synthetic references',parsed_payload:data}];
+ await saveFromActiveForm();const form=new FormData();form.set('testRunId',reportingId(11));form.set('testCaseCode','8.1.3');
+ await expect(createAndSendSystemTestOutboundForRunAction(form)).rejects.toThrow(/ackStatus=sent/);
+ expect(io.send).toHaveBeenCalledTimes(1);expect(db.ediel_test_run_messages).toHaveLength(1);
+});

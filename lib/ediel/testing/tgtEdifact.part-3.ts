@@ -1,3 +1,4 @@
+import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 import {prodatInvoiceeNadSegment} from '@/lib/ediel/prodat/render/segments'
 import {prodatCustomerNadSegment} from '@/lib/ediel/prodat/render/segments'
 import {END_USER_ADDRESS_CODES} from '@/lib/ediel/prodat/prodatEndUserAddress'
@@ -110,7 +111,7 @@ export function buildProdatPermissionLineSegments(params: {
     12,
   );
   const permissionId = sanitizeCode(portalData.permissionId, "", 35);
-  const powerOfAttorneyReference = sanitizeCode(
+  const powerOfAttorneyReference = portalData.reportingRequest ? portalData.powerOfAttorneyReference : sanitizeCode(
     portalData.powerOfAttorneyReference,
     "",
     35,
@@ -138,9 +139,9 @@ export function buildProdatPermissionLineSegments(params: {
   if (permissionEndReason)
     segments.push("CCI++Z25", `CAV+${permissionEndReason}`);
 
-  if (!mutation.omitLineItem) segments.push(`RFF+LI:${lineReference}`);
+  if (!mutation.omitLineItem) segments.push(`RFF+LI:${portalData.reportingRequest ? escapeEdifactValue(lineReference) : lineReference}`);
   if (powerOfAttorneyReference && step.code === "Z13")
-    segments.push(`RFF+ANJ:${powerOfAttorneyReference}`);
+    segments.push(`RFF+ANJ:${portalData.reportingRequest ? escapeEdifactValue(powerOfAttorneyReference) : powerOfAttorneyReference}`);
   if (gridAreaId) segments.push(`RFF+Z05:${gridAreaId}`);
   if (permissionId && step.code === "Z18")
     segments.push(`RFF+Z09:${permissionId}`);

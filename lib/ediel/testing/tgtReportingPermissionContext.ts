@@ -4,7 +4,7 @@ import { requireEdielSystemTestRuntimeContext, type EdielSystemTestRuntimeContex
 import { dateEventRuntimeSuite, resolveTgtDateEventRoute } from './tgtDateEventContext';
 import { getEdielTgtTestDataForCase } from './tgtTestData';
 import { listEdielTgtDynamicTestData } from './tgtTestDataStore';
-import { reportingRunScope, prepareTgtReportingNotes, readTgtReportingEntry } from './tgtReportingPermissionNotes';
+import { reportingRunScope, prepareTgtReportingNotes, readTgtReportingEntry, readTgtReportingReviewEntry } from './tgtReportingPermissionNotes';
 import { reportingScenarios, type ReportingSourceSelection } from './tgtReportingPermissionAssertions';
 import { copyReportingExpected, copyReportingSelection, reportingEvaluationMinute, type ExpectedContext, type ReportingClock, type ServerSource } from '@/lib/ediel/prodat/prodatReportingPermissionContext';
 import { copyReportingRoute, reportingInvalid as invalid } from '@/lib/ediel/prodat/prodatReportingPermissionStrict';
@@ -42,6 +42,18 @@ export async function resolveTgtReportingRoute(run: EdielTestRunRow, runtime: Ed
     const { suppliers: _suppliers, ...route } = await resolveTgtDateEventRoute(run, 'Z13', runtime);
     void _suppliers;
     return copyReportingRoute(route);
+}
+/** Display only: parent authorizes run visibility; writes and sends independently reload authority. */
+export async function loadTgtReportingReviewState(run: EdielTestRunRow, stepNo: number) {
+    try {
+        const source = await loadTgtReportingSourceSelection(run, stepNo);
+        const runtime = await requireEdielSystemTestRuntimeContext({ companyId: run.company_id, testSuite: dateEventRuntimeSuite(run), actorRole: run.role_code, messageFamily: 'PRODAT' });
+        const route = await resolveTgtReportingRoute(run, runtime);
+        const entry = readTgtReportingReviewEntry({ run, stepNo, source, route });
+        return entry ? { state: entry.state, entry } : { state: 'missing' as const, entry: null };
+    } catch {
+        return { state: 'unusable' as const, entry: null };
+    }
 }
 export async function resolveTgtReportingBuildContext(input: {
     run: EdielTestRunRow;

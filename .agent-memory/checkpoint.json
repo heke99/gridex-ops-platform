@@ -4,8 +4,8 @@
   "status": "IN_PROGRESS",
   "branch": "codex/ediel-reporting-permission-20260919",
   "base_head_sha": "0a82c9ce51ef5c95868ed9c25907f1e10819d079",
-  "active_item": "Implement reporting policy and authorized Z13 test producer",
-  "next_action": "Original implementer actual RED/GREEN and bounded runtime, required gates, then independent completed-runtime review",
+  "active_item": "PR346 independent runtime review and exact-head CI",
+  "next_action": "Consolidate review findings; original implementer fixes, scoped rereview and new exact-head CI before guarded merge/main receipt",
   "accepted_numeric_D": 96,
   "merged_numeric_D": 96,
   "numeric_D_total": 110,
@@ -34,5 +34,9 @@
     "tree": "bdfea2a2f1eeb4d4745bf6a20e3278facc866612",
     "local_equivalent": "1749c9a2356dc3d0a7bc62ad9240d8f42b954697",
     "pr": null
-  }
+  },
+  "runtime_local_head": "93c24fbebc5d81da7300cbcd03224702722f0450",
+  "runtime_published_head": "58385ec58306b3a67fee5c66974b37ca8be70c48",
+  "runtime_tree": "863f1762012ab21dd499041e0dbb96bbb38cc5e3",
+  "active_pr": 346
 }

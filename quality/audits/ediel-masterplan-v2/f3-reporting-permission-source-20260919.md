@@ -5,7 +5,10 @@ Source/architecture approval is complete; the bounded runtime authorized by root
 implemented and locally verified below. **No accepted-cell increment is claimed.**
 Application base is merged main `0a82c9ce51ef5c95868ed9c25907f1e10819d079`
 (PR345), with source-contract corrections `410a73a4`, `3ab45d02`, `49604a2`
-and root-owned memory through `75133c97` before runtime handoff.
+and root-owned memory through `75133c97` before the initial runtime handoff.
+Completed runtime `93c24fbe` subsequently received two P2 review findings; the
+bounded correction wave and fresh scoped receipts are recorded at the end. Root
+memory through `0d14a238` was read, not modified by the implementer.
 Root separately verified main345 full 73/73 and OPS; current aggregate 96/110
 numeric and 10/10 parent occurrences does not include these four cells.
 
@@ -885,3 +888,122 @@ No package, codec, loader, workflow, schema/SQL, generated type, frozen normativ
 threshold, budget, service-role baseline or PR310 file was changed. Source audit
 and runtime constitute one bounded unit; no automatic acceptance follows from
 these local receipts.
+
+
+## Completed-runtime review correction R1: RUNTIME-1 and RUNTIME-2
+
+Independent completed review of `93c24fbebc5d81da7300cbcd03224702722f0450`
+reported two reproducible P2 defects. Root authorized the original implementer to
+correct this consolidated wave; prior source/architecture approval and the five
+specific legacy assertion exceptions were not reopened. Applied receiving-code-review,
+TDD and verification-before-completion; reread installed Next.js form/action
+instructions. This is a bounded producer/UI correction, not a general codec or
+parser refactor. No new legacy assertion exception was used.
+
+### RUNTIME-1: exact prescribed references and released segment content
+
+Source-selected LI/ANJ values were retained correctly in notes but the qualified
+TGT renderer directly interpolated LI and sanitized ANJ. Reviewer controls
+`REQONE`/`AUTHONE` passed; valid `REQ+ONE`/`AUTH:ONE` failed the exact protected
+comparison. The original reviewer tests were independently rerun unchanged:
+4 runtime cases, 2 PASS/2 RED. Alongside the UI probes this is 6 cases, 3 PASS/3 RED
+in `r1-reviewer-red.json`.
+
+For `portalData.reportingRequest`, `tgtEdifact.part-3.ts` now preserves the source
+ANJ without sanitization and renders LI/ANJ with the existing shared
+`escapeEdifactValue`. Strict shape/length checks and exact decoded authority
+comparison remain unchanged. Other legacy rendering branches remain unchanged.
+The new builder regressions independently save/read source-prescribed references,
+round-trip all `+`, `:`, `?`, and apostrophe characters, and reject an altered
+independent expected LI/ANJ. They do not derive authority from the built output.
+
+Apostrophe coverage exposed a second concrete integration point in the same
+producer: the old TGT parsed view split on every apostrophe and emitted false
+`unt_count_mismatch`: declared25 versus counted26 for one correctly released
+apostrophe. Root inspected and authorized a **qualified PRODAT Z13-only** adapter
+in `validateEdielTgtDraft`, selected when the independent reporting context is
+present. `parseReportingEnvelope` derives the whole parsed view (segments,
+names, envelope references, counts) from unchanged `tokenizeEdifact` and
+`segmentComposite`. It does not mix a corrected count with naïvely split segment
+names. The general `parseEdifactSegments` implementation and codecs are unchanged.
+Real UNT equality and every downstream envelope/reference check remain enabled.
+A genuine wrong UNT999 still produces `unt_count_mismatch`; escaped text resembling
+`UNT+1` remains literal reference content. Combined references also traverse the
+actual active save → autopilot → create/send → shared SMTP path to the mock mail
+provider, without patching produced message rows or suppressing guards.
+
+The expanded tests were actually RED before this adapter:49 total,46 PASS/3 RED
+(two builder cases and the active send case), retained as `r1-unt-red.json`.
+Both builder and active-chain suites then pass49/49 (6 builder,43 chain). Original
+reviewer runtime probes pass4/4. No actual external provider delivery is claimed.
+
+### RUNTIME-2: current saved assessment in the active run form
+
+The real server-component reviewer probe displayed the source but failed to show
+the saved `factsRevision` (1 PASS/1 RED). The form now uses the canonical server
+owner's `loadTgtReportingReviewState`: independently load current source and
+runtime/tenant route, then strictly parse/reconstruct the stored notes through
+`readTgtReportingReviewEntry`. This reuses the existing exact checks. The ordinary
+`readTgtReportingEntry` still returns only active entries and returns null for a
+validated clear tombstone; clear records never become build/send authority.
+
+The active form shows current revision and source note, or the clear revision and
+reason. Qualified saved declarations populate term, fixed UTC+1 date/minute,
+classification, rationales and purpose controls. It displays the frozen UTC source
+anchor, source expression and resolved end minute, and explains retain/refresh.
+Missing and cleared states start an explicit new assessment. Invalid or source/
+route-stale notes show an unusable status and never prepopulate prior declarations
+or present a stale revision as current. Unknown term and indefinite term remain
+visibly distinct. Generated authority/reference keys are not editable or submitted
+as hidden authority. The action independently authenticates and reloads, with the
+same CAS and save/clear-only side effects; this display state grants no send right.
+
+Five real component/active-action regressions were RED before the fix. They now
+prove saved revision/anchor display, note-only editing retains the exact assertions,
+request key and anchor while rotating factsRevision, missing/cleared state and
+clear revision/reason, and source-stale/route-stale/malformed-note rejection.
+No draft, link or provider effect occurs on save/clear. The separate reviewer UI
+probe's exact assertions are unchanged; its full Context mock was extended solely
+for the new display-read boundary using the real strict notes reader and the
+independent fixture source/route. Original scratch probe text is retained as
+`reviewer-ui-original.txt`. That probe passes2/2; actual-owner tests exercise real
+metadata/runtime/tenant route reads with only external edges mocked. These are
+server-component/entrypoint tests, not claims of browser rendering certification.
+
+### Correction verification and handoff limits
+
+Fresh receipts are in the same scratch probe directory. Ten new regression cases
+bring the reporting suites to110 distinct tests. Initial correction typecheck found
+an incomplete new-test step literal; it now uses the actual registered8.1.3 step,
+without suppressions or production type changes. The corrected gate receipts below
+are the correction candidate's results. Earlier4096 full-suite and three-timezone
+receipts above apply to initial runtime93; full exact-candidate CI is root-owned.
+No acceptance count, positive persisted Z14 qualification, frozen source, codec,
+SQL/schema, loader, gate/budget/baseline or PR310 status changed in this wave.
+
+`r1-gates.json` records13 final commands with exit0, preserving the initial
+failed test-type receipt separately as `r1-gates-initial.json`.
+
+| Executed correction command | Result |
+| --- | --- |
+| `NODE_OPTIONS='--max-old-space-size=4096 --require=./scripts/lib/refactor-safe-static-read.cjs' npx vitest run __tests__/ediel-prodat-characteristic-preflight.test.ts __tests__/ediel-prodat-date-boundaries.test.ts __tests__/ediel-prodat-date-event-resolver.test.ts __tests__/ediel-prodat-date-event-smtp.test.ts __tests__/ediel-prodat-date-event-tgt.test.ts __tests__/ediel-prodat-end-user-address-tgt.test.ts __tests__/ediel-prodat-invoicee-tgt.test.ts __tests__/ediel-prodat-register-autopilot-flow.test.ts __tests__/ediel-prodat-register-tgt-actions.test.ts __tests__/ediel-prodat-register-tgt-draft.test.ts __tests__/ediel-prodat-reporting-builders.test.ts __tests__/ediel-prodat-reporting-chain.test.ts __tests__/ediel-prodat-reporting-notes.test.ts __tests__/ediel-prodat-reporting-permission.test.ts __tests__/ediel-prodat-reporting-policy-boundaries.test.ts __tests__/ediel-prodat-reporting-smtp.test.ts --reporter=json --outputFile=/workspace/scratch/2a201d6d5897/reporting-permission-probes/r1-affected.json` | 477/477 in16 files,0 failed |
+| `npm run typecheck` | exit0 |
+| `npm run typecheck:scripts` | exit0 |
+| `npm run typecheck:tests` | final exit0; initial incomplete-test-literal failure retained |
+| `npm run lint` | exit0;0 errors,100 existing warnings |
+| `npm run quality:large-file-budget` | exit0; cap1800 unchanged |
+| `node scripts/check-ediel-masterplan-v2.cjs` | exit0;33 originals,121 rules,231 contracts |
+| `node scripts/gridex-tenant-integrity-regression.cjs` | exit0 |
+| `node scripts/gridex-tenant-shutdown-regression.cjs` | exit0 |
+| `node scripts/check-service-role-tenant-ratchet.cjs` | exit0;2401 sites, baseline2402 unchanged |
+| `node --experimental-vm-modules --test scripts/test-ediel-rule-pack-source-identity.cjs scripts/test-ediel-prodat-source-locators.cjs scripts/test-ediel-prodat-characteristic-fields.cjs scripts/test-ediel-prodat-reference-fields.cjs scripts/test-ediel-prodat-document-fields.cjs scripts/test-ediel-prodat-party-fields.cjs scripts/test-ediel-prodat-d-z04-reference.cjs scripts/test-ediel-component-escaping.cjs` | 818/818,0 failed |
+| `NODE_OPTIONS='--max-old-space-size=4096 --require=./scripts/lib/refactor-safe-static-read.cjs' npm run gridex:route-readiness-regression` | exit0 with required existing preload |
+| `git diff --check` | exit0; repeated after final documentation |
+
+`./node_modules/.bin/vitest run --config /workspace/scratch/2a201d6d5897/reporting-permission-probes/vitest.config.mjs reviewer-runtime.test.ts --reporter=json --outputFile=/workspace/scratch/2a201d6d5897/reporting-permission-probes/r1-reviewer-runtime-green.json` => 4/4, exit0.
+
+`./node_modules/.bin/vitest run --config /workspace/scratch/2a201d6d5897/reporting-permission-probes/vitest.config.mjs reviewer-ui.test.ts --reporter=json --outputFile=/workspace/scratch/2a201d6d5897/reporting-permission-probes/r1-reviewer-ui-green.json` => 2/2, exit0.
+
+Independent scoped rereview, publication and fresh exact-head CI remain with
+root. No full-suite rerun or browser/live-delivery claim is attached to this
+correction receipt. Root acceptance remains96/110 and10/10 parents here.

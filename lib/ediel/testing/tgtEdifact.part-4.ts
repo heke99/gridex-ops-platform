@@ -15,17 +15,31 @@ import {getEdielTgtTestDataForCase,type EdielTgtCaseTestData} from './tgtTestDat
 import { groupTgtProdatSourceObjects, readTgtProdatSourceColumns } from './tgtProdatSource'
 import { validateProdatDateFields } from '@/lib/ediel/prodat/prodatDateValidation'
 import { misplacedProdatEnergyProducts } from "@/lib/ediel/prodat/prodatCharacteristicFields"
-import { tokenizeEdifact } from "@/lib/ediel/core/edifactTokenizer"
+import { tokenizeEdifact, segmentComposite } from "@/lib/ediel/core/edifactTokenizer"
 // Extracted from tgtEdifact.ts; keep public imports on the facade module.
 import type { EdielMessageFamily } from "@/lib/ediel/types"
 import { EDIEL_TGT_PRODAT_APPLICATION_REFERENCE, resolveEdielTgtProdatApplicationReference } from "@/lib/ediel/fileEngine"
 import { getEdielTgtTestCaseByCode, type EdielTgtExpectedStep } from "@/lib/ediel/testing/tgtRegistry"
 
 
-import type { EdielTgtDraftBuildParams, EdielTgtDraftBuildResult, EdielTgtDraftValidationIssue, TgtPortalCustomerData } from './tgtEdifact.part-1'
+import type { ParsedEdifactSegments, EdielTgtDraftBuildParams, EdielTgtDraftBuildResult, EdielTgtDraftValidationIssue, TgtPortalCustomerData } from './tgtEdifact.part-1'
 import { nowRefs, testActorId, testPortalEmail, testPortalId, testReceiverSubaddress, testSenderSubaddress } from './tgtEdifact.part-1'
 import { buildInterchange } from './tgtEdifact.part-2'
 import { buildAckDraft, buildPortalProdatSegments, buildUtiltsDraft, parseEdifactSegments, pushIssue, validatePortalDataCoverage } from './tgtEdifact.part-3'
+
+/** Qualified reporting references may contain released characters, including apparent tags. */
+function parseReportingEnvelope(rawPayload: string): ParsedEdifactSegments {
+  const wire = tokenizeEdifact(rawPayload), names = wire.segments.map(s => s.tag);
+  const unhIndex = names.indexOf('UNH'), untIndex = names.indexOf('UNT');
+  const find = (tag: string) => wire.segments.find(s => s.tag === tag);
+  const value = (tag: string, index: number) => segmentComposite(find(tag), index, wire.una)[0] || null;
+  return {
+    segments: wire.segments.map(s => s.raw), segmentNames: names,
+    unhRef: value('UNH', 1), untRef: value('UNT', 2), untCount: Number(value('UNT', 1)) || null,
+    countedMessageSegments: unhIndex >= 0 && untIndex >= unhIndex ? untIndex - unhIndex + 1 : null,
+    unbRef: value('UNB', 5), unzRef: value('UNZ', 2), unzCount: Number(value('UNZ', 1)) || null,
+  };
+}
 
 export function validateEdielTgtDraft(
   rawPayload: string,
@@ -53,7 +67,8 @@ export function validateEdielTgtDraft(
     EDIEL_TGT_PRODAT_APPLICATION_REFERENCE;
   const expectedReceiverSubaddress =
     expected?.receiverSubaddress?.trim().toUpperCase() ?? null;
-  const parsed = parseEdifactSegments(rawPayload);
+  const parsed = step.family === 'PRODAT' && step.code === 'Z13' && expected?.reportingContext
+    ? parseReportingEnvelope(rawPayload) : parseEdifactSegments(rawPayload);
   if (step.family === 'PRODAT') {
     const wire = tokenizeEdifact(rawPayload);
     for(const failure of validateProdatReportingPermission({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts,reportingContext:expected?.reportingContext}))pushIssue(issues,'error',failure.code,failure.title,failure.description);

@@ -113,10 +113,10 @@ function assemble(assertion: OperatorAssertion, scenario: ReportingScenario, rou
             purpose: assertion.purpose.kind === 'unknown' ? { kind: 'unknown' } : assertion.purpose.kind === 'absent' ? { kind: 'absent', declaration: ref('declaration', prior?.purpose.kind === 'absent' ? prior.purpose.declaration : undefined) } : { kind: 'assessed', code: assertion.purpose.code, assessment: ref('assessment', prior?.purpose.kind === 'assessed' ? prior.purpose.assessment : undefined), legalActor: route.legalSender, customer: scenario.customer } }])[0];
     return { selector: copyReportingSelector(scenario.selector), assertion: copyReportingAssertion(assertion), resolutionAnchorUtcMs: anchor, resolvedEndMinute: end, sourceExpression: expression, object };
 }
-export function readTgtReportingEntry(input: Pick<ReportingNotesInput, 'run' | 'stepNo' | 'source' | 'route'>): ActiveStep | null {
+export function readTgtReportingReviewEntry(input: Pick<ReportingNotesInput, 'run' | 'stepNo' | 'source' | 'route'>): ActiveStep | ClearedStep | null {
     const { notes } = envelope(input.run, input.stepNo), entry = notes.steps[String(input.stepNo)];
     if (!entry || entry.state === 'cleared')
-        return null;
+        return entry ?? null;
     if (JSON.stringify(entry.source) !== JSON.stringify(copyReportingSourceIdentity(input.source.identity)) || JSON.stringify(entry.routeAtApproval) !== JSON.stringify(copyReportingRoute(input.route)))
         return invalid();
     const scenarios = reportingScenarios(input.source, notes.scope);
@@ -131,6 +131,10 @@ export function readTgtReportingEntry(input: Pick<ReportingNotesInput, 'run' | '
             return invalid();
     }
     return entry;
+}
+export function readTgtReportingEntry(input: Pick<ReportingNotesInput, 'run' | 'stepNo' | 'source' | 'route'>): ActiveStep | null {
+    const entry = readTgtReportingReviewEntry(input);
+    return entry?.state === 'active' ? entry : null;
 }
 export function prepareTgtReportingNotes(input: ReportingNotesInput): string {
     const command = copyReportingCommand(input.command), { raw, notes } = envelope(input.run, input.stepNo), route = copyReportingRoute(input.route), actorId = uuid(input.actorId), now = input.clock.nowUtcMs(), newId = input.newId ?? randomUUID;
