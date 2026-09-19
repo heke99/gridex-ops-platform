@@ -192,7 +192,14 @@ for (const environment of ['test','production'] as const) for (const alphabet of
       for (const override of [false,true]) {
         message.parsed_payload = {...message.parsed_payload,rulebookAllowInvalidSend:override}
         const result = validateEdielMessageRowWithRulebook(message,'send')
-        expect(result.issues.filter(issue => issue.scope === 'prodat_register' && (issue.blocking || issue.severity === 'error'))).toEqual([])
+        const registerIssues = result.issues.filter(issue => issue.scope === 'prodat_register' && (issue.blocking || issue.severity === 'error'))
+        // Source259 also needs actual market context now. The missing-market
+        // control still independently proves242 below; no register fact may
+        // invent the absent UNB market or suppress either protected diagnostic.
+        if (name === 'missing market') expect(registerIssues).toEqual([
+          expect.objectContaining({code:'PRODAT_DEPENDENT_CONDITION_UNDETERMINED',fieldPath:'CCI++Z16/CAV',blocking:true}),
+        ])
+        else expect(registerIssues).toEqual([])
         expect(blockers(result.issues).length).toBeGreaterThan(0)
         expect(() => assertRulebookAllowsSend(message)).toThrow(/Z06:242/)
         expect(blockers(preflightEdielMessageRow(message,'send').issues).length).toBeGreaterThan(0)

@@ -4,6 +4,7 @@ import {
   type Prodat26AMessageCode,
 } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { prodatSourceSubtypeRule, resolveProdatSourceSubtypeRequirement, type ProdatSubtypeRequirement } from '@/lib/ediel/prodat/prodatSubtypeRequirement'
+import { isProdatReadingField } from './prodatRegisterReadings'
 import { isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
 
 export const PRODAT_26A_DEPENDENT_SOURCE_DOCUMENT =
@@ -57,7 +58,7 @@ export type ProdatDependentConditionEvaluation = {
    * means there is no blanket child requirement; it is not evidence that every
    * object lacks the optional parent. Render/validation must decide per wire. */
   status: ProdatDependentConditionStatus
-  decisionPhase?: 'pre_wire_parent' | 'rendered_wire_parent' | 'pre_wire_inventory_aggregate' | 'rendered_wire_inventory'
+  decisionPhase?: 'pre_wire_parent' | 'rendered_wire_parent' | 'pre_wire_inventory_aggregate' | 'rendered_wire_inventory' | 'pre_wire_readings_aggregate' | 'rendered_wire_readings'
   /** Present only for source-migrated cells; not_required alone does not mean optional. */
   requirement?: ProdatSubtypeRequirement
   source: ProdatDependentConditionSource
@@ -70,13 +71,21 @@ type PredicateContext = {
   facts: ProdatDependentConditionFacts
 }
 
+/** Pre-wire knowledge only: no root boolean/subtype can certify another
+ * object's outgoing readings. Rendered decisions use the actual own reason. */
 function registerReadingFirstPredicate(context: PredicateContext): boolean | null {
-  if (context.messageCode === 'Z06') {
-    const subtype = normalized(context.facts.canonicalSubtype)
-    if (subtype === 'E' || subtype === 'G') return false
-    if (subtype !== 'F') return null
+  const objects = context.facts.registerObjects
+  if (!objects?.length) return null
+  const identities = new Set<string>()
+  let readings = false
+  for (const object of objects) {
+    const key = JSON.stringify([object.meteringPointId, object.identityAgency])
+    if (!object.meteringPointId || !['9', '89'].includes(object.identityAgency) || identities.has(key)
+      || typeof object.meterReadingsSentInUtilts !== 'boolean') return null
+    identities.add(key)
+    readings ||= object.meterReadingsSentInUtilts
   }
-  return booleanFact(context.facts.meterReadingsSentInUtilts)
+  return readings
 }
 
 type ConditionGroup = {
@@ -288,7 +297,9 @@ export function evaluateProdatDependentConditions(input: {
         fieldNumber: entry.fieldNumber,
         conditionId: entry.conditionId,
         status: value === null ? 'undetermined' : value ? 'required' : 'not_required',
-        ...(entry.conditionId === 'optional_installation_wire_parent'
+        ...(isProdatReadingField(entry.fieldNumber)
+          ? { decisionPhase: 'pre_wire_readings_aggregate' as const }
+          : entry.conditionId === 'optional_installation_wire_parent'
           ? { decisionPhase: 'pre_wire_parent' as const }
           : entry.conditionId === 'multiple_meter_registers'
             ? { decisionPhase: 'pre_wire_inventory_aggregate' as const }
@@ -342,6 +353,8 @@ export function resolveProdatRegisterRequirement(input: {
   /** Independent physical inventory for this exact object. Observed LIN count
    * must never be supplied here as a fallback. */
   expectedRegisterCount?: number | null
+  /** Explicit outbound qualification; inbound keeps its existing overlay. */
+  outboundReadings?: boolean
 }): ProdatRegisterRequirement | null {
   const { messageCode: code, fieldNumber: field } = input
   if (!['258','213','214','218','259'].includes(field)) return null
@@ -356,6 +369,12 @@ export function resolveProdatRegisterRequirement(input: {
   }
   if (field === '213') return code === 'Z04' || (input.registerPosition > 1 && input.firstFieldPresent) ? 'required' : 'optional'
   const readings = input.meterReadingsSentInUtilts
+  if (input.outboundReadings && input.market !== 'gas') {
+    if (field === '259' && input.market === 'electricity' && readings === false) return 'forbidden'
+    if (code === 'Z06' && !input.subtype) return 'undetermined'
+    if (field === '259' && (!input.market || typeof readings !== 'boolean')) return 'undetermined'
+    if (readings === false && input.registerPosition === 1 && !(code === 'Z06' && ['E', 'G'].includes(input.subtype ?? ''))) return 'forbidden'
+  }
   if (field === '259' && readings === false) {
     if (input.market === 'electricity') return 'forbidden' // §2.2 p20: only when readings are sent.
     if (!input.market) return 'undetermined'

@@ -78,6 +78,7 @@ export function validateCanonicalPolicyFields(input: {
     facts:input.policy.prodatDependentFacts,
     rules,
     requireIndependentInventory:input.policy.direction === 'outbound',
+    applicationReference:input.policy.applicationReference,
   })
   issues.push(...register.issues)
 

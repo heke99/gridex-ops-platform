@@ -735,7 +735,7 @@ export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' 
       }
     }
     const facts = mode === 'send' ? readProdatRegisterEvidence({code,rawSegments,una:tokens.una,parsedPayload:message.parsed_payload}) : undefined
-    for (const failure of validateProdatRegisterPayload({code,rawSegments,una:tokens.una,facts,requireConditions:mode === 'send'})) {
+    for (const failure of validateProdatRegisterPayload({code,rawSegments,una:tokens.una,facts,requireConditions:mode === 'send',applicationReference:message.application_reference})) {
       result.issues.push(issue({severity:'error',code:`PRODAT_REGISTER_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
     }
   } catch {
