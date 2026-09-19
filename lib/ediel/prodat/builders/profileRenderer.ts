@@ -4,7 +4,9 @@ import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterE
 import { resolveProdatRegisterInputs, prodatObjectIdentityAgency } from '@/lib/ediel/prodat/prodatRegisterInput'
 import { renderProdatRegisterObject } from '@/lib/ediel/prodat/render/registers'
 import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
-import { reconcileProdatRegisterInventoryStatus } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
+import type { RulebookFieldRule } from '@/lib/ediel/rulebook/fieldMatrix'
+import { isProdatReadingField } from '@/lib/ediel/prodat/prodatRegisterReadings'
+import { reconcileProdatRegisterInventoryStatus, validateProdatRegisterPolicy } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
 import { prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { buildProdatDateSegments, resolveProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
 import { validateProdatDateFields } from '@/lib/ediel/prodat/prodatDateValidation'
@@ -360,8 +362,14 @@ export function buildProfiledProdatSegments(input: {
     })
   }
 
+  const renderedReadings = validateProdatRegisterPolicy({code:policy.code,rawSegments:segments,
+    facts:policy.prodatDependentFacts,rules:registerPolicy.fieldRules.filter((rule): rule is RulebookFieldRule => 'family' in rule),applicationReference:policy.applicationReference,
+    requireIndependentInventory:policy.direction === 'outbound'}).readings
   const dependentConditionStatuses = policy.prodatDependentConditions.map(condition =>
-    condition.conditionId === 'optional_installation_wire_parent'
+    isProdatReadingField(condition.fieldNumber)
+      ? { ...condition, status: renderedReadings.get(condition.fieldNumber) ?? 'undetermined' as const,
+        decisionPhase: 'rendered_wire_readings' as const }
+      : condition.conditionId === 'optional_installation_wire_parent'
       ? { ...condition, status: installationSelected ? 'required' as const : 'not_required' as const,
         decisionPhase: 'rendered_wire_parent' as const }
       : condition.conditionId === 'multiple_meter_registers'

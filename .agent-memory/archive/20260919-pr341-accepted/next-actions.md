@@ -1,0 +1,7 @@
+# Next actions
+
+Main1bbe4483f86d5b9fd93dfcb6e846341fd9762a42 accepted PR340 sixoptionalIT233/234cells inZ01/Z03/Z08. Expectedhead6d65455c,tree04ad0176. Independenttask/spec+wholebranchAPPROVE with359fresh cases; allfourordinaryCI SUCCESS:OPS35436571721,Ediel35436571704,Browser35436571710,FullE2E35436571703. Candidate3411fulltests/3types/integrity/unchangedgates and originalreleaseentrypoint pass. Main340fullcertificate pending; main339actual73/73Node22.23.2run35435423862/job105877135742 SUCCESS. Main338/337alsofull73/73accepted; issue332closed.
+Accepted36/110numericD;74remaining. ParentDoccurrences4/10;6IVremaining. Four321/323within74remainBLOCKED by currentmissingauthoritative per-object producer;339fixedexplicitNexclusions only, notfourfullcells. Do not infer all74sharethisdependency; inspectdedicatedproducers beyondblocked switchfacades. No acceptance fromcounts/integrityonly.
+PR310remainsPAUSED ate961135199f292b8210884f07de3b616a670161a;335unmergedoverlap. No pausedSQL/types/grants/proof imported; no liveDB/storage/send/explicitdeploy/settingsactions. FullF3–F7/masterplan/livecertificationNOT_COMPLETE.
+
+One activeitem: source/callsite qualification of exact74remaining D cells and6parentoccurrences, distinguish wirefacts/optionalchoice/externalbusinessfacts/market/producerdependencies, choose nextsafe coherent implementationunit. Derivedaudit only in this phase, no runtimeedits or newnormativeclaim.

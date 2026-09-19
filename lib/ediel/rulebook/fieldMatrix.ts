@@ -574,7 +574,7 @@ export function validateFieldMatrixPayload(
   if (family === 'PRODAT') {
     for (const problem of prodatRegisterGroups(prodatRegisterMessageSegments(rawSegments, input.una), input.una, code).problems) {
       const rule = rules.find(rule => rule.fieldNumber === problem.fieldNumber)
-      if (rule) issues.push(issue({severity:'error', code:'PRODAT_REGISTER_STRUCTURE_INVALID', title:'Ogiltig PRODAT-registerstruktur',
+      if (rule) issues.push(issue({scope:'prodat_register', severity:'error', code:'PRODAT_REGISTER_STRUCTURE_INVALID', title:'Ogiltig PRODAT-registerstruktur',
         description:`Fält ${problem.fieldNumber}, LIN ${problem.lineIndex + 1}: ${problem.reason} (P26.A s.47,114–116).`, fieldPath:rule.segmentPath}))
     }
     // Scope errors cannot disappear just because an optional field is sought

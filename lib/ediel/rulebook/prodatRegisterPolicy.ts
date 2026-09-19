@@ -1,10 +1,11 @@
+import { isProdatReadingField, prodatRegisterReadingMarket, prodatRegisterReadingState, prodatRegisterReadingSubtype } from '@/lib/ediel/prodat/prodatRegisterReadings'
 import { canonicalProdat26AFieldRules, prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { validateFieldMatrixPayload } from '@/lib/ediel/rulebook/fieldMatrix'
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import { canonicalProdatSubtypeAlias } from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { resolveProdatRegisterRequirement, type ProdatDependentConditionFacts, type ProdatDependentConditionStatus } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
-import { prodatRegisterFieldState } from '@/lib/ediel/prodat/prodatRegisterFields'
+import { prodatRegisterFieldState, prodatRegisterTokens } from '@/lib/ediel/prodat/prodatRegisterFields'
 import { prodatRegisterGroups, prodatRegisterMessageSegments } from '@/lib/ediel/prodat/prodatRegisterGroups'
 import type { RulebookFieldRule } from '@/lib/ediel/rulebook/fieldMatrix'
 import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
@@ -42,18 +43,31 @@ export function validateProdatRegisterPolicy(input: {
   /** Outbound business validation requires independent physical inventory.
    * Parse-only inbound validation keeps structural topology checks only. */
   requireIndependentInventory?: boolean
-}): { issues: EdielRulebookIssue[]; handledFields: Set<string> } {
+  /** Trusted policy context for body fragments; actual UNB takes precedence. */
+  applicationReference?: string | null
+}): { issues: EdielRulebookIssue[]; handledFields: Set<string>; readings: Map<string, ProdatDependentConditionStatus> } {
   const una = input.una ?? parseUna(null)
-  const { groups } = prodatRegisterGroups(prodatRegisterMessageSegments(input.rawSegments,una),una,input.code)
+  const message = prodatRegisterMessageSegments(input.rawSegments,una)
+  const { groups } = prodatRegisterGroups(message,una,input.code)
+  const readingsDecisions = new Map<string, ProdatDependentConditionStatus>()
   const handledFields = new Set<string>()
   const issues: EdielRulebookIssue[] = []
   const facts = input.facts ?? {}
   const requireIndependentInventory = (input.requireIndependentInventory ?? true)
     && ['Z04','Z06','Z10'].includes(input.code.toUpperCase())
+  const market = requireIndependentInventory
+    ? prodatRegisterReadingMarket(prodatRegisterTokens(input.rawSegments, una), una, input.applicationReference) : facts.market
   const add = (field: string, line: number, code: string, description: string) => {
     const rule = input.rules.find(rule => rule.fieldNumber === field)
     if (rule) issues.push({scope:'prodat_register',severity:'error',blocking:true,code,title:'PRODAT registervillkor',fieldPath:field === '258' ? 'LIN/C829/1082' : rule.segmentPath,
       description:`LIN ${line + 1}, fält ${field}: ${description} (P26.A §2.2 / bilaga2 s.114–116).`})
+  }
+  if (requireIndependentInventory) {
+    const firstLine = message.findIndex(token => token.tag === 'LIN')
+    const header = firstLine < 0 ? message : message.slice(0, firstLine)
+    for (const field of ['214', '218', '259']) if (prodatRegisterReadingState(field, header, una).present) {
+      add(field, -1, 'PRODAT_REGISTER_READING_SCOPE_INVALID', 'Registervärdet måste tillhöra ett eget LIN-register, inte meddelandehuvudet')
+    }
   }
   if (facts.registerObjects) {
     const expected = new Set<string>()
@@ -73,7 +87,7 @@ export function validateProdatRegisterPolicy(input: {
     const objectFacts = facts.registerObjects?.filter(row => row.meteringPointId === group.itemId && row.identityAgency === group.identityAgency)
     const fact = objectFacts?.length === 1 ? objectFacts[0] : null
     // An explicit object inventory has exact scope; no fallback from A to B.
-    const readings = facts.registerObjects === undefined ? facts.meterReadingsSentInUtilts : fact?.meterReadingsSentInUtilts
+    const readings = !requireIndependentInventory && facts.registerObjects === undefined ? facts.meterReadingsSentInUtilts : fact?.meterReadingsSentInUtilts
     const inventoryKey = JSON.stringify([group.itemId, group.identityAgency])
     if (requireIndependentInventory && !reportedInventory.has(inventoryKey)) {
       reportedInventory.add(inventoryKey)
@@ -87,10 +101,14 @@ export function validateProdatRegisterPolicy(input: {
         add('258',group.lineIndex,'PRODAT_REGISTER_COUNT_MISMATCH','Antalet register stämmer inte med det uttryckliga objektunderlaget')
       }
     }
-    const subtype = first ? canonicalProdatSubtypeAlias(prodatCharacteristicValue('223',first.segments,una),input.code) : null
+    const subtype = first ? requireIndependentInventory
+      ? prodatRegisterReadingSubtype(input.code, first.segments, una)
+      : canonicalProdatSubtypeAlias(prodatCharacteristicValue('223',first.segments,una),input.code) : null
     for (const rule of input.rules) {
       const field = rule.fieldNumber ?? ''
-      const state = prodatRegisterFieldState(field,group.segments,una)
+      const readingField = isProdatReadingField(field)
+      const state = requireIndependentInventory && readingField
+        ? prodatRegisterReadingState(field, group.segments, una) : prodatRegisterFieldState(field,group.segments,una)
       if (!state) continue
       if (field === '258' && !requireIndependentInventory) {
         handledFields.add(field)
@@ -98,10 +116,16 @@ export function validateProdatRegisterPolicy(input: {
       }
       const status = resolveProdatRegisterRequirement({messageCode:input.code,fieldNumber:field,subtype,
         registerCount:group.registerCount,registerPosition:group.registerPosition,fieldPresent:state.present,
-        firstFieldPresent:first ? Boolean(prodatRegisterFieldState(field,first.segments,una)?.present) : false,
-        meterReadingsSentInUtilts:readings,market:facts.market,expectedRegisterCount:fact?.expectedRegisterCount})
+        firstFieldPresent:first ? Boolean((requireIndependentInventory && readingField ? prodatRegisterReadingState(field, first.segments, una) : prodatRegisterFieldState(field,first.segments,una))?.present) : false,
+        meterReadingsSentInUtilts:readings,market,expectedRegisterCount:fact?.expectedRegisterCount,outboundReadings:requireIndependentInventory})
       if (status === null) continue
       handledFields.add(field)
+      if (readingField && requireIndependentInventory) {
+        const previous = readingsDecisions.get(field)
+        const next = status === 'undetermined' ? 'undetermined' : status === 'required' ? 'required' : 'not_required'
+        readingsDecisions.set(field, previous === 'undetermined' || next === 'undetermined' ? 'undetermined' : previous === 'required' || next === 'required' ? 'required' : 'not_required')
+        if (state.present && state.malformed) add(field, group.lineIndex, 'PRODAT_REGISTER_READING_INVALID', 'Angiven CCI/CAV måste vara ett unikt, korrekt placerat registervärde i källans komponent')
+      }
       if (status === 'undetermined') add(field,group.lineIndex,'PRODAT_DEPENDENT_CONDITION_UNDETERMINED','Villkoret kan inte avgöras från objektets källstyrda fakta')
       else if (status === 'required' && (!state.value || state.malformed)) add(field,group.lineIndex,rule.errorCodeIfMissing ?? 'PRODAT_DEPENDENT_FIELD_MISSING','Eget giltigt registervärde krävs; inget annat register kan fylla det')
       else if (status === 'forbidden' && state.present) add(field,group.lineIndex,rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT','Fältet får inte anges i denna registerkontext')
@@ -113,14 +137,17 @@ export function validateProdatRegisterPolicy(input: {
       }
     }
   }
-  return {issues,handledFields}
+  if (isProdatRegisterInventoryScopeUndetermined(issues)) {
+    for (const field of readingsDecisions.keys()) readingsDecisions.set(field, 'undetermined')
+  }
+  return {issues,handledFields,readings:readingsDecisions}
 }
 
 /** Existing matrix + condition engine narrowed to register fields. Entry-point
  * adapters use this rather than reimplementing register rules. */
 export function validateProdatRegisterPayload(input: {
   code:string; rawSegments:readonly string[]; una?:EdifactServiceStringAdvice;
-  facts?:ProdatDependentConditionFacts; requireConditions?:boolean;
+  facts?:ProdatDependentConditionFacts; requireConditions?:boolean; applicationReference?:string|null;
 }): EdielRulebookIssue[] {
   const rules = canonicalProdat26AFieldRules(input.code).filter(rule => prodatRegisterFieldScope(rule.fieldNumber ?? '') === 'local')
   const issues = validateFieldMatrixPayload({family:'PRODAT',code:input.code,rawSegments:input.rawSegments,una:input.una,mode:'parse'},rules)
