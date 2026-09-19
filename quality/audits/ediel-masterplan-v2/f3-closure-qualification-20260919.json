@@ -1,0 +1,990 @@
+{
+  "status": "DERIVED_QUALIFICATION_NOT_ACCEPTANCE",
+  "date": "2026-09-19",
+  "base": "51c6c06b5fd7f56f447c0bd907373dc3a76d4676",
+  "start_memory_head": "2eab8d2f63a65e152f4d6cbf28615948b66cc021",
+  "counts": {
+    "numeric_total": 110,
+    "historically_accepted": 98,
+    "bounded_without_full_cell_acceptance": 12,
+    "parent_occurrences": 10,
+    "historically_accepted_parents": 10,
+    "new_acceptance": 0
+  },
+  "source_sha256": {
+    "docs/ediel/masterplan-v2/MASTERMASTERPLAN_v2.md": "eaeebd59153c31d16f0baa0f5462a239eea6c7e629bebbb1543a802d81482191",
+    "docs/ediel/masterplan-v2/annex/D_Acceptanskontrakt.md": "5acc706bd5f328daf1878ebf0311488ac01db7bd5a2d97520b766548c1923912",
+    "docs/ediel/masterplan-v2/registers/prodat_conditional_cells.json": "55d44fcf337b5a7c9508c50bd25b9f204128ae2939ee36e49e74072b031a4b5d",
+    "quality/audits/ediel-masterplan-v2/f3-remaining-dependencies-20260919.json": "c42fafa8166404c32ccdd37bc023c373d4c097c69f85e4f48ab1f7453826310b"
+  },
+  "original_pdf_sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+  "inventory_method": "Join unchanged110 original IDs to previously qualified36+74 inventory, then layer accepted unit receipts; do not recompute predicates or interpret test counts as acceptance. Frozen predicates remain original; approved full-source corrections are in group audit.",
+  "group_schema": [
+    "audit_in_this_directory",
+    "test_under___tests__",
+    "owner_under_lib/ediel/rulebook",
+    "evidence_and_limit"
+  ],
+  "groups": {
+    "subtype6": [
+      "f3-d-subtype-review-20260918.md",
+      "ediel-prodat-dependent-subtype-source.test.ts",
+      "prodatSubtypePolicy.ts",
+      "Own first-register subtype and false O/X; source-qualified bounded accepted behavior."
+    ],
+    "z04_reference": [
+      "f3-d-z04-reference-20260918.json",
+      "ediel-prodat-dependent-subtype-z04-reference.test.ts",
+      "prodatDependentReferenceScope.ts",
+      "Z04D reference source-exact scope."
+    ],
+    "z06_product": [
+      "f3-d-z06-product-20260918.md",
+      "ediel-prodat-dependent-z06-product.test.ts",
+      "prodatProductScope.ts",
+      "EL own subtype, component242 and compatibility."
+    ],
+    "ud_children": [
+      "f3-d-ud-20260919.md",
+      "ediel-prodat-dependent-subtype-ud.test.ts",
+      "prodatSubtypePolicy.ts",
+      "Own Z06/Z09 E parent before children."
+    ],
+    "z14_twelve": [
+      "f3-z14-dependent-20260919.md",
+      "ediel-prodat-dependent-z14.test.ts",
+      "prodatZ14Policy.ts",
+      "V/VH required, N excluded;217 separately EL."
+    ],
+    "optional_it": [
+      "f3-optional-installation-20260919.md",
+      "ediel-prodat-optional-installation.test.ts",
+      "prodatOptionalInstallationPolicy.ts",
+      "Explicit optional parent choice; own233/234."
+    ],
+    "register_inventory": [
+      "f3-register-inventory-20260919.md",
+      "ediel-prodat-register-inventory.test.ts",
+      "prodatRegisterPolicy.ts",
+      "Independent per-object expected count; actual TGT source/run producer."
+    ],
+    "register_readings": [
+      "f3-register-readings-20260919.md",
+      "ediel-prodat-register-readings.test.ts",
+      "prodatRegisterPolicy.ts",
+      "Independent outbound readings declaration, source-scoped first/later overlay."
+    ],
+    "end_user_address": [
+      "f3-end-user-address-20260919.md",
+      "ediel-prodat-end-user-address-tgt.test.ts",
+      "prodatEndUserAddressPolicy.ts",
+      "Authorized per-object TGT facts; live address selection separately unqualified."
+    ],
+    "invoicee": [
+      "f3-invoicee-source-20260919.md",
+      "ediel-prodat-invoicee-tgt.test.ts",
+      "prodatInvoiceePolicy.ts",
+      "Six parents and36children; explicit independent comparison/address choice."
+    ],
+    "date_events": [
+      "f3-date-events-20260919.md",
+      "ediel-prodat-date-event-tgt.test.ts",
+      "prodatDateEventPolicy.ts",
+      "Four source event cells and authorized TGT context; live domain source separate."
+    ],
+    "reporting_z13": [
+      "f3-reporting-permission-source-20260919.md",
+      "ediel-prodat-reporting-chain.test.ts",
+      "prodatReportingPermissionPolicy.ts",
+      "Authorized ESCO outbound Z13 TGT producer, exact association/clock/revision."
+    ],
+    "reporting_z14": [
+      "f3-reporting-permission-source-20260919.md",
+      "ediel-prodat-reporting-policy-boundaries.test.ts",
+      "prodatReportingPermissionPolicy.ts",
+      "Pure positive/N, request correspondence and inbound tests exist; no registered positive persisted Z14 producer."
+    ],
+    "meter_replacement": [
+      "f3-z10-change-facts-20260919.md",
+      "ediel-prodat-meter-change.test.ts",
+      "prodatMeterChangePolicy.ts",
+      "Pure true/false/U and actual inbound/guards; selected persisted Z10 blocked, no qualified positive producer."
+    ],
+    "death_event": [
+      "f3-death-status-source-20260919.md",
+      "ediel-prodat-death-status-inbound.test.ts",
+      "prodatDeathStatusPolicy.ts",
+      "Z09E itself requires310; scoped Z05LK/Z06E facts; incoming p119 and actual ACK tests; persisted positive authority blocked."
+    ],
+    "gas_boundary": [
+      "f3-gas-applicability-source-20260919.md",
+      "ediel-prodat-gas-policy.test.ts",
+      "prodatGasApplicabilityPolicy.ts",
+      "Five condition branches and EL exclusion/guards;240 TIM/SCH domain identity unqualified; no active GAS producer."
+    ]
+  },
+  "numeric_row_schema": [
+    "original_cell_id",
+    "evidence_group",
+    "historical_disposition"
+  ],
+  "numeric_cells": [
+    [
+      "PC-209-Z14",
+      "z14_twelve",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-258-Z04",
+      "register_inventory",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-258-Z06",
+      "register_inventory",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-258-Z10",
+      "register_inventory",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-210-Z06",
+      "date_events",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-210-Z09",
+      "date_events",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-210-Z10",
+      "date_events",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-211-Z09",
+      "date_events",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-302-Z14",
+      "z14_twelve",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-321-Z13",
+      "reporting_z13",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-321-Z14",
+      "reporting_z14",
+      "BOUNDED_CODE_ONLY_NO_FULL_CELL_ACCEPTANCE"
+    ],
+    [
+      "PC-216-Z09",
+      "subtype6",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-508-Z06",
+      "subtype6",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-508-Z14",
+      "z14_twelve",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-326-Z14",
+      "z14_twelve",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-214-Z04",
+      "register_readings",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-214-Z06",
+      "register_readings",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-214-Z10",
+      "register_readings",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-217-Z06",
+      "subtype6",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-217-Z09",
+      "subtype6",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-217-Z14",
+      "z14_twelve",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-218-Z04",
+      "register_readings",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-218-Z06",
+      "register_readings",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-218-Z10",
+      "register_readings",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-306-Z06",
+      "subtype6",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-222-Z14",
+      "z14_twelve",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-259-Z04",
+      "register_readings",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-259-Z06",
+      "register_readings",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-259-Z10",
+      "register_readings",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-254-Z06",
+      "subtype6",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-254-Z10",
+      "meter_replacement",
+      "BOUNDED_CODE_ONLY_NO_FULL_CELL_ACCEPTANCE"
+    ],
+    [
+      "PC-242-Z06",
+      "z06_product",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-242-Z10",
+      "meter_replacement",
+      "BOUNDED_CODE_ONLY_NO_FULL_CELL_ACCEPTANCE"
+    ],
+    [
+      "PC-506-Z14",
+      "z14_twelve",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-310-Z05",
+      "death_event",
+      "BOUNDED_CODE_ONLY_NO_FULL_CELL_ACCEPTANCE"
+    ],
+    [
+      "PC-310-Z06",
+      "death_event",
+      "BOUNDED_CODE_ONLY_NO_FULL_CELL_ACCEPTANCE"
+    ],
+    [
+      "PC-310-Z09",
+      "death_event",
+      "BOUNDED_CODE_ONLY_NO_FULL_CELL_ACCEPTANCE"
+    ],
+    [
+      "PC-513-Z14",
+      "z14_twelve",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-323-Z13",
+      "reporting_z13",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-323-Z14",
+      "reporting_z14",
+      "BOUNDED_CODE_ONLY_NO_FULL_CELL_ACCEPTANCE"
+    ],
+    [
+      "PC-260-Z14",
+      "z14_twelve",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-320-Z04",
+      "gas_boundary",
+      "BOUNDED_CODE_ONLY_NO_FULL_CELL_ACCEPTANCE"
+    ],
+    [
+      "PC-320-Z06",
+      "gas_boundary",
+      "BOUNDED_CODE_ONLY_NO_FULL_CELL_ACCEPTANCE"
+    ],
+    [
+      "PC-240-Z04",
+      "gas_boundary",
+      "BOUNDED_CODE_ONLY_NO_FULL_CELL_ACCEPTANCE"
+    ],
+    [
+      "PC-240-Z06",
+      "gas_boundary",
+      "BOUNDED_CODE_ONLY_NO_FULL_CELL_ACCEPTANCE"
+    ],
+    [
+      "PC-240-Z10",
+      "gas_boundary",
+      "BOUNDED_CODE_ONLY_NO_FULL_CELL_ACCEPTANCE"
+    ],
+    [
+      "PC-319-Z04",
+      "z04_reference",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-325-Z14",
+      "z14_twelve",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-227-Z06",
+      "ud_children",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-227-Z09",
+      "ud_children",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-227-Z14",
+      "z14_twelve",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-228-Z06",
+      "ud_children",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-228-Z09",
+      "ud_children",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-228-Z14",
+      "z14_twelve",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-229-Z01",
+      "end_user_address",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-229-Z02",
+      "end_user_address",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-229-Z03",
+      "end_user_address",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-229-Z04",
+      "end_user_address",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-229-Z05",
+      "end_user_address",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-229-Z06",
+      "end_user_address",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-229-Z08",
+      "end_user_address",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-229-Z09",
+      "end_user_address",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-231-Z06",
+      "ud_children",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-231-Z09",
+      "ud_children",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-232-Z06",
+      "ud_children",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-232-Z09",
+      "ud_children",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-316-Z06",
+      "ud_children",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-316-Z09",
+      "ud_children",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-233-Z01",
+      "optional_it",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-233-Z03",
+      "optional_it",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-233-Z08",
+      "optional_it",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-234-Z01",
+      "optional_it",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-234-Z03",
+      "optional_it",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-234-Z08",
+      "optional_it",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-250-Z03",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-250-Z04",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-250-Z05",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-250-Z06",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-250-Z08",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-250-Z09",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-251-Z03",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-251-Z04",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-251-Z05",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-251-Z06",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-251-Z08",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-251-Z09",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-252-Z03",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-252-Z04",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-252-Z05",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-252-Z06",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-252-Z08",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-252-Z09",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-253-Z03",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-253-Z04",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-253-Z05",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-253-Z06",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-253-Z08",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-253-Z09",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-317-Z03",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-317-Z04",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-317-Z05",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-317-Z06",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-317-Z08",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-317-Z09",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-318-Z03",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-318-Z04",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-318-Z05",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-318-Z06",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-318-Z08",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PC-318-Z09",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ]
+  ],
+  "parent_row_schema": [
+    "original_occurrence_id",
+    "evidence_group",
+    "historical_disposition"
+  ],
+  "parent_occurrences": [
+    [
+      "PG-UD-Z06",
+      "ud_children",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PG-UD-Z09",
+      "ud_children",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PG-UD-Z14",
+      "z14_twelve",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PG-IT-Z14",
+      "z14_twelve",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PG-IV-Z03",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PG-IV-Z04",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PG-IV-Z05",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PG-IV-Z06",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PG-IV-Z08",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ],
+    [
+      "PG-IV-Z09",
+      "invoicee",
+      "HISTORICALLY_ACCEPTED"
+    ]
+  ],
+  "fresh_observations": [
+    {
+      "variant": "control",
+      "wire": "UNA:+.? 'UNB+UNOC:3+S+R+260917:1200+I++23-DDQ-PRODAT'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z01+D+9+AB'DTM+137:202609171200:203'DTM+ZZZ:1:805'NAD+FR+12345:160:SVK+++++++SE'NAD+DO+54321:160:SVK+++++++SE'LIN+1++735123456789012345:::9'DTM+92:202610010000:203'CCI++Z13'CAV+Z22'RFF+Z05:NET'RFF+ANJ:AGREEMENT'RFF+LI:CASE-A'NAD+UD+001::89++Synthetic+Street+City++12345+SE'UNT+15+M'UNZ+1+I'",
+      "field_issues": [],
+      "response_plan": [
+        {
+          "family": "CONTRL",
+          "outcome": "positive",
+          "reason": "Inbound EDIFACT är syntaxmässigt accepterat enligt canonical ACK authority."
+        }
+      ]
+    },
+    {
+      "variant": "extra506-valid",
+      "wire": "UNA:+.? 'UNB+UNOC:3+S+R+260917:1200+I++23-DDQ-PRODAT'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z01+D+9+AB'DTM+137:202609171200:203'DTM+ZZZ:1:805'NAD+FR+12345:160:SVK+++++++SE'NAD+DO+54321:160:SVK+++++++SE'LIN+1++735123456789012345:::9'DTM+92:202610010000:203'CCI++Z13'CAV+Z22'CCI++Z14'CAV+::::8716867000030'RFF+Z05:NET'RFF+ANJ:AGREEMENT'RFF+LI:CASE-A'NAD+UD+001::89++Synthetic+Street+City++12345+SE'UNT+17+M'UNZ+1+I'",
+      "field_issues": [
+        {
+          "severity": "error",
+          "code": "FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT",
+          "title": "energy_product får inte skickas",
+          "description": "CCI++Z14/CAV är markerat som - för PRODAT Z01 och blockeras.",
+          "fieldPath": "CCI++Z14/CAV",
+          "blocking": true
+        }
+      ],
+      "response_plan": [
+        {
+          "family": "CONTRL",
+          "outcome": "positive",
+          "reason": "Inbound EDIFACT är syntaxmässigt accepterat enligt canonical ACK authority."
+        },
+        {
+          "family": "APERAK",
+          "outcome": "negative",
+          "erc": "42",
+          "ftx": "CCI++Z14/CAV är markerat som - för PRODAT Z01 och blockeras.",
+          "reason": "PRODAT innehåller ett blockerande canonical policy-/fältfel.",
+          "applicationErrors": [
+            {
+              "ercCode": "42",
+              "fieldCode": null,
+              "text": "CCI++Z14/CAV är markerat som - för PRODAT Z01 och blockeras.",
+              "referenceQualifier": null,
+              "referenceNumber": null,
+              "lineItemReference": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "variant": "extra506-invalid",
+      "wire": "UNA:+.? 'UNB+UNOC:3+S+R+260917:1200+I++23-DDQ-PRODAT'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z01+D+9+AB'DTM+137:202609171200:203'DTM+ZZZ:1:805'NAD+FR+12345:160:SVK+++++++SE'NAD+DO+54321:160:SVK+++++++SE'LIN+1++735123456789012345:::9'DTM+92:202610010000:203'CCI++Z13'CAV+Z22'CCI++Z14'CAV+::::INVALID'RFF+Z05:NET'RFF+ANJ:AGREEMENT'RFF+LI:CASE-A'NAD+UD+001::89++Synthetic+Street+City++12345+SE'UNT+17+M'UNZ+1+I'",
+      "field_issues": [
+        {
+          "severity": "error",
+          "code": "FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT",
+          "title": "energy_product får inte skickas",
+          "description": "CCI++Z14/CAV är markerat som - för PRODAT Z01 och blockeras.",
+          "fieldPath": "CCI++Z14/CAV",
+          "blocking": true
+        }
+      ],
+      "response_plan": [
+        {
+          "family": "CONTRL",
+          "outcome": "positive",
+          "reason": "Inbound EDIFACT är syntaxmässigt accepterat enligt canonical ACK authority."
+        },
+        {
+          "family": "APERAK",
+          "outcome": "negative",
+          "erc": "42",
+          "ftx": "CCI++Z14/CAV är markerat som - för PRODAT Z01 och blockeras.",
+          "reason": "PRODAT innehåller ett blockerande canonical policy-/fältfel.",
+          "applicationErrors": [
+            {
+              "ercCode": "42",
+              "fieldCode": null,
+              "text": "CCI++Z14/CAV är markerat som - för PRODAT Z01 och blockeras.",
+              "referenceQualifier": null,
+              "referenceNumber": null,
+              "lineItemReference": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "variant": "missingLI",
+      "wire": "UNA:+.? 'UNB+UNOC:3+S+R+260917:1200+I++23-DDQ-PRODAT'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z01+D+9+AB'DTM+137:202609171200:203'DTM+ZZZ:1:805'NAD+FR+12345:160:SVK+++++++SE'NAD+DO+54321:160:SVK+++++++SE'LIN+1++735123456789012345:::9'DTM+92:202610010000:203'CCI++Z13'CAV+Z22'RFF+Z05:NET'RFF+ANJ:AGREEMENT'NAD+UD+001::89++Synthetic+Street+City++12345+SE'UNT+14+M'UNZ+1+I'",
+      "field_issues": [
+        {
+          "severity": "error",
+          "code": "FIELD_MATRIX_REQUIRED_FIELD_MISSING",
+          "title": "line_reference saknas",
+          "description": "RFF+LI krävs för PRODAT Z01.",
+          "fieldPath": "RFF+LI",
+          "blocking": true
+        }
+      ],
+      "response_plan": [
+        {
+          "family": "CONTRL",
+          "outcome": "positive",
+          "reason": "Inbound EDIFACT är syntaxmässigt accepterat enligt canonical ACK authority."
+        },
+        {
+          "family": "APERAK",
+          "outcome": "negative",
+          "erc": "41",
+          "ftx": "RFF+LI krävs för PRODAT Z01.",
+          "reason": "PRODAT innehåller ett blockerande canonical policy-/fältfel.",
+          "applicationErrors": [
+            {
+              "ercCode": "41",
+              "fieldCode": null,
+              "text": "RFF+LI krävs för PRODAT Z01.",
+              "referenceQualifier": null,
+              "referenceNumber": null,
+              "lineItemReference": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "variant": "invalid207",
+      "wire": "UNA:+.? 'UNB+UNOC:3+S+R+260917:1200+I++23-DDQ-PRODAT'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z01+D+9+AB'DTM+137:202609171200:203'DTM+ZZZ:1:805'NAD+FR+12345:160:SVK+++++++SWE'NAD+DO+54321:160:SVK+++++++SE'LIN+1++735123456789012345:::9'DTM+92:202610010000:203'CCI++Z13'CAV+Z22'RFF+Z05:NET'RFF+ANJ:AGREEMENT'RFF+LI:CASE-A'NAD+UD+001::89++Synthetic+Street+City++12345+SE'UNT+15+M'UNZ+1+I'",
+      "field_issues": [
+        {
+          "severity": "error",
+          "code": "FIELD_MATRIX_FIELD_FORMAT_INVALID",
+          "title": "sender_ediel_id följer inte NAD-fältets struktur",
+          "description": "NAD+FR/C082/3039 + NAD+FR/3207: kontrollera komponent, kodlista, längd och part enligt PRODAT 26.A s.45–46,79–83.",
+          "fieldPath": "NAD+FR/C082/3039 + NAD+FR/3207",
+          "blocking": true
+        }
+      ],
+      "response_plan": [
+        {
+          "family": "CONTRL",
+          "outcome": "positive",
+          "reason": "Inbound EDIFACT är syntaxmässigt accepterat enligt canonical ACK authority."
+        },
+        {
+          "family": "APERAK",
+          "outcome": "negative",
+          "erc": "42",
+          "ftx": "NAD+FR/C082/3039 + NAD+FR/3207: kontrollera komponent, kodlista, längd",
+          "reason": "PRODAT innehåller ett blockerande canonical policy-/fältfel.",
+          "applicationErrors": [
+            {
+              "ercCode": "42",
+              "fieldCode": "082",
+              "text": "NAD+FR/C082/3039 + NAD+FR/3207: kontrollera komponent, kodlista, längd",
+              "referenceQualifier": null,
+              "referenceNumber": null,
+              "lineItemReference": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "renderer_observations": [
+    {
+      "variant": "missingLI",
+      "plan": {
+        "family": "APERAK",
+        "outcome": "negative",
+        "erc": "41",
+        "ftx": "RFF+LI krävs för PRODAT Z01.",
+        "reason": "PRODAT innehåller ett blockerande canonical policy-/fältfel.",
+        "applicationErrors": [
+          {
+            "ercCode": "41",
+            "fieldCode": null,
+            "text": "RFF+LI krävs för PRODAT Z01.",
+            "referenceQualifier": null,
+            "referenceNumber": null,
+            "lineItemReference": null
+          }
+        ]
+      },
+      "segments": [
+        "BGM+++34",
+        "DTM+137:202609200028:203",
+        "DTM+178:202609171200:203",
+        "RFF+ACW:D",
+        "NAD+FR+54321:160:SVK+++++++SE",
+        "NAD+DO+12345:160:SVK+++++++SE",
+        "ERC+41::260",
+        "FTX+AAO+++RFF LI krävs för PRODAT Z01.",
+        "RFF+Z07:735123456789012345"
+      ]
+    },
+    {
+      "variant": "invalid207",
+      "plan": {
+        "family": "APERAK",
+        "outcome": "negative",
+        "erc": "42",
+        "ftx": "NAD+FR/C082/3039 + NAD+FR/3207: kontrollera komponent, kodlista, längd",
+        "reason": "PRODAT innehåller ett blockerande canonical policy-/fältfel.",
+        "applicationErrors": [
+          {
+            "ercCode": "42",
+            "fieldCode": "082",
+            "text": "NAD+FR/C082/3039 + NAD+FR/3207: kontrollera komponent, kodlista, längd",
+            "referenceQualifier": null,
+            "referenceNumber": null,
+            "lineItemReference": null
+          }
+        ]
+      },
+      "segments": [
+        "BGM+++34",
+        "DTM+137:202609200028:203",
+        "DTM+178:202609171200:203",
+        "RFF+ACW:D",
+        "NAD+FR+54321:160:SVK+++++++SE",
+        "NAD+DO+12345:160:SVK+++++++SE",
+        "ERC+42::260",
+        "FTX+AAO++082::260+NAD FR/C082/3039   NAD FR/3207?: kontrollera komponent, kodlista, längd",
+        "RFF+Z07:735123456789012345"
+      ]
+    }
+  ],
+  "legacy_li_observation": {
+    "validation_issues": [
+      {
+        "severity": "error",
+        "code": "CANONICAL_POLICY_VALIDATION_FAILED",
+        "title": "Canonical Ediel-policy blockerade validering",
+        "description": "canonical_policy_direction_required:PRODAT:Z03",
+        "blocking": true
+      }
+    ],
+    "legacy_script": "scripts/ediel-rule-regression.cjs:133",
+    "result": "FAIL; not evidence LI requirement absent"
+  },
+  "fresh_probe_sha256": "b542ed6d012a12b8a29cf7ba0856ef62c0b1ac86c7e4a5daa5e0dab822dfd548",
+  "fresh_probe_result": {
+    "tests_passed": 4,
+    "tests_failed": 0,
+    "meaning": "observations of current defects, not normative pass or conformance"
+  },
+  "not_freshly_retested": "Prior98 cell and10parent receipt suites; PR Node22 CI independently reported by root."
+}

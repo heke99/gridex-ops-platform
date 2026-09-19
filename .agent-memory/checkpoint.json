@@ -2,10 +2,10 @@
   "project": "gridex-ops-platform",
   "updated_at": "2026-09-19",
   "status": "IN_PROGRESS",
-  "branch": "codex/ediel-gas-applicability-20260919",
-  "base_head_sha": "4e41b85f0318c5871ffd62b493cbfc038522c81e",
-  "active_item": "PR349 GAS R1 corrections: exact LI binding and direct SMTP EL exclusion",
-  "next_action": "Original author fixes both, unchanged3reviewerprobes plus controls, scoped independent rereview/newexactCI",
+  "branch": "codex/ediel-f3-closure-20260919",
+  "base_head_sha": "51c6c06b5fd7f56f447c0bd907373dc3a76d4676",
+  "active_item": "Source/evidence-only F3 closure qualification",
+  "next_action": "Complete and independently review F3 closure evidence and next bounded field-identity/506 gap; no runtime until source contract approved",
   "accepted_numeric_D": 98,
   "merged_numeric_D": 98,
   "numeric_D_total": 110,
@@ -19,16 +19,16 @@
   },
   "full_masterplan": "NOT_COMPLETE",
   "main_full_certificate": {
-    "run": 35468734623,
-    "job": 105965701795,
+    "run": 35472852603,
+    "job": 105976888328,
     "passed": 73,
     "total": 73,
     "failed": 0,
     "node": "22.23.2",
-    "completed_at": "2026-09-19T21:00:05Z"
+    "completed_at": "2026-09-19T22:25:24Z"
   },
-  "runtime_authorized": true,
-  "last_accepted_pr": 348,
+  "runtime_authorized": false,
+  "last_accepted_pr": 349,
   "source_fix_round": 1,
   "source_remote_checkpoint": {
     "head": "f0773fc7a5635fc5cc1fa57167dd7dda6bad9963",
@@ -37,17 +37,17 @@
     "pr": null,
     "verification": "publicfetchdiff0"
   },
-  "runtime_local_head": "17b548fe76f932ad084f2e823b64497364544c68",
-  "runtime_published_head": "84b612c562ae2765df0fad5a7a138583a06121d4",
-  "runtime_tree": "db947e953abe95b9cf5809335d134b95c8398fea",
-  "active_pr": 349,
-  "last_merged_pr": 348,
+  "runtime_local_head": "8ccead182667938beb9a0072c8a2571e0acdaac3",
+  "runtime_published_head": "4c7835355fad784441fa2884b91e1d6f7bdee168",
+  "runtime_tree": "103912123ccce2ad916a3109bceadc9dac610236",
+  "active_pr": null,
+  "last_merged_pr": 349,
   "main_ops_receipt": {
-    "run": 35468734627,
+    "run": 35472852618,
     "jobs": [
-      105965701658,
-      105965701699,
-      105965701825
+      105976888047,
+      105976888180,
+      105976888182
     ],
     "conclusion": "success"
   },
@@ -55,7 +55,7 @@
   "source_review": "SOURCE/SPEC APPROVE; ARCHITECTURE APPROVE",
   "runtime_scope": "FiveGAScells purehistoricalcondition-only240 +ELexclusion/marketbinding +selectedZ04/Z06/Z10persistedguard; no GASproducer",
   "runtime_fix_round": 1,
-  "runtime_review": "REQUEST_CHANGES: R-GAS-1 and R-GAS-2 Medium",
+  "runtime_review": "TASK/SPEC APPROVE; QUALITY APPROVE; WHOLE-BRANCH APPROVE (R1 closed)",
   "applicable_pr_workflows": 4,
   "main_pending": null
 }
