@@ -101,3 +101,9 @@ Main0271e118a5ab4f7adebe5e5b7a041dda01a5547a: full35459742971/job105941346806 SU
 
 ## PR347 candidate checkpoint
 Active PR347 DRAFT: bounded Z10 OptionA implemented at local4224c40a65e891166f13d7c4261c9193bc70e796, publishedbcf86515fefd862e34f9b377f6b6e84cef03906d, exacttree04c8db3a9b6898f401a96b0a7ad0921b25fc4927 verified by public fetch/diff0. Source/spec+architecture approved R1; completed runtime task/spec+quality+wholebranch review active with z10_change_facts_review. All13local gates pass, final4188/4188 tests,818scripts,143/143 inUTC/Stockholm/Apia. Exact-head Node22CI pending; no merge/acceptance yet.
+
+## PR347 merged; main verification pending
+PR347 merged at16d93f38387c203b1d277064948199fb905220aa, exacttree6c45c4c65dde68b61fdded4431c9e39dc211ac94 verified zero diff fromfinalheadf150918681b083221293f208984fb3f3e25a5755. Independent source/task/spec/quality/wholebranch APPROVE afterR2/R3/R4fixed, original8/8,affected102/102,exactNode22.23.2CI4208/4208in276files. All4applicableCI SUCCESS:OPS35464524952,Full35464524887,Browser35464524856,Ediel35464524888. Fresh refs/emptyGitHubreviews/threads/expected-head merge. Mainfull35464884519 andOPS35464884585 pending, rootmustverifyactual73/73+allOPS; browser35464884501/Ediel35464884499pending. AutomaticVercel35464884514SUCCESS, no explicitdeployment.
+
+## PR347 main verification complete
+PR347 complete: main16d93f38387c203b1d277064948199fb905220aa actualfull35464884519/job105955294810 SUCCESS73/73,0failed onNode22.23.2 at2026-09-19T19:43:38Z. MainOPS35464884585 all3SUCCESS:verify105955294866,replay105955294847,quality105955294763. AllmainworkflowsSUCCESS includingbrowser35464884501,Ediel35464884499,automaticVercel35464884514. Accept boundedZ10OptionAcodeunit, no full-cell/countincrease;98/110numeric and10/10parents unchanged. Source-onlydeath310Z05/Z06/Z09 active with death_status; no runtimeauthorizeduntil independent source/spec+architecture review. PR310paused.

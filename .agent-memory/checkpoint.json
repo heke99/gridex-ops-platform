@@ -2,10 +2,10 @@
   "project": "gridex-ops-platform",
   "updated_at": "2026-09-19",
   "status": "IN_PROGRESS",
-  "branch": "codex/ediel-z10-change-facts-20260919",
-  "base_head_sha": "0271e118a5ab4f7adebe5e5b7a041dda01a5547a",
-  "active_item": "PR347 bounded R4 format-routing residual correction",
-  "next_action": "Original author corrects R4 residual, independent unchanged-probe scoped verification, new exact-head CI",
+  "branch": "codex/ediel-death-status-20260919",
+  "base_head_sha": "16d93f38387c203b1d277064948199fb905220aa",
+  "active_item": "Death-status source/architecture qualification on verified main347",
+  "next_action": "Complete source-only death audit, independent source/spec and architecture review, then bounded explicit runtime authorization",
   "accepted_numeric_D": 98,
   "merged_numeric_D": 98,
   "numeric_D_total": 110,
@@ -19,15 +19,17 @@
   },
   "full_masterplan": "NOT_COMPLETE",
   "main_full_certificate": {
-    "run": 35459742971,
-    "job": 105941346806,
+    "run": 35464884519,
+    "job": 105955294810,
     "passed": 73,
     "total": 73,
-    "node": "22.23.2"
+    "failed": 0,
+    "node": "22.23.2",
+    "completed_at": "2026-09-19T19:43:38Z"
   },
-  "runtime_authorized": true,
-  "last_accepted_pr": 346,
-  "source_fix_round": 1,
+  "runtime_authorized": false,
+  "last_accepted_pr": 347,
+  "source_fix_round": 0,
   "source_remote_checkpoint": {
     "head": "87ece9c155afef7b805daf56ada8e2ad4eb1843e",
     "tree": "c8a8f50b620e8db1b97f110f1d5271ca2b3f3c7f",
@@ -35,24 +37,25 @@
     "pr": null,
     "verification": "public fetch and exact diff0"
   },
-  "runtime_local_head": "f17d179ede2e774dda14e24bbacaedfb6927bffd",
-  "runtime_published_head": "ab86307b42b6b9a245454a4505a52df181b41c52",
-  "runtime_tree": "b531526032b1ee7da196f357f0abcd6806b3b4b5",
-  "active_pr": 347,
-  "last_merged_pr": 346,
+  "runtime_local_head": "829b2d665d5ff4e334c16e1ebf236b7f65e6a134",
+  "runtime_published_head": "f150918681b083221293f208984fb3f3e25a5755",
+  "runtime_tree": "6c45c4c65dde68b61fdded4431c9e39dc211ac94",
+  "active_pr": null,
+  "last_merged_pr": 347,
   "main_ops_receipt": {
-    "run": 35459743008,
+    "run": 35464884585,
     "jobs": [
-      105941346498,
-      105941346677,
-      105941346686
+      105955294866,
+      105955294847,
+      105955294763
     ],
     "conclusion": "success"
   },
-  "source_candidate_commit": "5eaf5b7da147021fd84c6c7f6cc4ecda3cd15d33",
+  "source_candidate_commit": null,
   "source_review": "SOURCE/SPEC and ARCHITECTURE APPROVE R1",
   "runtime_scope": "OptionA only; positive persisted Z10 producer unqualified",
   "runtime_fix_round": 2,
-  "runtime_review": "R2/R3 closed; R4 format-routing adjacent regression remains",
-  "applicable_pr_workflows": 4
+  "runtime_review": "Prior PR347 allindependentverdictsAPPROVE; nextunit source-only",
+  "applicable_pr_workflows": 4,
+  "main_pending": null
 }
