@@ -777,3 +777,70 @@ originals/121 rules/231 contracts, conformance/readiness false; lint100 warnings
 zero errors; tenant ratchet2401 versus unchanged2402 baseline. Final staged
 and unstaged diff checks PASS. No remaining code/test blocker is claimed before
 independent scoped rereview.
+
+## R4 residual correction after scoped R1 rereview
+
+The independent R1 rereview closed R2/R3 but demonstrated one real R4 regression:
+`Ver20140401;A;B\n1;2;3?` reached the new detector before list dispatch and threw
+`edifact_dangling_release_character`. Root explicitly authorized continuing the
+bounded correction under the user's instruction to continue until correct and
+green. That continuing user authorization and developer persistence supersede
+the prior skill workflow's one-final-wave stopping guideline; no duplicate
+permission pause or broader scope follows.
+
+Changed only the shared `prodatMeterChangeAuthority` owner in production. It
+recognizes actual header/segment separators from the existing UNA advice before
+invoking the unchanged tokenizer. Arbitrary punctuation after UNH is not EDIFACT;
+released terminators do not introduce header-looking data, while even release
+pairs retain genuine boundaries. A declared row Z10 remains unconditionally
+unqualified. Actual raw Z10 still overrides misleading XML/list metadata, and
+genuine malformed EDIFACT retains the existing syntax exception instead of a
+ready alternate-format return. This shared correction also covers the detector
+called by canonical/row/guards/SMTP, without codec or downstream policy edits.
+
+Preserved original reviewer probes unchanged: seven assertions SHA256
+`710a47ea22a0ddb6459ecd2dfbcb214539bd0257d4419086b1277b6ebbc8756f`; adjacent
+one assertion SHA256
+`862c8b5db8ccab6de38168f0cab402fc7bb3ca4b90b27c7d8ca052636ed52cc7`.
+Author reproduced7 PASS/1 FAIL (`author-residual-red.json`), then8/8 PASS
+(`author-residual-reviewer-final2.json`). Ten new regression cases exercise
+public raw/row preflight, both actual guards, row identity, real/mislabelled Z10,
+three UNA alphabets, malformed syntax, leading malformed text, list UNH; text
+and released header-looking data. Final affected suites102/102 PASS
+(`author-residual-focused-final3.json`); actual shared SMTP rejection tests are
+included. No existing assertion changed.
+
+Intermediate RED/limits are retained: new initial7 cases had4 PASS/3 FAIL;
+first header-only attempt let leading malformed text reach alternate routing;
+root found that the next broad punctuation regex also misclassified UNH; list
+text. The final recognizer uses actual shared service separators and release
+parity. The leading-malformed-text test initially demanded a specific selected
+issue, but the existing tokenizer correctly throws a syntax error for that
+payload; the new assertion now checks that exact fail-closed behavior.
+
+Two new overbroad row/guard expectations were narrowed only after concrete base
+verification, not merely because adjacent source was unchanged. A scratch
+`git archive` of accepted base0271e118's actual lib modules was loaded via
+`baseline.config.mjs`: both characterization assertions PASS in
+`author-residual-accepted-base.json`. That base already returns
+PRODAT_REGISTER_EVIDENCE_INVALID for a UNH; list in row dispatch, and its actual
+rulebook guard already tokenizes quote-bearing list content without a standard
+hint and throws. Those old format heuristics are not changed here. New UNH;
+and released-text assertions cover public raw routing and the shared detector;
+the original trailing-question list, ordinary list and XML additionally prove
+actual row and both guard preservation. No blanket alternate-format acceptance
+is claimed. Scratch failures and base extraction remain review evidence.
+
+No fresh full-suite/timezone run is claimed for this small shared-owner fix.
+The prior4198/4198 receipt remains historical; root will run full exact-head
+Node22 CI. Local scoped verification remains Node24. No positive producer,
+role/UI/registry/GAS activation, source-codec/schema/loader/gate/budget change,
+root-memory edit or acceptance increment;98/110 and10/10 parents stay unchanged.
+
+Final residual gates (`residual-gates/gate-results.json`): app and test
+typechecks, full lint, large-file budget, specification integrity, immutable
+source/escaping scripts and diff check all exit0. Source/escaping818/818 PASS;
+33 originals/121 rules/231 contracts unchanged with readiness/conformance false;
+lint100 warnings/0 errors. Staged and unstaged diff checks PASS. Self-review
+covered the one shared-owner diff and callers' concrete preservation/syntax
+assertions. Scoped independent residual verification remains root-owned.

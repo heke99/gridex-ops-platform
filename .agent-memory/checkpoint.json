@@ -4,8 +4,8 @@
   "status": "IN_PROGRESS",
   "branch": "codex/ediel-z10-change-facts-20260919",
   "base_head_sha": "0271e118a5ab4f7adebe5e5b7a041dda01a5547a",
-  "active_item": "PR347 consolidated runtime review fix wave",
-  "next_action": "Original author fixes R2/R3/R4, same-probe scoped rereview, new exact-head four applicable CI workflows",
+  "active_item": "PR347 bounded R4 format-routing residual correction",
+  "next_action": "Original author corrects R4 residual, independent unchanged-probe scoped verification, new exact-head CI",
   "accepted_numeric_D": 98,
   "merged_numeric_D": 98,
   "numeric_D_total": 110,
@@ -35,9 +35,9 @@
     "pr": null,
     "verification": "public fetch and exact diff0"
   },
-  "runtime_local_head": "4224c40a65e891166f13d7c4261c9193bc70e796",
-  "runtime_published_head": "bcf86515fefd862e34f9b377f6b6e84cef03906d",
-  "runtime_tree": "04c8db3a9b6898f401a96b0a7ad0921b25fc4927",
+  "runtime_local_head": "f17d179ede2e774dda14e24bbacaedfb6927bffd",
+  "runtime_published_head": "ab86307b42b6b9a245454a4505a52df181b41c52",
+  "runtime_tree": "b531526032b1ee7da196f357f0abcd6806b3b4b5",
   "active_pr": 347,
   "last_merged_pr": 346,
   "main_ops_receipt": {
@@ -52,7 +52,7 @@
   "source_candidate_commit": "5eaf5b7da147021fd84c6c7f6cc4ecda3cd15d33",
   "source_review": "SOURCE/SPEC and ARCHITECTURE APPROVE R1",
   "runtime_scope": "OptionA only; positive persisted Z10 producer unqualified",
-  "runtime_fix_round": 1,
-  "runtime_review": "REQUEST_CHANGES R2/R3/R4",
+  "runtime_fix_round": 2,
+  "runtime_review": "R2/R3 closed; R4 format-routing adjacent regression remains",
   "applicable_pr_workflows": 4
 }
