@@ -1,3 +1,11 @@
+PR349 independent TASK/SPEC,QUALITY,WHOLE-BRANCH REQUEST_CHANGES: R-GAS-1 descriptive LI reader drops blanks/normalizes qualifiers before causal240 binding; R-GAS-2 directSMTPcoherentELZ04 forbidden320/240 reachesmockprovider. Noactualsend/endtoendproductionbypassclaim. Immutable3RED probeSHA4e182c964cd2e499255b0c0190b15319832ef2492fe61c434ec97f3aa802d8e8; independentcontrols4/4. Originalauthor gas_applicability dispatched coherentboundedfixround1; nooldassertionedits. Rootreadcompletedreport. InitialNode22coverage105974411911 actual4318/4318 in288files; noacceptance. Nextscopedrereview/newexactCI.
+
+## Current — PR349 independent review and CI
+
+PR348 accepted bounded death unit at main4e41b85f, actual73/73 and allOPS verified. PR349 is OPEN DRAFT at84b612c562ae2765df0fad5a7a138583a06121d4, exacttree db947e953abe95b9cf5809335d134b95c8398fea, local4318/4318 and13gates green. Independent runtime review and four exact-head Node22 workflows pending. No current implementation failure; review/CI remain acceptance gates. Counts98/110numeric and10/10parents unchanged. Positivepersisted Z14/Z10/death producers and GAS/TIM-SCH identity remain unqualified; no artificial producer or role activation. PR310 remains paused. Next: findings through original author, scoped review, exact CI, guardedmerge and actualmain73+OPS; then continue available masterplan work with capability-specific blockers.
+
+Historical entries below are superseded where status differs.
+
 # open-blockers
 
 Accepted numericD98/110; merged98/110;10/10parentsaccepted. Last acceptedmain0271e118 PR346 actual73/73. Remaining after twoZ13 acceptance:2positiveZ14producer,2Z10fields254/242,3death310,5GAS320/240. ActiveEL scope; no implicitGAS/live/gridownerfacade activation. PR310paused unchangede961135199f292b8210884f07de3b616a670161a, no imports. Fullmasterplan/F3–F7/live incomplete; no liveDB/storage/providersends/explicitdeploy/settings. AutomaticVercelmain deploy separate.

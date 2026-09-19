@@ -1,5 +1,5 @@
 import {validateEdielMessageRowWithRulebook} from '@/lib/ediel/rulebook/validator'
-import {assertGasApplicabilitySendBoundary,gasApplicabilitySendIssue} from '@/lib/ediel/prodat/prodatGasAuthority'
+import {assertGasApplicabilitySendBoundary,gasApplicabilitySendIssue,gasApplicabilitySendFieldIssues} from '@/lib/ediel/prodat/prodatGasAuthority'
 import {deathStatusSendIssue} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 import {meterChangeSendIssue} from '@/lib/ediel/prodat/prodatMeterChangeAuthority'
 import {hasReportingPermissionMessage} from '@/lib/ediel/prodat/prodatReportingPermissionAuthority'
@@ -323,12 +323,12 @@ export async function sendEdielMessageViaSmtp(
   messageId: string | null
 }> {
   const actorUserId = requireActorUserId(params?.actorUserId)
-  const sourceHolds=[gasApplicabilitySendIssue(message),deathStatusSendIssue(message)].filter(Boolean)
+  const sourceHolds=[gasApplicabilitySendIssue(message),...gasApplicabilitySendFieldIssues(message),deathStatusSendIssue(message)].filter(Boolean)
   if(sourceHolds.length){
     const messages=sourceHolds.map(i=>`${i!.code}: ${i!.description}`)
     // Add the existing pure protected diagnostics before this new early hold;
-    // no route/context loader or provider is invoked for an unqualified market.
-    if(sourceHolds.some(i=>i?.code==='PRODAT_GAS_SOURCE_UNQUALIFIED')){
+    // no route/context loader or provider is invoked for a GAS boundary defect.
+    if(sourceHolds.some(i=>i?.code.startsWith('PRODAT_GAS_'))){
       try{for(const issue of validateEdielMessageRowWithRulebook(message,'send').issues){
         if((issue.scope==='prodat_dependent'||issue.scope==='prodat_register')&&(issue.blocking||issue.severity==='error'))messages.push(`${issue.code}: ${issue.description}`)
       }}catch(error){messages.push(error instanceof Error?error.message:String(error))}

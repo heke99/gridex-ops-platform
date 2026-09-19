@@ -1,3 +1,9 @@
+## Current — PR349 independent review and CI
+
+PR348 accepted bounded death unit at main4e41b85f, actual73/73 and allOPS verified. PR349 is OPEN DRAFT at84b612c562ae2765df0fad5a7a138583a06121d4, exacttree db947e953abe95b9cf5809335d134b95c8398fea, local4318/4318 and13gates green. Independent runtime review and four exact-head Node22 workflows pending. No current implementation failure; review/CI remain acceptance gates. Counts98/110numeric and10/10parents unchanged. Positivepersisted Z14/Z10/death producers and GAS/TIM-SCH identity remain unqualified; no artificial producer or role activation. PR310 remains paused. Next: findings through original author, scoped review, exact CI, guardedmerge and actualmain73+OPS; then continue available masterplan work with capability-specific blockers.
+
+Historical entries below are superseded where status differs.
+
 # work-plan
 
 PR347 complete: main16d93f38387c203b1d277064948199fb905220aa actualfull35464884519/job105955294810 SUCCESS73/73,0failed onNode22.23.2 at2026-09-19T19:43:38Z. MainOPS35464884585 all3SUCCESS:verify105955294866,replay105955294847,quality105955294763. AllmainworkflowsSUCCESS includingbrowser35464884501,Ediel35464884499,automaticVercel35464884514. Accept boundedZ10OptionAcodeunit, no full-cell/countincrease;98/110numeric and10/10parents unchanged. Source-onlydeath310Z05/Z06/Z09 active with death_status; no runtimeauthorizeduntil independent source/spec+architecture review. PR310paused.

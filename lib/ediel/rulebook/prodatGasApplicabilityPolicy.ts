@@ -25,8 +25,13 @@ export function evaluateProdatGasApplicability(input:GasPolicyInput){
   // even when two messages happen to carry identical data.
   const binding=(id:string|null,agency:string|null,code:string,li:string|null)=>JSON.stringify([id,agency,code,li])
   const liValue=(segments:Token[])=>{
-    const entries=prodatReferenceEntries(segments,una).filter(e=>e.qualifier==='LI')
-    return entries.length===1?segmentComposite(segments.find(t=>t.raw===entries[0].raw),1,una)[1]??null:null
+    // Count even blank/malformed occurrences before qualification. The descriptive
+    // reference reader normalizes and drops blanks, so cannot establish authority.
+    const entries=segments.filter(t=>t.tag==='RFF'&&segmentComposite(t,1,una)[0]?.trim().toUpperCase()==='LI')
+    if(entries.length!==1)return null
+    const token=entries[0],parts=segmentComposite(token,1,una),party=segments.findIndex(t=>t.tag==='NAD')
+    if(segmentComposite(token,0,una)[0]!=='RFF'||parts[0]!=='LI'||!parts[1]?.trim()||parts[1].length>35||parts.slice(2).some(Boolean)||segmentElementCount(token,una)!==1||(party>=0&&segments.indexOf(token)>party))return null
+    return parts[1]
   }
   const uses=new Map<string,number>()
   for(const m of scoped)for(const g of m.groups.filter(g=>g.registerPosition===1||!g.validRegisterChain)){

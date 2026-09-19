@@ -93,3 +93,19 @@ it('fresh source copies clear stale selection; serialization cannot confer persi
  expect(evidence.facts.gasSerialChange?.objects[0].event.revision).toBe('r1')
  expect(()=>readProdatRegisterEvidence({...wire,parsedPayload:{prodatEngine:{registerEvidence:evidence}}})).toThrow('prodat_register_evidence_invalid')
 })
+for(const alphabet of alphabets)it(`causal240 requires one exact unfiltered own LI ${alphabet}`,()=>{
+ const own=(refs:Parts[])=>raw([line('1','A'),...characteristic('Z13','E64'),...refs],'Z06',alphabet).replace('23-DDQ-PRODAT','27-DDQ-PRODAT').replace('E2SE6A','E2SE6B')
+ for(const refs of [
+  [['RFF',['LI','EVENT-A']],['RFF',['LI','']]],
+  [['RFF',['LI','EVENT-A']],['RFF',['LI','OTHER']]],
+  [['RFF',['li','EVENT-A']]], [['RFF',[' LI','EVENT-A']]],
+  [['NAD','UD'],['RFF',['LI','EVENT-A']]],
+  [['RFF',['LI','EVENT-A']],['NAD','UD'],['RFF',['LI','']]],
+ ] as Parts[][]){
+  expect(check(own(refs),'Z06','outbound',selection(true)).requirements.get('240')).toBe('undetermined')
+  expect(check(own(refs),'Z06','inbound',selection(true)).issues.filter(i=>i.fieldPath==='RFF+Z06'&&i.blocking)).toEqual([])
+ }
+ expect(check(own([['RFF',['LI','EVENT-A']]]),'Z06','outbound',selection(true)).requirements.get('240')).toBe('required')
+ const literal='EVENT'+alphabet.join(''),facts=selection(true);facts.objects[0].lineItemReference=literal
+ expect(check(own([['RFF',['LI',literal]]]),'Z06','outbound',facts).requirements.get('240')).toBe('required')
+})

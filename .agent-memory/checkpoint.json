@@ -4,8 +4,8 @@
   "status": "IN_PROGRESS",
   "branch": "codex/ediel-gas-applicability-20260919",
   "base_head_sha": "4e41b85f0318c5871ffd62b493cbfc038522c81e",
-  "active_item": "Bounded five GAS applicability runtime implementation",
-  "next_action": "ImplementationRED/GREEN/gates, individualoldassertionrulings, independentruntime review",
+  "active_item": "PR349 GAS R1 corrections: exact LI binding and direct SMTP EL exclusion",
+  "next_action": "Original author fixes both, unchanged3reviewerprobes plus controls, scoped independent rereview/newexactCI",
   "accepted_numeric_D": 98,
   "merged_numeric_D": 98,
   "numeric_D_total": 110,
@@ -37,10 +37,10 @@
     "pr": null,
     "verification": "publicfetchdiff0"
   },
-  "runtime_local_head": "5593cb2d7f63ee6aa9dc7dbd5b92c46318d215d9",
-  "runtime_published_head": "afe61d339359cb04d9c2def947b73cd84746a5c9",
-  "runtime_tree": "a9327ea047243a8ffa3a48e87ff9a840bfa8315d",
-  "active_pr": null,
+  "runtime_local_head": "17b548fe76f932ad084f2e823b64497364544c68",
+  "runtime_published_head": "84b612c562ae2765df0fad5a7a138583a06121d4",
+  "runtime_tree": "db947e953abe95b9cf5809335d134b95c8398fea",
+  "active_pr": 349,
   "last_merged_pr": 348,
   "main_ops_receipt": {
     "run": 35468734627,
@@ -54,8 +54,8 @@
   "source_candidate_commit": "4fc1eaf2115a6d1697f559605f98fa044c2a1fba",
   "source_review": "SOURCE/SPEC APPROVE; ARCHITECTURE APPROVE",
   "runtime_scope": "FiveGAScells purehistoricalcondition-only240 +ELexclusion/marketbinding +selectedZ04/Z06/Z10persistedguard; no GASproducer",
-  "runtime_fix_round": 0,
-  "runtime_review": "PENDING",
+  "runtime_fix_round": 1,
+  "runtime_review": "REQUEST_CHANGES: R-GAS-1 and R-GAS-2 Medium",
   "applicable_pr_workflows": 4,
   "main_pending": null
 }

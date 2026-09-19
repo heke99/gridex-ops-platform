@@ -1,5 +1,5 @@
 import {it,expect,vi,beforeEach} from 'vitest'
-import {payload,characteristic,selection} from './fixtures/prodat-gas'
+import {payload,characteristic,selection,alphabets} from './fixtures/prodat-gas'
 import {deriveProdatAperakValidationIssues,resolveAndStoreProdatAperakErrors} from '@/lib/ediel/testing/aperakErrorRuleRegistry'
 import {compareInboundPayloadToTgtTestData} from '@/lib/ediel/testing/tgtAutoMatcher'
 import {decideProdatAperak} from '@/lib/ediel/decisionEngine'
@@ -52,4 +52,18 @@ it('actual loaded route mismatch holds coherent EL before provider/storage work'
  io.route.mockResolvedValue({application_reference:'27-DDQ-PRODAT'})
  await expect(sendEdielMessageViaSmtp({...row(payload(),'outbound'),receiver_email:'synthetic@example.test',communication_route_id:'route'},{actorUserId:'00000000-0000-4000-8000-000000000003'})).rejects.toThrow('PRODAT_GAS_SOURCE_UNQUALIFIED')
  expect(io.route).toHaveBeenCalledOnce();for(const mock of [io.from,io.provider,io.event,io.update])expect(mock).not.toHaveBeenCalled()
+})
+for(const alphabet of alphabets)it(`direct SMTP enforces each EL Z04 exclusion before all external work ${alphabet}`,async()=>{
+ for(const [qualifier,field] of [['Z08','320'],['Z06','240']]){
+  const message={...row(payload('Z04','Z22',[['NAD','UD'],['RFF',[qualifier,'']]],'electricity',alphabet),'outbound'),receiver_email:'synthetic@example.test',communication_route_id:'route'}
+  await expect(sendEdielMessageViaSmtp(message,{actorUserId:'00000000-0000-4000-8000-000000000003'})).rejects.toThrow(`PRODAT_GAS_${field}_FORBIDDEN`)
+  for(const mock of Object.values(io))expect(mock).not.toHaveBeenCalled()
+ }
+})
+it('SMTP field exclusion preserves the existing protected date-event diagnostic',async()=>{
+ const message={...row(payload('Z06','E64',[['RFF',['Z08','HEAT']],['DTM',['92','202602300000','203']]]),'outbound'),message_code:'Z06',receiver_email:'synthetic@example.test'}
+ const result=sendEdielMessageViaSmtp(message,{actorUserId:'00000000-0000-4000-8000-000000000003'})
+ await expect(result).rejects.toThrow('PRODAT_GAS_320_FORBIDDEN')
+ await expect(result).rejects.toThrow('PRODAT_DATE_EVENT_FORMAT_INVALID')
+ for(const mock of Object.values(io))expect(mock).not.toHaveBeenCalled()
 })
