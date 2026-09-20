@@ -1,0 +1,48 @@
+{
+  "date": "2026-09-20",
+  "baseline": "e02387263bb3d179bc2548334f48463dadddb99c",
+  "source": {
+    "official_index": "https://www.ediel.se/Info/edielanvisningar",
+    "official_pdf": "https://www.ediel.se/Portal/Document/3314",
+    "filename": "260220_Ediel-anvisning-generella_tekniska_regler_version_24-A-6.pdf",
+    "bytes": 1124807,
+    "pages": 60,
+    "sha256": "5204d4514774b04b8eedb039e1f4799ed447c7fef14554577935e2d7bd93f951",
+    "manifest_match": true,
+    "review_comment": 5751649097
+  },
+  "rule": {
+    "id": "ENV-04",
+    "field": "UNB/0031",
+    "request_value": "1",
+    "eligible": [
+      "PRODAT",
+      "UTILTS",
+      "UTILTS_ERR",
+      "APERAK"
+    ],
+    "omit": [
+      "CONTRL"
+    ],
+    "opposing_control": "UNB/0035"
+  },
+  "owners": {
+    "decision": "lib/ediel/ack/canonicalAckEngine.ts",
+    "projection": "lib/ediel/core/ackPolicy.ts",
+    "common_envelope": "lib/ediel/core/edifactEnvelopeCodec.ts",
+    "wrapper": "lib/ediel/messages.ts",
+    "alternate_prodat": "lib/ediel/core/edifactSerializer.ts -> EdifactEnvelopeCodec.encode"
+  },
+  "task_a": {
+    "source_gate": "COMPLETE",
+    "consumer_trace": "COMPLETE",
+    "independent_review": "PENDING",
+    "runtime_authorized": false,
+    "fresh_behavioral_red": "NOT_RUN"
+  },
+  "boundaries": {
+    "full_F3": "NOT_COMPLETE",
+    "full_masterplan": "NOT_COMPLETE",
+    "pr310": "OPEN_DRAFT_PAUSED_e9611351"
+  }
+}
