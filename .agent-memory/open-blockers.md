@@ -1,9 +1,9 @@
-# Remaining gates — after accepted PR359
+# Open gates — F3 after reconciliation R1
 
-CLOSED for boundedPR359: the two original list-routing CI regressions, new format controls, exact-head ordinaryCI, independent four-dimensional review, guarded merge and actual-main73/73+allOPS. Acceptedmain71d2adf8; root5753333308; pr359-main-acceptance-20260921.json. No359 CI/merge blocker remains. The earlier erroneous PRartifact/full73 claim was retracted and independently resolved before merge; fresh actualmain artifact supplies the accepted proof.
+CLOSED/retained: D110/110+10/10; bounded PR351–359 accepted units including E011 and FTX301/303; actual main71d2adf8 has73/73,5010/5010 and allOPS.
 
-ACTIVE EVIDENCE GAP, NOT CONFIRMED BUG: remainingF3C-02 field/register composition lacks a consolidated per-criterion source/owner/consumer/oracle/execution decision. Initial current-owner and passing-test inventory exists in f3-post-pr359-reconciliation-20260921.md. Next bounded mapping is314/209/258/local213 plus first/later/common/header scopes. Missing inspection must not be relabeled as a runtime defect or used to reopen acceptedD/E011/FTX work.
+BLOCKER F3-E035: current 25-A-4 policy sets validateMeterAndRegisterAgainstStructuralInformation=true, but repository trace finds no operational consumer implementing dated meter/register structural comparison and E61/E62. The flag test alone is not behavior. Source/data authority must be qualified before code.
 
-QUEUED: F3C-04 remaining P/U APERAK andUTILTS-ERR criteria; F3C-05 guide-before-function/per-object disposition; F3C-06 fullUNSM/G06 and release-SHA consumers; F3C-07 original-finding reconciliation. FullF3/masterplanNOT_COMPLETE. D110/110+10/10 unchanged.
+BLOCKER F3-G06: full UNSM grammar is required separately by masterplan, but frozen source_manifest contains no complete UNSM grammar package. syntaxValidator.ts and segmentSchema.ts are partial. Do not invent grammar/cardinality or call this green from national field tables.
 
-DEFERRED/EXCLUDED: PR310 remainsOPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a. No import/restart/write/merge or promotion of its database/schema/type evidence. No liveDB/provider/market/settings/explicitdeployment actions. Previous blocker snapshots retained at3ffda9ea and71d2adf8.
+DEFERRED: PR310 OPEN/DRAFT/PAUSED e961135199f292b8210884f07de3b616a670161a; no import/restart/write/merge. FullF3/masterplan NOT_COMPLETE. See f3-criterion-reconciliation-r1-20260921.md.
