@@ -34,12 +34,12 @@
   "status": "IN_PROGRESS",
   "branch": "codex/ediel-permission-prior-flow-20260920",
   "base_head_sha": "4e8b8588f9a6ff805ba433e542615ba6dd66fb98",
-  "active_item": "Implement approved prior-flow correlation",
-  "next_action": "Fresh runtime author TDD/implementation/full gates then independent whole-branch review and exactCI",
+  "active_item": "PR354 R-PF-1 chronology correction by originalauthor",
+  "next_action": "Finalcorrectedcandidate, scopedindependentreview, newexactCI, guardedmerge/main",
   "runtime_authorized": true,
   "last_accepted_pr": 353,
   "last_merged_pr": 353,
-  "active_pr": null,
+  "active_pr": 354,
   "main_pending": null,
   "previous_pr_receipt": {
     "pr": 352,
@@ -83,20 +83,31 @@
     "expected_failed": 8,
     "verification": "fresh fetch diff0"
   },
-  "runtime_remote_parent": "d8d704b241652c5aa073797689f0e1285df570b0",
+  "runtime_remote_parent": "a8c4f1fb75477efd130d31b9ea77cdd2d7c541ff",
   "runtime_checkpoint": {
-    "local": "b1b2fdca24f461994154f30a1e4d77a84433a8e8",
-    "remote": "d8d704b241652c5aa073797689f0e1285df570b0",
-    "tree": "d4ae6200376ff04ba8bbbf2cfd259da9f7dea585",
+    "local": "03a7e651d73317230ba57810d2090e6aae1aacd2",
+    "remote": "a8c4f1fb75477efd130d31b9ea77cdd2d7c541ff",
+    "tree": "5b67a17a11abcfa43ddd5507513c15c13744b225",
+    "runtime": "d9d0a93e0e24d68c8d21cb5ea1f34d21f61419f6",
     "verification": "fresh fetch diff0",
-    "focused_passed": 209,
-    "new_tests": 81,
-    "full_gates": "pending"
+    "full_passed": 4787,
+    "files": 308,
+    "focused_passed": 212,
+    "new_tests": 84,
+    "quality_passed": 45,
+    "strip_only_passed": 818,
+    "gates_passed": 13,
+    "last_test_only_refinement": "new105Swedishtext+assertion targeted1PASS afterfull"
   },
   "codec_exception": "sanitizeSegment canonical terminal apostrophe releaseparity only; independent source/architecture amendment, root56db1f3a",
-  "runtime_review": "NOT_STARTED",
+  "runtime_review": "REQUEST_CHANGES R-PF-1 MEDIUM chronology; bounded TENANT APPROVE",
   "runtime_fix_round": 1,
-  "runtime_ci_runs": [],
+  "runtime_ci_runs": [
+    35513117146,
+    35513117071,
+    35513117108,
+    35513117153
+  ],
   "ci_blocker": null,
   "packaging_checkpoint": {
     "local": "de385ceef28d3764d04ab142432a1193d763bf46",
@@ -111,16 +122,16 @@
   "next_separate_residual": "P-ACK-R1 HIGH prior-flow authority/tenant lookup, independently qualify before production linkage acceptance",
   "additional_assertion_ruling": "c0a84050/10866f53 exact customUNA Z14N own223/status fixture correction only",
   "initial_ci_receipt": {
-    "head": "ddd37b0ffe977a68eacbdab26cdc8775a60d5aa2",
+    "head": "a8c4f1fb75477efd130d31b9ea77cdd2d7c541ff",
     "all_success": true,
     "runs": [
-      35509051434,
-      35509051410,
-      35509051404,
-      35509051425
+      35513117146,
+      35513117071,
+      35513117108,
+      35513117153
     ],
-    "coverage_job": 106073652511,
-    "tests": 4689,
+    "coverage_job": 106084416196,
+    "tests": 4787,
     "node": "22.23.2",
     "historical_after_fix": true
   },

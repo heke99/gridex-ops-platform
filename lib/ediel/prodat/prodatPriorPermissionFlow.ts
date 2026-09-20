@@ -78,6 +78,10 @@ export function assessPriorPermissionFlow(message:EdielMessageRow,records:PriorS
    if(cancellation&&['draft','prepared','queued','failed','cancelled'].includes(candidate.status))continue
    for(const obj of cw.objects){
     if(obj.li!==source.li)continue
+    // Own DTM137 establishes message chronology, independently of delayed
+    // dispatch/receipt. Equal 203 minutes remain eligible; a later exact-LI
+    // candidate is contradictory evidence even beside another valid match.
+    if(Date.parse(cw.businessAt!)>Date.parse(wire.businessAt!)){conflict=true;continue}
     const tuple=wire.code==='Z14'?(!source.customer||source.customer===obj.customer)&&(source.mode==='Z96'||!['S17','S18'].includes(source.mode??'')||source.mode===obj.mode):['permission','object','grid','customer','end'].every(key=>Boolean(source[key as keyof Occurrence])&&source[key as keyof Occurrence]===obj[key as keyof Occurrence])&&(!['S17','S18'].includes(source.mode??'')||source.mode===obj.mode)
     if(obj.conflict||!tuple){conflict=true;continue}
     matches.push({id:candidate.id,hash:hash(candidate.raw_payload),messageReference:cw.messageReference,lineIndex:obj.lineIndex,lineNumber:obj.lineNumber})

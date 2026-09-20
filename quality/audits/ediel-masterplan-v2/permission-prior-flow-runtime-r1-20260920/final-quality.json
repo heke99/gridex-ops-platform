@@ -1,0 +1,17 @@
+{
+  "gate": "quality",
+  "command": [
+    "npx",
+    "vitest",
+    "run",
+    "--config",
+    "quality/vitest.config.ts",
+    "--reporter=json",
+    "--outputFile=quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/quality.json"
+  ],
+  "exit": 0,
+  "seconds": 5.4,
+  "log": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-quality.log",
+  "sha256": "e0f49479a432b1271754407b84aae54de65321d0679cf7fb3bb20471a813deec",
+  "runtimeCommit": "9ba2e38f"
+}

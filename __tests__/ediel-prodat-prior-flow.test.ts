@@ -58,3 +58,22 @@ for(const entry of ['createAckDraftAction','createAndSendAckAction','createAndSe
 it('A5 timestamp format is part of the cancelled-end identity',async()=>{const p=prior('Z18');p.raw_payload=p.raw_payload!.replace('164:202610010000:203','164:202610010000:102');expect((await check(msg('Z15'),[p])).kind).toBe('internal_review')})
 it('A2 transport identifier namespace cannot be substituted',async()=>{const m=msg();m.raw_payload=m.raw_payload!.replace('12345:ZZ','12345:14');const r=resolver([prior()]);expect((await r.run(m)).kind).toBe('internal_review');expect(r.reads.filter(r=>r.table==='ediel_messages')).toEqual([])})
 it('A6 business timestamp after the actual source receipt is contradictory',async()=>{const m=msg();m.raw_payload=m.raw_payload!.replace('137:202609171200','137:202609211200');expect((await check(m)).kind).toBe('internal_review')})
+
+// R-PF-1: P43 DTM137/203 is own message time; arrival time is separate.
+for(const [response,mode,request] of [['Z14','S17','Z13'],['Z15','S17','Z18'],['Z15','Z24','Z15']])for(const [chronology,ownDate] of [['earlier','202609171200'],['equal-minute','202609181200'],['later','202609191200']])it(`R-PF-1 ${request} to ${response}/${mode} ${chronology} own message chronology at actual manual boundary`,async()=>{
+ const m=msg(response,mode);m.raw_payload=m.raw_payload!.replace('137:202609171200','137:202609181200')
+ const p=request==='Z15'?{...msg('Z15'),id:'prior-cancel',created_at:'2026-09-19T00:00:00Z',message_received_at:'2026-09-19T12:00:00Z'}:prior(request,'CASE-ALPHA',{message_sent_at:'2026-09-19T12:00:00Z'})
+ p.raw_payload=p.raw_payload!.replace('137:202609171200','137:'+ownDate)
+ const r=manual([p])
+ if(chronology==='later'){
+  await expect(r.run(m)).rejects.toMatchObject({message:'PRODAT_PERMISSION_PRIOR_REVIEW_REQUIRED',reason:'wire_conflict',permissionFieldAssessment:{applicationErrors:[]}})
+  expect(r.events).toEqual([]);expect(r.drafts).toEqual([])
+ }else{
+  expect((await r.run(m)).outcome).toBe('positive');expect(r.events).toHaveLength(1);expect(r.drafts).toHaveLength(1)
+ }
+})
+it('R-PF-1 contradictory later exact LI cannot hide beside an earlier match',async()=>{
+ const m=msg();m.raw_payload=m.raw_payload!.replace('137:202609171200','137:202609181200')
+ const late=prior('Z13','CASE-ALPHA',{id:'later-own-date',message_sent_at:'2026-09-19T12:00:00Z'});late.raw_payload=late.raw_payload!.replace('137:202609171200','137:202609191200')
+ const r=manual([prior(),late]);await expect(r.run(m)).rejects.toMatchObject({message:'PRODAT_PERMISSION_PRIOR_REVIEW_REQUIRED'});expect(r.events).toEqual([]);expect(r.drafts).toEqual([])
+})
