@@ -1,3 +1,4 @@
+import { validateProdatPermissionMessage } from '@/lib/ediel/testing/prodatPermissionEngine'
 // Extracted from actions.ts; keep public imports on the facade module.
 import { applyUtiltsTestAckPlanOverride } from '@/lib/ediel/testing/utiltsAckOverrides'
 
@@ -568,6 +569,7 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
   }
 
   if (!sourceMessage.company_id) throw new Error("Källmeddelandet saknar tenantkoppling");
+  if (ackFamily === "APERAK" && sourceMessage.message_family === "PRODAT") validateProdatPermissionMessage({message:sourceMessage});
   const testRunId = await findBestActiveRunForMessage({
     companyId: sourceMessage.company_id,
     testRunId: testRunIdInput,

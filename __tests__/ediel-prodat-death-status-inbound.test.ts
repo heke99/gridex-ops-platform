@@ -1,3 +1,4 @@
+import {registryDatabase} from './fixtures/prodat-ack-registry-db'
 import {it,expect,vi} from 'vitest'
 import {validateRulebookMessage} from '@/lib/ediel/rulebook/validator'
 import {preflightEdielPayload} from '@/lib/ediel/core/messageBuilder/payloadPreflight'
@@ -7,7 +8,7 @@ import {resolveAndStoreProdatAperakErrors} from '@/lib/ediel/testing/aperakError
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {deathRaw,deathBody,deathSelection} from './fixtures/prodat-death-status'
 import {alphabets,characteristic} from './fixtures/prodat-register'
-const io=vi.hoisted(()=>({from:vi.fn(()=>{throw new Error('UNEXPECTED_DB')})}))
+const io=vi.hoisted(()=>({from:vi.fn<ReturnType<typeof registryDatabase>>(()=>{throw new Error('UNEXPECTED_DB')})}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:io}))
 const selected=(issues:{code:string;severity?:string;blocking?:boolean}[])=>issues.filter(i=>i.code.startsWith('PRODAT_DEATH_STATUS_'))
 for(const alphabet of alphabets)it(`actual normal/catch/preflight/APerak matrix ${alphabet.join('')}`,()=>{
@@ -35,8 +36,10 @@ it('malformed or saved local input cannot establish false or require U absence',
 it('wrapper and manual/TGT resolver consume the selected policy before positive shortcuts or DB writes',async()=>{
  expect(decideProdatAperakOutcome(deathRaw('Z09'),{testKind:'production'})).toMatchObject({outcome:'negative',applicationErrors:[expect.objectContaining({fieldCode:'310',ercCode:'41'})]})
  const message={message_family:'PRODAT',message_code:'Z09',raw_payload:deathRaw('Z09'),direction:'inbound',environment:'test',parsed_payload:{}} as EdielMessageRow
- await expect(resolveAndStoreProdatAperakErrors({message})).rejects.toThrow('PRODAT_DEATH_STATUS_ACK_REVIEW_REQUIRED')
- expect(io.from).not.toHaveBeenCalled()
+ const writes:{table:string;body:Record<string,unknown>}[]=[];io.from.mockImplementation(registryDatabase(writes))
+ const result=await resolveAndStoreProdatAperakErrors({message})
+ expect(result.errors).toContainEqual(expect.objectContaining({ercCode:'41',fieldCode:'310',referenceNumber:'A',lineItemReference:'LI-A'}))
+ expect(writes.filter(w=>w.table==='ediel_aperak_error_details').map(w=>w.body)).toContainEqual(expect.objectContaining({source_message_id:message.id,application_error:'41',free_text_code:'310',metering_point_id:'A',transaction_reference:'LI-A'}))
 })
 import {prodatIssuesToAperakErrors} from '@/lib/ediel/prodat/prodatAperak'
 it('legacy error wrapper preserves own310 attribution',()=>{

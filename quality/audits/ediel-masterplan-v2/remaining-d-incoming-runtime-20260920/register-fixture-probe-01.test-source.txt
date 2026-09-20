@@ -1,0 +1,4 @@
+import {it,expect} from 'vitest'
+import {validateProdatRegisterPayload} from '@/lib/ediel/rulebook/prodatRegisterPolicy'
+import {payload,characteristic,input} from './fixtures/prodat-gas'
+it('inspect synthetic Z04 register omissions',()=>{const wire=payload('Z04','Z22',[...characteristic('Z02','1',3),...characteristic('Z05','6',3)],'gas').replace('LIN+1++A:::89','LIN+1++735123456789012345:::89');expect(validateProdatRegisterPayload({...input(wire,'Z04'),requireConditions:false})).toEqual([])})

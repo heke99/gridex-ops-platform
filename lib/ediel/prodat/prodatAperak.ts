@@ -1,5 +1,4 @@
-import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
-import {deathStatusAperakErrors} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
+import {selectedProdatAckFromPayload,assertSelectedProdatAckReady} from './prodatIncomingSelectedAck'
 import type {DeathSelection} from './prodatDeathStatus'
 import type { EdielAperakApplicationError } from '@/lib/ediel/ack'
 import { decideProdatAperak as decideProdatAperakFromEngine } from '@/lib/ediel/decisionEngine'
@@ -7,7 +6,8 @@ import { validateProdatBusinessRules } from '@/lib/ediel/prodat/prodatBusinessRu
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 export function prodatIssuesToAperakErrors(rawPayload: string, deathStatus?:DeathSelection): EdielAperakApplicationError[] {
-  const wire=tokenizeEdifact(rawPayload),bgm=wire.segments.find(t=>t.tag==='BGM')
+  const selected=selectedProdatAckFromPayload(rawPayload,{deathStatus})
+  assertSelectedProdatAckReady(selected)
   const errors=validateProdatBusinessRules(rawPayload)
     .filter((issue) => issue.severity === 'error')
     .map((issue) => ({
@@ -18,7 +18,7 @@ export function prodatIssuesToAperakErrors(rawPayload: string, deathStatus?:Deat
       referenceNumber: null,
       lineItemReference: null,
     }))
-  return [...errors,...deathStatusAperakErrors({code:segmentComposite(bgm,1,wire.una)[0]??'',rawSegments:wire.segments.map(t=>t.raw),una:wire.una,facts:{deathStatus}})]
+  return [...errors,...selected.applicationErrors]
 }
 
 export function decideProdatAperak(params: {
@@ -69,6 +69,7 @@ export function decideProdatAperakOutcome(rawPayload: string, context?: {
   // uncertain production decisions as a negative APERAK with a clear object/process
   // error instead of silently returning positive.
   if (decision.kind === 'manual_review') {
+    if(decision.reason.includes('selectedFields')&&decision.reason.includes('internal_review'))throw Object.assign(new Error('PRODAT_SELECTED_ACK_REVIEW_REQUIRED'),{decision})
     return {
       outcome: 'negative',
       applicationErrors: [

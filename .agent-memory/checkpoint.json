@@ -74,8 +74,16 @@
   "runtime_scope": "Batch A nine selected incoming cells RD-1/2/3; exact three old-test exceptions in Task2",
   "runtime_author": "remaining_d_incoming",
   "runtime_base": "263790d2",
-  "runtime_test_checkpoint": null,
-  "runtime_remote_parent": "02646341cc425b040a5fc156121888a4d9f18a33",
+  "runtime_test_checkpoint": {
+    "local": "f2d602abfc923c79a80aa361fb44ae5844a891f6",
+    "tests": 34,
+    "passed": 1,
+    "expected_failed": 33,
+    "remote": "a6c15b21d835f236b615cd2c64dcd5fa0c865599",
+    "tree": "504ac108b1f7437b58e32fbb583e0087237b4a2f",
+    "verification": "fresh fetch diff0"
+  },
+  "runtime_remote_parent": "a6c15b21d835f236b615cd2c64dcd5fa0c865599",
   "runtime_checkpoint": null,
   "codec_exception": "sanitizeSegment canonical terminal apostrophe releaseparity only; independent source/architecture amendment, root56db1f3a",
   "runtime_review": "NOT_STARTED Batch A",
@@ -99,9 +107,9 @@
   "pending_main_runs": null,
   "pause_archive": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920",
   "runtime_auth_checkpoint": {
-    "local": "58674ab620f3eecf4b1bd692513694ffa7c52aa0",
-    "remote": "234823c69ac1485d05b30096b80004b8cbda31cc",
-    "tree": "aca69f35438fb6f5e4cd6578283ef9359a2f76e4",
+    "local": "df23be89ad05aeafa13d4d0237bb9058fdb1883e",
+    "remote": "09294cbb2b221ab360a8866e0d5921dfc99fd118",
+    "tree": "5fec7d5d5e5655276afff406f2a99ba5b3687381",
     "verification": "fresh fetch diff0"
   }
 }

@@ -1,12 +1,11 @@
+import {selectedProdatAckFromPayload} from '@/lib/ediel/prodat/prodatIncomingSelectedAck'
 import {permissionAckFieldsFromPayload} from '@/lib/ediel/prodat/prodatPermissionAckFields'
 import {evaluateIncomingProdatEnergyProduct} from '@/lib/ediel/prodat/prodatEnergyProduct'
 import {projectProdatDiagnostics} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
-import {deathStatusAperakErrors} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
 import type {DeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
-import {validateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy'
 import type {MeterChangeSelection} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
 import { prodatReferenceByQualifier } from '@/lib/ediel/prodat/prodatReferenceFields'
-import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import type { AckFamily, AckOutcome, EdielAperakApplicationError } from '@/lib/ediel/ack'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { applyCertifiedUtiltsAckPolicy } from '@/lib/ediel/rulebook/utiltsAckPolicy'
@@ -292,16 +291,15 @@ export function decideProdatAperak(input: ProdatAperakDecisionInput): EdielEngin
   const permissionFields = permissionAckFieldsFromPayload(rawPayload)
   const knownPermissionErrors = permissionFields.applicationErrors
 
-  const changeWire=tokenizeEdifact(rawPayload??''),changeBgm=changeWire.segments.find(t=>t.tag==='BGM')
-  const changeErrors=validateProdatMeterChange({code:segmentComposite(changeBgm,1,changeWire.una)[0]??'',rawSegments:changeWire.segments.map(t=>t.raw),una:changeWire.una,direction:'inbound',facts:{meterChange:input.meterChange}}).filter(i=>i.blocking||i.severity==='error').map(i=>({...errorForCode({rawPayload,ercCode:i.code==='PRODAT_METER_CHANGE_REQUIRED'?'41':'42',fieldCode:i.fieldPath==='CCI++Z14/CAV'?'242':'254',text:i.description}),referenceQualifier:i.meteringPointId?'Z07':null,referenceNumber:i.meteringPointId??null,lineItemReference:i.lineItemReference??null}))
-  const deathErrors=deathStatusAperakErrors({code:segmentComposite(changeBgm,1,changeWire.una)[0]??'',rawSegments:changeWire.segments.map(t=>t.raw),una:changeWire.una,facts:{deathStatus:input.deathStatus}})
+  const changeWire=tokenizeEdifact(rawPayload??'')
+  const selectedFields=selectedProdatAckFromPayload(rawPayload,{meterChange:input.meterChange,deathStatus:input.deathStatus})
   const energyProjection=projectProdatDiagnostics(evaluateIncomingProdatEnergyProduct({rawSegments:changeWire.segments.map(t=>t.raw),una:changeWire.una}).issues)
-  if(energyProjection.disposition.kind==='internal_review')throw new Error('PRODAT_APERAK_TEXT_REVIEW_REQUIRED')
+  if(energyProjection.disposition.kind==='internal_review')throw Object.assign(new Error('PRODAT_APERAK_TEXT_REVIEW_REQUIRED'),{selectedFieldAssessment:selectedFields,permissionFieldAssessment:permissionFields,energyProjection})
   const energyErrors=energyProjection.applicationErrors
-  const applicationErrors = [...businessErrors, ...knownPermissionErrors,...changeErrors,...deathErrors,...energyErrors]
-  if(permissionFields.disposition.kind==='internal_review')return {
+  const applicationErrors = [...businessErrors, ...knownPermissionErrors,...selectedFields.applicationErrors,...energyErrors]
+  if(permissionFields.disposition.kind==='internal_review'||selectedFields.disposition.kind==='internal_review')return {
     kind:'manual_review',ackFamily:'APERAK',outcome:null,messageText:'PRODAT_PERMISSION_ACK_REVIEW_REQUIRED',
-    applicationErrors,reason:JSON.stringify(permissionFields),ruleKeys:['PRODAT_PERMISSION_ACK_REVIEW_REQUIRED'],
+    applicationErrors,reason:JSON.stringify({permissionFields,selectedFields}),ruleKeys:['PRODAT_PERMISSION_ACK_REVIEW_REQUIRED'],
     classification:summarizeRuleProfile(classification),portalFeedback,expectedComparison:null,
   }
   if (portalFeedback?.expectedNegativeAperak && portalFeedback.actualWasPositiveAperak) {

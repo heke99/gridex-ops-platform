@@ -1,8 +1,6 @@
+import {selectedProdatAckRegistryIssues} from './prodatIncomingSelectedAckRegistry'
 import {permissionAckRegistryIssues,isLegacyPermissionFieldIssue,permissionRegistryRegisterFailures} from './prodatPermissionAckRegistry'
 import {assertIncomingProdatEnergyProductReview} from '@/lib/ediel/prodat/prodatEnergyProduct'
-import {validateProdatGasApplicability} from '@/lib/ediel/rulebook/prodatGasApplicabilityPolicy'
-import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
-import {validateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy';
 import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy';
 import { prodatReferenceValues } from "@/lib/ediel/prodat/prodatReferenceFields";
 import { parseUna } from "@/lib/ediel/core/una";
@@ -25,6 +23,7 @@ import { supabaseService } from "@/lib/supabase/service";
 
 export type EdielAperakValidationIssue = {
   permissionApplicationError?: EdielAperakApplicationError;
+  selectedApplicationError?: EdielAperakApplicationError;
   ruleKey: string;
   severity: "error" | "warning" | "info";
   fieldPath: string | null;
@@ -1088,17 +1087,23 @@ export function deriveProdatAperakValidationIssues(params: {
   testData?: EdielTgtCaseTestData | null;
 }): EdielAperakValidationIssue[] {
   // Readiness must precede scenario shortcuts and any registry read/write.
-  const permissionIssues=permissionAckRegistryIssues(params.message);
+  const selectedIssues=selectedProdatAckRegistryIssues(params.message);
+  let permissionIssues:EdielAperakValidationIssue[];
+  try { permissionIssues=permissionAckRegistryIssues(params.message); } catch(error) {
+    throw Object.assign(error instanceof Error ? error : new Error(String(error)), {selectedApplicationErrors:selectedIssues.map(issue=>issue.selectedApplicationError)});
+  }
   let other:EdielAperakValidationIssue[];
   try { other=deriveOtherProdatAperakValidationIssues(params); }
   catch(error) {
     throw Object.assign(error instanceof Error ? error : new Error(String(error)), {
       permissionApplicationErrors:permissionIssues.map(issue=>issue.permissionApplicationError),
       permissionValidationIssues:permissionIssues,
+      selectedApplicationErrors:selectedIssues.map(issue=>issue.selectedApplicationError),
+      selectedValidationIssues:selectedIssues,
     });
   }
   if(params.message.direction!=='inbound')return other;
-  return [...permissionIssues,...other.filter(item=>!isLegacyPermissionFieldIssue(item))];
+  return [...selectedIssues,...permissionIssues,...other.filter(item=>!isLegacyPermissionFieldIssue(item))];
 }
 
 function deriveOtherProdatAperakValidationIssues(params: {
@@ -1111,14 +1116,6 @@ function deriveOtherProdatAperakValidationIssues(params: {
 
   const registerParsed=parseProdatMessage(message);
   const registerWire=parseEdifactMessageFacts(message.raw_payload);
-  // The manual/TGT registry has no qualified254/242 error mapping. Do not let
-  // its positive-case shortcut silently accept genuine scoped code defects.
-  const gasFailures=validateProdatGasApplicability({code:registerParsed.messageCode,rawSegments:registerWire.rawSegments,una:parseUna(message.raw_payload),direction:'inbound'});
-  if(gasFailures.some(i=>i.blocking||i.severity==='error'))throw new Error('PRODAT_GAS_ACK_REVIEW_REQUIRED');
-  const deathFailures=validateProdatDeathStatus({code:registerParsed.messageCode,rawSegments:registerWire.rawSegments,una:parseUna(message.raw_payload),direction:'inbound'});
-  if(deathFailures.some(i=>i.blocking||i.severity==='error'))throw new Error('PRODAT_DEATH_STATUS_ACK_REVIEW_REQUIRED');
-  const meterFailures=validateProdatMeterChange({code:registerParsed.messageCode,rawSegments:registerWire.rawSegments,una:parseUna(message.raw_payload),direction:'inbound'});
-  if(meterFailures.some(i=>i.blocking||i.severity==='error'))throw new Error('PRODAT_METER_CHANGE_ACK_REVIEW_REQUIRED');
   const registerFailures=validateProdatRegisterPayload({code:registerParsed.messageCode,
     rawSegments:registerWire.rawSegments,una:parseUna(message.raw_payload),requireConditions:false});
   if (permissionRegistryRegisterFailures(message,registerFailures).length) throw new Error('PRODAT_REGISTER_ACK_REVIEW_REQUIRED');
@@ -1548,7 +1545,7 @@ export async function resolveAndStoreProdatAperakErrors(params: {
     };
   }
 
-  const rules = issues.some(item=>!item.permissionApplicationError) ? await listActiveRules({ family, code, environment }) : [];
+  const rules = issues.some(item=>!item.permissionApplicationError&&!item.selectedApplicationError) ? await listActiveRules({ family, code, environment }) : [];
   const details: EdielResolvedAperakErrorDetail[] = [];
   const errors: EdielAperakApplicationError[] = [];
   const unmappedIssues: EdielAperakValidationIssue[] = [];
@@ -1558,10 +1555,10 @@ export async function resolveAndStoreProdatAperakErrors(params: {
       messageId: message.id,
       issue: item,
     });
-    const owned=item.permissionApplicationError;
+    const owned=item.selectedApplicationError??item.permissionApplicationError;
     const rule:EdielAperakErrorRuleRow|null = owned ? {
       id:null,message_family:'PRODAT',message_code:code,direction:'inbound',rule_key:item.ruleKey,
-      rule_description:'Source-owned incoming322/324',application_error:owned.ercCode,free_text_code:owned.fieldCode??null,
+      rule_description:'Source-owned incoming national field',application_error:owned.ercCode,free_text_code:owned.fieldCode??null,
       free_text:owned.text??null,applies_to_field:owned.fieldCode??null,environment,priority:0,is_active:true,
     } : selectRuleForIssue(rules, item, code, environment);
 

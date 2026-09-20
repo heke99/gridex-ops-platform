@@ -1,3 +1,4 @@
+import {evaluateIncomingSelectedProdatAck} from '@/lib/ediel/prodat/prodatIncomingSelectedAck'
 import {evaluateIncomingProdatPermissionAckFields} from '@/lib/ediel/prodat/prodatPermissionAckFields'
 import {evaluateIncomingProdatEnergyProduct,incomingProduct242IsFalse} from '@/lib/ediel/prodat/prodatEnergyProduct'
 import {prodatFieldDiagnostic,prodatLocalDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
@@ -89,6 +90,7 @@ export function validateCanonicalPolicyFields(input: {
   if (input.policy.family !== 'PRODAT') return issues
   if (input.policy.direction === 'inbound') {
     issues.push(...evaluateIncomingProdatEnergyProduct({...matrixInput,rawSegments:input.rawSegments??[]}).issues)
+    issues.push(...evaluateIncomingSelectedProdatAck({...matrixInput,rawSegments:input.rawSegments??[],facts:input.policy.prodatDependentFacts,selectedFields:input.policy.fieldRules.map(asRulebookFieldRule).map(rule=>rule.fieldNumber??'')}).issues)
     const permissionFields=input.policy.fieldRules.map(asRulebookFieldRule).map(rule=>rule.fieldNumber??'').filter(field=>['322','324'].includes(field))
     if(permissionFields.length)issues.push(...evaluateIncomingProdatPermissionAckFields({...matrixInput,rawSegments:input.rawSegments??[],selectedFields:permissionFields}).issues)
   }
@@ -111,13 +113,13 @@ export function validateCanonicalPolicyFields(input: {
 
   if(rules.some(rule=>isProdatDateEventField(input.policy.code,rule.fieldNumber??'')))issues.push(...validateProdatDateEvents({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound'}))
 
-  if(rules.some(rule=>isReportingPermissionField(input.policy.code,rule.fieldNumber??'')))issues.push(...validateProdatReportingPermission({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound',reportingContext:input.reportingContext}))
+  if((input.policy.direction!=='inbound'||input.policy.code==='Z13')&&rules.some(rule=>isReportingPermissionField(input.policy.code,rule.fieldNumber??'')))issues.push(...validateProdatReportingPermission({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound',reportingContext:input.reportingContext}))
 
-  if(rules.some(rule=>isMeterChangeField(input.policy.code,rule.fieldNumber??'')))issues.push(...validateProdatMeterChange({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound',applicationReference:input.policy.applicationReference}))
+  if(input.policy.direction!=='inbound'&&rules.some(rule=>isMeterChangeField(input.policy.code,rule.fieldNumber??'')))issues.push(...validateProdatMeterChange({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound',applicationReference:input.policy.applicationReference}))
 
-  if(rules.some(rule=>rule.fieldNumber==='310'))issues.push(...validateProdatDeathStatus({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound'}))
+  if(input.policy.direction!=='inbound'&&rules.some(rule=>rule.fieldNumber==='310'))issues.push(...validateProdatDeathStatus({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound'}))
 
-  if(rules.some(rule=>isGasApplicabilityField(input.policy.code,rule.fieldNumber??'')))issues.push(...validateProdatGasApplicability({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound',applicationReference:input.policy.applicationReference,fields:rules.map(rule=>rule.fieldNumber??'')}))
+  if(input.policy.direction!=='inbound'&&rules.some(rule=>isGasApplicabilityField(input.policy.code,rule.fieldNumber??'')))issues.push(...validateProdatGasApplicability({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound',applicationReference:input.policy.applicationReference,fields:rules.map(rule=>rule.fieldNumber??'')}))
 
   const dependentByField = new Map(
     input.policy.prodatDependentConditions.map((condition) => [condition.fieldNumber, condition] as const),

@@ -1,3 +1,4 @@
+import {selectedProdatAckFromPayload,assertSelectedProdatAckReady} from '@/lib/ediel/prodat/prodatIncomingSelectedAck'
 import {permissionAckFieldsFromPayload,assertPermissionAckFieldsReady} from '@/lib/ediel/prodat/prodatPermissionAckFields'
 import { readProdatParty } from '@/lib/ediel/prodat/prodatPartyFields'
 import { prodatReferenceEntries, prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
@@ -24,6 +25,7 @@ export type ProdatPermissionDecisionIssue = {
 }
 
 export type ProdatPermissionValidationResult = {
+  selectedFieldAssessment?: ReturnType<typeof selectedProdatAckFromPayload>
   fieldAssessment?: ReturnType<typeof permissionAckFieldsFromPayload>
   handled: boolean
   outcome: 'positive' | 'negative'
@@ -399,16 +401,23 @@ export function validateProdatPermissionMessage(params: {
   const direction = String(params.message.direction ?? '').toLowerCase()
   const selectedTgtCaseCode = normalizedTgtCaseCode(params.testData)
   if (family !== 'PRODAT' || direction !== 'inbound') return buildPermissionValidationResult({handled:false,selectedTgtCaseCode,issues:[]})
+  const selected=selectedProdatAckFromPayload(params.message.raw_payload)
   const assessment=permissionAckFieldsFromPayload(params.message.raw_payload)
-  assertPermissionAckFieldsReady(assessment)
+  try { assertSelectedProdatAckReady(selected) } catch(error) {
+    throw Object.assign(error instanceof Error ? error : new Error(String(error)), {permissionFieldAssessment:assessment})
+  }
+  try { assertPermissionAckFieldsReady(assessment) } catch(error) {
+    throw Object.assign(error instanceof Error ? error : new Error(String(error)), {selectedFieldAssessment:selected})
+  }
   const code=assessment.code
-  const issues:ProdatPermissionDecisionIssue[]=assessment.applicationErrors.map(error=>({
-    ruleKey:`permission_${error.fieldCode === '322' ? 'status' : 'end_reason'}_${error.ercCode === '41' ? 'missing' : 'invalid'}`,
+  const issues:ProdatPermissionDecisionIssue[]=[...assessment.applicationErrors,...selected.applicationErrors].map(error=>({
+    ruleKey:['322','324'].includes(error.fieldCode??'')?`permission_${error.fieldCode === '322' ? 'status' : 'end_reason'}_${error.ercCode === '41' ? 'missing' : 'invalid'}`:`selected_${error.fieldCode}_${error.ercCode}`,
     ercCode:error.ercCode,fieldCode:error.fieldCode!,text:error.text ?? '',
     lineItemReference:error.lineItemReference??null,meteringPointId:error.referenceNumber??null,
     actualValue:error.prodatFieldDiagnostic?.kind==='field'?error.prodatFieldDiagnostic.failureEvidence?.map(e=>e.content).join(' / ')??null:null,expectedValue:null,
   }))
   const result=buildPermissionValidationResult({handled:['Z13','Z14','Z15','Z18'].includes(code),selectedTgtCaseCode,issues})
-  result.applicationErrors=[...assessment.applicationErrors]
-  return {...result,fieldAssessment:assessment}
+  result.applicationErrors=[...assessment.applicationErrors,...selected.applicationErrors]
+  if(selected.applicationErrors.length)result.outcome='negative'
+  return {...result,fieldAssessment:assessment,selectedFieldAssessment:selected}
 }

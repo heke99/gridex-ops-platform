@@ -15,8 +15,8 @@ vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:(table:string)=>{
  for(const op of ['select','limit','eq','in','order','or','is','upsert','maybeSingle'])q[op]=(...args:unknown[])=>{if(op==='maybeSingle')single=true;if(op==='upsert')db.writes.push({table,body:args[0] as Record<string,unknown>});return q};return q
 }}}))
 beforeEach(()=>{db.reads=[];db.writes=[]})
-const reporting=(field:string,a=alphabets[0])=>{const m=permissionAckMessage('Z14','S18','A74',null,a);m.raw_payload=m.raw_payload!.replace(field==='321'?'202611010000':'B72',field==='321'?'202602300000':'BAD');return m}
-const cells=(a=alphabets[0]):[string,string,string,EdielMessageRow][]=>[
+const reporting=(field:string,a:readonly string[]=alphabets[0])=>{const m=permissionAckMessage('Z14','S18','A74',null,a);m.raw_payload=m.raw_payload!.replace(field==='321'?'202611010000':'B72',field==='321'?'202602300000':'BAD');return m}
+const cells=(a:readonly string[]=alphabets[0]):[string,string,string,EdielMessageRow][]=>[
  ['Z14','321','42',reporting('321',a)],['Z14','323','42',reporting('323',a)],
  ['Z10','254','42',source(changeRaw(changeBody(changeFields('BAD','L639Q')),a),'Z10')],
  ['Z10','242','42',source(changeRaw(changeBody(changeFields('Z32','BAD')),a),'Z10')],

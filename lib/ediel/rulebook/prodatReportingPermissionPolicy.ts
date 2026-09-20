@@ -1,3 +1,4 @@
+import {incomingReportingPurposeIssues} from '@/lib/ediel/prodat/prodatIncomingReportingPurpose'
 import {prodatFieldDiagnostic,prodatLocalDiagnostic,type ProdatDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import { segmentComposite as composite, segmentElementCount, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer';
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una';
@@ -8,6 +9,7 @@ import type { ProdatDependentConditionFacts, ProdatDependentConditionStatus } fr
 import type { EdielRulebookIssue } from './rulebook';
 export type ReportingPolicyInput = {
     code: string;
+    selectedFields?: readonly string[];
     rawSegments: readonly string[];
     una?: EdifactServiceStringAdvice;
     facts?: ProdatDependentConditionFacts | null;
@@ -28,13 +30,15 @@ export function evaluateProdatReportingPermission(input: ReportingPolicyInput) {
     const isDate = (t: EdifactTokenizedSegment) => t.tag === 'DTM' && c(t, 1)[0]?.trim() === '91';
     const isPurpose = (t: EdifactTokenizedSegment) => t.tag === 'CCI' && c(t, 2)[0]?.trim().toUpperCase() === 'Z24';
     const unused = (t: EdifactTokenizedSegment, from: number) => Array.from({ length: Math.max(0, segmentElementCount(t, una) - from) }, (_, i) => c(t, from + i + 1)).some(p => p.some(v => v !== ''));
-    for (const token of tokens.filter(isDate)) {
+    for (const token of tokens.filter(t=>isDate(t)&&(!input.selectedFields||input.selectedFields.includes('321')))) {
         const parts = c(token, 1);
         if (parts.length !== 3 || parts[0] !== '91' || parts[2] !== '203' || !isProdatCalendarMinute(parts[1]) || segmentElementCount(token, una) !== 1)
-            fail('FORMAT_INVALID', 'rapportens slut kräver exakt Gregorian minut/203', '321', prodatFieldDiagnostic('321','invalid',input,groups.find(g=>g.segments.includes(token))?.segments.map(t=>t.raw)??[],'PRODAT26A:P43/49/74/119'));
+            fail('FORMAT_INVALID', 'rapportens slut kräver exakt Gregorian minut/203', '321', prodatFieldDiagnostic('321','invalid',input,groups.find(g=>g.segments.includes(token))?.segments.map(t=>t.raw)??[],'PRODAT26A:P43/49/74/119',groups.find(g=>g.segments.includes(token))?.lineIndex));
     }
-    if (!outbound)
-        return { issues, statuses }; // p119: local source knowledge is not sender validity.
+    if (!outbound) {
+        issues.push(...incomingReportingPurposeIssues(input));
+        return { issues, statuses };
+    } // p119: local source knowledge is not sender validity.
     let selected: ReturnType<typeof copyReportingSelection> | null = null;
     try {
         if (input.facts?.reportingPermission != null)
