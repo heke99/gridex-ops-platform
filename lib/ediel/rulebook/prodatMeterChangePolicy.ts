@@ -1,3 +1,4 @@
+import {prodatComponentEvidence,type ProdatFailureEvidence} from '@/lib/ediel/prodat/prodatFailureEvidence'
 import {prodatFieldDiagnostic,prodatLocalDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import { copyMeterChangeSelection, meterChangeCondition, PRODAT_EL_AGGREGATION_PRODUCTS, type MeterChangeObject } from '@/lib/ediel/prodat/prodatMeterChangeFacts';
 import { segmentComposite, segmentElementCount, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer';
@@ -36,7 +37,7 @@ export function evaluateProdatMeterChange(input: MeterChangePolicyInput) {
         lineItemReference: string | null;
     } | undefined;
     let diagnosticScope: string[] = [];
-    const fail = (code: string, detail: string, field = '254', blocking = true, kind: 'missing' | 'invalid' | 'local_evidence' = 'invalid') => issues.push({ prodatDiagnostic:kind === 'local_evidence' ? prodatLocalDiagnostic(kind,'PRODAT26A:meter-change',detail) : prodatFieldDiagnostic(field,kind,input,diagnosticScope,'PRODAT26A:P20/67–69/119/122'), ...occurrence, scope: 'prodat_dependent', severity: blocking ? 'error' : 'warning', blocking, code: `PRODAT_METER_CHANGE_${code}`, title: 'PRODAT mätarbyte', description: `Z10:${field}, P26.A s.20,67–69,119,122: ${detail}`, fieldPath: field === '254' ? 'CCI++Z15/CAV' : 'CCI++Z14/CAV' });
+    const fail = (code: string, detail: string, field = '254', blocking = true, kind: 'missing' | 'invalid' | 'local_evidence' = 'invalid',failureEvidence?:ProdatFailureEvidence) => issues.push({ prodatDiagnostic:kind === 'local_evidence' ? prodatLocalDiagnostic(kind,'PRODAT26A:meter-change',detail) : prodatFieldDiagnostic(field,kind,input,diagnosticScope,'PRODAT26A:P20/67–69/119/122',undefined,undefined,failureEvidence), ...occurrence, scope: 'prodat_dependent', severity: blocking ? 'error' : 'warning', blocking, code: `PRODAT_METER_CHANGE_${code}`, title: 'PRODAT mätarbyte', description: `Z10:${field}, P26.A s.20,67–69,119,122: ${detail}`, fieldPath: field === '254' ? 'CCI++Z15/CAV' : 'CCI++Z14/CAV' });
     let objects: MeterChangeObject[] = [];
     try {
         if (input.facts?.meterChange != null)
@@ -125,8 +126,19 @@ export function evaluateProdatMeterChange(input: MeterChangePolicyInput) {
             const malformed = supplied.length !== 1 || !common.includes(cci) || !allowed.includes(value) || segmentComposite(cci, 2, una)[0] !== qualifier || segmentComposite(cci, 1, una).some(v => v.trim()) || segmentComposite(cci, 2, una).slice(1).some(v => v.trim()) || trailing(cci, 2) || trailing(cav, 1) || group.segments[index + 2]?.tag === 'CAV'
                 || parts.some((v, i) => i !== position && i !== 2 && !(field === '242' && i === 4) && v.trim()) || (parts[2]?.length ?? 0) > 3
                 || outbound && Boolean(parts[2]?.trim()); // P67/68: outgoing3055 is X, even for optional supplied values.
-            if (malformed)
-                fail('FIELD_INVALID', 'kod, komponent, par, placering eller kardinalitet är ogiltig', field);
+            if (malformed) {
+                const evidence=supplied.flatMap(t=>{
+                    const v=group.segments[group.segments.indexOf(t)+1],p=v?.tag==='CAV'?segmentComposite(v,1,una):[];
+                    const failed=p.flatMap((value,i)=>i===position?(!allowed.includes(value)||value.length>35?[i]:[]):i===2?(value.length>3||outbound&&Boolean(value.trim())?[i]:[]):field==='242'&&i===4?[]:value.trim()?[i]:[]);
+                    const cciFault=segmentComposite(t,2,una)[0]!==qualifier||segmentComposite(t,1,una).some(x=>x.trim())||segmentComposite(t,2,una).slice(1).some(x=>x.trim())||trailing(t,2);
+                    if(cciFault)return prodatComponentEvidence(t.raw,'CCI',Array.from({length:segmentElementCount(t,una)},(_,i)=>segmentComposite(t,i+1,una)).flat());
+                    if(v?.tag==='CAV'&&trailing(v,1))return prodatComponentEvidence(v.raw,'CAV/C889',Array.from({length:segmentElementCount(v,una)},(_,i)=>segmentComposite(v,i+1,una)).flat());
+                    const extra=group.segments[group.segments.indexOf(t)+2];
+                    if(v?.tag==='CAV'&&extra?.tag==='CAV')return [v,extra].flatMap(candidate=>prodatComponentEvidence(candidate.raw,'CAV/C889',segmentComposite(candidate,1,una)));
+                    return prodatComponentEvidence((v?.tag==='CAV'?v:t).raw,rule.segmentPath??'CAV/C889',v?.tag==='CAV'?p:segmentComposite(t,2,una),supplied.length===1?failed:undefined);
+                });
+                fail('FIELD_INVALID', 'kod, komponent, par, placering eller kardinalitet är ogiltig', field,true,'invalid',evidence);
+            }
             if (outbound && fact) {
                 const next = field === '254' ? fact.newMeter.settlement : fact.newMeter.product;
                 if (next.kind !== 'known' || next.value !== value)

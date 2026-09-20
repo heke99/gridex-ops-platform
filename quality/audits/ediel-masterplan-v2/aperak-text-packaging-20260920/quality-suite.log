@@ -1,0 +1,10 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+ RUN  v4.1.9 /workspace/scratch/2a201d6d5897/gridex-next
+
+
+ Test Files  2 passed (2)
+      Tests  45 passed (45)
+   Start at  19:37:16
+   Duration  1.59s (transform 1.57s, setup 85ms, import 1.92s, tests 244ms, environment 0ms)
+

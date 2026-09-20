@@ -1,3 +1,4 @@
+import {prodatComponentEvidence,type ProdatFailureEvidence} from '@/lib/ediel/prodat/prodatFailureEvidence'
 import {prodatFieldDiagnostic,prodatLocalDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import {copyDeathSelection,deathCondition,type DeathEventObject} from '@/lib/ediel/prodat/prodatDeathStatus'
 import {segmentComposite,segmentElementCount,type EdifactTokenizedSegment as Token} from '@/lib/ediel/core/edifactTokenizer'
@@ -16,7 +17,7 @@ export function evaluateProdatDeathStatus(input:DeathPolicyInput){
  const una=input.una??parseUna(null),tokens=prodatRegisterTokens(input.rawSegments,una),outbound=input.direction!=='inbound'
  const issues:DeathIssue[]=[],statuses=new Map<string,ProdatDependentConditionStatus>();let objects:DeathEventObject[]=[]
  let diagnosticScope:string[]=[];let diagnosticInput=input
- const fail=(suffix:string,detail:string,occurrence?:{meteringPointId:string|null;lineItemReference:string|null},blocking=outbound,kind:'missing'|'invalid'|'local_evidence'='local_evidence')=>issues.push({prodatDiagnostic:kind==='local_evidence'?prodatLocalDiagnostic(kind,'PRODAT26A:death-status',detail):prodatFieldDiagnostic('310',kind,diagnosticInput,diagnosticScope,'PRODAT26A:P71/112/119/122'),...occurrence,scope:'prodat_dependent',severity:blocking?'error':'warning',blocking,code:`PRODAT_DEATH_STATUS_${suffix}`,title:'PRODAT kundstatus',description:`Fält310, P26.A s.71/112/119/122: ${detail}`,fieldPath:'CCI++Z17/CAV'})
+ const fail=(suffix:string,detail:string,occurrence?:{meteringPointId:string|null;lineItemReference:string|null},blocking=outbound,kind:'missing'|'invalid'|'local_evidence'='local_evidence',failureEvidence?:ProdatFailureEvidence)=>issues.push({prodatDiagnostic:kind==='local_evidence'?prodatLocalDiagnostic(kind,'PRODAT26A:death-status',detail):prodatFieldDiagnostic('310',kind,diagnosticInput,diagnosticScope,'PRODAT26A:P71/112/119/122',undefined,undefined,failureEvidence),...occurrence,scope:'prodat_dependent',severity:blocking?'error':'warning',blocking,code:`PRODAT_DEATH_STATUS_${suffix}`,title:'PRODAT kundstatus',description:`Fält310, P26.A s.71/112/119/122: ${detail}`,fieldPath:'CCI++Z17/CAV'})
  try{if(input.facts?.deathStatus!=null)objects=copyDeathSelection(input.facts.deathStatus).objects}catch{fail('EVIDENCE_INVALID','ogiltig lokal bedömning')}
  let aggregate:boolean|null=false,seenObject=false
  for(const message of messages(tokens)){
@@ -59,9 +60,9 @@ export function evaluateProdatDeathStatus(input:DeathPolicyInput){
    const cci=selected[0],index=group.segments.indexOf(cci),cav=group.segments[index+1],inCommon=common.includes(cci)
    if(!inCommon||cav?.tag!=='CAV'||group.segments[index+2]?.tag==='CAV'){fail('OCCURRENCE_INVALID','statusparet måste vara angränsande i eget SG14',occurrence,true,'invalid');continue}
    const value=segmentComposite(cav,1,una)
-   if(!value[0]){if(condition===true)fail('REQUIRED','Z41 saknas',occurrence,true,'missing')}else if(value[0]!=='Z41')fail('VALUE_INVALID','endast Z41 är giltigt',occurrence,true,'invalid')
+   if(!value[0]){if(condition===true)fail('REQUIRED','Z41 saknas',occurrence,true,'missing')}else if(value[0]!=='Z41')fail('VALUE_INVALID','endast Z41 är giltigt',occurrence,true,'invalid',prodatComponentEvidence(cav.raw,'CAV/C889/7111',value,[0]))
    // Adopted p119 qualifier interpretation; U supplied-content does not prove death.
-   if(value[1]||value[2])fail('QUALIFIER_INVALID','1131/3055 ska vara tomma',occurrence,true,'invalid')
+   if(value[1]||value[2])fail('QUALIFIER_INVALID','1131/3055 ska vara tomma',occurrence,true,'invalid',prodatComponentEvidence(cav.raw,'CAV/C889',value,[1,2].filter(i=>Boolean(value[i]))))
    if(outbound&&(segmentComposite(cci,1,una).some(Boolean)||segmentComposite(cci,2,una).slice(1).some(Boolean)||value.slice(3).some(Boolean)||segmentElementCount(cci,una)>2||segmentElementCount(cav,una)>1))fail('UNUSED_COMPONENT','oanvända komponenter får inte skickas',occurrence,true,'invalid')
   }
  }

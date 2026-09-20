@@ -70,7 +70,15 @@ function trimOrNull(value: unknown): string | null {
 }
 
 function sanitizeSegment(value: string): string {
-  const segment = String(value ?? '').replace(/\r?\n/g, '').trim().replace(/'+$/g, '')
+  let segment = String(value ?? '').replace(/\r?\n/g, '').trim()
+  // Business input uses the canonical alphabet. An odd release run protects
+  // the final apostrophe as data; strip only actual supplied terminators.
+  while (segment.endsWith("'")) {
+    let releases = 0
+    for (let index = segment.length - 2; index >= 0 && segment[index] === '?'; index--) releases++
+    if (releases % 2 === 1) break
+    segment = segment.slice(0, -1)
+  }
   if (!segment) throw new Error('edifact_empty_business_segment')
   const tag = segment.split('+', 1)[0]?.toUpperCase()
   if (tag && ENVELOPE_TAGS.has(tag)) {

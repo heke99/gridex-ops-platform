@@ -1,0 +1,181 @@
+[
+  {
+    "extra": false,
+    "p": {
+      "applicationErrors": [],
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "observations": [],
+      "hasNationalError": false
+    }
+  },
+  {
+    "extra": true,
+    "p": {
+      "applicationErrors": [
+        {
+          "ercCode": "42",
+          "fieldCode": "310",
+          "text": "Felaktigt Kundstatus Z41 / BAD",
+          "prodatAperakText": {
+            "kind": "ready",
+            "text": "Felaktigt Kundstatus Z41 / BAD",
+            "fallback": "not_needed"
+          },
+          "prodatOccurrence": {
+            "ownReferences": {
+              "objectId": {
+                "kind": "present",
+                "value": "A"
+              },
+              "lineItemReference": {
+                "kind": "present",
+                "value": "LI-A"
+              },
+              "customerId": {
+                "kind": "present",
+                "value": "CUSTOMER-A"
+              }
+            },
+            "scope": "object",
+            "messageReference": "M",
+            "lineIndex": 0,
+            "lineNumber": "1",
+            "registerPosition": 1,
+            "objectId": "A",
+            "identityAgency": "89",
+            "lineItemReference": "LI-A"
+          },
+          "referenceQualifier": "Z07",
+          "referenceNumber": "A",
+          "lineItemReference": "LI-A",
+          "prodatFieldDiagnostic": {
+            "kind": "field",
+            "fieldNumber": "310",
+            "errorKind": "invalid",
+            "sourceRule": "PRODAT26A:P71/112/119/122",
+            "segmentPath": "CCI++Z17/CAV",
+            "group": "SG8/SG14",
+            "component": {
+              "locator": "CCI++Z17/CAV",
+              "composite": "C889",
+              "cavComponent": 0
+            },
+            "occurrence": {
+              "ownReferences": {
+                "objectId": {
+                  "kind": "present",
+                  "value": "A"
+                },
+                "lineItemReference": {
+                  "kind": "present",
+                  "value": "LI-A"
+                },
+                "customerId": {
+                  "kind": "present",
+                  "value": "CUSTOMER-A"
+                }
+              },
+              "scope": "object",
+              "messageReference": "M",
+              "lineIndex": 0,
+              "lineNumber": "1",
+              "registerPosition": 1,
+              "objectId": "A",
+              "identityAgency": "89",
+              "lineItemReference": "LI-A"
+            },
+            "failureEvidence": [
+              {
+                "raw": "CAV+Z41",
+                "locator": "CCI++Z17/CAV",
+                "content": "Z41"
+              },
+              {
+                "raw": "CAV+BAD",
+                "locator": "CCI++Z17/CAV",
+                "content": "BAD"
+              }
+            ]
+          }
+        }
+      ],
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "observations": [
+        {
+          "prodatDiagnostic": {
+            "kind": "field",
+            "fieldNumber": "310",
+            "errorKind": "invalid",
+            "sourceRule": "PRODAT26A:P71/112/119/122",
+            "segmentPath": "CCI++Z17/CAV",
+            "group": "SG8/SG14",
+            "component": {
+              "locator": "CCI++Z17/CAV",
+              "composite": "C889",
+              "cavComponent": 0
+            },
+            "occurrence": {
+              "ownReferences": {
+                "objectId": {
+                  "kind": "present",
+                  "value": "A"
+                },
+                "lineItemReference": {
+                  "kind": "present",
+                  "value": "LI-A"
+                },
+                "customerId": {
+                  "kind": "present",
+                  "value": "CUSTOMER-A"
+                }
+              },
+              "scope": "object",
+              "messageReference": "M",
+              "lineIndex": 0,
+              "lineNumber": "1",
+              "registerPosition": 1,
+              "objectId": "A",
+              "identityAgency": "89",
+              "lineItemReference": "LI-A"
+            },
+            "failureEvidence": [
+              {
+                "raw": "CAV+Z41",
+                "locator": "CCI++Z17/CAV",
+                "content": "Z41"
+              },
+              {
+                "raw": "CAV+BAD",
+                "locator": "CCI++Z17/CAV",
+                "content": "BAD"
+              }
+            ]
+          },
+          "meteringPointId": "A",
+          "lineItemReference": "LI-A",
+          "scope": "prodat_dependent",
+          "severity": "error",
+          "blocking": true,
+          "code": "PRODAT_DEATH_STATUS_OCCURRENCE_INVALID",
+          "title": "PRODAT kundstatus",
+          "description": "Fält310, P26.A s.71/112/119/122: statusparet måste vara angränsande i eget SG14",
+          "fieldPath": "CCI++Z17/CAV",
+          "prodatAperakText": {
+            "kind": "ready",
+            "text": "Felaktigt Kundstatus Z41 / BAD",
+            "fallback": "not_needed"
+          },
+          "originalSeverity": "error"
+        }
+      ],
+      "hasNationalError": true
+    },
+    "draft": "UNA:+.? 'UNB+UNOC:3+54321:ZZ+12345:ZZ+260920:1226+260920102629HP++23-DDQ-PRODAT'UNH+1+APERAK:D:96A:UN:E2SE6A'BGM+++34'DTM+137:202609201226:203'DTM+178:202609171200:203'RFF+ACW:D'NAD+FR+54321:160:SVK+++++++SE'NAD+DO+12345:160:SVK+++++++SE'ERC+42::260'FTX+AAO++310::260+Felaktigt Kundstatus Z41 / BAD'RFF+Z07:A'RFF+LI:LI-A'UNT+12+1'UNZ+1+260920102629HP'"
+  }
+]

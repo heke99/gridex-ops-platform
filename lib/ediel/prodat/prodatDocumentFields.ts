@@ -1,3 +1,4 @@
+import {prodatComponentEvidence,type ProdatFailureEvidence} from './prodatFailureEvidence'
 import { segmentComposite, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
@@ -32,7 +33,7 @@ export function prodatDocumentState(
   field: string,
   segments: readonly (EdifactTokenizedSegment | string)[],
   una: EdifactServiceStringAdvice = parseUna(null),
-): { value: string | null; present: boolean; malformed: boolean } {
+): { value: string | null; present: boolean; malformed: boolean; failureEvidence?: ProdatFailureEvidence } {
   const descriptor = prodatDocumentField(field)
   const segment = descriptor ? prodatDocumentSegment(segments, una) : null
   if (!descriptor || descriptor.documentElement === undefined || !segment) {
@@ -44,7 +45,7 @@ export function prodatDocumentState(
     : parts.length !== 1 // 1004/1225/4343 are flat, not composites
   const present = parts.some(part => part.trim().length > 0)
   const value = descriptor.fieldNumber !== '202' && malformed ? null : parts[0]?.trim() || null
-  return { value, present, malformed }
+  return { value, present, malformed, failureEvidence:prodatComponentEvidence(segment.raw,descriptor.segmentPath,parts) }
 }
 
 export function prodatDocumentValue(

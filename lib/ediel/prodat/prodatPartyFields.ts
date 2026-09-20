@@ -1,3 +1,4 @@
+import {prodatComponentEvidence,type ProdatFailureEvidence} from './prodatFailureEvidence'
 import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { segmentComposite, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
@@ -87,33 +88,42 @@ function text(parts: readonly string[]): string | null {
 }
 
 export function prodatPartyState(field: string, segments: readonly Segment[], una = parseUna(null)): {
-  value: string | null; values: string[]; present: boolean; malformed: boolean; tooLong: boolean
+  value: string | null; values: string[]; present: boolean; malformed: boolean; tooLong: boolean; failureEvidence?: ProdatFailureEvidence
 } {
   const descriptor = prodatPartyField(field)
   const row = descriptor?.partyQualifier ? prodatPartySegmentFromSource(descriptor.partyQualifier, segments, una) : null
   if (!row || !descriptor?.partyElement) return { value: null, values: [], present: false, malformed: false, tooLong: false }
   const index = descriptor.partyElement
-  const parts = segmentComposite(row, index, una).map(value => value.trim())
+  const decoded = segmentComposite(row, index, una)
+  const parts = decoded.map(value => value.trim())
   const present = parts.some(Boolean)
   const capacity = descriptor.partyComponents ?? 1
   const values = index === 2 ? parts.slice(0, 1) : parts.slice(0, capacity)
   const firstRequired = index === 2 || index === 4 || (index === 5 && descriptor.partyQualifier !== 'UD')
   const value = firstRequired && !values[0] ? null : text(values)
+  const failed: number[] = []
   let malformed = index === 2 ? parts.slice(3).some(Boolean) : parts.slice(capacity).some(Boolean)
   if (present && firstRequired && !values[0]) malformed = true
   if (index !== 2 && capacity === 1 && parts.length > 1) malformed = true
   if (index === 2 && present) {
     const list = parts[1] ?? '', agency = parts[2] ?? ''
-    if (['FR', 'DO', 'Z02'].includes(descriptor.partyQualifier ?? '')) malformed ||= list !== '160' || agency !== 'SVK'
-    else if (descriptor.partyQualifier === 'IT') malformed ||= Boolean(list) || !['89', '9'].includes(agency)
-    else malformed ||= !((['1', 'SE1', 'SE2'].includes(list) && agency === '260') || (!list && agency === '89'))
+    if (['FR', 'DO', 'Z02'].includes(descriptor.partyQualifier ?? '')) {if(list !== '160')failed.push(1);if(agency !== 'SVK')failed.push(2)}
+    else if (descriptor.partyQualifier === 'IT') {if(list)failed.push(1);if(!['89','9'].includes(agency))failed.push(2)}
+    else {if(!['','1','SE1','SE2'].includes(list) || agency === '89' && Boolean(list))failed.push(1);if(!['89','260'].includes(agency) || agency === '260' && !list)failed.push(2)}
+    malformed ||= failed.length > 0
   }
   if (descriptor.fieldNumber === '207' || descriptor.fieldNumber === '208') {
     const country = segmentComposite(row, 9, una)
-    malformed ||= country.length !== 1 || !/^[A-Z]{2}$/.test(country[0] ?? '')
+    const invalidCountry = country.length !== 1 || !/^[A-Z]{2}$/.test(country[0] ?? '')
+    if(invalidCountry && !malformed && !values.some(v=>v.length > (descriptor.partyMaxLength ?? 35))) return {value,values:values.filter(Boolean),present,malformed:true,tooLong:false,failureEvidence:prodatComponentEvidence(row.raw,'NAD/3207',country)}
+    malformed ||= invalidCountry
   } else if (index === 9 && present) malformed ||= !/^[A-Z]{2,3}$/.test(values[0] ?? '')
   const tooLong = values.some(value => value.length > (descriptor.partyMaxLength ?? 35))
-  return { value, values: values.filter(Boolean), present, malformed, tooLong }
+  if(tooLong) values.forEach((value,i)=>{if(value.length > (descriptor.partyMaxLength ?? 35))failed.push(i)})
+  if(index===2 && (!values[0] || parts.slice(3).some(Boolean)))failed.push(0,3)
+  if(index!==2 && malformed)failed.push(0,capacity)
+  const failureEvidence=prodatComponentEvidence(row.raw,descriptor.segmentPath,decoded,failed.length?failed:values.length===1?[0]:undefined)
+  return { value, values: values.filter(Boolean), present, malformed, tooLong, failureEvidence }
 }
 
 export function prodatPartyValue(field: string, segments: readonly Segment[], una = parseUna(null)): string | null {

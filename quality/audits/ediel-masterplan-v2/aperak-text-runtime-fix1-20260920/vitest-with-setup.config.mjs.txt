@@ -1,0 +1,1 @@
+export default {resolve:{alias:{'@':'/workspace/scratch/2a201d6d5897/gridex-next'}},test:{environment:'node',include:['/workspace/scratch/2a201d6d5897/aperak-text-runtime-fix1-20260920/*.test.ts'],setupFiles:['/workspace/scratch/2a201d6d5897/gridex-next/__tests__/setup.ts']}}

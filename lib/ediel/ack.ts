@@ -1,3 +1,4 @@
+import type {ProdatAperakText} from '@/lib/ediel/prodat/prodatAperakText'
 import type {ProdatErrorOccurrence, ProdatDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 // lib/ediel/ack.ts
 
@@ -141,6 +142,7 @@ type ParsedEdifactRefs = {
 export type EdielAperakApplicationError = {
   prodatOccurrence?: ProdatErrorOccurrence
   prodatFieldDiagnostic?: ProdatDiagnostic
+  prodatAperakText?: ProdatAperakText
   ercCode: string
   fieldCode?: string | null
   text: string

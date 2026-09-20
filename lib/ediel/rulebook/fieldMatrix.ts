@@ -1,3 +1,4 @@
+import {prodatComponentEvidence,type ProdatFailureEvidence} from '@/lib/ediel/prodat/prodatFailureEvidence'
 import {prodatFieldDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import { prodatRegisterFieldState } from '@/lib/ediel/prodat/prodatRegisterFields'
 import { prodatRegisterGroups, prodatRegisterRuleScopes, prodatRegisterMessageSegments } from '@/lib/ediel/prodat/prodatRegisterGroups'
@@ -603,7 +604,7 @@ export function validateFieldMatrixPayload(
         .some(reason => prodatDateExcludedBySubtype(code, reason, date.fieldNumber))
       const rule: RulebookFieldRule = excludedDate ? { ...baseRule, requirement: 'forbidden' } : baseRule
       const scopedInput = { ...input, rawSegments: scopedSegments }
-      const emit = (finding: Omit<EdielRulebookIssue, 'blocking'>, kind: 'missing' | 'invalid' = 'invalid') => issues.push(issue({...finding, ...(family === 'PRODAT' ? {prodatDiagnostic:prodatFieldDiagnostic(rule.fieldNumber,kind,input,scopedSegments,`PRODAT26A:§2.2:${code}:${rule.fieldNumber}`)} : {})}))
+      const emit = (finding: Omit<EdielRulebookIssue, 'blocking'>, kind: 'missing' | 'invalid' = 'invalid',failureEvidence?:ProdatFailureEvidence) => issues.push(issue({...finding, ...(family === 'PRODAT' ? {prodatDiagnostic:prodatFieldDiagnostic(rule.fieldNumber,kind,input,scopedSegments,`PRODAT26A:§2.2:${code}:${rule.fieldNumber}`,undefined,undefined,failureEvidence)} : {})}))
       const present = fieldRulePresentInScope(rule, scopedInput)
       if (rule.requirement === 'forbidden' || rule.requirement === 'not_used') {
         if (!present) continue
@@ -637,13 +638,15 @@ export function validateFieldMatrixPayload(
       const forbiddenDateOfBirth = party?.fieldNumber === '227' && code === 'Z13'
         && readProdatParty('UD', scopedSegments, input.una).idQualifier === '1'
       if (partyState?.malformed || partyState?.tooLong || forbiddenDateOfBirth) {
+        const row=forbiddenDateOfBirth?prodatPartySegmentFromSource('UD',scopedSegments,input.una):null
+        const evidence=row?prodatComponentEvidence(row.raw,'NAD/C082',segmentComposite(row,2,input.una),!partyState?.malformed&&!partyState?.tooLong?[1]:undefined):undefined
         emit({
           severity: rule.severity ?? 'error',
           code: rule.errorCodeIfInvalid ?? (partyState?.tooLong ? 'FIELD_MATRIX_FIELD_LENGTH_INVALID' : 'FIELD_MATRIX_FIELD_FORMAT_INVALID'),
           title: `${rule.label} följer inte NAD-fältets struktur`,
           description: `${rule.segmentPath}: kontrollera komponent, kodlista, längd och part enligt PRODAT 26.A s.45–46,79–83.`,
           fieldPath: rule.segmentPath,
-        })
+        },'invalid',evidence)
         continue
       }
       const document = family === 'PRODAT' ? prodatDocumentField(rule.fieldNumber ?? rule.fieldKey) : null

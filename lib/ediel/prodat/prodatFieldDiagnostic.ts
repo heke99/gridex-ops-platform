@@ -1,10 +1,15 @@
+import {prodatRegisterTokens} from './prodatRegisterFields'
+import {prodatOwnedFailure} from './prodatOwnedFailure'
+import type {ProdatFailureEvidence} from './prodatFailureEvidence'
 import {PRODAT_26A_FIELD_MATRIX} from './prodat26AFieldMatrix'
 import {prodatRegisterGroups, prodatRegisterMessageSegments} from './prodatRegisterGroups'
 import {segmentComposite, type EdifactTokenizedSegment} from '@/lib/ediel/core/edifactTokenizer'
 import {parseUna, type EdifactServiceStringAdvice} from '@/lib/ediel/core/una'
 
 /** A known absent own reference must never be replaced by a cached/first object. */
+export type ProdatOwnReference = {kind:'present';value:string}|{kind:'absent'|'unavailable'}
 export type ProdatErrorOccurrence = {
+  ownReferences?: {objectId:ProdatOwnReference;lineItemReference:ProdatOwnReference;customerId:ProdatOwnReference}
   scope: 'header' | 'object' | 'register'
   messageReference: string | null
   lineIndex: number | null
@@ -15,7 +20,7 @@ export type ProdatErrorOccurrence = {
   lineItemReference: string | null
 }
 export type ProdatDiagnostic =
-  | {kind: 'field'; fieldNumber: string; errorKind: 'missing' | 'invalid'; sourceRule: string; segmentPath: string; group: string; component: Record<string, string | number>; occurrence: ProdatErrorOccurrence}
+  | {kind: 'field'; fieldNumber: string; errorKind: 'missing' | 'invalid'; failureEvidence?:ProdatFailureEvidence; sourceRule: string; segmentPath: string; group: string; component: Record<string, string | number>; occurrence: ProdatErrorOccurrence}
   | {kind: 'application'; ercCode: '40'; applicationCode: '109'; sourceRule: string; occurrence: ProdatErrorOccurrence}
   | {kind: 'local_unknown' | 'local_evidence' | 'internal'; sourceRule: string; reason: string}
 export type ProdatProcessingDisposition = {kind: 'continue' | 'internal_review'; reasons: {code: string; sourceRule: string; reason: string}[]}
@@ -26,14 +31,22 @@ export function prodatLocalDiagnostic(kind: 'local_unknown' | 'local_evidence' |
 }
 
 /** Caller selects the source field and the exact validated scope; no text/code parsing. */
-export function prodatFieldDiagnostic(fieldNumber: string | null | undefined, errorKind: 'missing' | 'invalid', input: DiagnosticInput, scopedSegments: readonly string[], sourceRule: string, lineIndex?: number, occurrenceScope?:ProdatErrorOccurrence['scope']): ProdatDiagnostic {
+export function prodatFieldDiagnostic(fieldNumber: string | null | undefined, errorKind: 'missing' | 'invalid', input: DiagnosticInput, scopedSegments: readonly string[], sourceRule: string, lineIndex?: number, occurrenceScope?:ProdatErrorOccurrence['scope'], failureEvidence?:ProdatFailureEvidence): ProdatDiagnostic {
   const field = PRODAT_26A_FIELD_MATRIX.find(row => row.fieldNumber === fieldNumber)
   if (!field || ['END_USER_GROUP','INSTALLATION_GROUP','INVOICEE_GROUP'].includes(field.fieldNumber)) {
     return prodatLocalDiagnostic('internal', sourceRule, 'Source finding has no numeric field descriptor')
   }
   const occurrence = prodatErrorOccurrence(input, scopedSegments, occurrenceScope ?? (field.registerScope === 'header' ? 'header' : field.registerScope === 'local' ? 'register' : 'object'), lineIndex)
   if (!occurrence) return prodatLocalDiagnostic('internal', sourceRule, 'Source finding has no unambiguous own occurrence')
-  return {kind:'field', fieldNumber:field.fieldNumber, errorKind, sourceRule, ...sourceFieldMetadata(field), occurrence}
+  const una=input.una??parseUna(null),message=prodatRegisterMessageSegments(input.rawSegments??[],una)
+  const groups=prodatRegisterGroups(message,una,input.code).groups
+  const own=groups.find(g=>g.lineIndex===occurrence.lineIndex)
+  const firstLine=message.findIndex(t=>t.tag==='LIN')
+  const all=prodatRegisterTokens(input.rawSegments??[],una),unh=all.findIndex(t=>t.tag==='UNH')
+  const before=unh>=0?all.slice(0,unh):[]
+  const scope=own?.segments??(occurrence.scope==='header'?[...before,...message.slice(0,firstLine<0?undefined:firstLine)]:[])
+  return {kind:'field', fieldNumber:field.fieldNumber, errorKind, sourceRule, ...sourceFieldMetadata(field), occurrence,
+    ...(errorKind==='invalid'?{failureEvidence:failureEvidence??prodatOwnedFailure(field,scope,una)}:{})}
 }
 
 function sourceFieldMetadata(field: typeof PRODAT_26A_FIELD_MATRIX[number]) {
@@ -55,7 +68,8 @@ function sourceFieldMetadata(field: typeof PRODAT_26A_FIELD_MATRIX[number]) {
 export function prodatErrorOccurrence(input: DiagnosticInput, scopedSegments: readonly string[], scope: ProdatErrorOccurrence['scope'], lineIndex?: number): ProdatErrorOccurrence | null {
   const una = input.una ?? parseUna(null), message = prodatRegisterMessageSegments(input.rawSegments ?? [], una)
   const unh = message.find(token => token.tag === 'UNH')
-  const base = {scope, messageReference:unh ? segmentComposite(unh,1,una)[0] ?? null : null, lineIndex:null, lineNumber:null, registerPosition:null, objectId:null, identityAgency:null, lineItemReference:null}
+  const unavailable:ProdatOwnReference={kind:'unavailable'}
+  const base = {ownReferences:{objectId:unavailable,lineItemReference:unavailable,customerId:unavailable},scope, messageReference:unh ? segmentComposite(unh,1,una)[0] ?? null : null, lineIndex:null, lineNumber:null, registerPosition:null, objectId:null, identityAgency:null, lineItemReference:null}
   if (scope === 'header') return base
   const {groups} = prodatRegisterGroups(message,una,input.code)
   if (!groups.length && !scopedSegments.length) return base
@@ -68,14 +82,22 @@ export function prodatErrorOccurrence(input: DiagnosticInput, scopedSegments: re
   const party = first.segments.findIndex(token => token.tag === 'NAD')
   const refs = first.segments.slice(0,party < 0 ? undefined : party).filter(token => token.tag === 'RFF' && segmentComposite(token,1,una)[0] === 'LI')
   const parts = refs.length === 1 ? segmentComposite(refs[0],1,una) : []
-  return {...base,lineIndex:group.lineIndex,lineNumber:group.lineNumber,registerPosition:group.registerPosition,objectId:group.itemId,identityAgency:group.identityAgency,lineItemReference:parts[1] || null}
+  const customers=first.segments.filter(t=>t.tag==='NAD'&&segmentComposite(t,1,una)[0]==='UD')
+  const customerParts=customers.length===1?segmentComposite(customers[0],2,una):[]
+  const state=(value:string|null):ProdatOwnReference=>value?{kind:'present',value}:{kind:'absent'}
+  const ownReferences={objectId:state(first.itemId),lineItemReference:refs.length>1?unavailable:state(parts[1]||null),customerId:customers.length>1?unavailable:state(customerParts[0]||null)}
+  return {...base,ownReferences,lineIndex:group.lineIndex,lineNumber:group.lineNumber,registerPosition:group.registerPosition,objectId:group.itemId,identityAgency:group.identityAgency,lineItemReference:parts[1] || null}
 }
 
 /** A supplied misplaced field retains its actual token location, including header. */
-export function prodatTokenFieldDiagnostic(field: string | undefined, input: DiagnosticInput, token: EdifactTokenizedSegment, sourceRule: string): ProdatDiagnostic {
+export function prodatTokenFieldDiagnostic(field: string | undefined, input: DiagnosticInput, token: EdifactTokenizedSegment, sourceRule: string, failureEvidence?:ProdatFailureEvidence): ProdatDiagnostic {
   const {groups} = prodatRegisterGroups(prodatRegisterMessageSegments(input.rawSegments??[],input.una),input.una,input.code)
   const own = groups.find(g=>g.segments.some(t=>t.index===token.index && t.raw===token.raw))
-  return prodatFieldDiagnostic(field,'invalid',input,own?.segments.map(t=>t.raw)??[],sourceRule,own?.lineIndex,own?undefined:'header')
+  return prodatFieldDiagnostic(field,'invalid',input,own?.segments.map(t=>t.raw)??[],sourceRule,own?.lineIndex,own?undefined:'header', failureEvidence??(()=>{
+    const descriptor=PRODAT_26A_FIELD_MATRIX.find(f=>f.fieldNumber===field)
+    const message=prodatRegisterMessageSegments(input.rawSegments??[],input.una),next=message.findIndex(t=>t.index===token.index&&t.raw===token.raw)
+    return descriptor?prodatOwnedFailure(descriptor,token.tag==='CCI'?message.slice(next,next+2):[token],input.una??parseUna(null)):undefined
+  })())
 }
 
 export function validProdatErrorOccurrence(value: ProdatErrorOccurrence | undefined): value is ProdatErrorOccurrence {

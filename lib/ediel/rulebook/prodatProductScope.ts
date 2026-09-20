@@ -1,3 +1,4 @@
+import {prodatComponentEvidence} from '@/lib/ediel/prodat/prodatFailureEvidence'
 import {prodatTokenFieldDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import { segmentComposite, segmentElementCount, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
@@ -119,8 +120,22 @@ export function validateProdatProductScope(
       : incompatible
         ? 'produktkoden måste stämma med objektets egna angivna mät- och avräkningsmetoder enligt produkttabellen'
         : 'exakt en giltig EL-produkt krävs i första 7110; gas/energi-id, tomma eller dubbla par och oanvända komponenter får inte ersätta produktkoden'
+    // Retain the components this owner rejected, including all conflicting
+    // candidates; a correct product cannot stand in for an invalid qualifier.
+    const candidates=duplicates.has(token.index)&&scope
+      ? scope.filter(t=>duplicates.has(t.index)) : [token]
+    const evidence=candidates.flatMap(t=>{
+      const v=tokens[tokens.indexOf(t)+1],p=v?.tag==='CAV'?segmentComposite(v,1,una):[]
+      const failures=[...(!(PRODAT_EL_AGGREGATION_PRODUCTS as readonly string[]).includes(p[3]?.trim().toUpperCase()??'')||(p[3]?.length??0)>35?[3]:[]),...(p[0]?.trim()?[0]:[]),...(p[1]?.trim()?[1]:[]),...((p[2]?.length??0)>3?[2]:[]),...p.flatMap((x,i)=>i>=(direction==='inbound'?5:4)&&x.trim()?[i]:[])]
+      const cciFault=segmentComposite(t,1,una).some(x=>x.trim())||segmentComposite(t,2,una).slice(1).some(x=>x.trim())||hasPopulatedTrailingElements(t,2,una)
+      if(cciFault)return prodatComponentEvidence(t.raw,'CCI+Z14',Array.from({length:segmentElementCount(t,una)},(_,i)=>segmentComposite(t,i+1,una)).flat())
+      if(v?.tag==='CAV'&&hasPopulatedTrailingElements(v,1,una))return prodatComponentEvidence(v.raw,'CAV/C889',Array.from({length:segmentElementCount(v,una)},(_,i)=>segmentComposite(v,i+1,una)).flat())
+      const extra=tokens[tokens.indexOf(t)+2]
+      if(v?.tag==='CAV'&&extra?.tag==='CAV')return [v,extra].flatMap(candidate=>prodatComponentEvidence(candidate.raw,'CAV/C889',segmentComposite(candidate,1,una)))
+      return prodatComponentEvidence((v?.tag==='CAV'?v:t).raw,'CCI+Z14/CAV',v?.tag==='CAV'?p:segmentComposite(t,2,una),candidates.length===1?(failures.length?failures:[3]):undefined)
+    })
     return [{
-      prodatDiagnostic:prodatTokenFieldDiagnostic('242',input,token,'PRODAT26A:P20/68–69'),
+      prodatDiagnostic:prodatTokenFieldDiagnostic('242',input,token,'PRODAT26A:P20/68–69',evidence),
       scope: 'prodat_dependent', severity: 'error', blocking: true, fieldPath: 'CCI++Z14/CAV',
       code: misplaced ? 'PRODAT_DEPENDENT_PRODUCT_SCOPE_INVALID' : 'PRODAT_DEPENDENT_PRODUCT_INVALID',
       title: 'Ogiltig PRODAT-produktkod',

@@ -1,11 +1,5 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-20",
-  "status": "IN_PROGRESS",
-  "branch": "codex/ediel-506-applicability-20260920",
-  "base_head_sha": "ec7646c56a5412b2d05e9a4d763d7a2ee7462bc7",
-  "active_item": "Field506 runtime checkpoint complete; full local gates running",
-  "next_action": "Full/gates receipts and completedcandidate report; independent runtime review and exactNode22CI",
   "accepted_numeric_D": 98,
   "merged_numeric_D": 98,
   "numeric_D_total": 110,
@@ -19,58 +13,100 @@
   },
   "full_masterplan": "NOT_COMPLETE",
   "main_full_certificate": {
-    "run": 35477728537,
-    "job": 105989775505,
+    "run": 35501599894,
+    "job": 106054215548,
     "passed": 73,
     "total": 73,
     "failed": 0,
-    "node": "22.23.2",
-    "completed_at": "2026-09-20T00:11:35Z"
+    "completed_at": "2026-09-20T09:20:32Z",
+    "node": "22.23.2"
   },
-  "runtime_authorized": true,
-  "last_accepted_pr": 350,
-  "source_fix_round": 1,
-  "source_remote_checkpoint": {
-    "head": "e6756d2e09755ca0236797790954bfb4ee7780b3",
-    "tree": "afe5d49ad22b13c3dd5c0399757d90964ed53e91"
-  },
-  "runtime_local_head": "492990fe",
-  "runtime_published_head": "e34053f7bcf3d8df22ec680fe351b1a1a8fd6376",
-  "runtime_tree": "0a34ed9b57684761f85e3a12831ce6a90d3542d2",
-  "active_pr": null,
-  "last_merged_pr": 350,
   "main_ops_receipt": {
-    "run": 35477728541,
+    "run": 35501599893,
     "jobs": [
-      105989775194,
-      105989775292,
-      105989775298
+      106054215352,
+      106054215436,
+      106054215444
     ],
     "conclusion": "success"
   },
-  "source_candidate_commit": "e6756d2e09755ca0236797790954bfb4ee7780b3",
-  "source_review": "APPROVE carried forward from completed sourceR1 review and wording correction",
-  "runtime_scope": "Source-ownedfield/kind/occurrence metadata; F/U/L/I disposition, narrowIinboundguard, exactACKrefs; no506applicability/P94fulltextclaim",
-  "runtime_fix_round": 0,
-  "runtime_review": "NOT_STARTED recovered implementation",
-  "applicable_pr_workflows": 4,
+  "updated_at": "2026-09-20",
+  "status": "IN_PROGRESS",
+  "branch": "codex/ediel-aperak-text-20260920",
+  "base_head_sha": "b4f00ae37937502f2678738bf076c0ba8de9696b",
+  "active_item": "PR352 runtime approved; CI artifact-packaging correction",
+  "next_action": "Archive copiedprobes as non-test byteidentical text, exactqualitysuite, narrowreview/newCI",
+  "runtime_authorized": true,
+  "last_accepted_pr": 351,
+  "last_merged_pr": 351,
+  "active_pr": 352,
   "main_pending": null,
-  "initial_runtime_ci": "All4SUCCESS; Node22.23.2 4354/4354 in291files",
-  "runtime_ci_runs": [
-    35477451330,
-    35477451329,
-    35477451347,
-    35477451345
-  ],
-  "recovery": "Uncommitted runtime and scratch evidence unavailable after environment rollback; new implementation receipts required",
-  "recovery_test_checkpoint": {
-    "local": "5486d9d1",
-    "remote": "f1ef50913e3dab986b47f7003f129edd45c2dac0",
-    "tree": "5d63617f9ba6a612f6cb01daacd9fcb4aa27d14f",
-    "verification": "freshfetchdiff0",
-    "tests": 26,
-    "passed": 5,
-    "expected_failed": 21
+  "previous_pr_receipt": {
+    "pr": 351,
+    "head": "27d2e3a79158798fb4a79ea1f0feadea740f509e",
+    "tree": "ab93f8a42ccbd525395003647044683b0a7ff6fc",
+    "review": "TASK/SPEC QUALITY WHOLE-BRANCH APPROVE",
+    "tests": 4467,
+    "files": 297,
+    "node": "22.23.2",
+    "quality_job": 106053376597,
+    "ci_runs": [
+      35501285958,
+      35501285890,
+      35501285962,
+      35501286004
+    ],
+    "all_success": true
   },
-  "runtime_remote_parent": "e34053f7bcf3d8df22ec680fe351b1a1a8fd6376"
+  "source_author": "aperak_text_source",
+  "source_base": "af9e2673",
+  "source_plan": "quality/audits/ediel-masterplan-v2/aperak-text-plan.md",
+  "source_candidate_commit": "80f77d12591bd440dd270b1461ae67fbd9c526df",
+  "source_remote_checkpoint": {
+    "head": "d7685fc4eed07f9e7e7b864a98588fe5bd52b5eb",
+    "tree": "78977f77c4edf45cdf02df11e9a954b014e5856d",
+    "local_equivalent": "87343da123bd72d2c26a114b99adb4228d11c365",
+    "verification": "freshfetchdiff0"
+  },
+  "source_review": "SOURCE/SPEC ARCHITECTURE TASK/SPEC QUALITY APPROVE",
+  "runtime_scope": "Approved finite typed A905 composition/readiness and exact escaping; explicit two capacity assertion exceptions only",
+  "runtime_author": "aperak_text_runtime",
+  "runtime_base": "87343da123bd72d2c26a114b99adb4228d11c365",
+  "runtime_test_checkpoint": {
+    "local": "f8ed22676cea984652734bb37ad2225cdb314f5f",
+    "remote": "af6ee5d2fa23e4b95c2af95685bba2584ff32196",
+    "tree": "d018fe54c7781456ae550630eb0e57503bedbb49",
+    "verification": "freshfetchdiff0",
+    "tests": 11,
+    "expected_failed": 8,
+    "passed": 3
+  },
+  "runtime_remote_parent": "5bd0e0607ee1f9f113af058d95a1c3c0cfd5d129",
+  "runtime_checkpoint": {
+    "local": "591131280604a569d26a88fca5dc29792c082c8f",
+    "remote": "5bd0e0607ee1f9f113af058d95a1c3c0cfd5d129",
+    "tree": "12fec60f8e166af5b6e0ff7ac5850d35f8c3b016",
+    "verification": "freshfetchdiff0",
+    "full_passed": 4567,
+    "files": 303,
+    "covering_passed": 731,
+    "reviewer_passed": 14,
+    "strip_only_passed": 818,
+    "gates_passed": 13
+  },
+  "codec_exception": "sanitizeSegment canonical terminal apostrophe releaseparity only; independent source/architecture amendment, root56db1f3a",
+  "runtime_review": "APPROVE R1 allverdicts",
+  "runtime_fix_round": 1,
+  "runtime_ci_runs": [
+    35505371794,
+    35505371809,
+    35505371838,
+    35505371840
+  ],
+  "ci_blocker": {
+    "run": 35505371794,
+    "job": 106064154601,
+    "reason": "Archived quality test copies discovered and afterAll absolute scratch ENOENT",
+    "runtime_change_required": false
+  }
 }
