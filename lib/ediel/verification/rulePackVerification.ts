@@ -42,6 +42,7 @@ export async function generateRulePackVerificationCases(input: {
       if (!resolved.rulePack?.checksum) failures.push('rule_pack_checksum_missing')
       if (family !== 'CONTRL') {
         const sample = EdifactEnvelopeCodec.encode({
+          acknowledgementRequest: true,
           sender: 'VERIFY-SENDER',
           receiver: 'VERIFY-RECEIVER',
           interchangeReference: `VERIFY-${profile.profile_key}`,

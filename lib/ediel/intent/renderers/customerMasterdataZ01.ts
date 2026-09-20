@@ -175,7 +175,10 @@ export async function buildCustomerMasterdataZ01Draft(input: {
     },
   })
 
+  const ack = deriveEdielAckDefaults({ family: 'PRODAT', code: 'Z01' })
+
   const envelope = buildEdifactEnvelope({
+    acknowledgementRequest: ack.requiresContrl,
     senderEdielId: input.routeContext.senderEdielId,
     senderSubAddress,
     receiverEdielId: input.routeContext.receiverEdielId,
@@ -185,7 +188,6 @@ export async function buildCustomerMasterdataZ01Draft(input: {
     messageTypeToken: `PRODAT:D:97A:UN:${messageVersionToken}`,
     segments: rendered.segments,
   })
-  const ack = deriveEdielAckDefaults({ family: 'PRODAT', code: 'Z01' })
 
   return {
     actorUserId: input.actorUserId,

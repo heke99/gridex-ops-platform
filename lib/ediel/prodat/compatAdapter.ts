@@ -611,7 +611,13 @@ function buildProdatSwitchOutboundDraft(
       receiverEdielId: input.receiverEdielId,
     })
 
+    const ack = deriveEdielAckDefaults({
+      family: 'PRODAT',
+      code,
+    })
+
     const envelope = buildEdifactEnvelope({
+      acknowledgementRequest: ack.requiresContrl,
       senderEdielId: input.senderEdielId,
       senderSubAddress,
       receiverEdielId: input.receiverEdielId,
@@ -624,10 +630,6 @@ function buildProdatSwitchOutboundDraft(
       parsedPayload: {prodatEngine: prodatRendered.diagnostics},
     })
 
-    const ack = deriveEdielAckDefaults({
-      family: 'PRODAT',
-      code,
-    })
 
     const parsedPayload: Record<string, unknown> = {
       draftType: 'prodat_switch_outbound',

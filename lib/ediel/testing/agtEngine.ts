@@ -464,7 +464,10 @@ function buildAgtProdatOutboundInput(params: {
     },
   })
 
+  const ack = deriveEdielAckDefaults({ family: 'PRODAT', code })
+
   const envelope = buildEdifactEnvelope({
+    acknowledgementRequest: ack.requiresContrl,
     senderEdielId: params.actor.actorEdielId,
     senderSubAddress: params.actor.senderSubAddress,
     receiverEdielId: params.actor.receiverEdielId,
@@ -475,7 +478,6 @@ function buildAgtProdatOutboundInput(params: {
     segments: rendered.segments,
   })
 
-  const ack = deriveEdielAckDefaults({ family: 'PRODAT', code })
 
   return {
     actorUserId: params.actorUserId,

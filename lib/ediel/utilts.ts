@@ -522,7 +522,13 @@ export async function buildUtiltsOutboundDraft(
     readingType: inferUtiltsReadingType(input.payload ?? {}),
   }
 
+  const ack = deriveEdielAckDefaults({
+    family: 'UTILTS',
+    code: input.code,
+  })
+
   const envelope = buildEdifactEnvelope({
+    acknowledgementRequest: ack.requiresContrl,
     senderEdielId,
     senderSubAddress,
     receiverEdielId,
@@ -538,10 +544,6 @@ export async function buildUtiltsOutboundDraft(
     }),
   })
 
-  const ack = deriveEdielAckDefaults({
-    family: 'UTILTS',
-    code: input.code,
-  })
 
   return {
     actorUserId: input.actorUserId ?? 'system',

@@ -18,6 +18,7 @@ export type EdielRulebookProcessGroup =
   | 'metering'
   | 'metering_access'
   | 'meter_values'
+  | 'functional_rejection'
   | 'ediel_ack'
   | 'ai_list'
   | 'unknown'
@@ -117,6 +118,11 @@ export function processGroupForMessage(
   if (normalizedFamily === 'PRODAT') {
     return getCanonicalProdatProfile(normalizedCode)?.processGroup ?? 'unknown'
   }
+  if (normalizedFamily === 'UTILTS_ERR' || (normalizedFamily === 'UTILTS' && normalizedCode === 'ERR')) {
+    const process = getCanonicalUtiltsProfile('ERR')?.businessProcess
+    if (process !== 'functional_rejection') throw new Error('canonical_utilts_err_process_missing')
+    return process
+  }
   if (normalizedFamily === 'UTILTS') {
     return getCanonicalUtiltsProfile(normalizedCode) ? 'meter_values' : 'unknown'
   }
@@ -201,7 +207,7 @@ function utiltsRuleProjection(): EdielRulebookMessageRule[] {
       version: profile.version,
       previousVersion: null,
       applicationReference: null,
-      processGroup: profile.messageCode === 'ERR' ? 'ediel_ack' : 'meter_values',
+      processGroup: processGroupForMessage(family, profile.messageCode),
       ...projectedAckFields(family, profile.messageCode),
       validFrom: profile.effectiveFrom,
       validTo: profile.effectiveTo,

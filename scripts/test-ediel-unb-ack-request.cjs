@@ -39,6 +39,8 @@ async function loadRuntime() {
     export { getCanonicalAckState, deriveEdielAckDefaults } from '@/lib/ediel/core/ackPolicy';
     export { canonicalAckRequirementsForFamilyCode } from '@/lib/ediel/rulebook/canonicalEdielFacade';
     export { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator';
+    export { processGroupForMessage, getRulebookRule } from '@/lib/ediel/rulebook/rulebook';
+    export { validateRulebookMessage } from '@/lib/ediel/rulebook/validator';
   `, { context, identifier: path.join(root, 'lib/ediel/unb-request-test.ts') })
   await entry.link((name, parent) => {
     if (boundaries.has(name)) return boundaries.get(name)
@@ -243,4 +245,74 @@ test('actual saved-switch PRODAT draft carries the same request and persisted mo
 })
 test('all exercised consumers kept provider, database and transport boundaries closed', async () => {
   assert.deepEqual((await api).effects, [])
+})
+
+// Two narrowly approved convergence amendments: PR358 comment5752208557.
+for (const [family, code, expected] of [
+  ['UTILTS_ERR','ERR','functional_rejection'], ['UTILTS_ERR','UTILTS_ERR','functional_rejection'],
+  ['UTILTS','ERR','functional_rejection'], ['UTILTS','E66','meter_values'],
+  ['UTILTS','S02','meter_values'], ['APERAK','APERAK','ediel_ack'], ['CONTRL','CONTRL','ediel_ack'],
+]) test(`process projection ${family}/${code} is ${expected}`, async () => {
+  assert.equal((await api).processGroupForMessage(family, code), expected)
+})
+test('ERR compatibility projection agrees with canonical processing, not transport routing', async () => {
+  assert.equal((await api).getRulebookRule('UTILTS_ERR','UTILTS_ERR').processGroup, 'functional_rejection')
+})
+test('actual ERR preflight rejects a wrong process group while allowing its canonical group', async () => {
+  const a = await api, draft = a.buildUtiltsErrDraft({sourceMessage:source('UTILTS'),messageText:'E14'})
+  const input = {family:'UTILTS_ERR',code:'ERR',rawPayload:draft.rawPayload,applicationReference:draft.applicationReference,
+    direction:'outbound',mode:'send',environment:'test',businessDate:'2026-09-20',version:'E5SE5A'}
+  const valid = a.validateRulebookMessage({...input,processGroup:'functional_rejection'})
+  assert.equal(valid.issues.some(issue => issue.code==='CANONICAL_PROCESS_GROUP_MISMATCH'),false)
+  const invalid = a.validateRulebookMessage({...input,processGroup:'ediel_ack'})
+  assert.equal(invalid.issues.some(issue => issue.code==='CANONICAL_PROCESS_GROUP_MISMATCH'),true)
+})
+for (const value of [null,undefined,'not_required']) test(`no ACK requirements and UERR=${value} remains no_ack_required`, async () => {
+  const a = await api
+  assert.equal(a.getCanonicalAckState({requires_contrl:false,requires_aperak:false,contrl_status:'not_required',
+    aperak_status:'not_required',utilts_err_status:value,ack_due_at:null}),'no_ack_required')
+})
+for (const [status, expected] of [['received','utilts_err_received'],['sent','utilts_err_received'],
+  ['failed','in_progress'],['pending','in_progress']]) test(`UERR=${status} preserves prior precedence`, async () => {
+  const a=await api
+  assert.equal(a.getCanonicalAckState({requires_contrl:false,requires_aperak:false,contrl_status:'not_required',
+    aperak_status:'not_required',utilts_err_status:status,ack_due_at:null}),expected)
+})
+for (const [overrides, expected] of [
+  [{requires_contrl:true,contrl_status:'pending'},'awaiting_contrl'],
+  [{requires_contrl:true,contrl_status:'failed',utilts_err_status:'received'},'contrl_failed'],
+  [{aperak_status:'failed',utilts_err_status:'received'},'aperak_received_negative'],
+  [{utilts_err_status:'pending',ack_due_at:'2026-09-20T11:00:00.000Z'},'ack_overdue'],
+  [{requires_aperak:true,aperak_status:'pending'},'awaiting_aperak'],
+]) test(`ACK state precedence stays ${expected}`,async()=>{
+  const a=await api
+  assert.equal(a.getCanonicalAckState({requires_contrl:false,requires_aperak:false,contrl_status:'not_required',
+    aperak_status:'not_required',utilts_err_status:'not_required',ack_due_at:null,...overrides}),expected)
+})
+test('actual outbound route contract still selects ediel_ack for UTILTS_ERR',async()=>{
+  // Execute the unchanged route consumer with synthetic configuration. Stop at
+  // the application-reference boundary, before transport/certificate/DB work.
+  const captured=[],stop=new Error('route projection captured'),context=createContext({Date,console})
+  const synthetic=exports=>new SyntheticModule(Object.keys(exports),function(){
+    for(const [key,value] of Object.entries(exports))this.setExport(key,value)
+  },{context})
+  const unavailable=()=>{throw new Error('Unexpected route-side effect')}
+  const boundaries=new Map([
+    ['@/lib/ediel/config',synthetic({getEdielRouteRuntimeByCommunicationRouteId:async(id,options)=>{
+      assert.equal(id,'route-A');assert.equal(options.companyId,'tenant-A')
+      return {is_enabled:true,communication_route_active:true,environment:'test',receiver_ediel_id:'12345',
+        message_family:'UTILTS_ERR',target_email:'synthetic@example.invalid'}
+    },evaluateProductionTransportSecurity:unavailable})],
+    ['@/lib/ediel/certificateScope',synthetic({certificateMessageScopeBlocker:unavailable})],
+    ['@/lib/supabase/service',synthetic({supabaseService:{from:unavailable,rpc:unavailable}})],
+    ['@/lib/routes/routeReadiness',synthetic({expectedApplicationReference:requestType=>{captured.push(requestType);throw stop}})],
+  ])
+  const file=path.join(root,'lib/ediel/outbox/routeContract.ts')
+  const module=new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file,'utf8'),{mode:'strip',sourceUrl:file}),{context,identifier:file})
+  await module.link(name=>{assert.ok(boundaries.has(name),`Unexpected route dependency:${name}`);return boundaries.get(name)})
+  await module.evaluate()
+  await assert.rejects(module.namespace.evaluateEdielRouteContract({direction:'outbound',company_id:'tenant-A',
+    communication_route_id:'route-A',environment:'test',message_family:'UTILTS_ERR',message_code:'ERR',
+    receiver_ediel_id:'12345',receiver_email:'synthetic@example.invalid'}),error=>error===stop)
+  assert.deepEqual(captured,['ediel_ack'])
 })
