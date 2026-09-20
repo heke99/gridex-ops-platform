@@ -1,7 +1,7 @@
-# Resume — PR359 FTX format-routing correction
+# Resume — PR359 already merged, post-merge verification pending
 
-Continue only PR359 on codex/ediel-f3-phase-closure-20260920. Do not restart source qualification or the first-PRODAT correction published at9e286f86. Actual ordinaryCI later failed2 list-routing regressions in npm test; test-first b9dcfd12 adds22 direct/preflight/real-SMTP controls. Candidate changes only prodatFreeTextSendIssues format recognition, retaining real EDIFACT syntax errors and guards despite false XML/list metadata.
+PR359 merged at71d2adf8b8b5f4305683a1399ddb5c17f0808ee8 after d4e78473 ordinaryCI and independent finalPASS5753276222. Preserve all source, first-PRODAT and bounded format-routing work. Read current-task.md,checkpoint.json,handover.md and pr359-main-verification-pending-20260921.json.
 
-Read current-task.md, checkpoint.json, handover.md and quality/audits/ediel-masterplan-v2/f3-ftx-format-routing-20260921.md; fetch actual branch/head/main before writes. Status IMPLEMENTED_NOT_VERIFIED. Next: unchanged ordinary exact-headCI and independent final review; then expected-head guarded merge, actual main73/73+OPS and saved acceptance receipt. Supporting isolated18-case dispatch check does not replace repository tests. Prior5753117905 is not whole-PR acceptance.
+Finish real mainfull35543165596 (fulljob106164372691) and OPS35543165613 (quality106164372382,verify106164372451,replay106164372531). Independently inspect full artifact73/73, all result rows/JUnit/unit log and71d2adf8 commit binding before accepting. Do not use PRsmoke15/15 or the small PRcertificate as that receipt. Its incorrect earlier identification was retracted and reviewed before merge.
 
-PR358/E011 main352fd8ee remains accepted; D110/110+10/10 unchanged. FullF3/masterplanNOT_COMPLETE. PR310 staysOPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a with no write/import/restart/merge or liveDB/provider/market/settings/explicitdeployment.
+Only after fresh actual-main acceptance and saved receipt resume remainingF3. D110/110+10/10 unchanged; fullF3/masterplanNOT_COMPLETE; PR310paused/untouched ate961135199f292b8210884f07de3b616a670161a. No liveoperations. This handover commit is documentation-only, not a separate runtime delivery.

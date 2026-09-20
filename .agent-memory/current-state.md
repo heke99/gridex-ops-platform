@@ -1,7 +1,7 @@
-# Current state — PR359 format-routing correction
+# Current state — PR359 merged; actual-main acceptance pending
 
-PR359 remains IMPLEMENTED_NOT_VERIFIED on codex/ediel-f3-phase-closure-20260920. Source/design and first-PRODAT work at9e286f86 are retained. Actual ordinary npm test at9e286f86 failed2/4988 tests because UNH-semicolon list data entered the FTX EDIFACT tokenizer. The new bounded correction changes only that dispatch expression;22 additional tests were published first atb9dcfd12. Final exact-head CI and independent review are required, not yet claimed.
+Main now contains PR359 as71d2adf8b8b5f4305683a1399ddb5c17f0808ee8, tree653f0d8409b76a1c4b18977684a8d10424a1c742, exactly equal to reviewed head d4e784735f9d0f2d61aca334138d762fbfe8d7fa. Guarded merge succeeded after ordinaryCI and independent four-dimensional PASS5753276222. The FTX format regression is not an open source/implementation task.
 
-Authoritative continuation: current-task.md, checkpoint.json, and quality/audits/ediel-masterplan-v2/f3-ftx-format-routing-20260921.md. Resolve actual branch/main before writes. After green reviewed PR: guarded merge, actual-main73/73+OPS, durable receipt; then remainingF3 only.
+Actual-main verification is still the only active item. Full35543165596/job106164372691 and OPS35543165613 require terminal success plus independently inspected actual73-case artifact; see current-task.md and pr359-main-verification-pending-20260921.json. Never substitute PRsmoke15/15 or the236-byte PRcertificate. Its earlier misidentification was retracted and independently resolved before merge.
 
-PR358/E011 remains accepted at352fd8ee9129697b55c1d3796fb99ed04ca0d6f5 (receipt pr358-main-acceptance-20260920.json; root5752720765). D110/110+10/10 unchanged. FullF3/masterplan NOT_COMPLETE. PR310 OPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a, untouched. No liveDB/provider/market/settings/explicitdeployment action. Prior state is preserved atb9dcfd12.
+Last accepted runtime remains352fd8ee/PR358 until the fresh gate completes. D110/110+parents10/10 unchanged; fullF3/masterplanNOT_COMPLETE. PR310 remainsOPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a, untouched. This branch checkpoint changes documentation only and is not a new runtime acceptance. Previous full memory is preserved at merge71d2adf8.
