@@ -1,3 +1,4 @@
+import {registryDatabase} from './fixtures/prodat-ack-registry-db'
 import {it,expect,vi,beforeEach} from 'vitest'
 import {payload,characteristic,selection,alphabets} from './fixtures/prodat-gas'
 import {deriveProdatAperakValidationIssues,resolveAndStoreProdatAperakErrors} from '@/lib/ediel/testing/aperakErrorRuleRegistry'
@@ -5,7 +6,7 @@ import {compareInboundPayloadToTgtTestData} from '@/lib/ediel/testing/tgtAutoMat
 import {decideProdatAperak} from '@/lib/ediel/decisionEngine'
 import {validateRulebookMessage} from '@/lib/ediel/rulebook/validator'
 import type {EdielMessageRow} from '@/lib/ediel/types'
-const io=vi.hoisted(()=>({from:vi.fn(()=>{throw new Error('UNEXPECTED_DB')}),provider:vi.fn(()=>{throw new Error('UNEXPECTED_PROVIDER')}),route:vi.fn(),event:vi.fn(),update:vi.fn()}))
+const io=vi.hoisted(()=>({from:vi.fn<ReturnType<typeof registryDatabase>>(()=>{throw new Error('UNEXPECTED_DB')}),provider:vi.fn(()=>{throw new Error('UNEXPECTED_PROVIDER')}),route:vi.fn(),event:vi.fn(),update:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:io.from}}))
 vi.mock('@/lib/ediel/mailReadiness',()=>({assertEdielSmtpReadiness:io.provider}))
 vi.mock('@/lib/ediel/db',()=>({getEdielRouteProfileByCommunicationRouteId:io.route,createEdielMessageEvent:io.event,updateEdielMessageStatus:io.update}))
@@ -24,9 +25,11 @@ it('source comparison ignores inapplicable EL descriptors and grey240 without fa
 })
 it('manual historical GAS320 missing requires review before unmapped ERC fallback or DB',async()=>{
  const message={...row(payload('Z06','E32',[...characteristic('Z02','1',3),...characteristic('Z05','6',3)],'gas').replace('LIN+1++A:::89','LIN+1++735123456789012345:::89')),message_code:'Z06'}
- expect(()=>deriveProdatAperakValidationIssues({message})).toThrow('PRODAT_GAS_ACK_REVIEW_REQUIRED')
- await expect(resolveAndStoreProdatAperakErrors({message})).rejects.toThrow('PRODAT_GAS_ACK_REVIEW_REQUIRED')
- expect(io.from).not.toHaveBeenCalled()
+ const writes:{table:string;body:Record<string,unknown>}[]=[];io.from.mockImplementation(registryDatabase(writes))
+ expect(deriveProdatAperakValidationIssues({message})).toContainEqual(expect.objectContaining({selectedApplicationError:expect.objectContaining({ercCode:'41',fieldCode:'320'})}))
+ const result=await resolveAndStoreProdatAperakErrors({message})
+ expect(result.errors).toContainEqual(expect.objectContaining({ercCode:'41',fieldCode:'320',referenceNumber:'735123456789012345',lineItemReference:'EVENT-A'}))
+ expect(writes.filter(w=>w.table==='ediel_aperak_error_details').map(w=>w.body)).toContainEqual(expect.objectContaining({source_message_id:message.id,application_error:'41',free_text_code:'320'}))
 })
 it('final actual EL ACK and manual resolution ignore false fields even malformed content',async()=>{
  const rawPayload=payload('Z06','E32',[...characteristic('Z02','1',3),...characteristic('Z05','6',3),['RFF',['Z08','']],['RFF',['Z06','å'.repeat(36),'unused']]])

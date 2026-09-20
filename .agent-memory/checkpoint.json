@@ -13,33 +13,33 @@
   },
   "full_masterplan": "NOT_COMPLETE",
   "main_full_certificate": {
-    "run": 35510270064,
-    "job": 106076834288,
+    "run": 35514098018,
+    "job": 106086990054,
     "passed": 73,
     "total": 73,
     "failed": 0,
-    "completed_at": "2026-09-20T12:25:55Z",
+    "completed_at": "2026-09-20T13:47:43Z",
     "node": "22.23.2"
   },
   "main_ops_receipt": {
-    "run": 35510270047,
+    "run": 35514097961,
     "jobs": [
-      106076834187,
-      106076834291,
-      106076834306
+      106086989686,
+      106086989763,
+      106086989796
     ],
     "conclusion": "success"
   },
   "updated_at": "2026-09-20",
   "status": "IN_PROGRESS",
-  "branch": "codex/ediel-permission-prior-flow-20260920",
-  "base_head_sha": "4e8b8588f9a6ff805ba433e542615ba6dd66fb98",
-  "active_item": "PR354 R-PF-1 chronology correction by originalauthor",
-  "next_action": "Finalcorrectedcandidate, scopedindependentreview, newexactCI, guardedmerge/main",
+  "branch": "codex/ediel-remaining-d-20260920",
+  "base_head_sha": "39aeb94fc1a33f24269a4887a661851792feb1d5",
+  "active_item": "Remaining D Batch A incoming typed ACK completion",
+  "next_action": "Implement authorized Batch A, independent review, exact CI/merge/main; then Batch B240 identity",
   "runtime_authorized": true,
-  "last_accepted_pr": 353,
-  "last_merged_pr": 353,
-  "active_pr": 354,
+  "last_accepted_pr": 354,
+  "last_merged_pr": 354,
+  "active_pr": null,
   "main_pending": null,
   "previous_pr_receipt": {
     "pr": 352,
@@ -60,54 +60,43 @@
     ],
     "all_success": true
   },
-  "source_author": "permission_prior_flow_source",
-  "source_base": "7ea935cf",
-  "source_plan": "quality/audits/ediel-masterplan-v2/permission-prior-flow-plan.md",
-  "source_candidate_commit": "0fd41d86a32f0051785e01c4f1d010f18e2d4686",
+  "source_author": "remaining_d_source",
+  "source_base": "7824add7c84414f891ae3c5b37dba3f77e6f740b",
+  "source_plan": "quality/audits/ediel-masterplan-v2/remaining-d-plan.md",
+  "source_candidate_commit": "cc59c38d0b17024e715f907cd6fef2cd8c84ba7f",
   "source_remote_checkpoint": {
-    "head": "2d60935a77ed69cbc1f31c703c82fb39174d4198",
-    "tree": "27eebaa15a33c3e9cbdacce9c5080f555d76fb6b",
-    "local_equivalent": "0fd41d86a32f0051785e01c4f1d010f18e2d4686",
+    "head": "02646341cc425b040a5fc156121888a4d9f18a33",
+    "tree": "297b0d5975698152d3eff47c4b1dc2faa371016e",
+    "local_equivalent": "338c5ee5ec8224ab2b065272d8da96026a321e9f",
     "verification": "fresh fetch diff0"
   },
-  "source_review": "SOURCE/SPEC ARCHITECTURE TENANT TASK/SPEC QUALITY APPROVE",
-  "runtime_scope": "Approved incoming322/324 owner and finite ACK consumers; exact two old assertion exceptions; E37Z18 accepted; physical occurrence persistence guard",
-  "runtime_author": "permission_prior_flow_runtime",
-  "runtime_base": "58674ab620f3eecf4b1bd692513694ffa7c52aa0",
+  "source_review": "APPROVE source/spec architecture task/quality acceptance; N-REM-1 corrected af21d5e4",
+  "runtime_scope": "Batch A nine selected incoming cells RD-1/2/3; exact three old-test exceptions in Task2",
+  "runtime_author": "remaining_d_incoming",
+  "runtime_base": "263790d2",
   "runtime_test_checkpoint": {
-    "local": "65ec8293",
-    "remote": "330215929aa5e8014e8fa8271b8ae233ec247f0b",
-    "tree": "1a266b98b738f63099baae81b170f1d34792c722",
-    "tests": 8,
-    "passed": 0,
-    "expected_failed": 8,
+    "local": "f2d602abfc923c79a80aa361fb44ae5844a891f6",
+    "tests": 34,
+    "passed": 1,
+    "expected_failed": 33,
+    "remote": "a6c15b21d835f236b615cd2c64dcd5fa0c865599",
+    "tree": "504ac108b1f7437b58e32fbb583e0087237b4a2f",
     "verification": "fresh fetch diff0"
   },
-  "runtime_remote_parent": "a8c4f1fb75477efd130d31b9ea77cdd2d7c541ff",
+  "runtime_remote_parent": "5bc847037c1f782af6374f76201a84ff74516dde",
   "runtime_checkpoint": {
-    "local": "03a7e651d73317230ba57810d2090e6aae1aacd2",
-    "remote": "a8c4f1fb75477efd130d31b9ea77cdd2d7c541ff",
-    "tree": "5b67a17a11abcfa43ddd5507513c15c13744b225",
-    "runtime": "d9d0a93e0e24d68c8d21cb5ea1f34d21f61419f6",
+    "local": "9df2b9c6f3c4050f92b1dde92f6713d57dabf3c1",
+    "remote": "5bc847037c1f782af6374f76201a84ff74516dde",
+    "tree": "2fa7056299d4f832b9b983284394f314f61221c5",
     "verification": "fresh fetch diff0",
-    "full_passed": 4787,
-    "files": 308,
-    "focused_passed": 212,
-    "new_tests": 84,
-    "quality_passed": 45,
-    "strip_only_passed": 818,
-    "gates_passed": 13,
-    "last_test_only_refinement": "new105Swedishtext+assertion targeted1PASS afterfull"
+    "focused_passed": 286,
+    "new_tests": 117,
+    "full_gates": "RUNNING"
   },
   "codec_exception": "sanitizeSegment canonical terminal apostrophe releaseparity only; independent source/architecture amendment, root56db1f3a",
-  "runtime_review": "REQUEST_CHANGES R-PF-1 MEDIUM chronology; bounded TENANT APPROVE",
-  "runtime_fix_round": 1,
-  "runtime_ci_runs": [
-    35513117146,
-    35513117071,
-    35513117108,
-    35513117153
-  ],
+  "runtime_review": "NOT_STARTED Batch A",
+  "runtime_fix_round": 0,
+  "runtime_ci_runs": [],
   "ci_blocker": null,
   "packaging_checkpoint": {
     "local": "de385ceef28d3764d04ab142432a1193d763bf46",
@@ -119,40 +108,16 @@
     "runtime_unchanged": true,
     "review": "APPROVE"
   },
-  "next_separate_residual": "P-ACK-R1 HIGH prior-flow authority/tenant lookup, independently qualify before production linkage acceptance",
+  "next_separate_residual": "Batch B GAS240 outgoing TIM/SCH identity then independent per-cell acceptance",
   "additional_assertion_ruling": "c0a84050/10866f53 exact customUNA Z14N own223/status fixture correction only",
-  "initial_ci_receipt": {
-    "head": "a8c4f1fb75477efd130d31b9ea77cdd2d7c541ff",
-    "all_success": true,
-    "runs": [
-      35513117146,
-      35513117071,
-      35513117108,
-      35513117153
-    ],
-    "coverage_job": 106084416196,
-    "tests": 4787,
-    "node": "22.23.2",
-    "historical_after_fix": true
-  },
-  "runtime_ci_receipt": {
-    "head": "791519ed49017ddbdf7981e096f88e5776cd859d",
-    "all_success": true,
-    "quality_job": 106075925004,
-    "tests": 4703,
-    "files": 307,
-    "quality_tests": 45,
-    "node": "22.23.2"
-  },
-  "pending_main_runs": {
-    "full": 35510270064,
-    "ops": 35510270047
-  },
+  "initial_ci_receipt": null,
+  "runtime_ci_receipt": null,
+  "pending_main_runs": null,
   "pause_archive": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920",
   "runtime_auth_checkpoint": {
-    "local": "58674ab620f3eecf4b1bd692513694ffa7c52aa0",
-    "remote": "234823c69ac1485d05b30096b80004b8cbda31cc",
-    "tree": "aca69f35438fb6f5e4cd6578283ef9359a2f76e4",
+    "local": "df23be89ad05aeafa13d4d0237bb9058fdb1883e",
+    "remote": "09294cbb2b221ab360a8866e0d5921dfc99fd118",
+    "tree": "5fec7d5d5e5655276afff406f2a99ba5b3687381",
     "verification": "fresh fetch diff0"
   }
 }

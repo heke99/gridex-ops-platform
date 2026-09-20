@@ -1,0 +1,613 @@
+{
+  "schema": "gridex.remaining-d.source-qualification.v1",
+  "date": "2026-09-20",
+  "sourceBase": "7824add7c84414f891ae3c5b37dba3f77e6f740b",
+  "applicationBase": "39aeb94fc1a33f24269a4887a661851792feb1d5",
+  "acceptedNumericD": 98,
+  "numericDTotal": 110,
+  "acceptedParentOccurrences": 10,
+  "countChanged": false,
+  "sourceOnly": true,
+  "independentReview": "PENDING",
+  "runtimeAuthorized": false,
+  "sourceOriginals": [
+    {
+      "kind": "PDF",
+      "sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+      "path": "/workspace/scratch/2a201d6d5897/prodat-original-source/PRODAT-26A-r3.pdf",
+      "freshRead": true
+    },
+    {
+      "kind": "workbook",
+      "sha256": "475131fa17fe0b4a611bae4ecf3f42cd78c9565b963a7c7cbd918213721332c7",
+      "path": "/workspace/scratch/2a201d6d5897/remaining-d-probes-20260920/original-workbook-recovered.xlsx",
+      "retrievedFrom": "https://ediel.se/Portal/Document/3300",
+      "freshRead": true
+    }
+  ],
+  "cells": [
+    {
+      "id": "PC-321-Z14",
+      "field": "321",
+      "messageCode": "Z14",
+      "sourcePages": [
+        17,
+        49,
+        119,
+        121
+      ],
+      "trueOutcome": "bounded R exact minute",
+      "falseOutcome": "indefinite/N X",
+      "unknownOutcome": "unknown term blocks own send; incoming absent not sender-invalid",
+      "owner": "lib/ediel/rulebook/prodatReportingPermissionPolicy.ts",
+      "physicalIdentity": "SG8 DTM/C507/2380 qualifier91/203; own object/agency/LI/customer",
+      "protocolStatus": "PARTIAL_PENDING_INDEPENDENT_REVIEW",
+      "remainingCodeOrConsumerGap": "RD-1 manual registry omits malformed supplied321",
+      "testOracle": "Valid/invalid Gregorian minute through actual canonical and manual final ACK42/321",
+      "persistedAuthority": "Positive persisted Z14 source unqualified; requireAuthority hold",
+      "liveReadiness": "NOT_QUALIFIED",
+      "historicalCountDelta": 0
+    },
+    {
+      "id": "PC-323-Z14",
+      "field": "323",
+      "messageCode": "Z14",
+      "sourcePages": [
+        21,
+        74,
+        119,
+        123
+      ],
+      "trueOutcome": "private/request-present R B71-B76 exact request equality",
+      "falseOutcome": "N X; qualified nonprivate request-absent omission",
+      "unknownOutcome": "no missing error absent local truth; proposed supplied-code inference requires review",
+      "owner": "lib/ediel/rulebook/prodatReportingPermissionPolicy.ts",
+      "physicalIdentity": "SG8/SG14 CCI Z24 CAV/C889/7111; own request revision/customer/LI/object+agency",
+      "protocolStatus": "PARTIAL_PENDING_INDEPENDENT_REVIEW",
+      "remainingCodeOrConsumerGap": "RD-2 incoming supplied-code owner absent; RD-3 typed manual path",
+      "testOracle": "Single own S17/A74 BAD vs B72; N BAD ignored; canonical/registry final42/323",
+      "persistedAuthority": "Positive persisted Z14 source unqualified; requireAuthority hold",
+      "liveReadiness": "NOT_QUALIFIED",
+      "historicalCountDelta": 0
+    },
+    {
+      "id": "PC-254-Z10",
+      "field": "254",
+      "messageCode": "Z10",
+      "sourcePages": [
+        20,
+        67,
+        69,
+        119,
+        122
+      ],
+      "trueOutcome": "R: settlement changed OR below threshold",
+      "falseOutcome": "proven false O; supplied optional equals independent new value",
+      "unknownOutcome": "outgoing U blocks; incoming U absence no error; qualified bad supplied code checked",
+      "owner": "lib/ediel/rulebook/prodatMeterChangePolicy.ts",
+      "physicalIdentity": "SG8/SG14 CCI Z15; CAV component1; own E58/meters/event/date/LI/actors/object+agency",
+      "protocolStatus": "PARTIAL_PENDING_INDEPENDENT_REVIEW",
+      "remainingCodeOrConsumerGap": "RD-3 typed manual resolution replaces blanket ready-error hold",
+      "testOracle": "T/F/U source tests; exact41/42/254 through persisted issue + draft; shared506 isolation",
+      "persistedAuthority": "No qualified persisted Z10 event producer; caller envelope rejected",
+      "liveReadiness": "NOT_QUALIFIED",
+      "historicalCountDelta": 0
+    },
+    {
+      "id": "PC-242-Z10",
+      "field": "242",
+      "messageCode": "Z10",
+      "sourcePages": [
+        20,
+        68,
+        69,
+        119,
+        122
+      ],
+      "trueOutcome": "EL changed aggregation product R",
+      "falseOutcome": "proven false O; supplied optional equals independent new value",
+      "unknownOutcome": "outgoing U blocks; incoming U absence no error; qualified bad supplied code checked",
+      "owner": "lib/ediel/rulebook/prodatMeterChangePolicy.ts",
+      "physicalIdentity": "SG8/SG14 CCI Z14; CAV component4; own E58/meters/event/date/LI/actors/object+agency",
+      "protocolStatus": "PARTIAL_PENDING_INDEPENDENT_REVIEW",
+      "remainingCodeOrConsumerGap": "RD-3 typed manual resolution replaces blanket ready-error hold",
+      "testOracle": "T/F/U source tests; exact41/42/242 through persisted issue + draft; shared506 isolation",
+      "persistedAuthority": "No qualified persisted Z10 event producer; caller envelope rejected",
+      "liveReadiness": "NOT_QUALIFIED",
+      "historicalCountDelta": 0
+    },
+    {
+      "id": "PC-310-Z05",
+      "field": "310",
+      "messageCode": "Z05",
+      "sourcePages": [
+        20,
+        21,
+        65,
+        71,
+        109,
+        112,
+        119,
+        122
+      ],
+      "trueOutcome": "eligible subtype plus independent death R/Z41",
+      "falseOutcome": "other valid subtype or eligible independent nondeath X",
+      "unknownOutcome": "outgoing unresolved blocks; incoming U absence not sender defect",
+      "owner": "lib/ediel/rulebook/prodatDeathStatusPolicy.ts",
+      "physicalIdentity": "SG8/SG14 CCI Z17 CAV/C889/7111; own first object/agency/LI/event or Z09E process",
+      "protocolStatus": "PARTIAL_PENDING_INDEPENDENT_REVIEW",
+      "remainingCodeOrConsumerGap": "RD-3 ready source-owned310 manual error mapping",
+      "testOracle": "Z05 T/F/U and own qualifier/identity; no fake event for Z09E; final41/42/310",
+      "persistedAuthority": "Selected eligible persisted source unqualified; hold remains",
+      "liveReadiness": "NOT_QUALIFIED",
+      "historicalCountDelta": 0
+    },
+    {
+      "id": "PC-310-Z06",
+      "field": "310",
+      "messageCode": "Z06",
+      "sourcePages": [
+        20,
+        21,
+        65,
+        71,
+        109,
+        112,
+        119,
+        122
+      ],
+      "trueOutcome": "eligible subtype plus independent death R/Z41",
+      "falseOutcome": "other valid subtype or eligible independent nondeath X",
+      "unknownOutcome": "outgoing unresolved blocks; incoming U absence not sender defect",
+      "owner": "lib/ediel/rulebook/prodatDeathStatusPolicy.ts",
+      "physicalIdentity": "SG8/SG14 CCI Z17 CAV/C889/7111; own first object/agency/LI/event or Z09E process",
+      "protocolStatus": "PARTIAL_PENDING_INDEPENDENT_REVIEW",
+      "remainingCodeOrConsumerGap": "RD-3 ready source-owned310 manual error mapping",
+      "testOracle": "Z06 T/F/U and own qualifier/identity; no fake event for Z09E; final41/42/310",
+      "persistedAuthority": "Selected eligible persisted source unqualified; hold remains",
+      "liveReadiness": "NOT_QUALIFIED",
+      "historicalCountDelta": 0
+    },
+    {
+      "id": "PC-310-Z09",
+      "field": "310",
+      "messageCode": "Z09",
+      "sourcePages": [
+        20,
+        21,
+        65,
+        71,
+        109,
+        112,
+        119,
+        122
+      ],
+      "trueOutcome": "own E34 intrinsically R/Z41",
+      "falseOutcome": "valid B/D/F/G X; own E/E34 remains R without local death assessment",
+      "unknownOutcome": "outgoing unresolved blocks; incoming U absence not sender defect",
+      "owner": "lib/ediel/rulebook/prodatDeathStatusPolicy.ts",
+      "physicalIdentity": "SG8/SG14 CCI Z17 CAV/C889/7111; own first object/agency/LI/event or Z09E process",
+      "protocolStatus": "PARTIAL_PENDING_INDEPENDENT_REVIEW",
+      "remainingCodeOrConsumerGap": "RD-3 ready source-owned310 manual error mapping",
+      "testOracle": "Z09 T/F/U and own qualifier/identity; no fake event for Z09E; final41/42/310",
+      "persistedAuthority": "Selected eligible persisted source unqualified; hold remains",
+      "liveReadiness": "NOT_QUALIFIED",
+      "historicalCountDelta": 0
+    },
+    {
+      "id": "PC-320-Z04",
+      "field": "320",
+      "messageCode": "Z04",
+      "sourcePages": [
+        21,
+        77,
+        119,
+        123
+      ],
+      "trueOutcome": "GAS R",
+      "falseOutcome": "EL X",
+      "unknownOutcome": "unknown own market/subtype U blocks outgoing",
+      "owner": "lib/ediel/rulebook/prodatGasApplicabilityPolicy.ts",
+      "physicalIdentity": "SG8/SG16 RFF Z08/C506/1154 own first object/agency/LI; UNB+UNH market",
+      "protocolStatus": "PARTIAL_PENDING_INDEPENDENT_REVIEW",
+      "remainingCodeOrConsumerGap": "RD-3 historical GAS typed diagnostic/manual resolution",
+      "testOracle": "R missing41/320; invalid42/320; false extra ignored; historical only no role activation",
+      "persistedAuthority": "Persisted GAS unsupported; SOURCE_UNQUALIFIED; active coherent EL exclusion",
+      "liveReadiness": "NOT_QUALIFIED",
+      "historicalCountDelta": 0
+    },
+    {
+      "id": "PC-320-Z06",
+      "field": "320",
+      "messageCode": "Z06",
+      "sourcePages": [
+        21,
+        77,
+        119,
+        123
+      ],
+      "trueOutcome": "GAS F/G R",
+      "falseOutcome": "EL or GAS E X",
+      "unknownOutcome": "unknown own market/subtype U blocks outgoing",
+      "owner": "lib/ediel/rulebook/prodatGasApplicabilityPolicy.ts",
+      "physicalIdentity": "SG8/SG16 RFF Z08/C506/1154 own first object/agency/LI; UNB+UNH market",
+      "protocolStatus": "PARTIAL_PENDING_INDEPENDENT_REVIEW",
+      "remainingCodeOrConsumerGap": "RD-3 historical GAS typed diagnostic/manual resolution",
+      "testOracle": "R missing41/320; invalid42/320; false extra ignored; historical only no role activation",
+      "persistedAuthority": "Persisted GAS unsupported; SOURCE_UNQUALIFIED; active coherent EL exclusion",
+      "liveReadiness": "NOT_QUALIFIED",
+      "historicalCountDelta": 0
+    },
+    {
+      "id": "PC-240-Z04",
+      "field": "240",
+      "messageCode": "Z04",
+      "sourcePages": [
+        21,
+        65,
+        77,
+        108,
+        119,
+        123
+      ],
+      "trueOutcome": "GAS R",
+      "falseOutcome": "EL X",
+      "unknownOutcome": "unknown condition/value authority blocks own outgoing; incoming gray retained",
+      "owner": "lib/ediel/rulebook/prodatGasApplicabilityPolicy.ts",
+      "physicalIdentity": "SG8/SG16 RFF Z06/C506/1154; own object/agency/LI/process + event/revision where causal",
+      "protocolStatus": "PARTIAL_PENDING_INDEPENDENT_REVIEW",
+      "remainingCodeOrConsumerGap": "RD-4 TIM actual-series vs SCH own-installation identity missing",
+      "testOracle": "Independent known TIM and SCH correct/wrong values; R/O/X/U; gray inbound unchanged; all persisted GAS sends held",
+      "persistedAuthority": "No persisted regime/value authority; no market-column assumption; selection must not promote authority",
+      "liveReadiness": "NOT_QUALIFIED",
+      "historicalCountDelta": 0
+    },
+    {
+      "id": "PC-240-Z06",
+      "field": "240",
+      "messageCode": "Z06",
+      "sourcePages": [
+        21,
+        65,
+        77,
+        108,
+        119,
+        123
+      ],
+      "trueOutcome": "GAS causal series change R",
+      "falseOutcome": "EL X; unchanged O; GAS E O",
+      "unknownOutcome": "unknown condition/value authority blocks own outgoing; incoming gray retained",
+      "owner": "lib/ediel/rulebook/prodatGasApplicabilityPolicy.ts",
+      "physicalIdentity": "SG8/SG16 RFF Z06/C506/1154; own object/agency/LI/process + event/revision where causal",
+      "protocolStatus": "PARTIAL_PENDING_INDEPENDENT_REVIEW",
+      "remainingCodeOrConsumerGap": "RD-4 TIM actual-series vs SCH own-installation identity missing",
+      "testOracle": "Independent known TIM and SCH correct/wrong values; R/O/X/U; gray inbound unchanged; all persisted GAS sends held",
+      "persistedAuthority": "No persisted regime/value authority; no market-column assumption; selection must not promote authority",
+      "liveReadiness": "NOT_QUALIFIED",
+      "historicalCountDelta": 0
+    },
+    {
+      "id": "PC-240-Z10",
+      "field": "240",
+      "messageCode": "Z10",
+      "sourcePages": [
+        21,
+        65,
+        77,
+        108,
+        119,
+        123
+      ],
+      "trueOutcome": "GAS causal series change R",
+      "falseOutcome": "EL X; unchanged O",
+      "unknownOutcome": "unknown condition/value authority blocks own outgoing; incoming gray retained",
+      "owner": "lib/ediel/rulebook/prodatGasApplicabilityPolicy.ts",
+      "physicalIdentity": "SG8/SG16 RFF Z06/C506/1154; own object/agency/LI/process + event/revision where causal",
+      "protocolStatus": "PARTIAL_PENDING_INDEPENDENT_REVIEW",
+      "remainingCodeOrConsumerGap": "RD-4 TIM actual-series vs SCH own-installation identity missing",
+      "testOracle": "Independent known TIM and SCH correct/wrong values; R/O/X/U; gray inbound unchanged; all persisted GAS sends held",
+      "persistedAuthority": "No persisted regime/value authority; no market-column assumption; selection must not promote authority",
+      "liveReadiness": "NOT_QUALIFIED",
+      "historicalCountDelta": 0
+    }
+  ],
+  "consumerSourceManifest": [
+    {
+      "path": "lib/ediel/rulebook/prodatReportingPermissionPolicy.ts",
+      "sha256": "d473552841bf1c486dd5fb7c177e5ae761e4325e00226e9ec05bc454a9922e6a"
+    },
+    {
+      "path": "lib/ediel/rulebook/prodatMeterChangePolicy.ts",
+      "sha256": "29aff234ac109f5399147ab5306ac6d168aaee919bd3ea82a670c025ce6f5a00"
+    },
+    {
+      "path": "lib/ediel/rulebook/prodatDeathStatusPolicy.ts",
+      "sha256": "545787ba2e6241cb02ea78d22b1c77692ce056e31d435138b4d31f7348f9641f"
+    },
+    {
+      "path": "lib/ediel/rulebook/prodatGasApplicabilityPolicy.ts",
+      "sha256": "eb2c35868430da7519521c03fd5cebf49eaef4deace84993b57b52c761cfae2d"
+    },
+    {
+      "path": "lib/ediel/prodat/prodatGasApplicability.ts",
+      "sha256": "5d37b00c101af5c475aa2998daf7e4433e41b3d3fb2780d4f0961403f6d84144"
+    },
+    {
+      "path": "lib/ediel/prodat/prodatRegisterEvidence.ts",
+      "sha256": "15158ff660fa334762bac2c3f44d23c5c3b40ed8164666fcc6590444cc0cff96"
+    },
+    {
+      "path": "lib/ediel/prodat/prodatGasAuthority.ts",
+      "sha256": "f2943569c565fb3175b325cc2b70ff017f4acfd913ca77409d7afd269c0a9239"
+    },
+    {
+      "path": "lib/ediel/prodat/prodatDeathStatusAuthority.ts",
+      "sha256": "b9326170a840df27ca833b298dd03fdb55535678acb8327640bf0faced308241"
+    },
+    {
+      "path": "lib/ediel/prodat/prodatMeterChangeAuthority.ts",
+      "sha256": "6c79aeb49f78ab8c43b335b5d207561ee4aa48604719cf3b0927f654532c0976"
+    },
+    {
+      "path": "lib/ediel/prodat/prodatReportingPermissionAuthority.ts",
+      "sha256": "003ad59a5734b8b6ff97357bb46c45c563a3123b0019971b42f14e4e6db0f4c6"
+    },
+    {
+      "path": "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "sha256": "aea10c96a806c1b0eed1cb1a1387942fdeaefa294dd540517eec497d9ed5e982"
+    },
+    {
+      "path": "lib/ediel/testing/aperakErrorRuleRegistry.ts",
+      "sha256": "29b6b53b1a6e53f7ebb2e88be8fb076c9d6c7d0734b44555b4637a00fc983455"
+    },
+    {
+      "path": "lib/ediel/testing/prodatPermissionAckRegistry.ts",
+      "sha256": "8c1f7531306506983139fec6077c8ec3cce934c25d95668bc1bca13b72552c80"
+    },
+    {
+      "path": "lib/ediel/prodat/prodatDiagnosticProjection.ts",
+      "sha256": "515f9082466f0f9f0385fb2dac51a709b557352b9501d6ea9f354ea53cfa3c90"
+    },
+    {
+      "path": "lib/ediel/prodat/prodatFieldDiagnostic.ts",
+      "sha256": "0d6201c22e4f02953003dae853d5c0ae95332879c6e31dc758f6c41c0a218c15"
+    },
+    {
+      "path": "lib/ediel/core/runtimeDecision.ts",
+      "sha256": "794a9c8f8e2df8cdd176ca02a4f425d812af08ce7e8a8b066e9de07263c5c33b"
+    },
+    {
+      "path": "lib/ediel/core/messageBuilder/payloadPreflight.ts",
+      "sha256": "60f567ec9b04a9c75d559eb1361685c909c073efdd6aaaa0d751b7abc0070370"
+    },
+    {
+      "path": "lib/ediel/prodat/parser.ts",
+      "sha256": "2deb1745cf6054b8ea7741b63d5acbcc9f62ea81e10f2001556bb8ee4c25354e"
+    },
+    {
+      "path": "lib/ediel/transport/index.part-2.ts",
+      "sha256": "67866041481afc96d56dc8252488056b5c8a2e833a118d8f071296b50cfde826"
+    },
+    {
+      "path": "lib/ediel/rulebook/sendGuards.ts",
+      "sha256": "812e878b207073afabf489e4ca6578d28d14acea28491bd220e076b31665463a"
+    },
+    {
+      "path": "app/admin/ediel/actions.part-3.ts",
+      "sha256": "2d760e4930a3a596c29482172f49688f440852ca5a81b63db78224691e86c091"
+    },
+    {
+      "path": "app/admin/ediel/system-tests/actions.part-2.ts",
+      "sha256": "6fa5316e6428508f6b3d0a70b7a1428cc673ac084d2d28b928c513854c19f96f"
+    },
+    {
+      "path": "supabase/database.types.ts",
+      "sha256": "b839bc610ff376fe78469cd7266de7a1d205022afa96c9924e2a9b1f0b4da6e8"
+    },
+    {
+      "path": "supabase/schema.sql",
+      "sha256": "b46b90d7ff066d71964c9157044ac70b31b47cab114cfcbce5d270751012dd30"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/MASTERMASTERPLAN_v2.md",
+      "sha256": "eaeebd59153c31d16f0baa0f5462a239eea6c7e629bebbb1543a802d81482191"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/annex/D_Acceptanskontrakt.md",
+      "sha256": "5acc706bd5f328daf1878ebf0311488ac01db7bd5a2d97520b766548c1923912"
+    }
+  ],
+  "archives": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/accepted-consumers-01.json.txt",
+      "sha256": "b857738425ead5c3918434f0e4c5cb8d795b3d1f97e71b4f45613af0426bc445",
+      "bytes": 61967
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/normative-consumer-red-01.json.txt",
+      "sha256": "1ff9b37c94b780d3ed8c56d2696d777e72179ae0207f96355cc077411f1a9776",
+      "bytes": 6737
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/normative-consumer-red.probe-source.txt",
+      "sha256": "911fa59956ca9cb82c4de868b36932d7479ecbb6a0e31eb58703a319b0f5dea7",
+      "bytes": 1817
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/observations-01.json.txt",
+      "sha256": "4ed67088f0039b20842ecc387d795b2b795499c4ca183b7e714b07864b42a194",
+      "bytes": 2709
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/qualified-reporting-consumers-01.json.txt",
+      "sha256": "7e358cfc9b38a5fd4114a515823dfaaa86f611840984fd8ba9338a5e92443eb1",
+      "bytes": 386630
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/qualified-reporting-consumers.probe-source.txt",
+      "sha256": "7014b5117bcf65f600f8b1e5d55e9e7dd36afc78dcc71d3c5265b78ebcc194f0",
+      "bytes": 2077
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/qualified-reporting-results-01.json.txt",
+      "sha256": "aadb43977424df1ff9cdd33a889de8c9ffb7c32540730aaec6ba9a87c0b41cc3",
+      "bytes": 1010
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/remaining-observations.probe-source.txt",
+      "sha256": "4d5df21c7464faaa54c0f59cc1bff394c0e15bbdddf80edf1a7c40298cbdb389",
+      "bytes": 3088
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/reporting-consumer-observations-01.json.txt",
+      "sha256": "a732f8b0b894e43ad6c26d06b40d5684550dabc30251fd6b274e46f5f7ee985f",
+      "bytes": 8046
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/reporting-consumer-observations.probe-source.txt",
+      "sha256": "22322b16496fb30f07ed962af4b043a6204bfd2fbb0740536c1026989f44f85b",
+      "bytes": 1631
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/reporting-consumer-result-01.json.txt",
+      "sha256": "db7781211e6632dd57cac638030409e535588d2031c1fb3bacce39399926f869",
+      "bytes": 996
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/vitest.config.config-source.txt",
+      "sha256": "ee9f19889b4f8db3d6d82b26885d9266c14ee3d167305b992f552c8548acf414",
+      "bytes": 315
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/workbook-source-cells-01.json.txt",
+      "sha256": "57401feaa6dd62c9d8ba8fda02eb8071826433eb11e7d70e9fd59191e25e6364",
+      "bytes": 1392
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/integrity-01.txt",
+      "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+      "bytes": 401
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/final-verification-01.txt",
+      "sha256": "43bfe9b0048bd4187549a9b9b5f1919135d161fe942e8fcac9774b6f301ad952",
+      "bytes": 1136
+    }
+  ],
+  "checks": [
+    {
+      "receipt": "observations-01.json.txt",
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "status": "PASS",
+      "limitation": null,
+      "testFiles": [
+        "/workspace/scratch/2a201d6d5897/remaining-d-probes-20260920/remaining-observations.test.ts"
+      ]
+    },
+    {
+      "receipt": "accepted-consumers-01.json.txt",
+      "total": 216,
+      "passed": 216,
+      "failed": 0,
+      "status": "PASS",
+      "limitation": null,
+      "testFiles": [
+        "/workspace/scratch/2a201d6d5897/gridex-next/__tests__/ediel-prodat-death-status-boundaries.test.ts",
+        "/workspace/scratch/2a201d6d5897/gridex-next/__tests__/ediel-prodat-death-status-inbound.test.ts",
+        "/workspace/scratch/2a201d6d5897/gridex-next/__tests__/ediel-prodat-death-status-policy.test.ts",
+        "/workspace/scratch/2a201d6d5897/gridex-next/__tests__/ediel-prodat-death-status-source.test.ts",
+        "/workspace/scratch/2a201d6d5897/gridex-next/__tests__/ediel-prodat-gas-boundaries.test.ts",
+        "/workspace/scratch/2a201d6d5897/gridex-next/__tests__/ediel-prodat-gas-disposition.test.ts",
+        "/workspace/scratch/2a201d6d5897/gridex-next/__tests__/ediel-prodat-gas-policy.test.ts",
+        "/workspace/scratch/2a201d6d5897/gridex-next/__tests__/ediel-prodat-meter-change-boundaries.test.ts",
+        "/workspace/scratch/2a201d6d5897/gridex-next/__tests__/ediel-prodat-meter-change-inbound.test.ts",
+        "/workspace/scratch/2a201d6d5897/gridex-next/__tests__/ediel-prodat-meter-change.test.ts",
+        "/workspace/scratch/2a201d6d5897/gridex-next/__tests__/ediel-prodat-reporting-permission.test.ts",
+        "/workspace/scratch/2a201d6d5897/gridex-next/__tests__/ediel-prodat-reporting-policy-boundaries.test.ts",
+        "/workspace/scratch/2a201d6d5897/gridex-next/__tests__/ediel-prodat-reporting-smtp.test.ts"
+      ]
+    },
+    {
+      "receipt": "reporting-consumer-result-01.json.txt",
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "status": "PASS",
+      "limitation": "Exploratory duplicate323 fixture; superseded by separate qualified single-occurrence probe",
+      "testFiles": [
+        "/workspace/scratch/2a201d6d5897/remaining-d-probes-20260920/reporting-consumer-observations.test.ts"
+      ]
+    },
+    {
+      "receipt": "qualified-reporting-results-01.json.txt",
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "status": "PASS",
+      "limitation": null,
+      "testFiles": [
+        "/workspace/scratch/2a201d6d5897/remaining-d-probes-20260920/qualified-reporting-consumers.test.ts"
+      ]
+    },
+    {
+      "receipt": "normative-consumer-red-01.json.txt",
+      "total": 4,
+      "passed": 0,
+      "failed": 4,
+      "status": "EXPECTED_RED_PROPOSED_CONTRACT",
+      "limitation": null,
+      "testFiles": [
+        "/workspace/scratch/2a201d6d5897/remaining-d-probes-20260920/normative-consumer-red.test.ts"
+      ]
+    }
+  ],
+  "proposedBatches": [
+    {
+      "id": "A",
+      "scope": "selected incoming typed ACK completion",
+      "cells": [
+        "PC-321-Z14",
+        "PC-323-Z14",
+        "PC-254-Z10",
+        "PC-242-Z10",
+        "PC-310-Z05",
+        "PC-310-Z06",
+        "PC-310-Z09",
+        "PC-320-Z04",
+        "PC-320-Z06"
+      ]
+    },
+    {
+      "id": "B",
+      "scope": "GAS240 outgoing domain identity",
+      "cells": [
+        "PC-240-Z04",
+        "PC-240-Z06",
+        "PC-240-Z10"
+      ]
+    }
+  ],
+  "separateResiduals": [
+    "quote-bearing legacylist rulebook guard",
+    "general F3/state/ACK residuals",
+    "formal/live capability qualification",
+    "PR310 paused"
+  ],
+  "nodeVersion": "v24.19.0",
+  "finalVerification": {
+    "exactUniqueCells": 12,
+    "archiveHashChecks": 14,
+    "sourceHashChecks": 26,
+    "totalTests": 228,
+    "passed": 224,
+    "expectedRed": 4,
+    "integrity": {
+      "files": 33,
+      "rules": 121,
+      "contracts": 231
+    },
+    "diffCheck": "PASS"
+  }
+}

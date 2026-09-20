@@ -1,0 +1,27 @@
+import {it,expect,vi} from 'vitest'
+import {permissionAckMessage as message,permissionAckObject as object,characteristic} from '@/__tests__/fixtures/prodat-permission-ack'
+import {validateRulebookMessage} from '@/lib/ediel/rulebook/validator'
+import {resolveCanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
+import {deriveProdatAperakValidationIssues} from '@/lib/ediel/testing/aperakErrorRuleRegistry'
+import {writeFileSync} from 'node:fs'
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:()=>{throw Error('UNEXPECTED_DB')}}}))
+it('single own positive323 versus N extra; exact321 field path through canonical and registry',()=>{
+ const observations=[]
+ for(const reason of ['S17','Z96'])for(const purpose of ['B72','BAD']){
+  const body=object('Z14',reason,reason==='Z96'?'A76':'A74');const own=body.findIndex(p=>p[0]==='CCI'&&p[2]==='Z24')
+  if(own>=0)body[own+1]=['CAV',purpose];else {const i=body.findIndex(p=>p[0]==='RFF');body.splice(i,0,...characteristic('Z24',purpose))}
+  const m=message('Z14',reason,reason==='Z96'?'A76':'A74',null,undefined,body)
+  const policy=validateRulebookMessage({family:'PRODAT',code:'Z14',rawPayload:m.raw_payload!,mode:'parse',direction:'inbound'})
+  const canonical=resolveCanonicalRuntimeDecision(m)
+  let registry;try{registry=deriveProdatAperakValidationIssues({message:m})}catch(e){registry=String(e)}
+  observations.push({reason,purpose,policy:policy.issues,canonical,registry})
+  expect(policy.issues.filter(x=>x.prodatDiagnostic?.kind==='field'&&x.prodatDiagnostic.fieldNumber==='323')).toEqual([])
+ }
+ for(const end of ['202611010000','202602300000']){
+  const m=message('Z14','S18');m.raw_payload=m.raw_payload!.replace('202611010000',end)
+  const canonical=resolveCanonicalRuntimeDecision(m)
+  let registry;try{registry=deriveProdatAperakValidationIssues({message:m})}catch(e){registry=String(e)}
+  observations.push({end,canonical,registry})
+ }
+ writeFileSync('/workspace/scratch/2a201d6d5897/remaining-d-probes-20260920/qualified-reporting-consumers-01.json',JSON.stringify(observations,null,2))
+})

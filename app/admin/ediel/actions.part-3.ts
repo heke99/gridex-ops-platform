@@ -370,9 +370,11 @@ export async function resolveBackendAperakDecision(params: {
     throw new Error("Aktörsroll saknas för TGT/APERAK-beslutet.");
   }
 
-  assertIncomingProdatEnergyProductReview(params.sourceMessage.raw_payload);
   // Assess selected wire fields before prior lookup, TGT selection or events.
   const permissionFields = validateProdatPermissionMessage({ message: params.sourceMessage });
+  try { assertIncomingProdatEnergyProductReview(params.sourceMessage.raw_payload); } catch(error) {
+    throw Object.assign(error instanceof Error ? error : new Error(String(error)), {selectedFieldAssessment:permissionFields.selectedFieldAssessment});
+  }
 
   const tgtResolution = await resolveTgtTestDataForAckAction({
     message: params.sourceMessage,
@@ -387,6 +389,7 @@ export async function resolveBackendAperakDecision(params: {
     // Unavailable history remains internal; retain independently assessed fields.
     throw Object.assign(error instanceof Error ? error : new Error(String(error)), {
       permissionFieldAssessment: permissionFields.fieldAssessment,
+      selectedFieldAssessment: permissionFields.selectedFieldAssessment,
     });
   });
   const permissionDecision = validateProdatPermissionMessage({
@@ -394,9 +397,20 @@ export async function resolveBackendAperakDecision(params: {
     testData: tgtResolution.testData,
   });
 
-  assertPriorPermissionContext(params.sourceMessage, permissionContext, permissionFields.fieldAssessment);
+  try {
+    assertPriorPermissionContext(params.sourceMessage, permissionContext, permissionFields.fieldAssessment);
+  } catch(error) {
+    throw Object.assign(error instanceof Error ? error : new Error(String(error)), {selectedFieldAssessment:permissionFields.selectedFieldAssessment});
+  }
 
   if (permissionDecision.handled) {
+    if (permissionFields.selectedFieldAssessment?.applicationErrors.length) {
+      const selectedResolution = await resolveAndStoreProdatAperakErrors({message:params.sourceMessage,testData:tgtResolution.testData});
+      if (selectedResolution.unmappedIssues.length) throw new Error("PRODAT_SELECTED_ACK_REVIEW_REQUIRED");
+      permissionDecision.applicationErrors=selectedResolution.errors;
+      permissionDecision.matchedRuleKeys=selectedResolution.matchedRuleKeys;
+      permissionDecision.outcome="negative";
+    }
     await createEdielMessageEvent({
       actorUserId: params.actorUserId,
       edielMessageId: params.sourceMessage.id,
@@ -636,6 +650,7 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
     context,
   );
 
+  if (sourceMessage.message_family === "PRODAT") validateProdatPermissionMessage({message:sourceMessage});
   const relatedAcks = await listAckMessagesForSource({
     sourceMessageId,
     companyId: sourceMessage.company_id ?? null,

@@ -1,0 +1,14 @@
+Source-only verification 2026-09-20; Node v24.19.0
+Exact cells:12 unique, counts98/110+10 unchanged.
+Archive SHA256 verification:14/14 PASS before this receipt.
+Current consumer/source manifest verification:26/26 PASS.
+Existing selected tests216/216,13files PASS.
+Fresh characterization6/6 plus qualified reporting1/1 PASS.
+Exploratory duplicate323 characterization1/1 PASS, superseded, retained.
+Proposed normative consumer targets0/4:four expected behavioral RED, no setup errors.
+Total228 tests:224PASS,4expectedRED.
+Specification integrity33files/121rules/231contracts PASS; conformance and production readiness false.
+git diff --check PASS; git diff --cached --check PASS.
+Report .superpowers/sdd/remaining-d-plan/task-1-report.md is recoverable locally but ignored by repository; not force-added.
+No runtime/source/schema/oldassertion edits, external DB/provider calls or role activation.
+Commands: node node_modules/vitest/vitest.mjs run (13files listed in evidencechecks) --reporter=json --outputFile=accepted-consumers-01.json; scratch vitest config for each uniquely named probe source; npm run ediel:masterplan-v2:integrity.

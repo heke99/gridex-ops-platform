@@ -1,0 +1,2797 @@
+{
+  "base": "263790d2",
+  "files": 558,
+  "changed": [],
+  "manifest": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-packaging-20260920/archive-relocations.json",
+      "sha256": "7d04a214cbf567a30abc2f9ee2704afe5cfb2f7d0c4d94170a1670e7f358dbec",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-packaging-20260920/ci-failure-provenance.json",
+      "sha256": "73e9bce32434207899e868f8c9438d844571f37ce042e62ca43449b5eb036dfe",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-packaging-20260920/ci-quality-failure-excerpt.log",
+      "sha256": "cafe56b7cf103ba8a0a2c8ace55beb8a12f36341aa0268f107bf508db7229819",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-packaging-20260920/current-manifest.json",
+      "sha256": "d37167e79ba5ce65095f3d534f321ea211a7a5b6c35b2c05cb4dbbed02cd29e5",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-packaging-20260920/diffcheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-packaging-20260920/gates.json",
+      "sha256": "b7c3deab50853f87bfc4fae134b626dabfba568c1ecc692cb18fcf90ad1109a2",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-packaging-20260920/lint.log",
+      "sha256": "047da54a7fb45f15e99da1782ae17fdf279cd42af1d8fa504bdd3fdb9c3b066b",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-packaging-20260920/quality-suite.log",
+      "sha256": "c8b6f61dcf7b94183ccbdd256e608f72044e5ca9405afa189b1d4eecf9eea5d7",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-packaging-20260920/runtime-equality.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-packaging-20260920/typecheck-scripts.log",
+      "sha256": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-packaging-20260920/typecheck-tests.log",
+      "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-packaging-20260920/typecheck.log",
+      "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-plan.md",
+      "sha256": "fcaeddd6d98d9d8e34af789698126976577d8a978e2799b2b79fd9a60dcd1d09",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/codec-boundary-v1-source.txt",
+      "sha256": "f3f006c50fd801aee75422e667aceef7573acdd66709cdf3e2c1afc9e1f6ae5d",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/ediel-eight-attempt-1.log",
+      "sha256": "350959797c8ed02da97a93e6fa5356e5d6b822b0bbbd49d5e86e605db50cf1ca",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-diffcheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-ediel-eight.log",
+      "sha256": "1bf32de105011cc5bc6f71e30f5270d3d66856d9a9656fe52d6615ba2f52c6e5",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-gates.json",
+      "sha256": "37283c648a9219e253948ac3a5f60e958c8f0fd5680cc7233772a69ecc7027ea",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-integrity.log",
+      "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-large-files.log",
+      "sha256": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-lint.log",
+      "sha256": "047da54a7fb45f15e99da1782ae17fdf279cd42af1d8fa504bdd3fdb9c3b066b",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-performance.log",
+      "sha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-ratchet.log",
+      "sha256": "2939bdd3580914b982fe2853b29618eb469b55a6babf2afc431a87c06d96f74f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-route-readiness.log",
+      "sha256": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-tenant-integrity.log",
+      "sha256": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-tenant-shutdown.log",
+      "sha256": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-typecheck-scripts.log",
+      "sha256": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-typecheck-tests.log",
+      "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/final-typecheck.log",
+      "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/full-final.json",
+      "sha256": "5604eaa910802c74de23b740d76b5d33042c95489f63714ac44c84eeceabfa4b",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/full-final.log",
+      "sha256": "1e4492a83814c67a9e602b491cd2d654a79f2205d43ed107cd922c091b07df12",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-amendment-1.json",
+      "sha256": "1fd16295ba606056c18541c7a5ac1f679d5a11de87bd0b72745b0762723a2e17",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-amendment-1.log",
+      "sha256": "f1a40a8d4b45a849451f134cbe285817af18addce8fa2972c9b99e0f1419559a",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-attempt-1.json",
+      "sha256": "c19fa19420bfe83fd0ab3df9d610a0afb9e7947e55b1f64da38706f22ad2b101",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-attempt-1.log",
+      "sha256": "d6b38d8abffdd9a114ef5dac747c008a4854a42c360fb833a873b3da7de9f34b",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-attempt-2.json",
+      "sha256": "ed30a55b93cbe0ab5a3bd7dd7bf69aa16222fd9d5ca54b8988fed815df4bcc6c",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-attempt-2.log",
+      "sha256": "4858f2f54f2b7199f28fb6ee3234d7b633348aeaf60c794398d3bc9ec6c8350b",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-completed-focused.json",
+      "sha256": "3a1a6624a494d4cb64d10c1ba19bc38c22d9f3bc071dfd99148953eb4fcce6c5",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-completed-focused.log",
+      "sha256": "806ae709565dba9fda36b24445aca74fda1fec14f655d66cba335b9dbe879418",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-final-focused.json",
+      "sha256": "f726a366daa10704439bb72a91ff818f727ca9a2e0cf36672b7e73b2e5e30cf3",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-final-focused.log",
+      "sha256": "cf6758196057e316373f903968525575aa832e1e0b5c3cafc8b524497ae90290",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-producer-audit.json",
+      "sha256": "487933695ff607b5044d1679302edcf4a02cea77d5261f1e0a1f2e315fac487e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-producer-audit.log",
+      "sha256": "2d7155677691dc87502c01aa7715d52b5ba3c2da74738439347ec01540b14807",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-producer-components.json",
+      "sha256": "ab0e45e1fe5095f6f96afac4b3c6a76bc66bcd48ae5ad3959695e0210612d69b",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/green-producer-components.log",
+      "sha256": "8ad3062790f534d14a067d0f359f93f7cd1862e79819e03543a8f19f77e28951",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/immutable-source-check.json",
+      "sha256": "6cd2f5fa0bd69a2e01956c1ea18015b6a007f6c14603c74ed9d5481bcd8df5c1",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/lint-attempt-1.log",
+      "sha256": "910ab1142e31422b2952c2e2dcd316056a4d281768edf96f2427d59906a195c4",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/metadata-checkpoint-2.json",
+      "sha256": "86fda4973eaddc3d9d35e889e505a858614aa077c39174d84c3b73aa96373a8b",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/metadata-checkpoint-2.log",
+      "sha256": "f11258fb3c51b2bee621f7b621b7734b3b6e03cf3e76274b11a3d7899a8249fa",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/metadata-checkpoint.json",
+      "sha256": "7313afd4ebef3cb6fc6c33c9e3447ae21d2842214605285352f4ad77531cd403",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/metadata-checkpoint.log",
+      "sha256": "ea0025573d66986f85b35d8651e36a2bf3dd3d9ba9eb4e610d6ef4c7ef29ab06",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-codec-amendment.json",
+      "sha256": "6f41217335e4fa991a86ee380131577aa49573bec03a884a5a390b78e5e0ff07",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-codec-amendment.log",
+      "sha256": "5ae374839def16358ddbc343407f1cba5662790fc0f22726d12c30bf8df8a65c",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-codec-boundary.json",
+      "sha256": "1402af684d6d2e5912f7ccaba794bc8627a1a6c71bd6624fee0e37fb8d52f851",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-codec-boundary.log",
+      "sha256": "7dcb499e7aa36d84e6efb56771189ebe0f6f1d7280b0ef624147fcbb2599865a",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-evidence-1.json",
+      "sha256": "5fc6865848993281f24597457e8a4e38477a9ec17b7ab82df5b92055385bb583",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-evidence-1.log",
+      "sha256": "07e57d1054ba3173f5bb121a9d55c69a921ade35496dc58547408bf772cbaab2",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-initial.json",
+      "sha256": "c65073c6229d8a9141fd60e637d280c8bc1cb7ac0f9a016835d2ff3acc6adcc5",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-initial.log",
+      "sha256": "187e14fc04b0975c5691747c6785f22e632f017d3ae8b4dc2abd657033e7187f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-meter-component.json",
+      "sha256": "24a1b499d524165858d49b2dfee18c8deff19756983682326abea27c41ada4e6",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-meter-component.log",
+      "sha256": "1412a175c83b2d4bac43b0b6500782e2cdbf73dfacf28aef0ebb961378d62e4e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-producer-audit.json",
+      "sha256": "64a60bd8676493b76363865ece2633e68123d1c3f9171b531397549bfa1aa349",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-producer-audit.log",
+      "sha256": "7f9457ec3b79f0cf877d4fb0e32b069f3e5096b8a9a4b7f5d491026fde458062",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-producer-components.json",
+      "sha256": "909850c8ed1bbd352735971984a32d92c960c852cecc3c11d91acc1cdab1956d",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/red-producer-components.log",
+      "sha256": "7c170cc439ba71cd43eb6afaaf0a8ea5aeb32403a647bc60c872704d61cc94cb",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/runtime-evidence.json",
+      "sha256": "c6f564799f6cab77aaebdf05291a77b4e5555e0c78f02d5ce356d4a270e3ce42",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/runtime-task-report.md",
+      "sha256": "d7d558bd7e02e3383aea0652b691e54bda96d94d0e9677ddda14eb7670cf18cb",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/typecheck-app-attempt-1.log",
+      "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/typecheck-attempt-1.log",
+      "sha256": "7125f194612fcff2f454c05d848e7cb71facc1967b4d5017e25b34fdee3ba74f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/typecheck-tests-attempt-1.log",
+      "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-20260920/typecheck-tests-attempt-2.log",
+      "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/checkpoint.md",
+      "sha256": "e86d735df44ed3d7b92ce802aeb873b7ea681d07d83425e8ea325dadd41b1618",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/complete-controls.test.ts.txt",
+      "sha256": "9cdfe24df4f511eb80459d3f881dd2a31a42d60493d8227c43846bb16df7daae",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/complete-observations.json",
+      "sha256": "dd27bde57ba7512f541c5ffd23caed5423236c641c375a290ec7be835e262c23",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-diffcheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-ediel-eight.log",
+      "sha256": "44e4b8ee466dbcbe09942706f7e8b38970fc7b3609551995711126e03b793917",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-gates.json",
+      "sha256": "970995dadb70c9652e6a2416fea40a922d862fa7d3a854a7c7c3b39a20a2f994",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-integrity.log",
+      "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-large-files.log",
+      "sha256": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-lint.log",
+      "sha256": "4762efa26f79e3a9886bc73ba8849c1fd735c1bc3523d6710cb3f9b0a77f1b19",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-performance.log",
+      "sha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-ratchet.log",
+      "sha256": "2939bdd3580914b982fe2853b29618eb469b55a6babf2afc431a87c06d96f74f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-route-readiness.log",
+      "sha256": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-tenant-integrity.log",
+      "sha256": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-tenant-shutdown.log",
+      "sha256": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-typecheck-scripts.log",
+      "sha256": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-typecheck-tests.log",
+      "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-typecheck.log",
+      "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/fix-evidence.json",
+      "sha256": "497f988eaa63794a1ad19e8e700df2a4518e5a69222ed4873bb5e5f0c5e50146",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/full-branch-diffcheck.json",
+      "sha256": "f5536b7ce22da1d801e28cc88375d389b645c0bfc7974ff8b913744ed16811f9",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/full-branch-diffcheck.log",
+      "sha256": "8cdaaff41ec5f1740a2cec493fb097828b5366b51cce8da9af139d9716fd1138",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/full-final.json",
+      "sha256": "6270ef466735d2f2a80b992ecca189ff7634075a0c495959db7f70cc9dfcedf9",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/full-final.log",
+      "sha256": "d96f0b4ea3b300661e194820391fdc336e64d47ccd1e47078739fc6edb2f1056",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/green-covering.json",
+      "sha256": "f6622b2ed722e946b9f12489b917ab9f343ffdb52d0fc49bfa60ed063d6e42f8",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/green-covering.log",
+      "sha256": "48f77e0520b07bb07a9f2b87eefaf5eb4abf505dd9fdb92e0d5c7137a5cb5199",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/green-final-covering.json",
+      "sha256": "d1a99d008f23a48af0c877122c059f3c2accba7ffd9589f6a6633b0bed9f2cca",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/green-final-covering.log",
+      "sha256": "e102a0b6d10e897168bee180c49f863a681549cd3c6b8287077cf72c221cdf63",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/immutable-check.json",
+      "sha256": "0e52f7d055434a00ad75f24b1c85d598a8933d06e61f2618622157ee6660163a",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/red-structural-expanded.json",
+      "sha256": "5d899fc22f06929fa2bf1a7894e8e6e38dd933656dfb267079d73bf7a9b5dea7",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/red-structural-expanded.log",
+      "sha256": "00cdadeae088b5711a6bccb747a84b50e141e93717532307034ce5a3f1c07bd3",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/red-structural-qualified.json",
+      "sha256": "a9d8ec2ab3057508833cf2a4488a8d01226dc8c0589962d490a2960d6ab4e007",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/red-structural-qualified.log",
+      "sha256": "16b3304033b8377369ca319cfaca59c5dda5f10f9ed4a2300c96a08676e6d31d",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/red-structural.json",
+      "sha256": "0fb48a2f08b5a197c601277432bd623e6aabfea7e19f2c26dae76732372ccf66",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/red-structural.log",
+      "sha256": "fb056d74d38e5e41e522fc79320cb9d8c49412d2230b3571472c3267effac673",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/related-owner-observations.json",
+      "sha256": "4db1b148a92e0a9c9997736e5c289400511ee0edea5aa22cc27e6cecc04d7132",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/related-owner.test.ts.txt",
+      "sha256": "d2fe661c9dcd5cde73241f2065b642644d0dbe42d201bbf56540e430bd66087c",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/reviewer-original-hashes.json",
+      "sha256": "997cc63f7c6b9d8ecb724fc629957044217f3544a0aa3faed68caec1bdca7f00",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/reviewer-replay.json",
+      "sha256": "47c8fefbccd657c797520c44621720dc09aff6a3cde0a1e764e154d69466c247",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/reviewer-replay.log",
+      "sha256": "a714853e51949c6dede5af091df015bd967fec143791570ac1add7ffd0d0e98d",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/vitest-with-setup.config.mjs.txt",
+      "sha256": "e4aa500a013d8a82d6308caca2f20d9591ab30af127536275f18ff69e89045d7",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/context.md",
+      "sha256": "9bc75f4b3e9de8f3737ce75434d0de63ca3d7c5a3a1516a77e694b45088b5897",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+      "sha256": "d84f54350e130fdb349e975ca3e4322fb39aa7ba69d880e77792ebc57801a8d9",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/e058-aperak-source-profile.md",
+      "sha256": "226afdcce08959bc2e89506e09cd279222fc63e393acd4f5fd90ebeeee262871",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f1-activation-metadata.md",
+      "sha256": "9972760d22f8a0568f16c10b6283dd29b52832f731669f06448655ba2e502ec0",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f1-guide-governance.md",
+      "sha256": "3144086d911b76db56a18b3af9d7c0c0154190cd1edbb011fa3c4be218b9869f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f1-source-identity.md",
+      "sha256": "15fba66a223f288abfff2d86fe9599e5dbbeaf64b8a16557402f429fbeb88337",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-506-applicability-source-20260920.md",
+      "sha256": "8540efc78d0dcf8a729eaf144878f6b9293e2c42e32c7d1cfc1f80bd6a47e150",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-aperak-text-source-20260920.evidence.json",
+      "sha256": "116616b3686ea67b08ed954af92e3e8030b55b3cf759b938c955dffcef7ec80e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-aperak-text-source-20260920.md",
+      "sha256": "dff80541cae539a88c6c86e3156a522ac383a1380c12a265443f2516f24b1bde",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-characteristic-fields.md",
+      "sha256": "ee8b1540e7871abd71359d5c6f88e9347c0fe21b713d0ec2f5b3392b105bdd28",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-closure-qualification-20260919.json",
+      "sha256": "f5872418bd0deed44b3565c429c1d28609b6ad13ddc3ac6c7b09d5150a57c4b7",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-closure-qualification-20260919.md",
+      "sha256": "608412655629d16dc3c43ae7a4dfb8e92191dfd2e574eb47cf14e9ac1bc4a5b5",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-component-escaping.md",
+      "sha256": "0687d6450b59becb7bd45f624f39024f96bce9f2e0b4a40b6d21189afd012416",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-d-condition-inventory-20260918.json",
+      "sha256": "b7c2a04c8c644f534d29157d42e564fec290f2721d39738ed92e562cdb733609",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-d-message-scope-review-20260918.json",
+      "sha256": "6d845f18d6ff31f8e96ed0e0edd94617e4c83a5c4a7d530d9cd55bdf5df6e11f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-d-message-scope-review-20260918.md",
+      "sha256": "0e0e306da45688b2bf3fd109e83fb260e5d5f3e6a69921a8b4e5f97282665711",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-d-review-remediation-20260918.json",
+      "sha256": "0df0205050fad618b7a7d26ef2ca96fb88229d7c051eacc54b0d077d7b23daae",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-d-review-remediation-20260918.md",
+      "sha256": "6256a126dbc2c2069d22bfee295d6d6d6722b2fa727ec0962759d392c7cae98f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-d-subtype-execution-source-20260918.json",
+      "sha256": "bf6ca76a1d3340baf489a85fc2d2c8d4f7729c553aedcc5cd484bddda850f798",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-d-subtype-qualification-20260918.json",
+      "sha256": "90b5eb4532e230e10feb091171ba8a073ddd6e260f61fe8e651f04782866b115",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-d-subtype-review-20260918.md",
+      "sha256": "98806ba5e135f619cb3e2c84f1842f2305659f984dbd33387f5a47ce763ef1e9",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-d-ud-20260919.json",
+      "sha256": "0204d7f667b5dd8870c0f56ae590284907ddd3be251b38bf1ef2012fc5ffaaaf",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-d-ud-20260919.md",
+      "sha256": "a38ad74ceaad818ba6ed769b8d0f17f24e71a980ae75463fd185c720676f0f68",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-d-ud-plan-20260919.md",
+      "sha256": "d059a8c18991d0b2d0ae945aafbe519c9ed0d85336985743c9927232f6a997bb",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-d-z04-fixture-qualification-20260918.json",
+      "sha256": "f2b224fd5fc5a91f38c467746c3c51379adcf0da056d87858fe4ebd1aa485230",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-d-z04-fixture-qualification-20260918.md",
+      "sha256": "ddf22c0297dfcba666c29a96c3f3f584d6ed98908fe93ab28175f0d8619a9594",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-d-z04-reference-20260918.json",
+      "sha256": "29e194338190087f705172a9eb21eb02da4350e053f2240e71cb86fc8349b85b",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-d-z06-product-20260918.json",
+      "sha256": "6323a98da7b3b449171fad205d163283f870f183608df5237049ac1a8311f4b1",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-d-z06-product-20260918.md",
+      "sha256": "f6eac91312866ec2373407fbafab1a6be6ff3cb6525b218882f6f1b979617cc6",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-d-z06-product-review-20260918.json",
+      "sha256": "037278d14fa84d38b29e43bcbf62e48625541619495f2f6ee4b4db7cfb1c613e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-d-z06-product-review-20260918.md",
+      "sha256": "5fbb5ca2f97228091902c0f3ea0f3ca905e1f63482c415250277cbad2faa53d4",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-d-z06-product-skill-routing-20260918.md",
+      "sha256": "1388ec21722d7238e086bedc9f1bf34afd6eca4eac7d917724ef02889ba5b131",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-date-events-20260919.md",
+      "sha256": "15f82a3b6c69d41f0b7ea513b363ca003cec4178f8e2fea98415f3e256291e8a",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-date-fields.md",
+      "sha256": "73e057fbf3a725f320eceda197c50d8cac2cf339e9fc154238b6fc4a766b17d0",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-date-qualification.json",
+      "sha256": "320d5eae190d4c72085740170012c88cf8e0afe28c8ea6daa843899c2f14e88f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-date-review-qualification.json",
+      "sha256": "14c4ed6c5b8886e5efbf4f3376179f5587ab2cb77f7b9ab0c583e1c7c693a785",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-date-review-remediation.md",
+      "sha256": "7c3c4b32b0a5cbc4950de59fe146525f194b5e895cd3ae7a4248b2813a3d86ee",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-death-status-source-20260919.md",
+      "sha256": "4807ddfd63a509875a8c79808c745777098eb4809322a1a873429c3de111f9ce",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-document-fields.md",
+      "sha256": "e53ec63c35df70aac24830afdd06dd2e55d56b64d070ac5623e396339d126c4b",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-document-qualification.md",
+      "sha256": "ecca7b8ce77d901bccfd5741b5c7e2d8503c9c64024c0621deff3ffde61ae3ba",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-document-smoke-qualification.md",
+      "sha256": "3951dabd6fa747e3f27dae1055a7b8aaf0cc9ad3f8c1f793c367df96f7197ae4",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-end-user-address-20260919.md",
+      "sha256": "d9ff6618c060cab138a262e86398b29e441d498260b716b09bbd658575961609",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-field-identity-runtime-20260919.json",
+      "sha256": "cfd7090f9e458ecef2eab50813f2124bc582898ad8a8fe9f8d176c9b6252e395",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-field-identity-runtime-20260919.md",
+      "sha256": "130e7cc15a3f4cf8d4cdff0c5aa0016041f4fa536af77c90c26ca30856f52b37",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-gas-applicability-source-20260919.md",
+      "sha256": "7246d4112d849b3a9662fa7370758400c7547ff3c4e62f5ea279fb1503f65a30",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-invoicee-source-20260919.md",
+      "sha256": "3a920d4e0cbccec2f93315b0702721ce3d6a13d626cc11d2205b5c47ec8645ab",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-optional-installation-20260919.md",
+      "sha256": "646ee5f773f276a668b4c5193fc97440abb98ef0e3585544db0e11c3a3ea5215",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-party-fields.md",
+      "sha256": "e9bd5d27a4849b08bc12aa8bb5f4556f2b28ac3b9dd148756908af08a8384a3c",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-party-qualification.md",
+      "sha256": "b9b22542b589f4b73615b1743714d1f8670c171347ac3ac0c6e68d79e1678307",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-party-review-remediation.md",
+      "sha256": "412b7c864384fab5abfb81b2d0810364499e23e65c08a921c34dcbde764d0b72",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-permission-ack-runtime-20260920.evidence.json",
+      "sha256": "fb511a701995168646d1d8f415c8be42e129cd31ee9eed2fb814e62c918e38ba",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-permission-ack-runtime-20260920.md",
+      "sha256": "1facba5f679b12a949c3846227ce58e653b0e0251b800c5a7dd858476b5e468a",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-permission-ack-runtime-r1-20260920.evidence.json",
+      "sha256": "4d1cc0a76f1178a1462e706bbf30a7b99c5573a2faf6babc2d3b1acea78a3c20",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-permission-ack-runtime-r1-20260920.md",
+      "sha256": "1af1206171cd58cf40adeb02d2feaf7714873452b1cac1772b7f99712f0ba4ce",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-permission-ack-source-20260920.evidence.json",
+      "sha256": "0e6ff6432afbdc3c73f8523b6a498c0ab6d2f15e11da0af534b09dd3f9e5d95f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-permission-ack-source-20260920.md",
+      "sha256": "13f15354e4c0e1f541a7bd96b57ea9fa96ca2bfde19b1257e212f0e2681858d2",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-permission-prior-flow-runtime-20260920.evidence.json",
+      "sha256": "684ece5e47b583eac72ba10cbf531ad1841762cc894a02cb581e85cd2d74f5d6",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-permission-prior-flow-runtime-20260920.md",
+      "sha256": "1eca3e2704f6f3bf5f0d378705effe6e4beb82f9aae1282ad908ff2ef6a1b426",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-permission-prior-flow-runtime-r1-20260920.evidence.json",
+      "sha256": "2b0f5060bb0d4849cc8e81f5b824630843c1a9ac565fbaf8f9317d6fb4af39d5",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-permission-prior-flow-runtime-r1-20260920.md",
+      "sha256": "8331f2a0fa9f03d8e21710b377f8328e908d8761a443007f31b22867efa11a2f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-permission-prior-flow-source-20260920.evidence.json",
+      "sha256": "219090eb7419796126f6d00b0aeac891583d2c61339876dac865e1def57a675c",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-permission-prior-flow-source-20260920.md",
+      "sha256": "7b7f82f54c4f8d24102f171b8b7b007bc7bcac2192de40e0d8c9ef882b2348f2",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-prodat-locators.md",
+      "sha256": "91bfceac9b4f4f65ff27e219203bfac64d69e2ae43c08695ea37b53ebe01f143",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-reference-fields.md",
+      "sha256": "b8afd1ea123685c6a97adcdc6e3eda4bbe7aae959edbdda167081cc14fae41f8",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-reference-qualification.md",
+      "sha256": "b2061fddf357fbbbe3166bd8eafb18dc25d6c51ba626c97671873ed61a4c12a1",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-register-checkpoint.json",
+      "sha256": "ed5641a9093b8b32a73f0ad7eede03a0c53633cacdb1f5d908544ad7a5bb862e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-register-inventory-20260919.md",
+      "sha256": "d24a1f485257fdaf9f7800d8b5b0ac9435ff7c5ac1921c4f7e1ff2ea998b2fa9",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-register-null-rejection-review-20260918.json",
+      "sha256": "b4b8f9c8552715effbaa6f1d87368363a3665f02acb11d31681f5bd3d65b1ddc",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-register-progress.md",
+      "sha256": "5e9dcbfcceef808e9db4b826c5b03fd65734c1946fa80cd71da05f964f63a849",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-register-readings-20260919.md",
+      "sha256": "7ed204f6001dec117618ee9c1b85671f2c43171a89c5bdfe6afe36a04cd37a0c",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-register-recovery-20260918.md",
+      "sha256": "74d87f133b1cbb6e0b56af84040435b81fde7deaff444fd815245f746db1d928",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-register-recovery-local.json",
+      "sha256": "1f90486a82e0cc5539ffab17aef35c349a8336e39ad51dad9e2103bf32be220d",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-register-review-20260918.json",
+      "sha256": "82e073ab349c53a5be487d1181fe73a8d927c61e63fa7232f70394df17ab0a82",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-register-review-20260918.md",
+      "sha256": "7aeaef5691cb38e4380daef409bb4ed8e3ff746ff043a585ef10a44b427d3f6f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-register-source-map.json",
+      "sha256": "6bf8efb9eb4b7653d83687dea91097d916296de95c89857619627fb6fa0dc1dc",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-register-source-map.md",
+      "sha256": "e236ae760b6c45391639159255a964ae0e2f55be8729eed7596bdc4e548b48fc",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-remaining-d-qualification-20260920.evidence.json",
+      "sha256": "0822ad491602a8c860ac09196ff41c8d904089bd55c7a72b3f2193080160428f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-remaining-d-qualification-20260920.md",
+      "sha256": "45fef27a774b07b1c43bfdac26485d3e256ae202ccd93d723f5f09bf49c0fa73",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-remaining-dependencies-20260919.json",
+      "sha256": "c42fafa8166404c32ccdd37bc023c373d4c097c69f85e4f48ab1f7453826310b",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-remaining-dependencies-20260919.md",
+      "sha256": "f9b651e43ce8645a485e29ecc4cf9ab581a18441b9efd4784ab3cbcd190db684",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-remaining-dependencies-20260919.py",
+      "sha256": "830fc8cc54cbaaaca1ddbeeb74b4c87d43617e7678819c8afcbd2e15a75f41aa",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-reporting-context-20260919.md",
+      "sha256": "34f78665fb1ab7295f25c24bfb3c78976e5cbdc60c6bf8bf4164935ccdab5198",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-reporting-context-probe-20260919.json",
+      "sha256": "cd789a216573292fbfbec19a4141cf095eb0c311bb018c6d1e253d9c90c18856",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-reporting-context-probe-20260919.ts",
+      "sha256": "1e673291a142a960d9e540295588ff3d46a354b6cf87ef223d5a3a6909353ea6",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-reporting-permission-source-20260919.md",
+      "sha256": "ee5453c411bab914cef2aa3ed6380e4ff92cd388a8678c0872ba869af60a6ac5",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-z10-change-facts-20260919.md",
+      "sha256": "56d1b87f39f3e67c6cf0671c78dfbe5908190529b03b10eb0b2263fc065b6ca0",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-z14-dependent-20260919.md",
+      "sha256": "91e0f2f1771e43b513859146f150d7ab632685e5fa182f3bc18e8240915600cc",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f4-smime-archive.md",
+      "sha256": "6fa6b0c942a2be6729d100f78d3a2f74df667d09055840c1e38f0beedcf8ae5c",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/issue332-continuation-20260919.md",
+      "sha256": "248f5fca01655314ba10e9727f7d4ac7485f496a60eaeb542c0590fdfb39cee2",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/partial-main-merge.md",
+      "sha256": "9be504b3fad6e6bca905aa79d1e470336bf1d1b977ac4a50cb7165e6f9599e17",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-plan.md",
+      "sha256": "313f94e8b1a7a0d2eb84ad0c7ce9702474498f954400e1fd465cda2c60174435",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/branch-diffcheck.json",
+      "sha256": "357fd2c42bdb032cd093a7818740ec4cb386cba54b42ed0a4b2d7957d6780a44",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/branch-diffcheck.log",
+      "sha256": "682c506233de8aa5599d9ebf0df0429e69333437d6cd9c1fd9f4ed4d31a4208e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint-observation-consumers-observations.json",
+      "sha256": "fd0c9e98a07dab935395caf22c4bfcdb7d8767e31a5acd9c0c47e9d380b8686c",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint-observation-consumers.test.ts.txt",
+      "sha256": "60d32798bbf4191a4a202aad40d29ef8251a206e2244a17d42a5e1eab5b840ba",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint-observation-inbound-observations.json",
+      "sha256": "a088c31a4e93017f1403fc12f032fbb6eac7a5cbb6f93f44cdd8218b2a6730ea",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint-observation-inbound.test.ts.txt",
+      "sha256": "25130da1ec653e4b49d25f91e3f41bc9dd3c8efb789754972d67bfed03a2bc0a",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint-observation-result.json",
+      "sha256": "d8724146a3b2119f6b64daa1736376500d0b67d81b246b3b235761daf43f6668",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint-observation-run.log",
+      "sha256": "f59e13f13d2041d94be160480388f864a35a53c6e473e90e3a4a0a564175b773",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint-observation-vitest.config.mjs.txt",
+      "sha256": "2546be20c31cfaf066f40aebb990e6614f08a98b1c866587de88ec4a6af9c52f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/checkpoint.md",
+      "sha256": "8c5d811d7ab001aab614089b4f6b8d773b116ee86754d529329e5c0772ea4e93",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-ediel-eight.log",
+      "sha256": "47eae47426cac03fc584492be078e56144ebdbbe20453256ccf231f8eab08fbe",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-gates.json",
+      "sha256": "363b3e9c946f11f54c5cc0a48d35c273f373409b51c26f987a857c77e7f26692",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-integrity.log",
+      "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-large-files.log",
+      "sha256": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-lint.log",
+      "sha256": "047da54a7fb45f15e99da1782ae17fdf279cd42af1d8fa504bdd3fdb9c3b066b",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-performance.log",
+      "sha256": "78bcb6957d850c6b213099fb2cc7baf9e004afe967288c2f53671b0c33b4953a",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-ratchet.log",
+      "sha256": "2939bdd3580914b982fe2853b29618eb469b55a6babf2afc431a87c06d96f74f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-route-readiness.log",
+      "sha256": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-static-gates.json",
+      "sha256": "62387990554583a1bf80795521919a35ce033b28c8d37bc689b2b43f052c5b6f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-tenant-integrity.log",
+      "sha256": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-tenant-shutdown.log",
+      "sha256": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-typecheck-scripts.log",
+      "sha256": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-typecheck-tests.log",
+      "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/corrected-final-typecheck.log",
+      "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-ediel-eight.log",
+      "sha256": "d149729088122ec4b8279ef0d7a3a85fe378c0cda1540b977987ff2ed54b89bd",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-evidence-diffcheck.json",
+      "sha256": "67d8b038483e6da2fb3eea885398a7d828fa0e8ff714ff59cc51f4ff2e77da33",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-evidence-diffcheck.log",
+      "sha256": "4da2c2029099d876d13d6680e30c2ef6b29e3ea2dd672898ea758af7ec9dfab8",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-gates.json",
+      "sha256": "c54da35248d975a1513465233339dbe624c04b38cf7fc4c8fca304bea2054293",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-integrity.log",
+      "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-large-files.log",
+      "sha256": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-lint.log",
+      "sha256": "047da54a7fb45f15e99da1782ae17fdf279cd42af1d8fa504bdd3fdb9c3b066b",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-performance.log",
+      "sha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-ratchet.log",
+      "sha256": "2939bdd3580914b982fe2853b29618eb469b55a6babf2afc431a87c06d96f74f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-route-readiness.log",
+      "sha256": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-source-diffcheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-tenant-integrity.log",
+      "sha256": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-tenant-shutdown.log",
+      "sha256": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-typecheck-scripts.log",
+      "sha256": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-typecheck-tests.log",
+      "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/final-typecheck.log",
+      "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/focused-preservation.json",
+      "sha256": "5cc40d6b209db612ed10f78dc6dc453fa7f9549e5b54e8e006f2207a4e1eafa5",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/focused-preservation.log",
+      "sha256": "b3e2334794b91445fa270a9013d68f20e831c737214b50e455727850563b4e82",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/full-corrected-final.json",
+      "sha256": "245f41f15d3dbb52d0089e1b0fc7a4c7211e1c7a617bddf93eee39a71236662f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/full-corrected-final.log",
+      "sha256": "ffb720d7dbc0809ae27e572f45d2182931eeee716020c331ffaa0808035ac57a",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/full-final.json",
+      "sha256": "6b060568df91b65617ce79e590225bcc96090fe99987bed6a2dd8745cc85b183",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/full-final.log",
+      "sha256": "74bae41e2b098b52f6d106ba48c1beb62d219e944704057c6fa6a7545cfb0fe4",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-amendment.json",
+      "sha256": "5b5fae6b05dfbc494257275d2c5cf7757ad26896576ba8545884f482b8366e68",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-amendment.log",
+      "sha256": "ee7aeeecc0dd4d2568eb5ddb0c08313a64b2ca1a474a2c9d9f651f7810215f99",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-checkpoint.json",
+      "sha256": "d61f6a31227cd6480e1675afcde285e1001c725f9a93685c2809181d7622e2f4",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-checkpoint.log",
+      "sha256": "c25c126c653555c370f80738c0cd367009696a0dec7c24100c45ef98ce621f62",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-final-delta.json",
+      "sha256": "f56df4f4944bd29e6fcfc2ed400173d64ac7768ea0b5f65e9eed35f7f8c457b6",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-final-delta.log",
+      "sha256": "959d28fd0da8f9aea294411cee3c871daad4829bf41595c48b02bff2d6ed7851",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-final-focused.json",
+      "sha256": "f3b78a54ebef9efac3d10441dca977bc6d57400d1560e7af6e372d6028ba3f68",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-final-focused.log",
+      "sha256": "ec5e49487150b40ae3f737862a27c7397303f3b97d1a596d0e2937062024b28b",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-first.json",
+      "sha256": "d7059bec43e53e7f696f672ccfa77193c9ae2548bfb7823ef593fc48e98179bf",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-first.log",
+      "sha256": "16047c887b7fa5dc227d493e1a3057c0aa289524f2fe7b1543e102fd8ef2bb7e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-second.json",
+      "sha256": "a1d4dc5346eacbe9ba55f157cf0ab0ffff4f0deef23d7f860feeabca5645e011",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/green-second.log",
+      "sha256": "0620d12f56252f68cf0f51ff1c03a89253949bb99b8d22518543f194e8231b42",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/inbound-edges-first.json",
+      "sha256": "66c148938fccfa60d67661bb6f4aea005e42d77cdb24d513a26a1faa89f4e3f1",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/inbound-edges-first.log",
+      "sha256": "ac96f1a9f494f9a95579e19299d10f71d0ad5c79175ba045e26289be771a0a15",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/lint-checkpoint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/lint-initial.log",
+      "sha256": "5343003a9f2ff0e4827b94f04f5dcc9071f2ae6524c874cd7656e3e3e8ebc57e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/packaged-evidence-diffcheck.json",
+      "sha256": "d085f875e563848ead7c1719848aee75ab307fc89b9ebcf15119db8f939ece15",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/packaged-evidence-diffcheck.log",
+      "sha256": "8e4fee4253ca73fddb94cc3ad4f0a0705da5d92c6363ee85d102afc301d64e20",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/parser-ruling-green.json",
+      "sha256": "2a84597c61a01eeef1264025e6161cff6a3dfc7e0d10d034b749e852317e1098",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/parser-ruling-green.log",
+      "sha256": "52e3c2876905fa865f22c68e1dbdf09ee28914b2fd48da04f598d0daa5b80259",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/qualified-red-consumers.txt",
+      "sha256": "7fd07d26aaaacbe5ed9528092c307c51e1b4716c085f2b7e6b449de152076d2b",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/qualified-red-fields.txt",
+      "sha256": "3fbd0731b3d1e00f967dac539146555129d806d43e4e6fdd4d687387d468253a",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/quality-final.json",
+      "sha256": "563df86720650133be7725278ff72ebb09537d01f1e72dd35edc57fb7a7776c8",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/quality-final.log",
+      "sha256": "460567cb3b8d156b79fb15bce70ded4d9d007c73b14b89e8d6a2b468125020e4",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-amendment.json",
+      "sha256": "fa775083d85d19d3783a6072352d772c0bb5180a4f6a8a28065b705f4a937887",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-amendment.log",
+      "sha256": "6975ebdb2106968f744ff9f07e2ff8d599ea4703f38f6100aed9dda085c3dc2f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-baseline-qualified.json",
+      "sha256": "149996864c9e58e361f33c58f8006e7ab0407f948f4dd2aa5d187a815826db8f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-baseline-qualified.log",
+      "sha256": "8254f4803deab70b05aa59050e28da8d9e5a6de8e929f04a6cc838dcb7692e4d",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-classifier.json",
+      "sha256": "c5f6360ccadb244e28f9ef94e3e9e780c3cb7ce7fe8322027a9d8505506e2d5c",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-classifier.log",
+      "sha256": "fd3b14b973e9ef422c04eaa4b18fbb06763b64a081efd850ded2deaebe439241",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-consumers-qualified.json",
+      "sha256": "5334c8f5acaea4766852aeb9470d758c45c06c7251638ae1bce6f8c2a64e127e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-consumers-qualified.log",
+      "sha256": "a61929c2d0cca4e1a197199fc201f70e4e19a8578b301a1213eb8f7770244f34",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-consumers.json",
+      "sha256": "c0c399b5613fc09a9578058ef57bdb9de1ccf4b70487d381ddca8075ba529843",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red-consumers.log",
+      "sha256": "e8b6eaaa7ee90d87161cad5eae5a9b11341181f1cb1a22722a86ab4b60315924",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red.json",
+      "sha256": "11ea826aa250918e48de6a49764401328fe802ea9a282649b8c2ce2d3be82f80",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/red.log",
+      "sha256": "f71f3b49dfa0dd8a05821f040a2bba61ddf9e986b61467bb9e53245590c4ae3d",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/register-boundary.json",
+      "sha256": "000a3bafe8b11b54be83606448c2e91728217bd97422e64e4ccca685617af353",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/register-observation-probe.txt",
+      "sha256": "8b1cd9ec964f6abf0ce18a15da884410f5994d87782f381c602c0f24618d107c",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/source-immutable-check.json",
+      "sha256": "a6475e86d57a3bd691a5a7b3c3537ed537b11e6aafc07f63e941b2fc59a4b5f7",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/task-2-report.md",
+      "sha256": "18bad091405f9bb1db5062ce62eeaa9e4b68226a62647a7747a1e1e1b7e23e29",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/typecheck-initial.log",
+      "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/typecheck-tests-checkpoint.log",
+      "sha256": "3c2877ffaf53cf5ee5db8d959b4f008b9794f785ee6ac6c2f98343d5d8c29270",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/typecheck-tests-initial.log",
+      "sha256": "f3b74067586566cb4bef2b4fe6c38c01e18f5351c750e1487833215e24a6c987",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-20260920/typecheck-tests-second.log",
+      "sha256": "e4213622df59e7c61f756dd7dcdaac13c28844c766496fd0fba1b2b1cd374b87",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/affected.json",
+      "sha256": "97a47eeb4610414d2dde83f6c7d797d37332a5bcad3af9ade592f4ceb76c1271",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/affected.log",
+      "sha256": "1126d9c0dd9614115fa842a4f4b7023794bf47aea24bf434dabfa5985df9ce5b",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/archive-map.json",
+      "sha256": "bf80f8584459fbd76353d5cc18c5f5eff28918736107b17f5fe7600d2ecafd90",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-ediel-eight.json",
+      "sha256": "2ae6d8aed6397df4d7fbb7b2fdb5c43fbacd455e896cec4cd9e6aba3d391f24d",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-ediel-eight.log",
+      "sha256": "e5ecd4ace05e63890fe7ef0194063aa7f7a975dcd93f7b7c5ce3a6312d28d5c1",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-full.json",
+      "sha256": "c3330073e7f55ea0f399a82f96d080878138f18efa1d89a94f218fa82021bac7",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-full.log",
+      "sha256": "aa45223051321b0b3f4c970335fac84e5894439442ae9eeda59e52bf32dcda90",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-gates.json",
+      "sha256": "c7598c39e3173e38d66cbc3a809730847c0ad5b42ab418b0f272b56b4c827c49",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-implementation-diffcheck.json",
+      "sha256": "db39d56bf4d020e710727c48c0f0b7cfdbd793b9b02e1f0fda08035526ea8d11",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-implementation-diffcheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-integrity.json",
+      "sha256": "0b24ef04e98e93025857b7c6945bad7d51a2007af58f4069a7fca5f43126b9bb",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-integrity.log",
+      "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-large-files.json",
+      "sha256": "3c3dad40f4e417e44e79c4ba26cf119db04063fd8df854848a5d060ff240d485",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-large-files.log",
+      "sha256": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-lint.json",
+      "sha256": "95891625d589a6b9512cbaca01b997732b79588ccb14efcebb9006bbfa05964f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-lint.log",
+      "sha256": "047da54a7fb45f15e99da1782ae17fdf279cd42af1d8fa504bdd3fdb9c3b066b",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-performance.json",
+      "sha256": "51134372943db0252f6a65e74bcb91a65ec68c6ccd9c21861d8f98d2a7b53ac8",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-performance.log",
+      "sha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-ratchet.json",
+      "sha256": "f0db31eb7994ab077cabfb18eae3c36a3cf4035c18fd0671cf782af86b72ed7e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-ratchet.log",
+      "sha256": "2939bdd3580914b982fe2853b29618eb469b55a6babf2afc431a87c06d96f74f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-route-readiness.json",
+      "sha256": "716bf26d777368977d39a9bea9e3f5f534c6afe399532bd6c5a978c1e03ae1d3",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-route-readiness.log",
+      "sha256": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-tenant-integrity.json",
+      "sha256": "665343301559266cad52ca7146f90a0bad1c0a8dd17770359018779ddc7813c2",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-tenant-integrity.log",
+      "sha256": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-tenant-shutdown.json",
+      "sha256": "981d600fb82839078fc0b28e524c231cb9a3cc05ccac2d4c1381d577a0d5885f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-tenant-shutdown.log",
+      "sha256": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-typecheck-scripts.json",
+      "sha256": "2bc365d19de33730d6593deccbd8ddbb0e4193eceb8a7ee07f7c4778fe773ca4",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-typecheck-scripts.log",
+      "sha256": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-typecheck-tests.json",
+      "sha256": "629b04c4b67a22e8f1c8eed7facf997e9b2db8bf05fa9ac2f8222474037dd2c4",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-typecheck-tests.log",
+      "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-typecheck.json",
+      "sha256": "a92dd96fe3a35a625616dd4d553fd304794bde7b824ea2e9db9b6362fa08902a",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-typecheck.log",
+      "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/full.json",
+      "sha256": "d1b2e8da65f1281c5f3bcd3a530937cf395804e3cc90f1a544f9906b9fd6183a",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-baseline-validator.ts.txt",
+      "sha256": "a0c334494cf7717734af9054187d726f7ab8d44372e01adf3071c4b0d4579580",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-inbound-result.json",
+      "sha256": "82bc3f40fd2c8e7d61073429d7444d330fe4b013609a5aaad08ba80df8aeb66a",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-inbound.log",
+      "sha256": "c51597e3ce5b5d99efa41646f5d613918072c5ca76774238f714acd7cb2a0c94",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-observations-v2.json",
+      "sha256": "de24759f5fdfed9c185b1b4828794f20b9aa75a12d3e6ec02975e35503492aa1",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-observations-v3.json",
+      "sha256": "668b69ddde91c249288ace0155d03bf3cc4ce11dbd83ddb9282252b9b0037aba",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-observations-v4.json",
+      "sha256": "62680c5cfd859564a0ab6f4efbe1371aadd2d439a583ae5d673a2c0fb79dfc35",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-observations.json",
+      "sha256": "470385dad0a8e92ce8bd1a4f174669a46d0d5148784e082ee83053719b0514dc",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-performance.log",
+      "sha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-receipt-hashes.json",
+      "sha256": "c93d0fd341104034568ea3c77008c7b02440879970f366201089e72343761492",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-result-v2.json",
+      "sha256": "ad799e8c172adb2fba958b65519ba512e72a3e8030e242a9141b9737d0bcaa52",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-result-v3.json",
+      "sha256": "7550bdee61670585491025c6801eb66e15d24c25cf5a26e60c0e9b45b920c472",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-result-v4.json",
+      "sha256": "090e948202be32ae53f20bc22ace2f7601f863d3e8332163615691f53c8da9b8",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-result.json",
+      "sha256": "5a3e2950deebb38cc83fb1447262a14e564ad37f7581a38625c19a9035573cb4",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-review-v2.test.ts.txt",
+      "sha256": "d5b0f7011e28697486c94961a8793f852ee10714c98f363635d7511bba3c8bf6",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-review-v3.test.ts.txt",
+      "sha256": "404e9d38357fd1f5de576641b7a7efdac17d2feaad4a178f30987b4082b38413",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-review-v4.test.ts.txt",
+      "sha256": "780e9598ac0642ccd4da9adab338d8c9fe3f8fc3ae8e4921680fab15c207d8ea",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-review.test.ts.txt",
+      "sha256": "3472ab67608be8ee3b29f84aa407525da260a323fe5026dffda7014a32f2e35c",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-run-v2.log",
+      "sha256": "029d2a059288fc161dfd29aa7437ebda906fed6dc25c11d5fab390a3f1118548",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-run-v3.log",
+      "sha256": "f19dcd6624105ae61f2622508b49c0eb4c5bf3524c90d57b8518f25b966bf8c2",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-run-v4.log",
+      "sha256": "2473becf789ab41ce0433ffdf73a32d64d4acc1b0471c2a3c0fb1b589e53a553",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-run.log",
+      "sha256": "f5e99c031961ab4304a0127be95321f4ffa02491cd1f592d281cdf4b581130af",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-verification-final.json",
+      "sha256": "74bfaaa6f6664899ce34e3c105e0df66d52d4e1f1d9402cad3fb5a527281aa0c",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-verification.json",
+      "sha256": "5f581955589710b68bf8d5e82ef0fd2e622011808b05168e287d64da9bd270ca",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-vitest-v2.config.mjs.txt",
+      "sha256": "8f830bd3a4ec54ec8d56e58aad336a71c104d80fd0c7cbcc0cc99206f1d2babc",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-vitest-v3.config.mjs.txt",
+      "sha256": "9a571300a9da93431623f754e70a6848584402d22886192a290f821809a92863",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-vitest-v4.config.mjs.txt",
+      "sha256": "b84489ba230f8250bf1c43c2217d14bc0642614458e98bdd4d5c7074276f5d24",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/original-reviewer-vitest.config.mjs.txt",
+      "sha256": "27029a99b5e73f1d5a7a905b9e4e5c99c9c6b95b705456552ce61aae483a6289",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/packaged-diffcheck.json",
+      "sha256": "316001ed990ef07f6a2a2f926c8e05462d44de9538b7c2733480bc70cd9a5796",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/packaged-diffcheck.log",
+      "sha256": "8bc985ead712aa40d05da00882bfd3fb497dafa1a1a9842117840b873b05dcd6",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/preservation-check.json",
+      "sha256": "4794887d7ff27d1d739b245bd9d8ed7bb1ea018a12e889d977b278889224d988",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/prior-hashes.json",
+      "sha256": "88ba272a056c77c90204b0eb7acd2d8d34e074bf235000ccb3f909465e29fcee",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/quality.json",
+      "sha256": "63baba545715b7e0f84e408dbafc7551516caca84bb73f2837c3a1041eed4d27",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/quality.log",
+      "sha256": "80ec48192b87883316dff2643cc8600fd52dd263bea483dc6ba05b9783dc93aa",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/red.json",
+      "sha256": "82cf793896f0464811104b1100cec4a0a405f83e7d9bcea4eac828479609a3a2",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/red.log",
+      "sha256": "f330eb9a847cbda69dc761922d32053699635c792a6750503b1f9829443b2728",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/replay-baseline-validator.ts.txt",
+      "sha256": "a0c334494cf7717734af9054187d726f7ab8d44372e01adf3071c4b0d4579580",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/replay-observations-v4.json",
+      "sha256": "f422db06cf32d7de6165a348395fbb7121c376324df562281444873006e2f537",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/replay-replay.log",
+      "sha256": "467c2842b8223e27e0704bcd8a93935dc3cedab301ac13ff001907e8e0b67f36",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/replay-result-v4.json",
+      "sha256": "1c9875a2eacc484fbb3d42a084c960c4c61c94f7a4e55b44ade6e212dfd4b1b9",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/replay-review-v4.test.ts.txt",
+      "sha256": "224643b9bb5ea5c3c0ce8bce00b5c79cb8b481b9d3db55a05c33d50fea072aeb",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/replay-run-final.py.txt",
+      "sha256": "0fad54ff6762a18f8235d55df417f136ab023380b08b4fa71a322f66d446dfaa",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/replay-vitest.config.mjs.txt",
+      "sha256": "370f01406b3a3db63238697bad23d5893d97e83f28e392090f8a3d7b42c5f3ae",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/task-2-report.md",
+      "sha256": "b9e79eec4860506a0b74a4683f2c890a670e4e83b5e7481b7a469def7c3040e2",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/typecheck-tests.log",
+      "sha256": "ddba05bca9a1797e59a719a71f796311fe3b504e4baf947cb0f50b10d56915bf",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-observations-v1.json",
+      "sha256": "cf8fe36c599ea7af154913bc4eca3eb4bc2ea9a9ed88c1a9dc417fe6ecd774e4",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-observations-v2.json",
+      "sha256": "624a7da735fb92ea4a5a09b48e38857c0069cd11500fd1ca752910155fbeae4a",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-run-v2.log",
+      "sha256": "2e0444dee8b626a822c2a653d43d6391511330fcd394425fbdd504a2506d65a2",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-run.log",
+      "sha256": "8039113f08e4fe7f62423cabf8e268994bb24af9e53fc5b7b35bbf715945cca3",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-v1.txt",
+      "sha256": "b151f7197d1fab0f056e8e97dcf4ebde6e3aaaa211d63b200a0ca0ec0d9547af",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/boundary-v2.txt",
+      "sha256": "c6ffdcba4bd08e0a3e58fca3b9deb185c27116c1734e49c3470a255531b08077",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/inbound-observations.json",
+      "sha256": "3044879db648013d4013ff8baf8cfc84326eafa2e83e1e650f44044f48d79863",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/inbound-probe.txt",
+      "sha256": "45705610e56d1ce6a8638317655d847da950ae69934922d2bfb56496ed40d084",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/inbound-run.log",
+      "sha256": "a7c14e4a51d8b02cdc190ededcb246968a9ab1947cf99c59946c7cf587c4ac5a",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/input-hashes.json",
+      "sha256": "373e196674bba25affcf7a6defc9fac7fc00f836de03d02584597f1d66190d15",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/normative-oracles.txt",
+      "sha256": "fc42afe4779f63e24d0fe8fc80f00ec57a90dc67aef7490ef1e3a95fe820b0c6",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/observations-v1.json",
+      "sha256": "a1d6a4d92a67806b9eb7390531e8c5a18c4d428b6f2dac216cebe24a060618c0",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/observations-v2.json",
+      "sha256": "38eba45c490f97db78de008b433cf217b385878a3d6586324c35d8c617ae9fb8",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/oracle-observations.json",
+      "sha256": "c6b15967a0a6d5eff1bca2af8ce6addfad20cad42aa7e83a830c9cb2ed92bbd7",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/oracle-run.log",
+      "sha256": "e9d05a0996bd92a020ba12c076da397a301f208b000874b8b84ead6e0c969720",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/original-relevant-pages.txt",
+      "sha256": "444c11045bdd5a9e1a6bd7735f16e13a42e5f03ed01eafe4e8a4d14053b91db6",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/probe-v1.txt",
+      "sha256": "f028393d5aeccdb71b5703a3ada54aa31f9e8cb9f9b79a4894ef41be482b60d4",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/probe-v2.txt",
+      "sha256": "4af18c67bfe27e5f64ac318fde04af27a86c33cd11748062a140de9c246db1d1",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/run-1.log",
+      "sha256": "713334406424679fd0908305a43b613faf51a65876889110668d7e52909883c9",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/run-2.log",
+      "sha256": "78d08322fb3d643fc9faa7a53856201be764fce692274a148cbfd1b9020fdc68",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/source-integrity.log",
+      "sha256": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/vitest-config.txt",
+      "sha256": "cbeec093e7401a78cca106a513d2daf7243143bb3def839c6da9099f21412028",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/README.md",
+      "sha256": "286671a15e2378708105b2e1b56bf0237c32c8f4e6c79f66e421d3dc58de534a",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/manifest.json",
+      "sha256": "ce325df1f4c437e8d4a4e4aafc7f67cb98ea3019982b7d3e883f87c5dfa24d7d",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/observations-v1.json",
+      "sha256": "7805a2c75bdd14bd39d0b015922d26317abb71a51b437a4695573ea69a3a11b0",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/observations-v1.ts.txt",
+      "sha256": "cebdfc8944126009379c731c74631ddb5226f96c65b5acd047ed0ef803d61264",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/observations-v2.json",
+      "sha256": "2b80a3b6b133554a70a76c1fa72c3a1d442e9caa040c01a156209434b1916a48",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/observations.test.ts.txt",
+      "sha256": "a8e7799dbf73829c359bc3be709242b1b2a22eb061ce7cbfd2339bde90e77b64",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/result-v1.json",
+      "sha256": "0d4e84e99d7aea828ab206aef143900cf0b1465af219bfa6addc7566c575043e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/result-v2.json",
+      "sha256": "1ebda34a8b7846aeb8ac43c353a07c945d67759bc4ea3554cf679542355bcfcf",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/run-v1.log",
+      "sha256": "99f97ad07ae334322af1b185d1ad9248c3397242967efaa33f8b0ed274cfb149",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/run-v2.log",
+      "sha256": "d00613fc8dc40da4c4ec040dc63789451b6bd9e18ff9b27cd0d026483dd4bf94",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920/vitest.config.mjs.txt",
+      "sha256": "f66fd77610c5139ec60c6644401ad9468677c87d9638e56fcf5b8856ba3b97e4",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-plan.md",
+      "sha256": "05ff2a826393c436550253e486064f34d774000478088930ab83af9d3fe3ef49",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/binding-red.json",
+      "sha256": "7be9d6d29110be547dcba7c4fbb2a8df85f4149a27a6862c971cb2f3fbb22d2d",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/binding-red.log",
+      "sha256": "5de7e8bce9e0b44eb06b88f3310cb7815e21d2cd5e5640d3921c46ac291d3c6a",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/checkpoint-green.json",
+      "sha256": "e2367028130ac4bbd85821f430ca28720b39e17bbc7028df25ad09744b26f0e7",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/checkpoint-green.log",
+      "sha256": "a27f17db186dfeb475775b33e280fc6e0538a3c99c0d38fbcbe572b3c58ac255",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/checkpoint-types.log",
+      "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/consumers-first.json",
+      "sha256": "438da48ab6bb5b10923b43462e25be40d17edc418ae268b81398d09aecd65eaa",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/consumers-first.log",
+      "sha256": "32b24e4837c5c549837dc0bddd355273dd5b3f399af65a4b23f04c2ef38dbdb9",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/consumers-second.json",
+      "sha256": "e5ad41fc5d8bf8fee3826763cbfb7734e9d80b440fbe2dcce7fca3e5e0460404",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/consumers-second.log",
+      "sha256": "614846d29f43a3111f0c9ddcbe1eda81d6aa404e02d5b50c438b5835f55cd1e8",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-ediel-eight.json",
+      "sha256": "f6db75039b2c0bc283af08e90f9f9d3884708eada9050727073c54bd25e56e7c",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-ediel-eight.log",
+      "sha256": "5d1266e30a2541d4cddb278c09bf927c7238400a699fa9b9b8f4994a43f9bd26",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-full.json",
+      "sha256": "1397d68d64625c0d2e98b1f01d12da944cebd3aa0a9d1c2d87f193f48fe551c0",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-full.log",
+      "sha256": "23d1a50e918909c4ce25c3e64da522b58f5c4543f42eeec06b3bfdea44e7098e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-gates.json",
+      "sha256": "b03534ee6f68cb56b34d68dceb0ac2c66f6f23c50c90e5ef17a8430ea21a4796",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-implementation-diffcheck.json",
+      "sha256": "108c2b91cf7ff3e3d7f37e708ed03b56c73d6deb78284000b25f72449c32faf9",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-implementation-diffcheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-integrity.json",
+      "sha256": "bc3ad558f973ec53cfcc6c51ac2a99c398e78b260fbebaec8cd48bbe7b917551",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-integrity.log",
+      "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-large-files.json",
+      "sha256": "371b66fced0a62b0bdb91ce88a52f037039896f7a50c778afbc66054d29ae2e9",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-large-files.log",
+      "sha256": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-lint.json",
+      "sha256": "bea2ef721cf2d8c69e8fb5d33f743529423f007395796e5d800d1f986b8fbef4",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-lint.log",
+      "sha256": "047da54a7fb45f15e99da1782ae17fdf279cd42af1d8fa504bdd3fdb9c3b066b",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-performance.json",
+      "sha256": "4b66b209a7ceea1ba91fb4290a397ed4f8662c7dd2afa74fb4e48f2f7f7ea603",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-performance.log",
+      "sha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-quality.json",
+      "sha256": "8520dbeec34ec83e8fc0ce5fa3d362ee45247d9315dfdc2ebb307f9b5ebeef49",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-quality.log",
+      "sha256": "263baa0d13804e597dcbf61d7e6c15042c9452d45e4e4827a6001f44e5415c74",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-ratchet.json",
+      "sha256": "61700d5dd8b3a4caa3cdf67bef9fe60cfa7ea00d3da06dbdac827f4b787e40ce",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-ratchet.log",
+      "sha256": "8f3487c29279af638c1d07e6c42605a89a8ec05b4592b81000513f97d4c21710",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-route-readiness.json",
+      "sha256": "47503fd0029022ef590f0dd0d482aca3e374794f2096d7c61295fdd0214fe6a0",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-route-readiness.log",
+      "sha256": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-tenant-integrity.json",
+      "sha256": "e7504f337e15f62abadbc5fb4e74b0cd8466fed60ccfb6afe8708bb8d7cef472",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-tenant-integrity.log",
+      "sha256": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-tenant-shutdown.json",
+      "sha256": "03511bd5e575359f1546a0a4d0437c770e791e74cd50392e9dd4760c5310210d",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-tenant-shutdown.log",
+      "sha256": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-typecheck-scripts.json",
+      "sha256": "901c123d79d033f6c38f57bd8034c146fc61a48b78c192e45c79de401284241e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-typecheck-scripts.log",
+      "sha256": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-typecheck-tests.json",
+      "sha256": "5c80f724c46ce71797a37ff8bc80b574e412fdec363068320f4eee57888f4d87",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-typecheck-tests.log",
+      "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-typecheck.json",
+      "sha256": "d607c84d00db1bde1bfa5427d4c295d050aea23348d67d600d4a00aa260f6f5c",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-typecheck.log",
+      "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/focused-final.json",
+      "sha256": "403858010b7fb6e3d3eee3dd5c9db286e4634b5da4dd66bcb5d11d0720637d56",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/focused-final.log",
+      "sha256": "8f8f004f7a1c28f3e74f9414a0448597cd3e677880b8554fa0548a2b2d21ebaa",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/focused-first.json",
+      "sha256": "f036a699bb2801b2d7b67a633434efb38341b0ac88346af0d6019b14b3d708dd",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/focused-first.log",
+      "sha256": "b5b6aaa361c0a048f1f88e3c717e7d02bfcc1cfbad4918d93b5f18e61d89db48",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/focused-second.json",
+      "sha256": "11432090309863895942489ad3a855ba545ab85fbcde67a71315bae895f5236c",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/focused-second.log",
+      "sha256": "d99e4377274072d3430d4718dcab4c411823938dd8ce7bd283d2b2efbfa63363",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/focused-third.json",
+      "sha256": "f19e659ffe641c384d65125f7034c04121fdfc88b6613758f8de3e03cd0cea00",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/focused-third.log",
+      "sha256": "993aeace1e3b6867b59705b96f25fd1d1f3973dd758213960f3ac5b4bea2367e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/full.json",
+      "sha256": "a4c8983e87164f9760f4811bfb51882c8b5c8a2e0fba0d790c785319a6c53e1f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/national40-final.json",
+      "sha256": "59770bb8f58b13aca775ec60ed9c713cd705cc392b3b37894af7d760f96de3b3",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/national40-final.log",
+      "sha256": "6fe0471d538fd4554c03d14d2bd130f90fafbfa603049483951e708a563f08d6",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/prior-receipts-integrity.json",
+      "sha256": "d96f51932a4a93d50c8b88895c06f06a34f1e7ba675f8072db2d7d98bbe1dca5",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/quality.json",
+      "sha256": "e694028590adc6c174b79786ee115304036082225740cec0a18231418d6043d7",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/red.json",
+      "sha256": "3de9cb6a6afb1cf0bfd23425c5f40c2a8b9dd4f1392ba814e4d226fc941aaeba",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/red.log",
+      "sha256": "834ac39f645793a6a6a46e88fb4d30a50228909d91a216e04872ea68be5c0ca0",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/self-review-red.json",
+      "sha256": "8752d7fa6573995ed5b5dbdafe112fb7dbd251a082c8c210e6c8b7df6d7e052b",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/self-review-red.log",
+      "sha256": "6849d29fa40f7c2a93feeb520bda5debb474ae72e90fe4f003b58843e9e75065",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/task-2-report.md",
+      "sha256": "c82e80c36c55832ed555c1bf7c4b22a425709e70c04ee6e3b6a3b04b66893b19",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/chronology-requirements-red.json",
+      "sha256": "cf63678e1a3e1e3e2e689a95b86d3e0d0e133efe3c89196050d68b3b1168205f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/chronology-requirements-red.log",
+      "sha256": "178c55425d9643cfd90173390c0d04bb1e2699b07dc54c339e6db0e20cefe6f1",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/chronology-requirements.test.ts.txt",
+      "sha256": "9665578d980a40144574402d69dd71ecbde16982f4a117d2e118e566ad2cf842",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/chronology.json",
+      "sha256": "f0941c287d202368a31f52467bff758f531c5ad205027957d3fd80e48873b975",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/chronology.log",
+      "sha256": "0c65d9b27e2f0c62e7296c5b34009c84590c24b18e60a97f925d5e5120d807af",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/chronology.test.ts.txt",
+      "sha256": "cc7b237d23ac6f4da5734567ee73d45eb8503d84071501ed26ac9c92c40d0428",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-ediel-eight.json",
+      "sha256": "2b0ddc8e29607c26b3746187d19c1affec39f8379f8f237e47f69ee8709d8748",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-ediel-eight.log",
+      "sha256": "1309e6ad9101dad40268eb6041fd621d2eec6c6729f12ed8b210010233586a07",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-full.json",
+      "sha256": "09648f1cfc22d8cbdf93541ed013e4b6c3f3bfc265b809cf36e7a161b9daa353",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-full.log",
+      "sha256": "e583e7c57d800f788f419f77d3e753ebcefef06d03ba8f9e043db743170551b6",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-gates.json",
+      "sha256": "0b1f66d22d9f309dc2db682edb84001e2fff6afa30fe4a92d0964c0c6f8187bf",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-implementation-diffcheck.json",
+      "sha256": "5ed44a4f8049030c63c40d2199bbd8538af9d2441a5b6dac257698ac47fbdede",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-implementation-diffcheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-integrity.json",
+      "sha256": "84ceedcda917aaf6cc2e115267f1aaf5084a068a56598759be97ed8ddb844cbe",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-integrity.log",
+      "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-large-files.json",
+      "sha256": "67438178153baafc06ed15f061cbf7391dd450015cf99e92a6a235d842568bd4",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-large-files.log",
+      "sha256": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-lint.json",
+      "sha256": "c5c3d85db26f81b5be771150e7ee0ac8698cf9d1a8165dbb258095ecc53b710c",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-lint.log",
+      "sha256": "047da54a7fb45f15e99da1782ae17fdf279cd42af1d8fa504bdd3fdb9c3b066b",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-performance.json",
+      "sha256": "5bb4ae1d75da41e2cafe5085c338960e36f069c43254874bf446cac9c5b18efd",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-performance.log",
+      "sha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-quality.json",
+      "sha256": "68d4d879292042dd745a12bd67a7ad094484e5752dd69227c707eebce469c409",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-quality.log",
+      "sha256": "e0f49479a432b1271754407b84aae54de65321d0679cf7fb3bb20471a813deec",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-ratchet.json",
+      "sha256": "b8e34282f4ad7e2ef70199005c67ad0a391ca88b1335bafcec036cc6c19d6ae9",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-ratchet.log",
+      "sha256": "8f3487c29279af638c1d07e6c42605a89a8ec05b4592b81000513f97d4c21710",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-route-readiness.json",
+      "sha256": "9feceed982811e28a6597add1724f980ef840ccc9065c31ecc447f4ab247d787",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-route-readiness.log",
+      "sha256": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-tenant-integrity.json",
+      "sha256": "26aed08d2ba3c03963be4f52b29100614eaf0348528806857e4e72b47fd3a990",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-tenant-integrity.log",
+      "sha256": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-tenant-shutdown.json",
+      "sha256": "b542eee10c485ddbf5f45855ac42ef738016fa43ba4306c41bb728670eb60a73",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-tenant-shutdown.log",
+      "sha256": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-typecheck-scripts.json",
+      "sha256": "7fbdeb0a675478d349cf5e189297a209137f2e2f931fe15421495a6d263665c1",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-typecheck-scripts.log",
+      "sha256": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-typecheck-tests.json",
+      "sha256": "83c58d8dbb5c39cdd36be43cc61b6d4559fba99a1c459f9e56a557a5db84fd82",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-typecheck-tests.log",
+      "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-typecheck.json",
+      "sha256": "e0fa6cc51227c2ce9ae9db3adf249d47740244b002935d5a0a33b90e2d7929be",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-typecheck.log",
+      "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/focused-green.json",
+      "sha256": "4420fe76ed28e9e9300fe8e7419ca41d672f4d83c79735515fd59af82b39b6a8",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/focused-green.log",
+      "sha256": "a86b5f2571c7bb28a69573f52e6212f5283cf183762793e154fe112458f8fa82",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/full.json",
+      "sha256": "5838e965db3b2383605a7ccf6722f78db0c9ba9416a96d77fea1cb9e3d27426f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/prior-hashes.json",
+      "sha256": "3965fb1ca1b282b627a850c107fa6f3aec660797c93f1fb290e6879e63cf8d60",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/prior-integrity.json",
+      "sha256": "a0a99b9e559c3f46394da181a26eb56eb2d1289e0499ae230a6b91b3f76c4202",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/quality.json",
+      "sha256": "c5f3d209b5aecad8f1a73839443518f90c7bccff794534104c661463306a579c",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/reviewer-replay-green.json",
+      "sha256": "d9c8cd3c52b5fafdcf1c71befcc4e900e45dfbf1daa5fdc8a36b889d09a231af",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/reviewer-replay-green.log",
+      "sha256": "aad5fda3fec2e39e8a34c1da378f9ad5f19cf054dc8b3850aec042a4258a6190",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/reviewer-replay-red.json",
+      "sha256": "b32404a903da85724b6933cc72c8905ef9f44a8af05f253419e4905eb3ae69f6",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/reviewer-replay-red.log",
+      "sha256": "db3dd0dc1c538d6981f3106c1be8fbe6c0d6469fbaba2bea7c66e09538d1727b",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/task-2-report.md",
+      "sha256": "66411a6439b7dc59045c193ae9f3a3241f9882e889555ba6c32943921b26e774",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/tdd-red.json",
+      "sha256": "0e222149ee5ebe05e7c924e882fbf4195d5a0bb9a94281f505347bcc6f1cb9fe",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/tdd-red.log",
+      "sha256": "0fe91be10f88d3bcd67ad8b63213f5270eaf0793f73fadc76c13b6b2f9d68356",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/vitest.config.mjs.txt",
+      "sha256": "19b1974c707daf653d27901aefe54ef917e40c7401f1e91f5476ecfe1ff6f402",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/vitest.requirements.config.mjs.txt",
+      "sha256": "d13cb2d7b3a61db818570293cf2878060f64db0c0c952d4d6e67f2094e20f417",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/frozen-integrity.log",
+      "sha256": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/input-hashes.json",
+      "sha256": "5c60a2d6cec7ef8562f8c0d2270ff6d2efc3792a8392a9a8c46ea68f36f714f7",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/observation-qualified-summary.json",
+      "sha256": "d71eab2a730d716eff7125c488ae586d7c09817232bde0977fedf5c3fa332889",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/observation-summary.json",
+      "sha256": "d71eab2a730d716eff7125c488ae586d7c09817232bde0977fedf5c3fa332889",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/observations-final.json",
+      "sha256": "2e254b08cd4dc5a21c1d4bc154797bc7eec99194babe60a49f9288e20992c4c3",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/observations-qualified-final.json",
+      "sha256": "337e0b39ff3bd6258c1e9cc523b590cb07b4ed7edf633ff75663f61453d7ee13",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/original-pdf-relevant-pages.txt",
+      "sha256": "2c47643e08f555df3a53f1983fcd4bd6c51c698b08f65762e5097ee3eebdf23d",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/prior-receipt-hashes.json",
+      "sha256": "6d8cf8ff3f59d3ae008013cfd2c7e362f8cc9e0d4cd34baba3b580dd64a4ed4a",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/probe-final.test.ts.txt",
+      "sha256": "152402c4b3767baebfa963372633d894f367296e9215a770c862e3822ada2bd0",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/probe-qualified-final.test.ts.txt",
+      "sha256": "c68527da253ce5d43ce77dafd766f767551b4905966e2d9436ba9f76f5cad9a4",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/result-final.json",
+      "sha256": "a584ef9756bd65a2d41287afae6ee8dc2035b31631bb60b2567b6ad389620d03",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/result-qualified-final.json",
+      "sha256": "d844d8e7da2a14eda3fb81533e1b358d7e2f7c572bbf40bdd52c838803141694",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/run-final.log",
+      "sha256": "d36d0112a32f433078291c5f7c640f46d1c17da17b766ce3b4ac3b8ffa0038c5",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/run-qualified-final.log",
+      "sha256": "be6b1afb1789ff7f3660e7a71b9fbbcbfbdd70652d2f03238483feb13d9234db",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/task-1-report.md",
+      "sha256": "aedd0ccc4af351ffad9938e1c3e6d7b14a946dae3ee7df6f3cb6e3aebf603d46",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/verification.json",
+      "sha256": "29952d8ddf1a078fb9e24b0055d4f6dd3311ce309c4991dd05230d0c7da5c657",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/vitest-final.config.mjs.txt",
+      "sha256": "4920dc18c4757f14213c37a82541276bf0140051a635b5ceb14c5cee46903fc1",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/vitest-qualified-final.config.mjs.txt",
+      "sha256": "5e16e672427199213b8cdec332a814058edd94492c82687f90dffcf1009223da",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/pr310-paused-resume.md",
+      "sha256": "8820ce5f28c7fa2a969d584fb5b4f69064004893b3d7cfd8a33cc58b49f207ec",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/pr327-merge-receipt.json",
+      "sha256": "91b80fa7c7a2173eba8788b98831292ee9787e326ea4954f93a69164a861d1fa",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/pr328-merge-receipt.json",
+      "sha256": "589619dd8b1b8df90fc4a906bb6cb5937384c052e2f8dafd1752142a26725f55",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/pr328-publication-receipt.json",
+      "sha256": "0bb2715e28c8bae01fa0c49a804afbfc7ed3e717dc4b4c703233cb4eccd2ad07",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/protocol.md",
+      "sha256": "aedb518b785d395cdd79f658f35bf7704d1254d83ebc3f3ca1f85d032cfb1342",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/recovery-506/implementation-receipt.json",
+      "sha256": "107a9f356170ba94295893ff9978b5afc846399c85d6d6d62cd2cceef390bb4f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/recovery-506/red-receipt.json",
+      "sha256": "9dde6e22a07afb7ec63dda24ed6979b266174ef67b2aaaa4abf9641855920e19",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/recovery-506/runtime-brief.md",
+      "sha256": "e7ee83dcca7ee18c3886500d1e3871a87a2185567954a655283822076769a640",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/recovery-506/runtime-evidence.json",
+      "sha256": "e5577827b1058166582620b1a0e1e35fd8d3d2fa533e3ecb16fad1b21533d4c2",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/recovery-506/runtime-plan.md",
+      "sha256": "801f99e0649324c4b1fe24550420e0a164659bd422fb01b2a7d5e4703427cabf",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/recovery-506/runtime-task-report.md",
+      "sha256": "f4e8c4102d60404bf03ca2798f08a4298aa0c616f5006c79cfcbc781924855e2",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/accepted-consumers-01.json.txt",
+      "sha256": "b857738425ead5c3918434f0e4c5cb8d795b3d1f97e71b4f45613af0426bc445",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/final-verification-01.txt",
+      "sha256": "43bfe9b0048bd4187549a9b9b5f1919135d161fe942e8fcac9774b6f301ad952",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/integrity-01.txt",
+      "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/normative-consumer-red-01.json.txt",
+      "sha256": "1ff9b37c94b780d3ed8c56d2696d777e72179ae0207f96355cc077411f1a9776",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/normative-consumer-red.probe-source.txt",
+      "sha256": "911fa59956ca9cb82c4de868b36932d7479ecbb6a0e31eb58703a319b0f5dea7",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/observations-01.json.txt",
+      "sha256": "4ed67088f0039b20842ecc387d795b2b795499c4ca183b7e714b07864b42a194",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/qualified-reporting-consumers-01.json.txt",
+      "sha256": "7e358cfc9b38a5fd4114a515823dfaaa86f611840984fd8ba9338a5e92443eb1",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/qualified-reporting-consumers.probe-source.txt",
+      "sha256": "7014b5117bcf65f600f8b1e5d55e9e7dd36afc78dcc71d3c5265b78ebcc194f0",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/qualified-reporting-results-01.json.txt",
+      "sha256": "aadb43977424df1ff9cdd33a889de8c9ffb7c32540730aaec6ba9a87c0b41cc3",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/remaining-observations.probe-source.txt",
+      "sha256": "4d5df21c7464faaa54c0f59cc1bff394c0e15bbdddf80edf1a7c40298cbdb389",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/reporting-consumer-observations-01.json.txt",
+      "sha256": "a732f8b0b894e43ad6c26d06b40d5684550dabc30251fd6b274e46f5f7ee985f",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/reporting-consumer-observations.probe-source.txt",
+      "sha256": "22322b16496fb30f07ed962af4b043a6204bfd2fbb0740536c1026989f44f85b",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/reporting-consumer-result-01.json.txt",
+      "sha256": "db7781211e6632dd57cac638030409e535588d2031c1fb3bacce39399926f869",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/vitest.config.config-source.txt",
+      "sha256": "ee9f19889b4f8db3d6d82b26885d9266c14ee3d167305b992f552c8548acf414",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-evidence-20260920/workbook-source-cells-01.json.txt",
+      "sha256": "57401feaa6dd62c9d8ba8fda02eb8071826433eb11e7d70e9fd59191e25e6364",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/remaining-d-plan.md",
+      "sha256": "e71aa8b9b55e47d8eac3280db4835c2d0ead15ad2aa6a7e013f640bba278d53e",
+      "unchanged": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/transport.md",
+      "sha256": "7a88527ff72523d76ef1b70440aa931d2e10facc32445e219e87c02d38eedf98",
+      "unchanged": true
+    }
+  ]
+}

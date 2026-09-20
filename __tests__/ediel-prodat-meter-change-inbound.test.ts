@@ -1,10 +1,11 @@
+import {registryDatabase} from './fixtures/prodat-ack-registry-db'
 import {it,expect,vi} from 'vitest'
 import {validateRulebookMessage} from '@/lib/ediel/rulebook/validator'
 import {preflightEdielPayload} from '@/lib/ediel/core/messageBuilder/payloadPreflight'
 import {changeRaw,changeBody,changeFields,meterChange} from './fixtures/prodat-meter-change'
 import {resolveAndStoreProdatAperakErrors} from '@/lib/ediel/testing/aperakErrorRuleRegistry'
 import type {EdielMessageRow} from '@/lib/ediel/types'
-const io=vi.hoisted(()=>({from:vi.fn(()=>{throw new Error('UNEXPECTED_DB')})}))
+const io=vi.hoisted(()=>({from:vi.fn<ReturnType<typeof registryDatabase>>(()=>{throw new Error('UNEXPECTED_DB')})}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:io}))
 const selected=(issues:{code:string;description?:string}[])=>issues.filter(i=>i.code.startsWith('PRODAT_METER_CHANGE_'))
 it('actual normal/catch canonical and raw preflight use the same inbound U and false ordering',()=>{
@@ -22,8 +23,11 @@ it('incoming payload metadata cannot declare an independent false history',()=>{
 })
 it('manual/TGT APERAK resolution cannot silently return positive or write with unmapped selected violations',async()=>{
  const message={message_family:'PRODAT',message_code:'Z10',raw_payload:changeRaw(changeBody(changeFields('BAD','INVALID'))),direction:'inbound',environment:'test',parsed_payload:{}} as EdielMessageRow
- await expect(resolveAndStoreProdatAperakErrors({message})).rejects.toThrow('PRODAT_METER_CHANGE_ACK_REVIEW_REQUIRED')
- expect(io.from).not.toHaveBeenCalled()
+ const writes:{table:string;body:Record<string,unknown>}[]=[];io.from.mockImplementation(registryDatabase(writes))
+ const result=await resolveAndStoreProdatAperakErrors({message})
+ expect(result.errors.filter(e=>['254','242'].includes(e.fieldCode??''))).toEqual(expect.arrayContaining(['254','242'].map(fieldCode=>expect.objectContaining({ercCode:'42',fieldCode,referenceNumber:'A',lineItemReference:'EVENT-A'}))))
+ expect(writes.filter(w=>w.table==='ediel_aperak_error_details').map(w=>w.body.free_text_code)).toEqual(expect.arrayContaining(['254','242']))
+ expect(writes.every(w=>w.body.source_message_id===message.id||w.body.ediel_message_id===message.id)).toBe(true)
 })
 it('independent date/register structure remains blocking beside false ignored selected content',()=>{
  const rawPayload=changeRaw(changeBody(changeFields('BAD','INVALID'))).replace('202610010000','202602300000')
