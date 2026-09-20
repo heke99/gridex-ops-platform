@@ -1,11 +1,11 @@
-# Active task — decisive historical acceptance reconciliation for twelve D cells
+# Active task — F3 phase closure beyond completed D counter
 
-Status: IN_PROGRESS. Only active item: finish the evidence-backed historical counter disposition of the twelve cells, using the already reviewed runtime on main922a660. No new runtime implementation is authorized by merely discovering an absent optional producer. Task3 code/review/CI/merge/main73+OPS is DONE and must not be restarted.
+Status: IN_PROGRESS.
 
-Read `gas-identity-resume.md`, `gas-identity-acceptance-20260920.md`, the unchanged `remaining-d-final-acceptance-brief.md`, and independent PR356 comments5751200193 plus controlling correction5751228735. The source plan and prior source approval remain valid. Compare original acceptance receipts for the historical98, not only a catalog or a later summary. Frozen masterplan§18.1/19/20 and AnnexD AT-P-01/02/03 define the distinction between implementation and production readiness.
+The independent final historical-ledger adjudication in PR356 comment5751354872 ACCEPTED all twelve previously pending cells. Numeric D is now **110/110 accepted** and parent occurrences **10/10 accepted**. No new code defect was confirmed. Controlling correction5751228735 remains applicable: production/live capability is separate from historical protocol acceptance.
 
-Produce a decisive row for each cell:321/Z14,323/Z14,254/Z10,242/Z10,310/Z05,310/Z06,310/Z09,320/Z04,320/Z06,240/Z04,240/Z06,240/Z10. For each link the exact source predicate and real current owner/consumer to independent positive/error/false/U controls, own identity and final bounded ACK/send disposition. Then either justify historical protocol acceptance or name the exact still-missing evidence/behavior. PENDING because acceptance is pending is not a substantive criterion. The reviewer has not yet delivered that final historical-ledger comparison, despite completing bounded protocol review.
+Next: reconcile every remaining F3 phase criterion beyond the D counter against frozen MASTERMASTERPLAN_v2 §18 F3, §19 and Annex D, using accepted PR350–356 receipts and current main runtime. Do not reopen accepted D work. Identify concrete residuals only: parents/registers, UNB0031, CCI/CAV, PAP/UAP/CONTRL/ERR, guide-before-function, independent golden/rejection coverage and closure of old bug reproductions. Mark already-satisfied items with exact evidence; turn only genuine missing implementation/evidence into the smallest next batch.
 
-Keep actual outgoing required-field persisted authority and production role/guide/route/formal/live qualification on separate axes. A source-qualified synthetic control through a real consumer can prove bounded protocol behavior; a caller JSON value or generic send hold cannot prove actual persisted-positive population. No global producer prerequisite or forced counter increase.
+Do not infer full F3 or full masterplan completion from 110/110. Keep formal/live/role/route/certificate/provider requirements on their separate axes. No broad rerun unless a concrete risk requires it.
 
-Only a material suspected defect activates narrow reproduction plus opposing control, TDD and scoped independent re-review. No automatic broad rerun of unchanged suites, no old assertion/threshold/source changes. Obtain independent evidence-backed disposition before changing98/110+10/10. Broader F3 and later phases stay separate; PR310 stays paused.
+PR310 remains OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a. Do not write, merge, import or restart it.
