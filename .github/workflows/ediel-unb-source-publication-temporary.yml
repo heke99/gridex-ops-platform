@@ -1,0 +1,80 @@
+name: Isolated UNB source publication
+on:
+  push:
+    branches: [codex/ediel-unb-publication-20260920]
+permissions:
+  contents: write
+concurrency:
+  group: ediel-unb-pinned-source-publication
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/codex/ediel-unb-publication-20260920'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Reconstruct and verify the exact isolated candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=83ada45792487fa71ee49f07e34b2816c5bc9a83
+          target=refs/heads/codex/ediel-f3-phase-closure-20260920
+          expected_tree=41a9df13d3b4cda604616727821567e8c34aa3ab
+          cp quality/transfer/publish-unb-candidate.py "$RUNNER_TEMP/publish-unb-candidate.py"
+          echo "d58be9b5faa0df4548d0992151f3e4d6a14902f2bd736b33ecf55460ef54f9f7  $RUNNER_TEMP/publish-unb-candidate.py" | sha256sum -c -
+          test "$(git ls-remote --heads origin "$target" | cut -f1)" = "$base"
+          git checkout --detach "$base"
+          test -z "$(git status --porcelain)"
+          python3 "$RUNNER_TEMP/publish-unb-candidate.py"
+          git add -u
+          git diff --cached --check
+          test "$(git write-tree)" = "$expected_tree"
+          python3 - <<'PY'
+          import subprocess
+          expected = {
+            '__tests__/ediel-aperak-text-codec-boundary.test.ts',
+            '__tests__/ediel-canonical-envelope.test.ts',
+            'lib/customer-cases/engine.ts', 'lib/ediel/ack.ts',
+            'lib/ediel/core/ackPolicy.ts', 'lib/ediel/core/edifactEnvelopeCodec.ts',
+            'lib/ediel/core/edifactSerializer.ts', 'lib/ediel/core/unb.ts',
+            'lib/ediel/flows/prodatCustomerMasterdata.ts',
+            'lib/ediel/intent/renderers/customerMasterdataZ01.ts',
+            'lib/ediel/intent/renderers/facilityLookupZ01.ts',
+            'lib/ediel/messages.ts', 'lib/ediel/prodat/buildProdat.ts',
+            'lib/ediel/prodat/compatAdapter.ts', 'lib/ediel/productionReadiness.part-3.ts',
+            'lib/ediel/rulebook/rulebook.ts', 'lib/ediel/testing/agtEngine.ts',
+            'lib/ediel/utilts.ts', 'lib/ediel/verification/rulePackVerification.ts',
+            'scripts/test-ediel-unb-ack-request.cjs',
+          }
+          actual = set(subprocess.check_output(['git','diff','--cached','--name-only']).decode().splitlines())
+          assert actual == expected, (actual-expected, expected-actual)
+          print('Exactly20 allowed paths; no workflow/schema/source-manifest changes in candidate')
+          PY
+          mkdir -p "$RUNNER_TEMP/unb-publication-evidence"
+          for script in test-ediel-unb-ack-request test-ediel-prodat-document-fields test-ediel-component-escaping test-ediel-prodat-reference-fields test-ediel-prodat-characteristic-fields test-ediel-prodat-source-locators test-ediel-guide-governance test-ediel-rule-pack-source-identity; do
+            node --experimental-vm-modules --test "scripts/$script.cjs" > "$RUNNER_TEMP/unb-publication-evidence/$script.log" 2>&1
+            tail -10 "$RUNNER_TEMP/unb-publication-evidence/$script.log"
+          done
+          node scripts/check-ediel-masterplan-v2.cjs | tee "$RUNNER_TEMP/unb-publication-evidence/spec-integrity.log"
+          test "$(git write-tree)" = "$expected_tree"
+          git diff --exit-code
+          test "$(git ls-remote --heads origin "$target" | cut -f1)" = "$base"
+          git config user.name 'heke99'
+          git config user.email '129280077+heke99@users.noreply.github.com'
+          git -c commit.gpgsign=false commit -m 'fix(ediel): propagate canonical UNB request and ACK expectations' -m 'Exact tested tree41a9df13. TaskA5752177628 and bounded amendments5752208557. Native64+584 pass. Ordinary PR CI and independent runtime review remain required; no main/PR310/live operations.'
+          test "$(git rev-parse 'HEAD^{tree}')" = "$expected_tree"
+          { printf 'candidate=%s\ntree=%s\nbase=%s\n' "$(git rev-parse HEAD)" "$expected_tree" "$base"; node --version; } | tee "$RUNNER_TEMP/unb-publication-evidence/provenance.txt"
+          git push origin "HEAD:$target"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unb-source-publication-${{ github.run_id }}
+          path: ${{ runner.temp }}/unb-publication-evidence/
+          if-no-files-found: warn
+          retention-days: 30
