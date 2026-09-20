@@ -1,3 +1,4 @@
+import { prodatFreeTextSendIssues } from '@/lib/ediel/prodat/prodatFreeText'
 import {gasApplicabilitySendIssue} from '@/lib/ediel/prodat/prodatGasAuthority'
 import {validateProdatGasApplicability} from './prodatGasApplicabilityPolicy'
 import type {GasSerialChangeSelection} from '@/lib/ediel/prodat/prodatGasApplicability'
@@ -447,9 +448,10 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
 }
 
 export function validateRulebookMessage(input: RulebookValidationInput): RulebookValidationResult {
+  const freeText = input.mode === 'send' && input.direction !== 'inbound' ? prodatFreeTextSendIssues({ raw_payload: input.rawPayload, message_family: input.family, message_code: input.code }) : []
   const gasBoundary=input.mode==='send'&&input.direction!=='inbound'?gasApplicabilitySendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload,application_reference:input.applicationReference}):null
   const deathBoundary=input.mode==='send'?deathStatusSendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload}):null
-  const protect=(result:RulebookValidationResult):RulebookValidationResult=>deathBoundary||gasBoundary?{...result,ok:false,blocking:true,issues:[...result.issues,...(deathBoundary?[deathBoundary]:[]),...(gasBoundary?[gasBoundary]:[])]}:result
+  const protect=(result:RulebookValidationResult):RulebookValidationResult=>deathBoundary||gasBoundary||freeText.length?{...result,ok:false,blocking:true,issues:[...result.issues,...freeText.filter(entry => !result.issues.some(old => old.code === entry.code && old.description === entry.description)),...(deathBoundary?[deathBoundary]:[]),...(gasBoundary?[gasBoundary]:[])]}:result
   const meterBoundary=input.mode==='send'?meterChangeSendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload}):null
   if(meterBoundary)return protect({ok:false,blocking:true,family:'PRODAT',code:'Z10',processGroup:'unknown',expectedApplicationReference:null,parsed:null,issues:[meterBoundary],fieldRuleSource:'static',rulePackSnapshot:null})
   const source = sourceBoundProdatInput(input)
@@ -462,6 +464,7 @@ export function validateRulebookMessage(input: RulebookValidationInput): Ruleboo
 }
 
 export async function validateRulebookMessageWithRegistry(input: RulebookValidationInput): Promise<RulebookValidationResult> {
+  if (input.mode === 'send' && input.direction !== 'inbound' && prodatFreeTextSendIssues({ raw_payload: input.rawPayload, message_family: input.family, message_code: input.code }).length) return validateRulebookMessage(input)
   const gasBoundary=input.mode==='send'&&input.direction!=='inbound'?gasApplicabilitySendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload,application_reference:input.applicationReference}):null
   const deathBoundary=input.mode==='send'?deathStatusSendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload}):null
   if(deathBoundary||gasBoundary)return validateRulebookMessage(input) // Preserve existing protected diagnostics without registry I/O.

@@ -1,9 +1,9 @@
-# Current state — PR358 accepted; next F3C-02 qualification
+# Current state — PR359 runtime verification
 
-PR358 is MERGED and bounded E011 acceptance is VERIFIED on actual main352fd8ee9129697b55c1d3796fb99ed04ca0d6f5, tree71342c9704fbaab3117172e7b63f38440a182727. Final independent four-category review5752664226 and ordinary final-head CI passed before guarded merge. Fresh actual-main73/73,314 Vitest files/4969 tests, allOPS, Ediel/browser/coverage passed. See pr358-main-acceptance-20260920.json and root5752720765. The Vercel create/wait steps were skipped; no deployment or live approval is inferred.
+Branch codex/ediel-f3-phase-closure-20260920; candidate parent 19ab3894d2c980122dfb077b208a1eab63546cc2.
 
-D110/110+10/10 remain accepted. The next field inventory is independently fact-checked5752706986:74 numeric identities and962 base-usage cells equal. That is NOT full74-field behavioral or register-overlay acceptance. The next coherent source/consumer qualification is FTX301/303; no new FTX runtime defect or code fix is claimed yet.
+Only active item is PR359 FTX301/303. Source5752810321, design/oracle5752868541 and clarification5752898014 are complete. Real native and SMTP RED precede the bounded fix. Candidate is IMPLEMENTED_NOT_VERIFIED: local248/248 and selected648/648 pass; ordinary exact-head CI and independent runtime/tenant/whole-PR review are still required.
 
-Only active work: original P source and actual scoped consumer/oracle qualification for301/303. Read current-task.md, checkpoint.json and f3-field-inventory-20260920.md. Do not re-open PR358, its completed Task A, or accepted D work from historical PENDING snapshots.
+Read quality/audits/ediel-masterplan-v2/f3-ftx301-303-runtime-evidence-20260921.md, current-task.md and checkpoint.json; fetch actual work branch/main before writes. Preserve published RED and the corrected multi-message fixture. Publish only the pinned tested candidate; check ordinary CI (including actual SMTP and native wrapper), address concrete independent review findings, then guarded merge and fresh main73/OPS. Do not restart old source/D/PR358 work or infer acceptance from local tests.
 
-FullF3/masterplan remain NOT_COMPLETE; no grounded percentage. This post-merge documentation checkpoint is on the work branch, not separately merged/CI-certified. PR310 remains OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a; no write/import/restart/merge or live operations.
+PR358/E011 is already main-accepted at352fd8ee; receipt pr358-main-acceptance-20260920.json and root5752720765. D110/110+10/10 unchanged. FullF3/masterplan NOT_COMPLETE. PR310 remains OPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a; no import/restart/write/merge or liveDB/provider/market/settings/explicit deployment operations.

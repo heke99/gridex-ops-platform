@@ -1,3 +1,4 @@
+import { prodatFreeTextSendIssues } from '@/lib/ediel/prodat/prodatFreeText'
 import {gasApplicabilitySendIssue} from '@/lib/ediel/prodat/prodatGasAuthority'
 import {validateProdatGasApplicability} from '@/lib/ediel/rulebook/prodatGasApplicabilityPolicy'
 import type {GasSerialChangeSelection} from '@/lib/ediel/prodat/prodatGasApplicability'
@@ -371,6 +372,7 @@ function validateEdifactPayload(params: {
   const { segments, una } = tokens
   const rawSegments = segments.map(segment => segment.raw)
   const issues: EdielPayloadPreflightIssue[] = []
+  if (params.mode === 'send') for (const failure of prodatFreeTextSendIssues({ raw_payload: rawPayload })) issues.push(issue({ severity: failure.severity, code: failure.code, title: failure.title, description: failure.description, segment: failure.fieldPath }))
   const gasBoundary=params.mode==='send'?gasApplicabilitySendIssue({raw_payload:rawPayload,parsed_payload:params.parsedPayload}):null
   if(gasBoundary)issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${gasBoundary.code}`,title:gasBoundary.title,description:gasBoundary.description}))
   const deathBoundary=params.mode==='send'?deathStatusSendIssue({message_family:'PRODAT',raw_payload:rawPayload,parsed_payload:params.parsedPayload}):null
@@ -747,7 +749,7 @@ export function preflightEdielPayload(params: {
 
   // Actual Z10 must reach its EDIFACT send boundary before caller format hints
   // can select XML/list early returns. Preserve ordinary syntax validation there.
-  if (params.mode === 'send' && (gasApplicabilitySendIssue({raw_payload:rawPayload,parsed_payload:params.parsedPayload}) || deathStatusSendIssue({raw_payload:rawPayload,parsed_payload:params.parsedPayload}) || meterChangeSendIssue({raw_payload:rawPayload}))) {
+  if (params.mode === 'send' && (prodatFreeTextSendIssues({ raw_payload: rawPayload }).length > 0 || gasApplicabilitySendIssue({raw_payload:rawPayload,parsed_payload:params.parsedPayload}) || deathStatusSendIssue({raw_payload:rawPayload,parsed_payload:params.parsedPayload}) || meterChangeSendIssue({raw_payload:rawPayload}))) {
     return validateEdifactPayload({...params,rawPayload,mode:'send'})
   }
   if (params.messageStandard === 'xml' || rawPayload.startsWith('<')) return validateXmlPayload(rawPayload, params.mimeType ?? null)

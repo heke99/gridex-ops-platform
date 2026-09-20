@@ -1,9 +1,9 @@
-# Completed work — PR358 actual-main acceptance
+# PR359 FTX301/303 — runtime candidate
 
-Historical D110/110+10/10 and PR357 publication remain accepted. PR358 bounded E011/ENV-04 plus reviewed ACK-monitoring amendments are now VERIFIED on main352fd8ee9129697b55c1d3796fb99ed04ca0d6f5. The final reviewed tree exactly equals merged71342c9704fbaab3117172e7b63f38440a182727.
+Only active item is PR359 FTX301/303. Source5752810321, design/oracle5752868541 and clarification5752898014 are complete. Real native and SMTP RED precede the bounded fix. Candidate is IMPLEMENTED_NOT_VERIFIED: local248/248 and selected648/648 pass; ordinary exact-head CI and independent runtime/tenant/whole-PR review are still required.
 
-Fresh verification:64/64 UNB native cases,672/672 existing source-family cases,8/8 isolated wrapper report controls; ordinary final-head CI and independent all-fourPASS5752664226; actual-main73/73,4969/4969 Vitest tests and OPS/Ediel/browser/coverage all passed. The zero-test-wrapper issue4058069931 was fixed and independently closed. Full details/hashes in pr358-main-acceptance-20260920.json and root5752720765. Native/isolated probes are not mislabeled as separate Vitest runs.
+Read quality/audits/ediel-masterplan-v2/f3-ftx301-303-runtime-evidence-20260921.md, current-task.md and checkpoint.json; fetch actual work branch/main before writes. Preserve published RED and the corrected multi-message fixture. Publish only the pinned tested candidate; check ordinary CI (including actual SMTP and native wrapper), address concrete independent review findings, then guarded merge and fresh main73/OPS. Do not restart old source/D/PR358 work or infer acceptance from local tests.
 
-Next preparation completed:74numeric identities and962base-usage equality inventory, independently checked5752706986. This is only structural/base-usage equality, not field-value/grammar/overlay acceptance. FTX301/303 source/consumer qualification remains IN_PROGRESS, with no new runtime change.
+PR358/E011 is already main-accepted at352fd8ee; receipt pr358-main-acceptance-20260920.json and root5752720765. D110/110+10/10 unchanged. FullF3/masterplan NOT_COMPLETE. PR310 remains OPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a; no import/restart/write/merge or liveDB/provider/market/settings/explicit deployment operations.
 
-Original pre-acceptance checkpoint/session/resume retained in archive/pr358-before-main-acceptance/. Earlier source audits and REDs remain unchanged. FullF3/masterplan are NOT_COMPLETE; PR310 stays paused ate9611351 and no live operations are claimed.
+Earlier snapshot preserved in archive/pr359-before-runtime/completed-work.md. Current complete evidence and limitations: quality/audits/ediel-masterplan-v2/f3-ftx301-303-runtime-evidence-20260921.md.

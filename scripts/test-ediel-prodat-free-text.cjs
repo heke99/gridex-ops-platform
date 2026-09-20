@@ -36,7 +36,7 @@ async function loadRuntime() {
     export { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer';
     export { canonicalProdat26AFieldRules } from '@/lib/ediel/prodat/prodat26AFieldMatrix';
     export { fieldRulePresent } from '@/lib/ediel/rulebook/fieldMatrix';
-    export { validateRulebookMessage } from '@/lib/ediel/rulebook/validator';
+    export { validateRulebookMessage, validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator';
     export { resolveCanonicalRuntimeDecision } from '@/lib/ediel/core/runtimeDecision';
     export { buildAperakDraft } from '@/lib/ediel/ack';
     export { preflightEdielPayload, preflightEdielMessageRow } from '@/lib/ediel/core/messageBuilder/payloadPreflight';
@@ -207,10 +207,58 @@ for(const [name,parts] of [
   ['invalid chain',[lin('1','OBJECT-A','2','89'),lin('2','OBJECT-A','1','89'),ftx()]],
 ]) test(`303 does not borrow ${name}`,async()=>assert.equal(present(await api,'303',wire('Z04',parts),'Z04'),false))
 test('second message does not supply missing header301',async()=>{
- const a=await api,raw=wire('Z01')+wire('Z01',body(),[ftx('AAI',['OTHER MESSAGE'])])
+ const a=await api,second=wire('Z01',body(),[ftx('AAI',['OTHER MESSAGE'])])
+ const raw=wire('Z01').replace("UNZ+1+I'",'')+second.slice(second.indexOf('UNH+')).replace("UNZ+1+I'","UNZ+2+I'")
  assert.equal(present(a,'301',raw),false)
 })
 for(const field of ['301','303'])test(`${field} rejects empty literal as field value but optional absence is not required`,async()=>{
  const a=await api,b=body(),raw=wire('Z01',[...b.slice(0,2),...(field==='303'?[ftx('ACB',[])]:[]),...b.slice(2)],field==='301'?[ftx('AAI',[])]:[])
  assert.equal(present(a,field,raw),false)
 })
+
+for(const [where,b,h] of [
+ ['AAI inside header NAD group',[ftx('AAI'),...body()],[]],
+ ['ACB inside object NAD group',[...body(),ftx()],[]],
+]) test(`misplaced text ${where} qualifies neither field`,async()=>{
+ const a=await api,raw=wire('Z01',b,h);assert.equal(present(a,'301',raw),false);assert.equal(present(a,'303',raw),false)
+})
+
+for (const alphabet of alphabets) for (const field of ['301','303']) for (const [name,values,ok] of [
+ ['70 released chars',[alphabet.join('').repeat(17)+'AB'],true],
+ ['71 released chars',[alphabet.join('').repeat(17)+'ABC'],false],
+ ['five literals',['A','','C','','E'],true],['six literals',['A','B','C','D','E','F'],false],
+]) test(`actual preflight ${field} ${name} ${alphabet.join('')}`,async()=>{
+ const a=await api,b=body(),part=ftx(field==='301'?'AAI':'ACB',values)
+ const s=withEvidence(a,row(wire('Z01',[...b.slice(0,2),...(field==='303'?[part]:[]),...b.slice(2)],field==='301'?[part]:[],alphabet),'Z01','outbound'))
+ const p=a.preflightEdielMessageRow(s,'send')
+ assert.equal(p.issues.some(i=>i.code.startsWith('PRODAT_FTX_')),!ok,JSON.stringify(p.issues))
+ if(ok)assert.equal(p.ok,true,JSON.stringify(p.issues))
+})
+for (const label of ['xml','list','edifact']) test(`actual malformed FTX cannot escape through ${label} format hint`,async()=>{
+ const a=await api,b=body(),s=withEvidence(a,row(wire('Z01',[...b.slice(0,2),ftx('ACB',['X'.repeat(71)]),...b.slice(2)]),'Z01','outbound'))
+ const p=a.preflightEdielPayload({rawPayload:s.raw_payload,parsedPayload:s.parsed_payload,messageStandard:label,mode:'send',companyId:s.company_id})
+ assert.equal(p.ok,false);assert.ok(p.issues.some(i=>i.code.startsWith('PRODAT_FTX_')),JSON.stringify(p.issues))
+})
+for(const mode of ['normal','metadata-error'])for(const registry of [false,true])test(`actual ${registry?'registry':'sync'} owner preserves FTX hold ${mode} before I/O`,async()=>{
+ const a=await api,b=body(),s=row(wire('Z01',[...b.slice(0,2),ftx('ACB',['X'.repeat(71)]),...b.slice(2)]),'Z01','outbound')
+ const input={family:'APERAK',code:'Z14',direction:'outbound',mode:'send',rawPayload:s.raw_payload,
+   parsedPayload:mode==='metadata-error'?{prodatEngine:{registerEvidence:{invalid:true}}}:{}}
+ const result=registry?await a.validateRulebookMessageWithRegistry(input):a.validateRulebookMessage(input)
+ assert.equal(result.ok,false);assert.ok(result.issues.some(i=>i.code==='PRODAT_FTX_SEND_CONFORMANCE'),JSON.stringify(result.issues))
+ assert.ok(!result.issues.some(i=>i.prodatDiagnostic?.kind==='field'&&['301','303'].includes(i.prodatDiagnostic?.fieldNumber)))
+})
+for(const code of ['Z09','Z13','Z14','Z15','Z18'])test(`unused303 does not add a national incoming error for ${code}`,async()=>{
+ const a=await api,b=body(code),base=a.resolveCanonicalRuntimeDecision(row(wire(code,b),code))
+ const d=a.resolveCanonicalRuntimeDecision(row(wire(code,[...b.slice(0,1),ftx('ACB',['EXTRA']),...b.slice(1)]),code))
+ const pick=value=>JSON.stringify(value.issues.map(i=>({code:i.code,field:i.prodatDiagnostic?.fieldNumber})))
+ assert.equal(pick(d),pick(base),'unused extra text cannot add a business rejection or alter retained unrelated issues')
+})
+for(const code of ['Z09','Z13','Z14','Z15','Z18'])test(`actual outbound unused303 ${code} remains locally blocked`,async()=>{
+ const a=await api,b=body(code),s=row(wire(code,[...b.slice(0,1),ftx('ACB',['EXTRA']),...b.slice(1)]),code,'outbound')
+ assert.throws(()=>a.assertRulebookAllowsSend(s),/PRODAT_FTX_SEND_CONFORMANCE/)
+})
+test('incoming direction guard remains a no-op for local outbound FTX faults',async()=>{
+ const a=await api,b=body(),s=row(wire('Z01',[...b.slice(0,2),ftx('ACB',['X'.repeat(71)]),...b.slice(2)]))
+ assert.doesNotThrow(()=>a.assertRulebookAllowsSend(s))
+})
+test('all extended actual owners preserve the no-external-operation invariant',async()=>assert.deepEqual((await api).effects,[]))

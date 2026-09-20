@@ -1,3 +1,4 @@
+import { prodatFreeTextField, validateProdatFreeText } from '@/lib/ediel/prodat/prodatFreeText'
 import {evaluateIncomingSelectedProdatAck} from '@/lib/ediel/prodat/prodatIncomingSelectedAck'
 import {evaluateIncomingProdatPermissionAckFields} from '@/lib/ediel/prodat/prodatPermissionAckFields'
 import {evaluateIncomingProdatEnergyProduct,incomingProduct242IsFalse} from '@/lib/ediel/prodat/prodatEnergyProduct'
@@ -73,6 +74,9 @@ export function validateCanonicalPolicyFields(input: {
 
   const baseRules = input.policy.family === 'PRODAT' ? rules.filter(rule => {
     const field = rule.fieldNumber ?? ''
+    // FTX301/303 have no national rejection mapping. Outbound uses the local
+    // construction guard below; incoming gray/unused text remains raw evidence.
+    if (prodatFreeTextField(field)) return false
     if(isGasApplicabilityField(input.policy.code,field))return false
     if(field==='310'&&['Z05','Z06','Z09'].includes(input.policy.code))return false
     if(isMeterChangeField(input.policy.code,field))return false
@@ -88,6 +92,7 @@ export function validateCanonicalPolicyFields(input: {
       : []
     : validateFieldMatrixPayload(matrixInput, baseRules)
   if (input.policy.family !== 'PRODAT') return issues
+  if (input.policy.direction === 'outbound') issues.push(...validateProdatFreeText({ code: input.policy.code, rawSegments: input.rawSegments ?? [], una: input.una }))
   if (input.policy.direction === 'inbound') {
     issues.push(...evaluateIncomingProdatEnergyProduct({...matrixInput,rawSegments:input.rawSegments??[]}).issues)
     issues.push(...evaluateIncomingSelectedProdatAck({...matrixInput,rawSegments:input.rawSegments??[],facts:input.policy.prodatDependentFacts,selectedFields:input.policy.fieldRules.map(asRulebookFieldRule).map(rule=>rule.fieldNumber??'')}).issues)
