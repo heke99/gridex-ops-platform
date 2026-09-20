@@ -43,6 +43,7 @@ export function serializeUnb(input: {
   senderSubAddress?: string | null
   receiverSubAddress?: string | null
   applicationReference?: string | null
+  acknowledgementRequest: boolean
   testIndicator?: string | number | null
 }): string {
   const raw = EdifactEnvelopeCodec.encode({
@@ -52,6 +53,7 @@ export function serializeUnb(input: {
     senderSubAddress: input.senderSubAddress,
     receiverSubAddress: input.receiverSubAddress,
     applicationReference: input.applicationReference,
+    acknowledgementRequest: input.acknowledgementRequest,
     environment: EdifactEnvelopeCodec.environmentFromLegacyTestFlag(input.testIndicator),
     createdAt: new Date(),
     messages: [{ messageReference: '1', messageTypeToken: 'DUMMY:D:00A:UN', businessSegments: [] }],

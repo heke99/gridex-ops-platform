@@ -5,7 +5,7 @@ import { parseInboundUtilts } from '@/lib/ediel/utilts'
 
 describe('EdifactEnvelopeCodec', () => {
   it('roundtrips application reference and test indicator in canonical UNB positions', () => {
-    const raw = EdifactEnvelopeCodec.encode({
+    const raw = EdifactEnvelopeCodec.encode({ acknowledgementRequest: true,
       sender: 'SENDER', receiver: 'RECEIVER', senderSubAddress: 'SENDSUB', receiverSubAddress: 'RECVSUB',
       interchangeReference: 'INT-1', applicationReference: 'DDQ', environment: 'test',
       createdAt: new Date('2026-07-12T10:15:00Z'),
@@ -23,7 +23,7 @@ describe('EdifactEnvelopeCodec', () => {
   })
 
   it('omits the production test indicator instead of writing zero', () => {
-    const raw = EdifactEnvelopeCodec.encode({
+    const raw = EdifactEnvelopeCodec.encode({ acknowledgementRequest: true,
       sender: 'SENDER', receiver: 'RECEIVER', interchangeReference: 'INT-2', applicationReference: 'DGI', environment: 'production',
       messages: [{ messageReference: 'MSG-2', messageTypeToken: 'UTILTS:D:96A:UN:E5SE5A', businessSegments: ['BGM+E66+CASE-2+9'] }],
     })
@@ -34,7 +34,7 @@ describe('EdifactEnvelopeCodec', () => {
   })
 
   it('rejects nested envelope segments from business builders', () => {
-    expect(() => EdifactEnvelopeCodec.encode({
+    expect(() => EdifactEnvelopeCodec.encode({ acknowledgementRequest: true,
       sender: 'S', receiver: 'R', interchangeReference: 'I', environment: 'test',
       messages: [{ messageReference: 'M', messageTypeToken: 'APERAK:D:96A:UN:E2SE3A', businessSegments: ['UNH+BAD'] }],
     })).toThrow('edifact_business_segment_contains_envelope_tag:UNH')

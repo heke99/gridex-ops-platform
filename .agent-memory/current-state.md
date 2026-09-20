@@ -1,11 +1,11 @@
-# Current state — D acceptance complete; PR357 publication gate
+# Current state — PR358 implementation published; verification pending
 
-2026-09-20. Numeric D: **110/110 accepted**. Parent occurrences: **10/10 accepted**. The final independent historical-ledger decision is PR356 comment5751354872 on runtime922a66003abe2f2622a13ed58fd24e57ac95ef5f. It supersedes the earlier pending disposition, not the original source or runtime receipts. See d-cell-110-acceptance-20260920.md.
+PR357 remains merged and accepted at main5e3cb079cf2901be42964198d79b2ceab755f28f. D110/110 and parent occurrences10/10 remain accepted. Its actual-main73/73 and OPS receipts are historical evidence for that merge only, not PR358.
 
-PR356 runtime is merged and accepted on actual main922a660, tree882156165f6f83e33f95e4a7393b3ad2ff458366. Historical exact-candidate Node22 CI and actual-main73/73 plus allOPS are recorded in gas-identity-acceptance-20260920.md and its archived detailed receipt. They are not a certificate for subsequent documentation commits.
+Task A is complete under the controlling correction quality/audits/ediel-masterplan-v2/f3-unb0031-task-a-review-correction-20260920.md and independent SOURCE/DESIGN/ORACLE PASS5752177628 at9d87d288. The earlier df1df8d owner/monitoring record is superseded where that correction says so. The original-source download remains independently reported by5751649097, not a new download in this continuation.
 
-The single active item is PR357 documentation consistency, independent re-review, exact-head ordinary CI and guarded merge. Reviewer comment5751370281 correctly identified stale active handoffs. This correction aligns current state, task, checkpoint, handover, blockers, plan, completed work, verification matrix, session log and both GAS acceptance indexes. The prior checkpoint and detailed receipts are preserved byte-for-byte under archive/pr357-53b4011c/. All other previous active documents remain in Git at53b4011c5e6c0976014dd3042538b143b60116ef.
+The meaningful actual-module RED is recorded in5752201323:42tests,7pass,35fail,0skipped on9d87d288. Runtime3f6f1fc1db3938ab76185c34d344ae89393efa72 is published in PR358; it propagates canonical0031 and outgoing ACK expectations/testFlag, including reviewed amendments5752208557. Do not recreate this patch or repeat Task A.
 
-After this publication gate, reconcile the remaining F3 criteria beyond the D counter. Full F3 and the full masterplan are NOT_COMPLETE. No overall completion percentage has an evidence-backed denominator; earlier conversational estimates are not acceptance evidence.
+Status: IMPLEMENTED_NOT_VERIFIED. Ordinary PR runs on3f6f1fc1 returned action_required before tests; no passing result may be inferred. Current work is exact-head CI and independent runtime review, followed by guarded merge and actual-main verification only if every gate passes. No runtime approval or E011 closure yet. Local test counts in the prior commit message are not a substitute for current ordinary CI.
 
-PR310 remains OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a. No runtime, tests, schema, frozen source, workflow, threshold, role, provider or live-market changes belong to this correction.
+Full F3/masterplan remain NOT_COMPLETE; no grounded percentage. PR310 remains OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a. No writes/import/restart/merge of PR310 and no live DB/provider/market/settings or explicit deployment operations.

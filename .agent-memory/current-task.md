@@ -1,11 +1,11 @@
-# Active task — finish PR357 acceptance publication
+# Active task — PR358 exact-head verification and review
 
-Status: IN_PROGRESS. Numeric D **110/110 accepted** and parents **10/10 accepted** by independent final review5751354872. Do not redo the twelve-cell adjudication or accepted GAS240 implementation.
+Status: IMPLEMENTED_NOT_VERIFIED. Branch codex/ediel-f3-phase-closure-20260920. Published runtime candidate3f6f1fc1db3938ab76185c34d344ae89393efa72, tree41a9df13d3b4cda604616727821567e8c34aa3ab. PR358 exists; do not create a duplicate.
 
-One active subtask: close documentation-consistency finding5751370281 in PR357. Confirm every active handoff uses the final acceptance, while historical receipts are explicitly archived. Obtain independent re-review of the exact amended head, inspect ordinary CI on that head, then perform a guarded merge and verify actual-main results. Do not transfer the parent runtime certificate to the new documentation commit.
+Task A SOURCE/DESIGN/ORACLE PASS5752177628, prior meaningful RED5752201323, and bounded execution amendments5752208557 precede this runtime. Read pr358-verification-resume.md and the controlling Task A correction, not the obsolete pending Task A snapshots.
 
-Next queued task, after publication: source/evidence reconciliation of the full F3 row in MASTERMASTERPLAN_v2 section18 and its section19 acceptance criteria. Map74 fields, completed110 D and10 parent occurrences, register overlays, UNB0031, CCI/CAV, PAP/UAP/CONTRL/ERR, guide-before-function and old reproductions to actual owners, consumers, independent oracles and executed evidence. Distinguish satisfied criteria, specific unverified criteria and confirmed defects. Green CI or the D counter alone does not close F3.
+Next: finish ordinary CI on the published current head and independent TASK/SPEC, QUALITY, TENANT-BOUNDARY and whole-PR review. The initial3f6f1fc1 bot-triggered runs report action_required, not test success. Preserve all existing workflows, rulesets and thresholds; do not bypass an approval. The active memory publication is documentation only over the existing runtime. Inspect new ordinary checks rather than treating old parent certificates as current.
 
-Use the current implementation and accepted PR350–356 corrections, not stale pre-fix findings. Do not invent optional producers or live roles to satisfy protocol counts. Any real residual requires a bounded source-backed plan and independent review before runtime edits; only a material suspected defect calls for a narrow opposing-control reproduction.
+Resolve only concrete runtime/review failures with targeted controls. Review the actual codec, shared and alternate PRODAT paths, outgoing ACK draft fields, source0035, ERR process projection and no_ack_required state. Preserve original source/queued bytes, incoming semantics, tenant and provider boundaries. Once exact-head checks and review pass, use expected-head-protected merge, verify tree identity and actual-main73/73 plus OPS. Then resume F3C-02/04/05/06/07 reconciliation.
 
-PR310 remains OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a. No writes/imports/restarts of that PR, no live DB/provider/market activity or role/deployment/settings changes.
+D110/110+10/10 stay accepted. Full F3/masterplan remain NOT_COMPLETE. PR310 stays OPEN/DRAFT/PAUSED at e9611351 and excluded; no live operations.

@@ -8,6 +8,7 @@ type BuildEdifactEnvelopeInput = {
   receiverEdielId: string
   receiverSubAddress?: string | null
   applicationReference?: string | null
+  acknowledgementRequest: boolean
   testFlag?: 0 | 1 | number | null
   messageTypeToken: string
   segments: string[]
@@ -35,6 +36,7 @@ export function buildEdifactEnvelope(input: BuildEdifactEnvelopeInput): BuiltEdi
     receiver: input.receiverEdielId,
     receiverSubAddress: input.receiverSubAddress,
     applicationReference: input.applicationReference,
+    acknowledgementRequest: input.acknowledgementRequest,
     interchangeReference,
     environment: EdifactEnvelopeCodec.environmentFromLegacyTestFlag(input.testFlag),
     messages: [{

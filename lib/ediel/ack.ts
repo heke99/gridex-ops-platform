@@ -15,6 +15,7 @@ import { buildCanonicalAckReferences } from '@/lib/ediel/core/referenceRegistry'
 import {
   defaultAckStatuses,
   deriveEdielAckDefaults,
+  computeOutboundAckDueAt,
   findExistingAckForSource,
   getAutomaticAckPolicy,
   getCanonicalAckState,
@@ -948,7 +949,7 @@ function buildAckDraft(params: {
       process: params.ackFamily,
     })
 
-  const ackStatuses = defaultAckStatuses()
+  const ackStatuses = deriveEdielAckDefaults({ family: params.ackFamily, code: params.ackFamily })
 
   const segments =
     params.ackFamily === 'CONTRL'
@@ -981,6 +982,8 @@ function buildAckDraft(params: {
   }
 
   const envelope = buildEdifactEnvelope({
+    acknowledgementRequest: ackStatuses.requiresContrl,
+    testFlag: params.sourceMessage.test_flag,
     senderEdielId: parties.senderEdielId,
     receiverEdielId: parties.receiverEdielId,
     messageTypeToken:
@@ -1096,8 +1099,8 @@ function buildAckDraft(params: {
     siteId: params.sourceMessage.site_id,
     meteringPointId: params.sourceMessage.metering_point_id,
     gridOwnerId: params.sourceMessage.grid_owner_id,
-    requiresContrl: false,
-    requiresAperak: false,
+    requiresContrl: ackStatuses.requiresContrl,
+    requiresAperak: ackStatuses.requiresAperak,
     contrlStatus: ackStatuses.contrlStatus,
     aperakStatus: ackStatuses.aperakStatus,
     utiltsErrStatus: ackStatuses.utiltsErrStatus,
@@ -1116,7 +1119,7 @@ function buildAckDraft(params: {
         : params.ackFamily === 'UTILTS_ERR'
           ? 'failed'
           : 'not_checked',
-    ackDueAt: ackStatuses.ackDueAt,
+    ackDueAt: computeOutboundAckDueAt(ackStatuses),
     messageCreatedAt: new Date().toISOString(),
   }
 }

@@ -26,6 +26,7 @@ import { prodatPartySegment, prodatInvoiceeNadSegment, prodatCustomerNadSegment,
 import { canonicalProdat26AFieldRules, PRODAT_26A_FIELD_MATRIX, PRODAT_26A_MESSAGE_CODES } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { renderProdatDocumentHeader } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { serializeEdifact, escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
+import { canonicalAckRequirementsForFamilyCode } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import { generateEdielInterchangeReference } from '@/lib/ediel/core/referenceGenerator'
 import { resolveApplicationReference } from '@/lib/ediel/core/applicationReferenceResolver'
 import { validateProdat } from '@/lib/ediel/prodat/validateProdat'
@@ -180,7 +181,9 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
     ...objectSegments,
   ]
 
+  const ack = canonicalAckRequirementsForFamilyCode({ family: 'PRODAT', code: businessCode })
   const rawEdifact = serializeEdifact({
+    acknowledgementRequest: ack.requiresContrl,
     sender: input.sender.edielId,
     senderSubAddress: input.sender.subAddress ?? null,
     receiver: input.receiver.edielId,

@@ -552,7 +552,10 @@ export function buildProdatZ01Draft(params: {
       },
     });
 
+    const ack = deriveEdielAckDefaults({ family: "PRODAT", code: "Z01" });
+
     const envelope = buildEdifactEnvelope({
+      acknowledgementRequest: ack.requiresContrl,
       senderEdielId: params.routeContext.senderEdielId,
       senderSubAddress,
       receiverEdielId: params.routeContext.receiverEdielId,
@@ -563,7 +566,6 @@ export function buildProdatZ01Draft(params: {
       segments: rendered.segments,
     });
 
-    const ack = deriveEdielAckDefaults({ family: "PRODAT", code: "Z01" });
     const validationReport = {
       status: rendered.issues.some((issue) => issue.severity === "error")
         ? "warning"

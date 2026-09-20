@@ -1,11 +1,9 @@
-# Handover — publish accepted D ledger, then reconcile F3
+# Handover — PR358 runtime exists; finish verification
 
-Numeric D **110/110 accepted**, parents **10/10 accepted**. Final independent decision: PR356 comment5751354872. Earlier pending statements are superseded; do not repeat that adjudication. The accepted implementation is main922a66003abe2f2622a13ed58fd24e57ac95ef5f, tree882156165f6f83e33f95e4a7393b3ad2ff458366.
+Use branch codex/ediel-f3-phase-closure-20260920 and existing PR358. Read pr358-verification-resume.md, current-task.md and checkpoint.json, then fetch current refs before writes. Published runtime is3f6f1fc1db3938ab76185c34d344ae89393efa72, tree41a9df13d3b4cda604616727821567e8c34aa3ab. Do not reimplement from the old source-only snapshot.
 
-Read gas-identity-resume.md and current-task.md first. The active publication is PR357 on codex/ediel-gas-identity-20260920. This amendment addresses review5751370281 by aligning all active handoffs and explicitly archiving the old pending receipts. Fetch actual PR/head/main and terminal CI before any merge. Use expected-head protection; no force push or bypass. PR356's historical73/73 and OPS receipts do not certify a later documentation head.
+Task A correction was independently approved5752177628 at9d87d288. RED42/7pass/35fail was recorded in5752201323. Implementation and approved execution amendments5752208557 are now published. Exact-head ordinary CI and independent runtime review remain pending; the initial bot-triggered runs35534161014/1016/1023/1017/1024 were action_required, not executed passes. See full identifiers in checkpoint.json.
 
-After PR357 is reviewed, green, merged and verified on actual main, continue the queued F3 evidence reconciliation. Cover the whole F3 criterion rather than reopening accepted D work. No new F3 defect or full-phase approval has been established by this documentation correction. Freeze normative sources and record precise consumer/evidence gaps before implementation.
+PR357 main5e3cb079 retains its73/73 and OPS acceptance; it does not certify PR358. D110/110+parents10/10 remain accepted. The prior source-only active handoffs are historical and superseded; original audit records and the archived session log remain intact.
 
-Historical detailed receipts/checkpoint/session history are preserved under archive/pr357-53b4011c/. Older original memory remains in archive/gas-identity-ac53b020/. Other pre-correction documents are recoverable at commit53b4011c5e6c0976014dd3042538b143b60116ef. Do not treat archived pending statements as active instructions.
-
-PR310 remains OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a. No production mutation, provider call, live send, role activation or explicit deployment. Full F3 and full masterplan remain NOT_COMPLETE.
+Next: current-head CI and review, narrowly fix any concrete failures, guarded merge only after all applicable gates pass, actual-main verification, then remaining F3 reconciliation. No full F3/masterplan acceptance or justified overall percentage. PR310 remains paused at e961135199f292b8210884f07de3b616a670161a; no import/restart/write/merge or live operations.

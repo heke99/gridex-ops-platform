@@ -8,6 +8,7 @@ export type SerializeEdifactInput = {
   messageReference: string
   messageTypeToken: string
   applicationReference?: string | null
+  acknowledgementRequest: boolean
   senderSubAddress?: string | null
   receiverSubAddress?: string | null
   testIndicator?: string | number | null
@@ -30,6 +31,7 @@ export function serializeEdifact(input: SerializeEdifactInput): string {
     receiver: input.receiver,
     interchangeReference: input.interchangeReference,
     applicationReference: input.applicationReference,
+    acknowledgementRequest: input.acknowledgementRequest,
     senderSubAddress: input.senderSubAddress,
     receiverSubAddress: input.receiverSubAddress,
     environment: EdifactEnvelopeCodec.environmentFromLegacyTestFlag(input.testIndicator),

@@ -1,11 +1,9 @@
-# Completed work — PR356 runtime and final D acceptance
+# Completed work — D publication and Task A accepted
 
-Numeric D **110/110 accepted**; parent occurrences **10/10 accepted**. Independent final historical-ledger adjudication5751354872 accepts the twelve cells under the same bounded protocol standard used for the prior accepted groups. It found no new concrete code defect. Correction5751228735 separates historical implementation credit from optional persisted producers and live scope.
+D110/110 numeric and10/10 parent occurrences remain accepted5751354872. PR356 runtime922a660 and PR357 actual-main5e3cb079 retain their separate historical receipts. PR357 passed73/73 and OPS on its actual merge; see pr357-main-acceptance-20260920.json.
 
-PR356 is merged at922a66003abe2f2622a13ed58fd24e57ac95ef5f. Its tree882156165f6f83e33f95e4a7393b3ad2ff458366 matches reviewed92cbc423. Independent runtime comments5751116589/5751166277, all applicable exact-candidate workflows, actual-main73/73 and allOPS were accepted; root receipt5751239067. See gas-identity-acceptance-20260920.md for the preserved detailed execution receipts.
+The next F3 planf3dcf649 was approved5751554605. Task A's corrected source/design/oracle record9d87d288 was independently approved5752177628, resolving the ACK-draft monitoring and0035 omissions; the incorrect missing-owner finding was disproved. Official source-byte evidence5751649097 is retained, not claimed as a new retrieval here.
 
-PR357 is a separate documentation publication, not yet counted here as merged or exact-head verified. Finding5751370281 concerns stale handoffs, not a reopened runtime defect. This amendment aligns active records; its completion needs re-review and its own CI.
+Earlier actual-module RED is recorded5752201323:42tests,7pass,35fail,0skipped. The bounded implementation3f6f1fc1, including execution amendments5752208557, is published in PR358. This is completed publication, NOT completed runtime/release acceptance. Ordinary current-head CI and independent runtime review remain pending; initial3f6f CI returned action_required.
 
-Historical source/audits and author Node24 receipts are unchanged. The old detailed runtime receipt and checkpoint are preserved byte-for-byte in archive/pr357-53b4011c/. Original earlier history remains in archive/gas-identity-ac53b020/ and Git history. No new local repository test or original-PDF inspection is claimed.
-
-Full F3 and full masterplan remain NOT_COMPLETE. PR310 remains OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a, untouched.
+Historical source/plan/RED records remain unchanged; active handoffs now identify verification rather than obsolete Task A work. Full F3/masterplan remain NOT_COMPLETE. PR310 remains paused at e9611351; no live DB/provider/market or explicit deployment action.

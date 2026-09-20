@@ -1,19 +1,19 @@
-# Verification matrix — D acceptance and separate publication
+# Verification matrix — accepted baseline and pending PR358
 
-Numeric D **110/110 accepted**; parent occurrences **10/10 accepted**.
-
-| Evidence | Exact binding | Result and scope |
+| Scope | Exact evidence | Disposition |
 |---|---|---|
-| Independent runtime review | PR356 comments5751116589/5751166277, head92cbc423332e8b2203f65bddc6fcba1390a65493 | Four verdicts PASS; historical accepted runtime |
-| PR356 ordinary CI | 35523069844/35523069841/35523069828/35523069893 | SUCCESS; Node22.23.2 coverage4968/4968 in313files |
-| Actual runtime merge | 922a66003abe2f2622a13ed58fd24e57ac95ef5f | Tree882156165f6f83e33f95e4a7393b3ad2ff458366 matches reviewed candidate |
-| PR356 main full | 35523710967/job106112104489 | 73/73,0failed; historical runtime only |
-| PR356 main OPS | 35523710964/jobs106112104279/433/445 | All SUCCESS; not PR310 native/schema approval |
-| Final historical ledger | PR356 comment5751354872 | All twelve ACCEPT;110/110 numeric,10/10 parents |
-| PR357 consistency finding | comment5751370281, initial head53b4011c | Confirmed stale active handoffs; addressed by this amendment |
-| PR357 amended head | Fetch current PR/head/CI | Independent re-review and exact-head CI PENDING; no merge claimed |
-| Preserved historical receipt | archive/pr357-53b4011c/gas-identity-acceptance-20260920.md/.json | Original Git blobs preserved, including past pending disposition and detailed log/artifact metadata |
-| Full F3/masterplan | Criterion-level reconciliation not completed | NOT_COMPLETE; no percent or live approval inferred |
-| PR310 | e961135199f292b8210884f07de3b616a670161a | OPEN/DRAFT/PAUSED, excluded |
+| Historical D and parents |5751354872|110/110+10/10 ACCEPTED|
+| PR357 actual main |5e3cb079, receipt pr357-main-acceptance-20260920.json, root5751554333|73/73 plus OPS/Ediel/browser/coverage accepted for that merge only|
+| F3 plan |f3dcf649,5751554605|Four plan categories PASS|
+| Original T24.A bytes/pages |Independent5751649097;1,124,807bytes;60pages;SHA256 matches manifest|Prior source retrieval accepted; not a fresh download here|
+| Task A correction |9d87d288,5752177628|SOURCE/DESIGN/ORACLE PASS|
+| Earlier actual-module RED |5752201323 at9d87d288|Recorded42tests:7pass/35fail/0skipped; not rerun by this checkpoint|
+| Execution amendments |5752208557|Bounded ERR process/state-owner amendments approved|
+| Published runtime |3f6f1fc1,tree41a9df13|Implementation exists; release acceptance PENDING|
+| Initial ordinary PR CI |35534161014/35534161016/35534161023/35534161017/35534161024 on3f6f1fc1|action_required; not passing or completed test evidence|
+| Current-head CI/runtime review |Existing PR358|PENDING; no old certificate substitution|
+| Local source recovery this continuation |Artifact10612410686;ZIP6450d3a09bbab778c45801d1b1609ce05bdf0280234f10626c2f90bc3036a974;TARadec7e8d4471fce011b2cb2d352039ef3140e684496e1037392ab4316f84685e|Both digests recomputed;restored tree4bc15bb3 matches9d87 baseline;not the current runtime|
+| Full F3/masterplan |Remaining criterion ledger|NOT_COMPLETE|
+| PR310 |e961135199f292b8210884f07de3b616a670161a|OPEN/DRAFT/PAUSED;excluded|
 
-No new local repository execution, original-PDF reinspection, independently recomputed historical artifact hash, production operation or live capability is claimed. The historical Vercel workflow skipped actual deployment steps. Archived pending statuses describe their earlier checkpoint only.
+Never count action_required, skipped or pending checks as successful execution. Prior local64+584 counts recorded in the runtime commit message are not fresh current-head ordinary CI evidence. No live operations or source/threshold changes.

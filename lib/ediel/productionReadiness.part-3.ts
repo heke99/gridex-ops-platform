@@ -54,6 +54,7 @@ export async function runProductionDryRun(
       readiness.summary.edielId &&
       readiness.summary.activeProductionRouteProfileId
         ? EdifactEnvelopeCodec.encode({
+            acknowledgementRequest: true,
             sender: readiness.summary.edielId,
             receiver: "DYNAMIC_GRID_OWNER",
             senderSubAddress: readiness.summary.senderSubAddress,

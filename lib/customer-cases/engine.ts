@@ -2,6 +2,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { createEdielMessage } from '@/lib/ediel/db'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
+import { deriveEdielAckDefaults } from '@/lib/ediel/core/ackPolicy'
 import { renderProdat26A } from '@/lib/ediel/prodat/engine'
 import type { ProdatEngineProductionContext } from '@/lib/ediel/prodat/types'
 import type { CustomerCaseRow, WithdrawalScenario } from './types'
@@ -146,6 +147,7 @@ function buildCustomerDisplayName(customer: DynamicRow | null, sourcePayload: Re
 }
 
 function buildCancellationProdatPayload(params: {
+  acknowledgementRequest: boolean
   caseRow: CustomerCaseRow
   sourceMessage: EdielMessageRow
   customer: DynamicRow | null
@@ -222,6 +224,7 @@ function buildCancellationProdatPayload(params: {
 
   const rendered = renderProdat26A({ context })
   const envelope = buildEdifactEnvelope({
+    acknowledgementRequest: params.acknowledgementRequest,
     senderEdielId,
     senderSubAddress: params.sourceMessage.sender_sub_address,
     receiverEdielId,
@@ -477,8 +480,9 @@ export async function createCancellationDraftForCase(caseRow: CustomerCaseRow, a
     maybeSelectById('supplier_switch_requests', caseRow.supplier_switch_request_id, caseRow.company_id),
   ])
 
+  const ack = deriveEdielAckDefaults({ family: 'PRODAT', code: 'Z03' })
   const cancellation = sourceMessage
-    ? buildCancellationProdatPayload({ caseRow, sourceMessage, customer, site, meteringPoint, switchRequest })
+    ? buildCancellationProdatPayload({ caseRow, sourceMessage, customer, site, meteringPoint, switchRequest, acknowledgementRequest: ack.requiresContrl })
     : {
         rawPayload: null,
         context: null,
@@ -540,10 +544,10 @@ export async function createCancellationDraftForCase(caseRow: CustomerCaseRow, a
       generatedEdifact: Boolean(cancellation.rawPayload),
     },
     validationReport: cancellation.validationReport,
-    requiresContrl: true,
-    requiresAperak: true,
-    contrlStatus: 'pending',
-    aperakStatus: 'pending',
+    requiresContrl: ack.requiresContrl,
+    requiresAperak: ack.requiresAperak,
+    contrlStatus: ack.contrlStatus,
+    aperakStatus: ack.aperakStatus,
     actorUserId: actorUserId ?? '00000000-0000-0000-0000-000000000000',
   })
 

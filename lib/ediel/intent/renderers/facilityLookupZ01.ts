@@ -160,7 +160,10 @@ export async function buildFacilityLookupZ01Draft(input: {
     },
   })
 
+  const ack = deriveEdielAckDefaults({ family: 'PRODAT', code: 'Z01' })
+
   const envelope = buildEdifactEnvelope({
+    acknowledgementRequest: ack.requiresContrl,
     senderEdielId: input.routeContext.senderEdielId,
     senderSubAddress: input.routeContext.senderSubAddress,
     receiverEdielId: input.routeContext.receiverEdielId,
@@ -170,7 +173,6 @@ export async function buildFacilityLookupZ01Draft(input: {
     messageTypeToken: `PRODAT:D:${canonicalProfile.edifactDirectory.slice(1)}:UN:${canonicalProfile.associationAssignedCode}`,
     segments: rendered.segments,
   })
-  const ack = deriveEdielAckDefaults({ family: 'PRODAT', code: 'Z01' })
 
   const draft: CreateEdielMessageInput = {
     actorUserId: input.actorUserId,

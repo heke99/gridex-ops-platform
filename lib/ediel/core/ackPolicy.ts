@@ -274,7 +274,7 @@ export function getCanonicalAckState(
     if (!contrlRequired && !isReceivedOrSent(aperakStatus)) return overdue ? 'ack_overdue' : 'in_progress'
   }
   if (contrlRequired && isReceivedOrSent(contrlStatus)) return 'contrl_received'
-  if (!contrlRequired && !aperakRequired && !utiltsErrStatus && contrlStatus !== 'pending' && aperakStatus !== 'pending') {
+  if (!contrlRequired && !aperakRequired && (utiltsErrStatus === null || utiltsErrStatus === 'not_required') && contrlStatus !== 'pending' && aperakStatus !== 'pending') {
     return 'no_ack_required'
   }
   if (overdue && (isPending(contrlStatus) || isPending(aperakStatus) || isPending(utiltsErrStatus))) return 'ack_overdue'

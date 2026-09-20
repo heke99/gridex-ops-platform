@@ -1,17 +1,9 @@
-# Session log
+# Session continuation — recover published PR358 and finish verification
 
-## 2026-09-20 — continuation: final D acceptance and PR357 correction
+Fetched current GitHub state rather than following stale Task A handoff. PR358 exists with runtime3f6f1fc1db3938ab76185c34d344ae89393efa72/tree41a9df13d3b4cda604616727821567e8c34aa3ab. Main remains accepted5e3cb079. Read corrected Task A verdict5752177628 and earlier meaningful RED record5752201323. Runtime and bounded execution amendments are already published; no recreation or rollback performed.
 
-Current result: numeric D **110/110 accepted**, parents **10/10 accepted**. Independent final review5751354872 completed the previously pending historical-ledger comparison. The earlier pending result in the PR356 session is SUPERSEDED for current progress, not deleted from history.
+Initial current-runtime PR workflows35534161014/1016/1023/1017/1024 report action_required with github-actions[bot] as triggering actor; this is not test execution or a code-failure diagnosis. Published a documentation-only active-state correction before the next ordinary CI/review pass. No workflow, rule, threshold, source, schema or runtime changed by this checkpoint.
 
-PR357 was opened at53b4011c5e6c0976014dd3042538b143b60116ef. Independent comment5751370281 confirmed conflicting active handoffs. This continuation read the resume first, actual PR/comment, AGENTS and memory contract, verified the contradiction, and aligned the active state/plan/handoff and receipt indexes. Old checkpoint and detailed GAS receipts/session are retained using their exact original Git blobs under archive/pr357-53b4011c/. Other previous pages remain in Git at53b4011c.
+Container Git fetch failed DNS. Recovered the exact9d87 source via authorized artifact10612410686; independently checked outer ZIP and inner TAR hashes and git write-tree4bc15bb3c380d7372c7647c447602b028a712df3. This is a baseline recovery, not a claim that current runtime has been tested locally. Read AGENTS, memory and relevant execution/review/verification skills. Activated executing-plans, receiving-code-review, systematic-debugging, requesting-code-review, verification-before-completion and branch-completion workflow as applicable. Database/UI/performance/dependency changes are outside this finite verification task.
 
-The amendment is documentation only. Required next publication gates are independent amended-head review, ordinary exact-head CI, guarded merge and actual-main verification. PR356's successful runtime73/73 and OPS receipts are historical and cannot be relabeled as the new checkpoint's results. After publication, the queued task is the remaining F3 evidence reconciliation.
-
-Skill routing: receiving-code-review for the verified documentation finding; verification-before-completion for exact-head and merge claims. The repository AGENTS and memory rules were read. Source/spec planning skills activate for the next finite F3 reconciliation. Runtime debugging/TDD, database/RLS, UI/performance, scanners/supply-chain, hook installation and subagent/code-author workflows are not triggered by this documentation-only correction; no executable source or settings changed.
-
-A local clone attempt failed because container DNS could not resolve github.com. Connected GitHub read/write remains available. No local repository tests or fresh original-source PDF inspection were executed or claimed. Full F3/masterplan remain NOT_COMPLETE. PR310 remains OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a, with no write. No live DB/provider/market/role/deployment action.
-
-## Earlier session history
-
-The complete preceding session entry is preserved byte-for-byte at archive/pr357-53b4011c/session-log.md, blobd5cc50341de78145af8f20fb683ac573b0af889d. Older original history is retained under archive/gas-identity-ac53b020/ and at92cbc423 in Git. These are historical snapshots, not competing current-task files.
+Prior session log preserved byte-for-byte at archive/pr358-before-verification-3f6f1fc1/session-log.md. Source records and historical receipts remain unchanged. Current task is PR358 exact-head CI/review, then guarded merge/main checks only if passing. D110/110+10/10 unchanged; full F3/masterplan remain open. PR310 stays paused at e9611351. No live DB/provider/market/settings/explicit deployment actions.

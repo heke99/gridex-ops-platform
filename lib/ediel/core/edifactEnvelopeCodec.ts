@@ -19,6 +19,8 @@ export type EdifactEnvelopeEncodeInput = {
   senderSubAddress?: string | null
   receiverSubAddress?: string | null
   applicationReference?: string | null
+  /** Technical ACK decision supplied by the canonical policy owner, not BGM/AB. */
+  acknowledgementRequest: boolean
   environment: EdifactEnvironment
   createdAt?: Date
   timeZone?: string
@@ -124,6 +126,7 @@ function serializeUnb(input: EdifactEnvelopeEncodeInput): string {
   elements[UNB.DATETIME] = `${local.date}:${local.time}`
   elements[UNB.INTERCHANGE_REFERENCE] = trimOrNull(input.interchangeReference) ?? ''
   elements[UNB.APPLICATION_REFERENCE] = trimOrNull(input.applicationReference) ?? ''
+  elements[UNB.ACK_REQUEST] = input.acknowledgementRequest ? '1' : ''
   // ISO 9735 / Ediel: production omits 0035. Test uses 1.
   elements[UNB.TEST_INDICATOR] = input.environment === 'test' ? '1' : ''
 
@@ -169,6 +172,9 @@ function parseParty(parts: string[]): {
 export class EdifactEnvelopeCodec {
   static encode(input: EdifactEnvelopeEncodeInput): string {
     if (input.messages.length === 0) throw new Error('edifact_at_least_one_message_required')
+    if (typeof input.acknowledgementRequest !== 'boolean') {
+      throw new Error('edifact_acknowledgement_request_required')
+    }
     const una = { ...DEFAULT_UNA, ...(input.una ?? {}) }
     const messageSegments = input.messages.flatMap(encodeMessage)
     const segments = [
