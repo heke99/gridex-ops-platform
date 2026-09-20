@@ -75,7 +75,7 @@
   "runtime_author": "gas_identity_runtime",
   "runtime_base": "485a19e6",
   "runtime_test_checkpoint": null,
-  "runtime_remote_parent": null,
+  "runtime_remote_parent": "6485354cb18e1634c6eac524c4ea4a2b4d42a849",
   "runtime_checkpoint": null,
   "codec_exception": "sanitizeSegment canonical terminal apostrophe releaseparity only; independent source/architecture amendment, root56db1f3a",
   "runtime_review": "NOT_STARTED Batch B",
@@ -99,9 +99,9 @@
   "pending_main_runs": null,
   "pause_archive": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920",
   "runtime_auth_checkpoint": {
-    "local": "df23be89ad05aeafa13d4d0237bb9058fdb1883e",
-    "remote": "09294cbb2b221ab360a8866e0d5921dfc99fd118",
-    "tree": "5fec7d5d5e5655276afff406f2a99ba5b3687381",
+    "local": "afd3e1217d0026211444879ee04d7a04fd2d422f",
+    "remote": "6485354cb18e1634c6eac524c4ea4a2b4d42a849",
+    "tree": "1c01fc7c24e46bfee755b5c2c0daa1d97119c7ba",
     "verification": "fresh fetch diff0"
   }
 }
