@@ -75,7 +75,8 @@ export function prodatDateState(field: string, segments: readonly Segment[], una
     const formatWrong=expectedFormat?components[2]!==expectedFormat:!['801','802','804','806'].includes(components[2])
     const scalarWrong=!validProdatDateValue(field,components[1]??'',expectedFormat??'801')
     const single=matches.length===1 && components.length===3 && !extra
-    return prodatComponentEvidence(candidate.raw,descriptor.segmentPath,components,single?(formatWrong&&!scalarWrong?[2]:!formatWrong?[1]:undefined):undefined)
+    const submitted=segmentElementCount(candidate,una)>1?Array.from({length:segmentElementCount(candidate,una)},(_,i)=>segmentComposite(candidate,i+1,una)).flat():components
+    return prodatComponentEvidence(candidate.raw,descriptor.segmentPath,submitted,single?(formatWrong&&!scalarWrong?[2]:!formatWrong?[1]:undefined):undefined)
   })
   return { failureEvidence, value: malformed ? null : parts[1], format: malformed ? null : parts[2], present: true, malformed, raw: row.raw }
 }

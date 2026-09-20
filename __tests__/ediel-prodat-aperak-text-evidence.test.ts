@@ -114,3 +114,55 @@ for(const a of alphabets)it(`actual ownLI ending in apostrophe survives full dra
  const start=tokens.segments.findIndex(t=>t.tag==='UNH'),end=tokens.segments.findIndex(t=>t.tag==='UNT')
  expect(Number(segmentComposite(tokens.segments[end],1,tokens.una)[0])).toBe(end-start+1)
 })
+it('Z13 forbidden birth-date qualifier reports that exact qualifier, not valid customer scalar',()=>{
+ const parts=permissionObject('Z13','S17','8716867000030').map(t=>t[0]==='NAD'&&(t[1] as string)==='UD'?['NAD','UD',['197001010000','1','260'],'','Synthetic','Street','City','','12345','SE'] as Parts:t)
+ const wire=permissionWire('Z13','S17','8716867000030',alphabets[0],parts)
+ const p=projectProdatDiagnostics(validateFieldMatrixPayload(input(wire,'Z13'),[rule('227','Z13')]))
+ expect(p.applicationErrors[0]?.text).toBe('Felaktigt Kund-id 1')
+})
+it('stale malformed own-reference and failure arrays reject cleanly instead of throwing',()=>{
+ const original=projected(body('OWN',null),['226']).applicationErrors[0]
+ const missing=structuredClone(original);if(missing.prodatFieldDiagnostic?.kind==='field')missing.prodatFieldDiagnostic.occurrence.ownReferences={} as never
+ expect(isQualifiedProdatApplicationError(missing)).toBe(false)
+ const invalid=projected(body().map(t=>t[0]==='DTM'?['DTM',['92','BAD','203']]:t),['210']).applicationErrors[0]
+ if(invalid.prodatFieldDiagnostic?.kind==='field')invalid.prodatFieldDiagnostic.failureEvidence='bad' as never
+ expect(isQualifiedProdatApplicationError(invalid)).toBe(false)
+})
+it('typed109 uses the fixed p93 text without customer fallback',()=>{
+ const wire=input(raw([...head(),...body('OWN',null)])),field=prodatFieldDiagnostic('210','invalid',wire,wire.rawSegments,'P93',0)
+ if(field.kind!=='field')throw Error('fixture missing field occurrence')
+ const projected=projectProdatDiagnostics([{code:'XOR',severity:'error',blocking:true,title:'Both dates',description:'unrelated developer description',prodatDiagnostic:{kind:'application',ercCode:'40',applicationCode:'109',sourceRule:'P93',occurrence:field.occurrence}}])
+ expect(projected.applicationErrors[0]).toMatchObject({ercCode:'40',fieldCode:'109',text:'En period anges där endast en dag/tidpunkt förväntas',prodatAperakText:{fallback:'not_needed'}})
+})
+import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
+import {deathRaw,deathBody} from './fixtures/prodat-death-status'
+import {validateProdatProductScope} from '@/lib/ediel/rulebook/prodatProductScope'
+it('death owner carries the one faulty qualifier without substituting valid Z41',()=>{
+ const wire=deathRaw('Z06',deathBody('E34',[['CCI','','Z17'],['CAV',['Z41','BAD','']]]))
+ const p=projectProdatDiagnostics(validateProdatDeathStatus({...input(wire,'Z06'),code:'Z06',direction:'inbound'}))
+ expect(p.applicationErrors[0]?.text).toBe('Felaktigt Kundstatus BAD')
+})
+it('product owner carries faulty qualifier and every conflicting candidate',()=>{
+ const single=input(raw([line('1','A'),['CCI','','Z14'],['CAV',['','BAD','','L917']],['RFF',['LI','CASE']]],'Z06'),'Z06')
+ const p=projectProdatDiagnostics(validateProdatProductScope(single,[rule('242','Z06')],'inbound'))
+ expect(p.applicationErrors[0]?.text).toBe('Felaktigt Produktkod BAD')
+ const conflict=input(raw([line('1','A'),...characteristic('Z14','L917',3),...characteristic('Z14','L809',3),['RFF',['LI','CASE']]],'Z06'),'Z06')
+ const q=projectProdatDiagnostics(validateProdatProductScope(conflict,[rule('242','Z06')],'inbound'))
+ for(const i of q.observations)expect(i.prodatDiagnostic).toMatchObject({failureEvidence:[{content:':::L917'},{content:':::L809'}]})
+})
+import {validateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy'
+import {changeRaw,changeBody} from './fixtures/prodat-meter-change'
+it('meter-change owner retains the actual failing1131 instead of valid product',()=>{
+ const wire=changeRaw(changeBody([['CCI','','Z14'],['CAV',['','BAD','','L917']]]))
+ const p=projectProdatDiagnostics(validateProdatMeterChange({...input(wire,'Z10'),code:'Z10',direction:'inbound'}))
+ expect(p.applicationErrors.filter(e=>e.fieldCode==='242').map(e=>e.text)).toEqual(['Felaktigt Produktkod BAD'])
+})
+it('structural product content keeps faulty CCI and extra CAV data rather than a valid scalar',()=>{
+ for(const fields of [[['CCI','BAD','Z14'],['CAV',['','','','L917']]],[['CCI','','Z14'],['CAV',['','','','L917'],'BAD']],[['CCI','','Z14'],['CAV',['','','','L917']],['CAV',['','','','BAD']]]] as Parts[][]){
+  const wire=input(raw([line('1','A'),...fields,['RFF',['LI','CASE']]],'Z06'),'Z06')
+  const p=projectProdatDiagnostics(validateProdatProductScope(wire,[rule('242','Z06')],'inbound'))
+  expect(p.observations.length).toBeGreaterThan(0)
+  expect(JSON.stringify(p.observations.map(i=>i.prodatDiagnostic))).toContain('BAD')
+  for(const e of p.applicationErrors)expect(e.text).toContain('BAD')
+ }
+})

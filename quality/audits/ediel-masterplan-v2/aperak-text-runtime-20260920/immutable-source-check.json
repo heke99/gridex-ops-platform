@@ -1,0 +1,207 @@
+[
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/full-original.txt",
+    "sha256": "901992f0524cc7f226198aca39274bfdb3fcea279bc97661f1aa17e0c679bce6",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/integrity-v1.log",
+    "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/normative-v1.test.ts",
+    "sha256": "2b9bc70636ee6c1f0cf6e174042fd0687539cac6bc17fb6d3f0a397ea145f84c",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/observations-v2.json",
+    "sha256": "43be7536208c2b3979ed3f662eec7f935dd3acb7fdf08640774f66702efb8ba7",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/observe-v1.test.ts",
+    "sha256": "bc43d8a2da40fad2c7716adf44bd99672b1f5a3281d20b27ec70eb131fb592c2",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/observe-v2.test.ts",
+    "sha256": "b6a466705ccfbe7db321286359952fef359ac31dc75bfc70cf0131f4b550383c",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/p104-104.png",
+    "sha256": "ee7ba7090a4e6dd45e85e0824c02d4d7097bdadd3232574bb2e386b051972727",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/p105-105.png",
+    "sha256": "f4944481c1df5b121c18e27b24c1dab54c29c0cda2c91dd1911a38441b7bc86b",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/p106-106.png",
+    "sha256": "7628564ef18fcb89ec3425a0678ed7677bc048aec348eb4c49042348d245f1a8",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/p119-119.png",
+    "sha256": "106cc69ffd0f1ca9aad3946711546855b5b6df10c8b95cfea8fc958890a804f6",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/p22-022.png",
+    "sha256": "c0478436420a5537f3f553cb987d89b32401864927d55f06c639a31b5e680413",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/p79-079.png",
+    "sha256": "1906326e518d04b05f44033979eeccc6981abbd24fac82e062bc741fa2b41830",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/p90-090.png",
+    "sha256": "0447847c325f3e665b7ca94bf7dd6f08f065c8a8918dc7d30c8526e77e33e53b",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/p93-093.png",
+    "sha256": "6e442ebd9abfdf1e7998615fee0d7c81ae7c1df3259ef415f7e1c5505c990b72",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/p94-094.png",
+    "sha256": "4ef8f08367a2025ec290809227f32d4f8cc642dc7e4aaf383bb6b505d14f7575",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/persisted-observation-v2.json",
+    "sha256": "14637dfcf7d1a6ace787b68c5054264f83d883058c44be92ddb30611bf84c5cf",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/persisted-observation.json",
+    "sha256": "630b5f39ca6a1103169ca93e616ea49d267663e98b6099a9608556da1a4fe2f7",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/persisted-v2.test.ts",
+    "sha256": "9f8a678730fc7dc0c92ce1a33f987515a8df2e1cc305e7b5ea0d0af98f45517d",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/persisted.test.ts",
+    "sha256": "722ee2d53311df6759d26b6f0c3427aced8cf1b9c9215488f02985a169a79dd0",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/run-consumers-v1.json",
+    "sha256": "b1ab1a5540b66cda69373e99059731111ec8a33f031ec674883bb3b20233f5ff",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/run-consumers-v1.log",
+    "sha256": "2418b85f4347250d79a39bd70e7ed116fc50761fdff3879ddb410f78eab3ac10",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/run-consumers-v2.json",
+    "sha256": "afa8bd91e36afb1562c28503ea2573244adf09b5edd5f2321f6ab5241263480e",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/run-consumers-v2.log",
+    "sha256": "589b121afdd0d14bb7b3abcf90063fb35a33c71f52f18f6ff179709d9e1462d5",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/run-normative-v1.json",
+    "sha256": "8c29fe2292126461e93d18f7ac2dbd783769d2c5331bec7e6ead183641657452",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/run-normative-v1.log",
+    "sha256": "2ef787ab72a9f50a343d0935da5f54f887a213ee7f105c8570594891250273a7",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/run-v1.json",
+    "sha256": "f6376164a07fb1a72f262e23e6d13bd482015c30a1177176c0614a8e66cfdbbd",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/run-v1.log",
+    "sha256": "0b8ba77e6d1dcac8fc1d374f4ea41689ede1b98244d4ce19772852346a0718d5",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/run-v2.json",
+    "sha256": "ab6faab2c588791fff4019ce9a0e0695017b6d5429aae185167859faa3d32f7e",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/run-v2.log",
+    "sha256": "0722bba07e35c73be9f019c44e517872df1b043b2a6832e7aab7156804028b8d",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/tgt-observation-v2.json",
+    "sha256": "b71e364d01cedc22e3ed3f72a9d7c6400999a391a91dc1155077eb3490873a35",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/tgt-v1.test.ts",
+    "sha256": "b7ebf5bd2a1eac92a3f8e346c8c111b2b308a2843a1fe9b10f896d12b94b9cf7",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/tgt-v2.test.ts",
+    "sha256": "f37a0acce00791d74447e609169aaad575345d07619620469e2b3c440fd180f5",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/vitest.config.mjs",
+    "sha256": "374c3eb5251772ebf7a6ab92a81c267ebe3b2593d5c4dfa554d12382fdf69f58",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/prodat-original-source/PRODAT-26A-r3.pdf",
+    "sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-review-20260920/run-review.json",
+    "sha256": "8f3026b6905269c83e861fc7767b06acb2cd497e7ebf64e0542803dc93e14b1d",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-review-20260920/run-capacity-review.json",
+    "sha256": "28004a5dd17337a0c000ea47170d92718692b67301cd04aa85421c33a5ac5c63",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-text-review-20260920/capacity-review.test.ts",
+    "sha256": "8c6f1d60ece91ddc0524327800b473c0e25cea1c4d2c12c21415a0a9f533acad",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-codec-review-20260920/codec-baseline.test.ts",
+    "sha256": "006c00042ae5bc0c1f1d7cab0ee1763297aa83ff09484de0c3dd2437d7f84425",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-codec-review-20260920/codec-observations.json",
+    "sha256": "0496ec8ddfb01f8186dc00f1a4ac9c04f6bfb3ae3c69d2fe54bd187bb1aee122",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-codec-review-20260920/run-codec-baseline.json",
+    "sha256": "81926790b75d8e7a586582f8d86ce3444a45b8221c2a2880ead2048a0f81081c",
+    "matches": true
+  },
+  {
+    "path": "/workspace/scratch/2a201d6d5897/aperak-codec-review-20260920/vitest.config.mjs",
+    "sha256": "38d5c464395594c8aa0b7ab79ae76c422fa4ff08dd0945805b2fdc4afb472bf6",
+    "matches": true
+  }
+]

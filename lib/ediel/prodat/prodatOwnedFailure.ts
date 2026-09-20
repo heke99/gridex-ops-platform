@@ -4,7 +4,7 @@ import {prodatDateState} from './prodatDateFields'
 import {prodatDocumentState} from './prodatDocumentFields'
 import {prodatRegisterFieldState} from './prodatRegisterFields'
 import {prodatComponentEvidence,type ProdatFailureEvidence} from './prodatFailureEvidence'
-import {segmentComposite,type EdifactTokenizedSegment} from '@/lib/ediel/core/edifactTokenizer'
+import {segmentComposite,segmentElementCount,type EdifactTokenizedSegment} from '@/lib/ediel/core/edifactTokenizer'
 import type {EdifactServiceStringAdvice} from '@/lib/ediel/core/una'
 
 /** Metadata transport for an already-classified F in the caller's exact scope.
@@ -22,7 +22,7 @@ export function prodatOwnedFailure(field:typeof PRODAT_26A_FIELD_MATRIX[number],
   if(register)return register.failureEvidence
   if(field.referenceScope){
     const matches=tokens.filter(t=>t.tag==='RFF'&&segmentComposite(t,1,una)[0]?.trim().toUpperCase()===field.segmentPath.slice(4))
-    return matches.flatMap(t=>{const p=segmentComposite(t,1,una);return prodatComponentEvidence(t.raw,field.segmentPath,p,matches.length===1&&p.length===2&&p[1]?[1]:undefined)})
+    return matches.flatMap(t=>{const count=segmentElementCount(t,una),p=Array.from({length:count},(_,i)=>segmentComposite(t,i+1,una)).flat();return prodatComponentEvidence(t.raw,field.segmentPath,p,matches.length===1&&count===1&&p.length===2&&p[1]?[1]:undefined)})
   }
   if(field.cavComponent!==undefined){
     const matches=tokens.filter(t=>t.tag==='CCI'&&segmentComposite(t,2,una)[0]?.trim().toUpperCase()===field.segmentPath.slice(5,-4))

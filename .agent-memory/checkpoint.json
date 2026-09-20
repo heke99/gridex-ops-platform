@@ -81,5 +81,14 @@
     "expected_failed": 8,
     "passed": 3
   },
-  "runtime_remote_parent": "af6ee5d2fa23e4b95c2af95685bba2584ff32196"
+  "runtime_remote_parent": "1bb3c014ea7f799e4f08f3229ec7fdbd76eced92",
+  "runtime_checkpoint": {
+    "local": "517d94ab8cb3b148a461ee4e9d3b0da08ebb9526",
+    "remote": "1bb3c014ea7f799e4f08f3229ec7fdbd76eced92",
+    "tree": "19c63736e52080a383ba3fd39e41b64469d7cb84",
+    "verification": "freshfetchdiff0",
+    "focused_passed": 206,
+    "strip_only_passed": 818
+  },
+  "codec_exception": "sanitizeSegment canonical terminal apostrophe releaseparity only; independent source/architecture amendment, root56db1f3a"
 }
