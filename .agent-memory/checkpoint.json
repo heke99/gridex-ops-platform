@@ -65,15 +65,15 @@
   "source_plan": "quality/audits/ediel-masterplan-v2/permission-ack-plan.md",
   "source_candidate_commit": "2a49a63c9b8b713945609a5dbc2bd68eadaadb1d",
   "source_remote_checkpoint": {
-    "head": "b1d2be3da2869bd59a5a609eb7dd16ef6ba04f8e",
-    "tree": "2d16bf1041cb950f0c35d13ece47e0b2871cfede",
-    "local_equivalent": "2a49a63c9b8b713945609a5dbc2bd68eadaadb1d",
+    "head": "297625c2b7a8a4eab54feacd27ec7344620bb75d",
+    "tree": "a8a63a1957aa12dd081e5ba5a4466b7f3e040b48",
+    "local_equivalent": "35009150",
     "verification": "fresh fetch diff0"
   },
   "source_review": "SOURCE/SPEC ARCHITECTURE TASK/SPEC QUALITY APPROVE",
   "runtime_scope": "Approved incoming322/324 owner and finite ACK consumers; exact two old assertion exceptions; E37Z18 accepted; physical occurrence persistence guard",
-  "runtime_author": "aperak_text_runtime",
-  "runtime_base": "87343da123bd72d2c26a114b99adb4228d11c365",
+  "runtime_author": "permission_ack_runtime",
+  "runtime_base": "35009150",
   "runtime_test_checkpoint": {
     "local": "f8ed22676cea984652734bb37ad2225cdb314f5f",
     "remote": "af6ee5d2fa23e4b95c2af95685bba2584ff32196",
@@ -83,28 +83,12 @@
     "expected_failed": 8,
     "passed": 3
   },
-  "runtime_remote_parent": "12cd0046490000078b3f2947df942bb394491ea4",
-  "runtime_checkpoint": {
-    "local": "591131280604a569d26a88fca5dc29792c082c8f",
-    "remote": "5bd0e0607ee1f9f113af058d95a1c3c0cfd5d129",
-    "tree": "12fec60f8e166af5b6e0ff7ac5850d35f8c3b016",
-    "verification": "freshfetchdiff0",
-    "full_passed": 4567,
-    "files": 303,
-    "covering_passed": 731,
-    "reviewer_passed": 14,
-    "strip_only_passed": 818,
-    "gates_passed": 13
-  },
+  "runtime_remote_parent": "297625c2b7a8a4eab54feacd27ec7344620bb75d",
+  "runtime_checkpoint": null,
   "codec_exception": "sanitizeSegment canonical terminal apostrophe releaseparity only; independent source/architecture amendment, root56db1f3a",
-  "runtime_review": "APPROVE R1 allverdicts",
-  "runtime_fix_round": 1,
-  "runtime_ci_runs": [
-    35505908631,
-    35505908624,
-    35505908661,
-    35505908633
-  ],
+  "runtime_review": "NOT_STARTED",
+  "runtime_fix_round": 0,
+  "runtime_ci_runs": [],
   "ci_blocker": null,
   "packaging_checkpoint": {
     "local": "de385ceef28d3764d04ab142432a1193d763bf46",
