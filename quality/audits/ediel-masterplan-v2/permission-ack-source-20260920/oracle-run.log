@@ -1,0 +1,232 @@
+
+ RUN  v4.1.9 /workspace/scratch/2a201d6d5897/gridex-next
+
+ ❯ ../permission-ack-source-20260920-1958/oracle.test.ts (20 tests | 13 failed) 332ms
+   × independent source manual/draft oracle z14n-a76-a0 21ms
+   × independent source manual/draft oracle z14-missing-a0 18ms
+   × independent source manual/draft oracle z14-invalid-a0 23ms
+   × independent source manual/draft oracle z14-z96-a0 20ms
+   × independent source manual/draft oracle z15c-valid-a0 16ms
+   × independent source manual/draft oracle z15-b77-a0 14ms
+   × independent source manual/draft oracle z18-missing324-a0 10ms
+   × independent source manual/draft oracle z18-invalid324-a0 11ms
+   × independent source manual/draft oracle second-object-a0 17ms
+   × P94 submitted punctuation and case survives the manual rendered error 15ms
+   × independent canonical source oracle z14-invalid-a0 8ms
+   × independent canonical source oracle z15-invalid324-a0 5ms
+   × independent canonical source oracle false-z13-extra 6ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  ../permission-ack-source-20260920-1958/oracle.test.ts > independent source manual/draft oracle z14n-a76-a0
+AssertionError: expected [ [ '41', '322' ] ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   [
++     "41",
++     "322",
++   ],
++ ]
+
+ ❯ ../permission-ack-source-20260920-1958/oracle.test.ts:29:254
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/13]⎯
+
+ FAIL  ../permission-ack-source-20260920-1958/oracle.test.ts > independent source manual/draft oracle z14-missing-a0
+AssertionError: expected [] to deeply equal [ [ '41', '322' ] ]
+
+- Expected
++ Received
+
+- [
+-   [
+-     "41",
+-     "322",
+-   ],
+- ]
++ []
+
+ ❯ ../permission-ack-source-20260920-1958/oracle.test.ts:29:254
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/13]⎯
+
+ FAIL  ../permission-ack-source-20260920-1958/oracle.test.ts > independent source manual/draft oracle z14-invalid-a0
+AssertionError: expected [ [ '41', '322' ] ] to deeply equal [ [ '42', '322' ] ]
+
+- Expected
++ Received
+
+  [
+    [
+-     "42",
++     "41",
+      "322",
+    ],
+  ]
+
+ ❯ ../permission-ack-source-20260920-1958/oracle.test.ts:29:254
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/13]⎯
+
+ FAIL  ../permission-ack-source-20260920-1958/oracle.test.ts > independent source manual/draft oracle z14-z96-a0
+AssertionError: expected [] to deeply equal [ [ '42', '322' ] ]
+
+- Expected
++ Received
+
+- [
+-   [
+-     "42",
+-     "322",
+-   ],
+- ]
++ []
+
+ ❯ ../permission-ack-source-20260920-1958/oracle.test.ts:29:254
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/13]⎯
+
+ FAIL  ../permission-ack-source-20260920-1958/oracle.test.ts > independent source manual/draft oracle z15c-valid-a0
+AssertionError: expected [ [ '42', '322' ], [ '42', '324' ] ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   [
++     "42",
++     "322",
++   ],
++   [
++     "42",
++     "324",
++   ],
++ ]
+
+ ❯ ../permission-ack-source-20260920-1958/oracle.test.ts:29:254
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/13]⎯
+
+ FAIL  ../permission-ack-source-20260920-1958/oracle.test.ts > independent source manual/draft oracle z15-b77-a0
+AssertionError: expected [ [ '42', '324' ] ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   [
++     "42",
++     "324",
++   ],
++ ]
+
+ ❯ ../permission-ack-source-20260920-1958/oracle.test.ts:29:254
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/13]⎯
+
+ FAIL  ../permission-ack-source-20260920-1958/oracle.test.ts > independent source manual/draft oracle z18-missing324-a0
+AssertionError: expected [] to deeply equal [ [ '41', '324' ] ]
+
+- Expected
++ Received
+
+- [
+-   [
+-     "41",
+-     "324",
+-   ],
+- ]
++ []
+
+ ❯ ../permission-ack-source-20260920-1958/oracle.test.ts:29:254
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/13]⎯
+
+ FAIL  ../permission-ack-source-20260920-1958/oracle.test.ts > independent source manual/draft oracle z18-invalid324-a0
+ FAIL  ../permission-ack-source-20260920-1958/oracle.test.ts > independent source manual/draft oracle second-object-a0
+AssertionError: expected [] to deeply equal [ [ '42', '324' ] ]
+
+- Expected
++ Received
+
+- [
+-   [
+-     "42",
+-     "324",
+-   ],
+- ]
++ []
+
+ ❯ ../permission-ack-source-20260920-1958/oracle.test.ts:29:254
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/13]⎯
+
+ FAIL  ../permission-ack-source-20260920-1958/oracle.test.ts > P94 submitted punctuation and case survives the manual rendered error
+AssertionError: expected [ { code: '322', …(1) } ] to deep equally contain { code: '322', …(1) }
+
+- Expected:
+{
+  "code": "322",
+  "text": [
+    "Felaktigt Tillståndets status X:+?'",
+  ],
+}
+
++ Received:
+[
+  {
+    "code": "322",
+    "text": [
+      "Felaktigt tillståndets status X",
+    ],
+  },
+]
+
+ ❯ ../permission-ack-source-20260920-1958/oracle.test.ts:30:198
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/13]⎯
+
+ FAIL  ../permission-ack-source-20260920-1958/oracle.test.ts > independent canonical source oracle z14-invalid-a0
+ FAIL  ../permission-ack-source-20260920-1958/oracle.test.ts > independent canonical source oracle z15-invalid324-a0
+AssertionError: expected 'accepted' to be 'rejected' // Object.is equality
+
+Expected: "rejected"
+Received: "accepted"
+
+ ❯ ../permission-ack-source-20260920-1958/oracle.test.ts:31:296
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/13]⎯
+
+ FAIL  ../permission-ack-source-20260920-1958/oracle.test.ts > independent canonical source oracle false-z13-extra
+AssertionError: expected 'rejected' to be 'accepted' // Object.is equality
+
+Expected: "accepted"
+Received: "rejected"
+
+ ❯ ../permission-ack-source-20260920-1958/oracle.test.ts:31:296
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/13]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  13 failed | 7 passed (20)
+   Start at  20:00:34
+   Duration  3.09s (transform 1.90s, setup 47ms, import 2.48s, tests 332ms, environment 0ms)
+

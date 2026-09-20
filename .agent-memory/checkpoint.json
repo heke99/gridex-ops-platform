@@ -13,54 +13,56 @@
   },
   "full_masterplan": "NOT_COMPLETE",
   "main_full_certificate": {
-    "run": 35501599894,
-    "job": 106054215548,
+    "run": 35506222436,
+    "job": 106066385260,
     "passed": 73,
     "total": 73,
     "failed": 0,
-    "completed_at": "2026-09-20T09:20:32Z",
+    "completed_at": "2026-09-20T11:00:05Z",
     "node": "22.23.2"
   },
   "main_ops_receipt": {
-    "run": 35501599893,
+    "run": 35506222425,
     "jobs": [
-      106054215352,
-      106054215436,
-      106054215444
+      106066385034,
+      106066385124,
+      106066385127
     ],
     "conclusion": "success"
   },
   "updated_at": "2026-09-20",
   "status": "IN_PROGRESS",
-  "branch": "codex/ediel-aperak-text-20260920",
-  "base_head_sha": "b4f00ae37937502f2678738bf076c0ba8de9696b",
-  "active_item": "PR352 runtime approved; CI artifact-packaging correction",
-  "next_action": "Archive copiedprobes as non-test byteidentical text, exactqualitysuite, narrowreview/newCI",
-  "runtime_authorized": true,
-  "last_accepted_pr": 351,
-  "last_merged_pr": 351,
-  "active_pr": 352,
+  "branch": "codex/ediel-permission-ack-20260920",
+  "base_head_sha": "1892cf48e77d2c6cea99fdbb5d7507d51919956a",
+  "active_item": "Source-only legacy permission322/324 ACK qualification",
+  "next_action": "Complete source evidence; independent source/spec and architecture review before bounded runtime authorization",
+  "runtime_authorized": false,
+  "last_accepted_pr": 352,
+  "last_merged_pr": 352,
+  "active_pr": null,
   "main_pending": null,
   "previous_pr_receipt": {
-    "pr": 351,
-    "head": "27d2e3a79158798fb4a79ea1f0feadea740f509e",
-    "tree": "ab93f8a42ccbd525395003647044683b0a7ff6fc",
-    "review": "TASK/SPEC QUALITY WHOLE-BRANCH APPROVE",
-    "tests": 4467,
-    "files": 297,
+    "pr": 352,
+    "head": "12cd0046490000078b3f2947df942bb394491ea4",
+    "tree": "8c293a75cf362d02c1b2eae5c2322beafca33a5b",
+    "review": "SOURCE/SPEC ARCHITECTURE TASK/SPEC QUALITY WHOLE-BRANCH and PACKAGING APPROVE",
+    "tests": 4567,
+    "files": 303,
+    "quality_tests": 45,
     "node": "22.23.2",
-    "quality_job": 106053376597,
+    "quality_job": 106065574856,
+    "coverage_job": 106065575052,
     "ci_runs": [
-      35501285958,
-      35501285890,
-      35501285962,
-      35501286004
+      35505908631,
+      35505908624,
+      35505908661,
+      35505908633
     ],
     "all_success": true
   },
-  "source_author": "aperak_text_source",
-  "source_base": "af9e2673",
-  "source_plan": "quality/audits/ediel-masterplan-v2/aperak-text-plan.md",
+  "source_author": "permission_ack_source",
+  "source_base": "343a5506",
+  "source_plan": "quality/audits/ediel-masterplan-v2/permission-ack-plan.md",
   "source_candidate_commit": "80f77d12591bd440dd270b1461ae67fbd9c526df",
   "source_remote_checkpoint": {
     "head": "d7685fc4eed07f9e7e7b864a98588fe5bd52b5eb",
@@ -81,7 +83,7 @@
     "expected_failed": 8,
     "passed": 3
   },
-  "runtime_remote_parent": "5bd0e0607ee1f9f113af058d95a1c3c0cfd5d129",
+  "runtime_remote_parent": "12cd0046490000078b3f2947df942bb394491ea4",
   "runtime_checkpoint": {
     "local": "591131280604a569d26a88fca5dc29792c082c8f",
     "remote": "5bd0e0607ee1f9f113af058d95a1c3c0cfd5d129",
@@ -98,15 +100,20 @@
   "runtime_review": "APPROVE R1 allverdicts",
   "runtime_fix_round": 1,
   "runtime_ci_runs": [
-    35505371794,
-    35505371809,
-    35505371838,
-    35505371840
+    35505908631,
+    35505908624,
+    35505908661,
+    35505908633
   ],
-  "ci_blocker": {
-    "run": 35505371794,
-    "job": 106064154601,
-    "reason": "Archived quality test copies discovered and afterAll absolute scratch ENOENT",
-    "runtime_change_required": false
+  "ci_blocker": null,
+  "packaging_checkpoint": {
+    "local": "de385ceef28d3764d04ab142432a1193d763bf46",
+    "remote": "12cd0046490000078b3f2947df942bb394491ea4",
+    "tree": "8c293a75cf362d02c1b2eae5c2322beafca33a5b",
+    "verification": "fresh fetch diff0",
+    "quality_passed": 45,
+    "quality_files": 2,
+    "runtime_unchanged": true,
+    "review": "APPROVE"
   }
 }
