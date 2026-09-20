@@ -31,11 +31,13 @@ const CUSTOM_UNA_PRODAT_Z14N = [
   'UNB*UNOC;3*GRIDOWNER;;14*ESCO;;14*260829;0030*REF2**23-DGI-PRODAT!',
   'UNH*2*PRODAT;D;96A;UN;E2SE6A!',
   'BGM*Z14*DOC2*9!',
-  'CCI**Z23!',
-  'CAV*A75!',
   'LIN*1**735999123456789003!',
+  'CCI**Z13!',
+  'CAV*Z96!',
+  'CCI**Z23!',
+  'CAV*A76!',
   'RFF*Z07;FACILITY-1!',
-  'UNT*7*2!',
+  'UNT*9*2!',
   'UNZ*1*REF2!',
 ].join('')
 
@@ -85,7 +87,8 @@ describe('canonical inbound EDIFACT parser v2', () => {
 
   it('classifies PRODAT Z14 rejection from structured CCI/CAV facts with custom UNA', () => {
     const facts = canonicalMessageFacts(CUSTOM_UNA_PRODAT_Z14N)
-    expect(facts.cciCavCodes.Z23).toEqual(['A75'])
+    expect(facts.cciCavCodes.Z13).toEqual(['Z96'])
+    expect(facts.cciCavCodes.Z23).toEqual(['A76'])
 
     expect(classifyEdielMessage({ rawPayload: CUSTOM_UNA_PRODAT_Z14N })).toMatchObject({
       family: 'PRODAT',

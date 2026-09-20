@@ -186,3 +186,6 @@ PR352 bounded APERAK text/readiness unit ACCEPTED on main1892cf48e77d2c6cea99fdb
 
 Permission322/324 source candidate2a49a63c published b1d2be3da2869bd59a5a609eb7dd16ef6ba04f8e/tree2d16bf1041cb950f0c35d13ece47e0b2871cfede, fresh fetch diff0. Independent permission_ack_review SOURCE/SPEC+ARCHITECTURE active; no runtime authorized. Five selected-field findings; original20oracles7PASS13RED,105observations,13persisted records. Explicit E37/Z18 source adjudication pending. Separate HIGH P-ACK-R1 prior-flow authority/tenant lookup residual must remain open; generic209/261 residuals excluded. PR352 main73+OPS accepted, counts98/110+10 unchanged, PR310paused.
 
+
+Permission322/324 runtime checkpoint150b22c9 published0d65582c266d1f968829663eef3c9f27eae07671/tree661b32bb3a6ff467e13fa69b08ebbd8b3913623f freshfetchdiff0. Focused141/141 PASS; final full/gates/report pending. Narrow registry-only derivative258 amendment independently approved/rootauthorized a765bf7d; all other holds and residuals unchanged. Corrected isolatedbaseline67tests16PASS51RED, original API/fixture mistakes retained. No completed-runtime approval/PR yet; PR352main73+OPS accepted; PR310paused.
+

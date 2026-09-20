@@ -84,3 +84,9 @@ it('unused metadata is ignored; missing primary still41 and exact case is42',()=
  m.raw_payload=m.raw_payload.replace('CAV+:UNUSED:TEXT:EXTRA','CAV+a74')
  expect(manual(m).applicationErrors).toMatchObject([{ercCode:'42',fieldCode:'322',text:'Felaktigt Tillståndets status a74'}])
 })
+
+it('original custom-UNA header status without own223 cannot create Z14N',async()=>{
+ const {classifyEdielMessage}=await import('@/lib/ediel/rulebook/ruleProfileSelector')
+ const rawPayload=['UNA;*.? !','UNB*UNOC;3*GRIDOWNER;;14*ESCO;;14*260829;0030*REF2**23-DGI-PRODAT!','UNH*2*PRODAT;D;96A;UN;E2SE6A!','BGM*Z14*DOC2*9!','CCI**Z23!','CAV*A75!','LIN*1**735999123456789003!','RFF*Z07;FACILITY-1!','UNT*7*2!','UNZ*1*REF2!'].join('')
+ expect(classifyEdielMessage({rawPayload})).toMatchObject({variant:'unknown',businessResult:'unknown',applicationValidity:'uncertain'})
+})

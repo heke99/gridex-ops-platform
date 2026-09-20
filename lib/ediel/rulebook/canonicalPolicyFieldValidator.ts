@@ -87,7 +87,11 @@ export function validateCanonicalPolicyFields(input: {
       : []
     : validateFieldMatrixPayload(matrixInput, baseRules)
   if (input.policy.family !== 'PRODAT') return issues
-  if (input.policy.direction === 'inbound') issues.push(...evaluateIncomingProdatEnergyProduct({...matrixInput,rawSegments:input.rawSegments??[]}).issues,...evaluateIncomingProdatPermissionAckFields({...matrixInput,rawSegments:input.rawSegments??[]}).issues)
+  if (input.policy.direction === 'inbound') {
+    issues.push(...evaluateIncomingProdatEnergyProduct({...matrixInput,rawSegments:input.rawSegments??[]}).issues)
+    const permissionFields=input.policy.fieldRules.map(asRulebookFieldRule).filter(rule=>['322','324'].includes(rule.fieldNumber??'')).map(rule=>rule.fieldNumber)
+    if(permissionFields.length)issues.push(...evaluateIncomingProdatPermissionAckFields({...matrixInput,rawSegments:input.rawSegments??[]}).issues.filter(issue=>issue.prodatDiagnostic?.kind!=='field'||permissionFields.includes(issue.prodatDiagnostic.fieldNumber)))
+  }
   issues.push(...validateProdatSubtypePolicy(matrixInput, input.policy.direction === 'inbound'
     ? rules.filter(rule => !isReportingPermissionField(input.policy.code,rule.fieldNumber??'') && !isProdatDateEventField(input.policy.code,rule.fieldNumber??'') && !(input.policy.code === 'Z14' && (isZ14DependentField(rule.fieldNumber ?? '') || ['321','323'].includes(rule.fieldNumber ?? ''))) && !isSourceBoundEndUserField(input.policy.code, rule.fieldNumber ?? '')) : rules.filter(rule=>!isReportingPermissionField(input.policy.code,rule.fieldNumber??'') && !isProdatDateEventField(input.policy.code,rule.fieldNumber??'')), input.policy.direction))
   if (input.policy.direction === 'outbound') issues.push(...validateProdatOptionalInstallationPolicy(matrixInput, rules))

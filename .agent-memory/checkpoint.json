@@ -35,7 +35,7 @@
   "branch": "codex/ediel-permission-ack-20260920",
   "base_head_sha": "1892cf48e77d2c6cea99fdbb5d7507d51919956a",
   "active_item": "Approved bounded permission322/324 runtime implementation",
-  "next_action": "Fresh author TDD and finite integration; exact two assertion exceptions; independent completed-runtime review and exact CI afterward",
+  "next_action": "Original author fixes8 integration regressions with old tests unchanged and exact approved customUNA fixture; rerun final full/gates/report, independent completed review",
   "runtime_authorized": true,
   "last_accepted_pr": 352,
   "last_merged_pr": 352,
@@ -81,10 +81,30 @@
     "verification": "fresh fetch diff0",
     "tests": 56,
     "passed": 15,
-    "expected_failed": 41
+    "expected_failed": 41,
+    "qualified_baseline": {
+      "tests": 67,
+      "passed": 16,
+      "failed": 51,
+      "base": "35009150",
+      "initial_receipt_caveat": "Initial56 contained10 new-test responsePlan API errors; originals preserved"
+    }
   },
-  "runtime_remote_parent": "59e902f8301ffa5f2197823499e7ebce7ca0a31a",
-  "runtime_checkpoint": null,
+  "runtime_remote_parent": "0d65582c266d1f968829663eef3c9f27eae07671",
+  "runtime_checkpoint": {
+    "local": "150b22c9a8b6eeccb4b262fa3d5d79d618783e37",
+    "remote": "0d65582c266d1f968829663eef3c9f27eae07671",
+    "tree": "661b32bb3a6ff467e13fa69b08ebbd8b3913623f",
+    "verification": "fresh fetch diff0",
+    "focused_passed": 141,
+    "full_and_gates": "pending",
+    "full_first": {
+      "tests": 4688,
+      "passed": 4679,
+      "failed": 9,
+      "status": "Correction active; no acceptance"
+    }
+  },
   "codec_exception": "sanitizeSegment canonical terminal apostrophe releaseparity only; independent source/architecture amendment, root56db1f3a",
   "runtime_review": "NOT_STARTED",
   "runtime_fix_round": 0,
@@ -100,5 +120,6 @@
     "runtime_unchanged": true,
     "review": "APPROVE"
   },
-  "next_separate_residual": "P-ACK-R1 HIGH prior-flow authority/tenant lookup, independently qualify before production linkage acceptance"
+  "next_separate_residual": "P-ACK-R1 HIGH prior-flow authority/tenant lookup, independently qualify before production linkage acceptance",
+  "additional_assertion_ruling": "c0a84050/10866f53 exact customUNA Z14N own223/status fixture correction only"
 }

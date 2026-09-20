@@ -20,6 +20,12 @@ Commit only owned runtime/tests/new audit/evidence; root owns plan/memory/public
 
 ## Global constraints
 
+#### Task2 exact parser-fixture ruling
+
+Root correction: the earlier c0a84050 DTM*ZZZ/UNT8 instruction was erroneous (DTMZZZ is206 timezone), caught by author before any fixture edit and superseded by CCI/CAV223/UNT9 below. No source authority came from that mistaken instruction.
+
+Root2026-09-20 inspected __tests__/ediel-canonical-inbound-parser-v2.test.ts CUSTOM_UNA_PRODAT_Z14N and test86–97. The fixture has header-level Z23/A75, no own223, yet asserts valid/high Z14N. Approved P73/123 requires own223=Z96 forN and322=A13/A76; status cannot supply subtype. Root authorizes ONLY this fixture to retain customUNA/identifiers/parser purpose while moving Z23/CAV into its ownLIN, adding own CCI**Z13!CAV*Z96! for223, changing A75→A76, and updating UNT7→9. Update its facts assertion to Z23/A76 and strengthen own223 Z13/Z96 observation; keep Z14N/permission_rejected/valid/high expectations. Retain/add a separate new regression that the original status-only/no223 shape cannot createN authority. Do not treat this partial parser fixture as complete source-valid wire acceptance. No other old assertions/fixtures authorized. Preserve full-run4679/4688 failure receipt; partial-policy-owner and metadata-only missing-scalar failures are implementation regressions and must be fixed with old assertions unchanged.
+
 #### Task2 amendment — registry-only derivative missing258 guard
 
 Root authorization2026-09-20 after independent SOURCE/SPEC+ARCHITECTURE APPROVE in .agent-memory/permission-ack-register-amendment-review.md: allow the exact narrow registry-side causal exclusion described there. Incoming PRODAT, selected wire message with unique ownBGM Z14/Z15/Z18, entirely omitted C829 in every selected LIN, exact PRODAT_REGISTER_STRUCTURE_INVALID typed258/missing tied by physical line to structured per_object_register_sequence_invalid for equal209/agency siblings. Cachedcode/scenario/laterUNH cannot establish authority; do not use description regex or broad field258 filtering. Use existing reader/grouping output unchanged. Explicit empty C829 is present/malformed and retains hold, as do global314,invalid209,other register/readings and all gas/death/meter failures. No shared grouping/parser/fieldMatrix/register validator/canonical258/outgoing/source change.

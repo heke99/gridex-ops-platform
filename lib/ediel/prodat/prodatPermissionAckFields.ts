@@ -44,7 +44,10 @@ export function evaluateIncomingProdatPermissionAckFields(input:PermissionInput)
     const supplied=values.filter(v=>Boolean(v.parts[0]?.trim()))
     const allowed=field==='324'?['B77','B78','B79','B80','E37']:code==='Z15'?['A74','A75']:reason==='Z96'?['A13','A76']:['S17','S18'].includes(reason??'')?['A74']:['A74','A75','A76','A13']
     const invalid=supplied.filter(v=>!allowed.includes(v.parts[0]))
-    const kind=invalid.length?'invalid':!supplied.length&&!ambiguous?'missing':null
+    // Even an ambiguous placement cannot supply a primary scalar from unused
+    // metadata. Keep this independently provable41 beside the internal finding.
+    const anyOwnScalar=pairs.some(t=>{const next=scope[scope.indexOf(t)+1];return next?.tag==='CAV'&&Boolean(segmentComposite(next,1,una)[0]?.trim())})
+    const kind=invalid.length?'invalid':!supplied.length&&(!ambiguous||!anyOwnScalar)?'missing':null
     if(kind)issues.push({severity:'error',blocking:true,code:`PRODAT_PERMISSION_${field}_${kind.toUpperCase()}`,title:`Tillståndsfält ${field}`,description:`P26.A s.21/73/75/123: ${field} ${kind}`,fieldPath:`SG8[${group.lineIndex}]/CCI++${qualifier}/CAV`,prodatDiagnostic:prodatFieldDiagnostic(field,kind,{...input,code},scope.map(t=>t.raw),sourceRule,group.lineIndex,'object',kind==='invalid'?invalid.flatMap(v=>prodatComponentEvidence(v.cav!.raw,'CAV/C889/7111',v.parts,[0])):undefined)})
     if(!ambiguous&&supplied.length===1&&!invalid.length){if(field==='322')object.status=supplied[0].parts[0];else object.endReason=supplied[0].parts[0]}
    }
