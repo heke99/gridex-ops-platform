@@ -183,7 +183,7 @@
         122
       ],
       "trueOutcome": "own E34 intrinsically R/Z41",
-      "falseOutcome": "other valid subtype or eligible independent nondeath X",
+      "falseOutcome": "valid B/D/F/G X; own E/E34 remains R without local death assessment",
       "unknownOutcome": "outgoing unresolved blocks; incoming U absence not sender defect",
       "owner": "lib/ediel/rulebook/prodatDeathStatusPolicy.ts",
       "physicalIdentity": "SG8/SG14 CCI Z17 CAV/C889/7111; own first object/agency/LI/event or Z09E process",
