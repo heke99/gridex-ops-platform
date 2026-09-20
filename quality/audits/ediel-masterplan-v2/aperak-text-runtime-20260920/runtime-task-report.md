@@ -236,3 +236,28 @@ Required gates (each redirected to its fresh `final-<gate>.log`):
 - `git diff --check`: exit0; log SHA256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
 
 Fix evidence manifest SHA256: `497f988eaa63794a1ad19e8e700df2a4518e5a69222ed4873bb5e5f0c5e50146`.
+
+
+## CI archive packaging correction (2026-09-20)
+
+The R1 runtime received independent TASK/SPEC, QUALITY and WHOLE-BRANCH approval with fresh14/14 reviewer probes. Exact published head5bd0e0607ee1f9f113af058d95a1c3c0cfd5d129 subsequently failed OPSquality job106064154601/run35505371794 because two archived replay copies matched the existing `quality/**/*.test.ts` discovery pattern. Every one of59 individual assertions passed, but both archive `afterAll` writers attempted absent author scratch paths and produced ENOENT, failing two of four suites. The saved exact CI receipt was inspected as RED evidence; the old writers were not rerun and no original observations were overwritten.
+
+Only archive packaging changes: `complete-controls.test.ts` becomes `complete-controls.test.ts.txt`, `related-owner.test.ts` becomes `related-owner.test.ts.txt`, and `vitest-with-setup.config.mjs` becomes `vitest-with-setup.config.mjs.txt`, all under `aperak-text-runtime-fix1-20260920`. Every relocated file is byte-identical to reviewed59113128, including all assertions and historical output paths. These are source archives; a deliberate future replay must copy them into a separate temporary test workspace and change its output/config paths there, preserving the archives. Runtime code, all28 durable structural regressions and every existing `__tests__` file remain unchanged, as do quality discovery, workflows, loaders and gates. No absent CI scratch path was created and no failure was suppressed.
+
+The exact command `npx vitest run --config quality/vitest.config.ts` now exits0:45/45 tests in the two intended quality suites. All three application/tests/scripts typechecks and lint pass, plus working-tree diff check and runtime/tests/config/workflow/scripts equality against59113128. No optional full application rerun: reviewed runtime90154eec and its4567/4567 final full receipt remain applicable to unchanged code/tests; root owns new exact-candidate CI. Lint reports0 errors/100 existing warnings; archival config relocation removes its extra anonymous-export warning.
+
+Historical manifests and logs are preserved verbatim. Their old archive paths describe the pre-relocation snapshot; they are not misrepresented as still existing. `../aperak-text-packaging-20260920/archive-relocations.json` maps each old/current path and identical hash. `current-manifest.json` provides current paths/hashes, current report-prefix proof and verification receipts. `ci-failure-provenance.json` hashes the actual root-saved connector-decoded CI log (including its saved trailing newline) and a durable exact-lines775–849 excerpt; it does not claim the saved bytes equal the original remote transport.
+
+R1-N1 provenance clarification: the earlier116/116 immutable check was a pre-append snapshot. In the final R1 tree,115 complete files retained their hashes, while the tracked task report had an authorized appendix. Its original13,946-byte prefix remains exact (SHA256449899276903ebb7dfabe15816d3efa359869bb374c9ccd3fa6f69344b0365e0); the prior25,031-byte R1 report is also retained as the exact prefix of this packaging append. Current verification therefore states115 unchanged files plus one exact preserved report prefix, not116 unchanged whole files. Historical evidence was not rewritten to hide that distinction. Separate raw-log blank EOF findings remain nonblocking and openly recorded; a clean working-tree check is not described as a clean full-branch raw-log delta.
+
+Activated guidance remains receiving-code-review/systematic-debugging/verification-before-completion, within the already authorized implementation; no new design, runtime work, delegation, deployment or database action. Root owns packaging review, publication, fresh CI and eventual release/main verification.
+
+### Packaging verification commands and receipts
+
+- `npx vitest run --config quality/vitest.config.ts`: exit0,45/45 tests in2 files; log SHA256 `c8b6f61dcf7b94183ccbdd256e608f72044e5ca9405afa189b1d4eecf9eea5d7`.
+- `npm run typecheck`: exit0; log SHA256 `1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76`.
+- `npm run typecheck:tests`: exit0; log SHA256 `47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602`.
+- `npm run typecheck:scripts`: exit0; log SHA256 `1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae`.
+- `npm run lint`: exit0; log SHA256 `047da54a7fb45f15e99da1782ae17fdf279cd42af1d8fa504bdd3fdb9c3b066b`.
+- `git diff --check`: exit0; log SHA256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+- `git diff --exit-code 59113128 -- lib __tests__ quality/vitest.config.ts .github/workflows scripts`: exit0; log SHA256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.

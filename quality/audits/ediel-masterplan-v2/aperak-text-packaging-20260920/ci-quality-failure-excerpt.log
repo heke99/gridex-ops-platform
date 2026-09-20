@@ -1,0 +1,75 @@
+2026-09-20T10:34:47.5499796Z ##[group]Run npx vitest run --config quality/vitest.config.ts
+2026-09-20T10:34:47.5500379Z [36;1mnpx vitest run --config quality/vitest.config.ts[0m
+2026-09-20T10:34:47.5537507Z shell: /usr/bin/bash -e {0}
+2026-09-20T10:34:47.5537806Z env:
+2026-09-20T10:34:47.5538034Z   NODE_OPTIONS: --max-old-space-size=4096
+2026-09-20T10:34:47.5538371Z ##[endgroup]
+2026-09-20T10:34:48.2301761Z 
+2026-09-20T10:34:48.2306584Z [1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/home/runner/work/gridex-ops-platform/gridex-ops-platform[39m
+2026-09-20T10:34:48.2307373Z 
+2026-09-20T10:34:49.2141776Z  [32m✓[39m quality/test_regression.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 96[2mms[22m[39m
+2026-09-20T10:34:49.8182469Z  [32m✓[39m quality/test_functional.test.ts [2m([22m[2m31 tests[22m[2m)[22m[32m 135[2mms[22m[39m
+2026-09-20T10:34:50.2551553Z  [31m❯[39m quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/related-owner.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 39[2mms[22m[39m
+2026-09-20T10:34:50.2553389Z    [32m✓[39m death owner adjacent CAV control[32m 7[2mms[22m[39m
+2026-09-20T10:34:50.2555633Z    [32m✓[39m death owner adjacent CAV fault retains all candidates[32m 26[2mms[22m[39m
+2026-09-20T10:34:50.4268687Z  [31m❯[39m quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/complete-controls.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 199[2mms[22m[39m
+2026-09-20T10:34:50.4270386Z    [32m✓[39m complete Z10 213 control :+?'[32m 61[2mms[22m[39m
+2026-09-20T10:34:50.4271472Z    [32m✓[39m complete Z10 213 extra element :+?'[32m 16[2mms[22m[39m
+2026-09-20T10:34:50.4272546Z    [32m✓[39m complete Z10 214 control :+?'[32m 14[2mms[22m[39m
+2026-09-20T10:34:50.4274037Z    [32m✓[39m complete Z10 214 extra element :+?'[32m 13[2mms[22m[39m
+2026-09-20T10:34:50.4275175Z    [32m✓[39m complete Z10 213 control *;!~[32m 11[2mms[22m[39m
+2026-09-20T10:34:50.4275809Z    [32m✓[39m complete Z10 213 extra element *;!~[32m 11[2mms[22m[39m
+2026-09-20T10:34:50.4276383Z    [32m✓[39m complete Z10 214 control *;!~[32m 12[2mms[22m[39m
+2026-09-20T10:34:50.4276900Z    [32m✓[39m complete Z10 214 extra element *;!~[32m 11[2mms[22m[39m
+2026-09-20T10:34:50.4277794Z    [32m✓[39m complete Z10 213 control ^|!%[32m 10[2mms[22m[39m
+2026-09-20T10:34:50.4278314Z    [32m✓[39m complete Z10 213 extra element ^|!%[32m 11[2mms[22m[39m
+2026-09-20T10:34:50.4278847Z    [32m✓[39m complete Z10 214 control ^|!%[32m 8[2mms[22m[39m
+2026-09-20T10:34:50.4279362Z    [32m✓[39m complete Z10 214 extra element ^|!%[32m 9[2mms[22m[39m
+2026-09-20T10:34:50.4298385Z 
+2026-09-20T10:34:50.4299162Z [31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Suites 2 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+2026-09-20T10:34:50.4299689Z 
+2026-09-20T10:34:50.4305273Z [41m[1m FAIL [22m[49m quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/complete-controls.test.ts[2m [ quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/complete-controls.test.ts ][22m
+2026-09-20T10:34:50.4311046Z [31m[1mError[22m: ENOENT: no such file or directory, open '/workspace/scratch/2a201d6d5897/aperak-text-runtime-fix1-20260920/complete-observations.json'[39m
+2026-09-20T10:34:50.4314116Z [36m [2m❯[22m quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/complete-controls.test.ts:[2m9:14[22m[39m
+2026-09-20T10:34:50.4342955Z     [90m  7|[39m import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifa…
+2026-09-20T10:34:50.4344950Z     [90m  8|[39m [35mconst[39m observations[33m:[39munknown[][33m=[39m[]
+2026-09-20T10:34:50.4346690Z     [90m  9|[39m afterAll(()=>writeFileSync('/workspace/scratch/2a201d6d5897/aperak-tex…
+2026-09-20T10:34:50.4347960Z     [90m   |[39m              [31m^[39m
+2026-09-20T10:34:50.4349222Z     [90m 10|[39m for(const a of alphabets)for(const field of ['213','214'])for(const in…
+2026-09-20T10:34:50.4351118Z     [90m 11|[39m  const extra:Parts[]=field==='213'?[['QTY',['31','100','KWH'],...(inva…
+2026-09-20T10:34:50.4352028Z 
+2026-09-20T10:34:50.4353074Z [31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯[22m[39m
+2026-09-20T10:34:50.4353475Z 
+2026-09-20T10:34:50.4355784Z [41m[1m FAIL [22m[49m quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/related-owner.test.ts[2m [ quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/related-owner.test.ts ][22m
+2026-09-20T10:34:50.4358736Z [31m[1mError[22m: ENOENT: no such file or directory, open '/workspace/scratch/2a201d6d5897/aperak-text-runtime-fix1-20260920/related-owner-observations.json'[39m
+2026-09-20T10:34:50.4360963Z [36m [2m❯[22m quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/related-owner.test.ts:[2m10:14[22m[39m
+2026-09-20T10:34:50.4362483Z     [90m  8|[39m [35mimport[39m {source} [35mfrom[39m [32m'@/__tests__/fixtures/prodat-identity'[39m
+2026-09-20T10:34:50.4363168Z     [90m  9|[39m [35mconst[39m observations[33m:[39munknown[][33m=[39m[]
+2026-09-20T10:34:50.4364210Z     [90m 10|[39m afterAll(()=>writeFileSync('/workspace/scratch/2a201d6d5897/aperak-tex…
+2026-09-20T10:34:50.4365138Z     [90m   |[39m              [31m^[39m
+2026-09-20T10:34:50.4366077Z     [90m 11|[39m for(const extra of [false,true])it(`death owner adjacent CAV ${extra?'…
+2026-09-20T10:34:50.4367014Z     [90m 12|[39m  const status:Parts[]=[['CCI','','Z17'],['CAV','Z41'],...(extra?[['CAV…
+2026-09-20T10:34:50.4367381Z 
+2026-09-20T10:34:50.4367782Z [31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯[22m[39m
+2026-09-20T10:34:50.4368136Z 
+2026-09-20T10:34:50.4368166Z 
+2026-09-20T10:34:50.4368653Z [2m Test Files [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m2 passed[39m[22m[90m (4)[39m
+2026-09-20T10:34:50.4369284Z [2m      Tests [22m [1m[32m59 passed[39m[22m[90m (59)[39m
+2026-09-20T10:34:50.4369704Z [2m   Start at [22m 10:34:48
+2026-09-20T10:34:50.4370850Z [2m   Duration [22m 2.19s[2m (transform 2.84s, setup 70ms, import 4.30s, tests 469ms, environment 1ms)[22m
+2026-09-20T10:34:50.4371523Z 
+2026-09-20T10:34:50.4389648Z 
+2026-09-20T10:34:50.4407635Z ##[error]Error: ENOENT: no such file or directory, open '/workspace/scratch/2a201d6d5897/aperak-text-runtime-fix1-20260920/complete-observations.json'
+ ❯ quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/complete-controls.test.ts:9:14
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { errno: -2, code: 'ENOENT', syscall: 'open', path: '/workspace/scratch/2a201d6d5897/aperak-text-runtime-fix1-20260920/complete-observations.json' }
+
+2026-09-20T10:34:50.4410380Z 
+2026-09-20T10:34:50.4414694Z ##[error]Error: ENOENT: no such file or directory, open '/workspace/scratch/2a201d6d5897/aperak-text-runtime-fix1-20260920/related-owner-observations.json'
+ ❯ quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/related-owner.test.ts:10:14
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { errno: -2, code: 'ENOENT', syscall: 'open', path: '/workspace/scratch/2a201d6d5897/aperak-text-runtime-fix1-20260920/related-owner-observations.json' }
+
+2026-09-20T10:34:50.4855029Z ##[error]Process completed with exit code 1.

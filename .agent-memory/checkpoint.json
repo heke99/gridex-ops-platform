@@ -34,8 +34,8 @@
   "status": "IN_PROGRESS",
   "branch": "codex/ediel-aperak-text-20260920",
   "base_head_sha": "b4f00ae37937502f2678738bf076c0ba8de9696b",
-  "active_item": "PR352 originalauthor correction of structural failure text evidence",
-  "next_action": "Originalauthor coherentfixwave, copied revieweroracles/coveringtests/finalgates, scopedrereview and newexactCI",
+  "active_item": "PR352 runtime approved; CI artifact-packaging correction",
+  "next_action": "Archive copiedprobes as non-test byteidentical text, exactqualitysuite, narrowreview/newCI",
   "runtime_authorized": true,
   "last_accepted_pr": 351,
   "last_merged_pr": 351,
@@ -81,19 +81,32 @@
     "expected_failed": 8,
     "passed": 3
   },
-  "runtime_remote_parent": "b6474650caca4c034f280f708ef60b3b903171eb",
+  "runtime_remote_parent": "5bd0e0607ee1f9f113af058d95a1c3c0cfd5d129",
   "runtime_checkpoint": {
-    "local": "9aad6a4f9a384153d34bfff2f6d558aebe5068d4",
-    "remote": "b6474650caca4c034f280f708ef60b3b903171eb",
-    "tree": "1c3c00fdfbd743e9b01aabe39449f42ef709e4e6",
+    "local": "591131280604a569d26a88fca5dc29792c082c8f",
+    "remote": "5bd0e0607ee1f9f113af058d95a1c3c0cfd5d129",
+    "tree": "12fec60f8e166af5b6e0ff7ac5850d35f8c3b016",
     "verification": "freshfetchdiff0",
-    "full_passed": 4539,
-    "files": 302,
-    "focused_passed": 485,
+    "full_passed": 4567,
+    "files": 303,
+    "covering_passed": 731,
+    "reviewer_passed": 14,
     "strip_only_passed": 818,
     "gates_passed": 13
   },
   "codec_exception": "sanitizeSegment canonical terminal apostrophe releaseparity only; independent source/architecture amendment, root56db1f3a",
-  "runtime_review": "REQUEST_CHANGES R-A905-1",
-  "runtime_fix_round": 1
+  "runtime_review": "APPROVE R1 allverdicts",
+  "runtime_fix_round": 1,
+  "runtime_ci_runs": [
+    35505371794,
+    35505371809,
+    35505371838,
+    35505371840
+  ],
+  "ci_blocker": {
+    "run": 35505371794,
+    "job": 106064154601,
+    "reason": "Archived quality test copies discovered and afterAll absolute scratch ENOENT",
+    "runtime_change_required": false
+  }
 }
