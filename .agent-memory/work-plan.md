@@ -1,10 +1,11 @@
-# Work plan — accepted D ledger to remaining F3
+# Work plan — approved F3 sequence
 
-1. DONE: GAS240 Task3 independent runtime review, exact-candidate CI, PR356 merge and actual-main73/73 plus allOPS. Runtime922a660; preserve its evidence and do not repeat unchanged implementation.
-2. DONE: final historical-ledger comparison. Independent comment5751354872 accepts all twelve remaining cells: numeric D **110/110 accepted**, parent occurrences **10/10 accepted**. This is bounded protocol acceptance, not production certification.
-3. IN_PROGRESS: PR357 publication. Correct inconsistent active handoffs identified in5751370281, preserve old receipts, obtain independent exact-head re-review and ordinary CI, merge with head protection, then inspect actual-main gates.
-4. NOT_STARTED: reconcile the complete F3 criterion against frozen masterplan sections18/19 and Annex D. Map actual owners/consumers, known independent oracles and executed evidence; separate satisfied, unverified and confirmed-defect outcomes. Read-only preparation is permitted during publication; runtime edits are not.
-5. NOT_STARTED: for each confirmed residual, prepare the smallest source-backed implementation batch with opposing controls, independent review, exact CI and main verification. Do not invent producers, roles or defects merely to advance a counter.
-6. NOT_STARTED: after F3 adjudication, scope the next unsatisfied masterplan criterion from current evidence. Later phases and paused PR310 dependencies are not automatically complete.
+1. DONE: PR356 runtime review/CI/merge/main acceptance; final historical D decision5751354872 gives110/110+10/10.
+2. DONE: PR357 consistent acceptance publication; reviewedc491c45f, merged5e3cb079, actual-main73/73 and allOPS, root5751554333.
+3. DONE: next F3 plan saved atf3dcf649 and independently approved in four plan categories by5751554605, with execution gates retained.
+4. IN_PROGRESS: TaskA E011/ENV-04 original T24.A source/hash/page proof and complete consumer/monitoring trace, including separate PRODAT serializer; independent TaskA source/design/oracle approval.
+5. NOT_STARTED: meaningful durable RED, finite canonical ACK-decision→UNB0031 propagation, opposing CONTRL/0035 and real-consumer controls; final reviews, exact CI, guarded merge and actual-main verification.
+6. NOT_STARTED: remaining F3 criterion evidence reconciliation per approved plan F3C-02/04/05/06/07. Create only concrete source-backed residual batches; then independent wholeF3 adjudication.
+7. NOT_STARTED: remaining applicable masterplan phases, each with current code/source/evidence and its own acceptance. Do not assume completion from D counts or greenCI.
 
-Only step3 is active. PR310 remains paused at e961135199f292b8210884f07de3b616a670161a. No source/schema/workflow/threshold rewrites, live mutations, provider calls or role/GAS-guide activation. Overall progress requires an evidence-backed denominator; a conversational estimate is not a release metric.
+Only TaskA is active. Full approved plan: quality/audits/ediel-masterplan-v2/f3-phase-closure-plan-20260920.md. PR310 stays paused and untouched. No source/schema/workflow/threshold weakening or live/role/producer activation. Overall progress needs a justified denominator, not a conversational estimate.

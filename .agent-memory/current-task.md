@@ -1,11 +1,11 @@
-# Active task — finish PR357 acceptance publication
+# Active task — F3 TaskA / E011 source and consumer qualification
 
-Status: IN_PROGRESS. Numeric D **110/110 accepted** and parents **10/10 accepted** by independent final review5751354872. Do not redo the twelve-cell adjudication or accepted GAS240 implementation.
+Status: IN_PROGRESS. PR357 publication, independent review, guarded merge and actual-main73/73 plus allOPS are DONE. D110/110 and parents10/10 are DONE. Do not redo either.
 
-One active subtask: close documentation-consistency finding5751370281 in PR357. Confirm every active handoff uses the final acceptance, while historical receipts are explicitly archived. Obtain independent re-review of the exact amended head, inspect ordinary CI on that head, then perform a guarded merge and verify actual-main results. Do not transfer the parent runtime certificate to the new documentation commit.
+Read quality/audits/ediel-masterplan-v2/f3-phase-closure-plan-20260920.md (reviewed atf3dcf649) and f3-phase-closure-plan-review.md. Independent plan review5751554605 gave allfourPASS and retained execution entry gates.
 
-Next queued task, after publication: source/evidence reconciliation of the full F3 row in MASTERMASTERPLAN_v2 section18 and its section19 acceptance criteria. Map74 fields, completed110 D and10 parent occurrences, register overlays, UNB0031, CCI/CAV, PAP/UAP/CONTRL/ERR, guide-before-function and old reproductions to actual owners, consumers, independent oracles and executed evidence. Distinguish satisfied criteria, specific unverified criteria and confirmed defects. Green CI or the D counter alone does not close F3.
+TaskA: obtain and inspect applicable full T24.A revision6 sections2.1/4.2 with actual hash/page evidence; map source applicability and exceptions to the existing canonicalAckEngine/facade, shared envelope and every separate PRODAT serializer path, final preflight and expectation/monitoring consumers. Deliver the plan's source/consumer/oracle record and get its independent TaskA approval before new runtime edits. The source manifest's old hash is not fresh proof. Confirmed static omission5751514908 is not an executed RED test.
 
-Use the current implementation and accepted PR350–356 corrections, not stale pre-fix findings. Do not invent optional producers or live roles to satisfy protocol counts. Any real residual requires a bounded source-backed plan and independent review before runtime edits; only a material suspected defect calls for a narrow opposing-control reproduction.
+Correct rule locator: ENV-04/AT-ENV-04=0031; ENV-05/AT-ENV-05=0035. Do not infer0031 from BGM/AB or add a duplicate family matrix. Do not change incoming rejection semantics without source support. Preserve CONTRL no-loop, test/prod, references, counters and escaping. Meaningful durable RED through real qualified builders precedes implementation; use the approved plan's exact gate order.
 
-PR310 remains OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a. No writes/imports/restarts of that PR, no live DB/provider/market activity or role/deployment/settings changes.
+FullF3 remains open beyond the D counter. Other criteria stay queued for evidence reconciliation, not assumed bugs. PR310 stays paused at e9611351, no writes/imports/restarts. No live DB/provider/market/role/settings/explicit deployment work. No new runtime authorization is recorded yet.

@@ -1,19 +1,22 @@
-# Verification matrix — D acceptance and separate publication
+# Verification matrix — actual main and next F3 plan
 
-Numeric D **110/110 accepted**; parent occurrences **10/10 accepted**.
-
-| Evidence | Exact binding | Result and scope |
+| Scope | Exact evidence | Result |
 |---|---|---|
-| Independent runtime review | PR356 comments5751116589/5751166277, head92cbc423332e8b2203f65bddc6fcba1390a65493 | Four verdicts PASS; historical accepted runtime |
-| PR356 ordinary CI | 35523069844/35523069841/35523069828/35523069893 | SUCCESS; Node22.23.2 coverage4968/4968 in313files |
-| Actual runtime merge | 922a66003abe2f2622a13ed58fd24e57ac95ef5f | Tree882156165f6f83e33f95e4a7393b3ad2ff458366 matches reviewed candidate |
-| PR356 main full | 35523710967/job106112104489 | 73/73,0failed; historical runtime only |
-| PR356 main OPS | 35523710964/jobs106112104279/433/445 | All SUCCESS; not PR310 native/schema approval |
-| Final historical ledger | PR356 comment5751354872 | All twelve ACCEPT;110/110 numeric,10/10 parents |
-| PR357 consistency finding | comment5751370281, initial head53b4011c | Confirmed stale active handoffs; addressed by this amendment |
-| PR357 amended head | Fetch current PR/head/CI | Independent re-review and exact-head CI PENDING; no merge claimed |
-| Preserved historical receipt | archive/pr357-53b4011c/gas-identity-acceptance-20260920.md/.json | Original Git blobs preserved, including past pending disposition and detailed log/artifact metadata |
-| Full F3/masterplan | Criterion-level reconciliation not completed | NOT_COMPLETE; no percent or live approval inferred |
-| PR310 | e961135199f292b8210884f07de3b616a670161a | OPEN/DRAFT/PAUSED, excluded |
+| Historical D acceptance | Final independent5751354872 |110/110 numeric+10/10parents ACCEPT |
+| PR357 correction review |5751469000 atc491c45f |Documentation review PASS |
+| PR357 ordinary CI |35526367541/35526367525/35526367520 |All applicable SUCCESS before merge |
+| PR357 actual merge |5e3cb079cf2901be42964198d79b2ceab755f28f |Treeb1f7c9ff910488c57242e171f501b033e3e103b5 matches reviewedhead |
+| Actual-main full |35526699955/job106120005646, checkedout5e3cb079 |73/73,0failed,Node22.23.2 at2026-09-20T17:51:09.0886197Z |
+| Actual-main coverage |106120005755 |SUCCESS; no new detailed count inferred |
+| Actual-main OPS |35526699936/jobs106120005429/5506/5536 |AllSUCCESS; identifiers in JSON receipt are full |
+| Actual-main Ediel/browser |35526699928/35526699997 |SUCCESS |
+| Automatic Vercel workflow |35526700002/job106120005867 |Actual create/wait deployment SKIPPED; no deployment receipt |
+| Main root acceptance |5751554333 |PR357 publication ACCEPTED |
+| Next F3 plan |f3dcf649, independent5751554605 |Four plan verdicts PASS; execution gates retained |
+| E011/ENV-04 |Static review5751514908 |Confirmed static omission; runtime RED/fix not completed |
+| Original T24.A source gate |Manifest only, partial excerpts |Fresh full hash/page inspection NOT_COMPLETE |
+| Complete consumer/design gate |Shared route inspected; all routes still required |TaskA NOT_COMPLETE |
+| Full F3/masterplan |Criterion reconciliation still open |NOT_COMPLETE |
+| PR310 |e961135199f292b8210884f07de3b616a670161a |OPEN/DRAFT/PAUSED; untouched |
 
-No new local repository execution, original-PDF reinspection, independently recomputed historical artifact hash, production operation or live capability is claimed. The historical Vercel workflow skipped actual deployment steps. Archived pending statuses describe their earlier checkpoint only.
+Detailed actual-main receipt: pr357-main-acceptance-20260920.json. Historical artifact upload digest was read, not independently rehashed. No new local repository tests, originalPDF inspection or live operation claimed. New branch checkpoint is not certified by parent5e3cb079 CI.
