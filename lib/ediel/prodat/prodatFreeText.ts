@@ -2,7 +2,7 @@ import { segmentComposite, segmentElementCount, tokenizeEdifact, type EdifactTok
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import { PRODAT_26A_FIELD_MATRIX, canonicalProdat26AFieldRules } from './prodat26AFieldMatrix'
 import { prodatRegisterGroups, prodatRegisterMessageSegments } from './prodatRegisterGroups'
-import type { ProdatRegisterSegment } from './prodatRegisterFields'
+import { prodatRegisterTokens, type ProdatRegisterSegment } from './prodatRegisterFields'
 import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
 
 export type ProdatFreeTextField = '301' | '303'
@@ -23,11 +23,20 @@ export function prodatFreeTextField(fieldNumberOrKey: string): ProdatFreeTextFie
   return field?.fieldNumber === '301' || field?.fieldNumber === '303' ? field.fieldNumber : null
 }
 
+/** Select the first actual PRODAT before applying the existing message/register
+ * owner. Other leading families and later messages are never FTX authority.
+ * Header-free LIN fragments retain the existing scoped-reader behavior. */
+function firstProdatFreeTextMessage(source: readonly ProdatRegisterSegment[], una: EdifactServiceStringAdvice): EdifactTokenizedSegment[] {
+  const tokens = prodatRegisterTokens(source, una)
+  const start = tokens.findIndex(token => token.tag === 'UNH' && segmentComposite(token, 2, una)[0] === 'PRODAT')
+  return prodatRegisterMessageSegments(start < 0 ? tokens : tokens.slice(start), una)
+}
+
 /** P26.A r3 pp44/53: decode C108 once, after splitting released wire structure.
  * Raw segments are preserved independently; incoming business validation does
  * not promote these local construction findings to national APERAK errors. */
 export function readProdatFreeText(source: readonly ProdatRegisterSegment[], una = parseUna(null), code?: string | null): ProdatFreeTextOccurrence[] {
-  const tokens = prodatRegisterMessageSegments(source, una)
+  const tokens = firstProdatFreeTextMessage(source, una)
   const scope = new Map<EdifactTokenizedSegment, { field: ProdatFreeTextField; semantic: boolean }>()
   for (const token of tokens) {
     // FTX301 precedes SG4 NAD and SG8 LIN. A party's data is not header FTX.
@@ -81,10 +90,10 @@ type WireInput = { raw_payload?: string | null; message_family?: string | null; 
 export function prodatFreeTextSendIssues(input: WireInput): EdielRulebookIssue[] {
   if (!input.raw_payload || !/^(?:UNA|UNB|UNH|BGM|LIN|FTX)(?:[^a-zA-Z0-9]|$)/.test(input.raw_payload.trimStart())) return []
   const parsed = tokenizeEdifact(input.raw_payload)
-  const header = parsed.segments.find(token => token.tag === 'UNH')
+  const tokens = firstProdatFreeTextMessage(parsed.segments, parsed.una)
+  const header = tokens.find(token => token.tag === 'UNH')
   const family = header ? segmentComposite(header, 2, parsed.una)[0] : input.message_family
   if (family !== 'PRODAT') return []
-  const tokens = prodatRegisterMessageSegments(parsed.segments, parsed.una)
   const code = segmentComposite(tokens.find(token => token.tag === 'BGM'), 1, parsed.una)[0] || input.message_code || ''
   return validateProdatFreeText({ code, rawSegments: tokens, una: parsed.una })
 }

@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import { raw, line, type Parts } from './fixtures/prodat-register'
+import { raw, line, alphabets, type Parts } from './fixtures/prodat-register'
 import { head } from './fixtures/prodat-identity'
 
 const io = vi.hoisted(() => ({ effects: [] as string[] }))
@@ -41,3 +41,27 @@ for (const text of [false, true]) it(`valid optional FTX=${text} reaches the exi
   expect(io.effects).toEqual(['db'])
   expect(message.raw_payload).toBe(before)
 })
+
+// Review5753067624: leading APERAK must not hide the first PRODAT from the
+// pure pre-I/O hold. This is a single interchange, not concatenated UNAs.
+for (const alphabet of alphabets) for (const label of ['APERAK', 'PRODAT']) {
+  it(`leading APERAK cannot bypass actual SMTP FTX hold ${label}/${alphabet.join('')}`, async () => {
+    const [c, e, , t] = alphabet
+    const prodat = raw([...head(), line('1', '735123456789012345', undefined, '9'), ['FTX', 'ACB', '', '', ['X'.repeat(71)]]], 'Z01', alphabet)
+    const offset = prodat.indexOf(`UNH${e}`)
+    const leading = [
+      `UNH${e}A${e}APERAK${c}D${c}96A${c}UN${c}E2SE6A`, `BGM${e}11${e}ACK${e}9`,
+      `DTM${e}137${c}202609201200${c}203`, `RFF${e}ACW${c}ORIGINAL`, `ERC${e}100`, `UNT${e}6${e}A`,
+    ].join(t) + t
+    const payload = (prodat.slice(0, offset) + leading + prodat.slice(offset)).replace(`UNZ${e}1${e}I${t}`, `UNZ${e}2${e}I${t}`)
+    const message = {
+      id: '00000000-0000-4000-8000-000000000001', company_id: '00000000-0000-4000-8000-000000000002',
+      direction: 'outbound', environment: 'test', message_standard: 'edifact', message_family: label, message_code: 'ERR',
+      receiver_email: 'synthetic@example.invalid', communication_route_id: '00000000-0000-4000-8000-000000000003',
+      raw_payload: payload, parsed_payload: { rulebookAllowInvalidSend: true },
+    } as unknown as EdielMessageRow
+    await expect(sendEdielMessageViaSmtp(message, { actorUserId: '00000000-0000-4000-8000-000000000004' })).rejects.toThrow('PRODAT_FTX_')
+    expect(io.effects).toEqual([])
+    expect(message.raw_payload).toBe(payload)
+  })
+}

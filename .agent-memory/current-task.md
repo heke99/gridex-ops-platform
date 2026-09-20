@@ -1,9 +1,9 @@
-# Active task — PR359 FTX301/303
+# Active task — PR359 FTX301/303 final review
 
-Branch codex/ediel-f3-phase-closure-20260920; candidate parent 19ab3894d2c980122dfb077b208a1eab63546cc2.
+Only active item is PR359 on codex/ediel-f3-phase-closure-20260920. Prior runtime6ce695c4/proof1b4260 passed isolated248/648native,13genuineVitest andalltypechecks. Publication receipt is ftx301-303-publication-proof.json; those are historical, not final-head CI.
 
-Only active item is PR359 FTX301/303. Source5752810321, design/oracle5752868541 and clarification5752898014 are complete. Real native and SMTP RED precede the bounded fix. Candidate is IMPLEMENTED_NOT_VERIFIED: local248/248 and selected648/648 pass; ordinary exact-head CI and independent runtime/tenant/whole-PR review are still required.
+Independent runtime review5753067624 found a valid first-PRODAT selection gap after leading APERAK. New25case real-moduleRED(7pass18fail) is preserved in5c7fc3b4. The bounded reader correction and273/273+648/648localGREEN are documented in quality/audits/ediel-masterplan-v2/f3-ftx-first-message-review-20260921.md. Existing source/D/PR358 work is not restarted.
 
-Read quality/audits/ediel-masterplan-v2/f3-ftx301-303-runtime-evidence-20260921.md, current-task.md and checkpoint.json; fetch actual work branch/main before writes. Preserve published RED and the corrected multi-message fixture. Publish only the pinned tested candidate; check ordinary CI (including actual SMTP and native wrapper), address concrete independent review findings, then guarded merge and fresh main73/OPS. Do not restart old source/D/PR358 work or infer acceptance from local tests.
+NEXT: fetch actual branch/head and ordinary CI; independently review the first-message correction and remaining complete PR findings. Ordinary final-headCI must include18actualSMTPtests, bothnativeharnesses andtypechecks. Prior focused proof does not certify this new revision. Only after final review/CI pass: expected-head guardedmerge, actual-main73/OPS and durableacceptance receipt.
 
-PR358/E011 is already main-accepted at352fd8ee; receipt pr358-main-acceptance-20260920.json and root5752720765. D110/110+10/10 unchanged. FullF3/masterplan NOT_COMPLETE. PR310 remains OPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a; no import/restart/write/merge or liveDB/provider/market/settings/explicit deployment operations.
+PR359 remains IMPLEMENTED_NOT_VERIFIED until those gates pass. Main352fd8ee/PR358 andD110/110+parents10/10 alreadyaccepted. FullF3/masterplanNOT_COMPLETE. PR310 remainsOPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a; noimport/restart/write/merge, no liveDB/provider/market/settings/explicitdeployment.

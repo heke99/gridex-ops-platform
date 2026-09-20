@@ -6,6 +6,7 @@ it('preserves the source-qualified FTX scopes, inbound response and outbound sen
   const result = spawnSync(process.execPath, [
     '--experimental-vm-modules', '--test',
     path.resolve(process.cwd(), 'scripts/test-ediel-prodat-free-text.cjs'),
+    path.resolve(process.cwd(), 'scripts/test-ediel-prodat-free-text-first-message.cjs'),
   ], { cwd: process.cwd(), encoding: 'utf8', timeout: 30_000, maxBuffer: 4 * 1024 * 1024 })
   const report = `${result.stdout ?? ''}\n${result.stderr ?? ''}`
   expect(result.error, report).toBeUndefined()
