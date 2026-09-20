@@ -1,7 +1,9 @@
-# GAS240 and D publication complete — continue with PR358 verification
+# Historical GAS/D acceptance index
 
-GAS240/PR356 runtime and final D110/110+parents10/10 are accepted. PR357 is merged and actual-main accepted at5e3cb079cf2901be42964198d79b2ceab755f28f; see root5751554333 and pr357-main-acceptance-20260920.json. Do not repeat those completed reviews.
+GAS240/PR356 and PR357 retain their original receipts under archive/pr357-53b4011c/ and pr357-main-acceptance-20260920.json.
 
-Active continuation: branch codex/ediel-f3-phase-closure-20260920, existing PR358. Read f3-phase-closure-resume.md and checkpoint.json. Task A was approved5752177628 and the bounded runtime is published3f6f1fc1. Current task is exact-head CI/runtime review, not initial source qualification. PR358 is not yet merged or accepted.
+Only active item is PR359 FTX301/303. Source5752810321, design/oracle5752868541 and clarification5752898014 are complete. Real native and SMTP RED precede the bounded fix. Candidate is IMPLEMENTED_NOT_VERIFIED: local248/248 and selected648/648 pass; ordinary exact-head CI and independent runtime/tenant/whole-PR review are still required.
 
-Full F3/masterplan remain NOT_COMPLETE; no live approval. PR310 remains OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a, excluded from all writes/import/restart/merge.
+Use checkpoint.json and f3-phase-closure-resume.md for current PR359 verification, not historical pending snapshots.
+
+PR358/E011 is already main-accepted at352fd8ee; receipt pr358-main-acceptance-20260920.json and root5752720765. D110/110+10/10 unchanged. FullF3/masterplan NOT_COMPLETE. PR310 remains OPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a; no import/restart/write/merge or liveDB/provider/market/settings/explicit deployment operations.

@@ -1,3 +1,4 @@
+import { prodatFreeTextField, prodatFreeTextPresent } from '@/lib/ediel/prodat/prodatFreeText'
 import {prodatComponentEvidence,type ProdatFailureEvidence} from '@/lib/ediel/prodat/prodatFailureEvidence'
 import {prodatFieldDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import { prodatRegisterFieldState } from '@/lib/ediel/prodat/prodatRegisterFields'
@@ -419,6 +420,8 @@ export function fieldRulePresent(rule: RulebookFieldRule, input: FieldMatrixEval
 function fieldRulePresentInScope(rule: RulebookFieldRule, input: FieldMatrixEvaluationInput): boolean {
   const rawSegments = input.rawSegments ?? []
   const applicationReference = input.applicationReference ?? null
+  const freeText = normalize(rule.family) === 'PRODAT' ? prodatFreeTextField(rule.fieldNumber ?? rule.fieldKey) : null
+  if (freeText) return prodatFreeTextPresent(freeText, rawSegments, { una: input.una, code: input.code, forbidden: ['forbidden', 'not_used'].includes(rule.requirement) })
   const register = normalize(rule.family) === 'PRODAT' ? prodatRegisterFieldState(rule.fieldNumber ?? rule.fieldKey, rawSegments, input.una) : null
   if (register) return ['forbidden','not_used'].includes(rule.requirement) ? register.present : Boolean(register.value) && !register.malformed
   const date = normalize(rule.family) === 'PRODAT' ? prodatDateField(rule.fieldNumber ?? rule.fieldKey) : null

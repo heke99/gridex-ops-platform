@@ -1,9 +1,9 @@
-# Completed work — D publication and Task A accepted
+# Verified progress — PR359 continuation
 
-D110/110 numeric and10/10 parent occurrences remain accepted5751354872. PR356 runtime922a660 and PR357 actual-main5e3cb079 retain their separate historical receipts. PR357 passed73/73 and OPS on its actual merge; see pr357-main-acceptance-20260920.json.
+Retained: source5752810321, design/oracle5752868541, clarification5752898014; published FTX/first-PRODAT revision9e286f86. Independent5753117905 passed TASK/SPEC,QUALITY,TENANT-BOUNDARY at9e but explicitly withheld WHOLE-PR pendingCI. This is historical review evidence, not approval of the format correction.
 
-The next F3 planf3dcf649 was approved5751554605. Task A's corrected source/design/oracle record9d87d288 was independently approved5752177628, resolving the ACK-draft monitoring and0035 omissions; the incorrect missing-owner finding was disproved. Official source-byte evidence5751649097 is retained, not claimed as a new retrieval here.
+Observed: ordinaryOPS35541596324/job106160145134 actually ran4988 tests:4986PASS,2FAIL in unchanged list-routing regressions. Traced both failures to the FTX dispatch expression accepting arbitrary punctuation. Published22 additional direct/preflight/actual-SMTP tests atb9dcfd12. Supporting isolated Node expression experiment:5 old false positives;18 candidate classifications passed. No repository-suite GREEN is inferred from that experiment.
 
-Earlier actual-module RED is recorded5752201323:42tests,7pass,35fail,0skipped. The bounded implementation3f6f1fc1, including execution amendments5752208557, is published in PR358. This is completed publication, NOT completed runtime/release acceptance. Ordinary current-head CI and independent runtime review remain pending; initial3f6f CI returned action_required.
+The bounded production correction, its final ordinaryCI, independent review, merge and actual-main73/OPS acceptance are not yet entered as completed work. See current-task.md and f3-ftx-format-routing-20260921.md for exact gates. Earlier snapshot remains atb9dcfd12 and archive/pr359-before-runtime/completed-work.md.
 
-Historical source/plan/RED records remain unchanged; active handoffs now identify verification rather than obsolete Task A work. Full F3/masterplan remain NOT_COMPLETE. PR310 remains paused at e9611351; no live DB/provider/market or explicit deployment action.
+Acceptedmain remains352fd8ee/PR358 (pr358-main-acceptance-20260920.json; root5752720765). D110/110+10/10 unchanged. FullF3/masterplanNOT_COMPLETE; PR310OPEN/DRAFT/PAUSED and untouched.

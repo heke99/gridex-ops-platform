@@ -1,19 +1,12 @@
-# Verification matrix — accepted baseline and pending PR358
+# Verification matrix — PR359 format-routing correction
 
-| Scope | Exact evidence | Disposition |
-|---|---|---|
-| Historical D and parents |5751354872|110/110+10/10 ACCEPTED|
-| PR357 actual main |5e3cb079, receipt pr357-main-acceptance-20260920.json, root5751554333|73/73 plus OPS/Ediel/browser/coverage accepted for that merge only|
-| F3 plan |f3dcf649,5751554605|Four plan categories PASS|
-| Original T24.A bytes/pages |Independent5751649097;1,124,807bytes;60pages;SHA256 matches manifest|Prior source retrieval accepted; not a fresh download here|
-| Task A correction |9d87d288,5752177628|SOURCE/DESIGN/ORACLE PASS|
-| Earlier actual-module RED |5752201323 at9d87d288|Recorded42tests:7pass/35fail/0skipped; not rerun by this checkpoint|
-| Execution amendments |5752208557|Bounded ERR process/state-owner amendments approved|
-| Published runtime |3f6f1fc1,tree41a9df13|Implementation exists; release acceptance PENDING|
-| Initial ordinary PR CI |35534161014/35534161016/35534161023/35534161017/35534161024 on3f6f1fc1|action_required; not passing or completed test evidence|
-| Current-head CI/runtime review |Existing PR358|PENDING; no old certificate substitution|
-| Local source recovery this continuation |Artifact10612410686;ZIP6450d3a09bbab778c45801d1b1609ce05bdf0280234f10626c2f90bc3036a974;TARadec7e8d4471fce011b2cb2d352039ef3140e684496e1037392ab4316f84685e|Both digests recomputed;restored tree4bc15bb3 matches9d87 baseline;not the current runtime|
-| Full F3/masterplan |Remaining criterion ledger|NOT_COMPLETE|
-| PR310 |e961135199f292b8210884f07de3b616a670161a|OPEN/DRAFT/PAUSED;excluded|
+- HISTORICAL REVIEW:9e286f86, independent5753117905 TASK/SPEC+QUALITY+TENANT-BOUNDARY PASS; WHOLE-PR waiting. Not final acceptance.
+- OBSERVED RED:9e286f86 ordinaryOPS35541596324/job106160145134 npm test4986PASS/2FAIL/4988; death-status and meter-change format-routing tests reach edifact_dangling_release_character through FTX dispatch. Existing18 SMTP and native wrapper passed in that run.
+- TEST-FIRST PUBLICATION:b9dcfd12da7dcdfa90b20b8a2f994ce57f1d4423 adds22 cases, ordinaryOPS35542420917 started; read terminal result, not inferred.
+- SUPPORTING LOCAL EXPERIMENT ONLY: isolated Node old/new dispatch expression;5 old list false positives,18 candidate classifications PASS. Not an execution of the repository test suite.
+- PENDING: new final-head ordinary npm test (original regression suites unchanged), both native harnesses,18 existing SMTP+22 new cases, all typechecks, fullE2E/coverage and allOPS.
+- PENDING: independent final-head TASK/SPEC,QUALITY,TENANT-BOUNDARY,WHOLE-PR, guarded merge, actual-main73/73+OPS and receipt.
 
-Never count action_required, skipped or pending checks as successful execution. Prior local64+584 counts recorded in the runtime commit message are not fresh current-head ordinary CI evidence. No live operations or source/threshold changes.
+Current evidence: quality/audits/ediel-masterplan-v2/f3-ftx-format-routing-20260921.md. Previous matrix remains in Git atb9dcfd12 and archive/pr359-before-runtime/verification-matrix.md; previous native248/273/648 figures remain historical, not rerun claims.
+
+PR358/main352fd8ee alreadyaccepted. D110/110+10/10 unchanged; fullF3/masterplanNOT_COMPLETE. PR310paused/untouched; no liveoperations.

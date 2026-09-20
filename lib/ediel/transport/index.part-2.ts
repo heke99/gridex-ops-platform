@@ -1,3 +1,4 @@
+import { assertProdatFreeTextSendBoundary } from '@/lib/ediel/prodat/prodatFreeText'
 import {validateEdielMessageRowWithRulebook} from '@/lib/ediel/rulebook/validator'
 import {assertGasApplicabilitySendBoundary,gasApplicabilitySendIssue,gasApplicabilitySendFieldIssues} from '@/lib/ediel/prodat/prodatGasAuthority'
 import {deathStatusSendIssue} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
@@ -323,6 +324,7 @@ export async function sendEdielMessageViaSmtp(
   messageId: string | null
 }> {
   const actorUserId = requireActorUserId(params?.actorUserId)
+  assertProdatFreeTextSendBoundary(message)
   const sourceHolds=[gasApplicabilitySendIssue(message),...gasApplicabilitySendFieldIssues(message),deathStatusSendIssue(message)].filter(Boolean)
   if(sourceHolds.length){
     const messages=sourceHolds.map(i=>`${i!.code}: ${i!.description}`)

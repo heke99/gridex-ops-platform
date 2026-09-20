@@ -1,3 +1,4 @@
+import { assertProdatFreeTextSendBoundary } from '@/lib/ediel/prodat/prodatFreeText'
 import {gasApplicabilitySendIssue} from '@/lib/ediel/prodat/prodatGasAuthority'
 import {assertMeterChangeSendBoundary} from '@/lib/ediel/prodat/prodatMeterChangeAuthority'
 import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
@@ -11,6 +12,7 @@ function objectValue(value: unknown): Record<string, unknown> | null {
 
 export function assertRulebookAllowsSend(message: EdielMessageRow,dateEventContext?:TgtDateEventValidationContext,reportingContext?:ExpectedContext): void {
   if (message.direction !== 'outbound') return
+  assertProdatFreeTextSendBoundary(message)
   if(!gasApplicabilitySendIssue(message))assertMeterChangeSendBoundary(message)
   const parsedPayload = objectValue(message.parsed_payload) ?? {}
 

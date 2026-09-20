@@ -1,0 +1,39 @@
+{
+  "schema": "gridex.ediel.bounded-main-acceptance.v1",
+  "date": "2026-09-20",
+  "repository": "heke99/gridex-ops-platform",
+  "pr": 358,
+  "scope": "E011 / ENV-04 UNB0031 and independently reviewed ACK-monitoring amendments",
+  "status": "VERIFIED",
+  "reviewed_head": "92d31ff6375b90303ab7933fa24db4843c9f9f18",
+  "merge_commit": "352fd8ee9129697b55c1d3796fb99ed04ca0d6f5",
+  "merge_tree": "71342c9704fbaab3117172e7b63f38440a182727",
+  "reviewed_tree_matches_merge": true,
+  "merge_expected_head_guard_used": true,
+  "root_acceptance_comment": 5752720765,
+  "reviews": {"task_a":5752177628,"execution_amendments":5752208557,"runtime":5752570999,"wrapper_finding":4058069931,"wrapper_resolution":4058076533,"final_all_four_pass":5752664226},
+  "final_pr_successful_runs": {"ops":35537287880,"ediel":35537287835,"full":35537287827,"browser":35537287843},
+  "actual_main": {
+    "full": {"run":35537694406,"job":106149566172,"status":"success","total":73,"passed":73,"failed":0,"all_result_rows_exit_zero":true,"junit_tests":73,"junit_failures":0,"finished_at":"2026-09-20T21:14:43.513Z"},
+    "vitest": {"files_passed":314,"files_total":314,"tests_passed":4969,"tests_total":4969,"log":"logs/71-unit-integration-tests.log","log_sha256":"626e849e57e1b07cde485f5ecd824a09bb30a767fc5f7ca4894f809c9ca4d74a"},
+    "coverage": {"run":35537694406,"job":106149566120,"status":"success"},
+    "ops": {"run":35537694345,"jobs":{"clean_migration_replay":106149565685,"verify":106149565753,"quality_release_gates":106149565763},"all_success":true},
+    "ediel": {"run":35537694353,"job":106149565752,"status":"success"},
+    "browser": {"run":35537694441,"job":106149566473,"status":"success"},
+    "vercel": {"run":35537694348,"job":106149566060,"workflow_status":"success","create_deployment":"skipped","wait_for_deployment":"skipped","deployment_receipt_inferred":false}
+  },
+  "full_artifact": {"id":10613434626,"run":35537694406,"bytes":86114,"entries":79,"zip_sha256":"3b9d470328f4dac179f30a447a9c3cba501f6489cbac99bcaa5e10bc657db870","digest_independently_recomputed":true,"report":"gridex-e2e-report.json","report_sha256":"105b99a2bda23aca1e357d314fba700a349aaed749e06d2ad02fe5684570d33a","report_and_junit_inspected":true},
+  "fresh_local_evidence": {
+    "node":"22.16.0",
+    "unb_native":{"tests":64,"passed":64,"failed":0,"skipped":0,"log_sha256":"f258c18169fe8cc6875e7356ba42a349075d50befc1a0dd09d736dbfada980fe"},
+    "same_final_oracles_on_baseline":{"base":"9d87d288ce61116830875ddc7ee348307e91280b","tests":64,"passed":23,"failed":41,"skipped":0,"log_sha256":"b56591d2f3fe1bbf3b87f1645a6b33bdae9ebcab73c189da9254711f316a7cba","distinct_from_original_42_case_red":true},
+    "source_family_regressions":{"tests":672,"passed":672,"failed":0,"skipped":0,"log_sha256":"bec8b8010a81b0e2562cdb38847af953c93748f7675f75c4ede61b7713c98ab7","full_74_field_acceptance":false},
+    "wrapper_report_probe":{"cases":8,"before_correct":3,"after_correct":8,"scope":"Actual wrapper callback with assertion-compatible shim and fake child reports; not a Vitest rerun","after_log_sha256":"9a7c7fb5c658b363b011a35cd350cba1111b706438d1ed293305572200f6000a"},
+    "comment_receipts":[5752578522,4058075155,5752660031]
+  },
+  "exclusions": ["Conditional crawler/staging/load/nightly/deployment steps were not counted as executed", "No full CONTRL grammar or complete F3 acceptance", "No new live provider, database, market or role approval", "No PR310 import, write, restart or merge"],
+  "prior_d_counts":{"accepted_numeric":110,"total_numeric":110,"accepted_parents":10,"total_parents":10,"review":5751354872},
+  "full_F3":"NOT_COMPLETE",
+  "full_masterplan":"NOT_COMPLETE",
+  "paused_pr310":{"head":"e961135199f292b8210884f07de3b616a670161a","state":"OPEN_DRAFT_PAUSED","unchanged":true}
+}

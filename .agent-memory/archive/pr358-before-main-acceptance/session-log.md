@@ -1,0 +1,9 @@
+# Session continuation — recover published PR358 and finish verification
+
+Fetched current GitHub state rather than following stale Task A handoff. PR358 exists with runtime3f6f1fc1db3938ab76185c34d344ae89393efa72/tree41a9df13d3b4cda604616727821567e8c34aa3ab. Main remains accepted5e3cb079. Read corrected Task A verdict5752177628 and earlier meaningful RED record5752201323. Runtime and bounded execution amendments are already published; no recreation or rollback performed.
+
+Initial current-runtime PR workflows35534161014/1016/1023/1017/1024 report action_required with github-actions[bot] as triggering actor; this is not test execution or a code-failure diagnosis. Published a documentation-only active-state correction before the next ordinary CI/review pass. No workflow, rule, threshold, source, schema or runtime changed by this checkpoint.
+
+Container Git fetch failed DNS. Recovered the exact9d87 source via authorized artifact10612410686; independently checked outer ZIP and inner TAR hashes and git write-tree4bc15bb3c380d7372c7647c447602b028a712df3. This is a baseline recovery, not a claim that current runtime has been tested locally. Read AGENTS, memory and relevant execution/review/verification skills. Activated executing-plans, receiving-code-review, systematic-debugging, requesting-code-review, verification-before-completion and branch-completion workflow as applicable. Database/UI/performance/dependency changes are outside this finite verification task.
+
+Prior session log preserved byte-for-byte at archive/pr358-before-verification-3f6f1fc1/session-log.md. Source records and historical receipts remain unchanged. Current task is PR358 exact-head CI/review, then guarded merge/main checks only if passing. D110/110+10/10 unchanged; full F3/masterplan remain open. PR310 stays paused at e9611351. No live DB/provider/market/settings/explicit deployment actions.
