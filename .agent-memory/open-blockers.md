@@ -1,11 +1,11 @@
-# Open gates — PR358 verification
+# Open gates — next F3C-02 qualification
 
-CLOSED: historical D110/110+parents10/10; PR357 acceptance publication/main verification; Task A SOURCE/DESIGN/ORACLE review5752177628. Meaningful earlier RED recorded5752201323; existing bounded runtime implementation is published3f6f1fc1.
+CLOSED: historical D110/110+10/10; PR357 publication; Task A, runtime, zero-test wrapper correction, independent review, ordinary final-head CI, guarded PR358 merge and actual-main acceptance352fd8ee. See pr358-main-acceptance-20260920.json. E011 is not an active blocker anymore.
 
-ACTIVE: exact-head ordinary PR358 CI and independent runtime reviews. The3f6f1fc1 bot-triggered run set returned action_required before testing. This is neither a code-failure diagnosis nor a green result. Do not weaken policies or certify skipped checks. Current-head publication must receive ordinary execution and actual terminal success. E011 is not accepted until review/CI/merge/main gates pass.
+ACTIVE: FTX301/303 original-source inspection, complete scoped consumer/oracle qualification and independent source/design review. Inventory74 IDs and962base-usage cells equal is fact-checked5752706986, not behavioral approval. No current FTX bug is confirmed merely from genericFTX locators.
 
-QUEUED: remaining F3C-02/04/05/06/07 field/register/family-response/control-order/grammar/old-finding evidence reconciliation. Missing phase evidence is not automatically a code defect. Do not reopen accepted350–356 work without a concrete counterexample.
+QUEUED: remaining field/register composition, P/U response criteria, guide-before-function/per-object disposition, fullUNSM/G06 and original-finding reconciliation. Already accepted350–358 fixes are retained unless a concrete new counterexample exists.
 
-DEFERRED: PR310 OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a. Its native/schema/type parity is not approved by unrelated CI; do not import or restart it.
+DEFERRED: PR310 OPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a. No native/schema/type parity promotion, import or restart.
 
-SEPARATE: formal/role/route/live readiness and source-qualified persisted authority. No invented producer or live capability. Full F3/masterplan NOT_COMPLETE; no grounded overall percentage.
+SEPARATE: live/formal/role/route/persisted-authority readiness. Conditional skipped workflows do not certify them. FullF3/masterplan remain NOT_COMPLETE and overall percentage is unmeasured.

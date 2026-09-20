@@ -1,19 +1,27 @@
-# Verification matrix — accepted baseline and pending PR358
+# Verification matrix — accepted PR358 and bounded next inventory
 
-| Scope | Exact evidence | Disposition |
+| Scope | Evidence | Disposition |
 |---|---|---|
-| Historical D and parents |5751354872|110/110+10/10 ACCEPTED|
-| PR357 actual main |5e3cb079, receipt pr357-main-acceptance-20260920.json, root5751554333|73/73 plus OPS/Ediel/browser/coverage accepted for that merge only|
-| F3 plan |f3dcf649,5751554605|Four plan categories PASS|
-| Original T24.A bytes/pages |Independent5751649097;1,124,807bytes;60pages;SHA256 matches manifest|Prior source retrieval accepted; not a fresh download here|
-| Task A correction |9d87d288,5752177628|SOURCE/DESIGN/ORACLE PASS|
-| Earlier actual-module RED |5752201323 at9d87d288|Recorded42tests:7pass/35fail/0skipped; not rerun by this checkpoint|
-| Execution amendments |5752208557|Bounded ERR process/state-owner amendments approved|
-| Published runtime |3f6f1fc1,tree41a9df13|Implementation exists; release acceptance PENDING|
-| Initial ordinary PR CI |35534161014/35534161016/35534161023/35534161017/35534161024 on3f6f1fc1|action_required; not passing or completed test evidence|
-| Current-head CI/runtime review |Existing PR358|PENDING; no old certificate substitution|
-| Local source recovery this continuation |Artifact10612410686;ZIP6450d3a09bbab778c45801d1b1609ce05bdf0280234f10626c2f90bc3036a974;TARadec7e8d4471fce011b2cb2d352039ef3140e684496e1037392ab4316f84685e|Both digests recomputed;restored tree4bc15bb3 matches9d87 baseline;not the current runtime|
-| Full F3/masterplan |Remaining criterion ledger|NOT_COMPLETE|
-| PR310 |e961135199f292b8210884f07de3b616a670161a|OPEN/DRAFT/PAUSED;excluded|
+| D/parents |5751354872|110/110+10/10 accepted|
+| PR357 main |5e3cb079;pr357-main-acceptance-20260920.json|Historical accepted baseline retained|
+| PR358 source/design |5752177628;5752208557|Corrected Task A and bounded amendments approved|
+| Earlier RED |5752201323|42cases:7pass/35fail;original record preserved|
+| Final-oracle baseline recheck |Root5752578522,base9d87|64cases:23pass/41fail;distinct from original RED|
+| Final native UNB |Root4058075155|64/64 pass,0skip on localNode22.16.0|
+| Wrapper report controls |4058069931 fixed92d31ff;resolution4058076533|Before3/8correct,after8/8;actual callback with shim,not a Vitest rerun|
+| Existing source-family regressions |Root5752660031|672/672 pass;not all74-field acceptance|
+| Final independent review |5752664226 at92d31ff|TASK/SPEC,QUALITY,TENANT-BOUNDARY,WHOLE-PR PASS|
+| Final PR CI |OPS35537287880,Ediel35537287835,full35537287827,browser35537287843|All SUCCESS before guarded merge|
+| Actual merged tree |352fd8ee ->71342c9704fbaab3117172e7b63f38440a182727|Exactly equals reviewed final tree|
+| Actual-main full |35537694406/job106149566172;artifact10613434626|73/73,0fail;ZIP digest independently recomputed;report/JUnit inspected|
+| Actual-main unit suite |Artifact log71-unit-integration-tests.log|314files;4969/4969tests passed|
+| Actual-main OPS |35537694345/jobs106149565685,106149565753,106149565763|Replay,verify,quality allSUCCESS|
+| Actual-main Ediel/browser/coverage |35537694353/35537694441/35537694406|Applicable jobs SUCCESS|
+| Deployment/staging/load/nightly |Existing conditional jobs|Skipped steps NOT counted as execution/live approval|
+| Root main acceptance |5752720765;pr358-main-acceptance-20260920.json|Bounded E011 VERIFIED|
+| Next field inventory |Probe/output under field-inventory-20260920;independent5752706986|74IDs/962base-usage equal;NOT behavioral acceptance|
+| Next FTX301/303 |Original-source/scoped consumers/oracle|IN_PROGRESS;no confirmed new defect or runtime approval|
+| Full F3/masterplan |Remaining criteria|NOT_COMPLETE|
+| PR310 |e961135199f292b8210884f07de3b616a670161a|OPEN/DRAFT/PAUSED;unchanged|
 
-Never count action_required, skipped or pending checks as successful execution. Prior local64+584 counts recorded in the runtime commit message are not fresh current-head ordinary CI evidence. No live operations or source/threshold changes.
+Earlier pre-acceptance state remains in Git92d31ff. Main receipt is specific to352fd8ee, not a CI certificate for this later documentation checkpoint. No unsupported total-progress percentage.

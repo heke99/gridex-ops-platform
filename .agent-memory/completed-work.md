@@ -1,9 +1,9 @@
-# Completed work — D publication and Task A accepted
+# Completed work — PR358 actual-main acceptance
 
-D110/110 numeric and10/10 parent occurrences remain accepted5751354872. PR356 runtime922a660 and PR357 actual-main5e3cb079 retain their separate historical receipts. PR357 passed73/73 and OPS on its actual merge; see pr357-main-acceptance-20260920.json.
+Historical D110/110+10/10 and PR357 publication remain accepted. PR358 bounded E011/ENV-04 plus reviewed ACK-monitoring amendments are now VERIFIED on main352fd8ee9129697b55c1d3796fb99ed04ca0d6f5. The final reviewed tree exactly equals merged71342c9704fbaab3117172e7b63f38440a182727.
 
-The next F3 planf3dcf649 was approved5751554605. Task A's corrected source/design/oracle record9d87d288 was independently approved5752177628, resolving the ACK-draft monitoring and0035 omissions; the incorrect missing-owner finding was disproved. Official source-byte evidence5751649097 is retained, not claimed as a new retrieval here.
+Fresh verification:64/64 UNB native cases,672/672 existing source-family cases,8/8 isolated wrapper report controls; ordinary final-head CI and independent all-fourPASS5752664226; actual-main73/73,4969/4969 Vitest tests and OPS/Ediel/browser/coverage all passed. The zero-test-wrapper issue4058069931 was fixed and independently closed. Full details/hashes in pr358-main-acceptance-20260920.json and root5752720765. Native/isolated probes are not mislabeled as separate Vitest runs.
 
-Earlier actual-module RED is recorded5752201323:42tests,7pass,35fail,0skipped. The bounded implementation3f6f1fc1, including execution amendments5752208557, is published in PR358. This is completed publication, NOT completed runtime/release acceptance. Ordinary current-head CI and independent runtime review remain pending; initial3f6f CI returned action_required.
+Next preparation completed:74numeric identities and962base-usage equality inventory, independently checked5752706986. This is only structural/base-usage equality, not field-value/grammar/overlay acceptance. FTX301/303 source/consumer qualification remains IN_PROGRESS, with no new runtime change.
 
-Historical source/plan/RED records remain unchanged; active handoffs now identify verification rather than obsolete Task A work. Full F3/masterplan remain NOT_COMPLETE. PR310 remains paused at e9611351; no live DB/provider/market or explicit deployment action.
+Original pre-acceptance checkpoint/session/resume retained in archive/pr358-before-main-acceptance/. Earlier source audits and REDs remain unchanged. FullF3/masterplan are NOT_COMPLETE; PR310 stays paused ate9611351 and no live operations are claimed.

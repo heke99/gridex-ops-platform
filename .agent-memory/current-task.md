@@ -1,11 +1,11 @@
-# Active task — PR358 exact-head verification and review
+# Active task — F3C-02 FTX301/303 source and consumer qualification
 
-Status: IMPLEMENTED_NOT_VERIFIED. Branch codex/ediel-f3-phase-closure-20260920. Published runtime candidate3f6f1fc1db3938ab76185c34d344ae89393efa72, tree41a9df13d3b4cda604616727821567e8c34aa3ab. PR358 exists; do not create a duplicate.
+Status: IN_PROGRESS. Branch codex/ediel-f3-phase-closure-20260920. Base accepted main352fd8ee9129697b55c1d3796fb99ed04ca0d6f5. PR358 is merged and main-accepted; active_pr is null. Do not repeat its implementation/review/CI or historical D adjudication.
 
-Task A SOURCE/DESIGN/ORACLE PASS5752177628, prior meaningful RED5752201323, and bounded execution amendments5752208557 precede this runtime. Read pr358-verification-resume.md and the controlling Task A correction, not the obsolete pending Task A snapshots.
+Read quality/audits/ediel-masterplan-v2/f3-field-inventory-20260920.md and independent fact-check5752706986. The74 numeric IDs and962 base-usage cells match, but value/qualifier/scope/grammar/overlay behavior remains a separate criterion. Qualify FTX301/303 together because the current descriptors share genericFTX while frozen locators distinguish headerAAI and own-objectACB.
 
-Next: finish ordinary CI on the published current head and independent TASK/SPEC, QUALITY, TENANT-BOUNDARY and whole-PR review. The initial3f6f1fc1 bot-triggered runs report action_required, not test success. Preserve all existing workflows, rulesets and thresholds; do not bypass an approval. The active memory publication is documentation only over the existing runtime. Inspect new ordinary checks rather than treating old parent certificates as current.
+Next: inspect applicable original P pages16/18/44/53 and surrounding source precedence/applicability with exact hash/page evidence. Trace outer scoped callers as well as fieldMatrix's generic helper, canonical/registry validation, prodatOwnedFailure, parser, renderer/register preservation and typed ACK projection. Check existing tests/receipts before deciding a gap. Specify independent positive/rejection controls and obtain source/design/oracle review. No new FTX runtime edit is authorized before that qualification and meaningful RED.
 
-Resolve only concrete runtime/review failures with targeted controls. Review the actual codec, shared and alternate PRODAT paths, outgoing ACK draft fields, source0035, ERR process projection and no_ack_required state. Preserve original source/queued bytes, incoming semantics, tenant and provider boundaries. Once exact-head checks and review pass, use expected-head-protected merge, verify tree identity and actual-main73/73 plus OPS. Then resume F3C-02/04/05/06/07 reconciliation.
+Do not mistake generic helper code for a proven cross-object bug or fabricate national error codes. Preserve accepted source, D, scope/tenant/guide behavior and original queued payloads. Missing phase evidence is not automatically a defect.
 
-D110/110+10/10 stay accepted. Full F3/masterplan remain NOT_COMPLETE. PR310 stays OPEN/DRAFT/PAUSED at e9611351 and excluded; no live operations.
+After this unit, continue F3C-02/04/05/06/07 criterion reconciliation under the approved plan. FullF3/masterplan remain open. PR310 remains paused ate9611351, excluded from writes/import/restart/merge. No live operations or settings/threshold changes.

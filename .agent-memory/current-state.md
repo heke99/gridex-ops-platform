@@ -1,11 +1,9 @@
-# Current state — PR358 implementation published; verification pending
+# Current state — PR358 accepted; next F3C-02 qualification
 
-PR357 remains merged and accepted at main5e3cb079cf2901be42964198d79b2ceab755f28f. D110/110 and parent occurrences10/10 remain accepted. Its actual-main73/73 and OPS receipts are historical evidence for that merge only, not PR358.
+PR358 is MERGED and bounded E011 acceptance is VERIFIED on actual main352fd8ee9129697b55c1d3796fb99ed04ca0d6f5, tree71342c9704fbaab3117172e7b63f38440a182727. Final independent four-category review5752664226 and ordinary final-head CI passed before guarded merge. Fresh actual-main73/73,314 Vitest files/4969 tests, allOPS, Ediel/browser/coverage passed. See pr358-main-acceptance-20260920.json and root5752720765. The Vercel create/wait steps were skipped; no deployment or live approval is inferred.
 
-Task A is complete under the controlling correction quality/audits/ediel-masterplan-v2/f3-unb0031-task-a-review-correction-20260920.md and independent SOURCE/DESIGN/ORACLE PASS5752177628 at9d87d288. The earlier df1df8d owner/monitoring record is superseded where that correction says so. The original-source download remains independently reported by5751649097, not a new download in this continuation.
+D110/110+10/10 remain accepted. The next field inventory is independently fact-checked5752706986:74 numeric identities and962 base-usage cells equal. That is NOT full74-field behavioral or register-overlay acceptance. The next coherent source/consumer qualification is FTX301/303; no new FTX runtime defect or code fix is claimed yet.
 
-The meaningful actual-module RED is recorded in5752201323:42tests,7pass,35fail,0skipped on9d87d288. Runtime3f6f1fc1db3938ab76185c34d344ae89393efa72 is published in PR358; it propagates canonical0031 and outgoing ACK expectations/testFlag, including reviewed amendments5752208557. Do not recreate this patch or repeat Task A.
+Only active work: original P source and actual scoped consumer/oracle qualification for301/303. Read current-task.md, checkpoint.json and f3-field-inventory-20260920.md. Do not re-open PR358, its completed Task A, or accepted D work from historical PENDING snapshots.
 
-Status: IMPLEMENTED_NOT_VERIFIED. Ordinary PR runs on3f6f1fc1 returned action_required before tests; no passing result may be inferred. Current work is exact-head CI and independent runtime review, followed by guarded merge and actual-main verification only if every gate passes. No runtime approval or E011 closure yet. Local test counts in the prior commit message are not a substitute for current ordinary CI.
-
-Full F3/masterplan remain NOT_COMPLETE; no grounded percentage. PR310 remains OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a. No writes/import/restart/merge of PR310 and no live DB/provider/market/settings or explicit deployment operations.
+FullF3/masterplan remain NOT_COMPLETE; no grounded percentage. This post-merge documentation checkpoint is on the work branch, not separately merged/CI-certified. PR310 remains OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a; no write/import/restart/merge or live operations.
