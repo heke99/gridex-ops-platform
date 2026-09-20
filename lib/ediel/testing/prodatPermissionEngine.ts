@@ -403,11 +403,11 @@ export function validateProdatPermissionMessage(params: {
   if (family !== 'PRODAT' || direction !== 'inbound') return buildPermissionValidationResult({handled:false,selectedTgtCaseCode,issues:[]})
   const selected=selectedProdatAckFromPayload(params.message.raw_payload)
   const assessment=permissionAckFieldsFromPayload(params.message.raw_payload)
-  try { assertSelectedProdatAckReady(selected) } catch(error) {
-    throw Object.assign(error instanceof Error ? error : new Error(String(error)), {permissionFieldAssessment:assessment})
-  }
   try { assertPermissionAckFieldsReady(assessment) } catch(error) {
     throw Object.assign(error instanceof Error ? error : new Error(String(error)), {selectedFieldAssessment:selected})
+  }
+  try { assertSelectedProdatAckReady(selected) } catch(error) {
+    throw Object.assign(error instanceof Error ? error : new Error(String(error)), {permissionFieldAssessment:assessment})
   }
   const code=assessment.code
   const issues:ProdatPermissionDecisionIssue[]=[...assessment.applicationErrors,...selected.applicationErrors].map(error=>({

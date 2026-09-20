@@ -12,10 +12,22 @@ import type {EdielRulebookIssue} from '@/lib/ediel/rulebook/rulebook'
 
 /** Nine finite incoming cells; predicates and diagnostics stay with their source
  * owners. This assessment never reads persisted caller facts or registry rules. */
-export function evaluateIncomingSelectedProdatAck(input:{rawSegments:readonly string[];una?:EdifactServiceStringAdvice;code?:string|null;facts?:ProdatDependentConditionFacts|null;selectedFields?:readonly string[]}){
+export function evaluateIncomingSelectedProdatAck(input:{rawSegments:readonly string[];una?:EdifactServiceStringAdvice;code?:string|null;facts?:ProdatDependentConditionFacts|null;selectedFields?:readonly string[]}):{code:string;issues:EdielRulebookIssue[]}&ReturnType<typeof projectProdatDiagnostics>{
  const una=input.una??parseUna(null),tokens=prodatRegisterTokens(input.rawSegments,una),bgms=tokens.filter(t=>t.tag==='BGM')
  const firstLin=tokens.findIndex(t=>t.tag==='LIN'),code=bgms.length===1&&(firstLin<0||tokens.indexOf(bgms[0])<firstLin)?segmentComposite(bgms[0],1,una)[0]??'':bgms.length===0&&!tokens.some(t=>t.tag==='UNH')?input.code??'':''
  const selected=['Z04','Z05','Z06','Z09','Z10','Z14'],issues:EdielRulebookIssue[]=[]
+ // Existing owners can safely retain known fields in separate UNH scopes.
+ // Registry/draft mutation still holds the aggregate until multi-message delivery
+ // is qualified; no scope can supply another message's BGM, LI or object.
+ const starts=tokens.flatMap((t,i)=>t.tag==='UNH'?[i]:[])
+ if(starts.length>1){
+  const envelope=tokens.slice(0,starts[0]).map(t=>t.raw)
+  const assessments=starts.map((start,index)=>evaluateIncomingSelectedProdatAck({...input,rawSegments:[...envelope,...tokens.slice(start,starts[index+1]).map(t=>t.raw)]}))
+  const combined:EdielRulebookIssue[]=assessments.flatMap(a=>a.issues)
+  const relevant=assessments.some(a=>selected.includes(a.code)&&(!input.selectedFields||input.selectedFields.some(f=>(a.code==='Z14'?['321','323']:a.code==='Z10'?['254','242']:a.code==='Z04'?['320']:a.code==='Z06'?['310','320']:['310']).includes(f))))
+  if(relevant)combined.push({severity:'error',blocking:true,code:'PRODAT_SELECTED_ACK_SCOPE_UNQUALIFIED',title:'PRODAT kräver intern granskning',description:'Selected incoming ACK delivery requires one own message',prodatDiagnostic:prodatLocalDiagnostic('internal','PRODAT26A:own-message','Multiple message delivery is unqualified')})
+  return {code:assessments[0]?.code??'',issues:combined,...projectProdatDiagnostics(combined)}
+ }
  const fields=code==='Z14'?['321','323']:code==='Z10'?['254','242']:code==='Z04'?['320']:code==='Z06'?['310','320']:['310']
  const active=fields.filter(f=>!input.selectedFields||input.selectedFields.includes(f))
  const ownInput={...input,code,una,direction:'inbound' as const}

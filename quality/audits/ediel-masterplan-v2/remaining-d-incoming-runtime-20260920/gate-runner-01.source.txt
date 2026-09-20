@@ -1,0 +1,17 @@
+import concurrent.futures,hashlib,json,os,pathlib,subprocess,time
+root=pathlib.Path('/workspace/scratch/2a201d6d5897/gridex-next')
+folder=root/'quality/audits/ediel-masterplan-v2/remaining-d-incoming-runtime-20260920'
+old=json.loads((root/'quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-gates.json').read_text())
+commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip()
+def run(row):
+ name=row['gate'];cmd=row['command'][:]
+ cmd=[arg.replace('permission-prior-flow-runtime-r1-20260920','remaining-d-incoming-runtime-20260920').replace('03a7e651d73317230ba57810d2090e6aae1aacd2','263790d2') for arg in cmd]
+ env=os.environ.copy()
+ if name in ['full','route-readiness']:env['NODE_OPTIONS']='--max-old-space-size=4096 --require=./scripts/lib/refactor-safe-static-read.cjs'
+ path=folder/('final-'+name+'-01.log');start=time.monotonic()
+ with path.open('x') as f:r=subprocess.run(cmd,cwd=root,env=env,stdout=f,stderr=subprocess.STDOUT)
+ out={'gate':name,'command':cmd,'exit':r.returncode,'seconds':round(time.monotonic()-start,2),'log':str(path.relative_to(root)),'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'runtimeCommit':commit}
+ print(name,r.returncode,flush=True)
+ return out
+with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:results=list(pool.map(run,old))
+(folder/'final-gates-01.json').write_text(json.dumps({'node':subprocess.check_output(['node','--version'],text=True).strip(),'runtimeCommit':commit,'gates':results},indent=2)+'\n')

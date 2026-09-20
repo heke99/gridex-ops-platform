@@ -83,8 +83,16 @@
     "tree": "504ac108b1f7437b58e32fbb583e0087237b4a2f",
     "verification": "fresh fetch diff0"
   },
-  "runtime_remote_parent": "a6c15b21d835f236b615cd2c64dcd5fa0c865599",
-  "runtime_checkpoint": null,
+  "runtime_remote_parent": "5bc847037c1f782af6374f76201a84ff74516dde",
+  "runtime_checkpoint": {
+    "local": "9df2b9c6f3c4050f92b1dde92f6713d57dabf3c1",
+    "remote": "5bc847037c1f782af6374f76201a84ff74516dde",
+    "tree": "2fa7056299d4f832b9b983284394f314f61221c5",
+    "verification": "fresh fetch diff0",
+    "focused_passed": 286,
+    "new_tests": 117,
+    "full_gates": "RUNNING"
+  },
   "codec_exception": "sanitizeSegment canonical terminal apostrophe releaseparity only; independent source/architecture amendment, root56db1f3a",
   "runtime_review": "NOT_STARTED Batch A",
   "runtime_fix_round": 0,

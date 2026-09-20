@@ -113,3 +113,39 @@ Local Node24 results are not exact Node22 CI/main certification.
 Source-qualified outgoing240, positive persisted source producers, live/formal
 market authority, general ACK/state and quote-bearing legacy-list residuals are
 separate. No full-cell, F3, masterplan, production or live completion claim.
+
+## Final local verification (supersedes checkpoint pending status)
+
+Final runtime commit `2f8ac76c` corrects two full-suite composition regressions:
+known310 in separate UNH scopes is retained before the aggregate delivery hold,
+and existing permission review precedence remains when both assessments hold.
+No old assertion was changed for either defect. Initial full4912/4914 and all
+15 initial gate receipts are immutable. Focused old+new regression suite194/194
+and app typecheck PASS before committing this two-file correction.
+
+Fresh final full: **4914/4914 PASS in311 files** on Node **24.19.0**.
+Packaged quality **45/45**; eight strip-only Ediel scripts **818/818**.
+All **15/15 final gate entries PASS**, including app/tests/scripts typechecks,
+lint, frozen integrity (33 originals/121 rules/231 contracts), tenant integrity,
+tenant shutdown, service-role ratchet, large-file/performance/route readiness and
+implementation diff check. Ratchet remains2400 against unchanged baseline2402.
+No budget, threshold, workflow, loader, frozen source, codec, grouping or schema
+changes. Final implementation/test filesystem matches1695 committed blobs;
+all558 pre-existing audit/evidence files remain byte-identical to task base.
+
+Run02 bookkeeping is explicit: its runner captured pre-fix HEAD `10342f71` while
+the already-edited final runtime awaited a checkpoint typecheck/commit command.
+The tests ran final code unchanged during the run. The two edited files' SHA256
+and the1695-file comparison bind the executed tree to `2f8ac76c`; all other blobs
+match captured HEAD. The start tree is reconstructed from HEAD plus these edits,
+not falsely described as a filesystem manifest measured at start. Raw receipts
+were not rewritten. Root approved this proof and declined a redundant local rerun
+solely for the HEAD label; exact final published-tree Node22 CI remains required.
+
+Full Vitest runner start: `2026-09-20T14:28:56.706000+00:00`; last test end: `2026-09-20T14:30:08.000344+00:00`.
+Gate receipts record elapsed command duration; absolute process start/end were
+not captured for each non-Vitest command. No additional timestamps are invented.
+
+Final source/test review found no unresolved bounded runtime blocker. Independent
+task/spec/quality/tenant/whole-branch review, exact CI, guarded merge and actual
+main73/73 + OPS acceptance remain root gates. This is local verification only.
