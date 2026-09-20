@@ -1,12 +1,13 @@
-# Verification matrix — PR359 format-routing correction
+# Verification matrix — PR359 actual-main accepted
 
-- HISTORICAL REVIEW:9e286f86, independent5753117905 TASK/SPEC+QUALITY+TENANT-BOUNDARY PASS; WHOLE-PR waiting. Not final acceptance.
-- OBSERVED RED:9e286f86 ordinaryOPS35541596324/job106160145134 npm test4986PASS/2FAIL/4988; death-status and meter-change format-routing tests reach edifact_dangling_release_character through FTX dispatch. Existing18 SMTP and native wrapper passed in that run.
-- TEST-FIRST PUBLICATION:b9dcfd12da7dcdfa90b20b8a2f994ce57f1d4423 adds22 cases, ordinaryOPS35542420917 started; read terminal result, not inferred.
-- SUPPORTING LOCAL EXPERIMENT ONLY: isolated Node old/new dispatch expression;5 old list false positives,18 candidate classifications PASS. Not an execution of the repository test suite.
-- PENDING: new final-head ordinary npm test (original regression suites unchanged), both native harnesses,18 existing SMTP+22 new cases, all typechecks, fullE2E/coverage and allOPS.
-- PENDING: independent final-head TASK/SPEC,QUALITY,TENANT-BOUNDARY,WHOLE-PR, guarded merge, actual-main73/73+OPS and receipt.
+- BaselineRED:9e286f86 ordinaryOPS35541596324/job106160145134:4986PASS/2FAIL/4988. Original death-status andmeter-change list regressions fail throughFTX dispatch.
+- Test-firstRED:b9dcfd12 ordinaryOPS35542420917/job106162367119:5003PASS/7FAIL/5010; five new semicolon-header cases+two unchanged old failures. The other17 new security/format controls pass. Receipt5753239618.
+- Finalreviewedhead:d4e784735f9d0f2d61aca334138d762fbfe8d7fa. OrdinaryOPS35542626686,PRsmoke/coverage35542626691,browser35542626700,masterplan35542626689SUCCESS. Final independent5753276222 fourPASS. Prior PRartifact identification error retracted5753267814 and independently resolved; PRsmoke15 is notfull73.
+- Guardedmerge:actual71d2adf8b8b5f4305683a1399ddb5c17f0808ee8, tree653f0d8409b76a1c4b18977684a8d10424a1c742 equals reviewedtree. PR359closed/merged.
+- ActualmainFULL:35543165596/job106164372691COMPLETED/SUCCESS; artifact10615935216,86287bytes,79entries,ZIP SHA2560358ad44ea13560186879e8dfe1d3a1dbc721b5450046fabe68d3d2da1620a1f matches metadata. Modefull73/73,0failed; all73rows/JUnit andhandoffcommit71d independentlychecked. Coverage106164372607SUCCESS.
+- ActualmainUNIT:logs/71-unit-integration-tests.log SHA2566f6d0b3282a26ca7dfa010aaeb213c9a1144f89ccb033e5ef87da32e22df576a;317/317files,5010/5010tests. Explicit newformat22,retainedSMTP18,unchangeddeath-status11/meter-change10,nativeFTXwrapper1PASS. The wrapper's273 assertions are not added again to5010.
+- ActualmainOPS:35543165613; quality106164372382,verify106164372451,replay106164372531 allSUCCESS throughcleanup.
+- Rootacceptance5753333308; canonicalreceipt pr359-main-acceptance-20260921.json. No current local repository-suite execution is claimed; local work independently inspected downloaded CI bytes.
+- RemainingF3: current-owner and actual-test inventory only; per-source criterionmapping/independent acceptance stillneeded. Named green suites are not blanket74-field/fullF3 evidence.
 
-Current evidence: quality/audits/ediel-masterplan-v2/f3-ftx-format-routing-20260921.md. Previous matrix remains in Git atb9dcfd12 and archive/pr359-before-runtime/verification-matrix.md; previous native248/273/648 figures remain historical, not rerun claims.
-
-PR358/main352fd8ee alreadyaccepted. D110/110+10/10 unchanged; fullF3/masterplanNOT_COMPLETE. PR310paused/untouched; no liveoperations.
+D110/110+10/10 unchanged; fullF3/masterplanNOT_COMPLETE. PR310paused/untouched. No liveDB/provider/market/settings/explicitdeployment actions. Previous pendingmatrix preserved at3ffda9ea/71d2adf8.

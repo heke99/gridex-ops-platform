@@ -1,9 +1,9 @@
-# Open gates — PR359 format-routing correction
+# Remaining gates — after accepted PR359
 
-Only active item: PR359 FTX301/303. Old9e286f86 ordinary npm test failed2/4988 existing list-routing tests; no migration-chain restart is authorized by that failure. Test-first b9dcfd12 adds22 controls, followed by the bounded format-dispatch correction. No original test or expectation was removed or relaxed.
+CLOSED for boundedPR359: the two original list-routing CI regressions, new format controls, exact-head ordinaryCI, independent four-dimensional review, guarded merge and actual-main73/73+allOPS. Acceptedmain71d2adf8; root5753333308; pr359-main-acceptance-20260921.json. No359 CI/merge blocker remains. The earlier erroneous PRartifact/full73 claim was retracted and independently resolved before merge; fresh actualmain artifact supplies the accepted proof.
 
-Still required: terminal unchanged ordinary CI on the actual final head; independent final TASK/SPEC,QUALITY,TENANT-BOUNDARY,WHOLE-PR approval; expected-head guarded merge; actual-main73/73 and allOPS; saved acceptance receipt. Prior5753117905 three-dimensional PASS and isolated dispatch18PASS do not satisfy those gates. Inspect actual results and fix concrete findings; do not mark pending work green.
+ACTIVE EVIDENCE GAP, NOT CONFIRMED BUG: remainingF3C-02 field/register composition lacks a consolidated per-criterion source/owner/consumer/oracle/execution decision. Initial current-owner and passing-test inventory exists in f3-post-pr359-reconciliation-20260921.md. Next bounded mapping is314/209/258/local213 plus first/later/common/header scopes. Missing inspection must not be relabeled as a runtime defect or used to reopen acceptedD/E011/FTX work.
 
-Queued only after PR359 acceptance: remainingF3 field/register composition, P/U response criteria, guide-before-function/per-object disposition, fullUNSM/G06 and original-finding reconciliation. FullF3/masterplanNOT_COMPLETE. D110/110+10/10 unchanged. Last acceptedmain352fd8ee/PR358.
+QUEUED: F3C-04 remaining P/U APERAK andUTILTS-ERR criteria; F3C-05 guide-before-function/per-object disposition; F3C-06 fullUNSM/G06 and release-SHA consumers; F3C-07 original-finding reconciliation. FullF3/masterplanNOT_COMPLETE. D110/110+10/10 unchanged.
 
-PR310 remainsOPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a, outside all active operations. No liveDB/provider/market/settings/explicitdeployment changes. Prior blocker snapshot remains in Git atb9dcfd12.
+DEFERRED/EXCLUDED: PR310 remainsOPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a. No import/restart/write/merge or promotion of its database/schema/type evidence. No liveDB/provider/market/settings/explicitdeployment actions. Previous blocker snapshots retained at3ffda9ea and71d2adf8.
