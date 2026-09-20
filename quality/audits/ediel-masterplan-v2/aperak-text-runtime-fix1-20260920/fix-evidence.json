@@ -1,0 +1,258 @@
+{
+  "status": "locally verified; scoped independent review and exact Node22 CI pending",
+  "finding": "R-A905-1",
+  "reviewed_basis": "9aad6a4f9a384153d34bfff2f6d558aebe5068d4",
+  "runtime_commit": "90154eecc9b8c3a08ab8136fb5dd5af00bd6e80c",
+  "runtime_tree": "f748c56dae3a079dd36862256e2e32f1a77d427b",
+  "node": "v24.19.0",
+  "commands": {
+    "red-structural": "node node_modules/vitest/vitest.mjs run __tests__/ediel-prodat-aperak-text-structural.test.ts --reporter=json --outputFile=quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/red-structural.json > quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/red-structural.log 2>&1",
+    "red-structural-expanded": "node node_modules/vitest/vitest.mjs run __tests__/ediel-prodat-aperak-text-structural.test.ts --reporter=json --outputFile=quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/red-structural-expanded.json > quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/red-structural-expanded.log 2>&1",
+    "red-structural-qualified": "node node_modules/vitest/vitest.mjs run __tests__/ediel-prodat-aperak-text-structural.test.ts --reporter=json --outputFile=quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/red-structural-qualified.json > quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/red-structural-qualified.log 2>&1",
+    "green-covering": "node node_modules/vitest/vitest.mjs run __tests__/ediel-prodat-aperak-text-structural.test.ts __tests__/ediel-prodat-aperak-text-evidence.test.ts __tests__/ediel-prodat-register*.test.ts __tests__/ediel-prodat-death-status*.test.ts --reporter=json --outputFile=quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/green-covering.json > quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/green-covering.log 2>&1",
+    "green-final-covering": "node node_modules/vitest/vitest.mjs run __tests__/ediel-prodat-aperak-text-structural.test.ts __tests__/ediel-prodat-aperak-text-evidence.test.ts __tests__/ediel-prodat-register*.test.ts __tests__/ediel-prodat-death-status*.test.ts --reporter=json --outputFile=quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/green-final-covering.json > quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/green-final-covering.log 2>&1",
+    "reviewer-replay": "node node_modules/vitest/vitest.mjs run --config /workspace/scratch/2a201d6d5897/aperak-text-runtime-fix1-20260920/vitest-with-setup.config.mjs --reporter=json --outputFile=quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/reviewer-replay.json > quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/reviewer-replay.log 2>&1",
+    "full-final": "NODE_OPTIONS='--max-old-space-size=4096 --require=./scripts/lib/refactor-safe-static-read.cjs' npm test -- --reporter=json --outputFile=quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/full-final.json > quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/full-final.log 2>&1"
+  },
+  "tests": {
+    "red-structural": {
+      "passed": 9,
+      "failed": 12,
+      "files": 1,
+      "sha256": "0fb48a2f08b5a197c601277432bd623e6aabfea7e19f2c26dae76732372ccf66"
+    },
+    "red-structural-expanded": {
+      "passed": 9,
+      "failed": 15,
+      "files": 1,
+      "sha256": "5d899fc22f06929fa2bf1a7894e8e6e38dd933656dfb267079d73bf7a9b5dea7"
+    },
+    "red-structural-qualified": {
+      "passed": 9,
+      "failed": 15,
+      "files": 1,
+      "sha256": "a9d8ec2ab3057508833cf2a4488a8d01226dc8c0589962d490a2960d6ab4e007"
+    },
+    "green-covering": {
+      "passed": 727,
+      "failed": 0,
+      "files": 32,
+      "sha256": "f6622b2ed722e946b9f12489b917ab9f343ffdb52d0fc49bfa60ed063d6e42f8"
+    },
+    "green-final-covering": {
+      "passed": 731,
+      "failed": 0,
+      "files": 32,
+      "sha256": "d1a99d008f23a48af0c877122c059f3c2accba7ffd9589f6a6633b0bed9f2cca"
+    },
+    "reviewer-replay": {
+      "passed": 14,
+      "failed": 0,
+      "files": 2,
+      "sha256": "47c8fefbccd657c797520c44621720dc09aff6a3cde0a1e764e154d69466c247"
+    },
+    "full-final": {
+      "passed": 4567,
+      "failed": 0,
+      "files": 303,
+      "sha256": "6270ef466735d2f2a80b992ecca189ff7634075a0c495959db7f70cc9dfcedf9"
+    }
+  },
+  "gates": [
+    {
+      "gate": "typecheck",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "exit": 0,
+      "seconds": 47.09,
+      "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76"
+    },
+    {
+      "gate": "typecheck-tests",
+      "command": [
+        "npm",
+        "run",
+        "typecheck:tests"
+      ],
+      "exit": 0,
+      "seconds": 15.51,
+      "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602"
+    },
+    {
+      "gate": "typecheck-scripts",
+      "command": [
+        "npm",
+        "run",
+        "typecheck:scripts"
+      ],
+      "exit": 0,
+      "seconds": 1.36,
+      "sha256": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae"
+    },
+    {
+      "gate": "lint",
+      "command": [
+        "npm",
+        "run",
+        "lint"
+      ],
+      "exit": 0,
+      "seconds": 77.41,
+      "sha256": "4762efa26f79e3a9886bc73ba8849c1fd735c1bc3523d6710cb3f9b0a77f1b19"
+    },
+    {
+      "gate": "integrity",
+      "command": [
+        "npm",
+        "run",
+        "ediel:masterplan-v2:integrity"
+      ],
+      "exit": 0,
+      "seconds": 0.31,
+      "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18"
+    },
+    {
+      "gate": "tenant-integrity",
+      "command": [
+        "node",
+        "scripts/gridex-tenant-integrity-regression.cjs"
+      ],
+      "exit": 0,
+      "seconds": 0.08,
+      "sha256": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690"
+    },
+    {
+      "gate": "tenant-shutdown",
+      "command": [
+        "node",
+        "scripts/gridex-tenant-shutdown-regression.cjs"
+      ],
+      "exit": 0,
+      "seconds": 0.07,
+      "sha256": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e"
+    },
+    {
+      "gate": "ratchet",
+      "command": [
+        "node",
+        "scripts/check-service-role-tenant-ratchet.cjs"
+      ],
+      "exit": 0,
+      "seconds": 0.13,
+      "sha256": "2939bdd3580914b982fe2853b29618eb469b55a6babf2afc431a87c06d96f74f"
+    },
+    {
+      "gate": "large-files",
+      "command": [
+        "npm",
+        "run",
+        "quality:large-file-budget"
+      ],
+      "exit": 0,
+      "seconds": 0.34,
+      "sha256": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e"
+    },
+    {
+      "gate": "performance",
+      "command": [
+        "npm",
+        "run",
+        "quality:performance"
+      ],
+      "exit": 0,
+      "seconds": 1.53,
+      "sha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629"
+    },
+    {
+      "gate": "ediel-eight",
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "--test",
+        "scripts/test-ediel-rule-pack-source-identity.cjs",
+        "scripts/test-ediel-prodat-source-locators.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/test-ediel-prodat-reference-fields.cjs",
+        "scripts/test-ediel-prodat-document-fields.cjs",
+        "scripts/test-ediel-prodat-party-fields.cjs",
+        "scripts/test-ediel-prodat-d-z04-reference.cjs",
+        "scripts/test-ediel-component-escaping.cjs"
+      ],
+      "exit": 0,
+      "seconds": 2.98,
+      "sha256": "44e4b8ee466dbcbe09942706f7e8b38970fc7b3609551995711126e03b793917"
+    },
+    {
+      "gate": "route-readiness",
+      "command": [
+        "npm",
+        "run",
+        "gridex:route-readiness-regression"
+      ],
+      "exit": 0,
+      "seconds": 1.01,
+      "sha256": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82"
+    },
+    {
+      "gate": "diffcheck",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit": 0,
+      "seconds": 0.01,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "runtime_diff_since_full": "empty",
+  "immutable_matches": "116/116",
+  "source_sha256": {
+    "lib/ediel/prodat/prodatRegisterFields.ts": "1d171216b8fd8be093a4b6d5e0d9e04cf969468ba342dfcde4771b46fe5df09c",
+    "lib/ediel/prodat/prodatOwnedFailure.ts": "f9b49029f75576c25a453a9e68bf23c57237298ee319d5eeede3e5cb1169dd16",
+    "__tests__/ediel-prodat-aperak-text-structural.test.ts": "c6d2bf04419ebbb4090c69384a5bb9675a8b8ae2a89fe85df25a6384d68cff48"
+  },
+  "receipt_sha256": {
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/checkpoint.md": "e86d735df44ed3d7b92ce802aeb873b7ea681d07d83425e8ea325dadd41b1618",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/complete-controls.test.ts": "9cdfe24df4f511eb80459d3f881dd2a31a42d60493d8227c43846bb16df7daae",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/complete-observations.json": "dd27bde57ba7512f541c5ffd23caed5423236c641c375a290ec7be835e262c23",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-diffcheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-ediel-eight.log": "44e4b8ee466dbcbe09942706f7e8b38970fc7b3609551995711126e03b793917",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-gates.json": "970995dadb70c9652e6a2416fea40a922d862fa7d3a854a7c7c3b39a20a2f994",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-integrity.log": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-large-files.log": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-lint.log": "4762efa26f79e3a9886bc73ba8849c1fd735c1bc3523d6710cb3f9b0a77f1b19",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-performance.log": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-ratchet.log": "2939bdd3580914b982fe2853b29618eb469b55a6babf2afc431a87c06d96f74f",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-route-readiness.log": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-tenant-integrity.log": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-tenant-shutdown.log": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-typecheck-scripts.log": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-typecheck-tests.log": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/final-typecheck.log": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/full-branch-diffcheck.json": "f5536b7ce22da1d801e28cc88375d389b645c0bfc7974ff8b913744ed16811f9",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/full-branch-diffcheck.log": "8cdaaff41ec5f1740a2cec493fb097828b5366b51cce8da9af139d9716fd1138",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/full-final.json": "6270ef466735d2f2a80b992ecca189ff7634075a0c495959db7f70cc9dfcedf9",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/full-final.log": "d96f0b4ea3b300661e194820391fdc336e64d47ccd1e47078739fc6edb2f1056",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/green-covering.json": "f6622b2ed722e946b9f12489b917ab9f343ffdb52d0fc49bfa60ed063d6e42f8",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/green-covering.log": "48f77e0520b07bb07a9f2b87eefaf5eb4abf505dd9fdb92e0d5c7137a5cb5199",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/green-final-covering.json": "d1a99d008f23a48af0c877122c059f3c2accba7ffd9589f6a6633b0bed9f2cca",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/green-final-covering.log": "e102a0b6d10e897168bee180c49f863a681549cd3c6b8287077cf72c221cdf63",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/immutable-check.json": "0e52f7d055434a00ad75f24b1c85d598a8933d06e61f2618622157ee6660163a",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/red-structural-expanded.json": "5d899fc22f06929fa2bf1a7894e8e6e38dd933656dfb267079d73bf7a9b5dea7",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/red-structural-expanded.log": "00cdadeae088b5711a6bccb747a84b50e141e93717532307034ce5a3f1c07bd3",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/red-structural-qualified.json": "a9d8ec2ab3057508833cf2a4488a8d01226dc8c0589962d490a2960d6ab4e007",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/red-structural-qualified.log": "16b3304033b8377369ca319cfaca59c5dda5f10f9ed4a2300c96a08676e6d31d",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/red-structural.json": "0fb48a2f08b5a197c601277432bd623e6aabfea7e19f2c26dae76732372ccf66",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/red-structural.log": "fb056d74d38e5e41e522fc79320cb9d8c49412d2230b3571472c3267effac673",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/related-owner-observations.json": "4db1b148a92e0a9c9997736e5c289400511ee0edea5aa22cc27e6cecc04d7132",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/related-owner.test.ts": "d2fe661c9dcd5cde73241f2065b642644d0dbe42d201bbf56540e430bd66087c",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/reviewer-original-hashes.json": "997cc63f7c6b9d8ecb724fc629957044217f3544a0aa3faed68caec1bdca7f00",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/reviewer-replay.json": "47c8fefbccd657c797520c44621720dc09aff6a3cde0a1e764e154d69466c247",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/reviewer-replay.log": "a714853e51949c6dede5af091df015bd967fec143791570ac1add7ffd0d0e98d",
+    "quality/audits/ediel-masterplan-v2/aperak-text-runtime-fix1-20260920/vitest-with-setup.config.mjs": "e4aa500a013d8a82d6308caca2f20d9591ab30af127536275f18ff69e89045d7"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "command": [
+    "git",
+    "diff",
+    "--cached",
+    "--check",
+    "b4f00ae37937502f2678738bf076c0ba8de9696b"
+  ],
+  "exit": 2,
+  "scope": "accepted base to staged final runtime and raw evidence; report/manifest appended subsequently",
+  "sha256": "8cdaaff41ec5f1740a2cec493fb097828b5366b51cce8da9af139d9716fd1138",
+  "note": "Nonblocking blank EOF lines in immutable raw command logs; source/test delta is whitespace-clean."
+}

@@ -34,12 +34,12 @@
   "status": "IN_PROGRESS",
   "branch": "codex/ediel-aperak-text-20260920",
   "base_head_sha": "b4f00ae37937502f2678738bf076c0ba8de9696b",
-  "active_item": "Approved typed A905 runtime implementation",
-  "next_action": "Fresh implementer Task2 TDD and final verification, then independent runtime review/exactCI",
+  "active_item": "PR352 originalauthor correction of structural failure text evidence",
+  "next_action": "Originalauthor coherentfixwave, copied revieweroracles/coveringtests/finalgates, scopedrereview and newexactCI",
   "runtime_authorized": true,
   "last_accepted_pr": 351,
   "last_merged_pr": 351,
-  "active_pr": null,
+  "active_pr": 352,
   "main_pending": null,
   "previous_pr_receipt": {
     "pr": 351,
@@ -81,14 +81,19 @@
     "expected_failed": 8,
     "passed": 3
   },
-  "runtime_remote_parent": "1bb3c014ea7f799e4f08f3229ec7fdbd76eced92",
+  "runtime_remote_parent": "b6474650caca4c034f280f708ef60b3b903171eb",
   "runtime_checkpoint": {
-    "local": "517d94ab8cb3b148a461ee4e9d3b0da08ebb9526",
-    "remote": "1bb3c014ea7f799e4f08f3229ec7fdbd76eced92",
-    "tree": "19c63736e52080a383ba3fd39e41b64469d7cb84",
+    "local": "9aad6a4f9a384153d34bfff2f6d558aebe5068d4",
+    "remote": "b6474650caca4c034f280f708ef60b3b903171eb",
+    "tree": "1c3c00fdfbd743e9b01aabe39449f42ef709e4e6",
     "verification": "freshfetchdiff0",
-    "focused_passed": 206,
-    "strip_only_passed": 818
+    "full_passed": 4539,
+    "files": 302,
+    "focused_passed": 485,
+    "strip_only_passed": 818,
+    "gates_passed": 13
   },
-  "codec_exception": "sanitizeSegment canonical terminal apostrophe releaseparity only; independent source/architecture amendment, root56db1f3a"
+  "codec_exception": "sanitizeSegment canonical terminal apostrophe releaseparity only; independent source/architecture amendment, root56db1f3a",
+  "runtime_review": "REQUEST_CHANGES R-A905-1",
+  "runtime_fix_round": 1
 }

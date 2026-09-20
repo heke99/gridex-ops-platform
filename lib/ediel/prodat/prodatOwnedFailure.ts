@@ -27,9 +27,17 @@ export function prodatOwnedFailure(field:typeof PRODAT_26A_FIELD_MATRIX[number],
   if(field.cavComponent!==undefined){
     const matches=tokens.filter(t=>t.tag==='CCI'&&segmentComposite(t,2,una)[0]?.trim().toUpperCase()===field.segmentPath.slice(5,-4))
     return matches.flatMap(t=>{
-      const next=tokens[tokens.indexOf(t)+1],cav=next?.tag==='CAV'?next:null
-      const p=segmentComposite(cav??t,cav?1:2,una)
-      return prodatComponentEvidence((cav??t).raw,field.segmentPath,p,matches.length===1&&cav&&!p[1]&&!p[2]&&p[field.cavComponent!]?[field.cavComponent!]:undefined)
+      const candidates:EdifactTokenizedSegment[]=[]
+      for(let i=tokens.indexOf(t)+1;tokens[i]?.tag==='CAV';i++)candidates.push(tokens[i])
+      const cciStructural=segmentComposite(t,1,una).some(Boolean)||segmentComposite(t,2,una).slice(1).some(Boolean)||segmentElementCount(t,una)>2
+      // Cardinality and unused-element failures belong to the complete submitted
+      // pair/candidates. A convenient valid first scalar cannot explain them.
+      const selected=cciStructural||!candidates.length?[t,...candidates]:candidates
+      return selected.flatMap(candidate=>{
+        const count=segmentElementCount(candidate,una),parts=Array.from({length:count},(_,i)=>segmentComposite(candidate,i+1,una)).flat()
+        const scalar=matches.length===1&&candidates.length===1&&!cciStructural&&candidate.tag==='CAV'&&count===1&&parts.length<=5&&parts.every((p,i)=>i===field.cavComponent||!p)
+        return prodatComponentEvidence(candidate.raw,field.segmentPath,parts,scalar?[field.cavComponent!]:undefined)
+      })
     })
   }
   const tag=field.fieldNumber==='311'?'UNB':field.fieldNumber==='312'?'UNH':field.fieldNumber==='301'||field.fieldNumber==='303'?'FTX':null
