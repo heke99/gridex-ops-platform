@@ -1,11 +1,11 @@
-# Active task — F3 TaskA / E011 source and consumer qualification
+# Active task — PR358 exact-head verification and review
 
-Status: IN_PROGRESS. PR357 publication, independent review, guarded merge and actual-main73/73 plus allOPS are DONE. D110/110 and parents10/10 are DONE. Do not redo either.
+Status: IMPLEMENTED_NOT_VERIFIED. Branch codex/ediel-f3-phase-closure-20260920. Published runtime candidate3f6f1fc1db3938ab76185c34d344ae89393efa72, tree41a9df13d3b4cda604616727821567e8c34aa3ab. PR358 exists; do not create a duplicate.
 
-Read quality/audits/ediel-masterplan-v2/f3-phase-closure-plan-20260920.md (reviewed atf3dcf649) and f3-phase-closure-plan-review.md. Independent plan review5751554605 gave allfourPASS and retained execution entry gates.
+Task A SOURCE/DESIGN/ORACLE PASS5752177628, prior meaningful RED5752201323, and bounded execution amendments5752208557 precede this runtime. Read pr358-verification-resume.md and the controlling Task A correction, not the obsolete pending Task A snapshots.
 
-TaskA: obtain and inspect applicable full T24.A revision6 sections2.1/4.2 with actual hash/page evidence; map source applicability and exceptions to the existing canonicalAckEngine/facade, shared envelope and every separate PRODAT serializer path, final preflight and expectation/monitoring consumers. Deliver the plan's source/consumer/oracle record and get its independent TaskA approval before new runtime edits. The source manifest's old hash is not fresh proof. Confirmed static omission5751514908 is not an executed RED test.
+Next: finish ordinary CI on the published current head and independent TASK/SPEC, QUALITY, TENANT-BOUNDARY and whole-PR review. The initial3f6f1fc1 bot-triggered runs report action_required, not test success. Preserve all existing workflows, rulesets and thresholds; do not bypass an approval. The active memory publication is documentation only over the existing runtime. Inspect new ordinary checks rather than treating old parent certificates as current.
 
-Correct rule locator: ENV-04/AT-ENV-04=0031; ENV-05/AT-ENV-05=0035. Do not infer0031 from BGM/AB or add a duplicate family matrix. Do not change incoming rejection semantics without source support. Preserve CONTRL no-loop, test/prod, references, counters and escaping. Meaningful durable RED through real qualified builders precedes implementation; use the approved plan's exact gate order.
+Resolve only concrete runtime/review failures with targeted controls. Review the actual codec, shared and alternate PRODAT paths, outgoing ACK draft fields, source0035, ERR process projection and no_ack_required state. Preserve original source/queued bytes, incoming semantics, tenant and provider boundaries. Once exact-head checks and review pass, use expected-head-protected merge, verify tree identity and actual-main73/73 plus OPS. Then resume F3C-02/04/05/06/07 reconciliation.
 
-FullF3 remains open beyond the D counter. Other criteria stay queued for evidence reconciliation, not assumed bugs. PR310 stays paused at e9611351, no writes/imports/restarts. No live DB/provider/market/role/settings/explicit deployment work. No new runtime authorization is recorded yet.
+D110/110+10/10 stay accepted. Full F3/masterplan remain NOT_COMPLETE. PR310 stays OPEN/DRAFT/PAUSED at e9611351 and excluded; no live operations.

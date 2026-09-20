@@ -1,11 +1,9 @@
-# Handover — approved F3 plan after accepted PR357
+# Handover — PR358 runtime exists; finish verification
 
-Resume branch codex/ediel-f3-phase-closure-20260920. Read f3-phase-closure-resume.md, current-task.md, checkpoint.json. The old gas branch contains merged PR357 history, not the active next task. Fetch actual refs before writes.
+Use branch codex/ediel-f3-phase-closure-20260920 and existing PR358. Read pr358-verification-resume.md, current-task.md and checkpoint.json, then fetch current refs before writes. Published runtime is3f6f1fc1db3938ab76185c34d344ae89393efa72, tree41a9df13d3b4cda604616727821567e8c34aa3ab. Do not reimplement from the old source-only snapshot.
 
-Accepted main5e3cb079cf2901be42964198d79b2ceab755f28f contains PR357 and110/110+10/10. Exact-main73/73 and allOPS/Ediel/browser/coverage are verified; root5751554333, receipt pr357-main-acceptance-20260920.json. Do not reuse that certificate for this new branch checkpoint.
+Task A correction was independently approved5752177628 at9d87d288. RED42/7pass/35fail was recorded in5752201323. Implementation and approved execution amendments5752208557 are now published. Exact-head ordinary CI and independent runtime review remain pending; the initial bot-triggered runs35534161014/1016/1023/1017/1024 were action_required, not executed passes. See full identifiers in checkpoint.json.
 
-The new F3 plan atf3dcf649 is independently approved by5751554605 in four plan categories. Original-source inspection/hash, all actual envelope routes (including separate PRODAT serializer), independent TaskA source/design/oracle approval, fresh behavioral RED and subsequent runtime/CI gates remain. Current active work is TaskA only, as defined in current-task.md. E011/ENV-04 UNB0031 is a confirmed STATIC defect, not yet corrected or freshly reproduced. No wholeF3/masterplan approval.
+PR357 main5e3cb079 retains its73/73 and OPS acceptance; it does not certify PR358. D110/110+parents10/10 remain accepted. The prior source-only active handoffs are historical and superseded; original audit records and the archived session log remain intact.
 
-Pre-merge PR357 memory remains in Git5e3cb079/c491c45f and is superseded as current progress. Exact archived older receipts remain under archive/pr357-53b4011c/ and archive/gas-identity-ac53b020/. Do not overwrite them or revive their old pending decisions.
-
-PR310 is OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a. No live DB/provider/market/role/settings or explicit deployments. New plan/checkpoint is saved on this branch, not itself merged or CI-certified.
+Next: current-head CI and review, narrowly fix any concrete failures, guarded merge only after all applicable gates pass, actual-main verification, then remaining F3 reconciliation. No full F3/masterplan acceptance or justified overall percentage. PR310 remains paused at e961135199f292b8210884f07de3b616a670161a; no import/restart/write/merge or live operations.

@@ -8,7 +8,7 @@
   "final_d_adjudication":5751354872,
   "counts":{"accepted_numeric":110,"total_numeric":110,"accepted_parents":10,"total_parents":10},
   "publication":{"pr":357,"status":"MERGED_AND_MAIN_ACCEPTED","head":"c491c45f28d4e83038d8f759c40dae69b755d973","main":"5e3cb079cf2901be42964198d79b2ceab755f28f","review":5751469000,"root_acceptance":5751554333,"receipt":".agent-memory/pr357-main-acceptance-20260920.json"},
-  "next_plan":{"commit":"f3dcf6494199670fe880ea1114e47f9a548b1800","review":5751554605,"status":"PLAN_PASS_EXECUTION_GATES_RETAINED","branch":"codex/ediel-f3-phase-closure-20260920","active_task":"TaskA_E011_ENV04_source_and_consumer_qualification","runtime_fix_completed":false},
+  "next_plan":{"commit":"f3dcf6494199670fe880ea1114e47f9a548b1800","review":5751554605,"status":"PLAN_PASS_EXECUTION_GATES_RETAINED","branch":"codex/ediel-f3-phase-closure-20260920","active_pr":358,"active_task":"Exact-head CI and independent runtime review","task_a_review":5752177628,"runtime_candidate":"3f6f1fc1db3938ab76185c34d344ae89393efa72","runtime_fix_completed":false,"active_state":".agent-memory/checkpoint.json"},
   "paused_pr":{"number":310,"head":"e961135199f292b8210884f07de3b616a670161a","state":"OPEN_DRAFT_PAUSED","written":false},
   "full_F3_complete":false,
   "full_masterplan_complete":false,

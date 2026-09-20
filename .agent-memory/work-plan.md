@@ -1,11 +1,11 @@
-# Work plan — approved F3 sequence
+# Work plan — PR358 verification, then remaining F3
 
-1. DONE: PR356 runtime review/CI/merge/main acceptance; final historical D decision5751354872 gives110/110+10/10.
-2. DONE: PR357 consistent acceptance publication; reviewedc491c45f, merged5e3cb079, actual-main73/73 and allOPS, root5751554333.
-3. DONE: next F3 plan saved atf3dcf649 and independently approved in four plan categories by5751554605, with execution gates retained.
-4. IN_PROGRESS: TaskA E011/ENV-04 original T24.A source/hash/page proof and complete consumer/monitoring trace, including separate PRODAT serializer; independent TaskA source/design/oracle approval.
-5. NOT_STARTED: meaningful durable RED, finite canonical ACK-decision→UNB0031 propagation, opposing CONTRL/0035 and real-consumer controls; final reviews, exact CI, guarded merge and actual-main verification.
-6. NOT_STARTED: remaining F3 criterion evidence reconciliation per approved plan F3C-02/04/05/06/07. Create only concrete source-backed residual batches; then independent wholeF3 adjudication.
-7. NOT_STARTED: remaining applicable masterplan phases, each with current code/source/evidence and its own acceptance. Do not assume completion from D counts or greenCI.
+1. DONE: PR356 bounded runtime acceptance and final D110/110+10/10 adjudication5751354872.
+2. DONE: PR357 consistent publication, independent review and actual-main acceptance5e3cb079;73/73 and OPS receipts retained.
+3. DONE: F3 planf3dcf649 approved5751554605; Task A correction9d87d288 approved SOURCE/DESIGN/ORACLE5752177628.
+4. PUBLISHED: earlier meaningful RED5752201323 and runtime3f6f1fc1 with reviewed execution amendments5752208557. These do not establish release acceptance.
+5. IN_PROGRESS: PR358 current-head ordinary CI and independent TASK/SPEC, QUALITY, TENANT-BOUNDARY and whole-PR review. Address concrete failures, then guarded merge and actual-main73/73 plus OPS. Initial bot-triggered CI action_required is retained as a nonpassing observation.
+6. NOT_STARTED: reconcile remaining F3C-02/04/05/06/07 against current source, owners and executed evidence; implement only concrete residuals. Obtain whole-F3 independent adjudication.
+7. NOT_STARTED: remaining applicable masterplan phase gates; PR310-dependent items stay deferred.
 
-Only TaskA is active. Full approved plan: quality/audits/ediel-masterplan-v2/f3-phase-closure-plan-20260920.md. PR310 stays paused and untouched. No source/schema/workflow/threshold weakening or live/role/producer activation. Overall progress needs a justified denominator, not a conversational estimate.
+Exactly one active task: PR358 verification. No restart of completed Task A, D adjudication or PR357. No workflow/threshold/source weakening and no live/role/producer activation. PR310 remains paused and untouched. Full F3/masterplan NOT_COMPLETE.

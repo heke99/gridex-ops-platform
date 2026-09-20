@@ -1,22 +1,19 @@
-# Verification matrix — actual main and next F3 plan
+# Verification matrix — accepted baseline and pending PR358
 
-| Scope | Exact evidence | Result |
+| Scope | Exact evidence | Disposition |
 |---|---|---|
-| Historical D acceptance | Final independent5751354872 |110/110 numeric+10/10parents ACCEPT |
-| PR357 correction review |5751469000 atc491c45f |Documentation review PASS |
-| PR357 ordinary CI |35526367541/35526367525/35526367520 |All applicable SUCCESS before merge |
-| PR357 actual merge |5e3cb079cf2901be42964198d79b2ceab755f28f |Treeb1f7c9ff910488c57242e171f501b033e3e103b5 matches reviewedhead |
-| Actual-main full |35526699955/job106120005646, checkedout5e3cb079 |73/73,0failed,Node22.23.2 at2026-09-20T17:51:09.0886197Z |
-| Actual-main coverage |106120005755 |SUCCESS; no new detailed count inferred |
-| Actual-main OPS |35526699936/jobs106120005429/5506/5536 |AllSUCCESS; identifiers in JSON receipt are full |
-| Actual-main Ediel/browser |35526699928/35526699997 |SUCCESS |
-| Automatic Vercel workflow |35526700002/job106120005867 |Actual create/wait deployment SKIPPED; no deployment receipt |
-| Main root acceptance |5751554333 |PR357 publication ACCEPTED |
-| Next F3 plan |f3dcf649, independent5751554605 |Four plan verdicts PASS; execution gates retained |
-| E011/ENV-04 |Static review5751514908 |Confirmed static omission; runtime RED/fix not completed |
-| Original T24.A source gate |Manifest only, partial excerpts |Fresh full hash/page inspection NOT_COMPLETE |
-| Complete consumer/design gate |Shared route inspected; all routes still required |TaskA NOT_COMPLETE |
-| Full F3/masterplan |Criterion reconciliation still open |NOT_COMPLETE |
-| PR310 |e961135199f292b8210884f07de3b616a670161a |OPEN/DRAFT/PAUSED; untouched |
+| Historical D and parents |5751354872|110/110+10/10 ACCEPTED|
+| PR357 actual main |5e3cb079, receipt pr357-main-acceptance-20260920.json, root5751554333|73/73 plus OPS/Ediel/browser/coverage accepted for that merge only|
+| F3 plan |f3dcf649,5751554605|Four plan categories PASS|
+| Original T24.A bytes/pages |Independent5751649097;1,124,807bytes;60pages;SHA256 matches manifest|Prior source retrieval accepted; not a fresh download here|
+| Task A correction |9d87d288,5752177628|SOURCE/DESIGN/ORACLE PASS|
+| Earlier actual-module RED |5752201323 at9d87d288|Recorded42tests:7pass/35fail/0skipped; not rerun by this checkpoint|
+| Execution amendments |5752208557|Bounded ERR process/state-owner amendments approved|
+| Published runtime |3f6f1fc1,tree41a9df13|Implementation exists; release acceptance PENDING|
+| Initial ordinary PR CI |35534161014/35534161016/35534161023/35534161017/35534161024 on3f6f1fc1|action_required; not passing or completed test evidence|
+| Current-head CI/runtime review |Existing PR358|PENDING; no old certificate substitution|
+| Local source recovery this continuation |Artifact10612410686;ZIP6450d3a09bbab778c45801d1b1609ce05bdf0280234f10626c2f90bc3036a974;TARadec7e8d4471fce011b2cb2d352039ef3140e684496e1037392ab4316f84685e|Both digests recomputed;restored tree4bc15bb3 matches9d87 baseline;not the current runtime|
+| Full F3/masterplan |Remaining criterion ledger|NOT_COMPLETE|
+| PR310 |e961135199f292b8210884f07de3b616a670161a|OPEN/DRAFT/PAUSED;excluded|
 
-Detailed actual-main receipt: pr357-main-acceptance-20260920.json. Historical artifact upload digest was read, not independently rehashed. No new local repository tests, originalPDF inspection or live operation claimed. New branch checkpoint is not certified by parent5e3cb079 CI.
+Never count action_required, skipped or pending checks as successful execution. Prior local64+584 counts recorded in the runtime commit message are not fresh current-head ordinary CI evidence. No live operations or source/threshold changes.

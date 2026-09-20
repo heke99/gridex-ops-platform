@@ -1,11 +1,11 @@
-# Open gates — approved F3 plan
+# Open gates — PR358 verification
 
-CLOSED: D110/110+parents10/10 final acceptance; PR357 documentation consistency, independent review, exact PR CI, guarded merge and actual-main73/73/allOPS. See pr357-main-acceptance-20260920.json.
+CLOSED: historical D110/110+parents10/10; PR357 acceptance publication/main verification; Task A SOURCE/DESIGN/ORACLE review5752177628. Meaningful earlier RED recorded5752201323; existing bounded runtime implementation is published3f6f1fc1.
 
-ACTIVE TaskA gates: fresh full T24.A source/hash/page inspection and complete envelope/monitoring consumer trace, including any separate canonical PRODAT serializer; independent TaskA source/design/oracle approval. The existing E011/ENV-04 omission is statically confirmed, not freshly runtime-reproduced. Durable meaningful RED and the runtime fix are still not run.
+ACTIVE: exact-head ordinary PR358 CI and independent runtime reviews. The3f6f1fc1 bot-triggered run set returned action_required before testing. This is neither a code-failure diagnosis nor a green result. Do not weaken policies or certify skipped checks. Current-head publication must receive ordinary execution and actual terminal success. E011 is not accepted until review/CI/merge/main gates pass.
 
-QUEUED: remaining full-F3 field/register composition, family-specific responses, guide-before-function/disposition, fullUNSM/G06 and old-finding evidence reconciliation. Absence of a phase receipt is not itself a confirmed code bug. Accepted350–356 fixes must not be reopened from stale audit text.
+QUEUED: remaining F3C-02/04/05/06/07 field/register/family-response/control-order/grammar/old-finding evidence reconciliation. Missing phase evidence is not automatically a code defect. Do not reopen accepted350–356 work without a concrete counterexample.
 
-DEFERRED: PR310 OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a. Native/schema/type parity is not approved by unrelated main gates. No import/restart.
+DEFERRED: PR310 OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a. Its native/schema/type parity is not approved by unrelated CI; do not import or restart it.
 
-SEPARATE: actual required-R persisted authority and formal/role/route/transport/live eligibility. No global optional producer requirement for D credit. F3/masterplan NOT_COMPLETE; no grounded overall percentage. No live operations authorized by plan approval.
+SEPARATE: formal/role/route/live readiness and source-qualified persisted authority. No invented producer or live capability. Full F3/masterplan NOT_COMPLETE; no grounded overall percentage.
