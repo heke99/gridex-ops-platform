@@ -1,0 +1,19 @@
+# Remaining D-cell qualification and closure
+
+## Global constraints
+
+Source-only until independent source/spec architecture and acceptance review plus root authorization. PR310paused/excluded. Preserve source/schema/runtime/oldassertions and historical98/110+10counts. Root owns memory/publication/CI; oneauthor/no subdelegation. No livecalls/provider/market sends or roleactivation.
+
+### Task 1: Qualify remaining twelve cells and finite closure work
+
+# Next task after prior-flow unit: remaining12 D-cell acceptance reconciliation
+
+PR354 merged39aeb94fc1a33f24269a4887a661851792feb1d5, exactreviewedtreeverified. Work repo /workspace/scratch/2a201d6d5897/gridex-next branch codex/ediel-remaining-d-20260920. Root verifies actualmain gates separately; source-only now authorized, runtime not yet. User asks complete conditions then green/merge. Preserve98/110numeric+10/10parent historical count until independent evidence-backed adjudication. PR310 paused/excluded. No live mutations, market sends, role activation or invented business producer.
+
+Read frozen MASTERMASTERPLAN_v2 and annex/D_Acceptanskontrakt.md AT-P-01/02/03, actual original sources and accepted reporting/meter/death/GAS audits. Exact cells:321/323Z14,254/242Z10,310Z05/Z06/Z09,320Z04/Z06,240Z04/Z06/Z10. f3-closure-qualification-20260919.md records bounded protocol implementation versus missing producers; PR350–353 subsequently corrected typed identity, incoming506/shared242, text readiness and322/324. Do not restart accepted fixes.
+
+For each cell establish original source applicability and true/false/unknown outcomes, consumer ownership, own physical identity, persisted source authority and final response/send disposition. Separate protocol implementation acceptance from operational-role/formal/live evidence; do not claim a catalog row or syntheticpositive implies live readiness, and do not invent a requirement for a new DSO/GAS producer merely to satisfy a count. Qualify precisely which AT-P-01/03 behavior remains missing in current actual consumers. Source-backed unsupported outgoing capability should remain blocked, with separate rationale for whether that satisfies any bounded contract; independent review must decide before count changes.
+
+Known actionable semantic residual: GAS240 TIM(actual series) vs SCH(installation) identity. Qualify original P77 plus notes, current schema/domain evidence and actual consuming paths; no database market-column assumption. Other residuals: manual/TGT typed mapping and quote-bearing legacylist guard. Keep work finite and dependency-ordered. Produce per-cell matrix with accepted evidence, exact remaining code defect versus external acceptance prerequisite, test oracle and smallest implementation batch. No runtime/source/oldassertion changes during source task. Independent source/spec architecture review required.
+
+Read AGENTS/memory/relevantskills and originalsource, not derivedaudit alone. No subdelegation. Root owns memory/publication/CI. Keep one finite per-cell audit plus actualconsumer evidence and acceptance matrix; no broad F3restart or extra unrelatedfault queue. Deliver quality/audits/ediel-masterplan-v2/f3-remaining-d-qualification-20260920.md/.evidence.json and recoverable unique .txt probe archives; preserve oldreceipts and disclose mistakes. Fullreport .superpowers/sdd/remaining-d-plan/task-1-report.md. Commit only owned audit/evidence. Explicitly address how to finish each remainingcondition using existing legitimate sourcefacts, identify missing implementation versus external-role evidence. Do all source/evidence work possible now; do not label a whole condition blocked merely because optional outgoing role is inactive. Conversely do not lower historicalacceptancecriteria or increasecounts without independent adjudication. Original main353priorflowHIGH fixed boundedmanual in354; broaderstate/ACKresiduals separate.

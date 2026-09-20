@@ -1,0 +1,294 @@
+[
+  {
+    "reason": "S17",
+    "purpose": "B72",
+    "policy": [],
+    "direct": {
+      "kind": "manual_review",
+      "ackFamily": "APERAK",
+      "outcome": null,
+      "messageText": "PRODAT permission-meddelandet saknar säker process-/tillståndskoppling i produktion.",
+      "applicationErrors": [],
+      "reason": "Produktion får inte gissa positiv eller negativ APERAK när Z14/Z15/Z18 inte kan kopplas till rätt Z13/tillstånd/process.",
+      "ruleKeys": [
+        "manual_review_required",
+        "prodat_permission_z14"
+      ],
+      "classification": {
+        "family": "PRODAT",
+        "messageCode": "Z14",
+        "variant": "Z14V",
+        "processType": "permission",
+        "businessResult": "permission_approved",
+        "applicationValidity": "valid",
+        "confidence": "high",
+        "ruleProfileId": "prodat_permission_z14",
+        "manualReviewReason": null,
+        "requiredFields": [
+          "BGM",
+          "DTM+137",
+          "NAD+FR",
+          "NAD+DO",
+          "LIN/RFF+Z07"
+        ],
+        "optionalFields": [
+          "CCI/CAV Z04",
+          "CCI/CAV Z12",
+          "CCI/CAV Z23",
+          "CCI/CAV Z24",
+          "CCI/CAV Z25",
+          "RFF+ACW",
+          "RFF+LI"
+        ],
+        "expectedResponses": [
+          "CONTRL",
+          "APERAK"
+        ],
+        "errorMapping": [
+          "facility_not_identified",
+          "permission_flow_not_found",
+          "permission_status_invalid",
+          "permission_end_reason_invalid"
+        ],
+        "matchedSignals": [
+          "Z23=A74",
+          "Z24=B72,B72"
+        ]
+      },
+      "portalFeedback": null,
+      "expectedComparison": null
+    },
+    "registry": []
+  },
+  {
+    "reason": "S17",
+    "purpose": "BAD",
+    "policy": [],
+    "direct": {
+      "kind": "manual_review",
+      "ackFamily": "APERAK",
+      "outcome": null,
+      "messageText": "PRODAT permission-meddelandet saknar säker process-/tillståndskoppling i produktion.",
+      "applicationErrors": [],
+      "reason": "Produktion får inte gissa positiv eller negativ APERAK när Z14/Z15/Z18 inte kan kopplas till rätt Z13/tillstånd/process.",
+      "ruleKeys": [
+        "manual_review_required",
+        "prodat_permission_z14"
+      ],
+      "classification": {
+        "family": "PRODAT",
+        "messageCode": "Z14",
+        "variant": "Z14V",
+        "processType": "permission",
+        "businessResult": "permission_approved",
+        "applicationValidity": "valid",
+        "confidence": "high",
+        "ruleProfileId": "prodat_permission_z14",
+        "manualReviewReason": null,
+        "requiredFields": [
+          "BGM",
+          "DTM+137",
+          "NAD+FR",
+          "NAD+DO",
+          "LIN/RFF+Z07"
+        ],
+        "optionalFields": [
+          "CCI/CAV Z04",
+          "CCI/CAV Z12",
+          "CCI/CAV Z23",
+          "CCI/CAV Z24",
+          "CCI/CAV Z25",
+          "RFF+ACW",
+          "RFF+LI"
+        ],
+        "expectedResponses": [
+          "CONTRL",
+          "APERAK"
+        ],
+        "errorMapping": [
+          "facility_not_identified",
+          "permission_flow_not_found",
+          "permission_status_invalid",
+          "permission_end_reason_invalid"
+        ],
+        "matchedSignals": [
+          "Z23=A74",
+          "Z24=B72,BAD"
+        ]
+      },
+      "portalFeedback": null,
+      "expectedComparison": null
+    },
+    "registry": []
+  },
+  {
+    "reason": "Z96",
+    "purpose": "B72",
+    "policy": [],
+    "direct": {
+      "kind": "ack",
+      "ackFamily": "APERAK",
+      "outcome": "negative",
+      "messageText": "LIN-rad saknar anläggnings-id/mätpunkt.",
+      "applicationErrors": [
+        {
+          "ercCode": "41",
+          "fieldCode": null,
+          "text": "LIN-rad saknar anläggnings-id/mätpunkt.",
+          "referenceQualifier": null,
+          "referenceNumber": null,
+          "lineItemReference": "CASE:A+B?C"
+        }
+      ],
+      "reason": "PRODAT backend decision selected negative APERAK using prodat_permission_z14.",
+      "ruleKeys": [
+        "prodat_permission_z14",
+        "41:NO_FIELD"
+      ],
+      "classification": {
+        "family": "PRODAT",
+        "messageCode": "Z14",
+        "variant": "Z14N",
+        "processType": "permission",
+        "businessResult": "permission_rejected",
+        "applicationValidity": "valid",
+        "confidence": "high",
+        "ruleProfileId": "prodat_permission_z14",
+        "manualReviewReason": null,
+        "requiredFields": [
+          "BGM",
+          "DTM+137",
+          "NAD+FR",
+          "NAD+DO",
+          "LIN/RFF+Z07"
+        ],
+        "optionalFields": [
+          "CCI/CAV Z04",
+          "CCI/CAV Z12",
+          "CCI/CAV Z23",
+          "CCI/CAV Z24",
+          "CCI/CAV Z25",
+          "RFF+ACW",
+          "RFF+LI"
+        ],
+        "expectedResponses": [
+          "CONTRL",
+          "APERAK"
+        ],
+        "errorMapping": [
+          "facility_not_identified",
+          "permission_flow_not_found",
+          "permission_status_invalid",
+          "permission_end_reason_invalid"
+        ],
+        "matchedSignals": [
+          "Z23=A76",
+          "Z24=B72"
+        ]
+      },
+      "portalFeedback": null,
+      "expectedComparison": {
+        "status": "no_expected",
+        "reason": "Ingen testförväntning angavs."
+      }
+    },
+    "registry": [
+      {
+        "severity": "error",
+        "ruleKey": "facility_not_identified",
+        "fieldPath": "SG4/RFF/Z07",
+        "fieldValue": null,
+        "expectedValue": "735 + 15 siffror",
+        "meteringPointId": null,
+        "transactionReference": "CASE:A+B?C",
+        "sourceOrder": 0,
+        "fallbackText": "Anläggningen kan inte identifieras"
+      }
+    ]
+  },
+  {
+    "reason": "Z96",
+    "purpose": "BAD",
+    "policy": [],
+    "direct": {
+      "kind": "ack",
+      "ackFamily": "APERAK",
+      "outcome": "negative",
+      "messageText": "LIN-rad saknar anläggnings-id/mätpunkt.",
+      "applicationErrors": [
+        {
+          "ercCode": "41",
+          "fieldCode": null,
+          "text": "LIN-rad saknar anläggnings-id/mätpunkt.",
+          "referenceQualifier": null,
+          "referenceNumber": null,
+          "lineItemReference": "CASE:A+B?C"
+        }
+      ],
+      "reason": "PRODAT backend decision selected negative APERAK using prodat_permission_z14.",
+      "ruleKeys": [
+        "prodat_permission_z14",
+        "41:NO_FIELD"
+      ],
+      "classification": {
+        "family": "PRODAT",
+        "messageCode": "Z14",
+        "variant": "Z14N",
+        "processType": "permission",
+        "businessResult": "permission_rejected",
+        "applicationValidity": "valid",
+        "confidence": "high",
+        "ruleProfileId": "prodat_permission_z14",
+        "manualReviewReason": null,
+        "requiredFields": [
+          "BGM",
+          "DTM+137",
+          "NAD+FR",
+          "NAD+DO",
+          "LIN/RFF+Z07"
+        ],
+        "optionalFields": [
+          "CCI/CAV Z04",
+          "CCI/CAV Z12",
+          "CCI/CAV Z23",
+          "CCI/CAV Z24",
+          "CCI/CAV Z25",
+          "RFF+ACW",
+          "RFF+LI"
+        ],
+        "expectedResponses": [
+          "CONTRL",
+          "APERAK"
+        ],
+        "errorMapping": [
+          "facility_not_identified",
+          "permission_flow_not_found",
+          "permission_status_invalid",
+          "permission_end_reason_invalid"
+        ],
+        "matchedSignals": [
+          "Z23=A76",
+          "Z24=BAD"
+        ]
+      },
+      "portalFeedback": null,
+      "expectedComparison": {
+        "status": "no_expected",
+        "reason": "Ingen testförväntning angavs."
+      }
+    },
+    "registry": [
+      {
+        "severity": "error",
+        "ruleKey": "facility_not_identified",
+        "fieldPath": "SG4/RFF/Z07",
+        "fieldValue": null,
+        "expectedValue": "735 + 15 siffror",
+        "meteringPointId": null,
+        "transactionReference": "CASE:A+B?C",
+        "sourceOrder": 0,
+        "fallbackText": "Anläggningen kan inte identifieras"
+      }
+    ]
+  }
+]
