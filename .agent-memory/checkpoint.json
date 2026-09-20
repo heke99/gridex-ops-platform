@@ -34,12 +34,12 @@
   "status": "IN_PROGRESS",
   "branch": "codex/ediel-permission-ack-20260920",
   "base_head_sha": "1892cf48e77d2c6cea99fdbb5d7507d51919956a",
-  "active_item": "Approved bounded permission322/324 runtime implementation",
-  "next_action": "Original author fixes8 integration regressions with old tests unchanged and exact approved customUNA fixture; rerun final full/gates/report, independent completed review",
+  "active_item": "PR353 original-author correction R-PACK-1",
+  "next_action": "Fix partial-policy internal leakage, append provenanceclarification, finalgates, scopedrereview/newexactCI",
   "runtime_authorized": true,
   "last_accepted_pr": 352,
   "last_merged_pr": 352,
-  "active_pr": null,
+  "active_pr": 353,
   "main_pending": null,
   "previous_pr_receipt": {
     "pr": 352,
@@ -90,25 +90,30 @@
       "initial_receipt_caveat": "Initial56 contained10 new-test responsePlan API errors; originals preserved"
     }
   },
-  "runtime_remote_parent": "0d65582c266d1f968829663eef3c9f27eae07671",
+  "runtime_remote_parent": "ddd37b0ffe977a68eacbdab26cdc8775a60d5aa2",
   "runtime_checkpoint": {
-    "local": "150b22c9a8b6eeccb4b262fa3d5d79d618783e37",
-    "remote": "0d65582c266d1f968829663eef3c9f27eae07671",
-    "tree": "661b32bb3a6ff467e13fa69b08ebbd8b3913623f",
+    "local": "f30bcf63633c73773c411767b920143b7ba49c31",
+    "remote": "ddd37b0ffe977a68eacbdab26cdc8775a60d5aa2",
+    "tree": "23153129e51b5ceb0a492d62e3978a4bd4f5112f",
     "verification": "fresh fetch diff0",
+    "runtime": "f65007f840f2b0d6d80cef0ffc2e7e3aa84f4b29",
+    "full_passed": 4689,
+    "files": 306,
     "focused_passed": 141,
-    "full_and_gates": "pending",
-    "full_first": {
-      "tests": 4688,
-      "passed": 4679,
-      "failed": 9,
-      "status": "Correction active; no acceptance"
-    }
+    "final_affected_passed": 160,
+    "quality_passed": 45,
+    "strip_only_passed": 818,
+    "gates_passed": 13
   },
   "codec_exception": "sanitizeSegment canonical terminal apostrophe releaseparity only; independent source/architecture amendment, root56db1f3a",
-  "runtime_review": "NOT_STARTED",
-  "runtime_fix_round": 0,
-  "runtime_ci_runs": [],
+  "runtime_review": "REQUEST_CHANGES R-PACK-1 medium",
+  "runtime_fix_round": 1,
+  "runtime_ci_runs": [
+    35509051434,
+    35509051410,
+    35509051404,
+    35509051425
+  ],
   "ci_blocker": null,
   "packaging_checkpoint": {
     "local": "de385ceef28d3764d04ab142432a1193d763bf46",
@@ -121,5 +126,19 @@
     "review": "APPROVE"
   },
   "next_separate_residual": "P-ACK-R1 HIGH prior-flow authority/tenant lookup, independently qualify before production linkage acceptance",
-  "additional_assertion_ruling": "c0a84050/10866f53 exact customUNA Z14N own223/status fixture correction only"
+  "additional_assertion_ruling": "c0a84050/10866f53 exact customUNA Z14N own223/status fixture correction only",
+  "initial_ci_receipt": {
+    "head": "ddd37b0ffe977a68eacbdab26cdc8775a60d5aa2",
+    "all_success": true,
+    "runs": [
+      35509051434,
+      35509051410,
+      35509051404,
+      35509051425
+    ],
+    "coverage_job": 106073652511,
+    "tests": 4689,
+    "node": "22.23.2",
+    "historical_after_fix": true
+  }
 }

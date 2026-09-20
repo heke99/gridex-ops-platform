@@ -1,0 +1,20 @@
+{
+  "gate": "ediel-eight",
+  "command": [
+    "node",
+    "--experimental-vm-modules",
+    "--test",
+    "scripts/test-ediel-rule-pack-source-identity.cjs",
+    "scripts/test-ediel-prodat-source-locators.cjs",
+    "scripts/test-ediel-prodat-characteristic-fields.cjs",
+    "scripts/test-ediel-prodat-reference-fields.cjs",
+    "scripts/test-ediel-prodat-document-fields.cjs",
+    "scripts/test-ediel-prodat-party-fields.cjs",
+    "scripts/test-ediel-prodat-d-z04-reference.cjs",
+    "scripts/test-ediel-component-escaping.cjs"
+  ],
+  "exit": 0,
+  "seconds": 3.43,
+  "log": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-ediel-eight.log",
+  "sha256": "e5ecd4ace05e63890fe7ef0194063aa7f7a975dcd93f7b7c5ce3a6312d28d5c1"
+}

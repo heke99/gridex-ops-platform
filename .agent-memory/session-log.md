@@ -241,3 +241,9 @@ Permission322/324 source candidate2a49a63c published b1d2be3da2869bd59a5a609eb7d
 
 Permission322/324 runtime checkpoint150b22c9 published0d65582c266d1f968829663eef3c9f27eae07671/tree661b32bb3a6ff467e13fa69b08ebbd8b3913623f freshfetchdiff0. Focused141/141 PASS; final full/gates/report pending. Narrow registry-only derivative258 amendment independently approved/rootauthorized a765bf7d; all other holds and residuals unchanged. Corrected isolatedbaseline67tests16PASS51RED, original API/fixture mistakes retained. No completed-runtime approval/PR yet; PR352main73+OPS accepted; PR310paused.
 
+
+PR353 OPEN DRAFT ddd37b0ffe977a68eacbdab26cdc8775a60d5aa2 equalslocalf30bcf63/tree23153129e51b5ceb0a492d62e3978a4bd4f5112f freshfetchdiff0. Finalruntimef65007f8 unchanged since4689/4689in306files, all13gates,818striponly,quality45PASS. Independent completedruntime permission_ack_runtime_review active; exactNode22CIpending. Source+architecture/amendment approved; no completedruntimeapproval/mergeyet. Root preciseparserfixturecorrection ownCCI/CAV223Z96/UNT9 supersedes caught DTM error. HIGH P-ACK-R1 separate/open; counts98/110+10 unchanged; PR352accepted; PR310paused.
+
+
+PR353 completed runtime review REQUEST_CHANGES solemedium R-PACK-1: partial322-only/324-only policy leaks otherfield internal ambiguity; independent7probes5PASS2FAIL, opposingcontrols preserved. Originalauthor permission_ack_runtime fixround1 active; N1low performanceledgerhash clarification append, freshreviewer performancePASS. Source/amendmentapproved. Initialexactddd37 all4CI SUCCESS,4689Node22coverage106073652511 historicalafterfix. Needfinalcandidate/scopedrereview/newCI. HIGHpriorflowresidual separate; PR310paused.
+

@@ -8,7 +8,7 @@ import {projectProdatDiagnostics} from './prodatDiagnosticProjection'
 import {prodatComponentEvidence} from './prodatFailureEvidence'
 
 const sourceRule='PRODAT26A:P21/73/75/119/123'
-type PermissionInput={rawSegments:readonly string[];una?:EdifactServiceStringAdvice;code?:string|null}
+type PermissionInput={rawSegments:readonly string[];una?:EdifactServiceStringAdvice;code?:string|null;selectedFields?:readonly string[]}
 /** Incoming national322/324 only. Every LIN is an independent physical object;
  * cached columns, local flow matching and test scenarios have no field authority. */
 export function evaluateIncomingProdatPermissionAckFields(input:PermissionInput){
@@ -22,9 +22,11 @@ export function evaluateIncomingProdatPermissionAckFields(input:PermissionInput)
  const objects:{lineIndex:number;reason:string|null;status:string|null;endReason:string|null}[]=[]
  const internal=(reason:string,scope:readonly EdifactTokenizedSegment[])=>issues.push({severity:'error',blocking:true,code:'PRODAT_PERMISSION_ACK_SCOPE_UNQUALIFIED',title:'Tillståndsfält kräver intern granskning',description:JSON.stringify({reason,rawSegments:scope.map(t=>t.raw)}),fieldPath:'SG8/SG14',prodatDiagnostic:prodatLocalDiagnostic('internal',sourceRule,JSON.stringify({reason,rawSegments:scope.map(t=>t.raw)}))})
  if(!code&&tokens.some(t=>t.tag==='BGM'&&['Z14','Z15','Z18'].includes(segmentComposite(t,1,una)[0])||t.tag==='CCI'&&['Z23','Z25'].includes(segmentComposite(t,2,una)[0])))internal('Selected message has no unique own BGM function',tokens)
- if(['Z14','Z15','Z18'].includes(code)){
+ // Select before assessing field-local ownership/readiness. Full consumers omit
+ // selectedFields; shared message/BGM failures above still block partial policies.
+ const fields=(code==='Z14'?['322']:code==='Z18'?['324']:code==='Z15'?['322','324']:[]).filter(field=>!input.selectedFields||input.selectedFields.includes(field))
+ if(fields.length){
   const {groups}=prodatRegisterGroups(tokens,una,code)
-  const fields=code==='Z14'?['322']:code==='Z18'?['324']:['322','324']
   const pair=(t:EdifactTokenizedSegment,qualifier:string)=>t.tag==='CCI'&&segmentComposite(t,2,una)[0]===qualifier
   const header=firstLin<0?tokens:tokens.slice(0,firstLin)
   if(header.some(t=>fields.some(f=>pair(t,f==='322'?'Z23':'Z25'))))internal('Permission characteristic outside an owning LIN',header)

@@ -1,0 +1,23 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> gridex-ops-platform@0.1.0 quality:performance
+> npm run api:performance-tenant-gates && npm run quality:n-plus-one && npm run quality:slo-contract
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> gridex-ops-platform@0.1.0 api:performance-tenant-gates
+> node scripts/check-api-performance-tenant-gates.cjs
+
+API performance/tenant gates OK.
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> gridex-ops-platform@0.1.0 quality:n-plus-one
+> node scripts/check-n-plus-one-query-budget.cjs
+
+N+1 query budget passed: 0 awaited database calls inside loops across app/api/v1, lib/customer-portal, lib/pricing, lib/website.
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> gridex-ops-platform@0.1.0 quality:slo-contract
+> node scripts/check-performance-slo-contract.cjs
+
+Performance SLO contract passed for smoke, load, spike, soak and ETag full/304 profiles.

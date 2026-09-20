@@ -1,0 +1,11 @@
+{
+  "command": [
+    "git",
+    "diff",
+    "--cached",
+    "--check"
+  ],
+  "exit": 2,
+  "raw_log_EOF_observations": 4,
+  "whole_branch_clean_claim": false
+}
