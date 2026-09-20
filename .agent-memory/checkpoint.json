@@ -73,7 +73,7 @@
   "source_review": "SOURCE/SPEC ARCHITECTURE TENANT TASK/SPEC QUALITY APPROVE",
   "runtime_scope": "Approved incoming322/324 owner and finite ACK consumers; exact two old assertion exceptions; E37Z18 accepted; physical occurrence persistence guard",
   "runtime_author": "permission_prior_flow_runtime",
-  "runtime_base": "35009150",
+  "runtime_base": "58674ab620f3eecf4b1bd692513694ffa7c52aa0",
   "runtime_test_checkpoint": {
     "local": "8afcafc5e0e22a5b2febe375ac8ce39aedca40b2",
     "remote": "59e902f8301ffa5f2197823499e7ebce7ca0a31a",
@@ -90,30 +90,12 @@
       "initial_receipt_caveat": "Initial56 contained10 new-test responsePlan API errors; originals preserved"
     }
   },
-  "runtime_remote_parent": "791519ed49017ddbdf7981e096f88e5776cd859d",
-  "runtime_checkpoint": {
-    "local": "3188d465eb2aa7e59b0712d0f813865e4d7567ba",
-    "remote": "791519ed49017ddbdf7981e096f88e5776cd859d",
-    "tree": "3457d10bc12026850f91157b5ffab925dfa28d1d",
-    "verification": "fresh fetch diff0",
-    "runtime": "69b0ce52",
-    "full_passed": 4703,
-    "files": 307,
-    "affected_passed": 136,
-    "reviewer_passed": 7,
-    "quality_passed": 45,
-    "strip_only_passed": 818,
-    "gates_passed": 13
-  },
+  "runtime_remote_parent": "234823c69ac1485d05b30096b80004b8cbda31cc",
+  "runtime_checkpoint": null,
   "codec_exception": "sanitizeSegment canonical terminal apostrophe releaseparity only; independent source/architecture amendment, root56db1f3a",
-  "runtime_review": "APPROVE R1 TASK/SPEC QUALITY WHOLE-BRANCH",
+  "runtime_review": "NOT_STARTED",
   "runtime_fix_round": 1,
-  "runtime_ci_runs": [
-    35509921630,
-    35509921632,
-    35509921638,
-    35509921634
-  ],
+  "runtime_ci_runs": [],
   "ci_blocker": null,
   "packaging_checkpoint": {
     "local": "de385ceef28d3764d04ab142432a1193d763bf46",
@@ -154,5 +136,11 @@
     "full": 35510270064,
     "ops": 35510270047
   },
-  "pause_archive": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920"
+  "pause_archive": "quality/audits/ediel-masterplan-v2/permission-prior-flow-paused-20260920",
+  "runtime_auth_checkpoint": {
+    "local": "58674ab620f3eecf4b1bd692513694ffa7c52aa0",
+    "remote": "234823c69ac1485d05b30096b80004b8cbda31cc",
+    "tree": "aca69f35438fb6f5e4cd6578283ef9359a2f76e4",
+    "verification": "fresh fetch diff0"
+  }
 }
