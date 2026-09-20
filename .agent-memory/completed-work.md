@@ -1,11 +1,11 @@
-# Completed work — accepted PR356 GAS240 Batch B
+# Completed work — PR356 runtime and final D acceptance
 
-Verified2026-09-20: original checkpointac53b020 read and preserved; runtime unchanged by continuation; independent Task3 TASK/SPEC, QUALITY, TENANT-BOUNDARY and WHOLE-BRANCH reviewsPASS; all four ordinary exact92cbc PR workflowsSUCCESS; guarded PR356 merge; actual merged tree equality; actual-main73/73,0failed plus allOPS, Ediel, browser and coverageSUCCESS.
+Numeric D **110/110 accepted**; parent occurrences **10/10 accepted**. Independent final historical-ledger adjudication5751354872 accepts the twelve cells under the same bounded protocol standard used for the prior accepted groups. It found no new concrete code defect. Correction5751228735 separates historical implementation credit from optional persisted producers and live scope.
 
-Accepted runtime/main:922a66003abe2f2622a13ed58fd24e57ac95ef5f. Reviewed candidate92cbc423332e8b2203f65bddc6fcba1390a65493. Sharedtree882156165f6f83e33f95e4a7393b3ad2ff458366. Maincertificate35523710967/job106112104489; OPS35523710964/jobs106112104279,106112104433,106112104445. See gas-identity-acceptance-20260920.md/.json for exact evidence and qualifications.
+PR356 is merged at922a66003abe2f2622a13ed58fd24e57ac95ef5f. Its tree882156165f6f83e33f95e4a7393b3ad2ff458366 matches reviewed92cbc423. Independent runtime comments5751116589/5751166277, all applicable exact-candidate workflows, actual-main73/73 and allOPS were accepted; root receipt5751239067. See gas-identity-acceptance-20260920.md for the preserved detailed execution receipts.
 
-Separate independent all12 bounded protocol reviewPASS, no new confirmed code defect. Historical counter acceptance is NOT COMPLETE. Controlling correction5751228735 states conservative PENDING evidence, not a uniform absent-producer or live-role code gap. Counts remain98/110numeric+10/10parents. FullF3 and fullmasterplan remain incomplete.
+PR357 is a separate documentation publication, not yet counted here as merged or exact-head verified. Finding5751370281 concerns stale handoffs, not a reopened runtime defect. This amendment aligns active records; its completion needs re-review and its own CI.
 
-No local repository execution or fresh originalPDF inspection occurred. AuthorNode24 receipts remain historical; actual Node22CI evidence is distinct. Final continuation docs are saved on the named branch, not automatically merged/certified by the parent runtime's tests.
+Historical source/audits and author Node24 receipts are unchanged. The old detailed runtime receipt and checkpoint are preserved byte-for-byte in archive/pr357-53b4011c/. Original earlier history remains in archive/gas-identity-ac53b020/ and Git history. No new local repository test or original-PDF inspection is claimed.
 
-Earlier accepted work remains unchanged in archive/gas-identity-ac53b020/completed-work.md and the original audits. Intermediate resume snapshot remains at92cbc423. PR310 remains paused at e9611351, untouched.
+Full F3 and full masterplan remain NOT_COMPLETE. PR310 remains OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a, untouched.
