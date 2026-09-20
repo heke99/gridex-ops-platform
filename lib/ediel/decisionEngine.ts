@@ -1,3 +1,5 @@
+import {evaluateIncomingProdatEnergyProduct} from '@/lib/ediel/prodat/prodatEnergyProduct'
+import {projectProdatDiagnostics} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
 import {deathStatusAperakErrors} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
 import type {DeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
 import {validateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy'
@@ -332,7 +334,8 @@ export function decideProdatAperak(input: ProdatAperakDecisionInput): EdielEngin
   const changeWire=tokenizeEdifact(rawPayload??''),changeBgm=changeWire.segments.find(t=>t.tag==='BGM')
   const changeErrors=validateProdatMeterChange({code:segmentComposite(changeBgm,1,changeWire.una)[0]??'',rawSegments:changeWire.segments.map(t=>t.raw),una:changeWire.una,direction:'inbound',facts:{meterChange:input.meterChange}}).filter(i=>i.blocking||i.severity==='error').map(i=>({...errorForCode({rawPayload,ercCode:i.code==='PRODAT_METER_CHANGE_REQUIRED'?'41':'42',fieldCode:i.fieldPath==='CCI++Z14/CAV'?'242':'254',text:i.description}),referenceQualifier:i.meteringPointId?'Z07':null,referenceNumber:i.meteringPointId??null,lineItemReference:i.lineItemReference??null}))
   const deathErrors=deathStatusAperakErrors({code:segmentComposite(changeBgm,1,changeWire.una)[0]??'',rawSegments:changeWire.segments.map(t=>t.raw),una:changeWire.una,facts:{deathStatus:input.deathStatus}})
-  const applicationErrors = [...businessErrors, ...knownPermissionErrors,...changeErrors,...deathErrors]
+  const energyErrors=projectProdatDiagnostics(evaluateIncomingProdatEnergyProduct({rawSegments:changeWire.segments.map(t=>t.raw),una:changeWire.una}).issues).applicationErrors
+  const applicationErrors = [...businessErrors, ...knownPermissionErrors,...changeErrors,...deathErrors,...energyErrors]
   if (portalFeedback?.expectedNegativeAperak && portalFeedback.actualWasPositiveAperak) {
     applicationErrors.unshift(portalFeedbackError(portalFeedback, rawPayload))
   }

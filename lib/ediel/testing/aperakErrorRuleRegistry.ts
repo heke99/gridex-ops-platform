@@ -1,3 +1,4 @@
+import {assertIncomingProdatEnergyProductReview} from '@/lib/ediel/prodat/prodatEnergyProduct'
 import {validateProdatGasApplicability} from '@/lib/ediel/rulebook/prodatGasApplicabilityPolicy'
 import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
 import {validateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy';
@@ -1086,6 +1087,7 @@ export function deriveProdatAperakValidationIssues(params: {
 }): EdielAperakValidationIssue[] {
   const { message, testData } = params;
   if (message.message_family !== "PRODAT") return [];
+  assertIncomingProdatEnergyProductReview(message.raw_payload);
 
   const registerParsed=parseProdatMessage(message);
   const registerWire=parseEdifactMessageFacts(message.raw_payload);

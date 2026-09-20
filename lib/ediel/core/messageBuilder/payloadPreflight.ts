@@ -449,7 +449,7 @@ function validateEdifactPayload(params: {
       }))
     }
 
-    for (const cav of misplacedProdatEnergyProducts(String(canonical.messageCode), tokens.segments, tokens.una)) {
+    for (const cav of params.mode === 'send' ? misplacedProdatEnergyProducts(String(canonical.messageCode), tokens.segments, tokens.una) : []) {
       issues.push(issue({
         severity: params.mode === 'send' ? 'error' : 'warning',
         code: 'PRODAT_ENERGY_PRODUCT_CAV_COMPONENT_MISMATCH',

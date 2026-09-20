@@ -38,6 +38,6 @@ it('full canonical distinguishes ignored242 content from independent506 in the s
   const rawPayload=sibling?normal.replace('CAV+:::INVALID','CAV+::::INVALID'):normal
   const result=validateRulebookMessage({family:'PRODAT',code:'Z10',rawPayload,mode:'parse',direction:'inbound',meterChange:meterChange()})
   expect(result.issues.filter(i=>i.code.startsWith('PRODAT_METER_CHANGE_')&&i.fieldPath==='CCI++Z14/CAV'&&(i.severity==='error'||i.blocking))).toEqual([])
-  expect(result.issues.some(i=>i.title==='energy_product får inte skickas'&&i.code==='FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT')).toBe(sibling)
+  expect(result.issues.some(i=>i.prodatDiagnostic?.kind==='field'&&i.prodatDiagnostic.fieldNumber==='506')).toBe(false)
  }
 })

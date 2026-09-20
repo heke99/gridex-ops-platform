@@ -1,3 +1,4 @@
+import {assertIncomingProdatEnergyProductReview} from '@/lib/ediel/prodat/prodatEnergyProduct'
 // Extracted from actions.ts; keep public imports on the facade module.
 import { applyUtiltsTestAckPlanOverride } from '@/lib/ediel/testing/utiltsAckOverrides'
 
@@ -444,6 +445,8 @@ export async function resolveBackendAperakDecision(params: {
   if (!params.roleCode) {
     throw new Error("Aktörsroll saknas för TGT/APERAK-beslutet.");
   }
+
+  assertIncomingProdatEnergyProductReview(params.sourceMessage.raw_payload);
 
   const tgtResolution = await resolveTgtTestDataForAckAction({
     message: params.sourceMessage,
