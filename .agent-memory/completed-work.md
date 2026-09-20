@@ -1,9 +1,9 @@
-# PR359 FTX301/303 — runtime candidate
+# Verified progress — PR359 continuation
 
-Only active item is PR359 FTX301/303. Source5752810321, design/oracle5752868541 and clarification5752898014 are complete. Real native and SMTP RED precede the bounded fix. Candidate is IMPLEMENTED_NOT_VERIFIED: local248/248 and selected648/648 pass; ordinary exact-head CI and independent runtime/tenant/whole-PR review are still required.
+Retained: source5752810321, design/oracle5752868541, clarification5752898014; published FTX/first-PRODAT revision9e286f86. Independent5753117905 passed TASK/SPEC,QUALITY,TENANT-BOUNDARY at9e but explicitly withheld WHOLE-PR pendingCI. This is historical review evidence, not approval of the format correction.
 
-Read quality/audits/ediel-masterplan-v2/f3-ftx301-303-runtime-evidence-20260921.md, current-task.md and checkpoint.json; fetch actual work branch/main before writes. Preserve published RED and the corrected multi-message fixture. Publish only the pinned tested candidate; check ordinary CI (including actual SMTP and native wrapper), address concrete independent review findings, then guarded merge and fresh main73/OPS. Do not restart old source/D/PR358 work or infer acceptance from local tests.
+Observed: ordinaryOPS35541596324/job106160145134 actually ran4988 tests:4986PASS,2FAIL in unchanged list-routing regressions. Traced both failures to the FTX dispatch expression accepting arbitrary punctuation. Published22 additional direct/preflight/actual-SMTP tests atb9dcfd12. Supporting isolated Node expression experiment:5 old false positives;18 candidate classifications passed. No repository-suite GREEN is inferred from that experiment.
 
-PR358/E011 is already main-accepted at352fd8ee; receipt pr358-main-acceptance-20260920.json and root5752720765. D110/110+10/10 unchanged. FullF3/masterplan NOT_COMPLETE. PR310 remains OPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a; no import/restart/write/merge or liveDB/provider/market/settings/explicit deployment operations.
+The bounded production correction, its final ordinaryCI, independent review, merge and actual-main73/OPS acceptance are not yet entered as completed work. See current-task.md and f3-ftx-format-routing-20260921.md for exact gates. Earlier snapshot remains atb9dcfd12 and archive/pr359-before-runtime/completed-work.md.
 
-Earlier snapshot preserved in archive/pr359-before-runtime/completed-work.md. Current complete evidence and limitations: quality/audits/ediel-masterplan-v2/f3-ftx301-303-runtime-evidence-20260921.md.
+Acceptedmain remains352fd8ee/PR358 (pr358-main-acceptance-20260920.json; root5752720765). D110/110+10/10 unchanged. FullF3/masterplanNOT_COMPLETE; PR310OPEN/DRAFT/PAUSED and untouched.

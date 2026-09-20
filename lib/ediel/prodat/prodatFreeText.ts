@@ -88,7 +88,11 @@ type WireInput = { raw_payload?: string | null; message_family?: string | null; 
 /** Select actual wire family/code before stale row labels or format hints can
  * hide a PRODAT send. Unsupported/ambiguous messages retain their other gates. */
 export function prodatFreeTextSendIssues(input: WireInput): EdielRulebookIssue[] {
-  if (!input.raw_payload || !/^(?:UNA|UNB|UNH|BGM|LIN|FTX)(?:[^a-zA-Z0-9]|$)/.test(input.raw_payload.trimStart())) return []
+  // Without UNA, only '+' introduces an EDIFACT data element. 'UNH;' is a
+  // list column, not a header; its literal '?' must never reach this codec.
+  // Keep UNA/custom alphabets and real malformed EDIFACT on the existing
+  // tokenizer path, independently of row labels or alternate-format hints.
+  if (!input.raw_payload || !/^(?:UNA(?:[^a-zA-Z0-9]|$)|(?:UNB|UNH|BGM|LIN|FTX)\+)/.test(input.raw_payload.trimStart())) return []
   const parsed = tokenizeEdifact(input.raw_payload)
   const tokens = firstProdatFreeTextMessage(parsed.segments, parsed.una)
   const header = tokens.find(token => token.tag === 'UNH')

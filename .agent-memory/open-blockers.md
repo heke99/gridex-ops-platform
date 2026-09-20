@@ -1,9 +1,9 @@
-# Open gates — PR359 FTX301/303
+# Open gates — PR359 format-routing correction
 
-Only active item is PR359 FTX301/303. Source5752810321, design/oracle5752868541 and clarification5752898014 are complete. Real native and SMTP RED precede the bounded fix. Candidate is IMPLEMENTED_NOT_VERIFIED: local248/248 and selected648/648 pass; ordinary exact-head CI and independent runtime/tenant/whole-PR review are still required.
+Only active item: PR359 FTX301/303. Old9e286f86 ordinary npm test failed2/4988 existing list-routing tests; no migration-chain restart is authorized by that failure. Test-first b9dcfd12 adds22 controls, followed by the bounded format-dispatch correction. No original test or expectation was removed or relaxed.
 
-Remaining: publish exact candidate, complete ordinary CI and independent runtime/quality/tenant/whole-PR review, guarded merge and actual-main verification. Incoming extra text versus local outgoing conformance remains the controlling boundary; no invented national errors.
+Still required: terminal unchanged ordinary CI on the actual final head; independent final TASK/SPEC,QUALITY,TENANT-BOUNDARY,WHOLE-PR approval; expected-head guarded merge; actual-main73/73 and allOPS; saved acceptance receipt. Prior5753117905 three-dimensional PASS and isolated dispatch18PASS do not satisfy those gates. Inspect actual results and fix concrete findings; do not mark pending work green.
 
-Queued: remaining F3 field/register composition, P/U response criteria, guide-before-function/per-object disposition, full UNSM/G06 and original-finding reconciliation. No full phase acceptance.
+Queued only after PR359 acceptance: remainingF3 field/register composition, P/U response criteria, guide-before-function/per-object disposition, fullUNSM/G06 and original-finding reconciliation. FullF3/masterplanNOT_COMPLETE. D110/110+10/10 unchanged. Last acceptedmain352fd8ee/PR358.
 
-PR358/E011 is already main-accepted at352fd8ee; receipt pr358-main-acceptance-20260920.json and root5752720765. D110/110+10/10 unchanged. FullF3/masterplan NOT_COMPLETE. PR310 remains OPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a; no import/restart/write/merge or liveDB/provider/market/settings/explicit deployment operations.
+PR310 remainsOPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a, outside all active operations. No liveDB/provider/market/settings/explicitdeployment changes. Prior blocker snapshot remains in Git atb9dcfd12.

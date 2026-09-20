@@ -1,9 +1,11 @@
-# PR359 FTX301/303 — runtime candidate
+# Session — 2026-09-21 PR359 format-routing continuation
 
-Only active item is PR359 FTX301/303. Source5752810321, design/oracle5752868541 and clarification5752898014 are complete. Real native and SMTP RED precede the bounded fix. Candidate is IMPLEMENTED_NOT_VERIFIED: local248/248 and selected648/648 pass; ordinary exact-head CI and independent runtime/tenant/whole-PR review are still required.
+Read livePR359/head9e286f86/main352fd8ee, repository instructions/current memory, actual FTX/tokenizer/UNA/preflight and existing format-routing/SMTP tests. Read actual ordinaryOPS35541596324/job106160145134 failure log and latest independent review5753117905. Did not restart source/D/PR358 work or PR310.
 
-Read quality/audits/ediel-masterplan-v2/f3-ftx301-303-runtime-evidence-20260921.md, current-task.md and checkpoint.json; fetch actual work branch/main before writes. Preserve published RED and the corrected multi-message fixture. Publish only the pinned tested candidate; check ordinary CI (including actual SMTP and native wrapper), address concrete independent review findings, then guarded merge and fresh main73/OPS. Do not restart old source/D/PR358 work or infer acceptance from local tests.
+Root cause: FTX dispatch accepted any punctuation after a tag; UNH-semicolon list text reached release decoding before the alternate-format route. Published22 focused tests first atb9dcfd12da7dcdfa90b20b8a2f994ce57f1d4423. Existing tests and expectations retained. Supporting isolated Node experiment observed5 old false positives and18 passing candidate classifications; no local repository-suite execution claimed.
 
-PR358/E011 is already main-accepted at352fd8ee; receipt pr358-main-acceptance-20260920.json and root5752720765. D110/110+10/10 unchanged. FullF3/masterplan NOT_COMPLETE. PR310 remains OPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a; no import/restart/write/merge or liveDB/provider/market/settings/explicit deployment operations.
+Prepared only the one-function dispatch-expression correction and updated canonical handover/checkpoint. New default tags require '+', while existing UNA/custom alphabet and real malformed-wire tokenizer behavior remain intact. No matrix, first-PRODAT scope, schema, migration, role, RLS, workflow, threshold or live-provider change.
 
-Earlier snapshot preserved in archive/pr359-before-runtime/session-log.md. Current complete evidence and limitations: quality/audits/ediel-masterplan-v2/f3-ftx301-303-runtime-evidence-20260921.md.
+Next is exact final-head ordinaryCI and independent review, then guardedmerge and actual-main73/73+OPS receipt. Do not infer acceptance from a prior-head review, a local expression check, a queued run or the synthetic PR merge ref. Status IMPLEMENTED_NOT_VERIFIED. Previous log remains in Git atb9dcfd12 and archive/pr359-before-runtime/session-log.md.
+
+D110/110+parents10/10 unchanged; fullF3/masterplanNOT_COMPLETE. PR310OPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a untouched. No liveDB/provider/market/settings/explicitdeployment action.
