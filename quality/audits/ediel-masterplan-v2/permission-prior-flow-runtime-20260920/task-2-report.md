@@ -1,3 +1,16 @@
+# Task 2 implementation handover
+
+Status: implemented and locally verified; independent review/publication/CI/merge/main acceptance remain root gates.
+
+Owned commits:
+- 65ec8293 — fresh runtime TDD RED8/8 before production.
+- b1b2fdca — bounded scoped loader, per-occurrence relation, source-bound manual guard, authorized fixture adapters; focused209/209.
+- d9d0a93e — self-review timestamp/namespace evidence correction; focused212/212, full4787/4787 on unchanged finalruntime.
+
+The final evidence/report commit is recorded by root from the handover response. Full runtime has not changed after d9d0a93e. A final test-only literal corrects the new national40 control to originalP93 Swedish105 text and adds the text assertion; separate targeted1/1 passes. No existing national40 assertion was changed.
+
+Read the complete tracked audit below for exact A1–A9 mapping, tenant/schema/time/status authority, fixture qualification corrections, scope limitations and commands. The initial uncheckedBoolean standalone-engine oracle was corrected under root's explicit field-only boundary ruling; originalRED retained and actualthree-entrypoint9tests prove the real boundary.
+
 # Prior permission-flow runtime — implementation checkpoint
 
 Authorized source proposal: `0fd41d86`, independently approved in `.agent-memory/permission-prior-flow-source-review.md`; runtime task brief `.superpowers/sdd/permission-prior-flow-plan/task-2-brief.md`. Base `58674ab620f3eecf4b1bd692513694ffa7c52aa0`. No final-runtime acceptance claimed at this checkpoint.

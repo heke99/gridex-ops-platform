@@ -29,19 +29,19 @@ export function priorPermissionWire(message:EdielMessageRow){
   if(modeRows.length>1||cav&&cav.tag!=='CAV')conflict=true
   const ud=s.filter(r=>r.tag==='NAD'&&parts(r,1)[0]==='UD');if(ud.length>1)conflict=true
   const lin=parts(s[0],3),customer=unique(ud,2)
-  return {lineIndex:g.lineIndex,lineNumber:g.lineNumber,li:value('RFF','LI'),permission:value('RFF','Z09'),object:lin[0]?JSON.stringify(lin):null,grid:value('RFF','Z05'),customer,end:value('DTM','164'),mode:cav?.tag==='CAV'?parts(cav,1)[0]??null:null,conflict}
+  return {lineIndex:g.lineIndex,lineNumber:g.lineNumber,li:value('RFF','LI'),permission:value('RFF','Z09'),object:lin[0]?JSON.stringify(lin):null,grid:value('RFF','Z05'),customer,end:(()=>{const end=value('DTM','164'),dtm=own.find(r=>r.tag==='DTM'&&parts(r,1)[0]==='164');return end&&dtm?JSON.stringify(parts(dtm,1).slice(1)):null})(),mode:cav?.tag==='CAV'?parts(cav,1)[0]??null:null,conflict}
  })
  const dtm=header.filter(r=>r.tag==='DTM'&&parts(r,1)[0]==='137'),date=dtm.length===1?parts(dtm[0],1):[]
  // National 203 timestamps use fixed UTC+1. Keep dispatch/receipt separate.
  const dateValue=date[2]==='203'&&/^\d{12}$/.test(date[1]??'')?`${date[1].slice(0,4)}-${date[1].slice(4,6)}-${date[1].slice(6,8)}T${date[1].slice(8,10)}:${date[1].slice(10,12)}:00+01:00`:null
- return {code:bgm.length===1?parts(bgm[0],1)[0]??'':'',messageReference:unh.length===1?parts(unh[0],1)[0]??'':'',sender:party('FR'),receiver:party('DO'),transportSender:unb.length===1?parts(unb[0],2)[0]??null:null,transportReceiver:unb.length===1?parts(unb[0],3)[0]??null:null,application:unb.length===1?parts(unb[0],7)[0]??null:null,testFlag:unb.length===1?parts(unb[0],11)[0]??'':null,businessAt:dateValue,objects}
+ return {code:bgm.length===1?parts(bgm[0],1)[0]??'':'',messageReference:unh.length===1?parts(unh[0],1)[0]??'':'',sender:party('FR'),receiver:party('DO'),transportSender:unb.length===1?parts(unb[0],2)[0]??null:null,transportReceiver:unb.length===1?parts(unb[0],3)[0]??null:null,application:unb.length===1?parts(unb[0],7)[0]??null:null,testFlag:unb.length===1?parts(unb[0],11)[0]??'':null,businessAt:dateValue,transportNamespacesValid:unb.length===1&&[2,3].every(n=>{const p=parts(unb[0],n);return p[1]==='ZZ'&&!p.slice(2).some(Boolean)}),objects}
 }
 const active=(r:PriorScopeRow,at:string)=>{const n=Date.parse(at),from=typeof r.valid_from==='string'?Date.parse(r.valid_from):NaN,to=r.valid_to===null||r.valid_to===undefined?Infinity:Date.parse(String(r.valid_to));return Number.isFinite(n)&&Number.isFinite(from)&&from<=n&&n<to}
 const legalId=(tuple:string|null)=>{if(!tuple)return null;const p=JSON.parse(tuple) as string[];return p.length===3&&p[1]==='160'&&p[2]==='SVK'?p[0]:null}
 /** Revalidate real temporal rows; stored snapshots and caller tags confer no authority. */
 export function priorPermissionScope(message:EdielMessageRow,wire:PriorWire,records:PriorScopeRecords,at:string){
  const company=message.company_id,env=message.environment
- if(!company||!['test','production'].includes(env)||!wire.messageReference||!wire.businessAt||!wire.objects.length||!['23-DGI-PRODAT','23-DDQ-PRODAT'].includes(wire.application??'')||message.application_reference!==wire.application||message.message_family!=='PRODAT'||wire.transportSender!==message.sender_ediel_id||wire.transportReceiver!==message.receiver_ediel_id||wire.testFlag!==(env==='test'?'1':''))return false
+ if(!company||!wire.transportNamespacesValid||!wire.businessAt||Date.parse(wire.businessAt)>Date.parse(at)||!['test','production'].includes(env)||!wire.messageReference||!wire.businessAt||!wire.objects.length||!['23-DGI-PRODAT','23-DDQ-PRODAT'].includes(wire.application??'')||message.application_reference!==wire.application||message.message_family!=='PRODAT'||wire.transportSender!==message.sender_ediel_id||wire.transportReceiver!==message.receiver_ediel_id||wire.testFlag!==(env==='test'?'1':''))return false
  const own=legalId(message.direction==='inbound'?wire.receiver:wire.sender),other=legalId(message.direction==='inbound'?wire.sender:wire.receiver),transport=message.direction==='inbound'?wire.transportReceiver:wire.transportSender,counterTransport=message.direction==='inbound'?wire.transportSender:wire.transportReceiver
  if(!own||!other||own===other||other!==counterTransport)return false
  for(const instant of [at,wire.businessAt]){

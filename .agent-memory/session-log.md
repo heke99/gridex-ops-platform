@@ -1,3 +1,5 @@
+Prior-flow runtimeb1b2fdca publishedd8d704b241652c5aa073797689f0e1285df570b0/treed4ae6200 freshfetchdiff0. Focused209/209incl81newtests andtesttypesPASS; fullgates/selfreviewpending. Sourceapproved; no completedruntimeapproval/PRyet. OriginalRED8includedonewrong-layeroracle correctedunderrootfield-onlyboundary; actual3manualentrypoint9controls andmutationbindingRED/GREEN retained. PR310paused;counts98/110+10unchanged.
+
 Prior-flow source0fd41d86 independent all5APPROVE. Root authorizes bounded Task2 pureperobject/scopedloader/manualguard and single energyfalsecontext40/105 assertionexception; typedfixtureadapters preserveoldoutcomes. Main353accepted, no runtime/countacceptance yet;98/110+10unchanged;PR310paused.
 
 Prior-flow source0fd41d86 published2d60935a77ed69cbc1f31c703c82fb39174d4198/tree27eebaa15a33c3e9cbdacce9c5080f555d76fb6b freshfetchdiff0. Qualified69tests54PASS15deliberateRED,55observations. Independent permission_prior_flow_review SOURCE/SPEC ARCHITECTURE TENANT TASK QUALITY active; no runtime authorized. Main353accepted;98/110+10unchanged;PR310paused.
