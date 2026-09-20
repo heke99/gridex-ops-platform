@@ -1,10 +1,10 @@
-# Open gates — GAS240 Batch B
+# Open gates — after final D acceptance
 
-2026-09-20, PR356 DRAFT:
+Numeric D **110/110 accepted** and parents **10/10 accepted** under final independent decision5751354872. There is no remaining twelve-cell acceptance blocker. The accepted PR356 runtime has its own completed main73/73 and OPS receipts.
 
-1. Independent completed-runtime TASK/SPEC, QUALITY, TENANT-BOUNDARY and WHOLE-BRANCH verdicts are not yet received. Native isolated SDD subagent execution is not exposed in this session. Request the existing separate CodeRabbit reviewer; assess its real coverage without silently waiving any missing gate.
-2. Initial ac53 OPS35522698819 was IN_PROGRESS; three other applicable workflows were SUCCESS. Exact final-head Node22 CI must be freshly verified; saved Node24 author receipts are not that certificate.
-3. Guarded merge, exact merged-tree verification and actual-main73/73 plus OPS have not occurred for Batch B.
-4. Full historical acceptance of the twelve remaining cells is separate: authoritative persisted positive producers/adapters and live capability cannot be inferred from protocol tests or generic holds.
+1. ACTIVE: PR357 publication. Documentation consistency finding5751370281 is addressed by this amendment; independent re-review and ordinary CI on the amended head, guarded merge and actual-main verification remain required. No inherited green status from the parent runtime.
+2. QUEUED: full F3 evidence reconciliation beyond the D counter. Its criterion-by-criterion closure has not been established. Do not call an uninspected area a confirmed defect, and do not resurrect fixed F3-Q1/Q2 from historical text.
+3. SEPARATE: actual outgoing required-field authority and scope-specific production rights/guide/route/transport/formal evidence. These limits are not a universal producer prerequisite for the accepted historical protocol cells.
+4. DEFERRED: PR310 remains OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a. Its schema/native/type work is not approved by unrelated green main jobs and must not be imported or restarted.
 
-PR310 remains intentionally PAUSED at e961135199f292b8210884f07de3b616a670161a, not an active remediation item. No new runtime defect is asserted by this checkpoint. Previous blocker history, including superseded findings, is preserved without alteration in `archive/gas-identity-ac53b020/open-blockers.md`.
+Full F3, later phases and full masterplan remain NOT_COMPLETE. No evidence-backed overall percent is recorded. No live DB/provider/market/role/settings/deployment actions.

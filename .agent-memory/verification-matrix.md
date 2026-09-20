@@ -1,18 +1,19 @@
-# Verification matrix — PR356 continuation
+# Verification matrix — D acceptance and separate publication
 
-| Check | Observed result | Scope |
+Numeric D **110/110 accepted**; parent occurrences **10/10 accepted**.
+
+| Evidence | Exact binding | Result and scope |
 |---|---|---|
-| Branch GET | ac53b020e430a2ffa87c09579180355055793393 | Initial live resume checkpoint |
-| Main GET | 561c53ad9ba413eeb4f37ab1b029b1a5ba26d320 | Actual base at resume |
-| Compare main..ac53 | 3 ahead, 0 behind,66changedfiles | Complete branch, not HEAD~1 |
-| PR310 GET | Open/draft/notmerged, e961135199f292b8210884f07de3b616a670161a | Paused; no write |
-| PR356 create/readback | Open/draft, ac53 head/main561c53ad | Not approved or merged |
-| Author15-gate ledger | All exit0, runtime153b7d5a,Node24.19.0 | Inspected historical receipts; no local rerun |
-| Ediel CI35522698816 | SUCCESS | Initial exact ac53 |
-| Browser CI35522698821 | SUCCESS | Initial exact ac53 |
-| Full CI35522698818 | SUCCESS | Initial exact ac53; detailed certificate not yet inspected |
-| OPS CI35522698819 | IN_PROGRESS | Initial snapshot; re-read required |
-| Independent runtime review | PENDING | Four verdicts required; no self-approval |
-| Final-head Node22CI / merge / actual-main | NOT_VERIFIED | Must not infer from initial-head or Node24 receipts |
+| Independent runtime review | PR356 comments5751116589/5751166277, head92cbc423332e8b2203f65bddc6fcba1390a65493 | Four verdicts PASS; historical accepted runtime |
+| PR356 ordinary CI | 35523069844/35523069841/35523069828/35523069893 | SUCCESS; Node22.23.2 coverage4968/4968 in313files |
+| Actual runtime merge | 922a66003abe2f2622a13ed58fd24e57ac95ef5f | Tree882156165f6f83e33f95e4a7393b3ad2ff458366 matches reviewed candidate |
+| PR356 main full | 35523710967/job106112104489 | 73/73,0failed; historical runtime only |
+| PR356 main OPS | 35523710964/jobs106112104279/433/445 | All SUCCESS; not PR310 native/schema approval |
+| Final historical ledger | PR356 comment5751354872 | All twelve ACCEPT;110/110 numeric,10/10 parents |
+| PR357 consistency finding | comment5751370281, initial head53b4011c | Confirmed stale active handoffs; addressed by this amendment |
+| PR357 amended head | Fetch current PR/head/CI | Independent re-review and exact-head CI PENDING; no merge claimed |
+| Preserved historical receipt | archive/pr357-53b4011c/gas-identity-acceptance-20260920.md/.json | Original Git blobs preserved, including past pending disposition and detailed log/artifact metadata |
+| Full F3/masterplan | Criterion-level reconciliation not completed | NOT_COMPLETE; no percent or live approval inferred |
+| PR310 | e961135199f292b8210884f07de3b616a670161a | OPEN/DRAFT/PAUSED, excluded |
 
-Original complete matrix is preserved byte-for-byte at `archive/gas-identity-ac53b020/verification-matrix.md`. Updating memory does not constitute a test execution. The new docs-only commit must itself be read back and compared with ac53 before treating it as the published candidate.
+No new local repository execution, original-PDF reinspection, independently recomputed historical artifact hash, production operation or live capability is claimed. The historical Vercel workflow skipped actual deployment steps. Archived pending statuses describe their earlier checkpoint only.

@@ -1,11 +1,11 @@
-# Active task — complete GAS240 Batch B review gate
+# Active task — finish PR357 acceptance publication
 
-Status: IN_PROGRESS. User resumed branch `codex/ediel-gas-identity-20260920` from ac53b020. PR #356 is draft. One active item: independent completed-runtime review and ordinary exact-head CI for the existing finite Task 3 implementation.
+Status: IN_PROGRESS. Numeric D **110/110 accepted** and parents **10/10 accepted** by independent final review5751354872. Do not redo the twelve-cell adjudication or accepted GAS240 implementation.
 
-Read `gas-identity-pr356-review-package.md`, `gas-identity-task-brief.md` and `gas-identity-review-brief.md`; the already approved source contract remains in `remaining-d-source-review.md`. Do not restart PR #355 or the source qualification. Do not change code merely to produce activity.
+One active subtask: close documentation-consistency finding5751370281 in PR357. Confirm every active handoff uses the final acceptance, while historical receipts are explicitly archived. Obtain independent re-review of the exact amended head, inspect ordinary CI on that head, then perform a guarded merge and verify actual-main results. Do not transfer the parent runtime certificate to the new documentation commit.
 
-Next action: request/read separate review of the final published head and inspect all four applicable workflows. The existing CodeRabbit integration can be manually requested, but a bot response only satisfies a gate to the extent its actual evidence and scope do; no substitute self-approval. This session has no native isolated SDD subagent executor. Keep any uncovered independent review requirement explicitly pending.
+Next queued task, after publication: source/evidence reconciliation of the full F3 row in MASTERMASTERPLAN_v2 section18 and its section19 acceptance criteria. Map74 fields, completed110 D and10 parent occurrences, register overlays, UNB0031, CCI/CAV, PAP/UAP/CONTRL/ERR, guide-before-function and old reproductions to actual owners, consumers, independent oracles and executed evidence. Distinguish satisfied criteria, specific unverified criteria and confirmed defects. Green CI or the D counter alone does not close F3.
 
-For genuine findings: targeted proof plus opposing control, bounded TDD fix, scoped independent re-review, fresh exact-head CI. Only after all mandatory approval/CI gates: mark ready, expected-head merge, compare merged tree, require actual-main73/73 plus all OPS before bounded acceptance. Then separately adjudicate the twelve cells; do not advance counters automatically.
+Use the current implementation and accepted PR350–356 corrections, not stale pre-fix findings. Do not invent optional producers or live roles to satisfy protocol counts. Any real residual requires a bounded source-backed plan and independent review before runtime edits; only a material suspected defect calls for a narrow opposing-control reproduction.
 
-PR #310 stays paused and untouched. Complete prior task history: `archive/gas-identity-ac53b020/current-task.md`.
+PR310 remains OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a. No writes/imports/restarts of that PR, no live DB/provider/market activity or role/deployment/settings changes.

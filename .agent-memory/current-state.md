@@ -1,11 +1,11 @@
-# Current state — GAS240 Batch B
+# Current state — D acceptance complete; PR357 publication gate
 
-2026-09-20: RESUMED by the user from `ac53b020e430a2ffa87c09579180355055793393` on `codex/ediel-gas-identity-20260920`. Active PR #356 is OPEN/DRAFT against actual main `561c53ad9ba413eeb4f37ab1b029b1a5ba26d320` (last accepted PR #355).
+2026-09-20. Numeric D: **110/110 accepted**. Parent occurrences: **10/10 accepted**. The final independent historical-ledger decision is PR356 comment5751354872 on runtime922a66003abe2f2622a13ed58fd24e57ac95ef5f. It supersedes the earlier pending disposition, not the original source or runtime receipts. See d-cell-110-acceptance-20260920.md.
 
-Runtime is unchanged by this resume checkpoint. The author recorded runtime `153b7d5aafc42231526029cfd3cb55e6c51e8c95`, 4968/4968 full tests, 117 focused, 45 quality, 818 Ediel and 15/15 gates on Node24.19.0. These are inspected saved receipts, not new executions or independent approval. Read `gas-identity-resume.md` and `gas-identity-pr356-review-package.md`.
+PR356 runtime is merged and accepted on actual main922a660, tree882156165f6f83e33f95e4a7393b3ad2ff458366. Historical exact-candidate Node22 CI and actual-main73/73 plus allOPS are recorded in gas-identity-acceptance-20260920.md and its archived detailed receipt. They are not a certificate for subsequent documentation commits.
 
-Initial exact-ac53 CI: Ediel35522698816 SUCCESS; browser35522698821 SUCCESS; full35522698818 SUCCESS; OPS35522698819 IN_PROGRESS at this snapshot. Any new candidate needs its own applicable exact-head CI. Independent completed-runtime TASK/SPEC, QUALITY, TENANT-BOUNDARY and WHOLE-BRANCH review remains pending. No ready/merge/acceptance claim.
+The single active item is PR357 documentation consistency, independent re-review, exact-head ordinary CI and guarded merge. Reviewer comment5751370281 correctly identified stale active handoffs. This correction aligns current state, task, checkpoint, handover, blockers, plan, completed work, verification matrix, session log and both GAS acceptance indexes. The prior checkpoint and detailed receipts are preserved byte-for-byte under archive/pr357-53b4011c/. All other previous active documents remain in Git at53b4011c5e6c0976014dd3042538b143b60116ef.
 
-PR #310 remains PAUSED, open/draft, unchanged at `e961135199f292b8210884f07de3b616a670161a`. Counts remain 98/110 numeric D and 10/10 parents; full masterplan NOT_COMPLETE. No live database, provider, market send, role/guide activation or explicit deployment was performed.
+After this publication gate, reconcile the remaining F3 criteria beyond the D counter. Full F3 and the full masterplan are NOT_COMPLETE. No overall completion percentage has an evidence-backed denominator; earlier conversational estimates are not acceptance evidence.
 
-The complete preceding file and other superseded progress are preserved byte-for-byte under `archive/gas-identity-ac53b020/`, using their original Git blobs. Older entries are historical, not competing current tasks.
+PR310 remains OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a. No runtime, tests, schema, frozen source, workflow, threshold, role, provider or live-market changes belong to this correction.
