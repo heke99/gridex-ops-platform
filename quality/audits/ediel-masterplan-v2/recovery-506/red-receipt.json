@@ -1,0 +1,10 @@
+{
+  "stage": "fresh RED before production edits",
+  "counts": {
+    "numTotalTests": 26,
+    "numPassedTests": 5,
+    "numFailedTests": 21
+  },
+  "setupHistory": "Initial fixture had extra forbidden UD address; second omitted source IT parent for positive Z14. Both logs retained, not normative RED evidence. Final qualified-r2 controls verify clean baseline.",
+  "sha256": {}
+}
