@@ -1,0 +1,12 @@
+{
+  "gate": "ratchet",
+  "command": [
+    "node",
+    "scripts/check-service-role-tenant-ratchet.cjs"
+  ],
+  "exit": 0,
+  "seconds": 0.15,
+  "log": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-ratchet.log",
+  "sha256": "8f3487c29279af638c1d07e6c42605a89a8ec05b4592b81000513f97d4c21710",
+  "runtimeCommit": "9ba2e38f"
+}

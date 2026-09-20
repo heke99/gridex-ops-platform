@@ -6,7 +6,7 @@ import {buildAckDraftForSource} from '@/lib/ediel/ack'
 import {permissionAckMessage as message,permissionAckObject as object,alphabets,characteristic} from './fixtures/prodat-permission-ack'
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:()=>{throw Error('NO_DB')}}}))
 const selected=(errors:readonly {fieldCode?:string|null;ercCode:string}[])=>errors.filter(e=>['322','324'].includes(e.fieldCode??''))
-const manual=(m:ReturnType<typeof message>)=>validateProdatPermissionMessage({message:m,context:{hasMatchingPriorPermissionFlow:true,matchReason:'synthetic'}})
+const manual=(m:ReturnType<typeof message>)=>validateProdatPermissionMessage({message:m})
 for(const [code,reason,status,end] of [
  ['Z14','S17','A74',null],['Z14','S18','A74',null],['Z14','Z96','A13',null],['Z14','Z96','A76',null],
  ...['S17','S18','Z24'].flatMap(r=>['A74','A75'].flatMap(s=>['B77','B78','B79','B80','E37'].map(e=>['Z15',r,s,e]))),

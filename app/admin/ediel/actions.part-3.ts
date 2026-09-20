@@ -30,9 +30,10 @@ import { validateAckPreflight } from "@/lib/ediel/core/ackPreflight"
 
 
 
-import { parseProdatMessage } from "@/lib/ediel/prodat/parser"
+import {assertPriorPermissionContext,type PriorPermissionContext as ProdatPermissionContext} from '@/lib/ediel/prodat/prodatPriorPermissionFlow'
+import { loadPriorPermissionFlow } from "@/lib/ediel/prodat/loadPriorPermissionFlow"
 import { supabaseService } from "@/lib/supabase/service"
-import { validateProdatPermissionMessage, type ProdatPermissionContext } from "@/lib/ediel/testing/prodatPermissionEngine"
+import { validateProdatPermissionMessage } from "@/lib/ediel/testing/prodatPermissionEngine"
 import { attachAperakErrorDetailsToMessage, resolveAndStoreProdatAperakErrors } from "@/lib/ediel/testing/aperakErrorRuleRegistry"
 
 
@@ -212,84 +213,7 @@ export function uniqueNonEmpty(values: Array<string | null | undefined>): string
 export async function resolveProdatPermissionContextForAck(
   message: EdielMessageRow,
 ): Promise<ProdatPermissionContext | null> {
-  if (String(message.message_family ?? "").toUpperCase() !== "PRODAT")
-    return null;
-
-  const code = String(message.message_code ?? "").toUpperCase();
-  if (code !== "Z14" && code !== "Z15") return null;
-
-  const parsed = parseProdatMessage(message);
-  const line = parsed.lineItems[0] ?? null;
-  const identifiers = uniqueNonEmpty([
-    line?.lineItemReference,
-    line?.permissionId,
-    line?.meteringPointId,
-    line?.customerId,
-    message.transaction_reference,
-    message.external_reference,
-    message.correlation_reference,
-    message.original_transaction_id,
-    message.original_message_id,
-  ]);
-
-  if (identifiers.length === 0) {
-    return {
-      hasMatchingPriorPermissionFlow: false,
-      matchReason:
-        "Z14/Z15 saknar användbar referens för att hitta tidigare permission-flöde.",
-    };
-  }
-
-  const priorCodes = code === "Z14" ? ["Z13"] : ["Z18", "Z14", "Z13"];
-  const currentCreatedAt = message.created_at ?? new Date().toISOString();
-
-  let query = supabaseService
-    .from("ediel_messages")
-    .select(
-      "id,message_code,direction,status,external_reference,transaction_reference,correlation_reference,metering_point_id,customer_id,raw_payload,created_at",
-    )
-    .eq("message_family", "PRODAT")
-    .in("message_code", priorCodes)
-    .not("status", "in", "(cancelled,failed)")
-    .lte("created_at", currentCreatedAt)
-    .order("created_at", { ascending: false })
-    .limit(50);
-
-  if (message.environment) query = query.eq("environment", message.environment);
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  const candidates = (data ?? []) as Array<Record<string, unknown>>;
-  const matching = candidates.find((candidate) => {
-    if (candidate.id === message.id) return false;
-    const haystack = [
-      candidate.external_reference,
-      candidate.transaction_reference,
-      candidate.correlation_reference,
-      candidate.metering_point_id,
-      candidate.customer_id,
-      candidate.raw_payload,
-    ]
-      .map((value) => String(value ?? "").toUpperCase())
-      .join("\n");
-
-    return identifiers.some((identifier) =>
-      haystack.includes(identifier.toUpperCase()),
-    );
-  });
-
-  if (matching) {
-    return {
-      hasMatchingPriorPermissionFlow: true,
-      matchReason: `Matchade tidigare ${String(matching.message_code ?? "PRODAT")} ${String(matching.id ?? "")}`,
-    };
-  }
-
-  return {
-    hasMatchingPriorPermissionFlow: false,
-    matchReason: `Ingen tidigare ${priorCodes.join("/")} hittades för Z${code.slice(1)} via ${identifiers.join(", ")}.`,
-  };
+  return loadPriorPermissionFlow(message, supabaseService);
 }
 
 export async function resolveBackendAperakDecision(params: {
@@ -468,8 +392,9 @@ export async function resolveBackendAperakDecision(params: {
   const permissionDecision = validateProdatPermissionMessage({
     message: params.sourceMessage,
     testData: tgtResolution.testData,
-    context: permissionContext,
   });
+
+  assertPriorPermissionContext(params.sourceMessage, permissionContext, permissionFields.fieldAssessment);
 
   if (permissionDecision.handled) {
     await createEdielMessageEvent({

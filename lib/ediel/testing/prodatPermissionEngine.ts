@@ -12,11 +12,6 @@ import type { EdielTgtCaseTestData } from '@/lib/ediel/testing/tgtTestData'
 import { supabaseService } from '@/lib/supabase/service'
 
 
-export type ProdatPermissionContext = {
-  hasMatchingPriorPermissionFlow: boolean | null
-  matchReason: string | null
-}
-
 export type ProdatPermissionDecisionIssue = {
   ruleKey: string
   ercCode: string
@@ -372,39 +367,6 @@ function normalizedTgtCaseCode(testData: EdielTgtCaseTestData | null | undefined
   return code.length > 0 ? code : null
 }
 
-function firstPermissionLine(facts: PermissionMessageFacts): PermissionLineFacts {
-  return facts.lines[0] ?? {
-    meteringPointId: null,
-    lineReference: null,
-    customerId: null,
-    agreementReference: null,
-    permissionStatus: null,
-    permissionEndReason: null,
-    rawSegments: [],
-  }
-}
-
-function permissionDecisionIssue(params: {
-  ruleKey: string
-  ercCode: string
-  fieldCode: string
-  text: string
-  line: PermissionLineFacts
-  actualValue?: string | null
-  expectedValue?: string | null
-}): ProdatPermissionDecisionIssue {
-  return {
-    ruleKey: params.ruleKey,
-    ercCode: params.ercCode,
-    fieldCode: params.fieldCode,
-    text: params.text,
-    lineItemReference: params.line.lineReference,
-    meteringPointId: params.line.meteringPointId,
-    actualValue: params.actualValue ?? null,
-    expectedValue: params.expectedValue ?? null,
-  }
-}
-
 function buildPermissionValidationResult(params: {
   handled: boolean
   selectedTgtCaseCode: string | null
@@ -432,7 +394,6 @@ function buildPermissionValidationResult(params: {
 export function validateProdatPermissionMessage(params: {
   message: EdielMessageRow
   testData?: EdielTgtCaseTestData | null
-  context?: ProdatPermissionContext | null
 }): ProdatPermissionValidationResult {
   const family = String(params.message.message_family ?? '').toUpperCase()
   const direction = String(params.message.direction ?? '').toLowerCase()
@@ -447,12 +408,7 @@ export function validateProdatPermissionMessage(params: {
     lineItemReference:error.lineItemReference??null,meteringPointId:error.referenceNumber??null,
     actualValue:error.prodatFieldDiagnostic?.kind==='field'?error.prodatFieldDiagnostic.failureEvidence?.map(e=>e.content).join(' / ')??null:null,expectedValue:null,
   }))
-  // Separate legacy prior-flow behavior remains unchanged and is not field authority.
-  if(params.context?.hasMatchingPriorPermissionFlow===false&&(code==='Z14'||code==='Z15'&&!issues.length)){
-    const line=firstPermissionLine(readPermissionMessageFacts(params.message))
-    issues.unshift(permissionDecisionIssue({ruleKey:'permission_flow_not_found',ercCode:'40',fieldCode:'105',text:'The object could not be identified',line,actualValue:line.meteringPointId??line.lineReference,expectedValue:code==='Z14'?'matching Z13 permission request':'active permission or matching Z18 request'}))
-  }
   const result=buildPermissionValidationResult({handled:['Z13','Z14','Z15','Z18'].includes(code),selectedTgtCaseCode,issues})
-  result.applicationErrors=[...result.applicationErrors.filter(e=>e.fieldCode==='105'),...assessment.applicationErrors]
+  result.applicationErrors=[...assessment.applicationErrors]
   return {...result,fieldAssessment:assessment}
 }

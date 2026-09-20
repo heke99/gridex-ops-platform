@@ -1,0 +1,6 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> gridex-ops-platform@0.1.0 ediel:masterplan-v2:integrity
+> node scripts/check-ediel-masterplan-v2.cjs
+
+{"scope":"specification integrity and evidence references only","originalFiles":33,"rules":121,"acceptanceContracts":231,"applicationConformanceAsserted":false,"productionReadinessAsserted":false}

@@ -1,0 +1,14 @@
+import {permissionObject} from './prodat-energy-product'
+import {raw,line,characteristic,alphabets,type Parts} from './prodat-register'
+import type {EdielMessageRow} from '@/lib/ediel/types'
+import {head,source} from './prodat-identity'
+export {alphabets}
+export function object(code='Z14',reason='S17',li='CASE-ALPHA',seq='1'):Parts[]{if(code==='Z13'||code==='Z14')return permissionObject(code,reason,reason==='Z96'?null:'8716867000030',seq,li);return [line(seq,seq==='1'?'735123456789012345':'735123456789012352',undefined,'9'),['DTM',['693','202609171200','203']],['DTM',['164','202610010000','203']],...characteristic('Z13',reason),...(code==='Z15'?characteristic('Z23',reason==='Z24'?'A74':'A75'):[]),...characteristic('Z25',reason==='Z24'?'E37':'B79'),['RFF',['Z05','NET']],['RFF',['LI',li]],['RFF',['Z09','PERMISSION']],['NAD','UD',['001','','89'],'','Synthetic','','','','','SE']]}
+export function msg(code='Z14',reason='S17',li='CASE-ALPHA',objects?:Parts[],a:readonly string[]=alphabets[0]):EdielMessageRow{return {...source(raw([...head(),...(objects??object(code,reason,li))],code,a).replace('23-DDQ-PRODAT','23-DGI-PRODAT').replace(a[1]+'S'+a[1]+'R'+a[1],a[1]+'12345'+a[0]+'ZZ'+a[1]+'54321'+a[0]+'ZZ'+a[1]).replace('23-DGI-PRODAT'+a[3],'23-DGI-PRODAT'+a[1]+a[1]+a[1]+a[1]+'1'+a[3]),code),company_id:'00000000-0000-4000-8000-000000000010',created_at:'2026-09-20T00:00:00.000Z',message_received_at:'2026-09-20T00:00:00.000Z',status:'received' as const,transaction_reference:null,application_reference:'23-DGI-PRODAT'}}
+export function prior(code='Z13',li='CASE-ALPHA',patch:Partial<EdielMessageRow>={},a:readonly string[]=alphabets[0]):EdielMessageRow{const m=msg(code,'S17',li,undefined,a);m.raw_payload=m.raw_payload!.replaceAll(a[1]+'12345'+a[0],a[1]+'TMPID'+a[0]).replaceAll(a[1]+'54321'+a[0],a[1]+'12345'+a[0]).replaceAll(a[1]+'TMPID'+a[0],a[1]+'54321'+a[0]);return {...m,id:'00000000-0000-4000-8000-000000000002',direction:'outbound',status:'sent',sender_ediel_id:'54321',receiver_ediel_id:'12345',created_at:'2026-09-19T00:00:00.000Z',message_sent_at:'2026-09-19T00:01:00.000Z',...patch}}
+
+// Explicit synthetic historical records, following the checked-in tenant schema.
+export function scopeRecords(company=msg().company_id){
+ const base={company_id:company,environment:'test',valid_from:'2026-01-01T00:00:00Z',valid_to:null}
+ return {profiles:[{...base,id:'profile',market:'electricity',is_enabled:true}],identifiers:[{...base,id:'identity',actor_id:'ESCO',identifier_type:'EdielId',identifier_value:'54321'}],roles:[{...base,id:'role',actor_id:'ESCO',role_code:'energy_service_company'}],relations:[] as Record<string,unknown>[],actors:[{id:'counterparty',actor_id:'DSO',identifier_type:'EdielId',identifier_value:'12345',is_verified:true,valid_from:'2026-01-01',valid_to:null}]}
+}

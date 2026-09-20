@@ -1,0 +1,13 @@
+{
+  "gate": "performance",
+  "command": [
+    "npm",
+    "run",
+    "quality:performance"
+  ],
+  "exit": 0,
+  "seconds": 1.74,
+  "log": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-performance.log",
+  "sha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629",
+  "runtimeCommit": "9ba2e38f"
+}

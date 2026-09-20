@@ -1,0 +1,13 @@
+{
+  "gate": "route-readiness",
+  "command": [
+    "npm",
+    "run",
+    "gridex:route-readiness-regression"
+  ],
+  "exit": 0,
+  "seconds": 1.24,
+  "log": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-r1-20260920/final-route-readiness.log",
+  "sha256": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82",
+  "runtimeCommit": "9ba2e38f"
+}

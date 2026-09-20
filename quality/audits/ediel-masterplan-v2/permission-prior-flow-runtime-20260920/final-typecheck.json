@@ -1,0 +1,13 @@
+{
+  "gate": "typecheck",
+  "command": [
+    "npm",
+    "run",
+    "typecheck"
+  ],
+  "exit": 0,
+  "seconds": 21.58,
+  "log": "quality/audits/ediel-masterplan-v2/permission-prior-flow-runtime-20260920/final-typecheck.log",
+  "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+  "runtimeCommit": "d9d0a93e"
+}
