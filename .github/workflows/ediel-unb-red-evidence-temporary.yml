@@ -1,0 +1,69 @@
+name: Retain pinned UNB RED evidence
+on:
+  push:
+    branches: [codex/ediel-unb-red-evidence-20260920]
+permissions:
+  contents: write
+jobs:
+  evidence:
+    if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/codex/ediel-unb-red-evidence-20260920'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 83ada45792487fa71ee49f07e34b2816c5bc9a83
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Record the expected baseline failure without changing any source or branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 83ada45792487fa71ee49f07e34b2816c5bc9a83
+          test "$(git rev-parse 'HEAD^{tree}')" = b2b5509c2b09733cc55e5c322841c2f85139c985
+          mkdir -p "$RUNNER_TEMP/unb-red-evidence"
+          set +e
+          node --experimental-vm-modules --test scripts/test-ediel-unb-ack-request.cjs > "$RUNNER_TEMP/unb-red-evidence/red.log" 2>&1
+          status=$?
+          set -e
+          test "$status" = 1
+          grep -Fx '# tests 42' "$RUNNER_TEMP/unb-red-evidence/red.log"
+          grep -Fx '# pass 7' "$RUNNER_TEMP/unb-red-evidence/red.log"
+          grep -Fx '# fail 35' "$RUNNER_TEMP/unb-red-evidence/red.log"
+          grep -Fx '# skipped 0' "$RUNNER_TEMP/unb-red-evidence/red.log"
+          { printf 'baseline=%s\nexit=%s\n' "$(git rev-parse HEAD)" "$status"; node --version; } > "$RUNNER_TEMP/unb-red-evidence/provenance.txt"
+          git diff --exit-code
+      - name: Create content-addressed evidence blob only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, pathlib, hashlib, gzip, base64, json
+          folder=pathlib.Path(os.environ['RUNNER_TEMP'])/'unb-red-evidence'
+          raw=(folder/'red.log').read_bytes()
+          packed=gzip.compress(raw,mtime=0)
+          (folder/'red.log.gz').write_bytes(packed)
+          (folder/'blob-request.json').write_text(json.dumps({'encoding':'base64','content':base64.b64encode(packed).decode()}))
+          (folder/'hashes.json').write_text(json.dumps({'raw_sha256':hashlib.sha256(raw).hexdigest(),'gzip_sha256':hashlib.sha256(packed).hexdigest(),'gzip_bytes':len(packed),'expected_blob':hashlib.sha1(b'blob '+str(len(packed)).encode()+b'\0'+packed).hexdigest()},indent=2))
+          PY
+          gh api --method POST repos/heke99/gridex-ops-platform/git/blobs --input "$RUNNER_TEMP/unb-red-evidence/blob-request.json" > "$RUNNER_TEMP/unb-red-evidence/blob-response.json"
+          python3 - <<'PY'
+          import os,pathlib,json
+          folder=pathlib.Path(os.environ['RUNNER_TEMP'])/'unb-red-evidence'
+          hashes=json.loads((folder/'hashes.json').read_text())
+          response=json.loads((folder/'blob-response.json').read_text())
+          assert response['sha']==hashes['expected_blob']
+          print(json.dumps({'result':'BASELINE_RED_REPRODUCED_NOT_RUNTIME_APPROVAL',**hashes},indent=2))
+          (folder/'blob-request.json').unlink()
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unb-pinned-red-${{ github.run_id }}
+          path: ${{ runner.temp }}/unb-red-evidence/
+          if-no-files-found: error
+          retention-days: 30
