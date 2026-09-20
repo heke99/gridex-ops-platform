@@ -1,3 +1,5 @@
+Prior-flow source0fd41d86 independent all5APPROVE. Root authorizes bounded Task2 pureperobject/scopedloader/manualguard and single energyfalsecontext40/105 assertionexception; typedfixtureadapters preserveoldoutcomes. Main353accepted, no runtime/countacceptance yet;98/110+10unchanged;PR310paused.
+
 2026-09-20 Correction of root parser-fixture ruling: c0a84050 DTMZZZ/UNT8 was wrong (DTMZZZ=206timezone), caught by implementer before edit. Authorized own223 is CCI**Z13!CAV*Z96!, ownZ23/A76 underLIN, UNT9. FactsassertZ13/Z96+Z23/A76, existingclassification unchanged, originalshape noN regression. Earlier DTM instruction SUPERSEDED; no source/runtime change implemented from it.
 
 2026-09-20 Exact parser-fixture exception authorized after root inspected original CUSTOM_UNA_PRODAT_Z14N: headerZ23/A75/no223 cannot justifyN. Only ownLIN relocation+ownDTM223Z96+statusA76+UNT8 and source facts assertion change; preserve classification/customUNA intent, add original-shape noN regression. See plan Task2 exact parser-fixture ruling. Full4679/4688 failures retained; other partial-policy/missing-primary regressions require implementation fixes, not assertion edits.
