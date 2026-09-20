@@ -1,9 +1,10 @@
+import {prodatComponentEvidence,type ProdatFailureEvidence} from './prodatFailureEvidence'
 import { segmentComposite, segmentElementCount, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import { PRODAT_26A_FIELD_MATRIX } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 
 export type ProdatRegisterSegment = string | EdifactTokenizedSegment
-export type ProdatRegisterFieldState = { present: boolean; value: string | null; malformed: boolean }
+export type ProdatRegisterFieldState = { present: boolean; value: string | null; malformed: boolean; failureEvidence?: ProdatFailureEvidence }
 export const prodatPositiveSequence = (value: string | null): boolean => value !== null && /^\d{1,6}$/.test(value) && Number(value) > 0
 
 export function prodatRegisterTokens(source: readonly ProdatRegisterSegment[], una = parseUna(null)): EdifactTokenizedSegment[] {
@@ -25,17 +26,17 @@ export function prodatRegisterFieldState(fieldNumberOrKey: string, source: reado
     const parts = segmentComposite(lin, field.linElement, una)
     const present = parts.some(value => value !== '')
     const value = parts[field.linComponent ?? 0] || null
-    if (field.fieldNumber === '314') return { present, value, malformed: present && (parts.length !== 1 || !prodatPositiveSequence(value)) }
-    if (field.fieldNumber === '209') return { present, value, malformed: present && (!value || value.length > 25 || parts.length !== 4 || parts[1] !== '' || parts[2] !== '' || !['9','89'].includes(parts[3])) }
+    if (field.fieldNumber === '314') return { failureEvidence:lin?prodatComponentEvidence(lin.raw,field.segmentPath,parts):undefined, present, value, malformed: present && (parts.length !== 1 || !prodatPositiveSequence(value)) }
+    if (field.fieldNumber === '209') return { failureEvidence:lin?prodatComponentEvidence(lin.raw,field.segmentPath,parts,parts.length===4?[...(!value||value.length>25?[0]:[]),...(parts[1]?[1]:[]),...(parts[2]?[2]:[]),...(!['9','89'].includes(parts[3])?[3]:[])]:undefined):undefined, present, value, malformed: present && (!value || value.length > 25 || parts.length !== 4 || parts[1] !== '' || parts[2] !== '' || !['9','89'].includes(parts[3])) }
     // C829 is either omitted (single register) or exactly indicator:index.
     const exists = Boolean(lin && segmentElementCount(lin, una) >= 4)
-    return { present: exists, value, malformed: exists && (parts.length !== 2 || parts[0] !== '1' || !prodatPositiveSequence(value) || segmentElementCount(lin!, una) > 4) }
+    return { failureEvidence:lin?prodatComponentEvidence(lin.raw,field.segmentPath,parts):undefined, present: exists, value, malformed: exists && (parts.length !== 2 || parts[0] !== '1' || !prodatPositiveSequence(value) || segmentElementCount(lin!, una) > 4) }
   }
   if (field.fieldNumber === '213') {
     const found = segments.filter(s => s.tag === 'QTY' && segmentComposite(s, 1, una)[0] === '31')
     const parts = segmentComposite(found[0], 1, una)
     const value = parts[1] || null
-    return { present: found.length > 0, value, malformed: found.length > 0 && (found.length !== 1 || !value || !/^\d{1,15}$/.test(value) || parts.length > 3 || (Boolean(parts[2]) && !['KWH','MTQ'].includes(parts[2])) || segmentElementCount(found[0], una) !== 1) }
+    return { failureEvidence:found.flatMap(t=>{const p=segmentComposite(t,1,una);return prodatComponentEvidence(t.raw,field.segmentPath,p,found.length===1&&p.length<=3?[...(!p[1]||!/^\d{1,15}$/.test(p[1])?[1]:[]),...(p[2]&&!['KWH','MTQ'].includes(p[2])?[2]:[])]:undefined)}), present: found.length > 0, value, malformed: found.length > 0 && (found.length !== 1 || !value || !/^\d{1,15}$/.test(value) || parts.length > 3 || (Boolean(parts[2]) && !['KWH','MTQ'].includes(parts[2])) || segmentElementCount(found[0], una) !== 1) }
   }
   const qualifier = field.segmentPath.slice('CCI++'.length, -'/CAV'.length)
   const matches = segments.flatMap((s, index) => s.tag === 'CCI' && segmentComposite(s, 2, una)[0] === qualifier ? [index] : [])
@@ -45,7 +46,7 @@ export function prodatRegisterFieldState(fieldNumberOrKey: string, source: reado
   // C889 has five components; a trailing empty component is legal syntax.
   // Unrelated component usage belongs to full segment/profile validation.
   const value = parts[field.cavComponent ?? 3]?.trim() || null
-  return { present: matches.length > 0, value, malformed: matches.length > 0 && (matches.length !== 1 || !cav || !value || value.length > 35 || parts.length > 5 || segmentElementCount(cav, una) !== 1) }
+  return { failureEvidence:matches.flatMap(i=>{const t=segments[i+1]?.tag==='CAV'?segments[i+1]:segments[i];const p=segmentComposite(t,t.tag==='CAV'?1:2,una);return prodatComponentEvidence(t.raw,field.segmentPath,p,matches.length===1&&t.tag==='CAV'&&value&&p.length<=5?[field.cavComponent??3]:undefined)}), present: matches.length > 0, value, malformed: matches.length > 0 && (matches.length !== 1 || !cav || !value || value.length > 35 || parts.length > 5 || segmentElementCount(cav, una) !== 1) }
 }
 
 /** Partition SG8 fields using the same field matrix, keeping CCI/CAV adjacent. */

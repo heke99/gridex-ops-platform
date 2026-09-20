@@ -1,3 +1,4 @@
+import {prodatComponentEvidence,type ProdatFailureEvidence} from './prodatFailureEvidence'
 import { canonicalProdatSubtypeAlias } from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
 import { segmentComposite, segmentElementCount, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
@@ -5,7 +6,7 @@ import { PRODAT_26A_FIELD_MATRIX } from '@/lib/ediel/prodat/prodat26AFieldMatrix
 import { isProdatCalendarDate, isProdatCalendarMinute, prodatDate102, prodatDate203 } from '@/lib/ediel/prodat/render/dates'
 
 type Segment = string | Pick<EdifactTokenizedSegment, 'raw' | 'tag'>
-export type ProdatDateState = { value: string | null; format: string | null; present: boolean; malformed: boolean; raw: string | null }
+export type ProdatDateState = { value: string | null; format: string | null; present: boolean; malformed: boolean; raw: string | null; failureEvidence?: ProdatFailureEvidence }
 
 /** The existing canonical matrix owns the twelve P26.A r3 DTM identities. */
 export function prodatDateField(field: string) {
@@ -68,7 +69,15 @@ export function prodatDateState(field: string, segments: readonly Segment[], una
   const parts = segmentComposite(row, 1, una)
   const extra = segmentElementCount(row, una) !== 1
   const malformed = matches.length !== 1 || parts.length !== 3 || extra || !validProdatDateValue(field, parts[1] ?? '', parts[2] ?? '')
-  return { value: malformed ? null : parts[1], format: malformed ? null : parts[2], present: true, malformed, raw: row.raw }
+  const expectedFormat=descriptor.dateKind==='minute'?'203':descriptor.dateKind==='date'?'102':descriptor.dateKind==='offset'?'805':null
+  const failureEvidence=matches.flatMap(candidate=>{
+    const components=segmentComposite(candidate,1,una)
+    const formatWrong=expectedFormat?components[2]!==expectedFormat:!['801','802','804','806'].includes(components[2])
+    const scalarWrong=!validProdatDateValue(field,components[1]??'',expectedFormat??'801')
+    const single=matches.length===1 && components.length===3 && !extra
+    return prodatComponentEvidence(candidate.raw,descriptor.segmentPath,components,single?(formatWrong&&!scalarWrong?[2]:!formatWrong?[1]:undefined):undefined)
+  })
+  return { failureEvidence, value: malformed ? null : parts[1], format: malformed ? null : parts[2], present: true, malformed, raw: row.raw }
 }
 
 /** Scalar projection is intentionally first-object scoped. */

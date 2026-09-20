@@ -1,0 +1,14 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+/workspace/scratch/2a201d6d5897/gridex-next/__tests__/ediel-prodat-aperak-text.test.ts
+  11:28   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  11:226  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/ack.ts
+  116:10  warning  'swedishDateTimeFromEdifactUnb' is defined but never used  @typescript-eslint/no-unused-vars
+  168:10  warning  'normalizeAperakErrors' is defined but never used          @typescript-eslint/no-unused-vars
+  345:10  warning  'edielPartyCompositeFromUnb' is defined but never used     @typescript-eslint/no-unused-vars
+  357:10  warning  'fallbackPartyComposite' is defined but never used         @typescript-eslint/no-unused-vars
+
+✖ 6 problems (2 errors, 4 warnings)
+

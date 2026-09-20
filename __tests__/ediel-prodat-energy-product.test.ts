@@ -23,6 +23,11 @@ for(const [n,alphabet] of alphabets.entries())describe(`incoming energy alphabet
     const wire=permissionWire(code,reason,value,alphabet),msg={...source(wire,code),application_reference:'23-DGI-PRODAT'}
     const d=await resolveCanonicalRuntimeDecisionWithRegistry(msg),p=d.responsePlan.find(p=>p.family==='APERAK')!
     expect(d.syntaxDecision).toBe('accepted');expect(d.applicationDecision,JSON.stringify(d.issues)).toBe(erc?'rejected':'accepted')
+    if(value==='X'.repeat(36)){
+     expect(d).toMatchObject({applicationDecision:'rejected',functionalDecision:'manual_review',prodatProcessingDisposition:{kind:'internal_review'}})
+     expect(d.issues.map(i=>i.prodatDiagnostic)).toEqual(expect.arrayContaining([expect.objectContaining({kind:'field',fieldNumber:'506',errorKind:'invalid',failureEvidence:expect.arrayContaining([expect.objectContaining({content:value})]),occurrence:expect.objectContaining({objectId:code==='Z13'?null:'735123456789012345',lineItemReference:'CASE:A+B?C'})})]))
+     expect(d.responsePlan.map(p=>p.family)).toEqual(['CONTRL']);continue
+    }
     expect(p.applicationErrors??[]).toMatchObject(erc?[{ercCode:erc,fieldCode:'506',referenceNumber:code==='Z13'?null:'735123456789012345',lineItemReference:'CASE:A+B?C'}]:[])
     expect(p.applicationErrors??[]).toHaveLength(erc?1:0)
     if(erc){const draft=buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors:p.applicationErrors});expect(draft.rawPayload).toContain('FTX+AAO++506::260');expect(draft.rawPayload).toContain('RFF+LI:CASE?:A?+B??C')}

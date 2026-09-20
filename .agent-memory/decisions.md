@@ -1,3 +1,5 @@
+2026-09-20 Task2 narrowcodec exception authorized after independent27observation source/architecture review: sanitizeSegment terminalcanonicalapostrophe releaseparity only. Existing user authorization to complete masterplan covers evidenced boundedfix; no newpermissionneeded. Original no-codec scope amended explicitly, not silently ignored. FTX-only emptyelement workaround valid, sharedowner fix chosen for verified existing ownLI failure too. Preserve actualpartialUNA behavior, allgates; no generalcodec redesign.
+
 2026-09-20 APERAK text Task2 authorized after four independent source approvals and main35173+OPS. Individual C1a-c X×36 field506 (12 executions) and C2 C×36 field317 (one execution) wire-readiness expectation changes authorized exactly as Task2 brief; national F identity/value/refs and short/false/other cases preserved. No blanket old-assertion changes. Source70 capacity conflicts measured73/71; no truncation or new nationalclassification.
 
 ## 2026-09-18 — PR330 recovery and review correction (current snapshot)

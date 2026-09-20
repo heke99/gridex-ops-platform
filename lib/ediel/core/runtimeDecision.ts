@@ -1,3 +1,4 @@
+import type {ProdatAperakText} from '@/lib/ediel/prodat/prodatAperakText'
 import {projectProdatDiagnostics} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
 import type {ProdatDiagnostic, ProdatProcessingDisposition} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 // lib/ediel/core/runtimeDecision.ts
@@ -41,6 +42,7 @@ export type CanonicalDecisionIssue = {
   description: string
   source?: string | null
   prodatDiagnostic?: ProdatDiagnostic
+  prodatAperakText?: ProdatAperakText
   originalSeverity?: 'error' | 'warning'
 }
 
@@ -160,6 +162,7 @@ function applyProdatPolicyDecision(params: {
       description: item.description,
       source: 'validateCanonicalPolicyFields',
       prodatDiagnostic: item.prodatDiagnostic,
+      prodatAperakText:item.prodatAperakText,
       originalSeverity: item.originalSeverity,
     }))
   }
@@ -176,7 +179,7 @@ function applyProdatPolicyDecision(params: {
     return { applicationDecision: 'rejected', functionalDecision: prodatProcessingDisposition.kind === 'internal_review' ? 'manual_review' : 'accepted', prodatProcessingDisposition }
   }
 
-  if (prodatProcessingDisposition.kind === 'internal_review') return {applicationDecision:'manual_review',functionalDecision:'not_applicable',prodatProcessingDisposition}
+  if (prodatProcessingDisposition.kind === 'internal_review') return {applicationDecision:projected.hasNationalError?'rejected':'manual_review',functionalDecision:projected.hasNationalError?'manual_review':'not_applicable',prodatProcessingDisposition}
 
   if (params.policy.ackRule.applicationAck === 'APERAK') {
     params.responsePlan.push({

@@ -1,5 +1,6 @@
 import {beforeEach,it,expect,vi} from 'vitest'
-import {raw} from './fixtures/prodat-register'
+import {raw,type Parts} from './fixtures/prodat-register'
+import {permissionMessage} from './fixtures/prodat-energy-product'
 import {source,z10,head,own} from './fixtures/prodat-identity'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import type {EdielRulebookIssue} from '@/lib/ediel/rulebook/rulebook'
@@ -27,9 +28,9 @@ beforeEach(()=>{state.message={...source(raw(z10(),'Z10'),'Z10'),status:'receive
 const run=()=>processInboundEdielMessage({actorUserId:'00000000-0000-4000-8000-000000000002',edielMessageId:state.message.id})
 
 for(const mixed of [false,true])it(`persists exact unready F and holds effects, mixed=${mixed}`,async()=>{
- const body=[...head(),...own('1','735123456789012345',null)].filter(p=>p[0]!=='RFF'||!(p[1] as string[]).includes('ANJ')).map(p=>p[0]==='NAD'?['NAD','UD',['X'.repeat(35),'','89'],'','Synthetic','Street','City','','12345','SE']:p);
+ const body:Parts[]=[...head(),...own('1','735123456789012345',null)].filter(p=>p[0]!=='RFF'||!(p[1] as string[]).includes('ANJ')).map(p=>p[0]==='NAD'?['NAD','UD',['X'.repeat(35),'','89'],'','Synthetic','Street','City','','12345','SE']:p);
  if(mixed){const index=body.findIndex(p=>p[0]==='DTM');body[index]=['DTM',['92','202610010000','BAD']];}
- state.message={...state.message,...source(raw(body,'Z01'),'Z01')};await run();
+ state.message={...state.message,...source(raw(body,'Z01'),'Z01'),parsed_payload:{fileEngine:{mode:'agt'}}};await run();
  expect(state.effects).toEqual([]);
  expect(state.message.validation_report).toMatchObject({applicationDecision:'rejected',functionalDecision:'manual_review',prodatProcessingDisposition:{kind:'internal_review'}});
  const wire=state.drafts.map(d=>d.rawPayload).join('');
@@ -37,4 +38,17 @@ for(const mixed of [false,true])it(`persists exact unready F and holds effects, 
  expect(wire).toContain('FTX+AAO++226::260');
  if(mixed)expect(wire).toContain('FTX+AAO++210::260');
  expect(JSON.stringify(state.message.validation_report)).toContain('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX');
+})
+
+it('persists isolated text-unready506 with full value, only technical ACK, and no effects',async()=>{
+ state.message={...state.message,...permissionMessage('Z14','S17','X'.repeat(36)),parsed_payload:{fileEngine:{mode:'agt'}}};await run();
+ expect(state.effects).toEqual([]);expect(state.message.validation_report).toMatchObject({applicationDecision:'rejected',functionalDecision:'manual_review',prodatProcessingDisposition:{kind:'internal_review'}});
+ expect(state.drafts.map(d=>d.messageFamily)).toEqual(['CONTRL']);
+ expect(state.message.validation_report.canonicalRuntime).toMatchObject({issues:expect.arrayContaining([expect.objectContaining({prodatAperakText:{kind:'unready',reason:'capacity'},prodatDiagnostic:expect.objectContaining({kind:'field',fieldNumber:'506',errorKind:'invalid',failureEvidence:expect.arrayContaining([expect.objectContaining({content:'X'.repeat(36)})])})})])});
+})
+it('representable F retains its exact persisted negative and existing effect policy',async()=>{
+ state.message={...state.message,...source(raw([...head(),...own('1','735123456789012345',null)],'Z01'),'Z01'),parsed_payload:{fileEngine:{mode:'agt'}}};await run();
+ expect(state.message.validation_report).toMatchObject({applicationDecision:'rejected',functionalDecision:'accepted',prodatProcessingDisposition:{kind:'continue'}});
+ expect(state.effects).toEqual(['actor-auto','facility','link','case','z02','z14','business']);
+ const wire=state.drafts.map(d=>d.rawPayload).join('');expect(wire).toContain('Ärendereferens saknas, kundid=001');expect(wire).not.toContain('ERC+100::260');
 })

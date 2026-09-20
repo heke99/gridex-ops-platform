@@ -30,7 +30,14 @@ for(const [field,element,invalid] of [['250',2,['ID','','WRONG']],['251',4,'N'.r
    const body:Parts[]=[...head(),...own('1','735123456789012345','CASE-A')];body.splice(6,0,...characteristic('Z04','Z01'));body.push(['NAD','Z02',['54321','160','SVK'],'','','','','','','SE'],party);
    const d=await resolveCanonicalRuntimeDecisionWithRegistry(source(raw(body,'Z03'),'Z03'));
    expect(d.issues.some(i=>i.prodatDiagnostic?.kind==='field'&&i.prodatDiagnostic.fieldNumber===field&&i.prodatDiagnostic.errorKind===kind)).toBe(true);
+   if(field==='317'&&kind==='invalid'){
+    expect(d).toMatchObject({applicationDecision:'rejected',functionalDecision:'manual_review',prodatProcessingDisposition:{kind:'internal_review'}});
+    expect(d.issues.map(i=>i.prodatDiagnostic)).toEqual(expect.arrayContaining([expect.objectContaining({kind:'field',fieldNumber:'317',failureEvidence:expect.arrayContaining([expect.objectContaining({content:value})]),occurrence:expect.objectContaining({objectId:'735123456789012345',lineItemReference:'CASE-A'})})]));
+    expect(d.responsePlan.flatMap(p=>p.applicationErrors??[]).some(e=>e.fieldCode==='317')).toBe(false);
+    expect(d.responsePlan.some(p=>p.family==='APERAK'&&p.outcome==='positive')).toBe(false);
+   }else{
    expect(d.responsePlan.find(p=>p.family==='APERAK')?.applicationErrors).toEqual(expect.arrayContaining([expect.objectContaining({fieldCode:field,ercCode:erc})]));
+   }
   }
  });
 }

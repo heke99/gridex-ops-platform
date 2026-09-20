@@ -1,3 +1,4 @@
+import {prodatComponentEvidence,type ProdatFailureEvidence} from './prodatFailureEvidence'
 import {segmentComposite,tokenizeEdifact,type EdifactTokenizedSegment} from '@/lib/ediel/core/edifactTokenizer'
 import {parseUna,type EdifactServiceStringAdvice} from '@/lib/ediel/core/una'
 import {prodatRegisterTokens} from './prodatRegisterFields'
@@ -31,11 +32,11 @@ export function evaluateIncomingProdatEnergyProduct(input:EnergyInput){
   const issues:EdielRulebookIssue[]=[]
   const objects:{lineIndex:number;applicability:EnergyApplicability;value:string|null}[]=[]
   const isPair=(t:EdifactTokenizedSegment)=>t.tag==='CCI'&&segmentComposite(t,2,una)[0]?.trim().toUpperCase()==='Z14'
-  const fail=(kind:'missing'|'invalid',scope:readonly EdifactTokenizedSegment[],lineIndex?:number,token?:EdifactTokenizedSegment)=>issues.push({
+  const fail=(kind:'missing'|'invalid',scope:readonly EdifactTokenizedSegment[],lineIndex?:number,token?:EdifactTokenizedSegment,failureEvidence?:ProdatFailureEvidence)=>issues.push({
     severity:'error',blocking:true,code:kind==='missing'?'PRODAT_ENERGY_PRODUCT_REQUIRED':'PRODAT_ENERGY_PRODUCT_INVALID',
     title:kind==='missing'?'Energiprodukt saknas':'Ogiltig energiprodukt',
     description:`Fält 506, P26.A s.20,68,119,122: ${kind==='missing'?'obligatoriskt eget energiprodukt-id saknas':'eget energiprodukt-id, kvalificerare eller placering är ogiltig'}.`,fieldPath:'CCI++Z14/CAV',
-    prodatDiagnostic:token?prodatTokenFieldDiagnostic('506',{...input,code},token,'PRODAT26A:P20/68/119/122'):prodatFieldDiagnostic('506',kind,{...input,code},scope.map(t=>t.raw),'PRODAT26A:P20/68/119/122',lineIndex),
+    prodatDiagnostic:token?prodatTokenFieldDiagnostic('506',{...input,code},token,'PRODAT26A:P20/68/119/122',failureEvidence):prodatFieldDiagnostic('506',kind,{...input,code},scope.map(t=>t.raw),'PRODAT26A:P20/68/119/122',lineIndex,undefined,failureEvidence),
   })
   for(const group of groups){
     const scope=group.segments,boundary=scope.findIndex(t=>['RFF','NAD'].includes(t.tag)),common=boundary<0?scope:scope.slice(0,boundary)
@@ -55,7 +56,10 @@ export function evaluateIncomingProdatEnergyProduct(input:EnergyInput){
       // National unused CCI metadata is residual extra information. The source
       // explicitly assigns incorrect C889 1131/3055 to the applicable field.
       const invalid=supplied.length!==1||!common.includes(cci)||segmentComposite(cci,2,una)[0]!=='Z14'||value!=='8716867000030'||value.length>35||Boolean(parts[1]?.trim()||parts[2]?.trim())
-      if(invalid)fail('invalid',scope,group.lineIndex)
+      if(invalid){
+        const evidence=supplied.flatMap(t=>{const v=scope[scope.indexOf(t)+1],p=segmentComposite(v,1,una);const failed=[...(p[4]!=='8716867000030'?[4]:[]),...(p[1]?.trim()?[1]:[]),...(p[2]?.trim()?[2]:[])];return prodatComponentEvidence(v.raw,'CAV/C889',p,supplied.length===1?failed:undefined)})
+        fail('invalid',scope,group.lineIndex,undefined,evidence)
+      }
       else object.value=value
     }
   }
@@ -74,5 +78,5 @@ export function evaluateIncomingProdatEnergyProduct(input:EnergyInput){
 export function assertIncomingProdatEnergyProductReview(rawPayload:string|null|undefined):void {
   const wire=tokenizeEdifact(rawPayload??'')
   const result=evaluateIncomingProdatEnergyProduct({rawSegments:wire.segments.map(t=>t.raw),una:wire.una})
-  if(projectProdatDiagnostics(result.issues).applicationErrors.length)throw new Error('PRODAT_ENERGY_PRODUCT_ACK_REVIEW_REQUIRED')
+  if(projectProdatDiagnostics(result.issues).hasNationalError)throw new Error('PRODAT_ENERGY_PRODUCT_ACK_REVIEW_REQUIRED')
 }

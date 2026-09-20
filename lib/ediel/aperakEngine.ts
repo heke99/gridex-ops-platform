@@ -1,3 +1,5 @@
+import {isQualifiedProdatApplicationError} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
+import type {ProdatAperakText} from '@/lib/ediel/prodat/prodatAperakText'
 import type {ProdatErrorOccurrence, ProdatDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
@@ -14,6 +16,7 @@ export function usesUtiltsAperakProfile(messageFamily: string): boolean {
 export type AperakEngineApplicationError = {
   prodatOccurrence?: ProdatErrorOccurrence
   prodatFieldDiagnostic?: ProdatDiagnostic
+  prodatAperakText?: ProdatAperakText
   ercCode: string
   fieldCode?: string | null
   text: string
@@ -140,12 +143,15 @@ function normalizeAperakErrors(
     .map((error) => ({
       ercCode: sanitizeEdifactToken(error.ercCode, 12) ?? '',
       fieldCode: sanitizeEdifactToken(error.fieldCode ?? null, 12),
-      text: escapeEdifactText(error.text, 140),
+      text: error.prodatFieldDiagnostic || error.prodatAperakText
+        ? (()=>{if(!isQualifiedProdatApplicationError(error))throw new Error('PRODAT_APERAK_TEXT_REVIEW_REQUIRED');return escapeEdifactValue(error.text)})()
+        : escapeEdifactValue(error.text.trim().slice(0,140)),
       referenceQualifier: sanitizeEdifactToken(error.referenceQualifier ?? null, 12),
       referenceNumber: error.referenceNumber ?? null,
       lineItemReference: error.lineItemReference ?? null,
       prodatOccurrence: error.prodatOccurrence,
       prodatFieldDiagnostic: error.prodatFieldDiagnostic,
+      prodatAperakText:error.prodatAperakText,
     }))
     .filter((error) => error.ercCode.length > 0 && error.text.length > 0)
 
