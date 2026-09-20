@@ -1,8 +1,8 @@
-# Work plan — active GAS240 Task 3
+# Work plan — after accepted GAS240 Batch B
 
-1. IN_PROGRESS: independent completed-runtime review and all applicable exact-head CI for PR356, using `gas-identity-pr356-review-package.md`. Existing runtime and immutable receipts remain the candidate; no automatic broad local rerun.
-2. NOT_STARTED: fix genuine review/CI findings with bounded proof, TDD and scoped independent re-review. This step applies only if a finding exists; do not invent a defect.
-3. NOT_STARTED: after approvals and all green, guarded ready/merge, exact tree comparison, actual-main73/73 plus OPS acceptance.
-4. NOT_STARTED: independent per-cell AT-P-01/02/03 adjudication of all12 remaining cells, separating protocol, persisted positive authority and live capability. Follow `remaining-d-final-acceptance-brief.md`; counters remain98/110 numeric +10/10parents until justified.
+1. DONE: complete Task3 independent runtime review, exact-candidate Node22CI, guarded PR356 merge and actual-main73/73 plus allOPS. Accepted runtime922a660; do not repeat unchanged work.
+2. IN_PROGRESS: final historical evidence-to-ledger disposition for all12 cells. Use `current-task.md` and `remaining-d-final-acceptance-brief.md`. Bounded protocol reviews PASS; corrected reviewer5751228735 leaves the historical counter PENDING rather than identifying a uniform code gap. Finish the exact per-cell comparison, then get an independent decisive verdict before changing counts.
+3. NOT_STARTED: if a concrete missing implementation behavior is actually established, qualify its source/consumer oracle and implement the smallest approved TDD batch with targeted independent review and fresh CI. No defect is assumed. Missing live roles or optional producers alone do not trigger this step.
+4. NOT_STARTED: reconcile remaining F3 phase criteria beyond the D counter, using current code and accepted PR350–356 receipts rather than stale findings; then separately scope later masterplan phases. No full-F3 or full-masterplan claim from a counter or greenCI.
 
-Accepted PR355 and source/design qualification are not to be repeated. Broader F3/F4/F5/F6/F7 work remains separately scoped; no full masterplan completion claim. PR310 PAUSED/untouched. Complete prior plan history: `archive/gas-identity-ac53b020/work-plan.md`.
+No producer/role/GAS guide activation, live mutations, source rewrites, threshold weakening or PR310 import. PR310 remains paused. Existing original source plan remains immutable evidence, with Task3 completion recorded in the current acceptance receipt instead of rewriting its history.
