@@ -63,10 +63,13 @@
   "source_plan": "quality/audits/ediel-masterplan-v2/aperak-text-plan.md",
   "source_candidate_commit": "80f77d12591bd440dd270b1461ae67fbd9c526df",
   "source_remote_checkpoint": {
-    "head": "b3b2188868acfae068a63d7abd5d3b30b7f33a4d",
-    "tree": "b10923b3e1129cbc69e568e7c7cd0c38ef85cdff",
+    "head": "d7685fc4eed07f9e7e7b864a98588fe5bd52b5eb",
+    "tree": "78977f77c4edf45cdf02df11e9a954b014e5856d",
+    "local_equivalent": "87343da123bd72d2c26a114b99adb4228d11c365",
     "verification": "freshfetchdiff0"
   },
   "source_review": "SOURCE/SPEC ARCHITECTURE TASK/SPEC QUALITY APPROVE",
-  "runtime_scope": "Approved finite typed A905 composition/readiness and exact escaping; explicit two capacity assertion exceptions only"
+  "runtime_scope": "Approved finite typed A905 composition/readiness and exact escaping; explicit two capacity assertion exceptions only",
+  "runtime_author": "aperak_text_runtime",
+  "runtime_base": "87343da123bd72d2c26a114b99adb4228d11c365"
 }
