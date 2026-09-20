@@ -4,8 +4,8 @@
   "status": "IN_PROGRESS",
   "branch": "codex/ediel-506-applicability-20260920",
   "base_head_sha": "ec7646c56a5412b2d05e9a4d763d7a2ee7462bc7",
-  "active_item": "Field506 source architecture correction R-506-A1",
-  "next_action": "Originalauthor source-only manualpermissionguard correction; scoped independent rereview; runtime only after rootauthorization",
+  "active_item": "Recover and implement approved field506/shared242 runtime",
+  "next_action": "Fresh TDD implementation from published finalsource, then independent review/exactCI/merge/main73+OPS",
   "accepted_numeric_D": 98,
   "merged_numeric_D": 98,
   "numeric_D_total": 110,
@@ -27,18 +27,15 @@
     "node": "22.23.2",
     "completed_at": "2026-09-20T00:11:35Z"
   },
-  "runtime_authorized": false,
+  "runtime_authorized": true,
   "last_accepted_pr": 350,
   "source_fix_round": 1,
   "source_remote_checkpoint": {
-    "head": "cfc88d7af7ee523c66c95026a60e1b7247bb88a1",
-    "tree": "ff0e1262cae371122b1088cf83b2a49bb48ac3e9",
-    "local_equivalent": "adcb599ab65be7cf3682cfe8b5ebeb1302b2ce2f",
-    "pr": null,
-    "verification": "freshfetchdiff0"
+    "head": "e6756d2e09755ca0236797790954bfb4ee7780b3",
+    "tree": "afe5d49ad22b13c3dd5c0399757d90964ed53e91"
   },
-  "runtime_local_head": "3dcd1bf3b503547cc1ba364bd29553ee613f8749",
-  "runtime_published_head": "53ac47b8488a43af4ed3f44f3205375c506adaa1",
+  "runtime_local_head": null,
+  "runtime_published_head": null,
   "runtime_tree": "a9f514765c0381dcd1bd4b96e3ce5f87f3078a9f",
   "active_pr": null,
   "last_merged_pr": 350,
@@ -51,11 +48,11 @@
     ],
     "conclusion": "success"
   },
-  "source_candidate_commit": "adcb599ab65be7cf3682cfe8b5ebeb1302b2ce2f",
-  "source_review": "SOURCE/SPEC APPROVE; ARCHITECTURE/TASK/QUALITY REQUEST_CHANGES R-506-A1",
+  "source_candidate_commit": "e6756d2e09755ca0236797790954bfb4ee7780b3",
+  "source_review": "APPROVE carried forward from completed sourceR1 review and wording correction",
   "runtime_scope": "Source-ownedfield/kind/occurrence metadata; F/U/L/I disposition, narrowIinboundguard, exactACKrefs; no506applicability/P94fulltextclaim",
   "runtime_fix_round": 0,
-  "runtime_review": "PR350 all APPROVE RT1-RT4 closed",
+  "runtime_review": "NOT_STARTED recovered implementation",
   "applicable_pr_workflows": 4,
   "main_pending": null,
   "initial_runtime_ci": "All4SUCCESS; Node22.23.2 4354/4354 in291files",
@@ -64,5 +61,6 @@
     35477451329,
     35477451347,
     35477451345
-  ]
+  ],
+  "recovery": "Uncommitted runtime and scratch evidence unavailable after environment rollback; new implementation receipts required"
 }
