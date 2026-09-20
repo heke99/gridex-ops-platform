@@ -1,0 +1,113 @@
+{
+  "message": {
+    "id": "00000000-0000-4000-8000-000000000001",
+    "direction": "inbound",
+    "message_standard": "edifact",
+    "message_family": "PRODAT",
+    "message_code": "Z15",
+    "raw_payload": "UNA:+.? 'UNB+UNOC:3+S+R+260917:1200+I++23-DGI-PRODAT'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z15+D+9+AB'DTM+137:202609171200:203'DTM+ZZZ:1:805'NAD+FR+12345:160:SVK+++++++SE'NAD+DO+54321:160:SVK+++++++SE'LIN+1++735123456789012345:::9'DTM+693:202609171200:203'DTM+164:202610010000:203'CCI++Z13'CAV+S17'CCI++Z23'CAV+A75'CCI++Z25'CAV+X99'RFF+Z05:NET'RFF+LI:CASE?:A?+B??C'RFF+Z09:PERMISSION'NAD+UD+001::89++Synthetic+++++SE'LIN+2++735123456789012345:::9'DTM+693:202609171200:203'DTM+164:202610010000:203'CCI++Z13'CAV+S17'CCI++Z23'CAV+A75'CCI++Z25'CAV+X99'RFF+Z05:NET'RFF+LI:CASE?:A?+B??C'RFF+Z09:PERMISSION'NAD+UD+001::89++Synthetic+++++SE'UNT+33+M'UNZ+1+I'",
+    "parsed_payload": {},
+    "validation_report": {},
+    "application_reference": "23-DGI-PRODAT",
+    "environment": "test",
+    "test_flag": 1,
+    "sender_ediel_id": "12345",
+    "receiver_ediel_id": "54321",
+    "transaction_reference": "CACHED-UNRELATED",
+    "company_id": "synthetic-company"
+  },
+  "issues": [
+    {
+      "scope": "prodat_register",
+      "severity": "error",
+      "code": "PRODAT_REGISTER_STRUCTURE_INVALID",
+      "title": "Ogiltig PRODAT-registerstruktur",
+      "prodatDiagnostic": {
+        "kind": "field",
+        "fieldNumber": "258",
+        "errorKind": "missing",
+        "sourceRule": "PRODAT26A:P47/114–116",
+        "segmentPath": "LIN",
+        "group": "SG8",
+        "component": {
+          "locator": "LIN",
+          "linElement": 4,
+          "linComponent": 1
+        },
+        "occurrence": {
+          "ownReferences": {
+            "objectId": {
+              "kind": "present",
+              "value": "735123456789012345"
+            },
+            "lineItemReference": {
+              "kind": "present",
+              "value": "CASE:A+B?C"
+            },
+            "customerId": {
+              "kind": "present",
+              "value": "001"
+            }
+          },
+          "scope": "register",
+          "messageReference": "M",
+          "lineIndex": 0,
+          "lineNumber": "1",
+          "registerPosition": 1,
+          "objectId": "735123456789012345",
+          "identityAgency": "9",
+          "lineItemReference": "CASE:A+B?C"
+        }
+      },
+      "description": "Fält 258, LIN 1: per_object_register_sequence_invalid (P26.A s.47,114–116).",
+      "fieldPath": "LIN",
+      "blocking": true
+    },
+    {
+      "scope": "prodat_register",
+      "severity": "error",
+      "code": "PRODAT_REGISTER_STRUCTURE_INVALID",
+      "title": "Ogiltig PRODAT-registerstruktur",
+      "prodatDiagnostic": {
+        "kind": "field",
+        "fieldNumber": "258",
+        "errorKind": "missing",
+        "sourceRule": "PRODAT26A:P47/114–116",
+        "segmentPath": "LIN",
+        "group": "SG8",
+        "component": {
+          "locator": "LIN",
+          "linElement": 4,
+          "linComponent": 1
+        },
+        "occurrence": {
+          "ownReferences": {
+            "objectId": {
+              "kind": "present",
+              "value": "735123456789012345"
+            },
+            "lineItemReference": {
+              "kind": "present",
+              "value": "CASE:A+B?C"
+            },
+            "customerId": {
+              "kind": "present",
+              "value": "001"
+            }
+          },
+          "scope": "register",
+          "messageReference": "M",
+          "lineIndex": 1,
+          "lineNumber": "2",
+          "registerPosition": 2,
+          "objectId": "735123456789012345",
+          "identityAgency": "9",
+          "lineItemReference": "CASE:A+B?C"
+        }
+      },
+      "description": "Fält 258, LIN 2: per_object_register_sequence_invalid (P26.A s.47,114–116).",
+      "fieldPath": "LIN",
+      "blocking": true
+    }
+  ]
+}

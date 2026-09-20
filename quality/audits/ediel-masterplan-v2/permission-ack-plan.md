@@ -20,6 +20,12 @@ Commit only owned runtime/tests/new audit/evidence; root owns plan/memory/public
 
 ## Global constraints
 
+#### Task2 amendment — registry-only derivative missing258 guard
+
+Root authorization2026-09-20 after independent SOURCE/SPEC+ARCHITECTURE APPROVE in .agent-memory/permission-ack-register-amendment-review.md: allow the exact narrow registry-side causal exclusion described there. Incoming PRODAT, selected wire message with unique ownBGM Z14/Z15/Z18, entirely omitted C829 in every selected LIN, exact PRODAT_REGISTER_STRUCTURE_INVALID typed258/missing tied by physical line to structured per_object_register_sequence_invalid for equal209/agency siblings. Cachedcode/scenario/laterUNH cannot establish authority; do not use description regex or broad field258 filtering. Use existing reader/grouping output unchanged. Explicit empty C829 is present/malformed and retains hold, as do global314,invalid209,other register/readings and all gas/death/meter failures. No shared grouping/parser/fieldMatrix/register validator/canonical258/outgoing/source change.
+
+Preserve the separate populated-scenario register comparator ambiguity hold; retain typed322/324 evidence on that internal stop with no writes, no fabricated national error. Canonical equal-reference258 residual remains explicit. The amendment only enables selected field reporting/persistence, not duplicate-grant or business authority. Complete finite controls from independent report: selected threecodes/threealphabets, stable distinct issue+detail upserts/replay, distinctrefs, all C829presence/empty/malformed/extra variants, invalid314/209/otherreading, nonpermission/validsupportedchain/outbound, cached/ambiguous/latermessage authority, scenarioempty vs populatedambiguity, mixed text-unready. No additional old assertion edits. All other Task2 constraints hold.
+
 Source only until independent source/spec and architecture approval, root authorization and PR352 actual main gates. PR310 paused/excluded; counts98/110 numeric and10/10 parents unchanged. Preserve frozen sources, existing assertions, runtime, schema, codec, gates and receipts. No live mutations, provider sends or deployment.
 
 ### Task 1: Qualify legacy permission322/324 decisions and actual ACK boundaries

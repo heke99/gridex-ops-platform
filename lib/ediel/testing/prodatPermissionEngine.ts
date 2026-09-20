@@ -1,3 +1,4 @@
+import {permissionAckFieldsFromPayload,assertPermissionAckFieldsReady} from '@/lib/ediel/prodat/prodatPermissionAckFields'
 import { readProdatParty } from '@/lib/ediel/prodat/prodatPartyFields'
 import { prodatReferenceEntries, prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
@@ -28,6 +29,7 @@ export type ProdatPermissionDecisionIssue = {
 }
 
 export type ProdatPermissionValidationResult = {
+  fieldAssessment?: ReturnType<typeof permissionAckFieldsFromPayload>
   handled: boolean
   outcome: 'positive' | 'negative'
   issues: ProdatPermissionDecisionIssue[]
@@ -427,95 +429,6 @@ function buildPermissionValidationResult(params: {
   }
 }
 
-function validatePermissionZ14(params: {
-  message: EdielMessageRow
-  testData?: EdielTgtCaseTestData | null
-  context?: ProdatPermissionContext | null
-}): ProdatPermissionValidationResult {
-  const facts = readPermissionMessageFacts(params.message)
-  const line = firstPermissionLine(facts)
-  const testCaseCode = normalizedTgtCaseCode(params.testData)
-  const status = normalize(line.permissionStatus)
-  const issues: ProdatPermissionDecisionIssue[] = []
-
-  if (params.context?.hasMatchingPriorPermissionFlow === false) {
-    issues.push(permissionDecisionIssue({
-      ruleKey: 'permission_flow_not_found',
-      ercCode: '40',
-      fieldCode: '105',
-      text: 'The object could not be identified',
-      line,
-      actualValue: line.meteringPointId ?? line.lineReference,
-      expectedValue: 'matching Z13 permission request',
-    }))
-  }
-
-  if (status && !['A13', 'A74', 'A75', 'Z96'].includes(status)) {
-    issues.push(permissionDecisionIssue({
-      ruleKey: 'permission_status_invalid',
-      ercCode: '41',
-      fieldCode: '322',
-      text: `Felaktigt tillståndets status ${status}`,
-      line,
-      actualValue: status,
-      expectedValue: 'A13/A74/A75/Z96',
-    }))
-  }
-
-  return buildPermissionValidationResult({ handled: true, selectedTgtCaseCode: testCaseCode, issues })
-}
-
-function validatePermissionZ15(params: {
-  message: EdielMessageRow
-  testData?: EdielTgtCaseTestData | null
-  context?: ProdatPermissionContext | null
-}): ProdatPermissionValidationResult {
-  const facts = readPermissionMessageFacts(params.message)
-  const line = firstPermissionLine(facts)
-  const testCaseCode = normalizedTgtCaseCode(params.testData)
-  const status = normalize(line.permissionStatus)
-  const endReason = normalize(line.permissionEndReason)
-  const issues: ProdatPermissionDecisionIssue[] = []
-
-  if (status !== 'A75') {
-    issues.push(permissionDecisionIssue({
-      ruleKey: status ? 'permission_status_invalid' : 'permission_status_missing',
-      ercCode: status ? '42' : '41',
-      fieldCode: '322',
-      text: status ? `Felaktigt tillståndets status ${status}` : 'Tillståndets status saknas',
-      line,
-      actualValue: status,
-      expectedValue: 'A75',
-    }))
-  }
-
-  if (!['B79', 'B80'].includes(endReason)) {
-    issues.push(permissionDecisionIssue({
-      ruleKey: endReason ? 'permission_end_reason_invalid' : 'permission_end_reason_missing',
-      ercCode: endReason ? '42' : '41',
-      fieldCode: '324',
-      text: endReason ? `Felaktig orsak till tillståndets upphörande ${endReason}` : 'Orsak till tillståndets upphörande saknas',
-      line,
-      actualValue: endReason,
-      expectedValue: 'B79/B80',
-    }))
-  }
-
-  if (issues.length === 0 && params.context?.hasMatchingPriorPermissionFlow === false) {
-    issues.push(permissionDecisionIssue({
-      ruleKey: 'permission_flow_not_found',
-      ercCode: '40',
-      fieldCode: '105',
-      text: 'The object could not be identified',
-      line,
-      actualValue: line.meteringPointId ?? line.lineReference,
-      expectedValue: 'active permission or matching Z18 request',
-    }))
-  }
-
-  return buildPermissionValidationResult({ handled: true, selectedTgtCaseCode: testCaseCode, issues })
-}
-
 export function validateProdatPermissionMessage(params: {
   message: EdielMessageRow
   testData?: EdielTgtCaseTestData | null
@@ -523,19 +436,23 @@ export function validateProdatPermissionMessage(params: {
 }): ProdatPermissionValidationResult {
   const family = String(params.message.message_family ?? '').toUpperCase()
   const direction = String(params.message.direction ?? '').toLowerCase()
-  const code = permissionMessageCode(params.message)
   const selectedTgtCaseCode = normalizedTgtCaseCode(params.testData)
-
-  if (family !== 'PRODAT' || direction !== 'inbound') {
-    return buildPermissionValidationResult({ handled: false, selectedTgtCaseCode, issues: [] })
+  if (family !== 'PRODAT' || direction !== 'inbound') return buildPermissionValidationResult({handled:false,selectedTgtCaseCode,issues:[]})
+  const assessment=permissionAckFieldsFromPayload(params.message.raw_payload)
+  assertPermissionAckFieldsReady(assessment)
+  const code=assessment.code
+  const issues:ProdatPermissionDecisionIssue[]=assessment.applicationErrors.map(error=>({
+    ruleKey:`permission_${error.fieldCode === '322' ? 'status' : 'end_reason'}_${error.ercCode === '41' ? 'missing' : 'invalid'}`,
+    ercCode:error.ercCode,fieldCode:error.fieldCode!,text:error.text ?? '',
+    lineItemReference:error.lineItemReference??null,meteringPointId:error.referenceNumber??null,
+    actualValue:error.prodatFieldDiagnostic?.kind==='field'?error.prodatFieldDiagnostic.failureEvidence?.map(e=>e.content).join(' / ')??null:null,expectedValue:null,
+  }))
+  // Separate legacy prior-flow behavior remains unchanged and is not field authority.
+  if(params.context?.hasMatchingPriorPermissionFlow===false&&(code==='Z14'||code==='Z15'&&!issues.length)){
+    const line=firstPermissionLine(readPermissionMessageFacts(params.message))
+    issues.unshift(permissionDecisionIssue({ruleKey:'permission_flow_not_found',ercCode:'40',fieldCode:'105',text:'The object could not be identified',line,actualValue:line.meteringPointId??line.lineReference,expectedValue:code==='Z14'?'matching Z13 permission request':'active permission or matching Z18 request'}))
   }
-
-  if (code === 'Z14') return validatePermissionZ14(params)
-  if (code === 'Z15') return validatePermissionZ15(params)
-
-  if (code === 'Z13' || code === 'Z18') {
-    return buildPermissionValidationResult({ handled: true, selectedTgtCaseCode, issues: [] })
-  }
-
-  return buildPermissionValidationResult({ handled: false, selectedTgtCaseCode, issues: [] })
+  const result=buildPermissionValidationResult({handled:['Z13','Z14','Z15','Z18'].includes(code),selectedTgtCaseCode,issues})
+  result.applicationErrors=[...result.applicationErrors.filter(e=>e.fieldCode==='105'),...assessment.applicationErrors]
+  return {...result,fieldAssessment:assessment}
 }

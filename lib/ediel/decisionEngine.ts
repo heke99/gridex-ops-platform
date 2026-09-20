@@ -1,3 +1,4 @@
+import {permissionAckFieldsFromPayload} from '@/lib/ediel/prodat/prodatPermissionAckFields'
 import {evaluateIncomingProdatEnergyProduct} from '@/lib/ediel/prodat/prodatEnergyProduct'
 import {projectProdatDiagnostics} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
 import {deathStatusAperakErrors} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
@@ -5,7 +6,6 @@ import type {DeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
 import {validateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy'
 import type {MeterChangeSelection} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
 import { prodatReferenceByQualifier } from '@/lib/ediel/prodat/prodatReferenceFields'
-import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import type { AckFamily, AckOutcome, EdielAperakApplicationError } from '@/lib/ediel/ack'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -108,11 +108,6 @@ function rawSegments(rawPayload?: string | null): string[] {
     .split("'")
     .map((segment) => segment.trim())
     .filter(Boolean)
-}
-
-function segmentStarts(rawPayload: string | null | undefined, prefix: string): boolean {
-  const upperPrefix = prefix.toUpperCase()
-  return rawSegments(rawPayload).some((segment) => segment.toUpperCase().startsWith(upperPrefix))
 }
 
 function firstReference(rawPayload: string | null | undefined, qualifier: string): string | null {
@@ -219,41 +214,6 @@ function prodatBusinessIssueToAperakError(rawPayload: string | null | undefined,
   return errorForCode({ ercCode: '42', fieldCode: null, text: issue.message ?? 'INCORRECT DATA', rawPayload })
 }
 
-function buildKnownPermissionErrors(params: {
-  rawPayload: string | null
-  classification: EdielClassifiedMessage
-}): EdielAperakApplicationError[] {
-  const { rawPayload, classification } = params
-  const code = normalize(classification.messageCode)
-  const errors: EdielAperakApplicationError[] = []
-  const tokens = tokenizeEdifact(rawPayload)
-  const status = prodatCharacteristicValue('322', tokens.segments, tokens.una)
-  const endReason = prodatCharacteristicValue('324', tokens.segments, tokens.una)
-
-  if (code === 'Z14' && classification.variant === 'unknown') {
-    errors.push(errorForCode({
-      ercCode: segmentStarts(rawPayload, 'CCI++Z23') ? '42' : '41',
-      fieldCode: '322',
-      text: segmentStarts(rawPayload, 'CCI++Z23') ? 'INCORRECT DATA - permission status' : 'MANDATORY FIELD MISSING - permission status',
-      rawPayload,
-    }))
-  }
-
-  if (code === 'Z15') {
-    if (!status || status !== 'A75') {
-      errors.push(errorForCode({ ercCode: status ? '42' : '41', fieldCode: '322', text: status ? `INCORRECT DATA - permission status ${status}` : 'MANDATORY FIELD MISSING - permission status', rawPayload }))
-    }
-    if (!endReason || !['B79', 'B80'].includes(endReason)) {
-      errors.push(errorForCode({ ercCode: endReason ? '42' : '41', fieldCode: '324', text: endReason ? `INCORRECT DATA - permission end reason ${endReason}` : 'MANDATORY FIELD MISSING - permission end reason', rawPayload }))
-    }
-  }
-
-  if (code === 'Z18' && !endReason) {
-    errors.push(errorForCode({ ercCode: '41', fieldCode: '324', text: 'MANDATORY FIELD MISSING - permission end reason', rawPayload }))
-  }
-
-  return errors
-}
 
 
 function shouldForcePortalExpectedNegativeAperak(input: ProdatAperakDecisionInput, classification: EdielClassifiedMessage): boolean {
@@ -329,7 +289,8 @@ export function decideProdatAperak(input: ProdatAperakDecisionInput): EdielEngin
   const businessErrors = validateProdatBusinessRules(rawPayload ?? '')
     .filter((item) => item.severity === 'error')
     .map((item) => prodatBusinessIssueToAperakError(rawPayload, item))
-  const knownPermissionErrors = buildKnownPermissionErrors({ rawPayload, classification })
+  const permissionFields = permissionAckFieldsFromPayload(rawPayload)
+  const knownPermissionErrors = permissionFields.applicationErrors
 
   const changeWire=tokenizeEdifact(rawPayload??''),changeBgm=changeWire.segments.find(t=>t.tag==='BGM')
   const changeErrors=validateProdatMeterChange({code:segmentComposite(changeBgm,1,changeWire.una)[0]??'',rawSegments:changeWire.segments.map(t=>t.raw),una:changeWire.una,direction:'inbound',facts:{meterChange:input.meterChange}}).filter(i=>i.blocking||i.severity==='error').map(i=>({...errorForCode({rawPayload,ercCode:i.code==='PRODAT_METER_CHANGE_REQUIRED'?'41':'42',fieldCode:i.fieldPath==='CCI++Z14/CAV'?'242':'254',text:i.description}),referenceQualifier:i.meteringPointId?'Z07':null,referenceNumber:i.meteringPointId??null,lineItemReference:i.lineItemReference??null}))
@@ -338,6 +299,11 @@ export function decideProdatAperak(input: ProdatAperakDecisionInput): EdielEngin
   if(energyProjection.disposition.kind==='internal_review')throw new Error('PRODAT_APERAK_TEXT_REVIEW_REQUIRED')
   const energyErrors=energyProjection.applicationErrors
   const applicationErrors = [...businessErrors, ...knownPermissionErrors,...changeErrors,...deathErrors,...energyErrors]
+  if(permissionFields.disposition.kind==='internal_review')return {
+    kind:'manual_review',ackFamily:'APERAK',outcome:null,messageText:'PRODAT_PERMISSION_ACK_REVIEW_REQUIRED',
+    applicationErrors,reason:JSON.stringify(permissionFields),ruleKeys:['PRODAT_PERMISSION_ACK_REVIEW_REQUIRED'],
+    classification:summarizeRuleProfile(classification),portalFeedback,expectedComparison:null,
+  }
   if (portalFeedback?.expectedNegativeAperak && portalFeedback.actualWasPositiveAperak) {
     applicationErrors.unshift(portalFeedbackError(portalFeedback, rawPayload))
   }

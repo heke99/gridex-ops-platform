@@ -1,3 +1,4 @@
+import {permissionAckFieldsFromPayload} from '@/lib/ediel/prodat/prodatPermissionAckFields'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
 import {
@@ -156,7 +157,7 @@ function utiltsProfileForCode(code: string | null, variant: EdielMessageVariant)
   return 'manual_review_unknown'
 }
 
-function prodatPermissionVariant(code: string | null, facts: CanonicalFacts): {
+function prodatPermissionVariant(code: string | null, facts: CanonicalFacts, fields: ReturnType<typeof permissionAckFieldsFromPayload>): {
   variant: EdielMessageVariant
   businessResult: EdielBusinessResult
   validity: EdielApplicationValidity
@@ -193,33 +194,20 @@ function prodatPermissionVariant(code: string | null, facts: CanonicalFacts): {
   }
 
   if (code === 'Z14') {
-    if (hasCanonicalScalarToken(facts, 'Z14VH') || hasCanonicalScalarToken(facts, 'S18')) {
-      return { variant: 'Z14VH', businessResult: 'permission_approved', validity: 'valid', signals, manualReviewReason: null }
-    }
-    if (hasCanonicalScalarToken(facts, 'Z14N') || statuses.some((status) => ['A75', 'Z96'].includes(status))) {
-      return { variant: 'Z14N', businessResult: 'permission_rejected', validity: 'valid', signals, manualReviewReason: null }
-    }
-    if (hasCanonicalScalarToken(facts, 'Z14V') || hasCanonicalScalarToken(facts, 'S17') || statuses.some((status) => ['A74', 'A13'].includes(status))) {
-      return { variant: 'Z14V', businessResult: 'permission_approved', validity: 'valid', signals, manualReviewReason: null }
-    }
-    return {
-      variant: 'unknown',
-      businessResult: 'unknown',
-      validity: statuses.length > 0 ? 'uncertain' : 'invalid',
-      signals,
-      manualReviewReason: statuses.length > 0 ? 'Z14-statusen är inte mappad till Z14V/Z14N/Z14VH.' : 'Z14 saknar tydligt tillståndsstatus i CCI/CAV.',
-    }
+    const reasons=new Set(fields.objects.map(object=>object.reason))
+    const reason=reasons.size===1?fields.objects[0]?.reason:null
+    const validity=fields.disposition.kind==='internal_review'?'uncertain':fields.hasNationalError?'invalid':'valid'
+    if(reason==='S18')return {variant:'Z14VH',businessResult:'permission_approved',validity,signals,manualReviewReason:null}
+    if(reason==='Z96')return {variant:'Z14N',businessResult:'permission_rejected',validity,signals,manualReviewReason:null}
+    if(reason==='S17')return {variant:'Z14V',businessResult:'permission_approved',validity,signals,manualReviewReason:null}
+    return {variant:'unknown',businessResult:'unknown',validity:'uncertain',signals,manualReviewReason:'Egen transaktionstyp avgör inte Z14V/Z14N/Z14VH.'}
   }
 
   if (code === 'Z15') {
-    const statusValid = statuses.length === 0 || statuses.includes('A75')
-    const reasonValid = endReasons.length === 0 || endReasons.some((reason) => ['B79', 'B80'].includes(reason))
     return {
-      variant: 'Z15V',
-      businessResult: 'permission_terminated',
-      validity: statusValid && reasonValid ? 'valid' : 'invalid',
-      signals,
-      manualReviewReason: statusValid && reasonValid ? null : 'Z15 innehåller ogiltig status eller avslutsorsak.',
+      variant: 'Z15V', businessResult: 'permission_terminated',
+      validity: fields.disposition.kind==='internal_review'?'uncertain':fields.hasNationalError?'invalid':'valid',
+      signals, manualReviewReason: null,
     }
   }
 
@@ -252,8 +240,9 @@ function utiltsVariant(facts: CanonicalFacts, explicitProcessType?: string | nul
 export function classifyProdatPermissionMessage(input: ClassifyEdielMessageInput): EdielClassifiedMessage {
   const rawPayload = input.rawPayload ?? input.message?.raw_payload ?? null
   const facts = factsFor(rawPayload)
-  const code = inferMessageCode(input, facts)
-  const permission = prodatPermissionVariant(code, facts)
+  const fields=permissionAckFieldsFromPayload(rawPayload)
+  const code = ['Z13','Z14','Z15','Z18'].includes(fields.code) ? fields.code : inferMessageCode(input, facts)
+  const permission = prodatPermissionVariant(code, facts, fields)
   const profile = prodatProfileForCode(code)
   const isPermissionCode = ['Z13', 'Z14', 'Z15', 'Z18'].includes(code ?? '')
 

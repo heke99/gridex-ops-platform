@@ -75,15 +75,15 @@
   "runtime_author": "permission_ack_runtime",
   "runtime_base": "35009150",
   "runtime_test_checkpoint": {
-    "local": "f8ed22676cea984652734bb37ad2225cdb314f5f",
-    "remote": "af6ee5d2fa23e4b95c2af95685bba2584ff32196",
-    "tree": "d018fe54c7781456ae550630eb0e57503bedbb49",
-    "verification": "freshfetchdiff0",
-    "tests": 11,
-    "expected_failed": 8,
-    "passed": 3
+    "local": "8afcafc5e0e22a5b2febe375ac8ce39aedca40b2",
+    "remote": "59e902f8301ffa5f2197823499e7ebce7ca0a31a",
+    "tree": "80b3c5fcc97df24f1975567c0e6ac1681f55aecc",
+    "verification": "fresh fetch diff0",
+    "tests": 56,
+    "passed": 15,
+    "expected_failed": 41
   },
-  "runtime_remote_parent": "297625c2b7a8a4eab54feacd27ec7344620bb75d",
+  "runtime_remote_parent": "59e902f8301ffa5f2197823499e7ebce7ca0a31a",
   "runtime_checkpoint": null,
   "codec_exception": "sanitizeSegment canonical terminal apostrophe releaseparity only; independent source/architecture amendment, root56db1f3a",
   "runtime_review": "NOT_STARTED",
