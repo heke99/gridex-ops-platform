@@ -1,0 +1,2600 @@
+{
+  "schemaVersion": 1,
+  "status": "source_only_review_candidate_no_runtime",
+  "repositoryHeadBeforeAuditCommit": "2f7aaf9ddc853a2d4456fd7f739c30bc61459509",
+  "runtimeBaseline": "b4f00ae37937502f2678738bf076c0ba8de9696b",
+  "scratchRoot": "/workspace/scratch/2a201d6d5897/aperak-text-source-20260920",
+  "sourcePdf": {
+    "path": "/workspace/scratch/2a201d6d5897/prodat-original-source/PRODAT-26A-r3.pdf",
+    "sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95"
+  },
+  "files": [
+    {
+      "name": "full-original.txt",
+      "bytes": 307019,
+      "sha256": "901992f0524cc7f226198aca39274bfdb3fcea279bc97661f1aa17e0c679bce6"
+    },
+    {
+      "name": "integrity-v1.log",
+      "bytes": 401,
+      "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18"
+    },
+    {
+      "name": "normative-v1.test.ts",
+      "bytes": 4422,
+      "sha256": "2b9bc70636ee6c1f0cf6e174042fd0687539cac6bc17fb6d3f0a397ea145f84c"
+    },
+    {
+      "name": "observations-v2.json",
+      "bytes": 139307,
+      "sha256": "43be7536208c2b3979ed3f662eec7f935dd3acb7fdf08640774f66702efb8ba7"
+    },
+    {
+      "name": "observe-v1.test.ts",
+      "bytes": 7008,
+      "sha256": "bc43d8a2da40fad2c7716adf44bd99672b1f5a3281d20b27ec70eb131fb592c2"
+    },
+    {
+      "name": "observe-v2.test.ts",
+      "bytes": 7075,
+      "sha256": "b6a466705ccfbe7db321286359952fef359ac31dc75bfc70cf0131f4b550383c"
+    },
+    {
+      "name": "p104-104.png",
+      "bytes": 254716,
+      "sha256": "ee7ba7090a4e6dd45e85e0824c02d4d7097bdadd3232574bb2e386b051972727"
+    },
+    {
+      "name": "p105-105.png",
+      "bytes": 160335,
+      "sha256": "f4944481c1df5b121c18e27b24c1dab54c29c0cda2c91dd1911a38441b7bc86b"
+    },
+    {
+      "name": "p106-106.png",
+      "bytes": 171193,
+      "sha256": "7628564ef18fcb89ec3425a0678ed7677bc048aec348eb4c49042348d245f1a8"
+    },
+    {
+      "name": "p119-119.png",
+      "bytes": 188239,
+      "sha256": "106cc69ffd0f1ca9aad3946711546855b5b6df10c8b95cfea8fc958890a804f6"
+    },
+    {
+      "name": "p22-022.png",
+      "bytes": 198182,
+      "sha256": "c0478436420a5537f3f553cb987d89b32401864927d55f06c639a31b5e680413"
+    },
+    {
+      "name": "p79-079.png",
+      "bytes": 201511,
+      "sha256": "1906326e518d04b05f44033979eeccc6981abbd24fac82e062bc741fa2b41830"
+    },
+    {
+      "name": "p90-090.png",
+      "bytes": 190047,
+      "sha256": "0447847c325f3e665b7ca94bf7dd6f08f065c8a8918dc7d30c8526e77e33e53b"
+    },
+    {
+      "name": "p93-093.png",
+      "bytes": 203603,
+      "sha256": "6e442ebd9abfdf1e7998615fee0d7c81ae7c1df3259ef415f7e1c5505c990b72"
+    },
+    {
+      "name": "p94-094.png",
+      "bytes": 199510,
+      "sha256": "4ef8f08367a2025ec290809227f32d4f8cc642dc7e4aaf383bb6b505d14f7575"
+    },
+    {
+      "name": "persisted-observation-v2.json",
+      "bytes": 31043,
+      "sha256": "14637dfcf7d1a6ace787b68c5054264f83d883058c44be92ddb30611bf84c5cf"
+    },
+    {
+      "name": "persisted-observation.json",
+      "bytes": 158022,
+      "sha256": "630b5f39ca6a1103169ca93e616ea49d267663e98b6099a9608556da1a4fe2f7"
+    },
+    {
+      "name": "persisted-v2.test.ts",
+      "bytes": 4788,
+      "sha256": "9f8a678730fc7dc0c92ce1a33f987515a8df2e1cc305e7b5ea0d0af98f45517d"
+    },
+    {
+      "name": "persisted.test.ts",
+      "bytes": 4779,
+      "sha256": "722ee2d53311df6759d26b6f0c3427aced8cf1b9c9215488f02985a169a79dd0"
+    },
+    {
+      "name": "run-consumers-v1.json",
+      "bytes": 2907,
+      "sha256": "b1ab1a5540b66cda69373e99059731111ec8a33f031ec674883bb3b20233f5ff"
+    },
+    {
+      "name": "run-consumers-v1.log",
+      "bytes": 105,
+      "sha256": "2418b85f4347250d79a39bd70e7ed116fc50761fdff3879ddb410f78eab3ac10"
+    },
+    {
+      "name": "run-consumers-v2.json",
+      "bytes": 1363,
+      "sha256": "afa8bd91e36afb1562c28503ea2573244adf09b5edd5f2321f6ab5241263480e"
+    },
+    {
+      "name": "run-consumers-v2.log",
+      "bytes": 105,
+      "sha256": "589b121afdd0d14bb7b3abcf90063fb35a33c71f52f18f6ff179709d9e1462d5"
+    },
+    {
+      "name": "run-normative-v1.json",
+      "bytes": 9935,
+      "sha256": "8c29fe2292126461e93d18f7ac2dbd783769d2c5331bec7e6ead183641657452"
+    },
+    {
+      "name": "run-normative-v1.log",
+      "bytes": 105,
+      "sha256": "2ef787ab72a9f50a343d0935da5f54f887a213ee7f105c8570594891250273a7"
+    },
+    {
+      "name": "run-v1.json",
+      "bytes": 1706,
+      "sha256": "f6376164a07fb1a72f262e23e6d13bd482015c30a1177176c0614a8e66cfdbbd"
+    },
+    {
+      "name": "run-v1.log",
+      "bytes": 95,
+      "sha256": "0b8ba77e6d1dcac8fc1d374f4ea41689ede1b98244d4ce19772852346a0718d5"
+    },
+    {
+      "name": "run-v2.json",
+      "bytes": 960,
+      "sha256": "ab6faab2c588791fff4019ce9a0e0695017b6d5429aae185167859faa3d32f7e"
+    },
+    {
+      "name": "run-v2.log",
+      "bytes": 95,
+      "sha256": "0722bba07e35c73be9f019c44e517872df1b043b2a6832e7aab7156804028b8d"
+    },
+    {
+      "name": "tgt-observation-v2.json",
+      "bytes": 2242,
+      "sha256": "b71e364d01cedc22e3ed3f72a9d7c6400999a391a91dc1155077eb3490873a35"
+    },
+    {
+      "name": "tgt-v1.test.ts",
+      "bytes": 3366,
+      "sha256": "b7ebf5bd2a1eac92a3f8e346c8c111b2b308a2843a1fe9b10f896d12b94b9cf7"
+    },
+    {
+      "name": "tgt-v2.test.ts",
+      "bytes": 3367,
+      "sha256": "f37a0acce00791d74447e609169aaad575345d07619620469e2b3c440fd180f5"
+    },
+    {
+      "name": "vitest.config.mjs",
+      "bytes": 271,
+      "sha256": "374c3eb5251772ebf7a6ab92a81c267ebe3b2593d5c4dfa554d12382fdf69f58"
+    }
+  ],
+  "probes": {
+    "normative-v1.test.ts": "import {it,expect,vi} from 'vitest'\nimport {writeFileSync,readFileSync} from 'node:fs'\nimport ts from 'typescript'\nimport {raw,alphabets,characteristic,type Parts} from '@/__tests__/fixtures/prodat-register'\nimport {head,own,source,z10} from '@/__tests__/fixtures/prodat-identity'\nimport {permissionMessage} from '@/__tests__/fixtures/prodat-energy-product'\nimport {resolveCanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'\nimport {decideProdatAperak} from '@/lib/ediel/decisionEngine'\nimport {buildAperakDraft} from '@/lib/ediel/ack'\nimport {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'\nimport {validateProdatPermissionMessage} from '@/lib/ediel/testing/prodatPermissionEngine'\nimport {assertIncomingProdatEnergyProductReview} from '@/lib/ediel/prodat/prodatEnergyProduct'\nconst effects=vi.hoisted(()=>({db:[] as string[]}))\n// All registry reads simulated absent tables; there is NO network or live DB.\nvi.mock('@/lib/supabase/service',()=>({supabaseService:{from:(name:string)=>{effects.db.push(name);return {select:()=>({limit:async()=>({error:{message:'SYNTHETIC_ABSENT_TABLE'}})})}}}}))\nimport {deriveProdatAperakValidationIssues,resolveAndStoreProdatAperakErrors} from '@/lib/ediel/testing/aperakErrorRuleRegistry'\nconst output:any[]=[]\nconst extract=(wire:string)=>{const t=tokenizeEdifact(wire);return {texts:t.segments.filter(s=>s.tag==='FTX').map(s=>({code:segmentComposite(s,3,t.una)[0],values:segmentComposite(s,4,t.una),raw:s.raw})),erc:t.segments.filter(s=>s.tag==='ERC').map(s=>segmentComposite(s,1,t.una)[0]),references:t.segments.filter(s=>s.tag==='RFF').map(s=>segmentComposite(s,1,t.una))}}\nconst msg=(body:Parts[],alphabet:readonly string[]=alphabets[0],code='Z01')=>source(raw([...head(),...body],code,alphabet),code)\nconst object=(seq='1',id='735123456789012345',li:string|null='CASE-A',customer='OWN-A')=>own(seq,id,li).map(p=>p[0]==='NAD'?['NAD','UD',[customer,'','89'],'','Synthetic','Street','City','','12345','SE'] as Parts:p)\nconst observe=(id:string,m:any)=>{const d=resolveCanonicalRuntimeDecision(m),p=d.responsePlan.find(p=>p.family==='APERAK');let wire=null,error=null;try{if(p)wire=extract(buildAperakDraft({sourceMessage:m,outcome:p.outcome as any,applicationErrors:p.applicationErrors}).rawPayload!)}catch(e){error=String(e)};const result={id,syntax:d.syntaxDecision,application:d.applicationDecision,disposition:d.prodatProcessingDisposition,issues:d.issues,plan:p,wire,error};output.push(result);return result}\nfor(const a of alphabets)it(`P94 missing226 names field and own227 under ${a.join('')}`,()=>{\n const o=observe('normative',msg(object('1',undefined,null),a))\n expect(o.wire?.texts[0].values[0]).toBe('Ärendereferens saknas, kundid=OWN-A')\n})\nit('P94 wrong format retains actual fault value and field name',()=>{\n const o=observe('normative',msg(object().map(p=>p[0]==='DTM'?['DTM',['92','202610010000','BAD']]:p)))\n expect(o.wire?.texts[0].values[0]).toBe('Felaktigt Avtal, startdatum BAD')\n})\nit('P94 wrong qualifier retains actual fault value under owning227',()=>{\n const o=observe('normative',msg(object().map(p=>p[0]==='NAD'?['NAD','UD',['OWN-A','BAD','89'],'','Synthetic','Street','City','','12345','SE']:p)))\n expect(o.wire?.texts[0].values[0]).toBe('Felaktigt Kund-id BAD')\n})\nit('actual submitted delimiters round trip without text loss or extra ERC',()=>{\n const text=\"Felaktigt Nätområdesid BAD:+?'ERC+100::260'\"\n const wire=extract(buildAperakDraft({sourceMessage:msg(object()),outcome:'negative',applicationErrors:[{ercCode:'42',fieldCode:'260',text}]}).rawPayload!)\n expect(wire.erc).toEqual(['42']);expect(wire.texts[0].values).toEqual([text])\n})\nit('positive100 stays OK',()=>{\n const o=observe('normative',source(raw(z10(),'Z10'),'Z10'));expect(o.wire?.erc).toEqual(['100']);expect(o.wire?.texts[0].values).toEqual(['OK'])\n})\nit('source40 fixed text survives',()=>{\n const text='Anläggningen kan inte identifieras'\n const w=extract(buildAperakDraft({sourceMessage:msg(object()),outcome:'negative',applicationErrors:[{ercCode:'40',fieldCode:'105',text}]}).rawPayload!)\n expect(w.erc).toEqual(['40']);expect(w.texts[0].values).toEqual([text])\n})\nit('actual full draft preflight rejects71 decoded characters',()=>{\n expect(()=>buildAperakDraft({sourceMessage:msg(object()),outcome:'negative',applicationErrors:[{ercCode:'42',fieldCode:'260',text:'X'.repeat(71)}]})).toThrow('PROFILE_FIELD_LENGTH_EXCEEDED')\n})\n",
+    "observe-v1.test.ts": "import {it,expect,vi} from 'vitest'\nimport {writeFileSync,readFileSync} from 'node:fs'\nimport ts from 'typescript'\nimport {raw,alphabets,characteristic,type Parts} from '@/__tests__/fixtures/prodat-register'\nimport {head,own,source,z10} from '@/__tests__/fixtures/prodat-identity'\nimport {permissionMessage} from '@/__tests__/fixtures/prodat-energy-product'\nimport {resolveCanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'\nimport {decideProdatAperak} from '@/lib/ediel/decisionEngine'\nimport {buildAperakDraft} from '@/lib/ediel/ack'\nimport {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'\nimport {validateProdatPermissionMessage} from '@/lib/ediel/testing/prodatPermissionEngine'\nimport {assertIncomingProdatEnergyProductReview} from '@/lib/ediel/prodat/prodatEnergyProduct'\nconst effects=vi.hoisted(()=>({db:[] as string[]}))\n// All registry reads simulated absent tables; there is NO network or live DB.\nvi.mock('@/lib/supabase/service',()=>({supabaseService:{from:(name:string)=>{effects.db.push(name);return {select:()=>({limit:async()=>({error:{message:'SYNTHETIC_ABSENT_TABLE'}})})}}}}))\nimport {deriveProdatAperakValidationIssues,resolveAndStoreProdatAperakErrors} from '@/lib/ediel/testing/aperakErrorRuleRegistry'\nconst output:any[]=[]\nconst extract=(wire:string)=>{const t=tokenizeEdifact(wire);return {texts:t.segments.filter(s=>s.tag==='FTX').map(s=>({code:segmentComposite(s,3,t.una)[0],values:segmentComposite(s,4,t.una),raw:s.raw})),erc:t.segments.filter(s=>s.tag==='ERC').map(s=>segmentComposite(s,1,t.una)[0]),references:t.segments.filter(s=>s.tag==='RFF').map(s=>segmentComposite(s,1,t.una))}}\nconst msg=(body:Parts[],alphabet:readonly string[]=alphabets[0],code='Z01')=>source(raw([...head(),...body],code,alphabet),code)\nconst object=(seq='1',id='735123456789012345',li:string|null='CASE-A',customer='OWN-A')=>own(seq,id,li).map(p=>p[0]==='NAD'?['NAD','UD',[customer,'','89'],'','Synthetic','Street','City','','12345','SE'] as Parts:p)\nconst observe=(id:string,m:any)=>{const d=resolveCanonicalRuntimeDecision(m),p=d.responsePlan.find(p=>p.family==='APERAK');let wire=null,error=null;try{if(p)wire=extract(buildAperakDraft({sourceMessage:m,outcome:p.outcome as any,applicationErrors:p.applicationErrors}).rawPayload!)}catch(e){error=String(e)};const result={id,syntax:d.syntaxDecision,application:d.applicationDecision,disposition:d.prodatProcessingDisposition,issues:d.issues,plan:p,wire,error};output.push(result);return result}\nit('records actual canonical, direct, manual, registry and final-renderer outputs',async()=>{\n for(const [n,a] of alphabets.entries()){\n  observe(`control-${n}`,msg(object(),a))\n  observe(`missing209-${n}`,msg(object().map(p=>p[0]==='LIN'?['LIN','1']:p),a))\n  observe(`missing226-${n}`,msg(object('1',undefined,null),a))\n  observe(`missing-both-${n}`,msg(object('1',undefined,null).map(p=>p[0]==='LIN'?['LIN','1']:p),a))\n  observe(`missing260-${n}`,msg(object().filter(p=>!(p[0]==='RFF'&&p[1][0]==='Z05')),a))\n  observe(`invalid-date-format-${n}`,msg(object().map(p=>p[0]==='DTM'?['DTM',['92','202610010000','BAD']]:p),a))\n  observe(`invalid-customer-qualifier-${n}`,msg(object().map(p=>p[0]==='NAD'?['NAD','UD',['OWN-A','BAD','89'],'','Synthetic','Street','City','','12345','SE']:p),a))\n  observe(`second-own226-${n}`,msg([...object(),...object('2','735123456789012352',null,'OWN-B')],a))\n  observe(`second-absent227-${n}`,msg([...object(),...object('2','735123456789012352',null,'')],a))\n  observe(`duplicate-own227-${n}`,msg([...object('1',undefined,null),['NAD','UD',['OTHER','','89'],'','Other','Street','City','','12345','SE']],a))\n  const evil=\"BAD:+?'ERC+100::260'\";\n  const m=msg(object(),a), supplied={ercCode:'42',fieldCode:'260',text:`Felaktigt Nätområdesid ${evil}`,referenceQualifier:'Z07',referenceNumber:'735123456789012345',lineItemReference:'CASE-A'}\n  output.push({id:`supplied-malicious-${n}`,input:supplied.text,wire:extract(buildAperakDraft({sourceMessage:m,outcome:'negative',applicationErrors:[supplied]}).rawPayload!)})\n }\n observe('positive100-U',source(raw(z10(),'Z10'),'Z10'))\n const multi=raw([...head(),...object('1',undefined,null)],'Z01').replace(\"UNZ+1+I'\",raw([...head(),...object('1',undefined,'LATER','LATER-CUSTOMER')],'Z01').split(\"UNH+M+\")[1].replace(/^/,'UNH+N+').replace('UNT+','UNT+').replace(\"+M'\",\"+N'\").replace('UNZ+1','UNZ+2'))\n observe('later-message',source(multi))\n for(const energy of [null,'BAD']){\n const m=permissionMessage('Z13','S17',energy),d=decideProdatAperak({message:m});output.push({id:`direct506-${energy}`,d,wire:extract(buildAperakDraft({sourceMessage:m,outcome:'negative',applicationErrors:d.applicationErrors}).rawPayload!)})\n }\n const path='/workspace/scratch/2a201d6d5897/gridex-next/app/admin/ediel/actions.part-3.ts',file=ts.createSourceFile(path,readFileSync(path,'utf8'),ts.ScriptTarget.Latest,true),node=file.statements.find(s=>ts.isFunctionDeclaration(s)&&s.name?.text==='resolveBackendAperakDecision')!\n const js=ts.transpileModule(node.getText(file).replace('export ',''),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText\n const deps={assertIncomingProdatEnergyProductReview,validateProdatPermissionMessage,resolveAndStoreProdatAperakErrors,resolveTgtTestDataForAckAction:async()=>({testData:null,selectedRow:null}),resolveProdatPermissionContextForAck:async()=>({hasMatchingPriorPermissionFlow:true}),createEdielMessageEvent:async()=>{}}\n const manual=new Function(...Object.keys(deps),`${js};return resolveBackendAperakDecision`)(...Object.values(deps))\n const pm=permissionMessage();pm.raw_payload=pm.raw_payload!.replace('CAV+A74','CAV+INVALID')\n const md=await manual({actorUserId:'synthetic',sourceMessage:pm,roleCode:'supplier'});output.push({id:'manual-permission-status',d:md,wire:extract(buildAperakDraft({sourceMessage:pm,outcome:md.outcome,applicationErrors:md.applicationErrors}).rawPayload!)})\n const zm=source(raw(z10(false),'Z10'),'Z10'),registry=await resolveAndStoreProdatAperakErrors({message:zm});output.push({id:'registry-missing226',issues:deriveProdatAperakValidationIssues({message:zm}),d:registry,wire:extract(buildAperakDraft({sourceMessage:zm,outcome:'negative',applicationErrors:registry.errors}).rawPayload!)})\n for(const length of [69,70,71,140,141]){const m=msg(object()),text='X'.repeat(length);output.push({id:`length-${length}`,wire:extract(buildAperakDraft({sourceMessage:m,outcome:'negative',applicationErrors:[{ercCode:'42',fieldCode:'260',text}]}).rawPayload!)})}\n output.push({id:'application40',wire:extract(buildAperakDraft({sourceMessage:msg(object()),outcome:'negative',applicationErrors:[{ercCode:'40',fieldCode:'105',text:'Anläggningen kan inte identifieras'}]}).rawPayload!)})\n writeFileSync('/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/observations-v1.json',JSON.stringify({output,db:effects.db},null,2))\n expect(output.filter(o=>o.id.startsWith('control-')).map(o=>o.application)).toEqual(['accepted','accepted','accepted'])\n})\n",
+    "observe-v2.test.ts": "import {it,expect,vi} from 'vitest'\nimport {writeFileSync,readFileSync} from 'node:fs'\nimport ts from 'typescript'\nimport {raw,alphabets,characteristic,type Parts} from '@/__tests__/fixtures/prodat-register'\nimport {head,own,source,z10} from '@/__tests__/fixtures/prodat-identity'\nimport {permissionMessage} from '@/__tests__/fixtures/prodat-energy-product'\nimport {resolveCanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'\nimport {decideProdatAperak} from '@/lib/ediel/decisionEngine'\nimport {buildAperakDraft} from '@/lib/ediel/ack'\nimport {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'\nimport {validateProdatPermissionMessage} from '@/lib/ediel/testing/prodatPermissionEngine'\nimport {assertIncomingProdatEnergyProductReview} from '@/lib/ediel/prodat/prodatEnergyProduct'\nconst effects=vi.hoisted(()=>({db:[] as string[]}))\n// All registry reads simulated absent tables; there is NO network or live DB.\nvi.mock('@/lib/supabase/service',()=>({supabaseService:{from:(name:string)=>{effects.db.push(name);return {select:()=>({limit:async()=>({error:{message:'SYNTHETIC_ABSENT_TABLE'}})})}}}}))\nimport {deriveProdatAperakValidationIssues,resolveAndStoreProdatAperakErrors} from '@/lib/ediel/testing/aperakErrorRuleRegistry'\nconst output:any[]=[]\nconst extract=(wire:string)=>{const t=tokenizeEdifact(wire);return {texts:t.segments.filter(s=>s.tag==='FTX').map(s=>({code:segmentComposite(s,3,t.una)[0],values:segmentComposite(s,4,t.una),raw:s.raw})),erc:t.segments.filter(s=>s.tag==='ERC').map(s=>segmentComposite(s,1,t.una)[0]),references:t.segments.filter(s=>s.tag==='RFF').map(s=>segmentComposite(s,1,t.una))}}\nconst msg=(body:Parts[],alphabet:readonly string[]=alphabets[0],code='Z01')=>source(raw([...head(),...body],code,alphabet),code)\nconst object=(seq='1',id='735123456789012345',li:string|null='CASE-A',customer='OWN-A')=>own(seq,id,li).map(p=>p[0]==='NAD'?['NAD','UD',[customer,'','89'],'','Synthetic','Street','City','','12345','SE'] as Parts:p)\nconst observe=(id:string,m:any)=>{const d=resolveCanonicalRuntimeDecision(m),p=d.responsePlan.find(p=>p.family==='APERAK');let wire=null,error=null;try{if(p)wire=extract(buildAperakDraft({sourceMessage:m,outcome:p.outcome as any,applicationErrors:p.applicationErrors}).rawPayload!)}catch(e){error=String(e)};const result={id,syntax:d.syntaxDecision,application:d.applicationDecision,disposition:d.prodatProcessingDisposition,issues:d.issues,plan:p,wire,error};output.push(result);return result}\nit('records actual canonical, direct, manual, registry and final-renderer outputs',async()=>{\n for(const [n,a] of alphabets.entries()){\n  observe(`control-${n}`,msg(object(),a))\n  observe(`missing209-${n}`,msg(object().map(p=>p[0]==='LIN'?['LIN','1']:p),a))\n  observe(`missing226-${n}`,msg(object('1',undefined,null),a))\n  observe(`missing-both-${n}`,msg(object('1',undefined,null).map(p=>p[0]==='LIN'?['LIN','1']:p),a))\n  observe(`missing260-${n}`,msg(object().filter(p=>!(p[0]==='RFF'&&p[1][0]==='Z05')),a))\n  observe(`invalid-date-format-${n}`,msg(object().map(p=>p[0]==='DTM'?['DTM',['92','202610010000','BAD']]:p),a))\n  observe(`invalid-customer-qualifier-${n}`,msg(object().map(p=>p[0]==='NAD'?['NAD','UD',['OWN-A','BAD','89'],'','Synthetic','Street','City','','12345','SE']:p),a))\n  observe(`second-own226-${n}`,msg([...object(),...object('2','735123456789012352',null,'OWN-B')],a))\n  observe(`second-absent227-${n}`,msg([...object(),...object('2','735123456789012352',null,'')],a))\n  observe(`duplicate-own227-${n}`,msg([...object('1',undefined,null),['NAD','UD',['OTHER','','89'],'','Other','Street','City','','12345','SE']],a))\n  const evil=\"BAD:+?'ERC+100::260'\";\n  const m=msg(object(),a), supplied={ercCode:'42',fieldCode:'260',text:`Felaktigt Nätområdesid ${evil}`,referenceQualifier:'Z07',referenceNumber:'735123456789012345',lineItemReference:'CASE-A'}\n  output.push({id:`supplied-malicious-${n}`,input:supplied.text,wire:extract(buildAperakDraft({sourceMessage:m,outcome:'negative',applicationErrors:[supplied]}).rawPayload!)})\n }\n observe('positive100-U',source(raw(z10(),'Z10'),'Z10'))\n const multi=raw([...head(),...object('1',undefined,null)],'Z01').replace(\"UNZ+1+I'\",raw([...head(),...object('1',undefined,'LATER','LATER-CUSTOMER')],'Z01').split(\"UNH+M+\")[1].replace(/^/,'UNH+N+').replace('UNT+','UNT+').replace(\"+M'\",\"+N'\").replace('UNZ+1','UNZ+2'))\n observe('later-message',source(multi))\n for(const energy of [null,'BAD']){\n const m=permissionMessage('Z13','S17',energy),d=decideProdatAperak({message:m});output.push({id:`direct506-${energy}`,d,wire:extract(buildAperakDraft({sourceMessage:m,outcome:'negative',applicationErrors:d.applicationErrors}).rawPayload!)})\n }\n const path='/workspace/scratch/2a201d6d5897/gridex-next/app/admin/ediel/actions.part-3.ts',file=ts.createSourceFile(path,readFileSync(path,'utf8'),ts.ScriptTarget.Latest,true),node=file.statements.find(s=>ts.isFunctionDeclaration(s)&&s.name?.text==='resolveBackendAperakDecision')!\n const js=ts.transpileModule(node.getText(file).replace('export ',''),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText\n const deps={assertIncomingProdatEnergyProductReview,validateProdatPermissionMessage,resolveAndStoreProdatAperakErrors,resolveTgtTestDataForAckAction:async()=>({testData:null,selectedRow:null}),resolveProdatPermissionContextForAck:async()=>({hasMatchingPriorPermissionFlow:true}),createEdielMessageEvent:async()=>{}}\n const manual=new Function(...Object.keys(deps),`${js};return resolveBackendAperakDecision`)(...Object.values(deps))\n const pm=permissionMessage();pm.raw_payload=pm.raw_payload!.replace('CAV+A74','CAV+INVALID')\n const md=await manual({actorUserId:'synthetic',sourceMessage:pm,roleCode:'supplier'});output.push({id:'manual-permission-status',d:md,wire:extract(buildAperakDraft({sourceMessage:pm,outcome:md.outcome,applicationErrors:md.applicationErrors}).rawPayload!)})\n const zm=source(raw(z10(false),'Z10'),'Z10'),registry=await resolveAndStoreProdatAperakErrors({message:zm});output.push({id:'registry-missing226',issues:deriveProdatAperakValidationIssues({message:zm}),d:registry,wire:extract(buildAperakDraft({sourceMessage:zm,outcome:'negative',applicationErrors:registry.errors}).rawPayload!)})\n for(const length of [69,70,71,140,141]){const m=msg(object()),text='X'.repeat(length);try{output.push({id:`length-${length}`,wire:extract(buildAperakDraft({sourceMessage:m,outcome:'negative',applicationErrors:[{ercCode:'42',fieldCode:'260',text}]}).rawPayload!)})}catch(e){output.push({id:`length-${length}`,error:String(e)})}}\n output.push({id:'application40',wire:extract(buildAperakDraft({sourceMessage:msg(object()),outcome:'negative',applicationErrors:[{ercCode:'40',fieldCode:'105',text:'Anläggningen kan inte identifieras'}]}).rawPayload!)})\n writeFileSync('/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/observations-v2.json',JSON.stringify({output,db:effects.db},null,2))\n expect(output.filter(o=>o.id.startsWith('control-')).map(o=>o.application)).toEqual(['accepted','accepted','accepted'])\n})\n",
+    "persisted-v2.test.ts": "import {beforeEach,it,expect,vi} from 'vitest'\nimport {raw} from '@/__tests__/fixtures/prodat-register'\nimport {source,z10,head,own} from '@/__tests__/fixtures/prodat-identity'\nimport type {EdielMessageRow} from '@/lib/ediel/types'\nimport type {EdielRulebookIssue} from '@/lib/ediel/rulebook/rulebook'\nconst state=vi.hoisted(()=>({message:{} as EdielMessageRow, effects:[] as string[], drafts:[] as Record<string,unknown>[], events:[] as Record<string,unknown>[], inject:false,registryFailure:false}))\nvi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',()=>({resolveCanonicalRulePack:async()=>{if(state.registryFailure)throw Error('Injected registry failure');return {profileKey:'synthetic',sourceHash:'evidence',messageProfileId:'profile',rulePackId:'pack'}}}))\nvi.mock('@/lib/ediel/rulebook/canonicalPolicyFieldValidator',async importOriginal=>{\n const actual=await importOriginal<typeof import('@/lib/ediel/rulebook/canonicalPolicyFieldValidator')>()\n return {...actual,validateCanonicalPolicyFields:(input:Parameters<typeof actual.validateCanonicalPolicyFields>[0])=>[...actual.validateCanonicalPolicyFields(input),...(state.inject && input.policy.family==='PRODAT' ?[{severity:'error',blocking:true,code:'FIELD_MATRIX_REQUIRED_FIELD_MISSING',title:'Injected metadata loss',description:'Invariant test: owner failed to retain typed source identity'} as EdielRulebookIssue]:[])]}\n})\nvi.mock('@/lib/supabase/service',()=>({supabaseService:{from:()=>{throw Error('UNEXPECTED_DB')}}}))\nvi.mock('@/lib/ediel/db',()=>({getEdielMessageById:async()=>state.message,createEdielMessageEvent:async(p:Record<string,unknown>)=>{state.events.push(p)},updateEdielMessageStatus:async(p:{status:string;parsedPayload?:Record<string,unknown>;validationReport?:Record<string,unknown>})=>{state.message={...state.message,status:p.status,parsed_payload:p.parsedPayload??state.message.parsed_payload,validation_report:p.validationReport??state.message.validation_report} as EdielMessageRow;return state.message},linkEdielMessage:async()=>{state.effects.push('link')},listAckMessagesForSource:async()=>[],getEdielRouteProfileByCommunicationRouteId:async()=>null,listEdielMessagesByIds:async()=>[]}))\nvi.mock('@/lib/ediel/core/tenantResolver',()=>({resolveInboundTenantForMessage:async()=>({status:'tenant_resolved',message:state.message,evidence:{companyId:'tenant'}})}))\nvi.mock('@/lib/ediel/core/kernel',()=>({createCanonicalAckMessage:async(p:{ackFamily:string;draft:Record<string,unknown>})=>{state.drafts.push(p.draft);return {id:p.ackFamily,status:'sent'}}}))\nvi.mock('@/lib/ediel/actorTestingEngine',()=>({syncActorTestingForMessage:async()=>{state.effects.push('actor-auto');return null}}))\nvi.mock('@/lib/ediel/inbound/inboundFacilityRecognition',()=>({recognizeInboundFacilityData:async()=>{state.effects.push('facility');return null}}))\nvi.mock('@/lib/ediel/matching',()=>({matchMeteringPointForEdielMessage:async()=>null,matchSiteAndCustomerForMeteringPoint:async()=>null,findMatchingSupplierSwitchRequest:async()=>null}))\nvi.mock('@/lib/ediel/inboundCases',()=>({createOrUpdateInboundProdatCase:async()=>{state.effects.push('case');return null}}))\nvi.mock('@/lib/onboarding/inboundEdielLinking',()=>({applyInboundProdatZ02ToCustomerInfoRequest:async()=>{state.effects.push('z02');return null},applyInboundProdatZ14ToMeteringPermission:async()=>{state.effects.push('z14');return null}}))\nvi.mock('@/lib/ediel/flows/inboundBusinessStateMachine',()=>({applyInboundBusinessStateMachine:async()=>{state.effects.push('business');return null}}))\nvi.mock('@/lib/ediel/operationalVerification',()=>({buildSafeMasterdataProposal:async()=>[{field:'synthetic',reviewRequired:true}]}))\nvi.mock('@/lib/ediel/orchestrator/edielProcessingPipeline',()=>({analyzeEdielProcessingPipeline:async()=>null}))\nvi.mock('@/lib/inbound-mail/edielMailboxPoller',()=>({runInboundEdielMailEngine:async()=>null}))\nimport {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'\n\nimport {writeFileSync} from 'node:fs'\nit('records actual persisted response plan and ACK for own missing226',async()=>{\n state.message={...source(raw([...head(),...own('1','735123456789012345',null)],'Z01'),'Z01'),status:'received',company_id:'tenant',parsed_payload:{fileEngine:{mode:'agt'}}} as EdielMessageRow\n await processInboundEdielMessage({actorUserId:'00000000-0000-4000-8000-000000000002',edielMessageId:state.message.id})\n writeFileSync('/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/persisted-observation-v2.json',JSON.stringify({message:state.message,effects:state.effects,drafts:state.drafts,events:state.events},null,2))\n expect(state.message.validation_report.applicationDecision).toBe('rejected')\n expect(state.drafts.map(d=>d.rawPayload).join('')).toContain('RFF LI krävs för PRODAT Z01.')\n})\n",
+    "persisted.test.ts": "import {beforeEach,it,expect,vi} from 'vitest'\nimport {raw} from '@/__tests__/fixtures/prodat-register'\nimport {source,z10,head,own} from '@/__tests__/fixtures/prodat-identity'\nimport type {EdielMessageRow} from '@/lib/ediel/types'\nimport type {EdielRulebookIssue} from '@/lib/ediel/rulebook/rulebook'\nconst state=vi.hoisted(()=>({message:{} as EdielMessageRow, effects:[] as string[], drafts:[] as Record<string,unknown>[], events:[] as Record<string,unknown>[], inject:false,registryFailure:false}))\nvi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',()=>({resolveCanonicalRulePack:async()=>{if(state.registryFailure)throw Error('Injected registry failure');return {profileKey:'synthetic',sourceHash:'evidence',messageProfileId:'profile',rulePackId:'pack'}}}))\nvi.mock('@/lib/ediel/rulebook/canonicalPolicyFieldValidator',async importOriginal=>{\n const actual=await importOriginal<typeof import('@/lib/ediel/rulebook/canonicalPolicyFieldValidator')>()\n return {...actual,validateCanonicalPolicyFields:(input:Parameters<typeof actual.validateCanonicalPolicyFields>[0])=>[...actual.validateCanonicalPolicyFields(input),...(state.inject && input.policy.family==='PRODAT' ?[{severity:'error',blocking:true,code:'FIELD_MATRIX_REQUIRED_FIELD_MISSING',title:'Injected metadata loss',description:'Invariant test: owner failed to retain typed source identity'} as EdielRulebookIssue]:[])]}\n})\nvi.mock('@/lib/supabase/service',()=>({supabaseService:{from:()=>{throw Error('UNEXPECTED_DB')}}}))\nvi.mock('@/lib/ediel/db',()=>({getEdielMessageById:async()=>state.message,createEdielMessageEvent:async(p:Record<string,unknown>)=>{state.events.push(p)},updateEdielMessageStatus:async(p:{status:string;parsedPayload?:Record<string,unknown>;validationReport?:Record<string,unknown>})=>{state.message={...state.message,status:p.status,parsed_payload:p.parsedPayload??state.message.parsed_payload,validation_report:p.validationReport??state.message.validation_report} as EdielMessageRow;return state.message},linkEdielMessage:async()=>{state.effects.push('link')},listAckMessagesForSource:async()=>[],getEdielRouteProfileByCommunicationRouteId:async()=>null,listEdielMessagesByIds:async()=>[]}))\nvi.mock('@/lib/ediel/core/tenantResolver',()=>({resolveInboundTenantForMessage:async()=>({status:'tenant_resolved',message:state.message,evidence:{companyId:'tenant'}})}))\nvi.mock('@/lib/ediel/core/kernel',()=>({createCanonicalAckMessage:async(p:{ackFamily:string;draft:Record<string,unknown>})=>{state.drafts.push(p.draft);return {id:p.ackFamily,status:'sent'}}}))\nvi.mock('@/lib/ediel/actorTestingEngine',()=>({syncActorTestingForMessage:async()=>{state.effects.push('actor-auto');return null}}))\nvi.mock('@/lib/ediel/inbound/inboundFacilityRecognition',()=>({recognizeInboundFacilityData:async()=>{state.effects.push('facility');return null}}))\nvi.mock('@/lib/ediel/matching',()=>({matchMeteringPointForEdielMessage:async()=>null,matchSiteAndCustomerForMeteringPoint:async()=>null,findMatchingSupplierSwitchRequest:async()=>null}))\nvi.mock('@/lib/ediel/inboundCases',()=>({createOrUpdateInboundProdatCase:async()=>{state.effects.push('case');return null}}))\nvi.mock('@/lib/onboarding/inboundEdielLinking',()=>({applyInboundProdatZ02ToCustomerInfoRequest:async()=>{state.effects.push('z02');return null},applyInboundProdatZ14ToMeteringPermission:async()=>{state.effects.push('z14');return null}}))\nvi.mock('@/lib/ediel/flows/inboundBusinessStateMachine',()=>({applyInboundBusinessStateMachine:async()=>{state.effects.push('business');return null}}))\nvi.mock('@/lib/ediel/operationalVerification',()=>({buildSafeMasterdataProposal:async()=>[{field:'synthetic',reviewRequired:true}]}))\nvi.mock('@/lib/ediel/orchestrator/edielProcessingPipeline',()=>({analyzeEdielProcessingPipeline:async()=>null}))\nvi.mock('@/lib/inbound-mail/edielMailboxPoller',()=>({runInboundEdielMailEngine:async()=>null}))\nimport {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'\n\nimport {writeFileSync} from 'node:fs'\nit('records actual persisted response plan and ACK for own missing226',async()=>{\n state.message={...source(raw([...head(),...own('1','735123456789012345',null)]),'Z01'),status:'received',company_id:'tenant',parsed_payload:{fileEngine:{mode:'agt'}}} as EdielMessageRow\n await processInboundEdielMessage({actorUserId:'00000000-0000-4000-8000-000000000002',edielMessageId:state.message.id})\n writeFileSync('/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/persisted-observation.json',JSON.stringify({message:state.message,effects:state.effects,drafts:state.drafts,events:state.events},null,2))\n expect(state.message.validation_report.applicationDecision).toBe('rejected')\n expect(state.drafts.map(d=>d.rawPayload).join('')).toContain('RFF LI krävs för PRODAT Z01.')\n})\n",
+    "tgt-v1.test.ts": "import {it,expect,vi} from 'vitest'\nimport {writeFileSync,readFileSync} from 'node:fs'\nimport ts from 'typescript'\nimport {raw,alphabets,characteristic,type Parts} from '@/__tests__/fixtures/prodat-register'\nimport {head,own,source,z10} from '@/__tests__/fixtures/prodat-identity'\nimport {permissionMessage} from '@/__tests__/fixtures/prodat-energy-product'\nimport {resolveCanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'\nimport {decideProdatAperak} from '@/lib/ediel/decisionEngine'\nimport {buildAperakDraft} from '@/lib/ediel/ack'\nimport {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'\nimport {validateProdatPermissionMessage} from '@/lib/ediel/testing/prodatPermissionEngine'\nimport {assertIncomingProdatEnergyProductReview} from '@/lib/ediel/prodat/prodatEnergyProduct'\nconst effects=vi.hoisted(()=>({db:[] as string[]}))\n// All registry reads simulated absent tables; there is NO network or live DB.\nvi.mock('@/lib/supabase/service',()=>({supabaseService:{from:(name:string)=>{effects.db.push(name);return {select:()=>({limit:async()=>({error:{message:'SYNTHETIC_ABSENT_TABLE'}})})}}}}))\nimport {deriveProdatAperakValidationIssues,resolveAndStoreProdatAperakErrors} from '@/lib/ediel/testing/aperakErrorRuleRegistry'\nconst output:any[]=[]\nconst extract=(wire:string)=>{const t=tokenizeEdifact(wire);return {texts:t.segments.filter(s=>s.tag==='FTX').map(s=>({code:segmentComposite(s,3,t.una)[0],values:segmentComposite(s,4,t.una),raw:s.raw})),erc:t.segments.filter(s=>s.tag==='ERC').map(s=>segmentComposite(s,1,t.una)[0]),references:t.segments.filter(s=>s.tag==='RFF').map(s=>segmentComposite(s,1,t.una))}}\nconst msg=(body:Parts[],alphabet:readonly string[]=alphabets[0],code='Z01')=>source(raw([...head(),...body],code,alphabet),code)\nconst object=(seq='1',id='735123456789012345',li:string|null='CASE-A',customer='OWN-A')=>own(seq,id,li).map(p=>p[0]==='NAD'?['NAD','UD',[customer,'','89'],'','Synthetic','Street','City','','12345','SE'] as Parts:p)\nconst observe=(id:string,m:any)=>{const d=resolveCanonicalRuntimeDecision(m),p=d.responsePlan.find(p=>p.family==='APERAK');let wire=null,error=null;try{if(p)wire=extract(buildAperakDraft({sourceMessage:m,outcome:p.outcome as any,applicationErrors:p.applicationErrors}).rawPayload!)}catch(e){error=String(e)};const result={id,syntax:d.syntaxDecision,application:d.applicationDecision,disposition:d.prodatProcessingDisposition,issues:d.issues,plan:p,wire,error};output.push(result);return result}\nit('records actual TGT comparison/registry output',async()=>{\n for(const same of [false,true]){\n const parts=z10().map(p=>same&&p[0]==='RFF'&&p[1][0]==='Z02'?['RFF',['Z02','NEW']] as Parts:p)\n parts.splice(3,0,...characteristic('Z02','',1))\n const m=source(raw(parts,'Z10'),'Z10'),testData={testCaseCode:'AUTO',groups:[]} as any\n const issues=deriveProdatAperakValidationIssues({message:m,testData})\n const d=await resolveAndStoreProdatAperakErrors({message:m,testData})\n output.push({same,issues,d,wire:d.errors.length?extract(buildAperakDraft({sourceMessage:m,outcome:'negative',applicationErrors:d.errors}).rawPayload!):null})\n }\n writeFileSync('/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/tgt-observation-v1.json',JSON.stringify({output,db:effects.db},null,2))\n expect(output[1].issues.some((i:any)=>i.ruleKey==='meter_number_invalid')).toBe(true)\n})\n",
+    "tgt-v2.test.ts": "import {it,expect,vi} from 'vitest'\nimport {writeFileSync,readFileSync} from 'node:fs'\nimport ts from 'typescript'\nimport {raw,alphabets,characteristic,type Parts} from '@/__tests__/fixtures/prodat-register'\nimport {head,own,source,z10} from '@/__tests__/fixtures/prodat-identity'\nimport {permissionMessage} from '@/__tests__/fixtures/prodat-energy-product'\nimport {resolveCanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'\nimport {decideProdatAperak} from '@/lib/ediel/decisionEngine'\nimport {buildAperakDraft} from '@/lib/ediel/ack'\nimport {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'\nimport {validateProdatPermissionMessage} from '@/lib/ediel/testing/prodatPermissionEngine'\nimport {assertIncomingProdatEnergyProductReview} from '@/lib/ediel/prodat/prodatEnergyProduct'\nconst effects=vi.hoisted(()=>({db:[] as string[]}))\n// All registry reads simulated absent tables; there is NO network or live DB.\nvi.mock('@/lib/supabase/service',()=>({supabaseService:{from:(name:string)=>{effects.db.push(name);return {select:()=>({limit:async()=>({error:{message:'SYNTHETIC_ABSENT_TABLE'}})})}}}}))\nimport {deriveProdatAperakValidationIssues,resolveAndStoreProdatAperakErrors} from '@/lib/ediel/testing/aperakErrorRuleRegistry'\nconst output:any[]=[]\nconst extract=(wire:string)=>{const t=tokenizeEdifact(wire);return {texts:t.segments.filter(s=>s.tag==='FTX').map(s=>({code:segmentComposite(s,3,t.una)[0],values:segmentComposite(s,4,t.una),raw:s.raw})),erc:t.segments.filter(s=>s.tag==='ERC').map(s=>segmentComposite(s,1,t.una)[0]),references:t.segments.filter(s=>s.tag==='RFF').map(s=>segmentComposite(s,1,t.una))}}\nconst msg=(body:Parts[],alphabet:readonly string[]=alphabets[0],code='Z01')=>source(raw([...head(),...body],code,alphabet),code)\nconst object=(seq='1',id='735123456789012345',li:string|null='CASE-A',customer='OWN-A')=>own(seq,id,li).map(p=>p[0]==='NAD'?['NAD','UD',[customer,'','89'],'','Synthetic','Street','City','','12345','SE'] as Parts:p)\nconst observe=(id:string,m:any)=>{const d=resolveCanonicalRuntimeDecision(m),p=d.responsePlan.find(p=>p.family==='APERAK');let wire=null,error=null;try{if(p)wire=extract(buildAperakDraft({sourceMessage:m,outcome:p.outcome as any,applicationErrors:p.applicationErrors}).rawPayload!)}catch(e){error=String(e)};const result={id,syntax:d.syntaxDecision,application:d.applicationDecision,disposition:d.prodatProcessingDisposition,issues:d.issues,plan:p,wire,error};output.push(result);return result}\nit('records actual TGT comparison/registry output',async()=>{\n for(const same of [false,true]){\n const parts=z10().map(p=>same&&p[0]==='RFF'&&p[1][0]==='Z02'?['RFF',['Z02','NEW']] as Parts:p)\n parts.splice(3,0,...characteristic('Z02','1',3))\n const m=source(raw(parts,'Z10'),'Z10'),testData={testCaseCode:'AUTO',groups:[]} as any\n const issues=deriveProdatAperakValidationIssues({message:m,testData})\n const d=await resolveAndStoreProdatAperakErrors({message:m,testData})\n output.push({same,issues,d,wire:d.errors.length?extract(buildAperakDraft({sourceMessage:m,outcome:'negative',applicationErrors:d.errors}).rawPayload!):null})\n }\n writeFileSync('/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/tgt-observation-v2.json',JSON.stringify({output,db:effects.db},null,2))\n expect(output[1].issues.some((i:any)=>i.ruleKey==='meter_number_invalid')).toBe(true)\n})\n",
+    "vitest.config.mjs": "export default {resolve:{alias:{'@':'/workspace/scratch/2a201d6d5897/gridex-next'}},test:{environment:'node',include:['/workspace/scratch/2a201d6d5897/aperak-text-source-20260920/*.test.ts'],setupFiles:['/workspace/scratch/2a201d6d5897/gridex-next/__tests__/setup.ts']}}\n"
+  },
+  "runs": {
+    "run-consumers-v1.json": {
+      "numTotalTests": 2,
+      "numPassedTests": 0,
+      "numFailedTests": 2,
+      "success": false,
+      "tests": [
+        {
+          "name": "records actual persisted response plan and ACK for own missing226",
+          "status": "failed",
+          "failureMessages": [
+            "AssertionError: expected 'UNA:+.? \\'UNB+UNOC:3+54321:ZZ+12345:Z…' to contain 'RFF LI krävs för PRODAT Z01.'\n    at /workspace/scratch/2a201d6d5897/aperak-text-source-20260920/persisted.test.ts:33:53\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          ]
+        },
+        {
+          "name": "records actual TGT comparison/registry output",
+          "status": "failed",
+          "failureMessages": [
+            "Error: PRODAT_REGISTER_ACK_REVIEW_REQUIRED\n    at Module.deriveProdatAperakValidationIssues (/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/testing/aperakErrorRuleRegistry.ts:1104:38)\n    at /workspace/scratch/2a201d6d5897/aperak-text-source-20260920/tgt-v1.test.ts:27:15\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)"
+          ]
+        }
+      ]
+    },
+    "run-consumers-v2.json": {
+      "numTotalTests": 2,
+      "numPassedTests": 2,
+      "numFailedTests": 0,
+      "success": true,
+      "tests": [
+        {
+          "name": "records actual persisted response plan and ACK for own missing226",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "name": "records actual TGT comparison/registry output",
+          "status": "passed",
+          "failureMessages": []
+        }
+      ]
+    },
+    "run-normative-v1.json": {
+      "numTotalTests": 9,
+      "numPassedTests": 3,
+      "numFailedTests": 6,
+      "success": false,
+      "tests": [
+        {
+          "name": "P94 missing226 names field and own227 under :+?'",
+          "status": "failed",
+          "failureMessages": [
+            "AssertionError: expected 'RFF LI krävs för PRODAT Z01.' to be 'Ärendereferens saknas, kundid=OWN-A' // Object.is equality\n    at /workspace/scratch/2a201d6d5897/aperak-text-source-20260920/normative-v1.test.ts:24:37\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        },
+        {
+          "name": "P94 missing226 names field and own227 under *;!~",
+          "status": "failed",
+          "failureMessages": [
+            "AssertionError: expected 'RFF LI krävs för PRODAT Z01.' to be 'Ärendereferens saknas, kundid=OWN-A' // Object.is equality\n    at /workspace/scratch/2a201d6d5897/aperak-text-source-20260920/normative-v1.test.ts:24:37\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        },
+        {
+          "name": "P94 missing226 names field and own227 under ^|!%",
+          "status": "failed",
+          "failureMessages": [
+            "AssertionError: expected 'RFF LI krävs för PRODAT Z01.' to be 'Ärendereferens saknas, kundid=OWN-A' // Object.is equality\n    at /workspace/scratch/2a201d6d5897/aperak-text-source-20260920/normative-v1.test.ts:24:37\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        },
+        {
+          "name": "P94 wrong format retains actual fault value and field name",
+          "status": "failed",
+          "failureMessages": [
+            "AssertionError: expected 'DTM 92: kontrollera C507, format, kal…' to be 'Felaktigt Avtal, startdatum BAD' // Object.is equality\n    at /workspace/scratch/2a201d6d5897/aperak-text-source-20260920/normative-v1.test.ts:28:37\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        },
+        {
+          "name": "P94 wrong qualifier retains actual fault value under owning227",
+          "status": "failed",
+          "failureMessages": [
+            "AssertionError: expected 'NAD UD/C082/3039: kontrollera kompone…' to be 'Felaktigt Kund-id BAD' // Object.is equality\n    at /workspace/scratch/2a201d6d5897/aperak-text-source-20260920/normative-v1.test.ts:32:37\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        },
+        {
+          "name": "actual submitted delimiters round trip without text loss or extra ERC",
+          "status": "failed",
+          "failureMessages": [
+            "AssertionError: expected [ Array(1) ] to deeply equal [ Array(1) ]\n    at /workspace/scratch/2a201d6d5897/aperak-text-source-20260920/normative-v1.test.ts:37:64\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        },
+        {
+          "name": "positive100 stays OK",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "name": "source40 fixed text survives",
+          "status": "passed",
+          "failureMessages": []
+        },
+        {
+          "name": "actual full draft preflight rejects71 decoded characters",
+          "status": "passed",
+          "failureMessages": []
+        }
+      ]
+    },
+    "run-v1.json": {
+      "numTotalTests": 1,
+      "numPassedTests": 0,
+      "numFailedTests": 1,
+      "success": false,
+      "tests": [
+        {
+          "name": "records actual canonical, direct, manual, registry and final-renderer outputs",
+          "status": "failed",
+          "failureMessages": [
+            "Error: EDIFACT envelope stoppades av payload preflight: PROFILE_FIELD_LENGTH_EXCEEDED: APERAK_PRODAT_16B: värdet är 71 tecken men max är 70.\n    at buildEdifactEnvelope (/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/messages.ts:55:11)\n    at buildAckDraft (/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/ack.ts:981:20)\n    at Module.buildAperakDraft (/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/ack.ts:1146:10)\n    at /workspace/scratch/2a201d6d5897/aperak-text-source-20260920/observe-v1.test.ts:51:136\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file:///workspace/scratch/2a201d6d5897/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          ]
+        }
+      ]
+    },
+    "run-v2.json": {
+      "numTotalTests": 1,
+      "numPassedTests": 1,
+      "numFailedTests": 0,
+      "success": true,
+      "tests": [
+        {
+          "name": "records actual canonical, direct, manual, registry and final-renderer outputs",
+          "status": "passed",
+          "failureMessages": []
+        }
+      ]
+    }
+  },
+  "observations": [
+    {
+      "id": "control-0",
+      "syntax": "accepted",
+      "application": "accepted",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": null,
+      "error": null
+    },
+    {
+      "id": "missing209-0",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "209",
+            "values": [
+              "LIN krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++209::260+LIN krävs för PRODAT Z01."
+          }
+        ],
+        "erc": [
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "LI",
+            "CASE-A"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "missing226-0",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "226",
+            "values": [
+              "RFF LI krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++226::260+RFF LI krävs för PRODAT Z01."
+          }
+        ],
+        "erc": [
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "missing-both-0",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "209",
+            "values": [
+              "LIN krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++209::260+LIN krävs för PRODAT Z01."
+          },
+          {
+            "code": "226",
+            "values": [
+              "RFF LI krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++226::260+RFF LI krävs för PRODAT Z01."
+          }
+        ],
+        "erc": [
+          "41",
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "missing260-0",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "260",
+            "values": [
+              "RFF Z05 krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++260::260+RFF Z05 krävs för PRODAT Z01."
+          }
+        ],
+        "erc": [
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CASE-A"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "invalid-date-format-0",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "210",
+            "values": [
+              "DTM 92: kontrollera C507, format, kalender, tidszon och entydighet enl"
+            ],
+            "raw": "FTX+AAO++210::260+DTM 92?: kontrollera C507, format, kalender, tidszon och entydighet enl"
+          }
+        ],
+        "erc": [
+          "42"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CASE-A"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "invalid-customer-qualifier-0",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "227",
+            "values": [
+              "NAD UD/C082/3039: kontrollera komponent, kodlista, längd och part enli"
+            ],
+            "raw": "FTX+AAO++227::260+NAD UD/C082/3039?: kontrollera komponent, kodlista, längd och part enli"
+          }
+        ],
+        "erc": [
+          "42"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CASE-A"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "second-own226-0",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "226",
+            "values": [
+              "RFF LI krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++226::260+RFF LI krävs för PRODAT Z01."
+          }
+        ],
+        "erc": [
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012352"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "second-absent227-0",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "226",
+            "values": [
+              "RFF LI krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++226::260+RFF LI krävs för PRODAT Z01."
+          },
+          {
+            "code": "227",
+            "values": [
+              "NAD UD/C082/3039: kontrollera komponent, kodlista, längd och part enli"
+            ],
+            "raw": "FTX+AAO++227::260+NAD UD/C082/3039?: kontrollera komponent, kodlista, längd och part enli"
+          }
+        ],
+        "erc": [
+          "41",
+          "42"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012352"
+          ],
+          [
+            "Z07",
+            "735123456789012352"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "duplicate-own227-0",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "226",
+            "values": [
+              "RFF LI krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++226::260+RFF LI krävs för PRODAT Z01."
+          }
+        ],
+        "erc": [
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "supplied-malicious-0",
+      "wire": {
+        "texts": [
+          {
+            "code": "260",
+            "values": [
+              "Felaktigt Nätområdesid BAD: ? ERC 100::260"
+            ],
+            "raw": "FTX+AAO++260::260+Felaktigt Nätområdesid BAD?: ?? ERC 100?:?:260"
+          }
+        ],
+        "erc": [
+          "42"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CASE-A"
+          ]
+        ]
+      },
+      "input": "Felaktigt Nätområdesid BAD:+?'ERC+100::260'"
+    },
+    {
+      "id": "control-1",
+      "syntax": "accepted",
+      "application": "accepted",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": null,
+      "error": null
+    },
+    {
+      "id": "missing209-1",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "209",
+            "values": [
+              "LIN krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++209::260+LIN krävs för PRODAT Z01."
+          }
+        ],
+        "erc": [
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "LI",
+            "CASE-A"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "missing226-1",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "226",
+            "values": [
+              "RFF LI krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++226::260+RFF LI krävs för PRODAT Z01."
+          }
+        ],
+        "erc": [
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "missing-both-1",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "209",
+            "values": [
+              "LIN krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++209::260+LIN krävs för PRODAT Z01."
+          },
+          {
+            "code": "226",
+            "values": [
+              "RFF LI krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++226::260+RFF LI krävs för PRODAT Z01."
+          }
+        ],
+        "erc": [
+          "41",
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "missing260-1",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "260",
+            "values": [
+              "RFF Z05 krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++260::260+RFF Z05 krävs för PRODAT Z01."
+          }
+        ],
+        "erc": [
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CASE-A"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "invalid-date-format-1",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "210",
+            "values": [
+              "DTM 92: kontrollera C507, format, kalender, tidszon och entydighet enl"
+            ],
+            "raw": "FTX+AAO++210::260+DTM 92?: kontrollera C507, format, kalender, tidszon och entydighet enl"
+          }
+        ],
+        "erc": [
+          "42"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CASE-A"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "invalid-customer-qualifier-1",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "227",
+            "values": [
+              "NAD UD/C082/3039: kontrollera komponent, kodlista, längd och part enli"
+            ],
+            "raw": "FTX+AAO++227::260+NAD UD/C082/3039?: kontrollera komponent, kodlista, längd och part enli"
+          }
+        ],
+        "erc": [
+          "42"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CASE-A"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "second-own226-1",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "226",
+            "values": [
+              "RFF LI krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++226::260+RFF LI krävs för PRODAT Z01."
+          }
+        ],
+        "erc": [
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012352"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "second-absent227-1",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "226",
+            "values": [
+              "RFF LI krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++226::260+RFF LI krävs för PRODAT Z01."
+          },
+          {
+            "code": "227",
+            "values": [
+              "NAD UD/C082/3039: kontrollera komponent, kodlista, längd och part enli"
+            ],
+            "raw": "FTX+AAO++227::260+NAD UD/C082/3039?: kontrollera komponent, kodlista, längd och part enli"
+          }
+        ],
+        "erc": [
+          "41",
+          "42"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012352"
+          ],
+          [
+            "Z07",
+            "735123456789012352"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "duplicate-own227-1",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "226",
+            "values": [
+              "RFF LI krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++226::260+RFF LI krävs för PRODAT Z01."
+          }
+        ],
+        "erc": [
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "supplied-malicious-1",
+      "wire": {
+        "texts": [
+          {
+            "code": "260",
+            "values": [
+              "Felaktigt Nätområdesid BAD: ? ERC 100::260"
+            ],
+            "raw": "FTX+AAO++260::260+Felaktigt Nätområdesid BAD?: ?? ERC 100?:?:260"
+          }
+        ],
+        "erc": [
+          "42"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CASE-A"
+          ]
+        ]
+      },
+      "input": "Felaktigt Nätområdesid BAD:+?'ERC+100::260'"
+    },
+    {
+      "id": "control-2",
+      "syntax": "accepted",
+      "application": "accepted",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": null,
+      "error": null
+    },
+    {
+      "id": "missing209-2",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "209",
+            "values": [
+              "LIN krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++209::260+LIN krävs för PRODAT Z01."
+          }
+        ],
+        "erc": [
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "LI",
+            "CASE-A"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "missing226-2",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "226",
+            "values": [
+              "RFF LI krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++226::260+RFF LI krävs för PRODAT Z01."
+          }
+        ],
+        "erc": [
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "missing-both-2",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "209",
+            "values": [
+              "LIN krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++209::260+LIN krävs för PRODAT Z01."
+          },
+          {
+            "code": "226",
+            "values": [
+              "RFF LI krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++226::260+RFF LI krävs för PRODAT Z01."
+          }
+        ],
+        "erc": [
+          "41",
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "missing260-2",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "260",
+            "values": [
+              "RFF Z05 krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++260::260+RFF Z05 krävs för PRODAT Z01."
+          }
+        ],
+        "erc": [
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CASE-A"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "invalid-date-format-2",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "210",
+            "values": [
+              "DTM 92: kontrollera C507, format, kalender, tidszon och entydighet enl"
+            ],
+            "raw": "FTX+AAO++210::260+DTM 92?: kontrollera C507, format, kalender, tidszon och entydighet enl"
+          }
+        ],
+        "erc": [
+          "42"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CASE-A"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "invalid-customer-qualifier-2",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "227",
+            "values": [
+              "NAD UD/C082/3039: kontrollera komponent, kodlista, längd och part enli"
+            ],
+            "raw": "FTX+AAO++227::260+NAD UD/C082/3039?: kontrollera komponent, kodlista, längd och part enli"
+          }
+        ],
+        "erc": [
+          "42"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CASE-A"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "second-own226-2",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "226",
+            "values": [
+              "RFF LI krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++226::260+RFF LI krävs för PRODAT Z01."
+          }
+        ],
+        "erc": [
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012352"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "second-absent227-2",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "226",
+            "values": [
+              "RFF LI krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++226::260+RFF LI krävs för PRODAT Z01."
+          },
+          {
+            "code": "227",
+            "values": [
+              "NAD UD/C082/3039: kontrollera komponent, kodlista, längd och part enli"
+            ],
+            "raw": "FTX+AAO++227::260+NAD UD/C082/3039?: kontrollera komponent, kodlista, längd och part enli"
+          }
+        ],
+        "erc": [
+          "41",
+          "42"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012352"
+          ],
+          [
+            "Z07",
+            "735123456789012352"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "duplicate-own227-2",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "226",
+            "values": [
+              "RFF LI krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++226::260+RFF LI krävs för PRODAT Z01."
+          }
+        ],
+        "erc": [
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "supplied-malicious-2",
+      "wire": {
+        "texts": [
+          {
+            "code": "260",
+            "values": [
+              "Felaktigt Nätområdesid BAD: ? ERC 100::260"
+            ],
+            "raw": "FTX+AAO++260::260+Felaktigt Nätområdesid BAD?: ?? ERC 100?:?:260"
+          }
+        ],
+        "erc": [
+          "42"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CASE-A"
+          ]
+        ]
+      },
+      "input": "Felaktigt Nätområdesid BAD:+?'ERC+100::260'"
+    },
+    {
+      "id": "positive100-U",
+      "syntax": "accepted",
+      "application": "accepted",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "",
+            "values": [
+              "OK"
+            ],
+            "raw": "FTX+AAO+++OK"
+          }
+        ],
+        "erc": [
+          "100"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CACHED-UNRELATED"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "later-message",
+      "syntax": "accepted",
+      "application": "rejected",
+      "disposition": {
+        "kind": "continue",
+        "reasons": []
+      },
+      "wire": {
+        "texts": [
+          {
+            "code": "226",
+            "values": [
+              "RFF LI krävs för PRODAT Z01."
+            ],
+            "raw": "FTX+AAO++226::260+RFF LI krävs för PRODAT Z01."
+          }
+        ],
+        "erc": [
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ]
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "direct506-null",
+      "wire": {
+        "texts": [
+          {
+            "code": "",
+            "values": [
+              "LIN-rad saknar anläggnings-id/mätpunkt."
+            ],
+            "raw": "FTX+AAO+++LIN-rad saknar anläggnings-id/mätpunkt."
+          },
+          {
+            "code": "506",
+            "values": [
+              "Fält 506, P26.A s.20,68,119,122: obligatoriskt eget energiprodukt-id s"
+            ],
+            "raw": "FTX+AAO++506::260+Fält 506, P26.A s.20,68,119,122?: obligatoriskt eget energiprodukt-id s"
+          }
+        ],
+        "erc": [
+          "41",
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "LI",
+            "CASE:A+B?C"
+          ],
+          [
+            "LI",
+            "CASE:A+B?C"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "direct506-BAD",
+      "wire": {
+        "texts": [
+          {
+            "code": "",
+            "values": [
+              "LIN-rad saknar anläggnings-id/mätpunkt."
+            ],
+            "raw": "FTX+AAO+++LIN-rad saknar anläggnings-id/mätpunkt."
+          },
+          {
+            "code": "506",
+            "values": [
+              "Fält 506, P26.A s.20,68,119,122: eget energiprodukt-id, kvalificerare"
+            ],
+            "raw": "FTX+AAO++506::260+Fält 506, P26.A s.20,68,119,122?: eget energiprodukt-id, kvalificerare"
+          }
+        ],
+        "erc": [
+          "41",
+          "42"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "LI",
+            "CASE:A+B?C"
+          ],
+          [
+            "LI",
+            "CASE:A+B?C"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "manual-permission-status",
+      "wire": {
+        "texts": [
+          {
+            "code": "322",
+            "values": [
+              "Felaktigt tillståndets status INVALID"
+            ],
+            "raw": "FTX+AAO++322::260+Felaktigt tillståndets status INVALID"
+          }
+        ],
+        "erc": [
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CASE:A+B?C"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "registry-missing226",
+      "wire": {
+        "texts": [
+          {
+            "code": "226",
+            "values": [
+              "Ärendereferens saknas"
+            ],
+            "raw": "FTX+AAO++226::260+Ärendereferens saknas"
+          },
+          {
+            "code": "214",
+            "values": [
+              "Konstant saknas"
+            ],
+            "raw": "FTX+AAO++214::260+Konstant saknas"
+          }
+        ],
+        "erc": [
+          "41",
+          "41"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "length-69",
+      "wire": {
+        "texts": [
+          {
+            "code": "260",
+            "values": [
+              "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+            ],
+            "raw": "FTX+AAO++260::260+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+          }
+        ],
+        "erc": [
+          "42"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CACHED-UNRELATED"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "length-70",
+      "wire": {
+        "texts": [
+          {
+            "code": "260",
+            "values": [
+              "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+            ],
+            "raw": "FTX+AAO++260::260+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+          }
+        ],
+        "erc": [
+          "42"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CACHED-UNRELATED"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "length-71",
+      "error": "Error: EDIFACT envelope stoppades av payload preflight: PROFILE_FIELD_LENGTH_EXCEEDED: APERAK_PRODAT_16B: värdet är 71 tecken men max är 70."
+    },
+    {
+      "id": "length-140",
+      "error": "Error: EDIFACT envelope stoppades av payload preflight: PROFILE_FIELD_LENGTH_EXCEEDED: APERAK_PRODAT_16B: värdet är 140 tecken men max är 70."
+    },
+    {
+      "id": "length-141",
+      "error": "Error: EDIFACT envelope stoppades av payload preflight: PROFILE_FIELD_LENGTH_EXCEEDED: APERAK_PRODAT_16B: värdet är 140 tecken men max är 70."
+    },
+    {
+      "id": "application40",
+      "wire": {
+        "texts": [
+          {
+            "code": "105",
+            "values": [
+              "Anläggningen kan inte identifieras"
+            ],
+            "raw": "FTX+AAO++105::260+Anläggningen kan inte identifieras"
+          }
+        ],
+        "erc": [
+          "40"
+        ],
+        "references": [
+          [
+            "ACW",
+            "D"
+          ],
+          [
+            "Z07",
+            "735123456789012345"
+          ],
+          [
+            "LI",
+            "CACHED-UNRELATED"
+          ]
+        ]
+      }
+    }
+  ],
+  "consumerObservations": {
+    "persisted-observation.json": {
+      "validationReport": {
+        "applicationDecision": "rejected",
+        "functionalDecision": "manual_review",
+        "prodatProcessingDisposition": {
+          "kind": "internal_review",
+          "reasons": [
+            {
+              "code": "FIELD_MATRIX_REQUIRED_FIELD_MISSING",
+              "sourceRule": "PRODAT26A:§2.2:Z04:INSTALLATION_GROUP",
+              "reason": "Source finding has no numeric field descriptor"
+            }
+          ]
+        },
+        "responsePlan": [
+          {
+            "family": "CONTRL",
+            "outcome": "positive",
+            "reason": "Inbound EDIFACT är syntaxmässigt accepterat enligt canonical ACK authority."
+          },
+          {
+            "family": "APERAK",
+            "outcome": "negative",
+            "erc": "41",
+            "ftx": "DTM+354 krävs för PRODAT Z04.",
+            "reason": "PRODAT innehåller ett blockerande canonical policy-/fältfel.",
+            "applicationErrors": [
+              {
+                "ercCode": "41",
+                "fieldCode": "508",
+                "text": "DTM+354 krävs för PRODAT Z04.",
+                "prodatOccurrence": {
+                  "scope": "object",
+                  "messageReference": "M",
+                  "lineIndex": 0,
+                  "lineNumber": "1",
+                  "registerPosition": 1,
+                  "objectId": "735123456789012345",
+                  "identityAgency": "9",
+                  "lineItemReference": null
+                },
+                "referenceQualifier": "Z07",
+                "referenceNumber": "735123456789012345",
+                "lineItemReference": null,
+                "prodatFieldDiagnostic": {
+                  "kind": "field",
+                  "fieldNumber": "508",
+                  "errorKind": "missing",
+                  "sourceRule": "PRODAT26A:§2.2:Z04:508",
+                  "segmentPath": "DTM+354",
+                  "group": "SG8",
+                  "component": {
+                    "locator": "DTM+354",
+                    "valueElement": "C507/2380",
+                    "formatElement": "C507/2379",
+                    "dateQualifier": "354"
+                  },
+                  "occurrence": {
+                    "scope": "object",
+                    "messageReference": "M",
+                    "lineIndex": 0,
+                    "lineNumber": "1",
+                    "registerPosition": 1,
+                    "objectId": "735123456789012345",
+                    "identityAgency": "9",
+                    "lineItemReference": null
+                  }
+                }
+              },
+              {
+                "ercCode": "41",
+                "fieldCode": "213",
+                "text": "QTY+31 krävs för PRODAT Z04.",
+                "prodatOccurrence": {
+                  "scope": "register",
+                  "messageReference": "M",
+                  "lineIndex": 0,
+                  "lineNumber": "1",
+                  "registerPosition": 1,
+                  "objectId": "735123456789012345",
+                  "identityAgency": "9",
+                  "lineItemReference": null
+                },
+                "referenceQualifier": "Z07",
+                "referenceNumber": "735123456789012345",
+                "lineItemReference": null,
+                "prodatFieldDiagnostic": {
+                  "kind": "field",
+                  "fieldNumber": "213",
+                  "errorKind": "missing",
+                  "sourceRule": "PRODAT26A:§2.2:Z04:213",
+                  "segmentPath": "QTY+31",
+                  "group": "SG8/SG12",
+                  "component": {
+                    "locator": "QTY+31",
+                    "valueElement": "C186/6060"
+                  },
+                  "occurrence": {
+                    "scope": "register",
+                    "messageReference": "M",
+                    "lineIndex": 0,
+                    "lineNumber": "1",
+                    "registerPosition": 1,
+                    "objectId": "735123456789012345",
+                    "identityAgency": "9",
+                    "lineItemReference": null
+                  }
+                }
+              },
+              {
+                "ercCode": "41",
+                "fieldCode": "217",
+                "text": "CCI++Z04/CAV krävs för PRODAT Z04.",
+                "prodatOccurrence": {
+                  "scope": "object",
+                  "messageReference": "M",
+                  "lineIndex": 0,
+                  "lineNumber": "1",
+                  "registerPosition": 1,
+                  "objectId": "735123456789012345",
+                  "identityAgency": "9",
+                  "lineItemReference": null
+                },
+                "referenceQualifier": "Z07",
+                "referenceNumber": "735123456789012345",
+                "lineItemReference": null,
+                "prodatFieldDiagnostic": {
+                  "kind": "field",
+                  "fieldNumber": "217",
+                  "errorKind": "missing",
+                  "sourceRule": "PRODAT26A:§2.2:Z04:217",
+                  "segmentPath": "CCI++Z04/CAV",
+                  "group": "SG8/SG14",
+                  "component": {
+                    "locator": "CCI++Z04/CAV",
+                    "composite": "C889",
+                    "cavComponent": 0
+                  },
+                  "occurrence": {
+                    "scope": "object",
+                    "messageReference": "M",
+                    "lineIndex": 0,
+                    "lineNumber": "1",
+                    "registerPosition": 1,
+                    "objectId": "735123456789012345",
+                    "identityAgency": "9",
+                    "lineItemReference": null
+                  }
+                }
+              },
+              {
+                "ercCode": "41",
+                "fieldCode": "306",
+                "text": "CCI++Z07/CAV krävs för PRODAT Z04.",
+                "prodatOccurrence": {
+                  "scope": "object",
+                  "messageReference": "M",
+                  "lineIndex": 0,
+                  "lineNumber": "1",
+                  "registerPosition": 1,
+                  "objectId": "735123456789012345",
+                  "identityAgency": "9",
+                  "lineItemReference": null
+                },
+                "referenceQualifier": "Z07",
+                "referenceNumber": "735123456789012345",
+                "lineItemReference": null,
+                "prodatFieldDiagnostic": {
+                  "kind": "field",
+                  "fieldNumber": "306",
+                  "errorKind": "missing",
+                  "sourceRule": "PRODAT26A:§2.2:Z04:306",
+                  "segmentPath": "CCI++Z07/CAV",
+                  "group": "SG8/SG14",
+                  "component": {
+                    "locator": "CCI++Z07/CAV",
+                    "composite": "C889",
+                    "cavComponent": 0
+                  },
+                  "occurrence": {
+                    "scope": "object",
+                    "messageReference": "M",
+                    "lineIndex": 0,
+                    "lineNumber": "1",
+                    "registerPosition": 1,
+                    "objectId": "735123456789012345",
+                    "identityAgency": "9",
+                    "lineItemReference": null
+                  }
+                }
+              },
+              {
+                "ercCode": "41",
+                "fieldCode": "222",
+                "text": "CCI++Z12/CAV krävs för PRODAT Z04.",
+                "prodatOccurrence": {
+                  "scope": "object",
+                  "messageReference": "M",
+                  "lineIndex": 0,
+                  "lineNumber": "1",
+                  "registerPosition": 1,
+                  "objectId": "735123456789012345",
+                  "identityAgency": "9",
+                  "lineItemReference": null
+                },
+                "referenceQualifier": "Z07",
+                "referenceNumber": "735123456789012345",
+                "lineItemReference": null,
+                "prodatFieldDiagnostic": {
+                  "kind": "field",
+                  "fieldNumber": "222",
+                  "errorKind": "missing",
+                  "sourceRule": "PRODAT26A:§2.2:Z04:222",
+                  "segmentPath": "CCI++Z12/CAV",
+                  "group": "SG8/SG14",
+                  "component": {
+                    "locator": "CCI++Z12/CAV",
+                    "composite": "C889",
+                    "cavComponent": 3
+                  },
+                  "occurrence": {
+                    "scope": "object",
+                    "messageReference": "M",
+                    "lineIndex": 0,
+                    "lineNumber": "1",
+                    "registerPosition": 1,
+                    "objectId": "735123456789012345",
+                    "identityAgency": "9",
+                    "lineItemReference": null
+                  }
+                }
+              },
+              {
+                "ercCode": "41",
+                "fieldCode": "254",
+                "text": "CCI++Z15/CAV krävs för PRODAT Z04.",
+                "prodatOccurrence": {
+                  "scope": "object",
+                  "messageReference": "M",
+                  "lineIndex": 0,
+                  "lineNumber": "1",
+                  "registerPosition": 1,
+                  "objectId": "735123456789012345",
+                  "identityAgency": "9",
+                  "lineItemReference": null
+                },
+                "referenceQualifier": "Z07",
+                "referenceNumber": "735123456789012345",
+                "lineItemReference": null,
+                "prodatFieldDiagnostic": {
+                  "kind": "field",
+                  "fieldNumber": "254",
+                  "errorKind": "missing",
+                  "sourceRule": "PRODAT26A:§2.2:Z04:254",
+                  "segmentPath": "CCI++Z15/CAV",
+                  "group": "SG8/SG14",
+                  "component": {
+                    "locator": "CCI++Z15/CAV",
+                    "composite": "C889",
+                    "cavComponent": 0
+                  },
+                  "occurrence": {
+                    "scope": "object",
+                    "messageReference": "M",
+                    "lineIndex": 0,
+                    "lineNumber": "1",
+                    "registerPosition": 1,
+                    "objectId": "735123456789012345",
+                    "identityAgency": "9",
+                    "lineItemReference": null
+                  }
+                }
+              },
+              {
+                "ercCode": "41",
+                "fieldCode": "242",
+                "text": "CCI++Z14/CAV krävs för PRODAT Z04.",
+                "prodatOccurrence": {
+                  "scope": "object",
+                  "messageReference": "M",
+                  "lineIndex": 0,
+                  "lineNumber": "1",
+                  "registerPosition": 1,
+                  "objectId": "735123456789012345",
+                  "identityAgency": "9",
+                  "lineItemReference": null
+                },
+                "referenceQualifier": "Z07",
+                "referenceNumber": "735123456789012345",
+                "lineItemReference": null,
+                "prodatFieldDiagnostic": {
+                  "kind": "field",
+                  "fieldNumber": "242",
+                  "errorKind": "missing",
+                  "sourceRule": "PRODAT26A:§2.2:Z04:242",
+                  "segmentPath": "CCI++Z14/CAV",
+                  "group": "SG8/SG14",
+                  "component": {
+                    "locator": "CCI++Z14/CAV",
+                    "composite": "C889",
+                    "cavComponent": 3
+                  },
+                  "occurrence": {
+                    "scope": "object",
+                    "messageReference": "M",
+                    "lineIndex": 0,
+                    "lineNumber": "1",
+                    "registerPosition": 1,
+                    "objectId": "735123456789012345",
+                    "identityAgency": "9",
+                    "lineItemReference": null
+                  }
+                }
+              },
+              {
+                "ercCode": "41",
+                "fieldCode": "224",
+                "text": "RFF+MG krävs för PRODAT Z04.",
+                "prodatOccurrence": {
+                  "scope": "object",
+                  "messageReference": "M",
+                  "lineIndex": 0,
+                  "lineNumber": "1",
+                  "registerPosition": 1,
+                  "objectId": "735123456789012345",
+                  "identityAgency": "9",
+                  "lineItemReference": null
+                },
+                "referenceQualifier": "Z07",
+                "referenceNumber": "735123456789012345",
+                "lineItemReference": null,
+                "prodatFieldDiagnostic": {
+                  "kind": "field",
+                  "fieldNumber": "224",
+                  "errorKind": "missing",
+                  "sourceRule": "PRODAT26A:§2.2:Z04:224",
+                  "segmentPath": "RFF+MG",
+                  "group": "SG8/SG16",
+                  "component": {
+                    "locator": "RFF+MG",
+                    "valueElement": "C506/1154",
+                    "referenceScope": "line"
+                  },
+                  "occurrence": {
+                    "scope": "object",
+                    "messageReference": "M",
+                    "lineIndex": 0,
+                    "lineNumber": "1",
+                    "registerPosition": 1,
+                    "objectId": "735123456789012345",
+                    "identityAgency": "9",
+                    "lineItemReference": null
+                  }
+                }
+              },
+              {
+                "ercCode": "42",
+                "fieldCode": "261",
+                "text": "RFF+ANJ är markerat som - för PRODAT Z04 och blockeras.",
+                "prodatOccurrence": {
+                  "scope": "object",
+                  "messageReference": "M",
+                  "lineIndex": 0,
+                  "lineNumber": "1",
+                  "registerPosition": 1,
+                  "objectId": "735123456789012345",
+                  "identityAgency": "9",
+                  "lineItemReference": null
+                },
+                "referenceQualifier": "Z07",
+                "referenceNumber": "735123456789012345",
+                "lineItemReference": null,
+                "prodatFieldDiagnostic": {
+                  "kind": "field",
+                  "fieldNumber": "261",
+                  "errorKind": "invalid",
+                  "sourceRule": "PRODAT26A:§2.2:Z04:261",
+                  "segmentPath": "RFF+ANJ",
+                  "group": "SG8/SG16",
+                  "component": {
+                    "locator": "RFF+ANJ",
+                    "valueElement": "C506/1154",
+                    "referenceScope": "line"
+                  },
+                  "occurrence": {
+                    "scope": "object",
+                    "messageReference": "M",
+                    "lineIndex": 0,
+                    "lineNumber": "1",
+                    "registerPosition": 1,
+                    "objectId": "735123456789012345",
+                    "identityAgency": "9",
+                    "lineItemReference": null
+                  }
+                }
+              },
+              {
+                "ercCode": "41",
+                "fieldCode": "226",
+                "text": "RFF+LI krävs för PRODAT Z04.",
+                "prodatOccurrence": {
+                  "scope": "object",
+                  "messageReference": "M",
+                  "lineIndex": 0,
+                  "lineNumber": "1",
+                  "registerPosition": 1,
+                  "objectId": "735123456789012345",
+                  "identityAgency": "9",
+                  "lineItemReference": null
+                },
+                "referenceQualifier": "Z07",
+                "referenceNumber": "735123456789012345",
+                "lineItemReference": null,
+                "prodatFieldDiagnostic": {
+                  "kind": "field",
+                  "fieldNumber": "226",
+                  "errorKind": "missing",
+                  "sourceRule": "PRODAT26A:§2.2:Z04:226",
+                  "segmentPath": "RFF+LI",
+                  "group": "SG8/SG16",
+                  "component": {
+                    "locator": "RFF+LI",
+                    "valueElement": "C506/1154",
+                    "referenceScope": "line"
+                  },
+                  "occurrence": {
+                    "scope": "object",
+                    "messageReference": "M",
+                    "lineIndex": 0,
+                    "lineNumber": "1",
+                    "registerPosition": 1,
+                    "objectId": "735123456789012345",
+                    "identityAgency": "9",
+                    "lineItemReference": null
+                  }
+                }
+              },
+              {
+                "ercCode": "41",
+                "fieldCode": "233",
+                "text": "NAD+IT/C082/3039 krävs för PRODAT Z04.",
+                "prodatOccurrence": {
+                  "scope": "object",
+                  "messageReference": "M",
+                  "lineIndex": 0,
+                  "lineNumber": "1",
+                  "registerPosition": 1,
+                  "objectId": "735123456789012345",
+                  "identityAgency": "9",
+                  "lineItemReference": null
+                },
+                "referenceQualifier": "Z07",
+                "referenceNumber": "735123456789012345",
+                "lineItemReference": null,
+                "prodatFieldDiagnostic": {
+                  "kind": "field",
+                  "fieldNumber": "233",
+                  "errorKind": "missing",
+                  "sourceRule": "PRODAT26A:§2.2:Z04:233",
+                  "segmentPath": "NAD+IT/C082/3039",
+                  "group": "SG8/SG17",
+                  "component": {
+                    "locator": "NAD+IT/C082/3039",
+                    "partyQualifier": "IT",
+                    "partyElement": 2,
+                    "partyComponents": 1
+                  },
+                  "occurrence": {
+                    "scope": "object",
+                    "messageReference": "M",
+                    "lineIndex": 0,
+                    "lineNumber": "1",
+                    "registerPosition": 1,
+                    "objectId": "735123456789012345",
+                    "identityAgency": "9",
+                    "lineItemReference": null
+                  }
+                }
+              },
+              {
+                "ercCode": "41",
+                "fieldCode": "234",
+                "text": "NAD+IT/C059/3042[1..3] krävs för PRODAT Z04.",
+                "prodatOccurrence": {
+                  "scope": "object",
+                  "messageReference": "M",
+                  "lineIndex": 0,
+                  "lineNumber": "1",
+                  "registerPosition": 1,
+                  "objectId": "735123456789012345",
+                  "identityAgency": "9",
+                  "lineItemReference": null
+                },
+                "referenceQualifier": "Z07",
+                "referenceNumber": "735123456789012345",
+                "lineItemReference": null,
+                "prodatFieldDiagnostic": {
+                  "kind": "field",
+                  "fieldNumber": "234",
+                  "errorKind": "missing",
+                  "sourceRule": "PRODAT26A:§2.2:Z04:234",
+                  "segmentPath": "NAD+IT/C059/3042[1..3]",
+                  "group": "SG8/SG17",
+                  "component": {
+                    "locator": "NAD+IT/C059/3042[1..3]",
+                    "partyQualifier": "IT",
+                    "partyElement": 5,
+                    "partyComponents": 3
+                  },
+                  "occurrence": {
+                    "scope": "object",
+                    "messageReference": "M",
+                    "lineIndex": 0,
+                    "lineNumber": "1",
+                    "registerPosition": 1,
+                    "objectId": "735123456789012345",
+                    "identityAgency": "9",
+                    "lineItemReference": null
+                  }
+                }
+              },
+              {
+                "ercCode": "41",
+                "fieldCode": "262",
+                "text": "NAD+Z02/C082/3039 krävs för PRODAT Z04.",
+                "prodatOccurrence": {
+                  "scope": "object",
+                  "messageReference": "M",
+                  "lineIndex": 0,
+                  "lineNumber": "1",
+                  "registerPosition": 1,
+                  "objectId": "735123456789012345",
+                  "identityAgency": "9",
+                  "lineItemReference": null
+                },
+                "referenceQualifier": "Z07",
+                "referenceNumber": "735123456789012345",
+                "lineItemReference": null,
+                "prodatFieldDiagnostic": {
+                  "kind": "field",
+                  "fieldNumber": "262",
+                  "errorKind": "missing",
+                  "sourceRule": "PRODAT26A:§2.2:Z04:262",
+                  "segmentPath": "NAD+Z02/C082/3039",
+                  "group": "SG8/SG17",
+                  "component": {
+                    "locator": "NAD+Z02/C082/3039",
+                    "partyQualifier": "Z02",
+                    "partyElement": 2,
+                    "partyComponents": 1
+                  },
+                  "occurrence": {
+                    "scope": "object",
+                    "messageReference": "M",
+                    "lineIndex": 0,
+                    "lineNumber": "1",
+                    "registerPosition": 1,
+                    "objectId": "735123456789012345",
+                    "identityAgency": "9",
+                    "lineItemReference": null
+                  }
+                }
+              },
+              {
+                "ercCode": "41",
+                "fieldCode": "213",
+                "text": "LIN 1, fält 213: Eget giltigt registervärde krävs; inget annat registe",
+                "prodatOccurrence": {
+                  "scope": "register",
+                  "messageReference": "M",
+                  "lineIndex": 0,
+                  "lineNumber": "1",
+                  "registerPosition": 1,
+                  "objectId": "735123456789012345",
+                  "identityAgency": "9",
+                  "lineItemReference": null
+                },
+                "referenceQualifier": "Z07",
+                "referenceNumber": "735123456789012345",
+                "lineItemReference": null,
+                "prodatFieldDiagnostic": {
+                  "kind": "field",
+                  "fieldNumber": "213",
+                  "errorKind": "missing",
+                  "sourceRule": "PRODAT26A:P47/114–116",
+                  "segmentPath": "QTY+31",
+                  "group": "SG8/SG12",
+                  "component": {
+                    "locator": "QTY+31",
+                    "valueElement": "C186/6060"
+                  },
+                  "occurrence": {
+                    "scope": "register",
+                    "messageReference": "M",
+                    "lineIndex": 0,
+                    "lineNumber": "1",
+                    "registerPosition": 1,
+                    "objectId": "735123456789012345",
+                    "identityAgency": "9",
+                    "lineItemReference": null
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [],
+      "drafts": [
+        {
+          "messageFamily": "CONTRL",
+          "rawPayload": "UNA:+.? 'UNB+UNOC:3+54321:ZZ+12345:ZZ+260920:1123+260920092359WM++23-DDQ-PRODAT'UNH+1+CONTRL:2:2:UN:EDIEL2'UCI+I+S+R+1'UNT+3+1'UNZ+1+260920092359WM'"
+        },
+        {
+          "messageFamily": "APERAK",
+          "rawPayload": "UNA:+.? 'UNB+UNOC:3+54321:ZZ+12345:ZZ+260920:1123+260920092359T2++23-DDQ-PRODAT'UNH+1+APERAK:D:96A:UN:E2SE6A'BGM+++34'DTM+137:202609201123:203'DTM+178:202609171200:203'RFF+ACW:D'NAD+FR+54321:160:SVK+++++++SE'NAD+DO+12345:160:SVK+++++++SE'ERC+41::260'FTX+AAO++508::260+DTM 354 krävs för PRODAT Z04.'RFF+Z07:735123456789012345'ERC+41::260'FTX+AAO++213::260+QTY 31 krävs för PRODAT Z04.'RFF+Z07:735123456789012345'ERC+41::260'FTX+AAO++217::260+CCI  Z04/CAV krävs för PRODAT Z04.'RFF+Z07:735123456789012345'ERC+41::260'FTX+AAO++306::260+CCI  Z07/CAV krävs för PRODAT Z04.'RFF+Z07:735123456789012345'ERC+41::260'FTX+AAO++222::260+CCI  Z12/CAV krävs för PRODAT Z04.'RFF+Z07:735123456789012345'ERC+41::260'FTX+AAO++254::260+CCI  Z15/CAV krävs för PRODAT Z04.'RFF+Z07:735123456789012345'ERC+41::260'FTX+AAO++242::260+CCI  Z14/CAV krävs för PRODAT Z04.'RFF+Z07:735123456789012345'ERC+41::260'FTX+AAO++224::260+RFF MG krävs för PRODAT Z04.'RFF+Z07:735123456789012345'ERC+42::260'FTX+AAO++261::260+RFF ANJ är markerat som - för PRODAT Z04 och blockeras.'RFF+Z07:735123456789012345'ERC+41::260'FTX+AAO++226::260+RFF LI krävs för PRODAT Z04.'RFF+Z07:735123456789012345'ERC+41::260'FTX+AAO++233::260+NAD IT/C082/3039 krävs för PRODAT Z04.'RFF+Z07:735123456789012345'ERC+41::260'FTX+AAO++234::260+NAD IT/C059/3042[1..3] krävs för PRODAT Z04.'RFF+Z07:735123456789012345'ERC+41::260'FTX+AAO++262::260+NAD Z02/C082/3039 krävs för PRODAT Z04.'RFF+Z07:735123456789012345'ERC+41::260'FTX+AAO++213::260+LIN 1, fält 213?: Eget giltigt registervärde krävs; inget annat registe'RFF+Z07:735123456789012345'UNT+50+1'UNZ+1+260920092359T2'"
+        }
+      ]
+    },
+    "persisted-observation-v2.json": {
+      "validationReport": {
+        "applicationDecision": "rejected",
+        "functionalDecision": "accepted",
+        "prodatProcessingDisposition": {
+          "kind": "continue",
+          "reasons": []
+        },
+        "responsePlan": [
+          {
+            "family": "CONTRL",
+            "outcome": "positive",
+            "reason": "Inbound EDIFACT är syntaxmässigt accepterat enligt canonical ACK authority."
+          },
+          {
+            "family": "APERAK",
+            "outcome": "negative",
+            "erc": "41",
+            "ftx": "RFF+LI krävs för PRODAT Z01.",
+            "reason": "PRODAT innehåller ett blockerande canonical policy-/fältfel.",
+            "applicationErrors": [
+              {
+                "ercCode": "41",
+                "fieldCode": "226",
+                "text": "RFF+LI krävs för PRODAT Z01.",
+                "prodatOccurrence": {
+                  "scope": "object",
+                  "messageReference": "M",
+                  "lineIndex": 0,
+                  "lineNumber": "1",
+                  "registerPosition": 1,
+                  "objectId": "735123456789012345",
+                  "identityAgency": "9",
+                  "lineItemReference": null
+                },
+                "referenceQualifier": "Z07",
+                "referenceNumber": "735123456789012345",
+                "lineItemReference": null,
+                "prodatFieldDiagnostic": {
+                  "kind": "field",
+                  "fieldNumber": "226",
+                  "errorKind": "missing",
+                  "sourceRule": "PRODAT26A:§2.2:Z01:226",
+                  "segmentPath": "RFF+LI",
+                  "group": "SG8/SG16",
+                  "component": {
+                    "locator": "RFF+LI",
+                    "valueElement": "C506/1154",
+                    "referenceScope": "line"
+                  },
+                  "occurrence": {
+                    "scope": "object",
+                    "messageReference": "M",
+                    "lineIndex": 0,
+                    "lineNumber": "1",
+                    "registerPosition": 1,
+                    "objectId": "735123456789012345",
+                    "identityAgency": "9",
+                    "lineItemReference": null
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        "actor-auto",
+        "facility",
+        "link",
+        "case",
+        "z02",
+        "z14",
+        "business"
+      ],
+      "drafts": [
+        {
+          "messageFamily": "CONTRL",
+          "rawPayload": "UNA:+.? 'UNB+UNOC:3+54321:ZZ+12345:ZZ+260920:1124+260920092458Y5++23-DDQ-PRODAT'UNH+1+CONTRL:2:2:UN:EDIEL2'UCI+I+S+R+1'UNT+3+1'UNZ+1+260920092458Y5'"
+        },
+        {
+          "messageFamily": "APERAK",
+          "rawPayload": "UNA:+.? 'UNB+UNOC:3+54321:ZZ+12345:ZZ+260920:1124+260920092458PL++23-DDQ-PRODAT'UNH+1+APERAK:D:96A:UN:E2SE6A'BGM+++34'DTM+137:202609201124:203'DTM+178:202609171200:203'RFF+ACW:D'NAD+FR+54321:160:SVK+++++++SE'NAD+DO+12345:160:SVK+++++++SE'ERC+41::260'FTX+AAO++226::260+RFF LI krävs för PRODAT Z01.'RFF+Z07:735123456789012345'UNT+11+1'UNZ+1+260920092458PL'"
+        }
+      ]
+    },
+    "tgt-observation-v2.json": {
+      "output": [
+        {
+          "same": false,
+          "issues": [],
+          "d": {
+            "errors": [],
+            "details": [],
+            "issueCount": 0,
+            "matchedRuleKeys": [],
+            "unmappedIssues": []
+          },
+          "wire": null
+        },
+        {
+          "same": true,
+          "issues": [
+            {
+              "severity": "error",
+              "ruleKey": "meter_number_invalid",
+              "fieldPath": "TGT/FIELD/224",
+              "fieldValue": "NEW",
+              "expectedValue": null,
+              "meteringPointId": "735123456789012345",
+              "transactionReference": "EVENT",
+              "sourceOrder": 0,
+              "fallbackText": "Felaktigt mätarnummer NEW"
+            }
+          ],
+          "d": {
+            "errors": [
+              {
+                "ercCode": "42",
+                "fieldCode": "224",
+                "text": "Felaktigt mätarnummer NEW",
+                "referenceQualifier": "Z07",
+                "referenceNumber": "735123456789012345",
+                "lineItemReference": "EVENT"
+              }
+            ],
+            "details": [
+              {
+                "validationIssueId": null,
+                "errorRuleId": "builtin-prodat-meter-number-invalid",
+                "ruleKey": "meter_number_invalid",
+                "applicationError": "42",
+                "freeTextCode": "224",
+                "freeText": "Felaktigt mätarnummer NEW",
+                "meteringPointId": "735123456789012345",
+                "transactionReference": "EVENT",
+                "sourceOrder": 0
+              }
+            ],
+            "issueCount": 1,
+            "matchedRuleKeys": [
+              "meter_number_invalid"
+            ],
+            "unmappedIssues": []
+          },
+          "wire": {
+            "texts": [
+              {
+                "code": "224",
+                "values": [
+                  "Felaktigt mätarnummer NEW"
+                ],
+                "raw": "FTX+AAO++224::260+Felaktigt mätarnummer NEW"
+              }
+            ],
+            "erc": [
+              "42"
+            ],
+            "references": [
+              [
+                "ACW",
+                "D"
+              ],
+              [
+                "Z07",
+                "735123456789012345"
+              ],
+              [
+                "LI",
+                "EVENT"
+              ]
+            ]
+          }
+        }
+      ],
+      "db": [
+        "ediel_aperak_error_rules",
+        "ediel_message_validation_issues",
+        "ediel_aperak_error_details"
+      ]
+    }
+  },
+  "mockedRegistryTables": [
+    "ediel_aperak_error_rules",
+    "ediel_message_validation_issues",
+    "ediel_aperak_error_details",
+    "ediel_message_validation_issues",
+    "ediel_aperak_error_details"
+  ],
+  "integrityLog": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> gridex-ops-platform@0.1.0 ediel:masterplan-v2:integrity\n> node scripts/check-ediel-masterplan-v2.cjs\n\n{\"scope\":\"specification integrity and evidence references only\",\"originalFiles\":33,\"rules\":121,\"acceptanceContracts\":231,\"applicationConformanceAsserted\":false,\"productionReadinessAsserted\":false}\n",
+  "limitations": [
+    "First observe run fails at uncaught71 preflight; second catches outcomes, no runtime fix.",
+    "Initial persisted probe default rawZ04 contradicts source metadataZ01; only corrected explicitZ01 qualifies persisted finding.",
+    "Initial TGT constant CAV wrong component guarded; corrected component4 fixture qualifies TGT result.",
+    "Manual function uses production AST extraction, not authenticated server-action deployment; events/context/DB mocked.",
+    "Three fixture UNA alphabets are representative, not exhaustive enumeration.",
+    "Compound text punctuation, capacity recovery and missing-customer recovery are design inferences requiring independent review.",
+    "Legacy classification residuals excluded; no historical acceptance count increase."
+  ]
+}

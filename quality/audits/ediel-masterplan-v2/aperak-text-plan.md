@@ -1,0 +1,17 @@
+# APERAK text source qualification
+
+## Global Constraints
+
+PR310 remains paused and excluded. No production, existing-test, schema, frozen source/register, codec, loader, workflow, gate, threshold or budget changes in this source-only task. No live DB/storage/provider/market sends, human messages, explicit deployment or settings changes. Do not invent producer authority or increase historical98/110 numeric and10/10 parent acceptance. Preserve existing evidence files and use new unique scratch outputs. Root owns memory/publication/CI; one active author, independent source/spec and architecture review before runtime authorization.
+
+### Task 1: Qualify P94/A905 field-error text and own customer reference
+
+Read the full original PRODAT26A-r3 text and rendered relevant pages, including P94 in context and linked ACK/field227/reference/FTX rules. Original PDF: /workspace/scratch/2a201d6d5897/prodat-original-source/PRODAT-26A-r3.pdf, SHA25683c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95. Existing residual: quality/audits/ediel-masterplan-v2/f3-closure-qualification-20260919.md lines450ff. Qualify rather than assume exact wording/language/value escaping/length and fallback conditions.
+
+Baseline merged PR351 b4f00ae37937502f2678738bf076c0ba8de9696b includes approved typed identity/disposition and incoming506 applicability. Its main release gates are root's parallel responsibility; no runtime starts until those and source review pass. Existing source audit is historical context, not instruction to redo accepted PR350/351.
+
+Trace actual canonical/direct/persisted/manual/TGT ACK text producers and final renderer. Establish whether41 text names source field,42 names field and actual wrong value, and missing209 and/or226 requires own customer227. Qualify absence/unknown and multiple objects/messages, component/value/qualifier faults, malicious delimiter text, all supported UNA alphabets, bounds/FTX segmentation, positive100 and application40 preservation. Never turn descriptive missing local facts into invented national errors or leak sibling/later-message/customer identities. Distinguish raw wire data from any tenant-local lookup; seek no new DB dependency.
+
+Create source-valid complete controls and actual-consumer probes sufficient to establish concrete defects and preserved behavior. Preserve initial failures and fixture corrections honestly. Do not edit old assertions or production. Do not assume every potential case needs a new abstraction or general rewrite. Identify smallest shared owner/interface and finite touched consumers needed for evidenced contract; retain PR350 F/U/L/I and PR351 applicability. Attribute every claim to full original source or explicitly mark design inference/unqualified residual.
+
+Deliver tracked source audit quality/audits/ediel-masterplan-v2/f3-aperak-text-source-20260920.md with source contract, actual call-site matrix, expected-versus-actual evidence, false positives, minimal runtime proposal and finite acceptance matrix, hashes and exact commands. New probe files/results may be scratch, but audit must be sufficient for recovery. Self-review, git diff --check and relevant unchanged source integrity check. Commit only own source audit/evidence. Write full task report to the dispatched report path, return status/commits/test summary/concerns only. No subdelegation. Independent review follows; do not implement runtime without root authorization.
