@@ -27,3 +27,17 @@ for (const code of ['Z01', 'Z13', 'Z14', 'Z15', 'Z18']) {
     expect(io.effects).toEqual([])
   })
 }
+
+for (const text of [false, true]) it(`valid optional FTX=${text} reaches the existing route boundary without a new text hold`, async () => {
+  const body: Parts[] = [...head(), line('1', '735123456789012345', undefined, '9'), ...(text ? [['FTX', 'ACB', '', '', ['VALID TEXT']] as Parts] : [])]
+  const message = {
+    id: '00000000-0000-4000-8000-000000000001', company_id: '00000000-0000-4000-8000-000000000002',
+    direction: 'outbound', environment: 'test', message_standard: 'edifact', message_family: 'PRODAT', message_code: 'Z01',
+    receiver_email: 'synthetic@example.invalid', communication_route_id: '00000000-0000-4000-8000-000000000003',
+    raw_payload: raw(body, 'Z01'), parsed_payload: {},
+  } as unknown as EdielMessageRow
+  const before = message.raw_payload
+  await expect(sendEdielMessageViaSmtp(message, { actorUserId: '00000000-0000-4000-8000-000000000004' })).rejects.toThrow('UNEXPECTED_DATABASE_BOUNDARY')
+  expect(io.effects).toEqual(['db'])
+  expect(message.raw_payload).toBe(before)
+})
