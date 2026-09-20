@@ -1,0 +1,17 @@
+import { spawnSync } from 'node:child_process'
+import path from 'node:path'
+import { expect, it } from 'vitest'
+
+it('preserves the source-qualified UNB request and actual ACK-draft monitoring contract', () => {
+  const result = spawnSync(process.execPath, [
+    '--experimental-vm-modules', '--test',
+    path.resolve(process.cwd(), 'scripts/test-ediel-unb-ack-request.cjs'),
+  ], { cwd: process.cwd(), encoding: 'utf8', timeout: 30_000, maxBuffer: 4 * 1024 * 1024 })
+  const report = `${result.stdout ?? ''}\n${result.stderr ?? ''}`
+  expect(result.error, report).toBeUndefined()
+  expect(result.signal, report).toBeNull()
+  expect(result.status, report).toBe(0)
+  expect(report).toMatch(/# tests \d+/)
+  expect(report).toMatch(/# fail 0(?:\r?\n|$)/)
+  expect(report).toMatch(/# skipped 0(?:\r?\n|$)/)
+}, 35_000)
