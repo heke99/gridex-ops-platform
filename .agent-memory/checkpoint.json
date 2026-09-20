@@ -34,9 +34,9 @@
   "status": "IN_PROGRESS",
   "branch": "codex/ediel-permission-ack-20260920",
   "base_head_sha": "1892cf48e77d2c6cea99fdbb5d7507d51919956a",
-  "active_item": "Source-only legacy permission322/324 ACK qualification",
-  "next_action": "Complete source evidence; independent source/spec and architecture review before bounded runtime authorization",
-  "runtime_authorized": false,
+  "active_item": "Approved bounded permission322/324 runtime implementation",
+  "next_action": "Fresh author TDD and finite integration; exact two assertion exceptions; independent completed-runtime review and exact CI afterward",
+  "runtime_authorized": true,
   "last_accepted_pr": 352,
   "last_merged_pr": 352,
   "active_pr": null,
@@ -63,15 +63,15 @@
   "source_author": "permission_ack_source",
   "source_base": "343a5506",
   "source_plan": "quality/audits/ediel-masterplan-v2/permission-ack-plan.md",
-  "source_candidate_commit": "80f77d12591bd440dd270b1461ae67fbd9c526df",
+  "source_candidate_commit": "2a49a63c9b8b713945609a5dbc2bd68eadaadb1d",
   "source_remote_checkpoint": {
-    "head": "d7685fc4eed07f9e7e7b864a98588fe5bd52b5eb",
-    "tree": "78977f77c4edf45cdf02df11e9a954b014e5856d",
-    "local_equivalent": "87343da123bd72d2c26a114b99adb4228d11c365",
-    "verification": "freshfetchdiff0"
+    "head": "b1d2be3da2869bd59a5a609eb7dd16ef6ba04f8e",
+    "tree": "2d16bf1041cb950f0c35d13ece47e0b2871cfede",
+    "local_equivalent": "2a49a63c9b8b713945609a5dbc2bd68eadaadb1d",
+    "verification": "fresh fetch diff0"
   },
   "source_review": "SOURCE/SPEC ARCHITECTURE TASK/SPEC QUALITY APPROVE",
-  "runtime_scope": "Approved finite typed A905 composition/readiness and exact escaping; explicit two capacity assertion exceptions only",
+  "runtime_scope": "Approved incoming322/324 owner and finite ACK consumers; exact two old assertion exceptions; E37Z18 accepted; physical occurrence persistence guard",
   "runtime_author": "aperak_text_runtime",
   "runtime_base": "87343da123bd72d2c26a114b99adb4228d11c365",
   "runtime_test_checkpoint": {
@@ -115,5 +115,6 @@
     "quality_files": 2,
     "runtime_unchanged": true,
     "review": "APPROVE"
-  }
+  },
+  "next_separate_residual": "P-ACK-R1 HIGH prior-flow authority/tenant lookup, independently qualify before production linkage acceptance"
 }
