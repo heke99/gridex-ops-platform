@@ -1,0 +1,463 @@
+{
+  "task": "Task3 RD-4 GAS240 outgoing identity",
+  "status": "LOCALLY_VERIFIED_PAUSED_BEFORE_INDEPENDENT_REVIEW",
+  "base": "485a19e6",
+  "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95",
+  "redCommit": "5c2e494b",
+  "node": "v24.19.0",
+  "full": {
+    "passed": 4968,
+    "total": 4968,
+    "files": 313
+  },
+  "focused": {
+    "passed": 117,
+    "total": 117,
+    "newDurableTests": 54
+  },
+  "quality": {
+    "passed": 45,
+    "total": 45
+  },
+  "ediel": {
+    "passed": 818,
+    "total": 818
+  },
+  "gates": [
+    {
+      "gate": "ediel-eight",
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "--test",
+        "scripts/test-ediel-rule-pack-source-identity.cjs",
+        "scripts/test-ediel-prodat-source-locators.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/test-ediel-prodat-reference-fields.cjs",
+        "scripts/test-ediel-prodat-document-fields.cjs",
+        "scripts/test-ediel-prodat-party-fields.cjs",
+        "scripts/test-ediel-prodat-d-z04-reference.cjs",
+        "scripts/test-ediel-component-escaping.cjs"
+      ],
+      "exit": 0,
+      "seconds": 3.4,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-ediel-eight-01.log",
+      "sha256": "4c399e309bbc16e1ae9775f491f4ee37421bb98907fce09673b8f3dc93deb6cc",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "full",
+      "command": [
+        "npm",
+        "test",
+        "--",
+        "--reporter=json",
+        "--outputFile=/workspace/scratch/2a201d6d5897/gridex-next/quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/full-01.json"
+      ],
+      "exit": 0,
+      "seconds": 54.92,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-full-01.log",
+      "sha256": "6eb8cf2453f1f519f52660ff173c9f43dddcf643ed1513ea669dc2e65382fdd3",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "implementation-diffcheck",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "485a19e6",
+        "--",
+        "lib",
+        "app",
+        "__tests__"
+      ],
+      "exit": 0,
+      "seconds": 0.01,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-implementation-diffcheck-01.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "integrity",
+      "command": [
+        "npm",
+        "run",
+        "ediel:masterplan-v2:integrity"
+      ],
+      "exit": 0,
+      "seconds": 0.62,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-integrity-01.log",
+      "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "large-files",
+      "command": [
+        "npm",
+        "run",
+        "quality:large-file-budget"
+      ],
+      "exit": 0,
+      "seconds": 0.77,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-large-files-01.log",
+      "sha256": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "lint",
+      "command": [
+        "npm",
+        "run",
+        "lint"
+      ],
+      "exit": 0,
+      "seconds": 108.37,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-lint-01.log",
+      "sha256": "047da54a7fb45f15e99da1782ae17fdf279cd42af1d8fa504bdd3fdb9c3b066b",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "performance",
+      "command": [
+        "npm",
+        "run",
+        "quality:performance"
+      ],
+      "exit": 0,
+      "seconds": 3.36,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-performance-01.log",
+      "sha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "quality",
+      "command": [
+        "npx",
+        "vitest",
+        "run",
+        "--config",
+        "quality/vitest.config.ts",
+        "--reporter=json",
+        "--outputFile=/workspace/scratch/2a201d6d5897/gridex-next/quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/quality-01.json"
+      ],
+      "exit": 0,
+      "seconds": 6.71,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-quality-01.log",
+      "sha256": "e6341935053b5f56530e4318d2a1a6c5a4c24ccb8ae3f1fb35190c2dae8cae6a",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "ratchet",
+      "command": [
+        "node",
+        "scripts/check-service-role-tenant-ratchet.cjs"
+      ],
+      "exit": 0,
+      "seconds": 0.3,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-ratchet-01.log",
+      "sha256": "8f3487c29279af638c1d07e6c42605a89a8ec05b4592b81000513f97d4c21710",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "route-readiness",
+      "command": [
+        "npm",
+        "run",
+        "gridex:route-readiness-regression"
+      ],
+      "exit": 0,
+      "seconds": 2.1,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-route-readiness-01.log",
+      "sha256": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "tenant-integrity",
+      "command": [
+        "node",
+        "scripts/gridex-tenant-integrity-regression.cjs"
+      ],
+      "exit": 0,
+      "seconds": 0.18,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-tenant-integrity-01.log",
+      "sha256": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "tenant-shutdown",
+      "command": [
+        "node",
+        "scripts/gridex-tenant-shutdown-regression.cjs"
+      ],
+      "exit": 0,
+      "seconds": 0.18,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-tenant-shutdown-01.log",
+      "sha256": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "typecheck",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "exit": 0,
+      "seconds": 43.66,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-typecheck-01.log",
+      "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "typecheck-scripts",
+      "command": [
+        "npm",
+        "run",
+        "typecheck:scripts"
+      ],
+      "exit": 0,
+      "seconds": 3.03,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-typecheck-scripts-01.log",
+      "sha256": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    },
+    {
+      "gate": "typecheck-tests",
+      "command": [
+        "npm",
+        "run",
+        "typecheck:tests"
+      ],
+      "exit": 0,
+      "seconds": 8.34,
+      "log": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-typecheck-tests-01.log",
+      "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+      "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95"
+    }
+  ],
+  "integrity": {
+    "runtimeCommit": "153b7d5aafc42231526029cfd3cb55e6c51e8c95",
+    "sourceFileCount": 1699,
+    "changedSourceFiles": [],
+    "priorAuditCount": 638,
+    "changedPriorAuditFiles": []
+  },
+  "artifacts": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-ediel-eight-01.log",
+      "sha256": "4c399e309bbc16e1ae9775f491f4ee37421bb98907fce09673b8f3dc93deb6cc",
+      "bytes": 69392
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-full-01.log",
+      "sha256": "6eb8cf2453f1f519f52660ff173c9f43dddcf643ed1513ea669dc2e65382fdd3",
+      "bytes": 443
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-gate-runner.py.txt",
+      "sha256": "65ce0d751770c2d337ff95dbeb610cc880dc581573b5c9c002e169120d61f4d3",
+      "bytes": 2905
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-gates-01.json",
+      "sha256": "07e76b23778d9a1bd593a2066ccf987c8801efc4eb89e7020c0fb59360e001d1",
+      "bytes": 7471
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-implementation-diffcheck-01.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-integrity-01.log",
+      "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+      "bytes": 401
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-large-files-01.log",
+      "sha256": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e",
+      "bytes": 319
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-lint-01.log",
+      "sha256": "047da54a7fb45f15e99da1782ae17fdf279cd42af1d8fa504bdd3fdb9c3b066b",
+      "bytes": 15293
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-performance-01.log",
+      "sha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629",
+      "bytes": 1110
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-quality-01.log",
+      "sha256": "e6341935053b5f56530e4318d2a1a6c5a4c24ccb8ae3f1fb35190c2dae8cae6a",
+      "bytes": 247
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-ratchet-01.log",
+      "sha256": "8f3487c29279af638c1d07e6c42605a89a8ec05b4592b81000513f97d4c21710",
+      "bytes": 101
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-route-readiness-01.log",
+      "sha256": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82",
+      "bytes": 294
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-tenant-integrity-01.log",
+      "sha256": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690",
+      "bytes": 2879
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-tenant-shutdown-01.log",
+      "sha256": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e",
+      "bytes": 1953
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-typecheck-01.log",
+      "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+      "bytes": 234
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-typecheck-scripts-01.log",
+      "sha256": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae",
+      "bytes": 187
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/final-typecheck-tests-01.log",
+      "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+      "bytes": 183
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/focused-01.json",
+      "sha256": "33cc308f8f9cb5b3d4c7fb3e3fcd6ad2fad217c41db18849713b47cc88d18ae6",
+      "bytes": 31733
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/focused-01.log",
+      "sha256": "e0f1e85cd6ca987bfd090def57b9862c6d3907ce28fac6ae595960512660f1de",
+      "bytes": 247
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/focused-02.json",
+      "sha256": "750541bce60dc450f0d1989ed09e543507e51b0e75680c2e1a15d11bb71b54f7",
+      "bytes": 33390
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/focused-02.log",
+      "sha256": "c5b4c1bab5cc0b070e9633373a21206b277a3e2e2743c97a4d6e98472d51d159",
+      "bytes": 247
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/full-01.json",
+      "sha256": "33f6092578db868983b5d169654e4d0e233a332b557827b6d5e0c7b1f04c2cf1",
+      "bytes": 1688894
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/gate-integrity-01.json",
+      "sha256": "9e23b393f79b509252ec09c7e0d40bd2824ea3f6bd012149d200827496734006",
+      "bytes": 179
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/gate-source-manifest-01.json",
+      "sha256": "cb1b665f4460ab8d026e3ba0a20a3009f510030e49c97b5a9285c907aad2858c",
+      "bytes": 301326
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/green-01.json",
+      "sha256": "6548a9010f67eb8e6e05551e21b90daed58cb352276def45e15ae8d57f28db7b",
+      "bytes": 14619
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/green-01.log",
+      "sha256": "1ba6eb4f52e0e02f49125f9f46fb67a15dd42905995729cf81e5c6359afb6aa8",
+      "bytes": 245
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/quality-01.json",
+      "sha256": "0c8cd4ef28c202787f2d202997f3f856831e05bc9a0b5f5b82c531163ca868ee",
+      "bytes": 15516
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/red-01.json",
+      "sha256": "d5f3f6b2638587e46f4f18c2080e0e7a72b6fde58e0531ae4755810bb19e7315",
+      "bytes": 46132
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/red-01.log",
+      "sha256": "1f6e529279bff32b331988587c73c313d4f14f1979470caef0b34ad20f16863d",
+      "bytes": 243
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/red-02-consumers-source.ts.txt",
+      "sha256": "973ed6105fa12652bb950f727673a4338b7e79d0ef0613894585066b67a91425",
+      "bytes": 5859
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/red-02-policy-source.ts.txt",
+      "sha256": "ca68cd4aa8ece8b4d4baeb553de4c6dbe0d957c723a01d1a25e40f7b7e2d64c1",
+      "bytes": 9001
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/red-02.json",
+      "sha256": "8bb97a6665f4f3ce96685d9f38e4dd789fa8352d94f9620803dd2d512d93742c",
+      "bytes": 61235
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/red-02.log",
+      "sha256": "6c34f8de4e9a318fa1b36fd97bb07e462f85565f86728c70c5747599a898c628",
+      "bytes": 243
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/red-consumers-01.json",
+      "sha256": "5618d5aef50fffcef4019d3cd738fb87f3baee83b5c045c274e18267ff22d813",
+      "bytes": 848
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/red-consumers-01.log",
+      "sha256": "2db1560a987940f212c42b84711020ff3f04736da860dc517ad5cbf6bd9a5839",
+      "bytes": 253
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/strict-red-01.json",
+      "sha256": "e2f260785b97081babedd2b5b54ecf06d52a95f7f8d832dfabd7f9ddcb8c6bbc",
+      "bytes": 13139
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/strict-red-01.log",
+      "sha256": "1cc33a62698f18c6a4fc2f6c8cca2174cbfc1bb0b106f995a380f4e36b35264a",
+      "bytes": 250
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/targeted-types-01.log",
+      "sha256": "7a7dfc40c09f7f18650c55c01269980d2ee912745cb02397a6bd59868db5f943",
+      "bytes": 3939
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/targeted-types-02.log",
+      "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+      "bytes": 183
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-gas-identity-runtime-20260920.md",
+      "sha256": "cfc521871d9636255c1dfc78a400fb4bce21469f9e6902e3f9f490c833310cf8",
+      "bytes": 8743
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/task-3-report.md",
+      "sha256": "0bdc6ea71bb15eab0df6f8d2c3b8b311c8f9d47d060d57f2b99efcc26892db15",
+      "bytes": 2738
+    }
+  ],
+  "limitations": [
+    "No independent completed-runtime review or exact Node22 CI yet",
+    "No PR merge or Batch B actual-main acceptance",
+    "Renderer has no240 projection; positive supplied identity covered through canonical field consumer",
+    "No qualified persisted GAS identity adapter/producer; all selected send holds preserved",
+    "Incoming gray240 unchanged",
+    "Counts98/110 and10/10 unchanged; PR310 paused"
+  ],
+  "reportWorkingPath": ".superpowers/sdd/remaining-d-plan/task-3-report.md",
+  "reportTrackedPath": "quality/audits/ediel-masterplan-v2/gas-identity-runtime-20260920/task-3-report.md"
+}

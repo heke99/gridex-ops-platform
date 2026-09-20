@@ -1,3 +1,4 @@
+import {identity} from './fixtures/prodat-gas-identity'
 import {it,expect} from 'vitest'
 import {copyGasSerialChangeSelection,gasRequirement} from '@/lib/ediel/prodat/prodatGasApplicability'
 import {evaluateProdatGasApplicability} from '@/lib/ediel/rulebook/prodatGasApplicabilityPolicy'
@@ -5,7 +6,7 @@ import {copyProdatRegisterFacts,resolveProdatRegisterConditionFacts,createProdat
 import {payload} from './fixtures/prodat-gas'
 import {raw,line,characteristic,input,alphabets,type Parts} from './fixtures/prodat-register'
 import {selection} from './fixtures/prodat-gas'
-const check=(wire:string,code='Z06',direction:'inbound'|'outbound'='outbound',gasSerialChange?:unknown)=>evaluateProdatGasApplicability({...input(wire,code),direction,facts:{gasSerialChange:gasSerialChange as never}})
+const check=(wire:string,code='Z06',direction:'inbound'|'outbound'='outbound',gasSerialChange?:unknown,gasReportingIdentity?:unknown)=>evaluateProdatGasApplicability({...input(wire,code),direction,facts:{gasSerialChange:gasSerialChange as never,gasReportingIdentity:gasReportingIdentity as never}})
 const errors=(r:ReturnType<typeof check>)=>r.issues.filter(i=>i.blocking).map(i=>i.code)
 // Literal table from original pp21/65/77/110; requirement kind must survive false.
 for(const [code,subtype,field,changed,want] of [
@@ -69,11 +70,11 @@ it('first register and exact own message/object scope cannot borrow common data 
 for(const alphabet of alphabets)it(`decoded RFF value length and released fake tag remain source data ${alphabet}`,()=>{
  const value='x'.repeat(31)+alphabet.join('')
  const valid=payload('Z04','Z22',[['RFF',['Z08',value]],['RFF',['Z06','SERIES']]],'gas',alphabet)
- expect(errors(check(valid,'Z04'))).toEqual([])
+ expect(errors(check(valid,'Z04','outbound',undefined,identity('Z04','Z22','TIM','SERIES')))).toEqual([])
  const long=payload('Z04','Z22',[['RFF',['Z08',value+'x']],['RFF',['Z06','SERIES']]],'gas',alphabet)
- expect(errors(check(long,'Z04'))).toEqual(['PRODAT_GAS_320_VALUE_INVALID'])
+ expect(errors(check(long,'Z04','outbound',undefined,identity('Z04','Z22','TIM','SERIES')))).toEqual(['PRODAT_GAS_320_VALUE_INVALID'])
  const fake=payload('Z04','Z22',[['FTX','AAI','','',"'RFF+Z08:FAKE"],['RFF',['Z06','SERIES']]],'gas',alphabet)
- expect(errors(check(fake,'Z04'))).toContain('PRODAT_GAS_320_REQUIRED')
+ expect(errors(check(fake,'Z04','outbound',undefined,identity('Z04','Z22','TIM','SERIES')))).toContain('PRODAT_GAS_320_REQUIRED')
 })
 it('GAS Z10M own E58 accepts causal false as optional and never borrows another object',()=>{
  const wire=payload('Z10','E58',[],'gas')

@@ -1,3 +1,4 @@
+import type {GasReportingIdentitySelection} from './prodatGasReportingIdentity'
 import {gasAggregate,gasStatus,isGasApplicabilityField,type GasSerialChangeSelection} from './prodatGasApplicability'
 import {deathAggregate,isDeathStatusField,type DeathSelection} from './prodatDeathStatus'
 import {isMeterChangeField,meterChangeAggregate,type MeterChangeSelection} from './prodatMeterChangeFacts'
@@ -43,6 +44,7 @@ export type ProdatDependentConditionFacts = {
   /** Legacy descriptive pre-wire hint only; outbound229 requires per-object source facts. */
   endUserAddressAvailable?: boolean | null
   gasSerialChange?: GasSerialChangeSelection | null
+  gasReportingIdentity?: GasReportingIdentitySelection | null
   deathStatus?: DeathSelection | null
   meterChange?: MeterChangeSelection | null
   reportingPermission?: ReportingSelection | null

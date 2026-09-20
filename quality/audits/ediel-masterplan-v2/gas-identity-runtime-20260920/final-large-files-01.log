@@ -1,0 +1,6 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> gridex-ops-platform@0.1.0 quality:large-file-budget
+> node scripts/check-large-source-file-budget.cjs
+
+Large source file budget passed: 0 grandfathered files cannot grow and new source files are capped at 1800 lines.

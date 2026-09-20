@@ -1,3 +1,4 @@
+import {copyGasReportingIdentitySelection,gasReportingIdentityValue,type GasReportingIdentitySelection} from '@/lib/ediel/prodat/prodatGasReportingIdentity'
 import {prodatFieldDiagnostic,prodatLocalDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import {copyGasSerialChangeSelection,gasRequirement,gasStatus,gasWireMessages,isGasApplicabilityField,type GasRequirement,type GasSerialChangeObject} from '@/lib/ediel/prodat/prodatGasApplicability'
 import {prodatRegisterTokens} from '@/lib/ediel/prodat/prodatRegisterFields'
@@ -16,6 +17,7 @@ export function evaluateProdatGasApplicability(input:GasPolicyInput){
   const tokens=prodatRegisterTokens(input.rawSegments,una),messages=gasWireMessages(tokens,una,input.applicationReference)
   const issues:GasIssue[]=[],requirements=new Map<string,GasRequirement>()
   let objects:readonly GasSerialChangeObject[]=[]
+  let reportingIdentity:GasReportingIdentitySelection|null|undefined
   let diagnosticScope:string[]=[];let diagnosticInput=input
   const fail=(field:string,suffix:string,detail:string,location?:{meteringPointId:string|null;lineItemReference:string|null},blocking=outbound,kind:'missing'|'invalid'|'local_evidence'='local_evidence')=>issues.push({
     prodatDiagnostic:kind==='local_evidence'?prodatLocalDiagnostic(kind,'PRODAT26A:gas-applicability',detail):prodatFieldDiagnostic(field,kind,diagnosticInput,diagnosticScope,'PRODAT26A:P21/77/119/123'),
@@ -83,6 +85,15 @@ export function evaluateProdatGasApplicability(input:GasPolicyInput){
         const token=found[0],parts=segmentComposite(token,1,una),value=parts[1]??''
         if(parts[0]!==qualifier||!value.trim()||value.length>35||(field==='240'&&/[åäöÅÄÖ]/.test(value)))fail(field,'VALUE_INVALID','1154 ska vara ett giltigt icke-tomt an..35-värde',location,true,'invalid')
         if(outbound&&(parts.slice(2).some(Boolean)||segmentElementCount(token,una)>1))fail(field,'UNUSED_COMPONENT','1156/4000 och övriga oanvända delar får inte skickas',location,true,'invalid')
+        if(field==='240'&&outbound){
+          if(reportingIdentity===undefined){
+            try{reportingIdentity=input.facts?.gasReportingIdentity==null?null:copyGasReportingIdentitySelection(input.facts.gasReportingIdentity)}catch{reportingIdentity=null}
+          }
+          const reason=({L:'Z22',LK:'Z23',C:'Z24',H:'Z25',A:'Z26',D:'Z70',E:'E34',F:'E64',G:'E32',M:'E58'} as Record<string,string>)[subtype??'']??null
+          const expected=gasReportingIdentityValue(reportingIdentity,{id:group.itemId,agency:group.identityAgency,lineItemReference:li,code:message.code,reason,unique:uses.get(binding(group.itemId,group.identityAgency,message.code,li))===1,causal:fact})
+          if(expected===null)fail(field,'IDENTITY_UNDETERMINED','oberoende egen MSCONS-TIM/SCH-identitet och exakt källrevision saknas',location)
+          else if(value!==expected)fail(field,'IDENTITY_MISMATCH','serie-id motsvarar inte egen källstyrkt MSCONS-TIM/SCH-identitet',location,true,'invalid')
+        }
       }
     }
   }
