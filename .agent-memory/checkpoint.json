@@ -4,8 +4,8 @@
   "status": "IN_PROGRESS",
   "branch": "codex/ediel-506-applicability-20260920",
   "base_head_sha": "ec7646c56a5412b2d05e9a4d763d7a2ee7462bc7",
-  "active_item": "Source-only field506 incoming applicability qualification",
-  "next_action": "Field506 source-only audit and independent source/architecture review; then bounded runtime authorization",
+  "active_item": "Field506 source architecture correction R-506-A1",
+  "next_action": "Originalauthor source-only manualpermissionguard correction; scoped independent rereview; runtime only after rootauthorization",
   "accepted_numeric_D": 98,
   "merged_numeric_D": 98,
   "numeric_D_total": 110,
@@ -31,11 +31,11 @@
   "last_accepted_pr": 350,
   "source_fix_round": 1,
   "source_remote_checkpoint": {
-    "head": "af86e7f8994eaea4f32c5d5214253d65df82def9",
-    "tree": "c81d9ab89955f1b3877450fd871ea5af7b729f57",
-    "local_equivalent": "ed45d5322d6ba2c881537a42dcdd80247c989876",
+    "head": "cfc88d7af7ee523c66c95026a60e1b7247bb88a1",
+    "tree": "ff0e1262cae371122b1088cf83b2a49bb48ac3e9",
+    "local_equivalent": "adcb599ab65be7cf3682cfe8b5ebeb1302b2ce2f",
     "pr": null,
-    "verification": "publicfetchdiff0"
+    "verification": "freshfetchdiff0"
   },
   "runtime_local_head": "3dcd1bf3b503547cc1ba364bd29553ee613f8749",
   "runtime_published_head": "53ac47b8488a43af4ed3f44f3205375c506adaa1",
@@ -51,8 +51,8 @@
     ],
     "conclusion": "success"
   },
-  "source_candidate_commit": "ed45d5322d6ba2c881537a42dcdd80247c989876",
-  "source_review": "SOURCE/SPEC APPROVE; ARCHITECTURE APPROVE; auditTASK/QUALITY APPROVE R1",
+  "source_candidate_commit": "adcb599ab65be7cf3682cfe8b5ebeb1302b2ce2f",
+  "source_review": "SOURCE/SPEC APPROVE; ARCHITECTURE/TASK/QUALITY REQUEST_CHANGES R-506-A1",
   "runtime_scope": "Source-ownedfield/kind/occurrence metadata; F/U/L/I disposition, narrowIinboundguard, exactACKrefs; no506applicability/P94fulltextclaim",
   "runtime_fix_round": 0,
   "runtime_review": "PR350 all APPROVE RT1-RT4 closed",

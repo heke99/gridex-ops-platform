@@ -22,6 +22,8 @@ by explicit single-author dispatch, with independent review supplied by root.
 Acquire-codebase-knowledge was inspected but its repository-wide trigger is absent;
 no seven-document mapping, broad playbook, security/DB/UI/performance audit,
 refactor/deployment, skill writing or runtime-TDD deliverable is claimed.
+R1 applies receiving-code-review to the independently confirmed R-506-A1 call path;
+the approved source matrix and original evidence are retained without reruns.
 
 Original source: `/workspace/scratch/2a201d6d5897/prodat-original-source/PRODAT-26A-r3.pdf`,
 SHA256 `83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95`.
@@ -118,7 +120,7 @@ no live sender rejection or business mutation is claimed.
 | 506-F2, `prodatProductScope.ts:82–111` | Selected Z06F/G/E canonical rules: valid242 alone has zero issues; shared invalid506 adds42/242 as well as42/506 (`parts.slice(4)`); separate506-only pair adds duplicate/invalid242. Both directions currently reject. | Incoming field-local pair selection and fifth-slot exemption only; outbound strict checks unchanged. |
 | 506-F3, `prodatCharacteristicFields.ts:57–68` | Empty shared pair means `!siblingPresent`, marking both slots present-forbidden. Z01 gets242+506; Z14N gets242. Nonempty fourth extra inZ14N likewise false242. | Narrow shared-slot applicability adapter for knownfalse242 as well as506. No whole-pair/raw suppression or all74field skip. |
 | 506-F4, descriptor + inboundZ14 bypass | Complete source-valid Z13V/VH INVALID506 reaches positive100 ACK:506 descriptor has no allowedValues. Complete Z14V/VH absent/INVALID506 also reaches positive100: base D parse skips content/cardinality, inbound canonical excludes Z14 owner. | One incoming506 owner for unconditionalZ13R and per-objectZ14V/VHR/Nfalse, with P122 content, field-scoped metadata. Do not enable all outboundZ14 checks inbound. |
-| 506-F5, alternate decisions | `decideProdatAperak` contains no506 check; actualZ14 missing/INVALID506 has no error and returns deferred/null outcome. Manual `deriveProdatAperakValidationIssues` returns[] for the same wires; resolver's empty-issues branch returns empty errors, allowing its caller's existing positive path. | Share selected506 validation before alternate decision/positive shortcuts; see concrete adapter contract below. |
+| 506-F5, alternate decisions | `decideProdatAperak` contains no506 check; actualZ14 missing/INVALID506 has no error and returns deferred/null outcome. Manual registry derivation returns[] for these wires. R-506-A1 additionally proves actual `resolveBackendAperakDecision` handles Z13/Z14, writes a success event and returns positive **before** calling that registry. | One shared incoming506 evaluation/guard at both manual permission and independently callable registry boundaries; guarding the registry alone is insufficient. |
 
 Qualified controls: Z01 baseline clean; invalid sender country only42/207;
 UNT999 rejected at syntax with no field506 error; Z13 missing506 already41/506;
@@ -180,15 +182,29 @@ full grammar and general policy/registry catch behavior remain separate.
    guarded business processing follow existing policy.
 5. `decisionEngine.ts:decideProdatAperak` must consume the same incoming506 owner
    and existing typed field→APERAK projection before positive/deferred selection.
-   The manual/TGT registry has **no506 rule mapping**: proposed bounded choice is
-   an explicit `PRODAT_ENERGY_PRODUCT_ACK_REVIEW_REQUIRED` guard for genuine506 F
-   before its positive-case shortcut or database writes, as existing selected
-   meter/death/GAS guards do. False extras/U add no guard. This is a local hold,
-   not an invented national error or a claim of full manual506 mapping. Qualified
-   automatic/direct decision paths still produce actual41/506 or42/506. Test
-   `resolveAndStoreProdatAperakErrors` with a throwing DB mock to prove the guard
-   occurs before writes and false/valid506 causes no new guard. Root/reviewer must
-   approve this concrete bounded hold; future manual mapping stays explicit.
+   The manual/TGT registry has **no506 rule mapping**. Its guard alone cannot
+   cover `app/admin/ediel/actions.part-3.ts:294:resolveBackendAperakDecision`:
+   TGT resolution448 and permission context455 precede permission validation458;
+   handled results464–500 write a success/warning event and return before registry
+   resolution503. `prodatPermissionEngine.ts:519–540` handles inboundZ13 without506
+   validation; Z14's430–465 checks context/status but not506. Manual callers593,
+   732 and968 consume this result before draft/replacement work.
+   Define **one shared incoming506 evaluation and guard**, consuming the source
+   owner's typed result rather than duplicating subtype/value predicates. For
+   genuine506 F only, throw `PRODAT_ENERGY_PRODUCT_ACK_REVIEW_REQUIRED`: apply at
+   the manual PRODAT entry after the existing family/role checks and before TGT
+   lookup, permission handling, event writes or positive return; also apply at the
+   independently callable registry derivation/resolution entry before empty-issue
+   or positive-case shortcuts and validation/detail writes. The latter protects
+   the PRODAT registry path in `system-tests/actions.part-2.ts:408/422`; its earlier
+   runtime branch331–406 is UTILTS-only. Separate canonical-runtime consumers
+   remain covered by the canonical506 owner in item3.
+   False extras, U and valid506 introduce no hold; pass through existing permission
+   status/context outcomes unchanged, including their independent negative errors
+   and warning events. Preserve existing family/role and non506 diagnostics. This
+   is a narrow local review hold, not an invented ERC or full manual506 mapping;
+   automatic/direct typed paths still emit41/506 or42/506. Root/reviewer approval
+   is required, with both actual manual and separate registry proofs below.
 6. Raw preflight's `misplacedProdatEnergyProducts` warns inbound but blocks send;
    it currently labels any fourth slot inZ13/Z14 as misplaced506. Keep outgoing
    behavior; incoming diagnostic must respect physical242 identity and ownNfalse,
@@ -269,6 +285,43 @@ syntax negatives and outbound strict controls. Source-level U and GAS invalid
 permission contexts must not become positive acceptance; no new receiver-local
 facts are needed for source-validZ13/positiveZ14. P94 text completion remains open.
 
+R-506-A1 adds these precise future TDD obligations; none is implemented here:
+
+* Invoke actual `resolveBackendAperakDecision` and real permission validation with
+  complete source-valid Z13/S17 and matching-context Z14/S17, each missing/invalid
+  fifth506. Require the review-required error, no positive result, no success
+  event and no progression to draft/replacement writes. Mock external context,
+  event and TGT access only; a throwing downstream registry sentinel is not the
+  proof, since permission handling bypasses it. Assert the shared entry guard
+  stops execution before that branch and its writes.
+* Valid506 Z13/Z14 retain their established positive result and success event.
+  Knownfalse extra506 (including Z14N and a valid handled Z18 control) and U add
+  no506 hold; assert existing status/context outcomes, not forced acceptance of
+  a source-excluded or independently invalid case. With valid506, a Z14 unmatched
+  prior permission context must retain its40/105 negative and warning event;
+  an independent invalid-status control retains its existing permission error.
+* Exercise `resolveAndStoreProdatAperakErrors` independently with genuine506 F,
+  including the system-test registry caller's input shape: require the same guard
+  before positive/test-data shortcuts and any validation/detail write. False/U/
+  valid controls introduce no506 hold and preserve existing independent guards.
+  Keep item3's separate canonical-runtime typed41/506 and42/506 controls distinct.
+
+### R1 review correction receipt
+
+Independent review of source commit `adcb599ab65be7cf3682cfe8b5ebeb1302b2ce2f`
+approved SOURCE/SPEC and requested this single architecture/task/quality correction
+R-506-A1. Report: `/workspace/scratch/2a201d6d5897/f3-506-source-review-report.md`.
+Its actual manual-resolver observation has six records: Z13/Z14, each valid/missing/
+invalid506, all positive with one success event and zero registry-sentinel calls.
+This confirms the missed boundary without claiming an external ACK was sent.
+Reviewer's qualified replay remains5PASS/9expectedFAIL; initial manual harness
+brace failure and its corrected observation remain separate immutable artifacts.
+All reviewer files are under `/workspace/scratch/2a201d6d5897/f3-506-reviewer/`,
+fingerprinted by `reviewer-sha256-manifest.json`; author fingerprints below remain
+unchanged. This correction reruns no probe and overwrites no evidence or receipt.
+Only the consumer/guard contract and future proof are corrected; the finite source
+matrix, two individual assertion proposals and runtime boundary are unchanged.
+
 ### Immutable evidence fingerprints
 
 | Scratch file | SHA256 |
@@ -295,6 +348,7 @@ facts are needed for source-validZ13/positiveZ14. P94 text completion remains op
 `npm run ediel:masterplan-v2:integrity`: PASS33 originals/121 rules/231 contracts,
 explicitly no application-conformance or production-readiness assertion.
 Source-only scoped diff/whitespace and evidence-manifest checks passed.
-No full test suite was run for this source-only task. Next: root adjudicates this
-finite source contract and two individual old-assertion proposals; independent
-SOURCE/SPEC plus ARCHITECTURE review, then explicit runtime authorization.
+No full test suite was run for this source-only task. R1 retains independent
+SOURCE/SPEC approval and root's conditional ruling on the two assertion proposals.
+Next: scoped independent architecture/task/quality rereview of R-506-A1, then
+explicit root runtime authorization. Source approval alone authorizes no runtime.
