@@ -49,11 +49,11 @@ it('valid506 preserves independent unmatched-context40/105 and warning event',as
 })
 it('valid506 preserves independent invalid-status error and warning event',async()=>{
  const message=permissionMessage();message.raw_payload=message.raw_payload!.replace('CAV+A74','CAV+INVALID')
- const d=await run(message);expect(d.applicationErrors).toMatchObject([{ercCode:'41',fieldCode:'322'}]);expect(events.map(e=>e.eventStatus)).toEqual(['warning'])
+ const d=await run(message);expect(d.applicationErrors).toMatchObject([{ercCode:'42',fieldCode:'322',text:'Felaktigt Tillståndets status INVALID'}]);expect(events.map(e=>e.eventStatus)).toEqual(['warning'])
 })
-it('false Z14N extra adds no hold and retains the existing A76 status negative',async()=>{
+it('false Z14N extra adds no hold and source-valid A76 is positive',async()=>{
  const d=await run(permissionMessage('Z14','Z96','INVALID'))
- expect(d.applicationErrors).toMatchObject([{ercCode:'41',fieldCode:'322'}]);expect(events.map(e=>e.eventStatus)).toEqual(['warning'])
+ expect(d.outcome).toBe('positive');expect(d.applicationErrors).toBeNull();expect(events.map(e=>e.eventStatus)).toEqual(['success'])
 })
 it('valid handled Z18 false extra and unknown Z14 reason add no hold',async()=>{
  const z18=z18Message('INVALID')

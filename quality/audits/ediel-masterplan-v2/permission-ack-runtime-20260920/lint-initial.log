@@ -1,0 +1,7 @@
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/decisionEngine.ts
+    9:10  warning  'prodatCharacteristicValue' is defined but never used  @typescript-eslint/no-unused-vars
+  114:10  warning  'segmentStarts' is defined but never used              @typescript-eslint/no-unused-vars
+
+✖ 2 problems (0 errors, 2 warnings)
+

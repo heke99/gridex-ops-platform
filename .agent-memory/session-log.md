@@ -226,3 +226,24 @@ PR350 accepted bounded typedACKidentity/disposition unit: main ec7646c56a5412b2d
 Recovered source e6756d2e, recoverybrief remote841d19f8 equalslocal20a2b410. Fresh test-onlycheckpoint f1ef5091 equalslocal5486d9d1/tree5d63617f byfetchdiff0; actual26tests5PASS21RED. No productioncompletion/PRclaim. Implementationfield506_resumeactive; nextappendnonforcefromf1ef5091. Prioruncommittedcode unavailable afterrollback; allnewreceipts labelednew.
 
 Field506implementationcheckpoint492990fe publishede34053f7/tree0a34ed9b freshfetchdiff0;106/106focused,app/testtypes,scopedlintPASS. Fullsuite+13gatesrunning, noindependentreview oracceptanceyet. Exacttwooldincoming506assertionschanged,242controlsretained. Nextappendnonforcefrome34053f7.
+
+PR352 packaging candidate de385cee published as 12cd0046490000078b3f2947df942bb394491ea4, tree 8c293a75cf362d02c1b2eae5c2322beafca33a5b; fresh fetch diff0. Three byte-identical non-test archive renames, exact quality45/45 in2 files PASS; runtime and durable tests unchanged. Runtime R1 independently APPROVED; packaging review and fresh exact CI pending (OPS35505908631, full35505908624, browser35505908661, Ediel35505908633). Require approval/allCI/guarded merge/actual main73+OPS. PR351 accepted; counts98/110+10 unchanged; PR310 paused.
+
+
+PR352 merged1892cf48e77d2c6cea99fdbb5d7507d51919956a, exact reviewed tree8c293a75 by fresh fetch/diff0. Independent runtime R1 and packaging APPROVE; all four exact CI SUCCESS, final4567/4567 in303files Node22.23.2, quality45/45. Actual main full35506222436 and OPS35506222425 pending; no bounded acceptance yet. Fresh branch codex/ediel-permission-ack-20260920: source-only legacy322/324 qualification, no runtime until main gates and independent source/architecture approval. PR310 open/draft/unchanged e9611351 paused; counts98/110+10 unchanged.
+
+
+PR352 bounded APERAK text/readiness unit ACCEPTED on main1892cf48e77d2c6cea99fdbb5d7507d51919956a. Actual full35506222436/job106066385260 SUCCESS73/73,0failed at2026-09-20T11:00:05Z Node22.23.2; OPS35506222425 all3SUCCESS replay106066385034/verify106066385124/quality106066385127. Mainquality4567/4567in303files and45/45 quality tests. Active source-only permission322/324 ACK qualification by permission_ack_source; no runtime until independent source/spec+architecture approval. Counts98/110 numeric+10/10parents unchanged, fullF3/masterplan incomplete; PR310 paused.
+
+
+Permission322/324 source candidate2a49a63c published b1d2be3da2869bd59a5a609eb7dd16ef6ba04f8e/tree2d16bf1041cb950f0c35d13ece47e0b2871cfede, fresh fetch diff0. Independent permission_ack_review SOURCE/SPEC+ARCHITECTURE active; no runtime authorized. Five selected-field findings; original20oracles7PASS13RED,105observations,13persisted records. Explicit E37/Z18 source adjudication pending. Separate HIGH P-ACK-R1 prior-flow authority/tenant lookup residual must remain open; generic209/261 residuals excluded. PR352 main73+OPS accepted, counts98/110+10 unchanged, PR310paused.
+
+
+Permission322/324 runtime checkpoint150b22c9 published0d65582c266d1f968829663eef3c9f27eae07671/tree661b32bb3a6ff467e13fa69b08ebbd8b3913623f freshfetchdiff0. Focused141/141 PASS; final full/gates/report pending. Narrow registry-only derivative258 amendment independently approved/rootauthorized a765bf7d; all other holds and residuals unchanged. Corrected isolatedbaseline67tests16PASS51RED, original API/fixture mistakes retained. No completed-runtime approval/PR yet; PR352main73+OPS accepted; PR310paused.
+
+
+PR353 OPEN DRAFT ddd37b0ffe977a68eacbdab26cdc8775a60d5aa2 equalslocalf30bcf63/tree23153129e51b5ceb0a492d62e3978a4bd4f5112f freshfetchdiff0. Finalruntimef65007f8 unchanged since4689/4689in306files, all13gates,818striponly,quality45PASS. Independent completedruntime permission_ack_runtime_review active; exactNode22CIpending. Source+architecture/amendment approved; no completedruntimeapproval/mergeyet. Root preciseparserfixturecorrection ownCCI/CAV223Z96/UNT9 supersedes caught DTM error. HIGH P-ACK-R1 separate/open; counts98/110+10 unchanged; PR352accepted; PR310paused.
+
+
+PR353 completed runtime review REQUEST_CHANGES solemedium R-PACK-1: partial322-only/324-only policy leaks otherfield internal ambiguity; independent7probes5PASS2FAIL, opposingcontrols preserved. Originalauthor permission_ack_runtime fixround1 active; N1low performanceledgerhash clarification append, freshreviewer performancePASS. Source/amendmentapproved. Initialexactddd37 all4CI SUCCESS,4689Node22coverage106073652511 historicalafterfix. Needfinalcandidate/scopedrereview/newCI. HIGHpriorflowresidual separate; PR310paused.
+

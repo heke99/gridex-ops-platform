@@ -1,0 +1,221 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> gridex-ops-platform@0.1.0 lint
+> eslint
+
+[BABEL] Note: The code generator has deoptimised the styling of /workspace/scratch/2a201d6d5897/gridex-next/supabase/database.types.ts as it exceeds the max of 500KB.
+
+/workspace/scratch/2a201d6d5897/gridex-next/__tests__/ediel-prodat-dependent-z06-product.test.ts
+  1:33  warning  'changeDateFact' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/__tests__/helpers/supabaseMock.ts
+  119:6  warning  '_expression' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/app/admin/billing/export-center/actions.ts
+  40:61  warning  '_formData' is defined but never used  @typescript-eslint/no-unused-vars
+  54:62  warning  '_formData' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/app/admin/customers/[id]/page.part-4.tsx
+  408:9  warning  'activeSites' is assigned a value but never used                  @typescript-eslint/no-unused-vars
+  409:9  warning  'activeMeteringPoints' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  413:9  warning  'lifecycleSummary' is assigned a value but never used             @typescript-eslint/no-unused-vars
+  495:9  warning  'hasUsablePowerOfAttorney' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  510:9  warning  'legalLooksAccepted' is assigned a value but never used           @typescript-eslint/no-unused-vars
+  559:9  warning  'tenantCustomerView' is assigned a value but never used           @typescript-eslint/no-unused-vars
+  570:9  warning  'hasSwitchData' is assigned a value but never used                @typescript-eslint/no-unused-vars
+  607:9  warning  'primaryContact' is assigned a value but never used               @typescript-eslint/no-unused-vars
+  661:9  warning  'openCustomerBlockers' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  675:9  warning  'pendingCustomerInfoRequests' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/app/admin/ediel/agt/actions.ts
+    7:3   warning  'requireAdminActionAccess' is defined but never used  @typescript-eslint/no-unused-vars
+  293:16  warning  'getCurrentUserId' is defined but never used          @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/app/admin/ediel/system-tests/page.tsx
+  323:10  warning  'statusTone' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/app/admin/ediel/test-center/invoice-test/page.tsx
+  92:9  warning  'selectedCustomer' is assigned a value but never used        @typescript-eslint/no-unused-vars
+  94:9  warning  'selectedMeteringPoints' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/app/admin/messages/[id]/page.tsx
+  8:15  warning  'EdielMessageRow' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/app/admin/messages/page.tsx
+  56:6  warning  'UnifiedRow' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/app/admin/operations/ready-to-execute/page.tsx
+  53:10  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/app/admin/outbound/missing-billing-underlays/page.tsx
+  65:10  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/app/admin/outbound/missing-meter-values/page.tsx
+  95:10  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/app/admin/outbound/page.tsx
+  139:45  warning  '_' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/app/admin/outbound/ready-switches/page.tsx
+  15:2   warning  '_' is defined but never used              @typescript-eslint/no-unused-vars
+  28:10  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/app/admin/outbound/unresolved/page.tsx
+  27:10  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/app/admin/platform/api-clients/actions.ts
+  11:10  warning  'recommendedPermissionGroups' is defined but never used  @typescript-eslint/no-unused-vars
+  44:10  warning  'nullableDate' is defined but never used                 @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/app/api/public/energy-area/route.ts
+  7:27  warning  '_request' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/components/admin/contracts/CommercialPricingEditor.tsx
+  238:6  warning  React Hook useEffect has a missing dependency: 'simpleDefaults'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/workspace/scratch/2a201d6d5897/gridex-next/components/admin/ediel/EdielOperationalBridgePanel.tsx
+  106:10  warning  'dataTone' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/e2e/browser/zero-admin-crawler.spec.mjs
+  95:41  warning  '_page' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/e2e/k6/platform-load.js
+  25:1  warning  Unexpected default export of anonymous function  import/no-anonymous-default-export
+
+/workspace/scratch/2a201d6d5897/gridex-next/e2e/k6/platform-smoke.js
+  30:1  warning  Unexpected default export of anonymous function  import/no-anonymous-default-export
+
+/workspace/scratch/2a201d6d5897/gridex-next/e2e/k6/platform-soak.js
+  22:1  warning  Unexpected default export of anonymous function  import/no-anonymous-default-export
+
+/workspace/scratch/2a201d6d5897/gridex-next/e2e/k6/platform-spike.js
+  25:1  warning  Unexpected default export of anonymous function  import/no-anonymous-default-export
+
+/workspace/scratch/2a201d6d5897/gridex-next/e2e/k6/public-contract-cache.js
+  52:1  warning  Unexpected default export of anonymous function  import/no-anonymous-default-export
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/customer-cases/db.ts
+  100:24  warning  '_customers' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/customer-operations/automation.part-2.ts
+  28:187  warning  'priceArea' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/customer-operations/automation.part-3.ts
+  25:51  warning  'duplicate' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/ack.ts
+  116:10  warning  'swedishDateTimeFromEdifactUnb' is defined but never used  @typescript-eslint/no-unused-vars
+  168:10  warning  'normalizeAperakErrors' is defined but never used          @typescript-eslint/no-unused-vars
+  345:10  warning  'edielPartyCompositeFromUnb' is defined but never used     @typescript-eslint/no-unused-vars
+  357:10  warning  'fallbackPartyComposite' is defined but never used         @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/actorTestingEngine.ts
+    8:3   warning  'getEdielMessageById' is defined but never used       @typescript-eslint/no-unused-vars
+    9:3   warning  'listAckMessagesForSource' is defined but never used  @typescript-eslint/no-unused-vars
+  104:10  warning  'isTerminalStatus' is defined but never used          @typescript-eslint/no-unused-vars
+  108:10  warning  'asActorTestStatus' is defined but never used         @typescript-eslint/no-unused-vars
+  132:10  warning  'isUtiltsErr' is defined but never used               @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/core/referenceRegistry.ts
+  106:48  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/db.ts
+  204:10  warning  'isRecord' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/flows/inboundProcessing.ts
+  564:9  warning  'facilityRecognition' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/flows/prodatSwitch.ts
+  370:47  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+  373:47  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+  376:47  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+  379:47  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+  382:47  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+  385:47  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+  388:47  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+  391:47  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+  394:47  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/flows/utiltsSupplierRequest.ts
+  317:3  warning  '_params' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/operations/controlTower.ts
+  297:5  warning  'queuedOutbound' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  309:5  warning  'disabledRouteProfiles' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/outbox/projectSentSources.ts
+  35:3   warning  '_message' is defined but never used  @typescript-eslint/no-unused-vars
+  42:36  warning  '_status' is defined but never used   @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/portal/parsePortalValidationReport.ts
+  29:10  warning  'normalizeUpper' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/prodat/compatAdapter.ts
+  168:10  warning  'preferredReferencePrefix' is defined but never used             @typescript-eslint/no-unused-vars
+  181:10  warning  'statusSegmentForCode' is defined but never used                 @typescript-eslint/no-unused-vars
+  236:10  warning  'portalNumberString' is defined but never used                   @typescript-eslint/no-unused-vars
+  243:10  warning  'portalRegisters' is defined but never used                      @typescript-eslint/no-unused-vars
+  250:10  warning  'portalBillingRecipient' is defined but never used               @typescript-eslint/no-unused-vars
+  254:10  warning  'portalDate102' is defined but never used                        @typescript-eslint/no-unused-vars
+  298:10  warning  'date203AtStartOfDay' is defined but never used                  @typescript-eslint/no-unused-vars
+  305:10  warning  'normalizeProdatReasonForTransaction' is defined but never used  @typescript-eslint/no-unused-vars
+  334:9   warning  'isAccessCode' is assigned a value but never used                @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/rulebook/validatorLegacy.ts
+  282:18  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/testing/selftest.ts
+  78:10  warning  'ymd' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/testing/tgtAutoMatcher.ts
+  626:10  warning  'normalizeExpectedValue' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/testing/tgtAutopilot.ts
+  19:3  warning  'getEdielTgtTestCaseByCode' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/testing/tgtEdifact.part-2.ts
+  444:3  warning  'step' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/ediel/utiltsEngine.part-1.ts
+  1190:13  warning  'gridAreaId' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/inbound-mail/inboundStatusUpdater.ts
+  325:9  warning  'matchedOutboundId' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/integrations/apiAuth.ts
+  119:10  warning  'hasRequiredScopes' is defined but never used  @typescript-eslint/no-unused-vars
+  139:10  warning  'ipAllowed' is defined but never used          @typescript-eslint/no-unused-vars
+  156:10  warning  'originAllowed' is defined but never used      @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/onboarding/inboundEdielLinking.ts
+  246:16  warning  'tryQueueSupplierSwitchAfterZ02' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/operations/supplierSwitchScheduler.ts
+  38:3  warning  '_legacyEnvironment' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/website/applicationReview.ts
+  729:11  warning  'verificationDetail' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/website/customerApplicationCommunication.ts
+  18:243  warning  'stage' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/website/customerApplicationLegal.ts
+  12:94  warning  'stage' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/website/customerApplicationOnboarding.ts
+  17:198  warning  'stage' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/website/customerApplicationPersistence.ts
+  9:35   warning  'calculatedEarliestStartDate' is defined but never used  @typescript-eslint/no-unused-vars
+  9:137  warning  'errorMessage' is defined but never used                 @typescript-eslint/no-unused-vars
+  9:218  warning  'stage' is defined but never used                        @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/website/customerApplicationProcess.ts
+  26:79  warning  'calculatedEarliestStartDate' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/scratch/2a201d6d5897/gridex-next/lib/website/customerApplicationSchemas.ts
+  6:35  warning  'calculatedEarliestStartDate' is defined but never used  @typescript-eslint/no-unused-vars
+  6:81  warning  'stage' is defined but never used                        @typescript-eslint/no-unused-vars
+
+✖ 100 problems (0 errors, 100 warnings)
+

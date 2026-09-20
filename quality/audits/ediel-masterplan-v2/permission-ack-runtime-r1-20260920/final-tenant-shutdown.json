@@ -1,0 +1,11 @@
+{
+  "gate": "tenant-shutdown",
+  "command": [
+    "node",
+    "scripts/gridex-tenant-shutdown-regression.cjs"
+  ],
+  "exit": 0,
+  "seconds": 0.09,
+  "log": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-tenant-shutdown.log",
+  "sha256": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e"
+}

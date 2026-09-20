@@ -447,6 +447,8 @@ export async function resolveBackendAperakDecision(params: {
   }
 
   assertIncomingProdatEnergyProductReview(params.sourceMessage.raw_payload);
+  // Assess selected wire fields before prior lookup, TGT selection or events.
+  const permissionFields = validateProdatPermissionMessage({ message: params.sourceMessage });
 
   const tgtResolution = await resolveTgtTestDataForAckAction({
     message: params.sourceMessage,
@@ -457,7 +459,12 @@ export async function resolveBackendAperakDecision(params: {
 
   const permissionContext = await resolveProdatPermissionContextForAck(
     params.sourceMessage,
-  );
+  ).catch((error: unknown) => {
+    // Unavailable history remains internal; retain independently assessed fields.
+    throw Object.assign(error instanceof Error ? error : new Error(String(error)), {
+      permissionFieldAssessment: permissionFields.fieldAssessment,
+    });
+  });
   const permissionDecision = validateProdatPermissionMessage({
     message: params.sourceMessage,
     testData: tgtResolution.testData,
@@ -482,6 +489,7 @@ export async function resolveBackendAperakDecision(params: {
           null,
         outcome: permissionDecision.outcome,
         issues: permissionDecision.issues,
+        permissionFieldAssessment: permissionDecision.fieldAssessment,
         backendRuleKeys: permissionDecision.matchedRuleKeys,
         permissionContext,
       },

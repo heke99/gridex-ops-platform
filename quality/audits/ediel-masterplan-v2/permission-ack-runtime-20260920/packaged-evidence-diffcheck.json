@@ -1,0 +1,11 @@
+{
+  "command": [
+    "git",
+    "diff",
+    "--check",
+    "35009150"
+  ],
+  "exit": 2,
+  "rawLogEofWarnings": 11,
+  "implementationDiffExit": 0
+}

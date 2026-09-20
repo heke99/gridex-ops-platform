@@ -1,0 +1,17 @@
+{
+  "gate": "implementation-diffcheck",
+  "command": [
+    "git",
+    "diff",
+    "--check",
+    "81bc68b5",
+    "--",
+    "lib",
+    "app",
+    "__tests__"
+  ],
+  "exit": 0,
+  "seconds": 0.01,
+  "log": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-implementation-diffcheck.log",
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

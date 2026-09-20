@@ -1,3 +1,4 @@
+import {permissionAckRegistryIssues,isLegacyPermissionFieldIssue,permissionRegistryRegisterFailures} from './prodatPermissionAckRegistry'
 import {assertIncomingProdatEnergyProductReview} from '@/lib/ediel/prodat/prodatEnergyProduct'
 import {validateProdatGasApplicability} from '@/lib/ediel/rulebook/prodatGasApplicabilityPolicy'
 import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
@@ -23,6 +24,7 @@ import type { EdielTgtCaseTestData } from "@/lib/ediel/testing/tgtTestData";
 import { supabaseService } from "@/lib/supabase/service";
 
 export type EdielAperakValidationIssue = {
+  permissionApplicationError?: EdielAperakApplicationError;
   ruleKey: string;
   severity: "error" | "warning" | "info";
   fieldPath: string | null;
@@ -35,7 +37,7 @@ export type EdielAperakValidationIssue = {
 };
 
 type EdielAperakErrorRuleRow = {
-  id: string;
+  id: string | null;
   message_family: string;
   message_code: string | null;
   direction: string;
@@ -1085,6 +1087,24 @@ export function deriveProdatAperakValidationIssues(params: {
   message: EdielMessageRow;
   testData?: EdielTgtCaseTestData | null;
 }): EdielAperakValidationIssue[] {
+  // Readiness must precede scenario shortcuts and any registry read/write.
+  const permissionIssues=permissionAckRegistryIssues(params.message);
+  let other:EdielAperakValidationIssue[];
+  try { other=deriveOtherProdatAperakValidationIssues(params); }
+  catch(error) {
+    throw Object.assign(error instanceof Error ? error : new Error(String(error)), {
+      permissionApplicationErrors:permissionIssues.map(issue=>issue.permissionApplicationError),
+      permissionValidationIssues:permissionIssues,
+    });
+  }
+  if(params.message.direction!=='inbound')return other;
+  return [...permissionIssues,...other.filter(item=>!isLegacyPermissionFieldIssue(item))];
+}
+
+function deriveOtherProdatAperakValidationIssues(params: {
+  message: EdielMessageRow;
+  testData?: EdielTgtCaseTestData | null;
+}): EdielAperakValidationIssue[] {
   const { message, testData } = params;
   if (message.message_family !== "PRODAT") return [];
   assertIncomingProdatEnergyProductReview(message.raw_payload);
@@ -1101,7 +1121,7 @@ export function deriveProdatAperakValidationIssues(params: {
   if(meterFailures.some(i=>i.blocking||i.severity==='error'))throw new Error('PRODAT_METER_CHANGE_ACK_REVIEW_REQUIRED');
   const registerFailures=validateProdatRegisterPayload({code:registerParsed.messageCode,
     rawSegments:registerWire.rawSegments,una:parseUna(message.raw_payload),requireConditions:false});
-  if (registerFailures.length) throw new Error('PRODAT_REGISTER_ACK_REVIEW_REQUIRED');
+  if (permissionRegistryRegisterFailures(message,registerFailures).length) throw new Error('PRODAT_REGISTER_ACK_REVIEW_REQUIRED');
   if (testData) {
     // A scenario's "positive" label cannot hide a broken register chain or own
     // measurements copied from another register. Do not invent a national ERC
@@ -1528,7 +1548,7 @@ export async function resolveAndStoreProdatAperakErrors(params: {
     };
   }
 
-  const rules = await listActiveRules({ family, code, environment });
+  const rules = issues.some(item=>!item.permissionApplicationError) ? await listActiveRules({ family, code, environment }) : [];
   const details: EdielResolvedAperakErrorDetail[] = [];
   const errors: EdielAperakApplicationError[] = [];
   const unmappedIssues: EdielAperakValidationIssue[] = [];
@@ -1538,14 +1558,19 @@ export async function resolveAndStoreProdatAperakErrors(params: {
       messageId: message.id,
       issue: item,
     });
-    const rule = selectRuleForIssue(rules, item, code, environment);
+    const owned=item.permissionApplicationError;
+    const rule:EdielAperakErrorRuleRow|null = owned ? {
+      id:null,message_family:'PRODAT',message_code:code,direction:'inbound',rule_key:item.ruleKey,
+      rule_description:'Source-owned incoming322/324',application_error:owned.ercCode,free_text_code:owned.fieldCode??null,
+      free_text:owned.text??null,applies_to_field:owned.fieldCode??null,environment,priority:0,is_active:true,
+    } : selectRuleForIssue(rules, item, code, environment);
 
     if (!rule) {
       unmappedIssues.push(item);
       continue;
     }
 
-    const freeText = formatRuleFreeText(
+    const freeText = owned?.text ?? formatRuleFreeText(
       rule.free_text ?? item.fallbackText,
       item,
     );
@@ -1570,7 +1595,7 @@ export async function resolveAndStoreProdatAperakErrors(params: {
     });
 
     details.push(detail);
-    errors.push({
+    errors.push(owned ?? {
       ercCode: rule.application_error,
       fieldCode: rule.free_text_code,
       text: freeText,

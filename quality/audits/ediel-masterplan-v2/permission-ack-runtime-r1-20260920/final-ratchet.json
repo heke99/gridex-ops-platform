@@ -1,0 +1,11 @@
+{
+  "gate": "ratchet",
+  "command": [
+    "node",
+    "scripts/check-service-role-tenant-ratchet.cjs"
+  ],
+  "exit": 0,
+  "seconds": 0.15,
+  "log": "quality/audits/ediel-masterplan-v2/permission-ack-runtime-r1-20260920/final-ratchet.log",
+  "sha256": "2939bdd3580914b982fe2853b29618eb469b55a6babf2afc431a87c06d96f74f"
+}

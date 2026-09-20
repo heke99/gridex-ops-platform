@@ -1,3 +1,4 @@
+import {evaluateIncomingProdatPermissionAckFields} from '@/lib/ediel/prodat/prodatPermissionAckFields'
 import {evaluateIncomingProdatEnergyProduct,incomingProduct242IsFalse} from '@/lib/ediel/prodat/prodatEnergyProduct'
 import {prodatFieldDiagnostic,prodatLocalDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import {isGasApplicabilityField} from '@/lib/ediel/prodat/prodatGasApplicability'
@@ -48,7 +49,7 @@ export function validateCanonicalPolicyFields(input: {
   scope?: 'all' | 'dependent_only'
   una?: EdifactServiceStringAdvice
 }): EdielRulebookIssue[] {
-  const rules = input.policy.fieldRules.map(asRulebookFieldRule).filter(rule => !(input.policy.family === 'PRODAT' && input.policy.direction === 'inbound' && (rule.fieldNumber === '506' || rule.fieldNumber === '242' && incomingProduct242IsFalse(input.policy.code)))).flatMap((rule): RulebookFieldRule[] => {
+  const rules = input.policy.fieldRules.map(asRulebookFieldRule).filter(rule => !(input.policy.family === 'PRODAT' && input.policy.direction === 'inbound' && (['322','324','506'].includes(rule.fieldNumber ?? '') || rule.fieldNumber === '242' && incomingProduct242IsFalse(input.policy.code)))).flatMap((rule): RulebookFieldRule[] => {
     if (input.policy.code === 'Z14' && input.policy.direction === 'outbound' && isZ14DependentField(rule.fieldNumber ?? '')) return [rule]
     // The new UD parent is selected per wire object below, never from a root snapshot.
     if (['Z06', 'Z09'].includes(input.policy.code) && (rule.fieldNumber === '229' || isSourceBoundEndUserField(input.policy.code, rule.fieldNumber ?? ''))) return [rule]
@@ -86,7 +87,11 @@ export function validateCanonicalPolicyFields(input: {
       : []
     : validateFieldMatrixPayload(matrixInput, baseRules)
   if (input.policy.family !== 'PRODAT') return issues
-  if (input.policy.direction === 'inbound') issues.push(...evaluateIncomingProdatEnergyProduct({...matrixInput,rawSegments:input.rawSegments??[]}).issues)
+  if (input.policy.direction === 'inbound') {
+    issues.push(...evaluateIncomingProdatEnergyProduct({...matrixInput,rawSegments:input.rawSegments??[]}).issues)
+    const permissionFields=input.policy.fieldRules.map(asRulebookFieldRule).map(rule=>rule.fieldNumber??'').filter(field=>['322','324'].includes(field))
+    if(permissionFields.length)issues.push(...evaluateIncomingProdatPermissionAckFields({...matrixInput,rawSegments:input.rawSegments??[],selectedFields:permissionFields}).issues)
+  }
   issues.push(...validateProdatSubtypePolicy(matrixInput, input.policy.direction === 'inbound'
     ? rules.filter(rule => !isReportingPermissionField(input.policy.code,rule.fieldNumber??'') && !isProdatDateEventField(input.policy.code,rule.fieldNumber??'') && !(input.policy.code === 'Z14' && (isZ14DependentField(rule.fieldNumber ?? '') || ['321','323'].includes(rule.fieldNumber ?? ''))) && !isSourceBoundEndUserField(input.policy.code, rule.fieldNumber ?? '')) : rules.filter(rule=>!isReportingPermissionField(input.policy.code,rule.fieldNumber??'') && !isProdatDateEventField(input.policy.code,rule.fieldNumber??'')), input.policy.direction))
   if (input.policy.direction === 'outbound') issues.push(...validateProdatOptionalInstallationPolicy(matrixInput, rules))

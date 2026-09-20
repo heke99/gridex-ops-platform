@@ -1,0 +1,25 @@
+✅ superadmin UI exposes an explicit suspended / Stäng av lifecycle action
+✅ non-active lifecycle transitions require a governance reason in the UI
+✅ tenant shutdown is platform-admin-only and uses the canonical lifecycle RPC with concurrency/idempotency
+✅ suspended is a controlled lifecycle state and is never writable in tenant workspace mode
+✅ platform admin cannot bypass suspended/paused lifecycle through ordinary service-role business actions
+✅ scope helper has no unconditional platform-admin existence-only write bypass
+✅ canonical lifecycle shutdown handles integration_api_clients
+✅ canonical lifecycle shutdown handles webhook_subscriptions
+✅ canonical lifecycle shutdown handles tenant_contract_channels
+✅ canonical lifecycle shutdown handles company_provisioning_jobs
+✅ canonical lifecycle shutdown handles customer_operation_jobs
+✅ canonical lifecycle shutdown handles customer_portal_identities
+✅ canonical lifecycle RPC has an explicit blocked/offboarding status set
+✅ reactivation only restores resources that lifecycle itself blocked
+✅ database RLS only permits normal company writes for active/onboarding tenants
+✅ paused remains read-only while suspended/closed tenants are hidden from normal tenant reads
+✅ integration API centrally rejects suspended/paused tenants and uses atomic DB authentication
+✅ website provisioning/go-live rejects non-operational tenants
+✅ canonical operation policy gates sensitive operations and fails closed when the DB does not explicitly allow them
+✅ Ediel orchestration retains a final production-readiness/tenant gate before dispatch
+✅ email outbox rechecks tenant lifecycle after claim and before provider send
+✅ webhook delivery rechecks tenant lifecycle through claim, delivery and transport boundaries
+✅ customer-operation worker only leases jobs for active/onboarding tenants that are not lifecycle-blocked
+
+✓ Tenant shutdown regression passed.

@@ -1,0 +1,46 @@
+import {it,expect,vi,beforeEach,afterAll} from 'vitest'
+import {writeFileSync,readFileSync} from 'node:fs'
+import ts from 'typescript'
+import {permissionAckMessage as message,permissionAckObject as object,characteristic,alphabets} from '@/__tests__/fixtures/prodat-permission-ack'
+import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import {validateCanonicalPolicyFields} from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
+import {validateProdatPermissionMessage} from '@/lib/ediel/testing/prodatPermissionEngine'
+import {assertIncomingProdatEnergyProductReview} from '@/lib/ediel/prodat/prodatEnergyProduct'
+import {decideProdatAperak} from '@/lib/ediel/decisionEngine'
+const state=vi.hoisted(()=>({writes:[] as any[],rows:new Map<string,any>(),events:[] as any[],prior:0}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:(table:string)=>{let body:any,conflict:string,single=false;const q:any={then:(done:any)=>done({data:single?{id:'synthetic'}:[],error:null})};for(const op of ['select','limit','eq','in','not','lte','order','or','is','upsert','insert','update','maybeSingle'])q[op]=(...args:any[])=>{if(op==='maybeSingle')single=true;if(op==='upsert'){[body,{onConflict:conflict}]=args;const row={...body};for(const key of conflict.split(','))if(key.startsWith('coalesce_'))row[key]=body[key.slice(9)]??'';const key=JSON.stringify([table,...conflict.split(',').map(k=>row[k])]);state.rows.set(key,body);state.writes.push({table,body,conflict,key})}return q};return q}}}))
+import {resolveAndStoreProdatAperakErrors} from '@/lib/ediel/testing/aperakErrorRuleRegistry'
+const observations:any[]=[]
+afterAll(()=>writeFileSync('/workspace/scratch/2a201d6d5897/permission-runtime-review-20260920/observations-v2.json',JSON.stringify(observations,null,2)))
+beforeEach(()=>{state.writes=[];state.rows.clear();state.events=[];state.prior=0})
+function extract(path:string,name:string,deps:Record<string,unknown>){const f=ts.createSourceFile(path,readFileSync(path,'utf8'),ts.ScriptTarget.Latest,true);const s=f.statements.find(s=>ts.isFunctionDeclaration(s)&&s.name?.text===name)!;const js=ts.transpileModule(s.getText(f).replace(/^export /,''),{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;return new Function(...Object.keys(deps),js+';return '+name)(...Object.values(deps))}
+const manual=extract('app/admin/ediel/actions.part-3.ts','resolveBackendAperakDecision',{assertIncomingProdatEnergyProductReview,validateProdatPermissionMessage,resolveAndStoreProdatAperakErrors,resolveTgtTestDataForAckAction:async()=>({testData:null,selectedRow:null}),resolveProdatPermissionContextForAck:async()=>{state.prior++;return {hasMatchingPriorPermissionFlow:true}},createEdielMessageEvent:async(e:any)=>state.events.push(e)})
+it('partial322 policy does not assess ambiguous324 placement',()=>{
+ const body=object('Z15','S17','A74','B79');body.splice(1,0,...characteristic('Z25','B79'))
+ const m=message('Z15','S17','A74','B79',alphabets[0],body),wire=tokenizeEdifact(m.raw_payload)
+ const p=resolveCanonicalEdielPolicy({family:'PRODAT',messageCode:'Z15',subtypeOrReasonCode:'V',direction:'inbound',referenceDate:'2026-09-20',applicationReference:'23-DGI-PRODAT',mode:'catalog_evidence'})
+ const issues=validateCanonicalPolicyFields({policy:{...p,fieldRules:p.fieldRules.filter((r:any)=>r.fieldNumber==='322')},rawSegments:wire.segments.map(t=>t.raw),una:wire.una})
+ observations.push({name:'partial322-duplicate324',issues});expect(issues).toEqual([])
+})
+it('real manual stops ambiguous324 before prior/event and retains ready322',async()=>{
+ const body=object('Z15','S17','X99','B79');body.splice(1,0,...characteristic('Z25','B79'))
+ const m=message('Z15','S17','X99','B79',alphabets[0],body)
+ let error:any;try{await manual({sourceMessage:m,actorUserId:'review',roleCode:'supplier'})}catch(e){error=e}
+ observations.push({name:'manual-mixed',error:{message:error?.message,assessment:error?.assessment},events:state.events,prior:state.prior})
+ expect(error.message).toBe('PRODAT_PERMISSION_ACK_REVIEW_REQUIRED');expect(error.assessment.applicationErrors).toMatchObject([{fieldCode:'322',ercCode:'42'}]);expect(state.events).toEqual([]);expect(state.prior).toBe(0)
+})
+it('registry unique-index simulation preserves four physical errors on replay',async()=>{
+ const a=object('Z15','S17','X99','B00'),b=object('Z15','S17','X99','B00','2');b[0]=[a[0][0],'2',...a[0].slice(2)]
+ const m=message('Z15','S17','X99','B00',alphabets[2],[...a,...b]);const first=await resolveAndStoreProdatAperakErrors({message:m});const keys=[...state.rows.keys()];const second=await resolveAndStoreProdatAperakErrors({message:m})
+ observations.push({name:'registry-replay',first,second,writes:state.writes,keys:[...state.rows.keys()]})
+ expect(first.errors.map(e=>[e.fieldCode,e.prodatOccurrence?.lineIndex])).toEqual([['322',0],['324',0],['322',1],['324',1]]);expect(state.rows.size).toBe(8);expect([...state.rows.keys()]).toEqual(keys);expect(second.errors).toEqual(first.errors)
+})
+it('registry omitted C829 exemption never suppresses explicit empty C829',async()=>{
+ const a=object('Z15','S17','A74','B00'),b=object('Z15','S17','A74','B00','2');b[0]=[a[0][0],'2',...a[0].slice(2),''];const m=message('Z15','S17','A74','B00',alphabets[1],[...a,...b]);let error:any;try{await resolveAndStoreProdatAperakErrors({message:m})}catch(e){error=e}
+ observations.push({name:'registry-empty-C829',error:{message:error?.message,errors:error?.permissionApplicationErrors},writes:state.writes})
+ expect(error.message).toBe('PRODAT_REGISTER_ACK_REVIEW_REQUIRED');expect(error.permissionApplicationErrors).toHaveLength(2);expect(state.writes).toEqual([])
+})
+it('actual direct consumer preserves unknown union-valid and independent end-reason errors',()=>{
+ const unknown=decideProdatAperak({message:message('Z14','UNKNOWN','A13')});const end=decideProdatAperak({message:message('Z18','S17',null,'E37')});observations.push({name:'direct-preservation',unknown,end});expect(unknown.applicationErrors.filter(e=>e.fieldCode==='322')).toEqual([]);expect(end.applicationErrors.filter(e=>e.fieldCode==='324')).toEqual([]);expect(end.applicationErrors.length).toBeGreaterThan(0)
+})
