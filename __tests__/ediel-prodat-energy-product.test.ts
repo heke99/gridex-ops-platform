@@ -4,7 +4,7 @@ import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runt
 import {buildAperakDraft} from '@/lib/ediel/ack'
 import {raw,characteristic,alphabets,type Parts} from './fixtures/prodat-register'
 import {head,own,source} from './fixtures/prodat-identity'
-import {permissionWire,permissionObject} from './fixtures/prodat-energy-product'
+import {permissionWire,permissionObject,z18Message} from './fixtures/prodat-energy-product'
 vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',()=>({resolveCanonicalRulePack:vi.fn(async()=>({profileKey:'synthetic-qualified',sourceHash:'synthetic-evidence',messageProfileId:'synthetic',rulePackId:'synthetic'}))}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:()=>{throw Error('UNEXPECTED_DB')}}}))
 const check=(wire:string,code:string)=>validateRulebookMessage({family:'PRODAT',code,direction:'inbound',rawPayload:wire,applicationReference:code==='Z13'||code==='Z14'?'23-DGI-PRODAT':'23-DDQ-PRODAT',mode:'parse'})
@@ -54,3 +54,7 @@ it('preserves independent invalid207 and syntax count errors beside false506',as
 })
 
 for(const code of ['Z13','Z14'])for(const reason of ['S17','S18',...(code==='Z14'?['Z96']:[])])it(`source-qualified clean control ${code}/${reason}`,async()=>{const msg={...source(permissionWire(code,reason,reason==='Z96'?null:'8716867000030'),code),application_reference:'23-DGI-PRODAT'};const d=await resolveCanonicalRuntimeDecisionWithRegistry(msg);expect(d.applicationDecision,JSON.stringify(d.issues)).toBe('accepted')})
+
+it('qualifies the P140 Z18 control and preserves acceptance with false506 extra',async()=>{
+ for(const energy of [null,'INVALID']){const d=await resolveCanonicalRuntimeDecisionWithRegistry(z18Message(energy));expect(d.syntaxDecision).toBe('accepted');expect(d.applicationDecision,JSON.stringify(d.issues)).toBe('accepted');expect(d.responsePlan.find(p=>p.family==='APERAK')?.outcome).toBe('positive')}
+})

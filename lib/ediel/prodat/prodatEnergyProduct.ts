@@ -42,7 +42,9 @@ export function evaluateIncomingProdatEnergyProduct(input:EnergyInput){
     const reasons=scope.filter(t=>t.tag==='CCI'&&segmentComposite(t,2,una)[0]?.trim().toUpperCase()==='Z13')
     const reasonCci=reasons[0],reasonCav=reasonCci?scope[scope.indexOf(reasonCci)+1]:undefined
     const reasonParts=reasonCav?.tag==='CAV'?segmentComposite(reasonCav,1,una):[]
-    const reason=reasons.length===1&&common.includes(reasonCci)&&segmentComposite(reasonCci,2,una)[0]==='Z13'&&!reasonParts.slice(1).some(v=>v.trim())?reasonParts[0]:null
+    // P65/119: wrong own1131/3055 cannot prove the reason; residual unused
+    // fourth/fifth values do not invalidate an otherwise exact reason code.
+    const reason=reasons.length===1&&common.includes(reasonCci)&&segmentComposite(reasonCci,2,una)[0]==='Z13'&&![reasonParts[1],reasonParts[2]].some(v=>v?.trim())?reasonParts[0]:null
     const applicability:EnergyApplicability=unusedEnergyFunctions.includes(code)?'false':code==='Z14'&&reason==='Z96'?'false':permissionProcess&&(code==='Z13'||code==='Z14'&&['S17','S18'].includes(reason??''))?'required':'unknown'
     const object={lineIndex:group.lineIndex,applicability,value:null as string|null};objects.push(object)
     if(applicability!=='required')continue

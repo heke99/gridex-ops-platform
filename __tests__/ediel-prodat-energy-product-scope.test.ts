@@ -72,3 +72,15 @@ for(const code of ['Z01','Z02','Z03','Z04','Z05','Z06','Z08','Z09','Z10','Z15','
  const body:Parts[]=[line('1','735123456789012345',undefined,'9'),...characteristic('Z13','S17'),['RFF',['LI','OWN']],['CCI','','Z14'],['CAV',['','BAD','BAD','WRONG','X'.repeat(36)]]]
  for(const reference of ['23-DDQ-PRODAT','27-DDQ-PRODAT']){const wire=raw(body,code).replace('23-DDQ-PRODAT',reference),result=evaluate(wire);expect(result.issues).toEqual([]);expect(result.objects).toMatchObject([{applicability:'false',value:null}])}
 })
+
+it('unused reason C889 value slots cannot demote valid own S17 applicability (P65/119)',()=>{
+ const body=permissionObject('Z14','S17',null)
+ const reason=body.findIndex(p=>p[0]==='CCI'&&p[2]==='Z13')
+ body[reason+1]=['CAV',['S17','','','RESIDUAL','EXTRA']]
+ const result=evaluate(permissionWire('Z14','S17',null,alphabets[0],body))
+ expect(result.objects[0].applicability).toBe('required')
+ expect(result.issues).toMatchObject([{prodatDiagnostic:{fieldNumber:'506',errorKind:'missing'}}])
+})
+it('incorrect supplied own reason qualifiers leave506 unknown, with no invented506 defect',()=>{
+ for(const index of [1,2]){const body=permissionObject('Z14','S17',null),i=body.findIndex(p=>p[0]==='CCI'&&p[2]==='Z13'),parts=['S17','',''];parts[index]='BAD';body[i+1]=['CAV',parts];const result=evaluate(permissionWire('Z14','S17',null,alphabets[0],body));expect(result.objects[0].applicability).toBe('unknown');expect(result.issues).toEqual([])}
+})

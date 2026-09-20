@@ -21,3 +21,9 @@ export function permissionWire(code='Z14',reason='S17',energy:string|null='87168
 export function permissionMessage(code='Z14',reason='S17',energy:string|null='8716867000030'){
  return {...source(permissionWire(code,reason,energy),code),application_reference:'23-DGI-PRODAT'}
 }
+
+/** Source P140, complete Z18 cancellation request; synthetic IDs/dates only. */
+export function z18Message(energy:string|null=null){
+ const body:Parts[]=[...head(),line('1','735123456789012345',undefined,'9'),['DTM',['693','202609171200','203']],['DTM',['164','202610010000','203']],...characteristic('Z13','S17'),...characteristic('Z25','B79'),...(energy===null?[]:characteristic('Z14',energy,4)),['RFF',['Z05','NET']],['RFF',['LI','CANCEL-CASE']],['RFF',['Z09','PERMISSION']],['NAD','UD',['001','','89'],'','Synthetic','','','','','SE']]
+ return {...source(raw(body,'Z18').replace('23-DDQ-PRODAT','23-DGI-PRODAT'),'Z18'),application_reference:'23-DGI-PRODAT'}
+}

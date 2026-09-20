@@ -4,8 +4,8 @@
   "status": "IN_PROGRESS",
   "branch": "codex/ediel-506-applicability-20260920",
   "base_head_sha": "ec7646c56a5412b2d05e9a4d763d7a2ee7462bc7",
-  "active_item": "Recover and implement approved field506/shared242 runtime",
-  "next_action": "Implement source-qualified506 runtime; fresh26test baseline5PASS21RED preserved remotely; then actualconsumer tests/gates/review/CI",
+  "active_item": "Field506 runtime checkpoint complete; full local gates running",
+  "next_action": "Full/gates receipts and completedcandidate report; independent runtime review and exactNode22CI",
   "accepted_numeric_D": 98,
   "merged_numeric_D": 98,
   "numeric_D_total": 110,
@@ -34,9 +34,9 @@
     "head": "e6756d2e09755ca0236797790954bfb4ee7780b3",
     "tree": "afe5d49ad22b13c3dd5c0399757d90964ed53e91"
   },
-  "runtime_local_head": null,
-  "runtime_published_head": null,
-  "runtime_tree": "a9f514765c0381dcd1bd4b96e3ce5f87f3078a9f",
+  "runtime_local_head": "492990fe",
+  "runtime_published_head": "e34053f7bcf3d8df22ec680fe351b1a1a8fd6376",
+  "runtime_tree": "0a34ed9b57684761f85e3a12831ce6a90d3542d2",
   "active_pr": null,
   "last_merged_pr": 350,
   "main_ops_receipt": {
@@ -72,5 +72,5 @@
     "passed": 5,
     "expected_failed": 21
   },
-  "runtime_remote_parent": "f1ef50913e3dab986b47f7003f129edd45c2dac0"
+  "runtime_remote_parent": "e34053f7bcf3d8df22ec680fe351b1a1a8fd6376"
 }

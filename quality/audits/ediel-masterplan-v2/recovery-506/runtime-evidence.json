@@ -1,0 +1,423 @@
+{
+  "runtime_candidate": "e64d132dfa7bbd6f4eb6af66475cd2467bb72430",
+  "runtime_candidate_tree": "928e4bc62e9cf354eae03f192830e47d7b518768",
+  "accepted_runtime_base": "ec7646c56a5412b2d05e9a4d763d7a2ee7462bc7",
+  "recovery_start": "20a2b410",
+  "local_node": "v24.19.0",
+  "evidence_directory": "/workspace/scratch/2a201d6d5897/field506-recovery-evidence",
+  "original_source_sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+  "tests": {
+    "affected-initial.json": {
+      "files": 95,
+      "total": 3213,
+      "passed": 3209,
+      "failed": 4,
+      "pending": 0,
+      "success": false
+    },
+    "combined-green.json": {
+      "files": 3,
+      "total": 71,
+      "passed": 67,
+      "failed": 4,
+      "pending": 0,
+      "success": false
+    },
+    "consumers-inbound-green.json": {
+      "files": 2,
+      "total": 27,
+      "passed": 27,
+      "failed": 0,
+      "pending": 0,
+      "success": true
+    },
+    "consumers-red.json": {
+      "files": 1,
+      "total": 19,
+      "passed": 7,
+      "failed": 12,
+      "pending": 0,
+      "success": false
+    },
+    "core-green.json": {
+      "files": 1,
+      "total": 26,
+      "passed": 26,
+      "failed": 0,
+      "pending": 0,
+      "success": true
+    },
+    "final-focused-r2.json": {
+      "files": 8,
+      "total": 295,
+      "passed": 295,
+      "failed": 0,
+      "pending": 0,
+      "success": true
+    },
+    "focused-final.json": {
+      "files": 6,
+      "total": 106,
+      "passed": 106,
+      "failed": 0,
+      "pending": 0,
+      "success": true
+    },
+    "full-suite.json": {
+      "files": 297,
+      "total": 4464,
+      "passed": 4464,
+      "failed": 0,
+      "pending": 0,
+      "success": true
+    },
+    "initial-red.json": {
+      "files": 1,
+      "total": 21,
+      "passed": 0,
+      "failed": 21,
+      "pending": 0,
+      "success": false
+    },
+    "qualified-r2-red.json": {
+      "files": 1,
+      "total": 26,
+      "passed": 5,
+      "failed": 21,
+      "pending": 0,
+      "success": false
+    },
+    "qualified-red.json": {
+      "files": 1,
+      "total": 26,
+      "passed": 3,
+      "failed": 23,
+      "pending": 0,
+      "success": false
+    },
+    "reason-residual-red.json": {
+      "files": 1,
+      "total": 39,
+      "passed": 1,
+      "failed": 1,
+      "pending": 37,
+      "success": false
+    },
+    "scope-red.json": {
+      "files": 1,
+      "total": 26,
+      "passed": 21,
+      "failed": 5,
+      "pending": 0,
+      "success": false
+    }
+  },
+  "pre_final_gates": [
+    {
+      "gate": "typecheck",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "exit": 0,
+      "seconds": 18.72,
+      "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76"
+    },
+    {
+      "gate": "typecheck-tests",
+      "command": [
+        "npm",
+        "run",
+        "typecheck:tests"
+      ],
+      "exit": 0,
+      "seconds": 15.02,
+      "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602"
+    },
+    {
+      "gate": "typecheck-scripts",
+      "command": [
+        "npm",
+        "run",
+        "typecheck:scripts"
+      ],
+      "exit": 0,
+      "seconds": 3.19,
+      "sha256": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae"
+    },
+    {
+      "gate": "lint",
+      "command": [
+        "npm",
+        "run",
+        "lint"
+      ],
+      "exit": 0,
+      "seconds": 112.35,
+      "sha256": "34599fc8b9e056875149a5b7432b14efb3db357d9156d7fe4982aaa475043801"
+    },
+    {
+      "gate": "large-files",
+      "command": [
+        "npm",
+        "run",
+        "quality:large-file-budget"
+      ],
+      "exit": 0,
+      "seconds": 0.84,
+      "sha256": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e"
+    },
+    {
+      "gate": "performance",
+      "command": [
+        "npm",
+        "run",
+        "quality:performance"
+      ],
+      "exit": 0,
+      "seconds": 5.15,
+      "sha256": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629"
+    },
+    {
+      "gate": "integrity",
+      "command": [
+        "npm",
+        "run",
+        "ediel:masterplan-v2:integrity"
+      ],
+      "exit": 0,
+      "seconds": 0.43,
+      "sha256": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18"
+    },
+    {
+      "gate": "tenant-integrity",
+      "command": [
+        "node",
+        "scripts/gridex-tenant-integrity-regression.cjs"
+      ],
+      "exit": 0,
+      "seconds": 0.2,
+      "sha256": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690"
+    },
+    {
+      "gate": "tenant-shutdown",
+      "command": [
+        "node",
+        "scripts/gridex-tenant-shutdown-regression.cjs"
+      ],
+      "exit": 0,
+      "seconds": 0.17,
+      "sha256": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e"
+    },
+    {
+      "gate": "ratchet",
+      "command": [
+        "node",
+        "scripts/check-service-role-tenant-ratchet.cjs"
+      ],
+      "exit": 0,
+      "seconds": 0.19,
+      "sha256": "2939bdd3580914b982fe2853b29618eb469b55a6babf2afc431a87c06d96f74f"
+    },
+    {
+      "gate": "ediel-eight",
+      "command": [
+        "node",
+        "--experimental-vm-modules",
+        "--test",
+        "scripts/test-ediel-rule-pack-source-identity.cjs",
+        "scripts/test-ediel-prodat-source-locators.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/test-ediel-prodat-reference-fields.cjs",
+        "scripts/test-ediel-prodat-document-fields.cjs",
+        "scripts/test-ediel-prodat-party-fields.cjs",
+        "scripts/test-ediel-prodat-d-z04-reference.cjs",
+        "scripts/test-ediel-component-escaping.cjs"
+      ],
+      "exit": 0,
+      "seconds": 4.7,
+      "sha256": "859bcb0042a084d33d50f7720b580bcfcfaf13e11dc0a67ab4e09853dddeee91"
+    },
+    {
+      "gate": "route-readiness",
+      "command": [
+        "npm",
+        "run",
+        "gridex:route-readiness-regression"
+      ],
+      "exit": 0,
+      "seconds": 2.41,
+      "sha256": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82"
+    },
+    {
+      "gate": "diffcheck",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit": 0,
+      "seconds": 0.01,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "final_gates": [
+    {
+      "gate": "final-app-types",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "exit": 0,
+      "seconds": 6.77,
+      "sha256": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76"
+    },
+    {
+      "gate": "final-test-types",
+      "command": [
+        "npm",
+        "run",
+        "typecheck:tests"
+      ],
+      "exit": 0,
+      "seconds": 4.96,
+      "sha256": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602"
+    },
+    {
+      "gate": "final-scoped-lint",
+      "command": [
+        "node",
+        "node_modules/eslint/bin/eslint.js",
+        "__tests__/ediel-prodat-energy-product-consumers.test.ts",
+        "__tests__/ediel-prodat-energy-product-inbound.test.ts",
+        "__tests__/ediel-prodat-energy-product-scope.test.ts",
+        "__tests__/ediel-prodat-energy-product.test.ts",
+        "__tests__/ediel-prodat-meter-change-inbound.test.ts",
+        "__tests__/ediel-prodat-meter-change-review-regression.test.ts",
+        "__tests__/fixtures/prodat-energy-product.ts",
+        "app/admin/ediel/actions.part-3.ts",
+        "lib/ediel/core/messageBuilder/payloadPreflight.ts",
+        "lib/ediel/decisionEngine.ts",
+        "lib/ediel/prodat/prodatEnergyProduct.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "lib/ediel/rulebook/prodatProductScope.ts",
+        "lib/ediel/rulebook/prodatSubtypePolicy.ts",
+        "lib/ediel/testing/aperakErrorRuleRegistry.ts"
+      ],
+      "exit": 0,
+      "seconds": 3.43,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "gate": "final-diffcheck",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit": 0,
+      "seconds": 0.02,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "full_command": "NODE_OPTIONS='--max-old-space-size=4096 --require=./scripts/lib/refactor-safe-static-read.cjs' node node_modules/vitest/vitest.mjs run --reporter=json --outputFile=/workspace/scratch/2a201d6d5897/field506-recovery-evidence/full-suite.json",
+  "final_focused_command": "node node_modules/vitest/vitest.mjs run __tests__/ediel-prodat-energy-product*.test.ts __tests__/ediel-prodat-meter-change-inbound.test.ts __tests__/ediel-prodat-meter-change-review-regression.test.ts __tests__/ediel-prodat-dependent-z06-product.test.ts __tests__/ediel-prodat-characteristic-preflight.test.ts --reporter=json --outputFile=/workspace/scratch/2a201d6d5897/field506-recovery-evidence/final-focused-r2.json",
+  "post_full_runtime_delta": "Only own reason gate in prodatEnergyProduct.ts: .slice(1) exclusion changed to checking1131/3055 only; unused reason fourth/fifth data retain requirement. Fresh1RED/1control proof, then final295PASS/app+testtypes/scopedlint. Root explicitly requested no optional full rerun; exact Node22CI remains pending.",
+  "task_files": [
+    "__tests__/ediel-prodat-energy-product-consumers.test.ts",
+    "__tests__/ediel-prodat-energy-product-inbound.test.ts",
+    "__tests__/ediel-prodat-energy-product-scope.test.ts",
+    "__tests__/ediel-prodat-energy-product.test.ts",
+    "__tests__/ediel-prodat-meter-change-inbound.test.ts",
+    "__tests__/ediel-prodat-meter-change-review-regression.test.ts",
+    "__tests__/fixtures/prodat-energy-product.ts",
+    "app/admin/ediel/actions.part-3.ts",
+    "lib/ediel/core/messageBuilder/payloadPreflight.ts",
+    "lib/ediel/decisionEngine.ts",
+    "lib/ediel/prodat/prodatEnergyProduct.ts",
+    "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+    "lib/ediel/rulebook/prodatProductScope.ts",
+    "lib/ediel/rulebook/prodatSubtypePolicy.ts",
+    "lib/ediel/testing/aperakErrorRuleRegistry.ts",
+    "quality/audits/ediel-masterplan-v2/recovery-506/implementation-receipt.json",
+    "quality/audits/ediel-masterplan-v2/recovery-506/red-receipt.json",
+    "quality/audits/ediel-masterplan-v2/recovery-506/runtime-plan.md"
+  ],
+  "file_sha256": {
+    "__tests__/ediel-prodat-energy-product-consumers.test.ts": "4f1c0ca4658cc5a65eb321a6f89426ac122829d04fdf62a26432a736974c420f",
+    "__tests__/ediel-prodat-energy-product-inbound.test.ts": "81670db69f9fc88ac0bbd5b04234b054fd3afced435e5d056914f6fd6fdd80c6",
+    "__tests__/ediel-prodat-energy-product-scope.test.ts": "a7d12655900c55f8d0ff49ddba3e473656b70e7f2171806709888d63a68e8750",
+    "__tests__/ediel-prodat-energy-product.test.ts": "07114e85a4546045ee1d1f0351a850f1ee20b63c0cf585016195c6a7b8d73a00",
+    "__tests__/ediel-prodat-meter-change-inbound.test.ts": "b898f1c3a66d7a950a46f79dae029ddfa66475859b296ce50f302aaa43ed71a0",
+    "__tests__/ediel-prodat-meter-change-review-regression.test.ts": "c7a6cb6ce721857a6dee05b3442e2c762d0322c0d1c3aa4fe771dc1381522a5c",
+    "__tests__/fixtures/prodat-energy-product.ts": "cea6d2038dd33cdce19312d0227761229c7af3855964a63a389e2119a526adb0",
+    "app/admin/ediel/actions.part-3.ts": "729d8d56e95c7eafa02af14668fe3d49dd88316c9c108a750039d49547d95bb3",
+    "lib/ediel/core/messageBuilder/payloadPreflight.ts": "60f567ec9b04a9c75d559eb1361685c909c073efdd6aaaa0d751b7abc0070370",
+    "lib/ediel/decisionEngine.ts": "3896a165b5309cc7c14ab765b8e9a4578c030c6e200bc9ee3b29c865e740c8fa",
+    "lib/ediel/prodat/prodatEnergyProduct.ts": "62d5cd80dae60c24217f83b42777941a1987babff06d4fa3e0a324a9d89d9d70",
+    "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts": "d629a24fc799e478cb483bc4644e9f139940710c67ba7b387d3c888c0c3e9e61",
+    "lib/ediel/rulebook/prodatProductScope.ts": "bb9d1ab1f924788dec56c417832f161b3f6ce73c3747d8c366cecd0c007e5539",
+    "lib/ediel/rulebook/prodatSubtypePolicy.ts": "93e232eed184d1bf66ae92d37fef7c11bc5445510015540fdbd1aa1273686f35",
+    "lib/ediel/testing/aperakErrorRuleRegistry.ts": "07d2b96f4481d3eac8fcd42d22f454a4c898a387f085fc84db19c68049d974ce",
+    "quality/audits/ediel-masterplan-v2/recovery-506/implementation-receipt.json": "107a9f356170ba94295893ff9978b5afc846399c85d6d6d62cd2cceef390bb4f",
+    "quality/audits/ediel-masterplan-v2/recovery-506/red-receipt.json": "9dde6e22a07afb7ec63dda24ed6979b266174ef67b2aaaa4abf9641855920e19",
+    "quality/audits/ediel-masterplan-v2/recovery-506/runtime-plan.md": "8ee43e339287158389b9a2329b40d01ccafe34882a9f27ab5f4514185f6a9f61"
+  },
+  "receipt_sha256": {
+    "affected-initial.json": "56dbbf21450d5f5b3c56f6d91c5b129b7e93c1e3dad2fe4691c0e66abfd428f2",
+    "affected-initial.log": "1f162138479eafea581487c62bb3b68557d3fe8ca47ff89ba822168a0fdc9fc7",
+    "combined-green.json": "9e132c91dba9ecefe7b395e2185b66d972a41c782db80f2f5ba7205e9ecd238e",
+    "combined-green.log": "7d23ee5cc9b879cf2fd0faf65e8e2bf70140b778589b7600c0419a6bf581ff43",
+    "consumers-inbound-green.json": "2b15ab95b9aa058d4bbf2973a7fca05af6756a0e4af60305d09e18606fa7b946",
+    "consumers-inbound-green.log": "8817f5f1bcfad151d99b3ab8f2312f17804318873b8a43d8ef8d734504fc0cbb",
+    "consumers-red.json": "a1911b30e4fbc1d4a7d9fa18aad2937b4822d4a825c9e7a59e97807898e67dc1",
+    "consumers-red.log": "2d02f65a3a3fc0341a255fbc85c509eb590159e538229655e4e17b27b386cea3",
+    "core-green.json": "76cc54250f2c287ec212910264178203fc85d4d90371dbba96ace4f8197b835a",
+    "core-green.log": "93f36a396b9947063b8cb119cbc68d3fe532a2c22139a59119231076748e3a13",
+    "final-app-types.log": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+    "final-diffcheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "final-focused-r2.json": "5ca4c0d5a4f1652168c1ad3e387475e73f2104e38ea138d711274fc5ea3c4ba2",
+    "final-focused-r2.log": "16acafef691b45dc4ef36e9b04c22fe2c09010768d68519e0869eb2878201352",
+    "final-gates.json": "7a1884d35c37cab4356fdd54f70fc116aa78e3446887e1e0d2d68fcee5b00a71",
+    "final-scoped-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "final-test-types.log": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+    "fixture-debug.log": "573e41135fdb9dbf7ab1067b232da3f80b2fb80ee2a247a93f8dac9e3a2dc9d2",
+    "focused-final.json": "971537347437c11f11fc1c01735c35132fd42bedaeef6ba4394c55042b328013",
+    "focused-final.log": "b9d1b3c98c6bf2fc7e628da80ea55911de48007fa8a3cc6f420dee71d618a257",
+    "full-suite.json": "52ce563e443ccbfcc820809d417ec0f5d002e2ad719765a1591255fbd813345b",
+    "full-suite.log": "2d71c61864cecf8740e07da298b2268d529f73158316d57448c66badc04ba9e4",
+    "gates/diffcheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "gates/ediel-eight.log": "859bcb0042a084d33d50f7720b580bcfcfaf13e11dc0a67ab4e09853dddeee91",
+    "gates/integrity.log": "4bcb55918607941fa056a893406ab45265fe12a4c9bb75c7e89c37119e6fca18",
+    "gates/large-files.log": "72d1c42e7f097c678a1615bda764d6bb3ef511cab83d3b72291481dfd4bc1e5e",
+    "gates/lint.log": "34599fc8b9e056875149a5b7432b14efb3db357d9156d7fe4982aaa475043801",
+    "gates/performance.log": "c58e164e88291eeb5910c2b24ad5fc633c84067f8b955e19ecde8b6c43c0d629",
+    "gates/ratchet.log": "2939bdd3580914b982fe2853b29618eb469b55a6babf2afc431a87c06d96f74f",
+    "gates/results.json": "76c0c68f93c964aa5299b3cd88acb42119c5f6b4e7c234ebacf83a843cbcc074",
+    "gates/route-readiness.log": "283c19efb82db4d502ee51590be914525efc03fa3f67f2d14ed01c5a4e5e0c82",
+    "gates/tenant-integrity.log": "9d66364f92319f7dfc982241a35ca30b90d688b9b9085c3e32ffc709f3a8b690",
+    "gates/tenant-shutdown.log": "529e91996d3c8c8831f224cf502a90d602b2f79df57d2ad8b16c2fcf186c023e",
+    "gates/typecheck-scripts.log": "1c27cb795b0187ff6d33ef983de3bec445a2e5b61f85f05bb46fb21afbf88bae",
+    "gates/typecheck-tests.log": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+    "gates/typecheck.log": "1a6ef4d67b04718b6fd0ea112279fc7270609ba43d9e147cfeffa62f24606d76",
+    "initial-red.json": "9aad2cf36b869632ba0fdf5ad65c65daca66324bb2d899e894b35e394a70e40c",
+    "initial-red.log": "7be309a549b7a3376ff1d2707516a44abe4fa4b40934f1642f615848253cf9ca",
+    "qualified-r2-red.json": "ece3ed1f54e532591cf78441ba2f6ef10109c7d5e3a54b56077dde8567fbac04",
+    "qualified-r2-red.log": "bad27ba6b7ca7786abeb2f22c7afdb8a7a3ed8ddc19d11ab4d4c9d23a1ba771e",
+    "qualified-red.json": "31632ea69d44aa43de320ca6695a2cbb58a8ae1804f8ea42f27630d1c4f3fd0d",
+    "qualified-red.log": "662c4c8836de3576f493aa57755a7872d0961e0ed59ca51a91bd1ca45a5ec8e2",
+    "reason-residual-red.json": "ee4b4e20c0de7ebd0e280844f9ccb36b5ebcb5dbdc3805f8241154eb551f17e8",
+    "reason-residual-red.log": "febe5aade24a32eed383b82d3fc7e1f4fda4489c92240fb65ebe80ad134d207b",
+    "scope-red.json": "cb027c638b4b5bf8e5e12c53966aa230bec92c1594a12055262d3d4f24b20952",
+    "scope-red.log": "983de106e31038bf52bf179eb6c222ff711878c7aed731341a82774b3315a37e",
+    "scoped-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "test-types-corrected.log": "47676b2d100e6e260f2cf02af71f1f12425107ad301f8281baf56c77a0a16602",
+    "test-types-initial.log": "f0057ddf4fff3695c1cb2df3a69c598c29c51458560c94179c6b9d2c6c0c3f5c",
+    "types-initial.log": "f82d688ed1d9033cc631d13b34fe4e21deb3dc68ec5303aee3b51a1808a1863e"
+  },
+  "historical_evidence_recovered": false,
+  "live_effects": false,
+  "acceptance_counts_changed": false
+}
