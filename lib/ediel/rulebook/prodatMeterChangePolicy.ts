@@ -1,3 +1,4 @@
+import {prodatFieldDiagnostic,prodatLocalDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import { copyMeterChangeSelection, meterChangeCondition, PRODAT_EL_AGGREGATION_PRODUCTS, type MeterChangeObject } from '@/lib/ediel/prodat/prodatMeterChangeFacts';
 import { segmentComposite, segmentElementCount, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer';
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una';
@@ -34,14 +35,15 @@ export function evaluateProdatMeterChange(input: MeterChangePolicyInput) {
         meteringPointId: string | null;
         lineItemReference: string | null;
     } | undefined;
-    const fail = (code: string, detail: string, field = '254', blocking = true) => issues.push({ ...occurrence, scope: 'prodat_dependent', severity: blocking ? 'error' : 'warning', blocking, code: `PRODAT_METER_CHANGE_${code}`, title: 'PRODAT mätarbyte', description: `Z10:${field}, P26.A s.20,67–69,119,122: ${detail}`, fieldPath: field === '254' ? 'CCI++Z15/CAV' : 'CCI++Z14/CAV' });
+    let diagnosticScope: string[] = [];
+    const fail = (code: string, detail: string, field = '254', blocking = true, kind: 'missing' | 'invalid' | 'local_evidence' = 'invalid') => issues.push({ prodatDiagnostic:kind === 'local_evidence' ? prodatLocalDiagnostic(kind,'PRODAT26A:meter-change',detail) : prodatFieldDiagnostic(field,kind,input,diagnosticScope,'PRODAT26A:P20/67–69/119/122'), ...occurrence, scope: 'prodat_dependent', severity: blocking ? 'error' : 'warning', blocking, code: `PRODAT_METER_CHANGE_${code}`, title: 'PRODAT mätarbyte', description: `Z10:${field}, P26.A s.20,67–69,119,122: ${detail}`, fieldPath: field === '254' ? 'CCI++Z15/CAV' : 'CCI++Z14/CAV' });
     let objects: MeterChangeObject[] = [];
     try {
         if (input.facts?.meterChange != null)
             objects = copyMeterChangeSelection(input.facts.meterChange).objects;
     }
     catch {
-        fail('EVIDENCE_INVALID', 'ogiltig oberoende bedömning', '254', outbound);
+        fail('EVIDENCE_INVALID', 'ogiltig oberoende bedömning', '254', outbound, 'local_evidence');
     }
     const unbs = all.filter(t => t.tag === 'UNB'), full = all.some(t => ['UNB', 'UNH', 'UNT', 'UNZ'].includes(t.tag));
     const ref = full ? (unbs.length === 1 ? segmentComposite(unbs[0], 7, una) : []) : [input.applicationReference ?? ''];
@@ -61,6 +63,7 @@ export function evaluateProdatMeterChange(input: MeterChangePolicyInput) {
         return selected.length === 1 && JSON.stringify(segmentComposite(selected[0], 2, una)) === JSON.stringify([p.id, p.qualifier, p.agency]);
     };
     for (const group of first) {
+        diagnosticScope = group.segments.map(t=>t.raw);
         occurrence = { meteringPointId: group.itemId, lineItemReference: one(group.segments, 'RFF', 'LI')[1] ?? null };
         const key = JSON.stringify([group.itemId, group.identityAgency]);
         seen.add(key);
@@ -76,7 +79,7 @@ export function evaluateProdatMeterChange(input: MeterChangePolicyInput) {
             const identity = scope && one(ownRefs, 'RFF', 'MG')[1] === fact.newMeter.number && one(ownRefs, 'RFF', 'Z02')[1] === fact.oldMeter.number && one(ownRefs, 'RFF', 'LI')[1] === fact.li
                 && JSON.stringify(one(common, 'DTM', '157')) === JSON.stringify(['157', fact.effectiveMinute, '203']) && party('FR', fact.legalGridOwner) && party('DO', fact.legalSupplier);
             if (!identity) {
-                fail('CONTEXT_MISMATCH', 'bedömningens objekt/händelse/LI/datum/mätare/juridiska parter avviker', '254', outbound);
+                fail('CONTEXT_MISMATCH', 'bedömningens objekt/händelse/LI/datum/mätare/juridiska parter avviker', '254', outbound, 'local_evidence');
                 fact = undefined;
             }
         }
@@ -90,11 +93,11 @@ export function evaluateProdatMeterChange(input: MeterChangePolicyInput) {
             if (!outbound && condition === false)
                 continue; // p119: even wrong extra content cannot reject.
             if (outbound && condition === null) {
-                fail('UNDETERMINED', 'oberoende ändrings-/tröskelfakta saknas', field);
+                fail('UNDETERMINED', 'oberoende ändrings-/tröskelfakta saknas', field, true, 'local_evidence');
                 continue;
             }
             if (!scope) {
-                fail('SCOPE_UNDETERMINED', 'förekomst/EL/funktion kan inte avgöras', field, outbound);
+                fail('SCOPE_UNDETERMINED', 'förekomst/EL/funktion kan inte avgöras', field, outbound, 'local_evidence');
                 continue;
             }
             const supplied = group.segments.filter((t, index) => {
@@ -107,7 +110,7 @@ export function evaluateProdatMeterChange(input: MeterChangePolicyInput) {
             });
             if (!supplied.length) {
                 if (condition === true)
-                    fail('REQUIRED', 'obligatoriskt eget fält saknas', field);
+                    fail('REQUIRED', 'obligatoriskt eget fält saknas', field, true, 'missing');
                 continue;
             }
             // Reuse unchanged matrix rules only AFTER applicability. Do not put these

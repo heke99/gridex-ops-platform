@@ -1,3 +1,4 @@
+import {prodatTokenFieldDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import { segmentComposite, segmentElementCount, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import { prodatCharacteristicValues } from '@/lib/ediel/prodat/prodatCharacteristicFields'
@@ -114,6 +115,7 @@ export function validateProdatProductScope(
         ? 'produktkoden måste stämma med objektets egna angivna mät- och avräkningsmetoder enligt produkttabellen'
         : 'exakt en giltig EL-produkt krävs i första 7110; gas/energi-id, tomma eller dubbla par och oanvända komponenter får inte ersätta produktkoden'
     return [{
+      prodatDiagnostic:prodatTokenFieldDiagnostic('242',input,token,'PRODAT26A:P20/68–69'),
       scope: 'prodat_dependent', severity: 'error', blocking: true, fieldPath: 'CCI++Z14/CAV',
       code: misplaced ? 'PRODAT_DEPENDENT_PRODUCT_SCOPE_INVALID' : 'PRODAT_DEPENDENT_PRODUCT_INVALID',
       title: 'Ogiltig PRODAT-produktkod',

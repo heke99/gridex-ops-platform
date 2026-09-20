@@ -1,3 +1,4 @@
+import type {ProdatErrorOccurrence, ProdatDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 // lib/ediel/ack.ts
 
 import type {
@@ -138,6 +139,8 @@ type ParsedEdifactRefs = {
 }
 
 export type EdielAperakApplicationError = {
+  prodatOccurrence?: ProdatErrorOccurrence
+  prodatFieldDiagnostic?: ProdatDiagnostic
   ercCode: string
   fieldCode?: string | null
   text: string
@@ -167,8 +170,10 @@ function normalizeAperakErrors(errors?: readonly EdielAperakApplicationError[] |
       fieldCode: sanitizeEdifactToken(error.fieldCode ?? null, 12),
       text: escapeEdifactText(error.text, 140),
       referenceQualifier: sanitizeEdifactToken(error.referenceQualifier ?? null, 12),
-      referenceNumber: sanitizeEdifactToken(error.referenceNumber ?? null, 35),
-      lineItemReference: sanitizeEdifactToken(error.lineItemReference ?? null, 35),
+      referenceNumber: error.referenceNumber ?? null,
+      lineItemReference: error.lineItemReference ?? null,
+      prodatOccurrence: error.prodatOccurrence,
+      prodatFieldDiagnostic: error.prodatFieldDiagnostic,
     }))
     .filter((error) => error.ercCode.length > 0 && error.text.length > 0)
 

@@ -1,4 +1,5 @@
 // lib/ediel/flows/inboundProcessing.ts
+import {isQualifiedProdatApplicationError} from "@/lib/ediel/prodat/prodatDiagnosticProjection";
 
 import {
   createEdielMessageEvent,
@@ -275,6 +276,11 @@ function canonicalResponsePlanFromMessage(
   });
 }
 
+function prodatInternalReview(message: EdielMessageRow): boolean {
+  const disposition = message.validation_report?.prodatProcessingDisposition as {kind?: unknown} | undefined;
+  return message.message_family === "PRODAT" && disposition?.kind === "internal_review";
+}
+
 function responsePlanItemFor(
   message: EdielMessageRow,
   family: "CONTRL" | "APERAK" | "UTILTS_ERR",
@@ -314,6 +320,7 @@ async function applyCanonicalRuntimeDecision(params: {
     applicationDecision: decision.applicationDecision,
     functionalDecision: decision.functionalDecision,
     responsePlan: decision.responsePlan,
+    prodatProcessingDisposition: decision.prodatProcessingDisposition,
     decisionTrace: decision.decisionTrace,
     sourceRules: decision.sourceRules,
     runtimeTenantResolutionSource: persistedTenantResolution ? "persisted" : "not_available",
@@ -350,7 +357,8 @@ async function applyCanonicalRuntimeDecision(params: {
     eventStatus:
       decision.syntaxDecision === "rejected" ||
       decision.applicationDecision === "rejected" ||
-      decision.functionalDecision === "rejected"
+      decision.functionalDecision === "rejected" ||
+      decision.prodatProcessingDisposition?.kind === "internal_review"
         ? "warning"
         : "success",
     message: "Canonical Ediel Runtime Engine kördes för inbound-meddelandet.",
@@ -364,6 +372,7 @@ async function applyCanonicalRuntimeDecision(params: {
       functionalDecision: decision.functionalDecision,
       responsePlan: decision.responsePlan,
       issueCount: decision.issues.length,
+      prodatProcessingDisposition: decision.prodatProcessingDisposition,
       sourceRules: decision.sourceRules,
       decisionTrace: decision.decisionTrace,
       tenantResolution: persistedTenantResolution,
@@ -485,7 +494,12 @@ async function createAutomaticPositiveAcks(params: {
         params.sourceMessage.message_family === "PRODAT" ||
         params.sourceMessage.message_family === "UTILTS"),
   );
-  if (policy.shouldSendPositiveAperak || shouldSendAperakFromPlan) {
+  const internalReview = prodatInternalReview(params.sourceMessage);
+  const applicationErrors = internalReview
+    ? aperakPlan?.applicationErrors?.filter(isQualifiedProdatApplicationError)
+    : aperakPlan?.applicationErrors;
+  if ((policy.shouldSendPositiveAperak || shouldSendAperakFromPlan) &&
+      (!internalReview || aperakPlan?.outcome === "negative" && Boolean(applicationErrors?.length))) {
     try {
       const aperak = await createAckIfMissing({
         actorUserId: params.actorUserId,
@@ -493,7 +507,7 @@ async function createAutomaticPositiveAcks(params: {
         ackFamily: "APERAK",
         outcome: aperakPlan?.outcome === "negative" ? "negative" : "positive",
         messageText: aperakPlan?.reason ?? "Automatiskt APERAK.",
-        applicationErrors: aperakPlan?.applicationErrors ?? null,
+        applicationErrors: applicationErrors ?? null,
       });
       createdIds.push(aperak.id);
     } catch (error) {
@@ -825,6 +839,11 @@ export async function processInboundEdielMessage(params: {
       actorUserId,
       sourceMessage: runtimeMessage,
     });
+    return runtimeMessage;
+  }
+
+  if (prodatInternalReview(runtimeMessage)) {
+    await createAutomaticPositiveAcks({actorUserId, sourceMessage: runtimeMessage});
     return runtimeMessage;
   }
 

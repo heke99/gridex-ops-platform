@@ -1,3 +1,4 @@
+import {prodatFieldDiagnostic,prodatLocalDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import {isGasApplicabilityField} from '@/lib/ediel/prodat/prodatGasApplicability'
 import {validateProdatGasApplicability} from './prodatGasApplicabilityPolicy'
 import {validateProdatDeathStatus} from './prodatDeathStatusPolicy'
@@ -133,6 +134,7 @@ export function validateCanonicalPolicyFields(input: {
       issues.push({
         severity: 'error',
         blocking: true,
+        prodatDiagnostic:prodatLocalDiagnostic('internal','PRODAT:dependent-condition-policy','Executable source condition absent'),
         code: 'PRODAT_DEPENDENT_CONDITION_MISSING',
         title: 'PRODAT D-villkor saknas',
         description: `Fält ${fieldNumber || rule.fieldKey} är D i den canonicala matrisen men saknar exekverbart villkor.`,
@@ -145,6 +147,7 @@ export function validateCanonicalPolicyFields(input: {
       issues.push({
         severity: 'error',
         blocking: true,
+        prodatDiagnostic:prodatLocalDiagnostic('local_unknown',condition.id,'Receiver-local condition facts unknown'),
         code: 'PRODAT_DEPENDENT_CONDITION_UNDETERMINED',
         title: 'PRODAT D-villkor kan inte avgöras',
         description: `${condition.id} kan inte avgöras från källstyrda fakta; produktion ska blockeras i stället för att gissa.`,
@@ -157,6 +160,7 @@ export function validateCanonicalPolicyFields(input: {
       issues.push({
         severity: 'error',
         blocking: true,
+        prodatDiagnostic:prodatFieldDiagnostic(fieldNumber,'missing',matrixInput,input.rawSegments??[],condition.id),
         code: rule.errorCodeIfMissing ?? 'PRODAT_DEPENDENT_FIELD_MISSING',
         title: 'Obligatoriskt PRODAT-fält saknas',
         description: `${condition.id} är required enligt ${condition.source.document}: ${condition.source.note}`,

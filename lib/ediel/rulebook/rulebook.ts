@@ -1,3 +1,4 @@
+import type {ProdatDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import type { EdielMessageFamily } from '@/lib/ediel/types'
 import { canonicalAckRequirements, listCanonicalAckMatrix } from '@/lib/ediel/ack/canonicalAckEngine'
 import {
@@ -24,6 +25,7 @@ export type EdielRulebookProcessGroup =
 export type EdielRulebookRequirement = 'required' | 'dependent' | 'optional' | 'not_used' | 'forbidden'
 
 export type EdielRulebookIssue = {
+  prodatDiagnostic?: ProdatDiagnostic
   /** Non-bypassable protocol evidence boundary, including test sends. */
   scope?: 'prodat_register' | 'prodat_dependent'
   severity: 'error' | 'warning'

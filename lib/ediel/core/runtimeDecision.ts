@@ -1,3 +1,5 @@
+import {projectProdatDiagnostics} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
+import type {ProdatDiagnostic, ProdatProcessingDisposition} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 // lib/ediel/core/runtimeDecision.ts
 
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -38,9 +40,12 @@ export type CanonicalDecisionIssue = {
   title: string
   description: string
   source?: string | null
+  prodatDiagnostic?: ProdatDiagnostic
+  originalSeverity?: 'error' | 'warning'
 }
 
 export type CanonicalRuntimeDecision = {
+  prodatProcessingDisposition?: ProdatProcessingDisposition
   canonical: CanonicalEdielMessage
   policy: CanonicalEdielPolicy | null
   utiltsBusinessOutcome: UtiltsInboundBusinessOutcome | null
@@ -79,23 +84,6 @@ function textIssue(value: string): CanonicalDecisionIssue {
     description: value,
     source: 'canonicalMessage',
   })
-}
-
-function applicationErrorFromIssue(input: {
-  code?: string | null
-  description?: string | null
-  fieldPath?: string | null
-}): EdielAperakApplicationError {
-  const text = String(input.description ?? input.code ?? 'INCORRECT DATA').slice(0, 70)
-  const fieldCodeMatch = String(input.fieldPath ?? input.code ?? '').match(/[0-9]{3}[a-z]?/i)
-  return {
-    ercCode: String(input.code ?? '').includes('MISSING') ? '41' : '42',
-    fieldCode: fieldCodeMatch?.[0] ?? null,
-    text,
-    referenceQualifier: null,
-    referenceNumber: null,
-    lineItemReference: null,
-  }
 }
 
 function technicalResponsePlan(params: {
@@ -151,7 +139,7 @@ function applyProdatPolicyDecision(params: {
   issues: CanonicalDecisionIssue[]
   sourceRules: string[]
   decisionTrace: string[]
-}): { applicationDecision: CanonicalDecisionState; functionalDecision: CanonicalDecisionState } {
+}): { applicationDecision: CanonicalDecisionState; functionalDecision: CanonicalDecisionState; prodatProcessingDisposition: ProdatProcessingDisposition } {
   const fieldIssues = validateCanonicalPolicyFields({
     policy: params.policy,
     rawSegments: params.canonical.rawSegments,
@@ -161,7 +149,9 @@ function applyProdatPolicyDecision(params: {
   params.sourceRules.push('CANONICAL_EDIEL_POLICY', 'PRODAT_26A_POLICY_FIELD_VALIDATOR', 'PRODAT_DEPENDENT_CONDITION_ENGINE')
   params.decisionTrace.push(`PRODAT ${params.policy.code}${params.policy.subtype ?? ''} validerades mot en canonical policy med ${params.policy.prodatDependentConditions.length} D-villkor.`)
 
-  for (const item of fieldIssues) {
+  const projected = projectProdatDiagnostics(fieldIssues)
+  const prodatProcessingDisposition = projected.disposition
+  for (const item of projected.observations) {
     params.issues.push(issue({
       layer: item.code.includes('APPLICATION_REFERENCE') ? 'route' : 'application',
       severity: item.severity,
@@ -169,18 +159,13 @@ function applyProdatPolicyDecision(params: {
       title: item.title,
       description: item.description,
       source: 'validateCanonicalPolicyFields',
+      prodatDiagnostic: item.prodatDiagnostic,
+      originalSeverity: item.originalSeverity,
     }))
   }
 
-  const blocking = fieldIssues.some((item) => item.severity === 'error' || item.blocking)
-  if (blocking) {
-    const applicationErrors = fieldIssues
-      .filter((item) => item.severity === 'error' || item.blocking)
-      .map((item) => applicationErrorFromIssue({
-        code: item.code,
-        description: item.description,
-        fieldPath: item.fieldPath,
-      }))
+  const applicationErrors = projected.applicationErrors
+  if (applicationErrors.length) {
     addNegativeAperakIfAllowed({
       family: params.policy.family,
       code: params.policy.code,
@@ -188,8 +173,10 @@ function applyProdatPolicyDecision(params: {
       reason: 'PRODAT innehåller ett blockerande canonical policy-/fältfel.',
       applicationErrors,
     })
-    return { applicationDecision: 'rejected', functionalDecision: 'accepted' }
+    return { applicationDecision: 'rejected', functionalDecision: prodatProcessingDisposition.kind === 'internal_review' ? 'manual_review' : 'accepted', prodatProcessingDisposition }
   }
+
+  if (prodatProcessingDisposition.kind === 'internal_review') return {applicationDecision:'manual_review',functionalDecision:'not_applicable',prodatProcessingDisposition}
 
   if (params.policy.ackRule.applicationAck === 'APERAK') {
     params.responsePlan.push({
@@ -201,7 +188,7 @@ function applyProdatPolicyDecision(params: {
     })
   }
 
-  return { applicationDecision: 'accepted', functionalDecision: 'accepted' }
+  return { applicationDecision: 'accepted', functionalDecision: 'accepted', prodatProcessingDisposition }
 }
 
 function resolveUtiltsDecision(params: {
@@ -298,6 +285,7 @@ function resolveUtiltsDecision(params: {
 }
 
 function buildResult(params: {
+  prodatProcessingDisposition?: ProdatProcessingDisposition
   canonical: CanonicalEdielMessage
   policy: CanonicalEdielPolicy | null
   utiltsBusinessOutcome: UtiltsInboundBusinessOutcome | null
@@ -310,9 +298,10 @@ function buildResult(params: {
   decisionTrace: string[]
   syntax: unknown
 }): CanonicalRuntimeDecision {
-  const parsedPayload = buildCanonicalParsedPayload(params.canonical)
+  const parsedPayload = {...buildCanonicalParsedPayload(params.canonical), ...(params.prodatProcessingDisposition ? {prodatProcessingDisposition:params.prodatProcessingDisposition} : {})}
   const validationReport = {
     canonicalRuntimeVersion: '3.0-policy',
+    ...(params.prodatProcessingDisposition ? {prodatProcessingDisposition:params.prodatProcessingDisposition} : {}),
     syntaxDecision: params.syntaxDecision,
     applicationDecision: params.applicationDecision,
     functionalDecision: params.functionalDecision,
@@ -337,6 +326,7 @@ function buildResult(params: {
     utiltsBusinessOutcome: params.utiltsBusinessOutcome,
   }
   return {
+    prodatProcessingDisposition: params.prodatProcessingDisposition,
     canonical: params.canonical,
     policy: params.policy,
     utiltsBusinessOutcome: params.utiltsBusinessOutcome,
@@ -419,6 +409,7 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
     })
   }
 
+  let prodatProcessingDisposition: ProdatProcessingDisposition | undefined
   let applicationDecision: CanonicalDecisionState = 'not_applicable'
   let functionalDecision: CanonicalDecisionState = 'not_applicable'
   let utiltsBusinessOutcome: UtiltsInboundBusinessOutcome | null = null
@@ -430,6 +421,7 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
     utiltsBusinessOutcome = utilts.businessOutcome
   } else if (canonical.family === 'PRODAT' && policy) {
     const prodat = applyProdatPolicyDecision({ policy, canonical, responsePlan, issues, sourceRules, decisionTrace })
+    prodatProcessingDisposition = prodat.prodatProcessingDisposition
     applicationDecision = prodat.applicationDecision
     functionalDecision = prodat.functionalDecision
   } else if (canonical.family === 'UTILTS_ERR' && policy) {
@@ -439,6 +431,7 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
   }
 
   return buildResult({
+    prodatProcessingDisposition,
     canonical,
     policy,
     utiltsBusinessOutcome,

@@ -1,0 +1,7 @@
+import {raw,line,characteristic} from './prodat-register'
+import type {EdielMessageRow} from '@/lib/ediel/types'
+type Parts=Parameters<typeof raw>[0][number]
+export const own=(seq:string,id:string,li:string|null):Parts[]=>[line(seq,id,undefined,'9'),['DTM',['92','202610010000','203']],...characteristic('Z13','Z22'),['RFF',['Z05','NET']],['RFF',['ANJ','AGREEMENT']],...(li?[['RFF',['LI',li]] as Parts]:[]),['NAD','UD',['001','','89'],'','Synthetic','Street','City','','12345','SE']]
+export const head=(invalid=false):Parts[]=>[['NAD','FR',['12345','160','SVK'],'','','','','','',invalid?'SWE':'SE'],['NAD','DO',['54321','160','SVK'],'','','','','','','SE']]
+export function source(wire:string,code='Z01'):EdielMessageRow{return {id:'00000000-0000-4000-8000-000000000001',direction:'inbound',message_standard:'edifact',message_family:'PRODAT',message_code:code,raw_payload:wire,parsed_payload:{},validation_report:{},application_reference:'23-DDQ-PRODAT',environment:'test',test_flag:1,sender_ediel_id:'12345',receiver_ediel_id:'54321',transaction_reference:'CACHED-UNRELATED'} as EdielMessageRow}
+export const z10=(li=true):Parts[]=>[...head(),line('1','735123456789012345',undefined,'9'),['DTM',['157','202610010000','203']],['DTM',['354','15','806']],...characteristic('Z13','E58'),...characteristic('Z04','Z04'),...characteristic('Z12','D',3),['RFF',['MG','NEW']],['RFF',['Z02','OLD']],['RFF',['Z05','NET']],...(li?[['RFF',['LI','EVENT']] as Parts]:[]),['NAD','Z02',['54321','160','SVK'],'','','','','','','SE']]
