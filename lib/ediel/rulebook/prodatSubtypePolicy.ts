@@ -21,11 +21,11 @@ import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
  * scope. A root snapshot, another object, or a later register is not authority.
  * The matrix owns field descriptors; bounded source overlays retain domain and scope restrictions.
  */
-export function validateProdatSubtypePolicy(input: FieldMatrixEvaluationInput, rules: readonly RulebookFieldRule[]): EdielRulebookIssue[] {
+export function validateProdatSubtypePolicy(input: FieldMatrixEvaluationInput, rules: readonly RulebookFieldRule[], direction?: string): EdielRulebookIssue[] {
   const code = input.code ?? ''
   if (code === 'Z14') return validateProdatZ14Policy(input, rules)
   const una = input.una ?? parseUna(null)
-  const issues: EdielRulebookIssue[] = [...validateProdatDependentReferenceScope(input, rules), ...validateProdatProductScope(input, rules), ...validateProdatEndUserPolicy(input, rules)]
+  const issues: EdielRulebookIssue[] = [...validateProdatDependentReferenceScope(input, rules), ...validateProdatProductScope(input, rules, direction), ...validateProdatEndUserPolicy(input, rules)]
   // Local scoping must not hide a supplied DTM in the message header. Keep
   // the shared global placement check before narrowing to individual objects.
   for (const failure of prodatDateSyntaxIssues(input.rawSegments ?? [], una)) {

@@ -21,7 +21,7 @@ it.each(alphabets)('U attributes fourth242 independently from fifth506 (%s)', (.
     const result = decideProdatAperak({ rawPayload, testKind: 'production' })
     expect(result.applicationErrors?.some(e => e.fieldCode === '242' && e.ercCode === '42')).toBe(value === 'INVALID')
     const canonical = validateRulebookMessage({ family: 'PRODAT', code: 'Z10', rawPayload, mode: 'parse', direction: 'inbound' })
-    expect(canonical.issues.some(i => i.title === 'energy_product får inte skickas' && i.code === 'FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT')).toBe(true)
+    expect(canonical.issues.some(i => i.prodatDiagnostic?.kind === 'field' && i.prodatDiagnostic.fieldNumber === '506')).toBe(false)
   }
 })
 it('independently required242 remains missing beside actual506', () => {

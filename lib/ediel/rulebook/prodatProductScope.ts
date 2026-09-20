@@ -73,6 +73,7 @@ function compatibleContext(
 export function validateProdatProductScope(
   input: FieldMatrixEvaluationInput,
   rules: readonly RulebookFieldRule[],
+  direction?: string,
 ): EdielRulebookIssue[] {
   if (input.code !== 'Z06' || !rules.some(rule => rule.fieldNumber === '242')) return []
   const una = input.una ?? parseUna(null)
@@ -85,7 +86,10 @@ export function validateProdatProductScope(
     const pairs: number[] = []
     for (const token of scope) {
       if (['NAD', 'RFF'].includes(token.tag)) break
-      if (token.tag === 'CCI' && segmentComposite(token, 2, una)[0]?.trim().toUpperCase() === 'Z14') pairs.push(token.index)
+      if (token.tag === 'CCI' && segmentComposite(token, 2, una)[0]?.trim().toUpperCase() === 'Z14') {
+        const cav=scope[scope.indexOf(token)+1],parts=cav?.tag==='CAV'?segmentComposite(cav,1,una):[]
+        if(direction !== 'inbound' || parts[3]?.trim() || !parts[4]?.trim()) pairs.push(token.index)
+      }
     }
     for (const index of pairs) {
       permitted.set(index, scope)
@@ -97,6 +101,7 @@ export function validateProdatProductScope(
     if (token.tag !== 'CCI' || descriptor[0]?.trim().toUpperCase() !== 'Z14') return []
     const cav = tokens[index + 1]
     const parts = cav?.tag === 'CAV' ? segmentComposite(cav, 1, una) : []
+    if (direction === 'inbound' && !parts[3]?.trim() && parts[4]?.trim()) return []
     const value = parts[3]?.trim().toUpperCase() ?? ''
     const scope = permitted.get(token.index)
     const misplaced = !scope
@@ -106,7 +111,7 @@ export function validateProdatProductScope(
       || (cav && hasPopulatedTrailingElements(cav, 1, una))
       || tokens[index + 2]?.tag === 'CAV'
       || (parts[3]?.length ?? 0) > 35 || Boolean(parts[0]?.trim() || parts[1]?.trim())
-      || (parts[2]?.length ?? 0) > 3 || parts.slice(4).some(part => part.trim())
+      || (parts[2]?.length ?? 0) > 3 || parts.slice(direction === 'inbound' ? 5 : 4).some(part => part.trim())
     const incompatible = scope && !compatibleContext(scope, value, una)
     if (!misplaced && !malformed && !incompatible) return []
     const detail = misplaced
