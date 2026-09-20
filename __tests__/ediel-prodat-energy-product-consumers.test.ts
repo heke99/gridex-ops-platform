@@ -1,8 +1,10 @@
+import {syntheticPriorContext} from './fixtures/prodat-prior-flow-adapter'
+import {assertPriorPermissionContext} from '@/lib/ediel/prodat/prodatPriorPermissionFlow'
 import {readFileSync} from 'node:fs'
 import ts from 'typescript'
 import {beforeEach,it,expect,vi} from 'vitest'
 import {decideProdatAperak} from '@/lib/ediel/decisionEngine'
-import {validateProdatPermissionMessage,type ProdatPermissionContext} from '@/lib/ediel/testing/prodatPermissionEngine'
+import {validateProdatPermissionMessage} from '@/lib/ediel/testing/prodatPermissionEngine'
 import {assertIncomingProdatEnergyProductReview} from '@/lib/ediel/prodat/prodatEnergyProduct'
 import {permissionMessage,z18Message} from './fixtures/prodat-energy-product'
 import type {EdielMessageRow} from '@/lib/ediel/types'
@@ -15,15 +17,15 @@ const path='app/admin/ediel/actions.part-3.ts',file=ts.createSourceFile(path,rea
 const declaration=file.statements.find((s):s is ts.FunctionDeclaration=>ts.isFunctionDeclaration(s)&&s.name?.text==='resolveBackendAperakDecision')!
 const js=ts.transpileModule(declaration.getText(file).replace('export ',''),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText
 const events:Record<string,unknown>[]=[],effects:string[]=[]
-let context:ProdatPermissionContext={hasMatchingPriorPermissionFlow:true,matchReason:'synthetic matching context'}
-const deps={assertIncomingProdatEnergyProductReview,validateProdatPermissionMessage,resolveAndStoreProdatAperakErrors,
+let matched=true
+const deps={assertIncomingProdatEnergyProductReview,validateProdatPermissionMessage,assertPriorPermissionContext,resolveAndStoreProdatAperakErrors,
  resolveTgtTestDataForAckAction:async()=>{effects.push('tgt');return {testData:null,selectedRow:null}},
- resolveProdatPermissionContextForAck:async()=>{effects.push('context');return context},
+ resolveProdatPermissionContextForAck:async(m:EdielMessageRow)=>{effects.push('context');return syntheticPriorContext(m,matched)},
  createEdielMessageEvent:async(event:Record<string,unknown>)=>{events.push(event)},
 }
 const resolver=new Function(...Object.keys(deps),`${js};return resolveBackendAperakDecision`)(...Object.values(deps)) as (params:{actorUserId:string;sourceMessage:EdielMessageRow;roleCode:string})=>Promise<{outcome:string;applicationErrors:{ercCode:string;fieldCode:string}[]|null}>
 const run=(message:EdielMessageRow)=>resolver({actorUserId:'synthetic-actor',sourceMessage:message,roleCode:'supplier'})
-beforeEach(()=>{state.db=[];events.length=0;effects.length=0;context={hasMatchingPriorPermissionFlow:true,matchReason:'synthetic matching context'}})
+beforeEach(()=>{state.db=[];events.length=0;effects.length=0;matched=true})
 for(const code of ['Z13','Z14'])for(const energy of [null,'INVALID']){
  it(`actual manual ${code}/${energy} stops before TGT, permission success/event or draft progression`,async()=>{
   let progressed=false
@@ -43,9 +45,10 @@ for(const code of ['Z13','Z14'])for(const energy of [null,'INVALID']){
 for(const code of ['Z13','Z14'])it(`valid506 ${code} preserves actual permission positive and success event`,async()=>{
  expect((await run(permissionMessage(code))).outcome).toBe('positive');expect(events.map(e=>e.eventStatus)).toEqual(['success']);expect(effects).toEqual(['tgt','context'])
 })
-it('valid506 preserves independent unmatched-context40/105 and warning event',async()=>{
- context={hasMatchingPriorPermissionFlow:false,matchReason:'synthetic unmatched context'};const d=await run(permissionMessage())
- expect(d.outcome).toBe('negative');expect(d.applicationErrors).toMatchObject([{ercCode:'40',fieldCode:'105'}]);expect(events.map(e=>e.eventStatus)).toEqual(['warning'])
+it('valid506 unmatched context remains internal before event or draft progression',async()=>{
+ matched=false;let progressed=false
+ await expect(run(permissionMessage()).then(()=>{progressed=true})).rejects.toMatchObject({message:'PRODAT_PERMISSION_PRIOR_REVIEW_REQUIRED',permissionFieldAssessment:{applicationErrors:[]}})
+ expect(progressed).toBe(false);expect(events).toEqual([])
 })
 it('valid506 preserves independent invalid-status error and warning event',async()=>{
  const message=permissionMessage();message.raw_payload=message.raw_payload!.replace('CAV+A74','CAV+INVALID')

@@ -75,22 +75,15 @@
   "runtime_author": "permission_prior_flow_runtime",
   "runtime_base": "58674ab620f3eecf4b1bd692513694ffa7c52aa0",
   "runtime_test_checkpoint": {
-    "local": "8afcafc5e0e22a5b2febe375ac8ce39aedca40b2",
-    "remote": "59e902f8301ffa5f2197823499e7ebce7ca0a31a",
-    "tree": "80b3c5fcc97df24f1975567c0e6ac1681f55aecc",
-    "verification": "fresh fetch diff0",
-    "tests": 56,
-    "passed": 15,
-    "expected_failed": 41,
-    "qualified_baseline": {
-      "tests": 67,
-      "passed": 16,
-      "failed": 51,
-      "base": "35009150",
-      "initial_receipt_caveat": "Initial56 contained10 new-test responsePlan API errors; originals preserved"
-    }
+    "local": "65ec8293",
+    "remote": "330215929aa5e8014e8fa8271b8ae233ec247f0b",
+    "tree": "1a266b98b738f63099baae81b170f1d34792c722",
+    "tests": 8,
+    "passed": 0,
+    "expected_failed": 8,
+    "verification": "fresh fetch diff0"
   },
-  "runtime_remote_parent": "234823c69ac1485d05b30096b80004b8cbda31cc",
+  "runtime_remote_parent": "330215929aa5e8014e8fa8271b8ae233ec247f0b",
   "runtime_checkpoint": null,
   "codec_exception": "sanitizeSegment canonical terminal apostrophe releaseparity only; independent source/architecture amendment, root56db1f3a",
   "runtime_review": "NOT_STARTED",
