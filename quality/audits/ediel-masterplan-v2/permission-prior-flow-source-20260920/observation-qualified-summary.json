@@ -1,0 +1,908 @@
+[
+  {
+    "id": "same-tenant-neighbor-n",
+    "expected": "Complete unmatched reference control; current false is not nationally qualified105",
+    "currentOutcome": "negative",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "warning"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "40"
+    ],
+    "fields": [
+      "105"
+    ]
+  },
+  {
+    "id": "z14vh-exact",
+    "expected": "Exact V H control with required historical end; correlation only",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "z14vh-mode-mismatch",
+    "expected": "Mode mismatch cannot authorize historical versus ongoing request; conservative hold",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "z15vh-notification",
+    "expected": "Historical completion cannot use unrelated ongoing-mode observation as active authority",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "selected322-invalid-absent",
+    "expected": "Current unqualified40 must not erase ready42/322",
+    "currentOutcome": "negative",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 0,
+    "events": [
+      "warning"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "40",
+      "42"
+    ],
+    "fields": [
+      "105",
+      "322"
+    ]
+  },
+  {
+    "id": "selected324-invalid-absent",
+    "expected": "Current Z15 branch skips40 when selected-field errors exist; preserve field truth",
+    "currentOutcome": "negative",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 0,
+    "events": [
+      "warning"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "42"
+    ],
+    "fields": [
+      "324"
+    ]
+  },
+  {
+    "id": "z14n-a13",
+    "expected": "Source-valid denied response matches LI, no permission grant",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "candidate-headerless",
+    "expected": "Cached-only candidate is unqualified history, never wire authority",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "z15-wrong-customer",
+    "expected": "Exact LI with conflicting own customer cannot approve",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "z15-wrong-object",
+    "expected": "Exact LI with conflicting own object cannot approve",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "z15-wrong-grid",
+    "expected": "Object identities are DSO/grid scoped",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "exact-z14",
+    "expected": "Exact scoped LI correlation control; not grant authorization",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "exact-z14n",
+    "expected": "Z14N correlates own LI without 209/227/325",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "substring-li",
+    "expected": "No exact own LI correlation; internal hold, no positive",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "substring-ftx",
+    "expected": "Arbitrary FTX is not reference evidence; correct segment count retained",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "case-folded-li",
+    "expected": "Decoded reference is exact; case folding not qualified",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "wrong-company",
+    "expected": "DB query excludes other company before raw read",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "missing-company",
+    "expected": "Missing source owner causes internal hold without candidate query",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "wrong-direction",
+    "expected": "Z14 requires prior outbound Z13 in local perspective",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "wrong-sender",
+    "expected": "DB prefilter and wire verification reject wrong own sender",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "wrong-receiver",
+    "expected": "DB prefilter and wire verification reject wrong counterparty",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "wrong-legal-wire-party",
+    "expected": "Cached parties cannot override mismatched legal NAD",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "missing-source-party",
+    "expected": "Missing DB party scope requires verified alternative/hold, never unscoped lookup",
+    "currentOutcome": "positive",
+    "error": "Error: Kan inte skapa APERAK: inbound sender/receiver saknas f\u00f6r 00000000-0000-4000-8000-000000000001.",
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 0,
+    "erc": [],
+    "fields": []
+  },
+  {
+    "id": "wrong-environment",
+    "expected": "Existing environment filter excludes row; no qualified national105 follows",
+    "currentOutcome": "negative",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 0,
+    "events": [
+      "warning"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "40"
+    ],
+    "fields": [
+      "105"
+    ]
+  },
+  {
+    "id": "missing-environment",
+    "expected": "Missing scope must hold without cross-environment read",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "wrong-market",
+    "expected": "Wire market must agree; DB application_reference can prefilter",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "wrong-function-filtered",
+    "expected": "Current cached message_code filter excludes Z18; no fabricated105",
+    "currentOutcome": "negative",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 0,
+    "events": [
+      "warning"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "40"
+    ],
+    "fields": [
+      "105"
+    ]
+  },
+  {
+    "id": "candidate-cached-function-mismatch",
+    "expected": "Candidate own BGM overrides cached code; cannot correlate Z18 to Z14",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "source-cached-function-mismatch",
+    "expected": "Wire Z14 cannot bypass lookup due to cached Z04",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 0,
+    "candidateRowsRead": 0,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "duplicate-candidates",
+    "expected": "Ambiguous independent candidates cannot become one positive",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 2,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "absent-history",
+    "expected": "Empty local history alone is not object-identification failure105",
+    "currentOutcome": "negative",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 0,
+    "events": [
+      "warning"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "40"
+    ],
+    "fields": [
+      "105"
+    ]
+  },
+  {
+    "id": "null-history",
+    "expected": "Unavailable/null data with no error requires internal hold",
+    "currentOutcome": "negative",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 0,
+    "events": [
+      "warning"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "40"
+    ],
+    "fields": [
+      "105"
+    ]
+  },
+  {
+    "id": "transient-failure",
+    "expected": "Retain current internal throw before event/draft",
+    "currentOutcome": null,
+    "error": "Error: SYNTHETIC_TRANSIENT_QUERY_FAILURE",
+    "queries": 1,
+    "candidateRowsRead": 0,
+    "events": [],
+    "draftPersistenceBoundary": 0,
+    "erc": [],
+    "fields": []
+  },
+  {
+    "id": "draft-candidate",
+    "expected": "Unsent draft is not proof of prior request delivered",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "cancelled-candidate",
+    "expected": "Existing status exclusion preserved; empty not105",
+    "currentOutcome": "negative",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 0,
+    "events": [
+      "warning"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "40"
+    ],
+    "fields": [
+      "105"
+    ]
+  },
+  {
+    "id": "failed-candidate",
+    "expected": "Existing status exclusion preserved; empty not105",
+    "currentOutcome": "negative",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 0,
+    "events": [
+      "warning"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "40"
+    ],
+    "fields": [
+      "105"
+    ]
+  },
+  {
+    "id": "future-candidate",
+    "expected": "Existing lte excludes future local insertion",
+    "currentOutcome": "negative",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 0,
+    "events": [
+      "warning"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "40"
+    ],
+    "fields": [
+      "105"
+    ]
+  },
+  {
+    "id": "cached-reference-donor",
+    "expected": "Cached metadata must not substitute own wire LI",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "customer-only-donor",
+    "expected": "Shared customer001 is not response case linkage",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "first-only-multi-lin",
+    "expected": "Every physical object assessed; first match cannot approve second",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "second-only-multi-lin",
+    "expected": "Second own exact LI retained, no whole-message first-only105",
+    "currentOutcome": "negative",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "warning"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "40"
+    ],
+    "fields": [
+      "105"
+    ]
+  },
+  {
+    "id": "z15-exact-z18",
+    "expected": "Z15 response branch matches outbound Z18 LI and permission/object tuple",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "z15-wrong-permission",
+    "expected": "Exact LI alone cannot ignore contradictory permission identity",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "z15c-prior-z15",
+    "expected": "Cancellation points to same-direction earlier Z15; current query omits it",
+    "currentOutcome": "negative",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 0,
+    "events": [
+      "warning"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "40"
+    ],
+    "fields": [
+      "105"
+    ]
+  },
+  {
+    "id": "z15-unrelated-z13",
+    "expected": "Old Z13 does not establish current active permission",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "z15-notification-z14",
+    "expected": "Historical Z14 observation alone is not current active grant",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "z18-no-context",
+    "expected": "No current prior-context consumer in Z18; preserve bounded behavior",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 0,
+    "candidateRowsRead": 0,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "z13-no-context",
+    "expected": "No current prior-context consumer in Z13; preserve bounded behavior",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 0,
+    "candidateRowsRead": 0,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "selected322-invalid",
+    "expected": "Keep ready42/322 independent of true context",
+    "currentOutcome": "negative",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "warning"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "42"
+    ],
+    "fields": [
+      "322"
+    ]
+  },
+  {
+    "id": "selected324-invalid-history-unavailable",
+    "expected": "Keep ready42/324 evidence attached to internal history failure",
+    "currentOutcome": null,
+    "error": "Error: SYNTHETIC_TRANSIENT_QUERY_FAILURE",
+    "queries": 1,
+    "candidateRowsRead": 0,
+    "events": [],
+    "draftPersistenceBoundary": 0,
+    "erc": [],
+    "fields": []
+  },
+  {
+    "id": "escaped-li-0",
+    "expected": "Decoded exact release-bearing own LI must correlate; raw payload search is not decode",
+    "currentOutcome": "negative",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "warning"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "40"
+    ],
+    "fields": [
+      "105"
+    ]
+  },
+  {
+    "id": "escaped-li-1",
+    "expected": "Decoded exact release-bearing own LI must correlate; raw payload search is not decode",
+    "currentOutcome": "negative",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "warning"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "40"
+    ],
+    "fields": [
+      "105"
+    ]
+  },
+  {
+    "id": "escaped-li-2",
+    "expected": "Decoded exact release-bearing own LI must correlate; raw payload search is not decode",
+    "currentOutcome": "negative",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "warning"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "40"
+    ],
+    "fields": [
+      "105"
+    ]
+  },
+  {
+    "id": "candidate-later-unh",
+    "expected": "Selected candidate UNH must own LI; later UNH is not donor",
+    "currentOutcome": "positive",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 1,
+    "events": [
+      "success"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "100"
+    ],
+    "fields": []
+  },
+  {
+    "id": "cap-truncated",
+    "expected": "Truncated search cannot establish absence; paging/exact indexed references or internal hold",
+    "currentOutcome": "negative",
+    "error": null,
+    "queries": 1,
+    "candidateRowsRead": 50,
+    "events": [
+      "warning"
+    ],
+    "draftPersistenceBoundary": 1,
+    "erc": [
+      "40"
+    ],
+    "fields": [
+      "105"
+    ]
+  }
+]

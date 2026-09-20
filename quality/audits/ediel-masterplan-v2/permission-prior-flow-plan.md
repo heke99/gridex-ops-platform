@@ -1,0 +1,21 @@
+# Prior permission-flow authority qualification
+
+## Global constraints
+
+Source-only task; runtime requires independent source/spec, architecture and tenant review plus root authorization after actualmain gates. PR310 paused/excluded. Root owns memory/publication/CI. One author, no subdelegation.
+
+### Task 1: Qualify prior permission-flow authority and tenant scope
+
+# Next source task after PR353 — prior permission-flow authority and tenant scope
+
+PR353 merged at4e8b8588f9a6ff805ba433e542615ba6dd66fb98, exact reviewed tree verified. Root verifies actualmain gates while this source-only task proceeds. Work in /workspace/scratch/2a201d6d5897/gridex-next on codex/ediel-permission-prior-flow-20260920. No runtime authorization. PR310 paused/excluded, historical98/110+10 unchanged. Prior accepted PR352 and bounded322/324 work must not be restarted. Root provides fresh branch/base and main gates. No live DB/storage/provider/market calls, human messages, deployments/settings, or schema/source changes.
+
+Evidence seed: P-ACK-R1 HIGH in f3-permission-ack-source-20260920.md, matching evidence contextRows and independent permission-ack-source-review.md. Actual app/admin/ediel/actions.part-3.ts resolveProdatPermissionContextForAck queries prior candidates without company/party/direction constraints, uses cached function/first-line/cached refs, and substring-matches candidate payload. Synthetic wrong-company unrelated substring can affect positive response; missing results give40/105; query failure remains internal. Existing source-message authorization does not scope this separate query. No live data exposure/grant mutation was proven. Keep severity tied to actual evidence, not hypothetical outcomes.
+
+Source-only qualify a finite correction before runtime. Read AGENTS/memory/local relevant skills and mandatory Supabase guidance; inspect actual schema, generated types, tenant/actor ownership, query/callers, real selected ACK consumers and frozen source contracts. Read original full PRODAT26A-r3 relevant process/reference/response rules, not only derived artifacts. Establish what references and direction/function/counterparty/company/environment/market/actor scope are needed to correlate each own physical object to a prior request, and which facts are genuinely available. Do not invent flow/grant authority or a positive producer. Differentiate own tenant/company ownership from external actor identity, exact wire references from cached metadata, and protocol40 from internal/unavailable/ambiguous context. Qualify Z14 positive/N, Z15 and Z18/other existing handled functions only where current consumers use prior context. Avoid broad permission state-machine redesign.
+
+Use synthetic complete controls and real extracted function/query consumer mocks, inspect exact query filters plus candidate verification and event/draft boundaries. Prove exact vs substring, wrong-company/party/direction/environment/market/function, correct counterparties, multi-LIN/no-sibling/no-later-UNH donors, cached-code mismatch, duplicate/ambiguous candidates, absent/unavailable prior data and transient query failure. Explore tenant isolation based on actual columns/callers, not an assumed generic tenant_id. No live secrets/production data. Preserve ready selected322/324 field truth; a context Boolean cannot become field authority. Do not merely cap/filter after fetching unrelated raw customer messages if DB scoping is possible.
+
+Deliver one finite source audit plus recoverable evidence with new immutable .txt probe archives, source/callsite/ownership matrix, actual expected-versus-current observations, concrete findings/false positives/residuals, minimal implementation proposal and finite acceptance matrix. Identify exact old assertion conflicts for root adjudication; no old tests or production edits. Preserve original receipts and fixture errors honestly. Fresh independent source/spec/architecture and tenant-isolation review required before root runtime authorization. Root owns memory/publication/CI, one source author and no subdelegation.
+
+Write audit quality/audits/ediel-masterplan-v2/f3-permission-prior-flow-source-20260920.md and companion recoverable evidence. Full report .superpowers/sdd/permission-prior-flow-plan/task-1-report.md. Commit only owned source audit/evidence.

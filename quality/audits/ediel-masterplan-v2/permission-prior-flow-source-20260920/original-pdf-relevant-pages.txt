@@ -1,0 +1,1753 @@
+===== ORIGINAL FULL PDF PAGE 13 =====
+       Ediel-anvisning PRODAT och APERAK
+Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1
+                   december 2016
+
+2 PRODAT
+2.1 Allmänt om PRODAT
+I Sverige används för närvarande PRODAT för 13 olika
+funktioner.
+ Funk. Beskrivning                      Riktning
+ Z01    Förfrågan om kundidentitet      Från potentiell ny
+                                        leverantör till nätägare.
+ Z02    Svar på förfrågan om            Från nätägare till
+        kundidentitet                   potentiell ny leverantör.
+ Z03    Anmälan av                      Från ny leverantör till
+        leverantörsbyte/flyttning.      nätägare.
+ Z04    Bekräftelse av                  Från nätägare till ny
+        leverantörsbyte/flyttning.      leverantör/anvisad
+        Z04 kan även användas för       leverantör/mottagnings-
+        att anmäla leverantörsbyte till pliktig leverantör.
+        anvisad leverantör liksom till
+        mottagningspliktig leverantör.
+ Z05    Bekräftelse av                  Från nätägare till
+        leverantörsbyte.                gammal leverantör.
+ Z06    Uppdatering av grunddata.       Från nätägare till
+                                        leverantör.
+ Z08    Information om avslut av        Från leverantör till
+        avtal.                          nätägare.
+ Z09    Uppdatering av grunddata.       Från leverantör till
+                                        nätägare.
+ Z10    Uppdatering av grunddata –      Från nätägare till
+        mätare.                         leverantör.
+ Z13    Begäran om tillgång till        Från energitjänste-
+        mätvärden                       företag till nätägare
+ Z14    Tillgång till mätvärden         Från nätägare till
+        godkänts/nekats                 energitjänsteföretag
+ Z15    Aktivt tillstånd upphör         Från nätägare till
+                                        energitjänsteföretag
+ Z18    Begäran om avslut av            Från energitjänste-
+        rapportering                    företag till nätägare
+
+Funktionerna i PRODAT kan, enligt specifika villkor,
+kombineras med följande undertyper:
+ Under- Betydelse                               Transaktionstyp
+ typ
+ L       Leverantörsbyte                        Z22
+ LK      Leverantörs- och kundbyte              Z23
+ C       Annullering (cancellation)             Z24
+ A       Anvisad leverantör                     Z26
+
+
+PRODAT-APERAK                                   Sida 13 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-
+A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 14 =====
+       Ediel-anvisning PRODAT och APERAK
+Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1
+                   december 2016
+
+B         Byte av balansansvarig               Z27
+M         Uppdatering av grunddata – mätare E58
+D         Mottagningspliktig leverantör        Z70
+E         Uppdatering av grunddata –           Z34
+          kundinformation
+ F        Uppdatering av grunddata –           E64
+          anläggning, med avläsning
+ G        Uppdatering av grunddata –           E32
+          anläggning, utan avläsning
+ H        Hävning av avtal                     Z25
+ N        Nekad rapportering                   Z96
+ V        Start eller slut av                  S17
+          mätvärdesrapportering
+ VH       Historiska mätvärden                 S18
+För mer detaljerad information om funktioner och undertyper,
+se Handboken.
+
+I EDIFACT-PRODAT-meddelandet anges funktionen (exklusive
+undertyp) i segment BGM/1001. Undertypen anges med en
+treteckenskod (se ovan) i fältet ”transaktionstyp” i segment
+SG14/CCI-CAV. Se respektive segment-beskrivning i kapitel
+2.6.
+
+Det är inte tillåtet att blanda olika PRODAT-funktioner i samma
+EDIFACT-överföring, dvs inom samma par av UNA/UNB-UNZ.
+
+För att undvika att kancelleringsmeddelanden behandlas före
+originalmeddelanden bör både avsändare och mottagare ha
+rutiner som säkerställer att meddelanden sänds och behandlas
+i rätt ordning.
+
+
+
+
+PRODAT-APERAK                                   Sida 14 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-
+A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 15 =====
+                                   Ediel-anvisning PRODAT och APERAK
+                    Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1 december 2016
+
+
+2.2 Uppgifter i PRODAT
+Nedan tabell beskriver vilken information som ingår i PRODAT-meddelandet för respektive funktion.
+Följande statuskoder används för att ange användning:
+R (Required)        - obligatorisk uppgift, fältet skall alltid sändas.
+D (Dependent)       - villkorlig uppgift, obligatorisk under vissa förutsättningar, se Notering.
+O (Optional)        - frivillig uppgift.
+
+Fältnr och fältnamn i tabellen refereras till i segmentbeskrivningen för PRODAT och samma nummer och
+namn används även i APERAK.
+OBS! Följande lista/villkor avser endast första registret. För information om vilka uppgifter som är obligatoriska för
+register 2 och högre, se Bilaga 2 PRODAT – Användning av flera register.
+Villkoren angivna i detta kapitel gäller före eventuellt motstridiga villkor angivna i bilaga 4.
+
+
+
+
+PRODAT-APERAK                                   Sida 15 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 16 =====
+                                         Ediel-anvisning PRODAT och APERAK
+                          Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1 december 2016
+
+Fält Fältnamn – engelska Fältnamn – svenska       Z01 Z02 Z03 Z04 Z05 Z06 Z08 Z09 Z10 Z13 Z14 Z15 Z18 Notering
+                                                                                                      Anges i UNB, ska vara 23-DDQ-PRODAT eller
+311 Application Reference Application Reference    R R R R R R R R R R R R                         R 23-DGI-PRODAT för PRODAT i elmarknaden
+                                                                                                      och 27-DDQ-PRODAT i naturgasmarknaden.
+      Association assigned
+312                        Version                 R    R   R   R   R   R   R   R   R   R   R   R   R   Nationell version av Ediel-meddelandet.
+      code
+                                                                                                      PRODAT funktion: Z01, Z02, Z03, Z04, Z05,
+202 Message name           Meddelandenamn          R    R   R   R   R   R   R   R   R   R   R   R   R
+                                                                                                      Z06, Z08, Z09, Z10, Z13, Z14, Z15, Z18
+203 Message Id.            Meddelandeidentifikation R   R   R   R   R   R   R   R   R   R   R   R   R Unik identitet på meddelandet.
+                                                                                                      Kod 9 anger originalmeddelande och kod 5
+204 Message function       Meddelandefunktion      O    O   O   O   O   O   O   O   O   O   O   O   O
+                                                                                                      anger ersättningsmeddelande
+      Request for
+313                        Kvittensbegäran         O    R   R   R   R   R   R   R   R   R   R   R   R   Begäran om APERAK
+      acknowledgement
+                                                                                                        Datum då PRODAT-meddelandet skapades i
+205 Message date           Meddelandedatum         R    R   R   R   R   R   R   R   R   R   R   R   R
+                                                                                                        applikationen (ej EDI-systemet)
+                                                                                                        Tidzon anges som "offset" till UTC, alltid "1" för
+206 Time zone              Tidszon                 R    R   R   R   R   R   R   R   R   R   R   R   R   både normaltid och sommartid i Sverige. Se
+                                                                                                        handboken.
+                                                                                                        Fritext rekommenderas EJ, anv. endast i
+301 Free text (header)     Fritext (huvud)         O    O   O   O   O   O   O   O   O   O   O   O   O
+                                                                                                        undantagsfall
+                                                                                                        Giltigt Ediel-id enligt Ediel-register i Edielportalen
+207 Sender                 Avsändare (Ediel-ID)    R    R   R   R   R   R   R   R   R   R   R   R   R
+                                                                                                        samt landskod.
+      Senders organisation
+315                        Avsändarens org.nr      -    -   O   -   -   -   -   -   -   -   -   -   -
+      no                                                                                                Avsändarens organisationsnummer
+                                                                                                        Giltigt Ediel-id enligt Ediel-register i Edielportalen
+208 Recipient              Mottagare (Ediel-ID)    R    R   R   R   R   R   R   R   R   R   R   R   R
+                                                                                                        samt landskod.
+314 Sequence number        Sekvensnummer           R    R   R   R   R   R   R   R   R   R   R   R   R   Sekvensnummer
+                                                                                                        Nätägarens identifikation av anläggningen.
+209 Object Id              Anläggnings-id          R    R   R   R   R   R   R   R   R   -   D   R   R
+                                                                                                        Skickas i Z14, utom i Z14N.
+                                                                                                        Sekvensnummer för varje register för aktuell
+                                                                                                        anläggning/mätare. Obligatorisk för anläggningar
+                                                                                                        (mätare) med fler register. Anges ej för
+258 Sub-line number        Sekvensnummer           -    -   -   D   -   D   -   -   D   -   -   -   -
+                                                                                                        anläggningar med endast ett register. För
+                                                                                                        detaljerad information om uppgifter för register 2
+                                                                                                        och högre, se bilaga 2.
+                                                                                                        Avser det datum som leverans startar. Giltigt
+210 Contract start date    Avtal, startdatum       R    -   R   R   -   D   -   D   D   -   -   -   -
+                                                                                                        startdatum, se Handboken.
+
+PRODAT-APERAK                                   Sida 16 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 17 =====
+                                           Ediel-anvisning PRODAT och APERAK
+                            Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1 december 2016
+
+Fält Fältnamn – engelska Fältnamn – svenska             Z01 Z02 Z03 Z04 Z05 Z06 Z08 Z09 Z10 Z13 Z14 Z15 Z18 Notering
+                                                                                                            Z06/Z10: Om ändring gäller en ändring som sker
+                                                                                                            före leveransstart är ”avtal startdatum”
+                                                                                                            obligatoriskt och meddelande ska skickas till den
+                                                                                                            framtida leverantören.
+                                                                                                            Z09: Används enbart i Z09D och då endast i
+                                                                                                            anslutning till att avtal om produktion tecknas.
+                                                                                                            Avser det datum som leverans slutar.
+                                                                                                            Z09: Används enbart i Z09D och då endast i
+                                                                                                            anslutning till att avtal om produktion avslutas.
+211 Contract stop date       Avtal, slutdatum            -   -   -   - R O R D           -   -   -   -   - Får ej anges samtidigt som Avtal, startdatum i
+                                                                                                            Z09D, vid fel används kod 109 i APERAK fält
+                                                                                                            A903.
+                                                                                                            Giltigt slutdatum, se Handboken.
+                                                                                                            Avser det datum som första mätaravläsning
+                                                                                                            kommer att sändas in (i MSCONS/UTILTS).
+                                                                                                            Anges i Z04 endast om timserier/kvartserier
+                                                                                                            skickas i MSCONS/UTILTS och om datumet
+302 Report start date        Rapportstartdatum           -   -   - O -       -   -   -   -   R D -       -
+                                                                                                            avviker från startdatum för avtalet.
+                                                                                                            Anges i Z13 och Z14 som ”tidstämpel för
+                                                                                                            påbörjande av rapportering”. Skickas i Z14 utom i
+                                                                                                            Z14N.
+                                                                                                            Avser ”tidstämpel för avslutande av
+                                                                                                            rapportering”. Anges i Z13 och Z14 såvida inte
+321 Report end date          Rapportslutdatum            -   -   -   -   -   -   -   -   -   D D -       -
+                                                                                                            rapporteringen avses ske tills vidare. Skickas ej
+                                                                                                            heller i Z14N.
+                                                                                                            Avser det datum när aktuell ändring börjar gälla.
+                             Giltighetsdatum – giltig                                                       Z09: Obligatoriskt i Z09 utom i Z09D, då används
+216 Validity start date                                  -   -   -   -   - R     -   D R     -   -   -   -
+                             from                                                                           istället fält 210 eller 211.
+                                                                                                            Giltigt datum, se Handboken.
+      First meter reading    Datum för första
+212                                                      -   -    -   O   -   -   -    -   -   -   -   -    -   Avser det datum när avläsning startar.
+      Date                   mätaravläsning
+                                                                                                                Om avsändaren känner till elanvändarens
+                                                                                                                födelsedatum och använder ett annat kund-id än
+                                                                                                                födelsedatum/personnummer för Elanvändaren
+249 Date of birth            Födelsedatum               O    O   O    O   O   O   O    -   -   -   -   -    -
+                                                                                                                (fält 227), bör Födelsedatum anges.
+                                                                                                                Födelsedatum underlättar identifieringen hos
+                                                                                                                mottagaren. Avser elanvändarens födelsedatum.
+
+PRODAT-APERAK                                   Sida 17 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 20 =====
+                                        Ediel-anvisning PRODAT och APERAK
+                         Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1 december 2016
+
+Fält Fältnamn – engelska Fältnamn – svenska   Z01 Z02 Z03 Z04 Z05 Z06 Z08 Z09 Z10 Z13 Z14 Z15 Z18 Notering
+                                                                                                  Z06: Obligatorisk i Z06F (transaktionstyp=E64)
+                                                                                                  då mätarställningar skickas i MSCONS/UTILTS.
+                                                                                                  Frivillig i Z06E och Z06G.
+                                                                                                  Får enbart skickas i elmarknaden då även
+                                                                                                  mätarställningar skickas i UTILTS. Därmed vet
+                                                                                                  mottagaren att endast om räkneverkskod anges i
+                                                                                                  PRODAT så kommer mätarställningar skickas i
+                                                                                                  UTILTS. För naturgasmarknaden gäller andra
+                                                                                                  regler, se kapitel 2.4.5.
+254 Method for balance     Avräkningsmetod     -   -    -   R   -   D   -   -   D   -   -   -    -   Anger om dygnsavräkning (balansavräkning)
+                                                                                                     eller månadsavräkning skall användas.
+      Settlement           (dygns/månads)                                                            Z10: Obligatorisk om avräkningsmetod har
+                                                                                                     ändrats för ny mätare och/eller nya mätare är
+                                                                                                     under gränsen för schablon.
+                                                                                                     Z06: Obligatorisk i Z06F (transaktionstyp=E64)
+                                                                                                     och Z06G (transaktionstyp=E32).
+                                                                                                     Frivillig i Z06E.
+                                                                                                     För anläggningar i elmarknaden anges här den
+                                                                                                     tidsserieprodukt vilken används när
+                                                                                                     anläggningens mätvärden aggregeras på
+                                                                                                     elhandelsföretagsnivå, se vidare Handboken.
+                                                                                                     Z10: Endast elmarknaden. Obligatorisk om
+                                                                                                     produktkoden har ändrats i samband med
+                                                                                                     mätarbyte.
+                                                                                                     Z06: Endast elmarknaden. Obligatorisk i Z06F
+242 Product code           Produktkod          -   -    -   R   -   D   -   -   D   -   -   -    -
+                                                                                                     (transaktionstyp=E64) och Z06G
+                                                                                                     (transaktionstyp=E32).
+                                                                                                     Frivillig i Z06E.
+                                                                                                     För naturgasmarknaden används en av följande
+                                                                                                     två koder
+                                                                                                     - 6109 (för dygnsavlästa anläggningar)
+                                                                                                     - 6113 (för månads- eller årsavlästa
+                                                                                                     anläggningar)
+    Product identification Produkt id                                                                Avser ”Energiprodukt”. Anges i Z13 och Z14,
+506                                            -   -    -   -   -   -   -   -   -   R   D   -    -
+    (Energy product)       (Energiprodukt)                                                           utom i Z14N.
+    Party connected to
+310                        Kundstatus          -   -    -   -   D   D   -   D   -   -   -   -    -   Fältet används endast i anslutning till dödsfall.
+    grid status
+PRODAT-APERAK                                   Sida 20 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 21 =====
+                                          Ediel-anvisning PRODAT och APERAK
+                           Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1 december 2016
+
+Fält Fältnamn – engelska Fältnamn – svenska          Z01 Z02 Z03 Z04 Z05 Z06 Z08 Z09 Z10 Z13 Z14 Z15 Z18 Notering
+                                                                                                         Z05: Obligatorisk då i Z05LK (transaktionstyp
+                                                                                                         Z23)
+                                                                                                         Z06: Obligatorisk i Z06E (transaktionstyp E34)
+                                                                                                         Z09: Obligatorisk i Z09E (transaktionstyp E34)
+      Type of Metering       Riktning (Typ av                                                            Avser flödesriktning vid mätpunkten. Anges i Z13
+513                                                   -   -   -   -   -   -   -   -   -   R D -       -
+      Point (Flow Direction) anläggning)                                                                 och i Z14 (utom i Z14N).
+322   Permission status      Tillståndets status      -   -   -   -   -   -   -   -   -   - R R       - Avser tillståndets status. Anges i Z14 och Z15
+                                                                                                      - Avser tillståndets syfte. Ska anges för
+323   Purpose                Tillståndets syfte       -   -   -   -   -   -   -   -   -   D D -
+                                                                                                         privatkunder i Z13 och Z14, utom i Z14N.
+      Permission end         Orsak till tillståndets                                                     Avser varför tillståndet upphör. Anges i Z15 och
+324                                                   -   -   -   -   -   -   -   -   -   -   - R     R
+      reason                 upphörande                                                                  Z18,
+224   Meter no.              Mätarnummer              -   -   - R O O O           -   R   -   -   -   - Mätarnummer.
+225   Old Meter no.          Gammalt mätarnummer      -   -   -   -   -   -   -   -   R   -   -   -   - Används vid mätarbyte.
+308   Suppliers contract no Leverantörens avtalsnr    -   -   O - O O O           -   -   -   -   -   - Avtalsnummer med elanvändaren.
+                                                                                                         3-ställig nätområdeskod. Nätområdetsid skickas i
+260   Net Area               Nätområdesid             R R R R R R R R R                   - D R       R
+                                                                                                         Z14, utom i Z14N.
+                                                                                                         Värmevärdesområde. Används enbart i
+                                                                                                         naturgasmarknaden och då med följande regler:
+320   Calorific Value Area Värmevärdesområde          -   -   - D - D         -   -   -   -   -   -   - Z04: Ska anges.
+                                                                                                         Z06: Ska anges i Z06F och Z06G (ändras via
+                                                                                                         Z06G). Anges ej i Z06E.
+240 Serial Id               Serie-id                   -   -   -   D   O   D   -   -   D   -   -   -    -   Fältet används endast i naturgasmarknaden och
+                                                                                                            då med följande regler:
+
+                                                                                                            Z04: Ska anges.
+                                                                                                            Z06: Obligatoriskt om serie-id har ändrats pga
+                                                                                                            ändringen.
+                                                                                                            Obligatoriet gäller Z06F och Z06G. Frivillig i
+                                                                                                            Z06E.
+                                                                                                            Z10: Obligatoriskt om serie-id har ändrats pga
+                                                                                                            mätarbytet.
+                                                                                                            Nätägarens identitet på
+      Reference to metering                                                                                 förbrukningsanläggningen knuten till
+319                         Referens till anläggning   -   -   -   D   -   -   -   -   -   -   -   -    -
+      point                                                                                                 produktionsanläggningen angiven i fält 209.
+                                                                                                            Z04: Obligatorisk i Z04D (transaktionstyp Z70)
+PRODAT-APERAK                                   Sida 21 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 22 =====
+                                            Ediel-anvisning PRODAT och APERAK
+                             Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1 december 2016
+
+Fält Fältnamn – engelska Fältnamn – svenska        Z01 Z02 Z03 Z04 Z05 Z06 Z08 Z09 Z10 Z13 Z14 Z15 Z18 Notering
+     Reference to          Referens till                                                               Avser referens till avtal/fullmakt med
+261                                                 R   -   R -     -   -   -   -   -   R -     -   -
+     authorisation         avtal/fullmakt                                                              elanvändaren (slutkunden).
+226 Reference to line item Ärendereferens           R R R R R R R R R R R R                         R Unik referens mellan ärenden, t ex Z03 - Z04.
+                                                                                                       Identifieringskod för tillståndet. Tillståndets id
+325 Permission ID             Tillståndets id       -   -   -   -   -   -   -   -   -   - D R       R
+                                                                                                       skickas ej i Z14N.
+                                                                                                       Elanvändaren anges i Z06E, men inte i Z06F
+                                                                                                       eller Z06G. Elanvändaren anges även i Z09E
+-     End user                Elanvändare           R R R R R D R D                 -   R D R       R
+                                                                                                       men inte i Z09B, Z09D, Z09F eller Z09G.
+                                                                                                       Elanvändaren anges i Z14, utom i Z14N.
+227       End user ID         Kund-id               R R R R R D R D                 -   R D R       R
+228       End user Name       Namn-elanvändare      R R R R R D R D                 -   R D R       R 1-2 rader.
+                                                                                                       1-3 rader. När elanvändaren anges ska adressen
+229       End user Address Adress-elanvändare       D D D D D D D D                 -   -   -   -   - fyllas i om den finns. Adressuppgifter anges ej i
+                                                                                                       Z13, Z14, Z15 och Z18.
+         End user
+231                       Postnr-elanvändare        R   R    R   R   R   D   R   D    -    -   -   -    -
+       Postcode
+         End user City
+232                       Postort-elanvändare       R   R    R   R   R   D   R   D    -    -   -   -    -
+       name
+316      End user Country Land-elanvändare          R   R    R   R   R   D   R   D    -   R    R   R   R
+                                                                                                            Anläggningsadressen anges alltid här i Z02, Z04,
+                                                                                                            Z05, Z06, oavsett om den är samma eller inte
+                                                                                                            som adressen för elanvändaren.
+                                                                                                            Anläggningsadressen anges även i Z14 (utom
+-     Installation            Anläggning           O    R   O    R   R   R   O    -   -    -   D   -    -
+                                                                                                            Z14N), när den då skickas ska fält 233 och 234
+                                                                                                            vara med.
+                                                                                                            Anläggningsadressen behöver inte finnas med i
+                                                                                                            Z01, Z03 eller Z08.
+                                                                                                            När anläggning skickas, anges alltid samma
+233       Installation ID     Anläggnings-id        D   R    D   R   R   R   D    -   -    -   R   -    -
+                                                                                                            värde som 209.
+         Installation                                                                                       1-3 rader. När anläggning skickas så anges alltid
+234                           Adress-anläggning     D   R    D   R   R   R   D    -   -    -   R   -    -
+       Address                                                                                              dess adress.
+         Installation
+235                           Postnr-anläggning    O    O   O    O   O   O   O    -   -    -   O   -    -
+       Postcode
+         Installation City
+236                           Postort-anläggning   O    O   O    O   O   O   O    -   -    -   O   -    -
+       name
+
+PRODAT-APERAK                                   Sida 22 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 33 =====
+       Ediel-anvisning PRODAT och APERAK
+Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1
+                   december 2016
+
+Modell för PRODAT Z14
+
+
+
+
+PRODAT-APERAK                                   Sida 33 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-
+A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 34 =====
+       Ediel-anvisning PRODAT och APERAK
+Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1
+                   december 2016
+
+Modell för PRODAT Z15
+
+
+
+
+PRODAT-APERAK                                   Sida 34 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-
+A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 35 =====
+           Ediel-anvisning PRODAT och APERAK
+    Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1
+                       december 2016
+
+Modell för PRODAT Z18
+
+
+
+
+2.3 Regler för PRODAT vid energidelning
+De aktörer som vid energidelning, vilket kan används från 1 januari 2027,
+behöver ha tillgång till mätvärden får rollen energitjänsteföretag och kommer
+använda PRODAT Z13, Z14, Z15 och Z18.
+De skillnader som gäller för Z13, Z14, Z15 och Z18 vid energidelning jämfört
+med annan användning av dessa meddelanden är:
+           - Transaktionstyp S18 (Historiska mätvärden) används ej vid
+               energidelning1
+           - Enbart tidslängd 15 minuter och mätmetod 15 minuter
+               förekommer vid energidelning
+           - Typ av anläggning = enbart Produktion används vid
+               energidelning.
+
+
+1
+ En transaktionstyp för ’energidelning’ planeras att införas i en kommande version av
+anvisningen och kommer då ersätta S17 när det är frågan om energidelning.
+
+
+PRODAT-APERAK                                   Sida 35 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-
+A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 73 =====
+        Ediel-anvisning PRODAT och APERAK
+ Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1
+                    december 2016
+
+SG14/CCI – Tillståndets status, kod (D)
+Används endast i Z14 (obligatoriskt) och i Z15 (obligatoriskt).
+Ref. Name                      Cl.   Form. Stat. Description
+7059 PROPERTY CLASS,           X     an..3
+     CODED
+C502 MEASUREMENT               R              R
+     DETAILS
+6313 Property measured,        R     an..3    R   Z23     Permission status
+     coded
+6321 Measurement               X     an..3
+     significance, coded
+6155 Measurement attribute     X     an..17
+     identification
+6154 Measurement attribute     X     an..70
+Exempel: CCI++Z23'
+
+SG14/CAV – Tillståndets status, värde (D)
+Samma villkor som föregående CCI.
+Ref. Name                      Cl.   Form. Stat. Description
+C889 CHARACTERISTIC            M           M
+     VALUE
+7111 Characteristic value,     D     an..3    R   Status, fält 322.
+     coded                                        A74 Validated (tillstånd giltigt)
+                                                  A75 Invalid (tillstånd ogiltigt eller
+                                                        saknas)
+                                                  A76 Timed out (tillstånd ej givet
+                                                        inom tidsram)
+                                                  A13 Withdrawn (tillstånd
+                                                        nekat/tillbakadraget)
+1131   Code list qualifier     X     an..3
+3055   Code list responsible   D     an..3    X
+       agency, coded
+7110   Characteristic value    D     an..35   X
+7110   Characteristic value    X     an..35
+Exempel: CAV+A13'
+Statuskoderna för giltigt respektive ogiltigt tillstånd kan förekomma i
+PRODAT Z15, koden A74 kan förekomma i positivt PRODAT Z14 och
+koderna A76 och A13 i PRODAT Z14N.
+
+
+
+
+PRODAT-APERAK                                   Sida 73 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-
+A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 75 =====
+        Ediel-anvisning PRODAT och APERAK
+ Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1
+                    december 2016
+
+SG14/CCI – Orsak till tillståndets upphörande, kod (D)
+Används endast i Z15 och Z18.
+Ref. Name                      Cl.   Form. Stat. Description
+7059 PROPERTY CLASS,           X     an..3
+     CODED
+C502 MEASUREMENT               R              R
+     DETAILS
+6313 Property measured,        R     an..3    R   Z25    Permission end reason
+     coded
+6321 Measurement               X     an..3
+     significance, coded
+6155 Measurement attribute     X     an..17
+     identification
+6154 Measurement attribute     X     an..70
+Exempel: CCI++Z25'
+
+SG14/CAV – Orsak till tillståndets upphörande, värde (D)
+Samma villkor som föregående CCI.
+Ref. Name                      Cl.   Form. Stat. Description
+C889 CHARACTERISTIC            M           M
+     VALUE
+7111 Characteristic value,     D     an..3    R   Orsak till tillståndets upphörande,
+     coded                                             fält 324.
+                                                  B77 Fulfilment of purpose (Syftet
+                                                       uppnått)
+                                                  B78 Reach of end timestamp
+                                                       (Tidstämpeln för avslutande
+                                                       av tillståndet har uppnåtts)
+                                                  B79 Revocation (Slutkunden har
+                                                       återkallat tillståndet)
+                                                  B80 Termination (Tillståndet
+                                                       uppsagt)
+                                                  E37 No valid Grid access contract
+                                                       (Ej giltigt nätavtal)
+1131   Code list qualifier     X     an..3
+3055   Code list responsible   D     an..3    X
+       agency, coded
+7110   Characteristic value    D     an..35   X
+7110   Characteristic value    X     an..35
+Exempel: CAV+B80'
+
+
+
+
+PRODAT-APERAK                                   Sida 75 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-
+A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 78 =====
+        Ediel-anvisning PRODAT och APERAK
+ Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1
+                    december 2016
+
+SG16/RFF – anläggnings-id (D)
+Används endast på elmarknaden. Obligatoriskt i Z04D för
+produktionsanläggningar.
+Ref.   Name                  Cl.   Form. Stat. Description
+C506   REFERENCE             M            M
+1153   Reference qualifier   M     an..3  M    Z07    Metering point identification
+1154   Reference number      R     an..35 R    Referens till anläggnings-id, fält
+                                               319. Högst 25 tecken.
+1156   Line number           X     an..6
+4000   Reference version     X     an..35
+       number
+Exempel: RFF+Z07:735999888777777778'
+
+DE 1154: Anläggnings-id
+Ange den förbrukningsanläggning som produktionsanläggningen angiven i
+SG8/LIN knyts till.
+
+SG16/RFF – referens till avtal (D)
+Obligatoriskt i Z01, Z03 och Z13.
+Ref.   Name                  Cl.   Form. Stat. Description
+C506   REFERENCE             M            M
+1153   Reference qualifier   M     an..3  M    ANJ Reference to authorisation
+1154   Reference number      R     an..35 R    Referens till avtal/fullmakt, fält 261.
+1156   Line number           X     an..6
+4000   Reference version     X     an..35
+       number
+Exempel: RFF+ANJ:38923'
+
+SG16/RFF – ärendereferens (R)
+Ref.   Name                  Cl.   Form. Stat. Description
+C506   REFERENCE             M            M
+1153   Reference qualifier   M     an..3  M    LI     Line item reference number
+1154   Reference number      R     an..35 R    Ärendereferens, fält 226.
+1156   Line number           X     an..6
+4000   Reference version     X     an..35
+       number
+Exempel: RFF+LI:02390'
+
+SG16/RFF – Tillståndets identitet (D)
+Obligatoriskt i Z14, Z15 och Z18. Skickas ej i Z14N.
+Ref.   Name                  Cl.   Form. Stat. Description
+C506   REFERENCE             M            M
+1153   Reference qualifier   M     an..3  M    Z09     Permission id
+1154   Reference number      R     an..35 R    Tillståndets identitet, fält 325.
+1156   Line number           X     an..6
+4000   Reference version     X     an..35
+       number
+Exempel: RFF+Z09:38923'
+
+
+
+
+PRODAT-APERAK                                   Sida 78 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-
+A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 79 =====
+        Ediel-anvisning PRODAT och APERAK
+ Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1
+                    december 2016
+
+SG17/NAD – Name and address (D)
+
+SG17/NAD – Elanvändare (D)
+Obligatoriskt i Z01, Z02, Z03, Z04, Z05, Z06E, Z08, Z09E, Z13, Z14, Z15
+och Z18. Skickas ej i Z14N.
+Ref.   Name                       Cl.   Form. Stat. Description
+3035   PARTY QUALIFIER            M     an..3  M    UD Ultimate customer (end
+                                                         user)
+C082 PARTY ID DETAILS             R            R
+3039 Party id identification      M     an..35 M    Kund-id, fält 227
+1131 Code list qualifier          D     an..3  D    1    Date of birth
+                                                    SE1 Swedish company
+                                                         registration number
+                                                    SE2 Swedish personal identity
+                                                         number
+3055   Code list responsible      R     an..3  R    89 Assigned by distributor
+       agency, coded                                     (net-owner)
+                                                    260 ebIX®
+                                                          (DE1131 = 1, SE1 el SE2)
+C058   NAME AND ADDRESS           X
+3124   Name and address line      X     an..35
+3124   Name and address line      X     an..35
+3124   Name and address line      X     an..35
+3124   Name and address line      X     an..35
+3124   Name and address line      X     an..35
+C080   PARTY NAME                 D              R
+3036   Party name                 O     an..35   M   Namn1, fält 228-1
+3036   Party name                 O     an..35   O   Namn2, fält 228-2
+3036   Party name                 X     an..35
+3036   Party name                 X     an..35
+3036   Party name                 X     an..35
+3045   Party name format, coded   X     an..3
+C059   STREET                     D              O
+3042   Street and no/P.O. Box     O     an..35   O   Adress1, fält 229-1
+3042   Street and no/P.O. Box     O     an..35   O   Adress2, fält 229-2
+3042   Street and no/P.O. Box     O     an..35   O   Adress3, fält 229-3
+3164   CITY NAME                  D     an..35   O   Postort, fält 232
+3229   COUNTRY SUB-ENTITY         X     an..9
+       IDENTIFICATION
+3251   POSTCODE ID                D     an..9    O   Postnummer – oredigerat, fält 231
+3207   COUNTRY, CODED             O     an..3    R   Landkod enligt ISO 3166, fält
+                                                     316, t.ex.:
+                                                     DK Denmark
+                                                     FI Finland
+                                                     DE Germany
+                                                     NL Netherlands
+                                                     NO Norway
+                                                     SE Sweden
+                                                     GB United Kingdom
+Exempel: NAD+UD+196011112775:SE2:260++ANDERS
+ANDERSSON+STORGATAN 8+STOCKHOLM++10100+SE'
+
+
+
+
+PRODAT-APERAK                                   Sida 79 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-
+A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 85 =====
+       Ediel-anvisning PRODAT och APERAK
+Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1
+                   december 2016
+
+3 APERAK
+3.1 Allmänt om APERAK
+APERAK-meddelandet är en applikationskvittens som hanterar
+fel som upptäcks i samband med att information i det mottagna
+PRODAT-meddelandet läses in i mottagarens applikation.
+Tre olika typer av fel ska kunna upptäckas, för respektive
+anläggning, i PRODAT:
+
+•   Obligatorisk information saknas
+    Ett eller flera fält saknas, fält som enligt reglerna är
+    obligatoriskt.
+•   Ogiltigt/felaktigt innehåll
+    Ett eller flera fält innehåller ogiltiga/felaktiga värden. Gäller
+    för de fält som enligt reglerna endast får innehålla
+    fastställda/fördefinierade koder/värden.
+•   Applikationsfel
+    Övriga generella fel. Förklaring av generella fel anges senare
+    i dokumentet.
+
+Avsikten med en APERAK-kvittens på PRODAT är
+
+• att ge en kvittens på att mottagaren har tagit emot och
+  förstått ett PRODAT-meddelande, inom en viss tidsgräns
+• att varje enskild anläggning i PRODAT-meddelandet avvisas
+  eller godkänns av mottagaren
+• att undvika onödig användning av telefon, telefax, e-post och
+  liknande vid händelse av fel. Genom att bägge aktörer har
+  tillgång till felinformation i APERAK-meddelandet,
+  underlättas eventuella manuella kontakter.
+
+Ett PRODAT-meddelande kontrolleras först i mottagande EDI-
+system, där eventuella EDIFACT syntaxfel upptäcks (vid
+syntax-fel sänds ett negativt CONTRL-meddelande), se den
+generella Ediel-anvisningen. Därefter överförs meddelandet
+(informationen) till mottagarens verksamhetssystem, t.ex. ett
+kundinformationssystem.
+
+Om inga fel upptäcks för någon av anläggningarna vid
+inläsningen av informationen i verksamhetssystemet, godkänns
+respektive anläggning genom att skicka tillbaka positiva
+APERAK-meddelanden till avsändaren.
+Om ett fel upptäcks i en anläggning i mottaget PRODAT-
+meddelande, i samband med inläsningen av informationen i
+verksamhetssystemet, skall den felaktiga anläggningen avvisas
+
+
+PRODAT-APERAK                                   Sida 85 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-
+A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 86 =====
+       Ediel-anvisning PRODAT och APERAK
+Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1
+                   december 2016
+
+med ett negativt APERAK. I det negativa APERAK-meddelandet
+anges vilket eller vilka fel som upptäckts för den avvisade
+anläggningen.
+
+Mottagaren av ett negativt APERAK måste behandla den
+avvisade och felaktiga anläggningen. Därför är det viktigt att
+felen i det negativa APERAK-meddelandet beskrivs så tydligt
+som möjligt, så att mottagaren klarar av att tolka
+felmeddelandena utan att behöva kontakta avsändaren.
+
+Positiva APERAK-meddelanden skall mottagaren däremot
+kunna hantera automatiskt.
+
+S.k. vänteköer används inte i Sverige, dvs ett APERAK-
+meddelande som informerar att ett PRODAT-meddelande har
+kommit fram men ännu inte har hunnit att behandlas.
+
+
+3.2 Regler för APERAK
+Allmänna regler om APERAK återfinns i den generella tekniska
+Edielanvisningen [4]b. Följande specifika regler gäller för
+APERAK-kvittenser som svar på PRODAT:
+
+Begäran
+• APERAK-kvittenser skall alltid skickas och avsändaren av
+  PRODAT ska därför alltid begära APERAK (i BGM-segmentet),
+  detta gäller dock inte PRODAT Z01 där begäran om APERAK
+  inte är obligatoriskt.
+• Om inga fel upptäcks i någon anläggning sänds en positiv
+  APERAK tillbaka till avsändaren av det ursprungliga
+  meddelandet.
+• alla Ediel-aktörer i Sverige skall kunna hantera inkommande
+  APERAK. Det måste inte finnas automatiska rutiner eller
+  EDI-konverteringsmöjligheter av det mottagna APERAK-
+  meddelandet. Huvudsaken är att alla, med eller utan hjälp av
+  datorsystem, uppmärksammar, läser och förstår det
+  mottagna APERAK-meddelandet. Mottagna negativa
+  APERAK-meddelanden måste alltid tas om hand.
+
+Tidpunkter
+• APERAK skall sändas tillbaka inom 30 minuter efter PRODAT
+  ankommit mottagaren. För att hålla tidsramen skall APERAK
+  kunna genereras automatiskt av det system som tar emot
+  PRODAT. Mottagaren av PRODAT ska inte behöva kontakta
+  kunden el dyl för att godkänna eller avvisa en anläggning.
+
+
+
+PRODAT-APERAK                                   Sida 86 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-
+A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 87 =====
+       Ediel-anvisning PRODAT och APERAK
+Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1
+                   december 2016
+
+  Med ”ankommit mottagaren” menas datum och tid, då
+  PRODAT-meddelandet (EDIFACT-filen) var mottagaren
+  tillhanda. Dvs när det ankom till mottagarens EDI-system.
+  Kvittens på detta är när mottagaren av PRODAT skickat
+  tillbaka CONTRL-meddelandet.
+
+Relation PRODAT - APERAK
+• Om det finns flera anläggningar i ett PRODAT-meddelande
+  och endast en anläggning är fel, ska mottagaren avvisa den
+  felaktiga anläggningen och godkänna övriga korrekta
+  anläggningar. Hela PRODAT-meddelandet ska inte avvisas.
+• Det är tillåtet att skicka flera olika APERAK (t ex ett APERAK
+  per anläggning) som svar på ett PRODAT som innehåller flera
+  anläggningar.
+• Det är inte tillåtet att skicka ett APERAK som svar på flera
+  olika PRODAT fr o m oktober 2006.
+
+• Om samma anläggning (med samma bytestidpunkt) kommer
+  i flera PRODAT-meddelanden ska endast anläggningen i det
+  första korrekta meddelandet beaktas. Korrigeringar till
+  felaktiga meddelanden ska naturligtvis tas om hand.
+  Anläggningar i senare inkomna meddelanden avvisas
+  (applikationsfel).
+
+• Ett Z03C som skickas enligt kancelleringsreglerna och som
+  skickas innan Z04L/LK har gått iväg från nätägaren skall
+  alltid besvaras med ett positivt APERAK.
+
+Ordningsföljd
+• Man får inte skicka ett PRODAT/Z04 på en anläggning som
+  tidigare avvisats i ett negativt APERAK, som svar
+  anläggningen i motsvarande Z03.
+• Om ett Z04-meddelande kommer fram före ett positivt
+  APERAK-meddelandet som svar på Z03, bör detta inte leda
+  till fel eller problem hos leverantören. Z04-meddelandet ska
+  betraktas som ett slags kvittens. Inte heller ska det bli något
+  fel när/om det försenade positiva APERAK-meddelandet
+  anländer.
+
+Omsändning
+• Om man rättar och skickar om ett PRODAT-meddelande efter
+  mottagning av ett negativt APERAK, får man inte använda
+  samma meddelandeidentitet (Message Id i BGM-segmentet) i
+  det korrigerade PRODAT-meddelandet, som användes i det
+  ursprungliga PRODAT-meddelandet.
+
+
+
+PRODAT-APERAK                                   Sida 87 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-
+A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 90 =====
+                                          Ediel-anvisning PRODAT och APERAK
+                           Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1 december 2016
+
+Fält   Fältnamn - engelska        Fältnamn – svenska               Notering
+A204   Message function           Meddelandefunktion           R   Giltiga funktionskoder:
+                                                                   27 - hela PRODAT-meddelandet avvisas (används endast i undantagsfall)
+                                                                   34 - PRODAT-meddelandet bearbetat.
+A205   Message date               Meddelandedatum              R   Datum då APERAK-meddelandet skapades i applikationen (ej EDI-systemet)
+A901   Arrival date               Ankomstdatum                 O   Ankomstdatum, avser datum och tidpunkt då man tog emot PRODAT-meddelandet
+                                                                   som APERAK-meddelandet refererar till.
+       Reference to previous      Referens till tidigare           Referens till tidigare meddelande, dvs referens till det PRODAT-meddelande som
+A255                                                           R
+       message                    meddelande                       APERAK-svaret är svar på.
+A207   Sender                     Avsändare (Ediel-ID)         R   Giltigt Ediel-id enligt Ediel-register i Edielportalen samt landskod.
+A208   Recipient                  Mottagare (Ediel-ID)         R   Giltigt Ediel-id enligt Ediel-register i Edielportalen samt landskod.
+                                                                   Anläggnings-id, från PRODAT-fältnr 209. Obligatoriskt i positivt APERAK utom i
+                                  Referens till anläggnings-
+A209   Object ID                                               D   APERAK som svar på Z13, skickas i negativt APERAK om det inte saknades i
+                                  id
+                                                                   mottaget PRODAT.
+                                  Referens till                    Ärendereferens, från PRODAT-fältnr 226. Obligatoriskt i positivt APERAK, skickas i
+A226   Reference to line item                                  D
+                                  ärendereferens                   negativt APERAK om det inte saknades i mottaget PRODAT.
+A902   Application error, coded   ERC-felkod                   R   Övergripande svarskod för aktuell anläggning. Se detaljerade förklaring nedan.
+A903   Free text, coded – 1       Särskild FTX-felkod          D   Särskild fördefinerad felkod. Obligatorisk om ERC-felkod = 40. Se detaljerad förklaring
+                                                                   nedan.
+                                  Referens till PRODAT-            Referens till fältnr i PRODAT. Obligatorisk om ERC-felkod = 41 eller 42. Se detaljerad
+A904   Free text, coded – 2                                    D
+                                  fältnr                           förklaring nedan.
+A905   Error description          Beskrivning                  R   Beskrivning i klartext, se detaljerad förklaring nedan.
+
+
+
+
+PRODAT-APERAK                                   Sida 90 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 91 =====
+                                        Ediel-anvisning PRODAT och APERAK
+                         Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1 december 2016
+
+Förklaring A902 – ERC-felkod
+
+Fältet används för att ange om anläggningen är godkänd eller avvisad.
+Endast följande koder används i Sverige vid svar på PRODAT:
+
+Kod   Förklaring
+
+40    Applikationen kan inte bearbeta meddelandet (“The application could not process the message”)
+
+      Används för att indikera följande typer av applikationsfel:
+      o PRODAT-meddelandetypen/meddelandenamnet (t.ex. Z03) är inte implementerat i applikationen
+      o Meddelandehuvudet i PRODAT kan inte läsas
+      o Meddelande-dubblett, samma meddelandeidentifikation som ett annat tidigare mottaget meddelande.
+      o Ärende-dubblett, samma ärende redan mottaget tidigare (t.ex. samma meddelandenamn, t.ex. Z04, med samma serie-id/
+         anläggnings-id/mätpunkt elanvändare och leverantör.
+      o Aktörs-dubblett, samma meddelande har redan tagits emot från en annan aktör.
+      o Oidentifierad anläggning, anläggningen (serie-id) kan inte (tillsammans med nätområde-id) (unikt) identifieras
+      o Okänd anläggning, avsändaren/mottagaren känner inte till aktuell anläggning.
+      o Befintlig anläggning, avsändaren/mottagaren har redan en etablerad relation till anläggningen.
+      o En period anges där endast en dag/tidpunkt förväntas.
+      o Okänd/ogiltig avsändare av meddelandet.
+41    Obligatoriska data saknas (“Required data missing”)
+
+      Används för att indikera att ett obligatoriskt fält saknas.
+42    Fel innehåll i ett dataelement (“Error in content of a data element”)
+
+      Används för att indikera felaktigt innehåll i ett fält.
+100   Anläggningen är godkänd (”The object is approved”)
+
+      Används för att indikera att anläggningen är godkänd.
+
+
+
+
+PRODAT-APERAK                                   Sida 91 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 92 =====
+                                        Ediel-anvisning PRODAT och APERAK
+                         Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1 december 2016
+
+Förklaring A903 – Särskild FTX-felkod
+Fält A903 måste anges om fält A902 (ERC-felkod) = 40 (Applikationen kan inte bearbeta meddelandet).
+Endast följande fördefinierade koder används i Sverige vid svar på PRODAT:
+Kod   Förklaring
+100   Meddelandetyp/funktion är inte implementerad i applikationen (“The message type/function is not implemented in our
+      application”)
+      PRODAT-meddelandetypen/meddelandenamnet (t.ex. Z03) är inte implementerat i applikationen.
+102   Meddelandehuvudet kunde inte läsas (“The message head could not be read”)
+      Meddelandehuvudet i PRODAT kan inte läsas.
+103   Dubblett av meddelandet (”Duplicate message”)
+      Meddelande-dubblett, samma meddelandeidentifikation som ett annat tidigare mottaget meddelande, dvs jämför
+      meddelandenummer i BGM/1004 (fält 203).
+104   Samma ärende mottaget tidigare (“Similar message received earlier (same metering point, customer and supplier)”)
+      Ärende-dubblett, samma ärende redan mottaget tidigare, dvs jämför ärendereferens i SG16/RFF+LI/1154 (fält 226). T.ex. samma
+      meddelandenamn (Z04), serie-id/anläggnings-id/mätpunkt, elanvändare, leverantör och samma ärendereferens).
+105   Anläggningen kan inte identifieras (”The object can not be identified”)
+      Oidentifierad anläggning, anläggningen (serie-id) kan inte (tillsammans med nätområde-id) (unikt) identifieras.
+106   Liknande meddelande mottaget från annan aktör (”Similar message received earlier from another party (same metering point and
+      customer)”)
+      Aktörs-dubblett, samma meddelande har redan tagits emot från en annan aktör.
+107   Aktören är inte knuten till aktuell anläggning (”The party is not related to the current object”)
+      Okänd anläggning, avsändaren/mottagaren känner inte till aktuell anläggning.
+108   Aktören är redan knuten till aktuell anläggning (”The party is already related to the current object”)
+      Befintlig anläggning, avsändaren/mottagaren har redan en etablerad relation till anläggningen.
+109   En period anges där endast en dag/tidpunkt förväntas (”A period is specified where only a date (and time) is expected”)
+      I de fall det inte är tillåtet att skicka både en start- och sluttidpunkt, avvisas med denna felkod.
+110   Okänd eller ogiltig avsändare (“Unknown or invalid sender”)
+      Exempelvis att parterna behöver ha ett avtal innan meddelanden kan skickas, eller att avsändaren inte finns/inte är godkänd på
+      Edielportalen.
+PRODAT-APERAK                                   Sida 92 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 93 =====
+                                    Ediel-anvisning PRODAT och APERAK
+                     Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1 december 2016
+
+
+Förklaring A904 – Referens till PRODAT fältnr
+
+Fält A904 måste anges om fält A902 (ERC-felkod) = 41 (Obligatoriska data saknas) eller 42 (Fel innehåll i ett
+dataelement).
+I fält A904 skall det anges en referens till det fält som är fel i PRODAT. Som referens används det fördefinierade fältnr
+för respektive fält i PRODAT. För aktuella fältnr i PRODAT, se tabellen i kapitel 2.2. För fältnr som i tabellen eller i
+kapitel 2.5 anges med ett suffix, t.ex. "228-1" anges endast de tre första siffrorna i fält A904.
+Exempel
+Det obligatoriska fältet ”Net area/nätområdesid” saknas i PRODAT. ”Net area/nätområdesid” har fältnr 260 i PRODAT.
+I fält A902 (ERC-felkod) anges kod = 41 (Obligatoriska data saknas).
+I fält A904 (referens till PRODAT fältnr) anges kod = 260 (referens till ”net area/nätområdesid” i PRODAT)
+
+Förklaring A905 - Beskrivning
+
+Fält A905 är obligatoriskt och skall alltid anges, oavsett kod i fält A902 (ERC-felkod), enligt följande regler.
+Om A902 = 40 (Applikationen kan inte bearbeta meddelandet). Använd följande texter för respektive felkoder i A903:
+ A903 A905
+ Kod  Beskrivning
+ 100  Meddelandetyp/funktion är inte implementerad i applikationen
+ 102  Meddelandehuvudet kunde inte läsas
+ 103  Dubblett av meddelandet
+ 104  Liknande meddelande mottaget tidigare
+ 105  Anläggningen kan inte identifieras
+ 106  Liknande meddelande mottaget från annan aktör
+ 107  Aktören är inte knuten till aktuell anläggning
+ 108  Aktören är redan knuten till aktuell anläggning
+ 109  En period anges där endast en dag/tidpunkt förväntas
+ 110  Okänd eller ogiltig avsändare
+
+
+PRODAT-APERAK                                   Sida 93 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 94 =====
+                                      Ediel-anvisning PRODAT och APERAK
+                       Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1 december 2016
+
+Om A902 = 41 (Obligatoriska data saknas) eller 42 (Fel innehåll i ett dataelement).
+ A902 A905
+ Kod  Beskrivning
+ 41   ”<<Fältnamn>> saknas”
+      <<Fältnamn>> skall motsvara aktuellt fältnamn enligt tabellen i kapitel 2.2.
+
+        Specialregel för anläggnings-id och ärendereferens
+        Om referens till anläggnings-id (209) och/eller ärendereferens (226) saknas i PRODAT, skall referens till kundid
+        (227) anges i beskrivningen, för att underlätta felsökning hos mottagaren.
+
+        Exempel: Om fält 260/nätområdes-id saknas, ange beskrivning: ”Nätområdesid saknas”.
+        Exempel: Om fält 209/anläggnings-id saknas, ange beskrivning: ”Anläggnings-id saknas, kundid = 12345”
+42      ”Felaktigt <<fältnamn>> XXXX”
+        <<Fältnamn>> skall motsvara aktuellt fältnamn enligt tabellen i kapitel 2.2, och XXXX skall ersättas med det
+        felaktiga värdet.
+        Exempel:
+             Om fält 260 (nätområdesid) innehåller ett felaktigt värde ”ABC”, ange beskrivning: ”Felaktigt Nätområdesid
+             ABC”.
+
+Om A902 = 100 (Anläggningen är godkänd)
+ A902 A905
+ Kod  Beskrivning
+ 100  “OK”
+
+
+
+
+PRODAT-APERAK                                   Sida 94 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 103 =====
+        Ediel-anvisning PRODAT och APERAK
+ Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1
+                    december 2016
+
+SG3/ERC –Application Error Information (R)
+
+Minst ett ERC-segment ska skickas per anläggning. ERC segmentet repeteras
+för varje fel som upptäcks för en och samma anläggning.
+Skickas APERAK som svar på hela meddelandet (vid fel i huvudet på
+mottaget PRODAT) så skickas minst ett ERC-segment (ett för varje fel som
+upptäcks).
+
+Ref. Name                       Cl.   Form. Stat. Description
+C901 APPLICATION                M           M
+     ERROR DETAIL
+9321 Application error, coded   M     an..3   M    ERC-felkod, fält A902.
+                                                   40 The application could not
+                                                        process the message.
+                                                   41 Required data missing.
+                                                   42 Error in content of a data
+                                                       element.
+                                                   100 The object is approved
+1131   Code list qualifier      X     an..3
+3055   Code list responsible    R     an..3   R    260 ebIX®
+       agency, coded
+Exempel:
+Första anläggningen, godkänd:                     ERC+100::260'
+                                                  FTX, RFF
+
+Andra anläggningen, först upptäckta felet:        ERC+41::260'
+                                                  FTX, RFF
+
+Andra anläggningen, andra upptäckta felet:        ERC+40::260'
+                                                  FTX, RFF
+
+DE 9321: Felkod
+
+40            Applikationen kunde inte bearbeta meddelandet
+              T.ex. när matchning ej är möjlig eller fel vid inläsning.
+
+41            Obligatoriska data saknas
+              Används när ett fält i PRODAT, som enligt villkoren är
+              obligatoriskt, saknas.
+
+42            Fel innehåll i ett dataelement
+              Används när ett fält är felaktigt (t ex om ett fält inte innehåller
+              en giltig fördefinierad kod).
+
+100           Anläggningen är godkänd
+              Används när en anläggning i PRODAT-meddelandet är
+              godkänd.
+
+
+
+
+PRODAT-APERAK                                   Sida 103 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-
+A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 104 =====
+        Ediel-anvisning PRODAT och APERAK
+ Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1
+                    december 2016
+
+SG3/FTX – Free text (R)
+Varje ERC-segment skall efterföljas av ett FTX-segment. FTX-segmentet
+anges enligt ett av följande två alternativ (godkänd/avvisad anläggning).
+
+SG3/FTX – tilläggsinformation för godkänd anläggning (D)
+Obligatorisk för godkänd anläggning (ERC-kod = 100).
+Ref. Name                    Cl.   Form. Stat. Description
+4451 TEXT SUBJECT            M     an..3 M     AAO Error description
+     QUALIFIER
+4453 TEXT FUNCTION,          X     an..3
+     CODED
+C107 TEXT REFERENCE          O              X
+4441 Free text, coded        M     an..3    X
+1131 Code list qualifier     O     an..3    X
+3055 Code list responsible   O     an..3    X
+     agency, coded
+C108 TEXT LITERAL            R              R
+4440 Free text               M     an..70   M   Beskrivning, fält A905.
+                                                Alltid ”OK”.
+4440   Free text             O     an..70   X
+4440   Free text             O     an..70   X
+4440   Free text             O     an..70   X
+4440   Free text             O     an..70   X
+3453   LANGUAGE              X     an..3
+Exempel: FTX+AAO+++OK'
+
+SG3/FTX – tilläggsinformation för avvisad anläggning (D)
+Obligatorisk för avvisad anläggning (ERC-kod = 40, 41 eller 42).
+Ref. Name                    Cl.   Form. Stat. Description
+4451 TEXT SUBJECT            M     an..3 M     AAO Error description
+     QUALIFIER
+4453 TEXT FUNCTION,          X     an..3
+     CODED
+C107 TEXT REFERENCE          O              R
+4441 Free text, coded        M     an..3    R   Särskild FTX-felkod, fält A903
+                                                eller
+                                                Ref till PRODAT-fältnr, fält A904.
+1131 Code list qualifier     O     an..3    X
+3055 Code list responsible   O     an..3    R   260    ebIX®
+     agency, coded
+C108 TEXT LITERAL            R              R
+4440 Free text               M     an..70   M   Beskrivning, fält nr A905.
+4440 Free text               O     an..70   X
+4440 Free text               O     an..70   X
+4440 Free text               O     an..70   X
+4440 Free text               O     an..70   X
+3453 LANGUAGE                X     an..3
+Exempel:
+FTX+AAO++242::260+Produktkod saknas'
+
+För ytterligare förklaring av fält A903-A905, se kapitel 3.3.
+
+
+
+PRODAT-APERAK                                   Sida 104 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-
+A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 105 =====
+        Ediel-anvisning PRODAT och APERAK
+ Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1
+                    december 2016
+
+SG4/RFF – Reference (D)
+
+SG4/RFF - Referens till anläggning (D)
+Obligatorisk om anläggnings-id finns för kvitterad anläggning i PRODAT.
+Ref.   Name                  Cl.   Form. Stat. Description
+C506   REFERENCE             M            M
+1153   Reference qualifier   M     an..3  M    Z07    Metering point identification
+1154   Reference number      R     an..35 R    Referens till anläggnings-id, fält
+                                               A209. Högst 25 tecken.
+1156   Line number           X     an..6
+4000   Reference version     X     an..35
+       number
+Exempel: RFF+Z07:735999888777777778'
+
+SG4/RFF - Referens till ärendereferens (D)
+Obligatorisk om ärendereferens finns för kvitterad anläggning i PRODAT.
+Ref.   Name                  Cl.   Form. Stat. Description
+C506   REFERENCE             M            M
+1153   Reference qualifier   M     an..3  M    LI     Line item reference number
+1154   Reference number      R     an..35 R    Referens till ärendereferens, fält
+                                               A226.
+1156   Line number           X     an..6
+4000   Reference version     X     an..35
+       number
+Exempel: RFF+LI:Z03-00389'
+
+UNT – Message Trailer (M)
+Ref.    Name                       Cl. Form. Description
+0074    NUMBER OF SEGMENTS         M n..6    Number of segments in the message,
+        IN THE MESSAGE                       including UNH and UNT.
+0062    MESSAGE REFERENCE          M an..14 Control reference number. Equal to
+        NUMBER                               0062 in UNH
+Exempel: UNT+25+1'
+
+För exempel på APERAK-meddelande, se Bilaga 5 Exempel på
+EDIFACT filer.
+
+
+
+
+PRODAT-APERAK                                   Sida 105 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-
+A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 114 =====
+        Ediel-anvisning PRODAT och APERAK
+ Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1
+                    december 2016
+
+Bilaga 2
+PRODAT - Användning av flera register (räkneverk)
+
+En anläggning kan ha flera mätare och register (räkneverk). Det
+vanligaste är att det finns två register, ett för höglast och ett för
+låglasttid. Uppgifter om de olika mätarna/registren ska
+rapporteras i PRODAT. Vid dubbeltariff ska t ex vissa uppgifter
+redovisas för respektive register. Exempel på en sådan
+anläggning:
+
+
+                                            Anläggningsid: 1234567
+                          Anläggning        Nätområde: MMO
+
+
+
+
+ Verk 1                                           Verk 2
+
+
+ Tidstariff: 06-22
+                                                 Tidstariff: Övrig tid
+
+Flera register rapporteras endast i Z04, Z06 och Z10.
+Flera register anges genom att LIN-segmentet, kopplat till ett
+anläggnings-id, upprepas för varje register och indikeras med
+ett sekvensnummer (sub line indicator, C829/1082).
+Information om respektive anläggning/register anges sedan i
+efterföljande segment, efter LIN-segmentet.
+
+För en anläggning med flera mätare ska varje mätare få ett
+unikt (fiktivt) anläggnings-id och rapporteras var för sig. Man
+kan således inte rapportera flera mätare per anläggning, utan
+de måste hanteras som om de vore separata anläggningar.
+
+
+
+
+PRODAT-APERAK                                   Sida 114 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-
+A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 115 =====
+       Ediel-anvisning PRODAT och APERAK
+Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1
+                   december 2016
+
+Exempel: Fyra anläggningar, anläggning nr 2 och 4 har två
+register, övriga endast ett.
+
+Första anläggningen, ett register:       LIN+1++1234565:::89'
+Aktuell information om första            QTY, CAV etc.
+anläggningen/registret
+Andra anläggningen, första registret:    LIN+2++1234567:::89+1:1'
+Aktuell information om andra             QTY, CAV etc.
+anläggningen/första registret
+Andra anläggningen, andra registret:     LIN+3++1234567:::89+1:2'
+Aktuell information om andra             QTY, CAV etc.
+anläggningen/andra registret
+Tredje anläggningen, ett register:       LIN+4++1234568:::89'
+Aktuell information om tredje            QTY, CAV etc.
+anläggningen/registret
+Fjärde anläggningen, första registret:   LIN+5++1234569:::89+1:1'
+Aktuell information om fjärde            QTY, CAV etc.
+anläggningen/första registret
+Fjärde anläggningen, andra registret:    LIN+6++1234569:::89+1:2'
+Aktuell information om fjärde            QTY, CAV etc.
+anläggningen/andra registret
+
+Notera att sekvensnumret för register (C829/1082) alltid börjar
+om på 1 för en ny anläggning.
+
+Uppgifter om olika register är endast aktuellt i funktionerna
+Z04, Z06 och Z10 och anges således inte i funktionerna Z03,
+Z05, Z08 och Z09.
+
+Har mätaren flera register ska alla uppgifter om alla register
+anges, dvs man får inte utelämna uppgifter om ett register även
+om det har exakt samma uppgifter som ett annat register.
+
+Nedanstående tabell visar vilka uppgifter som är aktuella att ha
+med för register 2 och högre. Övriga ”icke-obligatoriska”
+uppgifter under SG8/LIN är valfria (t ex övriga fält i SG14/CAV-
+CCI, SG16/RFF och SG17/NAD) och behöver inte skickas för
+register 2 och högre (eftersom det alltid är samma uppgifter
+som för register 1). Mottagaren ska alltid använda de ”icke-
+obligatoriska” uppgifterna från register 1 och ignorera
+eventuella ”icke-obligatoriska” uppgifterna från register 2 och
+högre.
+
+
+
+
+PRODAT-APERAK                                   Sida 115 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-
+A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 116 =====
+       Ediel-anvisning PRODAT och APERAK
+Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1
+                   december 2016
+
+Följande information ska enligt villkoren nedan skickas för
+register 2 och högre. För första registret gäller de villkor som
+finns i tabellen i kapitel 2.2.
+
+Nr  Namn                       Z04 Z06 Z10 Notering
+    (segment/dataelement)
+209 Anläggnings-id             R   R    R    Samma för alla register
+    (SG8/LIN/C212/7140)
+258 Sekvensnummer*             R   R    R    Olika för olika register
+    (SG8/LIN/C829/1082)
+213 Uppskattad årsenergi       R   D    D    Kan variera för olika
+    (SG12/QTY+31/C186/6060)                  register. Skickas i Z06
+                                             och Z10 om uppgiften
+                                             fanns med för register
+                                             1.
+214 Konstant för mätaren       D   D    D    Kan variera för olika
+    (SG14/CAV/C889/7110)                     register. Skickas alltid i
+    CCI=Z02                                  Z04, Z06F och Z10 om
+                                             mätarställningar
+                                             skickas i
+                                             MSCONS/UTILTS.
+                                             Skickas i Z06E och
+                                             Z06G om uppgiften
+                                             fanns med för register
+                                             1.
+218 Antal siffror, mätare      D   D    D    Kan variera för olika
+    (SG14/CAV/C889/7110)                     register. Skickas alltid i
+    CCI=Z05                                  Z04, Z06F och Z10 om
+                                             mätarställningar
+                                             skickas i
+                                             MSCONS/UTILTS.
+                                             Skickas i Z06E och
+                                             Z06G om uppgiften
+                                             fanns med för register
+                                             1.
+259 Mätare, tidsintervall      D   D    D    Olika för olika register.
+    (räkneverkskod)                          Skickas alltid i Z04,
+    (SG14/CAV/C889/7110)                     Z06F och Z10 om
+    CCI=Z16                                  mätarställningar
+                                             skickas i
+                                             MSCONS/UTILTS.
+                                             Skickas i Z06E och
+                                             Z06G om uppgiften
+                                             fanns med för register
+                                             1.
+
+* Fältet sekvensnummer (258) används för att ange om det är
+en mätare med flera register eller inte. Sekvensnummer (258)
+ska endast fyllas i för mätare med flera register. Annars
+utelämnas uppgiften.
+
+
+
+
+PRODAT-APERAK                                   Sida 116 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-
+A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 119 =====
+        Ediel-anvisning PRODAT och APERAK
+ Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1
+                    december 2016
+
+Bilaga 4
+APERAK - Regler för kontroll av PRODAT
+
+Listan i denna bilaga innehåller regler och villkor för hur varje enskilt fält i
+mottagande PRODAT skall kontrolleras (när/om de finns med i PRODAT).
+
+Status för respektive fält och funktion i PRODAT, dvs om fältet är
+obligatoriskt eller inte, hänvisas till tabellen i kapitel 2.2.
+
+Gråmarkerade fält behöver inte kontrolleras (oavsett om de finns med eller
+inte i mottaget meddelande).
+
+Samtliga datum bör kontrolleras att de har rätt format (även om de är
+gråmarkerade i listan). För rätt format, se respektive DTM-segment i
+segmentbeskrivningen för PRODAT i kapitel 2.6.
+
+För många fält finns en formatkvalificerare eller kodlisteansvarig. Är denna
+felaktig returneras fel i APERAK för det fält som
+kvalificeraren/kodlisteansvarig hör till. Exempel: Om koderna i dataelement
+1131 eller 3055 är felaktiga för elanvändaren i NAD+UD anges fel med fält
+227, kund-id.
+
+Notera ändringen från oktober 2007 att meddelanden med eventuell
+medskickad "extra information" som i anvisningen står som "X" eller "D"
+men där villkoret inte är uppfyllt inte ska avvisas med negativt APERAK.
+Eventuellt innehåll behöver därför varken läsas eller kontrolleras av
+mottagaren, skulle man göra en kontroll av sådana fält och innehållet visar sig
+vara felaktigt så får detta inte resultera i negativt APERAK.
+
+Innan villkoren för fälten kontrolleras enligt nedan är det viktigt att först
+kontrollera i kapitel 2.2 om fältet ska vara med eller inte för den mottagna
+undertypen.
+
+
+
+
+PRODAT-APERAK                                   Sida 119 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-
+A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 122 =====
+                                       Ediel-anvisning PRODAT och APERAK
+                        Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1 december 2016
+
+
+  Fältkod Fältnamn - engelska      Fältnamn - svenska                 Villkor för fältet
+      306 Installation status      Installationsstatus                Giltiga koder: Z11, Z12
+     307 Tariff code               Tariffkod                          Giltiga koder: enligt bilateral ök.
+     220 Priority                  Prioritet                          Giltiga koder: P, A
+     222 Meter reading frequency   Rapporteringsfrekvens              Giltiga koder: D, W, M, Q, Y
+     223 Reason for transaction    Transaktionstyp (undertyp)         Kod Z22 (endast tillåtet för Z01, Z02, Z03, Z04, Z05) (undertyp L)
+                                                                      Kod Z23 (endast tillåtet för Z01, Z02, Z03, Z04, Z05, Z08) (undertyp
+                                                                      LK), för Z08 endast efter bilateral överenskommelse.
+                                                                      Kod Z24 (endast tillåtet för Z03, Z04, Z05, Z15) (undertyp C)
+                                                                      Kod Z25 (endast tillåtet för Z03, Z04, Z05, Z08) (undertyp
+                                                                      H/unspecified)
+                                                                      Kod Z26 (endast tillåtet för Z04) (undertyp A)
+                                                                      Kod Z70 (endast tillåtet för Z04, Z09) (undertyp D)
+                                                                      Kod Z27 (endast tillåtet för Z09) (undertyp B)
+                                                                      Kod Z96 (endast tillåtet för Z14) (undertyp N)
+                                                                      Kod E34 (endast tillåtet för Z06, Z09) (undertyp E)
+                                                                      Kod E32 (endast tillåtet för Z06, Z09) (undertyp G)
+                                                                      Kod E64 (endast tillåtet för Z06, Z09) (undertyp F)
+                                                                      Kod E58 (endast tillåtet för Z10) (undertyp M)
+                                                                      Kod S17 (endast tillåtet för Z13, Z14, Z15, Z18) (undertyp V)
+                                                                      Kod S18 (endast tillåtet för Z13, Z14, Z15) (undertyp VH)
+                                   Mätare, tidsintervall (ej timvis
+     259 Meter time frame                                             Giltiga koder: enligt Svenska kraftnäts kodlista för räkneverkskoder.
+                                   mätning, räkneverkskod)
+           Method for balance
+     254                           Avräkningsmetod (dygn/månad)       Giltiga koder: Z31, Z32
+           settlement
+                                                                      Giltiga koder se tabell vid segmentbeskrivningen ovan (el), 6109,
+     242 Product (code/type)       Produktkod
+                                                                      6113 (naturgas)
+         Product identification
+     506                           Produkt id (Energiprodukt)         Giltig kod: 8716867000030
+         (Energy product)
+     310 Party connected to grid   Kundstatus                         Giltiga koder: Z41
+         Type of Metering Point
+                                   Riktning (Typ av anläggning)       Giltiga koder: E17, E18, E19
+     513 (Flow Direction)
+PRODAT-APERAK                                   Sida 122 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 123 =====
+                                        Ediel-anvisning PRODAT och APERAK
+                         Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1 december 2016
+
+
+  Fältkod Fältnamn - engelska         Fältnamn - svenska                   Villkor för fältet
+      322 Permission status           Tillståndets status                  Giltiga koder: A74, A75, A76, A13
+     323 Permission purpose           Tillståndets syfte                   Giltiga koder: B71, B72, B73, B74, B75, B76
+     324 Permssion end reason         Orsak till tillståndets upphörande   Giltiga koder: B77, B78, B79, B80, E37
+     224 Meter no.                    Mätarnummer                          Ej blankt
+                                                                           Z10: fält 224 får ej ha samma värde som fält 225
+     225 Old Meter no.                Gammalt mätarnummer (Vid byte)
+     308 Suppliers contract no        Leverantörens avtalsnr
+     260 Net Area                     Nätområdesid                         Z01, Z03 - områdesid måste finnas i mottag. System
+                                                                           Z02, Z04L, LK, K - samma omr.id som i avsänd Z01 resp. Z03
+                                                                           Z04A - giltigt omr.id där leverantören är anvisad leverantör.
+                                                                           Övriga - områdesid måste finnas i mottag. System
+                                                                           Endast naturgasmarknaden.
+     320 Calorific Value Area         Värmevärdesområde
+                                                                           Z04, Z06G - ej blankt
+     240 Serial Id                    Serie-id
+     319 Reference to metering point Referens till anläggning              Anläggningsid måste finnas i mottagarens system
+     261 Reference to authorisation   Referens till avtal/fullmakt         Ej blankt
+     226 Reference to line item       Ärendereferens                       Z02 – samma som i motsvarande Z01
+                                                                           Z04L, LK – samma som i motsvarande Z03
+                                                                           Z05L – samma som i motsvarande eventuell Z08H
+                                                                           Z14 – samma som i motsvarande Z13
+                                                                           Z15 – samma som i motsvarande eventuell Z18
+                                                                           Z0xC, Z1xC – samma som i motsvarande Z0x, Z1x-meddelande som
+                                                                           ska annulleras
+                                                                           Övriga – ej blankt
+     325 Permission ID                Tillståndets id                      Z15, Z18 – id ska vara känt
+                                                                           Ska vara med i Z01, Z02, Z03, Z04, Z05, Z06E, Z08, Z09E, Z13, Z15,
+          End user                    Elanvändare
+                                                                           Z18
+
+PRODAT-APERAK                                   Sida 123 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 137 =====
+             Ediel-anvisning PRODAT och APERAK
+ Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1 december
+                                2016
+
+Exempel på PRODAT Z13
+
+UNA:+.? '
+UNB+UNOC:3+11111:ZZ+22222:ZZ+260614:1601+2G6F++23-DGI-PRODAT++1'
+UNH+2A34+PRODAT:D:97A:UN:E2SE6A'
+BGM+Z13+02382812480004+9+AB'
+DTM+137:202606141248:203'
+DTM+ZZZ:1:805'
+NAD+FR+11111:160:SVK+++++++SE'
+NAD+DO+22222:160:SVK+++++++SE'
+LIN+1'
+DTM+90:202607010000:203'                 Starttidpunkt för påbörjande av rapportering
+                                         (Rapportstartdatum), i exemplet skickas ej
+                                         sluttidpunkt.
+CCI++Z04'                                Mätmetod, i exemplet ”nätägaren avgör”.
+CAV+Z03'
+CCI++Z22'                                Riktning (Typ av anläggning), i exemplet ”ej
+CAV+E19'                                 specificerat”, koden för ”combined” används.
+CCI++Z14'
+CAV+::::8716867000030'                   Energiprodukt (aktiv energi)
+CCI++Z12'
+CAV+:::D'                                Tidsplan för överföring, (Önskad
+                                         rapporteringsfrekvens) ”D” = Dygn
+CCI++Z13'
+CAV+S17'                                 Undertyp (transaktionstyp), kod för ”Start eller
+                                         slut av mätvärdesrapportering” (Z13V)
+CCI++Z24'
+CAV+B72'                                 Syfte, kod för ”Avtal”
+RFF+LI:02382812480014'                   Ärendereferens, återkommer sedan i PRODAT
+                                         Z14-svaret
+RFF+ANJ:38923'                           Referens till avtal
+NAD+UD+196805029268:SE2:260++Olsson Ulla+++++SE'
+UNT+24+2A34'
+UNZ+1+2G6F
+
+Exempel på PRODAT Z14
+
+UNA:+.? '
+UNB+UNOC:3+22222:ZZ+11111:ZZ+260616:0801+MBC32++23-DGI-PRODAT++1'
+UNH+2A4+PRODAT:D:97A:UN:E2SE6A'
+BGM+Z14+876540005+9+AB'
+DTM+137:202606160701:203'
+DTM+ZZZ:1:805'
+NAD+FR+22222:160:SVK+++++++SE'
+NAD+DO+11111:160:SVK+++++++SE'
+LIN+1++735999888999999996:::9'           Första anläggningen
+DTM+90:202607010000:203'                 Starttidpunkt för påbörjande av rapportering
+                                         (Rapportstartdatum), i exemplet skickas ej
+                                         sluttidpunkt.
+DTM+354:15:806'                          Tidslängd på mätvärden, kvartsvärden.
+DTM+693:202606150700:203'                Tillståndet skapat kl 08.00 (kl 07.00 i
+                                         normaltid)
+CCI++Z04'
+
+
+
+
+PRODAT-APERAK                                   Sida 137 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 138 =====
+             Ediel-anvisning PRODAT och APERAK
+ Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1 december
+                                2016
+
+CAV+Z04'                                                   Mätmetod, i exemplet ”kvartsmätt”.
+CCI++Z12'                                                  Tidsplan för överföring,
+CAV+:::D'                                                  (Rapporteringsfrekvens) ”D” = Dygn
+CCI++Z13'                                                  Undertyp (transaktionstyp), kod för ”Start
+CAV+S17'                                                   eller slut av mätvärdesrapportering”, Z14V
+CCI++Z14'                                                  Energiprodukt (aktiv energi)
+CAV+::::8716867000030'
+CCI++Z22'                                                  Riktning (Typ av anläggning), i exemplet ”ej
+CAV+E19'                                                   specificerat”, koden för ”combined” används.
+CCI++Z23'                                                  Status, kod för ”Validated” (tillstånd giltigt)
+CAV+A74'
+CCI++Z24'                                                  Syfte, kod för ”Avtal”
+CAV+B72'
+RFF+Z05:SYL'                                               Nätområde
+RFF+LI:02382812480014'                                     Ärendereferens, samma som i PRODAT Z13
+RFF+Z09:P015673'                                           Tillståndets id
+NAD+UD+196805029268:SE2:260++Olsson-Hammarlundh Ulla+++++SE'
+NAD+IT+735999888999999996::9+++BRAGEGATAN 10+SUNDSVALL++85733+SE'
+LIN+2++735999888000000116:::9'                             Andra anläggningen
+<Vidare uppgifter om den andra anläggningen är här utelämnade>
+UNT+nn+2A4'
+UNZ+1+MBC32'
+
+Exempel på PRODAT Z14N
+
+UNA:+.? '
+UNB+UNOC:3+22222:ZZ+11111:ZZ+260705:0801+MBCD12++23-DGI-PRODAT++1'
+UNH+2AB4+PRODAT:D:97A:UN:E2SE6A'
+BGM+Z14+876541234+9+AB'
+DTM+137:202607050701:203'
+DTM+ZZZ:1:805'
+NAD+FR+22222:160:SVK+++++++SE'
+NAD+DO+11111:160:SVK+++++++SE'
+LIN+1'
+CCI++Z13'                                Undertyp (transaktionstyp), kod för ”Nekad
+CAV+Z96'                                 rapportering”, Z14N
+CCI++Z23'                                Status, kod för ”Timed out” (tillstånd ej givet
+CAV+A76'                                 inom tidsram)
+RFF+LI:02382812480014'                   Ärendereferens, samma som i PRODAT Z13
+UNT+13+2AB4'
+UNZ+1+MBCD12'
+
+Exempel på PRODAT Z15
+
+UNA:+.? '
+UNB+UNOC:3+22222:ZZ+11111:ZZ+260618:0902+MBC24++23-DGI-PRODAT++1'
+UNH+2A5+PRODAT:D:97A:UN:E2SE6A'
+BGM+Z15+876541204+9+AB'
+DTM+137:202606180801:203'
+DTM+ZZZ:1:805'
+NAD+FR+22222:160:SVK+++++++SE'
+NAD+DO+11111:160:SVK+++++++SE'
+LIN+1++735999888777777778:::9'           Anläggnings-id
+
+
+
+
+PRODAT-APERAK                                   Sida 138 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 139 =====
+             Ediel-anvisning PRODAT och APERAK
+ Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1 december
+                                2016
+
+DTM+693:202606150700:203'                Tillståndet skapat kl 08.00 (kl 07.00 i
+                                         normaltid)
+DTM+164:202606180000:203'                Tillståndet upphör, (samma datum som i
+                                         PRODAT Z18 nedan)
+CCI++Z13'                                Undertyp (transaktionstyp), kod för ”Start eller
+CAV+S17'                                 slut av mätvärdesrapportering”
+CCI++Z23'                                Status, kod för ”Invalid” (tillståndet ej längre
+CAV+A75'                                 giltigt)
+CCI++Z25'                                Orsak till att tillståndet upphört, kod för
+CAV+B79'                                 ”Revocation” (Slutkunden har återkallat
+                                         tillståndet)
+RFF+Z05:SYL'                             Nätområde
+RFF+LI:02382812450014'                   Ärendereferens, samma som i PRODAT Z18
+RFF+Z09:P015673'                         Tillståndets id
+NAD+UD+196805029268:SE2:260++Olsson-Hammarlundh Ulla+++++SE'
+UNT+20+2A5'
+UNZ+1+MBC24'
+
+Exempel på PRODAT Z15C
+
+UNA:+.? '
+UNB+UNOC:3+22222:ZZ+11111:ZZ+261118:1402+MBC26++23-DGI-PRODAT++1'
+UNH+2C6+PRODAT:D:97A:UN:E2SE6A'
+BGM+Z15+876541404+9+AB'
+DTM+137:202611181401:203'
+DTM+ZZZ:1:805'
+NAD+FR+22222:160:SVK+++++++SE'
+NAD+DO+11111:160:SVK+++++++SE'
+LIN+1++735999888777777778:::9'           Anläggnings-id
+DTM+693:202606150800:203'                Tillståndet skapat kl 08.00
+DTM+164:202611180000:203'                Tidpunkt (datum) då tillståndet skulle ha
+                                         upphört, (samma datum som i det PRODAT
+                                         Z15 som detta är en kancellering av)
+CCI++Z13'                                Undertyp (transaktionstyp), kod för
+CAV+Z24'                                 ”Kancellering”
+CCI++Z23'                                Status, kod för ”Validated” (tillståndet
+CAV+A74'                                 fortsätter vara giltigt)
+CCI++Z25'                                Orsak till att tillståndet skulle ha upphört, här
+CAV+E37'                                 kod för ”No valid grid access contract” (Ej
+                                         giltigt nätavtal)
+RFF+Z05:SYL'                             Nätområde
+RFF+LI:083828412540014'                  Ärendereferens, samma som i det PRODAT
+                                         Z15 som nu kancelleras
+RFF+Z09:P015855'                         Tillståndets id
+NAD+UD+196805029268:SE2:260++Olsson-Hammarlundh Ulla+++++SE'
+UNT+20+2C6'
+UNZ+1+MBC26'
+
+
+
+
+PRODAT-APERAK                                   Sida 139 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B
+Senast uppdaterad: 2026-06-30
+
+===== ORIGINAL FULL PDF PAGE 140 =====
+             Ediel-anvisning PRODAT och APERAK
+ Version 26.A och 16.B – giltig fr o m 1 april 2026 och 1 december
+                                2016
+
+Exempel på PRODAT Z18
+
+UNA:+.? '
+UNB+UNOC:3+11111:ZZ+22222:ZZ+260618:0612+2G9F++23-DGI-PRODAT++1'
+UNH+2ABC+PRODAT:D:97A:UN:E2SE6A'
+BGM+Z18+0238287480004+9+AB'
+DTM+137:202606180511:203'
+DTM+ZZZ:1:805'
+NAD+DO+22222:160:SVK+++++++SE'
+NAD+FR+11111:160:SVK+++++++SE'
+LIN+1++735999888777777778:::9'           Anläggnings-id
+DTM+693:202606150700:203'                Tillståndet skapat kl 08.00 (kl 07.00 i
+                                         normaltid)
+DTM+164:202606180000:203'                Tjänsten upphör
+CCI++Z13'                                Undertyp (transaktionstyp), kod för ”Start eller
+CAV+S17'                                 slut av mätvärdesrapportering”
+CCI++Z25'                                Orsak till att tillståndet upphört, kod för
+CAV+B79'                                 ”Revocation” (Slutkunden har återkallat
+                                         tillståndet)
+RFF+Z05:SYL'                             Nätområde
+RFF+LI:02382812450014'                   Ärendereferens
+RFF+Z09:P015673'                         Tillståndets id
+NAD+UD+196805029268:SE2:260++Olsson-Hammarlundh Ulla+++++SE'
+UNT+18+2ABC'
+UNZ+1+2G9F'
+
+
+
+
+PRODAT-APERAK                                   Sida 140 av 140
+Dokumentnamn: 260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B
+Senast uppdaterad: 2026-06-30
