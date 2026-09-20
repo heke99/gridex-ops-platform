@@ -31,11 +31,11 @@
     "conclusion": "success"
   },
   "updated_at": "2026-09-20",
-  "status": "IN_PROGRESS",
+  "status": "PARTIAL",
   "branch": "codex/ediel-gas-identity-20260920",
   "base_head_sha": "561c53ad9ba413eeb4f37ab1b029b1a5ba26d320",
-  "active_item": "Task3 Batch B GAS240 outgoing TIM/SCH identity",
-  "next_action": "Task3 authorized RED/GREEN implementation, finalgates, independentreview/exactCI/merge/main then percellacceptance",
+  "active_item": "GAS240 Batch B locally verified; paused before independent review and PR",
+  "next_action": "On user resume: read gas-identity-resume.md and final audit; independent completedruntime review, exactCI/PR/merge/main, then twelve-cell acceptance",
   "runtime_authorized": true,
   "last_accepted_pr": 355,
   "last_merged_pr": 355,
@@ -74,9 +74,33 @@
   "runtime_scope": "Source-approved strict GAS240 identity pureowner/copy/clear/persistedrejection; exactfixtureauthorityamendment; no producer",
   "runtime_author": "gas_identity_runtime",
   "runtime_base": "485a19e6",
-  "runtime_test_checkpoint": null,
-  "runtime_remote_parent": "6485354cb18e1634c6eac524c4ea4a2b4d42a849",
-  "runtime_checkpoint": null,
+  "runtime_test_checkpoint": {
+    "local": "5c2e494b26a10c234f81303a9eef332ceeabfdc9",
+    "remote": "79cfe988b65c9fca1309c46fc3400b396afd8558",
+    "tree": "748647cabd336df1bbe284d0c057e81958dc39c0",
+    "verification": "fresh fetch diff0",
+    "tests": 48,
+    "passed": 8,
+    "expected_failed": 40,
+    "receipt": "red-02"
+  },
+  "runtime_remote_parent": "79cfe988b65c9fca1309c46fc3400b396afd8558",
+  "runtime_checkpoint": {
+    "runtime": "153b7d5aafc42231526029cfd3cb55e6c51e8c95",
+    "full_passed": 4968,
+    "focused_passed": 117,
+    "quality_passed": 45,
+    "strip_only_passed": 818,
+    "gates_passed": 15,
+    "node": "24.19.0",
+    "independent_review": "NOT_STARTED",
+    "CI": "NOT_STARTED",
+    "files": 313,
+    "new_tests": 54,
+    "evidence_commit": "5bc68474",
+    "source_hashes": 1699,
+    "prior_audit_hashes": 638
+  },
   "codec_exception": "sanitizeSegment canonical terminal apostrophe releaseparity only; independent source/architecture amendment, root56db1f3a",
   "runtime_review": "NOT_STARTED Batch B",
   "runtime_fix_round": 0,
@@ -103,5 +127,7 @@
     "remote": "6485354cb18e1634c6eac524c4ea4a2b4d42a849",
     "tree": "1c01fc7c24e46bfee755b5c2c0daa1d97119c7ba",
     "verification": "fresh fetch diff0"
-  }
+  },
+  "paused": true,
+  "pause_reason": "User requested durable save and handoff to another chat"
 }

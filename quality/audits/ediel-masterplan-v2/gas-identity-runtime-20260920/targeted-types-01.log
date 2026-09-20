@@ -1,0 +1,23 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> gridex-ops-platform@0.1.0 typecheck:tests
+> tsc --noEmit -p tsconfig.tests.json
+
+__tests__/ediel-prodat-gas-identity-consumers.test.ts(34,44): error TS2322: Type '{ code: string; senderEdielId: string; receiverEdielId: string; bgmReference: string; transactionReference: string; customerName: string; meterPointId: string; meterPointIdAgency: "89"; }' is not assignable to type 'ProdatEngineProductionContext'.
+  Type '{ code: string; senderEdielId: string; receiverEdielId: string; bgmReference: string; transactionReference: string; customerName: string; meterPointId: string; meterPointIdAgency: "89"; }' is not assignable to type '{ registers?: readonly ProdatMeterRegisterInput[] | undefined; meterPointIdAgency?: "9" | "89" | undefined; code: ProdatEngineCode; bgmReference: string; ... 45 more ...; dependentConditionFacts?: ProdatDependentConditionFacts | ... 1 more ... | undefined; }'.
+    Types of property 'code' are incompatible.
+      Type 'string' is not assignable to type 'ProdatEngineCode'.
+__tests__/ediel-prodat-gas-identity-consumers.test.ts(38,47): error TS2322: Type '{ code: string; senderEdielId: string; receiverEdielId: string; bgmReference: string; transactionReference: string; customerName: string; meterPointId: string; meterPointIdAgency: "89"; }' is not assignable to type 'ProdatEngineProductionContext'.
+  Type '{ code: string; senderEdielId: string; receiverEdielId: string; bgmReference: string; transactionReference: string; customerName: string; meterPointId: string; meterPointIdAgency: "89"; }' is not assignable to type '{ registers?: readonly ProdatMeterRegisterInput[] | undefined; meterPointIdAgency?: "9" | "89" | undefined; code: ProdatEngineCode; bgmReference: string; ... 45 more ...; dependentConditionFacts?: ProdatDependentConditionFacts | ... 1 more ... | undefined; }'.
+    Types of property 'code' are incompatible.
+      Type 'string' is not assignable to type 'ProdatEngineCode'.
+__tests__/ediel-prodat-gas-identity-consumers.test.ts(42,40): error TS2322: Type '{ code: string; senderEdielId: string; receiverEdielId: string; bgmReference: string; transactionReference: string; customerName: string; meterPointId: string; meterPointIdAgency: "89"; }' is not assignable to type 'ProdatEngineProductionContext'.
+  Type '{ code: string; senderEdielId: string; receiverEdielId: string; bgmReference: string; transactionReference: string; customerName: string; meterPointId: string; meterPointIdAgency: "89"; }' is not assignable to type '{ registers?: readonly ProdatMeterRegisterInput[] | undefined; meterPointIdAgency?: "9" | "89" | undefined; code: ProdatEngineCode; bgmReference: string; ... 45 more ...; dependentConditionFacts?: ProdatDependentConditionFacts | ... 1 more ... | undefined; }'.
+    Types of property 'code' are incompatible.
+      Type 'string' is not assignable to type 'ProdatEngineCode'.
+__tests__/ediel-prodat-gas-identity.test.ts(49,53): error TS2339: Property 'evidence' does not exist on type '{ kind: "unknown"; } | { evidence: { sourceReference: string; sourceRevision: string; }; seriesId?: string | undefined; kind: "TIM" | "SCH"; }'.
+  Property 'evidence' does not exist on type '{ kind: "unknown"; }'.
+__tests__/ediel-prodat-gas-identity.test.ts(50,52): error TS2339: Property 'evidence' does not exist on type '{ kind: "unknown"; } | { evidence: { sourceReference: string; sourceRevision: string; }; seriesId?: string | undefined; kind: "TIM" | "SCH"; }'.
+  Property 'evidence' does not exist on type '{ kind: "unknown"; }'.
+__tests__/ediel-prodat-gas-identity.test.ts(55,53): error TS2339: Property 'evidence' does not exist on type '{ kind: "unknown"; } | { evidence: { sourceReference: string; sourceRevision: string; }; seriesId?: string | undefined; kind: "TIM" | "SCH"; }'.
+  Property 'evidence' does not exist on type '{ kind: "unknown"; }'.

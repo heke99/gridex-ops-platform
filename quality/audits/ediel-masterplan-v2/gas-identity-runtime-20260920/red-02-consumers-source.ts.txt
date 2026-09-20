@@ -20,14 +20,14 @@ function policy(code:string,subtype:string,reporting:unknown,changed=true){
  const gasSerialChange=code==='Z06'?selection(changed):code==='Z10'?selection(changed,'Z10'):undefined
  return resolveCanonicalEdielPolicy({family:'PRODAT',messageCode:code,subtypeOrReasonCode:subtype,direction:'outbound',referenceDate:'2026-09-20',mode:'catalog_evidence',prodatDependentFacts:{gasSerialChange,gasReportingIdentity:reporting} as never})
 }
-for(const alphabet of alphabets)for(const [code,reason,subtype] of [['Z04','Z22','L'],['Z06','E64','F'],['Z10','E58','M']] as const)it(`actual canonical field owner compares supplied identity ${code} ${alphabet}`,()=>{
+for(const alphabet of alphabets)for(const [code,reason,subtype] of [['Z04','Z22','L'],['Z06','E64','F'],['Z10','E58','M']])it(`actual canonical field owner compares supplied identity ${code} ${alphabet}`,()=>{
  for(const [kind,value,expected] of [['TIM','ACTUAL-TIM-SERIES',[]],['TIM','A',['PRODAT_GAS_240_IDENTITY_MISMATCH']],['SCH','A',[]],['SCH','B',['PRODAT_GAS_240_IDENTITY_MISMATCH']]] as const){
   const selected=policy(code,subtype,identity(code,reason,kind))
   const result=validateCanonicalPolicyFields({policy:{...selected,fieldRules:selected.fieldRules.filter(r=>'fieldNumber' in r&&r.fieldNumber==='240')},...input(payload(code,reason,[['RFF',['Z06',value]]],'gas',alphabet),code)})
   expect(result.filter(i=>i.blocking).map(i=>i.code)).toEqual(expected)
  }
 })
-for(const [code,reason,subtype] of [['Z04','Z22','L'],['Z06','E64','F'],['Z10','E58','M']] as const)it(`actual existing renderer keeps missing R, optional omission and EL boundary ${code}`,()=>{
+for(const [code,reason,subtype] of [['Z04','Z22','L'],['Z06','E64','F'],['Z10','E58','M']])it(`actual existing renderer keeps missing R, optional omission and EL boundary ${code}`,()=>{
  const context={code,senderEdielId:'12345',receiverEdielId:'54321',bgmReference:'DOC',transactionReference:'EVENT-A',customerName:'Synthetic',meterPointId:'A',meterPointIdAgency:'89' as const}
  const selected=policy(code,subtype,identity(code,reason))
  // Synthetic fragment policy only: production guide resolution and producer stay inactive.

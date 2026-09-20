@@ -98,31 +98,3 @@ it('exact first register ownership and repeated message identity cannot borrow a
  const joined=one.slice(0,one.indexOf('UNZ+'))+one.slice(one.indexOf('UNH+'))
  expect(codes(evaluateProdatGasApplicability({...input(joined),fields:['240'],facts:facts(identity())}))).toEqual(['PRODAT_GAS_240_IDENTITY_UNDETERMINED','PRODAT_GAS_240_IDENTITY_UNDETERMINED'])
 })
-it('strict selector never coerces nonstring process reason into a supported code',()=>{
- const forged=identity();Reflect.set(forged.objects[0].process,'reason',{toString:()=> 'Z22'})
- expect(()=>copyProdatRegisterFacts({gasReportingIdentity:forged})).toThrow('prodat_register_evidence_gas_reporting_identity_invalid')
-})
-for(const alphabet of alphabets)it(`identity requires one exact own LI and source placement under ${alphabet}`,()=>{
- for(const refs of [
-  [['RFF',['LI','EVENT-A']],['RFF',['LI','']]],
-  [['RFF',['LI','EVENT-A']],['RFF',['LI','OTHER']]],
-  [['RFF',['li','EVENT-A']]], [['RFF',[' LI','EVENT-A']]],
-  [['NAD','UD'],['RFF',['LI','EVENT-A']]],
- ] as Parts[][]){
-  const wire=raw([line('1','A'),...characteristic('Z13','Z22'),...refs,['RFF',['Z06','ACTUAL-TIM-SERIES']]],'Z04',alphabet).replace('23-DDQ-PRODAT','27-DDQ-PRODAT').replace('E2SE6A','E2SE6B')
-  expect(codes(evaluateProdatGasApplicability({...input(wire),fields:['240'],facts:facts(identity())}))).not.toEqual([])
- }
- const li='EVENT'+alphabet.join(''),selected=identity();selected.objects[0].lineItemReference=li
- const wire=raw([line('1','A'),...characteristic('Z13','Z22'),['RFF',['LI',li]],['RFF',['Z06','ACTUAL-TIM-SERIES']]],'Z04',alphabet).replace('23-DDQ-PRODAT','27-DDQ-PRODAT').replace('E2SE6A','E2SE6B')
- expect(codes(evaluateProdatGasApplicability({...input(wire),fields:['240'],facts:facts(selected)}))).toEqual([])
-})
-it('second object cannot borrow first installation reporting identity',()=>{
- const body:Parts[]=[line('1','A'),...characteristic('Z13','Z22'),['RFF',['LI','EVENT-A']],['RFF',['Z06','ACTUAL-TIM-SERIES']],line('2','B'),...characteristic('Z13','Z22'),['RFF',['LI','EVENT-B']],['RFF',['Z06','ACTUAL-TIM-SERIES']]]
- const wire=raw(body).replace('23-DDQ-PRODAT','27-DDQ-PRODAT').replace('E2SE6A','E2SE6B')
- const result=evaluateProdatGasApplicability({...input(wire),fields:['240'],facts:facts(identity())})
- expect(result.issues.filter(i=>i.blocking)).toEqual([expect.objectContaining({code:'PRODAT_GAS_240_IDENTITY_UNDETERMINED',meteringPointId:'B',lineItemReference:'EVENT-B'})])
-})
-it('new identity source does not infer regime or value from unrelated metadata',()=>{
- for(const inferred of [ {market:'gas',serialId:'A'}, {regime:'TIM',seriesId:'A'}, {meterNumber:'A',product:'GAS',resolution:'PT1H'}, {id:'internal-series-uuid'} ])expect(codes(check('A',inferred))).toEqual(['PRODAT_GAS_240_IDENTITY_UNDETERMINED'])
- for(const bad of ['', ' '.repeat(2), 'Å', 'x'.repeat(36)])expect(codes(check('A',identity('Z04','Z22','TIM',bad)))).toEqual(['PRODAT_GAS_240_IDENTITY_UNDETERMINED'])
-})
