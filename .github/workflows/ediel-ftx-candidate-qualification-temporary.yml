@@ -1,0 +1,119 @@
+name: Temporary FTX exact-candidate qualification
+on:
+  push:
+    branches: [codex/ediel-ftx-transfer-20260921-19ab3894]
+permissions:
+  contents: write
+concurrency:
+  group: gridex-ftx-transfer-19ab3894
+  cancel-in-progress: false
+jobs:
+  qualify:
+    if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/codex/ediel-ftx-transfer-20260921-19ab3894'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      BASE: 19ab3894d2c980122dfb077b208a1eab63546cc2
+      EXPECTED_TREE: 1b4260b78b2eae0aa7e0e4bda6760514cf2411aa
+      WORK_BRANCH: codex/ediel-f3-phase-closure-20260920
+      PROOF_BRANCH: codex/ediel-ftx-qualified-20260921-19ab3894
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Restore only the hash-pinned candidate on its exact parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ftx-proof"
+          cp .github/ftx-transfer/manifest.json "$RUNNER_TEMP/ftx-proof/manifest.json"
+          cat .github/ftx-transfer/part0.xz .github/ftx-transfer/part1.xz > "$RUNNER_TEMP/ftx-proof/candidate.patch.xz"
+          python3 - <<'PY'
+          import os, pathlib, json, hashlib, lzma
+          p=pathlib.Path(os.environ['RUNNER_TEMP'])/'ftx-proof'
+          m=json.loads((p/'manifest.json').read_text())
+          assert m['base']==os.environ['BASE'] and m['tree']==os.environ['EXPECTED_TREE']
+          packed=(p/'candidate.patch.xz').read_bytes()
+          assert hashlib.sha256(packed).hexdigest()==m['compressed_sha256']
+          patch=lzma.decompress(packed)
+          assert hashlib.sha256(patch).hexdigest()==m['patch_sha256']
+          (p/'candidate.patch').write_bytes(patch)
+          print('Pinned compressed bytes and patch digests match')
+          PY
+          test "$(git ls-remote origin "refs/heads/$WORK_BRANCH" | cut -f1)" = "$BASE"
+          test -z "$(git ls-remote origin "refs/heads/$PROOF_BRANCH")"
+          git checkout --detach "$BASE"
+          git apply --index --check "$RUNNER_TEMP/ftx-proof/candidate.patch"
+          git apply --index "$RUNNER_TEMP/ftx-proof/candidate.patch"
+          git diff --cached --check
+          test "$(git write-tree)" = "$EXPECTED_TREE"
+          python3 - <<'PY'
+          import os, pathlib, json, subprocess
+          p=pathlib.Path(os.environ['RUNNER_TEMP'])/'ftx-proof'
+          m=json.loads((p/'manifest.json').read_text())
+          changed=subprocess.check_output(['git','diff','--cached','--name-only',os.environ['BASE']],text=True).splitlines()
+          assert sorted(changed)==sorted(m['paths']), changed
+          assert len(changed)==29
+          for path in changed:
+              assert not path.startswith(('.github/','supabase/','docs/ediel/masterplan-v2/'))
+          for path in ('.agent-memory/checkpoint.json','.agent-memory/ftx301-303-checkpoint.json','.agent-memory/gas-identity-acceptance-20260920.json'):
+              json.loads(pathlib.Path(path).read_text())
+          (p/'changed-paths.txt').write_text('\n'.join(changed)+'\n')
+          print('Exact candidate tree and 29-path allowlist match')
+          PY
+      - name: Actual native FTX and opposing regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --version | tee "$RUNNER_TEMP/ftx-proof/node-version.txt"
+          node --experimental-vm-modules --test scripts/test-ediel-prodat-free-text.cjs 2>&1 | tee "$RUNNER_TEMP/ftx-proof/ftx-native.log"
+          node --experimental-vm-modules --test scripts/test-ediel-unb-ack-request.cjs scripts/test-ediel-prodat-document-fields.cjs scripts/test-ediel-component-escaping.cjs scripts/test-ediel-prodat-reference-fields.cjs scripts/test-ediel-prodat-characteristic-fields.cjs scripts/test-ediel-prodat-source-locators.cjs scripts/test-ediel-guide-governance.cjs scripts/test-ediel-rule-pack-source-identity.cjs 2>&1 | tee "$RUNNER_TEMP/ftx-proof/existing-native.log"
+          node scripts/check-ediel-masterplan-v2.cjs 2>&1 | tee "$RUNNER_TEMP/ftx-proof/source-integrity.log"
+      - run: npm ci --ignore-scripts
+      - name: Genuine Vitest SMTP and native-wrapper tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx vitest run __tests__/ediel-prodat-free-text.test.ts __tests__/ediel-prodat-free-text-smtp.test.ts 2>&1 | tee "$RUNNER_TEMP/ftx-proof/vitest-ftx.log"
+      - name: Application and test type verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run typecheck 2>&1 | tee "$RUNNER_TEMP/ftx-proof/typecheck.log"
+          npm run typecheck:tests 2>&1 | tee "$RUNNER_TEMP/ftx-proof/typecheck-tests.log"
+          npm run typecheck:scripts 2>&1 | tee "$RUNNER_TEMP/ftx-proof/typecheck-scripts.log"
+      - name: Retain verified candidate only on a new proof branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet
+          git diff --cached --check
+          test "$(git write-tree)" = "$EXPECTED_TREE"
+          test "$(git ls-remote origin "refs/heads/$WORK_BRANCH" | cut -f1)" = "$BASE"
+          test -z "$(git ls-remote origin "refs/heads/$PROOF_BRANCH")"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(ediel): qualify FTX301/303 candidate without main publication' -m 'Exact source-qualified candidate tree; real FTX/native/Vitest/type checks. PR359 ordinary head CI and independent runtime review remain required. No main, PR310, provider or database operations.'
+          test "$(git rev-parse HEAD^)" = "$BASE"
+          test "$(git rev-parse HEAD^{tree})" = "$EXPECTED_TREE"
+          git push origin "HEAD:refs/heads/$PROOF_BRANCH"
+          python3 - <<'PY'
+          import os, pathlib, json, subprocess, hashlib
+          p=pathlib.Path(os.environ['RUNNER_TEMP'])/'ftx-proof'
+          report={'status':'QUALIFIED_CANDIDATE_NOT_PR_ACCEPTED','base':os.environ['BASE'],'tree':os.environ['EXPECTED_TREE'],'proof_branch':os.environ['PROOF_BRANCH'],'commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'run':os.environ['GITHUB_RUN_ID'],'logs':{f.name:hashlib.sha256(f.read_bytes()).hexdigest() for f in p.glob('*.log')}}
+          (p/'receipt.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          PY
+      - name: Save proof and failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ftx-candidate-proof-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ftx-proof
+          retention-days: 14
+          if-no-files-found: error
