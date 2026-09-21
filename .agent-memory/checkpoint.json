@@ -1,16 +1,16 @@
 {
   "project": "gridex-ops-platform",
   "updated_at": "2026-09-21",
-  "status": "BLOCKED_ON_SOURCE_AND_STRUCTURAL_AUTHORITY",
+  "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-f3-phase-closure-20260920",
-  "resume_from": "eb660df51411bebbeb9cebbad1d05ddd36c4ebf9",
+  "resume_from": "52261280a5dc32825a9c630c5e05bcc8053be031",
   "base_head_sha": "71d2adf8b8b5f4305683a1399ddb5c17f0808ee8",
-  "active_pr": null,
+  "active_pr": 360,
   "last_merged_pr": 359,
   "last_accepted_pr": 359,
-  "active_item": "F3 criterion reconciliation R1; E035 and full UNSM/G06 remain blockers",
-  "next_action": "Independent review R1. Then qualify E035 dated structural meter/register authority and operational consumer; do not implement E61/E62 from the flag alone. Full UNSM/G06 remains blocked until authoritative grammar/version source is available. PR310 stays paused.",
+  "active_item": "PR360 corrected documentation exact-head acceptance",
+  "next_action": "Fetch actual PR360 head, verify fresh ordinary CI and independent review of correctedR2, guardedmerge then actualmainfull73/73+allOPS and durable receipt. Only then resume bounded F3 source/owner/oracle reconciliation. E035/G06 are not an exhaustive remaining-plan list.",
   "accepted_numeric_D": 110,
   "numeric_D_total": 110,
   "accepted_parents": 10,
@@ -21,23 +21,11 @@
   "main_receipt": ".agent-memory/pr359-main-acceptance-20260921.json",
   "root_main_acceptance_comment": 5753333308,
   "reconciliation": "quality/audits/ediel-masterplan-v2/f3-criterion-reconciliation-r1-20260921.md",
-  "blockers": [
-    {
-      "id": "E035",
-      "kind": "SOURCE_AND_OPERATIONAL_CONSUMER",
-      "detail": "25-A-4 structural meter/register flag lacks verified runtime E61/E62 consumer"
-    },
-    {
-      "id": "F3C-06/G06",
-      "kind": "MISSING_AUTHORITATIVE_SOURCE",
-      "detail": "complete UNSM grammar/version package absent from frozen source_manifest"
-    }
-  ],
-  "deferred_work": {
-    "pr": 310,
-    "state": "OPEN_DRAFT_PAUSED",
-    "head": "e961135199f292b8210884f07de3b616a670161a"
-  },
+  "prior_document_review": 5753449604,
+  "prior_reviewed_sha": "52261280a5dc32825a9c630c5e05bcc8053be031",
+  "corrections": ["PRODAT213 is QTY31 not136", "guide-first disposition is not execution-order proof", "two identified gaps are not exhaustive F3/masterplan closure"],
+  "remaining_criteria": ["F3C-02 field/register composition", "F3C-04 response mapping", "F3C-05 validation/persistence chronology", "E035 received dated structural authority/consumer", "F3C-06 full UNSM/G06", "F3C-07 per-finding ledger"],
+  "deferred_work": {"pr": 310, "state": "OPEN_DRAFT_PAUSED", "head": "e961135199f292b8210884f07de3b616a670161a"},
   "next_runtime_authorized": false,
   "live_or_explicit_deployment_actions": false
 }

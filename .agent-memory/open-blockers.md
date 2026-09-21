@@ -1,9 +1,7 @@
-# Open gates — F3 after reconciliation R1
+# Open gates — corrected PR360 documentation
 
-CLOSED/retained: D110/110+10/10; bounded PR351–359 accepted units including E011 and FTX301/303; actual main71d2adf8 has73/73,5010/5010 and allOPS.
+ACTIVE: fresh exact-head PR360 CI/review after documentation correction, then guardedmerge and actualmain73/73+OPS. Prior52261280 review/CI are historical evidence only. Root corrected QTY31/213, guide-first execution overstatement and incomplete two-blocker summary.
 
-BLOCKER F3-E035: current 25-A-4 policy sets validateMeterAndRegisterAgainstStructuralInformation=true, but repository trace finds no operational consumer implementing dated meter/register structural comparison and E61/E62. The flag test alone is not behavior. Source/data authority must be qualified before code.
+REMAINING F3, not an exhaustive new defect list: per-field/register composition mapping F3C-02; response criteria F3C-04; real guide-first execution and persistence/ACK chronology F3C-05; E035 dated received meter/register authority and operational E61/E62 consumer; authoritative full UNSM plus consumer/schema/RPC inventory F3C-06/G06; per-original-finding ledger F3C-07. Functional checks precede the final canonical-profile call in inspected utiltsEngine.part-1.ts; final disposition priority does not close this criterion.
 
-BLOCKER F3-G06: full UNSM grammar is required separately by masterplan, but frozen source_manifest contains no complete UNSM grammar package. syntaxValidator.ts and segmentSchema.ts are partial. Do not invent grammar/cardinality or call this green from national field tables.
-
-DEFERRED: PR310 OPEN/DRAFT/PAUSED e961135199f292b8210884f07de3b616a670161a; no import/restart/write/merge. FullF3/masterplan NOT_COMPLETE. See f3-criterion-reconciliation-r1-20260921.md.
+Absence of UNSM from the frozen seven-entry manifest is not proof it cannot be retrieved elsewhere. Qualify primary sources; never fabricate grammar or national faults from missing local data. Retain accepted PR351–359/D110/110+10/10 units. FullF3/masterplanNOT_COMPLETE. PR310OPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a is excluded; no import/restart/write/merge. No liveoperations.
