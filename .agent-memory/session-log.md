@@ -1,7 +1,9 @@
-# Session — 2026-09-21 PR365 publication and PR366 code
+# Session — PR365 publication and PR366 implementation
 
-Read live refs/current memory, found accepted364 plus pending365 rather than restarting361. Independently checked365 docs-only diff, final review5761599041 and terminal CI; guarded-merged tob6bb1032. Downloaded actual full artifact and verified73 rows/JUnit,5153 tests and commit binding; allOPS green. Root receipt5761859619. No extra receipt-only PR.
+Resumed live365 rather than restarting361. Verified docs-onlydiff/final5761599041/CI, guarded-merged tob6; independently inspected fullartifact73rows/JUnit/5153tests/commitbinding andallOPS; root5761859619. No extra receipt-only PR.
 
-Traced E035B existing inbound application producer through TypeScript and SQL; no duplicate PRODAT snapshot added. Qualified narrower malformed/incomplete RPC success admission, opened366 with42 test-first controls; independent review required JSON-wire and extra discriminator controls, added9 at0b3170f. Resolution5761874417 and actual8eae ordinary RED28fail/5195 precede code. Implemented one Ediel JSON snapshot plus exact return/cardinality/application/requested graph identity checks. Both test files and existing assertions unchanged. New exact-head CI/review/main acceptance remain pending.
+Traced E035B existing producer and found narrower client receipt admission weakness. Published41initial tests and9supplemental wire controls; independent5761874417 plus actual28failures preceded one-file Ediel-only runtime fix253d. OrdinaryCI then5203/5203tests,325filesPASS; static5762012089 no blocker. No original assertion changed.
 
-Actual limited task routing: execution plan, bounded source/false-positive trace, TDD and differential independent review/verification; no unavailable skill script claims. No live DB/provider/market/settings/deployment or PR310 mutation. FullE035/F3/masterplan incomplete; previous snapshot preserved at0b3170f.
+Fresh original-log read corrected an off-by-one inventory error before merge: firstfile41, not42; totalnew50, not51; originalRED5194total/5166PASS28FAIL with13positive, not5195/5167/14. Root5761924346 corrected explicitly. This child changes documentation only, preserving production/test blobs, and needs fresh CI/review. Final guardedmerge/actual-main73/OPS receipt pending at checkpoint.
+
+Bounded execution/TDD/source/false-positive/differential-review/verification workflow; no unavailable script execution or local full-suite claim. PR310paused/untouched; no liveDB/provider/market/settings/deployment action. FullE035/F3/masterplan incomplete.

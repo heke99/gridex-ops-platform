@@ -1,9 +1,9 @@
-# Verification — PR366 final candidate pending
+# Verification — PR366 corrected counts
 
-Accepted publication mainb6bb1032: full35608554381/job106361627194,73/73; unit5153/5153,323files; OPS35608554397 allSUCCESS. Exact artifact receipt pr365-main-acceptance-20260921.json; root5761859619.
+- Accepted publicationb6: full35608554381/job106361627194,73/73;5153tests/323files; OPS35608554397 allsuccess; root5761859619.
+- Initial8eae RED: OPS35609967994/job106366332421, Node22.23.2,5194total/5166PASS28FAIL,324files/323PASS1FAIL. Newfile41cases=28behavioralFAIL+13controlsPASS;all5153oldPASS. Finished2026-09-21T14:18:12.818Z. Earlier5195/5167/42/14 figures retracted in corrected5761924346.
+- Supplemental0b adds9cases, initialfileunchanged. Lookup returned no runs; no standalone execution claim. Totaladdition50, not51.
+- Production253d: OPS35611258289/job106370656376,5203/5203tests,325/325files, receipt41+wire9PASS, finished2026-09-21T14:21:38.635Z. Types/quality45/API/RBAC/build/bundle success;101lintwarnings0errors. Verify106370656649/replay106370656083success. PR E2E35611257822 smoke/coverage, browser35611257750 andmasterplan35611258765success.
+- Static253d review5762012089: no blocking code finding; exact terminal acceptance still required. Current docs-onlychild retains all production/test blobs and requires its own CI/finalreview, guardedmerge and actual-mainfull73/OPS/receipt.
 
-Initial8eae RED: OPS35609967994/job106366332421, Node22.23.2,5195tests/5167PASS28FAIL,324files/323PASS1FAIL. All28 are new actual-client wrong-resolution failures; allold5153 and14 controls passed. Scripts/tests types and verify/replay succeeded. Root5761924346.
-
-Supplemental0b3170f added9 wire/discriminant controls, unchanged first42. Last exact-head workflow lookup returned none, so no run/RED/GREEN is asserted for it. Independent source/design resolution5761874417 approves one JSON snapshot and finite Ediel receipt checks. Code child remains IMPLEMENTED_NOT_VERIFIED; new ordinary CI/final review and actual-main73/OPS pending. No local repository full-suite execution claimed.
-
-No existing expectation, workflow or threshold weakened. FullE035/F3/masterplan incomplete; PR310 paused/untouched; no live operations.
+No local repository suite run claimed. No old assertion/workflow/threshold weakening. FullE035/F3/masterplan incomplete;PR310paused;no liveoperations.

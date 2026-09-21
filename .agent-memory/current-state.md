@@ -1,7 +1,7 @@
-# Current state — PR365 accepted; PR366 implementation pending acceptance
+# Current state — PR366 corrected evidence, final acceptance pending
 
-Actual main publication b6bb10328b173267882238804bbbeefd048040c4 is verified full73/73,5153/5153 tests,323/323 files,allOPS. Root5761859619 and pr365-main-acceptance-20260921.json retain exact artifact provenance. This is documentation publication over accepted runtime840720c7, not new national rule acceptance.
+Accepted mainb6bb10328b173267882238804bbbeefd048040c4 is PR365 publication over runtime840720c7: full73/73,5153tests,323files,allOPS; root5761859619 and pr365-main-acceptance-20260921.json.
 
-ActivePR366 is the finite Ediel onboarding receipt contract, childof0b3170f, IMPLEMENTED_NOT_VERIFIED. Initial8eae ordinary RED5195/5167PASS28FAIL and independent5761874417 preceded code. New51 cases retained; final exact-head CI/review/merge/main verification pending. Read current-task.md/checkpoint.json/handover.md.
+Production253d15e4 Ediel receipt admission has ordinary5203/5203tests and325filesPASS; static review5762012089. Current child corrects documentation counts only: initial41cases plus9 supplemental =50, initial RED5194total/5166PASS28FAIL. All code/tests unchanged. Final child CI/review, guarded merge and actual-main verification remain required. Read current-task.md/checkpoint.json/handover.md.
 
-D110/110+10/10 and accepted361/363/364 unchanged. Qualified dated E035 source/comparator/guide/ACK/persistence and remainingF3/later masterplan remain incomplete. PR310 paused/untouched; no live operations. Previous canonical snapshot remains in Git at0b3170f.
+D110/110+10/10 and prior bounded deliveries retained. E035 dated source, comparison and operational outcomes remain incomplete, as do fullF3/masterplan. PR310 paused/untouched; no live operations. Previous snapshot253d retains superseded counting errors, not current evidence.

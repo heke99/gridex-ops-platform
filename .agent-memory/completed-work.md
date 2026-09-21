@@ -1,7 +1,7 @@
-# Completed evidence — PR365 verified; PR366 in progress
+# Completed evidence — PR366 awaiting final acceptance
 
-Retain accepted runtime840720c7/PR364 and earlier361/363 code. PR365 documentation fcf33965 reviewed5761599041, ordinary CI green, guarded-merged tob6bb1032. Root independently checked actual full73/5153/allOPS and artifact binding/hashes/JUnit, saved5761859619. Receipt included in the next code delivery, not a new documentation-only loop.
+PR365 was independently reviewed5761599041, guarded-merged tob6 and verified actual73/5153/allOPS; root5761859619. Retain runtime840720c7 and prior361/363.
 
-E035B producer trace confirmed observed PRODAT application/register JSON already persists, but dated authority is not qualified. The narrower RPC client receipt gap was independently qualified5761807242/5761874417. Published42+9 tests before code. Actual initial8eae RED28fail/5195 demonstrated wrong admission at public onboardCustomerGraph; allold5153 pass. Root5761924346 authorizes finite correction. Implementation now exists but final CI/review/merge/main acceptance are NOT yet completed.
+E035B trace identified an Ediel client receipt-contract gap, not dated structure authority. Source/design5761807242/5761874417 and actual28behavioral RED preceded code. Correct initialfile41cases,13positive;5194total/5166PASS28FAIL. Supplemental9 yields50newtests. Corrected root5761924346 retracts prior off-by-one documentation counts. Both test files preserved.
 
-D110/110+10/10 retained. FullE035/F3/masterplan NOT_COMPLETE; PR310 stays paused/untouched. Prior completion history remains at0b3170f.
+Production253d ordinary5203/5203tests,325filesPASS; staticreview5762012089 no blocker. This documentation-only correction still requires final child CI/review, merge and actual-main verification before completed delivery. FullE035/F3/masterplan incomplete;D110/110+10/10 retained;PR310paused/untouched. History at253d preserves the corrected error provenance.
