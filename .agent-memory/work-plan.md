@@ -1,8 +1,8 @@
-# Work plan — PR361 observation prerequisite
+# Work plan — observation handoff to dated structure
 
-1. VERIFIED: accepted351–360boundedunits,D110/110+10/10,actualmain7a13efd6full73/5010/allOPS. Donotrestart.
-2. VERIFIED SOURCE/RED: finitecanonicalUTILTSIDE/SEQprojection plan,review5757115464+5757707782;actual94missingprojectionRED.35implementationthenactual3whitespacefailures;finiteamendmentreview5757796173/root5757869043,new24compatibilitytestfirst4a29ed51.
-3. ACTIVE IMPLEMENTED_NOT_VERIFIED: privateguardedpretrim evidence andobservation-onlydecoding correction. RequireexactfinalheadordinaryCI,independentcompletedreview,guardedmerge,actualmainfull73/OPS andreceipt. Alloriginal46testsretained.
-4. INCOMPLETE AFTER ACCEPTANCE: datedreceivedstructureauthority,source-qualifiedE61/E62comparator,realguide/persistencechronology,andremainingF3field/register/response/grammar/findingmapping;thenlaterapplicablephases.
+1. ACCEPTED: bounded351–361, D110/110+parents10/10, actualmaind7078ac5full73/5080/allOPS; receipt361saved. Do not redo.
+2. ACTIVE PR363 IMPLEMENTED_NOT_VERIFIED: handoffcanonicalobservations through existinglowerparser/draft/runtime/processor diagnostics. Design5758689949 andactual45bbRED5758756950 complete;22publishedcontrols+5080old unchanged. ExactCI/review/guardedmerge/main73/OPS acceptancepending.
+3. AFTER363: qualifyindependentreceiveddatedstructural-source/loader withtenant/environment/object/agency/period/provenance/completeness, then source-qualifiedcomparisonandoperationalE035outcomes. No inventoryfromobservations.
+4. INCOMPLETE: remainingF3field/register/response/finding/grammar andlaterapplicablemasterplancriteria.
 
-Onlystep3active. PR362duplicateclosedunmerged. PR310paused/excluded;no dependencyimports,liveoperationsorqualificationbytestcounts. FullE035/F3/masterplanNOT_COMPLETE.
+Only2active; fullE035/F3/masterplanNOT_COMPLETE. PR310paused/excluded,362closedunmerged;no liveoperations.

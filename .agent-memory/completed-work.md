@@ -1,7 +1,7 @@
-# Completed evidence — PR361 continuation
+# Completed evidence — accepted361, test-first363
 
-Retain acceptedPR360/main7a13efd6, full73/73+5010tests+allOPS, pr360-main-acceptance-20260921.json. Source/oracle reviews5757115464 and5757707782 qualified finite canonicalAST observation ownership. Actual94 ordinaryRED5056total/5016PASS40FAIL through absentpublicprojection is recorded5757702741. Allold5010tests passed.
+AcceptedPR361 canonicalobservations andguardedpretrimfidelity: actualmaind7078ac5treeb83f3bc7, finalreview5758070184/root5758187169, actual73/73+5080/5080+allOPS. Retainedreceiptpr361-main-acceptance-20260921.json now committedin363; no needseparatedocumentationdelivery. OriginalfullCIbytes rechecked locally, notlocaltestexecution.
 
-Published35fecee5 implements physicalIDE/SEQ ownership, vectors and originaltokens. ActualordinaryOPS35579393631/job106268498592 then produced5053PASS3FAIL: preciselythreeunchanged trailing-spaceoracles, allother43new/all5010oldpass. Rootreceipt5757833287 andindependentreview5757796173 qualify cause/finiteamendment; root5757869043authorizes privateguardedpretrim evidence only. New24compatibilitytestspublishedfirst4a29ed51, original46unchanged. Correction nowimplemented butfinalCI/review/merge/mainverification NOTYETcompleted. Do not enter it as acceptedwork.
+PR363source/caller/oraclequalification5758689949complete. Testfirst45bb5dc0 ordinaryOPS35586336942/job106290453213:5102tests5083PASS19FAIL,322files320PASS2FAIL. All5080priorpass;19missinghandofffailures acrossrealruntime/parser/draft/processor statusarguments,3danglingreleasecontrolspass. Root5758756950. Implementation nowpresentbutNOTyetaccepted.22newcasesuntouched.
 
-Duplicateproposal362closedunmerged. FullE035/F3/masterplanNOT_COMPLETE; D110/110+10/10retained;PR310paused/untouched. Previouscompletionhistory inGit at4a29ed51.
+D110/110+10/10retained;fullE035/F3/masterplanNOT_COMPLETE;PR310pauseduntouched. Priorcompletionhistoryat45bb5dc0.

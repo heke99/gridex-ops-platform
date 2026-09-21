@@ -1,11 +1,8 @@
-# Verification — PR361 corrected candidate pending
+# Verification — PR363 awaiting new-head acceptance
 
-- Acceptedmain7a13efd6/PR360: full73/73,5010/5010tests,allOPS; retainedreceiptpr360-main-acceptance-20260921.json.
-- Source/oracle:5757115464, addedUNB/UNZ6cases, resolved5757707782.
-- Observed94RED:OPS35574752510/job106253966098,5056total/5016PASS40FAIL,319files317PASS2FAIL;allold5010PASS. Root5757702741.
-- Observed35RED:OPS35579393631/job106268498592,5056total/5053PASS3FAIL,319files318PASS1FAIL;3exact-spacefailures,other43new+all5010oldPASS. Root5757833287. Conditionalstaticreview5757777365 is NOTfinalapproval.
-- Narrow amendmentreview5757796173/rootauth5757869043: preserveonlyprivateguardedpretrim evidence fornewobservations;legacytokens/defaultdecoderunchanged.
-- Testfirst4a29ed51 adds24compatibilitycases; ordinaryOPS35580203338started, terminalresultrequiresreadback. Noresultinferredhere.
-- PENDING: correction finalhead ordinaryfullsuite/types/lint/build/coverage/OPS andindependentcompletedfour-dimensionreview;guardedmerge;freshactualmain73/73+OPS andreceipt.
+Accepted361: d7078ac5 full73/73,5080/5080,allOPS; receipt361 androot5758187169. Sourceplanlimitationsretained.
+PR363design/oracle5758689949: boundedlowerparserconnectiononly.
+PR363actualtestfirst45bb5dc0:OPS35586336942/job106290453213,322files320PASS2FAIL,5102tests5083PASS19FAIL,all5080oldPASS.19realmissinghandoffassertions/3newreleasecontrolsPASS. Types/scripts/mechanical/quality45PASS. Root5758756950.
+PENDING: newexacthead fullordinaryCI/types/build/coverage/OPS, completedindependentTASK/SPEC/QUALITY/TENANT-BOUNDARY/WHOLE-PR review, guardedmerge, actualmainfull73/OPS andartifactreadback.
 
-All46publishedpriorcasesunchanged. No localrepositorysuiteexecuted;CIisexecutionauthority. FullE035/F3/masterplanNOT_COMPLETE;D110/110+10/10retained;PR310paused;no liveoperations.
+No assertion/workflow/thresholdweakening, no localrepositorysuite orliveDB/marketclaim. FullE035/F3/masterplanincomplete, D110/110+10/10retained,PR310paused.

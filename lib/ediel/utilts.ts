@@ -14,6 +14,8 @@ import {
 } from '@/lib/ediel/classify'
 import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegistry'
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
+import { parseCanonicalEdifactAst } from '@/lib/ediel/core/canonicalEdifactAst'
+import type { CanonicalUtiltsTransaction } from '@/lib/ediel/utilts/canonicalObservationScope'
 import {
   firstCompositeComponent,
   splitComposite,
@@ -39,6 +41,8 @@ export type ParsedUtiltsMessage = {
   senderEdielId: string | null
   receiverEdielId: string | null
   rawSegments: string[]
+  /** Raw-owned observations only; not expected structure or validation authority. */
+  utiltsObservedTransactions?: CanonicalUtiltsTransaction[]
   parsedPayload: Record<string, unknown>
 }
 
@@ -293,6 +297,8 @@ export function parseInboundUtilts(rawPayload: string): ParsedUtiltsMessage {
   const dtm597Segment = dtmSegment('597')
   const dtm324 = dtm324Segment?.raw ?? null
   const cci = cciSegment?.raw ?? null
+  const utiltsObservedTransactions = parseCanonicalEdifactAst(rawPayload).messages
+    .flatMap(message => message.family === 'UTILTS' ? message.utiltsTransactions ?? [] : [])
 
   return {
     messageFamily: 'UTILTS',
@@ -310,7 +316,9 @@ export function parseInboundUtilts(rawPayload: string): ParsedUtiltsMessage {
     senderEdielId: ids.senderEdielId,
     receiverEdielId: ids.receiverEdielId,
     rawSegments,
+    utiltsObservedTransactions,
     parsedPayload: {
+      utiltsObservedTransactions,
       unb,
       unh,
       bgm,
@@ -417,7 +425,6 @@ function renderUtiltsSegments(input: {
   const siteType = sanitize(getPayloadString(payload, 'siteType') || 'Consumption')
   const resolution = inferUtiltsResolution(payload)
   const readingType = inferUtiltsReadingType(payload)
-
   const segments: string[] = []
 
   segments.push(`BGM+${input.code}::260+${sanitize(input.bgmReference)}+9+AB`)

@@ -1,7 +1,5 @@
-# Resume — finish PR361 observation-input acceptance
+# Resume PR363 — runtime observations, not full E035
 
-Continue only codex/ediel-utilts-observation-scope-20260921 / PR361. Accepted main7a13efd6/PR360 remains verified. Current candidate is the bounded observation input plus authorized private pre-trim evidence correction, IMPLEMENTED_NOT_VERIFIED. Read current-task.md, checkpoint.json, handover.md and e035-observation-whitespace-amendment-20260921.md. Source/design5757115464+5757707782 and amendment5757796173/root5757869043 remain the finite authority.
+Activebranchcodex/ediel-utilts-observation-handoff-20260921/PR363. Accepted361/maind7078ac5 verifiedactual73/5080/allOPS receiptcommitted. Currenthandoffchildof45bb5dc0IMPLEMENTED_NOT_VERIFIED. Design5758689949; actual22testfirstRED5102/5083PASS19FAIL,root5758756950.
 
-Test-first4a29ed51 is now actually observed: ordinaryOPS35580203338/job106271066733,5080total/5053PASS27FAIL;24new compatibility failures plus3original exact-space cases,all5010pre-existing testsPASS. Root5757935664 and e035-whitespace-test-first-receipt-20260921.json supersede the prepared audit's pending-readback snapshot. They do not assert corrected-headGREEN.
-
-Next exact-head ordinaryCI and completed independent TASK/SPEC,QUALITY,TENANT-BOUNDARY,WHOLE-PR review; then expected-head guardedmerge, actual-mainfull73/73+allOPS and durable receipt. No old assertion weakening, no fullE035/F3/masterplan completion inference. PR362 duplicate closedunmerged;PR310paused/untouched e9611351. No liveoperations.
+Readcurrent-task/checkpoint/handover ande035-runtime-observation-handoff-implementation-20260921.md. FetchlatestPRstatusfirst: ifalreadymerged/readacceptance do notredo. Pendingatthissnapshot exactordinaryCI+completedfour-dimensionreview+guardedmerge+actualmain73/OPS andreceipt. Noexpectedstructure/E61/E62/guide/ACK/ingestionauthoritychange. Nextafteracceptance receiveddatedstructurequalification. FullE035/F3/masterplanNOT_COMPLETE;D110/110+10/10retained;PR310pauseduntouched;no liveoperations.
