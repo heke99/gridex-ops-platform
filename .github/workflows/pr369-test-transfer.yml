@@ -1,0 +1,24 @@
+name: PR369 reviewed test corrections transfer
+on:
+  push:
+    branches: [codex/ediel-pr369-test-transfer-20260922]
+permissions:
+  contents: write
+jobs:
+  transfer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Apply exact reviewed test-only corrections and upload immutable blobs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/pr369-test-transfer.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr369-test-transfer-${{ github.run_id }}
+          path: pr369-transfer/
+          retention-days: 90
