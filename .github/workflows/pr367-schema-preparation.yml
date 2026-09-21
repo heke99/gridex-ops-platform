@@ -1,0 +1,80 @@
+name: PR367 isolated source-seal preparation
+on:
+  push:
+    branches: [codex/ediel-pr367-schema-preparation-20260921]
+permissions:
+  contents: write
+jobs:
+  prepare:
+    if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/codex/ediel-pr367-schema-preparation-20260921'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Install matching PostgreSQL client
+        shell: bash
+        run: |
+          set -euo pipefail
+          server_major="$(python3 -c "import re,pathlib;print(re.search(r'^major_version\s*=\s*(\d+)', pathlib.Path('supabase/config.toml').read_text(), re.M).group(1))")"
+          test "$server_major" = 17
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -sS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-client-$server_major"
+          echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
+      - run: npm ci
+      - name: Generate finite patch with real CLI migration identity
+        run: python3 scripts/prepare-pr367-source-seal.py prepare
+      - name: Genuine clean replay, physical behavior and repeated schema/type generation
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec > >(tee pr367-generation/native-replay.log) 2>&1
+          source scripts/gridex-aud-003-clean-replay.sh
+          SHADOW_URL='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+          psql "$SHADOW_URL" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql
+          psql "$SHADOW_URL" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
+          psql "$SHADOW_URL" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
+          supabase gen types typescript --local > pr367-generation/types-first.ts
+          node scripts/apply-supabase-types-nullability-overrides.cjs pr367-generation/types-first.ts
+          supabase gen types typescript --local > pr367-generation/types-second.ts
+          node scripts/apply-supabase-types-nullability-overrides.cjs pr367-generation/types-second.ts
+          npm run db:schema:snapshot -- --url "$SHADOW_URL" --out-dir pr367-generation/schema-first
+          npm run db:schema:snapshot -- --url "$SHADOW_URL" --out-dir pr367-generation/schema-second
+          python3 scripts/prepare-pr367-source-seal.py finish
+          DATABASE_URL="$SHADOW_URL" npm run tenant:invariants
+          npm run db:parity:selftest -- "$SHADOW_URL"
+          npm run db:schema:check -- --url "$SHADOW_URL"
+      - name: Validate restored migration history and real TypeScript callers
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec > >(tee pr367-generation/targeted-validation.log) 2>&1
+          npm run db:migrations:check
+          npm run typecheck
+          npm run typecheck:tests
+          npx vitest run __tests__/ediel-inbound-source-conflict.test.ts
+          git diff --check
+      - name: Upload allowlisted immutable blobs only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/prepare-pr367-source-seal.py transport
+      - name: Preserve generation and failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr367-source-seal-generation-${{ github.run_id }}
+          path: pr367-generation/
+          if-no-files-found: warn
+          retention-days: 90
