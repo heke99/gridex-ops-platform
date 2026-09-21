@@ -8,7 +8,7 @@ export function isProdatCalendarDate(value: string): boolean {
   if (!/^\d{8}$/.test(value)) return false
   const year = Number(value.slice(0, 4)), month = Number(value.slice(4, 6)), day = Number(value.slice(6, 8))
   const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
-  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 31, 30, 31]
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
   return year > 0 && month >= 1 && month <= 12 && day > 0 && day <= days[month - 1]
 }
 
