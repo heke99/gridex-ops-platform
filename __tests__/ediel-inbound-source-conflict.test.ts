@@ -21,6 +21,7 @@ const conflict = { code: '23514', message: 'immutable_ediel_payload_cannot_chang
 let writeError: { code: string; message: string } | null
 let existingId: string | null
 let environment: string
+let existingEnvironment: string | null
 function missing(): InboundEntityMatch {
   return { status: 'missing', entityType: null, entityId: null, confidence: 0, reasons: [], candidates: [] }
 }
@@ -40,7 +41,11 @@ function query(table: string) {
   calls.push(call)
   const result = () => {
     if (table === 'ediel_messages') {
-      if (call.operation === 'select') return { data: existingId ? { id: existingId } : null, error: null }
+      if (call.operation === 'select') {
+        const environmentFilter = call.filters.find(([column]) => column === 'environment')
+        const compatible = !environmentFilter || environmentFilter[1] === existingEnvironment
+        return { data: existingId && compatible ? { id: existingId } : null, error: null }
+      }
       return { data: writeError ? null : { id: existingId ?? 'source-new' }, error: writeError }
     }
     if (table === 'inbound_email_messages' && call.operation === 'select') {
@@ -57,6 +62,7 @@ function query(table: string) {
     insert: (payload: Record<string, unknown>) => { call.operation = 'insert'; call.payload = payload; return builder },
     update: (payload: Record<string, unknown>) => { call.operation = 'update'; call.payload = payload; return builder },
     maybeSingle: () => Promise.resolve(result()),
+    single: () => Promise.resolve(result()),
     then: <T, U>(resolve: (value: ReturnType<typeof result>) => T | PromiseLike<T>, reject?: (reason: unknown) => U | PromiseLike<U>) => Promise.resolve(result()).then(resolve, reject),
   }
   return builder
@@ -70,7 +76,7 @@ function noBusinessSuccess() {
   expect(io.task).not.toHaveBeenCalled()
 }
 beforeEach(() => {
-  vi.clearAllMocks(); calls.length = 0; existingId = 'source-old'; writeError = null; environment = 'test'
+  vi.clearAllMocks(); calls.length = 0; existingId = 'source-old'; writeError = null; environment = 'test'; existingEnvironment = null
   io.from.mockImplementation(query)
   io.tenant.mockResolvedValue({ status: 'resolved', companyId: 'company-a', reasons: [], candidates: [], shared: null })
   io.outbound.mockResolvedValue(matched()); io.metering.mockResolvedValue(missing())
@@ -92,7 +98,9 @@ it('preserves fresh insert and database-owned hash generation', async () => {
 })
 it('does not adopt the existing ID after the physical immutable-source rejection', async () => {
   writeError = conflict
-  await expect(createInboundEdielMessage(messageInput())).rejects.toThrow('INBOUND_PRODAT_SOURCE_CONFLICT')
+  const attempt = createInboundEdielMessage(messageInput())
+  await expect(attempt).rejects.toThrow('INBOUND_PRODAT_SOURCE_CONFLICT')
+  await expect(attempt).rejects.toMatchObject({ cause: { code: conflict.code, message: conflict.message } })
   expect(writes('ediel_messages')).toHaveLength(1)
   noBusinessSuccess()
 })
@@ -143,4 +151,37 @@ it('does not reclassify another message family as a PRODAT source conflict', asy
   const input = messageInput(); input.parsed.messageFamily = 'APERAK'
   await expect(createInboundEdielMessage(input)).resolves.toBeNull()
   expect(writes('ediel_message_events')).toHaveLength(0)
+})
+
+// Preserve the explicitly bounded legacy identity rule: source sealing is not
+// an environment-immutability change. Expected-structure loaders must later
+// qualify their own environment; this fallback is not that authority.
+it.each(['test', 'production'])('retains same-company identical-byte fallback from the other environment into %s', async env => {
+  environment = env
+  existingEnvironment = env === 'test' ? 'production' : 'test'
+  const input = { ...messageInput(), inboundEmailMessageId: '' }
+  await expect(createInboundEdielMessage(input)).resolves.toBe('source-old')
+  const lookup = calls.find(call => call.table === 'ediel_messages' && call.operation === 'select')!
+  expect(lookup.filters).toEqual([
+    ['company_id', 'company-a'], ['direction', 'inbound'],
+    ['sender_ediel_id', input.parsed.senderEdielId], ['receiver_ediel_id', input.parsed.receiverEdielId],
+    ['interchange_reference', input.parsed.interchangeReference],
+  ])
+  expect(writes('ediel_messages')).toHaveLength(1)
+  expect(writes('ediel_messages')[0]).toMatchObject({ operation: 'update', filters: [['id', 'source-old']],
+    payload: { company_id: 'company-a', environment: env, raw_payload: source } })
+  expect(writes('ediel_messages')[0].payload).not.toHaveProperty('immutable_payload_hash')
+})
+it('does not classify a prefixed or suffixed database message as the exact source conflict', async () => {
+  writeError = { code: '23514', message: 'other: immutable_ediel_payload_cannot_change' }
+  await expect(createInboundEdielMessage(messageInput())).resolves.toBeNull()
+  expect(writes('ediel_message_events')).toHaveLength(0)
+})
+it('preserves original conflict cause when PostgreSQL supplies separate details and hint', async () => {
+  const physical = { ...conflict, details: 'original database detail', hint: 'original database hint' }
+  writeError = physical
+  const attempt = createInboundEdielMessage(messageInput())
+  await expect(attempt).rejects.toThrow('INBOUND_PRODAT_SOURCE_CONFLICT')
+  await expect(attempt).rejects.toMatchObject({ cause: physical })
+  noBusinessSuccess()
 })
