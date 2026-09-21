@@ -428,6 +428,13 @@ export async function createInboundEdielMessage(input: {
         .maybeSingle()
 
   if (result.error) {
+    if (
+      input.parsed.messageFamily === 'PRODAT' &&
+      result.error.code === '23514' &&
+      result.error.message === 'immutable_ediel_payload_cannot_change'
+    ) {
+      throw new Error('INBOUND_PRODAT_SOURCE_CONFLICT', { cause: result.error })
+    }
     if (isPostgresUniqueViolation(result.error)) {
       const existingAfterConflict = await findExistingInboundEdielMessageByCanonicalIdentity({
         companyId: input.companyId,
@@ -955,6 +962,7 @@ async function updateBusinessStatusFromInbound(input: {
 
 export async function applySafeInboundStatusUpdate(input: {
   companyId: string
+  environment?: string | null
   parsed: ParsedEdifactEnvelope
   outboundMatch: InboundEntityMatch
   meteringPointMatch: InboundEntityMatch
@@ -967,6 +975,7 @@ export async function applySafeInboundStatusUpdate(input: {
 
   const inboundEdielMessageId = await createInboundEdielMessage({
     companyId: input.companyId,
+    environment: input.environment,
     inboundEmailMessageId: input.inboundEmailMessageId ?? '',
     parseResultId: input.parseResultId ?? null,
     parsed: input.parsed,

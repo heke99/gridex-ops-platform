@@ -1,7 +1,9 @@
-# Completed evidence — PR366 awaiting final acceptance
+# Verified evidence — PR367 implementation pending final gates
 
-PR365 was independently reviewed5761599041, guarded-merged tob6 and verified actual73/5153/allOPS; root5761859619. Retain runtime840720c7 and prior361/363.
+Retain accepted PR366/main7409e28c full73/5203tests/allOPS, acceptance5762431044, and prior bounded work including D110/110+10/10.
 
-E035B trace identified an Ediel client receipt-contract gap, not dated structure authority. Source/design5761807242/5761874417 and actual28behavioral RED preceded code. Correct initialfile41cases,13positive;5194total/5166PASS28FAIL. Supplemental9 yields50newtests. Corrected root5761924346 retracts prior off-by-one documentation counts. Both test files preserved.
+PR367 source/oracle qualification: real0ad SQL62 yielded35PASS27FAIL. Original15-case TS had4behavioral+5setup failures; repaired .single() mock and19-case controls at0b now give9 genuine failures with10new positives andall5203old casesPASS (5222total/5213PASS9FAIL). Review5764361156 conditions resolved by9496 doc correction; root5764452364 authorized finite code.
 
-Production253d ordinary5203/5203tests,325filesPASS; staticreview5762012089 no blocker. This documentation-only correction still requires final child CI/review, merge and actual-main verification before completed delivery. FullE035/F3/masterplan incomplete;D110/110+10/10 retained;PR310paused/untouched. History at253d preserves the corrected error provenance.
+Actual unmerged preparation35630581192 generated migration20260921171346 with Supabase CLI, rebuilt disposable DB, passed62SQL and19TS controls, generated types and schema twice. Root independently inspected downloaded artifact10654159054 and the seven exact delivery blobs. Types unchanged; only intended trigger-body schema delta and unchanged nonfunction fingerprints/counts. Final candidate CI/review/merge/main acceptance is NOT yet completed.
+
+No dated authority/E61/E62/fullE035/F3/masterplan completion. PR310paused and untouched. Previous completion history remains in Git at9496 and accepted main7409.

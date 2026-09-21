@@ -1,7 +1,7 @@
-# Current state — E035B source integrity test-first
+# Current state — PR367 implemented; final gates pending
 
-Actual main7409e28c / PR366 is merged and verified: full73/73, units5203/5203 in325 files, allOPS, browser and masterplan regressions. Post-merge acceptance comment5762431044 supersedes the older pre-merge memory snapshot. Do not reopen366 or create a receipt-only PR.
+Accepted runtime remains7409e28c307a450ac6618655b8ded27ee9df2f51/PR366, full73/73,5203tests and allOPS. PR367 now implements one received-source trigger seal plus exact conflict/cause and environment propagation; not E61/E62 or dated expected-structure authority.
 
-The next source-retention prerequisite is described in e035-received-source-plan-20260921.md. Only new physical SQL tests and plan are published; implementation has not started. Obtain source/design/oracle review and meaningful original database RED. Current-task.md and checkpoint.json own the active work.
+Actual preparation35630581192 succeeded: real Supabase CLI migration20260921171346, physicalSQL62/62, TS19/19, repeated types equal committed surface, repeated schema only expected function delta, all nonfunction sections/counts unchanged. Receipt e035-source-seal-generation-20260921.json. Final candidate ordinaryCI/completed review/guardedmerge/actual-main verification still pending.
 
-FullE035/F3/masterplan remain incomplete. D110/110+10/10 retained; PR310 paused e9611351 and untouched. No live operations.
+Current task and e035-received-source-implementation-20260921.md are authoritative. Historical test setup failures and corrected counts remain explicit. Remaining scope is mapped in remaining-plan-status-20260921.md; five F3 groups plus later phase/capability closures are not accepted by this change. D110/110+10/10 retained;PR310paused/untouched; no live operations.

@@ -46227,6 +46227,14 @@ begin
       end if;
     end if;
   end if;
+  -- Seal only newly received EDIFACT PRODAT source bytes; never backfill UPDATEs.
+  -- Null is no source. Empty text is a source. Ignore a caller-supplied hash.
+  if tg_op='INSERT' and new.direction='inbound'
+     and upper(coalesce(new.message_family,''))='PRODAT'
+     and new.message_standard='edifact' then
+    new.immutable_payload_hash := case when new.raw_payload is null then null
+      else encode(digest(convert_to(new.raw_payload,'UTF8'),'sha256'),'hex') end;
+  end if;
   if tg_op='UPDATE' and old.immutable_payload_hash is not null then
     if new.raw_payload is distinct from old.raw_payload or new.immutable_payload_hash is distinct from old.immutable_payload_hash then
       raise exception 'immutable_ediel_payload_cannot_change' using errcode='23514';

@@ -1,7 +1,7 @@
-# Active gates — E035B received-source integrity
+# Open gates — PR367 final acceptance
 
-PR366 is accepted at main7409e28c, comment5762431044. Current source-integrity task has test-first60 real SQL controls and source plan only; independent source/design/oracle and genuine original storage RED precede runtime. Ordinary CI and final whole-PR review must pass before guarded merge; actual-main73/OPS/artifact inspection follow.
+PR367 IMPLEMENTED_NOT_VERIFIED: ordinary exact-head full CI, completed independent review, guarded merge and actual-main73/73+allOPS/receipt remain. Preparation SQL62 and TS19 GREEN are real but do not replace those gates. No old assertion/source/gate weakened.
 
-New inbound PRODAT raw source is not automatically protected by the existing old-hash update guard. The proposed INSERT seal is bounded to new source bytes, not a qualified structural authority. It does not seal legacy unqualified rows, protect deletion or freeze context. E035B still needs legal/environment/object/agency/time/accepted disposition/supersession/completeness plus loader; comparison and guide/ACK/persistence follow. No national error from missing local knowledge.
+Separate remaining work: dated E035B source/loader and completeness/supersession/disposition; E61/E62 comparator and actual guide/storage/ACK outcomes; F3C02/04/05/06/07 independent closure; later F4–F7 and applicable earlier source/rights/transport/formal-test gates. Hashing is not source authenticity or expected-structure authority. Detailed inventory: remaining-plan-status-20260921.md.
 
-FullE035/F3/masterplan incomplete. D110/110+10/10 retained. PR310 remains OPEN/DRAFT/PAUSED e9611351 and excluded/untouched. No live DB/provider/market/settings/deployment action.
+PR310 OPEN/DRAFT/PAUSED e961135199f292b8210884f07de3b616a670161a remains deferred and untouched; no imports. FullE035/F3/masterplan NOT_COMPLETE. D110/110+10/10 retained. No live DB/provider/market/settings/explicit deployment action.
