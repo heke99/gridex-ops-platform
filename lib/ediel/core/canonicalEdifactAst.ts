@@ -4,6 +4,7 @@ import { prodatDateValuesByQualifier } from '@/lib/ediel/prodat/prodatDateFields
 import { prodatDocumentSegment, prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { prodatReferenceEntries } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicCodes } from '@/lib/ediel/prodat/prodatCharacteristicFields'
+import { canonicalUtiltsTransactions, type CanonicalUtiltsTransaction } from '@/lib/ediel/utilts/canonicalObservationScope'
 import {
   segmentComposite,
   tokenizeEdifact,
@@ -28,6 +29,8 @@ export type CanonicalEdifactMessage = {
   messageCode: string | null
   documentReference: string | null
   lineGroups: CanonicalEdifactLineGroup[]
+  /** Actual UTILTS wire occurrences only; no inferred inventory or validity. */
+  utiltsTransactions?: CanonicalUtiltsTransaction[]
 }
 
 export type CanonicalEdifactAst = {
@@ -227,6 +230,7 @@ export function parseCanonicalEdifactAst(rawPayload: string | null | undefined):
       messageCode: family === 'PRODAT' ? prodatDocumentValue('202', segments, tokenized.una)?.toUpperCase() ?? null : canonicalFirstComponent(bgm, 1, tokenized.una)?.toUpperCase() ?? null,
       documentReference: family === 'PRODAT' ? prodatDocumentValue('203', segments, tokenized.una) : canonicalElement(bgm, 2),
       lineGroups: buildLineGroups(segments, tokenized.una, family),
+      ...(family === 'UTILTS' ? { utiltsTransactions: canonicalUtiltsTransactions(segments, tokenized.una, messageIndex) } : {}),
     }
   })
 

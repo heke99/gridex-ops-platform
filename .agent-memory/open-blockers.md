@@ -1,7 +1,7 @@
-# Open gates — corrected PR360 documentation
+# Active gates — PR361 corrected observation fidelity
 
-ACTIVE: fresh exact-head PR360 CI/review after documentation correction, then guardedmerge and actualmain73/73+OPS. Prior52261280 review/CI are historical evidence only. Root corrected QTY31/213, guide-first execution overstatement and incomplete two-blocker summary.
+Current IMPLEMENTED_NOT_VERIFIED: exact-final-head ordinaryCI, completed independentreview, guardedmerge, actual-main73/73+allOPS and receipt remain mandatory. Existing35 implementation had3 real exact-space failures; narrowguarded pre-trim amendment is implemented after review5757796173/root5757869043. It is not yet calledGREEN. Preserveoriginal46tests and24test-firstcompatibility controls.
 
-REMAINING F3, not an exhaustive new defect list: per-field/register composition mapping F3C-02; response criteria F3C-04; real guide-first execution and persistence/ACK chronology F3C-05; E035 dated received meter/register authority and operational E61/E62 consumer; authoritative full UNSM plus consumer/schema/RPC inventory F3C-06/G06; per-original-finding ledger F3C-07. Functional checks precede the final canonical-profile call in inspected utiltsEngine.part-1.ts; final disposition priority does not close this criterion.
+Remaining separatework: source-qualified receiveddated structure, E61/E62 comparator and operationaloutcomes, guide-firstexecution/physicalpersistence, completefield/register/response/finding criteria, fullUNSM/G06 andlatermasterplan. Do not manufacture errors fromlocalabsence or counts. D110/110+10/10 andprioraccepted351–360units retained.
 
-Absence of UNSM from the frozen seven-entry manifest is not proof it cannot be retrieved elsewhere. Qualify primary sources; never fabricate grammar or national faults from missing local data. Retain accepted PR351–359/D110/110+10/10 units. FullF3/masterplanNOT_COMPLETE. PR310OPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a is excluded; no import/restart/write/merge. No liveoperations.
+PR362 proposalonly closedunmerged; PR310OPEN/DRAFT/PAUSED e961135199f292b8210884f07de3b616a670161a untouched/excluded. No liveDB/provider/market/settings/explicitdeployment. Read current-task.md ande035-observation-whitespace-amendment-20260921.md.

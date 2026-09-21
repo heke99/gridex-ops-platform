@@ -1,7 +1,9 @@
-# Handover — complete corrected PR360 acceptance first
+# Handover — finish PR361 corrected candidate
 
-Continue codex/ediel-f3-phase-closure-20260920; fetch actual refs. Last accepted runtime71d2adf8/PR359 has73/73+5010/5010+OPS, with pr359-main-acceptance-20260921.json. PR360 original52261280 had green CI and bounded review5753449604. Root's final check corrected documentation: field213 usesQTY31, not136; guide-first final disposition does not establish guide-first runtime execution; E035/G06 are not the exhaustive remaining F3/masterplan scope.
+Use codex/ediel-utilts-observation-scope-20260921/PR361, fetch actual head beforewrites. Acceptedmain7a13efd6/PR360 receiptpr360-main-acceptance-20260921.json remains authority. PR362 duplicated an olderZIP proposal and was closedunmerged; do not import it or restart source work.
 
-Read current-task.md,checkpoint.json and corrected f3-criterion-reconciliation-r1-20260921.md. Require fresh exact-head ordinary CI and independent review, then guardedmerge, actualmain73/73+allOPS and durable receipt. No new runtime accepted yet. After acceptance continue bounded source-backed F3 work, keeping E035, fullUNSM/G06, F3C-05 ordering/persistence, per-field composition and per-finding ledger limitations visible.
+Initial94 RED5056total/5016PASS40FAIL was missingpublicprojection. Implementation35fecee5 resolved37 failures but left3 exact-space regressions (ordinaryOPS35579393631/job106268498592;5053PASS3FAIL). Source/design5757115464+5757707782 retained. Narrow additional review5757796173/root5757869043 authorizes guarded private pre-trim token evidence, used only by new observation helper; alllegacytoken fields/defaultdecoding remain unchanged. New24compatibility cases publishedfirst4a29ed51; original46unchanged. Current correction childof4a remains IMPLEMENTED_NOT_VERIFIED.
 
-D110/110+10/10 retained; fullF3/masterplanNOT_COMPLETE; PR310paused/untouched e9611351. No productionDB/provider/market/settings or explicitdeployment actions. Previous handover/state preserved in Git at52261280. This candidate changes documentation only.
+NEXT: read terminal4a test-firstresult, new exact-head ordinaryCI, independent completedfour-dimension review, then expected-head guardedmerge. Verifyactualmergefull73/73+allOPS and artifactbinding/rows/JUnit/units before acceptedreceipt. No inherited or syntheticPR certificate substitution. Currentaudit e035-observation-whitespace-amendment-20260921.md; previousaudit retainedhistorical.
+
+No E61/E62,expectedinventory,guide,ACK,DB or authority changes. RemainingfullE035/F3/masterplanNOT_COMPLETE; D110/110+10/10retained. PR310OPEN/DRAFT/PAUSED e9611351 untouched; no liveoperations. Previous canonicalmemory is preservedinGit at4a29ed51.
