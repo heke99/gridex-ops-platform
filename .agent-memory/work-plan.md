@@ -1,8 +1,9 @@
-# Work plan — PR364 tenant boundary, then dated structure
+# Work plan — PR364 accepted, E035B next
 
-1. VERIFIED: PR351–363 bounded work, including D110/110+10/10, canonical UTILTS observation input and raw-owned runtime diagnostic handoff. Latest accepted main34eb9430 has73/73,5102tests and allOPS.
-2. QUALIFIED/RED: existing PRODAT staging source-path tenant defect, independent5759320966 and actual ordinary27-failure witness5759395557. Existing JSON diagnostics already persist; do not duplicate them.
-3. ACTIVE IMPLEMENTED_NOT_VERIFIED: PR364 missing-scope no-masterdata guard, internal company normalization, mandatory filters. Require exact-headCI/completed review, guardedmerge and actual-main73/OPS receipt; then publish finalhandover.
-4. REMAINING: independent dated received structure authority/loader, E61/E62 comparator and guide/ACK/persistence operational evidence; remaining field/register/response/grammar/finding F3 criteria, then later applicable masterplan gates.
+1. VERIFIED: bounded PR351–363, D110/110+parents10/10, canonical UTILTS observed input and raw-owned runtime handoff.
+2. VERIFIED: PR364 unresolved PRODAT staging isolation. Meaningful test-firstRED, independent design/final review, ordinaryCI, guardedmerge840720c7 and actual-main73/5153/allOPS; root5759741941 and pr364-main-acceptance-20260921.json.
+3. PUBLICATION: this documentation-only receipt/handover must pass its own ordinaryCI/review/guardedmerge. If already merged, skip it and continue; do not repeat code or create endless receipt-only PRs.
+4. NEXT ACTIVE CODE QUALIFICATION: E035B independent received dated structure producer/loader. Follow existing parsed/staged/applied snapshot and schema path, qualify valid-time/source/disposition/completeness and tenant/environment/actor/objectagency guarantees before meaningful operational RED and source-qualified E61/E62 implementation.
+5. REMAINING: real guide-before-function/ACK/persistence outcomes, F3 field/register/response/grammar/finding criteria and later applicable masterplan phases. FullE035/F3/masterplan NOT_COMPLETE; no blanket acceptance from green aggregate counts.
 
-Only step3 active. No fresh fullphase acceptance, no invented inventory or peer fault from localabsence. PR310paused/excluded; no live operations.
+PR310 stayspaused/excluded at e961135199f292b8210884f07de3b616a670161a. Existing observed diagnostics are not expectedstructure; do not duplicate them or fabricate peer faults from localabsence. No liveoperations.
