@@ -1,10 +1,7 @@
-# Handover — insertion context prerequisite
+# Handover — PR369 final CI/review/merge next
 
-Read the current plan before older work. Do not redo368 or open a receipt-only PR. Test-first publication is pending actual RED/review. Implementation, native schema qualification, final CI/review, guarded merge and actual-main73/OPS remain.
+Use codex/ediel-received-context-20260921 / PR369. Fetch actual refs; parentc6e624e2 contains qualified tests, its child adopts only nine native delivery paths plus current evidence/memory. No temporary generator/workflow/template file is included. Read current-task.md, checkpoint.json and e035-received-context-implementation-20260922.md.
 
-Plan: `quality/audits/ediel-masterplan-v2/e035-received-context-plan-20260921.md`.
+Native35664024836/artifact10668686301 is independently checked:53 TS,84 context+62 old SQL,3 upgrade probes, real CLI migration20260921224255, repeated unchanged types, exact function-only schema delta. This is not final PR CI. Require ordinary exact-head CI and completed independent four-part review, guarded merge, then actual-main73/OPS and same-PR receipt. No receipt-only PR loop.
 
-Accepted main: a0e7ebdd8f08b62e70246684f8baf6e7cb0234f9 (PR368); canonical receipt5766791083.
-Correct baseline: 5300 tests in330 files, PR368 adds78 (46+26+3+3), not5303/81/49. Actual-main full73/73 and OPS accepted.
-PR310 remains paused e961135199f292b8210884f07de3b616a670161a, excluded and untouched. D110/110+parents10/10 retained.
-FullE035/F3/masterplan incomplete. No direct live or explicit deployment operations.
+Earlier summary-derived IDs/counts were corrected by direct readback: actual source/design5768354034, oracle5768382713; c6RED5307PASS46FAIL/5353. First native job passed84+62 but harness mistook replay marker workspace for source; HEAD/checksum-based retrieval fixed it without changing production behavior. Last acceptedmaina0e7ebdd/PR368 remains authoritative until the next gate. FullE035/F3/masterplan incomplete;PR310paused/untouched;no liveoperations.

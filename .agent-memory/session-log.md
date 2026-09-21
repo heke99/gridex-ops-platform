@@ -1,8 +1,7 @@
-# 2026-09-21 — next source-context unit
+# 2026-09-22 — PR369 substantive implementation
 
-Read exact main/tree and canonical368 receipt. Inspected writer retry timestamp replacement and mutable tenant resolver. Advisory5767563592, reduced design5767675347, clarification5767707078. Prepared real public-path and83 physical SQL controls, no production change yet. Next: publish and qualify RED/review.
+Resumed existing PR369 rather than creating another task. Repaired only new test/oracle defects from5767827973, added complete accepted/rejected outcome equality, obtained source/design5768354034 and oracle5768382713. Direct-log RED is5353total/5307PASS46FAIL; prior5300pass. Read actual84SQL14PASS70FAIL after62priorPASS.
 
-Accepted main: a0e7ebdd8f08b62e70246684f8baf6e7cb0234f9 (PR368); canonical receipt5766791083.
-Correct baseline: 5300 tests in330 files, PR368 adds78 (46+26+3+3), not5303/81/49. Actual-main full73/73 and OPS accepted.
-PR310 remains paused e961135199f292b8210884f07de3b616a670161a, excluded and untouched. D110/110+parents10/10 retained.
-FullE035/F3/masterplan incomplete. No direct live or explicit deployment operations.
+Prepared finite two-file TS change and one forward trigger migration. Real Supabase CLI/native replay ran in an unmerged exact-base branch. First job passed84+62 but upgrade harness failed locating migrations temporarily replaced by replay ledger markers. Fixed harness to read HEAD/checksum-pinned bytes; only scratch may supply actual uncommitted CLI output. Second run35664024836 succeeded including3 actual collision/lock probes,53 TS and repeated schema/types. Root independently verified full downloaded bytes; adopted nine allowlisted delivery paths, no scratchworkflow/templates.
+
+Corrected summary-derived bad IDs/counts by reading original responses and actual logs;5768470237/5768542611 retain correction trail. Final CI/review/merge/actualmainverification remain next, not done at this checkpoint. Relevant bounded TDD/debugging/Postgres/spec-to-code/review/verification skills remain; no unrelated UI/dependency or broad-audit changes. PR310paused/untouched; no directliveoperations; fullE035/F3/masterplanincomplete.

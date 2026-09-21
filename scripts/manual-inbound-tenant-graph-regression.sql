@@ -86,3 +86,9 @@ rollback;
 
 -- Insert-owned context/cutoff contract; independent rollback, no live data.
 \ir ediel-inbound-received-context-regression.sql
+
+-- Actual upgrade collisions and competing writer lock; localhost-only rollback probes.
+\! python3 scripts/ediel-received-context-upgrade-regression.py
+\if :SHELL_ERROR
+  do $$ begin raise exception 'PRODAT_RECEIVE_CONTEXT_UPGRADE_FAILURE'; end $$;
+\endif

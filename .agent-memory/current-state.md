@@ -1,10 +1,7 @@
-# Current state — PR368 accepted; receive context tests first
+# Current state — PR369 implemented, final verification pending
 
-New receive-context tests and SQL controls are being published before production implementation. No new implementation or RED/GREEN evidence is claimed yet.
+Accepted main remains a0e7ebdd8f08b62e70246684f8baf6e7cb0234f9 / PR368, receipt5766791083 (5300 tests,330files,73/73,allOPS). Active PR369 child ofc6e624e2 now contains insertion-owned receivedProdatContext, stable retry timestamp, exact conflict propagation and non-authoritative reader checks.
 
-Plan: `quality/audits/ediel-masterplan-v2/e035-received-context-plan-20260921.md`.
+Native preparation6400ccc2/run35664024836 passed53 targeted TS,84 new+62 retained SQL and3 actual upgrade probes. Repeated generated types equal baseline; schema changes only intended trigger body. Final ordinary CI and independent review remain pending, so no new main acceptance. Read current-task.md and e035-received-context-implementation-20260922.md.
 
-Accepted main: a0e7ebdd8f08b62e70246684f8baf6e7cb0234f9 (PR368); canonical receipt5766791083.
-Correct baseline: 5300 tests in330 files, PR368 adds78 (46+26+3+3), not5303/81/49. Actual-main full73/73 and OPS accepted.
-PR310 remains paused e961135199f292b8210884f07de3b616a670161a, excluded and untouched. D110/110+parents10/10 retained.
-FullE035/F3/masterplan incomplete. No direct live or explicit deployment operations.
+Source/disposition/complete discovery/timeline/E61/E62 remain separate; fullE035/F3/masterplan incomplete. D110/110+10/10 retained. PR310paused e9611351 untouched. Scratch generator/workflow/template files excluded; no direct live operations.

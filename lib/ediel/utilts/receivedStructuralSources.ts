@@ -15,7 +15,7 @@ const MAX_TOTAL_BYTES = 1024 * 1024
 const MAX_WIRE_SEGMENTS = 512
 const MAX_TOTAL_SEGMENTS = 4096
 const READ_DEADLINE_MS = 2000
-const COLUMNS = 'id,company_id,environment,direction,message_standard,message_family,message_code,metering_point_id,message_received_at,raw_payload,immutable_payload_hash'
+const COLUMNS = 'id,company_id,environment,direction,message_standard,message_family,message_code,metering_point_id,message_received_at,raw_payload,immutable_payload_hash,received_prodat_context:execution_context_snapshot->receivedProdatContext'
 
 type Issue = { code: string; sourceMessageId?: string }
 export type ReceivedStructuralSource = {
@@ -34,6 +34,7 @@ export type ReceivedStructuralSource = {
   oldMeterNumber: string | null
   registers: Array<{ sourceOrder: number; registerIndex: string | null; registerId: string | null }>
   acceptance: 'not_checked'
+  receiptContext: { status: 'unavailable' } | { status: 'recorded'; capturedAt: string }
 }
 export type ReceivedStructuralSources = {
   version: 1
@@ -81,6 +82,26 @@ function receipt(value: unknown): Receipt | null {
 }
 function notAfter(value: Receipt, cutoff: Receipt): boolean {
   return value.milliseconds < cutoff.milliseconds || (value.milliseconds === cutoff.milliseconds && value.microseconds <= cutoff.microseconds)
+}
+
+
+const CONTEXT_KEYS = ['version', 'contextOrigin', 'sourceMessageId', 'companyId', 'environment', 'messageCode', 'payloadHash', 'sourceReceivedAt', 'capturedAt']
+/** A database insertion snapshot is not accepted source disposition. Missing
+ * historic provenance retains diagnostics only; present contradictions fail the
+ * whole response before IDs, hashes, objects or dates can escape its boundary. */
+function contextIssue(row: Record<string, unknown>, cutoff: Receipt): string | null {
+  const context = row.received_prodat_context
+  if (context === null || context === undefined) return null
+  if (!record(context) || Object.keys(context).length !== CONTEXT_KEYS.length
+    || !CONTEXT_KEYS.every(key => Object.prototype.hasOwnProperty.call(context, key))
+    || context.version !== 1 || context.contextOrigin !== 'database_insert') return 'source_receive_context_unavailable'
+  if (context.companyId !== row.company_id || context.environment !== row.environment) return 'source_receive_context_scope_unavailable'
+  const sourceTime = receipt(context.sourceReceivedAt), rowTime = receipt(row.message_received_at), captured = receipt(context.capturedAt)
+  if (context.sourceMessageId !== row.id || context.messageCode !== row.message_code
+    || typeof context.payloadHash !== 'string' || !/^[a-f0-9]{64}$/.test(context.payloadHash) || context.payloadHash !== row.immutable_payload_hash
+    || !sourceTime || !rowTime || !captured || !notAfter(sourceTime, rowTime) || !notAfter(rowTime, sourceTime)
+    || !notAfter(captured, cutoff)) return 'source_receive_context_unavailable'
+  return null
 }
 
 /** One supported physical envelope, not a whole-message grammar certificate. */
@@ -181,6 +202,10 @@ export async function readReceivedStructuralSources(input: {
     || !receipt(row.message_received_at) || !notAfter(receipt(row.message_received_at)!, cutoff))) return report('read_failed', 'source_read_failed')
   if (!Number.isInteger(result.count) || result.count === null || result.count < 0 || result.count > MAX_ROWS || rows.length !== result.count
     || rows.some(row => !exactId(row.id)) || new Set(rows.map(row => row.id)).size !== rows.length) return report('incomplete', 'source_query_incomplete')
+  for (const row of rows as Record<string, unknown>[]) {
+    const issue = contextIssue(row, cutoff)
+    if (issue) return report('read_failed', issue)
+  }
   let totalBytes = 0
   let totalSegments = 0
   const output = report('inspected')
@@ -227,6 +252,9 @@ export async function readReceivedStructuralSources(input: {
         meterNumber: first.meterNumber, oldMeterNumber: first.oldMeterNumber ?? null,
         registers: objects[0].registers.map(register => ({ sourceOrder: register.sourceOrder, registerIndex: register.registerIndex, registerId: register.meterTimeFrame })),
         acceptance: 'not_checked',
+        receiptContext: record(row.received_prodat_context)
+          ? { status: 'recorded', capturedAt: row.received_prodat_context.capturedAt as string }
+          : { status: 'unavailable' },
       })
     } catch (error) {
       if (error instanceof InspectionBudgetExceeded) return report('incomplete', 'source_inspection_budget_exceeded')
