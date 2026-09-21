@@ -1,8 +1,8 @@
-# Work plan — observation handoff to dated structure
+# Work plan — PR364 tenant boundary, then dated structure
 
-1. ACCEPTED: bounded351–361, D110/110+parents10/10, actualmaind7078ac5full73/5080/allOPS; receipt361saved. Do not redo.
-2. ACTIVE PR363 IMPLEMENTED_NOT_VERIFIED: handoffcanonicalobservations through existinglowerparser/draft/runtime/processor diagnostics. Design5758689949 andactual45bbRED5758756950 complete;22publishedcontrols+5080old unchanged. ExactCI/review/guardedmerge/main73/OPS acceptancepending.
-3. AFTER363: qualifyindependentreceiveddatedstructural-source/loader withtenant/environment/object/agency/period/provenance/completeness, then source-qualifiedcomparisonandoperationalE035outcomes. No inventoryfromobservations.
-4. INCOMPLETE: remainingF3field/register/response/finding/grammar andlaterapplicablemasterplancriteria.
+1. VERIFIED: PR351–363 bounded work, including D110/110+10/10, canonical UTILTS observation input and raw-owned runtime diagnostic handoff. Latest accepted main34eb9430 has73/73,5102tests and allOPS.
+2. QUALIFIED/RED: existing PRODAT staging source-path tenant defect, independent5759320966 and actual ordinary27-failure witness5759395557. Existing JSON diagnostics already persist; do not duplicate them.
+3. ACTIVE IMPLEMENTED_NOT_VERIFIED: PR364 missing-scope no-masterdata guard, internal company normalization, mandatory filters. Require exact-headCI/completed review, guardedmerge and actual-main73/OPS receipt; then publish finalhandover.
+4. REMAINING: independent dated received structure authority/loader, E61/E62 comparator and guide/ACK/persistence operational evidence; remaining field/register/response/grammar/finding F3 criteria, then later applicable masterplan gates.
 
-Only2active; fullE035/F3/masterplanNOT_COMPLETE. PR310paused/excluded,362closedunmerged;no liveoperations.
+Only step3 active. No fresh fullphase acceptance, no invented inventory or peer fault from localabsence. PR310paused/excluded; no live operations.

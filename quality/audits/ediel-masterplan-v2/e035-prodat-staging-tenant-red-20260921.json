@@ -1,0 +1,18 @@
+{
+  "kind":"ordinary-ci-test-first-red",
+  "pr":364,
+  "head":"6c9f0f29fc648441e3943140e1b05492fbd33418",
+  "ops_run":35590870160,
+  "quality_job":106304715600,
+  "node":"22.23.2",
+  "tests":{"passed":5126,"failed":27,"total":5153},
+  "files":{"passed":322,"failed":1,"total":323},
+  "new_suite":{"cases":51,"passed":24,"failed":27},
+  "pre_existing_tests_passed":5102,
+  "finished_at":"2026-09-21T10:53:55.088Z",
+  "failure_is_import_or_setup_error":false,
+  "failure_scope":"Actual exported unresolved staging returns foreign links/confidence or issues unscoped masterdata queries",
+  "independent_design_review":5759320966,
+  "root_red_and_authorization_receipt":5759395557,
+  "scope":"Behavioral RED only; not final candidate or whole-E035 acceptance"
+}

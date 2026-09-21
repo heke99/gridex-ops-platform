@@ -1,7 +1,9 @@
-# Active task — PR363 runtime observation handoff
+# Active task — PR364 exact-head acceptance
 
-Branch codex/ediel-utilts-observation-handoff-20260921, candidate childof45bb5dc0. Status IMPLEMENTED_NOT_VERIFIED. Source/design/oracle5758689949 and actual ordinaryRED5758756950 qualify the finite lower-parser handoff: originalraw -> existingcanonicalAST -> optional typed utiltsObservedTransactions + samearrayinparsedPayload -> existingdraft/runtime/processor diagnosticspreads. No E61/E62/expectedstructure/guide/ACK/ingestion authority change. All22new+5080old tests unchanged.
+Only PR364 on codex/ediel-prodat-unresolved-matching-20260921 is active. The bounded unresolved PRODAT staging matcher fix is IMPLEMENTED_NOT_VERIFIED. Read e035-prodat-staging-tenant-implementation-20260921.md and its retained plan. Independent design5759320966 plus actual ordinary RED5153/5126PASS/27FAIL (receipt5759395557) preceded the code. All51 new and5102 existing assertions remain unchanged.
 
-NEXT: fetch actualhead andread e035-runtime-observation-handoff-implementation-20260921.md; require exact-head ordinaryCI and completed independent TASK/SPEC/QUALITY/TENANT-BOUNDARY/WHOLE-PR review, guardedmerge, then actualmainfull73/OPS and durableactualreceipt. No currentGREEN/mergeclaim. If merged already, read PR363 acceptance comment and actualruns first; do not restart from this pre-acceptance snapshot.
+NEXT: fetch actual candidate head; run unchanged ordinaryCI, finish independent TASK/SPEC,QUALITY,TENANT-BOUNDARY,WHOLE-PR review, then expected-head guarded merge. Independently verify actual resulting mainfull73/73+allOPS and save acceptance/handover to the repository. Do not treat queued CI, test-first RED or historical source review as final acceptance.
 
-Accepted361/maind7078ac5 full73/5080/allOPS receiptpr361-main-acceptance-20260921.json saved. FullE035/F3/masterplanNOT_COMPLETE, D110/110+10/10retained. Nextfunctionalwork after363 acceptance: genuinelyreceived datedstructural-source/loader qualification, not observedcounts. PR310paused e9611351 untouched;362closedunmerged;no liveoperations.
+Accepted main34eb9430/PR363 has73/73,5102tests,allOPS; durable pr363-main-acceptance-20260921.json and root5759348778. Do not repeat361/363. PR364 retains null-company pending staging but prevents masterdata matching without company scope; the normal inbound outer tenant stop remains. No live-mail exploit or fullE035 fix is claimed.
+
+After this acceptance, continue qualified independent dated structure producer/loader and E61/E62 operational chain. Existing PRODAT diagnostics are already persisted; do not duplicate them. FullE035/F3/masterplan NOT_COMPLETE, D110/110+10/10 retained. PR310paused e9611351 untouched; no live operations.
