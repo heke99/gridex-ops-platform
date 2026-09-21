@@ -1,5 +1,5 @@
-# Resume PR363 — runtime observations, not full E035
+# Resume — PR364 acceptance is next
 
-Activebranchcodex/ediel-utilts-observation-handoff-20260921/PR363. Accepted361/maind7078ac5 verifiedactual73/5080/allOPS receiptcommitted. Currenthandoffchildof45bb5dc0IMPLEMENTED_NOT_VERIFIED. Design5758689949; actual22testfirstRED5102/5083PASS19FAIL,root5758756950.
+Read current-task.md, checkpoint.json, handover.md and e035-prodat-staging-tenant-implementation-20260921.md. Active branch codex/ediel-prodat-unresolved-matching-20260921 / PR364; accepted main34eb/PR363 receipt retained. The finite isolation fix is implemented after independent5759320966 and realRED5759395557; no finalGREEN/merge claimed.
 
-Readcurrent-task/checkpoint/handover ande035-runtime-observation-handoff-implementation-20260921.md. FetchlatestPRstatusfirst: ifalreadymerged/readacceptance do notredo. Pendingatthissnapshot exactordinaryCI+completedfour-dimensionreview+guardedmerge+actualmain73/OPS andreceipt. Noexpectedstructure/E61/E62/guide/ACK/ingestionauthoritychange. Nextafteracceptance receiveddatedstructurequalification. FullE035/F3/masterplanNOT_COMPLETE;D110/110+10/10retained;PR310pauseduntouched;no liveoperations.
+Next exact final-head CI/review, guardedmerge and actual-mainfull73/OPS with verified receipt, then publish updated handover. Preserve51new and5102old assertions; no repeat361/363. Remaining source-qualified dated expectedstructure/E61/E62 and fullF3/masterplan incomplete. PR310paused e9611351 untouched.

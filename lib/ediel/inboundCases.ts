@@ -287,13 +287,15 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
     },
   }
 }
-
 async function maybeFindExistingCustomer(parsed: ParsedInboundProdat, companyId?: string | null): Promise<{
   customerId: string | null
   siteId: string | null
   meteringPointId: string | null
   confidence: number
 }> {
+  // Unresolved messages may be staged, but must never search tenant masterdata.
+  if (!companyId) return { customerId: null, siteId: null, meteringPointId: null, confidence: 0 }
+
   let customerId: string | null = null
   let siteId: string | null = null
   let meteringPointId: string | null = null
@@ -303,14 +305,11 @@ async function maybeFindExistingCustomer(parsed: ParsedInboundProdat, companyId?
   const meterPointId = trimOrNull(parsed.meteringPoint.meterPointId)
 
   if (meterPointId) {
-    let meteringPointQuery = supabaseService
+    const meteringPointQuery = supabaseService
       .from('metering_points')
       .select('id,site_id,meter_point_id,ediel_reference')
       .or(`meter_point_id.eq.${meterPointId},ediel_reference.eq.${meterPointId},site_facility_id.eq.${meterPointId}`)
-
-    if (companyId) {
-      meteringPointQuery = meteringPointQuery.eq('company_id', companyId)
-    }
+      .eq('company_id', companyId)
 
     const { data, error } = await meteringPointQuery
       .limit(1)
@@ -325,14 +324,11 @@ async function maybeFindExistingCustomer(parsed: ParsedInboundProdat, companyId?
   }
 
   if (siteId) {
-    let siteQuery = supabaseService
+    const siteQuery = supabaseService
       .from('customer_sites')
       .select('id,customer_id')
       .eq('id', siteId)
-
-    if (companyId) {
-      siteQuery = siteQuery.eq('company_id', companyId)
-    }
+      .eq('company_id', companyId)
 
     const { data, error } = await siteQuery.maybeSingle()
     if (error) throw error
@@ -340,14 +336,11 @@ async function maybeFindExistingCustomer(parsed: ParsedInboundProdat, companyId?
   }
 
   if (!customerId && orgNumber) {
-    let customerByOrgQuery = supabaseService
+    const customerByOrgQuery = supabaseService
       .from('customers')
       .select('id')
       .eq('org_number', orgNumber)
-
-    if (companyId) {
-      customerByOrgQuery = customerByOrgQuery.eq('company_id', companyId)
-    }
+      .eq('company_id', companyId)
 
     const { data, error } = await customerByOrgQuery
       .limit(1)
@@ -358,14 +351,11 @@ async function maybeFindExistingCustomer(parsed: ParsedInboundProdat, companyId?
   }
 
   if (!customerId && personalNumber) {
-    let customerByPersonQuery = supabaseService
+    const customerByPersonQuery = supabaseService
       .from('customers')
       .select('id')
       .eq('personal_number', personalNumber)
-
-    if (companyId) {
-      customerByPersonQuery = customerByPersonQuery.eq('company_id', companyId)
-    }
+      .eq('company_id', companyId)
 
     const { data, error } = await customerByPersonQuery
       .limit(1)
@@ -396,7 +386,7 @@ export async function createOrUpdateInboundProdatCase(params: {
   const registerIssues = validateProdatRegisterPayload({code:source.messageCode ?? '',rawSegments:source.rawSegments,una:parseUna(params.message.raw_payload)})
   if (registerIssues.some(issue => issue.blocking)) throw new Error('PRODAT_REGISTER_STRUCTURE_INVALID: ' + registerIssues.map(issue=>issue.description).join(' | '))
   const parsed = parseInboundProdatBusinessData(params.message)
-  const companyId = params.message.company_id ?? null
+  const companyId = trimOrNull(params.message.company_id)
   const match = Number(parsed.proposedAction.objectCount) > 1 ? {customerId:null,siteId:null,meteringPointId:null,confidence:0}
     : await maybeFindExistingCustomer(parsed, companyId)
 
@@ -567,7 +557,6 @@ async function insertAuditLog(params: {
   })
   if (error) throw error
 }
-
 function inboundCustomerCommand(params: {
   inboundCase: EdielInboundCaseRow; actorUserId:string; mode:EdielInboundCaseActionMode;
   selectedCustomerId:string|null; selectedSiteId?:string|null; selectedMeteringPointId?:string|null;
