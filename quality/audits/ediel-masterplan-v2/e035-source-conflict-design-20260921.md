@@ -1,0 +1,21 @@
+# Source-conflict compatibility decision and coupled consumer proposal
+
+Pre-implementation amendment to e035-received-source-plan and scope-amendment. No production code yet. Initial review5763418780 requires an explicit duplicate-update policy and actual RED. Initial f217 replay35621926403 failed in NEW fixture setup at Z04 profile ambiguity, not source behavior. Test-only48fc selects existing PRODAT:Z04:L:26.A:r3 profile+pack STRICTly, preserving all triggers and62 behavioral assertions. No source/runtime authorization is inferred from setup errors.
+
+## Duplicate policy
+
+A newly received inbound EDIFACT PRODAT row retains its original stored raw bytes. Reprocessing identical bytes may update diagnostics, links and status without changing hash. Replacing different bytes under the existing inbound row identity is NOT a supported correction: reject the source conflict, retain original evidence, and stop this processing attempt before business success. A correction requires a separately identified source through the normal ingress policy; do not automatically allocate a duplicate row, ignore the mismatch or rewrite the stored hash. Email diagnostic fallback rows remain outside the seal, retaining their current reparse behavior. Legacy unsealed rows remain unqualified.
+
+## Actual caller finding and bounded repair proposal
+
+createInboundEdielMessage currently handles all non-unique write errors by warning and returning null. applySafeInboundStatusUpdate continues business updates after that null; the processor's unmatched branch also ignores it. Consequently adding a SQL hash guard alone can stop raw mutation but would not reliably stop the current attempt's later success behavior. For the exact physical PRODAT immutable error (code23514 AND message immutable_ediel_payload_cannot_change), throw a controlled INBOUND_PRODAT_SOURCE_CONFLICT error with original cause before generic error handling. Both existing awaited processor branches then stop before outbound business updates, inbound_mail_processed events or the final processed/manual-review success write. Parse diagnostics that precede source persistence can remain; no rollback of earlier independent writes is claimed.
+
+The matched processor branch also currently drops its already resolved mailbox environment when calling applySafeInboundStatusUpdate, which itself omits it from createInboundEdielMessage. Forward that same environment through this existing path without defaulting or deriving it from payload. Add an optional environment property for source compatibility; invalid/missing environments still reach the existing validation, not an invented test/production fallback. No auth, tenant matching, subtype selection, business classification or ACK policy change.
+
+Only this exact PRODAT error is reclassified. Other error classes, other families and unique-conflict/idempotency paths retain their previous behavior. This is NOT a universal persistence-success barrier or proof of full race-free deduplication. The existing post-unique-conflict ID reuse and broad identity policy need separate evidence before any wider consistency claim. Do not describe this bounded delivery as complete E035B or a complete ingestion redesign.
+
+## Oracle
+
+New ediel-inbound-source-conflict.test.ts calls the actual parser/writer/safe-updater/processor; only external DB, tenant/matching and task boundaries are substituted. It covers15 cases: duplicate test/production2; freshinsert1; writerconflict1; safe environment2; safeconflict1; both processor branches2; successful matched processor environments2; unmatchedmanual1; unrelatederrors2; unrelatedfamily1. The SQL suite independently exercises physical trigger behavior; these TS boundary responses do not pretend to execute SQL. Require actual meaningful ordinary TS RED for missing environment/conflict propagation and real SQL RED before implementing the corresponding changes. No old test or assertion removed.
+
+All migration/schema/type/review/main acceptance gates and no-live boundaries remain. Target production files, subject to independent approval, are one new forward replacement of the existing trigger function, inboundStatusUpdater.ts and one environment field in edielInboundProcessor.ts. No workflow or gate changes. PR310 stays paused and untouched; fullE035/F3/masterplan incomplete.
