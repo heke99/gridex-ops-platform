@@ -1,9 +1,7 @@
-# Open gates — PR359 format-routing correction
+# Open gates — corrected PR360 documentation
 
-Only active item: PR359 FTX301/303. Old9e286f86 ordinary npm test failed2/4988 existing list-routing tests; no migration-chain restart is authorized by that failure. Test-first b9dcfd12 adds22 controls, followed by the bounded format-dispatch correction. No original test or expectation was removed or relaxed.
+ACTIVE: fresh exact-head PR360 CI/review after documentation correction, then guardedmerge and actualmain73/73+OPS. Prior52261280 review/CI are historical evidence only. Root corrected QTY31/213, guide-first execution overstatement and incomplete two-blocker summary.
 
-Still required: terminal unchanged ordinary CI on the actual final head; independent final TASK/SPEC,QUALITY,TENANT-BOUNDARY,WHOLE-PR approval; expected-head guarded merge; actual-main73/73 and allOPS; saved acceptance receipt. Prior5753117905 three-dimensional PASS and isolated dispatch18PASS do not satisfy those gates. Inspect actual results and fix concrete findings; do not mark pending work green.
+REMAINING F3, not an exhaustive new defect list: per-field/register composition mapping F3C-02; response criteria F3C-04; real guide-first execution and persistence/ACK chronology F3C-05; E035 dated received meter/register authority and operational E61/E62 consumer; authoritative full UNSM plus consumer/schema/RPC inventory F3C-06/G06; per-original-finding ledger F3C-07. Functional checks precede the final canonical-profile call in inspected utiltsEngine.part-1.ts; final disposition priority does not close this criterion.
 
-Queued only after PR359 acceptance: remainingF3 field/register composition, P/U response criteria, guide-before-function/per-object disposition, fullUNSM/G06 and original-finding reconciliation. FullF3/masterplanNOT_COMPLETE. D110/110+10/10 unchanged. Last acceptedmain352fd8ee/PR358.
-
-PR310 remainsOPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a, outside all active operations. No liveDB/provider/market/settings/explicitdeployment changes. Prior blocker snapshot remains in Git atb9dcfd12.
+Absence of UNSM from the frozen seven-entry manifest is not proof it cannot be retrieved elsewhere. Qualify primary sources; never fabricate grammar or national faults from missing local data. Retain accepted PR351–359/D110/110+10/10 units. FullF3/masterplanNOT_COMPLETE. PR310OPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a is excluded; no import/restart/write/merge. No liveoperations.

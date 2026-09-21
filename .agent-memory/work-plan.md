@@ -1,11 +1,8 @@
-# Work plan — accepted E011; active F3C-02/PR359
+# Work plan — corrected PR360 publication, then remaining F3
 
-1. DONE: PR356/D110/110+10/10 final adjudication5751354872 and PR357 publication/main acceptance.
-2. DONE: approved F3 planf3dcf649/review5751554605; corrected TaskA9d87/review5752177628; meaningful RED and reviewed runtime amendments.
-3. DONE: PR358/E011 implementation, review5752664226, ordinaryCI, guardedmerge352fd8ee and actual-main73/73/allOPS; root5752720765.
-4. DONE NARROWLY:74 numeric ID/962 base-usage comparison, independently fact-checked5752706986. Not full behavioral field/phase acceptance.
-5. IN_PROGRESS: PR359 FTX301/303. Source/design, real native/SMTP RED and first-PRODAT correction retained. Old9e ordinaryCI failed2 list-routing regressions. New test-firstb9dcfd12 adds22 controls; bounded format-dispatch correction now requires new exact-headCI, independent finalreview, guardedmerge and actual-main73/OPS receipt.
-6. NOT_COMPLETE: remainingF3C-02/04/05/06/07 reconciliation and bounded source-backed fixes, then independent whole-F3 adjudication.
-7. NOT_STARTED HERE: later masterplan phase gates; PR310-dependent parity remains deferred/excluded.
+1. VERIFIED: D110/110+parents10/10; accepted bounded PR351–359, including PR358 E011 and PR359 FTX301/303. Actual PR359main71d2adf8 hasfull73/73+5010tests+allOPS; retain receipt.
+2. IN_PROGRESS: PR360 documentation reconciliation correction. Original52261280 ordinaryCI/review passed, but root corrected QTY31/213, disposition-versus-execution ordering and unsupported exhaustive two-blocker claim. New exact-head CI/review, guarded merge and actualmain73/OPS receipt required.
+3. PARTIAL: F3C-02 per-field/register composition; F3C-04 final response mapping; F3C-05 staged validation and physical persistence/ACK evidence; E035 structural authority/consumer; F3C-06 fullUNSM/G06 source/inventory; F3C-07 per-original-finding ledger. Next source-capability investigation after publication: E035; do not erase the other incomplete criteria.
+4. NOT_COMPLETE: wholeF3 independent adjudication and later applicable masterplan phases. PR310-dependent parity remains deferred.
 
-Only step5 active. Fullplan quality/audits/ediel-masterplan-v2/f3-phase-closure-plan-20260920.md; current correction f3-ftx-format-routing-20260921.md. No gate/source/workflow weakening or invented live/producer role. PR310 remainspaused/untouched. Prior snapshot preserved atb9dcfd12.
+Only item2 active for publication. Read-only preparation may continue without declaring implementation or acceptance. Corrected f3-criterion-reconciliation-r1-20260921.md supersedes the original R1 overclaims; source plan/originals and old tests remain unchanged. PR310paused/untouched; no liveoperations.
