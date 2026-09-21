@@ -1,7 +1,5 @@
-# Resume — PR364 accepted; E035B independent structure next
+# Resume — finish PR366 before remaining E035B
 
-Read current-task.md, checkpoint.json, handover.md and pr364-main-acceptance-20260921.json. PR364 is already merged/verified on actual840720c7b875ff5761daf30347b74e6ff7fae55e:73/73,5153unit tests andallOPS, root5759741941. Preserve PR361/363 observation input/handoff and PR364 unresolved matcher guard; do not restart those implementations.
+Read current-task.md/checkpoint.json/handover.md and e035-application-receipt-implementation-20260921.md. Branch codex/ediel-application-receipt-contract-20260921. Production253d has5203/5203PASS; current documentation-only count correction needs exact-head CI/finalreview then guardedmerge and actual-main73/OPS receipt. Source/design5761874417 and corrected actualRED5761924346 retained. Both testfiles unchanged;41+9=50 newcases, not51.
 
-Resolve live main and this documentation-only publication PR. Finish its CI/review/guardedmerge only if still open; once merged, branch from freshmain and qualify E035B genuine independent received dated structure using existing staging/onboarding/schema producers. Observed JSON already persists, but is not complete accepted valid-time inventory. New E61/E62/guide/ACK/persistence behavior needs its own qualified source/data contract and operational tests.
-
-FullE035/F3/masterplan NOT_COMPLETE; remaining field/register/response/grammar/finding and later gates stay visible. D110/110+10/10 retained. PR310paused e9611351 untouched, no liveoperations. Runtime acceptance SHA is840; documentation-only descendants do not alter that code receipt.
+PR365 b6 already verified5761859619; no receipt-only PR loop. Receipt admission is not expected dated meter structure/E61/E62/fullE035. Remaining source/loader/functional/guide/ACK/persistence andF3/masterplan incomplete. PR310paused/untouched;no liveoperations.

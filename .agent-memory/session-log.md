@@ -1,9 +1,9 @@
-# Session — PR364 code delivered; acceptance handover publication
+# Session — PR365 publication and PR366 implementation
 
-Resumed actual main34eb/merged363, read repository/current-memory/skills, verified actual73/5102/allOPS and saved363 receipt. Current producer inspection corrected limited B reconnaissance: observed PRODAT objects/registers already persist in staging JSON; no redundant diagnostic projection was built.
+Resumed live365 rather than restarting361. Verified docs-onlydiff/final5761599041/CI, guarded-merged tob6; independently inspected fullartifact73rows/JUnit/5153tests/commitbinding andallOPS; root5761859619. No extra receipt-only PR.
 
-Qualified the lower null-company matcher defect, explicitly acknowledging the normal inbound outertenant stop. Published51 public parser/staging cases first; independent5759320966 and actual27-failure ordinaryRED preceded the minimal normalized-scope/guard/mandatory-filter correction. Retained all prior assertions. Exact-head ordinaryCI and final independent5759605603 passed; corrected browser/Ediel/crawler labels in5759586109 before expected-head guardedmerge840.
+Traced E035B existing producer and found narrower client receipt admission weakness. Published41initial tests and9supplemental wire controls; independent5761874417 plus actual28failures preceded one-file Ediel-only runtime fix253d. OrdinaryCI then5203/5203tests,325filesPASS; static5762012089 no blocker. No original assertion changed.
 
-Downloaded actual-main artifact10636087712, independently checked hash,73rows/JUnit/commit840 and5153unit cases; allOPS35593354403 andcoverage success. Rootacceptance5759741941. Prepared only receipt and canonical-memory updates on codex/ediel-pr364-acceptance-20260921; no post-merge runtime or schema change. Publication itself still follows ordinaryCI/review/guardedmerge before user completion. Once merged, proceed to E035B, not another receipt loop.
+Fresh original-log read corrected an off-by-one inventory error before merge: firstfile41, not42; totalnew50, not51; originalRED5194total/5166PASS28FAIL with13positive, not5195/5167/14. Root5761924346 corrected explicitly. This child changes documentation only, preserving production/test blobs, and needs fresh CI/review. Final guardedmerge/actual-main73/OPS receipt pending at checkpoint.
 
-Relevant executing-plan/TDD/tenant false-positive/differential/review/verification workflow applied; no broad audit, UI, schema or infrastructure remediation. FullE035/F3/masterplan incomplete, D110/110+10/10 retained, PR310paused/untouched. No live DB/provider/market/settings/explicitdeployment action. Earlier sessions and pending snapshots remain in Git.
+Bounded execution/TDD/source/false-positive/differential-review/verification workflow; no unavailable script execution or local full-suite claim. PR310paused/untouched; no liveDB/provider/market/settings/deployment action. FullE035/F3/masterplan incomplete.
