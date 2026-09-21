@@ -1,7 +1,7 @@
-# Active gates — PR366 and remaining E035
+# Active gates — E035B received-source integrity
 
-PR366 code is implemented but unverified: exact-head ordinary CI, independent final review, guarded merge, actual-main full73/OPS and receipt remain mandatory. Real initial RED28 cases showed incomplete/malformed Ediel application receipts being accepted; approved fix is only the client admission boundary. A successful RPC may already have committed before an invalid response is rejected; no rollback claim.
+PR366 is accepted at main7409e28c, comment5762431044. Current source-integrity task has test-first60 real SQL controls and source plan only; independent source/design/oracle and genuine original storage RED precede runtime. Ordinary CI and final whole-PR review must pass before guarded merge; actual-main73/OPS/artifact inspection follow.
 
-E035B expected structure remains unqualified: dated independent source, environment/actor/object/agency binding, accepted disposition, supersession and completeness. Existing application/register JSON is observed persisted data, not automatically that authority. Then loader, comparator, guide order, ACK/persistence, remaining F3 and later plan gates. No errors manufactured from local absence. D110/110+10/10 and prior accepted units retained.
+New inbound PRODAT raw source is not automatically protected by the existing old-hash update guard. The proposed INSERT seal is bounded to new source bytes, not a qualified structural authority. It does not seal legacy unqualified rows, protect deletion or freeze context. E035B still needs legal/environment/object/agency/time/accepted disposition/supersession/completeness plus loader; comparison and guide/ACK/persistence follow. No national error from missing local knowledge.
 
-PR365 mainb6 already verified; no publication-only blocker remains. PR310 stays OPEN/DRAFT/PAUSED e961135199f292b8210884f07de3b616a670161a, excluded/untouched. No live operations.
+FullE035/F3/masterplan incomplete. D110/110+10/10 retained. PR310 remains OPEN/DRAFT/PAUSED e9611351 and excluded/untouched. No live DB/provider/market/settings/deployment action.

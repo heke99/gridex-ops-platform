@@ -1,7 +1,7 @@
-# Current state — PR366 corrected evidence, final acceptance pending
+# Current state — E035B source integrity test-first
 
-Accepted mainb6bb10328b173267882238804bbbeefd048040c4 is PR365 publication over runtime840720c7: full73/73,5153tests,323files,allOPS; root5761859619 and pr365-main-acceptance-20260921.json.
+Actual main7409e28c / PR366 is merged and verified: full73/73, units5203/5203 in325 files, allOPS, browser and masterplan regressions. Post-merge acceptance comment5762431044 supersedes the older pre-merge memory snapshot. Do not reopen366 or create a receipt-only PR.
 
-Production253d15e4 Ediel receipt admission has ordinary5203/5203tests and325filesPASS; static review5762012089. Current child corrects documentation counts only: initial41cases plus9 supplemental =50, initial RED5194total/5166PASS28FAIL. All code/tests unchanged. Final child CI/review, guarded merge and actual-main verification remain required. Read current-task.md/checkpoint.json/handover.md.
+The next source-retention prerequisite is described in e035-received-source-plan-20260921.md. Only new physical SQL tests and plan are published; implementation has not started. Obtain source/design/oracle review and meaningful original database RED. Current-task.md and checkpoint.json own the active work.
 
-D110/110+10/10 and prior bounded deliveries retained. E035 dated source, comparison and operational outcomes remain incomplete, as do fullF3/masterplan. PR310 paused/untouched; no live operations. Previous snapshot253d retains superseded counting errors, not current evidence.
+FullE035/F3/masterplan remain incomplete. D110/110+10/10 retained; PR310 paused e9611351 and untouched. No live operations.

@@ -80,3 +80,6 @@ begin
 end $$;
 
 rollback;
+
+-- Additional real received-PRODAT storage contract; independent rollback.
+\ir ediel-inbound-prodat-source-regression.sql
