@@ -45,7 +45,7 @@ def prepare():
  for path,expected in EXPECTED.items(): assert blob(Path(path).read_bytes())==expected,('working mismatch',path)
  assert blob(Path('.github/pr369-inputs/production.patch').read_bytes())=='5c69686839646869904822c0a3cbad86011765b9'
  assert blob(Path('.github/pr369-inputs/migration.sql').read_bytes())=='7312eaf7881826f832a5b5c900f88b1ad70745ee'
- assert blob(Path(UPGRADE).read_bytes())=='0bd94145dbd85a74c4800a72e96113d0ca46878f'
+ assert blob(Path(UPGRADE).read_bytes())=='5994c4f58f1df2d1f3cb67d56d12580e01a70958'
  OUT.mkdir()
  subprocess.run(['git','apply','--check','.github/pr369-inputs/production.patch'],check=True)
  subprocess.run(['git','apply','.github/pr369-inputs/production.patch'],check=True)

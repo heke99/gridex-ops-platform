@@ -6,6 +6,7 @@ transaction; no trigger is disabled and no historical file is modified.
 """
 from pathlib import Path
 import hashlib
+import json
 import os
 import re
 import selectors
@@ -18,10 +19,9 @@ URL = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 ENV = {key: value for key, value in os.environ.items() if not key.startswith('PG') and key != 'DATABASE_URL'}
 PSQL = ['psql', URL, '-X', '-qAt', '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=verbose']
 
-def transaction_body(path: Path) -> str:
-    text = path.read_text()
-    assert len(re.findall(r'^BEGIN;\s*$', text, re.M)) == 1, path
-    assert len(re.findall(r'^COMMIT;\s*$', text, re.M)) == 1, path
+def transaction_body(text: str) -> str:
+    assert len(re.findall(r'^BEGIN;\s*$', text, re.M)) == 1, "Migration must have exactly one outer transaction"
+    assert len(re.findall(r'^COMMIT;\s*$', text, re.M)) == 1, "Migration must have exactly one outer transaction"
     # Only the migration's two outer transaction commands are omitted.
     return re.sub(r'^(?:BEGIN|COMMIT);\s*$', '', text, flags=re.M)
 
@@ -33,12 +33,30 @@ def checked(sql: str) -> str:
     assert result.returncode == 0, result.stdout + result.stderr
     return result.stdout.strip()
 
-paths = list((ROOT / 'supabase/migrations').glob('*_ediel_inbound_prodat_receive_context.sql'))
-assert len(paths) == 1, 'Exactly one CLI-named receive-context migration required'
-migration = paths[0]
-new_sql = transaction_body(migration)
-old_path = ROOT / 'supabase/migrations/20260921171346_ediel_inbound_prodat_source_seal.sql'
-old_sql = transaction_body(old_path)
+# The ordinary replay temporarily replaces supabase/migrations with CLI-ledger
+# markers. Read immutable HEAD bytes, not those working-tree markers. The native
+# preparation may supply its not-yet-committed CLI-created migration explicitly;
+# either route must match the same checksum-pinned runtime manifest.
+manifest = json.loads((ROOT / 'scripts/migration-history-manifest.runtime.additions.json').read_text())['files']
+paths = [name for name in manifest if name.endswith('_ediel_inbound_prodat_receive_context.sql')]
+assert len(paths) == 1, 'Exactly one checksum-pinned receive-context migration required'
+migration_name = paths[0]
+def migration_bytes(name: str, allow_preparation: bool = False) -> bytes:
+    relative = 'supabase/migrations/' + name
+    committed = subprocess.run(['git', 'show', 'HEAD:' + relative], cwd=ROOT, capture_output=True)
+    if committed.returncode == 0:
+        data = committed.stdout
+    else:
+        assert allow_preparation, 'Committed source migration unavailable: ' + relative
+        assert os.environ.get('GITHUB_REF') == 'refs/heads/codex/ediel-pr369-native-preparation-20260922', 'Uncommitted migration is preparation-only'
+        supplied = Path(os.environ['GRIDEX_CONTEXT_UPGRADE_MIGRATION_FILE']).resolve()
+        assert supplied.is_relative_to(ROOT / 'pr369-generation/delivery/supabase/migrations') and supplied.name == name
+        data = supplied.read_bytes()
+    assert hashlib.sha256(data).hexdigest() == manifest[name], 'Migration source checksum mismatch: ' + name
+    return data
+migration_data = migration_bytes(migration_name, allow_preparation=True)
+new_sql = transaction_body(migration_data.decode('utf-8'))
+old_sql = transaction_body(migration_bytes('20260921171346_ediel_inbound_prodat_source_seal.sql').decode('utf-8'))
 # The historic function is reinstated only inside each transaction. A disconnect
 # also rolls it back. This represents an actual pre-upgrade collision, not an
 # attempt to insert an impossible collision through the newly protected trigger.
@@ -84,7 +102,7 @@ end $lock$;
 \echo RECEIVE_CONTEXT_LOCK_READY
 ''')
     proc.stdin.flush()
-    # Use one byte at a time to avoid a buffered TextIO line hiding readiness
+    # Read the descriptor directly so TextIO buffering cannot hide readiness
     # from select(). This output is only a few status lines, never a bulk log.
     deadline = time.monotonic() + 20
     selector = selectors.DefaultSelector()
@@ -110,5 +128,5 @@ finally:
 assert checked(function_sql) == original_function, 'Clean probe changed committed function'
 assert checked("SELECT count(*) FROM public.companies WHERE id='00000000-0000-4000-8000-00000000d099';") == '0'
 print('RECEIVE_CONTEXT_UPGRADE: actual migration lock rejects competing writer; rollback verified', flush=True)
-print('RECEIVE_CONTEXT_UPGRADE: 3/3 PASS; migration=' + migration.name + '; sql_sha256=' + hashlib.sha256(migration.read_bytes()).hexdigest()
+print('RECEIVE_CONTEXT_UPGRADE: 3/3 PASS; migration=' + migration_name + '; sql_sha256=' + hashlib.sha256(migration_data).hexdigest()
       + '; restored_function_sha256=' + original_digest, flush=True)
