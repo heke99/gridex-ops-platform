@@ -1,5 +1,7 @@
-# Current state — PR361 bounded implementation, acceptance pending
+# State — accepted PR361, active PR363
 
-Last acceptedmain7a13efd62e7dbcbd20286195fa6114494051fcda/PR360 retains full73/73+5010tests+OPS. PR361 implementation35fecee5 passed43/46 new observations and all5010old cases but failed3 exact-space cases in ordinaryCI. Root traced trim loss and obtained finite shared-tokenizer evidence amendment5757796173/authorization5757869043. Current childof4a29ed51 contains that correction; original46 tests unchanged, new24compatibility tests published first. No finalGREEN or merge yet.
+Accepted main d7078ac5497c4345491e64491000ca35108915c8/PR361: actual73/73,5080/5080tests,allOPS; finalreview5758070184/root5758187169; receiptpr361-main-acceptance-20260921.json. The stale pre361-merge memory is superseded by this entry.
 
-Read current-task.md,checkpoint.json,handover.md and e035-observation-whitespace-amendment-20260921.md. Source plan/original failure history preserved. This is an observational canonicalAST prerequisite, not E61/E62 implementation, expectedstructure or guide/persistence acceptance. FullE035/F3/masterplanNOT_COMPLETE; D110/110+10/10 retained. PR362 closedunmerged; PR310paused/untouched. No liveDB/provider/market/settings/explicitdeployment actions.
+Active363 childof45bb5dc0 implements only lower-parser observationhandoff, awaiting exactCI/review/merge/mainacceptance. ActualtestfirstOPS35586336942/job106290453213:5102total5083PASS19FAIL,all5080oldPASS; root5758756950. Design5758689949. Readcurrent-task/checkpoint/handover ande035-runtime-observation-handoff-implementation-20260921.md.
+
+FullE035/F3/masterplanNOT_COMPLETE. D110/110+parents10/10retained. PR310OPEN/DRAFT/PAUSED e9611351 untouched. PR362closedunmerged; empty361acceptancebranch supersededby363receipt. No liveDB/provider/market/settings/explicitdeployment actions.
