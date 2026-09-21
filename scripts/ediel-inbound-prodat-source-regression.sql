@@ -7,12 +7,12 @@ insert into public.companies(id,name) values
  ('00000000-0000-4000-8000-00000000c001','PRODAT source regression A'),
  ('00000000-0000-4000-8000-00000000c002','PRODAT source regression B');
 
-create function pg_temp.source_row(company uuid, env text, family text, payload text, supplied_hash text default null)
+create function pg_temp.source_row(company uuid, env text, family text, payload text, supplied_hash text default null, standard text default 'edifact')
 returns uuid language plpgsql as $$
 declare result uuid;
 begin
- insert into public.ediel_messages(company_id,environment,direction,message_family,message_code,status,raw_payload,immutable_payload_hash,message_received_at,created_at)
- values(company,env,'inbound',family,case when family='PRODAT' then 'Z04' else null end,'received',payload,supplied_hash,'2026-09-21T12:00:00Z','2026-09-21T12:00:00Z')
+ insert into public.ediel_messages(company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,immutable_payload_hash,message_received_at,created_at)
+ values(company,env,'inbound',standard,family,case when family='PRODAT' then 'Z04' else null end,'received',payload,supplied_hash,'2026-09-21T12:00:00Z','2026-09-21T12:00:00Z')
  returning id into result;
  return result;
 end $$;
@@ -62,7 +62,7 @@ begin
    rejected:=observed='immutable_ediel_payload_cannot_change';
   end;
   insert into source_results values('mutation/'||mutation,rejected);
-  insert into source_results select 'retained/'||mutation,raw_payload='original source' from public.ediel_messages where id=row_id;
+  insert into source_results select 'retained/'||mutation,coalesce(raw_payload='original source',false) from public.ediel_messages where id=row_id;
  end loop;
 end $$;
 
@@ -80,6 +80,11 @@ begin
  row_id:=pg_temp.source_row('00000000-0000-4000-8000-00000000c001','test','PRODAT',null);
  update public.ediel_messages set raw_payload='later unqualified historical repair' where id=row_id;
  insert into source_results select 'updates-do-not-retroactively-seal',immutable_payload_hash is null from public.ediel_messages where id=row_id;
+
+ row_id:=pg_temp.source_row('00000000-0000-4000-8000-00000000c001','test','PRODAT','email diagnostic',null,'email');
+ insert into source_results select 'email-diagnostic-not-sealed',immutable_payload_hash is null from public.ediel_messages where id=row_id;
+ update public.ediel_messages set message_standard='edifact',raw_payload='later extracted source' where id=row_id;
+ insert into source_results select 'email-diagnostic-reparse-not-retroactively-sealed',raw_payload='later extracted source' and immutable_payload_hash is null from public.ediel_messages where id=row_id;
 
  row_id:=pg_temp.source_row('00000000-0000-4000-8000-00000000c001','test','APERAK','unsealed ACK');
  update public.ediel_messages set raw_payload='ACK compatibility control' where id=row_id;
@@ -118,8 +123,8 @@ do $$
 declare failed text; total integer;
 begin
  select count(*),string_agg(name,', ' order by name) filter(where not passed) into total,failed from source_results;
- if total<>60 then raise exception 'PRODAT_SOURCE_TEST_INVENTORY:%',total; end if;
+ if total<>62 then raise exception 'PRODAT_SOURCE_TEST_INVENTORY:%',total; end if;
  if failed is not null then raise exception 'PRODAT_SOURCE_BEHAVIOR_FAILURE:%',failed; end if;
- raise notice 'PRODAT_SOURCE_STORAGE_REGRESSION: 60/60 PASS';
+ raise notice 'PRODAT_SOURCE_STORAGE_REGRESSION: 62/62 PASS';
 end $$;
 rollback;
