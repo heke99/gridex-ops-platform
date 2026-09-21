@@ -1,9 +1,8 @@
-# Work plan — PR364 accepted, E035B next
+# Work plan — next bounded code delivery PR366
 
-1. VERIFIED: bounded PR351–363, D110/110+parents10/10, canonical UTILTS observed input and raw-owned runtime handoff.
-2. VERIFIED: PR364 unresolved PRODAT staging isolation. Meaningful test-firstRED, independent design/final review, ordinaryCI, guardedmerge840720c7 and actual-main73/5153/allOPS; root5759741941 and pr364-main-acceptance-20260921.json.
-3. PUBLICATION: this documentation-only receipt/handover must pass its own ordinaryCI/review/guardedmerge. If already merged, skip it and continue; do not repeat code or create endless receipt-only PRs.
-4. NEXT ACTIVE CODE QUALIFICATION: E035B independent received dated structure producer/loader. Follow existing parsed/staged/applied snapshot and schema path, qualify valid-time/source/disposition/completeness and tenant/environment/actor/objectagency guarantees before meaningful operational RED and source-qualified E61/E62 implementation.
-5. REMAINING: real guide-before-function/ACK/persistence outcomes, F3 field/register/response/grammar/finding criteria and later applicable masterplan phases. FullE035/F3/masterplan NOT_COMPLETE; no blanket acceptance from green aggregate counts.
+1. VERIFIED: PR361 observational UTILTS input; PR363 raw-owned runtime projection; PR364 company-scoped PRODAT staging; retained D110/110+parents10/10.
+2. VERIFIED: PR365 documentation publication b6bb1032, actual full73/5153/allOPS; root5761859619. No further receipt-only PR.
+3. ACTIVE: PR366 Ediel onboarding application receipt contract. SOURCE/DESIGN5761874417 and actual initial RED5761924346 precede implementation. New51 assertions preserved. Next final exact-head CI/review, guarded merge, actual-main73/OPS and receipt.
+4. INCOMPLETE: independent dated E035B structure/loader and actual comparator/E61/E62/guide/ACK/persistence; remaining F3 field/register/response/grammar/finding criteria, then later applicable masterplan phases.
 
-PR310 stayspaused/excluded at e961135199f292b8210884f07de3b616a670161a. Existing observed diagnostics are not expectedstructure; do not duplicate them or fabricate peer faults from localabsence. No liveoperations.
+Only step3 is active code. No full phase approval from a bounded service guard. PR310 remains paused and outside all imports/writes; no live operations.
