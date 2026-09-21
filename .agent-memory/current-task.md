@@ -1,9 +1,9 @@
-# Active task — finish PR368 dated linked-source reader
+# Active task — final acceptance of PR368
 
-Only branch codex/ediel-received-structure-reader-20260921 / PR368. Candidate child ofe9fc3769 is IMPLEMENTED_NOT_VERIFIED. It adds the actual tenant-scoped batched receivedStructuralSources reader, strict UTC inverse in the existing PRODAT date owner and individual UTILTS normalized diagnostic integration before transaction persistence. No expected-source authority/selection or E61/E62 decision.
+Branch codex/ediel-received-structure-reader-20260921, PR368. Corrected code a33176be passed ordinary CI: 5303/5303 tests, 330 files; 81 new and 5222 prior cases. This documentation-only child updates the correction/evidence record. Whole delivery remains IMPLEMENTED_NOT_VERIFIED pending exact final-head CI and independent rereview, guarded merge and actual-main 73/73 plus all OPS.
 
-Independent source/oracle gates5765535492,5765701921 resolved by actual5765735955; root5765937975. Actual e9 ordinaryRED5299total/5222PASS77FAIL,329files326PASS3FAIL; all prior5222testsPASS. Original77new cases unchanged. Read e035-dated-source-reader-implementation-20260921.md plus retained plan/amendment.
+Read e035-dated-source-reader-final-corrections-20260921.md. It supersedes the initial implementation audit's unchanged-77 and all-behavioral-failure claims: one new repeated-UNA fixture hit an upstream parser rejection and now has separate preserved negative and reader-boundary controls. Calendar and lint findings from review5766153924 are corrected; no old assertions or gates weakened.
 
-NEXT: fetch actual childhead, inspect exact diff, unchanged ordinaryCI and completed independent TASK/SPEC,QUALITY,TENANT-BOUNDARY,WHOLE-PR review. Fix concrete failures without weakening oracles. Guardedmerge only after finalGREEN/review; inspect actual-mainfull73/73+allOPS and save same-PR receipt. No receipt-only PR.
+NEXT: fetch the actual final head, finish ordinary CI and independent TASK/SPEC, QUALITY, TENANT-BOUNDARY, WHOLE-PR review. Guarded merge only after both are green; inspect actual-main artifacts/73/OPS and save same-PR acceptance. Do not repeat the reader implementation or create a receipt-only PR.
 
-Acceptedmain5dc072d3/PR367 receipt5765219627 retained. FullE035/F3/masterplan incomplete;D110/110+10/10retained. PR310paused e9611351 untouched;no liveoperations.
+Accepted main is PR367/5dc072d3, receipt5765219627. The reader exposes linked source candidates only, not accepted structure, timeline selection or E61/E62. FullE035/F3/masterplan incomplete; D110/110+10/10 retained. PR310 paused e9611351, untouched. No live operations.

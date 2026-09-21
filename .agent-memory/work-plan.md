@@ -1,8 +1,8 @@
-# Work plan — PR368 actual linked-source reader
+# Work plan — finish PR368
 
-1. RETAIN acceptedPR367/main5dc072d3 source-seal/conflict/environment delivery,5222tests+62SQL+actual73/OPS,receipt5765219627. D110/110+10/10 also retained.
-2. VERIFIED SOURCE/RED: finite dated candidate reader plan, reviews5765535492/5765701921/5765735955; actuale9 ordinary5299total/5222PASS77FAIL, no setuperrors. Root5765937975.
-3. ACTIVE IMPLEMENTED_NOT_VERIFIED: real batched tenantDb/source-byte/date/register reader and individual UTILTS diagnostic integration; finalexactheadCI/completedreview/guardedmerge/actualmain73+OPS stillrequired. No oldtestsweakened.
-4. REMAINING: acceptedsourcecontext, complete relevant source discovery, datedtimeline/supersession then E61/E62/guide/ACK/persistence and remainingF3/laterphasecriteria.
+1. RETAIN acceptedPR367/main5dc072d3,receipt5765219627 and D110/110+10/10.
+2. CORRECTED CODE GREEN: actual linked-source reader, strict date-owner inverse and individual UTILTS diagnostics. a33176be ordinary5303tests/330files plusOPS/browser/Ediel pass. See final-corrections audit for calendar/lint and fixture qualification.
+3. ACTIVE: final docs-head ordinary CI and completed independent rereview; expected-head guarded merge; actual-main full73/OPS and inspected artifact receipt in the same PR.
+4. REMAINING: accepted source context/disposition, complete relevant discovery and dated timeline/supersession; then E61/E62/guide/ACK/persistence and remaining F3/later phase criteria.
 
-Onlystep3active. PR310paused/excluded. No new expectedinventory/authority decision, liveoperations, percentage or receipt-only PRloop.
+Only step3 active. Whole PR not yet accepted. PR310 paused/excluded; no live operations, new source authority, overall percentage or receipt-only PR loop.

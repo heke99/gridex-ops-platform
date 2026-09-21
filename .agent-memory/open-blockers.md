@@ -1,7 +1,7 @@
-# Active gates — PR368 dated linked-source reader
+# Active gates — PR368 corrected reader
 
-Implementation prepared but NOT_VERIFIED. Final exact-head ordinaryCI, completed independent code/tenant/wholePR review, guardedmerge and actual-main73/OPS acceptance pending. Source/design/oracle gate resolved5765735955; actual77-case RED captured5765937975. Do not mistake this RED or static source review for GREEN.
+Initial code calendar/lint failures are corrected, and current a33176be code has ordinary5303/5303 tests plus OPS/browser/Ediel success. Remaining delivery gates: ordinary final documentation-head CI, completed independent rereview of corrections and finite fixture amendment, guarded merge, fresh actual-main73/OPS with inspected evidence and same-PR acceptance.
 
-Remaining separate E035B work: accepted immutable source context/disposition, complete source discovery beyond mutable linked rows, completeness/time/supersession authority, then E61/E62 and guide/ACK/persistence integration. Current reader never selects authority or treats missing candidates as zero expected registers. FiveF3 groups and laterphaseclosure remain in remaining-plan-status-20260921.md.
+Separate remaining E035B work: accepted source context and disposition, complete discovery beyond mutable linked rows, dated completeness/supersession and authoritative selection, then E61/E62/guide/ACK/persistence. Reader candidates are not that authority. FiveF3 reconciliation groups and later applicable phases remain in remaining-plan-status-20260921.md.
 
-PR310OPEN/DRAFT/PAUSED e961135199f292b8210884f07de3b616a670161a remains untouched/excluded. No liveoperations, gate/assertion changes or receipt-only followupPR. D110/110+10/10retained.
+No existing test/gate weakening. PR310 OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a, excluded and untouched. D110/110+10/10 retained. No live operations or receipt-only followup PR.

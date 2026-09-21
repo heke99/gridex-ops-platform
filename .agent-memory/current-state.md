@@ -1,7 +1,7 @@
-# Current state — PR368 implementation awaiting acceptance
+# Current state — PR368 corrected code green, final delivery pending
 
-Acceptedmain5dc072d3127f386fb8a0a81ad5fbb34af290b4cf/PR367 and receipt5765219627 remain authority (5222tests,62SQL,full73,allOPS). ActivePR368 candidatechildofe9 adds real batched linked PRODAT source evidence to individual UTILTS diagnostics. No expectedauthority/selection/E61/E62 or schema change. StatusIMPLEMENTED_NOT_VERIFIED.
+Accepted main remains 5dc072d3127f386fb8a0a81ad5fbb34af290b4cf (PR367, receipt5765219627). PR368 adds the real dated linked-source reader and UTILTS diagnostics, with an opt-in strict inverse in the existing date owner. No expected-structure authority or E61/E62 decision is enabled.
 
-Source/oracle5765735955 resolved earlier5765535492/5765701921; root5765937975. Actual e9RED5299/5222PASS77FAIL with no setup errors, old5222PASS. New exactCI/completedreview/guardedmerge/actualmain73+OPS pending. Read current-task/checkpoint/handover and e035-dated-source-reader-implementation-20260921.md. Prior memory preserved in Git at e9.
+Corrected a33176be ordinary CI succeeds: 5303 tests in330 files, all81 new and5222 prior cases; OPS verify/quality/replay, browser and Ediel pass. This docs-only child records corrections; final exact-head CI/review and actual merge acceptance remain pending. Read current-task, checkpoint, handover and e035-dated-source-reader-final-corrections-20260921.md.
 
-D110/110+10/10retained; fullE035/F3/masterplan incomplete. PR310OPEN/DRAFT/PAUSED e9611351 untouched. No liveoperations.
+The initial calendar transcription and lint errors are fixed. One upstream repeated-UNA negative input is preserved separately from the reader's multi-message oracle; blanket all77 behavioral RED claims are withdrawn. Prior snapshots remain in Git, not current acceptance. D110/110+10/10 retained. PR310 paused and untouched; fullE035/F3/masterplan incomplete. No live operations.

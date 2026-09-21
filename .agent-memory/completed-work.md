@@ -1,7 +1,7 @@
-# Completed evidence — retain PR367, PR368 acceptance pending
+# Completed evidence — PR368 corrected code, delivery pending
 
-AcceptedPR367 actualmain5dc072d3 retains source-sealing/conflict/environment code,5222tests,62physicalSQL,actual73/73+allOPS; samePRreceipt5765219627. Prior acceptedD110/110+parents10/10 unchanged; earlier records remain in Git.
+Retain acceptedPR367/main5dc072d3 and acceptance5765219627. D110/110+parents10/10 remain accepted. Prior history remains in Git.
 
-PR368 completedpreparation: finiteplan, original49test-firstpublicprocessor cases, independentboundaryreview,25supplementalcontrols,3exactcutoff/latecompletioncontrols and finalsource/oracleresolution5765735955. Actuale9 ordinary5299tests/5222PASS77FAIL confirms missingreader without setupfailures. Root5765937975.
+Completed PR368 code correction: restored original calendar table; added calendar controls; equivalent control-character predicate without lint error; preserved original repeated-UNA upstream negative behavior and corrected the separate multi-message reader fixture. Actual a33176be ordinary CI:5303/5303tests in330files, 81new plus5222prior; OPS35644081641, browser, Ediel and PR E2E pass. This is corrected-code evidence, not a completed merge or final authority feature.
 
-The three-file actual reader/date-owner/processor implementation is NOTyetaccepted: finalCI/review/merge/mainverificationpending. Do not count it as completeE035B/F3. PR310paused/untouched;no liveoperations.
+Final docs-head CI, completed independent rereview, guarded merge and actual-main73/OPS acceptance are still pending. Source context/disposition/discovery/timeline and E61/E62 remain unimplemented by this unit. FullE035/F3/masterplan incomplete; PR310 paused and untouched.
