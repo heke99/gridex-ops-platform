@@ -1,7 +1,7 @@
-# Current state — PR367 implemented; final gates pending
+# Current state — PR368 implementation awaiting acceptance
 
-Accepted runtime remains7409e28c307a450ac6618655b8ded27ee9df2f51/PR366, full73/73,5203tests and allOPS. PR367 now implements one received-source trigger seal plus exact conflict/cause and environment propagation; not E61/E62 or dated expected-structure authority.
+Acceptedmain5dc072d3127f386fb8a0a81ad5fbb34af290b4cf/PR367 and receipt5765219627 remain authority (5222tests,62SQL,full73,allOPS). ActivePR368 candidatechildofe9 adds real batched linked PRODAT source evidence to individual UTILTS diagnostics. No expectedauthority/selection/E61/E62 or schema change. StatusIMPLEMENTED_NOT_VERIFIED.
 
-Actual preparation35630581192 succeeded: real Supabase CLI migration20260921171346, physicalSQL62/62, TS19/19, repeated types equal committed surface, repeated schema only expected function delta, all nonfunction sections/counts unchanged. Receipt e035-source-seal-generation-20260921.json. Final candidate ordinaryCI/completed review/guardedmerge/actual-main verification still pending.
+Source/oracle5765735955 resolved earlier5765535492/5765701921; root5765937975. Actual e9RED5299/5222PASS77FAIL with no setup errors, old5222PASS. New exactCI/completedreview/guardedmerge/actualmain73+OPS pending. Read current-task/checkpoint/handover and e035-dated-source-reader-implementation-20260921.md. Prior memory preserved in Git at e9.
 
-Current task and e035-received-source-implementation-20260921.md are authoritative. Historical test setup failures and corrected counts remain explicit. Remaining scope is mapped in remaining-plan-status-20260921.md; five F3 groups plus later phase/capability closures are not accepted by this change. D110/110+10/10 retained;PR310paused/untouched; no live operations.
+D110/110+10/10retained; fullE035/F3/masterplan incomplete. PR310OPEN/DRAFT/PAUSED e9611351 untouched. No liveoperations.

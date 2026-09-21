@@ -1,7 +1,7 @@
-# Open gates — PR367 final acceptance
+# Active gates — PR368 dated linked-source reader
 
-PR367 IMPLEMENTED_NOT_VERIFIED: ordinary exact-head full CI, completed independent review, guarded merge and actual-main73/73+allOPS/receipt remain. Preparation SQL62 and TS19 GREEN are real but do not replace those gates. No old assertion/source/gate weakened.
+Implementation prepared but NOT_VERIFIED. Final exact-head ordinaryCI, completed independent code/tenant/wholePR review, guardedmerge and actual-main73/OPS acceptance pending. Source/design/oracle gate resolved5765735955; actual77-case RED captured5765937975. Do not mistake this RED or static source review for GREEN.
 
-Separate remaining work: dated E035B source/loader and completeness/supersession/disposition; E61/E62 comparator and actual guide/storage/ACK outcomes; F3C02/04/05/06/07 independent closure; later F4–F7 and applicable earlier source/rights/transport/formal-test gates. Hashing is not source authenticity or expected-structure authority. Detailed inventory: remaining-plan-status-20260921.md.
+Remaining separate E035B work: accepted immutable source context/disposition, complete source discovery beyond mutable linked rows, completeness/time/supersession authority, then E61/E62 and guide/ACK/persistence integration. Current reader never selects authority or treats missing candidates as zero expected registers. FiveF3 groups and laterphaseclosure remain in remaining-plan-status-20260921.md.
 
-PR310 OPEN/DRAFT/PAUSED e961135199f292b8210884f07de3b616a670161a remains deferred and untouched; no imports. FullE035/F3/masterplan NOT_COMPLETE. D110/110+10/10 retained. No live DB/provider/market/settings/explicit deployment action.
+PR310OPEN/DRAFT/PAUSED e961135199f292b8210884f07de3b616a670161a remains untouched/excluded. No liveoperations, gate/assertion changes or receipt-only followupPR. D110/110+10/10retained.

@@ -8,7 +8,7 @@ export function isProdatCalendarDate(value: string): boolean {
   if (!/^\d{8}$/.test(value)) return false
   const year = Number(value.slice(0, 4)), month = Number(value.slice(4, 6)), day = Number(value.slice(6, 8))
   const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
-  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 31, 30, 31]
   return year > 0 && month >= 1 && month <= 12 && day > 0 && day <= days[month - 1]
 }
 
@@ -73,4 +73,14 @@ export function normalizeProdatDate(value?: string | null): string | null {
 export function prodatDate203AtStartOfDay(value?: string | null): string | null {
   const minute = prodatDate203(value)
   return minute ? `${minute.slice(0, 8)}0000` : null
+}
+
+/** Strict inverse of a P-profile wire minute, always standard time UTC+1.
+ * Unlike convenience render inputs, no trimming, date-only or timezone guess. */
+export function prodatMarketMinuteToUtc(value?: string | null): string | null {
+  if (typeof value !== 'string' || !isProdatCalendarMinute(value)) return null
+  const date = new Date(0)
+  date.setUTCFullYear(Number(value.slice(0, 4)), Number(value.slice(4, 6)) - 1, Number(value.slice(6, 8)))
+  date.setUTCHours(Number(value.slice(8, 10)), Number(value.slice(10, 12)), 0, 0)
+  return new Date(date.getTime() - STANDARD_OFFSET_MS).toISOString()
 }

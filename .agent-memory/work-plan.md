@@ -1,8 +1,8 @@
-# Work plan — PR367 source integrity
+# Work plan — PR368 actual linked-source reader
 
-1. VERIFIED: retained D110/110+10/10 and earlier bounded protocol/observation/runtime/tenant deliveries.
-2. VERIFIED: PR366 application receipt contract, actualmain7409e28c full73/5203tests/allOPS; acceptance5762431044. Do not repeat.
-3. ACTIVE IMPLEMENTED_NOT_VERIFIED: received inbound EDIFACT PRODAT seal plus exact conflict stop/originalcause and trusted environment propagation. Qualified real SQL62/TS19 RED and independent source decision retained. Genuine native preparation62SQL/19TS GREEN, repeated type/schema evidence now adopted. Next final ordinary exact-headCI, completed review, guardedmerge andactual-mainfull73/allOPS/receipt.
-4. INCOMPLETE: independent dated E035B authority/loader, E61/E62 comparison, real guide/storage/ACK decisions; F3C02/04/05/06/07 closure and later applicable phases/capability gates. See remaining-plan-status-20260921.md.
+1. RETAIN acceptedPR367/main5dc072d3 source-seal/conflict/environment delivery,5222tests+62SQL+actual73/OPS,receipt5765219627. D110/110+10/10 also retained.
+2. VERIFIED SOURCE/RED: finite dated candidate reader plan, reviews5765535492/5765701921/5765735955; actuale9 ordinary5299total/5222PASS77FAIL, no setuperrors. Root5765937975.
+3. ACTIVE IMPLEMENTED_NOT_VERIFIED: real batched tenantDb/source-byte/date/register reader and individual UTILTS diagnostic integration; finalexactheadCI/completedreview/guardedmerge/actualmain73+OPS stillrequired. No oldtestsweakened.
+4. REMAINING: acceptedsourcecontext, complete relevant source discovery, datedtimeline/supersession then E61/E62/guide/ACK/persistence and remainingF3/laterphasecriteria.
 
-Onlystep3active. No receipt-only publication loop; PR310paused/excluded/untouched. No live operations and no authority inferred solely from a hash.
+Onlystep3active. PR310paused/excluded. No new expectedinventory/authority decision, liveoperations, percentage or receipt-only PRloop.
