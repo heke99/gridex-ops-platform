@@ -61,7 +61,8 @@ function report(status: ReceivedStructuralSources['status'], code?: string): Rec
   return { version: 1, universe: 'linked_received_sources', authorityStatus: 'not_established', selection: 'not_performed', status, sources: [], issues: code ? [{ code }] : [] }
 }
 function exactId(value: unknown): value is string {
-  return typeof value === 'string' && value.length > 0 && value.length <= 128 && value === value.trim() && !/[\u0000-\u001f\u007f]/.test(value)
+  return typeof value === 'string' && value.length > 0 && value.length <= 128 && value === value.trim()
+    && Array.from(value).every(character => character.charCodeAt(0) >= 32 && character.charCodeAt(0) !== 127)
 }
 function record(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
