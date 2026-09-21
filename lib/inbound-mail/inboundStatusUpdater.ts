@@ -414,10 +414,14 @@ export async function createInboundEdielMessage(input: {
     parsed: input.parsed,
   })
 
+  // Retrying an existing PRODAT is not a new receipt, even if its old time is unknown.
+  const updatePayload: Partial<typeof insertPayload> = { ...insertPayload }
+  if (input.parsed.messageFamily === 'PRODAT') delete updatePayload.message_received_at
+
   const result = existingId
     ? await supabaseService
         .from('ediel_messages')
-        .update({ ...insertPayload, updated_at: nowIso() })
+        .update({ ...updatePayload, updated_at: nowIso() })
         .eq('id', existingId)
         .select('id')
         .maybeSingle()
@@ -431,7 +435,12 @@ export async function createInboundEdielMessage(input: {
     if (
       input.parsed.messageFamily === 'PRODAT' &&
       result.error.code === '23514' &&
-      result.error.message === 'immutable_ediel_payload_cannot_change'
+      [
+        'immutable_ediel_payload_cannot_change',
+        'immutable_ediel_received_context_cannot_change',
+        'immutable_ediel_receipt_time_cannot_change',
+        'received_ediel_context_cannot_be_backfilled',
+      ].includes(result.error.message)
     ) {
       throw new Error('INBOUND_PRODAT_SOURCE_CONFLICT', { cause: result.error })
     }

@@ -1,7 +1,7 @@
-# Completed evidence — PR368 corrected code, delivery pending
+# Completed evidence — PR369 implementation
 
-Retain acceptedPR367/main5dc072d3 and acceptance5765219627. D110/110+parents10/10 remain accepted. Prior history remains in Git.
+AcceptedPR368/maina0e7ebdd remains final accepted runtime;5300/330,73/73,allOPS in receipt5766791083. PR369 source/design5768354034 and complete-outcome oracle5768382713 resolved pre-implementation conditions. Actual c6 ordinaryRED5353total/5307PASS46FAIL;all5300 prior testsPASS. Actual84SQL14PASS70FAIL after62 priorPASS.
 
-Completed PR368 code correction: restored original calendar table; added calendar controls; equivalent control-character predicate without lint error; preserved original repeated-UNA upstream negative behavior and corrected the separate multi-message reader fixture. Actual a33176be ordinary CI:5303/5303tests in330files, 81new plus5222prior; OPS35644081641, browser, Ediel and PR E2E pass. This is corrected-code evidence, not a completed merge or final authority feature.
+Native6400ccc2/run35664024836 now verifies the bounded production candidate:53/53 targetedTS,84/84contextSQL,62/62priorSQL,3/3 actual migration collision/lock probes; repeatedtypes identical and fullschema exactly the intended function delta. Root verified downloaded artifact10668686301 hashes and source bytes. Scratch files excluded from delivery. Final ordinaryCI/review/merge/mainacceptance are NOT listed as completed.
 
-Final docs-head CI, completed independent rereview, guarded merge and actual-main73/OPS acceptance are still pending. Source context/disposition/discovery/timeline and E61/E62 remain unimplemented by this unit. FullE035/F3/masterplan incomplete; PR310 paused and untouched.
+FullE035/F3/masterplan remain incomplete;D110/110+10/10 retained,PR310paused/untouched. Historical state remains in Git atc6e624e2.

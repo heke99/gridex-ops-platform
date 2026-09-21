@@ -1,7 +1,7 @@
-# Active gates — PR368 corrected reader
+# Active gates — PR369
 
-Initial code calendar/lint failures are corrected, and current a33176be code has ordinary5303/5303 tests plus OPS/browser/Ediel success. Remaining delivery gates: ordinary final documentation-head CI, completed independent rereview of corrections and finite fixture amendment, guarded merge, fresh actual-main73/OPS with inspected evidence and same-PR acceptance.
+Implementation and native qualification are published; final exact-head ordinary CI, completed independent code/tenant/whole-PR review, guarded merge and actual-main73/OPS receipt remain. Native53TS/84+62SQL/3upgrade success is not a substitute for these gates. Preserve all prior assertions.
 
-Separate remaining E035B work: accepted source context and disposition, complete discovery beyond mutable linked rows, dated completeness/supersession and authoritative selection, then E61/E62/guide/ACK/persistence. Reader candidates are not that authority. FiveF3 reconciliation groups and later applicable phases remain in remaining-plan-status-20260921.md.
+Separate remaining work: durable receipts and complete object discovery, immutable accepted disposition, temporal completeness/supersession/source selection, E61/E62 and actual decision/persistence integration, remaining F3 criteria and later phases. A recorded row context is not accepted structure. Existing D110/110+10/10 and prior accepted units retain only their accepted scope.
 
-No existing test/gate weakening. PR310 OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a, excluded and untouched. D110/110+10/10 retained. No live operations or receipt-only followup PR.
+PR310OPEN/DRAFT/PAUSED e9611351 excluded and untouched. No direct live DB/provider/market/settings/deployment. See current-task.md and implementation/native receipts.
