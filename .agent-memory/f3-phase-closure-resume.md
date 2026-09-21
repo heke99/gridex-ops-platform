@@ -1,5 +1,7 @@
-# Resume — PR364 acceptance is next
+# Resume — PR364 accepted; E035B independent structure next
 
-Read current-task.md, checkpoint.json, handover.md and e035-prodat-staging-tenant-implementation-20260921.md. Active branch codex/ediel-prodat-unresolved-matching-20260921 / PR364; accepted main34eb/PR363 receipt retained. The finite isolation fix is implemented after independent5759320966 and realRED5759395557; no finalGREEN/merge claimed.
+Read current-task.md, checkpoint.json, handover.md and pr364-main-acceptance-20260921.json. PR364 is already merged/verified on actual840720c7b875ff5761daf30347b74e6ff7fae55e:73/73,5153unit tests andallOPS, root5759741941. Preserve PR361/363 observation input/handoff and PR364 unresolved matcher guard; do not restart those implementations.
 
-Next exact final-head CI/review, guardedmerge and actual-mainfull73/OPS with verified receipt, then publish updated handover. Preserve51new and5102old assertions; no repeat361/363. Remaining source-qualified dated expectedstructure/E61/E62 and fullF3/masterplan incomplete. PR310paused e9611351 untouched.
+Resolve live main and this documentation-only publication PR. Finish its CI/review/guardedmerge only if still open; once merged, branch from freshmain and qualify E035B genuine independent received dated structure using existing staging/onboarding/schema producers. Observed JSON already persists, but is not complete accepted valid-time inventory. New E61/E62/guide/ACK/persistence behavior needs its own qualified source/data contract and operational tests.
+
+FullE035/F3/masterplan NOT_COMPLETE; remaining field/register/response/grammar/finding and later gates stay visible. D110/110+10/10 retained. PR310paused e9611351 untouched, no liveoperations. Runtime acceptance SHA is840; documentation-only descendants do not alter that code receipt.

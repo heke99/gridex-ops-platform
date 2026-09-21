@@ -1,7 +1,9 @@
-# Open gates — PR364 and remaining E035
+# Remaining gates — after accepted PR364
 
-ACTIVE: PR364 fix implemented but final exact-head ordinaryCI, completed independent review, guarded merge and actual-main73/OPS acceptance remain. Observed27 behavioral failures in new51-case suite were qualified5759320966/5759395557; no old assertion or gate relaxed. The normal inbound outer tenant-resolution stop remains; this is not a demonstrated live-mail exploit.
+CLOSED: PR364 lower staging-service tenant defect, its27 behavioral RED failures, final exact-head CI/review, guarded merge and actual-main73/5153/allOPS. Receipt pr364-main-acceptance-20260921.json; root5759741941. No current PR364 code/CI blocker remains.
 
-NEXT AFTER ACCEPTANCE: independent received dated meter/register structure producer/loader with company/environment/actor, exact object+agency, source message/line, valid-time, accepted disposition/supersession and inventory completeness. Existing PRODAT observed JSON is persisted but not that authority. Source-qualified E61/E62 and real guide-before-function/ACK/persistence effects remain to be verified, plus remaining F3 and later plan gates. No local-absence or observed-count fabrication.
+NEXT E035B: qualified independent received dated meter/register structure producer/loader with company/environment/actor, exact object+agency, source message/line, valid-time, accepted disposition/supersession and inventory completeness. Existing PRODAT observed JSON already persists, but is not automatically that authority. A current point match or pending case is insufficient. No duplicate diagnostics, observed-count inference or peer error from local absence.
 
-PR363/main34eb remains accepted; D110/110+10/10 and earlier bounded work retained. PR310 OPEN/DRAFT/PAUSED e961135199f292b8210884f07de3b616a670161a remains untouched/excluded. FullE035/F3/masterplan NOT_COMPLETE. No live operations.
+SEPARATE REMAINING GATES: source-qualified E61/E62 and real guide-before-function/ACK/persistence outcomes; remaining F3 field/register/response/grammar/finding criteria and later applicable phases. Versioned external UNECE sources were located earlier; completed full-G06 qualification is still required, not assumed impossible due to an old manifest omission.
+
+DOCUMENTATION PUBLICATION: this acceptance handover requires its own ordinary CI/review before merge; once that PR is merged and actualmain verified, proceed to B rather than republishing receipts endlessly. FullE035/F3/masterplan NOT_COMPLETE. D110/110+10/10 retained. PR310 OPEN/DRAFT/PAUSED e961135199f292b8210884f07de3b616a670161a stays excluded and untouched; no live operations.

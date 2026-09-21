@@ -1,7 +1,9 @@
-# Completed evidence — through PR363, current PR364 RED
+# Completed evidence — through bounded PR364
 
-PR363 actual main34eb943046ab87761b071bc508ea48b7af70eea9 independently rechecked: full35588522782/job106297385609, artifact10634000893 full73/73, allrows/JUnit/hash/commit binding and5102unit tests; allOPS35588522787. Durable receiptpr363-main-acceptance-20260921.json; root5759348778. PR361 and earlier accepted D/FTX work retained.
+Retain prior accepted D110/110+10/10 and PR351–363 units. PR363 actual34eb has73/5102/allOPS in its retained receipt. No accepted source/observation/FTX work was restarted.
 
-Current E035 B source inspection confirmed existing PRODAT object/register JSON persistence, so no duplicate observed-field projection was added. It exposed the private matcher’s optional tenant filter under the public null-company staging contract; the normal inbound outertenant stop was explicitly checked. Independent5759320966 qualified design/oracles and bounded scope. Actual test-first6c9 ordinaryOPS35590870160/job106304715600:5153total/5126PASS/27FAIL, all5102 old testsPASS,24newcontrolsPASS. Root5759395557. Minimal code implemented; final CI/review/merge/main acceptance NOT YET completed.
+PR364: independent design5759320966 qualified unresolved lower staging service matching without tenant filters, with the normal inbound outer stop acknowledged. Test-first6c9f0f29 ordinaryOPS35590870160/job106304715600 produced5153total/5126PASS27FAIL; all5102old cases and24newcontrols passed. RootRED5759395557. Final480abda6 added only internal company normalization, no-masterdata early return and mandatory scoped filters; all51 new and old assertions unchanged. Independent final5759605603 and ordinaryCI passed before expected-head merge840720c7.
 
-FullE035/F3/masterplan NOT_COMPLETE; D110/110+10/10 retained. PR310paused/untouched. Earlier completion history remains in Git at6c9f0f29 and34eb9430.
+Fresh actual-main full35593354428/job106312493815 and downloaded artifact10636087712 independently verified73/73, allrows/JUnit/commit840 and5153unit tests/323files. AllOPS35593354403 and coverage completedSUCCESS. Root5759741941; canonical pr364-main-acceptance-20260921.json. PRsmoke15 is not the mainfull proof. Beforemerge, browser/Ediel/crawler labels in5759586109 were corrected using fresh metadata and reviewer5759605603; only correct IDs are retained in the receipt.
+
+The accepted fix preserves unresolved pending-case writes while preventing masterdata matching; it is not live-mail exploitation evidence or complete E035 authority. Remaining independent dated structure/E61/E62 and fullF3/masterplan are not completed work. PR310paused/untouched. This follow-up is only documentation publication, with no new runtime/test/schema changes.
