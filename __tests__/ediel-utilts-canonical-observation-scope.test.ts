@@ -131,7 +131,7 @@ for (const a of alphabets) describe(`canonical UTILTS observations ${a.join('')}
 
   it('separates all messages, even with duplicate IDE/SEQ and different leading families', () => {
     const body: Parts[] = [['IDE', '24', 'SAME'], ['SEQ', '', 'SAME'], ['RFF', ['AES', '101']]]
-    const raw = frame(body, a, 'P', 'PRODAT') + frame(body, a, 'A') + frame([['IDE', '24', 'SAME'], ['SEQ', '', 'SAME']], a, 'B')
+    const raw = `UNA${a[0]}${a[1]}.${a[2]} ${a[3]}` + frame(body, a, 'P', 'PRODAT') + frame(body, a, 'A') + frame([['IDE', '24', 'SAME'], ['SEQ', '', 'SAME']], a, 'B')
     expect(transactions(raw, 1)[0]).toMatchObject({ messageIndex: 1, transactionId: 'SAME' })
     expect(transactions(raw, 2)[0]).toMatchObject({ messageIndex: 2, transactionId: 'SAME' })
     expect(transactions(raw, 2)[0].observations[0].references).toEqual([])
