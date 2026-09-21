@@ -1,4 +1,4 @@
-import { segmentComposite, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
+import { segmentComposite, segmentUntrimmedRaw, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 
 export type CanonicalUtiltsQuantity = {
@@ -42,10 +42,17 @@ function observedScalar(value: string | undefined): string | null {
   return value === undefined || value === '' ? null : value
 }
 
+/** The local decoding wrapper is never published or stored in segments arrays.
+ * Other consumers keep the original trimmed token and default codec behavior. */
+function observedComponents(segment: EdifactTokenizedSegment, index: number, una: EdifactServiceStringAdvice): string[] {
+  const raw = segmentUntrimmedRaw(segment)
+  return segmentComposite(raw === segment.raw ? segment : { ...segment, raw }, index, una)
+}
+
 function observedComposite(segment: EdifactTokenizedSegment, una: EdifactServiceStringAdvice): CanonicalUtiltsQuantity {
-  const components = segmentComposite(segment, 1, una)
+  const components = observedComponents(segment, 1, una)
   return {
-    raw: segment.raw,
+    raw: segmentUntrimmedRaw(segment),
     segmentIndex: segment.index,
     qualifier: observedScalar(components[0]),
     value: observedScalar(components[1]),
@@ -77,13 +84,13 @@ export function canonicalUtiltsTransactions(
     if (segment.tag === 'UNH') continue
 
     if (segment.tag === 'IDE') {
-      const identityComponents = segmentComposite(segment, 2, una)
+      const identityComponents = observedComponents(segment, 2, una)
       transaction = {
         messageIndex,
         transactionIndex: transactions.length,
         segmentIndex: segment.index,
         transactionId: observedScalar(identityComponents[0]),
-        identityQualifier: observedScalar(segmentComposite(segment, 1, una)[0]),
+        identityQualifier: observedScalar(observedComponents(segment, 1, una)[0]),
         identityComponents,
         segments: [segment],
         observations: [],
@@ -100,7 +107,7 @@ export function canonicalUtiltsTransactions(
     transaction.segments.push(segment)
 
     if (segment.tag === 'SEQ') {
-      const sequenceComponents = segmentComposite(segment, 2, una)
+      const sequenceComponents = observedComponents(segment, 2, una)
       observation = {
         messageIndex,
         transactionIndex: transaction.transactionIndex,

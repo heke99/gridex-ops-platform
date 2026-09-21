@@ -1,5 +1,11 @@
-# Verification matrix — PR360 accepted; new prerequisite not yet verified
+# Verification — PR361 corrected candidate pending
 
-Actual main7a13efd6: downloadedartifact10626600143 ZIPa0499109cb9955e74d70b412e0e57d662395bd32b173428eb09dc32409bba2e0 rehashed; full73/73 allrows exit0/noerror,JUnit73 zeroerrors andhandoffcommit rechecked. Unitlogf80d126797988c40b72fa4097df3c564eac05fc3b2c2c9ee096e02a2a08c3fce reports317files/5010testsPASS. OPS35570941505 jobs106242250848/106242250976/106242251062 allSUCCESS throughcleanup. These are CI observations, not locally executed repositorytests.
+- Acceptedmain7a13efd6/PR360: full73/73,5010/5010tests,allOPS; retainedreceiptpr360-main-acceptance-20260921.json.
+- Source/oracle:5757115464, addedUNB/UNZ6cases, resolved5757707782.
+- Observed94RED:OPS35574752510/job106253966098,5056total/5016PASS40FAIL,319files317PASS2FAIL;allold5010PASS. Root5757702741.
+- Observed35RED:OPS35579393631/job106268498592,5056total/5053PASS3FAIL,319files318PASS1FAIL;3exact-spacefailures,other43new+all5010oldPASS. Root5757833287. Conditionalstaticreview5757777365 is NOTfinalapproval.
+- Narrow amendmentreview5757796173/rootauth5757869043: preserveonlyprivateguardedpretrim evidence fornewobservations;legacytokens/defaultdecoderunchanged.
+- Testfirst4a29ed51 adds24compatibilitycases; ordinaryOPS35580203338started, terminalresultrequiresreadback. Noresultinferredhere.
+- PENDING: correction finalhead ordinaryfullsuite/types/lint/build/coverage/OPS andindependentcompletedfour-dimensionreview;guardedmerge;freshactualmain73/73+OPS andreceipt.
 
-New E035 prerequisiteA: source pages and canonicalAST/UTILTS consumer contracts read. Source/designreview and new public-parser testexecution PENDING. No fresh currentcandidateGREEN, nationalE61/E62 execution orfullF3 acceptance. Prior sources/originalassertions/workflows remainunchanged. PR310paused.
+All46publishedpriorcasesunchanged. No localrepositorysuiteexecuted;CIisexecutionauthority. FullE035/F3/masterplanNOT_COMPLETE;D110/110+10/10retained;PR310paused;no liveoperations.

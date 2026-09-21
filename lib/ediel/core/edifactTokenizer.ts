@@ -14,6 +14,18 @@ export type EdifactTokenizeResult = {
   segments: EdifactTokenizedSegment[]
 }
 
+// Private evidence only: no public token field, serialized metadata or string-key
+// cache. Legacy raw/elements keep their established trimmed representation.
+const untrimmedSegments = new WeakMap<EdifactTokenizedSegment, string>()
+
+/** Read pre-trim segment text after existing CR/LF normalization. Only the exact
+ * unchanged token can retrieve retained text; copies or mutated raw use own raw.
+ * This is observational evidence, not original MIME bytes or input authority. */
+export function segmentUntrimmedRaw(segment: EdifactTokenizedSegment): string {
+  const retained = untrimmedSegments.get(segment)
+  return retained !== undefined && retained.trim() === segment.raw ? retained : segment.raw
+}
+
 function splitReleased(
   value: string,
   separator: string,
@@ -58,19 +70,21 @@ export function tokenizeEdifact(rawPayload: string | null | undefined): EdifactT
   const rawSegments = splitReleased(body, una.segmentTerminator, una.releaseCharacter, {
     preserveReleaseSequence: true,
   })
-    .map((segment) => segment.trim())
-    .filter(Boolean)
+    .filter((segment) => Boolean(segment.trim()))
 
   return {
     una,
-    segments: rawSegments.map((raw, index) => {
+    segments: rawSegments.map((source, index) => {
+      const raw = source.trim()
       const elements = splitReleased(raw, una.dataElementSeparator, una.releaseCharacter)
-      return {
+      const token: EdifactTokenizedSegment = {
         index,
         tag: String(elements[0] ?? '').toUpperCase(),
         raw,
         elements,
       }
+      if (source !== raw) untrimmedSegments.set(token, source)
+      return token
     }),
   }
 }
