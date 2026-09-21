@@ -113,7 +113,9 @@ for (const [name, mutate] of [
   ['duplicate LOC172', (text: string) => text.replace(`LOC+172+${point}::9'`, `LOC+172+${point}::9'LOC+172+${point}::9'`)],
   ['ambiguous LOC agency', (text: string) => text.replace(`${point}::9`, `${point}::9:89`)],
   ['unsupported LOC agency', (text: string) => text.replace(`${point}::9`, `${point}::999`)],
-  ['multiple physical messages', (text: string) => text + text],
+  // Use the same service alphabet for both physical messages. Repeating UNA
+  // instead exercises the existing upstream tokenizer rejection below.
+  ['multiple physical messages', (text: string) => text + text.slice(text.startsWith('UNA') ? 9 : 0)],
 ] as const) it(`does not query from incoming ${name}, despite a plausible mocked match`, async () => {
   incoming.raw_payload = mutate(incoming.raw_payload!)
   await execute(); expect(report().status).toBe('not_requested')
@@ -180,4 +182,9 @@ it('keeps exact market-minute to UTC conversion in the existing PRODAT date owne
       expect(convert!('202607010000')).toBe('2026-06-30T23:00:00.000Z')
     }
   } finally { if (oldTimezone === undefined) delete process.env.TZ; else process.env.TZ = oldTimezone }
+})
+it('retains upstream rejection of the original repeated-UNA fixture without any source query or side effects', async () => {
+  incoming.raw_payload = incoming.raw_payload! + incoming.raw_payload!
+  await expect(execute()).rejects.toThrow('edifact_dangling_release_character')
+  for (const mock of [io.scoped, io.from, io.update, io.event, io.persist, io.ack, io.ingest]) expect(mock).not.toHaveBeenCalled()
 })
