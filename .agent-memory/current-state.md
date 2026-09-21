@@ -1,7 +1,7 @@
-# Current state — PR366 corrected evidence, final acceptance pending
+# Current state — PR367 implemented; final gates pending
 
-Accepted mainb6bb10328b173267882238804bbbeefd048040c4 is PR365 publication over runtime840720c7: full73/73,5153tests,323files,allOPS; root5761859619 and pr365-main-acceptance-20260921.json.
+Accepted runtime remains7409e28c307a450ac6618655b8ded27ee9df2f51/PR366, full73/73,5203tests and allOPS. PR367 now implements one received-source trigger seal plus exact conflict/cause and environment propagation; not E61/E62 or dated expected-structure authority.
 
-Production253d15e4 Ediel receipt admission has ordinary5203/5203tests and325filesPASS; static review5762012089. Current child corrects documentation counts only: initial41cases plus9 supplemental =50, initial RED5194total/5166PASS28FAIL. All code/tests unchanged. Final child CI/review, guarded merge and actual-main verification remain required. Read current-task.md/checkpoint.json/handover.md.
+Actual preparation35630581192 succeeded: real Supabase CLI migration20260921171346, physicalSQL62/62, TS19/19, repeated types equal committed surface, repeated schema only expected function delta, all nonfunction sections/counts unchanged. Receipt e035-source-seal-generation-20260921.json. Final candidate ordinaryCI/completed review/guardedmerge/actual-main verification still pending.
 
-D110/110+10/10 and prior bounded deliveries retained. E035 dated source, comparison and operational outcomes remain incomplete, as do fullF3/masterplan. PR310 paused/untouched; no live operations. Previous snapshot253d retains superseded counting errors, not current evidence.
+Current task and e035-received-source-implementation-20260921.md are authoritative. Historical test setup failures and corrected counts remain explicit. Remaining scope is mapped in remaining-plan-status-20260921.md; five F3 groups plus later phase/capability closures are not accepted by this change. D110/110+10/10 retained;PR310paused/untouched; no live operations.

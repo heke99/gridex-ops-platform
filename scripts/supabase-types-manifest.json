@@ -1,9 +1,9 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-09-04T07:25:17Z",
-  "generated_with": "supabase-cli-2.101.0-clean-replay-schema-equivalent-tail",
+  "generated_at": "2026-09-21T17:15:47.503136+00:00",
+  "generated_with": "supabase-cli-2.101.0-repeated-isolated-clean-replay",
   "generated_types": "supabase/database.types.ts",
   "sha256": "b839bc610ff376fe78469cd7266de7a1d205022afa96c9924e2a9b1f0b4da6e8",
-  "latest_migration": "20260904120000_canonical_tenant_invariant_convergence.sql",
-  "latest_migration_schema_effect": "enables_rls_sets_view_security_invoker_drops_inert_policies_and_revokes_public_execute_no_generated_type_surface_change"
+  "latest_migration": "20260921171346_ediel_inbound_prodat_source_seal.sql",
+  "latest_migration_schema_effect": "PR367 existing trigger body only; two real type generations equal committed surface; exact schema delta and unchanged object counts, grants, RLS, triggers verified"
 }

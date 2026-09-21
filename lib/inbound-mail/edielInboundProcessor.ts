@@ -255,6 +255,7 @@ export async function processInboundEmailMessage(input: {
   if (safeMatch) {
     await applySafeInboundStatusUpdate({
       companyId: tenant.companyId,
+      environment,
       parsed,
       outboundMatch,
       meteringPointMatch,

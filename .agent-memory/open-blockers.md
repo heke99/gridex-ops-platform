@@ -1,7 +1,7 @@
-# Active gates — PR366 and remaining E035
+# Open gates — PR367 final acceptance
 
-PR366 code is implemented but unverified: exact-head ordinary CI, independent final review, guarded merge, actual-main full73/OPS and receipt remain mandatory. Real initial RED28 cases showed incomplete/malformed Ediel application receipts being accepted; approved fix is only the client admission boundary. A successful RPC may already have committed before an invalid response is rejected; no rollback claim.
+PR367 IMPLEMENTED_NOT_VERIFIED: ordinary exact-head full CI, completed independent review, guarded merge and actual-main73/73+allOPS/receipt remain. Preparation SQL62 and TS19 GREEN are real but do not replace those gates. No old assertion/source/gate weakened.
 
-E035B expected structure remains unqualified: dated independent source, environment/actor/object/agency binding, accepted disposition, supersession and completeness. Existing application/register JSON is observed persisted data, not automatically that authority. Then loader, comparator, guide order, ACK/persistence, remaining F3 and later plan gates. No errors manufactured from local absence. D110/110+10/10 and prior accepted units retained.
+Separate remaining work: dated E035B source/loader and completeness/supersession/disposition; E61/E62 comparator and actual guide/storage/ACK outcomes; F3C02/04/05/06/07 independent closure; later F4–F7 and applicable earlier source/rights/transport/formal-test gates. Hashing is not source authenticity or expected-structure authority. Detailed inventory: remaining-plan-status-20260921.md.
 
-PR365 mainb6 already verified; no publication-only blocker remains. PR310 stays OPEN/DRAFT/PAUSED e961135199f292b8210884f07de3b616a670161a, excluded/untouched. No live operations.
+PR310 OPEN/DRAFT/PAUSED e961135199f292b8210884f07de3b616a670161a remains deferred and untouched; no imports. FullE035/F3/masterplan NOT_COMPLETE. D110/110+10/10 retained. No live DB/provider/market/settings/explicit deployment action.

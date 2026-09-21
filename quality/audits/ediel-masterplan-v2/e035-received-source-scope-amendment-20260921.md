@@ -1,0 +1,9 @@
+# Pre-implementation source/oracle amendment
+
+The earlier e035-received-source-plan-20260921.md is retained as the first proposal. This amendment supersedes its unqualified PRODAT INSERT scope and60 test count; no production implementation has occurred.
+
+Only newly inserted inbound PRODAT with message_standard=edifact is eligible for automatic raw-byte sealing. Actual ensureDiagnosticEdielMessagesForInboundEmails fallback rows can have message_standard=email and a diagnostic body rather than decoded EDIFACT. Those rows must remain compatible with later reparse/update and must not be called received structural authority. The explicit new compatibility controls cover initial email/no seal and later edifact replacement/no retrospective seal. Thus current test inventory is62: original60 plus2 diagnostic controls, no old assertion waived.
+
+The new SQL oracle's retained-source assertion now coalesces a null comparison to false: on the original baseline, clearing raw must be reported as a behavioral failure, not an unrelated temporary-results-table NOT NULL error. The null/forged-hash and later-null-repair controls use separate fresh rows. No run has yet been accepted as genuine RED, and no baseline setup failure can authorize implementation.
+
+All other proposed boundaries stand: exact UTF-8 bytes including empty and whitespace, supplied hash replaced on eligible INSERT, null/no source/null hash, no inbound rendered timestamp, unchanged old-hash update guard, company/environment/outbound controls, no legacy backfill, no schema/signature/grant/constraint/threshold relaxation. Database-administrator trigger disabling/deletion and mutable context are outside this bounded guarantee. Actual source/date/actor/accepted disposition/history/loader and E61/E62 remain incomplete. PR310 stays paused and untouched; no live operations.
