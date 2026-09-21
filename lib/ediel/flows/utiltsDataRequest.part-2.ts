@@ -5,6 +5,7 @@ import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import { readReceivedStructuralSources } from '@/lib/ediel/utilts/receivedStructuralSources'
 import { createEdielMessageEvent, getEdielMessageById, linkEdielMessage, updateEdielMessageStatus } from '@/lib/ediel/db'
 
 import { resolveDecisionBackedOutboundContext } from '@/lib/ediel/flows/routeDecisionContext'
@@ -420,6 +421,13 @@ export async function processInboundUtiltsMessage(params: {
   })
   let transactionDispositions = runtime.transactionDispositions
   let transactionPersistenceResults: Awaited<ReturnType<typeof persistUtiltsTransactionResults>> = []
+  const normalizedPayload = {
+    ...runtime.normalizedPayload,
+    utiltsTransactionMatches: transactionMatches,
+    utiltsTransactionDispositions: transactionDispositions,
+    utiltsTransactionPersistenceResults: transactionPersistenceResults,
+    receivedStructuralSources: await readReceivedStructuralSources({ message: runtimeSourceMessage, transactionMatches }),
+  }
   const companyId = stringOrNull(runtimeSourceMessage.company_id)
   const messageCode = stringOrNull(runtime.facts.messageCode)
   if (companyId && messageCode && transactionDispositions.length > 0) {
@@ -452,12 +460,8 @@ export async function processInboundUtiltsMessage(params: {
       }
     })
   }
-  const normalizedPayload = {
-    ...runtime.normalizedPayload,
-    utiltsTransactionMatches: transactionMatches,
-    utiltsTransactionDispositions: transactionDispositions,
-    utiltsTransactionPersistenceResults: transactionPersistenceResults,
-  }
+  normalizedPayload.utiltsTransactionDispositions = transactionDispositions
+  normalizedPayload.utiltsTransactionPersistenceResults = transactionPersistenceResults
   const forcedPositiveTgtAckPlan =
     runtimeTestCaseCode === 'U3.1.1' || runtimeTestCaseCode === 'U3.1.2'
   const shouldRejectByAckPlan =

@@ -1,9 +1,7 @@
-# Verified evidence — PR367 implementation pending final gates
+# Completed evidence — PR368 corrected code, delivery pending
 
-Retain accepted PR366/main7409e28c full73/5203tests/allOPS, acceptance5762431044, and prior bounded work including D110/110+10/10.
+Retain acceptedPR367/main5dc072d3 and acceptance5765219627. D110/110+parents10/10 remain accepted. Prior history remains in Git.
 
-PR367 source/oracle qualification: real0ad SQL62 yielded35PASS27FAIL. Original15-case TS had4behavioral+5setup failures; repaired .single() mock and19-case controls at0b now give9 genuine failures with10new positives andall5203old casesPASS (5222total/5213PASS9FAIL). Review5764361156 conditions resolved by9496 doc correction; root5764452364 authorized finite code.
+Completed PR368 code correction: restored original calendar table; added calendar controls; equivalent control-character predicate without lint error; preserved original repeated-UNA upstream negative behavior and corrected the separate multi-message reader fixture. Actual a33176be ordinary CI:5303/5303tests in330files, 81new plus5222prior; OPS35644081641, browser, Ediel and PR E2E pass. This is corrected-code evidence, not a completed merge or final authority feature.
 
-Actual unmerged preparation35630581192 generated migration20260921171346 with Supabase CLI, rebuilt disposable DB, passed62SQL and19TS controls, generated types and schema twice. Root independently inspected downloaded artifact10654159054 and the seven exact delivery blobs. Types unchanged; only intended trigger-body schema delta and unchanged nonfunction fingerprints/counts. Final candidate CI/review/merge/main acceptance is NOT yet completed.
-
-No dated authority/E61/E62/fullE035/F3/masterplan completion. PR310paused and untouched. Previous completion history remains in Git at9496 and accepted main7409.
+Final docs-head CI, completed independent rereview, guarded merge and actual-main73/OPS acceptance are still pending. Source context/disposition/discovery/timeline and E61/E62 remain unimplemented by this unit. FullE035/F3/masterplan incomplete; PR310 paused and untouched.

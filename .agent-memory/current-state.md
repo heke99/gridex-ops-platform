@@ -1,7 +1,7 @@
-# Current state — PR367 implemented; final gates pending
+# Current state — PR368 corrected code green, final delivery pending
 
-Accepted runtime remains7409e28c307a450ac6618655b8ded27ee9df2f51/PR366, full73/73,5203tests and allOPS. PR367 now implements one received-source trigger seal plus exact conflict/cause and environment propagation; not E61/E62 or dated expected-structure authority.
+Accepted main remains 5dc072d3127f386fb8a0a81ad5fbb34af290b4cf (PR367, receipt5765219627). PR368 adds the real dated linked-source reader and UTILTS diagnostics, with an opt-in strict inverse in the existing date owner. No expected-structure authority or E61/E62 decision is enabled.
 
-Actual preparation35630581192 succeeded: real Supabase CLI migration20260921171346, physicalSQL62/62, TS19/19, repeated types equal committed surface, repeated schema only expected function delta, all nonfunction sections/counts unchanged. Receipt e035-source-seal-generation-20260921.json. Final candidate ordinaryCI/completed review/guardedmerge/actual-main verification still pending.
+Corrected a33176be ordinary CI succeeds: 5303 tests in330 files, all81 new and5222 prior cases; OPS verify/quality/replay, browser and Ediel pass. This docs-only child records corrections; final exact-head CI/review and actual merge acceptance remain pending. Read current-task, checkpoint, handover and e035-dated-source-reader-final-corrections-20260921.md.
 
-Current task and e035-received-source-implementation-20260921.md are authoritative. Historical test setup failures and corrected counts remain explicit. Remaining scope is mapped in remaining-plan-status-20260921.md; five F3 groups plus later phase/capability closures are not accepted by this change. D110/110+10/10 retained;PR310paused/untouched; no live operations.
+The initial calendar transcription and lint errors are fixed. One upstream repeated-UNA negative input is preserved separately from the reader's multi-message oracle; blanket all77 behavioral RED claims are withdrawn. Prior snapshots remain in Git, not current acceptance. D110/110+10/10 retained. PR310 paused and untouched; fullE035/F3/masterplan incomplete. No live operations.
