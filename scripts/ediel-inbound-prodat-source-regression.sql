@@ -9,10 +9,21 @@ insert into public.companies(id,name) values
 
 create function pg_temp.source_row(company uuid, env text, family text, payload text, supplied_hash text default null, standard text default 'edifact')
 returns uuid language plpgsql as $$
-declare result uuid;
+declare result uuid; selected_profile public.ediel_message_profiles%rowtype; selected_pack public.ediel_rule_packs%rowtype;
 begin
- insert into public.ediel_messages(company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,immutable_payload_hash,message_received_at,created_at)
- values(company,env,'inbound',standard,family,case when family='PRODAT' then 'Z04' else null end,'received',payload,supplied_hash,'2026-09-21T12:00:00Z','2026-09-21T12:00:00Z')
+ -- The fixture explicitly supplies one existing profile, as prequalified
+ -- ingress does. Code-only Z04 lookup is ambiguous across its five subtypes.
+ -- No profiles or triggers are changed and no national validation is claimed.
+ if family='PRODAT' then
+  select * into strict selected_profile from public.ediel_message_profiles
+   where profile_key='PRODAT:Z04:L:26.A:r3' and is_enabled;
+  select * into strict selected_pack from public.ediel_rule_packs where id=selected_profile.rule_pack_id;
+ end if;
+ insert into public.ediel_messages(company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,immutable_payload_hash,message_received_at,created_at,
+   canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+ values(company,env,'inbound',standard,family,case when family='PRODAT' then 'Z04' else null end,'received',payload,supplied_hash,'2026-09-21T12:00:00Z','2026-09-21T12:00:00Z',
+   selected_pack.id,selected_profile.profile_key,selected_profile.id,case when family='PRODAT' then selected_pack.guide_version||':r'||selected_pack.guide_revision else null end,
+   selected_pack.source_hash,coalesce(selected_profile.profile,'{}'::jsonb))
  returning id into result;
  return result;
 end $$;
