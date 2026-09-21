@@ -1,14 +1,9 @@
-# Verification — PR368 corrected delivery
+# Current evidence
 
-| Evidence | Actual scope and result |
-|---|---|
-| Accepted baseline | PR367/main5dc072d3;5222tests,62SQL,actual73/OPS;receipt5765219627 |
-| Source/oracle gate | 5765535492,5765701921 and final5765735955; finite linked-candidate diagnostics only |
-| Initial implementation review | 5766153924: shared calendar and lint blockers; no approval from this review |
-| Historical oracle correction | Original repeated-UNA input fails upstream; blanket all77 reader-behavior failures withdrawn. Negative input retained plus corrected one-UNA reader fixture |
-| Corrected code a33176be | OrdinaryOPS35644081641;quality106480162480,verify106480162500,replay106480162618 SUCCESS |
-| Executed test inventory | 5303/5303tests,330files:49reader+26boundary+3deadline+3calendar=81new and5222prior |
-| Other corrected-code checks | PR E2E35644081625,browser35644081621,Ediel35644081640 SUCCESS;101lintwarnings,zeroerrors |
-| Pending | Final docs-head ordinaryCI and completed independent rereview;guardedmerge;actual-main73/OPS,hashes/JUnit/commit binding and same-PR receipt |
+Accepted: PR368 actualmaina0e7ebdd, 5300/5300 tests,330files, full73/73, sourceSQL62/62, OPS verify/quality/replay +browser/Ediel.
+New context tests-first: NOT_EXECUTED locally; GitHub ordinary RED pending. No additional pass count asserted.
 
-No local repository-wide execution claim. Prior source and implementation records remain historical and are superseded where explicitly corrected. No expected-source authority, E61/E62 or fullF3/masterplan approval. PR310paused.
+Accepted main: a0e7ebdd8f08b62e70246684f8baf6e7cb0234f9 (PR368); canonical receipt5766791083.
+Correct baseline: 5300 tests in330 files, PR368 adds78 (46+26+3+3), not5303/81/49. Actual-main full73/73 and OPS accepted.
+PR310 remains paused e961135199f292b8210884f07de3b616a670161a, excluded and untouched. D110/110+parents10/10 retained.
+FullE035/F3/masterplan incomplete. No direct live or explicit deployment operations.

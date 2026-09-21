@@ -1,7 +1,10 @@
-# Active gates — PR368 corrected reader
+# Active gates — received context
 
-Initial code calendar/lint failures are corrected, and current a33176be code has ordinary5303/5303 tests plus OPS/browser/Ediel success. Remaining delivery gates: ordinary final documentation-head CI, completed independent rereview of corrections and finite fixture amendment, guarded merge, fresh actual-main73/OPS with inspected evidence and same-PR acceptance.
+Gates pending: genuine tests-first failures; scoped design/oracle clarification; implementation; native schema/type evidence; exact final-head ordinary CI and independent review; guarded merge and actual-main acceptance. Durable source discovery/assessments are separate remaining work.
 
-Separate remaining E035B work: accepted source context and disposition, complete discovery beyond mutable linked rows, dated completeness/supersession and authoritative selection, then E61/E62/guide/ACK/persistence. Reader candidates are not that authority. FiveF3 reconciliation groups and later applicable phases remain in remaining-plan-status-20260921.md.
+Plan: `quality/audits/ediel-masterplan-v2/e035-received-context-plan-20260921.md`.
 
-No existing test/gate weakening. PR310 OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a, excluded and untouched. D110/110+10/10 retained. No live operations or receipt-only followup PR.
+Accepted main: a0e7ebdd8f08b62e70246684f8baf6e7cb0234f9 (PR368); canonical receipt5766791083.
+Correct baseline: 5300 tests in330 files, PR368 adds78 (46+26+3+3), not5303/81/49. Actual-main full73/73 and OPS accepted.
+PR310 remains paused e961135199f292b8210884f07de3b616a670161a, excluded and untouched. D110/110+parents10/10 retained.
+FullE035/F3/masterplan incomplete. No direct live or explicit deployment operations.

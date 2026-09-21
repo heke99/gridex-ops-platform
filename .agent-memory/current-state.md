@@ -1,7 +1,10 @@
-# Current state — PR368 corrected code green, final delivery pending
+# Current state — PR368 accepted; receive context tests first
 
-Accepted main remains 5dc072d3127f386fb8a0a81ad5fbb34af290b4cf (PR367, receipt5765219627). PR368 adds the real dated linked-source reader and UTILTS diagnostics, with an opt-in strict inverse in the existing date owner. No expected-structure authority or E61/E62 decision is enabled.
+New receive-context tests and SQL controls are being published before production implementation. No new implementation or RED/GREEN evidence is claimed yet.
 
-Corrected a33176be ordinary CI succeeds: 5303 tests in330 files, all81 new and5222 prior cases; OPS verify/quality/replay, browser and Ediel pass. This docs-only child records corrections; final exact-head CI/review and actual merge acceptance remain pending. Read current-task, checkpoint, handover and e035-dated-source-reader-final-corrections-20260921.md.
+Plan: `quality/audits/ediel-masterplan-v2/e035-received-context-plan-20260921.md`.
 
-The initial calendar transcription and lint errors are fixed. One upstream repeated-UNA negative input is preserved separately from the reader's multi-message oracle; blanket all77 behavioral RED claims are withdrawn. Prior snapshots remain in Git, not current acceptance. D110/110+10/10 retained. PR310 paused and untouched; fullE035/F3/masterplan incomplete. No live operations.
+Accepted main: a0e7ebdd8f08b62e70246684f8baf6e7cb0234f9 (PR368); canonical receipt5766791083.
+Correct baseline: 5300 tests in330 files, PR368 adds78 (46+26+3+3), not5303/81/49. Actual-main full73/73 and OPS accepted.
+PR310 remains paused e961135199f292b8210884f07de3b616a670161a, excluded and untouched. D110/110+parents10/10 retained.
+FullE035/F3/masterplan incomplete. No direct live or explicit deployment operations.

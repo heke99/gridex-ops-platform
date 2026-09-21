@@ -83,3 +83,6 @@ rollback;
 
 -- Additional real received-PRODAT storage contract; independent rollback.
 \ir ediel-inbound-prodat-source-regression.sql
+
+-- Insert-owned context/cutoff contract; independent rollback, no live data.
+\ir ediel-inbound-received-context-regression.sql

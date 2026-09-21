@@ -1,9 +1,10 @@
-# Handover — PR368 final CI, rereview and merge
+# Handover — insertion context prerequisite
 
-Continue only PR368, branch codex/ediel-received-structure-reader-20260921. Fetch actual head before writing. Code is corrected at a33176be: ordinary 5303/5303 tests in330 files, OPS35644081641 and browser/Ediel/PR E2E pass. Current docs-only child records final corrections and needs its own ordinary CI and completed independent review. Not yet merged or accepted as a whole.
+Read the current plan before older work. Do not redo368 or open a receipt-only PR. Test-first publication is pending actual RED/review. Implementation, native schema qualification, final CI/review, guarded merge and actual-main73/OPS remain.
 
-Read e035-dated-source-reader-final-corrections-20260921.md before older audits. Calendar table restored to accepted base; final date delta only adds the strict inverse. Identifier control predicate is equivalent without prohibited regex. A repeated-UNA upstream exception is preserved separately from the multi-message reader fixture, so prior all77 behavioral failure/unchanged77 statements are superseded. Current inventory:49reader+26boundary+3deadline+3calendar=81new, plus5222prior tests.
+Plan: `quality/audits/ediel-masterplan-v2/e035-received-context-plan-20260921.md`.
 
-NEXT: completed exact-head TASK/SPEC, QUALITY, TENANT-BOUNDARY and WHOLE-PR rereview resolving5766153924 and terminal ordinary CI. Then expected-head guarded merge; verify actual merge full73/OPS/artifacts/JUnit/commit binding; save same-PR receipt and update PR body. Do not create a receipt-only PR or redo367.
-
-Accepted main PR367/5dc072d3 receipt5765219627 remains fallback. Reader reports linked candidates only; source authority/completeness/disposition/timeline/supersession and E61/E62 remain separate. D110/110+10/10 retained; fullE035/F3/masterplan incomplete; PR310 paused e9611351 untouched. No live operations.
+Accepted main: a0e7ebdd8f08b62e70246684f8baf6e7cb0234f9 (PR368); canonical receipt5766791083.
+Correct baseline: 5300 tests in330 files, PR368 adds78 (46+26+3+3), not5303/81/49. Actual-main full73/73 and OPS accepted.
+PR310 remains paused e961135199f292b8210884f07de3b616a670161a, excluded and untouched. D110/110+parents10/10 retained.
+FullE035/F3/masterplan incomplete. No direct live or explicit deployment operations.

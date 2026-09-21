@@ -1,7 +1,8 @@
-# Completed evidence — PR368 corrected code, delivery pending
+# PR368 accepted on actual main
 
-Retain acceptedPR367/main5dc072d3 and acceptance5765219627. D110/110+parents10/10 remain accepted. Prior history remains in Git.
+PR368 delivered the actual dated linked-source reader. Receipt5766791083 explicitly supersedes pending states and wrong5303/81/49 notes. Correct5300/330 plusfull73/73, allOPS accepted; new context unit not yet verified.
 
-Completed PR368 code correction: restored original calendar table; added calendar controls; equivalent control-character predicate without lint error; preserved original repeated-UNA upstream negative behavior and corrected the separate multi-message reader fixture. Actual a33176be ordinary CI:5303/5303tests in330files, 81new plus5222prior; OPS35644081641, browser, Ediel and PR E2E pass. This is corrected-code evidence, not a completed merge or final authority feature.
-
-Final docs-head CI, completed independent rereview, guarded merge and actual-main73/OPS acceptance are still pending. Source context/disposition/discovery/timeline and E61/E62 remain unimplemented by this unit. FullE035/F3/masterplan incomplete; PR310 paused and untouched.
+Accepted main: a0e7ebdd8f08b62e70246684f8baf6e7cb0234f9 (PR368); canonical receipt5766791083.
+Correct baseline: 5300 tests in330 files, PR368 adds78 (46+26+3+3), not5303/81/49. Actual-main full73/73 and OPS accepted.
+PR310 remains paused e961135199f292b8210884f07de3b616a670161a, excluded and untouched. D110/110+parents10/10 retained.
+FullE035/F3/masterplan incomplete. No direct live or explicit deployment operations.
