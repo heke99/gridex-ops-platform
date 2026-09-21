@@ -1,7 +1,7 @@
-# Open gates — E035 prerequisite A
+# Active gates — PR361 observation input
 
-PR360 CI/merge/main gate CLOSED at7a13efd6; full73/5010/allOPS proof recorded. Current prerequisiteA source/design review, public-parser behavioralRED, implementation and exactCI/finalreview are pending; do not mark them complete from priorCI.
+PR361 IMPLEMENTED_NOT_VERIFIED. Source/oracle gate resolved5757707782 after6UNB/UNZ REDcases. Still required: new exact-head ordinaryCI, completed independent code/tenant/wholePR review, expected-head guardedmerge, actual-main73/73+allOPS and receipt. The old94 RED is meaningful, not currentGREEN. Existing46new and5010old tests remain intact.
 
-E035 operational closure still requires independent dated receivedstructure, source completeness/provenance, period-specific meter/register comparison, correct first-standing meter semantics, guide-before-function and finalACK/persistence behavior. Current search did not qualify a source producer; not proof every model is absent. Both25A3/4 containE61/E62.
+FullE035 still needs qualified receiveddated structure, comparator and operational outcomes; guide-firstexecution/physicalpersistence, fullUNSM/G06, field/registerandresponse/finding mappings and latermasterplan are not certified. No nationalerror may be manufactured from localabsence; no expectedinventory from observed counts. AcceptedPR351–360 andD110/110+10/10retain their scope.
 
-F3C02/04/05/06/07 remain partially unverified. FullUNSM/G06 is not an externally unavailable source by inference: official versioned UNECE pages are accessible; packaging/qualification/consumer/schema evidence remains. No claim onlytwo blockersremain. D110/110+10/10 retained. PR310 OPEN/DRAFT/PAUSED e9611351 unchanged. No liveoperations.
+PR362 proposal-onlyduplicate closedunmerged, not anotheractivecodepath. PR310OPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a remains excluded/untouched. No liveDB/provider/market/settings/explicitdeployment action. See current-task.md and e035-observation-scope-implementation-20260921.md.
