@@ -1,7 +1,7 @@
-# Open gates — corrected PR360 documentation
+# Open gates — E035 prerequisite A
 
-ACTIVE: fresh exact-head PR360 CI/review after documentation correction, then guardedmerge and actualmain73/73+OPS. Prior52261280 review/CI are historical evidence only. Root corrected QTY31/213, guide-first execution overstatement and incomplete two-blocker summary.
+PR360 CI/merge/main gate CLOSED at7a13efd6; full73/5010/allOPS proof recorded. Current prerequisiteA source/design review, public-parser behavioralRED, implementation and exactCI/finalreview are pending; do not mark them complete from priorCI.
 
-REMAINING F3, not an exhaustive new defect list: per-field/register composition mapping F3C-02; response criteria F3C-04; real guide-first execution and persistence/ACK chronology F3C-05; E035 dated received meter/register authority and operational E61/E62 consumer; authoritative full UNSM plus consumer/schema/RPC inventory F3C-06/G06; per-original-finding ledger F3C-07. Functional checks precede the final canonical-profile call in inspected utiltsEngine.part-1.ts; final disposition priority does not close this criterion.
+E035 operational closure still requires independent dated receivedstructure, source completeness/provenance, period-specific meter/register comparison, correct first-standing meter semantics, guide-before-function and finalACK/persistence behavior. Current search did not qualify a source producer; not proof every model is absent. Both25A3/4 containE61/E62.
 
-Absence of UNSM from the frozen seven-entry manifest is not proof it cannot be retrieved elsewhere. Qualify primary sources; never fabricate grammar or national faults from missing local data. Retain accepted PR351–359/D110/110+10/10 units. FullF3/masterplanNOT_COMPLETE. PR310OPEN/DRAFT/PAUSED ate961135199f292b8210884f07de3b616a670161a is excluded; no import/restart/write/merge. No liveoperations.
+F3C02/04/05/06/07 remain partially unverified. FullUNSM/G06 is not an externally unavailable source by inference: official versioned UNECE pages are accessible; packaging/qualification/consumer/schema evidence remains. No claim onlytwo blockersremain. D110/110+10/10 retained. PR310 OPEN/DRAFT/PAUSED e9611351 unchanged. No liveoperations.

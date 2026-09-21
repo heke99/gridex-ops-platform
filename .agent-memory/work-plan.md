@@ -1,8 +1,7 @@
-# Work plan — corrected PR360 publication, then remaining F3
+# Work plan — continuing after accepted360
 
-1. VERIFIED: D110/110+parents10/10; accepted bounded PR351–359, including PR358 E011 and PR359 FTX301/303. Actual PR359main71d2adf8 hasfull73/73+5010tests+allOPS; retain receipt.
-2. IN_PROGRESS: PR360 documentation reconciliation correction. Original52261280 ordinaryCI/review passed, but root corrected QTY31/213, disposition-versus-execution ordering and unsupported exhaustive two-blocker claim. New exact-head CI/review, guarded merge and actualmain73/OPS receipt required.
-3. PARTIAL: F3C-02 per-field/register composition; F3C-04 final response mapping; F3C-05 staged validation and physical persistence/ACK evidence; E035 structural authority/consumer; F3C-06 fullUNSM/G06 source/inventory; F3C-07 per-original-finding ledger. Next source-capability investigation after publication: E035; do not erase the other incomplete criteria.
-4. NOT_COMPLETE: wholeF3 independent adjudication and later applicable masterplan phases. PR310-dependent parity remains deferred.
+DONE: D110/110+10/10 and bounded351-359 units retained. DONE: PR360 corrected R2 reconciliation, independent review, merge7a13efd6 and actual-main73/73+allOPS. Receipt saved; no wholephase promotion.
 
-Only item2 active for publication. Read-only preparation may continue without declaring implementation or acceptance. Corrected f3-criterion-reconciliation-r1-20260921.md supersedes the original R1 overclaims; source plan/originals and old tests remain unchanged. PR310paused/untouched; no liveoperations.
+ACTIVE: E035 prerequisite A. Qualify source/finite AST design and tests; behavioral RED; implement canonical IDE/SEQ observation references/quantities without changing existing projections or peer-error decisions; exactCI/review; guardedmerge; actualmain verification/receipt.
+
+NEXT AFTER A: qualify independent dated received meter/register source and scoped comparison/guide-before-function/finalACK chain. Original25-A-3 already contains E61/E62; do not rely on change-log-only flag semantics. Other remaining F3C02/04/05/06/07 need percriterion evidence; fullUNSM sources reachable but unqualified; latermasterplan gates remain. PR310-dependent parity staysdeferred. Only prerequisiteA active now.
