@@ -113,11 +113,11 @@ it.each([
   expect(report).toMatchObject({ status: 'read_failed', issues: [{ code: 'source_receive_context_unavailable' }] })
   expect(JSON.stringify(report)).not.toContain('source-1')
 })
-it.each([[], 'forged', 1, true])('rejects a non-object receive snapshot %s', async malformed => {
+it.each([[[]], ['forged'], [1], [true]])('rejects a non-object receive snapshot %s', async malformed => {
   rows[0].received_prodat_context = malformed
   const result = await run()
-  expect(result.sources).toEqual([])
-  expect(JSON.stringify(result)).not.toContain('source-1')
+  expect(result).toMatchObject({ status: 'read_failed', sources: [], issues: [{ code: 'source_receive_context_unavailable' }] })
+  assertNoSourceData(result)
 })
 it.each([
   { companyId: 'OTHER-TENANT-PRIVATE' }, { environment: 'production' }, { companyId: null },
@@ -139,19 +139,20 @@ it('accepts the same receipt instant in a different offset, retaining the incomi
 it.each(['2026-09-30T20:00:00.000002Z', '2026-09-30T22:00:00.000002+02:00'])('does not claim a receive context existed at the UTILTS cutoff when it was captured later: %s', async capturedAt => {
   incoming.message_received_at = '2026-09-30T20:00:00.000001Z'
   rows[0].received_prodat_context = context(rows[0], { capturedAt })
-  expect((await run()).sources).toEqual([])
+  const result = await run()
+  expect(result).toMatchObject({ status: 'read_failed', sources: [], issues: [{ code: 'source_receive_context_unavailable' }] })
+  assertNoSourceData(result)
 })
 it('allows equality at the capture cutoff to microsecond precision', async () => {
   incoming.message_received_at = '2026-09-30T20:00:00.000001Z'
   rows[0].received_prodat_context = context(rows[0], { capturedAt: '2026-09-30T22:00:00.000001+02:00' })
   expect((await run()).sources[0]).toMatchObject({ receiptContext: { status: 'recorded' } })
 })
-it('does not turn mutable applied/validated/accepted JSON or an extra snapshot property into source acceptance', async () => {
-  rows[0].received_prodat_context = context(rows[0], { acceptance: 'accepted', privateValue: 'NEVER-EXPOSE' })
+it('does not turn mutable applied/validated/accepted JSON into source acceptance', async () => {
+  rows[0].received_prodat_context = context()
   rows[0].parsed_payload = { accepted: true, objectApplication: { status: 'applied' } }
   const result = await run()
   expect(result.sources[0]).toMatchObject({ acceptance: 'not_checked', receiptContext: { status: 'recorded' } })
-  expect(JSON.stringify(result)).not.toContain('NEVER-EXPOSE')
 })
 it('keeps the actual ACK/persistence/return decisions unchanged when source context is absent or contradictory', async () => {
   await run()
@@ -169,3 +170,19 @@ it('never promotes a legacy source using cached applied status when its insert c
   const result = await run()
   expect(result.sources[0]).toMatchObject({ receiptContext: { status: 'unavailable' }, acceptance: 'not_checked' })
 })
+
+// Whitelist the supported version; unknown fields are not silently trusted.
+it.each([{ acceptance: 'accepted' }, { privateValue: 'NEVER-EXPOSE' }])('rejects unsupported context fields: %j', async extra => {
+  rows[0].received_prodat_context = context(rows[0], extra)
+  const result = await run()
+  expect(result).toMatchObject({ status: 'read_failed', sources: [], issues: [{ code: 'source_receive_context_unavailable' }] })
+  assertNoSourceData(result)
+  expect(JSON.stringify(result)).not.toContain('NEVER-EXPOSE')
+})
+function assertNoSourceData(result: Evidence) {
+  const serialized = JSON.stringify(result)
+  for (const secret of ['source-1', 'meter-tenant-a', point, 'SOURCE-METER', '2026-06-20', '202607010000', hash(wire())]) {
+    expect(serialized).not.toContain(secret)
+  }
+  expect(serialized).not.toMatch(/sourceMessageId|sourcePayloadHash|sourceReceivedAt|objectId|effectiveFrom|registers/)
+}

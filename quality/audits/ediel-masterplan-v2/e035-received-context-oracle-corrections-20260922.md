@@ -1,0 +1,15 @@
+# PR369 — reviewed oracle corrections and actual baseline RED
+
+This is a tests-only child of37eee3c48b3d6b138e7def8ba00d02007ab6d381. No production implementation yet. Retain source/design5767675347 and clarification5767711631, and address test review5767827973 rather than treating its rejected oracles as accepted.
+
+Corrections: box the malformed empty-array value so it is an actual argument, require complete generic/non-identifying failure for malformed and late contexts, split unknown reserved-leaf fields from mutable parsed JSON non-promotion, and remove two unused copied declarations. Two additive unknown-key cases; writer15 and corrected reader32 cases. New physical null-raw-plus-forged-leaf control raises SQL inventory83 to84, preserving every original83 assertion. All5300 prior TS and62 prior storage SQL assertions remain unchanged.
+
+Root read actual37eee ordinary OPS35657620686: quality106525043877 reports5345 tests,5307PASS/38FAIL,332 files330PASS/2FAIL. Writer15:6PASS/9FAIL; reader30:1PASS/29FAIL. The malformed-array argument and extra-key acceptance oracle were incorrect NEW tests, so this is not claimed as38 fully qualified behavioral failures. Actual retry/cutoff/conflict failures are independently present. Typechecks and setup passed; new unused declarations contributed two of103 lint warnings and are removed here.
+
+Actual replay106525043767 completed reconstruction and the prior62 SQL assertions, then all83 new controls:14PASS/69FAIL, no setup abort. Downloaded artifact10666227464 is107946bytes, ZIP SHA25611a6146409908504ee4630e680ec5fc95153cdfbcf3416e9da85ed57dbee7bfc; actual rem002-clean-replay.log SHA2568baaeb600a041f61b6ea15ec3afe04a105edacc5de225d5843d3152ed70e215c. Root parsed145 distinct result rows (62prior+83new) and the final PRODAT_RECEIVE_CONTEXT_FAILURE.
+
+Corrected file transport used unmerged scratch97f20f81/run35662180183 solely to apply exact test edits and upload immutable Git blobs. Root inspected artifact10667403348, ZIPsha4c830eb371f9290dd076f54ca91b496cedbf1f21768d14ef3d3209f5cb9f196b and byte-equality to the local exact-source edit. No scratch workflow/script enters PR369. This transport is not test execution.
+
+Migration-time collision and actual competing-lock controls will accompany the real CLI-created forward migration, executing its actual SQL in rollback-only local-replay transactions. They will temporarily restore the exact PR367 function body inside the isolated transaction to represent pre-upgrade behavior, never disable triggers or alter historical files. They must prove object/null collisions and a conflicting second connection's RowExclusiveLock timeout; no claim those controls already ran.
+
+Next: corrected-head ordinary RED/readback and independent oracle resolution; finite implementation with genuine schema/type generation, final exact-head CI/review, guarded merge then actual-main73/OPS and same-PR receipt. No context acceptance/E61/E62/complete-discovery claims. PR310 remains paused/untouched; fullE035/F3/masterplan incomplete.

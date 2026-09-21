@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
-import { createInboundEdielMessage, applySafeInboundStatusUpdate } from '@/lib/inbound-mail/inboundStatusUpdater'
+import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { processInboundEmailMessage } from '@/lib/inbound-mail/edielInboundProcessor'
 import type { InboundEntityMatch } from '@/lib/inbound-mail/inboundMatcher'
 
@@ -17,7 +17,6 @@ vi.mock('@/lib/inbound-mail/inboundTaskFactory', () => ({ createInboundMailTask:
 type Call = { table: string; operation: string; payload?: Record<string, unknown>; filters: Array<[string, unknown]> }
 const calls: Call[] = []
 const source = "UNB+UNOC:3+27700:ZZ+21660:ZZ+260921:1200+SRC1'UNH+1+PRODAT:D:96A:UN:E2SE6A'BGM+Z01+DOC1+9'UNT+3+1'UNZ+1+SRC1'"
-const conflict = { code: '23514', message: 'immutable_ediel_payload_cannot_change' }
 let writeError: { code: string; message: string } | null
 let existingId: string | null
 let environment: string

@@ -133,6 +133,8 @@ begin
  end loop;
  update public.ediel_messages set raw_payload='later historical repair',message_received_at='2026-06-21T09:00:00Z' where id=row_id;
  perform pg_temp.context_check('later-raw-never-backfilled',(select immutable_payload_hash is null and not coalesce(execution_context_snapshot?'receivedProdatContext',false) from public.ediel_messages where id=row_id));
+ row_id:=pg_temp.context_row('00000000-0000-4000-8000-00000000d001','test',null,'2026-06-20T09:00:00Z','{"receivedProdatContext":{"forged":true},"other":"kept"}');
+ perform pg_temp.context_check('null-raw-forged-leaf-removed',(select not coalesce(execution_context_snapshot?'receivedProdatContext',false) and execution_context_snapshot->>'other'='kept' from public.ediel_messages where id=row_id));
  row_id:=pg_temp.context_row('00000000-0000-4000-8000-00000000d001','test','original source',null,'{"receivedProdatContext":{"forged":true},"other":"kept"}');
  perform pg_temp.context_check('null-time-no-context-or-fabricated-time',(select message_received_at is null and not coalesce(execution_context_snapshot?'receivedProdatContext',false) and execution_context_snapshot->>'other'='kept' from public.ediel_messages where id=row_id));
  update public.ediel_messages set message_received_at='2026-06-20T09:00:00Z' where id=row_id;
@@ -165,8 +167,8 @@ do $$
 declare failed text; total integer;
 begin
  select count(*),string_agg(name,', ' order by name) filter(where not passed) into total,failed from receive_context_results;
- if total<>83 then raise exception 'PRODAT_RECEIVE_CONTEXT_INVENTORY:%',total; end if;
+ if total<>84 then raise exception 'PRODAT_RECEIVE_CONTEXT_INVENTORY:%',total; end if;
  if failed is not null then raise exception 'PRODAT_RECEIVE_CONTEXT_FAILURE:%',failed; end if;
- raise notice 'PRODAT_RECEIVE_CONTEXT_REGRESSION: 83/83 PASS';
+ raise notice 'PRODAT_RECEIVE_CONTEXT_REGRESSION: 84/84 PASS';
 end $$;
 rollback;
