@@ -160,7 +160,7 @@ BEGIN
    OR commit_row->>'customerId' IS DISTINCT FROM p_business->>'customerId'
    OR commit_row->>'meteringPointId' IS DISTINCT FROM p_business->>'meteringPointId'
    OR commit_row->>'sourceMessageId' IS DISTINCT FROM p_business->>'sourceMessageId'
-   OR commit_row->>'status' IS DISTINCT FROM CASE WHEN name='switch' THEN 'accepted' ELSE 'confirmed_by_grid_owner' END
+   OR commit_row->>'status' IS DISTINCT FROM (CASE WHEN name='switch' THEN 'accepted' ELSE 'confirmed_by_grid_owner' END)
    OR commit_row->>(CASE WHEN name='switch' THEN 'confirmedStartDate' ELSE 'startDate' END) IS DISTINCT FROM expected_day
    OR (name='switch' AND commit_row->>'siteId' IS DISTINCT FROM p_business->>'siteId') THEN RETURN false; END IF;
  END LOOP;

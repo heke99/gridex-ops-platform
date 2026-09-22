@@ -59,6 +59,7 @@ jobs:
           psql "$db" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
           psql "$db" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
           python3 scripts/ediel-source-validation-concurrency-regression.py
+          python3 scripts/ediel-source-object-concurrency-regression.py
           supabase db lint --local --schema gridex_received_sources --level warning --fail-on warning
           supabase db advisors --local --type security > "$RUNNER_TEMP/e035-native/advisors.txt"
           DATABASE_URL="$db" npm run tenant:invariants
