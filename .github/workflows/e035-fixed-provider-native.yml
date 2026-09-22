@@ -1,0 +1,58 @@
+name: E035 fixed-provider native preparation (not final acceptance)
+on:
+  push:
+    branches: [codex/e035-fixed-provider-native-20260922]
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Reconstruct existing source with all retained amendments
+        run: |
+          python3 .e035-preparation/run-original-step.py 'Verify and reconstruct exact candidate input'
+          python3 .e035-preparation/amend-r7.py
+          bash -n scripts/gridex-aud-003-clean-replay.sh
+          test ! -e supabase/.temp/postgres-version
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Matching PostgreSQL client
+        run: python3 .e035-preparation/run-original-step.py 'Install matching PostgreSQL client'
+      - name: Real CLI migration and unchanged native authorization probes
+        run: python3 .e035-preparation/run-original-step.py 'Accepted clean replay then real CLI forward and native probes'
+      - name: Check image pin cleanup and restore generated source
+        run: |
+          test ! -e supabase/.temp/postgres-version
+          python3 .e035-preparation/run-original-step.py 'Restore generated delivery after owned replay cleanup'
+      - name: Root checks on actual generated source
+        run: python3 .e035-preparation/run-original-step.py 'Unchanged root checks on generated candidate'
+      - name: Save immutable delivery objects without advancing refs
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .e035-preparation/run-original-step.py 'Save immutable delivery blobs only (never advance refs)'
+      - name: Upload all native evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e035-fixed-provider-native
+          include-hidden-files: true
+          path: |
+            e035-*.log
+            e035-native-output/
+            .e035-tools/input-manifest.json
+            .e035-tools/provenance.json
+          if-no-files-found: error
