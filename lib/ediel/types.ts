@@ -220,6 +220,8 @@ export type EdielMessageRow = {
   rule_profile_version?: string | null;
   rule_pack_checksum?: string | null;
   rule_pack_snapshot?: Record<string, unknown> | null;
+  // Raw DB-owned leaf: callers must validate it before treating it as evidence.
+  execution_context_snapshot?: unknown;
   outbound_request_id: string | null;
   intent_id?: string | null;
   inbound_email_message_id?: string | null;

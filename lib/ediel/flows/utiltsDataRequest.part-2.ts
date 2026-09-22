@@ -6,6 +6,7 @@ import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPo
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { readReceivedStructuralSources } from '@/lib/ediel/utilts/receivedStructuralSources'
+import { readAndRecordDurableReceivedSources } from '@/lib/ediel/utilts/receivedSourceLedger'
 import { createEdielMessageEvent, getEdielMessageById, linkEdielMessage, updateEdielMessageStatus } from '@/lib/ediel/db'
 
 import { resolveDecisionBackedOutboundContext } from '@/lib/ediel/flows/routeDecisionContext'
@@ -427,6 +428,7 @@ export async function processInboundUtiltsMessage(params: {
     utiltsTransactionDispositions: transactionDispositions,
     utiltsTransactionPersistenceResults: transactionPersistenceResults,
     receivedStructuralSources: await readReceivedStructuralSources({ message: runtimeSourceMessage, transactionMatches }),
+    durableReceivedSourceInventory: await readAndRecordDurableReceivedSources(runtimeSourceMessage),
   }
   const companyId = stringOrNull(runtimeSourceMessage.company_id)
   const messageCode = stringOrNull(runtime.facts.messageCode)

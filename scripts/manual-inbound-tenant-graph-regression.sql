@@ -92,3 +92,6 @@ rollback;
 \if :SHELL_ERROR
   do $$ begin raise exception 'PRODAT_RECEIVE_CONTEXT_UPGRADE_FAILURE'; end $$;
 \endif
+
+-- E035 durable originals/discovery/owner-facet evidence; prior suites retained.
+\ir ediel-source-ledger-regression.sql

@@ -30,6 +30,13 @@ LEDGER_MARKERS="$(mktemp -d)"
 SEED_BACKUP="$(mktemp)"
 FOUNDATION_EXEC="$(mktemp)"
 TIMESTAMP_EXEC="$(mktemp)"
+# Supautils <=3.2.2 crashes on actual EXECUTE-denied calls for hint roles.
+# The vendor-fixed image preserves the real 42501 and every RLS/ACL test.
+# https://github.com/supabase/supautils/issues/214#issuecomment-5312009974
+REPLAY_POSTGRES_VERSION="17.6.1.155"
+REPLAY_PG_VERSION_PATH="$SUPABASE/.temp/postgres-version"
+REPLAY_PG_VERSION_BACKUP=""
+REPLAY_PG_VERSION_PINNED=""
 # Clean replay normally runs against the local Supabase stack. Where Docker is
 # unavailable, GRIDEX_REPLAY_DB_URL points at an already-created empty database
 # that this script provisions with the Supabase-compatible surface instead. The
@@ -47,6 +54,13 @@ cleanup(){
   set +e
   if [[ -z "${EXTERNAL_DB:-}" ]]; then
     supabase stop --no-backup >/dev/null 2>&1 || true
+  fi
+  if [[ -n "${REPLAY_PG_VERSION_PINNED:-}" ]]; then
+    if [[ -n "${REPLAY_PG_VERSION_BACKUP:-}" ]]; then
+      mv "$REPLAY_PG_VERSION_BACKUP" "$REPLAY_PG_VERSION_PATH"
+    else
+      rm -f "$REPLAY_PG_VERSION_PATH"
+    fi
   fi
   rm -f "$MIGRATIONS"/*.sql
   cp -a "$HOLD"/. "$MIGRATIONS"/ 2>/dev/null || true
@@ -270,6 +284,21 @@ if [[ -z "$EXTERNAL_DB" ]]; then
   # Supabase CLI owns the official ledger from the beginning so later governance
   # migrations can inspect it. Marker migrations are no-op SQL and carry exactly
   # the checksum-pinned dev-ledger versions verified below.
+  # Only this already-disposable local stack uses the image override. A
+  # linked/production project is not upgraded and no database GUC is changed.
+  python3 -c 'import pathlib,tomllib; assert tomllib.loads(pathlib.Path("supabase/config.toml").read_text())["db"]["major_version"] == 17'
+  if [[ -L "$REPLAY_PG_VERSION_PATH" ]]; then
+    echo "refusing symlinked local PostgreSQL version pin" >&2; exit 1
+  fi
+  if [[ -e "$REPLAY_PG_VERSION_PATH" ]]; then
+    test -f "$REPLAY_PG_VERSION_PATH"
+    REPLAY_PG_VERSION_BACKUP="$(mktemp)"
+    cp -p "$REPLAY_PG_VERSION_PATH" "$REPLAY_PG_VERSION_BACKUP"
+  fi
+  mkdir -p "$SUPABASE/.temp"
+  REPLAY_PG_VERSION_PINNED=1
+  printf '%s' "$REPLAY_POSTGRES_VERSION" > "$REPLAY_PG_VERSION_PATH"
+  echo "local_replay_postgres_image=$REPLAY_POSTGRES_VERSION"
   supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
 else
   # No Supabase CLI here, so there is no CLI-owned ledger to reproduce. The

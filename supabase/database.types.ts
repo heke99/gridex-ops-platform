@@ -89881,6 +89881,10 @@ export type Database = {
         Args: { p_platform_market_actor_id?: string }
         Returns: Json
       }
+      gridex_received_source_snapshot_v1: {
+        Args: { p_company_id: string; p_cutoff: string; p_environment: string }
+        Returns: Json
+      }
       gridex_reconcile_company_onboarding_tasks_v1: {
         Args: { p_company_id: string }
         Returns: Json
@@ -89947,6 +89951,27 @@ export type Database = {
       gridex_record_legacy_api_key_use_v1: {
         Args: { p_api_client_id: string; p_route: string }
         Returns: undefined
+      }
+      gridex_record_source_discovery_v1: {
+        Args: {
+          p_company_id: string
+          p_engine_version: string
+          p_environment: string
+          p_inventory_text: string
+          p_snapshot_hash: string
+          p_snapshot_id: string
+        }
+        Returns: Json
+      }
+      gridex_record_source_validation_v1: {
+        Args: {
+          p_company_id: string
+          p_environment: string
+          p_facts_text: string
+          p_source_message_id: string
+          p_source_payload_hash: string
+        }
+        Returns: Json
       }
       gridex_refresh_actor_certificate_statuses: {
         Args: { p_run_type?: string }

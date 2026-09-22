@@ -17,6 +17,12 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
+-- Name: gridex_received_sources; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA gridex_received_sources;
+
+--
 -- Name: public; Type: SCHEMA; Schema: -; Owner: -
 --
 
@@ -38,6 +44,240 @@ CREATE TYPE public.ediel_environment_type AS ENUM (
     'bilateral_test',
     'production'
 );
+
+--
+-- Name: append_discovery(uuid, text, uuid, text, text, text); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.append_discovery(p_company_id uuid, p_environment text, p_snapshot_id uuid, p_snapshot_hash text, p_engine_version text, p_inventory_text text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE snap gridex_received_sources.snapshots%rowtype; inv jsonb; src jsonb; expected jsonb; item jsonb;
+  v_id uuid; v_hash text; n bigint; distinct_n bigint;
+BEGIN
+  SELECT * INTO snap FROM gridex_received_sources.snapshots WHERE id=p_snapshot_id AND company_id=p_company_id AND environment=p_environment;
+  IF NOT FOUND OR p_snapshot_hash IS DISTINCT FROM snap.manifest_hash
+     OR p_engine_version IS DISTINCT FROM 'physical-lin-inventory-v1' OR p_inventory_text IS NULL
+     OR octet_length(p_inventory_text)>8388608 THEN
+    RAISE EXCEPTION 'received_discovery_binding_unavailable' USING ERRCODE='23514';
+  END IF;
+  inv := p_inventory_text::jsonb;
+  IF jsonb_typeof(inv) IS DISTINCT FROM 'object'
+    OR inv - ARRAY['version','universe','historyCoverage','authorityStatus','selection','status','sources','issues'] <> '{}'::jsonb
+    OR inv->'version' IS DISTINCT FROM '1'::jsonb OR inv->>'universe' IS DISTINCT FROM 'durable_received_sources'
+    OR inv->>'historyCoverage' IS DISTINCT FROM 'before_ledger_unknown' OR inv->>'authorityStatus' IS DISTINCT FROM 'not_established'
+    OR inv->>'selection' IS DISTINCT FROM 'not_performed' OR coalesce(inv->>'status','') NOT IN ('enumerated','incomplete')
+    OR jsonb_typeof(inv->'sources') IS DISTINCT FROM 'array' OR jsonb_typeof(inv->'issues') IS DISTINCT FROM 'array' THEN
+    RAISE EXCEPTION 'received_discovery_not_an_approval' USING ERRCODE='23514';
+  END IF;
+  SELECT count(*),count(DISTINCT value->>'sourceMessageId') INTO n,distinct_n FROM jsonb_array_elements(inv->'sources');
+  IF n<>distinct_n OR n>1000 OR (inv->>'status'='enumerated' AND
+      (snap.manifest->'exhaustive' IS DISTINCT FROM 'true'::jsonb OR n<>(snap.manifest->>'sourceCount')::bigint OR inv->'issues'<>'[]'::jsonb))
+    OR (n<>0 AND n<>(snap.manifest->>'sourceCount')::bigint) THEN
+    RAISE EXCEPTION 'received_discovery_incomplete_set' USING ERRCODE='23514';
+  END IF;
+  FOR src IN SELECT value FROM jsonb_array_elements(inv->'sources') LOOP
+    SELECT value INTO expected FROM jsonb_array_elements(snap.manifest->'sources') WHERE value->>'sourceMessageId'=src->>'sourceMessageId';
+    IF NOT FOUND OR jsonb_typeof(src) IS DISTINCT FROM 'object'
+      OR src - ARRAY['sourceMessageId','sourcePayloadHash','sourceReceivedAt','capturedAt','receiptStatus','disposition','status','occurrences','objects','issues'] <> '{}'::jsonb
+      OR src->'sourcePayloadHash' IS DISTINCT FROM expected->'payloadHash'
+      OR src->'sourceReceivedAt' IS DISTINCT FROM expected->'sourceReceivedAt' OR src->'capturedAt' IS DISTINCT FROM expected->'capturedAt'
+      OR src->>'disposition' IS DISTINCT FROM 'not_checked' OR coalesce(src->>'status','') NOT IN ('enumerated','incomplete')
+      OR coalesce(src->>'receiptStatus','') NOT IN ('recorded','unavailable')
+      OR (src->>'receiptStatus'='recorded' AND expected->'receiptContextRecorded' IS DISTINCT FROM 'true'::jsonb)
+      OR jsonb_typeof(src->'occurrences') IS DISTINCT FROM 'array' OR jsonb_typeof(src->'objects') IS DISTINCT FROM 'array'
+      OR jsonb_typeof(src->'issues') IS DISTINCT FROM 'array'
+      OR (inv->>'status'='enumerated' AND (src->>'status'<>'enumerated' OR src->>'receiptStatus'<>'recorded' OR src->'issues'<>'[]'::jsonb))
+      OR (src->>'status'='enumerated' AND (jsonb_array_length(src->'occurrences')=0 OR jsonb_array_length(src->'objects')=0 OR src->>'receiptStatus'<>'recorded' OR src->'issues'<>'[]'::jsonb)) THEN
+      RAISE EXCEPTION 'received_discovery_source_mismatch' USING ERRCODE='23514';
+    END IF;
+    -- Shape allowlists stop accidental raw bodies or approval fields entering
+    -- engine evidence. SQL records an observation; it does not duplicate the
+    -- tokenizer/register/party validators or certify their semantic result.
+    FOR item IN SELECT value FROM jsonb_array_elements(src->'occurrences') LOOP
+      IF jsonb_typeof(item) IS DISTINCT FROM 'object' OR item - ARRAY['ordinal','segmentIndex','messageIndex','lineNumber','objectId','identityAgency','identityStatus'] <> '{}'::jsonb
+        OR coalesce(item->>'identityStatus','') NOT IN ('observed','unresolved') THEN
+        RAISE EXCEPTION 'received_discovery_observation_shape' USING ERRCODE='23514';
+      END IF;
+    END LOOP;
+    FOR item IN SELECT value FROM jsonb_array_elements(src->'objects') LOOP
+      IF jsonb_typeof(item) IS DISTINCT FROM 'object' OR item - ARRAY['messageIndex','objectId','identityAgency','occurrenceOrdinals'] <> '{}'::jsonb THEN
+        RAISE EXCEPTION 'received_discovery_observation_shape' USING ERRCODE='23514';
+      END IF;
+    END LOOP;
+    IF EXISTS (SELECT FROM jsonb_array_elements(src->'issues') AS value WHERE jsonb_typeof(value) IS DISTINCT FROM 'string' OR value#>>'{}' !~ '^[a-z0-9_]{1,128}$') THEN
+      RAISE EXCEPTION 'received_discovery_observation_shape' USING ERRCODE='23514';
+    END IF;
+  END LOOP;
+  FOR item IN SELECT value FROM jsonb_array_elements(inv->'issues') LOOP
+    IF jsonb_typeof(item) IS DISTINCT FROM 'object' OR item - ARRAY['code','sourceMessageId'] <> '{}'::jsonb
+      OR coalesce(item->>'code','') !~ '^[a-z0-9_]{1,128}$'
+      OR (item ? 'sourceMessageId' AND NOT EXISTS(SELECT FROM jsonb_array_elements(inv->'sources') s WHERE s->>'sourceMessageId'=item->>'sourceMessageId')) THEN
+      RAISE EXCEPTION 'received_discovery_observation_shape' USING ERRCODE='23514';
+    END IF;
+  END LOOP;
+  v_hash:=encode(sha256(convert_to(p_inventory_text,'UTF8')),'hex');
+  INSERT INTO gridex_received_sources.discovery_attempts(snapshot_id,company_id,environment,engine_version,inventory_text,inventory_hash)
+    VALUES(snap.id,p_company_id,p_environment,p_engine_version,p_inventory_text,v_hash) RETURNING id INTO v_id;
+  RETURN jsonb_build_object('version',1,'companyId',p_company_id,'environment',p_environment,'snapshotId',snap.id,
+    'snapshotHash',snap.manifest_hash,'engineVersion',p_engine_version,'attemptId',v_id,'inventoryHash',v_hash);
+END $_$;
+
+--
+-- Name: append_validation(uuid, text, uuid, text, text); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.append_validation(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE src gridex_received_sources.sources%rowtype; facts jsonb; pack jsonb; v_previous uuid; v_id uuid; v_hash text;
+BEGIN
+  -- Lock per source before selecting a predecessor. Concurrent assessments
+  -- append a single linked sequence; no UPDATE of historic decisions occurs.
+  SELECT * INTO src FROM gridex_received_sources.sources WHERE source_message_id=p_source_message_id
+    AND company_id=p_company_id AND environment=p_environment FOR UPDATE;
+  IF NOT FOUND OR src.payload_hash IS NULL OR src.received_context IS NULL
+    OR p_source_payload_hash IS DISTINCT FROM src.payload_hash OR p_facts_text IS NULL OR octet_length(p_facts_text)>65536 THEN
+    RAISE EXCEPTION 'received_validation_source_unavailable' USING ERRCODE='23514';
+  END IF;
+  facts:=p_facts_text::jsonb;
+  IF jsonb_typeof(facts) IS DISTINCT FROM 'object'
+    OR facts - ARRAY['version','owner','sourceDisposition','objectDisposition','partyDisposition','coverage','originalTenantMatch','syntaxDecision','applicationDecision','functionalDecision','messageReference','reasonCodes','rulePackEvidence'] <> '{}'::jsonb
+    OR facts->'version' IS DISTINCT FROM '1'::jsonb OR facts->>'owner' IS DISTINCT FROM 'canonical-runtime-with-registry-v1'
+    OR facts->>'sourceDisposition' IS DISTINCT FROM 'not_established' OR facts->>'objectDisposition' IS DISTINCT FROM 'not_checked'
+    OR facts->>'partyDisposition' IS DISTINCT FROM 'not_checked' OR facts->>'coverage' IS DISTINCT FROM 'canonical_runtime_only'
+    OR facts->>'originalTenantMatch' IS DISTINCT FROM 'matched'
+    OR coalesce(facts->>'syntaxDecision','') NOT IN ('accepted','rejected','not_applicable','manual_review')
+    OR coalesce(facts->>'applicationDecision','') NOT IN ('accepted','rejected','not_applicable','manual_review')
+    OR coalesce(facts->>'functionalDecision','') NOT IN ('accepted','rejected','not_applicable','manual_review')
+    OR jsonb_typeof(facts->'reasonCodes') IS DISTINCT FROM 'array' OR jsonb_array_length(facts->'reasonCodes')>128
+    OR coalesce(jsonb_typeof(facts->'messageReference'),'missing') NOT IN ('string','null')
+    OR length(coalesce(facts->>'messageReference',''))>128 THEN
+    RAISE EXCEPTION 'received_validation_not_source_approval' USING ERRCODE='23514';
+  END IF;
+  IF EXISTS (SELECT FROM jsonb_array_elements(facts->'reasonCodes') AS value WHERE jsonb_typeof(value) IS DISTINCT FROM 'string' OR value#>>'{}' !~ '^[A-Za-z0-9_.:-]{1,128}$') THEN
+    RAISE EXCEPTION 'received_validation_reason_unavailable' USING ERRCODE='23514';
+  END IF;
+  pack:=facts->'rulePackEvidence';
+  IF facts->>'applicationDecision'='accepted' AND (pack IS NULL OR pack='null'::jsonb) THEN
+    RAISE EXCEPTION 'received_validation_rule_evidence_unavailable' USING ERRCODE='23514';
+  END IF;
+  IF pack IS DISTINCT FROM 'null'::jsonb THEN
+    IF jsonb_typeof(pack) IS DISTINCT FROM 'object' OR pack - ARRAY['profileKey','messageProfileId','rulePackId','sourceHash'] <> '{}'::jsonb
+      OR NOT EXISTS(SELECT FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs rulepack ON rulepack.id=profile.rule_pack_id
+        WHERE profile.id::text=pack->>'messageProfileId' AND profile.profile_key=pack->>'profileKey'
+          AND rulepack.id::text=pack->>'rulePackId' AND rulepack.source_hash=pack->>'sourceHash') THEN
+      RAISE EXCEPTION 'received_validation_rule_evidence_unavailable' USING ERRCODE='23514';
+    END IF;
+  END IF;
+  SELECT prior.id INTO v_previous FROM gridex_received_sources.validation_assessments prior WHERE prior.source_message_id=src.source_message_id
+    AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=prior.id);
+  v_hash:=encode(sha256(convert_to(p_facts_text,'UTF8')),'hex');
+  INSERT INTO gridex_received_sources.validation_assessments(source_message_id,company_id,environment,source_payload_hash,previous_assessment_id,facts_text,facts_hash)
+    VALUES(src.source_message_id,p_company_id,p_environment,src.payload_hash,v_previous,p_facts_text,v_hash) RETURNING id INTO v_id;
+  RETURN jsonb_build_object('version',1,'assessmentId',v_id,'companyId',p_company_id,'environment',p_environment,
+    'sourceMessageId',src.source_message_id,'sourcePayloadHash',src.payload_hash,'factsHash',v_hash,'sourceDisposition','not_established');
+END $_$;
+
+--
+-- Name: capture_insert(); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.capture_insert() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  IF TG_OP <> 'INSERT' OR TG_TABLE_SCHEMA <> 'public' OR TG_TABLE_NAME <> 'ediel_messages' THEN
+    RAISE EXCEPTION 'received_source_capture_invalid_owner' USING ERRCODE = '23514';
+  END IF;
+  IF NEW.direction = 'inbound' AND upper(coalesce(NEW.message_family, '')) = 'PRODAT'
+     AND NEW.message_standard = 'edifact' THEN
+    -- AFTER INSERT observes the final row after PR369's BEFORE trigger sealed
+    -- the source. Only database-owned original columns are copied; no status,
+    -- mutable metering link, parsed_payload or validation_report is authority.
+    INSERT INTO gridex_received_sources.sources (
+      source_message_id, company_id, environment, origin, message_code,
+      source_received_at, captured_at, raw_payload, payload_hash, received_context
+    ) VALUES (
+      NEW.id, NEW.company_id, NEW.environment, 'database_insert', NEW.message_code,
+      NEW.message_received_at, clock_timestamp(), NEW.raw_payload,
+      NEW.immutable_payload_hash,
+      NEW.execution_context_snapshot -> 'receivedProdatContext'
+    );
+    -- No ON CONFLICT DO NOTHING. Reusing a deleted source ID must not silently
+    -- attach a different receipt to old history. Normal retries are UPDATEs.
+  END IF;
+  RETURN NEW;
+END
+$$;
+
+--
+-- Name: open_snapshot(uuid, text, timestamp with time zone); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.open_snapshot(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE v_now timestamptz := clock_timestamp(); v_opened timestamptz;
+  v_result jsonb; v_manifest jsonb; v_id uuid; v_hash text;
+BEGIN
+  IF p_company_id IS NULL OR p_environment IS NULL OR p_environment NOT IN ('test','production')
+    OR p_cutoff IS NULL OR NOT isfinite(p_cutoff) OR p_cutoff > v_now THEN
+    RAISE EXCEPTION 'received_source_scope_unavailable' USING ERRCODE = '22023';
+  END IF;
+  SELECT opened_at INTO STRICT v_opened FROM gridex_received_sources.epoch WHERE singleton;
+  -- Count, byte budgets and ALL returned rows share one MVCC statement snapshot.
+  -- A 1001 count is an overflow sentinel, not an asserted universe size. No
+  -- physical-object link or mutable message state participates in discovery.
+  WITH candidates AS MATERIALIZED (
+    SELECT source_message_id, octet_length(raw_payload) AS payload_bytes
+    FROM gridex_received_sources.sources
+    WHERE company_id=p_company_id AND environment=p_environment
+      AND captured_at<=p_cutoff AND (source_received_at IS NULL OR source_received_at<=p_cutoff)
+    LIMIT 1001
+  ), totals AS (
+    SELECT count(*) AS n, coalesce(sum(payload_bytes),0) AS total_bytes, coalesce(max(payload_bytes),0) AS max_bytes FROM candidates
+  )
+  SELECT jsonb_build_object('version',1,'companyId',p_company_id,'environment',p_environment,
+    'cutoffAt',p_cutoff,'openedAt',v_opened,'readAt',v_now,'sourceCount',totals.n,
+    'exhaustive',totals.n<=1000 AND totals.total_bytes<=4194304 AND totals.max_bytes<=262144,
+    'sources', CASE WHEN totals.n<=1000 AND totals.total_bytes<=4194304 AND totals.max_bytes<=262144 THEN
+      (SELECT coalesce(jsonb_agg(jsonb_build_object(
+        'sourceMessageId',source.source_message_id,'companyId',source.company_id,'environment',source.environment,
+        'origin',source.origin,'messageCode',source.message_code,'sourceReceivedAt',source.source_received_at,
+        'capturedAt',source.captured_at,'rawPayload',source.raw_payload,'payloadHash',source.payload_hash,
+        'receivedContext',source.received_context) ORDER BY source.source_message_id),'[]'::jsonb)
+      FROM candidates JOIN gridex_received_sources.sources AS source USING(source_message_id)) ELSE '[]'::jsonb END,
+    'visibilitySnapshot',pg_current_snapshot()::text) INTO v_result FROM totals;
+  -- The exact read set is fixed NOW, not reconstructed in a later client query.
+  -- No raw payload copy in the manifest; immutable source identity/hash binds it.
+  SELECT (v_result-'sources'-'visibilitySnapshot') || jsonb_build_object('sources',coalesce(jsonb_agg(
+    (value - ARRAY['rawPayload','receivedContext','origin','messageCode','companyId','environment']) || jsonb_build_object('receiptContextRecorded',coalesce(jsonb_typeof(value->'receivedContext')='object',false))
+    ORDER BY value->>'sourceMessageId'),'[]'::jsonb))
+    INTO v_manifest FROM jsonb_array_elements(v_result->'sources');
+  v_hash := encode(sha256(convert_to(v_manifest::text,'UTF8')),'hex');
+  INSERT INTO gridex_received_sources.snapshots(company_id,environment,manifest,manifest_hash,visibility_snapshot)
+    VALUES(p_company_id,p_environment,v_manifest,v_hash,v_result->>'visibilitySnapshot') RETURNING id INTO v_id;
+  RETURN (v_result-'visibilitySnapshot') || jsonb_build_object('snapshotId',v_id,'snapshotHash',v_hash);
+END $$;
+
+--
+-- Name: reject_mutation(); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.reject_mutation() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  RAISE EXCEPTION 'received_source_evidence_is_append_only' USING ERRCODE = '23514';
+END
+$$;
 
 SET default_table_access_method = heap;
 
@@ -36887,6 +37127,19 @@ end;
 $$;
 
 --
+-- Name: gridex_received_source_snapshot_v1(uuid, text, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_received_source_snapshot_v1(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ IF current_user<>'service_role' THEN RAISE EXCEPTION 'received_evidence_service_required' USING ERRCODE='42501'; END IF;
+ RETURN gridex_received_sources.open_snapshot(p_company_id,p_environment,p_cutoff);
+END $$;
+
+--
 -- Name: gridex_reconcile_company_onboarding_tasks_v1(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -37693,6 +37946,32 @@ CREATE FUNCTION public.gridex_record_legacy_api_key_use_v1(p_api_client_id uuid,
     AS $$
  update public.integration_api_clients set legacy_api_key_request_count=legacy_api_key_request_count+1,last_legacy_api_key_used_at=now(),last_legacy_api_key_route=left(nullif(btrim(coalesce(p_route,'')),''),500),legacy_api_key_migration_status=case when legacy_api_key_migration_status='migrated' then 'in_progress' when legacy_api_key_migration_status='unknown' then 'not_started' else legacy_api_key_migration_status end,updated_at=now() where id=p_api_client_id;
 $$;
+
+--
+-- Name: gridex_record_source_discovery_v1(uuid, text, uuid, text, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_record_source_discovery_v1(p_company_id uuid, p_environment text, p_snapshot_id uuid, p_snapshot_hash text, p_engine_version text, p_inventory_text text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ IF current_user<>'service_role' THEN RAISE EXCEPTION 'received_evidence_service_required' USING ERRCODE='42501'; END IF;
+ RETURN gridex_received_sources.append_discovery(p_company_id,p_environment,p_snapshot_id,p_snapshot_hash,p_engine_version,p_inventory_text);
+END $$;
+
+--
+-- Name: gridex_record_source_validation_v1(uuid, text, uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_record_source_validation_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ IF current_user<>'service_role' THEN RAISE EXCEPTION 'received_evidence_service_required' USING ERRCODE='42501'; END IF;
+ RETURN gridex_received_sources.append_validation(p_company_id,p_environment,p_source_message_id,p_source_payload_hash,p_facts_text);
+END $$;
 
 --
 -- Name: gridex_refresh_actor_certificate_statuses(text); Type: FUNCTION; Schema: public; Owner: -
@@ -48345,6 +48624,129 @@ begin
     p_publication_revision;
 end;
 $_$;
+
+--
+-- Name: discovery_attempts; Type: TABLE; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TABLE gridex_received_sources.discovery_attempts (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    snapshot_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    engine_version text NOT NULL,
+    observation_kind text DEFAULT 'unapproved_physical_discovery'::text NOT NULL,
+    inventory_text text NOT NULL,
+    inventory_hash text NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT discovery_attempts_check CHECK ((inventory_hash = encode(sha256(convert_to(inventory_text, 'UTF8'::name)), 'hex'::text))),
+    CONSTRAINT discovery_attempts_engine_version_check CHECK ((engine_version = 'physical-lin-inventory-v1'::text)),
+    CONSTRAINT discovery_attempts_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT discovery_attempts_inventory_text_check CHECK ((octet_length(inventory_text) <= 8388608)),
+    CONSTRAINT discovery_attempts_observation_kind_check CHECK ((observation_kind = 'unapproved_physical_discovery'::text))
+);
+
+ALTER TABLE ONLY gridex_received_sources.discovery_attempts FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: TABLE discovery_attempts; Type: COMMENT; Schema: gridex_received_sources; Owner: -
+--
+
+COMMENT ON TABLE gridex_received_sources.discovery_attempts IS 'Immutable unapproved engine observations bound to an exact persisted snapshot. Physical LIN enumeration is not canonical register, object/party disposition or E61/E62 authority.';
+
+--
+-- Name: epoch; Type: TABLE; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TABLE gridex_received_sources.epoch (
+    singleton boolean DEFAULT true NOT NULL,
+    opened_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT epoch_singleton_check CHECK (singleton)
+);
+
+ALTER TABLE ONLY gridex_received_sources.epoch FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: snapshots; Type: TABLE; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TABLE gridex_received_sources.snapshots (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    manifest jsonb NOT NULL,
+    manifest_hash text NOT NULL,
+    visibility_snapshot text NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT snapshots_check CHECK ((manifest_hash = encode(sha256(convert_to((manifest)::text, 'UTF8'::name)), 'hex'::text))),
+    CONSTRAINT snapshots_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT snapshots_manifest_check CHECK ((jsonb_typeof(manifest) = 'object'::text))
+);
+
+ALTER TABLE ONLY gridex_received_sources.snapshots FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: TABLE snapshots; Type: COMMENT; Schema: gridex_received_sources; Owner: -
+--
+
+COMMENT ON TABLE gridex_received_sources.snapshots IS 'Immutable exact read-set manifest and MVCC descriptor. Not reconstruction of historical transaction commit visibility.';
+
+--
+-- Name: sources; Type: TABLE; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TABLE gridex_received_sources.sources (
+    source_message_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    origin text NOT NULL,
+    message_code text,
+    source_received_at timestamp with time zone,
+    captured_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    raw_payload text,
+    payload_hash text,
+    received_context jsonb,
+    CONSTRAINT received_source_hash_check CHECK ((((raw_payload IS NULL) AND (payload_hash IS NULL)) OR ((raw_payload IS NOT NULL) AND (payload_hash IS NOT NULL) AND (payload_hash ~ '^[a-f0-9]{64}$'::text) AND (payload_hash = encode(sha256(convert_to(raw_payload, 'UTF8'::name)), 'hex'::text))))),
+    CONSTRAINT sources_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT sources_origin_check CHECK ((origin = 'database_insert'::text))
+);
+
+ALTER TABLE ONLY gridex_received_sources.sources FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: TABLE sources; Type: COMMENT; Schema: gridex_received_sources; Owner: -
+--
+
+COMMENT ON TABLE gridex_received_sources.sources IS 'Forward-only original insertion evidence. No operational cascade. Receipt is not source approval; history before activation remains unknown.';
+
+--
+-- Name: validation_assessments; Type: TABLE; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TABLE gridex_received_sources.validation_assessments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    source_message_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    source_payload_hash text NOT NULL,
+    previous_assessment_id uuid,
+    owner text DEFAULT 'canonical-runtime-with-registry-v1'::text NOT NULL,
+    facts_text text NOT NULL,
+    facts_hash text NOT NULL,
+    assessed_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT validation_assessments_check CHECK ((facts_hash = encode(sha256(convert_to(facts_text, 'UTF8'::name)), 'hex'::text))),
+    CONSTRAINT validation_assessments_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT validation_assessments_facts_text_check CHECK ((octet_length(facts_text) <= 65536)),
+    CONSTRAINT validation_assessments_owner_check CHECK ((owner = 'canonical-runtime-with-registry-v1'::text))
+);
+
+ALTER TABLE ONLY gridex_received_sources.validation_assessments FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: TABLE validation_assessments; Type: COMMENT; Schema: gridex_received_sources; Owner: -
+--
+
+COMMENT ON TABLE gridex_received_sources.validation_assessments IS 'Actual canonical-runtime facet evidence. Source/object/party approval remains unestablished. Previous links preserve observations, not automatic supersession or temporal selection.';
 
 --
 -- Name: platform_actor_identifiers; Type: TABLE; Schema: public; Owner: -
@@ -67872,6 +68274,41 @@ CREATE TABLE public.website_public_contract_snapshots (
 COMMENT ON TABLE public.website_public_contract_snapshots IS 'Tenant-bound durable last-known-good Gridex OPS website contract feed. Only service_role may read or mutate it.';
 
 --
+-- Name: discovery_attempts discovery_attempts_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.discovery_attempts
+    ADD CONSTRAINT discovery_attempts_pkey PRIMARY KEY (id);
+
+--
+-- Name: epoch epoch_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.epoch
+    ADD CONSTRAINT epoch_pkey PRIMARY KEY (singleton);
+
+--
+-- Name: snapshots snapshots_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.snapshots
+    ADD CONSTRAINT snapshots_pkey PRIMARY KEY (id);
+
+--
+-- Name: sources sources_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.sources
+    ADD CONSTRAINT sources_pkey PRIMARY KEY (source_message_id);
+
+--
+-- Name: validation_assessments validation_assessments_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.validation_assessments
+    ADD CONSTRAINT validation_assessments_pkey PRIMARY KEY (id);
+
+--
 -- Name: actor_registry_conflicts actor_registry_conflicts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -72098,6 +72535,54 @@ ALTER TABLE ONLY public.website_customer_applications
 
 ALTER TABLE ONLY public.website_public_contract_snapshots
     ADD CONSTRAINT website_public_contract_snapshots_pkey PRIMARY KEY (cache_key);
+
+--
+-- Name: received_assessment_first_idx; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE UNIQUE INDEX received_assessment_first_idx ON gridex_received_sources.validation_assessments USING btree (source_message_id) WHERE (previous_assessment_id IS NULL);
+
+--
+-- Name: received_assessment_previous_idx; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE UNIQUE INDEX received_assessment_previous_idx ON gridex_received_sources.validation_assessments USING btree (previous_assessment_id) WHERE (previous_assessment_id IS NOT NULL);
+
+--
+-- Name: received_assessment_scope_idx; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE INDEX received_assessment_scope_idx ON gridex_received_sources.validation_assessments USING btree (company_id, environment, assessed_at, id);
+
+--
+-- Name: received_assessment_source_idx; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE INDEX received_assessment_source_idx ON gridex_received_sources.validation_assessments USING btree (source_message_id, assessed_at, id);
+
+--
+-- Name: received_discovery_scope_idx; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE INDEX received_discovery_scope_idx ON gridex_received_sources.discovery_attempts USING btree (company_id, environment, created_at, id);
+
+--
+-- Name: received_discovery_snapshot_idx; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE INDEX received_discovery_snapshot_idx ON gridex_received_sources.discovery_attempts USING btree (snapshot_id);
+
+--
+-- Name: received_snapshot_scope_idx; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE INDEX received_snapshot_scope_idx ON gridex_received_sources.snapshots USING btree (company_id, environment, created_at, id);
+
+--
+-- Name: received_sources_original_scope_cutoff_idx; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE INDEX received_sources_original_scope_cutoff_idx ON gridex_received_sources.sources USING btree (company_id, environment, captured_at, source_message_id);
 
 --
 -- Name: actor_registry_conflicts_actor_idx; Type: INDEX; Schema: public; Owner: -
@@ -82255,6 +82740,66 @@ CREATE OR REPLACE VIEW public.gridex_api_client_permission_summary_v WITH (secur
   GROUP BY c.id, co.name;
 
 --
+-- Name: discovery_attempts no_evidence_truncate; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER no_evidence_truncate BEFORE TRUNCATE ON gridex_received_sources.discovery_attempts FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: snapshots no_evidence_truncate; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER no_evidence_truncate BEFORE TRUNCATE ON gridex_received_sources.snapshots FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: validation_assessments no_evidence_truncate; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER no_evidence_truncate BEFORE TRUNCATE ON gridex_received_sources.validation_assessments FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: discovery_attempts no_evidence_update_delete; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER no_evidence_update_delete BEFORE DELETE OR UPDATE ON gridex_received_sources.discovery_attempts FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: snapshots no_evidence_update_delete; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER no_evidence_update_delete BEFORE DELETE OR UPDATE ON gridex_received_sources.snapshots FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: validation_assessments no_evidence_update_delete; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER no_evidence_update_delete BEFORE DELETE OR UPDATE ON gridex_received_sources.validation_assessments FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: epoch received_sources_epoch_no_truncate; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER received_sources_epoch_no_truncate BEFORE TRUNCATE ON gridex_received_sources.epoch FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: epoch received_sources_epoch_no_update_delete; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER received_sources_epoch_no_update_delete BEFORE DELETE OR UPDATE ON gridex_received_sources.epoch FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: sources received_sources_no_truncate; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER received_sources_no_truncate BEFORE TRUNCATE ON gridex_received_sources.sources FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: sources received_sources_no_update_delete; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER received_sources_no_update_delete BEFORE DELETE OR UPDATE ON gridex_received_sources.sources FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
 -- Name: customer_supply_periods a_customer_supply_periods_contract_alias_v1; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -82877,6 +83422,12 @@ CREATE TRIGGER ediel_test_runs_bind_active_configuration BEFORE INSERT OR UPDATE
 --
 
 CREATE TRIGGER gridex_apply_contract_offer_standard_fees_trg BEFORE INSERT OR UPDATE OF contract_offer_id, source_type ON public.customer_contracts FOR EACH ROW EXECUTE FUNCTION public.gridex_apply_contract_offer_standard_fees();
+
+--
+-- Name: ediel_messages gridex_capture_received_prodat_source; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_capture_received_prodat_source AFTER INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.capture_insert();
 
 --
 -- Name: companies gridex_companies_legal_field_validation; Type: TRIGGER; Schema: public; Owner: -
@@ -83573,6 +84124,27 @@ CREATE TRIGGER zz_supplier_switch_dispatch_readiness BEFORE INSERT OR UPDATE OF 
 --
 
 CREATE TRIGGER zzzz_contract_price_snapshots_hash_integrity_v1 BEFORE INSERT ON public.contract_price_snapshots FOR EACH ROW EXECUTE FUNCTION public.gridex_enforce_contract_price_snapshot_hash_v1();
+
+--
+-- Name: discovery_attempts discovery_attempts_snapshot_id_fkey; Type: FK CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.discovery_attempts
+    ADD CONSTRAINT discovery_attempts_snapshot_id_fkey FOREIGN KEY (snapshot_id) REFERENCES gridex_received_sources.snapshots(id) ON DELETE RESTRICT;
+
+--
+-- Name: validation_assessments validation_assessments_previous_assessment_id_fkey; Type: FK CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.validation_assessments
+    ADD CONSTRAINT validation_assessments_previous_assessment_id_fkey FOREIGN KEY (previous_assessment_id) REFERENCES gridex_received_sources.validation_assessments(id) ON DELETE RESTRICT;
+
+--
+-- Name: validation_assessments validation_assessments_source_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.validation_assessments
+    ADD CONSTRAINT validation_assessments_source_message_id_fkey FOREIGN KEY (source_message_id) REFERENCES gridex_received_sources.sources(source_message_id) ON DELETE RESTRICT;
 
 --
 -- Name: actor_registry_conflicts actor_registry_conflicts_import_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -90832,6 +91404,90 @@ ALTER TABLE ONLY public.website_customer_applications
 
 ALTER TABLE ONLY public.website_customer_applications
     ADD CONSTRAINT website_customer_applications_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+--
+-- Name: discovery_attempts; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE gridex_received_sources.discovery_attempts ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: epoch; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE gridex_received_sources.epoch ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: discovery_attempts original_company_read; Type: POLICY; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE POLICY original_company_read ON gridex_received_sources.discovery_attempts FOR SELECT TO authenticated USING (public.gridex_can_read_company(company_id));
+
+--
+-- Name: snapshots original_company_read; Type: POLICY; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE POLICY original_company_read ON gridex_received_sources.snapshots FOR SELECT TO authenticated USING (public.gridex_can_read_company(company_id));
+
+--
+-- Name: validation_assessments original_company_read; Type: POLICY; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE POLICY original_company_read ON gridex_received_sources.validation_assessments FOR SELECT TO authenticated USING (public.gridex_can_read_company(company_id));
+
+--
+-- Name: epoch received_sources_epoch_read; Type: POLICY; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE POLICY received_sources_epoch_read ON gridex_received_sources.epoch FOR SELECT TO authenticated, service_role USING (true);
+
+--
+-- Name: sources received_sources_original_company_read; Type: POLICY; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE POLICY received_sources_original_company_read ON gridex_received_sources.sources FOR SELECT TO authenticated USING (public.gridex_can_read_company(company_id));
+
+--
+-- Name: sources received_sources_service_read; Type: POLICY; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE POLICY received_sources_service_read ON gridex_received_sources.sources FOR SELECT TO service_role USING (true);
+
+--
+-- Name: discovery_attempts service_read; Type: POLICY; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE POLICY service_read ON gridex_received_sources.discovery_attempts FOR SELECT TO service_role USING (true);
+
+--
+-- Name: snapshots service_read; Type: POLICY; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE POLICY service_read ON gridex_received_sources.snapshots FOR SELECT TO service_role USING (true);
+
+--
+-- Name: validation_assessments service_read; Type: POLICY; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE POLICY service_read ON gridex_received_sources.validation_assessments FOR SELECT TO service_role USING (true);
+
+--
+-- Name: snapshots; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE gridex_received_sources.snapshots ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: sources; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE gridex_received_sources.sources ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: validation_assessments; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE gridex_received_sources.validation_assessments ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: actor_registry_conflicts; Type: ROW SECURITY; Schema: public; Owner: -
@@ -108995,6 +109651,13 @@ ALTER TABLE public.website_customer_applications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.website_public_contract_snapshots ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: SCHEMA gridex_received_sources; Type: ACL; Schema: -; Owner: -
+--
+
+GRANT USAGE ON SCHEMA gridex_received_sources TO authenticated;
+GRANT USAGE ON SCHEMA gridex_received_sources TO service_role;
+
+--
 -- Name: SCHEMA public; Type: ACL; Schema: -; Owner: -
 --
 
@@ -109002,6 +109665,39 @@ GRANT USAGE ON SCHEMA public TO postgres;
 GRANT USAGE ON SCHEMA public TO anon;
 GRANT USAGE ON SCHEMA public TO authenticated;
 GRANT USAGE ON SCHEMA public TO service_role;
+
+--
+-- Name: FUNCTION append_discovery(p_company_id uuid, p_environment text, p_snapshot_id uuid, p_snapshot_hash text, p_engine_version text, p_inventory_text text); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.append_discovery(p_company_id uuid, p_environment text, p_snapshot_id uuid, p_snapshot_hash text, p_engine_version text, p_inventory_text text) FROM PUBLIC;
+GRANT ALL ON FUNCTION gridex_received_sources.append_discovery(p_company_id uuid, p_environment text, p_snapshot_id uuid, p_snapshot_hash text, p_engine_version text, p_inventory_text text) TO service_role;
+
+--
+-- Name: FUNCTION append_validation(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.append_validation(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text) FROM PUBLIC;
+GRANT ALL ON FUNCTION gridex_received_sources.append_validation(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text) TO service_role;
+
+--
+-- Name: FUNCTION capture_insert(); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.capture_insert() FROM PUBLIC;
+
+--
+-- Name: FUNCTION open_snapshot(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.open_snapshot(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) FROM PUBLIC;
+GRANT ALL ON FUNCTION gridex_received_sources.open_snapshot(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) TO service_role;
+
+--
+-- Name: FUNCTION reject_mutation(); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.reject_mutation() FROM PUBLIC;
 
 --
 -- Name: TABLE spot_price_monthly_summaries; Type: ACL; Schema: public; Owner: -
@@ -112261,6 +112957,13 @@ REVOKE ALL ON FUNCTION public.gridex_recalculate_actor_readiness(p_platform_mark
 GRANT ALL ON FUNCTION public.gridex_recalculate_actor_readiness(p_platform_market_actor_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION gridex_received_source_snapshot_v1(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_received_source_snapshot_v1(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_received_source_snapshot_v1(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) TO service_role;
+
+--
 -- Name: FUNCTION gridex_reconcile_company_onboarding_tasks_v1(p_company_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -112308,6 +113011,20 @@ GRANT ALL ON FUNCTION public.gridex_record_invoice_fee_remediation(p_company_id 
 
 REVOKE ALL ON FUNCTION public.gridex_record_legacy_api_key_use_v1(p_api_client_id uuid, p_route text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_record_legacy_api_key_use_v1(p_api_client_id uuid, p_route text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_record_source_discovery_v1(p_company_id uuid, p_environment text, p_snapshot_id uuid, p_snapshot_hash text, p_engine_version text, p_inventory_text text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_record_source_discovery_v1(p_company_id uuid, p_environment text, p_snapshot_id uuid, p_snapshot_hash text, p_engine_version text, p_inventory_text text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_record_source_discovery_v1(p_company_id uuid, p_environment text, p_snapshot_id uuid, p_snapshot_hash text, p_engine_version text, p_inventory_text text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_record_source_validation_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_record_source_validation_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_record_source_validation_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text) TO service_role;
 
 --
 -- Name: FUNCTION gridex_refresh_actor_certificate_statuses(p_run_type text); Type: ACL; Schema: public; Owner: -
@@ -113401,6 +114118,41 @@ GRANT ALL ON FUNCTION public.set_updated_at_timestamp() TO service_role;
 
 REVOKE ALL ON FUNCTION public.store_website_public_contract_snapshot(p_cache_key text, p_tenant_reference text, p_customer_type text, p_publication_revision bigint, p_contract_version text, p_parser_version text, p_schema_sha256 text, p_etag text, p_snapshot jsonb, p_accepted_count integer, p_blocked_count integer, p_upstream_count integer, p_feed_state text, p_empty_feed_authorization jsonb, p_fetched_at timestamp with time zone) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.store_website_public_contract_snapshot(p_cache_key text, p_tenant_reference text, p_customer_type text, p_publication_revision bigint, p_contract_version text, p_parser_version text, p_schema_sha256 text, p_etag text, p_snapshot jsonb, p_accepted_count integer, p_blocked_count integer, p_upstream_count integer, p_feed_state text, p_empty_feed_authorization jsonb, p_fetched_at timestamp with time zone) TO service_role;
+
+--
+-- Name: TABLE discovery_attempts; Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+GRANT SELECT ON TABLE gridex_received_sources.discovery_attempts TO authenticated;
+GRANT SELECT ON TABLE gridex_received_sources.discovery_attempts TO service_role;
+
+--
+-- Name: TABLE epoch; Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+GRANT SELECT ON TABLE gridex_received_sources.epoch TO authenticated;
+GRANT SELECT ON TABLE gridex_received_sources.epoch TO service_role;
+
+--
+-- Name: TABLE snapshots; Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+GRANT SELECT ON TABLE gridex_received_sources.snapshots TO authenticated;
+GRANT SELECT ON TABLE gridex_received_sources.snapshots TO service_role;
+
+--
+-- Name: TABLE sources; Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+GRANT SELECT ON TABLE gridex_received_sources.sources TO authenticated;
+GRANT SELECT ON TABLE gridex_received_sources.sources TO service_role;
+
+--
+-- Name: TABLE validation_assessments; Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+GRANT SELECT ON TABLE gridex_received_sources.validation_assessments TO authenticated;
+GRANT SELECT ON TABLE gridex_received_sources.validation_assessments TO service_role;
 
 --
 -- Name: TABLE platform_actor_identifiers; Type: ACL; Schema: public; Owner: -

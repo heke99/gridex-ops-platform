@@ -1,7 +1,9 @@
-# Active task — finish PR369 exact-head acceptance
+# Active task — E035 durable-source candidate qualification
 
-Only codex/ediel-received-context-20260921 / PR369. Insertion context and stable PRODAT retry cutoff are implemented with genuinely generated forward migration/schema and unchanged types. Status IMPLEMENTED_NOT_VERIFIED_ON_FINAL_PR. Native35664024836 verified62+84SQL,3 actual upgrade probes and53 targeted TS; no final ordinary CI or code approval is inferred.
+Continue codex/e035-durable-source-ledger-20260922 from actual GitHub state, not the old local89-test ZIP or stale PR369 task. Find its PR by head branch; no duplicate or receipt-only PR.
 
-Read e035-received-context-implementation-20260922.md and its native receipt, then fetch actual head/main. NEXT: unchanged ordinary exact-head CI and independent TASK/SPEC,QUALITY,TENANT-BOUNDARY,WHOLE-PR review; expected-head guarded merge only afterwards. Verify actual resulting mainfull73/OPS and source/artifact binding, save receipt on same PR. No receipt-only PR.
+Immediate: run unchanged ordinary CI on the published source, inspect terminal logs/artifacts, resolve actual failures and obtain independent TASK/SPEC, QUALITY, TENANT-BOUNDARY and WHOLE-PR review. The actual CLI forward and105newSQL+62+84oldSQL+3upgrade/20native probes passed in35713214457. Its root5514 tests passed, but root types/lint failed; the two BigInt literal defects are corrected in this candidate and temporary output copies are excluded from the source tree without new tool exclusions. Final green must be earned on the actual commit.
 
-Last accepted main a0e7ebdd/PR368 receipt5766791083, correct5300/330 baseline. Final c6 test-first was5307PASS46FAIL/5353; source/design5768354034 and oracle5768382713. No old assertion weakened. No source acceptance/complete discovery/E61/E62 claim. FullE035/F3/masterplan incomplete; D110/110+10/10 retained; PR310paused e9611351 untouched. No direct live operations.
+Substantive gap remains: real per-object register validation, accepted tenant/legal-party/business-acceptance owners and immutable full disposition outcomes. Canonical facets cannot approve a whole source. Only afterwards come dated timelines, completeness, supersession and E61/E62 baseline selection.
+
+PR310 remains OPEN/DRAFT/PAUSED e961135199f292b8210884f07de3b616a670161a. No live operations. FullE035/F3/masterplan NOT_COMPLETE.

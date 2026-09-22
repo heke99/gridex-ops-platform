@@ -1,3 +1,4 @@
+import { recordReceivedSourceValidation } from '@/lib/ediel/core/receivedSourceValidationLedger';
 // lib/ediel/flows/inboundProcessing.ts
 import {isQualifiedProdatApplicationError} from "@/lib/ediel/prodat/prodatDiagnosticProjection";
 
@@ -295,10 +296,15 @@ function responsePlanItemFor(
 async function applyCanonicalRuntimeDecision(params: {
   actorUserId: string;
   message: EdielMessageRow;
+  originalMessage: EdielMessageRow;
+  resolvedCompanyId: string;
 }): Promise<{ message: EdielMessageRow; decision: CanonicalRuntimeDecision }> {
   const decision = await resolveCanonicalRuntimeDecisionWithRegistry(
     params.message,
   );
+  const sourceValidationEvidence = await recordReceivedSourceValidation({
+    original: params.originalMessage, validated: params.message, resolvedCompanyId: params.resolvedCompanyId, decision,
+  });
   const now = new Date().toISOString();
   const parsedPayloadBeforeRuntime = params.message.parsed_payload ?? {};
   const validationReportBeforeRuntime = params.message.validation_report ?? {};
@@ -315,6 +321,7 @@ async function applyCanonicalRuntimeDecision(params: {
     ...validationReportBeforeRuntime,
     ...(persistedTenantResolution ? { tenantResolution: persistedTenantResolution } : {}),
     canonicalRuntime: decision.validationReport,
+    ...(sourceValidationEvidence.status !== "not_requested" ? { receivedSourceValidationEvidence: sourceValidationEvidence } : {}),
     canonicalRuntimeVersion: "2.5B",
     syntaxDecision: decision.syntaxDecision,
     applicationDecision: decision.applicationDecision,
@@ -826,6 +833,8 @@ export async function processInboundEdielMessage(params: {
   const canonicalRuntime = await applyCanonicalRuntimeDecision({
     actorUserId,
     message: tenantResolvedMessage,
+    originalMessage: message,
+    resolvedCompanyId: tenantResolution.companyId,
   });
   const runtimeMessage = canonicalRuntime.message;
 

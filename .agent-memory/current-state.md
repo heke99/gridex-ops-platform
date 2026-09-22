@@ -1,7 +1,9 @@
-# Current state — PR369 implemented, final verification pending
+# Current state — E035 durable-source candidate
 
-Accepted main remains a0e7ebdd8f08b62e70246684f8baf6e7cb0234f9 / PR368, receipt5766791083 (5300 tests,330files,73/73,allOPS). Active PR369 child ofc6e624e2 now contains insertion-owned receivedProdatContext, stable retry timestamp, exact conflict propagation and non-authoritative reader checks.
+Accepted main is eb2b8693130af8fa7976a93891b95973bc473b50 / PR369. Actual-main receipt5768848443 supersedes its pre-merge memory. Do not redo369 or import PR310.
 
-Native preparation6400ccc2/run35664024836 passed53 targeted TS,84 new+62 retained SQL and3 actual upgrade probes. Repeated generated types equal baseline; schema changes only intended trigger body. Final ordinary CI and independent review remain pending, so no new main acceptance. Read current-task.md and e035-received-context-implementation-20260922.md.
+The substantive branch codex/e035-durable-source-ledger-20260922 contains a genuinely CLI-created forward ledger, persisted snapshot/read sets, physical discovery in the actual UTILTS flow, and immutable observations from the fresh canonical validation owner. These are canonical-runtime facets, NOT complete per-object/source/party acceptance or E61/E62 authority.
 
-Source/disposition/complete discovery/timeline/E61/E62 remain separate; fullE035/F3/masterplan incomplete. D110/110+10/10 retained. PR310paused e9611351 untouched. Scratch generator/workflow/template files excluded; no direct live operations.
+Native35713214457 passes105newSQL+62+84retainedSQL,3actual prior upgrade probes and20native checks, repeated real types/schema and provider-image verification. Full5514/337 tests passed in preparation, but the overall job failed on ES2017-incompatible BigInt literal syntax and temporary delivery copies included by root tooling. This candidate fixes the two literals with exact constructors, removes only an unused new-test import, and excludes all temporary preparation/artifact files. No project target, tests, thresholds or CI configuration was weakened.
+
+Ordinary actual-head CI and independent review remain pending. Do not mark this candidate merge-ready or fullE035 complete. See native-verification-20260922.md. D110/110+10/10 retained; PR310 paused and untouched. No hosted database writes, market messages or explicit deployments.

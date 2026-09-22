@@ -1,0 +1,29 @@
+# E035 durable source — native verification and actual-candidate boundary
+
+## Status
+
+Substantive implementation candidate; final ordinary CI and independent review PENDING. Full source/object/party disposition, timelines, supersession and E61/E62 authority NOT_IMPLEMENTED. Keep every source approval/selection flag closed. Base is accepted PR369/main eb2b8693130af8fa7976a93891b95973bc473b50, tree effc5600a2f09e3e21329451b65c10b25f51aa40; receipt5768848443 supersedes stale pre-merge notes. PR310 e961135199f292b8210884f07de3b616a670161a excluded/paused.
+
+## Executed evidence
+
+Native preparation run35713214457/job106698510462, scratchacf7bceaed8dda4acec607eae7912e1b832522d8. Native step SUCCESS, overall run FAILURE in later root checks. Artifact10688076866 SHA2569910d41826af3362c6ea6763ffe51184cb8ab520fe0eb9c26bd0a7dee73a8772. Downloaded bytes and all31 delivery blob hashes inspected.
+
+Actual Supabase CLI2.101.0 created and applied20260922095911_ediel_received_source_ledger.sql; SHA256a3a4933935995dd6525d09d70949f360aa52bcf72e5ab8d93970fdcdea4aae39. Twenty recorded native checks PASS: real installation waits for an existing writer and queues a later writer, no historical backfill, actual CLI ledger row, commit-visibility/read-set immutability, serialized linked assessments, exact owned fixture cleanup retaining history, fixed provider image and repeat generation. Each of105 distinct new SQL rows is PASS, alongside62oldsource+84oldcontext rows and all3 actual PR369 upgrade collision/lock probes. Private function lint, tenant invariants and negative parity pass.
+
+Repeated generated public types are identical: SHA256e6086663a93bccc4605eaece24fb83e645b79b90d0b3e744f7862a4ebd856f4e; the baseline diff is exactly25 added lines for the3public RPC facades. Repeated schema is identical: SHA256059cd2acfa588ef80a65b1e411d07b87374bfd8938a4e9641d1460a549d0582b. Fingerprint file SHA25651406dd7babd65b3091c87c624989ed952a7f546286adbc839f5b22f524aa1f1. Old public schema definitions are unchanged; only intended private ledger objects and public facades/capture trigger are added. The normal snapshot additionally includes the private schema; no prior section is removed.
+
+Root preparation:5514 tests in337 files PASS; migration contracts and service-role ratchet PASS. Application/test typechecks FAIL on1000n and1n under the existing ES2017 target. Test typecheck/lint also inspect duplicate delivery copies inside e035-native-output, causing a missing helper import and4require-style lint errors. These are NOT declared green. Actual candidate replaces only the two literals with BigInt(1000)/BigInt(1), preserving all arithmetic/expected assertions, and removes only an unused CUTOFF import in the new test. Temporary outputs/workflows/tools are absent from the candidate; no lint, typecheck, test or threshold exclusion was added. Strict isolated ES2017 compilation of the actual module and10000 exact-microsecond comparisons passed after correction; this is not full repository typecheck.
+
+Runtime outcome run35708172952/artifact10685935864 SHA256b98c730df54266488f6b932000e2b38d1c40a5c83f72bbb28172da6c7fa4d42b separately verifies12 actual UTILTS entry-point outcomes with mocked IO, root5514/337PASS and clean targeted lint. Removing the actual runtime hook or substituting a foreign RPC company each produces12 assertion failures/zero errors; restored code passes. Only the new diagnostic at two intended normalized surfaces is omitted from whole-outcome equality. No old test assertion was weakened. Original89/149 test history remains qualified in implementation-plan.md; not all new cases independently ran red, and no self-run check is independent review.
+
+## Provider crash, not a permission bypass
+
+Failed run35711226452/artifact10686972334 showed PostgreSQL SIGSEGV11 at the real authenticated EXECUTE-denied call; OOMKilled=false. The upstream maintainers identify supautils3.2.3 and Postgres17.6.1.155 as the fix: https://github.com/supabase/supautils/issues/214#issuecomment-5312009974 . CLI2.101.0's actual source confirms the local postgres-version pin. This candidate pins ONLY disposable clean replay to ghcr.io/supabase/postgres:17.6.1.155, image IDsha256:56da3fb43b03aca9b8fa264c156177dd204f722e9500e8d80008f5c9f7b82985, repository digestsha256:3866d94d8426927e8db3f1c5d790752292bfbe27b5f1f46e199ae1b7d3c1710b. Provider hint_roles still contains anon,authenticated,service_role; no hints/GUCs, ACLs or policies are disabled. Exact negative call now passes as denial. Existing/absent local pins are restored/removed by owned cleanup; four local shell probes cover success/failure cleanup. No hosted project upgrade or production write occurs.
+
+## Skill routing and review limits
+
+Applied repository-context/worktree isolation, systematic-debugging, targeted test-driven and mutation/property checks, Supabase/Postgres RLS/ownership/concurrency guidance, differential source/schema review, false-positive checking and verification-before-completion. Independent requesting-code-review remains a required next gate, not an author approval. No UI/React design, deployment, hook installation, supplier integration or unrelated broad refactor is involved. Full automated Semgrep/CodeQL and a repository-wide security audit are not claimed.
+
+## Next substantive work
+
+Run unchanged ordinary exact-head CI and complete independent TASK/SPEC, QUALITY, TENANT-BOUNDARY and WHOLE-PR review. The new ledger persists real canonical-runtime facets but not all per-object accepted tenants, legal parties or business acceptance. Implement those real owners with explicit rejection/unavailability and linked correction evidence before any dated timeline/supersession or E61/E62 comparison selection. No receipt-only merge. D110/110+10/10 retained; fullE035/F3/masterplan incomplete.
