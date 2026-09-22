@@ -1,15 +1,48 @@
 from pathlib import Path
-import json
-p=Path('scripts/ediel-source-owner-native.test.ts')
-s=p.read_text().replace('outbound:id(11),reviewer:id(12)}','outbound:id(11),reviewer:id(12),route:id(13),routeProfile:id(14)}')
-needle='  INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_sent_at,application_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)'
-replacement="""  INSERT INTO public.communication_routes(id,company_id,route_name,grid_owner_id,environment_type,is_active)
-  VALUES(${p('route')},${p('company')},'Isolated synthetic native route',${p('grid')},'test',true);
-  INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled)
-  VALUES(${p('routeProfile')},${p('company')},${p('route')},'Isolated synthetic native profile','test','edifact','54321','12345','23-DDQ-PRODAT',true);
-  INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_sent_at,application_reference,communication_route_id,route_profile_id,source_operation_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)"""
-assert needle in s
-s=s.replace(needle,replacement).replace("'{}',clock_timestamp(),'23-DDQ-PRODAT',pack.id,profile.profile_key", "'{}',clock_timestamp(),'23-DDQ-PRODAT',${p('route')},${p('routeProfile')},${p('switch')},pack.id,profile.profile_key")
-p.write_text(s)
-p=Path('app/admin/ediel/structure-actions.ts');s=p.read_text();s=s.replace('||!confirmed||replacement!==null',"||!confirmed||form.getAll('replacesSourceMessageId').length>1||replacement!==null");p.write_text(s)
-p=Path('scripts/supabase-types-manifest.json');data=json.loads(p.read_text());data.update(generated_at='2026-09-22T22:16:28Z',generated_with='supabase-cli-2.101.0-empty-replay-typegen-run35791176951',latest_migration='20260922205926_ediel_reviewed_structural_source.sql',latest_migration_schema_effect='Private structural-review owner guards and existing UTILTS persistence body/check constraints; actual empty replay native run35791176951 generated identical public types. Seven new native fixtures failed canonical route requirements; this typegen receipt is NOT business acceptance.');p.write_text(json.dumps(data,indent=2)+'\n')
+p=Path('scripts/ediel-source-owner-native.test.ts');s=p.read_text();old="'Isolated synthetic native route',${p('grid')},'test',true)";assert s.count(old)==1;s=s.replace(old,"'Isolated synthetic native route',${p('grid')},'bilateral_test',true)");p.write_text(s)
+p=Path('__tests__/ediel-structure-review-action.test.ts');assert not p.exists();p.write_text("""import {beforeEach,expect,it,vi} from 'vitest'
+const calls=vi.hoisted(()=>({scope:vi.fn(),operational:vi.fn(),review:vi.fn(),revalidate:vi.fn()}))
+vi.mock('@/lib/admin/guards',()=>({requireCompanyScopedActionAccess:calls.scope}))
+vi.mock('@/lib/tenant/governance',()=>({requireCompanyOperationalForWrites:calls.operational}))
+vi.mock('@/lib/ediel/sources/reviewReceivedStructuralSource',()=>({reviewReceivedStructuralSource:calls.review}))
+vi.mock('next/cache',()=>({revalidatePath:calls.revalidate}))
+import {reviewReceivedStructureAction as action} from '@/app/admin/ediel/structure-actions'
+const company='10000000-0000-4000-8000-000000000001',source='10000000-0000-4000-8000-000000000002',actor='10000000-0000-4000-8000-000000000003'
+function form(){const f=new FormData();f.set('companyId',company);f.set('sourceMessageId',source);f.set('environment','test');f.set('confirmedOriginal','on');return f}
+beforeEach(()=>{vi.resetAllMocks();calls.scope.mockResolvedValue({userId:actor});calls.operational.mockResolvedValue(undefined);calls.review.mockResolvedValue({status:'recorded',sourceDisposition:'accepted',assessmentId:'assessment'})})
+it('uses the authenticated actor and selected company, never caller supplied approval facts',async()=>{
+ const f=form();f.set('reviewerUserId','forged');f.set('coverageWindow','{\"validFrom\":\"1900-01-01\"}');f.set('sourceDisposition','accepted')
+ expect(await action(f)).toMatchObject({accepted:true,assessmentId:'assessment'})
+ expect(calls.scope).toHaveBeenCalledWith(company,{anyOf:['communication.write','ediel_testing.write']})
+ expect(calls.review).toHaveBeenCalledExactlyOnceWith({companyId:company,sourceMessageId:source,environment:'test',reviewerUserId:actor,confirmedOriginal:true,replacesSourceMessageId:null})
+ expect(calls.scope.mock.invocationCallOrder[0]).toBeLessThan(calls.operational.mock.invocationCallOrder[0])
+ expect(calls.operational.mock.invocationCallOrder[0]).toBeLessThan(calls.review.mock.invocationCallOrder[0])
+})
+it('denied company scope stops all review writes',async()=>{calls.scope.mockRejectedValueOnce(Error('denied'));await expect(action(form())).rejects.toThrow('denied');expect(calls.operational).not.toHaveBeenCalled();expect(calls.review).not.toHaveBeenCalled()})
+it('an inoperable company stops review even after permission succeeds',async()=>{calls.operational.mockRejectedValueOnce(Error('not operational'));await expect(action(form())).rejects.toThrow('not operational');expect(calls.review).not.toHaveBeenCalled()})
+it.each(['companyId','sourceMessageId','environment','confirmedOriginal','replacesSourceMessageId'])('rejects duplicate %s fields without a write',async key=>{
+ const f=form();if(key==='replacesSourceMessageId')f.set(key,source);f.append(key,String(f.get(key)));expect(await action(f)).toMatchObject({accepted:false});expect(calls.scope).not.toHaveBeenCalled();expect(calls.review).not.toHaveBeenCalled()
+})
+it('does not treat a string true as the explicit original confirmation',async()=>{const f=form();f.set('confirmedOriginal','true');expect(await action(f)).toMatchObject({accepted:false});expect(calls.review).not.toHaveBeenCalled()})
+it('passes only an explicitly supplied predecessor identity',async()=>{const f=form();f.set('replacesSourceMessageId',actor);await action(f);expect(calls.review).toHaveBeenCalledWith(expect.objectContaining({replacesSourceMessageId:actor}))})
+it('does not promote a recorded but unestablished decision',async()=>{calls.review.mockResolvedValueOnce({status:'recorded',sourceDisposition:'not_established'});expect(await action(form())).toMatchObject({accepted:false})})
+it('rejects unknown environments',async()=>{const f=form();f.set('environment','sandbox');expect(await action(f)).toMatchObject({accepted:false});expect(calls.review).not.toHaveBeenCalled()})
+""")
+p=Path('__tests__/ediel-structural-source-selection.test.ts');p.write_text(p.read_text()+"""
+describe('corrected dated coverage anchor',()=>{
+ it('keeps the original coverage owner when an explicit baseline correction is selected',()=>{
+  const original=version('baseline',2),correction=version('corrected-baseline',2,'Z04',['901'])
+  correction.wire.functionCode='5';correction.wire.caseReference=original.wire.caseReference
+  correction.replaces={sourceMessageId:original.sourceMessageId,assessmentId:original.assessmentId!,payloadHash:original.payloadHash}
+  const result=selected(input([original,correction]))
+  expect(result.states[0]).toMatchObject({sourceMessageId:correction.sourceMessageId,registerIds:['901']})
+  expect(result.coverage).toEqual(coverage)
+ })
+ it('cannot use a corrected baseline to extend its committed coverage backwards',()=>{
+  const original=version('baseline',2),correction=version('corrected-baseline',1)
+  correction.wire.functionCode='5';correction.wire.caseReference=original.wire.caseReference
+  correction.replaces={sourceMessageId:original.sourceMessageId,assessmentId:original.assessmentId!,payloadHash:original.payloadHash}
+  unavailable(input([original,correction],1,2))
+ })
+})
+""")
