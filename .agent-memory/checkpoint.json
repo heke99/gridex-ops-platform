@@ -11,8 +11,8 @@
   "last_accepted_pr": 369,
   "root_main_acceptance_comment": 5768848443,
   "active_item": "E035 durable sources, immutable actual-owner dispositions and later temporal comparison",
-  "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/resume-db-qualification-20260922.md",
-  "next_action": "Inspect ordinary CI and independent review for the current PR head; then complete runtime tenant/legal-party/business disposition owners, full source approval and later timeline/supersession/E61/E62. Preserve implemented facets and the qualified database continuation; do not repeat qualification/publication or merge a checkpoint.",
+  "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/runtime-owners-20260922.md",
+  "next_action": "Inspect current runtime-owner native qualification and exact published-head CI/review; finish any real failures, then implement dated completeness, timeline/supersession and E61/E62 only from fully witnessed owner evidence. Keep existing PR370 draft; no checkpoint merge or repeated database recovery.",
   "previous_ordinary_ci": {
     "head": "a89275ba0b34ae27530c2e403d3ae3f2667afe3b",
     "ops": 35715146276,
@@ -37,7 +37,7 @@
   },
   "independent_review": "PENDING_CURRENT_WHOLE_PR_REVIEW",
   "ordinary_final_head_ci": "PENDING_EXACT_CURRENT_CANDIDATE",
-  "full_source_disposition": "INCOMPLETE_RUNTIME_OWNER_INTEGRATION",
+  "full_source_disposition": "Z04_RUNTIME_OWNER_IMPLEMENTED_PENDING_NATIVE_AND_REVIEW_TEMPORAL_NOT_COMPLETE",
   "full_E035": "NOT_COMPLETE",
   "full_F3": "NOT_COMPLETE",
   "full_masterplan": "NOT_COMPLETE",
@@ -51,10 +51,10 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "bc6085e192bbab4da50b9db9d47bb27b73178b87",
+  "last_verified_pr_head": "d7fb49fde3dae153693acae1cefa33aeef45ad4f",
   "ordinary_baseline_ci": {
-    "head": "bc6085e192bbab4da50b9db9d47bb27b73178b87",
-    "ops": 35741940986,
+    "head": "d7fb49fde3dae153693acae1cefa33aeef45ad4f",
+    "ops": 35758893367,
     "status": "SUCCESS"
   },
   "continuation_native": {
@@ -74,9 +74,9 @@
     "lint_warnings": 101
   },
   "source_state": {
-    "baseline_git_sha": "bc6085e192bbab4da50b9db9d47bb27b73178b87",
+    "baseline_git_sha": "d7fb49fde3dae153693acae1cefa33aeef45ad4f",
     "candidate_sha": "RESOLVE_CURRENT_GIT_HEAD",
-    "scope": "RECOVERED_DATABASE_ONLY_RUNTIME_UNCHANGED"
+    "scope": "LIVE_CANONICAL_TENANT_PARTY_Z04_BUSINESS_OWNER_INTEGRATION"
   },
   "recovered_database_continuation": {
     "source_head": "4a502344e3fce5824eee52aee6d744e4abc3fde9",
@@ -108,5 +108,16 @@
     "register_sql": 61,
     "object_sql": 71,
     "full_runtime_source_approval": "NOT_COMPLETE"
+  },
+  "runtime_owner_continuation": {
+    "newly_implemented": true,
+    "reported_5758_runtime": "NOT_RECOVERED_NOT_REVERIFIED",
+    "native_status": "PENDING_CURRENT_CANDIDATE_TERMINAL_RECEIPT",
+    "new_migration": "20260922175540_ediel_source_owner_timezone.sql",
+    "migration_creation_run": 35763799597,
+    "migration_artifact": 10710533967,
+    "migration_artifact_sha256": "58c02b41b913f58087ea7fa98159a4e187d2944c2e04a02bd4b5651f85fe11ee",
+    "approval_scope": "GENUINE_COMMITTED_Z04_SWITCH_SUPPLY_ONLY",
+    "temporal_selection": "NOT_IMPLEMENTED"
   }
 }

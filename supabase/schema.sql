@@ -191,6 +191,7 @@ END $_$;
 CREATE FUNCTION gridex_received_sources.append_object_assessment(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_canonical_assessment_id uuid, p_facts_text text) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
     AS $_$
 DECLARE src gridex_received_sources.sources%rowtype; canonical gridex_received_sources.validation_assessments%rowtype;
  facts jsonb; original jsonb; entry jsonb; scope jsonb; register_fact jsonb; business jsonb; party jsonb; records jsonb;
@@ -435,6 +436,7 @@ $$;
 CREATE FUNCTION gridex_received_sources.object_owner_proof_consistent(p_party jsonb, p_business jsonb, p_received timestamp with time zone) RETURNS boolean
     LANGUAGE plpgsql STABLE
     SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
     AS $_$
 DECLARE identity jsonb:=p_party#>'{receiver,identity}'; evidence jsonb:=p_party#>'{receiver,evidence}';
  records jsonb:=evidence->'records'; facility jsonb:=p_party->'facility'; parties jsonb:=p_party->'parties';
@@ -662,6 +664,7 @@ END $$;
 CREATE FUNCTION gridex_received_sources.owner_rows_match(p_kind text, p_rows jsonb, p_company uuid, p_environment text, p_actor uuid) RETURNS boolean
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
     AS $_$
 DECLARE relation_name text; columns_text text; predicate_text text; matches boolean;
 BEGIN

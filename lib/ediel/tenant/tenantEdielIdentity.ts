@@ -32,16 +32,18 @@ function activeAtNow<T extends { valid_from?: string | null; valid_to?: string |
 }
 
 async function activeTenantEdielProfile(companyId: string, environment: 'test' | 'production', evaluation: IdentityEvaluation): Promise<boolean> {
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('tenant_ediel_profiles')
-    .select('id,company_id,environment,market,is_enabled,valid_from,valid_to')
+    .select('id,company_id,environment,market,is_enabled,valid_from,valid_to', evaluation.exactCounts ? {count:'exact'} : undefined)
     .eq('company_id', companyId)
     .eq('environment', environment)
     .eq('market', 'electricity')
     .eq('is_enabled', true)
 
+  if (evaluation.exactCounts) query = query.limit(8193).abortSignal(AbortSignal.timeout(2000))
+  const {data, error, count} = await query
   if (error) throw error
-  const rows = identityRows(data, evaluation, 'profiles', {company_id:companyId,environment,market:'electricity',is_enabled:true})
+  const rows = identityRows(data, evaluation, 'profiles', {company_id:companyId,environment,market:'electricity',is_enabled:true}, count)
   // Evidence must validate every observed interval, regardless of row order.
   // Keep the legacy short-circuit behavior for existing plain callers.
   return evaluation.collect || evaluation.explicit
@@ -50,57 +52,65 @@ async function activeTenantEdielProfile(companyId: string, environment: 'test' |
 }
 
 async function legalActorIdentifiers(companyId: string, environment: 'test' | 'production', evaluation: IdentityEvaluation) {
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('tenant_actor_identifiers')
-    .select('id,company_id,environment,actor_id,identifier_type,identifier_value,qualifier,subaddress,valid_from,valid_to')
+    .select('id,company_id,environment,actor_id,identifier_type,identifier_value,qualifier,subaddress,valid_from,valid_to', evaluation.exactCounts ? {count:'exact'} : undefined)
     .eq('company_id', companyId)
     .eq('environment', environment)
     .eq('identifier_type', 'EdielId')
 
+  if (evaluation.exactCounts) query = query.limit(8193).abortSignal(AbortSignal.timeout(2000))
+  const {data, error, count} = await query
   if (error) throw error
-  return identityRows(data, evaluation, 'identifiers', {company_id:companyId,environment,identifier_type:'EdielId'}).filter((row) => evaluation.active(row))
+  return identityRows(data, evaluation, 'identifiers', {company_id:companyId,environment,identifier_type:'EdielId'}, count).filter((row) => evaluation.active(row))
 }
 
 async function actorRoles(companyId: string, environment: 'test' | 'production', actorId: string, evaluation: IdentityEvaluation): Promise<string[]> {
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('tenant_actor_roles')
-    .select('id,company_id,environment,actor_id,role_code,valid_from,valid_to')
+    .select('id,company_id,environment,actor_id,role_code,valid_from,valid_to', evaluation.exactCounts ? {count:'exact'} : undefined)
     .eq('company_id', companyId)
     .eq('environment', environment)
     .eq('actor_id', actorId)
 
+  if (evaluation.exactCounts) query = query.limit(8193).abortSignal(AbortSignal.timeout(2000))
+  const {data, error, count} = await query
   if (error) throw error
   return unique(
-    identityRows(data, evaluation, 'roles', {company_id:companyId,environment,actor_id:actorId})
+    identityRows(data, evaluation, 'roles', {company_id:companyId,environment,actor_id:actorId}, count)
       .filter((row) => evaluation.active(row))
       .map((row) => clean(row.role_code)),
   )
 }
 
 async function transportAgentRelation(companyId: string, environment: 'test' | 'production', evaluation: IdentityEvaluation) {
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('tenant_counterparty_relations')
-    .select('id,company_id,environment,counterparty_actor_id,relation_type,is_enabled,valid_from,valid_to')
+    .select('id,company_id,environment,counterparty_actor_id,relation_type,is_enabled,valid_from,valid_to', evaluation.exactCounts ? {count:'exact'} : undefined)
     .eq('company_id', companyId)
     .eq('environment', environment)
     .eq('relation_type', EDIEL_TRANSPORT_AGENT_RELATION_TYPE)
     .eq('is_enabled', true)
 
+  if (evaluation.exactCounts) query = query.limit(8193).abortSignal(AbortSignal.timeout(2000))
+  const {data, error, count} = await query
   if (error) throw error
-  const rows = identityRows(data, evaluation, 'relations', {company_id:companyId,environment,relation_type:EDIEL_TRANSPORT_AGENT_RELATION_TYPE,is_enabled:true}).filter((row) => evaluation.active(row))
+  const rows = identityRows(data, evaluation, 'relations', {company_id:companyId,environment,relation_type:EDIEL_TRANSPORT_AGENT_RELATION_TYPE,is_enabled:true}, count).filter((row) => evaluation.active(row))
   if (rows.length > 1) throw new Error(`tenant_ediel_transport_agent_ambiguous:${companyId}:${environment}`)
   return rows[0] ?? null
 }
 
 async function platformActorEdielId(actorId: string, evaluation: IdentityEvaluation): Promise<string> {
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('platform_actor_identifiers')
-    .select('id,actor_id,identifier_type,identifier_value,id_code_qualifier,id_code_responsible,source,is_verified,valid_from,valid_to,created_at,updated_at')
+    .select('id,actor_id,identifier_type,identifier_value,id_code_qualifier,id_code_responsible,source,is_verified,valid_from,valid_to,created_at,updated_at', evaluation.exactCounts ? {count:'exact'} : undefined)
     .eq('actor_id', actorId)
     .eq('identifier_type', 'EdielId')
 
+  if (evaluation.exactCounts) query = query.limit(8193).abortSignal(AbortSignal.timeout(2000))
+  const {data, error, count} = await query
   if (error) throw error
-  const rows = identityRows(data, evaluation, 'transportIdentifiers', {actor_id:actorId,identifier_type:'EdielId'})
+  const rows = identityRows(data, evaluation, 'transportIdentifiers', {actor_id:actorId,identifier_type:'EdielId'}, count)
   // Legacy callers retain their existing platform identifier semantics. Explicit
   // temporal evaluation also checks the directory's nullable DATE bounds.
   const values = unique(rows.filter(row => (!evaluation.explicit && !evaluation.collect) || evaluation.active(row, true)).map((row) => clean(row.identifier_value)))
@@ -122,9 +132,13 @@ export async function resolveCanonicalTenantEdielIdentity(input: TenantIdentityI
 
 /** Current database records evaluated at an instant, never proof that the rows
  * were known then. This adds provenance, not inbound source approval. */
-export async function resolveCanonicalTenantEdielIdentityWithEvidence(input: TenantIdentityInput): Promise<{identity: CanonicalTenantEdielIdentity; evidence: TenantIdentityEvidence}> {
-  const evaluation = createIdentityEvaluation(input.asOf, true)
+export async function resolveCanonicalTenantEdielIdentityWithEvidence(input: TenantIdentityInput & {requireExactCounts?: boolean}): Promise<{identity: CanonicalTenantEdielIdentity; evidence: TenantIdentityEvidence}> {
+  const evaluation = createIdentityEvaluation(input.asOf, true, input.requireExactCounts === true)
   const identity = await resolveIdentity(input, evaluation)
+  if (evaluation.exactCounts) {
+    evaluation.evidence.completeness = 'exact_count'
+    evaluation.evidence.completedAt = new Date().toISOString()
+  }
   return {identity, evidence: evaluation.evidence}
 }
 

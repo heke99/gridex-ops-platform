@@ -41,7 +41,14 @@ export function buildReceivedSourceValidationEvidence(input: { original: SourceF
     if (!isEvidenceRecord(evidence) || typeof evidence.profileKey !== 'string' || evidence.profileKey.length > 128
       || !isEvidenceUuid(evidence.messageProfileId) || !isEvidenceUuid(evidence.rulePackId)
       || typeof evidence.sourceHash !== 'string' || !/^[a-f0-9]{64}$/.test(evidence.sourceHash)) return null
-    rulePackEvidence = { profileKey: evidence.profileKey, messageProfileId: evidence.messageProfileId, rulePackId: evidence.rulePackId, sourceHash: evidence.sourceHash }
+    // Runtime keeps its source-owned semantic profile key. Persistence must
+    // use the separate activation key returned by that same live registry read.
+    // Retain historical callers already carrying the technical key; an explicit
+    // malformed activation key must never fall back to a different namespace.
+    const databaseProfileKey = Object.hasOwn(evidence,'databaseProfileKey') ? evidence.databaseProfileKey : evidence.profileKey
+    if (typeof databaseProfileKey !== 'string' || !/^[^\x00-\x1f\x7f]{1,128}$/.test(databaseProfileKey)
+      || databaseProfileKey !== databaseProfileKey.trim()) return null
+    rulePackEvidence = { profileKey: databaseProfileKey, messageProfileId: evidence.messageProfileId, rulePackId: evidence.rulePackId, sourceHash: evidence.sourceHash }
   }
   // Registry-unavailable acceptance is never silently downgraded to evidence
   // with an unknown rule version. Rejection can legitimately precede registry.

@@ -1,3 +1,4 @@
+import type {SourceSwitchCommitObserver} from './sourceSwitchCommit'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { resolveUtiltsInboundBusinessOutcome } from '@/lib/ediel/utilts/inboundBusinessOutcome'
@@ -24,6 +25,7 @@ export type InboundBusinessStateInput = {
   matchedSwitchRequestId?: string | null
   customerInfoRequestId?: string | null
   source?: string
+  onSourceSwitchCommitted?: SourceSwitchCommitObserver
 }
 
 function referenceDate(message: EdielMessageRow): string {

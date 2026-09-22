@@ -47,3 +47,17 @@ test('mutable report/receipt approval hints do not enter the fresh owner evidenc
 test('evidence preparation does not mutate either source or canonical decisions',()=>{
  const input=fixture(),before=structuredClone(input);build(input);assert.deepEqual(input,before)
 })
+
+
+test('keeps the runtime semantic profile separate from its actual database activation key',()=>{
+ const input=fixture();input.decision.applicationDecision='accepted'
+ input.decision.validationReport.rulePackEvidence={profileKey:'prodat_z04_supplier_switch_confirmation',databaseProfileKey:'PRODAT:Z04:L:26.A:r3',messageProfileId:OTHER,rulePackId:COMPANY,sourceHash:'a'.repeat(64)}
+ const result=build(input);assert.ok(result)
+ assert.equal(JSON.parse(result.factsText).rulePackEvidence.profileKey,'PRODAT:Z04:L:26.A:r3')
+ assert.equal((input.decision.validationReport.rulePackEvidence as {profileKey:string}).profileKey,'prodat_z04_supplier_switch_confirmation')
+})
+for(const databaseProfileKey of ['',null,42]) test(`never substitutes the semantic profile for an explicit invalid database key ${databaseProfileKey}`,()=>{
+ const input=fixture();input.decision.applicationDecision='accepted'
+ input.decision.validationReport.rulePackEvidence={profileKey:'PRODAT:Z04:L:26.A:r3',databaseProfileKey,messageProfileId:OTHER,rulePackId:COMPANY,sourceHash:'a'.repeat(64)}
+ assert.equal(build(input),null)
+})

@@ -1,9 +1,9 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-09-22T15:31:41Z",
-  "generated_with": "supabase-cli-2.101.0-repeated-isolated-native-run35747547629",
+  "generated_at": "2026-09-22T18:39:28.858795+00:00",
+  "generated_with": "supabase-cli-2.101.0-repeated-runtime-native-run35768223449",
   "generated_types": "supabase/database.types.ts",
   "sha256": "6af55fbbed9390acfe71dbb8c757c10e3a021dec15842df801d06b679d98eda9",
-  "latest_migration": "20260922152602_ediel_register_message_line_scope.sql",
-  "latest_migration_schema_effect": "Recovered E035 owner assessments, committed availability and bounded snapshots; forward message-local LIN correction. Runtime owner integration remains incomplete."
+  "latest_migration": "20260922175540_ediel_source_owner_timezone.sql",
+  "latest_migration_schema_effect": "Pin object-owner typed readset comparisons and evidence serialization to UTC. Application types generated twice from the actual complete disposable database."
 }

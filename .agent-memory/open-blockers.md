@@ -1,3 +1,42 @@
+# E035 live-owner runtime continuation — 2026-09-22
+
+PARTIAL / NOT MERGE-READY. Existing PR370 on codex/e035-durable-source-ledger-20260922.
+The containing Git commit/live PR identifies this candidate. Baseline d7fb49fde3dae153693acae1cefa33aeef45ad4f
+already passed ordinary OPS35758893367 (all three jobs); do not repeat its recovery.
+Accepted main/PR369 remains eb2b8693130af8fa7976a93891b95973bc473b50.
+
+Substantive new runtime code: fresh canonical receipt handoff; exact-count bounded tenant
+identity reads; selected facility/grid-owner legal-party binding; a callback from the actual
+successful Z04 switch-confirmation AND supply-period writes; immutable owner composition
+plus a separate committed-availability RPC. The real inbound processor invokes these paths.
+All physical objects remain represented. No callback, copied receipts/status JSON, incomplete
+reads, unmatched namespaces, or missing owners can create accepted evidence. Diagnostic
+failures retain original business and ACK behavior. Supported approval is the source-bound
+Z04 legacy switch/supply path, not arbitrary Z06/Z10 review cases or SMTP authentication.
+
+New source is newly implemented here, not a recovery of the previously reported5758/347
+continuation (still NOT RECOVERED / NOT REVERIFIED). Existing original source/discovery,
+canonical register facets, database owner/snapshot contracts and regression assertions remain.
+The authentic new forward20260922175540_ediel_source_owner_timezone.sql was CLI-created in
+run35763799597, artifact10710533967. No existing migration was edited.
+
+Test-first evidence: initial business/count-owner tests9FAIL/3PASS, then34PASS including
+retained identity cases; composition21FAIL/6PASS then27PASS; actual processor missing-hook
+assertions2FAIL/1PASS then3PASS. These unit tests replace only external IO. The separate
+native suite uses actual Supabase HTTP, real canonical registry, real business writes and
+PostgreSQL RPCs, and must pass with repeated generated contracts before acceptance.
+Native qualification, current-head ordinary CI and independent review are tracked in PR370
+terminal receipts. Do not infer PASS from this implementation checkpoint or baseline CI.
+
+Full E035/F3/masterplan and temporal comparison remain INCOMPLETE. D110/110+parents10/10 retained.
+PR310 OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a, excluded and untouched.
+No hosted database, deployment, provider/market change or external message. Known existing
+public.gridex_grid_owner_name_key mutable-search_path advisor remains disclosed.
+
+Next action: Inspect current runtime-owner native qualification and exact published-head CI/review; finish any real failures, then implement dated completeness, timeline/supersession and E61/E62 only from fully witnessed owner evidence. Keep existing PR370 draft; no checkpoint merge or repeated database recovery.
+
+## Historical records — superseded where contradicted above
+
 # E035 recovered database continuation — 2026-09-22
 
 PARTIAL / NOT MERGE-READY. Active PR370, codex/e035-durable-source-ledger-20260922.

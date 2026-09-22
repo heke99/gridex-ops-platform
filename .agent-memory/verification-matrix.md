@@ -24,3 +24,7 @@ FullE035/F3/masterplanNOT_COMPLETE;PR310paused/untouched;no liveoperations.
 ## Recovered E035 database continuation — 2026-09-22
 Native run35747547629: 71 owner / 61 register SQL PASS, real concurrency, repeated contracts.
 This is not full runtime approval or final-head CI. See quality/audits/ediel-masterplan-v2/e035-source-ledger/resume-db-qualification-20260922.md.
+
+
+## E035 runtime owners — 2026-09-22
+Implemented fresh canonical/complete tenant/selected party/committed Z04 hooks with test-first assertions. Native and ordinary current-head evidence remains a separate gate. See quality/audits/ediel-masterplan-v2/e035-source-ledger/runtime-owners-20260922.md.

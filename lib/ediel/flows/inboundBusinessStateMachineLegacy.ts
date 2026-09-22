@@ -1,3 +1,4 @@
+import {publishSourceSwitchCommit, type SourceSwitchCommitObserver} from './sourceSwitchCommit'
 import { supabaseService } from '@/lib/supabase/service'
 import { createEdielMessageEvent } from '@/lib/ediel/db'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -338,6 +339,7 @@ export async function applyInboundBusinessStateMachine(input: {
   matchedSwitchRequestId?: string | null
   customerInfoRequestId?: string | null
   source?: string
+  onSourceSwitchCommitted?: SourceSwitchCommitObserver
 }): Promise<InboundBusinessStateResult> {
   const outcome = outcomeForMessage(input.message)
   const updated: string[] = []
@@ -400,6 +402,9 @@ export async function applyInboundBusinessStateMachine(input: {
     // effective date. The supply period remains confirmed_by_grid_owner.
     const supplyPeriodId = await ensureSupplyPeriodFromSwitch({ message: input.message, status: 'confirmed_by_grid_owner' })
     if (supplyPeriodId) updated.push('customer_supply_periods')
+    if (supplyPeriodId) await publishSourceSwitchCommit(input.onSourceSwitchCommitted, {
+      message: input.message, switchRequestId: input.matchedSwitchRequestId, supplyPeriodId,
+    })
   }
 
   if (outcome === 'assigned_supply_started' || outcome === 'mandatory_purchase_supply_started') {

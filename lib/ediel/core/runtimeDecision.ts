@@ -482,6 +482,7 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message: Ediel
       decisionTrace,
       rulePackEvidence: {
         profileKey: evidence.profileKey,
+        ...(evidence.databaseProfileKey !== undefined ? {databaseProfileKey: evidence.databaseProfileKey} : {}),
         messageProfileId: evidence.messageProfileId,
         rulePackId: evidence.rulePackId,
         sourceHash: evidence.sourceHash,

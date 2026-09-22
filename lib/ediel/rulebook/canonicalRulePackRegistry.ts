@@ -19,6 +19,8 @@ export type CanonicalRulePackResolution = {
   sourceHash: string
   fieldMatrixVersion: string | null
   profileKey: string
+  /** Actual activation-row key; distinct from the source-owned semantic key. */
+  databaseProfileKey?: string
   businessProcess: string
   phase: string | null
   profile: Record<string, unknown>
@@ -374,6 +376,7 @@ export async function resolveCanonicalRulePack(params: {
     validTo: evidence.validTo && source.policy.guide.effectiveTo
       ? (evidence.validTo < source.policy.guide.effectiveTo ? evidence.validTo : source.policy.guide.effectiveTo)
       : evidence.validTo ?? source.policy.guide.effectiveTo,
+    databaseProfileKey: evidence.profileKey,
     profileKey: source.profileKey,
     businessProcess: source.businessProcess,
     phase: source.phase,

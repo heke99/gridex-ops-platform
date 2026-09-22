@@ -81,6 +81,11 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
@@ -115,6 +120,12 @@ jobs:
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
+          # Exercise the actual canonical registry, business writes and owner
+          # RPCs over the local Data API. No keys enter uploaded evidence.
+          supabase status --help
+          supabase status -o json > "$RUNNER_TEMP/e035-native-status.json"
+          GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json" npx vitest run --config scripts/ediel-source-owner-native.config.ts
+          rm -f "$RUNNER_TEMP/e035-native-status.json"
           supabase gen types typescript --local > rem002-database.types.ts
           # Typegen emits non-null Returns for nullable SQL columns on the
           # field-511 resolver; apply the same durable override used on tip.
