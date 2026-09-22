@@ -15,52 +15,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
           persist-credentials: false
-      - name: Verify exact local candidate transport
-        shell: bash
-        run: |
-          set -euo pipefail
-          cat .e035-transfer/part-*.bin > "$RUNNER_TEMP/e035-candidate.patch.xz"
-          echo "520c804cab17767d3d11afa3b185aaff9a4b52f0a4b7958c9db38ca92a2c3cb9  $RUNNER_TEMP/e035-candidate.patch.xz" | sha256sum -c -
-          xz -dc "$RUNNER_TEMP/e035-candidate.patch.xz" > "$RUNNER_TEMP/e035-candidate.patch"
-          echo "30865e88f822b8223ea5ded33108b604d578fa6c320113bafa3b8ec0ac1ef55b  $RUNNER_TEMP/e035-candidate.patch" | sha256sum -c -
+      - run: cp .e035-transfer/fix-native.py "$RUNNER_TEMP/fix-native.py"
       - uses: actions/checkout@v4
         with:
-          ref: 64bf9713b412ef629e7c8ecc6bc575e02ff5968f
+          ref: 7af8f7cb4cca5b81d1a18e86050c340331dbdae6
           persist-credentials: false
-      - name: Reconstruct and publish separate candidate, never main or PR branch
+      - name: Publish only exact locally verified three-file fix
         id: publish
-        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          git apply --index --check "$RUNNER_TEMP/e035-candidate.patch"
-          git apply --index "$RUNNER_TEMP/e035-candidate.patch"
+          python3 "$RUNNER_TEMP/fix-native.py"
+          git add app/admin/ediel/structure-actions.ts scripts/ediel-source-owner-native.test.ts scripts/supabase-types-manifest.json
           git diff --cached --check
-          test "$(git diff --cached --name-only | wc -l | tr -d ' ')" = 45
-          if git diff --cached --name-only | grep -Eq '^\.github/|^\.e035-transfer/'; then exit 1; fi
+          test "$(git write-tree)" = 3801b4f948094be90f5b8f0e4a02989e11f0bdc6
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'feat(e035): review dated market structures and qualify E61/E62'
+          git commit -m 'fix(e035): seed complete native route contracts and reject duplicate replacement inputs'
           sha="$(git rev-parse HEAD)"
-          test "$(git rev-parse HEAD^)" = 64bf9713b412ef629e7c8ecc6bc575e02ff5968f
           auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
           git -c credential.helper= -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" push origin HEAD:refs/heads/codex/e035-native-market-candidate-20260922
           unset auth GH_TOKEN
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
-          mkdir -p "$RUNNER_TEMP/e035-transfer-proof"
-          git show --no-patch --format=fuller HEAD > "$RUNNER_TEMP/e035-transfer-proof/commit.txt"
-          git diff HEAD^ HEAD --stat > "$RUNNER_TEMP/e035-transfer-proof/paths.txt"
-          git archive --format=tar.gz --output="$RUNNER_TEMP/e035-transfer-proof/source.tar.gz" HEAD
-          sha256sum "$RUNNER_TEMP/e035-candidate.patch" > "$RUNNER_TEMP/e035-transfer-proof/patch.sha256"
-          printf '%s\n' "$sha" > "$RUNNER_TEMP/e035-transfer-proof/candidate-sha.txt"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: e035-market-candidate-source
-          path: ${{ runner.temp }}/e035-transfer-proof/
-          retention-days: 14
   native:
     needs: candidate
     runs-on: ubuntu-latest
@@ -80,19 +58,16 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
-      - name: Install matching native PostgreSQL client
-        shell: bash
+      - name: Install matching PostgreSQL client
         run: |
           set -euo pipefail
-          server_major="$(python3 -c "import re,pathlib;print(re.search(r'^major_version\s*=\s*(\d+)', pathlib.Path('supabase/config.toml').read_text(), re.M).group(1))")"
           sudo install -d /usr/share/postgresql-common/pgdg
           sudo curl -sS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
           echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
           sudo apt-get update -qq
-          sudo apt-get install -y -qq "postgresql-client-$server_major"
-          echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
-      - name: Exact candidate empty replay, native owner tests, generated types and isolation
-        shell: bash
+          sudo apt-get install -y -qq postgresql-client-17
+          echo 'GRIDEX_PG_DUMP=/usr/lib/postgresql/17/bin/pg_dump' >> "$GITHUB_ENV"
+      - name: Actual empty replay, native ownership, types and isolation
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/e035-native-proof"
@@ -109,17 +84,36 @@ jobs:
           supabase gen types typescript --local > "$RUNNER_TEMP/e035-native-proof/database.types.ts"
           node scripts/apply-supabase-types-nullability-overrides.cjs "$RUNNER_TEMP/e035-native-proof/database.types.ts"
           sha256sum "$RUNNER_TEMP/e035-native-proof/database.types.ts" | tee "$RUNNER_TEMP/e035-native-proof/types.sha256"
-          if cmp -s "$RUNNER_TEMP/e035-native-proof/database.types.ts" supabase/database.types.ts; then echo 'types_match_committed=true'; else echo 'types_match_committed=false'; fi
+          cmp "$RUNNER_TEMP/e035-native-proof/database.types.ts" supabase/database.types.ts
           date -u +%FT%TZ > "$RUNNER_TEMP/e035-native-proof/typegen-time.txt"
-          SHADOW_URL='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
-          DATABASE_URL="$SHADOW_URL" npm run tenant:invariants
-          npm run db:parity:selftest -- "$SHADOW_URL"
+          DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:54322/postgres' npm run tenant:invariants
+          npm run db:parity:selftest -- 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
           exit "$native_rc"
-      - name: Upload native evidence only, never local API keys
-        if: always()
+      - if: always()
         uses: actions/upload-artifact@v4
         with:
           name: e035-market-native-evidence
           path: ${{ runner.temp }}/e035-native-proof/
           retention-days: 14
           if-no-files-found: warn
+  application:
+    needs: candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.candidate.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run db:migrations:check
+      - run: npm run typecheck && npm run typecheck:tests && npm run typecheck:scripts
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
