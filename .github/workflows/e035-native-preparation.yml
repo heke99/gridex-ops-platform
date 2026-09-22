@@ -1,0 +1,151 @@
+name: E035 isolated native preparation (not final acceptance)
+on:
+  push:
+    branches: [codex/e035-source-ledger-native-20260922]
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Verify and reconstruct exact candidate input
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs'); const crypto = require('node:crypto');
+          const {execFileSync} = require('node:child_process'); const {brotliDecompressSync} = require('node:zlib');
+          const fail = m => { throw new Error(m); };
+          const gitHash = b => crypto.createHash('sha1').update(`blob ${Buffer.byteLength(b)}\0`).update(b).digest('hex');
+          const sha = b => crypto.createHash('sha256').update(b).digest('hex');
+          const expected = ['fd582d599b53f7bd26347c0865c3a9087c377bc0','4bc45467c19354e6f6639d79723a52293777bfc6','208ac3a101a024b20f553036c75fbbcc1c65baf6','e03eea0ca7a6b8048367e046c544979f827aae28','02cda139cbe184877cd61f3971ae12215c746629'];
+          const chunks = expected.map((hash,i) => {
+            let s = fs.readFileSync(`.e035-preparation/chunk-${i}.b64`,'utf8');
+            if (i === 0 && gitHash(s) === '59482ea163d2150b67ccb933a06d835f5f5bfad2') {
+              const bad = 'FfrVDlTydTntdJJWECoipr6';
+              if (s.split(bad).length !== 2) fail('unexpected transport correction');
+              s = s.replace(bad,'FfrVDlTydTntdJWECoipr6');
+              console.log('Restored known duplicated transport character; full original digest required below.');
+            }
+            if (gitHash(s) !== hash) fail(`input chunk ${i} mismatch`);
+            return s;
+          });
+          const bytes = Buffer.from(chunks.join(''),'base64');
+          if (sha(bytes) !== 'd62941828047f76926e20492dee8414d7a9c7b57f4809802085af68ce8246acd') fail('compressed input digest mismatch');
+          const input = JSON.parse(brotliDecompressSync(bytes)); const m = input.manifest;
+          if (m.base_sha !== 'eb2b8693130af8fa7976a93891b95973bc473b50' || m.base_tree !== 'effc5600a2f09e3e21329451b65c10b25f51aa40') fail('base mismatch');
+          const git = args => execFileSync('git',args,{encoding:'utf8'}).trim();
+          if (git(['rev-parse',`${m.base_sha}^{tree}`]) !== m.base_tree) fail('base tree mismatch');
+          for (const f of m.files) {
+            if (!/^[.a-zA-Z0-9_/-]+$/.test(f.path) || f.path.startsWith('/') || f.path.split('/').includes('..') || f.path.startsWith('.git/')) fail('unsafe input path');
+            if (f.baseline_blob && git(['hash-object',f.path]) !== f.baseline_blob) fail(`baseline drift: ${f.path}`);
+            if (!f.baseline_blob && fs.existsSync(f.path)) fail(`unexpected existing addition: ${f.path}`);
+          }
+          fs.mkdirSync('.e035-tools',{recursive:true});
+          fs.writeFileSync('.e035-tools/input.patch',input.patch);
+          execFileSync('git',['apply','--check','.e035-tools/input.patch']);
+          execFileSync('git',['apply','.e035-tools/input.patch']);
+          for (const [path,text] of Object.entries(input.files)) {
+            if (!m.files.some(f=>f.path===path && !f.baseline_blob)) fail('undeclared addition');
+            fs.mkdirSync(require('node:path').dirname(path),{recursive:true});fs.writeFileSync(path,text);
+          }
+          for (const f of m.files) if (sha(fs.readFileSync(f.path))!==f.sha256) fail(`reconstructed digest mismatch: ${f.path}`);
+          fs.writeFileSync('.e035-tools/input-manifest.json',JSON.stringify(m,null,2)+'\n');
+          fs.writeFileSync('.e035-tools/provenance.json',JSON.stringify({scratch_sha:process.env.GITHUB_SHA,base:m.base_sha,base_tree:m.base_tree,input_sha256:sha(bytes),files:m.files},null,2)+'\n');
+          console.log(`Verified ${m.files.length} exact input files; no migration has been generated or executed yet.`);
+          NODE
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Install matching PostgreSQL client
+        shell: bash
+        run: |
+          set -euo pipefail
+          server_major="$(python3 -c "import re,pathlib;print(re.search(r'^major_version\s*=\s*(\d+)',pathlib.Path('supabase/config.toml').read_text(),re.M).group(1))")"
+          [[ "$server_major" == 17 ]]
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-client-$server_major"
+          echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
+          psql --version
+          "/usr/lib/postgresql/$server_major/bin/pg_dump" --version
+      - name: Accepted clean replay then real CLI forward and native probes
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec > >(tee e035-native.log) 2>&1
+          source scripts/gridex-aud-003-clean-replay.sh
+          python3 .e035-tools/prepare_native.py
+      - name: Restore generated delivery after owned replay cleanup
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import json,pathlib,shutil
+          root=pathlib.Path.cwd();out=root/'e035-native-output'
+          files=json.loads((out/'delivery-files.json').read_text())
+          for rel in files:
+              dest=root/rel;dest.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(out/'delivery'/rel,dest)
+          p=root/'scripts/supabase-types-manifest.json';m=json.loads(p.read_text())
+          m['latest_migration_schema_effect']='E035 durable private source/read-set/attempt/validation tables and service-only public RPC facades; generated from repeated real isolated CLI type and schema outputs; not full source approval.'
+          p.write_text(json.dumps(m,indent=2)+'\n');shutil.copy2(p,out/'delivery/scripts/supabase-types-manifest.json')
+          PY
+      - name: Unchanged root checks on generated candidate
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import json,subprocess,pathlib,sys
+          results=[]
+          for name,args in [('types',['npm','run','typecheck']),('test-types',['npm','run','typecheck:tests']),('tests',['npm','test']),('lint',['npm','run','lint']),('migration-contract',['npm','run','db:migrations:check']),('service-ratchet',['npm','run','tenant:service-role-ratchet'])]:
+              with open('e035-'+name+'.log','w') as log:p=subprocess.run(args,stdout=log,stderr=subprocess.STDOUT)
+              results.append({'name':name,'exit':p.returncode});print(name,p.returncode,flush=True)
+          pathlib.Path('e035-native-output/root-checks.json').write_text(json.dumps(results,indent=2)+'\n')
+          sys.exit(1 if any(r['exit'] for r in results) else 0)
+          PY
+      - name: Save immutable delivery blobs only (never advance refs)
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import base64,hashlib,json,os,pathlib,urllib.request
+          out=pathlib.Path('e035-native-output');manifest=out/'delivery-files.json'
+          if not manifest.exists():
+              print('Native delivery not generated; no blobs published.');raise SystemExit(0)
+          result=[]
+          for rel in json.loads(manifest.read_text()):
+              p=out/'delivery'/rel;b=p.read_bytes()
+              payload=json.dumps({'content':base64.b64encode(b).decode(),'encoding':'base64'}).encode()
+              req=urllib.request.Request('https://api.github.com/repos/heke99/gridex-ops-platform/git/blobs',data=payload,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Content-Type':'application/json','Accept':'application/vnd.github+json'},method='POST')
+              with urllib.request.urlopen(req,timeout=60) as r:blob=json.load(r)
+              expected=hashlib.sha1(f'blob {len(b)}\0'.encode()+b).hexdigest()
+              assert blob['sha']==expected,'returned blob mismatch'
+              result.append({'path':rel,'sha':expected,'sha256':hashlib.sha256(b).hexdigest(),'size':len(b),'mode':'100644','type':'blob'})
+          (out/'delivery-blobs.json').write_text(json.dumps(result,indent=2)+'\n')
+          print('Published immutable objects only:',len(result))
+          PY
+      - name: Upload preparation evidence (not final CI acceptance)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e035-native-preparation
+          include-hidden-files: true
+          path: |
+            e035-*.log
+            e035-native-output/
+            .e035-tools/input-manifest.json
+            .e035-tools/provenance.json
+          if-no-files-found: error
