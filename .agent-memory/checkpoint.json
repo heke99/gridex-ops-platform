@@ -1,16 +1,81 @@
 {
-  "project":"gridex-ops-platform","updated_at":"2026-09-22","status":"IN_PROGRESS","paused":false,
-  "branch":"codex/e035-durable-source-ledger-20260922","active_pr":370,
-  "base_head_sha":"eb2b8693130af8fa7976a93891b95973bc473b50","runtime_accepted_sha":"eb2b8693130af8fa7976a93891b95973bc473b50",
-  "last_merged_pr":369,"last_accepted_pr":369,"root_main_acceptance_comment":5768848443,
-  "active_item":"E035 durable sources, immutable actual-owner dispositions and later temporal comparison",
-  "current_audit":"quality/audits/ediel-masterplan-v2/e035-source-ledger/review-fix-20260922.md",
-  "next_action":"Verify corrected PR370 ordinary CI and external findings closure; complete real per-object/tenant/party/business disposition owners before timeline/supersession/E61/E62; no checkpoint-only merge.",
-  "previous_ordinary_ci":{"head":"a89275ba0b34ae27530c2e403d3ae3f2667afe3b","ops":35715146276,"status":"SUCCESS","tests":5514,"files":337},
-  "review_correction_native":{"run":35718179577,"artifact":10690304766,"status":"SUCCESS","new_sql":64,"pre_forward_failures":55,"retained_sql":[105,62,84],"timestamp_mutant_assertion_failures":2,"root_tests":5514,"ordinary_delivery_retest_needed":true},
-  "independent_review":"FINDINGS_ADDRESSED_AWAITING_CORRECTED_HEAD_REVIEW","ordinary_final_head_ci":"PENDING",
-  "full_source_disposition":"NOT_IMPLEMENTED_CANONICAL_FACETS_ONLY","full_E035":"NOT_COMPLETE","full_F3":"NOT_COMPLETE","full_masterplan":"NOT_COMPLETE",
-  "accepted_numeric_D":110,"numeric_D_total":110,"accepted_parents":10,"parent_total":10,
-  "deferred_work":{"pr":310,"state":"OPEN_DRAFT_PAUSED","head":"e961135199f292b8210884f07de3b616a670161a"},
-  "live_or_explicit_deployment_actions":false
+  "project": "gridex-ops-platform",
+  "updated_at": "2026-09-22",
+  "status": "IN_PROGRESS",
+  "paused": false,
+  "branch": "codex/e035-durable-source-ledger-20260922",
+  "active_pr": 370,
+  "base_head_sha": "eb2b8693130af8fa7976a93891b95973bc473b50",
+  "runtime_accepted_sha": "eb2b8693130af8fa7976a93891b95973bc473b50",
+  "last_merged_pr": 369,
+  "last_accepted_pr": 369,
+  "root_main_acceptance_comment": 5768848443,
+  "active_item": "E035 durable sources, immutable actual-owner dispositions and later temporal comparison",
+  "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/continuation-20260922.md",
+  "next_action": "Finish native register-facet verification and publish coherent continuation in PR370; integrate actual tenant/party/business owners, then timeline and E61/E62. No checkpoint merge.",
+  "previous_ordinary_ci": {
+    "head": "a89275ba0b34ae27530c2e403d3ae3f2667afe3b",
+    "ops": 35715146276,
+    "status": "SUCCESS",
+    "tests": 5514,
+    "files": 337
+  },
+  "review_correction_native": {
+    "run": 35718179577,
+    "artifact": 10690304766,
+    "status": "SUCCESS",
+    "new_sql": 64,
+    "pre_forward_failures": 55,
+    "retained_sql": [
+      105,
+      62,
+      84
+    ],
+    "timestamp_mutant_assertion_failures": 2,
+    "root_tests": 5514,
+    "ordinary_delivery_retest_needed": true
+  },
+  "independent_review": "BOUNDED_REGISTER_TS_AND_SQL_STATIC_APPROVED_NOT_FULL_E035",
+  "ordinary_final_head_ci": "PENDING_NEW_CONTINUATION",
+  "full_source_disposition": "NOT_IMPLEMENTED_CANONICAL_FACETS_ONLY",
+  "full_E035": "NOT_COMPLETE",
+  "full_F3": "NOT_COMPLETE",
+  "full_masterplan": "NOT_COMPLETE",
+  "accepted_numeric_D": 110,
+  "numeric_D_total": 110,
+  "accepted_parents": 10,
+  "parent_total": 10,
+  "deferred_work": {
+    "pr": 310,
+    "state": "OPEN_DRAFT_PAUSED",
+    "head": "e961135199f292b8210884f07de3b616a670161a"
+  },
+  "live_or_explicit_deployment_actions": false,
+  "last_verified_pr_head": "92d4980e5f1e068a3d33826f4ef75d086bfaf714",
+  "ordinary_baseline_ci": {
+    "head": "92d4980e5f1e068a3d33826f4ef75d086bfaf714",
+    "ops": 35719151591,
+    "status": "SUCCESS",
+    "jobs": [
+      "verify",
+      "quality-release-gates",
+      "clean-migration-replay"
+    ]
+  },
+  "continuation_native": {
+    "run": 35733978604,
+    "head": "40aa0e39e53487a369b978a102271b519040ca1d",
+    "database_checks": "PASS_58_SQL_CONCURRENCY_PRIOR_SUITES_LINT_ADVISORS_REPEATED_CONTRACTS",
+    "overall": "FAILURE_PREPARATION_MARKER_FILES_NOT_RESTORED_BEFORE_TESTS",
+    "final_ordinary_ci": "PENDING"
+  },
+  "continuation_local": {
+    "tests": 5565,
+    "files": 340,
+    "status": "PASS",
+    "runtime": "Node24 explicit TAP",
+    "typechecks": "PASS",
+    "lint_errors": 0,
+    "lint_warnings": 101
+  }
 }

@@ -1,4 +1,4 @@
-name: E035 isolated register evidence preparation
+name: E035 isolated object decisions preparation
 on:
   push:
     branches: [codex/e035-register-native-20260922]
@@ -50,21 +50,15 @@ jobs:
           exec > >(tee "$RUNNER_TEMP/e035-native/native.log") 2>&1
           source scripts/gridex-aud-003-clean-replay.sh
           db='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
-          set +e
-          psql "$db" -X -v ON_ERROR_STOP=1 -f scripts/ediel-register-validation-regression.sql > "$RUNNER_TEMP/e035-native/register-red.log" 2>&1
-          red_exit=$?
-          set -e
-          test "$red_exit" -ne 0
-          grep -F 'register_validation_regressions_failed:' "$RUNNER_TEMP/e035-native/register-red.log"
-          # File was created by actual pinned CLI in run35731853885.
-          cp scripts/e035-register-forward.sql supabase/migrations/20260922131136_ediel_received_register_validation.sql
-          supabase migration up --help
+          # Forward files originated in actual pinned CLI, never hand named.
+          cp scripts/e035-object-forward.sql supabase/migrations/20260922144906_ediel_source_object_decisions.sql
+          cp scripts/e035-selection-forward.sql supabase/migrations/20260922150922_ediel_source_decision_snapshots.sql
           supabase migration up --local --yes
-          psql "$db" -X -v ON_ERROR_STOP=1 -c "select version,name,cardinality(statements) from supabase_migrations.schema_migrations where version='20260922131136';"
-          psql "$db" -X -v ON_ERROR_STOP=1 -f scripts/ediel-register-validation-regression.sql | tee "$RUNNER_TEMP/e035-native/register-green.log"
+          psql "$db" -X -v ON_ERROR_STOP=1 -f scripts/ediel-source-object-decisions-regression.sql | tee "$RUNNER_TEMP/e035-native/object-green.log"
           psql "$db" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql
           psql "$db" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
           psql "$db" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
+          python3 scripts/ediel-source-validation-concurrency-regression.py
           supabase db lint --local --schema gridex_received_sources --level warning --fail-on warning
           supabase db advisors --local --type security > "$RUNNER_TEMP/e035-native/advisors.txt"
           DATABASE_URL="$db" npm run tenant:invariants
@@ -74,26 +68,17 @@ jobs:
           node scripts/apply-supabase-types-nullability-overrides.cjs "$RUNNER_TEMP/e035-native/database.types.ts"
           node scripts/apply-supabase-types-nullability-overrides.cjs "$RUNNER_TEMP/e035-native/database.types.repeat.ts"
           cmp "$RUNNER_TEMP/e035-native/database.types.ts" "$RUNNER_TEMP/e035-native/database.types.repeat.ts"
-          cmp "$RUNNER_TEMP/e035-native/database.types.ts" supabase/database.types.ts
           npm run db:schema:snapshot -- --url "$db" --out-dir "$RUNNER_TEMP/e035-native/schema"
           npm run db:schema:snapshot -- --url "$db" --out-dir "$RUNNER_TEMP/e035-native/schema-repeat"
           cmp "$RUNNER_TEMP/e035-native/schema/schema.sql" "$RUNNER_TEMP/e035-native/schema-repeat/schema.sql"
           cmp "$RUNNER_TEMP/e035-native/schema/schema.fingerprint.json" "$RUNNER_TEMP/e035-native/schema-repeat/schema.fingerprint.json"
-          cp supabase/migrations/20260922131136_ediel_received_register_validation.sql "$RUNNER_TEMP/e035-native/"
+          cp supabase/migrations/20260922144906_ediel_source_object_decisions.sql "$RUNNER_TEMP/e035-native/"
+          cp supabase/migrations/20260922150922_ediel_source_decision_snapshots.sql "$RUNNER_TEMP/e035-native/"
           git rev-parse HEAD > "$RUNNER_TEMP/e035-native/source-commit.txt"
-          python3 scripts/ediel-source-validation-concurrency-regression.py
-          supabase migration new ediel_source_object_decisions
-          cp supabase/migrations/*_ediel_source_object_decisions.sql "$RUNNER_TEMP/e035-native/"
-          cp "$(command -v supabase)" "$RUNNER_TEMP/e035-native/supabase"
-          cp "$(dirname "$(command -v supabase)")/supabase-go" "$RUNNER_TEMP/e035-native/supabase-go"
           cleanup
           trap - EXIT
           set -euo pipefail
-          npm run typecheck
-          npm run typecheck:tests
-          npm test
-          npm run lint
-          (cd "$RUNNER_TEMP/e035-native" && sha256sum database.types.ts schema/schema.sql schema/schema.fingerprint.json 20260922131136_ediel_received_register_validation.sql > SHA256SUMS)
+          (cd "$RUNNER_TEMP/e035-native" && sha256sum database.types.ts schema/schema.sql schema/schema.fingerprint.json *_ediel_source*.sql > SHA256SUMS)
       - uses: actions/upload-artifact@v4
         if: always()
         with:

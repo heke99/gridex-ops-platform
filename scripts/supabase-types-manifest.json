@@ -1,9 +1,9 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-09-22T10:53:08.072834+00:00",
+  "generated_at": "2026-09-22T13:27:16Z",
   "generated_with": "supabase-cli-2.101.0-repeated-isolated-clean-replay",
   "generated_types": "supabase/database.types.ts",
   "sha256": "e6086663a93bccc4605eaece24fb83e645b79b90d0b3e744f7862a4ebd856f4e",
-  "latest_migration": "20260922105251_ediel_received_discovery_shape.sql",
-  "latest_migration_schema_effect": "E035 reviewed discovery observation-shape hardening only; actual repeated type output is byte-identical, only the existing private append_discovery function body changes."
+  "latest_migration": "20260922131136_ediel_received_register_validation.sql",
+  "latest_migration_schema_effect": "E035 actual register-owner facet validation; isolated run35733290443 repeated types are byte-identical; only existing private append_validation body changes."
 }
