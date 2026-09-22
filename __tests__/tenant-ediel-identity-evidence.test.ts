@@ -104,3 +104,10 @@ describe('actual tenant identity temporal evidence', () => {
     expect(identity).not.toHaveProperty('evidence')
   })
 })
+
+it.each([false, true])('rejects every contradictory profile independent of row order (%s)', async reverse => {
+  io.rows.tenant_ediel_profiles.push({...io.rows.tenant_ediel_profiles[0], id:'reversed', valid_from:'2026-09-23T00:00:00Z',valid_to:'2026-09-21T00:00:00Z'})
+  if (reverse) io.rows.tenant_ediel_profiles.reverse()
+  await expect(resolveCanonicalTenantEdielIdentityWithEvidence(input)).rejects.toThrow('tenant_ediel_evidence_validity_invalid')
+  await expect(resolveCanonicalTenantEdielIdentity(input)).rejects.toThrow('tenant_ediel_evidence_validity_invalid')
+})

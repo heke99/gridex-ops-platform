@@ -82,6 +82,13 @@ jobs:
           cp supabase/migrations/20260922131136_ediel_received_register_validation.sql "$RUNNER_TEMP/e035-native/"
           git rev-parse HEAD > "$RUNNER_TEMP/e035-native/source-commit.txt"
           python3 scripts/ediel-source-validation-concurrency-regression.py
+          supabase migration new ediel_source_object_decisions
+          cp supabase/migrations/*_ediel_source_object_decisions.sql "$RUNNER_TEMP/e035-native/"
+          cp "$(command -v supabase)" "$RUNNER_TEMP/e035-native/supabase"
+          cp "$(dirname "$(command -v supabase)")/supabase-go" "$RUNNER_TEMP/e035-native/supabase-go"
+          cleanup
+          trap - EXIT
+          set -euo pipefail
           npm run typecheck
           npm run typecheck:tests
           npm test

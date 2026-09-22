@@ -41,7 +41,12 @@ async function activeTenantEdielProfile(companyId: string, environment: 'test' |
     .eq('is_enabled', true)
 
   if (error) throw error
-  return identityRows(data, evaluation, 'profiles', {company_id:companyId,environment,market:'electricity',is_enabled:true}).some((row) => evaluation.active(row))
+  const rows = identityRows(data, evaluation, 'profiles', {company_id:companyId,environment,market:'electricity',is_enabled:true})
+  // Evidence must validate every observed interval, regardless of row order.
+  // Keep the legacy short-circuit behavior for existing plain callers.
+  return evaluation.collect || evaluation.explicit
+    ? rows.filter(row => evaluation.active(row)).length > 0
+    : rows.some(row => evaluation.active(row))
 }
 
 async function legalActorIdentifiers(companyId: string, environment: 'test' | 'production', evaluation: IdentityEvaluation) {
