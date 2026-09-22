@@ -1,7 +1,7 @@
-"""Explicit, digest-bound amendment after the original candidate is reconstructed.
+"""Explicit, digest-bound amendments after the original candidate is reconstructed.
 Temporary preparation only; old production tests and migration history stay intact.
 """
-import hashlib,json,pathlib
+import hashlib,json,pathlib,subprocess
 root=pathlib.Path.cwd(); changed=[]
 def amend(rel, old, new):
     path=root/rel; text=path.read_text()
@@ -36,9 +36,38 @@ amend('scripts/ediel-source-ledger-regression.sql',
 amend('scripts/ediel-source-ledger-regression.sql',
 "  IF mode='rule-version' THEN altered:=jsonb_set(altered,'{rulePackEvidence}','{\"sourceHash\":\"unknown\"}'); END IF;",
 "  IF mode='rule-version' THEN altered:=jsonb_set(altered,'{rulePackEvidence}','{\"sourceHash\":\"unknown\"}'); END IF;\n  IF mode='accepted-without-rule-version' THEN altered:=jsonb_set(altered,'{applicationDecision}','\"accepted\"'); END IF;")
+# R3: the intended non-PRODAT control must be a valid inserted UTILTS row.
+# Null message_code correctly trips the existing inbound rule-pack guard. Keep
+# that guard intact and supply a real matching enabled profile in the fixture.
+amend('scripts/ediel-source-ledger-regression.sql',
+" if family='PRODAT' then\n  select * into strict profile from public.ediel_message_profiles where profile_key='PRODAT:Z04:L:26.A:r3' and is_enabled;\n  select * into strict pack from public.ediel_rule_packs where id=profile.rule_pack_id;\n end if;",
+""" if family in ('PRODAT','UTILTS') then
+  if family='PRODAT' then
+   select * into strict profile from public.ediel_message_profiles where profile_key='PRODAT:Z04:L:26.A:r3' and is_enabled;
+  else
+   select * into strict profile from public.ediel_message_profiles
+    where profile->>'family'='UTILTS' and message_code='E66' and direction in ('inbound','both') and is_enabled
+    order by profile_key limit 1;
+  end if;
+  select * into strict pack from public.ediel_rule_packs where id=profile.rule_pack_id;
+ end if;""")
+amend('scripts/ediel-source-ledger-regression.sql',
+"family,case when family='PRODAT' then 'Z04' else null end,'received'",
+"family,case when family='PRODAT' then 'Z04' when family='UTILTS' then 'E66' else null end,'received'")
+amend('scripts/ediel-source-ledger-regression.sql',
+"case when family='PRODAT' then pack.guide_version||':r'||pack.guide_revision else null end",
+"case when family in ('PRODAT','UTILTS') then pack.guide_version||':r'||pack.guide_revision else null end")
+# Add the twelve actual entry-point controls already verified by run35708172952
+# (full5514/337 plus two behavioral mutations). Re-run them with generated types.
+test='__tests__/ediel-durable-source-business-outcomes.test.ts';assert not (root/test).exists()
+raw=subprocess.check_output(['git','show','c16f4b90ccfb831741aaea0532e52dbbb5a21db0:'+test])
+assert hashlib.sha256(raw).hexdigest()=='f3a589c61891f6d9a694ad3069e7b54d5d9333a9b4ebfeeac42a0a1196fecae8'
+(root/test).write_bytes(raw)
 manifest=root/'.e035-tools/input-manifest.json'; data=json.loads(manifest.read_text())
 for f in data['files']:
     if f['path'] in changed: f['sha256']=hashlib.sha256((root/f['path']).read_bytes()).hexdigest()
+assert not any(f['path']==test for f in data['files'])
+data['files'].append({'path':test,'baseline_blob':None,'sha256':hashlib.sha256(raw).hexdigest(),'deliver':True})
 manifest.write_text(json.dumps(data,indent=2)+'\n')
-prov=root/'.e035-tools/provenance.json'; p=json.loads(prov.read_text());p['amendment_r1']={'sha256':hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(),'first_run':35706199237,'first_artifact':10684747327,'first_failure':'committed native fixtures interfered with unchanged PR369 clean upgrade; tests not weakened','changed_files':sorted(set(changed))};p['amendment_r2']={'previous_run':35707430401,'previous_artifact':10685096430,'fix':'remove only owned operational messages, retain synthetic company and published legal texts; no production legal or source guards changed'};p['files']=data['files'];prov.write_text(json.dumps(p,indent=2)+'\n')
-print('Applied digest-bound r1/r2 amendment:',sorted(set(changed)))
+prov=root/'.e035-tools/provenance.json'; p=json.loads(prov.read_text());p['amendment_r1']={'sha256':hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(),'first_run':35706199237,'first_artifact':10684747327,'first_failure':'committed native fixtures interfered with unchanged PR369 clean upgrade; tests not weakened','changed_files':sorted(set(changed))};p['amendment_r2']={'previous_run':35707430401,'previous_artifact':10685096430,'fix':'remove only owned operational messages, retain synthetic company and published legal texts; no production legal or source guards changed'};p['amendment_r3']={'previous_run':35708554222,'previous_artifact':10684928208,'fix':'valid UTILTS E66 profile in new SQL fixture; no existing guard or expected assertion weakened','runtime_test_run':35708172952,'runtime_test_artifact':10685935864,'runtime_test_path':test,'runtime_test_sha256':hashlib.sha256(raw).hexdigest()};p['files']=data['files'];prov.write_text(json.dumps(p,indent=2)+'\n')
+print('Applied digest-bound r1/r2/r3 amendments:',sorted(set(changed)),test)
