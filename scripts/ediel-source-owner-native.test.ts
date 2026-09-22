@@ -296,7 +296,11 @@ it('native BGM5 correction pins an approved predecessor; a later receipt alone i
 })
 it('native user without company permission cannot create even a canonical-ledger assessment during review',async()=>{
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
- sql(`UPDATE public.company_memberships SET status='suspended',is_active=false WHERE user_id=${literal(f.ids.reviewer)};`)
+ sql(`DELETE FROM public.user_permissions WHERE user_id=${literal(f.ids.reviewer)} AND permission_key='ediel_testing.write';`)
+ const permission=await supabaseService.rpc('gridex_actor_has_company_permission',{
+  p_actor_user_id:f.ids.reviewer,p_company_id:f.ids.company,p_permission:'ediel_testing.write',
+ })
+ expect(permission.error).toBeNull();expect(permission.data).toBe(false)
  const before=sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${literal(f.ids.source)}`)
  expect(await reviewReceivedStructuralSource({companyId:f.ids.company,environment:'test',sourceMessageId:f.ids.source,reviewerUserId:f.ids.reviewer,confirmedOriginal:true,replacesSourceMessageId:null})).toEqual({status:'unconfirmed',sourceDisposition:'not_established'})
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${literal(f.ids.source)}`)).toBe(before)
