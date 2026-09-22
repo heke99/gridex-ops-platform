@@ -4,31 +4,160 @@ on:
     branches: [codex/e035-resume-verification-20260922]
     paths: [.github/workflows/e035-resume-verification.yml]
 permissions:
-  contents: read
+  contents: write
+  actions: read
 jobs:
-  recover:
+  qualify:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 40
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+      E035_METADATA_GZIP: H4sIAAAAAAAC/+1d63LjxpX+z6foHbsqdpEgcb9IfyxLnBmlZEkraex1ki2kATREeEiABsDRKKlU5SH2CfdJ9pzT3QBIcWSNN67d7DJxSRqg0ZfT5/Kd7zSJrMhzZhj3Rcv4bMrvRdkaK7Gq6sdZuhDp+3VVlO30p6YqWfL8/VFRZuIjC0MvyDx7OnUTjyeZyyzT9F13ZBjGL40wGo/HvzjKN98ww5oEbIw/vvlmxP46Yoy9WtfVTyJtXx2xV/d1ARMxqnVjrJe8zat69WpCjTbrjLciizm1s03bN8zIsG24bcDtpuXtpsFb55fx9c3Vm5v57S3cG2/duz65uTs/uVBdrvmmERlcz/myEfJaUvMyXWDbtIKZzITpeEa2qXmyFEZTbepUGEuR3YvawDmYEc0An+RpW3wQ8bqGh53AnMjVWpMQlos/cb3QbMmbNuZpKta4Gtnaj2QXdVW18YoXpWoAUxFxWq1WIFNo5wV+GLqh6zpbIxatWOGE5zBVpqbK5FSbCStWq01Ll6D5hi+N6qEUNcuKZl01RVtUZcN4mTGQNlyGrtZVzZcMRl3zuoBdUwJON3UN04j5JitoC36Gzor2cUYXmpnICrE0VrA6UcPWlcYHWwpvS2iztCrbotxwHLiT4HSVqVFK8RGlg3dxjNdFWTQLU5NjjO94JSjg==
     steps:
       - uses: actions/checkout@v4
         with:
           ref: bc6085e192bbab4da50b9db9d47bb27b73178b87
           fetch-depth: 1
-      - name: Export only the two exact E035 sources
+      - name: Assemble only verified database files and reviewed metadata
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/e035-qualified"
+          mkdir -p "$evidence/native"
+          test "$(git rev-parse HEAD)" = bc6085e192bbab4da50b9db9d47bb27b73178b87
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/10704336133/zip" > "$evidence/native.zip"
+          echo "08632ba2f85b11a1b13e0b9e5bffee09797f049bf058e5f40003b08ce41d44f7  $evidence/native.zip" | sha256sum -c -
+          python3 - "$evidence" <<'PY'
+          import base64,gzip,hashlib,os,pathlib,shutil,sys,zipfile
+          out=pathlib.Path(sys.argv[1]); native=out/'native'
+          with zipfile.ZipFile(out/'native.zip') as archive:
+              for member in archive.infolist():
+                  dest=(native/member.filename).resolve()
+                  assert dest.is_relative_to(native.resolve())
+                  assert member.file_size < 20_000_000
+              archive.extractall(native)
+          assert (native/'source-commit.txt').read_text().strip()=='4a502344e3fce5824eee52aee6d744e4abc3fde9'
+          for entry in (native/'SHA256SUMS').read_text().splitlines():
+              digest,name=entry.split(maxsplit=1); path=(native/name.lstrip('*')).resolve()
+              assert path.is_relative_to(native.resolve())
+              assert hashlib.sha256(path.read_bytes()).hexdigest()==digest
+          for one,two in [('database.types.ts','database.types.repeat.ts'),('schema/schema.sql','schema-repeat/schema.sql'),('schema/schema.fingerprint.json','schema-repeat/schema.fingerprint.json')]:
+              assert (native/one).read_bytes()==(native/two).read_bytes()
+          for name in ['20260922144906_ediel_source_object_decisions.sql','20260922150922_ediel_source_decision_snapshots.sql','20260922152602_ediel_register_message_line_scope.sql']:
+              target=pathlib.Path('supabase/migrations')/name
+              assert not target.exists()
+              shutil.copyfile(native/name,target)
+          for one,two in [('database.types.ts','supabase/database.types.ts'),('schema/schema.sql','supabase/schema.sql'),('schema/schema.fingerprint.json','supabase/schema.fingerprint.json')]:
+              shutil.copyfile(native/one,two)
+          patch=gzip.decompress(base64.b64decode(os.environ['E035_METADATA_GZIP'],validate=True))
+          assert hashlib.sha256(patch).hexdigest()=='5493d54f18d367f16bdfdde83bfc93c264e78a45826c1d73c755eab584684980'
+          (out/'metadata.patch').write_bytes(patch)
+          PY
+          git fetch --no-tags --depth=1 origin 4a502344e3fce5824eee52aee6d744e4abc3fde9
+          for path in scripts/ediel-register-validation-regression.sql scripts/ediel-source-object-decisions-regression.sql scripts/ediel-source-object-concurrency-regression.py; do
+            git show "4a502344e3fce5824eee52aee6d744e4abc3fde9:$path" > "$path"
+          done
+          git apply "$evidence/metadata.patch"
+          git diff --check
+          git diff --exit-code -- app lib __tests__ package.json package-lock.json .github
+          git add -A
+          tree="$(git write-tree)"
+          test "$tree" = 5385b27aefde56e2f54705f5a49efa9f062216d8
+          candidate="$(git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit-tree "$tree" -p bc6085e192bbab4da50b9db9d47bb27b73178b87 -m 'feat(e035): recover verified immutable owner decisions and source snapshots; keep full runtime approval pending')"
+          printf '%s\n' "$candidate" > "$evidence/candidate-commit.txt"
+          printf '%s\n' "$tree" > "$evidence/candidate-tree.txt"
+          git reset --hard "$candidate"
+          git diff --stat bc6085e192bbab4da50b9db9d47bb27b73178b87 HEAD > "$evidence/source-diff.txt"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Install matching PostgreSQL client
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/e035-recovery"
-          test "$(git rev-parse HEAD)" = bc6085e192bbab4da50b9db9d47bb27b73178b87
-          git archive --format=tar.gz HEAD > "$RUNNER_TEMP/e035-recovery/published-bc6085e.tar.gz"
-          git ls-tree -r HEAD > "$RUNNER_TEMP/e035-recovery/published-tree.txt"
-          git fetch --no-tags --depth=1 origin 4a502344e3fce5824eee52aee6d744e4abc3fde9
-          git archive --format=tar.gz 4a502344e3fce5824eee52aee6d744e4abc3fde9 > "$RUNNER_TEMP/e035-recovery/preparation-4a502344.tar.gz"
-          git ls-tree -r 4a502344e3fce5824eee52aee6d744e4abc3fde9 > "$RUNNER_TEMP/e035-recovery/preparation-tree.txt"
-          git diff --stat bc6085e192bbab4da50b9db9d47bb27b73178b87 4a502344e3fce5824eee52aee6d744e4abc3fde9 > "$RUNNER_TEMP/e035-recovery/preparation-v-published.txt"
-          (cd "$RUNNER_TEMP/e035-recovery" && sha256sum *.tar.gz *tree.txt > SHA256SUMS)
+          server_major="$(python3 -c "import re,pathlib;print(re.search(r'^major_version\\s*=\\s*(\\d+)', pathlib.Path('supabase/config.toml').read_text(), re.M).group(1))")"
+          test "$server_major" = 17
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail -sS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-client-$server_major"
+          echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
+          supabase --version
+          supabase db --help
+          supabase gen types --help
+      - name: Actual unchanged project tests, lint and type checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec > >(tee "$RUNNER_TEMP/e035-qualified/project.log") 2>&1
+          npm run db:migrations:check
+          npm run tenant:service-role-ratchet
+          node scripts/check-agent-memory-git-state.cjs
+          npm run typecheck
+          npm run typecheck:scripts
+          npm run typecheck:tests
+          npm run lint
+          npm test
+          printf '\nPROJECT_CHECKS_PASS\n'
+      - name: Clean disposable replay, actual regressions, repeated generated contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/e035-qualified"
+          exec > >(tee "$evidence/native-current.log") 2>&1
+          source scripts/gridex-aud-003-clean-replay.sh
+          db='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+          psql "$db" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql
+          psql "$db" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
+          psql "$db" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
+          DATABASE_URL="$db" npm run tenant:invariants
+          npm run db:parity:selftest -- "$db"
+          supabase db lint --local --schema gridex_received_sources --level warning --fail-on warning
+          supabase db advisors --local --type security > "$evidence/advisors-current.txt"
+          supabase gen types typescript --local > "$evidence/database.types.ts"
+          supabase gen types typescript --local > "$evidence/database.types.repeat.ts"
+          node scripts/apply-supabase-types-nullability-overrides.cjs "$evidence/database.types.ts"
+          node scripts/apply-supabase-types-nullability-overrides.cjs "$evidence/database.types.repeat.ts"
+          cmp "$evidence/database.types.ts" "$evidence/database.types.repeat.ts"
+          cmp "$evidence/database.types.ts" supabase/database.types.ts
+          npm run db:schema:snapshot -- --url "$db" --out-dir "$evidence/schema"
+          npm run db:schema:snapshot -- --url "$db" --out-dir "$evidence/schema-repeat"
+          cmp "$evidence/schema/schema.sql" "$evidence/schema-repeat/schema.sql"
+          cmp "$evidence/schema/schema.fingerprint.json" "$evidence/schema-repeat/schema.fingerprint.json"
+          cmp "$evidence/schema/schema.sql" supabase/schema.sql
+          cmp "$evidence/schema/schema.fingerprint.json" supabase/schema.fingerprint.json
+          cleanup
+          trap - EXIT
+          set -euo pipefail
+          git diff --exit-code HEAD --
+          npm run db:migrations:check
+          printf '\nNATIVE_CURRENT_CANDIDATE_PASS\n'
+      - name: Preserve verified source on isolated qualification branch only
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/e035-qualified"
+          candidate="$(cat "$evidence/candidate-commit.txt")"
+          test "$(git rev-parse HEAD)" = "$candidate"
+          test "$(git rev-parse HEAD^{tree})" = 5385b27aefde56e2f54705f5a49efa9f062216d8
+          git diff --exit-code HEAD --
+          test -z "$(git ls-remote --heads origin refs/heads/codex/e035-resume-qualified-20260922)"
+          git archive --format=tar.gz HEAD > "$evidence/qualified-source.tar.gz"
+          git diff --binary bc6085e192bbab4da50b9db9d47bb27b73178b87 HEAD > "$evidence/qualified-source.patch"
+          git ls-tree -r HEAD > "$evidence/qualified-tree.txt"
+          git push origin "$candidate:refs/heads/codex/e035-resume-qualified-20260922"
+          (cd "$evidence" && sha256sum qualified-source.tar.gz qualified-source.patch qualified-tree.txt candidate-commit.txt candidate-tree.txt project.log native-current.log > SHA256SUMS)
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: e035-resume-source-recovery
-          path: ${{ runner.temp }}/e035-recovery/
+          name: e035-resume-qualified-evidence
+          path: ${{ runner.temp }}/e035-qualified/
           retention-days: 14
