@@ -1,73 +1,24 @@
-"""Explicit, digest-bound amendments after the original candidate is reconstructed.
-Temporary preparation only; old production tests and migration history stay intact.
+"""Temporary R4 preparation amendment; original source/assertions stay intact.
+Replay checksum-pinned R3, then fix the observed SQL fixture name collision.
+This file and the preparation workflow are not substantive delivery files.
 """
 import hashlib,json,pathlib,subprocess
-root=pathlib.Path.cwd(); changed=[]
-def amend(rel, old, new):
-    path=root/rel; text=path.read_text()
-    assert text.count(old)==1, 'unexpected amendment input: '+rel
-    path.write_text(text.replace(old,new)); changed.append(rel)
-amend('.e035-tools/prepare_native.py',
-"    run(['psql',URL,'-X','-v','ON_ERROR_STOP=1','-f','scripts/manual-inbound-tenant-graph-regression.sql'])",
-"""    # The unchanged PR369 clean-upgrade probe requires no existing reserved
-    # receipt keys. Remove ONLY this helper's operational fixtures through the
-    # real DELETE path; the new immutable history must survive the cleanup.
-    # Do not delete the company: provisioning creates protected published legal
-    # texts. The owned disposable stack teardown cleans the complete database.
-    check('native-fixture-cleanup-is-exact',sql(f\"SELECT count(*) FROM public.ediel_messages WHERE company_id='{company}';\")=='3')
-    sql(f\"DELETE FROM public.ediel_messages WHERE company_id='{company}';\")
-    check('native-fixture-delete-retains-durable-sources',sql(f\"SELECT count(*) FROM gridex_received_sources.sources WHERE company_id='{company}';\")=='2')
-    check('native-fixture-delete-retains-linked-assessments',sql(f\"SELECT count(*) FROM gridex_received_sources.validation_assessments WHERE company_id='{company}';\")=='2')
-    check('old-upgrade-fixtures-have-clean-operational-input',sql(\"SELECT count(*) FROM public.ediel_messages WHERE execution_context_snapshot ? 'receivedProdatContext';\")=='0')
-    run(['psql',URL,'-X','-v','ON_ERROR_STOP=1','-f','scripts/manual-inbound-tenant-graph-regression.sql'])""")
-amend('scripts/ediel-source-ledger-regression.sql',
-"ELSE EXECUTE format('%s %s gridex_received_sources.%I',command,CASE WHEN command='DELETE' THEN 'FROM' ELSE 'TABLE' END,tab); END IF;",
-"ELSE EXECUTE format('%s %s gridex_received_sources.%I%s',command,CASE WHEN command='DELETE' THEN 'FROM' ELSE 'TABLE' END,tab,CASE WHEN command='TRUNCATE' THEN ' CASCADE' ELSE '' END); END IF;")
-amend('quality/audits/ediel-masterplan-v2/e035-source-ledger/forward-ledger.sql.template',
-"  pack:=facts->'rulePackEvidence';\n  IF pack IS DISTINCT FROM 'null'::jsonb THEN",
-"""  pack:=facts->'rulePackEvidence';
-  IF facts->>'applicationDecision'='accepted' AND (pack IS NULL OR pack='null'::jsonb) THEN
-    RAISE EXCEPTION 'received_validation_rule_evidence_unavailable' USING ERRCODE='23514';
-  END IF;
-  IF pack IS DISTINCT FROM 'null'::jsonb THEN""")
-amend('scripts/ediel-source-ledger-regression.sql',
-"ARRAY['company','environment','hash','approval','object','party','reason','rule-version']",
-"ARRAY['company','environment','hash','approval','object','party','reason','rule-version','accepted-without-rule-version']")
-amend('scripts/ediel-source-ledger-regression.sql',
-"  IF mode='rule-version' THEN altered:=jsonb_set(altered,'{rulePackEvidence}','{\"sourceHash\":\"unknown\"}'); END IF;",
-"  IF mode='rule-version' THEN altered:=jsonb_set(altered,'{rulePackEvidence}','{\"sourceHash\":\"unknown\"}'); END IF;\n  IF mode='accepted-without-rule-version' THEN altered:=jsonb_set(altered,'{applicationDecision}','\"accepted\"'); END IF;")
-# R3: the intended non-PRODAT control must be a valid inserted UTILTS row.
-# Null message_code correctly trips the existing inbound rule-pack guard. Keep
-# that guard intact and supply a real matching enabled profile in the fixture.
-amend('scripts/ediel-source-ledger-regression.sql',
-" if family='PRODAT' then\n  select * into strict profile from public.ediel_message_profiles where profile_key='PRODAT:Z04:L:26.A:r3' and is_enabled;\n  select * into strict pack from public.ediel_rule_packs where id=profile.rule_pack_id;\n end if;",
-""" if family in ('PRODAT','UTILTS') then
-  if family='PRODAT' then
-   select * into strict profile from public.ediel_message_profiles where profile_key='PRODAT:Z04:L:26.A:r3' and is_enabled;
-  else
-   select * into strict profile from public.ediel_message_profiles
+frozen_script=subprocess.check_output(['git','show','8568d1d00386facf2e6e3a141311c70ebcaac88c:.e035-preparation/amend-r1.py'])
+assert hashlib.sha1(f'blob {len(frozen_script)}\0'.encode()+frozen_script).hexdigest()=='eacb4bb293d968f34b8f690d9b61303623e2a85a'
+exec(compile(frozen_script,'verified-r3-amendment','exec'),globals())
+file=pathlib.Path('scripts/ediel-source-ledger-regression.sql');before=file.read_bytes()
+old="""   select * into strict profile from public.ediel_message_profiles
     where profile->>'family'='UTILTS' and message_code='E66' and direction in ('inbound','both') and is_enabled
-    order by profile_key limit 1;
-  end if;
-  select * into strict pack from public.ediel_rule_packs where id=profile.rule_pack_id;
- end if;""")
-amend('scripts/ediel-source-ledger-regression.sql',
-"family,case when family='PRODAT' then 'Z04' else null end,'received'",
-"family,case when family='PRODAT' then 'Z04' when family='UTILTS' then 'E66' else null end,'received'")
-amend('scripts/ediel-source-ledger-regression.sql',
-"case when family='PRODAT' then pack.guide_version||':r'||pack.guide_revision else null end",
-"case when family in ('PRODAT','UTILTS') then pack.guide_version||':r'||pack.guide_revision else null end")
-# Add the twelve actual entry-point controls already verified by run35708172952
-# (full5514/337 plus two behavioral mutations). Re-run them with generated types.
-test='__tests__/ediel-durable-source-business-outcomes.test.ts';assert not (root/test).exists()
-raw=subprocess.check_output(['git','show','c16f4b90ccfb831741aaea0532e52dbbb5a21db0:'+test])
-assert hashlib.sha256(raw).hexdigest()=='f3a589c61891f6d9a694ad3069e7b54d5d9333a9b4ebfeeac42a0a1196fecae8'
-(root/test).write_bytes(raw)
-manifest=root/'.e035-tools/input-manifest.json'; data=json.loads(manifest.read_text())
-for f in data['files']:
-    if f['path'] in changed: f['sha256']=hashlib.sha256((root/f['path']).read_bytes()).hexdigest()
-assert not any(f['path']==test for f in data['files'])
-data['files'].append({'path':test,'baseline_blob':None,'sha256':hashlib.sha256(raw).hexdigest(),'deliver':True})
+    order by profile_key limit 1;"""
+new="""   select mp.* into strict profile from public.ediel_message_profiles mp
+    where mp.profile->>'family'='UTILTS' and mp.message_code='E66' and mp.direction in ('inbound','both') and mp.is_enabled
+    order by mp.profile_key limit 1;"""
+text=before.decode();assert text.count(old)==1;file.write_text(text.replace(old,new))
+manifest=pathlib.Path('.e035-tools/input-manifest.json');data=json.loads(manifest.read_text())
+for entry in data['files']:
+    if entry['path']==str(file):entry['sha256']=hashlib.sha256(file.read_bytes()).hexdigest()
 manifest.write_text(json.dumps(data,indent=2)+'\n')
-prov=root/'.e035-tools/provenance.json'; p=json.loads(prov.read_text());p['amendment_r1']={'sha256':hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(),'first_run':35706199237,'first_artifact':10684747327,'first_failure':'committed native fixtures interfered with unchanged PR369 clean upgrade; tests not weakened','changed_files':sorted(set(changed))};p['amendment_r2']={'previous_run':35707430401,'previous_artifact':10685096430,'fix':'remove only owned operational messages, retain synthetic company and published legal texts; no production legal or source guards changed'};p['amendment_r3']={'previous_run':35708554222,'previous_artifact':10684928208,'fix':'valid UTILTS E66 profile in new SQL fixture; no existing guard or expected assertion weakened','runtime_test_run':35708172952,'runtime_test_artifact':10685935864,'runtime_test_path':test,'runtime_test_sha256':hashlib.sha256(raw).hexdigest()};p['files']=data['files'];prov.write_text(json.dumps(p,indent=2)+'\n')
-print('Applied digest-bound r1/r2/r3 amendments:',sorted(set(changed)),test)
+prov=pathlib.Path('.e035-tools/provenance.json');p=json.loads(prov.read_text())
+p['amendment_r4']={'previous_run':35709174833,'previous_artifact':10685123951,'before_sql_sha256':hashlib.sha256(before).hexdigest(),'after_sql_sha256':hashlib.sha256(file.read_bytes()).hexdigest(),'fix':'qualify existing fixture columns; production SQL and all expected assertions unchanged'}
+p['files']=data['files'];prov.write_text(json.dumps(p,indent=2)+'\n')
+print('Applied R4 fixture-only qualification; original assertion set retained.')
