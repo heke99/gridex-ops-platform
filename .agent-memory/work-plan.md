@@ -1,3 +1,40 @@
+# E035 witnessed decision timeline — 2026-09-22
+
+PARTIAL / NOT MERGE-READY. Continue existing PR370 / codex/e035-durable-source-ledger-20260922.
+The containing Git commit/live PR identifies this candidate. Last fully verified published
+baseline de9e459a5843a9cf562436fb46e0376a61a7e53e has ordinary OPS35769648465 all three jobs
+SUCCESS, actual8 HTTP/runtime tests and retained71 owner/61 register SQL cases, root5611/344.
+Timezone finding4074459282 is independently resolved; that is NOT full E035 review.
+Main/accepted PR369 remains eb2b8693130af8fa7976a93891b95973bc473b50, receipt5768848443.
+
+New implementation: read the existing immutable owner snapshot RPC at the exact original
+UTILTS receipt cutoff. Validate scope, hashes, complete physical membership, microsecond
+instants and entire predecessor chains before disclosing any source. Assessments replace
+assessments by predecessor, not clock/UUID/witness-arrival order. A later unwitnessed
+assessment blocks fallback to older acceptance; a future correction cannot change earlier
+history. This is integrated as durableReceivedSourceInventory.decisionTimeline in the real
+UTILTS processor's existing diagnostic envelope, never as an ACK or E61/E62 input.
+
+The new50 pure tests failed50/50 against a no-op, then passed50/50 in an isolated Node22
+assertion adapter. This is NOT a Vitest/root/DB qualification claim. Added actual runtime-
+owner integration and accepted/rejected business-outcome tests, plus two real Supabase HTTP
+history/correction cases. Their genuine project/native execution is still a separate gate.
+Existing migrations, generated database contracts, business decisions and assertions remain.
+No new migration, hosted database mutation, production deployment or market message.
+
+Remaining: supported Z04 approval does not supply missing Z06/Z10/agency89/multi-message/
+delegated-sender owners. Bounded read completeness is NOT dated market-history completeness.
+Cross-source market supersession and authoritative E61/E62 selection are NOT implemented.
+Full E035/F3/masterplan remains incomplete. D110/110 + parents10/10 retained.
+PR310 remains OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a, untouched.
+Known existing public.gridex_grid_owner_name_key mutable-search_path advisor remains.
+
+Audit: quality/audits/ediel-masterplan-v2/e035-source-ledger/decision-timeline-20260922.md
+
+Next action: Qualify the current decision-timeline source and actual HTTP/native correction tests; inspect exact-head ordinary CI and independent TASK/SPEC, QUALITY, TENANT-BOUNDARY and WHOLE-PR review. Then complete applicable missing business owners, dated market completeness, cross-source supersession and E61/E62 selection. Do not redo de9e459 or merge a checkpoint.
+
+## Previous runtime-owner checkpoint — SUPERSEDED by source and terminal receipts above
+
 # E035 live-owner runtime continuation — 2026-09-22
 
 PARTIAL / NOT MERGE-READY. Existing PR370 on codex/e035-durable-source-ledger-20260922.

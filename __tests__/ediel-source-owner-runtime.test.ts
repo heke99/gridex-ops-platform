@@ -11,6 +11,10 @@ import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceVal
 import {createReceivedSourceOwnerSession} from '@/lib/ediel/sources/receivedSourceOwnerSession'
 import {applyInboundBusinessStateMachine} from '@/lib/ediel/flows/inboundBusinessStateMachine'
 import {publishSourceSwitchCommit} from '@/lib/ediel/flows/sourceSwitchCommit'
+import {inspectReceivedSourceDecisionTimeline} from '@/lib/ediel/sources/receivedSourceDecisionTimeline'
+import {timelineAssessment,timelineBody,timelineReceipt,timelineSource,timelineScope} from './helpers/sourceDecisionTimelineFixtures'
+import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
+
 const record=async(row=ownerSource())=>{
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(row)
  const receipt=await recordReceivedSourceValidation({original:row,validated:row,resolvedCompanyId:OWNER.company,decision})
@@ -74,4 +78,23 @@ it('retires the in-process capability after callback completion',async()=>{
  const s=await record();let saved:Parameters<NonNullable<typeof s.session>['onSwitchCommitted']>[0]|undefined
  await publishSourceSwitchCommit(async c=>{saved=c},{message:s.row,switchRequestId:OWNER.switch,supplyPeriodId:OWNER.supply})
  await s.session!.onSwitchCommitted(saved!);expect(await s.session!.finish()).toMatchObject({sourceDisposition:'not_established'})
+})
+
+for(const mutation of ['none','foreign-business','foreign-party','missing-owner'] as const)it(`timeline consumes actual composed owners without minting a new capability: ${mutation}`,async()=>{
+ const state=await record(),receipt=await apply(state)
+ expect(receipt).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
+ if(receipt.status!=='recorded')throw Error('expected recorded source owner')
+ const facts=objectFacts()
+ if(mutation==='foreign-business')facts.objects[0].business.companyId=ownerId(999)
+ if(mutation==='foreign-party')facts.objects[0].party.source.companyId=ownerId(999)
+ if(mutation==='missing-owner')facts.objects[0].party=null
+ const factsText=JSON.stringify(facts),at=receipt.availableAt
+ const assessment=timelineAssessment(31,null,{canonicalAssessmentId:ownerId(30),assessedAt:at,availableAt:at,availabilityWitnessId:receipt.witnessId,factsText,factsHash:evidenceHash(factsText)})
+ const body=timelineBody([timelineSource({assessments:[assessment]})],{cutoffAt:at,capturedAt:at})
+ const result=inspectReceivedSourceDecisionTimeline({...timelineScope,cutoffAt:at},timelineReceipt(body))
+ expect(result).toMatchObject({authorityStatus:'not_established',selection:'not_performed',marketSupersession:'not_performed'})
+ if(mutation==='none'){
+   expect(result.status).toBe('inspected');expect(result.sources[0].asOf).toMatchObject({assessmentId:receipt.assessmentId,recordedDisposition:'accepted',objects:[{object:{objectId:OWNER.external},disposition:'accepted'}]})
+   expect(createReceivedSourceOwnerSession(JSON.parse(JSON.stringify(result.sources[0].asOf)))).toBeNull()
+ } else expect(result).toMatchObject({status:'read_failed',sources:[],snapshotId:null})
 })

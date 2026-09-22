@@ -15,6 +15,8 @@ import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceVal
 import {createReceivedSourceOwnerSession} from '@/lib/ediel/sources/receivedSourceOwnerSession'
 import {applyInboundBusinessStateMachine} from '@/lib/ediel/flows/inboundBusinessStateMachine'
 
+import {inspectReceivedSourceDecisionTimeline} from '@/lib/ediel/sources/receivedSourceDecisionTimeline'
+
 const DB='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 const literal=(v:unknown):string=>v===null?'NULL':"'"+String(typeof v==='object'?JSON.stringify(v):v).replaceAll("'","''")+"'"
 function sql<T>(input:string):T {
@@ -154,4 +156,51 @@ it('the actual runtime proof serializes in UTC regardless of caller timezone; th
   expect(probe('Europe/Stockholm',true)).not.toMatch(/\+00:00$/)
   for(const zone of ['UTC','Europe/Stockholm','America/New_York'])expect(probe(zone)).toMatch(/\+00:00$/)
   expect(stored(f.ids.source)).toHaveLength(1)
+})
+
+async function nativeTimeline(companyId:string,cutoffAt:string) {
+  const scope={companyId,environment:'test' as const,cutoffAt}
+  const {data,error}=await supabaseService.rpc('gridex_source_object_snapshot_v1',{p_company_id:companyId,p_environment:'test',p_cutoff:cutoffAt})
+  expect(error).toBeNull()
+  const result=inspectReceivedSourceDecisionTimeline(scope,data)
+  expect(result,JSON.stringify(result)).toMatchObject({status:'inspected',authorityStatus:'not_established',selection:'not_performed',marketSupersession:'not_performed'})
+  return result
+}
+it('actual immutable HTTP readsets preserve historical approval across a real unavailable correction',async()=>{
+  const f=await seed(true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
+  const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp());')
+  const initial=await nativeTimeline(f.ids.company,cutoff)
+  expect(initial.sources).toHaveLength(1)
+  expect(initial.sources[0].asOf).toMatchObject({recordedDisposition:'accepted',objects:[{disposition:'accepted'}]})
+  const priorId=initial.sources[0].asOf!.assessmentId
+  const beforeWitness=sql<string>(`SELECT to_jsonb(assessed_at) FROM gridex_received_sources.object_assessments WHERE id=${literal(priorId)};`)
+  const earlier=await nativeTimeline(f.ids.company,beforeWitness)
+  expect(earlier.sources[0]).toMatchObject({asOf:null,visibility:'incomplete'})
+  // A new fresh canonical owner session with NO business callback cannot reuse
+  // the already accepted rows. The real append and witness record unavailable.
+  const {session}=await prepare(f);expect(await session.finish()).toMatchObject({status:'recorded',sourceDisposition:'not_established'})
+  const corrected=await nativeTimeline(f.ids.company,sql<string>('SELECT to_jsonb(clock_timestamp());'))
+  expect(corrected.sources[0].asOf).toMatchObject({previousAssessmentId:priorId,recordedDisposition:'unavailable'})
+  expect(corrected.sources[0].revisions).toHaveLength(2)
+  const repeatedHistorical=await nativeTimeline(f.ids.company,cutoff)
+  expect(repeatedHistorical.sources[0].asOf).toEqual(initial.sources[0].asOf)
+  expect(repeatedHistorical.sources[0].revisions[1].availability).toBe('after_cutoff')
+})
+it('actual unwitnessed successor prevents an accepted predecessor being revived',async()=>{
+  const f=await seed();expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
+  const a=stored(f.ids.source)[0]
+  const {data,error}=await supabaseService.rpc('gridex_record_source_object_decisions_v1',{p_company_id:f.ids.company,p_environment:'test',p_source_message_id:f.ids.source,p_source_payload_hash:a.sourceHash,p_canonical_assessment_id:a.canonicalId,p_facts_text:a.factsText})
+  expect(error).toBeNull()
+  const persisted=stored(f.ids.source);expect(persisted).toHaveLength(2)
+  const successor=persisted.find(row=>row.assessmentId!==a.assessmentId)
+  expect(successor).toBeDefined();expect(successor!.witnessXid).toBeNull()
+  // The append RPC returns an integrity receipt, NOT runtime approval or a
+  // visibility witness. Assert its exact SQL contract, including no such fields.
+  expect(data).toEqual({version:1,assessmentId:successor!.assessmentId,companyId:f.ids.company,environment:'test',sourceMessageId:f.ids.source,sourcePayloadHash:a.sourceHash,canonicalAssessmentId:a.canonicalId,factsHash:a.factsHash})
+  // SQL committed, but no separate visibility witness exists for this version.
+  const result=await nativeTimeline(f.ids.company,sql<string>('SELECT to_jsonb(clock_timestamp());'))
+  expect(result.sources[0]).toMatchObject({asOf:null,visibility:'incomplete'})
+  expect(result.sources[0].revisions).toHaveLength(2)
+  expect(result.sources[0].revisions[0].availability).toBe('witnessed_by_cutoff')
+  expect(result.sources[0].revisions[1].availability).toBe('not_witnessed_by_cutoff')
 })

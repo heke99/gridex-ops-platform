@@ -10,9 +10,9 @@
   "last_merged_pr": 369,
   "last_accepted_pr": 369,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "E035 durable sources, immutable actual-owner dispositions and later temporal comparison",
-  "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/runtime-owners-20260922.md",
-  "next_action": "Inspect current runtime-owner native qualification and exact published-head CI/review; finish any real failures, then implement dated completeness, timeline/supersession and E61/E62 only from fully witnessed owner evidence. Keep existing PR370 draft; no checkpoint merge or repeated database recovery.",
+  "active_item": "E035 witnessed owner-decision timeline and assessment correction, followed by market temporal selection",
+  "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/decision-timeline-20260922.md",
+  "next_action": "Qualify the current decision-timeline source and actual HTTP/native correction tests; inspect exact-head ordinary CI and independent TASK/SPEC, QUALITY, TENANT-BOUNDARY and WHOLE-PR review. Then complete applicable missing business owners, dated market completeness, cross-source supersession and E61/E62 selection. Do not redo de9e459 or merge a checkpoint.",
   "previous_ordinary_ci": {
     "head": "a89275ba0b34ae27530c2e403d3ae3f2667afe3b",
     "ops": 35715146276,
@@ -37,7 +37,7 @@
   },
   "independent_review": "PENDING_CURRENT_WHOLE_PR_REVIEW",
   "ordinary_final_head_ci": "PENDING_EXACT_CURRENT_CANDIDATE",
-  "full_source_disposition": "Z04_RUNTIME_OWNER_IMPLEMENTED_PENDING_NATIVE_AND_REVIEW_TEMPORAL_NOT_COMPLETE",
+  "full_source_disposition": "Z04_RUNTIME_QUALIFIED_DECISION_TIMELINE_IMPLEMENTED_PENDING_CURRENT_QUALIFICATION_MARKET_SELECTION_INCOMPLETE",
   "full_E035": "NOT_COMPLETE",
   "full_F3": "NOT_COMPLETE",
   "full_masterplan": "NOT_COMPLETE",
@@ -51,7 +51,7 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "d7fb49fde3dae153693acae1cefa33aeef45ad4f",
+  "last_verified_pr_head": "de9e459a5843a9cf562436fb46e0376a61a7e53e",
   "ordinary_baseline_ci": {
     "head": "d7fb49fde3dae153693acae1cefa33aeef45ad4f",
     "ops": 35758893367,
@@ -119,5 +119,26 @@
     "migration_artifact_sha256": "58c02b41b913f58087ea7fa98159a4e187d2944c2e04a02bd4b5651f85fe11ee",
     "approval_scope": "GENUINE_COMMITTED_Z04_SWITCH_SUPPLY_ONLY",
     "temporal_selection": "NOT_IMPLEMENTED"
+  },
+  "timeline_continuation": {
+    "status": "IMPLEMENTED_NOT_VERIFIED",
+    "scope": "dated immutable assessment/witness readsets; same-source assessment predecessors; actual UTILTS diagnostic only",
+    "local_isolated_assertion_runner": {
+      "red_failures": 50,
+      "green_passes": 50,
+      "not_vitest_or_root_or_database": true
+    },
+    "native_additions": 2,
+    "cross_source_supersession": "NOT_IMPLEMENTED",
+    "E61_E62_authoritative_selection": "NOT_IMPLEMENTED"
+  },
+  "qualified_runtime_baseline": {
+    "head": "de9e459a5843a9cf562436fb46e0376a61a7e53e",
+    "ordinary_ops": 35769648465,
+    "status": "SUCCESS",
+    "native_tests": 8,
+    "root_tests": 5611,
+    "root_files": 344,
+    "receipt": 5782195660
   }
 }

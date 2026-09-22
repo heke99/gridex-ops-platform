@@ -20,3 +20,7 @@ This is not full runtime approval or final-head CI. See quality/audits/ediel-mas
 
 ## E035 runtime owners — 2026-09-22
 Implemented fresh canonical/complete tenant/selected party/committed Z04 hooks with test-first assertions. Native and ordinary current-head evidence remains a separate gate. See quality/audits/ediel-masterplan-v2/e035-source-ledger/runtime-owners-20260922.md.
+
+
+## E035 decision timeline implementation — 2026-09-22
+Existing de9e459 is qualified; new exact-source qualification is pending. Pure boundary/chain tests:50 failed against a no-op, then50 passed under an isolated Node22 assertion adapter, not Vitest/root/DB. Actual runtime and native HTTP/correction suites are added, not yet claimed executed. See quality/audits/ediel-masterplan-v2/e035-source-ledger/decision-timeline-20260922.md. No cross-source supersession/E61/E62 approval, merge or hosted operations.
