@@ -64,6 +64,7 @@ jobs:
           fs.writeFileSync('.e035-tools/provenance.json',JSON.stringify({scratch_sha:process.env.GITHUB_SHA,base:m.base_sha,base_tree:m.base_tree,input_sha256:sha(bytes),files:m.files},null,2)+'\n');
           console.log(`Verified ${m.files.length} exact input files; no migration has been generated or executed yet.`);
           NODE
+          python3 .e035-preparation/amend-r1.py
       - run: npm ci
       - uses: supabase/setup-cli@v1
         with:
