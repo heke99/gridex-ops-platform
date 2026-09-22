@@ -31,7 +31,7 @@ No PR310 source/proof infrastructure, hosted database, deployment or market mess
 Native advisors retain the existing public.gridex_grid_owner_name_key mutable
 search_path warning; this is not a globally clean advisor result.
 
-Next action: Qualify and publish recovered database continuation in existing PR370; complete exact-head ordinary CI and independent whole-PR review. Recover or implement missing runtime tenant/party/business disposition owners, then timeline/supersession/E61/E62. Preserve existing facets. No checkpoint merge.
+Next action: Inspect ordinary CI and independent review for the current PR head; then complete runtime tenant/legal-party/business disposition owners, full source approval and later timeline/supersession/E61/E62. Preserve implemented facets and the qualified database continuation; do not repeat qualification/publication or merge a checkpoint.
 
 See quality/audits/ediel-masterplan-v2/e035-source-ledger/resume-db-qualification-20260922.md
 

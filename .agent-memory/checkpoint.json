@@ -12,7 +12,7 @@
   "root_main_acceptance_comment": 5768848443,
   "active_item": "E035 durable sources, immutable actual-owner dispositions and later temporal comparison",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/resume-db-qualification-20260922.md",
-  "next_action": "Qualify and publish recovered database continuation in existing PR370; complete exact-head ordinary CI and independent whole-PR review. Recover or implement missing runtime tenant/party/business disposition owners, then timeline/supersession/E61/E62. Preserve existing facets. No checkpoint merge.",
+  "next_action": "Inspect ordinary CI and independent review for the current PR head; then complete runtime tenant/legal-party/business disposition owners, full source approval and later timeline/supersession/E61/E62. Preserve implemented facets and the qualified database continuation; do not repeat qualification/publication or merge a checkpoint.",
   "previous_ordinary_ci": {
     "head": "a89275ba0b34ae27530c2e403d3ae3f2667afe3b",
     "ops": 35715146276,
@@ -94,5 +94,19 @@
     "reported_5758_runtime": "NOT_RECOVERED_NOT_REVERIFIED",
     "repeated_native_contracts": "BYTE_IDENTICAL",
     "known_advisor": "existing public.gridex_grid_owner_name_key mutable search_path"
+  },
+  "published_database_qualification": {
+    "head": "06f78e220d6d26cbbda5c1a0d4c3356df8f1916b",
+    "tree": "c8ee80bd7959d31eb44a63c4ffa72c015791a538",
+    "run": 35757416281,
+    "job": 106846584126,
+    "artifact": 10708884175,
+    "artifact_sha256": "bd22ba47ec700c016c47ab9127e79a08e0f1598b83b71e03daf6dcbe2d696fb2",
+    "status": "SUCCESS_PUBLISHED",
+    "tests": 5565,
+    "test_files": 340,
+    "register_sql": 61,
+    "object_sql": 71,
+    "full_runtime_source_approval": "NOT_COMPLETE"
   }
 }
