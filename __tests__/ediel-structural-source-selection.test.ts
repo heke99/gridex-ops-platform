@@ -59,3 +59,20 @@ describe('dated structural-source replacement',()=>{
   it('rejects correction forks instead of choosing newest approval',()=>{const a=version('a',4,'Z06');const b=version('b',4,'Z06');b.wire.functionCode='5';b.wire.caseReference=a.wire.caseReference;b.replaces={sourceMessageId:'a',assessmentId:a.assessmentId!,payloadHash:'a'};const c=structuredClone(b);c.sourceMessageId='c';c.assessmentId='c-assessment';c.wire.documentReference='c';unavailable(input([version('baseline',2),a,b,c]))})
   it('rejects correction cycles',()=>{const a=version('a',4,'Z06');const b=version('b',4,'Z06');for(const x of [a,b]){x.wire.functionCode='5';x.wire.caseReference='CASE'};a.replaces={sourceMessageId:'b',assessmentId:b.assessmentId!,payloadHash:'b'};b.replaces={sourceMessageId:'a',assessmentId:a.assessmentId!,payloadHash:'a'};unavailable(input([version('baseline',2),a,b]))})
 })
+
+describe('corrected dated coverage anchor',()=>{
+ it('keeps the original coverage owner when an explicit baseline correction is selected',()=>{
+  const original=version('baseline',2),correction=version('corrected-baseline',2,'Z04',['901'])
+  correction.wire.functionCode='5';correction.wire.caseReference=original.wire.caseReference
+  correction.replaces={sourceMessageId:original.sourceMessageId,assessmentId:original.assessmentId!,payloadHash:original.payloadHash}
+  const result=selected(input([original,correction]))
+  expect(result.states[0]).toMatchObject({sourceMessageId:correction.sourceMessageId,registerIds:['901']})
+  expect(result.coverage).toEqual(coverage)
+ })
+ it('cannot use a corrected baseline to extend its committed coverage backwards',()=>{
+  const original=version('baseline',2),correction=version('corrected-baseline',1)
+  correction.wire.functionCode='5';correction.wire.caseReference=original.wire.caseReference
+  correction.replaces={sourceMessageId:original.sourceMessageId,assessmentId:original.assessmentId!,payloadHash:original.payloadHash}
+  unavailable(input([original,correction],1,2))
+ })
+})
