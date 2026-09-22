@@ -214,7 +214,7 @@ BEGIN
  PERFORM pg_temp.object_check('cannot-update-assessment',blocked);
  blocked:=false;BEGIN DELETE FROM gridex_received_sources.object_assessments WHERE id=second_id;EXCEPTION WHEN check_violation THEN blocked:=true;END;
  PERFORM pg_temp.object_check('cannot-delete-assessment',blocked);
- blocked:=false;BEGIN TRUNCATE gridex_received_sources.object_assessments;EXCEPTION WHEN check_violation OR foreign_key_violation THEN blocked:=true;END;
+ blocked:=false;BEGIN TRUNCATE gridex_received_sources.object_assessments, gridex_received_sources.object_availability_witnesses;EXCEPTION WHEN check_violation OR foreign_key_violation THEN blocked:=true;END;
  PERFORM pg_temp.object_check('cannot-truncate-assessment',blocked);
  SELECT count(*) INTO before_count FROM gridex_received_sources.object_assessments WHERE source_message_id=f.source_id;
  PERFORM pg_temp.object_check('exact-two-retained-decisions',before_count=2);

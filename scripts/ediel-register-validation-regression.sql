@@ -73,6 +73,20 @@ BEGIN
  PERFORM pg_temp.register_case('duplicate-object',company,source,jsonb_set(facts,'{registerValidation,objects}',(facet->'objects')||jsonb_build_array(facet#>'{objects,0}')));
  PERFORM pg_temp.register_case('duplicate-physical-line',company,source,jsonb_set(facts,'{registerValidation,objects,1,registers,0,lineIndex}','0'));
  PERFORM pg_temp.register_case('duplicate-physical-segment',company,source,jsonb_set(facts,'{registerValidation,objects,1,registers,0,segmentIndex}','3'));
+ -- LIN indexes restart inside each UNH; segment indexes remain interchange-wide.
+ altered:=jsonb_set(facts,'{registerValidation,objects,0,disposition}','"unavailable"');
+ altered:=jsonb_set(altered,'{registerValidation,objects,0,reasons}','["REGISTER_SCOPE_UNAVAILABLE"]');
+ altered:=jsonb_set(altered,'{registerValidation,objects,1,disposition}','"unavailable"');
+ altered:=jsonb_set(altered,'{registerValidation,objects,1,reasons}','["REGISTER_SCOPE_UNAVAILABLE"]');
+ altered:=jsonb_set(altered,'{registerValidation,objects,1,messageIndex}','1');
+ altered:=jsonb_set(altered,'{registerValidation,objects,1,messageReference}','"MSG2"');
+ altered:=jsonb_set(altered,'{registerValidation,objects,1,registers,0,lineIndex}','0');
+ altered:=jsonb_set(altered,'{registerValidation,objects,1,registers,0,lineNumber}','"1"');
+ PERFORM pg_temp.register_case('two-unh-local-line-zero-stored-unavailable',company,source,altered,false);
+ PERFORM pg_temp.register_case('unavailable-same-message-duplicate-line-rejected',company,source,
+  jsonb_set(jsonb_set(altered,'{registerValidation,objects,1,messageIndex}','0'),'{registerValidation,objects,1,messageReference}','"MSG"'));
+ PERFORM pg_temp.register_case('two-unh-global-duplicate-segment-rejected',company,source,
+  jsonb_set(altered,'{registerValidation,objects,1,registers,0,segmentIndex}','3'));
  PERFORM pg_temp.register_case('facet-not-approval',company,source,jsonb_set(facts,'{sourceDisposition}','"accepted"'));
  PERFORM pg_temp.register_case('facet-injected-approval',company,source,jsonb_set(facts,'{registerValidation}',facet||'{"sourceApproved":true}'));
  PERFORM pg_temp.register_case('rule-version-required',company,source,jsonb_set(jsonb_set(facts,'{applicationDecision}','"rejected"'),'{rulePackEvidence}','null'));

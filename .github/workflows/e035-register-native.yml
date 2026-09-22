@@ -50,6 +50,13 @@ jobs:
           exec > >(tee "$RUNNER_TEMP/e035-native/native.log") 2>&1
           source scripts/gridex-aud-003-clean-replay.sh
           db='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+          set +e
+          psql "$db" -X -v ON_ERROR_STOP=1 -f scripts/ediel-register-validation-regression.sql > "$RUNNER_TEMP/e035-native/message-line-red.log" 2>&1
+          red_exit=$?
+          set -e
+          test "$red_exit" -ne 0
+          grep -F 'register_validation_regressions_failed:' "$RUNNER_TEMP/e035-native/message-line-red.log"
+          cp scripts/e035-register-line-forward.sql supabase/migrations/20260922152602_ediel_register_message_line_scope.sql
           # Forward files originated in actual pinned CLI, never hand named.
           cp scripts/e035-object-forward.sql supabase/migrations/20260922144906_ediel_source_object_decisions.sql
           cp scripts/e035-selection-forward.sql supabase/migrations/20260922150922_ediel_source_decision_snapshots.sql
@@ -75,11 +82,12 @@ jobs:
           cmp "$RUNNER_TEMP/e035-native/schema/schema.fingerprint.json" "$RUNNER_TEMP/e035-native/schema-repeat/schema.fingerprint.json"
           cp supabase/migrations/20260922144906_ediel_source_object_decisions.sql "$RUNNER_TEMP/e035-native/"
           cp supabase/migrations/20260922150922_ediel_source_decision_snapshots.sql "$RUNNER_TEMP/e035-native/"
+          cp supabase/migrations/20260922152602_ediel_register_message_line_scope.sql "$RUNNER_TEMP/e035-native/"
           git rev-parse HEAD > "$RUNNER_TEMP/e035-native/source-commit.txt"
           cleanup
           trap - EXIT
           set -euo pipefail
-          (cd "$RUNNER_TEMP/e035-native" && sha256sum database.types.ts schema/schema.sql schema/schema.fingerprint.json *_ediel_source*.sql > SHA256SUMS)
+          (cd "$RUNNER_TEMP/e035-native" && sha256sum database.types.ts schema/schema.sql schema/schema.fingerprint.json *.sql > SHA256SUMS)
       - uses: actions/upload-artifact@v4
         if: always()
         with:
