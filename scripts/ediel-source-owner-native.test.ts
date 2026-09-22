@@ -66,6 +66,8 @@ async function seed(delegated=false, structural=false) {
   INSERT INTO public.user_roles(user_id,role_id,role,company_id,status,is_active)
   SELECT ${p('reviewer')},id,'company_admin',${p('company')},'active',true FROM public.roles WHERE key='company_admin'
   ON CONFLICT DO NOTHING;
+  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+  SELECT ${p('reviewer')},${p('company')},id,'ediel_testing.write' FROM public.permissions WHERE key='ediel_testing.write';
   INSERT INTO public.communication_routes(id,company_id,route_name,grid_owner_id,environment_type,is_active)
   VALUES(${p('route')},${p('company')},'Isolated synthetic native route',${p('grid')},'bilateral_test',true);
   INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled)
@@ -82,6 +84,12 @@ async function seed(delegated=false, structural=false) {
   `)
   const {data,error}=await supabaseService.from('ediel_messages').select('*').eq('id',ids.source).single()
   expect(error).toBeNull();expect(data).not.toBeNull()
+  if(structural){
+    const permission=await supabaseService.rpc('gridex_actor_has_company_permission',{
+      p_actor_user_id:ids.reviewer,p_company_id:ids.company,p_permission:'ediel_testing.write',
+    })
+    expect(permission.error).toBeNull();expect(permission.data).toBe(true)
+  }
   return {ids,original:data as unknown as EdielMessageRow}
 }
 async function prepare(f:Awaited<ReturnType<typeof seed>>) {
@@ -288,7 +296,7 @@ it('native BGM5 correction pins an approved predecessor; a later receipt alone i
 })
 it('native user without company permission cannot create even a canonical-ledger assessment during review',async()=>{
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
- sql(`UPDATE public.company_memberships SET status='inactive',is_active=false WHERE user_id=${literal(f.ids.reviewer)};`)
+ sql(`UPDATE public.company_memberships SET status='suspended',is_active=false WHERE user_id=${literal(f.ids.reviewer)};`)
  const before=sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${literal(f.ids.source)}`)
  expect(await reviewReceivedStructuralSource({companyId:f.ids.company,environment:'test',sourceMessageId:f.ids.source,reviewerUserId:f.ids.reviewer,confirmedOriginal:true,replacesSourceMessageId:null})).toEqual({status:'unconfirmed',sourceDisposition:'not_established'})
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${literal(f.ids.source)}`)).toBe(before)
