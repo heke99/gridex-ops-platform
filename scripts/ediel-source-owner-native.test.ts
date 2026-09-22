@@ -35,7 +35,7 @@ let serial=0
 async function seed(delegated=false, structural=false) {
   const caseNo=++serial
   const id=(n:number)=>`10000000-0000-4000-8000-${String(caseNo*100+n).padStart(12,'0')}`
-  const ids={source:id(1),company:id(2),customer:id(3),point:id(4),site:id(5),grid:id(6),switch:id(7),actor:id(9),transport:id(10),outbound:id(11),reviewer:id(12)}
+  const ids={source:id(1),company:id(2),customer:id(3),point:id(4),site:id(5),grid:id(6),switch:id(7),actor:id(9),transport:id(10),outbound:id(11),reviewer:id(12),route:id(13),routeProfile:id(14)}
   const external=`735123456789${String(caseNo).padStart(6,'0')}`
   const transportEdiel=String(88000+caseNo)
   const input=structural?structuralOwnerSource():ownerSource(), wire=String(input.raw_payload).replaceAll('735123456789012345',external).replace('+54321:14+',delegated?`+${transportEdiel}:14+`:'+54321:14+')
@@ -66,8 +66,12 @@ async function seed(delegated=false, structural=false) {
   INSERT INTO public.user_roles(user_id,role_id,role,company_id,status,is_active)
   SELECT ${p('reviewer')},id,'company_admin',${p('company')},'active',true FROM public.roles WHERE key='company_admin'
   ON CONFLICT DO NOTHING;
-  INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_sent_at,application_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
-  SELECT ${p('outbound')},${p('company')},${p('customer')},${p('site')},${p('point')},'test','outbound','edifact','PRODAT','Z03','sent',${literal(wire.replace('BGM+Z04','BGM+Z03'))},'{}',clock_timestamp(),'23-DDQ-PRODAT',pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+  INSERT INTO public.communication_routes(id,company_id,route_name,grid_owner_id,environment_type,is_active)
+  VALUES(${p('route')},${p('company')},'Isolated synthetic native route',${p('grid')},'test',true);
+  INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled)
+  VALUES(${p('routeProfile')},${p('company')},${p('route')},'Isolated synthetic native profile','test','edifact','54321','12345','23-DDQ-PRODAT',true);
+  INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_sent_at,application_reference,communication_route_id,route_profile_id,source_operation_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+  SELECT ${p('outbound')},${p('company')},${p('customer')},${p('site')},${p('point')},'test','outbound','edifact','PRODAT','Z03','sent',${literal(wire.replace('BGM+Z04','BGM+Z03'))},'{}',clock_timestamp(),'23-DDQ-PRODAT',${p('route')},${p('routeProfile')},${p('switch')},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
   FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key='PRODAT:Z03:L:26.A:r3' AND profile.is_enabled;
   UPDATE public.supplier_switch_requests SET outbound_z03_message_id=${p('outbound')} WHERE id=${p('switch')};
   `:''}

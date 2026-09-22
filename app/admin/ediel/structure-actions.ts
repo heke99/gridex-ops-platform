@@ -13,7 +13,7 @@ export async function reviewReceivedStructureAction(form:FormData):Promise<{acce
   const companyId=one('companyId'),sourceMessageId=one('sourceMessageId'),environment=one('environment')
   const replacement=one('replacesSourceMessageId'),confirmed=one('confirmedOriginal')==='on'
   if(!isEvidenceUuid(companyId)||!isEvidenceUuid(sourceMessageId)||!['test','production'].includes(String(environment))
-    ||!confirmed||replacement!==null&&replacement!==''&&!isEvidenceUuid(replacement)){
+    ||!confirmed||form.getAll('replacesSourceMessageId').length>1||replacement!==null&&replacement!==''&&!isEvidenceUuid(replacement)){
     return {accepted:false,message:'Bekräfta granskningen och kontrollera meddelandets identitet.'}
   }
   // Authentication and the selected company's write scope precede every write.

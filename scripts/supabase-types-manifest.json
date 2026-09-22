@@ -1,9 +1,9 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-09-22T18:39:28.858795+00:00",
-  "generated_with": "supabase-cli-2.101.0-repeated-runtime-native-run35768223449",
+  "generated_at": "2026-09-22T22:16:28Z",
+  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run35791176951",
   "generated_types": "supabase/database.types.ts",
   "sha256": "6af55fbbed9390acfe71dbb8c757c10e3a021dec15842df801d06b679d98eda9",
-  "latest_migration": "20260922175540_ediel_source_owner_timezone.sql",
-  "latest_migration_schema_effect": "Pin object-owner typed readset comparisons and evidence serialization to UTC. Application types generated twice from the actual complete disposable database."
+  "latest_migration": "20260922205926_ediel_reviewed_structural_source.sql",
+  "latest_migration_schema_effect": "Private structural-review owner guards and existing UTILTS persistence body/check constraints; actual empty replay native run35791176951 generated identical public types. Seven new native fixtures failed canonical route requirements; this typegen receipt is NOT business acceptance."
 }
