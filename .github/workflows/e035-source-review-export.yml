@@ -1,0 +1,60 @@
+name: E035 source design review export (no database execution)
+on:
+  push:
+    branches: [codex/e035-source-review-export-20260922]
+permissions:
+  contents: write
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Reconstruct checksum-pinned source, not native execution
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import subprocess,hashlib
+          raw=subprocess.check_output(['git','show','07f18c307257377e472067bce95b948a9a145f19:.github/workflows/e035-native-preparation.yml'])
+          assert hashlib.sha1(f'blob {len(raw)}\0'.encode()+raw).hexdigest()=='3bd4fac372721fb88a02b0b3c66eab1619f441b7'
+          text=raw.decode();start=text.index("          node <<'NODE'\n")+len("          node <<'NODE'\n");end=text.index('\n          NODE',start)
+          lines=text[start:end].splitlines();assert all(line.startswith('          ') for line in lines)
+          subprocess.run(['node'],input='\n'.join(line[10:] for line in lines),text=True,check=True)
+          subprocess.run(['python3','.e035-preparation/amend-r1.py'],check=True)
+          PY
+      - name: Export readable source blobs for draft design review only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import base64,hashlib,json,os,pathlib,shutil,urllib.request
+          root=pathlib.Path.cwd();out=root/'e035-source-review-export';out.mkdir()
+          manifest=json.loads((root/'.e035-tools/input-manifest.json').read_text());result=[]
+          for item in manifest['files']:
+              rel=item['path']
+              if not item['deliver'] and rel!='quality/audits/ediel-masterplan-v2/e035-source-ledger/forward-ledger.sql.template':continue
+              p=root/rel;assert p.resolve().is_relative_to(root);b=p.read_bytes()
+              assert hashlib.sha256(b).hexdigest()==item['sha256'],'input mismatch: '+rel
+              assert not rel.startswith(('supabase/','.github/','.e035-')),'not a source-review path'
+              dest=out/'source'/rel;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(b)
+              req=urllib.request.Request('https://api.github.com/repos/heke99/gridex-ops-platform/git/blobs',data=json.dumps({'content':base64.b64encode(b).decode(),'encoding':'base64'}).encode(),headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Content-Type':'application/json','Accept':'application/vnd.github+json'},method='POST')
+              with urllib.request.urlopen(req,timeout=45) as r:blob=json.load(r)
+              expected=hashlib.sha1(f'blob {len(b)}\0'.encode()+b).hexdigest();assert blob['sha']==expected
+              result.append({'path':rel,'sha':expected,'sha256':item['sha256'],'size':len(b),'mode':'100644','type':'blob'})
+          (out/'source-blobs.json').write_text(json.dumps(result,indent=2)+'\n')
+          shutil.copy2(root/'.e035-tools/input-manifest.json',out/'input-manifest.json')
+          shutil.copy2(root/'.e035-tools/provenance.json',out/'provenance.json')
+          (out/'scope.json').write_text(json.dumps({'source_commit':os.environ['GITHUB_SHA'],'base_commit':manifest['base_sha'],'scope':'readable draft source/design candidate only; no migration adoption, generated contracts, test execution, branch update or database operation'},indent=2)+'\n')
+          print('Exported exact source blobs:',len(result))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e035-source-design-review
+          include-hidden-files: true
+          path: e035-source-review-export/
+          if-no-files-found: error
