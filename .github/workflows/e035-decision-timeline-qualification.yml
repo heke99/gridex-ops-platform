@@ -25,7 +25,7 @@ jobs:
           assert hashlib.sha256(patch).hexdigest()=='17d4d963a13567975e2081637b546aa2784b13c94360b28d66878bbc8e607baa'
           pathlib.Path(os.environ['RUNNER_TEMP'],'e035-timeline.patch').write_bytes(patch)
           supplement=pathlib.Path('.e035-timeline-supplement.patch').read_bytes()
-          assert hashlib.sha256(supplement).hexdigest()=='a39c523a1c4f5d3ce582f73b9dab17c20fba31cadac1c20ad4d4dd57d76ca7be'
+          assert hashlib.sha256(supplement).hexdigest()=='160f83a6d3bb526b44fcf07080f3d7219ce47ab3189f0a16cafc27ee3698bbdd'
           pathlib.Path(os.environ['RUNNER_TEMP'],'e035-timeline-supplement.patch').write_bytes(supplement)
           PY
           git checkout --detach de9e459a5843a9cf562436fb46e0376a61a7e53e
@@ -33,7 +33,7 @@ jobs:
           git apply --index "$RUNNER_TEMP/e035-timeline-supplement.patch"
           git diff --cached --binary > "$RUNNER_TEMP/e035-timeline.patch"
           git diff --cached --check
-          test "$(git write-tree)" = 'e7de16d051832d34aa6251da88e4080e27cd674d'
+          test "$(git write-tree)" = '39cc748a1654c15ae651db772242bc54d8af08b5'
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -66,7 +66,7 @@ jobs:
             }
           }
           JS
-          test "$(git write-tree)" = 'e7de16d051832d34aa6251da88e4080e27cd674d'
+          test "$(git write-tree)" = '39cc748a1654c15ae651db772242bc54d8af08b5'
           git diff --exit-code
       - name: Store qualified commit on isolated ref, never update PR or main
         shell: bash

@@ -39,3 +39,53 @@ index 15a0dce..ff84dbf 100644
        && (entry.disposition === 'accepted' ? entry.reasons.length === 0 : entry.reasons.length > 0), 'timeline_object_invalid')
      const business = entry.business, party = entry.party
      if (business !== null) requireBoundary(isEvidenceRecord(business) && sourceBinding(business, source, scope, 'sourceReceivedAt')
+diff --git a/quality/audits/ediel-masterplan-v2/e035-source-ledger/decision-timeline-20260922.md b/quality/audits/ediel-masterplan-v2/e035-source-ledger/decision-timeline-20260922.md
+index 95e5255..f6ed725 100644
+--- a/quality/audits/ediel-masterplan-v2/e035-source-ledger/decision-timeline-20260922.md
++++ b/quality/audits/ediel-masterplan-v2/e035-source-ledger/decision-timeline-20260922.md
+@@ -70,6 +70,26 @@ TASK/SPEC, QUALITY, TENANT-BOUNDARY and WHOLE-PR review remain exact-candidate g
+ Qualification and completed-CI receipts on PR370 supersede this implementation-time
+ pending wording; do not rerun completed work simply because this historical note predates it.
+ 
++## Qualification findings before final publication
++
++Two additional pure boundary tests reproduced coercible array values passing the
++caller-environment and stored-disposition enums. Exact-string guards corrected both;
++the same isolated registration adapter then passed52 tests. Deliberately removing the
++witness cutoff or assessment cutoff each produces one test failure; the duplicate-link
++mutant is still rejected by the remaining full-chain constraint (not a killed mutant).
++
++Initial integrated run35773634967 passed5675 root tests/345 files and every original
++OPS verify/quality-release gate, including all typechecks and build. Its real native
++suite reached9 PASS/1 FAIL: the new unwitnessed-successor fixture incorrectly expected
++sourceDisposition on the append RPC receipt. The SQL returns exactly eight integrity
++fields, not runtime authority. This test now asserts that exact receipt, the additional
++stored assessment and absent witness before the unchanged timeline assertions. No SQL,
++production behavior or assertion about withheld historical approval was relaxed.
++The earlier run is FAILURE, not qualified. Its artifact10715850436 has ZIP SHA256
++c8171731b50f0ad7517df5190776d22e6e2e21c06c68182f99d31a7713c21cc8.
++The corrected candidate still requires successful actual native execution and remaining
++contract gates; a final terminal qualification receipt supersedes this pending note.
++
+ ## Skills, preserved boundaries and resume
+ 
+ Used repo using-superpowers/executing-plans, test-driven-development,
+diff --git a/scripts/ediel-source-owner-native.test.ts b/scripts/ediel-source-owner-native.test.ts
+index d75c8ee..6f665ea 100644
+--- a/scripts/ediel-source-owner-native.test.ts
++++ b/scripts/ediel-source-owner-native.test.ts
+@@ -190,7 +190,13 @@ it('actual unwitnessed successor prevents an accepted predecessor being revived'
+   const f=await seed();expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
+   const a=stored(f.ids.source)[0]
+   const {data,error}=await supabaseService.rpc('gridex_record_source_object_decisions_v1',{p_company_id:f.ids.company,p_environment:'test',p_source_message_id:f.ids.source,p_source_payload_hash:a.sourceHash,p_canonical_assessment_id:a.canonicalId,p_facts_text:a.factsText})
+-  expect(error).toBeNull();expect(data).toMatchObject({sourceDisposition:'not_established'})
++  expect(error).toBeNull()
++  const persisted=stored(f.ids.source);expect(persisted).toHaveLength(2)
++  const successor=persisted.find(row=>row.assessmentId!==a.assessmentId)
++  expect(successor).toBeDefined();expect(successor!.witnessXid).toBeNull()
++  // The append RPC returns an integrity receipt, NOT runtime approval or a
++  // visibility witness. Assert its exact SQL contract, including no such fields.
++  expect(data).toEqual({version:1,assessmentId:successor!.assessmentId,companyId:f.ids.company,environment:'test',sourceMessageId:f.ids.source,sourcePayloadHash:a.sourceHash,canonicalAssessmentId:a.canonicalId,factsHash:a.factsHash})
+   // SQL committed, but no separate visibility witness exists for this version.
+   const result=await nativeTimeline(f.ids.company,sql<string>('SELECT to_jsonb(clock_timestamp());'))
+   expect(result.sources[0]).toMatchObject({asOf:null,visibility:'incomplete'})
