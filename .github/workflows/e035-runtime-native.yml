@@ -28,22 +28,28 @@ jobs:
           test "$(git rev-parse HEAD)" = d7fb49fde3dae153693acae1cefa33aeef45ad4f
           python3 - "$evidence" <<'PY'
           import base64,hashlib,json,lzma,pathlib,subprocess,sys,os
-          out=pathlib.Path(sys.argv[1]); chunks=[]
-          for sha in ['71d55a30271d6b2cee7814e5e5bdf8c3b5de9af1','0b9886161c8f6513916a9928b8b256de8b188cff','ac1eca22819ed3382ab7243b315cfbf37e887150']:
+          out=pathlib.Path(sys.argv[1])
+          def blob(sha):
               obj=json.loads(subprocess.check_output(['gh','api',f'repos/{os.environ["GITHUB_REPOSITORY"]}/git/blobs/{sha}']))
               raw=base64.b64decode(obj['content'])
               assert hashlib.sha1(f'blob {len(raw)}\0'.encode()+raw).hexdigest()==sha
-              chunks.append(raw)
-          packed=base64.b64decode(b''.join(chunks),validate=True)
+              return raw
+          packed=base64.b64decode(b''.join(blob(sha) for sha in ['71d55a30271d6b2cee7814e5e5bdf8c3b5de9af1','0b9886161c8f6513916a9928b8b256de8b188cff','ac1eca22819ed3382ab7243b315cfbf37e887150']),validate=True)
           assert hashlib.sha256(packed).hexdigest()=='437c4d49d3c9102c433f1ab6a868eb9a07f7a1875b0e95b1923a498ac161e3eb'
           patch=lzma.decompress(packed)
           assert hashlib.sha256(patch).hexdigest()=='f2057019f89dd5ef6027596ba787b8255aa00b587550e4e22fbcb4f33f3b8749'
           (out/'input.patch').write_bytes(patch)
+          correction=lzma.decompress(base64.b64decode(blob('e932681caedccb091a342bb1155d69e6a84e8179'),validate=True))
+          assert hashlib.sha256(correction).hexdigest()=='35b636c918129f06b8eaf6f4707b37381ba250f4818350b3cd92fc14af838cc5'
+          (out/'namespace-correction.patch').write_bytes(correction)
           PY
           git apply --unidiff-zero "$evidence/input.patch"
           git add -A
-          git diff --cached --check
           test "$(git write-tree)" = 5672e0f3159ae5fa4ec54c83a27d6755960725a8
+          git apply --unidiff-zero "$evidence/namespace-correction.patch"
+          git add -A
+          git diff --cached --check
+          test "$(git write-tree)" = 1bf8eb983dc1b31f7aeb3af131a362ec6ba7b339
           echo 'a66299e479afc86f81d35193afd5d5d293580a08d27522ab2c6f785efe08773e  supabase/migrations/20260922175540_ediel_source_owner_timezone.sql' | sha256sum -c -
           git diff --cached --stat > "$evidence/input-diff.txt"
           git diff --cached --name-only > "$evidence/input-paths.txt"
