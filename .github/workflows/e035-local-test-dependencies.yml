@@ -1,0 +1,36 @@
+name: E035 locked local test dependency preparation
+on:
+  push:
+    branches: [codex/e035-local-test-deps-20260922]
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+          cache: npm
+      - name: Verify unchanged lockfile and install existing dependencies
+        run: |
+          echo '88f4f36c97b4896442c3ce9cb837ea7f93a0fee55e6b63b477421b33b4b73d6b  package-lock.json' | sha256sum --check
+          npm ci
+          git diff --exit-code -- package.json package-lock.json
+      - name: Package only locked dependency files, no repository data or credentials
+        run: |
+          mkdir -p /tmp/e035-dependencies
+          tar -czf /tmp/e035-dependencies/node_modules.tar.gz node_modules
+          cp package-lock.json /tmp/e035-dependencies/package-lock.json
+          sha256sum /tmp/e035-dependencies/node_modules.tar.gz > /tmp/e035-dependencies/SHA256SUMS
+          node --version > /tmp/e035-dependencies/node-version.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: e035-locked-test-dependencies
+          path: /tmp/e035-dependencies/
+          retention-days: 1
+          if-no-files-found: error
