@@ -1,0 +1,93 @@
+name: E035 decision timeline qualification
+on:
+  push:
+    branches: [codex/e035-timeline-qualification-20260922]
+permissions:
+  contents: write
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore exact candidate, excluding preparation files
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib,base64,gzip,hashlib,os
+          encoded=''.join(p.read_text() for p in sorted(pathlib.Path('.').glob('.e035-timeline-payload-*.b64')))
+          patch=gzip.decompress(base64.b64decode(encoded))
+          assert hashlib.sha256(patch).hexdigest()=='17d4d963a13567975e2081637b546aa2784b13c94360b28d66878bbc8e607baa'
+          pathlib.Path(os.environ['RUNNER_TEMP'],'e035-timeline.patch').write_bytes(patch)
+          PY
+          git checkout --detach de9e459a5843a9cf562436fb46e0376a61a7e53e
+          git apply --index "$RUNNER_TEMP/e035-timeline.patch"
+          git diff --cached --check
+          test "$(git write-tree)" = '3d3dfa4980a87b41ee01c09be90847ad3ded714a'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - run: npm ci
+      - name: Execute every original OPS run gate and real native suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec > >(tee "$RUNNER_TEMP/e035-qualification.log") 2>&1
+          node <<'JS'
+          const fs=require('node:fs'),cp=require('node:child_process'),yaml=require('js-yaml');
+          const workflow=yaml.load(fs.readFileSync('.github/workflows/ops-hardening.yml','utf8'));
+          for(const name of ['verify','quality-release-gates','clean-migration-replay']) {
+            const job=workflow.jobs[name];
+            if(!job || !Array.isArray(job.steps))throw Error('missing original OPS gates: '+name);
+            for(const step of job.steps)if(typeof step.run==='string' && step.run.trim()!=='npm ci') {
+              console.log('\n=== ORIGINAL OPS GATE '+name+': '+(step.name||step.run)+' ===');
+              cp.execFileSync('/bin/bash',['--noprofile','--norc','-e','-o','pipefail','-c',step.run],{stdio:'inherit',env:{...process.env,...job.env}});
+              // Actions would propagate GITHUB_ENV between steps. The only
+              // generated variable required by these original gates is pg_dump.
+              if(process.env.GITHUB_ENV && fs.existsSync(process.env.GITHUB_ENV)) {
+                for(const line of fs.readFileSync(process.env.GITHUB_ENV,'utf8').split('\n')) {
+                  if(/^GRIDEX_PG_DUMP=\/usr\/lib\/postgresql\/\d+\/bin\/pg_dump$/.test(line))process.env.GRIDEX_PG_DUMP=line.slice('GRIDEX_PG_DUMP='.length);
+                }
+              }
+            }
+          }
+          JS
+          test "$(git write-tree)" = '3d3dfa4980a87b41ee01c09be90847ad3ded714a'
+          git diff --exit-code
+      - name: Store qualified commit on isolated ref, never update PR or main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'E035: project witnessed decision timelines without retroactive source authority'
+          mkdir -p "$RUNNER_TEMP/e035-qualified"
+          git rev-parse HEAD > "$RUNNER_TEMP/e035-qualified/commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/e035-qualified/tree.txt"
+          git show -s --format=raw HEAD > "$RUNNER_TEMP/e035-qualified/commit-metadata.txt"
+          git ls-tree -r HEAD > "$RUNNER_TEMP/e035-qualified/git-tree.txt"
+          git archive HEAD | gzip -n > "$RUNNER_TEMP/e035-qualified/source.tar.gz"
+          cp "$RUNNER_TEMP/e035-timeline.patch" "$RUNNER_TEMP/e035-qualified/candidate.patch"
+          (cd "$RUNNER_TEMP/e035-qualified" && sha256sum commit.txt tree.txt commit-metadata.txt git-tree.txt source.tar.gz candidate.patch > SHA256SUMS)
+          git push origin HEAD:"refs/heads/codex/e035-timeline-qualified-${GITHUB_RUN_ID}"
+      - name: Upload qualification evidence without credentials
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e035-decision-timeline-qualification
+          path: |
+            ${{ runner.temp }}/e035-qualification.log
+            ${{ runner.temp }}/e035-qualified/
+            rem002-clean-replay.log
+            rem002-database.types.ts
+            rem002-schema-snapshot/
+          if-no-files-found: error
