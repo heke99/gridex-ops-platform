@@ -1,0 +1,85 @@
+name: E035 runtime outcome verification (isolated, not final acceptance)
+on:
+  push:
+    branches: [codex/e035-runtime-verification-20260922]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Reconstruct exact original input and preserve r1 amendment
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import subprocess,hashlib
+          raw=subprocess.check_output(['git','show','07f18c307257377e472067bce95b948a9a145f19:.github/workflows/e035-native-preparation.yml'])
+          assert hashlib.sha1(f'blob {len(raw)}\0'.encode()+raw).hexdigest()=='3bd4fac372721fb88a02b0b3c66eab1619f441b7'
+          text=raw.decode();start=text.index("          node <<'NODE'\n")+len("          node <<'NODE'\n");end=text.index('\n          NODE',start)
+          lines=text[start:end].splitlines();assert all(line.startswith('          ') for line in lines)
+          subprocess.run(['node'],input='\n'.join(line[10:] for line in lines),text=True,check=True)
+          subprocess.run(['python3','.e035-preparation/amend-r1.py'],check=True)
+          PY
+      - run: npm ci
+      - name: Genuine Vitest integration controls and behavioral mutation checks
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import subprocess,json,hashlib,xml.etree.ElementTree as ET
+          test='__tests__/ediel-durable-source-business-outcomes.test.ts'
+          assert hashlib.sha256(Path(test).read_bytes()).hexdigest()=='f3a589c61891f6d9a694ad3069e7b54d5d9333a9b4ebfeeac42a0a1196fecae8'
+          results=[]
+          def execute(name):
+              with open('e035-runtime-'+name+'.log','w') as out:
+                  p=subprocess.run(['npm','test','--',test,'--reporter=default','--reporter=junit','--outputFile.junit=e035-runtime-'+name+'.xml'],stdout=out,stderr=subprocess.STDOUT,timeout=180)
+              results.append({'name':name,'exit':p.returncode});return p.returncode
+          assert execute('baseline')==0,'new integration controls failed; inspect before changing expected behavior'
+          mutations=[('missing-runtime-hook','lib/ediel/flows/utiltsDataRequest.part-2.ts','    durableReceivedSourceInventory: await readAndRecordDurableReceivedSources(runtimeSourceMessage),',''),
+              ('wrong-tenant-rpc','lib/ediel/utilts/receivedSourceLedger.ts','p_company_id: scope.companyId,',"p_company_id: '22222222-2222-4222-8222-222222222222',")]
+          for name,path,old,new in mutations:
+              p=Path(path);original=p.read_bytes();text=original.decode();assert text.count(old)==1
+              try:
+                  p.write_text(text.replace(old,new));code=execute(name)
+                  assert code!=0 and 'AssertionError' in Path('e035-runtime-'+name+'.log').read_text(),'mutation not caught by behavior'
+                  xml=ET.parse('e035-runtime-'+name+'.xml');assert len(xml.findall('.//failure'))>0
+              finally:p.write_bytes(original)
+          assert execute('restored')==0
+          Path('e035-runtime-mutations.json').write_text(json.dumps(results,indent=2)+'\n')
+          PY
+      - name: All original root tests plus new integration controls
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test -- --reporter=default --reporter=junit --outputFile.junit=e035-runtime-full.xml > e035-runtime-full.log 2>&1
+      - name: New test lint
+        shell: bash
+        run: |
+          npx eslint __tests__/ediel-durable-source-business-outcomes.test.ts > e035-runtime-lint.log 2>&1
+      - name: Exact source binding
+        if: always()
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import hashlib,json,os
+          paths=['__tests__/ediel-durable-source-business-outcomes.test.ts','lib/ediel/flows/utiltsDataRequest.part-2.ts','lib/ediel/utilts/receivedSourceLedger.ts','lib/ediel/utilts/durableSourceDiscovery.ts','lib/ediel/utilts/receivedSourceInventory.ts']
+          Path('e035-runtime-provenance.json').write_text(json.dumps({'commit':os.environ['GITHUB_SHA'],'scope':'actual UTILTS entry point with mocked IO; no database/migration/production actions; not final candidate CI or independent review','sha256':{p:hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in paths}},indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e035-runtime-outcome-verification
+          path: e035-runtime-*
+          if-no-files-found: error
