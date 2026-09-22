@@ -1,0 +1,93 @@
+name: E035 reviewed discovery hardening native verification
+on:
+  push:
+    branches: [codex/e035-review-native-20260922]
+permissions:
+  contents: write
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+      E035_OUTPUT_DIR: ${{ runner.temp }}/e035-review-native-output
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Verify exact review inputs and apply only the two fixture corrections
+        run: |
+          python3 <<'PY'
+          import hashlib,pathlib,subprocess
+          expected={'scripts/ediel-source-discovery-shape-regression.sql':'680ac3d32167525d4305f0b2de43b39dc3628a4356c553935be38b6b590f0c04','.e035-review-input/discovery-shape-guard.sql.fragment':'0a56a5658e71811e0e09a765fc5fbf54f1c397b71949b1e707257cef61275288','.e035-review-input/prepare_review_native.py':'fe0384a08eefa15807b63b32f896a4ab0972ddffd3fc0e10f0ebd91ff289ed72','.e035-review-input/receipt-test.patch':'e791555d08e0b04d7ec8effeca4fa5c5549d87d60d739f8449b6cc31d69e5827'}
+          for rel,h in expected.items():assert hashlib.sha256(pathlib.Path(rel).read_bytes()).hexdigest()==h,rel
+          subprocess.run(['git','apply','--check','.e035-review-input/receipt-test.patch'],check=True)
+          subprocess.run(['git','apply','.e035-review-input/receipt-test.patch'],check=True)
+          assert hashlib.sha256(pathlib.Path('__tests__/ediel-durable-source-inventory.test.ts').read_bytes()).hexdigest()=='0d342145ef113a8a5046aa28fc26b657c8868849d1ff1bfdc30cd659d6d5bb00'
+          PY
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Install matching PostgreSQL client
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+          echo 'GRIDEX_PG_DUMP=/usr/lib/postgresql/17/bin/pg_dump' >> "$GITHUB_ENV"
+      - name: Actual old-function counterexample, real CLI forward, full native checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$E035_OUTPUT_DIR"
+          exec > >(tee "$E035_OUTPUT_DIR/native.log") 2>&1
+          source scripts/gridex-aud-003-clean-replay.sh
+          python3 .e035-review-input/prepare_review_native.py
+      - name: Restore generated delivery after owned cleanup and run unchanged root checks
+        run: |
+          python3 <<'PY'
+          import json,os,pathlib,shutil,subprocess,sys
+          out=pathlib.Path(os.environ['E035_OUTPUT_DIR']);root=pathlib.Path.cwd()
+          for rel in json.loads((out/'delivery-files.json').read_text()):
+              dest=root/rel;dest.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(out/'delivery'/rel,dest)
+          results=[]
+          for name,args in [('typecheck',['npm','run','typecheck']),('test-types',['npm','run','typecheck:tests']),('tests',['npm','test']),('lint',['npm','run','lint']),('migrations',['npm','run','db:migrations:check']),('ratchet',['npm','run','tenant:service-role-ratchet'])]:
+              with (out/(name+'.log')).open('w') as f:p=subprocess.run(args,stdout=f,stderr=subprocess.STDOUT)
+              results.append({'name':name,'exit':p.returncode});print(name,p.returncode,flush=True)
+          (out/'root-checks.json').write_text(json.dumps(results,indent=2)+'\n')
+          sys.exit(1 if any(r['exit'] for r in results) else 0)
+          PY
+      - name: Preserve immutable generated delivery blobs only; no branch or merge mutation
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 <<'PY'
+          import base64,hashlib,json,os,pathlib,urllib.request
+          out=pathlib.Path(os.environ['E035_OUTPUT_DIR']);manifest=out/'delivery-files.json'
+          if not manifest.exists():print('No completed native delivery to preserve.');raise SystemExit(0)
+          result=[]
+          for rel in json.loads(manifest.read_text()):
+              p=(out/'delivery'/rel).resolve();assert p.is_relative_to((out/'delivery').resolve())
+              data=p.read_bytes();body=json.dumps({'content':base64.b64encode(data).decode(),'encoding':'base64'}).encode()
+              req=urllib.request.Request('https://api.github.com/repos/heke99/gridex-ops-platform/git/blobs',data=body,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Content-Type':'application/json','Accept':'application/vnd.github+json'},method='POST')
+              with urllib.request.urlopen(req,timeout=60) as r:created=json.load(r)
+              digest=hashlib.sha1(f'blob {len(data)}\0'.encode()+data).hexdigest();assert created['sha']==digest
+              result.append({'path':rel,'sha':digest,'sha256':hashlib.sha256(data).hexdigest(),'mode':'100644','type':'blob'})
+          (out/'delivery-blobs.json').write_text(json.dumps(result,indent=2)+'\n')
+          print('Saved immutable native-generated objects only:',len(result))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e035-review-native
+          path: ${{ env.E035_OUTPUT_DIR }}/
+          include-hidden-files: true
+          if-no-files-found: error

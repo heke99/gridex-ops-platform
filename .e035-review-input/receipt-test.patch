@@ -1,0 +1,31 @@
+--- a/__tests__/ediel-durable-source-inventory.test.ts
++++ b/__tests__/ediel-durable-source-inventory.test.ts
+@@ -76,10 +76,8 @@
+ for (const [label, change] of [
+   ['wrong company', x => { x.companyId = OTHER }], ['wrong environment', x => { x.environment = 'production' }],
+   ['unexpected origin', x => { x.origin = 'legacy_snapshot' }], ['bad source id', x => { x.sourceMessageId = 'no-id' }],
+-  ['future receipt', x => { x.sourceReceivedAt = '2026-09-22T10:00:00.000001Z' }],
+   ['future capture', x => { x.capturedAt = '2026-09-22T10:00:00.000001Z' }],
+   ['capture before activation', x => { x.capturedAt = '2026-09-22T07:59:59Z' }],
+-  ['invalid receipt date', x => { x.sourceReceivedAt = '2026-02-30T09:00:00Z' }],
+   ['malformed receipt context', x => { (x as Record<string, unknown>).receivedContext = [] }],
+   ['wrong context company', x => { x.receivedContext.companyId = OTHER }],
+   ['wrong context hash', x => { x.receivedContext.payloadHash = 'a'.repeat(64) }],
+@@ -90,6 +88,17 @@
+ ] as Array<[string, (x: FixtureRow) => void]>) test(`whole-response boundary withholds earlier good identifiers on ${label}`, () => {
+   const bad = row({ sourceMessageId: OTHER }); change(bad)
+   const result = run(snapshot([row(), bad]))
++  assert.equal(result.status, 'read_failed')
++  hidden(result)
++})
++// Keep receipt and insertion context consistent. The malformed-calendar case
++// deliberately has no context, so the row boundary itself must reject it;
++// removing that check must not be masked by a second context-date rejection.
++for (const [label, overrides] of [
++  ['future receipt', { sourceReceivedAt: '2026-09-22T10:00:00.000001Z' }],
++  ['invalid receipt date', { sourceReceivedAt: '2026-02-30T09:00:00Z', receivedContext: null }],
++] as Array<[string, Record<string, unknown>]>) test(`whole-response boundary withholds earlier good identifiers on ${label}`, () => {
++  const result = run(snapshot([row(), row({ sourceMessageId: OTHER, ...overrides })]))
+   assert.equal(result.status, 'read_failed')
+   hidden(result)
+ })
