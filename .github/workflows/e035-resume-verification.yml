@@ -5,144 +5,53 @@ on:
     paths: [.github/workflows/e035-resume-verification.yml]
 permissions:
   contents: write
-  actions: read
 jobs:
-  qualify:
+  refresh-checkpoint:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
-    env:
-      NODE_OPTIONS: --max-old-space-size=4096
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: bc6085e192bbab4da50b9db9d47bb27b73178b87
+          ref: 06f78e220d6d26cbbda5c1a0d4c3356df8f1916b
           fetch-depth: 1
-      - name: Assemble only verified database files and reviewed metadata
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          evidence="$RUNNER_TEMP/e035-qualified"
-          mkdir -p "$evidence/native"
-          test "$(git rev-parse HEAD)" = bc6085e192bbab4da50b9db9d47bb27b73178b87
-          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/10704336133/zip" > "$evidence/native.zip"
-          echo "08632ba2f85b11a1b13e0b9e5bffee09797f049bf058e5f40003b08ce41d44f7  $evidence/native.zip" | sha256sum -c -
-          python3 - "$evidence" <<'PY'
-          import pathlib,sys,zipfile
-          out=pathlib.Path(sys.argv[1]); native=out/'native'
-          with zipfile.ZipFile(out/'native.zip') as archive:
-              for member in archive.infolist():
-                  assert (native/member.filename).resolve().is_relative_to(native.resolve())
-                  assert member.file_size < 20_000_000
-              archive.extractall(native)
-          PY
-          git fetch --no-tags --depth=1 origin 218a723515254d10fdb6868fceb3e5d58f0ff096
-          git show 218a723515254d10fdb6868fceb3e5d58f0ff096:scripts/e035-resume-assembler.py > "$evidence/assemble_resume.py"
-          echo "24421244ddcb7dcf2606e367aa86c0e4d832dfb6cb29ffc95b5b5815db78022a  $evidence/assemble_resume.py" | sha256sum -c -
-          python3 "$evidence/assemble_resume.py" "$PWD" "$evidence/native"
-          git fetch --no-tags --depth=1 origin 4a502344e3fce5824eee52aee6d744e4abc3fde9
-          for path in scripts/ediel-register-validation-regression.sql scripts/ediel-source-object-decisions-regression.sql scripts/ediel-source-object-concurrency-regression.py; do
-            git show "4a502344e3fce5824eee52aee6d744e4abc3fde9:$path" > "$path"
-          done
-          git diff --check
-          git diff --exit-code -- app lib __tests__ package.json package-lock.json .github
-          git add -A
-          tree="$(git write-tree)"
-          test "$tree" = c8ee80bd7959d31eb44a63c4ffa72c015791a538
-          candidate="$(git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit-tree "$tree" -p bc6085e192bbab4da50b9db9d47bb27b73178b87 -m 'feat(e035): recover verified immutable owner decisions and source snapshots; keep full runtime approval pending')"
-          printf '%s\n' "$candidate" > "$evidence/candidate-commit.txt"
-          printf '%s\n' "$tree" > "$evidence/candidate-tree.txt"
-          git reset --hard "$candidate"
-          git diff --stat bc6085e192bbab4da50b9db9d47bb27b73178b87 HEAD > "$evidence/source-diff.txt"
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - uses: supabase/setup-cli@v1
-        with:
-          version: 2.101.0
-      - name: Install matching PostgreSQL client
+      - name: Correct only six active memory records
         shell: bash
         run: |
           set -euo pipefail
-          server_major="$(python3 -c 'import tomllib;print(tomllib.load(open("supabase/config.toml","rb"))["db"]["major_version"])')"
-          test "$server_major" = 17
-          sudo install -d /usr/share/postgresql-common/pgdg
-          sudo curl --fail -sS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
-          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq "postgresql-client-$server_major"
-          echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
-          supabase --version
-          supabase db --help
-          supabase gen types --help
-      - name: Actual unchanged project tests, lint and type checks
-        shell: bash
-        run: |
-          set -euo pipefail
-          exec > >(tee "$RUNNER_TEMP/e035-qualified/project.log") 2>&1
-          npm run db:migrations:check
-          npm run tenant:service-role-ratchet
-          node scripts/check-agent-memory-git-state.cjs
-          npm run typecheck
-          npm run typecheck:scripts
-          npm run typecheck:tests
-          npm run lint
-          npm test
-          printf '\nPROJECT_CHECKS_PASS\n'
-      - name: Clean disposable replay, actual regressions, repeated generated contracts
-        shell: bash
-        run: |
-          set -euo pipefail
-          evidence="$RUNNER_TEMP/e035-qualified"
-          exec > >(tee "$evidence/native-current.log") 2>&1
-          source scripts/gridex-aud-003-clean-replay.sh
-          db='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
-          psql "$db" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql
-          psql "$db" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
-          psql "$db" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
-          DATABASE_URL="$db" npm run tenant:invariants
-          npm run db:parity:selftest -- "$db"
-          supabase db lint --local --schema gridex_received_sources --level warning --fail-on warning
-          supabase db advisors --local --type security > "$evidence/advisors-current.txt"
-          supabase gen types typescript --local > "$evidence/database.types.ts"
-          supabase gen types typescript --local > "$evidence/database.types.repeat.ts"
-          node scripts/apply-supabase-types-nullability-overrides.cjs "$evidence/database.types.ts"
-          node scripts/apply-supabase-types-nullability-overrides.cjs "$evidence/database.types.repeat.ts"
-          cmp "$evidence/database.types.ts" "$evidence/database.types.repeat.ts"
-          cmp "$evidence/database.types.ts" supabase/database.types.ts
-          npm run db:schema:snapshot -- --url "$db" --out-dir "$evidence/schema"
-          npm run db:schema:snapshot -- --url "$db" --out-dir "$evidence/schema-repeat"
-          cmp "$evidence/schema/schema.sql" "$evidence/schema-repeat/schema.sql"
-          cmp "$evidence/schema/schema.fingerprint.json" "$evidence/schema-repeat/schema.fingerprint.json"
-          cmp "$evidence/schema/schema.sql" supabase/schema.sql
-          cmp "$evidence/schema/schema.fingerprint.json" supabase/schema.fingerprint.json
-          cleanup
-          trap - EXIT
-          set -euo pipefail
-          git diff --exit-code HEAD --
-          npm run db:migrations:check
-          printf '\nNATIVE_CURRENT_CANDIDATE_PASS\n'
-      - name: Preserve verified source on isolated qualification branch only
-        shell: bash
-        run: |
-          set -euo pipefail
-          evidence="$RUNNER_TEMP/e035-qualified"
-          candidate="$(cat "$evidence/candidate-commit.txt")"
-          test "$(git rev-parse HEAD)" = "$candidate"
           test "$(git rev-parse HEAD^{tree})" = c8ee80bd7959d31eb44a63c4ffa72c015791a538
-          git diff --exit-code HEAD --
-          test -z "$(git ls-remote --heads origin refs/heads/codex/e035-resume-qualified-20260922)"
-          git archive --format=tar.gz HEAD > "$evidence/qualified-source.tar.gz"
-          git diff --binary bc6085e192bbab4da50b9db9d47bb27b73178b87 HEAD > "$evidence/qualified-source.patch"
-          git ls-tree -r HEAD > "$evidence/qualified-tree.txt"
-          git push origin "$candidate:refs/heads/codex/e035-resume-qualified-20260922"
-          (cd "$evidence" && sha256sum qualified-source.tar.gz qualified-source.patch qualified-tree.txt candidate-commit.txt candidate-tree.txt project.log native-current.log > SHA256SUMS)
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,subprocess
+          old='Qualify and publish recovered database continuation in existing PR370; complete exact-head ordinary CI and independent whole-PR review. Recover or implement missing runtime tenant/party/business disposition owners, then timeline/supersession/E61/E62. Preserve existing facets. No checkpoint merge.'
+          new='Inspect ordinary CI and independent review for the current PR head; then complete runtime tenant/legal-party/business disposition owners, full source approval and later timeline/supersession/E61/E62. Preserve implemented facets and the qualified database continuation; do not repeat qualification/publication or merge a checkpoint.'
+          paths=['.agent-memory/checkpoint.json']+['.agent-memory/'+x for x in ['current-state.md','current-task.md','handover.md','open-blockers.md','work-plan.md']]
+          for name in paths:
+              p=Path(name); text=p.read_text(); assert text.count(old)==1,name
+              p.write_text(text.replace(old,new,1))
+          p=Path('.agent-memory/checkpoint.json');v=json.loads(p.read_text())
+          v['published_database_qualification']={'head':'06f78e220d6d26cbbda5c1a0d4c3356df8f1916b','tree':'c8ee80bd7959d31eb44a63c4ffa72c015791a538','run':35757416281,'job':106846584126,'artifact':10708884175,'artifact_sha256':'bd22ba47ec700c016c47ab9127e79a08e0f1598b83b71e03daf6dcbe2d696fb2','status':'SUCCESS_PUBLISHED','tests':5565,'test_files':340,'register_sql':61,'object_sql':71,'full_runtime_source_approval':'NOT_COMPLETE'}
+          p.write_text(json.dumps(v,indent=2)+'\n')
+          changed=subprocess.check_output(['git','diff','--name-only'],text=True).splitlines()
+          assert set(changed)==set(paths),changed
+          assert all(old not in Path(name).read_text() for name in paths)
+          subprocess.run(['git','add','--',*paths],check=True)
+          PY
+          git diff --cached --check
+          node scripts/check-agent-memory-git-state.cjs
+          test "$(git write-tree)" = 5f0102d932b4faf0ed26264f82825bdb707d6c0f
+          git diff --cached --exit-code -- app lib scripts supabase __tests__ .github package.json package-lock.json
+          candidate="$(git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit-tree "$(git write-tree)" -p 06f78e220d6d26cbbda5c1a0d4c3356df8f1916b -m 'docs(e035): replace completed qualification next-action with remaining CI and runtime gates')"
+          evidence="$RUNNER_TEMP/e035-memory-final"
+          mkdir -p "$evidence"
+          printf '%s\n' "$candidate" > "$evidence/candidate-commit.txt"
+          git diff --cached --binary > "$evidence/memory-correction.patch"
+          git show --stat "$candidate" > "$evidence/commit.txt"
+          test -z "$(git ls-remote --heads origin refs/heads/codex/e035-memory-final-20260922)"
+          git push origin "$candidate:refs/heads/codex/e035-memory-final-20260922"
+          (cd "$evidence" && sha256sum candidate-commit.txt memory-correction.patch commit.txt > SHA256SUMS)
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: e035-resume-qualified-evidence
-          path: ${{ runner.temp }}/e035-qualified/
+          name: e035-memory-final-evidence
+          path: ${{ runner.temp }}/e035-memory-final/
           retention-days: 14
