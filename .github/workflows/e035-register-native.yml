@@ -81,6 +81,7 @@ jobs:
           cmp "$RUNNER_TEMP/e035-native/schema/schema.fingerprint.json" "$RUNNER_TEMP/e035-native/schema-repeat/schema.fingerprint.json"
           cp supabase/migrations/20260922131136_ediel_received_register_validation.sql "$RUNNER_TEMP/e035-native/"
           git rev-parse HEAD > "$RUNNER_TEMP/e035-native/source-commit.txt"
+          python3 scripts/ediel-source-validation-concurrency-regression.py
           npm run typecheck
           npm run typecheck:tests
           npm test

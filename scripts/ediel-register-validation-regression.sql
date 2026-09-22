@@ -44,6 +44,9 @@ BEGIN
  altered:=jsonb_set(altered,'{registerValidation,objects,0,reasons}','["REGISTER_SCOPE_UNAVAILABLE"]');
  altered:=jsonb_set(altered,'{registerValidation,objects,0,objectId}','null');
  PERFORM pg_temp.register_case('explicit-unavailable-identity-stored',company,source,altered,false);
+ FOR bad IN SELECT value FROM jsonb_array_elements('[null,[],true,0,"invalid",{}]'::jsonb) LOOP
+  PERFORM pg_temp.register_case('invalid-facet-'||bad::text,company,source,jsonb_set(facts,'{registerValidation}',bad));
+ END LOOP;
  FOREACH key IN ARRAY ARRAY['version','owner','coverage','objects'] LOOP
   PERFORM pg_temp.register_case('missing-facet-'||key,company,source,jsonb_set(facts,'{registerValidation}',facet-key));
  END LOOP;
@@ -54,14 +57,14 @@ BEGIN
   PERFORM pg_temp.register_case('missing-register-'||key,company,source,jsonb_set(facts,'{registerValidation,objects,0,registers,0}',(facet#>'{objects,0,registers,0}')-key));
  END LOOP;
  FOR key,bad IN SELECT * FROM (VALUES
-  ('messageIndex','"0"'::jsonb),('messageIndex','1'::jsonb),('messageIndex','0.5'::jsonb),('messageReference','null'::jsonb),
+  ('messageIndex','null'::jsonb),('messageIndex','"0"'::jsonb),('messageIndex','1'::jsonb),('messageIndex','0.5'::jsonb),('messageReference','null'::jsonb),
   ('objectId','null'::jsonb),('objectId','""'::jsonb),('identityAgency','9'::jsonb),('identityAgency','"99"'::jsonb),
   ('disposition','"approved"'::jsonb),('registers','[]'::jsonb),('registers','null'::jsonb),
   ('reasons','["CONTRADICTION"]'::jsonb),('reasons','null'::jsonb)) AS cases(k,v) LOOP
   PERFORM pg_temp.register_case('invalid-object-'||key||bad::text,company,source,jsonb_set(facts,ARRAY['registerValidation','objects','0',key],bad));
  END LOOP;
  FOR key,bad IN SELECT * FROM (VALUES
-  ('lineIndex','-1'::jsonb),('lineIndex','"0"'::jsonb),('segmentIndex','0.5'::jsonb),('segmentIndex','8192'::jsonb),
+  ('lineIndex','null'::jsonb),('segmentIndex','null'::jsonb),('registerPosition','null'::jsonb),('lineIndex','-1'::jsonb),('lineIndex','"0"'::jsonb),('segmentIndex','0.5'::jsonb),('segmentIndex','8192'::jsonb),
   ('registerPosition','0'::jsonb),('lineNumber','1'::jsonb),('registerIndex','1'::jsonb)) AS cases(k,v) LOOP
   PERFORM pg_temp.register_case('invalid-register-'||key||bad::text,company,source,jsonb_set(facts,ARRAY['registerValidation','objects','0','registers','0',key],bad));
  END LOOP;

@@ -60,7 +60,7 @@ it('actual runtime exposes the direct facet and leaves syntax-rejected runs with
 })
 it('does not certify a partial register rule selection', () => {
   const resolved = policy()
-  const {evidence} = assess(raw([line('1','A'),...reason,qty('10')]),{fieldRules:resolved.fieldRules.filter(rule=>rule.fieldNumber==='258')})
+  const {evidence} = assess(raw([line('1','A'),...reason,qty('10')]),{fieldRules:resolved.fieldRules.filter(rule=>'fieldNumber' in rule && rule.fieldNumber==='258')})
   expect(evidence.objects[0].disposition).toBe('unavailable')
 })
 it('does not certify dependent-only validation as complete register checks', () => {
