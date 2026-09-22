@@ -11,3 +11,8 @@ Resumed existing PR369 rather than creating another task. Repaired only new test
 Prepared finite two-file TS change and one forward trigger migration. Real Supabase CLI/native replay ran in an unmerged exact-base branch. First job passed84+62 but upgrade harness failed locating migrations temporarily replaced by replay ledger markers. Fixed harness to read HEAD/checksum-pinned bytes; only scratch may supply actual uncommitted CLI output. Second run35664024836 succeeded including3 actual collision/lock probes,53 TS and repeated schema/types. Root independently verified full downloaded bytes; adopted nine allowlisted delivery paths, no scratchworkflow/templates.
 
 Corrected summary-derived bad IDs/counts by reading original responses and actual logs;5768470237/5768542611 retain correction trail. Final CI/review/merge/actualmainverification remain next, not done at this checkpoint. Relevant bounded TDD/debugging/Postgres/spec-to-code/review/verification skills remain; no unrelated UI/dependency or broad-audit changes. PR310paused/untouched; no directliveoperations; fullE035/F3/masterplanincomplete.
+
+
+## Recovered E035 database continuation — 2026-09-22
+Native run35747547629: 71 owner / 61 register SQL PASS, real concurrency, repeated contracts.
+This is not full runtime approval or final-head CI. See quality/audits/ediel-masterplan-v2/e035-source-ledger/resume-db-qualification-20260922.md.

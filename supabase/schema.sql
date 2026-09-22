@@ -185,6 +185,81 @@ BEGIN
 END $_$;
 
 --
+-- Name: append_object_assessment(uuid, text, uuid, text, uuid, text); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.append_object_assessment(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_canonical_assessment_id uuid, p_facts_text text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE src gridex_received_sources.sources%rowtype; canonical gridex_received_sources.validation_assessments%rowtype;
+ facts jsonb; original jsonb; entry jsonb; scope jsonb; register_fact jsonb; business jsonb; party jsonb; records jsonb;
+ position integer:=0; prior uuid; result_id uuid; digest text; snapshot_text text; valid_owners boolean; owner_readsets jsonb:='[]'::jsonb;
+BEGIN
+ SELECT * INTO src FROM gridex_received_sources.sources WHERE source_message_id=p_source_message_id AND company_id=p_company_id AND environment=p_environment FOR UPDATE;
+ IF NOT FOUND OR src.payload_hash IS DISTINCT FROM p_source_payload_hash OR src.received_context IS NULL OR p_facts_text IS NULL OR octet_length(p_facts_text)>262144 THEN RAISE EXCEPTION 'source_object_scope_unavailable' USING ERRCODE='23514'; END IF;
+ SELECT * INTO canonical FROM gridex_received_sources.validation_assessments WHERE id=p_canonical_assessment_id AND source_message_id=src.source_message_id AND company_id=p_company_id AND environment=p_environment AND source_payload_hash=src.payload_hash;
+ IF NOT FOUND THEN RAISE EXCEPTION 'source_object_canonical_unavailable' USING ERRCODE='23514'; END IF;
+ facts:=p_facts_text::jsonb; original:=canonical.facts_text::jsonb;
+ IF jsonb_typeof(facts) IS DISTINCT FROM 'object' OR NOT facts ?& ARRAY['version','owner','ruleVersion','canonicalFactsHash','objects']
+ OR facts-ARRAY['version','owner','ruleVersion','canonicalFactsHash','objects']<>'{}'::jsonb
+ OR facts->'version' IS DISTINCT FROM '1'::jsonb OR facts->>'owner' IS DISTINCT FROM 'received-source-object-decisions-v1'
+ OR facts->>'ruleVersion' IS DISTINCT FROM '1' OR facts->>'canonicalFactsHash' IS DISTINCT FROM canonical.facts_hash
+ OR jsonb_typeof(facts->'objects') IS DISTINCT FROM 'array' OR jsonb_typeof(original#>'{registerValidation,objects}') IS DISTINCT FROM 'array' THEN RAISE EXCEPTION 'source_object_facts_invalid' USING ERRCODE='23514'; END IF;
+ IF jsonb_array_length(facts->'objects')<>jsonb_array_length(original#>'{registerValidation,objects}') OR jsonb_array_length(facts->'objects') NOT BETWEEN 1 AND 8192 THEN RAISE EXCEPTION 'source_object_membership_incomplete' USING ERRCODE='23514'; END IF;
+ FOR entry IN SELECT value FROM jsonb_array_elements(facts->'objects') LOOP
+  register_fact:=original#>ARRAY['registerValidation','objects',position::text];position:=position+1;
+  scope:=entry->'object';business:=entry->'business';party:=entry->'party';
+  IF jsonb_typeof(entry) IS DISTINCT FROM 'object' OR NOT entry ?& ARRAY['object','disposition','reasons','business','party']
+   OR entry-ARRAY['object','disposition','reasons','business','party']<>'{}'::jsonb OR scope IS DISTINCT FROM register_fact-ARRAY['disposition','reasons']
+   OR coalesce(entry->>'disposition','') NOT IN ('accepted','rejected','unavailable') OR jsonb_typeof(entry->'reasons') IS DISTINCT FROM 'array'
+   THEN RAISE EXCEPTION 'source_object_decision_invalid' USING ERRCODE='23514';END IF;
+  IF (entry->>'disposition'='accepted') IS DISTINCT FROM (jsonb_array_length(entry->'reasons')=0)
+   OR jsonb_array_length(entry->'reasons')>128 OR EXISTS(SELECT FROM jsonb_array_elements(entry->'reasons') r WHERE jsonb_typeof(r) IS DISTINCT FROM 'string' OR r#>>'{}' !~ '^[A-Za-z0-9_.:-]{1,128}$') THEN RAISE EXCEPTION 'source_object_reason_invalid' USING ERRCODE='23514'; END IF;
+  IF business<>'null'::jsonb AND (jsonb_typeof(business) IS DISTINCT FROM 'object' OR business->>'sourceMessageId' IS DISTINCT FROM src.source_message_id::text OR business->>'sourcePayloadHash' IS DISTINCT FROM src.payload_hash OR business->>'companyId' IS DISTINCT FROM p_company_id::text OR business->>'environment' IS DISTINCT FROM p_environment OR business->'object' IS DISTINCT FROM scope) THEN RAISE EXCEPTION 'source_object_business_scope_invalid' USING ERRCODE='23514'; END IF;
+  IF party<>'null'::jsonb AND (jsonb_typeof(party) IS DISTINCT FROM 'object' OR party#>>'{source,sourceMessageId}' IS DISTINCT FROM src.source_message_id::text OR party#>>'{source,sourcePayloadHash}' IS DISTINCT FROM src.payload_hash OR party#>>'{source,companyId}' IS DISTINCT FROM p_company_id::text OR party#>>'{source,environment}' IS DISTINCT FROM p_environment OR party->'object' IS DISTINCT FROM scope) THEN RAISE EXCEPTION 'source_object_party_scope_invalid' USING ERRCODE='23514'; END IF;
+  IF entry->>'disposition'='accepted' THEN
+   IF register_fact->>'disposition' IS DISTINCT FROM 'accepted' OR original->>'syntaxDecision' IS DISTINCT FROM 'accepted' OR original->>'applicationDecision' IS DISTINCT FROM 'accepted' OR original->>'functionalDecision' IS DISTINCT FROM 'accepted'
+    OR business->>'owner' IS DISTINCT FROM 'inbound-z04-switch-confirmation-v1' OR business->>'businessDisposition' IS DISTINCT FROM 'committed'
+    OR business->'version' IS DISTINCT FROM '1'::jsonb OR party->'version' IS DISTINCT FROM '1'::jsonb
+    OR party->>'owner' IS DISTINCT FROM 'received-source-party-binding-v1' OR party->>'ruleVersion' IS DISTINCT FROM '1' OR party->>'disposition' IS DISTINCT FROM 'accepted'
+    OR party->'reasons' IS DISTINCT FROM '[]'::jsonb OR party#>>'{receiver,evidence,completeness}' IS DISTINCT FROM 'exact_count'
+    OR scope->>'identityAgency' IS DISTINCT FROM '9' OR party#>>'{facility,meteringPoint,id}' IS DISTINCT FROM business->>'meteringPointId'
+    OR party#>>'{facility,site,id}' IS DISTINCT FROM business->>'siteId' THEN RAISE EXCEPTION 'source_object_acceptance_unproven' USING ERRCODE='23514'; END IF;
+   records:=party#>'{receiver,evidence,records}';
+   -- All owner revalidation calls below share this SELECT's snapshot, rather
+   -- than treating independent earlier network reads as an atomic observation.
+   SELECT pg_current_snapshot()::text,
+    gridex_received_sources.object_owner_proof_consistent(party,business,src.source_received_at)
+    AND gridex_received_sources.owner_rows_match('profiles',records->'profiles',p_company_id,p_environment,NULL)
+    AND gridex_received_sources.owner_rows_match('identifiers',records->'identifiers',p_company_id,p_environment,NULL)
+    AND gridex_received_sources.owner_rows_match('roles',records->'roles',p_company_id,p_environment,(party#>>'{receiver,identity,legalActorId}')::uuid)
+    AND gridex_received_sources.owner_rows_match('relations',records->'relations',p_company_id,p_environment,NULL)
+    AND (CASE WHEN party#>>'{receiver,identity,representedByTransportAgent}'='true' THEN gridex_received_sources.owner_rows_match('transportIdentifiers',records->'transportIdentifiers',p_company_id,p_environment,(party#>>'{receiver,identity,transportActorId}')::uuid) ELSE records->'transportIdentifiers'='[]'::jsonb END)
+    AND gridex_received_sources.owner_rows_match('point',jsonb_build_array(party#>'{facility,meteringPoint}'),p_company_id,p_environment,(business->>'meteringPointId')::uuid)
+    AND gridex_received_sources.owner_rows_match('site',jsonb_build_array(party#>'{facility,site}'),p_company_id,p_environment,(business->>'siteId')::uuid)
+    AND gridex_received_sources.owner_rows_match('gridOwner',jsonb_build_array(party#>'{facility,gridOwner}'),p_company_id,p_environment,(party#>>'{facility,gridOwner,id}')::uuid)
+    AND EXISTS(SELECT FROM public.supplier_switch_requests sw JOIN public.customer_supply_periods sp ON sp.id=(business->>'supplyPeriodId')::uuid
+      WHERE sw.id=(business->>'switchRequestId')::uuid AND sw.company_id=p_company_id AND sp.company_id=p_company_id
+      AND sw.inbound_z04_message_id=src.source_message_id AND sp.source_message_id=src.source_message_id
+      AND sw.metering_point_id=(business->>'meteringPointId')::uuid AND sp.metering_point_id=sw.metering_point_id
+      AND sw.site_id=(business->>'siteId')::uuid AND sw.customer_id=(business->>'customerId')::uuid AND sp.customer_id=sw.customer_id
+      AND sw.status='accepted' AND sp.status='confirmed_by_grid_owner'
+      AND EXISTS(SELECT FROM public.metering_points mp JOIN public.customer_sites cs ON cs.id=mp.site_id WHERE mp.id=sw.metering_point_id AND mp.company_id=p_company_id AND cs.company_id=p_company_id AND mp.customer_id=sw.customer_id AND cs.customer_id=sw.customer_id AND cs.id=sw.site_id)
+      AND sw.confirmed_start_date::text=business#>>'{committedRecords,switch,confirmedStartDate}' AND sp.start_date::text=business#>>'{committedRecords,supply,startDate}')
+   INTO snapshot_text,valid_owners;
+   IF valid_owners IS DISTINCT FROM true THEN RAISE EXCEPTION 'source_object_owner_snapshot_changed' USING ERRCODE='23514'; END IF;
+   owner_readsets:=owner_readsets||jsonb_build_array(jsonb_build_object('object',scope,'snapshot',snapshot_text,'observedAt',clock_timestamp()));
+  END IF;
+ END LOOP;
+ SELECT id INTO prior FROM gridex_received_sources.object_assessments a WHERE source_message_id=src.source_message_id AND NOT EXISTS(SELECT FROM gridex_received_sources.object_assessments child WHERE child.previous_assessment_id=a.id);
+ digest:=encode(sha256(convert_to(p_facts_text,'UTF8')),'hex');
+ INSERT INTO gridex_received_sources.object_assessments(source_message_id,company_id,environment,source_payload_hash,canonical_assessment_id,previous_assessment_id,facts_text,facts_hash,owner_readsets)
+ VALUES(src.source_message_id,p_company_id,p_environment,src.payload_hash,canonical.id,prior,p_facts_text,digest,owner_readsets) RETURNING id INTO result_id;
+ RETURN jsonb_build_object('version',1,'assessmentId',result_id,'companyId',p_company_id,'environment',p_environment,'sourceMessageId',src.source_message_id,'sourcePayloadHash',src.payload_hash,'canonicalAssessmentId',canonical.id,'factsHash',digest);
+END $_$;
+
+--
 -- Name: append_validation(uuid, text, uuid, text, text); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
 --
 
@@ -192,7 +267,7 @@ CREATE FUNCTION gridex_received_sources.append_validation(p_company_id uuid, p_e
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $_$
-DECLARE src gridex_received_sources.sources%rowtype; facts jsonb; pack jsonb; v_previous uuid; v_id uuid; v_hash text; facet jsonb; obj jsonb; reg jsonb; key text; object_keys text[]:=ARRAY[]::text[]; line_ids int[]:=ARRAY[]::int[]; segment_ids int[]:=ARRAY[]::int[]; previous_segment int; position int;
+DECLARE src gridex_received_sources.sources%rowtype; facts jsonb; pack jsonb; v_previous uuid; v_id uuid; v_hash text; facet jsonb; obj jsonb; reg jsonb; key text; object_keys text[]:=ARRAY[]::text[]; line_ids text[]:=ARRAY[]::text[]; segment_ids int[]:=ARRAY[]::int[]; previous_segment int; position int;
 BEGIN
   -- Lock per source before selecting a predecessor. Concurrent assessments
   -- append a single linked sequence; no UPDATE of historic decisions occurs.
@@ -302,10 +377,10 @@ BEGIN
           END IF;
         END LOOP;
         IF (reg->>'registerPosition')::int<>position OR (reg->>'segmentIndex')::int<=previous_segment
-          OR (reg->>'lineIndex')::int=ANY(line_ids) OR (reg->>'segmentIndex')::int=ANY(segment_ids) THEN
+          OR jsonb_build_array(obj->'messageIndex',reg->'lineIndex')::text=ANY(line_ids) OR (reg->>'segmentIndex')::int=ANY(segment_ids) THEN
           RAISE EXCEPTION 'received_register_occurrence_conflict' USING ERRCODE='23514';
         END IF;
-        line_ids:=array_append(line_ids,(reg->>'lineIndex')::int);
+        line_ids:=array_append(line_ids,jsonb_build_array(obj->'messageIndex',reg->'lineIndex')::text);
         segment_ids:=array_append(segment_ids,(reg->>'segmentIndex')::int);
         previous_segment:=(reg->>'segmentIndex')::int;
       END LOOP;
@@ -352,6 +427,181 @@ BEGIN
   RETURN NEW;
 END
 $$;
+
+--
+-- Name: object_owner_proof_consistent(jsonb, jsonb, timestamp with time zone); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.object_owner_proof_consistent(p_party jsonb, p_business jsonb, p_received timestamp with time zone) RETURNS boolean
+    LANGUAGE plpgsql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE identity jsonb:=p_party#>'{receiver,identity}'; evidence jsonb:=p_party#>'{receiver,evidence}';
+ records jsonb:=evidence->'records'; facility jsonb:=p_party->'facility'; parties jsonb:=p_party->'parties';
+ effective jsonb:=p_business->'effectiveFrom'; commit_row jsonb; name text; stamp text; instant timestamptz;
+ party_start timestamptz; party_end timestamptz; evaluated timestamptz; role_values text[]; supplied_roles text[];
+ actor_count bigint; identifier_count bigint; selected_actor_id uuid; legal_id text; relation_count bigint;
+ relation_id uuid; transport_actor uuid; transport_id text; minute text; market_time timestamp; expected_day text;
+BEGIN
+ IF p_received IS NULL OR NOT isfinite(p_received)
+  OR p_business->>'coverage' IS DISTINCT FROM 'committed_switch_and_supply_only'
+  OR p_business->>'sourceDisposition' IS DISTINCT FROM 'not_established'
+  OR p_business->>'graphNamespace' IS DISTINCT FROM 'legacy_unqualified'
+  OR p_party->>'historicalKnowledge' IS DISTINCT FROM 'not_established'
+  OR p_party->>'authentication' IS DISTINCT FROM 'not_assessed'
+  OR evidence->'version' IS DISTINCT FROM '1'::jsonb
+  OR evidence->>'owner' IS DISTINCT FROM 'canonical-tenant-ediel-identity-v1'
+  OR evidence->>'consistency' IS DISTINCT FROM 'independent_reads'
+  OR evidence->>'historicalKnowledge' IS DISTINCT FROM 'not_established'
+  OR evidence->>'sourceDisposition' IS DISTINCT FROM 'not_established'
+  OR facility->>'owner' IS DISTINCT FROM 'selected-facility-grid-owner-v1'
+  OR facility->>'consistency' IS DISTINCT FROM 'independent_reads'
+  OR facility->>'historicalKnowledge' IS DISTINCT FROM 'not_established'
+  OR identity->>'companyId' IS DISTINCT FROM p_business->>'companyId'
+  OR identity->>'environment' IS DISTINCT FROM p_business->>'environment'
+  OR jsonb_typeof(identity->'representedByTransportAgent') IS DISTINCT FROM 'boolean'
+  OR jsonb_typeof(identity->'roleCodes') IS DISTINCT FROM 'array'
+  OR jsonb_typeof(parties) IS DISTINCT FROM 'object' THEN RETURN false; END IF;
+ -- PostgreSQL's timestamp/date types own calendar parsing. Reject infinities,
+ -- date-only spellings and excess fractional precision before typed equality.
+ FOR stamp IN SELECT value FROM unnest(ARRAY[p_business->>'assessedAt',p_business->>'sourceReceivedAt',
+  p_party#>>'{source,receivedAt}',p_party->>'assessedAt',p_party->>'completedAt',evidence->>'evaluatedAt',
+  evidence->>'observedAt',evidence->>'completedAt',facility->>'observedAt',facility->>'completedAt']) value LOOP
+  IF stamp IS NULL OR stamp !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$' THEN RETURN false; END IF;
+  instant:=stamp::timestamptz;
+  IF NOT isfinite(instant) OR instant<p_received OR instant>statement_timestamp() THEN RETURN false; END IF;
+ END LOOP;
+ party_start:=(p_party->>'assessedAt')::timestamptz;party_end:=(p_party->>'completedAt')::timestamptz;evaluated:=(evidence->>'evaluatedAt')::timestamptz;
+ IF (p_business->>'sourceReceivedAt')::timestamptz<>p_received OR (p_party#>>'{source,receivedAt}')::timestamptz<>p_received
+  OR party_end<party_start OR evaluated<>party_start
+  OR (evidence->>'observedAt')::timestamptz<evaluated OR (evidence->>'completedAt')::timestamptz<(evidence->>'observedAt')::timestamptz
+  OR (evidence->>'completedAt')::timestamptz>party_end
+  OR (facility->>'observedAt')::timestamptz<party_start OR (facility->>'completedAt')::timestamptz<(facility->>'observedAt')::timestamptz
+  OR (facility->>'completedAt')::timestamptz>party_end THEN RETURN false; END IF;
+ FOREACH name IN ARRAY ARRAY['legalSender','legalReceiver','transportSender','transportReceiver'] LOOP
+  IF jsonb_typeof(parties->name) IS DISTINCT FROM 'string' OR length(parties->>name) NOT BETWEEN 1 AND 128
+   OR parties->>name<>btrim(parties->>name) THEN RETURN false; END IF;
+ END LOOP;
+ -- Same half-open tenant validity used by resolveCanonicalTenantEdielIdentity.
+ IF NOT EXISTS(SELECT FROM jsonb_populate_recordset(NULL::public.tenant_ediel_profiles,records->'profiles') r
+  WHERE r.is_enabled AND r.market='electricity' AND r.valid_from<=evaluated AND (r.valid_to IS NULL OR evaluated<r.valid_to)) THEN RETURN false; END IF;
+ SELECT count(DISTINCT r.actor_id),count(DISTINCT nullif(btrim(r.identifier_value),'')),min(r.actor_id::text)::uuid,min(nullif(btrim(r.identifier_value),''))
+ INTO actor_count,identifier_count,selected_actor_id,legal_id
+ FROM jsonb_populate_recordset(NULL::public.tenant_actor_identifiers,records->'identifiers') r
+ WHERE r.identifier_type='EdielId' AND r.valid_from<=evaluated AND (r.valid_to IS NULL OR evaluated<r.valid_to);
+ IF actor_count<>1 OR identifier_count<>1 OR selected_actor_id::text IS DISTINCT FROM identity->>'legalActorId'
+  OR legal_id IS DISTINCT FROM identity->>'legalEdielId' OR legal_id IS DISTINCT FROM parties->>'legalReceiver' THEN RETURN false; END IF;
+ SELECT array_agg(DISTINCT btrim(r.role_code) ORDER BY btrim(r.role_code)) INTO role_values
+ FROM jsonb_populate_recordset(NULL::public.tenant_actor_roles,records->'roles') r
+ WHERE r.actor_id=selected_actor_id AND nullif(btrim(r.role_code),'') IS NOT NULL AND r.valid_from<=evaluated AND (r.valid_to IS NULL OR evaluated<r.valid_to);
+ IF EXISTS(SELECT FROM jsonb_array_elements(identity->'roleCodes') r WHERE jsonb_typeof(r)<>'string') THEN RETURN false; END IF;
+ SELECT array_agg(DISTINCT value ORDER BY value) INTO supplied_roles FROM jsonb_array_elements_text(identity->'roleCodes');
+ IF role_values IS DISTINCT FROM supplied_roles OR NOT coalesce('electricity_supplier'=ANY(role_values),false) THEN RETURN false; END IF;
+ SELECT count(*),min(r.id::text)::uuid,min(r.counterparty_actor_id::text)::uuid INTO relation_count,relation_id,transport_actor
+ FROM jsonb_populate_recordset(NULL::public.tenant_counterparty_relations,records->'relations') r
+ WHERE r.relation_type='ediel_transport_agent' AND r.is_enabled AND r.valid_from<=evaluated AND (r.valid_to IS NULL OR evaluated<r.valid_to);
+ IF relation_count=0 THEN
+  IF identity->'representedByTransportAgent'<>'false'::jsonb OR identity->'transportRelationId' IS DISTINCT FROM 'null'::jsonb
+   OR identity->>'transportActorId' IS DISTINCT FROM selected_actor_id::text OR identity->>'transportEdielId' IS DISTINCT FROM legal_id
+   OR records->'transportIdentifiers' IS DISTINCT FROM '[]'::jsonb THEN RETURN false; END IF;
+ ELSE
+  IF relation_count<>1 OR identity->'representedByTransportAgent'<>'true'::jsonb
+   OR identity->>'transportRelationId' IS DISTINCT FROM relation_id::text OR identity->>'transportActorId' IS DISTINCT FROM transport_actor::text
+   OR transport_actor=selected_actor_id THEN RETURN false; END IF;
+  IF EXISTS(SELECT FROM jsonb_populate_recordset(NULL::public.platform_actor_identifiers,records->'transportIdentifiers') r WHERE r.is_verified IS DISTINCT FROM true) THEN RETURN false; END IF;
+  SELECT count(DISTINCT nullif(btrim(r.identifier_value),'')),min(nullif(btrim(r.identifier_value),'')) INTO identifier_count,transport_id
+  FROM jsonb_populate_recordset(NULL::public.platform_actor_identifiers,records->'transportIdentifiers') r
+  WHERE r.actor_id=transport_actor AND r.identifier_type='EdielId'
+   AND (r.valid_from IS NULL OR r.valid_from::timestamp AT TIME ZONE 'UTC'<=evaluated)
+   AND (r.valid_to IS NULL OR evaluated<r.valid_to::timestamp AT TIME ZONE 'UTC');
+  IF identifier_count<>1 OR transport_id=legal_id OR transport_id IS DISTINCT FROM identity->>'transportEdielId' THEN RETURN false; END IF;
+ END IF;
+ IF parties->>'transportReceiver' IS DISTINCT FROM identity->>'transportEdielId'
+  OR parties->>'transportSender' IS DISTINCT FROM parties->>'legalSender'
+  OR parties->>'legalSender' IS DISTINCT FROM facility#>>'{gridOwner,ediel_id}'
+  OR facility#>'{gridOwner,is_active}' IS DISTINCT FROM 'true'::jsonb OR facility#>>'{gridOwner,lifecycle_status}' IS DISTINCT FROM 'active'
+  OR facility#>>'{gridOwner,environment}' IS DISTINCT FROM p_business->>'environment'
+  OR (p_business->>'environment'='production' AND facility#>>'{gridOwner,ediel_id}' IN ('91100','91109'))
+  OR facility#>>'{meteringPoint,meter_point_id}' IS DISTINCT FROM p_business#>>'{object,objectId}'
+  OR facility#>>'{site,facility_id}' IS DISTINCT FROM p_business#>>'{object,objectId}'
+  OR facility#>>'{meteringPoint,site_id}' IS DISTINCT FROM facility#>>'{site,id}'
+  OR (facility#>'{meteringPoint,customer_site_id}'<>'null'::jsonb AND facility#>>'{meteringPoint,customer_site_id}' IS DISTINCT FROM facility#>>'{site,id}')
+  OR facility#>>'{meteringPoint,grid_owner_id}' IS DISTINCT FROM facility#>>'{gridOwner,id}'
+  OR facility#>>'{site,grid_owner_id}' IS DISTINCT FROM facility#>>'{gridOwner,id}' THEN RETURN false; END IF;
+ IF jsonb_typeof(effective) IS DISTINCT FROM 'object' OR effective->>'fieldNumber' IS DISTINCT FROM '210'
+  OR effective->>'committedDatePrecision' IS DISTINCT FROM 'market_calendar_day'
+  OR effective-ARRAY['fieldNumber','marketMinute','utc','committedDatePrecision']<>'{}'::jsonb THEN RETURN false; END IF;
+ minute:=effective->>'marketMinute';
+ IF minute IS NULL OR minute !~ '^[0-9]{12}$' OR substring(minute,1,4)::int<1 OR substring(minute,9,2)::int>23 OR substring(minute,11,2)::int>59 THEN RETURN false; END IF;
+ market_time:=make_timestamp(substring(minute,1,4)::int,substring(minute,5,2)::int,substring(minute,7,2)::int,substring(minute,9,2)::int,substring(minute,11,2)::int,0);
+ IF effective->>'utc' IS NULL OR (effective->>'utc')::timestamptz IS DISTINCT FROM (market_time AT TIME ZONE 'Etc/GMT-1') THEN RETURN false; END IF;
+ expected_day:=to_char(market_time,'YYYY-MM-DD');
+ FOREACH name IN ARRAY ARRAY['switch','supply'] LOOP
+  commit_row:=p_business#>ARRAY['committedRecords',name];
+  IF jsonb_typeof(commit_row) IS DISTINCT FROM 'object'
+   OR commit_row->>'id' IS DISTINCT FROM p_business->>(CASE WHEN name='switch' THEN 'switchRequestId' ELSE 'supplyPeriodId' END)
+   OR commit_row->>'companyId' IS DISTINCT FROM p_business->>'companyId'
+   OR commit_row->>'customerId' IS DISTINCT FROM p_business->>'customerId'
+   OR commit_row->>'meteringPointId' IS DISTINCT FROM p_business->>'meteringPointId'
+   OR commit_row->>'sourceMessageId' IS DISTINCT FROM p_business->>'sourceMessageId'
+   OR commit_row->>'status' IS DISTINCT FROM (CASE WHEN name='switch' THEN 'accepted' ELSE 'confirmed_by_grid_owner' END)
+   OR commit_row->>(CASE WHEN name='switch' THEN 'confirmedStartDate' ELSE 'startDate' END) IS DISTINCT FROM expected_day
+   OR (name='switch' AND commit_row->>'siteId' IS DISTINCT FROM p_business->>'siteId') THEN RETURN false; END IF;
+ END LOOP;
+ RETURN true;
+EXCEPTION WHEN invalid_text_representation OR invalid_datetime_format OR datetime_field_overflow OR numeric_value_out_of_range OR invalid_parameter_value THEN RETURN false;
+END $_$;
+
+--
+-- Name: open_object_selection_snapshot(uuid, text, timestamp with time zone); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.open_object_selection_snapshot(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE observed timestamptz:=clock_timestamp(); body jsonb; snap text; bytes text; digest text; result_id uuid;
+BEGIN
+ IF p_company_id IS NULL OR p_environment IS NULL OR p_environment NOT IN ('test','production')
+ OR p_cutoff IS NULL OR NOT isfinite(p_cutoff) OR p_cutoff>observed THEN RAISE EXCEPTION 'source_selection_scope_unavailable' USING ERRCODE='22023'; END IF;
+ -- Count, limits, payloads, all immutable decisions and witnesses are read in
+ -- ONE MVCC statement. Overflows return an explicit incomplete empty readset.
+ WITH candidates AS MATERIALIZED (
+  SELECT s.source_message_id,octet_length(s.raw_payload) AS payload_bytes FROM gridex_received_sources.sources s
+  WHERE s.company_id=p_company_id AND s.environment=p_environment AND s.captured_at<=p_cutoff
+   AND (s.source_received_at IS NULL OR s.source_received_at<=p_cutoff) ORDER BY s.source_message_id LIMIT 1001
+ ), assessments AS MATERIALIZED (
+  SELECT a.id,a.source_message_id,octet_length(a.facts_text) AS fact_bytes FROM candidates s
+  CROSS JOIN LATERAL(SELECT a.id,a.source_message_id,a.facts_text FROM gridex_received_sources.object_assessments a WHERE a.source_message_id=s.source_message_id ORDER BY a.assessed_at,a.id LIMIT 129)a
+ ), totals AS (
+  SELECT (SELECT count(*) FROM candidates) AS n,
+   (SELECT coalesce(sum(payload_bytes),0) FROM candidates)+(SELECT coalesce(sum(fact_bytes),0) FROM assessments) AS total_bytes,
+   (SELECT coalesce(max(payload_bytes),0) FROM candidates) AS max_payload,
+   (SELECT coalesce(max(n),0) FROM (SELECT count(*) AS n FROM assessments GROUP BY source_message_id)c) AS max_assessments
+ ), bounded AS (SELECT *,n<=1000 AND total_bytes<=6291456 AND max_payload<=262144 AND max_assessments<=128 AS complete FROM totals)
+ SELECT jsonb_build_object('version',1,'companyId',p_company_id,'environment',p_environment,'cutoffAt',p_cutoff,
+  'capturedAt',observed,'complete',b.complete,'sourceCount',b.n,'historyCoverage','before_ledger_unknown',
+  'ledgerStartedAt',(SELECT opened_at FROM gridex_received_sources.epoch WHERE singleton),
+  'sources',CASE WHEN b.complete THEN (SELECT coalesce(jsonb_agg(jsonb_build_object(
+   'sourceMessageId',s.source_message_id,'payloadHash',s.payload_hash,'rawPayload',s.raw_payload,
+   'receivedAt',s.source_received_at,'capturedAt',s.captured_at,'messageCode',s.message_code,
+   'assessments',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',a.id,'previousAssessmentId',a.previous_assessment_id,
+    'canonicalAssessmentId',a.canonical_assessment_id,'assessedAt',a.assessed_at,
+    'availableAt',w.observed_at,'availabilityWitnessId',w.id,'factsText',a.facts_text,'factsHash',a.facts_hash) ORDER BY a.assessed_at,a.id),'[]'::jsonb)
+    FROM assessments list JOIN gridex_received_sources.object_assessments a ON a.id=list.id
+    LEFT JOIN gridex_received_sources.object_availability_witnesses w ON w.assessment_id=a.id AND w.company_id=a.company_id AND w.environment=a.environment AND w.facts_hash=a.facts_hash
+    WHERE list.source_message_id=s.source_message_id)) ORDER BY s.source_message_id),'[]'::jsonb)
+   FROM candidates c JOIN gridex_received_sources.sources s USING(source_message_id)) ELSE '[]'::jsonb END),pg_current_snapshot()::text
+ INTO body,snap FROM bounded b;
+ bytes:=body::text;
+ -- JSON escaping/metadata may expand beyond the summed input budget.
+ IF octet_length(bytes)>8388608 THEN body:=jsonb_set(jsonb_set(body,'{complete}','false'),'{sources}','[]');bytes:=body::text; END IF;
+ digest:=encode(sha256(convert_to(bytes,'UTF8')),'hex');
+ INSERT INTO gridex_received_sources.object_selection_snapshots(company_id,environment,cutoff_at,captured_at,readset_text,readset_hash,visibility_snapshot)
+ VALUES(p_company_id,p_environment,p_cutoff,observed,bytes,digest,snap) RETURNING id INTO result_id;
+ RETURN jsonb_build_object('snapshotId',result_id,'readsetText',bytes,'readsetHash',digest);
+END $$;
 
 --
 -- Name: open_snapshot(uuid, text, timestamp with time zone); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
@@ -406,6 +656,33 @@ BEGIN
 END $$;
 
 --
+-- Name: owner_rows_match(text, jsonb, uuid, text, uuid); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.owner_rows_match(p_kind text, p_rows jsonb, p_company uuid, p_environment text, p_actor uuid) RETURNS boolean
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE relation_name text; columns_text text; predicate_text text; matches boolean;
+BEGIN
+ IF jsonb_typeof(p_rows) IS DISTINCT FROM 'array' OR jsonb_array_length(p_rows)>8192 THEN RETURN false; END IF;
+ CASE p_kind
+ WHEN 'profiles' THEN relation_name:='tenant_ediel_profiles'; columns_text:='id,company_id,environment,market,is_enabled,valid_from,valid_to'; predicate_text:='company_id=$2 AND environment=$3 AND market=''electricity'' AND is_enabled';
+ WHEN 'identifiers' THEN relation_name:='tenant_actor_identifiers'; columns_text:='id,company_id,environment,actor_id,identifier_type,identifier_value,qualifier,subaddress,valid_from,valid_to'; predicate_text:='company_id=$2 AND environment=$3 AND identifier_type=''EdielId''';
+ WHEN 'roles' THEN relation_name:='tenant_actor_roles'; columns_text:='id,company_id,environment,actor_id,role_code,valid_from,valid_to'; predicate_text:='company_id=$2 AND environment=$3 AND actor_id=$4';
+ WHEN 'relations' THEN relation_name:='tenant_counterparty_relations'; columns_text:='id,company_id,environment,counterparty_actor_id,relation_type,is_enabled,valid_from,valid_to'; predicate_text:='company_id=$2 AND environment=$3 AND relation_type=''ediel_transport_agent'' AND is_enabled';
+ WHEN 'transportIdentifiers' THEN relation_name:='platform_actor_identifiers'; columns_text:='id,actor_id,identifier_type,identifier_value,id_code_qualifier,id_code_responsible,source,is_verified,valid_from,valid_to,created_at,updated_at'; predicate_text:='actor_id=$4 AND identifier_type=''EdielId''';
+ WHEN 'point' THEN relation_name:='metering_points'; columns_text:='id,company_id,meter_point_id,site_id,customer_site_id,grid_owner_id'; predicate_text:='company_id=$2 AND id=$4';
+ WHEN 'site' THEN relation_name:='customer_sites'; columns_text:='id,company_id,facility_id,grid_owner_id'; predicate_text:='company_id=$2 AND id=$4';
+ WHEN 'gridOwner' THEN relation_name:='grid_owners'; columns_text:='id,name,ediel_id,is_active,lifecycle_status,default_prodat_subaddress,default_utilts_subaddress,communication_email,email,environment'; predicate_text:='id=$4';
+ ELSE RETURN false;
+ END CASE;
+ EXECUTE format('SELECT NOT EXISTS((SELECT %1$s FROM public.%2$I WHERE %3$s EXCEPT ALL SELECT %1$s FROM jsonb_populate_recordset(NULL::public.%2$I,$1)) UNION ALL (SELECT %1$s FROM jsonb_populate_recordset(NULL::public.%2$I,$1) EXCEPT ALL SELECT %1$s FROM public.%2$I WHERE %3$s))',columns_text,relation_name,predicate_text)
+ INTO matches USING p_rows,p_company,p_environment,p_actor;
+ RETURN matches;
+END $_$;
+
+--
 -- Name: reject_mutation(); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
 --
 
@@ -417,6 +694,30 @@ BEGIN
   RAISE EXCEPTION 'received_source_evidence_is_append_only' USING ERRCODE = '23514';
 END
 $$;
+
+--
+-- Name: witness_object_availability(uuid, text, uuid, text); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.witness_object_availability(p_company_id uuid, p_environment text, p_assessment_id uuid, p_facts_hash text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE found_id uuid; source_id uuid; snap text; witness gridex_received_sources.object_availability_witnesses%rowtype;
+BEGIN
+ -- A result from the current transaction is expressly insufficient. The owner
+ -- append must have committed before this separate service RPC can observe it.
+ SELECT a.id,a.source_message_id,pg_current_snapshot()::text INTO found_id,source_id,snap
+ FROM gridex_received_sources.object_assessments a
+ WHERE a.id=p_assessment_id AND a.company_id=p_company_id AND a.environment=p_environment
+ AND a.facts_hash=p_facts_hash AND a.created_xid<>pg_current_xact_id();
+ IF found_id IS NULL THEN RAISE EXCEPTION 'source_object_availability_unproven' USING ERRCODE='23514'; END IF;
+ INSERT INTO gridex_received_sources.object_availability_witnesses(assessment_id,company_id,environment,source_message_id,facts_hash,visibility_snapshot)
+ VALUES(found_id,p_company_id,p_environment,source_id,p_facts_hash,snap) ON CONFLICT(assessment_id) DO NOTHING;
+ SELECT * INTO STRICT witness FROM gridex_received_sources.object_availability_witnesses WHERE assessment_id=found_id;
+ RETURN jsonb_build_object('version',1,'witnessId',witness.id,'assessmentId',found_id,'companyId',p_company_id,'environment',p_environment,'factsHash',p_facts_hash,'availableAt',witness.observed_at);
+END $$;
 
 SET default_table_access_method = heap;
 
@@ -38100,6 +38401,18 @@ BEGIN
 END $$;
 
 --
+-- Name: gridex_record_source_object_decisions_v1(uuid, text, uuid, text, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_record_source_object_decisions_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_canonical_assessment_id uuid, p_facts_text text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$ BEGIN
+ IF current_user<>'service_role' THEN RAISE EXCEPTION 'received_evidence_service_required' USING ERRCODE='42501'; END IF;
+ RETURN gridex_received_sources.append_object_assessment(p_company_id,p_environment,p_source_message_id,p_source_payload_hash,p_canonical_assessment_id,p_facts_text);
+END $$;
+
+--
 -- Name: gridex_record_source_validation_v1(uuid, text, uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -42426,6 +42739,18 @@ select jsonb_set(
 )
 from retained,canonical;
 $$;
+
+--
+-- Name: gridex_source_object_snapshot_v1(uuid, text, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_source_object_snapshot_v1(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$ BEGIN
+ IF current_user<>'service_role' THEN RAISE EXCEPTION 'received_evidence_service_required' USING ERRCODE='42501'; END IF;
+ RETURN gridex_received_sources.open_object_selection_snapshot(p_company_id,p_environment,p_cutoff);
+END $$;
 
 --
 -- Name: gridex_stage_energy_geodata_feature(uuid, text, jsonb, jsonb, text); Type: FUNCTION; Schema: public; Owner: -
@@ -47408,6 +47733,18 @@ begin
 end $$;
 
 --
+-- Name: gridex_witness_source_objects_v1(uuid, text, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_witness_source_objects_v1(p_company_id uuid, p_environment text, p_assessment_id uuid, p_facts_hash text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$ BEGIN
+ IF current_user<>'service_role' THEN RAISE EXCEPTION 'received_evidence_service_required' USING ERRCODE='42501'; END IF;
+ RETURN gridex_received_sources.witness_object_availability(p_company_id,p_environment,p_assessment_id,p_facts_hash);
+END $$;
+
+--
 -- Name: guard_ediel_test_run_message_evidence(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -48804,6 +49141,87 @@ CREATE TABLE gridex_received_sources.epoch (
 );
 
 ALTER TABLE ONLY gridex_received_sources.epoch FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: object_assessments; Type: TABLE; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TABLE gridex_received_sources.object_assessments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    source_message_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    source_payload_hash text NOT NULL,
+    canonical_assessment_id uuid NOT NULL,
+    previous_assessment_id uuid,
+    facts_text text NOT NULL,
+    facts_hash text NOT NULL,
+    owner_readsets jsonb NOT NULL,
+    created_xid xid8 DEFAULT pg_current_xact_id() NOT NULL,
+    assessed_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT object_assessments_check CHECK ((facts_hash = encode(sha256(convert_to(facts_text, 'UTF8'::name)), 'hex'::text))),
+    CONSTRAINT object_assessments_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT object_assessments_facts_text_check CHECK ((octet_length(facts_text) <= 262144)),
+    CONSTRAINT object_assessments_owner_readsets_check CHECK ((jsonb_typeof(owner_readsets) = 'array'::text))
+);
+
+ALTER TABLE ONLY gridex_received_sources.object_assessments FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: TABLE object_assessments; Type: COMMENT; Schema: gridex_received_sources; Owner: -
+--
+
+COMMENT ON TABLE gridex_received_sources.object_assessments IS 'Immutable exact-object owner compositions. Assessment correction chains are not market-source supersession. Availability for comparison requires a later verified read set; assessed_at alone is not commit visibility.';
+
+--
+-- Name: object_availability_witnesses; Type: TABLE; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TABLE gridex_received_sources.object_availability_witnesses (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    assessment_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    source_message_id uuid NOT NULL,
+    facts_hash text NOT NULL,
+    visibility_snapshot text NOT NULL,
+    observed_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT object_availability_witnesses_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text])))
+);
+
+ALTER TABLE ONLY gridex_received_sources.object_availability_witnesses FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: TABLE object_availability_witnesses; Type: COMMENT; Schema: gridex_received_sources; Owner: -
+--
+
+COMMENT ON TABLE gridex_received_sources.object_availability_witnesses IS 'Actual visibility observation of an already committed owner assessment. Neither receipt nor assessment timestamp proves availability. No pre-ledger reconstruction.';
+
+--
+-- Name: object_selection_snapshots; Type: TABLE; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TABLE gridex_received_sources.object_selection_snapshots (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    cutoff_at timestamp with time zone NOT NULL,
+    captured_at timestamp with time zone NOT NULL,
+    readset_text text NOT NULL,
+    readset_hash text NOT NULL,
+    visibility_snapshot text NOT NULL,
+    CONSTRAINT object_selection_snapshots_check CHECK ((readset_hash = encode(sha256(convert_to(readset_text, 'UTF8'::name)), 'hex'::text))),
+    CONSTRAINT object_selection_snapshots_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT object_selection_snapshots_readset_text_check CHECK ((octet_length(readset_text) <= 8388608))
+);
+
+ALTER TABLE ONLY gridex_received_sources.object_selection_snapshots FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: TABLE object_selection_snapshots; Type: COMMENT; Schema: gridex_received_sources; Owner: -
+--
+
+COMMENT ON TABLE gridex_received_sources.object_selection_snapshots IS 'Exact bounded immutable comparison readset. Current capture time is distinct from each approval availability witness and market effective time.';
 
 --
 -- Name: snapshots; Type: TABLE; Schema: gridex_received_sources; Owner: -
@@ -68427,6 +68845,34 @@ ALTER TABLE ONLY gridex_received_sources.epoch
     ADD CONSTRAINT epoch_pkey PRIMARY KEY (singleton);
 
 --
+-- Name: object_assessments object_assessments_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.object_assessments
+    ADD CONSTRAINT object_assessments_pkey PRIMARY KEY (id);
+
+--
+-- Name: object_availability_witnesses object_availability_witnesses_assessment_id_key; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.object_availability_witnesses
+    ADD CONSTRAINT object_availability_witnesses_assessment_id_key UNIQUE (assessment_id);
+
+--
+-- Name: object_availability_witnesses object_availability_witnesses_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.object_availability_witnesses
+    ADD CONSTRAINT object_availability_witnesses_pkey PRIMARY KEY (id);
+
+--
+-- Name: object_selection_snapshots object_selection_snapshots_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.object_selection_snapshots
+    ADD CONSTRAINT object_selection_snapshots_pkey PRIMARY KEY (id);
+
+--
 -- Name: snapshots snapshots_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
 --
 
@@ -72722,6 +73168,24 @@ CREATE INDEX received_snapshot_scope_idx ON gridex_received_sources.snapshots US
 --
 
 CREATE INDEX received_sources_original_scope_cutoff_idx ON gridex_received_sources.sources USING btree (company_id, environment, captured_at, source_message_id);
+
+--
+-- Name: source_object_assessment_first; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE UNIQUE INDEX source_object_assessment_first ON gridex_received_sources.object_assessments USING btree (source_message_id) WHERE (previous_assessment_id IS NULL);
+
+--
+-- Name: source_object_assessment_previous; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE UNIQUE INDEX source_object_assessment_previous ON gridex_received_sources.object_assessments USING btree (previous_assessment_id) WHERE (previous_assessment_id IS NOT NULL);
+
+--
+-- Name: source_object_assessment_scope; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE INDEX source_object_assessment_scope ON gridex_received_sources.object_assessments USING btree (company_id, environment, assessed_at, id);
 
 --
 -- Name: actor_registry_conflicts_actor_idx; Type: INDEX; Schema: public; Owner: -
@@ -82879,6 +83343,30 @@ CREATE OR REPLACE VIEW public.gridex_api_client_permission_summary_v WITH (secur
   GROUP BY c.id, co.name;
 
 --
+-- Name: object_availability_witnesses immutable_truncate; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_received_sources.object_availability_witnesses FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: object_selection_snapshots immutable_truncate; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_received_sources.object_selection_snapshots FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: object_availability_witnesses immutable_update_delete; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER immutable_update_delete BEFORE DELETE OR UPDATE ON gridex_received_sources.object_availability_witnesses FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: object_selection_snapshots immutable_update_delete; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER immutable_update_delete BEFORE DELETE OR UPDATE ON gridex_received_sources.object_selection_snapshots FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
 -- Name: discovery_attempts no_evidence_truncate; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
 --
 
@@ -82937,6 +83425,18 @@ CREATE TRIGGER received_sources_no_truncate BEFORE TRUNCATE ON gridex_received_s
 --
 
 CREATE TRIGGER received_sources_no_update_delete BEFORE DELETE OR UPDATE ON gridex_received_sources.sources FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: object_assessments source_object_assessment_no_mutation; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER source_object_assessment_no_mutation BEFORE DELETE OR UPDATE ON gridex_received_sources.object_assessments FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: object_assessments source_object_assessment_no_truncate; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER source_object_assessment_no_truncate BEFORE TRUNCATE ON gridex_received_sources.object_assessments FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
 
 --
 -- Name: customer_supply_periods a_customer_supply_periods_contract_alias_v1; Type: TRIGGER; Schema: public; Owner: -
@@ -84270,6 +84770,41 @@ CREATE TRIGGER zzzz_contract_price_snapshots_hash_integrity_v1 BEFORE INSERT ON 
 
 ALTER TABLE ONLY gridex_received_sources.discovery_attempts
     ADD CONSTRAINT discovery_attempts_snapshot_id_fkey FOREIGN KEY (snapshot_id) REFERENCES gridex_received_sources.snapshots(id) ON DELETE RESTRICT;
+
+--
+-- Name: object_assessments object_assessments_canonical_assessment_id_fkey; Type: FK CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.object_assessments
+    ADD CONSTRAINT object_assessments_canonical_assessment_id_fkey FOREIGN KEY (canonical_assessment_id) REFERENCES gridex_received_sources.validation_assessments(id) ON DELETE RESTRICT;
+
+--
+-- Name: object_assessments object_assessments_previous_assessment_id_fkey; Type: FK CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.object_assessments
+    ADD CONSTRAINT object_assessments_previous_assessment_id_fkey FOREIGN KEY (previous_assessment_id) REFERENCES gridex_received_sources.object_assessments(id) ON DELETE RESTRICT;
+
+--
+-- Name: object_assessments object_assessments_source_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.object_assessments
+    ADD CONSTRAINT object_assessments_source_message_id_fkey FOREIGN KEY (source_message_id) REFERENCES gridex_received_sources.sources(source_message_id) ON DELETE RESTRICT;
+
+--
+-- Name: object_availability_witnesses object_availability_witnesses_assessment_id_fkey; Type: FK CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.object_availability_witnesses
+    ADD CONSTRAINT object_availability_witnesses_assessment_id_fkey FOREIGN KEY (assessment_id) REFERENCES gridex_received_sources.object_assessments(id) ON DELETE RESTRICT;
+
+--
+-- Name: object_availability_witnesses object_availability_witnesses_source_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.object_availability_witnesses
+    ADD CONSTRAINT object_availability_witnesses_source_message_id_fkey FOREIGN KEY (source_message_id) REFERENCES gridex_received_sources.sources(source_message_id) ON DELETE RESTRICT;
 
 --
 -- Name: validation_assessments validation_assessments_previous_assessment_id_fkey; Type: FK CONSTRAINT; Schema: gridex_received_sources; Owner: -
@@ -91555,6 +92090,24 @@ ALTER TABLE gridex_received_sources.discovery_attempts ENABLE ROW LEVEL SECURITY
 --
 
 ALTER TABLE gridex_received_sources.epoch ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: object_assessments; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE gridex_received_sources.object_assessments ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: object_availability_witnesses; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE gridex_received_sources.object_availability_witnesses ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: object_selection_snapshots; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE gridex_received_sources.object_selection_snapshots ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: discovery_attempts original_company_read; Type: POLICY; Schema: gridex_received_sources; Owner: -
@@ -109813,6 +110366,13 @@ REVOKE ALL ON FUNCTION gridex_received_sources.append_discovery(p_company_id uui
 GRANT ALL ON FUNCTION gridex_received_sources.append_discovery(p_company_id uuid, p_environment text, p_snapshot_id uuid, p_snapshot_hash text, p_engine_version text, p_inventory_text text) TO service_role;
 
 --
+-- Name: FUNCTION append_object_assessment(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_canonical_assessment_id uuid, p_facts_text text); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.append_object_assessment(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_canonical_assessment_id uuid, p_facts_text text) FROM PUBLIC;
+GRANT ALL ON FUNCTION gridex_received_sources.append_object_assessment(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_canonical_assessment_id uuid, p_facts_text text) TO service_role;
+
+--
 -- Name: FUNCTION append_validation(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text); Type: ACL; Schema: gridex_received_sources; Owner: -
 --
 
@@ -109826,6 +110386,19 @@ GRANT ALL ON FUNCTION gridex_received_sources.append_validation(p_company_id uui
 REVOKE ALL ON FUNCTION gridex_received_sources.capture_insert() FROM PUBLIC;
 
 --
+-- Name: FUNCTION object_owner_proof_consistent(p_party jsonb, p_business jsonb, p_received timestamp with time zone); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.object_owner_proof_consistent(p_party jsonb, p_business jsonb, p_received timestamp with time zone) FROM PUBLIC;
+
+--
+-- Name: FUNCTION open_object_selection_snapshot(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.open_object_selection_snapshot(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) FROM PUBLIC;
+GRANT ALL ON FUNCTION gridex_received_sources.open_object_selection_snapshot(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) TO service_role;
+
+--
 -- Name: FUNCTION open_snapshot(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone); Type: ACL; Schema: gridex_received_sources; Owner: -
 --
 
@@ -109833,10 +110406,23 @@ REVOKE ALL ON FUNCTION gridex_received_sources.open_snapshot(p_company_id uuid, 
 GRANT ALL ON FUNCTION gridex_received_sources.open_snapshot(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) TO service_role;
 
 --
+-- Name: FUNCTION owner_rows_match(p_kind text, p_rows jsonb, p_company uuid, p_environment text, p_actor uuid); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.owner_rows_match(p_kind text, p_rows jsonb, p_company uuid, p_environment text, p_actor uuid) FROM PUBLIC;
+
+--
 -- Name: FUNCTION reject_mutation(); Type: ACL; Schema: gridex_received_sources; Owner: -
 --
 
 REVOKE ALL ON FUNCTION gridex_received_sources.reject_mutation() FROM PUBLIC;
+
+--
+-- Name: FUNCTION witness_object_availability(p_company_id uuid, p_environment text, p_assessment_id uuid, p_facts_hash text); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.witness_object_availability(p_company_id uuid, p_environment text, p_assessment_id uuid, p_facts_hash text) FROM PUBLIC;
+GRANT ALL ON FUNCTION gridex_received_sources.witness_object_availability(p_company_id uuid, p_environment text, p_assessment_id uuid, p_facts_hash text) TO service_role;
 
 --
 -- Name: TABLE spot_price_monthly_summaries; Type: ACL; Schema: public; Owner: -
@@ -113159,6 +113745,13 @@ REVOKE ALL ON FUNCTION public.gridex_record_source_discovery_v1(p_company_id uui
 GRANT ALL ON FUNCTION public.gridex_record_source_discovery_v1(p_company_id uuid, p_environment text, p_snapshot_id uuid, p_snapshot_hash text, p_engine_version text, p_inventory_text text) TO service_role;
 
 --
+-- Name: FUNCTION gridex_record_source_object_decisions_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_canonical_assessment_id uuid, p_facts_text text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_record_source_object_decisions_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_canonical_assessment_id uuid, p_facts_text text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_record_source_object_decisions_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_canonical_assessment_id uuid, p_facts_text text) TO service_role;
+
+--
 -- Name: FUNCTION gridex_record_source_validation_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -113618,6 +114211,13 @@ GRANT ALL ON FUNCTION public.gridex_snapshot_with_invoice_fee(p_snapshot jsonb, 
 GRANT ALL ON FUNCTION public.gridex_snapshot_with_invoice_fee(p_snapshot jsonb, p_amount numeric, p_website_card_visible boolean) TO service_role;
 
 --
+-- Name: FUNCTION gridex_source_object_snapshot_v1(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_source_object_snapshot_v1(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_source_object_snapshot_v1(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) TO service_role;
+
+--
 -- Name: FUNCTION gridex_stage_energy_geodata_feature(p_geodata_version_id uuid, p_feature_id text, p_properties jsonb, p_geometry_geojson jsonb, p_source_url text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -114062,6 +114662,13 @@ GRANT ALL ON FUNCTION public.gridex_verify_contract_lifecycle_backfill(p_company
 
 REVOKE ALL ON FUNCTION public.gridex_verify_contract_schema_alignment() FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_verify_contract_schema_alignment() TO service_role;
+
+--
+-- Name: FUNCTION gridex_witness_source_objects_v1(p_company_id uuid, p_environment text, p_assessment_id uuid, p_facts_hash text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_witness_source_objects_v1(p_company_id uuid, p_environment text, p_assessment_id uuid, p_facts_hash text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_witness_source_objects_v1(p_company_id uuid, p_environment text, p_assessment_id uuid, p_facts_hash text) TO service_role;
 
 --
 -- Name: FUNCTION guard_ediel_test_run_message_evidence(); Type: ACL; Schema: public; Owner: -

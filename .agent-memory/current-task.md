@@ -1,3 +1,42 @@
+# E035 recovered database continuation — 2026-09-22
+
+PARTIAL / NOT MERGE-READY. Active PR370, codex/e035-durable-source-ledger-20260922.
+Resolve the current candidate from the containing Git commit and live PR metadata.
+Last verified published baseline: bc6085e192bbab4da50b9db9d47bb27b73178b87,
+ordinary OPS run35741940986, all three jobs PASS. Main/accepted PR369 remains
+ eb2b8693130af8fa7976a93891b95973bc473b50.
+
+Preserved implementations: immutable received originals/discovery/canonical evidence,
+actual per-object register validation and explicit-time tenant identity provenance.
+Recovered database work: immutable owner assessments, committed-availability witnesses,
+bounded immutable decision snapshots and message-local LIN uniqueness via a forward
+migration. This does NOT deliver full runtime source approval or E61/E62 selection.
+
+Native run35747547629 at4a502344: 71 owner SQL checks, 61 register SQL checks,
+retained suites and real concurrency/snapshot/role/budget probes PASS. The valid
+multi-message LIN case failed before the correction and passed afterward. Repeated
+schema/type bytes and artifact checksums were independently checked by the implementing
+assistant, not an independent reviewer. New regressions are wired into ordinary replay.
+
+The previously reported 5758-tests/347-files TypeScript continuation was not recovered
+in this session. Neither pinned preparation source nor its native artifact contains it.
+Do not claim those results were reproduced or that missing runtime code is published.
+Application and test source from the 5565-test published baseline stays unchanged.
+Full tenant/legal-party/business runtime dispositions, source approval,
+timeline/supersession/E61/E62 remain incomplete. Exact-head final CI and independent
+whole-PR/requirement/tenant-boundary review are mandatory. Green CI alone is not merge approval.
+
+PR310 stays OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a.
+No PR310 source/proof infrastructure, hosted database, deployment or market message.
+Native advisors retain the existing public.gridex_grid_owner_name_key mutable
+search_path warning; this is not a globally clean advisor result.
+
+Next action: Qualify and publish recovered database continuation in existing PR370; complete exact-head ordinary CI and independent whole-PR review. Recover or implement missing runtime tenant/party/business disposition owners, then timeline/supersession/E61/E62. Preserve existing facets. No checkpoint merge.
+
+See quality/audits/ediel-masterplan-v2/e035-source-ledger/resume-db-qualification-20260922.md
+
+## Historical records — superseded where contradicted above
+
 # Continuation update — 2026-09-22
 
 Authoritative baseline is PR370 head92d4980e5f1e068a3d33826f4ef75d086bfaf714, main eb2b8693130af8fa7976a93891b95973bc473b50. OPS35719151591 all three ordinary jobs passed. Other workflows were inspected separately: public browser, coverage and smoke passed; staging/real-customer and production crawler skips are NOT executions. The two prior CodeRabbit findings were confirmed resolved; no full E035 approval follows from that.

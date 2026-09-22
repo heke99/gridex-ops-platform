@@ -1,7 +1,7 @@
 {
   "project": "gridex-ops-platform",
   "updated_at": "2026-09-22",
-  "status": "IN_PROGRESS",
+  "status": "PARTIAL",
   "paused": false,
   "branch": "codex/e035-durable-source-ledger-20260922",
   "active_pr": 370,
@@ -11,8 +11,8 @@
   "last_accepted_pr": 369,
   "root_main_acceptance_comment": 5768848443,
   "active_item": "E035 durable sources, immutable actual-owner dispositions and later temporal comparison",
-  "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/continuation-20260922.md",
-  "next_action": "Finish native register-facet verification and publish coherent continuation in PR370; integrate actual tenant/party/business owners, then timeline and E61/E62. No checkpoint merge.",
+  "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/resume-db-qualification-20260922.md",
+  "next_action": "Qualify and publish recovered database continuation in existing PR370; complete exact-head ordinary CI and independent whole-PR review. Recover or implement missing runtime tenant/party/business disposition owners, then timeline/supersession/E61/E62. Preserve existing facets. No checkpoint merge.",
   "previous_ordinary_ci": {
     "head": "a89275ba0b34ae27530c2e403d3ae3f2667afe3b",
     "ops": 35715146276,
@@ -35,9 +35,9 @@
     "root_tests": 5514,
     "ordinary_delivery_retest_needed": true
   },
-  "independent_review": "BOUNDED_REGISTER_TS_AND_SQL_STATIC_APPROVED_NOT_FULL_E035",
-  "ordinary_final_head_ci": "PENDING_NEW_CONTINUATION",
-  "full_source_disposition": "NOT_IMPLEMENTED_CANONICAL_FACETS_ONLY",
+  "independent_review": "PENDING_CURRENT_WHOLE_PR_REVIEW",
+  "ordinary_final_head_ci": "PENDING_EXACT_CURRENT_CANDIDATE",
+  "full_source_disposition": "INCOMPLETE_RUNTIME_OWNER_INTEGRATION",
   "full_E035": "NOT_COMPLETE",
   "full_F3": "NOT_COMPLETE",
   "full_masterplan": "NOT_COMPLETE",
@@ -51,16 +51,11 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "92d4980e5f1e068a3d33826f4ef75d086bfaf714",
+  "last_verified_pr_head": "bc6085e192bbab4da50b9db9d47bb27b73178b87",
   "ordinary_baseline_ci": {
-    "head": "92d4980e5f1e068a3d33826f4ef75d086bfaf714",
-    "ops": 35719151591,
-    "status": "SUCCESS",
-    "jobs": [
-      "verify",
-      "quality-release-gates",
-      "clean-migration-replay"
-    ]
+    "head": "bc6085e192bbab4da50b9db9d47bb27b73178b87",
+    "ops": 35741940986,
+    "status": "SUCCESS"
   },
   "continuation_native": {
     "run": 35733978604,
@@ -77,5 +72,27 @@
     "typechecks": "PASS",
     "lint_errors": 0,
     "lint_warnings": 101
+  },
+  "source_state": {
+    "baseline_git_sha": "bc6085e192bbab4da50b9db9d47bb27b73178b87",
+    "candidate_sha": "RESOLVE_CURRENT_GIT_HEAD",
+    "scope": "RECOVERED_DATABASE_ONLY_RUNTIME_UNCHANGED"
+  },
+  "recovered_database_continuation": {
+    "source_head": "4a502344e3fce5824eee52aee6d744e4abc3fde9",
+    "native_run": 35747547629,
+    "artifact": 10704336133,
+    "artifact_sha256": "08632ba2f85b11a1b13e0b9e5bffee09797f049bf058e5f40003b08ce41d44f7",
+    "native_result": "PASS_NOT_FINAL_PR_CI",
+    "object_sql_checks": 71,
+    "register_sql_checks": 61,
+    "new_migrations": [
+      "20260922144906_ediel_source_object_decisions.sql",
+      "20260922150922_ediel_source_decision_snapshots.sql",
+      "20260922152602_ediel_register_message_line_scope.sql"
+    ],
+    "reported_5758_runtime": "NOT_RECOVERED_NOT_REVERIFIED",
+    "repeated_native_contracts": "BYTE_IDENTICAL",
+    "known_advisor": "existing public.gridex_grid_owner_name_key mutable search_path"
   }
 }

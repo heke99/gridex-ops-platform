@@ -26,6 +26,9 @@
     "20260921224255_ediel_inbound_prodat_receive_context.sql": "6a959ebee1af9759aeb224de4bc3a488116befd42a0208454b6dfe4e05022e2d",
     "20260922095911_ediel_received_source_ledger.sql": "a3a4933935995dd6525d09d70949f360aa52bcf72e5ab8d93970fdcdea4aae39",
     "20260922105251_ediel_received_discovery_shape.sql": "a0fc753f70f0f18ed2952f689ac114a7bc838befd18ab2758fdf8e33830c515c",
-    "20260922131136_ediel_received_register_validation.sql": "eab2138bc7d1be4018bb5c110c84ea44bdec19a5da0718a80282e2f328aa9258"
+    "20260922131136_ediel_received_register_validation.sql": "eab2138bc7d1be4018bb5c110c84ea44bdec19a5da0718a80282e2f328aa9258",
+    "20260922144906_ediel_source_object_decisions.sql": "e197655d2394072184f077c2e8a140c80f4e4571704ab361b3bfd5d07476a430",
+    "20260922150922_ediel_source_decision_snapshots.sql": "abb710a076ef5cd0650b1ad3a67e3fe7ae43b7b613a6ed18e8a24f5cb8cbab2b",
+    "20260922152602_ediel_register_message_line_scope.sql": "0a1d0ff73b0407efd41b73875ffbdc08110855990346fc2ac2554ab38e831003"
   }
 }

@@ -89963,6 +89963,17 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_record_source_object_decisions_v1: {
+        Args: {
+          p_canonical_assessment_id: string
+          p_company_id: string
+          p_environment: string
+          p_facts_text: string
+          p_source_message_id: string
+          p_source_payload_hash: string
+        }
+        Returns: Json
+      }
       gridex_record_source_validation_v1: {
         Args: {
           p_company_id: string
@@ -90304,6 +90315,10 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_source_object_snapshot_v1: {
+        Args: { p_company_id: string; p_cutoff: string; p_environment: string }
+        Returns: Json
+      }
       gridex_stage_energy_geodata_feature: {
         Args: {
           p_feature_id: string
@@ -90571,6 +90586,15 @@ export type Database = {
         Returns: Json
       }
       gridex_verify_contract_schema_alignment: { Args: never; Returns: Json }
+      gridex_witness_source_objects_v1: {
+        Args: {
+          p_assessment_id: string
+          p_company_id: string
+          p_environment: string
+          p_facts_hash: string
+        }
+        Returns: Json
+      }
       integration_api_rate_limit_check: {
         Args: {
           p_api_client_id: string
