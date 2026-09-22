@@ -12,8 +12,10 @@ amend('.e035-tools/prepare_native.py',
 """    # The unchanged PR369 clean-upgrade probe requires no existing reserved
     # receipt keys. Remove ONLY this helper's operational fixtures through the
     # real DELETE path; the new immutable history must survive the cleanup.
+    # Do not delete the company: provisioning creates protected published legal
+    # texts. The owned disposable stack teardown cleans the complete database.
     check('native-fixture-cleanup-is-exact',sql(f\"SELECT count(*) FROM public.ediel_messages WHERE company_id='{company}';\")=='3')
-    sql(f\"DELETE FROM public.ediel_messages WHERE company_id='{company}'; DELETE FROM public.companies WHERE id='{company}';\")
+    sql(f\"DELETE FROM public.ediel_messages WHERE company_id='{company}';\")
     check('native-fixture-delete-retains-durable-sources',sql(f\"SELECT count(*) FROM gridex_received_sources.sources WHERE company_id='{company}';\")=='2')
     check('native-fixture-delete-retains-linked-assessments',sql(f\"SELECT count(*) FROM gridex_received_sources.validation_assessments WHERE company_id='{company}';\")=='2')
     check('old-upgrade-fixtures-have-clean-operational-input',sql(\"SELECT count(*) FROM public.ediel_messages WHERE execution_context_snapshot ? 'receivedProdatContext';\")=='0')
@@ -38,5 +40,5 @@ manifest=root/'.e035-tools/input-manifest.json'; data=json.loads(manifest.read_t
 for f in data['files']:
     if f['path'] in changed: f['sha256']=hashlib.sha256((root/f['path']).read_bytes()).hexdigest()
 manifest.write_text(json.dumps(data,indent=2)+'\n')
-prov=root/'.e035-tools/provenance.json'; p=json.loads(prov.read_text());p['amendment_r1']={'sha256':hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(),'first_run':35706199237,'first_artifact':10684747327,'first_failure':'committed native fixtures interfered with unchanged PR369 clean upgrade; tests not weakened','changed_files':sorted(set(changed))};p['files']=data['files'];prov.write_text(json.dumps(p,indent=2)+'\n')
-print('Applied digest-bound r1 amendment:',sorted(set(changed)))
+prov=root/'.e035-tools/provenance.json'; p=json.loads(prov.read_text());p['amendment_r1']={'sha256':hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(),'first_run':35706199237,'first_artifact':10684747327,'first_failure':'committed native fixtures interfered with unchanged PR369 clean upgrade; tests not weakened','changed_files':sorted(set(changed))};p['amendment_r2']={'previous_run':35707430401,'previous_artifact':10685096430,'fix':'remove only owned operational messages, retain synthetic company and published legal texts; no production legal or source guards changed'};p['files']=data['files'];prov.write_text(json.dumps(p,indent=2)+'\n')
+print('Applied digest-bound r1/r2 amendment:',sorted(set(changed)))
