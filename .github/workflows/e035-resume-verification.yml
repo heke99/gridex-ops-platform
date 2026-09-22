@@ -12,7 +12,6 @@ jobs:
     timeout-minutes: 40
     env:
       NODE_OPTIONS: --max-old-space-size=4096
-      E035_METADATA_GZIP: H4sIAAAAAAAC/+1d63LjxpX+z6foHbsqdpEgcb9IfyxLnBmlZEkraex1ki2kATREeEiABsDRKKlU5SH2CfdJ9pzT3QBIcWSNN67d7DJxSRqg0ZfT5/Kd7zSJrMhzZhj3Rcv4bMrvRdkaK7Gq6sdZuhDp+3VVlO30p6YqWfL8/VFRZuIjC0MvyDx7OnUTjyeZyyzT9F13ZBjGL40wGo/HvzjKN98ww5oEbIw/vvlmxP46Yoy9WtfVTyJtXx2xV/d1ARMxqnVjrJe8zat69WpCjTbrjLciizm1s03bN8zIsG24bcDtpuXtpsFb55fx9c3Vm5v57S3cG2/duz65uTs/uVBdrvmmERlcz/myEfJaUvMyXWDbtIKZzITpeEa2qXmyFEZTbepUGEuR3YvawDmYEc0An+RpW3wQ8bqGh53AnMjVWpMQlos/cb3QbMmbNuZpKta4Gtnaj2QXdVW18YoXpWoAUxFxWq1WIFNo5wV+GLqh6zpbIxatWOGE5zBVpqbK5FSbCStWq01Ll6D5hi+N6qEUNcuKZl01RVtUZcN4mTGQNlyGrtZVzZcMRl3zuoBdUwJON3UN04j5JitoC36Gzor2cUYXmpnICrE0VrA6UcPWlcYHWwpvS2iztCrbotxwHLiT4HSVqVFK8RGlg3dxjNdFWTQLU5NjjO94JSjg==
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,41 +29,27 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/10704336133/zip" > "$evidence/native.zip"
           echo "08632ba2f85b11a1b13e0b9e5bffee09797f049bf058e5f40003b08ce41d44f7  $evidence/native.zip" | sha256sum -c -
           python3 - "$evidence" <<'PY'
-          import base64,gzip,hashlib,os,pathlib,shutil,sys,zipfile
+          import pathlib,sys,zipfile
           out=pathlib.Path(sys.argv[1]); native=out/'native'
           with zipfile.ZipFile(out/'native.zip') as archive:
               for member in archive.infolist():
-                  dest=(native/member.filename).resolve()
-                  assert dest.is_relative_to(native.resolve())
+                  assert (native/member.filename).resolve().is_relative_to(native.resolve())
                   assert member.file_size < 20_000_000
               archive.extractall(native)
-          assert (native/'source-commit.txt').read_text().strip()=='4a502344e3fce5824eee52aee6d744e4abc3fde9'
-          for entry in (native/'SHA256SUMS').read_text().splitlines():
-              digest,name=entry.split(maxsplit=1); path=(native/name.lstrip('*')).resolve()
-              assert path.is_relative_to(native.resolve())
-              assert hashlib.sha256(path.read_bytes()).hexdigest()==digest
-          for one,two in [('database.types.ts','database.types.repeat.ts'),('schema/schema.sql','schema-repeat/schema.sql'),('schema/schema.fingerprint.json','schema-repeat/schema.fingerprint.json')]:
-              assert (native/one).read_bytes()==(native/two).read_bytes()
-          for name in ['20260922144906_ediel_source_object_decisions.sql','20260922150922_ediel_source_decision_snapshots.sql','20260922152602_ediel_register_message_line_scope.sql']:
-              target=pathlib.Path('supabase/migrations')/name
-              assert not target.exists()
-              shutil.copyfile(native/name,target)
-          for one,two in [('database.types.ts','supabase/database.types.ts'),('schema/schema.sql','supabase/schema.sql'),('schema/schema.fingerprint.json','supabase/schema.fingerprint.json')]:
-              shutil.copyfile(native/one,two)
-          patch=gzip.decompress(base64.b64decode(os.environ['E035_METADATA_GZIP'],validate=True))
-          assert hashlib.sha256(patch).hexdigest()=='5493d54f18d367f16bdfdde83bfc93c264e78a45826c1d73c755eab584684980'
-          (out/'metadata.patch').write_bytes(patch)
           PY
+          git fetch --no-tags --depth=1 origin 218a723515254d10fdb6868fceb3e5d58f0ff096
+          git show 218a723515254d10fdb6868fceb3e5d58f0ff096:scripts/e035-resume-assembler.py > "$evidence/assemble_resume.py"
+          echo "24421244ddcb7dcf2606e367aa86c0e4d832dfb6cb29ffc95b5b5815db78022a  $evidence/assemble_resume.py" | sha256sum -c -
+          python3 "$evidence/assemble_resume.py" "$PWD" "$evidence/native"
           git fetch --no-tags --depth=1 origin 4a502344e3fce5824eee52aee6d744e4abc3fde9
           for path in scripts/ediel-register-validation-regression.sql scripts/ediel-source-object-decisions-regression.sql scripts/ediel-source-object-concurrency-regression.py; do
             git show "4a502344e3fce5824eee52aee6d744e4abc3fde9:$path" > "$path"
           done
-          git apply "$evidence/metadata.patch"
           git diff --check
           git diff --exit-code -- app lib __tests__ package.json package-lock.json .github
           git add -A
           tree="$(git write-tree)"
-          test "$tree" = 5385b27aefde56e2f54705f5a49efa9f062216d8
+          test "$tree" = c8ee80bd7959d31eb44a63c4ffa72c015791a538
           candidate="$(git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit-tree "$tree" -p bc6085e192bbab4da50b9db9d47bb27b73178b87 -m 'feat(e035): recover verified immutable owner decisions and source snapshots; keep full runtime approval pending')"
           printf '%s\n' "$candidate" > "$evidence/candidate-commit.txt"
           printf '%s\n' "$tree" > "$evidence/candidate-tree.txt"
@@ -82,7 +67,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          server_major="$(python3 -c "import re,pathlib;print(re.search(r'^major_version\\s*=\\s*(\\d+)', pathlib.Path('supabase/config.toml').read_text(), re.M).group(1))")"
+          server_major="$(python3 -c 'import tomllib;print(tomllib.load(open("supabase/config.toml","rb"))["db"]["major_version"])')"
           test "$server_major" = 17
           sudo install -d /usr/share/postgresql-common/pgdg
           sudo curl --fail -sS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
@@ -147,7 +132,7 @@ jobs:
           evidence="$RUNNER_TEMP/e035-qualified"
           candidate="$(cat "$evidence/candidate-commit.txt")"
           test "$(git rev-parse HEAD)" = "$candidate"
-          test "$(git rev-parse HEAD^{tree})" = 5385b27aefde56e2f54705f5a49efa9f062216d8
+          test "$(git rev-parse HEAD^{tree})" = c8ee80bd7959d31eb44a63c4ffa72c015791a538
           git diff --exit-code HEAD --
           test -z "$(git ls-remote --heads origin refs/heads/codex/e035-resume-qualified-20260922)"
           git archive --format=tar.gz HEAD > "$evidence/qualified-source.tar.gz"
