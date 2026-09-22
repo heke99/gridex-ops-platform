@@ -1,0 +1,71 @@
+--- a/lib/ediel/rulebook/canonicalRulePackRegistry.ts
++++ b/lib/ediel/rulebook/canonicalRulePackRegistry.ts
+@@ -19,6 +19,7 @@
+   sourceHash: string
+   fieldMatrixVersion: string | null
+   profileKey: string
++  activationProfileKey: string
+   businessProcess: string
+   phase: string | null
+   profile: Record<string, unknown>
+@@ -125,6 +126,7 @@
+     sourceHash,
+     fieldMatrixVersion: nullableText(row.field_matrix_version),
+     profileKey: requiredText(row, 'profile_key'),
++    activationProfileKey: requiredText(row, 'profile_key'),
+     businessProcess: requiredText(row, 'business_process'),
+     phase: nullableText(row.phase),
+     profile: profile as Record<string, unknown>,
+--- a/lib/ediel/core/runtimeDecision.ts
++++ b/lib/ediel/core/runtimeDecision.ts
+@@ -473,6 +473,7 @@
+       decisionTrace,
+       rulePackEvidence: {
+         profileKey: evidence.profileKey,
++        activationProfileKey: evidence.activationProfileKey,
+         messageProfileId: evidence.messageProfileId,
+         rulePackId: evidence.rulePackId,
+         sourceHash: evidence.sourceHash,
+--- a/lib/ediel/core/receivedSourceValidationEvidence.ts
++++ b/lib/ediel/core/receivedSourceValidationEvidence.ts
+@@ -27,7 +27,11 @@
+     if (!isEvidenceRecord(evidence) || typeof evidence.profileKey !== 'string' || evidence.profileKey.length > 128
+       || !isEvidenceUuid(evidence.messageProfileId) || !isEvidenceUuid(evidence.rulePackId)
+       || typeof evidence.sourceHash !== 'string' || !/^[a-f0-9]{64}$/.test(evidence.sourceHash)) return null
+-    rulePackEvidence = { profileKey: evidence.profileKey, messageProfileId: evidence.messageProfileId, rulePackId: evidence.rulePackId, sourceHash: evidence.sourceHash }
++    // Runtime keeps the normative name for existing consumers; the activated
++    // database tuple has its own key. Never make SQL accept a semantic alias.
++    const activationKey = evidence.activationProfileKey === undefined ? evidence.profileKey : evidence.activationProfileKey
++    if (typeof activationKey !== 'string' || !activationKey.trim() || activationKey.length > 128) return null
++    rulePackEvidence = { profileKey: activationKey, messageProfileId: evidence.messageProfileId, rulePackId: evidence.rulePackId, sourceHash: evidence.sourceHash }
+   }
+   // Registry-unavailable acceptance is never silently downgraded to evidence
+   // with an unknown rule version. Rejection can legitimately precede registry.
+--- a/__tests__/ediel-canonical-rule-pack-evidence-identity.test.ts
++++ b/__tests__/ediel-canonical-rule-pack-evidence-identity.test.ts
+@@ -105,3 +105,25 @@
+     })).rejects.toThrow('canonical_rule_pack_evidence_direction_mismatch:inbound:outbound')
+   })
+ })
++
++
++it('preserves the activated DB profile identity separately from the normative policy name', async () => {
++  mocks.rpc.mockResolvedValue({ data: [z01Evidence()], error: null })
++  const result = await resolveCanonicalRulePack({ family: 'PRODAT', messageCode: 'Z01', transactionSubtype: 'L', direction: 'outbound', businessDate: '2026-09-03' })
++  expect(result).toMatchObject({ profileKey: 'prodat_z01_customer_identity_request', activationProfileKey: 'PRODAT:Z01:L:26.A:r3' })
++})
++
++it('persists the actual activated profile tuple from the real runtime rather than its semantic alias', async () => {
++  const { approvalFixture } = await import('./helpers/receivedSourceObjectFixture')
++  const { resolveCanonicalRuntimeDecisionWithRegistry } = await import('@/lib/ediel/core/runtimeDecision')
++  const { buildReceivedSourceValidationEvidence } = await import('@/lib/ediel/core/receivedSourceValidationEvidence')
++  const db = z01Evidence({ messageCode: 'Z04', canonicalDirection: 'inbound' })
++  db.profile_key = 'PRODAT:Z04:L:26.A:r3'
++  mocks.rpc.mockResolvedValue({ data: [db], error: null })
++  const { message } = approvalFixture()
++  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(message)
++  expect(decision.applicationDecision).toBe('accepted')
++  const result = buildReceivedSourceValidationEvidence({ original: message, validated: message, resolvedCompanyId: message.company_id, decision })
++  expect(result).not.toBeNull()
++  expect(JSON.parse(result!.factsText).rulePackEvidence).toEqual({ profileKey: db.profile_key, messageProfileId: db.message_profile_id, rulePackId: db.rule_pack_id, sourceHash: db.source_hash })
++})

@@ -18,25 +18,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Verify and unpack exact local source candidate
-        run: |
-          python3 <<'PY'
-          import hashlib,io,json,lzma,os,pathlib,subprocess,tarfile
-          base='92d4980e5f1e068a3d33826f4ef75d086bfaf714'
-          assert subprocess.check_output(['git','rev-parse',base+'^{tree}'],text=True).strip()=='b19587747eff6be6bc744c4954e7d815b62cc30c'
-          data=b''.join(pathlib.Path(f'.e035-object-input/part-{n}.bin').read_bytes() for n in range(6))
-          assert hashlib.sha256(data).hexdigest()=='51a781993b45b2649bade05843e77796f705387443a77a5eee6e1dc819987764'
-          out=pathlib.Path(os.environ['E035_INPUT_DIR']);out.mkdir(parents=True,exist_ok=True)
-          with tarfile.open(fileobj=io.BytesIO(lzma.decompress(data)),mode='r:') as archive:
-              for member in archive.getmembers():
-                  assert member.isfile() and pathlib.PurePosixPath(member.name).name==member.name
-                  (out/member.name).write_bytes(archive.extractfile(member).read())
-          for rel,h in json.loads((out/'input-sha256.json').read_text()).items():assert hashlib.sha256((out/rel).read_bytes()).hexdigest()==h,rel
-          patch=pathlib.Path('.e035-object-input/normative-facade.patch')
-          assert hashlib.sha256(patch.read_bytes()).hexdigest()=='c76b97644f42f1e5c2096393fa386da22abc3e89c3a6146549c588b4f3e35ac0'
-          for p in [out/'source.patch',patch]:
-              subprocess.run(['git','apply','--check',str(p)],check=True)
-              subprocess.run(['git','apply',str(p)],check=True)
-          PY
+        run: python3 .e035-object-input/bootstrap.py
       - uses: actions/setup-node@v4
         with:
           node-version: 22
