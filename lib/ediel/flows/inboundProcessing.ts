@@ -914,7 +914,7 @@ export async function processInboundEdielMessage(params: {
   }
 
   if (runtimeMessage.message_family === "UTILTS") {
-    await processInboundUtiltsMessage({
+    const utiltsResult = await processInboundUtiltsMessage({
       actorUserId,
       edielMessageId: runtimeMessage.id,
       canonicalPolicy: canonicalRuntime.decision.policy,
@@ -923,6 +923,7 @@ export async function processInboundEdielMessage(params: {
       actorUserId,
       message: runtimeMessage,
       source: "utilts_processing",
+      utiltsInternalReviewRequired: utiltsResult.internalReviewRequired === true,
     });
     return runtimeMessage;
   }

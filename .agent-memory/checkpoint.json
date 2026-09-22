@@ -1,7 +1,7 @@
 {
   "project": "gridex-ops-platform",
   "updated_at": "2026-09-22",
-  "status": "PARTIAL",
+  "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/e035-durable-source-ledger-20260922",
   "active_pr": 370,
@@ -10,9 +10,9 @@
   "last_merged_pr": 369,
   "last_accepted_pr": 369,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "E035 witnessed owner-decision timeline and assessment correction, followed by market temporal selection",
-  "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/decision-timeline-20260922.md",
-  "next_action": "Qualify the current decision-timeline source and actual HTTP/native correction tests; inspect exact-head ordinary CI and independent TASK/SPEC, QUALITY, TENANT-BOUNDARY and WHOLE-PR review. Then complete applicable missing business owners, dated market completeness, cross-source supersession and E61/E62 selection. Do not redo de9e459 or merge a checkpoint.",
+  "active_item": "E035 dated reviewed market structure and authoritative E61/E62 comparison",
+  "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
+  "next_action": "Run authentic forward and expanded native suite; resolve findings; exact-head ordinary CI and independent whole-PR review; no checkpoint merge.",
   "previous_ordinary_ci": {
     "head": "a89275ba0b34ae27530c2e403d3ae3f2667afe3b",
     "ops": 35715146276,
@@ -36,7 +36,7 @@
     "ordinary_delivery_retest_needed": true
   },
   "independent_review": "PENDING_CURRENT_WHOLE_PR_REVIEW",
-  "ordinary_final_head_ci": "PENDING_EXACT_CURRENT_CANDIDATE",
+  "ordinary_final_head_ci": "PENDING",
   "full_source_disposition": "Z04_RUNTIME_QUALIFIED_DECISION_TIMELINE_IMPLEMENTED_PENDING_CURRENT_QUALIFICATION_MARKET_SELECTION_INCOMPLETE",
   "full_E035": "NOT_COMPLETE",
   "full_F3": "NOT_COMPLETE",
@@ -51,7 +51,7 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "de9e459a5843a9cf562436fb46e0376a61a7e53e",
+  "last_verified_pr_head": "64bf9713b412ef629e7c8ecc6bc575e02ff5968f",
   "ordinary_baseline_ci": {
     "head": "d7fb49fde3dae153693acae1cefa33aeef45ad4f",
     "ops": 35758893367,
@@ -140,5 +140,13 @@
     "root_tests": 5611,
     "root_files": 344,
     "receipt": 5782195660
+  },
+  "market_structure_candidate": {
+    "status": "IMPLEMENTED_NOT_NATIVE_VERIFIED",
+    "root_tests": 5786,
+    "root_files": 349,
+    "new_qualification_tests": 6,
+    "native_status": "NOT_EXECUTED",
+    "forward": "20260922205926_ediel_reviewed_structural_source.sql"
   }
 }

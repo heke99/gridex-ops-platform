@@ -2,7 +2,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
-import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
+import { observationHandoffMessage, energyHandoffMessage } from './helpers/utiltsObservationHandoff'
 import { COMPANY, OTHER, row, snapshot } from './helpers/receivedSourceInventoryFixtures'
 
 const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), rpc: vi.fn(), matches: vi.fn(), ingest: vi.fn(), allMatched: vi.fn() }))
@@ -106,7 +106,7 @@ async function capture(accepted: boolean) {
 }
 for (const accepted of [false, true]) for (const state of ['complete', 'unknown-receipt', 'foreign-scope', 'bad-write-receipt', 'write-throws', 'overflow'] as const) {
   it(`actual durable RPC integration preserves all ${accepted ? 'accepted' : 'rejected'} business outcomes: ${state}`, async () => {
-    if (accepted) { incoming = observationHandoffMessage('2026-10-01', COMPANY); io.allMatched.mockReturnValue(true) }
+    if (accepted) { incoming = energyHandoffMessage('2026-10-01', COMPANY); io.allMatched.mockReturnValue(true) }
     const baseline = await capture(accepted)
     scenario = state
     expect(await capture(accepted)).toEqual(baseline)
@@ -137,7 +137,7 @@ for (const accepted of [false, true]) for (const state of ['complete', 'unknown-
 // Assert the new nested timeline separately; all business outcome gates remain.
 for(const accepted of [false,true])for(const state of ['complete','late-witness','corrupt','overflow','throws'] as const) {
   it(`actual decision timeline preserves all ${accepted?'accepted':'rejected'} business outcomes: ${state}`,async()=>{
-    if(accepted){incoming=observationHandoffMessage('2026-10-01',COMPANY);io.allMatched.mockReturnValue(true)}
+    if(accepted){incoming=energyHandoffMessage('2026-10-01',COMPANY);io.allMatched.mockReturnValue(true)}
     const baseline=await capture(accepted)
     timelineScenario=state
     expect(await capture(accepted)).toEqual(baseline)

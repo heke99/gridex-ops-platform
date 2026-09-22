@@ -5,6 +5,7 @@ import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import { qualifyReceivedUtiltsStructure } from '@/lib/ediel/utilts/qualifyReceivedStructure'
 import { readReceivedStructuralSources } from '@/lib/ediel/utilts/receivedStructuralSources'
 import { readAndRecordDurableReceivedSources } from '@/lib/ediel/utilts/receivedSourceLedger'
 import { createEdielMessageEvent, getEdielMessageById, linkEdielMessage, updateEdielMessageStatus } from '@/lib/ediel/db'
@@ -415,16 +416,21 @@ export async function processInboundUtiltsMessage(params: {
         : permissionProbeMessage.business_match_status,
   }
 
-  const runtime = runUtiltsRuntimeForMessage(runtimeSourceMessage, { canonicalPolicy })
-  const ackPlan = applyCertifiedUtiltsAckPolicy({
-    runtime,
-    testCaseCode: runtimeTestCaseCode,
+  const structuralQualification = await qualifyReceivedUtiltsStructure({
+    message: runtimeSourceMessage, canonicalPolicy,
+    runtime: runUtiltsRuntimeForMessage(runtimeSourceMessage, { canonicalPolicy }),
+  })
+  const runtime = structuralQualification.runtime
+  const structuralDecisionRequired = structuralQualification.hasInternalReview || structuralQualification.hasNationalMismatch
+  const ackPlan = structuralDecisionRequired ? runtime.ackPlan : applyCertifiedUtiltsAckPolicy({
+    runtime, testCaseCode: runtimeTestCaseCode,
   })
   let transactionDispositions = runtime.transactionDispositions
   let transactionPersistenceResults: Awaited<ReturnType<typeof persistUtiltsTransactionResults>> = []
   const normalizedPayload = {
     ...runtime.normalizedPayload,
     utiltsTransactionMatches: transactionMatches,
+    receivedStructureQualification: structuralQualification.evidence,
     utiltsTransactionDispositions: transactionDispositions,
     utiltsTransactionPersistenceResults: transactionPersistenceResults,
     receivedStructuralSources: await readReceivedStructuralSources({ message: runtimeSourceMessage, transactionMatches }),
@@ -465,7 +471,7 @@ export async function processInboundUtiltsMessage(params: {
   normalizedPayload.utiltsTransactionDispositions = transactionDispositions
   normalizedPayload.utiltsTransactionPersistenceResults = transactionPersistenceResults
   const forcedPositiveTgtAckPlan =
-    runtimeTestCaseCode === 'U3.1.1' || runtimeTestCaseCode === 'U3.1.2'
+    !structuralDecisionRequired && (runtimeTestCaseCode === 'U3.1.1' || runtimeTestCaseCode === 'U3.1.2')
   const shouldRejectByAckPlan =
     ackPlan.contrlOutcome === 'negative' ||
     ackPlan.shouldSendUtiltsErr ||
@@ -525,7 +531,9 @@ export async function processInboundUtiltsMessage(params: {
       edielMessageId: message.id,
       eventType: 'validated',
       eventStatus: 'warning',
-      message: 'Inbound UTILTS avvisades av produktionsruntime och korrekt kvittensflöde skapades.',
+      message: structuralQualification.hasInternalReview
+        ? 'Inbound UTILTS väntar på godkänt strukturunderlag. Berörda transaktioner har inte kvitterats eller lagrats som mätvärden.'
+        : 'Inbound UTILTS avvisades av produktionsruntime och korrekt kvittensflöde skapades.',
       payload: {
         createdAckMessageIds: ackIds,
         normalizedMeteringPayload: normalizedPayload,
@@ -539,6 +547,7 @@ export async function processInboundUtiltsMessage(params: {
       message,
       matchedDataRequest: canonicalLinks.matchedDataRequest,
       ackIds,
+      internalReviewRequired: structuralQualification.hasInternalReview,
       outboundRequestId: null,
       ingestedMeterValueId: null,
       ingestedMeterValueIds: [],

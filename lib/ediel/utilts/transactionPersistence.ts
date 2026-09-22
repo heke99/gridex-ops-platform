@@ -105,7 +105,7 @@ export function buildUtiltsTransactionPersistencePayload(input: {
       resolution: transaction?.resolution ?? null,
       unit: transaction?.unit ?? null,
       reasonForTransaction: transaction?.transactionReason ?? null,
-      quantities: (transaction?.quantities ?? []).map((quantity, index) => ({
+      quantities: (disposition.disposition === 'internal_review' ? [] : transaction?.quantities ?? []).map((quantity, index) => ({
         qualifier: quantity.qualifier,
         value: quantity.value,
         raw: quantity.raw,

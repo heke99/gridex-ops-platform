@@ -105,7 +105,7 @@ export type UtiltsRuntimeValidation = {
   syntaxOk: boolean
   functionalOk: boolean
   issues: UtiltsValidationIssue[]
-  classification: 'accepted' | 'syntax_rejected' | 'application_rejected' | 'functional_rejected'
+  classification: 'accepted' | 'syntax_rejected' | 'application_rejected' | 'functional_rejected' | 'internal_review'
 }
 
 export type UtiltsRuntimeUtiltsErrDetail = {
@@ -137,8 +137,8 @@ export type UtiltsRuntimeResult = {
 
 export type UtiltsTransactionDisposition = {
   transactionId: string | null
-  disposition: 'accepted' | 'syntax_rejected' | 'guide_rejected' | 'processability_rejected'
-  responseType: 'positive_aperak' | 'negative_contrl' | 'negative_aperak' | 'utilts_err'
+  disposition: 'accepted' | 'syntax_rejected' | 'guide_rejected' | 'processability_rejected' | 'internal_review'
+  responseType: 'positive_aperak' | 'negative_contrl' | 'negative_aperak' | 'utilts_err' | 'none'
   issueCodes: string[]
 }
 

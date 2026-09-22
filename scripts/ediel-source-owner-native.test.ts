@@ -1,5 +1,10 @@
 import {execFileSync} from 'node:child_process'
 import {afterEach,beforeAll,expect,it,vi} from 'vitest'
+import {structuralOwnerSource} from '../__tests__/helpers/structuralOwnerFixtures'
+import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
+import {inspectStructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
+import {compareUtiltsStructure} from '@/lib/ediel/utilts/structuralComparison'
+import {utiltsStructureWire,STRUCTURE_POINT} from '../__tests__/helpers/structuralComparisonFixtures'
 import {ownerSource} from '../__tests__/helpers/sourceOwnerFixtures'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 
@@ -27,13 +32,13 @@ function sql<T>(input:string):T {
 let serial=0
 /** Only draft business rows are seeded. The actual business owner must perform
  * the UPDATE and supply INSERT through the real Supabase HTTP API. */
-async function seed(delegated=false) {
+async function seed(delegated=false, structural=false) {
   const caseNo=++serial
   const id=(n:number)=>`10000000-0000-4000-8000-${String(caseNo*100+n).padStart(12,'0')}`
-  const ids={source:id(1),company:id(2),customer:id(3),point:id(4),site:id(5),grid:id(6),switch:id(7),actor:id(9),transport:id(10)}
+  const ids={source:id(1),company:id(2),customer:id(3),point:id(4),site:id(5),grid:id(6),switch:id(7),actor:id(9),transport:id(10),outbound:id(11),reviewer:id(12)}
   const external=`735123456789${String(caseNo).padStart(6,'0')}`
   const transportEdiel=String(88000+caseNo)
-  const input=ownerSource(), wire=String(input.raw_payload).replaceAll('735123456789012345',external).replace('+54321:14+',delegated?`+${transportEdiel}:14+`:'+54321:14+')
+  const input=structural?structuralOwnerSource():ownerSource(), wire=String(input.raw_payload).replaceAll('735123456789012345',external).replace('+54321:14+',delegated?`+${transportEdiel}:14+`:'+54321:14+')
   const p=(key:keyof typeof ids)=>literal(ids[key])
   sql(`
   DO $$ BEGIN IF EXISTS(SELECT FROM public.companies WHERE id=${p('company')}) THEN RAISE EXCEPTION 'native_fixture_collision';END IF;END $$;
@@ -49,10 +54,27 @@ async function seed(delegated=false) {
   INSERT INTO public.platform_market_actors(id,name) VALUES(${p('transport')},'Synthetic native transport ${caseNo}');
   INSERT INTO public.platform_actor_identifiers(actor_id,identifier_type,identifier_value,is_verified,valid_from,valid_to) VALUES(${p('transport')},'EdielId',${literal(transportEdiel)},true,'2026-01-01','2099-01-01');
   INSERT INTO public.tenant_counterparty_relations(company_id,environment,counterparty_actor_id,relation_type,is_enabled,valid_from) VALUES(${p('company')},'test',${p('transport')},'ediel_transport_agent',true,clock_timestamp()-interval '1 day');`:''}
+
+  INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_type,status,requested_start_date,rff_li_reference) VALUES(${p('switch')},${p('company')},${p('customer')},${p('site')},${p('point')},${p('grid')},'switch','draft','2026-10-01','CASE-1');
+  ${structural?`
+  INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
+  VALUES(${p('reviewer')},'authenticated','authenticated','e035-native-${caseNo}@example.invalid',now(),'{}','{}',now(),now(),false,false);
+  INSERT INTO public.user_profiles(id,email,full_name,user_status,created_at,updated_at)
+  VALUES(${p('reviewer')},'e035-native-${caseNo}@example.invalid','Synthetic E035 reviewer','active',now(),now()) ON CONFLICT(id) DO UPDATE SET user_status='active';
+  INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key)
+  VALUES(${p('company')},${p('reviewer')},'company_admin','active',now(),'{}','company_admin',true,now(),'company_admin');
+  INSERT INTO public.user_roles(user_id,role_id,role,company_id,status,is_active)
+  SELECT ${p('reviewer')},id,'company_admin',${p('company')},'active',true FROM public.roles WHERE key='company_admin'
+  ON CONFLICT DO NOTHING;
+  INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_sent_at,application_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+  SELECT ${p('outbound')},${p('company')},${p('customer')},${p('site')},${p('point')},'test','outbound','edifact','PRODAT','Z03','sent',${literal(wire.replace('BGM+Z04','BGM+Z03'))},'{}',clock_timestamp(),'23-DDQ-PRODAT',pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key='PRODAT:Z03:L:26.A:r3' AND profile.is_enabled;
+  UPDATE public.supplier_switch_requests SET outbound_z03_message_id=${p('outbound')} WHERE id=${p('switch')};
+  `:''}
   INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
-  SELECT ${p('source')},${p('company')},${p('customer')},${p('site')},${p('point')},'test','inbound','edifact','PRODAT','Z04','received',${literal(wire)},${literal(input.parsed_payload)}::jsonb,clock_timestamp()-interval '2 minutes','{}','23-DDQ-PRODAT','12345',${literal(delegated?transportEdiel:'54321')},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+  SELECT ${p('source')},${p('company')},${p('customer')},${p('site')},${p('point')},'test','inbound','edifact','PRODAT','Z04','received',${literal(wire)},${literal(input.parsed_payload)}::jsonb,${structural?"clock_timestamp()":"clock_timestamp()-interval '2 minutes'"},'{}','23-DDQ-PRODAT','12345',${literal(delegated?transportEdiel:'54321')},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
   FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key='PRODAT:Z04:L:26.A:r3' AND profile.is_enabled;
-  INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_type,status,requested_start_date) VALUES(${p('switch')},${p('company')},${p('customer')},${p('site')},${p('point')},${p('grid')},'switch','draft','2026-10-01');
+
   `)
   const {data,error}=await supabaseService.from('ediel_messages').select('*').eq('id',ids.source).single()
   expect(error).toBeNull();expect(data).not.toBeNull()
@@ -203,4 +225,67 @@ it('actual unwitnessed successor prevents an accepted predecessor being revived'
   expect(result.sources[0].revisions).toHaveLength(2)
   expect(result.sources[0].revisions[0].availability).toBe('witnessed_by_cutoff')
   expect(result.sources[0].revisions[1].availability).toBe('not_witnessed_by_cutoff')
+})
+
+// Market-structure integration: real canonical registry, actual committed Z04
+// owner, full original review, immutable snapshots and comparison. No authority
+// or decision is mocked. Fixtures are isolated localhost synthetic entities.
+async function reviewed(f:Awaited<ReturnType<typeof seed>>,source=f.ids.source,replaces:string|null=null){
+ const result=await reviewReceivedStructuralSource({companyId:f.ids.company,environment:'test',sourceMessageId:source,
+  reviewerUserId:f.ids.reviewer,confirmedOriginal:true,replacesSourceMessageId:replaces})
+ expect(result,JSON.stringify(stored(source).map(row=>row.facts))).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
+ return result
+}
+async function structuralSnapshot(f:Awaited<ReturnType<typeof seed>>,cutoffAt=sql<string>('SELECT to_jsonb(clock_timestamp())')){
+ const scope={companyId:f.ids.company,environment:'test' as const,cutoffAt}
+ const {data,error}=await supabaseService.rpc('gridex_source_object_snapshot_v1',{p_company_id:f.ids.company,p_environment:'test',p_cutoff:cutoffAt})
+ expect(error).toBeNull();const result=inspectStructuralReadset(scope,data)
+ expect(result.timeline,JSON.stringify(result.timeline)).toMatchObject({status:'inspected',boundedReadComplete:true})
+ return result
+}
+async function insertStructuralChange(f:Awaited<ReturnType<typeof seed>>,code:'Z06'|'Z10',reason:string,document:string,replacement=false){
+ const message=structuralOwnerSource(code,reason,document,replacement)
+ const external=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ const body=message.raw_payload!.replaceAll('735123456789012345',external)
+ const id=sql<string>(`INSERT INTO public.ediel_messages(company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,application_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+  SELECT ${literal(f.ids.company)},${literal(f.ids.customer)},${literal(f.ids.site)},${literal(f.ids.point)},'test','inbound','edifact','PRODAT',${literal(code)},'received',${literal(body)},${literal(message.parsed_payload)}::jsonb,clock_timestamp(),'23-DDQ-PRODAT',pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key=${literal(`PRODAT:${code}:${(message.parsed_payload as Record<string,unknown>).subtype}:26.A:r3`)} AND profile.is_enabled RETURNING to_jsonb(id);`)
+ expect(id).toMatch(/^[a-f0-9-]{36}$/);return id
+}
+it('native full-original Z04 review proves post-ledger coverage without replaying the switch writes',async()=>{
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
+ const before=await structuralSnapshot(f);expect(before.versions[0].coverage).toBeNull()
+ await reviewed(f)
+ const result=await structuralSnapshot(f)
+ expect(result.versions).toHaveLength(1);expect(result.versions[0]).toMatchObject({disposition:'accepted',coverage:{kind:'post_ledger_supply'}})
+ expect(stored(f.ids.source)).toHaveLength(2)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.customer_supply_periods WHERE source_message_id=${literal(f.ids.source)}`)).toBe(1)
+ const wire=utiltsStructureWire({period:'202610010000202610150000',meter:'METER-1',ids:['101'],sender:'12345',receiver:'54321'}).replaceAll(STRUCTURE_POINT,result.versions[0].wire.object.objectId!)
+ expect(compareUtiltsStructure({raw:wire,transactionIndex:0,cutoffAt:result.timeline.cutoffAt??'',ledgerStartedAt:result.timeline.ledgerStartedAt??'',
+  readComplete:true,unresolvedSources:result.unresolvedSources,versions:result.versions})).toMatchObject({status:'matched',codes:[]})
+})
+it.each([['Z06','E34'],['Z06','E64'],['Z06','E32'],['Z10','E58']] as const)('native full-original %s/%s approval is not partial safe-apply',async(code,reason)=>{
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const id=await insertStructuralChange(f,code,reason,'CHANGE')
+ const pending=await structuralSnapshot(f);expect(pending.versions.find(version=>version.sourceMessageId===id)?.disposition).toBe('unavailable')
+ await reviewed(f,id)
+ const result=await structuralSnapshot(f),version=result.versions.find(item=>item.sourceMessageId===id)
+ expect(version).toMatchObject({disposition:'accepted',wire:{messageCode:code},coverage:{baselineSourceMessageId:f.ids.source}})
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.customer_supply_periods WHERE company_id=${literal(f.ids.company)}`)).toBe(1)
+})
+it('native BGM5 correction pins an approved predecessor; a later receipt alone is never replacement',async()=>{
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const prior=await insertStructuralChange(f,'Z10','E58','ORIGINAL');await reviewed(f,prior)
+ const correction=await insertStructuralChange(f,'Z10','E58','CORRECTION',true)
+ expect(await reviewReceivedStructuralSource({companyId:f.ids.company,environment:'test',sourceMessageId:correction,reviewerUserId:f.ids.reviewer,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({sourceDisposition:'not_established'})
+ await reviewed(f,correction,prior)
+ const result=await structuralSnapshot(f)
+ expect(result.versions.find(version=>version.sourceMessageId===correction)?.replaces).toMatchObject({sourceMessageId:prior,assessmentId:stored(prior)[0].assessmentId})
+})
+it('native user without company permission cannot create even a canonical-ledger assessment during review',async()=>{
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
+ sql(`UPDATE public.company_memberships SET status='inactive',is_active=false WHERE user_id=${literal(f.ids.reviewer)};`)
+ const before=sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${literal(f.ids.source)}`)
+ expect(await reviewReceivedStructuralSource({companyId:f.ids.company,environment:'test',sourceMessageId:f.ids.source,reviewerUserId:f.ids.reviewer,confirmedOriginal:true,replacesSourceMessageId:null})).toEqual({status:'unconfirmed',sourceDisposition:'not_established'})
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${literal(f.ids.source)}`)).toBe(before)
 })

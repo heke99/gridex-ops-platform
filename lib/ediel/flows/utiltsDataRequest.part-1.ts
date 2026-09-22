@@ -24,6 +24,7 @@ export type UtiltsProcessResult = {
   message: EdielMessageRow
   matchedDataRequest: GridOwnerDataRequestRow | null
   ackIds: string[]
+  internalReviewRequired?: boolean
   outboundRequestId?: string | null
   ingestedMeterValueId?: string | null
   ingestedMeterValueIds?: string[]
@@ -830,6 +831,9 @@ export async function createUtiltsRuntimeAcks(params: {
     if (!companyId) throw new Error('UTILTS transaktionskvittens saknar tenantkoppling')
 
     for (const [dispositionIndex, disposition] of transactionDispositions.entries()) {
+      // Unknown internal evidence is not a national rejection and must never
+      // fall through to positive APERAK, even when the sender requested one.
+      if (disposition.disposition === 'internal_review' || disposition.responseType === 'none') continue
       const transactionReference = resolveUtiltsTransactionId(
         disposition.transactionId,
         dispositionIndex,

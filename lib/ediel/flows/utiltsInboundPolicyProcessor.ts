@@ -10,6 +10,7 @@ import {
   resolveUtiltsTransactionId,
 } from '@/lib/ediel/utilts/transactionPersistence'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import { qualifyReceivedUtiltsStructure } from '@/lib/ediel/utilts/qualifyReceivedStructure'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { UtiltsProcessResult } from './utiltsDataRequest.part-1'
 import {
@@ -102,8 +103,13 @@ async function processExplicitNonBillingOutcome(params: {
     sourceMessage: params.message,
     explicitTestCaseCode: params.testCaseCode ?? null,
   })
-  const runtime = runUtiltsRuntimeForMessage(params.message, { canonicalPolicy: policy })
-  const ackPlan = applyCertifiedUtiltsAckPolicy({ runtime, testCaseCode: runtimeTestCaseCode })
+  const structuralQualification = await qualifyReceivedUtiltsStructure({
+    message: params.message, canonicalPolicy: policy,
+    runtime: runUtiltsRuntimeForMessage(params.message, { canonicalPolicy: policy }),
+  })
+  const runtime = structuralQualification.runtime
+  const ackPlan = structuralQualification.hasInternalReview || structuralQualification.hasNationalMismatch
+    ? runtime.ackPlan : applyCertifiedUtiltsAckPolicy({ runtime, testCaseCode: runtimeTestCaseCode })
   const persisted = await persistNonBillingTransactions({
     message: params.message,
     messageCode: policy.code,
@@ -111,6 +117,7 @@ async function processExplicitNonBillingOutcome(params: {
   })
   const normalizedPayload = {
     ...runtime.normalizedPayload,
+    receivedStructureQualification: structuralQualification.evidence,
     utiltsBusinessOutcome: outcome,
     utiltsCanonicalPolicy: {
       profileKey: policy.profileKey,
@@ -137,7 +144,7 @@ async function processExplicitNonBillingOutcome(params: {
     actorUserId: params.actorUserId,
     edielMessageId: params.message.id,
     status: failed ? 'failed' : 'validated',
-    failureReason: failed ? ackPlan.reason : undefined,
+    failureReason: failed || structuralQualification.hasInternalReview ? ackPlan.reason : undefined,
     parsedPayload: {
       ...(params.message.parsed_payload ?? {}),
       normalizedMeteringPayload: normalizedPayload,
@@ -169,8 +176,10 @@ async function processExplicitNonBillingOutcome(params: {
     actorUserId: params.actorUserId,
     edielMessageId: params.message.id,
     eventType: 'validated',
-    eventStatus: failed ? 'warning' : 'success',
-    message: `Inbound UTILTS ${policy.code} hanterades som ${outcome.kind} via canonical side-effect policy.`,
+    eventStatus: !runtime.validation.ok ? 'warning' : 'success',
+    message: structuralQualification.hasInternalReview
+      ? `Inbound UTILTS ${policy.code} väntar på godkänt strukturunderlag utan mätvärdes- eller faktureringsskrivningar.`
+      : `Inbound UTILTS ${policy.code} hanterades som ${outcome.kind} via canonical side-effect policy.`,
     payload: {
       canonicalPolicy: {
         profileKey: policy.profileKey,
@@ -189,6 +198,7 @@ async function processExplicitNonBillingOutcome(params: {
     message: updated,
     matchedDataRequest: null,
     ackIds,
+    internalReviewRequired: structuralQualification.hasInternalReview,
     outboundRequestId: null,
     ingestedMeterValueId: null,
     ingestedMeterValueIds: [],

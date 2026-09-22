@@ -1,3 +1,4 @@
+import {isReviewedStructuralBusiness} from './reviewedStructuralSource'
 import {isDeepStrictEqual} from 'node:util'
 import {bindReceivedRegisterValidation} from '@/lib/ediel/core/receivedRegisterValidationBinding'
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
@@ -88,12 +89,13 @@ function observedObjects(facts: unknown, source: RecordValue, scope: ReceivedSou
     if (party !== null) requireBoundary(isEvidenceRecord(party) && isEvidenceRecord(party.source)
       && sourceBinding(party.source, source, scope, 'receivedAt') && isDeepStrictEqual(party.object, entry.object), 'timeline_party_scope_invalid')
     if (entry.disposition === 'accepted') {
-      requireBoundary(source.messageCode === 'Z04' && entry.object.messageIndex === 0 && entry.object.identityAgency === '9'
-        && isEvidenceRecord(business) && business.version === 1 && business.owner === 'inbound-z04-switch-confirmation-v1'
-        && business.coverage === 'committed_switch_and_supply_only' && business.sourceDisposition === 'not_established'
-        && business.businessDisposition === 'committed' && business.graphNamespace === 'legacy_unqualified'
+      const reviewed = isReviewedStructuralBusiness(business, source.rawPayload as string, entry.object as ObjectScope)
+      requireBoundary((reviewed || source.messageCode === 'Z04') && entry.object.messageIndex === 0 && entry.object.identityAgency === '9'
+        && isEvidenceRecord(business) && business.version === 1 && (reviewed || business.owner === 'inbound-z04-switch-confirmation-v1')
+        && (reviewed || business.coverage === 'committed_switch_and_supply_only') && business.sourceDisposition === 'not_established'
+        && (reviewed || business.businessDisposition === 'committed') && business.graphNamespace === 'legacy_unqualified'
         && [business.switchRequestId, business.supplyPeriodId, business.customerId, business.meteringPointId, business.siteId].every(isEvidenceUuid)
-        && isEvidenceRecord(business.committedRecords) && isEvidenceRecord(business.committedRecords.switch) && isEvidenceRecord(business.committedRecords.supply)
+        && (reviewed || isEvidenceRecord(business.committedRecords) && isEvidenceRecord(business.committedRecords.switch) && isEvidenceRecord(business.committedRecords.supply))
         && isEvidenceRecord(party) && party.version === 1 && party.owner === 'received-source-party-binding-v1' && party.ruleVersion === '1'
         && party.disposition === 'accepted' && reasons(party.reasons) && party.reasons.length === 0
         && isEvidenceRecord(party.receiver) && isEvidenceRecord(party.receiver.evidence) && party.receiver.evidence.completeness === 'exact_count', 'timeline_accepted_owner_missing')

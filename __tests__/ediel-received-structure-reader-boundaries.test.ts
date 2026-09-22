@@ -3,7 +3,7 @@ import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import * as dates from '@/lib/ediel/prodat/render/dates'
 import { createHash } from 'node:crypto'
-import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
+import { observationHandoffMessage, energyHandoffMessage } from './helpers/utiltsObservationHandoff'
 import { raw, line, characteristic, type Parts } from './fixtures/prodat-register'
 
 const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), scoped: vi.fn(), matches: vi.fn(), ingest: vi.fn(), allMatched: vi.fn() }))
@@ -143,7 +143,7 @@ async function capture() {
 }
 for (const path of ['rejected', 'accepted'] as const) for (const outcome of ['candidate', 'read-error', 'truncated'] as const) {
   it(`preserves all pre-existing ${path} outcomes for ${outcome} diagnostics`, async () => {
-    if (path === 'accepted') { incoming = observationHandoffMessage('2026-10-01'); io.allMatched.mockReturnValue(true) }
+    if (path === 'accepted') { incoming = energyHandoffMessage('2026-10-01'); io.allMatched.mockReturnValue(true) }
     sourceRows = []; count = 0
     const baseline = await capture()
     expect(io.persist).toHaveBeenCalledOnce()

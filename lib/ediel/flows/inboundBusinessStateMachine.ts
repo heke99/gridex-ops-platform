@@ -26,6 +26,7 @@ export type InboundBusinessStateInput = {
   customerInfoRequestId?: string | null
   source?: string
   onSourceSwitchCommitted?: SourceSwitchCommitObserver
+  utiltsInternalReviewRequired?: boolean
 }
 
 function referenceDate(message: EdielMessageRow): string {
@@ -168,6 +169,11 @@ export async function applyInboundBusinessStateMachine(
   input: InboundBusinessStateInput,
 ): Promise<InboundBusinessStateResult> {
   if (String(input.message.message_family ?? '').toUpperCase() === 'UTILTS') {
+    if (input.utiltsInternalReviewRequired) return {
+      outcome: 'manual_review_required', reviewRequired: true, updated: [],
+      tenantMessage: 'Mätvärden väntar på fullständigt godkänt strukturunderlag för kontrollerad tidpunkt.',
+      metadata: { reason: 'structural_information_unavailable', sideEffectsApplied: false },
+    }
     return utiltsStateResult(input.message)
   }
   const legacy = await applyLegacyInboundBusinessStateMachine(input)
