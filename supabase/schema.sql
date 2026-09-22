@@ -55,6 +55,7 @@ CREATE FUNCTION gridex_received_sources.append_discovery(p_company_id uuid, p_en
     AS $_$
 DECLARE snap gridex_received_sources.snapshots%rowtype; inv jsonb; src jsonb; expected jsonb; item jsonb;
   v_id uuid; v_hash text; n bigint; distinct_n bigint;
+  v_position bigint; v_segment numeric; v_expected_objects jsonb;
 BEGIN
   SELECT * INTO snap FROM gridex_received_sources.snapshots WHERE id=p_snapshot_id AND company_id=p_company_id AND environment=p_environment;
   IF NOT FOUND OR p_snapshot_hash IS DISTINCT FROM snap.manifest_hash
@@ -89,23 +90,82 @@ BEGIN
       OR jsonb_typeof(src->'occurrences') IS DISTINCT FROM 'array' OR jsonb_typeof(src->'objects') IS DISTINCT FROM 'array'
       OR jsonb_typeof(src->'issues') IS DISTINCT FROM 'array'
       OR (inv->>'status'='enumerated' AND (src->>'status'<>'enumerated' OR src->>'receiptStatus'<>'recorded' OR src->'issues'<>'[]'::jsonb))
-      OR (src->>'status'='enumerated' AND (jsonb_array_length(src->'occurrences')=0 OR jsonb_array_length(src->'objects')=0 OR src->>'receiptStatus'<>'recorded' OR src->'issues'<>'[]'::jsonb)) THEN
+      OR (src->>'status'='enumerated' AND (jsonb_typeof(src->'sourcePayloadHash') IS DISTINCT FROM 'string'
+        OR coalesce(src->>'sourcePayloadHash','') !~ '^[a-f0-9]{64}$' OR jsonb_array_length(src->'occurrences')=0 OR jsonb_array_length(src->'objects')=0 OR src->>'receiptStatus'<>'recorded' OR src->'issues'<>'[]'::jsonb)) THEN
       RAISE EXCEPTION 'received_discovery_source_mismatch' USING ERRCODE='23514';
     END IF;
-    -- Shape allowlists stop accidental raw bodies or approval fields entering
-    -- engine evidence. SQL records an observation; it does not duplicate the
-    -- tokenizer/register/party validators or certify their semantic result.
-    FOR item IN SELECT value FROM jsonb_array_elements(src->'occurrences') LOOP
-      IF jsonb_typeof(item) IS DISTINCT FROM 'object' OR item - ARRAY['ordinal','segmentIndex','messageIndex','lineNumber','objectId','identityAgency','identityStatus'] <> '{}'::jsonb
+    -- Persist the producer's complete typed observation contract, not merely
+    -- a set of allowed key names. This validates evidence shape and internal
+    -- tuple bindings; it is NOT a second wire parser or source approval owner.
+    IF jsonb_array_length(src->'occurrences')>8192 OR jsonb_array_length(src->'objects')>8192 THEN
+      RAISE EXCEPTION 'received_discovery_observation_shape' USING ERRCODE='23514';
+    END IF;
+    v_segment := -1;
+    FOR item,v_position IN SELECT value,ordinality FROM jsonb_array_elements(src->'occurrences') WITH ORDINALITY LOOP
+      IF jsonb_typeof(item) IS DISTINCT FROM 'object'
+        OR NOT item ?& ARRAY['ordinal','segmentIndex','messageIndex','lineNumber','objectId','identityAgency','identityStatus']
+        OR item - ARRAY['ordinal','segmentIndex','messageIndex','lineNumber','objectId','identityAgency','identityStatus'] <> '{}'::jsonb
+        OR jsonb_typeof(item->'ordinal') IS DISTINCT FROM 'number'
+        OR jsonb_typeof(item->'segmentIndex') IS DISTINCT FROM 'number'
+        OR coalesce(jsonb_typeof(item->'messageIndex'),'missing') NOT IN ('number','null')
+        OR coalesce(jsonb_typeof(item->'lineNumber'),'missing') NOT IN ('string','null')
+        OR coalesce(jsonb_typeof(item->'objectId'),'missing') NOT IN ('string','null')
+        OR coalesce(jsonb_typeof(item->'identityAgency'),'missing') NOT IN ('string','null')
+        OR jsonb_typeof(item->'identityStatus') IS DISTINCT FROM 'string'
         OR coalesce(item->>'identityStatus','') NOT IN ('observed','unresolved') THEN
+        RAISE EXCEPTION 'received_discovery_observation_shape' USING ERRCODE='23514';
+      END IF;
+      -- Cast only AFTER the mandatory JSON types were checked. Ordinals are
+      -- consecutive physical occurrences and segment indexes strictly increase.
+      IF item->'ordinal' IS DISTINCT FROM to_jsonb(v_position)
+        OR (item->>'segmentIndex')::numeric < 0 OR (item->>'segmentIndex')::numeric >= 8192
+        OR trunc((item->>'segmentIndex')::numeric) <> (item->>'segmentIndex')::numeric
+        OR (item->>'segmentIndex')::numeric <= v_segment
+        OR (item->'messageIndex' <> 'null'::jsonb AND ((item->>'messageIndex')::numeric < 0
+          OR (item->>'messageIndex')::numeric >= 8192
+          OR trunc((item->>'messageIndex')::numeric) <> (item->>'messageIndex')::numeric))
+        OR (item->'lineNumber' <> 'null'::jsonb AND length(item->>'lineNumber') NOT BETWEEN 1 AND 128) THEN
+        RAISE EXCEPTION 'received_discovery_observation_shape' USING ERRCODE='23514';
+      END IF;
+      v_segment := (item->>'segmentIndex')::numeric;
+      IF item->>'identityStatus'='observed' THEN
+        IF jsonb_typeof(item->'messageIndex') IS DISTINCT FROM 'number'
+          OR jsonb_typeof(item->'objectId') IS DISTINCT FROM 'string'
+          OR length(item->>'objectId') NOT BETWEEN 1 AND 128
+          OR jsonb_typeof(item->'identityAgency') IS DISTINCT FROM 'string'
+          OR item->>'identityAgency' NOT IN ('9','89') THEN
+          RAISE EXCEPTION 'received_discovery_observation_shape' USING ERRCODE='23514';
+        END IF;
+      ELSIF item->'objectId' IS DISTINCT FROM 'null'::jsonb OR item->'identityAgency' IS DISTINCT FROM 'null'::jsonb
+        OR src->>'status'='enumerated' THEN
         RAISE EXCEPTION 'received_discovery_observation_shape' USING ERRCODE='23514';
       END IF;
     END LOOP;
     FOR item IN SELECT value FROM jsonb_array_elements(src->'objects') LOOP
-      IF jsonb_typeof(item) IS DISTINCT FROM 'object' OR item - ARRAY['messageIndex','objectId','identityAgency','occurrenceOrdinals'] <> '{}'::jsonb THEN
+      IF jsonb_typeof(item) IS DISTINCT FROM 'object'
+        OR NOT item ?& ARRAY['messageIndex','objectId','identityAgency','occurrenceOrdinals']
+        OR item - ARRAY['messageIndex','objectId','identityAgency','occurrenceOrdinals'] <> '{}'::jsonb
+        OR jsonb_typeof(item->'messageIndex') IS DISTINCT FROM 'number'
+        OR jsonb_typeof(item->'objectId') IS DISTINCT FROM 'string'
+        OR jsonb_typeof(item->'identityAgency') IS DISTINCT FROM 'string'
+        OR jsonb_typeof(item->'occurrenceOrdinals') IS DISTINCT FROM 'array' THEN
         RAISE EXCEPTION 'received_discovery_observation_shape' USING ERRCODE='23514';
       END IF;
     END LOOP;
+    -- Every observed occurrence must appear exactly once in the membership
+    -- for its exact message/identity/agency tuple, preserving register repeats.
+    -- This compares the submitted arrays, never interprets canonical registers.
+    SELECT coalesce(jsonb_agg(jsonb_build_object('messageIndex',g.message_index,'objectId',g.object_id,
+        'identityAgency',g.agency,'occurrenceOrdinals',g.ordinals) ORDER BY g.first_ordinal),'[]'::jsonb)
+      INTO v_expected_objects
+      FROM (SELECT value->'messageIndex' AS message_index,value->'objectId' AS object_id,value->'identityAgency' AS agency,
+          jsonb_agg(value->'ordinal' ORDER BY ordinality) AS ordinals,min(ordinality) AS first_ordinal
+        FROM jsonb_array_elements(src->'occurrences') WITH ORDINALITY
+        WHERE value->>'identityStatus'='observed'
+        GROUP BY value->'messageIndex',value->'objectId',value->'identityAgency') g;
+    IF src->'objects' IS DISTINCT FROM v_expected_objects THEN
+      RAISE EXCEPTION 'received_discovery_observation_shape' USING ERRCODE='23514';
+    END IF;
     IF EXISTS (SELECT FROM jsonb_array_elements(src->'issues') AS value WHERE jsonb_typeof(value) IS DISTINCT FROM 'string' OR value#>>'{}' !~ '^[a-z0-9_]{1,128}$') THEN
       RAISE EXCEPTION 'received_discovery_observation_shape' USING ERRCODE='23514';
     END IF;

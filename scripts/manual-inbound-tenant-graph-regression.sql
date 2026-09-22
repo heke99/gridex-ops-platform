@@ -95,3 +95,6 @@ rollback;
 
 -- E035 durable originals/discovery/owner-facet evidence; prior suites retained.
 \ir ediel-source-ledger-regression.sql
+
+-- PR370 review: mandatory typed physical discovery evidence.
+\ir ediel-source-discovery-shape-regression.sql
