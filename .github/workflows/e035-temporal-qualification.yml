@@ -16,7 +16,7 @@ jobs:
         with:
           ref: de9e459a5843a9cf562436fb46e0376a61a7e53e
           fetch-depth: 1
-      - name: Assemble exact temporal source without preparation files
+      - name: Assemble exact temporal source and reviewed correction
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -27,28 +27,34 @@ jobs:
           test "$(git rev-parse HEAD)" = de9e459a5843a9cf562436fb46e0376a61a7e53e
           python3 - "$evidence" <<'PY'
           import base64,gzip,hashlib,json,os,pathlib,subprocess,sys
-          shas=['df993ba880067b1e73d55636ba586c8a053d51ac','60e462b788931772c1658f0eab1b5604f142d44a','f58c45328530b49a2d6668f9dd6fca1321123ac7','64fe2ddb84875d1a80b2dfe686a920ed48322d59']
-          parts=[]
-          for sha in shas:
+          out=pathlib.Path(sys.argv[1])
+          def blob(sha):
               response=json.loads(subprocess.check_output(['gh','api',f'repos/{os.environ["GITHUB_REPOSITORY"]}/git/blobs/{sha}']))
               assert response['encoding']=='base64'
               data=base64.b64decode(''.join(response['content'].split()),validate=True)
               assert hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()==sha
-              parts.append(data)
-          packed=b''.join(parts)
+              return data
+          shas=['df993ba880067b1e73d55636ba586c8a053d51ac','60e462b788931772c1658f0eab1b5604f142d44a','f58c45328530b49a2d6668f9dd6fca1321123ac7','64fe2ddb84875d1a80b2dfe686a920ed48322d59']
+          packed=b''.join(blob(sha) for sha in shas)
           assert hashlib.sha256(packed).hexdigest()=='b89ea0700736ea82bb473b73e30b4e3a0bc439f357f8346d8d0adb78451d3ddb'
           patch=gzip.decompress(packed)
-          assert len(patch)==120145
           assert hashlib.sha256(patch).hexdigest()=='b2f450093dd425ed617760143e8b457c646a88f7160b9bd90e5dc1e209544358'
-          (pathlib.Path(sys.argv[1])/'candidate.patch').write_bytes(patch)
+          (out/'candidate.patch').write_bytes(patch)
+          packed=blob('b808d8ce91a0360c45999a183fd3fb5f99382840')
+          assert hashlib.sha256(packed).hexdigest()=='7eda569a8490b6d0772e27c0bce87649377eeb07f8f129efc34241100b458cf5'
+          patch=gzip.decompress(packed)
+          assert hashlib.sha256(patch).hexdigest()=='648fd5b66d476ae2e2ed575edc3cb25fcf37632f0b7e3625227e8e5400c78a25'
+          (out/'amendment.patch').write_bytes(patch)
           PY
           git apply --check "$evidence/candidate.patch"
           git apply "$evidence/candidate.patch"
+          git apply --check "$evidence/amendment.patch"
+          git apply "$evidence/amendment.patch"
           git diff --check
           git diff --exit-code -- supabase .github package.json package-lock.json scripts/migration-history-manifest.runtime.additions.json scripts/supabase-types-manifest.json
           git add -A
           tree="$(git write-tree)"
-          test "$tree" = 4ea39b3ebf5ff7b23e5bd699543470c4f40f5493
+          test "$tree" = 0dfeebb7978ef770b58df3da7161ac3bfd2755f9
           candidate="$(git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit-tree "$tree" -p de9e459a5843a9cf562436fb46e0376a61a7e53e -m 'feat(e035): consume witnessed structure snapshots at original receipt cutoff before transaction ACKs')"
           git reset --hard "$candidate"
           printf '%s\n' "$candidate" > "$evidence/candidate-commit.txt"
@@ -137,9 +143,9 @@ jobs:
           set -euo pipefail
           evidence="$RUNNER_TEMP/e035-temporal"
           test "$(git rev-parse HEAD)" = "$(cat "$evidence/candidate-commit.txt")"
-          test "$(git rev-parse HEAD^{tree})" = 4ea39b3ebf5ff7b23e5bd699543470c4f40f5493
+          test "$(git rev-parse HEAD^{tree})" = 0dfeebb7978ef770b58df3da7161ac3bfd2755f9
           git diff --exit-code HEAD --
-          (cd "$evidence" && sha256sum candidate.patch candidate-commit.txt candidate-tree.txt candidate-commit.raw candidate-files.txt candidate-source.tar.gz project.log native.log > SHA256SUMS)
+          (cd "$evidence" && sha256sum candidate.patch amendment.patch candidate-commit.txt candidate-tree.txt candidate-commit.raw candidate-files.txt candidate-source.tar.gz project.log native.log > SHA256SUMS)
           test -z "$(git ls-remote --heads origin refs/heads/codex/e035-temporal-qualified-20260922)"
           git push origin "HEAD:refs/heads/codex/e035-temporal-qualified-20260922"
       - name: Remove local API credentials
