@@ -1,0 +1,48 @@
+name: E035 runtime native qualification
+on:
+  push:
+    branches: [codex/e035-runtime-native-20260922]
+    paths: [.github/workflows/e035-runtime-native.yml]
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: d7fb49fde3dae153693acae1cefa33aeef45ad4f
+          fetch-depth: 1
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Create genuine forward migration; no database connection
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase --version
+          supabase migration new --help
+          supabase migration new ediel_source_owner_timezone
+          file="$(find supabase/migrations -maxdepth 1 -name '*_ediel_source_owner_timezone.sql')"
+          test -n "$file"
+          test "$(printf '%s\n' "$file" | wc -l)" = 1
+          cat > "$file" <<'SQL'
+          -- CLI-created forward correction. Existing migration bytes are unchanged.
+          -- Keep evidence serialization and typed owner comparisons independent
+          -- of the caller session. Explicit market time remains Etc/GMT-1.
+          BEGIN;
+          ALTER FUNCTION gridex_received_sources.owner_rows_match(text,jsonb,uuid,text,uuid) SET timezone = 'UTC';
+          ALTER FUNCTION gridex_received_sources.object_owner_proof_consistent(jsonb,jsonb,timestamptz) SET timezone = 'UTC';
+          ALTER FUNCTION gridex_received_sources.append_object_assessment(uuid,text,uuid,text,uuid,text) SET timezone = 'UTC';
+          COMMIT;
+          SQL
+          mkdir -p "$RUNNER_TEMP/e035-runtime-migration"
+          cp "$file" "$RUNNER_TEMP/e035-runtime-migration/"
+          git rev-parse HEAD > "$RUNNER_TEMP/e035-runtime-migration/base.txt"
+          (cd "$RUNNER_TEMP/e035-runtime-migration" && sha256sum *.sql base.txt > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: e035-runtime-authentic-migration
+          path: ${{ runner.temp }}/e035-runtime-migration/
+          retention-days: 14
