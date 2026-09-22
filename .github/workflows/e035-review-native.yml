@@ -10,7 +10,7 @@ jobs:
     timeout-minutes: 45
     env:
       NODE_OPTIONS: --max-old-space-size=4096
-      E035_OUTPUT_DIR: ${{ runner.temp }}/e035-review-native-output
+      E035_OUTPUT_DIR: /tmp/gridex-e035-review-${{ github.run_id }}
     steps:
       - uses: actions/checkout@v4
         with:
