@@ -25,6 +25,7 @@
     "20260921171346_ediel_inbound_prodat_source_seal.sql": "be16cf30d11284792c7ab9afb91f2dd59ab3fd511b0a576c8137089ad00a7e6a",
     "20260921224255_ediel_inbound_prodat_receive_context.sql": "6a959ebee1af9759aeb224de4bc3a488116befd42a0208454b6dfe4e05022e2d",
     "20260922095911_ediel_received_source_ledger.sql": "a3a4933935995dd6525d09d70949f360aa52bcf72e5ab8d93970fdcdea4aae39",
-    "20260922105251_ediel_received_discovery_shape.sql": "a0fc753f70f0f18ed2952f689ac114a7bc838befd18ab2758fdf8e33830c515c"
+    "20260922105251_ediel_received_discovery_shape.sql": "a0fc753f70f0f18ed2952f689ac114a7bc838befd18ab2758fdf8e33830c515c",
+    "20260922131136_ediel_received_register_validation.sql": "eab2138bc7d1be4018bb5c110c84ea44bdec19a5da0718a80282e2f328aa9258"
   }
 }

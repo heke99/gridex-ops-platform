@@ -98,3 +98,12 @@ rollback;
 
 -- PR370 review: mandatory typed physical discovery evidence.
 \ir ediel-source-discovery-shape-regression.sql
+
+-- E035 actual canonical register owner evidence remains facet-only.
+\ir ediel-register-validation-regression.sql
+
+-- Real concurrent source-assessment append chain, fixed disposable localhost only.
+\! python3 scripts/ediel-source-validation-concurrency-regression.py
+\if :SHELL_ERROR
+  do $$ begin raise exception 'SOURCE_VALIDATION_CONCURRENCY_FAILURE'; end $$;
+\endif

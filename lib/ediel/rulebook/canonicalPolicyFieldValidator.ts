@@ -1,3 +1,4 @@
+import {projectProdatRegisterValidation, type ProdatRegisterValidationEvidence} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
 import { prodatFreeTextField, validateProdatFreeText } from '@/lib/ediel/prodat/prodatFreeText'
 import {evaluateIncomingSelectedProdatAck} from '@/lib/ediel/prodat/prodatIncomingSelectedAck'
 import {evaluateIncomingProdatPermissionAckFields} from '@/lib/ediel/prodat/prodatPermissionAckFields'
@@ -21,7 +22,7 @@ import { isSourceBoundOptionalInstallationField, validateProdatOptionalInstallat
 import { isSourceBoundEndUserField, isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
 import { prodatSourceSubtypeRule } from '@/lib/ediel/prodat/prodatSubtypeRequirement'
 import { validateProdatSubtypePolicy } from '@/lib/ediel/rulebook/prodatSubtypePolicy'
-import { prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+import { canonicalProdat26AFieldRules, prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { validateProdatRegisterPolicy } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
 import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
@@ -45,6 +46,7 @@ function asRulebookFieldRule(value: unknown): RulebookFieldRule {
  * policy conditions for cells not yet migrated. Register overlays stay separate.
  */
 export function validateCanonicalPolicyFields(input: {
+  onRegisterValidation?: (evidence: ProdatRegisterValidationEvidence) => void
   reportingContext?: ExpectedContext
   policy: CanonicalEdielPolicy
   rawSegments?: readonly string[] | null
@@ -111,6 +113,13 @@ export function validateCanonicalPolicyFields(input: {
     requireIndependentInventory:input.policy.direction === 'outbound',
     applicationReference:input.policy.applicationReference,
   })
+  input.onRegisterValidation?.(projectProdatRegisterValidation({
+    code: input.policy.code, rawSegments: input.rawSegments ?? [], una: input.una,
+    registerIssues: register.issues, fieldIssues: issues, handledFields: register.handledFields,
+    completeRuleSelection: input.scope !== 'dependent_only' && canonicalProdat26AFieldRules(input.policy.code)
+      .filter(rule => prodatRegisterFieldScope(rule.fieldNumber ?? '') === 'local')
+      .every(expected => rules.some(rule => rule.fieldNumber === expected.fieldNumber)),
+  }))
   issues.push(...register.issues)
   if(input.policy.direction==='outbound' && rules.some(rule=>rule.fieldNumber==='229')) issues.push(...validateProdatEndUserAddress({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts}))
 
