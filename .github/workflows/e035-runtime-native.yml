@@ -4,45 +4,158 @@ on:
     branches: [codex/e035-runtime-native-20260922]
     paths: [.github/workflows/e035-runtime-native.yml]
 permissions:
-  contents: read
+  contents: write
+  actions: read
 jobs:
-  prepare:
+  qualify:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 40
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - uses: actions/checkout@v4
         with:
           ref: d7fb49fde3dae153693acae1cefa33aeef45ad4f
           fetch-depth: 1
+      - name: Assemble the exact checksummed runtime source
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/e035-runtime-qualified"
+          mkdir -p "$evidence"
+          test "$(git rev-parse HEAD)" = d7fb49fde3dae153693acae1cefa33aeef45ad4f
+          python3 - "$evidence" <<'PY'
+          import base64,hashlib,json,lzma,pathlib,subprocess,sys,os
+          out=pathlib.Path(sys.argv[1]); chunks=[]
+          for sha in ['71d55a30271d6b2cee7814e5e5bdf8c3b5de9af1','0b9886161c8f6513916a9928b8b256de8b188cff','ac1eca22819ed3382ab7243b315cfbf37e887150']:
+              obj=json.loads(subprocess.check_output(['gh','api',f'repos/{os.environ["GITHUB_REPOSITORY"]}/git/blobs/{sha}']))
+              raw=base64.b64decode(obj['content'])
+              assert hashlib.sha1(f'blob {len(raw)}\0'.encode()+raw).hexdigest()==sha
+              chunks.append(raw)
+          packed=base64.b64decode(b''.join(chunks),validate=True)
+          assert hashlib.sha256(packed).hexdigest()=='437c4d49d3c9102c433f1ab6a868eb9a07f7a1875b0e95b1923a498ac161e3eb'
+          patch=lzma.decompress(packed)
+          assert hashlib.sha256(patch).hexdigest()=='f2057019f89dd5ef6027596ba787b8255aa00b587550e4e22fbcb4f33f3b8749'
+          (out/'input.patch').write_bytes(patch)
+          PY
+          git apply --unidiff-zero "$evidence/input.patch"
+          git add -A
+          git diff --cached --check
+          test "$(git write-tree)" = 5672e0f3159ae5fa4ec54c83a27d6755960725a8
+          echo 'a66299e479afc86f81d35193afd5d5d293580a08d27522ab2c6f785efe08773e  supabase/migrations/20260922175540_ediel_source_owner_timezone.sql' | sha256sum -c -
+          git diff --cached --stat > "$evidence/input-diff.txt"
+          git diff --cached --name-only > "$evidence/input-paths.txt"
+          git archive --format=tar.gz "$(git write-tree)" > "$evidence/input-source.tar.gz"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
-      - name: Create genuine forward migration; no database connection
+      - name: Install matching PostgreSQL client
         shell: bash
         run: |
           set -euo pipefail
+          server_major="$(python3 -c 'import tomllib;print(tomllib.load(open("supabase/config.toml","rb"))["db"]["major_version"])')"
+          test "$server_major" = 17
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail -sS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-client-$server_major"
+          echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
           supabase --version
-          supabase migration new --help
-          supabase migration new ediel_source_owner_timezone
-          file="$(find supabase/migrations -maxdepth 1 -name '*_ediel_source_owner_timezone.sql')"
-          test -n "$file"
-          test "$(printf '%s\n' "$file" | wc -l)" = 1
-          cat > "$file" <<'SQL'
-          -- CLI-created forward correction. Existing migration bytes are unchanged.
-          -- Keep evidence serialization and typed owner comparisons independent
-          -- of the caller session. Explicit market time remains Etc/GMT-1.
-          BEGIN;
-          ALTER FUNCTION gridex_received_sources.owner_rows_match(text,jsonb,uuid,text,uuid) SET timezone = 'UTC';
-          ALTER FUNCTION gridex_received_sources.object_owner_proof_consistent(jsonb,jsonb,timestamptz) SET timezone = 'UTC';
-          ALTER FUNCTION gridex_received_sources.append_object_assessment(uuid,text,uuid,text,uuid,text) SET timezone = 'UTC';
-          COMMIT;
-          SQL
-          mkdir -p "$RUNNER_TEMP/e035-runtime-migration"
-          cp "$file" "$RUNNER_TEMP/e035-runtime-migration/"
-          git rev-parse HEAD > "$RUNNER_TEMP/e035-runtime-migration/base.txt"
-          (cd "$RUNNER_TEMP/e035-runtime-migration" && sha256sum *.sql base.txt > SHA256SUMS)
+          supabase db --help
+          supabase gen types --help
+      - name: Native replay, real HTTP runtime ownership, repeated contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/e035-runtime-qualified"
+          exec > >(tee "$evidence/native.log") 2>&1
+          source scripts/gridex-aud-003-clean-replay.sh
+          db='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+          psql "$db" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql
+          psql "$db" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
+          psql "$db" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
+          supabase status --help
+          supabase status -o json > "$RUNNER_TEMP/e035-native-status.json"
+          GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json" npx vitest run --config scripts/ediel-source-owner-native.config.ts
+          rm -f "$RUNNER_TEMP/e035-native-status.json"
+          DATABASE_URL="$db" npm run tenant:invariants
+          npm run db:parity:selftest -- "$db"
+          supabase db lint --local --schema gridex_received_sources --level warning --fail-on warning
+          supabase db advisors --local --type security > "$evidence/advisors.txt"
+          supabase gen types typescript --local > "$evidence/database.types.ts"
+          supabase gen types typescript --local > "$evidence/database.types.repeat.ts"
+          node scripts/apply-supabase-types-nullability-overrides.cjs "$evidence/database.types.ts"
+          node scripts/apply-supabase-types-nullability-overrides.cjs "$evidence/database.types.repeat.ts"
+          cmp "$evidence/database.types.ts" "$evidence/database.types.repeat.ts"
+          npm run db:schema:snapshot -- --url "$db" --out-dir "$evidence/schema"
+          npm run db:schema:snapshot -- --url "$db" --out-dir "$evidence/schema-repeat"
+          cmp "$evidence/schema/schema.sql" "$evidence/schema-repeat/schema.sql"
+          cmp "$evidence/schema/schema.fingerprint.json" "$evidence/schema-repeat/schema.fingerprint.json"
+          cleanup
+          trap - EXIT
+          set -euo pipefail
+          git diff --exit-code --
+          cp "$evidence/database.types.ts" supabase/database.types.ts
+          cp "$evidence/schema/schema.sql" supabase/schema.sql
+          cp "$evidence/schema/schema.fingerprint.json" supabase/schema.fingerprint.json
+          python3 - <<'PY'
+          import pathlib,json,hashlib,datetime,os
+          p=pathlib.Path('scripts/supabase-types-manifest.json'); v=json.loads(p.read_text())
+          v.update(generated_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),generated_with='supabase-cli-2.101.0-repeated-runtime-native-run'+os.environ['GITHUB_RUN_ID'],sha256=hashlib.sha256(pathlib.Path('supabase/database.types.ts').read_bytes()).hexdigest(),latest_migration='20260922175540_ediel_source_owner_timezone.sql',latest_migration_schema_effect='Pin object-owner typed readset comparisons and evidence serialization to UTC. Application types generated twice from the actual complete disposable database.')
+          p.write_text(json.dumps(v,indent=2)+'\n')
+          PY
+          git add -- supabase/database.types.ts supabase/schema.sql supabase/schema.fingerprint.json scripts/supabase-types-manifest.json
+          printf '\nNATIVE_RUNTIME_OWNER_PASS\n'
+      - name: Full source verification after native generation
+        shell: bash
+        run: |
+          set -euo pipefail
+          exec > >(tee "$RUNNER_TEMP/e035-runtime-qualified/project.log") 2>&1
+          npm run db:migrations:check
+          npm run tenant:service-role-ratchet
+          node scripts/check-agent-memory-git-state.cjs
+          npm run typecheck
+          npm run typecheck:scripts
+          npm run typecheck:tests
+          npm run lint
+          npm test
+          git diff --cached --check
+          git diff --exit-code --
+          printf '\nPROJECT_RUNTIME_OWNER_PASS\n'
+      - name: Preserve exact qualified candidate, never advance the active PR here
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/e035-runtime-qualified"
+          python3 - "$evidence" <<'PY'
+          import pathlib,subprocess,sys
+          out=pathlib.Path(sys.argv[1])
+          expected=set((out/'input-paths.txt').read_text().splitlines())|{'supabase/database.types.ts','supabase/schema.sql','supabase/schema.fingerprint.json','scripts/supabase-types-manifest.json'}
+          changed=set(subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines())
+          assert changed <= expected
+          assert '.github/workflows/e035-runtime-native.yml' not in changed
+          PY
+          tree="$(git write-tree)"
+          candidate="$(git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit-tree "$tree" -p d7fb49fde3dae153693acae1cefa33aeef45ad4f -m 'feat(e035): bind actual canonical tenant party and committed Z04 owners to immutable source approval')"
+          printf '%s\n' "$candidate" > "$evidence/candidate-commit.txt"
+          printf '%s\n' "$tree" > "$evidence/candidate-tree.txt"
+          git archive --format=tar.gz "$candidate" > "$evidence/qualified-source.tar.gz"
+          git diff --binary d7fb49fde3dae153693acae1cefa33aeef45ad4f "$candidate" > "$evidence/qualified-source.patch"
+          git ls-tree -r "$candidate" > "$evidence/qualified-tree.txt"
+          test -z "$(git ls-remote --heads origin refs/heads/codex/e035-runtime-qualified-20260922)"
+          git push origin "$candidate:refs/heads/codex/e035-runtime-qualified-20260922"
+          (cd "$evidence" && sha256sum candidate-commit.txt candidate-tree.txt qualified-source.tar.gz qualified-source.patch qualified-tree.txt database.types.ts database.types.repeat.ts schema/schema.sql schema/schema.fingerprint.json project.log native.log > SHA256SUMS)
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: e035-runtime-authentic-migration
-          path: ${{ runner.temp }}/e035-runtime-migration/
+          name: e035-runtime-qualified-evidence
+          path: ${{ runner.temp }}/e035-runtime-qualified/
           retention-days: 14
