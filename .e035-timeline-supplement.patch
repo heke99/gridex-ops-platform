@@ -1,0 +1,41 @@
+diff --git a/__tests__/ediel-source-decision-timeline.test.ts b/__tests__/ediel-source-decision-timeline.test.ts
+index 6119ec1..a93dc2a 100644
+--- a/__tests__/ediel-source-decision-timeline.test.ts
++++ b/__tests__/ediel-source-decision-timeline.test.ts
+@@ -125,3 +125,14 @@ test('invalid caller scope never reaches the privileged RPC',async()=>{
+  const r=await readReceivedSourceDecisionTimeline({...timelineScope,companyId:'invalid'},{async openSnapshot(){assert.fail('must not read')}})
+  assert.equal(r.status,'not_requested');hidden(r)
+ })
++
++test('rejects a coercible environment before issuing any snapshot read',async()=>{
++ let calls=0
++ const result=await readReceivedSourceDecisionTimeline({...timelineScope,environment:['test']},{async openSnapshot(){calls++;return timelineReceipt(timelineBody())}})
++ assert.equal(calls,0);assert.equal(result.status,'not_requested');hidden(result)
++})
++test('rejects a coercible object disposition instead of exporting a non-string enum',()=>{
++ const body=timelineBody()
++ rewriteTimelineFacts(body.sources[0].assessments[0],facts=>{Object.assign(facts.objects[0],{disposition:['unavailable']})})
++ const result=inspect(body);assert.equal(result.status,'read_failed');hidden(result)
++})
+diff --git a/lib/ediel/sources/receivedSourceDecisionTimeline.ts b/lib/ediel/sources/receivedSourceDecisionTimeline.ts
+index 15a0dce..ff84dbf 100644
+--- a/lib/ediel/sources/receivedSourceDecisionTimeline.ts
++++ b/lib/ediel/sources/receivedSourceDecisionTimeline.ts
+@@ -44,7 +44,7 @@ export function emptySourceDecisionTimeline(): SourceDecisionTimeline {
+     boundedReadComplete: false, snapshotId: null, readsetHash: null, cutoffAt: null, ledgerStartedAt: null, sourceCount: null, sources: []}
+ }
+ function scopeOf(value: unknown): ReceivedSourceScope | null {
+-  if (!isEvidenceRecord(value) || !isEvidenceUuid(value.companyId) || !['test', 'production'].includes(String(value.environment))
++  if (!isEvidenceRecord(value) || !isEvidenceUuid(value.companyId) || (value.environment !== 'test' && value.environment !== 'production')
+     || typeof value.cutoffAt !== 'string' || parseSourceReceiptInstant(value.cutoffAt) === null) return null
+   return {companyId: value.companyId, environment: value.environment as ReceivedSourceScope['environment'], cutoffAt: value.cutoffAt}
+ }
+@@ -80,7 +80,7 @@ function observedObjects(facts: unknown, source: RecordValue, scope: ReceivedSou
+   const objects: ObservedObject[] = []
+   for (const entry of facts.objects) {
+     requireBoundary(keys(entry, ['object', 'disposition', 'reasons', 'business', 'party']) && isEvidenceRecord(entry.object)
+-      && ['accepted', 'rejected', 'unavailable'].includes(String(entry.disposition)) && reasons(entry.reasons)
++      && typeof entry.disposition === 'string' && ['accepted', 'rejected', 'unavailable'].includes(entry.disposition) && reasons(entry.reasons)
+       && (entry.disposition === 'accepted' ? entry.reasons.length === 0 : entry.reasons.length > 0), 'timeline_object_invalid')
+     const business = entry.business, party = entry.party
+     if (business !== null) requireBoundary(isEvidenceRecord(business) && sourceBinding(business, source, scope, 'sourceReceivedAt')
