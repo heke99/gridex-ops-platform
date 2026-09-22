@@ -1,0 +1,103 @@
+name: E035 actual source-object owner native qualification
+on:
+  push:
+    branches: [codex/e035-object-native-20260922]
+permissions:
+  contents: write
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+      E035_INPUT_DIR: /tmp/gridex-e035-object-input-${{ github.run_id }}
+      E035_OUTPUT_DIR: /tmp/gridex-e035-object-output-${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify and unpack exact local source candidate
+        run: |
+          python3 <<'PY'
+          import hashlib,io,json,lzma,os,pathlib,subprocess,tarfile
+          base='92d4980e5f1e068a3d33826f4ef75d086bfaf714'
+          assert subprocess.check_output(['git','rev-parse',base+'^{tree}'],text=True).strip()=='b19587747eff6be6bc744c4954e7d815b62cc30c'
+          data=b''.join(pathlib.Path(f'.e035-object-input/part-{n}.bin').read_bytes() for n in range(6))
+          assert hashlib.sha256(data).hexdigest()=='51a781993b45b2649bade05843e77796f705387443a77a5eee6e1dc819987764'
+          out=pathlib.Path(os.environ['E035_INPUT_DIR']);out.mkdir(parents=True,exist_ok=True)
+          with tarfile.open(fileobj=io.BytesIO(lzma.decompress(data)),mode='r:') as archive:
+              for member in archive.getmembers():
+                  assert member.isfile() and pathlib.PurePosixPath(member.name).name==member.name
+                  (out/member.name).write_bytes(archive.extractfile(member).read())
+          for rel,h in json.loads((out/'input-sha256.json').read_text()).items():assert hashlib.sha256((out/rel).read_bytes()).hexdigest()==h,rel
+          patch=pathlib.Path('.e035-object-input/normative-facade.patch')
+          assert hashlib.sha256(patch.read_bytes()).hexdigest()=='c76b97644f42f1e5c2096393fa386da22abc3e89c3a6146549c588b4f3e35ac0'
+          for p in [out/'source.patch',patch]:
+              subprocess.run(['git','apply','--check',str(p)],check=True)
+              subprocess.run(['git','apply',str(p)],check=True)
+          PY
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Install matching PostgreSQL client
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+          echo 'GRIDEX_PG_DUMP=/usr/lib/postgresql/17/bin/pg_dump' >> "$GITHUB_ENV"
+      - name: Real CLI forward, real registry and business owners, negative roles and mutation checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$E035_OUTPUT_DIR"
+          exec > >(tee "$E035_OUTPUT_DIR/native.log") 2>&1
+          source scripts/gridex-aud-003-clean-replay.sh
+          python3 "$E035_INPUT_DIR/prepare.py"
+      - name: Restore genuine generated delivery and run unchanged root gates
+        run: |
+          python3 <<'PY'
+          import json,os,pathlib,shutil,subprocess,sys
+          out=pathlib.Path(os.environ['E035_OUTPUT_DIR']);root=pathlib.Path.cwd()
+          for rel in json.loads((out/'delivery-files.json').read_text()):
+              p=root/rel;p.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(out/'delivery'/rel,p)
+          results=[]
+          for name,args in [('typecheck',['npm','run','typecheck']),('test-types',['npm','run','typecheck:tests']),('script-types',['npm','run','typecheck:scripts']),('tests',['npm','test']),('lint',['npm','run','lint']),('migrations',['npm','run','db:migrations:check']),('ratchet',['npm','run','tenant:service-role-ratchet'])]:
+              with (out/(name+'.log')).open('w') as f:p=subprocess.run(args,stdout=f,stderr=subprocess.STDOUT)
+              results.append({'name':name,'exit':p.returncode});print(name,p.returncode,flush=True)
+          (out/'root-checks.json').write_text(json.dumps(results,indent=2)+'\n')
+          sys.exit(1 if any(r['exit'] for r in results) else 0)
+          PY
+      - name: Preserve immutable generated source objects only, never mutate branch refs
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 <<'PY'
+          import base64,hashlib,json,os,pathlib,urllib.request
+          out=pathlib.Path(os.environ['E035_OUTPUT_DIR']);manifest=out/'delivery-files.json'
+          if not manifest.exists():print('No completed native delivery.');raise SystemExit(0)
+          result=[]
+          for rel in json.loads(manifest.read_text()):
+              p=(out/'delivery'/rel).resolve();assert p.is_relative_to((out/'delivery').resolve())
+              data=p.read_bytes();body=json.dumps({'content':base64.b64encode(data).decode(),'encoding':'base64'}).encode()
+              request=urllib.request.Request('https://api.github.com/repos/heke99/gridex-ops-platform/git/blobs',data=body,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Content-Type':'application/json','Accept':'application/vnd.github+json'},method='POST')
+              with urllib.request.urlopen(request,timeout=60) as response:created=json.load(response)
+              digest=hashlib.sha1(f'blob {len(data)}\0'.encode()+data).hexdigest();assert created['sha']==digest
+              result.append({'path':rel,'sha':digest,'sha256':hashlib.sha256(data).hexdigest(),'mode':'100644','type':'blob'})
+          (out/'delivery-blobs.json').write_text(json.dumps(result,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e035-source-object-native
+          path: ${{ env.E035_OUTPUT_DIR }}/
+          include-hidden-files: true
+          if-no-files-found: error

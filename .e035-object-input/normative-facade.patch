@@ -1,0 +1,41 @@
+--- a/lib/ediel/core/receivedSourceObjectFacts.ts
++++ b/lib/ediel/core/receivedSourceObjectFacts.ts
+@@ -5,8 +5,7 @@
+ import { isEvidenceRecord, isEvidenceUuid } from '@/lib/ediel/utilts/durableSourceDiscovery'
+ import { segmentComposite } from './edifactTokenizer'
+ import { readProdatParty } from '@/lib/ediel/prodat/prodatPartyFields'
+-import { canonicalProdat26AFieldRules, prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+-import { validateProdatRegisterPayload, validateProdatRegisterPolicy } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
++import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
+ import { prodatMarketMinuteToUtc } from '@/lib/ediel/prodat/render/dates'
+ 
+ /** Explicit receiver-local facts supplied by the authorized review owner,
+@@ -69,15 +68,11 @@
+     let registerReasonCodes = ['source_register_review_missing']
+     if (review) {
+       const rawSegments = tokens.segments.map(segment => segment.raw)
+-      const checks = [
+-        ...validateProdatRegisterPayload({ code: parsed.messageCode, rawSegments, una: tokens.una }),
+-        ...validateProdatRegisterPolicy({ code: parsed.messageCode, rawSegments, una: tokens.una,
+-          rules: canonicalProdat26AFieldRules(parsed.messageCode).filter(rule => prodatRegisterFieldScope(rule.fieldNumber ?? '') === 'local'),
++      const checks = validateProdatRegisterPayload({ code: parsed.messageCode, rawSegments, una: tokens.una,
+           facts: { market: 'electricity', registerObjects: [{ meteringPointId: binding.objectId, identityAgency: binding.identityAgency as '9' | '89',
+             expectedRegisterCount: review.expectedRegisterCount, meterReadingsSentInUtilts: review.meterReadingsSentInUtilts }] },
+-          requireIndependentInventory: true, objectScope: { meteringPointId: binding.objectId, identityAgency: binding.identityAgency },
+-        }).issues,
+-      ].filter(issue => issue.blocking)
++          requireConditions: true, objectScope: { meteringPointId: binding.objectId, identityAgency: binding.identityAgency },
++        }).filter(issue => issue.blocking)
+       registerReasonCodes = [...new Set(checks.map(issue => issue.code))]
+       registerDecision = checks.length === 0 ? 'accepted' : checks.some(issue => issue.code.includes('UNDETERMINED')) ? 'unavailable' : 'rejected'
+     }
+--- a/lib/ediel/rulebook/prodatRegisterPolicy.ts
++++ b/lib/ediel/rulebook/prodatRegisterPolicy.ts
+@@ -154,6 +154,7 @@
+ export function validateProdatRegisterPayload(input: {
+   code:string; rawSegments:readonly string[]; una?:EdifactServiceStringAdvice;
+   facts?:ProdatDependentConditionFacts; requireConditions?:boolean; applicationReference?:string|null;
++  objectScope?: { meteringPointId: string; identityAgency: string };
+ }): EdielRulebookIssue[] {
+   const rules = canonicalProdat26AFieldRules(input.code).filter(rule => prodatRegisterFieldScope(rule.fieldNumber ?? '') === 'local')
+   const issues = validateFieldMatrixPayload({family:'PRODAT',code:input.code,rawSegments:input.rawSegments,una:input.una,mode:'parse'},rules)
