@@ -55,7 +55,7 @@ jobs:
           red_exit=$?
           set -e
           test "$red_exit" -ne 0
-          rg 'register_validation_regressions_failed:' "$RUNNER_TEMP/e035-native/register-red.log"
+          grep -F 'register_validation_regressions_failed:' "$RUNNER_TEMP/e035-native/register-red.log"
           # File was created by actual pinned CLI in run35731853885.
           cp scripts/e035-register-forward.sql supabase/migrations/20260922131136_ediel_received_register_validation.sql
           supabase migration up --help
