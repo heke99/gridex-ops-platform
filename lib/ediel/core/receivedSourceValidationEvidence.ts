@@ -1,8 +1,9 @@
 import { isEvidenceRecord, isEvidenceUuid, evidenceHash } from '@/lib/ediel/utilts/durableSourceDiscovery'
 import { parseSourceReceiptInstant } from '@/lib/ediel/utilts/receivedSourceInventory'
+import { bindReceivedRegisterValidation } from '@/lib/ediel/core/receivedRegisterValidationBinding'
 
 type SourceFacts = { id: unknown; company_id?: unknown; environment: unknown; direction: unknown; message_family: unknown; message_standard: unknown; raw_payload: unknown; message_code: unknown; message_received_at: unknown; execution_context_snapshot?: unknown }
-type RuntimeFacts = { syntaxDecision: unknown; applicationDecision: unknown; functionalDecision: unknown; canonical: { messageReference: unknown }; issues: Array<{ code: unknown }>; validationReport: Record<string, unknown> }
+type RuntimeFacts = { syntaxDecision: unknown; applicationDecision: unknown; functionalDecision: unknown; canonical: { messageReference: unknown }; issues: Array<{ code: unknown }>; validationReport: Record<string, unknown>; prodatRegisterValidation?: unknown }
 export type SourceValidationInput = { companyId: string; environment: 'test' | 'production'; sourceMessageId: string; sourcePayloadHash: string; factsText: string }
 const CONTEXT_KEYS = ['version','contextOrigin','sourceMessageId','companyId','environment','messageCode','payloadHash','sourceReceivedAt','capturedAt']
 const states = new Set(['accepted','rejected','not_applicable','manual_review'])
@@ -45,9 +46,12 @@ export function buildReceivedSourceValidationEvidence(input: { original: SourceF
   // Registry-unavailable acceptance is never silently downgraded to evidence
   // with an unknown rule version. Rejection can legitimately precede registry.
   if (decision.applicationDecision === 'accepted' && rulePackEvidence === null) return null
+  const hasRegisterValidation = decision.prodatRegisterValidation !== undefined
+  const registerValidation = hasRegisterValidation ? bindReceivedRegisterValidation(decision.prodatRegisterValidation, original.raw_payload) : null
+  if (hasRegisterValidation && (!registerValidation || !rulePackEvidence)) return null
   return { companyId: original.company_id, environment: original.environment, sourceMessageId: original.id, sourcePayloadHash,
     factsText: JSON.stringify({ version: 1, owner: 'canonical-runtime-with-registry-v1', sourceDisposition: 'not_established',
       objectDisposition: 'not_checked', partyDisposition: 'not_checked', coverage: 'canonical_runtime_only', originalTenantMatch: 'matched',
       syntaxDecision: decision.syntaxDecision, applicationDecision: decision.applicationDecision, functionalDecision: decision.functionalDecision,
-      messageReference, reasonCodes, rulePackEvidence }) }
+      messageReference, reasonCodes, rulePackEvidence, ...(hasRegisterValidation ? { registerValidation } : {}) }) }
 }
