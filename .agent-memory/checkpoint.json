@@ -13,17 +13,18 @@
   "active_item": "E035 dated reviewed market structure and authoritative E61/E62 comparison",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
-    "status": "FIX5_ACTIVE_MISSING_EVENT_SCHEMA_AND_NONATOMIC_STATUS",
-    "published_head": "a7cf4215b20d3d5bcd02fad64e3f58ce6aada49e",
-    "published_tree": "42be539fec2aece2587519940b04b3a494a4508a",
-    "ops_run": 35896688338,
-    "native_job": 107302259653,
-    "local_tests": 5956,
-    "local_test_files": 368,
-    "report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/ediel-case-visibility-implementation-20260923.md",
-    "native_browser_executed": false
+    "status": "FIX5_STATIC_APPROVED_NATIVE_BLOCKED_REGISTRY_RATE_LIMIT",
+    "published_head": "8092ad69120ece334feb5afea1caf443b2f3421b",
+    "published_tree": "5194a66c3bccad8887d876a5635c2f3e72a6cc46",
+    "ops_run": 35901488883,
+    "native_job": 107318534277,
+    "local_tests": 29,
+    "local_test_files": 7,
+    "report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/ediel-case-schema-fix5-20260923.md",
+    "native_browser_executed": false,
+    "independent_review": "SPEC_QUALITY_STATIC_APPROVED_NATIVE_WITHHELD"
   },
-  "next_action": "Case-navigation fix round5: restore existing customer_case_events through forward migration and atomic status/event/audit boundary; retained124 native PASS but protected browser not reached. Qualify genuine replay/browser, reconcile generated artifacts, scoped independent review. Then prior-guide/remaining owners and final whole-E035 exact-head review. No merge before complete.",
+  "next_action": "Retry authentic replay after GHCR rate limit before database startup. Static fix5 review approved; do not reset round budget. Generate types/schema only from authentic replay; qualify protected case browser and exact-head CI. Then remaining source owners and full E035 review; no merge yet.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",

@@ -248,3 +248,6 @@ Owner mapping found reusable legal tenant/role/delegation and facility grid-owne
 4. Lawful retention/purge and live rollout approval remain unresolved; append-only history is not a claim of indefinite lawful retention or resistance to a database superuser.
 
 Native PostgreSQL crash fixed narrowly by verified vendor image17.6.1.155 in disposable replay only. Real denied-EXECUTE test, hint roles, RLS and all prior tests remain. PR310OPEN/DRAFT/PAUSED e9611351 is excluded, not completed. FullE035/F3/masterplan incomplete.
+
+## E035 fix5 published checkpoint — 2026-09-23
+Published8092ad6 restores legacy case events and makes scoped status/event/audit atomic. Independent static SPEC/QUALITY approved; native acceptance withheld. Targeted29/7 and all three typechecks pass. OPS35901488883 native107318534277 stopped on GHCR rate limit before DB startup; genuine native/browser not executed. Types gate correctly rejects stale migration tail; full E2E14/15 fails only that gate. Tenant, Ediel and general browser workflows pass. Next: retry authentic replay, reconcile authentic generated artifacts, then qualify case flow before remaining E035 owners. No merge or hosted writes.
