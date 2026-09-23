@@ -5,5 +5,5 @@
   "generated_types": "supabase/database.types.ts",
   "sha256": "fcd9fa39904fabbf33e62bb1ca5866dbb8792947b4e1324d1f690e009a51f7a2",
   "latest_migration": "20260923154221_ediel_utilts_existing_billing_binding.sql",
-  "latest_migration_schema_effect": "Immutable UTILTS source/consumption binding and atomic metering/billing sinks with ownership locks and frozen existing-underlay equality. Empty replay35885232292 passed124 native cases; generated public types copied verbatim from verified artifact10762203061. Run stopped at expected old type hash; schema snapshot and final ordinary CI remain pending. Full E035 incomplete."
+  "latest_migration_schema_effect": "Immutable UTILTS source/consumption binding and atomic metering/billing sinks with ownership locks and frozen existing-underlay equality. Empty replay35885232292 generated verified public types after124 native passes. Replay35886326071 repeated124 passes, reproduced identical types and passed tenant invariants/parity self-test. Authentic schema/fingerprint copied verbatim from verified artifact10763590021 after expected stale-schema comparison. Final same-head CI pending; full E035 incomplete."
 }

@@ -1329,6 +1329,181 @@ END $$;
 SET default_table_access_method = heap;
 
 --
+-- Name: ediel_messages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ediel_messages (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid,
+    direction text NOT NULL,
+    message_standard text DEFAULT 'edifact'::text NOT NULL,
+    message_family text NOT NULL,
+    message_code text,
+    message_version text,
+    process_type text,
+    environment text DEFAULT 'test'::text NOT NULL,
+    test_flag integer DEFAULT 1 NOT NULL,
+    status text DEFAULT 'draft'::text NOT NULL,
+    transport_type text DEFAULT 'email'::text NOT NULL,
+    mailbox text,
+    mailbox_message_id text,
+    sender_ediel_id text,
+    sender_name text,
+    sender_sub_address text,
+    receiver_ediel_id text,
+    receiver_name text,
+    receiver_sub_address text,
+    sender_email text,
+    receiver_email text,
+    subject text,
+    file_name text,
+    mime_type text,
+    interchange_reference text,
+    external_reference text,
+    correlation_reference text,
+    transaction_reference text,
+    application_reference text,
+    original_message_id text,
+    original_transaction_id text,
+    original_message_code text,
+    related_message_id uuid,
+    communication_route_id uuid,
+    outbound_request_id uuid,
+    switch_request_id uuid,
+    grid_owner_data_request_id uuid,
+    partner_export_id uuid,
+    customer_id uuid,
+    site_id uuid,
+    metering_point_id uuid,
+    grid_owner_id uuid,
+    raw_payload text,
+    parsed_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    validation_report jsonb DEFAULT '{}'::jsonb NOT NULL,
+    requires_contrl boolean DEFAULT true NOT NULL,
+    requires_aperak boolean DEFAULT false NOT NULL,
+    contrl_status text,
+    aperak_status text,
+    utilts_err_status text,
+    ack_outcome text,
+    syntax_check_status text,
+    functional_check_status text,
+    failure_reason text,
+    message_created_at timestamp with time zone,
+    message_received_at timestamp with time zone,
+    message_sent_at timestamp with time zone,
+    parsed_at timestamp with time zone,
+    validated_at timestamp with time zone,
+    acknowledged_at timestamp with time zone,
+    failed_at timestamp with time zone,
+    ack_due_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    updated_by uuid,
+    metadata jsonb DEFAULT '{}'::jsonb,
+    unb_sender_id text,
+    unb_sender_subaddress text,
+    unb_receiver_id text,
+    unb_receiver_subaddress text,
+    message_reference text,
+    bgm_code text,
+    bgm_reference text,
+    tenant_resolution_status text,
+    business_match_status text,
+    ack_status text,
+    processing_status text,
+    raw_payload_hash text,
+    utilts_subtype text,
+    measurement_resolution text,
+    backend_automation_status text,
+    backend_automation_reason text,
+    route_profile_id uuid,
+    route_version integer,
+    transport_profile_id uuid,
+    routing_decision_id uuid,
+    routing_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
+    parsed_unb_sender_ediel_id text,
+    parsed_unb_receiver_ediel_id text,
+    resolved_company_id uuid,
+    resolved_sender_ediel_id text,
+    resolved_receiver_ediel_id text,
+    receiver_source text,
+    resolved_grid_owner_id uuid,
+    resolved_counterparty_id uuid,
+    dynamic_receiver_strategy text,
+    party_id uuid,
+    party_address_id uuid,
+    transport_security_mode text,
+    route_transport_security_mode text,
+    was_smime_encrypted boolean,
+    expected_receiver_certificate_id uuid,
+    cms_expected_receiver_present boolean,
+    operation_id uuid,
+    grid_owner_information_request_id uuid,
+    intent_id uuid,
+    message_subtype text,
+    business_process text,
+    business_state text,
+    rule_profile_key text,
+    rule_profile_version_id uuid,
+    rule_profile_version text,
+    rule_pack_checksum text,
+    rule_pack_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
+    canonical_rule_pack_id uuid,
+    certificate_profile_id uuid,
+    business_date date,
+    source_operation_id text,
+    immutable_payload_hash text,
+    immutable_rendered_at timestamp with time zone,
+    execution_context_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
+    contrl_due_at timestamp with time zone,
+    business_response_due_at timestamp with time zone,
+    response_overdue_at timestamp with time zone
+);
+
+--
+-- Name: COLUMN ediel_messages.created_by; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ediel_messages.created_by IS 'Optional real user UUID. Automated EDIEL creation is represented by null plus message metadata.';
+
+--
+-- Name: COLUMN ediel_messages.updated_by; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ediel_messages.updated_by IS 'Optional real user UUID. Automated EDIEL updates are represented by null plus event/audit metadata.';
+
+--
+-- Name: COLUMN ediel_messages.grid_owner_information_request_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ediel_messages.grid_owner_information_request_id IS 'Facility lookup business request linked to this Ediel message.';
+
+--
+-- Name: COLUMN ediel_messages.intent_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ediel_messages.intent_id IS 'EdielMessageIntent that produced this message (null for legacy/inbound rows).';
+
+--
+-- Name: COLUMN ediel_messages.contrl_due_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ediel_messages.contrl_due_at IS 'Canonical technical CONTRL deadline projected from actual message_sent_at.';
+
+--
+-- Name: COLUMN ediel_messages.business_response_due_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ediel_messages.business_response_due_at IS 'Canonical business-response deadline. For outbound PRODAT Z01 this is Z02 or negative APERAK.';
+
+--
+-- Name: COLUMN ediel_messages.response_overdue_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ediel_messages.response_overdue_at IS 'First time the canonical business-response SLA was escalated. Does not trigger resend.';
+
+--
 -- Name: spot_price_monthly_summaries; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10136,181 +10311,6 @@ CREATE TABLE public.ediel_business_errors (
 );
 
 --
--- Name: ediel_messages; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.ediel_messages (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid,
-    direction text NOT NULL,
-    message_standard text DEFAULT 'edifact'::text NOT NULL,
-    message_family text NOT NULL,
-    message_code text,
-    message_version text,
-    process_type text,
-    environment text DEFAULT 'test'::text NOT NULL,
-    test_flag integer DEFAULT 1 NOT NULL,
-    status text DEFAULT 'draft'::text NOT NULL,
-    transport_type text DEFAULT 'email'::text NOT NULL,
-    mailbox text,
-    mailbox_message_id text,
-    sender_ediel_id text,
-    sender_name text,
-    sender_sub_address text,
-    receiver_ediel_id text,
-    receiver_name text,
-    receiver_sub_address text,
-    sender_email text,
-    receiver_email text,
-    subject text,
-    file_name text,
-    mime_type text,
-    interchange_reference text,
-    external_reference text,
-    correlation_reference text,
-    transaction_reference text,
-    application_reference text,
-    original_message_id text,
-    original_transaction_id text,
-    original_message_code text,
-    related_message_id uuid,
-    communication_route_id uuid,
-    outbound_request_id uuid,
-    switch_request_id uuid,
-    grid_owner_data_request_id uuid,
-    partner_export_id uuid,
-    customer_id uuid,
-    site_id uuid,
-    metering_point_id uuid,
-    grid_owner_id uuid,
-    raw_payload text,
-    parsed_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
-    validation_report jsonb DEFAULT '{}'::jsonb NOT NULL,
-    requires_contrl boolean DEFAULT true NOT NULL,
-    requires_aperak boolean DEFAULT false NOT NULL,
-    contrl_status text,
-    aperak_status text,
-    utilts_err_status text,
-    ack_outcome text,
-    syntax_check_status text,
-    functional_check_status text,
-    failure_reason text,
-    message_created_at timestamp with time zone,
-    message_received_at timestamp with time zone,
-    message_sent_at timestamp with time zone,
-    parsed_at timestamp with time zone,
-    validated_at timestamp with time zone,
-    acknowledged_at timestamp with time zone,
-    failed_at timestamp with time zone,
-    ack_due_at timestamp with time zone,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    created_by uuid,
-    updated_by uuid,
-    metadata jsonb DEFAULT '{}'::jsonb,
-    unb_sender_id text,
-    unb_sender_subaddress text,
-    unb_receiver_id text,
-    unb_receiver_subaddress text,
-    message_reference text,
-    bgm_code text,
-    bgm_reference text,
-    tenant_resolution_status text,
-    business_match_status text,
-    ack_status text,
-    processing_status text,
-    raw_payload_hash text,
-    utilts_subtype text,
-    measurement_resolution text,
-    backend_automation_status text,
-    backend_automation_reason text,
-    route_profile_id uuid,
-    route_version integer,
-    transport_profile_id uuid,
-    routing_decision_id uuid,
-    routing_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
-    parsed_unb_sender_ediel_id text,
-    parsed_unb_receiver_ediel_id text,
-    resolved_company_id uuid,
-    resolved_sender_ediel_id text,
-    resolved_receiver_ediel_id text,
-    receiver_source text,
-    resolved_grid_owner_id uuid,
-    resolved_counterparty_id uuid,
-    dynamic_receiver_strategy text,
-    party_id uuid,
-    party_address_id uuid,
-    transport_security_mode text,
-    route_transport_security_mode text,
-    was_smime_encrypted boolean,
-    expected_receiver_certificate_id uuid,
-    cms_expected_receiver_present boolean,
-    operation_id uuid,
-    grid_owner_information_request_id uuid,
-    intent_id uuid,
-    message_subtype text,
-    business_process text,
-    business_state text,
-    rule_profile_key text,
-    rule_profile_version_id uuid,
-    rule_profile_version text,
-    rule_pack_checksum text,
-    rule_pack_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
-    canonical_rule_pack_id uuid,
-    certificate_profile_id uuid,
-    business_date date,
-    source_operation_id text,
-    immutable_payload_hash text,
-    immutable_rendered_at timestamp with time zone,
-    execution_context_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
-    contrl_due_at timestamp with time zone,
-    business_response_due_at timestamp with time zone,
-    response_overdue_at timestamp with time zone
-);
-
---
--- Name: COLUMN ediel_messages.created_by; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.ediel_messages.created_by IS 'Optional real user UUID. Automated EDIEL creation is represented by null plus message metadata.';
-
---
--- Name: COLUMN ediel_messages.updated_by; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.ediel_messages.updated_by IS 'Optional real user UUID. Automated EDIEL updates are represented by null plus event/audit metadata.';
-
---
--- Name: COLUMN ediel_messages.grid_owner_information_request_id; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.ediel_messages.grid_owner_information_request_id IS 'Facility lookup business request linked to this Ediel message.';
-
---
--- Name: COLUMN ediel_messages.intent_id; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.ediel_messages.intent_id IS 'EdielMessageIntent that produced this message (null for legacy/inbound rows).';
-
---
--- Name: COLUMN ediel_messages.contrl_due_at; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.ediel_messages.contrl_due_at IS 'Canonical technical CONTRL deadline projected from actual message_sent_at.';
-
---
--- Name: COLUMN ediel_messages.business_response_due_at; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.ediel_messages.business_response_due_at IS 'Canonical business-response deadline. For outbound PRODAT Z01 this is Z02 or negative APERAK.';
-
---
--- Name: COLUMN ediel_messages.response_overdue_at; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.ediel_messages.response_overdue_at IS 'First time the canonical business-response SLA was escalated. Does not trigger resend.';
-
---
 -- Name: external_contract_intakes; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -17684,6 +17684,94 @@ begin
   );
 end;
 $$;
+
+--
+-- Name: gridex_consume_utilts_billing_v1(uuid, uuid, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_consume_utilts_billing_v1(p_company_id uuid, p_source_message_id uuid, p_actor_id uuid, p_expected_contracts jsonb) RETURNS public.billing_underlays
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'extensions'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE v_transaction text; v_contract jsonb; v_context jsonb; v_contracts jsonb:='[]'; v_total numeric:=0; v_ordinal jsonb;
+ v_result public.billing_underlays%rowtype; v_source public.ediel_messages%rowtype;
+BEGIN
+ SELECT s.* INTO v_source FROM public.ediel_messages s WHERE s.id=p_source_message_id AND s.company_id=p_company_id FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'utilts_consumption_source_unavailable' USING ERRCODE='P0U01'; END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended('utilts-billing|'||p_company_id::text||'|'||p_source_message_id::text,0));
+ FOR v_transaction IN SELECT a.source_transaction_id FROM public.ediel_ack_transaction_results a
+  WHERE a.source_message_id=p_source_message_id AND a.company_id=p_company_id AND a.environment=v_source.environment
+  AND a.disposition='accepted' AND a.persistence_status='persisted' ORDER BY a.source_transaction_id LOOP
+  v_contract:=gridex_utilts_binding.stored_contract_v1(p_company_id,p_source_message_id,v_transaction);
+  IF v_contract#>>'{billing,capability}' IS DISTINCT FROM 'write' THEN RAISE EXCEPTION 'utilts_consumption_billing_context_mismatch' USING ERRCODE='P0U01'; END IF;
+  IF v_context IS NULL THEN v_context:=v_contract->'billing';
+  ELSIF v_context IS DISTINCT FROM v_contract->'billing' THEN RAISE EXCEPTION 'utilts_consumption_billing_context_mismatch' USING ERRCODE='P0U01'; END IF;
+  FOR v_ordinal IN SELECT value FROM jsonb_array_elements(v_contract->'billingContributionOrdinals') LOOP
+   v_total:=v_total+(v_contract->'observations'->((v_ordinal#>>'{}')::integer)->>'quantity')::numeric;
+  END LOOP;
+  v_contracts:=v_contracts||jsonb_build_array(v_contract);
+ END LOOP;
+ IF v_context IS NULL THEN RAISE EXCEPTION 'utilts_consumption_billing_missing' USING ERRCODE='P0U01'; END IF;
+ IF jsonb_typeof(p_expected_contracts) IS DISTINCT FROM 'array' THEN RAISE EXCEPTION 'utilts_consumption_returned_contract_changed' USING ERRCODE='P0U01'; END IF;
+ IF (SELECT jsonb_agg(e.value ORDER BY e.value->>'transactionId') FROM jsonb_array_elements(p_expected_contracts) e) IS DISTINCT FROM v_contracts THEN
+  RAISE EXCEPTION 'utilts_consumption_returned_contract_changed' USING ERRCODE='P0U01'; END IF;
+ PERFORM gridex_utilts_binding.lock_attribution_v1(p_company_id,v_context,true);
+ SELECT b.* INTO v_result FROM public.billing_underlays b WHERE b.company_id=p_company_id AND b.source_system='ediel_utilts'
+  AND b.payload->>'edielMessageId'=p_source_message_id::text ORDER BY b.created_at,b.id LIMIT 1 FOR UPDATE;
+ IF FOUND THEN
+  IF v_result.customer_id::text IS DISTINCT FROM v_context->>'customerId' OR v_result.site_id::text IS DISTINCT FROM v_context->>'siteId'
+   OR v_result.customer_site_id::text IS DISTINCT FROM v_context->>'customerSiteId'
+   OR v_result.metering_point_id::text IS DISTINCT FROM v_context->>'meteringPointId' OR v_result.grid_owner_id::text IS DISTINCT FROM v_context->>'gridOwnerId'
+   OR v_result.source_request_id::text IS DISTINCT FROM v_context->>'sourceRequestId' OR v_result.total_kwh IS DISTINCT FROM v_total
+   OR v_result.underlay_month IS DISTINCT FROM (v_context->>'month')::integer
+   OR v_result.underlay_year IS DISTINCT FROM (v_context->>'year')::integer
+   OR v_result.currency IS DISTINCT FROM v_context->>'currency'
+   OR v_result.payload->'consumptionContracts' IS DISTINCT FROM v_contracts THEN
+   RAISE EXCEPTION 'utilts_consumption_existing_billing_conflict' USING ERRCODE='P0U01'; END IF;
+  RETURN v_result;
+ END IF;
+ INSERT INTO public.billing_underlays(company_id,customer_id,site_id,customer_site_id,metering_point_id,source_request_id,grid_owner_id,underlay_month,underlay_year,
+  status,total_kwh,currency,source_system,payload,readiness_status,readiness_issues,created_by,updated_by,received_at)
+ VALUES(p_company_id,(v_context->>'customerId')::uuid,(v_context->>'siteId')::uuid,(v_context->>'customerSiteId')::uuid,(v_context->>'meteringPointId')::uuid,(v_context->>'sourceRequestId')::uuid,
+  (v_context->>'gridOwnerId')::uuid,(v_context->>'month')::integer,(v_context->>'year')::integer,v_context->>'status',v_total,v_context->>'currency',v_context->>'sourceSystem',
+  jsonb_build_object('edielMessageId',p_source_message_id,'consumptionContracts',v_contracts,'tenant',jsonb_build_object('company_id',p_company_id,'issues','[]'::jsonb)),
+  'not_checked','[]'::jsonb,p_actor_id,p_actor_id,now()) RETURNING * INTO v_result;
+ RETURN v_result;
+END $$;
+
+--
+-- Name: gridex_consume_utilts_metering_v1(uuid, uuid, text, integer, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_consume_utilts_metering_v1(p_company_id uuid, p_source_message_id uuid, p_transaction_id text, p_observation_ordinal integer, p_actor_id uuid, p_expected_contract jsonb) RETURNS public.metering_values
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'extensions'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE v_contract jsonb; v_attribution jsonb; v_observation jsonb; v_key text; v_payload jsonb; v_result public.metering_values%rowtype;
+BEGIN
+ v_contract:=gridex_utilts_binding.stored_contract_v1(p_company_id,p_source_message_id,p_transaction_id);
+ IF p_expected_contract IS DISTINCT FROM v_contract THEN RAISE EXCEPTION 'utilts_consumption_returned_contract_changed' USING ERRCODE='P0U01'; END IF;
+ v_attribution:=v_contract->'metering';
+ IF p_observation_ordinal IS NULL OR p_observation_ordinal<0 OR p_observation_ordinal>=jsonb_array_length(v_contract->'observations') THEN
+  RAISE EXCEPTION 'utilts_consumption_observation_missing' USING ERRCODE='P0U01'; END IF;
+ v_observation:=v_contract->'observations'->p_observation_ordinal;
+ PERFORM gridex_utilts_binding.lock_attribution_v1(p_company_id,v_attribution,false);
+ v_key:=concat_ws('|',p_company_id::text,v_attribution->>'meteringPointId',v_observation->>'periodStart',v_observation->>'periodEnd',
+  coalesce(v_observation->>'registerCode','default-register'),coalesce(v_observation->>'productCode','default-product'),v_observation->>'direction',v_observation->>'unit');
+ PERFORM pg_advisory_xact_lock(hashtextextended('utilts-metering|'||v_key,0));
+ v_payload:=jsonb_build_object('company_id',p_company_id,'customer_id',v_attribution->'customerId','site_id',v_attribution->'siteId','customer_site_id',v_attribution->'customerSiteId',
+  'metering_point_id',v_attribution->'meteringPointId','grid_owner_id',v_attribution->'gridOwnerId','source_request_id',v_attribution->'sourceRequestId',
+  'period_start',v_observation->'periodStart','period_end',v_observation->'periodEnd','read_at',v_observation->'readAt','resolution',v_observation->'resolution',
+  'value_kwh',v_observation->'quantity','quality_code',v_observation->'quality','reading_type',v_observation->'readingType','direction',v_observation->'direction','unit',v_observation->'unit',
+  'register_code',v_observation->'registerCode','product_code',v_observation->'productCode','facility_id',v_observation->'externalPoint','grid_area',v_observation->'gridArea',
+  'source_line_reference',v_observation->'sourceLineReference','source_system',v_contract->'sourceType','source_ediel_message_id',p_source_message_id,
+  'source_transaction_reference',p_transaction_id,'created_by',p_actor_id,'canonical_dedupe_key',v_key,
+  'raw_payload',jsonb_build_object('consumptionContract',v_contract,'sourceOrdinal',v_observation->'sourceOrdinal','edielMessageId',p_source_message_id));
+ SELECT * INTO v_result FROM public.gridex_ingest_metering_value_atomic(v_payload);
+ RETURN v_result;
+END $$;
 
 --
 -- Name: gridex_contact_address(jsonb); Type: FUNCTION; Schema: public; Owner: -
@@ -34194,208 +34282,103 @@ end
 $$;
 
 --
+-- Name: gridex_persist_utilts_consumption_v1(uuid, text, uuid, text, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_persist_utilts_consumption_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_raw_payload text, p_transactions jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'extensions'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE
+ source public.ediel_messages%rowtype; receipt gridex_utilts_binding.receipts%rowtype;
+ stored gridex_utilts_binding.contracts%rowtype; series public.meter_reading_series%rowtype;
+ tokens jsonb; membership jsonb; expected jsonb; raw_hash text; item jsonb; c jsonb; r jsonb; results jsonb; answer jsonb:='[]';
+ v_series_id uuid; identity text; contract_hash text; origin gridex_utilts_binding.receipts%rowtype;
+BEGIN
+ IF p_company_id IS NULL OR p_environment NOT IN ('test','production') OR p_message_code IS NULL OR jsonb_typeof(p_transactions) IS DISTINCT FROM 'array' OR jsonb_array_length(p_transactions)=0 THEN
+  RAISE EXCEPTION 'utilts_consumption_input_invalid' USING ERRCODE='P0U01';
+ END IF;
+ SELECT * INTO source FROM public.ediel_messages WHERE id=p_source_message_id FOR UPDATE;
+ IF NOT FOUND OR source.company_id IS DISTINCT FROM p_company_id OR source.environment IS DISTINCT FROM p_environment OR source.direction<>'inbound' OR source.message_family<>'UTILTS' OR source.message_code IS DISTINCT FROM p_message_code
+ OR p_raw_payload IS NULL OR source.raw_payload IS DISTINCT FROM p_raw_payload THEN RAISE EXCEPTION 'utilts_source_binding_conflict' USING ERRCODE='P0U01'; END IF;
+ raw_hash:=encode(digest(convert_to(source.raw_payload,'UTF8'),'sha256'),'hex');
+ tokens:=gridex_utilts_binding.wire_tokens_v1(source.raw_payload);
+ IF tokens IS NULL THEN RAISE EXCEPTION 'utilts_physical_membership_unavailable' USING ERRCODE='P0U01'; END IF;
+ -- This owner deliberately does not reinterpret multiple physical messages.
+ IF (SELECT count(*) FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='UNH')<>1
+ OR NOT EXISTS(SELECT FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='UNH' AND t#>>'{elements,2,0}'='UTILTS')
+ OR (SELECT count(*) FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='BGM')<>1
+ OR NOT EXISTS(SELECT FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='BGM' AND t#>>'{elements,1,0}'=p_message_code) THEN
+  RAISE EXCEPTION 'utilts_physical_membership_unavailable' USING ERRCODE='P0U01'; END IF;
+ SELECT coalesce(jsonb_agg(coalesce(nullif(t#>>'{elements,2,0}',''),'transaction-'||ordinal::text) ORDER BY ordinal),'["transaction-1"]') INTO membership
+ FROM (SELECT t,row_number() OVER(ORDER BY (t->>'index')::integer) ordinal FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='IDE' AND t#>>'{elements,1,0}'='24') physical;
+ SELECT jsonb_agg(t->'transactionId' ORDER BY ordinal) INTO expected FROM jsonb_array_elements(p_transactions) WITH ORDINALITY x(t,ordinal);
+ IF membership IS DISTINCT FROM expected OR (SELECT count(DISTINCT value) FROM jsonb_array_elements(membership))<>jsonb_array_length(membership) THEN
+  RAISE EXCEPTION 'utilts_physical_membership_conflict' USING ERRCODE='P0U01'; END IF;
+ SELECT * INTO receipt FROM gridex_utilts_binding.receipts WHERE source_message_id=p_source_message_id;
+ IF NOT FOUND THEN
+  IF EXISTS(SELECT FROM public.ediel_ack_transaction_results WHERE source_message_id=p_source_message_id)
+  OR EXISTS(SELECT FROM public.meter_reading_series WHERE source_ediel_message_id=p_source_message_id) THEN
+   RAISE EXCEPTION 'utilts_historical_binding_unavailable' USING ERRCODE='P0U01'; END IF;
+  INSERT INTO gridex_utilts_binding.receipts(source_message_id,company_id,environment,message_code,raw_hash,source_context,membership,contract_version)
+   VALUES(p_source_message_id,p_company_id,p_environment,p_message_code,raw_hash,gridex_utilts_binding.source_context_v1(source),membership,1) RETURNING * INTO receipt;
+ ELSIF receipt.raw_hash IS DISTINCT FROM raw_hash OR receipt.source_context IS DISTINCT FROM gridex_utilts_binding.source_context_v1(source) OR receipt.membership IS DISTINCT FROM membership THEN
+  RAISE EXCEPTION 'utilts_source_binding_conflict' USING ERRCODE='P0U01';
+ END IF;
+ -- Acquire all locks before insertion, in stable order (including the private
+ -- insertion core's logical-series lock) to avoid opposite-order batch deadlocks.
+ FOR item IN SELECT value FROM jsonb_array_elements(p_transactions) ORDER BY value->>'transactionId' LOOP
+  PERFORM pg_advisory_xact_lock(hashtextextended(p_company_id::text||'|'||p_environment||'|'||p_source_message_id::text||'|'||(item->>'transactionId'),0));
+ END LOOP;
+ FOR identity IN SELECT DISTINCT concat_ws('|',p_company_id::text,p_environment,coalesce(t->>'seriesKind','actual'),p_message_code,coalesce(t->>'externalMeteringPointId',''),coalesce(t->>'gridAreaId',''),coalesce(t->>'periodStart',''),coalesce(t->>'periodEnd',''),coalesce(t->>'resolution','UNKNOWN'),coalesce(t->>'productId','')) FROM jsonb_array_elements(p_transactions) t ORDER BY 1 LOOP
+  PERFORM pg_advisory_xact_lock(hashtextextended(identity,0));
+ END LOOP;
+ FOR item IN SELECT value FROM jsonb_array_elements(p_transactions) LOOP
+  c:=item->'consumptionContract';
+  IF NOT coalesce(gridex_utilts_binding.validate_contract_v1(c),false) OR c->>'companyId' IS DISTINCT FROM p_company_id::text OR c->>'environment' IS DISTINCT FROM p_environment
+   OR c->>'messageCode' IS DISTINCT FROM p_message_code OR c->>'transactionId' IS DISTINCT FROM item->>'transactionId' OR c->>'seriesKind' IS DISTINCT FROM item->>'seriesKind' THEN
+   RAISE EXCEPTION 'utilts_consumption_contract_invalid' USING ERRCODE='P0U01'; END IF;
+ END LOOP;
+ results:=gridex_utilts_binding.persist_series_v1(p_company_id,p_environment,p_source_message_id,p_message_code,p_transactions);
+ FOR r IN SELECT value FROM jsonb_array_elements(results) LOOP
+  SELECT value INTO STRICT item FROM jsonb_array_elements(p_transactions) WHERE value->>'transactionId'=r->>'transactionId';
+  c:=item->'consumptionContract';
+  IF r->>'persistenceStatus'='persisted' THEN
+   v_series_id:=(r->>'seriesId')::uuid;
+   SELECT * INTO series FROM public.meter_reading_series WHERE id=v_series_id AND company_id=p_company_id FOR SHARE;
+   IF NOT FOUND OR series.message_code IS DISTINCT FROM p_message_code OR series.source_transaction_reference IS DISTINCT FROM item->>'transactionId'
+    OR jsonb_typeof(series.raw_transaction) IS DISTINCT FROM 'object' OR series.immutable_hash IS DISTINCT FROM encode(digest(convert_to(series.raw_transaction::text,'UTF8'),'sha256'),'hex')
+    OR series.raw_transaction IS DISTINCT FROM item THEN RAISE EXCEPTION 'utilts_consumption_raw_conflict' USING ERRCODE='P0U01'; END IF;
+   SELECT * INTO origin FROM gridex_utilts_binding.receipts WHERE source_message_id=series.source_ediel_message_id;
+   IF NOT FOUND OR origin.company_id<>p_company_id OR origin.environment<>p_environment OR origin.message_code<>p_message_code THEN RAISE EXCEPTION 'utilts_consumption_origin_conflict' USING ERRCODE='P0U01'; END IF;
+   SELECT * INTO stored FROM gridex_utilts_binding.contracts WHERE contracts.series_id=v_series_id;
+   IF NOT FOUND THEN
+    IF coalesce((r->>'idempotentReplay')::boolean,true) THEN RAISE EXCEPTION 'utilts_historical_contract_unavailable' USING ERRCODE='P0U01'; END IF;
+    INSERT INTO gridex_utilts_binding.contracts(series_id,company_id,environment,source_message_id,transaction_id,contract_version,contract,contract_hash)
+     VALUES(v_series_id,p_company_id,p_environment,p_source_message_id,item->>'transactionId',1,c,encode(digest(convert_to(c::text,'UTF8'),'sha256'),'hex')) RETURNING * INTO stored;
+   END IF;
+   contract_hash:=encode(digest(convert_to(stored.contract::text,'UTF8'),'sha256'),'hex');
+   IF stored.company_id<>p_company_id OR stored.environment<>p_environment OR stored.transaction_id<>item->>'transactionId' OR stored.contract_version<>1
+    OR NOT coalesce(gridex_utilts_binding.validate_contract_v1(stored.contract),false) OR stored.contract_hash IS DISTINCT FROM contract_hash OR stored.contract IS DISTINCT FROM c THEN
+    RAISE EXCEPTION 'utilts_consumption_contract_conflict' USING ERRCODE='P0U01'; END IF;
+   r:=r||jsonb_build_object('contractVersion',stored.contract_version,'contractHash',stored.contract_hash,'consumptionContract',stored.contract);
+  END IF;
+  answer:=answer||jsonb_build_array(r||jsonb_build_object('sourceBinding',jsonb_build_object('sourceMessageId',receipt.source_message_id,'rawHash',receipt.raw_hash,'boundAt',receipt.bound_at)));
+ END LOOP;
+ RETURN answer;
+END $$;
+
+--
 -- Name: gridex_persist_utilts_transactions_v1(uuid, text, uuid, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.gridex_persist_utilts_transactions_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_transactions jsonb) RETURNS jsonb
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public', 'extensions'
-    AS $$
-declare
-  v_source public.ediel_messages%rowtype;
-  v_item jsonb;
-  v_existing public.ediel_ack_transaction_results%rowtype;
-  v_issue_codes text[];
-  v_transaction_id text;
-  v_disposition text;
-  v_response_type text;
-  v_dedupe_key text;
-  v_series_identity text;
-  v_series_id uuid;
-  v_previous_id uuid;
-  v_version integer;
-  v_inserted boolean;
-  v_quantity jsonb;
-  v_order integer;
-  v_results jsonb := '[]'::jsonb;
-  v_error text;
-begin
-  if p_environment not in ('test','production') then raise exception 'utilts_environment_invalid'; end if;
-  if jsonb_typeof(p_transactions) <> 'array' then raise exception 'utilts_transactions_must_be_array'; end if;
-
-  select * into v_source from public.ediel_messages where id=p_source_message_id for share;
-  if not found or v_source.message_family <> 'UTILTS' then raise exception 'utilts_source_message_missing'; end if;
-  if v_source.company_id is distinct from p_company_id or v_source.environment is distinct from p_environment then
-    raise exception 'utilts_source_tenant_or_environment_mismatch' using errcode='23514';
-  end if;
-
-  for v_item in select value from jsonb_array_elements(p_transactions)
-  loop
-    v_transaction_id := nullif(btrim(v_item->>'transactionId'),'');
-    v_disposition := coalesce(nullif(v_item->>'disposition',''),'processability_rejected');
-    v_response_type := coalesce(nullif(v_item->>'responseType',''),'utilts_err');
-    if v_transaction_id is null then v_transaction_id := 'transaction-' || (jsonb_array_length(v_results)+1)::text; end if;
-    v_issue_codes := coalesce(array(select jsonb_array_elements_text(coalesce(v_item->'issueCodes','[]'::jsonb))),array[]::text[]);
-    -- The ACK and series are durable effects. A fresh structural assessment on
-    -- retry may upgrade a held transaction, but may not silently revoke one
-    -- that already produced a series or a finalized market response. Serialize
-    -- retries for this source transaction before looking at the existing row.
-    perform pg_advisory_xact_lock(hashtextextended(
-      p_company_id::text || '|' || p_environment || '|' || p_source_message_id::text || '|' || v_transaction_id, 0));
-    select * into v_existing from public.ediel_ack_transaction_results
-      where company_id=p_company_id and environment=p_environment
-        and source_message_id=p_source_message_id and source_transaction_id=v_transaction_id for update;
-    -- Persistence is the durable response reservation, before any ACK draft
-    -- can be created. Only a held, unfinalized row without side effects may
-    -- change on later structural review. A planned ERR/APERAK/CONTRL remains
-    -- fixed even if processing crashes between ACK creation and finalization.
-    if found and not (v_existing.disposition='internal_review'
-      and v_existing.planned_response_type='none' and v_existing.final_response_type is null
-      and v_existing.persistence_status='not_applicable') then
-      if v_existing.disposition is distinct from v_disposition
-        or v_existing.planned_response_type is distinct from v_response_type
-        or v_existing.issue_codes is distinct from v_issue_codes then
-        raise exception 'utilts_committed_transaction_retry_conflict' using errcode='23514';
-      end if;
-      if v_existing.persistence_status='persisted' then
-        if v_existing.persisted_series_id is null then
-          raise exception 'utilts_committed_series_missing' using errcode='23514';
-        end if;
-        v_results := v_results || jsonb_build_array(jsonb_build_object(
-          'transactionId',v_transaction_id,'disposition',v_disposition,
-          'responseType',v_response_type,'persistenceStatus','persisted',
-          'seriesId',v_existing.persisted_series_id,'idempotentReplay',true));
-      else
-        v_results := v_results || jsonb_build_array(jsonb_build_object(
-          'transactionId',v_transaction_id,'disposition',v_disposition,
-          'responseType',v_response_type,'persistenceStatus',v_existing.persistence_status));
-      end if;
-      continue;
-    end if;
-
-    insert into public.ediel_ack_transaction_results(
-      company_id,environment,source_message_id,source_transaction_id,
-      syntax_result,guide_validation_result,processability_result,
-      disposition,planned_response_type,issue_codes,persistence_status,updated_at
-    ) values (
-      p_company_id,p_environment,p_source_message_id,v_transaction_id,
-      case when v_disposition='syntax_rejected' then 'negative' else 'positive' end,
-      case when v_disposition='guide_rejected' then 'negative' when v_disposition='syntax_rejected' then 'pending' else 'positive' end,
-      case when v_disposition='processability_rejected' then 'negative' when v_disposition='accepted' then 'positive' when v_disposition='internal_review' then 'pending' else 'not_applicable' end,
-      v_disposition,v_response_type,
-      v_issue_codes,
-      case when v_disposition='accepted' then 'pending' else 'not_applicable' end,now()
-    ) on conflict(company_id,environment,source_message_id,source_transaction_id)
-    do update set
-      syntax_result=excluded.syntax_result,
-      guide_validation_result=excluded.guide_validation_result,
-      processability_result=excluded.processability_result,
-      disposition=excluded.disposition,
-      planned_response_type=excluded.planned_response_type,
-      issue_codes=excluded.issue_codes,
-      persistence_status=excluded.persistence_status,
-      persisted_series_id=null,
-      persistence_error=null,
-      updated_at=now();
-
-    if v_disposition <> 'accepted' then
-      v_results := v_results || jsonb_build_array(jsonb_build_object(
-        'transactionId',v_transaction_id,'disposition',v_disposition,
-        'responseType',v_response_type,'persistenceStatus','not_applicable'
-      ));
-      continue;
-    end if;
-
-    begin
-      v_series_identity := concat_ws('|',p_company_id::text,coalesce(v_item->>'seriesKind','actual'),
-        p_message_code,coalesce(v_item->>'externalMeteringPointId',''),coalesce(v_item->>'gridAreaId',''),
-        coalesce(v_item->>'periodStart',''),coalesce(v_item->>'periodEnd',''),
-        coalesce(v_item->>'resolution','UNKNOWN'),coalesce(v_item->>'productId',''));
-      perform pg_advisory_xact_lock(hashtextextended(v_series_identity,0));
-      v_dedupe_key := encode(digest(convert_to(v_series_identity || '|' || v_transaction_id,'UTF8'),'sha256'),'hex');
-      v_previous_id := null;
-      v_version := 1;
-      select id,version_no into v_previous_id,v_version
-      from public.meter_reading_series
-      where company_id=p_company_id and is_current
-        and series_kind=coalesce(v_item->>'seriesKind','actual')
-        and coalesce(message_code,'')=coalesce(p_message_code,'')
-        and coalesce(external_metering_point_id,'')=coalesce(v_item->>'externalMeteringPointId','')
-        and coalesce(grid_area_id,'')=coalesce(v_item->>'gridAreaId','')
-        and period_start is not distinct from nullif(v_item->>'periodStart','')::timestamptz
-        and period_end is not distinct from nullif(v_item->>'periodEnd','')::timestamptz
-        and resolution=coalesce(v_item->>'resolution','UNKNOWN')
-        and coalesce(product_id,'')=coalesce(v_item->>'productId','')
-        and dedupe_key<>v_dedupe_key
-      order by version_no desc limit 1 for update;
-      if v_previous_id is not null then v_version := v_version + 1; end if;
-
-      insert into public.meter_reading_series(
-        company_id,metering_point_id,source_ediel_message_id,external_metering_point_id,
-        grid_area_id,period_start,period_end,resolution,unit,quality_status,dedupe_key,
-        message_code,source_transaction_reference,series_kind,product_id,time_series_product,
-        actor_context,registration_date,latest_update_date,version_no,supersedes_series_id,
-        is_current,correction_reason,raw_transaction,immutable_hash
-      ) values (
-        p_company_id,nullif(v_item->>'meteringPointId','')::uuid,p_source_message_id,
-        nullif(v_item->>'externalMeteringPointId',''),nullif(v_item->>'gridAreaId',''),
-        nullif(v_item->>'periodStart','')::timestamptz,nullif(v_item->>'periodEnd','')::timestamptz,
-        coalesce(nullif(v_item->>'resolution',''),'UNKNOWN'),coalesce(nullif(v_item->>'unit',''),'KWH'),
-        'received',v_dedupe_key,p_message_code,v_transaction_id,coalesce(v_item->>'seriesKind','actual'),
-        nullif(v_item->>'productId',''),v_item->'timeSeriesProduct',coalesce(v_item->'actorContext','{}'::jsonb),
-        nullif(v_item->>'registrationDate','')::timestamptz,nullif(v_item->>'latestUpdateDate','')::timestamptz,
-        v_version,v_previous_id,true,nullif(v_item->>'correctionReason',''),v_item,
-        encode(digest(convert_to(v_item::text,'UTF8'),'sha256'),'hex')
-      ) on conflict(company_id,dedupe_key) do nothing returning id into v_series_id;
-      v_inserted := v_series_id is not null;
-      if not v_inserted then
-        select id into v_series_id from public.meter_reading_series
-        where company_id=p_company_id and dedupe_key=v_dedupe_key;
-      else
-        if v_previous_id is not null then
-          update public.meter_reading_series set is_current=false where id=v_previous_id;
-        end if;
-        v_order := 0;
-        for v_quantity in select value from jsonb_array_elements(coalesce(v_item->'quantities','[]'::jsonb))
-        loop
-          v_order := v_order + 1;
-          insert into public.meter_reading_values(
-            company_id,series_id,reading_at,quantity,unit,quality,source_order,
-            observation_id,qualifier,raw_value,metadata
-          ) values (
-            p_company_id,v_series_id,nullif(v_quantity->>'readingAt','')::timestamptz,
-            nullif(v_quantity->>'value','')::numeric,coalesce(nullif(v_item->>'unit',''),'KWH'),
-            coalesce(nullif(v_quantity->>'quality',''),'unknown'),v_order,
-            coalesce(nullif(v_quantity->>'observationId',''),v_order::text),
-            nullif(v_quantity->>'qualifier',''),v_quantity->>'raw',coalesce(v_quantity->'metadata','{}'::jsonb)
-          );
-        end loop;
-      end if;
-
-      update public.ediel_ack_transaction_results set
-        persistence_status='persisted',persisted_series_id=v_series_id,persistence_error=null,updated_at=now()
-      where company_id=p_company_id and environment=p_environment
-        and source_message_id=p_source_message_id and source_transaction_id=v_transaction_id;
-      v_results := v_results || jsonb_build_array(jsonb_build_object(
-        'transactionId',v_transaction_id,'disposition','accepted','responseType','positive_aperak',
-        'persistenceStatus','persisted','seriesId',v_series_id,'idempotentReplay',not v_inserted
-      ));
-    exception when others then
-      get stacked diagnostics v_error = message_text;
-      update public.ediel_ack_transaction_results set
-        disposition='processability_rejected',planned_response_type='utilts_err',
-        processability_result='negative',persistence_status='failed',persistence_error=left(v_error,500),
-        issue_codes=array_append(issue_codes,'UTILTS_PERSISTENCE_FAILED'),updated_at=now()
-      where company_id=p_company_id and environment=p_environment
-        and source_message_id=p_source_message_id and source_transaction_id=v_transaction_id;
-      v_results := v_results || jsonb_build_array(jsonb_build_object(
-        'transactionId',v_transaction_id,'disposition','processability_rejected','responseType','utilts_err',
-        'persistenceStatus','failed','issueCodes',jsonb_build_array('UTILTS_PERSISTENCE_FAILED')
-      ));
-    end;
-  end loop;
-  return v_results;
-end $$;
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$ BEGIN
+ RAISE EXCEPTION 'utilts_consumption_contract_required' USING ERRCODE='P0U01';
+END $$;
 
 --
 -- Name: gridex_platform_dashboard_summary_v1(); Type: FUNCTION; Schema: public; Owner: -
@@ -85358,6 +85341,12 @@ CREATE TRIGGER trg_tenant_contract_channels_publication_revision AFTER INSERT OR
 CREATE TRIGGER user_roles_global_platform_scope_guard BEFORE INSERT OR UPDATE OF company_id, role, role_id ON public.user_roles FOR EACH ROW EXECUTE FUNCTION public.canonical_guard_global_platform_role_scope();
 
 --
+-- Name: ediel_messages utilts_bound_source_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER utilts_bound_source_guard BEFORE UPDATE ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_utilts_binding.guard_source_v1();
+
+--
 -- Name: website_customer_applications website_application_atomic_portal_identity; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -111108,6 +111097,13 @@ REVOKE ALL ON FUNCTION gridex_received_sources.witness_object_availability(p_com
 GRANT ALL ON FUNCTION gridex_received_sources.witness_object_availability(p_company_id uuid, p_environment text, p_assessment_id uuid, p_facts_hash text) TO service_role;
 
 --
+-- Name: TABLE ediel_messages; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.ediel_messages TO authenticated;
+GRANT ALL ON TABLE public.ediel_messages TO service_role;
+
+--
 -- Name: TABLE spot_price_monthly_summaries; Type: ACL; Schema: public; Owner: -
 --
 
@@ -111787,13 +111783,6 @@ GRANT ALL ON TABLE public.ediel_business_errors TO authenticated;
 GRANT ALL ON TABLE public.ediel_business_errors TO service_role;
 
 --
--- Name: TABLE ediel_messages; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.ediel_messages TO authenticated;
-GRANT ALL ON TABLE public.ediel_messages TO service_role;
-
---
 -- Name: TABLE external_contract_intakes; Type: ACL; Schema: public; Owner: -
 --
 
@@ -112442,6 +112431,20 @@ GRANT ALL ON FUNCTION public.gridex_confirm_safe_blank_route_subaddresses(p_sour
 
 REVOKE ALL ON FUNCTION public.gridex_consume_api_rate_limit(p_api_client_id uuid, p_company_id uuid, p_limit integer) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_consume_api_rate_limit(p_api_client_id uuid, p_company_id uuid, p_limit integer) TO service_role;
+
+--
+-- Name: FUNCTION gridex_consume_utilts_billing_v1(p_company_id uuid, p_source_message_id uuid, p_actor_id uuid, p_expected_contracts jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_consume_utilts_billing_v1(p_company_id uuid, p_source_message_id uuid, p_actor_id uuid, p_expected_contracts jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_consume_utilts_billing_v1(p_company_id uuid, p_source_message_id uuid, p_actor_id uuid, p_expected_contracts jsonb) TO service_role;
+
+--
+-- Name: FUNCTION gridex_consume_utilts_metering_v1(p_company_id uuid, p_source_message_id uuid, p_transaction_id text, p_observation_ordinal integer, p_actor_id uuid, p_expected_contract jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_consume_utilts_metering_v1(p_company_id uuid, p_source_message_id uuid, p_transaction_id text, p_observation_ordinal integer, p_actor_id uuid, p_expected_contract jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_consume_utilts_metering_v1(p_company_id uuid, p_source_message_id uuid, p_transaction_id text, p_observation_ordinal integer, p_actor_id uuid, p_expected_contract jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_contact_address(p_value jsonb); Type: ACL; Schema: public; Owner: -
@@ -113996,11 +113999,17 @@ REVOKE ALL ON FUNCTION public.gridex_persist_pricing_run(p_company_id uuid, p_bi
 GRANT ALL ON FUNCTION public.gridex_persist_pricing_run(p_company_id uuid, p_billing_underlay_id uuid, p_result jsonb, p_pricing_snapshot jsonb) TO service_role;
 
 --
+-- Name: FUNCTION gridex_persist_utilts_consumption_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_raw_payload text, p_transactions jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_persist_utilts_consumption_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_raw_payload text, p_transactions jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_persist_utilts_consumption_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_raw_payload text, p_transactions jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_persist_utilts_transactions_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_transactions jsonb); Type: ACL; Schema: public; Owner: -
 --
 
 REVOKE ALL ON FUNCTION public.gridex_persist_utilts_transactions_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_transactions jsonb) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_persist_utilts_transactions_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_transactions jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_platform_dashboard_summary_v1(); Type: ACL; Schema: public; Owner: -
