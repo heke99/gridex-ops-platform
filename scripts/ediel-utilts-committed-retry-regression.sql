@@ -9,25 +9,25 @@ BEGIN INSERT INTO utilts_retry_results VALUES (label,coalesce(passed,false)); EN
 -- V1 now requires one complete physical batch and an explicit contract. Keep
 -- all eight reservation assertions, supplying both physical siblings on every
 -- attempt instead of the old unbound subset calls. No legacy backfill adapter.
-CREATE FUNCTION pg_temp.retry_persist(company uuid,environment text,source uuid,code text,requested jsonb)
+CREATE FUNCTION pg_temp.retry_persist(p_company uuid,p_environment text,p_source uuid,p_code text,p_requested jsonb)
 RETURNS jsonb LANGUAGE plpgsql AS $$
-DECLARE id text; item jsonb; batch jsonb:='[]'; c jsonb; a jsonb; old public.ediel_ack_transaction_results%rowtype; result jsonb; wire text;
+DECLARE v_transaction_id text; v_item jsonb; v_batch jsonb:='[]'; v_contract jsonb; v_attribution jsonb; v_existing public.ediel_ack_transaction_results%rowtype; v_results jsonb; v_raw text;
 BEGIN
- a:=jsonb_build_object('capability','skip','reason','native_no_consumption_control','customerId',NULL,'siteId',NULL,'customerSiteId',NULL,'meteringPointId',NULL,'gridOwnerId',NULL,'sourceRequestId',NULL);
- FOREACH id IN ARRAY ARRAY['TX-1','TX-2'] LOOP
-  SELECT value INTO item FROM jsonb_array_elements(requested) WHERE value->>'transactionId'=id;
-  IF item IS NULL THEN
-   SELECT * INTO old FROM public.ediel_ack_transaction_results WHERE source_message_id=source AND source_transaction_id=id;
-   item:=jsonb_build_object('transactionId',id,'disposition',coalesce(old.disposition,'internal_review'),'responseType',coalesce(old.planned_response_type,'none'),'issueCodes',coalesce(to_jsonb(old.issue_codes),'[]'),'seriesKind','actual','quantities','[]'::jsonb);
+ v_attribution:=jsonb_build_object('capability','skip','reason','native_no_consumption_control','customerId',NULL,'siteId',NULL,'customerSiteId',NULL,'meteringPointId',NULL,'gridOwnerId',NULL,'sourceRequestId',NULL);
+ FOREACH v_transaction_id IN ARRAY ARRAY['TX-1','TX-2'] LOOP
+  SELECT value INTO v_item FROM jsonb_array_elements(p_requested) WHERE value->>'transactionId'=v_transaction_id;
+  IF v_item IS NULL THEN
+   SELECT q_ack.* INTO v_existing FROM public.ediel_ack_transaction_results q_ack WHERE q_ack.source_message_id=p_source AND q_ack.source_transaction_id=v_transaction_id;
+   v_item:=jsonb_build_object('transactionId',v_transaction_id,'disposition',coalesce(v_existing.disposition,'internal_review'),'responseType',coalesce(v_existing.planned_response_type,'none'),'issueCodes',coalesce(to_jsonb(v_existing.issue_codes),'[]'),'seriesKind','actual','quantities','[]'::jsonb);
   END IF;
-  c:=jsonb_build_object('version',1,'projectionVersion','utilts-consumption-v1','attributionVersion','tenant-match-v1','companyId',company,'environment',environment,'messageCode',code,'transactionId',id,'seriesKind','actual','profileKey','native-reservation-control','profileVersion',NULL,'rulePackHash',NULL,'guideRevision','25-A-4','sourceType','ediel_utilts',
+  v_contract:=jsonb_build_object('version',1,'projectionVersion','utilts-consumption-v1','attributionVersion','tenant-match-v1','companyId',p_company,'environment',p_environment,'messageCode',p_code,'transactionId',v_transaction_id,'seriesKind','actual','profileKey','native-reservation-control','profileVersion',NULL,'rulePackHash',NULL,'guideRevision','25-A-4','sourceType','ediel_utilts',
    'interpretation',jsonb_build_object('localPeriodStart',NULL,'localPeriodEnd',NULL,'localRegistration',NULL,'resolutionValue',NULL,'resolutionFormat',NULL,'timezoneRaw',NULL,'timezoneFormat',NULL,'offsetMinutes',NULL,'timestampPolicy','no-consumption-v1'),
-   'observations','[]'::jsonb,'metering',a,'billing',a||jsonb_build_object('requestScope',NULL,'periodStart',NULL,'periodEnd',NULL,'month',NULL,'year',NULL,'status','received','sourceSystem','ediel_utilts','currency','SEK'),'billingContributionOrdinals','[]'::jsonb);
-  batch:=batch||jsonb_build_array(item||jsonb_build_object('consumptionContract',c));
+   'observations','[]'::jsonb,'metering',v_attribution,'billing',v_attribution||jsonb_build_object('requestScope',NULL,'periodStart',NULL,'periodEnd',NULL,'month',NULL,'year',NULL,'status','received','sourceSystem','ediel_utilts','currency','SEK'),'billingContributionOrdinals','[]'::jsonb);
+  v_batch:=v_batch||jsonb_build_array(v_item||jsonb_build_object('consumptionContract',v_contract));
  END LOOP;
- SELECT raw_payload INTO wire FROM public.ediel_messages WHERE ediel_messages.id=source;
- result:=public.gridex_persist_utilts_consumption_v1(company,environment,source,code,wire,batch);
- RETURN (SELECT jsonb_agg(value) FROM jsonb_array_elements(result) WHERE value->>'transactionId'=requested#>>'{0,transactionId}');
+ SELECT m.raw_payload INTO v_raw FROM public.ediel_messages m WHERE m.id=p_source;
+ v_results:=public.gridex_persist_utilts_consumption_v1(p_company,p_environment,p_source,p_code,v_raw,v_batch);
+ RETURN (SELECT jsonb_agg(value) FROM jsonb_array_elements(v_results) WHERE value->>'transactionId'=p_requested#>>'{0,transactionId}');
 END $$;
 
 DO $$
