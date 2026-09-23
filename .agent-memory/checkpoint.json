@@ -12,7 +12,7 @@
   "root_main_acceptance_comment": 5768848443,
   "active_item": "E035 dated reviewed market structure and authoritative E61/E62 comparison",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
-  "next_action": "Qualify closure fix2 on OPS35863134398; reconcile authentic generated contracts, then sequential adjacent case-type fix and immutable successful-retry binding.",
+  "next_action": "Published805f5fbb ALL ordinary CI green; sole legacy_case_types implementer fixes four schema-invalid review categories, then immutable successful-retry binding and remaining queued E035 owners.",
   "previous_ordinary_ci": {
     "head": "a89275ba0b34ae27530c2e403d3ae3f2667afe3b",
     "ops": 35715146276,
@@ -36,7 +36,7 @@
     "ordinary_delivery_retest_needed": true
   },
   "independent_review": "RETRY_FIX_AND_SCOPED_FIX_APPROVED; CLOSURE_PARSER_STATIC_PREFLIGHT_ONLY; FULL_E035_PENDING",
-  "ordinary_final_head_ci": "0e81b119_ALL_APPLICABLE_SUCCESS; NEXT_CLOSURE_CHECKPOINT_PENDING_NATIVE",
+  "ordinary_final_head_ci": "805f5fbb_ALL_APPLICABLE_SUCCESS; NEXT_CASE_TYPE_SLICE_IN_PROGRESS",
   "full_source_disposition": "DATED_POST_LEDGER_Z04_Z06F_Z06G_Z10_AND_BGM5_E61_E62_PARTIAL; APPLICABILITY_AND_HISTORY_INCOMPLETE",
   "full_E035": "NOT_COMPLETE",
   "full_F3": "NOT_COMPLETE",
@@ -51,7 +51,7 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "bbd2189d4a6b3e2bad80095df3000fdbe46f328c",
+  "last_verified_pr_head": "805f5fbb3ee3f7938cba99695c98b0cafbef3b5b",
   "ordinary_baseline_ci": {
     "head": "95b5e391159e3164869ddabd8ec96b8f69189fe2",
     "ops": 35842844058,

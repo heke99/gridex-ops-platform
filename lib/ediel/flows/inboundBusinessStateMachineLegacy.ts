@@ -258,8 +258,8 @@ async function createReviewCase(input: {
   message: EdielMessageRow
   companyId: string
   switchRequestId?: string | null
-  caseType: string
-  reviewIntent?: 'final_metering_and_billing'
+  caseType: 'other' | 'business_rejection' | 'technical_rejection' | 'metering_values_error'
+  reviewIntent?: 'final_metering_and_billing' | 'supply_continuation_review' | 'meter_change_review' | 'masterdata_update_review' | 'ediel_unexpected_direction'
   title: string
   description: string
   nextAction?: string | null
@@ -468,7 +468,8 @@ export async function applyInboundBusinessStateMachine(input: {
         message: input.message,
         companyId,
         switchRequestId: input.matchedSwitchRequestId ?? null,
-        caseType: 'supply_continuation_review',
+        caseType: 'other',
+        reviewIntent: 'supply_continuation_review',
         title: 'Leveransen ska fortsätta – kontroll krävs',
         description: 'PRODAT Z05C återtar ett tidigare leveransavslut, men systemet kunde inte entydigt identifiera vilken avslutad leveransperiod som ska återöppnas.',
         nextAction: 'Verifiera leveransperioden och återställ den endast om Z05C refererar till samma avslut.',
@@ -509,7 +510,8 @@ export async function applyInboundBusinessStateMachine(input: {
     const caseId = await createReviewCase({
       message: input.message,
       companyId,
-      caseType: outcome === 'meter_change_received' ? 'meter_change_review' : 'masterdata_update_review',
+      caseType: 'other',
+      reviewIntent: outcome === 'meter_change_received' ? 'meter_change_review' : 'masterdata_update_review',
       title: outcome === 'meter_change_received'
         ? 'Mätarbyte mottaget – granska säker uppdatering'
         : 'Masterdataändring mottagen – granska säker uppdatering',
@@ -525,7 +527,8 @@ export async function applyInboundBusinessStateMachine(input: {
     const caseId = await createReviewCase({
       message: input.message,
       companyId,
-      caseType: 'ediel_unexpected_direction',
+      caseType: 'other',
+      reviewIntent: 'ediel_unexpected_direction',
       title: 'Ediel-meddelande med oväntad marknadsriktning',
       description: 'Meddelandekoden ska normalt origineras av Gridex i den här marknadsrollen och får därför inte automatiskt ändra kund-, leverans- eller tillståndsstatus när den kommer inbound.',
       nextAction: 'Verifiera avsändarroll, meddelandekod, subtype och route innan någon affärseffekt tillåts.',

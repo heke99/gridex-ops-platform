@@ -281,6 +281,18 @@ it('native full-original Z04 review proves post-ledger coverage without replayin
 it.each([['Z06','E64'],['Z06','E32'],['Z10','E58']] as const)('native full-original %s/%s approval is not partial safe-apply',async(code,reason)=>{
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
  const id=await insertStructuralChange(f,code,reason,'CHANGE')
+ const {data:received,error:readError}=await supabaseService.from('ediel_messages').select('*').eq('id',id).single()
+ expect(readError).toBeNull();expect(received).not.toBeNull()
+ const expectedIntent=code==='Z10'?'meter_change_review':'masterdata_update_review'
+ const reviewCase=await applyInboundBusinessStateMachine({message:received as unknown as EdielMessageRow,actorUserId:f.ids.actor})
+ expect(reviewCase).toMatchObject({outcome:code==='Z10'?'meter_change_received':'masterdata_update_received',reviewRequired:true,updated:['customer_cases']})
+ expect(sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('company',company_id,'customer',customer_id,'site',site_id,'point',metering_point_id,
+  'type',case_type,'reason',reason_category,'status',status,'title',title,'next',next_action,'source',source,'intent',metadata->>'review_intent')),'[]')
+  FROM public.customer_cases WHERE company_id=${literal(f.ids.company)} AND metadata->>'source_ediel_message_id'=${literal(id)}`)).toEqual([{
+   company:f.ids.company,customer:f.ids.customer,site:f.ids.site,point:f.ids.point,type:'other',reason:expectedIntent,status:'open',
+   title:code==='Z10'?'Mätarbyte mottaget – granska säker uppdatering':'Masterdataändring mottagen – granska säker uppdatering',
+   next:'Granska Ediel safe-apply-förslaget innan masterdata ändras.',source:'ediel_inbound_state_machine',intent:expectedIntent,
+  }])
  const pending=await structuralSnapshot(f);expect(pending.versions.find(version=>version.sourceMessageId===id)?.disposition).toBe('unavailable')
  await reviewed(f,id)
  const result=await structuralSnapshot(f),version=result.versions.find(item=>item.sourceMessageId===id)
