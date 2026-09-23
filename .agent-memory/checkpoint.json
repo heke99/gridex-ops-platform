@@ -13,17 +13,17 @@
   "active_item": "E035 dated reviewed market structure and authoritative E61/E62 comparison",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
-    "status": "FIX4_ACTIVE_ACTUAL_CASE_CUSTOMER_EMBED_AMBIGUITY",
-    "published_head": "5c482346e3c51aab3bc43e3a087ea34c261713b4",
+    "status": "FIX5_ACTIVE_MISSING_EVENT_SCHEMA_AND_NONATOMIC_STATUS",
+    "published_head": "a7cf4215b20d3d5bcd02fad64e3f58ce6aada49e",
     "published_tree": "42be539fec2aece2587519940b04b3a494a4508a",
-    "ops_run": 35895138404,
-    "native_job": 107297082469,
+    "ops_run": 35896688338,
+    "native_job": 107302259653,
     "local_tests": 5956,
     "local_test_files": 368,
     "report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/ediel-case-visibility-implementation-20260923.md",
     "native_browser_executed": false
   },
-  "next_action": "Retry COMPLETE at fe63dd98. Case5c482346 native107297082469:124PASS and realGoTrue/profile/writerPASS; actuallistCustomerCases fails ambiguouscustomers embed beforebrowser. Freshstronger soleauthor ediel_case_fix4(gpt-6-astra high) fixes round4 underSDD; originalauthorpaused. Then scopedreview/nativebrowserCI, priorguide and remainingowners; whole-E035 same-head review before merge pending.",
+  "next_action": "Case-navigation fix round5: restore existing customer_case_events through forward migration and atomic status/event/audit boundary; retained124 native PASS but protected browser not reached. Qualify genuine replay/browser, reconcile generated artifacts, scoped independent review. Then prior-guide/remaining owners and final whole-E035 exact-head review. No merge before complete.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",

@@ -1,3 +1,9 @@
+## Current continuation — case-event schema blocker, 2026-09-23
+
+Live PR370 head a7cf4215; OPS35896688338 verify/quality SUCCESS, clean replay107302259653 FAILURE after retained124 PASS. First failure: customer_case_events does not exist at native case-view line158, before protected browser. The preceding explicit composite customer embed now passes actual A/B/Support reads. Production case-event readers/writers also require the missing table; historical bootstrap substitution omitted it. Forward restoration and atomic status/event/audit persistence are in fix round5/5 with sole implementer case_schema_fix5. Prior qualified retry/closure work is retained. No full E035 acceptance or merge. Main and paused PR310 unchanged.
+
+Next: review/publish bounded repair, genuine replay + browser + post-browser effects, authentic generated contracts, then remaining source-owned applicability and final same-head review. Source truth supersedes stale checkpoints below.
+
 ## Retry qualification complete; Ediel case navigation next — 2026-09-23
 
 Published fe63dd98ad3e736b879a8eef6b4806793c2babef is ALL applicable ordinary CI SUCCESS: OPS35887130604 (native107270182432, verify107270182278, quality107270182217), fullE2E35887130657, browser35887130663, Ediel35887130742 and tenant35887130633. Native124PASS; authentic types/schema reconciled and bounded independent SPEC/QUALITY/native review approved. Successful retry binding task complete. No whole-E035 approval or merge.

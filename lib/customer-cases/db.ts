@@ -377,47 +377,16 @@ export async function updateCustomerCaseStatus(input: {
   actorUserId?: string | null
   expectedSource?: string
 }) {
-  const now = new Date().toISOString()
-  const patch: Record<string, unknown> = {
-    status: input.status,
-    updated_by: input.actorUserId ?? null,
-    updated_at: now,
-  }
-
-  if (input.status === 'resolved') patch.resolved_at = now
-  if (input.status === 'closed') patch.closed_at = now
-
-  let query = supabaseService
-    .from('customer_cases')
-    .update(patch)
-    .eq('id', input.caseId)
-    .eq('company_id', input.companyId)
-  if (input.expectedSource) query = query.eq('source', input.expectedSource)
-  const { data, error } = await query.select('*').single()
+  const { data, error } = await supabaseService.rpc('gridex_update_customer_case_status', {
+    p_case_id: input.caseId,
+    p_company_id: input.companyId,
+    p_status: input.status,
+    p_actor_user_id: input.actorUserId ?? null,
+    p_expected_source: input.expectedSource ?? null,
+    p_message: input.message ?? null,
+  })
   if (error) throw error
-
-  const row = data as CustomerCaseRow
-  await createCustomerCaseEvent({
-    companyId: row.company_id,
-    customerCaseId: row.id,
-    customerId: row.customer_id,
-    eventType: 'status_changed',
-    eventStatus: input.status === 'closed' || input.status === 'resolved' ? 'success' : 'info',
-    message: input.message?.trim() || `Ärendet uppdaterades till ${input.status}.`,
-    payload: { status: input.status },
-    actorUserId: input.actorUserId ?? null,
-  })
-
-  await logAudit({
-    companyId: row.company_id,
-    customerCaseId: row.id,
-    customerId: row.customer_id,
-    action: 'customer_case_status_changed',
-    actorUserId: input.actorUserId ?? null,
-    newValues: { status: input.status, message: input.message ?? null },
-  })
-
-  return row
+  return data as CustomerCaseRow
 }
 
 

@@ -52,7 +52,7 @@ async function createActor(tag: string, company: string, keys: string[]) {
   expect(context.error).toBeNull()
   expect(context.data).toMatchObject({ authorized: true, selected_company_id: company })
   for (const key of keys) expect((context.data as { permissions: string[] }).permissions).toContain(key)
-  return { user, email }
+  return { user, email, client }
 }
 
 async function writeCase(company: string, customer: string, actor: string) {
@@ -122,7 +122,7 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   const writer = await createActor(`${tag}-writer`, companyA, ['communication.read', 'cases.read', 'cases.write', 'customers.read', 'switching.read'])
   const readOnly = await createActor(`${tag}-reader`, companyA, ['communication.read', 'cases.read'])
   const noCaseRead = await createActor(`${tag}-nocase`, companyA, ['communication.read'])
-  const actorB = await createActor(`${tag}-b`, companyB, ['cases.read'])
+  const actorB = await createActor(`${tag}-b`, companyB, ['cases.read', 'cases.write'])
   const old = await writeCase(companyA, customerA, writer.user)
   sql(`UPDATE public.customer_cases SET created_at=now()-interval '3 days' WHERE id=${quote(old.id)};
     INSERT INTO public.customer_cases(company_id,customer_id,case_type,status,title,source,metadata,created_at)
@@ -156,6 +156,110 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   const supportId = sql<string>(`SELECT to_jsonb(id) FROM public.customer_cases WHERE company_id=${quote(companyA)} AND source='tenant_support_fixture' LIMIT 1`)
   await expect(updateCustomerCaseStatus({ caseId: supportId, companyId: companyA, status: 'resolved', expectedSource: 'ediel_inbound_state_machine', actorUserId: writer.user })).rejects.toBeDefined()
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_events WHERE customer_case_id=${quote(supportId)}`)).toBe(0)
+  // The production RPC must reject tenant/source/actor/permission mistakes
+  // before committing any status, event or audit. The reader fixture remains
+  // read-only; B's positive writer explicitly holds cases.write in B.
+  const statusSnapshot = (id: string) => sql(`SELECT jsonb_build_object(
+    'case',(SELECT to_jsonb(c) FROM public.customer_cases c WHERE id=${quote(id)}),
+    'events',(SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY e.id),'[]') FROM public.customer_case_events e WHERE customer_case_id=${quote(id)}),
+    'audits',(SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY a.id),'[]') FROM public.audit_logs a WHERE entity_id=${quote(id)} AND action='customer_case_status_changed'))`)
+  expect(sql<string>(`SELECT to_jsonb(status) FROM public.customer_cases WHERE id=${quote(supportId)}`)).toBe('open')
+  const beforeSupport = statusSnapshot(supportId)
+  for (const input of [
+    { caseId: supportId, companyId: companyA, actorUserId: writer.user, expectedSource: 'ediel_inbound_state_machine' },
+    { caseId: supportId, companyId: companyB, actorUserId: actorB.user },
+    { caseId: supportId, companyId: companyA, actorUserId: actorB.user },
+    { caseId: supportId, companyId: companyA, actorUserId: readOnly.user },
+    { caseId: supportId, companyId: companyA, actorUserId: null },
+    { caseId: supportId, companyId: companyA, actorUserId: randomUUID() },
+  ]) {
+    await expect(updateCustomerCaseStatus({ ...input, status: 'resolved' })).rejects.toBeDefined()
+    expect(statusSnapshot(supportId)).toEqual(beforeSupport)
+  }
+  await expect(updateCustomerCaseStatus({ caseId: supportId, companyId: companyA, actorUserId: writer.user, status: 'not_a_case_status' })).rejects.toMatchObject({ code: '23514' })
+  expect(statusSnapshot(supportId)).toEqual(beforeSupport)
+  // Permission in A must not authorize B even when the same actor belongs to B.
+  const scopedActor = await createActor(`${tag}-scoped`, companyA, ['cases.write'])
+  sql(`INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at) VALUES(${quote(companyB)},${quote(scopedActor.user)},'operations','active',now())`)
+  const beforeForeign = statusSnapshot(foreign.id)
+  await expect(updateCustomerCaseStatus({ caseId: foreign.id, companyId: companyB, actorUserId: scopedActor.user, status: 'resolved' })).rejects.toMatchObject({ code: '42501' })
+  expect(statusSnapshot(foreign.id)).toEqual(beforeForeign)
+
+  // Actual PostgreSQL failure injection proves transaction rollback at both
+  // later writes, including a successfully inserted event before audit failure.
+  for (const target of ['customer_case_events', 'audit_logs'] as const) {
+    sql(`CREATE FUNCTION public.e035_case_status_reject_test() RETURNS trigger LANGUAGE plpgsql AS $body$
+      BEGIN RAISE EXCEPTION 'disposable_status_write_rejected'; END $body$;
+      CREATE TRIGGER e035_case_status_reject_test BEFORE INSERT ON public.${target}
+      FOR EACH ROW EXECUTE FUNCTION public.e035_case_status_reject_test();`)
+    try {
+      await expect(updateCustomerCaseStatus({ caseId: supportId, companyId: companyA, actorUserId: writer.user, status: 'resolved' })).rejects.toMatchObject({ code: 'P0001', message: 'disposable_status_write_rejected' })
+      expect(statusSnapshot(supportId)).toEqual(beforeSupport)
+    } finally {
+      sql(`DROP TRIGGER e035_case_status_reject_test ON public.${target}; DROP FUNCTION public.e035_case_status_reject_test();`)
+    }
+  }
+
+  // Grants are exercised through actual authenticated and anon Data API calls,
+  // including a writer JWT: neither frontend role may bypass the server action.
+  const anon = createClient(API, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } })
+  for (const client of [anon, writer.client]) {
+    const read = await client.from('customer_case_events').select('id').eq('customer_case_id', supportId)
+    expect(read.error?.code).toBe('42501')
+    const insert = await client.from('customer_case_events').insert({ company_id: companyA, customer_id: customerA, customer_case_id: supportId, event_type: 'status_changed', message: 'Forged frontend event' })
+    expect(insert.error?.code).toBe('42501')
+    const mutation = await client.rpc('gridex_update_customer_case_status', { p_case_id: supportId, p_company_id: companyA, p_status: 'resolved', p_actor_user_id: writer.user })
+    expect(mutation.error?.code).toBe('42501')
+    expect(statusSnapshot(supportId)).toEqual(beforeSupport)
+  }
+  expect(sql<boolean>(`SELECT to_jsonb(relrowsecurity) FROM pg_class WHERE oid='public.customer_case_events'::regclass`)).toBe(true)
+
+  for (const owner of [
+    { company: companyB, customer: customerA },
+    { company: companyA, customer: customerB },
+    { company: companyB, customer: customerB },
+  ]) {
+    const result = await supabaseService.from('customer_case_events').insert({ company_id: owner.company, customer_id: owner.customer, customer_case_id: supportId, event_type: 'test', message: 'Disposable invalid owner' })
+    expect(result.error?.code).toBe('23503')
+    expect(statusSnapshot(supportId)).toEqual(beforeSupport)
+  }
+
+  // Existing Support caller omits expectedSource. Keep its message/event shape
+  // and verify canonical audit context is supplied by the real audit trigger.
+  await updateCustomerCaseStatus({ caseId: supportId, companyId: companyA, actorUserId: writer.user, status: 'resolved', message: '  Support resolved.  ' })
+  expect(sql(`SELECT jsonb_build_object('company',company_id,'customer',customer_id,'actor',created_by,'status',event_status,'message',message,'payload',payload)
+    FROM public.customer_case_events WHERE customer_case_id=${quote(supportId)}`)).toEqual({ company: companyA, customer: customerA, actor: writer.user, status: 'success', message: 'Support resolved.', payload: { status: 'resolved' } })
+  expect(sql(`SELECT jsonb_build_object('company',company_id,'actor',actor_user_id,'customer',metadata->>'customer_id','old',previous_status,'new',new_status,'actor_type',actor_type,'resource',resource_type,'resource_id',resource_id,'context_present',request_id<>'' AND correlation_id<>'')
+    FROM public.audit_logs WHERE entity_id=${quote(supportId)} AND action='customer_case_status_changed'`)).toEqual({ company: companyA, actor: writer.user, customer: customerA, old: 'open', new: 'resolved', actor_type: 'user', resource: 'customer_case', resource_id: supportId, context_present: true })
+
+  // Support permits a real platform admin who belongs to the selected company;
+  // Ediel remains tenant-write only even without an expected-source argument.
+  const platformActor = await createActor(`${tag}-platform`, companyA, ['cases.read'])
+  sql(`INSERT INTO public.admin_users(user_id,role,is_active) VALUES(${quote(platformActor.user)},'platform_admin',true)`)
+  expect(sql<boolean>(`SELECT to_jsonb(public.canonical_actor_is_platform_admin(${quote(platformActor.user)}))`)).toBe(true)
+  const beforeEdiel = statusSnapshot(old.id)
+  await expect(updateCustomerCaseStatus({ caseId: old.id, companyId: companyA, actorUserId: platformActor.user, status: 'resolved' })).rejects.toMatchObject({ code: '42501', message: 'ediel_case_status_requires_tenant_actor' })
+  expect(statusSnapshot(old.id)).toEqual(beforeEdiel)
+  const platformSupportId = sql<string>(`SELECT to_jsonb(id) FROM public.customer_cases WHERE company_id=${quote(companyA)} AND source='tenant_support_fixture' AND id<>${quote(supportId)} LIMIT 1`)
+  const platformResult = await updateCustomerCaseStatus({ caseId: platformSupportId, companyId: companyA, actorUserId: platformActor.user, status: 'resolved' })
+  expect(platformResult).toMatchObject({ id: platformSupportId, company_id: companyA, customer_id: customerA, updated_by: platformActor.user, status: 'resolved' })
+  const beforePlatformDenied = statusSnapshot(platformSupportId)
+  sql(`UPDATE public.company_memberships SET status='removed',is_active=false WHERE company_id=${quote(companyA)} AND user_id=${quote(platformActor.user)}`)
+  await expect(updateCustomerCaseStatus({ caseId: platformSupportId, companyId: companyA, actorUserId: platformActor.user, status: 'closed' })).rejects.toMatchObject({ code: '42501' })
+  expect(statusSnapshot(platformSupportId)).toEqual(beforePlatformDenied)
+
+  // Run the actual restoration against a populated preexisting relation in a
+  // rolled-back disposable transaction; preserved rows must remain byte equal.
+  const migration = readFileSync(resolve('supabase/migrations/20260923180557_restore_customer_case_events_atomic_status.sql'), 'utf8')
+  const preserved = sql(`SELECT to_jsonb(e) FROM public.customer_case_events e WHERE customer_case_id=${quote(supportId)}`)
+  expect(sql(`BEGIN; ${migration}
+    SELECT to_jsonb(e) FROM public.customer_case_events e WHERE customer_case_id=${quote(supportId)}; ROLLBACK;`)).toEqual(preserved)
+  // Simulate the original table without the added composite constraint. A
+  // preexisting wrong-company event must make restoration fail, never be moved.
+  expect(() => sql(`BEGIN; ALTER TABLE public.customer_case_events DROP CONSTRAINT customer_case_events_case_owner_fk;
+    UPDATE public.customer_case_events SET company_id=${quote(companyB)},customer_id=${quote(customerB)} WHERE customer_case_id=${quote(supportId)};
+    ${migration} ROLLBACK;`)).toThrow(/customer_case_events_case_owner_fk/)
+  expect(sql(`SELECT to_jsonb(e) FROM public.customer_case_events e WHERE customer_case_id=${quote(supportId)}`)).toEqual(preserved)
   // Real updater also certifies the event/audit path; browser will submit the A status form.
   await updateCustomerCaseStatus({ caseId: foreign.id, companyId: companyB, status: 'resolved', expectedSource: 'ediel_inbound_state_machine', actorUserId: actorB.user })
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_events WHERE customer_case_id=${quote(foreign.id)} AND event_type='status_changed'`)).toBe(1)
