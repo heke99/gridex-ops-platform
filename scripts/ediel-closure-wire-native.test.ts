@@ -78,7 +78,7 @@ it('SQL original byte/segment/object/component limits are enforced before author
   expect(sql(`SELECT to_jsonb(gridex_received_sources.closure_wire_tokens_v1('FTX+'||repeat('A',4096)||'''')->0->'elements'->1->>0)`)).toBe('A'.repeat(4096))
 })
 it('private parser/projection/matcher grant no direct API-role execution',()=>{
-  for(const role of ['anon','authenticated','service_role'])for(const signature of ['closure_wire_tokens_v1(text)','closure_wire_projection_v1(text,jsonb)','closure_wire_matches_v1(text,jsonb,jsonb)']){
+  for(const role of ['anon','authenticated','service_role'])for(const signature of ['closure_wire_tokens_v1(text)','closure_wire_projection_v1(text,jsonb)','closure_wire_matches_v1(text,jsonb,jsonb)','z05_wire_structure_v1(text,jsonb)','correction_wire_exact_v1(text,jsonb)','correction_wire_observation_v1(text)']){
     expect(sql(`SELECT to_jsonb(has_function_privilege(${literal(role)},${literal('gridex_received_sources.'+signature)},'EXECUTE'))`)).toBe(false)
   }
 })
@@ -95,4 +95,44 @@ it('SQL cannot borrow an apparent released DTM when actual field211 is absent',(
   const {wire,scope}=closureFixture({li:"CASE'UNH+X'DTM+93:202610151235:203"})
   expect(project(wire,scope)).toMatchObject({effectiveTo:{marketMinute:'202610151234'}})
   expect(project(wire.replace('DTM+93:202610151234:203','DTM+92:202610151234:203'),scope)).toBeNull()
+})
+
+// I2: one neutral structural decoder does not merge the authority policies.
+it.each(['Z22','Z23','Z24'])('shared decoder keeps closure/correction reason %s gates separate',reason=>{
+ const {wire,scope}=closureFixture({reason})
+ const correction=sql(`SELECT gridex_received_sources.correction_wire_observation_v1(${literal(wire)})`)
+ if(reason==='Z24'){
+  expect(project(wire,scope)).toBeNull()
+  expect(correction).toMatchObject({objectId:scope.objectId,oldStop:{kind:'unknown'},proposedStop:{kind:'not_asserted'}})
+ }else{
+  expect(project(wire,scope)).toEqual(readClosureSourceWire(wire,scope))
+  expect(project(wire,scope)).not.toBeNull()
+  expect(correction).toMatchObject({objectId:null,oldStop:{kind:'unknown'},proposedStop:{kind:'unknown'}})
+ }
+})
+it('shared structure keeps mandatory closure LI separate from optional C LI',()=>{
+ for(const reason of ['Z22','Z24']){
+  const {wire,scope}=closureFixture({reason})
+  const noLi=wire.replace("RFF+LI:CLOSE-CASE'",'').replace('UNT+16+M','UNT+15+M')
+  expect(project(noLi,scope)).toBeNull()
+  const correction=sql(`SELECT gridex_received_sources.correction_wire_observation_v1(${literal(noLi)})`)
+  expect(correction).toMatchObject({objectId:reason==='Z24'?scope.objectId:null,caseReference:null,candidateTarget:null})
+ }
+})
+it('shared structure preserves multi-object closure reads but never narrows multi-object C',()=>{
+ for(const reason of ['Z22','Z24']){
+  const {wire,scope}=closureFixture({reason,count:2})
+  expect(project(wire,scope)).toEqual(readClosureSourceWire(wire,scope))
+  if(reason==='Z22')expect(project(wire,scope)).not.toBeNull()
+  expect(sql(`SELECT gridex_received_sources.correction_wire_observation_v1(${literal(wire)})`)).toMatchObject({objectId:null,oldStop:{kind:'unknown'}})
+ }
+})
+it('shared structure preserves closure transport observation without treating delegated C as direct',()=>{
+ for(const reason of ['Z22','Z24']){
+  const {wire,scope}=closureFixture({reason})
+  const delegated=wire.replace('+54321:14+','+99999:14+')
+  expect(project(delegated,scope)).toEqual(readClosureSourceWire(delegated,scope))
+  if(reason==='Z22')expect(project(delegated,scope)).not.toBeNull()
+  expect(sql(`SELECT gridex_received_sources.correction_wire_observation_v1(${literal(delegated)})`)).toMatchObject({objectId:null,oldStop:{kind:'unknown'}})
+ }
 })

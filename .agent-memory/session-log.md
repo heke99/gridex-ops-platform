@@ -1,3 +1,7 @@
+## E035 source capture review round1 — 2026-09-24
+
+Local993367ea source-only checkpoint independently SPEC/QUALITY approved. I1 unsupported grammar and I2 duplicated parser addressed. Finalfocused273/16,3types/lint/integrityPASS; native204 pending real CI and generated contracts. No fullTask2/E035 or merge acceptance. Parent publishes exact reviewed tree next.
+
 ## Retry qualification complete; Ediel case navigation next — 2026-09-23
 
 Published fe63dd98ad3e736b879a8eef6b4806793c2babef is ALL applicable ordinary CI SUCCESS: OPS35887130604 (native107270182432, verify107270182278, quality107270182217), fullE2E35887130657, browser35887130663, Ediel35887130742 and tenant35887130633. Native124PASS; authentic types/schema reconciled and bounded independent SPEC/QUALITY/native review approved. Successful retry binding task complete. No whole-E035 approval or merge.
@@ -113,3 +117,11 @@ PR371 MERGED at main2a148d39d631fc759c99cd1c69350b5e2147dbdb. Final PR head65f5b
 Active branch codex/e035-correction-context-20260924 from accepted main2a148d39. One active item: hold-only correction-context/process-history slice for Z05C/corrected end. Plan docs/superpowers/plans/2026-09-24-e035-correction-context.md. Start pure earliest-boundary projection, then immutable capture, outbound/process history and service-owned saved-cutoff composition. Do not issue positive C/reopening authority. Unknown historical dispatch/retention remains unavailable. Full E035/G01/F3/masterplan PARTIAL; Z06E/changed-start/agency89/multi-message/delegation/history remain subsequent owners. PR310 excluded.
 
 Next exact action: generate Task1 brief and SDD ledger; implement pure blocker with boundary/scope tests and independent review. Follow finite task gates, real native qualification and generated-contract reconciliation for later SQL integration. User approval covers continuation/publication/review/merge after gates; no hosted writes/deployment/market sends.
+
+# PR372 active; pure correction hold approved — 2026-09-24
+
+PR372 draft https://github.com/heke99/gridex-ops-platform/pull/372 on codex/e035-correction-context-20260924; remotehead ea1d76e4fde787777da882be66948218f1a7ee0e is exacttree of local189eb136. Local history intentionally remains on189eb136 while sole author works; parent must publish next tree using remoteparent ea1d76e4 and sync only after author freeze. Task1 pure boundary/scope/cutoff hold independently SPEC/QUALITY approved; finalfocused67/5, types/lint PASS, full6007/373 before smallmatcher extraction then focusedGREEN. Production capture remains absent until later tasks; no positive C authority.
+
+Active Task2 author /root/correction_context_task2, BASE189eb136d85398b458d72293cc35e551034e5490. Implement immutable sealed-Z05 source concern capture with SQL tenant/actor/original/witness guards and real native fixtures. Parent authorized source-only checkpoint with document-byte capture explicitly unresolved, not whole Task2 completion. Existing document metadata is more immutable than initial preflight assumed (20260716183000); new correction-PDF copy lacks established policy mapping. Read-only reference-reuse design in progress, no invented legal policy/retention or positive cause. Tasks3/4 outbound/processhistory and one-MVCC composition remain pending.
+
+Next: receive Task2 implementation checkpoint, independently review/native qualify and resolve document route before claiming complete capture. CLI2.101.0 available via npx; native DB remains CI-owned. User continuation/publication approval persists; no hosted writes/deployment/market sends. PR371 remains accepted merged2a148d39, full E035 PARTIAL, PR310 excluded.

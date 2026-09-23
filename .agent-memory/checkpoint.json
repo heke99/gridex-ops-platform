@@ -4,7 +4,7 @@
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/e035-correction-context-20260924",
-  "active_pr": null,
+  "active_pr": 372,
   "base_head_sha": "2a148d39d631fc759c99cd1c69350b5e2147dbdb",
   "runtime_accepted_sha": "2a148d39d631fc759c99cd1c69350b5e2147dbdb",
   "last_merged_pr": 371,
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Implement correction-context Task1 pure earliest-boundary blocker with independent review, then capture/history/snapshot tasks.",
+  "next_action": "Publish exact reviewed source-capture tree to existing PR372; run genuine native204 expected, reconcile authentic generated types/schema and rerun applicable gates. Task2b/3/4 not complete.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -123,8 +123,8 @@
     "root_tests": 5514,
     "ordinary_delivery_retest_needed": true
   },
-  "independent_review": "PRIOR_GUIDE_LOCAL_SPEC_QUALITY_APPROVED_1f0bffc0_NATIVE_PENDING",
-  "ordinary_final_head_ci": "PR370_FINAL_SUCCESS; NEW_PRIOR_GUIDE_BRANCH_NOT_PUBLISHED",
+  "independent_review": "PR371_FINAL_SPEC_QUALITY_NATIVE_ACCEPTED; PR372_TASK1_SPEC_QUALITY_APPROVED",
+  "ordinary_final_head_ci": "PR372_EA1D76E4_ALL_APPLICABLE_SUCCESS; TASK2_UNPUBLISHED",
   "full_source_disposition": "DATED_POST_LEDGER_Z04_Z06F_Z06G_Z10_AND_BGM5_E61_E62_PARTIAL; APPLICABILITY_AND_HISTORY_INCOMPLETE",
   "full_E035": "NOT_COMPLETE",
   "full_F3": "NOT_COMPLETE",
@@ -139,7 +139,7 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "c0649f16982e10cf7845c22a0800fd06e4be480d",
+  "last_verified_pr_head": "ea1d76e4fde787777da882be66948218f1a7ee0e",
   "ordinary_baseline_ci": {
     "head": "95b5e391159e3164869ddabd8ec96b8f69189fe2",
     "ops": 35842844058,
@@ -380,14 +380,14 @@
     "schema_fingerprint": "37f50624ab029aba0a7dbdf1a79ba18ce7010142937b85d5a79916fb66e534b4"
   },
   "prior_guide_20260924": {
-    "status": "LOCAL_SPEC_QUALITY_APPROVED_NATIVE_PENDING",
+    "status": "ACCEPTED_MERGED_PR371",
     "base_main": "650bdb211fa5d492df247b2531cb8004a062db53",
     "initial_candidate": "eb7d1b48",
     "initial_local_tests": 5988,
     "initial_test_files": 372,
     "initial_review": "REQUIRED_INTEGRATION_COVERAGE_GAPS",
-    "native": "WRITTEN_TYPECHECKED_NOT_EXECUTED",
-    "publication": "EXPLICITLY_USER_AUTHORIZED_PENDING_CONNECTOR_PUBLICATION",
+    "native": "166_PASS_FINAL_EXACT_HEAD",
+    "publication": "MERGED_2a148d39",
     "fix_round": 2,
     "active_agent": null,
     "new_confirmed_defect": "canonical E30 singleton reading wrongly requires delivery period/resolution",
@@ -398,10 +398,11 @@
     "local_runtime": "Node22.23.2",
     "local_types": "APP_TESTS_SCRIPTS_PASS",
     "local_lint": "0_ERRORS_1_PREEXISTING_WARNING",
-    "review": "SPEC_QUALITY_APPROVED_REREVIEW2"
+    "review": "FINAL_WHOLE_BRANCH_SPEC_QUALITY_NATIVE_ACCEPTED",
+    "final_head": "65f5b896cd3801eedde43db99df38afa6d9c78a1"
   },
-  "published_head": "c89586dc9b6ff29ab8d01ede873a8e4f6ebb0617",
-  "published_tree": "8fbaed08c8cdd8e345ff8e5d9ecf0e88d740a5ed",
+  "published_head": "ea1d76e4fde787777da882be66948218f1a7ee0e",
+  "published_tree": "0393c6e980cf6f0901b42453101e1b0f55255409",
   "prior_guide_ci": {
     "run": 35931020643,
     "native_job": 107417342303,
@@ -412,5 +413,22 @@
     "artifact": 10780533571,
     "local_fix": "6298f35f",
     "merged_sha": "2a148d39d631fc759c99cd1c69350b5e2147dbdb"
+  },
+  "correction_context": {
+    "task1": "SPEC_QUALITY_APPROVED_ALL_APPLICABLE_CI_SUCCESS_6007_TESTS",
+    "task1_local_commit": "4de528daa6c60df2a0943642bf5b5f999fc68a52",
+    "task2": "SOURCE_CHECKPOINT_SCOPED_SPEC_QUALITY_APPROVED_NATIVE_PENDING",
+    "local_base": "189eb136d85398b458d72293cc35e551034e5490",
+    "remote_parent": "ea1d76e4fde787777da882be66948218f1a7ee0e",
+    "task3": "BOUNDED_PARTIAL_DESIGN_APPROVED_NATIVE_INVENTORY_PENDING",
+    "task4": "PENDING",
+    "ops_run": 35932621631,
+    "task2_local_commit": "993367eaabdbe7271f5bf4fa61c8e56618090e04",
+    "task2_full_tests": 6038,
+    "task2_native_cases": 38,
+    "fix_base": "facae00d",
+    "fix_round": 1,
+    "reviewer": "/root/correction_capture_review",
+    "native_expected_total": 204
   }
 }

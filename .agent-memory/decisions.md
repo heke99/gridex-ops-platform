@@ -1,3 +1,7 @@
+## 2026-09-24 — E035 raw correction date does not establish prior boundary
+
+A bare C source DTM93 is an observed date only. Until an independently linked authentic L/LK establishes the prior end, correction capture oldStop remains unknown, so the hold spans the matching interval. Later authentic target composition may refine the derived readset without mutating original capture or saved cutoffs. No positive correction authority follows.
+
 2026-09-20 Task2 interface clarification: standalone validateProdatPermissionMessage remains field-only as approved manual composition; remove obsoleteBooleancontext and unsupported40 inference, preserve existingfield assertions. MissingLI/duplicatefieldfixtures must not mint correlatedauthority. Actualmanual resolver independently validates typedsourcebound correlation beforeevent/return/no null-TGT-success bypass. Existingdirect/canonical/system prior-free scope remains explicit. Actualmanual mocks adapt with qualifiedsyntheticevidence; sole semantic exception is namedenergyfalse test.
 
 Prior-flow source0fd41d86 independent all5APPROVE. Root authorizes bounded Task2 pureperobject/scopedloader/manualguard and single energyfalsecontext40/105 assertionexception; typedfixtureadapters preserveoldoutcomes. Main353accepted, no runtime/countacceptance yet;98/110+10unchanged;PR310paused.
