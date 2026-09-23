@@ -277,16 +277,45 @@ export function matchForSeriesItem(item: UtiltsMeteringSeriesItem, matches: read
   return null
 }
 
+/** The real processor always supplies both decision arrays, even when empty.
+ * Runtime markers also prevent older/corrupt runtime payloads from masquerading
+ * as the pre-runtime scalar/series format understood by the extraction helpers.
+ */
+function hasUtiltsTransactionDecisionContract(payload: Record<string, unknown>): boolean {
+  return payload.engine === 'utilts_runtime' || payload.source === 'ediel_utilts_runtime' ||
+    'utiltsTransactionDispositions' in payload || 'utiltsTransactionPersistenceResults' in payload
+}
+
+function eligibleUtiltsTransactionIds(payload: Record<string, unknown>): Set<string> {
+  const transactions = arrayFromCandidate(payload.transactions).map((row, index) =>
+    resolveUtiltsTransactionId(transactionReferenceFromObject(ensureJson(row)), index))
+  const dispositions = arrayFromCandidate(payload.utiltsTransactionDispositions).map(ensureJson)
+  const results = arrayFromCandidate(payload.utiltsTransactionPersistenceResults).map(ensureJson)
+  return new Set(transactions.filter((id) => {
+    if (transactions.filter(candidate => candidate === id).length !== 1) return false
+    const decisions = dispositions.filter(row => stringOrNull(row.transactionId) === id)
+    const persisted = results.filter(row => stringOrNull(row.transactionId) === id)
+    return decisions.length === 1 && persisted.length === 1 &&
+      decisions[0].disposition === 'accepted' && decisions[0].responseType === 'positive_aperak' &&
+      persisted[0].disposition === 'accepted' && persisted[0].responseType === 'positive_aperak' &&
+      persisted[0].persistenceStatus === 'persisted'
+  }))
+}
+
 export function flattenUtiltsTransactionSeries(payload: Record<string, unknown>, message: EdielMessageRow): UtiltsMeteringSeriesItem[] {
   const transactions = arrayFromCandidate(payload.transactions)
   if (transactions.length === 0) return []
 
+  const eligibleIds = hasUtiltsTransactionDecisionContract(payload) ? eligibleUtiltsTransactionIds(payload) : null
   const items: UtiltsMeteringSeriesItem[] = []
   for (const [transactionIndex, transaction] of transactions.entries()) {
     if (!transaction || typeof transaction !== 'object' || Array.isArray(transaction)) continue
     const rawTransaction = transaction as Record<string, unknown>
     const quantities = arrayFromCandidate(rawTransaction.quantities)
-    const transactionReference = transactionReferenceFromObject(rawTransaction)
+    const transactionReference = eligibleIds
+      ? resolveUtiltsTransactionId(transactionReferenceFromObject(rawTransaction), transactionIndex)
+      : transactionReferenceFromObject(rawTransaction)
+    if (eligibleIds && (!transactionReference || !eligibleIds.has(transactionReference))) continue
     const externalMeteringPointId = externalMeteringPointFromObject(rawTransaction)
     const externalGridAreaId = externalGridAreaFromObject(rawTransaction)
     const start = normalizedIso(stringOrNull(rawTransaction.deliveryPeriodStart) ?? stringOrNull(rawTransaction.periodStart)) ?? stringOrNull(payload.periodStart)
@@ -331,7 +360,9 @@ export function extractUtiltsMeteringSeries(
   message: EdielMessageRow
 ): UtiltsMeteringSeriesItem[] {
   const transactionSeries = flattenUtiltsTransactionSeries(normalizedPayload, message)
-  if (transactionSeries.length > 0) return transactionSeries
+  // Never recover excluded runtime quantities from message-level totals/series:
+  // these do not prove which persisted physical transaction owns each value.
+  if (hasUtiltsTransactionDecisionContract(normalizedPayload) || transactionSeries.length > 0) return transactionSeries
 
   const candidates = extractSeriesCandidates(normalizedPayload)
   const series = candidates
@@ -364,7 +395,9 @@ export function extractUtiltsMeteringSeries(
 
 export function totalQuantityFromMeteringSeries(normalizedPayload: Record<string, unknown>, message: EdielMessageRow): number | null {
   const series = extractUtiltsMeteringSeries(normalizedPayload, message)
-  if (series.length === 0) return numberOrNull(normalizedPayload.quantity)
+  if (series.length === 0) return hasUtiltsTransactionDecisionContract(normalizedPayload)
+    ? null
+    : numberOrNull(normalizedPayload.quantity)
   return series.reduce((sum, item) => sum + item.quantity, 0)
 }
 
@@ -454,6 +487,9 @@ export async function maybeIngestMeteringValue(params: {
   message: EdielMessageRow
   normalizedPayload: Record<string, unknown>
 }): Promise<MeteringValueRow[]> {
+  // All production callers are the runtime processor. A legacy-shaped payload
+  // is supported by the pure extractors, but cannot authorize a quantity write.
+  if (!hasUtiltsTransactionDecisionContract(params.normalizedPayload)) return []
   if (!shouldIngestMeteringValue(params.message)) return []
 
   const companyId = stringOrNull(params.message.company_id)
@@ -607,6 +643,7 @@ export async function maybeCreateBillingUnderlay(params: {
   message: EdielMessageRow
   normalizedPayload: Record<string, unknown>
 }) {
+  if (!hasUtiltsTransactionDecisionContract(params.normalizedPayload)) return null
   const currentResponse = ensureJson(params.dataRequest.response_payload)
   const existingBillingUnderlayId = stringOrNull(currentResponse.billingUnderlayId)
   const quantity = totalQuantityFromMeteringSeries(params.normalizedPayload, params.message)

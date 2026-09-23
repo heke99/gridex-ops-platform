@@ -1,3 +1,5 @@
+import { readReceivedStructuralSources } from '@/lib/ediel/utilts/receivedStructuralSources'
+import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
@@ -60,7 +62,7 @@ function query() {
 beforeEach(() => {
   vi.clearAllMocks(); predicates.length = 0; incoming = observationHandoffMessage(); sourceRows = [row()]; count = 1; dbError = null; neverResolve = false
   io.get.mockImplementation(async () => incoming); io.update.mockResolvedValue(null); io.event.mockResolvedValue(null)
-  io.ack.mockResolvedValue(['ack-1']); io.persist.mockResolvedValue([]); io.matches.mockResolvedValue([matched()]); io.from.mockImplementation(query)
+  io.ack.mockResolvedValue(['ack-1']); io.persist.mockImplementation(successfulUtiltsPersistenceIo); io.matches.mockResolvedValue([matched()]); io.from.mockImplementation(query)
   io.allMatched.mockReturnValue(false); io.ingest.mockResolvedValue([{ id: 'value-1' }])
 })
 afterEach(() => { vi.useRealTimers() })
@@ -118,7 +120,16 @@ for (const [name, mutate] of [
   ['multiple physical messages', (text: string) => text + text.slice(text.startsWith('UNA') ? 9 : 0)],
 ] as const) it(`does not query from incoming ${name}, despite a plausible mocked match`, async () => {
   incoming.raw_payload = mutate(incoming.raw_payload!)
-  await execute(); expect(report().status).toBe('not_requested')
+  if (name === 'multiple physical messages') {
+    // Ambiguous physical identities now stop processing before status/ACKs.
+    // Keep every source-reader boundary assertion on the identical wire.
+    const evidence = await readReceivedStructuralSources({ message: incoming, transactionMatches: [{ ...matched(), matchStatus: 'matched' }] })
+    expect(evidence).toBeDefined()
+    expect(evidence).toMatchObject({ authorityStatus: 'not_established', selection: 'not_performed' })
+    expect(evidence.status).toBe('not_requested')
+  } else {
+    await execute(); expect(report().status).toBe('not_requested')
+  }
   expect(io.scoped).not.toHaveBeenCalled(); expect(io.from).not.toHaveBeenCalled()
 })
 it('does not treat a microsecond-later source receipt as an in-cutoff row', async () => {

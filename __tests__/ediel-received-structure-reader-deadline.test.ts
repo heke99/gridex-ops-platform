@@ -1,3 +1,4 @@
+import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
@@ -36,7 +37,7 @@ function query() {
 }
 beforeEach(() => {
   vi.clearAllMocks(); predicates.length = 0; incoming = observationHandoffMessage(); response = Promise.resolve({ data: [], count: 0, error: null })
-  io.get.mockImplementation(async () => incoming); io.update.mockResolvedValue(null); io.event.mockResolvedValue(null); io.ack.mockResolvedValue(['ack-1']); io.persist.mockResolvedValue([]); io.from.mockImplementation(query)
+  io.get.mockImplementation(async () => incoming); io.update.mockResolvedValue(null); io.event.mockResolvedValue(null); io.ack.mockResolvedValue(['ack-1']); io.persist.mockImplementation(successfulUtiltsPersistenceIo); io.from.mockImplementation(query)
   io.matches.mockResolvedValue([{ transactionReference: 'GRIDEX2607E66001', externalMeteringPointId: point, externalGridAreaId: 'TES', meteringPointId: 'meter-tenant-a', matchStatus: 'matched', customerId: null, siteId: null, gridOwnerId: null }])
 })
 afterEach(() => vi.useRealTimers())

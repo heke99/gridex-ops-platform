@@ -1,0 +1,116 @@
+import { beforeEach, expect, it, vi } from 'vitest'
+import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
+import { energyHandoffMessage, observationHandoffMessage } from './helpers/utiltsObservationHandoff'
+
+const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), rpc: vi.fn(), from: vi.fn(), meter: vi.fn(), bill: vi.fn(), complete: vi.fn(), findOutbound: vi.fn() }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: io.rpc } }))
+vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: io.get, updateEdielMessageStatus: io.update, createEdielMessageEvent: io.event, linkEdielMessage: vi.fn(), listEdielTestRuns: vi.fn().mockResolvedValue([]) }))
+vi.mock('@/lib/ediel/core/kernel', () => ({ createCanonicalAckMessage: io.ack }))
+vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => id }))
+vi.mock('@/lib/metering/normalizeMeteringValues', () => ({ normalizeAndStoreMeteringValue: io.meter }))
+vi.mock('@/lib/billing/meterValueBillingMatcher', () => ({ updateMeterValueBillingReadiness: vi.fn() }))
+vi.mock('@/lib/cis/db', () => ({ ingestBillingUnderlay: io.bill, findOpenOutboundBySource: io.findOutbound, syncGridOwnerDataRequestReceivedFromEdiel: io.complete }))
+vi.mock('@/lib/ediel/matching', () => ({
+  matchMeteringPointIdByIdentifier: vi.fn().mockResolvedValue('point-a'),
+  matchMeteringPointForEdielMessage: vi.fn().mockResolvedValue('point-a'),
+  matchSiteAndCustomerForMeteringPoint: vi.fn().mockResolvedValue({ customerId: 'customer-a', siteId: 'site-a', gridOwnerId: 'owner-a' }),
+  findMatchingGridOwnerDataRequest: vi.fn().mockResolvedValue({ id: 'request-a', request_scope: 'billing_underlay', response_payload: {}, customer_id: 'customer-a', metering_point_id: 'point-a' }),
+}))
+// Parsing, matching orchestration, structural qualification, persistence payload,
+// real sinks and ACK planning/drafts all run. Only external reads/writes are fake.
+let results: unknown[]
+beforeEach(() => {
+  vi.clearAllMocks(); results = []; io.findOutbound.mockResolvedValue(null); io.complete.mockResolvedValue(null)
+  io.update.mockResolvedValue(null); io.event.mockResolvedValue(null)
+  io.meter.mockResolvedValue({ status: 'stored', meteringValue: { id: 'meter-value' } }); io.bill.mockResolvedValue({ id: 'underlay' })
+  io.ack.mockImplementation(async ({ ackFamily }) => ({ id: `ack-${ackFamily}` }))
+  io.rpc.mockImplementation((name) => {
+    const response = name === 'gridex_persist_utilts_transactions_v1' ? { data: results, error: null } : { data: null, error: { message: 'unavailable' } }
+    return Object.assign(Promise.resolve(response), { abortSignal: () => Promise.resolve(response) })
+  })
+  io.from.mockImplementation(() => {
+    const q = { select: () => q, eq: () => q, in: () => q, lte: () => q, limit: () => q, update: () => q,
+      then: (resolve: (value: unknown) => unknown) => Promise.resolve({ data: [], count: 0, error: null }).then(resolve) }
+    return q
+  })
+})
+function incoming(held = false, mixed = false) {
+  const message = held ? observationHandoffMessage('2026-10-01') : energyHandoffMessage()
+  message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
+  if (mixed) {
+    const lines = message.raw_payload!.split('\n')
+    const energy = energyHandoffMessage().raw_payload!.split('\n')
+    const second = energy.slice(energy.findIndex(line => line.startsWith('IDE+24')), energy.findIndex(line => line.startsWith('UNT+')))
+      .map(line => line.replace('GRIDEX2607E66001', 'GRIDEX2607E66002').replace('QTY+136:500', 'QTY+136:7'))
+    const close = lines.findIndex(line => line.startsWith('UNT+'))
+    lines.splice(close, 0, ...second); lines[close + second.length] = `UNT+${lines.length - 2}+1'`
+    message.raw_payload = lines.join('\n')
+  }
+  return message
+}
+const accepted = (id: string) => ({ transactionId: id, disposition: 'accepted', responseType: 'positive_aperak', persistenceStatus: 'persisted' })
+const failed = { transactionId: 'GRIDEX2607E66001', disposition: 'processability_rejected', responseType: 'utilts_err', persistenceStatus: 'failed', issueCodes: ['UTILTS_PERSISTENCE_FAILED'] }
+for (const mixed of [false, true]) it(`processor excludes failed persistence and retains ERR${mixed ? ' with accepted sibling' : ''}`, async () => {
+  const message = incoming(false, mixed); io.get.mockResolvedValue(message)
+  results = mixed ? [failed, accepted('GRIDEX2607E66002')] : [failed]
+  const result = await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
+  expect(io.rpc).toHaveBeenCalledWith('gridex_persist_utilts_transactions_v1', expect.objectContaining({ p_company_id: 'tenant-a', p_source_message_id: message.id }))
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).toContain('UTILTS_ERR')
+  if (mixed) {
+    expect(io.meter).toHaveBeenCalledTimes(1)
+    expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ quantityKwh: 7, companyId: 'tenant-a', sourceTransactionReference: 'GRIDEX2607E66002' }))
+    expect(io.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: 7, customerId: 'customer-a' }))
+    expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).toContain('APERAK')
+  } else {
+    expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
+    expect(result).toMatchObject({ ingestedMeterValueIds: [], billingUnderlayId: null })
+    expect(io.findOutbound).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+    expect(io.update).toHaveBeenLastCalledWith(expect.objectContaining({ failureReason: 'utilts_transaction_persistence_failed', validationReport: expect.objectContaining({ utiltsRuntime: expect.objectContaining({ validation: expect.objectContaining({ ok: false, classification: 'functional_rejected' }) }) }) }))
+    expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('APERAK')
+  }
+})
+for (const invalid of ['missing', 'duplicate', 'unrelated', 'contradictory']) it(`real processor rejects ${invalid} persistence evidence before ACK or completion`, async () => {
+  const message = incoming(); io.get.mockResolvedValue(message)
+  if (invalid === 'duplicate') results = [accepted('GRIDEX2607E66001'), accepted('GRIDEX2607E66001')]
+  if (invalid === 'unrelated') results = [accepted('OTHER')]
+  if (invalid === 'contradictory') results = [{ ...accepted('GRIDEX2607E66001'), disposition: 'internal_review' }]
+  await expect(processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })).rejects.toThrow('utilts_transaction_persistence_invalid_result')
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
+  expect(io.ack).not.toHaveBeenCalled(); expect(io.findOutbound).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+})
+it('held sibling keeps its empty persisted quantities and no positive ACK while accepted sibling persists', async () => {
+  const message = incoming(true, true); io.get.mockResolvedValue(message)
+  results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'internal_review', responseType: 'none', persistenceStatus: 'not_applicable' }, accepted('GRIDEX2607E66002')]
+  const result = await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
+  expect(result.internalReviewRequired).toBe(true)
+  const call = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_transactions_v1')!
+  expect(call[1].p_transactions).toMatchObject([{ transactionId: 'GRIDEX2607E66001', disposition: 'internal_review', quantities: [] }, { transactionId: 'GRIDEX2607E66002', disposition: 'accepted', quantities: [{ value: 7 }] }])
+  const aperaks = io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK')
+  expect(aperaks).toHaveLength(1)
+  expect(JSON.stringify(aperaks[0][0].draft)).toContain('GRIDEX2607E66002')
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
+})
+
+for (const invalid of ['missing tenant', 'duplicate physical identities']) it(`processor stops ${invalid} before ACK, sinks or completion`, async () => {
+  const message = incoming()
+  if (invalid === 'missing tenant') message.company_id = null
+  else message.raw_payload = message.raw_payload! + message.raw_payload!.slice(9)
+  io.get.mockResolvedValue(message)
+  results = [accepted('GRIDEX2607E66001'), accepted('GRIDEX2607E66001')]
+  await expect(processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })).rejects.toThrow(
+    invalid === 'missing tenant' ? 'saknar tenantkoppling' : 'utilts_transaction_persistence_invalid_result',
+  )
+  expect(io.ack).not.toHaveBeenCalled(); expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
+  expect(io.findOutbound).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+})
+
+it('failed persistence dominates the certified forced-positive ACK plan', async () => {
+  const message = incoming(); io.get.mockResolvedValue(message); results = [failed]
+  await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id, testCaseCode: 'U3.1.1' })
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).toContain('UTILTS_ERR')
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('APERAK')
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
+  expect(io.findOutbound).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+  expect(io.update).toHaveBeenLastCalledWith(expect.objectContaining({ failureReason: 'utilts_transaction_persistence_failed' }))
+})

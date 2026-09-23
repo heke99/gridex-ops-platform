@@ -451,6 +451,24 @@ export async function processInboundUtiltsMessage(params: {
         matches: transactionMatches,
       }),
     })
+    // An RPC array is not evidence unless every requested transaction has one
+    // coherent outcome. Stop internally before ACKs or request completion;
+    // missing/ambiguous evidence must not fabricate a national rejection.
+    const expectedIds = transactionDispositions.map((item, index) => resolveUtiltsTransactionId(item.transactionId, index))
+    const validResults = transactionPersistenceResults.length === expectedIds.length &&
+      new Set(expectedIds).size === expectedIds.length &&
+      transactionDispositions.every((disposition, index) => {
+        const results = transactionPersistenceResults.filter(item => ensureJson(item).transactionId === expectedIds[index])
+        if (results.length !== 1) return false
+        const result = results[0]
+        if (result.persistenceStatus === 'failed') {
+          return (disposition.disposition === 'accepted' || disposition.disposition === 'processability_rejected') &&
+            result.disposition === 'processability_rejected' && result.responseType === 'utilts_err'
+        }
+        return result.disposition === disposition.disposition && result.responseType === disposition.responseType &&
+          result.persistenceStatus === (disposition.disposition === 'accepted' ? 'persisted' : 'not_applicable')
+      })
+    if (!validResults) throw new Error('utilts_transaction_persistence_invalid_result')
     transactionDispositions = transactionDispositions.map((disposition, index) => {
       const transactionId = resolveUtiltsTransactionId(disposition.transactionId, index)
       const persisted = transactionPersistenceResults.find((item) => item.transactionId === transactionId)
@@ -467,6 +485,14 @@ export async function processInboundUtiltsMessage(params: {
         issueCodes: [...new Set([...disposition.issueCodes, ...(persisted.issueCodes ?? ['UTILTS_PERSISTENCE_FAILED'])])],
       }
     })
+  }
+  if (transactionPersistenceResults.length === 0 && (transactionDispositions.length > 0 || runtime.validation.ok)) {
+    throw new Error('utilts_transaction_persistence_invalid_result')
+  }
+  const allTransactionsFailedPersistence = transactionPersistenceResults.length > 0 &&
+    transactionPersistenceResults.every(item => item.persistenceStatus === 'failed')
+  if (allTransactionsFailedPersistence) {
+    runtime.validation = { ...runtime.validation, ok: false, classification: 'functional_rejected' }
   }
   normalizedPayload.utiltsTransactionDispositions = transactionDispositions
   normalizedPayload.utiltsTransactionPersistenceResults = transactionPersistenceResults
@@ -497,7 +523,7 @@ export async function processInboundUtiltsMessage(params: {
     },
   })
 
-  if ((!runtime.validation.ok && !forcedPositiveTgtAckPlan) || shouldRejectByAckPlan) {
+  if (allTransactionsFailedPersistence || (!runtime.validation.ok && !forcedPositiveTgtAckPlan) || shouldRejectByAckPlan) {
     const ackIds = await createUtiltsRuntimeAcks({
       actorUserId,
       sourceMessage: runtimeSourceMessage,
@@ -510,7 +536,7 @@ export async function processInboundUtiltsMessage(params: {
       actorUserId,
       edielMessageId: message.id,
       status: runtime.validation.classification === 'syntax_rejected' ? 'failed' : 'validated',
-      failureReason: ackPlan.reason,
+      failureReason: allTransactionsFailedPersistence ? 'utilts_transaction_persistence_failed' : ackPlan.reason,
       parsedPayload: {
         ...(message.parsed_payload ?? {}),
         normalizedMeteringPayload: normalizedPayload,

@@ -1,3 +1,4 @@
+import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
@@ -71,7 +72,7 @@ function ledgerRpc(name: string, args: Record<string, unknown>) {
 beforeEach(() => {
   vi.clearAllMocks(); incoming = observationHandoffMessage('2026-09-30', COMPANY); scenario = 'unavailable'; timelineScenario = 'unavailable'; signals = []
   io.get.mockImplementation(async () => incoming); io.update.mockResolvedValue(null); io.event.mockResolvedValue(null)
-  io.ack.mockResolvedValue(['ack-1']); io.persist.mockResolvedValue([]); io.from.mockImplementation(linkedQuery); io.rpc.mockImplementation(ledgerRpc)
+  io.ack.mockResolvedValue(['ack-1']); io.persist.mockImplementation(successfulUtiltsPersistenceIo); io.from.mockImplementation(linkedQuery); io.rpc.mockImplementation(ledgerRpc)
   io.matches.mockResolvedValue([{ transactionReference: 'GRIDEX2607E66001', externalMeteringPointId: point, meteringPointId: `meter-${COMPANY}`,
     externalGridAreaId: 'TES', matchStatus: 'matched', customerId: null, siteId: null, gridOwnerId: null }])
   io.allMatched.mockReturnValue(false); io.ingest.mockResolvedValue([{ id: 'value-1' }])

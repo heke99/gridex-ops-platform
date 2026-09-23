@@ -1,3 +1,4 @@
+import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
@@ -60,7 +61,7 @@ beforeEach(() => {
   vi.clearAllMocks(); queryCalls.length = 0
   incoming = observationHandoffMessage(); rows = [source()]; count = 1; dbError = null
   io.get.mockImplementation(async () => incoming); io.update.mockResolvedValue(null); io.event.mockResolvedValue(null)
-  io.ack.mockResolvedValue([]); io.persist.mockResolvedValue([]); io.matches.mockResolvedValue([match()]); io.from.mockImplementation(query)
+  io.ack.mockResolvedValue([]); io.persist.mockImplementation(successfulUtiltsPersistenceIo); io.matches.mockResolvedValue([match()]); io.from.mockImplementation(query)
 })
 type Evidence = { version: number; status: string; authorityStatus: string; selection: string; sources: Array<Record<string, unknown>>; issues: Array<{ code: string; sourceMessageId?: string }> }
 async function run(): Promise<Evidence> {
