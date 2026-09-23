@@ -1,3 +1,11 @@
+# PR371 whole-branch review approved; native infrastructure retry required — 2026-09-24
+
+Published code/test head c89586dc9b6ff29ab8d01ede873a8e4f6ebb0617 (tree8fbaed08c8cdd8e345ff8e5d9ecf0e88d740a5ed) is clean locally and ready for review. Independent final whole-branch SPEC/QUALITY APPROVE, zero material findings; report prior-guide-final-review-20260924.md. No final fix wave requested. Corrected native replay OPS35930370622/job107415232454 failed BEFORE TESTS because Docker host port54322 was occupied. This is infrastructure evidence, not a product result. GitHub disallows a job rerun while another job in that workflow runs. Verify, ordinary browser, E2E and Ediel passed; quality/build was still running at this checkpoint.
+
+Next: publish this documentation receipt, then qualify its exact head using ordinary CI and authentic native artifact inspection. If native startup fails transiently again, inspect the actual error and rerun only failed job once the workflow finishes; do not weaken gates. Corrected166 native tests still need successful execution. Merge only after exact-head checks and final receipt review. Full E035 remains PARTIAL; PR310 excluded. User approval covers publication/PR/CI and continuation; no repeat approval needed for this bounded delivery.
+
+Prepared follow-up: correction-context-next-plan-20260924.md in the same audit directory, read-only plan until PR371 accepted. Hold-only correction capture/process history and earliest plausible boundary; positive C and unresolved historic dispatch/retention authority remain separate.
+
 # Prior-guide native correction reviewed — 2026-09-24
 
 Local fixture correction6298f35f composes a fresh actual review and deliberately fails only its separate witness. Independent scoped review3 approves SPEC/QUALITY; no production code or database guard changed. Node22 scripts types/native lint/qualifier29 PASS. Corrected native execution remains pending. Parent publishes this exact tree with the review and checkpoint, then inspects all ordinary same-head CI; merge is not yet accepted. User publication approval persists.
