@@ -72,6 +72,7 @@ export async function listCustomerCases(options: {
   customerId?: string | null
   status?: string | null
   type?: string | null
+  source?: string | null
   query?: string | null
   limit?: number
 } = {}): Promise<CustomerCaseListRow[]> {
@@ -85,6 +86,7 @@ export async function listCustomerCases(options: {
   if (options.customerId) query = query.eq('customer_id', options.customerId)
   if (options.status && options.status !== 'all') query = query.eq('status', options.status)
   if (options.type && options.type !== 'all') query = query.eq('case_type', options.type)
+  if (options.source) query = query.eq('source', options.source)
   if (options.query?.trim()) {
     query = query.or(`title.ilike.%${options.query.trim()}%,description.ilike.%${options.query.trim()}%,reason_category.ilike.%${options.query.trim()}%`)
   }
@@ -366,6 +368,7 @@ export async function updateCustomerCaseStatus(input: {
   status: string
   message?: string | null
   actorUserId?: string | null
+  expectedSource?: string
 }) {
   const now = new Date().toISOString()
   const patch: Record<string, unknown> = {
@@ -377,13 +380,13 @@ export async function updateCustomerCaseStatus(input: {
   if (input.status === 'resolved') patch.resolved_at = now
   if (input.status === 'closed') patch.closed_at = now
 
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('customer_cases')
     .update(patch)
     .eq('id', input.caseId)
     .eq('company_id', input.companyId)
-    .select('*')
-    .single()
+  if (input.expectedSource) query = query.eq('source', input.expectedSource)
+  const { data, error } = await query.select('*').single()
   if (error) throw error
 
   const row = data as CustomerCaseRow
