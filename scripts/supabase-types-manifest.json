@@ -1,9 +1,9 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-09-23T15:59:45Z",
-  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run35885232292",
+  "generated_at": "2026-09-23T19:18:04Z",
+  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run35907849473",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "fcd9fa39904fabbf33e62bb1ca5866dbb8792947b4e1324d1f690e009a51f7a2",
-  "latest_migration": "20260923154221_ediel_utilts_existing_billing_binding.sql",
-  "latest_migration_schema_effect": "Immutable UTILTS source/consumption binding and atomic metering/billing sinks with ownership locks and frozen existing-underlay equality. Empty replay35885232292 generated verified public types after124 native passes. Replay35886326071 repeated124 passes, reproduced identical types and passed tenant invariants/parity self-test. Authentic schema/fingerprint copied verbatim from verified artifact10763590021 after expected stale-schema comparison. Final same-head CI pending; full E035 incomplete."
+  "sha256": "97d0e4267fcaecdd10d8a6500d6c5ec7709a9198d8361a52849c921c8a8a625d",
+  "latest_migration": "20260923180557_restore_customer_case_events_atomic_status.sql",
+  "latest_migration_schema_effect": "Authentic replay35907849473 restores legacy case events and atomic status RPC. Native124, case1, protected browser2 and post-browser1 PASS. Artifact10772286880 types copied verbatim; schema and final consumer correction wave remain pending. No full E035 acceptance."
 }

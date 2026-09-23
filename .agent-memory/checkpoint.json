@@ -13,9 +13,9 @@
   "active_item": "E035 dated reviewed market structure and authoritative E61/E62 comparison",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
-    "status": "NATIVE_PASS_BROWSER_SELECTOR_REPAIR",
-    "published_head": "805599a0beba201dac0369870e63b2bee1676c67",
-    "published_tree": "8df4664bb6c91413f209d7ae895d531025b2bbf8",
+    "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
+    "published_head": "7750e2da44394b1b154eabfb4e3e8e80af30f4f6",
+    "published_tree": "a3bd6fc759d1aa38d5291b62e477406d8b1abb73",
     "ops_run": 35905197064,
     "native_job": 107331020594,
     "local_tests": 29,
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Finish scoped protected-browser selector correction after actual native124+case1PASS. Preserve assertions and no production edits. Publish/replay/browser/postbrowser, then authentic contracts and final whole-branch review with bounded release assessment.",
+  "next_action": "Complete coherent final R1\u2013R4 wave; qualify published7750e2 case browser/postbrowser and authentic artifacts; final same-head review/CI before bounded merge, then prior-guide and remaining owners.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -355,5 +355,16 @@
     "fix2_artifact": 10750749337,
     "fix2_artifact_sha256": "b617922d79043b1ccb773265ed4da9587487e811b9e1952c784237f4ddfd07e2",
     "fix2_schema_fingerprint": "17004382be3ac4af43a9d9ba3d3632ad553274802c382d3d04528579ccdc4387"
+  },
+  "final_consumer_wave": {
+    "status": "IN_PROGRESS",
+    "base": "d81dff0c92d9f8c384d627a81e6f3ea866295a3e",
+    "agent": "/root/e035_final_consumer_wave",
+    "findings": [
+      "R1",
+      "R2",
+      "R3",
+      "R4"
+    ]
   }
 }

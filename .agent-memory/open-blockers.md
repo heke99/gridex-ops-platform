@@ -1,3 +1,11 @@
+## Current continuation — final consumer corrections, 2026-09-23
+
+User authorizes best-action continuation, bounded merge of verified work, then remaining E035. Published7750e2da44394b1b154eabfb4e3e8e80af30f4f6 has tree a3bd6fc759d1aa38d5291b62e477406d8b1abb73, identical to local d81dff0. Streamed not-found browser test correction is independently SPEC/QUALITY approved statically; genuine CI pending. Prior7555066 native124+case1 passed; browser1/2 passed, remaining failure was documented Next streamed200 not-found transport. Assertions now require real404 UI/noindex and absent foreign data/actions.
+
+Whole-branch review completed with four material findings: R1 existing metering/normalized content validation; R2 mutable billing flag bypass/lineage loss; R3 unsupported agency89 high-resolution identity bypass; R4 writable observation failure swallowed before positiveACK. Sole active implementer /root/e035_final_consumer_wave handles one coherent final fix wave, BASE d81dff0. No merge until corrections, authentic native/browser/post-browser/types/schema and exact-final-head review/CI pass. Root owns generated artifacts/publication/bookkeeping; no branch reset while implementer active.
+
+Bounded delivery may defer prior25-A-3 comparison only with explicit A4-from-2026-10-01 coverage claim. E035/F3/masterplan remains PARTIAL. Remaining owners continue after accepted merge. PR310/main untouched; no hosted writes/deployments/market messages. Next: qualify published case test while implementing R1–R4; then final scoped review and authentic artifact reconciliation. Older entries below are historical where conflicting.
+
 ## Resumed by user instruction — 2026-09-23
 
 User explicitly instructed doing what is best, otherwise merging completed work and continuing. This resolves the reported fix5 breaker for the concrete checksum-bound native migration-path correction and its verification; prior round history remains recorded. Sole implementer case_schema_fix5 handles the bounded approved brief. No weakening of native/browser/type/schema or final review gates. Root also assesses a truthful bounded delivery scope for completed work before further E035 owners; no merge is presently authorized by test evidence. PR370 base d7666c7, main/PR310 unchanged. Older BLOCKED entries below are historical after this instruction.

@@ -16124,6 +16124,228 @@ export type Database = {
           },
         ]
       }
+      customer_case_events: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          customer_case_id: string
+          customer_id: string
+          event_status: string
+          event_type: string
+          id: string
+          message: string
+          payload: Json
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          customer_case_id: string
+          customer_id: string
+          event_status?: string
+          event_type: string
+          id?: string
+          message: string
+          payload?: Json
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          customer_case_id?: string
+          customer_id?: string
+          event_status?: string
+          event_type?: string
+          id?: string
+          message?: string
+          payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_case_events_case_owner_fk"
+            columns: ["customer_case_id", "company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_cases"
+            referencedColumns: ["id", "company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_customer_case_id_fkey"
+            columns: ["customer_case_id"]
+            isOneToOne: false
+            referencedRelation: "customer_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_customer_company_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "company_customer_list_summary_v"
+            referencedColumns: ["customer_id", "company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_customer_company_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "customer_ops_master_readiness_v"
+            referencedColumns: ["customer_id", "company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_customer_company_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_customer_company_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_data_cleanup_customer_candidates_v"
+            referencedColumns: ["customer_id", "company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "company_customer_list_summary_v"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_ops_master_readiness_v"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_case_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_data_cleanup_customer_candidates_v"
+            referencedColumns: ["customer_id"]
+          },
+        ]
+      }
       customer_cases: {
         Row: {
           agreement_channel: string | null
@@ -90633,6 +90855,17 @@ export type Database = {
           p_company_id: string
           p_input: Json
           p_mark_reviewed?: boolean
+        }
+        Returns: Json
+      }
+      gridex_update_customer_case_status: {
+        Args: {
+          p_actor_user_id: string
+          p_case_id: string
+          p_company_id: string
+          p_expected_source?: string
+          p_message?: string
+          p_status: string
         }
         Returns: Json
       }
