@@ -53,6 +53,7 @@ describe('Ediel operational cases at the actual Control Tower entry', () => {
     const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({}) }))
     expect(html).toContain('/admin/ediel/operational-cases?caseId=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
     expect(html).toContain('Öppna Ediel-ärenden')
+    expect(html).toContain('href="/admin/ediel/operational-cases?view=exceptions"')
     expect(io.counts.some(({ table, filters }) => table === 'customer_cases' && filters.some(([key, value]) => key === 'source' && value === 'ediel_inbound_state_machine'))).toBe(true)
     expect(html).not.toMatch(/href="\/admin\/customer-cases"[^>]*>[^<]*Granska oväntat PRODAT/)
   })

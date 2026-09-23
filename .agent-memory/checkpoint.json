@@ -12,6 +12,16 @@
   "root_main_acceptance_comment": 5768848443,
   "active_item": "E035 dated reviewed market structure and authoritative E61/E62 comparison",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
+  "ediel_case_navigation": {
+    "status": "IMPLEMENTED_LOCAL_GATES_PASS_NATIVE_BROWSER_REVIEW_PENDING",
+    "published_head": "d1e14fc75c90a83d66e31b2c2d72c906b7637f14",
+    "published_tree": "f92518a9b9a88354d097eee0e8ca18521125c68c",
+    "ops_run": 35890710047,
+    "local_tests": 5952,
+    "local_test_files": 368,
+    "report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/ediel-case-visibility-implementation-20260923.md",
+    "native_browser_executed": false
+  },
   "next_action": "Retry task COMPLETE at fe63dd98: independent bounded SPEC/QUALITY/native approved, authentic types/schema and ALL applicable ordinary CI SUCCESS. Hand off sole implementation to ediel_case_implementation for settled case-navigation brief and real protected localhost browser qualification; then queued remaining business/time/source owners and same-final-head whole-E035 review before merge.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",

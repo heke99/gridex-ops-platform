@@ -71,20 +71,27 @@ export async function listCustomerCases(options: {
   companyId?: string | null
   customerId?: string | null
   status?: string | null
+  statuses?: readonly string[]
   type?: string | null
   source?: string | null
   query?: string | null
   limit?: number
+  offset?: number
 } = {}): Promise<CustomerCaseListRow[]> {
   let query = supabaseService
     .from('customer_cases')
     .select('*, customers(full_name, first_name, last_name, company_name, email, customer_number)')
     .order('created_at', { ascending: false })
-    .limit(options.limit ?? 200)
+  if (options.offset !== undefined) {
+    query = query.order('id', { ascending: false }).range(options.offset, options.offset + (options.limit ?? 200) - 1)
+  } else {
+    query = query.limit(options.limit ?? 200)
+  }
 
   if (options.companyId) query = query.eq('company_id', options.companyId)
   if (options.customerId) query = query.eq('customer_id', options.customerId)
   if (options.status && options.status !== 'all') query = query.eq('status', options.status)
+  if (options.statuses) query = query.in('status', [...options.statuses])
   if (options.type && options.type !== 'all') query = query.eq('case_type', options.type)
   if (options.source) query = query.eq('source', options.source)
   if (options.query?.trim()) {

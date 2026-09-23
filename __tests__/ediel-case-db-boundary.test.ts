@@ -5,8 +5,10 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: () => ({
   select: () => {
     const query = {
       eq: (column: string, value: unknown) => { io.operations.push(`eq:${column}:${value}`); return query },
-      order: () => { io.operations.push('order'); return query },
+      in: (column: string, values: unknown[]) => { io.operations.push(`in:${column}:${values.join(',')}`); return query },
+      order: (column: string) => { io.operations.push(`order:${column}`); return query },
       limit: () => { io.operations.push('limit'); return query },
+      range: (start: number, end: number) => { io.operations.push(`range:${start}:${end}`); return query },
       then: (resolve: (result: unknown) => unknown) => Promise.resolve(resolve({ data: io.rows, error: null })),
     }
     return query
@@ -42,4 +44,20 @@ it('makes the source predicate part of the atomic status UPDATE before recording
   await updateCustomerCaseStatus({ caseId: 'case-a', companyId: 'company-a', status: 'resolved', expectedSource: 'ediel_inbound_state_machine', actorUserId: 'actor' })
   expect(io.updated).toBe(true)
   expect(io.operations).toContain('eq:company_id:company-a')
+})
+
+it('filters the open exception cohort in the DB before its list limit', async () => {
+  const { listCustomerCases } = await import('@/lib/customer-cases/db')
+  await listCustomerCases({ companyId: 'company-a', source: 'ediel_inbound_state_machine', statuses: ['open', 'action_required'], limit: 200 })
+  expect(io.operations).toContain('in:status:open,action_required')
+  expect(io.operations).toContain('eq:source:ediel_inbound_state_machine')
+})
+
+it('ranges a later open-cohort page with deterministic ordering after source/status predicates', async () => {
+  const { listCustomerCases } = await import('@/lib/customer-cases/db')
+  await listCustomerCases({ companyId: 'company-a', source: 'ediel_inbound_state_machine', statuses: ['open'], offset: 200, limit: 201 })
+  expect(io.operations).toContain('eq:source:ediel_inbound_state_machine')
+  expect(io.operations).toContain('in:status:open')
+  expect(io.operations).toContain('order:id')
+  expect(io.operations).toContain('range:200:400')
 })

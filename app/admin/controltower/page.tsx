@@ -129,7 +129,7 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
           <StatCard label="Driftuppgifter" value={openTasks} href="/admin/operations/tasks" tone={openTasks > 0 ? 'warning' : 'success'} />
           <StatCard label="Hög prioritet" value={highTasks} href="/admin/operations/tasks" tone={highTasks > 0 ? 'danger' : 'success'} />
           <StatCard label="Kundärenden (alla källor)" value={customerCases} tone={customerCases > 0 ? 'warning' : 'success'} />
-          <StatCard label="Öppna Ediel-ärenden" value={edielCases} href={canReadCases ? '/admin/ediel/operational-cases' : undefined} tone={edielCases > 0 ? 'warning' : 'success'} />
+          <StatCard label="Öppna Ediel-ärenden" value={edielCases} href={canReadCases ? '/admin/ediel/operational-cases?view=exceptions' : undefined} tone={edielCases > 0 ? 'warning' : 'success'} />
           <StatCard label="Blockerade switchar" value={switchBlocked} href="/admin/operations/switches" tone={switchBlocked > 0 ? 'danger' : 'success'} />
           <StatCard label="Outbound fel" value={outboundFailed} href="/admin/outbound" tone={outboundFailed > 0 ? 'danger' : 'success'} />
           <StatCard label="Saknar route" value={outboundUnresolved} href="/admin/outbound/unresolved" tone={outboundUnresolved > 0 ? 'warning' : 'success'} />

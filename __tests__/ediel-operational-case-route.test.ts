@@ -15,7 +15,7 @@ vi.mock('@/lib/admin/guards', () => ({ requireAdminPageKeyAccess: async (key: st
 vi.mock('@/lib/tenant/adminScope', () => ({ resolveAdminTenantReadScope: async () => io.scope }))
 vi.mock('@/lib/tenant/scope', () => ({ getOperationalCompanyScope: async () => ({ companyId: io.scope.companyId, memberships: [{ companyId: 'company-a', status: 'active', companyStatus: 'active' }] }) }))
 vi.mock('@/lib/customer-cases/db', () => ({
-  listCustomerCases: async (options: Record<string, unknown>) => { io.calls.push(`list:${JSON.stringify(options)}`); return io.cases.filter((row) => row.source === options.source && (!options.companyId || row.company_id === options.companyId)) },
+  listCustomerCases: async (options: Record<string, unknown>) => { io.calls.push(`list:${JSON.stringify(options)}`); return io.cases.filter((row) => row.source === options.source && (!options.companyId || row.company_id === options.companyId) && (!Array.isArray(options.statuses) || options.statuses.includes(row.status))).slice(Number(options.offset ?? 0), Number(options.offset ?? 0) + Number(options.limit ?? 200)) },
   getCustomerCaseById: async (id: string, companyId: string | null) => { io.calls.push(`case:${id}:${companyId}`); return io.cases.find((row) => row.id === id && (!companyId || row.company_id === companyId)) ?? null },
   listCustomerCaseEvents: async (id: string, companyId: string | null) => { io.calls.push(`events:${id}:${companyId}`); return io.events },
   customerCaseStatusLabel: (value: string) => value,
@@ -99,5 +99,31 @@ describe('dedicated Ediel case route', () => {
     io.context.permissions = ['cases.read']
     const readonly = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ caseId: caseA.id }) }))
     expect(readonly).not.toContain('name="status"')
+  })
+
+  it('matches the open card with a DB-filtered exception cohort and never silently reopens an unsupported current status', async () => {
+    const { default: Page } = await import('@/app/admin/ediel/operational-cases/page')
+    await Page({ searchParams: Promise.resolve({ view: 'exceptions' }) })
+    expect(io.calls.some((entry) => entry.startsWith('list:') && entry.includes('"statuses":["open","action_required","awaiting_external_response","billing_blocked","manual_follow_up"]'))).toBe(true)
+    io.context.permissions = ['cases.read', 'cases.write']
+    io.cases[0] = { ...caseA, status: 'billing_blocked' }
+    const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ caseId: caseA.id }) }))
+    expect(html).toContain('Aktuell status: billing_blocked')
+    expect(html).toContain('<option value="" disabled="" selected="">Välj ny status</option>')
+  })
+
+  it('reaches more than 200 open Ediel cases through deterministic page links and preserves the exception view on exact detail', async () => {
+    const { default: Page } = await import('@/app/admin/ediel/operational-cases/page')
+    io.cases = Array.from({ length: 202 }, (_, index) => ({ ...caseA, id: `aaaaaaaa-aaaa-4aaa-8aaa-${String(index + 1).padStart(12, '0')}`, title: `Ediel cohort ${index + 1}` }))
+    const first = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ view: 'exceptions' }) }))
+    expect(first).toContain('/admin/ediel/operational-cases?view=exceptions&amp;page=2')
+    expect(first).not.toContain('Ediel cohort 202')
+    const second = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ view: 'exceptions', page: '2', caseId: io.cases[201].id }) }))
+    expect(io.calls.some((entry) => entry.includes('"offset":200') && entry.includes('"limit":201'))).toBe(true)
+    expect(second).toContain('Ediel cohort 202')
+    expect(second).toContain(`caseId=${io.cases[201].id}&amp;view=exceptions&amp;page=2`)
+    expect(second).toContain('/admin/ediel/operational-cases?view=exceptions&amp;page=1')
+    await expect(Page({ searchParams: Promise.resolve({ view: 'exceptions', page: '0' }) })).rejects.toThrow('not-found')
+    await expect(Page({ searchParams: Promise.resolve({ view: 'exceptions', page: 'garbage' }) })).rejects.toThrow('not-found')
   })
 })

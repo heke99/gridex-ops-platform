@@ -139,6 +139,7 @@ jobs:
           [[ -s "$GRIDEX_EDIEL_CASE_FIXTURE_PATH" ]] || exit 1
           npx playwright install --with-deps chromium
           npx playwright test e2e/browser/ediel-case-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_EDIEL_CASE_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-case-view-native.config.ts
           rm -f "$GRIDEX_EDIEL_CASE_FIXTURE_PATH"
           unset GRIDEX_EDIEL_CASE_TEST_PASSWORD SUPABASE_SERVICE_ROLE_KEY NEXT_PUBLIC_SUPABASE_ANON_KEY
           rm -f "$RUNNER_TEMP/e035-native-status.json"
