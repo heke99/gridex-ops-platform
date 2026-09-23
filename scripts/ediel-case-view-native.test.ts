@@ -56,14 +56,32 @@ async function createActor(tag: string, company: string, keys: string[]) {
 
 async function writeCase(company: string, customer: string, actor: string) {
   const source = randomUUID()
-  const { data, error } = await supabaseService.from('ediel_messages').insert({
-    id: source, company_id: company, customer_id: customer, direction: 'inbound', message_standard: 'edifact',
-    message_family: 'PRODAT', message_code: 'Z06', message_version: 'E2SE6A', application_reference: '23-DDQ-PRODAT',
-    environment: 'test', status: 'received', parsed_payload: { subtype: 'G' }, message_received_at: new Date().toISOString(),
-  }).select('*').single()
+  // The inbound binding trigger selects by message code, not subtype. Z06 has
+  // three valid profiles, so bind the exact dated registry row as the existing
+  // native source-owner fixtures do; no profile or trigger is fabricated.
+  const profile = 'PRODAT:Z06:G:26.A:r3'
+  expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_message_profiles profile
+    JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
+    WHERE profile.profile_key=${quote(profile)} AND profile.is_enabled AND profile.direction IN ('inbound','both')
+      AND profile.message_code='Z06' AND profile.transaction_subtype='G' AND profile.profile->>'family'='PRODAT'
+      AND pack.status IN ('active','future') AND pack.valid_from<=current_date
+      AND (pack.valid_to IS NULL OR pack.valid_to>=current_date)`)).toBe(1)
+  expect(sql<string>(`INSERT INTO public.ediel_messages(
+    id,company_id,customer_id,direction,message_standard,message_family,message_code,message_version,
+    application_reference,environment,status,parsed_payload,message_received_at,
+    canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+    SELECT ${quote(source)},${quote(company)},${quote(customer)},'inbound','edifact','PRODAT','Z06','E2SE6A',
+      '23-DDQ-PRODAT','test','received','{"subtype":"G"}'::jsonb,clock_timestamp(),
+      pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+    FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
+    WHERE profile.profile_key=${quote(profile)} AND profile.is_enabled AND profile.direction IN ('inbound','both')
+      AND profile.message_code='Z06' AND profile.transaction_subtype='G' AND profile.profile->>'family'='PRODAT'
+      AND pack.status IN ('active','future') AND pack.valid_from<=current_date
+      AND (pack.valid_to IS NULL OR pack.valid_to>=current_date) RETURNING to_jsonb(id)`)).toBe(source)
+  const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', source).single()
   expect(error).toBeNull()
   expect(data).not.toBeNull()
-  expect(data?.rule_profile_key).toBe('PRODAT:Z06:G:26.A:r3')
+  expect(data?.rule_profile_key).toBe(profile)
   const result = await applyInboundBusinessStateMachine({ message: data as unknown as EdielMessageRow, actorUserId: actor })
   expect(result).toMatchObject({ outcome: 'masterdata_update_received', updated: ['customer_cases'], reviewRequired: true })
   const rows = sql<Array<{ id: string; title: string; description: string; next_action: string; source: string; reason_category: string }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'title',title,'description',description,'next_action',next_action,'source',source,'reason_category',reason_category)),'[]') FROM public.customer_cases WHERE company_id=${quote(company)} AND metadata->>'source_ediel_message_id'=${quote(source)}`)
