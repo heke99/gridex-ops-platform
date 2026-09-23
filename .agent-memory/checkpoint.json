@@ -12,7 +12,7 @@
   "root_main_acceptance_comment": 5768848443,
   "active_item": "E035 dated reviewed market structure and authoritative E61/E62 comparison",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
-  "next_action": "Publish schema snapshot from actual eac1a604 replay, run all ordinary exact-head CI, request recheck of CodeRabbit ACK interruption finding; continue E035 applicability and masterplan.",
+  "next_action": "Implement reviewed Z05L/LK closure from independently reviewed design; retain remaining source owners and full final review gates. Inspect98aedb ordinary CI.",
   "previous_ordinary_ci": {
     "head": "a89275ba0b34ae27530c2e403d3ae3f2667afe3b",
     "ops": 35715146276,
@@ -35,8 +35,8 @@
     "root_tests": 5514,
     "ordinary_delivery_retest_needed": true
   },
-  "independent_review": "297afecd_REVIEW5792202498_BLOCKING_ACK_FINALIZATION_WINDOW; EAC1A604_FIX_PENDING_RECHECK",
-  "ordinary_final_head_ci": "297afecd_ALL_ORDINARY_WORKFLOWS_SUCCESS; EAC1A604_PENDING",
+  "independent_review": "RETRY_SIDE_EFFECTS_TASK_SPEC_AND_QUALITY_APPROVED; FULL_E035_PENDING",
+  "ordinary_final_head_ci": "98aedb_NATIVE_VERIFY_PASS_FULL_TESTS_2_FAIL; CORRECTED_CANDIDATE_PENDING",
   "full_source_disposition": "DATED_POST_LEDGER_Z04_Z06F_Z06G_Z10_AND_BGM5_E61_E62_PARTIAL; APPLICABILITY_AND_HISTORY_INCOMPLETE",
   "full_E035": "NOT_COMPLETE",
   "full_F3": "NOT_COMPLETE",
@@ -51,10 +51,10 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "297afecdad0ddcaaa9938193ca70c9ad725d0b82",
+  "last_verified_pr_head": "95b5e391159e3164869ddabd8ec96b8f69189fe2",
   "ordinary_baseline_ci": {
-    "head": "d7fb49fde3dae153693acae1cefa33aeef45ad4f",
-    "ops": 35758893367,
+    "head": "95b5e391159e3164869ddabd8ec96b8f69189fe2",
+    "ops": 35842844058,
     "status": "SUCCESS"
   },
   "continuation_native": {
@@ -190,5 +190,21 @@
     "artifact": 10741254796,
     "artifact_sha256": "c3a848783796e212348b523a284081973190e87d3a31a0342ed9b7fa93abf860",
     "generated_types": "BYTE_IDENTICAL"
+  },
+  "retry_sideeffects_20260923": {
+    "head": "98aedb987babfc7e815c7ebcea5fd444159d34fd",
+    "tree": "1c2102e718dd3c5068eb4e5dd7cc6e9cdb19d02e",
+    "local_tests": 365,
+    "local_files": 25,
+    "types": "PASS",
+    "lint": "PASS",
+    "task_review": "APPROVED",
+    "ordinary_ops": 35851564435,
+    "ordinary_ci": "98aedb_NATIVE_PASS_2_PURE_EXTRACTION_FAILURES; FOLLOWUP_PENDING",
+    "remaining_adjacent_scope": "successful replay quantity/hash binding not proved",
+    "fix_local_commit": "146b0a242ba6a2c5355f9211b6937cf1f2396915",
+    "full_local_tests": 5823,
+    "full_local_files": 352,
+    "fix_review": "ADDRESSED_APPROVED"
   }
 }

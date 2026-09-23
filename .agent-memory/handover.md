@@ -1,3 +1,11 @@
+# E035 continuation — 2026-09-23, durable quantity gates
+
+PR370 remains draft. Published98aedb987babfc7e815c7ebcea5fd444159d34fd fixes failed-persistence leakage into legacy quantity sinks and all-failed request completion. Missing/duplicate/incoherent persistence outcomes stop internally before ACK. Local365/25 targeted tests, application/test types and targeted lint pass; independent task spec/quality review approved. Actual98aedb clean native replay and verify passed; full npmtest/coverage identified two pure E66 extractor regressions. Follow-up146b0a24 restores the pure pre-persistence projection while keeping both write sinks gated; unchanged original amount/date tests pass. Full local Node22 suite5823/352, types and targeted lint pass. Independent scoped rereview marks the finding addressed. Ordinary CI must rerun on the published corrected candidate. Prior95b5e391 ordinary OPS35842844058, tenant, Ediel, browser and full-E2E workflows passed, including native replay. That is not full E035 acceptance.
+
+Next implementation: reviewed Z05L/LK closure, exact original DTM93 and LI bound independently by SQL, preserving witnessed Z04 history. Source/design and review are in quality/audits/ediel-masterplan-v2/e035-source-ledger/*20260923.md. Remaining cancellation/death/bilateral/agency89/multiple-message/delegation/changed-start/pre-ledger owners, successful-replay quantity/hash binding, same-final-head full review and downstream masterplan gates remain open. Authentic absent agreements/history cannot be fabricated. No hosted DB writes or market messages. Main eb2b8693 and PR310 OPEN/DRAFT/PAUSED e9611351 remain unchanged.
+
+## Historical records (superseded where conflicting)
+
 # Handover — 2026-09-23
 
 Continue existing draft PR370 from the live head, preserving 64bf971 Z04/history. Parent0f871c78 repairs generated contracts using clean-replay artifact10738595716; local correction guard prevents an unreviewed future-dated BGM5 from reviving an older source. Verify the containing Git head, publish only if still fast-forward, then inspect ordinary OPS/native/tenant and independent four-part review on that exact head. Remaining applicable market owners and F3C-02/04/05/06/07 plus F0/F1/F2/F4–F7 gates are not accepted. Do not touch paused PR310 e9611351 or main eb2b8693.

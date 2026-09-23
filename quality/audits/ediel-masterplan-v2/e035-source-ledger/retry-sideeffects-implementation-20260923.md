@@ -55,3 +55,23 @@ External mock fixture setup corrected in: `ediel-durable-source-business-outcome
 No whole E035/masterplan completion, whole-PR approval, CI/native replay, hosted DB verification, migration rewrite, deploy, publish or market send is claimed. Real matching tenant arguments are retained and tested; no tenant policy changed.
 
 Successful persistence results attest transaction outcome, not the quantities/hash themselves. Inbound UTILTS payload immutability is not universally established by the inspected DB trigger: auto-sealing applies to outbound canonical messages and inbound PRODAT. Changing raw UTILTS bytes under the same already-persisted source ID could therefore require a separate quantity/hash binding or stored-series consumption contract. This patch fixes failed/rejected/held/ambiguous authority; it does not establish that adjacent successful-replay immutability contract.
+
+## Round 1 CI correction — pure monthly projection boundary
+
+CI at `98aedb987babfc7e815c7ebcea5fd444159d34fd` exposed two retained tests in `ediel-e66-monthly-billing-resolution.test.ts`: the direct pre-persistence projection returned zero rows instead of the original 1000 kWh July row and corrected 1001 kWh row. The targeted prior run omitted this file. This was a real compatibility regression introduced by the initial sink patch, not an invalid fixture.
+
+The exported `flattenUtiltsTransactionSeries` is also a pure inspection API used directly with `runUtiltsRuntimeForMessage(...).normalizedPayload`, before any persistence IO. An engine marker establishes runtime origin, but cannot mean that pure parsing must await persistence. Split that pure exported projection from the private flattening implementation: `extractUtiltsMeteringSeries`, which supplies both legacy write sinks, explicitly passes its unchanged eligible-transaction set to the private implementation. The pure public projection passes no authority filter and performs no writes. No new approval evidence, fabricated result, relaxed sink guard, altered amount/date assertion, ACK decision or processor completion behavior was introduced.
+
+Executed RED on local `4b7560fe` with Node22: the monthly file plus both new safety suites gave **2 failed / 34 passed**. The exact same three files after the correction gave **36 passed / 3 files**, including all29 new sink/processor safety tests. Original tests and all their assertions are unchanged.
+
+Additional verification to address the demonstrated selection gap: full Vitest suite, application/test typechecks, targeted lint and diff check (results recorded below). No remote writes or database changes. Review scope is the pure-versus-authorized extraction boundary; the previously disclosed successful-replay hash/quantity binding remains separate.
+
+Round 1 final receipts (all on restored final code, Node22 at `/tmp/e035-node22/node_modules/node/bin/node`):
+
+- `node node_modules/vitest/vitest.mjs run` — **5823 passed / 352 files**, exit0, 34.66s.
+- `node --max-old-space-size=4096 node_modules/typescript/bin/tsc --noEmit -p tsconfig.app.json` — exit0.
+- `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tests.json` — exit0.
+- `node node_modules/eslint/bin/eslint.js lib/ediel/flows/utiltsDataRequest.part-1.ts` — exit0.
+- `git diff --check` — exit0.
+
+Only `utiltsDataRequest.part-1.ts` and this report change in the correction commit. No test source changed. Full coverage was not rerun locally; full ordinary test execution passed and remote coverage/CI remains an exact-head gate. Environment-only experimental proxy warnings remain as previously disclosed.

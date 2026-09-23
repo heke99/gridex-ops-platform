@@ -1,3 +1,11 @@
+# E035 continuation — 2026-09-23, durable quantity gates
+
+PR370 remains draft. Published98aedb987babfc7e815c7ebcea5fd444159d34fd fixes failed-persistence leakage into legacy quantity sinks and all-failed request completion. Missing/duplicate/incoherent persistence outcomes stop internally before ACK. Local365/25 targeted tests, application/test types and targeted lint pass; independent task spec/quality review approved. Actual98aedb clean native replay and verify passed; full npmtest/coverage identified two pure E66 extractor regressions. Follow-up146b0a24 restores the pure pre-persistence projection while keeping both write sinks gated; unchanged original amount/date tests pass. Full local Node22 suite5823/352, types and targeted lint pass. Independent scoped rereview marks the finding addressed. Ordinary CI must rerun on the published corrected candidate. Prior95b5e391 ordinary OPS35842844058, tenant, Ediel, browser and full-E2E workflows passed, including native replay. That is not full E035 acceptance.
+
+Next implementation: reviewed Z05L/LK closure, exact original DTM93 and LI bound independently by SQL, preserving witnessed Z04 history. Source/design and review are in quality/audits/ediel-masterplan-v2/e035-source-ledger/*20260923.md. Remaining cancellation/death/bilateral/agency89/multiple-message/delegation/changed-start/pre-ledger owners, successful-replay quantity/hash binding, same-final-head full review and downstream masterplan gates remain open. Authentic absent agreements/history cannot be fabricated. No hosted DB writes or market messages. Main eb2b8693 and PR310 OPEN/DRAFT/PAUSED e9611351 remain unchanged.
+
+## Historical records (superseded where conflicting)
+
 # E035 ACK interruption finding — 2026-09-23
 
 Native replay35842205514 passed eight retry SQL checks and 17 structural native cases. Generated public types were byte-identical. Only the expected function-body schema snapshot differs; artifact10741254796 ZIP SHA256 c3a848783796e212348b523a284081973190e87d3a31a0342ed9b7fa93abf860 supplies its correction. Publish and rerun exact-head CI.

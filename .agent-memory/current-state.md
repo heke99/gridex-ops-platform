@@ -1,3 +1,11 @@
+# E035 continuation — 2026-09-23, durable quantity gates
+
+PR370 remains draft. Published98aedb987babfc7e815c7ebcea5fd444159d34fd fixes failed-persistence leakage into legacy quantity sinks and all-failed request completion. Missing/duplicate/incoherent persistence outcomes stop internally before ACK. Local365/25 targeted tests, application/test types and targeted lint pass; independent task spec/quality review approved. Actual98aedb clean native replay and verify passed; full npmtest/coverage identified two pure E66 extractor regressions. Follow-up146b0a24 restores the pure pre-persistence projection while keeping both write sinks gated; unchanged original amount/date tests pass. Full local Node22 suite5823/352, types and targeted lint pass. Independent scoped rereview marks the finding addressed. Ordinary CI must rerun on the published corrected candidate. Prior95b5e391 ordinary OPS35842844058, tenant, Ediel, browser and full-E2E workflows passed, including native replay. That is not full E035 acceptance.
+
+Next implementation: reviewed Z05L/LK closure, exact original DTM93 and LI bound independently by SQL, preserving witnessed Z04 history. Source/design and review are in quality/audits/ediel-masterplan-v2/e035-source-ledger/*20260923.md. Remaining cancellation/death/bilateral/agency89/multiple-message/delegation/changed-start/pre-ledger owners, successful-replay quantity/hash binding, same-final-head full review and downstream masterplan gates remain open. Authentic absent agreements/history cannot be fabricated. No hosted DB writes or market messages. Main eb2b8693 and PR310 OPEN/DRAFT/PAUSED e9611351 remain unchanged.
+
+## Historical records (superseded where conflicting)
+
 # Current state — 2026-09-23
 
 PR370 remains draft and unmerged; accepted main eb2b8693, PR310 paused e9611351. Parent0f871c78 has the replay-derived schema snapshot and manifest; fe4f9ac6 clean replay17/17 native passed but ordinary verify/smoke failed on the stale manifest/snapshot. New unreviewed BGM5 date-change guard and red/green pure regression are local until published. Exact-final CI and whole-delivery approval are pending. Source coverage remains bounded after the ledger start; no blanket historical completeness or Z06E/death/bilateral approval. Full masterplan remains open.

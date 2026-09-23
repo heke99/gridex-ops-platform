@@ -302,11 +302,22 @@ function eligibleUtiltsTransactionIds(payload: Record<string, unknown>): Set<str
   }))
 }
 
+/** Pure pre-persistence projection used to inspect normalized runtime facts.
+ * Parsing quantities is not authority to write them; sinks use the gated
+ * extractUtiltsMeteringSeries entry point below.
+ */
 export function flattenUtiltsTransactionSeries(payload: Record<string, unknown>, message: EdielMessageRow): UtiltsMeteringSeriesItem[] {
+  return flattenTransactionSeries(payload, message, null)
+}
+
+function flattenTransactionSeries(
+  payload: Record<string, unknown>,
+  message: EdielMessageRow,
+  eligibleIds: ReadonlySet<string> | null,
+): UtiltsMeteringSeriesItem[] {
   const transactions = arrayFromCandidate(payload.transactions)
   if (transactions.length === 0) return []
 
-  const eligibleIds = hasUtiltsTransactionDecisionContract(payload) ? eligibleUtiltsTransactionIds(payload) : null
   const items: UtiltsMeteringSeriesItem[] = []
   for (const [transactionIndex, transaction] of transactions.entries()) {
     if (!transaction || typeof transaction !== 'object' || Array.isArray(transaction)) continue
@@ -359,7 +370,11 @@ export function extractUtiltsMeteringSeries(
   normalizedPayload: Record<string, unknown>,
   message: EdielMessageRow
 ): UtiltsMeteringSeriesItem[] {
-  const transactionSeries = flattenUtiltsTransactionSeries(normalizedPayload, message)
+  const transactionSeries = flattenTransactionSeries(
+    normalizedPayload,
+    message,
+    hasUtiltsTransactionDecisionContract(normalizedPayload) ? eligibleUtiltsTransactionIds(normalizedPayload) : null,
+  )
   // Never recover excluded runtime quantities from message-level totals/series:
   // these do not prove which persisted physical transaction owns each value.
   if (hasUtiltsTransactionDecisionContract(normalizedPayload) || transactionSeries.length > 0) return transactionSeries
