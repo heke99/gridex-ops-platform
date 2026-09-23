@@ -22,6 +22,12 @@ export type UtiltsProcessabilityPolicy = {
     section: '1.8 Change log'
     effectiveFrom: string
   }
+  structuralComparisonSource: {
+    document: string
+    sha256: string
+    sections: readonly string[]
+    scope: string
+  }
 }
 
 const activeCodes = ['E30', 'E31', 'E66', 'E72', 'E73', 'E74', 'S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'ERR'] as const
@@ -44,11 +50,17 @@ export const UTILTS_25_A_3_POLICY: UtiltsProcessabilityPolicy = {
   compareMeterReadingsToEnergyVolumes: true,
   endMeterReadingBelowStartIsError: true,
   validateIndividualMeteringPointEnergyValuesBeyondE30: true,
-  validateMeterAndRegisterAgainstStructuralInformation: false,
+  validateMeterAndRegisterAgainstStructuralInformation: true,
   source: {
     document: '251001_Ediel_UTILTS-APERAK_User_Guide_Version_25-A-3',
     section: '1.8 Change log',
     effectiveFrom: '2025-06-01',
+  },
+  structuralComparisonSource: {
+    document: '251001_Ediel_UTILTS-APERAK_User_Guide_Version_25-A-3.pdf',
+    sha256: 'fad5cf4f775f86258ab9d5827426d54e57881b6298836110359cf0e41706a798',
+    sections: ['Appendix 2 p138 fields 224/527', '3.6.8 p38', '3.6.11 p42', '3.6.18 p48'],
+    scope: 'E61/E62 standard supplier PRODAT comparison for E30/E66/S07; no bilateral register mapping or historical coverage inferred',
   },
 }
 
@@ -78,6 +90,12 @@ export const UTILTS_25_A_4_POLICY: UtiltsProcessabilityPolicy = {
     document: '260331_Ediel_UTILTS-APERAK_User_Guide_Version_25-A-4',
     section: '1.8 Change log',
     effectiveFrom: '2026-10-01',
+  },
+  structuralComparisonSource: {
+    document: '260331_Ediel_UTILTS-APERAK_Anvisning_version_25-A-4.pdf',
+    sha256: '0524c18f38864ebe081dec9d3d53f1797b224ef0af7b01986627e895f47d99be',
+    sections: ['Appendix 2 p132 fields 224/527', '3.6.8 p37', '3.6.11 p41', '3.6.18 p47'],
+    scope: 'E61/E62 received structural-information comparison; source ownership and historical coverage remain separately qualified',
   },
 }
 

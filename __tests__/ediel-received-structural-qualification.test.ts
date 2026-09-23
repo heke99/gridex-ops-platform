@@ -6,6 +6,7 @@ import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPo
 import {qualifyReceivedUtiltsStructure} from '@/lib/ediel/utilts/qualifyReceivedStructure'
 import {createUtiltsRuntimeAcks} from '@/lib/ediel/flows/utiltsDataRequest.part-1'
 import {buildUtiltsTransactionPersistencePayload} from '@/lib/ediel/utilts/transactionPersistence'
+import {priorE30PointWire,priorE66MembershipWire} from './helpers/priorUtiltsStructureFixtures'
 const io=vi.hoisted(()=>({rpc:vi.fn(),from:vi.fn(),ack:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc,from:io.from}}))
 vi.mock('@/lib/ediel/db',()=>({createEdielMessageEvent:async()=>null}))
@@ -16,14 +17,84 @@ beforeEach(()=>{
  io.rpc.mockImplementation(()=>({abortSignal:async()=>({data:null,error:{message:'private unavailable'}})}))
 })
 afterEach(()=>vi.useRealTimers())
-function input(energy=false){
+function input(energy=false,referenceDate='2026-10-01'){
  const message=energy?energyHandoffMessage('2026-10-01',ownerId(2)):observationHandoffMessage('2026-10-01',ownerId(2))
  message.id=ownerId(1);message.sender_ediel_id='91100';message.receiver_ediel_id='21660'
- const canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:message.message_received_at!,applicationReference:message.application_reference,mode:'parse'})
+ if(referenceDate<'2026-10-01')message.raw_payload=message.raw_payload!.replace('QTY+220:11000','QTY+220:10500')
+ const canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate,applicationReference:message.application_reference,mode:'parse'})
  const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy})
  expect(runtime.transactionDispositions,JSON.stringify(runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
  return {message,runtime,canonicalPolicy}
 }
+it.each(['2026-09-30','2026-10-01'])('holds a prior-applicable reading without a genuine source on policy date %s',async date=>{
+ const args=input(false,date)
+ const result=await qualifyReceivedUtiltsStructure(args)
+ expect(result).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,
+  runtime:{transactionDispositions:[{disposition:'internal_review',responseType:'none'}],ackPlan:{shouldSendAperak:false}}})
+ expect(result.runtime.ackPlan.utiltsErrCodes).toEqual([])
+ expect(io.rpc).toHaveBeenCalledTimes(1)
+ const items=buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:result.runtime.facts.transactions,
+  dispositions:result.runtime.transactionDispositions,matches:[]})
+ expect(items[0].quantities).toEqual([])
+})
+it.each(['E20','E77','E24','E25','E67','E64'] as const)('prior E30 %s singleton reaches the real canonical runtime and holds absent a source',async reason=>{
+ const message=observationHandoffMessage('2026-09-30',ownerId(2))
+ message.id=ownerId(1);message.message_code='E30';message.application_reference='23-MDR-E30-T'
+ message.raw_payload=priorE30PointWire(reason,'METER-1','735999260731000007')
+ const canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E30',direction:'inbound',referenceDate:'2026-09-30',
+  applicationReference:message.application_reference,mode:'parse'})
+ const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy})
+ expect(runtime.transactionDispositions,JSON.stringify(runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
+ expect(await qualifyReceivedUtiltsStructure({message,runtime,canonicalPolicy})).toMatchObject({hasInternalReview:true,
+  evidence:{comparisons:[{status:'unavailable',codes:[]}]}})
+})
+it.each(['second-reading','energy'] as const)('prior E30 %s without period/resolution retains canonical missing-field rejection',kind=>{
+ const message=observationHandoffMessage('2026-09-30',ownerId(2))
+ message.message_code='E30';message.application_reference='23-MDR-E30-T'
+ const extra=kind==='second-reading'
+  ?["SEQ++2'","RFF+AES:101'","RFF+MG:METER-1'","QTY+220:10001'","DTM+597:202610160000:203'"]
+  :["SEQ++2'","QTY+136:1'","DTM+597:202610150000:203'"]
+ const lines=priorE30PointWire('E24','METER-1','735999260731000007').split('\n')
+ const end=lines.findIndex(line=>line.startsWith('UNT+'))
+ lines.splice(end,0,...extra);lines[end+extra.length]=`UNT+${lines.length-2}+1'`
+ message.raw_payload=lines.join('\n')
+ const canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E30',direction:'inbound',referenceDate:'2026-09-30',
+  applicationReference:message.application_reference,mode:'parse'})
+ const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy})
+ expect(runtime.transactionDispositions).toMatchObject([{disposition:'guide_rejected'}])
+ expect(runtime.validation.issues.map(issue=>issue.code)).toEqual(expect.arrayContaining([
+  'UTILTS_MISSING_DELIVERY_PERIOD','UTILTS_PROFILE_PERIOD_MISSING','UTILTS_PROFILE_RESOLUTION_MISSING',
+ ]))
+})
+it('an invalid singleton E30 calendar date cannot claim the no-period exception',()=>{
+ const message=observationHandoffMessage('2026-09-30',ownerId(2))
+ message.message_code='E30';message.application_reference='23-MDR-E30-T'
+ message.raw_payload=priorE30PointWire('E24','METER-1','735999260731000007').replaceAll('DTM+597:202610150000:203','DTM+597:202602300000:203')
+ const canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E30',direction:'inbound',referenceDate:'2026-09-30',
+  applicationReference:message.application_reference,mode:'parse'})
+ const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy})
+ expect(runtime.validation.issues.map(issue=>issue.code)).toContain('UTILTS_PROFILE_PERIOD_MISSING')
+ expect(runtime.transactionDispositions).toMatchObject([{disposition:'guide_rejected'}])
+})
+it.each(['missing','excess'] as const)('prior E66 %s register observation fixture remains canonically eligible before comparison',kind=>{
+ const args=input(false,'2026-09-30')
+ args.message.raw_payload=priorE66MembershipWire(args.message.raw_payload!,kind)
+ const runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
+ expect(runtime.transactionDispositions,JSON.stringify(runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
+})
+it.each([15,60] as const)('prior %s-minute energy-only transaction is canonically eligible and source-exempt',async minutes=>{
+ const message=energyHandoffMessage('2026-09-30',ownerId(2));message.id=ownerId(1)
+ message.raw_payload=message.raw_payload!.replace('?+0200','?+0100')
+ if(minutes===60)message.raw_payload=message.raw_payload.replace('DTM+354:15:806','DTM+354:60:806')
+  .replace('202607010015:719','202607010100:719').replace('202607010020:203','202607010105:203')
+ const canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:'2026-09-30',
+  applicationReference:message.application_reference,mode:'parse'})
+ const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy})
+ expect(runtime.transactionDispositions,JSON.stringify(runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
+ const result=await qualifyReceivedUtiltsStructure({message,runtime,canonicalPolicy})
+ expect(result).toMatchObject({hasInternalReview:false,hasNationalMismatch:false,evidence:{status:'not_applicable'}})
+ expect(io.rpc).not.toHaveBeenCalled()
+})
 it('activated original monthly readings without approved structure are held, not nationally rejected or accepted',async()=>{
  const args=input(),result=await qualifyReceivedUtiltsStructure(args)
  expect(result).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,runtime:{validation:{ok:false,classification:'internal_review'},transactionDispositions:[{disposition:'internal_review',responseType:'none'}]}})

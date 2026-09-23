@@ -1,3 +1,27 @@
+# Publication authorized — 2026-09-24
+
+User explicitly approved push of codex/e035-prior-guide-20260924 to heke99/gridex-ops-platform, PR creation and CI toward review/merge. Earlier automatic publication rejection is resolved by this new approval. Terminal git push now reaches missing GitHub credentials; use the authenticated GitHub connector to publish exact verified tree, then compare tree SHA and run ordinary exact-head CI. No native PASS or merge is implied.
+
+# E035 local candidate saved; publication blocked — 2026-09-24
+
+Authoritative product/test candidate: `1f0bffc0591f4dd12a1f403df04ddf1fa445826f`, branch `codex/e035-prior-guide-20260924`, based on merged PR370/main `650bdb211fa5d492df247b2531cb8004a062db53`. Later documentation-only commit may contain this record. New branch is NOT pushed and no new PR exists. Auto-review rejected the push because it required explicit authorization for external publication to `heke99/gridex-ops-platform`. Do not retry via another transport or connector; obtain that explicit approval first.
+
+Implemented locally: source-qualified prior25-A-3 E61/E62 capability and provenance; narrow source-backed singleton E30 eligibility correction; expanded prior policy/source/processor/transition/retry tests. Independent scoped review2 approves local SPEC and QUALITY at1f0bffc0. Full6003/6003 tests in372files passed on supported Node22 at same final production code; subsequent native-only cleanup/assertion changes passed scripts typecheck/native lint. App/tests/scripts types, source integrity and scoped lint passed (one pre-existing warning). Native PostgreSQL tests are written/typechecked but NOT EXECUTED. ACK factory and normalized sink are mocked in added native processor cases; they prove dispatch/reservation/series/contracts, not authentic wire/downstream sink completion.
+
+This is NOT delivery acceptance, green CI, merge, deployment, full E035/G01/F3/masterplan completion. No migration or hosted operation was made. PR310 remains paused and excluded.
+
+Next exact action: with explicit publication approval, push this branch to the named repository, open a draft PR, execute all ordinary exact-head workflows including actual native replay, inspect and fix genuine failures, and review final evidence before merge. Then continue Z05C process-basis/pending corrected-end blocker and named cancellation owner, remaining Z06E/changed-start/agency89/multi-message/delegated-sender/historical-completeness tasks. Do not restart accepted PR370.
+
+Plan: docs/superpowers/plans/2026-09-24-e035-prior-guide.md. Evidence: quality/audits/ediel-masterplan-v2/e035-source-ledger/prior-guide-implementation-20260924.md; prior-guide-review/rereview1/rereview2-20260924.md; remaining-preflight-20260924.md. Recovery archive holds unpublished commits and local verification logs; published main remains canonical base. Older entries below are historical where conflicting.
+
+# E035 resumed after merged PR370 — 2026-09-24
+
+Live GitHub confirms PR370 merged at650bdb211fa5d492df247b2531cb8004a062db53; final headc0649f16982e10cf7845c22a0800fd06e4be480d had all applicable ordinary workflows SUCCESS. Production crawler skipped. This supersedes prior pending-merge text below.
+
+Active branch: codex/e035-prior-guide-20260924. User authorizes remaining E035 and durable checkpoints. Active item: prior25-A-3 E61/E62 capability, then remaining owners in order. Plan: docs/superpowers/plans/2026-09-24-e035-prior-guide.md. Original prior PDF recovered and hash verified fad5cf4f775f86258ab9d5827426d54e57881b6298836110359cf0e41706a798. No new code accepted yet. Full E035/F3/masterplan PARTIAL; PR310 paused/excluded.
+
+Next: implement approved scoped prior-guide amendment with real-source tests, independent review and ordinary exact-head CI. No hosted writes/deployment commands/market sends. Older entries below are historical.
+
 ## Final native156 and artifact checkpoint — 2026-09-23
 
 Published62a7d08 OPS35918298886/native107375437512 passes SQLretry8, native156, case1, protected browser2, postbrowser1, tenant invariants/C1 and parity selftest. Actual types repeat97d0e426. Authentic artifact10776516395 verified and schema/fingerprint copied verbatim; manifest advanced to actual tail20260923192915. Previous native fixture failures are resolved; no open code findings in scoped final review. New generated schema must reproduce on final published head before merge. Root owns final artifact review/publication/CI; implementer frozen. E035/F3/masterplan PARTIAL, bounded A4from2026-10-01 comparison only, prior-guide capability next. PR310/main untouched; no hosted operations.

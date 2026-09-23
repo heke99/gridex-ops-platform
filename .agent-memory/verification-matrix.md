@@ -111,3 +111,6 @@ Published bf6d4b5; OPS35903332327/native107324705734 recovered ECR startup and a
 2026-09-23: published7750e2 streamed-not-found test (local d81dff0 same tree), static SPEC/QUALITY approved, retained route7 and bounded checks pass; real CI pending. Whole-branch review R1–R4 CHANGES REQUIRED, sole final correction wave started. Prior755 native124+case1 and browser1/2 pass; no merge readiness.
 
 2026-09-23:62a7d08 OPS35918298886/native107375437512 native156+SQLretry8+case1+browser2+postbrowser1+tenant/parityPASS. Authentic artifact10776516395 schema/types hashes verified and reconciled; final same-head CI/artifact review pending, no merge yet. R1–R4+C1 static reviewed; E035partial.
+
+## 2026-09-24 E035 continuation
+Prior-guide candidate1f0bffc0: full6003/372 Node22 on final production code; app/tests/scripts types PASS; native-only later changes script types/lint PASS; source integrity33/121/231 PASS; local review2 SPEC/QUALITY approved. Native/ordinary new-head CI NOT EXECUTED; push auto-review rejected. No merge.
