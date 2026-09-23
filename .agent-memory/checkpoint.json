@@ -12,7 +12,7 @@
   "root_main_acceptance_comment": 5768848443,
   "active_item": "E035 dated reviewed market structure and authoritative E61/E62 comparison",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
-  "next_action": "Read original SQL exception from OPS35862101094; finish closure fix2, native qualification and scoped review, then adjacent case types and queued E035 owners.",
+  "next_action": "Qualify closure fix2 on OPS35863134398; reconcile authentic generated contracts, then sequential adjacent case-type fix and immutable successful-retry binding.",
   "previous_ordinary_ci": {
     "head": "a89275ba0b34ae27530c2e403d3ae3f2667afe3b",
     "ops": 35715146276,
@@ -51,7 +51,7 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "c18355fff4bdb465dc393c485497a8f25ef0e42c",
+  "last_verified_pr_head": "bbd2189d4a6b3e2bad80095df3000fdbe46f328c",
   "ordinary_baseline_ci": {
     "head": "95b5e391159e3164869ddabd8ec96b8f69189fe2",
     "ops": 35842844058,
@@ -209,7 +209,7 @@
     "corrected_published_head": "0e81b11960ccd980901b8c43356ac8e2edcdf387"
   },
   "closure_20260923": {
-    "status": "FIX2_DIAGNOSTIC_REFINEMENT_REPLAY_PENDING",
+    "status": "FIX2_NATIVE_62_PASS_AUTHENTIC_SCHEMA_RECONCILED_PENDING_ORDINARY_CI",
     "local_tests": 5875,
     "local_files": 355,
     "targeted_tests": 108,
@@ -239,7 +239,7 @@
     "owner_review": "NO_BLOCKING_CODE_FINDINGS_NATIVE_ACCEPTANCE_RESERVED",
     "published_owner": "2b4293b42732b0231dc00d5e43ceefe260cb4254",
     "owner_native_failure": "6 actual legacy case writer column/type failures; seventh stale test proposal correctly rejected",
-    "owner_generated_artifacts": "NOT_GENERATED_NATIVE_FAILED_FIRST",
+    "owner_generated_artifacts": "AUTHENTIC_REPLAY_RECONCILED_TYPES_BYTE_IDENTICAL",
     "fix1_local_commit": "3c10f346a38a03d987175e351c5b8117e65d6979",
     "fix1_local_tests": 5906,
     "fix1_local_files": 360,
@@ -256,6 +256,16 @@
     "diagnostic_native_result": "57_PASS_4_FAIL_CAUGHT_SQL_EXCEPTION",
     "diagnostic_artifact": 10749989153,
     "diagnostic_refinement_head": "c18355fff4bdb465dc393c485497a8f25ef0e42c",
-    "diagnostic_refinement_run": 35862101094
+    "diagnostic_refinement_run": 35862101094,
+    "fix2_local_commit": "e04d0fed86e0447add515d84b1f51def7c4dd3c2",
+    "fix2_published": "bbd2189d4a6b3e2bad80095df3000fdbe46f328c",
+    "fix2_review": "SPEC_QUALITY_APPROVED_NATIVE_RESERVED",
+    "fix2_run": 35863134398,
+    "fix2_migration": "20260923124645_ediel_closure_snapshot_expression.sql",
+    "fix2_migration_sha256": "e7f339d1eea81497f46e90d73a39bcc659e509eabb5b85ef42697c8e28b12123",
+    "fix2_native": "62_PASS_25_OWNER_37_WIRE",
+    "fix2_artifact": 10750749337,
+    "fix2_artifact_sha256": "b617922d79043b1ccb773265ed4da9587487e811b9e1952c784237f4ddfd07e2",
+    "fix2_schema_fingerprint": "17004382be3ac4af43a9d9ba3d3632ad553274802c382d3d04528579ccdc4387"
   }
 }

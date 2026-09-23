@@ -1,9 +1,9 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-09-23T11:37:19Z",
-  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run35855300600",
+  "generated_at": "2026-09-23T12:54:33Z",
+  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run35863134398",
   "generated_types": "supabase/database.types.ts",
   "sha256": "6af55fbbed9390acfe71dbb8c757c10e3a021dec15842df801d06b679d98eda9",
-  "latest_migration": "20260923113014_ediel_closure_original_wire_binding.sql",
-  "latest_migration_schema_effect": "Private bounded original-wire projection adds three private functions; public generated types remained byte-identical. Empty replay run35855300600 passed 37 closure-wire and 17 retained structural native cases, tenant invariants and parity self-test. Final stale-schema comparison failed; schema and fingerprint reconciled verbatim from artifact10747266416. Full closure approval owner is not established by this checkpoint."
+  "latest_migration": "20260923124645_ediel_closure_snapshot_expression.sql",
+  "latest_migration_schema_effect": "Private reviewed original Z05L/LK closure proof and append integration, corrected nested JSON extraction precedence. Empty replay run35863134398 passed all 62 native source-owner/wire checks plus tenant invariants and parity self-test. Public generated types byte-identical. Final stale-schema check failed; schema and fingerprint copied verbatim from verified artifact10750749337. Bounded closure slice only; full E035 remains incomplete."
 }
