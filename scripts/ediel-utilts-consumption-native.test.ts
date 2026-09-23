@@ -296,6 +296,37 @@ it('real downstream writers consume database-derived stored values and retry ide
   expect((await createBoundUtiltsBilling({ actorUserId: f.ids.customer, message: f.original, boundOutcomes: rows, existingBillingUnderlayId: null }))?.id).toBe(billing?.id)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
 })
+it.each(['month', 'year', 'currency', 'contributors', 'missing-contributors'])('full processor rejects changed billing %s after insert before completion', async field => {
+  const f = await seed()
+  await realSinks()
+  effects.complete.mockRejectedValueOnce(new Error('synthetic_interruption_after_underlay_insert'))
+  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.customer, edielMessageId: f.original.id })).rejects.toThrow('synthetic_interruption_after_underlay_insert')
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
+  const mutation = field === 'month' ? 'underlay_month=7' : field === 'year' ? 'underlay_year=2027'
+    : field === 'currency' ? "currency='EUR'" : field === 'contributors' ? "payload=jsonb_set(payload,'{consumptionContracts,0,observations,0,quantity}','999'::jsonb)"
+      : "payload=payload-'consumptionContracts'"
+  sql(`UPDATE public.billing_underlays SET ${mutation} WHERE company_id=${lit(f.ids.company)}`)
+  const afterMutation = sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)
+  effects.complete.mockClear()
+  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.customer, edielMessageId: f.original.id })).rejects.toThrow('utilts_consumption_existing_billing_conflict')
+  expect(effects.complete).not.toHaveBeenCalled()
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
+  expect(sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)).toEqual(afterMutation)
+})
+it('full processor identical retry after underlay insert preserves row identity and legitimate workflow/audit changes', async () => {
+  const f = await seed()
+  await realSinks()
+  effects.complete.mockRejectedValueOnce(new Error('synthetic_interruption_after_underlay_insert'))
+  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.customer, edielMessageId: f.original.id })).rejects.toThrow('synthetic_interruption_after_underlay_insert')
+  sql(`UPDATE public.billing_underlays SET status='validated',updated_by=NULL,readiness_status='ready',payload=payload||'{"workflowNote":"reviewed"}'::jsonb WHERE company_id=${lit(f.ids.company)}`)
+  const row = sql<{ id: string; status: string; updated_by: null }>(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)
+  effects.complete.mockClear()
+  const replay = await processInboundUtiltsMessage({ actorUserId: f.ids.customer, edielMessageId: f.original.id })
+  expect(replay.billingUnderlayId).toBe(row.id)
+  expect(effects.complete).toHaveBeenCalledTimes(1)
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
+  expect(sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)).toEqual(row)
+})
 it.each(['point-grid', 'point-site', 'point-customer-site', 'site-grid', 'request-grid'])('real downstream writers reject %s drift after persistence', async kind => {
   const f = await seed(), rows = await persistUtiltsTransactionResults(await f.prepare())
   if (kind === 'point-grid') sql(`UPDATE public.metering_points SET grid_owner_id=NULL WHERE id=${lit(f.ids.point)}`)

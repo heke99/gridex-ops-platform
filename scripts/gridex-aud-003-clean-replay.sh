@@ -419,4 +419,15 @@ if [[ "$ACTUAL_FINGERPRINT" != "$EXPECTED_FINGERPRINT" ]]; then
   exit 1
 fi
 echo "[GRIDEX-REM-002 replay] schema fingerprint verified: $ACTUAL_FINGERPRINT"
+# The historical August migration seeds readiness before subsequent canonical
+# functions and RLS policies exist. Refresh from real catalog evidence only
+# after every checksum-pinned replay input has applied; never force a ready bit.
+REPLAY_MIGRATION_VERSION="$(python3 - "$TIMESTAMP_EXEC" <<'PY'
+import pathlib,re,sys
+names=[pathlib.Path(line).name for line in pathlib.Path(sys.argv[1]).read_text().splitlines()]
+print(max(name[:14] for name in names if re.match(r'^\d{14}_',name)))
+PY
+)"
+psql "$DB_URL" -X -v ON_ERROR_STOP=1 -v replay_migration_version="$REPLAY_MIGRATION_VERSION" \
+  -f "$ROOT/scripts/sql/gridex-replay-refresh-runtime-readiness.sql"
 echo '[GRIDEX-REM-002 replay] PASS: empty local Supabase -> verified reconstructed foundation -> canonical checksum-pinned history -> CLI-owned observed dev ledger'
