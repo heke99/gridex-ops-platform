@@ -276,13 +276,23 @@ it('native full-original Z04 review proves post-ledger coverage without replayin
  expect(compareUtiltsStructure({raw:wire,transactionIndex:0,cutoffAt:result.timeline.cutoffAt??'',ledgerStartedAt:result.timeline.ledgerStartedAt??'',
   readComplete:true,unresolvedSources:result.unresolvedSources,versions:result.versions})).toMatchObject({status:'matched',codes:[]})
 })
-it.each([['Z06','E34'],['Z06','E64'],['Z06','E32'],['Z10','E58']] as const)('native full-original %s/%s approval is not partial safe-apply',async(code,reason)=>{
+it.each([['Z06','E64'],['Z06','E32'],['Z10','E58']] as const)('native full-original %s/%s approval is not partial safe-apply',async(code,reason)=>{
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
  const id=await insertStructuralChange(f,code,reason,'CHANGE')
  const pending=await structuralSnapshot(f);expect(pending.versions.find(version=>version.sourceMessageId===id)?.disposition).toBe('unavailable')
  await reviewed(f,id)
  const result=await structuralSnapshot(f),version=result.versions.find(item=>item.sourceMessageId===id)
  expect(version).toMatchObject({disposition:'accepted',wire:{messageCode:code},coverage:{baselineSourceMessageId:f.ids.source}})
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.customer_supply_periods WHERE company_id=${literal(f.ids.company)}`)).toBe(1)
+})
+it('native Z06/E34 remains unavailable without a qualified death or counterparty bilateral owner',async()=>{
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const id=await insertStructuralChange(f,'Z06','E34','CUSTOMER')
+ const receipt=await reviewReceivedStructuralSource({companyId:f.ids.company,environment:'test',sourceMessageId:id,
+  reviewerUserId:f.ids.reviewer,confirmedOriginal:true,replacesSourceMessageId:null})
+ expect(receipt).toMatchObject({status:'recorded',sourceDisposition:'not_established'})
+ const result=await structuralSnapshot(f)
+ expect(result.versions.find(version=>version.sourceMessageId===id)).toMatchObject({disposition:'unavailable'})
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.customer_supply_periods WHERE company_id=${literal(f.ids.company)}`)).toBe(1)
 })
 it('native BGM5 correction pins an approved predecessor; a later receipt alone is never replacement',async()=>{
