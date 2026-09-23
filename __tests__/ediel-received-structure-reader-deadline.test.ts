@@ -11,7 +11,9 @@ vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: io.get, updateEdielMessa
 vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => id }))
 vi.mock('@/lib/onboarding/inboundEdielLinking', () => ({ findActiveMeteringPermissionForUtiltsMessage: vi.fn().mockResolvedValue(null) }))
 vi.mock('@/lib/ediel/utilts/transactionPersistence', async original => ({ ...await original<Record<string, unknown>>(), persistUtiltsTransactionResults: io.persist }))
-vi.mock('@/lib/ediel/flows/utiltsDataRequest.part-1', () => ({
+vi.mock('@/lib/ediel/matching', () => ({ matchMeteringPointIdByIdentifier: vi.fn().mockResolvedValue(null), matchSiteAndCustomerForMeteringPoint: vi.fn().mockResolvedValue(null) }))
+vi.mock('@/lib/ediel/flows/utiltsDataRequest.part-1', async original => ({
+  ...await original<Record<string, unknown>>(),
   resolveUtiltsRuntimeTestCaseCode: vi.fn().mockResolvedValue(null), matchUtiltsTransactionsForTenant: io.matches,
   linkInboundUtiltsMessageCanonically: vi.fn().mockResolvedValue({}), allUtiltsTransactionMeteringPointsMatched: vi.fn().mockReturnValue(false),
   createUtiltsRuntimeAcks: io.ack, maybeIngestMeteringValue: io.ingest,

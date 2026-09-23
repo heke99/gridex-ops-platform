@@ -1,4 +1,12 @@
-# Session 2026-09-23
+## Successful retry binding — first native checkpoint, 2026-09-23
+
+Explicitly INCOMPLETE. Integrated producer/private source seal/stored V1/two consumers/natural dedup candidate; local5931/363PASS, app/tests/scripts types PASS, lint0errors/1existingwarning, migration602/506 and staticprovenance PASS. Forward CLI20260923135706 SHA2562e961d22370ead922ee02252a4fa95b77ecd33880f37b9d59fbd8e1a2966ca28. No native execution, generated artifact reconciliation, coverage/final review or whole-E035 acceptance yet. Report: quality/audits/ediel-masterplan-v2/e035-source-ledger/successful-retry-binding-implementation-20260923.md. Root publishes frozen candidate; implementer pauses for publication/same-tree sync, then completes missing full-processor native ACK/completion and mutation cases plus final qualification. Qualified cb5e5f75 case baseline retained; main/PR310 and hosted systems untouched.
+
+# Session 2026-09-23 — case gate and retry implementation handoff
+
+Retrieved terminal case-type CI directly from GitHub: all applicable workflows SUCCESS on cb5e5f75. Recorded native62PASS and independent scoped approval. Explicitly handed sole implementation role to retry_binding from33fc7770 after read-only preflight; earlier implementer paused/completed. Root documentation commitba99838e records the handoff. Remaining navigation/business/time/source/final-review gates unchanged; no main, PR310, hosted DB or market actions.
+
+## Earlier session entry
 
 Recovered actual PR370 at fe4f9ac6, confirmed PR310 remains paused. Inspected exact-head GitHub jobs and downloaded the native replay artifact; confirmed the one-function schema delta and byte-identical public types. Published forward contract correction0f871c78 without changing main. Reproduced then fixed a possible predecessor revival from an unreviewed BGM5 date correction, with 97 targeted tests, app/test typechecks and Node22 full suite (5793/350) passing; final publication and ordinary whole-PR gates pending. Consulted the frozen masterplan's F0–F7 and G01–G07 conditions; retained all unproved market/legal/production gates.
 

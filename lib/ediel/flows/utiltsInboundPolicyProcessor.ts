@@ -19,6 +19,7 @@ import {
   stringOrNull,
 } from './utiltsDataRequest.part-1'
 import { processInboundUtiltsMessage as processActualMeteringUtiltsMessage } from './utiltsDataRequest.part-2'
+import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
 
 function resolveInboundPolicy(message: EdielMessageRow, retained?: CanonicalEdielPolicy | null) {
   if (message.message_family !== 'UTILTS') {
@@ -39,6 +40,7 @@ async function persistNonBillingTransactions(params: {
   message: EdielMessageRow
   messageCode: string
   runtime: ReturnType<typeof runUtiltsRuntimeForMessage>
+  policy: CanonicalEdielPolicy
 }) {
   const companyId = stringOrNull(params.message.company_id)
   if (!companyId || params.runtime.transactionDispositions.length === 0) {
@@ -53,6 +55,9 @@ async function persistNonBillingTransactions(params: {
     environment: params.message.environment,
     sourceMessageId: params.message.id,
     messageCode: params.messageCode,
+    rawPayload: params.message.raw_payload ?? '',
+    contracts: await prepareUtiltsConsumptionContracts({ message: params.message, runtime: params.runtime, policy: params.policy,
+      matches: [], dataRequest: null, fallback: { customerId: null, siteId: null, meteringPointId: null, gridOwnerId: null }, allowConsumption: false }),
     transactions: buildUtiltsTransactionPersistencePayload({
       messageCode: params.messageCode,
       transactions: params.runtime.facts.transactions,
@@ -114,6 +119,7 @@ async function processExplicitNonBillingOutcome(params: {
     message: params.message,
     messageCode: policy.code,
     runtime,
+    policy,
   })
   const normalizedPayload = {
     ...runtime.normalizedPayload,

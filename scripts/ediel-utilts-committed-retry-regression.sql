@@ -6,6 +6,30 @@ CREATE TEMP TABLE utilts_retry_results(name text PRIMARY KEY, passed boolean NOT
 CREATE FUNCTION pg_temp.retry_check(label text, passed boolean) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN INSERT INTO utilts_retry_results VALUES (label,coalesce(passed,false)); END $$;
 
+-- V1 now requires one complete physical batch and an explicit contract. Keep
+-- all eight reservation assertions, supplying both physical siblings on every
+-- attempt instead of the old unbound subset calls. No legacy backfill adapter.
+CREATE FUNCTION pg_temp.retry_persist(company uuid,environment text,source uuid,code text,requested jsonb)
+RETURNS jsonb LANGUAGE plpgsql AS $$
+DECLARE id text; item jsonb; batch jsonb:='[]'; c jsonb; a jsonb; old public.ediel_ack_transaction_results%rowtype; result jsonb; wire text;
+BEGIN
+ a:=jsonb_build_object('capability','skip','reason','native_no_consumption_control','customerId',NULL,'siteId',NULL,'customerSiteId',NULL,'meteringPointId',NULL,'gridOwnerId',NULL,'sourceRequestId',NULL);
+ FOREACH id IN ARRAY ARRAY['TX-1','TX-2'] LOOP
+  SELECT value INTO item FROM jsonb_array_elements(requested) WHERE value->>'transactionId'=id;
+  IF item IS NULL THEN
+   SELECT * INTO old FROM public.ediel_ack_transaction_results WHERE source_message_id=source AND source_transaction_id=id;
+   item:=jsonb_build_object('transactionId',id,'disposition',coalesce(old.disposition,'internal_review'),'responseType',coalesce(old.planned_response_type,'none'),'issueCodes',coalesce(to_jsonb(old.issue_codes),'[]'),'seriesKind','actual','quantities','[]'::jsonb);
+  END IF;
+  c:=jsonb_build_object('version',1,'projectionVersion','utilts-consumption-v1','attributionVersion','tenant-match-v1','companyId',company,'environment',environment,'messageCode',code,'transactionId',id,'seriesKind','actual','profileKey','native-reservation-control','profileVersion',NULL,'rulePackHash',NULL,'guideRevision','25-A-4','sourceType','ediel_utilts',
+   'interpretation',jsonb_build_object('localPeriodStart',NULL,'localPeriodEnd',NULL,'localRegistration',NULL,'resolutionValue',NULL,'resolutionFormat',NULL,'timezoneRaw',NULL,'timezoneFormat',NULL,'offsetMinutes',NULL,'timestampPolicy','no-consumption-v1'),
+   'observations','[]'::jsonb,'metering',a,'billing',a||jsonb_build_object('requestScope',NULL,'periodStart',NULL,'periodEnd',NULL,'month',NULL,'year',NULL,'status','received','sourceSystem','ediel_utilts','currency','SEK'),'billingContributionOrdinals','[]'::jsonb);
+  batch:=batch||jsonb_build_array(item||jsonb_build_object('consumptionContract',c));
+ END LOOP;
+ SELECT raw_payload INTO wire FROM public.ediel_messages WHERE ediel_messages.id=source;
+ result:=public.gridex_persist_utilts_consumption_v1(company,environment,source,code,wire,batch);
+ RETURN (SELECT jsonb_agg(value) FROM jsonb_array_elements(result) WHERE value->>'transactionId'=requested#>>'{0,transactionId}');
+END $$;
+
 DO $$
 DECLARE
   company constant uuid := '00000000-0000-4000-8000-00000000f921';
@@ -27,11 +51,11 @@ BEGIN
   SELECT * INTO STRICT pack FROM public.ediel_rule_packs WHERE id=profile.rule_pack_id;
   INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,message_received_at,execution_context_snapshot,
     canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
-  VALUES (source,company,'test','inbound','edifact','UTILTS','E66','received','synthetic immutable UTILTS source',clock_timestamp(),'{}',
+  VALUES (source,company,'test','inbound','edifact','UTILTS','E66','received','UNH+1+UTILTS:D:02B:UN:E5SE5A''BGM+E66+RESERVATION+9''IDE+24+TX-1''IDE+24+TX-2''UNT+5+1''',clock_timestamp(),'{}',
     pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile);
 
   EXECUTE 'SET LOCAL ROLE service_role';
-  result:=public.gridex_persist_utilts_transactions_v1(company,'test',source,'E66',held);
+  result:=pg_temp.retry_persist(company,'test',source,'E66',held);
   EXECUTE 'RESET ROLE';
   PERFORM pg_temp.retry_check('held-has-no-series',result#>>'{0,persistenceStatus}'='not_applicable'
     AND NOT EXISTS(SELECT FROM public.meter_reading_series WHERE source_ediel_message_id=source));
@@ -39,7 +63,7 @@ BEGIN
   -- The planned negative response is committed before the ACK is created.
   -- Simulate interruption at that point: no final_response_type or series.
   EXECUTE 'SET LOCAL ROLE service_role';
-  result:=public.gridex_persist_utilts_transactions_v1(company,'test',source,'E66',negative);
+  result:=pg_temp.retry_persist(company,'test',source,'E66',negative);
   EXECUTE 'RESET ROLE';
   PERFORM pg_temp.retry_check('negative-ack-plan-is-durable-before-finalization',result#>>'{0,responseType}'='utilts_err'
     AND (SELECT planned_response_type='utilts_err' AND final_response_type IS NULL AND persisted_series_id IS NULL
@@ -47,7 +71,7 @@ BEGIN
   blocked:=false;
   BEGIN
     EXECUTE 'SET LOCAL ROLE service_role';
-    PERFORM public.gridex_persist_utilts_transactions_v1(company,'test',source,'E66',later_positive);
+    PERFORM pg_temp.retry_persist(company,'test',source,'E66',later_positive);
     EXECUTE 'RESET ROLE';
   EXCEPTION WHEN check_violation THEN blocked:=SQLERRM='utilts_committed_transaction_retry_conflict'; EXECUTE 'RESET ROLE'; END;
   PERFORM pg_temp.retry_check('interrupted-err-cannot-become-positive-aperak',blocked
@@ -55,7 +79,7 @@ BEGIN
       FROM public.ediel_ack_transaction_results WHERE source_message_id=source AND source_transaction_id='TX-2'));
 
   EXECUTE 'SET LOCAL ROLE service_role';
-  result:=public.gridex_persist_utilts_transactions_v1(company,'test',source,'E66',accepted);
+  result:=pg_temp.retry_persist(company,'test',source,'E66',accepted);
   EXECUTE 'RESET ROLE';
   series_id:=(result#>>'{0,seriesId}')::uuid;
   PERFORM pg_temp.retry_check('fresh-authority-releases-held-transaction',result#>>'{0,persistenceStatus}'='persisted'
@@ -63,7 +87,7 @@ BEGIN
       WHERE source_message_id=source AND source_transaction_id='TX-1')='accepted');
 
   EXECUTE 'SET LOCAL ROLE service_role';
-  result:=public.gridex_persist_utilts_transactions_v1(company,'test',source,'E66',accepted);
+  result:=pg_temp.retry_persist(company,'test',source,'E66',accepted);
   EXECUTE 'RESET ROLE';
   PERFORM pg_temp.retry_check('persisted-retry-preserves-series',result#>>'{0,idempotentReplay}'='true'
     AND (result#>>'{0,seriesId}')::uuid=series_id
@@ -72,7 +96,7 @@ BEGIN
   blocked:=false;
   BEGIN
     EXECUTE 'SET LOCAL ROLE service_role';
-    PERFORM public.gridex_persist_utilts_transactions_v1(company,'test',source,'E66',held);
+    PERFORM pg_temp.retry_persist(company,'test',source,'E66',held);
     EXECUTE 'RESET ROLE';
   EXCEPTION WHEN check_violation THEN blocked:=SQLERRM='utilts_committed_transaction_retry_conflict'; EXECUTE 'RESET ROLE'; END;
   PERFORM pg_temp.retry_check('persisted-retry-cannot-become-held',blocked
@@ -84,14 +108,14 @@ BEGIN
   UPDATE public.ediel_ack_transaction_results SET final_response_type='positive_aperak',response_message_id=source,finalized_at=clock_timestamp()
     WHERE source_message_id=source AND source_transaction_id='TX-1';
   EXECUTE 'SET LOCAL ROLE service_role';
-  result:=public.gridex_persist_utilts_transactions_v1(company,'test',source,'E66',accepted);
+  result:=pg_temp.retry_persist(company,'test',source,'E66',accepted);
   EXECUTE 'RESET ROLE';
   PERFORM pg_temp.retry_check('same-finalized-retry-idempotent',result#>>'{0,idempotentReplay}'='true'
     AND (SELECT final_response_type FROM public.ediel_ack_transaction_results WHERE source_message_id=source AND source_transaction_id='TX-1')='positive_aperak');
   blocked:=false;
   BEGIN
     EXECUTE 'SET LOCAL ROLE service_role';
-    PERFORM public.gridex_persist_utilts_transactions_v1(company,'test',source,'E66',held);
+    PERFORM pg_temp.retry_persist(company,'test',source,'E66',held);
     EXECUTE 'RESET ROLE';
   EXCEPTION WHEN check_violation THEN blocked:=SQLERRM='utilts_committed_transaction_retry_conflict'; EXECUTE 'RESET ROLE'; END;
   PERFORM pg_temp.retry_check('finalized-ack-cannot-be-rewritten',blocked

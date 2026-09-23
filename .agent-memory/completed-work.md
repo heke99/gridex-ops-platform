@@ -1,4 +1,12 @@
-# Verified scoped work — 2026-09-23
+## Successful retry binding — first native checkpoint, 2026-09-23
+
+Explicitly INCOMPLETE. Integrated producer/private source seal/stored V1/two consumers/natural dedup candidate; local5931/363PASS, app/tests/scripts types PASS, lint0errors/1existingwarning, migration602/506 and staticprovenance PASS. Forward CLI20260923135706 SHA2562e961d22370ead922ee02252a4fa95b77ecd33880f37b9d59fbd8e1a2966ca28. No native execution, generated artifact reconciliation, coverage/final review or whole-E035 acceptance yet. Report: quality/audits/ediel-masterplan-v2/e035-source-ledger/successful-retry-binding-implementation-20260923.md. Root publishes frozen candidate; implementer pauses for publication/same-tree sync, then completes missing full-processor native ACK/completion and mutation cases plus final qualification. Qualified cb5e5f75 case baseline retained; main/PR310 and hosted systems untouched.
+
+# Verified scoped work — case types and bounded closure, 2026-09-23
+
+Case-type repair cb5e5f751c6a537bf4e0e78c1ca827cb720ce6f7: independent SPEC/QUALITY approval, native62PASS including persisted Z06/Z10 cases, all applicable ordinary CI SUCCESS. Four schema-invalid categories now preserve distinct typed intent under valid categories. Prior bounded original Z05L/LK closure805f5fbb is likewise independently reviewed/native-qualified and all ordinary CI green. Neither result is whole-E035 approval. Successful-retry binding and the separate case-navigation finding remain open.
+
+## Earlier scoped work
 
 The Z06E owner gate's clean-replay generated schema and manifest were reconciled in PR370 commit0f871c78; local migration/type checks passed and public type bytes matched the native artifact. An unreviewed BGM5 later-dated correction revival was reproduced red then prevented with a pure selection guard; 97 targeted cases, app/test typechecks and the Node22 full suite (5793/350) passed locally. Neither item is final E035 or masterplan approval.
 

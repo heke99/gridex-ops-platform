@@ -1,6 +1,14 @@
 # E035 continuation — 2026-09-23, source-backed closure and remaining authority
 
-## Latest accepted slice — 2026-09-23
+## Current checkpoint — case types qualified; immutable retry binding active
+
+Published `cb5e5f751c6a537bf4e0e78c1ca827cb720ce6f7` is independently SPEC/QUALITY approved and ALL applicable ordinary CI SUCCESS: OPS35869203217, fullE2E35869203186, browser35869203225, Ediel35869203273, tenant35869203471. Native 62 PASS includes actual persisted Z06/Z10 case assertions. Four unsupported case categories now use schema-valid categories with preserved typed review intent. Production crawler skipped as intended.
+
+Sole active implementer: /root/retry_binding, implementation BASE33fc777076a123b2e6c47b2d3f4ef939833883f4 (review/checkpoint docs above cb5). Read-only preflight complete; explicit GO issued for immutable successful-retry quantity/time/attribution and billing binding across producer, persistence, both consumers and natural dedup. No accepted retry implementation yet. Root owns publication and authentic generated-artifact reconciliation; previous case implementer paused/completed.
+
+Next: qualify retry implementation, then fix confirmed Ediel case-navigation gap, continue remaining applicable business owners/time/source selection, and final same-head whole-E035 review/CI before merge. Rest of masterplan follows; main and PR310 untouched. Earlier pending/failure statements below are historical and superseded by this checkpoint.
+
+## Earlier accepted slice — superseded where conflicting
 
 Published805f5fbb3ee3f7938cba99695c98b0cafbef3b5b is ALL ordinary CI green: OPS35867255996 (native62PASS, verify and quality/build SUCCESS), fullE2E35867255892, browser35867256203, Ediel35867256235 and tenant35867255832. Bounded original Z05L/LK closure is independently accepted for SPEC/QUALITY/native evidence. Authentic schema and types are reconciled; no whole-E035 approval or merge.
 

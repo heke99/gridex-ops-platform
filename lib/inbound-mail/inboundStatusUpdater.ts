@@ -79,6 +79,20 @@ async function findExistingInboundEdielMessageByCanonicalIdentity(input: {
   return null
 }
 
+async function assertSameUtiltsSource(input: {
+  id: string; companyId: string; environment: string | null; parsed: ParsedEdifactEnvelope
+}): Promise<void> {
+  if (input.parsed.messageFamily !== 'UTILTS') return
+  const { data, error } = await supabaseService.from('ediel_messages')
+    .select('id,company_id,environment,direction,message_family,message_code,raw_payload')
+    .eq('id', input.id).eq('company_id', input.companyId).maybeSingle()
+  if (error) throw error
+  if (!data || data.raw_payload !== input.parsed.rawPayload || data.company_id !== input.companyId ||
+    data.environment !== input.environment || data.direction !== 'inbound' || data.message_family !== 'UTILTS' || data.message_code !== parsedMessageCode(input.parsed)) {
+    throw new Error('INBOUND_UTILTS_SOURCE_CONFLICT')
+  }
+}
+
 function isNegativeContrL(parsed: ParsedEdifactEnvelope): boolean {
   return parsed.messageFamily === 'CONTRL' && parsed.segments.some((segment) => /(^|\+)UCI\+[^']*\+7(\+|$)/.test(segment))
 }
@@ -413,6 +427,7 @@ export async function createInboundEdielMessage(input: {
     inboundEmailMessageId: input.inboundEmailMessageId,
     parsed: input.parsed,
   })
+  if (existingId) await assertSameUtiltsSource({ id: existingId, companyId: input.companyId, environment: normalizedEnvironment, parsed: input.parsed })
 
   // Retrying an existing PRODAT is not a new receipt, even if its old time is unknown.
   const updatePayload: Partial<typeof insertPayload> = { ...insertPayload }
@@ -432,6 +447,9 @@ export async function createInboundEdielMessage(input: {
         .maybeSingle()
 
   if (result.error) {
+    if (input.parsed.messageFamily === 'UTILTS' && result.error.code === 'P0U01') {
+      throw new Error('INBOUND_UTILTS_SOURCE_CONFLICT', { cause: result.error })
+    }
     if (
       input.parsed.messageFamily === 'PRODAT' &&
       result.error.code === '23514' &&
@@ -452,6 +470,7 @@ export async function createInboundEdielMessage(input: {
       })
 
       if (existingAfterConflict) {
+        await assertSameUtiltsSource({ id: existingAfterConflict, companyId: input.companyId, environment: normalizedEnvironment, parsed: input.parsed })
         console.info('[inbound-mail] Inbound ediel_message fanns redan, återanvänder befintlig rad efter unique conflict.', {
           existingAfterConflict,
           inboundEmailMessageId: input.inboundEmailMessageId,

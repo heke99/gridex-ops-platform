@@ -1,4 +1,12 @@
-# Verification update — 2026-09-23, ACK reservation
+## Successful retry binding — first native checkpoint, 2026-09-23
+
+Explicitly INCOMPLETE. Integrated producer/private source seal/stored V1/two consumers/natural dedup candidate; local5931/363PASS, app/tests/scripts types PASS, lint0errors/1existingwarning, migration602/506 and staticprovenance PASS. Forward CLI20260923135706 SHA2562e961d22370ead922ee02252a4fa95b77ecd33880f37b9d59fbd8e1a2966ca28. No native execution, generated artifact reconciliation, coverage/final review or whole-E035 acceptance yet. Report: quality/audits/ediel-masterplan-v2/e035-source-ledger/successful-retry-binding-implementation-20260923.md. Root publishes frozen candidate; implementer pauses for publication/same-tree sync, then completes missing full-processor native ACK/completion and mutation cases plus final qualification. Qualified cb5e5f75 case baseline retained; main/PR310 and hosted systems untouched.
+
+# Verification update — 2026-09-23, case-type terminal gate
+
+cb5e5f751c6a537bf4e0e78c1ca827cb720ce6f7: OPS35869203217, fullE2E35869203186, browser35869203225, Ediel35869203273 and tenant35869203471 all terminal SUCCESS. Native job107208520986:62PASS. Independent case SPEC/QUALITY approved. Full local5913/360 and three typechecks/focused lint PASS per implementation receipt. Production crawler35869203505 skipped. No whole-delivery acceptance inferred; current retry implementation not yet qualified.
+
+## Earlier ACK reservation verification
 
 eac1a604 native run35842205514: eight retry SQL checks PASS; 17 structural HTTP/native cases PASS; generated public types byte-identical SHA256 6af55fbbed9390acfe71dbb8c757c10e3a021dec15842df801d06b679d98eda9. Schema fingerprint actual dcb959e4a47bd87a7eaf0486a4124fcbb226da112019727b5c61f5935a26d7b0, function count591 unchanged. Artifact10741254796 ZIP SHA256 c3a848783796e212348b523a284081973190e87d3a31a0342ed9b7fa93abf860 reconciled locally. Exact-head rerun pending.
 

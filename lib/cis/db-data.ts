@@ -898,6 +898,8 @@ export async function ingestBillingUnderlay(input: {
   sourceSystem?: string
   payload?: Record<string, unknown>
   failureReason?: string | null
+  expectedCompanyId?: string
+  immutableAttribution?: boolean
 }): Promise<BillingUnderlayRow> {
   const now = new Date().toISOString()
   const context = await getCustomerExportContext({
@@ -906,6 +908,21 @@ export async function ingestBillingUnderlay(input: {
     meteringPointId: input.meteringPointId ?? null,
   })
   const companyId = requireContextCompanyId(context, 'Registrera faktureringsunderlag')
+  if (input.immutableAttribution) {
+    if (!input.expectedCompanyId || companyId !== input.expectedCompanyId || context.customer?.id !== input.customerId ||
+      (input.siteId && (!context.site || context.site.customer_id !== input.customerId)) ||
+      (input.meteringPointId && (!context.meteringPoint || context.meteringPoint.customer_id !== input.customerId))) {
+      throw new Error('utilts_consumption_binding_conflict:billing_ownership_changed')
+    }
+    if (!input.sourceRequestId) throw new Error('utilts_consumption_binding_conflict:billing_request_missing')
+    const { data: request, error: requestError } = await supabaseService.from('grid_owner_data_requests')
+      .select('company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_scope').eq('id', input.sourceRequestId).eq('company_id', companyId).maybeSingle()
+    if (requestError) throw requestError
+    if (!request || request.customer_id !== input.customerId || request.site_id !== (input.siteId ?? null) ||
+      request.metering_point_id !== (input.meteringPointId ?? null) || request.grid_owner_id !== (input.gridOwnerId ?? null) || request.request_scope !== 'billing_underlay') {
+      throw new Error('utilts_consumption_binding_conflict:billing_request_changed')
+    }
+  }
   await requireCompanyOperationalForWrites(companyId)
 
   const insertPayload: Record<string, unknown> = {

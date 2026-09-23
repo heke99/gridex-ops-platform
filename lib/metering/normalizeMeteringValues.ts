@@ -36,6 +36,8 @@ export type NormalizedMeteringValueInput = {
   sourceLineReference?: string | null
   rawPayload?: Record<string, unknown>
   createdBy?: string | null
+  /** Bound UTILTS attribution must be revalidated, never filled from a new match. */
+  immutableAttribution?: boolean
 }
 
 export type NormalizeResult =
@@ -69,7 +71,7 @@ async function resolveMeteringPoint(input: NormalizedMeteringValueInput): Promis
 
   let query = supabaseService
     .from('metering_points')
-    .select('id,company_id,customer_id,site_id,customer_site_id,meter_point_id,metering_point_id,normalized_metering_point_id,site_facility_id,status')
+    .select('id,company_id,customer_id,site_id,customer_site_id,grid_owner_id,meter_point_id,metering_point_id,normalized_metering_point_id,site_facility_id,status')
     .eq('company_id', input.companyId)
     .limit(3)
 
@@ -97,6 +99,11 @@ async function resolveMeteringPoint(input: NormalizedMeteringValueInput): Promis
   const canonicalCustomerId = readText(row.customer_id)
   const canonicalSiteId = readText(row.site_id)
   const canonicalCustomerSiteId = readText(row.customer_site_id)
+  if (input.immutableAttribution && (input.customerId !== canonicalCustomerId || (input.gridOwnerId ?? null) !== readText(row.grid_owner_id) ||
+    (input.siteId ?? null) !== (canonicalSiteId ?? canonicalCustomerSiteId) ||
+    (input.customerSiteId ?? null) !== (canonicalCustomerSiteId ?? canonicalSiteId))) {
+    return { meteringPointId: null, customerId: null, siteId: null, customerSiteId: null, warnings: ['utilts_consumption_binding_conflict:metering_ownership_changed'] }
+  }
   if (!canonicalCustomerId) {
     return { meteringPointId: null, customerId: null, siteId: null, customerSiteId: null, warnings: ['Mätpunkten saknar kanonisk kundkoppling.'] }
   }

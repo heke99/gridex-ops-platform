@@ -22,6 +22,7 @@ import { findActiveMeteringPermissionForUtiltsMessage } from '@/lib/onboarding/i
 
 
 import { buildUtiltsTransactionPersistencePayload, persistUtiltsTransactionResults, resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionPersistence'
+import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
 
 
 import type { UtiltsProcessResult } from './utiltsDataRequest.part-1'
@@ -439,11 +440,22 @@ export async function processInboundUtiltsMessage(params: {
   const companyId = stringOrNull(runtimeSourceMessage.company_id)
   const messageCode = stringOrNull(runtime.facts.messageCode)
   if (companyId && messageCode && transactionDispositions.length > 0) {
+    const dataRequest = canonicalLinks.matchedDataRequest
+    const fallback = {
+      customerId: canonicalLinks.siteAndCustomer?.customerId ?? dataRequest?.customer_id ?? matchedPermission?.customer_id ?? null,
+      siteId: canonicalLinks.siteAndCustomer?.siteId ?? dataRequest?.site_id ?? matchedPermission?.site_id ?? null,
+      meteringPointId: canonicalLinks.meteringPointId ?? dataRequest?.metering_point_id ?? matchedPermission?.metering_point_id ?? null,
+      gridOwnerId: canonicalLinks.siteAndCustomer?.gridOwnerId ?? dataRequest?.grid_owner_id ?? matchedPermission?.grid_owner_id ?? null,
+    }
+    const contracts = await prepareUtiltsConsumptionContracts({ message: runtimeSourceMessage, runtime, policy: canonicalPolicy,
+      matches: transactionMatches, dataRequest, fallback, allowConsumption: true })
     transactionPersistenceResults = await persistUtiltsTransactionResults({
       companyId,
       environment: runtimeSourceMessage.environment,
       sourceMessageId: runtimeSourceMessage.id,
       messageCode,
+      rawPayload: runtimeSourceMessage.raw_payload ?? '',
+      contracts,
       transactions: buildUtiltsTransactionPersistencePayload({
         messageCode,
         transactions: runtime.facts.transactions,
@@ -599,6 +611,7 @@ export async function processInboundUtiltsMessage(params: {
       })
 
       const ingestedMeterValues = await maybeIngestMeteringValue({
+        boundOutcomes: transactionPersistenceResults,
         actorUserId,
         customerId: permissionCustomerId,
         siteId: permissionSiteId,
@@ -669,6 +682,7 @@ export async function processInboundUtiltsMessage(params: {
 
     if (allUtiltsTransactionMeteringPointsMatched(transactionMatches)) {
       const ingestedMeterValues = await maybeIngestMeteringValue({
+        boundOutcomes: transactionPersistenceResults,
         actorUserId,
         customerId: canonicalLinks.siteAndCustomer?.customerId ?? null,
         siteId: canonicalLinks.siteAndCustomer?.siteId ?? null,
@@ -787,6 +801,7 @@ export async function processInboundUtiltsMessage(params: {
   })
 
   const ingestedMeterValues = await maybeIngestMeteringValue({
+    boundOutcomes: transactionPersistenceResults,
     actorUserId,
     customerId,
     siteId,
@@ -801,6 +816,7 @@ export async function processInboundUtiltsMessage(params: {
   const ingestedMeterValueIds = ingestedMeterValues.map((row) => row.id)
 
   const billingUnderlay = await maybeCreateBillingUnderlay({
+    boundOutcomes: transactionPersistenceResults,
     actorUserId,
     dataRequest,
     customerId,

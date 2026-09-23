@@ -7,16 +7,15 @@ import { createEdielMessageEvent, linkEdielMessage, listEdielTestRuns } from '@/
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 
 
-import { findOpenOutboundBySource, ingestBillingUnderlay, syncGridOwnerDataRequestFromOutbound, updateOutboundRequestStatus } from '@/lib/cis/db'
+import { findOpenOutboundBySource, syncGridOwnerDataRequestFromOutbound, updateOutboundRequestStatus } from '@/lib/cis/db'
 import type { GridOwnerDataRequestRow, MeteringValueRow, OutboundRequestRow } from '@/lib/cis/types'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 
 import { findMatchingGridOwnerDataRequest, matchMeteringPointForEdielMessage, matchMeteringPointIdByIdentifier, matchSiteAndCustomerForMeteringPoint } from '@/lib/ediel/matching'
 import { buildAperakDraft, buildContrlDraft, buildUtiltsErrDraft, getUtiltsAckTransactionTargets, shouldUseTransactionScopedPositiveAperak, type EdielAckScope, type EdielAperakApplicationError } from '@/lib/ediel/ack'
-import { updateMeterValueBillingReadiness } from '@/lib/billing/meterValueBillingMatcher'
-import { normalizeAndStoreMeteringValue } from '@/lib/metering/normalizeMeteringValues'
-import { finalizeUtiltsTransactionAck, resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionPersistence'
+import { ingestBoundUtiltsMetering, createBoundUtiltsBilling } from '@/lib/ediel/utilts/consumptionSinks'
+import { finalizeUtiltsTransactionAck, resolveUtiltsTransactionId, type UtiltsTransactionPersistenceResult } from '@/lib/ediel/utilts/transactionPersistence'
 import type { UtiltsTransactionDisposition } from '@/lib/ediel/utiltsEngine'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 
@@ -501,151 +500,9 @@ export async function maybeIngestMeteringValue(params: {
   dataRequestId: string | null
   message: EdielMessageRow
   normalizedPayload: Record<string, unknown>
+  boundOutcomes?: readonly UtiltsTransactionPersistenceResult[]
 }): Promise<MeteringValueRow[]> {
-  // All production callers are the runtime processor. A legacy-shaped payload
-  // is supported by the pure extractors, but cannot authorize a quantity write.
-  if (!hasUtiltsTransactionDecisionContract(params.normalizedPayload)) return []
-  if (!shouldIngestMeteringValue(params.message)) return []
-
-  const companyId = stringOrNull(params.message.company_id)
-  if (!companyId) return []
-
-  const series = extractUtiltsMeteringSeries(params.normalizedPayload, params.message)
-  if (series.length === 0) return []
-
-  const transactionMatches = readTransactionMatches(params.normalizedPayload)
-  const rows: MeteringValueRow[] = []
-  const skipped: Array<Record<string, unknown>> = []
-
-  for (const item of series) {
-    const transactionMatch = matchForSeriesItem(item, transactionMatches)
-    const matchedMeteringPointId = transactionMatch?.meteringPointId ?? null
-    let meteringPointId = matchedMeteringPointId ?? params.meteringPointId
-
-    if (item.externalMeteringPointId && !matchedMeteringPointId) {
-      meteringPointId = await matchMeteringPointIdByIdentifier({
-        companyId,
-        identifiers: [item.externalMeteringPointId],
-      })
-    }
-
-    if (!meteringPointId) {
-      skipped.push({
-        reason: 'metering_point_not_matched_within_tenant',
-        transactionReference: item.transactionReference,
-        externalMeteringPointId: item.externalMeteringPointId,
-        sourceOrder: item.sourceOrder,
-      })
-      continue
-    }
-
-    const siteAndCustomer = transactionMatch?.customerId
-      ? {
-          customerId: transactionMatch.customerId,
-          siteId: transactionMatch.siteId,
-          gridOwnerId: transactionMatch.gridOwnerId,
-        }
-      : await matchSiteAndCustomerForMeteringPoint({
-          meteringPointId,
-          companyId,
-        })
-
-    const customerId = siteAndCustomer?.customerId ?? params.customerId
-    if (!customerId) {
-      skipped.push({
-        reason: 'customer_not_matched_for_metering_point',
-        transactionReference: item.transactionReference,
-        externalMeteringPointId: item.externalMeteringPointId,
-        meteringPointId,
-        sourceOrder: item.sourceOrder,
-      })
-      continue
-    }
-
-    if (!item.periodStart || !item.periodEnd) {
-      skipped.push({
-        reason: 'metering_period_missing',
-        transactionReference: item.transactionReference,
-        externalMeteringPointId: item.externalMeteringPointId,
-        sourceOrder: item.sourceOrder,
-      })
-      continue
-    }
-
-    const rawTransaction = item.rawItem.transaction && typeof item.rawItem.transaction === 'object'
-      ? item.rawItem.transaction as Record<string, unknown>
-      : item.rawItem
-    const rawQuantity = item.rawItem.quantity && typeof item.rawItem.quantity === 'object'
-      ? item.rawItem.quantity as Record<string, unknown>
-      : item.rawItem
-    const readingType = toMeteringReadingType(item.readingType)
-    const stored = await normalizeAndStoreMeteringValue({
-      companyId,
-      customerId,
-      siteId: siteAndCustomer?.siteId ?? params.siteId,
-      customerSiteId: siteAndCustomer?.siteId ?? params.siteId,
-      meteringPointId,
-      facilityId: item.externalMeteringPointId,
-      gridOwnerId: siteAndCustomer?.gridOwnerId ?? params.gridOwnerId,
-      sourceRequestId: params.dataRequestId,
-      periodStart: item.periodStart,
-      periodEnd: item.periodEnd,
-      readAt: item.readAt,
-      resolution: stringOrNull(rawTransaction.resolution) ?? stringOrNull(params.normalizedPayload.resolution),
-      quantityKwh: item.quantity,
-      qualityStatus: item.qualityCode,
-      readingType,
-      direction: readingType === 'production' ? 'production' : 'consumption',
-      unit: 'kWh',
-      registerCode: stringOrNull(rawTransaction.registerCode) ?? stringOrNull(rawTransaction.register_code),
-      productCode: stringOrNull(rawTransaction.productCode) ?? stringOrNull(rawTransaction.product_code),
-      sourceType: 'ediel_utilts',
-      sourceMessageId: params.message.id,
-      sourceTransactionReference: item.transactionReference,
-      sourceLineReference: item.externalMeteringPointId ?? stringOrNull(rawQuantity.lineReference),
-      gridArea: item.externalGridAreaId,
-      createdBy: params.actorUserId,
-      rawPayload: {
-        edielMessageId: params.message.id,
-        messageCode: params.message.message_code,
-        sourceOrder: item.sourceOrder,
-        transactionReference: item.transactionReference,
-        externalMeteringPointId: item.externalMeteringPointId,
-        externalGridAreaId: item.externalGridAreaId,
-        seriesItem: item.rawItem,
-        normalizedPayload: params.normalizedPayload,
-        parsedPayload: params.message.parsed_payload ?? {},
-      },
-    })
-    if (stored.status !== 'stored') {
-      skipped.push({
-        reason: stored.reason,
-        transactionReference: item.transactionReference,
-        externalMeteringPointId: item.externalMeteringPointId,
-        sourceOrder: item.sourceOrder,
-      })
-      continue
-    }
-    await updateMeterValueBillingReadiness({ meterValue: stored.meteringValue, sourceMessageId: params.message.id })
-    rows.push(stored.meteringValue)
-  }
-
-  if (skipped.length > 0) {
-    await createEdielMessageEvent({
-      actorUserId: params.actorUserId,
-      edielMessageId: params.message.id,
-      eventType: 'manual_note',
-      eventStatus: 'warning',
-      message: 'Vissa UTILTS-mätvärden sparades inte eftersom de inte kunde kopplas säkert inom tenant.',
-      payload: {
-        skipped,
-        ingestedCount: rows.length,
-        companyId,
-      },
-    })
-  }
-
-  return rows
+  return ingestBoundUtiltsMetering(params)
 }
 
 export async function maybeCreateBillingUnderlay(params: {
@@ -657,48 +514,9 @@ export async function maybeCreateBillingUnderlay(params: {
   gridOwnerId: string | null
   message: EdielMessageRow
   normalizedPayload: Record<string, unknown>
+  boundOutcomes?: readonly UtiltsTransactionPersistenceResult[]
 }) {
-  if (!hasUtiltsTransactionDecisionContract(params.normalizedPayload)) return null
-  const currentResponse = ensureJson(params.dataRequest.response_payload)
-  const existingBillingUnderlayId = stringOrNull(currentResponse.billingUnderlayId)
-  const quantity = totalQuantityFromMeteringSeries(params.normalizedPayload, params.message)
-
-  if (
-    !shouldCreateBillingUnderlay({
-      dataRequest: params.dataRequest,
-      billingUnderlayId: existingBillingUnderlayId,
-      quantity,
-    })
-  ) {
-    return null
-  }
-
-  if (!params.customerId) return null
-
-  const { month, year } = monthAndYearFromPeriod(
-    stringOrNull(params.normalizedPayload.periodStart),
-    stringOrNull(params.normalizedPayload.periodEnd)
-  )
-
-  return ingestBillingUnderlay({
-    actorUserId: params.actorUserId,
-    customerId: params.customerId,
-    siteId: params.siteId,
-    meteringPointId: params.meteringPointId,
-    sourceRequestId: params.dataRequest.id,
-    gridOwnerId: params.gridOwnerId,
-    underlayMonth: month,
-    underlayYear: year,
-    status: 'received',
-    totalKwh: quantity,
-    sourceSystem: 'ediel_utilts',
-    payload: {
-      edielMessageId: params.message.id,
-      messageCode: params.message.message_code,
-      normalizedPayload: params.normalizedPayload,
-      parsedPayload: params.message.parsed_payload ?? {},
-    },
-  })
+  return createBoundUtiltsBilling({ ...params, existingBillingUnderlayId: stringOrNull(ensureJson(params.dataRequest.response_payload).billingUnderlayId) })
 }
 
 export async function createAckIfMissing(params: {

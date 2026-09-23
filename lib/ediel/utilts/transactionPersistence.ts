@@ -5,6 +5,8 @@ import type {
   UtiltsTransactionDisposition,
 } from '@/lib/ediel/utiltsEngine'
 import type { EdielEnvironment } from '@/lib/ediel/types'
+import { createHash } from 'node:crypto'
+import { consumptionConflict, consumptionEqual, validateUtiltsConsumptionContract, type UtiltsConsumptionContractV1 } from './consumptionContract'
 
 export { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
 
@@ -46,6 +48,61 @@ export type UtiltsTransactionPersistenceResult = {
   seriesId?: string
   idempotentReplay?: boolean
   issueCodes?: string[]
+  consumptionContract?: UtiltsConsumptionContractV1
+  contractHash?: string
+  contractVersion?: number
+  sourceBinding?: { sourceMessageId: string; rawHash: string; boundAt: string }
+}
+
+export type UtiltsBoundPersistenceInput = {
+  companyId: string
+  environment: EdielEnvironment
+  sourceMessageId: string
+  messageCode: string
+  rawPayload: string
+  contracts: readonly UtiltsConsumptionContractV1[]
+  transactions: readonly UtiltsTransactionPersistenceItem[]
+}
+// Only the trusted persistence adapter registers write authority. JSON loaded
+// from parsed_payload (or a caller's status/hash marker) cannot enter this map.
+const returnedAuthority = new WeakMap<UtiltsTransactionPersistenceResult, { sourceMessageId: string; contract: UtiltsConsumptionContractV1 }>()
+
+export function storedUtiltsConsumption(result: UtiltsTransactionPersistenceResult, sourceMessageId: string): UtiltsConsumptionContractV1 | null {
+  const authority = returnedAuthority.get(result)
+  if (!authority || authority.sourceMessageId !== sourceMessageId) return null
+  return structuredClone(authority.contract)
+}
+
+/** Validate the actual service RPC boundary, including exact membership and
+ * equality to prepared content. Hash authority is checked in PostgreSQL. */
+export function validateUtiltsPersistenceResults(input: UtiltsBoundPersistenceInput, data: unknown): UtiltsTransactionPersistenceResult[] {
+  if (!Array.isArray(data) || data.length !== input.transactions.length || input.contracts.length !== data.length) consumptionConflict('result_membership')
+  const ids = input.transactions.map(item => item.transactionId)
+  if (new Set(ids).size !== ids.length || ids.some(id => !id)) consumptionConflict('physical_membership')
+  const rawHash = createHash('sha256').update(input.rawPayload, 'utf8').digest('hex')
+  const results = data as UtiltsTransactionPersistenceResult[]
+  for (const [index, item] of input.transactions.entries()) {
+    const found = results.filter(row => row && row.transactionId === item.transactionId)
+    if (found.length !== 1) consumptionConflict('result_membership')
+    const row = found[0]
+    const binding = row.sourceBinding
+    if (!binding || binding.sourceMessageId !== input.sourceMessageId || binding.rawHash !== rawHash || !Number.isFinite(Date.parse(binding.boundAt))) consumptionConflict('source_binding')
+    const failed = row.persistenceStatus === 'failed'
+    if (failed) {
+      if (!['accepted', 'processability_rejected'].includes(item.disposition) || row.disposition !== 'processability_rejected' || row.responseType !== 'utilts_err' || row.consumptionContract) consumptionConflict('failed_outcome')
+      continue
+    }
+    if (row.disposition !== item.disposition || row.responseType !== item.responseType || row.persistenceStatus !== (item.disposition === 'accepted' ? 'persisted' : 'not_applicable')) consumptionConflict('outcome')
+    if (row.persistenceStatus !== 'persisted') {
+      if (row.consumptionContract) consumptionConflict('nonaccepted_contract')
+      continue
+    }
+    const contract = validateUtiltsConsumptionContract(row.consumptionContract)
+    if (!row.seriesId || row.contractVersion !== 1 || !/^[a-f0-9]{64}$/.test(row.contractHash ?? '') || !consumptionEqual(contract, input.contracts[index]) ||
+      contract.companyId !== input.companyId || contract.environment !== input.environment || contract.messageCode !== input.messageCode || contract.transactionId !== item.transactionId) consumptionConflict('returned_contract')
+    returnedAuthority.set(row, { sourceMessageId: input.sourceMessageId, contract: structuredClone(contract) })
+  }
+  return results
 }
 
 export function utiltsSeriesKind(messageCode: string | null | undefined): UtiltsTransactionPersistenceItem['seriesKind'] {
@@ -115,24 +172,27 @@ export function buildUtiltsTransactionPersistencePayload(input: {
   })
 }
 
-export async function persistUtiltsTransactionResults(input: {
-  companyId: string
-  environment: EdielEnvironment
-  sourceMessageId: string
-  messageCode: string
-  transactions: readonly UtiltsTransactionPersistenceItem[]
-}): Promise<UtiltsTransactionPersistenceResult[]> {
-  const { data, error } = await supabaseService.rpc('gridex_persist_utilts_transactions_v1', {
+export async function persistUtiltsTransactionResults(input: UtiltsBoundPersistenceInput): Promise<UtiltsTransactionPersistenceResult[]> {
+  if (!input.rawPayload || input.contracts.length !== input.transactions.length) consumptionConflict('prepared_contract_missing')
+  input.contracts.forEach(validateUtiltsConsumptionContract)
+  // Narrow server-only boundary until the exact native-generated public types
+  // arrive. No generated file is hand-edited or global client type weakened.
+  const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (name: 'gridex_persist_utilts_consumption_v1', args: {
+    p_company_id: string; p_environment: string; p_source_message_id: string; p_message_code: string; p_raw_payload: string; p_transactions: unknown
+  }) => PromiseLike<{ data: unknown; error: { message: string } | null }>
+  const { data, error } = await rpc('gridex_persist_utilts_consumption_v1', {
     p_company_id: input.companyId,
     p_environment: input.environment,
     p_source_message_id: input.sourceMessageId,
     p_message_code: input.messageCode,
-    p_transactions: input.transactions,
+    p_raw_payload: input.rawPayload,
+    p_transactions: input.transactions.map((item, index) => ({ ...item, consumptionContract: input.contracts[index] })),
   })
 
   if (error) throw new Error(`utilts_transaction_persistence_failed:${error.message}`)
-  if (!Array.isArray(data)) throw new Error('utilts_transaction_persistence_invalid_result')
-  return data as UtiltsTransactionPersistenceResult[]
+  try { return validateUtiltsPersistenceResults(input, data) } catch (cause) {
+    throw new Error(`utilts_transaction_persistence_invalid_result:${cause instanceof Error ? cause.message : 'unknown'}`, { cause })
+  }
 }
 
 export async function finalizeUtiltsTransactionAck(input: {

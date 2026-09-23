@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { maybeIngestMeteringValue, maybeCreateBillingUnderlay } from '@/lib/ediel/flows/utiltsDataRequest.part-1'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
+import { boundLegacySinkFixture } from './helpers/utiltsBoundFixture'
+import type { UtiltsTransactionPersistenceResult } from '@/lib/ediel/utilts/transactionPersistence'
 
 const io = vi.hoisted(() => ({ meter: vi.fn(), bill: vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {} }))
@@ -20,8 +22,8 @@ const transaction = (transactionId: string | null, value: number) => ({ transact
 function payload(): Record<string, unknown> {
   return { engine: 'utilts_runtime', quantity: 999, transactions: [transaction('T1', 123)], utiltsTransactionDispositions: [decision('T1')], utiltsTransactionPersistenceResults: [persisted('T1')] }
 }
-async function consume(normalizedPayload: Record<string, unknown>) {
-  const common = { actorUserId: 'actor', customerId: 'customer-a', siteId: 'site-a', meteringPointId: 'point-a', gridOwnerId: 'owner-a', message, normalizedPayload }
+async function consume(normalizedPayload: Record<string, unknown>, boundOutcomes: UtiltsTransactionPersistenceResult[] = boundLegacySinkFixture(normalizedPayload)) {
+  const common = { actorUserId: 'actor', customerId: 'customer-a', siteId: 'site-a', meteringPointId: 'point-a', gridOwnerId: 'owner-a', message, normalizedPayload, boundOutcomes }
   const meters = await maybeIngestMeteringValue({ ...common, dataRequestId: 'request-a' })
   const bill = await maybeCreateBillingUnderlay({ ...common, dataRequest: { id: 'request-a', request_scope: 'billing_underlay', response_payload: {} } as GridOwnerDataRequestRow })
   return { meters, bill }
@@ -32,6 +34,21 @@ beforeEach(() => {
   io.bill.mockResolvedValue({ id: 'underlay' })
 })
 describe('real UTILTS quantity sinks require durable transaction acceptance', () => {
+  it('does not let successful status alone authorize mutable retry quantities', async () => {
+    const p = payload()
+    p.transactions = [transaction('T1', 999)]
+    await consume(p, [])
+    expect(io.meter).not.toHaveBeenCalled()
+    expect(io.bill).not.toHaveBeenCalled()
+  })
+  it('both sinks consume frozen returned content despite mutated normalized payload and result objects', async () => {
+    const p = payload(), bound = boundLegacySinkFixture(p)
+    p.transactions = [transaction('T1', 999)]; p.periodEnd = '2030-01-01T00:00:00Z'
+    bound[0].consumptionContract!.observations[0].quantity = 888
+    await consume(p, bound)
+    expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ quantityKwh: 123, periodEnd: '2026-09-01T00:00:00.000Z' }))
+    expect(io.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: 123, underlayMonth: 9, underlayYear: 2026 }))
+  })
   it('preserves accepted persisted quantities and tenant attribution', async () => {
     await consume(payload())
     expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ companyId: 'tenant-a', customerId: 'customer-a', meteringPointId: 'point-a', quantityKwh: 123, sourceTransactionReference: 'T1' }))

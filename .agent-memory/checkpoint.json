@@ -12,7 +12,18 @@
   "root_main_acceptance_comment": 5768848443,
   "active_item": "E035 dated reviewed market structure and authoritative E61/E62 comparison",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
-  "next_action": "Published805f5fbb ALL ordinary CI green; sole legacy_case_types implementer fixes four schema-invalid review categories, then immutable successful-retry binding and remaining queued E035 owners.",
+  "next_action": "Freeze first integrated successful-retry binding checkpoint from BASE33fc7770: local5931/363PASS and app/tests/scripts types, lint/migration/provenance PASS. Root publishes for authentic native replay/types/schema; implementer pauses during publication/same-tree sync. Explicitly INCOMPLETE: full processor native ACK/completion mutation matrix, strict-shape/self-review, coverage/final exact-head review remain. Then separate case-navigation and other E035 owners.",
+  "successful_retry_binding_checkpoint": {
+    "status": "INCOMPLETE_NATIVE_CHECKPOINT",
+    "report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/successful-retry-binding-implementation-20260923.md",
+    "migration": "20260923135706_ediel_utilts_consumption_binding_v1.sql",
+    "migration_sha256": "2e961d22370ead922ee02252a4fa95b77ecd33880f37b9d59fbd8e1a2966ca28",
+    "tests_passed": 5931,
+    "test_files": 363,
+    "native_executed": false,
+    "generated_artifacts_reconciled": false,
+    "independent_review_complete": false
+  },
   "previous_ordinary_ci": {
     "head": "a89275ba0b34ae27530c2e403d3ae3f2667afe3b",
     "ops": 35715146276,
@@ -36,7 +47,7 @@
     "ordinary_delivery_retest_needed": true
   },
   "independent_review": "RETRY_FIX_AND_SCOPED_FIX_APPROVED; CLOSURE_PARSER_STATIC_PREFLIGHT_ONLY; FULL_E035_PENDING",
-  "ordinary_final_head_ci": "805f5fbb_ALL_APPLICABLE_SUCCESS; NEXT_CASE_TYPE_SLICE_IN_PROGRESS",
+  "ordinary_final_head_ci": "cb5e5f75_ALL_APPLICABLE_SUCCESS; SUCCESSFUL_RETRY_BINDING_IN_PROGRESS",
   "full_source_disposition": "DATED_POST_LEDGER_Z04_Z06F_Z06G_Z10_AND_BGM5_E61_E62_PARTIAL; APPLICABILITY_AND_HISTORY_INCOMPLETE",
   "full_E035": "NOT_COMPLETE",
   "full_F3": "NOT_COMPLETE",
@@ -51,7 +62,7 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "805f5fbb3ee3f7938cba99695c98b0cafbef3b5b",
+  "last_verified_pr_head": "cb5e5f751c6a537bf4e0e78c1ca827cb720ce6f7",
   "ordinary_baseline_ci": {
     "head": "95b5e391159e3164869ddabd8ec96b8f69189fe2",
     "ops": 35842844058,

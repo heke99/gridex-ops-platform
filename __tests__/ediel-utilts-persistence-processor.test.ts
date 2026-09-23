@@ -1,6 +1,8 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
 import { energyHandoffMessage, observationHandoffMessage } from './helpers/utiltsObservationHandoff'
+import { bindingRpcRows } from './helpers/utiltsBoundFixture'
+import type { UtiltsBoundPersistenceInput } from '@/lib/ediel/utilts/transactionPersistence'
 
 const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), rpc: vi.fn(), from: vi.fn(), meter: vi.fn(), bill: vi.fn(), complete: vi.fn(), findOutbound: vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: io.rpc } }))
@@ -24,8 +26,9 @@ beforeEach(() => {
   io.update.mockResolvedValue(null); io.event.mockResolvedValue(null)
   io.meter.mockResolvedValue({ status: 'stored', meteringValue: { id: 'meter-value' } }); io.bill.mockResolvedValue({ id: 'underlay' })
   io.ack.mockImplementation(async ({ ackFamily }) => ({ id: `ack-${ackFamily}` }))
-  io.rpc.mockImplementation((name) => {
-    const response = name === 'gridex_persist_utilts_transactions_v1' ? { data: results, error: null } : { data: null, error: { message: 'unavailable' } }
+  io.rpc.mockImplementation((name, args) => {
+    const input = name === 'gridex_persist_utilts_consumption_v1' ? { companyId: args.p_company_id, environment: args.p_environment, sourceMessageId: args.p_source_message_id, messageCode: args.p_message_code, rawPayload: args.p_raw_payload, transactions: args.p_transactions, contracts: args.p_transactions.map((t: { consumptionContract: unknown }) => t.consumptionContract) } as UtiltsBoundPersistenceInput : null
+    const response = input ? { data: bindingRpcRows(input, results), error: null } : { data: null, error: { message: 'unavailable' } }
     return Object.assign(Promise.resolve(response), { abortSignal: () => Promise.resolve(response) })
   })
   io.from.mockImplementation(() => {
@@ -54,7 +57,7 @@ for (const mixed of [false, true]) it(`processor excludes failed persistence and
   const message = incoming(false, mixed); io.get.mockResolvedValue(message)
   results = mixed ? [failed, accepted('GRIDEX2607E66002')] : [failed]
   const result = await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
-  expect(io.rpc).toHaveBeenCalledWith('gridex_persist_utilts_transactions_v1', expect.objectContaining({ p_company_id: 'tenant-a', p_source_message_id: message.id }))
+  expect(io.rpc).toHaveBeenCalledWith('gridex_persist_utilts_consumption_v1', expect.objectContaining({ p_company_id: 'tenant-a', p_source_message_id: message.id }))
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).toContain('UTILTS_ERR')
   if (mixed) {
     expect(io.meter).toHaveBeenCalledTimes(1)
@@ -83,7 +86,7 @@ it('held sibling keeps its empty persisted quantities and no positive ACK while 
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'internal_review', responseType: 'none', persistenceStatus: 'not_applicable' }, accepted('GRIDEX2607E66002')]
   const result = await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
   expect(result.internalReviewRequired).toBe(true)
-  const call = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_transactions_v1')!
+  const call = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')!
   expect(call[1].p_transactions).toMatchObject([{ transactionId: 'GRIDEX2607E66001', disposition: 'internal_review', quantities: [] }, { transactionId: 'GRIDEX2607E66002', disposition: 'accepted', quantities: [{ value: 7 }] }])
   const aperaks = io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK')
   expect(aperaks).toHaveLength(1)

@@ -12,7 +12,9 @@ vi.mock('@/lib/onboarding/inboundEdielLinking', () => ({ findActiveMeteringPermi
 vi.mock('@/lib/ediel/utilts/transactionPersistence', async importOriginal => ({
   ...await importOriginal<Record<string, unknown>>(), persistUtiltsTransactionResults: io.persist,
 }))
-vi.mock('@/lib/ediel/flows/utiltsDataRequest.part-1', () => ({
+vi.mock('@/lib/ediel/matching', () => ({ matchMeteringPointIdByIdentifier: vi.fn().mockResolvedValue(null), matchSiteAndCustomerForMeteringPoint: vi.fn().mockResolvedValue(null) }))
+vi.mock('@/lib/ediel/flows/utiltsDataRequest.part-1', async original => ({
+  ...await original<Record<string, unknown>>(),
   resolveUtiltsRuntimeTestCaseCode: vi.fn().mockResolvedValue(null),
   matchUtiltsTransactionsForTenant: vi.fn().mockResolvedValue([]),
   linkInboundUtiltsMessageCanonically: vi.fn().mockResolvedValue({}),
