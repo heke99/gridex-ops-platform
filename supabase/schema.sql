@@ -1329,6 +1329,84 @@ END $$;
 SET default_table_access_method = heap;
 
 --
+-- Name: metering_values; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.metering_values (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid,
+    customer_id uuid,
+    site_id uuid,
+    metering_point_id uuid,
+    source_request_id uuid,
+    grid_owner_id uuid,
+    reading_type text DEFAULT 'consumption'::text NOT NULL,
+    value_kwh numeric,
+    quality_code text,
+    read_at timestamp with time zone,
+    period_start timestamp with time zone,
+    period_end timestamp with time zone,
+    source_system text DEFAULT 'manual'::text NOT NULL,
+    raw_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    source_ediel_message_id uuid,
+    canonical_dedupe_key text,
+    is_current boolean DEFAULT true NOT NULL,
+    previous_value_id uuid,
+    replaced_by_value_id uuid,
+    revision_number integer DEFAULT 1 NOT NULL,
+    correction_reason text,
+    value_status text DEFAULT 'current'::text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    metadata jsonb DEFAULT '{}'::jsonb,
+    updated_at timestamp with time zone DEFAULT now(),
+    customer_site_id uuid,
+    source_message_id uuid,
+    source_transaction_id text,
+    grid_owner_ediel_id text,
+    grid_area_code text,
+    product_code text,
+    register_code text,
+    meter_number text,
+    resolution text,
+    quantity numeric,
+    unit text,
+    registration_time timestamp with time zone,
+    reason_code text,
+    status text,
+    permission_id uuid,
+    utilts_message_id uuid,
+    batch_id uuid,
+    "timestamp" timestamp with time zone,
+    measurement_resolution text,
+    status_code text,
+    source text,
+    utilts_subtype text,
+    updated_by uuid,
+    bidding_zone_code text,
+    quantity_kwh numeric,
+    quality text,
+    received_at timestamp with time zone,
+    price_area text,
+    source_transaction_reference text,
+    source_line_reference text,
+    billing_match_status text,
+    billing_match_checked_at timestamp with time zone,
+    billing_match_issues jsonb DEFAULT '[]'::jsonb NOT NULL,
+    revision_status text DEFAULT 'current'::text NOT NULL,
+    billing_status text DEFAULT 'pending_match'::text NOT NULL,
+    direction text DEFAULT 'consumption'::text NOT NULL,
+    billing_gate_status text DEFAULT 'pending_match'::text NOT NULL,
+    billing_gate_reasons jsonb DEFAULT '[]'::jsonb NOT NULL,
+    billing_gate_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
+    billing_gate_evaluated_at timestamp with time zone,
+    supply_period_id uuid,
+    CONSTRAINT metering_values_billing_gate_status_check CHECK ((billing_gate_status = ANY (ARRAY['pending_match'::text, 'eligible'::text, 'blocked'::text, 'conflict'::text]))),
+    CONSTRAINT metering_values_billing_status_check CHECK ((billing_status = ANY (ARRAY['pending_match'::text, 'billable'::text, 'blocked'::text, 'conflict'::text, 'invoiced'::text, 'credited'::text]))),
+    CONSTRAINT metering_values_revision_status_check CHECK ((revision_status = ANY (ARRAY['current'::text, 'replaced'::text, 'superseded'::text, 'void'::text])))
+);
+
+--
 -- Name: ediel_messages; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10862,84 +10940,6 @@ CREATE TABLE public.integration_api_requests (
 );
 
 --
--- Name: metering_values; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.metering_values (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid,
-    customer_id uuid,
-    site_id uuid,
-    metering_point_id uuid,
-    source_request_id uuid,
-    grid_owner_id uuid,
-    reading_type text DEFAULT 'consumption'::text NOT NULL,
-    value_kwh numeric,
-    quality_code text,
-    read_at timestamp with time zone,
-    period_start timestamp with time zone,
-    period_end timestamp with time zone,
-    source_system text DEFAULT 'manual'::text NOT NULL,
-    raw_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
-    source_ediel_message_id uuid,
-    canonical_dedupe_key text,
-    is_current boolean DEFAULT true NOT NULL,
-    previous_value_id uuid,
-    replaced_by_value_id uuid,
-    revision_number integer DEFAULT 1 NOT NULL,
-    correction_reason text,
-    value_status text DEFAULT 'current'::text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    created_by uuid,
-    metadata jsonb DEFAULT '{}'::jsonb,
-    updated_at timestamp with time zone DEFAULT now(),
-    customer_site_id uuid,
-    source_message_id uuid,
-    source_transaction_id text,
-    grid_owner_ediel_id text,
-    grid_area_code text,
-    product_code text,
-    register_code text,
-    meter_number text,
-    resolution text,
-    quantity numeric,
-    unit text,
-    registration_time timestamp with time zone,
-    reason_code text,
-    status text,
-    permission_id uuid,
-    utilts_message_id uuid,
-    batch_id uuid,
-    "timestamp" timestamp with time zone,
-    measurement_resolution text,
-    status_code text,
-    source text,
-    utilts_subtype text,
-    updated_by uuid,
-    bidding_zone_code text,
-    quantity_kwh numeric,
-    quality text,
-    received_at timestamp with time zone,
-    price_area text,
-    source_transaction_reference text,
-    source_line_reference text,
-    billing_match_status text,
-    billing_match_checked_at timestamp with time zone,
-    billing_match_issues jsonb DEFAULT '[]'::jsonb NOT NULL,
-    revision_status text DEFAULT 'current'::text NOT NULL,
-    billing_status text DEFAULT 'pending_match'::text NOT NULL,
-    direction text DEFAULT 'consumption'::text NOT NULL,
-    billing_gate_status text DEFAULT 'pending_match'::text NOT NULL,
-    billing_gate_reasons jsonb DEFAULT '[]'::jsonb NOT NULL,
-    billing_gate_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
-    billing_gate_evaluated_at timestamp with time zone,
-    supply_period_id uuid,
-    CONSTRAINT metering_values_billing_gate_status_check CHECK ((billing_gate_status = ANY (ARRAY['pending_match'::text, 'eligible'::text, 'blocked'::text, 'conflict'::text]))),
-    CONSTRAINT metering_values_billing_status_check CHECK ((billing_status = ANY (ARRAY['pending_match'::text, 'billable'::text, 'blocked'::text, 'conflict'::text, 'invoiced'::text, 'credited'::text]))),
-    CONSTRAINT metering_values_revision_status_check CHECK ((revision_status = ANY (ARRAY['current'::text, 'replaced'::text, 'superseded'::text, 'void'::text])))
-);
-
---
 -- Name: outbound_requests; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -17769,7 +17769,16 @@ BEGIN
   'source_line_reference',v_observation->'sourceLineReference','source_system',v_contract->'sourceType','source_ediel_message_id',p_source_message_id,
   'source_transaction_reference',p_transaction_id,'created_by',p_actor_id,'canonical_dedupe_key',v_key,
   'raw_payload',jsonb_build_object('consumptionContract',v_contract,'sourceOrdinal',v_observation->'sourceOrdinal','edielMessageId',p_source_message_id));
+ -- Lock and compare before the legacy equal-value branch can add lineage.
+ SELECT m.* INTO v_result FROM public.metering_values m WHERE m.company_id=p_company_id AND m.canonical_dedupe_key=v_key AND m.is_current
+  ORDER BY m.created_at DESC,m.id DESC LIMIT 1 FOR UPDATE;
+ IF FOUND THEN
+  PERFORM gridex_utilts_binding.check_metering_result_v1(v_result,v_payload,v_contract->>'environment');
+ END IF;
  SELECT * INTO v_result FROM public.gridex_ingest_metering_value_atomic(v_payload);
+ -- Recheck the returned row too: any legacy writer racing an absent key must
+ -- roll back its source link on conflict in this same transaction.
+ PERFORM gridex_utilts_binding.check_metering_result_v1(v_result,v_payload,v_contract->>'environment');
  RETURN v_result;
 END $$;
 
@@ -34316,6 +34325,18 @@ BEGIN
  SELECT jsonb_agg(t->'transactionId' ORDER BY ordinal) INTO expected FROM jsonb_array_elements(p_transactions) WITH ORDINALITY x(t,ordinal);
  IF membership IS DISTINCT FROM expected OR (SELECT count(DISTINCT value) FROM jsonb_array_elements(membership))<>jsonb_array_length(membership) THEN
   RAISE EXCEPTION 'utilts_physical_membership_conflict' USING ERRCODE='P0U01'; END IF;
+ -- Namespace validation precedes receipt/ACK/series writes, independently of
+ -- application comparison exemptions and mutable plain-ID matches.
+ FOR item IN SELECT value FROM jsonb_array_elements(p_transactions) LOOP
+  c:=item->'consumptionContract';
+  IF NOT coalesce(gridex_utilts_binding.validate_contract_v1(c),false) THEN
+   RAISE EXCEPTION 'utilts_consumption_contract_invalid' USING ERRCODE='P0U01'; END IF;
+  IF item->>'disposition'='accepted' AND (p_message_code IN ('E30','E66','S07') OR jsonb_array_length(c->'observations')>0) THEN
+   identity:=gridex_utilts_binding.supported_point_v1(tokens,item->>'transactionId');
+   IF identity IS NULL OR EXISTS(SELECT FROM jsonb_array_elements(c->'observations') o WHERE o->>'externalPoint' IS DISTINCT FROM identity) THEN
+    RAISE EXCEPTION 'utilts_consumption_identity_unsupported' USING ERRCODE='P0U01'; END IF;
+  END IF;
+ END LOOP;
  SELECT * INTO receipt FROM gridex_utilts_binding.receipts WHERE source_message_id=p_source_message_id;
  IF NOT FOUND THEN
   IF EXISTS(SELECT FROM public.ediel_ack_transaction_results WHERE source_message_id=p_source_message_id)
@@ -45711,6 +45732,87 @@ $$;
 COMMENT ON FUNCTION public.gridex_update_company_and_rebuild_legal_profile(p_company_id uuid, p_actor_user_id uuid, p_input jsonb, p_mark_reviewed boolean) IS 'Canonical atomic write path for company data and generated tenant legal profile. All company editors must call this function.';
 
 --
+-- Name: gridex_update_customer_case_status(uuid, uuid, text, uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_update_customer_case_status(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text DEFAULT NULL::text, p_message text DEFAULT NULL::text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+DECLARE
+  v_case public.customer_cases%ROWTYPE;
+  v_old_status text;
+  v_is_platform boolean;
+  v_now timestamptz := clock_timestamp();
+BEGIN
+  SELECT * INTO v_case FROM public.customer_cases
+    WHERE id=p_case_id AND company_id=p_company_id
+      AND (p_expected_source IS NULL OR source=p_expected_source)
+    FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE='P0002', MESSAGE='customer_case_not_found_in_scope';
+  END IF;
+
+  v_is_platform := public.canonical_actor_is_platform_admin(p_actor_user_id);
+  -- Ediel's operational view is tenant-write only, even when the optional
+  -- expected-source argument is omitted. Support retains its platform actor
+  -- behavior, still subject to real selected-company membership below.
+  IF v_case.source='ediel_inbound_state_machine' AND v_is_platform THEN
+    RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='ediel_case_status_requires_tenant_actor';
+  END IF;
+
+  -- The existing scoped permission resolver checks the auth user for deletion
+  -- and bans inside its established definer boundary; do not grant this
+  -- invoker direct access to auth.users.
+  IF NOT EXISTS (
+    SELECT 1 FROM public.user_profiles up
+    JOIN public.company_memberships cm ON cm.user_id=up.id AND cm.company_id=v_case.company_id
+    JOIN public.companies c ON c.id=cm.company_id
+    WHERE up.id=p_actor_user_id AND up.user_status='active'
+      AND cm.status='active' AND coalesce(cm.is_active,true)
+      AND c.status IN ('active','onboarding') AND coalesce(c.is_active,true)
+  ) OR NOT (coalesce(v_is_platform,false) OR coalesce(public.gridex_actor_has_company_permission(p_actor_user_id,v_case.company_id,'cases.write'),false))
+  THEN
+    RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='customer_case_status_actor_not_authorized';
+  END IF;
+
+  v_old_status := v_case.status;
+  UPDATE public.customer_cases SET status=p_status, updated_by=p_actor_user_id, updated_at=v_now,
+    resolved_at=CASE WHEN p_status='resolved' THEN v_now ELSE resolved_at END,
+    closed_at=CASE WHEN p_status='closed' THEN v_now ELSE closed_at END
+    WHERE id=v_case.id AND company_id=v_case.company_id
+    RETURNING * INTO v_case;
+
+  INSERT INTO public.customer_case_events(
+    company_id,customer_case_id,customer_id,event_type,event_status,message,payload,created_by
+  ) VALUES (
+    v_case.company_id,v_case.id,v_case.customer_id,'status_changed',
+    CASE WHEN p_status IN ('closed','resolved') THEN 'success' ELSE 'info' END,
+    coalesce(nullif(btrim(p_message),''),'Ärendet uppdaterades till '||p_status||'.'),
+    jsonb_build_object('status',p_status),p_actor_user_id
+  );
+  -- The canonical audit trigger fills required actor/request/resource context.
+  -- Neither an event error nor an audit error is swallowed: all three writes
+  -- belong to this one database transaction and roll back together.
+  INSERT INTO public.audit_logs(
+    company_id,actor_user_id,entity_type,entity_id,action,old_values,new_values,metadata
+  ) VALUES (
+    v_case.company_id,p_actor_user_id,'customer_case',v_case.id::text,'customer_case_status_changed',
+    jsonb_build_object('status',v_old_status),
+    jsonb_build_object('status',p_status,'message',p_message),
+    jsonb_build_object('customer_id',v_case.customer_id)
+  );
+  RETURN to_jsonb(v_case);
+END
+$$;
+
+--
+-- Name: FUNCTION gridex_update_customer_case_status(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_message text); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.gridex_update_customer_case_status(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_message text) IS 'Server-only atomic operational status/event/audit update; no source approval, ACK or business side effects.';
+
+--
 -- Name: gridex_update_draft_legal_template_version(uuid, text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -55101,6 +55203,24 @@ CREATE TABLE public.customer_authorization_documents (
 --
 
 COMMENT ON COLUMN public.customer_authorization_documents.customer_contract_id IS 'Optional customer contract bound to an uploaded authorization/agreement document; canonical signed imports verify company/customer/contract ownership before finalization.';
+
+--
+-- Name: customer_case_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.customer_case_events (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    customer_case_id uuid NOT NULL,
+    customer_id uuid NOT NULL,
+    event_type text NOT NULL,
+    event_status text DEFAULT 'info'::text NOT NULL,
+    message text NOT NULL,
+    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT customer_case_events_status_check CHECK ((event_status = ANY (ARRAY['info'::text, 'success'::text, 'warning'::text, 'error'::text])))
+);
 
 --
 -- Name: customer_cases; Type: TABLE; Schema: public; Owner: -
@@ -70483,6 +70603,13 @@ ALTER TABLE ONLY public.customer_blockers
     ADD CONSTRAINT customer_blockers_pkey PRIMARY KEY (id);
 
 --
+-- Name: customer_case_events customer_case_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_events
+    ADD CONSTRAINT customer_case_events_pkey PRIMARY KEY (id);
+
+--
 -- Name: customer_cases customer_cases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -74682,6 +74809,30 @@ CREATE INDEX customer_blockers_company_type_status_idx ON public.customer_blocke
 CREATE INDEX customer_blockers_customer_created_idx ON public.customer_blockers USING btree (customer_id, created_at DESC);
 
 --
+-- Name: customer_case_events_actor_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_case_events_actor_idx ON public.customer_case_events USING btree (created_by) WHERE (created_by IS NOT NULL);
+
+--
+-- Name: customer_case_events_case_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_case_events_case_idx ON public.customer_case_events USING btree (customer_case_id, created_at DESC);
+
+--
+-- Name: customer_case_events_company_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_case_events_company_idx ON public.customer_case_events USING btree (company_id, created_at DESC);
+
+--
+-- Name: customer_case_events_customer_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_case_events_customer_idx ON public.customer_case_events USING btree (customer_id);
+
+--
 -- Name: customer_cases_company_business_process_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -74710,6 +74861,12 @@ CREATE INDEX customer_cases_contract_idx ON public.customer_cases USING btree (c
 --
 
 CREATE INDEX customer_cases_customer_idx ON public.customer_cases USING btree (company_id, customer_id, created_at DESC);
+
+--
+-- Name: customer_cases_event_owner_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX customer_cases_event_owner_key ON public.customer_cases USING btree (id, company_id, customer_id);
 
 --
 -- Name: customer_cases_switch_idx; Type: INDEX; Schema: public; Owner: -
@@ -87053,6 +87210,48 @@ ALTER TABLE ONLY public.customer_blockers
     ADD CONSTRAINT customer_blockers_resolved_by_fkey FOREIGN KEY (resolved_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 --
+-- Name: customer_case_events customer_case_events_case_owner_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_events
+    ADD CONSTRAINT customer_case_events_case_owner_fk FOREIGN KEY (customer_case_id, company_id, customer_id) REFERENCES public.customer_cases(id, company_id, customer_id) ON DELETE CASCADE;
+
+--
+-- Name: customer_case_events customer_case_events_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_events
+    ADD CONSTRAINT customer_case_events_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
+-- Name: customer_case_events customer_case_events_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_events
+    ADD CONSTRAINT customer_case_events_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+--
+-- Name: customer_case_events customer_case_events_customer_case_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_events
+    ADD CONSTRAINT customer_case_events_customer_case_id_fkey FOREIGN KEY (customer_case_id) REFERENCES public.customer_cases(id) ON DELETE CASCADE;
+
+--
+-- Name: customer_case_events customer_case_events_customer_company_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_events
+    ADD CONSTRAINT customer_case_events_customer_company_fk FOREIGN KEY (customer_id, company_id) REFERENCES public.customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+--
+-- Name: customer_case_events customer_case_events_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_events
+    ADD CONSTRAINT customer_case_events_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id) ON DELETE CASCADE;
+
+--
 -- Name: customer_cases customer_cases_assigned_to_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -94090,6 +94289,12 @@ ALTER TABLE public.customer_blockers ENABLE ROW LEVEL SECURITY;
 --
 
 CREATE POLICY customer_blockers_service_role_all ON public.customer_blockers USING ((( SELECT auth.role() AS role) = 'service_role'::text)) WITH CHECK ((( SELECT auth.role() AS role) = 'service_role'::text));
+
+--
+-- Name: customer_case_events; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.customer_case_events ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: customer_cases; Type: ROW SECURITY; Schema: public; Owner: -
@@ -111097,6 +111302,13 @@ REVOKE ALL ON FUNCTION gridex_received_sources.witness_object_availability(p_com
 GRANT ALL ON FUNCTION gridex_received_sources.witness_object_availability(p_company_id uuid, p_environment text, p_assessment_id uuid, p_facts_hash text) TO service_role;
 
 --
+-- Name: TABLE metering_values; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.metering_values TO authenticated;
+GRANT ALL ON TABLE public.metering_values TO service_role;
+
+--
 -- Name: TABLE ediel_messages; Type: ACL; Schema: public; Owner: -
 --
 
@@ -111851,13 +112063,6 @@ GRANT ALL ON TABLE public.gridex_route_readiness_v TO service_role;
 
 GRANT ALL ON TABLE public.integration_api_requests TO authenticated;
 GRANT ALL ON TABLE public.integration_api_requests TO service_role;
-
---
--- Name: TABLE metering_values; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.metering_values TO authenticated;
-GRANT ALL ON TABLE public.metering_values TO service_role;
 
 --
 -- Name: TABLE outbound_requests; Type: ACL; Schema: public; Owner: -
@@ -115142,6 +115347,13 @@ REVOKE ALL ON FUNCTION public.gridex_update_company_and_rebuild_legal_profile(p_
 GRANT ALL ON FUNCTION public.gridex_update_company_and_rebuild_legal_profile(p_company_id uuid, p_actor_user_id uuid, p_input jsonb, p_mark_reviewed boolean) TO service_role;
 
 --
+-- Name: FUNCTION gridex_update_customer_case_status(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_message text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_update_customer_case_status(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_message text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_update_customer_case_status(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_message text) TO service_role;
+
+--
 -- Name: FUNCTION gridex_update_draft_legal_template_version(p_version_id uuid, p_title text, p_body text, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -116537,6 +116749,12 @@ GRANT ALL ON TABLE public.customer_application_workflows TO service_role;
 
 GRANT ALL ON TABLE public.customer_authorization_documents TO authenticated;
 GRANT ALL ON TABLE public.customer_authorization_documents TO service_role;
+
+--
+-- Name: TABLE customer_case_events; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.customer_case_events TO service_role;
 
 --
 -- Name: TABLE customer_cases; Type: ACL; Schema: public; Owner: -

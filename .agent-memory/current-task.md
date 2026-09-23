@@ -1,3 +1,9 @@
+## Final native156 and artifact checkpoint — 2026-09-23
+
+Published62a7d08 OPS35918298886/native107375437512 passes SQLretry8, native156, case1, protected browser2, postbrowser1, tenant invariants/C1 and parity selftest. Actual types repeat97d0e426. Authentic artifact10776516395 verified and schema/fingerprint copied verbatim; manifest advanced to actual tail20260923192915. Previous native fixture failures are resolved; no open code findings in scoped final review. New generated schema must reproduce on final published head before merge. Root owns final artifact review/publication/CI; implementer frozen. E035/F3/masterplan PARTIAL, bounded A4from2026-10-01 comparison only, prior-guide capability next. PR310/main untouched; no hosted operations.
+
+Next: publish reconciled contracts and exact receipts; final reviewer artifact delta + ordinary all-green same-head CI, then user-authorized bounded PR370 merge and prior-guide amendment on fresh main branch. No new routine permission needed. Older records below are historical.
+
 ### Latest native result — 304c284
 
 OPS35909983631 quality/build PASS. Native107347079558 applies new migrations, then retained committed-retry SQL fixture fails before the156 suite: its synthetic original lacks NAD/LOC, so the new identity guard correctly rejects it before the intended reservation-conflict check. Sole implementer correcting only this fixture and retaining all eight assertions; no production guard waiver. Schema/type generation not reached. User reiterated continue forward, then requested status; execution remains active.

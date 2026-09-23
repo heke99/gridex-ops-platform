@@ -1,9 +1,9 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-09-23T19:18:04Z",
-  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run35907849473",
+  "generated_at": "2026-09-23T20:52:48Z",
+  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run35918298886",
   "generated_types": "supabase/database.types.ts",
   "sha256": "97d0e4267fcaecdd10d8a6500d6c5ec7709a9198d8361a52849c921c8a8a625d",
-  "latest_migration": "20260923180557_restore_customer_case_events_atomic_status.sql",
-  "latest_migration_schema_effect": "Authentic replay35907849473 restores legacy case events and atomic status RPC. Native124, case1, protected browser2 and post-browser1 PASS. Artifact10772286880 types copied verbatim; schema and final consumer correction wave remain pending. No full E035 acceptance."
+  "latest_migration": "20260923192915_classify_customer_case_events.sql",
+  "latest_migration_schema_effect": "Authentic replay35918298886 verifies bound consumer content/identity and case tenant classification. Native156, retained SQL retry8, case1, protected browser2, postbrowser1, tenant invariants and parity selftest PASS. Types byte-identical97d0e426; authentic schema/fingerprint copied from verified artifact10776516395. Final same-head CI/review pending; E035 partial."
 }

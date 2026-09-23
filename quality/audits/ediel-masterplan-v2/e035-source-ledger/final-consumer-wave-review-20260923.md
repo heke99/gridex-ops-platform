@@ -41,3 +41,23 @@ The earlier staged-delivery adjudication remains: prior25-A-3 structural compari
 After this static review, controller reports published304c284 / native107347079558 applied the new migrations, then stopped at retained `scripts/ediel-utilts-committed-retry-regression.sql:124` with `utilts_consumption_identity_unsupported`, before native156. The synthetic original had UNH/BGM/IDE TX1/IDE TX2/UNT but no own NAD/LOC. This is consistent with the new required original-identity guard, not yet evidence of a product defect. The sole implementer is correcting only the synthetic original while preserving all eight retry assertions and real guards. That exact fixture delta needs scoped review and its actual execution result. It does not change the above static production verdict or supply runtime acceptance.
 
 Next review is limited to that fixture qualification delta and authentic final runtime/generated-artifact receipts. Final acceptance remains withheld until those gates complete.
+
+## Fixture qualification addendum — e06eda6
+
+Read `final-fixture-review.diff`, the appended implementer report, the complete retained SQL fixture and new pure identity regression. Commit `e06eda6` changes only that fixture, its new regression and the tracked qualification receipt. No production guard or migration changes.
+
+The synthetic original now has matching UNB/UNZ interchange references, own NAD+MS/MR parties with SVK:260, and LOC+172+POINT::9 within each TX-1/TX-2 transaction. UNT+9 correctly counts UNH through UNT. The fixture remains a reservation/no-consumption control, not a claim of complete national message validation. It now reaches the intended retry boundary without a missing-identity rejection.
+
+Independently compared commit-parent and commit fixture text: every executable byte from the first `SET LOCAL ROLE service_role` onward is identical, and both versions contain exactly eight `PERFORM pg_temp.retry_check` assertions. The new regression reads the actual SQL literal and requires the production identity inspector to return both exact transaction/point scopes. No assertions were removed or diluted.
+
+**Scoped fixture SPEC/QUALITY PASS; no material residual.** Reported RED1 → GREEN15/2, tests typecheck and targeted lint used available Node24.19.0 after the old local Node22 path disappeared; CI pins are unchanged. No tests were rerun by this reviewer. Native SQL execution, native156 and final integration/artifact acceptance remain withheld pending actual receipts. The R1–R4+C1 static verdict is unchanged.
+
+## New-source fixture qualification addendum — fe55fcf
+
+Read the complete `final-fixture2-review.diff` against `4061db8`, the appended implementer report, the new helper/regression and the native source setup and retry call sites. The four-file delta changes only synthetic source setup, its two new regression cases and the receipt; there are no production, migration, schema or CI-gate edits.
+
+Each newly inserted source now derives matching UNB/UNZ references from its new UUID, then reparses that wire to obtain the persisted interchange/application metadata. The bounded helper requires exactly two occurrences of the prior reference. Party, point, transaction and quantity content is unchanged; the new regression compares all non-envelope tokens and checks runtime validation. Processor retries still reuse the original persisted source ID and bytes, including deliberate changed-wire negative cases. They do not pass through new-source setup.
+
+Independently compared the native script in both commits: its entire suffix beginning at `beforeEach(` is byte-identical. Thus all existing 156 native test bodies/assertions are preserved. The prior genuine run `35917060345` / native `107371193902` is reported as 151/156, with all five failures at duplicate-interchange fixture insertion before the intended target behavior; this repair addresses that setup boundary without weakening the unique constraint or production guards.
+
+**Scoped fixture SPEC/QUALITY PASS; no material residual.** Reported RED1 → GREEN17/3 and scripts/tests typecheck plus targeted lint are recorded as implementer receipts, not rerun by this reviewer. The R1–R4+C1 static verdict remains unchanged. **INTEGRATION remains WITHHELD** pending genuine all-156 execution and the remaining exact-final runtime/artifact/CI receipts.
