@@ -1,9 +1,9 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-09-23T12:54:33Z",
-  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run35863134398",
+  "generated_at": "2026-09-23T15:59:45Z",
+  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run35885232292",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "6af55fbbed9390acfe71dbb8c757c10e3a021dec15842df801d06b679d98eda9",
-  "latest_migration": "20260923124645_ediel_closure_snapshot_expression.sql",
-  "latest_migration_schema_effect": "Private reviewed original Z05L/LK closure proof and append integration, corrected nested JSON extraction precedence. Empty replay run35863134398 passed all 62 native source-owner/wire checks plus tenant invariants and parity self-test. Public generated types byte-identical. Final stale-schema check failed; schema and fingerprint copied verbatim from verified artifact10750749337. Bounded closure slice only; full E035 remains incomplete."
+  "sha256": "fcd9fa39904fabbf33e62bb1ca5866dbb8792947b4e1324d1f690e009a51f7a2",
+  "latest_migration": "20260923154221_ediel_utilts_existing_billing_binding.sql",
+  "latest_migration_schema_effect": "Immutable UTILTS source/consumption binding and atomic metering/billing sinks with ownership locks and frozen existing-underlay equality. Empty replay35885232292 passed124 native cases; generated public types copied verbatim from verified artifact10762203061. Run stopped at expected old type hash; schema snapshot and final ordinary CI remain pending. Full E035 incomplete."
 }

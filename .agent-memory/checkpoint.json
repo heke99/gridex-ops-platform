@@ -12,9 +12,15 @@
   "root_main_acceptance_comment": 5768848443,
   "active_item": "E035 dated reviewed market structure and authoritative E61/E62 comparison",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
-  "next_action": "Freeze test-only round3 actor fixture. Actual327 native114/124: genuine readiness refresh succeeded, remaining10 failed domain-event actor FK. Seeded local auth/profile actor,19 actor argument substitutions;124 cases unchanged. Scripts types/lint/diff PASS. Root publishes and reruns native; pause for publication/same-tree sync. No production/migration changes.",
+  "next_action": "Native fabd150d OPS35885232292/job107263560040 ALL124 PASS, SQL71/retry8/concurrency PASS. Authentic types artifact10762203061 verified and copied verbatim; local migration/type manifest checks PASS. Publish type reconciliation, rerun to genuine schema snapshot and reconcile it, then same-head ordinary/native CI. Independent bounded native qualification review finishing. Whole E035 and queued business/UI/source tasks remain open.",
   "successful_retry_actor_fixture": {
-    "status": "LOCAL_CHECKS_PASS_NATIVE_PENDING",
+    "status": "NATIVE_124_PASS_AUTHENTIC_TYPES_RECONCILED_SCHEMA_PENDING",
+    "published_head": "fabd150dfb13858258c74a8746e22f075078f6f4",
+    "native_run": 35885232292,
+    "native_job": 107263560040,
+    "native_tests_passed": 124,
+    "types_artifact": 10762203061,
+    "types_sha256": "fcd9fa39904fabbf33e62bb1ca5866dbb8792947b4e1324d1f690e009a51f7a2",
     "native_expected_cases": 124,
     "actor_argument_substitutions": 19,
     "report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/successful-retry-binding-fixture-actor-20260923.md"

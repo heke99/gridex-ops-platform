@@ -88454,6 +88454,168 @@ export type Database = {
         Args: { p_api_client_id: string; p_company_id: string; p_limit: number }
         Returns: Json
       }
+      gridex_consume_utilts_billing_v1: {
+        Args: {
+          p_actor_id: string
+          p_company_id: string
+          p_expected_contracts: Json
+          p_source_message_id: string
+        }
+        Returns: {
+          billing_block_reason: string | null
+          billing_configuration_snapshot: Json | null
+          billing_configuration_snapshot_sha256: string | null
+          billing_configuration_snapshotted_at: string | null
+          billing_period_end: string | null
+          billing_period_start: string | null
+          calculated_total_sek_ex_vat: number | null
+          calculated_total_sek_inc_vat: number | null
+          calculated_vat_sek: number | null
+          campaign_id: string | null
+          company_id: string
+          contract_id: string | null
+          contract_price_snapshot_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_contract_id: string | null
+          customer_id: string | null
+          customer_site_id: string | null
+          energy_direction: string
+          exported_at: string | null
+          failure_reason: string | null
+          grid_owner_id: string | null
+          id: string
+          invoice_export_locked_at: string | null
+          invoice_export_run_id: string | null
+          invoice_readiness_issues: Json
+          invoice_readiness_status: string | null
+          metadata: Json | null
+          metering_point_id: string | null
+          missing_values_count: number | null
+          payload: Json
+          portfolio_id: string | null
+          portfolio_monthly_settlement_id: string | null
+          portfolio_settlement_revision: number | null
+          portfolio_settlement_sha256: string | null
+          price_area: string | null
+          price_book_id: string | null
+          price_plan_id: string | null
+          price_plan_version_id: string | null
+          pricing_snapshot: Json
+          pricing_snapshot_id: string | null
+          readiness_issues: Json
+          readiness_status: string | null
+          received_at: string | null
+          settlement_type: string
+          site_id: string | null
+          source_meter_value_count: number | null
+          source_request_id: string | null
+          source_system: string
+          status: string
+          supply_period_id: string | null
+          total_kwh: number | null
+          total_sek_ex_vat: number | null
+          underlay_month: number | null
+          underlay_year: number | null
+          updated_at: string
+          updated_by: string | null
+          validated_at: string | null
+          vat_rate: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "billing_underlays"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      gridex_consume_utilts_metering_v1: {
+        Args: {
+          p_actor_id: string
+          p_company_id: string
+          p_expected_contract: Json
+          p_observation_ordinal: number
+          p_source_message_id: string
+          p_transaction_id: string
+        }
+        Returns: {
+          batch_id: string | null
+          bidding_zone_code: string | null
+          billing_gate_evaluated_at: string | null
+          billing_gate_reasons: Json
+          billing_gate_snapshot: Json
+          billing_gate_status: string
+          billing_match_checked_at: string | null
+          billing_match_issues: Json
+          billing_match_status: string | null
+          billing_status: string
+          canonical_dedupe_key: string | null
+          company_id: string | null
+          correction_reason: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          customer_site_id: string | null
+          direction: string
+          grid_area_code: string | null
+          grid_owner_ediel_id: string | null
+          grid_owner_id: string | null
+          id: string
+          is_current: boolean
+          measurement_resolution: string | null
+          metadata: Json | null
+          meter_number: string | null
+          metering_point_id: string | null
+          period_end: string | null
+          period_start: string | null
+          permission_id: string | null
+          previous_value_id: string | null
+          price_area: string | null
+          product_code: string | null
+          quality: string | null
+          quality_code: string | null
+          quantity: number | null
+          quantity_kwh: number | null
+          raw_payload: Json
+          read_at: string | null
+          reading_type: string
+          reason_code: string | null
+          received_at: string | null
+          register_code: string | null
+          registration_time: string | null
+          replaced_by_value_id: string | null
+          resolution: string | null
+          revision_number: number
+          revision_status: string
+          site_id: string | null
+          source: string | null
+          source_ediel_message_id: string | null
+          source_line_reference: string | null
+          source_message_id: string | null
+          source_request_id: string | null
+          source_system: string
+          source_transaction_id: string | null
+          source_transaction_reference: string | null
+          status: string | null
+          status_code: string | null
+          supply_period_id: string | null
+          timestamp: string | null
+          unit: string | null
+          updated_at: string | null
+          updated_by: string | null
+          utilts_message_id: string | null
+          utilts_subtype: string | null
+          value_kwh: number | null
+          value_status: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "metering_values"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       gridex_contact_address: { Args: { p_value: Json }; Returns: Json }
       gridex_contact_has_channel: { Args: { p_value: Json }; Returns: boolean }
       gridex_contract_actor_can_operate_company: {
@@ -89581,6 +89743,17 @@ export type Database = {
           p_result: Json
         }
         Returns: string
+      }
+      gridex_persist_utilts_consumption_v1: {
+        Args: {
+          p_company_id: string
+          p_environment: string
+          p_message_code: string
+          p_raw_payload: string
+          p_source_message_id: string
+          p_transactions: Json
+        }
+        Returns: Json
       }
       gridex_persist_utilts_transactions_v1: {
         Args: {
