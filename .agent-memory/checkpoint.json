@@ -51,7 +51,7 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "f670fbc3fb33d2612e884e84d70c424be16c3971",
+  "last_verified_pr_head": "5b88fb3883af08eb27189b42ccd64813e0cfc548",
   "ordinary_baseline_ci": {
     "head": "95b5e391159e3164869ddabd8ec96b8f69189fe2",
     "ops": 35842844058,
@@ -209,7 +209,7 @@
     "corrected_published_head": "0e81b11960ccd980901b8c43356ac8e2edcdf387"
   },
   "closure_20260923": {
-    "status": "NATIVE_FAILURE_FIX1_LOCAL_PENDING_REVIEW_REPLAY",
+    "status": "NATIVE_FIX1_REPLAY_57_PASS_4_FAIL_FIX2_DIAGNOSTICS_ACTIVE",
     "local_tests": 5875,
     "local_files": 355,
     "targeted_tests": 108,
@@ -244,6 +244,12 @@
     "fix1_local_tests": 5906,
     "fix1_local_files": 360,
     "fix1_types_lint": "PASS",
-    "adjacent_legacy_case_types": "CONFIRMED_PENDING_SEPARATE_SEQUENTIAL_FIX"
+    "adjacent_legacy_case_types": "CONFIRMED_PENDING_SEPARATE_SEQUENTIAL_FIX",
+    "fix1_published": "5b88fb3883af08eb27189b42ccd64813e0cfc548",
+    "fix1_review": "SPEC_QUALITY_APPROVED_NATIVE_ACCEPTANCE_RESERVED",
+    "fix1_native_run": 35859902284,
+    "fix1_native_job": 107177271438,
+    "fix1_native_result": "57_PASS_4_FAIL",
+    "fix1_quality_release_gates": "SUCCESS"
   }
 }

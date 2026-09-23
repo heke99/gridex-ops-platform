@@ -348,3 +348,41 @@ Round1 final local verification: **5906 tests / 360 files PASS with coverage**
 (44.35% statements, 38.11% branches, 51.59% functions, 44.51% lines; thresholds
 passed). App and test/script typechecks, targeted lint and diff whitespace check
 PASS. Log: `/tmp/e035-closure-round1-test.log`. Native rerun remains pending.
+
+
+## Native correction round 2 — diagnostic checkpoint, not a fix claim
+
+Actual run `35859902284`, job `107177271438`, published `5b88fb3883af08eb27189b42ccd64813e0cfc548`:
+**57 passed / 4 failed**. The case writer now works, and the fresh baseline
+unwitnessed successor, missing baseline and stale-row negative cases pass.
+Retained17 and lexical37 pass. However L/LK positive append returns unconfirmed
+with no assessment, the binding-control setup consequently fails, and the
+non-midnight direct-append control still fails even after removing only its
+midnight guard. Negative passes alone do not establish a qualified owner.
+
+Static inspection has not established which shared SQL predicate causes the
+rejection. The real non-midnight proposal resolves actual fresh TS coverage
+and parties, so the next evidence must locate the SQL/append failure. This
+checkpoint changes **native diagnostics only**, not production code or guards:
+
+- Positive review helper observes the real RPC promise result and records its
+  error code/message, while preserving the request, response and single execution.
+- On failure, transaction-local diagnostics run actual append and record its
+  SQLSTATE/message/context, independently evaluate sealed raw wire matching,
+  party consistency, seven current owner-row comparisons, snapshot source count
+  and immutable baseline witness/latest/coverage/party observations.
+- The same transaction instruments the private proof's `RETURN false` sites
+  into labelled exceptions containing their preceding predicate context.
+  This identifies the rejecting branch; it does not convert false to true.
+  All diagnostic function changes and possible writes roll back.
+- The non-midnight test runs this trace with only the **already specified**
+  midnight mutation; all other proof guards stay intact. Positive and negative
+  test expectations remain unchanged. No diagnostic result is an approval.
+
+These diagnostics operate only against the existing localhost-only synthetic
+native harness. Published113014/114703, schema/types/manifests and production
+helpers are untouched. Actual root-cause determination and any genuine forward
+migration remain pending the diagnostic ordinary replay. No new acceptance,
+SQL-pass, generated-artifact or task-DONE claim is made.
+
+Diagnostic checkpoint local verification: test/script typecheck, targeted native-test lint and diff whitespace check PASS. No redundant full unit-suite run was needed for diagnostic-only native changes; real diagnostic execution remains pending ordinary replay.

@@ -339,6 +339,79 @@ async function insertClosure(f:Awaited<ReturnType<typeof seed>>,reason='Z22',min
 async function closureReview(f:Awaited<ReturnType<typeof seed>>,source:string){
  return reviewReceivedClosureSource({companyId:f.ids.company,environment:'test',sourceMessageId:source,reviewerUserId:f.ids.reviewer,confirmedOriginal:true})
 }
+type ClosureAppendArgs={p_company_id:string;p_environment:string;p_source_message_id:string;p_source_payload_hash:string;p_canonical_assessment_id:string;p_facts_text:string}
+/** Local synthetic native diagnostics only. No original/owner mutation survives
+ * the transaction and no guard is removed: false returns become labelled errors. */
+function closureSqlDiagnostics(args:ClosureAppendArgs,removeMidnight=false){
+ const facts=JSON.parse(args.p_facts_text),entry=facts.objects[0]
+ const party=literal(entry.party),business=literal(entry.business),source=literal(args.p_source_message_id)
+ return sql<Record<string,unknown>>(`BEGIN;
+  CREATE FUNCTION pg_temp.closure_native_trace() RETURNS jsonb LANGUAGE plpgsql AS $trace$
+  DECLARE result jsonb; error_code text; error_message text; error_detail text; error_context text;
+  BEGIN
+   PERFORM gridex_received_sources.append_object_assessment(${literal(args.p_company_id)},${literal(args.p_environment)},${source},${literal(args.p_source_payload_hash)},${literal(args.p_canonical_assessment_id)},${literal(args.p_facts_text)});
+   RETURN jsonb_build_object('accepted',true);
+  EXCEPTION WHEN OTHERS THEN
+   GET STACKED DIAGNOSTICS error_code=RETURNED_SQLSTATE,error_message=MESSAGE_TEXT,error_detail=PG_EXCEPTION_DETAIL,error_context=PG_EXCEPTION_CONTEXT;
+   RETURN jsonb_build_object('accepted',false,'code',error_code,'message',error_message,'detail',error_detail,'context',error_context);
+  END $trace$;
+  CREATE TEMP TABLE closure_native_diag(result jsonb);
+  INSERT INTO closure_native_diag SELECT jsonb_build_object('append',pg_temp.closure_native_trace(),
+   'wireMatches',gridex_received_sources.closure_wire_matches_v1(src.raw_payload,${business}::jsonb->'object',${business}::jsonb->'wire'),
+   'partyProof',gridex_received_sources.review_party_proof_consistent(${party}::jsonb,${business}::jsonb,src.source_received_at),
+   'closureProof',gridex_received_sources.review_closure_proof_consistent(${party}::jsonb,${business}::jsonb,src.source_message_id),
+   'ownerRows',(SELECT jsonb_object_agg(proof_kind,gridex_received_sources.owner_rows_match(proof_kind,proof_rows,${literal(args.p_company_id)},${literal(args.p_environment)},proof_id)) FROM (VALUES
+    ('profiles',${party}::jsonb#>'{receiver,evidence,records,profiles}',NULL::uuid),
+    ('identifiers',${party}::jsonb#>'{receiver,evidence,records,identifiers}',NULL::uuid),
+    ('roles',${party}::jsonb#>'{receiver,evidence,records,roles}',(${party}::jsonb#>>'{receiver,identity,legalActorId}')::uuid),
+    ('relations',${party}::jsonb#>'{receiver,evidence,records,relations}',NULL::uuid),
+    ('point',jsonb_build_array(${party}::jsonb#>'{facility,meteringPoint}'),(${business}::jsonb->>'meteringPointId')::uuid),
+    ('site',jsonb_build_array(${party}::jsonb#>'{facility,site}'),(${business}::jsonb->>'siteId')::uuid),
+    ('gridOwner',jsonb_build_array(${party}::jsonb#>'{facility,gridOwner}'),(${party}::jsonb#>>'{facility,gridOwner,id}')::uuid)
+   ) proof(proof_kind,proof_rows,proof_id)),
+   'snapshotSourceCount',(SELECT jsonb_array_length(snap.readset_text::jsonb->'sources') FROM gridex_received_sources.object_selection_snapshots snap WHERE snap.id=(${business}::jsonb#>>'{reviewSnapshot,snapshotId}')::uuid),
+   'baselineEntries',(SELECT jsonb_agg(jsonb_build_object('id',a.id,'witness',w.observed_at,'latest',NOT EXISTS(SELECT FROM gridex_received_sources.object_assessments child WHERE child.previous_assessment_id=a.id),
+     'owner',item#>>'{business,owner}','disposition',item->>'disposition','sameSupply',item#>>'{business,supplyPeriodId}'=${business}::jsonb->>'supplyPeriodId',
+     'sameCover',item#>'{business,coverageWindow}'=${business}::jsonb->'coverageWindow','parties',item#>'{party,parties}'))
+    FROM gridex_received_sources.object_assessments a LEFT JOIN gridex_received_sources.object_availability_witnesses w ON w.assessment_id=a.id
+    CROSS JOIN LATERAL jsonb_array_elements(a.facts_text::jsonb->'objects') item
+    WHERE a.source_message_id=(${business}::jsonb#>>'{coverageWindow,baselineSourceMessageId}')::uuid))
+   FROM gridex_received_sources.sources src WHERE src.source_message_id=${source};
+  DO $instrument$ DECLARE definition text; chunks text[]; rebuilt text; i integer; context text;
+  BEGIN
+   SELECT pg_get_functiondef('gridex_received_sources.review_closure_proof_consistent(jsonb,jsonb,uuid)'::regprocedure) INTO definition;
+   ${removeMidnight?`definition:=replace(definition,'OR substring(wire#>>''{effectiveTo,marketMinute}'',9,4) IS DISTINCT FROM ''0000''','OR false');`:''}
+   chunks:=string_to_array(definition,'RETURN false;');rebuilt:=chunks[1];
+   FOR i IN 2..array_length(chunks,1) LOOP
+    context:=right(chunks[i-1],220);
+    rebuilt:=rebuilt||format('RAISE EXCEPTION USING MESSAGE=%L, DETAIL=%L;', 'closure_native_guard_'||(i-1)::text,context)||chunks[i];
+   END LOOP;
+   IF array_length(chunks,1)<10 THEN RAISE EXCEPTION 'closure_native_trace_incomplete'; END IF;
+   EXECUTE rebuilt;
+  END $instrument$;
+  UPDATE closure_native_diag SET result=result||jsonb_build_object('labelledAppend',pg_temp.closure_native_trace(),'midnightRemovedForTrace',${removeMidnight});
+  SELECT result FROM closure_native_diag; ROLLBACK;`)
+}
+async function approvedClosureWithDiagnostics(f:Awaited<ReturnType<typeof seed>>,source:string){
+ const attempts:ClosureAppendArgs[]=[],errors:{name:string;code:string;message:string}[]=[]
+ const originalRpc=supabaseService.rpc.bind(supabaseService)
+ const observe=vi.spyOn(supabaseService,'rpc').mockImplementation((name,args,options)=>{
+  if(name==='gridex_record_source_object_decisions_v1')attempts.push(args as ClosureAppendArgs)
+  const request=originalRpc(name,args,options),then=request.then.bind(request)
+  request.then=((resolve,reject)=>then(response=>{
+   if(response.error)errors.push({name,code:response.error.code,message:response.error.message})
+   return response
+  }).then(resolve,reject)) as typeof request.then
+  return request
+ })
+ let result:Awaited<ReturnType<typeof closureReview>>
+ try{result=await closureReview(f,source)}finally{observe.mockRestore()}
+ const attempt=attempts.at(-1)
+ const diagnostics=result.status==='recorded'&&result.sourceDisposition==='accepted'?null:
+  {rpcErrors:errors,attemptedObjects:attempt?JSON.parse(attempt.p_facts_text).objects.map((item:{disposition:string})=>item.disposition):[],sql:attempt?closureSqlDiagnostics(attempt):null}
+ expect(result,JSON.stringify(diagnostics)).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
+ return result
+}
 it.each(['Z22','Z23'])('native %s closure retains immutable Z04 coverage after the real legacy end mutation',async reason=>{
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
  const baseline=stored(f.ids.source).at(-1)!,message=await insertClosure(f,reason)
@@ -362,7 +435,7 @@ it.each(['Z22','Z23'])('native %s closure retains immutable Z04 coverage after t
   unresolvedSources:snapshot.unresolvedSources,versions:snapshot.versions,closures:snapshot.closures,closureBlockers:snapshot.closureBlockers})
  expect(compare(unreviewed,'202610010000202610142359')).toMatchObject({status:'matched',codes:[]})
  expect(compare(unreviewed,'202610010000202610150000')).toMatchObject({status:'unavailable',codes:[]})
- const pending=await closureReview(f,message.id)
+ const pending=await approvedClosureWithDiagnostics(f,message.id)
  expect(pending,JSON.stringify(stored(message.id))).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
  const a=stored(message.id).at(-1)!
  expect(a.facts).toMatchObject({objects:[{disposition:'accepted',business:{owner:'reviewed-received-closure-v1',
@@ -379,7 +452,7 @@ it.each(['Z22','Z23'])('native %s closure retains immutable Z04 coverage after t
  expect(compare(snapshot,'202610010000202610150000','METER-1',['999'])).toMatchObject({status:'mismatch',codes:['E62']})
  const saved=await structuralSnapshot(f,unreviewed.timeline.cutoffAt!)
  expect(saved.closures).toEqual([]);expect(saved.closureBlockers).toHaveLength(1)
- expect(await closureReview(f,message.id)).toMatchObject({sourceDisposition:'accepted'})
+ expect(await approvedClosureWithDiagnostics(f,message.id)).toMatchObject({sourceDisposition:'accepted'})
  expect(stored(message.id)).toHaveLength(2)
  const last=stored(message.id).at(-1)!
  const unwitnessed=await supabaseService.rpc('gridex_record_source_object_decisions_v1',{p_company_id:f.ids.company,p_environment:'test',p_source_message_id:message.id,
@@ -421,7 +494,7 @@ it('native append independently binds sealed raw values and midnight support; is
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
  const message=await insertClosure(f)
  expect((await applyInboundBusinessStateMachine({message,actorUserId:f.ids.actor})).outcome).toBe('supply_terminated')
- expect(await closureReview(f,message.id)).toMatchObject({sourceDisposition:'accepted'})
+ expect(await approvedClosureWithDiagnostics(f,message.id)).toMatchObject({sourceDisposition:'accepted'})
  const a=stored(message.id).at(-1)!
  type Facts={objects:{object:Record<string,unknown>;business:import('@/lib/ediel/sources/reviewedClosureSource').ReviewedClosureBusiness}[]}
  const probe=(mutate:(facts:Facts)=>void,removeBinding=false,removeMidnight=false)=>{
@@ -546,7 +619,7 @@ it('a genuine non-midnight original is held by producer and direct append, even 
    RETURN true; EXCEPTION WHEN check_violation THEN RETURN false; END $probe$;
   SELECT to_jsonb(pg_temp.closure_original_probe()); ROLLBACK;`)
  expect(probe(false)).toBe(false)
- expect(probe(true)).toBe(true) // Only midnight guard removed; original binding remains.
+ expect(probe(true),JSON.stringify(closureSqlDiagnostics({p_company_id:f.ids.company,p_environment:'test',p_source_message_id:message.id,p_source_payload_hash:ownerSeed.evidence.sourcePayloadHash,p_canonical_assessment_id:ownerSeed.assessmentId,p_facts_text:facts},true))).toBe(true) // Only midnight guard removed; original binding remains.
  expect(stored(message.id)).toEqual(before)
 })
 it('an unwitnessed later Z04 review cannot fall back to the older accepted coverage for closure',async()=>{
