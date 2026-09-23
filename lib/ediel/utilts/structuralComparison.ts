@@ -1,3 +1,4 @@
+import {supportedUtiltsConsumptionIdentity} from './consumptionIdentity'
 import {singleMessage,legalParty} from './receivedStructuralSources'
 import {segmentComposite,type EdifactTokenizedSegment} from '@/lib/ediel/core/edifactTokenizer'
 import {localEdifactDateTimeToUtc,type EdifactTimezoneOffset} from './timezone'
@@ -35,6 +36,7 @@ export function compareUtiltsStructure(input:StructuralComparisonInput):Structur
       &&(resolution[0][2]==='806'&&Number(resolution[0][1])<=60||resolution[0][2]==='805'&&Number(resolution[0][1])<=1||resolution[0][2]==='807'&&Number(resolution[0][1])<=3600)
     const readings=transaction.observations.filter(observation=>observation.quantities.some(quantity=>quantity.qualifier==='220'))
     const explicitReferences=transaction.observations.flatMap(observation=>observation.references.filter(reference=>['AES','MG'].includes(reference.qualifier??'')))
+    if(!supportedUtiltsConsumptionIdentity(input.raw,input.transactionIndex))return unavailable('utilts_consumption_identity_unsupported')
     if(!readings.length&&!explicitReferences.length&&highResolution)return notApplicable()
     const sender=legalParty(ast,'MS','IDE',['SVK','260']),receiver=legalParty(ast,'MR','IDE',['SVK','260'])
     const locations=header.filter(segment=>segment.tag==='LOC'&&parts(segment,1)[0]==='172')

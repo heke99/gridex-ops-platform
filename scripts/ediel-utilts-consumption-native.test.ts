@@ -343,7 +343,7 @@ it.each(['point-grid', 'point-site', 'point-customer-site', 'site-grid', 'reques
   if (kind === 'request-grid') sql(`UPDATE public.grid_owner_data_requests SET grid_owner_id=NULL WHERE id=${lit(f.ids.request)}`)
   await realSinks()
   const meter = await Promise.allSettled([ingestBoundUtiltsMetering({ actorUserId: f.ids.actor, message: f.original, boundOutcomes: rows })])
-  expect(meter[0].status === 'rejected' || (meter[0].status === 'fulfilled' && meter[0].value.length === 0)).toBe(true)
+  expect(meter[0].status).toBe('rejected')
   await expect(createBoundUtiltsBilling({ actorUserId: f.ids.actor, message: f.original, boundOutcomes: rows, existingBillingUnderlayId: null })).rejects.toBeDefined()
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
 })
@@ -449,4 +449,181 @@ it.each(['missing-contract', 'corrupt-contract-hash', 'corrupt-raw-hash'])('nati
    SELECT to_jsonb(pg_temp.binding_corruption_probe()); ROLLBACK;`)
   expect(result).toMatch(/^P0U01:utilts_/)
   expect(snapshot(f.original.id)).toEqual(before)
+})
+
+function sinkState(company: string) {
+  return sql(`SELECT jsonb_build_object('meters',(SELECT jsonb_agg(to_jsonb(m) ORDER BY id) FROM public.metering_values m WHERE company_id=${lit(company)}),
+   'normalized',(SELECT jsonb_agg(to_jsonb(n) ORDER BY id) FROM public.normalized_metering_values n WHERE company_id=${lit(company)}),
+   'links',(SELECT jsonb_agg(to_jsonb(l) ORDER BY id) FROM public.metering_value_sources l WHERE company_id=${lit(company)}))`)
+}
+it.each(['customer', 'site', 'customer-site', 'grid', 'request', 'resolution', 'read-at', 'reading-type', 'normalized-quantity', 'normalized-facility', 'normalized-resolution', 'normalized-site'])('R1 full processor refuses colliding stored %s before lineage/completion', async field => {
+  const f = await seed(), initial = await f.prepare()
+  await persistUtiltsTransactionResults(initial)
+  expect((await sinkRpc(initial, 'metering')).error).toBeNull()
+  if (field === 'customer') {
+    const other = randomUUID()
+    sql(`INSERT INTO public.customers(id,company_id,customer_number,name,customer_type) VALUES(${lit(other)},${lit(f.ids.company)},${lit(other)},'Other synthetic','private'); UPDATE public.metering_values SET customer_id=${lit(other)} WHERE company_id=${lit(f.ids.company)}`)
+  } else {
+    const updates: Record<string, string> = { site: 'site_id=NULL', 'customer-site': 'customer_site_id=NULL', grid: 'grid_owner_id=NULL', request: 'source_request_id=NULL', resolution: "resolution='PT1H'", 'read-at': "read_at=read_at+interval '1 minute'", 'reading-type': "reading_type='estimated'", 'normalized-quantity': 'quantity_kwh=501', 'normalized-facility': "facility_id='other'", 'normalized-resolution': "resolution='PT1H'", 'normalized-site': 'site_id=NULL' }
+    sql(`UPDATE public.${field.startsWith('normalized') ? 'normalized_metering_values' : 'metering_values'} SET ${updates[field]} WHERE company_id=${lit(f.ids.company)}`)
+  }
+  const source = await f.insertSource(f.original.raw_payload!.replaceAll(f.original.interchange_reference!, 'REUSE'+f.original.interchange_reference!))
+  await persistUtiltsTransactionResults(await f.prepare(source))
+  const before = sinkState(f.ids.company), persisted = snapshot(source.id)
+  await realSinks()
+  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })).rejects.toThrow(/utilts_consumption_existing_(metering|normalized)_conflict/)
+  expect(sinkState(f.ids.company)).toEqual(before)
+  expect(snapshot(source.id)).toEqual(persisted)
+  expect(effects.complete).not.toHaveBeenCalled(); expect(effects.ack).not.toHaveBeenCalled()
+  expect(effects.status.mock.calls.some(([call]) => call.status === 'validated')).toBe(false)
+})
+it('R1 identical different-source reuse preserves content and adds separate lineage', async () => {
+  const f = await seed(), a = await f.prepare()
+  await persistUtiltsTransactionResults(a)
+  const first = await sinkRpc(a, 'metering'); expect(first.error).toBeNull()
+  const source = await f.insertSource(f.original.raw_payload!.replaceAll(f.original.interchange_reference!, 'EQUAL'+f.original.interchange_reference!)), b = await f.prepare(source)
+  await persistUtiltsTransactionResults(b)
+  const next = await sinkRpc(b, 'metering'); expect(next.error).toBeNull()
+  expect((next.data as { id: string }).id).toBe((first.data as { id: string }).id)
+  expect(sql(`SELECT count(*) FROM public.metering_value_sources WHERE company_id=${lit(f.ids.company)}`)).toBe(2)
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 0 })
+})
+it('R1 environment collision cannot add lineage or overwrite an existing result', async () => {
+  const f = await seed(), a = await f.prepare()
+  await persistUtiltsTransactionResults(a); expect((await sinkRpc(a, 'metering')).error).toBeNull()
+  const source = await f.insertSource(f.original.raw_payload!.replaceAll(f.original.interchange_reference!, 'ENV'+f.original.interchange_reference!), 'E66', 'production'), b = await f.prepare(source)
+  await persistUtiltsTransactionResults(b)
+  const before = sinkState(f.ids.company), persisted = snapshot(source.id)
+  expect((await sinkRpc(b, 'metering')).error?.message).toContain('existing_metering_environment_conflict')
+  expect(sinkState(f.ids.company)).toEqual(before); expect(snapshot(source.id)).toEqual(persisted)
+})
+async function realCompletion() {
+  const db = await vi.importActual<typeof import('@/lib/cis/db-data')>('@/lib/cis/db-data')
+  effects.complete.mockImplementation(db.syncGridOwnerDataRequestReceivedFromEdiel)
+  const ediel = await vi.importActual<typeof import('@/lib/ediel/db')>('@/lib/ediel/db')
+  effects.status.mockImplementation(ediel.updateEdielMessageStatus)
+}
+function requestState(request: string) {
+  return sql<{ status: string; response_payload: { billingUnderlayId: string } }>(`SELECT to_jsonb(r) FROM public.grid_owner_data_requests r WHERE id=${lit(request)}`)
+}
+it.each(['completed', 'after-real-completion-before-ack', 'foreign-response-id', 'stale-response-id'])('R2 %s reuses verified underlay and preserves request/message/return lineage', async boundary => {
+  const f = await seed()
+  await realSinks(); await realCompletion()
+  if (boundary === 'after-real-completion-before-ack') effects.ack.mockRejectedValueOnce(new Error('after_real_completion'))
+  const first = processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })
+  if (boundary === 'after-real-completion-before-ack') await expect(first).rejects.toThrow('after_real_completion')
+  else await first
+  const id = requestState(f.ids.request).response_payload.billingUnderlayId
+  expect(id).toMatch(/^[a-f0-9-]{36}$/)
+  if (boundary === 'foreign-response-id') {
+    const foreign = await seed(); await persistUtiltsTransactionResults(await foreign.prepare())
+    const bill = await sinkRpc(await foreign.prepare(), 'billing'); expect(bill.error).toBeNull()
+    sql(`UPDATE public.grid_owner_data_requests SET response_payload=jsonb_set(response_payload,'{billingUnderlayId}',to_jsonb(${lit((bill.data as { id: string }).id)}::text)) WHERE id=${lit(f.ids.request)}`)
+  }
+  if (boundary === 'stale-response-id') sql(`UPDATE public.grid_owner_data_requests SET response_payload=jsonb_set(response_payload,'{billingUnderlayId}',to_jsonb(${lit(randomUUID())}::text)) WHERE id=${lit(f.ids.request)}`)
+  sql(`UPDATE public.billing_underlays SET status='validated',updated_by=NULL,readiness_status='ready',payload=payload||'{"workflowNote":"reviewed"}'::jsonb WHERE id=${lit(id)}`)
+  const billBefore = sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE id=${lit(id)}`)
+  effects.bill.mockClear()
+  const replay = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })
+  expect(effects.bill).toHaveBeenCalledTimes(1); expect(replay.billingUnderlayId).toBe(id)
+  expect(requestState(f.ids.request).response_payload.billingUnderlayId).toBe(id)
+  expect(sql(`SELECT to_jsonb(parsed_payload->>'billingUnderlayId') FROM public.ediel_messages WHERE id=${lit(f.original.id)}`)).toBe(id)
+  expect(sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE id=${lit(id)}`)).toEqual(billBefore)
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
+})
+it.each(['month', 'year', 'currency', 'contributors', 'missing-contributors'])('R2 populated response cannot bypass changed existing billing %s', async field => {
+  const f = await seed(); await realSinks(); await realCompletion()
+  effects.ack.mockRejectedValueOnce(new Error('after_real_completion'))
+  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('after_real_completion')
+  const before = requestState(f.ids.request), persisted = snapshot(f.original.id)
+  expect(before.response_payload.billingUnderlayId).toBeTruthy()
+  const mutation = field === 'month' ? 'underlay_month=7' : field === 'year' ? 'underlay_year=2027'
+    : field === 'currency' ? "currency='EUR'" : field === 'contributors' ? "payload=jsonb_set(payload,'{consumptionContracts,0,observations,0,quantity}','999'::jsonb)" : "payload=payload-'consumptionContracts'"
+  sql(`UPDATE public.billing_underlays SET ${mutation} WHERE company_id=${lit(f.ids.company)}`)
+  const billingBefore = sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)
+  effects.ack.mockClear(); effects.complete.mockClear(); effects.status.mockClear()
+  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('existing_billing_conflict')
+  expect(effects.complete).not.toHaveBeenCalled(); expect(effects.ack).not.toHaveBeenCalled()
+  expect(effects.status.mock.calls.some(([call]) => call.status === 'validated')).toBe(false)
+  expect(requestState(f.ids.request)).toEqual(before); expect(snapshot(f.original.id)).toEqual(persisted)
+  expect(sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)).toEqual(billingBefore)
+})
+
+it.each(['energy', 'readings', 'E30-energy', 'E30-readings', 'S07-policy'] as const)('R3 real %s processor holds agency89 text collision with no consumable series or functional ACK', async shape => {
+  const f = await seed()
+  const { observationHandoffMessage } = await import('../__tests__/helpers/utiltsObservationHandoff')
+  const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
+  const code = shape.startsWith('E30') ? 'E30' : shape === 'S07-policy' ? 'S07' : 'E66'
+  let raw = shape.includes('readings') ? observationHandoffMessage('2026-10-01', f.ids.company).raw_payload! : f.original.raw_payload!
+  raw = raw.replace('?+0200:406', '?+0100:406').replace('QTY+220:11000', 'QTY+220:10500')
+    .replace('735999260731000007::9', '735999260731000007::89').replace('BGM+E66', `BGM+${code}`)
+    .replace(/23-DDQ-E66-[ST]/g, code === 'E30' ? '23-MDR-E30-T' : `23-DDQ-${code}-T`)
+  const source = await f.insertSource(raw, code)
+  await realSinks()
+  const result = await (shape === 'S07-policy' ? processInboundUtiltsMessageByCanonicalPolicy : processInboundUtiltsMessage)({ actorUserId: f.ids.actor, edielMessageId: source.id })
+  expect(result.internalReviewRequired).toBe(true); expect(result.ingestedMeterValueIds).toEqual([])
+  expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
+  expect(effects.ack.mock.calls.every(([call]) => call.ackFamily === 'CONTRL')).toBe(true)
+  expect(sql(`SELECT jsonb_agg(jsonb_build_object('disposition',disposition,'plan',planned_response_type,'final',final_response_type,'series',persisted_series_id)) FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)}`)).toEqual([{ disposition: 'internal_review', plan: 'none', final: null, series: null }])
+  expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+})
+it('R3 direct persistence HTTP cannot mint agency89 authority from forged plain-ID accepted contract', async () => {
+  const f = await seed(), supported = await f.prepare()
+  const source = await f.insertSource(f.original.raw_payload!.replace('735999260731000007::9', '735999260731000007::89'))
+  const { error } = await supabaseService.rpc('gridex_persist_utilts_consumption_v1', {
+    p_company_id: f.ids.company, p_environment: 'test', p_source_message_id: source.id, p_message_code: 'E66', p_raw_payload: source.raw_payload!,
+    p_transactions: supported.transactions.map((t, i) => ({ ...t, consumptionContract: supported.contracts[i] })),
+  })
+  expect(error?.message).toContain('identity_unsupported')
+  expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
+  expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
+})
+it.each([false, true])('R4 real permission/no-request processor holds failed write, earlier sibling committed=%s', async sibling => {
+  const f = await seed(), permission = randomUUID()
+  let source = f.original
+  if (sibling) {
+    const lines = f.original.raw_payload!.replace('BGM+E66', 'BGM+E30').replace('23-DDQ-E66-T', '23-MDR-E30-T')
+      .replace('202607010000202607010015:719', '202607010000202607010030:719').split('\n')
+    const at = lines.findIndex(line => line.startsWith('UNT+'))
+    lines.splice(at, 0, "SEQ++2'", "QTY+136:7'", "DTM+597:202607010015:203'", "STS+7++21::260'")
+    lines[at + 4] = `UNT+${at + 3}+1'`
+    source = await f.insertSource(lines.join('\n'), 'E30')
+  }
+  sql(`UPDATE public.ediel_messages SET grid_owner_data_request_id=NULL WHERE company_id=${lit(f.ids.company)};
+   DELETE FROM public.grid_owner_data_requests WHERE id=${lit(f.ids.request)};
+   INSERT INTO public.metering_permissions(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,grid_owner_id,status)
+   VALUES(${lit(permission)},${lit(f.ids.company)},${lit(f.ids.customer)},${lit(f.ids.site)},${lit(f.ids.site)},${lit(f.ids.point)},${lit(f.ids.grid)},'active');`)
+  await realSinks()
+  const actual = await vi.importActual<typeof import('@/lib/metering/normalizeMeteringValues')>('@/lib/metering/normalizeMeteringValues')
+  let ordinal = 0
+  effects.meter.mockImplementation(async input => {
+    if (ordinal++ === (sibling ? 1 : 0)) {
+      expect(sql(`SELECT count(*) FROM gridex_utilts_binding.contracts WHERE source_message_id=${lit(source.id)}`)).toBe(1)
+      sql(`UPDATE public.metering_points SET site_id=NULL,customer_site_id=NULL WHERE id=${lit(f.ids.point)}`)
+    }
+    return actual.normalizeAndStoreMeteringValue(input)
+  })
+  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })).rejects.toThrow('metering_not_stored')
+  expect(effects.ack).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
+  expect(effects.status.mock.calls.some(([call]) => call.status === 'validated')).toBe(false)
+  expect(consumedCount(f.ids.company)).toEqual({ meter: sibling ? 1 : 0, billing: 0 })
+  expect(sql(`SELECT count(*) FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)} AND (finalized_at IS NOT NULL OR response_message_id IS NOT NULL)`)).toBe(0)
+  const committed = sql<string[]>(`SELECT coalesce(jsonb_agg(id),'[]') FROM public.metering_values WHERE company_id=${lit(f.ids.company)}`)
+  sql(`UPDATE public.metering_points SET site_id=${lit(f.ids.site)},customer_site_id=${lit(f.ids.site)} WHERE id=${lit(f.ids.point)}`)
+  effects.meter.mockImplementation(actual.normalizeAndStoreMeteringValue)
+  const replay = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
+  expect(replay.ingestedMeterValueIds).toHaveLength(sibling ? 2 : 1)
+  expect(replay.ingestedMeterValueIds).toEqual(expect.arrayContaining(committed))
+  expect(effects.status.mock.calls.some(([call]) => call.status === 'validated' && call.parsedPayload?.matchedMeteringPermissionId === permission)).toBe(true)
+  expect(effects.ack.mock.calls.some(([call]) => call.ackFamily === 'APERAK')).toBe(true)
+})
+it('C1 restored case history is tenant-classified with real RLS and client access closed', () => {
+  expect(sql(`SELECT jsonb_build_object('kind',kind,'nullMeaning',null_company_meaning) FROM public.platform_table_classification WHERE table_name='customer_case_events'`)).toEqual({ kind: 'tenant', nullMeaning: null })
+  expect(sql(`SELECT relrowsecurity FROM pg_class WHERE oid='public.customer_case_events'::regclass`)).toBe(true)
+  expect(sql(`SELECT attnotnull FROM pg_attribute WHERE attrelid='public.customer_case_events'::regclass AND attname='company_id'`)).toBe(true)
+  for (const role of ['anon', 'authenticated']) {
+    expect(sql(`SELECT has_table_privilege(${lit(role)},'public.customer_case_events','SELECT,INSERT,UPDATE,DELETE')`)).toBe(false)
+  }
+  expect(sql(`SELECT count(*) FROM pg_constraint WHERE conrelid='public.customer_case_events'::regclass AND conname IN ('customer_case_events_case_owner_fk','customer_case_events_customer_company_fk') AND convalidated`)).toBe(2)
 })

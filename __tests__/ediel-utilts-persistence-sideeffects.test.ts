@@ -106,3 +106,27 @@ describe('real UTILTS quantity sinks require durable transaction acceptance', ()
     expect(io.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: 123 }))
   })
 })
+
+it.each(['underlay', 'stale-or-foreign-id'])('revalidates billing even when response names %s', async existingBillingUnderlayId => {
+  const p = payload()
+  const result = await maybeCreateBillingUnderlay({ actorUserId: 'actor', message, normalizedPayload: p,
+    boundOutcomes: boundLegacySinkFixture(p), customerId: 'customer-a', siteId: 'site-a', meteringPointId: 'point-a', gridOwnerId: 'owner-a',
+    dataRequest: { id: 'request-a', request_scope: 'billing_underlay', response_payload: { billingUnderlayId: existingBillingUnderlayId } } as unknown as GridOwnerDataRequestRow })
+  expect(io.bill).toHaveBeenCalledTimes(1)
+  expect(result).toEqual({ id: 'underlay' })
+})
+it('a writable observation needing review fails consumption instead of completing empty', async () => {
+  io.meter.mockResolvedValueOnce({ status: 'needs_review', reason: 'ownership_changed' })
+  await expect(consume(payload())).rejects.toThrow('metering_not_stored')
+  expect(io.bill).not.toHaveBeenCalled()
+})
+it('a later failed writable sibling cannot report partial success', async () => {
+  const p = payload()
+  p.transactions = [transaction('T1', 123), transaction('T2', 7)]
+  p.utiltsTransactionDispositions = [decision('T1'), decision('T2')]
+  p.utiltsTransactionPersistenceResults = [persisted('T1'), persisted('T2')]
+  io.meter.mockResolvedValueOnce({ status: 'stored', meteringValue: { id: 'committed' } }).mockResolvedValueOnce({ status: 'needs_review' })
+  await expect(consume(p)).rejects.toThrow('metering_not_stored')
+  expect(io.meter).toHaveBeenCalledTimes(2)
+  expect(io.bill).not.toHaveBeenCalled()
+})

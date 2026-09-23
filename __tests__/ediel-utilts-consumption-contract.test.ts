@@ -60,3 +60,7 @@ it('rejects the old successful RPC shape without any stored authority', async ()
   const { input } = await preparedEnergy()
   expect(() => validateUtiltsPersistenceResults(input, [{ transactionId: input.transactions[0].transactionId, disposition: 'accepted', responseType: 'positive_aperak', persistenceStatus: 'persisted' }])).toThrow('source_binding')
 })
+
+it('plain-ID matching cannot grant consumption to an unsupported original agency89', async () => {
+  await expect(preparedEnergy('E66', raw => raw.replace('735999260731000007::9', '735999260731000007::89'))).rejects.toThrow('identity_unsupported')
+})

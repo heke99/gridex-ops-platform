@@ -1,3 +1,4 @@
+import {supportedUtiltsConsumptionIdentity} from './consumptionIdentity'
 import {supabaseService} from '@/lib/supabase/service'
 import {isEvidenceUuid} from './durableSourceDiscovery'
 import {parseSourceReceiptInstant} from './receivedSourceInventory'
@@ -23,20 +24,27 @@ export async function qualifyReceivedUtiltsStructure(input:{message:EdielMessage
   const result:ReceivedStructureQualification={runtime,hasInternalReview:false,hasNationalMismatch:false,
     evidence:{version:1,owner:'received-structure-comparison-v1',status:'not_applicable',cutoffAt:null,snapshotId:null,readsetHash:null,comparisons:[]}}
   if(canonicalPolicy.family!=='UTILTS'||canonicalPolicy.direction!=='inbound'||canonicalPolicy.code!==message.message_code
-    ||message.direction!=='inbound'||!['E30','E66','S07'].includes(message.message_code??'')
-    ||!resolveUtiltsProcessabilityPolicy(canonicalPolicy.referenceDate).validateMeterAndRegisterAgainstStructuralInformation)return result
+    ||message.direction!=='inbound'||!['E30','E66','S07'].includes(message.message_code??''))return result
   const eligible=runtime.transactionDispositions.map((disposition,index)=>({disposition,index})).filter(({disposition})=>disposition.disposition==='accepted')
   if(!eligible.length)return result
   const raw=message.raw_payload
+  const identityFailures=new Map(eligible.filter(({disposition,index})=>{
+    const identity=supportedUtiltsConsumptionIdentity(raw??'',index)
+    return !identity||identity.transactionId!==disposition.transactionId
+  }).map(({disposition,index})=>[index,{transactionId:disposition.transactionId,status:'unavailable' as const,
+    reason:'utilts_consumption_identity_unsupported',codes:[],selected:[]}]))
+  const comparisonEnabled=resolveUtiltsProcessabilityPolicy(canonicalPolicy.referenceDate).validateMeterAndRegisterAgainstStructuralInformation
+  const compareEligible=eligible.filter(({index})=>!identityFailures.has(index))
+  const needsReadset=comparisonEnabled&&compareEligible.some(({index})=>compareUtiltsStructure({raw:raw??'',transactionIndex:index,
+    cutoffAt:'',ledgerStartedAt:'',readComplete:false,unresolvedSources:true,versions:[]}).status!=='not_applicable')
   // The original wire, not a cached diagnostic, decides that an energy-only
   // high-resolution transaction has no meter/register comparison to perform.
   // Do not obtain an authority readset when every accepted transaction is exempt.
-  if(eligible.every(({index})=>compareUtiltsStructure({raw:raw??'',transactionIndex:index,
-    cutoffAt:'',ledgerStartedAt:'',readComplete:false,unresolvedSources:true,versions:[]}).status==='not_applicable'))return result
+  if(!identityFailures.size&&!needsReadset)return result
   result.evidence.status='evaluated'
   const companyId=message.company_id,cutoffAt=new Date().toISOString()
   let readset:ReturnType<typeof inspectStructuralReadset>|null=null
-  if(isEvidenceUuid(companyId)&&isEvidenceUuid(message.id)&&typeof raw==='string'&&typeof cutoffAt==='string'
+  if(needsReadset&&isEvidenceUuid(companyId)&&isEvidenceUuid(message.id)&&typeof raw==='string'&&typeof cutoffAt==='string'
     &&parseSourceReceiptInstant(cutoffAt)!==null&&['test','production'].includes(message.environment)){
     result.evidence.cutoffAt=cutoffAt
     try{
@@ -50,6 +58,9 @@ export async function qualifyReceivedUtiltsStructure(input:{message:EdielMessage
     }catch{/* No stale snapshot fallback and no national rejection on IO failure. */}
   }
   const comparisons=eligible.map(({disposition,index})=>{
+    const identityFailure=identityFailures.get(index)
+    if(identityFailure)return identityFailure
+    if(!comparisonEnabled)return {transactionId:disposition.transactionId,status:'not_applicable' as const,reason:null,codes:[],selected:[]}
     // Even a failed snapshot may be irrelevant to a quarter-energy transaction
     // with no meter/register observations. The pure input decides applicability.
     const compared=compareUtiltsStructure({raw:raw??'',transactionIndex:index,cutoffAt:cutoffAt??'',

@@ -1,0 +1,18 @@
+# Final consumer correction wave — 2026-09-23
+
+Implemented R1–R4; local gates pass. Native qualification and independent final acceptance remain pending. E035/F3/masterplan is PARTIAL.
+
+- R1: forward SQL compares locked existing metering and normalized business content, exact current projection and source environment before lineage reuse, then rechecks the returned legacy result transactionally. Equal multi-source lineage and workflow/audit edits remain separate; conflicts hold without replacing existing content.
+- R2: populated mutable billing response IDs no longer skip source-owned database verification. Request/message/return state receives the verified underlay ID on every accepted writable retry.
+- R3: original agency9/no-issuer identity and legal-party scope are checked before policy-window/high-resolution exemptions, again before writable preparation, independently during SQL persistence and stored-contract lookup. Unsupported scope is internal review/response none; no E61/E62 fabrication. Prior-guide meter/register comparison remains explicitly deferred; comparison coverage is A4 from 2026-10-01.
+- R4: non-stored writable observations raise internal failure; no positive ACK/success completion from an empty/partial failed write. Committed earlier rows survive for idempotent retry.
+
+Focused corrected-fixture RED11 failures/41passes against original runtime, GREEN101/4. Full unit+coverage5975/370 PASS (44.76% statements,38.63% branches,51.86% functions,44.94% lines). App/tests/scripts typechecks and focused ESLint PASS. Integrity607files/511groups and static provenance514 PASS; diff check PASS. Existing experimental proxy warnings remain.
+
+32 added native cases (31 consumer + C1) are wired into the retained source-owner suite (expected156 including retained124). Cover content/projection/attribution/environment collision with unchanged source links/completion, equal reuse, real completed/after-completion billing retries with populated foreign/stale IDs and altered business fields, both processors' agency89 holds/direct RPC denial, and real no-request permission owner drift plus committed sibling recovery. Earlier rejected-or-empty assertion is strengthened to rejection. **These SQL/HTTP cases have not been executed locally.**
+
+Authentic pinned CLI2.101.0 forward: `20260923191510_ediel_utilts_consumer_content_identity.sql`, SHA256 `63efd369d81a1a36a29ab4e7d8b9cc63904e9dc83579d17eb585189da09266b9`. Existing migration checksums are unchanged. Public service-only execution and private function revocations retained. No generated contract hand edits, case/browser edits, hosted writes, deployments, market messages or PR310 changes.
+
+Root owns publication, actual native/browser/postbrowser runs, authentic generated reconciliation and exact-final-head independent review before bounded merge. Full command/evidence/limitations and finding-to-test map: `.superpowers/sdd/continuation-20260923-evening/final-wave-report.md`.
+
+C1 is a separate authentic CI finding supplied during the wave: d85815f/OPS35908723812/native107342855636 passed retained124+case1+browser2+postbrowser1/types, then F-6 rejected unclassified customer_case_events. A second CLI2.101.0 forward, `20260923192915_classify_customer_case_events.sql` (SHA256 `e4ede5308f871b77da9b008ce78aa9ec5199885ef627e9d0ce0261e2d5f65822`), registers only this tenant-owned history as `tenant`. No F-6 waiver, client grant, RLS/ownership change or data rewrite. Native assertion verifies tenant classification, RLS, NOT NULL, closed client grants and validated composite FKs. Genuine F-6/native GREEN remains pending; no second full-unit run for metadata-only C1.

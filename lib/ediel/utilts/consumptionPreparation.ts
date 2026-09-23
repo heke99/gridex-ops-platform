@@ -1,3 +1,4 @@
+import { supportedUtiltsConsumptionIdentity } from './consumptionIdentity'
 import { flattenUtiltsTransactionSeries, matchForSeriesItem, stringOrNull, toMeteringReadingType, type UtiltsTransactionMatch } from '@/lib/ediel/flows/utiltsDataRequest.part-1'
 import { matchMeteringPointIdByIdentifier, matchSiteAndCustomerForMeteringPoint } from '@/lib/ediel/matching'
 import { localEdifactDateTimeToUtc, parseEdifactTimezoneOffsetFromSegments } from './timezone'
@@ -55,6 +56,8 @@ export async function prepareUtiltsConsumptionContracts(input: {
     const items = consume ? series.filter(item => (item.transactionReference ?? (runtime.facts.transactions.length === 1 ? transactionId : null)) === transactionId) : []
     let metering = noAttribution(consume ? 'no_eligible_observations' : 'no_consumption')
     if (items.length) {
+      const identity = supportedUtiltsConsumptionIdentity(message.raw_payload ?? '', index)
+      if (!identity || identity.transactionId !== transactionId || items.some(item => item.externalMeteringPointId !== identity.point)) consumptionConflict('identity_unsupported')
       const match = matchForSeriesItem(items[0], input.matches)
       let point = match?.meteringPointId ?? input.fallback.meteringPointId
       if (items[0].externalMeteringPointId && !match?.meteringPointId) point = await matchMeteringPointIdByIdentifier({ companyId, identifiers: [items[0].externalMeteringPointId] })

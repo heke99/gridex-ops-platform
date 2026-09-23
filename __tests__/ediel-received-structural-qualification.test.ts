@@ -86,3 +86,30 @@ it('an incomplete, corrupt or cross-tenant snapshot cannot release applicable re
   expect(await qualifyReceivedUtiltsStructure(args)).toMatchObject({hasInternalReview:true,hasNationalMismatch:false})
  }
 })
+
+it.each([['2026-09-23',true],['2026-10-01',true],['2026-09-23',false],['2026-10-01',false]] as const)('unsupported original agency89 stays held on %s, energy exemption %s',async(date,energy)=>{
+ const args=input(energy)
+ args.message.raw_payload=args.message.raw_payload!.replace('735999260731000007::9','735999260731000007::89').replace('?+0200:406','?+0100:406').replace('202610011811',date.replaceAll('-','')+'1811').replace('QTY+220:11000','QTY+220:10500')
+ args.message.message_received_at=date+'T00:00:00Z'
+ args.canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:date,applicationReference:args.message.application_reference,mode:'parse'})
+ args.runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
+ expect(args.runtime.transactionDispositions,JSON.stringify(args.runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
+ const result=await qualifyReceivedUtiltsStructure(args)
+ expect(result).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,runtime:{transactionDispositions:[{disposition:'internal_review',responseType:'none'}]}})
+ expect(result.runtime.ackPlan.utiltsErrCodes).toEqual([])
+ const items=buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:result.runtime.facts.transactions,dispositions:result.runtime.transactionDispositions,matches:[]})
+ expect(items[0].quantities).toEqual([])
+ expect(io.rpc).not.toHaveBeenCalled()
+})
+it.each(['E30-energy','E30-readings','S07'] as const)('qualifies the real %s parser fixture before holding unsupported identity',async shape=>{
+ const args=input(!shape.includes('readings')),code=shape==='S07'?'S07':'E30'
+ args.message.message_code=code;args.message.application_reference=code==='E30'?'23-MDR-E30-T':'23-DDQ-S07-T'
+ args.message.raw_payload=args.message.raw_payload!.replace('?+0200:406','?+0100:406').replace('QTY+220:11000','QTY+220:10500')
+  .replace('BGM+E66',`BGM+${code}`).replace(/23-DDQ-E66-[ST]/g,args.message.application_reference)
+ args.canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:code,direction:'inbound',referenceDate:'2026-10-01',applicationReference:args.message.application_reference,mode:'parse'})
+ args.runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
+ expect(args.runtime.transactionDispositions,JSON.stringify(args.runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
+ args.message.raw_payload=args.message.raw_payload!.replace('735999260731000007::9','735999260731000007::89')
+ args.runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
+ expect(await qualifyReceivedUtiltsStructure(args)).toMatchObject({hasInternalReview:true,runtime:{transactionDispositions:[{disposition:'internal_review',responseType:'none'}]}})
+})

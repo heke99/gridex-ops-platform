@@ -34,7 +34,7 @@ export async function ingestBoundUtiltsMetering(input: BoundSinkInput): Promise<
         sourceTransactionReference: contract.transactionId, createdBy: input.actorUserId, immutableAttribution: true, boundObservationOrdinal: o.ordinal, boundContract: contract,
         rawPayload: { consumptionContract: contract, sourceOrdinal: o.sourceOrdinal, edielMessageId: input.message.id },
       })
-      if (stored.status !== 'stored') continue
+      if (stored.status !== 'stored') consumptionConflict('metering_not_stored')
       await updateMeterValueBillingReadiness({ meterValue: stored.meteringValue, sourceMessageId: input.message.id })
       rows.push(stored.meteringValue)
     }
@@ -44,7 +44,9 @@ export async function ingestBoundUtiltsMetering(input: BoundSinkInput): Promise<
 export async function createBoundUtiltsBilling(input: BoundSinkInput & { existingBillingUnderlayId: string | null }) {
   const accepted = contracts(input)
   const contributors = accepted.filter(contract => contract.billing.capability === 'write')
-  if (!contributors.length || input.existingBillingUnderlayId) return null
+  // The mutable response ID is diagnostic only. The database resolves and
+  // verifies the source-owned underlay on every pass, including completed replay.
+  if (!contributors.length) return null
   const context = contributors[0].billing
   if (accepted.some(contract => !consumptionEqual(contract.billing, context))) consumptionConflict('billing_context_mismatch')
   const totalKwh = contributors.reduce((sum, c) => sum + c.billingContributionOrdinals.reduce((total, ordinal) => total + c.observations[ordinal].quantity, 0), 0)
