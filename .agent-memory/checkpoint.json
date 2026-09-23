@@ -12,7 +12,7 @@
   "root_main_acceptance_comment": 5768848443,
   "active_item": "E035 dated reviewed market structure and authoritative E61/E62 comparison",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
-  "next_action": "Implement reviewed Z05L/LK closure from independently reviewed design; retain remaining source owners and full final review gates. Inspect98aedb ordinary CI.",
+  "next_action": "Finish genuine Z05L/LK closure owner/readset/selection from private parser checkpoint; native replay and independent review. Then immutable successful-retry content binding, prior-guide E61/E62 scoped activation, Z05C and remaining source owners.",
   "previous_ordinary_ci": {
     "head": "a89275ba0b34ae27530c2e403d3ae3f2667afe3b",
     "ops": 35715146276,
@@ -35,8 +35,8 @@
     "root_tests": 5514,
     "ordinary_delivery_retest_needed": true
   },
-  "independent_review": "RETRY_SIDE_EFFECTS_TASK_SPEC_AND_QUALITY_APPROVED; FULL_E035_PENDING",
-  "ordinary_final_head_ci": "98aedb_NATIVE_VERIFY_PASS_FULL_TESTS_2_FAIL; CORRECTED_CANDIDATE_PENDING",
+  "independent_review": "RETRY_FIX_AND_SCOPED_FIX_APPROVED; CLOSURE_PARSER_STATIC_PREFLIGHT_ONLY; FULL_E035_PENDING",
+  "ordinary_final_head_ci": "0e81b119_ALL_APPLICABLE_SUCCESS; NEXT_CLOSURE_CHECKPOINT_PENDING_NATIVE",
   "full_source_disposition": "DATED_POST_LEDGER_Z04_Z06F_Z06G_Z10_AND_BGM5_E61_E62_PARTIAL; APPLICABILITY_AND_HISTORY_INCOMPLETE",
   "full_E035": "NOT_COMPLETE",
   "full_F3": "NOT_COMPLETE",
@@ -51,7 +51,7 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "95b5e391159e3164869ddabd8ec96b8f69189fe2",
+  "last_verified_pr_head": "0e81b11960ccd980901b8c43356ac8e2edcdf387",
   "ordinary_baseline_ci": {
     "head": "95b5e391159e3164869ddabd8ec96b8f69189fe2",
     "ops": 35842844058,
@@ -199,12 +199,27 @@
     "types": "PASS",
     "lint": "PASS",
     "task_review": "APPROVED",
-    "ordinary_ops": 35851564435,
-    "ordinary_ci": "98aedb_NATIVE_PASS_2_PURE_EXTRACTION_FAILURES; FOLLOWUP_PENDING",
+    "ordinary_ops": 35852364010,
+    "ordinary_ci": "ALL_APPLICABLE_SUCCESS",
     "remaining_adjacent_scope": "successful replay quantity/hash binding not proved",
     "fix_local_commit": "146b0a242ba6a2c5355f9211b6937cf1f2396915",
     "full_local_tests": 5823,
     "full_local_files": 352,
-    "fix_review": "ADDRESSED_APPROVED"
+    "fix_review": "ADDRESSED_APPROVED",
+    "corrected_published_head": "0e81b11960ccd980901b8c43356ac8e2edcdf387"
+  },
+  "closure_20260923": {
+    "status": "PRIVATE_PARSER_AND_MARKER_CHECKPOINT_ONLY",
+    "local_tests": 5875,
+    "local_files": 355,
+    "targeted_tests": 108,
+    "targeted_files": 5,
+    "native": "PENDING_PUBLICATION_REPLAY",
+    "complete_owner": "NOT_IMPLEMENTED",
+    "static_parser_review": "NO_BLOCKING_BINDING_FINDING",
+    "local_commit": "b6b6c88c94a2c99384da721247a224205522e66b",
+    "migration": "20260923113014_ediel_closure_original_wire_binding.sql",
+    "migration_sha256": "18cf2107d2da71a82692a89161e86fadd74c67d02c3e2ea7b20c129a848d361b",
+    "generated_contracts": "UNCHANGED_PENDING_AUTHENTIC_ARTIFACT"
   }
 }
