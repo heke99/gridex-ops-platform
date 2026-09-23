@@ -1,3 +1,7 @@
+## Current E035 state — BLOCKED at fix5 cap, 2026-09-23
+
+Published bf6d4b5; OPS35903332327/native107324705734 recovered ECR startup and applied the case restoration migration; retained124 native PASS. New case suite fails at line253 with ENOENT: replay has moved original migrations into HOLD until shell EXIT, while the test reads supabase/migrations. All preceding sequential case assertions reached this point without failure, but populated-legacy, protected browser, post-browser and generated contracts remain unexecuted. Root adjudicates REAL_AND_LOAD_BEARING at existing case fix5/5; the subagent-driven-development breaker requires stop and user report. Proposed bounded repair: explicit checksum-verified original migration path from live HOLD/pre-replay temp copy; retain every assertion and replay lifecycle. No sixth fix dispatched, no E035 acceptance/merge. Source-owner work remains pending. Full unit5963/370 and quality/build passed on same product code before infrastructure-only change. See case-fix5-native-adjudication-20260923.md. Older status below is superseded where conflicting.
+
 # E035 continuation — 2026-09-23, source-backed closure and remaining authority
 
 ## Current checkpoint — case types qualified; immutable retry binding active
