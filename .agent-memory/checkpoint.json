@@ -13,16 +13,17 @@
   "active_item": "E035 dated reviewed market structure and authoritative E61/E62 comparison",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
-    "status": "IMPLEMENTED_LOCAL_GATES_PASS_NATIVE_BROWSER_REVIEW_PENDING",
-    "published_head": "d1e14fc75c90a83d66e31b2c2d72c906b7637f14",
-    "published_tree": "f92518a9b9a88354d097eee0e8ca18521125c68c",
-    "ops_run": 35890710047,
-    "local_tests": 5952,
+    "status": "FIX2_ACTIVE_NATIVE_FIXTURE_Z08_PROFILE_REJECTED",
+    "published_head": "955e80043c7737184fc46b9b90b0a27f10b584a4",
+    "published_tree": "8a9b60e4881f149256079ee69631d5b5c03b3afa",
+    "ops_run": 35892684212,
+    "native_job": 107288787142,
+    "local_tests": 5956,
     "local_test_files": 368,
     "report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/ediel-case-visibility-implementation-20260923.md",
     "native_browser_executed": false
   },
-  "next_action": "Retry task COMPLETE at fe63dd98: independent bounded SPEC/QUALITY/native approved, authentic types/schema and ALL applicable ordinary CI SUCCESS. Hand off sole implementation to ediel_case_implementation for settled case-navigation brief and real protected localhost browser qualification; then queued remaining business/time/source owners and same-final-head whole-E035 review before merge.",
+  "next_action": "Retry COMPLETE at fe63dd98. Case-navigation fix1 published955e8004, local5956/types/build/RBAC/ratchet PASS and scoped review approved. Actual native107288787142:124PASS, GoTrue permissions fixed, newfixture Z08 profile23514 before browser. Soleauthor fixround2 genuine profile/registry fixture contract, then scoped review and actual native/browser rerun. Prior-guide and remaining owners follow; whole-E035 same-head review before merge remains pending.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",

@@ -58,16 +58,17 @@ async function writeCase(company: string, customer: string, actor: string) {
   const source = randomUUID()
   const { data, error } = await supabaseService.from('ediel_messages').insert({
     id: source, company_id: company, customer_id: customer, direction: 'inbound', message_standard: 'edifact',
-    message_family: 'PRODAT', message_code: 'Z08', environment: 'test', status: 'received',
-    parsed_payload: { subtype: 'H' }, message_received_at: new Date().toISOString(),
+    message_family: 'PRODAT', message_code: 'Z06', message_version: 'E2SE6A', application_reference: '23-DDQ-PRODAT',
+    environment: 'test', status: 'received', parsed_payload: { subtype: 'G' }, message_received_at: new Date().toISOString(),
   }).select('*').single()
   expect(error).toBeNull()
   expect(data).not.toBeNull()
+  expect(data?.rule_profile_key).toBe('PRODAT:Z06:G:26.A:r3')
   const result = await applyInboundBusinessStateMachine({ message: data as unknown as EdielMessageRow, actorUserId: actor })
-  expect(result).toMatchObject({ outcome: 'unexpected_direction_review', updated: ['customer_cases'], reviewRequired: true })
+  expect(result).toMatchObject({ outcome: 'masterdata_update_received', updated: ['customer_cases'], reviewRequired: true })
   const rows = sql<Array<{ id: string; title: string; description: string; next_action: string; source: string; reason_category: string }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'title',title,'description',description,'next_action',next_action,'source',source,'reason_category',reason_category)),'[]') FROM public.customer_cases WHERE company_id=${quote(company)} AND metadata->>'source_ediel_message_id'=${quote(source)}`)
   expect(rows).toHaveLength(1)
-  expect(rows[0]).toMatchObject({ source: 'ediel_inbound_state_machine', reason_category: 'ediel_unexpected_direction' })
+  expect(rows[0]).toMatchObject({ source: 'ediel_inbound_state_machine', reason_category: 'masterdata_update_review' })
   return { ...rows[0], sourceMessageId: source }
 }
 

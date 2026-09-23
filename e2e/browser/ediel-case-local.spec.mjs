@@ -26,7 +26,7 @@ test('real writer case follows the actual Control Tower link; older exact ID byp
   await row.click()
   await expect(page).toHaveURL(new RegExp(`caseId=${fixture.recent.id}$`))
   await expect(page.getByRole('heading', { name: fixture.recent.title })).toBeVisible()
-  await expect(page.locator('main')).toContainText('ediel_unexpected_direction')
+  await expect(page.locator('main')).toContainText('masterdata_update_review')
   await expect(page.locator('main')).toContainText(fixture.recent.description)
   await expect(page.locator('main')).toContainText(fixture.recent.next_action)
   await expect(page.getByRole('link', { name: 'Visa kund' })).toHaveAttribute('href', `/admin/customers/${fixture.customerA}`)
