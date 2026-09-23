@@ -1,8 +1,8 @@
 {
   "project": "gridex-ops-platform",
   "updated_at": "2026-09-23",
-  "status": "BLOCKED",
-  "paused": true,
+  "status": "IN_PROGRESS",
+  "paused": false,
   "branch": "codex/e035-durable-source-ledger-20260922",
   "active_pr": 370,
   "base_head_sha": "eb2b8693130af8fa7976a93891b95973bc473b50",
@@ -13,7 +13,7 @@
   "active_item": "E035 dated reviewed market structure and authoritative E61/E62 comparison",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
-    "status": "BLOCKED_FIX5_CAP_NATIVE_MIGRATION_PATH_ENOENT",
+    "status": "USER_AUTHORIZED_PATH_REPAIR_AFTER_FIX5",
     "published_head": "bf6d4b5faf645301751c9e2531407d4c84ac3dc9",
     "published_tree": "a5c2f38b3362d73d3bf23929122798a400fefa1c",
     "ops_run": 35903332327,
@@ -30,7 +30,7 @@
     "adjudication": "REAL_AND_LOAD_BEARING_FIXTURE_REPLAY_INTEGRATION",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Report case fix5 cap blocker. Narrow proposed repair: pass checksum-verified original migration path from live replay HOLD (or pre-replay temp copy) to native case test, retaining all assertions and stack lifetime. No new implementation dispatch without resolving skill breaker with user. Then native/browser/generated contracts and exact-head CI; remaining E035 owners and merge still pending.",
+  "next_action": "Implement narrowly authorized checksum-bound migration path fix after user instruction to do what is best and continue; retain prior round history. Native/browser/generated contracts then remaining E035 work; no red merge.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",

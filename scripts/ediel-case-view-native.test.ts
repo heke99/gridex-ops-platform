@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { readFileSync, writeFileSync } from 'node:fs'
-import { resolve, sep } from 'node:path'
+import { basename, isAbsolute, resolve, sep } from 'node:path'
 import { createClient } from '@supabase/supabase-js'
 import { expect, it, vi } from 'vitest'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -23,6 +23,19 @@ function sql<T = unknown>(command: string): T {
   if (process.env.NEXT_PUBLIC_SUPABASE_URL !== API) throw new Error('local_only')
   const output = execFileSync('psql', [DB, '-XAtq', '-v', 'ON_ERROR_STOP=1'], { input: command, encoding: 'utf8', timeout: 15_000, maxBuffer: 2_000_000 }).trim()
   return output ? JSON.parse(output) as T : undefined as T
+}
+
+function readVerifiedCaseRestorationMigration(): string {
+  const migrationName = '20260923180557_restore_customer_case_events_atomic_status.sql'
+  const expectedChecksum = '290357346253461628c6d341ba383d16690b62613dc8ce913eb3044965cd59a8'
+  const migrationPath = process.env.GRIDEX_EDIEL_CASE_RESTORATION_SQL
+  if (!migrationPath || !isAbsolute(migrationPath)) throw new Error('restoration_migration_path_required')
+  if (basename(migrationPath) !== migrationName) throw new Error('restoration_migration_name_mismatch')
+  const manifest = JSON.parse(readFileSync(resolve('scripts/migration-history-manifest.json'), 'utf8')) as { files: Record<string, string> }
+  if (manifest.files[migrationName] !== expectedChecksum) throw new Error('restoration_migration_registration_mismatch')
+  const bytes = readFileSync(migrationPath)
+  if (createHash('sha256').update(bytes).digest('hex') !== expectedChecksum) throw new Error('restoration_migration_checksum_mismatch')
+  return bytes.toString('utf8')
 }
 
 async function createActor(tag: string, company: string, keys: string[]) {
@@ -93,6 +106,9 @@ async function writeCase(company: string, customer: string, actor: string) {
 
 it('provisions real GoTrue and writer cases, then verifies browser triage without business effects', async () => {
   if (process.env.NEXT_PUBLIC_SUPABASE_URL !== API || !process.env.RUNNER_TEMP) throw new Error('disposable_replay_only')
+  // The sourced replay owns original SQL in HOLD until shell EXIT. Verify
+  // that explicit input before any case mutation, including the browser pass.
+  const migration = readVerifiedCaseRestorationMigration()
   const manifestPath = resolve(process.env.GRIDEX_EDIEL_CASE_FIXTURE_PATH!)
   if (!manifestPath.startsWith(resolve(process.env.RUNNER_TEMP) + sep)) throw new Error('fixture_must_stay_in_runner_temp')
   if (process.env.GRIDEX_EDIEL_CASE_VERIFY_AFTER_BROWSER === '1') {
@@ -250,7 +266,6 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
 
   // Run the actual restoration against a populated preexisting relation in a
   // rolled-back disposable transaction; preserved rows must remain byte equal.
-  const migration = readFileSync(resolve('supabase/migrations/20260923180557_restore_customer_case_events_atomic_status.sql'), 'utf8')
   const preserved = sql(`SELECT to_jsonb(e) FROM public.customer_case_events e WHERE customer_case_id=${quote(supportId)}`)
   expect(sql(`BEGIN; ${migration}
     SELECT to_jsonb(e) FROM public.customer_case_events e WHERE customer_case_id=${quote(supportId)}; ROLLBACK;`)).toEqual(preserved)

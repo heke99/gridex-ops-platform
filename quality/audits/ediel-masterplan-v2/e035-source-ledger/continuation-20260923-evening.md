@@ -23,3 +23,7 @@ After Task 1 qualifies, resume the repository's prior-guide comparison and remai
 ## Task 3: Final acceptance and merge
 
 Verify all required native/application/generated-contract gates and full E035 scope against one final published head. Obtain independent full-branch task/spec, quality, tenant/DB and integration review. Resolve mandatory findings. Only then mark ready and merge PR370; preserve paused PR310. If a load-bearing blocker remains at the review cap, record and report it rather than merging incomplete work.
+
+## User-directed staged delivery amendment — 2026-09-23
+
+After the reported round5 native fixture blocker the user instructed doing what is best, otherwise merging completed work and continuing. The concrete checksum-bound path repair is authorized; retain fix history and all authentic gates. The user also permits a bounded merge followed by remaining E035 work. Therefore Task3 may qualify the existing supported slice before Task2 finishes only if full-branch review explicitly accepts that release boundary, including the known prior25-A-3 applicable gap and all unsupported-path holds. The assessment is `bounded-delivery-assessment-20260923.md`, which is not code approval. A confirmed bypass, case failure or incomplete mandatory gate blocks merge. No blanket certification: E035/F3/masterplan stay PARTIAL, and remaining owner tasks continue in subsequent reviewable changes. Whole-delivery review must see the original plan, this amendment, exact evidence and known gaps.
