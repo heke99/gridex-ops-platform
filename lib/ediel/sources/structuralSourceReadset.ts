@@ -11,12 +11,14 @@ import type {StructuralVersion} from './structuralSourceSelection'
 import {isReviewedClosureBusiness} from './reviewedClosureSource'
 import {closureImpact} from './closureImpact'
 import type {ClosureVersion,ScopedClosureBlocker} from './closureSelection'
+import type {CorrectionContextBlockerV1} from './correctionContextImpact'
 
 type ObjectEntry={object:SourceObjectScope;disposition:'accepted'|'unavailable'|'rejected';reasons:string[];business:Record<string,unknown>|null;party:Record<string,unknown>|null}
 type RawAssessment={id:string;factsText:string;factsHash:string;availableAt:string|null}
 type RawSource={sourceMessageId:string;rawPayload:string|null;payloadHash:string|null;messageCode:string|null;assessments:RawAssessment[]}
 export type StructuralReadset={
-  timeline:SourceDecisionTimeline; versions:StructuralVersion[];closures:ClosureVersion[];closureBlockers:ScopedClosureBlocker[]; unresolvedSources:boolean
+  timeline:SourceDecisionTimeline; versions:StructuralVersion[];closures:ClosureVersion[];closureBlockers:ScopedClosureBlocker[];
+  correctionContextBlockers:CorrectionContextBlockerV1[];unresolvedSources:boolean
   sources:{sourceMessageId:string;rawPayload:string;payloadHash:string;asOf:RecordedSourceAssessment|null;objects:ObjectEntry[];assessments:RawAssessment[]}[]
 }
 
@@ -25,7 +27,7 @@ export type StructuralReadset={
  * bytes and never uses mutable message status or incoming UTILTS identifiers. */
 export function inspectStructuralReadset(scope:ReceivedSourceScope,receipt:unknown):StructuralReadset {
   const timeline=inspectReceivedSourceDecisionTimeline(scope,receipt)
-  const result:StructuralReadset={timeline,versions:[],closures:[],closureBlockers:[],unresolvedSources:true,sources:[]}
+  const result:StructuralReadset={timeline,versions:[],closures:[],closureBlockers:[],correctionContextBlockers:[],unresolvedSources:true,sources:[]}
   if(timeline.status!=='inspected'||!timeline.boundedReadComplete)return result
   const body=JSON.parse((receipt as {readsetText:string}).readsetText) as {sources:RawSource[]}
   result.unresolvedSources=false
