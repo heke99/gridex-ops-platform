@@ -386,3 +386,24 @@ migration remain pending the diagnostic ordinary replay. No new acceptance,
 SQL-pass, generated-artifact or task-DONE claim is made.
 
 Diagnostic checkpoint local verification: test/script typecheck, targeted native-test lint and diff whitespace check PASS. No redundant full unit-suite run was needed for diagnostic-only native changes; real diagnostic execution remains pending ordinary replay.
+
+
+### Round2 diagnostic refinement — original exception, cfe206d replay
+
+Actual run `35861175209`, job `107181488978`, still **57 PASS / 4 FAIL**.
+All four captured proposals had sealed wire=true, party proof=true, seven live
+owner-row matches=true, and correct accepted/current baseline coverage. Their
+labelled failure was guard17, the private proof's exception handler rather than
+an ordinary predicate. The previous instrumentation obscured the original
+caught SQLSTATE by replacing that handler's false return with a label.
+
+Refinement now uses bare `RAISE` specifically in the transaction-local exception
+handler, retaining the original SQLSTATE, error message and helper line frames.
+Other false sites remain labelled. Context is bounded to3500 characters plus
+PL/pgSQL frames to avoid logging the entire synthetic RPC composition repeatedly.
+The unparenthesized nested JSON subtraction is a static candidate, **not yet an
+established cause or a justification to change a production guard**. Only
+native diagnostic code changes; published SQL and all assertions remain intact.
+Script typecheck/lint and diff check are the local gates; real replay is required.
+
+A minimal localhost-native expression probe also tests the subtraction-precedence hypothesis directly: unparenthesized nested subtraction should expose22P02, while parenthesized extraction should yield the expected empty key set. This is a newly written, not-yet-executed probe; it grants no source approval.

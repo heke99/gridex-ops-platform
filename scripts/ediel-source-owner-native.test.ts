@@ -353,7 +353,8 @@ function closureSqlDiagnostics(args:ClosureAppendArgs,removeMidnight=false){
    RETURN jsonb_build_object('accepted',true);
   EXCEPTION WHEN OTHERS THEN
    GET STACKED DIAGNOSTICS error_code=RETURNED_SQLSTATE,error_message=MESSAGE_TEXT,error_detail=PG_EXCEPTION_DETAIL,error_context=PG_EXCEPTION_CONTEXT;
-   RETURN jsonb_build_object('accepted',false,'code',error_code,'message',error_message,'detail',error_detail,'context',error_context);
+   RETURN jsonb_build_object('accepted',false,'code',error_code,'message',error_message,'detail',error_detail,'context',left(error_context,3500),
+    'frames',(SELECT string_agg(line,E'\n') FROM regexp_split_to_table(error_context,E'\n') frame(line) WHERE line LIKE 'PL/pgSQL function%'));
   END $trace$;
   CREATE TEMP TABLE closure_native_diag(result jsonb);
   INSERT INTO closure_native_diag SELECT jsonb_build_object('append',pg_temp.closure_native_trace(),
@@ -384,7 +385,13 @@ function closureSqlDiagnostics(args:ClosureAppendArgs,removeMidnight=false){
    chunks:=string_to_array(definition,'RETURN false;');rebuilt:=chunks[1];
    FOR i IN 2..array_length(chunks,1) LOOP
     context:=right(chunks[i-1],220);
-    rebuilt:=rebuilt||format('RAISE EXCEPTION USING MESSAGE=%L, DETAIL=%L;', 'closure_native_guard_'||(i-1)::text,context)||chunks[i];
+    IF strpos(chunks[i-1],'EXCEPTION WHEN')>0 THEN
+     -- Preserve the original caught SQLSTATE/message/line, not a replacement
+     -- guard label which would conceal the actual cast/calendar failure.
+     rebuilt:=rebuilt||'RAISE;'||chunks[i];
+    ELSE
+     rebuilt:=rebuilt||format('RAISE EXCEPTION USING MESSAGE=%L, DETAIL=%L;', 'closure_native_guard_'||(i-1)::text,context)||chunks[i];
+    END IF;
    END LOOP;
    IF array_length(chunks,1)<10 THEN RAISE EXCEPTION 'closure_native_trace_incomplete'; END IF;
    EXECUTE rebuilt;
@@ -646,4 +653,17 @@ it('an unwitnessed later Z04 review cannot fall back to the older accepted cover
  expect((await applyInboundBusinessStateMachine({message,actorUserId:f.ids.actor})).outcome).toBe('supply_terminated')
  expect(await closureReview(f,message.id)).toMatchObject({status:'recorded',sourceDisposition:'not_established'})
  expect(stored(message.id).at(-1)!.facts).toMatchObject({objects:[{disposition:'unavailable',business:null}]})
+})
+it('isolates nested JSON subtraction precedence without changing the published owner',()=>{
+ const result=sql<{original:{code:string};parenthesized:boolean}>(`BEGIN;
+  CREATE FUNCTION pg_temp.closure_json_subtraction_probe() RETURNS jsonb LANGUAGE plpgsql AS $probe$
+  DECLARE payload jsonb:='{"reviewSnapshot":{"snapshotId":"x","readsetHash":"y","cutoffAt":"z"}}';
+  BEGIN
+   PERFORM payload->'reviewSnapshot'-ARRAY['snapshotId','readsetHash','cutoffAt'];
+   RETURN jsonb_build_object('code','no_error');
+  EXCEPTION WHEN OTHERS THEN RETURN jsonb_build_object('code',SQLSTATE,'message',SQLERRM); END $probe$;
+  SELECT jsonb_build_object('original',pg_temp.closure_json_subtraction_probe(),
+   'parenthesized',('{"reviewSnapshot":{"snapshotId":"x","readsetHash":"y","cutoffAt":"z"}}'::jsonb->'reviewSnapshot')-ARRAY['snapshotId','readsetHash','cutoffAt']='{}'::jsonb);
+  ROLLBACK;`)
+ expect(result).toMatchObject({original:{code:'22P02'},parenthesized:true})
 })
