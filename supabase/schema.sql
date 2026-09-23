@@ -33884,7 +33884,13 @@ begin
     select * into v_existing from public.ediel_ack_transaction_results
       where company_id=p_company_id and environment=p_environment
         and source_message_id=p_source_message_id and source_transaction_id=v_transaction_id for update;
-    if found and (v_existing.final_response_type is not null or v_existing.persistence_status='persisted') then
+    -- Persistence is the durable response reservation, before any ACK draft
+    -- can be created. Only a held, unfinalized row without side effects may
+    -- change on later structural review. A planned ERR/APERAK/CONTRL remains
+    -- fixed even if processing crashes between ACK creation and finalization.
+    if found and not (v_existing.disposition='internal_review'
+      and v_existing.planned_response_type='none' and v_existing.final_response_type is null
+      and v_existing.persistence_status='not_applicable') then
       if v_existing.disposition is distinct from v_disposition
         or v_existing.planned_response_type is distinct from v_response_type
         or v_existing.issue_codes is distinct from v_issue_codes then

@@ -1,3 +1,13 @@
+# Open blockers — 2026-09-23, eac1a604
+
+Authentic eac1a604 replay passed eight retry SQL checks and 17 native structural cases; it failed only on the stale function-body schema snapshot. The artifact has been reconciled locally. Publish, rerun CI and seek reviewer recheck.
+
+1. The reviewed ACK-creation/finalization interruption gap (CodeRabbit5792202498) has a candidate durable plan reservation in eac1a604; native eight-check replay, schema/type artifact, ordinary exact-head CI and reviewer recheck are pending.
+2. E035 still needs Z05/Z08 closure, Z06E death/bilateral authority, agency89, multiple physical messages/delegation, changed-start Z04 correction and pre-ledger dated history.
+3. F3C-02/04/05/06/07, F0-F7/G01-G07 and paused PR310 parity remain. No E035/masterplan merge or completion.
+
+## Historical records (superseded where conflicting)
+
 # Open blockers — 2026-09-23, current head dce05e48
 
 The dce05e48 disposable replay passed six retry SQL checks and 17 native structural cases, but the job failed on the stale function-only schema snapshot. The authentic artifact has been reconciled locally. Publish the correction and rerun all exact-head gates; final four-part review still pending.

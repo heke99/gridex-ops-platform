@@ -1,5 +1,32 @@
 # E035 continuation — 2026-09-23
 
+## ACK creation interruption review and candidate repair
+
+The prior exact head 297afecd had all ordinary workflows green (OPS
+35840200169 verify, quality/build and clean replay; full E2E, browser, tenant
+and Ediel regressions). CodeRabbit review 5792202498 found a blocking gap:
+the service created a transaction ERR ACK after persistence but before the
+separate `final_response_type` update, and a changed retry could replace the
+unfinalized negative decision with positive APERAK. Green CI did not cover it.
+
+Published eac1a604 adds forward migration
+`20260923113000_ediel_utilts_ack_plan_reservation.sql`. The persistence row's
+non-held response plan becomes the durable reservation before ACK creation;
+only an unfinalized `internal_review` with no series can change after fresh
+authority. A retry with the same planned response remains idempotent. Two new
+native SQL checks model interruption before finalization and reject an attempted
+positive rerun of an already planned ERR. Locally 72 targeted TypeScript tests,
+checksum and type-tail checks pass. Authentic empty replay run35842205514
+passed eight retry SQL checks, 17 structural native cases, tenant invariants
+and injected-drift parity. Generated public types remained byte-identical.
+Only the committed schema snapshot differed in the replaced function body;
+fingerprint `dcb959e4a47bd87a7eaf0486a4124fcbb226da112019727b5c61f5935a26d7b0`
+and function count591 came from artifact10741254796, ZIP SHA256
+`c3a848783796e212348b523a284081973190e87d3a31a0342ed9b7fa93abf860`.
+The snapshot is locally reconciled, awaiting publication, exact-head CI and
+reviewer recheck. This does not establish the rest of E035 or complete market
+retry reconciliation.
+
 ## Retry and mixed-transaction continuation (dce05e48)
 
 The previous exact head 35e35f45 passed all ordinary workflows: OPS

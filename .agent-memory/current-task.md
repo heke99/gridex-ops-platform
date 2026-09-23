@@ -1,3 +1,11 @@
+# E035 ACK interruption finding — 2026-09-23
+
+Native replay35842205514 passed eight retry SQL checks and 17 structural native cases. Generated public types were byte-identical. Only the expected function-body schema snapshot differs; artifact10741254796 ZIP SHA256 c3a848783796e212348b523a284081973190e87d3a31a0342ed9b7fa93abf860 supplies its correction. Publish and rerun exact-head CI.
+
+Exact 297afecd was fully green but CodeRabbit review5792202498 found that an ERR ACK can be created before final_response_type is stored. eac1a604 adds a forward-only response-plan reservation in the persistence RPC before ACK creation: all non-held rows are immutable against changed retries even before finalization, while a held unfinalized row can be reviewed again. Two new native SQL checks reproduce the interrupted ERR/positive retry. Targeted72/72 and local migration/type checks pass; authentic native replay and schema snapshot on eac1a604 are pending. PR370 stays draft. Main eb2b8693 and paused PR310 e9611351 unchanged.
+
+## Historical records (superseded where conflicting)
+
 # E035 continuation — 2026-09-23, retry qualification
 
 Replay run35839531741 executed the six new SQL checks and 17 structural native cases successfully. Its public types were byte-identical; only the expected function-section schema snapshot differed. Artifact10740892548 ZIP SHA256 b5def03afd35dcf5f52a1f5af8ad5a4457e2e6ccbf1bdd0de5ac672110370aed now supplies the corrected schema and manifest. Publish and rerun exact-head CI.

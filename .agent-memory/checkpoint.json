@@ -12,7 +12,7 @@
   "root_main_acceptance_comment": 5768848443,
   "active_item": "E035 dated reviewed market structure and authoritative E61/E62 comparison",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
-  "next_action": "Publish authentic replay snapshot and updated receipt in PR370; inspect all ordinary exact-head workflows, obtain final four-part review; then continue remaining owner applicability and masterplan gates.",
+  "next_action": "Publish schema snapshot from actual eac1a604 replay, run all ordinary exact-head CI, request recheck of CodeRabbit ACK interruption finding; continue E035 applicability and masterplan.",
   "previous_ordinary_ci": {
     "head": "a89275ba0b34ae27530c2e403d3ae3f2667afe3b",
     "ops": 35715146276,
@@ -35,8 +35,8 @@
     "root_tests": 5514,
     "ordinary_delivery_retest_needed": true
   },
-  "independent_review": "35e35f45_NO_CONFIRMED_BLOCKING_FINDING_PARTIAL_SCOPE; FINAL_HEAD_PENDING",
-  "ordinary_final_head_ci": "35e35f45_ALL_ORDINARY_WORKFLOWS_SUCCESS; DCE05E48_PENDING",
+  "independent_review": "297afecd_REVIEW5792202498_BLOCKING_ACK_FINALIZATION_WINDOW; EAC1A604_FIX_PENDING_RECHECK",
+  "ordinary_final_head_ci": "297afecd_ALL_ORDINARY_WORKFLOWS_SUCCESS; EAC1A604_PENDING",
   "full_source_disposition": "DATED_POST_LEDGER_Z04_Z06F_Z06G_Z10_AND_BGM5_E61_E62_PARTIAL; APPLICABILITY_AND_HISTORY_INCOMPLETE",
   "full_E035": "NOT_COMPLETE",
   "full_F3": "NOT_COMPLETE",
@@ -51,7 +51,7 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "35e35f451b61b5846574d17201cf7ba9844e41ff",
+  "last_verified_pr_head": "297afecdad0ddcaaa9938193ca70c9ad725d0b82",
   "ordinary_baseline_ci": {
     "head": "d7fb49fde3dae153693acae1cefa33aeef45ad4f",
     "ops": 35758893367,
@@ -175,6 +175,20 @@
     "structural_native_cases": "17_PASS",
     "artifact": 10740892548,
     "artifact_sha256": "b5def03afd35dcf5f52a1f5af8ad5a4457e2e6ccbf1bdd0de5ac672110370aed",
+    "generated_types": "BYTE_IDENTICAL"
+  },
+  "ack_plan_reservation_20260923": {
+    "head": "eac1a604a7012900f724fcc6a2fd57a23f50c369",
+    "review_finding": 5792202498,
+    "migration": "20260923113000_ediel_utilts_ack_plan_reservation.sql",
+    "native_new_checks": 2,
+    "local_targeted": "72_PASS",
+    "ordinary_ops": 35842205514,
+    "status": "NATIVE_8_PASS_SCHEMA_ARTIFACT_RECONCILED_PENDING_FINAL_CI",
+    "native_retry_checks": "8_PASS",
+    "native_structural_cases": "17_PASS",
+    "artifact": 10741254796,
+    "artifact_sha256": "c3a848783796e212348b523a284081973190e87d3a31a0342ed9b7fa93abf860",
     "generated_types": "BYTE_IDENTICAL"
   }
 }

@@ -1,3 +1,11 @@
+# Verification update — 2026-09-23, ACK reservation
+
+eac1a604 native run35842205514: eight retry SQL checks PASS; 17 structural HTTP/native cases PASS; generated public types byte-identical SHA256 6af55fbbed9390acfe71dbb8c757c10e3a021dec15842df801d06b679d98eda9. Schema fingerprint actual dcb959e4a47bd87a7eaf0486a4124fcbb226da112019727b5c61f5935a26d7b0, function count591 unchanged. Artifact10741254796 ZIP SHA256 c3a848783796e212348b523a284081973190e87d3a31a0342ed9b7fa93abf860 reconciled locally. Exact-head rerun pending.
+
+Exact 297afecd OPS35840200169 all three jobs SUCCESS; tenant/browser/full E2E/Ediel workflows SUCCESS, native six retry SQL and17 structural HTTP cases PASS. Reviewer5792202498 found an ACK interruption gap despite green CI. Candidate eac1a604: local targeted72/72 PASS, migration checksum/type-tail check PASS; two extra SQL cases added but authentic native run35842205514 and generated schema pending. Reviewer recheck pending.
+
+## Historical records (superseded where conflicting)
+
 # Verification update — 2026-09-23, dce05e48
 
 dce05e48 native run35839531741: six committed-retry SQL checks and 17 structural HTTP/native cases PASS; generated public types identical SHA256 6af55fbbed9390acfe71dbb8c757c10e3a021dec15842df801d06b679d98eda9. Clean replay job failed on stale snapshot only: function count591 unchanged, fingerprint from e9c6ae58 to39a7a3c4. Artifact10740892548 ZIP SHA256 b5def03afd35dcf5f52a1f5af8ad5a4457e2e6ccbf1bdd0de5ac672110370aed. Authentic schema and manifest locally reconciled; new exact-head CI pending.
