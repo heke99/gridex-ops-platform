@@ -209,7 +209,7 @@
     "corrected_published_head": "0e81b11960ccd980901b8c43356ac8e2edcdf387"
   },
   "closure_20260923": {
-    "status": "CONNECTED_OWNER_NATIVE_CHECKPOINT_PENDING",
+    "status": "NATIVE_FAILURE_FIX1_LOCAL_PENDING_REVIEW_REPLAY",
     "local_tests": 5875,
     "local_files": 355,
     "targeted_tests": 108,
@@ -235,7 +235,15 @@
     "owner_local_tests": 5902,
     "owner_local_files": 359,
     "owner_coverage": "PASS",
-    "owner_native": "24_OWNER_AND_37_WIRE_CASES_PENDING_EXECUTION",
-    "owner_review": "PENDING_FULL_TASK_REVIEW"
+    "owner_native": "54_RETAINED_PASS_7_NEW_FAIL_RUN35858473977",
+    "owner_review": "NO_BLOCKING_CODE_FINDINGS_NATIVE_ACCEPTANCE_RESERVED",
+    "published_owner": "2b4293b42732b0231dc00d5e43ceefe260cb4254",
+    "owner_native_failure": "6 actual legacy case writer column/type failures; seventh stale test proposal correctly rejected",
+    "owner_generated_artifacts": "NOT_GENERATED_NATIVE_FAILED_FIRST",
+    "fix1_local_commit": "3c10f346a38a03d987175e351c5b8117e65d6979",
+    "fix1_local_tests": 5906,
+    "fix1_local_files": 360,
+    "fix1_types_lint": "PASS",
+    "adjacent_legacy_case_types": "CONFIRMED_PENDING_SEPARATE_SEQUENTIAL_FIX"
   }
 }

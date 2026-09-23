@@ -344,6 +344,13 @@ it.each(['Z22','Z23'])('native %s closure retains immutable Z04 coverage after t
  const baseline=stored(f.ids.source).at(-1)!,message=await insertClosure(f,reason)
  const ended=await applyInboundBusinessStateMachine({message,actorUserId:f.ids.actor})
  expect(ended.outcome).toBe('supply_terminated')
+ expect(ended.updated).toContain('customer_cases')
+ expect(sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('company',company_id,'customer',customer_id,'site',site_id,'point',metering_point_id,
+  'type',case_type,'reason',reason_category,'status',status,'title',title,'next',next_action,'source',source,'intent',metadata->>'review_intent')),'[]')
+  FROM public.customer_cases WHERE company_id=${literal(f.ids.company)} AND metadata->>'source_ediel_message_id'=${literal(message.id)}`)).toEqual([{
+   company:f.ids.company,customer:f.ids.customer,site:f.ids.site,point:f.ids.point,type:'other',reason:'final_metering_and_billing',status:'open',
+   title:'Leveransen upphör – slutför mätvärden och fakturering',next:'Kontrollera slutmätvärden och faktureringsberedskap för leveransens slutdatum.',
+   source:'ediel_inbound_state_machine',intent:'final_metering_and_billing'}])
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
  expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision]).toEqual(['accepted','accepted','accepted'])
  expect(await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.ids.company,decision})).toMatchObject({status:'recorded'})
@@ -544,10 +551,24 @@ it('a genuine non-midnight original is held by producer and direct append, even 
 })
 it('an unwitnessed later Z04 review cannot fall back to the older accepted coverage for closure',async()=>{
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
- const baseline=stored(f.ids.source).at(-1)!
- const {error}=await supabaseService.rpc('gridex_record_source_object_decisions_v1',{p_company_id:f.ids.company,p_environment:'test',p_source_message_id:f.ids.source,
+ const baseline=stored(f.ids.source).at(-1)!,originalRpc=supabaseService.rpc.bind(supabaseService)
+ const stale=await supabaseService.rpc('gridex_record_source_object_decisions_v1',{p_company_id:f.ids.company,p_environment:'test',p_source_message_id:f.ids.source,
   p_source_payload_hash:baseline.sourceHash,p_canonical_assessment_id:baseline.canonicalId,p_facts_text:baseline.factsText})
- expect(error).toBeNull()
+ expect(stale.error).toMatchObject({code:'23514',message:'source_object_owner_snapshot_changed'})
+ expect(stored(f.ids.source)).toHaveLength(2)
+ // A fresh reviewed composition must name the currently latest baseline.
+ // Replaying old review facts is correctly denied as stale by SQL. Withhold
+ // only its separate witness via a real database hash-mismatch rejection.
+ const witnessFailure=vi.spyOn(supabaseService,'rpc').mockImplementation((name,args,options)=>
+  originalRpc(name,name==='gridex_witness_source_objects_v1'?{...args,p_facts_hash:'0'.repeat(64)}:args,options))
+ expect(await reviewReceivedStructuralSource({companyId:f.ids.company,environment:'test',sourceMessageId:f.ids.source,
+  reviewerUserId:f.ids.reviewer,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'unconfirmed'})
+ witnessFailure.mockRestore()
+ const revisions=stored(f.ids.source)
+ expect(revisions).toHaveLength(3)
+ expect(revisions.at(-1)!.assessmentId).not.toBe(baseline.assessmentId)
+ expect(revisions.at(-1)!.witnessXid).toBeNull()
+ expect(revisions.at(-1)!.facts).toMatchObject({objects:[{disposition:'accepted',business:{baselineCurrentAssessmentId:baseline.assessmentId}}]})
  const message=await insertClosure(f)
  expect((await applyInboundBusinessStateMachine({message,actorUserId:f.ids.actor})).outcome).toBe('supply_terminated')
  expect(await closureReview(f,message.id)).toMatchObject({status:'recorded',sourceDisposition:'not_established'})

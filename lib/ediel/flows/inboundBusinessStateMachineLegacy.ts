@@ -259,6 +259,7 @@ async function createReviewCase(input: {
   companyId: string
   switchRequestId?: string | null
   caseType: string
+  reviewIntent?: 'final_metering_and_billing'
   title: string
   description: string
   nextAction?: string | null
@@ -267,17 +268,19 @@ async function createReviewCase(input: {
   return strictInsert('customer_cases', {
     company_id: input.companyId,
     customer_id: input.message.customer_id ?? null,
-    customer_site_id: input.message.site_id ?? null,
+    site_id: input.message.site_id ?? null,
+    metering_point_id: input.message.metering_point_id ?? null,
     supplier_switch_request_id: input.switchRequestId ?? input.message.switch_request_id ?? null,
     case_type: input.caseType,
     status: 'open',
     priority: input.priority ?? 'normal',
     title: input.title,
     description: input.description,
-    reason_category: 'ediel_inbound_review',
+    reason_category: input.reviewIntent ?? 'ediel_inbound_review',
     next_action: input.nextAction ?? null,
     source: 'ediel_inbound_state_machine',
     metadata: {
+      ...(input.reviewIntent ? { review_intent: input.reviewIntent } : {}),
       source_ediel_message_id: input.message.id,
       message_family: input.message.message_family,
       message_code: input.message.message_code,
@@ -446,7 +449,8 @@ export async function applyInboundBusinessStateMachine(input: {
         message: input.message,
         companyId,
         switchRequestId: input.matchedSwitchRequestId ?? null,
-        caseType: 'final_metering_and_billing',
+        caseType: 'other',
+        reviewIntent: 'final_metering_and_billing',
         title: 'Leveransen upphör – slutför mätvärden och fakturering',
         description: 'Nätägaren har meddelat att leveransen upphör. Säkerställ slutmätvärden och slutfakturering utan att ändra historiska leveransperioder.',
         nextAction: 'Kontrollera slutmätvärden och faktureringsberedskap för leveransens slutdatum.',

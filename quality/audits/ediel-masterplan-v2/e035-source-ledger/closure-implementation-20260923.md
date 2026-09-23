@@ -275,3 +275,76 @@ other agencies, bilateral/death/history and broader cancellation owners stay
 held. No incoming UTILTS meter/register value selects expected inventory.
 No remote/hosted writes, generated fingerprints, operational dates, ACKs or
 quantities were fabricated or sent by this implementation task.
+
+
+## Native correction round 1 — actual failure on 2b4293b
+
+Actual ordinary OPS run `35858473977`, job `107172575044`, retained **17/17
+source owners and 37/37 lexical probes passed**; all seven new closure-owner
+cases failed before their intended acceptance assertions. No new native owner
+success or generated-artifact claim follows. The exact log is retained in the
+local task directory as `closure-native-failure-35858473977.log`.
+
+Six failures arose in the real legacy lifecycle's final-work case insert,
+**after the actual supply end write**: `customer_cases.customer_site_id` does
+not exist. The authentic schema has `site_id`. Inspection also confirmed the
+closure's `final_metering_and_billing` case type is absent from the existing
+`customer_cases_type_check`; changing just the column would expose this next
+failure. Root explicitly authorized the narrow production repair:
+
+- Shared writer now uses actual `site_id` and retains the metering point link.
+- Closure persists supported `case_type='other'`, with exact intent retained
+  in `reason_category='final_metering_and_billing'` and
+  `metadata.review_intent`. Title, description, next action, source, company,
+  customer, original message identity and open status remain intact.
+- No fake column, relaxed constraint, swallowed exception or mock lifecycle
+  success was introduced. Supply and case failures still propagate.
+- A schema-aware focused test observed **RED2/4** (both L/LK successful-flow
+  expectations hit the nonexistent-column error), then **GREEN4/4**. With
+  retained callback/source-owner suites the focused result is **41/3 PASS**.
+  Both native L/LK tests now assert the genuinely persisted complete case row.
+
+Consumer trace: `listCustomerCases` scopes by company/customer and reads all
+case types unless an explicit type filter is supplied; search includes
+`reason_category`. `lib/customer-portal/db.ts` reads site, point, reason and next
+action directly. `switchLifecycleBlockFromCase` creates blocking decisions only
+for its explicit withdrawal/rejection categories; `other` does not invent a
+switch cancellation. The admin Support queue is explicitly filtered to support
+sources/metadata, so this Ediel operational case remains outside that queue as
+before; this repair does not claim to create a new dedicated final-billing UI.
+The generic operations case resolver still uses company/id to resolve a case,
+not the unsupported old type. No consumer references the old final-work string
+outside this writer; preserved reason/metadata carries its intent.
+
+The seventh failure was an **invalid test proposal**, not a missing SQL bypass:
+replaying the stored Z04 review named its previous `baselineCurrentAssessmentId`,
+which had already been superseded by the review itself. SQL correctly returned
+`23514 source_object_owner_snapshot_changed`. The native test now explicitly
+asserts that stale proposal still fails with no new row, then invokes the real
+fresh structural review and changes only the separate witness request's hash.
+The real database rejects that witness. Assertions require a newly appended
+accepted composition referring to the latest reviewed baseline, no witness,
+and then an unavailable closure with no fallback. No canonical/party/SQL owner
+is mocked; this fresh-review/native outcome still requires replay.
+
+### Confirmed adjacent follow-up (not silently fixed)
+
+The same existing writer is also called with `supply_continuation_review`,
+`meter_change_review`, `masterdata_update_review` and
+`ediel_unexpected_direction`; **all are absent from the actual CHECK set**.
+The shared column repair does not resolve those type mismatches. Z06/Z10 or
+other automatic case paths can therefore still fail their case insert. Root
+has explicitly reserved a separate small sequential remediation after this
+closure owner is native-qualified. This is a confirmed production-path
+follow-up, not an all-E035 completion claim. No generic unknown-type coercion
+or blanket source-owner acceptance was added in this round.
+
+Published migrations `113014` and `114703` are unchanged, as are all SQL owner
+conditions, checksums, grants and original-wire/midnight probes. No new migration
+or generated artifact is needed for these TS/fixture corrections. Actual native
+closure acceptance remains pending the next ordinary replay.
+
+Round1 final local verification: **5906 tests / 360 files PASS with coverage**
+(44.35% statements, 38.11% branches, 51.59% functions, 44.51% lines; thresholds
+passed). App and test/script typechecks, targeted lint and diff whitespace check
+PASS. Log: `/tmp/e035-closure-round1-test.log`. Native rerun remains pending.
