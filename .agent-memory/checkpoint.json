@@ -3,14 +3,14 @@
   "updated_at": "2026-09-24",
   "status": "IN_PROGRESS",
   "paused": false,
-  "branch": "codex/e035-prior-guide-20260924",
-  "active_pr": 371,
-  "base_head_sha": "650bdb211fa5d492df247b2531cb8004a062db53",
-  "runtime_accepted_sha": "650bdb211fa5d492df247b2531cb8004a062db53",
-  "last_merged_pr": 370,
-  "last_accepted_pr": 370,
+  "branch": "codex/e035-correction-context-20260924",
+  "active_pr": null,
+  "base_head_sha": "2a148d39d631fc759c99cd1c69350b5e2147dbdb",
+  "runtime_accepted_sha": "2a148d39d631fc759c99cd1c69350b5e2147dbdb",
+  "last_merged_pr": 371,
+  "last_accepted_pr": 371,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "E035 prior25-A-3 E61/E62 qualification",
+  "active_item": "E035 hold-only correction context and process history",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish final static review/checkpoint; inspect ordinary exact-head CI/native artifact, then bounded merge and next correction-context plan.",
+  "next_action": "Implement correction-context Task1 pure earliest-boundary blocker with independent review, then capture/history/snapshot tasks.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -403,13 +403,14 @@
   "published_head": "c89586dc9b6ff29ab8d01ede873a8e4f6ebb0617",
   "published_tree": "8fbaed08c8cdd8e345ff8e5d9ecf0e88d740a5ed",
   "prior_guide_ci": {
-    "run": 35930370622,
-    "native_job": 107415232454,
-    "native_pass": 165,
-    "native_fail": 1,
-    "status": "FINAL_STATIC_APPROVED_NATIVE_INFRASTRUCTURE_FAILURE",
-    "failure": "Docker54322 address already in use before tests",
-    "artifact": 10780967439,
-    "local_fix": "6298f35f"
+    "run": 35931020643,
+    "native_job": 107417342303,
+    "native_pass": 166,
+    "native_fail": 0,
+    "status": "ACCEPTED_MERGED",
+    "failure": null,
+    "artifact": 10780533571,
+    "local_fix": "6298f35f",
+    "merged_sha": "2a148d39d631fc759c99cd1c69350b5e2147dbdb"
   }
 }

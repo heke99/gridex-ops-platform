@@ -61,3 +61,11 @@ Next: execute authentic forward and expanded native suite on isolated localhost 
 
 ## 2026-09-24 E035 continuation
 Locally implemented prior25-A-3 source comparison and narrow singleton E30 correction through1f0bffc0; local SPEC/QUALITY approved, full6003tests and types pass. This is local completed engineering only, not native-qualified delivery.
+
+# E035 prior-guide delivery accepted; correction-context task starts — 2026-09-24
+
+PR371 MERGED at main2a148d39d631fc759c99cd1c69350b5e2147dbdb. Final PR head65f5b896cd3801eedde43db99df38afa6d9c78a1 passed all applicable CI: OPS35931020643, Ediel35931020535, browser35931020629, fullE2E35931020592; crawler skipped. Full6003/372, native166/3, case1/browser2/postbrowser1, SQL/concurrency/tenant/parity and build PASS. Independent whole-branch SPEC/QUALITY and final native scope ACCEPT, zero findings. Artifact10780533571 SHA256f25a0560519fd313d3e0e5e068145d74823b4d1bbedad3d3237f129d0623eacc independently verified; generated contracts byte-identical, no migration. Final native addendum retained in audit directory. Earlier publication/native blockers below are SUPERSEDED.
+
+Active branch codex/e035-correction-context-20260924 from accepted main2a148d39. One active item: hold-only correction-context/process-history slice for Z05C/corrected end. Plan docs/superpowers/plans/2026-09-24-e035-correction-context.md. Start pure earliest-boundary projection, then immutable capture, outbound/process history and service-owned saved-cutoff composition. Do not issue positive C/reopening authority. Unknown historical dispatch/retention remains unavailable. Full E035/G01/F3/masterplan PARTIAL; Z06E/changed-start/agency89/multi-message/delegation/history remain subsequent owners. PR310 excluded.
+
+Next exact action: generate Task1 brief and SDD ledger; implement pure blocker with boundary/scope tests and independent review. Follow finite task gates, real native qualification and generated-contract reconciliation for later SQL integration. User approval covers continuation/publication/review/merge after gates; no hosted writes/deployment/market sends.
