@@ -42,10 +42,14 @@ function sql<T = unknown>(input: string): T {
   return result ? JSON.parse(result) as T : undefined as T
 }
 async function seed() {
-  const ids = { source: randomUUID(), company: randomUUID(), customer: randomUUID(), point: randomUUID(), site: randomUUID(), grid: randomUUID(), request: randomUUID() }
+  const ids = { source: randomUUID(), company: randomUUID(), customer: randomUUID(), point: randomUUID(), site: randomUUID(), grid: randomUUID(), request: randomUUID(), actor: randomUUID() }
   const message = energyHandoffMessage('2026-10-01', ids.company)
   message.id = ids.source; message.raw_payload = message.raw_payload!.replace('?+0200:406', '?+0100:406').replaceAll('260831181101', ids.source.slice(0, 12).replaceAll('-', ''))
   sql(`INSERT INTO public.companies(id,name,status) VALUES(${lit(ids.company)},'E035 bound consumption synthetic','active');
+   INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
+   VALUES(${lit(ids.actor)},'authenticated','authenticated',${lit(`e035-retry-${ids.actor}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
+   INSERT INTO public.user_profiles(id,email,full_name,user_status,created_at,updated_at)
+   VALUES(${lit(ids.actor)},${lit(`e035-retry-${ids.actor}@example.invalid`)},'Synthetic E035 retry actor','active',now(),now()) ON CONFLICT(id) DO UPDATE SET user_status='active';
    INSERT INTO public.customers(id,company_id,customer_number,name,customer_type) VALUES(${lit(ids.customer)},${lit(ids.company)},${lit(ids.customer)},'Synthetic','private');
    INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status) VALUES(${lit(ids.grid)},${lit(ids.company)},${lit(ids.grid)},'91100','test',true,'active');
    INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country,facility_id,grid_owner_id) VALUES(${lit(ids.site)},${lit(ids.company)},${lit(ids.customer)},'Synthetic','consumption','active','SE','735999260731000007',${lit(ids.grid)});
@@ -85,7 +89,7 @@ beforeEach(() => {
 it.each(['quantity', 'timezone', 'resolution-format'])('full processor persisted interruption rejects actual runtime %s retry before ACK/completion or sinks', async kind => {
   const f = await seed()
   effects.status.mockRejectedValueOnce(new Error('synthetic_interruption_after_committed_persistence'))
-  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.customer, edielMessageId: f.original.id })).rejects.toThrow('synthetic_interruption_after_committed_persistence')
+  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('synthetic_interruption_after_committed_persistence')
   const before = snapshot(f.original.id)
   expect(sql(`SELECT count(*) FROM gridex_utilts_binding.contracts WHERE source_message_id=${lit(f.original.id)}`)).toBe(1)
   expect(effects.ack).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
@@ -99,12 +103,12 @@ it.each(['quantity', 'timezone', 'resolution-format'])('full processor persisted
   // A read-to-persist race must also fail even if a stale upstream snapshot
   // bypassed the natural dedup call; the locked database bytes remain authority.
   effects.readRaw = changed
-  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.customer, edielMessageId: f.original.id })).rejects.toThrow('utilts_source_binding_conflict')
+  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('utilts_source_binding_conflict')
   expect(snapshot(f.original.id)).toEqual(before)
   expect(effects.ack).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled(); expect(effects.outbound).not.toHaveBeenCalled()
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
   effects.readRaw = null
-  const replay = await processInboundUtiltsMessage({ actorUserId: f.ids.customer, edielMessageId: f.original.id })
+  const replay = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })
   expect(replay.ingestedMeterValueIds).toEqual(['observed-meter'])
   expect(effects.meter).toHaveBeenCalledWith(expect.objectContaining({ quantityKwh: 500, periodStart: '2026-06-30T23:00:00.000Z' }))
   expect(effects.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: 500, underlayMonth: 6 }))
@@ -129,8 +133,8 @@ it('real persisted interruption + natural changed-byte dedup cannot consume old 
   const replay = await persistUtiltsTransactionResults(input)
   expect(replay[0].seriesId).toBe(first[0].seriesId); expect(replay[0].idempotentReplay).toBe(true)
   replay[0].consumptionContract!.observations[0].quantity = 999
-  await ingestBoundUtiltsMetering({ actorUserId: f.ids.customer, message: f.original, boundOutcomes: replay })
-  await createBoundUtiltsBilling({ actorUserId: f.ids.customer, message: f.original, boundOutcomes: replay, existingBillingUnderlayId: null })
+  await ingestBoundUtiltsMetering({ actorUserId: f.ids.actor, message: f.original, boundOutcomes: replay })
+  await createBoundUtiltsBilling({ actorUserId: f.ids.actor, message: f.original, boundOutcomes: replay, existingBillingUnderlayId: null })
   expect(effects.meter).toHaveBeenCalledWith(expect.objectContaining({ quantityKwh: 500, periodStart: '2026-06-30T23:00:00.000Z' }))
   expect(effects.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: 500, underlayMonth: 6, underlayYear: 2026 }))
   expect(snapshot(f.original.id)).toEqual(before)
@@ -192,8 +196,8 @@ it.each(['E30', 'S07'])('native %s control keeps the actual prepared consumption
   const raw = f.original.raw_payload!.replace('BGM+E66', `BGM+${code}`).replace('23-DDQ-E66-T', application).replaceAll(f.original.interchange_reference!, code+f.original.interchange_reference!)
   const source = await f.insertSource(raw, code), input = await f.prepare(source, false, code === 'E30')
   const rows = await persistUtiltsTransactionResults(input)
-  await ingestBoundUtiltsMetering({ actorUserId: f.ids.customer, message: source, boundOutcomes: rows })
-  await createBoundUtiltsBilling({ actorUserId: f.ids.customer, message: source, boundOutcomes: rows, existingBillingUnderlayId: null })
+  await ingestBoundUtiltsMetering({ actorUserId: f.ids.actor, message: source, boundOutcomes: rows })
+  await createBoundUtiltsBilling({ actorUserId: f.ids.actor, message: source, boundOutcomes: rows, existingBillingUnderlayId: null })
   if (code === 'E30') {
     expect(effects.meter).toHaveBeenCalledWith(expect.objectContaining({ quantityKwh: 500, periodStart: '2026-06-30T23:00:00.000Z' }))
     expect(effects.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: 500 }))
@@ -217,10 +221,10 @@ it.each([{ resolution: '1:805', end: '202607010200', second: '202607010100', bou
   expect(input.contracts[0].observations[1].periodStart).toBe(fixture.boundary)
   const outcomes = await persistUtiltsTransactionResults(input)
   await realSinks()
-  const stored = await ingestBoundUtiltsMetering({ actorUserId: f.ids.customer, message: source, boundOutcomes: outcomes })
+  const stored = await ingestBoundUtiltsMetering({ actorUserId: f.ids.actor, message: source, boundOutcomes: outcomes })
   expect(stored).toHaveLength(2); expect(new Set(stored.map(row => row.id)).size).toBe(2)
   expect(sql(`SELECT jsonb_agg(value_kwh ORDER BY period_start) FROM public.metering_values WHERE company_id=${lit(f.ids.company)}`)).toEqual([500, 7])
-  expect((await createBoundUtiltsBilling({ actorUserId: f.ids.customer, message: source, boundOutcomes: outcomes, existingBillingUnderlayId: null }))?.total_kwh).toBe(507)
+  expect((await createBoundUtiltsBilling({ actorUserId: f.ids.actor, message: source, boundOutcomes: outcomes, existingBillingUnderlayId: null }))?.total_kwh).toBe(507)
 })
 it('JSONB key order is immaterial and wrong source code/environment fail internally', async () => {
   const f = await seed(), input = await f.prepare(), first = await persistUtiltsTransactionResults(input)
@@ -288,19 +292,19 @@ function consumedCount(company: string) {
 it('real downstream writers consume database-derived stored values and retry idempotently', async () => {
   const f = await seed(), input = await f.prepare(), rows = await persistUtiltsTransactionResults(input)
   await realSinks()
-  const meter = await ingestBoundUtiltsMetering({ actorUserId: f.ids.customer, message: f.original, boundOutcomes: rows })
-  const billing = await createBoundUtiltsBilling({ actorUserId: f.ids.customer, message: f.original, boundOutcomes: rows, existingBillingUnderlayId: null })
+  const meter = await ingestBoundUtiltsMetering({ actorUserId: f.ids.actor, message: f.original, boundOutcomes: rows })
+  const billing = await createBoundUtiltsBilling({ actorUserId: f.ids.actor, message: f.original, boundOutcomes: rows, existingBillingUnderlayId: null })
   expect(meter).toHaveLength(1); expect(billing?.total_kwh).toBe(500)
   expect(sql(`SELECT jsonb_build_object('value',value_kwh,'customer',customer_id,'site',site_id,'point',metering_point_id,'grid',grid_owner_id) FROM public.metering_values WHERE id=${lit(meter[0].id)}`)).toEqual({ value: 500, customer: f.ids.customer, site: f.ids.site, point: f.ids.point, grid: f.ids.grid })
-  await ingestBoundUtiltsMetering({ actorUserId: f.ids.customer, message: f.original, boundOutcomes: rows })
-  expect((await createBoundUtiltsBilling({ actorUserId: f.ids.customer, message: f.original, boundOutcomes: rows, existingBillingUnderlayId: null }))?.id).toBe(billing?.id)
+  await ingestBoundUtiltsMetering({ actorUserId: f.ids.actor, message: f.original, boundOutcomes: rows })
+  expect((await createBoundUtiltsBilling({ actorUserId: f.ids.actor, message: f.original, boundOutcomes: rows, existingBillingUnderlayId: null }))?.id).toBe(billing?.id)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
 })
 it.each(['month', 'year', 'currency', 'contributors', 'missing-contributors'])('full processor rejects changed billing %s after insert before completion', async field => {
   const f = await seed()
   await realSinks()
   effects.complete.mockRejectedValueOnce(new Error('synthetic_interruption_after_underlay_insert'))
-  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.customer, edielMessageId: f.original.id })).rejects.toThrow('synthetic_interruption_after_underlay_insert')
+  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('synthetic_interruption_after_underlay_insert')
   expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
   const mutation = field === 'month' ? 'underlay_month=7' : field === 'year' ? 'underlay_year=2027'
     : field === 'currency' ? "currency='EUR'" : field === 'contributors' ? "payload=jsonb_set(payload,'{consumptionContracts,0,observations,0,quantity}','999'::jsonb)"
@@ -308,7 +312,7 @@ it.each(['month', 'year', 'currency', 'contributors', 'missing-contributors'])('
   sql(`UPDATE public.billing_underlays SET ${mutation} WHERE company_id=${lit(f.ids.company)}`)
   const afterMutation = sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)
   effects.complete.mockClear()
-  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.customer, edielMessageId: f.original.id })).rejects.toThrow('utilts_consumption_existing_billing_conflict')
+  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('utilts_consumption_existing_billing_conflict')
   expect(effects.complete).not.toHaveBeenCalled()
   expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
   expect(sql(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)).toEqual(afterMutation)
@@ -317,11 +321,11 @@ it('full processor identical retry after underlay insert preserves row identity 
   const f = await seed()
   await realSinks()
   effects.complete.mockRejectedValueOnce(new Error('synthetic_interruption_after_underlay_insert'))
-  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.customer, edielMessageId: f.original.id })).rejects.toThrow('synthetic_interruption_after_underlay_insert')
+  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('synthetic_interruption_after_underlay_insert')
   sql(`UPDATE public.billing_underlays SET status='validated',updated_by=NULL,readiness_status='ready',payload=payload||'{"workflowNote":"reviewed"}'::jsonb WHERE company_id=${lit(f.ids.company)}`)
   const row = sql<{ id: string; status: string; updated_by: null }>(`SELECT to_jsonb(b) FROM public.billing_underlays b WHERE company_id=${lit(f.ids.company)}`)
   effects.complete.mockClear()
-  const replay = await processInboundUtiltsMessage({ actorUserId: f.ids.customer, edielMessageId: f.original.id })
+  const replay = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })
   expect(replay.billingUnderlayId).toBe(row.id)
   expect(effects.complete).toHaveBeenCalledTimes(1)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
@@ -338,9 +342,9 @@ it.each(['point-grid', 'point-site', 'point-customer-site', 'site-grid', 'reques
   if (kind === 'site-grid') sql(`UPDATE public.customer_sites SET grid_owner_id=NULL WHERE id=${lit(f.ids.site)}`)
   if (kind === 'request-grid') sql(`UPDATE public.grid_owner_data_requests SET grid_owner_id=NULL WHERE id=${lit(f.ids.request)}`)
   await realSinks()
-  const meter = await Promise.allSettled([ingestBoundUtiltsMetering({ actorUserId: f.ids.customer, message: f.original, boundOutcomes: rows })])
+  const meter = await Promise.allSettled([ingestBoundUtiltsMetering({ actorUserId: f.ids.actor, message: f.original, boundOutcomes: rows })])
   expect(meter[0].status === 'rejected' || (meter[0].status === 'fulfilled' && meter[0].value.length === 0)).toBe(true)
-  await expect(createBoundUtiltsBilling({ actorUserId: f.ids.customer, message: f.original, boundOutcomes: rows, existingBillingUnderlayId: null })).rejects.toBeDefined()
+  await expect(createBoundUtiltsBilling({ actorUserId: f.ids.actor, message: f.original, boundOutcomes: rows, existingBillingUnderlayId: null })).rejects.toBeDefined()
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
 })
 const sinkRpc = (input: UtiltsBoundPersistenceInput, sink: 'metering' | 'billing') => {

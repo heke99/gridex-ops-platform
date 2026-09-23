@@ -12,9 +12,19 @@
   "root_main_acceptance_comment": 5768848443,
   "active_item": "E035 dated reviewed market structure and authoritative E61/E62 comparison",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
-  "next_action": "Freeze fixround2 forward154221, real-catalog post-replay readiness refresh and six processor billing completion-gap regressions. Local focused52/5, scripts types/lint, migration604/508/provenance511 and shell checks PASS. Root publishes frozen commit, verifies native124 and authentic artifacts, obtains independent review. Pause edits during publication/same-tree sync; native qualification remains pending.",
+  "next_action": "Freeze test-only round3 actor fixture. Actual327 native114/124: genuine readiness refresh succeeded, remaining10 failed domain-event actor FK. Seeded local auth/profile actor,19 actor argument substitutions;124 cases unchanged. Scripts types/lint/diff PASS. Root publishes and reruns native; pause for publication/same-tree sync. No production/migration changes.",
+  "successful_retry_actor_fixture": {
+    "status": "LOCAL_CHECKS_PASS_NATIVE_PENDING",
+    "native_expected_cases": 124,
+    "actor_argument_substitutions": 19,
+    "report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/successful-retry-binding-fixture-actor-20260923.md"
+  },
   "successful_retry_fix_round2": {
-    "status": "IMPLEMENTED_LOCAL_CHECKS_PASS_NATIVE_PENDING",
+    "status": "NATIVE_114_PASS_10_FIXTURE_ACTOR_FAILURES",
+    "published_head": "327ba7af213064d52d6d6c79e414a04fd24714cb",
+    "native_run": 35884310774,
+    "native_job": 107260421275,
+    "native_result": "READINESS_REFRESH_PASS; DOMAIN_EVENT_ACTOR_FK_BLOCKS_TEN_POSITIVES",
     "production_base": "e9778f9db1a7baffb79272326b89c492e241ce80",
     "migration": "20260923154221_ediel_utilts_existing_billing_binding.sql",
     "migration_sha256": "59c8ee7d99bb5c4b5993efe8549ad09695391a3591e5844937ae65b1e85e31c7",
@@ -22,7 +32,7 @@
     "focused_tests_passed": 52,
     "focused_test_files": 5,
     "native_expected_cases": 124,
-    "native_executed": false,
+    "native_executed": true,
     "generated_artifacts_reconciled": false
   },
   "successful_retry_fix_round1": {
