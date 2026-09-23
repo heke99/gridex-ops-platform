@@ -55,8 +55,23 @@ test('real writer case follows the actual Control Tower link; older exact ID byp
   await expect(support).toContainText('Synthetic support')
   await expect(support).not.toContainText(fixture.recent.title)
   const foreignResponse = await page.goto(detail(fixture.foreign.id))
-  expect(foreignResponse.status()).toBe(404)
+  // Next emits 200 after streaming starts, or 404 before it starts. Both must
+  // render the actual not-found boundary, never a successful case/login/error.
+  expect([200, 404]).toContain(foreignResponse.status())
+  await expect(page).toHaveURL(new RegExp(`/admin/ediel/operational-cases\\?caseId=${fixture.foreign.id}$`))
+  await expect(page.getByRole('heading', { level: 1, name: '404', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 2, name: 'This page could not be found.', exact: true })).toBeVisible()
+  await expect(page.locator('meta[name="robots"][content="noindex"]')).not.toHaveCount(0)
+  await expect(page.getByRole('region', { name: 'Ärendedetaljer', exact: true })).toHaveCount(0)
+  await expect(page.getByLabel('Ärendestatus')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Spara status', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Visa kund', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: /Källmeddelande/ })).toHaveCount(0)
   await expect(page.locator('body')).not.toContainText(fixture.foreign.description)
+  await expect(page.locator('body')).not.toContainText(fixture.foreign.title)
+  await expect(page.locator('body')).not.toContainText(fixture.foreign.next_action)
+  await expect(page.locator('body')).not.toContainText(fixture.customerB)
+  await expect(page.locator('body')).not.toContainText(fixture.foreign.sourceMessageId)
 })
 
 test('tenant writer changes only case status; read-only and no-case-read actors cannot triage', async ({ browser }) => {
