@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { energyHandoffMessage } from '../__tests__/helpers/utiltsObservationHandoff'
@@ -12,19 +12,33 @@ import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
+import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
 
 // Real parser, canonical policy, preparation, service HTTP RPC, SQL, stored
 // contract validation and both sink adapters. Only final external writes are
 // observed, allowing the crash boundary between persistence and consumption.
-const effects = vi.hoisted(() => ({ meter: vi.fn(), bill: vi.fn() }))
+const effects = vi.hoisted(() => ({ meter: vi.fn(), bill: vi.fn(), ack: vi.fn(), complete: vi.fn(), outbound: vi.fn(), status: vi.fn(), readRaw: null as string | null }))
 vi.mock('@/lib/metering/normalizeMeteringValues', () => ({ normalizeAndStoreMeteringValue: effects.meter }))
 vi.mock('@/lib/billing/meterValueBillingMatcher', () => ({ updateMeterValueBillingReadiness: vi.fn() }))
-vi.mock('@/lib/cis/db', async original => ({ ...await original<Record<string, unknown>>(), ingestBillingUnderlay: effects.bill }))
+vi.mock('@/lib/cis/db', async original => ({ ...await original<Record<string, unknown>>(), ingestBillingUnderlay: effects.bill,
+  syncGridOwnerDataRequestReceivedFromEdiel: effects.complete, findOpenOutboundBySource: effects.outbound }))
+vi.mock('@/lib/ediel/core/kernel', async original => ({ ...await original<Record<string, unknown>>(), createCanonicalAckMessage: effects.ack }))
+vi.mock('@/lib/ediel/db', async original => {
+  const actual = await original<typeof import('@/lib/ediel/db')>()
+  return { ...actual, linkEdielMessage: vi.fn(), createEdielMessageEvent: vi.fn(), updateEdielMessageStatus: effects.status,
+    getEdielMessageById: async (id: string) => {
+      const row = await actual.getEdielMessageById(id)
+      return row && effects.readRaw !== null ? { ...row, raw_payload: effects.readRaw } : row
+    } }
+})
 const DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 const lit = (value: unknown) => value === null ? 'NULL' : "'" + String(typeof value === 'object' ? JSON.stringify(value) : value).replaceAll("'", "''") + "'"
 function sql<T = unknown>(input: string): T {
   if (process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://127.0.0.1:54321') throw Error('native_local_only')
   const result = execFileSync('psql', [DB, '-XAtq', '-v', 'ON_ERROR_STOP=1'], { input, encoding: 'utf8', timeout: 10000, maxBuffer: 2000000 }).trim()
+  // Unwrapped PostgreSQL booleans use t/f in unaligned text output. JSONB
+  // booleans already use true/false; keep every other result strict JSON.
+  if (result === 't' || result === 'f') return (result === 't') as T
   return result ? JSON.parse(result) as T : undefined as T
 }
 async function seed() {
@@ -62,8 +76,40 @@ async function seed() {
 }
 beforeEach(() => {
   vi.clearAllMocks()
+  effects.readRaw = null
+  effects.status.mockResolvedValue(null); effects.complete.mockResolvedValue(null); effects.outbound.mockResolvedValue(null)
+  effects.ack.mockImplementation(async ({ sourceMessage }: { sourceMessage: EdielMessageRow }) => ({ id: sourceMessage.id }))
   effects.meter.mockResolvedValue({ status: 'stored', meteringValue: { id: 'observed-meter' } })
   effects.bill.mockResolvedValue({ id: 'observed-underlay' })
+})
+it.each(['quantity', 'timezone', 'resolution-format'])('full processor persisted interruption rejects actual runtime %s retry before ACK/completion or sinks', async kind => {
+  const f = await seed()
+  effects.status.mockRejectedValueOnce(new Error('synthetic_interruption_after_committed_persistence'))
+  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.customer, edielMessageId: f.original.id })).rejects.toThrow('synthetic_interruption_after_committed_persistence')
+  const before = snapshot(f.original.id)
+  expect(sql(`SELECT count(*) FROM gridex_utilts_binding.contracts WHERE source_message_id=${lit(f.original.id)}`)).toBe(1)
+  expect(effects.ack).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
+  expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
+  const original = f.original.raw_payload!
+  const changed = kind === 'quantity' ? original.replace('QTY+136:500', 'QTY+136:999')
+    : kind === 'timezone' ? original.replace('?+0100:406', '?+0200:406') : original.replace('15:806', '15:805')
+  const runtime = runUtiltsRuntimeForMessage({ ...f.original, raw_payload: changed })
+  expect(runtime.validation.ok).toBe(true)
+  await expect(createInboundEdielMessage({ companyId: f.ids.company, environment: 'test', inboundEmailMessageId: '', parsed: parseInboundEmailContent({ attachmentText: changed })! })).rejects.toThrow('INBOUND_UTILTS_SOURCE_CONFLICT')
+  // A read-to-persist race must also fail even if a stale upstream snapshot
+  // bypassed the natural dedup call; the locked database bytes remain authority.
+  effects.readRaw = changed
+  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.customer, edielMessageId: f.original.id })).rejects.toThrow('utilts_source_binding_conflict')
+  expect(snapshot(f.original.id)).toEqual(before)
+  expect(effects.ack).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled(); expect(effects.outbound).not.toHaveBeenCalled()
+  expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
+  effects.readRaw = null
+  const replay = await processInboundUtiltsMessage({ actorUserId: f.ids.customer, edielMessageId: f.original.id })
+  expect(replay.ingestedMeterValueIds).toEqual(['observed-meter'])
+  expect(effects.meter).toHaveBeenCalledWith(expect.objectContaining({ quantityKwh: 500, periodStart: '2026-06-30T23:00:00.000Z' }))
+  expect(effects.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: 500, underlayMonth: 6 }))
+  expect(effects.complete).toHaveBeenCalledTimes(1)
+  expect(effects.ack.mock.calls.some(([call]) => call.ackFamily === 'APERAK')).toBe(true)
 })
 function snapshot(source: string) {
   return sql(`SELECT jsonb_build_object('acks',(SELECT jsonb_agg(to_jsonb(a)) FROM public.ediel_ack_transaction_results a WHERE source_message_id=${lit(source)}),
@@ -156,12 +202,171 @@ it.each(['E30', 'S07'])('native %s control keeps the actual prepared consumption
     expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
   }
 })
+it.each([{ resolution: '1:805', end: '202607010200', second: '202607010100', boundary: '2026-07-01T00:00:00.000Z' },
+  { resolution: '30:806', end: '202607010100', second: '202607010030', boundary: '2026-06-30T23:30:00.000Z' },
+  { resolution: '1:802', end: '202609010000', second: '202608010000', boundary: '2026-07-31T23:00:00.000Z' }])('native accepted E30 $resolution creates two distinct stored intervals', async fixture => {
+  const f = await seed()
+  const lines = f.original.raw_payload!.replace('BGM+E66', 'BGM+E30').replace('23-DDQ-E66-T', '23-MDR-E30-T').replace('15:806', fixture.resolution)
+    .replace('202607010000202607010015:719', `202607010000${fixture.end}:719`).split('\n')
+  const at = lines.findIndex(line => line.startsWith('UNT+'))
+  lines.splice(at, 0, "SEQ++2'", "QTY+136:7'", `DTM+597:${fixture.second}:203'`, "STS+7++21::260'")
+  lines[at + 4] = `UNT+${at + 3}+1'`
+  const source = await f.insertSource(lines.join('\n').replaceAll(f.original.interchange_reference!, 'E30'+f.original.interchange_reference!), 'E30'), input = await f.prepare(source)
+  expect(input.contracts[0].observations.map(o => o.quantity)).toEqual([500, 7])
+  expect(input.contracts[0].observations[0].periodEnd).toBe(fixture.boundary)
+  expect(input.contracts[0].observations[1].periodStart).toBe(fixture.boundary)
+  const outcomes = await persistUtiltsTransactionResults(input)
+  await realSinks()
+  const stored = await ingestBoundUtiltsMetering({ actorUserId: f.ids.customer, message: source, boundOutcomes: outcomes })
+  expect(stored).toHaveLength(2); expect(new Set(stored.map(row => row.id)).size).toBe(2)
+  expect(sql(`SELECT jsonb_agg(value_kwh ORDER BY period_start) FROM public.metering_values WHERE company_id=${lit(f.ids.company)}`)).toEqual([500, 7])
+  expect((await createBoundUtiltsBilling({ actorUserId: f.ids.customer, message: source, boundOutcomes: outcomes, existingBillingUnderlayId: null }))?.total_kwh).toBe(507)
+})
 it('JSONB key order is immaterial and wrong source code/environment fail internally', async () => {
   const f = await seed(), input = await f.prepare(), first = await persistUtiltsTransactionResults(input)
   const reordered = { ...input, contracts: input.contracts.map(c => Object.fromEntries(Object.entries(c).reverse()) as typeof c) }
   expect((await persistUtiltsTransactionResults(reordered))[0].seriesId).toBe(first[0].seriesId)
   await expect(persistUtiltsTransactionResults({ ...input, messageCode: 'E30' })).rejects.toThrow('utilts_source_binding_conflict')
   await expect(persistUtiltsTransactionResults({ ...input, environment: 'production' })).rejects.toThrow('utilts_source_binding_conflict')
+  await expect(persistUtiltsTransactionResults({ ...input, companyId: randomUUID() })).rejects.toThrow('utilts_source_binding_conflict')
+})
+it('distinguishable observation order is immutable, not a set comparison', async () => {
+  const f = await seed()
+  const lines = f.original.raw_payload!.replace('202607010000202607010015:719', '202607010000202607010030:719').split('\n')
+  const at = lines.findIndex(line => line.startsWith('UNT+'))
+  lines.splice(at, 0, "SEQ++2'", "QTY+136:7'", "DTM+597:202607010015:203'", "STS+7++21::260'")
+  lines[at + 4] = `UNT+${at + 3}+1'`
+  const source = await f.insertSource(lines.join('\n').replaceAll(f.original.interchange_reference!, 'ORDER'+f.original.interchange_reference!)), input = await f.prepare(source)
+  expect(input.contracts[0].observations.map(o => o.quantity)).toEqual([500, 7])
+  await persistUtiltsTransactionResults(input); const before = snapshot(source.id)
+  const changed = structuredClone(input)
+  changed.contracts[0].observations.reverse().forEach((o, i) => { o.ordinal = i })
+  await expect(persistUtiltsTransactionResults(changed)).rejects.toThrow('utilts_consumption_raw_conflict')
+  expect(snapshot(source.id)).toEqual(before)
+})
+it('equivalent valid hour/minute wire spellings cannot replace a bound source', async () => {
+  const f = await seed()
+  const raw = f.original.raw_payload!.replace('15:806', '1:805').replace('202607010000202607010015:719', '202607010000202607010100:719')
+  const source = await f.insertSource(raw.replaceAll(f.original.interchange_reference!, 'HOUR'+f.original.interchange_reference!)), input = await f.prepare(source)
+  await persistUtiltsTransactionResults(input); const before = snapshot(source.id)
+  const changed = { ...source, raw_payload: source.raw_payload!.replace('1:805', '60:806') }, prepared = await f.prepare(changed)
+  expect(prepared.contracts[0].observations[0].periodEnd).toBe(input.contracts[0].observations[0].periodEnd)
+  await expect(persistUtiltsTransactionResults(prepared)).rejects.toThrow('utilts_source_binding_conflict')
+  expect(snapshot(source.id)).toEqual(before)
+})
+it.each(['missing-field', 'extra-field', 'wrong-type', 'missing-member', 'duplicate-member', 'wrong-member', 'null-request-scope', 'numeric-request-scope', 'text-month', 'padded-customer'])('native rejects %s without minting source/ACK/series evidence', async kind => {
+  const f = await seed(), input = await f.prepare()
+  const payload = input.transactions.map((item, i) => ({ ...item, consumptionContract: structuredClone(input.contracts[i]) as unknown as Record<string, unknown> }))
+  if (kind === 'missing-field') delete payload[0].consumptionContract.attributionVersion
+  if (kind === 'extra-field') payload[0].consumptionContract.unapproved = true
+  if (kind === 'wrong-type') payload[0].consumptionContract.observations = null
+  if (kind === 'missing-member') payload.length = 0
+  if (kind === 'duplicate-member') payload.push(structuredClone(payload[0]))
+  if (kind === 'wrong-member') { payload[0].transactionId = 'UNSEEN'; payload[0].consumptionContract.transactionId = 'UNSEEN' }
+  const billing = payload[0]?.consumptionContract.billing as Record<string, unknown> | undefined
+  if (kind === 'null-request-scope') billing!.requestScope = null
+  if (kind === 'numeric-request-scope') billing!.requestScope = 7
+  if (kind === 'text-month') billing!.month = String(billing!.month)
+  if (kind === 'padded-customer') billing!.customerId = ` ${billing!.customerId}`
+  const result = sql<string>(`CREATE FUNCTION pg_temp.binding_input_probe() RETURNS text LANGUAGE plpgsql AS $$ BEGIN
+    PERFORM public.gridex_persist_utilts_consumption_v1(${lit(input.companyId)},'test',${lit(input.sourceMessageId)},'E66',${lit(input.rawPayload)},${lit(payload)}::jsonb);
+    RETURN 'UNSAFE_SUCCESS'; EXCEPTION WHEN OTHERS THEN RETURN SQLSTATE||':'||SQLERRM; END $$;
+    SELECT to_jsonb(pg_temp.binding_input_probe());`)
+  expect(result).toMatch(/^P0U01:utilts_/)
+  expect(snapshot(input.sourceMessageId)).toEqual({ acks: null, series: null, contracts: null })
+  expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(input.sourceMessageId)}`)).toBe(0)
+})
+async function realSinks() {
+  const meter = await vi.importActual<typeof import('@/lib/metering/normalizeMeteringValues')>('@/lib/metering/normalizeMeteringValues')
+  const billing = await vi.importActual<typeof import('@/lib/cis/db-data')>('@/lib/cis/db-data')
+  effects.meter.mockImplementation(meter.normalizeAndStoreMeteringValue)
+  effects.bill.mockImplementation(billing.ingestBillingUnderlay)
+}
+function consumedCount(company: string) {
+  return sql(`SELECT jsonb_build_object('meter',(SELECT count(*) FROM public.metering_values WHERE company_id=${lit(company)}),'billing',(SELECT count(*) FROM public.billing_underlays WHERE company_id=${lit(company)}))`)
+}
+it('real downstream writers consume database-derived stored values and retry idempotently', async () => {
+  const f = await seed(), input = await f.prepare(), rows = await persistUtiltsTransactionResults(input)
+  await realSinks()
+  const meter = await ingestBoundUtiltsMetering({ actorUserId: f.ids.customer, message: f.original, boundOutcomes: rows })
+  const billing = await createBoundUtiltsBilling({ actorUserId: f.ids.customer, message: f.original, boundOutcomes: rows, existingBillingUnderlayId: null })
+  expect(meter).toHaveLength(1); expect(billing?.total_kwh).toBe(500)
+  expect(sql(`SELECT jsonb_build_object('value',value_kwh,'customer',customer_id,'site',site_id,'point',metering_point_id,'grid',grid_owner_id) FROM public.metering_values WHERE id=${lit(meter[0].id)}`)).toEqual({ value: 500, customer: f.ids.customer, site: f.ids.site, point: f.ids.point, grid: f.ids.grid })
+  await ingestBoundUtiltsMetering({ actorUserId: f.ids.customer, message: f.original, boundOutcomes: rows })
+  expect((await createBoundUtiltsBilling({ actorUserId: f.ids.customer, message: f.original, boundOutcomes: rows, existingBillingUnderlayId: null }))?.id).toBe(billing?.id)
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
+})
+it.each(['point-grid', 'point-site', 'point-customer-site', 'site-grid', 'request-grid'])('real downstream writers reject %s drift after persistence', async kind => {
+  const f = await seed(), rows = await persistUtiltsTransactionResults(await f.prepare())
+  if (kind === 'point-grid') sql(`UPDATE public.metering_points SET grid_owner_id=NULL WHERE id=${lit(f.ids.point)}`)
+  if (kind === 'point-site') sql(`UPDATE public.metering_points SET site_id=NULL,customer_site_id=NULL WHERE id=${lit(f.ids.point)}`)
+  if (kind === 'point-customer-site') {
+    const site = randomUUID()
+    sql(`INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country,grid_owner_id) VALUES(${lit(site)},${lit(f.ids.company)},${lit(f.ids.customer)},'Other synthetic','consumption','active','SE',${lit(f.ids.grid)}); UPDATE public.metering_points SET customer_site_id=${lit(site)} WHERE id=${lit(f.ids.point)}`)
+  }
+  if (kind === 'site-grid') sql(`UPDATE public.customer_sites SET grid_owner_id=NULL WHERE id=${lit(f.ids.site)}`)
+  if (kind === 'request-grid') sql(`UPDATE public.grid_owner_data_requests SET grid_owner_id=NULL WHERE id=${lit(f.ids.request)}`)
+  await realSinks()
+  const meter = await Promise.allSettled([ingestBoundUtiltsMetering({ actorUserId: f.ids.customer, message: f.original, boundOutcomes: rows })])
+  expect(meter[0].status === 'rejected' || (meter[0].status === 'fulfilled' && meter[0].value.length === 0)).toBe(true)
+  await expect(createBoundUtiltsBilling({ actorUserId: f.ids.customer, message: f.original, boundOutcomes: rows, existingBillingUnderlayId: null })).rejects.toBeDefined()
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+})
+const sinkRpc = (input: UtiltsBoundPersistenceInput, sink: 'metering' | 'billing') => {
+  const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>
+  return Promise.resolve(rpc(`gridex_consume_utilts_${sink}_v1`, { p_company_id: input.companyId, p_source_message_id: input.sourceMessageId, p_actor_id: null,
+    ...(sink === 'metering' ? { p_transaction_id: 'GRIDEX2607E66001', p_observation_ordinal: 0, p_expected_contract: input.contracts[0] } : { p_expected_contracts: input.contracts }) }))
+}
+it.each(['metering', 'billing'] as const)('atomic %s writer refuses a mutated returned projection instead of reinterpreting it', async sink => {
+  const f = await seed(), input = await f.prepare(); await persistUtiltsTransactionResults(input)
+  const changed = structuredClone(input); changed.contracts[0].observations[0].quantity = 999
+  const result = await sinkRpc(changed, sink)
+  expect(result.error?.message).toContain('utilts_consumption_returned_contract_changed')
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+})
+it.each(['metering', 'billing'] as const)('atomic %s writer waits for concurrent ownership edit then rejects changed tuple', async sink => {
+  const f = await seed(), input = await f.prepare(); await persistUtiltsTransactionResults(input)
+  const editor = spawn('psql', [DB, '-XAtq', '-v', 'ON_ERROR_STOP=1'], { stdio: ['pipe', 'pipe', 'pipe'] })
+  const ready = new Promise<void>((resolve, reject) => {
+    editor.stdout.on('data', data => { if (String(data).includes('OWNERSHIP_LOCKED')) resolve() })
+    editor.once('error', reject); editor.once('exit', code => { if (code !== 0) reject(new Error(`ownership_editor_exit:${code}`)) })
+  })
+  editor.stdin.write(`BEGIN; UPDATE public.metering_points SET grid_owner_id=NULL WHERE id=${lit(f.ids.point)}; SELECT 'OWNERSHIP_LOCKED';\n`)
+  await ready
+  let pending: ReturnType<typeof sinkRpc> | undefined
+  try {
+    pending = sinkRpc(input, sink)
+    let waiting = false
+    for (let attempt = 0; attempt < 40; attempt++) {
+      waiting = sql<boolean>(`SELECT EXISTS(SELECT FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%gridex_consume_utilts_${sink}_v1%')`)
+      if (waiting) break
+      await new Promise(resolve => setTimeout(resolve, 50))
+    }
+    expect(waiting).toBe(true)
+    editor.stdin.end('COMMIT;\n')
+    const result = await pending
+    expect(result.error?.message).toContain('utilts_consumption_point_ownership_changed')
+    expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+  } finally {
+    if (!editor.stdin.writableEnded) editor.stdin.end('ROLLBACK;\n')
+    await pending
+  }
+})
+it.each(['direction', 'company_id', 'environment', 'message_code', 'sender_ediel_id'])('direct update cannot change sealed source %s', async field => {
+  const f = await seed(), input = await f.prepare()
+  await persistUtiltsTransactionResults(input)
+  const changed = field === 'company_id' ? randomUUID() : field === 'direction' ? 'outbound' : field === 'environment' ? 'production' : field === 'message_code' ? 'E30' : '99999'
+  const { error } = await supabaseService.from('ediel_messages').update({ [field]: changed }).eq('id', f.original.id)
+  expect(error).not.toBeNull()
+  const { data } = await supabaseService.from('ediel_messages').select('company_id,environment,direction,message_code,sender_ediel_id').eq('id', f.original.id).single()
+  expect(data).toMatchObject({ company_id: f.ids.company, environment: 'test', direction: 'inbound', message_code: 'E66', sender_ediel_id: '91100' })
+})
+it('concurrent identical retries serialize to one contract/series and unchanged reserved ACK', async () => {
+  const f = await seed(), input = await f.prepare()
+  const attempts = await Promise.all(Array.from({ length: 4 }, () => persistUtiltsTransactionResults(input)))
+  expect(new Set(attempts.map(rows => rows[0].seriesId)).size).toBe(1)
+  expect(attempts.filter(rows => !rows[0].idempotentReplay)).toHaveLength(1)
+  expect(sql(`SELECT jsonb_build_object('series',(SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(f.original.id)}),'contracts',(SELECT count(*) FROM gridex_utilts_binding.contracts WHERE source_message_id=${lit(f.original.id)}),'acks',(SELECT count(*) FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(f.original.id)}))`)).toEqual({ series: 1, contracts: 1, acks: 1 })
 })
 it('dedupe conflict after an earlier sibling insert rolls the entire batch back, never to ERR', async () => {
   const f = await seed(), input = await f.prepare()
@@ -187,6 +392,10 @@ it('private storage and old unbound function are unavailable to service callers'
   expect(sql(`SELECT has_function_privilege('service_role','gridex_utilts_binding.persist_series_v1(uuid,text,uuid,text,jsonb)','EXECUTE')`)).toBe(false)
   expect(sql(`SELECT has_function_privilege('authenticated','public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb)','EXECUTE')`)).toBe(false)
   expect(sql(`SELECT has_table_privilege('service_role','gridex_utilts_binding.contracts','INSERT')`)).toBe(false)
+  for (const role of ['anon', 'authenticated']) {
+    expect(sql(`SELECT has_function_privilege(${lit(role)},'public.gridex_consume_utilts_metering_v1(uuid,uuid,text,integer,uuid,jsonb)','EXECUTE')`)).toBe(false)
+    expect(sql(`SELECT has_function_privilege(${lit(role)},'public.gridex_consume_utilts_billing_v1(uuid,uuid,uuid,jsonb)','EXECUTE')`)).toBe(false)
+  }
 })
 it.each(['missing-contract', 'corrupt-contract-hash', 'corrupt-raw-hash'])('native %s evidence cannot authorize replay', async kind => {
   const f = await seed(), input = await f.prepare(), rows = await persistUtiltsTransactionResults(input), before = snapshot(f.original.id)

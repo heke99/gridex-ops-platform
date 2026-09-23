@@ -435,6 +435,7 @@
     "20260923114703_ediel_reviewed_closure_source.sql": "6752251826e68de761eec4a7e05b841e2fb755517bf6ba4ad76f19088e7f0fd2",
     "20260923124645_ediel_closure_snapshot_expression.sql": "e7f339d1eea81497f46e90d73a39bcc659e509eabb5b85ef42697c8e28b12123",
     "20260923135706_ediel_utilts_consumption_binding_v1.sql": "c6376a62644efe24a733a872410d48d6f74372e68d4c0c56db03fd2a6380df7e",
+    "20260923150649_ediel_utilts_bound_sink_authority.sql": "be5e58728e24c591a0c4d5e38c04ce86b770ed6e717d071b3475f48791a67d1a",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",

@@ -1,7 +1,7 @@
 import { flattenUtiltsTransactionSeries, matchForSeriesItem, stringOrNull, toMeteringReadingType, type UtiltsTransactionMatch } from '@/lib/ediel/flows/utiltsDataRequest.part-1'
 import { matchMeteringPointIdByIdentifier, matchSiteAndCustomerForMeteringPoint } from '@/lib/ediel/matching'
 import { localEdifactDateTimeToUtc, parseEdifactTimezoneOffsetFromSegments } from './timezone'
-import { normalizeEdifactResolution } from './resolution'
+import { addNormalizedResolution, normalizeEdifactResolution } from './resolution'
 import { resolveUtiltsTransactionId } from './transactionIdentity'
 import { utiltsSeriesKind } from './transactionPersistence'
 import { canonicalAbsoluteInstant, consumptionConflict, validateUtiltsConsumptionContract, type UtiltsConsumptionAttribution, type UtiltsConsumptionContractV1, type UtiltsBillingContext } from './consumptionContract'
@@ -32,6 +32,16 @@ export async function prepareUtiltsConsumptionContracts(input: {
   const projected = sourceTransactions.flatMap((value, index) => {
     const tx = value as Record<string, unknown>
     if (!input.allowConsumption || !acceptedIds.has(resolveUtiltsTransactionId(stringOrNull(tx.transactionId), index))) return []
+    if (policy.code === 'E30') {
+      const resolution = normalizeEdifactResolution({ value: stringOrNull(tx.resolution), format: stringOrNull(tx.resolutionFormat) })
+      const quantities = Array.isArray(tx.quantities) ? tx.quantities : []
+      return quantities.map((quantity, ordinal) => {
+        const start = resolution ? addNormalizedResolution(stringOrNull(tx.deliveryPeriodStart), resolution, ordinal) : stringOrNull(tx.deliveryPeriodStart)
+        const end = resolution ? addNormalizedResolution(start, resolution) : stringOrNull(tx.deliveryPeriodEnd)
+        if ((!resolution && quantities.length > 1) || !start || !end || absolute(end) > absolute(tx.deliveryPeriodEnd)) consumptionConflict('observation_interval_unresolved')
+        return { ...tx, deliveryPeriodStart: absolute(start), deliveryPeriodEnd: absolute(end), resolution, quantities: [quantity] }
+      })
+    }
     return [{ ...tx, deliveryPeriodStart: absolute(tx.deliveryPeriodStart), deliveryPeriodEnd: absolute(tx.deliveryPeriodEnd),
       resolution: normalizeEdifactResolution({ value: stringOrNull(tx.resolution), format: stringOrNull(tx.resolutionFormat) }) }]
   })

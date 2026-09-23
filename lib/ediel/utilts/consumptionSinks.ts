@@ -31,7 +31,7 @@ export async function ingestBoundUtiltsMetering(input: BoundSinkInput): Promise<
         quantityKwh: o.quantity, qualityStatus: o.quality, readingType: o.readingType, direction: o.direction, unit: o.unit,
         registerCode: o.registerCode, productCode: o.productCode, facilityId: o.externalPoint, gridArea: o.gridArea,
         sourceLineReference: o.sourceLineReference, sourceType: contract.sourceType, sourceMessageId: input.message.id,
-        sourceTransactionReference: contract.transactionId, createdBy: input.actorUserId, immutableAttribution: true,
+        sourceTransactionReference: contract.transactionId, createdBy: input.actorUserId, immutableAttribution: true, boundObservationOrdinal: o.ordinal, boundContract: contract,
         rawPayload: { consumptionContract: contract, sourceOrdinal: o.sourceOrdinal, edielMessageId: input.message.id },
       })
       if (stored.status !== 'stored') continue
@@ -53,7 +53,7 @@ export async function createBoundUtiltsBilling(input: BoundSinkInput & { existin
     actorUserId: input.actorUserId, customerId: context.customerId!, siteId: context.siteId, meteringPointId: context.meteringPointId,
     gridOwnerId: context.gridOwnerId, sourceRequestId: context.sourceRequestId, underlayMonth: context.month, underlayYear: context.year,
     status: context.status, sourceSystem: context.sourceSystem, currency: context.currency, totalKwh,
-    expectedCompanyId: contributors[0].companyId, immutableAttribution: true,
+    expectedCompanyId: contributors[0].companyId, immutableAttribution: true, boundSourceMessageId: input.message.id, boundContracts: contributors,
     payload: { edielMessageId: input.message.id, consumptionContracts: contributors },
   })
 }

@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 import type { ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
 import { normalizeEdifactMessageCode } from '@/lib/inbound-mail/edielEmailParser'
 import type { InboundEntityMatch } from '@/lib/inbound-mail/inboundMatcher'
@@ -83,9 +84,10 @@ async function assertSameUtiltsSource(input: {
   id: string; companyId: string; environment: string | null; parsed: ParsedEdifactEnvelope
 }): Promise<void> {
   if (input.parsed.messageFamily !== 'UTILTS') return
-  const { data, error } = await supabaseService.from('ediel_messages')
-    .select('id,company_id,environment,direction,message_family,message_code,raw_payload')
-    .eq('id', input.id).eq('company_id', input.companyId).maybeSingle()
+  type SourceRead = { eq(column: 'id', id: string): SourceRead; maybeSingle(): PromiseLike<{ data: Pick<import('@/lib/ediel/types').EdielMessageRow, 'id' | 'company_id' | 'environment' | 'direction' | 'message_family' | 'message_code' | 'raw_payload'> | null; error: unknown }> }
+  const query = tenantDb(input.companyId).from('ediel_messages')
+    .select('id,company_id,environment,direction,message_family,message_code,raw_payload') as SourceRead
+  const { data, error } = await query.eq('id', input.id).maybeSingle()
   if (error) throw error
   if (!data || data.raw_payload !== input.parsed.rawPayload || data.company_id !== input.companyId ||
     data.environment !== input.environment || data.direction !== 'inbound' || data.message_family !== 'UTILTS' || data.message_code !== parsedMessageCode(input.parsed)) {

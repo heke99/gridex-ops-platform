@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import type { UtiltsConsumptionContractV1 } from '@/lib/ediel/utilts/consumptionContract'
 import type {
   BillingUnderlayRow,
   GridOwnerDataRequestRow,
@@ -900,6 +901,8 @@ export async function ingestBillingUnderlay(input: {
   failureReason?: string | null
   expectedCompanyId?: string
   immutableAttribution?: boolean
+  boundSourceMessageId?: string
+  boundContracts?: readonly UtiltsConsumptionContractV1[]
 }): Promise<BillingUnderlayRow> {
   const now = new Date().toISOString()
   const context = await getCustomerExportContext({
@@ -910,8 +913,10 @@ export async function ingestBillingUnderlay(input: {
   const companyId = requireContextCompanyId(context, 'Registrera faktureringsunderlag')
   if (input.immutableAttribution) {
     if (!input.expectedCompanyId || companyId !== input.expectedCompanyId || context.customer?.id !== input.customerId ||
-      (input.siteId && (!context.site || context.site.customer_id !== input.customerId)) ||
-      (input.meteringPointId && (!context.meteringPoint || context.meteringPoint.customer_id !== input.customerId))) {
+      (input.siteId && (!context.site || context.site.customer_id !== input.customerId || (context.site.grid_owner_id ?? null) !== (input.gridOwnerId ?? null))) ||
+      (input.meteringPointId && (!context.meteringPoint || context.meteringPoint.customer_id !== input.customerId ||
+        (context.meteringPoint.site_id ?? context.meteringPoint.customer_site_id ?? null) !== (input.siteId ?? null) || (context.meteringPoint.customer_site_id ?? context.meteringPoint.site_id ?? null) !== (input.siteId ?? null) ||
+        (context.meteringPoint.grid_owner_id ?? null) !== (input.gridOwnerId ?? null)))) {
       throw new Error('utilts_consumption_binding_conflict:billing_ownership_changed')
     }
     if (!input.sourceRequestId) throw new Error('utilts_consumption_binding_conflict:billing_request_missing')
@@ -924,6 +929,19 @@ export async function ingestBillingUnderlay(input: {
     }
   }
   await requireCompanyOperationalForWrites(companyId)
+
+  if (input.immutableAttribution) {
+    if (!input.boundSourceMessageId || !input.boundContracts?.length) throw new Error('utilts_consumption_binding_conflict:billing_binding_missing')
+    // Stored contracts, complete contributor membership and ownership locks are
+    // resolved again in the same database transaction as the authoritative insert.
+    const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (name: 'gridex_consume_utilts_billing_v1', args: {
+      p_company_id: string; p_source_message_id: string; p_actor_id: string | null; p_expected_contracts: readonly UtiltsConsumptionContractV1[]
+    }) => PromiseLike<{ data: unknown; error: unknown }>
+    const { data, error } = await rpc('gridex_consume_utilts_billing_v1', { p_company_id: companyId, p_source_message_id: input.boundSourceMessageId, p_actor_id: input.actorUserId, p_expected_contracts: input.boundContracts })
+    if (error) throw error
+    if (!data || typeof data !== 'object' || !('id' in data)) throw new Error('utilts_consumption_binding_conflict:billing_result_missing')
+    return data as BillingUnderlayRow
+  }
 
   const insertPayload: Record<string, unknown> = {
     company_id: companyId,
