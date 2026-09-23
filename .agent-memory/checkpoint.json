@@ -12,7 +12,7 @@
   "root_main_acceptance_comment": 5768848443,
   "active_item": "E035 dated reviewed market structure and authoritative E61/E62 comparison",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
-  "next_action": "Finish genuine Z05L/LK closure owner/readset/selection from private parser checkpoint; native replay and independent review. Then immutable successful-retry content binding, prior-guide E61/E62 scoped activation, Z05C and remaining source owners.",
+  "next_action": "Read original SQL exception from OPS35862101094; finish closure fix2, native qualification and scoped review, then adjacent case types and queued E035 owners.",
   "previous_ordinary_ci": {
     "head": "a89275ba0b34ae27530c2e403d3ae3f2667afe3b",
     "ops": 35715146276,
@@ -51,7 +51,7 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "cfe206def907fa313937a0a504ebd562aefc0ae8",
+  "last_verified_pr_head": "c18355fff4bdb465dc393c485497a8f25ef0e42c",
   "ordinary_baseline_ci": {
     "head": "95b5e391159e3164869ddabd8ec96b8f69189fe2",
     "ops": 35842844058,
@@ -209,7 +209,7 @@
     "corrected_published_head": "0e81b11960ccd980901b8c43356ac8e2edcdf387"
   },
   "closure_20260923": {
-    "status": "FIX2_NATIVE_DIAGNOSTIC_IDENTIFIES_CAUGHT_SQL_EXCEPTION",
+    "status": "FIX2_DIAGNOSTIC_REFINEMENT_REPLAY_PENDING",
     "local_tests": 5875,
     "local_files": 355,
     "targeted_tests": 108,
@@ -254,6 +254,8 @@
     "diagnostic_head": "cfe206def907fa313937a0a504ebd562aefc0ae8",
     "diagnostic_run": 35861175209,
     "diagnostic_native_result": "57_PASS_4_FAIL_CAUGHT_SQL_EXCEPTION",
-    "diagnostic_artifact": 10749989153
+    "diagnostic_artifact": 10749989153,
+    "diagnostic_refinement_head": "c18355fff4bdb465dc393c485497a8f25ef0e42c",
+    "diagnostic_refinement_run": 35862101094
   }
 }

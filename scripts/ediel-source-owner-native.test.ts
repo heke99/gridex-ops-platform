@@ -546,6 +546,8 @@ it('native append independently binds sealed raw values and midnight support; is
   facts=>{facts.objects[0].business.reviewerUserId=f.ids.actor},
   facts=>{facts.objects[0].business.baselineCoverageAssessment.factsHash='f'.repeat(64)},
   facts=>{facts.objects[0].business.coverageWindow.outboundSourceMessageId=message.id},
+  facts=>{Object.assign(facts.objects[0].business.reviewSnapshot,{approved:true})},
+  facts=>{const snapshot:Partial<typeof facts.objects[0]['business']['reviewSnapshot']>=facts.objects[0].business.reviewSnapshot;delete snapshot.readsetHash},
  ]
  for(const mutate of mutations)expect(probe(mutate)).toBe(false)
  expect(stored(message.id)).toHaveLength(1)

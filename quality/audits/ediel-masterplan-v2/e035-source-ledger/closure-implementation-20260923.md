@@ -407,3 +407,54 @@ native diagnostic code changes; published SQL and all assertions remain intact.
 Script typecheck/lint and diff check are the local gates; real replay is required.
 
 A minimal localhost-native expression probe also tests the subtraction-precedence hypothesis directly: unparenthesized nested subtraction should expose22P02, while parenthesized extraction should yield the expected empty key set. This is a newly written, not-yet-executed probe; it grants no source approval.
+
+
+## Confirmed SQL correction — forward expression fix
+
+Actual native `c18355fff4bdb465dc393c485497a8f25ef0e42c`, OPS run
+`35862101094` / job `107184551281`: **58 PASS / 4 FAIL**. The isolated expression
+probe passed. All four original traces preserved SQLSTATE **22P02**, detail
+`Token "reviewSnapshot" is invalid`, at closure helper line14 (`IF`). This
+confirms the shared cause: in `p_business->'reviewSnapshot'-ARRAY[...]`, numeric
+subtraction operator precedence applies the JSON subtraction to the unknown
+key literal before `->` extraction. PostgreSQL attempts to interpret that
+literal as JSON and the helper's fail-closed exception handler returns false.
+Wire, party and all independently observed owner-row predicates were true;
+there is no evidence justifying removal of any ownership requirement.
+
+Actual CLI2.101.0 created the strictly forward migration
+`20260923124645_ediel_closure_snapshot_expression.sql` at12:46:45UTC.
+It `CREATE OR REPLACE`s only the private closure helper, changing the expression
+to `(p_business->'reviewSnapshot')-ARRAY[...]`. A local exact-body comparison
+confirmed the only semantic difference is these extraction parentheses.
+Every closed-shape, authorization, sealed-original, midnight, snapshot/root /
+latest-witness, uniqueness, live graph predicate, exception policy and private
+REVOKE remains unchanged; append_object_assessment is not replaced.
+
+New migration SHA256:
+`e7f339d1eea81497f46e90d73a39bcc659e509eabb5b85ef42697c8e28b12123`.
+Published114703 remains byte-identical SHA256
+`6752251826e68de761eec4a7e05b841e2fb755517bf6ba4ad76f19088e7f0fd2`.
+Checksum registered through project tooling; integrity **601 files / 505 version
+groups PASS**, static provenance PASS and diff whitespace PASS. Test/script
+typecheck and native-test lint are local gates. Genuine schema/type artifacts
+must still come from the next root-owned ordinary replay; none was fabricated.
+
+The real valid-owner mutation suite now additionally submits an extra
+`reviewSnapshot.approved` key and a missing `readsetHash`, requiring actual
+append rejection with unchanged assessment/witness counts. The ordinary
+L/LK/native positive controls, all prior mutations, historical cutoff tests,
+original midnight restrictions and isolated expression probe are retained.
+The forward fix and these new snapshot mutations have **not yet run natively**;
+closure acceptance, generated reconciliation and final review remain pending.
+
+Bounded variant search: scanned all migration SQL for adjacent unparenthesized
+`->`/`#>` extraction followed by subtraction; the sole literal-key match was
+published114703's confirmed defect. Resolved the latest function bodies for
+`append_object_assessment`, `owner_rows_match`, `object_owner_proof_consistent`,
+`review_party_proof_consistent`, `review_business_proof_consistent` (including
+074910 E34 replacement) and new `review_closure_proof_consistent`, then repeated
+a multiline literal-or-variable-key scan. **Zero remaining matches in these six
+active owner bodies** after the forward fix. Historical migration bytes remain
+unchanged. This is a bounded expression-class search, not a general SQL audit.
+Final local test/script types and targeted lint PASS.
