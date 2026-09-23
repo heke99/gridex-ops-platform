@@ -14,6 +14,7 @@ vi.mock('@/lib/customer-notifications/notificationOrchestrator', () => ({ enqueu
 import { supabaseService } from '@/lib/supabase/service'
 import { applyInboundBusinessStateMachine } from '@/lib/ediel/flows/inboundBusinessStateMachine'
 import { listCustomerCases, updateCustomerCaseStatus } from '@/lib/customer-cases/db'
+import { listTenantSupportCases } from '@/lib/customer-cases/support'
 
 const API = 'http://127.0.0.1:54321'
 const DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
@@ -117,7 +118,7 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   const companyA = randomUUID(), companyB = randomUUID(), customerA = randomUUID(), customerB = randomUUID()
   sql(`DO $$ BEGIN IF EXISTS(SELECT FROM public.companies WHERE id IN (${quote(companyA)},${quote(companyB)})) THEN RAISE EXCEPTION 'fixture_collision'; END IF; END $$;
     INSERT INTO public.companies(id,name,status) VALUES(${quote(companyA)},${quote(`Case A ${tag}`)},'active'),(${quote(companyB)},${quote(`Case B ${tag}`)},'active');
-    INSERT INTO public.customers(id,company_id,customer_number,name,customer_type) VALUES(${quote(customerA)},${quote(companyA)},${quote(`CASE-A-${tag}`)},'Synthetic A','private'),(${quote(customerB)},${quote(companyB)},${quote(`CASE-B-${tag}`)},'Synthetic B','private');`)
+    INSERT INTO public.customers(id,company_id,customer_number,name,full_name,email,customer_type) VALUES(${quote(customerA)},${quote(companyA)},${quote(`CASE-A-${tag}`)},'Synthetic A','Synthetic A','case-a@example.invalid','private'),(${quote(customerB)},${quote(companyB)},${quote(`CASE-B-${tag}`)},'Synthetic B','Synthetic B','case-b@example.invalid','private');`)
   const writer = await createActor(`${tag}-writer`, companyA, ['communication.read', 'cases.read', 'cases.write', 'customers.read', 'switching.read'])
   const readOnly = await createActor(`${tag}-reader`, companyA, ['communication.read', 'cases.read'])
   const noCaseRead = await createActor(`${tag}-nocase`, companyA, ['communication.read'])
@@ -129,7 +130,17 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   const recent = await writeCase(companyA, customerA, writer.user)
   const foreign = await writeCase(companyB, customerB, actorB.user)
   const list = await listCustomerCases({ companyId: companyA, source: 'ediel_inbound_state_machine', limit: 200 })
+  expect(list).toHaveLength(2)
   expect(list.map((row) => row.id)).toEqual(expect.arrayContaining([old.id, recent.id]))
+  for (const row of list) expect(row).toMatchObject({ company_id: companyA, customer_id: customerA, customer_name: 'Synthetic A', customer_email: 'case-a@example.invalid', customer_number: `CASE-A-${tag}` })
+  const foreignList = await listCustomerCases({ companyId: companyB, source: 'ediel_inbound_state_machine', offset: 0, limit: 201 })
+  expect(foreignList).toHaveLength(1)
+  expect(foreignList[0]).toMatchObject({ id: foreign.id, company_id: companyB, customer_id: customerB, customer_name: 'Synthetic B', customer_email: 'case-b@example.invalid', customer_number: `CASE-B-${tag}` })
+  // Exercise the actual default-list Support consumer against the same schema.
+  // The newest Ediel case consumes one of the unchanged 200 default-list slots.
+  const supportList = await listTenantSupportCases({ companyId: companyA, limit: 200 })
+  expect(supportList).toHaveLength(199)
+  for (const row of supportList) expect(row).toMatchObject({ source: 'tenant_support_fixture', company_id: companyA, customer_id: customerA, customer_name: 'Synthetic A', customer_email: 'case-a@example.invalid', customer_number: `CASE-A-${tag}` })
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_cases WHERE company_id=${quote(companyA)} AND created_at>(SELECT created_at FROM public.customer_cases WHERE id=${quote(old.id)})`)).toBeGreaterThan(200)
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_supply_periods WHERE company_id IN (${quote(companyA)},${quote(companyB)})`)).toBe(0)
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.billing_underlays WHERE company_id IN (${quote(companyA)},${quote(companyB)})`)).toBe(0)

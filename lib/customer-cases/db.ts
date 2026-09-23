@@ -80,7 +80,7 @@ export async function listCustomerCases(options: {
 } = {}): Promise<CustomerCaseListRow[]> {
   let query = supabaseService
     .from('customer_cases')
-    .select('*, customers(full_name, first_name, last_name, company_name, email, customer_number)')
+    .select('*, customers!customer_cases_customer_company_fk(full_name, first_name, last_name, company_name, email, customer_number)')
     .order('created_at', { ascending: false })
   if (options.offset !== undefined) {
     query = query.order('id', { ascending: false }).range(options.offset, options.offset + (options.limit ?? 200) - 1)
