@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Complete coherent final R1\u2013R4 wave; qualify published7750e2 case browser/postbrowser and authentic artifacts; final same-head review/CI before bounded merge, then prior-guide and remaining owners.",
+  "next_action": "Qualify narrow committed-retry synthetic original repair after304 native fixture identity rejection; preserve all8 assertions/guards, then156 native/case/types/schema and final review/CI before bounded merge.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -364,7 +364,17 @@
       "R1",
       "R2",
       "R3",
-      "R4"
-    ]
+      "R4",
+      "C1"
+    ],
+    "published_head": "304c284d0a7b0af102eaa27424ff173087aa5f2c",
+    "tree": "e9b7eff22ec96ee53a79f6a5aa4af534a5123f61",
+    "ops_run": 35909983631,
+    "native_expected": 156,
+    "local_full_tests": 5975,
+    "local_full_files": 370,
+    "native_job": 107347079558,
+    "native_result": "SQL_FIXTURE_IDENTITY_REJECTED_BEFORE156",
+    "quality": "SUCCESS"
   }
 }

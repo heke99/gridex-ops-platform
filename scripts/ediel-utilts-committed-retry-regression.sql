@@ -49,9 +49,12 @@ BEGIN
     WHERE message_code='E66' AND direction IN ('inbound','both') AND is_enabled
     ORDER BY profile_key LIMIT 1;
   SELECT * INTO STRICT pack FROM public.ediel_rule_packs WHERE id=profile.rule_pack_id;
+  -- Reservation-only, no-consumption control, but accepted retries still need
+  -- supported original legal parties and agency9 point identity for BOTH siblings.
+  -- A missing LOC must fail identity qualification, not stand in for retry proof.
   INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,message_received_at,execution_context_snapshot,
     canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
-  VALUES (source,company,'test','inbound','edifact','UTILTS','E66','received','UNH+1+UTILTS:D:02B:UN:E5SE5A''BGM+E66+RESERVATION+9''IDE+24+TX-1''IDE+24+TX-2''UNT+5+1''',clock_timestamp(),'{}',
+  VALUES (source,company,'test','inbound','edifact','UTILTS','E66','received','UNB+UNOC:3+91100:ZZ+21660:ZZ+261001:0000+RETRY''UNH+1+UTILTS:D:02B:UN:E5SE5A''BGM+E66+RESERVATION+9''NAD+MS+91100:SVK:260''NAD+MR+21660:SVK:260''IDE+24+TX-1''LOC+172+POINT::9''IDE+24+TX-2''LOC+172+POINT::9''UNT+9+1''UNZ+1+RETRY''',clock_timestamp(),'{}',
     pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile);
 
   EXECUTE 'SET LOCAL ROLE service_role';

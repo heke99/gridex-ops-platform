@@ -1,3 +1,15 @@
+### Latest native result — 304c284
+
+OPS35909983631 quality/build PASS. Native107347079558 applies new migrations, then retained committed-retry SQL fixture fails before the156 suite: its synthetic original lacks NAD/LOC, so the new identity guard correctly rejects it before the intended reservation-conflict check. Sole implementer correcting only this fixture and retaining all eight assertions; no production guard waiver. Schema/type generation not reached. User reiterated continue forward, then requested status; execution remains active.
+
+## Published final correction candidate — 2026-09-23
+
+PR370 head304c284d0a7b0af102eaa27424ff173087aa5f2c, tree e9b7eff22ec96ee53a79f6a5aa4af534a5123f61, identical to frozen implementer6f0d468; local clean same-tree sync completed and backup retained. Sole implementation R1–R4+C1 frozen, independent scoped final review underway. Full5975/370, focused101/4, app/tests/scripts types, lint, migration607/511 and provenance514 PASS locally. New native32 added, expected total156; genuine CI35909983631 pending. No native new-candidate pass yet.
+
+Prior d85815f replay repeats124+case1+browser2+postbrowser1 and identical types97d0e426; then tenant F-6 fails missing case-event classification. C1 forward20260923192915 now registers tenant ownership, preserving real RLS/ACL/invariants; new consumer forward20260923191510 repairs R1/R3. Published historical migrations untouched. Authentic case types copied; new migration manifest tail and schema require actual replay. Root owns artifacts/publication, implementer frozen. No merge yet, E035/F3/masterplan PARTIAL. User already authorizes bounded verified merge then next prior-guide amendment; no renewed routine permission needed. PR310/main untouched, no hosted writes/deployment/market messages.
+
+Next exact action: inspect native156/case/browser/postbrowser/F-6 and actual typegen/schema from OPS35909983631; resolve concrete failures, reconcile authentic contracts; independent final delta review and all ordinary same-head gates before merge.
+
 ## Current continuation — final consumer corrections, 2026-09-23
 
 User authorizes best-action continuation, bounded merge of verified work, then remaining E035. Published7750e2da44394b1b154eabfb4e3e8e80af30f4f6 has tree a3bd6fc759d1aa38d5291b62e477406d8b1abb73, identical to local d81dff0. Streamed not-found browser test correction is independently SPEC/QUALITY approved statically; genuine CI pending. Prior7555066 native124+case1 passed; browser1/2 passed, remaining failure was documented Next streamed200 not-found transport. Assertions now require real404 UI/noindex and absent foreign data/actions.
