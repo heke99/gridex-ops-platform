@@ -717,6 +717,9 @@ DECLARE src gridex_received_sources.sources%rowtype; baseline gridex_received_so
 BEGIN
  SELECT * INTO src FROM gridex_received_sources.sources WHERE source_message_id=p_source_id;
  IF NOT FOUND OR src.message_code NOT IN ('Z04','Z06','Z10') OR src.source_received_at IS NULL THEN RETURN false; END IF;
+ -- Z06/E34 needs a persisted death assessment or a counterparty-scoped bilateral
+ -- agreement. Neither authoritative producer exists in this review owner.
+ IF src.message_code='Z06' AND p_business#>>'{wire,businessCase}'='customer_only' THEN RETURN false; END IF;
  IF p_business->>'owner' IS DISTINCT FROM 'reviewed-received-structure-v1'
  OR p_business->>'coverage' IS DISTINCT FROM 'reviewed_post_ledger_supply'
  OR p_business->>'businessDisposition' IS DISTINCT FROM 'reviewed'
