@@ -1,3 +1,13 @@
+# Open blockers — 2026-09-23, current head dce05e48
+
+The dce05e48 disposable replay passed six retry SQL checks and 17 native structural cases, but the job failed on the stale function-only schema snapshot. The authentic artifact has been reconciled locally. Publish the correction and rerun all exact-head gates; final four-part review still pending.
+
+1. Actual empty replay and native six-check committed-retry SQL must pass; schema fingerprint and generated type receipt need reconciliation from that exact replay. The previous 35e35f45 ordinary workflows all passed and its independent review found no confirmed blocking defect, but neither qualifies the new head.
+2. E035 applicability/history remains incomplete: Z05/Z08 closure, Z06E death/bilateral, agency89, multi-message/delegation, changed-start Z04 and complete ACK retry behavior. A bounded post-ledger snapshot is not proof of pre-ledger market history.
+3. F3C-02/04/05/06/07 and F0-F7/G01-G07 evidence, including paused PR310 schema/rights parity and real legal/transport/TGT owners, remain open. PR370 is draft and unmerged; no full E035/masterplan claim.
+
+## Historical records (superseded where conflicting)
+
 # Open blockers — 2026-09-23
 
 1. The new BGM5 guard needs exact-head ordinary CI/native verification and independent whole-PR review after publication. Parent0f871c78 contract repair local checks passed; its ordinary CI was still running at this read.

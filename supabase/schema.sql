@@ -33843,6 +33843,8 @@ CREATE FUNCTION public.gridex_persist_utilts_transactions_v1(p_company_id uuid, 
 declare
   v_source public.ediel_messages%rowtype;
   v_item jsonb;
+  v_existing public.ediel_ack_transaction_results%rowtype;
+  v_issue_codes text[];
   v_transaction_id text;
   v_disposition text;
   v_response_type text;
@@ -33872,6 +33874,37 @@ begin
     v_disposition := coalesce(nullif(v_item->>'disposition',''),'processability_rejected');
     v_response_type := coalesce(nullif(v_item->>'responseType',''),'utilts_err');
     if v_transaction_id is null then v_transaction_id := 'transaction-' || (jsonb_array_length(v_results)+1)::text; end if;
+    v_issue_codes := coalesce(array(select jsonb_array_elements_text(coalesce(v_item->'issueCodes','[]'::jsonb))),array[]::text[]);
+    -- The ACK and series are durable effects. A fresh structural assessment on
+    -- retry may upgrade a held transaction, but may not silently revoke one
+    -- that already produced a series or a finalized market response. Serialize
+    -- retries for this source transaction before looking at the existing row.
+    perform pg_advisory_xact_lock(hashtextextended(
+      p_company_id::text || '|' || p_environment || '|' || p_source_message_id::text || '|' || v_transaction_id, 0));
+    select * into v_existing from public.ediel_ack_transaction_results
+      where company_id=p_company_id and environment=p_environment
+        and source_message_id=p_source_message_id and source_transaction_id=v_transaction_id for update;
+    if found and (v_existing.final_response_type is not null or v_existing.persistence_status='persisted') then
+      if v_existing.disposition is distinct from v_disposition
+        or v_existing.planned_response_type is distinct from v_response_type
+        or v_existing.issue_codes is distinct from v_issue_codes then
+        raise exception 'utilts_committed_transaction_retry_conflict' using errcode='23514';
+      end if;
+      if v_existing.persistence_status='persisted' then
+        if v_existing.persisted_series_id is null then
+          raise exception 'utilts_committed_series_missing' using errcode='23514';
+        end if;
+        v_results := v_results || jsonb_build_array(jsonb_build_object(
+          'transactionId',v_transaction_id,'disposition',v_disposition,
+          'responseType',v_response_type,'persistenceStatus','persisted',
+          'seriesId',v_existing.persisted_series_id,'idempotentReplay',true));
+      else
+        v_results := v_results || jsonb_build_array(jsonb_build_object(
+          'transactionId',v_transaction_id,'disposition',v_disposition,
+          'responseType',v_response_type,'persistenceStatus',v_existing.persistence_status));
+      end if;
+      continue;
+    end if;
 
     insert into public.ediel_ack_transaction_results(
       company_id,environment,source_message_id,source_transaction_id,
@@ -33883,7 +33916,7 @@ begin
       case when v_disposition='guide_rejected' then 'negative' when v_disposition='syntax_rejected' then 'pending' else 'positive' end,
       case when v_disposition='processability_rejected' then 'negative' when v_disposition='accepted' then 'positive' when v_disposition='internal_review' then 'pending' else 'not_applicable' end,
       v_disposition,v_response_type,
-      coalesce(array(select jsonb_array_elements_text(coalesce(v_item->'issueCodes','[]'::jsonb))),array[]::text[]),
+      v_issue_codes,
       case when v_disposition='accepted' then 'pending' else 'not_applicable' end,now()
     ) on conflict(company_id,environment,source_message_id,source_transaction_id)
     do update set

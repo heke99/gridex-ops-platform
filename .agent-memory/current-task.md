@@ -1,3 +1,13 @@
+# E035 continuation — 2026-09-23, retry qualification
+
+Replay run35839531741 executed the six new SQL checks and 17 structural native cases successfully. Its public types were byte-identical; only the expected function-section schema snapshot differed. Artifact10740892548 ZIP SHA256 b5def03afd35dcf5f52a1f5af8ad5a4457e2e6ccbf1bdd0de5ac672110370aed now supplies the corrected schema and manifest. Publish and rerun exact-head CI.
+
+PR370 now publishes dce05e48 on the same branch. Prior exact head 35e35f45 passed every ordinary PR workflow including clean database replay (17 structural native cases), full E2E, browser, tenant and Ediel regressions. Its independent four-part review found no confirmed blocking defect, but confirmed the remaining scope. The newly added disposable SQL guard and six-case test protect finalized ACKs and stored series against changed decisions on retry; a two-transaction runtime test preserves accepted energy alongside a held reading. The new head's actual replay and schema/type receipts are pending. Main eb2b8693 and paused PR310 e9611351 are unchanged.
+
+Next: inspect actual dce05e48 native replay; fix any SQL/test finding; reconcile schema snapshot and generated public types from its artifact, rerun ordinary CI and independent review at the final head. Continue applicable closure/death/bilateral/agency89/multi-message/delegation/changed-start owners and F3C-02/04/05/06/07. Full E035/F3/masterplan remains incomplete and the PR draft.
+
+## Historical records (superseded where conflicting)
+
 # E035 continuation — 2026-09-23
 
 ACTIVE / NOT MERGE-READY. PR370 from 64bf971 now includes reviewed Z04/Z06F/G/Z10 and dated post-ledger selection; main eb2b8693 and paused PR310 e9611351 are untouched. The current parent 0f871c78 repairs the actual fe4f9ac6 clean-replay schema and generated-type manifest mismatch using artifact10738595716. An unreviewed BGM5 correction whose proposed effective date moves later was observed to revive its possible predecessor; a failing then passing regression now blocks that selection. This correction is local pending publication and exact-head CI.

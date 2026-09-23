@@ -1,3 +1,12 @@
+# Verification update — 2026-09-23, dce05e48
+
+dce05e48 native run35839531741: six committed-retry SQL checks and 17 structural HTTP/native cases PASS; generated public types identical SHA256 6af55fbbed9390acfe71dbb8c757c10e3a021dec15842df801d06b679d98eda9. Clean replay job failed on stale snapshot only: function count591 unchanged, fingerprint from e9c6ae58 to39a7a3c4. Artifact10740892548 ZIP SHA256 b5def03afd35dcf5f52a1f5af8ad5a4457e2e6ccbf1bdd0de5ac672110370aed. Authentic schema and manifest locally reconciled; new exact-head CI pending.
+
+- Previous exact 35e35f45: ordinary OPS35838519201 all three jobs SUCCESS, including clean empty replay; tenant, browser, full E2E and Ediel workflows SUCCESS. Four-part CodeRabbit review5791799801: no confirmed blocking finding; scope incomplete, conservative correction overblock.
+- New dce05e48: local targeted 23/23 PASS, test TypeScript PASS, migration checksum and type-tail checks PASS. The new six-check disposable SQL regression and function replacement have NOT yet completed authentic replay. Ordinary OPS35839531741 and other PR workflows pending; schema snapshot/public type reproduction pending.
+
+## Historical records (superseded where conflicting)
+
 # Verification update — 2026-09-23
 
 - fe4f9ac6 ordinary OPS35833938483: quality-release-gates SUCCESS; native clean replay17/17 PASS and identical generated public types, but replay schema check FAILED on the sole Z06E function delta; verify and smoke FAILED because type manifest migration tail was stale. Artifact10738595716 ZIP SHA256 d087a4e16791cdeefdad135e4b64fd194fb712d4b65cf3e7cd30ac6076a39e28.

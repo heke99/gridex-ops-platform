@@ -1,5 +1,41 @@
 # E035 continuation — 2026-09-23
 
+## Retry and mixed-transaction continuation (dce05e48)
+
+The previous exact head 35e35f45 passed all ordinary workflows: OPS
+35838519201 (verify, quality/build and clean empty-database replay), tenant
+integrity, browser, full E2E and Ediel regressions. CodeRabbit's four-part
+whole-PR review 5791799801 found no confirmed blocking defect in that head;
+it expressly retained the applicability and masterplan gaps.
+
+The next published head dce05e48 adds a new forward-only SQL replacement of
+the existing service-role UTILTS persistence RPC. It serializes transaction
+retries, permits an unfinalized `internal_review` to become accepted after
+fresh structure authority, returns the stored series for a same-result retry,
+and rejects a changed decision after series persistence or ACK finalization.
+No earlier migration was edited. A disposable six-check PostgreSQL script is
+wired into the native replay, and a mixed physical E66 runtime test checks that
+an unproved reading is held while its exempt energy sibling remains accepted.
+Locally targeted 23/23, test typecheck and migration checksum/type-tail checks
+pass. Authentic empty replay run35839531741 passed six new SQL retry checks,
+17 structural native HTTP tests, tenant invariants and injected-drift parity.
+Its generated public types SHA256
+`6af55fbbed9390acfe71dbb8c757c10e3a021dec15842df801d06b679d98eda9`
+are byte-identical. The job failed only at the stale committed schema snapshot:
+the function section changed, count 591 unchanged, actual fingerprint
+`39a7a3c4fdbf5a8b773f0b37d003c09a3d347107760053159d6aacd4e62ba71b`.
+Artifact10740892548 (ZIP SHA256
+`b5def03afd35dcf5f52a1f5af8ad5a4457e2e6ccbf1bdd0de5ac672110370aed`)
+supplies the exact replacement schema and type receipt now reconciled locally.
+This correction still requires publication and an ordinary all-green exact-head
+CI run; no merge is claimed.
+
+The remaining business/history gaps and F3C-02/04/05/06/07 plus F4-F7/G gates
+remain open. An already finalized ACK that conflicts with newly discovered
+structure is deliberately an internal conflict requiring reconciliation; this
+guard does not claim a complete market retry policy. Main and paused PR310 are
+unchanged.
+
 Status: implementation in draft PR370, not merge-ready. Main remains
 `eb2b8693130af8fa7976a93891b95973bc473b50`; PR310 remains paused at
 `e961135199f292b8210884f07de3b616a670161a`. The qualified Z04 owner and

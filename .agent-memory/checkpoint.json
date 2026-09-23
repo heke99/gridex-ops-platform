@@ -12,7 +12,7 @@
   "root_main_acceptance_comment": 5768848443,
   "active_item": "E035 dated reviewed market structure and authoritative E61/E62 comparison",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
-  "next_action": "Publish reviewed BGM5 uncertainty guard in existing PR370; inspect same-head ordinary/native CI and four-part independent whole-PR review; then implement remaining applicable owners before merge.",
+  "next_action": "Publish authentic replay snapshot and updated receipt in PR370; inspect all ordinary exact-head workflows, obtain final four-part review; then continue remaining owner applicability and masterplan gates.",
   "previous_ordinary_ci": {
     "head": "a89275ba0b34ae27530c2e403d3ae3f2667afe3b",
     "ops": 35715146276,
@@ -35,9 +35,9 @@
     "root_tests": 5514,
     "ordinary_delivery_retest_needed": true
   },
-  "independent_review": "PENDING_CURRENT_WHOLE_PR_REVIEW",
-  "ordinary_final_head_ci": "PENDING_CURRENT_CORRECTION",
-  "full_source_disposition": "Z04_RUNTIME_QUALIFIED_DECISION_TIMELINE_IMPLEMENTED_PENDING_CURRENT_QUALIFICATION_MARKET_SELECTION_INCOMPLETE",
+  "independent_review": "35e35f45_NO_CONFIRMED_BLOCKING_FINDING_PARTIAL_SCOPE; FINAL_HEAD_PENDING",
+  "ordinary_final_head_ci": "35e35f45_ALL_ORDINARY_WORKFLOWS_SUCCESS; DCE05E48_PENDING",
+  "full_source_disposition": "DATED_POST_LEDGER_Z04_Z06F_Z06G_Z10_AND_BGM5_E61_E62_PARTIAL; APPLICABILITY_AND_HISTORY_INCOMPLETE",
   "full_E035": "NOT_COMPLETE",
   "full_F3": "NOT_COMPLETE",
   "full_masterplan": "NOT_COMPLETE",
@@ -51,7 +51,7 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "0f871c781bc5c1b058b565cd1d1bae98679b05ca",
+  "last_verified_pr_head": "35e35f451b61b5846574d17201cf7ba9844e41ff",
   "ordinary_baseline_ci": {
     "head": "d7fb49fde3dae153693acae1cefa33aeef45ad4f",
     "ops": 35758893367,
@@ -162,5 +162,19 @@
     "red": "41_PASS_1_FAIL",
     "green": "97_PASS_TARGETED_APP_AND_TEST_TYPES_PASS",
     "final_ci": "PENDING"
+  },
+  "retry_guard_20260923": {
+    "head": "dce05e481487d665ad035a7c1b4f99ae419422d8",
+    "status": "NATIVE_PASS_SCHEMA_ARTIFACT_RECONCILED_PENDING_FINAL_CI",
+    "migration": "20260923103000_ediel_utilts_committed_retry_guard.sql",
+    "mixed_runtime_targeted": "23_PASS",
+    "native_cases": "6_PASS",
+    "ordinary_ops": 35839531741,
+    "prior_full_green_head": "35e35f451b61b5846574d17201cf7ba9844e41ff",
+    "prior_ops": 35838519201,
+    "structural_native_cases": "17_PASS",
+    "artifact": 10740892548,
+    "artifact_sha256": "b5def03afd35dcf5f52a1f5af8ad5a4457e2e6ccbf1bdd0de5ac672110370aed",
+    "generated_types": "BYTE_IDENTICAL"
   }
 }
