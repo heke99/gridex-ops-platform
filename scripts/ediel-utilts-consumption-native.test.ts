@@ -2,6 +2,7 @@ import { execFileSync, spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { energyHandoffMessage } from '../__tests__/helpers/utiltsObservationHandoff'
+import { utiltsNativeSourceFixture } from '../__tests__/helpers/utiltsNativeSourceFixture'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
@@ -56,7 +57,9 @@ async function seed() {
    INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,meter_point_id,grid_owner_id) VALUES(${lit(ids.point)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.site)},'735999260731000007','735999260731000007',${lit(ids.grid)});
    INSERT INTO public.grid_owner_data_requests(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_scope) VALUES(${lit(ids.request)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.point)},${lit(ids.grid)},'billing_underlay');`)
   const insertSource = async (raw: string, code = 'E66', environment = 'test') => {
-    const id = randomUUID(), parsed = parseInboundEmailContent({ attachmentText: raw })!
+    const fixture = utiltsNativeSourceFixture(raw, randomUUID())
+    const { id, parsed } = fixture
+    raw = fixture.raw
     sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
      SELECT ${lit(id)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.point)},${lit(ids.grid)},${lit(ids.request)},${lit(environment)},'inbound','edifact','UTILTS',${lit(code)},'received',${lit(raw)},'{}','2026-10-01T20:00:00Z','{}',${lit(parsed.applicationReference)},'91100','21660',${lit(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
      FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.message_code=${lit(code)} AND profile.direction IN ('inbound','both') AND profile.is_enabled ORDER BY profile.profile_key LIMIT 1;`)
