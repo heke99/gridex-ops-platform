@@ -14,6 +14,8 @@ DECLARE
   pack public.ediel_rule_packs%rowtype;
   held jsonb := '[{"transactionId":"TX-1","disposition":"internal_review","responseType":"none","issueCodes":["UTILTS_STRUCTURE_UNAVAILABLE"],"seriesKind":"actual","quantities":[]}]';
   accepted jsonb := '[{"transactionId":"TX-1","disposition":"accepted","responseType":"positive_aperak","issueCodes":[],"seriesKind":"actual","externalMeteringPointId":"POINT","periodStart":"2026-10-01T00:00:00Z","periodEnd":"2026-11-01T00:00:00Z","resolution":"monthly","quantities":[]}]';
+  negative jsonb := '[{"transactionId":"TX-2","disposition":"processability_rejected","responseType":"utilts_err","issueCodes":["E14"],"seriesKind":"actual","quantities":[]}]';
+  later_positive jsonb := '[{"transactionId":"TX-2","disposition":"accepted","responseType":"positive_aperak","issueCodes":[],"seriesKind":"actual","externalMeteringPointId":"POINT","quantities":[]}]';
   result jsonb;
   series_id uuid;
   blocked boolean;
@@ -33,6 +35,24 @@ BEGIN
   EXECUTE 'RESET ROLE';
   PERFORM pg_temp.retry_check('held-has-no-series',result#>>'{0,persistenceStatus}'='not_applicable'
     AND NOT EXISTS(SELECT FROM public.meter_reading_series WHERE source_ediel_message_id=source));
+
+  -- The planned negative response is committed before the ACK is created.
+  -- Simulate interruption at that point: no final_response_type or series.
+  EXECUTE 'SET LOCAL ROLE service_role';
+  result:=public.gridex_persist_utilts_transactions_v1(company,'test',source,'E66',negative);
+  EXECUTE 'RESET ROLE';
+  PERFORM pg_temp.retry_check('negative-ack-plan-is-durable-before-finalization',result#>>'{0,responseType}'='utilts_err'
+    AND (SELECT planned_response_type='utilts_err' AND final_response_type IS NULL AND persisted_series_id IS NULL
+      FROM public.ediel_ack_transaction_results WHERE source_message_id=source AND source_transaction_id='TX-2'));
+  blocked:=false;
+  BEGIN
+    EXECUTE 'SET LOCAL ROLE service_role';
+    PERFORM public.gridex_persist_utilts_transactions_v1(company,'test',source,'E66',later_positive);
+    EXECUTE 'RESET ROLE';
+  EXCEPTION WHEN check_violation THEN blocked:=SQLERRM='utilts_committed_transaction_retry_conflict'; EXECUTE 'RESET ROLE'; END;
+  PERFORM pg_temp.retry_check('interrupted-err-cannot-become-positive-aperak',blocked
+    AND (SELECT disposition='processability_rejected' AND planned_response_type='utilts_err' AND final_response_type IS NULL
+      FROM public.ediel_ack_transaction_results WHERE source_message_id=source AND source_transaction_id='TX-2'));
 
   EXECUTE 'SET LOCAL ROLE service_role';
   result:=public.gridex_persist_utilts_transactions_v1(company,'test',source,'E66',accepted);
