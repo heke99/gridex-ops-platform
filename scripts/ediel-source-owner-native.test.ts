@@ -283,6 +283,11 @@ it.each([['Z06','E64'],['Z06','E32'],['Z10','E58']] as const)('native full-origi
  await reviewed(f,id)
  const result=await structuralSnapshot(f),version=result.versions.find(item=>item.sourceMessageId===id)
  expect(version).toMatchObject({disposition:'accepted',wire:{messageCode:code},coverage:{baselineSourceMessageId:f.ids.source}})
+ if(code==='Z06'&&reason==='E64'){
+  const entry=(stored(id).at(-1)!.facts as {objects:{business:Record<string,unknown>;party:Record<string,unknown>}[]}).objects[0]
+  const forged={...entry.business,wire:{...(entry.business.wire as object),businessCase:'customer_only'}}
+  expect(sql(`SELECT to_jsonb(gridex_received_sources.review_business_proof_consistent(${literal(entry.party)}::jsonb,${literal(forged)}::jsonb,${literal(id)}::uuid));`)).toBe(false)
+ }
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.customer_supply_periods WHERE company_id=${literal(f.ids.company)}`)).toBe(1)
 })
 it('native Z06/E34 remains unavailable without a qualified death or counterparty bilateral owner',async()=>{

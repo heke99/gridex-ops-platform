@@ -36,7 +36,7 @@ export function isReviewedStructuralBusiness(value:unknown,raw:string,object:Sou
     ||!hash(value.sourcePayloadHash)||!time(value.sourceReceivedAt)||!time(value.assessedAt)
     ||object.identityAgency!=='9'||!isDeepStrictEqual(value.object,object))return false
   const wire=readStructuralSourceWire(raw,object)
-  if(!wire||!isDeepStrictEqual(value.wire,wire))return false
+  if(!wire||wire.businessCase==='customer_only'||!isDeepStrictEqual(value.wire,wire))return false
   const coverage=value.coverageWindow,snapshot=value.reviewSnapshot,replaces=value.replaces
   if(!closed(coverage,['kind','baselineSourceMessageId','baselineAssessmentId','baselineFactsHash','supplyPeriodId',
     'switchRequestId','switchCreatedAt','outboundSourceMessageId','outboundCreatedAt','validFrom','validTo'])

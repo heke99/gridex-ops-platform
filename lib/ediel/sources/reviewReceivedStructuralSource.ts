@@ -150,6 +150,10 @@ export async function reviewReceivedStructuralSource(input:{companyId:string;env
         try{
           const wire=readStructuralSourceWire(original.raw_payload,object)
           if(!wire||!object.objectId)throw new Error('structural_wire_unavailable')
+          // P26.A permits Z06/E34 for death or a counterparty-specific bilateral
+          // customer update. Neither owner is persisted/qualified here. Canonical
+          // syntax or an incoming Z41 value cannot establish that authority.
+          if(wire.businessCase==='customer_only')throw new Error('structural_e34_context_unavailable')
           const assessedAt=new Date().toISOString()
           const point=await findStructuralReviewPoint(input.companyId,object.objectId)
           const receiver=await resolveCanonicalTenantEdielIdentityWithEvidence({companyId:input.companyId,environment:input.environment,asOf:assessedAt,requireExactCounts:true})
