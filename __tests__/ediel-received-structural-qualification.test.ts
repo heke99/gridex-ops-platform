@@ -41,6 +41,34 @@ it('held transactions cannot carry energy quantities into the persistence RPC',a
  const items=buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:result.runtime.facts.transactions,dispositions:result.runtime.transactionDispositions,matches:[]})
  expect(items).toMatchObject([{disposition:'internal_review',responseType:'none',quantities:[]}])
 })
+it('holds an unproved reading while preserving an exempt energy sibling in the same physical message',async()=>{
+ const args=input()
+ const lines=args.message.raw_payload!.split('\n')
+ const close=lines.findIndex(line=>line.startsWith('UNT+'))
+ const second=[
+  "IDE+24+GRIDEX2607E66002'", "LOC+172+735999260731000007::9'", "LOC+239+TES:SVK:260'",
+  "LIN+++8716867000030:::9'", "DTM+324:202607010000202607010015:719'",
+  "DTM+597:202607010020:203'", "DTM+354:15:806'", "STS+7++E88::260'", "MEA+AAZ++KWH'",
+  "SEQ++1'", "QTY+136:500'", "DTM+597:202607010000:203'", "STS+7++21::260'",
+ ]
+ lines.splice(close,0,...second)
+ lines[close+second.length]=`UNT+${lines.length-2}+1'`
+ args.message.raw_payload=lines.join('\n')
+ args.runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
+ expect(args.runtime.transactionDispositions,JSON.stringify(args.runtime.validation.issues)).toMatchObject([
+  {transactionId:'GRIDEX2607E66001',disposition:'accepted'},
+  {transactionId:'GRIDEX2607E66002',disposition:'accepted'},
+ ])
+ const result=await qualifyReceivedUtiltsStructure(args)
+ expect(result.runtime.transactionDispositions).toMatchObject([
+  {transactionId:'GRIDEX2607E66001',disposition:'internal_review',responseType:'none'},
+  {transactionId:'GRIDEX2607E66002',disposition:'accepted',responseType:'positive_aperak'},
+ ])
+ const items=buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:result.runtime.facts.transactions,
+  dispositions:result.runtime.transactionDispositions,matches:[]})
+ expect(items[0].quantities).toEqual([])
+ expect(items[1].quantities.length).toBeGreaterThan(0)
+})
 it('applicable comparison queries fresh processing knowledge on every retry, never a cached original-receipt proof',async()=>{
  const args=input();args.message.parsed_payload={structuralQualification:{status:'matched'},normalizedMeteringPayload:{structuralQualification:{status:'matched'}}}
  await qualifyReceivedUtiltsStructure(args);vi.setSystemTime(new Date('2026-10-03T09:00:00Z'));await qualifyReceivedUtiltsStructure(args)

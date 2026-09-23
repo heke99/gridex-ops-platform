@@ -111,6 +111,9 @@ rollback;
 -- E035 recovered immutable owner decisions; independent rollback, synthetic data only.
 \ir ediel-source-object-decisions-regression.sql
 
+-- A later E035 source review must not rewrite persisted values or an emitted ACK.
+\ir ediel-utilts-committed-retry-regression.sql
+
 -- Fixed disposable localhost only; real committed-owner visibility and bounded snapshots.
 \! python3 scripts/ediel-source-object-concurrency-regression.py
 \if :SHELL_ERROR
