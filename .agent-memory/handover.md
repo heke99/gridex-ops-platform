@@ -1,4 +1,12 @@
-## Successful retry binding — first native checkpoint, 2026-09-23
+## Resumed with approved syntax exception, 2026-09-23
+
+User explicitly approved the narrow syntax/checksum repair. Read-only hosted Gridex verification found migration20260923135706 absent, binding schema absent and no separate project branches. Fix edf11f92 adds only CASE operand parentheses; all other SQL bytes unchanged. New checksum c6376a62644efe24a733a872410d48d6f74372e68d4c0c56db03fd2a6380df7e. Root publishes for actual native rerun, then sole implementer continues ownership/matrix and tenantDb ratchet repair. Independent checkpoint review resumed. No native/whole-E035 acceptance yet.
+
+## Earlier blocker — approval pause resolved
+
+Native OPS35875416652/job107229927027 on published32d44111 failed before tests/typegen: new migration20260923135706 validator line392 has an unparenthesized CASE operand in its IF. Whole migration transaction rolled back. A later forward cannot repair the earlier unparsable file. Await explicit user direction on the narrow published-immutability exception (original syntax/checksum correction after confirming unapplied status); no such edit made. All implementation paused, new uncommitted native/ownership tests preserved; ownership test RED3/1 exposes further billing attribution drift to fix after resume. Main/PR310/hosted systems untouched. Detailed receipt retry-native-syntax-blocker-20260923.md. Earlier qualification/pending statements below are superseded where conflicting.
+
+## Earlier successful retry checkpoint
 
 Explicitly INCOMPLETE. Integrated producer/private source seal/stored V1/two consumers/natural dedup candidate; local5931/363PASS, app/tests/scripts types PASS, lint0errors/1existingwarning, migration602/506 and staticprovenance PASS. Forward CLI20260923135706 SHA2562e961d22370ead922ee02252a4fa95b77ecd33880f37b9d59fbd8e1a2966ca28. No native execution, generated artifact reconciliation, coverage/final review or whole-E035 acceptance yet. Report: quality/audits/ediel-masterplan-v2/e035-source-ledger/successful-retry-binding-implementation-20260923.md. Root publishes frozen candidate; implementer pauses for publication/same-tree sync, then completes missing full-processor native ACK/completion and mutation cases plus final qualification. Qualified cb5e5f75 case baseline retained; main/PR310 and hosted systems untouched.
 

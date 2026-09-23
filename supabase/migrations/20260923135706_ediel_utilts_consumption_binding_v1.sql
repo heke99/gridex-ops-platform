@@ -389,7 +389,7 @@ BEGIN
   OR (o->>'sourceOrdinal')::numeric<0 OR seen @> jsonb_build_array(o->'sourceOrdinal')
   OR jsonb_typeof(o->'quantity')<>'number' OR NOT gridex_utilts_binding.absolute_v1(o->'periodStart') OR NOT gridex_utilts_binding.absolute_v1(o->'periodEnd') OR NOT gridex_utilts_binding.absolute_v1(o->'readAt')
   OR o->>'periodStart'>=o->>'periodEnd' OR o->>'unit' IS DISTINCT FROM 'kWh' OR jsonb_typeof(o->'readingType')<>'string' OR o->>'readingType' NOT IN ('consumption','production','estimated','adjustment')
-  OR o->>'direction' IS DISTINCT FROM CASE WHEN o->>'readingType'='production' THEN 'production' ELSE 'consumption' END THEN RETURN false; END IF;
+  OR o->>'direction' IS DISTINCT FROM (CASE WHEN o->>'readingType'='production' THEN 'production' ELSE 'consumption' END) THEN RETURN false; END IF;
   IF EXISTS(SELECT FROM jsonb_each(o) e WHERE e.key IN ('resolution','quality','registerCode','productCode','sourceLineReference','externalPoint','gridArea') AND jsonb_typeof(e.value) NOT IN ('string','null')) THEN RETURN false; END IF;
   seen:=seen||jsonb_build_array(o->'sourceOrdinal'); n:=n+1;
  END LOOP;
