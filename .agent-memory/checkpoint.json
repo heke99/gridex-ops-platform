@@ -4,7 +4,7 @@
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/e035-prior-guide-20260924",
-  "active_pr": null,
+  "active_pr": 371,
   "base_head_sha": "650bdb211fa5d492df247b2531cb8004a062db53",
   "runtime_accepted_sha": "650bdb211fa5d492df247b2531cb8004a062db53",
   "last_merged_pr": 370,
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish exact tree via authenticated GitHub connector, verify SHA/tree, open draft PR and qualify actual ordinary native CI.",
+  "next_action": "Publish exact reviewed round3 tree, inspect ordinary same-head native/CI and final review before merge.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -399,5 +399,17 @@
     "local_types": "APP_TESTS_SCRIPTS_PASS",
     "local_lint": "0_ERRORS_1_PREEXISTING_WARNING",
     "review": "SPEC_QUALITY_APPROVED_REREVIEW2"
+  },
+  "published_head": "f7c06f06255e57e3ef7372396f03d666a9723efd",
+  "published_tree": "d52775545300e526907373d75a958fdf58664621",
+  "prior_guide_ci": {
+    "run": 35929036489,
+    "native_job": 107410965832,
+    "native_pass": 165,
+    "native_fail": 1,
+    "status": "ROUND3_STATIC_APPROVED_REPLAY_PENDING",
+    "failure": "source_object_owner_snapshot_changed",
+    "artifact": 10780845861,
+    "local_fix": "6298f35f"
   }
 }

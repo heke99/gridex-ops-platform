@@ -362,12 +362,20 @@ it.each(['2026-09-30','2026-10-01'])('native reviewed Z04 qualifies prior/curren
    .replaceAll('202610150000','202610010000')
   expect(await qualify(beforeLedger)).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,
    evidence:{comparisons:[{status:'unavailable',codes:[]}]}})
-  const {error}=await supabaseService.rpc('gridex_record_source_object_decisions_v1',{
-   p_company_id:f.ids.company,p_environment:'test',p_source_message_id:f.ids.source,p_source_payload_hash:approved.sourceHash,
-   p_canonical_assessment_id:approved.canonicalId,p_facts_text:approved.factsText,
-  })
-  expect(error).toBeNull()
-  expect(stored(f.ids.source).at(-1)!.witnessXid).toBeNull()
+  // Compose against the latest approved assessment; its saved facts name the
+  // preceding baseline and are correctly rejected if replayed as a successor.
+  // Let the real append complete, then withhold only the separate witness.
+  const originalRpc=supabaseService.rpc.bind(supabaseService)
+  const witnessFailure=vi.spyOn(supabaseService,'rpc').mockImplementation((name,args,options)=>
+   originalRpc(name,name==='gridex_witness_source_objects_v1'?{...args,p_facts_hash:'0'.repeat(64)}:args,options))
+  try{
+   expect(await reviewReceivedStructuralSource({companyId:f.ids.company,environment:'test',sourceMessageId:f.ids.source,
+    reviewerUserId:f.ids.reviewer,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'unconfirmed'})
+  }finally{witnessFailure.mockRestore()}
+  const revisions=stored(f.ids.source)
+  expect(revisions).toHaveLength(3)
+  expect(revisions.at(-1)!.witnessXid).toBeNull()
+  expect(revisions.at(-1)!.facts).toMatchObject({objects:[{disposition:'accepted',business:{baselineCurrentAssessmentId:approved.assessmentId}}]})
   expect(await qualify(original.raw_payload!)).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,
    runtime:{transactionDispositions:[{disposition:'internal_review',responseType:'none'}]}})
   expect((await structuralSnapshot(f,savedCutoff)).versions[0]).toMatchObject({disposition:'accepted'})

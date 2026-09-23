@@ -114,3 +114,11 @@ Published bf6d4b5; OPS35903332327/native107324705734 recovered ECR startup and a
 
 ## 2026-09-24 E035 continuation
 Prior-guide candidate1f0bffc0: full6003/372 Node22 on final production code; app/tests/scripts types PASS; native-only later changes script types/lint PASS; source integrity33/121/231 PASS; local review2 SPEC/QUALITY approved. Native/ordinary new-head CI NOT EXECUTED; push auto-review rejected. No merge.
+
+# PR371 published; first native failure under correction — 2026-09-24
+
+PR371 https://github.com/heke99/gridex-ops-platform/pull/371 is DRAFT on codex/e035-prior-guide-20260924 at f7c06f06255e57e3ef7372396f03d666a9723efd, tree d52775545300e526907373d75a958fdf58664621. Exact local tree verified against authenticated GitHub publication; original local history retained in backup/e035-local-598bc841. User explicitly approved publication and continuation; earlier publication blocker below is SUPERSEDED.
+
+First actual OPS35929036489: verify107410965413 and quality107410965660 SUCCESS; native107410965832 FAILED with165/166 passing. Sole failure scripts/ediel-source-owner-native.test.ts369: reused reviewed owner snapshot rejected with23514 source_object_owner_snapshot_changed. Fix round3/5 assigned to original implementer; preserve database guard and intended unwitnessed-successor hold. Subsequent native case/browser/postbrowser/typegen gates not reached. Ordinary browser35929036495, fullE2E35929036484 and Ediel35929036537 SUCCESS. No native acceptance or merge.
+
+Next exact action: diagnose and fix fixture, independent scoped SPEC/QUALITY re-review, publish corrected exact tree, run ordinary same-head CI and inspect authentic native artifacts before final review/merge. Then execute prepared Z05C correction-context/pending-boundary slice; other E035 business, delegation, agency89, physical-message and historical completeness owners remain open. PR310 excluded; full E035/F3/masterplan PARTIAL. No hosted operations.

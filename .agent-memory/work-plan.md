@@ -1,3 +1,15 @@
+# Prior-guide native correction reviewed — 2026-09-24
+
+Local fixture correction6298f35f composes a fresh actual review and deliberately fails only its separate witness. Independent scoped review3 approves SPEC/QUALITY; no production code or database guard changed. Node22 scripts types/native lint/qualifier29 PASS. Corrected native execution remains pending. Parent publishes this exact tree with the review and checkpoint, then inspects all ordinary same-head CI; merge is not yet accepted. User publication approval persists.
+
+# PR371 published; first native failure under correction — 2026-09-24
+
+PR371 https://github.com/heke99/gridex-ops-platform/pull/371 is DRAFT on codex/e035-prior-guide-20260924 at f7c06f06255e57e3ef7372396f03d666a9723efd, tree d52775545300e526907373d75a958fdf58664621. Exact local tree verified against authenticated GitHub publication; original local history retained in backup/e035-local-598bc841. User explicitly approved publication and continuation; earlier publication blocker below is SUPERSEDED.
+
+First actual OPS35929036489: verify107410965413 and quality107410965660 SUCCESS; native107410965832 FAILED with165/166 passing. Sole failure scripts/ediel-source-owner-native.test.ts369: reused reviewed owner snapshot rejected with23514 source_object_owner_snapshot_changed. Fix round3/5 assigned to original implementer; preserve database guard and intended unwitnessed-successor hold. Subsequent native case/browser/postbrowser/typegen gates not reached. Ordinary browser35929036495, fullE2E35929036484 and Ediel35929036537 SUCCESS. No native acceptance or merge.
+
+Next exact action: diagnose and fix fixture, independent scoped SPEC/QUALITY re-review, publish corrected exact tree, run ordinary same-head CI and inspect authentic native artifacts before final review/merge. Then execute prepared Z05C correction-context/pending-boundary slice; other E035 business, delegation, agency89, physical-message and historical completeness owners remain open. PR310 excluded; full E035/F3/masterplan PARTIAL. No hosted operations.
+
 # E035 local candidate saved; publication blocked — 2026-09-24
 
 Authoritative product/test candidate: `1f0bffc0591f4dd12a1f403df04ddf1fa445826f`, branch `codex/e035-prior-guide-20260924`, based on merged PR370/main `650bdb211fa5d492df247b2531cb8004a062db53`. Later documentation-only commit may contain this record. New branch is NOT pushed and no new PR exists. Auto-review rejected the push because it required explicit authorization for external publication to `heke99/gridex-ops-platform`. Do not retry via another transport or connector; obtain that explicit approval first.
