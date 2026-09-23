@@ -37,8 +37,9 @@ beforeEach(() => {
     return q
   })
 })
-function incoming(held = false, mixed = false) {
-  const message = held ? observationHandoffMessage('2026-10-01') : energyHandoffMessage()
+function incoming(held = false, mixed = false, date = '2026-10-01') {
+  const message = held ? observationHandoffMessage(date) : energyHandoffMessage(date)
+  if(date<'2026-10-01')message.raw_payload=message.raw_payload!.replace('QTY+220:11000','QTY+220:10500')
   message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
   if (mixed) {
     const lines = message.raw_payload!.split('\n')
@@ -93,6 +94,37 @@ it('held sibling keeps its empty persisted quantities and no positive ACK while 
   expect(JSON.stringify(aperaks[0][0].draft)).toContain('GRIDEX2607E66002')
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
+})
+it('prior applicable reading is held while an eligible 15-minute energy sibling stays independent in the actual processor',async()=>{
+ const message=incoming(true,true,'2026-09-30');io.get.mockResolvedValue(message)
+ results=[{transactionId:'GRIDEX2607E66001',disposition:'internal_review',responseType:'none',persistenceStatus:'not_applicable'},accepted('GRIDEX2607E66002')]
+ const result=await processInboundUtiltsMessage({actorUserId:'actor',edielMessageId:message.id})
+ expect(result.internalReviewRequired).toBe(true)
+ const persisted=io.rpc.mock.calls.find(([name])=>name==='gridex_persist_utilts_consumption_v1')![1]
+ expect(persisted.p_transactions).toMatchObject([{disposition:'internal_review',responseType:'none',quantities:[]},
+  {disposition:'accepted',responseType:'positive_aperak',quantities:[{value:7}]}])
+ const aperaks=io.ack.mock.calls.filter(([call])=>call.ackFamily==='APERAK')
+ expect(aperaks).toHaveLength(1)
+ expect(JSON.stringify(aperaks[0][0].draft)).not.toContain('GRIDEX2607E66001')
+ expect(io.meter).not.toHaveBeenCalled();expect(io.bill).not.toHaveBeenCalled()
+})
+it('prior held reading, exempt energy and E19-rejected sibling retain three independent processor outcomes',async()=>{
+ const message=incoming(true,true,'2026-09-30')
+ const lines=message.raw_payload!.split('\n'),first=lines.findIndex(line=>line.startsWith('IDE+24+')),
+  second=lines.findIndex((line,index)=>index>first&&line.startsWith('IDE+24+')),
+  end=lines.findIndex(line=>line.startsWith('UNT+'))
+ const rejected=lines.slice(first,second).map(line=>line.replace('GRIDEX2607E66001','GRIDEX2607E66003').replace('QTY+220:10500','QTY+220:11000'))
+ lines.splice(end,0,...rejected);lines[end+rejected.length]=`UNT+${lines.length-2}+1'`
+ message.raw_payload=lines.join('\n');io.get.mockResolvedValue(message)
+ results=[{transactionId:'GRIDEX2607E66001',disposition:'internal_review',responseType:'none',persistenceStatus:'not_applicable'},
+  accepted('GRIDEX2607E66002'),{transactionId:'GRIDEX2607E66003',disposition:'processability_rejected',responseType:'utilts_err',persistenceStatus:'not_applicable'}]
+ await processInboundUtiltsMessage({actorUserId:'actor',edielMessageId:message.id})
+ const persisted=io.rpc.mock.calls.find(([name])=>name==='gridex_persist_utilts_consumption_v1')![1].p_transactions
+ expect(persisted).toMatchObject([{disposition:'internal_review',quantities:[]},
+  {disposition:'accepted',quantities:[{value:7}]},{disposition:'processability_rejected',responseType:'utilts_err'}])
+ expect(io.ack.mock.calls.filter(([call])=>call.ackFamily==='APERAK')).toHaveLength(1)
+ expect(io.ack.mock.calls.filter(([call])=>call.ackFamily==='UTILTS_ERR')).toHaveLength(1)
+ expect(io.meter).not.toHaveBeenCalled();expect(io.bill).not.toHaveBeenCalled()
 })
 
 for (const invalid of ['missing tenant', 'duplicate physical identities']) it(`processor stops ${invalid} before ACK, sinks or completion`, async () => {

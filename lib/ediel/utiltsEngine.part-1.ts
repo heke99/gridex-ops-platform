@@ -3,7 +3,7 @@
 import type { EdielAckOutcome, EdielMessageRow } from '@/lib/ediel/types'
 import { parseInboundUtilts, type ParsedUtiltsMessage } from '@/lib/ediel/utilts'
 import { deriveUtiltsSubordinateRole } from '@/lib/ediel/utiltsSubordinateRole'
-import { validateCanonicalUtiltsProfile } from '@/lib/ediel/utilts/profiles'
+import { isSingletonE30Reading, validateCanonicalUtiltsProfile } from '@/lib/ediel/utilts/profiles'
 import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
 
 export const UTILTS_RUNTIME_ENGINE_VERSION = '2026-06-production-utilts-runtime-v5-object-first-reason-codes'
@@ -1076,7 +1076,9 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
     }))
   }
 
-  if (needsGridArea && !facts.deliveryPeriodRaw) {
+  if (needsGridArea && !facts.deliveryPeriodRaw && !(
+    code === 'E30' && facts.transactions.length > 0 && facts.transactions.every((_, index) => isSingletonE30Reading(facts, index))
+  )) {
     issues.push(buildIssue({
       severity: 'error',
       kind: 'application',

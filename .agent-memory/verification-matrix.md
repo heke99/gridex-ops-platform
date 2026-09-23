@@ -111,3 +111,22 @@ Published bf6d4b5; OPS35903332327/native107324705734 recovered ECR startup and a
 2026-09-23: published7750e2 streamed-not-found test (local d81dff0 same tree), static SPEC/QUALITY approved, retained route7 and bounded checks pass; real CI pending. Whole-branch review R1–R4 CHANGES REQUIRED, sole final correction wave started. Prior755 native124+case1 and browser1/2 pass; no merge readiness.
 
 2026-09-23:62a7d08 OPS35918298886/native107375437512 native156+SQLretry8+case1+browser2+postbrowser1+tenant/parityPASS. Authentic artifact10776516395 schema/types hashes verified and reconciled; final same-head CI/artifact review pending, no merge yet. R1–R4+C1 static reviewed; E035partial.
+
+## 2026-09-24 E035 continuation
+Prior-guide candidate1f0bffc0: full6003/372 Node22 on final production code; app/tests/scripts types PASS; native-only later changes script types/lint PASS; source integrity33/121/231 PASS; local review2 SPEC/QUALITY approved. Native/ordinary new-head CI NOT EXECUTED; push auto-review rejected. No merge.
+
+# PR371 published; first native failure under correction — 2026-09-24
+
+PR371 https://github.com/heke99/gridex-ops-platform/pull/371 is DRAFT on codex/e035-prior-guide-20260924 at f7c06f06255e57e3ef7372396f03d666a9723efd, tree d52775545300e526907373d75a958fdf58664621. Exact local tree verified against authenticated GitHub publication; original local history retained in backup/e035-local-598bc841. User explicitly approved publication and continuation; earlier publication blocker below is SUPERSEDED.
+
+First actual OPS35929036489: verify107410965413 and quality107410965660 SUCCESS; native107410965832 FAILED with165/166 passing. Sole failure scripts/ediel-source-owner-native.test.ts369: reused reviewed owner snapshot rejected with23514 source_object_owner_snapshot_changed. Fix round3/5 assigned to original implementer; preserve database guard and intended unwitnessed-successor hold. Subsequent native case/browser/postbrowser/typegen gates not reached. Ordinary browser35929036495, fullE2E35929036484 and Ediel35929036537 SUCCESS. No native acceptance or merge.
+
+Next exact action: diagnose and fix fixture, independent scoped SPEC/QUALITY re-review, publish corrected exact tree, run ordinary same-head CI and inspect authentic native artifacts before final review/merge. Then execute prepared Z05C correction-context/pending-boundary slice; other E035 business, delegation, agency89, physical-message and historical completeness owners remain open. PR310 excluded; full E035/F3/masterplan PARTIAL. No hosted operations.
+
+# PR371 whole-branch review approved; native infrastructure retry required — 2026-09-24
+
+Published code/test head c89586dc9b6ff29ab8d01ede873a8e4f6ebb0617 (tree8fbaed08c8cdd8e345ff8e5d9ecf0e88d740a5ed) is clean locally and ready for review. Independent final whole-branch SPEC/QUALITY APPROVE, zero material findings; report prior-guide-final-review-20260924.md. No final fix wave requested. Corrected native replay OPS35930370622/job107415232454 failed BEFORE TESTS because Docker host port54322 was occupied. This is infrastructure evidence, not a product result. GitHub disallows a job rerun while another job in that workflow runs. Verify, ordinary browser, E2E and Ediel passed; quality/build was still running at this checkpoint.
+
+Next: publish this documentation receipt, then qualify its exact head using ordinary CI and authentic native artifact inspection. If native startup fails transiently again, inspect the actual error and rerun only failed job once the workflow finishes; do not weaken gates. Corrected166 native tests still need successful execution. Merge only after exact-head checks and final receipt review. Full E035 remains PARTIAL; PR310 excluded. User approval covers publication/PR/CI and continuation; no repeat approval needed for this bounded delivery.
+
+Prepared follow-up: correction-context-next-plan-20260924.md in the same audit directory, read-only plan until PR371 accepted. Hold-only correction capture/process history and earliest plausible boundary; positive C and unresolved historic dispatch/retention authority remain separate.

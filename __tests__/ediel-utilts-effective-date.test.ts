@@ -15,6 +15,14 @@ describe('effective-dated UTILTS canonical rules', () => {
     expect(resolveUtiltsProcessabilityPolicy('2026-10-01').guideRevision).toBe('25-A-4')
   })
 
+  it.each(['2025-06-01', '2026-09-30', '2026-10-01'])('qualifies source-backed meter/register comparison on %s', date => {
+    expect(resolveUtiltsProcessabilityPolicy(date).validateMeterAndRegisterAgainstStructuralInformation).toBe(true)
+  })
+
+  it('rejects policy dates before the prior guide became effective', () => {
+    expect(() => resolveUtiltsProcessabilityPolicy('2025-05-31')).toThrow('utilts_guide_not_effective:2025-05-31')
+  })
+
   it('encodes the exact 25-A-4 processability changes without mutating 25-A-3 history', () => {
     const current = resolveUtiltsProcessabilityPolicy('2026-09-30')
     const future = resolveUtiltsProcessabilityPolicy('2026-10-01')

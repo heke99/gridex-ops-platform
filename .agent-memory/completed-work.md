@@ -58,3 +58,6 @@ Actual verification so far: root5786/349 PASS; actual canonical fixture5/5 PASS;
 Next: execute authentic forward and expanded native suite on isolated localhost Supabase2.101.0/PostgreSQL17; fix actual findings, generated-contract checks; publish candidate in existing PR370, run ordinary exact-head CI and independent whole-PR review. Scope review still required for unresolved/closure sources, agency89, multiple physical messages, delegated sender and date-changing Z04 corrections. These remain fail-closed, not claims of universal business-case completion. Full E035/F3/masterplan NOT COMPLETE. No hosted database writes, deployment or real market messages.
 
 2026-09-23:62a7d08 OPS35918298886/native107375437512 native156+SQLretry8+case1+browser2+postbrowser1+tenant/parityPASS. Authentic artifact10776516395 schema/types hashes verified and reconciled; final same-head CI/artifact review pending, no merge yet. R1–R4+C1 static reviewed; E035partial.
+
+## 2026-09-24 E035 continuation
+Locally implemented prior25-A-3 source comparison and narrow singleton E30 correction through1f0bffc0; local SPEC/QUALITY approved, full6003tests and types pass. This is local completed engineering only, not native-qualified delivery.

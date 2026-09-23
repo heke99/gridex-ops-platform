@@ -1,3 +1,43 @@
+# PR371 whole-branch review approved; native infrastructure retry required — 2026-09-24
+
+Published code/test head c89586dc9b6ff29ab8d01ede873a8e4f6ebb0617 (tree8fbaed08c8cdd8e345ff8e5d9ecf0e88d740a5ed) is clean locally and ready for review. Independent final whole-branch SPEC/QUALITY APPROVE, zero material findings; report prior-guide-final-review-20260924.md. No final fix wave requested. Corrected native replay OPS35930370622/job107415232454 failed BEFORE TESTS because Docker host port54322 was occupied. This is infrastructure evidence, not a product result. GitHub disallows a job rerun while another job in that workflow runs. Verify, ordinary browser, E2E and Ediel passed; quality/build was still running at this checkpoint.
+
+Next: publish this documentation receipt, then qualify its exact head using ordinary CI and authentic native artifact inspection. If native startup fails transiently again, inspect the actual error and rerun only failed job once the workflow finishes; do not weaken gates. Corrected166 native tests still need successful execution. Merge only after exact-head checks and final receipt review. Full E035 remains PARTIAL; PR310 excluded. User approval covers publication/PR/CI and continuation; no repeat approval needed for this bounded delivery.
+
+Prepared follow-up: correction-context-next-plan-20260924.md in the same audit directory, read-only plan until PR371 accepted. Hold-only correction capture/process history and earliest plausible boundary; positive C and unresolved historic dispatch/retention authority remain separate.
+
+# Prior-guide native correction reviewed — 2026-09-24
+
+Local fixture correction6298f35f composes a fresh actual review and deliberately fails only its separate witness. Independent scoped review3 approves SPEC/QUALITY; no production code or database guard changed. Node22 scripts types/native lint/qualifier29 PASS. Corrected native execution remains pending. Parent publishes this exact tree with the review and checkpoint, then inspects all ordinary same-head CI; merge is not yet accepted. User publication approval persists.
+
+# PR371 published; first native failure under correction — 2026-09-24
+
+PR371 https://github.com/heke99/gridex-ops-platform/pull/371 is DRAFT on codex/e035-prior-guide-20260924 at f7c06f06255e57e3ef7372396f03d666a9723efd, tree d52775545300e526907373d75a958fdf58664621. Exact local tree verified against authenticated GitHub publication; original local history retained in backup/e035-local-598bc841. User explicitly approved publication and continuation; earlier publication blocker below is SUPERSEDED.
+
+First actual OPS35929036489: verify107410965413 and quality107410965660 SUCCESS; native107410965832 FAILED with165/166 passing. Sole failure scripts/ediel-source-owner-native.test.ts369: reused reviewed owner snapshot rejected with23514 source_object_owner_snapshot_changed. Fix round3/5 assigned to original implementer; preserve database guard and intended unwitnessed-successor hold. Subsequent native case/browser/postbrowser/typegen gates not reached. Ordinary browser35929036495, fullE2E35929036484 and Ediel35929036537 SUCCESS. No native acceptance or merge.
+
+Next exact action: diagnose and fix fixture, independent scoped SPEC/QUALITY re-review, publish corrected exact tree, run ordinary same-head CI and inspect authentic native artifacts before final review/merge. Then execute prepared Z05C correction-context/pending-boundary slice; other E035 business, delegation, agency89, physical-message and historical completeness owners remain open. PR310 excluded; full E035/F3/masterplan PARTIAL. No hosted operations.
+
+# E035 local candidate saved; publication blocked — 2026-09-24
+
+Authoritative product/test candidate: `1f0bffc0591f4dd12a1f403df04ddf1fa445826f`, branch `codex/e035-prior-guide-20260924`, based on merged PR370/main `650bdb211fa5d492df247b2531cb8004a062db53`. Later documentation-only commit may contain this record. New branch is NOT pushed and no new PR exists. Auto-review rejected the push because it required explicit authorization for external publication to `heke99/gridex-ops-platform`. Do not retry via another transport or connector; obtain that explicit approval first.
+
+Implemented locally: source-qualified prior25-A-3 E61/E62 capability and provenance; narrow source-backed singleton E30 eligibility correction; expanded prior policy/source/processor/transition/retry tests. Independent scoped review2 approves local SPEC and QUALITY at1f0bffc0. Full6003/6003 tests in372files passed on supported Node22 at same final production code; subsequent native-only cleanup/assertion changes passed scripts typecheck/native lint. App/tests/scripts types, source integrity and scoped lint passed (one pre-existing warning). Native PostgreSQL tests are written/typechecked but NOT EXECUTED. ACK factory and normalized sink are mocked in added native processor cases; they prove dispatch/reservation/series/contracts, not authentic wire/downstream sink completion.
+
+This is NOT delivery acceptance, green CI, merge, deployment, full E035/G01/F3/masterplan completion. No migration or hosted operation was made. PR310 remains paused and excluded.
+
+Next exact action: with explicit publication approval, push this branch to the named repository, open a draft PR, execute all ordinary exact-head workflows including actual native replay, inspect and fix genuine failures, and review final evidence before merge. Then continue Z05C process-basis/pending corrected-end blocker and named cancellation owner, remaining Z06E/changed-start/agency89/multi-message/delegated-sender/historical-completeness tasks. Do not restart accepted PR370.
+
+Plan: docs/superpowers/plans/2026-09-24-e035-prior-guide.md. Evidence: quality/audits/ediel-masterplan-v2/e035-source-ledger/prior-guide-implementation-20260924.md; prior-guide-review/rereview1/rereview2-20260924.md; remaining-preflight-20260924.md. Recovery archive holds unpublished commits and local verification logs; published main remains canonical base. Older entries below are historical where conflicting.
+
+# E035 resumed after merged PR370 — 2026-09-24
+
+Live GitHub confirms PR370 merged at650bdb211fa5d492df247b2531cb8004a062db53; final headc0649f16982e10cf7845c22a0800fd06e4be480d had all applicable ordinary workflows SUCCESS. Production crawler skipped. This supersedes prior pending-merge text below.
+
+Active branch: codex/e035-prior-guide-20260924. User authorizes remaining E035 and durable checkpoints. Active item: prior25-A-3 E61/E62 capability, then remaining owners in order. Plan: docs/superpowers/plans/2026-09-24-e035-prior-guide.md. Original prior PDF recovered and hash verified fad5cf4f775f86258ab9d5827426d54e57881b6298836110359cf0e41706a798. No new code accepted yet. Full E035/F3/masterplan PARTIAL; PR310 paused/excluded.
+
+Next: implement approved scoped prior-guide amendment with real-source tests, independent review and ordinary exact-head CI. No hosted writes/deployment commands/market sends. Older entries below are historical.
+
 ## Final native156 and artifact checkpoint — 2026-09-23
 
 Published62a7d08 OPS35918298886/native107375437512 passes SQLretry8, native156, case1, protected browser2, postbrowser1, tenant invariants/C1 and parity selftest. Actual types repeat97d0e426. Authentic artifact10776516395 verified and schema/fingerprint copied verbatim; manifest advanced to actual tail20260923192915. Previous native fixture failures are resolved; no open code findings in scoped final review. New generated schema must reproduce on final published head before merge. Root owns final artifact review/publication/CI; implementer frozen. E035/F3/masterplan PARTIAL, bounded A4from2026-10-01 comparison only, prior-guide capability next. PR310/main untouched; no hosted operations.

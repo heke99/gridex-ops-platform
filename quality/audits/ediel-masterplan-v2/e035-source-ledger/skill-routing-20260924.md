@@ -1,0 +1,5 @@
+# Skill routing — E035 continuation
+
+Active: using-superpowers; writing-plans; subagent-driven-development for one implementer and independent review; test-driven-development and verification-before-completion for policy/runtime correction; spec-to-code-compliance for guide provenance; receiving/requesting-code-review at their gates. Library used solely to recover original guide. Existing fresh conversation clone on a new branch supplies isolation; no other user's checkout modified.
+Conditional: Supabase/SQL/security/tenant review when database or permissions change; systematic-debugging for concrete failures; finishing-a-development-branch at final verification.
+Not activated: acquire-codebase-knowledge (no repository documentation request), quality-playbook generation (existing quality framework; no request to generate another), UI/design/React/performance (no UI/performance change), deployment/payments/email/skills creation/supply-chain tooling (no such change). Broad repository baseline audit absent; scoped full execution-path review remains required.

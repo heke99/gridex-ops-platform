@@ -1,4 +1,5 @@
 import {execFileSync} from 'node:child_process'
+import {randomUUID} from 'node:crypto'
 import {afterEach,beforeAll,expect,it,vi} from 'vitest'
 import {closureFixture} from '../__tests__/helpers/closureWireFixtures'
 import {reviewReceivedClosureSource} from '@/lib/ediel/sources/reviewReceivedClosureSource'
@@ -7,12 +8,28 @@ import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceived
 import {inspectStructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
 import {compareUtiltsStructure} from '@/lib/ediel/utilts/structuralComparison'
 import {utiltsStructureWire,STRUCTURE_POINT} from '../__tests__/helpers/structuralComparisonFixtures'
+import {priorE30PointWire} from '../__tests__/helpers/priorUtiltsStructureFixtures'
+import {priorE66MembershipWire} from '../__tests__/helpers/priorUtiltsStructureFixtures'
 import {ownerSource} from '../__tests__/helpers/sourceOwnerFixtures'
+import {utiltsNativeSourceFixture} from '../__tests__/helpers/utiltsNativeSourceFixture'
+import {observationHandoffMessage} from '../__tests__/helpers/utiltsObservationHandoff'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 
 // No database/client, parser, canonical registry or ownership decision is
 // mocked. Only unrelated notification/event sinks are withheld on this runner.
-vi.mock('@/lib/ediel/db',()=>({createEdielMessageEvent:async()=>null}))
+const utiltsEffects=vi.hoisted(()=>({ack:vi.fn(),meter:vi.fn(),interruptParsed:false}))
+vi.mock('@/lib/ediel/db',async original=>{
+ const actual=await original<typeof import('@/lib/ediel/db')>()
+ return {...actual,createEdielMessageEvent:async()=>null,updateEdielMessageStatus:async(input:Parameters<typeof actual.updateEdielMessageStatus>[0])=>{
+  if(utiltsEffects.interruptParsed&&input.status==='parsed'){
+   utiltsEffects.interruptParsed=false;throw Error('prior_native_after_persistence_before_ack')
+  }
+  return actual.updateEdielMessageStatus(input)
+ }}
+})
+vi.mock('@/lib/ediel/core/kernel',async original=>({...await original<Record<string,unknown>>(),
+ createCanonicalAckMessage:utiltsEffects.ack}))
+vi.mock('@/lib/metering/normalizeMeteringValues',()=>({normalizeAndStoreMeteringValue:utiltsEffects.meter}))
 vi.mock('@/lib/customer-notifications/notificationOrchestrator',()=>({enqueueCustomerLifecycleNotification:async()=>null}))
 vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrelatedCustomerApplicationWorkflow:async()=>null}))
 import {supabaseService} from '@/lib/supabase/service'
@@ -21,6 +38,7 @@ import {buildReceivedSourceValidationEvidence} from '@/lib/ediel/core/receivedSo
 import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
 import {createReceivedSourceOwnerSession} from '@/lib/ediel/sources/receivedSourceOwnerSession'
 import {applyInboundBusinessStateMachine} from '@/lib/ediel/flows/inboundBusinessStateMachine'
+import {resolveCanonicalMessagePolicy} from '@/lib/ediel/core/messagePolicy'
 
 import {inspectReceivedSourceDecisionTimeline} from '@/lib/ediel/sources/receivedSourceDecisionTimeline'
 
@@ -123,7 +141,7 @@ beforeAll(async()=>{
   }
   throw Error('native_schema_cache_not_ready')
 })
-afterEach(()=>vi.restoreAllMocks())
+afterEach(()=>{utiltsEffects.interruptParsed=false;vi.restoreAllMocks()})
 
 it('the semantic runtime key cannot impersonate the actual activation-row key in SQL',async()=>{
   const f=await seed(),decision=await resolveCanonicalRuntimeDecisionWithRegistry(f.original)
@@ -257,6 +275,23 @@ async function structuralSnapshot(f:Awaited<ReturnType<typeof seed>>,cutoffAt=sq
  expect(result.timeline,JSON.stringify(result.timeline)).toMatchObject({status:'inspected',boundedReadComplete:true})
  return result
 }
+async function insertPriorUtilts(f:Awaited<ReturnType<typeof seed>>,raw:string){
+ const original=utiltsNativeSourceFixture(raw,randomUUID())
+ const {id,parsed}=original
+ sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+ SELECT ${literal(id)},${literal(f.ids.company)},${literal(f.ids.customer)},${literal(f.ids.site)},${literal(f.ids.point)},${literal(f.ids.grid)},'test','inbound','edifact','UTILTS','E66','received',${literal(original.raw)},'{}','2026-09-30T20:00:00Z','{}',${literal(parsed.applicationReference)},'12345','54321',${literal(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+ FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
+ WHERE profile.message_code='E66' AND profile.direction IN ('inbound','both') AND profile.is_enabled ORDER BY profile.profile_key LIMIT 1;`)
+ const {data,error}=await supabaseService.from('ediel_messages').select('*').eq('id',id).single()
+ expect(error).toBeNull();expect(data).not.toBeNull()
+ return data as unknown as EdielMessageRow
+}
+function priorNativeWire(f:Awaited<ReturnType<typeof seed>>,point:string){
+ return observationHandoffMessage('2026-09-30',f.ids.company).raw_payload!
+  .replaceAll('735999260731000007',point).replaceAll('91100','12345').replaceAll('21660','54321')
+  .replaceAll('202607010000','202610010000').replaceAll('202608010000','202610150000')
+  .replace('?+0200','?+0100').replaceAll('M-GRIDEX-2607-01','METER-1').replace('QTY+220:11000','QTY+220:10500')
+}
 async function insertStructuralChange(f:Awaited<ReturnType<typeof seed>>,code:'Z06'|'Z10',reason:string,document:string,replacement=false){
  const message=structuralOwnerSource(code,reason,document,replacement)
  const external=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
@@ -277,6 +312,165 @@ it('native full-original Z04 review proves post-ledger coverage without replayin
  const wire=utiltsStructureWire({period:'202610010000202610150000',meter:'METER-1',ids:['101'],sender:'12345',receiver:'54321'}).replaceAll(STRUCTURE_POINT,result.versions[0].wire.object.objectId!)
  expect(compareUtiltsStructure({raw:wire,transactionIndex:0,cutoffAt:result.timeline.cutoffAt??'',ledgerStartedAt:result.timeline.ledgerStartedAt??'',
   readComplete:true,unresolvedSources:result.unresolvedSources,versions:result.versions})).toMatchObject({status:'matched',codes:[]})
+})
+it.each(['2026-09-30','2026-10-01'])('native reviewed Z04 qualifies prior/current E61/E62 on policy date %s',async referenceDate=>{
+ const {observationHandoffMessage}=await import('../__tests__/helpers/utiltsObservationHandoff')
+ const {resolveCanonicalEdielPolicy}=await import('@/lib/ediel/rulebook/canonicalEdielPolicy')
+ const {runUtiltsRuntimeForMessage}=await import('@/lib/ediel/utiltsEngine')
+ const {qualifyReceivedUtiltsStructure}=await import('@/lib/ediel/utilts/qualifyReceivedStructure')
+ const {buildUtiltsTransactionPersistencePayload}=await import('@/lib/ediel/utilts/transactionPersistence')
+ const f=await seed(false,true)
+ expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
+ const original=observationHandoffMessage(referenceDate,f.ids.company)
+ original.id=f.ids.outbound;original.sender_ediel_id='12345';original.receiver_ediel_id='54321'
+ const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ original.raw_payload=original.raw_payload!.replaceAll('735999260731000007',point).replaceAll('91100','12345').replaceAll('21660','54321')
+  .replaceAll('202607010000','202610010000').replaceAll('202608010000','202610150000')
+  .replace('?+0200','?+0100').replaceAll('M-GRIDEX-2607-01','METER-1')
+  .replace('QTY+220:11000','QTY+220:10500')
+ const canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate,
+  applicationReference:original.application_reference,mode:'parse'})
+ const qualify=async(raw:string)=>{
+  const message={...original,raw_payload:raw}
+  const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy})
+  expect(runtime.transactionDispositions,JSON.stringify(runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
+  return qualifyReceivedUtiltsStructure({message,runtime,canonicalPolicy})
+ }
+ const pending=await qualify(original.raw_payload!)
+ expect(pending).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,
+  runtime:{transactionDispositions:[{disposition:'internal_review',responseType:'none'}],ackPlan:{shouldSendAperak:false}}})
+ expect(buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:pending.runtime.facts.transactions,
+  dispositions:pending.runtime.transactionDispositions,matches:[]})[0].quantities).toEqual([])
+ await reviewed(f)
+ const matched=await qualify(original.raw_payload!)
+ expect(matched).toMatchObject({evidence:{comparisons:[{status:'matched',codes:[]}]},runtime:{transactionDispositions:[{disposition:'accepted'}]}})
+ const meter=await qualify(original.raw_payload!.replaceAll('METER-1','WRONG-METER'))
+ expect(meter).toMatchObject({hasNationalMismatch:true,hasInternalReview:false,evidence:{comparisons:[{status:'mismatch',codes:['E61']}]}})
+ const register=await qualify(original.raw_payload!.replaceAll('RFF+AES:101','RFF+AES:901'))
+ expect(register).toMatchObject({hasNationalMismatch:true,hasInternalReview:false,evidence:{comparisons:[{status:'mismatch',codes:['E62']}]}})
+ for(const membership of ['missing','excess'] as const){
+  expect(await qualify(priorE66MembershipWire(original.raw_payload!,membership))).toMatchObject({hasNationalMismatch:true,
+   hasInternalReview:false,evidence:{comparisons:[{status:'mismatch',codes:['E62']}]}})
+ }
+ expect((await structuralSnapshot(f,pending.evidence.cutoffAt!)).versions[0].coverage).toBeNull()
+ if(referenceDate==='2026-09-30'){
+  const savedCutoff=matched.evidence.cutoffAt!,approved=stored(f.ids.source).at(-1)!
+  const unknownRoot=original.raw_payload!.replaceAll(point,'735999260731999999')
+  expect(await qualify(unknownRoot)).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,
+   evidence:{comparisons:[{status:'unavailable',codes:[]}]}})
+  const beforeLedger=original.raw_payload!.replaceAll('202610010000','202609010000')
+   .replaceAll('202610150000','202610010000')
+  expect(await qualify(beforeLedger)).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,
+   evidence:{comparisons:[{status:'unavailable',codes:[]}]}})
+  // Compose against the latest approved assessment; its saved facts name the
+  // preceding baseline and are correctly rejected if replayed as a successor.
+  // Let the real append complete, then withhold only the separate witness.
+  const originalRpc=supabaseService.rpc.bind(supabaseService)
+  const witnessFailure=vi.spyOn(supabaseService,'rpc').mockImplementation((name,args,options)=>
+   originalRpc(name,name==='gridex_witness_source_objects_v1'?{...args,p_facts_hash:'0'.repeat(64)}:args,options))
+  try{
+   expect(await reviewReceivedStructuralSource({companyId:f.ids.company,environment:'test',sourceMessageId:f.ids.source,
+    reviewerUserId:f.ids.reviewer,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'unconfirmed'})
+  }finally{witnessFailure.mockRestore()}
+  const revisions=stored(f.ids.source)
+  expect(revisions).toHaveLength(3)
+  expect(revisions.at(-1)!.witnessXid).toBeNull()
+  expect(revisions.at(-1)!.facts).toMatchObject({objects:[{disposition:'accepted',business:{baselineCurrentAssessmentId:approved.assessmentId}}]})
+  expect(await qualify(original.raw_payload!)).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,
+   runtime:{transactionDispositions:[{disposition:'internal_review',responseType:'none'}]}})
+  expect((await structuralSnapshot(f,savedCutoff)).versions[0]).toMatchObject({disposition:'accepted'})
+ }
+})
+it('native latest witnessed unavailable review holds prior policy despite an older accepted Z04',async()=>{
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const accepted=await structuralSnapshot(f)
+ const prepared=await prepare(f)
+ expect(await prepared.session.finish()).toMatchObject({status:'recorded',sourceDisposition:'not_established'})
+ const current=await structuralSnapshot(f)
+ expect(current.versions.find(version=>version.sourceMessageId===f.ids.source)?.disposition).not.toBe('accepted')
+ expect((await structuralSnapshot(f,accepted.timeline.cutoffAt!)).versions[0]).toMatchObject({disposition:'accepted'})
+ const wire=utiltsStructureWire({period:'202610010000202610150000',meter:'WRONG',ids:['901'],sender:'12345',receiver:'54321',point:accepted.versions[0].wire.object.objectId!})
+ expect(compareUtiltsStructure({raw:wire,transactionIndex:0,cutoffAt:current.timeline.cutoffAt!,ledgerStartedAt:current.timeline.ledgerStartedAt!,
+  readComplete:current.timeline.boundedReadComplete,unresolvedSources:current.unresolvedSources,versions:current.versions})).toMatchObject({status:'unavailable',codes:[]})
+})
+it.each(['missing','matched','E61','E62'] as const)('native prior %s traverses real processor persistence and ACK boundary',async outcome=>{
+ const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
+ const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ if(outcome!=='missing')await reviewed(f)
+ let raw=priorNativeWire(f,point)
+ if(outcome==='E61')raw=raw.replaceAll('METER-1','WRONG-METER')
+ if(outcome==='E62')raw=raw.replaceAll('RFF+AES:101','RFF+AES:901')
+ const source=await insertPriorUtilts(f,raw)
+ const selectedPolicy=resolveCanonicalMessagePolicy(source)
+ expect(selectedPolicy).toMatchObject({family:'UTILTS',code:'E66',referenceDate:'2026-09-30'})
+ const {runUtiltsRuntimeForMessage}=await import('@/lib/ediel/utiltsEngine')
+ expect(runUtiltsRuntimeForMessage(source,{canonicalPolicy:selectedPolicy!}).transactionDispositions).toMatchObject([{disposition:'accepted'}])
+ utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
+ utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
+ const result=await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:source.id})
+ const rows=sql<{disposition:string;plan:string;final:string|null;series:string|null;issues:string[]}[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('disposition',disposition,'plan',planned_response_type,'final',final_response_type,'series',persisted_series_id,'issues',issue_codes)),'[]') FROM public.ediel_ack_transaction_results WHERE source_message_id=${literal(source.id)}`)
+ expect(rows).toHaveLength(1)
+ if(outcome==='missing'){
+  expect(result.internalReviewRequired).toBe(true)
+  expect(rows[0]).toMatchObject({disposition:'internal_review',plan:'none',final:null,series:null})
+  expect(result.ingestedMeterValueIds).toEqual([])
+  expect(utiltsEffects.ack.mock.calls.every(([call])=>call.ackFamily==='CONTRL')).toBe(true)
+  expect(utiltsEffects.meter).not.toHaveBeenCalled()
+ }else if(outcome==='matched'){
+  expect(rows[0]).toMatchObject({disposition:'accepted',plan:'positive_aperak'})
+  expect(rows[0].series).not.toBeNull()
+  expect(utiltsEffects.ack.mock.calls.some(([call])=>call.ackFamily==='APERAK')).toBe(true)
+ }else{
+  expect(rows[0]).toMatchObject({disposition:'processability_rejected',plan:'utilts_err',series:null})
+  expect(rows[0].issues.join('|')).toContain(outcome)
+  expect(utiltsEffects.ack.mock.calls.some(([call])=>call.ackFamily==='UTILTS_ERR')).toBe(true)
+  expect(utiltsEffects.ack.mock.calls.some(([call])=>call.ackFamily==='APERAK')).toBe(false)
+  expect(utiltsEffects.meter).not.toHaveBeenCalled()
+ }
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.meter_reading_series WHERE source_ediel_message_id=${literal(source.id)}`)).toBe(outcome==='matched'?1:0)
+ if(outcome==='missing'){
+  await reviewed(f)
+  utiltsEffects.ack.mockClear()
+  await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:source.id})
+  expect(sql(`SELECT jsonb_build_object('disposition',disposition,'plan',planned_response_type,'series',persisted_series_id) FROM public.ediel_ack_transaction_results WHERE source_message_id=${literal(source.id)}`)).toMatchObject({disposition:'accepted',plan:'positive_aperak',series:expect.any(String)})
+  expect(utiltsEffects.ack.mock.calls.some(([call])=>call.ackFamily==='APERAK')).toBe(true)
+ }
+ if(outcome==='matched'){
+  // Successful retry re-finalizes the same response and legitimately updates
+  // only these two administrative timestamps on the ACK reservation row.
+  const stable=()=>sql(`SELECT jsonb_build_object('acks',(SELECT jsonb_agg(to_jsonb(a)-'finalized_at'-'updated_at') FROM public.ediel_ack_transaction_results a WHERE source_message_id=${literal(source.id)}),
+   'series',(SELECT jsonb_agg(to_jsonb(s)) FROM public.meter_reading_series s WHERE source_ediel_message_id=${literal(source.id)}),
+   'contracts',(SELECT jsonb_agg(to_jsonb(c)) FROM gridex_utilts_binding.contracts c WHERE source_message_id=${literal(source.id)}))`)
+  const stored=stable()
+  await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:source.id})
+  expect(stable()).toEqual(stored)
+ }
+})
+it.each([false,true])('native prior committed %s retry fails closed after newer unavailable review',async interrupted=>{
+ const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ const source=await insertPriorUtilts(f,priorNativeWire(f,point))
+ expect(resolveCanonicalMessagePolicy(source)).toMatchObject({family:'UTILTS',code:'E66',referenceDate:'2026-09-30'})
+ utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
+ utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
+ utiltsEffects.interruptParsed=interrupted
+ if(interrupted)await expect(processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:source.id})).rejects.toThrow('prior_native_after_persistence_before_ack')
+ else await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:source.id})
+ const persisted=()=>sql(`SELECT jsonb_build_object('acks',(SELECT jsonb_agg(to_jsonb(a)) FROM public.ediel_ack_transaction_results a WHERE source_message_id=${literal(source.id)}),
+  'series',(SELECT jsonb_agg(to_jsonb(s)) FROM public.meter_reading_series s WHERE source_ediel_message_id=${literal(source.id)}),
+  'contracts',(SELECT jsonb_agg(to_jsonb(c)) FROM gridex_utilts_binding.contracts c WHERE source_message_id=${literal(source.id)}),
+  'qualification',(SELECT parsed_payload#>'{normalizedMeteringPayload,receivedStructureQualification}' FROM public.ediel_messages WHERE id=${literal(source.id)}))`)
+ const before=persisted()
+ const saved=await structuralSnapshot(f)
+ expect((before as {acks:{disposition:string;final_response_type:string|null}[]}).acks).toMatchObject([{disposition:'accepted',final_response_type:interrupted?null:'positive_aperak'}])
+ expect(await (await prepare(f)).session.finish()).toMatchObject({sourceDisposition:'not_established'})
+ expect((await structuralSnapshot(f,saved.timeline.cutoffAt!)).versions[0]).toMatchObject({disposition:'accepted'})
+ utiltsEffects.ack.mockClear();utiltsEffects.meter.mockClear()
+ await expect(processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:source.id})).rejects.toThrow('utilts_committed_transaction_retry_conflict')
+ expect(persisted()).toEqual(before)
+ expect(utiltsEffects.ack).not.toHaveBeenCalled();expect(utiltsEffects.meter).not.toHaveBeenCalled()
 })
 it.each([['Z06','E64'],['Z06','E32'],['Z10','E58']] as const)('native full-original %s/%s approval is not partial safe-apply',async(code,reason)=>{
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
@@ -303,6 +497,41 @@ it.each([['Z06','E64'],['Z06','E32'],['Z10','E58']] as const)('native full-origi
   expect(sql(`SELECT to_jsonb(gridex_received_sources.review_business_proof_consistent(${literal(entry.party)}::jsonb,${literal(forged)}::jsonb,${literal(id)}::uuid));`)).toBe(false)
  }
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.customer_supply_periods WHERE company_id=${literal(f.ids.company)}`)).toBe(1)
+})
+it('native witnessed Z10 transition selects prior E30 ending/current sides and holds an ambiguous side',async()=>{
+ const {observationHandoffMessage}=await import('../__tests__/helpers/utiltsObservationHandoff')
+ const {resolveCanonicalEdielPolicy}=await import('@/lib/ediel/rulebook/canonicalEdielPolicy')
+ const {runUtiltsRuntimeForMessage}=await import('@/lib/ediel/utiltsEngine')
+ const {qualifyReceivedUtiltsStructure}=await import('@/lib/ediel/utilts/qualifyReceivedStructure')
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const id=await insertStructuralChange(f,'Z10','E58','POINT-CHANGE')
+ const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E30',direction:'inbound',referenceDate:'2026-09-30',
+  applicationReference:'23-MDR-E30-T',mode:'parse'})
+ const qualify=async(reason:'E20'|'E77'|'E24'|'E25'|'E67'|'E64',meter:string)=>{
+  const message=observationHandoffMessage('2026-09-30',f.ids.company)
+  message.id=f.ids.outbound;message.message_code='E30';message.application_reference='23-MDR-E30-T'
+  message.sender_ediel_id='12345';message.receiver_ediel_id='54321'
+  message.raw_payload=priorE30PointWire(reason,meter,point).replaceAll('91100','12345').replaceAll('21660','54321')
+  const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy:policy})
+  expect(runtime.transactionDispositions,JSON.stringify(runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
+  return qualifyReceivedUtiltsStructure({message,runtime,canonicalPolicy:policy})
+ }
+ expect(await qualify('E25','NEW')).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,
+  evidence:{comparisons:[{status:'unavailable',codes:[]}]}})
+ await reviewed(f,id)
+ const snapshot=await structuralSnapshot(f)
+ expect(snapshot.versions.find(version=>version.sourceMessageId===id)).toMatchObject({disposition:'accepted',wire:{meterNumber:'NEW'}})
+ for(const reason of ['E20','E77','E24'] as const){
+  expect(await qualify(reason,'METER-1')).toMatchObject({hasInternalReview:false,hasNationalMismatch:false,
+   evidence:{comparisons:[{status:'matched',selected:[{meterNumber:'METER-1'}]}]}})
+ }
+ for(const reason of ['E25','E67'] as const){
+  expect(await qualify(reason,'NEW')).toMatchObject({hasInternalReview:false,hasNationalMismatch:false,
+   evidence:{comparisons:[{status:'matched',selected:[{meterNumber:'NEW'}]}]}})
+ }
+ expect(await qualify('E64','NEW')).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,
+  evidence:{comparisons:[{status:'unavailable',codes:[]}]}})
 })
 it('native Z06/E34 remains unavailable without a qualified death or counterparty bilateral owner',async()=>{
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)

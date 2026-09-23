@@ -21,9 +21,14 @@ describe('original UTILTS against independently selected structure (pure)',()=>{
   it('rejects old meter in the new interval',()=>expect(check({period:'202610150000202611010000'},[structureVersion(),structureVersion(2,'NEW')])).toMatchObject({status:'mismatch',codes:['E61']}))
   it('does not turn an unresolved inside-transaction exchange into E61/E62',()=>expect(check({},[structureVersion(),structureVersion(2,'NEW')])).toMatchObject({status:'unavailable',codes:[]}))
   it('selects E30 last stand on the old side without looking at the sent meter',()=>expect(check({code:'E30',period:'',reason:'E24'},[structureVersion(),structureVersion(2,'NEW')])).toMatchObject({status:'matched',selected:[{meterNumber:'OLD'}]}))
+  it.each(['E20','E77'])('selects E30 %s ending stand on the closing side',reason=>expect(check({code:'E30',period:'',reason},[structureVersion(),structureVersion(2,'NEW')])).toMatchObject({status:'matched',selected:[{meterNumber:'OLD'}]}))
   it('selects E30 first stand on the new side without looking at the sent meter',()=>expect(check({code:'E30',period:'',reason:'E25',meter:'NEW'},[structureVersion(),structureVersion(2,'NEW')])).toMatchObject({status:'matched',selected:[{meterNumber:'NEW'}]}))
+  it('selects E30 E67 first stand on the current side',()=>expect(check({code:'E30',period:'',reason:'E67',meter:'NEW'},[structureVersion(),structureVersion(2,'NEW')])).toMatchObject({status:'matched',selected:[{meterNumber:'NEW'}]}))
   it('does not guess an ambiguous point side from the incoming identifier',()=>expect(check({code:'E30',period:'',reason:'E64'},[structureVersion(),structureVersion(2,'NEW')])).toMatchObject({status:'unavailable',codes:[]}))
   it('permits quarter energy without register readings',()=>expect(check({noReadings:true,highResolution:true},[])).toMatchObject({status:'not_applicable',codes:[]}))
+  it('permits prior hourly energy without register readings',()=>expect(compareUtiltsStructure(comparisonInput(
+    utiltsStructureWire({noReadings:true,highResolution:true}).replace('DTM+354:15:806','DTM+354:60:806'),[]
+  ))).toMatchObject({status:'not_applicable',codes:[]}))
   it('does not silently accept absent monthly registers',()=>expect(check({noReadings:true})).toMatchObject({status:'mismatch',codes:['E62']}))
   it.each(['E31','S01','S02','S03','S04','E72','E73','ERR'])('does not apply E61/E62 to %s',code=>expect(check({code})).toMatchObject({status:'not_applicable',codes:[]}))
   it('does not use RFF+LI P or wrong case as a national comparison check',()=>{

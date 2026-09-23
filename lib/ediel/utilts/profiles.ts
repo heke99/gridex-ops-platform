@@ -23,6 +23,27 @@ function qualifier(value: string | null | undefined): string {
   return String(value ?? '').trim().toUpperCase()
 }
 
+/** Prior/current §3.6.2 and §3.6.18: one E30 meter stand is a dated
+ * instant, with neither delivery interval nor energy resolution. This only
+ * exempts the two missing-field checks; other canonical validation remains. */
+export function isSingletonE30Reading(facts: UtiltsRuntimeFacts, index: number): boolean {
+  if (facts.messageCode !== 'E30') return false
+  const observed = facts.utiltsObservedTransactions?.[index]
+  const transaction = facts.transactions[index]
+  if (!observed || !transaction || observed.identityQualifier !== '24' || !observed.transactionId
+    || observed.observations.length !== 1 || transaction.deliveryPeriodRaw || transaction.resolution
+    || transaction.quantities.length !== 1 || transaction.quantities[0].qualifier !== '220') return false
+  const reading = observed.observations[0]
+  if (reading.quantities.length !== 1 || reading.quantities[0].qualifier !== '220' || !reading.quantities[0].value) return false
+  const dates = reading.segments.filter(segment => segment.tag === 'DTM' && segment.raw.startsWith('DTM+597:'))
+  if (dates.length !== 1 || !/^DTM\+597:\d{12}:203$/.test(dates[0].raw)) return false
+  const minute = dates[0].raw.slice(8,20),year=Number(minute.slice(0,4)),month=Number(minute.slice(4,6)),day=Number(minute.slice(6,8)),
+    hour=Number(minute.slice(8,10)),clockMinute=Number(minute.slice(10,12))
+  const parsed=new Date(Date.UTC(year,month-1,day,hour,clockMinute))
+  return parsed.getUTCFullYear()===year&&parsed.getUTCMonth()===month-1&&parsed.getUTCDate()===day
+    &&parsed.getUTCHours()===hour&&parsed.getUTCMinutes()===clockMinute
+}
+
 function intervalQuantities(
   messageCode: string | null | undefined,
   quantities: Array<{ qualifier: string | null; value: number | null; raw: string }>,
@@ -63,8 +84,9 @@ export function validateCanonicalUtiltsProfile(facts: UtiltsRuntimeFacts): Utilt
     if (!transaction.transactionId) issues.push(issue('UTILTS_TRANSACTION_ID_MISSING', 'Transaktions-id saknas', `${profile.profileKey} kräver IDE+24 eller TN-referens per transaktion.`, reference))
     if (profile.requiresMeteringPoint && !transaction.meterPointId && !facts.meterPointId) issues.push(issue('UTILTS_PROFILE_METERING_POINT_MISSING', 'Anläggnings-id saknas', `${profile.profileKey} kräver LOC+172 per transaktion.`, reference))
     if (profile.requiresGridArea && !transaction.gridAreaId && !facts.gridAreaId) issues.push(issue('UTILTS_PROFILE_GRID_AREA_MISSING', 'Nätområde saknas', `${profile.profileKey} kräver LOC+239.`, reference))
-    if (profile.requiresPeriod && (!(transaction.deliveryPeriodStart ?? facts.deliveryPeriodStart) || !(transaction.deliveryPeriodEnd ?? facts.deliveryPeriodEnd))) issues.push(issue('UTILTS_PROFILE_PERIOD_MISSING', 'Leveransperiod saknas', `${profile.profileKey} kräver både start och slut i DTM+324.`, reference))
-    if (profile.requiresResolution && !(transaction.resolution ?? facts.resolution)) issues.push(issue('UTILTS_PROFILE_RESOLUTION_MISSING', 'Upplösning saknas', `${profile.profileKey} kräver DTM+354.`, reference))
+    const singletonReading = isSingletonE30Reading(facts, index)
+    if (profile.requiresPeriod && !singletonReading && (!(transaction.deliveryPeriodStart ?? facts.deliveryPeriodStart) || !(transaction.deliveryPeriodEnd ?? facts.deliveryPeriodEnd))) issues.push(issue('UTILTS_PROFILE_PERIOD_MISSING', 'Leveransperiod saknas', `${profile.profileKey} kräver både start och slut i DTM+324.`, reference))
+    if (profile.requiresResolution && !singletonReading && !(transaction.resolution ?? facts.resolution)) issues.push(issue('UTILTS_PROFILE_RESOLUTION_MISSING', 'Upplösning saknas', `${profile.profileKey} kräver DTM+354.`, reference))
     if (profile.requiresUnit && !(transaction.unit ?? facts.unit)) issues.push(issue('UTILTS_PROFILE_UNIT_MISSING', 'Enhet saknas', `${profile.profileKey} kräver MEA-enhet.`, reference))
     const quantities = transaction.quantities?.length ? transaction.quantities : facts.quantities
     if (profile.requiresQuantities && quantities.length === 0) issues.push(issue('UTILTS_PROFILE_QUANTITY_MISSING', 'Mätvärden saknas', `${profile.profileKey} kräver QTY-värden.`, reference))
