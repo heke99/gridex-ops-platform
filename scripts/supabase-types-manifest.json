@@ -1,9 +1,9 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-09-21T22:45:16.729327+00:00",
-  "generated_with": "supabase-cli-2.101.0-repeated-isolated-clean-replay",
+  "generated_at": "2026-09-23T20:52:48Z",
+  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run35918298886",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "b839bc610ff376fe78469cd7266de7a1d205022afa96c9924e2a9b1f0b4da6e8",
-  "latest_migration": "20260921224255_ediel_inbound_prodat_receive_context.sql",
-  "latest_migration_schema_effect": "PR369 existing trigger body only; repeated real types equal committed bytes; exact function-only schema delta and unchanged object counts, ACL, RLS and triggers"
+  "sha256": "97d0e4267fcaecdd10d8a6500d6c5ec7709a9198d8361a52849c921c8a8a625d",
+  "latest_migration": "20260923192915_classify_customer_case_events.sql",
+  "latest_migration_schema_effect": "Authentic replay35918298886 verifies bound consumer content/identity and case tenant classification. Native156, retained SQL retry8, case1, protected browser2, postbrowser1, tenant invariants and parity selftest PASS. Types byte-identical97d0e426; authentic schema/fingerprint copied from verified artifact10776516395. Final same-head CI/review pending; E035 partial."
 }

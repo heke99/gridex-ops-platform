@@ -105,7 +105,7 @@ function contextIssue(row: Record<string, unknown>, cutoff: Receipt): string | n
 }
 
 /** One supported physical envelope, not a whole-message grammar certificate. */
-function singleMessage(raw: string, family: 'UTILTS' | 'PRODAT'): CanonicalEdifactAst | null {
+export function singleMessage(raw: string, family: 'UTILTS' | 'PRODAT'): CanonicalEdifactAst | null {
   if (Buffer.byteLength(raw, 'utf8') > MAX_WIRE_BYTES) throw new InspectionBudgetExceeded()
   const tokens = tokenizeEdifact(raw)
   if (tokens.segments.length > MAX_WIRE_SEGMENTS) throw new InspectionBudgetExceeded()
@@ -123,7 +123,7 @@ function singleMessage(raw: string, family: 'UTILTS' | 'PRODAT'): CanonicalEdifa
   const ast = parseCanonicalEdifactAst(raw)
   return ast.messages.length === 1 && ast.messages[0].family === family ? ast : null
 }
-function legalParty(ast: CanonicalEdifactAst, role: string, boundary: 'IDE' | 'LIN', codes: readonly [string, string]): string | null {
+export function legalParty(ast: CanonicalEdifactAst, role: string, boundary: 'IDE' | 'LIN', codes: readonly [string, string]): string | null {
   const segments = ast.messages[0].segments
   const stop = segments.findIndex(segment => segment.tag === boundary)
   const header = stop < 0 ? segments : segments.slice(0, stop)

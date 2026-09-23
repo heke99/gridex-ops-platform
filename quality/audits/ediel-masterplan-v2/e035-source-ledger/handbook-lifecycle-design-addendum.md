@@ -1,0 +1,30 @@
+# Handbook lifecycle addendum — 2026-09-23
+
+Read-only review of recovered official Handbok26A against the reviewed L/LK closure and C cancellation designs. No active code/masterplan changes or implementation approval. Original PDF hash verified: `3e30d38b5cea1682a210dcd9ec08e4d77091baa87a234baeb07b4e4789a0e9b3`; version 2026-04-01, 241 PDF pages. Source: https://elmarknadshandboken.se/Dokumentation/Texter/NEMHB.pdf. Printed pages are one less than PDF positions.
+
+## Source findings (bounded paraphrase)
+
+Printed p70 (§4.1; PDF71) assigns the old supplier delivery until 00:00 and the new supplier from 00:00. It links hävning Z08H/Z05L by LI and equal end date; a cancelled and resent Z05L/LK needs a new LI. Printed p46 (§§1.4.5–1.4.6; PDF47) forbids cancelling a hävningsanmälan to resume after payment: a new agreement and ordinary supplier-switch process are needed. It separately provides for correction of an erroneous termination. Printed p93 (§4.1.11; PDF94) requires Z05C then a new correct Z05L/LK when the end changes. Completely erroneous supplier switches require Z05C to the old supplier by the day before the stated end. Retroactive changes have additional contact guidance. Cancelled LI is no longer used for individual reading reports. Printed pp87–88 (§4.1.7; PDF88–89) require Z04C plus a new Z04LK for changed start; Z04C removes a start while Z05L ends a started supply at a later date. Printed pp92–93 describe LK move-out/decommissioning, including possible retroactivity; these passages alone do not establish midnight for every LK scenario.
+
+## Required now: bounded positive closure
+
+1. Narrow the explicit review producer **and SQL owner** to original market-minute suffix `0000`. For L this aligns with the supplier-handoff source; for LK document it as the supported conservative subset, not a claim that p70 proves a universal LK rule. Outside it, retain an unavailable/scoped hold without inventing a national rejection code.
+2. Keep section3A independent raw-wire binding and exact UTC conversion. The private source parser can represent arbitrary minutes; acceptance and source observation are different boundaries. Retain mutations changing both minute and UTC on the same DATE, and prove the raw-binding helper rejects them independently of the midnight guard. A positive 12:34 source-binding/parser fixture proves parsing only; it must not certify a positive nationally conformant closure owner.
+3. Retain `stop > original start`, immutable coverage lineage, and held changed-start scenarios. Do not route a changed-start cancellation through the closure owner.
+4. If a closure review claims association with Z08H, bind its authentic case/end facts. This does not make Z08 mandatory for every closure. Unresolved potentially corresponding Z08H context cannot be replaced with a guessed unrelated reference.
+
+## Required before cancellation implementation/activation
+
+The former C design establishes **which closure edge** is named, but does not yet establish **which supported cancellation process** is occurring. Matching original bytes/LI/date/parties, witnessed target lineage, reviewer permission and a legacy active row are necessary evidence; they do not distinguish correction of an erroneous end from resumption after a valid hävning. Z05L alone does not distinguish them either.
+
+Add a closed, evidence-backed cancellation basis to the design before implementing positive C authority. The minimal basis can distinguish correction of a wholly erroneous termination from correction to another end date, while explicitly holding a valid-hävning/resumption case and unknown process context. Persist references to retained process evidence and the reviewer’s specific finding; a bare `lawful:true` or renamed `approved:true` must not substitute for the evidence. Relevant existing outbound Z08H/process history must participate in this assessment. Absence of a Z08H in an inbound-only ledger does not prove absence of a hävning. Mutable contract termination reasons and event metadata are useful lineage signals, not a typed authentic cause/status owner. When retained context cannot establish a supported basis, C stays a scoped hold. This does not assert a blanket rule for every invalid or expired rescission; those scenarios are not established by the cited clauses.
+
+For a corrected-end basis, represent the new original as a separate closure with its new LI and own source/owner, never retarget the old edge or use BGM5 as permission. If correction context establishes that another end remains unresolved, do not turn cancellation of the old edge into unbounded positive coverage; preserve the unresolved boundary until its applicable coverage is proved. Wholly erroneous termination may remove only the named edge. Other closures and all qualified/unqualified structural changes still participate.
+
+The wholly erroneous supplier-switch branch also needs its process timing condition represented in evidence. Do not silently equate message receipt or DTM137 creation with proof of actual sending deadline. Missing required timing context must narrow/hold that positive branch rather than become assumed compliance. Separate binding of a target and applicability at a historical witness cutoff remains mandatory.
+
+Do not activate C based on current legacy `active`/null-end/source=C state before this lawful-basis owner is specified and proved. The legacy operation is neither the evidence producer for lawful cancellation nor authority to manufacture a new supply start. No outbound sending, lifecycle rewrite, or universal cancellation engine is requested by this addendum.
+
+## Verdict
+
+Closure architecture remains sound with the immediate midnight positive-support guard and revised parser-versus-business test claims. Cancellation design needs the bounded process-basis amendment above before positive implementation approval. This revises the prior design-level C concurrence in light of newly available primary source; it does not reopen unrelated E035 work or assert whole-handbook qualification.

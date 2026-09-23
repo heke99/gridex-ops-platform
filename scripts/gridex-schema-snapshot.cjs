@@ -154,7 +154,7 @@ function main() {
   if (!url) fail('missing --url (or GRIDEX_SCHEMA_SNAPSHOT_URL / DATABASE_URL)')
   if (!/^postgres(?:ql)?:\/\//i.test(url)) fail('--url must be a postgresql:// or postgres:// URL')
 
-  const schemas = String(args.schemas || process.env.GRIDEX_SCHEMA_SNAPSHOT_SCHEMAS || 'public')
+  const schemas = String(args.schemas || process.env.GRIDEX_SCHEMA_SNAPSHOT_SCHEMAS || 'public,gridex_received_sources')
     .split(',')
     .map((entry) => entry.trim())
     .filter(Boolean)

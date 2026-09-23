@@ -64,6 +64,7 @@ describe('canonical rule-pack evidence identity', () => {
       businessDate: '2026-09-03',
     })).resolves.toMatchObject({
       profileKey: 'prodat_z01_customer_identity_request',
+      databaseProfileKey: 'PRODAT:Z01:L:26.A:r3',
       businessProcess: 'customer_masterdata',
       family: 'PRODAT',
     })

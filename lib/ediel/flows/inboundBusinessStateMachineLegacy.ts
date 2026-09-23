@@ -1,3 +1,4 @@
+import {publishSourceSwitchCommit, type SourceSwitchCommitObserver} from './sourceSwitchCommit'
 import { supabaseService } from '@/lib/supabase/service'
 import { createEdielMessageEvent } from '@/lib/ediel/db'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -257,7 +258,8 @@ async function createReviewCase(input: {
   message: EdielMessageRow
   companyId: string
   switchRequestId?: string | null
-  caseType: string
+  caseType: 'other' | 'business_rejection' | 'technical_rejection' | 'metering_values_error'
+  reviewIntent?: 'final_metering_and_billing' | 'supply_continuation_review' | 'meter_change_review' | 'masterdata_update_review' | 'ediel_unexpected_direction'
   title: string
   description: string
   nextAction?: string | null
@@ -266,17 +268,19 @@ async function createReviewCase(input: {
   return strictInsert('customer_cases', {
     company_id: input.companyId,
     customer_id: input.message.customer_id ?? null,
-    customer_site_id: input.message.site_id ?? null,
+    site_id: input.message.site_id ?? null,
+    metering_point_id: input.message.metering_point_id ?? null,
     supplier_switch_request_id: input.switchRequestId ?? input.message.switch_request_id ?? null,
     case_type: input.caseType,
     status: 'open',
     priority: input.priority ?? 'normal',
     title: input.title,
     description: input.description,
-    reason_category: 'ediel_inbound_review',
+    reason_category: input.reviewIntent ?? 'ediel_inbound_review',
     next_action: input.nextAction ?? null,
     source: 'ediel_inbound_state_machine',
     metadata: {
+      ...(input.reviewIntent ? { review_intent: input.reviewIntent } : {}),
       source_ediel_message_id: input.message.id,
       message_family: input.message.message_family,
       message_code: input.message.message_code,
@@ -338,6 +342,7 @@ export async function applyInboundBusinessStateMachine(input: {
   matchedSwitchRequestId?: string | null
   customerInfoRequestId?: string | null
   source?: string
+  onSourceSwitchCommitted?: SourceSwitchCommitObserver
 }): Promise<InboundBusinessStateResult> {
   const outcome = outcomeForMessage(input.message)
   const updated: string[] = []
@@ -400,6 +405,9 @@ export async function applyInboundBusinessStateMachine(input: {
     // effective date. The supply period remains confirmed_by_grid_owner.
     const supplyPeriodId = await ensureSupplyPeriodFromSwitch({ message: input.message, status: 'confirmed_by_grid_owner' })
     if (supplyPeriodId) updated.push('customer_supply_periods')
+    if (supplyPeriodId) await publishSourceSwitchCommit(input.onSourceSwitchCommitted, {
+      message: input.message, switchRequestId: input.matchedSwitchRequestId, supplyPeriodId,
+    })
   }
 
   if (outcome === 'assigned_supply_started' || outcome === 'mandatory_purchase_supply_started') {
@@ -441,7 +449,8 @@ export async function applyInboundBusinessStateMachine(input: {
         message: input.message,
         companyId,
         switchRequestId: input.matchedSwitchRequestId ?? null,
-        caseType: 'final_metering_and_billing',
+        caseType: 'other',
+        reviewIntent: 'final_metering_and_billing',
         title: 'Leveransen upphör – slutför mätvärden och fakturering',
         description: 'Nätägaren har meddelat att leveransen upphör. Säkerställ slutmätvärden och slutfakturering utan att ändra historiska leveransperioder.',
         nextAction: 'Kontrollera slutmätvärden och faktureringsberedskap för leveransens slutdatum.',
@@ -459,7 +468,8 @@ export async function applyInboundBusinessStateMachine(input: {
         message: input.message,
         companyId,
         switchRequestId: input.matchedSwitchRequestId ?? null,
-        caseType: 'supply_continuation_review',
+        caseType: 'other',
+        reviewIntent: 'supply_continuation_review',
         title: 'Leveransen ska fortsätta – kontroll krävs',
         description: 'PRODAT Z05C återtar ett tidigare leveransavslut, men systemet kunde inte entydigt identifiera vilken avslutad leveransperiod som ska återöppnas.',
         nextAction: 'Verifiera leveransperioden och återställ den endast om Z05C refererar till samma avslut.',
@@ -500,7 +510,8 @@ export async function applyInboundBusinessStateMachine(input: {
     const caseId = await createReviewCase({
       message: input.message,
       companyId,
-      caseType: outcome === 'meter_change_received' ? 'meter_change_review' : 'masterdata_update_review',
+      caseType: 'other',
+      reviewIntent: outcome === 'meter_change_received' ? 'meter_change_review' : 'masterdata_update_review',
       title: outcome === 'meter_change_received'
         ? 'Mätarbyte mottaget – granska säker uppdatering'
         : 'Masterdataändring mottagen – granska säker uppdatering',
@@ -516,7 +527,8 @@ export async function applyInboundBusinessStateMachine(input: {
     const caseId = await createReviewCase({
       message: input.message,
       companyId,
-      caseType: 'ediel_unexpected_direction',
+      caseType: 'other',
+      reviewIntent: 'ediel_unexpected_direction',
       title: 'Ediel-meddelande med oväntad marknadsriktning',
       description: 'Meddelandekoden ska normalt origineras av Gridex i den här marknadsrollen och får därför inte automatiskt ändra kund-, leverans- eller tillståndsstatus när den kommer inbound.',
       nextAction: 'Verifiera avsändarroll, meddelandekod, subtype och route innan någon affärseffekt tillåts.',

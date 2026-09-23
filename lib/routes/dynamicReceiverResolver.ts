@@ -490,14 +490,15 @@ async function resolveGridOwnerIdFromContext(input: ResolverInput): Promise<{
   };
 }
 
-async function getGridOwner(gridOwnerId: string): Promise<GridOwnerRow | null> {
-  const { data, error } = await supabaseService
+export async function getGridOwner(gridOwnerId: string, signal?: AbortSignal): Promise<GridOwnerRow | null> {
+  let query = supabaseService
     .from("grid_owners")
     .select(
       "id,name,ediel_id,is_active,lifecycle_status,default_prodat_subaddress,default_utilts_subaddress,communication_email,email,environment",
     )
-    .eq("id", gridOwnerId)
-    .maybeSingle();
+    .eq("id", gridOwnerId);
+  if (signal) query = query.abortSignal(signal);
+  const {data, error} = await query.maybeSingle();
   if (error) throw error;
   return (data as GridOwnerRow | null) ?? null;
 }

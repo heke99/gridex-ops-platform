@@ -1,3 +1,4 @@
+import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
 import { describe, expect, it, vi } from 'vitest'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
@@ -11,7 +12,9 @@ vi.mock('@/lib/onboarding/inboundEdielLinking', () => ({ findActiveMeteringPermi
 vi.mock('@/lib/ediel/utilts/transactionPersistence', async importOriginal => ({
   ...await importOriginal<Record<string, unknown>>(), persistUtiltsTransactionResults: io.persist,
 }))
-vi.mock('@/lib/ediel/flows/utiltsDataRequest.part-1', () => ({
+vi.mock('@/lib/ediel/matching', () => ({ matchMeteringPointIdByIdentifier: vi.fn().mockResolvedValue(null), matchSiteAndCustomerForMeteringPoint: vi.fn().mockResolvedValue(null) }))
+vi.mock('@/lib/ediel/flows/utiltsDataRequest.part-1', async original => ({
+  ...await original<Record<string, unknown>>(),
   resolveUtiltsRuntimeTestCaseCode: vi.fn().mockResolvedValue(null),
   matchUtiltsTransactionsForTenant: vi.fn().mockResolvedValue([]),
   linkInboundUtiltsMessageCanonically: vi.fn().mockResolvedValue({}),
@@ -29,7 +32,7 @@ describe('actual inbound processor forwards fresh observation diagnostics', () =
     it(`persists raw-owned diagnostics for ${company} / ${date}`, async () => {
       io.getMessage.mockReset(); io.update.mockReset().mockResolvedValue(null)
       io.event.mockReset().mockResolvedValue(null); io.ack.mockReset().mockResolvedValue([])
-      io.persist.mockReset().mockResolvedValue([])
+      io.persist.mockReset().mockImplementation(successfulUtiltsPersistenceIo)
       const source = { ...observationHandoffMessage(date, company), parsed_payload: {
         normalizedMeteringPayload: { utiltsObservedTransactions: [{ transactionId: 'WRONG-COMPANY' }] },
         utiltsRuntimeFacts: { utiltsObservedTransactions: [{ transactionId: 'STALE' }] },

@@ -92,3 +92,30 @@ rollback;
 \if :SHELL_ERROR
   do $$ begin raise exception 'PRODAT_RECEIVE_CONTEXT_UPGRADE_FAILURE'; end $$;
 \endif
+
+-- E035 durable originals/discovery/owner-facet evidence; prior suites retained.
+\ir ediel-source-ledger-regression.sql
+
+-- PR370 review: mandatory typed physical discovery evidence.
+\ir ediel-source-discovery-shape-regression.sql
+
+-- E035 actual canonical register owner evidence remains facet-only.
+\ir ediel-register-validation-regression.sql
+
+-- Real concurrent source-assessment append chain, fixed disposable localhost only.
+\! python3 scripts/ediel-source-validation-concurrency-regression.py
+\if :SHELL_ERROR
+  do $$ begin raise exception 'SOURCE_VALIDATION_CONCURRENCY_FAILURE'; end $$;
+\endif
+
+-- E035 recovered immutable owner decisions; independent rollback, synthetic data only.
+\ir ediel-source-object-decisions-regression.sql
+
+-- A later E035 source review must not rewrite persisted values or an emitted ACK.
+\ir ediel-utilts-committed-retry-regression.sql
+
+-- Fixed disposable localhost only; real committed-owner visibility and bounded snapshots.
+\! python3 scripts/ediel-source-object-concurrency-regression.py
+\if :SHELL_ERROR
+  do $$ begin raise exception 'SOURCE_OBJECT_CONCURRENCY_FAILURE'; end $$;
+\endif

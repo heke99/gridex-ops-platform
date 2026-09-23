@@ -1,0 +1,89 @@
+# Revised successful-retry consumption binding design
+
+Status: design only, for scoped independent review. No implementation, migration execution or qualification claimed. This supersedes the SQL-only raw_transaction comparison recommendation as a complete solution; retain that comparison as one defense, not as proof of actual UTC consumption.
+
+## Required invariant
+
+A successful persistence result authorizes only the exact immutable, versioned observation and attribution projection recorded with that acceptance. Both metering and billing must consume that projection, never rederive write arguments from mutable source, normalized payload, current fallback matching or message totals after persistence. Identical wire requalification of a held transaction remains possible. A previously reserved non-held outcome never changes.
+
+Use one shared server-side `UtiltsConsumptionContractV1` builder and validator, and a forward-only durable binding RPC. The builder runs after actual canonical parsing, E66 quantity/timezone/resolution normalization, structural qualification and final tenant matching, but before any persistence/ACK/completion. Pure inspection APIs remain pure and do not acquire write authority.
+
+## Separate source identity from consumption content
+
+Two immutable records have different purposes:
+
+1. A **source receipt binding** keyed by company/environment/source ID records exact UTF-8 raw SHA256, direction/family/code, ordered unique physical transaction identities, contract version, and database capture time. This timestamp is `boundAt`, not a fabricated historical receipt. The RPC computes the hash from the locked current source row and checks the expected raw bytes/hash passed by the server against it, preventing a parse-to-persist race. Membership is immutable even when some transactions are held.
+2. A **per-accepted-transaction consumption contract** captures every semantically effective sink input below. Its hash is computed by PostgreSQL from validated JSONB using a defined encoding (`sha256(convert_to(contract::text,'UTF8'))`). Source receipt lineage is stored separately from content so valid cross-source dedupe can compare equal content without requiring equal source IDs or envelope references. Hashes supplied by callers do not establish authority.
+
+The source binding constrains subsequent natural `inboundStatusUpdater` overwrites. Add a BEFORE UPDATE guard for a bound UTILTS source's raw bytes, identity, company/environment/code and membership-determining fields. Status/diagnostic/link updates remain permitted unless they alter frozen attribution; actual processing always checks frozen consumption attribution independently. Amend the natural dedup writer to compare existing raw/scope before replacement and return an explicit internal collision/review outcome on changed bytes; the DB guard is authoritative against races and direct company-writer updates. Do not merely add a caller-provided raw hash.
+
+## Exact V1 content
+
+The contract is a typed object, not a copy of arbitrary normalized JSON. Required keys exist explicitly (including null for unavailable optional fields); unknown version or ambiguous/missing required data fails internally. Include:
+
+| Portion | Fields / owner |
+|---|---|
+| Scope | version and projection version; company, environment, message code, transaction ID, series kind; canonical policy/profile version that selected interpretation |
+| Interpretation inputs | original local transaction period/registration strings, raw resolution value **and format**, parsed DTM735 raw/format/offset minutes, explicit timestamp interpretation policy; these supplement rather than replace resolved output |
+| Ordered observations | stable transaction-local ordinal and source occurrence ordinal; canonical numeric quantity; exact resolved periodStart, periodEnd and readAt as absolute instants; normalized resolution; output unit, quality, readingType/direction, registerCode/productCode, source line reference, external point/grid |
+| Metering attribution | resolved company/customer/site/customerSite/point/gridOwner IDs and sourceRequestId actually passed to the metering writer; explicit `write` or `skip` capability with reason where current matching cannot authorize a write |
+| Billing context | source-wide normalized periodStart/periodEnd, resolved underlay month/year; request ID and scope, customer/site/point/gridOwner, intended source system/status; `write` or `skip` with reason; each transaction's explicit contribution derived from its same ordered eligible observations |
+
+Treat numeric encoding explicitly: reject nonfinite values and ambiguous numeric text; serialize validated quantities consistently. PostgreSQL JSONB comparison should ignore object key order while preserving array order. UTC timestamps must use a single canonical absolute format. No fallback to host timezone: prove the input has an explicit offset or a documented canonical rule allowing the interpretation. An unresolvable new source is internal review rather than assumed UTC. Historical offset-free SQL timestamptz columns are not evidence of such a rule.
+
+Audit actor ID, current invocation time and source message ID are lineage, not consumption content; attach the current authorized actor and bound source ID from trusted context when writing. Raw diagnostic payload is not allowed to override any contract field. The same contract version must enumerate all business-write parameters, including currently hardcoded kWh/consumption/source/status constants, so a later semantic change requires a new projection version.
+
+### Resolve all matching before persistence
+
+Move the fallback lookups currently in `maybeIngestMeteringValue` into preparation. They remain tenant scoped and preserve existing matching behavior, but their resolved result is frozen in the contract. No sink may replace a missing contract point/customer with a fresh lookup, caller fallback or new permission after successful persistence. Recheck tenant/customer ownership at the authoritative downstream write boundary; ownership changes cause an internal conflict/skip, never silent reattribution. Likewise prepare billing request/customer/period attribution before binding, not inside the post-persistence billing helper.
+
+A skip contract cannot later gain write authority on ordinary replay just because matching changed. Supporting such a transition requires a separate explicit reviewed operation, outside this narrow fix. A held transaction has no accepted consumption contract and can acquire one on lawful requalification.
+
+## SQL persistence, replay and dedupe
+
+Use a new service-only versioned RPC (or an unambiguous forward replacement with required V1 input) and update both actual and nonbilling callers. The old callable entry point must not remain an alternate successful path lacking binding: revoke/retire it or make it fail internally for unsupported calls. Nonbilling outcomes carry an explicit no-consumption contract, never fabricated observations.
+
+Execution order within one database transaction:
+
+1. Lock source row and validate inbound UTILTS family/direction/company/environment/**message code**, expected original bytes and unique ordered transaction membership. Validate all contract input shapes, scopes and source lineage. Lock source transactions/series in a deterministic order to retain concurrency safety.
+2. Check whether any prior result/series for this source predates trustworthy source/consumption binding. If so, do not initialize it from current raw (historical rules below).
+3. Establish or compare the immutable source receipt binding. A held invocation reserves the source bytes/membership too, but not an accepted contract or final outcome.
+4. Preserve existing non-held disposition/response/issues immutability. For existing successful rows, load **their exact referenced version**, including `is_current=false`, verify stored raw_transaction/hash and V1 contract/hash, and compare incoming V1 content. Missing or different authority is an internal conflict. Return the stored contract, never an unchecked echo of supplied JSON.
+5. On a new accepted insertion, insert immutable consumption contract and series association atomically. Existing raw_transaction/hash remains validated and compared on reuse; it is explicitly not used to infer missing UTC meaning. Series and values may continue to preserve legacy recorded fields for compatibility, but neither consumer reads them as canonical UTC authority. The V1 contract is the authority for new consumers.
+6. On insert-dedupe reuse, load and validate the candidate's original source company/environment/code and full recorded contract. The current dedupe key omits environment; reject cross-environment reuse or add environment to the new dedupe namespace without rewriting historical identity. Valid cross-source reuse requires equal consumption content and independently bound source lineage, not equal source IDs. Different request/customer attribution correctly prevents reuse of consumption authority even when raw quantities happen to match. If policy wants quantity-series reuse separately, create a new source-specific contract association rather than borrowing attribution.
+7. Return transaction identity, immutable series ID, disposition/status, V1 contract version/hash and **stored contract**, joined to the current source's immutable binding. Runtime validates complete unique outcomes and equality to its prepared contract before allowing sinks.
+
+Any source/content/scope/missing-evidence conflict is raised outside the catch-to-ERR path, or explicitly rethrown using a dedicated internal error code. The entire batch rolls back, including earlier sibling inserts. Genuine insertion failures retain the existing failed/ERR behavior; their contract never authorizes consumption. Do not finalize or fabricate an ACK on conflict.
+
+## Consumer and billing behavior
+
+Metering writes use only stored successful contracts, with no `normalizedPayload` quantity/timestamp/attribution reads. Billing sums contribution observations from that same set of accepted persisted contracts; all contributors must agree on frozen billing context. Differing context fails internally rather than selecting the first transaction. Top-level period/month/year come from the bound billing context, not current raw or the first observation's inferred month. Never fall back to message-level quantity.
+
+Do not freeze the whole eligible set or total into each transaction contract: an initially held sibling may lawfully become accepted later. Freeze per-transaction contributions and common billing context; derive each attempt's eligible set only from current authoritative outcomes. Preserve the existing mixed-held early return (no legacy metering/billing/completion while any held transaction remains), so the held release does not introduce partial-underlay behavior. Mixed accepted/failed handling remains the newly qualified behavior, filtered by stored contracts. Existing underlay ID/idempotency rules remain additional guards, not source-of-truth substitutes.
+
+Direct internal sink APIs must require bound V1 outcomes; status flags or a free-form normalized payload are insufficient. Persisted hash checks should run in the RPC; TypeScript must not treat a client-supplied marker as authority. Service-only entry, trusted runtime construction and downstream tenant validation remain the authorization boundary.
+
+## Existing rows: deliberate fail-internal compatibility
+
+Do **not** backfill a receipt hash or V1 contract from today's mutable raw or from offset-free legacy SQL periods. Existing accepted/reserved rows without a complete independently authoritative original projection/source binding fail internally, even if present raw quantities equal stored raw_transaction. Their ACK/series remain untouched; no metering/billing/completion or replacement national ERR occurs.
+
+Existing held rows without an original byte binding also cannot claim an *identical-byte* release based on present raw alone. They require independently proven original bytes or a separate explicit new receipt/review procedure. New V1 held rows bind bytes from their first invocation and allow fresh structural evidence to release them on identical bytes and membership. The source binding excludes mutable structural assessment IDs/times; those are current decision evidence, not wire identity. Previously accepted siblings retain their exact contracts and reservations.
+
+Only add a historical compatibility adapter after independently proving a complete immutable original snapshot/format and testing it. General old E66 series lack DTM735/resolutionFormat/readingAt evidence; therefore no general adapter is presently justified. This is an intentional operational compatibility restriction, to disclose with internal review diagnostics rather than hide behind migration backfill.
+
+Forward migration adds immutable service-only binding storage and guards, with appropriate tenant scoped keys/FKs/RLS and generated contracts. It must not rewrite applied migration history or existing accepted evidence. New genuinely different correction identities retain their existing correction/version behavior when backed by newly bound original bytes and full V1 content.
+
+## Meaningful acceptance tests
+
+First demonstrate baseline counterexamples using actual parser and sink argument capture, then run forward native tests. No assertion may claim a mutation is still accepted unless the actual validator confirms it.
+
+- **Timezone-only runtime-binding mutation (not two nationally conformant Swedish originals):** exercise the current E66 runtime acceptance surface with DTM735 `?+0200:406` → `?+0100:406`, all QTY/local dates/IDs unchanged. Preserve the existing monthly regression's actual-engine acceptance and UTC-normalization claims, without treating them as national certification or proof of foreign-origin eligibility. Assert today's legacy RPC payload is equal while actual normalized observation UTC periods/readAt differ. After implementation same-ID replay must fail before ACK/legacy writes/completion; native source binding rejects the overwrite. A local 01:30 month-start boundary can demonstrate changed UTC date/month and binding of billing month/year on this runtime mutation surface.
+- **Swedish national positive / authoritative contract mutation:** keep DTM735 `+0100` in domestic Swedish positive fixtures throughout the year, and mutate a supported observation/period timestamp consistently with canonical transaction constraints. Separately start from a genuinely accepted `+0100` fixture, then mutate only the submitted/stored-comparison contract offset and derived UTC fields in the native RPC test; require an internal binding conflict, not a claim that the mutated original is nationally valid. The source oracle is §3.6.1 (prior p36/current p35), header field206 (prior p75/current p73), and Appendix1 field206 (prior p127/current p122), as recorded in `e035-prior-guide-comparison.md` addendum. Other offsets require independently established applicable other-time-zone/country context; Swedish daylight-saving time does not supply that context. No broad timezone behavior change is proposed.
+- **Resolution format:** `DTM+354:1:805` versus `...:806` (hour/minute) with unchanged value and quantities. Demonstrate changed projection using actual parser; if fixed period/count makes one wire invalid, assert that validation block honestly. Separately use fully valid independently qualified fixtures (adjust count/period as necessary) and native contract-only format/normalized-resolution mutation to test the binding. Add a same-duration valid equivalence pair (`1:805` vs `60:806`) to prove byte binding is stricter than equal duration, without pretending it is format-only. Never bypass validators to call an invalid fixture accepted.
+- **Quantities/order/point/period:** accepted123 →999; reorder distinguishable observations; external/internal point mutation; period shift; customer/request attribution change. Assert stored contract/series/ACK remain original and all downstream calls absent. Add differing top-level billing period while transaction periods stay unchanged.
+- **Native reuse:** identical V1 replay, JSONB key reordering, previous noncurrent series replay, missing/corrupt contract/hash, wrong company/environment/code, cross-environment dedupe, cross-source identical permitted content, and different contract under same dedupe key. In mixed batch a conflict after an earlier insertion rolls everything back and never becomes ERR.
+- **Historical:** accepted legacy row with identical current raw but no V1 fails internally; do not fabricate timezone. Historical unbound held row fails identity qualification. New bound held row is unchanged through repeated holds, then releases with fresh structural approval and identical original; changed bytes/membership fail. Accepted sibling remains frozen.
+- **Actual integration:** successful series persistence then interruption before legacy sinks; natural inbound dedup tries changed raw; retry uses real local RPC and real parser/contract builder, with only external final writes/transport observed. Assert no wrong quantities, no completion/ACK on conflict. Identical-byte replay consumes stored123 exactly once under retained idempotency. Run E30/E66 and S07 no-consumption controls.
+- **No late fallback:** change matching lookup/current normalized payload after RPC returns; sinks still consume only bound fields or fail ownership revalidation. Both metering and billing must be tested, including billing source-wide period and no aggregate fallback.
+
+This design requires a scoped review before implementation. It does not authorize historical recovery assumptions, whole-PR approval or completion of E035/masterplan.

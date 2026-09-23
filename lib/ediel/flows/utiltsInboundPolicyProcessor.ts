@@ -10,6 +10,7 @@ import {
   resolveUtiltsTransactionId,
 } from '@/lib/ediel/utilts/transactionPersistence'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import { qualifyReceivedUtiltsStructure } from '@/lib/ediel/utilts/qualifyReceivedStructure'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { UtiltsProcessResult } from './utiltsDataRequest.part-1'
 import {
@@ -18,6 +19,7 @@ import {
   stringOrNull,
 } from './utiltsDataRequest.part-1'
 import { processInboundUtiltsMessage as processActualMeteringUtiltsMessage } from './utiltsDataRequest.part-2'
+import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
 
 function resolveInboundPolicy(message: EdielMessageRow, retained?: CanonicalEdielPolicy | null) {
   if (message.message_family !== 'UTILTS') {
@@ -38,6 +40,7 @@ async function persistNonBillingTransactions(params: {
   message: EdielMessageRow
   messageCode: string
   runtime: ReturnType<typeof runUtiltsRuntimeForMessage>
+  policy: CanonicalEdielPolicy
 }) {
   const companyId = stringOrNull(params.message.company_id)
   if (!companyId || params.runtime.transactionDispositions.length === 0) {
@@ -52,6 +55,9 @@ async function persistNonBillingTransactions(params: {
     environment: params.message.environment,
     sourceMessageId: params.message.id,
     messageCode: params.messageCode,
+    rawPayload: params.message.raw_payload ?? '',
+    contracts: await prepareUtiltsConsumptionContracts({ message: params.message, runtime: params.runtime, policy: params.policy,
+      matches: [], dataRequest: null, fallback: { customerId: null, siteId: null, meteringPointId: null, gridOwnerId: null }, allowConsumption: false }),
     transactions: buildUtiltsTransactionPersistencePayload({
       messageCode: params.messageCode,
       transactions: params.runtime.facts.transactions,
@@ -102,15 +108,22 @@ async function processExplicitNonBillingOutcome(params: {
     sourceMessage: params.message,
     explicitTestCaseCode: params.testCaseCode ?? null,
   })
-  const runtime = runUtiltsRuntimeForMessage(params.message, { canonicalPolicy: policy })
-  const ackPlan = applyCertifiedUtiltsAckPolicy({ runtime, testCaseCode: runtimeTestCaseCode })
+  const structuralQualification = await qualifyReceivedUtiltsStructure({
+    message: params.message, canonicalPolicy: policy,
+    runtime: runUtiltsRuntimeForMessage(params.message, { canonicalPolicy: policy }),
+  })
+  const runtime = structuralQualification.runtime
+  const ackPlan = structuralQualification.hasInternalReview || structuralQualification.hasNationalMismatch
+    ? runtime.ackPlan : applyCertifiedUtiltsAckPolicy({ runtime, testCaseCode: runtimeTestCaseCode })
   const persisted = await persistNonBillingTransactions({
     message: params.message,
     messageCode: policy.code,
     runtime,
+    policy,
   })
   const normalizedPayload = {
     ...runtime.normalizedPayload,
+    receivedStructureQualification: structuralQualification.evidence,
     utiltsBusinessOutcome: outcome,
     utiltsCanonicalPolicy: {
       profileKey: policy.profileKey,
@@ -137,7 +150,7 @@ async function processExplicitNonBillingOutcome(params: {
     actorUserId: params.actorUserId,
     edielMessageId: params.message.id,
     status: failed ? 'failed' : 'validated',
-    failureReason: failed ? ackPlan.reason : undefined,
+    failureReason: failed || structuralQualification.hasInternalReview ? ackPlan.reason : undefined,
     parsedPayload: {
       ...(params.message.parsed_payload ?? {}),
       normalizedMeteringPayload: normalizedPayload,
@@ -169,8 +182,10 @@ async function processExplicitNonBillingOutcome(params: {
     actorUserId: params.actorUserId,
     edielMessageId: params.message.id,
     eventType: 'validated',
-    eventStatus: failed ? 'warning' : 'success',
-    message: `Inbound UTILTS ${policy.code} hanterades som ${outcome.kind} via canonical side-effect policy.`,
+    eventStatus: !runtime.validation.ok ? 'warning' : 'success',
+    message: structuralQualification.hasInternalReview
+      ? `Inbound UTILTS ${policy.code} väntar på godkänt strukturunderlag utan mätvärdes- eller faktureringsskrivningar.`
+      : `Inbound UTILTS ${policy.code} hanterades som ${outcome.kind} via canonical side-effect policy.`,
     payload: {
       canonicalPolicy: {
         profileKey: policy.profileKey,
@@ -189,6 +204,7 @@ async function processExplicitNonBillingOutcome(params: {
     message: updated,
     matchedDataRequest: null,
     ackIds,
+    internalReviewRequired: structuralQualification.hasInternalReview,
     outboundRequestId: null,
     ingestedMeterValueId: null,
     ingestedMeterValueIds: [],

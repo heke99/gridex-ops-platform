@@ -1,3 +1,6 @@
+import {createReceivedSourceOwnerSession, type SourceOwnerSession} from '@/lib/ediel/sources/receivedSourceOwnerSession'
+import type {SourceSwitchCommitObserver} from './sourceSwitchCommit'
+import { recordReceivedSourceValidation } from '@/lib/ediel/core/receivedSourceValidationLedger';
 // lib/ediel/flows/inboundProcessing.ts
 import {isQualifiedProdatApplicationError} from "@/lib/ediel/prodat/prodatDiagnosticProjection";
 
@@ -295,10 +298,16 @@ function responsePlanItemFor(
 async function applyCanonicalRuntimeDecision(params: {
   actorUserId: string;
   message: EdielMessageRow;
-}): Promise<{ message: EdielMessageRow; decision: CanonicalRuntimeDecision }> {
+  originalMessage: EdielMessageRow;
+  resolvedCompanyId: string;
+}): Promise<{ message: EdielMessageRow; decision: CanonicalRuntimeDecision; sourceOwnerSession: SourceOwnerSession | null }> {
   const decision = await resolveCanonicalRuntimeDecisionWithRegistry(
     params.message,
   );
+  const sourceValidationEvidence = await recordReceivedSourceValidation({
+    original: params.originalMessage, validated: params.message, resolvedCompanyId: params.resolvedCompanyId, decision,
+  });
+  const sourceOwnerSession = createReceivedSourceOwnerSession(sourceValidationEvidence);
   const now = new Date().toISOString();
   const parsedPayloadBeforeRuntime = params.message.parsed_payload ?? {};
   const validationReportBeforeRuntime = params.message.validation_report ?? {};
@@ -315,6 +324,7 @@ async function applyCanonicalRuntimeDecision(params: {
     ...validationReportBeforeRuntime,
     ...(persistedTenantResolution ? { tenantResolution: persistedTenantResolution } : {}),
     canonicalRuntime: decision.validationReport,
+    ...(sourceValidationEvidence.status !== "not_requested" ? { receivedSourceValidationEvidence: sourceValidationEvidence } : {}),
     canonicalRuntimeVersion: "2.5B",
     syntaxDecision: decision.syntaxDecision,
     applicationDecision: decision.applicationDecision,
@@ -380,7 +390,7 @@ async function applyCanonicalRuntimeDecision(params: {
     },
   });
 
-  return { message: updated, decision };
+  return { message: updated, decision, sourceOwnerSession };
 }
 
 
@@ -560,6 +570,7 @@ async function linkInboundProdatMessageCanonically(params: {
 async function processInboundProdatMessage(params: {
   actorUserId: string;
   message: EdielMessageRow;
+  onSourceSwitchCommitted?: SourceSwitchCommitObserver;
 }) {
   const facilityRecognition = await recognizeInboundFacilityData({
     actorUserId: params.actorUserId,
@@ -616,6 +627,7 @@ async function processInboundProdatMessage(params: {
         (customerInfoLink as { requestId?: string | null } | null)?.requestId ??
         null,
       source: "prodat_without_strong_switch_match",
+      onSourceSwitchCommitted: params.onSourceSwitchCommitted,
     });
 
     const safeApplyProposalChanges = ["Z06", "Z10"].includes(
@@ -685,6 +697,7 @@ async function processInboundProdatMessage(params: {
       (customerInfoLink as { requestId?: string | null } | null)?.requestId ??
       null,
     source: "prodat_with_strong_switch_match",
+      onSourceSwitchCommitted: params.onSourceSwitchCommitted,
   });
 
   const safeApplyProposalChanges = ["Z06", "Z10"].includes(
@@ -826,6 +839,8 @@ export async function processInboundEdielMessage(params: {
   const canonicalRuntime = await applyCanonicalRuntimeDecision({
     actorUserId,
     message: tenantResolvedMessage,
+    originalMessage: message,
+    resolvedCompanyId: tenantResolution.companyId,
   });
   const runtimeMessage = canonicalRuntime.message;
 
@@ -835,6 +850,7 @@ export async function processInboundEdielMessage(params: {
   });
 
   if (canonicalRuntime.decision.syntaxDecision === "rejected") {
+    await canonicalRuntime.sourceOwnerSession?.finish();
     await createAutomaticPositiveAcks({
       actorUserId,
       sourceMessage: runtimeMessage,
@@ -843,6 +859,7 @@ export async function processInboundEdielMessage(params: {
   }
 
   if (prodatInternalReview(runtimeMessage)) {
+    await canonicalRuntime.sourceOwnerSession?.finish();
     await createAutomaticPositiveAcks({actorUserId, sourceMessage: runtimeMessage});
     return runtimeMessage;
   }
@@ -860,6 +877,7 @@ export async function processInboundEdielMessage(params: {
     });
 
     if (handledByActorTesting) {
+      await canonicalRuntime.sourceOwnerSession?.finish();
       return runtimeMessage;
     }
   }
@@ -886,12 +904,17 @@ export async function processInboundEdielMessage(params: {
   }
 
   if (runtimeMessage.message_family === "PRODAT") {
-    await processInboundProdatMessage({ actorUserId, message: runtimeMessage });
+    try {
+      await processInboundProdatMessage({ actorUserId, message: runtimeMessage,
+        onSourceSwitchCommitted: canonicalRuntime.sourceOwnerSession?.onSwitchCommitted });
+    } finally {
+      await canonicalRuntime.sourceOwnerSession?.finish();
+    }
     return runtimeMessage;
   }
 
   if (runtimeMessage.message_family === "UTILTS") {
-    await processInboundUtiltsMessage({
+    const utiltsResult = await processInboundUtiltsMessage({
       actorUserId,
       edielMessageId: runtimeMessage.id,
       canonicalPolicy: canonicalRuntime.decision.policy,
@@ -900,6 +923,7 @@ export async function processInboundEdielMessage(params: {
       actorUserId,
       message: runtimeMessage,
       source: "utilts_processing",
+      utiltsInternalReviewRequired: utiltsResult.internalReviewRequired === true,
     });
     return runtimeMessage;
   }

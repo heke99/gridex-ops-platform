@@ -1,0 +1,95 @@
+{
+  "status": "NATIVE_PREPARATION_ONLY_NOT_FINAL_CI_OR_REVIEW",
+  "source_input_sha": "acf7bceaed8dda4acec607eae7912e1b832522d8",
+  "base_sha": "eb2b8693130af8fa7976a93891b95973bc473b50",
+  "base_tree": "effc5600a2f09e3e21329451b65c10b25f51aa40",
+  "run_id": "35713214457",
+  "migration": "20260922095911_ediel_received_source_ledger.sql",
+  "migration_sha256": "a3a4933935995dd6525d09d70949f360aa52bcf72e5ab8d93970fdcdea4aae39",
+  "probes": [
+    {
+      "name": "fixed-vendor-postgres-image",
+      "passed": true
+    },
+    {
+      "name": "same-postgres-major-17",
+      "passed": true
+    },
+    {
+      "name": "vendor-error-hints-not-disabled",
+      "passed": true
+    },
+    {
+      "name": "base-new-snapshot-rpc-is-absent",
+      "passed": true
+    },
+    {
+      "name": "actual-cli-forward-waits-for-existing-writer",
+      "passed": true
+    },
+    {
+      "name": "writer-after-forward-queues-behind-lock",
+      "passed": true
+    },
+    {
+      "name": "pre-boundary-row-was-not-backfilled",
+      "passed": true
+    },
+    {
+      "name": "post-boundary-writer-was-captured",
+      "passed": true
+    },
+    {
+      "name": "actual-cli-ledger-records-forward",
+      "passed": true
+    },
+    {
+      "name": "snapshot-excludes-uncommitted-source",
+      "passed": true
+    },
+    {
+      "name": "same-cutoff-later-read-sees-new-commit",
+      "passed": true
+    },
+    {
+      "name": "saved-read-set-never-retroactively-expands",
+      "passed": true
+    },
+    {
+      "name": "concurrent-assessments-both-persisted",
+      "passed": true
+    },
+    {
+      "name": "concurrent-assessments-have-one-predecessor-chain",
+      "passed": true
+    },
+    {
+      "name": "native-fixture-cleanup-is-exact",
+      "passed": true
+    },
+    {
+      "name": "native-fixture-delete-retains-durable-sources",
+      "passed": true
+    },
+    {
+      "name": "native-fixture-delete-retains-linked-assessments",
+      "passed": true
+    },
+    {
+      "name": "old-upgrade-fixtures-have-clean-operational-input",
+      "passed": true
+    },
+    {
+      "name": "real-repeated-type-generation-identical",
+      "passed": true
+    },
+    {
+      "name": "real-repeated-private-public-schema-identical",
+      "passed": true
+    }
+  ],
+  "pr310_untouched": true,
+  "live_database_actions": false,
+  "source_approval": "NOT_ESTABLISHED",
+  "ordinary_ci": "NOT_YET_RUN"
+}

@@ -1,3 +1,4 @@
+import type {ProdatRegisterValidationEvidence} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
 import type {ProdatAperakText} from '@/lib/ediel/prodat/prodatAperakText'
 import {projectProdatDiagnostics} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
 import type {ProdatDiagnostic, ProdatProcessingDisposition} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
@@ -47,6 +48,7 @@ export type CanonicalDecisionIssue = {
 }
 
 export type CanonicalRuntimeDecision = {
+  prodatRegisterValidation?: ProdatRegisterValidationEvidence
   prodatProcessingDisposition?: ProdatProcessingDisposition
   canonical: CanonicalEdielMessage
   policy: CanonicalEdielPolicy | null
@@ -141,12 +143,14 @@ function applyProdatPolicyDecision(params: {
   issues: CanonicalDecisionIssue[]
   sourceRules: string[]
   decisionTrace: string[]
-}): { applicationDecision: CanonicalDecisionState; functionalDecision: CanonicalDecisionState; prodatProcessingDisposition: ProdatProcessingDisposition } {
+}): { applicationDecision: CanonicalDecisionState; functionalDecision: CanonicalDecisionState; prodatProcessingDisposition: ProdatProcessingDisposition; prodatRegisterValidation?: ProdatRegisterValidationEvidence } {
+  let prodatRegisterValidation: ProdatRegisterValidationEvidence | undefined
   const fieldIssues = validateCanonicalPolicyFields({
     policy: params.policy,
     rawSegments: params.canonical.rawSegments,
     una: params.canonical.una,
     scope: 'all',
+    onRegisterValidation: evidence => { prodatRegisterValidation = evidence },
   })
   params.sourceRules.push('CANONICAL_EDIEL_POLICY', 'PRODAT_26A_POLICY_FIELD_VALIDATOR', 'PRODAT_DEPENDENT_CONDITION_ENGINE')
   params.decisionTrace.push(`PRODAT ${params.policy.code}${params.policy.subtype ?? ''} validerades mot en canonical policy med ${params.policy.prodatDependentConditions.length} D-villkor.`)
@@ -176,10 +180,10 @@ function applyProdatPolicyDecision(params: {
       reason: 'PRODAT innehåller ett blockerande canonical policy-/fältfel.',
       applicationErrors,
     })
-    return { applicationDecision: 'rejected', functionalDecision: prodatProcessingDisposition.kind === 'internal_review' ? 'manual_review' : 'accepted', prodatProcessingDisposition }
+    return { applicationDecision: 'rejected', functionalDecision: prodatProcessingDisposition.kind === 'internal_review' ? 'manual_review' : 'accepted', prodatProcessingDisposition, prodatRegisterValidation }
   }
 
-  if (prodatProcessingDisposition.kind === 'internal_review') return {applicationDecision:projected.hasNationalError?'rejected':'manual_review',functionalDecision:projected.hasNationalError?'manual_review':'not_applicable',prodatProcessingDisposition}
+  if (prodatProcessingDisposition.kind === 'internal_review') return {applicationDecision:projected.hasNationalError?'rejected':'manual_review',functionalDecision:projected.hasNationalError?'manual_review':'not_applicable',prodatProcessingDisposition,prodatRegisterValidation}
 
   if (params.policy.ackRule.applicationAck === 'APERAK') {
     params.responsePlan.push({
@@ -191,7 +195,7 @@ function applyProdatPolicyDecision(params: {
     })
   }
 
-  return { applicationDecision: 'accepted', functionalDecision: 'accepted', prodatProcessingDisposition }
+  return { applicationDecision: 'accepted', functionalDecision: 'accepted', prodatProcessingDisposition, prodatRegisterValidation }
 }
 
 function resolveUtiltsDecision(params: {
@@ -288,6 +292,7 @@ function resolveUtiltsDecision(params: {
 }
 
 function buildResult(params: {
+  prodatRegisterValidation?: ProdatRegisterValidationEvidence
   prodatProcessingDisposition?: ProdatProcessingDisposition
   canonical: CanonicalEdielMessage
   policy: CanonicalEdielPolicy | null
@@ -329,6 +334,7 @@ function buildResult(params: {
     utiltsBusinessOutcome: params.utiltsBusinessOutcome,
   }
   return {
+    prodatRegisterValidation: params.prodatRegisterValidation,
     prodatProcessingDisposition: params.prodatProcessingDisposition,
     canonical: params.canonical,
     policy: params.policy,
@@ -412,6 +418,7 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
     })
   }
 
+  let prodatRegisterValidation: ProdatRegisterValidationEvidence | undefined
   let prodatProcessingDisposition: ProdatProcessingDisposition | undefined
   let applicationDecision: CanonicalDecisionState = 'not_applicable'
   let functionalDecision: CanonicalDecisionState = 'not_applicable'
@@ -424,6 +431,7 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
     utiltsBusinessOutcome = utilts.businessOutcome
   } else if (canonical.family === 'PRODAT' && policy) {
     const prodat = applyProdatPolicyDecision({ policy, canonical, responsePlan, issues, sourceRules, decisionTrace })
+    prodatRegisterValidation = prodat.prodatRegisterValidation
     prodatProcessingDisposition = prodat.prodatProcessingDisposition
     applicationDecision = prodat.applicationDecision
     functionalDecision = prodat.functionalDecision
@@ -434,6 +442,7 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
   }
 
   return buildResult({
+    prodatRegisterValidation,
     prodatProcessingDisposition,
     canonical,
     policy,
@@ -473,6 +482,7 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message: Ediel
       decisionTrace,
       rulePackEvidence: {
         profileKey: evidence.profileKey,
+        ...(evidence.databaseProfileKey !== undefined ? {databaseProfileKey: evidence.databaseProfileKey} : {}),
         messageProfileId: evidence.messageProfileId,
         rulePackId: evidence.rulePackId,
         sourceHash: evidence.sourceHash,

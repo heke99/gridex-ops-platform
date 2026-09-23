@@ -1,0 +1,63 @@
+# Final consumer wave — scoped independent rereview
+
+Reviewed base `d81dff0c92d9f8c384d627a81e6f3ea866295a3e` through frozen `6f0d4685a2fceaae548226b54aea0296ddbe2051`, 2026-09-23. Scope: corrections R1–R4 from the whole-branch review plus actual CI integration finding C1. Read `final-wave-brief.md`, `final-wave-report.md`, production/test diff, complete new SQL and identity helper, affected consumer paths, and tracked case-native/browser provenance. This is the promised scoped rereview, not another broad audit. No source/git edits or tests rerun; only this review report was written.
+
+**No material residual found in the inspected R1–R4+C1 correction code. Static correction review passes; merge/runtime acceptance remains withheld pending genuine final evidence.**
+
+## Finding disposition
+
+| Finding | Inspected correction | Scoped result |
+|---|---|---|
+| R1 existing metering content/attribution | `20260923191510_ediel_utilts_consumer_content_identity.sql:176–240` locks the existing metering result and current normalized projection and checks business-write attribution/content. It requires exactly one current normalized row, checks environment through original source lineage, and compares before the legacy reuse can append lineage. It repeats the comparison on the actual returned result inside the same transaction, so a failing return rolls back its link. Source IDs/transaction references and legitimate workflow/audit fields remain separate lineage. | Addressed statically. Native cases cover twelve stored content/attribution mutations, equal different-source reuse, environment collision and existing committed retry. Conflicting natural-key content is deliberately held rather than silently revised by this bound consumer. No broader correction behavior is certified. |
+| R2 mutable billing response flag | `consumptionSinks.ts:44–58` now skips only when no writable contributor exists. A populated response ID cannot bypass the bound database writer. The returned verified underlay naturally propagates through the unchanged request/message/return completion path. | Addressed statically. Added tests use real request completion and message status, covering completed replay, crash after completion before ACK, stale/foreign response IDs and populated-response underlay mutations. |
+| R3 unsupported identity exemption | `consumptionIdentity.ts` checks the original single physical UTILTS message, transaction identity, own legal parties and exact agency9 LOC. `qualifyReceivedStructure.ts:31–43` applies it before both policy-window and high-resolution exemptions; unsupported accepted transactions become internal review/response none. `consumptionPreparation.ts:59–60` independently checks writable observations. SQL at 64–77 validates identity before receipt/ACK/series writes; `stored_contract_v1` at 163–169 rechecks it for existing receipts and both sinks. | Addressed statically. Agency89 cannot use the energy exemption or a pre-forward stored contract as approval. Both actual processors, direct persistence and prior/current-window unit cases are covered. Supported agency9 energy-only comparison exemption remains available without source-readset IO. No positive agency89 producer is claimed. |
+| R4 swallowed writable failure | `consumptionSinks.ts:37` raises an internal consumption conflict for every non-stored result after a writable contract was selected. The processor cannot reach subsequent positive ACK/success on this failure. | Addressed statically. New native permission/no-request cases cover first failure and second-observation failure after a prior commit, then owner restoration and idempotent retry preserving the prior row. Earlier permissive native assertion was strengthened to require rejection. |
+| C1 missing tenant classification | `20260923192915_classify_customer_case_events.sql` only registers the restored table as tenant-owned, with no NULL-company meaning. It does not add grants, relax RLS, alter event/customer data or exempt the invariant gate. | Appropriate narrow correction. Added native assertion checks actual classification, NOT NULL company, RLS, denied client CRUD and validated composite case/customer ownership FKs. Actual invariant GREEN remains required. |
+
+## SQL, tests and artifact checks
+
+Read the full new SQL bodies, including the persistence and stored-contract overrides rather than only their inserted lines. New private functions remain unavailable to PUBLIC/anon/authenticated/service_role; public façade grants remain service-role-only with pinned search paths. Existing migration bodies are unchanged in this diff. Both new local migration SHA256 values exactly match manifest/receipt values:
+
+- Consumer content/identity: `63efd369d81a1a36a29ab4e7d8b9cc63904e9dc83579d17eb585189da09266b9`.
+- Case classification: `e4ede5308f871b77da9b008ce78aa9ec5199885ef627e9d0ce0261e2d5f65822`.
+
+Read all added unit/native correction cases and the affected existing native assertions. Their assertions test real database/result/completion boundaries rather than merely the new helper structure. Native ACK construction remains observed/stubbed so no market message is sent; SQL/HTTP sinks, relevant matching, completion and stored results are real. This review does not turn authored native tests into executed evidence.
+
+The included generated type delta is exactly the 233 added case-event/RPC lines described in `case-native-browser-qualified-20260923.md`. Local `supabase/database.types.ts` hashes to `97d0e4267fcaecdd10d8a6500d6c5ec7709a9198d8361a52849c921c8a8a625d`, matching the tracked manifest and controller's authentic artifact receipt. The receipt identifies run35907849473 / native107339902379, artifact10772286880, ZIP SHA25602360a24a97e8a0212e124f1fa56c0dbc37df65d5ff6bbc2301b9ab8c2ade9f5, with retained124 + case1 + protected Chromium2 + postbrowser1 passing before expected stale-type comparison. I compared local bytes/hash and type changes against that tracked provenance; I did not independently redownload the ZIP. No case-type schema snapshot was emitted at that earlier stop.
+
+Reported implementer local gates: corrected focused RED11/41 then GREEN101/4 files; full unit5975/370 files; three TypeScript targets; focused lint; migration integrity/provenance. These are reported receipts, not tests rerun by this reviewer. The existing `_customers` warning remains the already deferred minor.
+
+## Verdicts
+
+- **SPEC — scoped static PASS.** R1–R4 and C1 are addressed without expanding positive source-owner claims.
+- **QUALITY — scoped static PASS.** Corrections are focused, maintain existing interfaces and add meaningful failure/retry cases. No new material finding.
+- **TENANT/DB — scoped static PASS; native proof pending.** Existing-result attribution, unsupported identity and classification corrections match the original findings. Forward migration history and service-only boundaries are preserved.
+- **INTEGRATION — WITHHELD.** Require real retained/new native156, case1, protected browser2, postbrowser1, tenant invariants including C1, authentic final types/schema/fingerprint and ordinary exact-final-head CI. No merge approval yet.
+
+The earlier staged-delivery adjudication remains: prior25-A-3 structural comparison is a known enabled, presently applicable gap, explicitly deferred under the user's partial-delivery instruction. Comparison coverage must be named A4 from 2026-10-01; no pre-October E61/E62/G01/E035 completeness claim. The new identity hold is independent of that deferred comparison flag. E035/F3/masterplan remains PARTIAL; unsupported positive owners and legacy cancellation/activation remain outside certification. PR310 remains excluded.
+
+## Latest actual execution checkpoint
+
+After this static review, controller reports published304c284 / native107347079558 applied the new migrations, then stopped at retained `scripts/ediel-utilts-committed-retry-regression.sql:124` with `utilts_consumption_identity_unsupported`, before native156. The synthetic original had UNH/BGM/IDE TX1/IDE TX2/UNT but no own NAD/LOC. This is consistent with the new required original-identity guard, not yet evidence of a product defect. The sole implementer is correcting only the synthetic original while preserving all eight retry assertions and real guards. That exact fixture delta needs scoped review and its actual execution result. It does not change the above static production verdict or supply runtime acceptance.
+
+Next review is limited to that fixture qualification delta and authentic final runtime/generated-artifact receipts. Final acceptance remains withheld until those gates complete.
+
+## Fixture qualification addendum — e06eda6
+
+Read `final-fixture-review.diff`, the appended implementer report, the complete retained SQL fixture and new pure identity regression. Commit `e06eda6` changes only that fixture, its new regression and the tracked qualification receipt. No production guard or migration changes.
+
+The synthetic original now has matching UNB/UNZ interchange references, own NAD+MS/MR parties with SVK:260, and LOC+172+POINT::9 within each TX-1/TX-2 transaction. UNT+9 correctly counts UNH through UNT. The fixture remains a reservation/no-consumption control, not a claim of complete national message validation. It now reaches the intended retry boundary without a missing-identity rejection.
+
+Independently compared commit-parent and commit fixture text: every executable byte from the first `SET LOCAL ROLE service_role` onward is identical, and both versions contain exactly eight `PERFORM pg_temp.retry_check` assertions. The new regression reads the actual SQL literal and requires the production identity inspector to return both exact transaction/point scopes. No assertions were removed or diluted.
+
+**Scoped fixture SPEC/QUALITY PASS; no material residual.** Reported RED1 → GREEN15/2, tests typecheck and targeted lint used available Node24.19.0 after the old local Node22 path disappeared; CI pins are unchanged. No tests were rerun by this reviewer. Native SQL execution, native156 and final integration/artifact acceptance remain withheld pending actual receipts. The R1–R4+C1 static verdict is unchanged.
+
+## New-source fixture qualification addendum — fe55fcf
+
+Read the complete `final-fixture2-review.diff` against `4061db8`, the appended implementer report, the new helper/regression and the native source setup and retry call sites. The four-file delta changes only synthetic source setup, its two new regression cases and the receipt; there are no production, migration, schema or CI-gate edits.
+
+Each newly inserted source now derives matching UNB/UNZ references from its new UUID, then reparses that wire to obtain the persisted interchange/application metadata. The bounded helper requires exactly two occurrences of the prior reference. Party, point, transaction and quantity content is unchanged; the new regression compares all non-envelope tokens and checks runtime validation. Processor retries still reuse the original persisted source ID and bytes, including deliberate changed-wire negative cases. They do not pass through new-source setup.
+
+Independently compared the native script in both commits: its entire suffix beginning at `beforeEach(` is byte-identical. Thus all existing 156 native test bodies/assertions are preserved. The prior genuine run `35917060345` / native `107371193902` is reported as 151/156, with all five failures at duplicate-interchange fixture insertion before the intended target behavior; this repair addresses that setup boundary without weakening the unique constraint or production guards.
+
+**Scoped fixture SPEC/QUALITY PASS; no material residual.** Reported RED1 → GREEN17/3 and scripts/tests typecheck plus targeted lint are recorded as implementer receipts, not rerun by this reviewer. The R1–R4+C1 static verdict remains unchanged. **INTEGRATION remains WITHHELD** pending genuine all-156 execution and the remaining exact-final runtime/artifact/CI receipts.

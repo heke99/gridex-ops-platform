@@ -102,7 +102,7 @@ function rebuildValidation(issues: UtiltsValidationIssue[]): UtiltsRuntimeValida
   }
 }
 
-function rebuildRuntimeResult(input: {
+export function rebuildUtiltsRuntimeResult(input: {
   message: EdielMessageRow
   result: UtiltsRuntimeResult
   issues: UtiltsValidationIssue[]
@@ -331,7 +331,7 @@ export function applyCanonicalE66QuantityPolicyToRuntimeResult(input: {
     }
   })
 
-  return rebuildRuntimeResult({ message: input.message, result: input.result, issues })
+  return rebuildUtiltsRuntimeResult({ message: input.message, result: input.result, issues })
 }
 
 export function applyUtiltsResolutionFormatPolicyToRuntimeResult(input: {
@@ -351,7 +351,7 @@ export function applyUtiltsResolutionFormatPolicyToRuntimeResult(input: {
     return !resolutionFormatNeedsLegacyCountCorrection(transaction?.resolutionFormat)
   })
 
-  return rebuildRuntimeResult({ message: input.message, result: input.result, issues })
+  return rebuildUtiltsRuntimeResult({ message: input.message, result: input.result, issues })
 }
 
 export function applyUtiltsEffectiveDatePolicyToRuntimeResult(input: {
@@ -378,7 +378,7 @@ export function applyUtiltsEffectiveDatePolicyToRuntimeResult(input: {
     return true
   })
 
-  return rebuildRuntimeResult({ message: input.message, result: input.result, issues })
+  return rebuildUtiltsRuntimeResult({ message: input.message, result: input.result, issues })
 }
 
 function canonicalE66PersistenceTransactions(facts: UtiltsRuntimeFacts): Array<Record<string, unknown>> {

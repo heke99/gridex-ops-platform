@@ -3,6 +3,7 @@ import type { MeteringValueRow } from '@/lib/cis/types'
 import { emitDomainEvent } from '@/lib/events/domainEvents'
 import { isPriceArea, type PriceArea } from '@/lib/pricing/types'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
+import type { UtiltsConsumptionContractV1 } from '@/lib/ediel/utilts/consumptionContract'
 
 export type MeteringDirection = 'consumption' | 'production' | 'net_consumption' | 'net_production'
 export type MeteringUnit = 'Wh' | 'kWh' | 'MWh'
@@ -36,6 +37,10 @@ export type NormalizedMeteringValueInput = {
   sourceLineReference?: string | null
   rawPayload?: Record<string, unknown>
   createdBy?: string | null
+  /** Bound UTILTS attribution must be revalidated, never filled from a new match. */
+  immutableAttribution?: boolean
+  boundObservationOrdinal?: number
+  boundContract?: UtiltsConsumptionContractV1
 }
 
 export type NormalizeResult =
@@ -69,7 +74,7 @@ async function resolveMeteringPoint(input: NormalizedMeteringValueInput): Promis
 
   let query = supabaseService
     .from('metering_points')
-    .select('id,company_id,customer_id,site_id,customer_site_id,meter_point_id,metering_point_id,normalized_metering_point_id,site_facility_id,status')
+    .select('id,company_id,customer_id,site_id,customer_site_id,grid_owner_id,meter_point_id,metering_point_id,normalized_metering_point_id,site_facility_id,status')
     .eq('company_id', input.companyId)
     .limit(3)
 
@@ -97,6 +102,11 @@ async function resolveMeteringPoint(input: NormalizedMeteringValueInput): Promis
   const canonicalCustomerId = readText(row.customer_id)
   const canonicalSiteId = readText(row.site_id)
   const canonicalCustomerSiteId = readText(row.customer_site_id)
+  if (input.immutableAttribution && (input.customerId !== canonicalCustomerId || (input.gridOwnerId ?? null) !== readText(row.grid_owner_id) ||
+    (input.siteId ?? null) !== (canonicalSiteId ?? canonicalCustomerSiteId) ||
+    (input.customerSiteId ?? null) !== (canonicalCustomerSiteId ?? canonicalSiteId))) {
+    return { meteringPointId: null, customerId: null, siteId: null, customerSiteId: null, warnings: ['utilts_consumption_binding_conflict:metering_ownership_changed'] }
+  }
   if (!canonicalCustomerId) {
     return { meteringPointId: null, customerId: null, siteId: null, customerSiteId: null, warnings: ['Mätpunkten saknar kanonisk kundkoppling.'] }
   }
@@ -181,7 +191,7 @@ export async function normalizeAndStoreMeteringValue(input: NormalizedMeteringVa
   const unit = input.unit ?? 'kWh'
   const dedupeKey = canonicalKey(input, resolved.meteringPointId, periodStart, periodEnd)
 
-  const { data, error } = await supabaseService.rpc('gridex_ingest_metering_value_atomic', {
+  const genericArgs = {
     p_payload: {
       company_id: input.companyId,
       customer_id: resolved.customerId,
@@ -213,7 +223,17 @@ export async function normalizeAndStoreMeteringValue(input: NormalizedMeteringVa
       raw_payload: input.rawPayload ?? {},
       created_by: input.createdBy ?? null,
     },
-  })
+  }
+  let response: { data: unknown; error: unknown }
+  if (input.immutableAttribution) {
+    if (!input.sourceMessageId || !input.sourceTransactionReference || !input.boundContract || !Number.isInteger(input.boundObservationOrdinal)) throw new Error('utilts_consumption_binding_conflict:metering_binding_missing')
+    const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (name: 'gridex_consume_utilts_metering_v1', args: {
+      p_company_id: string; p_source_message_id: string; p_transaction_id: string; p_observation_ordinal: number; p_actor_id: string | null; p_expected_contract: UtiltsConsumptionContractV1
+    }) => PromiseLike<{ data: unknown; error: unknown }>
+    response = await rpc('gridex_consume_utilts_metering_v1', { p_company_id: input.companyId, p_source_message_id: input.sourceMessageId,
+      p_transaction_id: input.sourceTransactionReference, p_observation_ordinal: input.boundObservationOrdinal!, p_actor_id: input.createdBy ?? null, p_expected_contract: input.boundContract })
+  } else response = await supabaseService.rpc('gridex_ingest_metering_value_atomic', genericArgs)
+  const { data, error } = response
   if (error) throw error
   const meterValue = data as MeteringValueRow | null
   if (!meterValue?.id) throw new Error('atomic_metering_ingest_missing_result')

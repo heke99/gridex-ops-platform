@@ -1,0 +1,98 @@
+import {execFileSync} from 'node:child_process'
+import {expect,it} from 'vitest'
+import {closureFixture} from '../__tests__/helpers/closureWireFixtures'
+import {readClosureSourceWire} from '@/lib/ediel/sources/closureSourceWire'
+
+const literal=(value:unknown)=>"'"+String(typeof value==='object'?JSON.stringify(value):value).replaceAll("'","''")+"'"
+function sql<T>(query:string):T{
+  if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('owned_local_only')
+  return JSON.parse(execFileSync('psql',['postgresql://postgres:postgres@127.0.0.1:54322/postgres','-XAtq','-v','ON_ERROR_STOP=1'],
+    {input:query,encoding:'utf8',timeout:10000,maxBuffer:2_000_000}).trim()) as T
+}
+const project=(raw:string,object:unknown)=>sql(`SELECT coalesce(gridex_received_sources.closure_wire_projection_v1(${literal(raw)},${literal(object)}::jsonb),'null'::jsonb)`)
+const matches=(raw:string,object:unknown,wire:unknown)=>sql(`SELECT to_jsonb(gridex_received_sources.closure_wire_matches_v1(${literal(raw)},${literal(object)}::jsonb,${literal(wire)}::jsonb))`)
+
+it.each([{},{reason:'Z23'},{minute:'202610150000'},{alphabet:['*',';','!','~']},{alphabet:['^','|','!','%']},
+  {document:"D?:+'",li:"CASE?:+'UNH+FAKE'DTM+93:202610151235:203"},
+  {alphabet:['*',';','!','~'],document:'D!*;~',li:'CASE!*;~UNH;FAKE~DTM;93*202610151235*203'},
+  {count:2}])('SQL derives closure fields independently from original %j',options=>{
+  const {wire,scope}=closureFixture(options),derived=project(wire,scope)
+  expect(derived).toEqual(readClosureSourceWire(wire,scope))
+  expect(derived).toMatchObject({caseReference:options.li??'CLOSE-CASE',documentReference:options.document??'CLOSE-DOC',
+    effectiveTo:{fieldNumber:'211',marketMinute:options.minute??'202610151234',utc:options.minute?'2026-10-14T23:00:00.000Z':'2026-10-15T11:34:00.000Z'},
+    object:{registers:[{segmentIndex:7,lineIndex:0,lineNumber:'1',registerIndex:null,registerPosition:1}]}})
+  expect(matches(wire,scope,derived)).toBe(true)
+})
+it('SQL keeps multiple physical objects and CRLF indices distinct',()=>{
+  const {wire,scope}=closureFixture({count:2})
+  const second={...scope,objectId:'735123456789012341',registers:[{lineIndex:1,lineNumber:'2',registerIndex:null,registerPosition:1,segmentIndex:16}]}
+  expect(project(wire.replaceAll("'","'\r\n"),second)).toEqual(readClosureSourceWire(wire,second))
+  expect(project(wire,second)).toMatchObject({object:second})
+  expect(project(wire,{...scope,registers:second.registers})).toBeNull()
+  const borrowed=wire.replace('DTM+93:202610151234:203','DTM+92:202610151234:203')
+  expect(project(borrowed,scope)).toBeNull()
+  expect(project(wire.replace('LI:CLOSE-CASE','XX:CLOSE-CASE'),scope)).toBeNull()
+})
+it('SQL default UNA, empty function, escaped release and trailing empty components are literal',()=>{
+  const {wire,scope}=closureFixture({li:'CASE??'})
+  expect(project(wire.slice(9).replace('+CLOSE-DOC+9+AB','+CLOSE-DOC++AB'),scope)).toMatchObject({functionCode:null,caseReference:'CASE??'})
+  expect(sql(`SELECT gridex_received_sources.closure_wire_tokens_v1('FTX+ABC?:DEF??G?+H?''I::++''')`)).toEqual([
+    {index:0,tag:'FTX',elements:[['FTX'],["ABC:DEF?G+H'I",'',''],[''],['']]},
+  ])
+})
+it.each([
+  ['same-date minute with matching forged UTC',(value:Record<string,unknown>)=>({...value,effectiveTo:{fieldNumber:'211',marketMinute:'202610151235',utc:'2026-10-15T11:35:00.000Z'}})],
+  ['LI',(value:Record<string,unknown>)=>({...value,caseReference:'OTHER'})],
+  ['document',(value:Record<string,unknown>)=>({...value,documentReference:'OTHER'})],
+  ['reason',(value:Record<string,unknown>)=>({...value,reason:'Z23',subtype:'LK'})],
+  ['function',(value:Record<string,unknown>)=>({...value,functionCode:'5'})],
+  ['legal party',(value:Record<string,unknown>)=>({...value,legalSender:'99999'})],
+  ['transport',(value:Record<string,unknown>)=>({...value,transportReceiver:'99999'})],
+  ['transport qualifier',(value:Record<string,unknown>)=>({...value,transportSenderQualifier:'ZZ'})],
+  ['extra authority',(value:Record<string,unknown>)=>({...value,approved:true})],
+] as const)('SQL binding rejects forged %s',(_name,change)=>{
+  const {wire,scope}=closureFixture(),real=readClosureSourceWire(wire,scope)!
+  expect(real).not.toBeNull();expect(matches(wire,scope,change(real))).toBe(false)
+})
+it.each([
+  (s:string)=>s.replace('93:202610151234:203','93:202602291234:203'),
+  (s:string)=>s.replace('93:202610151234:203','93:202610152400:203'),
+  (s:string)=>s.replace('DTM+93:','DTM+92:'),
+  (s:string)=>s.replace('UNZ+1+I','UNZ+2+I'),
+  (s:string)=>s.replace('UNT+16+M','UNT+15+M'),
+  (s:string)=>s.replace('ZZZ:1:805','ZZZ:2:805'),
+  (s:string)=>s.replace('12345:14+','12345:14:SUB+'),
+  (s:string)=>s.replace('UNA:+','UNA::'),
+  (s:string)=>s.replace('LIN+1++','LIN+01++'),
+  (s:string)=>s.replace("UNA:+.? '","UNA:+.?*'"),
+  (s:string)=>s+'?',(s:string)=>s.slice(0,-1),(s:string)=>s+' '.repeat(262144),
+  (s:string)=>s.replace('CLOSE-CASE','X'.repeat(4097)),
+])('SQL malformed/unsupported original never becomes closure %#',change=>{
+  const {wire,scope}=closureFixture();expect(project(change(wire),scope)).toBeNull()
+})
+it('SQL original byte/segment/object/component limits are enforced before authority',()=>{
+  const {scope}=closureFixture()
+  expect(project(closureFixture({count:17}).wire,scope)).toBeNull()
+  expect(sql(`SELECT coalesce(gridex_received_sources.closure_wire_tokens_v1(repeat('FTX+A''',4097)),'null'::jsonb)`)).toBeNull()
+  expect(sql(`SELECT jsonb_array_length(gridex_received_sources.closure_wire_tokens_v1(repeat('FTX+A''',4096)))`)).toBe(4096)
+  expect(sql(`SELECT to_jsonb(gridex_received_sources.closure_wire_tokens_v1('FTX+'||repeat('A',4096)||'''')->0->'elements'->1->>0)`)).toBe('A'.repeat(4096))
+})
+it('private parser/projection/matcher grant no direct API-role execution',()=>{
+  for(const role of ['anon','authenticated','service_role'])for(const signature of ['closure_wire_tokens_v1(text)','closure_wire_projection_v1(text,jsonb)','closure_wire_matches_v1(text,jsonb,jsonb)']){
+    expect(sql(`SELECT to_jsonb(has_function_privilege(${literal(role)},${literal('gridex_received_sources.'+signature)},'EXECUTE'))`)).toBe(false)
+  }
+})
+it('SQL rejects forged object identity, agency and exact physical geometry',()=>{
+  const {wire,scope}=closureFixture(),real=readClosureSourceWire(wire,scope)!
+  for(const object of [{...scope,objectId:'735123456789012346'},{...scope,identityAgency:'89'},
+    {...scope,messageReference:'FOREIGN'},{...scope,messageIndex:1},
+    {...scope,registers:[{...scope.registers[0],segmentIndex:8}]}]){
+    expect(matches(wire,object,{...real,object})).toBe(false)
+  }
+  expect(project(wire.replace('LIN+1++','LIN+01++'),{...scope,registers:[{...scope.registers[0],lineNumber:'01'}]})).toBeNull()
+})
+it('SQL cannot borrow an apparent released DTM when actual field211 is absent',()=>{
+  const {wire,scope}=closureFixture({li:"CASE'UNH+X'DTM+93:202610151235:203"})
+  expect(project(wire,scope)).toMatchObject({effectiveTo:{marketMinute:'202610151234'}})
+  expect(project(wire.replace('DTM+93:202610151234:203','DTM+92:202610151234:203'),scope)).toBeNull()
+})

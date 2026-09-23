@@ -1,8 +1,9 @@
+import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
-import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
+import { observationHandoffMessage, energyHandoffMessage } from './helpers/utiltsObservationHandoff'
 import { raw, line, characteristic, type Parts } from './fixtures/prodat-register'
 
 const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), matches: vi.fn(), ingest: vi.fn(), allMatched: vi.fn() }))
@@ -11,7 +12,9 @@ vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: io.get, updateEdielMessa
 vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => id }))
 vi.mock('@/lib/onboarding/inboundEdielLinking', () => ({ findActiveMeteringPermissionForUtiltsMessage: vi.fn().mockResolvedValue(null) }))
 vi.mock('@/lib/ediel/utilts/transactionPersistence', async original => ({ ...await original<Record<string, unknown>>(), persistUtiltsTransactionResults: io.persist }))
-vi.mock('@/lib/ediel/flows/utiltsDataRequest.part-1', () => ({
+vi.mock('@/lib/ediel/matching', () => ({ matchMeteringPointIdByIdentifier: vi.fn().mockResolvedValue(null), matchSiteAndCustomerForMeteringPoint: vi.fn().mockResolvedValue(null) }))
+vi.mock('@/lib/ediel/flows/utiltsDataRequest.part-1', async original => ({
+  ...await original<Record<string, unknown>>(),
   resolveUtiltsRuntimeTestCaseCode: vi.fn().mockResolvedValue(null), matchUtiltsTransactionsForTenant: io.matches,
   linkInboundUtiltsMessageCanonically: vi.fn().mockResolvedValue({}), allUtiltsTransactionMeteringPointsMatched: io.allMatched,
   createUtiltsRuntimeAcks: io.ack, maybeIngestMeteringValue: io.ingest,
@@ -42,7 +45,7 @@ function query() {
 beforeEach(() => {
   vi.clearAllMocks(); incoming = observationHandoffMessage(); rows = []
   io.get.mockImplementation(async () => incoming); io.update.mockResolvedValue(null); io.event.mockResolvedValue(null)
-  io.ack.mockResolvedValue(['ack-1']); io.persist.mockResolvedValue([]); io.from.mockImplementation(query)
+  io.ack.mockResolvedValue(['ack-1']); io.persist.mockImplementation(successfulUtiltsPersistenceIo); io.from.mockImplementation(query)
   io.matches.mockResolvedValue([{ transactionReference: 'GRIDEX2607E66001', externalMeteringPointId: point, meteringPointId: 'meter-tenant-a', externalGridAreaId: 'TES', matchStatus: 'matched', customerId: null, siteId: null, gridOwnerId: null }])
   io.allMatched.mockReturnValue(false); io.ingest.mockResolvedValue([{ id: 'value-1' }])
 })
@@ -71,7 +74,7 @@ async function capture(accepted: boolean) {
 }
 for (const accepted of [false, true]) for (const state of ['recorded', 'unavailable', 'contradictory'] as const) {
   it(`preserves every ${accepted ? 'accepted' : 'rejected'} business outcome with ${state} context`, async () => {
-    if (accepted) { incoming = observationHandoffMessage('2026-10-01'); io.allMatched.mockReturnValue(true) }
+    if (accepted) { incoming = energyHandoffMessage('2026-10-01'); io.allMatched.mockReturnValue(true) }
     const baseline = await capture(accepted)
     const row = source()
     if (state !== 'unavailable') row.received_prodat_context = {

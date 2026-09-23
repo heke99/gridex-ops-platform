@@ -1,0 +1,32 @@
+# Closure owner native qualification — in progress
+
+## First actual owner replay: failed, not accepted
+
+Exact candidate `2b4293b42732b0231dc00d5e43ceefe260cb4254`, tree `403087f3d4e57f21d3b13817ec85f0f1d7802dcf`.
+[OPS run35858473977](https://github.com/heke99/gridex-ops-platform/actions/runs/35858473977), native job107172575044.
+
+The new forward `20260923114703_ediel_reviewed_closure_source.sql` applied, and 54 retained native tests passed (17 source-owner and37 private wire). All seven new closure-owner tests failed before establishing their promised lifecycle proof:
+
+- Six hit the actual legacy production `createReviewCase` writer: it inserts nonexistent `customer_cases.customer_site_id` instead of `site_id`. Investigation also found its closure case type `final_metering_and_billing` is excluded by the real CHECK constraint. This is a production integration defect exposed by native tests, not merely a fixture typo.
+- The attempted unwitnessed later Z04 review failed at native test line550 with SQLSTATE23514 `source_object_owner_snapshot_changed`, before the closure case.
+
+The final test reused stale reviewed facts after their own baseline advanced, so its SQL rejection is correct; it must obtain a fresh real review and prevent only the separate witness. The production writer needs a narrow schema-correct repair preserving review intent, title and next action; the CHECK and proof guards stay intact. No assertion or production proof guard may be weakened to manufacture green. Original implementer is assigned scoped fix round1; published migrations remain immutable.
+
+The job stopped before typegen/schema capture. Artifact10748931154 contains only the replay log (archive digest reported by GitHub: `f98e3e3e1278d8ebd7c1fffb500c7454d837a258106ba277d6a20e43384f440c`); it cannot supply a schema/type reconciliation. Separate verify job107172575083 failed the expected stale migration-tail manifest guard. This is a genuinely failed native qualification, not merely stale generated artifacts.
+
+Independent code review found no blocking code issue for the bounded implementation, but explicitly reserved native verification acceptance. Local5902/359 coverage results and the prior fully green private-parser checkpoint `f670fbc3` do not replace these failed actual owner tests. Full closure/E035/masterplan acceptance remains open. Main and paused PR310 are unchanged.
+
+
+Closure fix1 replay on 5b88fb3883af08eb27189b42ccd64813e0cfc548: OPS35859902284 native job107177271438 FAILED, 57 PASS / 4 FAIL. Retained 54 checks and three closure negative cases pass; L/LK positive appends, raw-binding positive setup, and genuine non-midnight one-guard positive control still fail. Negative results alone do not establish the owner while positives fail. No generated schema/type artifacts reached. Quality-release-gates terminal SUCCESS; verify stopped at migrations check. Sole implementer continues fix round2 with transactional diagnostic instrumentation; published migrations immutable, no approval or merge.
+
+
+Diagnostic-only checkpoint cfe206def907fa313937a0a504ebd562aefc0ae8 replay OPS35861175209/job107181488978: 57 PASS / 4 FAIL. All four diagnostics report original wire binding=true, shared party proof=true, all seven live owner-row comparisons=true, accepted witnessed original/reviewed roots with same supply and same reviewed coverage. The closure proof itself returns false via its exception handler (label17), rather than an ordinary rejected predicate. Original underlying SQLSTATE/context must be exposed next; no guessed guard removal. Artifact10749989153 contains log only (reported ZIP SHA256 e54fad265cd24b68290e192d81ae7ca7da815f80182a752136783f6142d2385a); no new schema/type artifacts. Fix round2 investigation continues.
+
+
+Confirmed fix-round2 root cause on c18355fff4bdb465dc393c485497a8f25ef0e42c: native OPS35862101094/job107184551281 returned 58 PASS / 4 FAIL. The added isolated expression probe passed; every failing closure trace preserved SQLSTATE22P02, invalid JSON token reviewSnapshot at the helper first IF. JSON subtraction bound before extraction in the unparenthesized nested key-set expression. Wire, party and all live-row proofs passed. Sole implementer now repairs only expression grouping via a new authentic CLI forward migration; existing published migration immutable. Artifact10750911313 is log-only, reported ZIP SHA2568617d830b34df7910ee12e8abeeb32748d2ed104f024e7125c1c8931bad970f6. No schema/type artifacts or owner acceptance yet.
+
+
+Fix-round2 e04d0fed independently scoped SPEC/QUALITY approved; published bbd2189d4a6b3e2bad80095df3000fdbe46f328c exacttreecddcd5084130ca26268e3d078fedc16b4cfc5a7f, fetch/same-tree/softsync complete while implementerpaused. Authentic CLI forward20260923124645_ediel_closure_snapshot_expression.sql SHAe7f339d1eea81497f46e90d73a39bcc659e509eabb5b85ef42697c8e28b12123 is now immutable. Only JSON extraction grouping changes; all guards/grants retained. Types/lint/migration601/505/static provenance pass; real positive/native suite and schema reconciliation still pending OPS35863134398.
+
+
+Native closure qualification on bbd2189d: OPS35863134398/job107187999889 ALL62PASS (25 source-owner lifecycle/guard cases plus37 original-wire cases). Generatedpublictypes byte-identical SHA2566af55fbbed9390acfe71dbb8c757c10e3a021dec15842df801d06b679d98eda9; tenant invariants and parity self-test pass. Only final schema-snapshot comparison failed, expected oldparser-only snapshot. Downloaded artifact10750749337 ZIP SHA256b617922d79043b1ccb773265ed4da9587487e811b9e1952c784237f4ddfd07e2 verified; copied actual schema.sql and fingerprint verbatim, actualfingerprint17004382be3ac4af43a9d9ba3d3632ad553274802c382d3d04528579ccdc4387. Types unchanged, manifest actual provenance updated, full db:migrations:check PASS601files/505groups. Final same-head ordinaryCI pending; boundedclosure native review requested, fullE035notcomplete.

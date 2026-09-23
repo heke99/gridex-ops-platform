@@ -17,6 +17,12 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
+-- Name: gridex_received_sources; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA gridex_received_sources;
+
+--
 -- Name: public; Type: SCHEMA; Schema: -; Owner: -
 --
 
@@ -39,7 +45,1541 @@ CREATE TYPE public.ediel_environment_type AS ENUM (
     'production'
 );
 
+--
+-- Name: append_discovery(uuid, text, uuid, text, text, text); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.append_discovery(p_company_id uuid, p_environment text, p_snapshot_id uuid, p_snapshot_hash text, p_engine_version text, p_inventory_text text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE snap gridex_received_sources.snapshots%rowtype; inv jsonb; src jsonb; expected jsonb; item jsonb;
+  v_id uuid; v_hash text; n bigint; distinct_n bigint;
+  v_position bigint; v_segment numeric; v_expected_objects jsonb;
+BEGIN
+  SELECT * INTO snap FROM gridex_received_sources.snapshots WHERE id=p_snapshot_id AND company_id=p_company_id AND environment=p_environment;
+  IF NOT FOUND OR p_snapshot_hash IS DISTINCT FROM snap.manifest_hash
+     OR p_engine_version IS DISTINCT FROM 'physical-lin-inventory-v1' OR p_inventory_text IS NULL
+     OR octet_length(p_inventory_text)>8388608 THEN
+    RAISE EXCEPTION 'received_discovery_binding_unavailable' USING ERRCODE='23514';
+  END IF;
+  inv := p_inventory_text::jsonb;
+  IF jsonb_typeof(inv) IS DISTINCT FROM 'object'
+    OR inv - ARRAY['version','universe','historyCoverage','authorityStatus','selection','status','sources','issues'] <> '{}'::jsonb
+    OR inv->'version' IS DISTINCT FROM '1'::jsonb OR inv->>'universe' IS DISTINCT FROM 'durable_received_sources'
+    OR inv->>'historyCoverage' IS DISTINCT FROM 'before_ledger_unknown' OR inv->>'authorityStatus' IS DISTINCT FROM 'not_established'
+    OR inv->>'selection' IS DISTINCT FROM 'not_performed' OR coalesce(inv->>'status','') NOT IN ('enumerated','incomplete')
+    OR jsonb_typeof(inv->'sources') IS DISTINCT FROM 'array' OR jsonb_typeof(inv->'issues') IS DISTINCT FROM 'array' THEN
+    RAISE EXCEPTION 'received_discovery_not_an_approval' USING ERRCODE='23514';
+  END IF;
+  SELECT count(*),count(DISTINCT value->>'sourceMessageId') INTO n,distinct_n FROM jsonb_array_elements(inv->'sources');
+  IF n<>distinct_n OR n>1000 OR (inv->>'status'='enumerated' AND
+      (snap.manifest->'exhaustive' IS DISTINCT FROM 'true'::jsonb OR n<>(snap.manifest->>'sourceCount')::bigint OR inv->'issues'<>'[]'::jsonb))
+    OR (n<>0 AND n<>(snap.manifest->>'sourceCount')::bigint) THEN
+    RAISE EXCEPTION 'received_discovery_incomplete_set' USING ERRCODE='23514';
+  END IF;
+  FOR src IN SELECT value FROM jsonb_array_elements(inv->'sources') LOOP
+    SELECT value INTO expected FROM jsonb_array_elements(snap.manifest->'sources') WHERE value->>'sourceMessageId'=src->>'sourceMessageId';
+    IF NOT FOUND OR jsonb_typeof(src) IS DISTINCT FROM 'object'
+      OR src - ARRAY['sourceMessageId','sourcePayloadHash','sourceReceivedAt','capturedAt','receiptStatus','disposition','status','occurrences','objects','issues'] <> '{}'::jsonb
+      OR src->'sourcePayloadHash' IS DISTINCT FROM expected->'payloadHash'
+      OR src->'sourceReceivedAt' IS DISTINCT FROM expected->'sourceReceivedAt' OR src->'capturedAt' IS DISTINCT FROM expected->'capturedAt'
+      OR src->>'disposition' IS DISTINCT FROM 'not_checked' OR coalesce(src->>'status','') NOT IN ('enumerated','incomplete')
+      OR coalesce(src->>'receiptStatus','') NOT IN ('recorded','unavailable')
+      OR (src->>'receiptStatus'='recorded' AND expected->'receiptContextRecorded' IS DISTINCT FROM 'true'::jsonb)
+      OR jsonb_typeof(src->'occurrences') IS DISTINCT FROM 'array' OR jsonb_typeof(src->'objects') IS DISTINCT FROM 'array'
+      OR jsonb_typeof(src->'issues') IS DISTINCT FROM 'array'
+      OR (inv->>'status'='enumerated' AND (src->>'status'<>'enumerated' OR src->>'receiptStatus'<>'recorded' OR src->'issues'<>'[]'::jsonb))
+      OR (src->>'status'='enumerated' AND (jsonb_typeof(src->'sourcePayloadHash') IS DISTINCT FROM 'string'
+        OR coalesce(src->>'sourcePayloadHash','') !~ '^[a-f0-9]{64}$' OR jsonb_array_length(src->'occurrences')=0 OR jsonb_array_length(src->'objects')=0 OR src->>'receiptStatus'<>'recorded' OR src->'issues'<>'[]'::jsonb)) THEN
+      RAISE EXCEPTION 'received_discovery_source_mismatch' USING ERRCODE='23514';
+    END IF;
+    -- Persist the producer's complete typed observation contract, not merely
+    -- a set of allowed key names. This validates evidence shape and internal
+    -- tuple bindings; it is NOT a second wire parser or source approval owner.
+    IF jsonb_array_length(src->'occurrences')>8192 OR jsonb_array_length(src->'objects')>8192 THEN
+      RAISE EXCEPTION 'received_discovery_observation_shape' USING ERRCODE='23514';
+    END IF;
+    v_segment := -1;
+    FOR item,v_position IN SELECT value,ordinality FROM jsonb_array_elements(src->'occurrences') WITH ORDINALITY LOOP
+      IF jsonb_typeof(item) IS DISTINCT FROM 'object'
+        OR NOT item ?& ARRAY['ordinal','segmentIndex','messageIndex','lineNumber','objectId','identityAgency','identityStatus']
+        OR item - ARRAY['ordinal','segmentIndex','messageIndex','lineNumber','objectId','identityAgency','identityStatus'] <> '{}'::jsonb
+        OR jsonb_typeof(item->'ordinal') IS DISTINCT FROM 'number'
+        OR jsonb_typeof(item->'segmentIndex') IS DISTINCT FROM 'number'
+        OR coalesce(jsonb_typeof(item->'messageIndex'),'missing') NOT IN ('number','null')
+        OR coalesce(jsonb_typeof(item->'lineNumber'),'missing') NOT IN ('string','null')
+        OR coalesce(jsonb_typeof(item->'objectId'),'missing') NOT IN ('string','null')
+        OR coalesce(jsonb_typeof(item->'identityAgency'),'missing') NOT IN ('string','null')
+        OR jsonb_typeof(item->'identityStatus') IS DISTINCT FROM 'string'
+        OR coalesce(item->>'identityStatus','') NOT IN ('observed','unresolved') THEN
+        RAISE EXCEPTION 'received_discovery_observation_shape' USING ERRCODE='23514';
+      END IF;
+      -- Cast only AFTER the mandatory JSON types were checked. Ordinals are
+      -- consecutive physical occurrences and segment indexes strictly increase.
+      IF item->'ordinal' IS DISTINCT FROM to_jsonb(v_position)
+        OR (item->>'segmentIndex')::numeric < 0 OR (item->>'segmentIndex')::numeric >= 8192
+        OR trunc((item->>'segmentIndex')::numeric) <> (item->>'segmentIndex')::numeric
+        OR (item->>'segmentIndex')::numeric <= v_segment
+        OR (item->'messageIndex' <> 'null'::jsonb AND ((item->>'messageIndex')::numeric < 0
+          OR (item->>'messageIndex')::numeric >= 8192
+          OR trunc((item->>'messageIndex')::numeric) <> (item->>'messageIndex')::numeric))
+        OR (item->'lineNumber' <> 'null'::jsonb AND length(item->>'lineNumber') NOT BETWEEN 1 AND 128) THEN
+        RAISE EXCEPTION 'received_discovery_observation_shape' USING ERRCODE='23514';
+      END IF;
+      v_segment := (item->>'segmentIndex')::numeric;
+      IF item->>'identityStatus'='observed' THEN
+        IF jsonb_typeof(item->'messageIndex') IS DISTINCT FROM 'number'
+          OR jsonb_typeof(item->'objectId') IS DISTINCT FROM 'string'
+          OR length(item->>'objectId') NOT BETWEEN 1 AND 128
+          OR jsonb_typeof(item->'identityAgency') IS DISTINCT FROM 'string'
+          OR item->>'identityAgency' NOT IN ('9','89') THEN
+          RAISE EXCEPTION 'received_discovery_observation_shape' USING ERRCODE='23514';
+        END IF;
+      ELSIF item->'objectId' IS DISTINCT FROM 'null'::jsonb OR item->'identityAgency' IS DISTINCT FROM 'null'::jsonb
+        OR src->>'status'='enumerated' THEN
+        RAISE EXCEPTION 'received_discovery_observation_shape' USING ERRCODE='23514';
+      END IF;
+    END LOOP;
+    FOR item IN SELECT value FROM jsonb_array_elements(src->'objects') LOOP
+      IF jsonb_typeof(item) IS DISTINCT FROM 'object'
+        OR NOT item ?& ARRAY['messageIndex','objectId','identityAgency','occurrenceOrdinals']
+        OR item - ARRAY['messageIndex','objectId','identityAgency','occurrenceOrdinals'] <> '{}'::jsonb
+        OR jsonb_typeof(item->'messageIndex') IS DISTINCT FROM 'number'
+        OR jsonb_typeof(item->'objectId') IS DISTINCT FROM 'string'
+        OR jsonb_typeof(item->'identityAgency') IS DISTINCT FROM 'string'
+        OR jsonb_typeof(item->'occurrenceOrdinals') IS DISTINCT FROM 'array' THEN
+        RAISE EXCEPTION 'received_discovery_observation_shape' USING ERRCODE='23514';
+      END IF;
+    END LOOP;
+    -- Every observed occurrence must appear exactly once in the membership
+    -- for its exact message/identity/agency tuple, preserving register repeats.
+    -- This compares the submitted arrays, never interprets canonical registers.
+    SELECT coalesce(jsonb_agg(jsonb_build_object('messageIndex',g.message_index,'objectId',g.object_id,
+        'identityAgency',g.agency,'occurrenceOrdinals',g.ordinals) ORDER BY g.first_ordinal),'[]'::jsonb)
+      INTO v_expected_objects
+      FROM (SELECT value->'messageIndex' AS message_index,value->'objectId' AS object_id,value->'identityAgency' AS agency,
+          jsonb_agg(value->'ordinal' ORDER BY ordinality) AS ordinals,min(ordinality) AS first_ordinal
+        FROM jsonb_array_elements(src->'occurrences') WITH ORDINALITY
+        WHERE value->>'identityStatus'='observed'
+        GROUP BY value->'messageIndex',value->'objectId',value->'identityAgency') g;
+    IF src->'objects' IS DISTINCT FROM v_expected_objects THEN
+      RAISE EXCEPTION 'received_discovery_observation_shape' USING ERRCODE='23514';
+    END IF;
+    IF EXISTS (SELECT FROM jsonb_array_elements(src->'issues') AS value WHERE jsonb_typeof(value) IS DISTINCT FROM 'string' OR value#>>'{}' !~ '^[a-z0-9_]{1,128}$') THEN
+      RAISE EXCEPTION 'received_discovery_observation_shape' USING ERRCODE='23514';
+    END IF;
+  END LOOP;
+  FOR item IN SELECT value FROM jsonb_array_elements(inv->'issues') LOOP
+    IF jsonb_typeof(item) IS DISTINCT FROM 'object' OR item - ARRAY['code','sourceMessageId'] <> '{}'::jsonb
+      OR coalesce(item->>'code','') !~ '^[a-z0-9_]{1,128}$'
+      OR (item ? 'sourceMessageId' AND NOT EXISTS(SELECT FROM jsonb_array_elements(inv->'sources') s WHERE s->>'sourceMessageId'=item->>'sourceMessageId')) THEN
+      RAISE EXCEPTION 'received_discovery_observation_shape' USING ERRCODE='23514';
+    END IF;
+  END LOOP;
+  v_hash:=encode(sha256(convert_to(p_inventory_text,'UTF8')),'hex');
+  INSERT INTO gridex_received_sources.discovery_attempts(snapshot_id,company_id,environment,engine_version,inventory_text,inventory_hash)
+    VALUES(snap.id,p_company_id,p_environment,p_engine_version,p_inventory_text,v_hash) RETURNING id INTO v_id;
+  RETURN jsonb_build_object('version',1,'companyId',p_company_id,'environment',p_environment,'snapshotId',snap.id,
+    'snapshotHash',snap.manifest_hash,'engineVersion',p_engine_version,'attemptId',v_id,'inventoryHash',v_hash);
+END $_$;
+
+--
+-- Name: append_object_assessment(uuid, text, uuid, text, uuid, text); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.append_object_assessment(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_canonical_assessment_id uuid, p_facts_text text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $_$
+DECLARE src gridex_received_sources.sources%rowtype; canonical gridex_received_sources.validation_assessments%rowtype;
+ facts jsonb; original jsonb; entry jsonb; scope jsonb; register_fact jsonb; business jsonb; party jsonb; records jsonb;
+ position integer:=0; prior uuid; result_id uuid; digest text; snapshot_text text; valid_owners boolean; owner_readsets jsonb:='[]'::jsonb;
+BEGIN
+ SELECT * INTO src FROM gridex_received_sources.sources WHERE source_message_id=p_source_message_id AND company_id=p_company_id AND environment=p_environment FOR UPDATE;
+ IF NOT FOUND OR src.payload_hash IS DISTINCT FROM p_source_payload_hash OR src.received_context IS NULL OR p_facts_text IS NULL OR octet_length(p_facts_text)>262144 THEN RAISE EXCEPTION 'source_object_scope_unavailable' USING ERRCODE='23514'; END IF;
+ SELECT * INTO canonical FROM gridex_received_sources.validation_assessments WHERE id=p_canonical_assessment_id AND source_message_id=src.source_message_id AND company_id=p_company_id AND environment=p_environment AND source_payload_hash=src.payload_hash;
+ IF NOT FOUND THEN RAISE EXCEPTION 'source_object_canonical_unavailable' USING ERRCODE='23514'; END IF;
+ facts:=p_facts_text::jsonb; original:=canonical.facts_text::jsonb;
+ IF jsonb_typeof(facts) IS DISTINCT FROM 'object' OR NOT facts ?& ARRAY['version','owner','ruleVersion','canonicalFactsHash','objects']
+ OR facts-ARRAY['version','owner','ruleVersion','canonicalFactsHash','objects']<>'{}'::jsonb
+ OR facts->'version' IS DISTINCT FROM '1'::jsonb OR facts->>'owner' IS DISTINCT FROM 'received-source-object-decisions-v1'
+ OR facts->>'ruleVersion' IS DISTINCT FROM '1' OR facts->>'canonicalFactsHash' IS DISTINCT FROM canonical.facts_hash
+ OR jsonb_typeof(facts->'objects') IS DISTINCT FROM 'array' OR jsonb_typeof(original#>'{registerValidation,objects}') IS DISTINCT FROM 'array' THEN RAISE EXCEPTION 'source_object_facts_invalid' USING ERRCODE='23514'; END IF;
+ IF jsonb_array_length(facts->'objects')<>jsonb_array_length(original#>'{registerValidation,objects}') OR jsonb_array_length(facts->'objects') NOT BETWEEN 1 AND 8192 THEN RAISE EXCEPTION 'source_object_membership_incomplete' USING ERRCODE='23514'; END IF;
+ FOR entry IN SELECT value FROM jsonb_array_elements(facts->'objects') LOOP
+  register_fact:=original#>ARRAY['registerValidation','objects',position::text];position:=position+1;
+  scope:=entry->'object';business:=entry->'business';party:=entry->'party';
+  IF jsonb_typeof(entry) IS DISTINCT FROM 'object' OR NOT entry ?& ARRAY['object','disposition','reasons','business','party']
+   OR entry-ARRAY['object','disposition','reasons','business','party']<>'{}'::jsonb OR scope IS DISTINCT FROM register_fact-ARRAY['disposition','reasons']
+   OR coalesce(entry->>'disposition','') NOT IN ('accepted','rejected','unavailable') OR jsonb_typeof(entry->'reasons') IS DISTINCT FROM 'array'
+   THEN RAISE EXCEPTION 'source_object_decision_invalid' USING ERRCODE='23514';END IF;
+  IF (entry->>'disposition'='accepted') IS DISTINCT FROM (jsonb_array_length(entry->'reasons')=0)
+   OR jsonb_array_length(entry->'reasons')>128 OR EXISTS(SELECT FROM jsonb_array_elements(entry->'reasons') r WHERE jsonb_typeof(r) IS DISTINCT FROM 'string' OR r#>>'{}' !~ '^[A-Za-z0-9_.:-]{1,128}$') THEN RAISE EXCEPTION 'source_object_reason_invalid' USING ERRCODE='23514'; END IF;
+  IF business<>'null'::jsonb AND (jsonb_typeof(business) IS DISTINCT FROM 'object' OR business->>'sourceMessageId' IS DISTINCT FROM src.source_message_id::text OR business->>'sourcePayloadHash' IS DISTINCT FROM src.payload_hash OR business->>'companyId' IS DISTINCT FROM p_company_id::text OR business->>'environment' IS DISTINCT FROM p_environment OR business->'object' IS DISTINCT FROM scope) THEN RAISE EXCEPTION 'source_object_business_scope_invalid' USING ERRCODE='23514'; END IF;
+  IF party<>'null'::jsonb AND (jsonb_typeof(party) IS DISTINCT FROM 'object' OR party#>>'{source,sourceMessageId}' IS DISTINCT FROM src.source_message_id::text OR party#>>'{source,sourcePayloadHash}' IS DISTINCT FROM src.payload_hash OR party#>>'{source,companyId}' IS DISTINCT FROM p_company_id::text OR party#>>'{source,environment}' IS DISTINCT FROM p_environment OR party->'object' IS DISTINCT FROM scope) THEN RAISE EXCEPTION 'source_object_party_scope_invalid' USING ERRCODE='23514'; END IF;
+  IF entry->>'disposition'='accepted' THEN
+   IF register_fact->>'disposition' IS DISTINCT FROM 'accepted' OR original->>'syntaxDecision' IS DISTINCT FROM 'accepted' OR original->>'applicationDecision' IS DISTINCT FROM 'accepted' OR original->>'functionalDecision' IS DISTINCT FROM 'accepted'
+    OR (CASE business->>'owner' WHEN 'inbound-z04-switch-confirmation-v1' THEN business->>'businessDisposition'='committed' WHEN 'reviewed-received-structure-v1' THEN business->>'businessDisposition'='reviewed' WHEN 'reviewed-received-closure-v1' THEN business->>'businessDisposition'='reviewed' ELSE false END) IS DISTINCT FROM true
+    OR business->'version' IS DISTINCT FROM '1'::jsonb OR party->'version' IS DISTINCT FROM '1'::jsonb
+    OR party->>'owner' IS DISTINCT FROM 'received-source-party-binding-v1' OR party->>'ruleVersion' IS DISTINCT FROM '1' OR party->>'disposition' IS DISTINCT FROM 'accepted'
+    OR party->'reasons' IS DISTINCT FROM '[]'::jsonb OR party#>>'{receiver,evidence,completeness}' IS DISTINCT FROM 'exact_count'
+    OR scope->>'identityAgency' IS DISTINCT FROM '9' OR party#>>'{facility,meteringPoint,id}' IS DISTINCT FROM business->>'meteringPointId'
+    OR party#>>'{facility,site,id}' IS DISTINCT FROM business->>'siteId' THEN RAISE EXCEPTION 'source_object_acceptance_unproven' USING ERRCODE='23514'; END IF;
+   records:=party#>'{receiver,evidence,records}';
+   -- All owner revalidation calls below share this SELECT's snapshot, rather
+   -- than treating independent earlier network reads as an atomic observation.
+   SELECT pg_current_snapshot()::text,
+    (CASE business->>'owner' WHEN 'inbound-z04-switch-confirmation-v1' THEN gridex_received_sources.object_owner_proof_consistent(party,business,src.source_received_at) WHEN 'reviewed-received-structure-v1' THEN gridex_received_sources.review_business_proof_consistent(party,business,src.source_message_id) WHEN 'reviewed-received-closure-v1' THEN gridex_received_sources.review_closure_proof_consistent(party,business,src.source_message_id) ELSE false END)
+    AND gridex_received_sources.owner_rows_match('profiles',records->'profiles',p_company_id,p_environment,NULL)
+    AND gridex_received_sources.owner_rows_match('identifiers',records->'identifiers',p_company_id,p_environment,NULL)
+    AND gridex_received_sources.owner_rows_match('roles',records->'roles',p_company_id,p_environment,(party#>>'{receiver,identity,legalActorId}')::uuid)
+    AND gridex_received_sources.owner_rows_match('relations',records->'relations',p_company_id,p_environment,NULL)
+    AND (CASE WHEN party#>>'{receiver,identity,representedByTransportAgent}'='true' THEN gridex_received_sources.owner_rows_match('transportIdentifiers',records->'transportIdentifiers',p_company_id,p_environment,(party#>>'{receiver,identity,transportActorId}')::uuid) ELSE records->'transportIdentifiers'='[]'::jsonb END)
+    AND gridex_received_sources.owner_rows_match('point',jsonb_build_array(party#>'{facility,meteringPoint}'),p_company_id,p_environment,(business->>'meteringPointId')::uuid)
+    AND gridex_received_sources.owner_rows_match('site',jsonb_build_array(party#>'{facility,site}'),p_company_id,p_environment,(business->>'siteId')::uuid)
+    AND gridex_received_sources.owner_rows_match('gridOwner',jsonb_build_array(party#>'{facility,gridOwner}'),p_company_id,p_environment,(party#>>'{facility,gridOwner,id}')::uuid)
+    AND (business->>'owner' IN ('reviewed-received-structure-v1','reviewed-received-closure-v1') OR EXISTS(SELECT FROM public.supplier_switch_requests sw JOIN public.customer_supply_periods sp ON sp.id=(business->>'supplyPeriodId')::uuid
+      WHERE sw.id=(business->>'switchRequestId')::uuid AND sw.company_id=p_company_id AND sp.company_id=p_company_id
+      AND sw.inbound_z04_message_id=src.source_message_id AND sp.source_message_id=src.source_message_id
+      AND sw.metering_point_id=(business->>'meteringPointId')::uuid AND sp.metering_point_id=sw.metering_point_id
+      AND sw.site_id=(business->>'siteId')::uuid AND sw.customer_id=(business->>'customerId')::uuid AND sp.customer_id=sw.customer_id
+      AND sw.status='accepted' AND sp.status='confirmed_by_grid_owner'
+      AND EXISTS(SELECT FROM public.metering_points mp JOIN public.customer_sites cs ON cs.id=mp.site_id WHERE mp.id=sw.metering_point_id AND mp.company_id=p_company_id AND cs.company_id=p_company_id AND mp.customer_id=sw.customer_id AND cs.customer_id=sw.customer_id AND cs.id=sw.site_id)
+      AND sw.confirmed_start_date::text=business#>>'{committedRecords,switch,confirmedStartDate}' AND sp.start_date::text=business#>>'{committedRecords,supply,startDate}'))
+   INTO snapshot_text,valid_owners;
+   IF valid_owners IS DISTINCT FROM true THEN RAISE EXCEPTION 'source_object_owner_snapshot_changed' USING ERRCODE='23514'; END IF;
+   owner_readsets:=owner_readsets||jsonb_build_array(jsonb_build_object('object',scope,'snapshot',snapshot_text,'observedAt',clock_timestamp()));
+  END IF;
+ END LOOP;
+ SELECT id INTO prior FROM gridex_received_sources.object_assessments a WHERE source_message_id=src.source_message_id AND NOT EXISTS(SELECT FROM gridex_received_sources.object_assessments child WHERE child.previous_assessment_id=a.id);
+ digest:=encode(sha256(convert_to(p_facts_text,'UTF8')),'hex');
+ INSERT INTO gridex_received_sources.object_assessments(source_message_id,company_id,environment,source_payload_hash,canonical_assessment_id,previous_assessment_id,facts_text,facts_hash,owner_readsets)
+ VALUES(src.source_message_id,p_company_id,p_environment,src.payload_hash,canonical.id,prior,p_facts_text,digest,owner_readsets) RETURNING id INTO result_id;
+ RETURN jsonb_build_object('version',1,'assessmentId',result_id,'companyId',p_company_id,'environment',p_environment,'sourceMessageId',src.source_message_id,'sourcePayloadHash',src.payload_hash,'canonicalAssessmentId',canonical.id,'factsHash',digest);
+END $_$;
+
+--
+-- Name: append_validation(uuid, text, uuid, text, text); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.append_validation(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE src gridex_received_sources.sources%rowtype; facts jsonb; pack jsonb; v_previous uuid; v_id uuid; v_hash text; facet jsonb; obj jsonb; reg jsonb; key text; object_keys text[]:=ARRAY[]::text[]; line_ids text[]:=ARRAY[]::text[]; segment_ids int[]:=ARRAY[]::int[]; previous_segment int; position int;
+BEGIN
+  -- Lock per source before selecting a predecessor. Concurrent assessments
+  -- append a single linked sequence; no UPDATE of historic decisions occurs.
+  SELECT * INTO src FROM gridex_received_sources.sources WHERE source_message_id=p_source_message_id
+    AND company_id=p_company_id AND environment=p_environment FOR UPDATE;
+  IF NOT FOUND OR src.payload_hash IS NULL OR src.received_context IS NULL
+    OR p_source_payload_hash IS DISTINCT FROM src.payload_hash OR p_facts_text IS NULL OR octet_length(p_facts_text)>65536 THEN
+    RAISE EXCEPTION 'received_validation_source_unavailable' USING ERRCODE='23514';
+  END IF;
+  facts:=p_facts_text::jsonb;
+  IF jsonb_typeof(facts) IS DISTINCT FROM 'object'
+    OR facts - ARRAY['version','owner','sourceDisposition','objectDisposition','partyDisposition','coverage','originalTenantMatch','syntaxDecision','applicationDecision','functionalDecision','messageReference','reasonCodes','rulePackEvidence','registerValidation'] <> '{}'::jsonb
+    OR facts->'version' IS DISTINCT FROM '1'::jsonb OR facts->>'owner' IS DISTINCT FROM 'canonical-runtime-with-registry-v1'
+    OR facts->>'sourceDisposition' IS DISTINCT FROM 'not_established' OR facts->>'objectDisposition' IS DISTINCT FROM 'not_checked'
+    OR facts->>'partyDisposition' IS DISTINCT FROM 'not_checked' OR facts->>'coverage' IS DISTINCT FROM 'canonical_runtime_only'
+    OR facts->>'originalTenantMatch' IS DISTINCT FROM 'matched'
+    OR coalesce(facts->>'syntaxDecision','') NOT IN ('accepted','rejected','not_applicable','manual_review')
+    OR coalesce(facts->>'applicationDecision','') NOT IN ('accepted','rejected','not_applicable','manual_review')
+    OR coalesce(facts->>'functionalDecision','') NOT IN ('accepted','rejected','not_applicable','manual_review')
+    OR jsonb_typeof(facts->'reasonCodes') IS DISTINCT FROM 'array' OR jsonb_array_length(facts->'reasonCodes')>128
+    OR coalesce(jsonb_typeof(facts->'messageReference'),'missing') NOT IN ('string','null')
+    OR length(coalesce(facts->>'messageReference',''))>128 THEN
+    RAISE EXCEPTION 'received_validation_not_source_approval' USING ERRCODE='23514';
+  END IF;
+  IF EXISTS (SELECT FROM jsonb_array_elements(facts->'reasonCodes') AS value WHERE jsonb_typeof(value) IS DISTINCT FROM 'string' OR value#>>'{}' !~ '^[A-Za-z0-9_.:-]{1,128}$') THEN
+    RAISE EXCEPTION 'received_validation_reason_unavailable' USING ERRCODE='23514';
+  END IF;
+  pack:=facts->'rulePackEvidence';
+  IF facts->>'applicationDecision'='accepted' AND (pack IS NULL OR pack='null'::jsonb) THEN
+    RAISE EXCEPTION 'received_validation_rule_evidence_unavailable' USING ERRCODE='23514';
+  END IF;
+  IF pack IS DISTINCT FROM 'null'::jsonb THEN
+    IF jsonb_typeof(pack) IS DISTINCT FROM 'object' OR pack - ARRAY['profileKey','messageProfileId','rulePackId','sourceHash'] <> '{}'::jsonb
+      OR NOT EXISTS(SELECT FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs rulepack ON rulepack.id=profile.rule_pack_id
+        WHERE profile.id::text=pack->>'messageProfileId' AND profile.profile_key=pack->>'profileKey'
+          AND rulepack.id::text=pack->>'rulePackId' AND rulepack.source_hash=pack->>'sourceHash') THEN
+      RAISE EXCEPTION 'received_validation_rule_evidence_unavailable' USING ERRCODE='23514';
+    END IF;
+  END IF;
+  -- Optional live-owner register facet. Historical facet-only callers remain
+  -- valid. This never grants full source, tenant, legal-party or business approval.
+  IF facts ? 'registerValidation' THEN
+    facet:=facts->'registerValidation';
+    IF pack IS NULL OR pack='null'::jsonb OR jsonb_typeof(facet) IS DISTINCT FROM 'object'
+      OR NOT facet ?& ARRAY['version','owner','coverage','objects']
+      OR facet-ARRAY['version','owner','coverage','objects'] <> '{}'::jsonb
+      OR facet->'version' IS DISTINCT FROM '1'::jsonb
+      OR facet->>'owner' IS DISTINCT FROM 'validateProdatRegisterPolicy'
+      OR facet->>'coverage' IS DISTINCT FROM 'canonical_register_only'
+      OR jsonb_typeof(facet->'objects') IS DISTINCT FROM 'array' THEN
+      RAISE EXCEPTION 'received_register_facet_invalid' USING ERRCODE='23514';
+    END IF;
+    IF jsonb_array_length(facet->'objects')>8192 THEN
+      RAISE EXCEPTION 'received_register_facet_budget' USING ERRCODE='23514';
+    END IF;
+    FOR obj IN SELECT value FROM jsonb_array_elements(facet->'objects') LOOP
+      IF jsonb_typeof(obj) IS DISTINCT FROM 'object'
+        OR NOT obj ?& ARRAY['messageIndex','messageReference','objectId','identityAgency','disposition','registers','reasons']
+        OR obj-ARRAY['messageIndex','messageReference','objectId','identityAgency','disposition','registers','reasons'] <> '{}'::jsonb
+        OR jsonb_typeof(obj->'messageIndex') IS DISTINCT FROM 'number'
+        OR coalesce(obj->>'messageIndex','') !~ '^(-1|[0-9]{1,4})$'
+        OR coalesce(obj->>'disposition','') NOT IN ('accepted','rejected','unavailable')
+        OR jsonb_typeof(obj->'registers') IS DISTINCT FROM 'array'
+        OR jsonb_typeof(obj->'reasons') IS DISTINCT FROM 'array' THEN
+        RAISE EXCEPTION 'received_register_object_invalid' USING ERRCODE='23514';
+      END IF;
+      IF (obj->>'messageIndex')::int>=8192 OR jsonb_array_length(obj->'registers') NOT BETWEEN 1 AND 8192
+        OR jsonb_array_length(obj->'reasons')>128 THEN
+        RAISE EXCEPTION 'received_register_object_budget' USING ERRCODE='23514';
+      END IF;
+      FOREACH key IN ARRAY ARRAY['messageReference','objectId','identityAgency'] LOOP
+        IF obj->key IS DISTINCT FROM 'null'::jsonb AND (jsonb_typeof(obj->key) IS DISTINCT FROM 'string'
+          OR length(obj->>key) NOT BETWEEN 1 AND 128 OR obj->>key <> btrim(obj->>key) OR obj->>key ~ '[[:cntrl:]]') THEN
+          RAISE EXCEPTION 'received_register_identity_invalid' USING ERRCODE='23514';
+        END IF;
+      END LOOP;
+      IF obj->>'disposition'<>'unavailable' AND ((obj->>'messageIndex')::int<>0 OR jsonb_typeof(obj->'messageReference')<>'string'
+        OR jsonb_typeof(obj->'objectId')<>'string' OR coalesce(obj->>'identityAgency','') NOT IN ('9','89')) THEN
+        RAISE EXCEPTION 'received_register_unvalidated_scope' USING ERRCODE='23514';
+      END IF;
+      IF (obj->>'disposition'='accepted') IS DISTINCT FROM (jsonb_array_length(obj->'reasons')=0)
+        OR EXISTS(SELECT FROM jsonb_array_elements(obj->'reasons') r WHERE jsonb_typeof(r) IS DISTINCT FROM 'string' OR r#>>'{}' !~ '^[A-Za-z0-9_.:-]{1,128}$')
+        OR (SELECT count(*)<>count(DISTINCT r) FROM jsonb_array_elements(obj->'reasons') r) THEN
+        RAISE EXCEPTION 'received_register_reason_invalid' USING ERRCODE='23514';
+      END IF;
+      key:=jsonb_build_array(obj->'messageIndex',obj->'objectId',obj->'identityAgency',CASE WHEN obj->'objectId'='null'::jsonb THEN obj#>'{registers,0,lineIndex}' ELSE 'null'::jsonb END)::text;
+      IF key=ANY(object_keys) THEN RAISE EXCEPTION 'received_register_duplicate_object' USING ERRCODE='23514'; END IF;
+      object_keys:=array_append(object_keys,key);
+      previous_segment:=-1; position:=0;
+      FOR reg IN SELECT value FROM jsonb_array_elements(obj->'registers') LOOP
+        position:=position+1;
+        IF jsonb_typeof(reg) IS DISTINCT FROM 'object'
+          OR NOT reg ?& ARRAY['lineIndex','lineNumber','registerIndex','registerPosition','segmentIndex']
+          OR reg-ARRAY['lineIndex','lineNumber','registerIndex','registerPosition','segmentIndex'] <> '{}'::jsonb THEN
+          RAISE EXCEPTION 'received_register_occurrence_invalid' USING ERRCODE='23514';
+        END IF;
+        FOREACH key IN ARRAY ARRAY['lineIndex','registerPosition','segmentIndex'] LOOP
+          IF jsonb_typeof(reg->key) IS DISTINCT FROM 'number' OR coalesce(reg->>key,'') !~ '^[0-9]{1,4}$' THEN
+            RAISE EXCEPTION 'received_register_index_invalid' USING ERRCODE='23514';
+          END IF;
+          IF (reg->>key)::int>=8192 THEN RAISE EXCEPTION 'received_register_index_budget' USING ERRCODE='23514'; END IF;
+        END LOOP;
+        FOREACH key IN ARRAY ARRAY['lineNumber','registerIndex'] LOOP
+          IF reg->key IS DISTINCT FROM 'null'::jsonb AND (jsonb_typeof(reg->key) IS DISTINCT FROM 'string'
+            OR length(reg->>key) NOT BETWEEN 1 AND 128 OR reg->>key<>btrim(reg->>key) OR reg->>key ~ '[[:cntrl:]]') THEN
+            RAISE EXCEPTION 'received_register_wire_index_invalid' USING ERRCODE='23514';
+          END IF;
+        END LOOP;
+        IF (reg->>'registerPosition')::int<>position OR (reg->>'segmentIndex')::int<=previous_segment
+          OR jsonb_build_array(obj->'messageIndex',reg->'lineIndex')::text=ANY(line_ids) OR (reg->>'segmentIndex')::int=ANY(segment_ids) THEN
+          RAISE EXCEPTION 'received_register_occurrence_conflict' USING ERRCODE='23514';
+        END IF;
+        line_ids:=array_append(line_ids,jsonb_build_array(obj->'messageIndex',reg->'lineIndex')::text);
+        segment_ids:=array_append(segment_ids,(reg->>'segmentIndex')::int);
+        previous_segment:=(reg->>'segmentIndex')::int;
+      END LOOP;
+    END LOOP;
+  END IF;
+  SELECT prior.id INTO v_previous FROM gridex_received_sources.validation_assessments prior WHERE prior.source_message_id=src.source_message_id
+    AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=prior.id);
+  v_hash:=encode(sha256(convert_to(p_facts_text,'UTF8')),'hex');
+  INSERT INTO gridex_received_sources.validation_assessments(source_message_id,company_id,environment,source_payload_hash,previous_assessment_id,facts_text,facts_hash)
+    VALUES(src.source_message_id,p_company_id,p_environment,src.payload_hash,v_previous,p_facts_text,v_hash) RETURNING id INTO v_id;
+  RETURN jsonb_build_object('version',1,'assessmentId',v_id,'companyId',p_company_id,'environment',p_environment,
+    'sourceMessageId',src.source_message_id,'sourcePayloadHash',src.payload_hash,'factsHash',v_hash,'sourceDisposition','not_established');
+END $_$;
+
+--
+-- Name: capture_insert(); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.capture_insert() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  IF TG_OP <> 'INSERT' OR TG_TABLE_SCHEMA <> 'public' OR TG_TABLE_NAME <> 'ediel_messages' THEN
+    RAISE EXCEPTION 'received_source_capture_invalid_owner' USING ERRCODE = '23514';
+  END IF;
+  IF NEW.direction = 'inbound' AND upper(coalesce(NEW.message_family, '')) = 'PRODAT'
+     AND NEW.message_standard = 'edifact' THEN
+    -- AFTER INSERT observes the final row after PR369's BEFORE trigger sealed
+    -- the source. Only database-owned original columns are copied; no status,
+    -- mutable metering link, parsed_payload or validation_report is authority.
+    INSERT INTO gridex_received_sources.sources (
+      source_message_id, company_id, environment, origin, message_code,
+      source_received_at, captured_at, raw_payload, payload_hash, received_context
+    ) VALUES (
+      NEW.id, NEW.company_id, NEW.environment, 'database_insert', NEW.message_code,
+      NEW.message_received_at, clock_timestamp(), NEW.raw_payload,
+      NEW.immutable_payload_hash,
+      NEW.execution_context_snapshot -> 'receivedProdatContext'
+    );
+    -- No ON CONFLICT DO NOTHING. Reusing a deleted source ID must not silently
+    -- attach a different receipt to old history. Normal retries are UPDATEs.
+  END IF;
+  RETURN NEW;
+END
+$$;
+
+--
+-- Name: closure_wire_matches_v1(text, jsonb, jsonb); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.closure_wire_matches_v1(p_raw text, p_object jsonb, p_wire jsonb) RETURNS boolean
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+ SELECT coalesce(gridex_received_sources.closure_wire_projection_v1(p_raw,p_object)=p_wire,false)
+$$;
+
+--
+-- Name: closure_wire_projection_v1(text, jsonb); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.closure_wire_projection_v1(p_raw text, p_object jsonb) RETURNS jsonb
+    LANGUAGE plpgsql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $_$
+DECLARE
+ tokens jsonb:=gridex_received_sources.closure_wire_tokens_v1(p_raw); token jsonb; e jsonb;
+ unb jsonb; unh jsonb; unt jsonb; unz jsonb; bgm jsonb; fr jsonb; receiver jsonb; zone jsonb;
+ n integer; first_line integer; stop_index integer; chosen_index integer; next_line integer;
+ line_index integer:=0; object_value jsonb; selected_object jsonb; identities jsonb:='[]'; identity_value jsonb;
+ selected_date jsonb; selected_reason jsonb; selected_reference jsonb; common_end integer; reference_end integer;
+ date_count integer:=0; reason_count integer:=0; reference_count integer:=0;
+ reason text; minute text; market_time timestamp; utc_value timestamptz; tag_name text;
+BEGIN
+ IF tokens IS NULL OR jsonb_typeof(p_object) IS DISTINCT FROM 'object' THEN RETURN NULL; END IF;
+ n:=jsonb_array_length(tokens);
+ IF n<8 THEN RETURN NULL; END IF;
+ FOREACH tag_name IN ARRAY ARRAY['UNB','UNH','UNT','UNZ','BGM'] LOOP
+  IF (SELECT count(*) FROM jsonb_array_elements(tokens) t WHERE t->>'tag'=tag_name)<>1 THEN RETURN NULL; END IF;
+ END LOOP;
+ unb:=tokens->0;unh:=tokens->1;unt:=tokens->(n-2);unz:=tokens->(n-1);
+ SELECT t INTO bgm FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='BGM';
+ SELECT min((t->>'index')::integer) INTO first_line FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='LIN';
+ IF first_line IS NULL OR unb->>'tag'<>'UNB' OR unh->>'tag'<>'UNH' OR unt->>'tag'<>'UNT' OR unz->>'tag'<>'UNZ'
+ OR (bgm->>'index')::integer<=1 OR (bgm->>'index')::integer>=first_line
+ OR unb#>>'{elements,1,1}' IS DISTINCT FROM '3' OR unh#>>'{elements,2,0}' IS DISTINCT FROM 'PRODAT'
+ OR jsonb_array_length(unh#>'{elements,1}') IS DISTINCT FROM 1 OR nullif(unh#>>'{elements,1,0}','') IS NULL
+ OR unt#>'{elements,2}' IS DISTINCT FROM unh#>'{elements,1}'
+ OR unt#>'{elements,1}' IS DISTINCT FROM jsonb_build_array((n-2)::text)
+ OR unz#>'{elements,1}' IS DISTINCT FROM '["1"]'::jsonb
+ OR jsonb_array_length(unb#>'{elements,5}') IS DISTINCT FROM 1 OR nullif(unb#>>'{elements,5,0}','') IS NULL
+ OR unz#>'{elements,2}' IS DISTINCT FROM unb#>'{elements,5}'
+ OR bgm#>'{elements,1}' IS DISTINCT FROM '["Z05"]'::jsonb
+ OR jsonb_array_length(bgm#>'{elements,2}') IS DISTINCT FROM 1 OR nullif(bgm#>>'{elements,2,0}','') IS NULL
+ OR coalesce(bgm#>'{elements,3}','[""]'::jsonb) NOT IN ('["9"]'::jsonb,'[""]'::jsonb) THEN RETURN NULL; END IF;
+ IF (SELECT count(*) FROM jsonb_array_elements(tokens) t WHERE (t->>'index')::int<first_line AND t->>'tag'='NAD' AND t#>'{elements,1}'='["FR"]'::jsonb)<>1
+ OR (SELECT count(*) FROM jsonb_array_elements(tokens) t WHERE (t->>'index')::int<first_line AND t->>'tag'='NAD' AND t#>'{elements,1}'='["DO"]'::jsonb)<>1
+ OR (SELECT count(*) FROM jsonb_array_elements(tokens) t WHERE (t->>'index')::int<first_line AND t->>'tag'='DTM' AND t#>>'{elements,1,0}'='ZZZ')<>1 THEN RETURN NULL; END IF;
+ SELECT t->'elements' INTO fr FROM jsonb_array_elements(tokens) t WHERE (t->>'index')::int<first_line AND t->>'tag'='NAD' AND t#>'{elements,1}'='["FR"]'::jsonb;
+ SELECT t->'elements' INTO receiver FROM jsonb_array_elements(tokens) t WHERE (t->>'index')::int<first_line AND t->>'tag'='NAD' AND t#>'{elements,1}'='["DO"]'::jsonb;
+ SELECT t#>'{elements,1}' INTO zone FROM jsonb_array_elements(tokens) t WHERE (t->>'index')::int<first_line AND t->>'tag'='DTM' AND t#>>'{elements,1,0}'='ZZZ';
+ IF zone IS DISTINCT FROM '["ZZZ","1","805"]'::jsonb
+ OR jsonb_array_length(fr->2) IS DISTINCT FROM 3 OR jsonb_array_length(receiver->2) IS DISTINCT FROM 3
+ OR fr#>>'{2,1}' IS DISTINCT FROM '160' OR fr#>>'{2,2}' IS DISTINCT FROM 'SVK'
+ OR receiver#>>'{2,1}' IS DISTINCT FROM '160' OR receiver#>>'{2,2}' IS DISTINCT FROM 'SVK'
+ OR nullif(fr#>>'{2,0}','') IS NULL OR fr#>>'{2,0}'<>btrim(fr#>>'{2,0}')
+ OR nullif(receiver#>>'{2,0}','') IS NULL OR receiver#>>'{2,0}'<>btrim(receiver#>>'{2,0}')
+ OR jsonb_array_length(unb#>'{elements,2}') IS DISTINCT FROM 2 OR jsonb_array_length(unb#>'{elements,3}') IS DISTINCT FROM 2
+ OR unb#>>'{elements,2,0}' IS DISTINCT FROM fr#>>'{2,0}'
+ OR unb#>>'{elements,2,1}' NOT IN ('14','ZZ') OR unb#>>'{elements,3,1}' NOT IN ('14','ZZ')
+ OR nullif(unb#>>'{elements,3,0}','') IS NULL OR unb#>>'{elements,3,0}'<>btrim(unb#>>'{elements,3,0}') THEN RETURN NULL; END IF;
+ -- Enumerate and validate EVERY physical LIN before matching caller scope.
+ -- No caller offset or object ID selects an alleged segment as authority.
+ FOR token IN SELECT t FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='LIN' ORDER BY (t->>'index')::integer LOOP
+  e:=token->'elements';stop_index:=(token->>'index')::integer;
+  IF stop_index<=1 OR stop_index>=n-2 OR jsonb_array_length(e)<>4
+  OR e->1 IS DISTINCT FROM jsonb_build_array((line_index+1)::text)
+  OR jsonb_array_length(e->3) IS DISTINCT FROM 4 OR nullif(e#>>'{3,0}','') IS NULL
+  OR e#>>'{3,3}' IS DISTINCT FROM '9' OR e#>>'{3,1}' IS DISTINCT FROM '' OR e#>>'{3,2}' IS DISTINCT FROM ''
+  THEN RETURN NULL; END IF;
+  identity_value:=jsonb_build_array(e#>>'{3,0}',e#>>'{3,3}');
+  IF identities @> jsonb_build_array(identity_value) THEN RETURN NULL; END IF;
+  identities:=identities||jsonb_build_array(identity_value);
+  object_value:=jsonb_build_object('messageIndex',0,'messageReference',unh#>>'{elements,1,0}',
+    'objectId',e#>>'{3,0}','identityAgency',e#>>'{3,3}','registers',jsonb_build_array(jsonb_build_object(
+      'lineIndex',line_index,'lineNumber',e#>>'{1,0}','registerIndex',NULL,'registerPosition',1,'segmentIndex',stop_index)));
+  IF object_value=p_object THEN selected_object:=object_value;chosen_index:=stop_index; END IF;
+  line_index:=line_index+1;
+ END LOOP;
+ IF selected_object IS NULL THEN RETURN NULL; END IF;
+ SELECT min((t->>'index')::integer) INTO next_line FROM jsonb_array_elements(tokens) t
+ WHERE (t->>'index')::integer>chosen_index AND t->>'tag' IN ('LIN','UNT');
+ SELECT coalesce(min((t->>'index')::integer),next_line) INTO common_end FROM jsonb_array_elements(tokens) t
+ WHERE (t->>'index')::integer>chosen_index AND (t->>'index')::integer<next_line AND t->>'tag' IN ('RFF','NAD');
+ SELECT coalesce(min((t->>'index')::integer),next_line) INTO reference_end FROM jsonb_array_elements(tokens) t
+ WHERE (t->>'index')::integer>chosen_index AND (t->>'index')::integer<next_line AND t->>'tag'='NAD';
+ FOR token IN SELECT t FROM jsonb_array_elements(tokens) t WHERE (t->>'index')::integer>chosen_index AND (t->>'index')::integer<next_line LOOP
+  e:=token->'elements';stop_index:=(token->>'index')::integer;
+  IF stop_index<common_end AND token->>'tag'='DTM' AND e#>>'{1,0}'='93' THEN
+   date_count:=date_count+1;selected_date:=e->1;
+  END IF;
+  IF stop_index<common_end AND token->>'tag'='CCI' AND e#>'{2}'='["Z13"]'::jsonb THEN
+   reason_count:=reason_count+1;
+   IF stop_index+1>=common_end OR tokens->(stop_index+1)->>'tag'<>'CAV' THEN RETURN NULL; END IF;
+   selected_reason:=tokens->(stop_index+1)#>'{elements,1}';
+  END IF;
+  IF stop_index<reference_end AND token->>'tag'='RFF' AND e#>>'{1,0}'='LI' THEN
+   reference_count:=reference_count+1;selected_reference:=e->1;
+  END IF;
+ END LOOP;
+ IF date_count<>1 OR reason_count<>1 OR reference_count<>1 OR jsonb_array_length(selected_date) IS DISTINCT FROM 3
+ OR selected_date->>2 IS DISTINCT FROM '203' OR jsonb_array_length(selected_reason) IS DISTINCT FROM 1
+ OR selected_reason NOT IN ('["Z22"]'::jsonb,'["Z23"]'::jsonb)
+ OR jsonb_array_length(selected_reference) IS DISTINCT FROM 2 OR nullif(selected_reference->>1,'') IS NULL THEN RETURN NULL; END IF;
+ minute:=selected_date->>1;reason:=selected_reason->>0;
+ IF minute IS NULL OR minute !~ '^[0-9]{12}$' OR substring(minute,1,4)::int<1 OR substring(minute,9,2)::int>23 OR substring(minute,11,2)::int>59 THEN RETURN NULL; END IF;
+ market_time:=make_timestamp(substring(minute,1,4)::int,substring(minute,5,2)::int,substring(minute,7,2)::int,substring(minute,9,2)::int,substring(minute,11,2)::int,0);
+ utc_value:=market_time AT TIME ZONE 'Etc/GMT-1';
+ IF NOT isfinite(utc_value) THEN RETURN NULL; END IF;
+ RETURN jsonb_build_object('object',selected_object,'messageCode','Z05','subtype',CASE reason WHEN 'Z22' THEN 'L' ELSE 'LK' END,'reason',reason,
+  'functionCode',nullif(bgm#>>'{elements,3,0}',''),'documentReference',bgm#>>'{elements,2,0}','caseReference',selected_reference->>1,
+  'effectiveTo',jsonb_build_object('fieldNumber','211','marketMinute',minute,'utc',to_char(utc_value AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')),
+  'legalSender',fr#>>'{2,0}','legalReceiver',receiver#>>'{2,0}',
+  'transportSender',unb#>>'{elements,2,0}','transportReceiver',unb#>>'{elements,3,0}',
+  'transportSenderQualifier',unb#>>'{elements,2,1}','transportReceiverQualifier',unb#>>'{elements,3,1}');
+EXCEPTION WHEN invalid_text_representation OR invalid_datetime_format OR datetime_field_overflow OR numeric_value_out_of_range OR invalid_parameter_value THEN RETURN NULL;
+END $_$;
+
+--
+-- Name: closure_wire_tokens_v1(text); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.closure_wire_tokens_v1(p_raw text) RETURNS jsonb
+    LANGUAGE plpgsql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE
+ component_sep text:=':'; data_sep text:='+'; release_char text:='?'; terminator text:='''';
+ decimal_mark text:='.'; reserved text:=' '; body text; ch text; chars text[];
+ released boolean:=false; current_component text:=''; current_element jsonb:='[]'; elements jsonb:='[]';
+ result jsonb:='[]'; tag text; segment_count integer:=0; line_count integer:=0;
+ component_size integer:=0; component_count integer:=0; element_count integer:=0;
+BEGIN
+ IF p_raw IS NULL OR octet_length(p_raw)>262144 THEN RETURN NULL; END IF;
+ -- Read advice before CRLF/LF normalization. No inferred repetition grammar.
+ body:=p_raw;
+ IF upper(left(body,3))='UNA' THEN
+  IF left(body,3)<>'UNA' OR char_length(body)<9 THEN RETURN NULL; END IF;
+  component_sep:=substr(body,4,1);data_sep:=substr(body,5,1);decimal_mark:=substr(body,6,1);
+  release_char:=substr(body,7,1);reserved:=substr(body,8,1);terminator:=substr(body,9,1);body:=substr(body,10);
+ END IF;
+ IF reserved<>' ' OR decimal_mark NOT IN ('.',',')
+ OR decimal_mark=ANY(ARRAY[component_sep,data_sep,release_char,terminator])
+ OR (SELECT count(DISTINCT value) FROM unnest(ARRAY[component_sep,data_sep,release_char,terminator]) value)<>4
+ OR EXISTS(SELECT FROM unnest(ARRAY[component_sep,data_sep,release_char,terminator]) value
+   WHERE ascii(value)<33 OR ascii(value)>126 OR value ~ '[A-Za-z0-9]') THEN RETURN NULL; END IF;
+ body:=replace(replace(body,E'\r\n',''),E'\n','');
+ IF strpos(body,E'\r')>0 OR right(body,1)<>terminator THEN RETURN NULL; END IF;
+ -- NULL delimiter enumerates code points, NOT segments/elements. Exactly one
+ -- state machine consumes these; decoded literals are never split again.
+ chars:=string_to_array(body,NULL);
+ FOREACH ch IN ARRAY chars LOOP
+  IF released THEN
+   current_component:=current_component||ch;component_size:=component_size+1;released:=false;
+  ELSIF ch=release_char THEN released:=true;
+  ELSIF ch=component_sep OR ch=data_sep OR ch=terminator THEN
+   -- Match canonical leading segment trim. Other whitespace forms are held
+   -- explicitly; in particular a released trailing space must not be trimmed.
+   IF elements='[]'::jsonb AND current_element='[]'::jsonb THEN current_component:=ltrim(current_component,E' \t'); END IF;
+   IF ch=terminator AND current_component<>rtrim(current_component,E' \t') THEN RETURN NULL; END IF;
+   IF ch=terminator AND elements='[]'::jsonb AND current_element='[]'::jsonb AND current_component='' THEN CONTINUE; END IF;
+   current_element:=current_element||jsonb_build_array(current_component);component_count:=component_count+1;
+   current_component:='';component_size:=0;
+   IF component_count>128 THEN RETURN NULL; END IF;
+   IF ch<>component_sep THEN
+    elements:=elements||jsonb_build_array(current_element);element_count:=element_count+1;
+    current_element:='[]';component_count:=0;
+    IF element_count>128 THEN RETURN NULL; END IF;
+   END IF;
+   IF ch=terminator THEN
+    tag:=elements#>>'{0,0}';
+    IF jsonb_array_length(elements->0)<>1 OR tag !~ '^[A-Z]{3}$' OR tag='UNA' THEN RETURN NULL; END IF;
+    IF tag='LIN' THEN line_count:=line_count+1; END IF;
+    IF segment_count>=4096 OR line_count>16 THEN RETURN NULL; END IF;
+    result:=result||jsonb_build_array(jsonb_build_object('index',segment_count,'tag',tag,'elements',elements));
+    segment_count:=segment_count+1;elements:='[]';element_count:=0;
+   END IF;
+  ELSE current_component:=current_component||ch;component_size:=component_size+1;
+  END IF;
+  IF component_size>4096 THEN RETURN NULL; END IF;
+ END LOOP;
+ IF released OR current_component<>'' OR elements<>'[]'::jsonb OR current_element<>'[]'::jsonb THEN RETURN NULL; END IF;
+ RETURN result;
+END $_$;
+
+--
+-- Name: object_owner_proof_consistent(jsonb, jsonb, timestamp with time zone); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.object_owner_proof_consistent(p_party jsonb, p_business jsonb, p_received timestamp with time zone) RETURNS boolean
+    LANGUAGE plpgsql STABLE
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $_$
+DECLARE identity jsonb:=p_party#>'{receiver,identity}'; evidence jsonb:=p_party#>'{receiver,evidence}';
+ records jsonb:=evidence->'records'; facility jsonb:=p_party->'facility'; parties jsonb:=p_party->'parties';
+ effective jsonb:=p_business->'effectiveFrom'; commit_row jsonb; name text; stamp text; instant timestamptz;
+ party_start timestamptz; party_end timestamptz; evaluated timestamptz; role_values text[]; supplied_roles text[];
+ actor_count bigint; identifier_count bigint; selected_actor_id uuid; legal_id text; relation_count bigint;
+ relation_id uuid; transport_actor uuid; transport_id text; minute text; market_time timestamp; expected_day text;
+BEGIN
+ IF p_received IS NULL OR NOT isfinite(p_received)
+  OR p_business->>'coverage' IS DISTINCT FROM 'committed_switch_and_supply_only'
+  OR p_business->>'sourceDisposition' IS DISTINCT FROM 'not_established'
+  OR p_business->>'graphNamespace' IS DISTINCT FROM 'legacy_unqualified'
+  OR p_party->>'historicalKnowledge' IS DISTINCT FROM 'not_established'
+  OR p_party->>'authentication' IS DISTINCT FROM 'not_assessed'
+  OR evidence->'version' IS DISTINCT FROM '1'::jsonb
+  OR evidence->>'owner' IS DISTINCT FROM 'canonical-tenant-ediel-identity-v1'
+  OR evidence->>'consistency' IS DISTINCT FROM 'independent_reads'
+  OR evidence->>'historicalKnowledge' IS DISTINCT FROM 'not_established'
+  OR evidence->>'sourceDisposition' IS DISTINCT FROM 'not_established'
+  OR facility->>'owner' IS DISTINCT FROM 'selected-facility-grid-owner-v1'
+  OR facility->>'consistency' IS DISTINCT FROM 'independent_reads'
+  OR facility->>'historicalKnowledge' IS DISTINCT FROM 'not_established'
+  OR identity->>'companyId' IS DISTINCT FROM p_business->>'companyId'
+  OR identity->>'environment' IS DISTINCT FROM p_business->>'environment'
+  OR jsonb_typeof(identity->'representedByTransportAgent') IS DISTINCT FROM 'boolean'
+  OR jsonb_typeof(identity->'roleCodes') IS DISTINCT FROM 'array'
+  OR jsonb_typeof(parties) IS DISTINCT FROM 'object' THEN RETURN false; END IF;
+ -- PostgreSQL's timestamp/date types own calendar parsing. Reject infinities,
+ -- date-only spellings and excess fractional precision before typed equality.
+ FOR stamp IN SELECT value FROM unnest(ARRAY[p_business->>'assessedAt',p_business->>'sourceReceivedAt',
+  p_party#>>'{source,receivedAt}',p_party->>'assessedAt',p_party->>'completedAt',evidence->>'evaluatedAt',
+  evidence->>'observedAt',evidence->>'completedAt',facility->>'observedAt',facility->>'completedAt']) value LOOP
+  IF stamp IS NULL OR stamp !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$' THEN RETURN false; END IF;
+  instant:=stamp::timestamptz;
+  IF NOT isfinite(instant) OR instant<p_received OR instant>statement_timestamp() THEN RETURN false; END IF;
+ END LOOP;
+ party_start:=(p_party->>'assessedAt')::timestamptz;party_end:=(p_party->>'completedAt')::timestamptz;evaluated:=(evidence->>'evaluatedAt')::timestamptz;
+ IF (p_business->>'sourceReceivedAt')::timestamptz<>p_received OR (p_party#>>'{source,receivedAt}')::timestamptz<>p_received
+  OR party_end<party_start OR evaluated<>party_start
+  OR (evidence->>'observedAt')::timestamptz<evaluated OR (evidence->>'completedAt')::timestamptz<(evidence->>'observedAt')::timestamptz
+  OR (evidence->>'completedAt')::timestamptz>party_end
+  OR (facility->>'observedAt')::timestamptz<party_start OR (facility->>'completedAt')::timestamptz<(facility->>'observedAt')::timestamptz
+  OR (facility->>'completedAt')::timestamptz>party_end THEN RETURN false; END IF;
+ FOREACH name IN ARRAY ARRAY['legalSender','legalReceiver','transportSender','transportReceiver'] LOOP
+  IF jsonb_typeof(parties->name) IS DISTINCT FROM 'string' OR length(parties->>name) NOT BETWEEN 1 AND 128
+   OR parties->>name<>btrim(parties->>name) THEN RETURN false; END IF;
+ END LOOP;
+ -- Same half-open tenant validity used by resolveCanonicalTenantEdielIdentity.
+ IF NOT EXISTS(SELECT FROM jsonb_populate_recordset(NULL::public.tenant_ediel_profiles,records->'profiles') r
+  WHERE r.is_enabled AND r.market='electricity' AND r.valid_from<=evaluated AND (r.valid_to IS NULL OR evaluated<r.valid_to)) THEN RETURN false; END IF;
+ SELECT count(DISTINCT r.actor_id),count(DISTINCT nullif(btrim(r.identifier_value),'')),min(r.actor_id::text)::uuid,min(nullif(btrim(r.identifier_value),''))
+ INTO actor_count,identifier_count,selected_actor_id,legal_id
+ FROM jsonb_populate_recordset(NULL::public.tenant_actor_identifiers,records->'identifiers') r
+ WHERE r.identifier_type='EdielId' AND r.valid_from<=evaluated AND (r.valid_to IS NULL OR evaluated<r.valid_to);
+ IF actor_count<>1 OR identifier_count<>1 OR selected_actor_id::text IS DISTINCT FROM identity->>'legalActorId'
+  OR legal_id IS DISTINCT FROM identity->>'legalEdielId' OR legal_id IS DISTINCT FROM parties->>'legalReceiver' THEN RETURN false; END IF;
+ SELECT array_agg(DISTINCT btrim(r.role_code) ORDER BY btrim(r.role_code)) INTO role_values
+ FROM jsonb_populate_recordset(NULL::public.tenant_actor_roles,records->'roles') r
+ WHERE r.actor_id=selected_actor_id AND nullif(btrim(r.role_code),'') IS NOT NULL AND r.valid_from<=evaluated AND (r.valid_to IS NULL OR evaluated<r.valid_to);
+ IF EXISTS(SELECT FROM jsonb_array_elements(identity->'roleCodes') r WHERE jsonb_typeof(r)<>'string') THEN RETURN false; END IF;
+ SELECT array_agg(DISTINCT value ORDER BY value) INTO supplied_roles FROM jsonb_array_elements_text(identity->'roleCodes');
+ IF role_values IS DISTINCT FROM supplied_roles OR NOT coalesce('electricity_supplier'=ANY(role_values),false) THEN RETURN false; END IF;
+ SELECT count(*),min(r.id::text)::uuid,min(r.counterparty_actor_id::text)::uuid INTO relation_count,relation_id,transport_actor
+ FROM jsonb_populate_recordset(NULL::public.tenant_counterparty_relations,records->'relations') r
+ WHERE r.relation_type='ediel_transport_agent' AND r.is_enabled AND r.valid_from<=evaluated AND (r.valid_to IS NULL OR evaluated<r.valid_to);
+ IF relation_count=0 THEN
+  IF identity->'representedByTransportAgent'<>'false'::jsonb OR identity->'transportRelationId' IS DISTINCT FROM 'null'::jsonb
+   OR identity->>'transportActorId' IS DISTINCT FROM selected_actor_id::text OR identity->>'transportEdielId' IS DISTINCT FROM legal_id
+   OR records->'transportIdentifiers' IS DISTINCT FROM '[]'::jsonb THEN RETURN false; END IF;
+ ELSE
+  IF relation_count<>1 OR identity->'representedByTransportAgent'<>'true'::jsonb
+   OR identity->>'transportRelationId' IS DISTINCT FROM relation_id::text OR identity->>'transportActorId' IS DISTINCT FROM transport_actor::text
+   OR transport_actor=selected_actor_id THEN RETURN false; END IF;
+  IF EXISTS(SELECT FROM jsonb_populate_recordset(NULL::public.platform_actor_identifiers,records->'transportIdentifiers') r WHERE r.is_verified IS DISTINCT FROM true) THEN RETURN false; END IF;
+  SELECT count(DISTINCT nullif(btrim(r.identifier_value),'')),min(nullif(btrim(r.identifier_value),'')) INTO identifier_count,transport_id
+  FROM jsonb_populate_recordset(NULL::public.platform_actor_identifiers,records->'transportIdentifiers') r
+  WHERE r.actor_id=transport_actor AND r.identifier_type='EdielId'
+   AND (r.valid_from IS NULL OR r.valid_from::timestamp AT TIME ZONE 'UTC'<=evaluated)
+   AND (r.valid_to IS NULL OR evaluated<r.valid_to::timestamp AT TIME ZONE 'UTC');
+  IF identifier_count<>1 OR transport_id=legal_id OR transport_id IS DISTINCT FROM identity->>'transportEdielId' THEN RETURN false; END IF;
+ END IF;
+ IF parties->>'transportReceiver' IS DISTINCT FROM identity->>'transportEdielId'
+  OR parties->>'transportSender' IS DISTINCT FROM parties->>'legalSender'
+  OR parties->>'legalSender' IS DISTINCT FROM facility#>>'{gridOwner,ediel_id}'
+  OR facility#>'{gridOwner,is_active}' IS DISTINCT FROM 'true'::jsonb OR facility#>>'{gridOwner,lifecycle_status}' IS DISTINCT FROM 'active'
+  OR facility#>>'{gridOwner,environment}' IS DISTINCT FROM p_business->>'environment'
+  OR (p_business->>'environment'='production' AND facility#>>'{gridOwner,ediel_id}' IN ('91100','91109'))
+  OR facility#>>'{meteringPoint,meter_point_id}' IS DISTINCT FROM p_business#>>'{object,objectId}'
+  OR facility#>>'{site,facility_id}' IS DISTINCT FROM p_business#>>'{object,objectId}'
+  OR facility#>>'{meteringPoint,site_id}' IS DISTINCT FROM facility#>>'{site,id}'
+  OR (facility#>'{meteringPoint,customer_site_id}'<>'null'::jsonb AND facility#>>'{meteringPoint,customer_site_id}' IS DISTINCT FROM facility#>>'{site,id}')
+  OR facility#>>'{meteringPoint,grid_owner_id}' IS DISTINCT FROM facility#>>'{gridOwner,id}'
+  OR facility#>>'{site,grid_owner_id}' IS DISTINCT FROM facility#>>'{gridOwner,id}' THEN RETURN false; END IF;
+ IF jsonb_typeof(effective) IS DISTINCT FROM 'object' OR effective->>'fieldNumber' IS DISTINCT FROM '210'
+  OR effective->>'committedDatePrecision' IS DISTINCT FROM 'market_calendar_day'
+  OR effective-ARRAY['fieldNumber','marketMinute','utc','committedDatePrecision']<>'{}'::jsonb THEN RETURN false; END IF;
+ minute:=effective->>'marketMinute';
+ IF minute IS NULL OR minute !~ '^[0-9]{12}$' OR substring(minute,1,4)::int<1 OR substring(minute,9,2)::int>23 OR substring(minute,11,2)::int>59 THEN RETURN false; END IF;
+ market_time:=make_timestamp(substring(minute,1,4)::int,substring(minute,5,2)::int,substring(minute,7,2)::int,substring(minute,9,2)::int,substring(minute,11,2)::int,0);
+ IF effective->>'utc' IS NULL OR (effective->>'utc')::timestamptz IS DISTINCT FROM (market_time AT TIME ZONE 'Etc/GMT-1') THEN RETURN false; END IF;
+ expected_day:=to_char(market_time,'YYYY-MM-DD');
+ FOREACH name IN ARRAY ARRAY['switch','supply'] LOOP
+  commit_row:=p_business#>ARRAY['committedRecords',name];
+  IF jsonb_typeof(commit_row) IS DISTINCT FROM 'object'
+   OR commit_row->>'id' IS DISTINCT FROM p_business->>(CASE WHEN name='switch' THEN 'switchRequestId' ELSE 'supplyPeriodId' END)
+   OR commit_row->>'companyId' IS DISTINCT FROM p_business->>'companyId'
+   OR commit_row->>'customerId' IS DISTINCT FROM p_business->>'customerId'
+   OR commit_row->>'meteringPointId' IS DISTINCT FROM p_business->>'meteringPointId'
+   OR commit_row->>'sourceMessageId' IS DISTINCT FROM p_business->>'sourceMessageId'
+   OR commit_row->>'status' IS DISTINCT FROM (CASE WHEN name='switch' THEN 'accepted' ELSE 'confirmed_by_grid_owner' END)
+   OR commit_row->>(CASE WHEN name='switch' THEN 'confirmedStartDate' ELSE 'startDate' END) IS DISTINCT FROM expected_day
+   OR (name='switch' AND commit_row->>'siteId' IS DISTINCT FROM p_business->>'siteId') THEN RETURN false; END IF;
+ END LOOP;
+ RETURN true;
+EXCEPTION WHEN invalid_text_representation OR invalid_datetime_format OR datetime_field_overflow OR numeric_value_out_of_range OR invalid_parameter_value THEN RETURN false;
+END $_$;
+
+--
+-- Name: open_object_selection_snapshot(uuid, text, timestamp with time zone); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.open_object_selection_snapshot(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE observed timestamptz:=clock_timestamp(); body jsonb; snap text; bytes text; digest text; result_id uuid;
+BEGIN
+ IF p_company_id IS NULL OR p_environment IS NULL OR p_environment NOT IN ('test','production')
+ OR p_cutoff IS NULL OR NOT isfinite(p_cutoff) OR p_cutoff>observed THEN RAISE EXCEPTION 'source_selection_scope_unavailable' USING ERRCODE='22023'; END IF;
+ -- Count, limits, payloads, all immutable decisions and witnesses are read in
+ -- ONE MVCC statement. Overflows return an explicit incomplete empty readset.
+ WITH candidates AS MATERIALIZED (
+  SELECT s.source_message_id,octet_length(s.raw_payload) AS payload_bytes FROM gridex_received_sources.sources s
+  WHERE s.company_id=p_company_id AND s.environment=p_environment AND s.captured_at<=p_cutoff
+   AND (s.source_received_at IS NULL OR s.source_received_at<=p_cutoff) ORDER BY s.source_message_id LIMIT 1001
+ ), assessments AS MATERIALIZED (
+  SELECT a.id,a.source_message_id,octet_length(a.facts_text) AS fact_bytes FROM candidates s
+  CROSS JOIN LATERAL(SELECT a.id,a.source_message_id,a.facts_text FROM gridex_received_sources.object_assessments a WHERE a.source_message_id=s.source_message_id ORDER BY a.assessed_at,a.id LIMIT 129)a
+ ), totals AS (
+  SELECT (SELECT count(*) FROM candidates) AS n,
+   (SELECT coalesce(sum(payload_bytes),0) FROM candidates)+(SELECT coalesce(sum(fact_bytes),0) FROM assessments) AS total_bytes,
+   (SELECT coalesce(max(payload_bytes),0) FROM candidates) AS max_payload,
+   (SELECT coalesce(max(n),0) FROM (SELECT count(*) AS n FROM assessments GROUP BY source_message_id)c) AS max_assessments
+ ), bounded AS (SELECT *,n<=1000 AND total_bytes<=6291456 AND max_payload<=262144 AND max_assessments<=128 AS complete FROM totals)
+ SELECT jsonb_build_object('version',1,'companyId',p_company_id,'environment',p_environment,'cutoffAt',p_cutoff,
+  'capturedAt',observed,'complete',b.complete,'sourceCount',b.n,'historyCoverage','before_ledger_unknown',
+  'ledgerStartedAt',(SELECT opened_at FROM gridex_received_sources.epoch WHERE singleton),
+  'sources',CASE WHEN b.complete THEN (SELECT coalesce(jsonb_agg(jsonb_build_object(
+   'sourceMessageId',s.source_message_id,'payloadHash',s.payload_hash,'rawPayload',s.raw_payload,
+   'receivedAt',s.source_received_at,'capturedAt',s.captured_at,'messageCode',s.message_code,
+   'assessments',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',a.id,'previousAssessmentId',a.previous_assessment_id,
+    'canonicalAssessmentId',a.canonical_assessment_id,'assessedAt',a.assessed_at,
+    'availableAt',w.observed_at,'availabilityWitnessId',w.id,'factsText',a.facts_text,'factsHash',a.facts_hash) ORDER BY a.assessed_at,a.id),'[]'::jsonb)
+    FROM assessments list JOIN gridex_received_sources.object_assessments a ON a.id=list.id
+    LEFT JOIN gridex_received_sources.object_availability_witnesses w ON w.assessment_id=a.id AND w.company_id=a.company_id AND w.environment=a.environment AND w.facts_hash=a.facts_hash
+    WHERE list.source_message_id=s.source_message_id)) ORDER BY s.source_message_id),'[]'::jsonb)
+   FROM candidates c JOIN gridex_received_sources.sources s USING(source_message_id)) ELSE '[]'::jsonb END),pg_current_snapshot()::text
+ INTO body,snap FROM bounded b;
+ bytes:=body::text;
+ -- JSON escaping/metadata may expand beyond the summed input budget.
+ IF octet_length(bytes)>8388608 THEN body:=jsonb_set(jsonb_set(body,'{complete}','false'),'{sources}','[]');bytes:=body::text; END IF;
+ digest:=encode(sha256(convert_to(bytes,'UTF8')),'hex');
+ INSERT INTO gridex_received_sources.object_selection_snapshots(company_id,environment,cutoff_at,captured_at,readset_text,readset_hash,visibility_snapshot)
+ VALUES(p_company_id,p_environment,p_cutoff,observed,bytes,digest,snap) RETURNING id INTO result_id;
+ RETURN jsonb_build_object('snapshotId',result_id,'readsetText',bytes,'readsetHash',digest);
+END $$;
+
+--
+-- Name: open_snapshot(uuid, text, timestamp with time zone); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.open_snapshot(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE v_now timestamptz := clock_timestamp(); v_opened timestamptz;
+  v_result jsonb; v_manifest jsonb; v_id uuid; v_hash text;
+BEGIN
+  IF p_company_id IS NULL OR p_environment IS NULL OR p_environment NOT IN ('test','production')
+    OR p_cutoff IS NULL OR NOT isfinite(p_cutoff) OR p_cutoff > v_now THEN
+    RAISE EXCEPTION 'received_source_scope_unavailable' USING ERRCODE = '22023';
+  END IF;
+  SELECT opened_at INTO STRICT v_opened FROM gridex_received_sources.epoch WHERE singleton;
+  -- Count, byte budgets and ALL returned rows share one MVCC statement snapshot.
+  -- A 1001 count is an overflow sentinel, not an asserted universe size. No
+  -- physical-object link or mutable message state participates in discovery.
+  WITH candidates AS MATERIALIZED (
+    SELECT source_message_id, octet_length(raw_payload) AS payload_bytes
+    FROM gridex_received_sources.sources
+    WHERE company_id=p_company_id AND environment=p_environment
+      AND captured_at<=p_cutoff AND (source_received_at IS NULL OR source_received_at<=p_cutoff)
+    LIMIT 1001
+  ), totals AS (
+    SELECT count(*) AS n, coalesce(sum(payload_bytes),0) AS total_bytes, coalesce(max(payload_bytes),0) AS max_bytes FROM candidates
+  )
+  SELECT jsonb_build_object('version',1,'companyId',p_company_id,'environment',p_environment,
+    'cutoffAt',p_cutoff,'openedAt',v_opened,'readAt',v_now,'sourceCount',totals.n,
+    'exhaustive',totals.n<=1000 AND totals.total_bytes<=4194304 AND totals.max_bytes<=262144,
+    'sources', CASE WHEN totals.n<=1000 AND totals.total_bytes<=4194304 AND totals.max_bytes<=262144 THEN
+      (SELECT coalesce(jsonb_agg(jsonb_build_object(
+        'sourceMessageId',source.source_message_id,'companyId',source.company_id,'environment',source.environment,
+        'origin',source.origin,'messageCode',source.message_code,'sourceReceivedAt',source.source_received_at,
+        'capturedAt',source.captured_at,'rawPayload',source.raw_payload,'payloadHash',source.payload_hash,
+        'receivedContext',source.received_context) ORDER BY source.source_message_id),'[]'::jsonb)
+      FROM candidates JOIN gridex_received_sources.sources AS source USING(source_message_id)) ELSE '[]'::jsonb END,
+    'visibilitySnapshot',pg_current_snapshot()::text) INTO v_result FROM totals;
+  -- The exact read set is fixed NOW, not reconstructed in a later client query.
+  -- No raw payload copy in the manifest; immutable source identity/hash binds it.
+  SELECT (v_result-'sources'-'visibilitySnapshot') || jsonb_build_object('sources',coalesce(jsonb_agg(
+    (value - ARRAY['rawPayload','receivedContext','origin','messageCode','companyId','environment']) || jsonb_build_object('receiptContextRecorded',coalesce(jsonb_typeof(value->'receivedContext')='object',false))
+    ORDER BY value->>'sourceMessageId'),'[]'::jsonb))
+    INTO v_manifest FROM jsonb_array_elements(v_result->'sources');
+  v_hash := encode(sha256(convert_to(v_manifest::text,'UTF8')),'hex');
+  INSERT INTO gridex_received_sources.snapshots(company_id,environment,manifest,manifest_hash,visibility_snapshot)
+    VALUES(p_company_id,p_environment,v_manifest,v_hash,v_result->>'visibilitySnapshot') RETURNING id INTO v_id;
+  RETURN (v_result-'visibilitySnapshot') || jsonb_build_object('snapshotId',v_id,'snapshotHash',v_hash);
+END $$;
+
+--
+-- Name: owner_rows_match(text, jsonb, uuid, text, uuid); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.owner_rows_match(p_kind text, p_rows jsonb, p_company uuid, p_environment text, p_actor uuid) RETURNS boolean
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $_$
+DECLARE relation_name text; columns_text text; predicate_text text; matches boolean;
+BEGIN
+ IF jsonb_typeof(p_rows) IS DISTINCT FROM 'array' OR jsonb_array_length(p_rows)>8192 THEN RETURN false; END IF;
+ CASE p_kind
+ WHEN 'profiles' THEN relation_name:='tenant_ediel_profiles'; columns_text:='id,company_id,environment,market,is_enabled,valid_from,valid_to'; predicate_text:='company_id=$2 AND environment=$3 AND market=''electricity'' AND is_enabled';
+ WHEN 'identifiers' THEN relation_name:='tenant_actor_identifiers'; columns_text:='id,company_id,environment,actor_id,identifier_type,identifier_value,qualifier,subaddress,valid_from,valid_to'; predicate_text:='company_id=$2 AND environment=$3 AND identifier_type=''EdielId''';
+ WHEN 'roles' THEN relation_name:='tenant_actor_roles'; columns_text:='id,company_id,environment,actor_id,role_code,valid_from,valid_to'; predicate_text:='company_id=$2 AND environment=$3 AND actor_id=$4';
+ WHEN 'relations' THEN relation_name:='tenant_counterparty_relations'; columns_text:='id,company_id,environment,counterparty_actor_id,relation_type,is_enabled,valid_from,valid_to'; predicate_text:='company_id=$2 AND environment=$3 AND relation_type=''ediel_transport_agent'' AND is_enabled';
+ WHEN 'transportIdentifiers' THEN relation_name:='platform_actor_identifiers'; columns_text:='id,actor_id,identifier_type,identifier_value,id_code_qualifier,id_code_responsible,source,is_verified,valid_from,valid_to,created_at,updated_at'; predicate_text:='actor_id=$4 AND identifier_type=''EdielId''';
+ WHEN 'point' THEN relation_name:='metering_points'; columns_text:='id,company_id,meter_point_id,site_id,customer_site_id,grid_owner_id'; predicate_text:='company_id=$2 AND id=$4';
+ WHEN 'site' THEN relation_name:='customer_sites'; columns_text:='id,company_id,facility_id,grid_owner_id'; predicate_text:='company_id=$2 AND id=$4';
+ WHEN 'gridOwner' THEN relation_name:='grid_owners'; columns_text:='id,name,ediel_id,is_active,lifecycle_status,default_prodat_subaddress,default_utilts_subaddress,communication_email,email,environment'; predicate_text:='id=$4';
+ ELSE RETURN false;
+ END CASE;
+ EXECUTE format('SELECT NOT EXISTS((SELECT %1$s FROM public.%2$I WHERE %3$s EXCEPT ALL SELECT %1$s FROM jsonb_populate_recordset(NULL::public.%2$I,$1)) UNION ALL (SELECT %1$s FROM jsonb_populate_recordset(NULL::public.%2$I,$1) EXCEPT ALL SELECT %1$s FROM public.%2$I WHERE %3$s))',columns_text,relation_name,predicate_text)
+ INTO matches USING p_rows,p_company,p_environment,p_actor;
+ RETURN matches;
+END $_$;
+
+--
+-- Name: reject_mutation(); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.reject_mutation() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  RAISE EXCEPTION 'received_source_evidence_is_append_only' USING ERRCODE = '23514';
+END
+$$;
+
+--
+-- Name: review_business_proof_consistent(jsonb, jsonb, uuid); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.review_business_proof_consistent(p_party jsonb, p_business jsonb, p_source_id uuid) RETURNS boolean
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $_$
+DECLARE src gridex_received_sources.sources%rowtype; baseline gridex_received_sources.sources%rowtype;
+ root gridex_received_sources.object_assessments%rowtype; current_root gridex_received_sources.object_assessments%rowtype;
+ review_snap gridex_received_sources.object_selection_snapshots%rowtype;
+ predecessor gridex_received_sources.object_assessments%rowtype;
+ cover jsonb:=p_business->'coverageWindow'; wire jsonb:=p_business->'wire'; replacement jsonb:=p_business->'replaces';
+ root_entry jsonb; current_entry jsonb; previous_entry jsonb; epoch timestamptz; valid_start timestamptz; valid_end timestamptz;
+ change_at timestamptz; minute text; market_time timestamp; owner_ok boolean;
+BEGIN
+ SELECT * INTO src FROM gridex_received_sources.sources WHERE source_message_id=p_source_id;
+ IF NOT FOUND OR src.message_code NOT IN ('Z04','Z06','Z10') OR src.source_received_at IS NULL THEN RETURN false; END IF;
+ -- Z06/E34 needs a persisted death assessment or a counterparty-scoped bilateral
+ -- agreement. Neither authoritative producer exists in this review owner.
+ IF src.message_code='Z06' AND p_business#>>'{wire,businessCase}'='customer_only' THEN RETURN false; END IF;
+ IF p_business->>'owner' IS DISTINCT FROM 'reviewed-received-structure-v1'
+ OR p_business->>'coverage' IS DISTINCT FROM 'reviewed_post_ledger_supply'
+ OR p_business->>'businessDisposition' IS DISTINCT FROM 'reviewed'
+ OR p_business->>'reviewStatement' IS DISTINCT FROM 'original_structural_message'
+ OR p_business->>'graphNamespace' IS DISTINCT FROM 'legacy_unqualified'
+ OR p_business#>>'{object,identityAgency}' IS DISTINCT FROM '9'
+ OR p_business-ARRAY['version','owner','coverage','sourceDisposition','businessDisposition','graphNamespace','sourceMessageId','sourcePayloadHash','sourceReceivedAt','companyId','environment','object','assessedAt','wire','reviewerUserId','reviewStatement','customerId','meteringPointId','siteId','switchRequestId','supplyPeriodId','coverageWindow','baselineCurrentAssessmentId','reviewSnapshot','replaces']<>'{}'::jsonb
+ OR NOT p_business ?& ARRAY['wire','reviewerUserId','reviewStatement','coverageWindow','baselineCurrentAssessmentId','reviewSnapshot','replaces']
+ OR NOT gridex_received_sources.review_party_proof_consistent(p_party,p_business,src.source_received_at)
+ OR NOT EXISTS(SELECT FROM public.companies c WHERE c.id=src.company_id AND coalesce(c.status,'active') IN ('active','onboarding'))
+ OR NOT (public.gridex_actor_has_company_permission((p_business->>'reviewerUserId')::uuid,src.company_id,'communication.write')
+   OR public.gridex_actor_has_company_permission((p_business->>'reviewerUserId')::uuid,src.company_id,'ediel_testing.write')) THEN RETURN false; END IF;
+ IF cover->>'kind' IS DISTINCT FROM 'post_ledger_supply' OR cover->>'supplyPeriodId' IS DISTINCT FROM p_business->>'supplyPeriodId'
+ OR cover->>'switchRequestId' IS DISTINCT FROM p_business->>'switchRequestId'
+ OR cover-ARRAY['kind','baselineSourceMessageId','baselineAssessmentId','baselineFactsHash','supplyPeriodId','switchRequestId','switchCreatedAt','outboundSourceMessageId','outboundCreatedAt','validFrom','validTo']<>'{}'::jsonb
+ OR NOT cover ?& ARRAY['kind','baselineSourceMessageId','baselineAssessmentId','baselineFactsHash','supplyPeriodId','switchRequestId','switchCreatedAt','outboundSourceMessageId','outboundCreatedAt','validFrom','validTo']
+ OR wire->'object' IS DISTINCT FROM p_business->'object' OR wire->>'messageCode' IS DISTINCT FROM src.message_code
+ OR wire->>'legalSender' IS DISTINCT FROM p_party#>>'{parties,legalSender}' OR wire->>'legalReceiver' IS DISTINCT FROM p_party#>>'{parties,legalReceiver}'
+ OR wire->>'transportSender' IS DISTINCT FROM p_party#>>'{parties,transportSender}' OR wire->>'transportReceiver' IS DISTINCT FROM p_party#>>'{parties,transportReceiver}'
+ OR wire#>>'{effectiveFrom,fieldNumber}' IS DISTINCT FROM (CASE WHEN src.message_code='Z04' THEN '210' ELSE '216' END)
+ OR (CASE src.message_code WHEN 'Z04' THEN wire->>'businessCase'='supply_baseline' WHEN 'Z10' THEN wire->>'businessCase'='meter_exchange'
+     ELSE wire->>'businessCase' IN ('customer_only','change_with_reading','change_without_reading') END) IS DISTINCT FROM true
+ OR jsonb_typeof(wire->'registers') IS DISTINCT FROM 'array' OR jsonb_array_length(wire->'registers')<>jsonb_array_length(p_business#>'{object,registers}')
+ OR nullif(wire->>'caseReference','') IS NULL OR nullif(wire->>'documentReference','') IS NULL THEN RETURN false; END IF;
+ SELECT * INTO review_snap FROM gridex_received_sources.object_selection_snapshots
+ WHERE id=(p_business#>>'{reviewSnapshot,snapshotId}')::uuid AND company_id=src.company_id AND environment=src.environment
+ AND readset_hash=p_business#>>'{reviewSnapshot,readsetHash}' AND cutoff_at=(p_business#>>'{reviewSnapshot,cutoffAt}')::timestamptz;
+ IF NOT FOUND OR (review_snap.readset_text::jsonb->>'complete') IS DISTINCT FROM 'true'
+ OR review_snap.cutoff_at>(p_business->>'assessedAt')::timestamptz
+ OR NOT EXISTS(SELECT FROM jsonb_array_elements(review_snap.readset_text::jsonb->'sources') item
+   WHERE item->>'sourceMessageId'=src.source_message_id::text AND item->>'payloadHash'=src.payload_hash) THEN RETURN false; END IF;
+ SELECT opened_at INTO epoch FROM gridex_received_sources.epoch WHERE singleton;
+ valid_start:=(cover->>'validFrom')::timestamptz; valid_end:=(cover->>'validTo')::timestamptz;
+ minute:=wire#>>'{effectiveFrom,marketMinute}';
+ IF minute IS NULL OR minute !~ '^[0-9]{12}$' OR substring(minute,1,4)::int<1 OR substring(minute,9,2)::int>23 OR substring(minute,11,2)::int>59 THEN RETURN false; END IF;
+ market_time:=make_timestamp(substring(minute,1,4)::int,substring(minute,5,2)::int,substring(minute,7,2)::int,substring(minute,9,2)::int,substring(minute,11,2)::int,0);
+ change_at:=market_time AT TIME ZONE 'Etc/GMT-1';
+ IF (wire#>>'{effectiveFrom,utc}')::timestamptz IS DISTINCT FROM change_at OR valid_start IS NULL OR NOT isfinite(valid_start)
+ OR valid_start<epoch OR (valid_end IS NOT NULL AND (NOT isfinite(valid_end) OR valid_end<=valid_start))
+ OR change_at<valid_start OR (valid_end IS NOT NULL AND change_at>=valid_end)
+ OR (src.message_code='Z04' AND change_at<>valid_start) THEN RETURN false; END IF;
+ SELECT * INTO baseline FROM gridex_received_sources.sources WHERE source_message_id=(cover->>'baselineSourceMessageId')::uuid
+ AND company_id=src.company_id AND environment=src.environment AND message_code='Z04';
+ IF NOT FOUND THEN RETURN false; END IF;
+ SELECT a.* INTO root FROM gridex_received_sources.object_assessments a JOIN gridex_received_sources.object_availability_witnesses w ON w.assessment_id=a.id
+ WHERE a.id=(cover->>'baselineAssessmentId')::uuid AND a.source_message_id=baseline.source_message_id AND a.company_id=src.company_id
+ AND a.environment=src.environment AND a.facts_hash=cover->>'baselineFactsHash' AND w.facts_hash=a.facts_hash AND w.observed_at<=review_snap.cutoff_at;
+ IF NOT FOUND THEN RETURN false; END IF;
+ SELECT value INTO root_entry FROM jsonb_array_elements(root.facts_text::jsonb->'objects')
+ WHERE value#>>'{object,objectId}'=p_business#>>'{object,objectId}' AND value#>>'{object,identityAgency}'='9';
+ IF root_entry->>'disposition' IS DISTINCT FROM 'accepted' OR root_entry#>>'{business,owner}' IS DISTINCT FROM 'inbound-z04-switch-confirmation-v1'
+ OR root_entry#>>'{business,switchRequestId}' IS DISTINCT FROM p_business->>'switchRequestId'
+ OR root_entry#>>'{business,supplyPeriodId}' IS DISTINCT FROM p_business->>'supplyPeriodId'
+ OR root_entry#>>'{business,customerId}' IS DISTINCT FROM p_business->>'customerId'
+ OR root_entry#>>'{business,meteringPointId}' IS DISTINCT FROM p_business->>'meteringPointId'
+ OR root_entry#>>'{business,siteId}' IS DISTINCT FROM p_business->>'siteId'
+ OR (root_entry#>>'{business,effectiveFrom,utc}')::timestamptz IS DISTINCT FROM valid_start THEN RETURN false; END IF;
+ SELECT a.* INTO current_root FROM gridex_received_sources.object_assessments a JOIN gridex_received_sources.object_availability_witnesses w ON w.assessment_id=a.id
+ WHERE a.id=(p_business->>'baselineCurrentAssessmentId')::uuid AND a.source_message_id=baseline.source_message_id
+ AND a.company_id=src.company_id AND a.environment=src.environment AND w.facts_hash=a.facts_hash AND w.observed_at<=review_snap.cutoff_at
+ AND NOT EXISTS(SELECT FROM gridex_received_sources.object_assessments next WHERE next.previous_assessment_id=a.id);
+ IF NOT FOUND THEN RETURN false; END IF;
+ SELECT value INTO current_entry FROM jsonb_array_elements(current_root.facts_text::jsonb->'objects')
+ WHERE value#>>'{object,objectId}'=p_business#>>'{object,objectId}' AND value#>>'{object,identityAgency}'='9';
+ IF current_entry->>'disposition' IS DISTINCT FROM 'accepted' THEN RETURN false; END IF;
+ -- The retained snapshot must actually contain the current baseline assessment,
+ -- rather than merely sharing a plausible time and tenant with it.
+ IF NOT EXISTS(SELECT FROM jsonb_array_elements(review_snap.readset_text::jsonb->'sources') source,
+  LATERAL jsonb_array_elements(source->'assessments') assessment
+  WHERE source->>'sourceMessageId'=baseline.source_message_id::text AND assessment->>'id'=current_root.id::text
+  AND assessment->>'factsHash'=current_root.facts_hash AND (assessment->>'availableAt')::timestamptz<=review_snap.cutoff_at) THEN RETURN false; END IF;
+ SELECT EXISTS(SELECT FROM public.supplier_switch_requests sw
+ JOIN public.customer_supply_periods sp ON sp.id=(p_business->>'supplyPeriodId')::uuid
+ JOIN public.ediel_messages outbound ON outbound.id=sw.outbound_z03_message_id
+ JOIN public.metering_points mp ON mp.id=sw.metering_point_id JOIN public.customer_sites cs ON cs.id=sw.site_id
+ WHERE sw.id=(p_business->>'switchRequestId')::uuid AND sw.company_id=src.company_id AND sp.company_id=src.company_id
+ AND sw.inbound_z04_message_id=baseline.source_message_id AND sp.source_message_id=baseline.source_message_id
+ AND sw.status='accepted' AND sp.status='confirmed_by_grid_owner'
+ AND sw.metering_point_id=(p_business->>'meteringPointId')::uuid AND sp.metering_point_id=sw.metering_point_id
+ AND sw.customer_id=(p_business->>'customerId')::uuid AND sp.customer_id=sw.customer_id AND sw.site_id=(p_business->>'siteId')::uuid
+ AND (sp.source_switch_request_id IS NULL OR sp.source_switch_request_id=sw.id)
+ AND mp.company_id=src.company_id AND cs.company_id=src.company_id AND mp.site_id=cs.id AND mp.customer_id=sw.customer_id AND cs.customer_id=sw.customer_id
+ AND (sp.start_date::timestamp AT TIME ZONE 'Etc/GMT-1')=valid_start AND sw.confirmed_start_date=sp.start_date
+ AND (sp.end_date::timestamp AT TIME ZONE 'Etc/GMT-1') IS NOT DISTINCT FROM valid_end
+ AND sw.created_at=(cover->>'switchCreatedAt')::timestamptz AND sw.created_at>=epoch AND sw.created_at<=valid_start
+ AND outbound.id=(cover->>'outboundSourceMessageId')::uuid AND outbound.company_id=src.company_id AND outbound.environment=src.environment
+ AND outbound.direction='outbound' AND outbound.message_standard='edifact' AND outbound.message_family='PRODAT' AND outbound.message_code='Z03'
+ AND outbound.created_at=(cover->>'outboundCreatedAt')::timestamptz AND outbound.created_at>=sw.created_at AND outbound.created_at<=review_snap.cutoff_at
+ AND outbound.message_sent_at>=outbound.created_at AND outbound.message_sent_at<=baseline.source_received_at
+ AND outbound.customer_id=sw.customer_id AND outbound.metering_point_id=sw.metering_point_id AND outbound.site_id=sw.site_id) INTO owner_ok;
+ IF owner_ok IS DISTINCT FROM true THEN RETURN false; END IF;
+ IF wire->>'functionCode'='5' THEN
+  IF replacement IS NULL OR jsonb_typeof(replacement)<>'object' OR replacement->>'sourceMessageId'=src.source_message_id::text THEN RETURN false; END IF;
+  SELECT a.* INTO predecessor FROM gridex_received_sources.object_assessments a JOIN gridex_received_sources.object_availability_witnesses w ON w.assessment_id=a.id
+  WHERE a.id=(replacement->>'assessmentId')::uuid AND a.source_message_id=(replacement->>'sourceMessageId')::uuid
+  AND a.company_id=src.company_id AND a.environment=src.environment AND a.source_payload_hash=replacement->>'payloadHash'
+  AND w.facts_hash=a.facts_hash AND w.observed_at<=review_snap.cutoff_at
+  AND NOT EXISTS(SELECT FROM gridex_received_sources.object_assessments next WHERE next.previous_assessment_id=a.id);
+  IF NOT FOUND THEN RETURN false; END IF;
+  SELECT value INTO previous_entry FROM jsonb_array_elements(predecessor.facts_text::jsonb->'objects')
+  WHERE value#>>'{object,objectId}'=p_business#>>'{object,objectId}' AND value#>>'{object,identityAgency}'='9';
+  IF previous_entry->>'disposition' IS DISTINCT FROM 'accepted' OR previous_entry#>>'{business,owner}' IS DISTINCT FROM 'reviewed-received-structure-v1'
+  OR previous_entry#>>'{business,supplyPeriodId}' IS DISTINCT FROM p_business->>'supplyPeriodId'
+  OR previous_entry#>>'{business,wire,messageCode}' IS DISTINCT FROM wire->>'messageCode'
+  OR previous_entry#>>'{business,wire,businessCase}' IS DISTINCT FROM wire->>'businessCase'
+  OR previous_entry#>>'{business,wire,caseReference}' IS DISTINCT FROM wire->>'caseReference'
+  OR previous_entry#>>'{business,wire,documentReference}' IS NOT DISTINCT FROM wire->>'documentReference'
+  OR previous_entry#>>'{business,wire,legalSender}' IS DISTINCT FROM wire->>'legalSender'
+  OR previous_entry#>>'{business,wire,legalReceiver}' IS DISTINCT FROM wire->>'legalReceiver' THEN RETURN false; END IF;
+ ELSE
+  IF wire->'functionCode' NOT IN ('"9"'::jsonb,'null'::jsonb) OR replacement IS DISTINCT FROM 'null'::jsonb
+   OR (src.message_code='Z04' AND baseline.source_message_id<>src.source_message_id) THEN RETURN false; END IF;
+ END IF;
+ RETURN true;
+EXCEPTION WHEN invalid_text_representation OR invalid_datetime_format OR datetime_field_overflow OR numeric_value_out_of_range OR invalid_parameter_value THEN RETURN false;
+END $_$;
+
+--
+-- Name: review_closure_proof_consistent(jsonb, jsonb, uuid); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.review_closure_proof_consistent(p_party jsonb, p_business jsonb, p_source_id uuid) RETURNS boolean
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $_$
+DECLARE src gridex_received_sources.sources%rowtype; baseline gridex_received_sources.sources%rowtype;
+ root gridex_received_sources.object_assessments%rowtype; current_root gridex_received_sources.object_assessments%rowtype;
+ review_snap gridex_received_sources.object_selection_snapshots%rowtype;
+ cover jsonb:=p_business->'coverageWindow'; wire jsonb:=p_business->'wire'; reference jsonb:=p_business->'baselineCoverageAssessment';
+ root_entry jsonb; current_entry jsonb; epoch timestamptz; valid_start timestamptz; valid_end timestamptz;
+ change_at timestamptz; minute text; market_time timestamp; owner_ok boolean;
+BEGIN
+ SELECT * INTO src FROM gridex_received_sources.sources WHERE source_message_id=p_source_id AND company_id=(p_business->>'companyId')::uuid
+ AND environment=p_business->>'environment' AND payload_hash=p_business->>'sourcePayloadHash';
+ IF NOT FOUND OR src.message_code<>'Z05' OR src.source_received_at IS NULL THEN RETURN false; END IF;
+ IF jsonb_typeof(p_business) IS DISTINCT FROM 'object'
+ OR jsonb_typeof(cover) IS DISTINCT FROM 'object'
+ OR jsonb_typeof(reference) IS DISTINCT FROM 'object'
+ OR p_business->>'owner' IS DISTINCT FROM 'reviewed-received-closure-v1'
+ OR p_business->>'coverage' IS DISTINCT FROM 'reviewed_post_ledger_closure'
+ OR p_business->>'businessDisposition' IS DISTINCT FROM 'reviewed'
+ OR p_business->>'reviewStatement' IS DISTINCT FROM 'original_supply_closure'
+ OR p_business->>'graphNamespace' IS DISTINCT FROM 'legacy_unqualified'
+ OR p_business#>>'{object,identityAgency}' IS DISTINCT FROM '9'
+ OR p_business-ARRAY['version','owner','coverage','sourceDisposition','businessDisposition','graphNamespace','sourceMessageId','sourcePayloadHash','sourceReceivedAt','companyId','environment','object','assessedAt','wire','reviewerUserId','reviewStatement','customerId','meteringPointId','siteId','switchRequestId','supplyPeriodId','coverageWindow','baselineCurrentAssessmentId','reviewSnapshot','baselineCoverageAssessment','legacyEndDateProjection']<>'{}'::jsonb
+ OR NOT p_business ?& ARRAY['version','owner','coverage','sourceDisposition','businessDisposition','graphNamespace','sourceMessageId','sourcePayloadHash','sourceReceivedAt','companyId','environment','object','assessedAt','wire','reviewerUserId','reviewStatement','customerId','meteringPointId','siteId','switchRequestId','supplyPeriodId','coverageWindow','baselineCurrentAssessmentId','reviewSnapshot','baselineCoverageAssessment','legacyEndDateProjection']
+ OR jsonb_typeof(p_business->'reviewSnapshot') IS DISTINCT FROM 'object'
+ OR (p_business->'reviewSnapshot')-ARRAY['snapshotId','readsetHash','cutoffAt']<>'{}'::jsonb
+ OR NOT p_business->'reviewSnapshot' ?& ARRAY['snapshotId','readsetHash','cutoffAt']
+ -- Handbok 26A p70 supplier handoff; LK is a conservative supported subset.
+ OR substring(wire#>>'{effectiveTo,marketMinute}',9,4) IS DISTINCT FROM '0000'
+ OR NOT gridex_received_sources.closure_wire_matches_v1(src.raw_payload,p_business->'object',wire)
+ OR NOT gridex_received_sources.review_party_proof_consistent(p_party,p_business,src.source_received_at)
+ OR NOT EXISTS(SELECT FROM public.companies c WHERE c.id=src.company_id AND coalesce(c.status,'active') IN ('active','onboarding'))
+ OR NOT (public.gridex_actor_has_company_permission((p_business->>'reviewerUserId')::uuid,src.company_id,'communication.write')
+   OR public.gridex_actor_has_company_permission((p_business->>'reviewerUserId')::uuid,src.company_id,'ediel_testing.write')) THEN RETURN false; END IF;
+ IF cover->>'kind' IS DISTINCT FROM 'post_ledger_supply' OR cover->>'supplyPeriodId' IS DISTINCT FROM p_business->>'supplyPeriodId'
+ OR cover->>'switchRequestId' IS DISTINCT FROM p_business->>'switchRequestId'
+ OR cover-ARRAY['kind','baselineSourceMessageId','baselineAssessmentId','baselineFactsHash','supplyPeriodId','switchRequestId','switchCreatedAt','outboundSourceMessageId','outboundCreatedAt','validFrom','validTo']<>'{}'::jsonb
+ OR NOT cover ?& ARRAY['kind','baselineSourceMessageId','baselineAssessmentId','baselineFactsHash','supplyPeriodId','switchRequestId','switchCreatedAt','outboundSourceMessageId','outboundCreatedAt','validFrom','validTo']
+ OR wire->'object' IS DISTINCT FROM p_business->'object' OR wire->>'messageCode' IS DISTINCT FROM src.message_code
+ OR wire->>'legalSender' IS DISTINCT FROM p_party#>>'{parties,legalSender}' OR wire->>'legalReceiver' IS DISTINCT FROM p_party#>>'{parties,legalReceiver}'
+ OR wire->>'transportSender' IS DISTINCT FROM p_party#>>'{parties,transportSender}' OR wire->>'transportReceiver' IS DISTINCT FROM p_party#>>'{parties,transportReceiver}'
+ THEN RETURN false; END IF;
+ SELECT * INTO review_snap FROM gridex_received_sources.object_selection_snapshots
+ WHERE id=(p_business#>>'{reviewSnapshot,snapshotId}')::uuid AND company_id=src.company_id AND environment=src.environment
+ AND readset_hash=p_business#>>'{reviewSnapshot,readsetHash}' AND cutoff_at=(p_business#>>'{reviewSnapshot,cutoffAt}')::timestamptz;
+ IF NOT FOUND OR (review_snap.readset_text::jsonb->>'complete') IS DISTINCT FROM 'true'
+ OR review_snap.cutoff_at>(p_business->>'assessedAt')::timestamptz
+ OR NOT EXISTS(SELECT FROM jsonb_array_elements(review_snap.readset_text::jsonb->'sources') item
+   WHERE item->>'sourceMessageId'=src.source_message_id::text AND item->>'payloadHash'=src.payload_hash) THEN RETURN false; END IF;
+ SELECT opened_at INTO epoch FROM gridex_received_sources.epoch WHERE singleton;
+ valid_start:=(cover->>'validFrom')::timestamptz; valid_end:=(cover->>'validTo')::timestamptz;
+ minute:=wire#>>'{effectiveTo,marketMinute}';
+ IF minute IS NULL OR minute !~ '^[0-9]{12}$' OR substring(minute,1,4)::int<1 OR substring(minute,9,2)::int>23 OR substring(minute,11,2)::int>59 THEN RETURN false; END IF;
+ market_time:=make_timestamp(substring(minute,1,4)::int,substring(minute,5,2)::int,substring(minute,7,2)::int,substring(minute,9,2)::int,substring(minute,11,2)::int,0);
+ change_at:=market_time AT TIME ZONE 'Etc/GMT-1';
+ IF (wire#>>'{effectiveTo,utc}')::timestamptz IS DISTINCT FROM change_at OR valid_start IS NULL OR NOT isfinite(valid_start)
+ OR valid_start<epoch OR (valid_end IS NOT NULL AND (NOT isfinite(valid_end) OR valid_end<=valid_start))
+ OR change_at<=valid_start OR (valid_end IS NOT NULL AND change_at<>valid_end)
+ OR p_business->>'legacyEndDateProjection' IS DISTINCT FROM market_time::date::text THEN RETURN false; END IF;
+ SELECT * INTO baseline FROM gridex_received_sources.sources WHERE source_message_id=(cover->>'baselineSourceMessageId')::uuid
+ AND company_id=src.company_id AND environment=src.environment AND message_code='Z04';
+ IF NOT FOUND OR baseline.source_message_id=src.source_message_id OR reference IS DISTINCT FROM jsonb_build_object(
+  'sourceMessageId',baseline.source_message_id,'assessmentId',p_business->>'baselineCurrentAssessmentId',
+  'factsHash',reference->>'factsHash','payloadHash',baseline.payload_hash) THEN RETURN false; END IF;
+ SELECT a.* INTO root FROM gridex_received_sources.object_assessments a JOIN gridex_received_sources.object_availability_witnesses w ON w.assessment_id=a.id
+ WHERE a.id=(cover->>'baselineAssessmentId')::uuid AND a.source_message_id=baseline.source_message_id AND a.company_id=src.company_id
+ AND a.environment=src.environment AND a.facts_hash=cover->>'baselineFactsHash' AND w.facts_hash=a.facts_hash AND w.observed_at<=review_snap.cutoff_at;
+ IF NOT FOUND THEN RETURN false; END IF;
+ SELECT value INTO root_entry FROM jsonb_array_elements(root.facts_text::jsonb->'objects')
+ WHERE value#>>'{object,objectId}'=p_business#>>'{object,objectId}' AND value#>>'{object,identityAgency}'='9';
+ IF root_entry->>'disposition' IS DISTINCT FROM 'accepted' OR root_entry#>>'{business,owner}' IS DISTINCT FROM 'inbound-z04-switch-confirmation-v1'
+ OR root.source_payload_hash IS DISTINCT FROM baseline.payload_hash
+ OR root_entry#>>'{business,sourceMessageId}' IS DISTINCT FROM baseline.source_message_id::text
+ OR root_entry#>>'{business,sourcePayloadHash}' IS DISTINCT FROM baseline.payload_hash
+ OR root_entry#>>'{business,companyId}' IS DISTINCT FROM src.company_id::text
+ OR root_entry#>>'{business,environment}' IS DISTINCT FROM src.environment
+ OR root_entry#>>'{party,parties,legalSender}' IS DISTINCT FROM wire->>'legalSender'
+ OR root_entry#>>'{party,parties,legalReceiver}' IS DISTINCT FROM wire->>'legalReceiver'
+ OR root_entry#>>'{business,switchRequestId}' IS DISTINCT FROM p_business->>'switchRequestId'
+ OR root_entry#>>'{business,supplyPeriodId}' IS DISTINCT FROM p_business->>'supplyPeriodId'
+ OR root_entry#>>'{business,customerId}' IS DISTINCT FROM p_business->>'customerId'
+ OR root_entry#>>'{business,meteringPointId}' IS DISTINCT FROM p_business->>'meteringPointId'
+ OR root_entry#>>'{business,siteId}' IS DISTINCT FROM p_business->>'siteId'
+ OR (root_entry#>>'{business,effectiveFrom,utc}')::timestamptz IS DISTINCT FROM valid_start THEN RETURN false; END IF;
+ SELECT a.* INTO current_root FROM gridex_received_sources.object_assessments a JOIN gridex_received_sources.object_availability_witnesses w ON w.assessment_id=a.id
+ WHERE a.id=(p_business->>'baselineCurrentAssessmentId')::uuid AND a.source_message_id=baseline.source_message_id
+ AND a.company_id=src.company_id AND a.environment=src.environment AND w.facts_hash=a.facts_hash AND w.observed_at<=review_snap.cutoff_at
+ AND NOT EXISTS(SELECT FROM gridex_received_sources.object_assessments next WHERE next.previous_assessment_id=a.id);
+ IF NOT FOUND THEN RETURN false; END IF;
+ SELECT value INTO current_entry FROM jsonb_array_elements(current_root.facts_text::jsonb->'objects')
+ WHERE value#>>'{object,objectId}'=p_business#>>'{object,objectId}' AND value#>>'{object,identityAgency}'='9';
+ IF current_entry->>'disposition' IS DISTINCT FROM 'accepted'
+ OR current_entry#>>'{business,owner}' IS DISTINCT FROM 'reviewed-received-structure-v1'
+ OR current_entry#>>'{business,wire,messageCode}' IS DISTINCT FROM 'Z04'
+ OR current_entry#>'{business,wire,functionCode}' NOT IN ('"9"'::jsonb,'null'::jsonb)
+ OR current_entry#>'{business,replaces}' IS DISTINCT FROM 'null'::jsonb
+ OR current_entry#>'{business,coverageWindow}' IS DISTINCT FROM cover
+ OR current_root.facts_hash IS DISTINCT FROM reference->>'factsHash'
+ OR current_root.source_payload_hash IS DISTINCT FROM baseline.payload_hash
+ OR current_entry#>>'{business,sourceMessageId}' IS DISTINCT FROM baseline.source_message_id::text
+ OR current_entry#>>'{business,sourcePayloadHash}' IS DISTINCT FROM baseline.payload_hash
+ OR current_entry#>>'{business,companyId}' IS DISTINCT FROM src.company_id::text
+ OR current_entry#>>'{business,environment}' IS DISTINCT FROM src.environment
+ OR current_entry#>>'{business,customerId}' IS DISTINCT FROM p_business->>'customerId'
+ OR current_entry#>>'{business,meteringPointId}' IS DISTINCT FROM p_business->>'meteringPointId'
+ OR current_entry#>>'{business,siteId}' IS DISTINCT FROM p_business->>'siteId'
+ OR current_entry#>>'{business,switchRequestId}' IS DISTINCT FROM p_business->>'switchRequestId'
+ OR current_entry#>>'{business,supplyPeriodId}' IS DISTINCT FROM p_business->>'supplyPeriodId'
+ OR current_entry#>>'{business,wire,legalSender}' IS DISTINCT FROM wire->>'legalSender'
+ OR current_entry#>>'{business,wire,legalReceiver}' IS DISTINCT FROM wire->>'legalReceiver'
+ OR (current_entry#>>'{business,wire,effectiveFrom,utc}')::timestamptz IS DISTINCT FROM valid_start
+ THEN RETURN false; END IF;
+ -- The retained snapshot must actually contain the current baseline assessment,
+ -- rather than merely sharing a plausible time and tenant with it.
+ IF NOT EXISTS(SELECT FROM jsonb_array_elements(review_snap.readset_text::jsonb->'sources') source,
+  LATERAL jsonb_array_elements(source->'assessments') assessment
+  WHERE source->>'sourceMessageId'=baseline.source_message_id::text AND source->>'payloadHash'=baseline.payload_hash
+  AND assessment->>'id'=root.id::text AND assessment->>'factsHash'=root.facts_hash
+  AND (assessment->>'availableAt')::timestamptz<=review_snap.cutoff_at) THEN RETURN false; END IF;
+ IF NOT EXISTS(SELECT FROM jsonb_array_elements(review_snap.readset_text::jsonb->'sources') source,
+  LATERAL jsonb_array_elements(source->'assessments') assessment
+  WHERE source->>'sourceMessageId'=baseline.source_message_id::text AND assessment->>'id'=current_root.id::text
+  AND assessment->>'factsHash'=current_root.facts_hash AND (assessment->>'availableAt')::timestamptz<=review_snap.cutoff_at) THEN RETURN false; END IF;
+ -- Selection may not choose a convenient reviewed root among ambiguous
+ -- latest witnessed baselines for this same immutable supply and object.
+ IF (SELECT count(*) FROM gridex_received_sources.object_assessments a
+  JOIN gridex_received_sources.object_availability_witnesses w ON w.assessment_id=a.id AND w.facts_hash=a.facts_hash
+  JOIN gridex_received_sources.sources source ON source.source_message_id=a.source_message_id
+  CROSS JOIN LATERAL jsonb_array_elements(a.facts_text::jsonb->'objects') item
+  WHERE a.company_id=src.company_id AND a.environment=src.environment AND source.message_code='Z04'
+  AND w.observed_at<=review_snap.cutoff_at
+  AND NOT EXISTS(SELECT FROM gridex_received_sources.object_assessments child WHERE child.previous_assessment_id=a.id)
+  AND item->>'disposition'='accepted' AND item#>>'{business,owner}'='reviewed-received-structure-v1'
+  AND item#>>'{business,supplyPeriodId}'=p_business->>'supplyPeriodId'
+  AND item#>>'{object,objectId}'=p_business#>>'{object,objectId}' AND item#>>'{object,identityAgency}'='9'
+  AND item#>>'{business,wire,legalSender}'=wire->>'legalSender'
+  AND item#>>'{business,wire,legalReceiver}'=wire->>'legalReceiver')<>1 THEN RETURN false; END IF;
+ IF (SELECT count(*) FROM public.customer_supply_periods sp WHERE sp.company_id=src.company_id
+  AND sp.source_message_id=src.source_message_id AND sp.status='ended'
+  AND sp.customer_id=(p_business->>'customerId')::uuid AND sp.metering_point_id=(p_business->>'meteringPointId')::uuid)<>1 THEN RETURN false; END IF;
+ SELECT EXISTS(SELECT FROM public.supplier_switch_requests sw
+ JOIN public.customer_supply_periods sp ON sp.id=(p_business->>'supplyPeriodId')::uuid
+ JOIN public.ediel_messages outbound ON outbound.id=sw.outbound_z03_message_id
+ JOIN public.metering_points mp ON mp.id=sw.metering_point_id JOIN public.customer_sites cs ON cs.id=sw.site_id
+ WHERE sw.id=(p_business->>'switchRequestId')::uuid AND sw.company_id=src.company_id AND sp.company_id=src.company_id
+ AND sw.inbound_z04_message_id=baseline.source_message_id AND sp.source_message_id=src.source_message_id
+ AND sw.status='accepted' AND sp.status='ended'
+ AND sw.rff_li_reference=current_entry#>>'{business,wire,caseReference}'
+ AND sw.metering_point_id=(p_business->>'meteringPointId')::uuid AND sp.metering_point_id=sw.metering_point_id
+ AND sw.customer_id=(p_business->>'customerId')::uuid AND sp.customer_id=sw.customer_id AND sw.site_id=(p_business->>'siteId')::uuid
+ AND (sp.source_switch_request_id IS NULL OR sp.source_switch_request_id=sw.id)
+ AND mp.company_id=src.company_id AND cs.company_id=src.company_id AND mp.site_id=cs.id AND mp.customer_id=sw.customer_id AND cs.customer_id=sw.customer_id
+ AND (sp.start_date::timestamp AT TIME ZONE 'Etc/GMT-1')=valid_start AND sw.confirmed_start_date=sp.start_date
+ AND sp.end_date=market_time::date
+ AND sw.created_at=(cover->>'switchCreatedAt')::timestamptz AND sw.created_at>=epoch AND sw.created_at<=valid_start
+ AND outbound.id=(cover->>'outboundSourceMessageId')::uuid AND outbound.company_id=src.company_id AND outbound.environment=src.environment
+ AND outbound.direction='outbound' AND outbound.message_standard='edifact' AND outbound.message_family='PRODAT' AND outbound.message_code='Z03'
+ AND outbound.created_at=(cover->>'outboundCreatedAt')::timestamptz AND outbound.created_at>=sw.created_at AND outbound.created_at<=review_snap.cutoff_at
+ AND outbound.message_sent_at>=outbound.created_at AND outbound.message_sent_at<=baseline.source_received_at
+ AND outbound.customer_id=sw.customer_id AND outbound.metering_point_id=sw.metering_point_id AND outbound.site_id=sw.site_id) INTO owner_ok;
+ IF owner_ok IS DISTINCT FROM true THEN RETURN false; END IF;
+ RETURN true;
+EXCEPTION WHEN invalid_text_representation OR invalid_datetime_format OR datetime_field_overflow OR numeric_value_out_of_range OR invalid_parameter_value THEN RETURN false;
+END $_$;
+
+--
+-- Name: review_party_proof_consistent(jsonb, jsonb, timestamp with time zone); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.review_party_proof_consistent(p_party jsonb, p_business jsonb, p_received timestamp with time zone) RETURNS boolean
+    LANGUAGE plpgsql STABLE
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $_$
+DECLARE identity jsonb:=p_party#>'{receiver,identity}'; evidence jsonb:=p_party#>'{receiver,evidence}';
+ records jsonb:=evidence->'records'; facility jsonb:=p_party->'facility'; parties jsonb:=p_party->'parties';
+ effective jsonb:=p_business->'effectiveFrom'; commit_row jsonb; name text; stamp text; instant timestamptz;
+ party_start timestamptz; party_end timestamptz; evaluated timestamptz; role_values text[]; supplied_roles text[];
+ actor_count bigint; identifier_count bigint; selected_actor_id uuid; legal_id text; relation_count bigint;
+ relation_id uuid; transport_actor uuid; transport_id text; minute text; market_time timestamp; expected_day text;
+BEGIN
+ IF p_received IS NULL OR NOT isfinite(p_received)
+  OR p_business->>'sourceDisposition' IS DISTINCT FROM 'not_established'
+  OR p_business->>'graphNamespace' IS DISTINCT FROM 'legacy_unqualified'
+  OR p_party->>'historicalKnowledge' IS DISTINCT FROM 'not_established'
+  OR p_party->>'authentication' IS DISTINCT FROM 'not_assessed'
+  OR evidence->'version' IS DISTINCT FROM '1'::jsonb
+  OR evidence->>'owner' IS DISTINCT FROM 'canonical-tenant-ediel-identity-v1'
+  OR evidence->>'consistency' IS DISTINCT FROM 'independent_reads'
+  OR evidence->>'historicalKnowledge' IS DISTINCT FROM 'not_established'
+  OR evidence->>'sourceDisposition' IS DISTINCT FROM 'not_established'
+  OR facility->>'owner' IS DISTINCT FROM 'selected-facility-grid-owner-v1'
+  OR facility->>'consistency' IS DISTINCT FROM 'independent_reads'
+  OR facility->>'historicalKnowledge' IS DISTINCT FROM 'not_established'
+  OR identity->>'companyId' IS DISTINCT FROM p_business->>'companyId'
+  OR identity->>'environment' IS DISTINCT FROM p_business->>'environment'
+  OR jsonb_typeof(identity->'representedByTransportAgent') IS DISTINCT FROM 'boolean'
+  OR jsonb_typeof(identity->'roleCodes') IS DISTINCT FROM 'array'
+  OR jsonb_typeof(parties) IS DISTINCT FROM 'object' THEN RETURN false; END IF;
+ -- PostgreSQL's timestamp/date types own calendar parsing. Reject infinities,
+ -- date-only spellings and excess fractional precision before typed equality.
+ FOR stamp IN SELECT value FROM unnest(ARRAY[p_business->>'assessedAt',p_business->>'sourceReceivedAt',
+  p_party#>>'{source,receivedAt}',p_party->>'assessedAt',p_party->>'completedAt',evidence->>'evaluatedAt',
+  evidence->>'observedAt',evidence->>'completedAt',facility->>'observedAt',facility->>'completedAt']) value LOOP
+  IF stamp IS NULL OR stamp !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$' THEN RETURN false; END IF;
+  instant:=stamp::timestamptz;
+  IF NOT isfinite(instant) OR instant<p_received OR instant>statement_timestamp() THEN RETURN false; END IF;
+ END LOOP;
+ party_start:=(p_party->>'assessedAt')::timestamptz;party_end:=(p_party->>'completedAt')::timestamptz;evaluated:=(evidence->>'evaluatedAt')::timestamptz;
+ IF (p_business->>'sourceReceivedAt')::timestamptz<>p_received OR (p_party#>>'{source,receivedAt}')::timestamptz<>p_received
+  OR party_end<party_start OR evaluated<>party_start
+  OR (evidence->>'observedAt')::timestamptz<evaluated OR (evidence->>'completedAt')::timestamptz<(evidence->>'observedAt')::timestamptz
+  OR (evidence->>'completedAt')::timestamptz>party_end
+  OR (facility->>'observedAt')::timestamptz<party_start OR (facility->>'completedAt')::timestamptz<(facility->>'observedAt')::timestamptz
+  OR (facility->>'completedAt')::timestamptz>party_end THEN RETURN false; END IF;
+ FOREACH name IN ARRAY ARRAY['legalSender','legalReceiver','transportSender','transportReceiver'] LOOP
+  IF jsonb_typeof(parties->name) IS DISTINCT FROM 'string' OR length(parties->>name) NOT BETWEEN 1 AND 128
+   OR parties->>name<>btrim(parties->>name) THEN RETURN false; END IF;
+ END LOOP;
+ -- Same half-open tenant validity used by resolveCanonicalTenantEdielIdentity.
+ IF NOT EXISTS(SELECT FROM jsonb_populate_recordset(NULL::public.tenant_ediel_profiles,records->'profiles') r
+  WHERE r.is_enabled AND r.market='electricity' AND r.valid_from<=evaluated AND (r.valid_to IS NULL OR evaluated<r.valid_to)) THEN RETURN false; END IF;
+ SELECT count(DISTINCT r.actor_id),count(DISTINCT nullif(btrim(r.identifier_value),'')),min(r.actor_id::text)::uuid,min(nullif(btrim(r.identifier_value),''))
+ INTO actor_count,identifier_count,selected_actor_id,legal_id
+ FROM jsonb_populate_recordset(NULL::public.tenant_actor_identifiers,records->'identifiers') r
+ WHERE r.identifier_type='EdielId' AND r.valid_from<=evaluated AND (r.valid_to IS NULL OR evaluated<r.valid_to);
+ IF actor_count<>1 OR identifier_count<>1 OR selected_actor_id::text IS DISTINCT FROM identity->>'legalActorId'
+  OR legal_id IS DISTINCT FROM identity->>'legalEdielId' OR legal_id IS DISTINCT FROM parties->>'legalReceiver' THEN RETURN false; END IF;
+ SELECT array_agg(DISTINCT btrim(r.role_code) ORDER BY btrim(r.role_code)) INTO role_values
+ FROM jsonb_populate_recordset(NULL::public.tenant_actor_roles,records->'roles') r
+ WHERE r.actor_id=selected_actor_id AND nullif(btrim(r.role_code),'') IS NOT NULL AND r.valid_from<=evaluated AND (r.valid_to IS NULL OR evaluated<r.valid_to);
+ IF EXISTS(SELECT FROM jsonb_array_elements(identity->'roleCodes') r WHERE jsonb_typeof(r)<>'string') THEN RETURN false; END IF;
+ SELECT array_agg(DISTINCT value ORDER BY value) INTO supplied_roles FROM jsonb_array_elements_text(identity->'roleCodes');
+ IF role_values IS DISTINCT FROM supplied_roles OR NOT coalesce('electricity_supplier'=ANY(role_values),false) THEN RETURN false; END IF;
+ SELECT count(*),min(r.id::text)::uuid,min(r.counterparty_actor_id::text)::uuid INTO relation_count,relation_id,transport_actor
+ FROM jsonb_populate_recordset(NULL::public.tenant_counterparty_relations,records->'relations') r
+ WHERE r.relation_type='ediel_transport_agent' AND r.is_enabled AND r.valid_from<=evaluated AND (r.valid_to IS NULL OR evaluated<r.valid_to);
+ IF relation_count=0 THEN
+  IF identity->'representedByTransportAgent'<>'false'::jsonb OR identity->'transportRelationId' IS DISTINCT FROM 'null'::jsonb
+   OR identity->>'transportActorId' IS DISTINCT FROM selected_actor_id::text OR identity->>'transportEdielId' IS DISTINCT FROM legal_id
+   OR records->'transportIdentifiers' IS DISTINCT FROM '[]'::jsonb THEN RETURN false; END IF;
+ ELSE
+  IF relation_count<>1 OR identity->'representedByTransportAgent'<>'true'::jsonb
+   OR identity->>'transportRelationId' IS DISTINCT FROM relation_id::text OR identity->>'transportActorId' IS DISTINCT FROM transport_actor::text
+   OR transport_actor=selected_actor_id THEN RETURN false; END IF;
+  IF EXISTS(SELECT FROM jsonb_populate_recordset(NULL::public.platform_actor_identifiers,records->'transportIdentifiers') r WHERE r.is_verified IS DISTINCT FROM true) THEN RETURN false; END IF;
+  SELECT count(DISTINCT nullif(btrim(r.identifier_value),'')),min(nullif(btrim(r.identifier_value),'')) INTO identifier_count,transport_id
+  FROM jsonb_populate_recordset(NULL::public.platform_actor_identifiers,records->'transportIdentifiers') r
+  WHERE r.actor_id=transport_actor AND r.identifier_type='EdielId'
+   AND (r.valid_from IS NULL OR r.valid_from::timestamp AT TIME ZONE 'UTC'<=evaluated)
+   AND (r.valid_to IS NULL OR evaluated<r.valid_to::timestamp AT TIME ZONE 'UTC');
+  IF identifier_count<>1 OR transport_id=legal_id OR transport_id IS DISTINCT FROM identity->>'transportEdielId' THEN RETURN false; END IF;
+ END IF;
+ IF parties->>'transportReceiver' IS DISTINCT FROM identity->>'transportEdielId'
+  OR parties->>'transportSender' IS DISTINCT FROM parties->>'legalSender'
+  OR parties->>'legalSender' IS DISTINCT FROM facility#>>'{gridOwner,ediel_id}'
+  OR facility#>'{gridOwner,is_active}' IS DISTINCT FROM 'true'::jsonb OR facility#>>'{gridOwner,lifecycle_status}' IS DISTINCT FROM 'active'
+  OR facility#>>'{gridOwner,environment}' IS DISTINCT FROM p_business->>'environment'
+  OR (p_business->>'environment'='production' AND facility#>>'{gridOwner,ediel_id}' IN ('91100','91109'))
+  OR facility#>>'{meteringPoint,meter_point_id}' IS DISTINCT FROM p_business#>>'{object,objectId}'
+  OR facility#>>'{site,facility_id}' IS DISTINCT FROM p_business#>>'{object,objectId}'
+  OR facility#>>'{meteringPoint,site_id}' IS DISTINCT FROM facility#>>'{site,id}'
+  OR (facility#>'{meteringPoint,customer_site_id}'<>'null'::jsonb AND facility#>>'{meteringPoint,customer_site_id}' IS DISTINCT FROM facility#>>'{site,id}')
+  OR facility#>>'{meteringPoint,grid_owner_id}' IS DISTINCT FROM facility#>>'{gridOwner,id}'
+  OR facility#>>'{site,grid_owner_id}' IS DISTINCT FROM facility#>>'{gridOwner,id}' THEN RETURN false; END IF;
+ RETURN true;
+EXCEPTION WHEN invalid_text_representation OR invalid_datetime_format OR datetime_field_overflow OR numeric_value_out_of_range OR invalid_parameter_value THEN RETURN false;
+END $_$;
+
+--
+-- Name: witness_object_availability(uuid, text, uuid, text); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.witness_object_availability(p_company_id uuid, p_environment text, p_assessment_id uuid, p_facts_hash text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE found_id uuid; source_id uuid; snap text; witness gridex_received_sources.object_availability_witnesses%rowtype;
+BEGIN
+ -- A result from the current transaction is expressly insufficient. The owner
+ -- append must have committed before this separate service RPC can observe it.
+ SELECT a.id,a.source_message_id,pg_current_snapshot()::text INTO found_id,source_id,snap
+ FROM gridex_received_sources.object_assessments a
+ WHERE a.id=p_assessment_id AND a.company_id=p_company_id AND a.environment=p_environment
+ AND a.facts_hash=p_facts_hash AND a.created_xid<>pg_current_xact_id();
+ IF found_id IS NULL THEN RAISE EXCEPTION 'source_object_availability_unproven' USING ERRCODE='23514'; END IF;
+ INSERT INTO gridex_received_sources.object_availability_witnesses(assessment_id,company_id,environment,source_message_id,facts_hash,visibility_snapshot)
+ VALUES(found_id,p_company_id,p_environment,source_id,p_facts_hash,snap) ON CONFLICT(assessment_id) DO NOTHING;
+ SELECT * INTO STRICT witness FROM gridex_received_sources.object_availability_witnesses WHERE assessment_id=found_id;
+ RETURN jsonb_build_object('version',1,'witnessId',witness.id,'assessmentId',found_id,'companyId',p_company_id,'environment',p_environment,'factsHash',p_facts_hash,'availableAt',witness.observed_at);
+END $$;
+
 SET default_table_access_method = heap;
+
+--
+-- Name: metering_values; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.metering_values (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid,
+    customer_id uuid,
+    site_id uuid,
+    metering_point_id uuid,
+    source_request_id uuid,
+    grid_owner_id uuid,
+    reading_type text DEFAULT 'consumption'::text NOT NULL,
+    value_kwh numeric,
+    quality_code text,
+    read_at timestamp with time zone,
+    period_start timestamp with time zone,
+    period_end timestamp with time zone,
+    source_system text DEFAULT 'manual'::text NOT NULL,
+    raw_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    source_ediel_message_id uuid,
+    canonical_dedupe_key text,
+    is_current boolean DEFAULT true NOT NULL,
+    previous_value_id uuid,
+    replaced_by_value_id uuid,
+    revision_number integer DEFAULT 1 NOT NULL,
+    correction_reason text,
+    value_status text DEFAULT 'current'::text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    metadata jsonb DEFAULT '{}'::jsonb,
+    updated_at timestamp with time zone DEFAULT now(),
+    customer_site_id uuid,
+    source_message_id uuid,
+    source_transaction_id text,
+    grid_owner_ediel_id text,
+    grid_area_code text,
+    product_code text,
+    register_code text,
+    meter_number text,
+    resolution text,
+    quantity numeric,
+    unit text,
+    registration_time timestamp with time zone,
+    reason_code text,
+    status text,
+    permission_id uuid,
+    utilts_message_id uuid,
+    batch_id uuid,
+    "timestamp" timestamp with time zone,
+    measurement_resolution text,
+    status_code text,
+    source text,
+    utilts_subtype text,
+    updated_by uuid,
+    bidding_zone_code text,
+    quantity_kwh numeric,
+    quality text,
+    received_at timestamp with time zone,
+    price_area text,
+    source_transaction_reference text,
+    source_line_reference text,
+    billing_match_status text,
+    billing_match_checked_at timestamp with time zone,
+    billing_match_issues jsonb DEFAULT '[]'::jsonb NOT NULL,
+    revision_status text DEFAULT 'current'::text NOT NULL,
+    billing_status text DEFAULT 'pending_match'::text NOT NULL,
+    direction text DEFAULT 'consumption'::text NOT NULL,
+    billing_gate_status text DEFAULT 'pending_match'::text NOT NULL,
+    billing_gate_reasons jsonb DEFAULT '[]'::jsonb NOT NULL,
+    billing_gate_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
+    billing_gate_evaluated_at timestamp with time zone,
+    supply_period_id uuid,
+    CONSTRAINT metering_values_billing_gate_status_check CHECK ((billing_gate_status = ANY (ARRAY['pending_match'::text, 'eligible'::text, 'blocked'::text, 'conflict'::text]))),
+    CONSTRAINT metering_values_billing_status_check CHECK ((billing_status = ANY (ARRAY['pending_match'::text, 'billable'::text, 'blocked'::text, 'conflict'::text, 'invoiced'::text, 'credited'::text]))),
+    CONSTRAINT metering_values_revision_status_check CHECK ((revision_status = ANY (ARRAY['current'::text, 'replaced'::text, 'superseded'::text, 'void'::text])))
+);
+
+--
+-- Name: ediel_messages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ediel_messages (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid,
+    direction text NOT NULL,
+    message_standard text DEFAULT 'edifact'::text NOT NULL,
+    message_family text NOT NULL,
+    message_code text,
+    message_version text,
+    process_type text,
+    environment text DEFAULT 'test'::text NOT NULL,
+    test_flag integer DEFAULT 1 NOT NULL,
+    status text DEFAULT 'draft'::text NOT NULL,
+    transport_type text DEFAULT 'email'::text NOT NULL,
+    mailbox text,
+    mailbox_message_id text,
+    sender_ediel_id text,
+    sender_name text,
+    sender_sub_address text,
+    receiver_ediel_id text,
+    receiver_name text,
+    receiver_sub_address text,
+    sender_email text,
+    receiver_email text,
+    subject text,
+    file_name text,
+    mime_type text,
+    interchange_reference text,
+    external_reference text,
+    correlation_reference text,
+    transaction_reference text,
+    application_reference text,
+    original_message_id text,
+    original_transaction_id text,
+    original_message_code text,
+    related_message_id uuid,
+    communication_route_id uuid,
+    outbound_request_id uuid,
+    switch_request_id uuid,
+    grid_owner_data_request_id uuid,
+    partner_export_id uuid,
+    customer_id uuid,
+    site_id uuid,
+    metering_point_id uuid,
+    grid_owner_id uuid,
+    raw_payload text,
+    parsed_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    validation_report jsonb DEFAULT '{}'::jsonb NOT NULL,
+    requires_contrl boolean DEFAULT true NOT NULL,
+    requires_aperak boolean DEFAULT false NOT NULL,
+    contrl_status text,
+    aperak_status text,
+    utilts_err_status text,
+    ack_outcome text,
+    syntax_check_status text,
+    functional_check_status text,
+    failure_reason text,
+    message_created_at timestamp with time zone,
+    message_received_at timestamp with time zone,
+    message_sent_at timestamp with time zone,
+    parsed_at timestamp with time zone,
+    validated_at timestamp with time zone,
+    acknowledged_at timestamp with time zone,
+    failed_at timestamp with time zone,
+    ack_due_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    updated_by uuid,
+    metadata jsonb DEFAULT '{}'::jsonb,
+    unb_sender_id text,
+    unb_sender_subaddress text,
+    unb_receiver_id text,
+    unb_receiver_subaddress text,
+    message_reference text,
+    bgm_code text,
+    bgm_reference text,
+    tenant_resolution_status text,
+    business_match_status text,
+    ack_status text,
+    processing_status text,
+    raw_payload_hash text,
+    utilts_subtype text,
+    measurement_resolution text,
+    backend_automation_status text,
+    backend_automation_reason text,
+    route_profile_id uuid,
+    route_version integer,
+    transport_profile_id uuid,
+    routing_decision_id uuid,
+    routing_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
+    parsed_unb_sender_ediel_id text,
+    parsed_unb_receiver_ediel_id text,
+    resolved_company_id uuid,
+    resolved_sender_ediel_id text,
+    resolved_receiver_ediel_id text,
+    receiver_source text,
+    resolved_grid_owner_id uuid,
+    resolved_counterparty_id uuid,
+    dynamic_receiver_strategy text,
+    party_id uuid,
+    party_address_id uuid,
+    transport_security_mode text,
+    route_transport_security_mode text,
+    was_smime_encrypted boolean,
+    expected_receiver_certificate_id uuid,
+    cms_expected_receiver_present boolean,
+    operation_id uuid,
+    grid_owner_information_request_id uuid,
+    intent_id uuid,
+    message_subtype text,
+    business_process text,
+    business_state text,
+    rule_profile_key text,
+    rule_profile_version_id uuid,
+    rule_profile_version text,
+    rule_pack_checksum text,
+    rule_pack_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
+    canonical_rule_pack_id uuid,
+    certificate_profile_id uuid,
+    business_date date,
+    source_operation_id text,
+    immutable_payload_hash text,
+    immutable_rendered_at timestamp with time zone,
+    execution_context_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
+    contrl_due_at timestamp with time zone,
+    business_response_due_at timestamp with time zone,
+    response_overdue_at timestamp with time zone
+);
+
+--
+-- Name: COLUMN ediel_messages.created_by; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ediel_messages.created_by IS 'Optional real user UUID. Automated EDIEL creation is represented by null plus message metadata.';
+
+--
+-- Name: COLUMN ediel_messages.updated_by; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ediel_messages.updated_by IS 'Optional real user UUID. Automated EDIEL updates are represented by null plus event/audit metadata.';
+
+--
+-- Name: COLUMN ediel_messages.grid_owner_information_request_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ediel_messages.grid_owner_information_request_id IS 'Facility lookup business request linked to this Ediel message.';
+
+--
+-- Name: COLUMN ediel_messages.intent_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ediel_messages.intent_id IS 'EdielMessageIntent that produced this message (null for legacy/inbound rows).';
+
+--
+-- Name: COLUMN ediel_messages.contrl_due_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ediel_messages.contrl_due_at IS 'Canonical technical CONTRL deadline projected from actual message_sent_at.';
+
+--
+-- Name: COLUMN ediel_messages.business_response_due_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ediel_messages.business_response_due_at IS 'Canonical business-response deadline. For outbound PRODAT Z01 this is Z02 or negative APERAK.';
+
+--
+-- Name: COLUMN ediel_messages.response_overdue_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ediel_messages.response_overdue_at IS 'First time the canonical business-response SLA was escalated. Does not trigger resend.';
 
 --
 -- Name: spot_price_monthly_summaries; Type: TABLE; Schema: public; Owner: -
@@ -8849,181 +10389,6 @@ CREATE TABLE public.ediel_business_errors (
 );
 
 --
--- Name: ediel_messages; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.ediel_messages (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid,
-    direction text NOT NULL,
-    message_standard text DEFAULT 'edifact'::text NOT NULL,
-    message_family text NOT NULL,
-    message_code text,
-    message_version text,
-    process_type text,
-    environment text DEFAULT 'test'::text NOT NULL,
-    test_flag integer DEFAULT 1 NOT NULL,
-    status text DEFAULT 'draft'::text NOT NULL,
-    transport_type text DEFAULT 'email'::text NOT NULL,
-    mailbox text,
-    mailbox_message_id text,
-    sender_ediel_id text,
-    sender_name text,
-    sender_sub_address text,
-    receiver_ediel_id text,
-    receiver_name text,
-    receiver_sub_address text,
-    sender_email text,
-    receiver_email text,
-    subject text,
-    file_name text,
-    mime_type text,
-    interchange_reference text,
-    external_reference text,
-    correlation_reference text,
-    transaction_reference text,
-    application_reference text,
-    original_message_id text,
-    original_transaction_id text,
-    original_message_code text,
-    related_message_id uuid,
-    communication_route_id uuid,
-    outbound_request_id uuid,
-    switch_request_id uuid,
-    grid_owner_data_request_id uuid,
-    partner_export_id uuid,
-    customer_id uuid,
-    site_id uuid,
-    metering_point_id uuid,
-    grid_owner_id uuid,
-    raw_payload text,
-    parsed_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
-    validation_report jsonb DEFAULT '{}'::jsonb NOT NULL,
-    requires_contrl boolean DEFAULT true NOT NULL,
-    requires_aperak boolean DEFAULT false NOT NULL,
-    contrl_status text,
-    aperak_status text,
-    utilts_err_status text,
-    ack_outcome text,
-    syntax_check_status text,
-    functional_check_status text,
-    failure_reason text,
-    message_created_at timestamp with time zone,
-    message_received_at timestamp with time zone,
-    message_sent_at timestamp with time zone,
-    parsed_at timestamp with time zone,
-    validated_at timestamp with time zone,
-    acknowledged_at timestamp with time zone,
-    failed_at timestamp with time zone,
-    ack_due_at timestamp with time zone,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    created_by uuid,
-    updated_by uuid,
-    metadata jsonb DEFAULT '{}'::jsonb,
-    unb_sender_id text,
-    unb_sender_subaddress text,
-    unb_receiver_id text,
-    unb_receiver_subaddress text,
-    message_reference text,
-    bgm_code text,
-    bgm_reference text,
-    tenant_resolution_status text,
-    business_match_status text,
-    ack_status text,
-    processing_status text,
-    raw_payload_hash text,
-    utilts_subtype text,
-    measurement_resolution text,
-    backend_automation_status text,
-    backend_automation_reason text,
-    route_profile_id uuid,
-    route_version integer,
-    transport_profile_id uuid,
-    routing_decision_id uuid,
-    routing_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
-    parsed_unb_sender_ediel_id text,
-    parsed_unb_receiver_ediel_id text,
-    resolved_company_id uuid,
-    resolved_sender_ediel_id text,
-    resolved_receiver_ediel_id text,
-    receiver_source text,
-    resolved_grid_owner_id uuid,
-    resolved_counterparty_id uuid,
-    dynamic_receiver_strategy text,
-    party_id uuid,
-    party_address_id uuid,
-    transport_security_mode text,
-    route_transport_security_mode text,
-    was_smime_encrypted boolean,
-    expected_receiver_certificate_id uuid,
-    cms_expected_receiver_present boolean,
-    operation_id uuid,
-    grid_owner_information_request_id uuid,
-    intent_id uuid,
-    message_subtype text,
-    business_process text,
-    business_state text,
-    rule_profile_key text,
-    rule_profile_version_id uuid,
-    rule_profile_version text,
-    rule_pack_checksum text,
-    rule_pack_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
-    canonical_rule_pack_id uuid,
-    certificate_profile_id uuid,
-    business_date date,
-    source_operation_id text,
-    immutable_payload_hash text,
-    immutable_rendered_at timestamp with time zone,
-    execution_context_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
-    contrl_due_at timestamp with time zone,
-    business_response_due_at timestamp with time zone,
-    response_overdue_at timestamp with time zone
-);
-
---
--- Name: COLUMN ediel_messages.created_by; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.ediel_messages.created_by IS 'Optional real user UUID. Automated EDIEL creation is represented by null plus message metadata.';
-
---
--- Name: COLUMN ediel_messages.updated_by; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.ediel_messages.updated_by IS 'Optional real user UUID. Automated EDIEL updates are represented by null plus event/audit metadata.';
-
---
--- Name: COLUMN ediel_messages.grid_owner_information_request_id; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.ediel_messages.grid_owner_information_request_id IS 'Facility lookup business request linked to this Ediel message.';
-
---
--- Name: COLUMN ediel_messages.intent_id; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.ediel_messages.intent_id IS 'EdielMessageIntent that produced this message (null for legacy/inbound rows).';
-
---
--- Name: COLUMN ediel_messages.contrl_due_at; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.ediel_messages.contrl_due_at IS 'Canonical technical CONTRL deadline projected from actual message_sent_at.';
-
---
--- Name: COLUMN ediel_messages.business_response_due_at; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.ediel_messages.business_response_due_at IS 'Canonical business-response deadline. For outbound PRODAT Z01 this is Z02 or negative APERAK.';
-
---
--- Name: COLUMN ediel_messages.response_overdue_at; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.ediel_messages.response_overdue_at IS 'First time the canonical business-response SLA was escalated. Does not trigger resend.';
-
---
 -- Name: external_contract_intakes; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9572,84 +10937,6 @@ CREATE TABLE public.integration_api_requests (
     error_code text,
     metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
---
--- Name: metering_values; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.metering_values (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid,
-    customer_id uuid,
-    site_id uuid,
-    metering_point_id uuid,
-    source_request_id uuid,
-    grid_owner_id uuid,
-    reading_type text DEFAULT 'consumption'::text NOT NULL,
-    value_kwh numeric,
-    quality_code text,
-    read_at timestamp with time zone,
-    period_start timestamp with time zone,
-    period_end timestamp with time zone,
-    source_system text DEFAULT 'manual'::text NOT NULL,
-    raw_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
-    source_ediel_message_id uuid,
-    canonical_dedupe_key text,
-    is_current boolean DEFAULT true NOT NULL,
-    previous_value_id uuid,
-    replaced_by_value_id uuid,
-    revision_number integer DEFAULT 1 NOT NULL,
-    correction_reason text,
-    value_status text DEFAULT 'current'::text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    created_by uuid,
-    metadata jsonb DEFAULT '{}'::jsonb,
-    updated_at timestamp with time zone DEFAULT now(),
-    customer_site_id uuid,
-    source_message_id uuid,
-    source_transaction_id text,
-    grid_owner_ediel_id text,
-    grid_area_code text,
-    product_code text,
-    register_code text,
-    meter_number text,
-    resolution text,
-    quantity numeric,
-    unit text,
-    registration_time timestamp with time zone,
-    reason_code text,
-    status text,
-    permission_id uuid,
-    utilts_message_id uuid,
-    batch_id uuid,
-    "timestamp" timestamp with time zone,
-    measurement_resolution text,
-    status_code text,
-    source text,
-    utilts_subtype text,
-    updated_by uuid,
-    bidding_zone_code text,
-    quantity_kwh numeric,
-    quality text,
-    received_at timestamp with time zone,
-    price_area text,
-    source_transaction_reference text,
-    source_line_reference text,
-    billing_match_status text,
-    billing_match_checked_at timestamp with time zone,
-    billing_match_issues jsonb DEFAULT '[]'::jsonb NOT NULL,
-    revision_status text DEFAULT 'current'::text NOT NULL,
-    billing_status text DEFAULT 'pending_match'::text NOT NULL,
-    direction text DEFAULT 'consumption'::text NOT NULL,
-    billing_gate_status text DEFAULT 'pending_match'::text NOT NULL,
-    billing_gate_reasons jsonb DEFAULT '[]'::jsonb NOT NULL,
-    billing_gate_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
-    billing_gate_evaluated_at timestamp with time zone,
-    supply_period_id uuid,
-    CONSTRAINT metering_values_billing_gate_status_check CHECK ((billing_gate_status = ANY (ARRAY['pending_match'::text, 'eligible'::text, 'blocked'::text, 'conflict'::text]))),
-    CONSTRAINT metering_values_billing_status_check CHECK ((billing_status = ANY (ARRAY['pending_match'::text, 'billable'::text, 'blocked'::text, 'conflict'::text, 'invoiced'::text, 'credited'::text]))),
-    CONSTRAINT metering_values_revision_status_check CHECK ((revision_status = ANY (ARRAY['current'::text, 'replaced'::text, 'superseded'::text, 'void'::text])))
 );
 
 --
@@ -16397,6 +17684,103 @@ begin
   );
 end;
 $$;
+
+--
+-- Name: gridex_consume_utilts_billing_v1(uuid, uuid, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_consume_utilts_billing_v1(p_company_id uuid, p_source_message_id uuid, p_actor_id uuid, p_expected_contracts jsonb) RETURNS public.billing_underlays
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'extensions'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE v_transaction text; v_contract jsonb; v_context jsonb; v_contracts jsonb:='[]'; v_total numeric:=0; v_ordinal jsonb;
+ v_result public.billing_underlays%rowtype; v_source public.ediel_messages%rowtype;
+BEGIN
+ SELECT s.* INTO v_source FROM public.ediel_messages s WHERE s.id=p_source_message_id AND s.company_id=p_company_id FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'utilts_consumption_source_unavailable' USING ERRCODE='P0U01'; END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended('utilts-billing|'||p_company_id::text||'|'||p_source_message_id::text,0));
+ FOR v_transaction IN SELECT a.source_transaction_id FROM public.ediel_ack_transaction_results a
+  WHERE a.source_message_id=p_source_message_id AND a.company_id=p_company_id AND a.environment=v_source.environment
+  AND a.disposition='accepted' AND a.persistence_status='persisted' ORDER BY a.source_transaction_id LOOP
+  v_contract:=gridex_utilts_binding.stored_contract_v1(p_company_id,p_source_message_id,v_transaction);
+  IF v_contract#>>'{billing,capability}' IS DISTINCT FROM 'write' THEN RAISE EXCEPTION 'utilts_consumption_billing_context_mismatch' USING ERRCODE='P0U01'; END IF;
+  IF v_context IS NULL THEN v_context:=v_contract->'billing';
+  ELSIF v_context IS DISTINCT FROM v_contract->'billing' THEN RAISE EXCEPTION 'utilts_consumption_billing_context_mismatch' USING ERRCODE='P0U01'; END IF;
+  FOR v_ordinal IN SELECT value FROM jsonb_array_elements(v_contract->'billingContributionOrdinals') LOOP
+   v_total:=v_total+(v_contract->'observations'->((v_ordinal#>>'{}')::integer)->>'quantity')::numeric;
+  END LOOP;
+  v_contracts:=v_contracts||jsonb_build_array(v_contract);
+ END LOOP;
+ IF v_context IS NULL THEN RAISE EXCEPTION 'utilts_consumption_billing_missing' USING ERRCODE='P0U01'; END IF;
+ IF jsonb_typeof(p_expected_contracts) IS DISTINCT FROM 'array' THEN RAISE EXCEPTION 'utilts_consumption_returned_contract_changed' USING ERRCODE='P0U01'; END IF;
+ IF (SELECT jsonb_agg(e.value ORDER BY e.value->>'transactionId') FROM jsonb_array_elements(p_expected_contracts) e) IS DISTINCT FROM v_contracts THEN
+  RAISE EXCEPTION 'utilts_consumption_returned_contract_changed' USING ERRCODE='P0U01'; END IF;
+ PERFORM gridex_utilts_binding.lock_attribution_v1(p_company_id,v_context,true);
+ SELECT b.* INTO v_result FROM public.billing_underlays b WHERE b.company_id=p_company_id AND b.source_system='ediel_utilts'
+  AND b.payload->>'edielMessageId'=p_source_message_id::text ORDER BY b.created_at,b.id LIMIT 1 FOR UPDATE;
+ IF FOUND THEN
+  IF v_result.customer_id::text IS DISTINCT FROM v_context->>'customerId' OR v_result.site_id::text IS DISTINCT FROM v_context->>'siteId'
+   OR v_result.customer_site_id::text IS DISTINCT FROM v_context->>'customerSiteId'
+   OR v_result.metering_point_id::text IS DISTINCT FROM v_context->>'meteringPointId' OR v_result.grid_owner_id::text IS DISTINCT FROM v_context->>'gridOwnerId'
+   OR v_result.source_request_id::text IS DISTINCT FROM v_context->>'sourceRequestId' OR v_result.total_kwh IS DISTINCT FROM v_total
+   OR v_result.underlay_month IS DISTINCT FROM (v_context->>'month')::integer
+   OR v_result.underlay_year IS DISTINCT FROM (v_context->>'year')::integer
+   OR v_result.currency IS DISTINCT FROM v_context->>'currency'
+   OR v_result.payload->'consumptionContracts' IS DISTINCT FROM v_contracts THEN
+   RAISE EXCEPTION 'utilts_consumption_existing_billing_conflict' USING ERRCODE='P0U01'; END IF;
+  RETURN v_result;
+ END IF;
+ INSERT INTO public.billing_underlays(company_id,customer_id,site_id,customer_site_id,metering_point_id,source_request_id,grid_owner_id,underlay_month,underlay_year,
+  status,total_kwh,currency,source_system,payload,readiness_status,readiness_issues,created_by,updated_by,received_at)
+ VALUES(p_company_id,(v_context->>'customerId')::uuid,(v_context->>'siteId')::uuid,(v_context->>'customerSiteId')::uuid,(v_context->>'meteringPointId')::uuid,(v_context->>'sourceRequestId')::uuid,
+  (v_context->>'gridOwnerId')::uuid,(v_context->>'month')::integer,(v_context->>'year')::integer,v_context->>'status',v_total,v_context->>'currency',v_context->>'sourceSystem',
+  jsonb_build_object('edielMessageId',p_source_message_id,'consumptionContracts',v_contracts,'tenant',jsonb_build_object('company_id',p_company_id,'issues','[]'::jsonb)),
+  'not_checked','[]'::jsonb,p_actor_id,p_actor_id,now()) RETURNING * INTO v_result;
+ RETURN v_result;
+END $$;
+
+--
+-- Name: gridex_consume_utilts_metering_v1(uuid, uuid, text, integer, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_consume_utilts_metering_v1(p_company_id uuid, p_source_message_id uuid, p_transaction_id text, p_observation_ordinal integer, p_actor_id uuid, p_expected_contract jsonb) RETURNS public.metering_values
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'extensions'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE v_contract jsonb; v_attribution jsonb; v_observation jsonb; v_key text; v_payload jsonb; v_result public.metering_values%rowtype;
+BEGIN
+ v_contract:=gridex_utilts_binding.stored_contract_v1(p_company_id,p_source_message_id,p_transaction_id);
+ IF p_expected_contract IS DISTINCT FROM v_contract THEN RAISE EXCEPTION 'utilts_consumption_returned_contract_changed' USING ERRCODE='P0U01'; END IF;
+ v_attribution:=v_contract->'metering';
+ IF p_observation_ordinal IS NULL OR p_observation_ordinal<0 OR p_observation_ordinal>=jsonb_array_length(v_contract->'observations') THEN
+  RAISE EXCEPTION 'utilts_consumption_observation_missing' USING ERRCODE='P0U01'; END IF;
+ v_observation:=v_contract->'observations'->p_observation_ordinal;
+ PERFORM gridex_utilts_binding.lock_attribution_v1(p_company_id,v_attribution,false);
+ v_key:=concat_ws('|',p_company_id::text,v_attribution->>'meteringPointId',v_observation->>'periodStart',v_observation->>'periodEnd',
+  coalesce(v_observation->>'registerCode','default-register'),coalesce(v_observation->>'productCode','default-product'),v_observation->>'direction',v_observation->>'unit');
+ PERFORM pg_advisory_xact_lock(hashtextextended('utilts-metering|'||v_key,0));
+ v_payload:=jsonb_build_object('company_id',p_company_id,'customer_id',v_attribution->'customerId','site_id',v_attribution->'siteId','customer_site_id',v_attribution->'customerSiteId',
+  'metering_point_id',v_attribution->'meteringPointId','grid_owner_id',v_attribution->'gridOwnerId','source_request_id',v_attribution->'sourceRequestId',
+  'period_start',v_observation->'periodStart','period_end',v_observation->'periodEnd','read_at',v_observation->'readAt','resolution',v_observation->'resolution',
+  'value_kwh',v_observation->'quantity','quality_code',v_observation->'quality','reading_type',v_observation->'readingType','direction',v_observation->'direction','unit',v_observation->'unit',
+  'register_code',v_observation->'registerCode','product_code',v_observation->'productCode','facility_id',v_observation->'externalPoint','grid_area',v_observation->'gridArea',
+  'source_line_reference',v_observation->'sourceLineReference','source_system',v_contract->'sourceType','source_ediel_message_id',p_source_message_id,
+  'source_transaction_reference',p_transaction_id,'created_by',p_actor_id,'canonical_dedupe_key',v_key,
+  'raw_payload',jsonb_build_object('consumptionContract',v_contract,'sourceOrdinal',v_observation->'sourceOrdinal','edielMessageId',p_source_message_id));
+ -- Lock and compare before the legacy equal-value branch can add lineage.
+ SELECT m.* INTO v_result FROM public.metering_values m WHERE m.company_id=p_company_id AND m.canonical_dedupe_key=v_key AND m.is_current
+  ORDER BY m.created_at DESC,m.id DESC LIMIT 1 FOR UPDATE;
+ IF FOUND THEN
+  PERFORM gridex_utilts_binding.check_metering_result_v1(v_result,v_payload,v_contract->>'environment');
+ END IF;
+ SELECT * INTO v_result FROM public.gridex_ingest_metering_value_atomic(v_payload);
+ -- Recheck the returned row too: any legacy writer racing an absent key must
+ -- roll back its source link on conflict in this same transaction.
+ PERFORM gridex_utilts_binding.check_metering_result_v1(v_result,v_payload,v_contract->>'environment');
+ RETURN v_result;
+END $$;
 
 --
 -- Name: gridex_contact_address(jsonb); Type: FUNCTION; Schema: public; Owner: -
@@ -32907,169 +34291,115 @@ end
 $$;
 
 --
+-- Name: gridex_persist_utilts_consumption_v1(uuid, text, uuid, text, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_persist_utilts_consumption_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_raw_payload text, p_transactions jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'extensions'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE
+ source public.ediel_messages%rowtype; receipt gridex_utilts_binding.receipts%rowtype;
+ stored gridex_utilts_binding.contracts%rowtype; series public.meter_reading_series%rowtype;
+ tokens jsonb; membership jsonb; expected jsonb; raw_hash text; item jsonb; c jsonb; r jsonb; results jsonb; answer jsonb:='[]';
+ v_series_id uuid; identity text; contract_hash text; origin gridex_utilts_binding.receipts%rowtype;
+BEGIN
+ IF p_company_id IS NULL OR p_environment NOT IN ('test','production') OR p_message_code IS NULL OR jsonb_typeof(p_transactions) IS DISTINCT FROM 'array' OR jsonb_array_length(p_transactions)=0 THEN
+  RAISE EXCEPTION 'utilts_consumption_input_invalid' USING ERRCODE='P0U01';
+ END IF;
+ SELECT * INTO source FROM public.ediel_messages WHERE id=p_source_message_id FOR UPDATE;
+ IF NOT FOUND OR source.company_id IS DISTINCT FROM p_company_id OR source.environment IS DISTINCT FROM p_environment OR source.direction<>'inbound' OR source.message_family<>'UTILTS' OR source.message_code IS DISTINCT FROM p_message_code
+ OR p_raw_payload IS NULL OR source.raw_payload IS DISTINCT FROM p_raw_payload THEN RAISE EXCEPTION 'utilts_source_binding_conflict' USING ERRCODE='P0U01'; END IF;
+ raw_hash:=encode(digest(convert_to(source.raw_payload,'UTF8'),'sha256'),'hex');
+ tokens:=gridex_utilts_binding.wire_tokens_v1(source.raw_payload);
+ IF tokens IS NULL THEN RAISE EXCEPTION 'utilts_physical_membership_unavailable' USING ERRCODE='P0U01'; END IF;
+ -- This owner deliberately does not reinterpret multiple physical messages.
+ IF (SELECT count(*) FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='UNH')<>1
+ OR NOT EXISTS(SELECT FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='UNH' AND t#>>'{elements,2,0}'='UTILTS')
+ OR (SELECT count(*) FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='BGM')<>1
+ OR NOT EXISTS(SELECT FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='BGM' AND t#>>'{elements,1,0}'=p_message_code) THEN
+  RAISE EXCEPTION 'utilts_physical_membership_unavailable' USING ERRCODE='P0U01'; END IF;
+ SELECT coalesce(jsonb_agg(coalesce(nullif(t#>>'{elements,2,0}',''),'transaction-'||ordinal::text) ORDER BY ordinal),'["transaction-1"]') INTO membership
+ FROM (SELECT t,row_number() OVER(ORDER BY (t->>'index')::integer) ordinal FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='IDE' AND t#>>'{elements,1,0}'='24') physical;
+ SELECT jsonb_agg(t->'transactionId' ORDER BY ordinal) INTO expected FROM jsonb_array_elements(p_transactions) WITH ORDINALITY x(t,ordinal);
+ IF membership IS DISTINCT FROM expected OR (SELECT count(DISTINCT value) FROM jsonb_array_elements(membership))<>jsonb_array_length(membership) THEN
+  RAISE EXCEPTION 'utilts_physical_membership_conflict' USING ERRCODE='P0U01'; END IF;
+ -- Namespace validation precedes receipt/ACK/series writes, independently of
+ -- application comparison exemptions and mutable plain-ID matches.
+ FOR item IN SELECT value FROM jsonb_array_elements(p_transactions) LOOP
+  c:=item->'consumptionContract';
+  IF NOT coalesce(gridex_utilts_binding.validate_contract_v1(c),false) THEN
+   RAISE EXCEPTION 'utilts_consumption_contract_invalid' USING ERRCODE='P0U01'; END IF;
+  IF item->>'disposition'='accepted' AND (p_message_code IN ('E30','E66','S07') OR jsonb_array_length(c->'observations')>0) THEN
+   identity:=gridex_utilts_binding.supported_point_v1(tokens,item->>'transactionId');
+   IF identity IS NULL OR EXISTS(SELECT FROM jsonb_array_elements(c->'observations') o WHERE o->>'externalPoint' IS DISTINCT FROM identity) THEN
+    RAISE EXCEPTION 'utilts_consumption_identity_unsupported' USING ERRCODE='P0U01'; END IF;
+  END IF;
+ END LOOP;
+ SELECT * INTO receipt FROM gridex_utilts_binding.receipts WHERE source_message_id=p_source_message_id;
+ IF NOT FOUND THEN
+  IF EXISTS(SELECT FROM public.ediel_ack_transaction_results WHERE source_message_id=p_source_message_id)
+  OR EXISTS(SELECT FROM public.meter_reading_series WHERE source_ediel_message_id=p_source_message_id) THEN
+   RAISE EXCEPTION 'utilts_historical_binding_unavailable' USING ERRCODE='P0U01'; END IF;
+  INSERT INTO gridex_utilts_binding.receipts(source_message_id,company_id,environment,message_code,raw_hash,source_context,membership,contract_version)
+   VALUES(p_source_message_id,p_company_id,p_environment,p_message_code,raw_hash,gridex_utilts_binding.source_context_v1(source),membership,1) RETURNING * INTO receipt;
+ ELSIF receipt.raw_hash IS DISTINCT FROM raw_hash OR receipt.source_context IS DISTINCT FROM gridex_utilts_binding.source_context_v1(source) OR receipt.membership IS DISTINCT FROM membership THEN
+  RAISE EXCEPTION 'utilts_source_binding_conflict' USING ERRCODE='P0U01';
+ END IF;
+ -- Acquire all locks before insertion, in stable order (including the private
+ -- insertion core's logical-series lock) to avoid opposite-order batch deadlocks.
+ FOR item IN SELECT value FROM jsonb_array_elements(p_transactions) ORDER BY value->>'transactionId' LOOP
+  PERFORM pg_advisory_xact_lock(hashtextextended(p_company_id::text||'|'||p_environment||'|'||p_source_message_id::text||'|'||(item->>'transactionId'),0));
+ END LOOP;
+ FOR identity IN SELECT DISTINCT concat_ws('|',p_company_id::text,p_environment,coalesce(t->>'seriesKind','actual'),p_message_code,coalesce(t->>'externalMeteringPointId',''),coalesce(t->>'gridAreaId',''),coalesce(t->>'periodStart',''),coalesce(t->>'periodEnd',''),coalesce(t->>'resolution','UNKNOWN'),coalesce(t->>'productId','')) FROM jsonb_array_elements(p_transactions) t ORDER BY 1 LOOP
+  PERFORM pg_advisory_xact_lock(hashtextextended(identity,0));
+ END LOOP;
+ FOR item IN SELECT value FROM jsonb_array_elements(p_transactions) LOOP
+  c:=item->'consumptionContract';
+  IF NOT coalesce(gridex_utilts_binding.validate_contract_v1(c),false) OR c->>'companyId' IS DISTINCT FROM p_company_id::text OR c->>'environment' IS DISTINCT FROM p_environment
+   OR c->>'messageCode' IS DISTINCT FROM p_message_code OR c->>'transactionId' IS DISTINCT FROM item->>'transactionId' OR c->>'seriesKind' IS DISTINCT FROM item->>'seriesKind' THEN
+   RAISE EXCEPTION 'utilts_consumption_contract_invalid' USING ERRCODE='P0U01'; END IF;
+ END LOOP;
+ results:=gridex_utilts_binding.persist_series_v1(p_company_id,p_environment,p_source_message_id,p_message_code,p_transactions);
+ FOR r IN SELECT value FROM jsonb_array_elements(results) LOOP
+  SELECT value INTO STRICT item FROM jsonb_array_elements(p_transactions) WHERE value->>'transactionId'=r->>'transactionId';
+  c:=item->'consumptionContract';
+  IF r->>'persistenceStatus'='persisted' THEN
+   v_series_id:=(r->>'seriesId')::uuid;
+   SELECT * INTO series FROM public.meter_reading_series WHERE id=v_series_id AND company_id=p_company_id FOR SHARE;
+   IF NOT FOUND OR series.message_code IS DISTINCT FROM p_message_code OR series.source_transaction_reference IS DISTINCT FROM item->>'transactionId'
+    OR jsonb_typeof(series.raw_transaction) IS DISTINCT FROM 'object' OR series.immutable_hash IS DISTINCT FROM encode(digest(convert_to(series.raw_transaction::text,'UTF8'),'sha256'),'hex')
+    OR series.raw_transaction IS DISTINCT FROM item THEN RAISE EXCEPTION 'utilts_consumption_raw_conflict' USING ERRCODE='P0U01'; END IF;
+   SELECT * INTO origin FROM gridex_utilts_binding.receipts WHERE source_message_id=series.source_ediel_message_id;
+   IF NOT FOUND OR origin.company_id<>p_company_id OR origin.environment<>p_environment OR origin.message_code<>p_message_code THEN RAISE EXCEPTION 'utilts_consumption_origin_conflict' USING ERRCODE='P0U01'; END IF;
+   SELECT * INTO stored FROM gridex_utilts_binding.contracts WHERE contracts.series_id=v_series_id;
+   IF NOT FOUND THEN
+    IF coalesce((r->>'idempotentReplay')::boolean,true) THEN RAISE EXCEPTION 'utilts_historical_contract_unavailable' USING ERRCODE='P0U01'; END IF;
+    INSERT INTO gridex_utilts_binding.contracts(series_id,company_id,environment,source_message_id,transaction_id,contract_version,contract,contract_hash)
+     VALUES(v_series_id,p_company_id,p_environment,p_source_message_id,item->>'transactionId',1,c,encode(digest(convert_to(c::text,'UTF8'),'sha256'),'hex')) RETURNING * INTO stored;
+   END IF;
+   contract_hash:=encode(digest(convert_to(stored.contract::text,'UTF8'),'sha256'),'hex');
+   IF stored.company_id<>p_company_id OR stored.environment<>p_environment OR stored.transaction_id<>item->>'transactionId' OR stored.contract_version<>1
+    OR NOT coalesce(gridex_utilts_binding.validate_contract_v1(stored.contract),false) OR stored.contract_hash IS DISTINCT FROM contract_hash OR stored.contract IS DISTINCT FROM c THEN
+    RAISE EXCEPTION 'utilts_consumption_contract_conflict' USING ERRCODE='P0U01'; END IF;
+   r:=r||jsonb_build_object('contractVersion',stored.contract_version,'contractHash',stored.contract_hash,'consumptionContract',stored.contract);
+  END IF;
+  answer:=answer||jsonb_build_array(r||jsonb_build_object('sourceBinding',jsonb_build_object('sourceMessageId',receipt.source_message_id,'rawHash',receipt.raw_hash,'boundAt',receipt.bound_at)));
+ END LOOP;
+ RETURN answer;
+END $$;
+
+--
 -- Name: gridex_persist_utilts_transactions_v1(uuid, text, uuid, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.gridex_persist_utilts_transactions_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_transactions jsonb) RETURNS jsonb
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public', 'extensions'
-    AS $$
-declare
-  v_source public.ediel_messages%rowtype;
-  v_item jsonb;
-  v_transaction_id text;
-  v_disposition text;
-  v_response_type text;
-  v_dedupe_key text;
-  v_series_identity text;
-  v_series_id uuid;
-  v_previous_id uuid;
-  v_version integer;
-  v_inserted boolean;
-  v_quantity jsonb;
-  v_order integer;
-  v_results jsonb := '[]'::jsonb;
-  v_error text;
-begin
-  if p_environment not in ('test','production') then raise exception 'utilts_environment_invalid'; end if;
-  if jsonb_typeof(p_transactions) <> 'array' then raise exception 'utilts_transactions_must_be_array'; end if;
-
-  select * into v_source from public.ediel_messages where id=p_source_message_id for share;
-  if not found or v_source.message_family <> 'UTILTS' then raise exception 'utilts_source_message_missing'; end if;
-  if v_source.company_id is distinct from p_company_id or v_source.environment is distinct from p_environment then
-    raise exception 'utilts_source_tenant_or_environment_mismatch' using errcode='23514';
-  end if;
-
-  for v_item in select value from jsonb_array_elements(p_transactions)
-  loop
-    v_transaction_id := nullif(btrim(v_item->>'transactionId'),'');
-    v_disposition := coalesce(nullif(v_item->>'disposition',''),'processability_rejected');
-    v_response_type := coalesce(nullif(v_item->>'responseType',''),'utilts_err');
-    if v_transaction_id is null then v_transaction_id := 'transaction-' || (jsonb_array_length(v_results)+1)::text; end if;
-
-    insert into public.ediel_ack_transaction_results(
-      company_id,environment,source_message_id,source_transaction_id,
-      syntax_result,guide_validation_result,processability_result,
-      disposition,planned_response_type,issue_codes,persistence_status,updated_at
-    ) values (
-      p_company_id,p_environment,p_source_message_id,v_transaction_id,
-      case when v_disposition='syntax_rejected' then 'negative' else 'positive' end,
-      case when v_disposition='guide_rejected' then 'negative' when v_disposition='syntax_rejected' then 'pending' else 'positive' end,
-      case when v_disposition='processability_rejected' then 'negative' when v_disposition='accepted' then 'positive' else 'not_applicable' end,
-      v_disposition,v_response_type,
-      coalesce(array(select jsonb_array_elements_text(coalesce(v_item->'issueCodes','[]'::jsonb))),array[]::text[]),
-      case when v_disposition='accepted' then 'pending' else 'not_applicable' end,now()
-    ) on conflict(company_id,environment,source_message_id,source_transaction_id)
-    do update set
-      syntax_result=excluded.syntax_result,
-      guide_validation_result=excluded.guide_validation_result,
-      processability_result=excluded.processability_result,
-      disposition=excluded.disposition,
-      planned_response_type=excluded.planned_response_type,
-      issue_codes=excluded.issue_codes,
-      persistence_status=excluded.persistence_status,
-      persisted_series_id=null,
-      persistence_error=null,
-      updated_at=now();
-
-    if v_disposition <> 'accepted' then
-      v_results := v_results || jsonb_build_array(jsonb_build_object(
-        'transactionId',v_transaction_id,'disposition',v_disposition,
-        'responseType',v_response_type,'persistenceStatus','not_applicable'
-      ));
-      continue;
-    end if;
-
-    begin
-      v_series_identity := concat_ws('|',p_company_id::text,coalesce(v_item->>'seriesKind','actual'),
-        p_message_code,coalesce(v_item->>'externalMeteringPointId',''),coalesce(v_item->>'gridAreaId',''),
-        coalesce(v_item->>'periodStart',''),coalesce(v_item->>'periodEnd',''),
-        coalesce(v_item->>'resolution','UNKNOWN'),coalesce(v_item->>'productId',''));
-      perform pg_advisory_xact_lock(hashtextextended(v_series_identity,0));
-      v_dedupe_key := encode(digest(convert_to(v_series_identity || '|' || v_transaction_id,'UTF8'),'sha256'),'hex');
-      v_previous_id := null;
-      v_version := 1;
-      select id,version_no into v_previous_id,v_version
-      from public.meter_reading_series
-      where company_id=p_company_id and is_current
-        and series_kind=coalesce(v_item->>'seriesKind','actual')
-        and coalesce(message_code,'')=coalesce(p_message_code,'')
-        and coalesce(external_metering_point_id,'')=coalesce(v_item->>'externalMeteringPointId','')
-        and coalesce(grid_area_id,'')=coalesce(v_item->>'gridAreaId','')
-        and period_start is not distinct from nullif(v_item->>'periodStart','')::timestamptz
-        and period_end is not distinct from nullif(v_item->>'periodEnd','')::timestamptz
-        and resolution=coalesce(v_item->>'resolution','UNKNOWN')
-        and coalesce(product_id,'')=coalesce(v_item->>'productId','')
-        and dedupe_key<>v_dedupe_key
-      order by version_no desc limit 1 for update;
-      if v_previous_id is not null then v_version := v_version + 1; end if;
-
-      insert into public.meter_reading_series(
-        company_id,metering_point_id,source_ediel_message_id,external_metering_point_id,
-        grid_area_id,period_start,period_end,resolution,unit,quality_status,dedupe_key,
-        message_code,source_transaction_reference,series_kind,product_id,time_series_product,
-        actor_context,registration_date,latest_update_date,version_no,supersedes_series_id,
-        is_current,correction_reason,raw_transaction,immutable_hash
-      ) values (
-        p_company_id,nullif(v_item->>'meteringPointId','')::uuid,p_source_message_id,
-        nullif(v_item->>'externalMeteringPointId',''),nullif(v_item->>'gridAreaId',''),
-        nullif(v_item->>'periodStart','')::timestamptz,nullif(v_item->>'periodEnd','')::timestamptz,
-        coalesce(nullif(v_item->>'resolution',''),'UNKNOWN'),coalesce(nullif(v_item->>'unit',''),'KWH'),
-        'received',v_dedupe_key,p_message_code,v_transaction_id,coalesce(v_item->>'seriesKind','actual'),
-        nullif(v_item->>'productId',''),v_item->'timeSeriesProduct',coalesce(v_item->'actorContext','{}'::jsonb),
-        nullif(v_item->>'registrationDate','')::timestamptz,nullif(v_item->>'latestUpdateDate','')::timestamptz,
-        v_version,v_previous_id,true,nullif(v_item->>'correctionReason',''),v_item,
-        encode(digest(convert_to(v_item::text,'UTF8'),'sha256'),'hex')
-      ) on conflict(company_id,dedupe_key) do nothing returning id into v_series_id;
-      v_inserted := v_series_id is not null;
-      if not v_inserted then
-        select id into v_series_id from public.meter_reading_series
-        where company_id=p_company_id and dedupe_key=v_dedupe_key;
-      else
-        if v_previous_id is not null then
-          update public.meter_reading_series set is_current=false where id=v_previous_id;
-        end if;
-        v_order := 0;
-        for v_quantity in select value from jsonb_array_elements(coalesce(v_item->'quantities','[]'::jsonb))
-        loop
-          v_order := v_order + 1;
-          insert into public.meter_reading_values(
-            company_id,series_id,reading_at,quantity,unit,quality,source_order,
-            observation_id,qualifier,raw_value,metadata
-          ) values (
-            p_company_id,v_series_id,nullif(v_quantity->>'readingAt','')::timestamptz,
-            nullif(v_quantity->>'value','')::numeric,coalesce(nullif(v_item->>'unit',''),'KWH'),
-            coalesce(nullif(v_quantity->>'quality',''),'unknown'),v_order,
-            coalesce(nullif(v_quantity->>'observationId',''),v_order::text),
-            nullif(v_quantity->>'qualifier',''),v_quantity->>'raw',coalesce(v_quantity->'metadata','{}'::jsonb)
-          );
-        end loop;
-      end if;
-
-      update public.ediel_ack_transaction_results set
-        persistence_status='persisted',persisted_series_id=v_series_id,persistence_error=null,updated_at=now()
-      where company_id=p_company_id and environment=p_environment
-        and source_message_id=p_source_message_id and source_transaction_id=v_transaction_id;
-      v_results := v_results || jsonb_build_array(jsonb_build_object(
-        'transactionId',v_transaction_id,'disposition','accepted','responseType','positive_aperak',
-        'persistenceStatus','persisted','seriesId',v_series_id,'idempotentReplay',not v_inserted
-      ));
-    exception when others then
-      get stacked diagnostics v_error = message_text;
-      update public.ediel_ack_transaction_results set
-        disposition='processability_rejected',planned_response_type='utilts_err',
-        processability_result='negative',persistence_status='failed',persistence_error=left(v_error,500),
-        issue_codes=array_append(issue_codes,'UTILTS_PERSISTENCE_FAILED'),updated_at=now()
-      where company_id=p_company_id and environment=p_environment
-        and source_message_id=p_source_message_id and source_transaction_id=v_transaction_id;
-      v_results := v_results || jsonb_build_array(jsonb_build_object(
-        'transactionId',v_transaction_id,'disposition','processability_rejected','responseType','utilts_err',
-        'persistenceStatus','failed','issueCodes',jsonb_build_array('UTILTS_PERSISTENCE_FAILED')
-      ));
-    end;
-  end loop;
-  return v_results;
-end $$;
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$ BEGIN
+ RAISE EXCEPTION 'utilts_consumption_contract_required' USING ERRCODE='P0U01';
+END $$;
 
 --
 -- Name: gridex_platform_dashboard_summary_v1(); Type: FUNCTION; Schema: public; Owner: -
@@ -36887,6 +38217,19 @@ end;
 $$;
 
 --
+-- Name: gridex_received_source_snapshot_v1(uuid, text, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_received_source_snapshot_v1(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ IF current_user<>'service_role' THEN RAISE EXCEPTION 'received_evidence_service_required' USING ERRCODE='42501'; END IF;
+ RETURN gridex_received_sources.open_snapshot(p_company_id,p_environment,p_cutoff);
+END $$;
+
+--
 -- Name: gridex_reconcile_company_onboarding_tasks_v1(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -37693,6 +39036,44 @@ CREATE FUNCTION public.gridex_record_legacy_api_key_use_v1(p_api_client_id uuid,
     AS $$
  update public.integration_api_clients set legacy_api_key_request_count=legacy_api_key_request_count+1,last_legacy_api_key_used_at=now(),last_legacy_api_key_route=left(nullif(btrim(coalesce(p_route,'')),''),500),legacy_api_key_migration_status=case when legacy_api_key_migration_status='migrated' then 'in_progress' when legacy_api_key_migration_status='unknown' then 'not_started' else legacy_api_key_migration_status end,updated_at=now() where id=p_api_client_id;
 $$;
+
+--
+-- Name: gridex_record_source_discovery_v1(uuid, text, uuid, text, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_record_source_discovery_v1(p_company_id uuid, p_environment text, p_snapshot_id uuid, p_snapshot_hash text, p_engine_version text, p_inventory_text text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ IF current_user<>'service_role' THEN RAISE EXCEPTION 'received_evidence_service_required' USING ERRCODE='42501'; END IF;
+ RETURN gridex_received_sources.append_discovery(p_company_id,p_environment,p_snapshot_id,p_snapshot_hash,p_engine_version,p_inventory_text);
+END $$;
+
+--
+-- Name: gridex_record_source_object_decisions_v1(uuid, text, uuid, text, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_record_source_object_decisions_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_canonical_assessment_id uuid, p_facts_text text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$ BEGIN
+ IF current_user<>'service_role' THEN RAISE EXCEPTION 'received_evidence_service_required' USING ERRCODE='42501'; END IF;
+ RETURN gridex_received_sources.append_object_assessment(p_company_id,p_environment,p_source_message_id,p_source_payload_hash,p_canonical_assessment_id,p_facts_text);
+END $$;
+
+--
+-- Name: gridex_record_source_validation_v1(uuid, text, uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_record_source_validation_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ IF current_user<>'service_role' THEN RAISE EXCEPTION 'received_evidence_service_required' USING ERRCODE='42501'; END IF;
+ RETURN gridex_received_sources.append_validation(p_company_id,p_environment,p_source_message_id,p_source_payload_hash,p_facts_text);
+END $$;
 
 --
 -- Name: gridex_refresh_actor_certificate_statuses(text); Type: FUNCTION; Schema: public; Owner: -
@@ -42010,6 +43391,18 @@ from retained,canonical;
 $$;
 
 --
+-- Name: gridex_source_object_snapshot_v1(uuid, text, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_source_object_snapshot_v1(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$ BEGIN
+ IF current_user<>'service_role' THEN RAISE EXCEPTION 'received_evidence_service_required' USING ERRCODE='42501'; END IF;
+ RETURN gridex_received_sources.open_object_selection_snapshot(p_company_id,p_environment,p_cutoff);
+END $$;
+
+--
 -- Name: gridex_stage_energy_geodata_feature(uuid, text, jsonb, jsonb, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -44337,6 +45730,87 @@ $$;
 --
 
 COMMENT ON FUNCTION public.gridex_update_company_and_rebuild_legal_profile(p_company_id uuid, p_actor_user_id uuid, p_input jsonb, p_mark_reviewed boolean) IS 'Canonical atomic write path for company data and generated tenant legal profile. All company editors must call this function.';
+
+--
+-- Name: gridex_update_customer_case_status(uuid, uuid, text, uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_update_customer_case_status(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text DEFAULT NULL::text, p_message text DEFAULT NULL::text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+DECLARE
+  v_case public.customer_cases%ROWTYPE;
+  v_old_status text;
+  v_is_platform boolean;
+  v_now timestamptz := clock_timestamp();
+BEGIN
+  SELECT * INTO v_case FROM public.customer_cases
+    WHERE id=p_case_id AND company_id=p_company_id
+      AND (p_expected_source IS NULL OR source=p_expected_source)
+    FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE='P0002', MESSAGE='customer_case_not_found_in_scope';
+  END IF;
+
+  v_is_platform := public.canonical_actor_is_platform_admin(p_actor_user_id);
+  -- Ediel's operational view is tenant-write only, even when the optional
+  -- expected-source argument is omitted. Support retains its platform actor
+  -- behavior, still subject to real selected-company membership below.
+  IF v_case.source='ediel_inbound_state_machine' AND v_is_platform THEN
+    RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='ediel_case_status_requires_tenant_actor';
+  END IF;
+
+  -- The existing scoped permission resolver checks the auth user for deletion
+  -- and bans inside its established definer boundary; do not grant this
+  -- invoker direct access to auth.users.
+  IF NOT EXISTS (
+    SELECT 1 FROM public.user_profiles up
+    JOIN public.company_memberships cm ON cm.user_id=up.id AND cm.company_id=v_case.company_id
+    JOIN public.companies c ON c.id=cm.company_id
+    WHERE up.id=p_actor_user_id AND up.user_status='active'
+      AND cm.status='active' AND coalesce(cm.is_active,true)
+      AND c.status IN ('active','onboarding') AND coalesce(c.is_active,true)
+  ) OR NOT (coalesce(v_is_platform,false) OR coalesce(public.gridex_actor_has_company_permission(p_actor_user_id,v_case.company_id,'cases.write'),false))
+  THEN
+    RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='customer_case_status_actor_not_authorized';
+  END IF;
+
+  v_old_status := v_case.status;
+  UPDATE public.customer_cases SET status=p_status, updated_by=p_actor_user_id, updated_at=v_now,
+    resolved_at=CASE WHEN p_status='resolved' THEN v_now ELSE resolved_at END,
+    closed_at=CASE WHEN p_status='closed' THEN v_now ELSE closed_at END
+    WHERE id=v_case.id AND company_id=v_case.company_id
+    RETURNING * INTO v_case;
+
+  INSERT INTO public.customer_case_events(
+    company_id,customer_case_id,customer_id,event_type,event_status,message,payload,created_by
+  ) VALUES (
+    v_case.company_id,v_case.id,v_case.customer_id,'status_changed',
+    CASE WHEN p_status IN ('closed','resolved') THEN 'success' ELSE 'info' END,
+    coalesce(nullif(btrim(p_message),''),'Ärendet uppdaterades till '||p_status||'.'),
+    jsonb_build_object('status',p_status),p_actor_user_id
+  );
+  -- The canonical audit trigger fills required actor/request/resource context.
+  -- Neither an event error nor an audit error is swallowed: all three writes
+  -- belong to this one database transaction and roll back together.
+  INSERT INTO public.audit_logs(
+    company_id,actor_user_id,entity_type,entity_id,action,old_values,new_values,metadata
+  ) VALUES (
+    v_case.company_id,p_actor_user_id,'customer_case',v_case.id::text,'customer_case_status_changed',
+    jsonb_build_object('status',v_old_status),
+    jsonb_build_object('status',p_status,'message',p_message),
+    jsonb_build_object('customer_id',v_case.customer_id)
+  );
+  RETURN to_jsonb(v_case);
+END
+$$;
+
+--
+-- Name: FUNCTION gridex_update_customer_case_status(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_message text); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.gridex_update_customer_case_status(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_message text) IS 'Server-only atomic operational status/event/audit update; no source approval, ACK or business side effects.';
 
 --
 -- Name: gridex_update_draft_legal_template_version(uuid, text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -46990,6 +48464,18 @@ begin
 end $$;
 
 --
+-- Name: gridex_witness_source_objects_v1(uuid, text, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_witness_source_objects_v1(p_company_id uuid, p_environment text, p_assessment_id uuid, p_facts_hash text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$ BEGIN
+ IF current_user<>'service_role' THEN RAISE EXCEPTION 'received_evidence_service_required' USING ERRCODE='42501'; END IF;
+ RETURN gridex_received_sources.witness_object_availability(p_company_id,p_environment,p_assessment_id,p_facts_hash);
+END $$;
+
+--
 -- Name: guard_ediel_test_run_message_evidence(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -48345,6 +49831,210 @@ begin
     p_publication_revision;
 end;
 $_$;
+
+--
+-- Name: discovery_attempts; Type: TABLE; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TABLE gridex_received_sources.discovery_attempts (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    snapshot_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    engine_version text NOT NULL,
+    observation_kind text DEFAULT 'unapproved_physical_discovery'::text NOT NULL,
+    inventory_text text NOT NULL,
+    inventory_hash text NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT discovery_attempts_check CHECK ((inventory_hash = encode(sha256(convert_to(inventory_text, 'UTF8'::name)), 'hex'::text))),
+    CONSTRAINT discovery_attempts_engine_version_check CHECK ((engine_version = 'physical-lin-inventory-v1'::text)),
+    CONSTRAINT discovery_attempts_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT discovery_attempts_inventory_text_check CHECK ((octet_length(inventory_text) <= 8388608)),
+    CONSTRAINT discovery_attempts_observation_kind_check CHECK ((observation_kind = 'unapproved_physical_discovery'::text))
+);
+
+ALTER TABLE ONLY gridex_received_sources.discovery_attempts FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: TABLE discovery_attempts; Type: COMMENT; Schema: gridex_received_sources; Owner: -
+--
+
+COMMENT ON TABLE gridex_received_sources.discovery_attempts IS 'Immutable unapproved engine observations bound to an exact persisted snapshot. Physical LIN enumeration is not canonical register, object/party disposition or E61/E62 authority.';
+
+--
+-- Name: epoch; Type: TABLE; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TABLE gridex_received_sources.epoch (
+    singleton boolean DEFAULT true NOT NULL,
+    opened_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT epoch_singleton_check CHECK (singleton)
+);
+
+ALTER TABLE ONLY gridex_received_sources.epoch FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: object_assessments; Type: TABLE; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TABLE gridex_received_sources.object_assessments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    source_message_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    source_payload_hash text NOT NULL,
+    canonical_assessment_id uuid NOT NULL,
+    previous_assessment_id uuid,
+    facts_text text NOT NULL,
+    facts_hash text NOT NULL,
+    owner_readsets jsonb NOT NULL,
+    created_xid xid8 DEFAULT pg_current_xact_id() NOT NULL,
+    assessed_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT object_assessments_check CHECK ((facts_hash = encode(sha256(convert_to(facts_text, 'UTF8'::name)), 'hex'::text))),
+    CONSTRAINT object_assessments_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT object_assessments_facts_text_check CHECK ((octet_length(facts_text) <= 262144)),
+    CONSTRAINT object_assessments_owner_readsets_check CHECK ((jsonb_typeof(owner_readsets) = 'array'::text))
+);
+
+ALTER TABLE ONLY gridex_received_sources.object_assessments FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: TABLE object_assessments; Type: COMMENT; Schema: gridex_received_sources; Owner: -
+--
+
+COMMENT ON TABLE gridex_received_sources.object_assessments IS 'Immutable exact-object owner compositions. Assessment correction chains are not market-source supersession. Availability for comparison requires a later verified read set; assessed_at alone is not commit visibility.';
+
+--
+-- Name: object_availability_witnesses; Type: TABLE; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TABLE gridex_received_sources.object_availability_witnesses (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    assessment_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    source_message_id uuid NOT NULL,
+    facts_hash text NOT NULL,
+    visibility_snapshot text NOT NULL,
+    observed_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT object_availability_witnesses_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text])))
+);
+
+ALTER TABLE ONLY gridex_received_sources.object_availability_witnesses FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: TABLE object_availability_witnesses; Type: COMMENT; Schema: gridex_received_sources; Owner: -
+--
+
+COMMENT ON TABLE gridex_received_sources.object_availability_witnesses IS 'Actual visibility observation of an already committed owner assessment. Neither receipt nor assessment timestamp proves availability. No pre-ledger reconstruction.';
+
+--
+-- Name: object_selection_snapshots; Type: TABLE; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TABLE gridex_received_sources.object_selection_snapshots (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    cutoff_at timestamp with time zone NOT NULL,
+    captured_at timestamp with time zone NOT NULL,
+    readset_text text NOT NULL,
+    readset_hash text NOT NULL,
+    visibility_snapshot text NOT NULL,
+    CONSTRAINT object_selection_snapshots_check CHECK ((readset_hash = encode(sha256(convert_to(readset_text, 'UTF8'::name)), 'hex'::text))),
+    CONSTRAINT object_selection_snapshots_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT object_selection_snapshots_readset_text_check CHECK ((octet_length(readset_text) <= 8388608))
+);
+
+ALTER TABLE ONLY gridex_received_sources.object_selection_snapshots FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: TABLE object_selection_snapshots; Type: COMMENT; Schema: gridex_received_sources; Owner: -
+--
+
+COMMENT ON TABLE gridex_received_sources.object_selection_snapshots IS 'Exact bounded immutable comparison readset. Current capture time is distinct from each approval availability witness and market effective time.';
+
+--
+-- Name: snapshots; Type: TABLE; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TABLE gridex_received_sources.snapshots (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    manifest jsonb NOT NULL,
+    manifest_hash text NOT NULL,
+    visibility_snapshot text NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT snapshots_check CHECK ((manifest_hash = encode(sha256(convert_to((manifest)::text, 'UTF8'::name)), 'hex'::text))),
+    CONSTRAINT snapshots_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT snapshots_manifest_check CHECK ((jsonb_typeof(manifest) = 'object'::text))
+);
+
+ALTER TABLE ONLY gridex_received_sources.snapshots FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: TABLE snapshots; Type: COMMENT; Schema: gridex_received_sources; Owner: -
+--
+
+COMMENT ON TABLE gridex_received_sources.snapshots IS 'Immutable exact read-set manifest and MVCC descriptor. Not reconstruction of historical transaction commit visibility.';
+
+--
+-- Name: sources; Type: TABLE; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TABLE gridex_received_sources.sources (
+    source_message_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    origin text NOT NULL,
+    message_code text,
+    source_received_at timestamp with time zone,
+    captured_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    raw_payload text,
+    payload_hash text,
+    received_context jsonb,
+    CONSTRAINT received_source_hash_check CHECK ((((raw_payload IS NULL) AND (payload_hash IS NULL)) OR ((raw_payload IS NOT NULL) AND (payload_hash IS NOT NULL) AND (payload_hash ~ '^[a-f0-9]{64}$'::text) AND (payload_hash = encode(sha256(convert_to(raw_payload, 'UTF8'::name)), 'hex'::text))))),
+    CONSTRAINT sources_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT sources_origin_check CHECK ((origin = 'database_insert'::text))
+);
+
+ALTER TABLE ONLY gridex_received_sources.sources FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: TABLE sources; Type: COMMENT; Schema: gridex_received_sources; Owner: -
+--
+
+COMMENT ON TABLE gridex_received_sources.sources IS 'Forward-only original insertion evidence. No operational cascade. Receipt is not source approval; history before activation remains unknown.';
+
+--
+-- Name: validation_assessments; Type: TABLE; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TABLE gridex_received_sources.validation_assessments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    source_message_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    source_payload_hash text NOT NULL,
+    previous_assessment_id uuid,
+    owner text DEFAULT 'canonical-runtime-with-registry-v1'::text NOT NULL,
+    facts_text text NOT NULL,
+    facts_hash text NOT NULL,
+    assessed_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT validation_assessments_check CHECK ((facts_hash = encode(sha256(convert_to(facts_text, 'UTF8'::name)), 'hex'::text))),
+    CONSTRAINT validation_assessments_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT validation_assessments_facts_text_check CHECK ((octet_length(facts_text) <= 65536)),
+    CONSTRAINT validation_assessments_owner_check CHECK ((owner = 'canonical-runtime-with-registry-v1'::text))
+);
+
+ALTER TABLE ONLY gridex_received_sources.validation_assessments FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: TABLE validation_assessments; Type: COMMENT; Schema: gridex_received_sources; Owner: -
+--
+
+COMMENT ON TABLE gridex_received_sources.validation_assessments IS 'Actual canonical-runtime facet evidence. Source/object/party approval remains unestablished. Previous links preserve observations, not automatic supersession or temporal selection.';
 
 --
 -- Name: platform_actor_identifiers; Type: TABLE; Schema: public; Owner: -
@@ -53515,6 +55205,24 @@ CREATE TABLE public.customer_authorization_documents (
 COMMENT ON COLUMN public.customer_authorization_documents.customer_contract_id IS 'Optional customer contract bound to an uploaded authorization/agreement document; canonical signed imports verify company/customer/contract ownership before finalization.';
 
 --
+-- Name: customer_case_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.customer_case_events (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    customer_case_id uuid NOT NULL,
+    customer_id uuid NOT NULL,
+    event_type text NOT NULL,
+    event_status text DEFAULT 'info'::text NOT NULL,
+    message text NOT NULL,
+    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT customer_case_events_status_check CHECK ((event_status = ANY (ARRAY['info'::text, 'success'::text, 'warning'::text, 'error'::text])))
+);
+
+--
 -- Name: customer_cases; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -55677,12 +57385,13 @@ CREATE TABLE public.ediel_ack_transaction_results (
     persisted_series_id uuid,
     persistence_error text,
     CONSTRAINT ediel_ack_transaction_results_check CHECK ((((final_response_type IS NULL) AND (finalized_at IS NULL) AND (response_message_id IS NULL)) OR ((final_response_type IS NOT NULL) AND (finalized_at IS NOT NULL) AND (response_message_id IS NOT NULL)))),
-    CONSTRAINT ediel_ack_transaction_results_disposition_check CHECK (((disposition IS NULL) OR (disposition = ANY (ARRAY['accepted'::text, 'syntax_rejected'::text, 'guide_rejected'::text, 'processability_rejected'::text])))),
+    CONSTRAINT ediel_ack_transaction_results_disposition_check CHECK (((disposition IS NULL) OR (disposition = ANY (ARRAY['accepted'::text, 'syntax_rejected'::text, 'guide_rejected'::text, 'processability_rejected'::text, 'internal_review'::text])))),
     CONSTRAINT ediel_ack_transaction_results_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
     CONSTRAINT ediel_ack_transaction_results_final_response_type_check CHECK ((final_response_type = ANY (ARRAY['positive_aperak'::text, 'negative_aperak'::text, 'utilts_err'::text]))),
     CONSTRAINT ediel_ack_transaction_results_guide_validation_result_check CHECK ((guide_validation_result = ANY (ARRAY['pending'::text, 'positive'::text, 'negative'::text]))),
+    CONSTRAINT ediel_ack_transaction_results_internal_review_response_check CHECK ((COALESCE((disposition = 'internal_review'::text), false) = COALESCE((planned_response_type = 'none'::text), false))),
     CONSTRAINT ediel_ack_transaction_results_persistence_status_check CHECK ((persistence_status = ANY (ARRAY['not_applicable'::text, 'pending'::text, 'persisted'::text, 'failed'::text]))),
-    CONSTRAINT ediel_ack_transaction_results_planned_response_check CHECK (((planned_response_type IS NULL) OR (planned_response_type = ANY (ARRAY['positive_aperak'::text, 'negative_contrl'::text, 'negative_aperak'::text, 'utilts_err'::text])))),
+    CONSTRAINT ediel_ack_transaction_results_planned_response_check CHECK (((planned_response_type IS NULL) OR (planned_response_type = ANY (ARRAY['positive_aperak'::text, 'negative_contrl'::text, 'negative_aperak'::text, 'utilts_err'::text, 'none'::text])))),
     CONSTRAINT ediel_ack_transaction_results_processability_result_check CHECK ((processability_result = ANY (ARRAY['pending'::text, 'positive'::text, 'negative'::text, 'not_applicable'::text]))),
     CONSTRAINT ediel_ack_transaction_results_syntax_result_check CHECK ((syntax_result = ANY (ARRAY['pending'::text, 'positive'::text, 'negative'::text])))
 );
@@ -67872,6 +69581,69 @@ CREATE TABLE public.website_public_contract_snapshots (
 COMMENT ON TABLE public.website_public_contract_snapshots IS 'Tenant-bound durable last-known-good Gridex OPS website contract feed. Only service_role may read or mutate it.';
 
 --
+-- Name: discovery_attempts discovery_attempts_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.discovery_attempts
+    ADD CONSTRAINT discovery_attempts_pkey PRIMARY KEY (id);
+
+--
+-- Name: epoch epoch_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.epoch
+    ADD CONSTRAINT epoch_pkey PRIMARY KEY (singleton);
+
+--
+-- Name: object_assessments object_assessments_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.object_assessments
+    ADD CONSTRAINT object_assessments_pkey PRIMARY KEY (id);
+
+--
+-- Name: object_availability_witnesses object_availability_witnesses_assessment_id_key; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.object_availability_witnesses
+    ADD CONSTRAINT object_availability_witnesses_assessment_id_key UNIQUE (assessment_id);
+
+--
+-- Name: object_availability_witnesses object_availability_witnesses_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.object_availability_witnesses
+    ADD CONSTRAINT object_availability_witnesses_pkey PRIMARY KEY (id);
+
+--
+-- Name: object_selection_snapshots object_selection_snapshots_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.object_selection_snapshots
+    ADD CONSTRAINT object_selection_snapshots_pkey PRIMARY KEY (id);
+
+--
+-- Name: snapshots snapshots_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.snapshots
+    ADD CONSTRAINT snapshots_pkey PRIMARY KEY (id);
+
+--
+-- Name: sources sources_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.sources
+    ADD CONSTRAINT sources_pkey PRIMARY KEY (source_message_id);
+
+--
+-- Name: validation_assessments validation_assessments_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.validation_assessments
+    ADD CONSTRAINT validation_assessments_pkey PRIMARY KEY (id);
+
+--
 -- Name: actor_registry_conflicts actor_registry_conflicts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -68829,6 +70601,13 @@ ALTER TABLE ONLY public.customer_authorization_documents
 
 ALTER TABLE ONLY public.customer_blockers
     ADD CONSTRAINT customer_blockers_pkey PRIMARY KEY (id);
+
+--
+-- Name: customer_case_events customer_case_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_events
+    ADD CONSTRAINT customer_case_events_pkey PRIMARY KEY (id);
 
 --
 -- Name: customer_cases customer_cases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -72100,6 +73879,72 @@ ALTER TABLE ONLY public.website_public_contract_snapshots
     ADD CONSTRAINT website_public_contract_snapshots_pkey PRIMARY KEY (cache_key);
 
 --
+-- Name: received_assessment_first_idx; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE UNIQUE INDEX received_assessment_first_idx ON gridex_received_sources.validation_assessments USING btree (source_message_id) WHERE (previous_assessment_id IS NULL);
+
+--
+-- Name: received_assessment_previous_idx; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE UNIQUE INDEX received_assessment_previous_idx ON gridex_received_sources.validation_assessments USING btree (previous_assessment_id) WHERE (previous_assessment_id IS NOT NULL);
+
+--
+-- Name: received_assessment_scope_idx; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE INDEX received_assessment_scope_idx ON gridex_received_sources.validation_assessments USING btree (company_id, environment, assessed_at, id);
+
+--
+-- Name: received_assessment_source_idx; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE INDEX received_assessment_source_idx ON gridex_received_sources.validation_assessments USING btree (source_message_id, assessed_at, id);
+
+--
+-- Name: received_discovery_scope_idx; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE INDEX received_discovery_scope_idx ON gridex_received_sources.discovery_attempts USING btree (company_id, environment, created_at, id);
+
+--
+-- Name: received_discovery_snapshot_idx; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE INDEX received_discovery_snapshot_idx ON gridex_received_sources.discovery_attempts USING btree (snapshot_id);
+
+--
+-- Name: received_snapshot_scope_idx; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE INDEX received_snapshot_scope_idx ON gridex_received_sources.snapshots USING btree (company_id, environment, created_at, id);
+
+--
+-- Name: received_sources_original_scope_cutoff_idx; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE INDEX received_sources_original_scope_cutoff_idx ON gridex_received_sources.sources USING btree (company_id, environment, captured_at, source_message_id);
+
+--
+-- Name: source_object_assessment_first; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE UNIQUE INDEX source_object_assessment_first ON gridex_received_sources.object_assessments USING btree (source_message_id) WHERE (previous_assessment_id IS NULL);
+
+--
+-- Name: source_object_assessment_previous; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE UNIQUE INDEX source_object_assessment_previous ON gridex_received_sources.object_assessments USING btree (previous_assessment_id) WHERE (previous_assessment_id IS NOT NULL);
+
+--
+-- Name: source_object_assessment_scope; Type: INDEX; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE INDEX source_object_assessment_scope ON gridex_received_sources.object_assessments USING btree (company_id, environment, assessed_at, id);
+
+--
 -- Name: actor_registry_conflicts_actor_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -72964,6 +74809,30 @@ CREATE INDEX customer_blockers_company_type_status_idx ON public.customer_blocke
 CREATE INDEX customer_blockers_customer_created_idx ON public.customer_blockers USING btree (customer_id, created_at DESC);
 
 --
+-- Name: customer_case_events_actor_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_case_events_actor_idx ON public.customer_case_events USING btree (created_by) WHERE (created_by IS NOT NULL);
+
+--
+-- Name: customer_case_events_case_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_case_events_case_idx ON public.customer_case_events USING btree (customer_case_id, created_at DESC);
+
+--
+-- Name: customer_case_events_company_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_case_events_company_idx ON public.customer_case_events USING btree (company_id, created_at DESC);
+
+--
+-- Name: customer_case_events_customer_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_case_events_customer_idx ON public.customer_case_events USING btree (customer_id);
+
+--
 -- Name: customer_cases_company_business_process_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -72992,6 +74861,12 @@ CREATE INDEX customer_cases_contract_idx ON public.customer_cases USING btree (c
 --
 
 CREATE INDEX customer_cases_customer_idx ON public.customer_cases USING btree (company_id, customer_id, created_at DESC);
+
+--
+-- Name: customer_cases_event_owner_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX customer_cases_event_owner_key ON public.customer_cases USING btree (id, company_id, customer_id);
 
 --
 -- Name: customer_cases_switch_idx; Type: INDEX; Schema: public; Owner: -
@@ -82255,6 +84130,102 @@ CREATE OR REPLACE VIEW public.gridex_api_client_permission_summary_v WITH (secur
   GROUP BY c.id, co.name;
 
 --
+-- Name: object_availability_witnesses immutable_truncate; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_received_sources.object_availability_witnesses FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: object_selection_snapshots immutable_truncate; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_received_sources.object_selection_snapshots FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: object_availability_witnesses immutable_update_delete; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER immutable_update_delete BEFORE DELETE OR UPDATE ON gridex_received_sources.object_availability_witnesses FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: object_selection_snapshots immutable_update_delete; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER immutable_update_delete BEFORE DELETE OR UPDATE ON gridex_received_sources.object_selection_snapshots FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: discovery_attempts no_evidence_truncate; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER no_evidence_truncate BEFORE TRUNCATE ON gridex_received_sources.discovery_attempts FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: snapshots no_evidence_truncate; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER no_evidence_truncate BEFORE TRUNCATE ON gridex_received_sources.snapshots FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: validation_assessments no_evidence_truncate; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER no_evidence_truncate BEFORE TRUNCATE ON gridex_received_sources.validation_assessments FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: discovery_attempts no_evidence_update_delete; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER no_evidence_update_delete BEFORE DELETE OR UPDATE ON gridex_received_sources.discovery_attempts FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: snapshots no_evidence_update_delete; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER no_evidence_update_delete BEFORE DELETE OR UPDATE ON gridex_received_sources.snapshots FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: validation_assessments no_evidence_update_delete; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER no_evidence_update_delete BEFORE DELETE OR UPDATE ON gridex_received_sources.validation_assessments FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: epoch received_sources_epoch_no_truncate; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER received_sources_epoch_no_truncate BEFORE TRUNCATE ON gridex_received_sources.epoch FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: epoch received_sources_epoch_no_update_delete; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER received_sources_epoch_no_update_delete BEFORE DELETE OR UPDATE ON gridex_received_sources.epoch FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: sources received_sources_no_truncate; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER received_sources_no_truncate BEFORE TRUNCATE ON gridex_received_sources.sources FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: sources received_sources_no_update_delete; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER received_sources_no_update_delete BEFORE DELETE OR UPDATE ON gridex_received_sources.sources FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: object_assessments source_object_assessment_no_mutation; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER source_object_assessment_no_mutation BEFORE DELETE OR UPDATE ON gridex_received_sources.object_assessments FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: object_assessments source_object_assessment_no_truncate; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER source_object_assessment_no_truncate BEFORE TRUNCATE ON gridex_received_sources.object_assessments FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
 -- Name: customer_supply_periods a_customer_supply_periods_contract_alias_v1; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -82877,6 +84848,12 @@ CREATE TRIGGER ediel_test_runs_bind_active_configuration BEFORE INSERT OR UPDATE
 --
 
 CREATE TRIGGER gridex_apply_contract_offer_standard_fees_trg BEFORE INSERT OR UPDATE OF contract_offer_id, source_type ON public.customer_contracts FOR EACH ROW EXECUTE FUNCTION public.gridex_apply_contract_offer_standard_fees();
+
+--
+-- Name: ediel_messages gridex_capture_received_prodat_source; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_capture_received_prodat_source AFTER INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.capture_insert();
 
 --
 -- Name: companies gridex_companies_legal_field_validation; Type: TRIGGER; Schema: public; Owner: -
@@ -83521,6 +85498,12 @@ CREATE TRIGGER trg_tenant_contract_channels_publication_revision AFTER INSERT OR
 CREATE TRIGGER user_roles_global_platform_scope_guard BEFORE INSERT OR UPDATE OF company_id, role, role_id ON public.user_roles FOR EACH ROW EXECUTE FUNCTION public.canonical_guard_global_platform_role_scope();
 
 --
+-- Name: ediel_messages utilts_bound_source_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER utilts_bound_source_guard BEFORE UPDATE ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_utilts_binding.guard_source_v1();
+
+--
 -- Name: website_customer_applications website_application_atomic_portal_identity; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -83573,6 +85556,62 @@ CREATE TRIGGER zz_supplier_switch_dispatch_readiness BEFORE INSERT OR UPDATE OF 
 --
 
 CREATE TRIGGER zzzz_contract_price_snapshots_hash_integrity_v1 BEFORE INSERT ON public.contract_price_snapshots FOR EACH ROW EXECUTE FUNCTION public.gridex_enforce_contract_price_snapshot_hash_v1();
+
+--
+-- Name: discovery_attempts discovery_attempts_snapshot_id_fkey; Type: FK CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.discovery_attempts
+    ADD CONSTRAINT discovery_attempts_snapshot_id_fkey FOREIGN KEY (snapshot_id) REFERENCES gridex_received_sources.snapshots(id) ON DELETE RESTRICT;
+
+--
+-- Name: object_assessments object_assessments_canonical_assessment_id_fkey; Type: FK CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.object_assessments
+    ADD CONSTRAINT object_assessments_canonical_assessment_id_fkey FOREIGN KEY (canonical_assessment_id) REFERENCES gridex_received_sources.validation_assessments(id) ON DELETE RESTRICT;
+
+--
+-- Name: object_assessments object_assessments_previous_assessment_id_fkey; Type: FK CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.object_assessments
+    ADD CONSTRAINT object_assessments_previous_assessment_id_fkey FOREIGN KEY (previous_assessment_id) REFERENCES gridex_received_sources.object_assessments(id) ON DELETE RESTRICT;
+
+--
+-- Name: object_assessments object_assessments_source_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.object_assessments
+    ADD CONSTRAINT object_assessments_source_message_id_fkey FOREIGN KEY (source_message_id) REFERENCES gridex_received_sources.sources(source_message_id) ON DELETE RESTRICT;
+
+--
+-- Name: object_availability_witnesses object_availability_witnesses_assessment_id_fkey; Type: FK CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.object_availability_witnesses
+    ADD CONSTRAINT object_availability_witnesses_assessment_id_fkey FOREIGN KEY (assessment_id) REFERENCES gridex_received_sources.object_assessments(id) ON DELETE RESTRICT;
+
+--
+-- Name: object_availability_witnesses object_availability_witnesses_source_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.object_availability_witnesses
+    ADD CONSTRAINT object_availability_witnesses_source_message_id_fkey FOREIGN KEY (source_message_id) REFERENCES gridex_received_sources.sources(source_message_id) ON DELETE RESTRICT;
+
+--
+-- Name: validation_assessments validation_assessments_previous_assessment_id_fkey; Type: FK CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.validation_assessments
+    ADD CONSTRAINT validation_assessments_previous_assessment_id_fkey FOREIGN KEY (previous_assessment_id) REFERENCES gridex_received_sources.validation_assessments(id) ON DELETE RESTRICT;
+
+--
+-- Name: validation_assessments validation_assessments_source_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.validation_assessments
+    ADD CONSTRAINT validation_assessments_source_message_id_fkey FOREIGN KEY (source_message_id) REFERENCES gridex_received_sources.sources(source_message_id) ON DELETE RESTRICT;
 
 --
 -- Name: actor_registry_conflicts actor_registry_conflicts_import_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -85169,6 +87208,48 @@ ALTER TABLE ONLY public.customer_blockers
 
 ALTER TABLE ONLY public.customer_blockers
     ADD CONSTRAINT customer_blockers_resolved_by_fkey FOREIGN KEY (resolved_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+--
+-- Name: customer_case_events customer_case_events_case_owner_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_events
+    ADD CONSTRAINT customer_case_events_case_owner_fk FOREIGN KEY (customer_case_id, company_id, customer_id) REFERENCES public.customer_cases(id, company_id, customer_id) ON DELETE CASCADE;
+
+--
+-- Name: customer_case_events customer_case_events_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_events
+    ADD CONSTRAINT customer_case_events_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
+-- Name: customer_case_events customer_case_events_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_events
+    ADD CONSTRAINT customer_case_events_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+--
+-- Name: customer_case_events customer_case_events_customer_case_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_events
+    ADD CONSTRAINT customer_case_events_customer_case_id_fkey FOREIGN KEY (customer_case_id) REFERENCES public.customer_cases(id) ON DELETE CASCADE;
+
+--
+-- Name: customer_case_events customer_case_events_customer_company_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_events
+    ADD CONSTRAINT customer_case_events_customer_company_fk FOREIGN KEY (customer_id, company_id) REFERENCES public.customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+--
+-- Name: customer_case_events customer_case_events_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_events
+    ADD CONSTRAINT customer_case_events_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id) ON DELETE CASCADE;
 
 --
 -- Name: customer_cases customer_cases_assigned_to_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -90834,6 +92915,108 @@ ALTER TABLE ONLY public.website_customer_applications
     ADD CONSTRAINT website_customer_applications_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 --
+-- Name: discovery_attempts; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE gridex_received_sources.discovery_attempts ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: epoch; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE gridex_received_sources.epoch ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: object_assessments; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE gridex_received_sources.object_assessments ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: object_availability_witnesses; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE gridex_received_sources.object_availability_witnesses ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: object_selection_snapshots; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE gridex_received_sources.object_selection_snapshots ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: discovery_attempts original_company_read; Type: POLICY; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE POLICY original_company_read ON gridex_received_sources.discovery_attempts FOR SELECT TO authenticated USING (public.gridex_can_read_company(company_id));
+
+--
+-- Name: snapshots original_company_read; Type: POLICY; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE POLICY original_company_read ON gridex_received_sources.snapshots FOR SELECT TO authenticated USING (public.gridex_can_read_company(company_id));
+
+--
+-- Name: validation_assessments original_company_read; Type: POLICY; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE POLICY original_company_read ON gridex_received_sources.validation_assessments FOR SELECT TO authenticated USING (public.gridex_can_read_company(company_id));
+
+--
+-- Name: epoch received_sources_epoch_read; Type: POLICY; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE POLICY received_sources_epoch_read ON gridex_received_sources.epoch FOR SELECT TO authenticated, service_role USING (true);
+
+--
+-- Name: sources received_sources_original_company_read; Type: POLICY; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE POLICY received_sources_original_company_read ON gridex_received_sources.sources FOR SELECT TO authenticated USING (public.gridex_can_read_company(company_id));
+
+--
+-- Name: sources received_sources_service_read; Type: POLICY; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE POLICY received_sources_service_read ON gridex_received_sources.sources FOR SELECT TO service_role USING (true);
+
+--
+-- Name: discovery_attempts service_read; Type: POLICY; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE POLICY service_read ON gridex_received_sources.discovery_attempts FOR SELECT TO service_role USING (true);
+
+--
+-- Name: snapshots service_read; Type: POLICY; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE POLICY service_read ON gridex_received_sources.snapshots FOR SELECT TO service_role USING (true);
+
+--
+-- Name: validation_assessments service_read; Type: POLICY; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE POLICY service_read ON gridex_received_sources.validation_assessments FOR SELECT TO service_role USING (true);
+
+--
+-- Name: snapshots; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE gridex_received_sources.snapshots ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: sources; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE gridex_received_sources.sources ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: validation_assessments; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE gridex_received_sources.validation_assessments ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: actor_registry_conflicts; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -92106,6 +94289,12 @@ ALTER TABLE public.customer_blockers ENABLE ROW LEVEL SECURITY;
 --
 
 CREATE POLICY customer_blockers_service_role_all ON public.customer_blockers USING ((( SELECT auth.role() AS role) = 'service_role'::text)) WITH CHECK ((( SELECT auth.role() AS role) = 'service_role'::text));
+
+--
+-- Name: customer_case_events; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.customer_case_events ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: customer_cases; Type: ROW SECURITY; Schema: public; Owner: -
@@ -108995,6 +111184,13 @@ ALTER TABLE public.website_customer_applications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.website_public_contract_snapshots ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: SCHEMA gridex_received_sources; Type: ACL; Schema: -; Owner: -
+--
+
+GRANT USAGE ON SCHEMA gridex_received_sources TO authenticated;
+GRANT USAGE ON SCHEMA gridex_received_sources TO service_role;
+
+--
 -- Name: SCHEMA public; Type: ACL; Schema: -; Owner: -
 --
 
@@ -109002,6 +111198,122 @@ GRANT USAGE ON SCHEMA public TO postgres;
 GRANT USAGE ON SCHEMA public TO anon;
 GRANT USAGE ON SCHEMA public TO authenticated;
 GRANT USAGE ON SCHEMA public TO service_role;
+
+--
+-- Name: FUNCTION append_discovery(p_company_id uuid, p_environment text, p_snapshot_id uuid, p_snapshot_hash text, p_engine_version text, p_inventory_text text); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.append_discovery(p_company_id uuid, p_environment text, p_snapshot_id uuid, p_snapshot_hash text, p_engine_version text, p_inventory_text text) FROM PUBLIC;
+GRANT ALL ON FUNCTION gridex_received_sources.append_discovery(p_company_id uuid, p_environment text, p_snapshot_id uuid, p_snapshot_hash text, p_engine_version text, p_inventory_text text) TO service_role;
+
+--
+-- Name: FUNCTION append_object_assessment(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_canonical_assessment_id uuid, p_facts_text text); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.append_object_assessment(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_canonical_assessment_id uuid, p_facts_text text) FROM PUBLIC;
+GRANT ALL ON FUNCTION gridex_received_sources.append_object_assessment(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_canonical_assessment_id uuid, p_facts_text text) TO service_role;
+
+--
+-- Name: FUNCTION append_validation(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.append_validation(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text) FROM PUBLIC;
+GRANT ALL ON FUNCTION gridex_received_sources.append_validation(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text) TO service_role;
+
+--
+-- Name: FUNCTION capture_insert(); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.capture_insert() FROM PUBLIC;
+
+--
+-- Name: FUNCTION closure_wire_matches_v1(p_raw text, p_object jsonb, p_wire jsonb); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.closure_wire_matches_v1(p_raw text, p_object jsonb, p_wire jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION closure_wire_projection_v1(p_raw text, p_object jsonb); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.closure_wire_projection_v1(p_raw text, p_object jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION closure_wire_tokens_v1(p_raw text); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.closure_wire_tokens_v1(p_raw text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION object_owner_proof_consistent(p_party jsonb, p_business jsonb, p_received timestamp with time zone); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.object_owner_proof_consistent(p_party jsonb, p_business jsonb, p_received timestamp with time zone) FROM PUBLIC;
+
+--
+-- Name: FUNCTION open_object_selection_snapshot(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.open_object_selection_snapshot(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) FROM PUBLIC;
+GRANT ALL ON FUNCTION gridex_received_sources.open_object_selection_snapshot(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) TO service_role;
+
+--
+-- Name: FUNCTION open_snapshot(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.open_snapshot(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) FROM PUBLIC;
+GRANT ALL ON FUNCTION gridex_received_sources.open_snapshot(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) TO service_role;
+
+--
+-- Name: FUNCTION owner_rows_match(p_kind text, p_rows jsonb, p_company uuid, p_environment text, p_actor uuid); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.owner_rows_match(p_kind text, p_rows jsonb, p_company uuid, p_environment text, p_actor uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION reject_mutation(); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.reject_mutation() FROM PUBLIC;
+
+--
+-- Name: FUNCTION review_business_proof_consistent(p_party jsonb, p_business jsonb, p_source_id uuid); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.review_business_proof_consistent(p_party jsonb, p_business jsonb, p_source_id uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION review_closure_proof_consistent(p_party jsonb, p_business jsonb, p_source_id uuid); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.review_closure_proof_consistent(p_party jsonb, p_business jsonb, p_source_id uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION review_party_proof_consistent(p_party jsonb, p_business jsonb, p_received timestamp with time zone); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.review_party_proof_consistent(p_party jsonb, p_business jsonb, p_received timestamp with time zone) FROM PUBLIC;
+
+--
+-- Name: FUNCTION witness_object_availability(p_company_id uuid, p_environment text, p_assessment_id uuid, p_facts_hash text); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.witness_object_availability(p_company_id uuid, p_environment text, p_assessment_id uuid, p_facts_hash text) FROM PUBLIC;
+GRANT ALL ON FUNCTION gridex_received_sources.witness_object_availability(p_company_id uuid, p_environment text, p_assessment_id uuid, p_facts_hash text) TO service_role;
+
+--
+-- Name: TABLE metering_values; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.metering_values TO authenticated;
+GRANT ALL ON TABLE public.metering_values TO service_role;
+
+--
+-- Name: TABLE ediel_messages; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.ediel_messages TO authenticated;
+GRANT ALL ON TABLE public.ediel_messages TO service_role;
 
 --
 -- Name: TABLE spot_price_monthly_summaries; Type: ACL; Schema: public; Owner: -
@@ -109683,13 +111995,6 @@ GRANT ALL ON TABLE public.ediel_business_errors TO authenticated;
 GRANT ALL ON TABLE public.ediel_business_errors TO service_role;
 
 --
--- Name: TABLE ediel_messages; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.ediel_messages TO authenticated;
-GRANT ALL ON TABLE public.ediel_messages TO service_role;
-
---
 -- Name: TABLE external_contract_intakes; Type: ACL; Schema: public; Owner: -
 --
 
@@ -109758,13 +112063,6 @@ GRANT ALL ON TABLE public.gridex_route_readiness_v TO service_role;
 
 GRANT ALL ON TABLE public.integration_api_requests TO authenticated;
 GRANT ALL ON TABLE public.integration_api_requests TO service_role;
-
---
--- Name: TABLE metering_values; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.metering_values TO authenticated;
-GRANT ALL ON TABLE public.metering_values TO service_role;
 
 --
 -- Name: TABLE outbound_requests; Type: ACL; Schema: public; Owner: -
@@ -110338,6 +112636,20 @@ GRANT ALL ON FUNCTION public.gridex_confirm_safe_blank_route_subaddresses(p_sour
 
 REVOKE ALL ON FUNCTION public.gridex_consume_api_rate_limit(p_api_client_id uuid, p_company_id uuid, p_limit integer) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_consume_api_rate_limit(p_api_client_id uuid, p_company_id uuid, p_limit integer) TO service_role;
+
+--
+-- Name: FUNCTION gridex_consume_utilts_billing_v1(p_company_id uuid, p_source_message_id uuid, p_actor_id uuid, p_expected_contracts jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_consume_utilts_billing_v1(p_company_id uuid, p_source_message_id uuid, p_actor_id uuid, p_expected_contracts jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_consume_utilts_billing_v1(p_company_id uuid, p_source_message_id uuid, p_actor_id uuid, p_expected_contracts jsonb) TO service_role;
+
+--
+-- Name: FUNCTION gridex_consume_utilts_metering_v1(p_company_id uuid, p_source_message_id uuid, p_transaction_id text, p_observation_ordinal integer, p_actor_id uuid, p_expected_contract jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_consume_utilts_metering_v1(p_company_id uuid, p_source_message_id uuid, p_transaction_id text, p_observation_ordinal integer, p_actor_id uuid, p_expected_contract jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_consume_utilts_metering_v1(p_company_id uuid, p_source_message_id uuid, p_transaction_id text, p_observation_ordinal integer, p_actor_id uuid, p_expected_contract jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_contact_address(p_value jsonb); Type: ACL; Schema: public; Owner: -
@@ -111892,11 +114204,17 @@ REVOKE ALL ON FUNCTION public.gridex_persist_pricing_run(p_company_id uuid, p_bi
 GRANT ALL ON FUNCTION public.gridex_persist_pricing_run(p_company_id uuid, p_billing_underlay_id uuid, p_result jsonb, p_pricing_snapshot jsonb) TO service_role;
 
 --
+-- Name: FUNCTION gridex_persist_utilts_consumption_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_raw_payload text, p_transactions jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_persist_utilts_consumption_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_raw_payload text, p_transactions jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_persist_utilts_consumption_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_raw_payload text, p_transactions jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_persist_utilts_transactions_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_transactions jsonb); Type: ACL; Schema: public; Owner: -
 --
 
 REVOKE ALL ON FUNCTION public.gridex_persist_utilts_transactions_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_transactions jsonb) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_persist_utilts_transactions_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_transactions jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_platform_dashboard_summary_v1(); Type: ACL; Schema: public; Owner: -
@@ -112261,6 +114579,13 @@ REVOKE ALL ON FUNCTION public.gridex_recalculate_actor_readiness(p_platform_mark
 GRANT ALL ON FUNCTION public.gridex_recalculate_actor_readiness(p_platform_market_actor_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION gridex_received_source_snapshot_v1(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_received_source_snapshot_v1(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_received_source_snapshot_v1(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) TO service_role;
+
+--
 -- Name: FUNCTION gridex_reconcile_company_onboarding_tasks_v1(p_company_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -112308,6 +114633,27 @@ GRANT ALL ON FUNCTION public.gridex_record_invoice_fee_remediation(p_company_id 
 
 REVOKE ALL ON FUNCTION public.gridex_record_legacy_api_key_use_v1(p_api_client_id uuid, p_route text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_record_legacy_api_key_use_v1(p_api_client_id uuid, p_route text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_record_source_discovery_v1(p_company_id uuid, p_environment text, p_snapshot_id uuid, p_snapshot_hash text, p_engine_version text, p_inventory_text text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_record_source_discovery_v1(p_company_id uuid, p_environment text, p_snapshot_id uuid, p_snapshot_hash text, p_engine_version text, p_inventory_text text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_record_source_discovery_v1(p_company_id uuid, p_environment text, p_snapshot_id uuid, p_snapshot_hash text, p_engine_version text, p_inventory_text text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_record_source_object_decisions_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_canonical_assessment_id uuid, p_facts_text text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_record_source_object_decisions_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_canonical_assessment_id uuid, p_facts_text text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_record_source_object_decisions_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_canonical_assessment_id uuid, p_facts_text text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_record_source_validation_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_record_source_validation_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_record_source_validation_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text) TO service_role;
 
 --
 -- Name: FUNCTION gridex_refresh_actor_certificate_statuses(p_run_type text); Type: ACL; Schema: public; Owner: -
@@ -112762,6 +115108,13 @@ GRANT ALL ON FUNCTION public.gridex_snapshot_with_invoice_fee(p_snapshot jsonb, 
 GRANT ALL ON FUNCTION public.gridex_snapshot_with_invoice_fee(p_snapshot jsonb, p_amount numeric, p_website_card_visible boolean) TO service_role;
 
 --
+-- Name: FUNCTION gridex_source_object_snapshot_v1(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_source_object_snapshot_v1(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_source_object_snapshot_v1(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) TO service_role;
+
+--
 -- Name: FUNCTION gridex_stage_energy_geodata_feature(p_geodata_version_id uuid, p_feature_id text, p_properties jsonb, p_geometry_geojson jsonb, p_source_url text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -112994,6 +115347,13 @@ REVOKE ALL ON FUNCTION public.gridex_update_company_and_rebuild_legal_profile(p_
 GRANT ALL ON FUNCTION public.gridex_update_company_and_rebuild_legal_profile(p_company_id uuid, p_actor_user_id uuid, p_input jsonb, p_mark_reviewed boolean) TO service_role;
 
 --
+-- Name: FUNCTION gridex_update_customer_case_status(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_message text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_update_customer_case_status(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_message text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_update_customer_case_status(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_message text) TO service_role;
+
+--
 -- Name: FUNCTION gridex_update_draft_legal_template_version(p_version_id uuid, p_title text, p_body text, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -113208,6 +115568,13 @@ REVOKE ALL ON FUNCTION public.gridex_verify_contract_schema_alignment() FROM PUB
 GRANT ALL ON FUNCTION public.gridex_verify_contract_schema_alignment() TO service_role;
 
 --
+-- Name: FUNCTION gridex_witness_source_objects_v1(p_company_id uuid, p_environment text, p_assessment_id uuid, p_facts_hash text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_witness_source_objects_v1(p_company_id uuid, p_environment text, p_assessment_id uuid, p_facts_hash text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_witness_source_objects_v1(p_company_id uuid, p_environment text, p_assessment_id uuid, p_facts_hash text) TO service_role;
+
+--
 -- Name: FUNCTION guard_ediel_test_run_message_evidence(); Type: ACL; Schema: public; Owner: -
 --
 
@@ -113401,6 +115768,41 @@ GRANT ALL ON FUNCTION public.set_updated_at_timestamp() TO service_role;
 
 REVOKE ALL ON FUNCTION public.store_website_public_contract_snapshot(p_cache_key text, p_tenant_reference text, p_customer_type text, p_publication_revision bigint, p_contract_version text, p_parser_version text, p_schema_sha256 text, p_etag text, p_snapshot jsonb, p_accepted_count integer, p_blocked_count integer, p_upstream_count integer, p_feed_state text, p_empty_feed_authorization jsonb, p_fetched_at timestamp with time zone) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.store_website_public_contract_snapshot(p_cache_key text, p_tenant_reference text, p_customer_type text, p_publication_revision bigint, p_contract_version text, p_parser_version text, p_schema_sha256 text, p_etag text, p_snapshot jsonb, p_accepted_count integer, p_blocked_count integer, p_upstream_count integer, p_feed_state text, p_empty_feed_authorization jsonb, p_fetched_at timestamp with time zone) TO service_role;
+
+--
+-- Name: TABLE discovery_attempts; Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+GRANT SELECT ON TABLE gridex_received_sources.discovery_attempts TO authenticated;
+GRANT SELECT ON TABLE gridex_received_sources.discovery_attempts TO service_role;
+
+--
+-- Name: TABLE epoch; Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+GRANT SELECT ON TABLE gridex_received_sources.epoch TO authenticated;
+GRANT SELECT ON TABLE gridex_received_sources.epoch TO service_role;
+
+--
+-- Name: TABLE snapshots; Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+GRANT SELECT ON TABLE gridex_received_sources.snapshots TO authenticated;
+GRANT SELECT ON TABLE gridex_received_sources.snapshots TO service_role;
+
+--
+-- Name: TABLE sources; Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+GRANT SELECT ON TABLE gridex_received_sources.sources TO authenticated;
+GRANT SELECT ON TABLE gridex_received_sources.sources TO service_role;
+
+--
+-- Name: TABLE validation_assessments; Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+GRANT SELECT ON TABLE gridex_received_sources.validation_assessments TO authenticated;
+GRANT SELECT ON TABLE gridex_received_sources.validation_assessments TO service_role;
 
 --
 -- Name: TABLE platform_actor_identifiers; Type: ACL; Schema: public; Owner: -
@@ -114347,6 +116749,12 @@ GRANT ALL ON TABLE public.customer_application_workflows TO service_role;
 
 GRANT ALL ON TABLE public.customer_authorization_documents TO authenticated;
 GRANT ALL ON TABLE public.customer_authorization_documents TO service_role;
+
+--
+-- Name: TABLE customer_case_events; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.customer_case_events TO service_role;
 
 --
 -- Name: TABLE customer_cases; Type: ACL; Schema: public; Owner: -

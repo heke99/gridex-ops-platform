@@ -1,0 +1,9 @@
+# Case navigation fix round 1 — independent scoped review
+
+Reviewed local `ad35c362c12e82fb078a3130c9cba7be3e217280`, published identical tree `8a9b60e4881f149256079ee69631d5b5c03b3afa` as `955e80043c7737184fc46b9b90b0a27f10b584a4`. Review base `482759722124835aa74f9e082696fd77109010d8`.
+
+Independent reviewer: all prior Important findings addressed; no new Critical/Important breakage found in the fix diff. Exact exception cohort uses five statuses and deterministic DB pagination, including a >200-open regression. Status form requires explicit choice and displays current status. Native setup and post-browser assertions cover ACK state/chains, source assessments, case event/audit and business tables. Missing disposable permission catalog keys are inserted before genuine role grants and canonical authenticated RPC assertions; no authentication bypass. Related-row reads use tenantDb with the verified case company, fixing the service-role and RBAC gates.
+
+Local author evidence: 5956 tests/368 files, app/tests/scripts typechecks and Next build PASS; RBAC24 PASS, service-role count2402 unchanged; focused lint0 errors/1 existing warning. Actual protected browser/native qualification remains pending at OPS35892684212/native107288787142. Code review approval is not native qualification or whole-E035 acceptance.
+
+Actual subsequent native receipt: job107288787142 failed after all124 existing native tests passed. The fixture now passed real GoTrue authorization/permission setup, then its Z08 insert was rejected with SQL23514 `canonical_inbound_rule_profile_resolution_failed:PRODAT:Z08:2026-09-23:0`. Browser and post-browser assertions were not reached. Artifact10764979557 ZIP SHA256 `8d6fb50ffa3a6d8ea847cc159a46d2dd73f2515f517fefe523941f75ba412977`. Sole author resumed bounded fixround2 against the genuine canonical registry/profile contract; no trigger bypass or fabricated source authority. OPS verify107288787017 and tenant35892684191 passed.

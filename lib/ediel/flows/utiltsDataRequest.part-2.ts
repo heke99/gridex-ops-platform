@@ -5,7 +5,9 @@ import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import { qualifyReceivedUtiltsStructure } from '@/lib/ediel/utilts/qualifyReceivedStructure'
 import { readReceivedStructuralSources } from '@/lib/ediel/utilts/receivedStructuralSources'
+import { readAndRecordDurableReceivedSources } from '@/lib/ediel/utilts/receivedSourceLedger'
 import { createEdielMessageEvent, getEdielMessageById, linkEdielMessage, updateEdielMessageStatus } from '@/lib/ediel/db'
 
 import { resolveDecisionBackedOutboundContext } from '@/lib/ediel/flows/routeDecisionContext'
@@ -20,6 +22,7 @@ import { findActiveMeteringPermissionForUtiltsMessage } from '@/lib/onboarding/i
 
 
 import { buildUtiltsTransactionPersistencePayload, persistUtiltsTransactionResults, resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionPersistence'
+import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
 
 
 import type { UtiltsProcessResult } from './utiltsDataRequest.part-1'
@@ -414,28 +417,45 @@ export async function processInboundUtiltsMessage(params: {
         : permissionProbeMessage.business_match_status,
   }
 
-  const runtime = runUtiltsRuntimeForMessage(runtimeSourceMessage, { canonicalPolicy })
-  const ackPlan = applyCertifiedUtiltsAckPolicy({
-    runtime,
-    testCaseCode: runtimeTestCaseCode,
+  const structuralQualification = await qualifyReceivedUtiltsStructure({
+    message: runtimeSourceMessage, canonicalPolicy,
+    runtime: runUtiltsRuntimeForMessage(runtimeSourceMessage, { canonicalPolicy }),
+  })
+  const runtime = structuralQualification.runtime
+  const structuralDecisionRequired = structuralQualification.hasInternalReview || structuralQualification.hasNationalMismatch
+  const ackPlan = structuralDecisionRequired ? runtime.ackPlan : applyCertifiedUtiltsAckPolicy({
+    runtime, testCaseCode: runtimeTestCaseCode,
   })
   let transactionDispositions = runtime.transactionDispositions
   let transactionPersistenceResults: Awaited<ReturnType<typeof persistUtiltsTransactionResults>> = []
   const normalizedPayload = {
     ...runtime.normalizedPayload,
     utiltsTransactionMatches: transactionMatches,
+    receivedStructureQualification: structuralQualification.evidence,
     utiltsTransactionDispositions: transactionDispositions,
     utiltsTransactionPersistenceResults: transactionPersistenceResults,
     receivedStructuralSources: await readReceivedStructuralSources({ message: runtimeSourceMessage, transactionMatches }),
+    durableReceivedSourceInventory: await readAndRecordDurableReceivedSources(runtimeSourceMessage),
   }
   const companyId = stringOrNull(runtimeSourceMessage.company_id)
   const messageCode = stringOrNull(runtime.facts.messageCode)
   if (companyId && messageCode && transactionDispositions.length > 0) {
+    const dataRequest = canonicalLinks.matchedDataRequest
+    const fallback = {
+      customerId: canonicalLinks.siteAndCustomer?.customerId ?? dataRequest?.customer_id ?? matchedPermission?.customer_id ?? null,
+      siteId: canonicalLinks.siteAndCustomer?.siteId ?? dataRequest?.site_id ?? matchedPermission?.site_id ?? null,
+      meteringPointId: canonicalLinks.meteringPointId ?? dataRequest?.metering_point_id ?? matchedPermission?.metering_point_id ?? null,
+      gridOwnerId: canonicalLinks.siteAndCustomer?.gridOwnerId ?? dataRequest?.grid_owner_id ?? matchedPermission?.grid_owner_id ?? null,
+    }
+    const contracts = await prepareUtiltsConsumptionContracts({ message: runtimeSourceMessage, runtime, policy: canonicalPolicy,
+      matches: transactionMatches, dataRequest, fallback, allowConsumption: true })
     transactionPersistenceResults = await persistUtiltsTransactionResults({
       companyId,
       environment: runtimeSourceMessage.environment,
       sourceMessageId: runtimeSourceMessage.id,
       messageCode,
+      rawPayload: runtimeSourceMessage.raw_payload ?? '',
+      contracts,
       transactions: buildUtiltsTransactionPersistencePayload({
         messageCode,
         transactions: runtime.facts.transactions,
@@ -443,6 +463,24 @@ export async function processInboundUtiltsMessage(params: {
         matches: transactionMatches,
       }),
     })
+    // An RPC array is not evidence unless every requested transaction has one
+    // coherent outcome. Stop internally before ACKs or request completion;
+    // missing/ambiguous evidence must not fabricate a national rejection.
+    const expectedIds = transactionDispositions.map((item, index) => resolveUtiltsTransactionId(item.transactionId, index))
+    const validResults = transactionPersistenceResults.length === expectedIds.length &&
+      new Set(expectedIds).size === expectedIds.length &&
+      transactionDispositions.every((disposition, index) => {
+        const results = transactionPersistenceResults.filter(item => ensureJson(item).transactionId === expectedIds[index])
+        if (results.length !== 1) return false
+        const result = results[0]
+        if (result.persistenceStatus === 'failed') {
+          return (disposition.disposition === 'accepted' || disposition.disposition === 'processability_rejected') &&
+            result.disposition === 'processability_rejected' && result.responseType === 'utilts_err'
+        }
+        return result.disposition === disposition.disposition && result.responseType === disposition.responseType &&
+          result.persistenceStatus === (disposition.disposition === 'accepted' ? 'persisted' : 'not_applicable')
+      })
+    if (!validResults) throw new Error('utilts_transaction_persistence_invalid_result')
     transactionDispositions = transactionDispositions.map((disposition, index) => {
       const transactionId = resolveUtiltsTransactionId(disposition.transactionId, index)
       const persisted = transactionPersistenceResults.find((item) => item.transactionId === transactionId)
@@ -460,10 +498,18 @@ export async function processInboundUtiltsMessage(params: {
       }
     })
   }
+  if (transactionPersistenceResults.length === 0 && (transactionDispositions.length > 0 || runtime.validation.ok)) {
+    throw new Error('utilts_transaction_persistence_invalid_result')
+  }
+  const allTransactionsFailedPersistence = transactionPersistenceResults.length > 0 &&
+    transactionPersistenceResults.every(item => item.persistenceStatus === 'failed')
+  if (allTransactionsFailedPersistence) {
+    runtime.validation = { ...runtime.validation, ok: false, classification: 'functional_rejected' }
+  }
   normalizedPayload.utiltsTransactionDispositions = transactionDispositions
   normalizedPayload.utiltsTransactionPersistenceResults = transactionPersistenceResults
   const forcedPositiveTgtAckPlan =
-    runtimeTestCaseCode === 'U3.1.1' || runtimeTestCaseCode === 'U3.1.2'
+    !structuralDecisionRequired && (runtimeTestCaseCode === 'U3.1.1' || runtimeTestCaseCode === 'U3.1.2')
   const shouldRejectByAckPlan =
     ackPlan.contrlOutcome === 'negative' ||
     ackPlan.shouldSendUtiltsErr ||
@@ -489,7 +535,7 @@ export async function processInboundUtiltsMessage(params: {
     },
   })
 
-  if ((!runtime.validation.ok && !forcedPositiveTgtAckPlan) || shouldRejectByAckPlan) {
+  if (allTransactionsFailedPersistence || (!runtime.validation.ok && !forcedPositiveTgtAckPlan) || shouldRejectByAckPlan) {
     const ackIds = await createUtiltsRuntimeAcks({
       actorUserId,
       sourceMessage: runtimeSourceMessage,
@@ -502,7 +548,7 @@ export async function processInboundUtiltsMessage(params: {
       actorUserId,
       edielMessageId: message.id,
       status: runtime.validation.classification === 'syntax_rejected' ? 'failed' : 'validated',
-      failureReason: ackPlan.reason,
+      failureReason: allTransactionsFailedPersistence ? 'utilts_transaction_persistence_failed' : ackPlan.reason,
       parsedPayload: {
         ...(message.parsed_payload ?? {}),
         normalizedMeteringPayload: normalizedPayload,
@@ -523,7 +569,9 @@ export async function processInboundUtiltsMessage(params: {
       edielMessageId: message.id,
       eventType: 'validated',
       eventStatus: 'warning',
-      message: 'Inbound UTILTS avvisades av produktionsruntime och korrekt kvittensflöde skapades.',
+      message: structuralQualification.hasInternalReview
+        ? 'Inbound UTILTS väntar på godkänt strukturunderlag. Berörda transaktioner har inte kvitterats eller lagrats som mätvärden.'
+        : 'Inbound UTILTS avvisades av produktionsruntime och korrekt kvittensflöde skapades.',
       payload: {
         createdAckMessageIds: ackIds,
         normalizedMeteringPayload: normalizedPayload,
@@ -537,6 +585,7 @@ export async function processInboundUtiltsMessage(params: {
       message,
       matchedDataRequest: canonicalLinks.matchedDataRequest,
       ackIds,
+      internalReviewRequired: structuralQualification.hasInternalReview,
       outboundRequestId: null,
       ingestedMeterValueId: null,
       ingestedMeterValueIds: [],
@@ -562,6 +611,7 @@ export async function processInboundUtiltsMessage(params: {
       })
 
       const ingestedMeterValues = await maybeIngestMeteringValue({
+        boundOutcomes: transactionPersistenceResults,
         actorUserId,
         customerId: permissionCustomerId,
         siteId: permissionSiteId,
@@ -632,6 +682,7 @@ export async function processInboundUtiltsMessage(params: {
 
     if (allUtiltsTransactionMeteringPointsMatched(transactionMatches)) {
       const ingestedMeterValues = await maybeIngestMeteringValue({
+        boundOutcomes: transactionPersistenceResults,
         actorUserId,
         customerId: canonicalLinks.siteAndCustomer?.customerId ?? null,
         siteId: canonicalLinks.siteAndCustomer?.siteId ?? null,
@@ -750,6 +801,7 @@ export async function processInboundUtiltsMessage(params: {
   })
 
   const ingestedMeterValues = await maybeIngestMeteringValue({
+    boundOutcomes: transactionPersistenceResults,
     actorUserId,
     customerId,
     siteId,
@@ -764,6 +816,7 @@ export async function processInboundUtiltsMessage(params: {
   const ingestedMeterValueIds = ingestedMeterValues.map((row) => row.id)
 
   const billingUnderlay = await maybeCreateBillingUnderlay({
+    boundOutcomes: transactionPersistenceResults,
     actorUserId,
     dataRequest,
     customerId,

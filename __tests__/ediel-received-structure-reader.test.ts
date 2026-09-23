@@ -1,3 +1,5 @@
+import { readReceivedStructuralSources } from '@/lib/ediel/utilts/receivedStructuralSources'
+import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
@@ -11,7 +13,9 @@ vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: io.get, updateEdielMessa
 vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => id }))
 vi.mock('@/lib/onboarding/inboundEdielLinking', () => ({ findActiveMeteringPermissionForUtiltsMessage: vi.fn().mockResolvedValue(null) }))
 vi.mock('@/lib/ediel/utilts/transactionPersistence', async original => ({ ...await original<Record<string, unknown>>(), persistUtiltsTransactionResults: io.persist }))
-vi.mock('@/lib/ediel/flows/utiltsDataRequest.part-1', () => ({
+vi.mock('@/lib/ediel/matching', () => ({ matchMeteringPointIdByIdentifier: vi.fn().mockResolvedValue(null), matchSiteAndCustomerForMeteringPoint: vi.fn().mockResolvedValue(null) }))
+vi.mock('@/lib/ediel/flows/utiltsDataRequest.part-1', async original => ({
+  ...await original<Record<string, unknown>>(),
   resolveUtiltsRuntimeTestCaseCode: vi.fn().mockResolvedValue(null), matchUtiltsTransactionsForTenant: io.matches,
   linkInboundUtiltsMessageCanonically: vi.fn().mockResolvedValue({}), allUtiltsTransactionMeteringPointsMatched: vi.fn().mockReturnValue(false),
   createUtiltsRuntimeAcks: io.ack,
@@ -60,7 +64,7 @@ beforeEach(() => {
   vi.clearAllMocks(); queryCalls.length = 0
   incoming = observationHandoffMessage(); rows = [source()]; count = 1; dbError = null
   io.get.mockImplementation(async () => incoming); io.update.mockResolvedValue(null); io.event.mockResolvedValue(null)
-  io.ack.mockResolvedValue([]); io.persist.mockResolvedValue([]); io.matches.mockResolvedValue([match()]); io.from.mockImplementation(query)
+  io.ack.mockResolvedValue([]); io.persist.mockImplementation(successfulUtiltsPersistenceIo); io.matches.mockResolvedValue([match()]); io.from.mockImplementation(query)
 })
 type Evidence = { version: number; status: string; authorityStatus: string; selection: string; sources: Array<Record<string, unknown>>; issues: Array<{ code: string; sourceMessageId?: string }> }
 async function run(): Promise<Evidence> {
@@ -201,5 +205,11 @@ it('does not query when the original receipt timestamp is absent', async () => {
 })
 it('does not query without a trusted company even when cached point links exist', async () => {
   incoming.company_id = null
-  const report = await run(); expect(report.status).toBe('not_requested'); expect(io.from).not.toHaveBeenCalled()
+  // Preserve the reader's diagnostic contract directly. The processor now stops
+  // this missing-tenant persistence contract before any ACK (covered separately).
+  const report = await readReceivedStructuralSources({ message: incoming, transactionMatches: [{ ...match(), matchStatus: 'matched' }] })
+  expect(report.status).toBe('not_requested'); expect(io.from).not.toHaveBeenCalled()
+  expect(report).toMatchObject({ version: 1, authorityStatus: 'not_established', selection: 'not_performed' })
+  expect(report.issues.map(issue => issue.code)).not.toContain('E61')
+  expect(report.issues.map(issue => issue.code)).not.toContain('E62')
 })

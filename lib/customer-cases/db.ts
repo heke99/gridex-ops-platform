@@ -71,20 +71,29 @@ export async function listCustomerCases(options: {
   companyId?: string | null
   customerId?: string | null
   status?: string | null
+  statuses?: readonly string[]
   type?: string | null
+  source?: string | null
   query?: string | null
   limit?: number
+  offset?: number
 } = {}): Promise<CustomerCaseListRow[]> {
   let query = supabaseService
     .from('customer_cases')
-    .select('*, customers(full_name, first_name, last_name, company_name, email, customer_number)')
+    .select('*, customers!customer_cases_customer_company_fk(full_name, first_name, last_name, company_name, email, customer_number)')
     .order('created_at', { ascending: false })
-    .limit(options.limit ?? 200)
+  if (options.offset !== undefined) {
+    query = query.order('id', { ascending: false }).range(options.offset, options.offset + (options.limit ?? 200) - 1)
+  } else {
+    query = query.limit(options.limit ?? 200)
+  }
 
   if (options.companyId) query = query.eq('company_id', options.companyId)
   if (options.customerId) query = query.eq('customer_id', options.customerId)
   if (options.status && options.status !== 'all') query = query.eq('status', options.status)
+  if (options.statuses) query = query.in('status', [...options.statuses])
   if (options.type && options.type !== 'all') query = query.eq('case_type', options.type)
+  if (options.source) query = query.eq('source', options.source)
   if (options.query?.trim()) {
     query = query.or(`title.ilike.%${options.query.trim()}%,description.ilike.%${options.query.trim()}%,reason_category.ilike.%${options.query.trim()}%`)
   }
@@ -366,48 +375,18 @@ export async function updateCustomerCaseStatus(input: {
   status: string
   message?: string | null
   actorUserId?: string | null
+  expectedSource?: string
 }) {
-  const now = new Date().toISOString()
-  const patch: Record<string, unknown> = {
-    status: input.status,
-    updated_by: input.actorUserId ?? null,
-    updated_at: now,
-  }
-
-  if (input.status === 'resolved') patch.resolved_at = now
-  if (input.status === 'closed') patch.closed_at = now
-
-  const { data, error } = await supabaseService
-    .from('customer_cases')
-    .update(patch)
-    .eq('id', input.caseId)
-    .eq('company_id', input.companyId)
-    .select('*')
-    .single()
+  const { data, error } = await supabaseService.rpc('gridex_update_customer_case_status', {
+    p_case_id: input.caseId,
+    p_company_id: input.companyId,
+    p_status: input.status,
+    p_actor_user_id: input.actorUserId ?? null,
+    p_expected_source: input.expectedSource ?? null,
+    p_message: input.message ?? null,
+  })
   if (error) throw error
-
-  const row = data as CustomerCaseRow
-  await createCustomerCaseEvent({
-    companyId: row.company_id,
-    customerCaseId: row.id,
-    customerId: row.customer_id,
-    eventType: 'status_changed',
-    eventStatus: input.status === 'closed' || input.status === 'resolved' ? 'success' : 'info',
-    message: input.message?.trim() || `Ärendet uppdaterades till ${input.status}.`,
-    payload: { status: input.status },
-    actorUserId: input.actorUserId ?? null,
-  })
-
-  await logAudit({
-    companyId: row.company_id,
-    customerCaseId: row.id,
-    customerId: row.customer_id,
-    action: 'customer_case_status_changed',
-    actorUserId: input.actorUserId ?? null,
-    newValues: { status: input.status, message: input.message ?? null },
-  })
-
-  return row
+  return data as CustomerCaseRow
 }
 
 

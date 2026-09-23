@@ -64,6 +64,7 @@ describe('Operations Autopilot phase 6 — exception-only Control Tower', () => 
     expect(source).toMatch(/safeRows<RecentCaseRow>\('customer_operation_tasks'[\s\S]*exceptionTaskStatuses/)
     expect(source).toMatch(/safeRows<CustomerCaseRow>\('customer_cases'[\s\S]*exceptionCaseStatuses/)
     expect(source).toContain('href="/admin/customer-cases"')
-    expect(source).toContain('Kund/supportärenden')
+    expect(source).toContain('Kundärenden (alla källor)')
+    expect(source).toContain('Öppna Ediel-ärenden')
   })
 })

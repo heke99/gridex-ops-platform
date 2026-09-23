@@ -78,9 +78,14 @@ jobs:
 
   clean-migration-replay:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
@@ -108,13 +113,42 @@ jobs:
           "/usr/lib/postgresql/$server_major/bin/pg_dump" --version
       - name: Clean empty-database replay and verify generated types
         shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: public.ecr.aws
         run: |
           set -o pipefail
           exec > >(tee rem002-clean-replay.log) 2>&1
           source scripts/gridex-aud-003-clean-replay.sh
+          # Originals stay in HOLD until the sourced replay's EXIT trap. Keep
+          # the verified original input available to both native case passes.
+          export GRIDEX_EDIEL_CASE_RESTORATION_SQL="$(cd "$HOLD" && pwd)/20260923180557_restore_customer_case_events_atomic_status.sql"
+          [[ -f "$GRIDEX_EDIEL_CASE_RESTORATION_SQL" ]] || exit 1
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
+          # Exercise the actual canonical registry, business writes and owner
+          # RPCs over the local Data API. No keys enter uploaded evidence.
+          supabase status --help
+          supabase status -o json > "$RUNNER_TEMP/e035-native-status.json"
+          GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json" npx vitest run --config scripts/ediel-source-owner-native.config.ts
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json"
+          export NEXT_PUBLIC_SUPABASE_URL="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).API_URL')"
+          [[ "$NEXT_PUBLIC_SUPABASE_URL" == 'http://127.0.0.1:54321' ]] || exit 1
+          export NEXT_PUBLIC_SUPABASE_ANON_KEY="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).ANON_KEY')"
+          export SUPABASE_SERVICE_ROLE_KEY="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).SERVICE_ROLE_KEY')"
+          [[ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" && -n "$SUPABASE_SERVICE_ROLE_KEY" ]] || exit 1
+          unset GRIDEX_E2E_BROWSER_BASE_URL
+          export GRIDEX_EDIEL_CASE_LOCAL_E2E=1
+          export GRIDEX_EDIEL_CASE_FIXTURE_PATH="$RUNNER_TEMP/ediel-case-browser-fixture.json"
+          export GRIDEX_EDIEL_CASE_TEST_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
+          npx vitest run --config scripts/ediel-case-view-native.config.ts
+          [[ -s "$GRIDEX_EDIEL_CASE_FIXTURE_PATH" ]] || exit 1
+          npx playwright install --with-deps chromium
+          npx playwright test e2e/browser/ediel-case-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_EDIEL_CASE_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-case-view-native.config.ts
+          rm -f "$GRIDEX_EDIEL_CASE_FIXTURE_PATH"
+          unset GRIDEX_EDIEL_CASE_TEST_PASSWORD SUPABASE_SERVICE_ROLE_KEY NEXT_PUBLIC_SUPABASE_ANON_KEY
+          rm -f "$RUNNER_TEMP/e035-native-status.json"
           supabase gen types typescript --local > rem002-database.types.ts
           # Typegen emits non-null Returns for nullable SQL columns on the
           # field-511 resolver; apply the same durable override used on tip.

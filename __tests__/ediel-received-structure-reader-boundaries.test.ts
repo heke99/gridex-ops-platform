@@ -1,9 +1,11 @@
+import { readReceivedStructuralSources } from '@/lib/ediel/utilts/receivedStructuralSources'
+import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import * as dates from '@/lib/ediel/prodat/render/dates'
 import { createHash } from 'node:crypto'
-import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
+import { observationHandoffMessage, energyHandoffMessage } from './helpers/utiltsObservationHandoff'
 import { raw, line, characteristic, type Parts } from './fixtures/prodat-register'
 
 const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), scoped: vi.fn(), matches: vi.fn(), ingest: vi.fn(), allMatched: vi.fn() }))
@@ -16,7 +18,9 @@ vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: io.get, updateEdielMessa
 vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => id }))
 vi.mock('@/lib/onboarding/inboundEdielLinking', () => ({ findActiveMeteringPermissionForUtiltsMessage: vi.fn().mockResolvedValue(null) }))
 vi.mock('@/lib/ediel/utilts/transactionPersistence', async original => ({ ...await original<Record<string, unknown>>(), persistUtiltsTransactionResults: io.persist }))
-vi.mock('@/lib/ediel/flows/utiltsDataRequest.part-1', () => ({
+vi.mock('@/lib/ediel/matching', () => ({ matchMeteringPointIdByIdentifier: vi.fn().mockResolvedValue(null), matchSiteAndCustomerForMeteringPoint: vi.fn().mockResolvedValue(null) }))
+vi.mock('@/lib/ediel/flows/utiltsDataRequest.part-1', async original => ({
+  ...await original<Record<string, unknown>>(),
   resolveUtiltsRuntimeTestCaseCode: vi.fn().mockResolvedValue(null), matchUtiltsTransactionsForTenant: io.matches,
   linkInboundUtiltsMessageCanonically: vi.fn().mockResolvedValue({}), allUtiltsTransactionMeteringPointsMatched: io.allMatched,
   createUtiltsRuntimeAcks: io.ack, maybeIngestMeteringValue: io.ingest,
@@ -60,7 +64,7 @@ function query() {
 beforeEach(() => {
   vi.clearAllMocks(); predicates.length = 0; incoming = observationHandoffMessage(); sourceRows = [row()]; count = 1; dbError = null; neverResolve = false
   io.get.mockImplementation(async () => incoming); io.update.mockResolvedValue(null); io.event.mockResolvedValue(null)
-  io.ack.mockResolvedValue(['ack-1']); io.persist.mockResolvedValue([]); io.matches.mockResolvedValue([matched()]); io.from.mockImplementation(query)
+  io.ack.mockResolvedValue(['ack-1']); io.persist.mockImplementation(successfulUtiltsPersistenceIo); io.matches.mockResolvedValue([matched()]); io.from.mockImplementation(query)
   io.allMatched.mockReturnValue(false); io.ingest.mockResolvedValue([{ id: 'value-1' }])
 })
 afterEach(() => { vi.useRealTimers() })
@@ -118,7 +122,16 @@ for (const [name, mutate] of [
   ['multiple physical messages', (text: string) => text + text.slice(text.startsWith('UNA') ? 9 : 0)],
 ] as const) it(`does not query from incoming ${name}, despite a plausible mocked match`, async () => {
   incoming.raw_payload = mutate(incoming.raw_payload!)
-  await execute(); expect(report().status).toBe('not_requested')
+  if (name === 'multiple physical messages') {
+    // Ambiguous physical identities now stop processing before status/ACKs.
+    // Keep every source-reader boundary assertion on the identical wire.
+    const evidence = await readReceivedStructuralSources({ message: incoming, transactionMatches: [{ ...matched(), matchStatus: 'matched' }] })
+    expect(evidence).toBeDefined()
+    expect(evidence).toMatchObject({ authorityStatus: 'not_established', selection: 'not_performed' })
+    expect(evidence.status).toBe('not_requested')
+  } else {
+    await execute(); expect(report().status).toBe('not_requested')
+  }
   expect(io.scoped).not.toHaveBeenCalled(); expect(io.from).not.toHaveBeenCalled()
 })
 it('does not treat a microsecond-later source receipt as an in-cutoff row', async () => {
@@ -143,7 +156,7 @@ async function capture() {
 }
 for (const path of ['rejected', 'accepted'] as const) for (const outcome of ['candidate', 'read-error', 'truncated'] as const) {
   it(`preserves all pre-existing ${path} outcomes for ${outcome} diagnostics`, async () => {
-    if (path === 'accepted') { incoming = observationHandoffMessage('2026-10-01'); io.allMatched.mockReturnValue(true) }
+    if (path === 'accepted') { incoming = energyHandoffMessage('2026-10-01'); io.allMatched.mockReturnValue(true) }
     sourceRows = []; count = 0
     const baseline = await capture()
     expect(io.persist).toHaveBeenCalledOnce()

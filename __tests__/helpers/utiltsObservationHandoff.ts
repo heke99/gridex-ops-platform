@@ -28,3 +28,24 @@ export function observationHandoffMessage(date = '2026-09-30', company = 'tenant
     metering_point_id: `meter-${company}`, business_match_status: 'matched', parsed_payload: {}, validation_report: null,
   } as unknown as EdielMessageRow
 }
+
+/** Accepted characterization path with no register readings. The monthly
+ * observation fixture above deliberately becomes internal-review after the
+ * October activation unless an authoritative structural readset is available.
+ * Keep that new behavior in structural-owner integration tests; these energy
+ * values retain the old diagnostic-only invariance oracle without bypassing it. */
+export function energyHandoffMessage(date = '2026-10-01', company = 'tenant-a', environment: 'test' | 'production' = 'test'): EdielMessageRow {
+  const message = observationHandoffMessage(date, company, environment)
+  const lines = message.raw_payload!.split('\n')
+  const start = lines.findIndex(line => line.startsWith('SEQ+'))
+  const raw = [
+    ...lines.slice(0,start).map(line => line
+      .replace('23-DDQ-E66-S','23-DDQ-E66-T')
+      .replace('202607010000202608010000:719','202607010000202607010015:719')
+      .replace('DTM+597:202608010000:203','DTM+597:202607010020:203')
+      .replace('DTM+354:1:802','DTM+354:15:806')),
+    "SEQ++1'", "QTY+136:500'", "DTM+597:202607010000:203'", "STS+7++21::260'",
+  ]
+  raw.push(`UNT+${raw.length-1}+1'`, lines[lines.length-1])
+  return {...message, application_reference:'23-DDQ-E66-T', raw_payload:raw.join('\n')}
+}

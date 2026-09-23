@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { getAdminPageRequirement, hasPermissionRequirement } from '@/lib/admin/accessModel'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { getOperationalCompanyScope, isMissingRelationError } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
@@ -24,7 +25,7 @@ type SafeSupabaseQuery = {
   then: PromiseLike<{ data?: unknown; count?: number | null; error?: unknown }>['then']
 }
 type RecentCaseRow = { id: string; title: string | null; status: string | null; priority: string | null; created_at: string | null; customer_id: string | null }
-type CustomerCaseRow = { id: string; title: string | null; status: string | null; priority: string | null; created_at: string | null; customer_id: string | null; reason_category: string | null }
+type CustomerCaseRow = { id: string; title: string | null; status: string | null; priority: string | null; created_at: string | null; customer_id: string | null; reason_category: string | null; source: string | null; metadata: Record<string, unknown> | null }
 type QueueRow = { queue_type: string | null; source_id: string | null; title: string | null; severity: string | null; status: string | null; created_at: string | null }
 
 function applyFilter(query: SafeSupabaseQuery, filter: CountFilter): SafeSupabaseQuery {
@@ -70,8 +71,10 @@ function toneClass(tone: 'danger' | 'warning' | 'success' | 'info') {
   if (tone === 'success') return 'border-emerald-200 bg-emerald-50 text-emerald-800'
   return 'border-slate-200 bg-white text-slate-800'
 }
-function StatCard({ label, value, href, tone = 'info' }: { label: string; value: number; href: string; tone?: 'danger' | 'warning' | 'success' | 'info' }) {
-  return <Link href={href} className={`rounded-3xl border p-5 shadow-sm transition hover:shadow-md ${toneClass(tone)}`}><p className="text-xs font-semibold uppercase tracking-[0.18em] opacity-75">{label}</p><p className="mt-3 text-3xl font-semibold">{value}</p></Link>
+function StatCard({ label, value, href, tone = 'info' }: { label: string; value: number; href?: string; tone?: 'danger' | 'warning' | 'success' | 'info' }) {
+  const content = <><p className="text-xs font-semibold uppercase tracking-[0.18em] opacity-75">{label}</p><p className="mt-3 text-3xl font-semibold">{value}</p></>
+  const className = `rounded-3xl border p-5 shadow-sm ${href ? 'transition hover:shadow-md ' : ''}${toneClass(tone)}`
+  return href ? <Link href={href} className={className}>{content}</Link> : <div className={className}>{content}</div>
 }
 function formatDate(value: string | null | undefined) {
   if (!value) return '—'
@@ -84,20 +87,26 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
   const companyScope = await getOperationalCompanyScope(context.userId)
   const resolvedSearchParams = await searchParams
   const companyId = tenantScope.companyId
+  if (!tenantScope.isPlatformAdmin && !companyId) {
+    return <div className="min-h-screen bg-slate-50"><AdminHeader title="System Control Tower" userEmail={context.email} workspaceName="Bolag saknas" workspaceMode="tenant" /><main className="p-6"><section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-amber-950"><h1 className="text-xl font-semibold">Bolagskoppling saknas</h1><p>Välj ett aktivt bolag för att läsa driftärenden.</p></section></main></div>
+  }
+  const canReadCases = tenantScope.isPlatformAdmin || hasPermissionRequirement(context.permissions, getAdminPageRequirement('customer.cases'))
+  const canReadSupport = tenantScope.isPlatformAdmin || hasPermissionRequirement(context.permissions, getAdminPageRequirement('operations.tasks'))
   const exceptionTaskStatuses = ['open', 'in_progress', 'blocked', 'pending_review']
   const exceptionCaseStatuses = ['open', 'action_required', 'awaiting_external_response', 'billing_blocked', 'manual_follow_up']
 
-  const [openTasks, highTasks, customerCases, switchBlocked, outboundFailed, outboundUnresolved, meteringGaps, blockedBilling, recentTasks, recentCustomerCases, queueRows] = await Promise.all([
+  const [openTasks, highTasks, customerCases, edielCases, switchBlocked, outboundFailed, outboundUnresolved, meteringGaps, blockedBilling, recentTasks, recentCustomerCases, queueRows] = await Promise.all([
     safeCount('customer_operation_tasks', companyId, [{ column: 'status', op: 'in', value: exceptionTaskStatuses }]),
     safeCount('customer_operation_tasks', companyId, [{ column: 'status', op: 'in', value: exceptionTaskStatuses }, { column: 'priority', op: 'in', value: ['high', 'critical'] }]),
     safeCount('customer_cases', companyId, [{ column: 'status', op: 'in', value: exceptionCaseStatuses }]),
+    safeCount('customer_cases', companyId, [{ column: 'source', value: 'ediel_inbound_state_machine' }, { column: 'status', op: 'in', value: exceptionCaseStatuses }]),
     safeCount('supplier_switch_requests', companyId, [{ column: 'status', op: 'in', value: ['blocked', 'rejected', 'cancelled'] }]),
     safeCount('outbound_requests', companyId, [{ column: 'status', value: 'failed' }]),
     safeCount('outbound_requests', companyId, [{ column: 'channel_type', value: 'unresolved' }]),
     safeCount('metering_value_gaps', companyId, [{ column: 'status', op: 'in', value: ['open', 'missing', 'pending'] }]),
     safeCount('billing_underlays', companyId, [{ column: 'readiness_status', op: 'in', value: ['warning', 'blocked', 'requires_correction'] }]),
     safeRows<RecentCaseRow>('customer_operation_tasks', companyId, 'id,title,status,priority,created_at,customer_id', [{ column: 'status', op: 'in', value: exceptionTaskStatuses }], 8),
-    safeRows<CustomerCaseRow>('customer_cases', companyId, 'id,title,status,priority,created_at,customer_id,reason_category', [{ column: 'status', op: 'in', value: exceptionCaseStatuses }], 8),
+    safeRows<CustomerCaseRow>('customer_cases', companyId, 'id,title,status,priority,created_at,customer_id,reason_category,source,metadata', [{ column: 'status', op: 'in', value: exceptionCaseStatuses }], 8),
     safeRows<QueueRow>('batch2c_drift_queue', companyId, 'queue_type,source_id,title,severity,status,created_at', [{ column: 'status', op: 'in', value: ['open', 'new', 'pending', 'action_required'] }], 8),
   ])
   const exceptionSignals = openTasks + customerCases + switchBlocked + outboundFailed + outboundUnresolved + meteringGaps + blockedBilling
@@ -119,7 +128,8 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Driftuppgifter" value={openTasks} href="/admin/operations/tasks" tone={openTasks > 0 ? 'warning' : 'success'} />
           <StatCard label="Hög prioritet" value={highTasks} href="/admin/operations/tasks" tone={highTasks > 0 ? 'danger' : 'success'} />
-          <StatCard label="Kund/supportärenden" value={customerCases} href="/admin/customer-cases" tone={customerCases > 0 ? 'warning' : 'success'} />
+          <StatCard label="Kundärenden (alla källor)" value={customerCases} tone={customerCases > 0 ? 'warning' : 'success'} />
+          <StatCard label="Öppna Ediel-ärenden" value={edielCases} href={canReadCases ? '/admin/ediel/operational-cases?view=exceptions' : undefined} tone={edielCases > 0 ? 'warning' : 'success'} />
           <StatCard label="Blockerade switchar" value={switchBlocked} href="/admin/operations/switches" tone={switchBlocked > 0 ? 'danger' : 'success'} />
           <StatCard label="Outbound fel" value={outboundFailed} href="/admin/outbound" tone={outboundFailed > 0 ? 'danger' : 'success'} />
           <StatCard label="Saknar route" value={outboundUnresolved} href="/admin/outbound/unresolved" tone={outboundUnresolved > 0 ? 'warning' : 'success'} />
@@ -132,7 +142,13 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
             <div className="flex items-start justify-between gap-4"><div><h2 className="text-lg font-semibold text-slate-950">Kräver åtgärd</h2><p className="mt-1 text-sm text-slate-600">Endast exception-statusar från drift, support och driftköer.</p></div><Link href="/admin/operations/tasks" className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Öppna driftkö</Link></div>
             <div className="mt-5 space-y-3">
               {recentTasks.length === 0 && recentCustomerCases.length === 0 && queueRows.length === 0 ? <p className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">Inga öppna avvikelser hittades för valt scope.</p> : null}
-              {recentCustomerCases.map((row) => <Link key={`case-${row.id}`} href="/admin/customer-cases" className="block rounded-2xl border border-slate-200 p-4 hover:bg-slate-50"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-semibold text-slate-950">{row.title ?? 'Kund-/supportärende'}</p><p className="mt-1 text-xs text-slate-500">{row.reason_category ?? 'ärende'} · {formatDate(row.created_at)}</p></div><span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{row.priority ?? 'normal'} · {row.status ?? 'open'}</span></div></Link>)}
+              {recentCustomerCases.map((row) => {
+                const href = row.source === 'ediel_inbound_state_machine'
+                  ? (canReadCases ? `/admin/ediel/operational-cases?caseId=${encodeURIComponent(row.id)}` : null)
+                  : ((row.metadata?.support_case === true || String(row.source ?? '').startsWith('tenant_support_')) && canReadSupport ? '/admin/customer-cases' : null)
+                const content = <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-semibold text-slate-950">{row.title ?? 'Kundärende'}</p><p className="mt-1 text-xs text-slate-500">{row.reason_category ?? 'ärende'} · {formatDate(row.created_at)}</p>{row.source === 'ediel_inbound_state_machine' && !canReadCases ? <p className="mt-1 text-xs text-slate-600">Ärendedetaljer kräver ärendeläsbehörighet.</p> : null}</div><span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{row.priority ?? 'normal'} · {row.status ?? 'open'}</span></div>
+                return href ? <Link key={`case-${row.id}`} href={href} className="block rounded-2xl border border-slate-200 p-4 hover:bg-slate-50">{content}</Link> : <article key={`case-${row.id}`} className="rounded-2xl border border-slate-200 p-4">{content}</article>
+              })}
               {recentTasks.map((row) => <Link key={`task-${row.id}`} href="/admin/operations/tasks" className="block rounded-2xl border border-slate-200 p-4 hover:bg-slate-50"><div className="flex flex-wrap items-center justify-between gap-3"><p className="font-semibold text-slate-950">{row.title ?? 'Driftuppgift'}</p><span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{row.priority ?? 'normal'} · {row.status ?? 'open'}</span></div><p className="mt-2 text-xs text-slate-500">{formatDate(row.created_at)}</p></Link>)}
               {queueRows.map((row) => <form key={`${row.queue_type}-${row.source_id}`} action={resolveControlTowerQueueItemAction} className="rounded-2xl border border-slate-200 p-4"><input type="hidden" name="queue_type" value={row.queue_type ?? ''} /><input type="hidden" name="source_id" value={row.source_id ?? ''} /><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-semibold text-slate-950">{row.title ?? row.queue_type ?? 'Driftkö'}</p><p className="mt-1 text-xs text-slate-500">{row.severity ?? 'info'} · {row.status ?? 'open'} · {formatDate(row.created_at)}</p></div><button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Markera hanterad</button></div></form>)}
             </div>
@@ -142,7 +158,7 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
             <h2 className="text-lg font-semibold text-slate-950">Snabbåtgärder</h2>
             <form action={runControlTowerPeriodMotorAction} className="rounded-2xl border border-slate-200 p-4"><p className="text-sm font-semibold text-slate-900">Kör periodmotor</p><p className="mt-1 text-xs text-slate-600">Skapar saknade mätvärdesluckor, outbound och driftuppgifter där underlag saknas.</p><div className="mt-3 grid gap-2"><input name="start_month" placeholder="Startmånad, t.ex. 2026-01" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" /><input name="end_month" placeholder="Slutmånad, t.ex. 2026-05" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" /></div><button className="mt-3 w-full rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">Kör</button></form>
             <form action={createControlTowerCasesAction} className="rounded-2xl border border-slate-200 p-4"><p className="text-sm font-semibold text-slate-900">Skapa driftuppgifter från köer</p><p className="mt-1 text-xs text-slate-600">Återanvänder befintliga driftuppgifter och skapar bara där det saknas.</p><button className="mt-3 w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Skapa/uppdatera driftuppgifter</button></form>
-            <Link href="/admin/customer-cases" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Öppna tenant-support →</Link>
+            {canReadSupport ? <Link href="/admin/customer-cases" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Öppna tenant-support →</Link> : null}
           </aside>
         </section>
       </main>
