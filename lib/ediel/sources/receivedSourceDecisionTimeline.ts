@@ -1,4 +1,5 @@
 import {isReviewedStructuralBusiness} from './reviewedStructuralSource'
+import {isReviewedClosureBusiness} from './reviewedClosureSource'
 import {isDeepStrictEqual} from 'node:util'
 import {bindReceivedRegisterValidation} from '@/lib/ediel/core/receivedRegisterValidationBinding'
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
@@ -90,6 +91,7 @@ function observedObjects(facts: unknown, source: RecordValue, scope: ReceivedSou
       && sourceBinding(party.source, source, scope, 'receivedAt') && isDeepStrictEqual(party.object, entry.object), 'timeline_party_scope_invalid')
     if (entry.disposition === 'accepted') {
       const reviewed = isReviewedStructuralBusiness(business, source.rawPayload as string, entry.object as ObjectScope)
+        ||isReviewedClosureBusiness(business,source.rawPayload as string,entry.object as ObjectScope)
       requireBoundary((reviewed || source.messageCode === 'Z04') && entry.object.messageIndex === 0 && entry.object.identityAgency === '9'
         && isEvidenceRecord(business) && business.version === 1 && (reviewed || business.owner === 'inbound-z04-switch-confirmation-v1')
         && (reviewed || business.coverage === 'committed_switch_and_supply_only') && business.sourceDisposition === 'not_established'

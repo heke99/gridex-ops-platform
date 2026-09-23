@@ -1,0 +1,72 @@
+{
+  "acquiredAt": "2026-09-23",
+  "status": "source candidates; not grammar certification",
+  "files": [
+    {
+      "url": "https://service.gefeg.com/jwg1/Current/d31.htm",
+      "file": "jwg1-d31.htm",
+      "sha256": "67b6fd14fac72bb974c9ed2d344a6286c64b64d74a87b7dbe77a7308c54d59ec",
+      "bytes": 17168
+    },
+    {
+      "url": "https://service.gefeg.com/jwg1/Current/id1.htm",
+      "file": "jwg1-id1.htm",
+      "sha256": "769d07bf1c22985d7ab32dfaedbc7bf165e85b495161213adda9491c8d918e65",
+      "bytes": 17148
+    },
+    {
+      "url": "https://service.gefeg.com/jwg1/Archive/v3/data/v3-sced.zip",
+      "file": "jwg1-v3-sced.zip",
+      "sha256": "3aea8609ceffb62f7cd3a0d38df6fe758c7e464e12459a6daf74d5d670300947",
+      "bytes": 2298
+    },
+    {
+      "url": "https://service.gefeg.com/jwg1/Archive/v3/data/v3-sded.zip",
+      "file": "jwg1-v3-sded.zip",
+      "sha256": "4981bc1db933448fd55b0c68c5fc4be2c0f8606b2ecab2193b2e25c4ff3414e0",
+      "bytes": 4779
+    },
+    {
+      "url": "https://service.gefeg.com/jwg1/Archive/v3/data/v3-smed.zip",
+      "file": "jwg1-v3-smed.zip",
+      "sha256": "70c4b49248fd48eb39e471369edcd4c27ad4c3eee26fdd228d0d8d1f7b6721bc",
+      "bytes": 8012
+    },
+    {
+      "url": "https://service.gefeg.com/jwg1/Archive/v3/data/v3-ssed.zip",
+      "file": "jwg1-v3-ssed.zip",
+      "sha256": "87b0afd3c2ed6331a4490a94430e0b5485192cb52dddbec12e3c66fdeee91d72",
+      "bytes": 2997
+    },
+    {
+      "url": "https://service.gefeg.com/jwg1/Archive/v3/data/v3.html",
+      "file": "jwg1-v3.html",
+      "sha256": "b661c984c023d6c18beec12caf745ef4ba42416f36eadd7dd6289b190de4babf",
+      "bytes": 25736
+    },
+    {
+      "url": "https://service.gefeg.com/jwg1/Files/v2-9735.pdf",
+      "file": "v2-9735.pdf",
+      "sha256": "e9dc9dbf0075a54259a53ac9213efce7b69a71a8389d39da3c51e476fdef4ae2",
+      "bytes": 54270
+    },
+    {
+      "url": "https://service.gefeg.com/jwg1/Files/v3-1992_amd1.pdf",
+      "file": "v3-1992_amd1.pdf",
+      "sha256": "b8be652f154cbfe89a00486181ba86eadbdb9492f675f37f2549103e3844febb",
+      "bytes": 3903868
+    },
+    {
+      "url": "https://service.gefeg.com/jwg1/Files/v3-Contrl.pdf",
+      "file": "v3-Contrl.pdf",
+      "sha256": "5fa00d8d8aca557b85885d9c2868e567cebfc5a99c355e174839db607d4258ba",
+      "bytes": 48748
+    },
+    {
+      "url": "https://service.gefeg.com/jwg1/Files/v3-Guide.pdf",
+      "file": "v3-Guide.pdf",
+      "sha256": "9c2733c7560dac2160327858fd25302b9f4c42b774506f784b606cdad2166b6f",
+      "bytes": 76834
+    }
+  ]
+}

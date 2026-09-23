@@ -14,3 +14,7 @@ No Handbook original was recovered in these reads. These receipts prove original
 - Aggregate example collection:UTILTS-APERAK_ver_E5SE5A_exempelsamling_aggregserier_el_251001 (4).pdf — SHA2565db530e03549b45b8b7aa9316be8b7da00db707972bfec9ea28a88d065af4ccc,37pages, actual cover E5SE5A/revision2/validJune2025/date2025-10-01. Candidate for G02; product completeness, actor scope and exact example outcomes not yet qualified.
 
 Metadata directory enumeration completed after title-search/filter backend errors. No claim of missing originals merely from failed search. G03 formal actual approval protocols, G04 real agreements and G05 actual transport evidence remain separate from published guide availability.
+
+## Additional public handbook source — not a frozen-manifest rewrite
+
+On 2026-09-23 the official [handbook page](https://www.elmarknadshandboken.se/handbok.html) identified edition26A, April2026, and linked [NEMHB.pdf](https://elmarknadshandboken.se/Dokumentation/Texter/NEMHB.pdf). Downloaded original cover says edition26A, version2026-04-01;241PDFpages; SHA256 `3e30d38b5cea1682a210dcd9ec08e4d77091baa87a234baeb07b4e4789a0e9b3`. Scratch source `sources/elmarknadshandboken-26A.pdf` and local extracted `.txt` retained. This recovers the specifically referenced Handbok for further source review. It does not establish any particular correction owner, genuine historical event or existing agreement. Future-dated changes must retain their own effective date. No existing frozen P/T/U or masterplan manifest changed.

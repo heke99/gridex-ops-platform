@@ -51,7 +51,7 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "0e81b11960ccd980901b8c43356ac8e2edcdf387",
+  "last_verified_pr_head": "f670fbc3fb33d2612e884e84d70c424be16c3971",
   "ordinary_baseline_ci": {
     "head": "95b5e391159e3164869ddabd8ec96b8f69189fe2",
     "ops": 35842844058,
@@ -209,17 +209,33 @@
     "corrected_published_head": "0e81b11960ccd980901b8c43356ac8e2edcdf387"
   },
   "closure_20260923": {
-    "status": "PRIVATE_PARSER_AND_MARKER_CHECKPOINT_ONLY",
+    "status": "CONNECTED_OWNER_NATIVE_CHECKPOINT_PENDING",
     "local_tests": 5875,
     "local_files": 355,
     "targeted_tests": 108,
     "targeted_files": 5,
-    "native": "PENDING_PUBLICATION_REPLAY",
-    "complete_owner": "NOT_IMPLEMENTED",
+    "native": "37_WIRE_AND_17_RETAINED_PASS_RUN35855300600_FINAL_SCHEMA_CHECK_FAILED_RECONCILED_FROM_AUTHENTIC_ARTIFACT",
+    "complete_owner": "IMPLEMENTED_NOT_NATIVE_QUALIFIED",
     "static_parser_review": "NO_BLOCKING_BINDING_FINDING",
     "local_commit": "b6b6c88c94a2c99384da721247a224205522e66b",
     "migration": "20260923113014_ediel_closure_original_wire_binding.sql",
     "migration_sha256": "18cf2107d2da71a82692a89161e86fadd74c67d02c3e2ea7b20c129a848d361b",
-    "generated_contracts": "UNCHANGED_PENDING_AUTHENTIC_ARTIFACT"
+    "generated_contracts": "PUBLIC_TYPES_BYTE_IDENTICAL_SCHEMA_VERBATIM_FROM_REPLAY",
+    "published_checkpoint": "46efcdea82d1093fb63619f09ecb0b13b3dcfe30",
+    "schema_reconcile_published": "f670fbc3fb33d2612e884e84d70c424be16c3971",
+    "artifact": 10747266416,
+    "artifact_sha256": "7ff39cb9ce38f62abde3d4a7387d66d7ef18420dd9ec0b8fa31956b1ac43ea7d",
+    "marker_fix_review": "SPEC_QUALITY_APPROVED_SCOPED",
+    "ordinary_ci": "ALL_APPLICABLE_SUCCESS_F670",
+    "ordinary_ops": 35856322413,
+    "local_owner_commit": "78dc3da1c9df71e523923f8418f82bececefb4f9",
+    "local_owner_tree": "78059a421de3e2acfb5c8ddbb3d629495e97f676",
+    "owner_migration": "20260923114703_ediel_reviewed_closure_source.sql",
+    "owner_migration_sha256": "6752251826e68de761eec4a7e05b841e2fb755517bf6ba4ad76f19088e7f0fd2",
+    "owner_local_tests": 5902,
+    "owner_local_files": 359,
+    "owner_coverage": "PASS",
+    "owner_native": "24_OWNER_AND_37_WIRE_CASES_PENDING_EXECUTION",
+    "owner_review": "PENDING_FULL_TASK_REVIEW"
   }
 }

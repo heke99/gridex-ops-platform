@@ -3,9 +3,11 @@ import {segmentComposite,type EdifactTokenizedSegment} from '@/lib/ediel/core/ed
 import {localEdifactDateTimeToUtc,type EdifactTimezoneOffset} from './timezone'
 import {selectStructuralSources,type StructuralVersion,type SelectedStructure} from '@/lib/ediel/sources/structuralSourceSelection'
 import {parseSourceReceiptInstant} from './receivedSourceInventory'
+import type {ClosureVersion,ScopedClosureBlocker,ClosureProvenance} from '@/lib/ediel/sources/closureSelection'
+import type {StructuralCoverage} from '@/lib/ediel/sources/structuralSourceSelection'
 
-export type StructuralComparisonInput={raw:string;transactionIndex:number;cutoffAt:string;ledgerStartedAt:string;readComplete:boolean;unresolvedSources:boolean;versions:readonly StructuralVersion[]}
-export type StructuralComparison={transactionId:string|null;status:'not_applicable'|'matched'|'mismatch'|'unavailable';reason:string|null;codes:('E61'|'E62')[];selected:SelectedStructure[]}
+export type StructuralComparisonInput={raw:string;transactionIndex:number;cutoffAt:string;ledgerStartedAt:string;readComplete:boolean;unresolvedSources:boolean;versions:readonly StructuralVersion[];closures?:readonly ClosureVersion[];closureBlockers?:readonly ScopedClosureBlocker[]}
+export type StructuralComparison={transactionId:string|null;status:'not_applicable'|'matched'|'mismatch'|'unavailable';reason:string|null;codes:('E61'|'E62')[];selected:SelectedStructure[];coverage?:StructuralCoverage;closure?:ClosureProvenance}
 const instant=parseSourceReceiptInstant
 
 /** Physical observations are not expectations. Reference inheritance is confined
@@ -87,7 +89,7 @@ export function compareUtiltsStructure(input:StructuralComparisonInput):Structur
     }
     if(!start||!end||readingTimes.some(at=>instant(at)!<instant(start)!||instant(at)!>instant(end)!))return unavailable('structural_period_unknown')
     const selection=selectStructuralSources({ledgerStartedAt:input.ledgerStartedAt,cutoffAt:input.cutoffAt,readComplete:input.readComplete,
-      unresolvedSources:input.unresolvedSources,versions:input.versions,objectId:object[0],identityAgency:object[2],legalSender:sender,legalReceiver:receiver,
+      unresolvedSources:input.unresolvedSources,versions:input.versions,closures:input.closures,closureBlockers:input.closureBlockers,objectId:object[0],identityAgency:object[2],legalSender:sender,legalReceiver:receiver,
       periodStart:start,periodEnd:end,boundary})
     if(selection.status!=='selected')return unavailable(selection.reason)
     if(selection.states.length!==1)return unavailable('structural_transition_inside_transaction')
@@ -97,6 +99,7 @@ export function compareUtiltsStructure(input:StructuralComparisonInput):Structur
     const codes:('E61'|'E62')[]=[]
     if([...observedMeters].some(meter=>meter!==selected.meterNumber))codes.push('E61')
     if(compareRegisters&&(observedRegisters.size!==selected.registerIds.length||selected.registerIds.some(id=>!observedRegisters.has(id!))))codes.push('E62')
-    return {transactionId,status:codes.length?'mismatch':'matched',reason:null,codes,selected:selection.states}
+    return {transactionId,status:codes.length?'mismatch':'matched',reason:null,codes,selected:selection.states,
+      ...(selection.closure?{coverage:selection.coverage,closure:selection.closure}:{})}
   }catch{return unavailable('structural_comparison_unconfirmed')}
 }

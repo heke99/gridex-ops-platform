@@ -445,7 +445,7 @@ export default async function AdminEdielMessageDetailPage({
 
  <div className="space-y-8 p-8">
  {inboundReview ? <EdielInboundCasesPanel cases={[inboundReview]} /> : null}
- {message.company_id && message.direction === 'inbound' && message.message_standard === 'edifact' && message.message_family === 'PRODAT' && ['Z04','Z06','Z10'].includes(message.message_code ?? '') ? <ReceivedStructureReview companyId={message.company_id} sourceMessageId={message.id} environment={message.environment}/> : null}
+ {message.company_id && message.direction === 'inbound' && message.message_standard === 'edifact' && message.message_family === 'PRODAT' && ['Z04','Z05','Z06','Z10'].includes(message.message_code ?? '') ? <ReceivedStructureReview closure={message.message_code === 'Z05'} companyId={message.company_id} sourceMessageId={message.id} environment={message.environment}/> : null}
  <section className="rounded-3xl border border-slate-200 bg-white p-6">
  <div className="flex flex-wrap items-start justify-between gap-4">
  <div>

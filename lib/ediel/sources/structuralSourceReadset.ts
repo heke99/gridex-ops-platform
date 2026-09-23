@@ -8,12 +8,15 @@ import {singleMessage} from '@/lib/ediel/utilts/receivedStructuralSources'
 import type {ReceivedSourceScope} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import type {SourceObjectScope} from './sourceOwnerWire'
 import type {StructuralVersion} from './structuralSourceSelection'
+import {isReviewedClosureBusiness} from './reviewedClosureSource'
+import {closureImpact} from './closureImpact'
+import type {ClosureVersion,ScopedClosureBlocker} from './closureSelection'
 
 type ObjectEntry={object:SourceObjectScope;disposition:'accepted'|'unavailable'|'rejected';reasons:string[];business:Record<string,unknown>|null;party:Record<string,unknown>|null}
 type RawAssessment={id:string;factsText:string;factsHash:string;availableAt:string|null}
 type RawSource={sourceMessageId:string;rawPayload:string|null;payloadHash:string|null;messageCode:string|null;assessments:RawAssessment[]}
 export type StructuralReadset={
-  timeline:SourceDecisionTimeline; versions:StructuralVersion[]; unresolvedSources:boolean
+  timeline:SourceDecisionTimeline; versions:StructuralVersion[];closures:ClosureVersion[];closureBlockers:ScopedClosureBlocker[]; unresolvedSources:boolean
   sources:{sourceMessageId:string;rawPayload:string;payloadHash:string;asOf:RecordedSourceAssessment|null;objects:ObjectEntry[];assessments:RawAssessment[]}[]
 }
 
@@ -22,7 +25,7 @@ export type StructuralReadset={
  * bytes and never uses mutable message status or incoming UTILTS identifiers. */
 export function inspectStructuralReadset(scope:ReceivedSourceScope,receipt:unknown):StructuralReadset {
   const timeline=inspectReceivedSourceDecisionTimeline(scope,receipt)
-  const result:StructuralReadset={timeline,versions:[],unresolvedSources:true,sources:[]}
+  const result:StructuralReadset={timeline,versions:[],closures:[],closureBlockers:[],unresolvedSources:true,sources:[]}
   if(timeline.status!=='inspected'||!timeline.boundedReadComplete)return result
   const body=JSON.parse((receipt as {readsetText:string}).readsetText) as {sources:RawSource[]}
   result.unresolvedSources=false
@@ -39,7 +42,7 @@ export function inspectStructuralReadset(scope:ReceivedSourceScope,receipt:unkno
       if(['Z01','Z02','Z03','Z09','Z13','Z14','Z15','Z18'].includes(source.messageCode??''))continue
       // End/cancellation messages are not guessed into a positive structural
       // approval. A closure owner is needed if such a message affects coverage.
-      if(!['Z04','Z06','Z10'].includes(source.messageCode??'')){result.unresolvedSources=true;continue}
+      if(!['Z04','Z05','Z06','Z10'].includes(source.messageCode??'')){result.unresolvedSources=true;continue}
       const asOf=recorded.asOf
       const row=asOf?source.assessments.find(assessment=>assessment.id===asOf.assessmentId):null
       const objects:ObjectEntry[]=row?(JSON.parse(row.factsText) as {objects:ObjectEntry[]}).objects:[]
@@ -53,6 +56,15 @@ export function inspectStructuralReadset(scope:ReceivedSourceScope,receipt:unkno
         // These are geometric projection placeholders, not approved decisions.
         void disposition;void reasons
         const entry=objects.find(item=>isDeepStrictEqual(item.object,object))
+        if(source.messageCode==='Z05'){
+          const impact=closureImpact(source.rawPayload,object,source.sourceMessageId)
+          if(!impact){result.unresolvedSources=true;continue}
+          if(asOf&&entry?.disposition==='accepted'&&isReviewedClosureBusiness(entry.business,source.rawPayload,object)){
+            result.closures.push({sourceMessageId:source.sourceMessageId,payloadHash:source.payloadHash,assessmentId:asOf.assessmentId,
+              factsHash:asOf.factsHash,availableAt:asOf.availableAt,disposition:'accepted',wire:entry.business.wire,marker:entry.business})
+          }else result.closureBlockers.push({...impact,reason:entry?.disposition==='rejected'?'closure_rejected':impact.reason})
+          continue
+        }
         const wire=readStructuralSourceWire(source.rawPayload,object)
         if(!wire){if(entry?.disposition!=='rejected')result.unresolvedSources=true;continue}
         const business=entry?.business

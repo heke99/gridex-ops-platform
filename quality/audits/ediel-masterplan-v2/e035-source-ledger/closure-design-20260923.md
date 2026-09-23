@@ -101,3 +101,7 @@ Native/HTTP proof must use real canonical fixture, real original ledger, genuine
 ## Boundaries and actual blockers
 
 Everything above is engineering with available source/owners. Prior reviewed coverage missing in a particular record is missing qualification, not permission; it remains held in this minimal slice. Authentic missing historic data, unrecorded real bilateral agreement, or actual delegation evidence cannot be manufactured. Final-reading business interpretation beyond current qualified U rules needs the correct frozen U/HB source, not a guessed new rule. No masterplan/closure-all-cases completion follows from this slice.
+
+## Source amendment — recovered Handbok26A, 2026-09-23
+
+The independent `handbook-lifecycle-design-addendum.md` applies to this design. Bound positive closure authority to market-minute suffix `0000` in producer and SQL; non-midnight remains local unavailable. For LK this is a conservative support subset, not a universal national syntax rule. Private lexical parsing still retains exact arbitrary minutes. Positive owner fixtures use midnight; exact same-day minute+UTC forgery negatives remain. With the new independent midnight guard, a binding-only mutation must still reject the minute forgery; its old-gap reproduction removes BOTH guards transaction-locally and is labelled accordingly. LI forgery retains the binding-only mutation control. These are distinct proofs and must not be conflated.

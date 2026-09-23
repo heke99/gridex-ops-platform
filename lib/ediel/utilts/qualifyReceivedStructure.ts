@@ -54,7 +54,7 @@ export async function qualifyReceivedUtiltsStructure(input:{message:EdielMessage
     // with no meter/register observations. The pure input decides applicability.
     const compared=compareUtiltsStructure({raw:raw??'',transactionIndex:index,cutoffAt:cutoffAt??'',
       ledgerStartedAt:readset?.timeline.ledgerStartedAt??'',readComplete:readset?.timeline.boundedReadComplete===true,
-      unresolvedSources:readset?.unresolvedSources??true,versions:readset?.versions??[]})
+      unresolvedSources:readset?.unresolvedSources??true,versions:readset?.versions??[],closures:readset?.closures??[],closureBlockers:readset?.closureBlockers??[]})
     if(compared.transactionId!==disposition.transactionId&&compared.status!=='not_applicable')return {
       transactionId:disposition.transactionId,status:'unavailable' as const,reason:'structural_runtime_scope_mismatch',codes:[],selected:[],
     }

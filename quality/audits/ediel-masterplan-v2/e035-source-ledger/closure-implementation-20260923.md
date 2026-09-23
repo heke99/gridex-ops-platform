@@ -1,6 +1,8 @@
-# E035 L/LK closure implementation — checkpoint 1
+# E035 L/LK closure implementation — native owner checkpoint
 
-Status: **IN PROGRESS; private parser/marker checkpoint only. No closure approval is enabled.**
+Status: **IN PROGRESS. The coherent bounded owner path is implemented locally; actual owner-native replay, authentic generated schema reconciliation and final independent review remain required.**
+
+The first-checkpoint record below is historical. See the current owner checkpoint section at the end.
 Base: `0e81b11960ccd980901b8c43356ac8e2edcdf387`. The approved full task remains
 `closure-design-20260923.md`, including mandatory section 3A. This checkpoint is
 not delivery of the complete owner, selection path, E035 or the masterplan.
@@ -132,3 +134,144 @@ tail is intentionally pending authentic replay, not manually forged.
 
 No remote writes, hosted DB changes, market messages, quantity/ACK changes,
 legacy end-write edits or existing review/qualification weakening occurred.
+
+
+## Current owner checkpoint (after published parser 46efcdea)
+
+Whole-task base remains `0e81b119`; next-slice base was `46efcdea`.
+Root subsequently committed authentic parser replay artifacts (`77ea6d1f`) and
+own progress (`4303be24`) while this sole implementation owner retained the
+uncommitted code. No published migration was edited. Root reports private
+parser **37/37** plus retained owner **17/17** passed real native PostgreSQL,
+and published parser/artifact head `f670fbc3` passed all ordinary applicable CI.
+Those results do **not** establish the new closure owner below.
+
+Implemented coherent path:
+
+- Fresh explicit `reviewReceivedClosureSource` authorizes reviewer permissions
+  before canonical writes, revalidates actual original/canonical physical
+  membership, saves a complete snapshot, freshly resolves exact party/facility
+  owners, and preserves unavailable/rejected physical objects.
+- `closureReviewCoverage` resolves the latest witnessed, already reviewed Z04
+  coverage and its genuine witnessed committed root. Both source hashes and
+  immutable identity sets are pinned. Current same-ID switch, supply and
+  outbound Z03 rows must corroborate the retained window; only an ended supply
+  attributed to this closure with the expected market calendar end is supported.
+- Private STABLE `review_closure_proof_consistent` obtains sealed
+  `sources.raw_payload` under source/company/environment/hash, invokes the
+  published original-wire matcher, and checks exact timestamp/day, authorized
+  reviewer, saved snapshot membership, root plus latest reviewed witness,
+  immutable identities, uniqueness and current switch/supply/outbound rows.
+  Its call shares the existing append SELECT MVCC snapshot with unchanged
+  party `owner_rows_match` checks. Exactly three explicit append branch changes
+  add the closure owner; existing Z04/structural checks and grants remain intact.
+- Timeline/readset project accepted closures separately from inventory and
+  retain all unsupported/unavailable/rejected known-object closures as scoped
+  blockers. Unknown physical objects remain global holds. Unknown parties are
+  wildcards; BGM5 without a supported predecessor holds the whole object interval.
+  C is visible and held, never treated as no effect/reopening.
+- Selection first obtains the existing supply/inventory then applies matching
+  immutable closure coverage. Intervals ending at stop and closing points at
+  stop work; crossing/current-at-stop queries hold. Conflicts and unqualified
+  closures hold affected queries; earlier/unrelated queries retain old behavior.
+  Diagnostics return bounded coverage and closure provenance without modifying
+  the original baseline. `qualifyReceivedUtiltsStructure` passes the complete
+  closure/blocker universe on every fresh invocation.
+- Existing review UI exposes separately labelled closure review, with server
+  action authentication/tenant operational checks and server-owned reviewer ID.
+  No operational date writes or market ACKs are introduced by review. Installed
+  Next mutation documentation was read before action/UI changes.
+
+### Handbok amendment and midnight support
+
+Root recovered authentic Handbok26A SHA256
+`3e30d38b5cea1682a210dcd9ec08e4d77091baa87a234baeb07b4e4789a0e9b3`
+and amended the approved design using its printed p70 handoff boundary.
+The bounded **L owner requires market midnight**; **LK is deliberately limited
+to the same conservative supported subset**, not claimed as a national rule
+for every LK situation. Producer, closed marker and authoritative SQL all hold
+non-midnight originals. The private lexical parser retains arbitrary exact
+minutes; parser acceptance is not business approval. Native positives now use
+`202610150000` → `2026-10-14T23:00:00.000Z`, proving market DATE is not UTC DATE.
+
+A non-midnight closed-marker test observed **RED 1/19 then GREEN 19/19**.
+The environment coercion finding from base `46efcdea` observed **RED 2 then
+GREEN 18**; real string literals now replace `String(value.environment)`.
+Root's independent scoped marker rereview approved that fix.
+
+### New local verification
+
+- Scoped blocker/selection tests were written first: selection RED9 then
+  GREEN11; readset RED4 (plus one fixture-construction failure corrected)
+  then GREEN5. They include rejected/unavailable, unknown bounds/parties,
+  unrelated objects, C/BGM5, exact interval/point edges and conflicts.
+- 168 targeted tests / 8 files passed before the midnight amendment. After
+  amendment, marker/selection/readset/action: **42/4 passed**; native UTILTS
+  fixture plus final conflict selection: **12/2 passed**. Genuine UTILTS runtime
+  accepts the fixture before source qualification; no runtime waiver is used.
+- Full local root suite **5901/358 passed** before adding the one UTILTS fixture
+  guard. Final full coverage run **5902/359 PASS** (44.29% statements, 38.03% branches, 51.57% functions, 44.44% lines); all configured thresholds passed.
+- Application and test/script typechecks pass. Targeted lint passes. These
+  checks include the new native test source but do not execute PostgreSQL.
+- Migration integrity **600 files / 504 version groups PASS** and static
+  provenance **STATIC_PROVENANCE_PASS**. `git diff --check` passes.
+
+### Native replay oracle now supplied, execution pending
+
+`ediel-source-owner-native.test.ts` adds seven actual owner cases (the retained
+17 stay unchanged in their assertions): positive L/LK with genuine prior Z04
+review then actual legacy end writes; missing prior qualification; actual
+append wire/identity/permission forgeries; stale party/switch/outbound mutation
+between fresh reads and append; genuine non-midnight original; and newer
+unwitnessed baseline preventing fallback. Positive cases additionally exercise
+retry chains, immutable saved cutoffs, closure unwitnessed successors, genuine
+covered E61/E62, and final qualification internal-review/no-positive-APERAK /
+empty quantity persistence payload through real runtime and snapshot reads.
+Unrelated notification/event sinks retain existing native-test mocks only.
+
+The actual append mutation oracle is deliberately precise:
+
+1. Remove **only original binding**, transaction-locally: forged LI can append
+   (isolated RED control); unchanged SQL rejects the same forgery.
+2. Same-date `0000` → `0001` plus consistent UTC: normal SQL rejects, and even
+   binding-only removal still rejects because midnight is an independent guard.
+3. Remove **both** original binding and midnight support, transaction-locally:
+   the minute forgery can append, reproducing the earlier design gap. This is
+   explicitly **not** a one-guard raw-binding isolation claim.
+4. Real `12:34` original with actual fresh party/coverage rows is held by producer
+   and direct append. Removing only midnight support permits the otherwise
+   valid proposal (raw binding remains), isolating the supported-subset guard.
+5. Every control rolls back function changes and inserts; failed normal probes
+   leave assessment/witness counts unchanged. Retained lexical native tests
+   independently cover cross-LIN values, escaped fake segments, custom advice,
+   CRLF, physical bounds and exact original projection. These lexical probes
+   are not mislabelled as complete multi-object business-owner approvals.
+
+None of the new native owner oracles has run locally: PostgreSQL/psql/Docker
+remain unavailable. Root must execute ordinary replay, inspect all assertions,
+then use genuine generated schema/type artifacts and independent review. No
+closure-task DONE / nationwide process-completion claim is made. More elaborate
+multi-object owner lifecycle and escaped-original owner positives remain review
+coverage questions; original binding has native lexical coverage, not a claimed
+business-owner fixture for every lexical case.
+
+### Migration provenance and retained limitations
+
+Actual CLI2.101.0 created
+`20260923114703_ediel_reviewed_closure_source.sql` at11:47:03UTC, after published
+`113014`. SHA256:
+`6752251826e68de761eec4a7e05b841e2fb755517bf6ba4ad76f19088e7f0fd2`.
+The only draft checksum was re-registered through project tooling after the
+unpublished uniqueness guard; no published checksum/history was rewritten.
+Generated schema/types/manifest are deliberately untouched by this owner:
+root will reconcile actual native outputs after applying this migration.
+
+`source_switch_request_id` retains existing NULL-or-matching support, because
+the immutable committed root does not capture that field's previous NULL state;
+this is not claimed as exact historical equality of an unrecorded attribute.
+Current selected IDs, start and captured ownership fields remain exact.
+Legacy DATE precision is unchanged. Missing prior reviewed coverage, C/BGM5,
+other agencies, bilateral/death/history and broader cancellation owners stay
+held. No incoming UTILTS meter/register value selects expected inventory.
+No remote/hosted writes, generated fingerprints, operational dates, ACKs or
+quantities were fabricated or sent by this implementation task.

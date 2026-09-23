@@ -1,3 +1,4 @@
+import type {ReviewedClosureBusiness} from '@/lib/ediel/sources/reviewedClosureSource'
 import {closureFixture} from './closureWireFixtures'
 import {ownerId,OWNER} from './sourceOwnerFixtures'
 import {readClosureSourceWire} from '@/lib/ediel/sources/closureSourceWire'
@@ -6,8 +7,8 @@ import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 // Serialized proof shape only: it cannot be used as a native owner. Native
 // tests must produce the committed root, reviewed baseline and closure afresh.
 export function closureMarkerFixture(){
-  const {wire:raw,scope}=closureFixture()
-  const business={version:1,owner:'reviewed-received-closure-v1',coverage:'reviewed_post_ledger_closure',
+  const {wire:raw,scope}=closureFixture({minute:'202610150000'})
+  const business:ReviewedClosureBusiness={version:1,owner:'reviewed-received-closure-v1',coverage:'reviewed_post_ledger_closure',
     sourceDisposition:'not_established',businessDisposition:'reviewed',graphNamespace:'legacy_unqualified',
     sourceMessageId:ownerId(30),sourcePayloadHash:evidenceHash(raw),sourceReceivedAt:'2026-09-23T10:00:00Z',
     companyId:OWNER.company,environment:'test',object:scope,assessedAt:'2026-09-23T10:01:00Z',wire:readClosureSourceWire(raw,scope)!,

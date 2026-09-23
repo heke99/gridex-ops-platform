@@ -1,5 +1,6 @@
 import { parseSourceReceiptInstant } from '@/lib/ediel/utilts/receivedSourceInventory'
 import type { StructuralSourceWire } from './structuralSourceWire'
+import {boundCoverageByClosures,closureBlockerMatches,type ClosureVersion,type ScopedClosureBlocker,type ClosureProvenance} from './closureSelection'
 
 export type StructuralCoverage = {
   kind: 'post_ledger_supply'
@@ -35,6 +36,8 @@ export type StructuralSelectionInput = {
   cutoffAt: string
   readComplete: boolean
   versions: readonly StructuralVersion[]
+  closures?:readonly ClosureVersion[]
+  closureBlockers?:readonly ScopedClosureBlocker[]
   // An unbounded, malformed or physically unresolved source may affect any
   // object. The IO projection must not quietly drop it as unrelated.
   unresolvedSources: boolean
@@ -58,7 +61,7 @@ export type SelectedStructure = {
 }
 export type StructuralSelection =
   | { status: 'unavailable'; reason: string }
-  | { status: 'selected'; coverage: StructuralCoverage; states: SelectedStructure[] }
+  | { status: 'selected'; coverage: StructuralCoverage; states: SelectedStructure[];closure?:ClosureProvenance }
 
 const unavailable = (reason: string): StructuralSelection => ({ status: 'unavailable', reason })
 const instant = parseSourceReceiptInstant
@@ -94,7 +97,8 @@ export function selectStructuralSources(input: StructuralSelectionInput): Struct
   if (!input.readComplete || input.unresolvedSources) return unavailable('structural_universe_incomplete')
   if (epoch === null || cutoff === null || start === null || end === null || epoch > cutoff
     || start > end || (input.boundary === 'interval' ? start === end : start !== end)) return unavailable('structural_period_invalid')
-  if (input.versions.length > 1000) return unavailable('structural_selection_budget_exceeded')
+  if (input.versions.length>1000||(input.closures?.length??0)+(input.closureBlockers?.length??0)>16000) return unavailable('structural_selection_budget_exceeded')
+  if(input.closureBlockers?.some(blocker=>closureBlockerMatches(blocker,input)))return unavailable('structural_closure_scoped_hold')
   const versions = input.versions.filter(({wire}) => wire.object.objectId === input.objectId
     && wire.object.identityAgency === input.identityAgency && wire.legalSender === input.legalSender
     && wire.legalReceiver === input.legalReceiver)
@@ -147,7 +151,9 @@ export function selectStructuralSources(input: StructuralSelectionInput): Struct
     .sort((left, right) => Number(instant(left.wire.effectiveFrom.utc)! - instant(right.wire.effectiveFrom.utc)!))
   const baseline = baselines.at(-1)
   if (!baseline) return unavailable('structural_coverage_anchor_missing')
-  const coverage = baseline.coverage!, baseTime = instant(coverage.validFrom)!
+  const bounded=boundCoverageByClosures(input,baseline)
+  if('reason' in bounded)return unavailable(bounded.reason)
+  const coverage = bounded.coverage, baseTime = instant(coverage.validFrom)!
   if (baselines.filter(version => instant(version.wire.effectiveFrom.utc) === baseTime).length !== 1) return unavailable('structural_baseline_ambiguous')
   const coverEnd = coverage.validTo === null ? null : instant(coverage.validTo)
   if (start < baseTime || (coverEnd !== null && (end > coverEnd || input.boundary === 'current_point' && start === coverEnd))) return unavailable('structural_outside_coverage')
@@ -193,5 +199,5 @@ export function selectStructuralSources(input: StructuralSelectionInput): Struct
     if (beforeStart(at)) { states.splice(0, states.length, state) }
     else states.push(state)
   }
-  return states.length ? { status: 'selected', coverage: structuredClone(coverage), states } : unavailable('structural_state_missing')
+  return states.length ? { status: 'selected', coverage: structuredClone(coverage), states,...(bounded.closure?{closure:bounded.closure}:{}) } : unavailable('structural_state_missing')
 }

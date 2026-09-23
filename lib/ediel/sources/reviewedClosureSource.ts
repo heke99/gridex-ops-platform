@@ -33,13 +33,15 @@ export function isReviewedClosureBusiness(value:unknown,raw:string,object:Source
     'coverageWindow','baselineCurrentAssessmentId','baselineCoverageAssessment','reviewSnapshot','legacyEndDateProjection'])
     ||value.version!==1||value.owner!=='reviewed-received-closure-v1'||value.coverage!=='reviewed_post_ledger_closure'
     ||value.sourceDisposition!=='not_established'||value.businessDisposition!=='reviewed'||value.graphNamespace!=='legacy_unqualified'
-    ||value.reviewStatement!=='original_supply_closure'||!['test','production'].includes(String(value.environment))
+    ||value.reviewStatement!=='original_supply_closure'||value.environment!=='test'&&value.environment!=='production'
     ||![value.sourceMessageId,value.companyId,value.reviewerUserId,value.customerId,value.meteringPointId,value.siteId,
       value.switchRequestId,value.supplyPeriodId,value.baselineCurrentAssessmentId].every(isEvidenceUuid)
     ||!hash(value.sourcePayloadHash)||!time(value.sourceReceivedAt)||!time(value.assessedAt)
     ||object.identityAgency!=='9'||!isDeepStrictEqual(value.object,object))return false
   const wire=readClosureSourceWire(raw,object)
-  if(!wire||!isDeepStrictEqual(value.wire,wire))return false
+  // Handbok 26A p70: L handoff is at market midnight. LK is an explicit
+  // conservative supported subset; lexical DTM93 parsing remains broader.
+  if(!wire||wire.effectiveTo.marketMinute.slice(8)!=='0000'||!isDeepStrictEqual(value.wire,wire))return false
   const cover=value.coverageWindow,baseline=value.baselineCoverageAssessment,snapshot=value.reviewSnapshot
   if(!closed(cover,['kind','baselineSourceMessageId','baselineAssessmentId','baselineFactsHash','supplyPeriodId',
     'switchRequestId','switchCreatedAt','outboundSourceMessageId','outboundCreatedAt','validFrom','validTo'])

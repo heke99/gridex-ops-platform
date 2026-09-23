@@ -26,7 +26,18 @@ it.each([
 })
 it('allows an identical prior coverage end and preserves the original baseline window',()=>{
   const {raw,scope,business}=closureMarkerFixture()
-  const value={...business,coverageWindow:{...business.coverageWindow,validTo:'2026-10-15T11:34:00.000Z'}}
+  const value={...business,coverageWindow:{...business.coverageWindow,validTo:'2026-10-14T23:00:00.000Z'}}
   const before=structuredClone(value)
   expect(isReviewedClosureBusiness(value,raw,scope)).toBe(true);expect(value).toEqual(before)
+})
+it.each([['test'],['production']])('rejects coerced environment %j',environment=>{
+  const {raw,scope,business}=closureMarkerFixture()
+  expect(isReviewedClosureBusiness({...business,environment:[environment]},raw,scope)).toBe(false)
+})
+it('keeps a well-formed non-midnight original outside the bounded closure owner',()=>{
+  const {raw,scope,business}=closureMarkerFixture()
+  // Parser support is broader than this source-backed business-owner subset.
+  const nonMidnight=raw.replace('202610150000','202610151234')
+  const value={...business,wire:{...business.wire,effectiveTo:{fieldNumber:'211',marketMinute:'202610151234',utc:'2026-10-15T11:34:00.000Z'}}}
+  expect(isReviewedClosureBusiness(value,nonMidnight,scope)).toBe(false)
 })

@@ -1,5 +1,7 @@
 import {execFileSync} from 'node:child_process'
 import {afterEach,beforeAll,expect,it,vi} from 'vitest'
+import {closureFixture} from '../__tests__/helpers/closureWireFixtures'
+import {reviewReceivedClosureSource} from '@/lib/ediel/sources/reviewReceivedClosureSource'
 import {structuralOwnerSource} from '../__tests__/helpers/structuralOwnerFixtures'
 import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
 import {inspectStructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
@@ -319,4 +321,235 @@ it('native user without company permission cannot create even a canonical-ledger
  const before=sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${literal(f.ids.source)}`)
  expect(await reviewReceivedStructuralSource({companyId:f.ids.company,environment:'test',sourceMessageId:f.ids.source,reviewerUserId:f.ids.reviewer,confirmedOriginal:true,replacesSourceMessageId:null})).toEqual({status:'unconfirmed',sourceDisposition:'not_established'})
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${literal(f.ids.source)}`)).toBe(before)
+})
+
+// Closure acceptance uses a real prior reviewed coverage assessment, then the
+// real legacy end owner. No hand-built accepted marker is an authority oracle.
+async function insertClosure(f:Awaited<ReturnType<typeof seed>>,reason='Z22',minute='202610150000'){
+ const external=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ const wire=closureFixture({reason,minute}).wire.replaceAll('735123456789012345',external)
+ const payload={subtype:reason==='Z23'?'LK':'L',end_date:'2026-10-15',prodatDependentFacts:{market:'electricity',meterReadingsSentInUtilts:true}}
+ const id=sql<string>(`INSERT INTO public.ediel_messages(company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,application_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+ SELECT ${literal(f.ids.company)},${literal(f.ids.customer)},${literal(f.ids.site)},${literal(f.ids.point)},'test','inbound','edifact','PRODAT','Z05','received',${literal(wire)},${literal(payload)}::jsonb,clock_timestamp(),'23-DDQ-PRODAT',pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+ FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key=${literal(`PRODAT:Z05:${payload.subtype}:26.A:r3`)} AND profile.is_enabled RETURNING to_jsonb(id);`)
+ expect(id).toMatch(/^[a-f0-9-]{36}$/)
+ const {data,error}=await supabaseService.from('ediel_messages').select('*').eq('id',id).single()
+ expect(error).toBeNull();return data as unknown as EdielMessageRow
+}
+async function closureReview(f:Awaited<ReturnType<typeof seed>>,source:string){
+ return reviewReceivedClosureSource({companyId:f.ids.company,environment:'test',sourceMessageId:source,reviewerUserId:f.ids.reviewer,confirmedOriginal:true})
+}
+it.each(['Z22','Z23'])('native %s closure retains immutable Z04 coverage after the real legacy end mutation',async reason=>{
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const baseline=stored(f.ids.source).at(-1)!,message=await insertClosure(f,reason)
+ const ended=await applyInboundBusinessStateMachine({message,actorUserId:f.ids.actor})
+ expect(ended.outcome).toBe('supply_terminated')
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
+ expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision]).toEqual(['accepted','accepted','accepted'])
+ expect(await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.ids.company,decision})).toMatchObject({status:'recorded'})
+ const unreviewed=await structuralSnapshot(f)
+ expect(unreviewed.closureBlockers).toHaveLength(1)
+ const compare=(snapshot:Awaited<ReturnType<typeof structuralSnapshot>>,period:string,meter='METER-1',ids=['101'])=>compareUtiltsStructure({
+  raw:utiltsStructureWire({period,meter,ids,point:snapshot.versions[0].wire.object.objectId!}),transactionIndex:0,
+  cutoffAt:snapshot.timeline.cutoffAt!,ledgerStartedAt:snapshot.timeline.ledgerStartedAt!,readComplete:true,
+  unresolvedSources:snapshot.unresolvedSources,versions:snapshot.versions,closures:snapshot.closures,closureBlockers:snapshot.closureBlockers})
+ expect(compare(unreviewed,'202610010000202610142359')).toMatchObject({status:'matched',codes:[]})
+ expect(compare(unreviewed,'202610010000202610150000')).toMatchObject({status:'unavailable',codes:[]})
+ const pending=await closureReview(f,message.id)
+ expect(pending,JSON.stringify(stored(message.id))).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
+ const a=stored(message.id).at(-1)!
+ expect(a.facts).toMatchObject({objects:[{disposition:'accepted',business:{owner:'reviewed-received-closure-v1',
+  legacyEndDateProjection:'2026-10-15',wire:{effectiveTo:{marketMinute:'202610150000',utc:'2026-10-14T23:00:00.000Z'}},
+  baselineCoverageAssessment:{sourceMessageId:f.ids.source,assessmentId:baseline.assessmentId,factsHash:baseline.factsHash}}}]})
+ expect(a.witnessXid).not.toBeNull();expect(a.createdXid).not.toBe(a.witnessXid)
+ const snapshot=await structuralSnapshot(f)
+ expect(snapshot.closures).toHaveLength(1);expect(snapshot.closureBlockers).toEqual([])
+ expect(snapshot.versions).toHaveLength(1)
+ expect(snapshot.versions[0].coverage?.validTo).toBeNull()
+ expect(compare(snapshot,'202610010000202610150000')).toMatchObject({status:'matched',coverage:{validTo:'2026-10-14T23:00:00.000Z'},closure:{sourceMessageId:message.id}})
+ expect(compare(snapshot,'202610010000202610150001')).toMatchObject({status:'unavailable',codes:[]})
+ expect(compare(snapshot,'202610010000202610150000','WRONG')).toMatchObject({status:'mismatch',codes:['E61']})
+ expect(compare(snapshot,'202610010000202610150000','METER-1',['999'])).toMatchObject({status:'mismatch',codes:['E62']})
+ const saved=await structuralSnapshot(f,unreviewed.timeline.cutoffAt!)
+ expect(saved.closures).toEqual([]);expect(saved.closureBlockers).toHaveLength(1)
+ expect(await closureReview(f,message.id)).toMatchObject({sourceDisposition:'accepted'})
+ expect(stored(message.id)).toHaveLength(2)
+ const last=stored(message.id).at(-1)!
+ const unwitnessed=await supabaseService.rpc('gridex_record_source_object_decisions_v1',{p_company_id:f.ids.company,p_environment:'test',p_source_message_id:message.id,
+  p_source_payload_hash:last.sourceHash,p_canonical_assessment_id:last.canonicalId,p_facts_text:last.factsText})
+ expect(unwitnessed.error).toBeNull()
+ const blocked=await structuralSnapshot(f)
+ expect(blocked.closures).toEqual([]);expect(blocked.closureBlockers).toHaveLength(1)
+ expect(compare(blocked,'202610010000202610150000')).toMatchObject({status:'unavailable',codes:[]})
+ expect((await structuralSnapshot(f,snapshot.timeline.cutoffAt!)).closures).toHaveLength(1)
+ if(reason==='Z22'){
+  const {observationHandoffMessage}=await import('../__tests__/helpers/utiltsObservationHandoff')
+  const {resolveCanonicalEdielPolicy}=await import('@/lib/ediel/rulebook/canonicalEdielPolicy')
+  const {runUtiltsRuntimeForMessage}=await import('@/lib/ediel/utiltsEngine')
+  const {qualifyReceivedUtiltsStructure}=await import('@/lib/ediel/utilts/qualifyReceivedStructure')
+  const {buildUtiltsTransactionPersistencePayload}=await import('@/lib/ediel/utilts/transactionPersistence')
+  const utilts=observationHandoffMessage('2026-10-16',f.ids.company)
+  utilts.id=f.ids.outbound;utilts.sender_ediel_id='12345';utilts.receiver_ediel_id='54321'
+  utilts.raw_payload=utilts.raw_payload!.replaceAll('735999260731000007',snapshot.versions[0].wire.object.objectId!)
+   .replaceAll('91100','12345').replaceAll('21660','54321').replaceAll('202607010000','202610010000')
+   .replaceAll('202608010000','202610150000').replace('?+0200','?+0100').replace('M-GRIDEX-2607-01','METER-1')
+  const canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:utilts.message_received_at!,applicationReference:utilts.application_reference,mode:'parse'})
+  const runtime=runUtiltsRuntimeForMessage(utilts,{canonicalPolicy})
+  expect(runtime.transactionDispositions,JSON.stringify(runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
+  const qualified=await qualifyReceivedUtiltsStructure({message:utilts,runtime,canonicalPolicy})
+  expect(qualified).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,evidence:{comparisons:[{reason:'structural_closure_scoped_hold',codes:[]}]},
+   runtime:{transactionDispositions:[{disposition:'internal_review',responseType:'none'}],ackPlan:{shouldSendAperak:false}}})
+  expect(buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:qualified.runtime.facts.transactions,dispositions:qualified.runtime.transactionDispositions,matches:[]})).toMatchObject([{quantities:[],responseType:'none'}])
+ }
+})
+it('native closure cannot manufacture missing prior reviewed coverage from ended live rows',async()=>{
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
+ const message=await insertClosure(f)
+ expect((await applyInboundBusinessStateMachine({message,actorUserId:f.ids.actor})).outcome).toBe('supply_terminated')
+ expect(await closureReview(f,message.id)).toMatchObject({status:'recorded',sourceDisposition:'not_established'})
+ expect(stored(message.id).at(-1)!.facts).toMatchObject({objects:[{disposition:'unavailable',business:null}]})
+})
+
+it('native append independently binds sealed raw values and midnight support; isolated mutations reproduce each gap',async()=>{
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const message=await insertClosure(f)
+ expect((await applyInboundBusinessStateMachine({message,actorUserId:f.ids.actor})).outcome).toBe('supply_terminated')
+ expect(await closureReview(f,message.id)).toMatchObject({sourceDisposition:'accepted'})
+ const a=stored(message.id).at(-1)!
+ type Facts={objects:{object:Record<string,unknown>;business:import('@/lib/ediel/sources/reviewedClosureSource').ReviewedClosureBusiness}[]}
+ const probe=(mutate:(facts:Facts)=>void,removeBinding=false,removeMidnight=false)=>{
+  const facts=JSON.parse(a.factsText) as Facts;mutate(facts)
+  // Transaction-local mutation of the real proof body. Append itself is used;
+  // ROLLBACK restores definition, inserted assessment and every owner readset.
+  return sql<boolean>(`BEGIN;
+   ${removeBinding?`DO $mutation$ DECLARE definition text; needle text:='OR NOT gridex_received_sources.closure_wire_matches_v1(src.raw_payload,p_business->''object'',wire)'; BEGIN
+    SELECT pg_get_functiondef('gridex_received_sources.review_closure_proof_consistent(jsonb,jsonb,uuid)'::regprocedure) INTO definition;
+    IF strpos(definition,needle)=0 THEN RAISE EXCEPTION 'closure_native_binding_mutation_missing'; END IF;
+    definition:=replace(definition,needle,'OR false');
+    ${removeMidnight?`definition:=replace(definition, 'OR substring(wire#>>''{effectiveTo,marketMinute}'',9,4) IS DISTINCT FROM ''0000''', 'OR false');`:''}
+    EXECUTE definition; END $mutation$;`:''}
+   CREATE FUNCTION pg_temp.closure_append_probe() RETURNS boolean LANGUAGE plpgsql AS $probe$ BEGIN
+    PERFORM gridex_received_sources.append_object_assessment(${literal(f.ids.company)},'test',${literal(message.id)},${literal(a.sourceHash)},${literal(a.canonicalId)},${literal(JSON.stringify(facts))});
+    RETURN true; EXCEPTION WHEN check_violation THEN RETURN false; END $probe$;
+   SELECT to_jsonb(pg_temp.closure_append_probe()); ROLLBACK;`)
+ }
+ const minute=(facts:Facts)=>{facts.objects[0].business.wire.effectiveTo.marketMinute='202610150001';facts.objects[0].business.wire.effectiveTo.utc='2026-10-14T23:01:00.000Z'}
+ const li=(facts:Facts)=>{facts.objects[0].business.wire.caseReference='FORGED-LI'}
+ // LI isolates source binding. The minute control removes BOTH binding and
+ // midnight support guards; it does not claim to isolate binding alone.
+ // Minute+UTC agree and the legacy calendar DATE remains unchanged.
+ expect(probe(minute,true)).toBe(false) // Midnight guard independently holds.
+ expect(probe(minute,true,true)).toBe(true) // BOTH guards removed: old design gap.
+ expect(probe(li,true)).toBe(true) // Binding-only isolated red control.
+ expect(probe(minute)).toBe(false);expect(probe(li)).toBe(false)
+ const mutations:((facts:Facts)=>void)[]=[
+  facts=>{facts.objects[0].business.wire.documentReference='OTHER-DOC'},
+  facts=>{facts.objects[0].business.wire.reason='Z23';facts.objects[0].business.wire.subtype='LK'},
+  facts=>{Object.assign(facts.objects[0].business.wire,{functionCode:'5'})},
+  facts=>{facts.objects[0].business.wire.object.objectId='735123456789999999'},
+  facts=>{facts.objects[0].business.wire.object.identityAgency='89'},
+  facts=>{facts.objects[0].business.wire.legalSender='99999'},
+  facts=>{facts.objects[0].business.wire.legalReceiver='99999'},
+  facts=>{facts.objects[0].business.wire.transportSender='99999'},
+  facts=>{facts.objects[0].business.wire.transportReceiverQualifier='ZZ'},
+  facts=>{facts.objects[0].business.wire.object.registers[0].segmentIndex++},
+  facts=>{facts.objects[0].business.sourcePayloadHash='f'.repeat(64)},
+  facts=>{facts.objects[0].business.sourceMessageId=f.ids.source},
+  facts=>{facts.objects[0].business.supplyPeriodId=f.ids.switch},
+  facts=>{facts.objects[0].business.reviewerUserId=f.ids.actor},
+  facts=>{facts.objects[0].business.baselineCoverageAssessment.factsHash='f'.repeat(64)},
+  facts=>{facts.objects[0].business.coverageWindow.outboundSourceMessageId=message.id},
+ ]
+ for(const mutate of mutations)expect(probe(mutate)).toBe(false)
+ expect(stored(message.id)).toHaveLength(1)
+ expect(stored(message.id)[0].assessmentId).toBe(a.assessmentId)
+ expect(stored(message.id)[0].witnessXid).toBe(a.witnessXid)
+})
+it('native closure append rechecks stale party, switch and outbound rows after the fresh reads',async()=>{
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const message=await insertClosure(f)
+ expect((await applyInboundBusinessStateMachine({message,actorUserId:f.ids.actor})).outcome).toBe('supply_terminated')
+ const originalRpc=supabaseService.rpc.bind(supabaseService)
+ const mutate=vi.spyOn(supabaseService,'rpc').mockImplementation((name,args,options)=>{
+  if(name==='gridex_record_source_object_decisions_v1')sql(`UPDATE public.supplier_switch_requests SET rff_li_reference='CHANGED' WHERE id=${literal(f.ids.switch)}`)
+  return originalRpc(name,args,options)
+ })
+ expect(await closureReview(f,message.id)).toMatchObject({status:'unconfirmed'})
+ expect(stored(message.id)).toEqual([]);mutate.mockRestore()
+ sql(`UPDATE public.supplier_switch_requests SET rff_li_reference='CASE-1' WHERE id=${literal(f.ids.switch)}`)
+ const staleParty=vi.spyOn(supabaseService,'rpc').mockImplementation((name,args,options)=>{
+  if(name==='gridex_record_source_object_decisions_v1')sql(`UPDATE public.tenant_actor_roles SET role_code='grid_owner' WHERE company_id=${literal(f.ids.company)}`)
+  return originalRpc(name,args,options)
+ })
+ expect(await closureReview(f,message.id)).toMatchObject({status:'unconfirmed'})
+ expect(stored(message.id)).toEqual([]);staleParty.mockRestore()
+ sql(`UPDATE public.tenant_actor_roles SET role_code='electricity_supplier' WHERE company_id=${literal(f.ids.company)}`)
+ vi.spyOn(supabaseService,'rpc').mockImplementation((name,args,options)=>{
+  if(name==='gridex_record_source_object_decisions_v1')sql(`UPDATE public.ediel_messages SET message_sent_at=NULL WHERE id=${literal(f.ids.outbound)}`)
+  return originalRpc(name,args,options)
+ })
+ expect(await closureReview(f,message.id)).toMatchObject({status:'unconfirmed'})
+ expect(stored(message.id)).toEqual([])
+})
+it('a genuine non-midnight original is held by producer and direct append, even with consistent fresh evidence',async()=>{
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const message=await insertClosure(f,'Z22','202610151234')
+ expect((await applyInboundBusinessStateMachine({message,actorUserId:f.ids.actor})).outcome).toBe('supply_terminated')
+ expect(await closureReview(f,message.id)).toMatchObject({status:'recorded',sourceDisposition:'not_established'})
+ const before=stored(message.id)
+ expect(before.at(-1)!.facts).toMatchObject({objects:[{disposition:'unavailable',business:null}]})
+ // Deliberately compose an untrusted direct-append proposal from actual fresh
+ // owner reads. It is NOT a producer approval or a synthetic positive oracle.
+ const {takeReceivedSourceOwnerSeed}=await import('@/lib/ediel/core/receivedSourceValidationLedger')
+ const {bindReceivedRegisterValidation}=await import('@/lib/ediel/core/receivedRegisterValidationBinding')
+ const {readClosureSourceWire}=await import('@/lib/ediel/sources/closureSourceWire')
+ const {resolveClosureCoverage}=await import('@/lib/ediel/sources/closureReviewCoverage')
+ const {findStructuralReviewPoint}=await import('@/lib/ediel/sources/structuralReviewReads')
+ const {resolveCanonicalTenantEdielIdentityWithEvidence}=await import('@/lib/ediel/tenant/tenantEdielIdentity')
+ const {readSelectedFacilityEvidence}=await import('@/lib/ediel/sources/sourceOwnerReads')
+ const {evidenceHash}=await import('@/lib/ediel/utilts/durableSourceDiscovery')
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
+ const receipt=await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.ids.company,decision})
+ const ownerSeed=takeReceivedSourceOwnerSeed(receipt)!
+ expect(ownerSeed).not.toBeNull()
+ const canonical=JSON.parse(ownerSeed.evidence.factsText)
+ const {disposition,reasons,...object}=bindReceivedRegisterValidation(canonical.registerValidation,message.raw_payload!)!.objects[0]
+ expect(disposition).toBe('accepted');expect(reasons).toEqual([])
+ const wire=readClosureSourceWire(message.raw_payload!,object)!,snapshot=await structuralSnapshot(f)
+ const point=await findStructuralReviewPoint(f.ids.company,object.objectId!),assessedAt=new Date().toISOString()
+ const receiver=await resolveCanonicalTenantEdielIdentityWithEvidence({companyId:f.ids.company,environment:'test',asOf:assessedAt,requireExactCounts:true})
+ const facility=await readSelectedFacilityEvidence({companyId:f.ids.company,environment:'test',meteringPointId:f.ids.point,siteId:f.ids.site,objectId:object.objectId!,signal:AbortSignal.timeout(5000)})
+ const {source,coverage,legacyEndDateProjection}=await resolveClosureCoverage(ownerSeed,wire,snapshot,point)
+ const business={version:1,owner:'reviewed-received-closure-v1',coverage:'reviewed_post_ledger_closure',sourceDisposition:'not_established',businessDisposition:'reviewed',graphNamespace:'legacy_unqualified',
+  sourceMessageId:message.id,sourcePayloadHash:ownerSeed.evidence.sourcePayloadHash,sourceReceivedAt:message.message_received_at,companyId:f.ids.company,environment:'test',object,assessedAt,wire,reviewerUserId:f.ids.reviewer,
+  reviewStatement:'original_supply_closure',customerId:f.ids.customer,meteringPointId:f.ids.point,siteId:f.ids.site,switchRequestId:coverage.switchRequestId,supplyPeriodId:coverage.supplyPeriodId,coverageWindow:coverage,
+  baselineCurrentAssessmentId:source.asOf!.assessmentId,baselineCoverageAssessment:{sourceMessageId:source.sourceMessageId,assessmentId:source.asOf!.assessmentId,factsHash:source.asOf!.factsHash,payloadHash:source.payloadHash},
+  reviewSnapshot:{snapshotId:snapshot.timeline.snapshotId,readsetHash:snapshot.timeline.readsetHash,cutoffAt:snapshot.timeline.cutoffAt},legacyEndDateProjection}
+ const party={version:1,owner:'received-source-party-binding-v1',ruleVersion:'1',source:{sourceMessageId:message.id,sourcePayloadHash:ownerSeed.evidence.sourcePayloadHash,companyId:f.ids.company,environment:'test',receivedAt:message.message_received_at},
+  object,assessedAt,completedAt:new Date().toISOString(),historicalKnowledge:'not_established',authentication:'not_assessed',disposition:'accepted',reasons:[],receiver,facility,
+  parties:{legalSender:wire.legalSender,legalReceiver:wire.legalReceiver,transportSender:wire.transportSender,transportReceiver:wire.transportReceiver}}
+ const facts=JSON.stringify({version:1,owner:'received-source-object-decisions-v1',ruleVersion:'1',canonicalFactsHash:evidenceHash(ownerSeed.evidence.factsText),objects:[{object,disposition:'accepted',reasons:[],business,party}]})
+ const probe=(removeMidnight:boolean)=>sql<boolean>(`BEGIN;
+  ${removeMidnight?`DO $mutation$ DECLARE definition text; needle text:='OR substring(wire#>>''{effectiveTo,marketMinute}'',9,4) IS DISTINCT FROM ''0000'''; BEGIN
+   SELECT pg_get_functiondef('gridex_received_sources.review_closure_proof_consistent(jsonb,jsonb,uuid)'::regprocedure) INTO definition;
+   IF strpos(definition,needle)=0 THEN RAISE EXCEPTION 'closure_native_midnight_mutation_missing'; END IF;
+   EXECUTE replace(definition,needle,'OR false'); END $mutation$;`:''}
+  CREATE FUNCTION pg_temp.closure_original_probe() RETURNS boolean LANGUAGE plpgsql AS $probe$ BEGIN
+   PERFORM gridex_received_sources.append_object_assessment(${literal(f.ids.company)},'test',${literal(message.id)},${literal(ownerSeed.evidence.sourcePayloadHash)},${literal(ownerSeed.assessmentId)},${literal(facts)});
+   RETURN true; EXCEPTION WHEN check_violation THEN RETURN false; END $probe$;
+  SELECT to_jsonb(pg_temp.closure_original_probe()); ROLLBACK;`)
+ expect(probe(false)).toBe(false)
+ expect(probe(true)).toBe(true) // Only midnight guard removed; original binding remains.
+ expect(stored(message.id)).toEqual(before)
+})
+it('an unwitnessed later Z04 review cannot fall back to the older accepted coverage for closure',async()=>{
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const baseline=stored(f.ids.source).at(-1)!
+ const {error}=await supabaseService.rpc('gridex_record_source_object_decisions_v1',{p_company_id:f.ids.company,p_environment:'test',p_source_message_id:f.ids.source,
+  p_source_payload_hash:baseline.sourceHash,p_canonical_assessment_id:baseline.canonicalId,p_facts_text:baseline.factsText})
+ expect(error).toBeNull()
+ const message=await insertClosure(f)
+ expect((await applyInboundBusinessStateMachine({message,actorUserId:f.ids.actor})).outcome).toBe('supply_terminated')
+ expect(await closureReview(f,message.id)).toMatchObject({status:'recorded',sourceDisposition:'not_established'})
+ expect(stored(message.id).at(-1)!.facts).toMatchObject({objects:[{disposition:'unavailable',business:null}]})
 })
