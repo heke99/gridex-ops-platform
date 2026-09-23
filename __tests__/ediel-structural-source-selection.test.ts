@@ -47,6 +47,12 @@ describe('dated structural-source replacement',()=>{
   it('retains both states when a reported interval spans a meter exchange',()=>{const change=version('exchange',4,'Z10',['901']);change.wire.meterNumber='M2';expect(selected(input([version('baseline',2),change],3,5)).states.map(s=>s.meterNumber)).toEqual(['M1','M2'])})
   it('validates a supplied old meter against the actual predecessor',()=>{const change=version('exchange',4,'Z10',['901']);change.wire.meterNumber='M2';change.wire.oldMeterNumber='FOREIGN';unavailable(input([version('baseline',2),change]))})
   it('an unapproved relevant change is a gap, not permission to revive the baseline',()=>{const change=version('pending',4,'Z06');change.disposition='unavailable';unavailable(input([version('baseline',2),change]))})
+  it('an unreviewed correction with a later proposed date cannot revive its possible predecessor',()=>{
+    const prior=version('prior',4,'Z06'),correction=version('correction',6,'Z06')
+    correction.wire.functionCode='5';correction.wire.caseReference=prior.wire.caseReference
+    correction.disposition='unavailable';correction.replaces=null
+    unavailable(input([version('baseline',2),prior,correction],4,5))
+  })
   it('a future unapproved change does not contaminate an earlier interval',()=>{const change=version('future',10,'Z06');change.disposition='unavailable';expect(selected(input([version('baseline',2),change])).states[0].sourceMessageId).toBe('baseline')})
   it('a rejected source does not replace the last approved source',()=>{const change=version('rejected',4,'Z06');change.disposition='rejected';expect(selected(input([version('baseline',2),change])).states[0].sourceMessageId).toBe('baseline')})
   it('arrival and UUID ordering do not select between effective dates',()=>{const first=version('z-first',4,'Z06',['901']);const second=version('a-second',6,'Z06',['902']);first.availableAt=at(15);second.availableAt=at(8);expect(selected(input([second,version('baseline',2),first],8,9)).states[0].sourceMessageId).toBe('a-second')})

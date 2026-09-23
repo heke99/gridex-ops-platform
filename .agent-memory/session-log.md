@@ -1,3 +1,9 @@
+# Session 2026-09-23
+
+Recovered actual PR370 at fe4f9ac6, confirmed PR310 remains paused. Inspected exact-head GitHub jobs and downloaded the native replay artifact; confirmed the one-function schema delta and byte-identical public types. Published forward contract correction0f871c78 without changing main. Reproduced then fixed a possible predecessor revival from an unreviewed BGM5 date correction, with 97 targeted tests, app/test typechecks and Node22 full suite (5793/350) passing; final publication and ordinary whole-PR gates pending. Consulted the frozen masterplan's F0–F7 and G01–G07 conditions; retained all unproved market/legal/production gates.
+
+## Earlier records (superseded where conflicting)
+
 # 2026-09-22 — E035 durable-source continuation
 
 Resumed the interrupted candidate from exact GitHub source/artifacts; did not redo accepted369. Retained physical inventory and implemented private forward source history, saved read sets/discovery attempts and fresh canonical-owner facet observations. Added12actual UTILTS outcome tests; both runtime-hook removal and wrong-tenant RPC mutations produce12assertion failures, restoration/root5514tests pass. No old assertions changed.

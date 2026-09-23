@@ -129,6 +129,11 @@ export function selectStructuralSources(input: StructuralSelectionInput): Struct
     }
   }
   const active = versions.filter(version => !replaced.has(version.sourceMessageId) && version.disposition !== 'rejected')
+  // A correction can move the predecessor's effective date. Until its owner
+  // and replacement edge are witnessed, the old version cannot be selected
+  // merely because the correction's proposed date falls after this interval.
+  if (active.some(version => version.wire.functionCode === '5' && !eligible(version)))
+    return unavailable('structural_correction_predecessor_unconfirmed')
   const beforeStart = (at: bigint) => input.boundary === 'closing_point' ? at < start : at <= start
   const isBaselineRoot = (version: StructuralVersion) => {
     let root = version.sourceMessageId

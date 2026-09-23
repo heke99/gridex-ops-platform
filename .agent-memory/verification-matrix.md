@@ -1,3 +1,11 @@
+# Verification update — 2026-09-23
+
+- fe4f9ac6 ordinary OPS35833938483: quality-release-gates SUCCESS; native clean replay17/17 PASS and identical generated public types, but replay schema check FAILED on the sole Z06E function delta; verify and smoke FAILED because type manifest migration tail was stale. Artifact10738595716 ZIP SHA256 d087a4e16791cdeefdad135e4b64fd194fb712d4b65cf3e7cd30ac6076a39e28.
+- 0f871c78: replay schema snapshot and manifest corrected, source tree7b70ef35. Local `npm run db:migrations:check`, agent-memory check and `git diff --check` exited0. CI on this head was still running at this read.
+- Next correction candidate: one new unreviewed BGM5 date-change test failed with selected (41 prior pass); after the guard, 97/97 targeted tests across selection/comparison/qualification passed; app and tests typechecks exited0. Node22 full `npm test`: 5793/5793 across 350 files PASS. Exact-head CI pending at this entry.
+
+## Earlier records (superseded where conflicting)
+
 # Continuation update — 2026-09-22
 
 Authoritative baseline is PR370 head92d4980e5f1e068a3d33826f4ef75d086bfaf714, main eb2b8693130af8fa7976a93891b95973bc473b50. OPS35719151591 all three ordinary jobs passed. Other workflows were inspected separately: public browser, coverage and smoke passed; staging/real-customer and production crawler skips are NOT executions. The two prior CodeRabbit findings were confirmed resolved; no full E035 approval follows from that.

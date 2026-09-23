@@ -1,3 +1,11 @@
+# Active work plan — 2026-09-23
+
+1. Publish and qualify BGM5 unknown-predecessor guard on current PR370; inspect exact same head CI/native and four-part whole-PR review.
+2. Close E035 applicable death/bilateral, closure, agency89, multiple-message, delegated-sender, changed-start and retry owners with authentic source and tenant evidence; keep unsupported histories held.
+3. Reconcile F3C-02/04/05/06/07, then applicable F0/F1/F2/F4/F5/F6/F7 evidence and dependent paused-PR310 work in the masterplan's order. No acceptance inferred from test counts or partial source approval.
+
+## Earlier records (superseded where conflicting)
+
 # E035 witnessed decision timeline — 2026-09-22
 
 PARTIAL / NOT MERGE-READY. Continue existing PR370 / codex/e035-durable-source-ledger-20260922.

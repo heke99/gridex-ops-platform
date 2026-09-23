@@ -1,3 +1,9 @@
+# Current state — 2026-09-23
+
+PR370 remains draft and unmerged; accepted main eb2b8693, PR310 paused e9611351. Parent0f871c78 has the replay-derived schema snapshot and manifest; fe4f9ac6 clean replay17/17 native passed but ordinary verify/smoke failed on the stale manifest/snapshot. New unreviewed BGM5 date-change guard and red/green pure regression are local until published. Exact-final CI and whole-delivery approval are pending. Source coverage remains bounded after the ledger start; no blanket historical completeness or Z06E/death/bilateral approval. Full masterplan remains open.
+
+## Earlier records (superseded where conflicting)
+
 # E035 market-structure implementation checkpoint — 2026-09-22
 
 IN PROGRESS / NOT MERGE-READY. Continue PR370 from published64bf9713b412ef629e7c8ecc6bc575e02ff5968f; no restart of Z04 or assessment-history work. Main remains eb2b8693130af8fa7976a93891b95973bc473b50; PR310 remains OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a.

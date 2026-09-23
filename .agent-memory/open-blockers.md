@@ -1,3 +1,11 @@
+# Open blockers — 2026-09-23
+
+1. The new BGM5 guard needs exact-head ordinary CI/native verification and independent whole-PR review after publication. Parent0f871c78 contract repair local checks passed; its ordinary CI was still running at this read.
+2. E035 applicability remains incomplete for Z05/Z08 closure, Z06E death or counterparty bilateral proof, agency89, multi-message/delegated sender, changed-start Z04 correction and acknowledged retry policy. Post-ledger bounded reads do not establish market history before ledger start.
+3. F3C-02/04/05/06/07 and later F0–F7 release/counterparty gates remain. PR310 schema/rights parity is paused at e9611351. No E035/F3/masterplan completion or merge claim.
+
+## Earlier records (superseded where conflicting)
+
 # E035 market-structure implementation checkpoint — 2026-09-22
 
 IN PROGRESS / NOT MERGE-READY. Continue PR370 from published64bf9713b412ef629e7c8ecc6bc575e02ff5968f; no restart of Z04 or assessment-history work. Main remains eb2b8693130af8fa7976a93891b95973bc473b50; PR310 remains OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a.

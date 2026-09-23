@@ -1,3 +1,9 @@
+# Handover — 2026-09-23
+
+Continue existing draft PR370 from the live head, preserving 64bf971 Z04/history. Parent0f871c78 repairs generated contracts using clean-replay artifact10738595716; local correction guard prevents an unreviewed future-dated BGM5 from reviving an older source. Verify the containing Git head, publish only if still fast-forward, then inspect ordinary OPS/native/tenant and independent four-part review on that exact head. Remaining applicable market owners and F3C-02/04/05/06/07 plus F0/F1/F2/F4–F7 gates are not accepted. Do not touch paused PR310 e9611351 or main eb2b8693.
+
+## Earlier records (superseded where conflicting)
+
 # E035 market-structure implementation checkpoint — 2026-09-22
 
 IN PROGRESS / NOT MERGE-READY. Continue PR370 from published64bf9713b412ef629e7c8ecc6bc575e02ff5968f; no restart of Z04 or assessment-history work. Main remains eb2b8693130af8fa7976a93891b95973bc473b50; PR310 remains OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a.

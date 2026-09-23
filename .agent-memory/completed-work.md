@@ -1,3 +1,9 @@
+# Verified scoped work — 2026-09-23
+
+The Z06E owner gate's clean-replay generated schema and manifest were reconciled in PR370 commit0f871c78; local migration/type checks passed and public type bytes matched the native artifact. An unreviewed BGM5 later-dated correction revival was reproduced red then prevented with a pure selection guard; 97 targeted cases, app/test typechecks and the Node22 full suite (5793/350) passed locally. Neither item is final E035 or masterplan approval.
+
+## Earlier records (superseded where conflicting)
+
 # Completed evidence — current E035 continuation
 
 2026-09-22: PR369/main eb2b8693 is accepted by actual-main receipt5768848443. The older entry below is a historical pre-merge snapshot, not current status. Durable-source native preparation35713214457 passes105newSQL,62+84retainedSQL,3retained upgrade and20native probes; repeated genuine schema/types inspected. Root5514/337 tests and migration/ratchet checks pass. Overall preparation is FAILURE from root type/lint checks, now addressed by exact BigInt constructors and a clean delivery tree; final ordinary actual-head CI/review is not completed. Source/object/party approval and E61/E62 remain unimplemented. See native-verification-20260922.md.

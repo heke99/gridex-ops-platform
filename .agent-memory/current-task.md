@@ -1,3 +1,11 @@
+# E035 continuation — 2026-09-23
+
+ACTIVE / NOT MERGE-READY. PR370 from 64bf971 now includes reviewed Z04/Z06F/G/Z10 and dated post-ledger selection; main eb2b8693 and paused PR310 e9611351 are untouched. The current parent 0f871c78 repairs the actual fe4f9ac6 clean-replay schema and generated-type manifest mismatch using artifact10738595716. An unreviewed BGM5 correction whose proposed effective date moves later was observed to revive its possible predecessor; a failing then passing regression now blocks that selection. This correction is local pending publication and exact-head CI.
+
+Next: publish the narrowly tested correction to existing draft PR370, inspect all exact-head ordinary/native gates and obtain four-part whole-PR review. Then implement remaining closure/death/bilateral/agency89/multi-message/delegated sender and changed-start cases with source-backed owners. Full E035/F3/F0–F7 remains incomplete; no live database, deployment or market send.
+
+## Earlier records (superseded where conflicting)
+
 # E035 market-structure implementation checkpoint — 2026-09-22
 
 IN PROGRESS / NOT MERGE-READY. Continue PR370 from published64bf9713b412ef629e7c8ecc6bc575e02ff5968f; no restart of Z04 or assessment-history work. Main remains eb2b8693130af8fa7976a93891b95973bc473b50; PR310 remains OPEN/DRAFT/PAUSED at e961135199f292b8210884f07de3b616a670161a.

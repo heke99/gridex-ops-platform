@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-22",
+  "updated_at": "2026-09-23",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/e035-durable-source-ledger-20260922",
@@ -12,7 +12,7 @@
   "root_main_acceptance_comment": 5768848443,
   "active_item": "E035 dated reviewed market structure and authoritative E61/E62 comparison",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
-  "next_action": "Run authentic forward and expanded native suite; resolve findings; exact-head ordinary CI and independent whole-PR review; no checkpoint merge.",
+  "next_action": "Publish reviewed BGM5 uncertainty guard in existing PR370; inspect same-head ordinary/native CI and four-part independent whole-PR review; then implement remaining applicable owners before merge.",
   "previous_ordinary_ci": {
     "head": "a89275ba0b34ae27530c2e403d3ae3f2667afe3b",
     "ops": 35715146276,
@@ -36,7 +36,7 @@
     "ordinary_delivery_retest_needed": true
   },
   "independent_review": "PENDING_CURRENT_WHOLE_PR_REVIEW",
-  "ordinary_final_head_ci": "PENDING",
+  "ordinary_final_head_ci": "PENDING_CURRENT_CORRECTION",
   "full_source_disposition": "Z04_RUNTIME_QUALIFIED_DECISION_TIMELINE_IMPLEMENTED_PENDING_CURRENT_QUALIFICATION_MARKET_SELECTION_INCOMPLETE",
   "full_E035": "NOT_COMPLETE",
   "full_F3": "NOT_COMPLETE",
@@ -51,7 +51,7 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "64bf9713b412ef629e7c8ecc6bc575e02ff5968f",
+  "last_verified_pr_head": "0f871c781bc5c1b058b565cd1d1bae98679b05ca",
   "ordinary_baseline_ci": {
     "head": "d7fb49fde3dae153693acae1cefa33aeef45ad4f",
     "ops": 35758893367,
@@ -148,5 +148,19 @@
     "new_qualification_tests": 6,
     "native_status": "NOT_EXECUTED",
     "forward": "20260922205926_ediel_reviewed_structural_source.sql"
+  },
+  "contract_repair_20260923": {
+    "head": "0f871c781bc5c1b058b565cd1d1bae98679b05ca",
+    "native_artifact": 10738595716,
+    "artifact_sha256": "d087a4e16791cdeefdad135e4b64fd194fb712d4b65cf3e7cd30ac6076a39e28",
+    "generated_types": "BYTE_IDENTICAL",
+    "local_migration_check": "PASS",
+    "ordinary_ci": "PENDING"
+  },
+  "correction_uncertainty_20260923": {
+    "status": "LOCAL_TARGETED_VERIFIED_PENDING_PUBLICATION",
+    "red": "41_PASS_1_FAIL",
+    "green": "97_PASS_TARGETED_APP_AND_TEST_TYPES_PASS",
+    "final_ci": "PENDING"
   }
 }
