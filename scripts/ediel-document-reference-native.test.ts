@@ -252,7 +252,19 @@ it('saved null-path identity and append visibility survive later row completion 
  const materialized=JSON.stringify(old)
  const completed=await archiveSignedCustomerContractPdf({companyId:f.companyId,customerContractId:f.contract,pdfBuffer:Buffer.from('%PDF-completed-later'),generationSnapshot:{schema:'synthetic_completed_v1',original:false}})
  ownedObjects.push(completed.storage_path!);expect(completed.id).toBe(id)
- expect(await captureDocumentReference({...args(f),documentId:id})).toMatchObject({status:'recorded',observation:'verified_at_observation'})
+ const errors:{name:string;code:string;message:string}[]=[]
+ const originalRpc=supabaseService.rpc.bind(supabaseService)
+ const observe=vi.spyOn(supabaseService,'rpc').mockImplementation((name,params,options)=>{
+  const request=originalRpc(name,params,options),then=request.then.bind(request)
+  request.then=((resolve,reject)=>then(response=>{
+   if(response.error)errors.push({name,code:response.error.code,message:response.error.message})
+   return response
+  }).then(resolve,reject)) as typeof request.then
+  return request
+ })
+ const completedCapture=await captureDocumentReference({...args(f),documentId:id})
+ observe.mockRestore()
+ expect(completedCapture,JSON.stringify({rpcErrors:errors,attempts:saved(f).attempts})).toMatchObject({status:'recorded',observation:'verified_at_observation'})
  expect(JSON.stringify(old)).toBe(materialized)
  expect(saved(f,cutoff)).toEqual({...old,visibilitySnapshot:expect.any(String)})
  const current=saved(f).attempts as Array<{document:{storage_path:string|null}}>
