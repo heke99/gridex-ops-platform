@@ -10,7 +10,7 @@
   "last_merged_pr": 371,
   "last_accepted_pr": 371,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "E035 Task3a outbound provider fence",
+  "active_item": "E035 Task3a publication and native qualification",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish accepted Task2b checkpoint, then START outbound_fence_task3a at immutable BASE.",
+  "next_action": "Publish independently reviewed3ceb0caf plus parent records from API parentd0d95006; genuine native301 and authentic generated contracts before acceptance.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -124,7 +124,7 @@
     "ordinary_delivery_retest_needed": true
   },
   "independent_review": "PR371_FINAL_SPEC_QUALITY_NATIVE_ACCEPTED; PR372_TASK1_SPEC_QUALITY_APPROVED",
-  "ordinary_final_head_ci": "PR372_EA1D76E4_ALL_APPLICABLE_SUCCESS; TASK2_UNPUBLISHED",
+  "ordinary_final_head_ci": "D0D95006_ALL_APPLICABLE_SUCCESS; TASK3A_UNPUBLISHED_UNQUALIFIED",
   "full_source_disposition": "DATED_POST_LEDGER_Z04_Z06F_Z06G_Z10_AND_BGM5_E61_E62_PARTIAL; APPLICABILITY_AND_HISTORY_INCOMPLETE",
   "full_E035": "NOT_COMPLETE",
   "full_F3": "NOT_COMPLETE",
@@ -139,7 +139,7 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "ea1d76e4fde787777da882be66948218f1a7ee0e",
+  "last_verified_pr_head": "d0d95006ad442ffeb1f319351d257f647c0ee688",
   "ordinary_baseline_ci": {
     "head": "95b5e391159e3164869ddabd8ec96b8f69189fe2",
     "ops": 35842844058,
@@ -543,12 +543,34 @@
     "final_quality_job": 107475755157,
     "final_verify_job": 107475755293,
     "final_artifact": 10788357629,
-    "final_artifact_sha256": "b187af683ab68fa6debac16883aca049d0d2fc8733039921b07a7314b93b0a6b"
+    "final_artifact_sha256": "b187af683ab68fa6debac16883aca049d0d2fc8733039921b07a7314b93b0a6b",
+    "final_unit_tests": 6062,
+    "final_unit_files": 376
   },
   "correction_outbound_task3a": {
-    "status": "PREPARED_AWAITING_ACCEPTANCE_CHECKPOINT_START",
+    "status": "STATIC_REVIEW_APPROVED_NATIVE_PENDING",
     "author": "/root/outbound_fence_task3a",
     "accepted_document_runtime": "7581966b75165b2fd88de05756913cb673cd4a32",
-    "brief": "quality/audits/ediel-masterplan-v2/e035-source-ledger/process-history-task3a-brief-20260924.md"
-  }
+    "brief": "quality/audits/ediel-masterplan-v2/e035-source-ledger/process-history-task3a-brief-20260924.md",
+    "base": "d0d95006ad442ffeb1f319351d257f647c0ee688",
+    "base_ci": "ALL_APPLICABLE_SUCCESS_OPS35950469137",
+    "milestone": "Draft reconciliation complete, frozen full-range independent review active",
+    "migration": "20260924031626_correction_outbound_dispatch_fence_v1.sql",
+    "isolation_snapshot": "6eece160b0b60cbf538d0fd52cd40b8e8b5907fb",
+    "review_base": "d0d95006ad442ffeb1f319351d257f647c0ee688",
+    "isolation_reason": "Unaccounted unpublished SQL/manifest/test draft changes; exact bytes preserved, only isolated path authoritative",
+    "head": "90a7c653a48dd2bd7b39f0db0e15a3a620d5438a",
+    "reviewer": "/root/outbound_fence_review",
+    "native_expected": 301,
+    "native_executed": false,
+    "migration_sha256": "8eff8a86530af7cb46fdb3cf5c650522f2b70db755c6561ab97ea211daa281a0",
+    "local_verification": "helper4 compatibility74/11 app/scripts/tests types lint integrity PASS",
+    "fix_round": 1,
+    "findings": [],
+    "review_result": "SPEC_QUALITY_APPROVED_T3A_R1_R2_ADDRESSED",
+    "minor_deferred": "Dense formatting in new adapter and duplicated SQL authorization predicate; final review triage",
+    "fix_head": "3ceb0cafc3979d386681596497f05466ee3d6c48",
+    "local_fix_verification": "scripts/tests types lint PASS; helper4 PASS/91 collected/87 skipped"
+  },
+  "workspace": "/workspace/scratch/4b1d39503015/gridex-ops-platform/.worktrees/e035-task3a-isolated"
 }

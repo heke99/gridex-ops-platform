@@ -1,3 +1,29 @@
+## 2026-09-24 — Task3a reviewed; native301 pending
+
+Runtime90a7c653 plus native-proof fix3ceb0caf independently SPEC/QUALITY approved. T3A-R1/R2 both addressed, zero open important findings; formatting minor remains for whole-branch review. Local helper4, compatibility74/11, types/lint/integrity PASS; native301 NOT EXECUTED. No generated contract has been fabricated or changed. Migration031626 remains unpublished until next exact-tree checkpoint.
+
+Next: publish exact tree from remote parent d0d95006, run genuine native PostgreSQL/Storage and all CI, reconcile authentic types/schema only. Task3a not accepted until those gates pass. Active workspace /workspace/scratch/4b1d39503015/gridex-ops-platform/.worktrees/e035-task3a-isolated; original dirty checkout preservation-only. Save binary draft audit via base64 blob. Then Task3b/4 and whole-branch review. PR372 draft/fullE035 partial, PR310 excluded; authorization persists.
+
+## 2026-09-24 — Task3a fix round1 active
+
+Independent review of full d0d95006..90a7c653 reports SPEC/QUALITY needs fixes: T3A-R1 race tests must prove both real contenders reach reservation and observe the losing fence decision; T3A-R2 requires stale real worker claim after prepare, result-witness failure and valid-scope company/membership/permission denial cases. No confirmed unsafe duplicate-send runtime defect. Original author /root/outbound_fence_task3a resumes only the isolated workspace from parent-docs5da7192e. Native remains unexecuted; expected count will change. Review saved process-history-task3a-review-20260924.md. Formatting minor deferred to final review.
+
+Next: receive committed fix/report, generate scoped review90a7c653..fixHEAD, resolve findings, publish exact tree from remote d0d95006 and run genuine native/generated-contract gates. FullE035 partial/PR372 draft; Task3b/4 pending.
+
+## 2026-09-24 — Task3a frozen; independent review active
+
+Author froze 90a7c653a48dd2bd7b39f0db0e15a3a620d5438a in /workspace/scratch/4b1d39503015/gridex-ops-platform/.worktrees/e035-task3a-isolated. This is the sole authoritative workspace; original checkout is preservation-only. Full review BASE d0d95006 includes preserved snapshot6eece160 plus final corrections. Reviewer /root/outbound_fence_review owns SPEC+QUALITY review; no runtime edits during review. Local helper/preflight4, compatibility74/11, all three types, scoped lint and migration integrity pass. Native296 is expected, NOT EXECUTED. Published SQL and all428 baseline checksum entries unchanged.
+
+Unverified original draft is retained as non-executable audit patch task3a-unverified-draft-20260924.patch.gz (SHA256 aa4bd4eddd3273f44cd6c767a0e829a3d35b44bb9c6d85a4f866c78d949a4682); isolation receipt describes recovery. Publish binary via base64 blob. Final new migration031626 SHA8eff8a86530af7cb46fdb3cf5c650522f2b70db755c6561ab97ea211daa281a0 remains unpublished.
+
+Next: resolve independent review, publish exact reviewed tree using remote API parent d0d95006; genuine native PostgreSQL/Storage CI and authentic generated contracts before Task3a acceptance. Preserve original dirty checkout and local backup branches when synchronizing. Then Task3b twelve-table facts and Task4 single-MVCC consumer, whole-branch review and final gates. PR372 draft/fullE035 partial, PR310 excluded. User approval persists; no hosted writes/deployment/market sends.
+
+## 2026-09-24 — Task3a implementation active on verified d0d95006
+
+Task2b accepted7581966b; docs acceptanceBASEd0d95006ad442ffeb1f319351d257f647c0ee688 also passes all applicable CI (OPS35950469137). Sole runtime author /root/outbound_fence_task3a has START. Implement outbound-only fence/receipts plus approved sendEdielEmail callback seam; no Task3b/Task4. Initial helper behavioral RED2/GREEN2 verified; draft CLIforward20260924031626 and native direct/worker/failure/byte fixtures in progress. Native new behavior NOT EXECUTED; no frozen implementation/review/publication yet.
+
+Next: receive frozen implementation and full report, generate one BASEd0d95006..HEAD package, independent SPEC/QUALITY review, then actual native CI/generated artifacts. Parent owns memory/publication; do not change HEAD while author works. All published migrations immutable. Next API parent d0d95006. PR372 draft/fullE035 partial, PR310 excluded.
+
 ## 2026-09-24 — Task2b document references ACCEPTED; Task3a next
 
 Task2b accepted runtime7581966b75165b2fd88de05756913cb673cd4a32, tree d77b4ba73e67caf78eab951ffcc5ef3ed05e3e10. All applicable same-head workflows SUCCESS: OPS35949827423 (verify107475755293,quality107475755157,native107475755339), fullE2E35949827409,browser35949827480,Ediel35949827343,tenant35949827368; crawler35949827390 skipped. Native262/5 plus case1/browser2/postbrowser1, retained SQL/concurrency, types, tenant invariants, parity and schema PASS. Prior full6062/376 and final quality/build green. Independent native/schema SPEC/QUALITY approved zero findings. Final artifact10788357629 ZIP SHAb187af683ab68fa6debac16883aca049d0d2fc8733039921b07a7314b93b0a6b verified; all three generated files byte-identical. Reference-only context, authority:none/coverage:incomplete; no PDF copy/new retention/positive C or reopening.

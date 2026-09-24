@@ -1,6 +1,6 @@
 import {execFileSync} from 'node:child_process'
 import {createHash,randomUUID} from 'node:crypto'
-import {expect,it} from 'vitest'
+import {expect,it,vi} from 'vitest'
 import {closureFixture} from '../__tests__/helpers/closureWireFixtures'
 import {supabaseService} from '@/lib/supabase/service'
 import {captureCorrectionContext} from '@/lib/ediel/sources/correctionContextCapture'
@@ -387,4 +387,428 @@ it('the existing explicit platform superadmin wrapper authority remains unchange
  expect(await effective(actor,f.companyId)).toBe(true)
  expect(sql(`SELECT to_jsonb('admin.access'=ANY(public.gridex_get_user_permissions_in_company(${literal(actor)},${literal(f.companyId)})))`)).toBe(true)
  expect(await captureCorrectionContext({...f,actorUserId:actor})).toMatchObject({status:'recorded',disposition:'unreviewed'})
+})
+
+// Outbound regression: bypassing the last provider-entry decision must never
+// invoke nodemailer. Real helper/readiness are retained; only external SMTP is stubbed.
+const provider = vi.hoisted(()=>vi.fn())
+vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:provider})}}))
+it.each(['raw','attachment'] as const)('outbound helper callback denial prevents %s provider entry',async mode=>{
+ vi.stubEnv('EDIEL_SMTP_FROM','synthetic@example.invalid');vi.stubEnv('EDIEL_SMTP_USER','synthetic@example.invalid')
+ vi.stubEnv('EDIEL_SMTP_PASS','synthetic-only');vi.stubEnv('EDIEL_EMAIL_PROVIDER','strato')
+ provider.mockReset();provider.mockResolvedValue({accepted:['recipient@example.invalid'],rejected:[]})
+ const {sendEdielEmail}=await import('@/lib/email/sendEdielEmail')
+ const input=mode==='raw'?{raw:Buffer.from('Subject: synthetic\r\n\r\nBody'),to:'recipient@example.invalid'}:
+  {to:'recipient@example.invalid',subject:'synthetic',text:''}
+ try{await expect(sendEdielEmail(input,{beforeProviderCall:async()=>{throw Error('entry_denied')}})).rejects.toThrow('entry_denied');expect(provider).not.toHaveBeenCalled()}
+ finally{vi.unstubAllEnvs()}
+})
+
+async function outboundParsed(wire:string,companyId:string){
+ const {createProdatRegisterEvidence}=await import('@/lib/ediel/prodat/prodatRegisterEvidence')
+ const {tokenizeEdifact}=await import('@/lib/ediel/core/edifactTokenizer')
+ const t=tokenizeEdifact(wire),source={kind:'caller_selection' as const,companyId,reference:'synthetic-dispatch-selection'}
+ const address={lines:['Street','',''] as const,postalCode:'12345',city:'City',country:'SE',representation:{convention:'synthetic-postal-v1',reference:'synthetic-address',mode:1 as const}}
+ const identity={id:'CUSTOMER-1',qualifier:'' as const,agency:'89' as const}
+ return {subtype:'H',prodatEngine:{registerEvidence:createProdatRegisterEvidence({code:'Z08',rawSegments:t.segments.map(s=>s.raw),una:t.una,facts:{
+  endUserAddressObjects:[{meteringPointId:'735123456789012345',identityAgency:'9',endUser:identity,availability:'available',addressLines:['Street'],source}],
+  invoiceeObjects:[{meteringPointId:'735123456789012345',identityAgency:'9',endUser:{identity,address},invoicee:{identity,nameLines:['Ångström'],address,availability:'available'},event:{state:'none',reference:'synthetic-no-change'},source}],
+ }})}}
+}
+async function outboundSeed(){
+ const f=await seed(),messageId=randomUUID(),routeId=randomUUID(),profileId=randomUUID(),gridId=randomUUID(),marketActor=randomUUID()
+ // Company creation deliberately seeds capabilities disabled; establish only this
+ // synthetic tenant's test capability through its actual canonical gate.
+ sql(`UPDATE public.company_capabilities SET enabled=true,readiness_status='ready' WHERE company_id=${literal(f.companyId)} AND capability_code='ediel_test';`)
+ expect(sql(`SELECT to_jsonb(allowed) FROM public.canonical_tenant_operation_decision(${literal(f.companyId)},'ediel.test.process')`)).toBe(true)
+ const receiver=String(60000+Math.floor(Math.random()*29999))
+ const wire=closureFixture({reason:'Z25'}).wire.replace('BGM+Z05','BGM+Z08').replaceAll('54321',receiver).replace('Synthetic','Ångström')
+ const parsed=await outboundParsed(wire,f.companyId)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_message_profiles p JOIN public.ediel_rule_packs r ON r.id=p.rule_pack_id WHERE p.profile_key='PRODAT:Z08:H:26.A:r3' AND p.is_enabled AND r.status='active' AND r.valid_from<=current_date AND (r.valid_to IS NULL OR r.valid_to>=current_date) AND r.source_hash ~ '^[a-f0-9]{64}$'`)).toBe(1)
+ sql(`INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status) VALUES(${literal(gridId)},${literal(f.companyId)},'Dispatch native grid',${literal(receiver)},'test',true,'active');
+ INSERT INTO public.communication_routes(id,company_id,route_name,grid_owner_id,environment_type,is_active,target_email) VALUES(${literal(routeId)},${literal(f.companyId)},'Dispatch native route',${literal(gridId)},'bilateral_test',true,'recipient@example.invalid');
+ INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,transport_security_mode,smtp_to,receiver_email,message_family,business_code)
+ VALUES(${literal(profileId)},${literal(f.companyId)},${literal(routeId)},'Dispatch native profile','test','edifact','12345',${literal(receiver)},'23-DDQ-PRODAT',true,'unencrypted','recipient@example.invalid','recipient@example.invalid','PRODAT','Z08');
+ INSERT INTO public.platform_market_actors(id,name,status,match_status,visible_to_tenants) VALUES(${literal(marketActor)},'Dispatch electricity grid','active','verified',true);
+ INSERT INTO public.platform_actor_identifiers(actor_id,identifier_type,identifier_value,is_verified) VALUES(${literal(marketActor)},'EdielId',${literal(receiver)},true);
+ INSERT INTO public.platform_actor_roles(actor_id,actor_role,is_active) VALUES(${literal(marketActor)},'grid_owner',true);
+ INSERT INTO public.platform_actor_routes(actor_id,message_family,environment,status,is_verified,application_reference,communication_type,communication_address,metadata) VALUES(${literal(marketActor)},'PRODAT','production','active',true,'23-DDQ-PRODAT','email','recipient@example.invalid','{"subaddress_status":"not_required_confirmed"}');
+ INSERT INTO public.platform_actor_certificates(actor_id,environment,purpose,status,fingerprint_sha256,ediel_id,valid_to,raw_certificate_pem) VALUES(${literal(marketActor)},'production','encryption','valid','synthetic',${literal(receiver)},'2099-01-01','synthetic-readiness-only');
+ INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,application_reference,sender_ediel_id,receiver_ediel_id,receiver_email,communication_route_id,route_profile_id,source_operation_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+ SELECT ${literal(messageId)},${literal(f.companyId)},'test','outbound','edifact','PRODAT','Z08','queued',${literal(wire)},${literal(parsed)},'23-DDQ-PRODAT','12345',${literal(receiver)},'recipient@example.invalid',${literal(routeId)},${literal(profileId)},${literal(randomUUID())},r.id,p.profile_key,p.id,r.guide_version||':r'||r.guide_revision,r.source_hash,p.profile
+ FROM public.ediel_message_profiles p JOIN public.ediel_rule_packs r ON r.id=p.rule_pack_id WHERE p.profile_key='PRODAT:Z08:H:26.A:r3' AND p.is_enabled;`)
+ expect(sql(`SELECT to_jsonb(can_use_for_prodat) FROM public.actor_readiness_status WHERE platform_market_actor_id=${literal(marketActor)}`)).toBe(true)
+ return {...f,messageId,routeId,wire}
+}
+function smtpFixture(){
+ vi.stubEnv('EDIEL_SHARED_MAILBOX_ADDRESS','synthetic@example.invalid');vi.stubEnv('EDIEL_APP_DKIM_ENABLED','false');vi.stubEnv('EMAIL_PROVIDER','resend')
+ vi.stubEnv('EDIEL_SMTP_FROM','synthetic@example.invalid');vi.stubEnv('EDIEL_SMTP_USER','synthetic@example.invalid');vi.stubEnv('EDIEL_SMTP_PASS','synthetic-only');vi.stubEnv('EDIEL_EMAIL_PROVIDER','strato')
+ provider.mockReset();provider.mockResolvedValue({accepted:['recipient@example.invalid'],rejected:[],messageId:'native-provider-id',response:'250 synthetic accepted'})
+}
+async function directOutbound(f:Awaited<ReturnType<typeof outboundSeed>>){
+ const {sendQueuedEdielMessage}=await import('@/lib/ediel/orchestrator')
+ return sendQueuedEdielMessage({edielMessageId:f.messageId,actorUserId:f.actorUserId})
+}
+function outboundFacts(f:Awaited<ReturnType<typeof outboundSeed>>){
+ return sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('kind',e.kind,'facts',e.facts,'witnessed',w.event_id IS NOT NULL) ORDER BY e.observed_at),'[]') FROM gridex_outbound_dispatch.events e LEFT JOIN gridex_outbound_dispatch.witnesses w ON w.event_id=e.id WHERE e.message_id=${literal(f.messageId)}`)
+}
+it.each(['accepted','partial','empty','malformed','all_rejected','connect_negative','data_ambiguous'] as const)('outbound direct %s cannot resend after mutable reset',async outcome=>{
+ const f=await outboundSeed();smtpFixture()
+ if(outcome==='partial')provider.mockResolvedValue({accepted:['recipient@example.invalid'],rejected:['other@example.invalid'],messageId:'partial-id',response:'250 partial'})
+ if(outcome==='empty')provider.mockResolvedValue({accepted:[],rejected:[]})
+ if(outcome==='malformed')provider.mockResolvedValue({accepted:'invalid',rejected:null})
+ if(outcome==='all_rejected')provider.mockResolvedValue({accepted:[],rejected:['recipient@example.invalid'],response:'550 rejected'})
+ if(outcome==='connect_negative')provider.mockRejectedValue(Object.assign(Error('connect refused'),{code:'ECONNECTION',syscall:'connect'}))
+ if(outcome==='data_ambiguous')provider.mockRejectedValue(Object.assign(Error('lost DATA result'),{code:'ESOCKET',command:'DATA'}))
+ try{
+  await directOutbound(f).catch(()=>null)
+  expect(provider).toHaveBeenCalledTimes(1)
+  expect(outboundFacts(f)).toEqual(expect.arrayContaining([expect.objectContaining({kind:'provider_call_entered',witnessed:true}),expect.objectContaining({kind:'provider_result',witnessed:true})]))
+  const want={accepted:'accepted',partial:'partial',empty:'uncertain',malformed:'uncertain',all_rejected:'all_rejected',connect_negative:'pre_connect_negative',data_ambiguous:'uncertain'}[outcome]
+  expect(outboundFacts(f).find(e=>e.kind==='provider_result')?.facts).toMatchObject({classification:want})
+  if(outcome==='partial')expect(outboundFacts(f).find(e=>e.kind==='provider_result')?.facts).toMatchObject({provider:{accepted:['recipient@example.invalid'],rejected:['other@example.invalid'],messageId:'partial-id',response:'250 partial'}})
+  sql(`UPDATE public.ediel_messages SET status='queued',message_sent_at=NULL WHERE id=${literal(f.messageId)};`)
+  await directOutbound(f).catch(()=>null);expect(provider).toHaveBeenCalledTimes(1)
+ }finally{vi.unstubAllEnvs()}
+})
+// Observe real RPCs; never manufacture their SQL decisions. Hold the winner
+// before entry until both real reservations finish, then hold the loser response
+// until entry commits so its ordinary status projection cannot mask contention.
+function observeReservationContention(messageId:string){
+ const original=supabaseService.rpc.bind(supabaseService)
+ const arrivals:Record<string,unknown>[]=[],decisions:Record<string,unknown>[]=[],entries:Record<string,unknown>[]=[]
+ let arrivalsReady!:()=>void,decisionsReady!:()=>void,entryReady!:()=>void
+ const bothArrived=new Promise<void>(resolve=>{arrivalsReady=resolve})
+ const bothDecided=new Promise<void>(resolve=>{decisionsReady=resolve})
+ const entered=new Promise<void>(resolve=>{entryReady=resolve})
+ const timer=setTimeout(()=>{arrivalsReady();decisionsReady();entryReady()},10000)
+ const spy=vi.spyOn(supabaseService,'rpc').mockImplementation(((name:string,args:Record<string,unknown>)=>{
+  const input=args.p_input as Record<string,unknown>|undefined
+  if(name!=='gridex_outbound_dispatch_v1'||input?.messageId!==messageId)return original(name,args)
+  if(input.action==='prepare')return (async()=>{
+   arrivals.push(input);if(arrivals.length===2)arrivalsReady()
+   await bothArrived
+   const result=await original(name,args)
+   decisions.push({attemptId:input.attemptId,data:result.data,error:result.error})
+   if(decisions.length===2)decisionsReady()
+   await bothDecided
+   if((result.data as {proceed?:boolean}|null)?.proceed!==true)await entered
+   return result
+  })()
+  if(input.action==='enter')return (async()=>{
+   const result=await original(name,args)
+   entries.push({attemptId:input.attemptId,data:result.data,error:result.error})
+   entryReady();return result
+  })()
+  return original(name,args)
+ }) as typeof supabaseService.rpc)
+ return {arrivals,assert(){
+  expect(arrivals).toHaveLength(2)
+  expect(new Set(arrivals.map(a=>a.attemptId)).size).toBe(2)
+  expect(decisions).toHaveLength(2)
+  expect(decisions.every(d=>d.error===null)).toBe(true)
+  expect(decisions.map(d=>(d.data as {proceed:boolean}).proceed).sort()).toEqual([false,true])
+  expect(decisions.find(d=>(d.data as {proceed:boolean}).proceed===false)?.data).toMatchObject({scoped:true,proceed:false,state:'prepared',acceptedReceipt:null})
+  expect(entries).toEqual([expect.objectContaining({error:null,data:expect.objectContaining({scoped:true,proceed:true})})])
+ },restore(){clearTimeout(timer);arrivalsReady();decisionsReady();entryReady();spy.mockRestore()}}
+}
+it('outbound direct and actual worker claim race admits only one provider call',async()=>{
+ const f=await outboundSeed(),outboxId=randomUUID();smtpFixture()
+ sql(`INSERT INTO public.ediel_outbox(id,company_id,environment,ediel_message_id,status,lock_key) VALUES(${literal(outboxId)},${literal(f.companyId)},'test',${literal(f.messageId)},'queued',${literal(outboxId)});`)
+ const {processEdielOutbox}=await import('@/lib/ediel/outbox/processEdielOutbox')
+ const contention=observeReservationContention(f.messageId)
+ try{
+  const results=await Promise.allSettled([directOutbound(f),processEdielOutbox({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test'})])
+  contention.assert()
+  expect(contention.arrivals.map(a=>(a.owner as {kind:string}).kind).sort()).toEqual(['direct','worker'])
+  expect(results[1].status).toBe('fulfilled')
+  if(results[1].status==='fulfilled')expect(results[1].value).toMatchObject({processed:1,failed:0,blocked:0})
+  if(results[0].status==='rejected')expect(results[0].reason.name).toBe('SmtpDeliveryUncertainError')
+  expect(provider).toHaveBeenCalledTimes(1)
+  expect(outboundFacts(f).filter(e=>e.kind==='provider_call_entered')).toEqual([expect.objectContaining({witnessed:true})])
+  expect(outboundFacts(f).filter(e=>e.kind==='provider_result')).toEqual([expect.objectContaining({witnessed:true,facts:expect.objectContaining({classification:'accepted'})})])
+ }finally{contention.restore();vi.unstubAllEnvs()}
+})
+it('outbound independently claimed worker retains acceptance despite later mutable reset',async()=>{
+ const f=await outboundSeed(),outboxId=randomUUID();smtpFixture()
+ sql(`INSERT INTO public.ediel_outbox(id,company_id,environment,ediel_message_id,status,lock_key) VALUES(${literal(outboxId)},${literal(f.companyId)},'test',${literal(f.messageId)},'queued',${literal(outboxId)});`)
+ const {sendOutboxItem}=await import('@/lib/ediel/outbox/sendOutboxItem')
+ try{await sendOutboxItem({outboxItemId:outboxId,actorUserId:f.actorUserId});expect(provider).toHaveBeenCalledTimes(1)
+  sql(`UPDATE public.ediel_messages SET status='queued',message_sent_at=NULL WHERE id=${literal(f.messageId)}; UPDATE public.ediel_outbox SET status='queued' WHERE id=${literal(outboxId)};`)
+  await sendOutboxItem({outboxItemId:outboxId,actorUserId:f.actorUserId});expect(provider).toHaveBeenCalledTimes(1)
+ }finally{vi.unstubAllEnvs()}
+})
+
+const dispatchCall=async(input:Record<string,unknown>)=>supabaseService.rpc('gridex_outbound_dispatch_v1',{p_input:input})
+async function preparedOutbound(f:Awaited<ReturnType<typeof outboundSeed>>,owner:Record<string,unknown>={kind:'direct'}){
+ const attemptId=randomUUID(),payload=Buffer.from(f.wire,'latin1')
+ const identity={companyId:f.companyId,environment:'test',messageId:f.messageId,actorUserId:f.actorUserId,attemptId}
+ const binding={originalHash:createHash('sha256').update(f.wire).digest('hex'),routeId:f.routeId,to:'recipient@example.invalid',from:'synthetic@example.invalid',encoding:'latin1',mimeMode:'ediel-singlepart-compact',payloadBase64:payload.toString('base64'),payloadHash:createHash('sha256').update(payload).digest('hex'),payloadLength:payload.length}
+ const prepared=await dispatchCall({...identity,action:'prepare',owner,binding})
+ expect(prepared.error).toBeNull();expect(prepared.data).toMatchObject({scoped:true,proceed:true})
+ return {identity,binding,prepared:prepared.data as {eventId:string}}
+}
+it('outbound duplicate attempt and stale owner after safe release cannot enter',async()=>{
+ const f=await outboundSeed(),first=await preparedOutbound(f)
+ const duplicate=await dispatchCall({...first.identity,action:'prepare',owner:{kind:'direct'},binding:first.binding})
+ expect(duplicate.data).toMatchObject({proceed:false})
+ expect((await dispatchCall({...first.identity,action:'release'})).error).toBeNull()
+ const next=await preparedOutbound(f)
+ expect((await dispatchCall({...first.identity,action:'enter'})).error).not.toBeNull()
+ const entered=await dispatchCall({...next.identity,action:'enter'})
+ expect(entered.data).toMatchObject({proceed:true})
+ expect((await dispatchCall({...next.identity,action:'enter'})).data).toMatchObject({proceed:false})
+ expect((await dispatchCall({...next.identity,action:'release'})).error).not.toBeNull()
+ expect(outboundFacts(f).filter(e=>e.kind==='provider_call_entered')).toHaveLength(1)
+})
+it('outbound private facts deny DML and tenant/actor/claim impersonation',async()=>{
+ const f=await outboundSeed(),prepared=await preparedOutbound(f),foreign=await seed()
+ for(const table of ['epoch','originals','attempts','reservations','events','witnesses'])for(const role of ['anon','authenticated','service_role']){
+  expect(()=>sql(`SET ROLE ${role}; DELETE FROM gridex_outbound_dispatch.${table};`)).toThrow()
+ }
+ for(const patch of [{companyId:foreign.companyId},{environment:'production'},{actorUserId:foreign.actorUserId}]){
+  expect((await dispatchCall({...prepared.identity,...patch,action:'enter'})).error).not.toBeNull()
+ }
+ const fresh=await outboundSeed(),attemptId=randomUUID()
+ const forged=await dispatchCall({...prepared.identity,companyId:fresh.companyId,actorUserId:fresh.actorUserId,messageId:fresh.messageId,attemptId,action:'prepare',binding:{...prepared.binding,routeId:fresh.routeId,originalHash:createHash('sha256').update(fresh.wire).digest('hex')},owner:{kind:'worker',outboxId:randomUUID(),sendAttemptId:randomUUID(),workerId:'forged'}})
+ expect(forged.error).not.toBeNull()
+ expect(sql(`SELECT to_jsonb(complete) FROM gridex_outbound_dispatch.epoch`)).toBe(false)
+})
+it.each(['provider_result','message_status','message_event','outbox_status'] as const)('outbound %s persistence failure cannot produce a second send',async failure=>{
+ const f=await outboundSeed(),outboxId=randomUUID(),suffix=randomUUID().replaceAll('-','');smtpFixture()
+ const table=failure==='provider_result'?'gridex_outbound_dispatch.events':failure==='message_status'?'public.ediel_messages':failure==='message_event'?'public.ediel_message_events':'public.ediel_outbox'
+ const condition=failure==='provider_result'?`NEW.message_id=${literal(f.messageId)}::uuid AND NEW.kind='provider_result'`:failure==='message_status'?`NEW.id=${literal(f.messageId)}::uuid AND NEW.status='sent'`:failure==='message_event'?`NEW.ediel_message_id=${literal(f.messageId)}::uuid AND NEW.event_type='sent'`:`NEW.id=${literal(outboxId)}::uuid AND NEW.status='sent'`
+ sql(`INSERT INTO public.ediel_outbox(id,company_id,environment,ediel_message_id,status,lock_key) VALUES(${literal(outboxId)},${literal(f.companyId)},'test',${literal(f.messageId)},'queued',${literal(outboxId)});
+ CREATE FUNCTION public.native_fail_${suffix}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF ${condition} THEN RAISE EXCEPTION 'synthetic_persistence_failure'; END IF; RETURN NEW; END $$;
+ CREATE TRIGGER native_fail_${suffix} BEFORE INSERT OR UPDATE ON ${table} FOR EACH ROW EXECUTE FUNCTION public.native_fail_${suffix}();`)
+ const {sendOutboxItem}=await import('@/lib/ediel/outbox/sendOutboxItem')
+ try{
+  await sendOutboxItem({outboxItemId:outboxId,actorUserId:f.actorUserId}).catch(()=>null);expect(provider).toHaveBeenCalledTimes(1)
+  expect(outboundFacts(f).filter(e=>e.kind==='provider_call_entered')).toHaveLength(1)
+  sql(`UPDATE public.ediel_messages SET status='queued',message_sent_at=NULL WHERE id=${literal(f.messageId)}; UPDATE public.ediel_outbox SET status='queued' WHERE id=${literal(outboxId)};`)
+  await sendOutboxItem({outboxItemId:outboxId,actorUserId:f.actorUserId}).catch(()=>null);expect(provider).toHaveBeenCalledTimes(1)
+  if(failure==='provider_result')expect(outboundFacts(f).filter(e=>e.kind==='provider_result')).toHaveLength(0)
+ }finally{sql(`DROP TRIGGER native_fail_${suffix} ON ${table}; DROP FUNCTION public.native_fail_${suffix}();`);vi.unstubAllEnvs()}
+})
+it.each(['nodemailer-attachment','ediel-multipart-validation-base64','ediel-singlepart-base64','ediel-singlepart-lines','ediel-singlepart-compact'] as const)('outbound %s binds actual latin1 bytes and concrete envelope',async mimeMode=>{
+ const f=await outboundSeed();smtpFixture()
+ const {getEdielMessageById}=await import('@/lib/ediel/db'),{sendEdielMessageViaSmtp}=await import('@/lib/ediel/transport')
+ try{
+  const message=await getEdielMessageById(f.messageId,{companyId:f.companyId});expect(message).not.toBeNull()
+  await sendEdielMessageViaSmtp(message!,{actorUserId:f.actorUserId,smtpMimeMode:mimeMode})
+  expect(provider).toHaveBeenCalledTimes(1)
+  const binding=sql<Record<string,unknown>>(`SELECT binding FROM gridex_outbound_dispatch.attempts WHERE message_id=${literal(f.messageId)}`)
+  expect(binding).toMatchObject({to:'recipient@example.invalid',from:'synthetic@example.invalid',mimeMode,encoding:'latin1'})
+  const bytes=Buffer.from(String(binding.payloadBase64),'base64')
+  expect(bytes.includes(Buffer.from('Ångström','latin1'))).toBe(true)
+  expect(binding.payloadHash).toBe(createHash('sha256').update(bytes).digest('hex'))
+  expect(binding.originalHash).toBe(createHash('sha256').update(f.wire,'utf8').digest('hex'))
+  expect(binding.payloadHash).not.toBe(binding.originalHash)
+  const options=provider.mock.calls[0][0]
+  if(mimeMode==='nodemailer-attachment'){expect(options.attachments[0].content.equals(bytes)).toBe(true);expect(binding).not.toHaveProperty('rawBase64')}
+  else expect(Buffer.from(String(binding.rawBase64),'base64').equals(options.raw)).toBe(true)
+ }finally{vi.unstubAllEnvs()}
+})
+it('outbound helper archive preparation failure never reaches callback or provider',async()=>{
+ smtpFixture();const {sendEdielEmail}=await import('@/lib/email/sendEdielEmail');let entered=false
+ try{await expect(sendEdielEmail({to:'recipient@example.invalid',raw:Buffer.from('Content-Type: application/pkcs7-mime\r\n\r\ninvalid!')},{beforeProviderCall:async()=>{entered=true}})).rejects.toThrow('smime_archive_body_not_base64');expect(entered).toBe(false);expect(provider).not.toHaveBeenCalled()}
+ finally{vi.unstubAllEnvs()}
+})
+it('outbound fixture preflight retains actual Z08H wire validation',async()=>{
+ const {preflightEdielMessageRow}=await import('@/lib/ediel/core/messageBuilder')
+ const wire=closureFixture({reason:'Z25'}).wire.replace('BGM+Z05','BGM+Z08').replace('Synthetic','Ångström')
+ const companyId=randomUUID(),parsed=await outboundParsed(wire,companyId)
+ const result=preflightEdielMessageRow({id:randomUUID(),company_id:companyId,environment:'test',direction:'outbound',message_family:'PRODAT',message_standard:'edifact',message_code:'Z08',message_version:'E2SE6A',raw_payload:wire,parsed_payload:parsed,application_reference:'23-DDQ-PRODAT',sender_ediel_id:'12345',receiver_ediel_id:'54321'} as unknown as import('@/lib/ediel/types').EdielMessageRow,'send')
+ expect(result.issues.filter(i=>i.severity==='error')).toEqual([])
+})
+it('outbound S/MIME archive is durable before provider entry and binds exact raw bytes',async()=>{
+ const f=await outboundSeed(),certificateId=randomUUID();smtpFixture()
+ const {X509Certificate}=await import('node:crypto')
+ const {getEdielMessageById}=await import('@/lib/ediel/db'),{sendEdielMessageViaSmtp}=await import('@/lib/ediel/transport')
+ const before=await getEdielMessageById(f.messageId,{companyId:f.companyId});expect(before).not.toBeNull()
+ const pem=execFileSync('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-keyout','/dev/null','-days','365','-set_serial','1234','-subj',`/CN=${before!.receiver_ediel_id}`],{encoding:'utf8',stdio:['ignore','pipe','ignore']})
+ const cert=new X509Certificate(pem)
+ sql(`INSERT INTO public.ediel_certificates(id,company_id,certificate_fingerprint,secret_reference,status,environment,subject,issuer,serial_number,fingerprint_sha256,public_certificate_pem,valid_from,valid_to,owner_ediel_id,message_family,message_type,purpose,usage)
+ VALUES(${literal(certificateId)},${literal(f.companyId)},${literal(cert.fingerprint256)},'public://synthetic','active','test',${literal(cert.subject)},${literal(cert.issuer)},${literal(cert.serialNumber)},${literal(cert.fingerprint256)},${literal(pem)},${literal(new Date(cert.validFrom).toISOString())},${literal(new Date(cert.validTo).toISOString())},${literal(before!.receiver_ediel_id)},'PRODAT','PRODAT','encryption','outbound_recipient');
+ UPDATE public.ediel_route_profiles SET encryption_mode='smime',transport_security_mode='required_encrypted',receiver_certificate_id=${literal(certificateId)} WHERE communication_route_id=${literal(f.routeId)};`)
+ provider.mockImplementation(async()=>{
+  expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_message_payloads WHERE ediel_message_id=${literal(f.messageId)} AND metadata->>'archive_verified'='true'`)).toBe(1)
+  expect(outboundFacts(f)).toEqual(expect.arrayContaining([expect.objectContaining({kind:'provider_call_entered',witnessed:true})]))
+  return {accepted:['recipient@example.invalid'],rejected:[],messageId:'native-smime',response:'250 accepted'}
+ })
+ try{
+  await sendEdielMessageViaSmtp(before!,{actorUserId:f.actorUserId,smtpMimeMode:'ediel-smime-enveloped'})
+  expect(provider).toHaveBeenCalledTimes(1)
+  const binding=sql<Record<string,unknown>>(`SELECT binding FROM gridex_outbound_dispatch.attempts WHERE message_id=${literal(f.messageId)}`)
+  expect(binding).toMatchObject({mimeMode:'ediel-smime-enveloped',encoding:'latin1',from:'synthetic@example.invalid',to:'recipient@example.invalid'})
+  expect(Buffer.from(String(binding.rawBase64),'base64').equals(provider.mock.calls[0][0].raw)).toBe(true)
+ }finally{vi.unstubAllEnvs()}
+})
+it('outbound committed entry response loss suppresses both the initial provider and later retry',async()=>{
+ const f=await outboundSeed();smtpFixture()
+ const original=supabaseService.rpc.bind(supabaseService)
+ const spy=vi.spyOn(supabaseService,'rpc').mockImplementation(((name:string,args:Record<string,unknown>)=>{
+  const request=original(name,args)
+  if(name==='gridex_outbound_dispatch_v1'&&(args.p_input as Record<string,unknown>)?.action==='enter'){
+   return Promise.resolve(request).then(r=>{expect(r.error).toBeNull();return {...r,data:null,error:{message:'synthetic_response_lost_after_commit'}}})
+  }
+  return request
+ }) as typeof supabaseService.rpc)
+ try{
+  await directOutbound(f).catch(()=>null);expect(provider).not.toHaveBeenCalled()
+  expect(outboundFacts(f).filter(e=>e.kind==='provider_call_entered')).toHaveLength(1)
+  spy.mockRestore();await directOutbound(f).catch(()=>null);expect(provider).not.toHaveBeenCalled()
+ }finally{spy.mockRestore();vi.unstubAllEnvs()}
+})
+it('outbound historical sent status is uninstrumented and scoped unrelated originals do not consume capacity',async()=>{
+ const f=await outboundSeed()
+ sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key) SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions WHERE key='communication.read';
+ UPDATE public.ediel_messages SET status='sent',message_sent_at=clock_timestamp() WHERE id=${literal(f.messageId)};`)
+ const read=(point:string)=>sql<Record<string,unknown>>(`SET ROLE service_role; SELECT gridex_outbound_dispatch.readset_v1(${literal(f.companyId)},'test',${literal(f.actorUserId)},${literal({point})});`)
+ expect(read('735123456789012345')).toMatchObject({complete:false,originalCount:1,gaps:expect.arrayContaining([expect.objectContaining({messageId:f.messageId,reason:'uninstrumented_original'})])})
+ expect(read('735999999999999999')).toMatchObject({complete:false,originalCount:0,originals:[]})
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_outbound_dispatch.events WHERE message_id=${literal(f.messageId)}`)).toBe(0)
+})
+it('outbound duplicate already-claimed invocations share the actual worker fence',async()=>{
+ const f=await outboundSeed(),outboxId=randomUUID(),workerId='native-duplicate-worker';smtpFixture()
+ sql(`INSERT INTO public.ediel_outbox(id,company_id,environment,ediel_message_id,status,lock_key) VALUES(${literal(outboxId)},${literal(f.companyId)},'test',${literal(f.messageId)},'queued',${literal(outboxId)});`)
+ const {claimEdielOutboxItem}=await import('@/lib/ediel/outbox/claimOutboxItems'),{sendOutboxItem}=await import('@/lib/ediel/outbox/sendOutboxItem')
+ const claimed=await claimEdielOutboxItem({outboxItemId:outboxId,actorUserId:f.actorUserId,workerId});expect(claimed?.current_send_attempt_id).toBeTruthy()
+ const params={outboxItemId:outboxId,actorUserId:f.actorUserId,workerId,sendAttemptId:claimed!.current_send_attempt_id,alreadyClaimed:true}
+ const contention=observeReservationContention(f.messageId)
+ try{
+  const results=await Promise.all([sendOutboxItem(params),sendOutboxItem(params)])
+  contention.assert()
+  expect(contention.arrivals.map(a=>a.owner)).toEqual([expect.objectContaining({kind:'worker',outboxId,sendAttemptId:claimed!.current_send_attempt_id,workerId}),expect.objectContaining({kind:'worker',outboxId,sendAttemptId:claimed!.current_send_attempt_id,workerId})])
+  expect(results.every(r=>r.status==='sent'||r.status==='delivery_uncertain')).toBe(true)
+  expect(results.some(r=>r.status==='delivery_uncertain')).toBe(true)
+  expect(provider).toHaveBeenCalledTimes(1)
+  expect(outboundFacts(f).filter(e=>e.kind==='provider_call_entered')).toEqual([expect.objectContaining({witnessed:true})])
+  expect(outboundFacts(f).filter(e=>e.kind==='provider_result')).toEqual([expect.objectContaining({witnessed:true,facts:expect.objectContaining({classification:'accepted'})})])
+ }finally{contention.restore();vi.unstubAllEnvs()}
+})
+it('outbound failed actor authorization permits zero provider calls and no entry',async()=>{
+ const f=await outboundSeed();smtpFixture()
+ sql(`UPDATE public.user_profiles SET user_status='inactive' WHERE id=${literal(f.actorUserId)};`)
+ try{await directOutbound(f).catch(()=>null);expect(provider).not.toHaveBeenCalled();expect(outboundFacts(f).filter(e=>e.kind==='provider_call_entered')).toHaveLength(0)}finally{vi.unstubAllEnvs()}
+})
+it('outbound accepted projection repair with a changed route and MIME invokes no provider',async()=>{
+ const f=await outboundSeed(),newRoute=randomUUID(),newProfile=randomUUID();smtpFixture()
+ const {getEdielMessageById}=await import('@/lib/ediel/db'),{sendEdielMessageViaSmtp}=await import('@/lib/ediel/transport')
+ try{
+  await directOutbound(f);expect(provider).toHaveBeenCalledTimes(1)
+  sql(`INSERT INTO public.communication_routes(id,company_id,route_name,environment_type,is_active,target_email) VALUES(${literal(newRoute)},${literal(f.companyId)},'Changed synthetic route','bilateral_test',true,'recipient@example.invalid');
+  INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,transport_security_mode,smtp_to,receiver_email,message_family,business_code)
+  SELECT ${literal(newProfile)},company_id,${literal(newRoute)},'Changed synthetic profile',environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,transport_security_mode,smtp_to,receiver_email,message_family,business_code FROM public.ediel_route_profiles WHERE communication_route_id=${literal(f.routeId)};
+  UPDATE public.ediel_messages SET status='queued',message_sent_at=NULL,communication_route_id=${literal(newRoute)},route_profile_id=${literal(newProfile)} WHERE id=${literal(f.messageId)};`)
+  const m=await getEdielMessageById(f.messageId,{companyId:f.companyId})
+  await sendEdielMessageViaSmtp(m!,{actorUserId:f.actorUserId,smtpMimeMode:'nodemailer-attachment'})
+  expect(provider).toHaveBeenCalledTimes(1)
+  expect(sql(`SELECT to_jsonb(status) FROM public.ediel_messages WHERE id=${literal(f.messageId)}`)).toBe('sent')
+  expect(outboundFacts(f).filter(e=>e.kind==='provider_call_entered')).toHaveLength(1)
+ }finally{vi.unstubAllEnvs()}
+})
+it('outbound owner rejects same-transaction visibility witness',async()=>{
+ const f=await outboundSeed(),first=await preparedOutbound(f)
+ await dispatchCall({...first.identity,action:'release'})
+ const identity={...first.identity,attemptId:randomUUID()}
+ expect(()=>sql(`BEGIN; SET LOCAL ROLE service_role; WITH receipt AS (SELECT public.gridex_outbound_dispatch_v1(${literal({...identity,action:'prepare',owner:{kind:'direct'},binding:first.binding})}) r)
+ SELECT public.gridex_outbound_dispatch_v1(${literal({...identity,action:'witness'})}::jsonb||jsonb_build_object('eventId',r->>'eventId')) FROM receipt; COMMIT;`)).toThrow(/outbound_dispatch_visibility_unproven/)
+})
+it('outbound owner counts scope before its original bound and names overflow',async()=>{
+ const f=await outboundSeed()
+ sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key) SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions WHERE key='communication.read';
+ INSERT INTO public.ediel_messages SELECT (jsonb_populate_record(NULL::public.ediel_messages,to_jsonb(m)||jsonb_build_object('id',gen_random_uuid(),'source_operation_id',gen_random_uuid()::text))).*
+ FROM public.ediel_messages m CROSS JOIN generate_series(1,1000) WHERE m.id=${literal(f.messageId)};`)
+ const read=(point:string)=>sql<Record<string,unknown>>(`SET ROLE service_role; SELECT gridex_outbound_dispatch.readset_v1(${literal(f.companyId)},'test',${literal(f.actorUserId)},${literal({point})});`)
+ expect(read('735123456789012345')).toMatchObject({complete:false,originalCount:1001,reason:'scoped_original_count_overflow'})
+ expect(read('735999999999999999')).toMatchObject({complete:false,originalCount:0,originals:[]})
+})
+it.each([{bytes:262145,count:1,reason:'scoped_original_bytes_overflow'},{bytes:200000,count:32,reason:'scoped_original_attempt_bytes_overflow'}])('outbound bounded reader reports $reason',async({bytes,count,reason})=>{
+ const f=await outboundSeed()
+ sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key) SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions WHERE key='communication.read';
+ INSERT INTO public.ediel_messages SELECT (jsonb_populate_record(NULL::public.ediel_messages,to_jsonb(m)||jsonb_build_object('id',gen_random_uuid(),'source_operation_id',gen_random_uuid()::text,'raw_payload',repeat('X',${bytes})))).*
+ FROM public.ediel_messages m CROSS JOIN generate_series(1,${count}) WHERE m.id=${literal(f.messageId)};`)
+ expect(sql(`SET ROLE service_role; SELECT gridex_outbound_dispatch.readset_v1(${literal(f.companyId)},'test',${literal(f.actorUserId)},${literal({point:'735123456789012345'})});`))
+  .toMatchObject({complete:false,originalCount:count+1,reason})
+})
+
+it('outbound genuinely claimed worker loses entry when its claim changes after preparation',async()=>{
+ const f=await outboundSeed(),outboxId=randomUUID(),workerId='native-stale-worker';smtpFixture()
+ sql(`INSERT INTO public.ediel_outbox(id,company_id,environment,ediel_message_id,status,lock_key) VALUES(${literal(outboxId)},${literal(f.companyId)},'test',${literal(f.messageId)},'queued',${literal(outboxId)});`)
+ const {claimEdielOutboxItem}=await import('@/lib/ediel/outbox/claimOutboxItems'),{sendOutboxItem}=await import('@/lib/ediel/outbox/sendOutboxItem')
+ const claimed=await claimEdielOutboxItem({outboxItemId:outboxId,actorUserId:f.actorUserId,workerId})
+ expect(claimed?.current_send_attempt_id).toBeTruthy()
+ const original=supabaseService.rpc.bind(supabaseService)
+ let prepared=false,replaced=false,entryError:unknown
+ const spy=vi.spyOn(supabaseService,'rpc').mockImplementation(((name:string,args:Record<string,unknown>)=>{
+  const input=args.p_input as Record<string,unknown>|undefined
+  if(name!=='gridex_outbound_dispatch_v1'||input?.messageId!==f.messageId)return original(name,args)
+  return Promise.resolve(original(name,args)).then(async result=>{
+   if(input.action==='prepare'){
+    expect(result.error).toBeNull();expect(result.data).toMatchObject({scoped:true,proceed:true})
+    expect(input.owner).toMatchObject({kind:'worker',outboxId,workerId,sendAttemptId:claimed!.current_send_attempt_id})
+    prepared=true
+    sql(`UPDATE public.ediel_outbox SET status='queued',locked_by=NULL,locked_at=NULL WHERE id=${literal(outboxId)};`)
+    const replacement=await claimEdielOutboxItem({outboxItemId:outboxId,actorUserId:f.actorUserId,workerId:'native-replacement-worker'})
+    expect(replacement?.current_send_attempt_id).toBeTruthy()
+    expect(replacement!.current_send_attempt_id).not.toBe(claimed!.current_send_attempt_id)
+    replaced=true
+   }
+   if(input.action==='enter')entryError=result.error
+   return result
+  })
+ }) as typeof supabaseService.rpc)
+ try{
+  const result=await sendOutboxItem({outboxItemId:outboxId,actorUserId:f.actorUserId,workerId,sendAttemptId:claimed!.current_send_attempt_id,alreadyClaimed:true})
+  expect(prepared&&replaced).toBe(true)
+  expect(entryError).toMatchObject({message:'outbound_dispatch_worker_fence_lost'})
+  expect(result.status).toBe('delivery_uncertain')
+  expect(provider).not.toHaveBeenCalled()
+  expect(outboundFacts(f).filter(e=>e.kind==='prepared')).toEqual([expect.objectContaining({witnessed:true})])
+  expect(outboundFacts(f).filter(e=>e.kind==='provider_call_entered')).toHaveLength(0)
+ }finally{spy.mockRestore();vi.unstubAllEnvs()}
+})
+
+it('outbound result witness failure retains the accepted event and reader gap without resending',async()=>{
+ const f=await outboundSeed(),suffix=randomUUID().replaceAll('-','');smtpFixture()
+ sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key) SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions WHERE key='communication.read';
+ CREATE FUNCTION public.native_witness_fail_${suffix}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+ IF EXISTS(SELECT FROM gridex_outbound_dispatch.events e WHERE e.id=NEW.event_id AND e.message_id=${literal(f.messageId)}::uuid AND e.kind='provider_result') THEN RAISE EXCEPTION 'synthetic_result_witness_failure'; END IF; RETURN NEW; END $$;
+ CREATE TRIGGER native_witness_fail_${suffix} BEFORE INSERT ON gridex_outbound_dispatch.witnesses FOR EACH ROW EXECUTE FUNCTION public.native_witness_fail_${suffix}();`)
+ let installed=true
+ try{
+  await expect(directOutbound(f)).rejects.toMatchObject({name:'SmtpDeliveryUncertainError'})
+  expect(provider).toHaveBeenCalledTimes(1)
+  expect(outboundFacts(f).filter(e=>e.kind==='provider_call_entered')).toEqual([expect.objectContaining({witnessed:true})])
+  expect(outboundFacts(f).filter(e=>e.kind==='provider_result')).toEqual([expect.objectContaining({witnessed:false,facts:expect.objectContaining({classification:'accepted'})})])
+  sql(`DROP TRIGGER native_witness_fail_${suffix} ON gridex_outbound_dispatch.witnesses; DROP FUNCTION public.native_witness_fail_${suffix}();`);installed=false
+  sql(`UPDATE public.ediel_messages SET status='queued',message_sent_at=NULL WHERE id=${literal(f.messageId)};`)
+  await expect(directOutbound(f)).rejects.toMatchObject({name:'SmtpDeliveryUncertainError'})
+  expect(provider).toHaveBeenCalledTimes(1)
+  expect(outboundFacts(f).filter(e=>e.kind==='provider_result')).toEqual([expect.objectContaining({witnessed:false})])
+  expect(sql(`SET ROLE service_role; SELECT gridex_outbound_dispatch.readset_v1(${literal(f.companyId)},'test',${literal(f.actorUserId)},${literal({point:'735123456789012345'})});`))
+   .toMatchObject({complete:false,originalCount:1,gaps:expect.arrayContaining([expect.objectContaining({messageId:f.messageId,reason:'unwitnessed_event'})])})
+ }finally{
+  if(installed)sql(`DROP TRIGGER native_witness_fail_${suffix} ON gridex_outbound_dispatch.witnesses; DROP FUNCTION public.native_witness_fail_${suffix}();`)
+  vi.unstubAllEnvs()
+ }
+})
+
+it.each(['inactive_membership','inactive_company','denied_permission'] as const)('outbound valid scope with %s denies actual sends and SQL entry',async denial=>{
+ const f=await outboundSeed(),prepared=await preparedOutbound(f);smtpFixture()
+ if(denial==='inactive_membership')sql(`UPDATE public.company_memberships SET is_active=false WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.actorUserId)};`)
+ if(denial==='inactive_company')sql(`UPDATE public.companies SET status='paused' WHERE id=${literal(f.companyId)};`)
+ if(denial==='denied_permission'){
+  sql(`DELETE FROM public.user_roles WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.actorUserId)};
+  UPDATE public.user_permissions SET effect='deny' WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.actorUserId)} AND permission_key='communication.send';`)
+  expect(sql(`SELECT to_jsonb(public.gridex_actor_has_company_permission(${literal(f.actorUserId)},${literal(f.companyId)},'communication.send'))`)).toBe(false)
+ }
+ try{
+  const denied=await dispatchCall({...prepared.identity,action:'enter'})
+  expect(denied.error).toMatchObject({message:'outbound_dispatch_actor_unavailable'})
+  await expect(directOutbound(f)).rejects.toBeDefined()
+  expect(provider).not.toHaveBeenCalled()
+  expect(outboundFacts(f).filter(e=>e.kind==='provider_call_entered')).toHaveLength(0)
+ }finally{vi.unstubAllEnvs()}
 })
