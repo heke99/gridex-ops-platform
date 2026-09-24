@@ -421,3 +421,6 @@ Combined migration native314/314 passed; active integration b1c7f993 needs authe
 ## 2026-09-24 — PR372 bounded hold and schema gate green
 
 OPS schema/type mismatch is resolved on 521bc9ba / OPS36003339938; native314/314 and all applicable workflows green. Remaining blockers: Task3b direct/legacy/claim/archive/deletion producer qualification, swallowed event and pre-epoch/retention gaps; Task4 outbound Z08H and document reference in the single-MVCC saved receipt, scoped complete/incomplete inspection and full real-flow/native concurrency review. No full Task4 or E035 acceptance; PR372 remains draft.
+## 2026-09-24 — Current PR372 blockers after canonical archive
+
+Archive and swallowed-event paths passed native316 and317 respectively; `94eb110d` claim replay pending. Task3b still requires real signed/legacy and remaining producer-route qualification plus honest pre-epoch/retention gaps (`complete:false`). Task4 combined saved cutoff includes received source/process/correction but omits outbound Z08H and document reference; actual UTILTS hold, scoped complete/incomplete and concurrency acceptance remain. No merge or ready-for-review claim before final same-head review and all applicable CI. PR310 excluded.

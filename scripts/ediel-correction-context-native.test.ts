@@ -1088,12 +1088,18 @@ it('a combined service receipt observes source, correction and process owners at
  const first=open(), body=JSON.parse(first.readsetText) as {
   visibilitySnapshot:string;source:{readsetText:string;readsetHash:string;visibilitySnapshot:string};
   process:{factCount:number;facts:{rowId:string}[];visibilitySnapshot:string};
-  correction:{count:number;items:{sourceMessageId:string;witnessId:string}[];visibilitySnapshot:string}}
+  correction:{count:number;items:{sourceMessageId:string;witnessId:string}[];visibilitySnapshot:string};
+  outbound:{complete:boolean;originalCount:number;originals:unknown[];visibilitySnapshot:string};
+  document:{complete:boolean;attemptCount:number;attempts:unknown[];visibilitySnapshot:string}}
  expect(first.snapshotId).toMatch(/^[0-9a-f-]{36}$/)
  expect(createHash('sha256').update(first.readsetText).digest('hex')).toBe(first.readsetHash)
  expect(body.source.visibilitySnapshot).toBe(body.visibilitySnapshot)
  expect(body.process.visibilitySnapshot).toBe(body.visibilitySnapshot)
  expect(body.correction.visibilitySnapshot).toBe(body.visibilitySnapshot)
+ expect(body.outbound.visibilitySnapshot).toBe(body.visibilitySnapshot)
+ expect(body.document.visibilitySnapshot).toBe(body.visibilitySnapshot)
+ expect(body.outbound).toMatchObject({complete:false,originalCount:0,originals:[]})
+ expect(body.document).toMatchObject({complete:false,attemptCount:0,attempts:[]})
  expect(body.process.facts).toContainEqual(expect.objectContaining({rowId:taskId}))
  expect(body.correction.count).toBe(1)
  expect(body.correction.items).toContainEqual(expect.objectContaining({sourceMessageId:f.sourceMessageId,

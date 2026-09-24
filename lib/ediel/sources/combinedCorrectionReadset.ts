@@ -27,8 +27,10 @@ export function inspectCombinedCorrectionReadset(expected:ReceivedSourceScope,su
       ||body.environment!==expected.environment||body.subjectMessageId!==subjectMessageId
       ||!same(body.cutoffAt,expected.cutoffAt)||typeof body.visibilitySnapshot!=='string'
       ||!isEvidenceRecord(body.source)||!isEvidenceRecord(body.process)||!isEvidenceRecord(body.correction)
+      ||!isEvidenceRecord(body.outbound)||!isEvidenceRecord(body.document)
       ||body.source.visibilitySnapshot!==body.visibilitySnapshot||body.process.visibilitySnapshot!==body.visibilitySnapshot
       ||body.correction.visibilitySnapshot!==body.visibilitySnapshot
+      ||body.outbound.visibilitySnapshot!==body.visibilitySnapshot||body.document.visibilitySnapshot!==body.visibilitySnapshot
       ||typeof body.source.readsetText!=='string'||!digest(body.source.readsetHash)
       ||evidenceHash(body.source.readsetText)!==body.source.readsetHash
       ||body.process.complete!==false||body.process.authority!=='none'
@@ -36,11 +38,37 @@ export function inspectCombinedCorrectionReadset(expected:ReceivedSourceScope,su
       ||typeof body.process.factCount!=='number'||!Number.isSafeInteger(body.process.factCount)||body.process.factCount<0
       ||body.process.factCount>1000||!Array.isArray(body.correction.items)
       ||body.correction.complete!==true||body.correction.count!==body.correction.items.length
-      ||body.correction.count>1000)return null
+      ||body.correction.count>1000
+      ||body.outbound.complete!==false||body.outbound.authority!=='none'
+      ||body.outbound.historyCoverage!=='before_epoch_unknown'||!Array.isArray(body.outbound.originals)
+      ||typeof body.outbound.originalCount!=='number'||!Number.isSafeInteger(body.outbound.originalCount)||body.outbound.originalCount<0
+      ||body.outbound.originalCount>1000||body.outbound.originalCount!==body.outbound.originals.length
+      ||body.document.complete!==false||body.document.authority!=='none'
+      ||body.document.historyCoverage!=='before_epoch_unknown'||!Array.isArray(body.document.attempts)
+      ||typeof body.document.attemptCount!=='number'||!Number.isSafeInteger(body.document.attemptCount)||body.document.attemptCount<0
+      ||body.document.attemptCount>1000||body.document.attemptCount!==body.document.attempts.length)return null
     const sourceReceipt={snapshotId:receipt.snapshotId,readsetText:body.source.readsetText,readsetHash:body.source.readsetHash}
     const base=inspectStructuralReadset(expected,sourceReceipt)
     if(base.timeline.status!=='inspected'||!base.timeline.boundedReadComplete)return null
     const sourceBody=JSON.parse(body.source.readsetText) as {sources:{sourceMessageId:string;payloadHash:string;rawPayload:string;messageCode:string}[]}
+    const outboundIds=new Set<string>()
+    for(const row of body.outbound.originals){
+      if(!isEvidenceRecord(row)||!isEvidenceUuid(row.messageId)||outboundIds.has(row.messageId)
+        ||typeof row.rawPayload!=='string'||Buffer.byteLength(row.rawPayload)>262144
+        ||typeof row.payloadHash!=='string'||row.payloadHash!==evidenceHash(row.rawPayload)
+        ||typeof row.instrumented!=='boolean'||!isEvidenceRecord(row.scope)
+        ||!Array.isArray(row.attempts)||!Array.isArray(row.events))return null
+      outboundIds.add(row.messageId)
+    }
+    const documentIds=new Set<string>()
+    for(const row of body.document.attempts){
+      if(!isEvidenceRecord(row)||!isEvidenceUuid(row.id)||documentIds.has(row.id)
+        ||!isEvidenceUuid(row.sourceMessageId)||!isEvidenceUuid(row.documentId)
+        ||!sourceBody.sources.some(source=>source.sourceMessageId===row.sourceMessageId)
+        ||!isEvidenceRecord(row.facts)||!digest(row.factsHash)||instant(row.recordedAt)===null
+        ||instant(row.recordedAt)!>instant(expected.cutoffAt)!)return null
+      documentIds.add(row.id)
+    }
     const handled=new Set<string>(),blockers:StructuralReadset['correctionContextBlockers']=[]
     let unresolvedConcern=false
     for(const item of body.correction.items){

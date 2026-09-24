@@ -26,7 +26,9 @@ function receipt(change?:(body:Record<string,unknown>)=>void){
   process:{complete:false,authority:'none',historyCoverage:'before_epoch_unknown',factCount:0,facts:[],visibilitySnapshot:'1:2:'},
   correction:{complete:true,count:1,items:[{id:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',sourceMessageId:sourceId,
    sourcePayloadHash:hash(rawPayload),factsHash:hash('synthetic'),facts,capturedAt:'2026-10-01T00:00:02Z',
-   witnessId:witness,witnessHash:hash('synthetic'),witnessAt:'2026-10-01T00:00:03Z'}],visibilitySnapshot:'1:2:'}}
+   witnessId:witness,witnessHash:hash('synthetic'),witnessAt:'2026-10-01T00:00:03Z'}],visibilitySnapshot:'1:2:'},
+  outbound:{complete:false,authority:'none',historyCoverage:'before_epoch_unknown',originalCount:0,originals:[],visibilitySnapshot:'1:2:'},
+  document:{complete:false,authority:'none',historyCoverage:'before_epoch_unknown',attemptCount:0,attempts:[],visibilitySnapshot:'1:2:'}}
  change?.(body)
  const serialized=JSON.stringify(body)
  return {snapshotId:'ffffffff-ffff-4fff-8fff-ffffffffffff',readsetText:serialized,readsetHash:hash(serialized)}
@@ -60,5 +62,7 @@ it('rejects mismatched visibility, source hash, tenant and subject without relea
   (b:Record<string,unknown>)=>{b.subjectMessageId='00000000-0000-4000-8000-000000000000'},
   (b:Record<string,unknown>)=>{(b.source as {readsetHash:string}).readsetHash='0'.repeat(64)},
   (b:Record<string,unknown>)=>{(b.correction as {items:{sourcePayloadHash:string}[]}).items[0].sourcePayloadHash='0'.repeat(64)},
+  (b:Record<string,unknown>)=>{(b.outbound as {visibilitySnapshot:string}).visibilitySnapshot='different'},
+  (b:Record<string,unknown>)=>{(b.document as {attemptCount:number}).attemptCount=1},
  ])expect(inspectCombinedCorrectionReadset(expected,message,receipt(change))).toBeNull()
 })

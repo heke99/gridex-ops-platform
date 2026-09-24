@@ -470,3 +470,6 @@ Published branch head b1c7f993, tree37789b42, PR372 draft. Database migration d1
 ## 2026-09-24 — PR372 bounded hold and schema gate green
 
 Remote PR372 head 521bc9ba (tree 0ea55b41) has same-head OPS36003339938 green, native314/314, schema fingerprint5e3db200 and all applicable workflows green. Artifact10808668144 from prior replay was verified ZIP SHA d55c5727 and exact schema SQL SHA8c90b124/fingerprint file SHA cb058661 copied. Next: full Task4 outbound/document same-MVCC and scoped process inspection, Task3b genuine producer/delete/archive/retention proof, independent review. Keep complete:false and PR draft. No production operation.
+## 2026-09-24 — Active PR372 native Task3b continuation
+
+Canonical archive now passed native316/316 at `40b7ddab`; actual product fix removes the illegal write to generated `customer_sites.is_active`. Swallowed operational event native317/317 passed at `4511fc96`, retaining incomplete history. `94eb110d` worker-claim test is published with native replay underway. Finish claim result, then signed/legacy producer routes and Task4 outbound/document one-MVCC receipt plus actual UTILTS hold. Whole-PR review, authentic exact-head gates and merge are pending. PR372 draft, main unchanged, PR310 excluded.
