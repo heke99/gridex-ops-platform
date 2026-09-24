@@ -913,3 +913,29 @@ it('process catalog preflight records effective twelve-table triggers constraint
  expect(functions).toHaveLength(7)
  for (const fn of functions) console.info('E035_TASK3B_NATIVE_NORMALIZER', JSON.stringify(fn))
 })
+
+it('process facts retain normalized task transitions and delete scope, while a rolled back write leaves no fact', () => {
+ const companyId=randomUUID(), taskId=randomUUID()
+ sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(companyId)},'Synthetic process history','active');
+  INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)
+  VALUES(${literal(taskId)},${literal(companyId)},'follow_up','Synthetic follow up','open');`)
+ const facts=()=>sql<{operation:string; companyId:string|null; oldStatus:string|null; newStatus:string|null}[]>(`
+  SELECT coalesce(jsonb_agg(jsonb_build_object('operation',operation,'companyId',company_id,
+   'oldStatus',old_fact->>'status','newStatus',new_fact->>'status') ORDER BY id),'[]'::jsonb)
+  FROM gridex_correction_process.facts WHERE table_name='customer_operation_tasks' AND row_id=${literal(taskId)}`)
+ expect(facts()).toEqual([{operation:'INSERT',companyId,oldStatus:null,newStatus:'open'}])
+ sql(`BEGIN; UPDATE public.customer_operation_tasks SET status='resolved' WHERE id=${literal(taskId)};
+  SELECT to_jsonb(count(*)) FROM gridex_correction_process.facts WHERE row_id=${literal(taskId)}; ROLLBACK;`)
+ expect(facts()).toHaveLength(1)
+ sql(`UPDATE public.customer_operation_tasks SET status='resolved' WHERE id=${literal(taskId)};
+  DELETE FROM public.customer_operation_tasks WHERE id=${literal(taskId)};`)
+ expect(facts()).toEqual([
+  {operation:'INSERT',companyId,oldStatus:null,newStatus:'open'},
+  {operation:'UPDATE',companyId,oldStatus:'open',newStatus:'resolved'},
+  {operation:'DELETE',companyId,oldStatus:'resolved',newStatus:null},
+ ])
+ expect(sql(`SELECT to_jsonb(count(*)) FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid
+  JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public'
+  AND c.relname IN (${processFactTables.map(literal).join(',')})
+  AND t.tgname IN ('e035_process_after_write','e035_process_before_delete') AND t.tgenabled='A'`)).toBe(24)
+})
