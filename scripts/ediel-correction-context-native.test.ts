@@ -4,6 +4,7 @@ import {expect,it,vi} from 'vitest'
 import {closureFixture} from '../__tests__/helpers/closureWireFixtures'
 import {supabaseService} from '@/lib/supabase/service'
 import {captureCorrectionContext} from '@/lib/ediel/sources/correctionContextCapture'
+import {archiveInvoiceTestCustomerSafely} from '@/lib/ediel/testing/invoiceTestCenterArchive'
 const literal=(v:unknown)=>"'"+String(typeof v==='object'?JSON.stringify(v):v).replaceAll("'","''")+"'"
 function sql<T>(query:string):T{
  if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('owned_local_only')
@@ -1376,4 +1377,55 @@ it('separately committed archive dates retain OLD scope and a rejected sibling l
  ])
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_correction_process.facts
   WHERE operation='DELETE' AND row_id IN (${literal(pointId)},${literal(siteId)})`)).toBe(0)
+})
+
+it('the actual invoice-test archive retains committed contract, point and site transitions', async () => {
+ const {companyId,actorUserId}=await seed(),customerId=randomUUID(),siteId=randomUUID()
+ const pointId=randomUUID(),contractId=randomUUID(),marker={test_center:{kind:'invoice_test_customer'}}
+ const pricing={schema:'gridex_contract_pricing_v5',pricing_model:'spot',vat_rate:0.25,
+  price_areas:['SE3'],base_components:[{source_type:'nord_pool_spot',label:'Spotpris',weight_percent:100,price_area:'SE3'}],
+  price_components:[{component_code:'spot_markup',component_type:'markup',name:'Påslag',calculation_type:'per_kwh',amount:4,unit:'ore_per_kwh',website_card_visible:true},
+   {component_code:'monthly_fee',component_type:'fee',name:'Månadsavgift',calculation_type:'fixed_monthly',amount:49,unit:'sek_month',website_card_visible:true}]}
+ const offer={name:`Synthetic archive ${contractId}`,slug:`synthetic-archive-${contractId}`,
+  lifecycle_status:'draft',contract_type:'variable_hourly',customer_type:'both',pricing_model:'spot',
+  terms_version:'test-v1',spot_markup_ore_per_kwh:4,monthly_fee_sek:49,invoice_fee_sek:19,default_binding_months:0,
+  default_notice_months:1,automatic_renewal:true,automatic_renewal_term_months:12,
+  power_of_attorney_required:true,valid_from:'2026-09-24'}
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.permissions WHERE key IN ('contracts.create','pricing.write')`)).toBe(2)
+ sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+  SELECT ${literal(actorUserId)},${literal(companyId)},id,key FROM public.permissions
+  WHERE key IN ('contracts.create','pricing.write') ON CONFLICT DO NOTHING;`)
+ const created=sql<{offer:{id:string}}>(`SELECT public.gridex_upsert_internal_contract_offer(
+  ${literal(companyId)},NULL,${literal(offer)}::jsonb,${literal(pricing)}::jsonb,${literal(actorUserId)})`)
+ const offerId=created.offer.id
+ expect(offerId).toMatch(/^[0-9a-f-]{36}$/)
+ expect(sql(`SELECT to_jsonb(contract_product_version_id IS NOT NULL AND price_plan_version_id IS NOT NULL
+  AND legal_bundle_version_id IS NOT NULL) FROM public.contract_offers WHERE id=${literal(offerId)}`)).toBe(true)
+ sql(`INSERT INTO public.customers(id,company_id,first_name,last_name,source,is_test_data,metadata)
+  VALUES(${literal(customerId)},${literal(companyId)},'Synthetic','Archive','invoice_test_center',true,${literal(marker)}::jsonb);
+  INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,facility_id,is_test_data,metadata)
+  VALUES(${literal(siteId)},${literal(companyId)},${literal(customerId)},'Archive site','735123456789012345',true,${literal(marker)}::jsonb);
+  INSERT INTO public.metering_points(id,company_id,customer_id,site_id,meter_point_id,is_test_data,metadata)
+  VALUES(${literal(pointId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},'735123456789012345',true,${literal(marker)}::jsonb);
+  INSERT INTO public.customer_contracts(id,company_id,customer_id,site_id,metering_point_id,contract_offer_id,status,metadata,created_by)
+  VALUES(${literal(contractId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(pointId)},${literal(offerId)},'draft',${literal(marker)}::jsonb,${literal(actorUserId)});`)
+ expect(sql(`SELECT to_jsonb(contract_publication_version_id IS NOT NULL AND contract_product_version_id IS NOT NULL
+  AND price_plan_version_id IS NOT NULL AND legal_bundle_version_id IS NOT NULL)
+  FROM public.customer_contracts WHERE id=${literal(contractId)}`)).toBe(true)
+ const archived=await archiveInvoiceTestCustomerSafely({companyId,customerId,actorUserId})
+ expect(archived.customerId).toBe(customerId)
+ expect(sql(`SELECT jsonb_agg(jsonb_build_object('table',table_name,'companyId',company_id,
+  'oldStatus',old_fact->>'status','newStatus',new_fact->>'status',
+  'oldIdentity',CASE table_name WHEN 'customer_sites' THEN old_fact->>'facility_id' WHEN 'metering_points' THEN old_fact->>'meter_point_id' END,
+  'newIdentity',CASE table_name WHEN 'customer_sites' THEN new_fact->>'facility_id' WHEN 'metering_points' THEN new_fact->>'meter_point_id' END,
+  'archiveMatches',CASE WHEN table_name IN ('customer_sites','metering_points')
+   THEN (new_fact->>'archived_at')::timestamptz=${literal(archived.archivedAt)}::timestamptz ELSE NULL END,
+  'customerId',old_fact->>'customer_id') ORDER BY table_name)
+  FROM gridex_correction_process.facts WHERE operation='UPDATE'
+   AND row_id IN (${[contractId,pointId,siteId].map(literal).join(',')})`)).toEqual([
+  {table:'customer_contracts',companyId,oldStatus:'draft',newStatus:'cancelled',oldIdentity:null,newIdentity:null,archiveMatches:null,customerId},
+  {table:'customer_sites',companyId,oldStatus:'draft',newStatus:'closed',oldIdentity:'735123456789012345',newIdentity:`ARCHIVED-FAKTURATEST-SITE-${siteId}`,archiveMatches:true,customerId},
+  {table:'metering_points',companyId,oldStatus:'draft',newStatus:'ended',oldIdentity:'735123456789012345',newIdentity:`ARCHIVED-FAKTURATEST-MP-${pointId}`,archiveMatches:true,customerId},
+ ])
+ expect(sql(`SELECT to_jsonb(archived_at IS NOT NULL) FROM public.customers WHERE id=${literal(customerId)}`)).toBe(true)
 })
