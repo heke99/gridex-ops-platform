@@ -10,7 +10,7 @@
   "last_merged_pr": 371,
   "last_accepted_pr": 371,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "E035 hold-only correction context and process history",
+  "active_item": "E035 Task2b reference-only document correction context",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish approved authentic schema from API parent6091edc7, qualify final same-head CI, accept source-only Task2a and START prepared Task2b.",
+  "next_action": "Publish accepted source-only receipt then START prepared document_reference_task2b on immutable syncedBASE; one runtimeauthor, no positiveC, native/artifact gates later.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -446,7 +446,7 @@
     ]
   },
   "correction_capture_fix4": {
-    "status": "NATIVE_SCHEMA_SPEC_QUALITY_APPROVED_FINAL_CI_PENDING",
+    "status": "SOURCE_ONLY_TASK2A_ACCEPTED_ALL_FINAL_HEAD_GATES_PASS",
     "base": "dba554664ea2d6f240d709db57c3c664ea5ec9cc",
     "implementation": "05461a63c3a60b725524320285bb11fd58414171",
     "unit_tests": 71,
@@ -479,6 +479,20 @@
     "fix5_native_job": 107452448227,
     "fix5_artifact": 10785596678,
     "fix5_artifact_sha256": "4c7c088ef2cac2de06fcd8953f50e964dbd2dbc7a89ee9c8cdc52fbc9fcc89af",
-    "schema_fingerprint": "f6632eb629f156641dfa502a96543466d5df4e41bd00c00539dac7bf16c44d24"
+    "schema_fingerprint": "f6632eb629f156641dfa502a96543466d5df4e41bd00c00539dac7bf16c44d24",
+    "final_published_head": "8fde5f2644a87351a5dbe42d8a694d33a606ba8d",
+    "final_published_tree": "f23f346b065b43c70d662c0ba8006d00c21cfb59",
+    "final_ops_run": 35942941358,
+    "final_native_job": 107454629303,
+    "final_quality_job": 107454629457,
+    "final_verify_job": 107454629433,
+    "final_artifact": 10785568965,
+    "final_artifact_sha256": "95bdfdd9e3bba4569751b787e7d6f4eab058926a4dd02c2d6c671b5a76aaf6ff",
+    "final_review": "SPEC_QUALITY_NATIVE_SOURCE_ONLY_ACCEPT"
+  },
+  "correction_document_task2b": {
+    "status": "PREPARED_START_AFTER_RECEIPT_PUBLICATION",
+    "author": "/root/document_reference_task2b",
+    "source_accepted_head": "8fde5f2644a87351a5dbe42d8a694d33a606ba8d"
   }
 }

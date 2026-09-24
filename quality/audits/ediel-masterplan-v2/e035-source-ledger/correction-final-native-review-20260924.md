@@ -31,3 +31,15 @@ Fingerprint counts are consistent with these objects: +22 columns, +15 constrain
 Prior accepted native/static reviews remain the evidence owners for the wider source-only assertions. This reconciliation neither supersedes their scope limits nor promotes future document-reference preparation into runtime implementation. Publish the exact generated files and obtain the ordinary required CI on that exact final head before delivery acceptance.
 
 Read-only inspection except this requested scratch report. No runtime/schema/repository/memory/plan edits, commits, test execution or subdelegation.
+
+## Final same-head native receipt addendum
+
+SPEC: Final native source-only Task2a checkpoint ACCEPTED. QUALITY: Final native/generated-contract evidence APPROVED. This supersedes the preceding native/schema reconciliation hold, while delivery/start-next-task still requires the parent to establish success of every ordinary required final-head gate, including the separately pending quality build.
+
+Supplied final provenance: published `8fde5f2644a87351a5dbe42d8a694d33a606ba8d`, tree prefix `f23f346b`, OPS35942941358/native107454629303, artifact10785568965. Independently recomputed final archive SHA256 `95bdfdd9e3bba4569751b787e7d6f4eab058926a4dd02c2d6c671b5a76aaf6ff`. All four ZIP members match their extracted files byte-for-byte. Final actual generated database types, schema SQL and fingerprint JSON each match the current repository copies exactly.
+
+Final actual replay log confirms native 224/224 across four files, case-view 1/1, protected browser 2/2 and postbrowser 1/1, generated-types hash `30c9f682c20f5e1d9ff203a445e24785d1058d3997f233d75e05b3eebee756e7`, tenant isolation invariant PASS and parity selftest PASS. The log ends with successful schema snapshot verification at fingerprint `f6632eb629f156641dfa502a96543466d5df4e41bd00c00539dac7bf16c44d24`. The earlier stale-schema mismatch is now genuinely resolved on the final native receipt; it has not been relabeled retroactively.
+
+This was receipt-only review, not a fresh implementation review or execution. Remote run/head association and ordinary-job status remain supplied parent provenance. No whole Task2/document/process/UTILTS/full-E035 claim or Task2b runtime authorization follows. No runtime, test, repository, memory or plan mutation, commit, or delegation was performed; only this report addendum was written.
+
+Parent final gate update received after this addendum: quality107454629457 SUCCESS (reported full6038/374 and compiled build/bundle PASS), verify107454629433 SUCCESS, all other applicable workflows SUCCESS on `8fde5f26`, crawler SKIPPED. These ordinary-gate results were not independently reread in this receipt-only review. With the parent verifying those same-head results, no remaining hold is identified by this review for accepting the bounded source-only Task2a checkpoint. Report frozen.
