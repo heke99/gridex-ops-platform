@@ -1,3 +1,7 @@
+## 2026-09-24 — E035 canonical operational capture capability
+
+Native evidence showed communication.write is absent from canonical permissions; new capture was unusable. Independent narrow SPEC/QUALITY amendment approves existing communication.send in action and forward SQL, with unchanged tenant/actor/company/original/witness checks. No new permission, alias, grants, test fallback, semantic review or outbound operation. This corrects an internal nonexistent identifier under user-authorized implementation, not a new role-policy decision. Document capture retains documents.read/customers.read. Published SQL remains immutable.
+
 ## 2026-09-24 — E035 raw correction date does not establish prior boundary
 
 A bare C source DTM93 is an observed date only. Until an independently linked authentic L/LK establishes the prior end, correction capture oldStop remains unknown, so the hold spans the matching interval. Later authentic target composition may refine the derived readset without mutating original capture or saved cutoffs. No positive correction authority follows.

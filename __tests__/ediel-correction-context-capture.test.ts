@@ -37,7 +37,7 @@ it('a document input is explicitly unavailable pending retained context design',
 function form(){const f=new FormData();f.set('companyId',input.companyId);f.set('environment','test');f.set('sourceMessageId',input.sourceMessageId);f.set('recordForReview','on');return f}
 it('authenticates actor and company, exposes no reviewer or bytes authority',async()=>{
  expect(await captureCorrectionConcernAction(form())).toMatchObject({status:'recorded',disposition:'unreviewed'})
- expect(mocks.access).toHaveBeenCalledWith(input.companyId,{allOf:['communication.write']})
+ expect(mocks.access).toHaveBeenCalledWith(input.companyId,{allOf:['communication.send']})
  expect(mocks.operational).toHaveBeenCalledWith(input.companyId)
  expect(mocks.rpc.mock.calls[0][1].p_actor_user_id).toBe(input.actorUserId)
 })

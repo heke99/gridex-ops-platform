@@ -14,6 +14,7 @@ const raw=()=>closureFixture({reason:'Z24'}).wire
 const project=(wire:string)=>sql<Record<string,unknown>>(`SELECT gridex_received_sources.correction_wire_observation_v1(${literal(wire)});`)
 async function seed(wire=raw()){
  const companyId=randomUUID(),actorUserId=randomUUID(),sourceMessageId=randomUUID()
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.permissions WHERE key='communication.send'`)).toBe(1)
  sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(companyId)},'Synthetic correction capture','active');
  INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
  VALUES(${literal(actorUserId)},'authenticated','authenticated',${literal(`${actorUserId}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
@@ -23,7 +24,7 @@ async function seed(wire=raw()){
  INSERT INTO public.user_roles(user_id,role_id,role,company_id,status,is_active)
  SELECT ${literal(actorUserId)},id,'company_admin',${literal(companyId)},'active',true FROM public.roles WHERE key='company_admin' ON CONFLICT DO NOTHING;
  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
- SELECT ${literal(actorUserId)},${literal(companyId)},id,'communication.write' FROM public.permissions WHERE key='communication.write';
+ SELECT ${literal(actorUserId)},${literal(companyId)},id,'communication.send' FROM public.permissions WHERE key='communication.send';
  -- Pin the actual enabled C registry profile like the retained closure fixture.
  -- Code/date-only inference sees L, LK and C as three Z05 candidates; it cannot
  -- use parsed subtype to choose one. Preserve the real receive/commit clock.
@@ -32,6 +33,10 @@ async function seed(wire=raw()){
  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
  WHERE profile.profile_key='PRODAT:Z05:C:26.A:r3' AND profile.is_enabled;`)
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.sources WHERE source_message_id=${literal(sourceMessageId)}`)).toBe(1)
+ const permission=await supabaseService.rpc('gridex_actor_has_company_permission',{p_actor_user_id:actorUserId,p_company_id:companyId,p_permission:'communication.send'})
+ expect(permission.error).toBeNull();expect(permission.data).toBe(true)
+ expect(sql(`SELECT jsonb_build_object('companyActive',c.is_active,'companyStatus',c.status,'userStatus',u.user_status,'membershipActive',m.is_active,'membershipStatus',m.status) FROM public.companies c JOIN public.company_memberships m ON m.company_id=c.id JOIN public.user_profiles u ON u.id=m.user_id WHERE c.id=${literal(companyId)} AND u.id=${literal(actorUserId)}`))
+  .toEqual({companyActive:true,companyStatus:'active',userStatus:'active',membershipActive:true,membershipStatus:'active'})
  return {companyId,actorUserId,sourceMessageId,environment:'test' as const}
 }
 const call=(f:Awaited<ReturnType<typeof seed>>)=>`public.gridex_capture_correction_concern_v1(${literal(f.companyId)},'test',${literal(f.sourceMessageId)},${literal(f.actorUserId)})`
@@ -75,11 +80,13 @@ it('real capture is idempotent, separately witnessed, hash-bound and independent
 })
 it('cross-company/environment and unauthorized actor never append',async()=>{
  const f=await seed(),other=await seed()
+ const wrongCompany=await supabaseService.rpc('gridex_actor_has_company_permission',{p_actor_user_id:other.actorUserId,p_company_id:f.companyId,p_permission:'communication.send'})
+ expect(wrongCompany.error).toBeNull();expect(wrongCompany.data).toBe(false)
  for(const input of [{...f,companyId:other.companyId},{...f,environment:'production' as const},{...f,actorUserId:other.actorUserId}])
   expect(await captureCorrectionContext(input)).toEqual({status:'unconfirmed',disposition:'unreviewed'})
  sql(`UPDATE public.user_profiles SET user_status='disabled' WHERE id=${literal(f.actorUserId)}`)
  expect(await captureCorrectionContext(f)).toEqual({status:'unconfirmed',disposition:'unreviewed'})
- expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.correction_concerns WHERE source_message_id=${literal(f.sourceMessageId)}`)).toBe(0)
+ expect(sql(`SELECT jsonb_build_object('concerns',(SELECT count(*) FROM gridex_received_sources.correction_concerns WHERE source_message_id=${literal(f.sourceMessageId)}),'witnesses',(SELECT count(*) FROM gridex_received_sources.correction_witnesses WHERE company_id=${literal(f.companyId)}))`)).toEqual({concerns:0,witnesses:0})
 })
 it('same-transaction witness is rejected, later committed readback can recover interrupted capture',async()=>{
  const f=await seed()
@@ -120,14 +127,26 @@ it('original byte/hash substitution and source ID reuse cannot relabel a capture
  expect(()=>sql(`INSERT INTO public.ediel_messages SELECT * FROM jsonb_populate_record(NULL::public.ediel_messages,${literal(original)}::jsonb)`)).toThrow(/sources_pkey/)
  expect(await captureCorrectionContext(f)).toEqual(receipt)
 })
-it('communication permission is required even if another test-only capability exists',async()=>{
- const f=await seed()
- sql(`DELETE FROM public.user_roles WHERE user_id=${literal(f.actorUserId)};
- DELETE FROM public.user_permissions WHERE user_id=${literal(f.actorUserId)};
- UPDATE public.company_memberships SET membership_role='viewer',role='viewer',role_key='viewer' WHERE user_id=${literal(f.actorUserId)};
+it.each(['ediel_testing.write','communication.read'])('a separate actor with only %s cannot capture',async limitedPermission=>{
+ const f=await seed(),limitedActor=randomUUID()
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.permissions WHERE key=${literal(limitedPermission)}`)).toBe(1)
+ // Preserve the functioning administrator; create a distinct limited actor.
+ sql(`INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
+ VALUES(${literal(limitedActor)},'authenticated','authenticated',${literal(`${limitedActor}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
+ INSERT INTO public.user_profiles(id,email,full_name,user_status)
+ VALUES(${literal(limitedActor)},${literal(`${limitedActor}@example.invalid`)},'Synthetic limited capture actor','active') ON CONFLICT(id) DO UPDATE SET user_status='active';
+ INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key)
+ VALUES(${literal(f.companyId)},${literal(limitedActor)},'viewer','active',now(),'{}','viewer',true,now(),'viewer');
  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
- SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,'ediel_testing.write' FROM public.permissions WHERE key='ediel_testing.write';`)
- expect(await captureCorrectionContext(f)).toEqual({status:'unconfirmed',disposition:'unreviewed'})
+ SELECT ${literal(limitedActor)},${literal(f.companyId)},id,${literal(limitedPermission)} FROM public.permissions WHERE key=${literal(limitedPermission)};`)
+ for(const [permission,expected] of [[limitedPermission,true],['communication.send',false]] as const){
+  const {data,error}=await supabaseService.rpc('gridex_actor_has_company_permission',{
+   p_actor_user_id:limitedActor,p_company_id:f.companyId,p_permission:permission,
+  })
+  expect(error).toBeNull();expect(data).toBe(expected)
+ }
+ expect(await captureCorrectionContext({...f,actorUserId:limitedActor})).toEqual({status:'unconfirmed',disposition:'unreviewed'})
+ expect(sql(`SELECT jsonb_build_object('concerns',(SELECT count(*) FROM gridex_received_sources.correction_concerns WHERE source_message_id=${literal(f.sourceMessageId)}),'witnesses',(SELECT count(*) FROM gridex_received_sources.correction_witnesses WHERE company_id=${literal(f.companyId)}))`)).toEqual({concerns:0,witnesses:0})
 })
 it('capture facts are absent at a pre-capture cutoff and immutable across a later retry',async()=>{
  const f=await seed(),before=sql<string>('SELECT to_jsonb(clock_timestamp())')
@@ -164,4 +183,12 @@ it.each([
 ])('unsupported namespace %s -> %s produces only a wildcard concern',(from,to)=>{
  expect(project(raw().replace(from,to))).toEqual({objectId:null,identityAgency:null,legalSender:null,legalReceiver:null,
   caseReference:null,candidateTarget:null,oldStop:{kind:'unknown'},proposedStop:{kind:'unknown'},observedSourceStop:{kind:'unknown'},disposition:'unreviewed'})
+})
+
+it('an operationally paused company cannot append a concern despite its active actor',async()=>{
+ const f=await seed()
+ sql(`UPDATE public.companies SET status='paused' WHERE id=${literal(f.companyId)}`)
+ expect(sql(`SELECT to_jsonb(status) FROM public.companies WHERE id=${literal(f.companyId)}`)).toBe('paused')
+ expect(await captureCorrectionContext(f)).toEqual({status:'unconfirmed',disposition:'unreviewed'})
+ expect(sql(`SELECT jsonb_build_object('concerns',(SELECT count(*) FROM gridex_received_sources.correction_concerns WHERE source_message_id=${literal(f.sourceMessageId)}),'witnesses',(SELECT count(*) FROM gridex_received_sources.correction_witnesses WHERE company_id=${literal(f.companyId)}))`)).toEqual({concerns:0,witnesses:0})
 })

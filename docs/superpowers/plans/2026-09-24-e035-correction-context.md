@@ -10,6 +10,8 @@
 
 ## Execution amendments and current gates
 
+Reviewed permission amendment: operational capture uses the existing canonical `communication.send`, not nonexistent `communication.write`. See correction-capture-permission-amendment-review-20260924.md. Apply identically in authenticated company action and forward SQL, with no new permission, alias, role grants, testing fallback or semantic authority; document references additionally retain documents.read/customers.read.
+
 Task 1 is complete: local 4de528da, independent SPEC/QUALITY approval, published exact tree ea1d76e4 with full 6007 tests and all applicable CI passing. The helper remains disconnected pending Tasks 2–4.
 
 Task 2 is split into sequential, separately reviewed checkpoints: (2a) immutable sealed-Z05 source capture, currently implementing; (2b) reference-only `context_document_reference_v1` under the approved `document-reference-design-20260924.md` and its review in the E035 source-ledger audit directory. The reference route stores no new PDF copy, requires actual bounded 2 MiB readback and a durable unresolved attempt before I/O, and cannot establish positive correction cause. New copied-document retention and future positive-C authoritative artifact qualification remain unresolved. This refinement does not mark the original full Task 2 complete.
