@@ -1252,4 +1252,24 @@ it('customer, site, point, contract and supply graph writes retain process links
     {operation:'DELETE',oldSite:null,newSite:null,oldPoint:pointId,newPoint:null,
      oldEnd:'2026-09-24',newEnd:null},
    ])
+
+ // The archive path commits separate deletes. Every successful child and
+ // parent mutation must leave its own OLD-side identity after the row is gone.
+ sql(`DELETE FROM public.customer_contract_events WHERE id IN (${literal(contractEventId)},${literal(routedEventId)});
+  DELETE FROM public.customer_cases WHERE id=${literal(caseId)};
+  DELETE FROM public.customer_operation_events WHERE id=${literal(operationEventId)};
+  DELETE FROM public.customer_operation_jobs WHERE id=${literal(jobId)};
+  DELETE FROM public.supplier_switch_requests WHERE id=${literal(switchId)};
+  DELETE FROM public.customer_contracts WHERE id=${literal(contractId)};
+  DELETE FROM public.metering_points WHERE id=${literal(pointId)};
+  DELETE FROM public.customer_sites WHERE id IN (${literal(siteId)},${literal(nextSiteId)});`)
+ const removed=[contractEventId,routedEventId,caseEventId,caseId,operationEventId,jobId,
+  switchId,contractId,pointId,siteId,nextSiteId]
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_correction_process.facts
+  WHERE operation='DELETE' AND company_id=${literal(companyId)}
+   AND row_id IN (${removed.map(literal).join(',')})`)).toBe(removed.length)
+ expect(sql(`SELECT jsonb_build_object('customerId',old_fact->>'customer_id',
+  'siteId',old_fact->>'site_id','pointId',old_fact->>'metering_point_id')
+  FROM gridex_correction_process.facts WHERE row_id=${literal(pointId)} AND operation='DELETE'`))
+  .toEqual({customerId,siteId:nextSiteId,pointId:'735123456789012345'})
 })
