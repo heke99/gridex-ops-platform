@@ -1231,4 +1231,25 @@ it('customer, site, point, contract and supply graph writes retain process links
  expect(unrelatedPeriod.facts.some(fact=>fact.table==='customer_supply_periods'&&fact.rowId===periodId)).toBe(false)
  const unrelatedPoint=JSON.parse(scoped('735123456789012346',periodId).readsetText) as {facts:{table:string;rowId:string}[]}
  expect(unrelatedPoint.facts.some(fact=>fact.table==='customer_supply_periods'&&fact.rowId===periodId)).toBe(false)
+
+ const nextSiteId=randomUUID()
+ sql(`INSERT INTO public.customer_sites(id,company_id,customer_id,site_name)
+  VALUES(${literal(nextSiteId)},${literal(companyId)},${literal(customerId)},'Synthetic next site');
+  UPDATE public.metering_points SET site_id=${literal(nextSiteId)},customer_site_id=${literal(nextSiteId)}
+  WHERE id=${literal(pointId)};
+  UPDATE public.customer_supply_periods SET end_date='2026-09-24' WHERE id=${literal(periodId)};
+  DELETE FROM public.customer_supply_periods WHERE id=${literal(periodId)};`)
+ expect(sql(`SELECT jsonb_agg(jsonb_build_object('operation',operation,
+  'oldSite',old_fact->>'site_id','newSite',new_fact->>'site_id',
+  'oldPoint',old_fact->>'metering_point_id','newPoint',new_fact->>'metering_point_id',
+  'oldEnd',old_fact->>'end_date','newEnd',new_fact->>'end_date') ORDER BY id)
+  FROM gridex_correction_process.facts WHERE row_id IN (${literal(pointId)},${literal(periodId)})
+   AND operation IN ('UPDATE','DELETE')`)).toEqual([
+    {operation:'UPDATE',oldSite:siteId,newSite:nextSiteId,oldPoint:'735123456789012345',
+     newPoint:'735123456789012345',oldEnd:null,newEnd:null},
+    {operation:'UPDATE',oldSite:null,newSite:null,oldPoint:pointId,newPoint:pointId,
+     oldEnd:null,newEnd:'2026-09-24'},
+    {operation:'DELETE',oldSite:null,newSite:null,oldPoint:pointId,newPoint:null,
+     oldEnd:'2026-09-24',newEnd:null},
+   ])
 })
