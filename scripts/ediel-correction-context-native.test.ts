@@ -1028,22 +1028,35 @@ it('a combined service receipt observes source, correction and process owners at
  sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
   SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions WHERE key='customers.read'
   ON CONFLICT DO NOTHING;
-  INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)
-  VALUES(${literal(taskId)},${literal(f.companyId)},'follow_up','Combined receipt','open');`)
+ INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)
+ VALUES(${literal(taskId)},${literal(f.companyId)},'follow_up','Combined receipt','open');`)
+ const concern=sql<{captureId:string;factsHash:string}>(`SET ROLE service_role; SELECT ${call(f)}`)
+ sql(`SET ROLE service_role; SELECT public.gridex_witness_correction_concern_v1(${literal(f.companyId)},'test',
+  ${literal(concern.captureId)},${literal(concern.factsHash)});`)
  const open=()=>sql<{snapshotId:string;readsetText:string;readsetHash:string}>(`
-  SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.companyId)},'test',
-   ${literal(f.actorUserId)},clock_timestamp())`)
+  SET ROLE service_role; SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.companyId)},'test',
+   ${literal(f.sourceMessageId)},clock_timestamp())`)
  const first=open(), body=JSON.parse(first.readsetText) as {
   visibilitySnapshot:string;source:{readsetText:string;readsetHash:string;visibilitySnapshot:string};
   process:{factCount:number;facts:{rowId:string}[];visibilitySnapshot:string};
-  correction:{count:number;visibilitySnapshot:string}}
+  correction:{count:number;items:{sourceMessageId:string;witnessId:string}[];visibilitySnapshot:string}}
  expect(first.snapshotId).toMatch(/^[0-9a-f-]{36}$/)
  expect(createHash('sha256').update(first.readsetText).digest('hex')).toBe(first.readsetHash)
  expect(body.source.visibilitySnapshot).toBe(body.visibilitySnapshot)
  expect(body.process.visibilitySnapshot).toBe(body.visibilitySnapshot)
  expect(body.correction.visibilitySnapshot).toBe(body.visibilitySnapshot)
  expect(body.process.facts).toContainEqual(expect.objectContaining({rowId:taskId}))
- expect(body.correction.count).toBe(0)
+ expect(body.correction.count).toBe(1)
+ expect(body.correction.items).toContainEqual(expect.objectContaining({sourceMessageId:f.sourceMessageId,
+  witnessId:expect.stringMatching(/^[0-9a-f-]{36}$/)}))
+ expect(()=>sql(`SET ROLE service_role; SELECT public.gridex_correction_combined_snapshot_v1(
+  ${literal(randomUUID())},'test',${literal(f.sourceMessageId)},clock_timestamp())`))
+  .toThrow(/combined_snapshot_scope_unavailable/)
+ expect(()=>sql(`SET ROLE authenticated; SELECT public.gridex_correction_combined_snapshot_v1(
+  ${literal(f.companyId)},'test',${literal(f.sourceMessageId)},clock_timestamp())`))
+  .toThrow(/permission denied|combined_snapshot_service_required/)
+ expect(()=>sql(`SET ROLE service_role; DELETE FROM gridex_correction_process.combined_snapshots
+  WHERE id=${literal(first.snapshotId)}`)).toThrow(/permission denied/)
  sql(`INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)
   VALUES(${literal(laterId)},${literal(f.companyId)},'follow_up','Later receipt','open');`)
  expect(JSON.parse(first.readsetText)).toEqual(body)
