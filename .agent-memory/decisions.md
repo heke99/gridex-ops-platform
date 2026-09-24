@@ -1,3 +1,7 @@
+## 2026-09-24 — Task3a necessary S/MIME serial representation correction
+
+Native298/301 revealed actual existing inspectCmsRecipientInfo printed-serial parser treats OpenSSL decimal1234 as hex rather than certificate04D2; regex also truncates a prefixed0x form. Parent inspected index.part-1.ts530 and authorized narrowly correcting recognized OpenSSL serial representations after actual local crypto reproduction. Keep original native1234 fixture; do not choose serial9 to hide the defect. Exact integer conversion, no Number precision loss, wrong serial remains rejected; expected-certificate normalization and fallback policy unchanged. Focused real crypto tests and independent fix3 review mandatory. No broader crypto refactor or published migration change.
+
 ## 2026-09-24 — Task3a exact provider-entry seam
 
 Parent confirmed sendEdielEmail owns S/MIME archive/readback before actual nodemailer invocation. Narrow helper callback/type extension is necessary to place SQL entry after preparation and immediately before both sendMail branches; no broad helper refactor, no fallback, no new policy. Prepared only pending Task2b acceptance. Tracked process-history-task3a-preparation-20260924.md records callback response-loss and safe-release semantics.

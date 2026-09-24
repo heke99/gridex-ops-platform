@@ -1,3 +1,9 @@
+## 2026-09-24 — Task3a native298/301; fix round3 active
+
+Published954b0e06 / OPS35955234101/native107492044271:298PASS3FAIL301. Failures are actual S/MIME expected-recipient rejection (transport575/native663), fixture bulk1000-message INSERT timeout before reader (native743), and attempted removal of last functioning tenant admin in inactive-membership fixture (native823). Original author outbound_fence_task3a owns fix3 from954b0e06; diagnose before classifying S/MIME runtime versus fixture, preserve all certificate/tenant/history gates. Published031626 immutable.
+
+Ordinary full6062/376, coverage, quality107492044171 including build/bundle PASS. Verify/smoke still reject stale generated-types migration tail. Artifact10789599035 ZIPa728a0119bc712159798e24ee9a6741d6b8cee5985f4b441fd5ef5f032ad703b verified, log-only. Native301 rerun/authentic contracts/independent acceptance remain before Task3b. Next: committed fix3, scopedreview954b0e06..fixHEAD, exact-tree publication and native rerun. Active isolated workspace unchanged; user authorization persists/fullE035 partial/PR372 draft.
+
 ## 2026-09-24 — Task3a first native result and fix2 review
 
 Published45d3e5c9 / OPS35954321157 / native107489288645 ran301 tests:267PASS,34FAIL. All34 failures stop at synthetic actor seeding (global normalized_name collision), not the intended behavior. Full6061/6062 fails one pre-SMTP source-shape assertion after the wrapper change. Original author bundled fixture isolation and source-contract preservation in6a9c0f55; runtime/published SQL unchanged. Targeted RED1/GREEN1, scripts/tests types/lint and helper4 pass. Reviewer outbound_fix2_review now examines only45d3e5c9..6a9c0f55. Native301 rerun and generated contracts remain required.

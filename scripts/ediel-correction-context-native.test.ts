@@ -740,9 +740,12 @@ it('outbound owner rejects same-transaction visibility witness',async()=>{
 })
 it('outbound owner counts scope before its original bound and names overflow',async()=>{
  const f=await outboundSeed()
- sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key) SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions WHERE key='communication.read';
- INSERT INTO public.ediel_messages SELECT (jsonb_populate_record(NULL::public.ediel_messages,to_jsonb(m)||jsonb_build_object('id',gen_random_uuid(),'source_operation_id',gen_random_uuid()::text))).*
- FROM public.ediel_messages m CROSS JOIN generate_series(1,1000) WHERE m.id=${literal(f.messageId)};`)
+ sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key) SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions WHERE key='communication.read';`)
+ // Retain every real canonical trigger; bound seed statements independently of
+ // the reader's unchanged 10-second budget and its exact 1001-row oracle.
+ for(let batch=0;batch<20;batch++)sql(`INSERT INTO public.ediel_messages SELECT (jsonb_populate_record(NULL::public.ediel_messages,to_jsonb(m)||jsonb_build_object('id',gen_random_uuid(),'source_operation_id',gen_random_uuid()::text))).*
+ FROM public.ediel_messages m CROSS JOIN generate_series(1,50) WHERE m.id=${literal(f.messageId)};`)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='outbound'`)).toBe(1001)
  const read=(point:string)=>sql<Record<string,unknown>>(`SET ROLE service_role; SELECT gridex_outbound_dispatch.readset_v1(${literal(f.companyId)},'test',${literal(f.actorUserId)},${literal({point})});`)
  expect(read('735123456789012345')).toMatchObject({complete:false,originalCount:1001,reason:'scoped_original_count_overflow'})
  expect(read('735999999999999999')).toMatchObject({complete:false,originalCount:0,originals:[]})
@@ -820,7 +823,20 @@ it('outbound result witness failure retains the accepted event and reader gap wi
 
 it.each(['inactive_membership','inactive_company','denied_permission'] as const)('outbound valid scope with %s denies actual sends and SQL entry',async denial=>{
  const f=await outboundSeed(),prepared=await preparedOutbound(f);smtpFixture()
- if(denial==='inactive_membership')sql(`UPDATE public.company_memberships SET is_active=false WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.actorUserId)};`)
+ if(denial==='inactive_membership'){
+  // Keep a functioning administrator; exercise deactivation through the real
+  // tenant guard instead of disabling it to arrange the authorization case.
+  const backup=await seed()
+  sql(`INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key)
+  VALUES(${literal(f.companyId)},${literal(backup.actorUserId)},'company_admin','active',now(),'{}','company_admin',true,now(),'company_admin');
+  INSERT INTO public.user_roles(user_id,role_id,role,company_id,status,is_active)
+  SELECT ${literal(backup.actorUserId)},id,'company_admin',${literal(f.companyId)},'active',true FROM public.roles WHERE key='company_admin';
+  UPDATE public.company_memberships SET is_active=false WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.actorUserId)};`)
+  expect(sql(`SELECT to_jsonb(count(*)) FROM public.company_memberships m JOIN auth.users u ON u.id=m.user_id JOIN public.user_profiles p ON p.id=u.id
+   WHERE m.company_id=${literal(f.companyId)} AND m.user_id=${literal(backup.actorUserId)} AND m.is_active AND m.status='active' AND m.membership_role='company_admin'
+    AND u.deleted_at IS NULL AND (u.banned_until IS NULL OR u.banned_until<=now()) AND u.email_confirmed_at IS NOT NULL AND p.user_status='active'`)).toBe(1)
+  expect(sql(`SELECT to_jsonb(is_active) FROM public.company_memberships WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.actorUserId)}`)).toBe(false)
+ }
  if(denial==='inactive_company')sql(`UPDATE public.companies SET status='paused' WHERE id=${literal(f.companyId)};`)
  if(denial==='denied_permission'){
   sql(`DELETE FROM public.user_roles WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.actorUserId)};
