@@ -1412,15 +1412,14 @@ it('the actual invoice-test archive retains committed contract, point and site t
    (${literal(companyId)},'production','Synthetic UTILTS','UTILTS');
   INSERT INTO public.company_email_settings(company_id,sender_email,verification_status)
   VALUES(${literal(companyId)},'synthetic@example.invalid','verified');
-  INSERT INTO public.tenant_legal_profiles(company_id,legal_name,organization_number,postal_address,
-   customer_service_email,phone,website,complaints_contact,data_protection_contact,billing_information,
-   dispute_resolution_information,review_required,reviewed_at)
-  VALUES(${literal(companyId)},'Synthetic Archive AB','5590001234',
-   '{"address_line_1":"Testgatan 1","postal_code":"12345","city":"Teststad","country_code":"SE"}',
-   'service@example.invalid','0101234567','https://example.invalid',
-   '{"email":"complaints@example.invalid"}','{"email":"privacy@example.invalid"}',
-   '{"email":"billing@example.invalid"}',
-   '{"authority":"ARN","description":"Synthetic dispute contact for archive fixture"}',false,now());`)
+  UPDATE public.tenant_legal_profiles SET legal_name='Synthetic Archive AB',organization_number='5590001234',
+   postal_address='{"address_line_1":"Testgatan 1","postal_code":"12345","city":"Teststad","country_code":"SE"}',
+   customer_service_email='service@example.invalid',phone='0101234567',website='https://example.invalid',
+   complaints_contact='{"email":"complaints@example.invalid"}',
+   data_protection_contact='{"email":"privacy@example.invalid"}',
+   billing_information='{"email":"billing@example.invalid"}',
+   dispute_resolution_information='{"authority":"ARN","description":"Synthetic dispute contact for archive fixture"}',
+   review_required=false,reviewed_at=now() WHERE company_id=${literal(companyId)};`)
  expect(sql(`SELECT to_jsonb(has_actor_setting AND has_brp AND has_prodat_route AND has_utilts_route AND has_sender_identity)
   FROM public.platform_go_live_readiness_v WHERE company_id=${literal(companyId)}`)).toBe(true)
  expect(sql(`SELECT to_jsonb(completeness_status='verified' AND NOT review_required)
