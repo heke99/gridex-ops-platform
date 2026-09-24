@@ -1027,6 +1027,27 @@ it('switch-event inserts, updates and deletes leave separate immutable facts', a
   ])
 })
 
+it('a restrictive switch-event link rolls back a rejected request tombstone', async () => {
+ const {companyId}=await seed(),requestId=randomUUID(),eventId=randomUUID()
+ sql(`INSERT INTO public.supplier_switch_requests(id,company_id,status)
+  VALUES(${literal(requestId)},${literal(companyId)},'draft');
+  INSERT INTO public.supplier_switch_events(id,company_id,switch_request_id,event_type)
+  VALUES(${literal(eventId)},${literal(companyId)},${literal(requestId)},'review');`)
+ expect(()=>sql(`DELETE FROM public.supplier_switch_requests WHERE id=${literal(requestId)}`))
+  .toThrow(/foreign key constraint/)
+ expect(sql(`SELECT jsonb_agg(operation ORDER BY id) FROM gridex_correction_process.facts
+  WHERE table_name='supplier_switch_requests' AND row_id=${literal(requestId)}`)).toEqual(['INSERT'])
+ sql(`DELETE FROM public.supplier_switch_events WHERE id=${literal(eventId)};
+  DELETE FROM public.supplier_switch_requests WHERE id=${literal(requestId)};`)
+ expect(sql(`SELECT jsonb_agg(jsonb_build_object('table',table_name,'operation',operation,
+  'oldCompany',old_fact->>'company_id','oldRequest',old_fact->>'switch_request_id') ORDER BY id)
+  FROM gridex_correction_process.facts WHERE operation='DELETE' AND row_id IN
+  (${literal(eventId)},${literal(requestId)})`)).toEqual([
+   {table:'supplier_switch_events',operation:'DELETE',oldCompany:companyId,oldRequest:requestId},
+   {table:'supplier_switch_requests',operation:'DELETE',oldCompany:companyId,oldRequest:null},
+  ])
+})
+
 it('customer, site, point, contract and supply graph writes retain process links', async () => {
  const {companyId}=await seed(),customerId=randomUUID(),siteId=randomUUID(),pointId=randomUUID()
  const contractId=randomUUID(),periodId=randomUUID()
@@ -1073,4 +1094,15 @@ it('customer, site, point, contract and supply graph writes retain process links
    {table:'metering_points',companyId,customerId,siteId,pointId:null},
    {table:'supplier_switch_requests',companyId,customerId,siteId,pointId},
   ])
+ const {data:recorded,error}=await supabaseService.rpc('gridex_record_customer_contract_event_v1',{
+  p_company_id:companyId,p_customer_contract_id:contractId,p_customer_id:customerId,
+  p_event_type:'note',p_note:'Synthetic routed event',p_idempotency_key:randomUUID(),
+ })
+ expect(error).toBeNull()
+ const routedEventId=(recorded as {event?:{id:string}} | null)?.event?.id
+ expect(routedEventId).toMatch(/^[0-9a-f-]{36}$/)
+ expect(sql(`SELECT jsonb_build_object('operation',operation,'companyId',company_id,
+  'contractId',new_fact->>'customer_contract_id','customerId',new_fact->>'customer_id')
+  FROM gridex_correction_process.facts WHERE table_name='customer_contract_events' AND row_id=${literal(routedEventId)}`))
+  .toEqual({operation:'INSERT',companyId,contractId,customerId})
 })
