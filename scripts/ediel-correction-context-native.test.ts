@@ -1012,6 +1012,29 @@ it('binding a formerly unbound process row keeps its old-scope gap', () => {
   ])
 })
 
+it('the process owner saves a bounded scoped receipt without claiming history completeness', async () => {
+ const f=await seed(),taskId=randomUUID()
+ sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+  SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions WHERE key='customers.read'
+  ON CONFLICT DO NOTHING;
+  INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)
+  VALUES(${literal(taskId)},${literal(f.companyId)},'follow_up','Synthetic readset task','open');`)
+ const receipt=sql<{snapshotId:string;readsetHash:string;readsetText:string}>(`
+  SELECT public.gridex_open_correction_process_readset_v1(${literal(f.companyId)},'test',
+   ${literal(f.actorUserId)},clock_timestamp(),NULL,NULL,NULL)`)
+ expect(receipt.snapshotId).toMatch(/^[0-9a-f-]{36}$/)
+ expect(receipt.readsetHash).toMatch(/^[a-f0-9]{64}$/)
+ const body=JSON.parse(receipt.readsetText) as {companyId:string;environment:string;complete:boolean;
+  historyCoverage:string;factCount:number;facts:{rowId:string;table:string;operation:string}[]}
+ expect(body).toMatchObject({companyId:f.companyId,environment:'test',complete:false,
+  historyCoverage:'before_epoch_unknown',factCount:1})
+ expect(body.facts.map(({rowId,table,operation})=>({rowId,table,operation})))
+  .toEqual([{rowId:taskId,table:'customer_operation_tasks',operation:'INSERT'}])
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_correction_process.readsets
+  WHERE id=${literal(receipt.snapshotId)} AND readset_hash=${literal(receipt.readsetHash)}
+  AND readset_text=${literal(receipt.readsetText)}`)).toBe(1)
+})
+
 it('switch-event inserts, updates and deletes leave separate immutable facts', async () => {
  const {companyId}=await seed(),eventId=randomUUID()
  sql(`INSERT INTO public.supplier_switch_events(id,company_id,event_type,event_status,message)
