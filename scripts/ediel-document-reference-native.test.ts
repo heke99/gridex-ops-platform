@@ -8,6 +8,7 @@ import {closureFixture} from '../__tests__/helpers/closureWireFixtures'
 import {supabaseService} from '@/lib/supabase/service'
 import {captureCorrectionContext} from '@/lib/ediel/sources/correctionContextCapture'
 import {captureDocumentReference,readDocumentReferenceContext} from '@/lib/ediel/sources/documentReferenceCapture'
+import {inspectCombinedCorrectionReadset} from '@/lib/ediel/sources/combinedCorrectionReadset'
 import {archiveSignedCustomerContractPdf,downloadAndVerifyCustomerContractDocumentBounded} from '@/lib/customer-contracts/documents'
 const literal=(v:unknown)=>"'"+String(typeof v==='object'?JSON.stringify(v):v).replaceAll("'","''")+"'"
 function sql<T>(query:string):T{
@@ -111,6 +112,23 @@ it.each(['gridex_signed_contract_document_v1','gridex_imported_signed_contract_d
  expect(sql(`SELECT jsonb_build_object('attempts',count(*),'differentTransactions',bool_and(a.created_xid<>o.created_xid),'observedHash',min(o.observation->>'sha256')) FROM gridex_received_sources.document_reference_attempts a JOIN gridex_received_sources.document_reference_outcomes o ON o.attempt_id=a.id WHERE a.source_message_id=${literal(f.sourceMessageId)}`))
  .toEqual({attempts:1,differentTransactions:true,observedHash:createHash('sha256').update(f.bytes).digest('hex')})
  expect(saved(f)).toMatchObject({coverage:'incomplete',authority:'none',requiresRevalidation:true})
+})
+it('the combined receipt includes a real document reference attempt, outcome and witness',async()=>{
+ const f=await seed()
+ expect(await captureDocumentReference(args(f))).toMatchObject({status:'recorded',observation:'verified_at_observation',authority:'none'})
+ const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())')
+ const receipt=sql<{snapshotId:string;readsetText:string;readsetHash:string}>(`SET ROLE service_role;
+  SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.companyId)},'test',${literal(f.sourceMessageId)},${literal(cutoff)})`)
+ const body=JSON.parse(receipt.readsetText) as {document:{attemptCount:number;attempts:{id:string;sourceMessageId:string;documentId:string;
+  factsHash:string;outcome:{status:string;observation:{sha256:string};factsHash:string;witnessId:string}}[]};outbound:{originalCount:number}}
+ expect(body.document.attemptCount).toBe(1)
+ expect(body.document.attempts).toEqual([expect.objectContaining({sourceMessageId:f.sourceMessageId,documentId:f.documentId,
+  factsHash:expect.stringMatching(/^[a-f0-9]{64}$/),outcome:expect.objectContaining({status:'verified_at_observation',
+   observation:expect.objectContaining({sha256:createHash('sha256').update(f.bytes).digest('hex')}),
+   factsHash:expect.stringMatching(/^[a-f0-9]{64}$/),witnessId:expect.stringMatching(/^[0-9a-f-]{36}$/)})})])
+ expect(inspectCombinedCorrectionReadset({companyId:f.companyId,environment:'test',cutoffAt:cutoff},f.sourceMessageId,receipt)).not.toBeNull()
+ expect(sql(`SELECT to_jsonb(readset_text=${literal(receipt.readsetText)} AND readset_hash=${literal(receipt.readsetHash)})
+  FROM gridex_correction_process.combined_snapshots WHERE id=${literal(receipt.snapshotId)}`)).toBe(true)
 })
 it.each([2097152,2097153,10485760])('actual Storage enforces capture byte boundary %i',async size=>{
  const bytes=Buffer.alloc(size,32);bytes.write('%PDF-1.4\n');const f=await seed(bytes)

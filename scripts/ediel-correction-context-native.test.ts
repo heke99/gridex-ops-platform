@@ -1118,6 +1118,44 @@ it('a combined service receipt observes source, correction and process owners at
  expect((JSON.parse(open().readsetText) as typeof body).process.facts).toContainEqual(expect.objectContaining({rowId:laterId}))
 })
 
+it('a real Z08H send appears with its original, attempt, provider result and witnesses at the saved cutoff',async()=>{
+ const f=await outboundSeed(),sourceMessageId=randomUUID()
+ const concernWire=raw().replace('12345:14+54321:14',`${f.receiver}:14+12345:14`)
+ expect(concernWire).not.toBe(raw())
+ sql(`INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,
+  raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,
+  canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+  SELECT ${literal(sourceMessageId)},${literal(f.companyId)},'test','inbound','edifact','PRODAT','Z05','received',
+   ${literal(concernWire)},'{"subtype":"C"}',clock_timestamp(),'23-DDQ-PRODAT',${literal(f.receiver)},'12345',
+   pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
+  WHERE profile.profile_key='PRODAT:Z05:C:26.A:r3' AND profile.is_enabled;`)
+ expect(await captureCorrectionContext({...f,sourceMessageId})).toMatchObject({status:'recorded'})
+ const open=()=>sql<{readsetText:string;readsetHash:string;snapshotId:string}>(`SET ROLE service_role;
+  SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.companyId)},'test',${literal(sourceMessageId)},clock_timestamp())`)
+ type Outbound={outbound:{originalCount:number;originals:{messageId:string;instrumented:boolean;rawPayload:string;
+  payloadHash:string;attempts:{id:string}[];events:{kind:string;attemptId:string;witnessId:string|null;facts:{classification?:string}}[]}[]}}
+ const before=open(),beforeBody=JSON.parse(before.readsetText) as Outbound
+ expect(beforeBody.outbound.originals).toEqual([expect.objectContaining({messageId:f.messageId,instrumented:false,
+  attempts:[],events:[]})])
+ smtpFixture()
+ try{await directOutbound(f)}finally{vi.unstubAllEnvs()}
+ const after=open(),afterBody=JSON.parse(after.readsetText) as Outbound
+ expect(afterBody.outbound.originalCount).toBe(1)
+ const original=afterBody.outbound.originals[0]
+ expect(original).toMatchObject({messageId:f.messageId,instrumented:true,rawPayload:f.wire,
+  payloadHash:createHash('sha256').update(f.wire).digest('hex')})
+ expect(original.attempts).toHaveLength(1)
+ expect(original.events).toEqual(expect.arrayContaining([
+  expect.objectContaining({kind:'provider_call_entered',attemptId:original.attempts[0].id,witnessId:expect.any(String)}),
+  expect.objectContaining({kind:'provider_result',attemptId:original.attempts[0].id,witnessId:expect.any(String),
+   facts:expect.objectContaining({classification:'accepted'})}),
+ ]))
+ expect(JSON.parse(before.readsetText)).toEqual(beforeBody)
+ expect(sql(`SELECT to_jsonb(readset_text=${literal(after.readsetText)} AND readset_hash=${literal(after.readsetHash)})
+  FROM gridex_correction_process.combined_snapshots WHERE id=${literal(after.snapshotId)}`)).toBe(true)
+})
+
 it('the process owner saves a bounded scoped receipt without claiming history completeness', async () => {
  const f=await seed(),taskId=randomUUID()
  sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)

@@ -473,3 +473,6 @@ Remote PR372 head 521bc9ba (tree 0ea55b41) has same-head OPS36003339938 green, n
 ## 2026-09-24 — Active PR372 native Task3b continuation
 
 Canonical archive now passed native316/316 at `40b7ddab`; actual product fix removes the illegal write to generated `customer_sites.is_active`. Swallowed operational event native317/317 passed at `4511fc96`, retaining incomplete history. `94eb110d` worker-claim test is published with native replay underway. Finish claim result, then signed/legacy producer routes and Task4 outbound/document one-MVCC receipt plus actual UTILTS hold. Whole-PR review, authentic exact-head gates and merge are pending. PR372 draft, main unchanged, PR310 excluded.
+## 2026-09-24 — PR372 combined receipt candidate
+
+Use branch `codex/e035-correction-context-20260924`; preserve head 981f5ca and subsequent commits. Local continuation adds negative inspector validation and two populated native owner fixtures, with targeted unit/type/lint passing but no new native result yet. The original 318/318 replay remains accepted on 981f5ca. Read the top of `current-task.md` and the actual CI logs before edits. Outstanding Task3b/Task4 and independent whole-PR review are explicit there. No historical completeness claim or merge. PR310 untouched.

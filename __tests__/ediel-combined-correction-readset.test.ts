@@ -66,3 +66,31 @@ it('rejects mismatched visibility, source hash, tenant and subject without relea
   (b:Record<string,unknown>)=>{(b.document as {attemptCount:number}).attemptCount=1},
  ])expect(inspectCombinedCorrectionReadset(expected,message,receipt(change))).toBeNull()
 })
+it('rejects inconsistent populated outbound and document owner relationships',()=>{
+ const outboundId='11111111-1111-4111-8111-111111111111'
+ const attemptId='22222222-2222-4222-8222-222222222222'
+ const eventId='33333333-3333-4333-8333-333333333333'
+ const documentId='44444444-4444-4444-8444-444444444444'
+ const populated=(mutate?:(body:Record<string,unknown>)=>void)=>receipt(body=>{
+  const outbound=body.outbound as {originalCount:number;originals:unknown[]}
+  outbound.originalCount=1
+  outbound.originals=[{messageId:outboundId,instrumented:true,rawPayload:'Z08 original',payloadHash:hash('Z08 original'),scope:{point:'735123456789012345'},
+   attempts:[{id:attemptId,owner:{kind:'direct'},binding:{},createdAt:'2026-10-01T00:00:04Z'}],
+   events:[{id:eventId,attemptId,kind:'provider_result',facts:{classification:'accepted'},observedAt:'2026-10-01T00:00:05Z',witnessId:eventId,witnessAt:'2026-10-01T00:00:06Z'}]}]
+  const document=body.document as {attemptCount:number;attempts:unknown[]}
+  document.attemptCount=1
+  document.attempts=[{id:documentId,sourceMessageId:sourceId,documentId,predecessorId:null,
+   facts:{owner:'context_document_reference_v1'},factsHash:hash('document'),recordedAt:'2026-10-01T00:00:07Z',
+   outcome:{id:'55555555-5555-4555-8555-555555555555',status:'verified_at_observation',
+    observation:{sha256:hash('PDF')},factsHash:hash('outcome'),recordedAt:'2026-10-01T00:00:08Z',
+    witnessId:'66666666-6666-4666-8666-666666666666',witnessAt:'2026-10-01T00:00:09Z'}}]
+  mutate?.(body)
+ })
+ expect(inspectCombinedCorrectionReadset(expected,message,populated())).not.toBeNull()
+ for(const mutate of [
+  (body:Record<string,unknown>)=>{const row=(body.outbound as {originals:{events:{attemptId:string}[]}[]}).originals[0];row.events[0].attemptId=sourceId},
+  (body:Record<string,unknown>)=>{const row=(body.outbound as {originals:{events:{witnessAt:string}[]}[]}).originals[0];row.events[0].witnessAt='2026-10-21T00:00:00Z'},
+  (body:Record<string,unknown>)=>{const row=(body.document as {attempts:{outcome:{factsHash:string}}[]}).attempts[0];row.outcome.factsHash='bad'},
+  (body:Record<string,unknown>)=>{const row=(body.document as {attempts:{outcome:{witnessAt:string}}[]}).attempts[0];row.outcome.witnessAt='2026-10-21T00:00:00Z'},
+ ])expect(inspectCombinedCorrectionReadset(expected,message,populated(mutate))).toBeNull()
+})

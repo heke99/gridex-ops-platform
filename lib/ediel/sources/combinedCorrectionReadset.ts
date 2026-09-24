@@ -59,6 +59,23 @@ export function inspectCombinedCorrectionReadset(expected:ReceivedSourceScope,su
         ||typeof row.instrumented!=='boolean'||!isEvidenceRecord(row.scope)
         ||!Array.isArray(row.attempts)||!Array.isArray(row.events))return null
       outboundIds.add(row.messageId)
+      const attempts=new Set<string>(),events=new Set<string>()
+      for(const attempt of row.attempts){
+        if(!isEvidenceRecord(attempt)||!isEvidenceUuid(attempt.id)||attempts.has(attempt.id)
+          ||!isEvidenceRecord(attempt.owner)||!isEvidenceRecord(attempt.binding)
+          ||instant(attempt.createdAt)===null||instant(attempt.createdAt)!>instant(expected.cutoffAt)!)return null
+        attempts.add(attempt.id)
+      }
+      for(const event of row.events){
+        if(!isEvidenceRecord(event)||!isEvidenceUuid(event.id)||events.has(event.id)
+          ||!isEvidenceUuid(event.attemptId)||!attempts.has(event.attemptId)
+          ||typeof event.kind!=='string'||!isEvidenceRecord(event.facts)
+          ||instant(event.observedAt)===null||instant(event.observedAt)!>instant(expected.cutoffAt)!
+          ||(event.witnessId!==null&&(event.witnessId!==event.id
+            ||instant(event.witnessAt)===null||instant(event.witnessAt)!>instant(expected.cutoffAt)!))
+          ||(event.witnessId===null&&event.witnessAt!==null))return null
+        events.add(event.id)
+      }
     }
     const documentIds=new Set<string>()
     for(const row of body.document.attempts){
@@ -68,6 +85,16 @@ export function inspectCombinedCorrectionReadset(expected:ReceivedSourceScope,su
         ||!isEvidenceRecord(row.facts)||!digest(row.factsHash)||instant(row.recordedAt)===null
         ||instant(row.recordedAt)!>instant(expected.cutoffAt)!)return null
       documentIds.add(row.id)
+      if(row.outcome!==null){
+        const outcome=row.outcome
+        if(!isEvidenceRecord(outcome)||!isEvidenceUuid(outcome.id)
+          ||!['verified_at_observation','unavailable'].includes(String(outcome.status))
+          ||!isEvidenceRecord(outcome.observation)||!digest(outcome.factsHash)
+          ||instant(outcome.recordedAt)===null||instant(outcome.recordedAt)!>instant(expected.cutoffAt)!
+          ||(outcome.witnessId!==null&&(!isEvidenceUuid(outcome.witnessId)
+            ||instant(outcome.witnessAt)===null||instant(outcome.witnessAt)!>instant(expected.cutoffAt)!))
+          ||(outcome.witnessId===null&&outcome.witnessAt!==null))return null
+      }
     }
     const handled=new Set<string>(),blockers:StructuralReadset['correctionContextBlockers']=[]
     let unresolvedConcern=false
