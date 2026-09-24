@@ -993,6 +993,7 @@ it('unbound process rows leave a scoped gap, and oversized transitions roll back
   WHERE table_name='customer_operation_tasks' AND row_id=${literal(taskId)}`)).toBe(1)
  expect(sql(`SELECT to_jsonb(metadata='{}'::jsonb) FROM public.customer_operation_tasks
   WHERE id=${literal(taskId)}`)).toBe(true)
+ sql(`DELETE FROM public.customer_operation_tasks WHERE id=${literal(taskId)};`)
 })
 
 it('binding a formerly unbound process row keeps its old-scope gap', () => {
