@@ -269,3 +269,7 @@ Authoritative workspace remains /workspace/scratch/4b1d39503015/gridex-ops-platf
 | d1722206 | OPS35998393754, artifact10807456195 ZIP1ad1f384 | Native314/314, case1/browser2/postbrowser1 PASS; old type manifest stopped |
 | b1c7f993 | Local focused91/91, migrations check, app/tests types, scoped lint | PASS; active combined UTILTS hold and authentic typegen |
 | b1c7f993 | OPS35999644966 | In progress; schema snapshot and exact-head final result pending |
+
+## 2026-09-24 — PR372 bounded hold and schema gate green
+
+PR372/521bc9ba: OPS36003339938 clean migration replay SUCCESS, native314/314 in five files, case1, protected browser2, postbrowser1, tenant invariants PASS, parity selftest PASS, generated types identical SHA2b2dda6a, schema check PASS fingerprint5e3db200. Verify and quality SUCCESS; Ediel, tenant, browser and full E2E SUCCESS; zero-admin crawler skipped. Historical producer/retention and full three-set Task4 composition unverified; no final approval.

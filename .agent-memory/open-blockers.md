@@ -417,3 +417,7 @@ Task3b point UUID-to-physical mapping passed native313/313 at OPS35995196628. Hi
 ## 2026-09-24 — Active PR372 gates
 
 Combined migration native314/314 passed; active integration b1c7f993 needs authentic canonical schema reconciliation from OPS35999644966, exact-head all applicable CI, and independent full requirement/tenant review. Task3b producer, deletions, archive and pre-epoch history coverage remain incomplete and must retain complete:false. Do not merge PR372 yet. PR310 paused and excluded.
+
+## 2026-09-24 — PR372 bounded hold and schema gate green
+
+OPS schema/type mismatch is resolved on 521bc9ba / OPS36003339938; native314/314 and all applicable workflows green. Remaining blockers: Task3b direct/legacy/claim/archive/deletion producer qualification, swallowed event and pre-epoch/retention gaps; Task4 outbound Z08H and document reference in the single-MVCC saved receipt, scoped complete/incomplete inspection and full real-flow/native concurrency review. No full Task4 or E035 acceptance; PR372 remains draft.

@@ -229,3 +229,7 @@ Resumed remote a5de1bc with preserved local UUID point-scope draft. Published ex
 ## 2026-09-24 — Task4 continuation
 
 Read PR372 and exact current code. Published RED contract 6c27f6c; OPS35996785199 failed solely at missing combined RPC. Created forward migration d1722206; OPS35998393754 applied it and passed native314/314, then stopped at stale generated types. Copied authentic typegen SHA2b2dda6a from artifact10807456195. Implemented active UTILTS combined receipt adapter with scoped correction blocker and fail-closed absent witness. Local91/91 and type/lint/migration checks passed. Published b1c7f993; OPS35999644966 running. No hosted writes, deployment or market send. Next: authentic schema reconcile, exact-head CI, independent review; Task3b incomplete.
+
+## 2026-09-24 — PR372 bounded hold and schema gate green
+
+Downloaded OPS36001823482 artifact10808668144 (ZIP SHA d55c5727), copied authentic schema SQL SHA8c90b124 and fingerprint SHA cb058661, published exact tree0ea55b41 as PR372 head521bc9ba. OPS36003339938 passed native314/314, case/browser, tenant/parity and schema check fingerprint5e3db200; all applicable workflows green. Task3b/Task4 remain partial; PR draft.

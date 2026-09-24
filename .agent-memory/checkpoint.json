@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish the replay-derived schema/fingerprint from OPS36001823482, run same-head CI and review the remaining three-set Task4 and Task3b coverage gaps. Keep PR372 draft; do not infer full historical coverage.",
+  "next_action": "OPS36003339938 on published 521bc9ba passed native314/314, case/browser, tenant/parity and exact schema gate; all applicable same-head workflows green. Continue substantive Task3b producer/delete/archive/retention qualification and Task4 outbound/document same-MVCC composition and independent review. Keep PR372 draft and complete:false for historical gaps.",
   "task4_combined_snapshot": {
     "published_head": "b1c7f993affdb68d11f4c0941c483c4d145b938e",
     "published_tree": "37789b428e66c37b3030f1aa9bc8b539a78d40e9",
@@ -40,13 +40,15 @@
     "type_artifact": 10807456195,
     "type_artifact_zip_sha256": "1ad1f384d7d066ed2ac4b2bb2a0c6cf011e1c865052214920f66a223f5c7e387",
     "generated_types_sha256": "2b2dda6ae967b612e5c7e89e094542069d2ce38ba837747c480b3582ca5568ef",
-    "integration_run": 36001823482,
+    "integration_run": 36003339938,
     "local_verification": "focused91/91, migration check, app/tests typechecks, scoped lint PASS",
-    "native_result_latest": "314/314, case1/browser2/postbrowser1, tenant invariants and parity selftest PASS; only stale tracked schema gate failed",
+    "native_result_latest": "314/314 PASS; case1/browser2/postbrowser1 PASS; tenant invariants/parity PASS; schema snapshot verified 5e3db200; all applicable workflows SUCCESS",
     "schema_artifact": 10808668144,
     "schema_artifact_zip_sha256": "d55c572760041176c1d972ac2a94d7e68d470a7540dfdab8abe2b522f4f395dc",
     "schema_fingerprint_latest": "5e3db200487b05d01680d8193991f90d74a1779d3825110009ae941a52eb343e",
-    "status": "ACTIVE_BOUNDED_HOLD_SCHEMA_RECONCILED_SAME_HEAD_PENDING_FULL_TASK4_INCOMPLETE"
+    "status": "BOUNDED_HOLD_SAME_HEAD_GREEN_FULL_TASK4_AND_TASK3B_INCOMPLETE",
+    "published_schema_head": "521bc9baefd47cf79bea14600d9555f4bf21d014",
+    "published_schema_tree": "0ea55b4125c1b9b7c8e251e3e381009b84e4ef38"
   },
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",

@@ -347,3 +347,7 @@ PR310 remains paused/untouched. No production operations or reduced gates. D110/
 1. Inspect OPS35999644966; take canonical schema.sql and schema.fingerprint.json from its generated artifact and verify hashes.
 2. Publish byte-identical schema reconcile; require all applicable same-head CI plus review before any acceptance.
 3. Continue Task3b producer/retention/history gaps and E035 remaining scope. Keep PR372 draft, PR310 excluded.
+
+## 2026-09-24 — PR372 bounded hold and schema gate green
+
+1. Preserve green checkpoint 521bc9ba / OPS36003339938 and draft PR372. 2. Qualify remaining Task3b producer routes, deletions, cascade/SET NULL, archive and retention with actual native evidence; keep before-epoch complete:false. 3. Add outbound Z08H and relevant document reference to the same-MVCC combined receipt with exact scoped counts, failed-reader and retention handling; inspect before UTILTS selection. 4. Run native real-flow, race, tenant and cutoff cases, regenerate authentic types/schema and all same-head gates, independent requirement review. No positive C/reopening or merge from current checkpoint.
