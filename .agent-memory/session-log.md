@@ -1,3 +1,7 @@
+## 2026-09-24 — PR372 Task3b continuation
+
+Restored offline catalog checkpoint, verified native catalog job107505735997, wrote/published behavioral RED716912cf, implemented CLI forward and 12 table transition triggers in6ac92a93, observed RED302/303 and GREEN303/303 on same-commit native retry. Reconciled authentic public schema/fingerprint from artifact10797140467 without changing generated types. PR372 remains draft; further producer/native coverage and Task4 required before merge.
+
 # E035 Task2b document context reviewed; native261 pending — 2026-09-24
 
 Source-onlyTask2a accepted8fde5f26, acceptanceBASE0a528215 alsoallCIgreen. Currentdocumentimplementation07d3b9c5 +fix1 638926b4 independentlySPEC/QUALITYAPPROVED,0open. Reference-only context: triplepermissions/actualtenantgraph, durableattemptbefore2MiB/10sec streamingreadback, separateobservation/append/witness andincompleteepoch; savedpayload preservesimmutableidentity/xids/visibility. NoPDFcopy/newretention/positiveC/reopening. PublishedsourceSQLunchanged; documentforwardnotyetpublished.

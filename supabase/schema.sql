@@ -85520,6 +85520,294 @@ CREATE TRIGGER customers_partner_api_events_v2 AFTER INSERT OR UPDATE OF status,
 CREATE TRIGGER customers_protect_customer_number BEFORE UPDATE OF customer_number ON public.customers FOR EACH ROW EXECUTE FUNCTION public.gridex_protect_customer_number();
 
 --
+-- Name: customer_case_events e035_process_after_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_after_write AFTER INSERT OR UPDATE ON public.customer_case_events FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.customer_case_events ENABLE ALWAYS TRIGGER e035_process_after_write;
+
+--
+-- Name: customer_cases e035_process_after_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_after_write AFTER INSERT OR UPDATE ON public.customer_cases FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.customer_cases ENABLE ALWAYS TRIGGER e035_process_after_write;
+
+--
+-- Name: customer_contract_events e035_process_after_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_after_write AFTER INSERT OR UPDATE ON public.customer_contract_events FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.customer_contract_events ENABLE ALWAYS TRIGGER e035_process_after_write;
+
+--
+-- Name: customer_contracts e035_process_after_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_after_write AFTER INSERT OR UPDATE ON public.customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.customer_contracts ENABLE ALWAYS TRIGGER e035_process_after_write;
+
+--
+-- Name: customer_operation_events e035_process_after_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_after_write AFTER INSERT OR UPDATE ON public.customer_operation_events FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.customer_operation_events ENABLE ALWAYS TRIGGER e035_process_after_write;
+
+--
+-- Name: customer_operation_jobs e035_process_after_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_after_write AFTER INSERT OR UPDATE ON public.customer_operation_jobs FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.customer_operation_jobs ENABLE ALWAYS TRIGGER e035_process_after_write;
+
+--
+-- Name: customer_operation_tasks e035_process_after_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_after_write AFTER INSERT OR UPDATE ON public.customer_operation_tasks FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.customer_operation_tasks ENABLE ALWAYS TRIGGER e035_process_after_write;
+
+--
+-- Name: customer_sites e035_process_after_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_after_write AFTER INSERT OR UPDATE ON public.customer_sites FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.customer_sites ENABLE ALWAYS TRIGGER e035_process_after_write;
+
+--
+-- Name: customer_supply_periods e035_process_after_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_after_write AFTER INSERT OR UPDATE ON public.customer_supply_periods FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.customer_supply_periods ENABLE ALWAYS TRIGGER e035_process_after_write;
+
+--
+-- Name: metering_points e035_process_after_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_after_write AFTER INSERT OR UPDATE ON public.metering_points FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.metering_points ENABLE ALWAYS TRIGGER e035_process_after_write;
+
+--
+-- Name: supplier_switch_events e035_process_after_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_after_write AFTER INSERT OR UPDATE ON public.supplier_switch_events FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.supplier_switch_events ENABLE ALWAYS TRIGGER e035_process_after_write;
+
+--
+-- Name: supplier_switch_requests e035_process_after_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_after_write AFTER INSERT OR UPDATE ON public.supplier_switch_requests FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.supplier_switch_requests ENABLE ALWAYS TRIGGER e035_process_after_write;
+
+--
+-- Name: customer_case_events e035_process_before_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_before_delete BEFORE DELETE ON public.customer_case_events FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.customer_case_events ENABLE ALWAYS TRIGGER e035_process_before_delete;
+
+--
+-- Name: customer_cases e035_process_before_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_before_delete BEFORE DELETE ON public.customer_cases FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.customer_cases ENABLE ALWAYS TRIGGER e035_process_before_delete;
+
+--
+-- Name: customer_contract_events e035_process_before_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_before_delete BEFORE DELETE ON public.customer_contract_events FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.customer_contract_events ENABLE ALWAYS TRIGGER e035_process_before_delete;
+
+--
+-- Name: customer_contracts e035_process_before_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_before_delete BEFORE DELETE ON public.customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.customer_contracts ENABLE ALWAYS TRIGGER e035_process_before_delete;
+
+--
+-- Name: customer_operation_events e035_process_before_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_before_delete BEFORE DELETE ON public.customer_operation_events FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.customer_operation_events ENABLE ALWAYS TRIGGER e035_process_before_delete;
+
+--
+-- Name: customer_operation_jobs e035_process_before_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_before_delete BEFORE DELETE ON public.customer_operation_jobs FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.customer_operation_jobs ENABLE ALWAYS TRIGGER e035_process_before_delete;
+
+--
+-- Name: customer_operation_tasks e035_process_before_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_before_delete BEFORE DELETE ON public.customer_operation_tasks FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.customer_operation_tasks ENABLE ALWAYS TRIGGER e035_process_before_delete;
+
+--
+-- Name: customer_sites e035_process_before_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_before_delete BEFORE DELETE ON public.customer_sites FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.customer_sites ENABLE ALWAYS TRIGGER e035_process_before_delete;
+
+--
+-- Name: customer_supply_periods e035_process_before_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_before_delete BEFORE DELETE ON public.customer_supply_periods FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.customer_supply_periods ENABLE ALWAYS TRIGGER e035_process_before_delete;
+
+--
+-- Name: metering_points e035_process_before_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_before_delete BEFORE DELETE ON public.metering_points FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.metering_points ENABLE ALWAYS TRIGGER e035_process_before_delete;
+
+--
+-- Name: supplier_switch_events e035_process_before_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_before_delete BEFORE DELETE ON public.supplier_switch_events FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.supplier_switch_events ENABLE ALWAYS TRIGGER e035_process_before_delete;
+
+--
+-- Name: supplier_switch_requests e035_process_before_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_before_delete BEFORE DELETE ON public.supplier_switch_requests FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1();
+
+ALTER TABLE public.supplier_switch_requests ENABLE ALWAYS TRIGGER e035_process_before_delete;
+
+--
+-- Name: customer_case_events e035_process_no_truncate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_no_truncate BEFORE TRUNCATE ON public.customer_case_events FOR EACH STATEMENT EXECUTE FUNCTION gridex_correction_process.immutable_v1();
+
+ALTER TABLE public.customer_case_events ENABLE ALWAYS TRIGGER e035_process_no_truncate;
+
+--
+-- Name: customer_cases e035_process_no_truncate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_no_truncate BEFORE TRUNCATE ON public.customer_cases FOR EACH STATEMENT EXECUTE FUNCTION gridex_correction_process.immutable_v1();
+
+ALTER TABLE public.customer_cases ENABLE ALWAYS TRIGGER e035_process_no_truncate;
+
+--
+-- Name: customer_contract_events e035_process_no_truncate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_no_truncate BEFORE TRUNCATE ON public.customer_contract_events FOR EACH STATEMENT EXECUTE FUNCTION gridex_correction_process.immutable_v1();
+
+ALTER TABLE public.customer_contract_events ENABLE ALWAYS TRIGGER e035_process_no_truncate;
+
+--
+-- Name: customer_contracts e035_process_no_truncate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_no_truncate BEFORE TRUNCATE ON public.customer_contracts FOR EACH STATEMENT EXECUTE FUNCTION gridex_correction_process.immutable_v1();
+
+ALTER TABLE public.customer_contracts ENABLE ALWAYS TRIGGER e035_process_no_truncate;
+
+--
+-- Name: customer_operation_events e035_process_no_truncate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_no_truncate BEFORE TRUNCATE ON public.customer_operation_events FOR EACH STATEMENT EXECUTE FUNCTION gridex_correction_process.immutable_v1();
+
+ALTER TABLE public.customer_operation_events ENABLE ALWAYS TRIGGER e035_process_no_truncate;
+
+--
+-- Name: customer_operation_jobs e035_process_no_truncate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_no_truncate BEFORE TRUNCATE ON public.customer_operation_jobs FOR EACH STATEMENT EXECUTE FUNCTION gridex_correction_process.immutable_v1();
+
+ALTER TABLE public.customer_operation_jobs ENABLE ALWAYS TRIGGER e035_process_no_truncate;
+
+--
+-- Name: customer_operation_tasks e035_process_no_truncate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_no_truncate BEFORE TRUNCATE ON public.customer_operation_tasks FOR EACH STATEMENT EXECUTE FUNCTION gridex_correction_process.immutable_v1();
+
+ALTER TABLE public.customer_operation_tasks ENABLE ALWAYS TRIGGER e035_process_no_truncate;
+
+--
+-- Name: customer_sites e035_process_no_truncate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_no_truncate BEFORE TRUNCATE ON public.customer_sites FOR EACH STATEMENT EXECUTE FUNCTION gridex_correction_process.immutable_v1();
+
+ALTER TABLE public.customer_sites ENABLE ALWAYS TRIGGER e035_process_no_truncate;
+
+--
+-- Name: customer_supply_periods e035_process_no_truncate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_no_truncate BEFORE TRUNCATE ON public.customer_supply_periods FOR EACH STATEMENT EXECUTE FUNCTION gridex_correction_process.immutable_v1();
+
+ALTER TABLE public.customer_supply_periods ENABLE ALWAYS TRIGGER e035_process_no_truncate;
+
+--
+-- Name: metering_points e035_process_no_truncate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_no_truncate BEFORE TRUNCATE ON public.metering_points FOR EACH STATEMENT EXECUTE FUNCTION gridex_correction_process.immutable_v1();
+
+ALTER TABLE public.metering_points ENABLE ALWAYS TRIGGER e035_process_no_truncate;
+
+--
+-- Name: supplier_switch_events e035_process_no_truncate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_no_truncate BEFORE TRUNCATE ON public.supplier_switch_events FOR EACH STATEMENT EXECUTE FUNCTION gridex_correction_process.immutable_v1();
+
+ALTER TABLE public.supplier_switch_events ENABLE ALWAYS TRIGGER e035_process_no_truncate;
+
+--
+-- Name: supplier_switch_requests e035_process_no_truncate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_process_no_truncate BEFORE TRUNCATE ON public.supplier_switch_requests FOR EACH STATEMENT EXECUTE FUNCTION gridex_correction_process.immutable_v1();
+
+ALTER TABLE public.supplier_switch_requests ENABLE ALWAYS TRIGGER e035_process_no_truncate;
+
+--
 -- Name: ediel_configuration_snapshots ediel_configuration_snapshots_immutable; Type: TRIGGER; Schema: public; Owner: -
 --
 

@@ -1,3 +1,9 @@
+## 2026-09-24 — E035 Task3b prospective facts checkpoint
+
+- RED PR372 head716912cf: OPS35970235871 native302/303; new fact test failed on absent relation. Verify/quality passed.
+- Candidate6ac92a93: first OPS35971121783 native302/303, retained document-reference interruption case failed; same-commit retry native303/303 plus case1/browser2/postbrowser1 passed. Authentic type SHA32ae2f06 unchanged. Schema fingerprint77cc9b79 from artifact10797140467, ZIPfd5d87fd, copied byte-identically. Initial run stopped on old committed fingerprint.
+- Local Node22 scripts typecheck, scoped lint and migration integrity passed; after authentic reconcile `npm run db:migrations:check` passed. Final same-head CI pending. Full Task3b and Task4 unverified.
+
 # E035 Task2b document context reviewed; native261 pending — 2026-09-24
 
 Source-onlyTask2a accepted8fde5f26, acceptanceBASE0a528215 alsoallCIgreen. Currentdocumentimplementation07d3b9c5 +fix1 638926b4 independentlySPEC/QUALITYAPPROVED,0open. Reference-only context: triplepermissions/actualtenantgraph, durableattemptbefore2MiB/10sec streamingreadback, separateobservation/append/witness andincompleteepoch; savedpayload preservesimmutableidentity/xids/visibility. NoPDFcopy/newretention/positiveC/reopening. PublishedsourceSQLunchanged; documentforwardnotyetpublished.

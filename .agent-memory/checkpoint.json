@@ -1,7 +1,7 @@
 {
   "project": "gridex-ops-platform",
   "updated_at": "2026-09-24",
-  "status": "BLOCKED",
+  "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/e035-correction-context-20260924",
   "active_pr": 372,
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Reconnect offline workspace; inspect native catalog job107505735997 in OPS35959802582 at72585625, extract actual catalog, resume sole process_facts_task3b author before Task4.",
+  "next_action": "Publish authentic schema/types reconcile on PR372 from6ac92a93 and inspect same-head CI, then qualify remaining eleven table routes, independent witnesses/readset and Task4 before merge.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -401,7 +401,7 @@
     "review": "FINAL_WHOLE_BRANCH_SPEC_QUALITY_NATIVE_ACCEPTED",
     "final_head": "65f5b896cd3801eedde43db99df38afa6d9c78a1"
   },
-  "published_head": "dba554664ea2d6f240d709db57c3c664ea5ec9cc",
+  "published_head": "6ac92a93c1253c6de1ca1788292fcb7c74e0cd32",
   "published_tree": "80e322486a42248e7376284a0c3f8cd6e6e3c851",
   "prior_guide_ci": {
     "run": 35931020643,
@@ -610,23 +610,33 @@
   },
   "workspace": "/workspace/scratch/4b1d39503015/gridex-ops-platform/.worktrees/e035-task3a-isolated",
   "correction_process_task3b": {
-    "status": "PREPARED_NOT_STARTED",
+    "status": "PARTIAL_NATIVE_QUALIFICATION_PENDING",
     "accepted_outbound_base": "d7cbab18b9b102e00cde256bc91c22271455d7c8",
     "brief": "quality/audits/ediel-masterplan-v2/e035-source-ledger/process-history-task3b-brief-20260924.md",
     "baseline_native": 301,
     "baseline_ordinary": 6072,
-    "generated_schema_artifact": 10791646035
+    "generated_schema_artifact": 10791646035,
+    "published_head": "6ac92a93c1253c6de1ca1788292fcb7c74e0cd32",
+    "red_run": 35970235871,
+    "native_run": 35971121783,
+    "migration": "20260924073337_correction_process_facts_v1.sql",
+    "complete": false,
+    "native_result": "303_PASS_CASE1_BROWSER2_POSTBROWSER1_PASS_OLD_SCHEMA_MISMATCH",
+    "native_artifact": 10797140467,
+    "authentic_fingerprint": "77cc9b7902b22e0b933ec93deaa33d1f90b3ebdff8d6af040a47ba055073f1cd",
+    "generated_types_sha256": "32ae2f06418bfb57bd3da0361f856bb544a360782967f33b962f9b9765518940"
   },
   "task3b": {
-    "status": "BLOCKED_WORKSPACE_OFFLINE_CATALOG_CI_PENDING",
+    "status": "IN_PROGRESS",
     "agent": "/root/process_facts_task3b",
     "base": "155fe17e9db8a4c189634468e73dd86f615cee02",
     "brief": ".superpowers/sdd/2026-09-24-e035-correction-context/task-3b-brief.md",
-    "native_executed": false,
-    "published_head": "725856255fedda166af354577aabe56fee05d0c1",
-    "ops_run": 35959802582,
+    "native_executed": true,
+    "published_head": "6ac92a93c1253c6de1ca1788292fcb7c74e0cd32",
+    "ops_run": 35971121783,
     "native_job": 107505735997,
-    "blocker": "exec-server409 environment_offline; no permission issue",
-    "runtime_implemented": false
+    "blocker": "Authentic schema reconciliation locally ready; same-head CI and full producer/readset/Task4 qualification pending",
+    "runtime_implemented": "prospective_twelve_table_facts_only",
+    "native_result": "303/303 pass on same-commit rerun; schema fingerprint mismatch repaired locally"
   }
 }

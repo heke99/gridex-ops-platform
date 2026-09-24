@@ -1,3 +1,7 @@
+## 2026-09-24 — Resume PR372 Task3b
+
+Clone `codex/e035-correction-context-20260924` at published `6ac92a93c1253c6de1ca1788292fcb7c74e0cd32`. Local workspace has unpublished authentic schema/fingerprint reconcile and memory notes. OPS35971121783 same-commit native retry passed303/303 plus case/browser; stopped on old tracked schema. Artifact10797140467 ZIPfd5d87fd authentic schema/fingerprint copied byte-identically; types unchanged. Local `npm run db:migrations:check` passes. Publish reconcile from expected remote head6ac92a93, run same-head CI and inspect artifacts, then eleven table/route/rollback/retention proofs, witnesses and bounded readset, Task4 and whole-PR review. PR372 is draft; do not merge a partial checkpoint. PR310 stays excluded.
+
 ## 2026-09-24 — Task3b catalog probe; workspace offline
 
 Latest code/probe head725856255fedda166af354577aabe56fee05d0c1, tree4c947443bf61d84e97173a1bc3d63bde93451e89. Probe-only author commit47847a52; local509447a9 preserved backup/e035-local-509447a9. Actual sync verified before environment disconnected. No Task3b migration/runtime implemented. Native catalog prerequisite OPS35959802582/job107505735997 remains in progress at this checkpoint; verify107505736150 and quality107505736221 SUCCESS, all other applicable workflows SUCCESS, crawler skipped. Do not infer catalog/native PASS until inspecting completed job and artifact.

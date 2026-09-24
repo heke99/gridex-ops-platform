@@ -1,3 +1,7 @@
+## 2026-09-24 — Task3b current blockers
+
+Authentic schema reconciliation from native303/303 awaits publication and same-head CI. Process facts are prospective and incomplete: eleven table CRUD/route/cascade cases, independently committed witnesses, bounded reader, source-only swallowed-event gaps and inception retention still require proof. Task4 single-MVCC conditional UTILTS hold and whole-branch review remain. No PR372 merge.
+
 ## 2026-09-24 — Task3a ACCEPTED; Task3b next
 
 Accepted runtime d7cbab18b9b102e00cde256bc91c22271455d7c8, tree66c82f59b88969b43326f7f34bd11ad432412cff. All applicable same-head CI SUCCESS: OPS35958136936 (verify107500725279,quality107500725385,native107500725396), fullE2E35958136881, browser35958136874, Ediel35958136896, tenant35958136892; crawler35958136976 skipped. Full6072/377, native301/5 plus case1/browser2/postbrowser1, types, tenant invariants, parity, schema, build/bundle PASS. Independent static/fix/native/schema SPEC/QUALITY approved. Final artifact10791646035 ZIP73ad030582646cb7e851c348f28867c3f32e45a1e3ab65e3a1a659acf9ef8614 verified; all three generated files byte-identical. Types32ae2f06, schemaef41ebad, fingerprint04ba0c99.

@@ -1,3 +1,7 @@
+## 2026-09-24 — Task3b prospective fact candidate
+
+PR372 published `6ac92a93` with CLI-created twelve-table prospective transition capture and native task fact regression. It is partial and unaccepted. RED at716912cf proved missing facts; first native attempt had one retained document interruption failure, while same-commit retry passed303/303 native plus case/browser. Authentic schema/fingerprint from artifact10797140467 are copied locally, types byte-identical, local migration check green. Publish reconcile commit and rerun same-head CI; eleven producer/route cases, witnesses/readset and Task4 remain. PR372 stays draft and unmerged. See current-task and process-history-task3b-report.
+
 ## 2026-09-24 — Task3b catalog probe; workspace offline
 
 Latest code/probe head725856255fedda166af354577aabe56fee05d0c1, tree4c947443bf61d84e97173a1bc3d63bde93451e89. Probe-only author commit47847a52; local509447a9 preserved backup/e035-local-509447a9. Actual sync verified before environment disconnected. No Task3b migration/runtime implemented. Native catalog prerequisite OPS35959802582/job107505735997 remains in progress at this checkpoint; verify107505736150 and quality107505736221 SUCCESS, all other applicable workflows SUCCESS, crawler skipped. Do not infer catalog/native PASS until inspecting completed job and artifact.
