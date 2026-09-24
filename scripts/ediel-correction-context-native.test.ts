@@ -962,12 +962,79 @@ it('a committed process fact needs a separately committed, tenant-bound witness'
  expect(witness).toMatchObject({factId:fact.id,factsHash:fact.factsHash,coverage:'incomplete',authority:'none'})
  expect(witness.witnessId).toMatch(/^[0-9a-f-]{36}$/)
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_correction_process.witnesses WHERE fact_id=${fact.id}`)).toBe(1)
+ expect(()=>sql(`UPDATE gridex_correction_process.witnesses SET facts_hash='tampered' WHERE fact_id=${fact.id}`))
+  .toThrow(/correction_process_append_only/)
+ expect(()=>sql(`BEGIN; SET LOCAL ROLE service_role; SELECT count(*) FROM gridex_correction_process.witnesses; COMMIT;`))
+  .toThrow(/permission denied/)
  expect(sql(`BEGIN; SET LOCAL ROLE service_role;
   SELECT public.gridex_witness_correction_process_fact_v1(${literal(f.companyId)},${fact.id},
    ${literal(fact.factsHash)},${literal(f.actorUserId)}); COMMIT;`)).toMatchObject({witnessId:witness.witnessId})
  const other=await seed()
+ sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+  SELECT ${literal(other.actorUserId)},${literal(other.companyId)},id,key FROM public.permissions WHERE key='customers.read'
+  ON CONFLICT DO NOTHING;`)
  expect(()=>sql(`SELECT public.gridex_witness_correction_process_fact_v1(${literal(other.companyId)},${fact.id},
   ${literal(fact.factsHash)},${literal(other.actorUserId)})`)).toThrow(/process_fact_unavailable/)
  expect(()=>sql(`BEGIN; SET LOCAL ROLE anon; SELECT public.gridex_witness_correction_process_fact_v1(
   ${literal(f.companyId)},${fact.id},${literal(fact.factsHash)},${literal(f.actorUserId)}); COMMIT;`)).toThrow(/permission denied/)
+})
+
+it('unbound process rows leave a scoped gap, and oversized transitions roll back', () => {
+ const taskId=randomUUID()
+ sql(`INSERT INTO public.customer_operation_tasks(id,task_type,title,status)
+  VALUES(${literal(taskId)},'follow_up','Unbound process task','open');`)
+ expect(sql(`SELECT jsonb_build_object('companyId',f.company_id,'reason',g.reason)
+  FROM gridex_correction_process.facts f JOIN gridex_correction_process.gaps g ON g.fact_id=f.id
+  WHERE f.table_name='customer_operation_tasks' AND f.row_id=${literal(taskId)}`))
+  .toEqual({companyId:null,reason:'unbound_company'})
+ expect(()=>sql(`UPDATE public.customer_operation_tasks SET metadata=jsonb_build_object('oversize',repeat('x',6291457))
+  WHERE id=${literal(taskId)};`)).toThrow(/correction_process_transition_too_large/)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_correction_process.facts
+  WHERE table_name='customer_operation_tasks' AND row_id=${literal(taskId)}`)).toBe(1)
+ expect(sql(`SELECT to_jsonb(metadata='{}'::jsonb) FROM public.customer_operation_tasks
+  WHERE id=${literal(taskId)}`)).toBe(true)
+})
+
+it('switch-event inserts, updates and deletes leave separate immutable facts', async () => {
+ const {companyId}=await seed(),eventId=randomUUID()
+ sql(`INSERT INTO public.supplier_switch_events(id,company_id,event_type,event_status,message)
+  VALUES(${literal(eventId)},${literal(companyId)},'review','info','Synthetic event');
+  UPDATE public.supplier_switch_events SET event_status='success' WHERE id=${literal(eventId)};
+  DELETE FROM public.supplier_switch_events WHERE id=${literal(eventId)};`)
+ expect(sql(`SELECT jsonb_agg(jsonb_build_object('op',operation,'companyId',company_id,
+  'old',old_fact->>'event_status','new',new_fact->>'event_status') ORDER BY id)
+  FROM gridex_correction_process.facts WHERE table_name='supplier_switch_events' AND row_id=${literal(eventId)}`))
+  .toEqual([
+   {op:'INSERT',companyId,old:null,new:'info'},
+   {op:'UPDATE',companyId,old:'info',new:'success'},
+   {op:'DELETE',companyId,old:'success',new:null},
+  ])
+})
+
+it('customer, site, point, contract and supply graph writes retain process links', async () => {
+ const {companyId}=await seed(),customerId=randomUUID(),siteId=randomUUID(),pointId=randomUUID()
+ const contractId=randomUUID(),periodId=randomUUID()
+ sql(`BEGIN;
+  INSERT INTO public.customers(id,company_id,first_name,last_name)
+  VALUES(${literal(customerId)},${literal(companyId)},'Synthetic','Graph');
+  INSERT INTO public.customer_sites(id,company_id,customer_id,site_name)
+  VALUES(${literal(siteId)},${literal(companyId)},${literal(customerId)},'Synthetic site');
+  INSERT INTO public.metering_points(id,company_id,customer_id,site_id)
+  VALUES(${literal(pointId)},${literal(companyId)},${literal(customerId)},${literal(siteId)});
+  INSERT INTO public.customer_contracts(id,company_id,customer_id,site_id,metering_point_id,status)
+  VALUES(${literal(contractId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(pointId)},'draft');
+  INSERT INTO public.customer_supply_periods(id,company_id,customer_id,metering_point_id,contract_id,start_date,status)
+  VALUES(${literal(periodId)},${literal(companyId)},${literal(customerId)},${literal(pointId)},${literal(contractId)},'2026-09-20','active');
+  COMMIT;`)
+ expect(sql(`SELECT jsonb_agg(jsonb_build_object('table',table_name,'companyId',company_id,
+  'customerId',new_fact->>'customer_id','siteId',coalesce(new_fact->>'site_id',new_fact->>'customer_site_id'),
+  'pointId',new_fact->>'metering_point_id') ORDER BY table_name)
+  FROM gridex_correction_process.facts WHERE row_id IN
+  (${[siteId,pointId,contractId,periodId].map(literal).join(',')})`))
+  .toEqual([
+   {table:'customer_contracts',companyId,customerId,siteId,pointId},
+   {table:'customer_sites',companyId,customerId,siteId:null,pointId:null},
+   {table:'customer_supply_periods',companyId,customerId,siteId:null,pointId},
+   {table:'metering_points',companyId,customerId,siteId,pointId:null},
+  ])
 })
