@@ -286,6 +286,24 @@ async function insertPriorUtilts(f:Awaited<ReturnType<typeof seed>>,raw:string){
  expect(error).toBeNull();expect(data).not.toBeNull()
  return data as unknown as EdielMessageRow
 }
+/** Active qualification binds its combined read to a genuine inbound message.
+ * Persist each synthetic wire before invoking it; no outbound Z03 surrogate. */
+function persistUtiltsSubject(f:Awaited<ReturnType<typeof seed>>,message:EdielMessageRow){
+ const id=randomUUID()
+ sql(`INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,
+  status,raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,
+  canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+ SELECT ${literal(id)},${literal(f.ids.company)},'test','inbound','edifact','UTILTS',${literal(message.message_code)},
+  'received',${literal(message.raw_payload)},'{}',clock_timestamp(),${literal(message.application_reference)},
+  '12345','54321',pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,
+  pack.source_hash,profile.profile
+ FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
+ WHERE profile.message_code=${literal(message.message_code)} AND profile.direction IN ('inbound','both')
+  AND profile.is_enabled ORDER BY profile.profile_key LIMIT 1;`)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE id=${literal(id)}
+  AND company_id=${literal(f.ids.company)} AND direction='inbound' AND message_family='UTILTS'`)).toBe(1)
+ return {...message,id}
+}
 function priorNativeWire(f:Awaited<ReturnType<typeof seed>>,point:string){
  return observationHandoffMessage('2026-09-30',f.ids.company).raw_payload!
   .replaceAll('735999260731000007',point).replaceAll('91100','12345').replaceAll('21660','54321')
@@ -322,7 +340,7 @@ it.each(['2026-09-30','2026-10-01'])('native reviewed Z04 qualifies prior/curren
  const f=await seed(false,true)
  expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
  const original=observationHandoffMessage(referenceDate,f.ids.company)
- original.id=f.ids.outbound;original.sender_ediel_id='12345';original.receiver_ediel_id='54321'
+ original.sender_ediel_id='12345';original.receiver_ediel_id='54321'
  const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
  original.raw_payload=original.raw_payload!.replaceAll('735999260731000007',point).replaceAll('91100','12345').replaceAll('21660','54321')
   .replaceAll('202607010000','202610010000').replaceAll('202608010000','202610150000')
@@ -331,7 +349,7 @@ it.each(['2026-09-30','2026-10-01'])('native reviewed Z04 qualifies prior/curren
  const canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate,
   applicationReference:original.application_reference,mode:'parse'})
  const qualify=async(raw:string)=>{
-  const message={...original,raw_payload:raw}
+  const message=persistUtiltsSubject(f,{...original,raw_payload:raw})
   const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy})
   expect(runtime.transactionDispositions,JSON.stringify(runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
   return qualifyReceivedUtiltsStructure({message,runtime,canonicalPolicy})
@@ -510,12 +528,13 @@ it('native witnessed Z10 transition selects prior E30 ending/current sides and h
   applicationReference:'23-MDR-E30-T',mode:'parse'})
  const qualify=async(reason:'E20'|'E77'|'E24'|'E25'|'E67'|'E64',meter:string)=>{
   const message=observationHandoffMessage('2026-09-30',f.ids.company)
-  message.id=f.ids.outbound;message.message_code='E30';message.application_reference='23-MDR-E30-T'
+  message.message_code='E30';message.application_reference='23-MDR-E30-T'
   message.sender_ediel_id='12345';message.receiver_ediel_id='54321'
   message.raw_payload=priorE30PointWire(reason,meter,point).replaceAll('91100','12345').replaceAll('21660','54321')
-  const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy:policy})
+  const persisted=persistUtiltsSubject(f,message)
+  const runtime=runUtiltsRuntimeForMessage(persisted,{canonicalPolicy:policy})
   expect(runtime.transactionDispositions,JSON.stringify(runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
-  return qualifyReceivedUtiltsStructure({message,runtime,canonicalPolicy:policy})
+  return qualifyReceivedUtiltsStructure({message:persisted,runtime,canonicalPolicy:policy})
  }
  expect(await qualify('E25','NEW')).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,
   evidence:{comparisons:[{status:'unavailable',codes:[]}]}})
@@ -717,14 +736,15 @@ it.each(['Z22','Z23'])('native %s closure retains immutable Z04 coverage after t
   const {qualifyReceivedUtiltsStructure}=await import('@/lib/ediel/utilts/qualifyReceivedStructure')
   const {buildUtiltsTransactionPersistencePayload}=await import('@/lib/ediel/utilts/transactionPersistence')
   const utilts=observationHandoffMessage('2026-10-16',f.ids.company)
-  utilts.id=f.ids.outbound;utilts.sender_ediel_id='12345';utilts.receiver_ediel_id='54321'
+  utilts.sender_ediel_id='12345';utilts.receiver_ediel_id='54321'
   utilts.raw_payload=utilts.raw_payload!.replaceAll('735999260731000007',snapshot.versions[0].wire.object.objectId!)
    .replaceAll('91100','12345').replaceAll('21660','54321').replaceAll('202607010000','202610010000')
    .replaceAll('202608010000','202610150000').replace('?+0200','?+0100').replace('M-GRIDEX-2607-01','METER-1')
   const canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:utilts.message_received_at!,applicationReference:utilts.application_reference,mode:'parse'})
-  const runtime=runUtiltsRuntimeForMessage(utilts,{canonicalPolicy})
+  const persisted=persistUtiltsSubject(f,utilts)
+  const runtime=runUtiltsRuntimeForMessage(persisted,{canonicalPolicy})
   expect(runtime.transactionDispositions,JSON.stringify(runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
-  const qualified=await qualifyReceivedUtiltsStructure({message:utilts,runtime,canonicalPolicy})
+  const qualified=await qualifyReceivedUtiltsStructure({message:persisted,runtime,canonicalPolicy})
   expect(qualified).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,evidence:{comparisons:[{reason:'structural_closure_scoped_hold',codes:[]}]},
    runtime:{transactionDispositions:[{disposition:'internal_review',responseType:'none'}],ackPlan:{shouldSendAperak:false}}})
   expect(buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:qualified.runtime.facts.transactions,dispositions:qualified.runtime.transactionDispositions,matches:[]})).toMatchObject([{quantities:[],responseType:'none'}])

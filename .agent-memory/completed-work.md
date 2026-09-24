@@ -113,3 +113,6 @@ Authoritative workspace remains /workspace/scratch/4b1d39503015/gridex-ops-platf
 ## 2026-09-24 — Bounded PR372 checkpoint
 
 At published 562015b, a forward process read function resolves UUID-linked process rows against immutable physical point facts. OPS35995196628 passed native313/313 plus case/browser and generated type/schema hashes. The pure UTILTS comparison seam was exercised RED then GREEN58/58 locally; it is not an active Task4 service hold. Task3b historical completeness and Task4 remain open.
+## 2026-09-24 — Task4 bounded implementation
+
+PR372 b1c7f993 publishes the one-SELECT combined source/correction/process snapshot, immutable private receipt, service-only RPC, and active UTILTS hold for witnessed C concerns. It reuses the source timeline with exact source hash and same cutoff; wildcard/unwitnessed concerns remain unavailable. Native314/314 passed for the database predecessor. Authentic generated type bytes copied from artifact10807456195. Canonical schema and final CI/review are still gates, so Task4 is not accepted. Task3b remains prospective with incomplete history.

@@ -226,3 +226,6 @@ Authoritative workspace remains /workspace/scratch/4b1d39503015/gridex-ops-platf
 ## 2026-09-24 — PR372 current turn
 
 Resumed remote a5de1bc with preserved local UUID point-scope draft. Published exact tree ed74978 as 562015b via GitHub connector. OPS35995196628 passed native313/313 and generated hashes; verify had only stale manifest tail. Locally reconciled manifest and added pure comparator blocker propagation after observed RED, then focused 58/58 GREEN, typechecks, lint and migration checks passed. Next publish this local checkpoint and continue single-MVCC Task4. No hosted database writes or market sends.
+## 2026-09-24 — Task4 continuation
+
+Read PR372 and exact current code. Published RED contract 6c27f6c; OPS35996785199 failed solely at missing combined RPC. Created forward migration d1722206; OPS35998393754 applied it and passed native314/314, then stopped at stale generated types. Copied authentic typegen SHA2b2dda6a from artifact10807456195. Implemented active UTILTS combined receipt adapter with scoped correction blocker and fail-closed absent witness. Local91/91 and type/lint/migration checks passed. Published b1c7f993; OPS35999644966 running. No hosted writes, deployment or market send. Next: authentic schema reconcile, exact-head CI, independent review; Task3b incomplete.

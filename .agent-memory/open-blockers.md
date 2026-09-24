@@ -414,3 +414,6 @@ Published8092ad6 restores legacy case events and makes scoped status/event/audit
 ## 2026-09-24 — Remaining after point-scope repair
 
 Task3b point UUID-to-physical mapping passed native313/313 at OPS35995196628. Historical inception, swallowed event producer and signed/legacy/claim/retention routes remain unqualified; `complete:false` is mandatory. Task4 still needs one MVCC statement for source, correction and process sets; the pure comparator seam alone is not activated. Full review and final same-head gates remain before merge.
+## 2026-09-24 — Active PR372 gates
+
+Combined migration native314/314 passed; active integration b1c7f993 needs authentic canonical schema reconciliation from OPS35999644966, exact-head all applicable CI, and independent full requirement/tenant review. Task3b producer, deletions, archive and pre-epoch history coverage remain incomplete and must retain complete:false. Do not merge PR372 yet. PR310 paused and excluded.

@@ -30,7 +30,20 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish authentic manifest and tested pure comparison seam from native313/313 head 562015b; inspect same-head CI, then implement single-MVCC source/correction/process acquisition and actual conditional UTILTS hold. Task3b historical coverage remains incomplete; final whole-PR review before merge.",
+  "next_action": "Inspect OPS35999644966 on published b1c7f993; download its authentic canonical schema snapshot, reconcile tracked schema/fingerprint, then run final same-head CI and independent whole-PR review. Task3b remains incomplete; keep PR372 draft.",
+  "task4_combined_snapshot": {
+    "published_head": "b1c7f993affdb68d11f4c0941c483c4d145b938e",
+    "published_tree": "37789b428e66c37b3030f1aa9bc8b539a78d40e9",
+    "native_migration_head": "d1722206b05574cbe6c08b470c5d4c380c23bf52",
+    "native_run": 35998393754,
+    "native_result": "314/314 PASS; case1/browser2/postbrowser1 PASS; stale types gate stopped",
+    "type_artifact": 10807456195,
+    "type_artifact_zip_sha256": "1ad1f384d7d066ed2ac4b2bb2a0c6cf011e1c865052214920f66a223f5c7e387",
+    "generated_types_sha256": "2b2dda6ae967b612e5c7e89e094542069d2ce38ba837747c480b3582ca5568ef",
+    "integration_run": 35999644966,
+    "local_verification": "focused91/91, migration check, app/tests typechecks, scoped lint PASS",
+    "status": "ACTIVE_INTEGRATION_SCHEMA_AND_FINAL_GATES_PENDING"
+  },
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",

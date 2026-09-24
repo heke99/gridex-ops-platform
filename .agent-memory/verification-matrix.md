@@ -261,3 +261,11 @@ Authoritative workspace remains /workspace/scratch/4b1d39503015/gridex-ops-platf
 | --- | --- | --- |
 | 562015b | OPS35995196628 clean replay: native313/313, case1/browser2/postbrowser1, generated types a0a50f80, schema fingerprint 925af263 | PASS; verify stale manifest only |
 | unpublished comparator seam | RED matched instead of correction hold; then focused Vitest 58/58, scripts/tests/app typechecks, scoped lint, migration check | PASS locally; active service composition pending |
+## 2026-09-24 — PR372 Task4 current gate
+
+| Head | Evidence | Result |
+| --- | --- | --- |
+| 6c27f6c | OPS35996785199 | Expected RED: 313/314 native, combined RPC absent |
+| d1722206 | OPS35998393754, artifact10807456195 ZIP1ad1f384 | Native314/314, case1/browser2/postbrowser1 PASS; old type manifest stopped |
+| b1c7f993 | Local focused91/91, migrations check, app/tests types, scoped lint | PASS; active combined UTILTS hold and authentic typegen |
+| b1c7f993 | OPS35999644966 | In progress; schema snapshot and exact-head final result pending |

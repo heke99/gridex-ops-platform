@@ -342,3 +342,8 @@ PR310 remains paused/untouched. No production operations or reduced gates. D110/
 1. Publish the authentic type-manifest reconciliation and pure comparator seam; require same-head CI.
 2. Build one service-owned MVCC observation of received sources, correction concerns and process history, then activate conditional UTILTS hold with actual-flow native tests.
 3. Close remaining Task3b route/retention qualifications without claiming pre-epoch completeness; review whole PR and run final same-head CI before merge. PR310 excluded.
+## 2026-09-24 — Current next steps
+
+1. Inspect OPS35999644966; take canonical schema.sql and schema.fingerprint.json from its generated artifact and verify hashes.
+2. Publish byte-identical schema reconcile; require all applicable same-head CI plus review before any acceptance.
+3. Continue Task3b producer/retention/history gaps and E035 remaining scope. Keep PR372 draft, PR310 excluded.
