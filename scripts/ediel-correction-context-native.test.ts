@@ -1392,7 +1392,11 @@ it('the actual invoice-test archive retains committed contract, point and site t
   default_notice_months:1,automatic_renewal:true,automatic_renewal_term_months:12,
   power_of_attorney_required:true,valid_from:'2026-09-24'}
  sql(`INSERT INTO public.admin_users(user_id,role,is_active)
-  VALUES(${literal(actorUserId)},'platform_admin',true);`)
+  VALUES(${literal(actorUserId)},'platform_admin',true);
+  UPDATE public.companies SET legal_name='Synthetic Archive AB',org_number='5590001235',
+   address_line_1='Testgatan 1',postal_code='123 45',city='Teststad',country_code='SE',
+   support_email='service@example.invalid',phone='0101234567',website='https://example.invalid'
+  WHERE id=${literal(companyId)};`)
  const {data:created,error:createError}=await supabaseService.rpc('gridex_upsert_internal_contract_offer_v2',{
   p_company_id:companyId,p_offer_id:null,p_payload:offer,p_pricing_snapshot:pricing,p_actor_user_id:actorUserId,
  })
@@ -1412,18 +1416,23 @@ it('the actual invoice-test archive retains committed contract, point and site t
    (${literal(companyId)},'production','Synthetic UTILTS','UTILTS');
   INSERT INTO public.company_email_settings(company_id,sender_email,verification_status)
   VALUES(${literal(companyId)},'synthetic@example.invalid','verified');
-  UPDATE public.tenant_legal_profiles SET legal_name='Synthetic Archive AB',organization_number='5590001234',
-   postal_address='{"address_line_1":"Testgatan 1","postal_code":"12345","city":"Teststad","country_code":"SE"}',
+  UPDATE public.tenant_legal_profiles SET legal_name='Synthetic Archive AB',organization_number='5590001235',
+   postal_address='{"address_line_1":"Testgatan 1","postal_code":"123 45","city":"Teststad","country_code":"SE"}',
    customer_service_email='service@example.invalid',phone='0101234567',website='https://example.invalid',
    complaints_contact='{"email":"complaints@example.invalid"}',
    data_protection_contact='{"email":"privacy@example.invalid"}',
    billing_information='{"email":"billing@example.invalid"}',
    dispute_resolution_information='{"authority":"ARN","description":"Synthetic dispute contact for archive fixture"}',
+   source_company_snapshot=(SELECT public.gridex_company_legal_profile_defaults(to_jsonb(c))->'source_company_snapshot'
+    FROM public.companies c WHERE c.id=${literal(companyId)}),
+   source_company_snapshot_sha256=(SELECT public.gridex_company_legal_profile_defaults(to_jsonb(c))->>'source_company_snapshot_sha256'
+    FROM public.companies c WHERE c.id=${literal(companyId)}),
    review_required=false,reviewed_at=now() WHERE company_id=${literal(companyId)};`)
  expect(sql(`SELECT to_jsonb(has_actor_setting AND has_brp AND has_prodat_route AND has_utilts_route AND has_sender_identity)
   FROM public.platform_go_live_readiness_v WHERE company_id=${literal(companyId)}`)).toBe(true)
- expect(sql(`SELECT to_jsonb(completeness_status='verified' AND NOT review_required)
-  FROM public.tenant_legal_profiles WHERE company_id=${literal(companyId)}`)).toBe(true)
+ expect(sql(`SELECT jsonb_build_object('verified',completeness_status='verified' AND NOT review_required,
+  'missing',missing_fields,'source',source_company_snapshot->>'legal_name_source')
+  FROM public.tenant_legal_profiles WHERE company_id=${literal(companyId)}`)).toEqual({verified:true,missing:[],source:'tenant_explicit'})
  const legalVersionId=sql<string>(`SELECT to_jsonb(public.gridex_materialize_legal_bundle_version(
   ${literal(companyId)},(SELECT contract_product_version_id FROM public.contract_offers WHERE id=${literal(offerId)}),
   NULL,${literal(actorUserId)}))`)
