@@ -88946,6 +88946,15 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_correction_combined_snapshot_v1: {
+        Args: {
+          p_company_id: string
+          p_cutoff: string
+          p_environment: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
       gridex_create_actor_registry_conflict: {
         Args: {
           p_actor_id: string

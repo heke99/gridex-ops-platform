@@ -1,9 +1,9 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-09-24T09:46:02Z",
-  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run35982493137",
+  "generated_at": "2026-09-24T12:27:51Z",
+  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run35998393754",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "a0a50f80c6f5f7286c2557138fe17177bbcd7eaa5e0dc95e3884d0589242b698",
-  "latest_migration": "20260924111700_correction_process_point_alias_scope_v3.sql",
-  "latest_migration_schema_effect": "Authentic empty replay at PR372 head 562015b, OPS35995196628 artifact10806495967 ZIP SHA256 b1f36a8f4c82e18ec4200bf80967876120123ff1b62a045d8f1d8d859c0e2411: native313/313 plus case/browser passed, generated types SHA256 a0a50f80 byte-identical to tracked types, canonical fingerprint 925af263 byte-identical to tracked schema contract. The forward only replaces a private read function; third-set coverage remains incomplete."
+  "sha256": "2b2dda6ae967b612e5c7e89e094542069d2ce38ba837747c480b3582ca5568ef",
+  "latest_migration": "20260924120822_e035_combined_correction_snapshot.sql",
+  "latest_migration_schema_effect": "Authentic empty replay at PR372 head d1722206, OPS35998393754 artifact10807456195 ZIP SHA256 1ad1f384d7d066ed2ac4b2bb2a0c6cf011e1c865052214920f66a223f5c7e387: native314/314 plus case/browser passed. Generated types SHA256 2b2dda6a copied byte-for-byte. Canonical schema snapshot gate still pending; Task3b historical coverage remains incomplete."
 }

@@ -100,7 +100,8 @@ it('activated original monthly readings without approved structure are held, not
  expect(result).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,runtime:{validation:{ok:false,classification:'internal_review'},transactionDispositions:[{disposition:'internal_review',responseType:'none'}]}})
  expect(result.runtime.ackPlan.utiltsErrCodes).toEqual([])
  expect(JSON.stringify(result.evidence)).not.toContain('private unavailable')
- expect(io.rpc).toHaveBeenCalledWith('gridex_source_object_snapshot_v1',{p_company_id:ownerId(2),p_environment:'test',p_cutoff:'2026-10-02T09:00:00.000Z'})
+ expect(io.rpc).toHaveBeenCalledWith('gridex_correction_combined_snapshot_v1',{p_company_id:ownerId(2),p_environment:'test',
+  p_message_id:ownerId(1),p_cutoff:'2026-10-02T09:00:00.000Z'})
 })
 it('held transactions cannot fall through to positive APERAK even with original BGM AB',async()=>{
  const args=input(),result=await qualifyReceivedUtiltsStructure(args)

@@ -25,7 +25,7 @@ export type StructuralReadset={
 /** Lossless follow-up projection of a fully checked service snapshot. This pure
  * helper is deliberately not a transferable authorization. It rereads original
  * bytes and never uses mutable message status or incoming UTILTS identifiers. */
-export function inspectStructuralReadset(scope:ReceivedSourceScope,receipt:unknown):StructuralReadset {
+export function inspectStructuralReadset(scope:ReceivedSourceScope,receipt:unknown,handledCorrections:ReadonlySet<string>=new Set()):StructuralReadset {
   const timeline=inspectReceivedSourceDecisionTimeline(scope,receipt)
   const result:StructuralReadset={timeline,versions:[],closures:[],closureBlockers:[],correctionContextBlockers:[],unresolvedSources:true,sources:[]}
   if(timeline.status!=='inspected'||!timeline.boundedReadComplete)return result
@@ -42,6 +42,9 @@ export function inspectStructuralReadset(scope:ReceivedSourceScope,receipt:unkno
       if(segments>32768)return {...result,versions:[],sources:[],unresolvedSources:true}
       // These known processes carry no received meter/register inventory.
       if(['Z01','Z02','Z03','Z09','Z13','Z14','Z15','Z18'].includes(source.messageCode??''))continue
+      // A witnessed raw C captured by the correction owner is projected as a
+      // scoped hold from the SAME combined snapshot. It is never a closure.
+      if(source.messageCode==='Z05'&&handledCorrections.has(source.sourceMessageId))continue
       // End/cancellation messages are not guessed into a positive structural
       // approval. A closure owner is needed if such a message affects coverage.
       if(!['Z04','Z05','Z06','Z10'].includes(source.messageCode??'')){result.unresolvedSources=true;continue}
