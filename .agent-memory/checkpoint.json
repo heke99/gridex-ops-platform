@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish authentic type reconciliation, run same-head native224 through schema/tenant/parity, copy authentic schema artifacts and qualify source-only capture before Task2b.",
+  "next_action": "Publish reviewed fixture cleanup from API parent73970bdc, run224+tenant/parity/schema, reconcile authentic schema then final same-head qualification before Task2b.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -446,7 +446,7 @@
     ]
   },
   "correction_capture_fix4": {
-    "status": "NATIVE224_PASS_AUTHENTIC_TYPES_RECONCILED_SCHEMA_PENDING",
+    "status": "FIX5_STATIC_SPEC_QUALITY_APPROVED_NATIVE224_TENANT_SCHEMA_PENDING",
     "base": "dba554664ea2d6f240d709db57c3c664ea5ec9cc",
     "implementation": "05461a63c3a60b725524320285bb11fd58414171",
     "unit_tests": 71,
@@ -461,6 +461,17 @@
     "native_job": 107447053693,
     "artifact": 10784667982,
     "artifact_sha256": "1cdd49be92ffc12275dff41ce9d88037dc1ebdc6a94a0a6e0b7d820bc9de1882",
-    "types_sha256": "30c9f682c20f5e1d9ff203a445e24785d1058d3997f233d75e05b3eebee756e7"
+    "types_sha256": "30c9f682c20f5e1d9ff203a445e24785d1058d3997f233d75e05b3eebee756e7",
+    "types_published_head": "73970bdcccb275f5b9ab8e95ea690f6101e50700",
+    "types_published_tree": "c51fb23557891166ee4bb9847f47ba494e492c93",
+    "types_ops_run": 35941188514,
+    "quality_result": "PASS_FULL6038_374_BUILD_ON_E27F1282",
+    "native_review": "PROVISIONAL_SOURCE_ONLY_ACCEPT_SCHEMA_GATES_PENDING",
+    "types_native_job": 107449194254,
+    "types_artifact": 10784818129,
+    "types_artifact_sha256": "eedd9adca08a0d496a08c412d01c23323209c61dddf8eaae88fe27bc5c5571ac",
+    "tenant_invariant": "FAIL_F3_USER_PERMISSIONS_ONE_NULL_COMPANY_ROW",
+    "fix_round": 5,
+    "fix5_implementation": "44257fe9e5b73b24bcd41183c5b8d5f278861590"
   }
 }

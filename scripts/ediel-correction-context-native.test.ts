@@ -275,9 +275,9 @@ function limitedActor(companyIds:string[]){
    VALUES(${literal(company)},${literal(actor)},'viewer','active',now(),'{}','viewer',true,now(),'viewer');`).join('\n')}`)
  return actor
 }
-function grantDirect(actor:string,company:string|null,options:{effect?:string;status?:string;active?:boolean}={}){
- sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,effect,status,is_active)
-  SELECT ${literal(actor)},${company===null?'NULL':literal(company)},id,key,${literal(options.effect??'allow')},${literal(options.status??'active')},${options.active??true}
+function grantDirect(actor:string,company:string|null,options:{effect?:string;status?:string;active?:boolean}={},grantId=randomUUID()){
+ sql(`INSERT INTO public.user_permissions(id,user_id,company_id,permission_id,permission_key,effect,status,is_active)
+  SELECT ${literal(grantId)},${literal(actor)},${company===null?'NULL':literal(company)},id,key,${literal(options.effect??'allow')},${literal(options.status??'active')},${options.active??true}
   FROM public.permissions WHERE key='communication.send';`)
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.user_permissions WHERE user_id=${literal(actor)}`)).toBe(1)
 }
@@ -321,10 +321,28 @@ it('a company-bound direct grant does not resolve for a null requested company',
  expect(sql(`SELECT to_jsonb('communication.send'=ANY(public.gridex_get_user_permissions_in_company(${literal(actor)},NULL)))`)).toBe(false)
 })
 it('a legacy null-company direct allow remains global for active selected-company members',async()=>{
- const a=await seed(),b=await seed(),actor=limitedActor([a.companyId,b.companyId]);grantDirect(actor,null)
- expect(await effective(actor,a.companyId)).toBe(true);expect(await effective(actor,b.companyId)).toBe(true)
- expect(sql(`SELECT to_jsonb('communication.send'=ANY(public.gridex_get_user_permissions_in_company(${literal(actor)},NULL)))`)).toBe(true)
- expect(await captureCorrectionContext({...b,actorUserId:actor})).toMatchObject({status:'recorded',disposition:'unreviewed'})
+ const a=await seed(),b=await seed(),actor=limitedActor([a.companyId,b.companyId]),grantId=randomUUID()
+ const globalGrants=()=>sql(`SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY id),'[]'::jsonb) FROM public.user_permissions p WHERE company_id IS NULL`)
+ const before=globalGrants()
+ let originalFailure:unknown
+ try{
+  // Commit for the real HTTP permission/capture RPCs, then remove only this
+  // compatibility fixture before the suite's strict tenant invariant gate.
+  grantDirect(actor,null,{},grantId)
+  expect(await effective(actor,a.companyId)).toBe(true);expect(await effective(actor,b.companyId)).toBe(true)
+  expect(sql(`SELECT to_jsonb('communication.send'=ANY(public.gridex_get_user_permissions_in_company(${literal(actor)},NULL)))`)).toBe(true)
+  expect(await captureCorrectionContext({...b,actorUserId:actor})).toMatchObject({status:'recorded',disposition:'unreviewed'})
+ }catch(error){originalFailure=error;throw error}
+ finally{
+  try{
+   sql(`DELETE FROM public.user_permissions WHERE id=${literal(grantId)} AND user_id=${literal(actor)} AND company_id IS NULL AND permission_key='communication.send'`)
+   expect(sql(`SELECT to_jsonb(count(*)) FROM public.user_permissions WHERE id=${literal(grantId)}`)).toBe(0)
+   expect(globalGrants()).toEqual(before)
+  }catch(cleanupError){
+   if(originalFailure!==undefined)throw new AggregateError([originalFailure,cleanupError],'Legacy grant cleanup failed after the original assertion failure',{cause:originalFailure})
+   throw cleanupError
+  }
+ }
 })
 it.each(['status','is_active'] as const)('a direct company grant requires active membership by %s',async field=>{
  const f=await seed(),actor=limitedActor([f.companyId]);grantDirect(actor,f.companyId)

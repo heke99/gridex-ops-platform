@@ -1,12 +1,8 @@
-# PR372 native224 passes; authentic types reconciled — 2026-09-24
+# PR372 final fixture repair approved; native pending — 2026-09-24
 
-## Actual fix4 native result and authentic type reconciliation
+Published73970bdcccb275f5b9ab8e95ea690f6101e50700. Genuine OPS35941188514/native107449194254 passes224/4, case1/browser2/postbrowser1 and generated types. Subsequent tenant invariant F-3 finds one null-company user_permissions row. Fresh author confirmed the synthetic legacy-global test leaves its grant behind; round5/5 repairs exact-owned fixture cleanup and pre/post preservation only. Production semantics, published SQL and tenant invariant remain unchanged. Author frozen44257fe9; independent scoped SPEC/QUALITY APPROVED,0open.
 
-Published e27f12822665a0c38140c3de5a05579ddebaa59a/treeaa0cb8fd3dc2518b2f9aaba2fe80cb2a86bfc7e7 exactly matches local084bbb96. OPS35940479318/native107447053693: all224 tests/4 files PASS, then case1, protected browser2 and postbrowser1 PASS. This finally exercises actual capture/witness positives and permission/registry/scope negatives. Workflow stops at generated type hash difference, not test failure. Artifact10784667982 ZIP SHA2561cdd49be92ffc12275dff41ce9d88037dc1ebdc6a94a0a6e0b7d820bc9de1882 verified; rem002-database.types.ts hash30c9f682c20f5e1d9ff203a445e24785d1058d3997f233d75e05b3eebee756e7 copied byte-identically, manifest updated to actual CLI2.101 replay/time/tail. Exactly18 generated public RPC type lines added. Local generated-types check PASS. Schema snapshot, tenant invariant/parity and final same-head CI still pending; independent source-native evidence review requested. No manual type/schema generation.
-
-Same head tenant35940479303, Ediel35940479300 and browser35940479311 SUCCESS. FullE2E35940479348 smoke107447053989 actual14/15, only generated-type migration-tail gate fails; verify107447053678 same expected gate after integrity611/515 and public legal/hardening checks pass. Quality107447053462 still pending at this receipt. Source-only checkpoint remains short of document/process/UTILTS tasks and full E035 acceptance.
-
-Next: publish authentic types, obtain actual schema artifacts and all required gates. Task2b/3/4 pending; PR371 accepted merged2a148d39; PR310 excluded. User approval persists.
+Source-only native proof independently accepted, delivery provisional. Schema/parity have not run. Quality/verify/fullE2E/browser/Ediel/tenant ordinary workflows pass. Next: publish and rerun real224+tenant/parity/schema; reconcile authentic schema then final same-head gate. Task2b/3/4 still pending, fullE035partial; PR371merged2a148d39, PR310excluded. User-approved continuation persists.
 
 # PR372 active; pure correction hold approved — 2026-09-24
 
