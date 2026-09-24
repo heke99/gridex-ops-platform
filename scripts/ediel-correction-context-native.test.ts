@@ -1383,7 +1383,7 @@ it('the actual invoice-test archive retains committed contract, point and site t
  const {companyId,actorUserId}=await seed(),customerId=randomUUID(),siteId=randomUUID()
  const pointId=randomUUID(),contractId=randomUUID(),marker={test_center:{kind:'invoice_test_customer'}}
  const pricing={schema:'gridex_contract_pricing_v5',pricing_model:'spot',energy_direction:'consumption',vat_rate:0.25,
-  price_areas:['SE3'],base_components:[{source_type:'nord_pool_spot',label:'Spotpris',weight_percent:100,price_area:'SE3'}],
+  price_areas:['SE3'],base_components:[{source_type:'spot',label:'Spotpris',weight_percent:100,price_area:'SE3'}],
   price_components:[{component_code:'spot_markup',component_type:'markup',name:'Påslag',calculation_type:'per_kwh',amount:4,unit:'ore_per_kwh',website_card_visible:true},
    {component_code:'monthly_fee',component_type:'fee',name:'Månadsavgift',calculation_type:'fixed_monthly',amount:49,unit:'sek_month',website_card_visible:true}]}
  const offer={name:`Synthetic archive ${contractId}`,slug:`synthetic-archive-${contractId}`,
