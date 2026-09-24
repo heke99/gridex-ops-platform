@@ -33720,6 +33720,17 @@ $$;
 COMMENT ON FUNCTION public.gridex_onboard_customer_graph_quote_commit_v2(p_command jsonb) IS 'Canonical website application commit: locks and validates v2/v3 immutable quote identity, commits the customer graph, consumes the quote, and writes audit/events/outbox in one transaction.';
 
 --
+-- Name: gridex_open_correction_process_readset_v1(uuid, text, uuid, timestamp with time zone, uuid, text, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_open_correction_process_readset_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid, p_cutoff_at timestamp with time zone, p_customer_id uuid, p_point_id text, p_supply_period_id uuid) RETURNS jsonb
+    LANGUAGE sql
+    SET search_path TO 'pg_catalog'
+    AS $_$
+ SELECT gridex_correction_process.open_readset_v1($1,$2,$3,$4,$5,$6,$7)
+$_$;
+
+--
 -- Name: gridex_ops_health_checks(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -48929,6 +48940,18 @@ CREATE FUNCTION public.gridex_witness_correction_concern_v1(p_company_id uuid, p
     AS $$ BEGIN
  IF current_user<>'service_role' THEN RAISE EXCEPTION 'correction_service_required' USING ERRCODE='42501'; END IF;
  RETURN gridex_received_sources.witness_correction_concern_v1(p_company_id,p_environment,p_capture_id,p_facts_hash);
+END $$;
+
+--
+-- Name: gridex_witness_correction_process_fact_v1(uuid, bigint, text, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_witness_correction_process_fact_v1(p_company_id uuid, p_fact_id bigint, p_facts_hash text, p_actor_user_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ RETURN gridex_correction_process.witness_v1(p_company_id,p_fact_id,p_facts_hash,p_actor_user_id);
 END $$;
 
 --
@@ -115356,6 +115379,13 @@ REVOKE ALL ON FUNCTION public.gridex_onboard_customer_graph_quote_commit_v2(p_co
 GRANT ALL ON FUNCTION public.gridex_onboard_customer_graph_quote_commit_v2(p_command jsonb) TO service_role;
 
 --
+-- Name: FUNCTION gridex_open_correction_process_readset_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid, p_cutoff_at timestamp with time zone, p_customer_id uuid, p_point_id text, p_supply_period_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_open_correction_process_readset_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid, p_cutoff_at timestamp with time zone, p_customer_id uuid, p_point_id text, p_supply_period_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_open_correction_process_readset_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid, p_cutoff_at timestamp with time zone, p_customer_id uuid, p_point_id text, p_supply_period_id uuid) TO service_role;
+
+--
 -- Name: FUNCTION gridex_ops_health_checks(); Type: ACL; Schema: public; Owner: -
 --
 
@@ -116802,6 +116832,13 @@ GRANT ALL ON FUNCTION public.gridex_verify_contract_schema_alignment() TO servic
 
 REVOKE ALL ON FUNCTION public.gridex_witness_correction_concern_v1(p_company_id uuid, p_environment text, p_capture_id uuid, p_facts_hash text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_witness_correction_concern_v1(p_company_id uuid, p_environment text, p_capture_id uuid, p_facts_hash text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_witness_correction_process_fact_v1(p_company_id uuid, p_fact_id bigint, p_facts_hash text, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_witness_correction_process_fact_v1(p_company_id uuid, p_fact_id bigint, p_facts_hash text, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_witness_correction_process_fact_v1(p_company_id uuid, p_fact_id bigint, p_facts_hash text, p_actor_user_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION gridex_witness_document_reference_v1(p_company_id uuid, p_environment text, p_outcome_id uuid, p_facts_hash text); Type: ACL; Schema: public; Owner: -
