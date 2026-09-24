@@ -91041,6 +91041,15 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_witness_correction_process_fact_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_fact_id: number
+          p_facts_hash: string
+        }
+        Returns: Json
+      }
       gridex_witness_document_reference_v1: {
         Args: {
           p_company_id: string

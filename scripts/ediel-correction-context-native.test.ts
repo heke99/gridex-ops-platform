@@ -1030,6 +1030,8 @@ it('switch-event inserts, updates and deletes leave separate immutable facts', a
 it('customer, site, point, contract and supply graph writes retain process links', async () => {
  const {companyId}=await seed(),customerId=randomUUID(),siteId=randomUUID(),pointId=randomUUID()
  const contractId=randomUUID(),periodId=randomUUID()
+ const switchId=randomUUID(),contractEventId=randomUUID(),caseId=randomUUID(),caseEventId=randomUUID()
+ const jobId=randomUUID(),operationEventId=randomUUID()
  sql(`BEGIN;
   INSERT INTO public.customers(id,company_id,first_name,last_name)
   VALUES(${literal(customerId)},${literal(companyId)},'Synthetic','Graph');
@@ -1041,16 +1043,34 @@ it('customer, site, point, contract and supply graph writes retain process links
   VALUES(${literal(contractId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(pointId)},'draft');
   INSERT INTO public.customer_supply_periods(id,company_id,customer_id,metering_point_id,contract_id,start_date,status)
   VALUES(${literal(periodId)},${literal(companyId)},${literal(customerId)},${literal(pointId)},${literal(contractId)},'2026-09-20','active');
+  INSERT INTO public.customer_contract_events(id,company_id,customer_id,customer_contract_id,event_type)
+  VALUES(${literal(contractEventId)},${literal(companyId)},${literal(customerId)},${literal(contractId)},'created');
+  INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,site_id,metering_point_id,status)
+  VALUES(${literal(switchId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(pointId)},'draft');
+  INSERT INTO public.customer_cases(id,company_id,customer_id,site_id,metering_point_id,customer_contract_id,case_type,title)
+  VALUES(${literal(caseId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(pointId)},${literal(contractId)},'other','Synthetic case');
+  INSERT INTO public.customer_case_events(id,company_id,customer_case_id,customer_id,event_type,message)
+  VALUES(${literal(caseEventId)},${literal(companyId)},${literal(caseId)},${literal(customerId)},'created','Synthetic case event');
+  INSERT INTO public.customer_operation_jobs(id,company_id,customer_id,customer_site_id,metering_point_id,job_type,idempotency_key)
+  VALUES(${literal(jobId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(pointId)},'follow_up',${literal(jobId)});
+  INSERT INTO public.customer_operation_events(id,company_id,customer_id,customer_site_id,metering_point_id,customer_operation_job_id,event_code,title,message)
+  VALUES(${literal(operationEventId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(pointId)},${literal(jobId)},'created','Synthetic operation','Synthetic event');
   COMMIT;`)
  expect(sql(`SELECT jsonb_agg(jsonb_build_object('table',table_name,'companyId',company_id,
   'customerId',new_fact->>'customer_id','siteId',coalesce(new_fact->>'site_id',new_fact->>'customer_site_id'),
   'pointId',new_fact->>'metering_point_id') ORDER BY table_name)
   FROM gridex_correction_process.facts WHERE row_id IN
-  (${[siteId,pointId,contractId,periodId].map(literal).join(',')})`))
+  (${[siteId,pointId,contractId,periodId,switchId,contractEventId,caseId,caseEventId,jobId,operationEventId].map(literal).join(',')})`))
   .toEqual([
+   {table:'customer_case_events',companyId,customerId,siteId:null,pointId:null},
+   {table:'customer_cases',companyId,customerId,siteId,pointId},
+   {table:'customer_contract_events',companyId,customerId,siteId:null,pointId:null},
    {table:'customer_contracts',companyId,customerId,siteId,pointId},
+   {table:'customer_operation_events',companyId,customerId,siteId,pointId},
+   {table:'customer_operation_jobs',companyId,customerId,siteId,pointId},
    {table:'customer_sites',companyId,customerId,siteId:null,pointId:null},
    {table:'customer_supply_periods',companyId,customerId,siteId:null,pointId},
    {table:'metering_points',companyId,customerId,siteId,pointId:null},
+   {table:'supplier_switch_requests',companyId,customerId,siteId,pointId},
   ])
 })
