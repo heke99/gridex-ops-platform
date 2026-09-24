@@ -1,3 +1,8 @@
+## 2026-09-24 — PR372 source capture repair checkpoint
+
+Task2 fixround4/5 dba55466..05461a63 scoped SPEC/QUALITY APPROVED,0open; registry+scope findings addressed. Native224/artifacts pending, source-only capture not accepted. Parent exacttree publication next.
+Local71/4, scripts types/lint and integrity611/515 PASS. Latest genuine native195/206 FAIL; new224 not executed. Source/version inventory verifies5original hashes with bounded historical gaps. User-authorized continuation remains active.
+
 ## Verified bounded progress — 2026-09-23
 
 Case repair static SPEC/QUALITY approved, targeted29/7 and full CI5963/370 pass. Registry recovery reviewed and actual ECR startup/canonical replay succeeds in35903332327. Retained124 native pass. Case suite remains FAILED on migration-path fixture integration; case task/full E035 NOT complete.

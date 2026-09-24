@@ -15,6 +15,7 @@ const project=(wire:string)=>sql<Record<string,unknown>>(`SELECT gridex_received
 async function seed(wire=raw()){
  const companyId=randomUUID(),actorUserId=randomUUID(),sourceMessageId=randomUUID()
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.permissions WHERE key='communication.send'`)).toBe(1)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_message_profiles WHERE profile_key='PRODAT:Z05:C:26.A:r3' AND is_enabled`)).toBe(1)
  sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(companyId)},'Synthetic correction capture','active');
  INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
  VALUES(${literal(actorUserId)},'authenticated','authenticated',${literal(`${actorUserId}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
@@ -33,6 +34,13 @@ async function seed(wire=raw()){
  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
  WHERE profile.profile_key='PRODAT:Z05:C:26.A:r3' AND profile.is_enabled;`)
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.sources WHERE source_message_id=${literal(sourceMessageId)}`)).toBe(1)
+ expect(sql(`SELECT to_jsonb(company_id=${literal(companyId)}::uuid AND environment='test' AND origin='database_insert'
+  AND message_code='Z05' AND raw_payload=${literal(wire)} AND payload_hash=encode(sha256(convert_to(raw_payload,'UTF8')),'hex')
+  AND received_context @> jsonb_build_object('version',1,'contextOrigin','database_insert','sourceMessageId',source_message_id,
+   'companyId',company_id,'environment',environment,'messageCode',message_code,'payloadHash',payload_hash)
+  AND (received_context->>'sourceReceivedAt')::timestamptz=source_received_at
+  AND isfinite((received_context->>'capturedAt')::timestamptz) AND (received_context->>'capturedAt')::timestamptz<=captured_at)
+  FROM gridex_received_sources.sources WHERE source_message_id=${literal(sourceMessageId)}`)).toBe(true)
  const permission=await supabaseService.rpc('gridex_actor_has_company_permission',{p_actor_user_id:actorUserId,p_company_id:companyId,p_permission:'communication.send'})
  expect(permission.error).toBeNull();expect(permission.data).toBe(true)
  expect(sql(`SELECT jsonb_build_object('companyActive',c.is_active,'companyStatus',c.status,'userStatus',u.user_status,'membershipActive',m.is_active,'membershipStatus',m.status) FROM public.companies c JOIN public.company_memberships m ON m.company_id=c.id JOIN public.user_profiles u ON u.id=m.user_id WHERE c.id=${literal(companyId)} AND u.id=${literal(actorUserId)}`))
@@ -40,6 +48,70 @@ async function seed(wire=raw()){
  return {companyId,actorUserId,sourceMessageId,environment:'test' as const}
 }
 const call=(f:Awaited<ReturnType<typeof seed>>)=>`public.gridex_capture_correction_concern_v1(${literal(f.companyId)},'test',${literal(f.sourceMessageId)},${literal(f.actorUserId)})`
+
+// Replay temporarily moves the original migrations out of their working-tree
+// paths. Execute only the committed, checksum-bound original, never a marker.
+function committedMigration(name:string){
+ const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()
+ const source=execFileSync('git',['show',`${revision}:supabase/migrations/${name}`],{encoding:'utf8'})
+ const manifest=JSON.parse(execFileSync('git',['show',`${revision}:scripts/migration-history-manifest.json`],{encoding:'utf8'})) as {files:Record<string,string>}
+ expect(createHash('sha256').update(source).digest('hex')).toBe(manifest.files[name])
+ expect(source.match(/^BEGIN;$/gm)).toHaveLength(1);expect(source.match(/^COMMIT;$/gm)).toHaveLength(1)
+ return source.replace(/^BEGIN;\n/m,'').replace(/^COMMIT;\n?$/m,'')
+}
+const registryMigration='20260924003708_communication_permission_registry_completion.sql'
+const resolverMigration='20260924003724_company_direct_permission_scope_repair.sql'
+const assignments=`jsonb_build_object(
+ 'roles',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY id),'[]'::jsonb) FROM public.role_permissions r),
+ 'users',(SELECT coalesce(jsonb_agg(to_jsonb(u) ORDER BY id),'[]'::jsonb) FROM public.user_permissions u),
+ 'overrides',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY id),'[]'::jsonb) FROM public.user_permission_overrides o))`
+// Run before this file creates synthetic grants. The ordinary clean replay,
+// not fixture INSERTs, must have materialized both canonical registry rows.
+it('canonical communication keys materialize once without creating any assignments',()=>{
+ expect(sql(`SELECT jsonb_object_agg(key,n) FROM (SELECT key,count(*) n FROM public.permissions
+  WHERE key IN ('communication.read','communication.send') GROUP BY key) p`)).toEqual({'communication.read':1,'communication.send':1})
+ expect(sql(`SELECT jsonb_build_object(
+  'roles',(SELECT count(*) FROM public.role_permissions WHERE permission_key IN ('communication.read','communication.send') OR permission_id IN (SELECT id FROM public.permissions WHERE key IN ('communication.read','communication.send'))),
+  'users',(SELECT count(*) FROM public.user_permissions WHERE permission_key IN ('communication.read','communication.send') OR permission_id IN (SELECT id FROM public.permissions WHERE key IN ('communication.read','communication.send'))),
+  'overrides',(SELECT count(*) FROM public.user_permission_overrides WHERE permission_key IN ('communication.read','communication.send')))`)).toEqual({roles:0,users:0,overrides:0})
+ const source=committedMigration(registryMigration)
+ expect(sql(`BEGIN; CREATE TEMP TABLE before_registry AS SELECT ${assignments} AS state;
+  DELETE FROM public.permissions WHERE key IN ('communication.read','communication.send');
+  ${source}
+  SELECT jsonb_build_object('assignmentsUnchanged',(SELECT state FROM before_registry)=${assignments},
+   'keys',(SELECT jsonb_object_agg(key,n) FROM (SELECT key,count(*) n FROM public.permissions WHERE key IN ('communication.read','communication.send') GROUP BY key) p));
+  ROLLBACK;`)).toEqual({assignmentsUnchanged:true,keys:{'communication.read':1,'communication.send':1}})
+})
+it('registry replay preserves preexisting IDs, metadata, disabled state and all assignments',()=>{
+ const source=committedMigration(registryMigration)
+ const company=randomUUID(),actor=randomUUID(),role=randomUUID()
+ const registry=`(SELECT jsonb_agg(to_jsonb(p) ORDER BY key) FROM public.permissions p WHERE key IN ('communication.read','communication.send'))`
+ expect(sql(`BEGIN;
+  INSERT INTO public.companies(id,name,status) VALUES(${literal(company)},'Synthetic registry replay','active');
+  INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
+  VALUES(${literal(actor)},'authenticated','authenticated',${literal(`${actor}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
+  INSERT INTO public.roles(id,key,name) VALUES(${literal(role)},${literal(`registry_replay_${role}`)},'Synthetic registry replay');
+  INSERT INTO public.role_permissions(role_id,permission_id) SELECT ${literal(role)},id FROM public.permissions WHERE key='communication.send';
+  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key) SELECT ${literal(actor)},${literal(company)},id,key FROM public.permissions WHERE key='communication.send';
+  INSERT INTO public.user_permission_overrides(user_id,company_id,permission_key,effect) VALUES(${literal(actor)},${literal(company)},'communication.send','deny');
+  UPDATE public.permissions SET name='Synthetic preexisting metadata',description='Preserve this description',category='Preserve category',is_active=false WHERE key='communication.send';
+  CREATE TEMP TABLE before_registry AS SELECT ${assignments} AS grants,${registry} AS registry;
+  ${source}
+  ${source}
+  SELECT to_jsonb((SELECT grants FROM before_registry)=${assignments} AND (SELECT registry FROM before_registry)=${registry});
+  ROLLBACK;`)).toBe(true)
+})
+it('resolver forward preserves its owner and effective private RPC ACL',()=>{
+ const source=committedMigration(resolverMigration)
+ const security=`(SELECT jsonb_build_object('owner',proowner,'acl',proacl,'securityDefiner',prosecdef,'volatility',provolatile,'config',proconfig) FROM pg_proc WHERE oid='public.gridex_get_user_permissions_in_company(uuid,uuid)'::regprocedure)`
+ expect(sql(`BEGIN; CREATE TEMP TABLE before_resolver AS SELECT ${security} AS state;
+  ${source}
+  SELECT jsonb_build_object('preserved',(SELECT state FROM before_resolver)=${security},
+   'anon',has_function_privilege('anon','public.gridex_get_user_permissions_in_company(uuid,uuid)','EXECUTE'),
+   'authenticated',has_function_privilege('authenticated','public.gridex_get_user_permissions_in_company(uuid,uuid)','EXECUTE'),
+   'service',has_function_privilege('service_role','public.gridex_get_user_permissions_in_company(uuid,uuid)','EXECUTE'));
+  ROLLBACK;`)).toEqual({preserved:true,anon:false,authenticated:false,service:true})
+})
 it('bare C date alone never narrows the unknown prior boundary',()=>{
  expect(project(raw())).toMatchObject({objectId:'735123456789012345',identityAgency:'9',legalSender:'12345',legalReceiver:'54321',caseReference:'CLOSE-CASE',
   oldStop:{kind:'unknown'},observedSourceStop:{kind:'known',utc:'2026-10-15T11:34:00.000Z'},proposedStop:{kind:'not_asserted'},candidateTarget:null,disposition:'unreviewed'})
@@ -191,4 +263,110 @@ it('an operationally paused company cannot append a concern despite its active a
  expect(sql(`SELECT to_jsonb(status) FROM public.companies WHERE id=${literal(f.companyId)}`)).toBe('paused')
  expect(await captureCorrectionContext(f)).toEqual({status:'unconfirmed',disposition:'unreviewed'})
  expect(sql(`SELECT jsonb_build_object('concerns',(SELECT count(*) FROM gridex_received_sources.correction_concerns WHERE source_message_id=${literal(f.sourceMessageId)}),'witnesses',(SELECT count(*) FROM gridex_received_sources.correction_witnesses WHERE company_id=${literal(f.companyId)}))`)).toEqual({concerns:0,witnesses:0})
+})
+
+function limitedActor(companyIds:string[]){
+ const actor=randomUUID()
+ sql(`INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
+  VALUES(${literal(actor)},'authenticated','authenticated',${literal(`${actor}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
+  INSERT INTO public.user_profiles(id,email,full_name,user_status)
+  VALUES(${literal(actor)},${literal(`${actor}@example.invalid`)},'Synthetic direct permission actor','active') ON CONFLICT(id) DO UPDATE SET user_status='active';
+  ${companyIds.map(company=>`INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key)
+   VALUES(${literal(company)},${literal(actor)},'viewer','active',now(),'{}','viewer',true,now(),'viewer');`).join('\n')}`)
+ return actor
+}
+function grantDirect(actor:string,company:string|null,options:{effect?:string;status?:string;active?:boolean}={}){
+ sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,effect,status,is_active)
+  SELECT ${literal(actor)},${company===null?'NULL':literal(company)},id,key,${literal(options.effect??'allow')},${literal(options.status??'active')},${options.active??true}
+  FROM public.permissions WHERE key='communication.send';`)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.user_permissions WHERE user_id=${literal(actor)}`)).toBe(1)
+}
+async function effective(actor:string,company:string){
+ const {data,error}=await supabaseService.rpc('gridex_actor_has_company_permission',{
+  p_actor_user_id:actor,p_company_id:company,p_permission:'communication.send',
+ })
+ expect(error).toBeNull();return data
+}
+async function deniedCapture(f:Awaited<ReturnType<typeof seed>>,actor:string){
+ expect(await effective(actor,f.companyId)).toBe(false)
+ expect(await captureCorrectionContext({...f,actorUserId:actor})).toEqual({status:'unconfirmed',disposition:'unreviewed'})
+ expect(sql(`SELECT jsonb_build_object('concerns',(SELECT count(*) FROM gridex_received_sources.correction_concerns WHERE source_message_id=${literal(f.sourceMessageId)}),
+  'witnesses',(SELECT count(*) FROM gridex_received_sources.correction_witnesses WHERE company_id=${literal(f.companyId)}))`)).toEqual({concerns:0,witnesses:0})
+}
+function grantCompanyRole(actor:string,company:string){
+ const roleId=randomUUID(),userRoleId=randomUUID(),key=`correction_native_${roleId.replaceAll('-','')}`
+ sql(`INSERT INTO public.roles(id,key,name,scope,is_active) VALUES(${literal(roleId)},${literal(key)},'Synthetic correction role','company',true);
+  INSERT INTO public.role_permissions(role_id,role_key,permission_id,permission_key,effect)
+  SELECT ${literal(roleId)},${literal(key)},id,key,'allow' FROM public.permissions WHERE key='communication.send';
+  INSERT INTO public.user_roles(id,user_id,role_id,role,company_id,status,is_active)
+  VALUES(${literal(userRoleId)},${literal(actor)},${literal(roleId)},${literal(key)},${literal(company)},'active',true);`)
+ return {roleId,userRoleId}
+}
+it('a dual-member actor can capture with its A direct grant but cannot borrow it in B',async()=>{
+ const a=await seed(),b=await seed(),actor=limitedActor([a.companyId,b.companyId])
+ grantDirect(actor,a.companyId)
+ expect(await effective(actor,a.companyId)).toBe(true)
+ await deniedCapture(b,actor)
+ expect(await captureCorrectionContext({...a,actorUserId:actor})).toMatchObject({status:'recorded',disposition:'unreviewed'})
+})
+it.each([
+ ['deny effect',{effect:'deny'}],['removed status',{status:'removed_from_company'}],['inactive flag',{active:false}],
+] as const)('a direct grant with %s is not positive capture authority',async(_label,options)=>{
+ const f=await seed(),actor=limitedActor([f.companyId]);grantDirect(actor,f.companyId,options)
+ await deniedCapture(f,actor)
+})
+it('a company-bound direct grant does not resolve for a null requested company',async()=>{
+ const f=await seed(),actor=limitedActor([f.companyId]);grantDirect(actor,f.companyId)
+ expect(await effective(actor,f.companyId)).toBe(true)
+ expect(sql(`SELECT to_jsonb('communication.send'=ANY(public.gridex_get_user_permissions_in_company(${literal(actor)},NULL)))`)).toBe(false)
+})
+it('a legacy null-company direct allow remains global for active selected-company members',async()=>{
+ const a=await seed(),b=await seed(),actor=limitedActor([a.companyId,b.companyId]);grantDirect(actor,null)
+ expect(await effective(actor,a.companyId)).toBe(true);expect(await effective(actor,b.companyId)).toBe(true)
+ expect(sql(`SELECT to_jsonb('communication.send'=ANY(public.gridex_get_user_permissions_in_company(${literal(actor)},NULL)))`)).toBe(true)
+ expect(await captureCorrectionContext({...b,actorUserId:actor})).toMatchObject({status:'recorded',disposition:'unreviewed'})
+})
+it.each(['status','is_active'] as const)('a direct company grant requires active membership by %s',async field=>{
+ const f=await seed(),actor=limitedActor([f.companyId]);grantDirect(actor,f.companyId)
+ expect(await effective(actor,f.companyId)).toBe(true)
+ sql(`UPDATE public.company_memberships SET ${field}=${field==='status'?"'suspended'":'false'} WHERE user_id=${literal(actor)} AND company_id=${literal(f.companyId)}`)
+ // The resolver itself must not leak it, even without the wrapper membership check.
+ expect(sql(`SELECT to_jsonb('communication.send'=ANY(public.gridex_get_user_permissions_in_company(${literal(actor)},${literal(f.companyId)})))`)).toBe(false)
+ await deniedCapture(f,actor)
+})
+it('valid role grants stay company scoped and independent of a deny-only direct row',async()=>{
+ const a=await seed(),b=await seed(),actor=limitedActor([a.companyId,b.companyId])
+ grantCompanyRole(actor,a.companyId);grantDirect(actor,a.companyId,{effect:'deny'})
+ expect(await effective(actor,a.companyId)).toBe(true)
+ await deniedCapture(b,actor)
+ expect(await captureCorrectionContext({...a,actorUserId:actor})).toMatchObject({status:'recorded',disposition:'unreviewed'})
+})
+it.each(['role_inactive','assignment_inactive','assignment_removed','membership_inactive'] as const)('role behavior remains closed for %s',async variant=>{
+ const f=await seed(),actor=limitedActor([f.companyId]),role=grantCompanyRole(actor,f.companyId)
+ expect(await effective(actor,f.companyId)).toBe(true)
+ const change={role_inactive:`UPDATE public.roles SET is_active=false WHERE id=${literal(role.roleId)}`,
+  assignment_inactive:`UPDATE public.user_roles SET is_active=false WHERE id=${literal(role.userRoleId)}`,
+  assignment_removed:`UPDATE public.user_roles SET status='removed_from_company' WHERE id=${literal(role.userRoleId)}`,
+  membership_inactive:`UPDATE public.company_memberships SET is_active=false WHERE user_id=${literal(actor)} AND company_id=${literal(f.companyId)}`}[variant]
+ sql(change);await deniedCapture(f,actor)
+})
+it('a valid global platform role retains its permission in both companies and a null scope',async()=>{
+ const a=await seed(),b=await seed(),actor=limitedActor([a.companyId,b.companyId])
+ // Roll back the fixture's global role link and grant so no existing role policy changes.
+ expect(sql(`BEGIN;
+  INSERT INTO public.roles(key,name,scope,is_active) VALUES('platform_admin','Synthetic platform admin','platform',true) ON CONFLICT(key) DO NOTHING;
+  INSERT INTO public.role_permissions(role_id,permission_id,effect) SELECT r.id,p.id,'allow' FROM public.roles r CROSS JOIN public.permissions p WHERE r.key='platform_admin' AND p.key='communication.send';
+  INSERT INTO public.user_roles(user_id,role_id,role,company_id,status,is_active) SELECT ${literal(actor)},id,key,NULL,'active',true FROM public.roles WHERE key='platform_admin';
+  SELECT jsonb_build_array('communication.send'=ANY(public.gridex_get_user_permissions_in_company(${literal(actor)},${literal(a.companyId)})),
+   'communication.send'=ANY(public.gridex_get_user_permissions_in_company(${literal(actor)},${literal(b.companyId)})),
+   'communication.send'=ANY(public.gridex_get_user_permissions_in_company(${literal(actor)},NULL)));
+  ROLLBACK;`)).toEqual([true,true,true])
+})
+it('the existing explicit platform superadmin wrapper authority remains unchanged',async()=>{
+ const f=await seed(),actor=limitedActor([f.companyId])
+ expect(await effective(actor,f.companyId)).toBe(false)
+ sql(`INSERT INTO public.admin_users(user_id,role,is_active) VALUES(${literal(actor)},'super_admin',true)`)
+ expect(await effective(actor,f.companyId)).toBe(true)
+ expect(sql(`SELECT to_jsonb('admin.access'=ANY(public.gridex_get_user_permissions_in_company(${literal(actor)},${literal(f.companyId)})))`)).toBe(true)
+ expect(await captureCorrectionContext({...f,actorUserId:actor})).toMatchObject({status:'recorded',disposition:'unreviewed'})
 })

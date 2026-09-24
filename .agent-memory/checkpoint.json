@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish reviewed8ebbac3f canonical permission repair with checkpoint; run genuine native206 and reconcile authentic generated types/schema. Source-only capture remains unqualified until actual execution.",
+  "next_action": "Publish reviewed fix4 exact tree from API parentdba55466; run native224, reconcile genuine generated artifacts and qualify source-only capture before Task2b.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -401,8 +401,8 @@
     "review": "FINAL_WHOLE_BRANCH_SPEC_QUALITY_NATIVE_ACCEPTED",
     "final_head": "65f5b896cd3801eedde43db99df38afa6d9c78a1"
   },
-  "published_head": "90a9bd63326dffd2bf5f37568e093a4fd4d349d6",
-  "published_tree": "3a4717ce29c4996b18de3b859adbb2287682bf5e",
+  "published_head": "dba554664ea2d6f240d709db57c3c664ea5ec9cc",
+  "published_tree": "80e322486a42248e7376284a0c3f8cd6e6e3c851",
   "prior_guide_ci": {
     "run": 35931020643,
     "native_job": 107417342303,
@@ -417,27 +417,42 @@
   "correction_context": {
     "task1": "SPEC_QUALITY_APPROVED_ALL_APPLICABLE_CI_SUCCESS_6007_TESTS",
     "task1_local_commit": "4de528daa6c60df2a0943642bf5b5f999fc68a52",
-    "task2": "FIXROUND3_SPEC_QUALITY_APPROVED_NATIVE206_PENDING",
+    "task2": "FIXROUND4_APPROVED_CATALOG_AND_DIRECTGRANT_SCOPE_IMPLEMENTATION",
     "local_base": "189eb136d85398b458d72293cc35e551034e5490",
-    "remote_parent": "90a9bd63326dffd2bf5f37568e093a4fd4d349d6",
+    "remote_parent": "dba554664ea2d6f240d709db57c3c664ea5ec9cc",
     "task3": "BOUNDED_PARTIAL_DESIGN_APPROVED_NATIVE_INVENTORY_PENDING",
     "task4": "PENDING",
     "ops_run": 35932621631,
     "task2_local_commit": "8ebbac3f6f2eb82fafff46d013bedba7cc1a5764",
     "task2_full_tests": 6038,
     "task2_native_cases": 38,
-    "fix_base": "90a9bd63326dffd2bf5f37568e093a4fd4d349d6",
-    "fix_round": 3,
+    "fix_base": "dba554664ea2d6f240d709db57c3c664ea5ec9cc",
+    "fix_round": 4,
     "reviewer": "/root/correction_capture_review",
     "native_expected_total": 206,
-    "native_run": 35936657744,
-    "native_pass": 196,
-    "native_fail": 8,
-    "native_artifact": 10783054143,
+    "native_run": 35938086638,
+    "native_pass": 195,
+    "native_fail": 11,
+    "native_artifact": 10784027351,
     "quality_run": 35935812643,
     "quality_status": "SUCCESS_FULL6038_BUILD",
-    "native_job": 107435085499,
+    "native_job": 107439595316,
     "confirmed_cause": "communication.write absent canonical catalog; actual operational capability communication.send",
-    "new_permission_forward": "20260924001447_ediel_correction_capture_canonical_permission.sql"
+    "new_permission_forward": "20260924001447_ediel_correction_capture_canonical_permission.sql",
+    "active_agent": "/root/correction_capture_fix4",
+    "confirmed_causes": [
+      "canonical send/read catalog entries never materialized by migrations/emptyseed",
+      "shared selectedcompany directpermission CTE ignores company/status/effect/is_active; dualmember can borrow scopedgrant"
+    ]
+  },
+  "correction_capture_fix4": {
+    "status": "STATIC_SPEC_QUALITY_APPROVED_NATIVE_PENDING",
+    "base": "dba554664ea2d6f240d709db57c3c664ea5ec9cc",
+    "implementation": "05461a63c3a60b725524320285bb11fd58414171",
+    "unit_tests": 71,
+    "unit_files": 4,
+    "native_expected": 224,
+    "native_executed": false,
+    "report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/correction-capture-fix4-report-20260924.md"
   }
 }

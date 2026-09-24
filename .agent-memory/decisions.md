@@ -1,3 +1,7 @@
+## 2026-09-24 — Canonical registry completion and direct grant isolation
+
+Fix4 independently reviewed proposal permits exactly existing communication.read/send registry rows with conflict-do-nothing and zero assignments. Role-list SELECT references did not materialize them on clean replay. Shared direct grants are restricted by company/membership and active/status/allow predicates, preserving role/platform branches, null-company legacy global and union-positive semantics. No deny-precedence redesign or override changes. CLI forwards and isolated regression/replay tests; native qualification pending. Audit correction-capture-fix4-report/proposal-review-20260924.md.
+
 ## 2026-09-24 — E035 canonical operational capture capability
 
 Native evidence showed communication.write is absent from canonical permissions; new capture was unusable. Independent narrow SPEC/QUALITY amendment approves existing communication.send in action and forward SQL, with unchanged tenant/actor/company/original/witness checks. No new permission, alias, grants, test fallback, semantic review or outbound operation. This corrects an internal nonexistent identifier under user-authorized implementation, not a new role-policy decision. Document capture retains documents.read/customers.read. Published SQL remains immutable.

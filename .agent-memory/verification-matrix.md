@@ -1,3 +1,8 @@
+## 2026-09-24 — PR372 source capture repair checkpoint
+
+Task2 fixround4/5 dba55466..05461a63 scoped SPEC/QUALITY APPROVED,0open; registry+scope findings addressed. Native224/artifacts pending, source-only capture not accepted. Parent exacttree publication next.
+Local71/4, scripts types/lint and integrity611/515 PASS. Latest genuine native195/206 FAIL; new224 not executed. Source/version inventory verifies5original hashes with bounded historical gaps. User-authorized continuation remains active.
+
 ## E035 source capture review round1 — 2026-09-24
 
 Local993367ea source-only checkpoint independently SPEC/QUALITY approved. I1 unsupported grammar and I2 duplicated parser addressed. Finalfocused273/16,3types/lint/integrityPASS; native204 pending real CI and generated contracts. No fullTask2/E035 or merge acceptance. Parent publishes exact reviewed tree next.

@@ -440,6 +440,8 @@
     "20260923180557_restore_customer_case_events_atomic_status.sql": "290357346253461628c6d341ba383d16690b62613dc8ce913eb3044965cd59a8",
     "20260923191510_ediel_utilts_consumer_content_identity.sql": "63efd369d81a1a36a29ab4e7d8b9cc63904e9dc83579d17eb585189da09266b9",
     "20260923192915_classify_customer_case_events.sql": "e4ede5308f871b77da9b008ce78aa9ec5199885ef627e9d0ce0261e2d5f65822",
+    "20260924003708_communication_permission_registry_completion.sql": "83d11f7c4b5afcec905a8b161f2aa07a92fc9a2883ff65f9ca49bfcf71773f38",
+    "20260924003724_company_direct_permission_scope_repair.sql": "12f64cbba929a88e2d0b057c2e75c8a945faf4830d13b87844de2a1cf21c8a2e",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
