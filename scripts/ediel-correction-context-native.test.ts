@@ -1401,6 +1401,13 @@ it('the actual invoice-test archive retains committed contract, point and site t
  expect(canonical,JSON.stringify(canonical)).toMatchObject({ok:true})
  const offerId=canonical?.offer?.id
  expect(offerId).toMatch(/^[0-9a-f-]{36}$/)
+ sql(`INSERT INTO public.tenant_legal_profiles(company_id,legal_name,completeness_status)
+  VALUES(${literal(companyId)},'Synthetic archive tenant','incomplete');`)
+ const legalVersionId=sql<string>(`SELECT to_jsonb(public.gridex_materialize_legal_bundle_version(
+  ${literal(companyId)},(SELECT contract_product_version_id FROM public.contract_offers WHERE id=${literal(offerId)}),
+  NULL,${literal(actorUserId)}))`)
+ expect(legalVersionId).toMatch(/^[0-9a-f-]{36}$/)
+ sql(`UPDATE public.contract_offers SET legal_bundle_version_id=${literal(legalVersionId)} WHERE id=${literal(offerId)};`)
  expect(sql(`SELECT to_jsonb(contract_product_version_id IS NOT NULL AND price_plan_version_id IS NOT NULL
   AND legal_bundle_version_id IS NOT NULL) FROM public.contract_offers WHERE id=${literal(offerId)}`)).toBe(true)
  sql(`INSERT INTO public.customers(id,company_id,first_name,last_name,source,is_test_data,metadata)
