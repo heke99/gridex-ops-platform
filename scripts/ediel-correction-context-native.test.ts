@@ -1122,6 +1122,43 @@ it('a restrictive switch-event link rolls back a rejected request tombstone', as
   ])
 })
 
+it('case cascades and job SET NULL preserve the old process links', async () => {
+ const {companyId}=await seed(),customerId=randomUUID(),caseId=randomUUID(),caseEventId=randomUUID()
+ const jobId=randomUUID(),operationEventId=randomUUID()
+ sql(`INSERT INTO public.customers(id,company_id,first_name,last_name)
+  VALUES(${literal(customerId)},${literal(companyId)},'Synthetic','Removal');
+  INSERT INTO public.customer_cases(id,company_id,customer_id,case_type,title)
+  VALUES(${literal(caseId)},${literal(companyId)},${literal(customerId)},'other','Synthetic removal case');
+  INSERT INTO public.customer_case_events(id,company_id,customer_case_id,customer_id,event_type,message)
+  VALUES(${literal(caseEventId)},${literal(companyId)},${literal(caseId)},${literal(customerId)},'created','Synthetic event');
+  INSERT INTO public.customer_operation_jobs(id,company_id,customer_id,job_type,idempotency_key)
+  VALUES(${literal(jobId)},${literal(companyId)},${literal(customerId)},'follow_up',${literal(jobId)});
+  INSERT INTO public.customer_operation_events(id,company_id,customer_id,customer_operation_job_id,event_code,title,message)
+  VALUES(${literal(operationEventId)},${literal(companyId)},${literal(customerId)},${literal(jobId)},
+   'created','Synthetic operation','Synthetic event');`)
+ sql(`DELETE FROM public.customer_cases WHERE id=${literal(caseId)};
+  DELETE FROM public.customer_operation_jobs WHERE id=${literal(jobId)};`)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.customer_case_events WHERE id=${literal(caseEventId)}`)).toBe(0)
+ expect(sql(`SELECT to_jsonb(customer_operation_job_id IS NULL) FROM public.customer_operation_events
+  WHERE id=${literal(operationEventId)}`)).toBe(true)
+ expect(sql(`SELECT jsonb_agg(jsonb_build_object('table',table_name,'operation',operation,
+  'oldCase',old_fact->>'customer_case_id','oldJob',old_fact->>'customer_operation_job_id',
+  'oldCustomer',old_fact->>'customer_id','oldCompany',old_fact->>'company_id',
+  'newJob',new_fact->>'customer_operation_job_id') ORDER BY table_name,operation)
+  FROM gridex_correction_process.facts WHERE operation IN ('DELETE','UPDATE')
+   AND row_id IN (${literal(caseId)},${literal(caseEventId)},${literal(jobId)},${literal(operationEventId)})`))
+  .toEqual([
+   {table:'customer_case_events',operation:'DELETE',oldCase:caseId,oldJob:null,
+    oldCustomer:customerId,oldCompany:companyId,newJob:null},
+   {table:'customer_cases',operation:'DELETE',oldCase:null,oldJob:null,
+    oldCustomer:customerId,oldCompany:companyId,newJob:null},
+   {table:'customer_operation_events',operation:'UPDATE',oldCase:null,oldJob:jobId,
+    oldCustomer:customerId,oldCompany:companyId,newJob:null},
+   {table:'customer_operation_jobs',operation:'DELETE',oldCase:null,oldJob:null,
+    oldCustomer:customerId,oldCompany:companyId,newJob:null},
+  ])
+})
+
 it('customer, site, point, contract and supply graph writes retain process links', async () => {
  const {companyId,actorUserId}=await seed(),customerId=randomUUID(),siteId=randomUUID(),pointId=randomUUID()
  const contractId=randomUUID(),periodId=randomUUID()
