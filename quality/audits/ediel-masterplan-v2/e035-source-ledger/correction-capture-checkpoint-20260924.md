@@ -77,3 +77,21 @@ Updated native expectation: **204 total** (166 retained, initial 20 correction c
 Round-1 migration SHA-256 supersedes the initial checksum above: `3d8e2e154c4cf95355a6d81724400af6dd687bd80c26a5f1509ae3f0a91794b1`.
 
 Applied receiving-code-review to verify the findings, then bounded regression/refactor and verification-before-completion. No subdelegation, new document support, target authority, positive C approval, hosted operation or parent-owned memory/plan edit occurred.
+
+## Native fixture correction round 2
+
+Base published `18debd5c57a00bbe26893d8535c75d369bb7df96`. Genuine OPS `35935812643`, native job `107432473768`, ran **204 cases: 195 passed / 9 failed**. All nine failures occurred inside the new `seed()` INSERT before any capture assertion, with `canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:2026-09-23:3` from `gridex_bind_inbound_ediel_rule_pack_evidence`. The retained three native suites and the new parser/policy cases passed. The nine capture/role/witness/source-snapshot cases did **not** establish their intended behavior. Artifact `10783390496` contains the failure log only; type/schema generation was not reached.
+
+Root cause: the fixture supplied no complete canonical profile binding. The actual inbound trigger resolves only family, message code and receipt date; its query does not filter by parsed subtype. L, LK and C therefore yield three enabled Z05 candidates and the guard correctly fails ambiguous inference. The retained `insertClosure` fixture supplies its exact subtype profile and the six registry binding fields from the genuine `ediel_message_profiles`/`ediel_rule_packs` join.
+
+Minimal fix: the new C fixture now uses the same registry-backed insertion pattern, selecting the enabled `PRODAT:Z05:C:26.A:r3` profile and actual pack ID, profile key/ID, version, source hash and profile snapshot. The receipt timestamp remains `clock_timestamp()`. No registry row, synthetic acceptance marker, trigger setting, production function, migration or guard was changed. The existing source-count assertion still fails if that real profile cannot be selected. Published SQL remains byte-identical and immutable.
+
+| Final command | Result |
+|---|---|
+| `npx --yes node@22 node_modules/typescript/bin/tsc --noEmit -p tsconfig.scripts.json` | PASS |
+| `npx --yes node@22 node_modules/eslint/bin/eslint.js scripts/ediel-correction-context-native.test.ts` | PASS |
+| `npx --yes node@22 node_modules/vitest/vitest.mjs run __tests__/ediel-correction-context-capture.test.ts __tests__/ediel-correction-context-hold.test.ts __tests__/ediel-closure-owner-fixtures.test.ts __tests__/ediel-closure-source-wire.test.ts` | PASS 71 tests / 4 files |
+| `git diff --check` | PASS |
+| `git diff --name-only -- supabase/migrations` | Empty: no migration edits |
+
+Known npm/EnvHttpProxyAgent environment warnings remain disclosed. Systematic debugging followed the failing insertion boundary and compared the working retained fixture before changing this fixture. These local checks do not execute PostgreSQL. Expected native count remains **204**; parent must publish, rerun genuine native CI and inspect the nine previously unreached assertions, followed by authentic generated contracts. No final native acceptance or full Task 2 completion is claimed.

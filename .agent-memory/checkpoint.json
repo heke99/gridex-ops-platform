@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish exact reviewed source-capture tree to existing PR372; run genuine native204 expected, reconcile authentic generated types/schema and rerun applicable gates. Task2b/3/4 not complete.",
+  "next_action": "Publish reviewed fixture-only correction b274585a with checkpoints; rerun genuine native204 and reconcile authentic generated contracts. No source SQL change.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -401,8 +401,8 @@
     "review": "FINAL_WHOLE_BRANCH_SPEC_QUALITY_NATIVE_ACCEPTED",
     "final_head": "65f5b896cd3801eedde43db99df38afa6d9c78a1"
   },
-  "published_head": "ea1d76e4fde787777da882be66948218f1a7ee0e",
-  "published_tree": "0393c6e980cf6f0901b42453101e1b0f55255409",
+  "published_head": "18debd5c57a00bbe26893d8535c75d369bb7df96",
+  "published_tree": "5f3409166cee0e10631bfaef50f49fc34d2149d8",
   "prior_guide_ci": {
     "run": 35931020643,
     "native_job": 107417342303,
@@ -417,18 +417,24 @@
   "correction_context": {
     "task1": "SPEC_QUALITY_APPROVED_ALL_APPLICABLE_CI_SUCCESS_6007_TESTS",
     "task1_local_commit": "4de528daa6c60df2a0943642bf5b5f999fc68a52",
-    "task2": "SOURCE_CHECKPOINT_SCOPED_SPEC_QUALITY_APPROVED_NATIVE_PENDING",
+    "task2": "FIXROUND2_STATIC_APPROVED_NATIVE_RERUN_PENDING",
     "local_base": "189eb136d85398b458d72293cc35e551034e5490",
-    "remote_parent": "ea1d76e4fde787777da882be66948218f1a7ee0e",
+    "remote_parent": "18debd5c57a00bbe26893d8535c75d369bb7df96",
     "task3": "BOUNDED_PARTIAL_DESIGN_APPROVED_NATIVE_INVENTORY_PENDING",
     "task4": "PENDING",
     "ops_run": 35932621631,
-    "task2_local_commit": "993367eaabdbe7271f5bf4fa61c8e56618090e04",
+    "task2_local_commit": "b274585a3ff28a4b5c1e28b8ff09e2c31b0ab759",
     "task2_full_tests": 6038,
     "task2_native_cases": 38,
-    "fix_base": "facae00d",
-    "fix_round": 1,
+    "fix_base": "18debd5c57a00bbe26893d8535c75d369bb7df96",
+    "fix_round": 2,
     "reviewer": "/root/correction_capture_review",
-    "native_expected_total": 204
+    "native_expected_total": 204,
+    "native_run": 35935812643,
+    "native_pass": 195,
+    "native_fail": 9,
+    "native_artifact": 10783390496,
+    "quality_run": 35935812643,
+    "quality_status": "SUCCESS_FULL6038_BUILD"
   }
 }
