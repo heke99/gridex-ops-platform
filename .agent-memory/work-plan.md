@@ -1,3 +1,9 @@
+## 2026-09-24 — Active Task3b; Task4 next
+
+1. Inspect native/CI on 7491e16, correct evidenced archive fixture/runtime defects and finish direct, signed, legacy, claim, cascade, swallowed-event and retention qualifications; keep historical completeness false.
+2. Implement Task4's single-MVCC combined observation, scoped correction activation and actual UTILTS hold. Preserve earlier finalized decisions, exempt energy-only and unrelated scopes. Test genuine concurrency/cutoff and fail-closed cases.
+3. Reconcile authentic generated contracts, run all applicable CI and independent full-branch review on one final head, then merge PR372 only when all gates pass. PR310 stays excluded.
+
 ## 2026-09-24 — Task3a ACCEPTED; Task3b next
 
 Accepted runtime d7cbab18b9b102e00cde256bc91c22271455d7c8, tree66c82f59b88969b43326f7f34bd11ad432412cff. All applicable same-head CI SUCCESS: OPS35958136936 (verify107500725279,quality107500725385,native107500725396), fullE2E35958136881, browser35958136874, Ediel35958136896, tenant35958136892; crawler35958136976 skipped. Full6072/377, native301/5 plus case1/browser2/postbrowser1, types, tenant invariants, parity, schema, build/bundle PASS. Independent static/fix/native/schema SPEC/QUALITY approved. Final artifact10791646035 ZIP73ad030582646cb7e851c348f28867c3f32e45a1e3ab65e3a1a659acf9ef8614 verified; all three generated files byte-identical. Types32ae2f06, schemaef41ebad, fingerprint04ba0c99.

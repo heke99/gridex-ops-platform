@@ -1,3 +1,7 @@
+## 2026-09-24 — E035 Task3b bounded verification
+
+Authentic schema from artifact10800669994 published at37a7052 and passed all applicable CI (OPS35988188001). Native cascade/SET NULL test at9186e47 passed312/312 plus ordinary gates (OPS35988546648). Point reassignment and supply period transition/deletion at28694d2 passed312/312 plus ordinary gates (OPS35989469066). Archive-style graph tombstones at7491e16 passed312/312 and ordinary gates (OPS35990306080). This is a verified subset, not Task3b acceptance or Task4.
+
 # E035 Task2b document context reviewed; native261 pending — 2026-09-24
 
 Source-onlyTask2a accepted8fde5f26, acceptanceBASE0a528215 alsoallCIgreen. Currentdocumentimplementation07d3b9c5 +fix1 638926b4 independentlySPEC/QUALITYAPPROVED,0open. Reference-only context: triplepermissions/actualtenantgraph, durableattemptbefore2MiB/10sec streamingreadback, separateobservation/append/witness andincompleteepoch; savedpayload preservesimmutableidentity/xids/visibility. NoPDFcopy/newretention/positiveC/reopening. PublishedsourceSQLunchanged; documentforwardnotyetpublished.

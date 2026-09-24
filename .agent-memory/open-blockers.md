@@ -1,3 +1,7 @@
+## 2026-09-24 — Current PR372 blockers
+
+Archive-style delete test on 7491e16 passed native312/312 and all applicable CI. TRUNCATE-denial fixture is locally prepared and not natively qualified. Task3b still lacks complete direct/legacy/claim/signed producer proof and historical inception/retention; preserve complete:false and scoped gaps. Task4 must use one MVCC observation or a proven barrier to connect raw concerns, structural source approvals and process history; it is not implemented. Whole-branch independent review and final same-head CI remain. Do not merge PR372.
+
 ## 2026-09-24 — Task3b current blockers
 
 Authentic schema reconciliation from native303/303 awaits publication and same-head CI. Process facts are prospective and incomplete: eleven table CRUD/route/cascade cases, independently committed witnesses, bounded reader, source-only swallowed-event gaps and inception retention still require proof. Task4 single-MVCC conditional UTILTS hold and whole-branch review remain. No PR372 merge.

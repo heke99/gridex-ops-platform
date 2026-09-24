@@ -1,3 +1,7 @@
+## 2026-09-24 — Active: Task3b native archive qualification
+
+Remote/local synchronized at 7491e1619f653dd390f1463795542d6b997ae0b6. Previous 37a7052 schema, 9186e47 cascade and 28694d2 point/supply tests passed all applicable same-head CI; OPS35988546648 and OPS35989469066 each report native312/312. Archive-style graph deletion at 7491e16 passed native312/312 and all applicable CI (OPS35990306080). A TRUNCATE-denial fixture has local scripts typecheck/lint/diff-check PASS but is not published/native-qualified. Do not call Task3b accepted. Read quality/audits/ediel-masterplan-v2/e035-source-ledger/task3b-continuation-20260924.md, then publish and inspect the TRUNCATE fixture. Continue missing signed/legacy/claim/retention route proofs. Task4 and whole-branch final gates follow.
+
 ## 2026-09-24 — Task3b native fact capture in CI
 
 PR372 head `6ac92a93c1253c6de1ca1788292fcb7c74e0cd32`, tree `13ddaecf387d4af6b115a274893a2666a9b24130`. The prior catalog probe passed native at OPS35959802582/job107505735997. New test-only head716912cf gave expected RED in OPS35970235871: 302/303 native tests passed, missing private facts relation was the sole failure. A real CLI-created forward `20260924073337_correction_process_facts_v1.sql` is now published, with prospective private facts/gaps/epochs and twelve capture trigger pairs. Local scripts typecheck, scoped lint and migration integrity pass. Full DB generated contracts are pending.

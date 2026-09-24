@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish authentic schema/types reconcile on PR372 from6ac92a93 and inspect same-head CI, then qualify remaining eleven table routes, independent witnesses/readset and Task4 before merge.",
+  "next_action": "Publish and inspect native CI for the prepared TRUNCATE-denial fixture after accepted PR372 head 7491e16, then finish remaining Task3b route/gap proof; Task4 same-MVCC UTILTS hold and final review before merge.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -638,5 +638,16 @@
     "blocker": "Authentic schema reconciliation locally ready; same-head CI and full producer/readset/Task4 qualification pending",
     "runtime_implemented": "prospective_twelve_table_facts_only",
     "native_result": "303/303 pass on same-commit rerun; schema fingerprint mismatch repaired locally"
+  },
+  "task3b_continuation": {
+    "published_head": "7491e1619f653dd390f1463795542d6b997ae0b6",
+    "accepted_schema_head": "37a7052efccb8c9e3169bc96cb72b1ee4dcd54d0",
+    "accepted_cascade_head": "9186e473696a3f628cebb6275745be5fd74fd410",
+    "accepted_point_supply_head": "28694d27cbc62ec780f348ed740ea787633cec21",
+    "native_archive": "PASS_312_OPS35990306080",
+    "task3b_status": "PARTIAL",
+    "task4_status": "NOT_STARTED",
+    "report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/task3b-continuation-20260924.md",
+    "native_truncate": "PREPARED_LOCAL_UNQUALIFIED"
   }
 }

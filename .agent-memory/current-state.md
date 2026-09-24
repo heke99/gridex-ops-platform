@@ -1,3 +1,9 @@
+## 2026-09-24 — PR372 Task3b continued from 69f51b69
+
+Head 7491e1619f653dd390f1463795542d6b997ae0b6; branch codex/e035-correction-context-20260924, PR372 OPEN/DRAFT. Authentic schema reconcile 37a7052 passed all applicable CI (OPS35988188001). Cascade/job SET NULL test 9186e47 passed native312/312 and all applicable CI (OPS35988546648). Point move and supply-period transition/deletion 28694d2 passed native312/312 and all applicable CI (OPS35989469066). Archive-style delete test 7491e16 passed native312/312 and all applicable CI (OPS35990306080). A TRUNCATE-denial fixture is locally typechecked/linted but not yet natively qualified. See task3b-continuation-20260924.md.
+
+Task3b remains PARTIAL: pre-epoch coverage unknown, event-only swallowed producer and remaining signed/legacy/claim/retention routes unqualified. Task4 same-MVCC conditional UTILTS hold untouched. No merge; PR310 excluded. Next publish/qualify TRUNCATE fixture, then complete Task3b probes and Task4. No hosted writes or market sends.
+
 ## 2026-09-24 — Task3b prospective fact candidate
 
 PR372 published `6ac92a93` with CLI-created twelve-table prospective transition capture and native task fact regression. It is partial and unaccepted. RED at716912cf proved missing facts; first native attempt had one retained document interruption failure, while same-commit retry passed303/303 native plus case/browser. Authentic schema/fingerprint from artifact10797140467 are copied locally, types byte-identical, local migration check green. Publish reconcile commit and rerun same-head CI; eleven producer/route cases, witnesses/readset and Task4 remain. PR372 stays draft and unmerged. See current-task and process-history-task3b-report.

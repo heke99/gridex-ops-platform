@@ -940,6 +940,17 @@ it('process facts retain normalized task transitions and delete scope, while a r
   AND t.tgname IN ('e035_process_after_write','e035_process_before_delete') AND t.tgenabled='A'`)).toBe(24)
 })
 
+it('a TRUNCATE cannot silently erase a process producer or its history', () => {
+ const companyId=randomUUID(),taskId=randomUUID()
+ sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(companyId)},'Synthetic truncate guard','active');
+  INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)
+  VALUES(${literal(taskId)},${literal(companyId)},'follow_up','Preserved task','open');`)
+ expect(()=>sql(`TRUNCATE public.customer_operation_tasks`)).toThrow(/correction_process_append_only/)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.customer_operation_tasks WHERE id=${literal(taskId)}`)).toBe(1)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_correction_process.facts
+  WHERE table_name='customer_operation_tasks' AND row_id=${literal(taskId)}`)).toBe(1)
+})
+
 it('a committed process fact needs a separately committed, tenant-bound witness', async () => {
  const f=await seed(),taskId=randomUUID()
  sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)

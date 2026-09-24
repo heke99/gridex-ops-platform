@@ -1,3 +1,7 @@
+## 2026-09-24 — Resume current PR372 Task3b
+
+Clone codex/e035-correction-context-20260924 at 7491e1619f653dd390f1463795542d6b997ae0b6. The exact code and authentic generated schema are pushed. OPS35988188001 at 37a7052, OPS35988546648 at 9186e47, OPS35989469066 at 28694d2 and OPS35990306080 at 7491e16 all passed applicable gates; 312/312 native on the latter three. A TRUNCATE-denial fixture is prepared locally and awaits publication/native qualification. Do not infer Task3b acceptance from these subset passes. Task4 same-MVCC UTILTS hold and final whole-PR review/merge remain. PR310 excluded; no hosted deployment/market sends. See task3b-continuation-20260924.md.
+
 ## 2026-09-24 — Resume PR372 Task3b
 
 Clone `codex/e035-correction-context-20260924` at published `6ac92a93c1253c6de1ca1788292fcb7c74e0cd32`. Local workspace has unpublished authentic schema/fingerprint reconcile and memory notes. OPS35971121783 same-commit native retry passed303/303 plus case/browser; stopped on old tracked schema. Artifact10797140467 ZIPfd5d87fd authentic schema/fingerprint copied byte-identically; types unchanged. Local `npm run db:migrations:check` passes. Publish reconcile from expected remote head6ac92a93, run same-head CI and inspect artifacts, then eleven table/route/rollback/retention proofs, witnesses and bounded readset, Task4 and whole-PR review. PR372 is draft; do not merge a partial checkpoint. PR310 stays excluded.

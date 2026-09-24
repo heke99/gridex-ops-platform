@@ -1,3 +1,7 @@
+## 2026-09-24 — Continued PR372 Task3b
+
+Cloned exact remote69f51b69. Diagnosed OPS35983754397: actual schema differed only by public witness/readset RPCs and ACL. Verified artifact10800669994 ZIP SHA, copied generated schema byte-for-byte, published37a7052; all applicable CI passed. Added native case cascade/job SET NULL proof at9186e47, then point/site/supply transition proof at28694d2; each passed312 native cases and all applicable CI. Published further archive-style deletion proof at7491e16; OPS35990306080 passed312 native cases and all applicable CI. Prepared local TRUNCATE-denial fixture; native pending. Task3b partial and Task4 not started; no merge. See task3b-continuation-20260924.md.
+
 ## 2026-09-24 — PR372 Task3b continuation
 
 Restored offline catalog checkpoint, verified native catalog job107505735997, wrote/published behavioral RED716912cf, implemented CLI forward and 12 table transition triggers in6ac92a93, observed RED302/303 and GREEN303/303 on same-commit native retry. Reconciled authentic public schema/fingerprint from artifact10797140467 without changing generated types. PR372 remains draft; further producer/native coverage and Task4 required before merge.

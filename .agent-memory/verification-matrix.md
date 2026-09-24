@@ -1,3 +1,12 @@
+## 2026-09-24 — PR372 continuation
+
+| Head | Evidence | Result |
+| --- | --- | --- |
+| 37a7052 | OPS35988188001 and all applicable workflows; local db:migrations:check | PASS; crawler skipped |
+| 9186e47 | OPS35988546648; native312/312; all applicable workflows | PASS; crawler skipped |
+| 28694d2 | OPS35989469066; native312/312; all applicable workflows | PASS; crawler skipped |
+| 7491e16 | OPS35990306080; native312/312; all applicable workflows | PASS; crawler skipped |
+
 ## 2026-09-24 — E035 Task3b prospective facts checkpoint
 
 - RED PR372 head716912cf: OPS35970235871 native302/303; new fact test failed on absent relation. Verify/quality passed.
