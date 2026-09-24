@@ -5,6 +5,7 @@ import {closureFixture} from '../__tests__/helpers/closureWireFixtures'
 import {supabaseService} from '@/lib/supabase/service'
 import {captureCorrectionContext} from '@/lib/ediel/sources/correctionContextCapture'
 import {archiveInvoiceTestCustomerSafely} from '@/lib/ediel/testing/invoiceTestCenterArchive'
+import {emitCustomerOperationEvent} from '@/lib/customers/customerOperationEvents'
 const literal=(v:unknown)=>"'"+String(typeof v==='object'?JSON.stringify(v):v).replaceAll("'","''")+"'"
 function sql<T>(query:string):T{
  if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('owned_local_only')
@@ -1022,6 +1023,31 @@ it('binding a formerly unbound process row keeps its old-scope gap', () => {
    {op:'INSERT',reason:'unbound_company',oldCompany:null,newCompany:null},
    {op:'UPDATE',reason:'unbound_company',oldCompany:null,newCompany:companyId},
   ])
+})
+
+it('a swallowed operational event insert cannot masquerade as process history', async () => {
+ const f=await seed(),customerId=randomUUID(),missingJobId=randomUUID(),eventCode=`synthetic.failure.${randomUUID()}`
+ sql(`INSERT INTO public.customers(id,company_id,first_name,last_name)
+  VALUES(${literal(customerId)},${literal(f.companyId)},'Synthetic','Swallowed event');
+  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+  SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions WHERE key='customers.read'
+  ON CONFLICT DO NOTHING;`)
+ const warning=vi.spyOn(console,'warn').mockImplementation(()=>{})
+ try{
+  await expect(emitCustomerOperationEvent({companyId:f.companyId,customerId,
+   customerOperationJobId:missingJobId,eventType:eventCode,title:'Rejected event',message:'Dangling job'}))
+   .resolves.toBeUndefined()
+  expect(warning.mock.calls.some(([message])=>String(message).includes('timeline write skipped'))).toBe(true)
+ }finally{warning.mockRestore()}
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.customer_operation_events
+  WHERE company_id=${literal(f.companyId)} AND event_code=${literal(eventCode)}`)).toBe(0)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_correction_process.facts f
+  WHERE f.company_id=${literal(f.companyId)} AND f.table_name='customer_operation_events'
+   AND f.new_fact->>'event_code'=${literal(eventCode)}`)).toBe(0)
+ const receipt=sql<{readsetText:string}>(`SELECT public.gridex_open_correction_process_readset_v1(
+  ${literal(f.companyId)},'test',${literal(f.actorUserId)},clock_timestamp(),
+  ${literal(customerId)},NULL,NULL)`)
+ expect(JSON.parse(receipt.readsetText)).toMatchObject({complete:false,historyCoverage:'before_epoch_unknown'})
 })
 
 it('a combined service receipt observes source, correction and process owners at one database snapshot', async () => {
