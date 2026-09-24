@@ -1406,6 +1406,16 @@ it('the actual invoice-test archive retains committed contract, point and site t
   NULL,${literal(actorUserId)}))`)
  expect(legalVersionId).toMatch(/^[0-9a-f-]{36}$/)
  sql(`UPDATE public.contract_offers SET legal_bundle_version_id=${literal(legalVersionId)} WHERE id=${literal(offerId)};`)
+ const {data:published,error:publishError}=await supabaseService.rpc('gridex_publish_internal_contract_version',{
+  p_company_id:companyId,p_offer_id:offerId,p_actor_user_id:actorUserId,
+ })
+ expect(publishError).toBeNull()
+ expect(published,JSON.stringify(published)).toMatchObject({ok:true,mode:'published'})
+ const {data:channel,error:channelError}=await supabaseService.rpc('gridex_publish_contract_channel',{
+  p_company_id:companyId,p_offer_id:offerId,p_channel:'internal',p_actor_user_id:actorUserId,
+ })
+ expect(channelError).toBeNull()
+ expect(channel,JSON.stringify(channel)).toMatchObject({ok:true,channel:'internal'})
  expect(sql(`SELECT to_jsonb(contract_product_version_id IS NOT NULL AND price_plan_version_id IS NOT NULL
   AND legal_bundle_version_id IS NOT NULL) FROM public.contract_offers WHERE id=${literal(offerId)}`)).toBe(true)
  sql(`INSERT INTO public.customers(id,company_id,first_name,last_name,source,is_test_data,metadata)
