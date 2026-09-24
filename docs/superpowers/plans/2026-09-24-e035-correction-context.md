@@ -94,3 +94,7 @@ The concrete unresolved producer issue is historical outbound Z08H: current pre-
 ## Task3 execution partition — 2026-09-24
 
 Implement sequentially after Task2b native acceptance: **3a outbound reservation/provider-entry fence and immutable receipts**, then **3b prospective process facts for the twelve inventoried tables**. Each checkpoint requires independent review and actual native qualification. Full Task3 is not accepted after 3a alone. Task4 retains the single-MVCC three-owner composition, conditional concern activation and immutable saved-cutoff requirements. See `quality/audits/ediel-masterplan-v2/e035-source-ledger/process-history-task3-prepared-20260924.md` for exact file boundaries and gates. This partition changes no correction policy and grants no historical completeness.
+
+Task3a bounded seam clarification: include `lib/email/sendEdielEmail.ts` for an awaited one-use provider-entry callback after required S/MIME archive/readback and immediately before both actual sendMail sites. Parent inspected the actual call order. Scoped Z08/H entry failure has no unfenced fallback; ordinary non-scoped calls preserve behavior. This necessary implementation seam changes no correction policy. See process-history-task3a-preparation-20260924.md.
+
+Task2b accepted7581966b on2026-09-24 after all same-head gates/native262 and independent native/schema review. Evidence: document-reference-acceptance-20260924.md. Task3a next; full E035 remains partial.

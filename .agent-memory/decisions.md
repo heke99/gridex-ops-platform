@@ -1,3 +1,7 @@
+## 2026-09-24 — Task3a exact provider-entry seam
+
+Parent confirmed sendEdielEmail owns S/MIME archive/readback before actual nodemailer invocation. Narrow helper callback/type extension is necessary to place SQL entry after preparation and immediately before both sendMail branches; no broad helper refactor, no fallback, no new policy. Prepared only pending Task2b acceptance. Tracked process-history-task3a-preparation-20260924.md records callback response-loss and safe-release semantics.
+
 ## 2026-09-24 — Canonical registry completion and direct grant isolation
 
 Fix4 independently reviewed proposal permits exactly existing communication.read/send registry rows with conflict-do-nothing and zero assignments. Role-list SELECT references did not materialize them on clean replay. Shared direct grants are restricted by company/membership and active/status/allow predicates, preserving role/platform branches, null-company legacy global and union-positive semantics. No deny-precedence redesign or override changes. CLI forwards and isolated regression/replay tests; native qualification pending. Audit correction-capture-fix4-report/proposal-review-20260924.md.
