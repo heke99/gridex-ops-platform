@@ -21,3 +21,9 @@ Author document_fix2_recovery resumes fixround3 from9e28bc1d. Preserve unresolve
 
 
 Artifact10787592388 downloaded and ZIP SHA256 verified exactly against GitHub metadata; archive contains only rem002-clean-replay.log (no generated contracts). Quality/release/build107469127188 terminal SUCCESS on9e28bc1d.
+
+## 2026-09-24 — Task2b native262 PASS; authentic types reconciliation
+
+Runtime9b6ee291 / OPS35948357290 / native107471286079 passed **262/5** (retained224 + document38), case1/browser2/postbrowser1. Quality107471286229 SUCCESS. Only expected generated-types mismatch stopped replay before tenant/parity/schema. Artifact10786849836 ZIP SHA77600354e2a64d93a7eb0cf4dca9b3e5c31e82f01eaddd23e2e49950e2f85b0f verified; actual types SHA f2a05bbb69ec298e78cf21cd6761a62aae82ba9bdde5b2aa38032b5e062d8e5f copied byte-identically and manifest tail/provenance updated. No manual generated code.
+
+Next: publish authentic types, execute remaining tenant/parity/schema, reconcile actual schema then final same-head gates and independent native acceptance. Task3a prepared only; Task2b not yet fully accepted. PR372 draft/full E035 partial.

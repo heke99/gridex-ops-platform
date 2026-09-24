@@ -10,7 +10,7 @@
   "last_merged_pr": 371,
   "last_accepted_pr": 371,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "E035 Task2b fix3 approved; native rerun next",
+  "active_item": "E035 Task2b authentic types reconciliation",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Diagnose and review fixround3 from9e28bc1d, then actual native262 and authentic contracts.",
+  "next_action": "Publish authentic types from10786849836 then tenant/parity/schema and final native review.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -491,7 +491,7 @@
     "final_review": "SPEC_QUALITY_NATIVE_SOURCE_ONLY_ACCEPT"
   },
   "correction_document_task2b": {
-    "status": "FIX3_SPEC_QUALITY_APPROVED_NATIVE262_PENDING",
+    "status": "NATIVE262_PASS_AUTHENTIC_TYPES_RECONCILIATION",
     "author": "/root/document_fix2_recovery",
     "source_accepted_head": "8fde5f2644a87351a5dbe42d8a694d33a606ba8d",
     "base": "0a52821565dd7f29e3f3b683b726add3f4457bec",
@@ -512,18 +512,21 @@
     "fix1_progress": "Immutable facts/xids/visibility reader + saved nullpath oracle + actualSDK loopback header/body stalls; covering checks in progress",
     "fix1_implementation": "638926b44c296e6b2728af8393b75a9fa7ca2158",
     "transport_local": "2_PASS_35_SKIPPED_REAL_SDK_NODE_LOOPBACK_NO_PROJECT_DB",
-    "published_head": "9e28bc1d0daabfcca3ed6377afca3733d7b7b663",
-    "published_tree": "aaf53ba7c20768068ebb3e0cb53b2b5099b73b12",
-    "ops_run": 35947668822,
-    "native_job": 107469127017,
-    "native_passed": 261,
-    "native_failed": 1,
-    "quality_job": 107469127188,
-    "quality_result": "SUCCESS_9E28BC1D",
-    "artifact": 10787592388,
+    "published_head": "9b6ee291b2e5e0b74d89a620fbcbd39b4dadc8dd",
+    "published_tree": "6048e3003e13da79cb534ae7624329a1f48aa3f7",
+    "ops_run": 35948357290,
+    "native_job": 107471286079,
+    "native_passed": 262,
+    "native_failed": 0,
+    "quality_job": 107471286229,
+    "quality_result": "SUCCESS_9B6EE291",
+    "artifact": 10786849836,
     "recovery_note": "Previous runtime agents unavailable after context recovery; resumed existing fix round2 and existing CLI-created forward, no new fix round.",
     "fix2_implementation": "8089f34bfced7e72b36958c387cbf748f97bd89c",
     "fix3_implementation": "1443d03e01f23e79da7c93db47417b25abf2e6c2",
-    "fix3_cause": "Existing contract alias trigger rehydrated link; fixture now clears both and asserts persistence/no Storage I/O"
+    "fix3_cause": "Existing contract alias trigger rehydrated link; fixture now clears both and asserts persistence/no Storage I/O",
+    "artifact_sha256": "77600354e2a64d93a7eb0cf4dca9b3e5c31e82f01eaddd23e2e49950e2f85b0f",
+    "types_sha256": "f2a05bbb69ec298e78cf21cd6761a62aae82ba9bdde5b2aa38032b5e062d8e5f",
+    "native_review": "PROVISIONAL_SPEC_QUALITY_NATIVE262_APPROVED_TENANT_PARITY_SCHEMA_FINAL_PENDING"
   }
 }

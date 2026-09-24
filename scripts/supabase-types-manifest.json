@@ -1,9 +1,9 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-09-24T00:58:27Z",
-  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run35940479318",
+  "generated_at": "2026-09-24T02:48:47Z",
+  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run35948357290",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "30c9f682c20f5e1d9ff203a445e24785d1058d3997f233d75e05b3eebee756e7",
-  "latest_migration": "20260924003724_company_direct_permission_scope_repair.sql",
-  "latest_migration_schema_effect": "Authentic types from CLI2.101 replay35940479318 (artifact10784667982), unchanged in replay35942242226 on6091edc7. Native224, case1/browser2/postbrowser1, tenant invariants and parity selftest PASS. Actual schema/fingerprintf6632eb6 copied byte-identically from artifact10785596678 (zip4c7c088e). Final schema reconciliation review and same-head CI pending; E035 partial."
+  "sha256": "f2a05bbb69ec298e78cf21cd6761a62aae82ba9bdde5b2aa38032b5e062d8e5f",
+  "latest_migration": "20260924021718_customer_read_permission_registry_completion.sql",
+  "latest_migration_schema_effect": "Authentic types from CLI2.101 replay35948357290 on9b6ee291, artifact10786849836 ZIP77600354e2a64d93a7eb0cf4dca9b3e5c31e82f01eaddd23e2e49950e2f85b0f. Native262/5 plus case1/browser2/postbrowser1 PASS. Exact artifact types copied; tenant/parity/schema and final same-head gates pending. E035 partial."
 }

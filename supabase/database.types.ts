@@ -88377,6 +88377,16 @@ export type Database = {
         Returns: Json
       }
       gridex_backfill_invoice_fees: { Args: never; Returns: Json }
+      gridex_begin_document_reference_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_document_id: string
+          p_environment: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
       gridex_billing_information_complete: {
         Args: { p_value: Json }
         Returns: boolean
@@ -89889,6 +89899,16 @@ export type Database = {
         Args: { p_postal_code: string }
         Returns: string
       }
+      gridex_observe_document_reference_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_attempt_id: string
+          p_company_id: string
+          p_environment: string
+          p_observation: Json
+        }
+        Returns: Json
+      }
       gridex_onboard_customer_graph: {
         Args: { p_command: Json }
         Returns: Json
@@ -90266,6 +90286,16 @@ export type Database = {
           p_actor_user_id?: string
           p_company_id: string
           p_export_run_id: string
+        }
+        Returns: Json
+      }
+      gridex_read_document_reference_context_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_cutoff: string
+          p_environment: string
+          p_source_message_id: string
         }
         Returns: Json
       }
@@ -91007,6 +91037,15 @@ export type Database = {
           p_company_id: string
           p_environment: string
           p_facts_hash: string
+        }
+        Returns: Json
+      }
+      gridex_witness_document_reference_v1: {
+        Args: {
+          p_company_id: string
+          p_environment: string
+          p_facts_hash: string
+          p_outcome_id: string
         }
         Returns: Json
       }
