@@ -88,6 +88,22 @@ const saved=(f:Awaited<ReturnType<typeof seed>>,cutoff=sql<string>('SELECT to_js
 it('clean replay materializes document permission with no implicit role grants',()=>{
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.permissions WHERE key='documents.read' AND is_active`)).toBe(1)
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.role_permissions WHERE permission_id IN (SELECT id FROM public.permissions WHERE key='documents.read')`)).toBe(0)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.permissions WHERE key='customers.read' AND is_active`)).toBe(1)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.role_permissions WHERE permission_id IN (SELECT id FROM public.permissions WHERE key='customers.read')`)).toBe(0)
+})
+it('customer registry forward repeats without rewriting metadata or assignments',async()=>{
+ const f=await seed()
+ const source=execFileSync('git',['show','HEAD:supabase/migrations/20260924021718_customer_read_permission_registry_completion.sql'],{encoding:'utf8'})
+ const registry=source.slice(source.indexOf('INSERT INTO public.permissions'),source.indexOf('ON CONFLICT(key) DO NOTHING;')+'ON CONFLICT(key) DO NOTHING;'.length)
+ expect(registry).toContain("VALUES ('customers.read'")
+ const state=`jsonb_build_object('permission',(SELECT to_jsonb(p) FROM public.permissions p WHERE key='customers.read'),
+ 'roles',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY id),'[]') FROM public.role_permissions r),
+ 'users',(SELECT coalesce(jsonb_agg(to_jsonb(u) ORDER BY id),'[]') FROM public.user_permissions u),
+ 'overrides',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY id),'[]') FROM public.user_permission_overrides o))`
+ expect(sql(`BEGIN; UPDATE public.permissions SET name='Preserved customer metadata',is_active=false WHERE key='customers.read';
+ CREATE TEMP TABLE before_customer_registry AS SELECT ${state} snapshot; ${registry} ${registry}
+ SELECT to_jsonb((SELECT snapshot FROM before_customer_registry)=${state}); ROLLBACK;`)).toBe(true)
+ expect(sql(`SELECT to_jsonb(public.gridex_actor_has_company_permission(${literal(f.actorUserId)},${literal(f.companyId)},'customers.read'))`)).toBe(true)
 })
 it.each(['gridex_signed_contract_document_v1','gridex_imported_signed_contract_document_v1'])('actual synthetic readback is context only for %s',async origin=>{
  const f=await seed(undefined,origin),result=await captureDocumentReference(args(f))
