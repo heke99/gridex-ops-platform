@@ -139,3 +139,30 @@ git diff --check
 ```
 
 Both types and lint exit0; diff check clean. Restricted helper/preflight run PASS4, skipped87, collected91. The collection increase is exactly5 cases, so expected full native total is now301 (262 retained +39 Task3a), subject to genuine parent CI. These new DB cases were NOT executed locally and no native RED/GREEN is asserted. No concrete runtime failure has been observed; there was no authority/need to edit runtime or migration. Minor dense formatting finding is deferred to the final review ledger, per parent scope. Freeze again for focused independent review and actual native qualification; parent dirty memory and review audit are preserved.
+
+## Fix round 2/5 — published source-contract compatibility
+
+Parent supplied published HEAD45d3e5c921fd5a68b9a2ee1f216c487839dd4c81 and FullE2E run35954321218/job107489289984 outcome6061PASS/1FAIL. Native run35954321157 remained in progress. Migration031626 is now published immutable; no SQL/checksum change is made in this fix.
+
+The failing synthetic customer journey source contract searched for `sendEdielEmail(` inside the transport after recipient certificate resolution. The actual transport now calls `sendFenced`, which delegates to `sendCorrectionFencedEmail` and then the actual email helper. Reproduced the exact local RED: test233 expected -1 greater than66963. Repaired only `__tests__/synthetic-customer-journey-pre-smtp.e2e.test.ts`: constrain the ordering proof to its actual S/MIME branch, require resolution then encryption then recipient rejection gate before the first wrapped send, verify the wrapper/helper delegation (both scoped and ordinary lanes), and require raw archival before actual provider sendMail. All existing application/legal/PDF/mail/Z03/certificate business expectations remain unchanged.
+
+Exact commands:
+
+```sh
+npx --yes node@22.23.2 node_modules/vitest/vitest.mjs run __tests__/synthetic-customer-journey-pre-smtp.e2e.test.ts
+npx --yes node@22.23.2 node_modules/typescript/bin/tsc --noEmit -p tsconfig.tests.json
+npx --yes node@22.23.2 node_modules/eslint/bin/eslint.js __tests__/synthetic-customer-journey-pre-smtp.e2e.test.ts
+git diff --check
+```
+
+Targeted actual test RED1 before edit, GREEN1 after edit. Covering tests types and scoped lint exit0; diff check clean. No runtime/business-outcome modification and no native count change (expected301 pending genuine CI). Holding final fix2 freeze briefly for parent native outcome/additional concrete failures, as instructed. Parent checkpoint/publication receipt preserved.
+
+### Same fix2 — native seed-isolation failure
+
+Parent then supplied native run35954321157/job107489288645: 34 failures at outboundSeed's actor INSERT, before tested behavior, with `platform_market_actors_normalized_name_uidx` / `(dispatch electricity grid)` already exists. Parent reports the first direct accepted case and retained cases pass (aggregate267PASS/34FAIL301 being preserved by parent). Failed-run log-only artifact10789494594 has parent-provided SHA256 `78369bd89d54d4b44d8921e41605b0d3383b36fe657809872b724f2989003df0`; no generated schema/contracts were produced. This is genuine remote native RED, not evidence of a local native run or a runtime gate failure.
+
+Catalog inspection confirmed normalized_name is a stored lowercase/whitespace-normalized expression with a global unique index. Every outboundSeed used the same literal; the disposable suite intentionally retains fixture rows. Moreover, the impersonation test seeds two outbound tenants inside one test, so afterEach deletion would not solve the defect. Fixed only fixture ownership: name now includes its existing actor UUID; assertion checks the actual persisted id/name/normalized_name. The two-tenant case explicitly requires distinct actors/names and both rows still present. No shared-row rewrite, cleanup, upsert into an existing actor or uniqueness weakening.
+
+The same seed also used a finite random five-digit Ediel identifier, while actual `platform_actor_identifiers_uidx` globally owns `(identifier_type,identifier_value)`. Parent authorized removing this analogous collision risk. A short transaction takes a fixture-specific transaction advisory lock, inserts the uniquely named actor, selects the first unused valid synthetic value from60000–89999 against the actual identifier owner, and inserts that actor's identifier via a data-modifying CTE. The allocation statement follows the lock statement so it gets a fresh READ COMMITTED snapshot. The transaction commits before further preparation; no lock crosses async transport work. Assertions require canonical five-digit format, persisted identifier-to-actor ownership, and different identifiers for the two-tenant case. Exhaustion fails the fixture instead of reusing another actor. Existing actor/identifier rows and all constraints remain intact.
+
+After the complete bundled fix: scripts TypeScript exit0; tests TypeScript rerun exit0; scoped ESLint on both changed tests exit0; tracked helper config PASS4/skipped87/collected91; diff check clean. Commands are the previously recorded Node22.23.2 scripts/tests tsc, helper-config vitest and ESLint with both `scripts/ediel-correction-context-native.test.ts` and `__tests__/synthetic-customer-journey-pre-smtp.e2e.test.ts`. Native count remains301. No local PostgreSQL/Storage execution is available; fixture SQL needs genuine parent rerun. Published migration031626, its checksum, runtime, and generated contracts are unchanged. Freeze bundled test/report fix for scoped review against published45d3e5c921fd5a68b9a2ee1f216c487839dd4c81.

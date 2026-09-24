@@ -1,3 +1,9 @@
+## 2026-09-24 — Task3a first native result and fix2 review
+
+Published45d3e5c9 / OPS35954321157 / native107489288645 ran301 tests:267PASS,34FAIL. All34 failures stop at synthetic actor seeding (global normalized_name collision), not the intended behavior. Full6061/6062 fails one pre-SMTP source-shape assertion after the wrapper change. Original author bundled fixture isolation and source-contract preservation in6a9c0f55; runtime/published SQL unchanged. Targeted RED1/GREEN1, scripts/tests types/lint and helper4 pass. Reviewer outbound_fix2_review now examines only45d3e5c9..6a9c0f55. Native301 rerun and generated contracts remain required.
+
+Artifact10789494594 ZIP78369bd89d54d4b44d8921e41605b0d3383b36fe657809872b724f2989003df0 verified, log-only. Next API parent45d3e5c921fd5a68b9a2ee1f216c487839dd4c81. Active isolated workspace unchanged; original checkout preservation-only. No new permission needed; PR372 draft/fullE035 partial, Task3b/4 remain pending.
+
 ## 2026-09-24 — Task3a reviewed; native301 pending
 
 Runtime90a7c653 plus native-proof fix3ceb0caf independently SPEC/QUALITY approved. T3A-R1/R2 both addressed, zero open important findings; formatting minor remains for whole-branch review. Local helper4, compatibility74/11, types/lint/integrity PASS; native301 NOT EXECUTED. No generated contract has been fabricated or changed. Migration031626 remains unpublished until next exact-tree checkpoint.

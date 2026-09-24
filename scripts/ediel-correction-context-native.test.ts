@@ -417,11 +417,30 @@ async function outboundParsed(wire:string,companyId:string){
 }
 async function outboundSeed(){
  const f=await seed(),messageId=randomUUID(),routeId=randomUUID(),profileId=randomUUID(),gridId=randomUUID(),marketActor=randomUUID()
+ // Actors are global and the disposable suite retains earlier fixture rows.
+ // Own a distinct normalized name even when one test seeds two tenants.
+ const marketActorName=`Dispatch electricity grid ${marketActor}`
  // Company creation deliberately seeds capabilities disabled; establish only this
  // synthetic tenant's test capability through its actual canonical gate.
  sql(`UPDATE public.company_capabilities SET enabled=true,readiness_status='ready' WHERE company_id=${literal(f.companyId)} AND capability_code='ediel_test';`)
  expect(sql(`SELECT to_jsonb(allowed) FROM public.canonical_tenant_operation_decision(${literal(f.companyId)},'ediel.test.process')`)).toBe(true)
- const receiver=String(60000+Math.floor(Math.random()*29999))
+ // Allocate against the actual globally unique identifier owner. The short
+ // transaction serializes this fixture allocator; it never rewrites old actors.
+ const receiver=sql<string>(`BEGIN;
+ SELECT pg_advisory_xact_lock(hashtextextended('native_outbound_dispatch_actor_identifier',0));
+ WITH actor AS (
+  INSERT INTO public.platform_market_actors(id,name,status,match_status,visible_to_tenants)
+  VALUES(${literal(marketActor)},${literal(marketActorName)},'active','verified',true) RETURNING id
+ ), available AS (
+  SELECT candidate::text AS value FROM generate_series(60000,89999) candidate
+  WHERE NOT EXISTS(SELECT FROM public.platform_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=candidate::text)
+  ORDER BY candidate LIMIT 1
+ ), allocated AS (
+  INSERT INTO public.platform_actor_identifiers(actor_id,identifier_type,identifier_value,is_verified)
+  SELECT actor.id,'EdielId',available.value,true FROM actor CROSS JOIN available RETURNING identifier_value
+ ) SELECT to_jsonb(identifier_value) FROM allocated; COMMIT;`)
+ expect(receiver).toMatch(/^[6-8][0-9]{4}$/)
+ expect(sql(`SELECT to_jsonb(actor_id) FROM public.platform_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=${literal(receiver)}`)).toBe(marketActor)
  const wire=closureFixture({reason:'Z25'}).wire.replace('BGM+Z05','BGM+Z08').replaceAll('54321',receiver).replace('Synthetic','Ångström')
  const parsed=await outboundParsed(wire,f.companyId)
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_message_profiles p JOIN public.ediel_rule_packs r ON r.id=p.rule_pack_id WHERE p.profile_key='PRODAT:Z08:H:26.A:r3' AND p.is_enabled AND r.status='active' AND r.valid_from<=current_date AND (r.valid_to IS NULL OR r.valid_to>=current_date) AND r.source_hash ~ '^[a-f0-9]{64}$'`)).toBe(1)
@@ -429,16 +448,16 @@ async function outboundSeed(){
  INSERT INTO public.communication_routes(id,company_id,route_name,grid_owner_id,environment_type,is_active,target_email) VALUES(${literal(routeId)},${literal(f.companyId)},'Dispatch native route',${literal(gridId)},'bilateral_test',true,'recipient@example.invalid');
  INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,transport_security_mode,smtp_to,receiver_email,message_family,business_code)
  VALUES(${literal(profileId)},${literal(f.companyId)},${literal(routeId)},'Dispatch native profile','test','edifact','12345',${literal(receiver)},'23-DDQ-PRODAT',true,'unencrypted','recipient@example.invalid','recipient@example.invalid','PRODAT','Z08');
- INSERT INTO public.platform_market_actors(id,name,status,match_status,visible_to_tenants) VALUES(${literal(marketActor)},'Dispatch electricity grid','active','verified',true);
- INSERT INTO public.platform_actor_identifiers(actor_id,identifier_type,identifier_value,is_verified) VALUES(${literal(marketActor)},'EdielId',${literal(receiver)},true);
  INSERT INTO public.platform_actor_roles(actor_id,actor_role,is_active) VALUES(${literal(marketActor)},'grid_owner',true);
  INSERT INTO public.platform_actor_routes(actor_id,message_family,environment,status,is_verified,application_reference,communication_type,communication_address,metadata) VALUES(${literal(marketActor)},'PRODAT','production','active',true,'23-DDQ-PRODAT','email','recipient@example.invalid','{"subaddress_status":"not_required_confirmed"}');
  INSERT INTO public.platform_actor_certificates(actor_id,environment,purpose,status,fingerprint_sha256,ediel_id,valid_to,raw_certificate_pem) VALUES(${literal(marketActor)},'production','encryption','valid','synthetic',${literal(receiver)},'2099-01-01','synthetic-readiness-only');
  INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,application_reference,sender_ediel_id,receiver_ediel_id,receiver_email,communication_route_id,route_profile_id,source_operation_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
  SELECT ${literal(messageId)},${literal(f.companyId)},'test','outbound','edifact','PRODAT','Z08','queued',${literal(wire)},${literal(parsed)},'23-DDQ-PRODAT','12345',${literal(receiver)},'recipient@example.invalid',${literal(routeId)},${literal(profileId)},${literal(randomUUID())},r.id,p.profile_key,p.id,r.guide_version||':r'||r.guide_revision,r.source_hash,p.profile
  FROM public.ediel_message_profiles p JOIN public.ediel_rule_packs r ON r.id=p.rule_pack_id WHERE p.profile_key='PRODAT:Z08:H:26.A:r3' AND p.is_enabled;`)
+ expect(sql(`SELECT jsonb_build_object('id',id,'name',name,'normalizedName',normalized_name) FROM public.platform_market_actors WHERE normalized_name=${literal(marketActorName.toLowerCase())}`))
+  .toEqual({id:marketActor,name:marketActorName,normalizedName:marketActorName.toLowerCase()})
  expect(sql(`SELECT to_jsonb(can_use_for_prodat) FROM public.actor_readiness_status WHERE platform_market_actor_id=${literal(marketActor)}`)).toBe(true)
- return {...f,messageId,routeId,wire}
+ return {...f,messageId,routeId,wire,marketActor,marketActorName,receiver}
 }
 function smtpFixture(){
  vi.stubEnv('EDIEL_SHARED_MAILBOX_ADDRESS','synthetic@example.invalid');vi.stubEnv('EDIEL_APP_DKIM_ENABLED','false');vi.stubEnv('EMAIL_PROVIDER','resend')
@@ -570,6 +589,10 @@ it('outbound private facts deny DML and tenant/actor/claim impersonation',async(
   expect((await dispatchCall({...prepared.identity,...patch,action:'enter'})).error).not.toBeNull()
  }
  const fresh=await outboundSeed(),attemptId=randomUUID()
+ expect(fresh.receiver).not.toBe(f.receiver)
+ expect(fresh.marketActor).not.toBe(f.marketActor)
+ expect(fresh.marketActorName.toLowerCase()).not.toBe(f.marketActorName.toLowerCase())
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.platform_market_actors WHERE id IN (${literal(f.marketActor)},${literal(fresh.marketActor)})`)).toBe(2)
  const forged=await dispatchCall({...prepared.identity,companyId:fresh.companyId,actorUserId:fresh.actorUserId,messageId:fresh.messageId,attemptId,action:'prepare',binding:{...prepared.binding,routeId:fresh.routeId,originalHash:createHash('sha256').update(fresh.wire).digest('hex')},owner:{kind:'worker',outboxId:randomUUID(),sendAttemptId:randomUUID(),workerId:'forged'}})
  expect(forged.error).not.toBeNull()
  expect(sql(`SELECT to_jsonb(complete) FROM gridex_outbound_dispatch.epoch`)).toBe(false)

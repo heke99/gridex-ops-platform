@@ -10,7 +10,7 @@
   "last_merged_pr": 371,
   "last_accepted_pr": 371,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "E035 Task3a publication and native qualification",
+  "active_item": "E035 Task3a fix2 publication and native rerun",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish independently reviewed3ceb0caf plus parent records from API parentd0d95006; genuine native301 and authentic generated contracts before acceptance.",
+  "next_action": "Publish approved fix6a9c0f55 and records from API parent45d3e5c9; rerun actual301 native and complete generated contracts.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -548,7 +548,7 @@
     "final_unit_files": 376
   },
   "correction_outbound_task3a": {
-    "status": "STATIC_REVIEW_APPROVED_NATIVE_PENDING",
+    "status": "FIX2_STATIC_APPROVED_NATIVE_PENDING",
     "author": "/root/outbound_fence_task3a",
     "accepted_document_runtime": "7581966b75165b2fd88de05756913cb673cd4a32",
     "brief": "quality/audits/ediel-masterplan-v2/e035-source-ledger/process-history-task3a-brief-20260924.md",
@@ -560,17 +560,30 @@
     "review_base": "d0d95006ad442ffeb1f319351d257f647c0ee688",
     "isolation_reason": "Unaccounted unpublished SQL/manifest/test draft changes; exact bytes preserved, only isolated path authoritative",
     "head": "90a7c653a48dd2bd7b39f0db0e15a3a620d5438a",
-    "reviewer": "/root/outbound_fence_review",
+    "reviewer": "/root/outbound_fix2_review",
     "native_expected": 301,
-    "native_executed": false,
+    "native_executed": true,
     "migration_sha256": "8eff8a86530af7cb46fdb3cf5c650522f2b70db755c6561ab97ea211daa281a0",
     "local_verification": "helper4 compatibility74/11 app/scripts/tests types lint integrity PASS",
-    "fix_round": 1,
+    "fix_round": 2,
     "findings": [],
-    "review_result": "SPEC_QUALITY_APPROVED_T3A_R1_R2_ADDRESSED",
+    "review_result": "FIX2_SPEC_QUALITY_APPROVED_ZERO_OPEN",
     "minor_deferred": "Dense formatting in new adapter and duplicated SQL authorization predicate; final review triage",
-    "fix_head": "3ceb0cafc3979d386681596497f05466ee3d6c48",
-    "local_fix_verification": "scripts/tests types lint PASS; helper4 PASS/91 collected/87 skipped"
+    "fix_head": "6a9c0f550fdd6c623a104e65c30436c482575f1f",
+    "local_fix_verification": "scripts/tests types lint PASS; helper4 PASS/91 collected/87 skipped",
+    "published_head": "45d3e5c921fd5a68b9a2ee1f216c487839dd4c81",
+    "published_tree": "2e57f6d4a1a380e20f0aab6fa464b16ef94f568b",
+    "ops_run": 35954321157,
+    "full_tests_pass": 6061,
+    "full_tests_fail": 1,
+    "full_test_files": 376,
+    "failed_test": "synthetic-customer-journey-pre-smtp.e2e.test.ts:233",
+    "native_job": 107489288645,
+    "native_pass": 267,
+    "native_fail": 34,
+    "native_artifact": 10789494594,
+    "native_artifact_sha256": "78369bd89d54d4b44d8921e41605b0d3383b36fe657809872b724f2989003df0",
+    "confirmed_native_cause": "All34 outboundSeed failures: duplicate platform_market_actors_normalized_name_uidx fixed display name"
   },
   "workspace": "/workspace/scratch/4b1d39503015/gridex-ops-platform/.worktrees/e035-task3a-isolated"
 }
