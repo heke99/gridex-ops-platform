@@ -1024,7 +1024,7 @@ it('the process owner saves a bounded scoped receipt without claiming history co
    ${literal(f.actorUserId)},clock_timestamp(),NULL,NULL,NULL)`)
  expect(receipt.snapshotId).toMatch(/^[0-9a-f-]{36}$/)
  expect(receipt.readsetHash).toMatch(/^[a-f0-9]{64}$/)
- const body=JSON.parse(receipt.readsetText) as {companyId:string;environment:string;complete:boolean;
+ const body=JSON.parse(receipt.readsetText) as {companyId:string;environment:string;cutoffAt:string;complete:boolean;
   historyCoverage:string;factCount:number;facts:{rowId:string;table:string;operation:string}[]}
  expect(body).toMatchObject({companyId:f.companyId,environment:'test',complete:false,
   historyCoverage:'before_epoch_unknown',factCount:1})
@@ -1033,6 +1033,56 @@ it('the process owner saves a bounded scoped receipt without claiming history co
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_correction_process.readsets
   WHERE id=${literal(receipt.snapshotId)} AND readset_hash=${literal(receipt.readsetHash)}
   AND readset_text=${literal(receipt.readsetText)}`)).toBe(1)
+ expect(createHash('sha256').update(receipt.readsetText).digest('hex')).toBe(receipt.readsetHash)
+ const other=await seed(),otherTask=randomUUID(),laterTask=randomUUID()
+ sql(`INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)
+  VALUES(${literal(otherTask)},${literal(other.companyId)},'follow_up','Other tenant task','open');
+  INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)
+  VALUES(${literal(laterTask)},${literal(f.companyId)},'follow_up','Later task','open');`)
+ const atOldCutoff=sql<{readsetText:string}>(`SELECT public.gridex_open_correction_process_readset_v1(
+  ${literal(f.companyId)},'test',${literal(f.actorUserId)},
+  (${literal(body.cutoffAt)}::timestamptz),NULL,NULL,NULL)`)
+ const laterBody=JSON.parse(atOldCutoff.readsetText) as {factCount:number;facts:{rowId:string}[]}
+ expect(laterBody.factCount).toBe(1)
+ expect(laterBody.facts.map(fact=>fact.rowId)).toEqual([taskId])
+ expect(sql(`SELECT to_jsonb(readset_text=${literal(receipt.readsetText)} AND
+  readset_hash=${literal(receipt.readsetHash)}) FROM gridex_correction_process.readsets
+  WHERE id=${literal(receipt.snapshotId)}`)).toBe(true)
+ expect(()=>sql(`BEGIN; SET LOCAL ROLE service_role;
+  SELECT count(*) FROM gridex_correction_process.readsets; COMMIT;`)).toThrow(/permission denied/)
+ expect(()=>sql(`BEGIN; SET LOCAL ROLE anon;
+  SELECT public.gridex_open_correction_process_readset_v1(${literal(f.companyId)},'test',
+   ${literal(f.actorUserId)},clock_timestamp(),NULL,NULL,NULL); COMMIT;`)).toThrow(/permission denied/)
+ const fact=sql<{id:number;factsHash:string}>(`SELECT jsonb_build_object('id',id,'factsHash',facts_hash)
+  FROM gridex_correction_process.facts WHERE table_name='customer_operation_tasks' AND row_id=${literal(taskId)}`)
+ sql(`SELECT public.gridex_witness_correction_process_fact_v1(${literal(f.companyId)},${fact.id},
+  ${literal(fact.factsHash)},${literal(f.actorUserId)});`)
+ const priorWitness=sql<{readsetText:string}>(`SELECT public.gridex_open_correction_process_readset_v1(
+  ${literal(f.companyId)},'test',${literal(f.actorUserId)},${literal(body.cutoffAt)}::timestamptz,NULL,NULL,NULL)`)
+ expect(JSON.parse(priorWitness.readsetText)).toMatchObject({witnessCount:0,witnesses:[]})
+ const currentWitness=sql<{readsetText:string}>(`SELECT public.gridex_open_correction_process_readset_v1(
+  ${literal(f.companyId)},'test',${literal(f.actorUserId)},clock_timestamp(),NULL,NULL,NULL)`)
+ expect(JSON.parse(currentWitness.readsetText)).toMatchObject({witnessCount:1,
+  witnesses:[expect.objectContaining({factId:fact.id})]})
+})
+
+it('scoped overflow retains an exact witness count without disclosing the oversized fact set', async () => {
+ const f=await seed()
+ sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+  SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions WHERE key='customers.read'
+  ON CONFLICT DO NOTHING;
+  INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)
+  SELECT gen_random_uuid(),${literal(f.companyId)},'follow_up','Bounded synthetic task','open'
+  FROM generate_series(1,1001);`)
+ const fact=sql<{id:number;factsHash:string}>(`SELECT jsonb_build_object('id',id,'factsHash',facts_hash)
+  FROM gridex_correction_process.facts WHERE company_id=${literal(f.companyId)}
+   AND table_name='customer_operation_tasks' ORDER BY id LIMIT 1`)
+ sql(`SELECT public.gridex_witness_correction_process_fact_v1(${literal(f.companyId)},${fact.id},
+  ${literal(fact.factsHash)},${literal(f.actorUserId)});`)
+ const receipt=sql<{readsetText:string}>(`SELECT public.gridex_open_correction_process_readset_v1(
+  ${literal(f.companyId)},'test',${literal(f.actorUserId)},clock_timestamp(),NULL,NULL,NULL)`)
+ expect(JSON.parse(receipt.readsetText)).toMatchObject({complete:false,authority:'none',factCount:1001,
+  witnessCount:1,reason:'scoped_process_count_overflow',facts:[],witnesses:[]})
 })
 
 it('switch-event inserts, updates and deletes leave separate immutable facts', async () => {
@@ -1073,7 +1123,7 @@ it('a restrictive switch-event link rolls back a rejected request tombstone', as
 })
 
 it('customer, site, point, contract and supply graph writes retain process links', async () => {
- const {companyId}=await seed(),customerId=randomUUID(),siteId=randomUUID(),pointId=randomUUID()
+ const {companyId,actorUserId}=await seed(),customerId=randomUUID(),siteId=randomUUID(),pointId=randomUUID()
  const contractId=randomUUID(),periodId=randomUUID()
  const switchId=randomUUID(),contractEventId=randomUUID(),caseId=randomUUID(),caseEventId=randomUUID()
  const jobId=randomUUID(),operationEventId=randomUUID()
@@ -1082,8 +1132,8 @@ it('customer, site, point, contract and supply graph writes retain process links
   VALUES(${literal(customerId)},${literal(companyId)},'Synthetic','Graph');
   INSERT INTO public.customer_sites(id,company_id,customer_id,site_name)
   VALUES(${literal(siteId)},${literal(companyId)},${literal(customerId)},'Synthetic site');
-  INSERT INTO public.metering_points(id,company_id,customer_id,site_id)
-  VALUES(${literal(pointId)},${literal(companyId)},${literal(customerId)},${literal(siteId)});
+  INSERT INTO public.metering_points(id,company_id,customer_id,site_id,metering_point_id)
+  VALUES(${literal(pointId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},'735123456789012345');
   INSERT INTO public.customer_contracts(id,company_id,customer_id,site_id,metering_point_id,status)
   VALUES(${literal(contractId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(pointId)},'draft');
   INSERT INTO public.customer_supply_periods(id,company_id,customer_id,metering_point_id,contract_id,start_date,status)
@@ -1129,4 +1179,16 @@ it('customer, site, point, contract and supply graph writes retain process links
   'contractId',new_fact->>'customer_contract_id','customerId',new_fact->>'customer_id')
   FROM gridex_correction_process.facts WHERE table_name='customer_contract_events' AND row_id=${literal(routedEventId)}`))
   .toEqual({operation:'INSERT',companyId,contractId,customerId})
+ sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+  SELECT ${literal(actorUserId)},${literal(companyId)},id,key FROM public.permissions WHERE key='customers.read'
+  ON CONFLICT DO NOTHING;`)
+ const scoped=(point:string,period:string)=>sql<{readsetText:string}>(`
+  SELECT public.gridex_open_correction_process_readset_v1(${literal(companyId)},'test',
+   ${literal(actorUserId)},clock_timestamp(),${literal(customerId)},${literal(point)},${literal(period)})`)
+ const matching=JSON.parse(scoped('735123456789012345',periodId).readsetText) as {facts:{table:string;rowId:string}[]}
+ expect(matching.facts).toContainEqual(expect.objectContaining({table:'customer_supply_periods',rowId:periodId}))
+ const unrelatedPeriod=JSON.parse(scoped('735123456789012345',randomUUID()).readsetText) as {facts:{table:string;rowId:string}[]}
+ expect(unrelatedPeriod.facts.some(fact=>fact.table==='customer_supply_periods'&&fact.rowId===periodId)).toBe(false)
+ const unrelatedPoint=JSON.parse(scoped('735123456789012346',periodId).readsetText) as {facts:{table:string;rowId:string}[]}
+ expect(unrelatedPoint.facts.some(fact=>fact.table==='customer_supply_periods'&&fact.rowId===periodId)).toBe(false)
 })
