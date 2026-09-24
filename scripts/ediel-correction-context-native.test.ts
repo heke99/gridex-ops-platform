@@ -1464,6 +1464,8 @@ it('the actual invoice-test archive retains committed contract, point and site t
  })
  expect(channelError).toBeNull()
  expect(channel,JSON.stringify(channel)).toMatchObject({ok:true,channel:'internal'})
+ const publicationVersionId=(channel as {contract_publication_version_id?:string}|null)?.contract_publication_version_id
+ expect(publicationVersionId).toMatch(/^[0-9a-f-]{36}$/)
  expect(sql(`SELECT to_jsonb(contract_product_version_id IS NOT NULL AND price_plan_version_id IS NOT NULL
   AND legal_bundle_version_id IS NOT NULL) FROM public.contract_offers WHERE id=${literal(offerId)}`)).toBe(true)
  sql(`INSERT INTO public.customers(id,company_id,first_name,last_name,source,is_test_data,metadata)
@@ -1472,8 +1474,19 @@ it('the actual invoice-test archive retains committed contract, point and site t
   VALUES(${literal(siteId)},${literal(companyId)},${literal(customerId)},'Archive site','735123456789012345',true,${literal(marker)}::jsonb);
   INSERT INTO public.metering_points(id,company_id,customer_id,site_id,meter_point_id,is_test_data,metadata)
   VALUES(${literal(pointId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},'735123456789012345',true,${literal(marker)}::jsonb);
-  INSERT INTO public.customer_contracts(id,company_id,customer_id,site_id,metering_point_id,contract_offer_id,status,metadata,created_by)
-  VALUES(${literal(contractId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(pointId)},${literal(offerId)},'draft',${literal(marker)}::jsonb,${literal(actorUserId)});`)
+  INSERT INTO public.customer_contracts(id,company_id,customer_id,site_id,metering_point_id,
+   contract_offer_id,status,metadata,created_by,contract_publication_version_id,
+   contract_product_id,contract_product_version_id,price_plan_id,price_plan_version_id,
+   price_book_id,legal_bundle_version_id,offer_reference,commercial_snapshot,legal_snapshot)
+  SELECT ${literal(contractId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},
+   ${literal(pointId)},${literal(offerId)},'draft',${literal(marker)}::jsonb,
+   ${literal(actorUserId)},v.id,p.contract_product_id,v.contract_product_version_id,
+   v.price_plan_id,v.price_plan_version_id,v.price_book_id,v.legal_bundle_version_id,
+   v.offer_reference,p.commercial_snapshot,l.rendered_snapshot
+  FROM public.contract_publication_versions v
+  JOIN public.contract_product_versions p ON p.id=v.contract_product_version_id
+  JOIN public.legal_bundle_versions l ON l.id=v.legal_bundle_version_id
+  WHERE v.id=${literal(publicationVersionId)} AND v.status='published';`)
  expect(sql(`SELECT to_jsonb(contract_publication_version_id IS NOT NULL AND contract_product_version_id IS NOT NULL
   AND price_plan_version_id IS NOT NULL AND legal_bundle_version_id IS NOT NULL)
   FROM public.customer_contracts WHERE id=${literal(contractId)}`)).toBe(true)
