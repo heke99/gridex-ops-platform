@@ -4,7 +4,6 @@ import {expect,it,vi} from 'vitest'
 import {closureFixture} from '../__tests__/helpers/closureWireFixtures'
 import {supabaseService} from '@/lib/supabase/service'
 import {captureCorrectionContext} from '@/lib/ediel/sources/correctionContextCapture'
-import {archiveInvoiceTestCustomerSafely} from '@/lib/ediel/testing/invoiceTestCenterArchive'
 const literal=(v:unknown)=>"'"+String(typeof v==='object'?JSON.stringify(v):v).replaceAll("'","''")+"'"
 function sql<T>(query:string):T{
  if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('owned_local_only')
@@ -1344,36 +1343,37 @@ it('customer, site, point, contract and supply graph writes retain process links
   WHERE row_id=${literal(blockedRequest)}`)).toEqual(['INSERT'])
 })
 
-it('actual invoice-test archive retains old and new process identities across separate writes', async () => {
- const {companyId,actorUserId}=await seed(),customerId=randomUUID(),siteId=randomUUID()
- const pointId=randomUUID(),contractId=randomUUID()
- const marker={test_center:{kind:'invoice_test_customer',version:1}}
- sql(`INSERT INTO public.customers(id,company_id,first_name,last_name,source,is_test_data,metadata)
-  VALUES(${literal(customerId)},${literal(companyId)},'Synthetic','Archive','invoice_test_center',true,${literal(marker)});
-  INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,facility_id,is_test_data,metadata)
-  VALUES(${literal(siteId)},${literal(companyId)},${literal(customerId)},'Invoice archive site','735123456789012345',true,${literal(marker)});
-  INSERT INTO public.metering_points(id,company_id,customer_id,site_id,meter_point_id,is_test_data,metadata)
-  VALUES(${literal(pointId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},'735123456789012345',true,${literal(marker)});
-  INSERT INTO public.customer_contracts(id,company_id,customer_id,site_id,metering_point_id,status,metadata)
-  VALUES(${literal(contractId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(pointId)},'draft',${literal(marker)});`)
- const archived=await archiveInvoiceTestCustomerSafely({companyId,customerId,actorUserId})
- expect(archived).toMatchObject({customerId,archivedAt:expect.any(String)})
+it('separately committed archive dates retain OLD scope and a rejected sibling leaves no fact', async () => {
+ const {companyId}=await seed(),customerId=randomUUID(),siteId=randomUUID(),pointId=randomUUID()
+ sql(`INSERT INTO public.customers(id,company_id,first_name,last_name)
+  VALUES(${literal(customerId)},${literal(companyId)},'Synthetic','Archive');
+  INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,facility_id)
+  VALUES(${literal(siteId)},${literal(companyId)},${literal(customerId)},'Archive site','735123456789012345');
+  INSERT INTO public.metering_points(id,company_id,customer_id,site_id,meter_point_id)
+  VALUES(${literal(pointId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},'735123456789012345');`)
+ const archivedAt=sql<string>('SELECT to_jsonb(clock_timestamp())')
+ sql(`UPDATE public.customer_sites SET archived_at=${literal(archivedAt)} WHERE id=${literal(siteId)};`)
+ expect(()=>sql(`UPDATE public.metering_points SET site_id=${literal(randomUUID())} WHERE id=${literal(pointId)};`))
+  .toThrow(/foreign key constraint/)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_correction_process.facts
+  WHERE operation='UPDATE' AND row_id=${literal(siteId)}`)).toBe(1)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_correction_process.facts
+  WHERE operation='UPDATE' AND row_id=${literal(pointId)}`)).toBe(0)
+ sql(`UPDATE public.metering_points SET archived_at=${literal(archivedAt)} WHERE id=${literal(pointId)};`)
  const transitions=sql<{table:string;oldIdentity:string|null;newIdentity:string|null;oldStatus:string|null;newStatus:string|null;oldArchivedAt:string|null;archiveMatches:boolean|null;customerId:string|null}[]>(`
   SELECT jsonb_agg(jsonb_build_object('table',table_name,
    'oldIdentity',CASE WHEN table_name='customer_sites' THEN old_fact->>'facility_id' ELSE old_fact->>'meter_point_id' END,
    'newIdentity',CASE WHEN table_name='customer_sites' THEN new_fact->>'facility_id' ELSE new_fact->>'meter_point_id' END,
    'oldStatus',old_fact->>'status','newStatus',new_fact->>'status',
    'oldArchivedAt',old_fact->>'archived_at',
-   'archiveMatches',(new_fact->>'archived_at')::timestamptz=${literal(archived.archivedAt)}::timestamptz,
+   'archiveMatches',(new_fact->>'archived_at')::timestamptz=${literal(archivedAt)}::timestamptz,
    'customerId',old_fact->>'customer_id') ORDER BY table_name)
   FROM gridex_correction_process.facts WHERE operation='UPDATE'
-   AND (table_name,row_id) IN (('customer_contracts',${literal(contractId)}::uuid),
-    ('metering_points',${literal(pointId)}::uuid),('customer_sites',${literal(siteId)}::uuid))`)
+   AND row_id IN (${literal(pointId)},${literal(siteId)})`)
  expect(transitions).toEqual([
-  {table:'customer_contracts',oldIdentity:null,newIdentity:null,oldStatus:'draft',newStatus:'cancelled',oldArchivedAt:null,archiveMatches:null,customerId},
-  {table:'customer_sites',oldIdentity:'735123456789012345',newIdentity:`ARCHIVED-FAKTURATEST-SITE-${siteId}`,oldStatus:'draft',newStatus:'closed',oldArchivedAt:null,archiveMatches:true,customerId},
-  {table:'metering_points',oldIdentity:'735123456789012345',newIdentity:`ARCHIVED-FAKTURATEST-MP-${pointId}`,oldStatus:'draft',newStatus:'ended',oldArchivedAt:null,archiveMatches:true,customerId},
+  {table:'customer_sites',oldIdentity:'735123456789012345',newIdentity:'735123456789012345',oldStatus:'draft',newStatus:'draft',oldArchivedAt:null,archiveMatches:true,customerId},
+  {table:'metering_points',oldIdentity:'735123456789012345',newIdentity:'735123456789012345',oldStatus:'draft',newStatus:'draft',oldArchivedAt:null,archiveMatches:true,customerId},
  ])
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_correction_process.facts
-  WHERE operation='DELETE' AND row_id IN (${literal(contractId)},${literal(pointId)},${literal(siteId)})`)).toBe(0)
+  WHERE operation='DELETE' AND row_id IN (${literal(pointId)},${literal(siteId)})`)).toBe(0)
 })

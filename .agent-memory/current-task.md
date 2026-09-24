@@ -511,3 +511,5 @@ Same-head green checkpoint: remote521bc9ba / OPS36003339938 passed native314/314
 ## 2026-09-24 — Task3b actual invoice-test archive route probe
 
 Added test-only native invocation of archiveInvoiceTestCustomerSafely with synthetic marked graph, asserting separate contract/point/site UPDATE facts retain old physical identifiers and archive values. Local scripts typecheck and scoped lint pass; native replay is pending and no route qualification or full Task3b acceptance is claimed. Keep PR372 draft.
+
+OPS36013706224 failed only the new route test (314/315) at customer_contract_canonical_versions_required before archival writes. This is valid canonical protection, not process-capture evidence. The test now uses separate committed site/point archive-date writes plus a rejected FK sibling; native RED for absent archived_at is next. Real invoice-test archive route remains unqualified until a canonical contract fixture exists.
