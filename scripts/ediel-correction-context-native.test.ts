@@ -851,3 +851,65 @@ it.each(['inactive_membership','inactive_company','denied_permission'] as const)
   expect(outboundFacts(f).filter(e=>e.kind==='provider_call_entered')).toHaveLength(0)
  }finally{vi.unstubAllEnvs()}
 })
+
+
+// Task3b prerequisite: run against the genuinely replayed catalog, before any
+// process-capture migration. This is observational evidence, not capture proof.
+const processFactTables = [
+ 'customer_contract_events', 'customer_contracts', 'customer_sites', 'metering_points',
+ 'customer_supply_periods', 'supplier_switch_requests', 'supplier_switch_events',
+ 'customer_cases', 'customer_case_events', 'customer_operation_jobs',
+ 'customer_operation_tasks', 'customer_operation_events',
+] as const
+it('process catalog preflight records effective twelve-table triggers constraints and generated columns', () => {
+ type Catalog = {
+  table: string
+  triggers: {name: string; enabled: string; type: number; definition: string; function: string}[]
+  constraints: {name: string; definition: string}[]
+  columns: {name: string; type: string; nullable: boolean; generated: string; expression: string | null}[]
+ }
+ const catalog = sql<Catalog[]>(`SELECT jsonb_agg(observation ORDER BY observation->>'table') FROM (
+  SELECT jsonb_build_object('table',c.relname,
+   'triggers',(SELECT coalesce(jsonb_agg(jsonb_build_object('name',t.tgname,'enabled',t.tgenabled,
+    'type',t.tgtype,'definition',pg_get_triggerdef(t.oid),'function',t.tgfoid::regprocedure::text)
+    ORDER BY t.tgname),'[]'::jsonb) FROM pg_trigger t WHERE t.tgrelid=c.oid AND NOT t.tgisinternal),
+   'constraints',(SELECT coalesce(jsonb_agg(jsonb_build_object('name',k.conname,
+    'definition',pg_get_constraintdef(k.oid)) ORDER BY k.conname),'[]'::jsonb)
+    FROM pg_constraint k WHERE k.conrelid=c.oid),
+   'columns',(SELECT jsonb_agg(jsonb_build_object('name',a.attname,'type',format_type(a.atttypid,a.atttypmod),
+    'nullable',NOT a.attnotnull,'generated',a.attgenerated,
+    'expression',pg_get_expr(d.adbin,d.adrelid)) ORDER BY a.attnum)
+    FROM pg_attribute a LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum
+    WHERE a.attrelid=c.oid AND a.attnum>0 AND NOT a.attisdropped)) AS observation
+  FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+  WHERE n.nspname='public' AND c.relkind='r' AND c.relname IN (${processFactTables.map(literal).join(',')})
+ ) observations`)
+ expect(catalog.map(row => row.table).sort()).toEqual([...processFactTables].sort())
+ for (const row of catalog) {
+  console.info('E035_TASK3B_NATIVE_CATALOG', JSON.stringify(row))
+  expect(row.columns.find(column => column.name === 'id')?.type).toBe('uuid')
+  expect(row.columns.some(column => column.name === 'company_id')).toBe(true)
+  expect(row.triggers.every(trigger => trigger.enabled === 'O' || trigger.enabled === 'A')).toBe(true)
+ }
+ const table = (name: typeof processFactTables[number]) => catalog.find(row => row.table === name)!
+ expect(table('customer_sites').columns.find(column => column.name === 'normalized_facility_id')?.generated).toBe('s')
+ expect(table('metering_points').columns.find(column => column.name === 'normalized_metering_point_id')?.generated).toBe('s')
+ expect(table('customer_operation_tasks').columns.some(column => column.name === 'operation_id')).toBe(false)
+ expect(table('customer_operation_events').columns.some(column => column.name === 'updated_at')).toBe(false)
+ expect(table('supplier_switch_events').constraints.some(constraint =>
+  constraint.definition.includes('REFERENCES supplier_switch_requests(id) ON DELETE RESTRICT'))).toBe(true)
+ expect(table('customer_contracts').triggers.some(trigger => trigger.name === 'customer_contracts_lock_signed'
+  && trigger.definition.includes('BEFORE DELETE OR UPDATE'))).toBe(true)
+ const functions = sql<{name: string; definition: string}[]>(`SELECT jsonb_agg(jsonb_build_object(
+  'name',p.oid::regprocedure::text,'definition',pg_get_functiondef(p.oid)) ORDER BY p.proname)
+  FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname IN (
+   'gridex_normalize_signature_request_event_truth_v1',
+   'gridex_assign_customer_contract_identity_v1',
+   'gridex_normalize_customer_contract_pricing_snapshot_v1',
+   'gridex_fill_customer_contract_price_area_v1',
+   'gridex_sync_supply_customer_contract_v1',
+   'gridex_enforce_customer_contract_chain_v1',
+   'gridex_lock_signed_customer_contract')`)
+ expect(functions).toHaveLength(7)
+ for (const fn of functions) console.info('E035_TASK3B_NATIVE_NORMALIZER', JSON.stringify(fn))
+})

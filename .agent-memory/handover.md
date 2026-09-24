@@ -1,3 +1,7 @@
+## 2026-09-24 — Task3b STARTED
+
+Acceptance/recovery checkpoint155fe17e published and exact tree07e9830f verified; local predecessor preserved backup/e035-local-bbe788dd. Sole runtime author /root/process_facts_task3b implements the prepared twelve-table brief from155fe17e. Task3a remains accepted atd7cbab18, native301/full6072/all applicable CI green. Parent owns nativeCI/generated contracts and independent review. Next: frozen Task3b report/commit, full-base SPEC/QUALITY review and actual native qualification. Task3b native not yet executed; Task4/later E035 pending. No new permission needed.
+
 ## 2026-09-24 — Task3a ACCEPTED; Task3b next
 
 Accepted runtime d7cbab18b9b102e00cde256bc91c22271455d7c8, tree66c82f59b88969b43326f7f34bd11ad432412cff. All applicable same-head CI SUCCESS: OPS35958136936 (verify107500725279,quality107500725385,native107500725396), fullE2E35958136881, browser35958136874, Ediel35958136896, tenant35958136892; crawler35958136976 skipped. Full6072/377, native301/5 plus case1/browser2/postbrowser1, types, tenant invariants, parity, schema, build/bundle PASS. Independent static/fix/native/schema SPEC/QUALITY approved. Final artifact10791646035 ZIP73ad030582646cb7e851c348f28867c3f32e45a1e3ab65e3a1a659acf9ef8614 verified; all three generated files byte-identical. Types32ae2f06, schemaef41ebad, fingerprint04ba0c99.
