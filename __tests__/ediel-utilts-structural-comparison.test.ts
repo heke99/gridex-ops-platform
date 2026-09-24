@@ -1,8 +1,20 @@
 import {describe,it,expect} from 'vitest'
 import {compareUtiltsStructure} from '@/lib/ediel/utilts/structuralComparison'
 import {comparisonInput,structureVersion,utiltsStructureWire,STRUCTURE_POINT} from './helpers/structuralComparisonFixtures'
+import {projectCorrectionContextBlocker} from '@/lib/ediel/sources/correctionContextImpact'
 const check=(options:Parameters<typeof utiltsStructureWire>[0]={},versions=[structureVersion()])=>compareUtiltsStructure(comparisonInput(utiltsStructureWire(options),versions))
 describe('original UTILTS against independently selected structure (pure)',()=>{
+  it('holds a matching correction at the saved cutoff without national mismatch codes',()=>{
+    const blocker=projectCorrectionContextBlocker({rawC:null,sourceId:'synthetic-correction',observedAt:'2026-10-10T00:00:00Z',
+      oldStop:{kind:'known',utc:'2026-10-30T00:00:00Z'},proposedStop:{kind:'known',utc:'2026-10-15T00:00:00Z'},
+      scope:{companyId:'company-a',environment:'test',customerId:null,objectId:STRUCTURE_POINT,identityAgency:'9',
+        legalSender:'12345',legalReceiver:'54321',supplyPeriodId:null}})
+    const input=comparisonInput()
+    expect(compareUtiltsStructure({...input,companyId:'company-a',environment:'test',correctionContextBlockers:[blocker]}))
+      .toMatchObject({status:'unavailable',reason:'structural_correction_context_hold',codes:[]})
+    expect(compareUtiltsStructure({...input,cutoffAt:'2026-10-09T00:00:00Z',companyId:'company-a',environment:'test',
+      correctionContextBlockers:[blocker]})).toMatchObject({status:'matched',codes:[]})
+  })
   it('counts two registers, not four reads or the energy sequence',()=>expect(check()).toMatchObject({status:'matched',codes:[],transactionId:'TX'}))
   it.each([['201'],['202'],['201','202','901'],['201','203'],['201 ','202'],['201','202 ']].map(ids=>[ids]))('detects missing/extra/wrong register inventory %j',ids=>expect(check({ids})).toMatchObject({status:'mismatch',codes:['E62']}))
   it.each(['WRONG','old',' OLD','OLD '])('does not normalize the wrong meter %s',meter=>expect(check({meter})).toMatchObject({status:'mismatch',codes:['E61']}))

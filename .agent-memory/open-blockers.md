@@ -411,3 +411,6 @@ Native PostgreSQL crash fixed narrowly by verified vendor image17.6.1.155 in dis
 
 ## E035 fix5 published checkpoint — 2026-09-23
 Published8092ad6 restores legacy case events and makes scoped status/event/audit atomic. Independent static SPEC/QUALITY approved; native acceptance withheld. Targeted29/7 and all three typechecks pass. OPS35901488883 native107318534277 stopped on GHCR rate limit before DB startup; genuine native/browser not executed. Types gate correctly rejects stale migration tail; full E2E14/15 fails only that gate. Tenant, Ediel and general browser workflows pass. Next: retry authentic replay, reconcile authentic generated artifacts, then qualify case flow before remaining E035 owners. No merge or hosted writes.
+## 2026-09-24 — Remaining after point-scope repair
+
+Task3b point UUID-to-physical mapping passed native313/313 at OPS35995196628. Historical inception, swallowed event producer and signed/legacy/claim/retention routes remain unqualified; `complete:false` is mandatory. Task4 still needs one MVCC statement for source, correction and process sets; the pure comparator seam alone is not activated. Full review and final same-head gates remain before merge.

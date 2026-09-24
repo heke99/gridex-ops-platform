@@ -10,7 +10,7 @@
   "last_merged_pr": 371,
   "last_accepted_pr": 371,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "E035 Task3b finite customer and process facts",
+  "active_item": "E035 Task4 single-MVCC UTILTS hold after bounded Task3b point-scope qualification",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish and inspect native CI for the prepared TRUNCATE-denial fixture after accepted PR372 head 7491e16, then finish remaining Task3b route/gap proof; Task4 same-MVCC UTILTS hold and final review before merge.",
+  "next_action": "Publish authentic manifest and tested pure comparison seam from native313/313 head 562015b; inspect same-head CI, then implement single-MVCC source/correction/process acquisition and actual conditional UTILTS hold. Task3b historical coverage remains incomplete; final whole-PR review before merge.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",

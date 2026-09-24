@@ -255,3 +255,9 @@ Accepted runtime d7cbab18b9b102e00cde256bc91c22271455d7c8, tree66c82f59b88969b43
 One next active item: Task3b twelve-table customer/process facts, prepared brief, fresh sole author after acceptance checkpoint publication. Genuine acceptedBASE schema artifact is available in /workspace/scratch/4b1d39503015/e035-pr372-outbound-final; use it plus real native catalog probes, not source-only assumptions. Parent owns nativeCI/generated artifacts. Task4 single-MVCC composition and later E035 owners remain pending. No fullTask3/E035 or PR372 merge claim. PR310 excluded; user authorization persists.
 
 Authoritative workspace remains /workspace/scratch/4b1d39503015/gridex-ops-platform/.worktrees/e035-task3a-isolated. Original checkout is preservation-only. Deferred final-review items: dense adapter formatting; canonical fingerprint covers public/gridex_received_sources, not gridex_outbound_dispatch (private behavior has native/migration proof). No hosted writes/deployment/market sends.
+## 2026-09-24 — PR372 point scope and comparator seam
+
+| Head / local state | Evidence | Result |
+| --- | --- | --- |
+| 562015b | OPS35995196628 clean replay: native313/313, case1/browser2/postbrowser1, generated types a0a50f80, schema fingerprint 925af263 | PASS; verify stale manifest only |
+| unpublished comparator seam | RED matched instead of correction hold; then focused Vitest 58/58, scripts/tests/app typechecks, scoped lint, migration check | PASS locally; active service composition pending |

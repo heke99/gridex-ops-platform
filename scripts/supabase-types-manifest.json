@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run35982493137",
   "generated_types": "supabase/database.types.ts",
   "sha256": "a0a50f80c6f5f7286c2557138fe17177bbcd7eaa5e0dc95e3884d0589242b698",
-  "latest_migration": "20260924085942_correction_process_readset_v1.sql",
-  "latest_migration_schema_effect": "Authentic typegen at PR372 head a0a8e4fc OPS35982493137 artifact10801325864 ZIP SHA256 59b276deacdea1cb45c85c74095c27278dbcbfc09f436036561146b229684f80: generated types a0a50f80 copied byte-identically. Native311/311 plus case1/browser2/postbrowser1 passed; replay stopped at expected stale type manifest. Private process readsets remain incomplete and grant no positive correction authority. Canonical schema fingerprint and final same-head CI remain pending."
+  "latest_migration": "20260924111700_correction_process_point_alias_scope_v3.sql",
+  "latest_migration_schema_effect": "Authentic empty replay at PR372 head 562015b, OPS35995196628 artifact10806495967 ZIP SHA256 b1f36a8f4c82e18ec4200bf80967876120123ff1b62a045d8f1d8d859c0e2411: native313/313 plus case/browser passed, generated types SHA256 a0a50f80 byte-identical to tracked types, canonical fingerprint 925af263 byte-identical to tracked schema contract. The forward only replaces a private read function; third-set coverage remains incomplete."
 }

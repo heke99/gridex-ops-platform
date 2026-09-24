@@ -6,8 +6,10 @@ import {selectStructuralSources,type StructuralVersion,type SelectedStructure} f
 import {parseSourceReceiptInstant} from './receivedSourceInventory'
 import type {ClosureVersion,ScopedClosureBlocker,ClosureProvenance} from '@/lib/ediel/sources/closureSelection'
 import type {StructuralCoverage} from '@/lib/ediel/sources/structuralSourceSelection'
+import type {CorrectionContextBlockerV1} from '@/lib/ediel/sources/correctionContextImpact'
 
-export type StructuralComparisonInput={raw:string;transactionIndex:number;cutoffAt:string;ledgerStartedAt:string;readComplete:boolean;unresolvedSources:boolean;versions:readonly StructuralVersion[];closures?:readonly ClosureVersion[];closureBlockers?:readonly ScopedClosureBlocker[]}
+export type StructuralComparisonInput={raw:string;transactionIndex:number;cutoffAt:string;ledgerStartedAt:string;readComplete:boolean;unresolvedSources:boolean;versions:readonly StructuralVersion[];closures?:readonly ClosureVersion[];closureBlockers?:readonly ScopedClosureBlocker[];
+  correctionContextBlockers?:readonly CorrectionContextBlockerV1[];companyId?:string;environment?:'test'|'production';customerId?:string|null;supplyPeriodId?:string|null}
 export type StructuralComparison={transactionId:string|null;status:'not_applicable'|'matched'|'mismatch'|'unavailable';reason:string|null;codes:('E61'|'E62')[];selected:SelectedStructure[];coverage?:StructuralCoverage;closure?:ClosureProvenance}
 const instant=parseSourceReceiptInstant
 
@@ -91,7 +93,10 @@ export function compareUtiltsStructure(input:StructuralComparisonInput):Structur
     }
     if(!start||!end||readingTimes.some(at=>instant(at)!<instant(start)!||instant(at)!>instant(end)!))return unavailable('structural_period_unknown')
     const selection=selectStructuralSources({ledgerStartedAt:input.ledgerStartedAt,cutoffAt:input.cutoffAt,readComplete:input.readComplete,
-      unresolvedSources:input.unresolvedSources,versions:input.versions,closures:input.closures,closureBlockers:input.closureBlockers,objectId:object[0],identityAgency:object[2],legalSender:sender,legalReceiver:receiver,
+      unresolvedSources:input.unresolvedSources,versions:input.versions,closures:input.closures,closureBlockers:input.closureBlockers,
+      correctionContextBlockers:input.correctionContextBlockers,companyId:input.companyId,environment:input.environment,
+      customerId:input.customerId,supplyPeriodId:input.supplyPeriodId,
+      objectId:object[0],identityAgency:object[2],legalSender:sender,legalReceiver:receiver,
       periodStart:start,periodEnd:end,boundary})
     if(selection.status!=='selected')return unavailable(selection.reason)
     if(selection.states.length!==1)return unavailable('structural_transition_inside_transaction')

@@ -460,3 +460,6 @@ Retain the actual runtime12 outcome tests and their mutation evidence35708172952
 
 ## E035 fix5 published checkpoint — 2026-09-23
 Published8092ad6 restores legacy case events and makes scoped status/event/audit atomic. Independent static SPEC/QUALITY approved; native acceptance withheld. Targeted29/7 and all three typechecks pass. OPS35901488883 native107318534277 stopped on GHCR rate limit before DB startup; genuine native/browser not executed. Types gate correctly rejects stale migration tail; full E2E14/15 fails only that gate. Tenant, Ediel and general browser workflows pass. Next: retry authentic replay, reconcile authentic generated artifacts, then qualify case flow before remaining E035 owners. No merge or hosted writes.
+## 2026-09-24 — PR372 continuation
+
+Published 562015b (tree ed74978) passed OPS35995196628 native313/313 and authentic generated type/schema checks. Local changes reconcile the unchanged type hash against new migration tail and forward correction blockers through the pure UTILTS comparator; RED then focused GREEN58/58, typechecks, lint and migration checks passed. Publish local tree through GitHub connector (CLI push has no credentials), inspect same-head CI. Then Task4 one-MVCC combined receipt and actual UTILTS hold; do not infer active hold from pure seam. Task3b remains prospective/incomplete. PR310 excluded, PR372 draft.
