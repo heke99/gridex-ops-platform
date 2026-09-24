@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish accepted source-only receipt then START prepared document_reference_task2b on immutable syncedBASE; one runtimeauthor, no positiveC, native/artifact gates later.",
+  "next_action": "Publish Task2b exact reviewed tree fromAPIparent0a528215, actualnative261/5/projectStorage thenauthentictypes/schema; sourceTask2a accepted, Task2bnotyet.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -491,8 +491,26 @@
     "final_review": "SPEC_QUALITY_NATIVE_SOURCE_ONLY_ACCEPT"
   },
   "correction_document_task2b": {
-    "status": "PREPARED_START_AFTER_RECEIPT_PUBLICATION",
+    "status": "STATIC_SPEC_QUALITY_APPROVED_NATIVE261_PENDING",
     "author": "/root/document_reference_task2b",
-    "source_accepted_head": "8fde5f2644a87351a5dbe42d8a694d33a606ba8d"
+    "source_accepted_head": "8fde5f2644a87351a5dbe42d8a694d33a606ba8d",
+    "base": "0a52821565dd7f29e3f3b683b726add3f4457bec",
+    "base_ci": "ALL_APPLICABLE_SUCCESS_OPS35943632954",
+    "last_report": "BOUNDED_READER8_CAPTURE_ACTION6_GREEN_NATIVE_WRITTEN_NOT_EXECUTED",
+    "migration": "20260924013820_document_reference_context.sql",
+    "migration_creation": "CLI_CREATED_BEFORE_ANALYTICS_REJECTION_NO_RETRY_OR_BYPASS",
+    "implementation": "07d3b9c5c1ebf5b537e20116e5daa4e801efcf64",
+    "unit_tests": 64,
+    "unit_files": 5,
+    "reviewer": "/root/document_reference_review",
+    "fix_round": 1,
+    "review": "SPEC_QUALITY_APPROVED_FIX1_ZERO_OPEN",
+    "finding": "DR-R1 saved cutoff omits immutable document preimage/append xids/witness visibility; native header/body abort qualification missing",
+    "native_expected": 261,
+    "native_document_authored": 37,
+    "native_retained": 224,
+    "fix1_progress": "Immutable facts/xids/visibility reader + saved nullpath oracle + actualSDK loopback header/body stalls; covering checks in progress",
+    "fix1_implementation": "638926b44c296e6b2728af8393b75a9fa7ca2158",
+    "transport_local": "2_PASS_35_SKIPPED_REAL_SDK_NODE_LOOPBACK_NO_PROJECT_DB"
   }
 }

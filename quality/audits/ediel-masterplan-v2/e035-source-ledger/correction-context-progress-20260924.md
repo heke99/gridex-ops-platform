@@ -37,3 +37,9 @@ Fix5published6091edc7 exacttree1ea2918e matcheslocalc001ba4f, backupretained/bra
 Independent finalnative/schemaSPEC/QUALITYAPPROVE, archive/exactcopies and10functionbodies verified,0findings; finalsameheadCIpending.
 Authenticschema local13ffa957 exacttreef23f346b published8fde5f26, backupretained/branchsynced. FinalOPS35942941358running; nextAPIparent8fde5f26. Prepared document_reference_task2b awaitsSTART aftergate.
 Task2a SOURCE-ONLY complete: accepted8fde5f26 allsameheadCIgreen full6038/native224+case/browser/types/tenant/parity/schema. IndependentfinalnativeSPEC/QUALITYACCEPT, artifact10785568965hash95bdfdd9 exactfiles. Task2bnextpreparedauthor; fullTask2/E035notcomplete.
+Sourceacceptance localf7416a46 exacttree052b5f99 published0a528215, branchsynced. Task2b START soleauthor document_reference_task2b BASE0a528215; no HEADchange whileactive. NextAPIparent0a528215.
+Docs-onlyacceptedBASE0a528215 ordinaryCIallSUCCESS: OPS35943632954, fullE2E35943632841, browser35943632828, Ediel35943632821, tenant35943632932; crawlerskipped. Task2bactive, no deliverednativeclaims yet.
+Task2b implementation frozen07d3b9c5 from0a528215:64/5,3types,lint,integrity612/516PASS. NativeStorageauthoredunexecuted; scopedSPEC/QUALITY reviewer document_reference_review active package0a..07.
+Task2b scopedreviewSPEC/QUALITY CHANGES REQUIRED DR-R1 missing saved documentpreimage/appendxids/witnessvisibility; nativeheader/bodystalloracle also needed. Originalauthor fixround1/5 from07d3b9c5 active; no publicationyet.
+Task2b fixround1 frozen638926b4: savedidentity/xids/witnessprojection +nativecutofforacle +realSDKheader/bodystall2PASSlocally(35skipped). Focused64/5,types/lint/integrity612/516PASS. Fullnative261/5pending. Scopedrereviewactive.
+Task2b fixround1/5 07d3b9c5..638926b4 scopedSPEC/QUALITYAPPROVED,DR-R1+transportgapaddressed,0open. Native261/5/projectStoragepending; parentpublicationnext.

@@ -1,0 +1,8 @@
+# Bounded historical-source discovery — 2026-09-24
+
+Supplement to remaining-source-completeness-inventory-20260924.md. Read-only public-source check while Task2b implementation proceeds; no source manifest, rule capability or runtime authority changed.
+
+- Official https://www.ediel.se/Info/edielanvisningar was opened through the public information link from https://www.ediel.se/Portal. The retrieved page includes section11 for older withdrawn guides, but its document selector did not expose downloadable individual older originals in the retrieved text. This is evidence of an archive entry point, not proof of original bytes, versions, validity windows or completeness. Targeted indexed searches returned no verified older PRODAT original; irrelevant search results were discarded.
+- Official https://www.elmarknadshandboken.se/handbok.html still identifies26A/April2026 and links the already qualified NEMHB.pdf. It describes chapter12 as version-change history from10A onward. A change log is not automatically a complete original edition or a proof that all then-effective clauses can be reconstructed. No new earlier handbook original was recovered by this bounded check.
+
+Consequently the precise source-version gaps in the existing inventory remain open. Do not describe earlier editions as nonexistent. Follow-up source recovery should use the portal's actual older-document selections and obtain original bytes/cover/version/transition evidence, then independently qualify the affected clauses. No login/session, contact with third parties, new normative source acquisition, historical instance fact or universal completeness claim occurred.
