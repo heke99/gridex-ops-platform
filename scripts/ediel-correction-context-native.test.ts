@@ -1391,13 +1391,13 @@ it('the actual invoice-test archive retains committed contract, point and site t
   terms_version:'test-v1',spot_markup_ore_per_kwh:4,monthly_fee_sek:49,invoice_fee_sek:19,default_binding_months:0,
   default_notice_months:1,automatic_renewal:true,automatic_renewal_term_months:12,
   power_of_attorney_required:true,valid_from:'2026-09-24'}
- expect(sql(`SELECT to_jsonb(count(*)) FROM public.permissions WHERE key IN ('contracts.create','pricing.write')`)).toBe(2)
- sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
-  SELECT ${literal(actorUserId)},${literal(companyId)},id,key FROM public.permissions
-  WHERE key IN ('contracts.create','pricing.write') ON CONFLICT DO NOTHING;`)
- const created=sql<{offer:{id:string}}>(`SELECT public.gridex_upsert_internal_contract_offer(
-  ${literal(companyId)},NULL,${literal(offer)}::jsonb,${literal(pricing)}::jsonb,${literal(actorUserId)})`)
- const offerId=created.offer.id
+ sql(`INSERT INTO public.admin_users(user_id,role,is_active)
+  VALUES(${literal(actorUserId)},'platform_admin',true);`)
+ const {data:created,error:createError}=await supabaseService.rpc('gridex_upsert_internal_contract_offer',{
+  p_company_id:companyId,p_offer_id:null,p_payload:offer,p_pricing_snapshot:pricing,p_actor_user_id:actorUserId,
+ })
+ expect(createError).toBeNull()
+ const offerId=(created as {offer?:{id?:string}} | null)?.offer?.id
  expect(offerId).toMatch(/^[0-9a-f-]{36}$/)
  expect(sql(`SELECT to_jsonb(contract_product_version_id IS NOT NULL AND price_plan_version_id IS NOT NULL
   AND legal_bundle_version_id IS NOT NULL) FROM public.contract_offers WHERE id=${literal(offerId)}`)).toBe(true)
