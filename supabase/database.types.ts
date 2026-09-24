@@ -89921,6 +89921,18 @@ export type Database = {
         Args: { p_command: Json }
         Returns: Json
       }
+      gridex_open_correction_process_readset_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_customer_id: string
+          p_cutoff_at: string
+          p_environment: string
+          p_point_id: string
+          p_supply_period_id: string
+        }
+        Returns: Json
+      }
       gridex_ops_health_checks: {
         Args: never
         Returns: {

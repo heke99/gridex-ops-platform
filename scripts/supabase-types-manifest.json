@@ -1,9 +1,9 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-09-24T08:31:11Z",
-  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run35974944611",
+  "generated_at": "2026-09-24T09:46:02Z",
+  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run35982493137",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "e3372ee7c46dd68ce6e509ec6e7e2895f998e19be8b4d8a16dc84bf4ad4043d0",
-  "latest_migration": "20260924083045_correction_process_scope_gap_v2.sql",
-  "latest_migration_schema_effect": "Authentic typegen at PR372 head863d43d1 OPS35974944611 artifact10797838161 ZIP9ed34e99b5bd66b7f4573781702b415566d45ab225cc22addf64344caa973682: e3372ee7 copied byte-identically. Native307/307 plus case1/browser2/postbrowser1 passed; replay stopped at expected stale type manifest. New private capture gap fix has no public type effect; new native replay and canonical public schema fingerprint reconciliation remain pending. History and C authority incomplete."
+  "sha256": "a0a50f80c6f5f7286c2557138fe17177bbcd7eaa5e0dc95e3884d0589242b698",
+  "latest_migration": "20260924085942_correction_process_readset_v1.sql",
+  "latest_migration_schema_effect": "Authentic typegen at PR372 head a0a8e4fc OPS35982493137 artifact10801325864 ZIP SHA256 59b276deacdea1cb45c85c74095c27278dbcbfc09f436036561146b229684f80: generated types a0a50f80 copied byte-identically. Native311/311 plus case1/browser2/postbrowser1 passed; replay stopped at expected stale type manifest. Private process readsets remain incomplete and grant no positive correction authority. Canonical schema fingerprint and final same-head CI remain pending."
 }
