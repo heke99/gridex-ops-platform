@@ -34499,6 +34499,19 @@ end;
 $$;
 
 --
+-- Name: gridex_outbound_dispatch_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_outbound_dispatch_v1(p_input jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ IF current_user<>'service_role' THEN RAISE EXCEPTION 'outbound_dispatch_service_required' USING ERRCODE='42501'; END IF;
+ RETURN gridex_outbound_dispatch.mutate_v1(p_input);
+END $$;
+
+--
 -- Name: gridex_partner_contract_event_v1(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -115095,6 +115108,13 @@ GRANT ALL ON FUNCTION public.gridex_ops_health_checks_v5() TO service_role;
 
 REVOKE ALL ON FUNCTION public.gridex_optimize_rls_auth_initplans() FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_optimize_rls_auth_initplans() TO service_role;
+
+--
+-- Name: FUNCTION gridex_outbound_dispatch_v1(p_input jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_outbound_dispatch_v1(p_input jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_outbound_dispatch_v1(p_input jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_partner_contract_event_v1(); Type: ACL; Schema: public; Owner: -

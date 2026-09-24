@@ -37,3 +37,13 @@ At541619c0 actual coverage107495592722 PASS6072/377. Smoke10749559236114/15 fail
 Published541619c0 / OPS35956416625/native107495592215 passed301/5, case1/browser2/postbrowser1. Full6072/377 and quality/build/bundle PASS. Replay stopped only on actual generated-types mismatch before tenant/parity/schema. Artifact10790334395 ZIP716e75b2e824283a33520fcf53b82f8d0f0c8b0977b52b178102c62f72ded821 verified; exact generated types SHA32ae2f06418bfb57bd3da0361f856bb544a360782967f33b962f9b9765518940 copied byte-identically, manifest tail031626/provenance updated.
 
 Next: publish authentic types from APIparent541619c0, complete tenant/parity/schema stages, reconcile genuine schema and final same-head/independent acceptance. Task3a not yet accepted; Task3b/4 remain pending. Active isolated workspace unchanged, original preservation-only. FullE035 partial/PR372 draft.
+
+## Authentic types publication
+
+Published0a079a5b46430d725b166dabfc5f7794bea18fb8 tree6bbac4a54c1db70be7dd7bbd2acb75bfdf2cbfba equals localf45bde2b (backup/e035-local-f45bde2b). New native run35957199874/job107497927053 running. Verify107497927147 now passes db:migrations:check with actual types. Independent native reviewer validating301 artifact; final schema/tenant/parity remain pending.
+
+## 2026-09-24 — Task3a tenant/parity PASS; authentic public schema copied
+
+Published0a079a5b / OPS35957199874/native107497927053 again PASS301/5 plus case1/browser2/postbrowser1, repeated authentic types32ae2f06, all tenant invariants and every parity-selftest drift class. Verify107497927147 and quality107497927227 SUCCESS; other applicable workflows SUCCESS. Only old committed schema fingerprint differed. Artifact10790803705 ZIP23e08764562a18d306c4bba1b4f84f2451a438e5e6dc23f77908f785b01fa9f6 verified; schema.sql SHAef41ebad7f037b1e227e00742d95cecc71bba26dbd4b4638cbb920ac9d9c23a2 and fingerprint04ba0c99373f8ad4414c01ab73b3334280b9db63ac9604b88a531113be895ba4 copied byte-identically. Canonical fingerprint scopes are public and gridex_received_sources; the change is public wrapper/ACL. gridex_outbound_dispatch is outside that fingerprint scope; private behavior is qualified by actual native execution and immutable migration provenance.
+
+Next: bounded independent schema review, publish exact generated schema from APIparent0a079a5b, final same-head all-gates and Task3a acceptance. Then Task3b/4. Active isolated workspace unchanged; fullE035 partial/PR372 draft.

@@ -10,7 +10,7 @@
   "last_merged_pr": 371,
   "last_accepted_pr": 371,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "E035 Task3a authentic types reconciliation",
+  "active_item": "E035 Task3a final schema publication and CI",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish exact generatedtypes32ae2f06 from native301 artifact10790334395 using APIparent541619c0; run remaining tenant/parity/schema and final native acceptance.",
+  "next_action": "Publish independently reviewed authentic schema from APIparent0a079a5b; final same-headCI/artifact acceptance then Task3b.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -548,7 +548,7 @@
     "final_unit_files": 376
   },
   "correction_outbound_task3a": {
-    "status": "NATIVE301_PASS_TYPES_RECONCILIATION",
+    "status": "SCHEMA_REVIEW_APPROVED_FINAL_CI_PENDING",
     "author": "/root/outbound_fence_task3a",
     "accepted_document_runtime": "7581966b75165b2fd88de05756913cb673cd4a32",
     "brief": "quality/audits/ediel-masterplan-v2/e035-source-ledger/process-history-task3a-brief-20260924.md",
@@ -571,14 +571,14 @@
     "minor_deferred": "Dense formatting in new adapter and duplicated SQL authorization predicate; final review triage",
     "fix_head": "a78cd3c1b98f7e3df06b11e212b90e594bba6d1f",
     "local_fix_verification": "scripts/tests types lint PASS; helper4 PASS/91 collected/87 skipped",
-    "published_head": "541619c011eda41bc7c531a5c5f07a611e63d57a",
-    "published_tree": "7910ad88e60e67372ee477166edc19d3367feded",
-    "ops_run": 35956416625,
+    "published_head": "0a079a5b46430d725b166dabfc5f7794bea18fb8",
+    "published_tree": "6bbac4a54c1db70be7dd7bbd2acb75bfdf2cbfba",
+    "ops_run": 35957199874,
     "full_tests_pass": 6072,
     "full_tests_fail": 0,
     "full_test_files": 377,
     "failed_test": "synthetic-customer-journey-pre-smtp.e2e.test.ts:233",
-    "native_job": 107495592215,
+    "native_job": 107497927053,
     "native_pass": 301,
     "native_fail": 0,
     "native_artifact": 10790334395,
@@ -589,7 +589,19 @@
     "fix3_local": "actual crypto RED2 GREEN10; targeted34/4; app/scripts/tests types lint helper4 PASS",
     "ordinary_expected": 6072,
     "generated_types_sha256": "32ae2f06418bfb57bd3da0361f856bb544a360782967f33b962f9b9765518940",
-    "generated_contracts": "TYPES_AUTHENTIC_COPIED_SCHEMA_PENDING"
+    "generated_contracts": "AUTHENTIC_TYPES_REPEATED_SCHEMA_COPIED_PENDING_FINAL_CI",
+    "native_reviewer": "/root/outbound_native_review",
+    "native_review": "SPEC_QUALITY_PASS_BOUNDED_NATIVE301; TENANT_PARITY_SCHEMA_FINAL_CI_PENDING",
+    "schema_artifact": 10790803705,
+    "schema_artifact_sha256": "23e08764562a18d306c4bba1b4f84f2451a438e5e6dc23f77908f785b01fa9f6",
+    "schema_fingerprint": "04ba0c99373f8ad4414c01ab73b3334280b9db63ac9604b88a531113be895ba4",
+    "tenant_parity": "PASS",
+    "schema_review": "SPEC_QUALITY_PASS",
+    "fingerprint_schemas": [
+      "public",
+      "gridex_received_sources"
+    ],
+    "private_outbound_fingerprint_covered": false
   },
   "workspace": "/workspace/scratch/4b1d39503015/gridex-ops-platform/.worktrees/e035-task3a-isolated"
 }
