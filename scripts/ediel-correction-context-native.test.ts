@@ -1506,4 +1506,6 @@ it('the actual invoice-test archive retains committed contract, point and site t
   {table:'metering_points',companyId,oldStatus:'draft',newStatus:'ended',oldIdentity:'735123456789012345',newIdentity:`ARCHIVED-FAKTURATEST-MP-${pointId}`,archiveMatches:true,customerId},
  ])
  expect(sql(`SELECT to_jsonb(archived_at IS NOT NULL) FROM public.customers WHERE id=${literal(customerId)}`)).toBe(true)
+ expect(sql(`SELECT to_jsonb(status='closed' AND is_active=false)
+  FROM public.customer_sites WHERE id=${literal(siteId)}`)).toBe(true)
 })
