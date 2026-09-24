@@ -1443,6 +1443,22 @@ it('the actual invoice-test archive retains committed contract, point and site t
  })
  expect(publishError).toBeNull()
  expect(published,JSON.stringify(published)).toMatchObject({ok:true,mode:'published'})
+ // Channel publication snapshots an active template tied to these immutable
+ // product and plan versions. Give this synthetic offer one selectable price.
+ sql(`WITH template AS (
+  INSERT INTO public.contract_price_options(company_id,contract_product_version_id,
+   price_plan_version_id,option_reference,option_code,customer_name,contract_type,
+   binding_months,notice_months,auto_renew_enabled,renewal_term_months,status,
+   customer_type,is_default,selection_required,created_by)
+  SELECT ${literal(companyId)},contract_product_version_id,price_plan_version_id,
+   'archive-default','archive-default','Synthetic hourly price','variable_hourly',
+   0,1,true,12,'active','both',true,false,${literal(actorUserId)}
+  FROM public.contract_offers WHERE id=${literal(offerId)}
+  RETURNING id,company_id,price_plan_version_id
+ ) INSERT INTO public.contract_price_option_area_prices(company_id,contract_price_option_id,
+  price_plan_version_id,price_row_reference,price_area,amount,unit,created_by)
+ SELECT company_id,id,price_plan_version_id,'archive-se3','SE3',4,'ore_per_kwh',
+  ${literal(actorUserId)} FROM template;`)
  const {data:channel,error:channelError}=await supabaseService.rpc('gridex_publish_contract_channel',{
   p_company_id:companyId,p_offer_id:offerId,p_channel:'internal',p_actor_user_id:actorUserId,
  })
