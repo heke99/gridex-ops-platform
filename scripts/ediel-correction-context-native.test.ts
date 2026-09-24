@@ -1403,8 +1403,8 @@ it('the actual invoice-test archive retains committed contract, point and site t
  expect(offerId).toMatch(/^[0-9a-f-]{36}$/)
  // Publication readiness is part of the real canonical contract path. All
  // routing and legal rows below belong only to this disposable synthetic tenant.
- sql(`INSERT INTO public.ediel_actor_settings(company_id,environment,ediel_id)
-  VALUES(${literal(companyId)},'production','12345');
+ sql(`INSERT INTO public.ediel_actor_settings(company_id,environment,actor_name,actor_ediel_id,ediel_id)
+  VALUES(${literal(companyId)},'production','Synthetic archive supplier','12345','12345');
   INSERT INTO public.ediel_brp_settings(company_id,environment,brp_ediel_id,brp_name)
   VALUES(${literal(companyId)},'production','54321','Synthetic BRP');
   INSERT INTO public.ediel_route_profiles(company_id,environment,route_name,message_family)
