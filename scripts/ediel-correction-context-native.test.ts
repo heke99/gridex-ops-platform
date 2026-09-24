@@ -1358,19 +1358,21 @@ it('actual invoice-test archive retains old and new process identities across se
   VALUES(${literal(contractId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(pointId)},'draft',${literal(marker)});`)
  const archived=await archiveInvoiceTestCustomerSafely({companyId,customerId,actorUserId})
  expect(archived).toMatchObject({customerId,archivedAt:expect.any(String)})
- const transitions=sql<{table:string;oldIdentity:string|null;newIdentity:string|null;oldStatus:string|null;newStatus:string|null;customerId:string|null}[]>(`
+ const transitions=sql<{table:string;oldIdentity:string|null;newIdentity:string|null;oldStatus:string|null;newStatus:string|null;oldArchivedAt:string|null;archiveMatches:boolean|null;customerId:string|null}[]>(`
   SELECT jsonb_agg(jsonb_build_object('table',table_name,
    'oldIdentity',CASE WHEN table_name='customer_sites' THEN old_fact->>'facility_id' ELSE old_fact->>'meter_point_id' END,
    'newIdentity',CASE WHEN table_name='customer_sites' THEN new_fact->>'facility_id' ELSE new_fact->>'meter_point_id' END,
    'oldStatus',old_fact->>'status','newStatus',new_fact->>'status',
+   'oldArchivedAt',old_fact->>'archived_at',
+   'archiveMatches',(new_fact->>'archived_at')::timestamptz=${literal(archived.archivedAt)}::timestamptz,
    'customerId',old_fact->>'customer_id') ORDER BY table_name)
   FROM gridex_correction_process.facts WHERE operation='UPDATE'
    AND (table_name,row_id) IN (('customer_contracts',${literal(contractId)}::uuid),
     ('metering_points',${literal(pointId)}::uuid),('customer_sites',${literal(siteId)}::uuid))`)
  expect(transitions).toEqual([
-  {table:'customer_contracts',oldIdentity:null,newIdentity:null,oldStatus:'draft',newStatus:'cancelled',customerId},
-  {table:'customer_sites',oldIdentity:'735123456789012345',newIdentity:`ARCHIVED-FAKTURATEST-SITE-${siteId}`,oldStatus:'draft',newStatus:'closed',customerId},
-  {table:'metering_points',oldIdentity:'735123456789012345',newIdentity:`ARCHIVED-FAKTURATEST-MP-${pointId}`,oldStatus:'draft',newStatus:'ended',customerId},
+  {table:'customer_contracts',oldIdentity:null,newIdentity:null,oldStatus:'draft',newStatus:'cancelled',oldArchivedAt:null,archiveMatches:null,customerId},
+  {table:'customer_sites',oldIdentity:'735123456789012345',newIdentity:`ARCHIVED-FAKTURATEST-SITE-${siteId}`,oldStatus:'draft',newStatus:'closed',oldArchivedAt:null,archiveMatches:true,customerId},
+  {table:'metering_points',oldIdentity:'735123456789012345',newIdentity:`ARCHIVED-FAKTURATEST-MP-${pointId}`,oldStatus:'draft',newStatus:'ended',oldArchivedAt:null,archiveMatches:true,customerId},
  ])
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_correction_process.facts
   WHERE operation='DELETE' AND row_id IN (${literal(contractId)},${literal(pointId)},${literal(siteId)})`)).toBe(0)
