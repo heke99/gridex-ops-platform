@@ -1023,6 +1023,33 @@ it('binding a formerly unbound process row keeps its old-scope gap', () => {
   ])
 })
 
+it('a combined service receipt observes source, correction and process owners at one database snapshot', async () => {
+ const f=await seed(),taskId=randomUUID(),laterId=randomUUID()
+ sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+  SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions WHERE key='customers.read'
+  ON CONFLICT DO NOTHING;
+  INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)
+  VALUES(${literal(taskId)},${literal(f.companyId)},'follow_up','Combined receipt','open');`)
+ const open=()=>sql<{snapshotId:string;readsetText:string;readsetHash:string}>(`
+  SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.companyId)},'test',
+   ${literal(f.actorUserId)},clock_timestamp())`)
+ const first=open(), body=JSON.parse(first.readsetText) as {
+  visibilitySnapshot:string;source:{readsetText:string;readsetHash:string;visibilitySnapshot:string};
+  process:{factCount:number;facts:{rowId:string}[];visibilitySnapshot:string};
+  correction:{count:number;visibilitySnapshot:string}}
+ expect(first.snapshotId).toMatch(/^[0-9a-f-]{36}$/)
+ expect(createHash('sha256').update(first.readsetText).digest('hex')).toBe(first.readsetHash)
+ expect(body.source.visibilitySnapshot).toBe(body.visibilitySnapshot)
+ expect(body.process.visibilitySnapshot).toBe(body.visibilitySnapshot)
+ expect(body.correction.visibilitySnapshot).toBe(body.visibilitySnapshot)
+ expect(body.process.facts).toContainEqual(expect.objectContaining({rowId:taskId}))
+ expect(body.correction.count).toBe(0)
+ sql(`INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)
+  VALUES(${literal(laterId)},${literal(f.companyId)},'follow_up','Later receipt','open');`)
+ expect(JSON.parse(first.readsetText)).toEqual(body)
+ expect((JSON.parse(open().readsetText) as typeof body).process.facts).toContainEqual(expect.objectContaining({rowId:laterId}))
+})
+
 it('the process owner saves a bounded scoped receipt without claiming history completeness', async () => {
  const f=await seed(),taskId=randomUUID()
  sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
