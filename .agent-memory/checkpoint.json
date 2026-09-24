@@ -10,7 +10,7 @@
   "last_merged_pr": 371,
   "last_accepted_pr": 371,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "E035 Task3a final schema publication and CI",
+  "active_item": "E035 Task3b finite customer and process facts",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish independently reviewed authentic schema from APIparent0a079a5b; final same-headCI/artifact acceptance then Task3b.",
+  "next_action": "Publish Task3a acceptance/checkpoint, then dispatch fresh sole Task3b author with prepared brief and genuine acceptedBASE catalog artifact; no Task4 until qualified.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -124,7 +124,7 @@
     "ordinary_delivery_retest_needed": true
   },
   "independent_review": "PR371_FINAL_SPEC_QUALITY_NATIVE_ACCEPTED; PR372_TASK1_SPEC_QUALITY_APPROVED",
-  "ordinary_final_head_ci": "D0D95006_ALL_APPLICABLE_SUCCESS; TASK3A_UNPUBLISHED_UNQUALIFIED",
+  "ordinary_final_head_ci": "D7CBAB18_ALL_APPLICABLE_SUCCESS",
   "full_source_disposition": "DATED_POST_LEDGER_Z04_Z06F_Z06G_Z10_AND_BGM5_E61_E62_PARTIAL; APPLICABILITY_AND_HISTORY_INCOMPLETE",
   "full_E035": "NOT_COMPLETE",
   "full_F3": "NOT_COMPLETE",
@@ -139,7 +139,7 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "d0d95006ad442ffeb1f319351d257f647c0ee688",
+  "last_verified_pr_head": "d7cbab18b9b102e00cde256bc91c22271455d7c8",
   "ordinary_baseline_ci": {
     "head": "95b5e391159e3164869ddabd8ec96b8f69189fe2",
     "ops": 35842844058,
@@ -417,10 +417,10 @@
   "correction_context": {
     "task1": "SPEC_QUALITY_APPROVED_ALL_APPLICABLE_CI_SUCCESS_6007_TESTS",
     "task1_local_commit": "4de528daa6c60df2a0943642bf5b5f999fc68a52",
-    "task2": "FIXROUND4_APPROVED_CATALOG_AND_DIRECTGRANT_SCOPE_IMPLEMENTATION",
+    "task2": "ACCEPTED_SOURCE_AND_DOCUMENT_REFERENCE",
     "local_base": "189eb136d85398b458d72293cc35e551034e5490",
-    "remote_parent": "dba554664ea2d6f240d709db57c3c664ea5ec9cc",
-    "task3": "BOUNDED_PARTIAL_DESIGN_APPROVED_NATIVE_INVENTORY_PENDING",
+    "remote_parent": "d7cbab18b9b102e00cde256bc91c22271455d7c8",
+    "task3": "TASK3A_ACCEPTED_TASK3B_PREPARED",
     "task4": "PENDING",
     "ops_run": 35932621631,
     "task2_local_commit": "8ebbac3f6f2eb82fafff46d013bedba7cc1a5764",
@@ -439,7 +439,7 @@
     "native_job": 107439595316,
     "confirmed_cause": "communication.write absent canonical catalog; actual operational capability communication.send",
     "new_permission_forward": "20260924001447_ediel_correction_capture_canonical_permission.sql",
-    "active_agent": "/root/correction_capture_fix4",
+    "active_agent": null,
     "confirmed_causes": [
       "canonical send/read catalog entries never materialized by migrations/emptyseed",
       "shared selectedcompany directpermission CTE ignores company/status/effect/is_active; dualmember can borrow scopedgrant"
@@ -548,7 +548,7 @@
     "final_unit_files": 376
   },
   "correction_outbound_task3a": {
-    "status": "SCHEMA_REVIEW_APPROVED_FINAL_CI_PENDING",
+    "status": "ACCEPTED_D7CBAB18",
     "author": "/root/outbound_fence_task3a",
     "accepted_document_runtime": "7581966b75165b2fd88de05756913cb673cd4a32",
     "brief": "quality/audits/ediel-masterplan-v2/e035-source-ledger/process-history-task3a-brief-20260924.md",
@@ -571,14 +571,14 @@
     "minor_deferred": "Dense formatting in new adapter and duplicated SQL authorization predicate; final review triage",
     "fix_head": "a78cd3c1b98f7e3df06b11e212b90e594bba6d1f",
     "local_fix_verification": "scripts/tests types lint PASS; helper4 PASS/91 collected/87 skipped",
-    "published_head": "0a079a5b46430d725b166dabfc5f7794bea18fb8",
-    "published_tree": "6bbac4a54c1db70be7dd7bbd2acb75bfdf2cbfba",
-    "ops_run": 35957199874,
+    "published_head": "d7cbab18b9b102e00cde256bc91c22271455d7c8",
+    "published_tree": "66c82f59b88969b43326f7f34bd11ad432412cff",
+    "ops_run": 35958136936,
     "full_tests_pass": 6072,
     "full_tests_fail": 0,
     "full_test_files": 377,
     "failed_test": "synthetic-customer-journey-pre-smtp.e2e.test.ts:233",
-    "native_job": 107497927053,
+    "native_job": 107500725396,
     "native_pass": 301,
     "native_fail": 0,
     "native_artifact": 10790334395,
@@ -601,7 +601,20 @@
       "public",
       "gridex_received_sources"
     ],
-    "private_outbound_fingerprint_covered": false
+    "private_outbound_fingerprint_covered": false,
+    "final_artifact": 10791646035,
+    "final_artifact_sha256": "73ad030582646cb7e851c348f28867c3f32e45a1e3ab65e3a1a659acf9ef8614",
+    "final_generated_contracts": "ALL_THREE_BYTE_IDENTICAL",
+    "final_ci": "ALL_APPLICABLE_SUCCESS",
+    "active_agent": null
   },
-  "workspace": "/workspace/scratch/4b1d39503015/gridex-ops-platform/.worktrees/e035-task3a-isolated"
+  "workspace": "/workspace/scratch/4b1d39503015/gridex-ops-platform/.worktrees/e035-task3a-isolated",
+  "correction_process_task3b": {
+    "status": "PREPARED_NOT_STARTED",
+    "accepted_outbound_base": "d7cbab18b9b102e00cde256bc91c22271455d7c8",
+    "brief": "quality/audits/ediel-masterplan-v2/e035-source-ledger/process-history-task3b-brief-20260924.md",
+    "baseline_native": 301,
+    "baseline_ordinary": 6072,
+    "generated_schema_artifact": 10791646035
+  }
 }
