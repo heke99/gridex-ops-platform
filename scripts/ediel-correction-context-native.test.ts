@@ -1,5 +1,6 @@
-import {execFileSync} from 'node:child_process'
+import {execFile,execFileSync} from 'node:child_process'
 import {createHash,randomUUID} from 'node:crypto'
+import {promisify} from 'node:util'
 import {expect,it,vi} from 'vitest'
 import {closureFixture} from '../__tests__/helpers/closureWireFixtures'
 import {supabaseService} from '@/lib/supabase/service'
@@ -1118,6 +1119,37 @@ it('a combined service receipt observes source, correction and process owners at
  expect((JSON.parse(open().readsetText) as typeof body).process.facts).toContainEqual(expect.objectContaining({rowId:laterId}))
 })
 
+it('a process producer committed after acquisition is absent from the saved MVCC receipt at the same cutoff',async()=>{
+ const f=await seed(),taskId=randomUUID(),lock=1_000_000+Math.floor(Math.random()*1_000_000)
+ const writer=promisify(execFile)('psql',['postgresql://postgres:postgres@127.0.0.1:54322/postgres','-XAtq',
+  '-v','ON_ERROR_STOP=1','-c',`BEGIN;
+  INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)
+  VALUES(${literal(taskId)},${literal(f.companyId)},'follow_up','Concurrent process fact','open');
+  SELECT pg_advisory_xact_lock(${lock}); SELECT pg_sleep(5); COMMIT;`],{timeout:12000})
+ let acquired=false
+ for(let i=0;i<40;i++){
+  if(sql(`SELECT to_jsonb(EXISTS(SELECT FROM pg_locks WHERE locktype='advisory' AND objid=${lock} AND granted))`)){
+   acquired=true;break
+  }
+  await new Promise(resolve=>setTimeout(resolve,50))
+ }
+ expect(acquired).toBe(true)
+ const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())')
+ const open=()=>sql<{snapshotId:string;readsetHash:string;readsetText:string}>(`SET ROLE service_role;
+  SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.companyId)},'test',${literal(f.sourceMessageId)},${literal(cutoff)})`)
+ const before=open(),prior=JSON.parse(before.readsetText) as {visibilitySnapshot:string;process:{facts:{rowId:string}[]};
+  source:{visibilitySnapshot:string};correction:{visibilitySnapshot:string};outbound:{visibilitySnapshot:string};document:{visibilitySnapshot:string}}
+ expect(prior.process.facts.some(row=>row.rowId===taskId)).toBe(false)
+ for(const owner of [prior.source,prior.correction,prior.outbound,prior.document])
+  expect(owner.visibilitySnapshot).toBe(prior.visibilitySnapshot)
+ await writer
+ const after=open(),later=JSON.parse(after.readsetText) as typeof prior
+ expect(later.process.facts.some(row=>row.rowId===taskId)).toBe(true)
+ expect(JSON.parse(before.readsetText)).toEqual(prior)
+ expect(sql(`SELECT to_jsonb(readset_text=${literal(before.readsetText)} AND readset_hash=${literal(before.readsetHash)})
+  FROM gridex_correction_process.combined_snapshots WHERE id=${literal(before.snapshotId)}`)).toBe(true)
+})
+
 it('a real Z08H send appears with its original, attempt, provider result and witnesses at the saved cutoff',async()=>{
  const f=await outboundSeed(),sourceMessageId=randomUUID()
  const concernWire=raw().replace('12345:14+54321:14',`${f.receiver}:14+12345:14`)
@@ -1130,7 +1162,8 @@ it('a real Z08H send appears with its original, attempt, provider result and wit
    pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
   FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
   WHERE profile.profile_key='PRODAT:Z05:C:26.A:r3' AND profile.is_enabled;`)
- expect(await captureCorrectionContext({...f,sourceMessageId})).toMatchObject({status:'recorded'})
+ expect(await captureCorrectionContext({companyId:f.companyId,environment:'test',sourceMessageId,
+  actorUserId:f.actorUserId})).toMatchObject({status:'recorded'})
  const open=()=>sql<{readsetText:string;readsetHash:string;snapshotId:string}>(`SET ROLE service_role;
   SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.companyId)},'test',${literal(sourceMessageId)},clock_timestamp())`)
  type Outbound={outbound:{originalCount:number;originals:{messageId:string;instrumented:boolean;rawPayload:string;
@@ -1471,6 +1504,17 @@ it('separately committed archive dates retain OLD scope and a rejected sibling l
   WHERE operation='DELETE' AND row_id IN (${literal(pointId)},${literal(siteId)})`)).toBe(0)
 })
 
+it('a rolled-back process deletion leaves the producer and immutable facts unchanged',async()=>{
+ const f=await seed(),taskId=randomUUID()
+ sql(`INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)
+  VALUES(${literal(taskId)},${literal(f.companyId)},'follow_up','Rollback process task','open');`)
+ expect(()=>sql(`BEGIN; DELETE FROM public.customer_operation_tasks WHERE id=${literal(taskId)};
+  SELECT to_jsonb(1/0); COMMIT;`)).toThrow()
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.customer_operation_tasks WHERE id=${literal(taskId)}`)).toBe(1)
+ expect(sql(`SELECT jsonb_agg(operation ORDER BY id) FROM gridex_correction_process.facts
+  WHERE row_id=${literal(taskId)}`)).toEqual(['INSERT'])
+})
+
 it('the actual invoice-test archive retains committed contract, point and site transitions', async () => {
  const {companyId,actorUserId}=await seed(),customerId=randomUUID(),siteId=randomUUID()
  const pointId=randomUUID(),contractId=randomUUID(),marker={test_center:{kind:'invoice_test_customer'}}
@@ -1600,4 +1644,10 @@ it('the actual invoice-test archive retains committed contract, point and site t
  expect(sql(`SELECT to_jsonb(archived_at IS NOT NULL) FROM public.customers WHERE id=${literal(customerId)}`)).toBe(true)
  expect(sql(`SELECT to_jsonb(status='closed' AND is_active=false)
   FROM public.customer_sites WHERE id=${literal(siteId)}`)).toBe(true)
+ // The actual archive leaves a cancelled, legally locked contract. Its
+ // production deletion guard must roll back before any process tombstone.
+ expect(()=>sql(`DELETE FROM public.customer_contracts WHERE id=${literal(contractId)}`))
+  .toThrow(/signed_customer_contract_delete_forbidden/)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_correction_process.facts
+  WHERE row_id=${literal(contractId)} AND operation='DELETE'`)).toBe(0)
 })

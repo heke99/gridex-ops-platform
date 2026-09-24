@@ -476,3 +476,6 @@ Canonical archive now passed native316/316 at `40b7ddab`; actual product fix rem
 ## 2026-09-24 — PR372 combined receipt candidate
 
 Use branch `codex/e035-correction-context-20260924`; preserve head 981f5ca and subsequent commits. Local continuation adds negative inspector validation and two populated native owner fixtures, with targeted unit/type/lint passing but no new native result yet. The original 318/318 replay remains accepted on 981f5ca. Read the top of `current-task.md` and the actual CI logs before edits. Outstanding Task3b/Task4 and independent whole-PR review are explicit there. No historical completeness claim or merge. PR310 untouched.
+## 2026-09-24 — OPS 36052102048 and fixture repair
+
+API head `a3b4fc5` ran OPS `36052102048`: verify and quality/build passed; native 319/320 with sole failure in the new Z08H fixture's overly broad `captureCorrectionContext` argument. The new real document combined-receipt fixture passed. Local follow-up restricts that call to its four exact fields and adds MVCC concurrent commit, rollback and cancelled-contract guard probes. Publish the next exact tree, inspect native result, then continue Task3b/Task4. Do not confuse this test failure with a production regression or claim complete history/merge. PR310 excluded.
