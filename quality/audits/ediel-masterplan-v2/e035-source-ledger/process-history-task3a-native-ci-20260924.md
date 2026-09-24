@@ -25,3 +25,15 @@ Published954b0e06 / OPS35955234101/native107492044271:298PASS3FAIL301. Failures 
 Ordinary full6062/376, coverage, quality107492044171 including build/bundle PASS. Verify/smoke still reject stale generated-types migration tail. Artifact10789599035 ZIPa728a0119bc712159798e24ee9a6741d6b8cee5985f4b441fd5ef5f032ad703b verified, log-only. Native301 rerun/authentic contracts/independent acceptance remain before Task3b. Next: committed fix3, scopedreview954b0e06..fixHEAD, exact-tree publication and native rerun. Active isolated workspace unchanged; user authorization persists/fullE035 partial/PR372 draft.
 
 S/MIME investigation: author traced decimal OpenSSL serial1234 versus Node X509 hex04D2; parent inspected actual printed-serial regex and authorized narrow representation correction only after real crypto reproduction, preserving original native1234 fixture and wrong-recipient rejection. No serial9 fixture workaround or fallback expansion.
+
+## Fix3 publication
+
+Published541619c011eda41bc7c531a5c5f07a611e63d57a tree7910ad88e60e67372ee477166edc19d3367feded equals local7107fe2d preserved backup/e035-local-7107fe2d. Independent SPEC/QUALITY approved all3 findings. OPS35956416625/native107495592215 running, expected301 plus ordinary6072. API parent541619c0.
+
+At541619c0 actual coverage107495592722 PASS6072/377. Smoke10749559236114/15 fails only stale031626 generated-types migration tail. Tenant35956416609,Ediel35956416748,browser35956416648 SUCCESS. Native301 still pending; no acceptance.
+
+## 2026-09-24 — Task3a native301 PASS; authentic types copied
+
+Published541619c0 / OPS35956416625/native107495592215 passed301/5, case1/browser2/postbrowser1. Full6072/377 and quality/build/bundle PASS. Replay stopped only on actual generated-types mismatch before tenant/parity/schema. Artifact10790334395 ZIP716e75b2e824283a33520fcf53b82f8d0f0c8b0977b52b178102c62f72ded821 verified; exact generated types SHA32ae2f06418bfb57bd3da0361f856bb544a360782967f33b962f9b9765518940 copied byte-identically, manifest tail031626/provenance updated.
+
+Next: publish authentic types from APIparent541619c0, complete tenant/parity/schema stages, reconcile genuine schema and final same-head/independent acceptance. Task3a not yet accepted; Task3b/4 remain pending. Active isolated workspace unchanged, original preservation-only. FullE035 partial/PR372 draft.

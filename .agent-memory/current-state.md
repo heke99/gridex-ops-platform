@@ -1,3 +1,9 @@
+## 2026-09-24 — Task3a native301 PASS; authentic types copied
+
+Published541619c0 / OPS35956416625/native107495592215 passed301/5, case1/browser2/postbrowser1. Full6072/377 and quality/build/bundle PASS. Replay stopped only on actual generated-types mismatch before tenant/parity/schema. Artifact10790334395 ZIP716e75b2e824283a33520fcf53b82f8d0f0c8b0977b52b178102c62f72ded821 verified; exact generated types SHA32ae2f06418bfb57bd3da0361f856bb544a360782967f33b962f9b9765518940 copied byte-identically, manifest tail031626/provenance updated.
+
+Next: publish authentic types from APIparent541619c0, complete tenant/parity/schema stages, reconcile genuine schema and final same-head/independent acceptance. Task3a not yet accepted; Task3b/4 remain pending. Active isolated workspace unchanged, original preservation-only. FullE035 partial/PR372 draft.
+
 ## 2026-09-24 — Task3a native298/301; fix round3 active
 
 Published954b0e06 / OPS35955234101/native107492044271:298PASS3FAIL301. Failures are actual S/MIME expected-recipient rejection (transport575/native663), fixture bulk1000-message INSERT timeout before reader (native743), and attempted removal of last functioning tenant admin in inactive-membership fixture (native823). Original author outbound_fence_task3a owns fix3 from954b0e06; diagnose before classifying S/MIME runtime versus fixture, preserve all certificate/tenant/history gates. Published031626 immutable.

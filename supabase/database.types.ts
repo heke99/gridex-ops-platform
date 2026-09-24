@@ -89978,6 +89978,7 @@ export type Database = {
           table_name: string
         }[]
       }
+      gridex_outbound_dispatch_v1: { Args: { p_input: Json }; Returns: Json }
       gridex_pause_contract_channels: {
         Args: {
           p_actor_user_id: string

@@ -10,7 +10,7 @@
   "last_merged_pr": 371,
   "last_accepted_pr": 371,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "E035 Task3a fix3 publication and native rerun",
+  "active_item": "E035 Task3a authentic types reconciliation",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish approveda78cd3c1 plus parent records from954b0e06, actual native301/full6072 and generated contracts.",
+  "next_action": "Publish exact generatedtypes32ae2f06 from native301 artifact10790334395 using APIparent541619c0; run remaining tenant/parity/schema and final native acceptance.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -548,7 +548,7 @@
     "final_unit_files": 376
   },
   "correction_outbound_task3a": {
-    "status": "FIX3_STATIC_APPROVED_NATIVE_PENDING",
+    "status": "NATIVE301_PASS_TYPES_RECONCILIATION",
     "author": "/root/outbound_fence_task3a",
     "accepted_document_runtime": "7581966b75165b2fd88de05756913cb673cd4a32",
     "brief": "quality/audits/ediel-masterplan-v2/e035-source-ledger/process-history-task3a-brief-20260924.md",
@@ -571,23 +571,25 @@
     "minor_deferred": "Dense formatting in new adapter and duplicated SQL authorization predicate; final review triage",
     "fix_head": "a78cd3c1b98f7e3df06b11e212b90e594bba6d1f",
     "local_fix_verification": "scripts/tests types lint PASS; helper4 PASS/91 collected/87 skipped",
-    "published_head": "954b0e06a456de26da9fce775e3a350905ec95e9",
-    "published_tree": "9c08dc421ca73980633e04bf21e5a39451fc456d",
-    "ops_run": 35955234101,
-    "full_tests_pass": 6062,
+    "published_head": "541619c011eda41bc7c531a5c5f07a611e63d57a",
+    "published_tree": "7910ad88e60e67372ee477166edc19d3367feded",
+    "ops_run": 35956416625,
+    "full_tests_pass": 6072,
     "full_tests_fail": 0,
-    "full_test_files": 376,
+    "full_test_files": 377,
     "failed_test": "synthetic-customer-journey-pre-smtp.e2e.test.ts:233",
-    "native_job": 107492044271,
-    "native_pass": 298,
-    "native_fail": 3,
-    "native_artifact": 10789599035,
-    "native_artifact_sha256": "a728a0119bc712159798e24ee9a6741d6b8cee5985f4b441fd5ef5f032ad703b",
+    "native_job": 107495592215,
+    "native_pass": 301,
+    "native_fail": 0,
+    "native_artifact": 10790334395,
+    "native_artifact_sha256": "716e75b2e824283a33520fcf53b82f8d0f0c8b0977b52b178102c62f72ded821",
     "confirmed_native_cause": "Three distinct failures: expected S/MIME recipient rejection; bulk fixture INSERT10sec timeout before reader; last-admin fixture guard",
-    "coverage_job": 107492044934,
-    "quality_status": "PASS6062_BUILD_BUNDLE",
+    "coverage_job": 107495592722,
+    "quality_status": "PASS6072_BUILD_BUNDLE",
     "fix3_local": "actual crypto RED2 GREEN10; targeted34/4; app/scripts/tests types lint helper4 PASS",
-    "ordinary_expected": 6072
+    "ordinary_expected": 6072,
+    "generated_types_sha256": "32ae2f06418bfb57bd3da0361f856bb544a360782967f33b962f9b9765518940",
+    "generated_contracts": "TYPES_AUTHENTIC_COPIED_SCHEMA_PENDING"
   },
   "workspace": "/workspace/scratch/4b1d39503015/gridex-ops-platform/.worktrees/e035-task3a-isolated"
 }
