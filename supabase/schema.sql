@@ -600,6 +600,32 @@ BEGIN
  RETURN result;
 END $_$;
 
+--
+-- Name: combined_concern_body_v1(uuid, text, timestamp with time zone); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.combined_concern_body_v1(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) RETURNS jsonb
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+ WITH scoped AS MATERIALIZED (
+  SELECT c.id FROM gridex_received_sources.correction_concerns c
+  WHERE c.company_id=p_company_id AND c.environment=p_environment
+   AND c.captured_at<=p_cutoff AND c.source_received_at<=p_cutoff
+ ), totals AS (SELECT count(*) AS n FROM scoped)
+ SELECT jsonb_build_object('count',t.n,'complete',t.n<=1000,
+  'reason',CASE WHEN t.n>1000 THEN 'correction_count_overflow' ELSE NULL END,
+  'items',CASE WHEN t.n<=1000 THEN (SELECT coalesce(jsonb_agg(jsonb_build_object(
+    'id',c.id,'sourceMessageId',c.source_message_id,'sourcePayloadHash',c.source_payload_hash,
+    'facts',c.facts,'factsHash',c.facts_hash,'capturedAt',c.captured_at,
+    'witnessId',w.id,'witnessAt',w.observed_at,'witnessHash',w.facts_hash) ORDER BY c.captured_at,c.id),'[]'::jsonb)
+    FROM scoped s JOIN gridex_received_sources.correction_concerns c ON c.id=s.id
+    LEFT JOIN gridex_received_sources.correction_witnesses w ON w.capture_id=c.id
+      AND w.company_id=c.company_id AND w.environment=c.environment
+      AND w.facts_hash=c.facts_hash AND w.observed_at<=p_cutoff)
+   ELSE '[]'::jsonb END) FROM totals t;
+$$;
+
 SET default_table_access_method = heap;
 
 --
@@ -1529,6 +1555,55 @@ BEGIN
  RETURN true;
 EXCEPTION WHEN invalid_text_representation OR invalid_datetime_format OR datetime_field_overflow OR numeric_value_out_of_range OR invalid_parameter_value THEN RETURN false;
 END $_$;
+
+--
+-- Name: selection_body_v2(uuid, text, timestamp with time zone, timestamp with time zone); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.selection_body_v2(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone, p_observed timestamp with time zone) RETURNS jsonb
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE body jsonb; bytes text;
+BEGIN
+ IF p_company_id IS NULL OR p_environment NOT IN ('test','production') OR p_cutoff IS NULL
+ OR NOT isfinite(p_cutoff) OR p_cutoff>p_observed THEN
+  RAISE EXCEPTION 'source_selection_scope_unavailable' USING ERRCODE='22023'; END IF;
+ WITH candidates AS MATERIALIZED (
+  SELECT s.source_message_id,octet_length(s.raw_payload) AS payload_bytes FROM gridex_received_sources.sources s
+  WHERE s.company_id=p_company_id AND s.environment=p_environment AND s.captured_at<=p_cutoff
+   AND (s.source_received_at IS NULL OR s.source_received_at<=p_cutoff) ORDER BY s.source_message_id LIMIT 1001
+ ), assessments AS MATERIALIZED (
+  SELECT a.id,a.source_message_id,octet_length(a.facts_text) AS fact_bytes FROM candidates s
+  CROSS JOIN LATERAL(SELECT a.id,a.source_message_id,a.facts_text FROM gridex_received_sources.object_assessments a WHERE a.source_message_id=s.source_message_id ORDER BY a.assessed_at,a.id LIMIT 129)a
+ ), totals AS (
+  SELECT (SELECT count(*) FROM candidates) AS n,
+   (SELECT coalesce(sum(payload_bytes),0) FROM candidates)+(SELECT coalesce(sum(fact_bytes),0) FROM assessments) AS total_bytes,
+   (SELECT coalesce(max(payload_bytes),0) FROM candidates) AS max_payload,
+   (SELECT coalesce(max(n),0) FROM (SELECT count(*) AS n FROM assessments GROUP BY source_message_id)c) AS max_assessments
+ ), bounded AS (SELECT *,n<=1000 AND total_bytes<=6291456 AND max_payload<=262144 AND max_assessments<=128 AS complete FROM totals)
+ SELECT jsonb_build_object('version',1,'companyId',p_company_id,'environment',p_environment,'cutoffAt',p_cutoff,
+  'capturedAt',p_observed,'complete',b.complete,'sourceCount',b.n,'historyCoverage','before_ledger_unknown',
+  'ledgerStartedAt',(SELECT opened_at FROM gridex_received_sources.epoch WHERE singleton),
+  'sources',CASE WHEN b.complete THEN (SELECT coalesce(jsonb_agg(jsonb_build_object(
+   'sourceMessageId',s.source_message_id,'payloadHash',s.payload_hash,'rawPayload',s.raw_payload,
+   'receivedAt',s.source_received_at,'capturedAt',s.captured_at,'messageCode',s.message_code,
+   'assessments',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',a.id,'previousAssessmentId',a.previous_assessment_id,
+    'canonicalAssessmentId',a.canonical_assessment_id,'assessedAt',a.assessed_at,
+    'availableAt',w.observed_at,'availabilityWitnessId',w.id,'factsText',a.facts_text,'factsHash',a.facts_hash) ORDER BY a.assessed_at,a.id),'[]'::jsonb)
+    FROM assessments list JOIN gridex_received_sources.object_assessments a ON a.id=list.id
+    LEFT JOIN gridex_received_sources.object_availability_witnesses w ON w.assessment_id=a.id AND w.company_id=a.company_id AND w.environment=a.environment AND w.facts_hash=a.facts_hash
+    WHERE list.source_message_id=s.source_message_id)) ORDER BY s.source_message_id),'[]'::jsonb)
+   FROM candidates c JOIN gridex_received_sources.sources s USING(source_message_id)) ELSE '[]'::jsonb END)
+ INTO body FROM bounded b;
+
+ bytes:=body::text;
+ IF octet_length(bytes)>8388608 THEN
+  body:=jsonb_set(jsonb_set(body,'{complete}','false'),'{sources}','[]');
+ END IF;
+ RETURN body;
+END $$;
 
 --
 -- Name: witness_correction_concern_v1(uuid, text, uuid, text); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
@@ -19522,6 +19597,20 @@ $$;
 --
 
 COMMENT ON FUNCTION public.gridex_copy_contract_offer_v1(p_company_id uuid, p_source_offer_id uuid, p_actor_user_id uuid) IS 'Creates a new unpublished contract product/version graph from any tenant-scoped source offer. Customer contracts, quotes, signatures, POAs, publications and capacity state are never copied.';
+
+--
+-- Name: gridex_correction_combined_snapshot_v1(uuid, text, uuid, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_correction_combined_snapshot_v1(p_company_id uuid, p_environment text, p_message_id uuid, p_cutoff timestamp with time zone) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ IF current_user<>'service_role' THEN
+  RAISE EXCEPTION 'combined_snapshot_service_required' USING ERRCODE='42501'; END IF;
+ RETURN gridex_correction_process.open_combined_v1(p_company_id,p_environment,p_message_id,p_cutoff);
+END $$;
 
 --
 -- Name: gridex_create_actor_registry_conflict(uuid, uuid, uuid, uuid, uuid, uuid, text, text, text, text, jsonb, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
@@ -112398,6 +112487,12 @@ REVOKE ALL ON FUNCTION gridex_received_sources.closure_wire_projection_v1(p_raw 
 REVOKE ALL ON FUNCTION gridex_received_sources.closure_wire_tokens_v1(p_raw text) FROM PUBLIC;
 
 --
+-- Name: FUNCTION combined_concern_body_v1(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.combined_concern_body_v1(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) FROM PUBLIC;
+
+--
 -- Name: FUNCTION correction_receipt_v1(c gridex_received_sources.correction_concerns); Type: ACL; Schema: gridex_received_sources; Owner: -
 --
 
@@ -112490,6 +112585,12 @@ REVOKE ALL ON FUNCTION gridex_received_sources.review_closure_proof_consistent(p
 --
 
 REVOKE ALL ON FUNCTION gridex_received_sources.review_party_proof_consistent(p_party jsonb, p_business jsonb, p_received timestamp with time zone) FROM PUBLIC;
+
+--
+-- Name: FUNCTION selection_body_v2(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone, p_observed timestamp with time zone); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.selection_body_v2(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone, p_observed timestamp with time zone) FROM PUBLIC;
 
 --
 -- Name: FUNCTION witness_correction_concern_v1(p_company_id uuid, p_environment text, p_capture_id uuid, p_facts_hash text); Type: ACL; Schema: gridex_received_sources; Owner: -
@@ -114055,6 +114156,13 @@ GRANT ALL ON FUNCTION public.gridex_contract_system_dependency_counts(p_company_
 
 REVOKE ALL ON FUNCTION public.gridex_copy_contract_offer_v1(p_company_id uuid, p_source_offer_id uuid, p_actor_user_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_copy_contract_offer_v1(p_company_id uuid, p_source_offer_id uuid, p_actor_user_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_correction_combined_snapshot_v1(p_company_id uuid, p_environment text, p_message_id uuid, p_cutoff timestamp with time zone); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_correction_combined_snapshot_v1(p_company_id uuid, p_environment text, p_message_id uuid, p_cutoff timestamp with time zone) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_correction_combined_snapshot_v1(p_company_id uuid, p_environment text, p_message_id uuid, p_cutoff timestamp with time zone) TO service_role;
 
 --
 -- Name: FUNCTION gridex_create_actor_registry_conflict(p_company_id uuid, p_import_run_id uuid, p_import_item_id uuid, p_actor_id uuid, p_grid_owner_id uuid, p_supplier_id uuid, p_conflict_type text, p_severity text, p_title text, p_message text, p_current_data jsonb, p_incoming_data jsonb, p_metadata jsonb); Type: ACL; Schema: public; Owner: -

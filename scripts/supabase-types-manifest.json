@@ -5,5 +5,5 @@
   "generated_types": "supabase/database.types.ts",
   "sha256": "2b2dda6ae967b612e5c7e89e094542069d2ce38ba837747c480b3582ca5568ef",
   "latest_migration": "20260924120822_e035_combined_correction_snapshot.sql",
-  "latest_migration_schema_effect": "Authentic empty replay at PR372 head d1722206, OPS35998393754 artifact10807456195 ZIP SHA256 1ad1f384d7d066ed2ac4b2bb2a0c6cf011e1c865052214920f66a223f5c7e387: native314/314 plus case/browser passed. Generated types SHA256 2b2dda6a copied byte-for-byte. Canonical schema snapshot gate still pending; Task3b historical coverage remains incomplete."
+  "latest_migration_schema_effect": "Authentic empty replay at PR372 head cf1a501b, OPS36001823482 artifact10808668144 ZIP SHA256 d55c572760041176c1d972ac2a94d7e68d470a7540dfdab8abe2b522f4f395dc: native314/314 plus case/browser, tenant invariants and parity selftest passed. Generated types SHA256 2b2dda6a remained byte-identical. Canonical schema SQL and fingerprint copied byte-for-byte from this replay; same-head schema gate pending. Task3b historical coverage and full Task4 composition remain incomplete."
 }
