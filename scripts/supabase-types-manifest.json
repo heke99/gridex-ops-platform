@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run35971121783",
   "generated_types": "supabase/database.types.ts",
   "sha256": "32ae2f06418bfb57bd3da0361f856bb544a360782967f33b962f9b9765518940",
-  "latest_migration": "20260924073337_correction_process_facts_v1.sql",
-  "latest_migration_schema_effect": "Authentic CLI2.101 typegen at PR372 head6ac92a93 OPS35971121783 artifact10797140467 ZIPfd5d87fd17970748961d008b1fb821dfc6ba828a25c11bad84d5210fb1482a66: types32ae2f06 byte-identical to tracked. Native303/303 plus case1/browser2/postbrowser1 passed; schema fingerprint77cc9b79 adds36 public process triggers. Schema and fingerprint copied byte-identically from this artifact. Private gridex_correction_process is outside the canonical public/gridex_received_sources fingerprint and remains prospective/incomplete. Same-head final CI and Task3b review remain pending; E035 partial."
+  "latest_migration": "20260924080601_correction_process_witness_v1.sql",
+  "latest_migration_schema_effect": "Pending authentic CLI2.101 empty-replay typegen/schema after new public process witness RPC. Tracked generated types still reflect earlier migration; native replay must produce exact new files. Prospective incomplete facts only; no E035 completion or C authority."
 }

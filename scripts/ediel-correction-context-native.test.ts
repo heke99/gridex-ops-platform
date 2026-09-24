@@ -944,8 +944,15 @@ it('a committed process fact needs a separately committed, tenant-bound witness'
  const f=await seed(),taskId=randomUUID()
  sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
   SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions WHERE key='customers.read'
-  ON CONFLICT DO NOTHING;
-  INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)
+  ON CONFLICT DO NOTHING;`)
+ const uncommittedTask=randomUUID()
+ expect(()=>sql(`BEGIN; INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)
+  VALUES(${literal(uncommittedTask)},${literal(f.companyId)},'follow_up','Uncommitted witness task','open');
+  SELECT public.gridex_witness_correction_process_fact_v1(${literal(f.companyId)},
+   (SELECT id FROM gridex_correction_process.facts WHERE row_id=${literal(uncommittedTask)}),
+   (SELECT facts_hash FROM gridex_correction_process.facts WHERE row_id=${literal(uncommittedTask)}),
+   ${literal(f.actorUserId)}); COMMIT;`)).toThrow(/process_fact_not_committed/)
+ sql(`INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)
   VALUES(${literal(taskId)},${literal(f.companyId)},'follow_up','Synthetic witness task','open');`)
  const fact=sql<{id:number; factsHash:string}>(`SELECT jsonb_build_object('id',id,'factsHash',facts_hash)
   FROM gridex_correction_process.facts WHERE table_name='customer_operation_tasks' AND row_id=${literal(taskId)}`)
@@ -955,7 +962,12 @@ it('a committed process fact needs a separately committed, tenant-bound witness'
  expect(witness).toMatchObject({factId:fact.id,factsHash:fact.factsHash,coverage:'incomplete',authority:'none'})
  expect(witness.witnessId).toMatch(/^[0-9a-f-]{36}$/)
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_correction_process.witnesses WHERE fact_id=${fact.id}`)).toBe(1)
+ expect(sql(`BEGIN; SET LOCAL ROLE service_role;
+  SELECT public.gridex_witness_correction_process_fact_v1(${literal(f.companyId)},${fact.id},
+   ${literal(fact.factsHash)},${literal(f.actorUserId)}); COMMIT;`)).toMatchObject({witnessId:witness.witnessId})
  const other=await seed()
  expect(()=>sql(`SELECT public.gridex_witness_correction_process_fact_v1(${literal(other.companyId)},${fact.id},
   ${literal(fact.factsHash)},${literal(other.actorUserId)})`)).toThrow(/process_fact_unavailable/)
+ expect(()=>sql(`BEGIN; SET LOCAL ROLE anon; SELECT public.gridex_witness_correction_process_fact_v1(
+  ${literal(f.companyId)},${fact.id},${literal(fact.factsHash)},${literal(f.actorUserId)}); COMMIT;`)).toThrow(/permission denied/)
 })
