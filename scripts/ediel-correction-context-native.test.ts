@@ -1238,10 +1238,15 @@ it('customer, site, point, contract and supply graph writes retain process links
    ${literal(actorUserId)},clock_timestamp(),${literal(customerId)},${literal(point)},${literal(period)})`)
  const matching=JSON.parse(scoped('735123456789012345',periodId).readsetText) as {facts:{table:string;rowId:string}[]}
  expect(matching.facts).toContainEqual(expect.objectContaining({table:'customer_supply_periods',rowId:periodId}))
+ for (const [table,rowId] of [
+  ['customer_contracts',contractId],['customer_cases',caseId],
+  ['customer_operation_jobs',jobId],['supplier_switch_requests',switchId],
+ ] as const) expect(matching.facts).toContainEqual(expect.objectContaining({table,rowId}))
  const unrelatedPeriod=JSON.parse(scoped('735123456789012345',randomUUID()).readsetText) as {facts:{table:string;rowId:string}[]}
  expect(unrelatedPeriod.facts.some(fact=>fact.table==='customer_supply_periods'&&fact.rowId===periodId)).toBe(false)
  const unrelatedPoint=JSON.parse(scoped('735123456789012346',periodId).readsetText) as {facts:{table:string;rowId:string}[]}
  expect(unrelatedPoint.facts.some(fact=>fact.table==='customer_supply_periods'&&fact.rowId===periodId)).toBe(false)
+ expect(unrelatedPoint.facts.some(fact=>new Set<string>([contractId,caseId,jobId,switchId]).has(fact.rowId))).toBe(false)
 
  const nextSiteId=randomUUID()
  sql(`INSERT INTO public.customer_sites(id,company_id,customer_id,site_name)
