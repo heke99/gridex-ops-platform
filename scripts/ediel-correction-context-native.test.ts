@@ -1382,7 +1382,7 @@ it('separately committed archive dates retain OLD scope and a rejected sibling l
 it('the actual invoice-test archive retains committed contract, point and site transitions', async () => {
  const {companyId,actorUserId}=await seed(),customerId=randomUUID(),siteId=randomUUID()
  const pointId=randomUUID(),contractId=randomUUID(),marker={test_center:{kind:'invoice_test_customer'}}
- const pricing={schema:'gridex_contract_pricing_v5',pricing_model:'spot',energy_direction:'consumption',vat_rate:0.25,
+ const pricing={schema:'gridex_contract_pricing_v5',pricing_model:'spot',energy_direction:'consumption',interval_resolution:'hourly',vat_rate:0.25,
   price_areas:['SE3'],base_components:[{source_type:'spot',label:'Spotpris',weight_percent:100,price_area:'SE3'}],
   price_components:[{component_code:'spot_markup',component_type:'markup',name:'Påslag',calculation_type:'per_kwh',amount:4,unit:'ore_per_kwh',website_card_visible:true},
    {component_code:'monthly_fee',component_type:'fee',name:'Månadsavgift',calculation_type:'fixed_monthly',amount:49,unit:'sek_month',website_card_visible:true}]}
@@ -1401,6 +1401,30 @@ it('the actual invoice-test archive retains committed contract, point and site t
  expect(canonical,JSON.stringify(canonical)).toMatchObject({ok:true})
  const offerId=canonical?.offer?.id
  expect(offerId).toMatch(/^[0-9a-f-]{36}$/)
+ // Publication readiness is part of the real canonical contract path. All
+ // routing and legal rows below belong only to this disposable synthetic tenant.
+ sql(`INSERT INTO public.ediel_actor_settings(company_id,environment,ediel_id)
+  VALUES(${literal(companyId)},'production','12345');
+  INSERT INTO public.ediel_brp_settings(company_id,environment,brp_ediel_id,brp_name)
+  VALUES(${literal(companyId)},'production','54321','Synthetic BRP');
+  INSERT INTO public.ediel_route_profiles(company_id,environment,route_name,message_family)
+  VALUES(${literal(companyId)},'production','Synthetic PRODAT','PRODAT'),
+   (${literal(companyId)},'production','Synthetic UTILTS','UTILTS');
+  INSERT INTO public.company_email_settings(company_id,sender_email,verification_status)
+  VALUES(${literal(companyId)},'synthetic@example.invalid','verified');
+  INSERT INTO public.tenant_legal_profiles(company_id,legal_name,organization_number,postal_address,
+   customer_service_email,phone,website,complaints_contact,data_protection_contact,billing_information,
+   dispute_resolution_information,review_required,reviewed_at)
+  VALUES(${literal(companyId)},'Synthetic Archive AB','5590001234',
+   '{"address_line_1":"Testgatan 1","postal_code":"12345","city":"Teststad","country_code":"SE"}',
+   'service@example.invalid','0101234567','https://example.invalid',
+   '{"email":"complaints@example.invalid"}','{"email":"privacy@example.invalid"}',
+   '{"email":"billing@example.invalid"}',
+   '{"authority":"ARN","description":"Synthetic dispute contact for archive fixture"}',false,now());`)
+ expect(sql(`SELECT to_jsonb(has_actor_setting AND has_brp AND has_prodat_route AND has_utilts_route AND has_sender_identity)
+  FROM public.platform_go_live_readiness_v WHERE company_id=${literal(companyId)}`)).toBe(true)
+ expect(sql(`SELECT to_jsonb(completeness_status='verified' AND NOT review_required)
+  FROM public.tenant_legal_profiles WHERE company_id=${literal(companyId)}`)).toBe(true)
  const legalVersionId=sql<string>(`SELECT to_jsonb(public.gridex_materialize_legal_bundle_version(
   ${literal(companyId)},(SELECT contract_product_version_id FROM public.contract_offers WHERE id=${literal(offerId)}),
   NULL,${literal(actorUserId)}))`)
