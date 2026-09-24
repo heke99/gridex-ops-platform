@@ -1125,6 +1125,9 @@ it('a process producer committed after acquisition is absent from the saved MVCC
   '-v','ON_ERROR_STOP=1','-c',`BEGIN;
   INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)
   VALUES(${literal(taskId)},${literal(f.companyId)},'follow_up','Concurrent process fact','open');
+  SET LOCAL ROLE service_role;
+  SELECT public.gridex_capture_correction_concern_v1(${literal(f.companyId)},'test',
+   ${literal(f.sourceMessageId)},${literal(f.actorUserId)});
   SELECT pg_advisory_xact_lock(${lock}); SELECT pg_sleep(5); COMMIT;`],{timeout:12000})
  let acquired=false
  for(let i=0;i<40;i++){
@@ -1138,13 +1141,15 @@ it('a process producer committed after acquisition is absent from the saved MVCC
  const open=()=>sql<{snapshotId:string;readsetHash:string;readsetText:string}>(`SET ROLE service_role;
   SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.companyId)},'test',${literal(f.sourceMessageId)},${literal(cutoff)})`)
  const before=open(),prior=JSON.parse(before.readsetText) as {visibilitySnapshot:string;process:{facts:{rowId:string}[]};
-  source:{visibilitySnapshot:string};correction:{visibilitySnapshot:string};outbound:{visibilitySnapshot:string};document:{visibilitySnapshot:string}}
+  source:{visibilitySnapshot:string};correction:{count:number;visibilitySnapshot:string};outbound:{visibilitySnapshot:string};document:{visibilitySnapshot:string}}
  expect(prior.process.facts.some(row=>row.rowId===taskId)).toBe(false)
+ expect(prior.correction.count).toBe(0)
  for(const owner of [prior.source,prior.correction,prior.outbound,prior.document])
   expect(owner.visibilitySnapshot).toBe(prior.visibilitySnapshot)
  await writer
  const after=open(),later=JSON.parse(after.readsetText) as typeof prior
  expect(later.process.facts.some(row=>row.rowId===taskId)).toBe(true)
+ expect(later.correction.count).toBe(1)
  expect(JSON.parse(before.readsetText)).toEqual(prior)
  expect(sql(`SELECT to_jsonb(readset_text=${literal(before.readsetText)} AND readset_hash=${literal(before.readsetHash)})
   FROM gridex_correction_process.combined_snapshots WHERE id=${literal(before.snapshotId)}`)).toBe(true)

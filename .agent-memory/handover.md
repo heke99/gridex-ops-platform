@@ -479,3 +479,6 @@ Use branch `codex/e035-correction-context-20260924`; preserve head 981f5ca and s
 ## 2026-09-24 — OPS 36052102048 and fixture repair
 
 API head `a3b4fc5` ran OPS `36052102048`: verify and quality/build passed; native 319/320 with sole failure in the new Z08H fixture's overly broad `captureCorrectionContext` argument. The new real document combined-receipt fixture passed. Local follow-up restricts that call to its four exact fields and adds MVCC concurrent commit, rollback and cancelled-contract guard probes. Publish the next exact tree, inspect native result, then continue Task3b/Task4. Do not confuse this test failure with a production regression or claim complete history/merge. PR310 excluded.
+## 2026-09-24 — Green native 322 and next UTILTS candidate
+
+PR372 published `6911844` passed OPS `36053110405` native 322/322, verify and quality/build, plus applicable other workflows. Tests use real Z08H send, real document reference capture, a same-cutoff concurrent process/correction transaction, rollback and locked contract DELETE guard. Local follow-up now tests real Z04/legacy process facts and actual E66 UTILTS correction hold; it still needs publication and native result. See top `current-task.md`. Historical completeness remains false; no independent whole-PR approval or merge. PR310 untouched.

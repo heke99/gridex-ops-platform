@@ -86,7 +86,8 @@ it('rejects inconsistent populated outbound and document owner relationships',()
     witnessId:'66666666-6666-4666-8666-666666666666',witnessAt:'2026-10-01T00:00:09Z'}}]
   mutate?.(body)
  })
- expect(inspectCombinedCorrectionReadset(expected,message,populated())).not.toBeNull()
+ const inspected=inspectCombinedCorrectionReadset(expected,message,populated())
+ expect(inspected?.source.correctionContextBlockers).toHaveLength(1)
  for(const mutate of [
   (body:Record<string,unknown>)=>{const row=(body.outbound as {originals:{events:{attemptId:string}[]}[]}).originals[0];row.events[0].attemptId=sourceId},
   (body:Record<string,unknown>)=>{const row=(body.outbound as {originals:{events:{witnessAt:string}[]}[]}).originals[0];row.events[0].witnessAt='2026-10-21T00:00:00Z'},
