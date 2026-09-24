@@ -10,7 +10,7 @@
   "last_merged_pr": 371,
   "last_accepted_pr": 371,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "E035 Task2b fix round2 reviewed; publish and native qualify",
+  "active_item": "E035 Task2b fix3 approved; native rerun next",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Review8089f34b then publish from7a28b9ab and qualify actual native262; reconcile authentic contracts before Task3a.",
+  "next_action": "Diagnose and review fixround3 from9e28bc1d, then actual native262 and authentic contracts.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -491,7 +491,7 @@
     "final_review": "SPEC_QUALITY_NATIVE_SOURCE_ONLY_ACCEPT"
   },
   "correction_document_task2b": {
-    "status": "FIX2_REVIEWED_NATIVE262_PENDING",
+    "status": "FIX3_SPEC_QUALITY_APPROVED_NATIVE262_PENDING",
     "author": "/root/document_fix2_recovery",
     "source_accepted_head": "8fde5f2644a87351a5dbe42d8a694d33a606ba8d",
     "base": "0a52821565dd7f29e3f3b683b726add3f4457bec",
@@ -503,8 +503,8 @@
     "unit_tests": 64,
     "unit_files": 5,
     "reviewer": "/root/document_fix2_review",
-    "fix_round": 2,
-    "review": "FIX2_SPEC_QUALITY_APPROVED_ZERO_OPEN",
+    "fix_round": 3,
+    "review": "FIX3_SPEC_QUALITY_APPROVED_ZERO_OPEN",
     "finding": "DR-R1 saved cutoff omits immutable document preimage/append xids/witness visibility; native header/body abort qualification missing",
     "native_expected": 262,
     "native_document_authored": 38,
@@ -512,16 +512,18 @@
     "fix1_progress": "Immutable facts/xids/visibility reader + saved nullpath oracle + actualSDK loopback header/body stalls; covering checks in progress",
     "fix1_implementation": "638926b44c296e6b2728af8393b75a9fa7ca2158",
     "transport_local": "2_PASS_35_SKIPPED_REAL_SDK_NODE_LOOPBACK_NO_PROJECT_DB",
-    "published_head": "7a28b9ab086da88d320d7da96c54c503bcdafc75",
-    "published_tree": "f7e0e8bdaaa2bf538daba19101f588d83904a314",
-    "ops_run": 35945973907,
-    "native_job": 107463863699,
-    "native_passed": 228,
-    "native_failed": 33,
-    "quality_job": 107463863631,
-    "quality_result": "SUCCESS_FULL6062_376_BUILD",
-    "artifact": 10786519020,
+    "published_head": "9e28bc1d0daabfcca3ed6377afca3733d7b7b663",
+    "published_tree": "aaf53ba7c20768068ebb3e0cb53b2b5099b73b12",
+    "ops_run": 35947668822,
+    "native_job": 107469127017,
+    "native_passed": 261,
+    "native_failed": 1,
+    "quality_job": 107469127188,
+    "quality_result": "SUCCESS_9E28BC1D",
+    "artifact": 10787592388,
     "recovery_note": "Previous runtime agents unavailable after context recovery; resumed existing fix round2 and existing CLI-created forward, no new fix round.",
-    "fix2_implementation": "8089f34bfced7e72b36958c387cbf748f97bd89c"
+    "fix2_implementation": "8089f34bfced7e72b36958c387cbf748f97bd89c",
+    "fix3_implementation": "1443d03e01f23e79da7c93db47417b25abf2e6c2",
+    "fix3_cause": "Existing contract alias trigger rehydrated link; fixture now clears both and asserts persistence/no Storage I/O"
   }
 }

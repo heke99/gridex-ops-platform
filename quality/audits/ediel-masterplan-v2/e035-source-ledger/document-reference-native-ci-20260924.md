@@ -12,3 +12,12 @@ Next: review the bounded fix, publish from API parent7a28b9ab, execute actual na
 Quality job107463863631 log inspected: full **6062 tests / 376 files** and quality **45 / 2** PASS, lint/scripts types/test types/API/RBAC/build/budget gates SUCCESS. These do not replace failed native qualification.
 
 Root re-read actual job logs after recovery: quality107463863631 confirms full **6062 tests / 376 files**, build and bundle gates PASS. Native107463863699 confirms **228 PASS / 33 FAIL / 261**, all 33 seed registry assertions. Previous runtime agents were no longer live; replacement document_fix2_recovery resumes the existing round2 and existing CLI-created forward without increasing the fix counter.
+
+## 2026-09-24 — Task2b native261/262; fix round3 active
+
+Published9e28bc1d / OPS35947668822 / native107469127017: **261 PASS,1 FAIL,262 total**. Canonical customers.read materialization and repeat-preservation test pass. Sole failure is same-company wrong supply graph native test line158: expected unavailable but got verified_at_observation. Root cause is under investigation; do not classify fixture versus runtime defect before evidence. Generated types/schema stages not reached. Artifact10787592388 ZIP digest e1b061b7b3e8ccd37f476b61a3650d0a2f3d58dd244ee18261e83c9480193b46. Browser/Ediel/tenant pass; E2E14/15 only stale generated migration tail. Task2b not accepted.
+
+Author document_fix2_recovery resumes fixround3 from9e28bc1d. Preserve unresolved graph/no Storage I/O requirement; published SQL immutable. Next: diagnose bounded root cause, fix, independent scoped review, publish and actual native rerun, then authentic generated contracts. Task3 prepared only. PR372 draft; full E035 partial.
+
+
+Artifact10787592388 downloaded and ZIP SHA256 verified exactly against GitHub metadata; archive contains only rem002-clean-replay.log (no generated contracts). Quality/release/build107469127188 terminal SUCCESS on9e28bc1d.

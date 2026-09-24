@@ -163,3 +163,15 @@ Next: review the bounded fix, publish from API parent7a28b9ab, execute actual na
 Published API parent remains 7a28b9ab086da88d320d7da96c54c503bcdafc75. Local fix8089f34bfced7e72b36958c387cbf748f97bd89c adds canonical customers.read registry materialization only, no assignments or authorization change. Actual legacy INSERT files have eight-digit filenames and are not canonical replay inputs. New CLI forward20260924021718 checksum cc91587d97507a0f3ab810de11df02ed588c49914cf164d5e1fd3a213adb1243; published SQL unchanged. Local integrity613/517, scripts/tests types and scoped lint PASS. Native expected262, not executed on fix. Baseline full6062/376/build PASS; native228/261 with33 seed failures remains latest real result.
 
 Next: scoped independent SPEC/QUALITY review, exact-tree publication, actual262 DB/Storage replay, authentic types/schema reconciliation and final native acceptance before Task3a. Task3a/3b focused briefs and recovery reports saved in tracked audit. Full E035 partial, PR372 draft, PR310 excluded, user authorization persists.
+
+## 2026-09-24 — Task2b native261/262; fix round3 active
+
+Published9e28bc1d / OPS35947668822 / native107469127017: **261 PASS,1 FAIL,262 total**. Canonical customers.read materialization and repeat-preservation test pass. Sole failure is same-company wrong supply graph native test line158: expected unavailable but got verified_at_observation. Root cause is under investigation; do not classify fixture versus runtime defect before evidence. Generated types/schema stages not reached. Artifact10787592388 ZIP digest e1b061b7b3e8ccd37f476b61a3650d0a2f3d58dd244ee18261e83c9480193b46. Browser/Ediel/tenant pass; E2E14/15 only stale generated migration tail. Task2b not accepted.
+
+Author document_fix2_recovery resumes fixround3 from9e28bc1d. Preserve unresolved graph/no Storage I/O requirement; published SQL immutable. Next: diagnose bounded root cause, fix, independent scoped review, publish and actual native rerun, then authentic generated contracts. Task3 prepared only. PR372 draft; full E035 partial.
+
+## 2026-09-24 — Task2b fix3 fixture correction frozen
+
+Local1443d03e01f23e79da7c93db47417b25abf2e6c2 on published9e28bc1d. Confirmed native failure was fixture-only: existing gridex_sync_supply_customer_contract_v1 rehydrates customer_contract_id from populated contract_id. Negative fixture now clears both aliases atomically, asserts persisted null/null, preserves unavailable outcome and zero Storage reads across all5 wrong same-company graph cases. No production SQL/manifest change. Node22 scripts/tests types, lint and diff check PASS; actual native262 rerun pending. Scoped independent re-review active.
+
+Next: accept scoped review, publish exact tree from9e28bc1d, rerun native262, reconcile actual generated contracts, then final qualification. Task3a remains prepared only; full E035 partial/PR372 draft.

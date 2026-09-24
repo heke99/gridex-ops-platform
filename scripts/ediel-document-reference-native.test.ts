@@ -154,8 +154,13 @@ it('foreign document and environment are rejected without new attempts',async()=
 })
 it.each(['customer','site','point','supply','party'])('wrong same-company %s graph stays unresolved',async field=>{
  const f=await seed()
- const mutation={customer:`UPDATE public.metering_points SET customer_id=NULL WHERE id=${literal(f.point)}`,site:`UPDATE public.customer_contracts SET customer_site_id=NULL WHERE id=${literal(f.contract)}`,point:`UPDATE public.metering_points SET meter_point_id='735000000000000000' WHERE id=${literal(f.point)}`,supply:`UPDATE public.customer_supply_periods SET customer_contract_id=NULL WHERE id=${literal(f.supply)}`,party:`UPDATE public.tenant_actor_roles SET role_code='grid_owner' WHERE company_id=${literal(f.companyId)}`}[field]!
- sql(mutation);expect(await captureDocumentReference(args(f))).toMatchObject({status:'recorded',observation:'unavailable'})
+ const mutation={customer:`UPDATE public.metering_points SET customer_id=NULL WHERE id=${literal(f.point)}`,site:`UPDATE public.customer_contracts SET customer_site_id=NULL WHERE id=${literal(f.contract)}`,point:`UPDATE public.metering_points SET meter_point_id='735000000000000000' WHERE id=${literal(f.point)}`,supply:`UPDATE public.customer_supply_periods SET customer_contract_id=NULL,contract_id=NULL WHERE id=${literal(f.supply)}`,party:`UPDATE public.tenant_actor_roles SET role_code='grid_owner' WHERE company_id=${literal(f.companyId)}`}[field]!
+ sql(mutation)
+ if(field==='supply')expect(sql(`SELECT jsonb_build_object('customerContractId',customer_contract_id,'contractId',contract_id) FROM public.customer_supply_periods WHERE id=${literal(f.supply)}`))
+  .toEqual({customerContractId:null,contractId:null})
+ const storage=vi.spyOn(supabaseService.storage,'from')
+ expect(await captureDocumentReference(args(f))).toMatchObject({status:'recorded',observation:'unavailable'})
+ expect(storage).not.toHaveBeenCalled()
 })
 it('interruption before outcome leaves an unresolved committed attempt',async()=>{
  const f=await seed();const original=supabaseService.rpc.bind(supabaseService)
