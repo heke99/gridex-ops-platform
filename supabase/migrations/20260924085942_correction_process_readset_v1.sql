@@ -84,7 +84,7 @@ BEGIN
        FROM gridex_correction_process.facts pf
        WHERE pf.table_name='metering_points' AND pf.row_id=(side.v->>'metering_point_id')::uuid
         AND pf.captured_at<=f.captured_at AND pf.company_id=p_company_id
-       ORDER BY pf.id DESC LIMIT 1),true))))
+       ORDER BY pf.id DESC LIMIT 1),true)))))
    AND (p_supply_period_id IS NULL OR EXISTS (
     SELECT FROM (VALUES (f.old_fact),(f.new_fact)) side(v) WHERE side.v IS NOT NULL
     AND (CASE WHEN f.table_name='customer_supply_periods' THEN f.row_id=p_supply_period_id
