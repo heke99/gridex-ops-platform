@@ -995,6 +995,22 @@ it('unbound process rows leave a scoped gap, and oversized transitions roll back
   WHERE id=${literal(taskId)}`)).toBe(true)
 })
 
+it('binding a formerly unbound process row keeps its old-scope gap', () => {
+ const companyId=randomUUID(),taskId=randomUUID()
+ sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(companyId)},'Synthetic gap scope','active');
+  INSERT INTO public.customer_operation_tasks(id,task_type,title,status)
+  VALUES(${literal(taskId)},'follow_up','Unbound then bound','open');
+  UPDATE public.customer_operation_tasks SET company_id=${literal(companyId)} WHERE id=${literal(taskId)};`)
+ expect(sql(`SELECT jsonb_agg(jsonb_build_object('op',f.operation,'reason',g.reason,
+  'oldCompany',f.old_fact->>'company_id','newCompany',f.new_fact->>'company_id') ORDER BY f.id)
+  FROM gridex_correction_process.facts f LEFT JOIN gridex_correction_process.gaps g ON g.fact_id=f.id
+  WHERE f.table_name='customer_operation_tasks' AND f.row_id=${literal(taskId)}`))
+  .toEqual([
+   {op:'INSERT',reason:'unbound_company',oldCompany:null,newCompany:null},
+   {op:'UPDATE',reason:'unbound_company',oldCompany:null,newCompany:companyId},
+  ])
+})
+
 it('switch-event inserts, updates and deletes leave separate immutable facts', async () => {
  const {companyId}=await seed(),eventId=randomUUID()
  sql(`INSERT INTO public.supplier_switch_events(id,company_id,event_type,event_status,message)
