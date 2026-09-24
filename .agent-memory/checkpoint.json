@@ -10,7 +10,7 @@
   "last_merged_pr": 371,
   "last_accepted_pr": 371,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "E035 Task2b authentic types reconciliation",
+  "active_item": "E035 Task2b reviewed schema final CI",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish authentic types from10786849836 then tenant/parity/schema and final native review.",
+  "next_action": "Review actual schema then publish from2fb06cb1 and qualify final same-head gates before Task3a.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -491,7 +491,7 @@
     "final_review": "SPEC_QUALITY_NATIVE_SOURCE_ONLY_ACCEPT"
   },
   "correction_document_task2b": {
-    "status": "NATIVE262_PASS_AUTHENTIC_TYPES_RECONCILIATION",
+    "status": "NATIVE262_TYPES_TENANT_PARITY_PASS_SCHEMA_REVIEW",
     "author": "/root/document_fix2_recovery",
     "source_accepted_head": "8fde5f2644a87351a5dbe42d8a694d33a606ba8d",
     "base": "0a52821565dd7f29e3f3b683b726add3f4457bec",
@@ -527,6 +527,14 @@
     "fix3_cause": "Existing contract alias trigger rehydrated link; fixture now clears both and asserts persistence/no Storage I/O",
     "artifact_sha256": "77600354e2a64d93a7eb0cf4dca9b3e5c31e82f01eaddd23e2e49950e2f85b0f",
     "types_sha256": "f2a05bbb69ec298e78cf21cd6761a62aae82ba9bdde5b2aa38032b5e062d8e5f",
-    "native_review": "PROVISIONAL_SPEC_QUALITY_NATIVE262_APPROVED_TENANT_PARITY_SCHEMA_FINAL_PENDING"
+    "native_review": "FINAL_NATIVE_SCHEMA_SPEC_QUALITY_APPROVED_FINAL_SAME_HEAD_CI_PENDING",
+    "types_published_head": "2fb06cb171deb7bee286ea0fcc0d974ffdad036f",
+    "types_published_tree": "474a9a9ce491d4d23192948d34162ba13cb43d16",
+    "types_ops_run": 35949085146,
+    "types_native_job": 107473500225,
+    "schema_artifact": 10788152004,
+    "schema_artifact_sha256": "ed8a05257ac50f00624538e2242c468825617a8d1830690badf6c6ff92f2bccd",
+    "schema_fingerprint": "e28df3203db729c2db2d2f9ba82ba0d98cdd1247072d6c564616d0770ca2f67d",
+    "schema_sha256": "b7aa3dc018528e93b7238e29bd3c2667ce4f446abacff6e04a02259c79e66ec0"
   }
 }

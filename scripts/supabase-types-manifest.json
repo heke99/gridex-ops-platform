@@ -5,5 +5,5 @@
   "generated_types": "supabase/database.types.ts",
   "sha256": "f2a05bbb69ec298e78cf21cd6761a62aae82ba9bdde5b2aa38032b5e062d8e5f",
   "latest_migration": "20260924021718_customer_read_permission_registry_completion.sql",
-  "latest_migration_schema_effect": "Authentic types from CLI2.101 replay35948357290 on9b6ee291, artifact10786849836 ZIP77600354e2a64d93a7eb0cf4dca9b3e5c31e82f01eaddd23e2e49950e2f85b0f. Native262/5 plus case1/browser2/postbrowser1 PASS. Exact artifact types copied; tenant/parity/schema and final same-head gates pending. E035 partial."
+  "latest_migration_schema_effect": "Authentic types from CLI2.101 replay35948357290 artifact10786849836, identical in replay35949085146 on2fb06cb1. Native262, case1/browser2/postbrowser1, tenant invariants and parity selftest PASS. Exact schema/fingerprint e28df320 copied from artifact10788152004 ZIPed8a05257ac50f00624538e2242c468825617a8d1830690badf6c6ff92f2bccd. Final same-head gates pending; E035 partial."
 }

@@ -181,3 +181,9 @@ Next: accept scoped review, publish exact tree from9e28bc1d, rerun native262, re
 Runtime9b6ee291 / OPS35948357290 / native107471286079 passed **262/5** (retained224 + document38), case1/browser2/postbrowser1. Quality107471286229 SUCCESS. Only expected generated-types mismatch stopped replay before tenant/parity/schema. Artifact10786849836 ZIP SHA77600354e2a64d93a7eb0cf4dca9b3e5c31e82f01eaddd23e2e49950e2f85b0f verified; actual types SHA f2a05bbb69ec298e78cf21cd6761a62aae82ba9bdde5b2aa38032b5e062d8e5f copied byte-identically and manifest tail/provenance updated. No manual generated code.
 
 Next: publish authentic types, execute remaining tenant/parity/schema, reconcile actual schema then final same-head gates and independent native acceptance. Task3a prepared only; Task2b not yet fully accepted. PR372 draft/full E035 partial.
+
+## 2026-09-24 — Task2b schema reconciliation after native262 and tenant/parity PASS
+
+Published2fb06cb1 / OPS35949085146 / native107473500225 passed native262/5, case1/browser2/postbrowser1, authentic types, tenant invariants and every parity-selftest drift class. Verify107473500352 and quality107473500021 SUCCESS. Only committed old schema fingerprint mismatch remains. Artifact10788152004 ZIP SHAed8a05257ac50f00624538e2242c468825617a8d1830690badf6c6ff92f2bccd verified; actual schema.sql and fingerprint copied byte-identically. Schema.sql SHA b7aa3dc018528e93b7238e29bd3c2667ce4f446abacff6e04a02259c79e66ec0; fingerprint e28df3203db729c2db2d2f9ba82ba0d98cdd1247072d6c564616d0770ca2f67d. Types remain byte-identical f2a05bbb.
+
+Next: bounded independent final native/schema review, publish exact generated contracts from API parent2fb06cb1, finalsameheadCI and acceptance before Task3a START. FullE035 partial, PR372 draft, PR310 excluded; no hosted writes/deployment/market messages.
