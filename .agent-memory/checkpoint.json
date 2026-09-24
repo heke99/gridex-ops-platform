@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish reviewed fix4 exact tree from API parentdba55466; run native224, reconcile genuine generated artifacts and qualify source-only capture before Task2b.",
+  "next_action": "Publish authentic type reconciliation, run same-head native224 through schema/tenant/parity, copy authentic schema artifacts and qualify source-only capture before Task2b.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -446,13 +446,21 @@
     ]
   },
   "correction_capture_fix4": {
-    "status": "STATIC_SPEC_QUALITY_APPROVED_NATIVE_PENDING",
+    "status": "NATIVE224_PASS_AUTHENTIC_TYPES_RECONCILED_SCHEMA_PENDING",
     "base": "dba554664ea2d6f240d709db57c3c664ea5ec9cc",
     "implementation": "05461a63c3a60b725524320285bb11fd58414171",
     "unit_tests": 71,
     "unit_files": 4,
     "native_expected": 224,
-    "native_executed": false,
-    "report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/correction-capture-fix4-report-20260924.md"
+    "native_executed": true,
+    "report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/correction-capture-fix4-report-20260924.md",
+    "published_head": "e27f12822665a0c38140c3de5a05579ddebaa59a",
+    "published_tree": "aa0cb8fd3dc2518b2f9aaba2fe80cb2a86bfc7e7",
+    "ops_run": 35940479318,
+    "native_passed": 224,
+    "native_job": 107447053693,
+    "artifact": 10784667982,
+    "artifact_sha256": "1cdd49be92ffc12275dff41ce9d88037dc1ebdc6a94a0a6e0b7d820bc9de1882",
+    "types_sha256": "30c9f682c20f5e1d9ff203a445e24785d1058d3997f233d75e05b3eebee756e7"
   }
 }

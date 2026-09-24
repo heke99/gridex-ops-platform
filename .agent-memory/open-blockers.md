@@ -1,10 +1,12 @@
-# PR372 fix round 4 committed; static review approved; native pending — 2026-09-24
+# PR372 native224 passes; authentic types reconciled — 2026-09-24
 
-Local implementation 05461a63c3a60b725524320285bb11fd58414171 from published dba554664ea2d6f240d709db57c3c664ea5ec9cc. Two independently approved forward changes: materialize existing communication.read/send keys without assignments, and restrict shared direct grants to valid selected-company/active/allow scope while preserving role/platform and legacy global semantics. Earlier published SQL unchanged. Fresh author frozen; independent scoped SPEC/QUALITY APPROVE, no load-bearing findings.
+## Actual fix4 native result and authentic type reconciliation
 
-Actual local checks: 71 tests / 4 files, scripts types, native-file lint and migration integrity 611/515 PASS. Added 18 native cases, expected total224. Native execution remains prior195PASS/11FAIL of206 at missing registry precondition; no new native pass or generated contracts claimed. Next: publish exact tree, run real isolated CI, reconcile authentic generated artifacts, then qualify source-only capture before Task2b.
+Published e27f12822665a0c38140c3de5a05579ddebaa59a/treeaa0cb8fd3dc2518b2f9aaba2fe80cb2a86bfc7e7 exactly matches local084bbb96. OPS35940479318/native107447053693: all224 tests/4 files PASS, then case1, protected browser2 and postbrowser1 PASS. This finally exercises actual capture/witness positives and permission/registry/scope negatives. Workflow stops at generated type hash difference, not test failure. Artifact10784667982 ZIP SHA2561cdd49be92ffc12275dff41ce9d88037dc1ebdc6a94a0a6e0b7d820bc9de1882 verified; rem002-database.types.ts hash30c9f682c20f5e1d9ff203a445e24785d1058d3997f233d75e05b3eebee756e7 copied byte-identically, manifest updated to actual CLI2.101 replay/time/tail. Exactly18 generated public RPC type lines added. Local generated-types check PASS. Schema snapshot, tenant invariant/parity and final same-head CI still pending; independent source-native evidence review requested. No manual type/schema generation.
 
-Full E035 remains PARTIAL. PR371 accepted merged2a148d39. Document-reference Task2b, process-history Task3 and conditional single-MVCC UTILTS Task4 pending; no positive C/reopening. Five original source hashes reverified; historical version/transaction gaps documented in remaining-source-completeness-inventory-20260924.md. User continuation/publication/CI/gatedmerge authorization persists. PR310 excluded; no hosted writes/deployment/market sends.
+Same head tenant35940479303, Ediel35940479300 and browser35940479311 SUCCESS. FullE2E35940479348 smoke107447053989 actual14/15, only generated-type migration-tail gate fails; verify107447053678 same expected gate after integrity611/515 and public legal/hardening checks pass. Quality107447053462 still pending at this receipt. Source-only checkpoint remains short of document/process/UTILTS tasks and full E035 acceptance.
+
+Next: publish authentic types, obtain actual schema artifacts and all required gates. Task2b/3/4 pending; PR371 accepted merged2a148d39; PR310 excluded. User approval persists.
 
 # PR372 active; pure correction hold approved — 2026-09-24
 

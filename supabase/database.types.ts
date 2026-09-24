@@ -88423,6 +88423,15 @@ export type Database = {
         Args: { p_invoice_fee_sek: number; p_publication_snapshot: Json }
         Returns: Json
       }
+      gridex_capture_correction_concern_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
       gridex_claim_billing_automation_jobs: {
         Args: { p_limit?: number; p_worker_id: string }
         Returns: {
@@ -90992,6 +91001,15 @@ export type Database = {
         Returns: Json
       }
       gridex_verify_contract_schema_alignment: { Args: never; Returns: Json }
+      gridex_witness_correction_concern_v1: {
+        Args: {
+          p_capture_id: string
+          p_company_id: string
+          p_environment: string
+          p_facts_hash: string
+        }
+        Returns: Json
+      }
       gridex_witness_source_objects_v1: {
         Args: {
           p_assessment_id: string

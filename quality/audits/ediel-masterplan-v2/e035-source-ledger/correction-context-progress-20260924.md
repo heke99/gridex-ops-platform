@@ -26,3 +26,5 @@ Fixround4 combinedproposal independentlySPEC/QUALITYapproved. Author implementin
 
 Fixround4 frozen05461a63:2 approved forwards,18 native additions expected224;71/4,scriptstypes,lint,integrity611/515PASS. Scopedreview active; actualnative still195/206FAILED. Source-completeness inventory verifies5hashes, records bounded historical gaps.
 Task2 fixround4/5 dba55466..05461a63 scoped SPEC/QUALITY APPROVED,0open; registry+scope findings addressed. Native224/artifacts pending, source-only capture not accepted. Parent exacttree publication next.
+Published e27f1282 exacttreeaa0cb8fd matches local084bbb96; saved backup/e035-local-084bbb96 and synced branch. OPS35940479318 native224running. Four newSQL now publishedimmutable; nextAPIparente27f1282.
+Actuale27f1282 native224/4+case1/browser2/postbrowser1PASS; expected typehashstop. Authentictypes copied artifact10784667982, manifestupdated. Schema/tenant/paritypending.
