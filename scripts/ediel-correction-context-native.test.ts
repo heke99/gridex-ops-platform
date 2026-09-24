@@ -1165,9 +1165,12 @@ it('customer, site, point, contract and supply graph writes retain process links
    {table:'customer_operation_jobs',companyId,customerId,siteId,pointId},
    {table:'customer_sites',companyId,customerId,siteId:null,pointId:null},
    {table:'customer_supply_periods',companyId,customerId,siteId:null,pointId},
-   {table:'metering_points',companyId,customerId,siteId,pointId:null},
+   {table:'metering_points',companyId,customerId,siteId,pointId:'735123456789012345'},
    {table:'supplier_switch_requests',companyId,customerId,siteId,pointId},
   ])
+ expect(sql(`SELECT to_jsonb(new_fact->>'normalized_metering_point_id') FROM gridex_correction_process.facts
+  WHERE table_name='metering_points' AND row_id=${literal(pointId)} AND operation='INSERT'`))
+  .toBe('735123456789012345')
  const {data:recorded,error}=await supabaseService.rpc('gridex_record_customer_contract_event_v1',{
   p_company_id:companyId,p_customer_contract_id:contractId,p_customer_id:customerId,
   p_event_type:'note',p_note:'Synthetic routed event',p_idempotency_key:randomUUID(),
