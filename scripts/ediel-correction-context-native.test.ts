@@ -1393,7 +1393,7 @@ it('the actual invoice-test archive retains committed contract, point and site t
   power_of_attorney_required:true,valid_from:'2026-09-24'}
  sql(`INSERT INTO public.admin_users(user_id,role,is_active)
   VALUES(${literal(actorUserId)},'platform_admin',true);`)
- const {data:created,error:createError}=await supabaseService.rpc('gridex_upsert_internal_contract_offer',{
+ const {data:created,error:createError}=await supabaseService.rpc('gridex_upsert_internal_contract_offer_v2',{
   p_company_id:companyId,p_offer_id:null,p_payload:offer,p_pricing_snapshot:pricing,p_actor_user_id:actorUserId,
  })
  expect(createError).toBeNull()
