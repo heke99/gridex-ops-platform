@@ -1,3 +1,7 @@
+## 2026-09-24 — Source capture native and contract evidence
+
+Actual6091edc7 OPS35942242226/native107452448227:224/4,case1/browser2/postbrowser1,types,tenant andparityPASS. Onlyexpectedoldschemamismatch; authenticartifact10785596678 copied/independentlyverified, SPEC/QUALITYAPPROVED. FinalsameheadCIpending beforeTask2aacceptance; fullTask2/E035incomplete. Fixround5 exactownedfixturecleanupresolved F3 withoutproduction/invariantchange.
+
 ## 2026-09-24 — PR372 source capture repair checkpoint
 
 Task2 fixround4/5 dba55466..05461a63 scoped SPEC/QUALITY APPROVED,0open; registry+scope findings addressed. Native224/artifacts pending, source-only capture not accepted. Parent exacttree publication next.

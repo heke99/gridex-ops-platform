@@ -49,3 +49,9 @@ Published73970bdcccb275f5b9ab8e95ea690f6101e50700/treec51fb23557891166ee4bb9847f
 Other same-head quality107449194057 and verify107449194155 SUCCESS; tenant35941188578, Ediel35941188536, browser35941188492 and fullE2E35941188561 SUCCESS. These ordinary gates do not override actual post-native tenant failure.
 
 Final fixround5 local44257fe9 independently SPEC/QUALITY APPROVED. Exactowned UUID cleanup in finally retains original real assertions and verifies the pre-test null-grant snapshot is restored. Local71/4, scripts types/lintPASS. No production/invariant/SQL/generated change. Finalnative224+tenant/parity/schema pending; no automatic sixthround.
+
+## Final fixture repair passes all functional/native/tenant/parity gates
+
+Published6091edc7f4717aec3e17dda72c2529b247c7e91f/tree1ea2918e4cf8aebb64fd9bbd9b58df1153b0d007. OPS35942242226/native107452448227 passes224/4, case1/browser2/postbrowser1, authentictypes30c9f682, tenant invariants and every parity-selftest drift class. Synthetic global fixture residue is gone with unchanged invariant. Real schema snapshot emitted fingerprint f6632eb629f156641dfa502a96543466d5df4e41bd00c00539dac7bf16c44d24; only expected comparison with old37f50624 fails. No sixth product-fix round required.
+
+Artifact10785596678 ZIP SHA2564c7c088ef2cac2de06fcd8953f50e964dbd2dbc7a89ee9c8cdc52fbc9fcc89af independently downloaded and hashed. Parent copied its schema.sql and schema.fingerprint.json byte-identically; existing committedtypes match artifact exactly. Schema.sql SHA25632dc7f22741aec1c6951f40d4e0906b15de1ae2e0ac6319223ba7b756adb1c12. Independent bounded final-native/schema evidence review pending, then exacttree publication and finalsameheadCI required. Quality107452447983 and verify107452448190 SUCCESS. Source-only Task2a acceptance does not finish documents/process/UTILTS or E035.

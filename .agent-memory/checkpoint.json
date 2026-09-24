@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish reviewed fixture cleanup from API parent73970bdc, run224+tenant/parity/schema, reconcile authentic schema then final same-head qualification before Task2b.",
+  "next_action": "Publish approved authentic schema from API parent6091edc7, qualify final same-head CI, accept source-only Task2a and START prepared Task2b.",
   "successful_retry_actor_fixture": {
     "status": "COMPLETE_BOUNDED_RETRY_ALL_APPLICABLE_CI_SUCCESS",
     "qualified_head": "fe63dd98ad3e736b879a8eef6b4806793c2babef",
@@ -446,7 +446,7 @@
     ]
   },
   "correction_capture_fix4": {
-    "status": "FIX5_STATIC_SPEC_QUALITY_APPROVED_NATIVE224_TENANT_SCHEMA_PENDING",
+    "status": "NATIVE_SCHEMA_SPEC_QUALITY_APPROVED_FINAL_CI_PENDING",
     "base": "dba554664ea2d6f240d709db57c3c664ea5ec9cc",
     "implementation": "05461a63c3a60b725524320285bb11fd58414171",
     "unit_tests": 71,
@@ -470,8 +470,15 @@
     "types_native_job": 107449194254,
     "types_artifact": 10784818129,
     "types_artifact_sha256": "eedd9adca08a0d496a08c412d01c23323209c61dddf8eaae88fe27bc5c5571ac",
-    "tenant_invariant": "FAIL_F3_USER_PERMISSIONS_ONE_NULL_COMPANY_ROW",
+    "tenant_invariant": "PASS_6091EDC7",
     "fix_round": 5,
-    "fix5_implementation": "44257fe9e5b73b24bcd41183c5b8d5f278861590"
+    "fix5_implementation": "44257fe9e5b73b24bcd41183c5b8d5f278861590",
+    "fix5_published_head": "6091edc7f4717aec3e17dda72c2529b247c7e91f",
+    "fix5_published_tree": "1ea2918e4cf8aebb64fd9bbd9b58df1153b0d007",
+    "fix5_ops_run": 35942242226,
+    "fix5_native_job": 107452448227,
+    "fix5_artifact": 10785596678,
+    "fix5_artifact_sha256": "4c7c088ef2cac2de06fcd8953f50e964dbd2dbc7a89ee9c8cdc52fbc9fcc89af",
+    "schema_fingerprint": "f6632eb629f156641dfa502a96543466d5df4e41bd00c00539dac7bf16c44d24"
   }
 }

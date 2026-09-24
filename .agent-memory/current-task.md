@@ -1,8 +1,12 @@
-# PR372 final fixture repair approved; native pending — 2026-09-24
+# PR372 source native gates pass; schema reconciliation approved — 2026-09-24
 
-Published73970bdcccb275f5b9ab8e95ea690f6101e50700. Genuine OPS35941188514/native107449194254 passes224/4, case1/browser2/postbrowser1 and generated types. Subsequent tenant invariant F-3 finds one null-company user_permissions row. Fresh author confirmed the synthetic legacy-global test leaves its grant behind; round5/5 repairs exact-owned fixture cleanup and pre/post preservation only. Production semantics, published SQL and tenant invariant remain unchanged. Author frozen44257fe9; independent scoped SPEC/QUALITY APPROVED,0open.
+## Final fixture repair passes all functional/native/tenant/parity gates
 
-Source-only native proof independently accepted, delivery provisional. Schema/parity have not run. Quality/verify/fullE2E/browser/Ediel/tenant ordinary workflows pass. Next: publish and rerun real224+tenant/parity/schema; reconcile authentic schema then final same-head gate. Task2b/3/4 still pending, fullE035partial; PR371merged2a148d39, PR310excluded. User-approved continuation persists.
+Published6091edc7f4717aec3e17dda72c2529b247c7e91f/tree1ea2918e4cf8aebb64fd9bbd9b58df1153b0d007. OPS35942242226/native107452448227 passes224/4, case1/browser2/postbrowser1, authentictypes30c9f682, tenant invariants and every parity-selftest drift class. Synthetic global fixture residue is gone with unchanged invariant. Real schema snapshot emitted fingerprint f6632eb629f156641dfa502a96543466d5df4e41bd00c00539dac7bf16c44d24; only expected comparison with old37f50624 fails. No sixth product-fix round required.
+
+Artifact10785596678 ZIP SHA2564c7c088ef2cac2de06fcd8953f50e964dbd2dbc7a89ee9c8cdc52fbc9fcc89af independently downloaded and hashed. Parent copied its schema.sql and schema.fingerprint.json byte-identically; existing committedtypes match artifact exactly. Schema.sql SHA25632dc7f22741aec1c6951f40d4e0906b15de1ae2e0ac6319223ba7b756adb1c12. Independent bounded final-native/schema evidence SPEC/QUALITY APPROVED, no unexpected schema differences; next exacttree publication and finalsameheadCI required. Quality107452447983 and verify107452448190 SUCCESS. Source-only Task2a acceptance does not finish documents/process/UTILTS or E035.
+
+Next: publish authentic files, finalsameheadCI thenTask2b. Document author prepared/read-only untilSTART. PR371acceptedmerged2a148d39; fullE035partial, PR310excluded, userapprovalpersists.
 
 # PR372 active; pure correction hold approved — 2026-09-24
 

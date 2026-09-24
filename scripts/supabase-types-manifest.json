@@ -5,5 +5,5 @@
   "generated_types": "supabase/database.types.ts",
   "sha256": "30c9f682c20f5e1d9ff203a445e24785d1058d3997f233d75e05b3eebee756e7",
   "latest_migration": "20260924003724_company_direct_permission_scope_repair.sql",
-  "latest_migration_schema_effect": "Authentic replay35940479318 on e27f1282: source/correction native224, case1/browser2/postbrowser1 PASS. Types copied byte-identically from artifact10784667982 (zip1cdd49be). Schema/tenant/parity stages remain pending because prior type hash mismatch correctly stopped the workflow. No native acceptance or merge yet."
+  "latest_migration_schema_effect": "Authentic types from CLI2.101 replay35940479318 (artifact10784667982), unchanged in replay35942242226 on6091edc7. Native224, case1/browser2/postbrowser1, tenant invariants and parity selftest PASS. Actual schema/fingerprintf6632eb6 copied byte-identically from artifact10785596678 (zip4c7c088e). Final schema reconciliation review and same-head CI pending; E035 partial."
 }
