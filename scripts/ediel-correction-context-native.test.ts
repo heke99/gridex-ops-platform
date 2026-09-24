@@ -1050,6 +1050,28 @@ it('a swallowed operational event insert cannot masquerade as process history', 
  expect(JSON.parse(receipt.readsetText)).toMatchObject({complete:false,historyCoverage:'before_epoch_unknown'})
 })
 
+it('the real operation worker claim leaves a normalized immutable transition', async () => {
+ const f=await seed(),customerId=randomUUID(),jobId=randomUUID(),workerId=`native-${jobId}`
+ sql(`INSERT INTO public.customers(id,company_id,first_name,last_name)
+  VALUES(${literal(customerId)},${literal(f.companyId)},'Synthetic','Claim');
+  INSERT INTO public.customer_operation_jobs(id,company_id,customer_id,job_type,idempotency_key,
+   priority,run_after)
+  VALUES(${literal(jobId)},${literal(f.companyId)},${literal(customerId)},'follow_up',
+   ${literal(jobId)},-32768,'2000-01-01');`)
+ const claimed=sql<{id:string;status:string;attempts:number;locked_by:string}>(`SET ROLE service_role;
+  SELECT jsonb_build_object('id',j.id,'status',j.status,'attempts',j.attempts,'locked_by',j.locked_by)
+  FROM public.gridex_claim_customer_operation_jobs(${literal(workerId)},1) j`)
+ expect(claimed).toEqual({id:jobId,status:'running',attempts:1,locked_by:workerId})
+ expect(sql(`SELECT jsonb_agg(jsonb_build_object('operation',operation,'companyId',company_id,
+  'customerId',coalesce(new_fact,old_fact)->>'customer_id','oldStatus',old_fact->>'status',
+  'newStatus',new_fact->>'status') ORDER BY id)
+  FROM gridex_correction_process.facts WHERE table_name='customer_operation_jobs'
+   AND row_id=${literal(jobId)}`)).toEqual([
+    {operation:'INSERT',companyId:f.companyId,customerId,oldStatus:null,newStatus:'queued'},
+    {operation:'UPDATE',companyId:f.companyId,customerId,oldStatus:'queued',newStatus:'running'},
+   ])
+})
+
 it('a combined service receipt observes source, correction and process owners at one database snapshot', async () => {
  const f=await seed(),taskId=randomUUID(),laterId=randomUUID()
  sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
