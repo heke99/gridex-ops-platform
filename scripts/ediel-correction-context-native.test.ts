@@ -1382,12 +1382,12 @@ it('separately committed archive dates retain OLD scope and a rejected sibling l
 it('the actual invoice-test archive retains committed contract, point and site transitions', async () => {
  const {companyId,actorUserId}=await seed(),customerId=randomUUID(),siteId=randomUUID()
  const pointId=randomUUID(),contractId=randomUUID(),marker={test_center:{kind:'invoice_test_customer'}}
- const pricing={schema:'gridex_contract_pricing_v5',pricing_model:'spot',vat_rate:0.25,
+ const pricing={schema:'gridex_contract_pricing_v5',pricing_model:'spot',energy_direction:'consumption',vat_rate:0.25,
   price_areas:['SE3'],base_components:[{source_type:'nord_pool_spot',label:'Spotpris',weight_percent:100,price_area:'SE3'}],
   price_components:[{component_code:'spot_markup',component_type:'markup',name:'Påslag',calculation_type:'per_kwh',amount:4,unit:'ore_per_kwh',website_card_visible:true},
    {component_code:'monthly_fee',component_type:'fee',name:'Månadsavgift',calculation_type:'fixed_monthly',amount:49,unit:'sek_month',website_card_visible:true}]}
  const offer={name:`Synthetic archive ${contractId}`,slug:`synthetic-archive-${contractId}`,
-  lifecycle_status:'draft',contract_type:'variable_hourly',customer_type:'both',pricing_model:'spot',
+  lifecycle_status:'draft',contract_type:'variable_hourly',customer_type:'both',pricing_model:'spot',energy_direction:'consumption',
   terms_version:'test-v1',spot_markup_ore_per_kwh:4,monthly_fee_sek:49,invoice_fee_sek:19,default_binding_months:0,
   default_notice_months:1,automatic_renewal:true,automatic_renewal_term_months:12,
   power_of_attorney_required:true,valid_from:'2026-09-24'}
@@ -1397,7 +1397,9 @@ it('the actual invoice-test archive retains committed contract, point and site t
   p_company_id:companyId,p_offer_id:null,p_payload:offer,p_pricing_snapshot:pricing,p_actor_user_id:actorUserId,
  })
  expect(createError).toBeNull()
- const offerId=(created as {offer?:{id?:string}} | null)?.offer?.id
+ const canonical=created as {ok?:boolean;code?:string;offer?:{id?:string}} | null
+ expect(canonical,JSON.stringify(canonical)).toMatchObject({ok:true})
+ const offerId=canonical?.offer?.id
  expect(offerId).toMatch(/^[0-9a-f-]{36}$/)
  expect(sql(`SELECT to_jsonb(contract_product_version_id IS NOT NULL AND price_plan_version_id IS NOT NULL
   AND legal_bundle_version_id IS NOT NULL) FROM public.contract_offers WHERE id=${literal(offerId)}`)).toBe(true)
