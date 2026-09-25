@@ -1,8 +1,8 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-25",
-  "status": "IN_PROGRESS",
-  "paused": false,
+  "updated_at": "2026-09-25T12:00:00Z",
+  "status": "PAUSED_HANDOVER",
+  "paused": true,
   "branch": "codex/e035-correction-context-20260924",
   "active_pr": 372,
   "base_head_sha": "2a148d39d631fc759c99cd1c69350b5e2147dbdb",
@@ -10,7 +10,7 @@
   "last_merged_pr": 371,
   "last_accepted_pr": 371,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "PR372 authorization correction qualified on exact head; Task3b/4 acceptance and Storage diagnosis open",
+  "active_item": "PR372 published E30/S07 inbound follow-up; native and final Task3b/4 acceptance pending; implementation paused",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish actual E30/S07 inbound processor side-effect native test, inspect exact-head CI; then reconcile Task3b/4 acceptance and Storage unknown cause.",
+  "next_action": "Inspect exact-head 528baa6d native job 108061425252 first relevant result, especially E30/S07 processor disposition, CONTRL and meter effects; if Storage unconfirmed recurs, inspect stage/Storage/RPC diagnostic before changes. No rerun during pause.",
   "task4_combined_snapshot": {
     "published_head": "b1c7f993affdb68d11f4c0941c483c4d145b938e",
     "published_tree": "37789b428e66c37b3030f1aa9bc8b539a78d40e9",
@@ -720,5 +720,48 @@
     "storage": "Six mutation cases passed; older unconfirmed underlying stage still unknown",
     "independent_review": "READ_ONLY_STATIC_NO_CONFIRMED_NEW_DEFECT; actual inbound E30/S07 effects and historical/retention acceptance remain open",
     "next_local": "Actual inbound E30/S07 processor, ACK and persisted result assertions; lint/scripts type/line budget PASS, native pending"
+  },
+  "pr372_safe_handover_20260925": {
+    "detail": ".agent-memory/pr372-pause-20260925.md",
+    "authoritative_worktree": "/workspace/scratch/d9e6c237b68e/pr372-finish",
+    "local_source_commit": "01684a3f172c282296da36adf5cd9893f56199c0",
+    "published_source_commit": "528baa6db4fa15551888a300f22617fc3a09d684",
+    "identical_source_tree": "cb24b7d9eb391bb641a40223de4a0a7c480ac4c6",
+    "unpublished_source_changes": "none; handover documentation being committed/published separately",
+    "old_relation": "8a5b2150d444366b13e252a331b56b872ad497ee is one fast-forward commit after c9f5f64fe570516865b408b2a9fe920a01f27e8a; trees differ",
+    "latest_completed_head": "c71f312aff239396b2e795b45cd070c7fc995d17",
+    "latest_completed_ops": 36129656763,
+    "latest_completed_native": "337/337 PASS",
+    "new_ops": 36132081645,
+    "active_jobs_at_check": [
+      108061424990,
+      108061425252
+    ],
+    "new_verify_job": 108061425196,
+    "new_verify": "SUCCESS",
+    "new_tenant_ediel_browser_full_e2e": "SUCCESS",
+    "new_crawler": "SKIPPED",
+    "new_native": "PENDING; E30/S07 inbound side effects not yet native-qualified",
+    "authorization_test": "scripts/ediel-correction-context-native.test.ts > the actual support case and operation enqueue writers capture linked case, event and job facts",
+    "authorization_first_error": "customer_case_status_actor_not_authorized (42501)",
+    "authorization_path": "lib/customer-cases/support.ts createTenantSupportCase -> lib/customer-cases/db.ts updateCustomerCaseStatus -> public.gridex_update_customer_case_status at supabase/migrations/20260923180557_restore_customer_case_events_atomic_status.sql:108",
+    "authorization_verified_cause": "canonical cases.write registry absent on clean replay (registry=0, grant=0, effective=false); forward and scoped grant/denial native 335/335 PASS at 15366cb",
+    "storage_tests": [
+      "storage replace at before_append preserves old receipt and new reads hold",
+      "storage delete at before_witness preserves old receipt and new reads hold",
+      "storage replace at before_witness preserves old receipt and new reads hold"
+    ],
+    "storage_first_error": "unconfirmed instead of recorded/verified_at_observation or recorded/unavailable; delete/before_witness recurred at a3464eae",
+    "storage_path": "lib/ediel/sources/documentReferenceCapture.ts captureDocumentReference; scripts/ediel-document-reference-native.test.ts Storage/RPC interception",
+    "storage_verified_cause": "unknown; product wrapper catches stage errors",
+    "storage_hypothesis": "intermittent Storage/RPC timing or interception, not proven",
+    "storage_attempts": "test-only stage/operation/RPC diagnostic published; later six-case matrix passed without triggering fresh diagnostic; no causal fix claimed",
+    "reviewed_sha": [
+      "8a5b2150d444366b13e252a331b56b872ad497ee",
+      "c71f312aff239396b2e795b45cd070c7fc995d17"
+    ],
+    "review_outcome": "read-only static: no confirmed new code blocker; final native/full acceptance withheld; 528baa6d not final-reviewed",
+    "remaining": "Task3b/4 producer/legacy/cutoff/overflow/permission/history/retention, complete:false, final-head authentic contracts/CI/review and main/head check; draft/no merge",
+    "pr310": "untouched"
   }
 }

@@ -1,3 +1,9 @@
+## 2026-09-25 — PR372 säker paus
+
+Läste lokal HEAD/status och GitHub PR-head; fastställde byte-identiskt träd `cb24b7d9eb391bb641a40223de4a0a7c480ac4c6` mellan lokal `01684a3f` och publicerad `528baa6d`. Kontrollerade historiska `c9f5f64` → `8a5b2150` som en fast-forward med olika träd, samt exakta CI-statusar. Uppdaterade överlämnings- och acceptansdokument med verifierad `cases.write`-orsak, okänd Storage-orsak, granskad version och exakt nästa diagnostik. Ingen utvecklingsbatch eller CI-omkörning startades under paussteget. Se `.agent-memory/pr372-pause-20260925.md`.
+
+---
+
 ## 2026-09-24 — Continued PR372 Task3b
 
 Cloned exact remote69f51b69. Diagnosed OPS35983754397: actual schema differed only by public witness/readset RPCs and ACL. Verified artifact10800669994 ZIP SHA, copied generated schema byte-for-byte, published37a7052; all applicable CI passed. Added native case cascade/job SET NULL proof at9186e47, then point/site/supply transition proof at28694d2; each passed312 native cases and all applicable CI. Published further archive-style deletion proof at7491e16; OPS35990306080 passed312 native cases and all applicable CI. Prepared local TRUNCATE-denial fixture; native pending. Task3b partial and Task4 not started; no merge. See task3b-continuation-20260924.md.

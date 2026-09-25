@@ -1,3 +1,15 @@
+## 2026-09-25 — PR372 paus
+
+| Version | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| `c71f312aff239396b2e795b45cd070c7fc995d17` | OPS `36129656763`, native `108053746021` | 337/337 och tillämpliga CI gröna | Föregående head; kvalificerar inte E30/S07 inbound-sidoeffekterna. |
+| `528baa6db4fa15551888a300f22617fc3a09d684` | OPS `36132081645` | Verify `108061425196` grön; quality `108061424990` och native `108061425252` pågick | Ingen native-acceptans ännu. |
+| `528baa6d` | Tenant `36132081711`, Ediel `36132081611`, browser `36132081736`, full E2E `36132081656`, crawler `36132081716` | Fyra gröna, crawler skippad | Samma publicerade head. |
+
+Fulla fel och bevisgränser: `.agent-memory/pr372-pause-20260925.md`.
+
+---
+
 ## 2026-09-24 — PR372 continuation
 
 | Head | Evidence | Result |

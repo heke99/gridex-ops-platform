@@ -1,3 +1,9 @@
+## 2026-09-25 — Verifierad publicering inför paus
+
+GitHub PR372 bekräftades open/draft på `528baa6db4fa15551888a300f22617fc3a09d684`; lokala `01684a3f172c282296da36adf5cd9893f56199c0` har identiskt träd `cb24b7d9eb391bb641a40223de4a0a7c480ac4c6`. Föregående `c71f312a` klarade OPS `36129656763` med native 337/337 och alla tillämpliga flöden. På `528baa6d` var verify, tenant, Ediel, browser och full E2E gröna vid kontrollen; quality/native pågick. E30/S07 inbound-testets native-acceptans är inte färdig. Se `.agent-memory/pr372-pause-20260925.md`.
+
+---
+
 ## 2026-09-24 — E035 Task3b bounded verification
 
 Authentic schema from artifact10800669994 published at37a7052 and passed all applicable CI (OPS35988188001). Native cascade/SET NULL test at9186e47 passed312/312 plus ordinary gates (OPS35988546648). Point reassignment and supply period transition/deletion at28694d2 passed312/312 plus ordinary gates (OPS35989469066). Archive-style graph tombstones at7491e16 passed312/312 and ordinary gates (OPS35990306080). This is a verified subset, not Task3b acceptance or Task4.
