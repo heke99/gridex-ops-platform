@@ -1,16 +1,16 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-25T18:30:00Z",
+  "updated_at": "2026-09-25T18:39:00Z",
   "status": "IN_PROGRESS",
   "paused": false,
-  "branch": "codex/ediel-v2-f3-composition-20260925",
+  "branch": "codex/ediel-v2-prodat-register-ack-20260925",
   "active_pr": null,
   "base_head_sha": "2a148d39d631fc759c99cd1c69350b5e2147dbdb",
   "runtime_accepted_sha": "2a148d39d631fc759c99cd1c69350b5e2147dbdb",
   "last_merged_pr": 371,
   "last_accepted_pr": 371,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "F3C-05 guide/function observable diagnosis and F3C-02 field209 boundary",
+  "active_item": "F3C-02/04 PRODAT register ACK before case writer",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Finish local verification; publish isolated draft PR based on PR372 b9a1dc16; inspect ordinary CI; then trace 314/258/213 canonical final response and writes.",
+  "next_action": "Publish stacked draft PR from PR373 b635c9d0, check exact-head ordinary CI; then mixed Z04 object ACK/write path.",
   "task4_combined_snapshot": {
     "published_head": "b1c7f993affdb68d11f4c0941c483c4d145b938e",
     "published_tree": "37789b428e66c37b3030f1aa9bc8b539a78d40e9",
@@ -787,6 +787,12 @@
     "report": "quality/audits/ediel-masterplan-v2/f3-staged-utilts-field209-20260925.md",
     "status": "LOCAL_VERIFICATION_IN_PROGRESS",
     "pr372_untouched": true,
+    "pr310_excluded": true
+  },
+  "f3_register_ack": {
+    "base": "b635c9d0c608c839ed8bc5b669c3d1b8a39a08f1",
+    "report": "quality/audits/ediel-masterplan-v2/f3-prodat-register-ack-boundary-20260925.md",
+    "status": "LOCAL_GREEN_PUBLICATION_PENDING",
     "pr310_excluded": true
   }
 }

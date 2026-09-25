@@ -864,6 +864,25 @@ export async function processInboundEdielMessage(params: {
     return runtimeMessage;
   }
 
+  // The case writer deliberately rejects malformed LIN/register structures.
+  // Preserve the already qualified negative application response before that
+  // writer, and never let a rejected object enter switch or billing state.
+  if (runtimeMessage.message_family === "PRODAT" &&
+      canonicalRuntime.decision.prodatRegisterValidation?.objects.some(object => object.disposition === "rejected")) {
+    try {
+      const negative = canonicalRuntime.decision.responsePlan.some(item =>
+        item.family === "APERAK" && item.outcome === "negative" && Boolean(item.applicationErrors?.length));
+      if (negative) {
+        await createAutomaticPositiveAcks({actorUserId, sourceMessage: runtimeMessage});
+      } else {
+        await createAckIfMissing({actorUserId, sourceMessage: runtimeMessage, ackFamily: "CONTRL", outcome: "positive"});
+      }
+    } finally {
+      await canonicalRuntime.sourceOwnerSession?.finish();
+    }
+    return runtimeMessage;
+  }
+
   if (
     runtimeMessage.message_family === "PRODAT" ||
     runtimeMessage.message_family === "UTILTS"

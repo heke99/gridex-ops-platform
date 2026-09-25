@@ -1,3 +1,8 @@
+## 2026-09-25 — Active register response follow-on
+1. Publish and qualify stacked PRODAT register ACK batch against PR373 head.
+2. Reconcile complete Z04 one-good/one-invalid object through saved APERAK/reference and no invalid case/business writes.
+3. Continue remaining F3C-02/04/05/06/07 and sourced later phases without PR310 or hosted tests.
+
 ## 2026-09-25 — Active bounded F3 engineering
 1. Complete focused guide/function correction checks and field209 canonical boundary; publish isolated draft PR from PR372 b9a1dc16, inspect ordinary CI.
 2. Trace 314/258/213 original through canonical runtime, final ACK/reference and write boundary. Fix only witnessed divergence.

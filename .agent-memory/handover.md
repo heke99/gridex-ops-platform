@@ -1,3 +1,6 @@
+## 2026-09-25 — Stacked register ACK continuation
+Separate branch codex/ediel-v2-prodat-register-ack-20260925; PR373 published head b635c9d0 and tree 27e5dc76 is the base. Current local code/report cover malformed LIN314 and C829258 negative APERAK before actual case writer; QTY31/213 hold also tested. See f3-prodat-register-ack-boundary-20260925.md. Finish publication and ordinary CI; next complete valid sibling versus malformed object native response/write proof. PR372 and PR310 untouched.
+
 ## 2026-09-25 — Separate F3 continuation
 Draft PR372 at b9a1dc16 is the immutable base of codex/ediel-v2-f3-composition-20260925. See f3-staged-utilts-field209-20260925.md for source-to-consumer observation and bounded correction. Do not treat final diagnostic suppression as proof that the legacy kernel does not execute functional calculations; next native/mixed evidence is open. Next finite code path: canonical 314/258/213 original → runtime decision → inbound ACK/reference and no invalid business writes. PR310 paused.
 

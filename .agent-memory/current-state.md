@@ -1,3 +1,6 @@
+## 2026-09-25 — F3 PRODAT register ACK boundary batch
+Stacked local branch codex/ediel-v2-prodat-register-ack-20260925 from draft PR373 code tree. Actual malformed LIN314 case writer threw before negative APERAK; early canonical rejected-object guard now sends qualified negative response and holds case/business effects. Focused duplicate C829258 and QTY31/213 cases included. Report: quality/audits/ediel-masterplan-v2/f3-prodat-register-ack-boundary-20260925.md. No hosted action, merge or PR310 work.
+
 ## 2026-09-25 — F3 guide/function bounded code batch
 PR372 remains draft at b9a1dc16, main 2a148d39; separate clean-base branch codex/ediel-v2-f3-composition-20260925. Actual E66 guide-invalid reading mismatch produced negative APERAK disposition but also E19 in saved validation/ERR plan. Canonical facade now suppresses attributed functional diagnostics for guide-rejected IDEs and rebuilds ACK plan; literal legacy check execution and mixed unreferenced/native cases remain open. Field209 25/26-character agency-scoped canonical boundary passes. Details: quality/audits/ediel-masterplan-v2/f3-staged-utilts-field209-20260925.md. PR310 untouched; no hosted action.
 

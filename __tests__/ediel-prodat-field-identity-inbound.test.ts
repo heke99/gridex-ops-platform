@@ -1,9 +1,9 @@
 import {beforeEach,it,expect,vi} from 'vitest'
-import {raw} from './fixtures/prodat-register'
+import {raw,line,characteristic} from './fixtures/prodat-register'
 import {source,z10,head,own} from './fixtures/prodat-identity'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import type {EdielRulebookIssue} from '@/lib/ediel/rulebook/rulebook'
-const state=vi.hoisted(()=>({message:{} as EdielMessageRow, effects:[] as string[], drafts:[] as Record<string,unknown>[], events:[] as Record<string,unknown>[], inject:false,registryFailure:false}))
+const state=vi.hoisted(()=>({message:{} as EdielMessageRow, effects:[] as string[], drafts:[] as Record<string,unknown>[], events:[] as Record<string,unknown>[], inject:false,registryFailure:false,realRegisterConsumer:false}))
 vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',()=>({resolveCanonicalRulePack:async()=>{if(state.registryFailure)throw Error('Injected registry failure');return {profileKey:'synthetic',sourceHash:'evidence',messageProfileId:'profile',rulePackId:'pack'}}}))
 vi.mock('@/lib/ediel/rulebook/canonicalPolicyFieldValidator',async importOriginal=>{
  const actual=await importOriginal<typeof import('@/lib/ediel/rulebook/canonicalPolicyFieldValidator')>()
@@ -16,15 +16,49 @@ vi.mock('@/lib/ediel/core/kernel',()=>({createCanonicalAckMessage:async(p:{ackFa
 vi.mock('@/lib/ediel/actorTestingEngine',()=>({syncActorTestingForMessage:async()=>{state.effects.push('actor-auto');return null}}))
 vi.mock('@/lib/ediel/inbound/inboundFacilityRecognition',()=>({recognizeInboundFacilityData:async()=>{state.effects.push('facility');return null}}))
 vi.mock('@/lib/ediel/matching',()=>({matchMeteringPointForEdielMessage:async()=>null,matchSiteAndCustomerForMeteringPoint:async()=>null,findMatchingSupplierSwitchRequest:async()=>null}))
-vi.mock('@/lib/ediel/inboundCases',()=>({createOrUpdateInboundProdatCase:async()=>{state.effects.push('case');return null}}))
+vi.mock('@/lib/ediel/inboundCases',async importOriginal=>{
+ const actual=await importOriginal<typeof import('@/lib/ediel/inboundCases')>()
+ return {...actual,createOrUpdateInboundProdatCase:async(input:Parameters<typeof actual.createOrUpdateInboundProdatCase>[0])=>{
+  if(state.realRegisterConsumer)return actual.createOrUpdateInboundProdatCase(input)
+  state.effects.push('case');return null
+ }}
+})
 vi.mock('@/lib/onboarding/inboundEdielLinking',()=>({applyInboundProdatZ02ToCustomerInfoRequest:async()=>{state.effects.push('z02');return null},applyInboundProdatZ14ToMeteringPermission:async()=>{state.effects.push('z14');return null}}))
 vi.mock('@/lib/ediel/flows/inboundBusinessStateMachine',()=>({applyInboundBusinessStateMachine:async()=>{state.effects.push('business');return null}}))
 vi.mock('@/lib/ediel/operationalVerification',()=>({buildSafeMasterdataProposal:async()=>[{field:'synthetic',reviewRequired:true}]}))
 vi.mock('@/lib/ediel/orchestrator/edielProcessingPipeline',()=>({analyzeEdielProcessingPipeline:async()=>null}))
 vi.mock('@/lib/inbound-mail/edielMailboxPoller',()=>({runInboundEdielMailEngine:async()=>null}))
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
-beforeEach(()=>{state.message={...source(raw(z10(),'Z10'),'Z10'),status:'received',company_id:'tenant',parsed_payload:{fileEngine:{mode:'agt'}}} as EdielMessageRow;state.effects=[];state.drafts=[];state.events=[];state.inject=false;state.registryFailure=false})
+import {resolveCanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
+beforeEach(()=>{state.message={...source(raw(z10(),'Z10'),'Z10'),status:'received',company_id:'tenant',parsed_payload:{fileEngine:{mode:'agt'}}} as EdielMessageRow;state.effects=[];state.drafts=[];state.events=[];state.inject=false;state.registryFailure=false;state.realRegisterConsumer=false})
 const run=()=>processInboundEdielMessage({actorUserId:'00000000-0000-4000-8000-000000000002',edielMessageId:state.message.id})
+for(const [name,invalid,field] of [
+ ['global LIN',z10().map(item=>item[0]==='LIN'?['LIN','2',...item.slice(2)]:item),'314'],
+ ['object register',(()=>{const rows=z10();const i=rows.findIndex(item=>item[0]==='LIN');rows[i]=['LIN','1','',['735123456789012345','','','9'],['1','1']];rows.push(['LIN','2','',['735123456789012345','','','9'],['1','1']]);return rows})(),'258'],
+] as const)it(`ACKs malformed ${name} before the real inbound case rejects its structure`,async()=>{
+ state.realRegisterConsumer=true
+ state.message={...state.message,...source(raw(invalid,'Z10'),'Z10')}
+ const decision=resolveCanonicalRuntimeDecision(state.message)
+ expect(decision).toMatchObject({applicationDecision:'rejected',prodatRegisterValidation:{objects:[{disposition:'rejected'}]}})
+ expect(decision.responsePlan).toContainEqual(expect.objectContaining({family:'APERAK',outcome:'negative'}))
+ await run()
+ expect(state.message.validation_report).toMatchObject({applicationDecision:'rejected'})
+ expect(state.drafts.map(d=>d.messageFamily)).toEqual(['CONTRL','APERAK'])
+ expect(state.drafts.map(d=>d.rawPayload).join('')).toContain(`FTX+AAO++${field}::260`)
+ expect(state.effects).toEqual([])
+})
+it('holds an own QTY31/213 omission before the case writer without an invented positive response',async()=>{
+ state.realRegisterConsumer=true
+ const invalid=[...head(),line('1','735123456789012345'),...characteristic('Z13','Z22')]
+ state.message={...state.message,...source(raw(invalid,'Z04'),'Z04')}
+ const decision=resolveCanonicalRuntimeDecision(state.message)
+ expect(decision).toMatchObject({applicationDecision:'rejected',prodatRegisterValidation:{objects:[{disposition:'rejected'}]}})
+ await run()
+ expect(state.effects).toEqual([])
+ const wire=state.drafts.map(d=>d.rawPayload).join('')
+ expect(wire).not.toContain('ERC+100::260')
+ expect(wire).toContain('FTX+AAO++213::260')
+})
 it('persists U as diagnostics and continues guarded inbound staging with the prescribed ACK',async()=>{
  await run();expect(state.message.validation_report.prodatProcessingDisposition).toMatchObject({kind:'continue'});expect(state.effects).toEqual(['actor-auto','facility','link','case','z02','z14','business'])
  expect(state.drafts.map(d=>d.rawPayload).join('')).toContain('ERC+100::260');expect(state.events.some(e=>(e.payload as Record<string,unknown>)?.appliedAutomatically===false)).toBe(true)

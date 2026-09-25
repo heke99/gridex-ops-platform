@@ -1,3 +1,6 @@
+## 2026-09-25 — Active: isolated PRODAT register ACK correction
+Base is draft PR373 tree 27e5dc76, itself stacked on draft PR372. Malformed LIN314 real-consumer RED, corrected before case writer; duplicate C829258 and own QTY31/213 negative/hold cases pass. Local full 6087/378 excluding two Node24/TAP wrappers; app/test types pass. Next: publish second stacked draft PR, inspect ordinary CI; then complete multi-object ACK/write and F3C-05 literal staged execution. PR310 excluded.
+
 ## 2026-09-25 — Active: F3C-05 bounded guide/function and F3C-02 field209
 Separate branch codex/ediel-v2-f3-composition-20260925 from PR372 b9a1dc16. Focused RED confirmed unwanted E19 in validation/ACK plan on guide-invalid E66; final observable output corrected. Retained cutoff fixture repaired to a guide-valid monthly original. Canonical 209 length/agency boundary passes. Next: finish local tests/type/lint, publish separate draft PR, inspect ordinary non-staging CI; then trace 314/258/213 through final inbound response/write boundary. Literal staged execution and native persisted proof still open. No merge, PR310 excluded.
 

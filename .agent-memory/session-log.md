@@ -276,3 +276,5 @@ Downloaded OPS36001823482 artifact10808668144 (ZIP SHA d55c5727), copied authent
 - 2026-09-25: Verified document-head workflows, then implemented process-owner receipt consistency validation with RED/GREEN focused tests. No merge, deployment, rerun or PR310 modification.
 
 2026-09-25 F3 continuation: guide-invalid E66 E19 diagnostic RED then focused GREEN; field209 canonical 25/26 agency boundary GREEN; full and CI outcomes recorded in quality/audits/ediel-masterplan-v2/f3-staged-utilts-field209-20260925.md. No hosted/staging execution.
+
+2026-09-25 F3 PRODAT register ACK follow-on: actual case-writer LIN314 RED then focused GREEN; C829258 and QTY31/213 cases GREEN; local 6087/378 excluding two Node24/TAP wrappers; app/tests types and scoped lint zero errors. Details in f3-prodat-register-ack-boundary-20260925.md.

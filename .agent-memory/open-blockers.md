@@ -1,3 +1,6 @@
+## 2026-09-25 — Register boundary remaining evidence
+The early whole-message safe stop has local real-consumer tests but no native persisted ACK/multi-object transaction proof. A complete Z04 mixed-good/bad object original is next; do not infer partial success. F3C-05 literal execution and mixed unreferenced findings remain. PR373 OPS native still needs exact result at this checkpoint; PR310 excluded and external staging/formal gates deferred.
+
 ## 2026-09-25 — F3 continuation boundaries
 F3C-05 literal guide-before-functional execution and mixed unreferenced functional attribution remain unqualified beyond the corrected single-transaction observable report. Native persisted ACK/meter/billing effect for that case is not yet executed. F3C-02 field209 canonical boundary is covered; 314/258/213 final ACK/write composition and other families remain to inspect. F3C-06 grammar, F3C-07 finding reconciliation, F1/F2 and F4–F6 remain later engineering scope. PR372 retention/staging gates are deferred for this coding pass; PR310 excluded.
 
