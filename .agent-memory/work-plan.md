@@ -1,4 +1,9 @@
-## 2026-09-25 — Active F3C-05 field202 agency continuation
+## 2026-09-25 — Active integrated PR372 stack
+1. Exact child heads #372–#384 had ordinary CI success; merge all child PRs inward (done), verify ancestry/tree and review final diff. Clean three inherited EOF blank lines and publish one documentation-only checkpoint on PR372.
+2. Require the final PR372 exact-head ordinary CI, clean native replay, generated contract parity and focused static review. Do not rerun already green original child heads.
+3. Reconcile automatic Vercel production deployment on main push with the prior no-production boundary before the final main merge. E035 retention and full masterplan remain incomplete and must not be described as approved rollout. After release decision, continue source-backed S-code BGM/C002/1131, 1001 and field203 tenant-scoped uniqueness. PR310 excluded.
+
+## 2026-09-25 — Field202 prior plan
 1. Field202 BGM/C002/3055: source UG-122-6 → retained header matrix → shared final guide → actual inbound processor. Complete E66 blank/invalid agency + E19 RED/GREEN and mocked external persistence/ACK/sinks done locally, 315/315, types/lint PASS. Publish draft on PR383 `a23e50fa`; inspect own CI and PR383 CI.
 2. Inspect S01–S07 BGM/C002/1131 = SVK and BGM/C002/1001 code list through policy selection and final ACK. Field203 uniqueness only with a proven tenant-scoped durable owner.
 3. Continue F3C-05 per-IDE E66 209/533 identity/storage, then remaining F3C-02/04/06/07 and source-backed F1/F2/F4–F6. PR372 historical E035 draft/incomplete, PR310 paused. No staging/TGT/AGT/market send.

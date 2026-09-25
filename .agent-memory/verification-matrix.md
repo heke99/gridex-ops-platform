@@ -1,3 +1,11 @@
+## 2026-09-25 — PR372 integrated stack checkpoint
+
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Original #372–#384 heads | All applicable ordinary workflows | SUCCESS; crawler SKIPPED | Each bounded child, not yet integrated final head. |
+| `54c27ff6847a871c16ec04442812e893ceb020df` | Internal merge ancestry and tree | Tree `d8817952` equals fully green #384 | Integrated CI started; main untouched. |
+| Local documentation cleanup | Full main-to-stack `git diff --check` | Three inherited EOF blank lines identified and removed | Recheck and publish final head; runtime/SQL unchanged. |
+
 ## 2026-09-25 — F3C-05 field202 agency local candidate
 
 | Head | Kontroll | Utfall | Gräns |

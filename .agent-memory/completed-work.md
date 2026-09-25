@@ -1,3 +1,6 @@
+## 2026-09-25 — Bounded child PR integration
+Original PR #372–#384 exact heads all passed applicable ordinary CI. PR #382 was previously merged into #381; #384, #383, #381 through #373 were then merged into actual parent branches with expected-head locks, ending in draft #372 head `54c27ff6`, same tree as green #384. Main and PR310 untouched. Combined PR372 exact-head CI and final production/retention decision remain open; do not call full E035/masterplan accepted.
+
 ## 2026-09-25 — Bounded UTILTS field202 agency local verification
 Annex C UG-122-6 BGM/C002/3055 blank/999 plus real E19 RED gave functional ERR. Shared final header guide now emits field202/ERC41/42 negative APERAK, and actual inbound with external DB/sinks mocked saves guide rejection without meter/billing/completion. 315/315 relevant tests, app/test types, scoped lint/diff PASS. Own exact-head CI pending; S-code 1131, code 1001, field203 uniqueness and full F3 remain open.
 

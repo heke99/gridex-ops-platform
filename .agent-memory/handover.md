@@ -1,4 +1,7 @@
-## 2026-09-25 — Field202 agency handover
+## 2026-09-25 — Integrated stack handover
+PR #372 open/draft head `54c27ff6847a871c16ec04442812e893ceb020df` after all child PRs #373–#384 were merged inward; main still `2a148d39`, PR310 untouched. PR372 tree `d8817952` equals fully green original PR384 tree. Its own combined ordinary CI started (OPS `36189916791`, tenant `36189916715`, browser `36189916771`, Ediel `36189916888`, E2E `36189916769`). Local separate branch removes three inherited audit EOF blank lines, updates memory and records bounded review; publish to #372, then require final exact-head CI. Main merge would trigger Vercel production deploy; earlier no-production scope is unresolved. Retention for E035 process archive remains unassigned and `complete:false`; no full rollout acceptance. See `quality/audits/ediel-masterplan-v2/stack-integration-review-20260925.md`.
+
+## 2026-09-25 — Field202 agency prior handover
 PR383 field203 published `a23e50fa`, tree `234ffe98`, draft on PR381, ordinary CI running/queued at first check. Current clean-base local field202 agency branch from that exact head adds BGM/C002/3055 `260` guide validation, verified with complete E66 + E19 RED/GREEN and actual inbound mock boundary. Local 315/315, types/lint/diff PASS. Publish stacked draft and inspect own CI. Next S-code C002/1131, BGM 1001, tenant-scoped field203 duplicate owner. See `quality/audits/ediel-masterplan-v2/f3-utilts-header202-agency-20260925.md`. PR372 draft/incomplete, PR310 untouched.
 
 ## 2026-09-25 — Field203 handover

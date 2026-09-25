@@ -1,4 +1,7 @@
-## 2026-09-25 — Active F3C-05 field202 BGM document agency
+## 2026-09-25 — Active PR372 integrated stack acceptance
+All #373–#384 are merged into their parent branches; #372 remains draft on `54c27ff6` identical tree to green #384. Local documentation-only EOF cleanup and integrated review/checkpoint are in progress on `codex/ediel-v2-stack-acceptance-20260925`. Publish fast-forward to #372, inspect own ordinary CI/native/generated contracts, then address the main push's automatic production deployment versus the user's no-production boundary before main merge. Do not call E035 retention or full masterplan accepted; PR310 excluded. Next code gap after release decision: S-code BGM/C002/1131 and field203 uniqueness.
+
+## 2026-09-25 — Field202 prior checkpoint
 PR383 published field203 draft on PR381 merge head; own CI started. Current separate field202 branch from published PR383 `a23e50fa`: BGM/C002/3055 mandatory `260` now yields field202/ERC41/42 before E19. Actual mocked inbound guide rejection and no business sinks. Local 315/315 relevant, app/test types, lint/diff PASS. Publish own draft, inspect ordinary CI; next conditional S-code 1131 = SVK, code 1001 and field203 duplicate owner. PR372 draft, PR310 untouched; no staging/market send.
 
 ## 2026-09-25 — Field203 prior checkpoint (superseded by PR383 publication)

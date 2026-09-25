@@ -1,3 +1,6 @@
+## 2026-09-25 — Main merge is a production action
+The merged draft stack on PR372 is not on main. `.github/workflows/vercel-production-deploy.yml` runs on every main push and creates a Vercel production deployment when its credential exists; the connected Vercel project lists READY production deployments for recent main merges. The earlier user scope prohibited production runs, while the new instruction requests a main merge. Qualify the integrated exact head and make this conflict explicit before the final action. PR372 also lacks an assigned lawful process-archive retention/purge policy; `complete:false` keeps E035 fail-closed, so broad rollout is not accepted. PR310 remains paused.
+
 ## 2026-09-25 — UTILTS BGM follow-on boundaries
 Field202 BGM/C002/3055 presence/value has a local candidate; conditional S01–S07 C002/1131 = SVK and code-list C002/1001 are not yet traced through final ACK and consumer. Field203 uniqueness-over-time/ERC42 still needs proven tenant-scoped durable inbound owner. Keep those claims open while continuing other source-backed rules; do not infer them from outbound duplicate checks. PR372 E035 historical acceptance remains incomplete; PR310 paused.
 
