@@ -470,3 +470,14 @@ Published b1c7f993 has the one-SELECT combined MVCC receipt, authenticated servi
 ## 2026-09-24 — PR372 bounded hold and schema gate green
 
 Published PR372 head 521bc9ba passed OPS36003339938: native314/314, case1/browser2/postbrowser1, tenant/parity and canonical schema check fingerprint5e3db200. Verify, quality, Ediel, tenant, browser and full E2E all succeeded on the same head. This accepts the bounded witnessed raw-C UTILTS hold and schema reconcile as a checkpoint, not full Task4: outbound Z08H and document reference are not in the combined receipt. Task3b producer/deletion/archive/retention coverage and pre-epoch history remain incomplete. PR draft, no merge or hosted writes.
+## 2026-09-25 — PR372 correction receipt scope remains partial
+
+Published `16505294` passed verify and quality/build in OPS `36105666765`.
+Clean replay applied the new private migration but native finished 322/324 due
+to two incorrect new test expectations; corrected locally, not yet natively
+verified. Separate reviewer `/root/pr372_review` requested changes for tenant
+source/concern budgets and historical point aliases; see
+`quality/audits/ediel-masterplan-v2/e035-source-ledger/pr372-independent-review-20260925.md`.
+Local source/concern forward and high-volume fixture await publication and
+native replay. Task3b/Task4 are not finally accepted; PR372 remains draft.
+PR310 is excluded and no hosted migration or live operation was made.

@@ -397,8 +397,11 @@ it('real UTILTS qualification saves and consumes a witnessed C hold without pers
  utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
  utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
  const actual=await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:inbound.id})
- expect(actual).toMatchObject({internalReviewRequired:true,ackIds:[],ingestedMeterValueIds:[],billingUnderlayId:null})
- expect(utiltsEffects.ack).not.toHaveBeenCalled()
+ expect(actual).toMatchObject({internalReviewRequired:true,ingestedMeterValueIds:[],billingUnderlayId:null})
+ // A transport-level CONTRL is allowed; the blocked transaction must not
+ // generate an application ACK or national functional rejection.
+ expect(utiltsEffects.ack.mock.calls.map(([call])=>call.ackFamily)).toEqual(['CONTRL'])
+ expect(actual.ackIds).toEqual([inbound.id])
  expect(utiltsEffects.meter).not.toHaveBeenCalled()
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.meter_reading_series
   WHERE source_ediel_message_id=${literal(inbound.id)}`)).toBe(0)
@@ -555,16 +558,40 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
   SELECT ${literal(f.ids.company)},${literal(otherCustomer)},'follow_up','Unrelated process volume','open'
   FROM generate_series(1,1001);`)
  const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ const unrelatedPoint='735999260731000008'
+ const unrelatedWire=closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',unrelatedPoint)
+ // Direct synthetic rows establish volume only. The separate producer tests
+ // exercise source and concern capture; this test calls the real UTILTS owner.
+ sql(`WITH sources AS (
+   INSERT INTO gridex_received_sources.sources(source_message_id,company_id,environment,origin,
+    message_code,source_received_at,captured_at,raw_payload,payload_hash,received_context)
+   SELECT gen_random_uuid(),${literal(f.ids.company)},'test','database_insert','Z05',
+    clock_timestamp()-interval '1 minute',clock_timestamp()-interval '30 seconds',
+    ${literal(unrelatedWire)},encode(sha256(convert_to(${literal(unrelatedWire)},'UTF8')),'hex'),'{}'::jsonb
+   FROM generate_series(1,1001) RETURNING *
+  ) INSERT INTO gridex_received_sources.correction_concerns(source_message_id,company_id,
+   environment,source_payload_hash,actor_user_id,source_received_at,source_captured_at,facts,facts_hash)
+  SELECT s.source_message_id,s.company_id,s.environment,s.payload_hash,${literal(f.ids.reviewer)},
+   s.source_received_at,s.captured_at,body.facts,encode(sha256(convert_to(body.facts::text,'UTF8')),'hex')
+  FROM sources s CROSS JOIN LATERAL (SELECT jsonb_build_object('scope',
+   jsonb_build_object('objectId',${literal(unrelatedPoint)})) facts) body;`)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.correction_concerns
+  WHERE company_id=${literal(f.ids.company)}`)).toBe(1001)
  const source=await insertPriorUtilts(f,priorNativeWire(f,point))
  utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
  utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
  const result=await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:source.id})
- expect(result.internalReviewRequired).toBe(false)
+ expect(result.ackIds.length).toBeGreaterThan(0)
  const receipt=sql<{snapshotId:string;readsetHash:string}>(`SELECT parsed_payload#>'{normalizedMeteringPayload,receivedStructureQualification}'
   FROM public.ediel_messages WHERE id=${literal(source.id)}`)
  expect(receipt).toMatchObject({snapshotId:expect.any(String),readsetHash:expect.stringMatching(/^[a-f0-9]{64}$/)})
- const body=sql<{process:{factCount:number;reason:string;facts:{table:string;rowId:string}[]}}>(`SELECT readset_text::jsonb
+ const body=sql<{process:{factCount:number;reason:string;facts:{table:string;rowId:string}[]};
+  source:{readsetText:string};correction:{count:number}}>(`SELECT readset_text::jsonb
   FROM gridex_correction_process.combined_snapshots WHERE id=${literal(receipt.snapshotId)}`)
+ const sourceBody=JSON.parse(body.source.readsetText) as {sourceCount:number;complete:boolean}
+ expect(sourceBody).toMatchObject({complete:true})
+ expect(sourceBody.sourceCount).toBeLessThan(1000)
+ expect(body.correction.count).toBe(0)
  expect(body.process.factCount).toBeLessThan(1000)
  expect(body.process.reason).toBe('before_epoch_unknown')
  const supplyId=sql<string>(`SELECT to_jsonb(id) FROM public.customer_supply_periods

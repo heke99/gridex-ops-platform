@@ -482,3 +482,17 @@ API head `a3b4fc5` ran OPS `36052102048`: verify and quality/build passed; nativ
 ## 2026-09-24 — Green native 322 and next UTILTS candidate
 
 PR372 published `6911844` passed OPS `36053110405` native 322/322, verify and quality/build, plus applicable other workflows. Tests use real Z08H send, real document reference capture, a same-cutoff concurrent process/correction transaction, rollback and locked contract DELETE guard. Local follow-up now tests real Z04/legacy process facts and actual E66 UTILTS correction hold; it still needs publication and native result. See top `current-task.md`. Historical completeness remains false; no independent whole-PR approval or merge. PR310 untouched.
+## 2026-09-25 — Current PR372 handover
+
+Authoritative workspace: this checkout on `codex/e035-correction-context-20260924`.
+Local commit `27ecfef3` and published GitHub commit `16505294` have identical
+tree `854713c6`; the local parent differs because publication used the GitHub
+connector when HTTPS push lacked credentials. Do not force-push the local SHA.
+New local working changes after that tree correct two fixture assertions, add a
+forward source/concern subject filter and budget test, and record review status.
+Check `git status` and this new top record before publishing. OPS36105666765
+native 322/324, verify/quality succeeded. Reviewer requested changes R1/R2.
+Next exact action: finish local batch integrity, commit, publish identical tree
+as a fast-forward child of remote `16505294` through the connected GitHub
+integration, then read the actual native log. Historical alias and remaining
+Task3b/Task4 gates remain. PR372 draft; PR310 untouched.

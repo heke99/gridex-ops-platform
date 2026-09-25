@@ -527,3 +527,23 @@ Published API commit `a3b4fc500b55e49f6de0816e559b18dfd2fd7cad` has byte-identic
 API head `691184408b56231978e469e71d26f05ee31a5dff`, tree `fe387e3ae34cff4ffb158ad5ecdff6b472cbd9f4`: OPS `36053110405` verify, quality/build and clean replay SUCCESS, **322/322 native across five files**. The first failure at `a3b4fc5` was only the strict four-field capture fixture; this head passed real populated Z08H original/attempt/result/witness, document reference producer, process rollback, cancelled-contract DELETE guard, and concurrent uncommitted process/correction facts excluded then included at the same cutoff. Tenant, Ediel, browser and full E2E workflows also succeeded; crawler skipped. No generated migration/type/schema changes in this test-only batch.
 
 Next local candidate adds actual reviewed Z04 → E66 UTILTS matched → captured/witnessed C → internal review/no APERAK/no quantities with a saved combined receipt, plus process-fact assertions for the actual Z04 supply/switch and legacy end mutation. Focused unit/type/lint pass; **this new native candidate is not yet qualified**. Publish exact tree and diagnose first native result. Task3b remaining signed/other legacy producer breadth and retention/history, Task4 broader negative/overflow/cutoff cases, whole-PR independent review and final same-head CI remain. `complete:false` for unproved history; PR372 draft, PR310 excluded.
+## 2026-09-25 — ACTIVE PR372 subject budget correction
+
+Published PR head `16505294fbcb4851c2b550c27b03f16f3f7d4a6a`, tree
+`854713c64347074a42fb7adb4d34c7ccd4e2ac79`, draft/open against main
+`2a148d39d631fc759c99cd1c69350b5e2147dbdb`. OPS `36105666765`
+verify and quality/build succeeded; clean replay applied the private scope
+migration, then native finished **322/324**. Two new fixture assertions were
+wrong: transport CONTRL is allowed during internal review; successful return
+omits optional `internalReviewRequired`. Both are corrected locally.
+
+Independent read-only reviewer `/root/pr372_review` issued REQUEST CHANGES on
+that exact tree: source and concern budgets still count unrelated tenant rows;
+current-only physical point scope can hide historical aliases. Report:
+`quality/audits/ediel-masterplan-v2/e035-source-ledger/pr372-independent-review-20260925.md`.
+Local next batch includes a new forward source/concern filter and 1,001-row
+native volume fixture; scripts typecheck, lint, migration integrity and tracked
+type check passed locally. **This batch is not yet published or native-tested.**
+Next: publish exact tree, read native result, then resolve historical aliases,
+remaining Task3b producer/retention proofs, Task4 negatives, independent full
+review and final-head CI. Keep `complete:false`; do not merge or touch PR310.

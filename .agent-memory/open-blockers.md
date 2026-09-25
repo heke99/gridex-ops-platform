@@ -424,3 +424,16 @@ OPS schema/type mismatch is resolved on 521bc9ba / OPS36003339938; native314/314
 ## 2026-09-24 — Current PR372 blockers after canonical archive
 
 Archive and swallowed-event paths passed native316 and317 respectively; `94eb110d` claim replay pending. Task3b still requires real signed/legacy and remaining producer-route qualification plus honest pre-epoch/retention gaps (`complete:false`). Task4 combined saved cutoff includes received source/process/correction but omits outbound Z08H and document reference; actual UTILTS hold, scoped complete/incomplete and concurrency acceptance remain. No merge or ready-for-review claim before final same-head review and all applicable CI. PR310 excluded.
+## 2026-09-25 — PR372 active acceptance blockers
+
+- Independent review R1: source/concern owner budget is tenant-wide on
+  published `16505294`; local forward and >1,000 unrelated-row fixture await
+  native replay.
+- Independent review R2: current physical point alias alone can omit historical
+  linked evidence after a point identity change. No accepted fix or native proof.
+- OPS `36105666765` native 322/324: two new test assertions expected no ACK
+  (but transport CONTRL is allowed) and explicit `false` from an omitted
+  optional property. Locally corrected; exact-head replay pending.
+- Signed/remaining legacy Task3b producers, retention limits, Task4 negative
+  and concurrency boundaries, whole-diff re-review, authentic final schema
+  evidence and final-head CI remain open. No merge.
