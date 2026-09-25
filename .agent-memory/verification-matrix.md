@@ -1,3 +1,19 @@
+## 2026-09-25 — F3C-05 field202 agency local candidate
+
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | E66 BGM/C002/3055 tom/999 + genuin E19 | RED: `functional_rejected`/ERR före rättning | UG-122-6. |
+| Lokal gren före commit | 25 relevanta filer, app/test typer, scoped lint/diff | 315/315 PASS; övrigt PASS | Egen CI väntar; 1131/1001 ej genomgångna. |
+| `a23e50faa030c27ffffcf9af500f59c3210e149d` | PR383 ordinarie flöden | Köade/pågick vid första kontrollen | Föregående fält203. |
+
+## 2026-09-25 — F3C-05 field203 local candidate
+
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | Fullständig E66 tom BGM1004 + genuin E19 | RED: `functional_rejected`/ERR | Fält203 anvisningsfel före rättning. |
+| Lokal gren före commit | 25 relevanta filer, app/test typer, scoped lint/diff | 313/313 PASS; övrigt PASS | Egen exakt-head CI väntar; unikhet över tid ej verifierad. |
+| `397edfe66164bffc1ca298faf1cafe5a3cd97c53` | PR382 fyra ordinarie flöden | Alla SUCCESS, OPS `36184073417`; merge `4ef14108` till PR381 | Föregående fält204, inte kandidatens CI. |
+
 ## 2026-09-25 — PR372 switch-event UUID-fix
 
 | Head | Körning | Resultat | Gräns |
@@ -324,6 +340,23 @@ PR372/521bc9ba: OPS36003339938 clean migration replay SUCCESS, native314/314 in 
 | Lokal gren före commit | Komplett tvåobjekts-Z04, fokuserad RED | 1/10 föll: två identiska 213 i nationell APERAK-plan | Faktiskt duplikat, före rättning. |
 | Lokal gren före commit | Fokuserade Vitest 4 filer, app/test typ, scoped ESLint, diff check | 103/103 PASS; övrigt PASS | Native/exakt-head CI väntar. |
 | `ca1aa11b6311088f70b0f8ada05befdfa55b6924` | OPS `36174980998`, Ediel `36174981008`, browser `36174981015`, full E2E `36174981002` | Alla SUCCESS | PR374, tidigare batch; kvalificerar inte denna kandidat. |
+## 2026-09-25 — F3C-05 header313 candidate
+
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | Komplett E66 invalid BGM4343 + E19 | `functional_rejected`/ERR RED | Fel före rättning. |
+| Lokal gren före commit | Två-IDE missing ID/E19 | Negativ APERAK första, ERR andra | Befintligt korrekt; ingen dispositionsändring. |
+| Lokal gren före commit | Inbound med mockad DB-gräns, 24 UTILTS-filer, typer/lint/diff | 276/276 PASS, typer/lint/diff PASS | Native/egen exact-head CI väntar. |
+| `5e08fd02` / `eb1bf146` | PR377 OPS `36179405219`; PR378 OPS `36180030123`, respektive Ediel/browser/full E2E | Alla SUCCESS; native 340/340 vardera | Föregående batcher, ej fält313-kandidat. |
+
+## 2026-09-25 — F3C-05 agency260 candidate
+
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | Komplett E66 agency999 plus E19 RED | `functional_rejected`/ERR | Fel före rättning. |
+| Lokal gren före commit | 24 UTILTS-filer, app/test typer, lint/diff | 273/273 PASS, typer/lint/diff PASS | Native/egen exact-head CI väntar. |
+| `5e08fd027dcbd4defb678698d03aca3317d1d8e0` | PR377 Ediel/browser; OPS verify | SUCCESS; övrig OPS/full E2E in progress vid kontroll | Föregående batch. |
+
 ## 2026-09-25 — F3C-05 header502 candidate
 
 | Head | Kontroll | Utfall | Gräns |
@@ -339,3 +372,28 @@ PR372/521bc9ba: OPS36003339938 clean migration replay SUCCESS, native314/314 in 
 | Lokal gren före commit | Komplett E66 MKS+99 och E19 RED | `functional_rejected` i stället för guide/APERAK | Källbelagt fel, före rättning. |
 | Lokal gren före commit | 24 UTILTS-filer, app/test typer, scoped ESLint, diff check | 270/270 PASS; övrigt PASS | Native/exakt-head CI väntar; fysisk funktionsberäkning ännu inte stegvis. |
 | `3eae899dc8689e38a9af4d2895012de7ae52407f` | PR375 Ediel `36177257227`, browser `36177257139`, E2E `36177257150`, OPS `36177257247` | Första tre SUCCESS; OPS verify SUCCESS, quality/native in progress vid kontroll | Föregående batch. |
+
+## 2026-09-25 — F3C-05 field206 local candidate
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | E66 no DTM735 + E19 RED | `functional_rejected`/ERR | Före rättning; justerat UNT i komplett fixture. |
+| Lokal gren före commit | 24 UTILTS testfiler, app/test typer, scoped ESLint, diff check | 278/278 och övrigt PASS | Native och egen exakt-head CI väntar. |
+| `7cd41b50b3459182cc54afe246fd7420691b3b9c` | PR379 Ediel/browser/E2E, OPS | Första tre SUCCESS; OPS pågående vid kontroll | Föregående fält313, inte denna kandidat. |
+
+## 2026-09-25 — F3C-05 field205 local candidate
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | E66 absent DTM137 + E19 RED; 30 February policy selection | ERR for missing; generic negative APERAK without typed field for invalid | Före rättning; komplett UNT. |
+| Lokal gren före commit | 24 UTILTS testfiler, app/test typer, scoped lint, final focused rerun | 280/280, typer/lint, 25/25 PASS | Native/egen exakt-head CI väntar. |
+| `7cd41b50b3459182cc54afe246fd7420691b3b9c` | PR379 four ordinary workflows | Alla SUCCESS; OPS `36181231049` | Föregående batch. |
+| `9678a63359170914f16ab59274e0ea38d52e8aca` | PR380 Ediel/browser/E2E and OPS | Första tre SUCCESS; OPS `36182182934` pågående vid kontroll | Föregående batch. |
+
+## 2026-09-25 — Field205 published CI fixture correction
+PR381 `a307b91e` full E2E coverage failed four variants: synthetic receive 00:00Z preceded DTM137 18:11 local +01:00 the same day. Correct field205 future-date rejection exposed the test chronology. Receipt changed to 20:00Z; 29/29 targeted tests PASS. Publish fast-forward fixture-only correction and require new ordinary exact-head CI; then BGM204. OPS on first head was still running at last check. No product-rule weakening, staging, merge or PR310.
+
+## 2026-09-25 — F3C-05 field204 local candidate
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | E66 invalid/missing BGM1225 + genuine E19 RED | `functional_rejected`/ERR before fix | Complete source-valid fixture apart from 204. |
+| Lokal gren före commit | 25 files, app/test types, scoped lint, final valid5 focus | 311/311 and other PASS | Native/own exact-head CI pending. |
+| `28ed2fc3a353c03058e9363b06a40a49235cef20` | PR381 corrected ordinary workflows | Browser SUCCESS; Ediel/E2E/OPS running at last check | Predecessor batch. |
