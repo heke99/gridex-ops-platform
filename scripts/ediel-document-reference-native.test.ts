@@ -299,6 +299,20 @@ it.each(['before_append','before_witness','after_witness'].flatMap(boundary=>['d
  vi.restoreAllMocks();const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())'),old=saved(f,cutoff)
  await lose()
  const fresh=await readDocumentReferenceContext({...args(f),cutoff})
+ if(fresh.revalidation.some(result=>result.status==='unconfirmed')){
+  const durable=sql<{attempts:number;outcomes:number;witnesses:number}>(`SELECT jsonb_build_object(
+   'attempts',count(DISTINCT a.id),'outcomes',count(DISTINCT o.id),'witnesses',count(DISTINCT w.id))
+   FROM gridex_received_sources.document_reference_attempts a
+   LEFT JOIN gridex_received_sources.document_reference_outcomes o ON o.attempt_id=a.id
+   LEFT JOIN gridex_received_sources.document_reference_witnesses w ON w.outcome_id=o.id
+   WHERE a.source_message_id=${literal(f.sourceMessageId)}`)
+  const object=sql<{count:number;ids:string[]}>(`SELECT jsonb_build_object('count',count(*),
+   'ids',coalesce(jsonb_agg(id::text ORDER BY id),'[]'::jsonb)) FROM storage.objects
+   WHERE bucket_id='customer-contract-documents' AND name=${literal(f.document.storage_path)}`)
+  const readback=await downloadAndVerifyCustomerContractDocumentBounded(f.document)
+  throw Error(`document_reference_revalidation_stage ${JSON.stringify({boundary,loss,objectPath:f.document.storage_path,
+   object,readback,fresh,trace,durable})}`)
+ }
  expect(fresh.revalidation).toMatchObject([{status:'recorded',observation:'unavailable'}]);expect(fresh.contentStatus).toBe('document_reference_unavailable');expect(saved(f,cutoff)).toEqual({...old,visibilitySnapshot:expect.any(String)})
 })
 it('byte replacement is unavailable despite immutable metadata',async()=>{

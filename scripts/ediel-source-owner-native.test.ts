@@ -332,6 +332,23 @@ function priorNativeWire(f:Awaited<ReturnType<typeof seed>>,point:string){
   .replaceAll('202607010000','202610010000').replaceAll('202608010000','202610150000')
   .replace('?+0200','?+0100').replaceAll('M-GRIDEX-2607-01','METER-1').replace('QTY+220:11000','QTY+220:10500')
 }
+async function captureNativeCorrectionC(f:Awaited<ReturnType<typeof seed>>,point:string){
+ const sourceMessageId=randomUUID(),wire=closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',point)
+ sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+  SELECT ${literal(f.ids.reviewer)},${literal(f.ids.company)},id,key FROM public.permissions WHERE key='communication.send'
+  ON CONFLICT DO NOTHING;
+  INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,
+   raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,
+   canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+  SELECT ${literal(sourceMessageId)},${literal(f.ids.company)},'test','inbound','edifact','PRODAT','Z05','received',
+   ${literal(wire)},'{"subtype":"C"}',clock_timestamp(),'23-DDQ-PRODAT','12345','54321',
+   pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
+  WHERE profile.profile_key='PRODAT:Z05:C:26.A:r3' AND profile.is_enabled;`)
+ expect(await captureCorrectionContext({companyId:f.ids.company,environment:'test',sourceMessageId,
+  actorUserId:f.ids.reviewer})).toMatchObject({status:'recorded',disposition:'unreviewed'})
+ return sourceMessageId
+}
 async function insertStructuralChange(f:Awaited<ReturnType<typeof seed>>,code:'Z06'|'Z10',reason:string,document:string,replacement=false){
  const message=structuralOwnerSource(code,reason,document,replacement)
  const external=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
@@ -386,20 +403,7 @@ it('real UTILTS qualification saves and consumes a witnessed C hold without pers
  }
  const before=await qualify()
  expect(before).toMatchObject({hasInternalReview:false,evidence:{comparisons:[{status:'matched'}]}})
- const sourceMessageId=randomUUID(),wire=closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',point)
- sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
-  SELECT ${literal(f.ids.reviewer)},${literal(f.ids.company)},id,key FROM public.permissions WHERE key='communication.send'
-  ON CONFLICT DO NOTHING;
-  INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,
-   raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,
-   canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
-  SELECT ${literal(sourceMessageId)},${literal(f.ids.company)},'test','inbound','edifact','PRODAT','Z05','received',
-   ${literal(wire)},'{"subtype":"C"}',clock_timestamp(),'23-DDQ-PRODAT','12345','54321',
-   pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
-  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
-  WHERE profile.profile_key='PRODAT:Z05:C:26.A:r3' AND profile.is_enabled;`)
- expect(await captureCorrectionContext({companyId:f.ids.company,environment:'test',sourceMessageId,
-  actorUserId:f.ids.reviewer})).toMatchObject({status:'recorded',disposition:'unreviewed'})
+ await captureNativeCorrectionC(f,point)
  const held=await qualify()
  expect(held).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,
   evidence:{snapshotId:expect.any(String),readsetHash:expect.stringMatching(/^[a-f0-9]{64}$/),
@@ -434,6 +438,41 @@ it('real UTILTS qualification saves and consumes a witnessed C hold without pers
  expect(saved).toMatchObject({snapshotId:expect.any(String),readsetHash:expect.stringMatching(/^[a-f0-9]{64}$/)})
  expect(sql(`SELECT to_jsonb(readset_hash=${literal(saved.readsetHash)} AND subject_message_id=${literal(inbound.id)})
   FROM gridex_correction_process.combined_snapshots WHERE id=${literal(saved.snapshotId)}`)).toBe(true)
+})
+it.each(['E30','S07'] as const)('native witnessed C holds a previously matched %s through the active combined receipt',async code=>{
+ const {resolveCanonicalEdielPolicy}=await import('@/lib/ediel/rulebook/canonicalEdielPolicy')
+ const {runUtiltsRuntimeForMessage}=await import('@/lib/ediel/utiltsEngine')
+ const {qualifyReceivedUtiltsStructure}=await import('@/lib/ediel/utilts/qualifyReceivedStructure')
+ const {buildUtiltsTransactionPersistencePayload}=await import('@/lib/ediel/utilts/transactionPersistence')
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ const utilts=observationHandoffMessage('2026-10-01',f.ids.company)
+ utilts.message_code=code;utilts.application_reference=code==='E30'?'23-MDR-E30-T':'23-DDQ-S07-T'
+ utilts.sender_ediel_id='12345';utilts.receiver_ediel_id='54321'
+ utilts.raw_payload=code==='E30'
+  ?priorE30PointWire('E24','METER-1',point).replaceAll('91100','12345').replaceAll('21660','54321')
+  :priorNativeWire(f,point).replace('BGM+E66','BGM+S07').replaceAll('23-DDQ-E66-S','23-DDQ-S07-T')
+ const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:code,direction:'inbound',referenceDate:'2026-10-01',
+  applicationReference:utilts.application_reference,mode:'parse'})
+ const qualify=async()=>{
+  const message=persistUtiltsSubject(f,utilts),runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy:policy})
+  expect(runtime.transactionDispositions,JSON.stringify(runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
+  return qualifyReceivedUtiltsStructure({message,runtime,canonicalPolicy:policy})
+ }
+ const before=await qualify()
+ expect(before).toMatchObject({hasInternalReview:false,hasNationalMismatch:false,evidence:{comparisons:[{status:'matched',codes:[]}]}})
+ await captureNativeCorrectionC(f,point)
+ const held=await qualify()
+ expect(held).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,
+  evidence:{snapshotId:expect.any(String),readsetHash:expect.stringMatching(/^[a-f0-9]{64}$/),
+   comparisons:[{status:'unavailable',reason:'structural_correction_context_hold',codes:[]}]},
+  runtime:{transactionDispositions:[{disposition:'internal_review',responseType:'none'}],ackPlan:{shouldSendAperak:false}}})
+ expect(buildUtiltsTransactionPersistencePayload({messageCode:code,transactions:held.runtime.facts.transactions,
+  dispositions:held.runtime.transactionDispositions,matches:[]})[0].quantities).toEqual([])
+ expect(sql(`SELECT to_jsonb(readset_hash=${literal(held.evidence.readsetHash)} AND subject_message_id IS NOT NULL)
+  FROM gridex_correction_process.combined_snapshots WHERE id=${literal(held.evidence.snapshotId)}`)).toBe(true)
+ expect(sql(`SELECT to_jsonb(readset_hash=${literal(before.evidence.readsetHash)})
+  FROM gridex_correction_process.combined_snapshots WHERE id=${literal(before.evidence.snapshotId)}`)).toBe(true)
 })
 it.each(['2026-09-30','2026-10-01'])('native reviewed Z04 qualifies prior/current E61/E62 on policy date %s',async referenceDate=>{
  const {observationHandoffMessage}=await import('../__tests__/helpers/utiltsObservationHandoff')

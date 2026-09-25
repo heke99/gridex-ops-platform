@@ -1,5 +1,9 @@
 # PR372 remaining acceptance — 2026-09-24
 
+## 2026-09-25 exact-head bounded checkpoint
+
+Published `15366cbaca91ecdebf58b2baf65beb2f90a366fe` / tree `27a1c3fb` passed OPS `36128443714`: native 335/335, case-view 1/1, tenant/parity, authentic types and schema snapshot (`c3ec834faa7c27e3db0f4424a2afcc8205ea4bf17035b8c7d5aba56b4b0bdb37`); verify and quality/build succeeded. Tenant, Ediel, browser and full E2E workflows succeeded; crawler skipped. All six Storage mutation cases passed, but the older three `unconfirmed` outcomes still have no captured failed stage or causal fix. A read-only independent static review found no confirmed new code blocker but withheld final native/acceptance approval. Current local unpublished work adds only a fresh-revalidation diagnostic and native E30/S07 witnessed C tests. Scoped lint, three typechecks, line budget and 38 focused unit tests pass; native evidence is pending. Historical coverage remains `complete:false`. PR372 is draft and unmerged, PR310 excluded.
+
 ## 2026-09-25 replay checkpoint
 
 Published `4c05b146` passed verify, quality/build and 335/335 native tests in OPS `36127254985` (job `108046110819`), including the scoped `cases.write` denial/allow path and six Storage mutation cases. The clean replay then stopped at stale generated types, before tenant/parity/schema completion. Authenticated artifact `10860308328` (ZIP SHA256 `40f63743c7454f3de7abb9ad2085f0060194a322350f96d42b4e9a3a767ab849`) produced types SHA256 `36e98937` and schema fingerprint `c3ec834f`; exact files are copied locally pending publication and same-head replay. The older Storage `unconfirmed` failures remain without a reproduced failed stage or causal repair. Task 3b/4 historical and negative-case qualifications and independent final review remain open. `complete:false` is retained. This checkpoint supersedes the older head label below for current state.
