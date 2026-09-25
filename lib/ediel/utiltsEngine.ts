@@ -381,6 +381,30 @@ export function applyUtiltsEffectiveDatePolicyToRuntimeResult(input: {
   return rebuildUtiltsRuntimeResult({ message: input.message, result: input.result, issues })
 }
 
+function suppressFunctionalIssuesForGuideRejectedTransactions(
+  message: EdielMessageRow,
+  result: UtiltsRuntimeResult,
+): UtiltsRuntimeResult {
+  const guideIssues = result.validation.issues.filter(
+    (issue) => issue.severity === 'error' && issue.kind === 'application',
+  )
+  if (guideIssues.length === 0) return result
+
+  const rejected = new Set(resolveUtiltsTransactionDispositions({
+    syntaxOk: result.validation.syntaxOk,
+    transactions: result.facts.transactions,
+    issues: guideIssues,
+  }).filter((item) => item.disposition === 'guide_rejected').map((item) => item.transactionId))
+  if (rejected.size === 0) return result
+
+  const issues = result.validation.issues.filter((issue) => {
+    if (issue.severity !== 'error' || issue.kind !== 'functional') return true
+    const reference = issueReference(issue)
+    return reference ? !rejected.has(reference) : rejected.size !== result.facts.transactions.length
+  })
+  return rebuildUtiltsRuntimeResult({ message, result, issues })
+}
+
 function canonicalE66PersistenceTransactions(facts: UtiltsRuntimeFacts): Array<Record<string, unknown>> {
   const timezone = parseEdifactTimezoneOffsetFromSegments(facts.rawSegments)
   const transactions = facts.transactions.length > 0 ? facts.transactions : []
@@ -494,5 +518,9 @@ export function runUtiltsRuntimeForMessage(
     referenceDate,
     processabilityPolicy: canonicalPolicy?.utiltsProcessability,
   })
-  return applyCanonicalE66PersistencePayload(effective)
+  // Canonical quantity/effective-date checks can add processability findings
+  // after the guide pass. A guide-invalid IDE has no functional outcome.
+  return applyCanonicalE66PersistencePayload(
+    suppressFunctionalIssuesForGuideRejectedTransactions(message, effective),
+  )
 }

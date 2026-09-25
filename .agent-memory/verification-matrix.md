@@ -313,3 +313,5 @@ PR372/521bc9ba: OPS36003339938 clean migration replay SUCCESS, native314/314 in 
 - 2026-09-25 `4c05b146` OPS36127254985 verify/quality/build SUCCESS; native335/335 and case-view1/1 PASS; stopped at authentic typegen mismatch. Artifact10860308328 ZIP40f63743; generated types36e98937; schema fingerprint c3ec834f. Contract files copied exact locally, same-head replay pending.
 
 - 2026-09-25 local candidate: combined process receipt RED dropped-fact test failed as expected; GREEN focused 10/10, app/tests/scripts typechecks, scoped lint, file budget and diff check passed. Native/CI pending. Document head `32b9825d` OPS `36132980452` native 337/337, schema fingerprint `c3ec834f` verified.
+
+2026-09-25 F3 continuation: guide-invalid E66 E19 diagnostic RED then focused GREEN; field209 canonical 25/26 agency boundary GREEN; full and CI outcomes recorded in quality/audits/ediel-masterplan-v2/f3-staged-utilts-field209-20260925.md. No hosted/staging execution.

@@ -1,3 +1,8 @@
+## 2026-09-25 — Active bounded F3 engineering
+1. Complete focused guide/function correction checks and field209 canonical boundary; publish isolated draft PR from PR372 b9a1dc16, inspect ordinary CI.
+2. Trace 314/258/213 original through canonical runtime, final ACK/reference and write boundary. Fix only witnessed divergence.
+3. Continue F3C-04/05, F3C-06/07, then sourced F1/F2 and F4–F6 in finite batches. Retain E035/PR372 and paused PR310 separately.
+
 ## 2026-09-24 — Active Task3b; Task4 next
 
 1. Inspect native/CI on 7491e16, correct evidenced archive fixture/runtime defects and finish direct, signed, legacy, claim, cascade, swallowed-event and retention qualifications; keep historical completeness false.
