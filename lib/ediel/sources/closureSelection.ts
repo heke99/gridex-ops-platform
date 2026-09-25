@@ -3,6 +3,7 @@ import {parseSourceReceiptInstant as instant} from '@/lib/ediel/utilts/receivedS
 import type {ClosureSourceWire} from './closureSourceWire'
 import type {ReviewedClosureBusiness} from './reviewedClosureSource'
 import type {StructuralCoverage,StructuralSelectionInput,StructuralVersion} from './structuralSourceSelection'
+import type {CorrectionContextBlockerV1} from './correctionContextImpact'
 
 export type ClosureVersion={sourceMessageId:string;payloadHash:string;assessmentId:string|null;factsHash:string|null;availableAt:string|null;
   disposition:'accepted'|'rejected'|'unavailable';wire:ClosureSourceWire;marker:ReviewedClosureBusiness}
@@ -13,6 +14,19 @@ export function closureBlockerMatches(blocker:ScopedClosureBlocker,input:Structu
   return blocker.objectId===input.objectId&&(blocker.identityAgency===null||blocker.identityAgency===input.identityAgency)
     &&(blocker.legalSender===null||blocker.legalSender===input.legalSender)&&(blocker.legalReceiver===null||blocker.legalReceiver===input.legalReceiver)
     &&(instant(blocker.lowerBound)===null||instant(input.periodEnd)!>=instant(blocker.lowerBound)!)
+}
+/** Hold-only correction context; absent comparison scope cannot disprove a
+ * match. In particular, a null lower bound reaches the entire object interval. */
+export function correctionContextBlockerMatches(blocker:CorrectionContextBlockerV1,input:StructuralSelectionInput){
+  const cutoff=instant(input.cutoffAt),end=instant(input.periodEnd)
+  const matches=(candidate:string|null,actual:string|null|undefined)=>candidate===null||actual==null||candidate===actual
+  return blocker.version===1&&cutoff!==null&&end!==null&&instant(blocker.observedAt)!==null
+    &&instant(blocker.observedAt)!<=cutoff
+    &&matches(blocker.scope.companyId,input.companyId)&&matches(blocker.scope.environment,input.environment)
+    &&matches(blocker.scope.customerId,input.customerId)&&matches(blocker.scope.supplyPeriodId,input.supplyPeriodId)
+    &&matches(blocker.scope.objectId,input.objectId)&&matches(blocker.scope.identityAgency,input.identityAgency)
+    &&matches(blocker.scope.legalSender,input.legalSender)&&matches(blocker.scope.legalReceiver,input.legalReceiver)
+    &&(blocker.lowerBoundUtc===null||instant(blocker.lowerBoundUtc)===null||end>=instant(blocker.lowerBoundUtc)!)
 }
 /** Supply coverage only: closures never enter the inventory/replacement graph. */
 export function boundCoverageByClosures(input:StructuralSelectionInput,baseline:StructuralVersion):

@@ -1,3 +1,23 @@
+## 2026-09-24 — Task3a necessary S/MIME serial representation correction
+
+Native298/301 revealed actual existing inspectCmsRecipientInfo printed-serial parser treats OpenSSL decimal1234 as hex rather than certificate04D2; regex also truncates a prefixed0x form. Parent inspected index.part-1.ts530 and authorized narrowly correcting recognized OpenSSL serial representations after actual local crypto reproduction. Keep original native1234 fixture; do not choose serial9 to hide the defect. Exact integer conversion, no Number precision loss, wrong serial remains rejected; expected-certificate normalization and fallback policy unchanged. Focused real crypto tests and independent fix3 review mandatory. No broader crypto refactor or published migration change.
+
+## 2026-09-24 — Task3a exact provider-entry seam
+
+Parent confirmed sendEdielEmail owns S/MIME archive/readback before actual nodemailer invocation. Narrow helper callback/type extension is necessary to place SQL entry after preparation and immediately before both sendMail branches; no broad helper refactor, no fallback, no new policy. Prepared only pending Task2b acceptance. Tracked process-history-task3a-preparation-20260924.md records callback response-loss and safe-release semantics.
+
+## 2026-09-24 — Canonical registry completion and direct grant isolation
+
+Fix4 independently reviewed proposal permits exactly existing communication.read/send registry rows with conflict-do-nothing and zero assignments. Role-list SELECT references did not materialize them on clean replay. Shared direct grants are restricted by company/membership and active/status/allow predicates, preserving role/platform branches, null-company legacy global and union-positive semantics. No deny-precedence redesign or override changes. CLI forwards and isolated regression/replay tests; native qualification pending. Audit correction-capture-fix4-report/proposal-review-20260924.md.
+
+## 2026-09-24 — E035 canonical operational capture capability
+
+Native evidence showed communication.write is absent from canonical permissions; new capture was unusable. Independent narrow SPEC/QUALITY amendment approves existing communication.send in action and forward SQL, with unchanged tenant/actor/company/original/witness checks. No new permission, alias, grants, test fallback, semantic review or outbound operation. This corrects an internal nonexistent identifier under user-authorized implementation, not a new role-policy decision. Document capture retains documents.read/customers.read. Published SQL remains immutable.
+
+## 2026-09-24 — E035 raw correction date does not establish prior boundary
+
+A bare C source DTM93 is an observed date only. Until an independently linked authentic L/LK establishes the prior end, correction capture oldStop remains unknown, so the hold spans the matching interval. Later authentic target composition may refine the derived readset without mutating original capture or saved cutoffs. No positive correction authority follows.
+
 2026-09-20 Task2 interface clarification: standalone validateProdatPermissionMessage remains field-only as approved manual composition; remove obsoleteBooleancontext and unsupported40 inference, preserve existingfield assertions. MissingLI/duplicatefieldfixtures must not mint correlatedauthority. Actualmanual resolver independently validates typedsourcebound correlation beforeevent/return/no null-TGT-success bypass. Existingdirect/canonical/system prior-free scope remains explicit. Actualmanual mocks adapt with qualifiedsyntheticevidence; sole semantic exception is namedenergyfalse test.
 
 Prior-flow source0fd41d86 independent all5APPROVE. Root authorizes bounded Task2 pureperobject/scopedloader/manualguard and single energyfalsecontext40/105 assertionexception; typedfixtureadapters preserveoldoutcomes. Main353accepted, no runtime/countacceptance yet;98/110+10unchanged;PR310paused.

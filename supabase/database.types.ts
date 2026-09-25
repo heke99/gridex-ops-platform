@@ -5329,6 +5329,7 @@ export type Database = {
       billing_underlays: {
         Row: {
           billing_block_reason: string | null
+          billing_blocked_by_case_id: string | null
           billing_configuration_snapshot: Json | null
           billing_configuration_snapshot_sha256: string | null
           billing_configuration_snapshotted_at: string | null
@@ -5391,6 +5392,7 @@ export type Database = {
         }
         Insert: {
           billing_block_reason?: string | null
+          billing_blocked_by_case_id?: string | null
           billing_configuration_snapshot?: Json | null
           billing_configuration_snapshot_sha256?: string | null
           billing_configuration_snapshotted_at?: string | null
@@ -5453,6 +5455,7 @@ export type Database = {
         }
         Update: {
           billing_block_reason?: string | null
+          billing_blocked_by_case_id?: string | null
           billing_configuration_snapshot?: Json | null
           billing_configuration_snapshot_sha256?: string | null
           billing_configuration_snapshotted_at?: string | null
@@ -18130,6 +18133,7 @@ export type Database = {
           auto_renew_enabled: boolean
           auto_renew_term_months: number | null
           billing_address_same_as_site: boolean | null
+          billing_blocked_by_case_id: string | null
           billing_blocked_reason: string | null
           billing_blocker_reasons: Json | null
           billing_city: string | null
@@ -18188,6 +18192,7 @@ export type Database = {
           invoice_fee_sek: number | null
           invoice_recipient: string | null
           invoice_reference: string | null
+          is_distance_agreement: boolean
           legal_acceptance_snapshot: Json
           legal_bundle_id: string | null
           legal_bundle_version_id: string | null
@@ -18250,6 +18255,8 @@ export type Database = {
           vat_rate: number | null
           version_snapshot: Json | null
           website_application_id: string | null
+          withdrawal_deadline_at: string | null
+          withdrawal_information_sent_at: string | null
           withdrawal_requested_at: string | null
         }
         Insert: {
@@ -18261,6 +18268,7 @@ export type Database = {
           auto_renew_enabled?: boolean
           auto_renew_term_months?: number | null
           billing_address_same_as_site?: boolean | null
+          billing_blocked_by_case_id?: string | null
           billing_blocked_reason?: string | null
           billing_blocker_reasons?: Json | null
           billing_city?: string | null
@@ -18319,6 +18327,7 @@ export type Database = {
           invoice_fee_sek?: number | null
           invoice_recipient?: string | null
           invoice_reference?: string | null
+          is_distance_agreement?: boolean
           legal_acceptance_snapshot?: Json
           legal_bundle_id?: string | null
           legal_bundle_version_id?: string | null
@@ -18381,6 +18390,8 @@ export type Database = {
           vat_rate?: number | null
           version_snapshot?: Json | null
           website_application_id?: string | null
+          withdrawal_deadline_at?: string | null
+          withdrawal_information_sent_at?: string | null
           withdrawal_requested_at?: string | null
         }
         Update: {
@@ -18392,6 +18403,7 @@ export type Database = {
           auto_renew_enabled?: boolean
           auto_renew_term_months?: number | null
           billing_address_same_as_site?: boolean | null
+          billing_blocked_by_case_id?: string | null
           billing_blocked_reason?: string | null
           billing_blocker_reasons?: Json | null
           billing_city?: string | null
@@ -18450,6 +18462,7 @@ export type Database = {
           invoice_fee_sek?: number | null
           invoice_recipient?: string | null
           invoice_reference?: string | null
+          is_distance_agreement?: boolean
           legal_acceptance_snapshot?: Json
           legal_bundle_id?: string | null
           legal_bundle_version_id?: string | null
@@ -18512,6 +18525,8 @@ export type Database = {
           vat_rate?: number | null
           version_snapshot?: Json | null
           website_application_id?: string | null
+          withdrawal_deadline_at?: string | null
+          withdrawal_information_sent_at?: string | null
           withdrawal_requested_at?: string | null
         }
         Relationships: [
@@ -58639,6 +58654,7 @@ export type Database = {
           company_id: string | null
           created_at: string
           created_by: string | null
+          customer_case_id: string | null
           customer_id: string | null
           customer_site_id: string | null
           dispatch_batch_key: string | null
@@ -58677,6 +58693,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           created_by?: string | null
+          customer_case_id?: string | null
           customer_id?: string | null
           customer_site_id?: string | null
           dispatch_batch_key?: string | null
@@ -58715,6 +58732,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           created_by?: string | null
+          customer_case_id?: string | null
           customer_id?: string | null
           customer_site_id?: string | null
           dispatch_batch_key?: string | null
@@ -58942,6 +58960,7 @@ export type Database = {
           company_id: string | null
           created_at: string
           created_by: string | null
+          customer_case_id: string | null
           customer_id: string | null
           export_batch_key: string | null
           export_kind: string
@@ -58973,6 +58992,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           created_by?: string | null
+          customer_case_id?: string | null
           customer_id?: string | null
           export_batch_key?: string | null
           export_kind?: string
@@ -59004,6 +59024,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           created_by?: string | null
+          customer_case_id?: string | null
           customer_id?: string | null
           export_batch_key?: string | null
           export_kind?: string
@@ -88377,6 +88398,16 @@ export type Database = {
         Returns: Json
       }
       gridex_backfill_invoice_fees: { Args: never; Returns: Json }
+      gridex_begin_document_reference_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_document_id: string
+          p_environment: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
       gridex_billing_information_complete: {
         Args: { p_value: Json }
         Returns: boolean
@@ -88421,6 +88452,15 @@ export type Database = {
       }
       gridex_canonicalize_publication_invoice_fee_v1: {
         Args: { p_invoice_fee_sek: number; p_publication_snapshot: Json }
+        Returns: Json
+      }
+      gridex_capture_correction_concern_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_source_message_id: string
+        }
         Returns: Json
       }
       gridex_claim_billing_automation_jobs: {
@@ -88685,6 +88725,7 @@ export type Database = {
         }
         Returns: {
           billing_block_reason: string | null
+          billing_blocked_by_case_id: string | null
           billing_configuration_snapshot: Json | null
           billing_configuration_snapshot_sha256: string | null
           billing_configuration_snapshotted_at: string | null
@@ -88924,6 +88965,15 @@ export type Database = {
           p_actor_user_id: string
           p_company_id: string
           p_source_offer_id: string
+        }
+        Returns: Json
+      }
+      gridex_correction_combined_snapshot_v1: {
+        Args: {
+          p_company_id: string
+          p_cutoff: string
+          p_environment: string
+          p_message_id: string
         }
         Returns: Json
       }
@@ -89880,6 +89930,16 @@ export type Database = {
         Args: { p_postal_code: string }
         Returns: string
       }
+      gridex_observe_document_reference_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_attempt_id: string
+          p_company_id: string
+          p_environment: string
+          p_observation: Json
+        }
+        Returns: Json
+      }
       gridex_onboard_customer_graph: {
         Args: { p_command: Json }
         Returns: Json
@@ -89890,6 +89950,18 @@ export type Database = {
       }
       gridex_onboard_customer_graph_quote_commit_v2: {
         Args: { p_command: Json }
+        Returns: Json
+      }
+      gridex_open_correction_process_readset_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_customer_id: string
+          p_cutoff_at: string
+          p_environment: string
+          p_point_id: string
+          p_supply_period_id: string
+        }
         Returns: Json
       }
       gridex_ops_health_checks: {
@@ -89949,6 +90021,7 @@ export type Database = {
           table_name: string
         }[]
       }
+      gridex_outbound_dispatch_v1: { Args: { p_input: Json }; Returns: Json }
       gridex_pause_contract_channels: {
         Args: {
           p_actor_user_id: string
@@ -90257,6 +90330,16 @@ export type Database = {
           p_actor_user_id?: string
           p_company_id: string
           p_export_run_id: string
+        }
+        Returns: Json
+      }
+      gridex_read_document_reference_context_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_cutoff: string
+          p_environment: string
+          p_source_message_id: string
         }
         Returns: Json
       }
@@ -90992,6 +91075,33 @@ export type Database = {
         Returns: Json
       }
       gridex_verify_contract_schema_alignment: { Args: never; Returns: Json }
+      gridex_witness_correction_concern_v1: {
+        Args: {
+          p_capture_id: string
+          p_company_id: string
+          p_environment: string
+          p_facts_hash: string
+        }
+        Returns: Json
+      }
+      gridex_witness_correction_process_fact_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_fact_id: number
+          p_facts_hash: string
+        }
+        Returns: Json
+      }
+      gridex_witness_document_reference_v1: {
+        Args: {
+          p_company_id: string
+          p_environment: string
+          p_facts_hash: string
+          p_outcome_id: string
+        }
+        Returns: Json
+      }
       gridex_witness_source_objects_v1: {
         Args: {
           p_assessment_id: string

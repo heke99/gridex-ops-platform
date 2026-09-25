@@ -504,6 +504,15 @@ export function inspectCmsRecipientInfoWithForge(params: {
   }
 }
 
+// OpenSSL prints small ASN.1 integers as decimal and large ones with a 0x
+// prefix. Certificate serials stay hexadecimal; never infer the printed radix
+// from hex-looking digits or coerce through Number (serials exceed 2^53).
+export function parseOpenSslCmsSerial(value: string): string | null {
+  const printed = value.trim()
+  if (!/^(?:[0-9]+|0x[0-9a-f]+)$/i.test(printed)) return null
+  return BigInt(printed).toString(16).toUpperCase()
+}
+
 export async function inspectCmsRecipientInfo(params: {
   encryptedDer: Buffer
   expectedSerialNumber?: string | null
@@ -527,8 +536,8 @@ export async function inspectCmsRecipientInfo(params: {
         inputPath,
       ], { maxBuffer: 1024 * 1024 * 6 })
       const raw = String(stdout ?? '')
-      const serialNumbers = Array.from(raw.matchAll(/serialNumber:\s*([0-9A-Fa-f]+)/g))
-        .map((match) => normalizeCmsSerial(match[1]))
+      const serialNumbers = Array.from(raw.matchAll(/^[ \t]*serialNumber:[ \t]*([^\r\n]*)\r?$/gm))
+        .map((match) => parseOpenSslCmsSerial(match[1]))
         .filter((serial): serial is string => Boolean(serial))
       const expectedReceiverPresent = Boolean(
         params.expectedSerialNumber && serialNumbers.some((serial) => serialMatchesExpected(serial, params.expectedSerialNumber)),

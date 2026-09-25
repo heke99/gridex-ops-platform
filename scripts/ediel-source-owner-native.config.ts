@@ -15,5 +15,5 @@ process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = status.ANON_KEY
 process.env.SUPABASE_SERVICE_ROLE_KEY = status.SERVICE_ROLE_KEY
 export default defineConfig({
   resolve:{alias:[{find:'@',replacement:resolve(__dirname,'..')}]},
-  test:{environment:'node',include:['scripts/ediel-source-owner-native.test.ts','scripts/ediel-closure-wire-native.test.ts','scripts/ediel-utilts-consumption-native.test.ts'],testTimeout:30000,hookTimeout:30000,fileParallelism:false},
+  test:{environment:'node',include:['scripts/ediel-source-owner-native.test.ts','scripts/ediel-closure-wire-native.test.ts','scripts/ediel-utilts-consumption-native.test.ts','scripts/ediel-correction-context-native.test.ts','scripts/ediel-document-reference-native.test.ts'],testTimeout:30000,hookTimeout:30000,fileParallelism:false},
 })

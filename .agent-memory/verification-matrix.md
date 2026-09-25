@@ -1,3 +1,97 @@
+## 2026-09-25 — LK exemption and first CI failure
+2026-09-25 follow-up: published intermediate PR372 `9b62d5d9` exposed first full E2E coverage failure `108259269158` (non-Z08 callback_missing and eight dependent/static cases). Independent correction review found legitimate Z08 LK exemption. Local TDD LK RED/GREEN and second forward `20260925234000` now return an explicit SQL-owned exemption; restored original non-Z08 direct lane. Exact four affected test files 52/52 PASS; final native and exact-head CI pending. Main unchanged; no production/staging/market send or PR310 change.
+
+## 2026-09-25 — Integrated PR372 and outbound fence candidate
+`0fbe6a5a`: OPS `36190502740` verify/quality/clean replay SUCCESS; tenant `36190502852`, Ediel `36190502747`, browser `36190502862`, full E2E `36190502639` SUCCESS; crawler skipped. Local candidate after independent review: `npx vitest run __tests__/ediel-correction-outbound-scope.test.ts` RED old provider acceptance, then PASS 2/2; `npm run db:migrations:check`, `npm run typecheck`, `npm run typecheck:tests`, `npm run typecheck:scripts`, scoped eslint, large-file budget, diff check PASS. SQL native and new-head CI NOT RUN.
+
+## 2026-09-25 — PR372 integrated stack checkpoint
+
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Original #372–#384 heads | All applicable ordinary workflows | SUCCESS; crawler SKIPPED | Each bounded child, not yet integrated final head. |
+| `54c27ff6847a871c16ec04442812e893ceb020df` | Internal merge ancestry and tree | Tree `d8817952` equals fully green #384 | Integrated CI started; main untouched. |
+| Local documentation cleanup | Full main-to-stack `git diff --check` | Three inherited EOF blank lines identified and removed | Recheck and publish final head; runtime/SQL unchanged. |
+
+## 2026-09-25 — F3C-05 field202 agency local candidate
+
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | E66 BGM/C002/3055 tom/999 + genuin E19 | RED: `functional_rejected`/ERR före rättning | UG-122-6. |
+| Lokal gren före commit | 25 relevanta filer, app/test typer, scoped lint/diff | 315/315 PASS; övrigt PASS | Egen CI väntar; 1131/1001 ej genomgångna. |
+| `a23e50faa030c27ffffcf9af500f59c3210e149d` | PR383 ordinarie flöden | Köade/pågick vid första kontrollen | Föregående fält203. |
+
+## 2026-09-25 — F3C-05 field203 local candidate
+
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | Fullständig E66 tom BGM1004 + genuin E19 | RED: `functional_rejected`/ERR | Fält203 anvisningsfel före rättning. |
+| Lokal gren före commit | 25 relevanta filer, app/test typer, scoped lint/diff | 313/313 PASS; övrigt PASS | Egen exakt-head CI väntar; unikhet över tid ej verifierad. |
+| `397edfe66164bffc1ca298faf1cafe5a3cd97c53` | PR382 fyra ordinarie flöden | Alla SUCCESS, OPS `36184073417`; merge `4ef14108` till PR381 | Föregående fält204, inte kandidatens CI. |
+
+## 2026-09-25 — PR372 switch-event UUID-fix
+
+| Head | Körning | Resultat | Gräns |
+|---|---|---|---|
+| `8800d014` | OPS `36141666759`, native `108092740618` | 336/337; `scoped_process_count_overflow`, `factCount:1013`, `[]` i stället för `['INSERT']` | Korrekt röd regression. |
+| `f75b69ea9312f2e3c8d76c8e4aab47a25573322f` | OPS `36143179178`, native `108097721099` | 337/337, case-view, tenant/paritet, schema och verify/quality SUCCESS | UUID-avgränsningen native-kvalificerad; inte hel Task 3b/4. |
+| `f75b69ea` | Tenant `36143179172`, browser `36143179242`, Ediel `36143179301`, full E2E `36143179256`, crawler `36143179413` | Fyra SUCCESS, crawler SKIPPED | Samma kodhead. |
+
+---
+
+## 2026-09-25 — PR372 paus
+
+| Version | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| `c71f312aff239396b2e795b45cd070c7fc995d17` | OPS `36129656763`, native `108053746021` | 337/337 och tillämpliga CI gröna | Föregående head; kvalificerar inte E30/S07 inbound-sidoeffekterna. |
+| `528baa6db4fa15551888a300f22617fc3a09d684` | OPS `36132081645` | Verify `108061425196` grön; quality `108061424990` och native `108061425252` pågick | Ingen native-acceptans ännu. |
+| `528baa6d` | Tenant `36132081711`, Ediel `36132081611`, browser `36132081736`, full E2E `36132081656`, crawler `36132081716` | Fyra gröna, crawler skippad | Samma publicerade head. |
+
+Fulla fel och bevisgränser: `.agent-memory/pr372-pause-20260925.md`.
+
+---
+
+## 2026-09-24 — PR372 continuation
+
+| Head | Evidence | Result |
+| --- | --- | --- |
+| 37a7052 | OPS35988188001 and all applicable workflows; local db:migrations:check | PASS; crawler skipped |
+| 9186e47 | OPS35988546648; native312/312; all applicable workflows | PASS; crawler skipped |
+| 28694d2 | OPS35989469066; native312/312; all applicable workflows | PASS; crawler skipped |
+| 7491e16 | OPS35990306080; native312/312; all applicable workflows | PASS; crawler skipped |
+
+## 2026-09-24 — E035 Task3b prospective facts checkpoint
+
+- RED PR372 head716912cf: OPS35970235871 native302/303; new fact test failed on absent relation. Verify/quality passed.
+- Candidate6ac92a93: first OPS35971121783 native302/303, retained document-reference interruption case failed; same-commit retry native303/303 plus case1/browser2/postbrowser1 passed. Authentic type SHA32ae2f06 unchanged. Schema fingerprint77cc9b79 from artifact10797140467, ZIPfd5d87fd, copied byte-identically. Initial run stopped on old committed fingerprint.
+- Local Node22 scripts typecheck, scoped lint and migration integrity passed; after authentic reconcile `npm run db:migrations:check` passed. Final same-head CI pending. Full Task3b and Task4 unverified.
+
+# E035 Task2b document context reviewed; native261 pending — 2026-09-24
+
+Source-onlyTask2a accepted8fde5f26, acceptanceBASE0a528215 alsoallCIgreen. Currentdocumentimplementation07d3b9c5 +fix1 638926b4 independentlySPEC/QUALITYAPPROVED,0open. Reference-only context: triplepermissions/actualtenantgraph, durableattemptbefore2MiB/10sec streamingreadback, separateobservation/append/witness andincompleteepoch; savedpayload preservesimmutableidentity/xids/visibility. NoPDFcopy/newretention/positiveC/reopening. PublishedsourceSQLunchanged; documentforwardnotyetpublished.
+
+Local64/5,3typechecks(initialapp thenunchanged),lint,integrity612/516PASS. ActualSDK/Node/loopback header/bodytests2PASS/35skipped; no projectDB/Storagequalification implied. Expectedmandatorynative261/5 =retained224+document37. Next: publish exactreviewedcheckpoint fromAPIparent0a528215, runrealnativeSQL/Storage, reconcilegenuinegeneratedartifacts thenindependentreview/acceptance. Task2bnotyetaccepted; Task3processhistory andTask4UTILTS remain. Allreports/fixtures/constraints saved; PR372draft, PR310excluded, fullE035partial, userapprovalpersists.
+
+# E035 source capture Task2a accepted; document Task2b next — 2026-09-24
+
+Accepted source-only head8fde5f2644a87351a5dbe42d8a694d33a606ba8d/treef23f346b065b43c70d662c0ba8006d00c21cfb59. All applicable same-headCI SUCCESS: OPS35942941358 (native107454629303, verify107454629433, quality107454629457), Ediel35942941365, fullE2E35942941357, browser35942941360, tenant35942941361; crawlerSKIPPED. Actualfull6038/374+build, native224/4+case1/browser2/postbrowser1, SQL/concurrency, types, tenant invariants, parityselftest and exactschema PASS. Artifact10785568965 ZIP SHA25695bdfdd9e3bba4569751b787e7d6f4eab058926a4dd02c2d6c671b5a76aaf6ff; types/schema/fingerprint byte-identical. Independent final native/schema SPEC/QUALITY ACCEPTS bounded Task2a. Five-round repair gate closed with0open; no sixthwave. No PR372 merge or wholeTask2/E035 completion.
+
+Next active item: prepared Task2b reference-only document context, sole author document_reference_task2b. Parent supplies START and immutableBASE after publishing this receipt. Brief/report in .superpowers/sdd/2026-09-24-e035-correction-context and tracked audits. No copiedPDF/newretention/positiveC; actual2MiB/10sec bounded readback afterdurableattempt, independentlycheckedsource/point/site/supply/contract/documentgraph and triplepermissions. Native/contracts remain parent-owned.
+
+Task3 partial process/outbound history and Task4 conditional single-MVCC UTILTS holds follow. FullE035partial (Z06E/changedstart/delegation/agency89/multiplephysical/history remain). PR371 prior25-A-3 E61/E62 acceptedmerged2a148d39; PR310excluded. User continuation/publication/CI/gatedmerge approval persists. No hostedwrites/deployment/marketsends.
+
+## 2026-09-24 — Source capture native and contract evidence
+
+Actual6091edc7 OPS35942242226/native107452448227:224/4,case1/browser2/postbrowser1,types,tenant andparityPASS. Onlyexpectedoldschemamismatch; authenticartifact10785596678 copied/independentlyverified, SPEC/QUALITYAPPROVED. FinalsameheadCIpending beforeTask2aacceptance; fullTask2/E035incomplete. Fixround5 exactownedfixturecleanupresolved F3 withoutproduction/invariantchange.
+
+## 2026-09-24 — PR372 source capture repair checkpoint
+
+Task2 fixround4/5 dba55466..05461a63 scoped SPEC/QUALITY APPROVED,0open; registry+scope findings addressed. Native224/artifacts pending, source-only capture not accepted. Parent exacttree publication next.
+Local71/4, scripts types/lint and integrity611/515 PASS. Latest genuine native195/206 FAIL; new224 not executed. Source/version inventory verifies5original hashes with bounded historical gaps. User-authorized continuation remains active.
+
+## E035 source capture review round1 — 2026-09-24
+
+Local993367ea source-only checkpoint independently SPEC/QUALITY approved. I1 unsupported grammar and I2 duplicated parser addressed. Finalfocused273/16,3types/lint/integrityPASS; native204 pending real CI and generated contracts. No fullTask2/E035 or merge acceptance. Parent publishes exact reviewed tree next.
+
 ## Retry qualification complete; Ediel case navigation next — 2026-09-23
 
 Published fe63dd98ad3e736b879a8eef6b4806793c2babef is ALL applicable ordinary CI SUCCESS: OPS35887130604 (native107270182432, verify107270182278, quality107270182217), fullE2E35887130657, browser35887130663, Ediel35887130742 and tenant35887130633. Native124PASS; authentic types/schema reconciled and bounded independent SPEC/QUALITY/native review approved. Successful retry binding task complete. No whole-E035 approval or merge.
@@ -130,3 +224,190 @@ Published code/test head c89586dc9b6ff29ab8d01ede873a8e4f6ebb0617 (tree8fbaed08c
 Next: publish this documentation receipt, then qualify its exact head using ordinary CI and authentic native artifact inspection. If native startup fails transiently again, inspect the actual error and rerun only failed job once the workflow finishes; do not weaken gates. Corrected166 native tests still need successful execution. Merge only after exact-head checks and final receipt review. Full E035 remains PARTIAL; PR310 excluded. User approval covers publication/PR/CI and continuation; no repeat approval needed for this bounded delivery.
 
 Prepared follow-up: correction-context-next-plan-20260924.md in the same audit directory, read-only plan until PR371 accepted. Hold-only correction capture/process history and earliest plausible boundary; positive C and unresolved historic dispatch/retention authority remain separate.
+
+# E035 prior-guide delivery accepted; correction-context task starts — 2026-09-24
+
+PR371 MERGED at main2a148d39d631fc759c99cd1c69350b5e2147dbdb. Final PR head65f5b896cd3801eedde43db99df38afa6d9c78a1 passed all applicable CI: OPS35931020643, Ediel35931020535, browser35931020629, fullE2E35931020592; crawler skipped. Full6003/372, native166/3, case1/browser2/postbrowser1, SQL/concurrency/tenant/parity and build PASS. Independent whole-branch SPEC/QUALITY and final native scope ACCEPT, zero findings. Artifact10780533571 SHA256f25a0560519fd313d3e0e5e068145d74823b4d1bbedad3d3237f129d0623eacc independently verified; generated contracts byte-identical, no migration. Final native addendum retained in audit directory. Earlier publication/native blockers below are SUPERSEDED.
+
+Active branch codex/e035-correction-context-20260924 from accepted main2a148d39. One active item: hold-only correction-context/process-history slice for Z05C/corrected end. Plan docs/superpowers/plans/2026-09-24-e035-correction-context.md. Start pure earliest-boundary projection, then immutable capture, outbound/process history and service-owned saved-cutoff composition. Do not issue positive C/reopening authority. Unknown historical dispatch/retention remains unavailable. Full E035/G01/F3/masterplan PARTIAL; Z06E/changed-start/agency89/multi-message/delegation/history remain subsequent owners. PR310 excluded.
+
+Next exact action: generate Task1 brief and SDD ledger; implement pure blocker with boundary/scope tests and independent review. Follow finite task gates, real native qualification and generated-contract reconciliation for later SQL integration. User approval covers continuation/publication/review/merge after gates; no hosted writes/deployment/market sends.
+
+# PR372 active; pure correction hold approved — 2026-09-24
+
+PR372 draft https://github.com/heke99/gridex-ops-platform/pull/372 on codex/e035-correction-context-20260924; remotehead ea1d76e4fde787777da882be66948218f1a7ee0e is exacttree of local189eb136. Local history intentionally remains on189eb136 while sole author works; parent must publish next tree using remoteparent ea1d76e4 and sync only after author freeze. Task1 pure boundary/scope/cutoff hold independently SPEC/QUALITY approved; finalfocused67/5, types/lint PASS, full6007/373 before smallmatcher extraction then focusedGREEN. Production capture remains absent until later tasks; no positive C authority.
+
+Active Task2 author /root/correction_context_task2, BASE189eb136d85398b458d72293cc35e551034e5490. Implement immutable sealed-Z05 source concern capture with SQL tenant/actor/original/witness guards and real native fixtures. Parent authorized source-only checkpoint with document-byte capture explicitly unresolved, not whole Task2 completion. Existing document metadata is more immutable than initial preflight assumed (20260716183000); new correction-PDF copy lacks established policy mapping. Read-only reference-reuse design in progress, no invented legal policy/retention or positive cause. Tasks3/4 outbound/processhistory and one-MVCC composition remain pending.
+
+Next: receive Task2 implementation checkpoint, independently review/native qualify and resolve document route before claiming complete capture. CLI2.101.0 available via npx; native DB remains CI-owned. User continuation/publication approval persists; no hosted writes/deployment/market sends. PR371 remains accepted merged2a148d39, full E035 PARTIAL, PR310 excluded.
+
+## 2026-09-24 — Task2b first native result; fix round 2 active
+
+Published head `7a28b9ab086da88d320d7da96c54c503bcdafc75`, OPS35945973907. Quality/release/build job107463863631 SUCCESS. Clean replay job107463863699 applies migrations and runs all five native files: **228 passed, 33 failed, 261 total**. All 33 failures stop in document fixture seed line67: actual registry has communication.send and documents.read but lacks customers.read. This is a concrete registry prerequisite failure; document DB/Storage assertions behind that seed are not qualified. Generated types/schema stages were not reached. Verify job107463863393 fails the expected stale generated migration tail. Artifact10786519020 contains replay log only (ZIP SHA256 7db649f5e0269d01ddad11acc8cb20fa873b09392aa36aa539b87a659b084262).
+
+Original Task2b author owns fix round2/5 from published7a28b9ab. Trace the actual migration chain and canonical key before correction; do not weaken authorization or insert a test-only substitute. Published SQL is immutable; any production repair needs a new CLI forward. Parent owns independent review, publication and authentic generated contracts. Task3 remains PREPARED only. Its approved sequential partition is 3a outbound reservation/provider fence and immutable receipts, then 3b finite twelve-table process facts; each requires independent review and real native acceptance before Task4 composition. Full E035 remains PARTIAL; PR372 draft; PR310 excluded.
+
+Next: review the bounded fix, publish from API parent7a28b9ab, execute actual native qualification, reconcile generated artifacts, then accept Task2b only with evidence. No further user approval is needed for the authorized continuation.
+
+
+## 2026-09-24 — Task2b fix round2 frozen; scoped review active
+
+Published API parent remains 7a28b9ab086da88d320d7da96c54c503bcdafc75. Local fix8089f34bfced7e72b36958c387cbf748f97bd89c adds canonical customers.read registry materialization only, no assignments or authorization change. Actual legacy INSERT files have eight-digit filenames and are not canonical replay inputs. New CLI forward20260924021718 checksum cc91587d97507a0f3ab810de11df02ed588c49914cf164d5e1fd3a213adb1243; published SQL unchanged. Local integrity613/517, scripts/tests types and scoped lint PASS. Native expected262, not executed on fix. Baseline full6062/376/build PASS; native228/261 with33 seed failures remains latest real result.
+
+Next: scoped independent SPEC/QUALITY review, exact-tree publication, actual262 DB/Storage replay, authentic types/schema reconciliation and final native acceptance before Task3a. Task3a/3b focused briefs and recovery reports saved in tracked audit. Full E035 partial, PR372 draft, PR310 excluded, user authorization persists.
+
+## 2026-09-24 — Task2b native261/262; fix round3 active
+
+Published9e28bc1d / OPS35947668822 / native107469127017: **261 PASS,1 FAIL,262 total**. Canonical customers.read materialization and repeat-preservation test pass. Sole failure is same-company wrong supply graph native test line158: expected unavailable but got verified_at_observation. Root cause is under investigation; do not classify fixture versus runtime defect before evidence. Generated types/schema stages not reached. Artifact10787592388 ZIP digest e1b061b7b3e8ccd37f476b61a3650d0a2f3d58dd244ee18261e83c9480193b46. Browser/Ediel/tenant pass; E2E14/15 only stale generated migration tail. Task2b not accepted.
+
+Author document_fix2_recovery resumes fixround3 from9e28bc1d. Preserve unresolved graph/no Storage I/O requirement; published SQL immutable. Next: diagnose bounded root cause, fix, independent scoped review, publish and actual native rerun, then authentic generated contracts. Task3 prepared only. PR372 draft; full E035 partial.
+
+## 2026-09-24 — Task2b fix3 fixture correction frozen
+
+Local1443d03e01f23e79da7c93db47417b25abf2e6c2 on published9e28bc1d. Confirmed native failure was fixture-only: existing gridex_sync_supply_customer_contract_v1 rehydrates customer_contract_id from populated contract_id. Negative fixture now clears both aliases atomically, asserts persisted null/null, preserves unavailable outcome and zero Storage reads across all5 wrong same-company graph cases. No production SQL/manifest change. Node22 scripts/tests types, lint and diff check PASS; actual native262 rerun pending. Scoped independent re-review active.
+
+Next: accept scoped review, publish exact tree from9e28bc1d, rerun native262, reconcile actual generated contracts, then final qualification. Task3a remains prepared only; full E035 partial/PR372 draft.
+
+## 2026-09-24 — Task2b native262 PASS; authentic types reconciliation
+
+Runtime9b6ee291 / OPS35948357290 / native107471286079 passed **262/5** (retained224 + document38), case1/browser2/postbrowser1. Quality107471286229 SUCCESS. Only expected generated-types mismatch stopped replay before tenant/parity/schema. Artifact10786849836 ZIP SHA77600354e2a64d93a7eb0cf4dca9b3e5c31e82f01eaddd23e2e49950e2f85b0f verified; actual types SHA f2a05bbb69ec298e78cf21cd6761a62aae82ba9bdde5b2aa38032b5e062d8e5f copied byte-identically and manifest tail/provenance updated. No manual generated code.
+
+Next: publish authentic types, execute remaining tenant/parity/schema, reconcile actual schema then final same-head gates and independent native acceptance. Task3a prepared only; Task2b not yet fully accepted. PR372 draft/full E035 partial.
+
+## 2026-09-24 — Task2b schema reconciliation after native262 and tenant/parity PASS
+
+Published2fb06cb1 / OPS35949085146 / native107473500225 passed native262/5, case1/browser2/postbrowser1, authentic types, tenant invariants and every parity-selftest drift class. Verify107473500352 and quality107473500021 SUCCESS. Only committed old schema fingerprint mismatch remains. Artifact10788152004 ZIP SHAed8a05257ac50f00624538e2242c468825617a8d1830690badf6c6ff92f2bccd verified; actual schema.sql and fingerprint copied byte-identically. Schema.sql SHA b7aa3dc018528e93b7238e29bd3c2667ce4f446abacff6e04a02259c79e66ec0; fingerprint e28df3203db729c2db2d2f9ba82ba0d98cdd1247072d6c564616d0770ca2f67d. Types remain byte-identical f2a05bbb.
+
+Next: bounded independent final native/schema review, publish exact generated contracts from API parent2fb06cb1, finalsameheadCI and acceptance before Task3a START. FullE035 partial, PR372 draft, PR310 excluded; no hosted writes/deployment/market messages.
+
+## 2026-09-24 — Task2b document references ACCEPTED; Task3a next
+
+Task2b accepted runtime7581966b75165b2fd88de05756913cb673cd4a32, tree d77b4ba73e67caf78eab951ffcc5ef3ed05e3e10. All applicable same-head workflows SUCCESS: OPS35949827423 (verify107475755293,quality107475755157,native107475755339), fullE2E35949827409,browser35949827480,Ediel35949827343,tenant35949827368; crawler35949827390 skipped. Native262/5 plus case1/browser2/postbrowser1, retained SQL/concurrency, types, tenant invariants, parity and schema PASS. Prior full6062/376 and final quality/build green. Independent native/schema SPEC/QUALITY approved zero findings. Final artifact10788357629 ZIP SHAb187af683ab68fa6debac16883aca049d0d2fc8733039921b07a7314b93b0a6b verified; all three generated files byte-identical. Reference-only context, authority:none/coverage:incomplete; no PDF copy/new retention/positive C or reopening.
+
+Next single active item: Task3a outbound provider-entry fence and immutable receipts, prepared author outbound_fence_task3a. Publish this acceptance checkpoint, then explicit immutable BASE/START. Narrow approved sendEdielEmail callback after S/MIME archive and before either sendMail included; no Task3b or Task4 edits. Full Task3, full E035 and PR372 delivery remain incomplete. PR372 stays draft, PR310 excluded. User authorization covers continuation/publication/gated merge; no hosted writes/deployment/market messages.
+
+## 2026-09-24 — Task3a frozen; independent review active
+
+Author froze 90a7c653a48dd2bd7b39f0db0e15a3a620d5438a in /workspace/scratch/4b1d39503015/gridex-ops-platform/.worktrees/e035-task3a-isolated. This is the sole authoritative workspace; original checkout is preservation-only. Full review BASE d0d95006 includes preserved snapshot6eece160 plus final corrections. Reviewer /root/outbound_fence_review owns SPEC+QUALITY review; no runtime edits during review. Local helper/preflight4, compatibility74/11, all three types, scoped lint and migration integrity pass. Native296 is expected, NOT EXECUTED. Published SQL and all428 baseline checksum entries unchanged.
+
+Unverified original draft is retained as non-executable audit patch task3a-unverified-draft-20260924.patch.gz (SHA256 aa4bd4eddd3273f44cd6c767a0e829a3d35b44bb9c6d85a4f866c78d949a4682); isolation receipt describes recovery. Publish binary via base64 blob. Final new migration031626 SHA8eff8a86530af7cb46fdb3cf5c650522f2b70db755c6561ab97ea211daa281a0 remains unpublished.
+
+Next: resolve independent review, publish exact reviewed tree using remote API parent d0d95006; genuine native PostgreSQL/Storage CI and authentic generated contracts before Task3a acceptance. Preserve original dirty checkout and local backup branches when synchronizing. Then Task3b twelve-table facts and Task4 single-MVCC consumer, whole-branch review and final gates. PR372 draft/fullE035 partial, PR310 excluded. User approval persists; no hosted writes/deployment/market sends.
+
+## 2026-09-24 — Task3a reviewed; native301 pending
+
+Runtime90a7c653 plus native-proof fix3ceb0caf independently SPEC/QUALITY approved. T3A-R1/R2 both addressed, zero open important findings; formatting minor remains for whole-branch review. Local helper4, compatibility74/11, types/lint/integrity PASS; native301 NOT EXECUTED. No generated contract has been fabricated or changed. Migration031626 remains unpublished until next exact-tree checkpoint.
+
+Next: publish exact tree from remote parent d0d95006, run genuine native PostgreSQL/Storage and all CI, reconcile authentic types/schema only. Task3a not accepted until those gates pass. Active workspace /workspace/scratch/4b1d39503015/gridex-ops-platform/.worktrees/e035-task3a-isolated; original dirty checkout preservation-only. Save binary draft audit via base64 blob. Then Task3b/4 and whole-branch review. PR372 draft/fullE035 partial, PR310 excluded; authorization persists.
+
+## 2026-09-24 — Task3a ACCEPTED; Task3b next
+
+Accepted runtime d7cbab18b9b102e00cde256bc91c22271455d7c8, tree66c82f59b88969b43326f7f34bd11ad432412cff. All applicable same-head CI SUCCESS: OPS35958136936 (verify107500725279,quality107500725385,native107500725396), fullE2E35958136881, browser35958136874, Ediel35958136896, tenant35958136892; crawler35958136976 skipped. Full6072/377, native301/5 plus case1/browser2/postbrowser1, types, tenant invariants, parity, schema, build/bundle PASS. Independent static/fix/native/schema SPEC/QUALITY approved. Final artifact10791646035 ZIP73ad030582646cb7e851c348f28867c3f32e45a1e3ab65e3a1a659acf9ef8614 verified; all three generated files byte-identical. Types32ae2f06, schemaef41ebad, fingerprint04ba0c99.
+
+One next active item: Task3b twelve-table customer/process facts, prepared brief, fresh sole author after acceptance checkpoint publication. Genuine acceptedBASE schema artifact is available in /workspace/scratch/4b1d39503015/e035-pr372-outbound-final; use it plus real native catalog probes, not source-only assumptions. Parent owns nativeCI/generated artifacts. Task4 single-MVCC composition and later E035 owners remain pending. No fullTask3/E035 or PR372 merge claim. PR310 excluded; user authorization persists.
+
+Authoritative workspace remains /workspace/scratch/4b1d39503015/gridex-ops-platform/.worktrees/e035-task3a-isolated. Original checkout is preservation-only. Deferred final-review items: dense adapter formatting; canonical fingerprint covers public/gridex_received_sources, not gridex_outbound_dispatch (private behavior has native/migration proof). No hosted writes/deployment/market sends.
+## 2026-09-24 — PR372 point scope and comparator seam
+
+| Head / local state | Evidence | Result |
+| --- | --- | --- |
+| 562015b | OPS35995196628 clean replay: native313/313, case1/browser2/postbrowser1, generated types a0a50f80, schema fingerprint 925af263 | PASS; verify stale manifest only |
+| unpublished comparator seam | RED matched instead of correction hold; then focused Vitest 58/58, scripts/tests/app typechecks, scoped lint, migration check | PASS locally; active service composition pending |
+## 2026-09-24 — PR372 Task4 current gate
+
+| Head | Evidence | Result |
+| --- | --- | --- |
+| 6c27f6c | OPS35996785199 | Expected RED: 313/314 native, combined RPC absent |
+| d1722206 | OPS35998393754, artifact10807456195 ZIP1ad1f384 | Native314/314, case1/browser2/postbrowser1 PASS; old type manifest stopped |
+| b1c7f993 | Local focused91/91, migrations check, app/tests types, scoped lint | PASS; active combined UTILTS hold and authentic typegen |
+| b1c7f993 | OPS35999644966 | In progress; schema snapshot and exact-head final result pending |
+
+## 2026-09-24 — PR372 bounded hold and schema gate green
+
+PR372/521bc9ba: OPS36003339938 clean migration replay SUCCESS, native314/314 in five files, case1, protected browser2, postbrowser1, tenant invariants PASS, parity selftest PASS, generated types identical SHA2b2dda6a, schema check PASS fingerprint5e3db200. Verify and quality SUCCESS; Ediel, tenant, browser and full E2E SUCCESS; zero-admin crawler skipped. Historical producer/retention and full three-set Task4 composition unverified; no final approval.
+
+## 2026-09-25 PR372 paused gate
+
+| Head | Gate | Result |
+| --- | --- | --- |
+| `8a5b2150` / tree `be35f8bc` | OPS `36118572008` native | 334/335; one actor authorization failure; schema/types stage not reached |
+| `8a5b2150` | verify, quality/build, tenant, Ediel, browser, full E2E | SUCCESS; crawler SKIPPED |
+| `c9f5f64` / tree `dc1bd629` | OPS `36118081656` native | 330/335, including three document/Storage unconfirmed outcomes and missing Z08 source operation |
+| `8a5b2150` | independent whole-diff static review `/root/pr372_review` | No confirmed code blocker; native/artifacts/final acceptance withheld |
+| Pause diagnostic | `cases.write` registry/grant/effective check | Locally prepared only, unexecuted |
+
+- 2026-09-25 PR372 A/B: a3464eae OPS36123867431 native333/335; `cases.write` registry=0/grant=0/effective=false with active actor/membership; Storage delete/before_witness unconfirmed. Local candidate migration integrity, script typecheck, scoped lint and large-file budget PASS. New native pending.
+
+- 2026-09-25 `05cb5c40` OPS36126471587: verify/quality/build SUCCESS, full6080; native334/335, sole fixture status precondition expected open but observed billing_blocked after support stop. Six Storage matrix cases passed; no failed-stage observation.
+
+- 2026-09-25 `4c05b146` OPS36127254985 verify/quality/build SUCCESS; native335/335 and case-view1/1 PASS; stopped at authentic typegen mismatch. Artifact10860308328 ZIP40f63743; generated types36e98937; schema fingerprint c3ec834f. Contract files copied exact locally, same-head replay pending.
+
+- 2026-09-25 local candidate: combined process receipt RED dropped-fact test failed as expected; GREEN focused 10/10, app/tests/scripts typechecks, scoped lint, file budget and diff check passed. Native/CI pending. Document head `32b9825d` OPS `36132980452` native 337/337, schema fingerprint `c3ec834f` verified.
+
+2026-09-25 F3 continuation: guide-invalid E66 E19 diagnostic RED then focused GREEN; field209 canonical 25/26 agency boundary GREEN; full and CI outcomes recorded in quality/audits/ediel-masterplan-v2/f3-staged-utilts-field209-20260925.md. No hosted/staging execution.
+
+2026-09-25 F3 PRODAT register ACK follow-on: actual case-writer LIN314 RED then focused GREEN; C829258 and QTY31/213 cases GREEN; local 6087/378 excluding two Node24/TAP wrappers; app/tests types and scoped lint zero errors. Details in f3-prodat-register-ack-boundary-20260925.md.
+## 2026-09-25 — F3C-02/04 Z04 ACK projection candidate
+
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | Komplett tvåobjekts-Z04, fokuserad RED | 1/10 föll: två identiska 213 i nationell APERAK-plan | Faktiskt duplikat, före rättning. |
+| Lokal gren före commit | Fokuserade Vitest 4 filer, app/test typ, scoped ESLint, diff check | 103/103 PASS; övrigt PASS | Native/exakt-head CI väntar. |
+| `ca1aa11b6311088f70b0f8ada05befdfa55b6924` | OPS `36174980998`, Ediel `36174981008`, browser `36174981015`, full E2E `36174981002` | Alla SUCCESS | PR374, tidigare batch; kvalificerar inte denna kandidat. |
+## 2026-09-25 — F3C-05 header313 candidate
+
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | Komplett E66 invalid BGM4343 + E19 | `functional_rejected`/ERR RED | Fel före rättning. |
+| Lokal gren före commit | Två-IDE missing ID/E19 | Negativ APERAK första, ERR andra | Befintligt korrekt; ingen dispositionsändring. |
+| Lokal gren före commit | Inbound med mockad DB-gräns, 24 UTILTS-filer, typer/lint/diff | 276/276 PASS, typer/lint/diff PASS | Native/egen exact-head CI väntar. |
+| `5e08fd02` / `eb1bf146` | PR377 OPS `36179405219`; PR378 OPS `36180030123`, respektive Ediel/browser/full E2E | Alla SUCCESS; native 340/340 vardera | Föregående batcher, ej fält313-kandidat. |
+
+## 2026-09-25 — F3C-05 agency260 candidate
+
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | Komplett E66 agency999 plus E19 RED | `functional_rejected`/ERR | Fel före rättning. |
+| Lokal gren före commit | 24 UTILTS-filer, app/test typer, lint/diff | 273/273 PASS, typer/lint/diff PASS | Native/egen exact-head CI väntar. |
+| `5e08fd027dcbd4defb678698d03aca3317d1d8e0` | PR377 Ediel/browser; OPS verify | SUCCESS; övrig OPS/full E2E in progress vid kontroll | Föregående batch. |
+
+## 2026-09-25 — F3C-05 header502 candidate
+
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | Komplett E66 E99 plus E19 RED | `functional_rejected`/ERR | Verifierat fel före rättning. |
+| Lokal gren före commit | 24 UTILTS-filer, app/test typer, lint/diff | 272/272 PASS, typer/lint/diff PASS | Native/egen exact-head CI väntar. |
+| `68a38bfc1bdcb60d3f433ab7ead99f71d1d46c7f` | PR376 OPS `36178023905` och Ediel/browser/E2E | Alla SUCCESS; native log 340 passed | Föregående batch, ej fält502-kandidat. |
+
+## 2026-09-25 — F3C-05 header501 candidate
+
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | Komplett E66 MKS+99 och E19 RED | `functional_rejected` i stället för guide/APERAK | Källbelagt fel, före rättning. |
+| Lokal gren före commit | 24 UTILTS-filer, app/test typer, scoped ESLint, diff check | 270/270 PASS; övrigt PASS | Native/exakt-head CI väntar; fysisk funktionsberäkning ännu inte stegvis. |
+| `3eae899dc8689e38a9af4d2895012de7ae52407f` | PR375 Ediel `36177257227`, browser `36177257139`, E2E `36177257150`, OPS `36177257247` | Första tre SUCCESS; OPS verify SUCCESS, quality/native in progress vid kontroll | Föregående batch. |
+
+## 2026-09-25 — F3C-05 field206 local candidate
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | E66 no DTM735 + E19 RED | `functional_rejected`/ERR | Före rättning; justerat UNT i komplett fixture. |
+| Lokal gren före commit | 24 UTILTS testfiler, app/test typer, scoped ESLint, diff check | 278/278 och övrigt PASS | Native och egen exakt-head CI väntar. |
+| `7cd41b50b3459182cc54afe246fd7420691b3b9c` | PR379 Ediel/browser/E2E, OPS | Första tre SUCCESS; OPS pågående vid kontroll | Föregående fält313, inte denna kandidat. |
+
+## 2026-09-25 — F3C-05 field205 local candidate
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | E66 absent DTM137 + E19 RED; 30 February policy selection | ERR for missing; generic negative APERAK without typed field for invalid | Före rättning; komplett UNT. |
+| Lokal gren före commit | 24 UTILTS testfiler, app/test typer, scoped lint, final focused rerun | 280/280, typer/lint, 25/25 PASS | Native/egen exakt-head CI väntar. |
+| `7cd41b50b3459182cc54afe246fd7420691b3b9c` | PR379 four ordinary workflows | Alla SUCCESS; OPS `36181231049` | Föregående batch. |
+| `9678a63359170914f16ab59274e0ea38d52e8aca` | PR380 Ediel/browser/E2E and OPS | Första tre SUCCESS; OPS `36182182934` pågående vid kontroll | Föregående batch. |
+
+## 2026-09-25 — Field205 published CI fixture correction
+PR381 `a307b91e` full E2E coverage failed four variants: synthetic receive 00:00Z preceded DTM137 18:11 local +01:00 the same day. Correct field205 future-date rejection exposed the test chronology. Receipt changed to 20:00Z; 29/29 targeted tests PASS. Publish fast-forward fixture-only correction and require new ordinary exact-head CI; then BGM204. OPS on first head was still running at last check. No product-rule weakening, staging, merge or PR310.
+
+## 2026-09-25 — F3C-05 field204 local candidate
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | E66 invalid/missing BGM1225 + genuine E19 RED | `functional_rejected`/ERR before fix | Complete source-valid fixture apart from 204. |
+| Lokal gren före commit | 25 files, app/test types, scoped lint, final valid5 focus | 311/311 and other PASS | Native/own exact-head CI pending. |
+| `28ed2fc3a353c03058e9363b06a40a49235cef20` | PR381 corrected ordinary workflows | Browser SUCCESS; Ediel/E2E/OPS running at last check | Predecessor batch. |

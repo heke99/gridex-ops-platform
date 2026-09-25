@@ -1,3 +1,9 @@
+## 2026-09-24 — Resolved document native prerequisites and supply aliases
+
+Task2b initial native228/261 failed33 seeds because customers.read existed in catalog/legacy eight-digit INSERT files but not canonical fourteen-digit clean replay. Resolved by published forward20260924021718 materializing only the established key, ON CONFLICT DO NOTHING, no assignments; repeat/metadata/assignment preservation qualified. Do not infer DB registry presence from catalog or role arrays.
+
+Next native261/262 failed one purported unlinked-supply negative: published gridex_sync_supply_customer_contract_v1 restored customer_contract_id from contract_id. Fixture now clears both aliases atomically, asserts persisted null/null and no Storage reads. Runtime graph was correct; no production SQL changed for that defect. Final accepted7581966b native262 and all same-head gates PASS. See task-2b-fix2-report-20260924.md, task-2b-fix3-report-20260924.md and document-reference-acceptance-20260924.md under E035 source-ledger audit.
+
 ## 2026-09-18 — PR330 recovery and review correction (current snapshot)
 
 Original exact candidate0a89e102 published;four ordinary workflows green.

@@ -186,7 +186,6 @@ export async function archiveInvoiceTestCustomerSafely(input: {
       archived_at: now,
       archived_by: input.actorUserId,
       archive_reason: reason,
-      is_active: false,
       metadata: siteMetadata,
       updated_by: input.actorUserId,
       updated_at: now,

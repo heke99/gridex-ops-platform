@@ -1,6 +1,7 @@
 import { parseSourceReceiptInstant } from '@/lib/ediel/utilts/receivedSourceInventory'
 import type { StructuralSourceWire } from './structuralSourceWire'
-import {boundCoverageByClosures,closureBlockerMatches,type ClosureVersion,type ScopedClosureBlocker,type ClosureProvenance} from './closureSelection'
+import {boundCoverageByClosures,closureBlockerMatches,correctionContextBlockerMatches,type ClosureVersion,type ScopedClosureBlocker,type ClosureProvenance} from './closureSelection'
+import type {CorrectionContextBlockerV1} from './correctionContextImpact'
 
 export type StructuralCoverage = {
   kind: 'post_ledger_supply'
@@ -38,6 +39,13 @@ export type StructuralSelectionInput = {
   versions: readonly StructuralVersion[]
   closures?:readonly ClosureVersion[]
   closureBlockers?:readonly ScopedClosureBlocker[]
+  correctionContextBlockers?:readonly CorrectionContextBlockerV1[]
+  // Optional pure comparison context. Only the service-owned read boundary
+  // can establish these identities; absence cannot exclude a blocker.
+  companyId?:string
+  environment?:'test'|'production'
+  customerId?:string|null
+  supplyPeriodId?:string|null
   // An unbounded, malformed or physically unresolved source may affect any
   // object. The IO projection must not quietly drop it as unrelated.
   unresolvedSources: boolean
@@ -97,7 +105,9 @@ export function selectStructuralSources(input: StructuralSelectionInput): Struct
   if (!input.readComplete || input.unresolvedSources) return unavailable('structural_universe_incomplete')
   if (epoch === null || cutoff === null || start === null || end === null || epoch > cutoff
     || start > end || (input.boundary === 'interval' ? start === end : start !== end)) return unavailable('structural_period_invalid')
-  if (input.versions.length>1000||(input.closures?.length??0)+(input.closureBlockers?.length??0)>16000) return unavailable('structural_selection_budget_exceeded')
+  if (input.versions.length>1000||(input.closures?.length??0)+(input.closureBlockers?.length??0)+(input.correctionContextBlockers?.length??0)>16000) return unavailable('structural_selection_budget_exceeded')
+  if(input.correctionContextBlockers?.some(blocker=>correctionContextBlockerMatches(blocker,input)))
+    return unavailable('structural_correction_context_hold')
   if(input.closureBlockers?.some(blocker=>closureBlockerMatches(blocker,input)))return unavailable('structural_closure_scoped_hold')
   const versions = input.versions.filter(({wire}) => wire.object.objectId === input.objectId
     && wire.object.identityAgency === input.identityAgency && wire.legalSender === input.legalSender

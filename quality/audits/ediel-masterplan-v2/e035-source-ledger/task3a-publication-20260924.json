@@ -1,0 +1,16 @@
+{
+  "head": "45d3e5c921fd5a68b9a2ee1f216c487839dd4c81",
+  "tree": "2e57f6d4a1a380e20f0aab6fa464b16ef94f568b",
+  "local_reviewed_tree_commit": "7b2e91c1f1ff4939bea969fc5a661782d6f6e287",
+  "api_parent": "d0d95006ad442ffeb1f319351d257f647c0ee688",
+  "exact_tree_match": true,
+  "ops_run": 35954321157,
+  "native_expected": 301,
+  "native_executed": false,
+  "workspace": "/workspace/scratch/4b1d39503015/gridex-ops-platform/.worktrees/e035-task3a-isolated",
+  "preserved_branches": [
+    "backup/e035-shared-draft-36cdb4ce",
+    "backup/e035-isolated-local-7b2e91c1"
+  ],
+  "new_migration_immutable_since_publication": true
+}

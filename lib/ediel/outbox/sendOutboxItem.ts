@@ -251,9 +251,11 @@ export async function sendOutboxItem(params: {
       return { status: 'blocked', messageId: null, error: transportDecision.reason_code }
     }
 
+    if (!sendAttemptId) throw new Error('outbound_dispatch_worker_attempt_missing')
     const result = await sendEdielMessageViaSmtp(message, {
       actorUserId: params.actorUserId,
       smtpMimeMode: params.smtpMimeMode ?? null,
+      dispatchOwner: { kind: 'worker', outboxId: params.outboxItemId, sendAttemptId, workerId },
     })
     providerAccepted = true
     providerMessageId = result.messageId ?? null

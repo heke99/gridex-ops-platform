@@ -11,6 +11,7 @@ function references(occurrence: ProdatErrorOccurrence) {
 /** Classification is owned upstream; no code suffix or path may choose a national error. */
 export function projectProdatDiagnostics(issues: readonly EdielRulebookIssue[]) {
   const applicationErrors: EdielAperakApplicationError[] = []
+  const projectedFieldErrors = new Set<string>()
   const disposition: ProdatProcessingDisposition = {kind:'continue',reasons:[]}
   const observations = issues.map(item => {
     const diagnostic = item.prodatDiagnostic
@@ -19,11 +20,26 @@ export function projectProdatDiagnostics(issues: readonly EdielRulebookIssue[]) 
     if (!local && (item.blocking || item.severity === 'error')) {
       if (validProdatWireDiagnostic(diagnostic)) {
         const text = aperakText!
-        if (text.kind === 'ready') applicationErrors.push({
-          ercCode:diagnostic.kind === 'application' ? '40' : diagnostic.errorKind === 'missing' ? '41' : '42',
-          fieldCode:diagnostic.kind === 'application' ? '109' : diagnostic.fieldNumber,
-          text:text.text, prodatAperakText:text, ...references(diagnostic.occurrence), prodatFieldDiagnostic:diagnostic,
-        })
+        if (text.kind === 'ready') {
+          // The matrix and register condition can report the same missing own
+          // field. Preserve both findings, but emit one national error for the
+          // same physical occurrence and content. Other registers remain distinct.
+          const key = diagnostic.kind === 'field' ? JSON.stringify([
+            diagnostic.fieldNumber, diagnostic.errorKind, diagnostic.occurrence.messageReference,
+            diagnostic.occurrence.lineIndex, diagnostic.occurrence.lineNumber,
+            diagnostic.occurrence.registerPosition, diagnostic.occurrence.objectId,
+            diagnostic.occurrence.identityAgency, diagnostic.component, diagnostic.failureEvidence,
+            text.text,
+          ]) : null
+          if (key === null || !projectedFieldErrors.has(key)) {
+            if (key !== null) projectedFieldErrors.add(key)
+            applicationErrors.push({
+              ercCode:diagnostic.kind === 'application' ? '40' : diagnostic.errorKind === 'missing' ? '41' : '42',
+              fieldCode:diagnostic.kind === 'application' ? '109' : diagnostic.fieldNumber,
+              text:text.text, prodatAperakText:text, ...references(diagnostic.occurrence), prodatFieldDiagnostic:diagnostic,
+            })
+          }
+        }
         else {
           disposition.kind = 'internal_review'
           disposition.reasons.push({code:'PRODAT_APERAK_TEXT_UNREADY',sourceRule:diagnostic.sourceRule,reason:text.reason})

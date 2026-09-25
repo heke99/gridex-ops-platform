@@ -181,3 +181,61 @@ export async function downloadAndVerifyCustomerContractDocument(
 
   return buffer;
 }
+
+export type BoundedDocumentObservation = {
+  startedAt: string;
+  completedAt: string;
+  byteCount: number;
+} & (
+  | { status: 'verified_at_observation'; sha256: string }
+  | { status: 'unavailable'; reason: 'ineligible_document' | 'oversize' | 'timeout' | 'hash_mismatch' | 'storage_error' }
+);
+
+/** E035 observation only. Never copies bytes or updates the archive metadata. */
+export async function downloadAndVerifyCustomerContractDocumentBounded(
+  document: CustomerContractDocumentRow,
+): Promise<BoundedDocumentObservation> {
+  const startedAt = new Date().toISOString();
+  const deadlineAt = performance.now() + 10_000;
+  let byteCount = 0;
+  const unavailable = (reason: Extract<BoundedDocumentObservation, {status:'unavailable'}>['reason']): BoundedDocumentObservation =>
+    ({status:'unavailable', reason, startedAt, completedAt:new Date().toISOString(), byteCount});
+  if (document.document_type !== 'signed_contract_pdf' || document.storage_bucket !== CUSTOMER_CONTRACT_DOCUMENT_BUCKET
+    || !document.storage_path || document.mime_type !== 'application/pdf' || !/^[a-f0-9]{64}$/.test(document.document_sha256))
+    return unavailable('ineligible_document');
+  const controller = new AbortController();
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+  const cancel = () => {
+    controller.abort();
+    // Cancellation can itself stall in an adapter. It cannot extend our budget.
+    if (reader) void reader.cancel().catch(() => {});
+  };
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<BoundedDocumentObservation>(resolve => {
+    timer = setTimeout(() => { cancel(); resolve(unavailable('timeout')); }, 10_000);
+  });
+  const operation = async (): Promise<BoundedDocumentObservation> => {
+    try {
+      const {data,error} = await supabaseService.storage.from(CUSTOMER_CONTRACT_DOCUMENT_BUCKET)
+        .download(document.storage_path!, {}, {signal:controller.signal, cache:'no-store'}).asStream();
+      if (controller.signal.aborted || performance.now() >= deadlineAt) { cancel(); if(data) void data.cancel().catch(()=>{}); return unavailable('timeout'); }
+      if (error || !data) { cancel(); return unavailable('storage_error'); }
+      reader = data.getReader();
+      const digest = createHash('sha256');
+      while (true) {
+        const chunk = await reader.read();
+        if (controller.signal.aborted || performance.now() >= deadlineAt) { cancel(); return unavailable('timeout'); }
+        if (chunk.done) break;
+        byteCount += chunk.value.byteLength;
+        if (byteCount > 2_097_152) { cancel(); return unavailable('oversize'); }
+        digest.update(chunk.value);
+      }
+      const sha256 = digest.digest('hex');
+      if (controller.signal.aborted || performance.now() >= deadlineAt) { cancel(); return unavailable('timeout'); }
+      if (sha256 !== document.document_sha256) { cancel(); return unavailable('hash_mismatch'); }
+      return {status:'verified_at_observation', startedAt, completedAt:new Date().toISOString(), byteCount, sha256};
+    } catch { cancel(); return unavailable(controller.signal.aborted && Date.now()-Date.parse(startedAt)>=10_000 ? 'timeout' : 'storage_error'); }
+  };
+  try { return await Promise.race([operation(), deadline]); }
+  finally { clearTimeout(timer); }
+}

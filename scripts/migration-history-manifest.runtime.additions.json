@@ -31,6 +31,8 @@
     "20260922150922_ediel_source_decision_snapshots.sql": "abb710a076ef5cd0650b1ad3a67e3fe7ae43b7b613a6ed18e8a24f5cb8cbab2b",
     "20260922152602_ediel_register_message_line_scope.sql": "0a1d0ff73b0407efd41b73875ffbdc08110855990346fc2ac2554ab38e831003",
     "20260922175540_ediel_source_owner_timezone.sql": "a66299e479afc86f81d35193afd5d5d293580a08d27522ab2c6f785efe08773e",
-    "20260922205926_ediel_reviewed_structural_source.sql": "e6dfc01baba1cc5c848818c5503253e7ac42917d5d29d58cb4f69988e1ab3fb7"
+    "20260922205926_ediel_reviewed_structural_source.sql": "e6dfc01baba1cc5c848818c5503253e7ac42917d5d29d58cb4f69988e1ab3fb7",
+    "20260923231731_ediel_correction_concern_capture.sql": "3d8e2e154c4cf95355a6d81724400af6dd687bd80c26a5f1509ae3f0a91794b1",
+    "20260924001447_ediel_correction_capture_canonical_permission.sql": "1da1232dd18209471ca41d9143c450effc84cdc6bb61560ee104d5d8e0fee071"
   }
 }

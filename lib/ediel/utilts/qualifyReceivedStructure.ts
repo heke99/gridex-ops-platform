@@ -2,7 +2,8 @@ import {supportedUtiltsConsumptionIdentity} from './consumptionIdentity'
 import {supabaseService} from '@/lib/supabase/service'
 import {isEvidenceUuid} from './durableSourceDiscovery'
 import {parseSourceReceiptInstant} from './receivedSourceInventory'
-import {inspectStructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
+import {inspectCombinedCorrectionReadset} from '@/lib/ediel/sources/combinedCorrectionReadset'
+import type {StructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
 import {compareUtiltsStructure,type StructuralComparison} from './structuralComparison'
 import {rebuildUtiltsRuntimeResult,type UtiltsRuntimeResult,type UtiltsValidationIssue} from '@/lib/ediel/utiltsEngine'
 import {resolveUtiltsProcessabilityPolicy} from '@/lib/ediel/rulebook/utilts25A4'
@@ -43,17 +44,18 @@ export async function qualifyReceivedUtiltsStructure(input:{message:EdielMessage
   if(!identityFailures.size&&!needsReadset)return result
   result.evidence.status='evaluated'
   const companyId=message.company_id,cutoffAt=new Date().toISOString()
-  let readset:ReturnType<typeof inspectStructuralReadset>|null=null
+  let readset:StructuralReadset|null=null
   if(needsReadset&&isEvidenceUuid(companyId)&&isEvidenceUuid(message.id)&&typeof raw==='string'&&typeof cutoffAt==='string'
     &&parseSourceReceiptInstant(cutoffAt)!==null&&['test','production'].includes(message.environment)){
     result.evidence.cutoffAt=cutoffAt
     try{
-      const {data,error}=await supabaseService.rpc('gridex_source_object_snapshot_v1',{
-        p_company_id:companyId,p_environment:message.environment,p_cutoff:cutoffAt,
+      const {data,error}=await supabaseService.rpc('gridex_correction_combined_snapshot_v1',{
+        p_company_id:companyId,p_environment:message.environment,p_message_id:message.id,p_cutoff:cutoffAt,
       }).abortSignal(AbortSignal.timeout(2000))
-      if(!error)readset=inspectStructuralReadset({companyId,environment:message.environment,cutoffAt},data)
+      const inspected=!error?inspectCombinedCorrectionReadset({companyId,environment:message.environment,cutoffAt},message.id,data):null
+      readset=inspected?.source??null
       if(readset?.timeline.status==='inspected'){
-        result.evidence.snapshotId=readset.timeline.snapshotId;result.evidence.readsetHash=readset.timeline.readsetHash
+        result.evidence.snapshotId=inspected!.snapshotId;result.evidence.readsetHash=inspected!.readsetHash
       }
     }catch{/* No stale snapshot fallback and no national rejection on IO failure. */}
   }
@@ -65,7 +67,9 @@ export async function qualifyReceivedUtiltsStructure(input:{message:EdielMessage
     // with no meter/register observations. The pure input decides applicability.
     const compared=compareUtiltsStructure({raw:raw??'',transactionIndex:index,cutoffAt:cutoffAt??'',
       ledgerStartedAt:readset?.timeline.ledgerStartedAt??'',readComplete:readset?.timeline.boundedReadComplete===true,
-      unresolvedSources:readset?.unresolvedSources??true,versions:readset?.versions??[],closures:readset?.closures??[],closureBlockers:readset?.closureBlockers??[]})
+      unresolvedSources:readset?.unresolvedSources??true,versions:readset?.versions??[],closures:readset?.closures??[],closureBlockers:readset?.closureBlockers??[],
+      correctionContextBlockers:readset?.correctionContextBlockers??[],companyId:companyId??undefined,
+      environment:message.environment==='test'||message.environment==='production'?message.environment:undefined})
     if(compared.transactionId!==disposition.transactionId&&compared.status!=='not_applicable')return {
       transactionId:disposition.transactionId,status:'unavailable' as const,reason:'structural_runtime_scope_mismatch',codes:[],selected:[],
     }

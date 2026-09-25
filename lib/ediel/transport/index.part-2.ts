@@ -32,7 +32,8 @@ import { supabaseService } from '@/lib/supabase/service'
 import { describeCertificate, fullEdielAddress, resolveOutboundRecipientCertificate, routeReceiverSubaddress } from '@/lib/ediel/security/outboundRecipientCertificate'
 
 import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
-import { sendEdielEmail } from '@/lib/email/sendEdielEmail'
+import type { SendEdielEmailInput } from '@/lib/email/sendEdielEmail'
+import { sendCorrectionFencedEmail, type OutboundDispatchOwner } from '@/lib/ediel/sources/correctionOutboundDispatch'
 import { SmtpDeliveryUncertainError } from './smtpOutcome'
 
 import type { EdielSmtpMimeMode, SmtpSendResult } from './index.part-1'
@@ -317,7 +318,7 @@ export async function withAcceptedInboundVersions(
 
 export async function sendEdielMessageViaSmtp(
   message: EdielMessageRow,
-  params?: { actorUserId?: string | null; smtpMimeMode?: EdielSmtpMimeMode | string | null }
+  params?: { actorUserId?: string | null; smtpMimeMode?: EdielSmtpMimeMode | string | null; dispatchOwner?: OutboundDispatchOwner }
 ): Promise<{
   accepted: string[]
   rejected: string[]
@@ -478,7 +479,11 @@ export async function sendEdielMessageViaSmtp(
     console.warn('[ediel-transport] Could not store raw payload snapshot', error)
   })
 
-  let result: SmtpSendResult
+  const sendFenced = (input: SendEdielEmailInput) => sendCorrectionFencedEmail(input, {
+    message, actorUserId, owner: params?.dispatchOwner, mimeMode,
+    payload: Buffer.from(normalizedPayload, mimeEncoding), encoding: mimeEncoding,
+  })
+  let result: SmtpSendResult & { dispatchReplay?: boolean; dispatchObservedAt?: string }
   let rawMimePreview: string | null = null
   let decodedPayloadPreview: string | null = null
   let encodedPayloadPreview: string | null = null
@@ -488,7 +493,7 @@ export async function sendEdielMessageViaSmtp(
   let cmsExpectedReceiverPresent: boolean | null = null
 
   if (mimeMode === 'nodemailer-attachment') {
-    result = await sendEdielEmail({
+    result = await sendFenced({
       from,
       to: message.receiver_email,
       subject: smtpSubject,
@@ -640,7 +645,7 @@ export async function sendEdielMessageViaSmtp(
       },
     })
 
-    result = await sendEdielEmail({
+    result = await sendFenced({
       to: message.receiver_email,
       envelopeFrom: from,
       raw: rawMime,
@@ -687,7 +692,7 @@ export async function sendEdielMessageViaSmtp(
       },
     })
 
-    result = await sendEdielEmail({
+    result = await sendFenced({
       to: message.receiver_email,
       envelopeFrom: from,
       raw: rawMime,
@@ -728,7 +733,7 @@ export async function sendEdielMessageViaSmtp(
       },
     })
 
-    result = await sendEdielEmail({
+    result = await sendFenced({
       to: message.receiver_email,
       envelopeFrom: from,
       raw: rawMime,
@@ -748,7 +753,7 @@ export async function sendEdielMessageViaSmtp(
     rawMimePreview = safePreview(rawMime.toString('latin1'), 900)
     decodedPayloadPreview = safePreview(normalizedPayload, 900)
 
-    result = await sendEdielEmail({
+    result = await sendFenced({
       to: message.receiver_email,
       envelopeFrom: from,
       raw: rawMime,
@@ -775,6 +780,17 @@ export async function sendEdielMessageViaSmtp(
     })
 
     throw new Error(`SMTP accepterade inte mottagaren. accepted=${accepted.join(',') || 'tomt'} rejected=${rejected.join(',') || 'tomt'}`)
+  }
+  if (result.dispatchReplay) {
+    // A witnessed receipt repairs mutable projections without claiming the
+    // newly prepared MIME/route was sent. Its server observation is not an ACK.
+    try {
+      await updateEdielMessageStatus({ actorUserId, edielMessageId: message.id, status: 'sent', messageSentAt: result.dispatchObservedAt })
+      await createEdielMessageEvent({ actorUserId, edielMessageId: message.id, eventType: 'manual_note', eventStatus: 'info',
+        message: 'SMTP status projection repaired from immutable provider receipt; no provider invocation.',
+        payload: { correctionDispatchProjectionRepair: true, smtpMessageId: result.messageId ?? null, observedAt: result.dispatchObservedAt ?? null } })
+      return { accepted, rejected, messageId: result.messageId ?? null }
+    } catch (error) { throw new SmtpDeliveryUncertainError(error, result.messageId ?? null) }
   }
   try {
     await supabaseService

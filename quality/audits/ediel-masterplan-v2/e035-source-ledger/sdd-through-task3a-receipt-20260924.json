@@ -1,0 +1,8 @@
+{
+  "archive": "quality/audits/ediel-masterplan-v2/e035-source-ledger/sdd-through-task3a-20260924.tar.gz",
+  "sha256": "dc29aa9dd3f119f8425038075b5493363b49e96604b02cfd18e7265e023a06a8",
+  "bytes": 228699,
+  "files": 41,
+  "verified_members": true,
+  "purpose": "Preserve exact briefs/reports/review packages and accepted progress through Task3a for new-chat recovery; historical diffs are not executable or independently accepted runtime."
+}

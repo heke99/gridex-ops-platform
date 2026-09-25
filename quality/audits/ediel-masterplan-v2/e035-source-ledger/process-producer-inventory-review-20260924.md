@@ -1,0 +1,15 @@
+# E035 PH4 producer inventory validation
+
+**SPEC/QUALITY: APPROVE as the finite minimum input to a bounded partial implementation brief.** The inventory is sufficiently concrete to name the next capture surfaces without claiming third-set completeness. It does not remove the exact-head schema/route/native qualification gate, qualify historical coverage, or authorize positive C. No Task2 change or pause is needed.
+
+Reviewed the inventory against the approved partial process-history design and binding activation clarification. Focused checks confirmed the named operation jobs/tasks/events, metering_points and supplier_switch_events in generated contracts; the operational-event writer catches/skips domain/event failures; and test-customer archival deletes events/contracts/points/sites through multiple operations. These support the inventory's central conclusions: table triggers cover actual committed row mutations, not omitted events; archive deletion needs transactional tombstones; current rows and successful trigger installation do not establish process-inception history.
+
+Carry the following existing contract obligations into the implementation brief:
+
+- Name the exact twelve tables enumerated by the inventory, relevant columns/transition facts, capture/gap policy and per-table epoch. Verify final spellings and DML paths at the implementation head; the minimum list is not evidence that no other relevant producer exists.
+- Retain OLD identity/link facts before DELETE/cascade loses the parent graph. For supplier_switch_events and other child rows, prove the capture does not depend on querying an already-deleted parent; use captured immutable linkage or record unresolved scope. Native parent-cascade and multi-transaction archive tests are required. A row-trigger-only claim must not silently include TRUNCATE or disabled-trigger operations; deny such paths or explicitly invalidate covered history.
+- The swallowed-event route remains unsupported for facts with no independently captured consequential state transition. Failed/caught insertion cannot disappear into complete:true. Scope its missing coverage conservatively; do not manufacture an event or correction provenance from payload/source/actor strings.
+- Keep third-set complete:false until named direct/RPC/batch/legacy/delete routes and atomic observation/gap behavior pass actual native qualification. Pre-epoch/deleted history remains unavailable absent authentic reconciliation.
+- Apply the binding activation rule: missing process history becomes a new hold only for potentially correction-affected scope (or a future correction-authority request). A new epoch alone must not hold unrelated ordinary supplies. Raw/rejected/unwitnessed matching concerns activate the scoped requirement; proved unrelated point history does not consume its capacity or impose a global hold.
+
+No new load-bearing design defect found. This is an inventory/design assessment only, not implementation or native acceptance. No live calls/sends, code/schema/memory changes, tests, commits or delegation; wrote only this review addendum.

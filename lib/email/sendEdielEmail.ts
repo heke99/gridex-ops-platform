@@ -23,7 +23,9 @@ export type SendEdielEmailInput =
       }>
     }
 
-export async function sendEdielEmail(input: SendEdielEmailInput): Promise<{
+export type EdielProviderEntry = { beforeProviderCall: (binding: Record<string, unknown>) => Promise<void> }
+
+export async function sendEdielEmail(input: SendEdielEmailInput, entry?: EdielProviderEntry): Promise<{
   accepted: unknown[]
   rejected: unknown[]
   messageId?: string
@@ -52,6 +54,7 @@ export async function sendEdielEmail(input: SendEdielEmailInput): Promise<{
       await archiveSmimeRawMime(input.raw)
     }
 
+    await entry?.beforeProviderCall({mode:'raw',from:input.envelopeFrom ?? config.from,to:input.to,rawBase64:input.raw.toString('base64')})
     const result = await transporter.sendMail({
       envelope: {
         from: input.envelopeFrom ?? config.from,
@@ -67,6 +70,9 @@ export async function sendEdielEmail(input: SendEdielEmailInput): Promise<{
     }
   }
 
+  await entry?.beforeProviderCall({mode:'attachment',from:input.from ?? config.from,to:input.to,replyTo:config.replyTo ?? null,subject:input.subject,text:input.text ?? null,html:input.html ?? null,
+    attachments:input.attachments?.map(a=>({...a,content:undefined,contentBase64:Buffer.isBuffer(a.content)?a.content.toString('base64'):Buffer.from(a.content).toString('base64')})) ?? [],
+    headers:{'X-Gridex-Mail-Lane':'ediel-strato','X-Gridex-Ediel-Provider':readiness.provider}})
   const result = await transporter.sendMail({
     from: input.from ?? config.from,
     to: input.to,

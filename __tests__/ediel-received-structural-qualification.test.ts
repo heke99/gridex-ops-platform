@@ -100,7 +100,8 @@ it('activated original monthly readings without approved structure are held, not
  expect(result).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,runtime:{validation:{ok:false,classification:'internal_review'},transactionDispositions:[{disposition:'internal_review',responseType:'none'}]}})
  expect(result.runtime.ackPlan.utiltsErrCodes).toEqual([])
  expect(JSON.stringify(result.evidence)).not.toContain('private unavailable')
- expect(io.rpc).toHaveBeenCalledWith('gridex_source_object_snapshot_v1',{p_company_id:ownerId(2),p_environment:'test',p_cutoff:'2026-10-02T09:00:00.000Z'})
+ expect(io.rpc).toHaveBeenCalledWith('gridex_correction_combined_snapshot_v1',{p_company_id:ownerId(2),p_environment:'test',
+  p_message_id:ownerId(1),p_cutoff:'2026-10-02T09:00:00.000Z'})
 })
 it('held transactions cannot fall through to positive APERAK even with original BGM AB',async()=>{
  const args=input(),result=await qualifyReceivedUtiltsStructure(args)
@@ -161,7 +162,8 @@ it('an incomplete, corrupt or cross-tenant snapshot cannot release applicable re
 it.each([['2026-09-23',true],['2026-10-01',true],['2026-09-23',false],['2026-10-01',false]] as const)('unsupported original agency89 stays held on %s, energy exemption %s',async(date,energy)=>{
  const args=input(energy)
  args.message.raw_payload=args.message.raw_payload!.replace('735999260731000007::9','735999260731000007::89').replace('?+0200:406','?+0100:406').replace('202610011811',date.replaceAll('-','')+'1811').replace('QTY+220:11000','QTY+220:10500')
- args.message.message_received_at=date+'T00:00:00Z'
+ // The synthetic document is dated 18:11 local (+01:00); receipt follows it.
+ args.message.message_received_at=date+'T20:00:00Z'
  args.canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:date,applicationReference:args.message.application_reference,mode:'parse'})
  args.runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
  expect(args.runtime.transactionDispositions,JSON.stringify(args.runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])

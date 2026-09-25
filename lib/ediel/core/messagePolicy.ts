@@ -5,10 +5,13 @@ import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ed
 // Shared protocol date selection; receipt/object matching must not reselect a guide.
 function normalizeDate(value: unknown): string | null {
   const raw = String(value ?? '').trim()
-  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10)
+  const candidate = /^\d{4}-\d{2}-\d{2}/.test(raw) ? raw.slice(0, 10) : null
   const digits = raw.replace(/\D/g, '')
-  if (digits.length >= 8) return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`
-  return null
+  const date = candidate ?? (digits.length >= 8 ? `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}` : null)
+  if (!date) return null
+  const year = Number(date.slice(0, 4)), month = Number(date.slice(5, 7)), day = Number(date.slice(8, 10))
+  const parsed = new Date(Date.UTC(year, month - 1, day))
+  return parsed.getUTCFullYear() === year && parsed.getUTCMonth() + 1 === month && parsed.getUTCDate() === day ? date : null
 }
 
 export function canonicalBusinessDate(message: EdielMessageRow, canonical: CanonicalEdielMessage = parseCanonicalMessageRow(message)): string {

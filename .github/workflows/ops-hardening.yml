@@ -119,6 +119,10 @@ jobs:
           set -o pipefail
           exec > >(tee rem002-clean-replay.log) 2>&1
           source scripts/gridex-aud-003-clean-replay.sh
+          # Preserve authentic post-migration schema evidence even when a later
+          # native fixture fails. The stack remains alive in this sourced step.
+          SHADOW_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          npm run db:schema:snapshot -- --url "$SHADOW_URL" --out-dir rem002-schema-snapshot
           # Originals stay in HOLD until the sourced replay's EXIT trap. Keep
           # the verified original input available to both native case passes.
           export GRIDEX_EDIEL_CASE_RESTORATION_SQL="$(cd "$HOLD" && pwd)/20260923180557_restore_customer_case_events_atomic_status.sql"

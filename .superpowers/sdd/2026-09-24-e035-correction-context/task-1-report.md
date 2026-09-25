@@ -1,0 +1,13 @@
+# Task 1 implementation report — 2026-09-24
+
+Base: `ecbd937b7847f3bdc806e5a95881837c1c4638c3`, branch `codex/e035-correction-context-20260924`.
+
+Implemented the typed earliest-boundary blocker in `lib/ediel/sources/correctionContextImpact.ts`, a scope/cutoff matcher in `closureSelection.ts`, hold-before-comparison in `structuralSourceSelection.ts`, and typed readset plumbing in `structuralSourceReadset.ts`. Pure regressions reside in `__tests__/ediel-correction-context-hold.test.ts`; the tracked evidence receipt is `quality/audits/ediel-masterplan-v2/e035-source-ledger/correction-context-task1-20260924.md`.
+
+Old behavior: only legacy scoped closure blockers held a matching selection, using their own lower bound. A raw/unwitnessed correction context with old stop day30 and proposed day20 could leave day25 selectable, because there was no separate context blocker. New behavior: when supplied to the pure selector, its observed-at-day10 blocker starts at day20, holds day25 and both point boundaries at day20, and leaves a day9 saved cutoff and pre-day20 interval unchanged. Proposed day40 still starts a hold at the known old day30. An unknown possibly earlier candidate holds the entire matching interval. Concrete unrelated tenant/object/supply scope does not hold; missing fields are wildcards. Existing L/LK closure matching/coverage code is preserved.
+
+Interface decision: selection lacked company/environment/customer/supplyPeriod. Added optional comparison context with no mismatch inference when absent, as approved by parent. The readset array is currently empty because no production capture or authority is in Task1. A pure caller array cannot prove provenance, and Task2–4 must enforce service-owned acquisition, source identity, exact cutoff and tenant/environment scope. `rawC` is bounded/validated but does not confer acceptance or parse an artifact; callers must classify an artifact with unspecified changed end as `unknown`. No accepted closure edge, positive basis, reopening or quantity is produced.
+
+Evidence: RED missing module; final focused 67/67 in 5 files; full unit 6007/6007 in 373 files before final matcher extraction/additional assertions, followed by focused GREEN; app/test typechecks, scoped lint and diff-check PASS on final state. Node v22.23.2. No native PostgreSQL executed locally. No SQL, hosted writes, market sends or generated contract edits.
+
+Concern for review: service-owned producer and consumer wiring remains deliberately absent; invoking the pure selection with fabricated arrays is not a production safety claim. Confirm subsequent tasks do not treat `not_asserted` as proof of absence when a separate correction artifact describes an unspecified changed end.

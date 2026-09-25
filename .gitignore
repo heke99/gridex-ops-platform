@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Local codebase-memory-mcp index
 .codebase-memory/
+
+# Isolated agent workspaces
+.worktrees/

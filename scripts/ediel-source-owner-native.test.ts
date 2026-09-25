@@ -3,6 +3,7 @@ import {randomUUID} from 'node:crypto'
 import {afterEach,beforeAll,expect,it,vi} from 'vitest'
 import {closureFixture} from '../__tests__/helpers/closureWireFixtures'
 import {reviewReceivedClosureSource} from '@/lib/ediel/sources/reviewReceivedClosureSource'
+import {captureCorrectionContext} from '@/lib/ediel/sources/correctionContextCapture'
 import {structuralOwnerSource} from '../__tests__/helpers/structuralOwnerFixtures'
 import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
 import {inspectStructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
@@ -39,6 +40,7 @@ import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceVal
 import {createReceivedSourceOwnerSession} from '@/lib/ediel/sources/receivedSourceOwnerSession'
 import {applyInboundBusinessStateMachine} from '@/lib/ediel/flows/inboundBusinessStateMachine'
 import {resolveCanonicalMessagePolicy} from '@/lib/ediel/core/messagePolicy'
+import {finalizeSupplierSwitchExecution} from '@/lib/operations/db'
 
 import {inspectReceivedSourceDecisionTimeline} from '@/lib/ediel/sources/receivedSourceDecisionTimeline'
 
@@ -166,6 +168,26 @@ it.each([false,true])('real HTTP/database owners commit and persist source appro
   expect(records[0].witnessXid).not.toBeNull();expect(records[0].witnessXid).not.toBe(records[0].createdXid)
   expect(sql(`SELECT jsonb_build_object('switch',sw.status,'supply',sp.status) FROM public.supplier_switch_requests sw JOIN public.customer_supply_periods sp ON sp.source_message_id=sw.inbound_z04_message_id WHERE sw.id=${literal(f.ids.switch)}`)).toEqual({switch:'accepted',supply:'confirmed_by_grid_owner'})
 })
+it('actual activation writes a switch event bound to the source request tenant',async()=>{
+  const f=await seed(true)
+  expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
+  // Mature the synthetic effective date after the real correlated Z04 write.
+  sql(`UPDATE public.supplier_switch_requests SET confirmed_start_date='2026-09-24'
+    WHERE id=${literal(f.ids.switch)};`)
+  const result=await finalizeSupplierSwitchExecution(supabaseService,{
+    requestId:f.ids.switch,actorUserId:f.ids.actor,executionSource:'manual_admin',
+  })
+  expect(result.request.status).toBe('completed')
+  const event=sql<{id:string;company:string;request:string}>(`SELECT jsonb_build_object(
+    'id',id,'company',company_id,'request',switch_request_id)
+    FROM public.supplier_switch_events WHERE switch_request_id=${literal(f.ids.switch)}
+    AND event_type='execution_completed' ORDER BY created_at DESC LIMIT 1`)
+  expect(event).toMatchObject({company:f.ids.company,request:f.ids.switch})
+  expect(sql(`SELECT jsonb_build_object('company',company_id,'request',new_fact->>'switch_request_id')
+    FROM gridex_correction_process.facts WHERE table_name='supplier_switch_events'
+    AND row_id=${literal(event.id)} AND operation='INSERT'`))
+    .toEqual({company:f.ids.company,request:f.ids.switch})
+})
 it('without a successful business callback, native rows cannot grant approval',async()=>{
   const f=await seed(), {session}=await prepare(f)
   expect(await session.finish()).toMatchObject({status:'recorded',sourceDisposition:'not_established'})
@@ -275,22 +297,57 @@ async function structuralSnapshot(f:Awaited<ReturnType<typeof seed>>,cutoffAt=sq
  expect(result.timeline,JSON.stringify(result.timeline)).toMatchObject({status:'inspected',boundedReadComplete:true})
  return result
 }
-async function insertPriorUtilts(f:Awaited<ReturnType<typeof seed>>,raw:string){
+async function insertPriorUtilts(f:Awaited<ReturnType<typeof seed>>,raw:string,code:'E66'|'E30'|'S07'='E66'){
  const original=utiltsNativeSourceFixture(raw,randomUUID())
  const {id,parsed}=original
  sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
- SELECT ${literal(id)},${literal(f.ids.company)},${literal(f.ids.customer)},${literal(f.ids.site)},${literal(f.ids.point)},${literal(f.ids.grid)},'test','inbound','edifact','UTILTS','E66','received',${literal(original.raw)},'{}','2026-09-30T20:00:00Z','{}',${literal(parsed.applicationReference)},'12345','54321',${literal(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+ SELECT ${literal(id)},${literal(f.ids.company)},${literal(f.ids.customer)},${literal(f.ids.site)},${literal(f.ids.point)},${literal(f.ids.grid)},'test','inbound','edifact','UTILTS',${literal(code)},'received',${literal(original.raw)},'{}',${literal(code==='E66'?'2026-09-30T20:00:00Z':'2026-10-01T20:00:00Z')},'{}',${literal(parsed.applicationReference)},'12345','54321',${literal(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
- WHERE profile.message_code='E66' AND profile.direction IN ('inbound','both') AND profile.is_enabled ORDER BY profile.profile_key LIMIT 1;`)
+ WHERE profile.message_code=${literal(code)} AND profile.direction IN ('inbound','both') AND profile.is_enabled ORDER BY profile.profile_key LIMIT 1;`)
  const {data,error}=await supabaseService.from('ediel_messages').select('*').eq('id',id).single()
  expect(error).toBeNull();expect(data).not.toBeNull()
  return data as unknown as EdielMessageRow
+}
+/** Active qualification binds its combined read to a genuine inbound message.
+ * Persist each synthetic wire before invoking it; no outbound Z03 surrogate. */
+function persistUtiltsSubject(f:Awaited<ReturnType<typeof seed>>,message:EdielMessageRow){
+ const id=randomUUID()
+ sql(`INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,
+  status,raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,
+  canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+ SELECT ${literal(id)},${literal(f.ids.company)},'test','inbound','edifact','UTILTS',${literal(message.message_code)},
+  'received',${literal(message.raw_payload)},'{}',clock_timestamp(),${literal(message.application_reference)},
+  '12345','54321',pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,
+  pack.source_hash,profile.profile
+ FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
+ WHERE profile.message_code=${literal(message.message_code)} AND profile.direction IN ('inbound','both')
+  AND profile.is_enabled ORDER BY profile.profile_key LIMIT 1;`)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE id=${literal(id)}
+  AND company_id=${literal(f.ids.company)} AND direction='inbound' AND message_family='UTILTS'`)).toBe(1)
+ return {...message,id}
 }
 function priorNativeWire(f:Awaited<ReturnType<typeof seed>>,point:string){
  return observationHandoffMessage('2026-09-30',f.ids.company).raw_payload!
   .replaceAll('735999260731000007',point).replaceAll('91100','12345').replaceAll('21660','54321')
   .replaceAll('202607010000','202610010000').replaceAll('202608010000','202610150000')
   .replace('?+0200','?+0100').replaceAll('M-GRIDEX-2607-01','METER-1').replace('QTY+220:11000','QTY+220:10500')
+}
+async function captureNativeCorrectionC(f:Awaited<ReturnType<typeof seed>>,point:string){
+ const sourceMessageId=randomUUID(),wire=closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',point)
+ sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+  SELECT ${literal(f.ids.reviewer)},${literal(f.ids.company)},id,key FROM public.permissions WHERE key='communication.send'
+  ON CONFLICT DO NOTHING;
+  INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,
+   raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,
+   canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+  SELECT ${literal(sourceMessageId)},${literal(f.ids.company)},'test','inbound','edifact','PRODAT','Z05','received',
+   ${literal(wire)},'{"subtype":"C"}',clock_timestamp(),'23-DDQ-PRODAT','12345','54321',
+   pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
+  WHERE profile.profile_key='PRODAT:Z05:C:26.A:r3' AND profile.is_enabled;`)
+ expect(await captureCorrectionContext({companyId:f.ids.company,environment:'test',sourceMessageId,
+  actorUserId:f.ids.reviewer})).toMatchObject({status:'recorded',disposition:'unreviewed'})
+ return sourceMessageId
 }
 async function insertStructuralChange(f:Awaited<ReturnType<typeof seed>>,code:'Z06'|'Z10',reason:string,document:string,replacement=false){
  const message=structuralOwnerSource(code,reason,document,replacement)
@@ -313,6 +370,123 @@ it('native full-original Z04 review proves post-ledger coverage without replayin
  expect(compareUtiltsStructure({raw:wire,transactionIndex:0,cutoffAt:result.timeline.cutoffAt??'',ledgerStartedAt:result.timeline.ledgerStartedAt??'',
   readComplete:true,unresolvedSources:result.unresolvedSources,versions:result.versions})).toMatchObject({status:'matched',codes:[]})
 })
+it('real UTILTS qualification saves and consumes a witnessed C hold without persisting quantities',async()=>{
+ const {resolveCanonicalEdielPolicy}=await import('@/lib/ediel/rulebook/canonicalEdielPolicy')
+ const {runUtiltsRuntimeForMessage}=await import('@/lib/ediel/utiltsEngine')
+ const {qualifyReceivedUtiltsStructure}=await import('@/lib/ediel/utilts/qualifyReceivedStructure')
+ const {buildUtiltsTransactionPersistencePayload}=await import('@/lib/ediel/utilts/transactionPersistence')
+ const f=await seed(false,true)
+ expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
+ const supplyId=sql<string>(`SELECT to_jsonb(id) FROM public.customer_supply_periods
+  WHERE company_id=${literal(f.ids.company)} AND source_message_id=${literal(f.ids.source)}`)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_correction_process.facts
+  WHERE company_id=${literal(f.ids.company)} AND table_name='customer_supply_periods'
+   AND row_id=${literal(supplyId)} AND operation='INSERT'
+   AND new_fact->>'source_message_id'=${literal(f.ids.source)}`)).toBe(1)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_correction_process.facts
+  WHERE company_id=${literal(f.ids.company)} AND table_name='supplier_switch_requests'
+   AND row_id=${literal(f.ids.switch)} AND operation='UPDATE'
+   AND new_fact->>'status'='accepted'`)).toBeGreaterThan(0)
+ await reviewed(f)
+ const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ const utilts=observationHandoffMessage('2026-10-01',f.ids.company)
+ utilts.sender_ediel_id='12345';utilts.receiver_ediel_id='54321'
+ utilts.raw_payload=utilts.raw_payload!.replaceAll('735999260731000007',point).replaceAll('91100','12345')
+  .replaceAll('21660','54321').replaceAll('202607010000','202610010000')
+  .replaceAll('202608010000','202610150000').replace('?+0200','?+0100').replace('M-GRIDEX-2607-01','METER-1')
+ const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:'2026-10-01',
+  applicationReference:utilts.application_reference,mode:'parse'})
+ const qualify=async()=>{
+  const message=persistUtiltsSubject(f,utilts),runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy:policy})
+  expect(runtime.transactionDispositions).toMatchObject([{disposition:'accepted'}])
+  return qualifyReceivedUtiltsStructure({message,runtime,canonicalPolicy:policy})
+ }
+ const before=await qualify()
+ expect(before).toMatchObject({hasInternalReview:false,evidence:{comparisons:[{status:'matched'}]}})
+ await captureNativeCorrectionC(f,point)
+ const held=await qualify()
+ expect(held).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,
+  evidence:{snapshotId:expect.any(String),readsetHash:expect.stringMatching(/^[a-f0-9]{64}$/),
+   comparisons:[{status:'unavailable',reason:'structural_correction_context_hold',codes:[]}]},
+  runtime:{transactionDispositions:[{disposition:'internal_review',responseType:'none'}],ackPlan:{shouldSendAperak:false}}})
+ expect(buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:held.runtime.facts.transactions,
+  dispositions:held.runtime.transactionDispositions,matches:[]})[0].quantities).toEqual([])
+ expect(sql(`SELECT to_jsonb(readset_hash=${literal(held.evidence.readsetHash)} AND subject_message_id IS NOT NULL)
+  FROM gridex_correction_process.combined_snapshots WHERE id=${literal(held.evidence.snapshotId)}`)).toBe(true)
+ expect(sql(`SELECT to_jsonb(readset_hash=${literal(before.evidence.readsetHash)})
+  FROM gridex_correction_process.combined_snapshots WHERE id=${literal(before.evidence.snapshotId)}`)).toBe(true)
+ // Exercise the actual inbound persistence and ACK boundary with the same
+ // committed concern. A helper-only qualification cannot prove side effects.
+ const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')
+ const inbound=await insertPriorUtilts(f,priorNativeWire(f,point))
+ utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
+ utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
+ const actual=await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:inbound.id})
+ expect(actual).toMatchObject({internalReviewRequired:true,ingestedMeterValueIds:[],billingUnderlayId:null})
+ // A transport-level CONTRL is allowed; the blocked transaction must not
+ // generate an application ACK or national functional rejection.
+ expect(utiltsEffects.ack.mock.calls.map(([call])=>call.ackFamily)).toEqual(['CONTRL'])
+ expect(actual.ackIds).toEqual([inbound.id])
+ expect(utiltsEffects.meter).not.toHaveBeenCalled()
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.meter_reading_series
+  WHERE source_ediel_message_id=${literal(inbound.id)}`)).toBe(0)
+ expect(sql(`SELECT to_jsonb(jsonb_build_object('disposition',disposition,'plan',planned_response_type,
+  'series',persisted_series_id)) FROM public.ediel_ack_transaction_results
+  WHERE source_message_id=${literal(inbound.id)}`)).toMatchObject({disposition:'internal_review',plan:'none',series:null})
+ const saved=sql<{snapshotId:string;readsetHash:string}>(`SELECT parsed_payload#>'{normalizedMeteringPayload,receivedStructureQualification}'
+  FROM public.ediel_messages WHERE id=${literal(inbound.id)}`)
+ expect(saved).toMatchObject({snapshotId:expect.any(String),readsetHash:expect.stringMatching(/^[a-f0-9]{64}$/)})
+ expect(sql(`SELECT to_jsonb(readset_hash=${literal(saved.readsetHash)} AND subject_message_id=${literal(inbound.id)})
+  FROM gridex_correction_process.combined_snapshots WHERE id=${literal(saved.snapshotId)}`)).toBe(true)
+})
+it.each(['E30','S07'] as const)('native witnessed C holds a previously matched %s through the active combined receipt',async code=>{
+ const {resolveCanonicalEdielPolicy}=await import('@/lib/ediel/rulebook/canonicalEdielPolicy')
+ const {runUtiltsRuntimeForMessage}=await import('@/lib/ediel/utiltsEngine')
+ const {qualifyReceivedUtiltsStructure}=await import('@/lib/ediel/utilts/qualifyReceivedStructure')
+ const {buildUtiltsTransactionPersistencePayload}=await import('@/lib/ediel/utilts/transactionPersistence')
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ const utilts=observationHandoffMessage('2026-10-01',f.ids.company)
+ utilts.message_code=code;utilts.application_reference=code==='E30'?'23-MDR-E30-T':'23-DDQ-S07-T'
+ utilts.sender_ediel_id='12345';utilts.receiver_ediel_id='54321'
+ utilts.raw_payload=code==='E30'
+  ?priorE30PointWire('E24','METER-1',point).replaceAll('91100','12345').replaceAll('21660','54321')
+  :priorNativeWire(f,point).replace('BGM+E66','BGM+S07').replaceAll('23-DDQ-E66-S','23-DDQ-S07-T')
+ const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:code,direction:'inbound',referenceDate:'2026-10-01',
+  applicationReference:utilts.application_reference,mode:'parse'})
+ const qualify=async()=>{
+  const message=persistUtiltsSubject(f,utilts),runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy:policy})
+  expect(runtime.transactionDispositions,JSON.stringify(runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
+  return qualifyReceivedUtiltsStructure({message,runtime,canonicalPolicy:policy})
+ }
+ const before=await qualify()
+ expect(before).toMatchObject({hasInternalReview:false,hasNationalMismatch:false,evidence:{comparisons:[{status:'matched',codes:[]}]}})
+ await captureNativeCorrectionC(f,point)
+ const held=await qualify()
+ expect(held).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,
+  evidence:{snapshotId:expect.any(String),readsetHash:expect.stringMatching(/^[a-f0-9]{64}$/),
+   comparisons:[{status:'unavailable',reason:'structural_correction_context_hold',codes:[]}]},
+  runtime:{transactionDispositions:[{disposition:'internal_review',responseType:'none'}],ackPlan:{shouldSendAperak:false}}})
+ expect(buildUtiltsTransactionPersistencePayload({messageCode:code,transactions:held.runtime.facts.transactions,
+  dispositions:held.runtime.transactionDispositions,matches:[]})[0].quantities).toEqual([])
+ expect(sql(`SELECT to_jsonb(readset_hash=${literal(held.evidence.readsetHash)} AND subject_message_id IS NOT NULL)
+  FROM gridex_correction_process.combined_snapshots WHERE id=${literal(held.evidence.snapshotId)}`)).toBe(true)
+ expect(sql(`SELECT to_jsonb(readset_hash=${literal(before.evidence.readsetHash)})
+  FROM gridex_correction_process.combined_snapshots WHERE id=${literal(before.evidence.snapshotId)}`)).toBe(true)
+ const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')
+ const inbound=await insertPriorUtilts(f,utilts.raw_payload!,code)
+ utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
+ utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
+ const actual=await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:inbound.id})
+ expect(actual).toMatchObject({internalReviewRequired:true,ingestedMeterValueIds:[],billingUnderlayId:null})
+ expect(utiltsEffects.ack.mock.calls.map(([call])=>call.ackFamily)).toEqual(['CONTRL'])
+ expect(utiltsEffects.meter).not.toHaveBeenCalled()
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.meter_reading_series
+  WHERE source_ediel_message_id=${literal(inbound.id)}`)).toBe(0)
+ expect(sql(`SELECT to_jsonb(jsonb_build_object('disposition',disposition,'plan',planned_response_type,
+  'series',persisted_series_id)) FROM public.ediel_ack_transaction_results
+  WHERE source_message_id=${literal(inbound.id)}`)).toMatchObject({disposition:'internal_review',plan:'none',series:null})
+})
 it.each(['2026-09-30','2026-10-01'])('native reviewed Z04 qualifies prior/current E61/E62 on policy date %s',async referenceDate=>{
  const {observationHandoffMessage}=await import('../__tests__/helpers/utiltsObservationHandoff')
  const {resolveCanonicalEdielPolicy}=await import('@/lib/ediel/rulebook/canonicalEdielPolicy')
@@ -322,7 +496,7 @@ it.each(['2026-09-30','2026-10-01'])('native reviewed Z04 qualifies prior/curren
  const f=await seed(false,true)
  expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
  const original=observationHandoffMessage(referenceDate,f.ids.company)
- original.id=f.ids.outbound;original.sender_ediel_id='12345';original.receiver_ediel_id='54321'
+ original.sender_ediel_id='12345';original.receiver_ediel_id='54321'
  const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
  original.raw_payload=original.raw_payload!.replaceAll('735999260731000007',point).replaceAll('91100','12345').replaceAll('21660','54321')
   .replaceAll('202607010000','202610010000').replaceAll('202608010000','202610150000')
@@ -331,7 +505,7 @@ it.each(['2026-09-30','2026-10-01'])('native reviewed Z04 qualifies prior/curren
  const canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate,
   applicationReference:original.application_reference,mode:'parse'})
  const qualify=async(raw:string)=>{
-  const message={...original,raw_payload:raw}
+  const message=persistUtiltsSubject(f,{...original,raw_payload:raw})
   const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy})
   expect(runtime.transactionDispositions,JSON.stringify(runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
   return qualifyReceivedUtiltsStructure({message,runtime,canonicalPolicy})
@@ -447,6 +621,327 @@ it.each(['missing','matched','E61','E62'] as const)('native prior %s traverses r
   expect(stable()).toEqual(stored)
  }
 })
+it('unrelated process volume does not exhaust a linked UTILTS subject budget',async()=>{
+ const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const otherCustomer=randomUUID()
+ const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ sql(`INSERT INTO public.customers(id,company_id,customer_number,name,customer_type)
+  VALUES(${literal(otherCustomer)},${literal(f.ids.company)},${literal(`E035-OTHER-${otherCustomer}`)},'Unrelated native customer','private');
+  INSERT INTO public.customer_operation_tasks(company_id,customer_id,task_type,title,status)
+  SELECT ${literal(f.ids.company)},${literal(otherCustomer)},'follow_up','Unrelated process volume','open'
+  FROM generate_series(1,1001);`)
+ // Events carry only a request ID. Their immutable request owner must be
+ // resolved before the process budget, including at actual inbound execution.
+ sql(`INSERT INTO public.supplier_switch_requests(company_id,customer_id,request_type,status)
+  SELECT ${literal(f.ids.company)},${literal(otherCustomer)},'switch','draft'
+  FROM generate_series(1,1001);`)
+ sql(`INSERT INTO public.supplier_switch_events(company_id,switch_request_id,event_type)
+  SELECT ${literal(f.ids.company)},id,'native_unrelated'
+  FROM public.supplier_switch_requests WHERE company_id=${literal(f.ids.company)}
+   AND customer_id=${literal(otherCustomer)};`)
+ const otherPoint=randomUUID(),otherSwitch=randomUUID(),otherEvent=randomUUID()
+ sql(`INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,
+   metering_point_id,meter_point_id,reading_frequency,measurement_type,is_settlement_relevant,grid_owner_id)
+  VALUES(${literal(otherPoint)},${literal(f.ids.company)},${literal(f.ids.customer)},
+   ${literal(f.ids.site)},${literal(f.ids.site)},'735999260731000009','735999260731000009',
+   'hourly','consumption',true,${literal(f.ids.grid)});
+  INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,metering_point_id,request_type,status)
+  VALUES(${literal(otherSwitch)},${literal(f.ids.company)},${literal(f.ids.customer)},
+   ${literal(otherPoint)},'switch','draft');
+  INSERT INTO public.supplier_switch_events(id,company_id,switch_request_id,event_type)
+  VALUES(${literal(otherEvent)},${literal(f.ids.company)},${literal(otherSwitch)},'native_other_point');`)
+ const relevantEvent=randomUUID()
+ sql(`INSERT INTO public.supplier_switch_events(id,company_id,switch_request_id,event_type)
+  VALUES(${literal(relevantEvent)},${literal(f.ids.company)},${literal(f.ids.switch)},'native_relevant');`)
+ const movedCustomerSwitch=randomUUID(),movedPointSwitch=randomUUID()
+ const movedCustomerEvent=randomUUID(),movedPointEvent=randomUUID()
+ sql(`INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,metering_point_id,request_type,status)
+  VALUES(${literal(movedCustomerSwitch)},${literal(f.ids.company)},${literal(f.ids.customer)},
+   ${literal(f.ids.point)},'switch','draft'),
+   (${literal(movedPointSwitch)},${literal(f.ids.company)},${literal(f.ids.customer)},
+   ${literal(f.ids.point)},'switch','draft');
+  INSERT INTO public.supplier_switch_events(id,company_id,switch_request_id,event_type)
+  VALUES(${literal(movedCustomerEvent)},${literal(f.ids.company)},${literal(movedCustomerSwitch)},'native_moved_customer'),
+   (${literal(movedPointEvent)},${literal(f.ids.company)},${literal(movedPointSwitch)},'native_moved_point');`)
+ const beforeMove=sql<string>('SELECT to_jsonb(clock_timestamp())')
+ sql(`UPDATE public.supplier_switch_requests SET customer_id=${literal(otherCustomer)},metering_point_id=NULL
+  WHERE id=${literal(movedCustomerSwitch)};
+  UPDATE public.supplier_switch_requests SET metering_point_id=${literal(otherPoint)}
+  WHERE id=${literal(movedPointSwitch)};
+  UPDATE public.supplier_switch_events SET event_status='success'
+  WHERE id IN (${literal(movedCustomerEvent)},${literal(movedPointEvent)});
+  DELETE FROM public.supplier_switch_events
+  WHERE id IN (${literal(movedCustomerEvent)},${literal(movedPointEvent)});`)
+ const priorBody=sql<{factCount:number;reason:string;facts:{rowId:string;operation:string}[]}>(`SELECT
+  gridex_correction_process.combined_process_body_v3(${literal(f.ids.company)},
+   ${literal(beforeMove)},ARRAY[${literal(f.ids.customer)}]::uuid[],
+   ARRAY[${literal(point)}]::text[])`)
+ const priorEventScope=sql<boolean>(`SELECT to_jsonb(gridex_correction_process.switch_event_subject_v1(
+  ${literal(f.ids.company)},old_fact,new_fact,captured_at,
+  ARRAY[${literal(f.ids.customer)}]::uuid[],ARRAY[${literal(point)}]::text[]))
+  FROM gridex_correction_process.facts WHERE table_name='supplier_switch_events'
+   AND row_id=${literal(movedCustomerEvent)} AND operation='INSERT'`)
+ const unrelatedEventScope=sql<boolean>(`SELECT to_jsonb(gridex_correction_process.switch_event_subject_v1(
+  ${literal(f.ids.company)},old_fact,new_fact,captured_at,
+  ARRAY[${literal(f.ids.customer)}]::uuid[],ARRAY[${literal(point)}]::text[]))
+  FROM gridex_correction_process.facts WHERE table_name='supplier_switch_events'
+   AND new_fact->>'event_type'='native_unrelated' LIMIT 1`)
+ const unrelatedArchive=sql<{requestId:string;eventAt:string;requestFacts:{operation:string;customer:string|null;company:string|null;capturedAt:string}[]}>(`SELECT
+  jsonb_build_object('requestId',e.new_fact->>'switch_request_id','eventAt',e.captured_at,
+   'requestFacts',(SELECT coalesce(jsonb_agg(jsonb_build_object('operation',r.operation,
+    'customer',coalesce(r.new_fact,r.old_fact)->>'customer_id',
+    'company',r.company_id,'capturedAt',r.captured_at) ORDER BY r.id),'[]'::jsonb)
+    FROM gridex_correction_process.facts r
+    WHERE r.table_name='supplier_switch_requests'
+     AND r.row_id=(e.new_fact->>'switch_request_id')::uuid))
+  FROM gridex_correction_process.facts e WHERE e.table_name='supplier_switch_events'
+   AND e.new_fact->>'event_type'='native_unrelated' LIMIT 1`)
+ expect(priorEventScope).toBe(true)
+ expect(unrelatedEventScope).toBe(false)
+ expect(sql<boolean>(`SELECT to_jsonb(gridex_correction_process.switch_event_subject_v1(
+  ${literal(f.ids.company)},NULL,'{"switch_request_id":"invalid"}'::jsonb,clock_timestamp(),
+  ARRAY[${literal(f.ids.customer)}]::uuid[],ARRAY[${literal(point)}]::text[]))`)).toBe(true)
+ expect(priorBody.facts.filter(fact=>fact.rowId===movedCustomerEvent).map(fact=>fact.operation),
+  JSON.stringify({factCount:priorBody.factCount,reason:priorBody.reason,priorEventScope,
+   unrelatedEventScope,unrelatedArchive}))
+  .toEqual(['INSERT'])
+ const afterBody=sql<{facts:{rowId:string;operation:string}[]}>(`SELECT
+  gridex_correction_process.combined_process_body_v3(${literal(f.ids.company)},
+   clock_timestamp(),ARRAY[${literal(f.ids.customer)}]::uuid[],
+   ARRAY[${literal(point)}]::text[])`)
+ for(const eventId of [movedCustomerEvent,movedPointEvent]){
+  expect(afterBody.facts.filter(fact=>fact.rowId===eventId).map(fact=>fact.operation))
+   .toEqual(['INSERT','UPDATE','DELETE'])
+ }
+ const unrelatedPoint='735999260731000008'
+ const unrelatedWire=closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',unrelatedPoint)
+ // Direct synthetic rows establish volume only. The separate producer tests
+ // exercise source and concern capture; this test calls the real UTILTS owner.
+ sql(`WITH sources AS (
+   INSERT INTO gridex_received_sources.sources(source_message_id,company_id,environment,origin,
+    message_code,source_received_at,captured_at,raw_payload,payload_hash,received_context)
+   SELECT gen_random_uuid(),${literal(f.ids.company)},'test','database_insert','Z05',
+    clock_timestamp()-interval '1 minute',clock_timestamp()-interval '30 seconds',
+    ${literal(unrelatedWire)},encode(sha256(convert_to(${literal(unrelatedWire)},'UTF8')),'hex'),'{}'::jsonb
+   FROM generate_series(1,1001) RETURNING *
+  ) INSERT INTO gridex_received_sources.correction_concerns(source_message_id,company_id,
+   environment,source_payload_hash,actor_user_id,source_received_at,source_captured_at,facts,facts_hash)
+  SELECT s.source_message_id,s.company_id,s.environment,s.payload_hash,${literal(f.ids.reviewer)},
+   s.source_received_at,s.captured_at,body.facts,encode(sha256(convert_to(body.facts::text,'UTF8')),'hex')
+  FROM sources s CROSS JOIN LATERAL (SELECT jsonb_build_object('scope',
+   jsonb_build_object('objectId',${literal(unrelatedPoint)})) facts) body;`)
+ const z06=structuralOwnerSource('Z06','E64','UNRELATED-Z06').raw_payload!.replaceAll('735123456789012345',unrelatedPoint)
+ const z10=structuralOwnerSource('Z10','E58','UNRELATED-Z10').raw_payload!.replaceAll('735123456789012345',unrelatedPoint)
+ sql(`INSERT INTO gridex_received_sources.sources(source_message_id,company_id,environment,origin,
+   message_code,source_received_at,captured_at,raw_payload,payload_hash,received_context)
+  SELECT gen_random_uuid(),${literal(f.ids.company)},'test','database_insert',
+   CASE WHEN n<=501 THEN 'Z06' ELSE 'Z10' END,
+   clock_timestamp()-interval '1 minute',clock_timestamp()-interval '30 seconds',
+   CASE WHEN n<=501 THEN ${literal(z06)} ELSE ${literal(z10)} END,
+   encode(sha256(convert_to(CASE WHEN n<=501 THEN ${literal(z06)} ELSE ${literal(z10)} END,'UTF8')),'hex'),
+   '{}'::jsonb FROM generate_series(1,1001) n;`)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.correction_concerns
+  WHERE company_id=${literal(f.ids.company)}`)).toBe(1001)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.sources
+  WHERE company_id=${literal(f.ids.company)} AND message_code IN ('Z06','Z10')
+   AND scope_point=${literal(unrelatedPoint)}`)).toBe(1001)
+ const source=await insertPriorUtilts(f,priorNativeWire(f,point))
+ utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
+ utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
+ const result=await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:source.id})
+ expect(result.ackIds.length).toBeGreaterThan(0)
+ const direct=sql<{snapshotId:string;readsetText:string}>(`SET ROLE service_role;
+  SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.ids.company)},'test',
+   ${literal(source.id)},clock_timestamp())`)
+ const directBody=JSON.parse(direct.readsetText) as {source:{readsetText:string};correction:{count:number};process:{factCount:number}}
+ expect((JSON.parse(directBody.source.readsetText) as {sourceCount:number}).sourceCount).toBeLessThan(1000)
+ expect(directBody.correction.count).toBe(0)
+ expect(directBody.process.factCount).toBeLessThan(1000)
+ const receipt=sql<{snapshotId:string;readsetHash:string}>(`SELECT parsed_payload#>'{normalizedMeteringPayload,receivedStructureQualification}'
+  FROM public.ediel_messages WHERE id=${literal(source.id)}`)
+ expect(receipt).toMatchObject({snapshotId:expect.any(String),readsetHash:expect.stringMatching(/^[a-f0-9]{64}$/)})
+ const body=sql<{process:{factCount:number;reason:string;facts:{table:string;rowId:string;operation:string}[]};
+  source:{readsetText:string};correction:{count:number}}>(`SELECT readset_text::jsonb
+  FROM gridex_correction_process.combined_snapshots WHERE id=${literal(receipt.snapshotId)}`)
+ const sourceBody=JSON.parse(body.source.readsetText) as {sourceCount:number;complete:boolean}
+ expect(sourceBody).toMatchObject({complete:true})
+ expect(sourceBody.sourceCount).toBeLessThan(1000)
+ expect(body.correction.count).toBe(0)
+ expect(body.process.factCount).toBeLessThan(1000)
+ expect(body.process.reason).toBe('before_epoch_unknown')
+ expect(body.process.facts).toContainEqual(expect.objectContaining({table:'supplier_switch_events',rowId:relevantEvent}))
+ expect(body.process.facts.filter(fact=>fact.table==='supplier_switch_events'&&fact.rowId===relevantEvent)).toHaveLength(1)
+ for(const eventId of [movedCustomerEvent,movedPointEvent]){
+  expect(body.process.facts.filter(fact=>fact.table==='supplier_switch_events'&&fact.rowId===eventId)
+   .map(fact=>fact.operation)).toEqual(['INSERT','UPDATE','DELETE'])
+ }
+ expect(body.process.facts.some(fact=>fact.rowId===otherEvent)).toBe(false)
+ const supplyId=sql<string>(`SELECT to_jsonb(id) FROM public.customer_supply_periods
+  WHERE company_id=${literal(f.ids.company)} AND source_message_id=${literal(f.ids.source)}`)
+ expect(body.process.facts).toContainEqual(expect.objectContaining({table:'customer_supply_periods',rowId:supplyId}))
+ const unrelatedTaskIds=new Set(sql<string[]>(`SELECT to_jsonb(array_agg(id::text))
+  FROM public.customer_operation_tasks WHERE customer_id=${literal(otherCustomer)}`))
+ expect(unrelatedTaskIds.size).toBe(1001)
+ expect(body.process.facts.some(fact=>fact.table==='customer_operation_tasks'&&unrelatedTaskIds.has(fact.rowId))).toBe(false)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.meter_reading_series WHERE source_ediel_message_id=${literal(source.id)}`)).toBe(1)
+})
+it('duplicate, misplaced and incomplete envelopes remain unknown source wildcards',async()=>{
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
+ const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ const unrelatedPoint='735999260731000008',sourceIds=[randomUUID(),randomUUID(),randomUUID()]
+ const valid=closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',unrelatedPoint)
+ expect(sql<string>(`SELECT to_jsonb(gridex_received_sources.source_wire_point_v1(${literal(valid)}))`)).toBe(unrelatedPoint)
+ const header=valid.match(/UNH\+[^']+'/)?.[0]
+ expect(header).toBeTruthy()
+ const duplicate=valid.replace(header!,header!+header!).replace(/UNT\+(\d+)\+M'/,
+  (_,count:string)=>`UNT+${Number(count)+1}+M'`)
+ const bgm=valid.match(/BGM\+[^']+'/)?.[0]
+ const line=valid.match(/LIN\+[^']+'/)?.[0]
+ expect(bgm).toBeTruthy();expect(line).toBeTruthy()
+ const misplaced=valid.replace(bgm!,'').replace(line!,line!+bgm!)
+ const missingFamily=valid.replace(header!,'UNH+M\'')
+ for(const [i,malformed] of [duplicate,misplaced,missingFamily].entries()){
+  expect(malformed).not.toBe(valid)
+  expect(sql(`SELECT jsonb_build_object('point',gridex_received_sources.source_wire_point_v1(${literal(malformed)}))`)).toEqual({point:null})
+  sql(`INSERT INTO gridex_received_sources.sources(source_message_id,company_id,environment,origin,
+   message_code,source_received_at,captured_at,raw_payload,payload_hash,received_context)
+   VALUES(${literal(sourceIds[i])},${literal(f.ids.company)},'test','database_insert','Z05',
+    clock_timestamp()-interval '1 minute',clock_timestamp()-interval '30 seconds',
+    ${literal(malformed)},encode(sha256(convert_to(${literal(malformed)},'UTF8')),'hex'),'{}'::jsonb);`)
+  expect(sql(`SELECT jsonb_build_object('point',scope_point) FROM gridex_received_sources.sources
+   WHERE source_message_id=${literal(sourceIds[i])}`)).toEqual({point:null})
+ }
+ const subject=await insertPriorUtilts(f,priorNativeWire(f,point))
+ const receipt=sql<{readsetText:string}>(`SET ROLE service_role;
+  SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.ids.company)},'test',
+   ${literal(subject.id)},clock_timestamp())`)
+ const body=JSON.parse(receipt.readsetText) as {source:{readsetText:string}}
+ const selected=JSON.parse(body.source.readsetText) as {
+  complete:boolean;sources:{sourceMessageId:string}[]}
+ expect(selected.complete).toBe(true)
+ for(const sourceId of sourceIds)expect(selected.sources).toContainEqual(expect.objectContaining({sourceMessageId:sourceId}))
+})
+it('unrelated document volume does not exhaust a linked UTILTS subject budget',async()=>{
+ const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const otherCustomer=randomUUID(),contract=randomUUID(),document=randomUUID(),otherSource=randomUUID()
+ const unrelatedPoint='735999260731000008'
+ const wire=closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',unrelatedPoint)
+ const facts=JSON.stringify({scope:{objectId:unrelatedPoint}})
+ sql(`INSERT INTO public.customers(id,company_id,customer_number,name,customer_type)
+  VALUES(${literal(otherCustomer)},${literal(f.ids.company)},${literal(`E035-DOC-${otherCustomer}`)},'Unrelated document customer','private');
+  INSERT INTO public.customer_contracts(id,company_id,customer_id,status)
+  VALUES(${literal(contract)},${literal(f.ids.company)},${literal(otherCustomer)},'draft');
+  INSERT INTO public.customer_contract_documents(id,company_id,customer_contract_id,document_type,document_sha256)
+  VALUES(${literal(document)},${literal(f.ids.company)},${literal(contract)},'synthetic_unrelated','0'::text || repeat('0',63));
+  INSERT INTO gridex_received_sources.sources(source_message_id,company_id,environment,origin,
+   message_code,source_received_at,captured_at,raw_payload,payload_hash,received_context)
+  VALUES(${literal(otherSource)},${literal(f.ids.company)},'test','database_insert','Z05',
+   clock_timestamp()-interval '1 minute',clock_timestamp()-interval '30 seconds',
+   ${literal(wire)},encode(sha256(convert_to(${literal(wire)},'UTF8')),'hex'),'{}'::jsonb);
+  INSERT INTO gridex_received_sources.correction_concerns(source_message_id,company_id,
+   environment,source_payload_hash,actor_user_id,source_received_at,source_captured_at,facts,facts_hash)
+  SELECT source_message_id,company_id,environment,payload_hash,${literal(f.ids.reviewer)},
+   source_received_at,captured_at,${literal(facts)}::jsonb,
+   encode(sha256(convert_to(${literal(facts)}::jsonb::text,'UTF8')),'hex')
+  FROM gridex_received_sources.sources WHERE source_message_id=${literal(otherSource)};
+  INSERT INTO gridex_received_sources.document_reference_attempts(company_id,environment,
+   source_message_id,document_id,actor_user_id,facts,facts_hash)
+  SELECT ${literal(f.ids.company)},'test',${literal(otherSource)},${literal(document)},
+   ${literal(f.ids.reviewer)},jsonb_build_object('syntheticVolume',n),
+   encode(sha256(convert_to(jsonb_build_object('syntheticVolume',n)::text,'UTF8')),'hex')
+  FROM generate_series(1,1001) n;`)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.document_reference_attempts
+  WHERE company_id=${literal(f.ids.company)}`)).toBe(1001)
+ const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ const source=await insertPriorUtilts(f,priorNativeWire(f,point))
+ utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
+ utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
+ const result=await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:source.id})
+ expect(result.ackIds.length).toBeGreaterThan(0)
+ const receipt=sql<{snapshotId:string;readsetHash:string}>(`SELECT parsed_payload#>'{normalizedMeteringPayload,receivedStructureQualification}'
+  FROM public.ediel_messages WHERE id=${literal(source.id)}`)
+ expect(receipt).toMatchObject({snapshotId:expect.any(String),readsetHash:expect.stringMatching(/^[a-f0-9]{64}$/)})
+ const body=sql<{document:{attemptCount:number;attempts:unknown[]};correction:{count:number}}>(`SELECT readset_text::jsonb
+  FROM gridex_correction_process.combined_snapshots WHERE id=${literal(receipt.snapshotId)}`)
+ expect(body.document).toMatchObject({attemptCount:0,attempts:[]})
+ expect(body.correction.count).toBe(0)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.meter_reading_series
+  WHERE source_ediel_message_id=${literal(source.id)}`)).toBe(1)
+})
+it('relevant source overflow holds the actual inbound processor without business effects',async()=>{
+ const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ const wire=closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',point)
+ sql(`INSERT INTO gridex_received_sources.sources(source_message_id,company_id,environment,origin,
+  message_code,source_received_at,captured_at,raw_payload,payload_hash,received_context)
+  SELECT gen_random_uuid(),${literal(f.ids.company)},'test','database_insert','Z05',
+   clock_timestamp()-interval '1 minute',clock_timestamp()-interval '30 seconds',
+   ${literal(wire)},encode(sha256(convert_to(${literal(wire)},'UTF8')),'hex'),'{}'::jsonb
+  FROM generate_series(1,1001);`)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.sources
+  WHERE company_id=${literal(f.ids.company)} AND scope_point=${literal(point)}`)).toBeGreaterThan(1000)
+ const inbound=await insertPriorUtilts(f,priorNativeWire(f,point))
+ utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
+ utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
+ const result=await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:inbound.id})
+ expect(result).toMatchObject({internalReviewRequired:true,ingestedMeterValueIds:[],billingUnderlayId:null})
+ expect(utiltsEffects.ack.mock.calls.map(([call])=>call.ackFamily)).toEqual(['CONTRL'])
+ expect(utiltsEffects.meter).not.toHaveBeenCalled()
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.meter_reading_series
+  WHERE source_ediel_message_id=${literal(inbound.id)}`)).toBe(0)
+ const snapshot=sql<{source:{readsetText:string}}>(`SELECT readset_text::jsonb
+  FROM gridex_correction_process.combined_snapshots WHERE subject_message_id=${literal(inbound.id)}
+  ORDER BY id DESC LIMIT 1`)
+ expect(JSON.parse(snapshot.source.readsetText)).toMatchObject({complete:false,sourceCount:1001})
+})
+it('a failed combined owner read holds actual UTILTS without a national error or meter effect',async()=>{
+ const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ const inbound=await insertPriorUtilts(f,priorNativeWire(f,point))
+ const originalRpc=supabaseService.rpc.bind(supabaseService)
+ const failedRead=vi.spyOn(supabaseService,'rpc').mockImplementation((name,args,options)=>{
+  if(name==='gridex_correction_combined_snapshot_v1')return {abortSignal:async()=>({data:null,error:{code:'42501',message:'synthetic_combined_owner_unavailable'}})} as unknown as ReturnType<typeof supabaseService.rpc>
+  return originalRpc(name,args,options)
+ })
+ utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
+ utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
+ try{
+  const result=await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:inbound.id})
+  expect(result).toMatchObject({internalReviewRequired:true,ingestedMeterValueIds:[],billingUnderlayId:null})
+ }finally{failedRead.mockRestore()}
+ expect(utiltsEffects.ack.mock.calls.map(([call])=>call.ackFamily)).toEqual(['CONTRL'])
+ expect(utiltsEffects.meter).not.toHaveBeenCalled()
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.meter_reading_series
+  WHERE source_ediel_message_id=${literal(inbound.id)}`)).toBe(0)
+ expect(sql(`SELECT jsonb_build_object('disposition',disposition,'plan',planned_response_type,
+  'series',persisted_series_id,'issues',issue_codes) FROM public.ediel_ack_transaction_results
+  WHERE source_message_id=${literal(inbound.id)}`)).toMatchObject({disposition:'internal_review',plan:'none',series:null,issues:['UTILTS_STRUCTURE_UNAVAILABLE']})
+ expect(sql(`SELECT parsed_payload#>'{normalizedMeteringPayload,receivedStructureQualification}'
+  FROM public.ediel_messages WHERE id=${literal(inbound.id)}`)).toMatchObject({snapshotId:null,readsetHash:null,
+   comparisons:[{status:'unavailable',codes:[]}]})
+})
+it('a historical inbound point still sees facts from its prior physical alias',async()=>{
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
+ const prior=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ const subject=await insertPriorUtilts(f,priorNativeWire(f,prior))
+ const oldInsert=sql<number>(`SELECT to_jsonb(id) FROM gridex_correction_process.facts
+  WHERE company_id=${literal(f.ids.company)} AND table_name='metering_points'
+   AND row_id=${literal(f.ids.point)} AND operation='INSERT'`)
+ const next='735999260731000009'
+ sql(`UPDATE public.metering_points SET meter_point_id=${literal(next)},metering_point_id=${literal(next)}
+  WHERE id=${literal(f.ids.point)} AND company_id=${literal(f.ids.company)}`)
+ const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())')
+ const receipt=sql<{readsetText:string}>(`SET ROLE service_role;
+  SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.ids.company)},'test',
+   ${literal(subject.id)},${literal(cutoff)})`)
+ const body=JSON.parse(receipt.readsetText) as {process:{facts:{id:number;rowId:string}[]};source:{readsetText:string}}
+ expect(body.process.facts).toContainEqual(expect.objectContaining({id:oldInsert,rowId:f.ids.point}))
+ expect((JSON.parse(body.source.readsetText) as {sourceCount:number}).sourceCount).toBeGreaterThan(0)
+})
 it.each([false,true])('native prior committed %s retry fails closed after newer unavailable review',async interrupted=>{
  const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
@@ -510,12 +1005,13 @@ it('native witnessed Z10 transition selects prior E30 ending/current sides and h
   applicationReference:'23-MDR-E30-T',mode:'parse'})
  const qualify=async(reason:'E20'|'E77'|'E24'|'E25'|'E67'|'E64',meter:string)=>{
   const message=observationHandoffMessage('2026-09-30',f.ids.company)
-  message.id=f.ids.outbound;message.message_code='E30';message.application_reference='23-MDR-E30-T'
+  message.message_code='E30';message.application_reference='23-MDR-E30-T'
   message.sender_ediel_id='12345';message.receiver_ediel_id='54321'
   message.raw_payload=priorE30PointWire(reason,meter,point).replaceAll('91100','12345').replaceAll('21660','54321')
-  const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy:policy})
+  const persisted=persistUtiltsSubject(f,message)
+  const runtime=runUtiltsRuntimeForMessage(persisted,{canonicalPolicy:policy})
   expect(runtime.transactionDispositions,JSON.stringify(runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
-  return qualifyReceivedUtiltsStructure({message,runtime,canonicalPolicy:policy})
+  return qualifyReceivedUtiltsStructure({message:persisted,runtime,canonicalPolicy:policy})
  }
  expect(await qualify('E25','NEW')).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,
   evidence:{comparisons:[{status:'unavailable',codes:[]}]}})
@@ -666,6 +1162,11 @@ it.each(['Z22','Z23'])('native %s closure retains immutable Z04 coverage after t
  const ended=await applyInboundBusinessStateMachine({message,actorUserId:f.ids.actor})
  expect(ended.outcome).toBe('supply_terminated')
  expect(ended.updated).toContain('customer_cases')
+ expect(sql(`SELECT to_jsonb(EXISTS(SELECT FROM gridex_correction_process.facts
+  WHERE company_id=${literal(f.ids.company)} AND table_name='customer_supply_periods'
+   AND operation='UPDATE' AND old_fact->>'end_date' IS DISTINCT FROM new_fact->>'end_date'
+   AND new_fact->>'end_date'='2026-10-15' AND old_fact->>'customer_id'=${literal(f.ids.customer)}
+   AND old_fact->>'metering_point_id'=${literal(f.ids.point)}))`)).toBe(true)
  expect(sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('company',company_id,'customer',customer_id,'site',site_id,'point',metering_point_id,
   'type',case_type,'reason',reason_category,'status',status,'title',title,'next',next_action,'source',source,'intent',metadata->>'review_intent')),'[]')
   FROM public.customer_cases WHERE company_id=${literal(f.ids.company)} AND metadata->>'source_ediel_message_id'=${literal(message.id)}`)).toEqual([{
@@ -717,14 +1218,15 @@ it.each(['Z22','Z23'])('native %s closure retains immutable Z04 coverage after t
   const {qualifyReceivedUtiltsStructure}=await import('@/lib/ediel/utilts/qualifyReceivedStructure')
   const {buildUtiltsTransactionPersistencePayload}=await import('@/lib/ediel/utilts/transactionPersistence')
   const utilts=observationHandoffMessage('2026-10-16',f.ids.company)
-  utilts.id=f.ids.outbound;utilts.sender_ediel_id='12345';utilts.receiver_ediel_id='54321'
+  utilts.sender_ediel_id='12345';utilts.receiver_ediel_id='54321'
   utilts.raw_payload=utilts.raw_payload!.replaceAll('735999260731000007',snapshot.versions[0].wire.object.objectId!)
    .replaceAll('91100','12345').replaceAll('21660','54321').replaceAll('202607010000','202610010000')
    .replaceAll('202608010000','202610150000').replace('?+0200','?+0100').replace('M-GRIDEX-2607-01','METER-1')
   const canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:utilts.message_received_at!,applicationReference:utilts.application_reference,mode:'parse'})
-  const runtime=runUtiltsRuntimeForMessage(utilts,{canonicalPolicy})
+  const persisted=persistUtiltsSubject(f,utilts)
+  const runtime=runUtiltsRuntimeForMessage(persisted,{canonicalPolicy})
   expect(runtime.transactionDispositions,JSON.stringify(runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
-  const qualified=await qualifyReceivedUtiltsStructure({message:utilts,runtime,canonicalPolicy})
+  const qualified=await qualifyReceivedUtiltsStructure({message:persisted,runtime,canonicalPolicy})
   expect(qualified).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,evidence:{comparisons:[{reason:'structural_closure_scoped_hold',codes:[]}]},
    runtime:{transactionDispositions:[{disposition:'internal_review',responseType:'none'}],ackPlan:{shouldSendAperak:false}}})
   expect(buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:qualified.runtime.facts.transactions,dispositions:qualified.runtime.transactionDispositions,matches:[]})).toMatchObject([{quantities:[],responseType:'none'}])
@@ -909,4 +1411,58 @@ it('isolates nested JSON subtraction precedence without changing the published o
    'parenthesized',('{"reviewSnapshot":{"snapshotId":"x","readsetHash":"y","cutoffAt":"z"}}'::jsonb->'reviewSnapshot')-ARRAY['snapshotId','readsetHash','cutoffAt']='{}'::jsonb);
   ROLLBACK;`)
  expect(result).toMatchObject({original:{code:'22P02'},parenthesized:true})
+})
+
+it('keeps a deleted switch event in its historical customer and point receipts at both cutoffs',async()=>{
+ const f=await seed(),pointId=randomUUID(),requestId=randomUUID(),eventId=randomUUID()
+ const point='735999260925000001'
+ sql(`INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,
+   metering_point_id,meter_point_id,reading_frequency,measurement_type,is_settlement_relevant,grid_owner_id)
+  VALUES(${literal(pointId)},${literal(f.ids.company)},${literal(f.ids.customer)},
+   ${literal(f.ids.site)},${literal(f.ids.site)},${literal(point)},${literal(point)},
+   'hourly','consumption',true,${literal(f.ids.grid)});
+  INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,metering_point_id,request_type,status)
+  VALUES(${literal(requestId)},${literal(f.ids.company)},${literal(f.ids.customer)},
+   ${literal(pointId)},'switch','draft');
+  INSERT INTO public.supplier_switch_events(id,company_id,switch_request_id,event_type)
+  VALUES(${literal(eventId)},${literal(f.ids.company)},${literal(requestId)},'native_historical_delete');`)
+ const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())')
+ sql(`DELETE FROM public.supplier_switch_events WHERE id=${literal(eventId)};
+  DELETE FROM public.supplier_switch_requests WHERE id=${literal(requestId)};
+  DELETE FROM public.metering_points WHERE id=${literal(pointId)};`)
+ const read=(at:string)=>sql<{complete:boolean;historyCoverage:string;reason:string;
+   facts:{rowId:string;operation:string}[]}>(`SELECT gridex_correction_process.combined_process_body_v3(
+    ${literal(f.ids.company)},${literal(at)}::timestamptz,
+    ARRAY[${literal(f.ids.customer)}]::uuid[],ARRAY[${literal(point)}]::text[])`)
+ const old=read(cutoff),current=read(sql<string>('SELECT to_jsonb(clock_timestamp())'))
+ expect(old).toMatchObject({complete:false,historyCoverage:'before_epoch_unknown',reason:'before_epoch_unknown'})
+ expect(current).toMatchObject({complete:false,historyCoverage:'before_epoch_unknown',reason:'before_epoch_unknown'})
+ expect(old.facts.filter(fact=>fact.rowId===eventId).map(fact=>fact.operation)).toEqual(['INSERT'])
+ expect(current.facts.filter(fact=>fact.rowId===eventId).map(fact=>fact.operation)).toEqual(['INSERT','DELETE'])
+ expect(current.facts.filter(fact=>fact.rowId===requestId).map(fact=>fact.operation)).toEqual(['INSERT','DELETE'])
+ expect(current.facts.filter(fact=>fact.rowId===pointId).map(fact=>fact.operation)).toEqual(['INSERT','DELETE'])
+})
+it('keeps a cross-customer switch request and event with their actual point subject',async()=>{
+ const f=await seed(),incomingCustomer=randomUUID(),requestId=randomUUID(),eventId=randomUUID()
+ const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ sql(`INSERT INTO public.customers(id,company_id,customer_number,name,customer_type)
+  VALUES(${literal(incomingCustomer)},${literal(f.ids.company)},${literal(`E035-INCOMING-${incomingCustomer}`)},
+   'Synthetic incoming customer','private');
+  INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,metering_point_id,request_type,status)
+  VALUES(${literal(requestId)},${literal(f.ids.company)},${literal(incomingCustomer)},
+   ${literal(f.ids.point)},'switch','draft');
+  INSERT INTO public.supplier_switch_events(id,company_id,switch_request_id,event_type)
+  VALUES(${literal(eventId)},${literal(f.ids.company)},${literal(requestId)},'native_cross_customer_point');`)
+ const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())')
+ const read=(at:string)=>sql<{facts:{rowId:string;operation:string}[]}>(`SELECT gridex_correction_process.combined_process_body_v3(
+  ${literal(f.ids.company)},${literal(at)}::timestamptz,ARRAY[${literal(f.ids.customer)}]::uuid[],
+  ARRAY[${literal(point)}]::text[])`)
+ const before=read(cutoff)
+ sql(`DELETE FROM public.supplier_switch_events WHERE id=${literal(eventId)};
+  DELETE FROM public.supplier_switch_requests WHERE id=${literal(requestId)};`)
+ const after=read(sql<string>('SELECT to_jsonb(clock_timestamp())'))
+ expect(before.facts.filter(fact=>fact.rowId===requestId).map(fact=>fact.operation)).toEqual(['INSERT'])
+ expect(before.facts.filter(fact=>fact.rowId===eventId).map(fact=>fact.operation)).toEqual(['INSERT'])
+ expect(after.facts.filter(fact=>fact.rowId===requestId).map(fact=>fact.operation)).toEqual(['INSERT','DELETE'])
+ expect(after.facts.filter(fact=>fact.rowId===eventId).map(fact=>fact.operation)).toEqual(['INSERT','DELETE'])
 })
