@@ -54,6 +54,24 @@ function incoming(held = false, mixed = false, date = '2026-10-01') {
 }
 const accepted = (id: string) => ({ transactionId: id, disposition: 'accepted', responseType: 'positive_aperak', persistenceStatus: 'persisted' })
 const failed = { transactionId: 'GRIDEX2607E66001', disposition: 'processability_rejected', responseType: 'utilts_err', persistenceStatus: 'failed', issueCodes: ['UTILTS_PERSISTENCE_FAILED'] }
+it('holds an S07 without BGM code-list qualifier SVK before business persistence', async () => {
+  const message = observationHandoffMessage('2026-09-30')
+  message.message_code = 'S07'; message.application_reference = '23-DDQ-S07-S'
+  message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
+  message.raw_payload = message.raw_payload!.replace('BGM+E66::260', 'BGM+S07::260')
+    .replace('23-DDQ-E66-S', '23-DDQ-S07-S')
+  io.get.mockResolvedValue(message)
+  results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
+
+  await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1]
+  expect(persisted?.p_transactions).toMatchObject([{ disposition: 'guide_rejected', responseType: 'negative_aperak' }])
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
+  expect(io.findOutbound).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).toContain('APERAK')
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  expect(JSON.stringify(io.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')![0].draft)).toContain('202')
+})
 it('rejects a wrong E66 BGM document agency as field 202 before business persistence', async () => {
   const message = observationHandoffMessage('2026-09-30')
   message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'

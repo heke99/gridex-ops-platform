@@ -559,3 +559,5 @@ The guide compares DTM137 to `message_received_at`, falling back to `created_at`
 
 ## 2026-09-25 — BGM203 uniqueness not yet qualified
 Annex C UG-122-7 requires nonblank BGM/C106/1004 and uniqueness over time with ERC42 for duplicate. The owner/tenant-scope and final ACK have not yet been traced through actual persistence; next bounded review. E66 LOC175 storage and custom UNA timezone remain fail-closed gaps.
+## 2026-09-25 — Post-merge bounded scope
+PR372 and child stack are on main, with final CI native343/343 PASS. The S-code 1131 batch is locally verified but not yet CI qualified. Process archive retention/purge, pre-epoch complete:false, E66 regulating-object identity, native mixed-IDE ACK/storage, F3C-06/07 and later masterplan work remain open. PR310 stays paused. Main merge triggered the configured production deployment workflow; deployment outcome must be checked separately.

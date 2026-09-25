@@ -438,6 +438,19 @@ function applyUtiltsHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeR
   const ackRule = rules.find(item => item.fieldNumber === '313')
   const bgm = wire.segments.find(segment => segment.tag === 'BGM')
   const documentCodeRule = rules.find(item => item.fieldNumber === '202')
+  const documentParts = bgm ? segmentComposite(bgm, 1, wire.una) : []
+  const documentCode = documentParts[0]?.trim() ?? ''
+  const documentQualifier = documentParts[1]?.trim() ?? ''
+  const documentQualifierIssues = /^S0[1-7]$/.test(documentCode) && documentQualifier !== 'SVK'
+    ? [{
+      severity: 'error' as const, kind: 'application' as const,
+      code: documentQualifier ? 'UTILTS_DOCUMENT_QUALIFIER_INVALID' : 'UTILTS_DOCUMENT_QUALIFIER_MISSING',
+      title: documentQualifier ? 'Ogiltig dokumentkodlistequalifierare' : 'Dokumentkodlistequalifierare saknas',
+      description: documentQualifier ? `BGM/C002/1131 har otillåtet värde ${documentQualifier}.` : 'BGM/C002/1131 saknas.',
+      aperakErcCode: documentQualifier ? '42' : '41',
+      aperakFieldCode: '202',
+      aperakText: documentQualifier ? 'INCORRECT DATA' : 'MANDATORY FIELD MISSING',
+    }] : []
   const documentAgency = bgm ? segmentComposite(bgm, 1, wire.una)[2]?.trim() : null
   const documentAgencyIssues = bgm && documentCodeRule?.requirement === 'required' && documentAgency !== '260'
     ? [{
@@ -522,7 +535,7 @@ function applyUtiltsHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeR
       aperakFieldCode: '205',
       aperakText: !dateValue ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
     }] : []
-  const issues = [...mksIssues, ...documentAgencyIssues, ...documentIssues, ...functionIssues, ...ackIssues, ...timezoneIssues, ...dateIssues]
+  const issues = [...mksIssues, ...documentQualifierIssues, ...documentAgencyIssues, ...documentIssues, ...functionIssues, ...ackIssues, ...timezoneIssues, ...dateIssues]
   if (issues.length === 0) return result
   // These fields are in the message header: every IDE fails the guide gate, even
   // when no transaction identity was parsed. No functional finding is eligible.
