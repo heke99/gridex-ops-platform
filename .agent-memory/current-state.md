@@ -1,3 +1,9 @@
+## 2026-09-25 — PR372 processkvittens kandidat
+
+Dokumenthead `32b9825d` passerade alla tillämpliga jobb, inklusive OPS `36132980452` native 337/337 och autentiska schema/typer. Lokal kandidat stärker integritetskontrollen av sammansatt processägarkvittens; fokuserat RED/GREEN 10/10, tre typechecks, lint, filbudget och migrationsintegritet passerade. Native/CI på kandidaten väntar. Historik `complete:false`, Storage-felsteg okänt, oberoende slutgranskning återstår. PR372 draft, ingen merge/produktion; PR310 orörd.
+
+---
+
 ## 2026-09-25 — PR372 pausad överlämning
 
 PR372 open/draft, head `528baa6db4fa15551888a300f22617fc3a09d684` (lokal motsvarighet `01684a3f172c282296da36adf5cd9893f56199c0`, identiskt träd `cb24b7d9eb391bb641a40223de4a0a7c480ac4c6`). OPS `36132081645`: verify grön, quality/build och clean replay/native pågick vid kontrollen; tenant, Ediel, browser, full E2E gröna, crawler skippad. Sista helt gröna föregångare `c71f312a`, native 337/337. Nya E30/S07 inbound-assertioner är publicerade men saknar native-resultat. `complete:false`; Task3b/4 och slutgranskning öppna. Detaljer och första diagnostik: `.agent-memory/pr372-pause-20260925.md`. Ingen implementation/omkörning i pausen; PR310 orörd.

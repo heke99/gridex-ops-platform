@@ -1,3 +1,9 @@
+## 2026-09-25 — Processägarkvittens lokal kandidat
+
+På `32b9825d` avslutades OPS `36132980452` grönt inklusive native 337/337, schema/typer/tenant/paritet; Ediel, tenant, browser och E2E PR-certifikat gröna. Lokal ren bas `8807c9ce`, identiskt träd. Två lokalt ändrade filer: `lib/ediel/sources/combinedCorrectionReadset.ts` och dess unit-test. RED visade att ett kvitto med `factCount:1,facts:[]` kunde godtas; nu kontrolleras exakta fakt/gap-/vittnesantal, ID/typ/hash, tid och bolag innan en sammansatt kvittens används. Lokal GREEN 10/10, tre typechecks, lint och filbudget. Publicering och native på kandidaten väntar. Historisk täckning `complete:false`; Storage-orsak okänd. Inga produktionsåtgärder eller PR310-ändringar.
+
+---
+
 ## 2026-09-25 — PAUSAD säker överlämning (aktuell; äldre avsnitt är historik)
 
 Auktoritativ worktree `pr372-finish`: lokal `01684a3f172c282296da36adf5cd9893f56199c0`, träd `cb24b7d9eb391bb641a40223de4a0a7c480ac4c6`, ren före denna dokumentuppdatering. GitHub PR #372 open/draft på `codex/e035-correction-context-20260924`: publicerad `528baa6db4fa15551888a300f22617fc3a09d684`, samma träd; skilda SHA härrör från GitHub-publiceringen. Ingen produkt-/teständring från denna head är opublicerad. Den äldre separata worktreens smutsiga filer ingår inte. `8a5b2150d444366b13e252a331b56b872ad497ee` är en fast-forward efter `c9f5f64fe570516865b408b2a9fe920a01f27e8a`, med ändrat träd och tillagd kanonisk `source_operation_id` i outbound-fixturen.

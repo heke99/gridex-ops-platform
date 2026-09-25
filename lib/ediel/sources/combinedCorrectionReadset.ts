@@ -9,6 +9,39 @@ const same=(a:unknown,b:unknown)=>instant(a)!==null&&instant(a)===instant(b)
 const boundary=(value:unknown):value is BoundaryObservation=>isEvidenceRecord(value)&&
   (value.kind==='known'&&typeof value.utc==='string'&&instant(value.utc)!==null
    ||(value.kind==='unknown'||value.kind==='not_asserted')&&Object.keys(value).length===1)
+const processTables=new Set(['customer_contract_events','customer_contracts','customer_sites','metering_points',
+  'customer_supply_periods','supplier_switch_requests','supplier_switch_events','customer_cases',
+  'customer_case_events','customer_operation_jobs','customer_operation_tasks','customer_operation_events'])
+function validProcessOwner(value:Record<string,unknown>,companyId:string,cutoffAt:string):boolean{
+  const {factCount,gapCount,witnessCount,facts}=value
+  if(value.complete!==false||value.authority!=='none'||value.historyCoverage!=='before_epoch_unknown'
+    ||value.reason!=='before_epoch_unknown'||!Array.isArray(facts)
+    ||![factCount,gapCount,witnessCount].every(count=>typeof count==='number'&&Number.isSafeInteger(count)&&count>=0)
+    ||(factCount as number)>1000||(gapCount as number)>(factCount as number)
+    ||facts.length+(gapCount as number)!==factCount)return false
+  const seen=new Set<number>()
+  let witnessed=0
+  for(const fact of facts){
+    if(!isEvidenceRecord(fact)||typeof fact.id!=='number'||!Number.isSafeInteger(fact.id)||fact.id<=0
+      ||seen.has(fact.id)||!processTables.has(String(fact.table))||!isEvidenceUuid(fact.rowId)
+      ||!['INSERT','UPDATE','DELETE'].includes(String(fact.operation))
+      ||!digest(fact.factsHash)||instant(fact.capturedAt)===null
+      ||instant(fact.capturedAt)!>instant(cutoffAt)!
+      ||(fact.old!==null&&!isEvidenceRecord(fact.old))
+      ||(fact.new!==null&&!isEvidenceRecord(fact.new))
+      ||(fact.old===null&&fact.new===null)||fact.gapReason!==null
+      ||[fact.old,fact.new].some(side=>isEvidenceRecord(side)
+        &&side.company_id!==null&&side.company_id!==undefined&&side.company_id!==companyId))return false
+    seen.add(fact.id)
+    if(fact.witnessId===null){if(fact.witnessAt!==null)return false}
+    else {
+      if(!isEvidenceUuid(fact.witnessId)||instant(fact.witnessAt)===null
+        ||instant(fact.witnessAt)!>instant(cutoffAt)!)return false
+      witnessed++
+    }
+  }
+  return witnessed===witnessCount
+}
 function scope(value:unknown,expected:ReceivedSourceScope):value is CorrectionScopeV1{
   if(!isEvidenceRecord(value)||value.companyId!==expected.companyId||value.environment!==expected.environment)return false
   return (['customerId','supplyPeriodId','objectId','identityAgency','legalSender','legalReceiver'] as const)
@@ -33,10 +66,8 @@ export function inspectCombinedCorrectionReadset(expected:ReceivedSourceScope,su
       ||body.outbound.visibilitySnapshot!==body.visibilitySnapshot||body.document.visibilitySnapshot!==body.visibilitySnapshot
       ||typeof body.source.readsetText!=='string'||!digest(body.source.readsetHash)
       ||evidenceHash(body.source.readsetText)!==body.source.readsetHash
-      ||body.process.complete!==false||body.process.authority!=='none'
-      ||body.process.historyCoverage!=='before_epoch_unknown'||!Array.isArray(body.process.facts)
-      ||typeof body.process.factCount!=='number'||!Number.isSafeInteger(body.process.factCount)||body.process.factCount<0
-      ||body.process.factCount>1000||!Array.isArray(body.correction.items)
+      ||!validProcessOwner(body.process,expected.companyId,expected.cutoffAt)
+      ||!Array.isArray(body.correction.items)
       ||body.correction.complete!==true||body.correction.count!==body.correction.items.length
       ||body.correction.count>1000
       ||body.outbound.complete!==false||body.outbound.authority!=='none'

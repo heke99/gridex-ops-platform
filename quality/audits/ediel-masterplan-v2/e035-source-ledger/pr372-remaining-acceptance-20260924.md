@@ -1,3 +1,11 @@
+# 2026-09-25 — Process owner receipt integrity candidate
+
+Skill routing: `using-superpowers`, `executing-plans`, `quality-playbook`, `test-driven-development`, `code-review`, `differential-review`, `supabase`, `supabase-postgres-best-practices`, `verification-before-completion` apply to this bounded data-path correction. UI/performance/skill-authoring and parallel-agent workflows are not relevant to the scoped change.
+
+Exact document head `32b9825d` passed OPS `36132980452`: verify, quality/build, native 337/337, case-view/browser, authentic types/schema and tenant/parity. Ediel, tenant, browser and E2E smoke/coverage/PR certificate succeeded; crawler/staging skipped. Local unqualified candidate rejects mismatched process fact/gap/witness counts, invalid fact identity/hash/time and cross-company facts in a combined receipt. RED exposed a dropped fact accepted by the inspector; local GREEN 10/10, three typechecks, lint and file budget. Native and independent whole-diff review on the candidate remain pending. Pre-epoch history stays `complete:false`; Storage failure stage is unknown.
+
+---
+
 # PR372 remaining acceptance — 2026-09-24
 
 **2026-09-25 pause:** Published `528baa6db4fa15551888a300f22617fc3a09d684` / tree `cb24b7d9eb391bb641a40223de4a0a7c480ac4c6` equals local `01684a3f172c282296da36adf5cd9893f56199c0` tree. E30/S07 processor-side-effect native proof is pending OPS `36132081645`; earlier `c71f312a` passed 337/337. Full exact state, old authorization and Storage failure names, reviewed version and outstanding gates: `.agent-memory/pr372-pause-20260925.md`. `complete:false`; draft/unmerged.

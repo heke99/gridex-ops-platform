@@ -23,7 +23,8 @@ function receipt(change?:(body:Record<string,unknown>)=>void){
   oldStop:{kind:'unknown'},proposedStop:{kind:'not_asserted'}}
  const body:Record<string,unknown>={version:1,companyId:company,environment:'test',subjectMessageId:message,
   cutoffAt:cutoff,visibilitySnapshot:'1:2:',source:{readsetText,readsetHash:hash(readsetText),visibilitySnapshot:'1:2:'},
-  process:{complete:false,authority:'none',historyCoverage:'before_epoch_unknown',factCount:0,facts:[],visibilitySnapshot:'1:2:'},
+  process:{complete:false,authority:'none',historyCoverage:'before_epoch_unknown',reason:'before_epoch_unknown',
+   factCount:0,gapCount:0,witnessCount:0,facts:[],visibilitySnapshot:'1:2:'},
   correction:{complete:true,count:1,items:[{id:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',sourceMessageId:sourceId,
    sourcePayloadHash:hash(rawPayload),factsHash:hash('synthetic'),facts,capturedAt:'2026-10-01T00:00:02Z',
    witnessId:witness,witnessHash:hash('synthetic'),witnessAt:'2026-10-01T00:00:03Z'}],visibilitySnapshot:'1:2:'},
@@ -65,6 +66,30 @@ it('rejects mismatched visibility, source hash, tenant and subject without relea
   (b:Record<string,unknown>)=>{(b.outbound as {visibilitySnapshot:string}).visibilitySnapshot='different'},
   (b:Record<string,unknown>)=>{(b.document as {attemptCount:number}).attemptCount=1},
  ])expect(inspectCombinedCorrectionReadset(expected,message,receipt(change))).toBeNull()
+})
+it('rejects a process owner that drops facts or supplies an unbound witness at the saved cutoff',()=>{
+ const fact={id:1,table:'customer_operation_tasks',rowId:'11111111-1111-4111-8111-111111111111',operation:'INSERT',
+  old:null,new:{company_id:company},factsHash:hash('process fact'),capturedAt:'2026-10-01T00:00:00Z',
+  gapReason:null,witnessId:null,witnessAt:null}
+ const valid=(change?:(process:Record<string,unknown>)=>void)=>receipt(body=>{
+  const process=body.process as Record<string,unknown>
+  Object.assign(process,{factCount:1,gapCount:0,witnessCount:0,reason:'before_epoch_unknown',facts:[fact]})
+  change?.(process)
+ })
+ expect(inspectCombinedCorrectionReadset(expected,message,valid())?.source.correctionContextBlockers).toHaveLength(1)
+ expect(inspectCombinedCorrectionReadset(expected,message,valid(p=>{
+  p.witnessCount=1
+  p.facts=[{...fact,witnessId:witness,witnessAt:'2026-10-01T00:00:01Z'}]
+ }))?.source.correctionContextBlockers).toHaveLength(1)
+ for(const mutate of [
+  (p:Record<string,unknown>)=>{p.facts=[]},
+  (p:Record<string,unknown>)=>{p.gapCount=1},
+  (p:Record<string,unknown>)=>{p.witnessCount=1},
+  (p:Record<string,unknown>)=>{p.reason=null},
+  (p:Record<string,unknown>)=>{(p.facts as typeof fact[])[0]={...fact,factsHash:'bad'}},
+  (p:Record<string,unknown>)=>{(p.facts as typeof fact[])[0]={...fact,new:{company_id:'other-company'}}},
+  (p:Record<string,unknown>)=>{(p.facts as typeof fact[])[0]={...fact,capturedAt:'2026-10-21T00:00:00Z'}},
+ ])expect(inspectCombinedCorrectionReadset(expected,message,valid(mutate))).toBeNull()
 })
 it('rejects inconsistent populated outbound and document owner relationships',()=>{
  const outboundId='11111111-1111-4111-8111-111111111111'

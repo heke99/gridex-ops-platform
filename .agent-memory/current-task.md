@@ -1,3 +1,9 @@
+## 2026-09-25 — Task4 processkvittens integritet, lokal kandidat
+
+På dokumenthead `32b9825d` är alla tillämpliga PR-jobb avslutade: OPS `36132980452` verify/quality/native 337/337, Ediel, tenant, browser och E2E smoke/coverage/PR-certifikat gröna; staging-full och crawler skippade. Den lokala kandidaten validerar att processägarens fakta, antal, gap, vittnen, tenant och cutoff stämmer i den sammansatta kvittensen. RED reproducerade att tappad fakta accepterades; GREEN 10/10 fokuserade tester, tre typechecks, lint och filbudget. Native på kandidaten väntar. Storage-felsteg okänt; `complete:false`; PR372 draft, ingen merge/produktion; PR310 orörd. Nästa: publicera exakt kandidat, läs native/CI och fortsätt Task3b/4 historik/retention.
+
+---
+
 ## 2026-09-25 — PAUSAD säker överlämning (aktuell; äldre avsnitt är historik)
 
 Auktoritativ worktree `pr372-finish`: lokal `01684a3f172c282296da36adf5cd9893f56199c0`, träd `cb24b7d9eb391bb641a40223de4a0a7c480ac4c6`, ren före denna dokumentuppdatering. GitHub PR #372 open/draft på `codex/e035-correction-context-20260924`: publicerad `528baa6db4fa15551888a300f22617fc3a09d684`, samma träd; skilda SHA härrör från GitHub-publiceringen. Ingen produkt-/teständring från denna head är opublicerad. Den äldre separata worktreens smutsiga filer ingår inte. `8a5b2150d444366b13e252a331b56b872ad497ee` är en fast-forward efter `c9f5f64fe570516865b408b2a9fe920a01f27e8a`, med ändrat träd och tillagd kanonisk `source_operation_id` i outbound-fixturen.
