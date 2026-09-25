@@ -1,3 +1,7 @@
+## 2026-09-25 — F3C-05 field313 header guide batch
+Predecessor PR377/378 each passed all four exact-head ordinary workflows, including native 340/340 (OPS `36179405219`/`36180030123`). This does not qualify the current field313 batch.
+Separate branch from draft PR378 `eb1bf146` published tree. Complete E66 BGM4343 XX + real E19 RED returned functional ERR. Shared header projection now yields negative APERAK field313 and no final ERR; real inbound consumer test shows rejected disposition, no meter/billing effects, APERAK only. Complete two-IDE E66 missing IDE first + E19 second already separates ACKs; no disposition rewrite. Separate missing LOC172 first/LOC172 second shows profile message-level fallback and wrong ERR ownership; E66 field209/533 conditional remains next. Local 276/276 UTILTS, types/lint/diff PASS; publication and own exact-head CI pending. See `quality/audits/ediel-masterplan-v2/f3-utilts-header313-20260925.md`. PR310/372 untouched.
+
 ## 2026-09-25 — F3C-05 field502 agency260 guide batch
 Draft PR377 published `5e08fd02`, exact-head browser and Ediel SUCCESS, OPS verify SUCCESS; OPS quality/replay and full E2E still running at check. New separate agency260 branch: complete E66 `MKS+23+E02::999` plus E19 RED gave functional ERR; header guide now enforces source row UG-122-21 and plans field502 negative APERAK. Local 273/273 UTILTS, app/test types, lint/diff PASS. Publication and own CI pending. See `quality/audits/ediel-masterplan-v2/f3-utilts-phase502-agency-20260925.md`. PR310/372 untouched; no merge/staging.
 

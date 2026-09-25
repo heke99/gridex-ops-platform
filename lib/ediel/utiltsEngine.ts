@@ -407,11 +407,11 @@ function suppressFunctionalIssuesForGuideRejectedTransactions(
   return rebuildUtiltsRuntimeResult({ message, result, issues })
 }
 
-function applyUtiltsMksHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
+function applyUtiltsHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
   const rules = fieldRulesForMessage('UTILTS', result.facts.messageCode)
   const wire = tokenizeEdifact(message.raw_payload)
   const market = wire.segments.find(segment => segment.tag === 'MKS')
-  const issues = (['501', '502'] as const).flatMap(fieldNumber => {
+  const mksIssues = (['501', '502'] as const).flatMap(fieldNumber => {
     const rule = rules.find(item => item.fieldNumber === fieldNumber)
     if (!rule?.allowedValues?.length) return []
     const composite = market ? segmentComposite(market, fieldNumber === '501' ? 1 : 2, wire.una) : []
@@ -435,8 +435,22 @@ function applyUtiltsMksHeaderGuide(message: EdielMessageRow, result: UtiltsRunti
       aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
     }]
   })
+  const ackRule = rules.find(item => item.fieldNumber === '313')
+  const bgm = wire.segments.find(segment => segment.tag === 'BGM')
+  const request = bgm ? segmentComposite(bgm, 4, wire.una)[0]?.trim() : null
+  const ackIssues = ackRule?.allowedValues?.length && (!request || !ackRule.allowedValues.includes(request))
+    ? [{
+      severity: 'error' as const, kind: 'application' as const,
+      code: request ? ackRule.errorCodeIfInvalid ?? 'UTILTS_ACK_REQUEST_INVALID' : ackRule.errorCodeIfMissing ?? 'UTILTS_ACK_REQUEST_MISSING',
+      title: request ? 'Ogiltig kvittensbegäran' : 'Kvittensbegäran saknas',
+      description: request ? `BGM/4343 har otillåtet värde ${request}.` : 'BGM/4343 saknas.',
+      aperakErcCode: request ? '42' : '41',
+      aperakFieldCode: '313',
+      aperakText: request ? 'INCORRECT DATA' : 'MANDATORY FIELD MISSING',
+    }] : []
+  const issues = [...mksIssues, ...ackIssues]
   if (issues.length === 0) return result
-  // Both MKS fields are in the message header: every IDE fails the guide gate, even
+  // These fields are in the message header: every IDE fails the guide gate, even
   // when no transaction identity was parsed. No functional finding is eligible.
   const retained = result.validation.issues.filter(issue => issue.severity !== 'error' || issue.kind !== 'functional')
   return rebuildUtiltsRuntimeResult({ message, result, issues: [...retained, ...issues] })
@@ -558,6 +572,6 @@ export function runUtiltsRuntimeForMessage(
   // Canonical quantity/effective-date checks can add processability findings
   // after the guide pass. A guide-invalid IDE has no functional outcome.
   return applyCanonicalE66PersistencePayload(
-    suppressFunctionalIssuesForGuideRejectedTransactions(message, applyUtiltsMksHeaderGuide(message, effective)),
+    suppressFunctionalIssuesForGuideRejectedTransactions(message, applyUtiltsHeaderGuide(message, effective)),
   )
 }

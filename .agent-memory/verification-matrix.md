@@ -324,6 +324,15 @@ PR372/521bc9ba: OPS36003339938 clean migration replay SUCCESS, native314/314 in 
 | Lokal gren före commit | Komplett tvåobjekts-Z04, fokuserad RED | 1/10 föll: två identiska 213 i nationell APERAK-plan | Faktiskt duplikat, före rättning. |
 | Lokal gren före commit | Fokuserade Vitest 4 filer, app/test typ, scoped ESLint, diff check | 103/103 PASS; övrigt PASS | Native/exakt-head CI väntar. |
 | `ca1aa11b6311088f70b0f8ada05befdfa55b6924` | OPS `36174980998`, Ediel `36174981008`, browser `36174981015`, full E2E `36174981002` | Alla SUCCESS | PR374, tidigare batch; kvalificerar inte denna kandidat. |
+## 2026-09-25 — F3C-05 header313 candidate
+
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | Komplett E66 invalid BGM4343 + E19 | `functional_rejected`/ERR RED | Fel före rättning. |
+| Lokal gren före commit | Två-IDE missing ID/E19 | Negativ APERAK första, ERR andra | Befintligt korrekt; ingen dispositionsändring. |
+| Lokal gren före commit | Inbound med mockad DB-gräns, 24 UTILTS-filer, typer/lint/diff | 276/276 PASS, typer/lint/diff PASS | Native/egen exact-head CI väntar. |
+| `5e08fd02` / `eb1bf146` | PR377 OPS `36179405219`; PR378 OPS `36180030123`, respektive Ediel/browser/full E2E | Alla SUCCESS; native 340/340 vardera | Föregående batcher, ej fält313-kandidat. |
+
 ## 2026-09-25 — F3C-05 agency260 candidate
 
 | Head | Kontroll | Utfall | Gräns |

@@ -594,6 +594,9 @@ integration, then read the actual native log. Historical alias and remaining
 Task3b/Task4 gates remain. PR372 draft; PR310 untouched.
 ## 2026-09-25 — Z04 ACK projection continuation
 `codex/ediel-v2-z04-213-ack-20260925` is based on PR374's same-tree local parent. The source-valid two-object Z04 control and one own-QTY31 omission found duplicate final field213 APERAK entries. Projection-only deduplication preserves both diagnostic owners and distinct objects. Focused 103/103, types/lint/diff green; publish separate stacked draft and run ordinary CI. No native persisted object/case proof yet. Report: `quality/audits/ediel-masterplan-v2/f3-z04-213-ack-dedup-20260925.md`.
+## 2026-09-25 — UTILTS field313 header continuation
+Branch from draft PR378 published `eb1bf146` same tree. Annex C UG-122-9 requires BGM4343 AB/NA. Complete E66 XX+E19 RED returned functional ERR; shared header projection now yields field313 guide APERAK. Real inbound boundary test has rejected RPC outcome, no meter/billing/completion, APERAK only, raw QTY retained. Mixed two-IDE missing ID/E19 already correct; missing 172 first with sibling 172 exposes next conditional 209/533 fallback. Local 276/276 UTILTS, types/lint/diff PASS. Publish separate draft and inspect exact-head CI. See `f3-utilts-header313-20260925.md`.
+
 ## 2026-09-25 — UTILTS field502 agency continuation
 Branch from PR377 published `5e08fd02` same tree. Annex C UG-122-21 requires agency260. Complete E66 wrong agency + real E19 confirmed final functional ERR; existing header projection now enforces missing/invalid agency as field502 ERC41/42, no ERR in final ACK. Local 273/273 UTILTS, types/lint/diff PASS. Publish separate draft and inspect exact-head CI; literal staging/native multi-IDE remains unqualified. See `f3-utilts-phase502-agency-20260925.md`.
 

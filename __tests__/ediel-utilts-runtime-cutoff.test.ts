@@ -6,6 +6,57 @@ import { buildAperakDraft } from '@/lib/ediel/ack'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 
 describe('UTILTS runtime effective-date cutoff', () => {
+  it('keeps a guide-rejected E66 IDE separate from its functional sibling', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-two-ide')
+    const lines = control.raw_payload!.split('\n')
+    const start = lines.findIndex(line => line.startsWith('IDE+24+'))
+    const close = lines.findIndex(line => line.startsWith('UNT+'))
+    const group = lines.slice(start, close)
+    const first = group.map(line => line.startsWith('IDE+24+') ? "IDE+24'" : line)
+    const second = group.map(line => line.replace('GRIDEX2607E66001', 'GRIDEX2607E66002'))
+    lines.splice(start, close - start, ...first, ...second)
+    lines[lines.findIndex(line => line.startsWith('UNT+'))] = `UNT+${lines.length - 2}+1'`
+    const message = { ...control, raw_payload: lines.join('\n') }
+    const result = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+
+    expect(result.validation.syntaxOk).toBe(true)
+    expect(result.transactionDispositions.map(item => [item.transactionId, item.responseType])).toEqual([
+      ['transaction-1', 'negative_aperak'], ['GRIDEX2607E66002', 'utilts_err'],
+    ])
+    expect(result.validation.issues.filter(issue => issue.kind === 'functional' && issue.severity === 'error')
+      .map(issue => issue.referenceNumber)).toEqual(expect.arrayContaining(['GRIDEX2607E66002']))
+    expect(result.validation.issues.some(issue => issue.kind === 'functional' && issue.referenceNumber === 'transaction-1')).toBe(false)
+    expect(result.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ lineItemReference: 'transaction-1' }),
+    ]))
+    expect(result.ackPlan.utiltsErrDetails).toEqual(expect.arrayContaining([
+      expect.objectContaining({ referenceNumber: 'GRIDEX2607E66002', code: 'E19' }),
+    ]))
+  })
+  it('rejects invalid or missing acknowledgement request 313 before E19', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-ack-request')
+    const noPositiveRequest = runUtiltsRuntimeForMessage({ ...control,
+      raw_payload: control.raw_payload!.replace('GRIDEX2607E66MSG001+9+AB', 'GRIDEX2607E66MSG001+9+NA'),
+    }, { referenceDate: '2026-09-30' })
+    expect(noPositiveRequest.validation.issues.some(issue => issue.aperakFieldCode === '313')).toBe(false)
+    for (const [request, ercCode] of [['XX', '42'], ['', '41']] as const) {
+      const message = { ...control, sender_ediel_id: '91100', receiver_ediel_id: '21660',
+        raw_payload: control.raw_payload!.replace('GRIDEX2607E66MSG001+9+AB', `GRIDEX2607E66MSG001+9+${request}`) }
+      const result = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+      expect(result.validation.classification).toBe('application_rejected')
+      expect(result.transactionDispositions.map(item => item.responseType)).toEqual(['negative_aperak'])
+      expect(result.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+        expect.objectContaining({ fieldCode: '313', ercCode }),
+      ]))
+      expect(result.ackPlan.utiltsErrDetails).toEqual([])
+      const decision = resolveCanonicalRuntimeDecision(message)
+      expect(decision).toMatchObject({ syntaxDecision: 'accepted', applicationDecision: 'rejected', functionalDecision: 'accepted' })
+      expect(decision.responsePlan.some(item => item.family === 'UTILTS_ERR')).toBe(false)
+      const plan = decision.responsePlan.find(item => item.family === 'APERAK')!
+      expect(plan).toMatchObject({ outcome: 'negative', applicationErrors: [{ fieldCode: '313', ercCode }] })
+      expect(buildAperakDraft({ sourceMessage: message, outcome: 'negative', applicationErrors: plan.applicationErrors }).rawPayload).toContain('FTX+AAO++313::260')
+    }
+  })
   it('requires agency 260 for phase field 502 before a real E19 mismatch', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-phase-agency')
     const valid = runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' })

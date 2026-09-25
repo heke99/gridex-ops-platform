@@ -1,16 +1,16 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-25T19:28:00Z",
+  "updated_at": "2026-09-25T19:38:00Z",
   "status": "IN_PROGRESS",
   "paused": false,
-  "branch": "codex/ediel-v2-utilts-phase502-agency-20260925",
+  "branch": "codex/ediel-v2-utilts-header313-20260925",
   "active_pr": null,
   "base_head_sha": "2a148d39d631fc759c99cd1c69350b5e2147dbdb",
   "runtime_accepted_sha": "2a148d39d631fc759c99cd1c69350b5e2147dbdb",
   "last_merged_pr": 371,
   "last_accepted_pr": 371,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "F3C-05 UTILTS field502 agency 260 guide outcome",
+  "active_item": "F3C-05 UTILTS field313 header guide and mixed IDE",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish agency260 batch stacked on PR377 5e08fd02, check exact-head ordinary CI; then next qualified header or native mixed ACK/storage path.",
+  "next_action": "Publish field313 batch stacked on PR378 eb1bf146, check exact-head ordinary CI; then qualify E66 conditional field209/533 per IDE and native mixed ACK/storage.",
   "task4_combined_snapshot": {
     "published_head": "b1c7f993affdb68d11f4c0941c483c4d145b938e",
     "published_tree": "37789b428e66c37b3030f1aa9bc8b539a78d40e9",
