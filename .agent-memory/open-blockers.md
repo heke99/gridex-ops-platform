@@ -541,3 +541,6 @@ E66 209/533 is conditional per IDE. Current profile borrows sibling LOC172 and r
 
 ## 2026-09-25 — Field205 remaining clock authority
 The guide compares DTM137 to `message_received_at`, falling back to `created_at`. A row missing both cannot prove the not-future upper bound; the actual inbound persisted row has receipt/creation timestamps. Custom-UNA timezone conversion and E66 LOC175 distinct persistence identity remain separate fail-closed gaps. PR380 OPS ordinary CI running at last check.
+
+## 2026-09-25 — BGM203 uniqueness not yet qualified
+Annex C UG-122-7 requires nonblank BGM/C106/1004 and uniqueness over time with ERC42 for duplicate. The owner/tenant-scope and final ACK have not yet been traced through actual persistence; next bounded review. E66 LOC175 storage and custom UNA timezone remain fail-closed gaps.

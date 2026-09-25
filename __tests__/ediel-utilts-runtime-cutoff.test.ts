@@ -6,6 +6,32 @@ import { buildAperakDraft } from '@/lib/ediel/ack'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 
 describe('UTILTS runtime effective-date cutoff', () => {
+  it('rejects missing or invalid BGM function 204 before a real E66 E19', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-bgm-function')
+    expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')
+    const allowedFive = runUtiltsRuntimeForMessage({ ...control,
+      raw_payload: control.raw_payload!.replace('GRIDEX2607E66MSG001+9+AB', 'GRIDEX2607E66MSG001+5+AB'),
+    }, { referenceDate: '2026-09-30' })
+    expect(allowedFive.validation.issues.some(issue => issue.aperakFieldCode === '204')).toBe(false)
+    for (const [functionCode, ercCode] of [['', '41'], ['XX', '42']] as const) {
+      const message = { ...control, sender_ediel_id: '91100', receiver_ediel_id: '21660',
+        raw_payload: control.raw_payload!.replace('GRIDEX2607E66MSG001+9+AB', `GRIDEX2607E66MSG001+${functionCode}+AB`) }
+      const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+      expect(runtime.validation.classification).toBe('application_rejected')
+      expect(runtime.transactionDispositions.map(item => item.responseType)).toEqual(['negative_aperak'])
+      expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+        expect.objectContaining({ fieldCode: '204', ercCode }),
+      ]))
+      expect(runtime.ackPlan.utiltsErrDetails).toEqual([])
+      const decision = resolveCanonicalRuntimeDecision(message)
+      expect(decision).toMatchObject({ syntaxDecision: 'accepted', applicationDecision: 'rejected' })
+      const plan = decision.responsePlan.find(item => item.family === 'APERAK')!
+      expect(plan.applicationErrors).toEqual(expect.arrayContaining([expect.objectContaining({ fieldCode: '204', ercCode })]))
+      expect(buildAperakDraft({ sourceMessage: message, outcome: 'negative', applicationErrors: plan.applicationErrors }).rawPayload)
+        .toContain('FTX+AAO++204::260')
+      expect(decision.responsePlan.some(item => item.family === 'UTILTS_ERR')).toBe(false)
+    }
+  })
   it('rejects missing, malformed or future message date 205 before E66 E19', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-message-date')
     const baseline = runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' })

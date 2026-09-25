@@ -1,16 +1,16 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-25T22:05:00Z",
+  "updated_at": "2026-09-25T22:08:00Z",
   "status": "IN_PROGRESS",
   "paused": false,
-  "branch": "codex/ediel-v2-utilts-header205-20260925",
+  "branch": "codex/ediel-v2-utilts-header204-20260925",
   "active_pr": null,
   "base_head_sha": "2a148d39d631fc759c99cd1c69350b5e2147dbdb",
   "runtime_accepted_sha": "2a148d39d631fc759c99cd1c69350b5e2147dbdb",
   "last_merged_pr": 371,
   "last_accepted_pr": 371,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "F3C-05 UTILTS field205 date guide and policy selection",
+  "active_item": "F3C-05 UTILTS BGM function field204 guide and consumer",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish PR381 fixture chronology correction as fast-forward child of a307b91e, check ordinary exact-head CI, then test BGM/1225 field204 with complete E66 and E19.",
+  "next_action": "Publish field204 batch stacked on corrected PR381 28ed2fc3; check ordinary exact-head CI. Then inspect fields202/203 and E66 209/533 per-IDE identity with distinct persistence scope.",
   "task4_combined_snapshot": {
     "published_head": "b1c7f993affdb68d11f4c0941c483c4d145b938e",
     "published_tree": "37789b428e66c37b3030f1aa9bc8b539a78d40e9",
@@ -807,9 +807,15 @@
   "utilts_header205_20260925": {
     "base_published_sha": "9678a63359170914f16ab59274e0ea38d52e8aca",
     "local_tests": "280/280 in 24 files; app/test types and lint PASS; final focused25/25 PASS",
-    "ordinary_ci": "FULL_E2E_COVERAGE_36182902638_FAILED_FOUR_SYNTHETIC_FUTURE_RECEIPT_FIX_LOCAL_29_PASS_OPS_RUNNING",
+    "ordinary_ci": "CORRECTED_HEAD_RUNNING_36183668449_OPS_36183668525_E2E_36183668493_EDIEL_BROWSER_SUCCESS",
     "report": "quality/audits/ediel-masterplan-v2/f3-utilts-header205-20260925.md",
-    "published_head": "a307b91eff93aba03dee4a492aa7408551304176",
+    "published_head": "28ed2fc3a353c03058e9363b06a40a49235cef20",
     "active_pr": 381
+  },
+  "utilts_header204_20260925": {
+    "base_published_sha": "28ed2fc3a353c03058e9363b06a40a49235cef20",
+    "local_tests": "311/311 in 25 files; app/test types, lint/diff PASS; valid5 focused PASS",
+    "ordinary_ci": "PENDING_NEW_HEAD",
+    "report": "quality/audits/ediel-masterplan-v2/f3-utilts-header204-20260925.md"
   }
 }

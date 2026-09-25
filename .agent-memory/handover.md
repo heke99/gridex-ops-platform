@@ -1,3 +1,6 @@
+## 2026-09-25 — BGM field204 source/consumer continuation
+Local branch `codex/ediel-v2-utilts-header204-20260925` from corrected PR381 same tree. Source allows BGM1225 5/9; XX or missing plus E19 was ERR; final guide now field204 ERC42/41, negative APERAK and no ERR. Mocked inbound persistence/sinks qualified; 311/311 local, types/lint PASS. Publish stacked draft; see `f3-utilts-header204-20260925.md`. PR381 corrected CI pending; no merge/staging/PR310.
+
 ## 2026-09-25 — Field205 published CI fixture correction
 PR381 `a307b91e` full E2E coverage failed four variants: synthetic receive 00:00Z preceded DTM137 18:11 local +01:00 the same day. Correct field205 future-date rejection exposed the test chronology. Receipt changed to 20:00Z; 29/29 targeted tests PASS. Publish fast-forward fixture-only correction and require new ordinary exact-head CI; then BGM204. OPS on first head was still running at last check. No product-rule weakening, staging, merge or PR310.
 
