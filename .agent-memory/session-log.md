@@ -296,3 +296,6 @@ PR379 checkpoint checked; code/source trace found E66 209/533 identity unsafe to
 
 ## 2026-09-25 — F3C-05 message date field205
 PR379 exact-head ordinary CI all success; PR380 three success OPS pending. Separate branch: RED absent DTM137 plus E19 and impossible 30 February policy resolution with empty application errors. Calendar guard at policy selection and field205 final header guide corrected disposition/ACK; actual mocked inbound no meter/billing/completion. Local 280/280, types/lint and final25/25. Publication and own ordinary CI next.
+
+## 2026-09-25 — Field205 published CI fixture correction
+PR381 `a307b91e` full E2E coverage failed four variants: synthetic receive 00:00Z preceded DTM137 18:11 local +01:00 the same day. Correct field205 future-date rejection exposed the test chronology. Receipt changed to 20:00Z; 29/29 targeted tests PASS. Publish fast-forward fixture-only correction and require new ordinary exact-head CI; then BGM204. OPS on first head was still running at last check. No product-rule weakening, staging, merge or PR310.

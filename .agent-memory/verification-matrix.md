@@ -371,3 +371,6 @@ PR372/521bc9ba: OPS36003339938 clean migration replay SUCCESS, native314/314 in 
 | Lokal gren före commit | 24 UTILTS testfiler, app/test typer, scoped lint, final focused rerun | 280/280, typer/lint, 25/25 PASS | Native/egen exakt-head CI väntar. |
 | `7cd41b50b3459182cc54afe246fd7420691b3b9c` | PR379 four ordinary workflows | Alla SUCCESS; OPS `36181231049` | Föregående batch. |
 | `9678a63359170914f16ab59274e0ea38d52e8aca` | PR380 Ediel/browser/E2E and OPS | Första tre SUCCESS; OPS `36182182934` pågående vid kontroll | Föregående batch. |
+
+## 2026-09-25 — Field205 published CI fixture correction
+PR381 `a307b91e` full E2E coverage failed four variants: synthetic receive 00:00Z preceded DTM137 18:11 local +01:00 the same day. Correct field205 future-date rejection exposed the test chronology. Receipt changed to 20:00Z; 29/29 targeted tests PASS. Publish fast-forward fixture-only correction and require new ordinary exact-head CI; then BGM204. OPS on first head was still running at last check. No product-rule weakening, staging, merge or PR310.

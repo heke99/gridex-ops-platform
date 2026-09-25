@@ -1,3 +1,6 @@
+## 2026-09-25 — Field205 published CI fixture correction
+PR381 `a307b91e` full E2E coverage failed four variants: synthetic receive 00:00Z preceded DTM137 18:11 local +01:00 the same day. Correct field205 future-date rejection exposed the test chronology. Receipt changed to 20:00Z; 29/29 targeted tests PASS. Publish fast-forward fixture-only correction and require new ordinary exact-head CI; then BGM204. OPS on first head was still running at last check. No product-rule weakening, staging, merge or PR310.
+
 ## 2026-09-25 — Field205 date and policy selection
 Local branch `codex/ediel-v2-utilts-header205-20260925` from PR380 same tree. Invalid 30 February previously selected an impossible policy date and produced generic APERAK without typed field error; now selection falls back to receipt and final guide returns field205. Missing, bad format and future date share final negative APERAK with no E19; actual mocked inbound sinks remain silent. 280/280 local UTILTS, types/lint, final 25/25 pass. Publish separate draft on #380, check CI; see `f3-utilts-header205-20260925.md`. PR310 paused and no staging/merge.
 

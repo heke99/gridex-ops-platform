@@ -1,3 +1,6 @@
+## 2026-09-25 — Field205 published CI fixture correction
+PR381 `a307b91e` full E2E coverage failed four variants: synthetic receive 00:00Z preceded DTM137 18:11 local +01:00 the same day. Correct field205 future-date rejection exposed the test chronology. Receipt changed to 20:00Z; 29/29 targeted tests PASS. Publish fast-forward fixture-only correction and require new ordinary exact-head CI; then BGM204. OPS on first head was still running at last check. No product-rule weakening, staging, merge or PR310.
+
 ## 2026-09-25 — Field205 local candidate
 PR380 open/draft published `9678a633`; new local `codex/ediel-v2-utilts-header205-20260925` adds source-backed DTM137 guide checks and valid-calendar policy-date fallback. Final field205 negative APERAK, real mocked inbound no business sinks. Local 280/280 relevant tests and app/test types/lint pass. Publish separate stacked draft, ordinary CI pending. PR379 all ordinary exact-head workflows succeeded; PR380 OPS pending. PR372 and PR310 untouched.
 

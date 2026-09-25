@@ -1,3 +1,6 @@
+## 2026-09-25 — Field205 published CI fixture correction
+PR381 `a307b91e` full E2E coverage failed four variants: synthetic receive 00:00Z preceded DTM137 18:11 local +01:00 the same day. Correct field205 future-date rejection exposed the test chronology. Receipt changed to 20:00Z; 29/29 targeted tests PASS. Publish fast-forward fixture-only correction and require new ordinary exact-head CI; then BGM204. OPS on first head was still running at last check. No product-rule weakening, staging, merge or PR310.
+
 ## 2026-09-25 — Active: F3C-05 field205 message date
 Separate branch from PR380 published `9678a633` same tree. Complete E66 missing DTM137 + real E19 returned ERR; malformed 30 February made policy selection fail before a typed ACK. Policy date normalization now rejects impossible calendar days, and header guide emits field205 ERC41/42 for missing, malformed/format/future values. Real inbound mocked boundary sees guide-rejected RPC and no meter/billing/completion. Local 280/280 UTILTS, app/test types, lint and final focused25/25 PASS. Publish stacked draft, check exact-head CI; then fields202/203/204 or per-IDE 209/533 identity/persistence. PR379 all four ordinary workflows SUCCESS; PR380 OPS running, other three SUCCESS at last check. No staging/merge/PR310.
 
