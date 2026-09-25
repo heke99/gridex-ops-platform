@@ -1206,6 +1206,67 @@ it('a real Z08H send appears with its original, attempt, provider result and wit
   FROM gridex_correction_process.combined_snapshots WHERE id=${literal(after.snapshotId)}`)).toBe(true)
 })
 
+it('one saved cutoff observes committed outbound entry and document attempt after a concurrent writer commits',async()=>{
+ const f=await outboundSeed(),sourceMessageId=randomUUID(),customerId=randomUUID(),contractId=randomUUID(),documentId=randomUUID()
+ const concernWire=raw().replace('12345:14+54321:14',`${f.receiver}:14+12345:14`)
+ sql(`INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,
+  raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,
+  canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+  SELECT ${literal(sourceMessageId)},${literal(f.companyId)},'test','inbound','edifact','PRODAT','Z05','received',
+   ${literal(concernWire)},'{"subtype":"C"}',clock_timestamp(),'23-DDQ-PRODAT',${literal(f.receiver)},'12345',
+   pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
+  WHERE profile.profile_key='PRODAT:Z05:C:26.A:r3' AND profile.is_enabled;`)
+ sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+  SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions
+  WHERE key IN ('documents.read','customers.read') ON CONFLICT DO NOTHING;
+  INSERT INTO public.customers(id,company_id,first_name,last_name)
+  VALUES(${literal(customerId)},${literal(f.companyId)},'Synthetic','Document');`)
+ sql(`INSERT INTO public.customer_contracts(id,company_id,customer_id,status)
+  VALUES(${literal(contractId)},${literal(f.companyId)},${literal(customerId)},'draft');
+  INSERT INTO public.customer_contract_documents(id,company_id,customer_contract_id,
+   document_type,storage_bucket,storage_path,document_sha256)
+  VALUES(${literal(documentId)},${literal(f.companyId)},${literal(contractId)},
+   'signed_contract_pdf','customer-contract-documents','synthetic/owned-document.pdf',repeat('a',64));`)
+ expect(await captureCorrectionContext({companyId:f.companyId,environment:'test',
+  sourceMessageId,actorUserId:f.actorUserId})).toMatchObject({status:'recorded'})
+ const prepared=await preparedOutbound(f),lock=1_000_000+Math.floor(Math.random()*1_000_000)
+ const writer=promisify(execFile)('psql',['postgresql://postgres:postgres@127.0.0.1:54322/postgres','-XAtq',
+  '-v','ON_ERROR_STOP=1','-c',`BEGIN; SET LOCAL ROLE service_role;
+  SELECT public.gridex_outbound_dispatch_v1(${literal({...prepared.identity,action:'enter'})}::jsonb);
+  SELECT public.gridex_begin_document_reference_v1(${literal(f.companyId)},'test',
+   ${literal(sourceMessageId)},${literal(documentId)},${literal(f.actorUserId)});
+  SELECT pg_advisory_xact_lock(${lock}); SELECT pg_sleep(5); COMMIT;`],{timeout:12000})
+ let acquired=false
+ for(let i=0;i<40;i++){
+  if(sql(`SELECT to_jsonb(EXISTS(SELECT FROM pg_locks WHERE locktype='advisory'
+   AND objid=${lock} AND granted))`)){acquired=true;break}
+  await new Promise(resolve=>setTimeout(resolve,50))
+ }
+ expect(acquired).toBe(true)
+ const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())')
+ const open=()=>sql<{snapshotId:string;readsetHash:string;readsetText:string}>(`SET ROLE service_role;
+  SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.companyId)},'test',
+   ${literal(sourceMessageId)},${literal(cutoff)})`)
+ type Body={visibilitySnapshot:string;outbound:{visibilitySnapshot:string;originals:{messageId:string;
+  events:{kind:string}[]}[]};document:{visibilitySnapshot:string;attempts:{documentId:string}[]}}
+ const before=open(),prior=JSON.parse(before.readsetText) as Body
+ expect(prior.outbound.originals.find(o=>o.messageId===f.messageId)?.events
+  .some(e=>e.kind==='provider_call_entered')).toBe(false)
+ expect(prior.document.attempts).toEqual([])
+ await writer
+ const after=open(),later=JSON.parse(after.readsetText) as Body
+ expect(later.outbound.originals.find(o=>o.messageId===f.messageId)?.events)
+  .toContainEqual(expect.objectContaining({kind:'provider_call_entered'}))
+ expect(later.document.attempts).toContainEqual(expect.objectContaining({documentId}))
+ expect(later.outbound.visibilitySnapshot).toBe(later.visibilitySnapshot)
+ expect(later.document.visibilitySnapshot).toBe(later.visibilitySnapshot)
+ expect(JSON.parse(before.readsetText)).toEqual(prior)
+ expect(sql(`SELECT to_jsonb(readset_text=${literal(before.readsetText)}
+  AND readset_hash=${literal(before.readsetHash)})
+  FROM gridex_correction_process.combined_snapshots WHERE id=${literal(before.snapshotId)}`)).toBe(true)
+})
+
 it('an unsealed historical Z08 remains an outbound wildcard despite a parseable unrelated point',async()=>{
  const f=await outboundSeed()
  expect(await captureCorrectionContext({companyId:f.companyId,environment:'test',

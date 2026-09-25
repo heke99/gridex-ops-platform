@@ -250,7 +250,16 @@ it('wrong-company actor has no document capture authority',async()=>{
  expect(saved(f)).toMatchObject({attempts:[]})
 })
 it('append-only outcome and witness reject service DML and privileged mutation',async()=>{
- const f=await seed();expect(await captureDocumentReference(args(f))).toMatchObject({status:'recorded'})
+ const f=await seed(),errors:string[]=[]
+ const original=supabaseService.rpc.bind(supabaseService)
+ const observed=vi.spyOn(supabaseService,'rpc').mockImplementation(((name:string,input:Record<string,unknown>)=>
+  Promise.resolve(original(name,input)).then(result=>{
+   if(result.error)errors.push(`${name}:${result.error.code}:${result.error.message}`)
+   return result
+  })) as unknown as typeof supabaseService.rpc)
+ let capture:Awaited<ReturnType<typeof captureDocumentReference>>
+ try{capture=await captureDocumentReference(args(f))}finally{observed.mockRestore()}
+ expect(capture,JSON.stringify({capture,errors})).toMatchObject({status:'recorded'})
  for(const table of ['document_reference_outcomes','document_reference_witnesses']){
   expect(()=>sql(`SET ROLE service_role; DELETE FROM gridex_received_sources.${table};`)).toThrow()
   expect(()=>sql(`DELETE FROM gridex_received_sources.${table};`)).toThrow()
