@@ -407,27 +407,31 @@ function suppressFunctionalIssuesForGuideRejectedTransactions(
   return rebuildUtiltsRuntimeResult({ message, result, issues })
 }
 
-function applyUtiltsMarketHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
-  const rule = fieldRulesForMessage('UTILTS', result.facts.messageCode).find(item => item.fieldNumber === '501')
-  if (!rule || !rule.allowedValues?.length) return result
+function applyUtiltsMksHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
+  const rules = fieldRulesForMessage('UTILTS', result.facts.messageCode)
   const wire = tokenizeEdifact(message.raw_payload)
   const market = wire.segments.find(segment => segment.tag === 'MKS')
-  const value = market ? segmentComposite(market, 1, wire.una)[0]?.trim() : null
-  if (value && rule.allowedValues.includes(value)) return result
-
-  const missing = !value
-  // Field 501 is in the message header: every IDE fails the guide gate, even
+  const issues = (['501', '502'] as const).flatMap(fieldNumber => {
+    const rule = rules.find(item => item.fieldNumber === fieldNumber)
+    if (!rule?.allowedValues?.length) return []
+    const value = market ? segmentComposite(market, fieldNumber === '501' ? 1 : 2, wire.una)[0]?.trim() : null
+    if (value && rule.allowedValues.includes(value)) return []
+    const missing = !value
+    return [{
+      severity: 'error' as const, kind: 'application' as const,
+      code: missing ? rule.errorCodeIfMissing ?? 'MKS_MISSING' : rule.errorCodeIfInvalid ?? 'UTILTS_PHASE_INVALID',
+      title: missing ? `${rule.label} saknas` : `Ogiltigt ${rule.label}`,
+      description: missing ? `${rule.segmentPath} saknas.` : `${rule.segmentPath} har otillåtet värde ${value}.`,
+      aperakErcCode: missing ? '41' : '42',
+      aperakFieldCode: fieldNumber,
+      aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+    }]
+  })
+  if (issues.length === 0) return result
+  // Both MKS fields are in the message header: every IDE fails the guide gate, even
   // when no transaction identity was parsed. No functional finding is eligible.
-  const issues = result.validation.issues.filter(issue => issue.severity !== 'error' || issue.kind !== 'functional')
-  return rebuildUtiltsRuntimeResult({ message, result, issues: [...issues, {
-    severity: 'error', kind: 'application',
-    code: missing ? rule.errorCodeIfMissing ?? 'MKS_MISSING' : rule.errorCodeIfInvalid ?? 'UTILTS_MARKET_INVALID',
-    title: missing ? 'Marknad saknas' : 'Ogiltig marknad',
-    description: missing ? 'MKS/7293 saknas.' : `MKS/7293 har otillåtet värde ${value}.`,
-    aperakErcCode: missing ? '41' : '42',
-    aperakFieldCode: '501',
-    aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
-  }] })
+  const retained = result.validation.issues.filter(issue => issue.severity !== 'error' || issue.kind !== 'functional')
+  return rebuildUtiltsRuntimeResult({ message, result, issues: [...retained, ...issues] })
 }
 
 function canonicalE66PersistenceTransactions(facts: UtiltsRuntimeFacts): Array<Record<string, unknown>> {
@@ -546,6 +550,6 @@ export function runUtiltsRuntimeForMessage(
   // Canonical quantity/effective-date checks can add processability findings
   // after the guide pass. A guide-invalid IDE has no functional outcome.
   return applyCanonicalE66PersistencePayload(
-    suppressFunctionalIssuesForGuideRejectedTransactions(message, applyUtiltsMarketHeaderGuide(message, effective)),
+    suppressFunctionalIssuesForGuideRejectedTransactions(message, applyUtiltsMksHeaderGuide(message, effective)),
   )
 }

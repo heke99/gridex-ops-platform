@@ -6,6 +6,47 @@ import { buildAperakDraft } from '@/lib/ediel/ack'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 
 describe('UTILTS runtime effective-date cutoff', () => {
+  it('rejects a bad E66 phase header as field 502 guide error before an E19 mismatch', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-phase')
+    const message = { ...control, sender_ediel_id: '91100', receiver_ediel_id: '21660',
+      raw_payload: control.raw_payload!.replace('MKS+23+E02::260', 'MKS+23+E99::260') }
+    const result = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+
+    expect(result.validation.classification).toBe('application_rejected')
+    expect(result.transactionDispositions.map(item => item.responseType)).toEqual(['negative_aperak'])
+    expect(result.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ fieldCode: '502', ercCode: '42' }),
+    ]))
+    expect(result.ackPlan.utiltsErrDetails).toEqual([])
+    const decision = resolveCanonicalRuntimeDecision(message)
+    expect(decision).toMatchObject({ syntaxDecision: 'accepted', applicationDecision: 'rejected', functionalDecision: 'accepted' })
+    expect(decision.responsePlan.some(item => item.family === 'UTILTS_ERR')).toBe(false)
+    const plan = decision.responsePlan.find(item => item.family === 'APERAK')!
+    expect(plan).toMatchObject({ outcome: 'negative', applicationErrors: [{ fieldCode: '502', ercCode: '42' }] })
+    expect(buildAperakDraft({ sourceMessage: message, outcome: 'negative', applicationErrors: plan.applicationErrors }).rawPayload).toContain('FTX+AAO++502::260')
+  })
+  it('uses the 25-A-3 E02/E03/E04 phase list and requires field 502', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-phase-list')
+    for (const phase of ['E03', 'E04']) {
+      const result = runUtiltsRuntimeForMessage({ ...control, raw_payload: control.raw_payload!.replace('MKS+23+E02::260', `MKS+23+${phase}::260`) }, { referenceDate: '2026-09-30' })
+      expect(result.validation.issues.some(issue => issue.aperakFieldCode === '502')).toBe(false)
+    }
+    for (const phase of ['E05', '']) {
+      const result = runUtiltsRuntimeForMessage({ ...control, raw_payload: control.raw_payload!.replace('MKS+23+E02::260', `MKS+23+${phase}::260`) }, { referenceDate: '2026-09-30' })
+      expect(result.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+        expect.objectContaining({ fieldCode: '502', ercCode: phase ? '42' : '41' }),
+      ]))
+      expect(result.ackPlan.utiltsErrDetails).toEqual([])
+    }
+    const both = runUtiltsRuntimeForMessage({ ...control, raw_payload: control.raw_payload!.replace('MKS+23+E02::260', 'MKS+99+E99::260') }, { referenceDate: '2026-09-30' })
+    expect(both.ackPlan.aperakApplicationErrors.map(error => error.fieldCode)).toEqual(['501', '502'])
+    expect(both.ackPlan.utiltsErrDetails).toEqual([])
+    const custom = control.raw_payload!.split('\n').map((segment, index) => index === 0
+      ? 'UNA*;.? ~'
+      : segment.replaceAll('+', ';').replaceAll(':', '*').replaceAll("'", '~')).join('\n')
+    const customInvalid = runUtiltsRuntimeForMessage({ ...control, raw_payload: custom.replace('MKS;23;E02', 'MKS;23;E99') }, { referenceDate: '2026-09-30' })
+    expect(customInvalid.validation.issues).toEqual(expect.arrayContaining([expect.objectContaining({ code: 'UTILTS_PHASE_INVALID', aperakFieldCode: '502' })]))
+  })
   it('rejects an invalid E66 market header as guide error before a real E19 mismatch', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-header')
     const message = { ...control, sender_ediel_id: '91100', receiver_ediel_id: '21660',
