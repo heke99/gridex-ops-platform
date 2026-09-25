@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run36127254985-artifact10860308328",
   "generated_types": "supabase/database.types.ts",
   "sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
-  "latest_migration": "20260925173000_e035_combined_outbound_raw_candidate_scope.sql",
-  "latest_migration_schema_effect": "Private combined outbound reader includes raw Z08 or unparseable PRODAT historical candidates before sealed scope/count; no public type surface change; authentic clean replay pending."
+  "latest_migration": "20260925233000_e035_outbound_unknown_wire_fence.sql",
+  "latest_migration_schema_effect": "Private outbound dispatch rejects malformed or missing-BGM PRODAT originals with stale row code before SMTP; no public type surface change; authentic clean replay pending."
 }

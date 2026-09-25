@@ -1,3 +1,8 @@
+## 2026-09-25 — Active outbound fence correction
+1. Local focused RED/GREEN and forward/native regression prepared; inspect source diff, publish on PR372 and run exact-head ordinary non-staging CI, especially clean replay/native 341-case expectation and generated parity. Correct only observed first failure.
+2. Obtain bounded independent review for final correction; reconcile automatic production-on-main with user's no-production boundary before final main merge. PR310 untouched; E035 retention/rollout not accepted.
+3. After release decision, trace S01–S07 BGM/C002/1131 `SVK` to final UTILTS disposition/ACK, then field203 tenant-scoped uniqueness.
+
 ## 2026-09-25 — Active integrated PR372 stack
 1. Exact child heads #372–#384 had ordinary CI success; merge all child PRs inward (done), verify ancestry/tree and review final diff. Clean three inherited EOF blank lines and publish one documentation-only checkpoint on PR372.
 2. Require the final PR372 exact-head ordinary CI, clean native replay, generated contract parity and focused static review. Do not rerun already green original child heads.

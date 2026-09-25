@@ -1,4 +1,5 @@
 import {execFileSync} from 'node:child_process'
+import {randomUUID} from 'node:crypto'
 import {expect,it} from 'vitest'
 import {closureFixture} from '../__tests__/helpers/closureWireFixtures'
 import {readClosureSourceWire} from '@/lib/ediel/sources/closureSourceWire'
@@ -11,6 +12,24 @@ function sql<T>(query:string):T{
 }
 const project=(raw:string,object:unknown)=>sql(`SELECT coalesce(gridex_received_sources.closure_wire_projection_v1(${literal(raw)},${literal(object)}::jsonb),'null'::jsonb)`)
 const matches=(raw:string,object:unknown,wire:unknown)=>sql(`SELECT to_jsonb(gridex_received_sources.closure_wire_matches_v1(${literal(raw)},${literal(object)}::jsonb,${literal(wire)}::jsonb))`)
+
+it('SQL holds malformed raw Z08 before an outbound attempt despite stale row code',()=>{
+  const company=randomUUID(),message=randomUUID(),actor=randomUUID()
+  const malformed=closureFixture({reason:'Z25'}).wire.replace('BGM+Z05','BGM+Z08').slice(0,-1)
+  expect(sql(`SELECT to_jsonb(gridex_received_sources.closure_wire_tokens_v1(${literal(malformed)}) IS NULL)`)).toBe(true)
+  sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(company)},'Synthetic outbound wire hold','active');
+    BEGIN; SET LOCAL session_replication_role=replica;
+    INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload)
+    VALUES(${literal(message)},${literal(company)},'test','outbound','edifact','PRODAT','Z01','queued',${literal(malformed)},'{}');
+    COMMIT;
+    SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE id=${literal(message)};`)
+  // The absent actor is the next gate only when SQL classifies this wire as scoped.
+  // Before the forward migration the same call returned scoped:false instead.
+  const identity={companyId:company,environment:'test',messageId:message,actorUserId:actor,attemptId:randomUUID(),action:'prepare'}
+  expect(()=>sql(`BEGIN; SET LOCAL ROLE service_role; SELECT public.gridex_outbound_dispatch_v1(${literal(identity)}::jsonb); COMMIT;`))
+    .toThrow('outbound_dispatch_actor_unavailable')
+  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_outbound_dispatch.originals WHERE message_id=${literal(message)}`)).toBe(0)
+})
 
 it.each([{},{reason:'Z23'},{minute:'202610150000'},{alphabet:['*',';','!','~']},{alphabet:['^','|','!','%']},
   {document:"D?:+'",li:"CASE?:+'UNH+FAKE'DTM+93:202610151235:203"},

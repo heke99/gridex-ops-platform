@@ -1,3 +1,6 @@
+## 2026-09-25 — PR stack, CI, independent fence finding
+Merged child PRs #373–384 through real parents to draft PR372; published integrated `0fbe6a5a`, same code tree as green #384 plus checkpoint/EOF cleanup. All applicable CI on that head passed. Independent read-only review found critical malformed outbound Z08/stale row-code SQL fail-open to SMTP. Wrote local focused RED/GREEN and forward/native candidate; static checks pass. Main `2a148d39` unchanged; no staging, hosted DB, production or market send; PR310 excluded. Next publish candidate and native qualify, then reconcile main production trigger.
+
 ## 2026-09-25 — Child PRs collapsed into draft PR372
 Verified all original exact-head ordinary CI green. Merged #384→#383→#381→#380→#379→#378→#377→#376→#375→#374→#373→#372 with expected heads; #382 was already merged to #381. Final draft PR372 head `54c27ff6`, tree equal green #384. Main still `2a148d39`; no staging/market/production operation performed. Integrated CI started. Full diff check found three inherited audit EOF blank lines, now locally cleaned. Main merge would trigger production Vercel deployment and retention is unresolved; publish review/checkpoint before final exact-head CI and release decision.
 

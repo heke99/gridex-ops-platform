@@ -1,3 +1,6 @@
+## 2026-09-25 — Integrated review code blocker and release boundary
+Confirmed critical code gap: malformed raw Z08 with stale non-Z08 row code can return private SQL `scoped:false`, allowing SMTP without dispatch receipt. Candidate forward + wrapper test exists locally; exact published-head native/CI pending. See `quality/audits/ediel-masterplan-v2/e035-outbound-unknown-wire-fence-20260925.md`. Main push triggers Vercel production deployment; earlier no-production instruction remains. No formal GitHub PR372 review submitted. E035 process-archive retention/purge and pre-epoch coverage remain open; staging/pilot deferred; PR310 excluded.
+
 ## 2026-09-25 — Main merge is a production action
 The merged draft stack on PR372 is not on main. `.github/workflows/vercel-production-deploy.yml` runs on every main push and creates a Vercel production deployment when its credential exists; the connected Vercel project lists READY production deployments for recent main merges. The earlier user scope prohibited production runs, while the new instruction requests a main merge. Qualify the integrated exact head and make this conflict explicit before the final action. PR372 also lacks an assigned lawful process-archive retention/purge policy; `complete:false` keeps E035 fail-closed, so broad rollout is not accepted. PR310 remains paused.
 

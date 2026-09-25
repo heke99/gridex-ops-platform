@@ -29,7 +29,10 @@ export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,contex
  let potential=message.message_code==='Z08'
  try{const t=tokenizeEdifact(message.raw_payload);potential ||= t.segments.some(s=>s.tag==='BGM'&&segmentComposite(s,1,t.una)[0]==='Z08')}
  catch{potential=true} // malformed originals cannot use the uninstrumented lane
- if(!potential)return sendEdielEmail(input)
+ // The database tokenizer can reject a raw body that the application parser
+ // partially recognizes. Let the database classify every outbound PRODAT
+ // original so malformed wire cannot escape the Z08 fence through stale metadata.
+ if(!potential && (message.direction!=='outbound'||message.message_family!=='PRODAT'))return sendEdielEmail(input)
  const identity={companyId:message.company_id,environment:message.environment,messageId:message.id,actorUserId:context.actorUserId,
   attemptId:randomUUID()}
  let callbackUsed=false,entryAttempted=false,prepared=false,scoped=false,resultCaptured=false
@@ -51,7 +54,10 @@ export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,contex
     mimeMode:context.mimeMode,encoding:context.encoding,payloadBase64:context.payload.toString('base64'),payloadHash:hash(context.payload),payloadLength:context.payload.length}
    const reservation=await call('prepare',{owner:context.owner ?? {kind:'direct'},binding})
    scoped=reservation.scoped
-   if(!scoped)return
+   if(!scoped){
+    if(potential)throw Error('outbound_dispatch_scope_mismatch')
+    return
+   }
    if(reservation.proceed!==true){
     const prior=acceptedReceipt(reservation.acceptedReceipt)
     if(prior)throw new ReplayAccepted(prior) // helper aborts; repair projections only

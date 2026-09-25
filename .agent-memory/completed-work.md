@@ -1,3 +1,6 @@
+## 2026-09-25 — Integrated checkpoint and local outbound fence RED/GREEN
+PR373–384 were merged inward to PR372; published doc head `0fbe6a5a` passed all applicable ordinary CI incl OPS `36190502740` verify/quality/clean replay; crawler skipped. Independent read-only review found critical outbound fence mismatch. Local focused unit test failed on old provider acceptance and passed 2/2 after JS correction; migration integrity/full check, app/test/script types, scoped lint and file budget passed. New private forward/native test remains unpublished/unexecuted in clean replay. No main merge, production or PR310 work.
+
 ## 2026-09-25 — Bounded child PR integration
 Original PR #372–#384 exact heads all passed applicable ordinary CI. PR #382 was previously merged into #381; #384, #383, #381 through #373 were then merged into actual parent branches with expected-head locks, ending in draft #372 head `54c27ff6`, same tree as green #384. Main and PR310 untouched. Combined PR372 exact-head CI and final production/retention decision remain open; do not call full E035/masterplan accepted.
 

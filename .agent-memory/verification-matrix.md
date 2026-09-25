@@ -1,3 +1,6 @@
+## 2026-09-25 — Integrated PR372 and outbound fence candidate
+`0fbe6a5a`: OPS `36190502740` verify/quality/clean replay SUCCESS; tenant `36190502852`, Ediel `36190502747`, browser `36190502862`, full E2E `36190502639` SUCCESS; crawler skipped. Local candidate after independent review: `npx vitest run __tests__/ediel-correction-outbound-scope.test.ts` RED old provider acceptance, then PASS 2/2; `npm run db:migrations:check`, `npm run typecheck`, `npm run typecheck:tests`, `npm run typecheck:scripts`, scoped eslint, large-file budget, diff check PASS. SQL native and new-head CI NOT RUN.
+
 ## 2026-09-25 — PR372 integrated stack checkpoint
 
 | Head | Kontroll | Utfall | Gräns |
