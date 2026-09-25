@@ -578,6 +578,13 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.correction_concerns
   WHERE company_id=${literal(f.ids.company)}`)).toBe(1001)
  const source=await insertPriorUtilts(f,priorNativeWire(f,point))
+ const direct=sql<{snapshotId:string;readsetText:string}>(`SET ROLE service_role;
+  SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.ids.company)},'test',
+   ${literal(source.id)},clock_timestamp())`)
+ const directBody=JSON.parse(direct.readsetText) as {source:{readsetText:string};correction:{count:number};process:{factCount:number}}
+ expect((JSON.parse(directBody.source.readsetText) as {sourceCount:number}).sourceCount).toBeLessThan(1000)
+ expect(directBody.correction.count).toBe(0)
+ expect(directBody.process.factCount).toBeLessThan(1000)
  utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
  utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
  const result=await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:source.id})
@@ -602,6 +609,24 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
  expect(unrelatedTaskIds.size).toBe(1001)
  expect(body.process.facts.some(fact=>fact.table==='customer_operation_tasks'&&unrelatedTaskIds.has(fact.rowId))).toBe(false)
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.meter_reading_series WHERE source_ediel_message_id=${literal(source.id)}`)).toBe(1)
+})
+it('a historical inbound point still sees facts from its prior physical alias',async()=>{
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
+ const prior=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ const subject=await insertPriorUtilts(f,priorNativeWire(f,prior))
+ const oldInsert=sql<number>(`SELECT to_jsonb(id) FROM gridex_correction_process.facts
+  WHERE company_id=${literal(f.ids.company)} AND table_name='metering_points'
+   AND row_id=${literal(f.ids.point)} AND operation='INSERT'`)
+ const next='735999260731000009'
+ sql(`UPDATE public.metering_points SET meter_point_id=${literal(next)},metering_point_id=${literal(next)}
+  WHERE id=${literal(f.ids.point)} AND company_id=${literal(f.ids.company)}`)
+ const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())')
+ const receipt=sql<{readsetText:string}>(`SET ROLE service_role;
+  SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.ids.company)},'test',
+   ${literal(subject.id)},${literal(cutoff)})`)
+ const body=JSON.parse(receipt.readsetText) as {process:{facts:{id:number;rowId:string}[]};source:{readsetText:string}}
+ expect(body.process.facts).toContainEqual(expect.objectContaining({id:oldInsert,rowId:f.ids.point}))
+ expect((JSON.parse(body.source.readsetText) as {sourceCount:number}).sourceCount).toBeGreaterThan(0)
 })
 it.each([false,true])('native prior committed %s retry fails closed after newer unavailable review',async interrupted=>{
  const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')
