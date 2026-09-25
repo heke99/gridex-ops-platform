@@ -697,6 +697,11 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
      AND r.row_id=(e.new_fact->>'switch_request_id')::uuid))
   FROM gridex_correction_process.facts e WHERE e.table_name='supplier_switch_events'
    AND e.new_fact->>'event_type'='native_unrelated' LIMIT 1`)
+ expect(priorEventScope).toBe(true)
+ expect(unrelatedEventScope).toBe(false)
+ expect(sql<boolean>(`SELECT to_jsonb(gridex_correction_process.switch_event_subject_v1(
+  ${literal(f.ids.company)},NULL,'{"switch_request_id":"invalid"}'::jsonb,clock_timestamp(),
+  ARRAY[${literal(f.ids.customer)}]::uuid[],ARRAY[${literal(point)}]::text[]))`)).toBe(true)
  expect(priorBody.facts.filter(fact=>fact.rowId===movedCustomerEvent).map(fact=>fact.operation),
   JSON.stringify({factCount:priorBody.factCount,reason:priorBody.reason,priorEventScope,
    unrelatedEventScope,unrelatedArchive}))
