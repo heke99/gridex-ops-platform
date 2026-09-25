@@ -1,3 +1,9 @@
+## 2026-09-25 — Bounded UTILTS field202 agency local verification
+Annex C UG-122-6 BGM/C002/3055 blank/999 plus real E19 RED gave functional ERR. Shared final header guide now emits field202/ERC41/42 negative APERAK, and actual inbound with external DB/sinks mocked saves guide rejection without meter/billing/completion. 315/315 relevant tests, app/test types, scoped lint/diff PASS. Own exact-head CI pending; S-code 1131, code 1001, field203 uniqueness and full F3 remain open.
+
+## 2026-09-25 — Bounded UTILTS field203 local verification
+Annex C UG-122-7 blank BGM/C106/1004 plus real E19 RED was functional ERR. Shared final header guide now emits field203/ERC41 negative APERAK without final ERR; real inbound with external DB/sinks mocked persists guide rejection and no meter/billing/completion effects. 313/313 relevant tests, app/test types, scoped lint/diff PASS. Exact-head CI pending; uniqueness over time/ERC42 and full F3 remain open. PR382 predecessor merged into PR381 only after four green exact-head workflows.
+
 ## 2026-09-25 — Switch-event UUID-avgränsning verifierad på PR #372
 
 Publicerad kodhead `f75b69ea9312f2e3c8d76c8e4aab47a25573322f`, träd `2335ba5737f3c49b2ea7befac6eeb8037ba0c450` (lokal källcommit `2be58f04f6d67300d82a41f4ed444fa44a09a67e`, identiskt träd). Föregående `8800d014` hade native 336/337: `unrelated process volume does not exhaust a linked UTILTS subject budget` gav `scoped_process_count_overflow`, `factCount:1013`, väntat `['INSERT']`, observerat `[]`. Verifierad kodorsak: `switch_event_subject_v1` i forward `20260925150000_e035_switch_event_owner_history.sql` använde UUID-regex `8-4-4-12` och behandlade därför giltiga request-/point-ID:n som okänd wildcard. Ny framåtriktad migration `20260925154500_e035_switch_event_uuid_shape.sql` använder `8-4-4-4-12`; native-testet kräver relevant historisk ägare, exkluderad orelaterad ägare och fortsatt wildcard för ogiltigt ID.
@@ -126,6 +132,15 @@ Accepted runtime d7cbab18b9b102e00cde256bc91c22271455d7c8, tree66c82f59b88969b43
 One next active item: Task3b twelve-table customer/process facts, prepared brief, fresh sole author after acceptance checkpoint publication. Genuine acceptedBASE schema artifact is available in /workspace/scratch/4b1d39503015/e035-pr372-outbound-final; use it plus real native catalog probes, not source-only assumptions. Parent owns nativeCI/generated artifacts. Task4 single-MVCC composition and later E035 owners remain pending. No fullTask3/E035 or PR372 merge claim. PR310 excluded; user authorization persists.
 
 Authoritative workspace remains /workspace/scratch/4b1d39503015/gridex-ops-platform/.worktrees/e035-task3a-isolated. Original checkout is preservation-only. Deferred final-review items: dense adapter formatting; canonical fingerprint covers public/gridex_received_sources, not gridex_outbound_dispatch (private behavior has native/migration proof). No hosted writes/deployment/market sends.
+## 2026-09-25 — Field313 bounded local verification
+Complete E66 XX + E19 RED then local 276/276 UTILTS GREEN; actual inbound mocked boundary shows negative APERAK and no meter/billing effect. Two-IDE missing-ID/E19 already correct. App/test types, lint/diff pass; native and own published CI not yet executed for this batch, no masterplan acceptance implied.
+
+## 2026-09-25 — Field502 agency bounded local verification
+Complete E66 wrong agency plus E19 RED; annex C agency260; local 273/273 UTILTS GREEN, app/test typecheck, lint/diff PASS. Native and published CI not yet executed for this batch; no masterplan acceptance implied.
+
+## 2026-09-25 — Field502 bounded local verification
+Complete E66 phase E99 plus E19 RED; source list E02/E03/E04; local 272/272 UTILTS GREEN, app/test typecheck, lint/diff PASS. Native and published CI not yet executed on this batch; no masterplan acceptance implied.
+
 ## 2026-09-24 — Bounded PR372 checkpoint
 
 At published 562015b, a forward process read function resolves UUID-linked process rows against immutable physical point facts. OPS35995196628 passed native313/313 plus case/browser and generated type/schema hashes. The pure UTILTS comparison seam was exercised RED then GREEN58/58 locally; it is not an active Task4 service hold. Task3b historical completeness and Task4 remain open.
@@ -136,3 +151,12 @@ PR372 b1c7f993 publishes the one-SELECT combined source/correction/process snaps
 ## 2026-09-24 — PR372 bounded hold and schema gate green
 
 Bounded Task4 hold integration and canonical schema reconciliation: PR372 head521bc9ba, OPS36003339938 native314/314, case1/browser2/postbrowser1, tenant invariants/parity, schema check fingerprint5e3db200 and all applicable same-head workflows SUCCESS. This is a checkpoint only; third-set history incomplete, outbound/document missing from combined receipt, full E035 not complete.
+
+## 2026-09-25 — Bounded UTILTS field206 local verification
+Annex C/UG-122-16/17 field206 missing/invalid UTC offset corrected in canonical final header guide; actual mocked inbound consumer blocks meter/billing and sends only negative APERAK/FTX206. Local 278/278 UTILTS tests, app/test types, lint and diff passed. Published CI pending; full F3 and E66 209/533 not complete.
+
+## 2026-09-25 — Bounded UTILTS field205 local verification
+Annex C UG-122-12/13 message date required/format/calendar/future check feeds typed negative APERAK, with impossible-date guide selection fallback to receipt date. Actual mocked inbound boundary emits no meter/billing/completion. 280/280 UTILTS tests, app/test types, lint and focused25/25 passed. Exact-head CI pending; full F3 incomplete.
+
+## 2026-09-25 — Bounded UTILTS field204 local verification
+Annex C UG-122-8 BGM1225 allowed5/9 now yields final guide field204 ERC41/42, negative APERAK over E19. Actual mocked inbound has no meter/billing/completion, and 311/311 relevant tests, app/test types and lint pass. Publication/own CI pending; full F3 incomplete.

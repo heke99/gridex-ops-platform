@@ -54,6 +54,109 @@ function incoming(held = false, mixed = false, date = '2026-10-01') {
 }
 const accepted = (id: string) => ({ transactionId: id, disposition: 'accepted', responseType: 'positive_aperak', persistenceStatus: 'persisted' })
 const failed = { transactionId: 'GRIDEX2607E66001', disposition: 'processability_rejected', responseType: 'utilts_err', persistenceStatus: 'failed', issueCodes: ['UTILTS_PERSISTENCE_FAILED'] }
+it('rejects a wrong E66 BGM document agency as field 202 before business persistence', async () => {
+  const message = observationHandoffMessage('2026-09-30')
+  message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
+  message.raw_payload = message.raw_payload!.replace('BGM+E66::260', 'BGM+E66::999')
+  io.get.mockResolvedValue(message)
+  results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
+
+  await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1]
+  expect(persisted?.p_transactions).toMatchObject([{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak' }])
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
+  expect(io.findOutbound).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).toContain('APERAK')
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  const negative = io.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')![0]
+  expect(JSON.stringify(negative.draft)).toContain('202')
+})
+it('rejects a blank E66 BGM document identifier as field 203 before business persistence', async () => {
+  const message = observationHandoffMessage('2026-09-30')
+  message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
+  message.raw_payload = message.raw_payload!.replace('GRIDEX2607E66MSG001+9+AB', '+9+AB')
+  io.get.mockResolvedValue(message)
+  results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
+
+  await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1]
+  expect(persisted?.p_transactions).toMatchObject([{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak' }])
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
+  expect(io.findOutbound).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).toContain('APERAK')
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  const negative = io.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')![0]
+  expect(JSON.stringify(negative.draft)).toContain('203')
+})
+it('rejects an invalid E66 message function as field 204 before business persistence', async () => {
+  const message = observationHandoffMessage('2026-09-30')
+  message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
+  message.raw_payload = message.raw_payload!.replace('GRIDEX2607E66MSG001+9+AB', 'GRIDEX2607E66MSG001+XX+AB')
+  io.get.mockResolvedValue(message)
+  results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
+
+  await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1]
+  expect(persisted?.p_transactions).toMatchObject([{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak' }])
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
+  expect(io.findOutbound).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).toContain('APERAK')
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  const negative = io.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')![0]
+  expect(JSON.stringify(negative.draft)).toContain('204')
+})
+it('rejects an impossible E66 message date as field 205 before business persistence', async () => {
+  const message = observationHandoffMessage('2026-09-30')
+  message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
+  message.raw_payload = message.raw_payload!.replace('DTM+137:202609301811:203', 'DTM+137:202602301811:203')
+  io.get.mockResolvedValue(message)
+  results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
+
+  await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1]
+  expect(persisted?.p_transactions).toMatchObject([{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak' }])
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
+  expect(io.findOutbound).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).toContain('APERAK')
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  const negative = io.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')![0]
+  expect(JSON.stringify(negative.draft)).toContain('205')
+})
+it('keeps an E66 without timezone out of meter and billing effects and emits only field 206 APERAK', async () => {
+  const message = observationHandoffMessage('2026-09-30')
+  message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
+  message.raw_payload = message.raw_payload!.replace("DTM+735:?+0200:406'\n", '').replace('UNT+35+1', 'UNT+34+1')
+  io.get.mockResolvedValue(message)
+  results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
+
+  await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1]
+  expect(persisted?.p_transactions).toMatchObject([{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak' }])
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
+  expect(io.findOutbound).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).toContain('APERAK')
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  const negative = io.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')![0]
+  expect(JSON.stringify(negative.draft)).toContain('206')
+})
+it('saves no E66 business effect and emits only field 313 negative APERAK for a bad header', async () => {
+  const message = observationHandoffMessage('2026-09-30')
+  message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
+  message.raw_payload = message.raw_payload!.replace('GRIDEX2607E66MSG001+9+AB', 'GRIDEX2607E66MSG001+9+XX')
+  io.get.mockResolvedValue(message)
+  results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
+
+  await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1]
+  expect(persisted?.p_transactions).toMatchObject([{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak' }])
+  expect(persisted?.p_transactions[0].quantities).toHaveLength(3)
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
+  expect(io.findOutbound).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).toContain('APERAK')
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  const negative = io.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')![0]
+  expect(JSON.stringify(negative.draft)).toContain('313')
+})
 for (const mixed of [false, true]) it(`processor excludes failed persistence and retains ERR${mixed ? ' with accepted sibling' : ''}`, async () => {
   const message = incoming(false, mixed); io.get.mockResolvedValue(message)
   results = mixed ? [failed, accepted('GRIDEX2607E66002')] : [failed]
