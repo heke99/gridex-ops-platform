@@ -1,3 +1,6 @@
+## 2026-09-25 — Active: F3C-05 BGM function field204
+Separate branch from corrected PR381 published `28ed2fc3` same tree. Complete E66 invalid/missing BGM1225 plus E19 RED returned functional ERR. Retained 5/9 rule now projects field204 ERC41/42 and final negative APERAK; actual mocked inbound guide-rejected RPC, no meter/billing/completion. Local 311/311 in 25 files, app/test types, lint and focused valid5 PASS. Publish separate stacked draft and require ordinary CI; then fields202/203 and conditional E66 209/533 identity/storage. PR381 corrected CI running. No staging/merge/PR310.
+
 ## 2026-09-25 — Field205 published CI fixture correction
 PR381 `a307b91e` full E2E coverage failed four variants: synthetic receive 00:00Z preceded DTM137 18:11 local +01:00 the same day. Correct field205 future-date rejection exposed the test chronology. Receipt changed to 20:00Z; 29/29 targeted tests PASS. Publish fast-forward fixture-only correction and require new ordinary exact-head CI; then BGM204. OPS on first head was still running at last check. No product-rule weakening, staging, merge or PR310.
 

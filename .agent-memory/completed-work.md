@@ -151,3 +151,6 @@ Annex C/UG-122-16/17 field206 missing/invalid UTC offset corrected in canonical 
 
 ## 2026-09-25 — Bounded UTILTS field205 local verification
 Annex C UG-122-12/13 message date required/format/calendar/future check feeds typed negative APERAK, with impossible-date guide selection fallback to receipt date. Actual mocked inbound boundary emits no meter/billing/completion. 280/280 UTILTS tests, app/test types, lint and focused25/25 passed. Exact-head CI pending; full F3 incomplete.
+
+## 2026-09-25 — Bounded UTILTS field204 local verification
+Annex C UG-122-8 BGM1225 allowed5/9 now yields final guide field204 ERC41/42, negative APERAK over E19. Actual mocked inbound has no meter/billing/completion, and 311/311 relevant tests, app/test types and lint pass. Publication/own CI pending; full F3 incomplete.

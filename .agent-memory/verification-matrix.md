@@ -374,3 +374,10 @@ PR372/521bc9ba: OPS36003339938 clean migration replay SUCCESS, native314/314 in 
 
 ## 2026-09-25 — Field205 published CI fixture correction
 PR381 `a307b91e` full E2E coverage failed four variants: synthetic receive 00:00Z preceded DTM137 18:11 local +01:00 the same day. Correct field205 future-date rejection exposed the test chronology. Receipt changed to 20:00Z; 29/29 targeted tests PASS. Publish fast-forward fixture-only correction and require new ordinary exact-head CI; then BGM204. OPS on first head was still running at last check. No product-rule weakening, staging, merge or PR310.
+
+## 2026-09-25 — F3C-05 field204 local candidate
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | E66 invalid/missing BGM1225 + genuine E19 RED | `functional_rejected`/ERR before fix | Complete source-valid fixture apart from 204. |
+| Lokal gren före commit | 25 files, app/test types, scoped lint, final valid5 focus | 311/311 and other PASS | Native/own exact-head CI pending. |
+| `28ed2fc3a353c03058e9363b06a40a49235cef20` | PR381 corrected ordinary workflows | Browser SUCCESS; Ediel/E2E/OPS running at last check | Predecessor batch. |

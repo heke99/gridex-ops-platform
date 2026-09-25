@@ -1,3 +1,6 @@
+## 2026-09-25 — Field204 local candidate
+PR381 corrected published head `28ed2fc3` after synthetic receipt chronology CI failure; new local `codex/ediel-v2-utilts-header204-20260925` maps invalid BGM1225 to typed field204 negative APERAK. Actual mocked inbound no business sinks. Relevant 311/311, types/lint PASS, own CI pending. PR372/#310 unchanged.
+
 ## 2026-09-25 — Field205 published CI fixture correction
 PR381 `a307b91e` full E2E coverage failed four variants: synthetic receive 00:00Z preceded DTM137 18:11 local +01:00 the same day. Correct field205 future-date rejection exposed the test chronology. Receipt changed to 20:00Z; 29/29 targeted tests PASS. Publish fast-forward fixture-only correction and require new ordinary exact-head CI; then BGM204. OPS on first head was still running at last check. No product-rule weakening, staging, merge or PR310.
 
