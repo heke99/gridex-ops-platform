@@ -40,6 +40,7 @@ import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceVal
 import {createReceivedSourceOwnerSession} from '@/lib/ediel/sources/receivedSourceOwnerSession'
 import {applyInboundBusinessStateMachine} from '@/lib/ediel/flows/inboundBusinessStateMachine'
 import {resolveCanonicalMessagePolicy} from '@/lib/ediel/core/messagePolicy'
+import {finalizeSupplierSwitchExecution} from '@/lib/operations/db'
 
 import {inspectReceivedSourceDecisionTimeline} from '@/lib/ediel/sources/receivedSourceDecisionTimeline'
 
@@ -166,6 +167,26 @@ it.each([false,true])('real HTTP/database owners commit and persist source appro
   expect(records[0].readsets).toHaveLength(1);expect(records[0].readsets[0].observedAt).toMatch(/\+00:00$/)
   expect(records[0].witnessXid).not.toBeNull();expect(records[0].witnessXid).not.toBe(records[0].createdXid)
   expect(sql(`SELECT jsonb_build_object('switch',sw.status,'supply',sp.status) FROM public.supplier_switch_requests sw JOIN public.customer_supply_periods sp ON sp.source_message_id=sw.inbound_z04_message_id WHERE sw.id=${literal(f.ids.switch)}`)).toEqual({switch:'accepted',supply:'confirmed_by_grid_owner'})
+})
+it('actual activation writes a switch event bound to the source request tenant',async()=>{
+  const f=await seed(true)
+  expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
+  // Mature the synthetic effective date after the real correlated Z04 write.
+  sql(`UPDATE public.supplier_switch_requests SET confirmed_start_date='2026-09-24'
+    WHERE id=${literal(f.ids.switch)};`)
+  const result=await finalizeSupplierSwitchExecution(supabaseService,{
+    requestId:f.ids.switch,actorUserId:f.ids.actor,executionSource:'manual_admin',
+  })
+  expect(result.request.status).toBe('completed')
+  const event=sql<{id:string;company:string;request:string}>(`SELECT jsonb_build_object(
+    'id',id,'company',company_id,'request',switch_request_id)
+    FROM public.supplier_switch_events WHERE switch_request_id=${literal(f.ids.switch)}
+    AND event_type='execution_completed' ORDER BY created_at DESC LIMIT 1`)
+  expect(event).toMatchObject({company:f.ids.company,request:f.ids.switch})
+  expect(sql(`SELECT jsonb_build_object('company',company_id,'request',new_fact->>'switch_request_id')
+    FROM gridex_correction_process.facts WHERE table_name='supplier_switch_events'
+    AND row_id=${literal(event.id)} AND operation='INSERT'`))
+    .toEqual({company:f.ids.company,request:f.ids.switch})
 })
 it('without a successful business callback, native rows cannot grant approval',async()=>{
   const f=await seed(), {session}=await prepare(f)

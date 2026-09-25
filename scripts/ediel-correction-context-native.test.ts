@@ -12,6 +12,7 @@ import {createTenantSupportCase} from '@/lib/customer-cases/support'
 import {updateCustomerCaseStatus} from '@/lib/customer-cases/db'
 import {enqueue} from '@/lib/customer-operations/automation.part-1'
 import {emitCustomerOperationEvent} from '@/lib/customers/customerOperationEvents'
+import {createSupplierSwitchEvent} from '@/lib/operations/db'
 const literal=(v:unknown)=>"'"+String(typeof v==='object'?JSON.stringify(v):v).replaceAll("'","''")+"'"
 function sql<T>(query:string):T{
  if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('owned_local_only')
@@ -1314,6 +1315,37 @@ it('switch-event inserts, updates and deletes leave separate immutable facts', a
   ])
 })
 
+it('the real switch-event writer binds the request tenant before E035 capture',async()=>{
+ const f=await seed(),other=await seed(),requestId=randomUUID()
+ sql(`INSERT INTO public.supplier_switch_requests(id,company_id,status)
+  VALUES(${literal(requestId)},${literal(f.companyId)},'draft');`)
+ const event=await createSupplierSwitchEvent(supabaseService,{
+  switchRequestId:requestId,eventType:'review',eventStatus:'info',message:'Synthetic owner probe',
+ })
+ expect(sql(`SELECT jsonb_build_object('company',company_id,'request',switch_request_id)
+  FROM public.supplier_switch_events WHERE id=${literal(event.id)}`))
+  .toEqual({company:f.companyId,request:requestId})
+ expect(sql(`SELECT jsonb_build_object('company',company_id,'request',new_fact->>'switch_request_id')
+  FROM gridex_correction_process.facts WHERE table_name='supplier_switch_events'
+   AND row_id=${literal(event.id)} AND operation='INSERT'`))
+  .toEqual({company:f.companyId,request:requestId})
+ sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+  SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions
+  WHERE key='customers.read' ON CONFLICT DO NOTHING;`)
+ const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())')
+ const saved=sql<{readsetText:string}>(`SELECT public.gridex_open_correction_process_readset_v1(
+  ${literal(f.companyId)},'test',${literal(f.actorUserId)},${literal(cutoff)},NULL,NULL,NULL)`)
+ expect(JSON.parse(saved.readsetText).facts).toContainEqual(expect.objectContaining({rowId:event.id,
+  table:'supplier_switch_events'}))
+ expect(()=>sql(`INSERT INTO public.supplier_switch_events(company_id,switch_request_id,event_type)
+  VALUES(${literal(other.companyId)},${literal(requestId)},'review');`))
+  .toThrow(/switch_event_company_mismatch/)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_correction_process.facts
+  WHERE table_name='supplier_switch_events' AND company_id=${literal(other.companyId)}
+   AND new_fact->>'switch_request_id'=${literal(requestId)}`)).toBe(0)
+ expect(JSON.parse(saved.readsetText).facts).toContainEqual(expect.objectContaining({rowId:event.id}))
+})
+
 it('a restrictive switch-event link rolls back a rejected request tombstone', async () => {
  const {companyId}=await seed(),requestId=randomUUID(),eventId=randomUUID()
  sql(`INSERT INTO public.supplier_switch_requests(id,company_id,status)
@@ -1645,8 +1677,13 @@ it.each([false,true])('the actual invoice-test archive retains committed contrac
   INSERT INTO public.ediel_route_profiles(company_id,environment,route_name,message_family)
   VALUES(${literal(companyId)},'production','Synthetic PRODAT','PRODAT'),
    (${literal(companyId)},'production','Synthetic UTILTS','UTILTS');
-  INSERT INTO public.company_email_settings(company_id,sender_email,verification_status)
-  VALUES(${literal(companyId)},'synthetic@example.invalid','verified');
+  INSERT INTO public.company_email_settings(company_id,sender_name,sender_email,verification_status)
+  VALUES(${literal(companyId)},'Synthetic Archive','synthetic@example.invalid','verified');
+  INSERT INTO public.company_email_templates(company_id,template_key,name,subject,body_html,is_active)
+  VALUES(${literal(companyId)},'contract.confirmation_sent','Synthetic confirmation',
+   'Synthetic confirmation','<p>Synthetic confirmation</p>',true);
+  INSERT INTO public.email_event_rules(company_id,event_key,template_key,enabled)
+  VALUES(${literal(companyId)},'contract.confirmation_sent','contract.confirmation_sent',true);
   UPDATE public.tenant_legal_profiles SET legal_name='Synthetic Archive AB',organization_number=${literal(organizationNumber)},
    postal_address='{"address_line_1":"Testgatan 1","postal_code":"123 45","city":"Teststad","country_code":"SE"}',
    customer_service_email='service@example.invalid',phone='0101234567',website='https://example.invalid',

@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run35998393754",
   "generated_types": "supabase/database.types.ts",
   "sha256": "2b2dda6ae967b612e5c7e89e094542069d2ce38ba837747c480b3582ca5568ef",
-  "latest_migration": "20260925114500_e035_outbound_unsealed_scope_wildcard.sql",
-  "latest_migration_schema_effect": "Private forwards make malformed source and unsealed historical outbound scopes unknown wildcards before combined budgets, rebuilding stored source projections. Public RPC signatures and types are unchanged; generated types remain pinned to prior empty-replay SHA256 2b2dda6a. Exact-tail replay must confirm byte identity. The receipt remains hold-only and does not establish pre-epoch history."
+  "latest_migration": "20260925120000_e035_switch_event_owner_binding.sql",
+  "latest_migration_schema_effect": "Forward switch-event tenant binding and outbound request case column. Empty replay must regenerate schema and public types; this receipt is pending verification."
 }
