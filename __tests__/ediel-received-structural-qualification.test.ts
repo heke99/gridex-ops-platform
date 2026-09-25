@@ -178,7 +178,8 @@ it.each(['E30-energy','E30-readings','S07'] as const)('qualifies the real %s par
  const args=input(!shape.includes('readings')),code=shape==='S07'?'S07':'E30'
  args.message.message_code=code;args.message.application_reference=code==='E30'?'23-MDR-E30-T':'23-DDQ-S07-T'
  args.message.raw_payload=args.message.raw_payload!.replace('?+0200:406','?+0100:406').replace('QTY+220:11000','QTY+220:10500')
-  .replace('BGM+E66',`BGM+${code}`).replace(/23-DDQ-E66-[ST]/g,args.message.application_reference)
+  .replace('BGM+E66::260',code==='S07'?'BGM+S07:SVK:260':'BGM+E30::260')
+  .replace(/23-DDQ-E66-[ST]/g,args.message.application_reference)
  args.canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:code,direction:'inbound',referenceDate:'2026-10-01',applicationReference:args.message.application_reference,mode:'parse'})
  args.runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
  expect(args.runtime.transactionDispositions,JSON.stringify(args.runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
