@@ -1,3 +1,7 @@
+## 2026-09-25 — PR372 latest handover
+
+Published `66b12f9` from local `9b174345`, identical tree `7e845683`; do not force-push local SHA. OPS `36107605706` native325/325 plus verify/quality green, final schema check expected drift `df38a442` from five private functions. Authentic artifact `10851567749` downloaded, types identical, schema copied locally but not yet committed because next forward changes it. Local committed `f8842513` adds immutable generated source point and cold-order processor test; publish as fast-forward child of remote, inspect replay. Reviewer `/root/pr372_review` R1/R2 remains unapproved. Signed/legacy/retention and Task4 negatives open. PR372 draft, PR310 excluded.
+
 ## 2026-09-24 — Resume current PR372 Task3b
 
 Clone codex/e035-correction-context-20260924 at 7491e1619f653dd390f1463795542d6b997ae0b6. The exact code and authentic generated schema are pushed. OPS35988188001 at 37a7052, OPS35988546648 at 9186e47, OPS35989469066 at 28694d2 and OPS35990306080 at 7491e16 all passed applicable gates; 312/312 native on the latter three. A TRUNCATE-denial fixture is prepared locally and awaits publication/native qualification. Do not infer Task3b acceptance from these subset passes. Task4 same-MVCC UTILTS hold and final whole-PR review/merge remain. PR310 excluded; no hosted deployment/market sends. See task3b-continuation-20260924.md.

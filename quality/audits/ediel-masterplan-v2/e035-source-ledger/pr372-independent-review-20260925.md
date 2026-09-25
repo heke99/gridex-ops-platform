@@ -32,3 +32,40 @@ so its test's blanket `ackIds:[]` expectation was wrong. The success path omits
 the optional `internalReviewRequired` field, so its `false` expectation was
 also wrong. These fixture assertions have been corrected locally; the next
 commit needs its own native replay. The review's two blocking findings remain.
+
+## Follow-up status, 2026-09-25
+
+This is implementation tracking by the author, **not an independent re-review**.
+The source/concern scoping forward `20260925072500` was published at
+`8e7c6268` (tree `d32e3d5d`). OPS `36106857700` passed verify and
+quality/build; clean replay applied the migration, then native ran 323/324.
+The sole failing 1,001-row fixture reached the actual inbound processor but
+found null `receivedStructureQualification.snapshotId/readsetHash`. This does
+not establish R1 closure. A direct service RPC budget probe was added for
+failure isolation.
+
+The historical alias forward `20260925090000` and old-alias native regression
+were published at `66b12f9` (tree `7e845683`). It derives aliases from
+immutable old/new metering-point facts and the verified subject wire before
+calling all five owner readers. Local script typecheck, lint, migration
+integrity, generated-type manifest and diff check passed. OPS `36107605706`
+clean replay remains pending. R1 and R2 remain **REQUEST CHANGES** until
+native evidence and the independent reviewer inspect the final whole diff.
+
+OPS `36107605706` at `66b12f9` applied the historical alias migration and
+passed 325/325 native cases in five files, including the volume and alias
+fixtures, plus case/browser continuations. Verify and quality/build passed.
+Clean replay's final canonical schema check failed only because the committed
+schema snapshot was older: actual fingerprint `df38a442` vs `5e3db200`, with
+five added private functions/grants. Artifact `10851567749` ZIP SHA256
+`a67a97d8b779d361a1f90046f0bbc17d30b13162819c759f56eba1c4f2d38849`
+was downloaded and checked; generated types match the tracked SHA256
+`2b2dda6a`, and schema diff contains only 209 added function lines plus
+fingerprint function/grant sections. This is not final-head approval.
+
+The volume test's newly added direct service RPC ran **before** the actual
+processor and could warm its source parse. Because the previous cold processor
+saved no receipt, the next forward materializes an immutable, conservatively
+nullable source wire point at insertion; the test moves the direct diagnostic
+after the actual processor. Cold native replay remains required before R1
+closure. The independent review remains REQUEST CHANGES.

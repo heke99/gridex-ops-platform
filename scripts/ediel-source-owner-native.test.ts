@@ -578,6 +578,10 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.correction_concerns
   WHERE company_id=${literal(f.ids.company)}`)).toBe(1001)
  const source=await insertPriorUtilts(f,priorNativeWire(f,point))
+ utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
+ utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
+ const result=await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:source.id})
+ expect(result.ackIds.length).toBeGreaterThan(0)
  const direct=sql<{snapshotId:string;readsetText:string}>(`SET ROLE service_role;
   SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.ids.company)},'test',
    ${literal(source.id)},clock_timestamp())`)
@@ -585,10 +589,6 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
  expect((JSON.parse(directBody.source.readsetText) as {sourceCount:number}).sourceCount).toBeLessThan(1000)
  expect(directBody.correction.count).toBe(0)
  expect(directBody.process.factCount).toBeLessThan(1000)
- utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
- utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
- const result=await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:source.id})
- expect(result.ackIds.length).toBeGreaterThan(0)
  const receipt=sql<{snapshotId:string;readsetHash:string}>(`SELECT parsed_payload#>'{normalizedMeteringPayload,receivedStructureQualification}'
   FROM public.ediel_messages WHERE id=${literal(source.id)}`)
  expect(receipt).toMatchObject({snapshotId:expect.any(String),readsetHash:expect.stringMatching(/^[a-f0-9]{64}$/)})

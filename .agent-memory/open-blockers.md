@@ -1,3 +1,9 @@
+## 2026-09-25 — PR372 exact-head blockers
+
+- R1: `66b12f9` native325/325, but the volume fixture warmed its direct RPC before the processor; prior cold processor at `8e7c6268` saved no receipt. Local committed `f8842513` projects a conservative nullable wire point at insert and restores cold processor order. Publish and inspect native before claiming closure.
+- R2: `66b12f9` historical alias regression passed native, but independent reviewer on `16505294` has not re-reviewed the final whole diff.
+- Authentic schema from `66b12f9` artifact is local only; new projection forward requires a fresh replay artifact. Signed/remaining legacy Task3b, Task4 negatives and E30/S07, full-diff approval and final-head CI remain open. No merge.
+
 ## 2026-09-24 — Current PR372 blockers
 
 Archive-style delete test on 7491e16 passed native312/312 and all applicable CI. TRUNCATE-denial fixture is locally prepared and not natively qualified. Task3b still lacks complete direct/legacy/claim/signed producer proof and historical inception/retention; preserve complete:false and scoped gaps. Task4 must use one MVCC observation or a proven barrier to connect raw concerns, structural source approvals and process history; it is not implemented. Whole-branch independent review and final same-head CI remain. Do not merge PR372.

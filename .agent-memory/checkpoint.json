@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Published 16505294 OPS36105666765 native322/324; correct two fixture assertions and publish the local source/concern scoped forward and 1001-row native test. Then inspect new exact-head replay, repair historical point-alias exclusion, complete Task3b/Task4 acceptance and independent re-review. PR remains draft; PR310 excluded.",
+  "next_action": "Published 66b12f9 native325/325, verify/quality PASS, schema drift only. Local generated source scope projection and cold-order processor fixture await publication/native replay; then complete Task3b/Task4 acceptance and independent whole-diff rereview. Prior 8e7c6268 native323/324 is failure evidence. PR draft, PR310 excluded.",
   "task4_combined_snapshot": {
     "published_head": "b1c7f993affdb68d11f4c0941c483c4d145b938e",
     "published_tree": "37789b428e66c37b3030f1aa9bc8b539a78d40e9",
