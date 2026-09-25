@@ -1,16 +1,16 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-25T23:36:00Z",
+  "updated_at": "2026-09-25T22:00:00Z",
   "status": "IN_PROGRESS",
   "paused": false,
-  "branch": "codex/ediel-v2-stack-acceptance-20260925",
+  "branch": "codex/ediel-v2-utilts-header202-svk-20260925",
   "active_pr": 372,
   "base_head_sha": "2a148d39d631fc759c99cd1c69350b5e2147dbdb",
   "runtime_accepted_sha": "2a148d39d631fc759c99cd1c69350b5e2147dbdb",
-  "last_merged_pr": 371,
-  "last_accepted_pr": 371,
+  "last_merged_pr": 372,
+  "last_accepted_pr": 372,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "PR372 outbound unknown-wire dispatch fence correction and exact-head CI",
+  "active_item": "UTILTS S01-S07 BGM/C002/1131=SVK field202",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-outbound-unknown-wire-fence-20260925.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Review and commit LK exemption forward and narrowed JS lane; publish fast-forward PR372; exact-head OPS native/generated parity and ordinary CI. Intermediate 9b62d5d full E2E coverage failed non-Z08 callback_missing, locally targeted 52/52 now pass. Main production coupling and PR310 boundary persist.",
+  "next_action": "Publish separate source-backed S-code 1131 PR against main; inspect exact-head ordinary CI; then continue field203 tenant-bound uniqueness and remaining F3. PR310 excluded.",
   "task4_combined_snapshot": {
     "published_head": "b1c7f993affdb68d11f4c0941c483c4d145b938e",
     "published_tree": "37789b428e66c37b3030f1aa9bc8b539a78d40e9",

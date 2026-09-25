@@ -6,6 +6,23 @@ import { buildAperakDraft } from '@/lib/ediel/ack'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 
 describe('UTILTS runtime effective-date cutoff', () => {
+  it('requires BGM document qualifier SVK for S07 at field 202', () => {
+    const source = observationHandoffMessage('2026-09-30', 'tenant-s07-qualifier')
+    const raw = source.raw_payload!.replace('BGM+E66::260', 'BGM+S07:SVK:260')
+      .replace('23-DDQ-E66-S', '23-DDQ-S07-S')
+    const control = { ...source, message_code: 'S07', application_reference: '23-DDQ-S07-S', raw_payload: raw }
+    expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).validation.issues
+      .some(issue => issue.aperakFieldCode === '202')).toBe(false)
+    for (const [qualifier, ercCode] of [['', '41'], ['XXX', '42']] as const) {
+      const message = { ...control, raw_payload: raw.replace('BGM+S07:SVK:260', `BGM+S07:${qualifier}:260`) }
+      const result = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+      expect(result.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+        expect.objectContaining({ fieldCode: '202', ercCode }),
+      ]))
+      expect(result.transactionDispositions.every(item => item.responseType === 'negative_aperak')).toBe(true)
+      expect(result.ackPlan.utiltsErrDetails).toEqual([])
+    }
+  })
   it('rejects missing or invalid BGM document agency 202 before a real E66 E19', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-document-agency')
     expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')
