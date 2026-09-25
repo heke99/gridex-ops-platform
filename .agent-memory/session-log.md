@@ -1,3 +1,5 @@
+2026-09-25 — PR372 switch-event owner reassignment: independent review exposed omission. Test-only head 5a4f626b native rerun108083411482 confirmed RED336/337, got INSERT versus INSERT/UPDATE/DELETE. Prepared forward 20260925150000 with old/new immutable owner union, unknown archive wildcard; exact-head GREEN pending. No merge/production; PR310 untouched.
+
 2026-09-25 — PR372: independent review found switch-event wildcard budget overflow. Published private historical scope forward `1fc7516c`; clean replay native 337/337 and authentic types/schema passed; verify/E2E blocked only by stale type manifest tail. Prepared tail and same-customer/different-point native fixture for next exact-head CI. Draft/unmerged; no production or PR310 change.
 
 ## 2026-09-25 — PR372 säker paus
