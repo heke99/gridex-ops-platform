@@ -6,6 +6,129 @@ import { buildAperakDraft } from '@/lib/ediel/ack'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 
 describe('UTILTS runtime effective-date cutoff', () => {
+  it('rejects missing or invalid BGM document agency 202 before a real E66 E19', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-document-agency')
+    expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')
+    for (const [agency, ercCode] of [['', '41'], ['999', '42']] as const) {
+      const message = { ...control, sender_ediel_id: '91100', receiver_ediel_id: '21660',
+        raw_payload: control.raw_payload!.replace('BGM+E66::260', `BGM+E66::${agency}`) }
+      const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+      expect(runtime.validation.classification).toBe('application_rejected')
+      expect(runtime.transactionDispositions.map(item => item.responseType)).toEqual(['negative_aperak'])
+      expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+        expect.objectContaining({ fieldCode: '202', ercCode }),
+      ]))
+      expect(runtime.ackPlan.utiltsErrDetails).toEqual([])
+      const decision = resolveCanonicalRuntimeDecision(message)
+      expect(decision).toMatchObject({ syntaxDecision: 'accepted', applicationDecision: 'rejected' })
+      expect(decision.responsePlan.some(item => item.family === 'UTILTS_ERR')).toBe(false)
+      const plan = decision.responsePlan.find(item => item.family === 'APERAK')!
+      expect(buildAperakDraft({ sourceMessage: message, outcome: 'negative', applicationErrors: plan.applicationErrors }).rawPayload)
+        .toContain('FTX+AAO++202::260')
+    }
+  })
+  it('rejects a blank BGM document identifier as field 203 before a real E66 E19', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-document-id')
+    expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')
+    const message = { ...control, sender_ediel_id: '91100', receiver_ediel_id: '21660',
+      raw_payload: control.raw_payload!.replace('GRIDEX2607E66MSG001+9+AB', '+9+AB') }
+    const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+    expect(runtime.validation.classification).toBe('application_rejected')
+    expect(runtime.transactionDispositions.map(item => item.responseType)).toEqual(['negative_aperak'])
+    expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ fieldCode: '203', ercCode: '41' }),
+    ]))
+    expect(runtime.ackPlan.utiltsErrDetails).toEqual([])
+    const decision = resolveCanonicalRuntimeDecision(message)
+    expect(decision).toMatchObject({ syntaxDecision: 'accepted', applicationDecision: 'rejected' })
+    expect(decision.responsePlan.some(item => item.family === 'UTILTS_ERR')).toBe(false)
+    const plan = decision.responsePlan.find(item => item.family === 'APERAK')!
+    expect(buildAperakDraft({ sourceMessage: message, outcome: 'negative', applicationErrors: plan.applicationErrors }).rawPayload)
+      .toContain('FTX+AAO++203::260')
+  })
+  it('rejects missing or invalid BGM function 204 before a real E66 E19', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-bgm-function')
+    expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')
+    const allowedFive = runUtiltsRuntimeForMessage({ ...control,
+      raw_payload: control.raw_payload!.replace('GRIDEX2607E66MSG001+9+AB', 'GRIDEX2607E66MSG001+5+AB'),
+    }, { referenceDate: '2026-09-30' })
+    expect(allowedFive.validation.issues.some(issue => issue.aperakFieldCode === '204')).toBe(false)
+    for (const [functionCode, ercCode] of [['', '41'], ['XX', '42']] as const) {
+      const message = { ...control, sender_ediel_id: '91100', receiver_ediel_id: '21660',
+        raw_payload: control.raw_payload!.replace('GRIDEX2607E66MSG001+9+AB', `GRIDEX2607E66MSG001+${functionCode}+AB`) }
+      const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+      expect(runtime.validation.classification).toBe('application_rejected')
+      expect(runtime.transactionDispositions.map(item => item.responseType)).toEqual(['negative_aperak'])
+      expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+        expect.objectContaining({ fieldCode: '204', ercCode }),
+      ]))
+      expect(runtime.ackPlan.utiltsErrDetails).toEqual([])
+      const decision = resolveCanonicalRuntimeDecision(message)
+      expect(decision).toMatchObject({ syntaxDecision: 'accepted', applicationDecision: 'rejected' })
+      const plan = decision.responsePlan.find(item => item.family === 'APERAK')!
+      expect(plan.applicationErrors).toEqual(expect.arrayContaining([expect.objectContaining({ fieldCode: '204', ercCode })]))
+      expect(buildAperakDraft({ sourceMessage: message, outcome: 'negative', applicationErrors: plan.applicationErrors }).rawPayload)
+        .toContain('FTX+AAO++204::260')
+      expect(decision.responsePlan.some(item => item.family === 'UTILTS_ERR')).toBe(false)
+    }
+  })
+  it('rejects missing, malformed or future message date 205 before E66 E19', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-message-date')
+    const baseline = runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' })
+    expect(baseline.ackPlan.utiltsErrCodes).toContain('E19')
+    expect(baseline.validation.issues.some(issue => issue.aperakFieldCode === '205')).toBe(false)
+
+    for (const [segment, ercCode] of [
+      ['', '41'], ["DTM+137:202602301811:203'", '42'],
+      ["DTM+137:202609301811:204'", '42'], ["DTM+137:202610011811:203'", '42'],
+    ] as const) {
+      const message = { ...control, sender_ediel_id: '91100', receiver_ediel_id: '21660',
+        raw_payload: control.raw_payload!.replace("DTM+137:202609301811:203'", segment)
+          .replace('UNT+35+1', segment ? 'UNT+35+1' : 'UNT+34+1') }
+      const result = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+      expect(result.validation.classification).toBe('application_rejected')
+      expect(result.transactionDispositions.map(item => item.responseType)).toEqual(['negative_aperak'])
+      expect(result.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+        expect.objectContaining({ fieldCode: '205', ercCode }),
+      ]))
+      expect(result.ackPlan.utiltsErrDetails).toEqual([])
+      const decision = resolveCanonicalRuntimeDecision(message)
+      expect(decision).toMatchObject({ syntaxDecision: 'accepted', applicationDecision: 'rejected' })
+      const plan = decision.responsePlan.find(item => item.family === 'APERAK')!
+      expect(plan.applicationErrors, segment).toEqual(expect.arrayContaining([expect.objectContaining({ fieldCode: '205', ercCode })]))
+      expect(buildAperakDraft({ sourceMessage: message, outcome: 'negative', applicationErrors: plan.applicationErrors }).rawPayload)
+        .toContain('FTX+AAO++205::260')
+      expect(decision.responsePlan.some(item => item.family === 'UTILTS_ERR')).toBe(false)
+    }
+  })
+  it('rejects missing or invalid header timezone 206 before an E66 E19 finding', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-timezone')
+    const baseline = runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' })
+    expect(baseline.ackPlan.utiltsErrCodes).toContain('E19')
+    expect(baseline.validation.issues.some(issue => issue.aperakFieldCode === '206')).toBe(false)
+
+    for (const [segment, ercCode] of [
+      ['', '41'], ["DTM+735:?+2560:406'", '42'], ["DTM+735:?+0200:405'", '42'],
+    ] as const) {
+      const message = { ...control, sender_ediel_id: '91100', receiver_ediel_id: '21660',
+        raw_payload: control.raw_payload!.replace("DTM+735:?+0200:406'", segment)
+          .replace('UNT+35+1', segment ? 'UNT+35+1' : 'UNT+34+1') }
+      const result = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+      expect(result.validation.syntaxOk).toBe(true)
+      expect(result.validation.classification).toBe('application_rejected')
+      expect(result.transactionDispositions.map(item => item.responseType)).toEqual(['negative_aperak'])
+      expect(result.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+        expect.objectContaining({ fieldCode: '206', ercCode }),
+      ]))
+      expect(result.ackPlan.utiltsErrDetails).toEqual([])
+      const decision = resolveCanonicalRuntimeDecision(message)
+      expect(decision).toMatchObject({ applicationDecision: 'rejected', functionalDecision: 'accepted' })
+      expect(decision.responsePlan.some(item => item.family === 'UTILTS_ERR')).toBe(false)
+      const plan = decision.responsePlan.find(item => item.family === 'APERAK')!
+      expect(buildAperakDraft({ sourceMessage: message, outcome: 'negative', applicationErrors: plan.applicationErrors }).rawPayload)
+        .toContain('FTX+AAO++206::260')
+    }
+  })
   it('keeps a guide-rejected E66 IDE separate from its functional sibling', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-two-ide')
     const lines = control.raw_payload!.split('\n')

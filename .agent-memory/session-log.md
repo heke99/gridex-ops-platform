@@ -1,3 +1,9 @@
+## 2026-09-25 — Field202 agency continuation
+Field203 published as draft PR383 `a23e50fa`; own ordinary CI started. Branch from published head reproduced BGM agency blank/999 + E19 wrong functional ERR and added final header guide field202/negative APERAK. Actual inbound mocked external boundary no business sinks; 315/315 tests, types/lint/diff PASS. Publish next draft and check CI, then inspect S-code 1131/code1001 and field203 tenant-scoped uniqueness.
+
+## 2026-09-25 — Field203 and PR382 merge
+Checked PR382 exact-head ordinary CI four SUCCESS and user-authorized merge into PR381 (`4ef14108`, same tree). PR372/310 remained untouched. New branch from actual merge head reproduced blank BGM1004 + E19 wrong functional ERR; shared header guide now yields field203 negative APERAK, real mocked inbound no business effects. Focused29/29 and broad313/313, types/lint/diff PASS. Publish stacked draft, own CI; then field202/field203 uniqueness with tenant-scoped owner.
+
 ## 2026-09-25 — PR372 UUID-regression
 
 Läste verkligt native RED på `8800d014`, fann den fyrgrupps-UUID-regex som klassade giltiga ägare som wildcard. Skapade en ny framåtriktad privat funktionsmigration och test för relevant/orelaterad/ogiltig identitet. Lokala statiska kontroller passerade; publicerade `f75b69ea` med byte-identiskt lokalt träd utan force. Exakt-head OPS native 337/337, verify/quality och alla tillämpliga sidoflöden passerade. Ingen produktionsåtgärd eller merge. Fortsatt hel-PR-acceptans öppen.
@@ -290,3 +296,15 @@ PR376 exact-head ordinary CI all SUCCESS, including native 340 passed. Separate 
 
 ## 2026-09-25 — F3C-02/04 and F3C-05 continuation
 PR374 published `ca1aa11b` four ordinary workflows succeeded. Complete Z04 two-object control exposed duplicate field213 errors from matrix and register owner; national projection deduplicated same physical finding, distinct objects retained. PR375 published `3eae899d` draft; local 103/103, types/lint pass; its Ediel/browser/E2E succeeded while OPS native/quality ran. Next separate branch found E66 invalid MKS+99 plus E19 yielded functional ERR. Field501 rule now projects header guide APERAK and suppresses final functional findings; local 270/270 UTILTS, types/lint pass. No native persisted mixed-object proof, literal staging, staging or merge.
+
+## 2026-09-25 — F3C-05 timezone field206
+PR379 checkpoint checked; code/source trace found E66 209/533 identity unsafe to admit without distinct persistence key. RED complete E66 absent DTM735 + E19; header rule now yields field206 negative APERAK. Actual processor mocked boundary verified no meter/billing/completion, 278/278 tests and app/test types/lint/diff passed. One fixture UNT correction and one wrong test-tsconfig invocation resolved. New branch awaits publication and ordinary CI.
+
+## 2026-09-25 — F3C-05 message date field205
+PR379 exact-head ordinary CI all success; PR380 three success OPS pending. Separate branch: RED absent DTM137 plus E19 and impossible 30 February policy resolution with empty application errors. Calendar guard at policy selection and field205 final header guide corrected disposition/ACK; actual mocked inbound no meter/billing/completion. Local 280/280, types/lint and final25/25. Publication and own ordinary CI next.
+
+## 2026-09-25 — Field205 published CI fixture correction
+PR381 `a307b91e` full E2E coverage failed four variants: synthetic receive 00:00Z preceded DTM137 18:11 local +01:00 the same day. Correct field205 future-date rejection exposed the test chronology. Receipt changed to 20:00Z; 29/29 targeted tests PASS. Publish fast-forward fixture-only correction and require new ordinary exact-head CI; then BGM204. OPS on first head was still running at last check. No product-rule weakening, staging, merge or PR310.
+
+## 2026-09-25 — F3C-05 BGM function204
+Corrected PR381 receipt chronology published as `28ed2fc3`; new branch reproduced invalid/missing BGM1225 + E19 functional ERR, then projected retained 5/9 rule into final field204 APERAK. Actual mocked inbound no business effects. 311/311 tests, app/test types/lint, valid5 focused control PASS. Publish separate draft and check exact-head CI.

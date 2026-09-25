@@ -1,3 +1,21 @@
+## 2026-09-25 — Field202 agency handover
+PR383 field203 published `a23e50fa`, tree `234ffe98`, draft on PR381, ordinary CI running/queued at first check. Current clean-base local field202 agency branch from that exact head adds BGM/C002/3055 `260` guide validation, verified with complete E66 + E19 RED/GREEN and actual inbound mock boundary. Local 315/315, types/lint/diff PASS. Publish stacked draft and inspect own CI. Next S-code C002/1131, BGM 1001, tenant-scoped field203 duplicate owner. See `quality/audits/ediel-masterplan-v2/f3-utilts-header202-agency-20260925.md`. PR372 draft/incomplete, PR310 untouched.
+
+## 2026-09-25 — Field203 handover
+PR382 exact head `397edfe6` all four ordinary CI SUCCESS; user-authorized merge to PR381 base resulted in `4ef14108160ae67f3868c254881ac687513aa803` (same tree `14e9a8cf`). PR381 remains draft, PR372 open/draft, PR310 untouched. Current separate branch adds field203 missing BGM/C106/1004 guide rejection ahead of E19, tested through actual inbound mocked external boundary. Local 313/313 relevant, types/lint/diff PASS. Publish separate draft and inspect own CI. Then inspect field202 BGM code/composite and a tenant-scoped inbound uniqueness owner for 203/ERC42. See `quality/audits/ediel-masterplan-v2/f3-utilts-header203-20260925.md`.
+
+## 2026-09-25 — BGM field204 source/consumer continuation
+Local branch `codex/ediel-v2-utilts-header204-20260925` from corrected PR381 same tree. Source allows BGM1225 5/9; XX or missing plus E19 was ERR; final guide now field204 ERC42/41, negative APERAK and no ERR. Mocked inbound persistence/sinks qualified; 311/311 local, types/lint PASS. Publish stacked draft; see `f3-utilts-header204-20260925.md`. PR381 corrected CI pending; no merge/staging/PR310.
+
+## 2026-09-25 — Field205 published CI fixture correction
+PR381 `a307b91e` full E2E coverage failed four variants: synthetic receive 00:00Z preceded DTM137 18:11 local +01:00 the same day. Correct field205 future-date rejection exposed the test chronology. Receipt changed to 20:00Z; 29/29 targeted tests PASS. Publish fast-forward fixture-only correction and require new ordinary exact-head CI; then BGM204. OPS on first head was still running at last check. No product-rule weakening, staging, merge or PR310.
+
+## 2026-09-25 — Field205 date and policy selection
+Local branch `codex/ediel-v2-utilts-header205-20260925` from PR380 same tree. Invalid 30 February previously selected an impossible policy date and produced generic APERAK without typed field error; now selection falls back to receipt and final guide returns field205. Missing, bad format and future date share final negative APERAK with no E19; actual mocked inbound sinks remain silent. 280/280 local UTILTS, types/lint, final 25/25 pass. Publish separate draft on #380, check CI; see `f3-utilts-header205-20260925.md`. PR310 paused and no staging/merge.
+
+## 2026-09-25 — Field206 source/consumer continuation
+Branch `codex/ediel-v2-utilts-header206-20260925` is based on PR379 published tree. Missing/invalid DTM+735 guide fault now wins over E19 in final ACK, with inbound mocked sink boundary and 278/278 local UTILTS passing. See `quality/audits/ediel-masterplan-v2/f3-utilts-header206-20260925.md`. Publish as separate stacked draft and inspect exact-head CI; inspect field205 next. LOC+175 needs distinct identity and persistence boundary before acceptance. No merge/staging or PR310 activity.
+
 ## 2026-09-25 — Stacked register ACK continuation
 Separate branch codex/ediel-v2-prodat-register-ack-20260925; PR373 published head b635c9d0 and tree 27e5dc76 is the base. Current local code/report cover malformed LIN314 and C829258 negative APERAK before actual case writer; QTY31/213 hold also tested. See f3-prodat-register-ack-boundary-20260925.md. Finish publication and ordinary CI; next complete valid sibling versus malformed object native response/write proof. PR372 and PR310 untouched.
 
