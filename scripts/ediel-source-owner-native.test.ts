@@ -687,8 +687,19 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
   ARRAY[${literal(f.ids.customer)}]::uuid[],ARRAY[${literal(point)}]::text[]))
   FROM gridex_correction_process.facts WHERE table_name='supplier_switch_events'
    AND new_fact->>'event_type'='native_unrelated' LIMIT 1`)
+ const unrelatedArchive=sql<{requestId:string;eventAt:string;requestFacts:{operation:string;customer:string|null;company:string|null;capturedAt:string}[]}>(`SELECT
+  jsonb_build_object('requestId',e.new_fact->>'switch_request_id','eventAt',e.captured_at,
+   'requestFacts',(SELECT coalesce(jsonb_agg(jsonb_build_object('operation',r.operation,
+    'customer',coalesce(r.new_fact,r.old_fact)->>'customer_id',
+    'company',r.company_id,'capturedAt',r.captured_at) ORDER BY r.id),'[]'::jsonb)
+    FROM gridex_correction_process.facts r
+    WHERE r.table_name='supplier_switch_requests'
+     AND r.row_id=(e.new_fact->>'switch_request_id')::uuid))
+  FROM gridex_correction_process.facts e WHERE e.table_name='supplier_switch_events'
+   AND e.new_fact->>'event_type'='native_unrelated' LIMIT 1`)
  expect(priorBody.facts.filter(fact=>fact.rowId===movedCustomerEvent).map(fact=>fact.operation),
-  JSON.stringify({factCount:priorBody.factCount,reason:priorBody.reason,priorEventScope,unrelatedEventScope}))
+  JSON.stringify({factCount:priorBody.factCount,reason:priorBody.reason,priorEventScope,
+   unrelatedEventScope,unrelatedArchive}))
   .toEqual(['INSERT'])
  const afterBody=sql<{facts:{rowId:string;operation:string}[]}>(`SELECT
   gridex_correction_process.combined_process_body_v3(${literal(f.ids.company)},
