@@ -1,7 +1,8 @@
 import {createServer} from 'node:http'
 import {createClient} from '@supabase/supabase-js'
-import {execFileSync} from 'node:child_process'
+import {execFile,execFileSync} from 'node:child_process'
 import {createHash,randomUUID} from 'node:crypto'
+import {promisify} from 'node:util'
 import {afterEach,expect,it,vi} from 'vitest'
 vi.mock('server-only',()=>({}))
 import {closureFixture} from '../__tests__/helpers/closureWireFixtures'
@@ -10,10 +11,11 @@ import {captureCorrectionContext} from '@/lib/ediel/sources/correctionContextCap
 import {captureDocumentReference,readDocumentReferenceContext} from '@/lib/ediel/sources/documentReferenceCapture'
 import {inspectCombinedCorrectionReadset} from '@/lib/ediel/sources/combinedCorrectionReadset'
 import {archiveSignedCustomerContractPdf,downloadAndVerifyCustomerContractDocumentBounded} from '@/lib/customer-contracts/documents'
+const DB='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 const literal=(v:unknown)=>"'"+String(typeof v==='object'?JSON.stringify(v):v).replaceAll("'","''")+"'"
 function sql<T>(query:string):T{
  if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('owned_local_only')
- const out=execFileSync('psql',['postgresql://postgres:postgres@127.0.0.1:54322/postgres','-XAtq','-v','ON_ERROR_STOP=1'],{input:query,encoding:'utf8',timeout:10000,maxBuffer:2_000_000}).trim()
+ const out=execFileSync('psql',[DB,'-XAtq','-v','ON_ERROR_STOP=1'],{input:query,encoding:'utf8',timeout:10000,maxBuffer:2_000_000}).trim()
  return out?JSON.parse(out) as T:undefined as T
 }
 const raw=()=>closureFixture({reason:'Z24'}).wire
@@ -129,6 +131,73 @@ it('the combined receipt includes a real document reference attempt, outcome and
  expect(inspectCombinedCorrectionReadset({companyId:f.companyId,environment:'test',cutoffAt:cutoff},f.sourceMessageId,receipt)).not.toBeNull()
  expect(sql(`SELECT to_jsonb(readset_text=${literal(receipt.readsetText)} AND readset_hash=${literal(receipt.readsetHash)})
   FROM gridex_correction_process.combined_snapshots WHERE id=${literal(receipt.snapshotId)}`)).toBe(true)
+})
+it('one cutoff observes outbound entry and document attempt after a concurrent owner commit',async()=>{
+ const f=await seed(),messageId=randomUUID(),routeId=randomUUID(),profileId=randomUUID()
+ const wire=closureFixture({reason:'Z25'}).wire.replace('BGM+Z05','BGM+Z08')
+  .replace('12345:14+54321:14','54321:14+12345:14')
+ sql(`UPDATE public.company_capabilities SET enabled=true,readiness_status='ready'
+  WHERE company_id=${literal(f.companyId)} AND capability_code='ediel_test';
+  INSERT INTO public.communication_routes(id,company_id,route_name,environment_type,is_active,target_email)
+  VALUES(${literal(routeId)},${literal(f.companyId)},'Synthetic concurrent route','bilateral_test',true,'recipient@example.invalid');
+  INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,
+   message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled)
+  VALUES(${literal(profileId)},${literal(f.companyId)},${literal(routeId)},'Synthetic concurrent profile',
+   'test','edifact','54321','12345','23-DDQ-PRODAT',true);
+  INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,
+   message_code,status,raw_payload,parsed_payload,application_reference,sender_ediel_id,receiver_ediel_id,
+   receiver_email,communication_route_id,route_profile_id,canonical_rule_pack_id,rule_profile_key,
+   rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+  SELECT ${literal(messageId)},${literal(f.companyId)},'test','outbound','edifact','PRODAT',
+   'Z08','queued',${literal(wire)},'{}','23-DDQ-PRODAT','54321','12345',
+   'recipient@example.invalid',${literal(routeId)},${literal(profileId)},pack.id,profile.profile_key,
+   profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
+  WHERE profile.profile_key='PRODAT:Z08:H:26.A:r3' AND profile.is_enabled;`)
+ const attemptId=randomUUID(),bytes=Buffer.from(wire,'latin1')
+ const identity={companyId:f.companyId,environment:'test',messageId,actorUserId:f.actorUserId,attemptId}
+ const binding={originalHash:createHash('sha256').update(wire).digest('hex'),routeId,
+  to:'recipient@example.invalid',from:'synthetic@example.invalid',encoding:'latin1',
+  mimeMode:'ediel-singlepart-compact',payloadBase64:bytes.toString('base64'),
+  payloadHash:createHash('sha256').update(bytes).digest('hex'),payloadLength:bytes.length}
+ const prepared=await supabaseService.rpc('gridex_outbound_dispatch_v1',{
+  p_input:{...identity,action:'prepare',owner:{kind:'direct'},binding}})
+ expect(prepared.error).toBeNull();expect(prepared.data).toMatchObject({scoped:true,proceed:true})
+ const lock=1_000_000+Math.floor(Math.random()*1_000_000)
+ const writer=promisify(execFile)('psql',[DB,'-XAtq','-v','ON_ERROR_STOP=1','-c',`BEGIN;
+  SET LOCAL ROLE service_role;
+  SELECT public.gridex_outbound_dispatch_v1(${literal({...identity,action:'enter'})}::jsonb);
+  SELECT public.gridex_begin_document_reference_v1(${literal(f.companyId)},'test',
+   ${literal(f.sourceMessageId)},${literal(f.documentId)},${literal(f.actorUserId)});
+  SELECT pg_advisory_xact_lock(${lock}); SELECT pg_sleep(5); COMMIT;`],{timeout:12000})
+ let acquired=false
+ for(let i=0;i<40;i++){
+  if(sql(`SELECT to_jsonb(EXISTS(SELECT FROM pg_locks WHERE locktype='advisory'
+   AND objid=${lock} AND granted))`)){acquired=true;break}
+  await new Promise(resolve=>setTimeout(resolve,50))
+ }
+ expect(acquired).toBe(true)
+ const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())')
+ const open=()=>sql<{snapshotId:string;readsetText:string;readsetHash:string}>(`SET ROLE service_role;
+  SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.companyId)},'test',
+   ${literal(f.sourceMessageId)},${literal(cutoff)})`)
+ type Body={visibilitySnapshot:string;outbound:{visibilitySnapshot:string;originals:{messageId:string;
+  events:{kind:string}[]}[]};document:{visibilitySnapshot:string;attempts:{documentId:string}[]}}
+ const before=open(),prior=JSON.parse(before.readsetText) as Body
+ expect(prior.outbound.originals.find(o=>o.messageId===messageId)?.events
+  .some(e=>e.kind==='provider_call_entered')).toBe(false)
+ expect(prior.document.attempts).toEqual([])
+ await writer
+ const after=open(),later=JSON.parse(after.readsetText) as Body
+ expect(later.outbound.originals.find(o=>o.messageId===messageId)?.events)
+  .toContainEqual(expect.objectContaining({kind:'provider_call_entered'}))
+ expect(later.document.attempts).toContainEqual(expect.objectContaining({documentId:f.documentId}))
+ expect(later.outbound.visibilitySnapshot).toBe(later.visibilitySnapshot)
+ expect(later.document.visibilitySnapshot).toBe(later.visibilitySnapshot)
+ expect(JSON.parse(before.readsetText)).toEqual(prior)
+ expect(sql(`SELECT to_jsonb(readset_text=${literal(before.readsetText)}
+  AND readset_hash=${literal(before.readsetHash)})
+  FROM gridex_correction_process.combined_snapshots WHERE id=${literal(before.snapshotId)}`)).toBe(true)
 })
 it.each([2097152,2097153,10485760])('actual Storage enforces capture byte boundary %i',async size=>{
  const bytes=Buffer.alloc(size,32);bytes.write('%PDF-1.4\n');const f=await seed(bytes)
