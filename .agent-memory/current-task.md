@@ -1,3 +1,18 @@
+## 2026-09-25 — Active F3C-05 field202 BGM document agency
+PR383 published field203 draft on PR381 merge head; own CI started. Current separate field202 branch from published PR383 `a23e50fa`: BGM/C002/3055 mandatory `260` now yields field202/ERC41/42 before E19. Actual mocked inbound guide rejection and no business sinks. Local 315/315 relevant, app/test types, lint/diff PASS. Publish own draft, inspect ordinary CI; next conditional S-code 1131 = SVK, code 1001 and field203 duplicate owner. PR372 draft, PR310 untouched; no staging/market send.
+
+## 2026-09-25 — Field203 prior checkpoint (superseded by PR383 publication)
+PR382 merged to PR381 base as `4ef14108` only after exact-head ordinary CI green. Field203 presence fix and actual inbound test local 313/313, app/test types/lint PASS on separate branch `codex/ediel-v2-utilts-header203-20260925`; publish draft stacked on PR381, inspect its own ordinary CI, then field202 BGM/C002 and field203 tenant-scoped uniqueness. PR381 merge-head OPS/E2E still running at last check. PR372 stays draft and PR310 untouched. No staging or market sends.
+
+## 2026-09-25 — Field204 prior checkpoint (superseded by PR382 merge)
+Separate branch from corrected PR381 published `28ed2fc3` same tree. Complete E66 invalid/missing BGM1225 plus E19 RED returned functional ERR. Retained 5/9 rule now projects field204 ERC41/42 and final negative APERAK; actual mocked inbound guide-rejected RPC, no meter/billing/completion. Local 311/311 in 25 files, app/test types, lint and focused valid5 PASS. Publish separate stacked draft and require ordinary CI; then fields202/203 and conditional E66 209/533 identity/storage. PR381 corrected CI running. No staging/merge/PR310.
+
+## 2026-09-25 — Field205 published CI fixture correction
+PR381 `a307b91e` full E2E coverage failed four variants: synthetic receive 00:00Z preceded DTM137 18:11 local +01:00 the same day. Correct field205 future-date rejection exposed the test chronology. Receipt changed to 20:00Z; 29/29 targeted tests PASS. Publish fast-forward fixture-only correction and require new ordinary exact-head CI; then BGM204. OPS on first head was still running at last check. No product-rule weakening, staging, merge or PR310.
+
+## 2026-09-25 — Active: F3C-05 field205 message date
+Separate branch from PR380 published `9678a633` same tree. Complete E66 missing DTM137 + real E19 returned ERR; malformed 30 February made policy selection fail before a typed ACK. Policy date normalization now rejects impossible calendar days, and header guide emits field205 ERC41/42 for missing, malformed/format/future values. Real inbound mocked boundary sees guide-rejected RPC and no meter/billing/completion. Local 280/280 UTILTS, app/test types, lint and final focused25/25 PASS. Publish stacked draft, check exact-head CI; then fields202/203/204 or per-IDE 209/533 identity/persistence. PR379 all four ordinary workflows SUCCESS; PR380 OPS running, other three SUCCESS at last check. No staging/merge/PR310.
+
 ## 2026-09-25 — Active: F3C-05 field206 timezone
 Separate branch from PR379 same tree. Complete E66 without DTM+735 plus real E19 returned functional ERR; bounded header guide now emits field206 ERC41/42 and final negative APERAK. Actual inbound mocked boundary sees guide-rejected RPC and no meter/billing/completion. Local 278/278 UTILTS, app/test types, lint/diff PASS. PR379 ordinary CI 3/4 SUCCESS, OPS running at last check. Next publish separate stacked draft, check exact-head ordinary CI; then field205 DTM+137. Conditional E66 LOC+175 needs distinct persistence identity; remain fail-closed. No staging/merge/PR310.
 

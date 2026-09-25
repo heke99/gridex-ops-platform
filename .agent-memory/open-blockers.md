@@ -1,3 +1,9 @@
+## 2026-09-25 — UTILTS BGM follow-on boundaries
+Field202 BGM/C002/3055 presence/value has a local candidate; conditional S01–S07 C002/1131 = SVK and code-list C002/1001 are not yet traced through final ACK and consumer. Field203 uniqueness-over-time/ERC42 still needs proven tenant-scoped durable inbound owner. Keep those claims open while continuing other source-backed rules; do not infer them from outbound duplicate checks. PR372 E035 historical acceptance remains incomplete; PR310 paused.
+
+## 2026-09-25 — UTILTS field203 duplicate identity
+Annex C UG-122-7 requires BGM/C106/1004 unique over time and ERC42 for duplicates. Presence/ERC41 has a local candidate. The bounded inbound trace has not identified a tenant-scoped durable duplicate owner; outbound `duplicateCheck` and transaction-ID persistence do not prove it. Keep duplicate acceptance unclaimed; inspect the received-message identity/index and fail closed on any safe ambiguity. PR372's historical E035 acceptance remains separate and incomplete; PR310 paused.
+
 ## 2026-09-25 — Register boundary remaining evidence
 The early whole-message safe stop has local real-consumer tests but no native persisted ACK/multi-object transaction proof. A complete Z04 mixed-good/bad object original is next; do not infer partial success. F3C-05 literal execution and mixed unreferenced findings remain. PR373 OPS native still needs exact result at this checkpoint; PR310 excluded and external staging/formal gates deferred.
 
@@ -538,3 +544,9 @@ Archive and swallowed-event paths passed native316 and317 respectively; `94eb110
 
 ## 2026-09-25 — E66 regulating-object identity and timezone codec
 E66 209/533 is conditional per IDE. Current profile borrows sibling LOC172 and rejects LOC175-only; legacy check also requires LOC172. Existing persistence payload has no separate LOC175 regulating-object identity. Keep this capability fail-closed until ACK attribution and distinct consumer identity are qualified. Default-UNA field206 is now guide-checked; declared custom-UNA timezone conversion remains a separate unsupported codec boundary. PR379 OPS ordinary CI was still running at last check; no staging or external evidence requested.
+
+## 2026-09-25 — Field205 remaining clock authority
+The guide compares DTM137 to `message_received_at`, falling back to `created_at`. A row missing both cannot prove the not-future upper bound; the actual inbound persisted row has receipt/creation timestamps. Custom-UNA timezone conversion and E66 LOC175 distinct persistence identity remain separate fail-closed gaps. PR380 OPS ordinary CI running at last check.
+
+## 2026-09-25 — BGM203 uniqueness not yet qualified
+Annex C UG-122-7 requires nonblank BGM/C106/1004 and uniqueness over time with ERC42 for duplicate. The owner/tenant-scope and final ACK have not yet been traced through actual persistence; next bounded review. E66 LOC175 storage and custom UNA timezone remain fail-closed gaps.
