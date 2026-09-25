@@ -148,11 +148,11 @@ it('one cutoff observes outbound entry and document attempt after a concurrent o
    'test','edifact','54321','12345','23-DDQ-PRODAT',true);
   INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,
    message_code,status,raw_payload,parsed_payload,application_reference,sender_ediel_id,receiver_ediel_id,
-   receiver_email,communication_route_id,route_profile_id,canonical_rule_pack_id,rule_profile_key,
+   receiver_email,communication_route_id,route_profile_id,source_operation_id,canonical_rule_pack_id,rule_profile_key,
    rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
   SELECT ${literal(messageId)},${literal(f.companyId)},'test','outbound','edifact','PRODAT',
    'Z08','queued',${literal(wire)},'{}','23-DDQ-PRODAT','54321','12345',
-   'recipient@example.invalid',${literal(routeId)},${literal(profileId)},pack.id,profile.profile_key,
+   'recipient@example.invalid',${literal(routeId)},${literal(profileId)},${literal(randomUUID())},pack.id,profile.profile_key,
    profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
   FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
   WHERE profile.profile_key='PRODAT:Z08:H:26.A:r3' AND profile.is_enabled;`)
