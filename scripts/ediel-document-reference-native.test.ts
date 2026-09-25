@@ -136,6 +136,8 @@ it('one cutoff observes outbound entry and document attempt after a concurrent o
  const f=await seed(),messageId=randomUUID(),routeId=randomUUID(),profileId=randomUUID()
  const wire=closureFixture({reason:'Z25'}).wire.replace('BGM+Z05','BGM+Z08')
   .replace('12345:14+54321:14','54321:14+12345:14')
+  .replace('NAD+FR+12345','NAD+FR+54321')
+  .replace('NAD+DO+54321','NAD+DO+12345')
  sql(`UPDATE public.company_capabilities SET enabled=true,readiness_status='ready'
   WHERE company_id=${literal(f.companyId)} AND capability_code='ediel_test';
   INSERT INTO public.communication_routes(id,company_id,route_name,environment_type,is_active,target_email)
@@ -184,6 +186,7 @@ it('one cutoff observes outbound entry and document attempt after a concurrent o
  type Body={visibilitySnapshot:string;outbound:{visibilitySnapshot:string;originals:{messageId:string;
   events:{kind:string}[]}[]};document:{visibilitySnapshot:string;attempts:{documentId:string}[]}}
  const before=open(),prior=JSON.parse(before.readsetText) as Body
+ expect(prior.outbound.originals.map(o=>o.messageId)).toContain(messageId)
  expect(prior.outbound.originals.find(o=>o.messageId===messageId)?.events
   .some(e=>e.kind==='provider_call_entered')).toBe(false)
  expect(prior.document.attempts).toEqual([])

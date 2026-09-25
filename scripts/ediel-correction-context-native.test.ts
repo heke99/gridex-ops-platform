@@ -1606,11 +1606,13 @@ it('the actual support case and operation enqueue writers capture linked case, e
   title:'Synthetic native support case',channel:'admin',idempotencyKey:key,actorUserId:f.actorUserId})).reused).toBe(true)
  const caseId=created.case.id
  expect(sql(`SELECT jsonb_agg(jsonb_build_object('table',table_name,'operation',operation,
-  'company',company_id,'customer',new_fact->>'customer_id') ORDER BY id)
+  'company',company_id,'customer',new_fact->>'customer_id',
+  'eventType',new_fact->>'event_type') ORDER BY id)
   FROM gridex_correction_process.facts WHERE table_name IN ('customer_cases','customer_case_events')
    AND (row_id=${literal(caseId)} OR new_fact->>'customer_case_id'=${literal(caseId)})`))
-  .toEqual([{table:'customer_cases',operation:'INSERT',company:f.companyId,customer:customerId},
-   {table:'customer_case_events',operation:'INSERT',company:f.companyId,customer:customerId}])
+  .toEqual([{table:'customer_cases',operation:'INSERT',company:f.companyId,customer:customerId,eventType:null},
+   {table:'customer_case_events',operation:'INSERT',company:f.companyId,customer:customerId,eventType:'created'},
+   {table:'customer_case_events',operation:'INSERT',company:f.companyId,customer:customerId,eventType:'operational_stop_applied'}])
  const changed=await updateCustomerCaseStatus({caseId,companyId:f.companyId,status:'action_required',
   message:'Synthetic follow up',actorUserId:f.actorUserId})
  expect(changed.status).toBe('action_required')
