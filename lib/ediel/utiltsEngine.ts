@@ -1,4 +1,6 @@
 import { canonicalBusinessDate } from '@/lib/ediel/core/messagePolicy'
+import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { fieldRulesForMessage } from '@/lib/ediel/rulebook/fieldMatrix'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import type { UtiltsProcessabilityPolicy } from '@/lib/ediel/rulebook/utilts25A4'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -405,6 +407,29 @@ function suppressFunctionalIssuesForGuideRejectedTransactions(
   return rebuildUtiltsRuntimeResult({ message, result, issues })
 }
 
+function applyUtiltsMarketHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
+  const rule = fieldRulesForMessage('UTILTS', result.facts.messageCode).find(item => item.fieldNumber === '501')
+  if (!rule || !rule.allowedValues?.length) return result
+  const wire = tokenizeEdifact(message.raw_payload)
+  const market = wire.segments.find(segment => segment.tag === 'MKS')
+  const value = market ? segmentComposite(market, 1, wire.una)[0]?.trim() : null
+  if (value && rule.allowedValues.includes(value)) return result
+
+  const missing = !value
+  // Field 501 is in the message header: every IDE fails the guide gate, even
+  // when no transaction identity was parsed. No functional finding is eligible.
+  const issues = result.validation.issues.filter(issue => issue.severity !== 'error' || issue.kind !== 'functional')
+  return rebuildUtiltsRuntimeResult({ message, result, issues: [...issues, {
+    severity: 'error', kind: 'application',
+    code: missing ? rule.errorCodeIfMissing ?? 'MKS_MISSING' : rule.errorCodeIfInvalid ?? 'UTILTS_MARKET_INVALID',
+    title: missing ? 'Marknad saknas' : 'Ogiltig marknad',
+    description: missing ? 'MKS/7293 saknas.' : `MKS/7293 har otillåtet värde ${value}.`,
+    aperakErcCode: missing ? '41' : '42',
+    aperakFieldCode: '501',
+    aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+  }] })
+}
+
 function canonicalE66PersistenceTransactions(facts: UtiltsRuntimeFacts): Array<Record<string, unknown>> {
   const timezone = parseEdifactTimezoneOffsetFromSegments(facts.rawSegments)
   const transactions = facts.transactions.length > 0 ? facts.transactions : []
@@ -521,6 +546,6 @@ export function runUtiltsRuntimeForMessage(
   // Canonical quantity/effective-date checks can add processability findings
   // after the guide pass. A guide-invalid IDE has no functional outcome.
   return applyCanonicalE66PersistencePayload(
-    suppressFunctionalIssuesForGuideRejectedTransactions(message, effective),
+    suppressFunctionalIssuesForGuideRejectedTransactions(message, applyUtiltsMarketHeaderGuide(message, effective)),
   )
 }

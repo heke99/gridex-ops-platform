@@ -324,3 +324,10 @@ PR372/521bc9ba: OPS36003339938 clean migration replay SUCCESS, native314/314 in 
 | Lokal gren före commit | Komplett tvåobjekts-Z04, fokuserad RED | 1/10 föll: två identiska 213 i nationell APERAK-plan | Faktiskt duplikat, före rättning. |
 | Lokal gren före commit | Fokuserade Vitest 4 filer, app/test typ, scoped ESLint, diff check | 103/103 PASS; övrigt PASS | Native/exakt-head CI väntar. |
 | `ca1aa11b6311088f70b0f8ada05befdfa55b6924` | OPS `36174980998`, Ediel `36174981008`, browser `36174981015`, full E2E `36174981002` | Alla SUCCESS | PR374, tidigare batch; kvalificerar inte denna kandidat. |
+## 2026-09-25 — F3C-05 header501 candidate
+
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | Komplett E66 MKS+99 och E19 RED | `functional_rejected` i stället för guide/APERAK | Källbelagt fel, före rättning. |
+| Lokal gren före commit | 24 UTILTS-filer, app/test typer, scoped ESLint, diff check | 270/270 PASS; övrigt PASS | Native/exakt-head CI väntar; fysisk funktionsberäkning ännu inte stegvis. |
+| `3eae899dc8689e38a9af4d2895012de7ae52407f` | PR375 Ediel `36177257227`, browser `36177257139`, E2E `36177257150`, OPS `36177257247` | Första tre SUCCESS; OPS verify SUCCESS, quality/native in progress vid kontroll | Föregående batch. |
