@@ -40,9 +40,15 @@ The published staging-target guard candidate is
 Ediel `36157919664` and full E2E `36157919493` succeeded; crawler
 `36157919573` skipped. Artifact `10874262726` was downloaded: generated
 types, schema SQL and fingerprint JSON match the checked-in files byte for
+byte. The documentation-only head `6f9fec5d2f0190ad7ee8b8651f3ad784d28d7756`
+also passed OPS `36162989608` (340/340 native; 6,084/6,084 unit), tenant
+`36162989662`, browser `36162989694`, Ediel `36162989448` and full E2E
+`36162989446`; crawler `36162989590` skipped. Its downloaded artifact
+`10876123937` again matched types, schema SQL and fingerprint JSON byte for
 byte. Independent read-only whole-PR code review approved this exact code
 head against main without confirmed findings, including R1/R2 and switch
-ownership. No formal GitHub review or staging rollout approval was submitted.
+ownership, and confirmed the documentation-only delta preserved approval.
+No formal GitHub review or staging rollout approval was submitted.
 
 | Acceptance requirement | Existing implementation | Exact evidence | Remaining proof and risk |
 | --- | --- | --- | --- |
@@ -109,8 +115,13 @@ Read-only Supabase project inventory on 2026-09-25 listed only one Gridex
 project in the connected account: `piidsfebjqjmnepdpnas`, whose canonical API
 URL is `https://piidsfebjqjmnepdpnas.supabase.co`. The repository production
 parity register identifies that ref as the database used by `app.gridex.se`
-despite its `gridex-ops-dev` name. A separate staging project is **not yet
-identified**. The mutating runtime script previously accepted that production
+despite its `gridex-ops-dev` name. On 2026-09-25 a separate Supabase Pro
+project `gridex-ops-staging` (`pqzxwhesganzwyhfmswt`) was created in
+`eu-north-1`; its canonical URL is
+`https://pqzxwhesganzwyhfmswt.supabase.co`, it reports `ACTIVE_HEALTHY`,
+and its migration list is empty. It is distinct from the known production
+ref, but no schema deployment, test fixture or hosted write has been made.
+The mutating runtime script previously accepted that production
 URL with staging flags; a local RED test reached the mocked transport boundary
 (`exit 70`) for both production and a mismatched supposed staging URL. The
 forward guard now requires the exact canonical URL for a separately approved
@@ -118,12 +129,13 @@ forward guard now requires the exact canonical URL for a separately approved
 network call, and passes all three local target-guard tests. The workflow
 binds `runtime-staging` to `staging-e2e` and requires that variable. GitHub
 environment protection and distinct staging secrets must be verified before
-dispatch; neither is proven by a YAML name or a staging flag.
+dispatch; neither is proven by a YAML name or a staging flag. The project
+exists but is not yet a qualified staging target.
 
 | Gate | Test identity and action | Saved observation required |
 | --- | --- | --- |
 | Isolated staging | Bind a single run ID `e035-<head8>-<UTC>` to generated synthetic tenant, actor, customer, point, source-message and switch-request IDs. Use reserved `.invalid` contact details, test environment, no real metering point or market party, disabled transport routes and billing/meter side effects. Verify staged app and migrations match the frozen PR head before seeding. | Sanitized fixture manifest with IDs, migration version and before counts; no credentials, real customer payloads or production traffic. |
-| Generic runtime prerequisite | Identify a separate Supabase staging project and set its exact ref in the `staging-e2e` environment; verify environment protection, scoped secrets and URL inequality to the production ref. Explicitly dispatch `full-e2e.yml` `mode=runtime` on the frozen SHA only then. This lifecycle certificate does not invoke E035. | Successful protected runtime artifact and same SHA; failure or skipped job blocks advancement. |
+| Generic runtime prerequisite | Use the distinct staging ref `pqzxwhesganzwyhfmswt` only after deploying the frozen migrations and setting its exact ref in the `staging-e2e` environment; verify environment protection, scoped secrets and URL inequality to the production ref. Explicitly dispatch `full-e2e.yml` `mode=runtime` on the frozen SHA only then. This lifecycle certificate does not invoke E035. | Successful protected runtime artifact and same SHA; failure or skipped job blocks advancement. |
 | E035-specific staging | With the synthetic tenant, exercise actual concern capture, switch point/request history, a saved five-owner cutoff receipt, and actual E30/S07/E66 inbound processing. Include a linked point and a known unrelated point; use only test EDIEL identities and no external provider call. Historical pre-epoch gaps remain `complete:false`; do not manufacture complete history. | Receipt bytes/hash and owner visibility/cutoff, witnessed facts, `complete:false`/`authority:none`, persisted internal review and CONTRL, zero APERAK, zero meter-series and invoice effects, cross-tenant denial and before/after counts. A missing or malformed owner must hold. |
 | Production decision, then synthetic pilot | Record retention category/duration and archive/expiry behavior for all six private evidence tables, safe forward recovery, owner approval, final SHA CI/review, staging artifacts, and protected production preflight. Only after a signed GO use one isolated synthetic nonmarket tenant with routing, billing and ingestion disabled; record the same hold/zero-side-effect observations. | Named approver, exact SHA, run ID, start/end, evidence links, explicit abort owner and last accepted deployment ID. Any missing gate is NO-GO. |
 
@@ -137,5 +149,5 @@ version and investigate the forward database migration separately. Merge to
 **Current verdict: NO-GO** for production pilot or merge. The history/retention
 policy and safe archive/expiry behavior, protected runtime and E035-specific
 stage evidence, production preflight and explicit GO remain open. Bounded
-prospective code behavior and PR CI are green on `ea0180e2`; they do not
+prospective code behavior and PR CI are green on `6f9fec5d`; they do not
 establish historical inception coverage or authorize live data processing.
