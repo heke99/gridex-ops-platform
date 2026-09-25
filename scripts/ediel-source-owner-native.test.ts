@@ -623,25 +623,32 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
  expect(body.process.facts.some(fact=>fact.table==='customer_operation_tasks'&&unrelatedTaskIds.has(fact.rowId))).toBe(false)
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.meter_reading_series WHERE source_ediel_message_id=${literal(source.id)}`)).toBe(1)
 })
-it('a duplicate interior envelope segment remains an unknown source wildcard',async()=>{
+it('duplicate, misplaced and incomplete envelopes remain unknown source wildcards',async()=>{
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
  const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
- const unrelatedPoint='735999260731000008',sourceId=randomUUID()
+ const unrelatedPoint='735999260731000008',sourceIds=[randomUUID(),randomUUID(),randomUUID()]
  const valid=closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',unrelatedPoint)
  expect(sql<string>(`SELECT to_jsonb(gridex_received_sources.source_wire_point_v1(${literal(valid)}))`)).toBe(unrelatedPoint)
  const header=valid.match(/UNH\+[^']+'/)?.[0]
  expect(header).toBeTruthy()
- const malformed=valid.replace(header!,header!+header!).replace(/UNT\+(\d+)\+M'/,
+ const duplicate=valid.replace(header!,header!+header!).replace(/UNT\+(\d+)\+M'/,
   (_,count:string)=>`UNT+${Number(count)+1}+M'`)
- expect(malformed).not.toBe(valid)
- expect(sql(`SELECT to_jsonb(gridex_received_sources.source_wire_point_v1(${literal(malformed)}))`)).toBeNull()
- sql(`INSERT INTO gridex_received_sources.sources(source_message_id,company_id,environment,origin,
-  message_code,source_received_at,captured_at,raw_payload,payload_hash,received_context)
-  VALUES(${literal(sourceId)},${literal(f.ids.company)},'test','database_insert','Z05',
-   clock_timestamp()-interval '1 minute',clock_timestamp()-interval '30 seconds',
-   ${literal(malformed)},encode(sha256(convert_to(${literal(malformed)},'UTF8')),'hex'),'{}'::jsonb);`)
- expect(sql(`SELECT to_jsonb(scope_point) FROM gridex_received_sources.sources
-  WHERE source_message_id=${literal(sourceId)}`)).toBeNull()
+ const bgm=valid.match(/BGM\+[^']+'/)?.[0]
+ const line=valid.match(/LIN\+[^']+'/)?.[0]
+ expect(bgm).toBeTruthy();expect(line).toBeTruthy()
+ const misplaced=valid.replace(bgm!,'').replace(line!,line!+bgm!)
+ const missingFamily=valid.replace(header!,'UNH+M\'')
+ for(const [i,malformed] of [duplicate,misplaced,missingFamily].entries()){
+  expect(malformed).not.toBe(valid)
+  expect(sql(`SELECT jsonb_build_object('point',gridex_received_sources.source_wire_point_v1(${literal(malformed)}))`)).toEqual({point:null})
+  sql(`INSERT INTO gridex_received_sources.sources(source_message_id,company_id,environment,origin,
+   message_code,source_received_at,captured_at,raw_payload,payload_hash,received_context)
+   VALUES(${literal(sourceIds[i])},${literal(f.ids.company)},'test','database_insert','Z05',
+    clock_timestamp()-interval '1 minute',clock_timestamp()-interval '30 seconds',
+    ${literal(malformed)},encode(sha256(convert_to(${literal(malformed)},'UTF8')),'hex'),'{}'::jsonb);`)
+  expect(sql(`SELECT jsonb_build_object('point',scope_point) FROM gridex_received_sources.sources
+   WHERE source_message_id=${literal(sourceIds[i])}`)).toEqual({point:null})
+ }
  const subject=await insertPriorUtilts(f,priorNativeWire(f,point))
  const receipt=sql<{readsetText:string}>(`SET ROLE service_role;
   SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.ids.company)},'test',
@@ -650,7 +657,7 @@ it('a duplicate interior envelope segment remains an unknown source wildcard',as
  const selected=JSON.parse(body.source.readsetText) as {
   complete:boolean;sources:{sourceMessageId:string}[]}
  expect(selected.complete).toBe(true)
- expect(selected.sources).toContainEqual(expect.objectContaining({sourceMessageId:sourceId}))
+ for(const sourceId of sourceIds)expect(selected.sources).toContainEqual(expect.objectContaining({sourceMessageId:sourceId}))
 })
 it('unrelated document volume does not exhaust a linked UTILTS subject budget',async()=>{
  const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')

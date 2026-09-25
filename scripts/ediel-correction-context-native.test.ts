@@ -8,6 +8,9 @@ import {captureCorrectionContext} from '@/lib/ediel/sources/correctionContextCap
 import {archiveInvoiceTestCustomerSafely} from '@/lib/ediel/testing/invoiceTestCenterArchive'
 import {signInvoiceTestContractCanonically} from '@/lib/ediel/testing/invoiceTestContractLifecycle'
 import {addCustomerContractEvent} from '@/lib/customer-contracts/db'
+import {createTenantSupportCase} from '@/lib/customer-cases/support'
+import {updateCustomerCaseStatus} from '@/lib/customer-cases/db'
+import {enqueue} from '@/lib/customer-operations/automation.part-1'
 import {emitCustomerOperationEvent} from '@/lib/customers/customerOperationEvents'
 const literal=(v:unknown)=>"'"+String(typeof v==='object'?JSON.stringify(v):v).replaceAll("'","''")+"'"
 function sql<T>(query:string):T{
@@ -1202,6 +1205,26 @@ it('a real Z08H send appears with its original, attempt, provider result and wit
   FROM gridex_correction_process.combined_snapshots WHERE id=${literal(after.snapshotId)}`)).toBe(true)
 })
 
+it('an unsealed historical Z08 remains an outbound wildcard despite a parseable unrelated point',async()=>{
+ const f=await outboundSeed()
+ expect(await captureCorrectionContext({companyId:f.companyId,environment:'test',
+  sourceMessageId:f.sourceMessageId,actorUserId:f.actorUserId})).toMatchObject({status:'recorded'})
+ const unrelated='735999260731000008',wire=f.wire.replaceAll('735123456789012345',unrelated)
+ // Emulate a pre-seal row on an isolated native database; contemporary
+ // canonical inserts always receive the immutable payload seal from a trigger.
+ sql(`BEGIN; SET LOCAL session_replication_role=replica;
+  UPDATE public.ediel_messages SET raw_payload=${literal(wire)},immutable_payload_hash=NULL,
+   immutable_rendered_at=NULL WHERE id=${literal(f.messageId)};
+  COMMIT;`)
+ expect(sql(`SELECT jsonb_build_object('hash',immutable_payload_hash,'rendered',immutable_rendered_at)
+  FROM public.ediel_messages WHERE id=${literal(f.messageId)}`)).toEqual({hash:null,rendered:null})
+ const receipt=sql<{readsetText:string}>(`SET ROLE service_role;
+  SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.companyId)},'test',
+   ${literal(f.sourceMessageId)},clock_timestamp())`)
+ const body=JSON.parse(receipt.readsetText) as {outbound:{originals:{messageId:string;scope:unknown}[]}}
+ expect(body.outbound.originals).toContainEqual(expect.objectContaining({messageId:f.messageId,scope:{}}))
+})
+
 it('the process owner saves a bounded scoped receipt without claiming history completeness', async () => {
  const f=await seed(),taskId=randomUUID()
  sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
@@ -1537,6 +1560,43 @@ it('the canonical legacy contract-event writer captures one committed immutable 
    }])
 })
 
+it('the actual support case and operation enqueue writers capture linked case, event and job facts',async()=>{
+ const f=await seed(),customerId=randomUUID(),key=randomUUID()
+ sql(`INSERT INTO public.customers(id,company_id,first_name,last_name)
+  VALUES(${literal(customerId)},${literal(f.companyId)},'Synthetic','Support');
+  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+  SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions
+   WHERE key='cases.write' ON CONFLICT DO NOTHING;`)
+ const created=await createTenantSupportCase({companyId:f.companyId,customerId,
+  title:'Synthetic native support case',channel:'admin',idempotencyKey:key,actorUserId:f.actorUserId})
+ expect(created.reused).toBe(false)
+ expect((await createTenantSupportCase({companyId:f.companyId,customerId,
+  title:'Synthetic native support case',channel:'admin',idempotencyKey:key,actorUserId:f.actorUserId})).reused).toBe(true)
+ const caseId=created.case.id
+ expect(sql(`SELECT jsonb_agg(jsonb_build_object('table',table_name,'operation',operation,
+  'company',company_id,'customer',new_fact->>'customer_id') ORDER BY id)
+  FROM gridex_correction_process.facts WHERE table_name IN ('customer_cases','customer_case_events')
+   AND (row_id=${literal(caseId)} OR new_fact->>'customer_case_id'=${literal(caseId)})`))
+  .toEqual([{table:'customer_cases',operation:'INSERT',company:f.companyId,customer:customerId},
+   {table:'customer_case_events',operation:'INSERT',company:f.companyId,customer:customerId}])
+ const changed=await updateCustomerCaseStatus({caseId,companyId:f.companyId,status:'action_required',
+  message:'Synthetic follow up',actorUserId:f.actorUserId})
+ expect(changed.status).toBe('action_required')
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_correction_process.facts
+  WHERE table_name='customer_cases' AND row_id=${literal(caseId)} AND operation='UPDATE'
+   AND new_fact->>'status'='action_required'`)).toBe(1)
+ const job=await enqueue({companyId:f.companyId,customerId,actorUserId:f.actorUserId,
+  jobType:'request_customer_data',idempotencyKey:`native:${key}`,payload:{caseId}})
+ expect(job.duplicate).toBe(false)
+ expect(await enqueue({companyId:f.companyId,customerId,actorUserId:f.actorUserId,
+  jobType:'request_customer_data',idempotencyKey:`native:${key}`,payload:{caseId}})).toMatchObject({id:job.id,duplicate:true})
+ expect(sql(`SELECT jsonb_build_object('operation',operation,'company',company_id,
+  'customer',new_fact->>'customer_id','jobType',new_fact->>'job_type')
+  FROM gridex_correction_process.facts WHERE table_name='customer_operation_jobs'
+   AND row_id=${literal(job.id)} AND operation='INSERT'`))
+  .toEqual({operation:'INSERT',company:f.companyId,customer:customerId,jobType:'request_customer_data'})
+})
+
 it('a rolled-back process deletion leaves the producer and immutable facts unchanged',async()=>{
  const f=await seed(),taskId=randomUUID()
  sql(`INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)
@@ -1552,6 +1612,7 @@ it.each([false,true])('the actual invoice-test archive retains committed contrac
  const {companyId,actorUserId}=await seed(),customerId=randomUUID(),siteId=randomUUID()
  const pointId=randomUUID(),contractId=randomUUID(),marker={test_center:{kind:'invoice_test_customer'}}
  const organizationNumber=sign?'5590001243':'5590001235'
+ const supplierEdielId=sign?'12346':'12345',brpEdielId=sign?'54322':'54321'
  const pricing={schema:'gridex_contract_pricing_v5',pricing_model:'spot',energy_direction:'consumption',interval_resolution:'hourly',vat_rate:0.25,
   price_areas:['SE3'],base_components:[{source_type:'spot',label:'Spotpris',weight_percent:100,price_area:'SE3'}],
   price_components:[{component_code:'spot_markup',component_type:'markup',name:'Påslag',calculation_type:'per_kwh',amount:4,unit:'ore_per_kwh',website_card_visible:true},
@@ -1578,9 +1639,9 @@ it.each([false,true])('the actual invoice-test archive retains committed contrac
  // Publication readiness is part of the real canonical contract path. All
  // routing and legal rows below belong only to this disposable synthetic tenant.
  sql(`INSERT INTO public.ediel_actor_settings(company_id,environment,actor_name,actor_ediel_id,ediel_id)
-  VALUES(${literal(companyId)},'production','Synthetic archive supplier','12345','12345');
+  VALUES(${literal(companyId)},'production','Synthetic archive supplier',${literal(supplierEdielId)},${literal(supplierEdielId)});
   INSERT INTO public.ediel_brp_settings(company_id,environment,brp_ediel_id,brp_name)
-  VALUES(${literal(companyId)},'production','54321','Synthetic BRP');
+  VALUES(${literal(companyId)},'production',${literal(brpEdielId)},'Synthetic BRP');
   INSERT INTO public.ediel_route_profiles(company_id,environment,route_name,message_family)
   VALUES(${literal(companyId)},'production','Synthetic PRODAT','PRODAT'),
    (${literal(companyId)},'production','Synthetic UTILTS','UTILTS');
