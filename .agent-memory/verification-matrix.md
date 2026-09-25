@@ -1,3 +1,11 @@
+## 2026-09-25 — F3C-05 field202 agency local candidate
+
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | E66 BGM/C002/3055 tom/999 + genuin E19 | RED: `functional_rejected`/ERR före rättning | UG-122-6. |
+| Lokal gren före commit | 25 relevanta filer, app/test typer, scoped lint/diff | 315/315 PASS; övrigt PASS | Egen CI väntar; 1131/1001 ej genomgångna. |
+| `a23e50faa030c27ffffcf9af500f59c3210e149d` | PR383 ordinarie flöden | Köade/pågick vid första kontrollen | Föregående fält203. |
+
 ## 2026-09-25 — F3C-05 field203 local candidate
 
 | Head | Kontroll | Utfall | Gräns |

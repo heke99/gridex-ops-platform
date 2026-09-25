@@ -1,4 +1,7 @@
-## 2026-09-25 — Active F3C-05 field203 document identifier
+## 2026-09-25 — Active F3C-05 field202 BGM document agency
+PR383 published field203 draft on PR381 merge head; own CI started. Current separate field202 branch from published PR383 `a23e50fa`: BGM/C002/3055 mandatory `260` now yields field202/ERC41/42 before E19. Actual mocked inbound guide rejection and no business sinks. Local 315/315 relevant, app/test types, lint/diff PASS. Publish own draft, inspect ordinary CI; next conditional S-code 1131 = SVK, code 1001 and field203 duplicate owner. PR372 draft, PR310 untouched; no staging/market send.
+
+## 2026-09-25 — Field203 prior checkpoint (superseded by PR383 publication)
 PR382 merged to PR381 base as `4ef14108` only after exact-head ordinary CI green. Field203 presence fix and actual inbound test local 313/313, app/test types/lint PASS on separate branch `codex/ediel-v2-utilts-header203-20260925`; publish draft stacked on PR381, inspect its own ordinary CI, then field202 BGM/C002 and field203 tenant-scoped uniqueness. PR381 merge-head OPS/E2E still running at last check. PR372 stays draft and PR310 untouched. No staging or market sends.
 
 ## 2026-09-25 — Field204 prior checkpoint (superseded by PR382 merge)

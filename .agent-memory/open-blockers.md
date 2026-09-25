@@ -1,3 +1,6 @@
+## 2026-09-25 — UTILTS BGM follow-on boundaries
+Field202 BGM/C002/3055 presence/value has a local candidate; conditional S01–S07 C002/1131 = SVK and code-list C002/1001 are not yet traced through final ACK and consumer. Field203 uniqueness-over-time/ERC42 still needs proven tenant-scoped durable inbound owner. Keep those claims open while continuing other source-backed rules; do not infer them from outbound duplicate checks. PR372 E035 historical acceptance remains incomplete; PR310 paused.
+
 ## 2026-09-25 — UTILTS field203 duplicate identity
 Annex C UG-122-7 requires BGM/C106/1004 unique over time and ERC42 for duplicates. Presence/ERC41 has a local candidate. The bounded inbound trace has not identified a tenant-scoped durable duplicate owner; outbound `duplicateCheck` and transaction-ID persistence do not prove it. Keep duplicate acceptance unclaimed; inspect the received-message identity/index and fail closed on any safe ambiguity. PR372's historical E035 acceptance remains separate and incomplete; PR310 paused.
 

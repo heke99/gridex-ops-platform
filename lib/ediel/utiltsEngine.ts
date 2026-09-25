@@ -437,6 +437,18 @@ function applyUtiltsHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeR
   })
   const ackRule = rules.find(item => item.fieldNumber === '313')
   const bgm = wire.segments.find(segment => segment.tag === 'BGM')
+  const documentCodeRule = rules.find(item => item.fieldNumber === '202')
+  const documentAgency = bgm ? segmentComposite(bgm, 1, wire.una)[2]?.trim() : null
+  const documentAgencyIssues = bgm && documentCodeRule?.requirement === 'required' && documentAgency !== '260'
+    ? [{
+      severity: 'error' as const, kind: 'application' as const,
+      code: documentAgency ? 'UTILTS_DOCUMENT_AGENCY_INVALID' : 'UTILTS_DOCUMENT_AGENCY_MISSING',
+      title: documentAgency ? 'Ogiltig byråkod för dokumenttyp' : 'Byråkod för dokumenttyp saknas',
+      description: documentAgency ? `BGM/C002/3055 har otillåtet värde ${documentAgency}.` : 'BGM/C002/3055 saknas.',
+      aperakErcCode: documentAgency ? '42' : '41',
+      aperakFieldCode: '202',
+      aperakText: documentAgency ? 'INCORRECT DATA' : 'MANDATORY FIELD MISSING',
+    }] : []
   const documentRule = rules.find(item => item.fieldNumber === '203')
   const documentIdentifier = bgm ? segmentComposite(bgm, 2, wire.una)[0]?.trim() : null
   const documentIssues = documentRule?.requirement === 'required' && !documentIdentifier
@@ -510,7 +522,7 @@ function applyUtiltsHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeR
       aperakFieldCode: '205',
       aperakText: !dateValue ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
     }] : []
-  const issues = [...mksIssues, ...documentIssues, ...functionIssues, ...ackIssues, ...timezoneIssues, ...dateIssues]
+  const issues = [...mksIssues, ...documentAgencyIssues, ...documentIssues, ...functionIssues, ...ackIssues, ...timezoneIssues, ...dateIssues]
   if (issues.length === 0) return result
   // These fields are in the message header: every IDE fails the guide gate, even
   // when no transaction identity was parsed. No functional finding is eligible.

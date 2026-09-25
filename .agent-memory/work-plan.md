@@ -1,4 +1,9 @@
-## 2026-09-25 — Active F3C-05 field203 continuation
+## 2026-09-25 — Active F3C-05 field202 agency continuation
+1. Field202 BGM/C002/3055: source UG-122-6 → retained header matrix → shared final guide → actual inbound processor. Complete E66 blank/invalid agency + E19 RED/GREEN and mocked external persistence/ACK/sinks done locally, 315/315, types/lint PASS. Publish draft on PR383 `a23e50fa`; inspect own CI and PR383 CI.
+2. Inspect S01–S07 BGM/C002/1131 = SVK and BGM/C002/1001 code list through policy selection and final ACK. Field203 uniqueness only with a proven tenant-scoped durable owner.
+3. Continue F3C-05 per-IDE E66 209/533 identity/storage, then remaining F3C-02/04/06/07 and source-backed F1/F2/F4–F6. PR372 historical E035 draft/incomplete, PR310 paused. No staging/TGT/AGT/market send.
+
+## 2026-09-25 — Field203 prior plan (superseded by PR383 publication)
 1. Field203 presence: source UG-122-7 → retained header matrix → shared final guide → actual received-message processor. Complete E66 blank 203 + E19 RED/GREEN and mocked external persistence/ACK/sinks done locally, 313/313, types/lint PASS. Publish draft on PR381 merge head `4ef14108`; require own exact-head ordinary CI.
 2. Inspect field202 BGM/C002/1001 and 1131/3055 requirements against actual policy selection and final ACK. Inspect field203 uniqueness only with durable tenant-scoped inbound owner; leave unsupported duplicate claim open.
 3. Continue bounded F3C-05 per-IDE E66 209/533 identity and persistence, then F3C-02/04/06/07 and F1/F2/F4–F6 source-backed gaps. PR372 historical E035 remains draft/incomplete; PR310 paused. No staging/TGT/AGT/market send.
