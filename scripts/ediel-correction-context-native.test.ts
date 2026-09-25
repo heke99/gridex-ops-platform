@@ -265,7 +265,6 @@ it.each([
  expect(project(raw().replace(from,to))).toEqual({objectId:null,identityAgency:null,legalSender:null,legalReceiver:null,
   caseReference:null,candidateTarget:null,oldStop:{kind:'unknown'},proposedStop:{kind:'unknown'},observedSourceStop:{kind:'unknown'},disposition:'unreviewed'})
 })
-
 it('an operationally paused company cannot append a concern despite its active actor',async()=>{
  const f=await seed()
  sql(`UPDATE public.companies SET status='paused' WHERE id=${literal(f.companyId)}`)
@@ -1610,9 +1609,10 @@ it('the actual support case and operation enqueue writers capture linked case, e
    {table:'customer_case_events',operation:'INSERT',company:f.companyId,customer:customerId,eventType:'created'},
    {table:'customer_case_events',operation:'INSERT',company:f.companyId,customer:customerId,eventType:'operational_stop_applied'}])
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.permissions WHERE key='cases.write'`)).toBe(1)
+ const initialStatus=sql<string>(`SELECT to_jsonb(status) FROM public.customer_cases WHERE id=${literal(caseId)}`)
  await expect(updateCustomerCaseStatus({caseId,companyId:f.companyId,status:'action_required',actorUserId:f.actorUserId}))
   .rejects.toThrow(/customer_case_status_actor_not_authorized/)
- expect(sql(`SELECT to_jsonb(status) FROM public.customer_cases WHERE id=${literal(caseId)}`)).toBe('open')
+ expect(sql(`SELECT to_jsonb(status) FROM public.customer_cases WHERE id=${literal(caseId)}`)).toBe(initialStatus)
  sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
   SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions
   WHERE key='cases.write';`)

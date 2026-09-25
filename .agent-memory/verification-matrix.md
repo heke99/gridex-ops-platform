@@ -285,3 +285,5 @@ PR372/521bc9ba: OPS36003339938 clean migration replay SUCCESS, native314/314 in 
 | Pause diagnostic | `cases.write` registry/grant/effective check | Locally prepared only, unexecuted |
 
 - 2026-09-25 PR372 A/B: a3464eae OPS36123867431 native333/335; `cases.write` registry=0/grant=0/effective=false with active actor/membership; Storage delete/before_witness unconfirmed. Local candidate migration integrity, script typecheck, scoped lint and large-file budget PASS. New native pending.
+
+- 2026-09-25 `05cb5c40` OPS36126471587: verify/quality/build SUCCESS, full6080; native334/335, sole fixture status precondition expected open but observed billing_blocked after support stop. Six Storage matrix cases passed; no failed-stage observation.

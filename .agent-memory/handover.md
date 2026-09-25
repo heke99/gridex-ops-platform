@@ -1,3 +1,9 @@
+## 2026-09-25 — Exact-head native after authorization batch
+
+Published `05cb5c40` / tree `141eae89` is still draft. OPS `36126471587`: verify and quality/build SUCCESS (full 6080 tests); native `108043629239` 334/335. The negative status RPC correctly rejected the actor without `cases.write`; the sole failure was a new fixture assertion expecting `open`, whereas the actual support stop had already set `billing_blocked`. Local correction stores initial status and verifies denial leaves it unchanged; script types/lint/budget pass; this correction is **not published or native-run yet**. The canonical registry materialized, but positive status path remains behind that assertion. All six document Storage matrix cases passed this run, so earlier unconfirmed cause was not observed; retain bounded stage diagnostic and do not call it fixed. Next: publish fixture correction and inspect exact-head replay. No merge or PR310 work.
+
+---
+
 ## 2026-09-25 — Storage failure isolation prepared
 
 Native job `108035388543` on `a3464eae` failed `storage delete at before_witness` (expected recorded/verified_at_observation, observed unconfirmed); the other five matrix cases passed on that run. Earlier `c9f5f64` failed before_append replace and before_witness delete/replace, all observed unconfirmed. The product wrapper intentionally masks stage errors as unconfirmed. A test-only diagnostic now reports Storage operation error, intercepted RPC error, exact synthetic object path/Storage object IDs and durable attempt/outcome/witness counts when unconfirmed recurs. No retry, timeout, skip, product behavior or guard changed. Local type/lint pass; native diagnostic pending. Next: publish/inspect exact native result, then correct only a demonstrated cause.
