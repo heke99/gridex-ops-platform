@@ -1,0 +1,15 @@
+# F3C-02/04 bounded PRODAT register response boundary
+
+Stacked on F3 guide/function draft PR #373 (tree `27e5dc76df112014a6dd4a2f600b4c3ed98b74a9`), itself based on draft PR #372. PR #310 excluded. No hosted execution.
+
+Original P26.A r3 pp47,54,114–116 requires global LIN314, object-local C829258 and own QTY31/213. Masterplan §§4.2,18 requires guide rejection, corresponding negative APERAK and no invalid business mutation. The existing `canonicalPolicyFieldValidator`/`prodatRegisterGroups` produce object rejection and a negative APERAK plan. The actual `processInboundEdielMessage` then invokes `processInboundProdatMessage`; its `createOrUpdateInboundProdatCase` calls the real `validateProdatRegisterPayload` and throws `PRODAT_REGISTER_STRUCTURE_INVALID` before `createAutomaticPositiveAcks`. A focused first run with malformed global LIN and the actual case consumer failed at that throw; no ACK was created. An independent duplicate object-register index follows the same path.
+
+The processor now handles canonically rejected register objects before actor auto-response and case/business writers. It creates the qualified negative response plan and technical CONTRL, then finishes the received-source owner session. If no qualified negative application plan exists, it only creates technical CONTRL; no positive application response is fabricated. This is a whole-message safe stop for invalid register topology, not acceptance of the valid sibling object. Per-object partial application is outside this batch.
+
+Focused real-consumer tests cover LIN314 and C829258 with exact negative APERAK FTX field references and zero mocked case/business effects. A Z04 own QTY31/213 omission remains guide-rejected with FTX213 and zero effects; this case also has other incomplete guide fields and may follow the earlier internal-review branch. Field209 25/26-character agency-scoped behavior is covered in PR #373. Final native persisted ACK/outbound and atomic multi-object effects have not been proven in this batch; F3C-04 and F3C-02 remain partial.
+
+Next: determine a complete source-valid Z04 multi-object original with one malformed local QTY31/213 and one good sibling. Trace the actual saved APERAK references, case result and business-write boundary; avoid asserting partial success without protocol support. Then F3C-05 literal staged execution and mixed unreferenced functional findings, F3C-06 grammar and F3C-07 finding ledger remain.
+
+## Local checks
+
+The focused malformed-LIN real-consumer test first failed at `lib/ediel/inboundCases.ts:387` with `PRODAT_REGISTER_STRUCTURE_INVALID`. After the early guard, three nearby test files passed 49/49; the expanded focused file passed 9/9, including duplicate C829 and QTY31/213 hold. The wider Vitest pass excluding two unchanged Node-22-TAP wrappers on this Node 24 host was 378 files / 6,087 tests. App and test typechecks and `git diff --check` passed. Scoped ESLint had zero errors and one pre-existing unused `facilityRecognition` warning in `inboundProcessing.ts:575`. Ordinary Node 22 CI remains the full-suite gate.

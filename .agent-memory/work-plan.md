@@ -1,4 +1,19 @@
-## 2026-09-25 — Active bounded F3 engineering
+## 2026-09-25 — Active F3C-05 field202 agency continuation
+1. Field202 BGM/C002/3055: source UG-122-6 → retained header matrix → shared final guide → actual inbound processor. Complete E66 blank/invalid agency + E19 RED/GREEN and mocked external persistence/ACK/sinks done locally, 315/315, types/lint PASS. Publish draft on PR383 `a23e50fa`; inspect own CI and PR383 CI.
+2. Inspect S01–S07 BGM/C002/1131 = SVK and BGM/C002/1001 code list through policy selection and final ACK. Field203 uniqueness only with a proven tenant-scoped durable owner.
+3. Continue F3C-05 per-IDE E66 209/533 identity/storage, then remaining F3C-02/04/06/07 and source-backed F1/F2/F4–F6. PR372 historical E035 draft/incomplete, PR310 paused. No staging/TGT/AGT/market send.
+
+## 2026-09-25 — Field203 prior plan (superseded by PR383 publication)
+1. Field203 presence: source UG-122-7 → retained header matrix → shared final guide → actual received-message processor. Complete E66 blank 203 + E19 RED/GREEN and mocked external persistence/ACK/sinks done locally, 313/313, types/lint PASS. Publish draft on PR381 merge head `4ef14108`; require own exact-head ordinary CI.
+2. Inspect field202 BGM/C002/1001 and 1131/3055 requirements against actual policy selection and final ACK. Inspect field203 uniqueness only with durable tenant-scoped inbound owner; leave unsupported duplicate claim open.
+3. Continue bounded F3C-05 per-IDE E66 209/533 identity and persistence, then F3C-02/04/06/07 and F1/F2/F4–F6 source-backed gaps. PR372 historical E035 remains draft/incomplete; PR310 paused. No staging/TGT/AGT/market send.
+
+## 2026-09-25 — Prior register response plan (superseded)
+1. Publish and qualify stacked PRODAT register ACK batch against PR373 head.
+2. Reconcile complete Z04 one-good/one-invalid object through saved APERAK/reference and no invalid case/business writes.
+3. Continue remaining F3C-02/04/05/06/07 and sourced later phases without PR310 or hosted tests.
+
+## 2026-09-25 — Prior bounded F3 engineering plan (superseded)
 1. Complete focused guide/function correction checks and field209 canonical boundary; publish isolated draft PR from PR372 b9a1dc16, inspect ordinary CI.
 2. Trace 314/258/213 original through canonical runtime, final ACK/reference and write boundary. Fix only witnessed divergence.
 3. Continue F3C-04/05, F3C-06/07, then sourced F1/F2 and F4–F6 in finite batches. Retain E035/PR372 and paused PR310 separately.
@@ -356,3 +371,25 @@ PR310 remains paused/untouched. No production operations or reduced gates. D110/
 ## 2026-09-24 — PR372 bounded hold and schema gate green
 
 1. Preserve green checkpoint 521bc9ba / OPS36003339938 and draft PR372. 2. Qualify remaining Task3b producer routes, deletions, cascade/SET NULL, archive and retention with actual native evidence; keep before-epoch complete:false. 3. Add outbound Z08H and relevant document reference to the same-MVCC combined receipt with exact scoped counts, failed-reader and retention handling; inspect before UTILTS selection. 4. Run native real-flow, race, tenant and cutoff cases, regenerate authentic types/schema and all same-head gates, independent requirement review. No positive C/reopening or merge from current checkpoint.
+## Active 2026-09-25 — F3C-02/04 Z04 field213 ACK projection
+Publish source-backed same-physical diagnostic deduplication from complete Z04 two-object control, verify exact-head ordinary CI, then inspect native persisted mixed-object ACK/case. F3C-05 staged/mixed UTILTS, F3C-06 grammar and F3C-07 ledger follow; no PR310 or staging.
+## Active 2026-09-25 — F3C-05 field313 header
+Publish the complete E66 field313 guide correction stacked on PR378 and require ordinary exact-head CI. Then qualify conditional E66 209/533 identity per physical IDE, correct field/error and native mixed response/storage. F3C-04 native Z04, F3C-06 grammar and F3C-07 ledger remain open. PR310 excluded, no merge/staging.
+
+## 2026-09-25 — F3C-05 field502 agency 260
+Publish the source-backed agency 260 guide correction stacked on PR377 and require ordinary exact-head CI. Then inspect next header rule or mixed unreferenced functional outcome and native persisted ACK/storage. Z04 mixed-object persistence, F3C-06 grammar and F3C-07 ledger remain open. PR310 excluded; no merge/staging.
+
+## 2026-09-25 — F3C-05 header502 phase guide
+Publish the source-backed E02/E03/E04 field502 correction from PR376; require ordinary exact-head CI. Then examine agency 260 and native mixed UTILTS ACK/storage, and Z04 mixed-object persistence. F3C-06 grammar and F3C-07 ledger remain open. PR310 excluded, no merge/staging.
+
+## 2026-09-25 — F3C-05 header501 guide before functional outcome
+Publish current bounded MKS/7293 guide correction from PR375, verify ordinary exact-head CI, then inspect next source-qualified header and native mixed disposition/ACK/storage. Keep F3C-04 Z04 native boundary, F3C-06 grammar and F3C-07 ledger open; no PR310 or staging.
+
+## Active 2026-09-25 — F3C-05 field206 timezone
+Publish field206 header correction stacked on draft PR379 and qualify exact-head ordinary CI. Then inspect field205 source/owner/consumer and per-IDE E66 209/533 distinct identity/storage boundary; preserve fail-closed until supported. F3C-04 native Z04, F3C-06 grammar, F3C-07 ledger and later groups remain. No staging, merge or PR310.
+
+## Active 2026-09-25 — F3C-05 field205 message date
+Publish field205 source-backed header/policy correction stacked on draft PR380, qualify exact-head ordinary CI. Continue bounded header202/203/204 or per-IDE E66 209/533 with distinct persistence identity. F3C-04 native Z04, F3C-06 grammar and F3C-07 ledger remain; no staging, merge or PR310.
+
+## Active 2026-09-25 — F3C-05 BGM function204
+Publish bounded field204 guide/consumer batch stacked on PR381 corrected head; require ordinary exact-head CI. Then inspect fields202/203 with document-id uniqueness and per-IDE E66 209/533 distinct storage scope. F3C-04 native Z04, F3C-06 grammar, F3C-07 ledger remain. No staging/merge/PR310.
