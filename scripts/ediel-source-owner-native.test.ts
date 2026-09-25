@@ -625,6 +625,7 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
  const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
  const otherCustomer=randomUUID()
+ const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
  sql(`INSERT INTO public.customers(id,company_id,customer_number,name,customer_type)
   VALUES(${literal(otherCustomer)},${literal(f.ids.company)},${literal(`E035-OTHER-${otherCustomer}`)},'Unrelated native customer','private');
   INSERT INTO public.customer_operation_tasks(company_id,customer_id,task_type,title,status)
@@ -653,7 +654,38 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
  const relevantEvent=randomUUID()
  sql(`INSERT INTO public.supplier_switch_events(id,company_id,switch_request_id,event_type)
   VALUES(${literal(relevantEvent)},${literal(f.ids.company)},${literal(f.ids.switch)},'native_relevant');`)
- const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ const movedCustomerSwitch=randomUUID(),movedPointSwitch=randomUUID()
+ const movedCustomerEvent=randomUUID(),movedPointEvent=randomUUID()
+ sql(`INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,metering_point_id,request_type,status)
+  VALUES(${literal(movedCustomerSwitch)},${literal(f.ids.company)},${literal(f.ids.customer)},
+   ${literal(f.ids.point)},'switch','draft'),
+   (${literal(movedPointSwitch)},${literal(f.ids.company)},${literal(f.ids.customer)},
+   ${literal(f.ids.point)},'switch','draft');
+  INSERT INTO public.supplier_switch_events(id,company_id,switch_request_id,event_type)
+  VALUES(${literal(movedCustomerEvent)},${literal(f.ids.company)},${literal(movedCustomerSwitch)},'native_moved_customer'),
+   (${literal(movedPointEvent)},${literal(f.ids.company)},${literal(movedPointSwitch)},'native_moved_point');`)
+ const beforeMove=sql<string>('SELECT to_jsonb(clock_timestamp())')
+ sql(`UPDATE public.supplier_switch_requests SET customer_id=${literal(otherCustomer)},metering_point_id=NULL
+  WHERE id=${literal(movedCustomerSwitch)};
+  UPDATE public.supplier_switch_requests SET metering_point_id=${literal(otherPoint)}
+  WHERE id=${literal(movedPointSwitch)};
+  UPDATE public.supplier_switch_events SET event_status='success'
+  WHERE id IN (${literal(movedCustomerEvent)},${literal(movedPointEvent)});
+  DELETE FROM public.supplier_switch_events
+  WHERE id IN (${literal(movedCustomerEvent)},${literal(movedPointEvent)});`)
+ const priorBody=sql<{facts:{rowId:string;operation:string}[]}>(`SELECT
+  gridex_correction_process.combined_process_body_v3(${literal(f.ids.company)},
+   ${literal(beforeMove)},ARRAY[${literal(f.ids.customer)}]::uuid[],
+   ARRAY[${literal(point)}]::text[])`)
+ expect(priorBody.facts.filter(fact=>fact.rowId===movedCustomerEvent).map(fact=>fact.operation)).toEqual(['INSERT'])
+ const afterBody=sql<{facts:{rowId:string;operation:string}[]}>(`SELECT
+  gridex_correction_process.combined_process_body_v3(${literal(f.ids.company)},
+   clock_timestamp(),ARRAY[${literal(f.ids.customer)}]::uuid[],
+   ARRAY[${literal(point)}]::text[])`)
+ for(const eventId of [movedCustomerEvent,movedPointEvent]){
+  expect(afterBody.facts.filter(fact=>fact.rowId===eventId).map(fact=>fact.operation))
+   .toEqual(['INSERT','UPDATE','DELETE'])
+ }
  const unrelatedPoint='735999260731000008'
  const unrelatedWire=closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',unrelatedPoint)
  // Direct synthetic rows establish volume only. The separate producer tests
@@ -701,7 +733,7 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
  const receipt=sql<{snapshotId:string;readsetHash:string}>(`SELECT parsed_payload#>'{normalizedMeteringPayload,receivedStructureQualification}'
   FROM public.ediel_messages WHERE id=${literal(source.id)}`)
  expect(receipt).toMatchObject({snapshotId:expect.any(String),readsetHash:expect.stringMatching(/^[a-f0-9]{64}$/)})
- const body=sql<{process:{factCount:number;reason:string;facts:{table:string;rowId:string}[]};
+ const body=sql<{process:{factCount:number;reason:string;facts:{table:string;rowId:string;operation:string}[]};
   source:{readsetText:string};correction:{count:number}}>(`SELECT readset_text::jsonb
   FROM gridex_correction_process.combined_snapshots WHERE id=${literal(receipt.snapshotId)}`)
  const sourceBody=JSON.parse(body.source.readsetText) as {sourceCount:number;complete:boolean}
@@ -711,7 +743,11 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
  expect(body.process.factCount).toBeLessThan(1000)
  expect(body.process.reason).toBe('before_epoch_unknown')
  expect(body.process.facts).toContainEqual(expect.objectContaining({table:'supplier_switch_events',rowId:relevantEvent}))
- expect(body.process.facts.filter(fact=>fact.table==='supplier_switch_events')).toHaveLength(1)
+ expect(body.process.facts.filter(fact=>fact.table==='supplier_switch_events'&&fact.rowId===relevantEvent)).toHaveLength(1)
+ for(const eventId of [movedCustomerEvent,movedPointEvent]){
+  expect(body.process.facts.filter(fact=>fact.table==='supplier_switch_events'&&fact.rowId===eventId)
+   .map(fact=>fact.operation)).toEqual(['INSERT','UPDATE','DELETE'])
+ }
  expect(body.process.facts.some(fact=>fact.rowId===otherEvent)).toBe(false)
  const supplyId=sql<string>(`SELECT to_jsonb(id) FROM public.customer_supply_periods
   WHERE company_id=${literal(f.ids.company)} AND source_message_id=${literal(f.ids.source)}`)
