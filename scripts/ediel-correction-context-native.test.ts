@@ -7,6 +7,7 @@ import {supabaseService} from '@/lib/supabase/service'
 import {captureCorrectionContext} from '@/lib/ediel/sources/correctionContextCapture'
 import {archiveInvoiceTestCustomerSafely} from '@/lib/ediel/testing/invoiceTestCenterArchive'
 import {signInvoiceTestContractCanonically} from '@/lib/ediel/testing/invoiceTestContractLifecycle'
+import {addCustomerContractEvent} from '@/lib/customer-contracts/db'
 import {emitCustomerOperationEvent} from '@/lib/customers/customerOperationEvents'
 const literal=(v:unknown)=>"'"+String(typeof v==='object'?JSON.stringify(v):v).replaceAll("'","''")+"'"
 function sql<T>(query:string):T{
@@ -1109,6 +1110,12 @@ it('a combined service receipt observes source, correction and process owners at
  expect(()=>sql(`SET ROLE service_role; SELECT public.gridex_correction_combined_snapshot_v1(
   ${literal(randomUUID())},'test',${literal(f.sourceMessageId)},clock_timestamp())`))
   .toThrow(/combined_snapshot_scope_unavailable/)
+ expect(()=>sql(`SET ROLE service_role; SELECT public.gridex_correction_combined_snapshot_v1(
+  ${literal(f.companyId)},'production',${literal(f.sourceMessageId)},clock_timestamp())`))
+  .toThrow(/combined_snapshot_scope_unavailable/)
+ expect(()=>sql(`SET ROLE service_role; SELECT public.gridex_correction_combined_snapshot_v1(
+  ${literal(f.companyId)},'test',${literal(f.sourceMessageId)},clock_timestamp()+interval '1 day')`))
+  .toThrow(/combined_snapshot_scope_unavailable/)
  expect(()=>sql(`SET ROLE authenticated; SELECT public.gridex_correction_combined_snapshot_v1(
   ${literal(f.companyId)},'test',${literal(f.sourceMessageId)},clock_timestamp())`))
   .toThrow(/permission denied|combined_snapshot_service_required/)
@@ -1510,6 +1517,26 @@ it('separately committed archive dates retain OLD scope and a rejected sibling l
   WHERE operation='DELETE' AND row_id IN (${literal(pointId)},${literal(siteId)})`)).toBe(0)
 })
 
+it('the canonical legacy contract-event writer captures one committed immutable event',async()=>{
+ const f=await seed(),customerId=randomUUID(),contractId=randomUUID()
+ sql(`INSERT INTO public.customers(id,company_id,first_name,last_name)
+  VALUES(${literal(customerId)},${literal(f.companyId)},'Synthetic','Event');
+  INSERT INTO public.customer_contracts(id,company_id,customer_id,status)
+  VALUES(${literal(contractId)},${literal(f.companyId)},${literal(customerId)},'draft');`)
+ const input={companyId:f.companyId,customerContractId:contractId,customerId,
+  eventType:'note' as const,happenedAt:'2026-09-25T00:00:00.000Z',note:'Synthetic native contract event',actorUserId:f.actorUserId}
+ const event=await addCustomerContractEvent(input)
+ expect(event.id).toMatch(/^[0-9a-f-]{36}$/)
+ expect((await addCustomerContractEvent(input)).id).toBe(event.id)
+ expect(sql(`SELECT jsonb_agg(jsonb_build_object('operation',operation,'company',company_id,
+  'customer',new_fact->>'customer_id','contract',new_fact->>'customer_contract_id',
+  'eventType',new_fact->>'event_type') ORDER BY id)
+  FROM gridex_correction_process.facts WHERE table_name='customer_contract_events'
+   AND row_id=${literal(event.id)}`)).toEqual([{
+    operation:'INSERT',company:f.companyId,customer:customerId,contract:contractId,eventType:'note',
+   }])
+})
+
 it('a rolled-back process deletion leaves the producer and immutable facts unchanged',async()=>{
  const f=await seed(),taskId=randomUUID()
  sql(`INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)
@@ -1524,6 +1551,7 @@ it('a rolled-back process deletion leaves the producer and immutable facts uncha
 it.each([false,true])('the actual invoice-test archive retains committed contract, point and site transitions, signed=%s', async sign => {
  const {companyId,actorUserId}=await seed(),customerId=randomUUID(),siteId=randomUUID()
  const pointId=randomUUID(),contractId=randomUUID(),marker={test_center:{kind:'invoice_test_customer'}}
+ const organizationNumber=sign?'5590001243':'5590001235'
  const pricing={schema:'gridex_contract_pricing_v5',pricing_model:'spot',energy_direction:'consumption',interval_resolution:'hourly',vat_rate:0.25,
   price_areas:['SE3'],base_components:[{source_type:'spot',label:'Spotpris',weight_percent:100,price_area:'SE3'}],
   price_components:[{component_code:'spot_markup',component_type:'markup',name:'Påslag',calculation_type:'per_kwh',amount:4,unit:'ore_per_kwh',website_card_visible:true},
@@ -1535,7 +1563,7 @@ it.each([false,true])('the actual invoice-test archive retains committed contrac
   power_of_attorney_required:true,valid_from:'2026-09-24'}
  sql(`INSERT INTO public.admin_users(user_id,role,is_active)
   VALUES(${literal(actorUserId)},'platform_admin',true);
-  UPDATE public.companies SET legal_name='Synthetic Archive AB',org_number='5590001235',
+  UPDATE public.companies SET legal_name='Synthetic Archive AB',org_number=${literal(organizationNumber)},
    address_line_1='Testgatan 1',postal_code='123 45',city='Teststad',country_code='SE',
    support_email='service@example.invalid',phone='0101234567',website='https://example.invalid'
   WHERE id=${literal(companyId)};`)
@@ -1558,7 +1586,7 @@ it.each([false,true])('the actual invoice-test archive retains committed contrac
    (${literal(companyId)},'production','Synthetic UTILTS','UTILTS');
   INSERT INTO public.company_email_settings(company_id,sender_email,verification_status)
   VALUES(${literal(companyId)},'synthetic@example.invalid','verified');
-  UPDATE public.tenant_legal_profiles SET legal_name='Synthetic Archive AB',organization_number='5590001235',
+  UPDATE public.tenant_legal_profiles SET legal_name='Synthetic Archive AB',organization_number=${literal(organizationNumber)},
    postal_address='{"address_line_1":"Testgatan 1","postal_code":"123 45","city":"Teststad","country_code":"SE"}',
    customer_service_email='service@example.invalid',phone='0101234567',website='https://example.invalid',
    complaints_contact='{"email":"complaints@example.invalid"}',
