@@ -45,6 +45,18 @@ describe('actual canonical register validation evidence', () => {
     const {evidence} = assess(raw([line('1','A','1'),...reason,qty('10'),line('2','A','1'),qty('20')]))
     expect(evidence.objects[0].disposition).toBe('rejected')
   })
+  it('keeps the field 209 length boundary local to each agency-qualified object', () => {
+    const validId = 'A'.repeat(25)
+    const invalidId = 'B'.repeat(26)
+    const { evidence, issues } = assess(raw([
+      line('1', validId, undefined, '9'), ...reason, qty('10'),
+      line('2', invalidId, undefined, '89'), ...reason, qty('20'),
+    ]))
+    expect(evidence.objects.map((object) => [object.objectId, object.identityAgency, object.disposition])).toEqual([
+      [validId, '9', 'accepted'], [invalidId, '89', 'rejected'],
+    ])
+    expect(issues.some((issue) => issue.blocking && JSON.stringify(issue).includes(invalidId))).toBe(true)
+  })
 })
 
 it('actual runtime exposes the direct facet and leaves syntax-rejected runs without it', () => {

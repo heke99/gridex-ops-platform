@@ -1,3 +1,37 @@
+## 2026-09-25 — Field202 agency local candidate
+PR383 published draft head `a23e50faa030c27ffffcf9af500f59c3210e149d`, same tree as local field203 `84e45448`; four ordinary workflows started and were queued/running at first check. Separate field202 agency branch from that exact published head: complete E66 BGM/C002/3055 blank/999 plus real E19 RED gave ERR. Shared header guide now yields field202/ERC41/42 negative APERAK, and mocked real inbound has no meter/billing/completion. Local 315/315 in 25 files, types/lint PASS. Publish separate draft and inspect exact-head CI. PR381 remains draft after merge #382; PR372 draft/unmerged; PR310 untouched. No staging/market send.
+
+## 2026-09-25 — Field203 local candidate; PR382 merged to PR381
+PR382 exact published head `397edfe6` passed four ordinary CI workflows (OPS `36184073417`, Ediel `36184073478`, browser `36184073513`, full E2E `36184073556`). On explicit user merge instruction it was marked ready and merged into its actual base PR381 at `4ef14108160ae67f3868c254881ac687513aa803`; PR381 remains draft and PR372 remains draft/unmerged. Merge-head Ediel/browser succeeded; E2E `36187476210` and OPS `36187476189` were running at the check. Separate local field203 branch from merge head: complete E66 blank BGM1004 plus E19 RED gave ERR. Shared final guide now yields field203/ERC41 APERAK with no ERR; mocked real inbound has no meter/billing/completion. Local 313/313 in 25 files, app/test types, lint/diff PASS. Uniqueness over time/ERC42 requires a proven tenant-bound inbound owner; next inspect field202 and document identity persistence. PR310 untouched; no staging/market send.
+
+## 2026-09-25 — Field204 local candidate
+PR381 corrected published head `28ed2fc3` after synthetic receipt chronology CI failure; new local `codex/ediel-v2-utilts-header204-20260925` maps invalid BGM1225 to typed field204 negative APERAK. Actual mocked inbound no business sinks. Relevant 311/311, types/lint PASS, own CI pending. PR372/#310 unchanged.
+
+## 2026-09-25 — Field205 published CI fixture correction
+PR381 `a307b91e` full E2E coverage failed four variants: synthetic receive 00:00Z preceded DTM137 18:11 local +01:00 the same day. Correct field205 future-date rejection exposed the test chronology. Receipt changed to 20:00Z; 29/29 targeted tests PASS. Publish fast-forward fixture-only correction and require new ordinary exact-head CI; then BGM204. OPS on first head was still running at last check. No product-rule weakening, staging, merge or PR310.
+
+## 2026-09-25 — Field205 local candidate
+PR380 open/draft published `9678a633`; new local `codex/ediel-v2-utilts-header205-20260925` adds source-backed DTM137 guide checks and valid-calendar policy-date fallback. Final field205 negative APERAK, real mocked inbound no business sinks. Local 280/280 relevant tests and app/test types/lint pass. Publish separate stacked draft, ordinary CI pending. PR379 all ordinary exact-head workflows succeeded; PR380 OPS pending. PR372 and PR310 untouched.
+
+## 2026-09-25 — UTILTS field206 local candidate
+PR379 open/draft published `7cd41b50`; local separate branch `codex/ediel-v2-utilts-header206-20260925`. Annex C requires DTM+735 offset/format406; observed missing offset + E19 incorrectly produced ERR. Header guide and real inbound test now produce field206 negative APERAK and no customer effects; 278/278 relevant tests and types/lint pass. Publish and run ordinary CI. Per-IDE E66 regulating-object identity remains unsafe for the current metering-point persistence shape. PR372 and PR310 untouched.
+
+## 2026-09-25 — F3C-05 field313 header guide batch
+Predecessor PR377/378 each passed all four exact-head ordinary workflows, including native 340/340 (OPS `36179405219`/`36180030123`). This does not qualify the current field313 batch.
+Separate branch from draft PR378 `eb1bf146` published tree. Complete E66 BGM4343 XX + real E19 RED returned functional ERR. Shared header projection now yields negative APERAK field313 and no final ERR; real inbound consumer test shows rejected disposition, no meter/billing effects, APERAK only. Complete two-IDE E66 missing IDE first + E19 second already separates ACKs; no disposition rewrite. Separate missing LOC172 first/LOC172 second shows profile message-level fallback and wrong ERR ownership; E66 field209/533 conditional remains next. Local 276/276 UTILTS, types/lint/diff PASS; publication and own exact-head CI pending. See `quality/audits/ediel-masterplan-v2/f3-utilts-header313-20260925.md`. PR310/372 untouched.
+
+## 2026-09-25 — F3C-05 field502 agency260 guide batch
+Draft PR377 published `5e08fd02`, exact-head browser and Ediel SUCCESS, OPS verify SUCCESS; OPS quality/replay and full E2E still running at check. New separate agency260 branch: complete E66 `MKS+23+E02::999` plus E19 RED gave functional ERR; header guide now enforces source row UG-122-21 and plans field502 negative APERAK. Local 273/273 UTILTS, app/test types, lint/diff PASS. Publication and own CI pending. See `quality/audits/ediel-masterplan-v2/f3-utilts-phase502-agency-20260925.md`. PR310/372 untouched; no merge/staging.
+
+## 2026-09-25 — F3C-05 field502 phase guide batch
+Draft PR376 on published `68a38bfc` passed OPS `36178023905` verify, quality/build and clean replay, plus Ediel `36178023976`, browser `36178023909` and E2E `36178023848`; native log reports 340 passed. Separate field502 branch found complete E66 E99+E19 wrong functional ERR and unsupported E05 registry value. Local RED/GREEN 272/272 UTILTS, app/test types, lint/diff PASS. Publication and own exact-head CI pending. See `quality/audits/ediel-masterplan-v2/f3-utilts-header502-guide-20260925.md`. PR310/372 untouched; no merge/staging.
+
+## 2026-09-25 — F3 PRODAT register ACK boundary batch
+Stacked local branch codex/ediel-v2-prodat-register-ack-20260925 from draft PR373 code tree. Actual malformed LIN314 case writer threw before negative APERAK; early canonical rejected-object guard now sends qualified negative response and holds case/business effects. Focused duplicate C829258 and QTY31/213 cases included. Report: quality/audits/ediel-masterplan-v2/f3-prodat-register-ack-boundary-20260925.md. No hosted action, merge or PR310 work.
+
+## 2026-09-25 — F3 guide/function bounded code batch
+PR372 remains draft at b9a1dc16, main 2a148d39; separate clean-base branch codex/ediel-v2-f3-composition-20260925. Actual E66 guide-invalid reading mismatch produced negative APERAK disposition but also E19 in saved validation/ERR plan. Canonical facade now suppresses attributed functional diagnostics for guide-rejected IDEs and rebuilds ACK plan; literal legacy check execution and mixed unreferenced/native cases remain open. Field209 25/26-character agency-scoped canonical boundary passes. Details: quality/audits/ediel-masterplan-v2/f3-staged-utilts-field209-20260925.md. PR310 untouched; no hosted action.
+
 ## 2026-09-25 — Switch-event UUID-avgränsning verifierad på PR #372
 
 Publicerad kodhead `f75b69ea9312f2e3c8d76c8e4aab47a25573322f`, träd `2335ba5737f3c49b2ea7befac6eeb8037ba0c450` (lokal källcommit `2be58f04f6d67300d82a41f4ed444fa44a09a67e`, identiskt träd). Föregående `8800d014` hade native 336/337: `unrelated process volume does not exhaust a linked UTILTS subject budget` gav `scoped_process_count_overflow`, `factCount:1013`, väntat `['INSERT']`, observerat `[]`. Verifierad kodorsak: `switch_event_subject_v1` i forward `20260925150000_e035_switch_event_owner_history.sql` använde UUID-regex `8-4-4-12` och behandlade därför giltiga request-/point-ID:n som okänd wildcard. Ny framåtriktad migration `20260925154500_e035_switch_event_uuid_shape.sql` använder `8-4-4-4-12`; native-testet kräver relevant historisk ägare, exkluderad orelaterad ägare och fortsatt wildcard för ogiltigt ID.
@@ -575,3 +609,7 @@ source/concern budgets and historical point aliases; see
 Local source/concern forward and high-volume fixture await publication and
 native replay. Task3b/Task4 are not finally accepted; PR372 remains draft.
 PR310 is excluded and no hosted migration or live operation was made.
+## 2026-09-25 — Current F3 continuation
+PR372, PR373 and PR374 remain draft/unmerged; PR374 exact head `ca1aa11b6311088f70b0f8ada05befdfa55b6924` has OPS `36174980998`, Ediel `36174981008`, browser `36174981015`, full E2E `36174981002` all SUCCESS. Current separate Z04 field213 ACK batch is local, focused 103/103 and app/test types pass; publication and exact-head CI pending. F3C-02/04 partial, F3C-05 native/staged, F3C-06 grammar and F3C-07 ledger open; PR310 excluded, no merge or staging.
+## 2026-09-25 — Current F3C-05 continuation
+Draft PR375 published `3eae899dc8689e38a9af4d2895012de7ae52407f` based on PR374; Ediel `36177257227`, browser `36177257139` and full E2E `36177257150` succeeded, OPS `36177257247` verify succeeded while quality/native remained running at last check. Current separate field501 batch is local only: RED confirmed wrong functional outcome; GREEN 270/270 relevant tests and app/test types. Full E036 literal staged execution and native mixed persistence remain open. PR372/373/374/375 draft, PR310 excluded, no merge or staging.

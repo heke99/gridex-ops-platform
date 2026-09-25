@@ -135,6 +135,19 @@ describe('UTILTS E66 monthly billing resolution', () => {
     expect(result.validation.issues.some((issue) => issue.code === 'UTILTS_E66_METER_READING_ENERGY_MISMATCH' && issue.utiltsErrCode === 'E19')).toBe(true)
   })
 
+  it('does not report a functional rejection for a guide-invalid transaction with a reading mismatch', () => {
+    const invalid = MONTHLY_E66_BILLING_PAYLOAD
+      .replace("LOC+239+TES:SVK:260'", '')
+      .replace("QTY+220:11000'", "QTY+220:11001'")
+    const result = runUtiltsRuntimeForMessage(runtimeMessage(invalid), { referenceDate: '2026-08-31' })
+
+    expect(result.validation.issues.some((issue) => issue.kind === 'application' && issue.severity === 'error')).toBe(true)
+    expect(result.transactionDispositions[0]?.disposition).toBe('guide_rejected')
+    expect(result.transactionDispositions[0]?.responseType).toBe('negative_aperak')
+    expect(result.validation.issues.filter((issue) => issue.kind === 'functional' && issue.severity === 'error')).toEqual([])
+    expect(result.ackPlan.utiltsErrDetails).toEqual([])
+  })
+
   it('builds missing-values by removing billable QTY+136 rather than register evidence', () => {
     const plan = materializeTestCenterScenario(MONTHLY_E66_BILLING_PAYLOAD, 'missing_values')
     const payload = plan.runs[0]?.rawEdifact ?? ''
