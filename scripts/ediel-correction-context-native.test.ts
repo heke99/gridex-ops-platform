@@ -1610,9 +1610,17 @@ it('the actual support case and operation enqueue writers capture linked case, e
   'eventType',new_fact->>'event_type') ORDER BY id)
   FROM gridex_correction_process.facts WHERE table_name IN ('customer_cases','customer_case_events')
    AND (row_id=${literal(caseId)} OR new_fact->>'customer_case_id'=${literal(caseId)})`))
-  .toEqual([{table:'customer_cases',operation:'INSERT',company:f.companyId,customer:customerId,eventType:null},
+ .toEqual([{table:'customer_cases',operation:'INSERT',company:f.companyId,customer:customerId,eventType:null},
    {table:'customer_case_events',operation:'INSERT',company:f.companyId,customer:customerId,eventType:'created'},
    {table:'customer_case_events',operation:'INSERT',company:f.companyId,customer:customerId,eventType:'operational_stop_applied'}])
+ const statusAccess=sql<{registry:number;grants:number;effective:boolean;userActive:boolean;membershipActive:boolean}>(`SELECT jsonb_build_object(
+  'registry',(SELECT count(*) FROM public.permissions WHERE key='cases.write'),
+  'grants',(SELECT count(*) FROM public.user_permissions WHERE user_id=${literal(f.actorUserId)}
+   AND company_id=${literal(f.companyId)} AND permission_key='cases.write' AND status='active' AND is_active AND effect='allow'),
+  'effective',public.gridex_actor_has_company_permission(${literal(f.actorUserId)},${literal(f.companyId)},'cases.write'),
+  'userActive',(SELECT deleted_at IS NULL AND (banned_until IS NULL OR banned_until<=now()) FROM auth.users WHERE id=${literal(f.actorUserId)}),
+  'membershipActive',(SELECT status='active' AND is_active FROM public.company_memberships WHERE user_id=${literal(f.actorUserId)} AND company_id=${literal(f.companyId)}))`)
+ expect(statusAccess).toEqual({registry:1,grants:1,effective:true,userActive:true,membershipActive:true})
  const changed=await updateCustomerCaseStatus({caseId,companyId:f.companyId,status:'action_required',
   message:'Synthetic follow up',actorUserId:f.actorUserId})
  expect(changed.status).toBe('action_required')

@@ -273,3 +273,13 @@ Authoritative workspace remains /workspace/scratch/4b1d39503015/gridex-ops-platf
 ## 2026-09-24 — PR372 bounded hold and schema gate green
 
 PR372/521bc9ba: OPS36003339938 clean migration replay SUCCESS, native314/314 in five files, case1, protected browser2, postbrowser1, tenant invariants PASS, parity selftest PASS, generated types identical SHA2b2dda6a, schema check PASS fingerprint5e3db200. Verify and quality SUCCESS; Ediel, tenant, browser and full E2E SUCCESS; zero-admin crawler skipped. Historical producer/retention and full three-set Task4 composition unverified; no final approval.
+
+## 2026-09-25 PR372 paused gate
+
+| Head | Gate | Result |
+| --- | --- | --- |
+| `8a5b2150` / tree `be35f8bc` | OPS `36118572008` native | 334/335; one actor authorization failure; schema/types stage not reached |
+| `8a5b2150` | verify, quality/build, tenant, Ediel, browser, full E2E | SUCCESS; crawler SKIPPED |
+| `c9f5f64` / tree `dc1bd629` | OPS `36118081656` native | 330/335, including three document/Storage unconfirmed outcomes and missing Z08 source operation |
+| `8a5b2150` | independent whole-diff static review `/root/pr372_review` | No confirmed code blocker; native/artifacts/final acceptance withheld |
+| Pause diagnostic | `cases.write` registry/grant/effective check | Locally prepared only, unexecuted |

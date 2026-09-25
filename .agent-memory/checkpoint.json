@@ -1,8 +1,8 @@
 {
   "project": "gridex-ops-platform",
   "updated_at": "2026-09-25",
-  "status": "IN_PROGRESS",
-  "paused": false,
+  "status": "BLOCKED",
+  "paused": true,
   "branch": "codex/e035-correction-context-20260924",
   "active_pr": 372,
   "base_head_sha": "2a148d39d631fc759c99cd1c69350b5e2147dbdb",
@@ -10,7 +10,7 @@
   "last_merged_pr": 371,
   "last_accepted_pr": 371,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "PR372 Task4 combined receipt subject budget and native inbound qualification",
+  "active_item": "PR372 paused handover; native authorization diagnostic pending",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Published a49c48e2 native326/326 PASS incl Z06/Z10/document volume, verify/quality PASS, schema drift only. Authentic artifact schema copied locally; signed producer and relevant overflow fixtures await publication/native replay; then complete Task3b/Task4 acceptance and independent whole-diff rereview. Prior 8e7c6268 native323/324 is failure evidence. PR draft, PR310 excluded.",
+  "next_action": "PAUSED by user. On resumption inspect unpublished cases.write native diagnostic; no CI rerun or implementation now. See top of .agent-memory/current-task.md.",
   "task4_combined_snapshot": {
     "published_head": "b1c7f993affdb68d11f4c0941c483c4d145b938e",
     "published_tree": "37789b428e66c37b3030f1aa9bc8b539a78d40e9",
@@ -627,9 +627,9 @@
     "final_ci": "ALL_APPLICABLE_SUCCESS",
     "active_agent": null
   },
-  "workspace": "/workspace/scratch/4b1d39503015/gridex-ops-platform/.worktrees/e035-task3a-isolated",
+  "workspace": "/workspace/scratch/d9e6c237b68e/pr372-finish",
   "correction_process_task3b": {
-    "status": "PARTIAL_NATIVE_QUALIFICATION_PENDING",
+    "status": "PARTIAL_PAUSED",
     "accepted_outbound_base": "d7cbab18b9b102e00cde256bc91c22271455d7c8",
     "brief": "quality/audits/ediel-masterplan-v2/e035-source-ledger/process-history-task3b-brief-20260924.md",
     "baseline_native": 301,
@@ -640,23 +640,23 @@
     "native_run": 35971121783,
     "migration": "20260924073337_correction_process_facts_v1.sql",
     "complete": false,
-    "native_result": "303_PASS_CASE1_BROWSER2_POSTBROWSER1_PASS_OLD_SCHEMA_MISMATCH",
+    "native_result": "Historical 303/303 checkpoint; latest 8a5b2150 is 334/335 FAILED",
     "native_artifact": 10797140467,
     "authentic_fingerprint": "77cc9b7902b22e0b933ec93deaa33d1f90b3ebdff8d6af040a47ba055073f1cd",
     "generated_types_sha256": "32ae2f06418bfb57bd3da0361f856bb544a360782967f33b962f9b9765518940"
   },
   "task3b": {
-    "status": "IN_PROGRESS",
-    "agent": "/root/process_facts_task3b",
+    "status": "PARTIAL_PAUSED",
+    "agent": null,
     "base": "155fe17e9db8a4c189634468e73dd86f615cee02",
     "brief": ".superpowers/sdd/2026-09-24-e035-correction-context/task-3b-brief.md",
     "native_executed": true,
     "published_head": "6ac92a93c1253c6de1ca1788292fcb7c74e0cd32",
     "ops_run": 35971121783,
     "native_job": 107505735997,
-    "blocker": "Authentic schema reconciliation locally ready; same-head CI and full producer/readset/Task4 qualification pending",
+    "blocker": "Paused by user; native status writer denial, authentic schema/types and final acceptance pending",
     "runtime_implemented": "prospective_twelve_table_facts_only",
-    "native_result": "303/303 pass on same-commit rerun; schema fingerprint mismatch repaired locally"
+    "native_result": "Latest published 8a5b2150 OPS36118572008: 334/335; support-case status authorization failure"
   },
   "task3b_continuation": {
     "published_head": "7491e1619f653dd390f1463795542d6b997ae0b6",
@@ -664,9 +664,27 @@
     "accepted_cascade_head": "9186e473696a3f628cebb6275745be5fd74fd410",
     "accepted_point_supply_head": "28694d27cbc62ec780f348ed740ea787633cec21",
     "native_archive": "PASS_312_OPS35990306080",
-    "task3b_status": "PARTIAL",
-    "task4_status": "NOT_STARTED",
+    "task3b_status": "PARTIAL_PAUSED",
+    "task4_status": "PARTIAL_PAUSED",
     "report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/task3b-continuation-20260924.md",
-    "native_truncate": "PREPARED_LOCAL_UNQUALIFIED"
+    "native_truncate": "Earlier fixture status superseded by later published work; consult pr372_pause_20260925"
+  },
+  "pr372_pause_20260925": {
+    "source_local_head": "adfbdd82747aaa58a38cde657a026e99f2d9ea56",
+    "source_local_tree": "be35f8bc6983050aa4c521e200de512be2f2c473",
+    "source_published_head": "8a5b2150d444366b13e252a331b56b872ad497ee",
+    "source_published_tree": "be35f8bc6983050aa4c521e200de512be2f2c473",
+    "earlier_published_head": "c9f5f64fe570516865b408b2a9fe920a01f27e8a",
+    "earlier_tree": "dc1bd6291f46a08a982d637da6de0f0e8d2d6271",
+    "wip_diagnostic": "Unexecuted cases.write assertion prepared locally; preserved in pause checkpoint; no root cause claimed",
+    "ops_run": 36118572008,
+    "native_job": 108018368002,
+    "native": "334/335; customer_case_status_actor_not_authorized",
+    "other_workflows": "tenant, Ediel, browser, full E2E success; crawler skipped",
+    "active_external_jobs_at_check": [],
+    "review": "/root/pr372_review static-only approval of 8a5b2150 tree be35f8bc vs main 2a148d39; native/artifact acceptance withheld",
+    "schema_types": "pending authentic replay after native pass",
+    "merge": false,
+    "pr_draft": true
   }
 }
