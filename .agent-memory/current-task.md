@@ -1,3 +1,6 @@
+## 2026-09-25 — Active: F3C-05 field206 timezone
+Separate branch from PR379 same tree. Complete E66 without DTM+735 plus real E19 returned functional ERR; bounded header guide now emits field206 ERC41/42 and final negative APERAK. Actual inbound mocked boundary sees guide-rejected RPC and no meter/billing/completion. Local 278/278 UTILTS, app/test types, lint/diff PASS. PR379 ordinary CI 3/4 SUCCESS, OPS running at last check. Next publish separate stacked draft, check exact-head ordinary CI; then field205 DTM+137. Conditional E66 LOC+175 needs distinct persistence identity; remain fail-closed. No staging/merge/PR310.
+
 ## 2026-09-25 — Active: isolated PRODAT register ACK correction
 Base is draft PR373 tree 27e5dc76, itself stacked on draft PR372. Malformed LIN314 real-consumer RED, corrected before case writer; duplicate C829258 and own QTY31/213 negative/hold cases pass. Local full 6087/378 excluding two Node24/TAP wrappers; app/test types pass. Next: publish second stacked draft PR, inspect ordinary CI; then complete multi-object ACK/write and F3C-05 literal staged execution. PR310 excluded.
 

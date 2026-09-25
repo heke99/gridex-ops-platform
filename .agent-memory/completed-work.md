@@ -145,3 +145,6 @@ PR372 b1c7f993 publishes the one-SELECT combined source/correction/process snaps
 ## 2026-09-24 — PR372 bounded hold and schema gate green
 
 Bounded Task4 hold integration and canonical schema reconciliation: PR372 head521bc9ba, OPS36003339938 native314/314, case1/browser2/postbrowser1, tenant invariants/parity, schema check fingerprint5e3db200 and all applicable same-head workflows SUCCESS. This is a checkpoint only; third-set history incomplete, outbound/document missing from combined receipt, full E035 not complete.
+
+## 2026-09-25 — Bounded UTILTS field206 local verification
+Annex C/UG-122-16/17 field206 missing/invalid UTC offset corrected in canonical final header guide; actual mocked inbound consumer blocks meter/billing and sends only negative APERAK/FTX206. Local 278/278 UTILTS tests, app/test types, lint and diff passed. Published CI pending; full F3 and E66 209/533 not complete.

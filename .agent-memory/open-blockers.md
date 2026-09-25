@@ -535,3 +535,6 @@ Archive and swallowed-event paths passed native316 and317 respectively; `94eb110
 - Signed/remaining legacy Task3b producers, retention limits, Task4 negative
   and concurrency boundaries, whole-diff re-review, authentic final schema
   evidence and final-head CI remain open. No merge.
+
+## 2026-09-25 — E66 regulating-object identity and timezone codec
+E66 209/533 is conditional per IDE. Current profile borrows sibling LOC172 and rejects LOC175-only; legacy check also requires LOC172. Existing persistence payload has no separate LOC175 regulating-object identity. Keep this capability fail-closed until ACK attribution and distinct consumer identity are qualified. Default-UNA field206 is now guide-checked; declared custom-UNA timezone conversion remains a separate unsupported codec boundary. PR379 OPS ordinary CI was still running at last check; no staging or external evidence requested.

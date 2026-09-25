@@ -448,7 +448,22 @@ function applyUtiltsHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeR
       aperakFieldCode: '313',
       aperakText: request ? 'INCORRECT DATA' : 'MANDATORY FIELD MISSING',
     }] : []
-  const issues = [...mksIssues, ...ackIssues]
+  const timezoneRule = rules.find(item => item.fieldNumber === '206')
+  const timezoneSegment = wire.segments.find(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, wire.una)[0] === '735')
+  const timezoneParts = timezoneSegment ? segmentComposite(timezoneSegment, 1, wire.una) : []
+  const timezoneValue = timezoneParts[1]?.trim() ?? ''
+  const timezoneValid = Boolean(parseEdifactTimezoneOffsetFromSegments(result.facts.rawSegments))
+  const timezoneIssues = timezoneRule?.requirement === 'required' && !timezoneValid
+    ? [{
+      severity: 'error' as const, kind: 'application' as const,
+      code: timezoneValue ? 'UTILTS_TIMEZONE_INVALID' : 'UTILTS_TIMEZONE_MISSING',
+      title: timezoneValue ? 'Ogiltig tidzon' : 'Tidzon saknas',
+      description: timezoneValue ? 'DTM+735 måste ha giltig UTC-offset och format 406.' : 'DTM+735/C507/2380 saknas.',
+      aperakErcCode: timezoneValue ? '42' : '41',
+      aperakFieldCode: '206',
+      aperakText: timezoneValue ? 'INCORRECT DATA' : 'MANDATORY FIELD MISSING',
+    }] : []
+  const issues = [...mksIssues, ...ackIssues, ...timezoneIssues]
   if (issues.length === 0) return result
   // These fields are in the message header: every IDE fails the guide gate, even
   // when no transaction identity was parsed. No functional finding is eligible.

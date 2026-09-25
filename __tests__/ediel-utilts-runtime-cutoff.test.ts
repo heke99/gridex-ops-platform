@@ -6,6 +6,34 @@ import { buildAperakDraft } from '@/lib/ediel/ack'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 
 describe('UTILTS runtime effective-date cutoff', () => {
+  it('rejects missing or invalid header timezone 206 before an E66 E19 finding', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-timezone')
+    const baseline = runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' })
+    expect(baseline.ackPlan.utiltsErrCodes).toContain('E19')
+    expect(baseline.validation.issues.some(issue => issue.aperakFieldCode === '206')).toBe(false)
+
+    for (const [segment, ercCode] of [
+      ['', '41'], ["DTM+735:?+2560:406'", '42'], ["DTM+735:?+0200:405'", '42'],
+    ] as const) {
+      const message = { ...control, sender_ediel_id: '91100', receiver_ediel_id: '21660',
+        raw_payload: control.raw_payload!.replace("DTM+735:?+0200:406'", segment)
+          .replace('UNT+35+1', segment ? 'UNT+35+1' : 'UNT+34+1') }
+      const result = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+      expect(result.validation.syntaxOk).toBe(true)
+      expect(result.validation.classification).toBe('application_rejected')
+      expect(result.transactionDispositions.map(item => item.responseType)).toEqual(['negative_aperak'])
+      expect(result.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+        expect.objectContaining({ fieldCode: '206', ercCode }),
+      ]))
+      expect(result.ackPlan.utiltsErrDetails).toEqual([])
+      const decision = resolveCanonicalRuntimeDecision(message)
+      expect(decision).toMatchObject({ applicationDecision: 'rejected', functionalDecision: 'accepted' })
+      expect(decision.responsePlan.some(item => item.family === 'UTILTS_ERR')).toBe(false)
+      const plan = decision.responsePlan.find(item => item.family === 'APERAK')!
+      expect(buildAperakDraft({ sourceMessage: message, outcome: 'negative', applicationErrors: plan.applicationErrors }).rawPayload)
+        .toContain('FTX+AAO++206::260')
+    }
+  })
   it('keeps a guide-rejected E66 IDE separate from its functional sibling', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-two-ide')
     const lines = control.raw_payload!.split('\n')

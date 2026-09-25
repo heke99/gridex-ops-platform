@@ -356,3 +356,10 @@ PR372/521bc9ba: OPS36003339938 clean migration replay SUCCESS, native314/314 in 
 | Lokal gren före commit | Komplett E66 MKS+99 och E19 RED | `functional_rejected` i stället för guide/APERAK | Källbelagt fel, före rättning. |
 | Lokal gren före commit | 24 UTILTS-filer, app/test typer, scoped ESLint, diff check | 270/270 PASS; övrigt PASS | Native/exakt-head CI väntar; fysisk funktionsberäkning ännu inte stegvis. |
 | `3eae899dc8689e38a9af4d2895012de7ae52407f` | PR375 Ediel `36177257227`, browser `36177257139`, E2E `36177257150`, OPS `36177257247` | Första tre SUCCESS; OPS verify SUCCESS, quality/native in progress vid kontroll | Föregående batch. |
+
+## 2026-09-25 — F3C-05 field206 local candidate
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | E66 no DTM735 + E19 RED | `functional_rejected`/ERR | Före rättning; justerat UNT i komplett fixture. |
+| Lokal gren före commit | 24 UTILTS testfiler, app/test typer, scoped ESLint, diff check | 278/278 och övrigt PASS | Native och egen exakt-head CI väntar. |
+| `7cd41b50b3459182cc54afe246fd7420691b3b9c` | PR379 Ediel/browser/E2E, OPS | Första tre SUCCESS; OPS pågående vid kontroll | Föregående fält313, inte denna kandidat. |

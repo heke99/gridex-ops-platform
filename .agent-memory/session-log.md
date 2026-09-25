@@ -290,3 +290,6 @@ PR376 exact-head ordinary CI all SUCCESS, including native 340 passed. Separate 
 
 ## 2026-09-25 — F3C-02/04 and F3C-05 continuation
 PR374 published `ca1aa11b` four ordinary workflows succeeded. Complete Z04 two-object control exposed duplicate field213 errors from matrix and register owner; national projection deduplicated same physical finding, distinct objects retained. PR375 published `3eae899d` draft; local 103/103, types/lint pass; its Ediel/browser/E2E succeeded while OPS native/quality ran. Next separate branch found E66 invalid MKS+99 plus E19 yielded functional ERR. Field501 rule now projects header guide APERAK and suppresses final functional findings; local 270/270 UTILTS, types/lint pass. No native persisted mixed-object proof, literal staging, staging or merge.
+
+## 2026-09-25 — F3C-05 timezone field206
+PR379 checkpoint checked; code/source trace found E66 209/533 identity unsafe to admit without distinct persistence key. RED complete E66 absent DTM735 + E19; header rule now yields field206 negative APERAK. Actual processor mocked boundary verified no meter/billing/completion, 278/278 tests and app/test types/lint/diff passed. One fixture UNT correction and one wrong test-tsconfig invocation resolved. New branch awaits publication and ordinary CI.

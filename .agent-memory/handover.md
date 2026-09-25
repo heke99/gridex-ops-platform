@@ -1,3 +1,6 @@
+## 2026-09-25 — Field206 source/consumer continuation
+Branch `codex/ediel-v2-utilts-header206-20260925` is based on PR379 published tree. Missing/invalid DTM+735 guide fault now wins over E19 in final ACK, with inbound mocked sink boundary and 278/278 local UTILTS passing. See `quality/audits/ediel-masterplan-v2/f3-utilts-header206-20260925.md`. Publish as separate stacked draft and inspect exact-head CI; inspect field205 next. LOC+175 needs distinct identity and persistence boundary before acceptance. No merge/staging or PR310 activity.
+
 ## 2026-09-25 — Stacked register ACK continuation
 Separate branch codex/ediel-v2-prodat-register-ack-20260925; PR373 published head b635c9d0 and tree 27e5dc76 is the base. Current local code/report cover malformed LIN314 and C829258 negative APERAK before actual case writer; QTY31/213 hold also tested. See f3-prodat-register-ack-boundary-20260925.md. Finish publication and ordinary CI; next complete valid sibling versus malformed object native response/write proof. PR372 and PR310 untouched.
 
