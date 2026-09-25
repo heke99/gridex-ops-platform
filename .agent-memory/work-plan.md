@@ -377,3 +377,6 @@ Publish current bounded MKS/7293 guide correction from PR375, verify ordinary ex
 
 ## Active 2026-09-25 — F3C-05 field206 timezone
 Publish field206 header correction stacked on draft PR379 and qualify exact-head ordinary CI. Then inspect field205 source/owner/consumer and per-IDE E66 209/533 distinct identity/storage boundary; preserve fail-closed until supported. F3C-04 native Z04, F3C-06 grammar, F3C-07 ledger and later groups remain. No staging, merge or PR310.
+
+## Active 2026-09-25 — F3C-05 field205 message date
+Publish field205 source-backed header/policy correction stacked on draft PR380, qualify exact-head ordinary CI. Continue bounded header202/203/204 or per-IDE E66 209/533 with distinct persistence identity. F3C-04 native Z04, F3C-06 grammar and F3C-07 ledger remain; no staging, merge or PR310.

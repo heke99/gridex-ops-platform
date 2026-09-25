@@ -6,6 +6,35 @@ import { buildAperakDraft } from '@/lib/ediel/ack'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 
 describe('UTILTS runtime effective-date cutoff', () => {
+  it('rejects missing, malformed or future message date 205 before E66 E19', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-message-date')
+    const baseline = runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' })
+    expect(baseline.ackPlan.utiltsErrCodes).toContain('E19')
+    expect(baseline.validation.issues.some(issue => issue.aperakFieldCode === '205')).toBe(false)
+
+    for (const [segment, ercCode] of [
+      ['', '41'], ["DTM+137:202602301811:203'", '42'],
+      ["DTM+137:202609301811:204'", '42'], ["DTM+137:202610011811:203'", '42'],
+    ] as const) {
+      const message = { ...control, sender_ediel_id: '91100', receiver_ediel_id: '21660',
+        raw_payload: control.raw_payload!.replace("DTM+137:202609301811:203'", segment)
+          .replace('UNT+35+1', segment ? 'UNT+35+1' : 'UNT+34+1') }
+      const result = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+      expect(result.validation.classification).toBe('application_rejected')
+      expect(result.transactionDispositions.map(item => item.responseType)).toEqual(['negative_aperak'])
+      expect(result.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+        expect.objectContaining({ fieldCode: '205', ercCode }),
+      ]))
+      expect(result.ackPlan.utiltsErrDetails).toEqual([])
+      const decision = resolveCanonicalRuntimeDecision(message)
+      expect(decision).toMatchObject({ syntaxDecision: 'accepted', applicationDecision: 'rejected' })
+      const plan = decision.responsePlan.find(item => item.family === 'APERAK')!
+      expect(plan.applicationErrors, segment).toEqual(expect.arrayContaining([expect.objectContaining({ fieldCode: '205', ercCode })]))
+      expect(buildAperakDraft({ sourceMessage: message, outcome: 'negative', applicationErrors: plan.applicationErrors }).rawPayload)
+        .toContain('FTX+AAO++205::260')
+      expect(decision.responsePlan.some(item => item.family === 'UTILTS_ERR')).toBe(false)
+    }
+  })
   it('rejects missing or invalid header timezone 206 before an E66 E19 finding', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-timezone')
     const baseline = runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' })

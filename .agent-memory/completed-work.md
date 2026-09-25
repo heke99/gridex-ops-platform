@@ -148,3 +148,6 @@ Bounded Task4 hold integration and canonical schema reconciliation: PR372 head52
 
 ## 2026-09-25 — Bounded UTILTS field206 local verification
 Annex C/UG-122-16/17 field206 missing/invalid UTC offset corrected in canonical final header guide; actual mocked inbound consumer blocks meter/billing and sends only negative APERAK/FTX206. Local 278/278 UTILTS tests, app/test types, lint and diff passed. Published CI pending; full F3 and E66 209/533 not complete.
+
+## 2026-09-25 — Bounded UTILTS field205 local verification
+Annex C UG-122-12/13 message date required/format/calendar/future check feeds typed negative APERAK, with impossible-date guide selection fallback to receipt date. Actual mocked inbound boundary emits no meter/billing/completion. 280/280 UTILTS tests, app/test types, lint and focused25/25 passed. Exact-head CI pending; full F3 incomplete.

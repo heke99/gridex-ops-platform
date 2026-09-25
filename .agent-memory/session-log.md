@@ -293,3 +293,6 @@ PR374 published `ca1aa11b` four ordinary workflows succeeded. Complete Z04 two-o
 
 ## 2026-09-25 — F3C-05 timezone field206
 PR379 checkpoint checked; code/source trace found E66 209/533 identity unsafe to admit without distinct persistence key. RED complete E66 absent DTM735 + E19; header rule now yields field206 negative APERAK. Actual processor mocked boundary verified no meter/billing/completion, 278/278 tests and app/test types/lint/diff passed. One fixture UNT correction and one wrong test-tsconfig invocation resolved. New branch awaits publication and ordinary CI.
+
+## 2026-09-25 — F3C-05 message date field205
+PR379 exact-head ordinary CI all success; PR380 three success OPS pending. Separate branch: RED absent DTM137 plus E19 and impossible 30 February policy resolution with empty application errors. Calendar guard at policy selection and field205 final header guide corrected disposition/ACK; actual mocked inbound no meter/billing/completion. Local 280/280, types/lint and final25/25. Publication and own ordinary CI next.

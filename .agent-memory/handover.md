@@ -1,3 +1,6 @@
+## 2026-09-25 — Field205 date and policy selection
+Local branch `codex/ediel-v2-utilts-header205-20260925` from PR380 same tree. Invalid 30 February previously selected an impossible policy date and produced generic APERAK without typed field error; now selection falls back to receipt and final guide returns field205. Missing, bad format and future date share final negative APERAK with no E19; actual mocked inbound sinks remain silent. 280/280 local UTILTS, types/lint, final 25/25 pass. Publish separate draft on #380, check CI; see `f3-utilts-header205-20260925.md`. PR310 paused and no staging/merge.
+
 ## 2026-09-25 — Field206 source/consumer continuation
 Branch `codex/ediel-v2-utilts-header206-20260925` is based on PR379 published tree. Missing/invalid DTM+735 guide fault now wins over E19 in final ACK, with inbound mocked sink boundary and 278/278 local UTILTS passing. See `quality/audits/ediel-masterplan-v2/f3-utilts-header206-20260925.md`. Publish as separate stacked draft and inspect exact-head CI; inspect field205 next. LOC+175 needs distinct identity and persistence boundary before acceptance. No merge/staging or PR310 activity.
 

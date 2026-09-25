@@ -1,3 +1,6 @@
+## 2026-09-25 — Field205 local candidate
+PR380 open/draft published `9678a633`; new local `codex/ediel-v2-utilts-header205-20260925` adds source-backed DTM137 guide checks and valid-calendar policy-date fallback. Final field205 negative APERAK, real mocked inbound no business sinks. Local 280/280 relevant tests and app/test types/lint pass. Publish separate stacked draft, ordinary CI pending. PR379 all ordinary exact-head workflows succeeded; PR380 OPS pending. PR372 and PR310 untouched.
+
 ## 2026-09-25 — UTILTS field206 local candidate
 PR379 open/draft published `7cd41b50`; local separate branch `codex/ediel-v2-utilts-header206-20260925`. Annex C requires DTM+735 offset/format406; observed missing offset + E19 incorrectly produced ERR. Header guide and real inbound test now produce field206 negative APERAK and no customer effects; 278/278 relevant tests and types/lint pass. Publish and run ordinary CI. Per-IDE E66 regulating-object identity remains unsafe for the current metering-point persistence shape. PR372 and PR310 untouched.
 

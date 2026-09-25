@@ -363,3 +363,11 @@ PR372/521bc9ba: OPS36003339938 clean migration replay SUCCESS, native314/314 in 
 | Lokal gren före commit | E66 no DTM735 + E19 RED | `functional_rejected`/ERR | Före rättning; justerat UNT i komplett fixture. |
 | Lokal gren före commit | 24 UTILTS testfiler, app/test typer, scoped ESLint, diff check | 278/278 och övrigt PASS | Native och egen exakt-head CI väntar. |
 | `7cd41b50b3459182cc54afe246fd7420691b3b9c` | PR379 Ediel/browser/E2E, OPS | Första tre SUCCESS; OPS pågående vid kontroll | Föregående fält313, inte denna kandidat. |
+
+## 2026-09-25 — F3C-05 field205 local candidate
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | E66 absent DTM137 + E19 RED; 30 February policy selection | ERR for missing; generic negative APERAK without typed field for invalid | Före rättning; komplett UNT. |
+| Lokal gren före commit | 24 UTILTS testfiler, app/test typer, scoped lint, final focused rerun | 280/280, typer/lint, 25/25 PASS | Native/egen exakt-head CI väntar. |
+| `7cd41b50b3459182cc54afe246fd7420691b3b9c` | PR379 four ordinary workflows | Alla SUCCESS; OPS `36181231049` | Föregående batch. |
+| `9678a63359170914f16ab59274e0ea38d52e8aca` | PR380 Ediel/browser/E2E and OPS | Första tre SUCCESS; OPS `36182182934` pågående vid kontroll | Föregående batch. |
