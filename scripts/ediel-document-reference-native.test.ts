@@ -250,16 +250,18 @@ it('wrong-company actor has no document capture authority',async()=>{
  expect(saved(f)).toMatchObject({attempts:[]})
 })
 it('append-only outcome and witness reject service DML and privileged mutation',async()=>{
- const f=await seed(),errors:string[]=[]
- const original=supabaseService.rpc.bind(supabaseService)
- const observed=vi.spyOn(supabaseService,'rpc').mockImplementation(((name:string,input:Record<string,unknown>)=>
-  Promise.resolve(original(name,input)).then(result=>{
-   if(result.error)errors.push(`${name}:${result.error.code}:${result.error.message}`)
-   return result
-  })) as unknown as typeof supabaseService.rpc)
- let capture:Awaited<ReturnType<typeof captureDocumentReference>>
- try{capture=await captureDocumentReference(args(f))}finally{observed.mockRestore()}
- expect(capture,JSON.stringify({capture,errors})).toMatchObject({status:'recorded'})
+ const f=await seed(),capture=await captureDocumentReference(args(f))
+ const stage=sql<{attempts:number;outcomes:number;witnesses:number}>(`SELECT jsonb_build_object(
+  'attempts',(SELECT count(*) FROM gridex_received_sources.document_reference_attempts
+   WHERE source_message_id=${literal(f.sourceMessageId)}),
+  'outcomes',(SELECT count(*) FROM gridex_received_sources.document_reference_outcomes o
+   JOIN gridex_received_sources.document_reference_attempts a ON a.id=o.attempt_id
+   WHERE a.source_message_id=${literal(f.sourceMessageId)}),
+  'witnesses',(SELECT count(*) FROM gridex_received_sources.document_reference_witnesses w
+   JOIN gridex_received_sources.document_reference_outcomes o ON o.id=w.outcome_id
+   JOIN gridex_received_sources.document_reference_attempts a ON a.id=o.attempt_id
+   WHERE a.source_message_id=${literal(f.sourceMessageId)}))`)
+ expect(capture,JSON.stringify({capture,stage})).toMatchObject({status:'recorded'})
  for(const table of ['document_reference_outcomes','document_reference_witnesses']){
   expect(()=>sql(`SET ROLE service_role; DELETE FROM gridex_received_sources.${table};`)).toThrow()
   expect(()=>sql(`DELETE FROM gridex_received_sources.${table};`)).toThrow()
