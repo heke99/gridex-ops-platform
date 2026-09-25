@@ -1,6 +1,6 @@
 ## 2026-09-25 — PR372 latest active state
 
-Remote `e27e3403` / OPS `36108754412`: verify, quality/build, native325/325 including cold inbound receipt; final canonical schema drift only. Reviewer follow-up found Z06/Z10 source budget gap. Local forward to rebuild generated source projection and native Z06/Z10/document volume fixtures have type/lint/integrity checks only. R1/R2/R3 not independently approved; final whole-diff review pending. Task3b and Task4 acceptance incomplete. PR372 draft, PR310 excluded.
+Published `a49c48e2` passed OPS `36109530079` native326/326, verify and quality/build; canonical schema check expected drift only. Artifact `10852870650` authentic schema/fingerprint now local, types unchanged. Local signed-contract producer and relevant-overflow native tests await publication. Independent R1/R2/R3 re-review and whole-diff approval remain; Task3b/Task4 acceptance partial. PR372 draft, PR310 excluded.
 
 ## 2026-09-24 — PR372 Task3b continued from 69f51b69
 

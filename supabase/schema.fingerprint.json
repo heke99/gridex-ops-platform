@@ -6,8 +6,8 @@
   ],
   "sections": {
     "columns": {
-      "count": 10820,
-      "sha256": "714211e3ed3c26cac409517fc8169e7cb38eeee28cc69858e73e49070d65bf60"
+      "count": 10821,
+      "sha256": "cbf43baadcd3e4d0ddb65188a356998beda882eb5744f123a0e6d459caf78f2a"
     },
     "constraints": {
       "count": 2348,
@@ -22,16 +22,16 @@
       "sha256": "681146fb7b19ef18f03561a13eff172b8cf4db58ccea291c48c0a5389797d828"
     },
     "function_grants": {
-      "count": 1626,
-      "sha256": "c18a1839b004f79cb13cc0f47f50c527dba4f96e5d4b6d58114aeedcb467e959"
+      "count": 1632,
+      "sha256": "d307faaad70f06bb8a1c0191bae65d16d8267bd918a681c4b49e187d1afa4def"
     },
     "functions": {
-      "count": 623,
-      "sha256": "78a0b544ccadfca576d3724691c2da76ef75e7b93db1bedff88f614279a5ddd5"
+      "count": 629,
+      "sha256": "29cb2086fe480fb0175817488d64a195ca1418700978d430ad8581fef2a280d2"
     },
     "indexes": {
-      "count": 2319,
-      "sha256": "cca59350edd5d158a43ea61612cf0f8a22921dae9891dd4dfa8b16e16eaf7fa9"
+      "count": 2320,
+      "sha256": "e15e3e5611ab300fc9b88722f50c935085a9690f3d6ccf2c88ffff842c4e75d7"
     },
     "policies": {
       "count": 2557,
@@ -58,5 +58,5 @@
       "sha256": "47e3606927b4aef7cad380f1161c732e4b2b1316d69ed49262950e866abab45e"
     }
   },
-  "sha256": "5e3db200487b05d01680d8193991f90d74a1779d3825110009ae941a52eb343e"
+  "sha256": "701c7a5a2f20bc4766e9c680755848a69032e2924790d9f4dde11d8ebbebb5f7"
 }

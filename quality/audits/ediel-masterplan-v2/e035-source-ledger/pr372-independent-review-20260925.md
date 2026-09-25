@@ -88,3 +88,19 @@ volume cases. The next forward rebuilds the stored parser projection for
 Z06/Z10 and the next native fixture adds 1,001 of each supported source class
 across a mixed batch, plus 1,001 unrelated document attempts. Review remains
 REQUEST CHANGES until those cases and final whole-diff review pass.
+
+OPS `36109530079` on published `a49c48e2` / tree `583cf82d` passed verify,
+quality/build and **326/326 native** in five files. The actual processor
+accepted after 1,001 unrelated Z05 source/concern/process rows plus 1,001
+mixed Z06/Z10 structural sources; a second actual processor fixture accepted
+with 1,001 unrelated document attempts. Both saved a scoped receipt and meter
+series. The forward rebuilt the generated projection, so existing Z06/Z10
+rows also get values. Final canonical schema check alone reported expected
+drift `701c7a5a` from one generated column, one index and six private
+functions/grants. Artifact `10852870650` ZIP SHA256
+`45f96b1fcd8a3031d7d313fcca4bff86ee79b124aeed8148e5e9fcd4e22aa277`
+was downloaded and verified; generated types equal tracked SHA256 `2b2dda6a`.
+The exact artifact schema/fingerprint were copied into the working tree for
+next-head reconciliation. New signed-contract and relevant-overflow native
+cases are local-only; do not infer their results. Independent final review
+still pending.

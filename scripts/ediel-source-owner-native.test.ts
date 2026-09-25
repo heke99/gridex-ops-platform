@@ -671,6 +671,33 @@ it('unrelated document volume does not exhaust a linked UTILTS subject budget',a
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.meter_reading_series
   WHERE source_ediel_message_id=${literal(source.id)}`)).toBe(1)
 })
+it('relevant source overflow holds the actual inbound processor without business effects',async()=>{
+ const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ const wire=closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',point)
+ sql(`INSERT INTO gridex_received_sources.sources(source_message_id,company_id,environment,origin,
+  message_code,source_received_at,captured_at,raw_payload,payload_hash,received_context)
+  SELECT gen_random_uuid(),${literal(f.ids.company)},'test','database_insert','Z05',
+   clock_timestamp()-interval '1 minute',clock_timestamp()-interval '30 seconds',
+   ${literal(wire)},encode(sha256(convert_to(${literal(wire)},'UTF8')),'hex'),'{}'::jsonb
+  FROM generate_series(1,1001);`)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.sources
+  WHERE company_id=${literal(f.ids.company)} AND scope_point=${literal(point)}`)).toBeGreaterThan(1000)
+ const inbound=await insertPriorUtilts(f,priorNativeWire(f,point))
+ utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
+ utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
+ const result=await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:inbound.id})
+ expect(result).toMatchObject({internalReviewRequired:true,ingestedMeterValueIds:[],billingUnderlayId:null})
+ expect(utiltsEffects.ack.mock.calls.map(([call])=>call.ackFamily)).toEqual(['CONTRL'])
+ expect(utiltsEffects.meter).not.toHaveBeenCalled()
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.meter_reading_series
+  WHERE source_ediel_message_id=${literal(inbound.id)}`)).toBe(0)
+ const snapshot=sql<{source:{readsetText:string}}>(`SELECT readset_text::jsonb
+  FROM gridex_correction_process.combined_snapshots WHERE subject_message_id=${literal(inbound.id)}
+  ORDER BY id DESC LIMIT 1`)
+ expect(JSON.parse(snapshot.source.readsetText)).toMatchObject({complete:false,sourceCount:1001})
+})
 it('a historical inbound point still sees facts from its prior physical alias',async()=>{
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
  const prior=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
