@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-25T12:22:00Z",
+  "updated_at": "2026-09-25T13:57:00Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/e035-correction-context-20260924",
@@ -10,7 +10,7 @@
   "last_merged_pr": 371,
   "last_accepted_pr": 371,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "PR372 process-owner combined receipt integrity candidate; local verification passed, native pending",
+  "active_item": "PR372 switch-event UUID budget regression native-qualified; remaining Task3b/4 acceptance and final independent review",
   "current_audit": "quality/audits/ediel-masterplan-v2/e035-source-ledger/market-structure-plan-20260922.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish exact two-file process receipt validation candidate with updated evidence; inspect OPS native result before accepting, then continue Task3b/4 history and retention. No merge or production operation.",
+  "next_action": "Independent full-diff review at f75b69ea, then select and qualify one concrete remaining Task3b/4 history/retention or boundary case; final same-head CI and merge gate later. No production action.",
   "task4_combined_snapshot": {
     "published_head": "b1c7f993affdb68d11f4c0941c483c4d145b938e",
     "published_tree": "37789b428e66c37b3030f1aa9bc8b539a78d40e9",
@@ -763,5 +763,23 @@
     "review_outcome": "read-only static: no confirmed new code blocker; final native/full acceptance withheld; 528baa6d not final-reviewed",
     "remaining": "Task3b/4 producer/legacy/cutoff/overflow/permission/history/retention, complete:false, final-head authentic contracts/CI/review and main/head check; draft/no merge",
     "pr310": "untouched"
+  },
+  "pr372_switch_uuid_fix_20260925": {
+    "local_source_commit": "2be58f04f6d67300d82a41f4ed444fa44a09a67e",
+    "published_source_commit": "f75b69ea9312f2e3c8d76c8e4aab47a25573322f",
+    "identical_source_tree": "2335ba5737f3c49b2ea7befac6eeb8037ba0c450",
+    "red_head": "8800d01463a2c23e4471791d9de7b20c882ddf80",
+    "red": "336/337; unrelated process volume does not exhaust a linked UTILTS subject budget; scoped_process_count_overflow factCount 1013, expected INSERT, observed empty",
+    "verified_cause": "four-group UUID regex 8-4-4-12 in switch_event_subject_v1 treated real IDs as wildcard",
+    "migration": "20260925154500_e035_switch_event_uuid_shape.sql",
+    "ops_run": 36143179178,
+    "native_job": 108097721099,
+    "native": "337/337 PASS; case-view, tenant/parity, authentic schema PASS",
+    "verify_quality": "SUCCESS",
+    "tenant_browser_ediel_full_e2e": "SUCCESS",
+    "crawler": "SKIPPED",
+    "status": "BOUNDED_NATIVE_PASS_FINAL_TASK3B_TASK4_REVIEW_PENDING",
+    "historical_complete": false,
+    "storage_failed_stage": "unknown"
   }
 }

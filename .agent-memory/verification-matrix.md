@@ -1,3 +1,13 @@
+## 2026-09-25 — PR372 switch-event UUID-fix
+
+| Head | Körning | Resultat | Gräns |
+|---|---|---|---|
+| `8800d014` | OPS `36141666759`, native `108092740618` | 336/337; `scoped_process_count_overflow`, `factCount:1013`, `[]` i stället för `['INSERT']` | Korrekt röd regression. |
+| `f75b69ea9312f2e3c8d76c8e4aab47a25573322f` | OPS `36143179178`, native `108097721099` | 337/337, case-view, tenant/paritet, schema och verify/quality SUCCESS | UUID-avgränsningen native-kvalificerad; inte hel Task 3b/4. |
+| `f75b69ea` | Tenant `36143179172`, browser `36143179242`, Ediel `36143179301`, full E2E `36143179256`, crawler `36143179413` | Fyra SUCCESS, crawler SKIPPED | Samma kodhead. |
+
+---
+
 ## 2026-09-25 — PR372 paus
 
 | Version | Kontroll | Utfall | Gräns |

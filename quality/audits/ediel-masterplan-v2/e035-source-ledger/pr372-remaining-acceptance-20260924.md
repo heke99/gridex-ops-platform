@@ -1,3 +1,9 @@
+## 2026-09-25 switch-event UUID-fix — bounded PASS
+
+Published `f75b69ea9312f2e3c8d76c8e4aab47a25573322f` passed OPS `36143179178`: native 337/337, including prior RED `unrelated process volume does not exhaust a linked UTILTS subject budget`; verify, quality/build, tenant/parity/schema, Ediel, browser and full E2E passed; crawler skipped. Cause was a four-group UUID guard in the historical switch-event owner helper. Forward `20260925154500_e035_switch_event_uuid_shape.sql` recognizes canonical 8-4-4-4-12 UUIDs and preserves malformed-ID wildcard. Full Task3b/4 historical/retention and final independent review remain open, `complete:false`; PR372 draft/unmerged, PR310 excluded.
+
+---
+
 ## 2026-09-25 — Historical switch owner RED and forward candidate
 
 The independent follow-up review of `c3954d7f` found a second real omission: an event UPDATE/DELETE after its request moves customer or point disappears from the prior subject's process receipt. Test-only published `5a4f626b` first hit a runner port collision; a single-job rerun `108083411482` reached native and confirmed exact RED: 336/337, only `unrelated process volume does not exhaust a linked UTILTS subject budget` failed, receiving `['INSERT']` instead of the historical `['INSERT','UPDATE','DELETE']`. The preceding `c3954d7f` passed all applicable CI, including native 337/337, typegen/schema and full E2E, for stable owners and different-point filtering. A new forward `20260925150000_e035_switch_event_owner_history.sql` retains immutable old/new request and point candidates through the event transition; unknown or incomplete first archive facts remain wildcard. Local migration integrity/types and diff checks pass; this forward has **not yet run in native CI**. Keep PR372 draft/unmerged, pre-epoch `complete:false`, original Storage failed stage unknown and PR310 untouched.

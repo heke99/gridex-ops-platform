@@ -1,3 +1,13 @@
+## 2026-09-25 — Switch-event UUID-avgränsning verifierad på PR #372
+
+Publicerad kodhead `f75b69ea9312f2e3c8d76c8e4aab47a25573322f`, träd `2335ba5737f3c49b2ea7befac6eeb8037ba0c450` (lokal källcommit `2be58f04f6d67300d82a41f4ed444fa44a09a67e`, identiskt träd). Föregående `8800d014` hade native 336/337: `unrelated process volume does not exhaust a linked UTILTS subject budget` gav `scoped_process_count_overflow`, `factCount:1013`, väntat `['INSERT']`, observerat `[]`. Verifierad kodorsak: `switch_event_subject_v1` i forward `20260925150000_e035_switch_event_owner_history.sql` använde UUID-regex `8-4-4-12` och behandlade därför giltiga request-/point-ID:n som okänd wildcard. Ny framåtriktad migration `20260925154500_e035_switch_event_uuid_shape.sql` använder `8-4-4-4-12`; native-testet kräver relevant historisk ägare, exkluderad orelaterad ägare och fortsatt wildcard för ogiltigt ID.
+
+OPS `36143179178` på exakt `f75b69ea`: verify `108097720596` SUCCESS, quality/build `108097720997` SUCCESS, clean replay `108097721099` SUCCESS med **337/337 native i fem filer**, case-view 1/1, tenant/paritet och autentiskt schemafingeravtryck `c3ec834faa7c27e3db0f4424a2afcc8205ea4bf17035b8c7d5aba56b4b0bdb37`. Tenant `36143179172`, browser `36143179242`, Ediel `36143179301`, full E2E `36143179256` SUCCESS; crawler `36143179413` SKIPPED. Lokalt passerade migration/integritet och typmanifest, scripts typecheck, scoped lint, filbudget och diff check. Supabase CLI saknades lokalt; den nya forward-filen skapades därför manuellt enligt repots migrationsformat och kvalificerades i ren CI-replay, utan hosted databasåtgärd.
+
+Detta löser den avgränsade UUID-/budgetregressionen. Task 3b/4:s återstående producent-/legacy-, cutoff-, overflow-, behörighets-, historik- och retentionmatris, oberoende full-diff-slutgranskning och sluthead-gates kvarstår; pre-epoch `complete:false`. Originalets intermittenta Storage-`unconfirmed` saknar fortfarande identifierat felsteg och kausal rättning. PR372 är open/draft, ingen merge/produktion; PR310 orörd. Nästa: oberoende granska den publicerade rättningen mot hela diffen och prioritera ett konkret återstående acceptansfall, därefter kvalificera exakt sluthead innan merge.
+
+---
+
 ## 2026-09-25 — Verifierad publicering inför paus
 
 GitHub PR372 bekräftades open/draft på `528baa6db4fa15551888a300f22617fc3a09d684`; lokala `01684a3f172c282296da36adf5cd9893f56199c0` har identiskt träd `cb24b7d9eb391bb641a40223de4a0a7c480ac4c6`. Föregående `c71f312a` klarade OPS `36129656763` med native 337/337 och alla tillämpliga flöden. På `528baa6d` var verify, tenant, Ediel, browser och full E2E gröna vid kontrollen; quality/native pågick. E30/S07 inbound-testets native-acceptans är inte färdig. Se `.agent-memory/pr372-pause-20260925.md`.
