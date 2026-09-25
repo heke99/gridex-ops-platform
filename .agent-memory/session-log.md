@@ -278,6 +278,9 @@ Downloaded OPS36001823482 artifact10808668144 (ZIP SHA d55c5727), copied authent
 2026-09-25 F3 continuation: guide-invalid E66 E19 diagnostic RED then focused GREEN; field209 canonical 25/26 agency boundary GREEN; full and CI outcomes recorded in quality/audits/ediel-masterplan-v2/f3-staged-utilts-field209-20260925.md. No hosted/staging execution.
 
 2026-09-25 F3 PRODAT register ACK follow-on: actual case-writer LIN314 RED then focused GREEN; C829258 and QTY31/213 cases GREEN; local 6087/378 excluding two Node24/TAP wrappers; app/tests types and scoped lint zero errors. Details in f3-prodat-register-ack-boundary-20260925.md.
+## 2026-09-25 — F3C-05 agency260 continuation
+PR377 browser/Ediel and OPS verify succeeded, quality/native and E2E running. Separate E66 agency999+E19 RED confirmed wrong functional ERR against UG-122-21. Header projection now yields negative APERAK field502; local 273/273 UTILTS, types/lint/diff PASS. Publication and own exact-head CI next. No merge/staging/PR310.
+
 ## 2026-09-25 — F3C-05 field502 continuation
 PR376 exact-head ordinary CI all SUCCESS, including native 340 passed. Separate E66 field502 E99+E19 RED gave wrong functional ERR; E05 discrepancy in annex C versus registry corrected. Shared MKS projection yields negative APERAK field502; local 272/272 UTILTS and types/lint PASS. Publication and new CI next. No staging, merge or PR310 activity.
 

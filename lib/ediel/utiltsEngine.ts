@@ -414,14 +414,22 @@ function applyUtiltsMksHeaderGuide(message: EdielMessageRow, result: UtiltsRunti
   const issues = (['501', '502'] as const).flatMap(fieldNumber => {
     const rule = rules.find(item => item.fieldNumber === fieldNumber)
     if (!rule?.allowedValues?.length) return []
-    const value = market ? segmentComposite(market, fieldNumber === '501' ? 1 : 2, wire.una)[0]?.trim() : null
-    if (value && rule.allowedValues.includes(value)) return []
-    const missing = !value
+    const composite = market ? segmentComposite(market, fieldNumber === '501' ? 1 : 2, wire.una) : []
+    const value = composite[0]?.trim() ?? null
+    const allowed = Boolean(value && rule.allowedValues.includes(value))
+    // 25-A-3 annex C UG-122-21 qualifies phase 502 with agency 260.
+    const agency = fieldNumber === '502' ? composite[2]?.trim() : null
+    const invalidAgency = fieldNumber === '502' && allowed && agency !== '260'
+    if (allowed && !invalidAgency) return []
+    const missing = !value || (invalidAgency && !agency)
+    const path = invalidAgency ? 'MKS/C332/3055' : rule.segmentPath
     return [{
       severity: 'error' as const, kind: 'application' as const,
-      code: missing ? rule.errorCodeIfMissing ?? 'MKS_MISSING' : rule.errorCodeIfInvalid ?? 'UTILTS_PHASE_INVALID',
-      title: missing ? `${rule.label} saknas` : `Ogiltigt ${rule.label}`,
-      description: missing ? `${rule.segmentPath} saknas.` : `${rule.segmentPath} har otillåtet värde ${value}.`,
+      code: invalidAgency ? (missing ? 'UTILTS_PHASE_AGENCY_MISSING' : 'UTILTS_PHASE_AGENCY_INVALID')
+        : missing ? rule.errorCodeIfMissing ?? 'MKS_MISSING' : rule.errorCodeIfInvalid ?? 'UTILTS_PHASE_INVALID',
+      title: invalidAgency ? (missing ? 'Byråkod för skede saknas' : 'Ogiltig byråkod för skede')
+        : missing ? `${rule.label} saknas` : `Ogiltigt ${rule.label}`,
+      description: missing ? `${path} saknas.` : `${path} har otillåtet värde ${invalidAgency ? agency : value}.`,
       aperakErcCode: missing ? '41' : '42',
       aperakFieldCode: fieldNumber,
       aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',

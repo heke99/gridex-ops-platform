@@ -594,6 +594,9 @@ integration, then read the actual native log. Historical alias and remaining
 Task3b/Task4 gates remain. PR372 draft; PR310 untouched.
 ## 2026-09-25 — Z04 ACK projection continuation
 `codex/ediel-v2-z04-213-ack-20260925` is based on PR374's same-tree local parent. The source-valid two-object Z04 control and one own-QTY31 omission found duplicate final field213 APERAK entries. Projection-only deduplication preserves both diagnostic owners and distinct objects. Focused 103/103, types/lint/diff green; publish separate stacked draft and run ordinary CI. No native persisted object/case proof yet. Report: `quality/audits/ediel-masterplan-v2/f3-z04-213-ack-dedup-20260925.md`.
+## 2026-09-25 — UTILTS field502 agency continuation
+Branch from PR377 published `5e08fd02` same tree. Annex C UG-122-21 requires agency260. Complete E66 wrong agency + real E19 confirmed final functional ERR; existing header projection now enforces missing/invalid agency as field502 ERC41/42, no ERR in final ACK. Local 273/273 UTILTS, types/lint/diff PASS. Publish separate draft and inspect exact-head CI; literal staging/native multi-IDE remains unqualified. See `f3-utilts-phase502-agency-20260925.md`.
+
 ## 2026-09-25 — UTILTS field502 phase continuation
 New branch from PR376 published `68a38bfc` same tree. Complete E66 with MKS+23+E99 and E19 was wrongly functional; E05 was allowed despite annex C code row E02/E03/E04. Shared MKS header projection now yields field502 guide ACK and suppresses final functional errors. Local 272/272 UTILTS, app/test types, lint/diff pass. Publish stacked draft PR and inspect exact-head CI. Literal staging and native multi-IDE ACK/storage still unqualified. See `f3-utilts-header502-guide-20260925.md`.
 

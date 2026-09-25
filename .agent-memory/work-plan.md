@@ -363,7 +363,10 @@ PR310 remains paused/untouched. No production operations or reduced gates. D110/
 1. Preserve green checkpoint 521bc9ba / OPS36003339938 and draft PR372. 2. Qualify remaining Task3b producer routes, deletions, cascade/SET NULL, archive and retention with actual native evidence; keep before-epoch complete:false. 3. Add outbound Z08H and relevant document reference to the same-MVCC combined receipt with exact scoped counts, failed-reader and retention handling; inspect before UTILTS selection. 4. Run native real-flow, race, tenant and cutoff cases, regenerate authentic types/schema and all same-head gates, independent requirement review. No positive C/reopening or merge from current checkpoint.
 ## Active 2026-09-25 — F3C-02/04 Z04 field213 ACK projection
 Publish source-backed same-physical diagnostic deduplication from complete Z04 two-object control, verify exact-head ordinary CI, then inspect native persisted mixed-object ACK/case. F3C-05 staged/mixed UTILTS, F3C-06 grammar and F3C-07 ledger follow; no PR310 or staging.
-## Active 2026-09-25 — F3C-05 header502 phase guide
+## Active 2026-09-25 — F3C-05 field502 agency 260
+Publish the source-backed agency 260 guide correction stacked on PR377 and require ordinary exact-head CI. Then inspect next header rule or mixed unreferenced functional outcome and native persisted ACK/storage. Z04 mixed-object persistence, F3C-06 grammar and F3C-07 ledger remain open. PR310 excluded; no merge/staging.
+
+## 2026-09-25 — F3C-05 header502 phase guide
 Publish the source-backed E02/E03/E04 field502 correction from PR376; require ordinary exact-head CI. Then examine agency 260 and native mixed UTILTS ACK/storage, and Z04 mixed-object persistence. F3C-06 grammar and F3C-07 ledger remain open. PR310 excluded, no merge/staging.
 
 ## 2026-09-25 — F3C-05 header501 guide before functional outcome

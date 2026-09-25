@@ -1,3 +1,6 @@
+## 2026-09-25 — F3C-05 field502 agency260 guide batch
+Draft PR377 published `5e08fd02`, exact-head browser and Ediel SUCCESS, OPS verify SUCCESS; OPS quality/replay and full E2E still running at check. New separate agency260 branch: complete E66 `MKS+23+E02::999` plus E19 RED gave functional ERR; header guide now enforces source row UG-122-21 and plans field502 negative APERAK. Local 273/273 UTILTS, app/test types, lint/diff PASS. Publication and own CI pending. See `quality/audits/ediel-masterplan-v2/f3-utilts-phase502-agency-20260925.md`. PR310/372 untouched; no merge/staging.
+
 ## 2026-09-25 — F3C-05 field502 phase guide batch
 Draft PR376 on published `68a38bfc` passed OPS `36178023905` verify, quality/build and clean replay, plus Ediel `36178023976`, browser `36178023909` and E2E `36178023848`; native log reports 340 passed. Separate field502 branch found complete E66 E99+E19 wrong functional ERR and unsupported E05 registry value. Local RED/GREEN 272/272 UTILTS, app/test types, lint/diff PASS. Publication and own exact-head CI pending. See `quality/audits/ediel-masterplan-v2/f3-utilts-header502-guide-20260925.md`. PR310/372 untouched; no merge/staging.
 

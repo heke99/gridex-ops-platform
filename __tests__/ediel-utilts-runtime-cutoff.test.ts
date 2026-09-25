@@ -6,6 +6,32 @@ import { buildAperakDraft } from '@/lib/ediel/ack'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 
 describe('UTILTS runtime effective-date cutoff', () => {
+  it('requires agency 260 for phase field 502 before a real E19 mismatch', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-phase-agency')
+    const valid = runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' })
+    expect(valid.ackPlan.utiltsErrCodes).toContain('E19')
+    for (const [agency, ercCode] of [['999', '42'], ['', '41']] as const) {
+      const message = { ...control, sender_ediel_id: '91100', receiver_ediel_id: '21660',
+        raw_payload: control.raw_payload!.replace('MKS+23+E02::260', `MKS+23+E02::${agency}`) }
+      const result = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+      expect(result.validation.classification).toBe('application_rejected')
+      expect(result.transactionDispositions.map(item => item.responseType)).toEqual(['negative_aperak'])
+      expect(result.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+        expect.objectContaining({ fieldCode: '502', ercCode }),
+      ]))
+      expect(result.validation.issues).toEqual(expect.arrayContaining([
+        expect.objectContaining({ code: agency ? 'UTILTS_PHASE_AGENCY_INVALID' : 'UTILTS_PHASE_AGENCY_MISSING',
+          description: expect.stringContaining('MKS/C332/3055') }),
+      ]))
+      expect(result.ackPlan.utiltsErrDetails).toEqual([])
+      const decision = resolveCanonicalRuntimeDecision(message)
+      expect(decision).toMatchObject({ syntaxDecision: 'accepted', applicationDecision: 'rejected', functionalDecision: 'accepted' })
+      expect(decision.responsePlan.some(item => item.family === 'UTILTS_ERR')).toBe(false)
+      const plan = decision.responsePlan.find(item => item.family === 'APERAK')!
+      expect(plan).toMatchObject({ outcome: 'negative', applicationErrors: [{ fieldCode: '502', ercCode }] })
+      expect(buildAperakDraft({ sourceMessage: message, outcome: 'negative', applicationErrors: plan.applicationErrors }).rawPayload).toContain('FTX+AAO++502::260')
+    }
+  })
   it('rejects a bad E66 phase header as field 502 guide error before an E19 mismatch', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-phase')
     const message = { ...control, sender_ediel_id: '91100', receiver_ediel_id: '21660',
