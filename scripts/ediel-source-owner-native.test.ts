@@ -630,6 +630,18 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
   INSERT INTO public.customer_operation_tasks(company_id,customer_id,task_type,title,status)
   SELECT ${literal(f.ids.company)},${literal(otherCustomer)},'follow_up','Unrelated process volume','open'
   FROM generate_series(1,1001);`)
+ // Events carry only a request ID. Their immutable request owner must be
+ // resolved before the process budget, including at actual inbound execution.
+ sql(`INSERT INTO public.supplier_switch_requests(company_id,customer_id,request_type,status)
+  SELECT ${literal(f.ids.company)},${literal(otherCustomer)},'switch','draft'
+  FROM generate_series(1,1001);`)
+ sql(`INSERT INTO public.supplier_switch_events(company_id,switch_request_id,event_type)
+  SELECT ${literal(f.ids.company)},id,'native_unrelated'
+  FROM public.supplier_switch_requests WHERE company_id=${literal(f.ids.company)}
+   AND customer_id=${literal(otherCustomer)};`)
+ const relevantEvent=randomUUID()
+ sql(`INSERT INTO public.supplier_switch_events(id,company_id,switch_request_id,event_type)
+  VALUES(${literal(relevantEvent)},${literal(f.ids.company)},${literal(f.ids.switch)},'native_relevant');`)
  const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
  const unrelatedPoint='735999260731000008'
  const unrelatedWire=closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',unrelatedPoint)
@@ -687,6 +699,8 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
  expect(body.correction.count).toBe(0)
  expect(body.process.factCount).toBeLessThan(1000)
  expect(body.process.reason).toBe('before_epoch_unknown')
+ expect(body.process.facts).toContainEqual(expect.objectContaining({table:'supplier_switch_events',rowId:relevantEvent}))
+ expect(body.process.facts.filter(fact=>fact.table==='supplier_switch_events')).toHaveLength(1)
  const supplyId=sql<string>(`SELECT to_jsonb(id) FROM public.customer_supply_periods
   WHERE company_id=${literal(f.ids.company)} AND source_message_id=${literal(f.ids.source)}`)
  expect(body.process.facts).toContainEqual(expect.objectContaining({table:'customer_supply_periods',rowId:supplyId}))
