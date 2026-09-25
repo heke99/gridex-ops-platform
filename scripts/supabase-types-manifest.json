@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run35998393754",
   "generated_types": "supabase/database.types.ts",
   "sha256": "2b2dda6ae967b612e5c7e89e094542069d2ce38ba837747c480b3582ca5568ef",
-  "latest_migration": "20260925123000_case_lifecycle_conditional_columns_repair.sql",
-  "latest_migration_schema_effect": "Forward repair of case lifecycle columns skipped by a conditional legacy migration, plus linked switch event owner and outbound case column. Authentic replay schema and generated public types are pending."
+  "latest_migration": "20260925130000_customer_case_write_permission_registry_completion.sql",
+  "latest_migration_schema_effect": "Canonical cases.write registry row only; no schema or generated TypeScript shape change. Replay still required for authoritative schema fingerprint."
 }

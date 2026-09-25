@@ -283,3 +283,5 @@ PR372/521bc9ba: OPS36003339938 clean migration replay SUCCESS, native314/314 in 
 | `c9f5f64` / tree `dc1bd629` | OPS `36118081656` native | 330/335, including three document/Storage unconfirmed outcomes and missing Z08 source operation |
 | `8a5b2150` | independent whole-diff static review `/root/pr372_review` | No confirmed code blocker; native/artifacts/final acceptance withheld |
 | Pause diagnostic | `cases.write` registry/grant/effective check | Locally prepared only, unexecuted |
+
+- 2026-09-25 PR372 A/B: a3464eae OPS36123867431 native333/335; `cases.write` registry=0/grant=0/effective=false with active actor/membership; Storage delete/before_witness unconfirmed. Local candidate migration integrity, script typecheck, scoped lint and large-file budget PASS. New native pending.

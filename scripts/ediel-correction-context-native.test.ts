@@ -1591,14 +1591,10 @@ it('the canonical legacy contract-event writer captures one committed immutable 
     operation:'INSERT',company:f.companyId,customer:customerId,contract:contractId,eventType:'note',
    }])
 })
-
 it('the actual support case and operation enqueue writers capture linked case, event and job facts',async()=>{
  const f=await seed(),customerId=randomUUID(),key=randomUUID()
  sql(`INSERT INTO public.customers(id,company_id,first_name,last_name)
-  VALUES(${literal(customerId)},${literal(f.companyId)},'Synthetic','Support');
-  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
-  SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions
-   WHERE key='cases.write' ON CONFLICT DO NOTHING;`)
+  VALUES(${literal(customerId)},${literal(f.companyId)},'Synthetic','Support');`)
  const created=await createTenantSupportCase({companyId:f.companyId,customerId,
   title:'Synthetic native support case',channel:'admin',idempotencyKey:key,actorUserId:f.actorUserId})
  expect(created.reused).toBe(false)
@@ -1613,14 +1609,14 @@ it('the actual support case and operation enqueue writers capture linked case, e
  .toEqual([{table:'customer_cases',operation:'INSERT',company:f.companyId,customer:customerId,eventType:null},
    {table:'customer_case_events',operation:'INSERT',company:f.companyId,customer:customerId,eventType:'created'},
    {table:'customer_case_events',operation:'INSERT',company:f.companyId,customer:customerId,eventType:'operational_stop_applied'}])
- const statusAccess=sql<{registry:number;grants:number;effective:boolean;userActive:boolean;membershipActive:boolean}>(`SELECT jsonb_build_object(
-  'registry',(SELECT count(*) FROM public.permissions WHERE key='cases.write'),
-  'grants',(SELECT count(*) FROM public.user_permissions WHERE user_id=${literal(f.actorUserId)}
-   AND company_id=${literal(f.companyId)} AND permission_key='cases.write' AND status='active' AND is_active AND effect='allow'),
-  'effective',public.gridex_actor_has_company_permission(${literal(f.actorUserId)},${literal(f.companyId)},'cases.write'),
-  'userActive',(SELECT deleted_at IS NULL AND (banned_until IS NULL OR banned_until<=now()) FROM auth.users WHERE id=${literal(f.actorUserId)}),
-  'membershipActive',(SELECT status='active' AND is_active FROM public.company_memberships WHERE user_id=${literal(f.actorUserId)} AND company_id=${literal(f.companyId)}))`)
- expect(statusAccess).toEqual({registry:1,grants:1,effective:true,userActive:true,membershipActive:true})
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.permissions WHERE key='cases.write'`)).toBe(1)
+ await expect(updateCustomerCaseStatus({caseId,companyId:f.companyId,status:'action_required',actorUserId:f.actorUserId}))
+  .rejects.toThrow(/customer_case_status_actor_not_authorized/)
+ expect(sql(`SELECT to_jsonb(status) FROM public.customer_cases WHERE id=${literal(caseId)}`)).toBe('open')
+ sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+  SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions
+  WHERE key='cases.write';`)
+ expect(sql(`SELECT to_jsonb(public.gridex_actor_has_company_permission(${literal(f.actorUserId)},${literal(f.companyId)},'cases.write'))`)).toBe(true)
  const changed=await updateCustomerCaseStatus({caseId,companyId:f.companyId,status:'action_required',
   message:'Synthetic follow up',actorUserId:f.actorUserId})
  expect(changed.status).toBe('action_required')
@@ -1638,7 +1634,6 @@ it('the actual support case and operation enqueue writers capture linked case, e
    AND row_id=${literal(job.id)} AND operation='INSERT'`))
   .toEqual({operation:'INSERT',company:f.companyId,customer:customerId,jobType:'request_customer_data'})
 })
-
 it('a rolled-back process deletion leaves the producer and immutable facts unchanged',async()=>{
  const f=await seed(),taskId=randomUUID()
  sql(`INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)

@@ -266,12 +266,36 @@ it('interruption before witness leaves committed unwitnessed outcome',async()=>{
 })
 it.each(['before_append','before_witness','after_witness'].flatMap(boundary=>['delete','replace'].map(loss=>({boundary,loss}))))('storage $loss at $boundary preserves old receipt and new reads hold',async({boundary,loss})=>{
  const f=await seed();const original=supabaseService.rpc.bind(supabaseService)
- const lose=async()=>{const result=loss==='delete'?await supabaseService.storage.from('customer-contract-documents').remove([f.document.storage_path!]):await supabaseService.storage.from('customer-contract-documents').upload(f.document.storage_path!,Buffer.from('%PDF-replaced'),{upsert:true,contentType:'application/pdf'});expect(result.error).toBeNull()}
+ const trace:{hook?:string;storage?:string;storageError?:string;rpcError?:string}={}
+ const lose=async()=>{
+  trace.storage='started'
+  try{
+   const result=loss==='delete'?await supabaseService.storage.from('customer-contract-documents').remove([f.document.storage_path!]):await supabaseService.storage.from('customer-contract-documents').upload(f.document.storage_path!,Buffer.from('%PDF-replaced'),{upsert:true,contentType:'application/pdf'})
+   trace.storage='completed';trace.storageError=result.error?.message
+   expect(result.error).toBeNull()
+  }catch(error){trace.storageError=error instanceof Error?error.message:String(error);throw error}
+ }
  if(boundary!=='after_witness')vi.spyOn(supabaseService,'rpc').mockImplementation((name,params,options)=>{
-  if(name===(boundary==='before_append'?'gridex_observe_document_reference_v1':'gridex_witness_document_reference_v1'))return {abortSignal:async()=>{await lose();return await original(name,params,options)}} as unknown as ReturnType<typeof supabaseService.rpc>
+  if(name===(boundary==='before_append'?'gridex_observe_document_reference_v1':'gridex_witness_document_reference_v1'))return {abortSignal:async()=>{
+   trace.hook=name;await lose();const response=await original(name,params,options)
+   trace.rpcError=response.error?.message;return response
+  }} as unknown as ReturnType<typeof supabaseService.rpc>
   return original(name,params,options)
  })
- expect(await captureDocumentReference(args(f))).toMatchObject({status:'recorded',observation:'verified_at_observation'})
+ const capture=await captureDocumentReference(args(f))
+ if(capture.status==='unconfirmed'){
+  const durable=sql<{attempts:number;outcomes:number;witnesses:number}>(`SELECT jsonb_build_object(
+   'attempts',count(DISTINCT a.id),'outcomes',count(DISTINCT o.id),'witnesses',count(DISTINCT w.id))
+   FROM gridex_received_sources.document_reference_attempts a
+   LEFT JOIN gridex_received_sources.document_reference_outcomes o ON o.attempt_id=a.id
+   LEFT JOIN gridex_received_sources.document_reference_witnesses w ON w.outcome_id=o.id
+   WHERE a.source_message_id=${literal(f.sourceMessageId)}`)
+  const object=sql<{count:number;ids:string[]}>(`SELECT jsonb_build_object('count',count(*),
+   'ids',coalesce(jsonb_agg(id::text ORDER BY id),'[]'::jsonb)) FROM storage.objects
+   WHERE bucket_id='customer-contract-documents' AND name=${literal(f.document.storage_path)}`)
+  throw Error(`document_reference_capture_stage ${JSON.stringify({boundary,loss,objectPath:f.document.storage_path,object,capture,trace,durable})}`)
+ }
+ expect(capture).toMatchObject({status:'recorded',observation:'verified_at_observation'})
  vi.restoreAllMocks();const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())'),old=saved(f,cutoff)
  await lose()
  const fresh=await readDocumentReferenceContext({...args(f),cutoff})

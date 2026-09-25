@@ -1,3 +1,15 @@
+## 2026-09-25 — Storage failure isolation prepared
+
+Native job `108035388543` on `a3464eae` failed `storage delete at before_witness` (expected recorded/verified_at_observation, observed unconfirmed); the other five matrix cases passed on that run. Earlier `c9f5f64` failed before_append replace and before_witness delete/replace, all observed unconfirmed. The product wrapper intentionally masks stage errors as unconfirmed. A test-only diagnostic now reports Storage operation error, intercepted RPC error, exact synthetic object path/Storage object IDs and durable attempt/outcome/witness counts when unconfirmed recurs. No retry, timeout, skip, product behavior or guard changed. Local type/lint pass; native diagnostic pending. Next: publish/inspect exact native result, then correct only a demonstrated cause.
+
+---
+
+## 2026-09-25 — PR372 resumed, authorization diagnosis checkpoint
+
+Published `a3464eae` is still draft/unmerged; all workflows completed. OPS `36123867431` native job `108035388543` ran 335 tests: 333 pass, two fail. Diagnostic showed active auth user and membership, but `cases.write` registry=0, grant=0, effective=false. The old eight-digit permission seeds are not in canonical replay; the production status RPC requires the key. Local forward `20260925130000_customer_case_write_permission_registry_completion.sql` adds only the established key, preserves assignments; the native fixture now asserts denial before a scoped direct grant and success after it. Migration integrity, script types, scoped lint and 1800-line budget pass locally. Native behavior remains **unexecuted** on this candidate. The other failing test is Storage delete/before_witness returning `unconfirmed`; underlying failed stage remains unknown. Next: instrument and qualify that distinct stage, then publish a logical batch. The older dirty worktree remains untouched; PR310 excluded; no merge.
+
+---
+
 ## 2026-09-25 — PAUSED PR #372 handover (authoritative; older entries below are superseded for current status)
 
 **Scope/state.** User paused implementation. PR #372 `codex/e035-correction-context-20260924` is OPEN/DRAFT and unmerged; main was `2a148d39d631fc759c99cd1c69350b5e2147dbdb` at the last PR check. PR #310 is untouched. No production migration, deployment or market/customer send. No new CI rerun was requested.
