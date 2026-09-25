@@ -1,3 +1,6 @@
+## 2026-09-25 — Bounded UTILTS field202 agency local verification
+Annex C UG-122-6 BGM/C002/3055 blank/999 plus real E19 RED gave functional ERR. Shared final header guide now emits field202/ERC41/42 negative APERAK, and actual inbound with external DB/sinks mocked saves guide rejection without meter/billing/completion. 315/315 relevant tests, app/test types, scoped lint/diff PASS. Own exact-head CI pending; S-code 1131, code 1001, field203 uniqueness and full F3 remain open.
+
 ## 2026-09-25 — Bounded UTILTS field203 local verification
 Annex C UG-122-7 blank BGM/C106/1004 plus real E19 RED was functional ERR. Shared final header guide now emits field203/ERC41 negative APERAK without final ERR; real inbound with external DB/sinks mocked persists guide rejection and no meter/billing/completion effects. 313/313 relevant tests, app/test types, scoped lint/diff PASS. Exact-head CI pending; uniqueness over time/ERC42 and full F3 remain open. PR382 predecessor merged into PR381 only after four green exact-head workflows.
 
