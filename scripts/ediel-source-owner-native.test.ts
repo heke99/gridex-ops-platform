@@ -1442,3 +1442,27 @@ it('keeps a deleted switch event in its historical customer and point receipts a
  expect(current.facts.filter(fact=>fact.rowId===requestId).map(fact=>fact.operation)).toEqual(['INSERT','DELETE'])
  expect(current.facts.filter(fact=>fact.rowId===pointId).map(fact=>fact.operation)).toEqual(['INSERT','DELETE'])
 })
+it('keeps a cross-customer switch request and event with their actual point subject',async()=>{
+ const f=await seed(),incomingCustomer=randomUUID(),requestId=randomUUID(),eventId=randomUUID()
+ const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ sql(`INSERT INTO public.customers(id,company_id,customer_number,name,customer_type)
+  VALUES(${literal(incomingCustomer)},${literal(f.ids.company)},${literal(`E035-INCOMING-${incomingCustomer}`)},
+   'Synthetic incoming customer','private');
+  INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,metering_point_id,request_type,status)
+  VALUES(${literal(requestId)},${literal(f.ids.company)},${literal(incomingCustomer)},
+   ${literal(f.ids.point)},'switch','draft');
+  INSERT INTO public.supplier_switch_events(id,company_id,switch_request_id,event_type)
+  VALUES(${literal(eventId)},${literal(f.ids.company)},${literal(requestId)},'native_cross_customer_point');`)
+ const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())')
+ const read=(at:string)=>sql<{facts:{rowId:string;operation:string}[]}>(`SELECT gridex_correction_process.combined_process_body_v3(
+  ${literal(f.ids.company)},${literal(at)}::timestamptz,ARRAY[${literal(f.ids.customer)}]::uuid[],
+  ARRAY[${literal(point)}]::text[])`)
+ const before=read(cutoff)
+ sql(`DELETE FROM public.supplier_switch_events WHERE id=${literal(eventId)};
+  DELETE FROM public.supplier_switch_requests WHERE id=${literal(requestId)};`)
+ const after=read(sql<string>('SELECT to_jsonb(clock_timestamp())'))
+ expect(before.facts.filter(fact=>fact.rowId===requestId).map(fact=>fact.operation)).toEqual(['INSERT'])
+ expect(before.facts.filter(fact=>fact.rowId===eventId).map(fact=>fact.operation)).toEqual(['INSERT'])
+ expect(after.facts.filter(fact=>fact.rowId===requestId).map(fact=>fact.operation)).toEqual(['INSERT','DELETE'])
+ expect(after.facts.filter(fact=>fact.rowId===eventId).map(fact=>fact.operation)).toEqual(['INSERT','DELETE'])
+})
