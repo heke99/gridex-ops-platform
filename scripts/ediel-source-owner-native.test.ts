@@ -673,11 +673,23 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
   WHERE id IN (${literal(movedCustomerEvent)},${literal(movedPointEvent)});
   DELETE FROM public.supplier_switch_events
   WHERE id IN (${literal(movedCustomerEvent)},${literal(movedPointEvent)});`)
- const priorBody=sql<{facts:{rowId:string;operation:string}[]}>(`SELECT
+ const priorBody=sql<{factCount:number;reason:string;facts:{rowId:string;operation:string}[]}>(`SELECT
   gridex_correction_process.combined_process_body_v3(${literal(f.ids.company)},
    ${literal(beforeMove)},ARRAY[${literal(f.ids.customer)}]::uuid[],
    ARRAY[${literal(point)}]::text[])`)
- expect(priorBody.facts.filter(fact=>fact.rowId===movedCustomerEvent).map(fact=>fact.operation)).toEqual(['INSERT'])
+ const priorEventScope=sql<boolean>(`SELECT to_jsonb(gridex_correction_process.switch_event_subject_v1(
+  ${literal(f.ids.company)},old_fact,new_fact,captured_at,
+  ARRAY[${literal(f.ids.customer)}]::uuid[],ARRAY[${literal(point)}]::text[]))
+  FROM gridex_correction_process.facts WHERE table_name='supplier_switch_events'
+   AND row_id=${literal(movedCustomerEvent)} AND operation='INSERT'`)
+ const unrelatedEventScope=sql<boolean>(`SELECT to_jsonb(gridex_correction_process.switch_event_subject_v1(
+  ${literal(f.ids.company)},old_fact,new_fact,captured_at,
+  ARRAY[${literal(f.ids.customer)}]::uuid[],ARRAY[${literal(point)}]::text[]))
+  FROM gridex_correction_process.facts WHERE table_name='supplier_switch_events'
+   AND new_fact->>'event_type'='native_unrelated' LIMIT 1`)
+ expect(priorBody.facts.filter(fact=>fact.rowId===movedCustomerEvent).map(fact=>fact.operation),
+  JSON.stringify({factCount:priorBody.factCount,reason:priorBody.reason,priorEventScope,unrelatedEventScope}))
+  .toEqual(['INSERT'])
  const afterBody=sql<{facts:{rowId:string;operation:string}[]}>(`SELECT
   gridex_correction_process.combined_process_body_v3(${literal(f.ids.company)},
    clock_timestamp(),ARRAY[${literal(f.ids.customer)}]::uuid[],
