@@ -9,21 +9,21 @@ Final independent review is conditional on a frozen diff. UI, performance and
 skill authoring are outside this batch. No parallel agent writes.
 
 The last fully checked published head is
-`c4a9b754ae22509aea8933ddeeb916a7ae922b1a`, tree
-`3bf02ef0f3765b93aac52da1444598e1db17a831`. OPS run `36147085260`
-passed clean replay job `108110817739`: five native files, **338/338**, case view, tenant/parity and
+`5ceaf288c592218bccee9b0f66b5a42e6c3ffc1d`, tree
+`6cf66a708be932602c56fccc3e6e1bcd146c2326`. OPS run `36148887580`
+passed clean replay job `108116835933`: five native files, **339/339**, case view, tenant/parity and
 schema snapshot `c3ec834faa7c27e3db0f4424a2afcc8205ea4bf17035b8c7d5aba56b4b0bdb37`.
-Tenant `36147085097`, browser `36147085072`, Ediel `36147085054` and full
-E2E `36147085049` succeeded; production crawler `36147085225` skipped.
+Tenant `36148887469`, browser `36148887215`, Ediel `36148887290` and full
+E2E `36148887634` succeeded; production crawler `36148887432` skipped.
 Those results are evidence for that head only.
 
 | Acceptance requirement | Existing implementation | Exact evidence | Remaining proof and risk |
 | --- | --- | --- | --- |
 | Task 3b, prospective transitions from twelve process tables and rollback | `20260924073337_correction_process_facts_v1.sql` installs always-on write/delete and truncate guards; `capture_v1` keeps bounded linkage fields and old/new scope. | Native `scripts/ediel-correction-context-native.test.ts`: catalog, task update/delete/rollback, graph cascade/SET NULL, invoice-test archive both unsigned and signed, legacy contract event, actual case/operation job claim, swallowed event. All in OPS `36144530332` 337/337. | Table/route sampling cannot certify uninstrumented pre-epoch changes. A missing producer can omit a safety-relevant link. Keep `complete:false`. |
-| Task 3b, request and point owner history under event volume | `20260925140000`, `20260925150000`, `20260925154500` forwards; `switch_event_subject_v1` uses immutable old/new request and point candidates, unknown IDs wildcard. | Native `scripts/ediel-source-owner-native.test.ts` covers 1,001 unrelated events, distinct point, prior owner after reassignment, deletion of event/request/point at both cutoffs and actual UTILTS; 338/338 OPS `36147085260`, job `108110817739`. Prior behavioral RED `5a4f626b` 336/337, UUID RED `8800d014` 336/337; fixed at `f75b69ea`. | Pre-epoch transitions remain unknowable and `complete:false`. No historic coverage is inferred from a newer receipt. |
+| Task 3b, request and point owner history under event volume | `20260925140000`, `20260925150000`, `20260925154500` forwards; `switch_event_subject_v1` uses immutable old/new request and point candidates, unknown IDs wildcard. | Native covers 1,001 unrelated events, distinct point, prior owner after reassignment, deletion of event/request/point at both cutoffs and actual UTILTS; 339/339 OPS `36148887580`. Earlier behavioral RED `5a4f626b` 336/337 and UUID RED `8800d014` 336/337 were fixed at `f75b69ea`. | Independent read-only review of `5ceaf288` found that a request by customer B at customer A's physical point is excluded before the point match, along with its event. The schema permits this within one tenant. Test-only head `467a143b` awaits native RED; a forward scope fix must pass native GREEN. Pre-epoch stays `complete:false`. |
 | Task 3b, witness, gaps, access and bounds | `20260924080601` and `20260924085942` use post-commit witness, tenant permission, immutable private RLS tables, 1,000 fact and byte bounds. | Native uncommitted witness denial, cross-tenant denial, failed write rollback, 1,001 scoped overflow, saved cutoff and pre-epoch `complete:false` in OPS `36147085260`. | No assigned lawful retention/purge policy for new process archive, readsets and witnesses; existing `edifact_raw_payloads` 1095-day archive, `legal_audit` 3650-day archive and `ediel_polling` 395-day delete do not assign this evidence. A policy and a safe fail-closed purge/archive qualification are needed before broad use. |
-| Task 4, same database snapshot and bounded five-owner receipt | `20260924120822` and follow-up combined forwards select source, process, concern, outbound and document owners in one statement; `lib/ediel/sources/combinedCorrectionReadset.ts` validates count, scope, hash, time, tenant and relationships before use. | Native actual Z08H and document attempt, concurrent pre/post commit process/concern cutoff, saved bytes/hash, readset inspection; 338/338 OPS `36147085260`; authentic schema fingerprint above. | One-statement MVCC is established statically and by boundary cases, not an adversarial commit inside acquisition. A newly added actual failed-reader case awaits native CI; retention and all permission/overflow combinations are not exhaustively qualified. Incomplete/invalid owners must continue to hold. |
-| Task 4, actual E30/E66/S07 effect | Combined inspector feeds the UTILTS comparison and inbound processor. | Native actual E66 and E30/S07 witnessed-C hold, persisted disposition/CONTRL and zero meter-series effects in OPS `36147085260`. | A new actual failed-reader case awaits native CI. No positive C authority, reopening, or pre-epoch completeness follows. The earlier intermittent Storage `unconfirmed` failed stage was never isolated; six later mutation cases passed, without proving a causal fix. |
+| Task 4, same database snapshot and bounded five-owner receipt | `20260924120822` and follow-up combined forwards select source, process, concern, outbound and document owners in one statement; `lib/ediel/sources/combinedCorrectionReadset.ts` validates count, scope, hash, time, tenant and relationships before use. | Native actual Z08H and document attempt, concurrent pre/post commit process/concern cutoff, saved bytes/hash, readset inspection and failed combined owner RPC; 339/339 OPS `36148887580`; authentic schema fingerprint above. | One-statement MVCC is established statically and by boundary cases, not an adversarial commit inside acquisition. Retention and all permission/overflow combinations are not exhaustively qualified. Incomplete/invalid owners must continue to hold. |
+| Task 4, actual E30/E66/S07 effect | Combined inspector feeds the UTILTS comparison and inbound processor. | Native actual E66 and E30/S07 witnessed-C hold, persisted disposition/CONTRL and zero meter-series effects; actual failed combined RPC also saved internal review/none, no APERAK or meter series in OPS `36148887580` (339/339). | No positive C authority, reopening, or pre-epoch completeness follows. The earlier intermittent Storage `unconfirmed` failed stage was never isolated; six later mutation cases passed, without proving a causal fix. |
 | Whole PR and rollout | Draft PR #372, 156 changed files; main unchanged. | Exact-head PR workflows above, no GitHub review approval recorded. | Freeze final diff, independent whole-PR review including R1/R2 and switch ownership, remedy findings, same-head CI and authentic generated contracts. Protected staging, production preflight and pilot GO are separate gates. |
 
 ## Pilot preparation (not authorization to execute)
@@ -32,11 +32,14 @@ Those results are evidence for that head only.
    native replay, authentic generated types/schema, security/tenant gates and
    independently resolved findings on that same tree. Main/head must still be
    checked before a merge decision.
-2. Run the protected `full-e2e.yml` runtime-staging certificate by explicit
-   dispatch against an isolated staging tenant with synthetic actors and
-   point IDs. Its PR `smoke` and `coverage` jobs do **not** execute
-   `runtime-staging`, `real-customer-staging`, `full` or nightly release.
-   Read their artifacts and verify outbound is disabled.
+2. Run `full-e2e.yml` `mode=runtime` by explicit dispatch against isolated
+   staging credentials. The runtime job creates synthetic tenants and exercises
+   invitation/contract lifecycle, with `GRIDEX_E2E_ALLOW_OUTBOUND=NO`; it
+   does **not** exercise E035 correction receipt or UTILTS hold. Qualify those
+   separately with synthetic point/request/message identities, disabled market
+   routing and exact saved receipt/ACK/zero-series assertions. PR `smoke` and
+   `coverage` do **not** execute `runtime-staging`, `real-customer-staging`,
+   `full` or nightly release. Read artifacts before the pilot decision.
 3. Assess deployment coupling before merge: `.github/workflows/vercel-production-deploy.yml`
    starts on every push to `main` and creates a Vercel production deployment
    when `VERCEL_TOKEN` is present. Thus merge is a possible production action.

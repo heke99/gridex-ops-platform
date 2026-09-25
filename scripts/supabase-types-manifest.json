@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run36127254985-artifact10860308328",
   "generated_types": "supabase/database.types.ts",
   "sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
-  "latest_migration": "20260925154500_e035_switch_event_uuid_shape.sql",
-  "latest_migration_schema_effect": "Private switch-event subject helper recognizes canonical UUIDs; no public type surface change; authentic clean replay pending."
+  "latest_migration": "20260925163000_e035_switch_request_point_owner_scope.sql",
+  "latest_migration_schema_effect": "Private switch-event and combined-process readers include a matching historical point despite a different request customer; no public type surface change; authentic clean replay pending."
 }
