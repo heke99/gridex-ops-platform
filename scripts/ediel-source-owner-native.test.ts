@@ -390,6 +390,26 @@ it('real UTILTS qualification saves and consumes a witnessed C hold without pers
   FROM gridex_correction_process.combined_snapshots WHERE id=${literal(held.evidence.snapshotId)}`)).toBe(true)
  expect(sql(`SELECT to_jsonb(readset_hash=${literal(before.evidence.readsetHash)})
   FROM gridex_correction_process.combined_snapshots WHERE id=${literal(before.evidence.snapshotId)}`)).toBe(true)
+ // Exercise the actual inbound persistence and ACK boundary with the same
+ // committed concern. A helper-only qualification cannot prove side effects.
+ const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')
+ const inbound=await insertPriorUtilts(f,priorNativeWire(f,point))
+ utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
+ utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
+ const actual=await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:inbound.id})
+ expect(actual).toMatchObject({internalReviewRequired:true,ackIds:[],ingestedMeterValueIds:[],billingUnderlayId:null})
+ expect(utiltsEffects.ack).not.toHaveBeenCalled()
+ expect(utiltsEffects.meter).not.toHaveBeenCalled()
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.meter_reading_series
+  WHERE source_ediel_message_id=${literal(inbound.id)}`)).toBe(0)
+ expect(sql(`SELECT to_jsonb(jsonb_build_object('disposition',disposition,'plan',planned_response_type,
+  'series',persisted_series_id)) FROM public.ediel_ack_transaction_results
+  WHERE source_message_id=${literal(inbound.id)}`)).toMatchObject({disposition:'internal_review',plan:'none',series:null})
+ const saved=sql<{snapshotId:string;readsetHash:string}>(`SELECT parsed_payload#>'{normalizedMeteringPayload,receivedStructureQualification}'
+  FROM public.ediel_messages WHERE id=${literal(inbound.id)}`)
+ expect(saved).toMatchObject({snapshotId:expect.any(String),readsetHash:expect.stringMatching(/^[a-f0-9]{64}$/)})
+ expect(sql(`SELECT to_jsonb(readset_hash=${literal(saved.readsetHash)} AND subject_message_id=${literal(inbound.id)})
+  FROM gridex_correction_process.combined_snapshots WHERE id=${literal(saved.snapshotId)}`)).toBe(true)
 })
 it.each(['2026-09-30','2026-10-01'])('native reviewed Z04 qualifies prior/current E61/E62 on policy date %s',async referenceDate=>{
  const {observationHandoffMessage}=await import('../__tests__/helpers/utiltsObservationHandoff')
@@ -524,6 +544,37 @@ it.each(['missing','matched','E61','E62'] as const)('native prior %s traverses r
   await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:source.id})
   expect(stable()).toEqual(stored)
  }
+})
+it('unrelated process volume does not exhaust a linked UTILTS subject budget',async()=>{
+ const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const otherCustomer=randomUUID()
+ sql(`INSERT INTO public.customers(id,company_id,customer_number,name,customer_type)
+  VALUES(${literal(otherCustomer)},${literal(f.ids.company)},${literal(`E035-OTHER-${otherCustomer}`)},'Unrelated native customer','private');
+  INSERT INTO public.customer_operation_tasks(company_id,customer_id,task_type,title,status)
+  SELECT ${literal(f.ids.company)},${literal(otherCustomer)},'follow_up','Unrelated process volume','open'
+  FROM generate_series(1,1001);`)
+ const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ const source=await insertPriorUtilts(f,priorNativeWire(f,point))
+ utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
+ utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
+ const result=await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:source.id})
+ expect(result.internalReviewRequired).toBe(false)
+ const receipt=sql<{snapshotId:string;readsetHash:string}>(`SELECT parsed_payload#>'{normalizedMeteringPayload,receivedStructureQualification}'
+  FROM public.ediel_messages WHERE id=${literal(source.id)}`)
+ expect(receipt).toMatchObject({snapshotId:expect.any(String),readsetHash:expect.stringMatching(/^[a-f0-9]{64}$/)})
+ const body=sql<{process:{factCount:number;reason:string;facts:{table:string;rowId:string}[]}}>(`SELECT readset_text::jsonb
+  FROM gridex_correction_process.combined_snapshots WHERE id=${literal(receipt.snapshotId)}`)
+ expect(body.process.factCount).toBeLessThan(1000)
+ expect(body.process.reason).toBe('before_epoch_unknown')
+ const supplyId=sql<string>(`SELECT to_jsonb(id) FROM public.customer_supply_periods
+  WHERE company_id=${literal(f.ids.company)} AND source_message_id=${literal(f.ids.source)}`)
+ expect(body.process.facts).toContainEqual(expect.objectContaining({table:'customer_supply_periods',rowId:supplyId}))
+ const unrelatedTaskIds=new Set(sql<string[]>(`SELECT to_jsonb(array_agg(id::text))
+  FROM public.customer_operation_tasks WHERE customer_id=${literal(otherCustomer)}`))
+ expect(unrelatedTaskIds.size).toBe(1001)
+ expect(body.process.facts.some(fact=>fact.table==='customer_operation_tasks'&&unrelatedTaskIds.has(fact.rowId))).toBe(false)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.meter_reading_series WHERE source_ediel_message_id=${literal(source.id)}`)).toBe(1)
 })
 it.each([false,true])('native prior committed %s retry fails closed after newer unavailable review',async interrupted=>{
  const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')
