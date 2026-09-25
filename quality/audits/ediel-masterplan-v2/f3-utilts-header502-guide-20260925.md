@@ -1,0 +1,15 @@
+# F3C-05: UTILTS phase field 502 at the header guide boundary
+
+Base: draft PR #376, published head `68a38bfc1bdcb60d3f433ab7ead99f71d1d46c7f`. This batch is separate and stacked. PR #372 and PR #310 are untouched; no merge or hosted execution.
+
+Source: 25-A-3 annex C, `UF-planning-502-51`, `UF-metering_settlement-502-54`, `UF-request-502-62`, and common code row `UG-122-20` require MKS/C332/3496 with codes E02, E03, E04. `UG-122-21` requires agency 260, which this batch does not implement. Existing `fieldMatrix.ts` owned the required field but also listed E05 without support in the retained code row. The legacy UTILTS parser set `facts.stage` but did not validate it. The canonical facade and actual runtime decision consumed no 502 header finding.
+
+RED: complete monthly E66 control with valid `MKS+23+E02::260` and actual 1000/500 E19 mismatch; changing only the phase to E99 returned `functional_rejected` and ERR, rather than guide negative APERAK. E05 and a missing phase also produced no field 502 application error. This is an observable response discrepancy, not merely code order.
+
+Fix: reuse the existing MKS tokenizer and field-rule lookup to validate both field 501 and field 502, including declared UNA. On either header failure, the final canonical result removes functional error findings for the whole message and rebuilds dispositions/ACK. Missing phase maps ERC41, invalid phase ERC42, both FTX502. The matrix now follows the explicit E02/E03/E04 source list, and the old registry test oracle was aligned. A complete E66 `MKS+23+E99` now resolves application rejected, negative APERAK field 502 and no UTILTS_ERR, with ACK draft FTX502. Both 501 and 502 can be reported together. E03/E04 remain accepted by the header rule.
+
+Verification: two focused tests RED before implementation; 24 UTILTS test files GREEN 272/272; app/test typecheck, scoped ESLint and diff check PASS. An initial broad UTILTS run found three expected assertions still encoding E05 in the old registry test; the source-backed oracle correction restored 272/272. A custom UNA mutation verifies field extraction, but its synthetic whole wire is not a complete syntax-valid ACK oracle.
+
+Limits: literal legacy functional calculations still execute before facade suppression; no native persisted multi-IDE outcome is claimed. Agency 260 at field 502, remaining header fields and grammar, mixed unreferenced functional findings, native ACK/storage and F3C-04 Z04 mixed-object persistence remain next qualified candidates. No staging, TGT/AGT, market send or production operation.
+
+Skill routing: used repository `using-superpowers`, `spec-to-code-compliance` for source/owner/consumer trace, `systematic-debugging`, `test-driven-development` and `verification-before-completion`. `fp-check` is security-vulnerability-specific, so direct complete-message RED served as behavior verification. Parallel-agent, Supabase, web/UI, performance and security audit skill groups do not apply to this pure UTILTS header change.

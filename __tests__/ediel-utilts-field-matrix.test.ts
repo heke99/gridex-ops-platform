@@ -55,7 +55,7 @@ describe('UTILTS 25-A-3 canonical field registry', () => {
     expect(headerRules.find((rule) => rule.fieldNumber === '204')?.allowedValues).toEqual(['5', '9'])
     expect(headerRules.find((rule) => rule.fieldNumber === '313')?.allowedValues).toEqual(['AB', 'NA'])
     expect(headerRules.find((rule) => rule.fieldNumber === '501')?.allowedValues).toEqual(['23', '27'])
-    expect(headerRules.find((rule) => rule.fieldNumber === '502')?.allowedValues).toEqual(['E02', 'E03', 'E04', 'E05'])
+    expect(headerRules.find((rule) => rule.fieldNumber === '502')?.allowedValues).toEqual(['E02', 'E03', 'E04'])
   })
 
   it('validates header values at their exact EDIFACT element paths', () => {
