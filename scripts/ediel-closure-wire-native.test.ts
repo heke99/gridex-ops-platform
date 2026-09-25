@@ -45,6 +45,20 @@ it('SQL names the canonical LK exemption without relaxing the malformed-wire hol
   expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_outbound_dispatch.originals WHERE message_id=${literal(message)}`)).toBe(0)
 })
 
+it('SQL does not exempt a Z08 LK row whose physical BGM is not Z08',()=>{
+  const company=randomUUID(),message=randomUUID(),actor=randomUUID()
+  const wire=closureFixture({reason:'Z23'}).wire // valid Z05 wire with a stale Z08 LK row
+  expect(sql(`SELECT to_jsonb(gridex_received_sources.closure_wire_tokens_v1(${literal(wire)}) IS NOT NULL)`)).toBe(true)
+  expect(sql(`BEGIN; SET LOCAL session_replication_role=replica;
+    INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,rule_profile_key)
+    VALUES(${literal(message)},${literal(company)},'test','outbound','edifact','PRODAT','Z08','queued',${literal(wire)},'{}','PRODAT:Z08:LK:26.A:r3');
+    COMMIT; SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE id=${literal(message)};`)).toBe(1)
+  const identity={companyId:company,environment:'test',messageId:message,actorUserId:actor,attemptId:randomUUID(),action:'prepare'}
+  expect(()=>sql(`BEGIN; SET LOCAL ROLE service_role; SELECT public.gridex_outbound_dispatch_v1(${literal(identity)}::jsonb); COMMIT;`))
+    .toThrow('outbound_dispatch_actor_unavailable')
+  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_outbound_dispatch.originals WHERE message_id=${literal(message)}`)).toBe(0)
+})
+
 it.each([{},{reason:'Z23'},{minute:'202610150000'},{alphabet:['*',';','!','~']},{alphabet:['^','|','!','%']},
   {document:"D?:+'",li:"CASE?:+'UNH+FAKE'DTM+93:202610151235:203"},
   {alphabet:['*',';','!','~'],document:'D!*;~',li:'CASE!*;~UNH;FAKE~DTM;93*202610151235*203'},
