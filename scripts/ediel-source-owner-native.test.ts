@@ -451,7 +451,7 @@ it.each(['E30','S07'] as const)('native witnessed C holds a previously matched %
  utilts.sender_ediel_id='12345';utilts.receiver_ediel_id='54321'
  utilts.raw_payload=code==='E30'
   ?priorE30PointWire('E24','METER-1',point).replaceAll('91100','12345').replaceAll('21660','54321')
-  :priorNativeWire(f,point).replace('BGM+E66','BGM+S07').replaceAll('23-DDQ-E66-S','23-DDQ-S07-T')
+  :priorNativeWire(f,point).replace('BGM+E66::260','BGM+S07:SVK:260').replaceAll('23-DDQ-E66-S','23-DDQ-S07-T')
  const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:code,direction:'inbound',referenceDate:'2026-10-01',
   applicationReference:utilts.application_reference,mode:'parse'})
  const qualify=async()=>{

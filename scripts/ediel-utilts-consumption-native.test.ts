@@ -196,7 +196,8 @@ it('cross-environment equal legacy identity cannot reuse test consumption author
 })
 it.each(['E30', 'S07'])('native %s control keeps the actual prepared consumption capability', async code => {
   const f = await seed(), application = code === 'E30' ? '23-MDR-E30-T' : '23-DDQ-S07-T'
-  const raw = f.original.raw_payload!.replace('BGM+E66', `BGM+${code}`).replace('23-DDQ-E66-T', application).replaceAll(f.original.interchange_reference!, code+f.original.interchange_reference!)
+  const raw = f.original.raw_payload!.replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : 'BGM+E30::260')
+    .replace('23-DDQ-E66-T', application).replaceAll(f.original.interchange_reference!, code+f.original.interchange_reference!)
   const source = await f.insertSource(raw, code), input = await f.prepare(source, false, code === 'E30')
   const rows = await persistUtiltsTransactionResults(input)
   await ingestBoundUtiltsMetering({ actorUserId: f.ids.actor, message: source, boundOutcomes: rows })
@@ -559,7 +560,8 @@ it.each(['energy', 'readings', 'E30-energy', 'E30-readings', 'S07-policy'] as co
   const code = shape.startsWith('E30') ? 'E30' : shape === 'S07-policy' ? 'S07' : 'E66'
   let raw = shape.includes('readings') ? observationHandoffMessage('2026-10-01', f.ids.company).raw_payload! : f.original.raw_payload!
   raw = raw.replace('?+0200:406', '?+0100:406').replace('QTY+220:11000', 'QTY+220:10500')
-    .replace('735999260731000007::9', '735999260731000007::89').replace('BGM+E66', `BGM+${code}`)
+    .replace('735999260731000007::9', '735999260731000007::89')
+    .replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : `BGM+${code}::260`)
     .replace(/23-DDQ-E66-[ST]/g, code === 'E30' ? '23-MDR-E30-T' : `23-DDQ-${code}-T`)
   const source = await f.insertSource(raw, code)
   await realSinks()
