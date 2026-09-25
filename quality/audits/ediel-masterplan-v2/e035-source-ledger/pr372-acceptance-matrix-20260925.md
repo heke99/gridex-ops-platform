@@ -8,31 +8,41 @@ Skill routing: repository `executing-plans`, `acquire-codebase-knowledge`,
 Final independent review is conditional on a frozen diff. UI, performance and
 skill authoring are outside this batch. No parallel agent writes.
 
-The latest fully checked published head is
-`5239b8164189c2e2b4e5f3eb34dd0388be11faf7`, tree
-`a65ddc6f720a1d3cdcf566eff36531f6c179937b`. OPS `36153744510`
-passed verify `108133137430`, quality `108133137693` (including 6,081 unit
-tests, build and file budget), and clean replay `108133138462`: five native
+The preceding fully checked published code head is
+`e675bd19023d961d12328d769bba60b6194e8f30`, tree
+`3149a96dcfd58f1e0bdba03520fe76521504c221`. OPS `36155889554`
+passed verify `108140199379`, quality `108140198813` (including 6,081 unit
+tests, build and file budget), and clean replay `108140199003`: five native
 files, **340/340**, plus case-view and browser continuation. Tenant
-`36153744600`, browser `36153744655`, Ediel `36153744466` and full E2E
-`36153744475` succeeded; crawler `36153745011` skipped. Clean replay
-artifact `10873162038` was downloaded: generated types SHA-256
+`36155889618`, browser `36155889556`, Ediel `36155889846` and full E2E
+`36155889767` succeeded; crawler `36155889619` skipped. Clean replay
+artifact `10873887639` was downloaded: generated types SHA-256
 `36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d`
 and schema snapshot fingerprint
 `c3ec834faa7c27e3db0f4424a2afcc8205ea4bf17035b8c7d5aba56b4b0bdb37`.
 The artifact's types, schema SQL and fingerprint JSON match checked-in files
 byte for byte. The private `gridex_correction_process` schema is outside the
 public snapshot; its behavior is checked by native replay. These results are
-evidence for `5239b816` only. Test-only `eb934dfe` confirmed the separate outbound history finding in OPS
+evidence for `e675bd19` only. Test-only `eb934dfe` confirmed the separate outbound history finding in OPS
 `36152595429`, native job `108129302332`: **340 passed/1 failed**, combined
 `originalCount` was 0 instead of 1 after standalone owner count 1. The same
 head's quality job `108129302387` failed its 1,800-line file budget (1,839);
-the consolidated test on `5239b816` passed the budget, native behavior and
+the consolidated test on `e675bd19` passed the budget, native behavior and
 same-head CI. The independent read-only whole-PR follow-up found no other
 confirmed code defect on this tree, but withheld rollout approval pending
 retention and synthetic staging. No GitHub review has been submitted.
-The separate staging-target guard below is a new candidate and requires its
-own exact-head CI and read-only review before this code checkpoint advances.
+The published staging-target guard candidate is
+`ea0180e21f84946f93557bfec26a4a41ac8c029b`, tree
+`f68b6bd0e889443e81f81ac556965c0b09f96854`. Its exact-head OPS
+`36157919553` passed verify `108146946606`, quality `108146946400`
+(6,084/6,084 unit tests and build), and clean replay `108146946387`
+(340/340 native tests). Tenant `36157919535`, browser `36157919465`,
+Ediel `36157919664` and full E2E `36157919493` succeeded; crawler
+`36157919573` skipped. Artifact `10874262726` was downloaded: generated
+types, schema SQL and fingerprint JSON match the checked-in files byte for
+byte. Independent read-only whole-PR code review approved this exact code
+head against main without confirmed findings, including R1/R2 and switch
+ownership. No formal GitHub review or staging rollout approval was submitted.
 
 | Acceptance requirement | Existing implementation | Exact evidence | Remaining proof and risk |
 | --- | --- | --- | --- |
@@ -41,7 +51,7 @@ own exact-head CI and read-only review before this code checkpoint advances.
 | Task 3b, witness, gaps, access and bounds | `20260924080601` and `20260924085942` use post-commit witness, tenant permission, immutable private RLS tables, 1,000 fact and byte bounds. | Native uncommitted witness denial, cross-tenant denial, failed write rollback, 1,001 scoped overflow, saved cutoff and pre-epoch `complete:false` in OPS `36147085260`. | No assigned lawful retention/purge policy for new process archive, readsets and witnesses; existing `edifact_raw_payloads` 1095-day archive, `legal_audit` 3650-day archive and `ediel_polling` 395-day delete do not assign this evidence. A policy and a safe fail-closed purge/archive qualification are needed before broad use. |
 | Task 4, same database snapshot and bounded five-owner receipt | `20260924120822` and follow-up combined forwards select source, process, concern, outbound and document owners in one statement; `lib/ediel/sources/combinedCorrectionReadset.ts` validates count, scope, hash, time, tenant and relationships before use. | Native actual Z08H and document attempt, concurrent pre/post commit process/concern cutoff, saved bytes/hash, readset inspection and failed combined owner RPC; 340/340 OPS `36150994331`; authentic types/schema files match artifact above. Independent review identified an omitted pre-epoch outbound PRODAT with raw BGM Z08 but stale row code/profile in `combined_outbound_body_v3`; the standalone owner includes it. Test-only `eb934dfe` established actual RED in OPS `36152595429`, native `108129302332`: standalone count 1, combined count 0, 340 passed/1 failed. The consolidated test checks sealed unrelated exclusion and unsealed stale-metadata wildcard; it passed in native job `108133138462` as part of 340/340 on `5239b816`. | Forward `20260925173000` aligns the combined candidate predicate with standalone raw BGM Z08/unparseable PRODAT before sealed scope/count. The specific owner-set omission is closed by exact-head GREEN. Pre-epoch `complete:false` remains fail-closed. One-statement MVCC is established statically and by boundary cases, not an adversarial commit inside acquisition. Retention and all permission/overflow combinations are not exhaustively qualified. |
 | Task 4, actual E30/E66/S07 effect | Combined inspector feeds the UTILTS comparison and inbound processor. | Native actual E66 and E30/S07 witnessed-C hold, persisted disposition/CONTRL and zero meter-series effects; actual failed combined RPC also saved internal review/none, no APERAK or meter series in OPS `36148887580` (339/339). | No positive C authority, reopening, or pre-epoch completeness follows. The earlier intermittent Storage `unconfirmed` failed stage was never isolated; six later mutation cases passed, without proving a causal fix. |
-| Whole PR and rollout | Draft PR #372; main unchanged at the checked base. | All applicable PR flows passed on `5239b816`; clean replay artifact `10873162038` matches checked-in types/schema byte for byte. Independent read-only full-diff follow-up reviewed R1/R2, switch ownership and outbound forward without new confirmed code findings. No formal GitHub review submitted. | Bounded prospective code acceptance is supported; an adversarial commit inside a single acquisition, lawful retention/archive and E035-specific protected staging remain unqualified. A production pilot and merge remain separate GO decisions. |
+| Whole PR and rollout | Draft PR #372; main unchanged at the checked base. | All applicable PR flows passed on code head `ea0180e2`; clean replay artifact `10874262726` matches checked-in types/schema byte for byte. Independent read-only whole-PR code review approved the exact head against main, including R1/R2, switch ownership, outbound forward and staging guard, without confirmed findings. No formal GitHub review submitted. | Bounded prospective code acceptance is supported; an adversarial commit inside a single acquisition, lawful retention/archive and E035-specific protected staging remain unqualified. A production pilot and merge remain separate GO decisions. |
 
 ## Retention inventory and decision gate
 
@@ -87,11 +97,12 @@ is not a lawful retention decision or a tested archival recovery path.
 
 ### Minimum staging and pilot evidence record
 
-The PR full-E2E run `36153744475` executed smoke `108133137523`, coverage
-`108133138069` and PR certificate `108133905747`. Its `runtime-staging`
-`108133139054`, `real-customer-staging` `108133139170`, `full` `108133139370`
-and nightly certificate `108133139602` were **skipped**. The protected
-`production-certification-e2e.yml` is manual and was not part of this PR run.
+The candidate PR full-E2E run `36157919493` executed smoke `108146947125`,
+coverage `108146947599` and PR certificate `108147602965`. Its
+`runtime-staging` `108146948758`, `real-customer-staging` `108146993601`,
+`full` `108146948724` and nightly certificate `108146951577` were **skipped**.
+The protected `production-certification-e2e.yml` is manual and was not part of
+this PR run.
 Do not treat PR smoke as staging or production qualification.
 
 Read-only Supabase project inventory on 2026-09-25 listed only one Gridex
@@ -126,5 +137,5 @@ version and investigate the forward database migration separately. Merge to
 **Current verdict: NO-GO** for production pilot or merge. The history/retention
 policy and safe archive/expiry behavior, protected runtime and E035-specific
 stage evidence, production preflight and explicit GO remain open. Bounded
-prospective code behavior and PR CI are green on `5239b816`; they do not
+prospective code behavior and PR CI are green on `ea0180e2`; they do not
 establish historical inception coverage or authorize live data processing.
