@@ -639,6 +639,17 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
   SELECT ${literal(f.ids.company)},id,'native_unrelated'
   FROM public.supplier_switch_requests WHERE company_id=${literal(f.ids.company)}
    AND customer_id=${literal(otherCustomer)};`)
+ const otherPoint=randomUUID(),otherSwitch=randomUUID(),otherEvent=randomUUID()
+ sql(`INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,
+   metering_point_id,meter_point_id,reading_frequency,measurement_type,is_settlement_relevant,grid_owner_id)
+  VALUES(${literal(otherPoint)},${literal(f.ids.company)},${literal(f.ids.customer)},
+   ${literal(f.ids.site)},${literal(f.ids.site)},'735999260731000009','735999260731000009',
+   'hourly','consumption',true,${literal(f.ids.grid)});
+  INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,metering_point_id,request_type,status)
+  VALUES(${literal(otherSwitch)},${literal(f.ids.company)},${literal(f.ids.customer)},
+   ${literal(otherPoint)},'switch','draft');
+  INSERT INTO public.supplier_switch_events(id,company_id,switch_request_id,event_type)
+  VALUES(${literal(otherEvent)},${literal(f.ids.company)},${literal(otherSwitch)},'native_other_point');`)
  const relevantEvent=randomUUID()
  sql(`INSERT INTO public.supplier_switch_events(id,company_id,switch_request_id,event_type)
   VALUES(${literal(relevantEvent)},${literal(f.ids.company)},${literal(f.ids.switch)},'native_relevant');`)
@@ -701,6 +712,7 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
  expect(body.process.reason).toBe('before_epoch_unknown')
  expect(body.process.facts).toContainEqual(expect.objectContaining({table:'supplier_switch_events',rowId:relevantEvent}))
  expect(body.process.facts.filter(fact=>fact.table==='supplier_switch_events')).toHaveLength(1)
+ expect(body.process.facts.some(fact=>fact.rowId===otherEvent)).toBe(false)
  const supplyId=sql<string>(`SELECT to_jsonb(id) FROM public.customer_supply_periods
   WHERE company_id=${literal(f.ids.company)} AND source_message_id=${literal(f.ids.source)}`)
  expect(body.process.facts).toContainEqual(expect.objectContaining({table:'customer_supply_periods',rowId:supplyId}))

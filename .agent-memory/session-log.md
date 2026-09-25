@@ -1,3 +1,5 @@
+2026-09-25 — PR372: independent review found switch-event wildcard budget overflow. Published private historical scope forward `1fc7516c`; clean replay native 337/337 and authentic types/schema passed; verify/E2E blocked only by stale type manifest tail. Prepared tail and same-customer/different-point native fixture for next exact-head CI. Draft/unmerged; no production or PR310 change.
+
 ## 2026-09-25 — PR372 säker paus
 
 Läste lokal HEAD/status och GitHub PR-head; fastställde byte-identiskt träd `cb24b7d9eb391bb641a40223de4a0a7c480ac4c6` mellan lokal `01684a3f` och publicerad `528baa6d`. Kontrollerade historiska `c9f5f64` → `8a5b2150` som en fast-forward med olika träd, samt exakta CI-statusar. Uppdaterade överlämnings- och acceptansdokument med verifierad `cases.write`-orsak, okänd Storage-orsak, granskad version och exakt nästa diagnostik. Ingen utvecklingsbatch eller CI-omkörning startades under paussteget. Se `.agent-memory/pr372-pause-20260925.md`.

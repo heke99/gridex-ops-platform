@@ -1,3 +1,9 @@
+## 2026-09-25 — Switch-event scope repair, native checkpoint
+
+Independent read-only full-diff review of published `56a2179e` requested changes: `supplier_switch_events` facts had only a request link and were counted as subject wildcards, so 1,001 known unrelated events exhausted the combined process budget. Forward `20260925140000_e035_switch_event_historical_scope.sql` resolves the archived request and point owner at each event transition; missing or conflicting history remains a wildcard. Published `1fc7516c` / tree `a8fa1e2d` passed OPS clean replay `36136553857` native 337/337, including real UTILTS inbound after 1,001 unrelated switch events plus one relevant event; case-view/browser and tenant/parity passed. Actual generated types SHA256 `36e98937` and canonical schema fingerprint `c3ec834f` are unchanged. Quality/build, tenant, Ediel and browser passed. Verify and E2E smoke failed solely because the previous `scripts/supabase-types-manifest.json` tail named `20260925130000`; that name has been updated locally after authentic replay. A local, not-yet-native extra fixture checks the same customer with a different point. The next exact head must pass all gates and independent review. Retain `complete:false`, unknown original Storage failure stage, draft/unmerged PR372 and no production action; PR310 untouched.
+
+---
+
 ## 2026-09-25 — PR372 processkvittens kandidat
 
 Dokumenthead `32b9825d` passerade alla tillämpliga jobb, inklusive OPS `36132980452` native 337/337 och autentiska schema/typer. Lokal kandidat stärker integritetskontrollen av sammansatt processägarkvittens; fokuserat RED/GREEN 10/10, tre typechecks, lint, filbudget och migrationsintegritet passerade. Native/CI på kandidaten väntar. Historik `complete:false`, Storage-felsteg okänt, oberoende slutgranskning återstår. PR372 draft, ingen merge/produktion; PR310 orörd.
