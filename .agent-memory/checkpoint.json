@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish scoped Storage failure diagnostic and E30/S07 native acceptance tests, inspect exact-head CI; historical completeness and independent final review remain open.",
+  "next_action": "Publish actual E30/S07 inbound processor side-effect native test, inspect exact-head CI; then reconcile Task3b/4 acceptance and Storage unknown cause.",
   "task4_combined_snapshot": {
     "published_head": "b1c7f993affdb68d11f4c0941c483c4d145b938e",
     "published_tree": "37789b428e66c37b3030f1aa9bc8b539a78d40e9",
@@ -707,10 +707,18 @@
     "schema_fingerprint": "c3ec834faa7c27e3db0f4424a2afcc8205ea4bf17035b8c7d5aba56b4b0bdb37"
   },
   "pr372_acceptance_followup_20260925": {
-    "status": "LOCAL_UNPUBLISHED",
+    "status": "PUBLISHED_NATIVE_PASS",
     "changes": "Test-only fresh Storage revalidation stage diagnostic and native E30/S07 witnessed C hold matrix",
     "local": "scoped lint, script/app/test typechecks, large-file budget, 38 focused unit tests PASS",
-    "native": "PENDING",
-    "historical_complete": false
+    "native": "337/337 PASS; E30/S07 active combined receipt hold qualified; tenant/parity/schema fingerprint PASS",
+    "historical_complete": false,
+    "published_head": "c71f312aff239396b2e795b45cd070c7fc995d17",
+    "published_tree": "f6cc0b098e3afbbe5289099f99dd4be2ee407b93",
+    "ops_run": 36129656763,
+    "native_job": 108053746021,
+    "quality": "verify, quality/build, tenant, browser, Ediel and full E2E SUCCESS; crawler SKIPPED",
+    "storage": "Six mutation cases passed; older unconfirmed underlying stage still unknown",
+    "independent_review": "READ_ONLY_STATIC_NO_CONFIRMED_NEW_DEFECT; actual inbound E30/S07 effects and historical/retention acceptance remain open",
+    "next_local": "Actual inbound E30/S07 processor, ACK and persisted result assertions; lint/scripts type/line budget PASS, native pending"
   }
 }

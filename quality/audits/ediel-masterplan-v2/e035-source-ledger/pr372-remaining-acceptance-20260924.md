@@ -1,5 +1,9 @@
 # PR372 remaining acceptance — 2026-09-24
 
+## 2026-09-25 E30/S07 native checkpoint
+
+Published `c71f312aff239396b2e795b45cd070c7fc995d17` passed OPS `36129656763` (native `108053746021`) with 337/337, case-view, tenant/parity and authentic schema `c3ec834f`; verify/quality and tenant, Ediel, browser and full E2E were green. Witnessed C holds a previously matched actual E30/S07 active combined qualification, but these tests do not yet inspect inbound processor side effects. The fresh Storage revalidation diagnostic was not triggered; the old failure stage and cause remain unknown. Independent static review found no confirmed new blocker but withheld native/full acceptance for remaining actual flow, historical and retention cases. Local unpublished actual inbound E30/S07 assertion is pending native. `complete:false` remains.
+
 ## 2026-09-25 exact-head bounded checkpoint
 
 Published `15366cbaca91ecdebf58b2baf65beb2f90a366fe` / tree `27a1c3fb` passed OPS `36128443714`: native 335/335, case-view 1/1, tenant/parity, authentic types and schema snapshot (`c3ec834faa7c27e3db0f4424a2afcc8205ea4bf17035b8c7d5aba56b4b0bdb37`); verify and quality/build succeeded. Tenant, Ediel, browser and full E2E workflows succeeded; crawler skipped. All six Storage mutation cases passed, but the older three `unconfirmed` outcomes still have no captured failed stage or causal fix. A read-only independent static review found no confirmed new code blocker but withheld final native/acceptance approval. Current local unpublished work adds only a fresh-revalidation diagnostic and native E30/S07 witnessed C tests. Scoped lint, three typechecks, line budget and 38 focused unit tests pass; native evidence is pending. Historical coverage remains `complete:false`. PR372 is draft and unmerged, PR310 excluded.

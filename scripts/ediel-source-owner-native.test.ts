@@ -297,13 +297,13 @@ async function structuralSnapshot(f:Awaited<ReturnType<typeof seed>>,cutoffAt=sq
  expect(result.timeline,JSON.stringify(result.timeline)).toMatchObject({status:'inspected',boundedReadComplete:true})
  return result
 }
-async function insertPriorUtilts(f:Awaited<ReturnType<typeof seed>>,raw:string){
+async function insertPriorUtilts(f:Awaited<ReturnType<typeof seed>>,raw:string,code:'E66'|'E30'|'S07'='E66'){
  const original=utiltsNativeSourceFixture(raw,randomUUID())
  const {id,parsed}=original
  sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
- SELECT ${literal(id)},${literal(f.ids.company)},${literal(f.ids.customer)},${literal(f.ids.site)},${literal(f.ids.point)},${literal(f.ids.grid)},'test','inbound','edifact','UTILTS','E66','received',${literal(original.raw)},'{}','2026-09-30T20:00:00Z','{}',${literal(parsed.applicationReference)},'12345','54321',${literal(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+ SELECT ${literal(id)},${literal(f.ids.company)},${literal(f.ids.customer)},${literal(f.ids.site)},${literal(f.ids.point)},${literal(f.ids.grid)},'test','inbound','edifact','UTILTS',${literal(code)},'received',${literal(original.raw)},'{}',${literal(code==='E66'?'2026-09-30T20:00:00Z':'2026-10-01T20:00:00Z')},'{}',${literal(parsed.applicationReference)},'12345','54321',${literal(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
- WHERE profile.message_code='E66' AND profile.direction IN ('inbound','both') AND profile.is_enabled ORDER BY profile.profile_key LIMIT 1;`)
+ WHERE profile.message_code=${literal(code)} AND profile.direction IN ('inbound','both') AND profile.is_enabled ORDER BY profile.profile_key LIMIT 1;`)
  const {data,error}=await supabaseService.from('ediel_messages').select('*').eq('id',id).single()
  expect(error).toBeNull();expect(data).not.toBeNull()
  return data as unknown as EdielMessageRow
@@ -473,6 +473,19 @@ it.each(['E30','S07'] as const)('native witnessed C holds a previously matched %
   FROM gridex_correction_process.combined_snapshots WHERE id=${literal(held.evidence.snapshotId)}`)).toBe(true)
  expect(sql(`SELECT to_jsonb(readset_hash=${literal(before.evidence.readsetHash)})
   FROM gridex_correction_process.combined_snapshots WHERE id=${literal(before.evidence.snapshotId)}`)).toBe(true)
+ const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')
+ const inbound=await insertPriorUtilts(f,utilts.raw_payload!,code)
+ utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
+ utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
+ const actual=await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:inbound.id})
+ expect(actual).toMatchObject({internalReviewRequired:true,ingestedMeterValueIds:[],billingUnderlayId:null})
+ expect(utiltsEffects.ack.mock.calls.map(([call])=>call.ackFamily)).toEqual(['CONTRL'])
+ expect(utiltsEffects.meter).not.toHaveBeenCalled()
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.meter_reading_series
+  WHERE source_ediel_message_id=${literal(inbound.id)}`)).toBe(0)
+ expect(sql(`SELECT to_jsonb(jsonb_build_object('disposition',disposition,'plan',planned_response_type,
+  'series',persisted_series_id)) FROM public.ediel_ack_transaction_results
+  WHERE source_message_id=${literal(inbound.id)}`)).toMatchObject({disposition:'internal_review',plan:'none',series:null})
 })
 it.each(['2026-09-30','2026-10-01'])('native reviewed Z04 qualifies prior/current E61/E62 on policy date %s',async referenceDate=>{
  const {observationHandoffMessage}=await import('../__tests__/helpers/utiltsObservationHandoff')
