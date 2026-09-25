@@ -1,3 +1,6 @@
+## 2026-09-25 — Field203 and PR382 merge
+Checked PR382 exact-head ordinary CI four SUCCESS and user-authorized merge into PR381 (`4ef14108`, same tree). PR372/310 remained untouched. New branch from actual merge head reproduced blank BGM1004 + E19 wrong functional ERR; shared header guide now yields field203 negative APERAK, real mocked inbound no business effects. Focused29/29 and broad313/313, types/lint/diff PASS. Publish stacked draft, own CI; then field202/field203 uniqueness with tenant-scoped owner.
+
 ## 2026-09-25 — PR372 UUID-regression
 
 Läste verkligt native RED på `8800d014`, fann den fyrgrupps-UUID-regex som klassade giltiga ägare som wildcard. Skapade en ny framåtriktad privat funktionsmigration och test för relevant/orelaterad/ogiltig identitet. Lokala statiska kontroller passerade; publicerade `f75b69ea` med byte-identiskt lokalt träd utan force. Exakt-head OPS native 337/337, verify/quality och alla tillämpliga sidoflöden passerade. Ingen produktionsåtgärd eller merge. Fortsatt hel-PR-acceptans öppen.

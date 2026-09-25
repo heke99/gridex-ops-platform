@@ -437,6 +437,18 @@ function applyUtiltsHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeR
   })
   const ackRule = rules.find(item => item.fieldNumber === '313')
   const bgm = wire.segments.find(segment => segment.tag === 'BGM')
+  const documentRule = rules.find(item => item.fieldNumber === '203')
+  const documentIdentifier = bgm ? segmentComposite(bgm, 2, wire.una)[0]?.trim() : null
+  const documentIssues = documentRule?.requirement === 'required' && !documentIdentifier
+    ? [{
+      severity: 'error' as const, kind: 'application' as const,
+      code: documentRule.errorCodeIfMissing ?? 'UTILTS_DOCUMENT_IDENTIFIER_MISSING',
+      title: 'Dokumentnummer saknas',
+      description: 'BGM/C106/1004 saknas.',
+      aperakErcCode: '41',
+      aperakFieldCode: '203',
+      aperakText: 'MANDATORY FIELD MISSING',
+    }] : []
   const functionRule = rules.find(item => item.fieldNumber === '204')
   const functionCode = bgm ? segmentComposite(bgm, 3, wire.una)[0]?.trim() : null
   const functionIssues = functionRule?.allowedValues?.length && (!functionCode || !functionRule.allowedValues.includes(functionCode))
@@ -498,7 +510,7 @@ function applyUtiltsHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeR
       aperakFieldCode: '205',
       aperakText: !dateValue ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
     }] : []
-  const issues = [...mksIssues, ...functionIssues, ...ackIssues, ...timezoneIssues, ...dateIssues]
+  const issues = [...mksIssues, ...documentIssues, ...functionIssues, ...ackIssues, ...timezoneIssues, ...dateIssues]
   if (issues.length === 0) return result
   // These fields are in the message header: every IDE fails the guide gate, even
   // when no transaction identity was parsed. No functional finding is eligible.

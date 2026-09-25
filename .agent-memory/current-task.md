@@ -1,4 +1,7 @@
-## 2026-09-25 — Active: F3C-05 BGM function field204
+## 2026-09-25 — Active F3C-05 field203 document identifier
+PR382 merged to PR381 base as `4ef14108` only after exact-head ordinary CI green. Field203 presence fix and actual inbound test local 313/313, app/test types/lint PASS on separate branch `codex/ediel-v2-utilts-header203-20260925`; publish draft stacked on PR381, inspect its own ordinary CI, then field202 BGM/C002 and field203 tenant-scoped uniqueness. PR381 merge-head OPS/E2E still running at last check. PR372 stays draft and PR310 untouched. No staging or market sends.
+
+## 2026-09-25 — Field204 prior checkpoint (superseded by PR382 merge)
 Separate branch from corrected PR381 published `28ed2fc3` same tree. Complete E66 invalid/missing BGM1225 plus E19 RED returned functional ERR. Retained 5/9 rule now projects field204 ERC41/42 and final negative APERAK; actual mocked inbound guide-rejected RPC, no meter/billing/completion. Local 311/311 in 25 files, app/test types, lint and focused valid5 PASS. Publish separate stacked draft and require ordinary CI; then fields202/203 and conditional E66 209/533 identity/storage. PR381 corrected CI running. No staging/merge/PR310.
 
 ## 2026-09-25 — Field205 published CI fixture correction

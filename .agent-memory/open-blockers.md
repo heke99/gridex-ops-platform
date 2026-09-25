@@ -1,3 +1,6 @@
+## 2026-09-25 — UTILTS field203 duplicate identity
+Annex C UG-122-7 requires BGM/C106/1004 unique over time and ERC42 for duplicates. Presence/ERC41 has a local candidate. The bounded inbound trace has not identified a tenant-scoped durable duplicate owner; outbound `duplicateCheck` and transaction-ID persistence do not prove it. Keep duplicate acceptance unclaimed; inspect the received-message identity/index and fail closed on any safe ambiguity. PR372's historical E035 acceptance remains separate and incomplete; PR310 paused.
+
 ## 2026-09-25 — Register boundary remaining evidence
 The early whole-message safe stop has local real-consumer tests but no native persisted ACK/multi-object transaction proof. A complete Z04 mixed-good/bad object original is next; do not infer partial success. F3C-05 literal execution and mixed unreferenced findings remain. PR373 OPS native still needs exact result at this checkpoint; PR310 excluded and external staging/formal gates deferred.
 

@@ -6,6 +6,25 @@ import { buildAperakDraft } from '@/lib/ediel/ack'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 
 describe('UTILTS runtime effective-date cutoff', () => {
+  it('rejects a blank BGM document identifier as field 203 before a real E66 E19', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-document-id')
+    expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')
+    const message = { ...control, sender_ediel_id: '91100', receiver_ediel_id: '21660',
+      raw_payload: control.raw_payload!.replace('GRIDEX2607E66MSG001+9+AB', '+9+AB') }
+    const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+    expect(runtime.validation.classification).toBe('application_rejected')
+    expect(runtime.transactionDispositions.map(item => item.responseType)).toEqual(['negative_aperak'])
+    expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ fieldCode: '203', ercCode: '41' }),
+    ]))
+    expect(runtime.ackPlan.utiltsErrDetails).toEqual([])
+    const decision = resolveCanonicalRuntimeDecision(message)
+    expect(decision).toMatchObject({ syntaxDecision: 'accepted', applicationDecision: 'rejected' })
+    expect(decision.responsePlan.some(item => item.family === 'UTILTS_ERR')).toBe(false)
+    const plan = decision.responsePlan.find(item => item.family === 'APERAK')!
+    expect(buildAperakDraft({ sourceMessage: message, outcome: 'negative', applicationErrors: plan.applicationErrors }).rawPayload)
+      .toContain('FTX+AAO++203::260')
+  })
   it('rejects missing or invalid BGM function 204 before a real E66 E19', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-bgm-function')
     expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')

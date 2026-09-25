@@ -1,3 +1,11 @@
+## 2026-09-25 — F3C-05 field203 local candidate
+
+| Head | Kontroll | Utfall | Gräns |
+|---|---|---|---|
+| Lokal gren före commit | Fullständig E66 tom BGM1004 + genuin E19 | RED: `functional_rejected`/ERR | Fält203 anvisningsfel före rättning. |
+| Lokal gren före commit | 25 relevanta filer, app/test typer, scoped lint/diff | 313/313 PASS; övrigt PASS | Egen exakt-head CI väntar; unikhet över tid ej verifierad. |
+| `397edfe66164bffc1ca298faf1cafe5a3cd97c53` | PR382 fyra ordinarie flöden | Alla SUCCESS, OPS `36184073417`; merge `4ef14108` till PR381 | Föregående fält204, inte kandidatens CI. |
+
 ## 2026-09-25 — PR372 switch-event UUID-fix
 
 | Head | Körning | Resultat | Gräns |
