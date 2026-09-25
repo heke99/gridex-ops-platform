@@ -592,3 +592,5 @@ Next exact action: finish local batch integrity, commit, publish identical tree
 as a fast-forward child of remote `16505294` through the connected GitHub
 integration, then read the actual native log. Historical alias and remaining
 Task3b/Task4 gates remain. PR372 draft; PR310 untouched.
+## 2026-09-25 — Z04 ACK projection continuation
+`codex/ediel-v2-z04-213-ack-20260925` is based on PR374's same-tree local parent. The source-valid two-object Z04 control and one own-QTY31 omission found duplicate final field213 APERAK entries. Projection-only deduplication preserves both diagnostic owners and distinct objects. Focused 103/103, types/lint/diff green; publish separate stacked draft and run ordinary CI. No native persisted object/case proof yet. Report: `quality/audits/ediel-masterplan-v2/f3-z04-213-ack-dedup-20260925.md`.

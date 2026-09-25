@@ -581,3 +581,5 @@ source/concern budgets and historical point aliases; see
 Local source/concern forward and high-volume fixture await publication and
 native replay. Task3b/Task4 are not finally accepted; PR372 remains draft.
 PR310 is excluded and no hosted migration or live operation was made.
+## 2026-09-25 — Current F3 continuation
+PR372, PR373 and PR374 remain draft/unmerged; PR374 exact head `ca1aa11b6311088f70b0f8ada05befdfa55b6924` has OPS `36174980998`, Ediel `36174981008`, browser `36174981015`, full E2E `36174981002` all SUCCESS. Current separate Z04 field213 ACK batch is local, focused 103/103 and app/test types pass; publication and exact-head CI pending. F3C-02/04 partial, F3C-05 native/staged, F3C-06 grammar and F3C-07 ledger open; PR310 excluded, no merge or staging.

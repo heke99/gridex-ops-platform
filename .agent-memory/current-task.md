@@ -655,3 +655,5 @@ type check passed locally. **This batch is not yet published or native-tested.**
 Next: publish exact tree, read native result, then resolve historical aliases,
 remaining Task3b producer/retention proofs, Task4 negatives, independent full
 review and final-head CI. Keep `complete:false`; do not merge or touch PR310.
+## 2026-09-25 — Active: Z04 own field213 ACK deduplication
+Draft PR374 published `ca1aa11b` passed all four ordinary workflows (OPS `36174980998`). New separate branch `codex/ediel-v2-z04-213-ack-20260925` has a focused RED/GREEN: complete selected Z04 control accepted; omitted QTY31 in register 2 produced duplicate ERC41/FTX213 from matrix and register owner. The national projection now emits one per identical physical finding, preserving both internal findings and other objects. Local 103/103 focused, app/test types, scoped ESLint and diff check pass. Next: publish stacked draft PR and inspect exact-head CI; then native persisted mixed-object ACK/case boundary. See `quality/audits/ediel-masterplan-v2/f3-z04-213-ack-dedup-20260925.md`.
