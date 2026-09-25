@@ -1385,3 +1385,33 @@ it('isolates nested JSON subtraction precedence without changing the published o
   ROLLBACK;`)
  expect(result).toMatchObject({original:{code:'22P02'},parenthesized:true})
 })
+
+it('keeps a deleted switch event in its historical customer and point receipts at both cutoffs',async()=>{
+ const f=await seed(),pointId=randomUUID(),requestId=randomUUID(),eventId=randomUUID()
+ const point='735999260925000001'
+ sql(`INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,
+   metering_point_id,meter_point_id,reading_frequency,measurement_type,is_settlement_relevant,grid_owner_id)
+  VALUES(${literal(pointId)},${literal(f.ids.company)},${literal(f.ids.customer)},
+   ${literal(f.ids.site)},${literal(f.ids.site)},${literal(point)},${literal(point)},
+   'hourly','consumption',true,${literal(f.ids.grid)});
+  INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,metering_point_id,request_type,status)
+  VALUES(${literal(requestId)},${literal(f.ids.company)},${literal(f.ids.customer)},
+   ${literal(pointId)},'switch','draft');
+  INSERT INTO public.supplier_switch_events(id,company_id,switch_request_id,event_type)
+  VALUES(${literal(eventId)},${literal(f.ids.company)},${literal(requestId)},'native_historical_delete');`)
+ const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())')
+ sql(`DELETE FROM public.supplier_switch_events WHERE id=${literal(eventId)};
+  DELETE FROM public.supplier_switch_requests WHERE id=${literal(requestId)};
+  DELETE FROM public.metering_points WHERE id=${literal(pointId)};`)
+ const read=(at:string)=>sql<{complete:boolean;historyCoverage:string;reason:string;
+   facts:{rowId:string;operation:string}[]}>(`SELECT gridex_correction_process.combined_process_body_v3(
+    ${literal(f.ids.company)},${literal(at)}::timestamptz,
+    ARRAY[${literal(f.ids.customer)}]::uuid[],ARRAY[${literal(point)}]::text[])`)
+ const old=read(cutoff),current=read(sql<string>('SELECT to_jsonb(clock_timestamp())'))
+ expect(old).toMatchObject({complete:false,historyCoverage:'before_epoch_unknown',reason:'before_epoch_unknown'})
+ expect(current).toMatchObject({complete:false,historyCoverage:'before_epoch_unknown',reason:'before_epoch_unknown'})
+ expect(old.facts.filter(fact=>fact.rowId===eventId).map(fact=>fact.operation)).toEqual(['INSERT'])
+ expect(current.facts.filter(fact=>fact.rowId===eventId).map(fact=>fact.operation)).toEqual(['INSERT','DELETE'])
+ expect(current.facts.filter(fact=>fact.rowId===requestId).map(fact=>fact.operation)).toEqual(['INSERT','DELETE'])
+ expect(current.facts.filter(fact=>fact.rowId===pointId).map(fact=>fact.operation)).toEqual(['INSERT','DELETE'])
+})
