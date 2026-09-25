@@ -1830,15 +1830,25 @@ DECLARE tokens jsonb:=gridex_received_sources.closure_wire_tokens_v1(p_raw);
 BEGIN
  IF tokens IS NULL THEN RETURN NULL; END IF;
  n:=jsonb_array_length(tokens);
- IF n<7 OR tokens->0->>'tag'<>'UNB' OR tokens->1->>'tag'<>'UNH'
- OR tokens->(n-2)->>'tag'<>'UNT' OR tokens->(n-1)->>'tag'<>'UNZ'
- OR tokens->1#>>'{elements,2,0}'<>'PRODAT'
- OR tokens->(n-2)#>>'{elements,1,0}'<>(n-2)::text
+ IF n<8 OR tokens->0->>'tag' IS DISTINCT FROM 'UNB' OR tokens->1->>'tag' IS DISTINCT FROM 'UNH'
+ OR tokens->(n-2)->>'tag' IS DISTINCT FROM 'UNT' OR tokens->(n-1)->>'tag' IS DISTINCT FROM 'UNZ'
+ OR tokens->0#>>'{elements,1,1}' IS DISTINCT FROM '3'
+ OR tokens->1#>>'{elements,2,0}' IS DISTINCT FROM 'PRODAT'
+ OR tokens->1#>'{elements,1}' IS DISTINCT FROM jsonb_build_array(tokens->1#>>'{elements,1,0}')
+ OR nullif(tokens->1#>>'{elements,1,0}','') IS NULL
+ OR tokens->(n-2)#>'{elements,1}' IS DISTINCT FROM jsonb_build_array((n-2)::text)
  OR tokens->(n-2)#>'{elements,2}' IS DISTINCT FROM tokens->1#>'{elements,1}'
- OR tokens->(n-1)#>>'{elements,1,0}'<>'1'
- OR (SELECT count(*) FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='BGM')<>1
+ OR tokens->(n-1)#>'{elements,1}' IS DISTINCT FROM '["1"]'::jsonb
+ OR tokens->0#>'{elements,5}' IS DISTINCT FROM jsonb_build_array(tokens->0#>>'{elements,5,0}')
+ OR nullif(tokens->0#>>'{elements,5,0}','') IS NULL
+ OR EXISTS (SELECT FROM (VALUES ('UNB'),('UNH'),('UNT'),('UNZ'),('BGM')) AS required(tag)
+   WHERE (SELECT count(*) FROM jsonb_array_elements(tokens) t WHERE t->>'tag'=required.tag)<>1)
+ OR EXISTS (SELECT FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='BGM'
+  AND ((t->>'index')::integer<=1 OR (t->>'index')::integer >=
+   (SELECT min((l->>'index')::integer) FROM jsonb_array_elements(tokens) l WHERE l->>'tag'='LIN')))
  OR (SELECT count(*) FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='BGM'
-  AND t#>>'{elements,1,0}' IN ('Z04','Z05','Z06','Z10'))<>1
+  AND t#>'{elements,1}' IN ('["Z04"]'::jsonb,'["Z05"]'::jsonb,
+   '["Z06"]'::jsonb,'["Z10"]'::jsonb))<>1
  OR tokens->0#>>'{elements,5,0}' IS DISTINCT FROM tokens->(n-1)#>>'{elements,2,0}' THEN RETURN NULL; END IF;
  SELECT count(*),count(*) FILTER (WHERE t#>>'{elements,3,3}'='9'
   AND nullif(t#>>'{elements,3,0}','') IS NOT NULL),max(t#>>'{elements,3,0}')
@@ -10462,6 +10472,7 @@ CREATE TABLE public.billing_underlays (
     billing_configuration_snapshot_sha256 text,
     billing_configuration_snapshotted_at timestamp with time zone,
     customer_contract_id uuid,
+    billing_blocked_by_case_id uuid,
     CONSTRAINT billing_underlays_configuration_snapshot_check CHECK ((((billing_configuration_snapshot IS NULL) AND (billing_configuration_snapshot_sha256 IS NULL) AND (billing_configuration_snapshotted_at IS NULL)) OR ((jsonb_typeof(billing_configuration_snapshot) = 'object'::text) AND (billing_configuration_snapshot_sha256 ~ '^[0-9a-f]{64}$'::text) AND (billing_configuration_snapshotted_at IS NOT NULL)))),
     CONSTRAINT billing_underlays_energy_direction_check CHECK ((energy_direction = ANY (ARRAY['consumption'::text, 'production'::text, 'consumption_correction'::text]))),
     CONSTRAINT billing_underlays_month_valid_check CHECK ((((underlay_month >= 1) AND (underlay_month <= 12)) AND ((underlay_year >= 2000) AND (underlay_year <= 2100)))),
@@ -10799,6 +10810,10 @@ CREATE TABLE public.customer_contracts (
     admin_fee_sek numeric,
     break_fee_sek numeric,
     vat_rate numeric DEFAULT 0.25,
+    is_distance_agreement boolean DEFAULT false NOT NULL,
+    withdrawal_information_sent_at timestamp with time zone,
+    withdrawal_deadline_at timestamp with time zone,
+    billing_blocked_by_case_id uuid,
     CONSTRAINT customer_contracts_billing_identity_check CHECK (((billing_eligible_at IS NULL) OR ((contract_price_snapshot_id IS NOT NULL) AND (contract_product_version_id IS NOT NULL) AND (contract_publication_version_id IS NOT NULL) AND (price_area_used = ANY (ARRAY['SE1'::text, 'SE2'::text, 'SE3'::text, 'SE4'::text])) AND (NULLIF(snapshot_hash, ''::text) IS NOT NULL)))),
     CONSTRAINT customer_contracts_contract_type_check CHECK ((contract_type = ANY (ARRAY['fixed'::text, 'variable'::text, 'variable_spot'::text, 'variable_monthly'::text, 'variable_hourly'::text, 'variable_quarterly'::text, 'hourly_spot'::text, 'spot'::text, 'portfolio'::text, 'mixed'::text, 'manual_override'::text]))),
     CONSTRAINT customer_contracts_energy_direction_check CHECK ((energy_direction = ANY (ARRAY['consumption'::text, 'production'::text]))),
@@ -11675,7 +11690,8 @@ CREATE TABLE public.outbound_requests (
     metadata jsonb DEFAULT '{}'::jsonb,
     operation_id uuid,
     grid_owner_information_request_id uuid,
-    customer_site_id uuid
+    customer_site_id uuid,
+    customer_case_id uuid
 );
 
 --
@@ -62263,7 +62279,8 @@ CREATE TABLE public.partner_exports (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     created_by uuid,
     updated_by uuid,
-    metadata jsonb DEFAULT '{}'::jsonb
+    metadata jsonb DEFAULT '{}'::jsonb,
+    customer_case_id uuid
 );
 
 --
@@ -75240,6 +75257,12 @@ CREATE INDEX billing_provider_webhook_events_provider_event_idx ON public.billin
 CREATE UNIQUE INDEX billing_provider_webhook_events_provider_idempotency_uidx ON public.billing_provider_webhook_events USING btree (company_id, provider, environment, idempotency_key);
 
 --
+-- Name: billing_underlays_case_block_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX billing_underlays_case_block_idx ON public.billing_underlays USING btree (company_id, billing_blocked_by_case_id);
+
+--
 -- Name: billing_underlays_company_id_id_uidx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -76036,6 +76059,12 @@ COMMENT ON INDEX public.customer_contracts_single_active_supply_direction_uidx I
 --
 
 CREATE INDEX customer_contracts_website_application_retry_idx ON public.customer_contracts USING btree (company_id, customer_id, customer_site_id, site_id, metering_point_id, requested_start_date, starts_at, created_at DESC) WHERE ((source_type = ANY (ARRAY['website_application'::text, 'website_application_review'::text])) AND (status <> ALL (ARRAY['cancelled'::text, 'rejected'::text, 'terminated'::text])));
+
+--
+-- Name: customer_contracts_withdrawal_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_contracts_withdrawal_idx ON public.customer_contracts USING btree (company_id, withdrawal_deadline_at, status);
 
 --
 -- Name: customer_correction_requests_company_idx; Type: INDEX; Schema: public; Owner: -
@@ -83676,6 +83705,12 @@ CREATE INDEX outbound_requests_company_operation_idx ON public.outbound_requests
 CREATE INDEX outbound_requests_company_source_idx ON public.outbound_requests USING btree (company_id, source_type, source_id);
 
 --
+-- Name: outbound_requests_customer_case_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX outbound_requests_customer_case_idx ON public.outbound_requests USING btree (company_id, customer_case_id);
+
+--
 -- Name: outbound_requests_customer_site_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -83692,6 +83727,12 @@ CREATE INDEX outbound_requests_grid_owner_information_request_idx ON public.outb
 --
 
 CREATE INDEX outbound_requests_source_operation_idx ON public.outbound_requests USING btree (company_id, source_type, source_id, request_type, operation_id, created_at DESC) WHERE (operation_id IS NOT NULL);
+
+--
+-- Name: partner_exports_customer_case_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX partner_exports_customer_case_idx ON public.partner_exports USING btree (company_id, customer_case_id);
 
 --
 -- Name: platform_actor_aliases_lookup_idx; Type: INDEX; Schema: public; Owner: -
@@ -85879,6 +85920,14 @@ CREATE TRIGGER customers_partner_api_events_v2 AFTER INSERT OR UPDATE OF status,
 --
 
 CREATE TRIGGER customers_protect_customer_number BEFORE UPDATE OF customer_number ON public.customers FOR EACH ROW EXECUTE FUNCTION public.gridex_protect_customer_number();
+
+--
+-- Name: supplier_switch_events e035_bind_switch_event_owner; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER e035_bind_switch_event_owner BEFORE INSERT OR UPDATE ON public.supplier_switch_events FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.bind_switch_event_owner_v1();
+
+ALTER TABLE public.supplier_switch_events ENABLE ALWAYS TRIGGER e035_bind_switch_event_owner;
 
 --
 -- Name: customer_case_events e035_process_after_write; Type: TRIGGER; Schema: public; Owner: -

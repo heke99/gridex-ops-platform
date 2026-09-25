@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish corrected negative assertion comparing original case status, inspect exact-head native/quality/schema. Preserve Storage diagnostic and unresolved root cause.",
+  "next_action": "Verify copied authentic generated contracts locally, publish exact tree, inspect final-head native replay through tenant/parity/schema and independent review. Storage cause remains unresolved.",
   "task4_combined_snapshot": {
     "published_head": "b1c7f993affdb68d11f4c0941c483c4d145b938e",
     "published_tree": "37789b428e66c37b3030f1aa9bc8b539a78d40e9",
@@ -688,14 +688,21 @@
     "pr_draft": true
   },
   "pr372_resume_20260925": {
-    "published_head": "05cb5c407c8b941f1011b1e424ce7c873be9d184",
-    "published_tree": "141eae896b627bcac3608013a7df875fd9350001",
-    "ops_run": 36126471587,
-    "native_job": 108043629239,
-    "native": "334/335; negative authorization denied as expected; fixture assumed open but real support stop status billing_blocked",
-    "quality": "SUCCESS including 6080 tests, budget and build",
-    "auth_diagnosis": "Synthetic active tenant member and auth user; registry 0, direct grant 0, effective false. Forward plus direct test grant prepared; native unexecuted.",
+    "published_head": "4c05b146fab58f97495403f7da206f9d400ad0b8",
+    "published_tree": "f50abf92b58c8eee742939cd441f2c627ec85ab6",
+    "ops_run": 36127254985,
+    "native_job": 108046110819,
+    "native": "335/335 native PASS; case-view 1/1 PASS; authentic typegen then stopped on stale committed hash",
+    "quality": "verify and quality-release-gates SUCCESS",
+    "auth_diagnosis": "Canonical cases.write registry and direct tenant grant, negative and positive status paths qualified native335/335.",
     "storage": "All six Storage mutation cases passed at 05cb5c40. Earlier unconfirmed stage remains unobserved; instrumented diagnostic retained.",
-    "merge": "BLOCKED"
+    "merge": "BLOCKED",
+    "artifact": {
+      "id": 10860308328,
+      "zip_sha256": "40f63743c7454f3de7abb9ad2085f0060194a322350f96d42b4e9a3a767ab849",
+      "types_sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
+      "schema_fingerprint": "c3ec834faa7c27e3db0f4424a2afcc8205ea4bf17035b8c7d5aba56b4b0bdb37",
+      "status": "copied_exact_locally_not_published_or_same_head_verified"
+    }
   }
 }

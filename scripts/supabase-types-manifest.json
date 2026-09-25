@@ -1,9 +1,9 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-09-24T12:27:51Z",
-  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run35998393754",
+  "generated_at": "2026-09-25T11:11:26Z",
+  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run36127254985-artifact10860308328",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "2b2dda6ae967b612e5c7e89e094542069d2ce38ba837747c480b3582ca5568ef",
+  "sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
   "latest_migration": "20260925130000_customer_case_write_permission_registry_completion.sql",
-  "latest_migration_schema_effect": "Canonical cases.write registry row only; no schema or generated TypeScript shape change. Replay still required for authoritative schema fingerprint."
+  "latest_migration_schema_effect": "Authentic clean replay: seven late case columns, four indexes, switch-event owner trigger and previously published private function refinements; cases.write registry row changes data only."
 }

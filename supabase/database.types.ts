@@ -5329,6 +5329,7 @@ export type Database = {
       billing_underlays: {
         Row: {
           billing_block_reason: string | null
+          billing_blocked_by_case_id: string | null
           billing_configuration_snapshot: Json | null
           billing_configuration_snapshot_sha256: string | null
           billing_configuration_snapshotted_at: string | null
@@ -5391,6 +5392,7 @@ export type Database = {
         }
         Insert: {
           billing_block_reason?: string | null
+          billing_blocked_by_case_id?: string | null
           billing_configuration_snapshot?: Json | null
           billing_configuration_snapshot_sha256?: string | null
           billing_configuration_snapshotted_at?: string | null
@@ -5453,6 +5455,7 @@ export type Database = {
         }
         Update: {
           billing_block_reason?: string | null
+          billing_blocked_by_case_id?: string | null
           billing_configuration_snapshot?: Json | null
           billing_configuration_snapshot_sha256?: string | null
           billing_configuration_snapshotted_at?: string | null
@@ -18130,6 +18133,7 @@ export type Database = {
           auto_renew_enabled: boolean
           auto_renew_term_months: number | null
           billing_address_same_as_site: boolean | null
+          billing_blocked_by_case_id: string | null
           billing_blocked_reason: string | null
           billing_blocker_reasons: Json | null
           billing_city: string | null
@@ -18188,6 +18192,7 @@ export type Database = {
           invoice_fee_sek: number | null
           invoice_recipient: string | null
           invoice_reference: string | null
+          is_distance_agreement: boolean
           legal_acceptance_snapshot: Json
           legal_bundle_id: string | null
           legal_bundle_version_id: string | null
@@ -18250,6 +18255,8 @@ export type Database = {
           vat_rate: number | null
           version_snapshot: Json | null
           website_application_id: string | null
+          withdrawal_deadline_at: string | null
+          withdrawal_information_sent_at: string | null
           withdrawal_requested_at: string | null
         }
         Insert: {
@@ -18261,6 +18268,7 @@ export type Database = {
           auto_renew_enabled?: boolean
           auto_renew_term_months?: number | null
           billing_address_same_as_site?: boolean | null
+          billing_blocked_by_case_id?: string | null
           billing_blocked_reason?: string | null
           billing_blocker_reasons?: Json | null
           billing_city?: string | null
@@ -18319,6 +18327,7 @@ export type Database = {
           invoice_fee_sek?: number | null
           invoice_recipient?: string | null
           invoice_reference?: string | null
+          is_distance_agreement?: boolean
           legal_acceptance_snapshot?: Json
           legal_bundle_id?: string | null
           legal_bundle_version_id?: string | null
@@ -18381,6 +18390,8 @@ export type Database = {
           vat_rate?: number | null
           version_snapshot?: Json | null
           website_application_id?: string | null
+          withdrawal_deadline_at?: string | null
+          withdrawal_information_sent_at?: string | null
           withdrawal_requested_at?: string | null
         }
         Update: {
@@ -18392,6 +18403,7 @@ export type Database = {
           auto_renew_enabled?: boolean
           auto_renew_term_months?: number | null
           billing_address_same_as_site?: boolean | null
+          billing_blocked_by_case_id?: string | null
           billing_blocked_reason?: string | null
           billing_blocker_reasons?: Json | null
           billing_city?: string | null
@@ -18450,6 +18462,7 @@ export type Database = {
           invoice_fee_sek?: number | null
           invoice_recipient?: string | null
           invoice_reference?: string | null
+          is_distance_agreement?: boolean
           legal_acceptance_snapshot?: Json
           legal_bundle_id?: string | null
           legal_bundle_version_id?: string | null
@@ -18512,6 +18525,8 @@ export type Database = {
           vat_rate?: number | null
           version_snapshot?: Json | null
           website_application_id?: string | null
+          withdrawal_deadline_at?: string | null
+          withdrawal_information_sent_at?: string | null
           withdrawal_requested_at?: string | null
         }
         Relationships: [
@@ -58639,6 +58654,7 @@ export type Database = {
           company_id: string | null
           created_at: string
           created_by: string | null
+          customer_case_id: string | null
           customer_id: string | null
           customer_site_id: string | null
           dispatch_batch_key: string | null
@@ -58677,6 +58693,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           created_by?: string | null
+          customer_case_id?: string | null
           customer_id?: string | null
           customer_site_id?: string | null
           dispatch_batch_key?: string | null
@@ -58715,6 +58732,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           created_by?: string | null
+          customer_case_id?: string | null
           customer_id?: string | null
           customer_site_id?: string | null
           dispatch_batch_key?: string | null
@@ -58942,6 +58960,7 @@ export type Database = {
           company_id: string | null
           created_at: string
           created_by: string | null
+          customer_case_id: string | null
           customer_id: string | null
           export_batch_key: string | null
           export_kind: string
@@ -58973,6 +58992,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           created_by?: string | null
+          customer_case_id?: string | null
           customer_id?: string | null
           export_batch_key?: string | null
           export_kind?: string
@@ -59004,6 +59024,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           created_by?: string | null
+          customer_case_id?: string | null
           customer_id?: string | null
           export_batch_key?: string | null
           export_kind?: string
@@ -88704,6 +88725,7 @@ export type Database = {
         }
         Returns: {
           billing_block_reason: string | null
+          billing_blocked_by_case_id: string | null
           billing_configuration_snapshot: Json | null
           billing_configuration_snapshot_sha256: string | null
           billing_configuration_snapshotted_at: string | null
