@@ -897,6 +897,33 @@ it('relevant source overflow holds the actual inbound processor without business
   ORDER BY id DESC LIMIT 1`)
  expect(JSON.parse(snapshot.source.readsetText)).toMatchObject({complete:false,sourceCount:1001})
 })
+it('a failed combined owner read holds actual UTILTS without a national error or meter effect',async()=>{
+ const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ const inbound=await insertPriorUtilts(f,priorNativeWire(f,point))
+ const originalRpc=supabaseService.rpc.bind(supabaseService)
+ const failedRead=vi.spyOn(supabaseService,'rpc').mockImplementation((name,args,options)=>{
+  if(name==='gridex_correction_combined_snapshot_v1')return {abortSignal:async()=>({data:null,error:{code:'42501',message:'synthetic_combined_owner_unavailable'}})} as unknown as ReturnType<typeof supabaseService.rpc>
+  return originalRpc(name,args,options)
+ })
+ utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
+ utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
+ try{
+  const result=await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:inbound.id})
+  expect(result).toMatchObject({internalReviewRequired:true,ingestedMeterValueIds:[],billingUnderlayId:null})
+ }finally{failedRead.mockRestore()}
+ expect(utiltsEffects.ack.mock.calls.map(([call])=>call.ackFamily)).toEqual(['CONTRL'])
+ expect(utiltsEffects.meter).not.toHaveBeenCalled()
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.meter_reading_series
+  WHERE source_ediel_message_id=${literal(inbound.id)}`)).toBe(0)
+ expect(sql(`SELECT jsonb_build_object('disposition',disposition,'plan',planned_response_type,
+  'series',persisted_series_id,'issues',issue_codes) FROM public.ediel_ack_transaction_results
+  WHERE source_message_id=${literal(inbound.id)}`)).toMatchObject({disposition:'internal_review',plan:'none',series:null,issues:['UTILTS_STRUCTURE_UNAVAILABLE']})
+ expect(sql(`SELECT parsed_payload#>'{normalizedMeteringPayload,receivedStructureQualification}'
+  FROM public.ediel_messages WHERE id=${literal(inbound.id)}`)).toMatchObject({snapshotId:null,readsetHash:null,
+   comparisons:[{status:'unavailable',codes:[]}]})
+})
 it('a historical inbound point still sees facts from its prior physical alias',async()=>{
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
  const prior=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
