@@ -1,8 +1,8 @@
 ## 2026-09-25 — PR372 exact-head blockers
 
-- R1: `66b12f9` native325/325, but the volume fixture warmed its direct RPC before the processor; prior cold processor at `8e7c6268` saved no receipt. Local committed `f8842513` projects a conservative nullable wire point at insert and restores cold processor order. Publish and inspect native before claiming closure.
-- R2: `66b12f9` historical alias regression passed native, but independent reviewer on `16505294` has not re-reviewed the final whole diff.
-- Authentic schema from `66b12f9` artifact is local only; new projection forward requires a fresh replay artifact. Signed/remaining legacy Task3b, Task4 negatives and E30/S07, full-diff approval and final-head CI remain open. No merge.
+- Cold R1 Z05 source/concern/process volume passed native325/325 at `e27e3403` (OPS `36108754412`), but reviewer found same gap for parseable Z06/Z10 stored as NULL scope. Local forward rebuild and mixed volume fixture await native.
+- Unrelated document attempt budget (>1,000) test locally added; no native result yet. Historical alias native passed at `66b12f9` and `e27e3403`, independent final whole-diff review pending.
+- Authentic schema drift on e27e3403 is expected and local earlier artifact is stale. Final artifact/schema/type proof, signed/legacy Task3b, Task4 negatives/E30/S07 and independent approval remain. No merge.
 
 ## 2026-09-24 — Current PR372 blockers
 

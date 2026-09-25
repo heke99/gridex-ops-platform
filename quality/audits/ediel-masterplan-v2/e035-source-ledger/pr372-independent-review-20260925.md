@@ -69,3 +69,22 @@ saved no receipt, the next forward materializes an immutable, conservatively
 nullable source wire point at insertion; the test moves the direct diagnostic
 after the actual processor. Cold native replay remains required before R1
 closure. The independent review remains REQUEST CHANGES.
+
+Independent reviewer `/root/pr372_review` followed up read-only on published
+`e27e3403` / tree `5a2c7e12` and found a new blocker: its generated source
+point parser recognized only Z04/Z05, while the same sealed ledger captures
+single-object Z06/Z10. More than 1,000 unrelated Z06/Z10 rows could still
+consume the source budget as NULL wildcards. The reviewer did not inspect
+uncommitted changes or perform the final whole-diff review.
+
+OPS `36108754412` on `e27e3403` passed verify and quality/build, and its clean
+replay passed 325/325 native in five files with the **cold processor first**.
+The 1,001 unrelated Z05 sources/concerns and process rows no longer prevent
+its saved receipt or meter persistence. Final schema check failed only on
+expected canonical drift: one generated column, one index, six private
+functions/grants, fingerprint actual `30856133` versus committed `5e3db200`.
+This qualifies the cold Z05 budget behavior, not the new Z06/Z10 or document
+volume cases. The next forward rebuilds the stored parser projection for
+Z06/Z10 and the next native fixture adds 1,001 of each supported source class
+across a mixed batch, plus 1,001 unrelated document attempts. Review remains
+REQUEST CHANGES until those cases and final whole-diff review pass.

@@ -575,8 +575,21 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
    s.source_received_at,s.captured_at,body.facts,encode(sha256(convert_to(body.facts::text,'UTF8')),'hex')
   FROM sources s CROSS JOIN LATERAL (SELECT jsonb_build_object('scope',
    jsonb_build_object('objectId',${literal(unrelatedPoint)})) facts) body;`)
+ const z06=structuralOwnerSource('Z06','E64','UNRELATED-Z06').raw_payload!.replaceAll('735123456789012345',unrelatedPoint)
+ const z10=structuralOwnerSource('Z10','E58','UNRELATED-Z10').raw_payload!.replaceAll('735123456789012345',unrelatedPoint)
+ sql(`INSERT INTO gridex_received_sources.sources(source_message_id,company_id,environment,origin,
+   message_code,source_received_at,captured_at,raw_payload,payload_hash,received_context)
+  SELECT gen_random_uuid(),${literal(f.ids.company)},'test','database_insert',
+   CASE WHEN n<=501 THEN 'Z06' ELSE 'Z10' END,
+   clock_timestamp()-interval '1 minute',clock_timestamp()-interval '30 seconds',
+   CASE WHEN n<=501 THEN ${literal(z06)} ELSE ${literal(z10)} END,
+   encode(sha256(convert_to(CASE WHEN n<=501 THEN ${literal(z06)} ELSE ${literal(z10)} END,'UTF8')),'hex'),
+   '{}'::jsonb FROM generate_series(1,1001) n;`)
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.correction_concerns
   WHERE company_id=${literal(f.ids.company)}`)).toBe(1001)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.sources
+  WHERE company_id=${literal(f.ids.company)} AND message_code IN ('Z06','Z10')
+   AND scope_point=${literal(unrelatedPoint)}`)).toBe(1001)
  const source=await insertPriorUtilts(f,priorNativeWire(f,point))
  utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
  utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
@@ -609,6 +622,54 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
  expect(unrelatedTaskIds.size).toBe(1001)
  expect(body.process.facts.some(fact=>fact.table==='customer_operation_tasks'&&unrelatedTaskIds.has(fact.rowId))).toBe(false)
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.meter_reading_series WHERE source_ediel_message_id=${literal(source.id)}`)).toBe(1)
+})
+it('unrelated document volume does not exhaust a linked UTILTS subject budget',async()=>{
+ const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const otherCustomer=randomUUID(),contract=randomUUID(),document=randomUUID(),otherSource=randomUUID()
+ const unrelatedPoint='735999260731000008'
+ const wire=closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',unrelatedPoint)
+ const facts=JSON.stringify({scope:{objectId:unrelatedPoint}})
+ sql(`INSERT INTO public.customers(id,company_id,customer_number,name,customer_type)
+  VALUES(${literal(otherCustomer)},${literal(f.ids.company)},${literal(`E035-DOC-${otherCustomer}`)},'Unrelated document customer','private');
+  INSERT INTO public.customer_contracts(id,company_id,customer_id,status)
+  VALUES(${literal(contract)},${literal(f.ids.company)},${literal(otherCustomer)},'draft');
+  INSERT INTO public.customer_contract_documents(id,company_id,customer_contract_id,document_type,document_sha256)
+  VALUES(${literal(document)},${literal(f.ids.company)},${literal(contract)},'synthetic_unrelated','0'::text || repeat('0',63));
+  INSERT INTO gridex_received_sources.sources(source_message_id,company_id,environment,origin,
+   message_code,source_received_at,captured_at,raw_payload,payload_hash,received_context)
+  VALUES(${literal(otherSource)},${literal(f.ids.company)},'test','database_insert','Z05',
+   clock_timestamp()-interval '1 minute',clock_timestamp()-interval '30 seconds',
+   ${literal(wire)},encode(sha256(convert_to(${literal(wire)},'UTF8')),'hex'),'{}'::jsonb);
+  INSERT INTO gridex_received_sources.correction_concerns(source_message_id,company_id,
+   environment,source_payload_hash,actor_user_id,source_received_at,source_captured_at,facts,facts_hash)
+  SELECT source_message_id,company_id,environment,payload_hash,${literal(f.ids.reviewer)},
+   source_received_at,captured_at,${literal(facts)}::jsonb,
+   encode(sha256(convert_to(${literal(facts)}::jsonb::text,'UTF8')),'hex')
+  FROM gridex_received_sources.sources WHERE source_message_id=${literal(otherSource)};
+  INSERT INTO gridex_received_sources.document_reference_attempts(company_id,environment,
+   source_message_id,document_id,actor_user_id,facts,facts_hash)
+  SELECT ${literal(f.ids.company)},'test',${literal(otherSource)},${literal(document)},
+   ${literal(f.ids.reviewer)},jsonb_build_object('syntheticVolume',n),
+   encode(sha256(convert_to(jsonb_build_object('syntheticVolume',n)::text,'UTF8')),'hex')
+  FROM generate_series(1,1001) n;`)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.document_reference_attempts
+  WHERE company_id=${literal(f.ids.company)}`)).toBe(1001)
+ const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
+ const source=await insertPriorUtilts(f,priorNativeWire(f,point))
+ utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
+ utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
+ const result=await processInboundUtiltsMessage({actorUserId:f.ids.reviewer,edielMessageId:source.id})
+ expect(result.ackIds.length).toBeGreaterThan(0)
+ const receipt=sql<{snapshotId:string;readsetHash:string}>(`SELECT parsed_payload#>'{normalizedMeteringPayload,receivedStructureQualification}'
+  FROM public.ediel_messages WHERE id=${literal(source.id)}`)
+ expect(receipt).toMatchObject({snapshotId:expect.any(String),readsetHash:expect.stringMatching(/^[a-f0-9]{64}$/)})
+ const body=sql<{document:{attemptCount:number;attempts:unknown[]};correction:{count:number}}>(`SELECT readset_text::jsonb
+  FROM gridex_correction_process.combined_snapshots WHERE id=${literal(receipt.snapshotId)}`)
+ expect(body.document).toMatchObject({attemptCount:0,attempts:[]})
+ expect(body.correction.count).toBe(0)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.meter_reading_series
+  WHERE source_ediel_message_id=${literal(source.id)}`)).toBe(1)
 })
 it('a historical inbound point still sees facts from its prior physical alias',async()=>{
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})

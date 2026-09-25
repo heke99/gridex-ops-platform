@@ -1,6 +1,6 @@
 ## 2026-09-25 — PR372 latest handover
 
-Published `66b12f9` from local `9b174345`, identical tree `7e845683`; do not force-push local SHA. OPS `36107605706` native325/325 plus verify/quality green, final schema check expected drift `df38a442` from five private functions. Authentic artifact `10851567749` downloaded, types identical, schema copied locally but not yet committed because next forward changes it. Local committed `f8842513` adds immutable generated source point and cold-order processor test; publish as fast-forward child of remote, inspect replay. Reviewer `/root/pr372_review` R1/R2 remains unapproved. Signed/legacy/retention and Task4 negatives open. PR372 draft, PR310 excluded.
+Published `e27e3403` tree `5a2c7e12` passed OPS `36108754412` native325/325, verify and quality/build, stopped on expected schema drift `30856133`. Local schema copied earlier from `66b12f9` artifact is stale and uncommitted; replace only from final exact-head artifact. Reviewer `/root/pr372_review` found Z06/Z10 wildcard budget on e27e3403. Local uncommitted forward `20260925101500` rebuilds stored projection, native adds 1,001 mixed Z06/Z10 and 1,001 unrelated document attempts. Publish after local checks, inspect actual replay. Later finish signed/legacy/retention and Task4 negatives, final whole-diff review. PR372 draft, PR310 excluded.
 
 ## 2026-09-24 — Resume current PR372 Task3b
 

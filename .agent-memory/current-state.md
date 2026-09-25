@@ -1,6 +1,6 @@
 ## 2026-09-25 — PR372 latest active state
 
-Remote head `66b12f9`, tree `7e845683`: OPS `36107605706` applied alias migration and passed 325/325 native, verify and quality/build; canonical schema snapshot drift was the sole final gate failure. Artifact `10851567749` ZIP SHA256 `a67a97d8` provided authentic schema; types remain byte-identical. The direct RPC ran before the processor and may have warmed the 1,001-row fixture. Local committed `f8842513` adds generated conservative source scope and moves direct RPC after the cold processor; native replay is pending. Independent R1/R2 remains REQUEST CHANGES, Task3b/Task4 acceptance incomplete. PR372 draft, PR310 excluded.
+Remote `e27e3403` / OPS `36108754412`: verify, quality/build, native325/325 including cold inbound receipt; final canonical schema drift only. Reviewer follow-up found Z06/Z10 source budget gap. Local forward to rebuild generated source projection and native Z06/Z10/document volume fixtures have type/lint/integrity checks only. R1/R2/R3 not independently approved; final whole-diff review pending. Task3b and Task4 acceptance incomplete. PR372 draft, PR310 excluded.
 
 ## 2026-09-24 — PR372 Task3b continued from 69f51b69
 
