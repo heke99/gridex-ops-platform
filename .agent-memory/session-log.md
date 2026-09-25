@@ -1,3 +1,6 @@
+## 2026-09-25 — LK exemption and first CI failure
+2026-09-25 follow-up: published intermediate PR372 `9b62d5d9` exposed first full E2E coverage failure `108259269158` (non-Z08 callback_missing and eight dependent/static cases). Independent correction review found legitimate Z08 LK exemption. Local TDD LK RED/GREEN and second forward `20260925234000` now return an explicit SQL-owned exemption; restored original non-Z08 direct lane. Exact four affected test files 52/52 PASS; final native and exact-head CI pending. Main unchanged; no production/staging/market send or PR310 change.
+
 ## 2026-09-25 — PR stack, CI, independent fence finding
 Merged child PRs #373–384 through real parents to draft PR372; published integrated `0fbe6a5a`, same code tree as green #384 plus checkpoint/EOF cleanup. All applicable CI on that head passed. Independent read-only review found critical malformed outbound Z08/stale row-code SQL fail-open to SMTP. Wrote local focused RED/GREEN and forward/native candidate; static checks pass. Main `2a148d39` unchanged; no staging, hosted DB, production or market send; PR310 excluded. Next publish candidate and native qualify, then reconcile main production trigger.
 

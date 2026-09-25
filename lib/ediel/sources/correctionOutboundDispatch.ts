@@ -6,7 +6,7 @@ import {SmtpDeliveryUncertainError} from '@/lib/ediel/transport/smtpOutcome'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 
 export type OutboundDispatchOwner={kind:'direct'}|{kind:'worker';outboxId:string;sendAttemptId:string;workerId:string}
-type Receipt={scoped:boolean;proceed?:boolean;eventId?:string;witnessed?:boolean;facts?:{classification?:string};acceptedReceipt?:unknown}
+type Receipt={scoped:boolean;unscopedReason?:string;proceed?:boolean;eventId?:string;witnessed?:boolean;facts?:{classification?:string};acceptedReceipt?:unknown}
 type ProviderResult=Awaited<ReturnType<typeof sendEdielEmail>> & {dispatchReplay?:boolean;dispatchObservedAt?:string}
 class ReplayAccepted extends Error {constructor(readonly result:ProviderResult){super('outbound_dispatch_projection_repair')}}
 function acceptedReceipt(value:unknown):ProviderResult|null{
@@ -29,10 +29,7 @@ export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,contex
  let potential=message.message_code==='Z08'
  try{const t=tokenizeEdifact(message.raw_payload);potential ||= t.segments.some(s=>s.tag==='BGM'&&segmentComposite(s,1,t.una)[0]==='Z08')}
  catch{potential=true} // malformed originals cannot use the uninstrumented lane
- // The database tokenizer can reject a raw body that the application parser
- // partially recognizes. Let the database classify every outbound PRODAT
- // original so malformed wire cannot escape the Z08 fence through stale metadata.
- if(!potential && (message.direction!=='outbound'||message.message_family!=='PRODAT'))return sendEdielEmail(input)
+ if(!potential)return sendEdielEmail(input)
  const identity={companyId:message.company_id,environment:message.environment,messageId:message.id,actorUserId:context.actorUserId,
   attemptId:randomUUID()}
  let callbackUsed=false,entryAttempted=false,prepared=false,scoped=false,resultCaptured=false
@@ -55,7 +52,8 @@ export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,contex
    const reservation=await call('prepare',{owner:context.owner ?? {kind:'direct'},binding})
    scoped=reservation.scoped
    if(!scoped){
-    if(potential)throw Error('outbound_dispatch_scope_mismatch')
+    if(potential && !(reservation.unscopedReason==='canonical_lk_exemption' && message.rule_profile_key==='PRODAT:Z08:LK:26.A:r3'))
+     throw Error('outbound_dispatch_scope_mismatch')
     return
    }
    if(reservation.proceed!==true){

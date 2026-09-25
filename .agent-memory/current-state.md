@@ -1,3 +1,6 @@
+## 2026-09-25 — LK exemption and first CI failure
+2026-09-25 follow-up: published intermediate PR372 `9b62d5d9` exposed first full E2E coverage failure `108259269158` (non-Z08 callback_missing and eight dependent/static cases). Independent correction review found legitimate Z08 LK exemption. Local TDD LK RED/GREEN and second forward `20260925234000` now return an explicit SQL-owned exemption; restored original non-Z08 direct lane. Exact four affected test files 52/52 PASS; final native and exact-head CI pending. Main unchanged; no production/staging/market send or PR310 change.
+
 ## 2026-09-25 — Integrated PR372 exact-head green; outbound fence correction active
 PR372 published `0fbe6a5a` passed all applicable ordinary CI, OPS `36190502740` verify/quality/replay, tenant/Ediel/browser/full E2E; crawler skipped. Independent read-only review found critical malformed-Z08/stale-code SQL `scoped:false` and SMTP bypass. Local focused RED/GREEN 2/2, migration checks/types/lint/budget PASS; new forward/native test not yet published or replayed. Main `2a148d39`, PR310 excluded. Production deployment on main remains unreconciled with no-production scope. See `quality/audits/ediel-masterplan-v2/e035-outbound-unknown-wire-fence-20260925.md`.
 

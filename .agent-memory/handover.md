@@ -1,3 +1,6 @@
+## 2026-09-25 — LK exemption and first CI failure
+2026-09-25 follow-up: published intermediate PR372 `9b62d5d9` exposed first full E2E coverage failure `108259269158` (non-Z08 callback_missing and eight dependent/static cases). Independent correction review found legitimate Z08 LK exemption. Local TDD LK RED/GREEN and second forward `20260925234000` now return an explicit SQL-owned exemption; restored original non-Z08 direct lane. Exact four affected test files 52/52 PASS; final native and exact-head CI pending. Main unchanged; no production/staging/market send or PR310 change.
+
 ## 2026-09-25 — Outbound fence handover
 PR372 integrated doc head `0fbe6a5a` passed all applicable ordinary CI incl OPS `36190502740`; main `2a148d39`. Read-only review found malformed raw Z08 with stale code SQL `scoped:false` allowing SMTP without receipt. Candidate in current clean checkout adds JS scope assertion/PRODAT classifier, private forward migration `20260925233000`, unit RED/GREEN and native test. Local unit 2/2, migration check, app/test/script types, scoped lint, file budget pass. Publish current candidate only after diff/manifest review, then require exact-head native replay and artifact parity. No hosted DB/prod/staging action. Production-on-main conflict and E035 retention remain.
 

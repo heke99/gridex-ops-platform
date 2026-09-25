@@ -54,3 +54,21 @@ it('keeps a valid non-Z08 outbound PRODAT on its existing SMTP lane', async () =
   )).resolves.toMatchObject({ accepted: ['receiver@example.invalid'] })
   expect(io.provider).toHaveBeenCalledOnce()
 })
+
+it('keeps a canonical Z08 LK without Z25 on its documented ordinary lane', async () => {
+  io.rpc.mockResolvedValue({ data: { scoped: false, unscopedReason: 'canonical_lk_exemption' }, error: null })
+  const { sendCorrectionFencedEmail } = await import('@/lib/ediel/sources/correctionOutboundDispatch')
+  const raw = closureFixture({ reason: 'Z23' }).wire.replace('BGM+Z05', 'BGM+Z08')
+  const message = {
+    id: '00000000-0000-4000-8000-000000000005', company_id: '00000000-0000-4000-8000-000000000002',
+    environment: 'test', direction: 'outbound', message_family: 'PRODAT', message_code: 'Z08', raw_payload: raw,
+    rule_profile_key: 'PRODAT:Z08:LK:26.A:r3',
+  } as EdielMessageRow
+
+  await expect(sendCorrectionFencedEmail(
+    { to: 'receiver@example.invalid', subject: 'synthetic' },
+    { message, actorUserId: '00000000-0000-4000-8000-000000000003', mimeMode: 'synthetic',
+      payload: Buffer.from(raw, 'utf8'), encoding: 'latin1' },
+  )).resolves.toMatchObject({ accepted: ['receiver@example.invalid'] })
+  expect(io.provider).toHaveBeenCalledOnce()
+})

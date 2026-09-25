@@ -1,3 +1,6 @@
+## 2026-09-25 — LK exemption and first CI failure
+2026-09-25 follow-up: published intermediate PR372 `9b62d5d9` exposed first full E2E coverage failure `108259269158` (non-Z08 callback_missing and eight dependent/static cases). Independent correction review found legitimate Z08 LK exemption. Local TDD LK RED/GREEN and second forward `20260925234000` now return an explicit SQL-owned exemption; restored original non-Z08 direct lane. Exact four affected test files 52/52 PASS; final native and exact-head CI pending. Main unchanged; no production/staging/market send or PR310 change.
+
 ## 2026-09-25 — Integrated PR372 and outbound fence candidate
 `0fbe6a5a`: OPS `36190502740` verify/quality/clean replay SUCCESS; tenant `36190502852`, Ediel `36190502747`, browser `36190502862`, full E2E `36190502639` SUCCESS; crawler skipped. Local candidate after independent review: `npx vitest run __tests__/ediel-correction-outbound-scope.test.ts` RED old provider acceptance, then PASS 2/2; `npm run db:migrations:check`, `npm run typecheck`, `npm run typecheck:tests`, `npm run typecheck:scripts`, scoped eslint, large-file budget, diff check PASS. SQL native and new-head CI NOT RUN.
 
