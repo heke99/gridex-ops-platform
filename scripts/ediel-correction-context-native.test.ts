@@ -1205,63 +1205,24 @@ it('a real Z08H send appears with its original, attempt, provider result and wit
   FROM gridex_correction_process.combined_snapshots WHERE id=${literal(after.snapshotId)}`)).toBe(true)
 })
 
-it('an unsealed historical Z08 remains an outbound wildcard despite a parseable unrelated point',async()=>{
+it('a historical raw Z08 with stale metadata stays a wildcard but a sealed unrelated point does not',async()=>{
  const f=await outboundSeed()
- expect(await captureCorrectionContext({companyId:f.companyId,environment:'test',
-  sourceMessageId:f.sourceMessageId,actorUserId:f.actorUserId})).toMatchObject({status:'recorded'})
+ expect(await captureCorrectionContext({companyId:f.companyId,environment:'test',sourceMessageId:f.sourceMessageId,actorUserId:f.actorUserId})).toMatchObject({status:'recorded'})
  const unrelated='735999260731000008',wire=f.wire.replaceAll('735123456789012345',unrelated)
- // Emulate a pre-seal row on an isolated native database; contemporary
- // canonical inserts always receive the immutable payload seal from a trigger.
+ // An isolated native database emulates historical edits before immutable sealing.
  sql(`BEGIN; SET LOCAL session_replication_role=replica;
-  UPDATE public.ediel_messages SET raw_payload=${literal(wire)},immutable_payload_hash=NULL,
-   immutable_rendered_at=NULL WHERE id=${literal(f.messageId)};
+  UPDATE public.ediel_messages SET raw_payload=${literal(wire)},immutable_payload_hash=${literal(createHash('sha256').update(wire).digest('hex'))},
+   immutable_rendered_at=clock_timestamp() WHERE id=${literal(f.messageId)};
   COMMIT;`)
- expect(sql(`SELECT jsonb_build_object('hash',immutable_payload_hash,'rendered',immutable_rendered_at)
-  FROM public.ediel_messages WHERE id=${literal(f.messageId)}`)).toEqual({hash:null,rendered:null})
- const receipt=sql<{readsetText:string}>(`SET ROLE service_role;
-  SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.companyId)},'test',
-   ${literal(f.sourceMessageId)},clock_timestamp())`)
- const body=JSON.parse(receipt.readsetText) as {outbound:{originals:{messageId:string;scope:unknown}[]}}
+ const open=()=>sql<{readsetText:string}>(`SET ROLE service_role; SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.companyId)},'test',${literal(f.sourceMessageId)},clock_timestamp())`)
+ expect((JSON.parse(open().readsetText) as {outbound:{originalCount:number}}).outbound.originalCount).toBe(0)
+ sql(`BEGIN; SET LOCAL session_replication_role=replica; UPDATE public.ediel_messages SET message_code='Z05',rule_profile_key='PRODAT:Z05:C:26.A:r3',
+  immutable_payload_hash=NULL,immutable_rendered_at=NULL WHERE id=${literal(f.messageId)}; COMMIT;`)
+ expect(sql(`SELECT jsonb_build_object('code',message_code,'profile',rule_profile_key,'hash',immutable_payload_hash,'rendered',immutable_rendered_at)
+  FROM public.ediel_messages WHERE id=${literal(f.messageId)}`)).toEqual({code:'Z05',profile:'PRODAT:Z05:C:26.A:r3',hash:null,rendered:null})
+ const body=JSON.parse(open().readsetText) as {outbound:{originalCount:number;originals:{messageId:string;scope:unknown}[]}}
+ expect(body.outbound.originalCount).toBe(1)
  expect(body.outbound.originals).toContainEqual(expect.objectContaining({messageId:f.messageId,scope:{}}))
-})
-
-it('a raw historical Z08 with stale row metadata belongs to the combined outbound owner',async()=>{
- const f=await outboundSeed(),unrelatedId=randomUUID(),unrelatedWire=f.wire.replaceAll('735123456789012345','735999260731000008')
- expect(await captureCorrectionContext({companyId:f.companyId,environment:'test',
-  sourceMessageId:f.sourceMessageId,actorUserId:f.actorUserId})).toMatchObject({status:'recorded'})
- // A sealed Z08 for a known unrelated point must still be scoped out.
- sql(`INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,
-  raw_payload,parsed_payload,application_reference,sender_ediel_id,receiver_ediel_id,receiver_email,
-  communication_route_id,route_profile_id,source_operation_id,canonical_rule_pack_id,rule_profile_key,
-  rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
-  SELECT ${literal(unrelatedId)},company_id,environment,direction,message_standard,message_family,message_code,status,
-   ${literal(unrelatedWire)},parsed_payload,application_reference,sender_ediel_id,receiver_ediel_id,receiver_email,
-   communication_route_id,route_profile_id,${literal(randomUUID())},canonical_rule_pack_id,rule_profile_key,
-   rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot
-  FROM public.ediel_messages WHERE id=${literal(f.messageId)};`)
- // Pre-epoch rows could predate the immutable seal and carry stale metadata.
- sql(`BEGIN; SET LOCAL session_replication_role=replica;
-  UPDATE public.ediel_messages SET message_code='Z05',rule_profile_key='PRODAT:Z05:C:26.A:r3',
-   immutable_payload_hash=NULL,immutable_rendered_at=NULL WHERE id=${literal(f.messageId)};
-  COMMIT;`)
- expect(sql(`SELECT jsonb_build_object('code',message_code,'profile',rule_profile_key,
-  'hash',immutable_payload_hash,'rendered',immutable_rendered_at) FROM public.ediel_messages
-  WHERE id=${literal(f.messageId)}`)).toEqual({code:'Z05',profile:'PRODAT:Z05:C:26.A:r3',hash:null,rendered:null})
- sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
-  SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions WHERE key='communication.read'
-  ON CONFLICT DO NOTHING;`)
- const standalone=sql<{originalCount:number;complete:boolean}>(`SET ROLE service_role;
-  SELECT gridex_outbound_dispatch.readset_v1(${literal(f.companyId)},'test',${literal(f.actorUserId)},
-   ${literal({point:'735123456789012345'})});`)
- expect(standalone).toMatchObject({originalCount:1,complete:false})
- const receipt=sql<{readsetText:string}>(`SET ROLE service_role;
-  SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.companyId)},'test',
-   ${literal(f.sourceMessageId)},clock_timestamp())`)
- const outbound=(JSON.parse(receipt.readsetText) as {outbound:{complete:boolean;originalCount:number;
-  originals:{messageId:string;instrumented:boolean;scope:unknown}[]}}).outbound
- expect(outbound).toMatchObject({complete:false,originalCount:1,
-  originals:[{messageId:f.messageId,instrumented:false,scope:{}}]})
- expect(outbound.originals.map(row=>row.messageId)).not.toContain(unrelatedId)
 })
 
 it('the process owner saves a bounded scoped receipt without claiming history completeness', async () => {
