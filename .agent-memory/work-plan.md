@@ -1,3 +1,8 @@
+## 2026-09-26 — next criterion after #394
+1. Reproduce the F3C-04 persisted ACK/outbox evidence gap for complete mixed Z04 through actual tenant route and DB owner; cover negative first-object reference, no sibling positive, retry and no case/business mutation. Fix a confirmed product defect only if reproduced.
+2. Keep field203/LOC+175 safely gated pending source-proven durable tenant/legal-actor owners; independently continue F3C-02/05/06/07 and E035 history/retention.
+3. Keep all Ediel market capabilities behind their per-actor/source/schema/transport/ACK and formal external gates. No staging, TGT/AGT, counterpart or live market sends in this round.
+
 ## 2026-09-26 — after bounded U-03 acceptance
 1. Reconcile F3C-02/04 source-valid mixed Z04 objects, final APERAK references, persistence and business effects with actual consumer and native SQL; fix only reproduced defect in one PR with exact-head gates.
 2. Carry field203 duplicate and LOC+175 positive identity blockers safely gated while tracing their durable tenant/legal-actor ownership. Continue remaining F3C-05/06/07 and E035 history/retention separately.
