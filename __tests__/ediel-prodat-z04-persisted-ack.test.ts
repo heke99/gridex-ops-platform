@@ -1,6 +1,7 @@
 import {beforeEach,expect,it,vi} from 'vitest'
-import {raw,line,qty,common,characteristic,type Parts} from './fixtures/prodat-register'
-import {source,head} from './fixtures/prodat-identity'
+import {raw} from './fixtures/prodat-register'
+import {source} from './fixtures/prodat-identity'
+import {mixedZ04Parts} from './helpers/mixedZ04Fixture'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 
 // The message writer, ACK builder, canonical ACK gateway and outbox helper are
@@ -42,15 +43,7 @@ vi.mock('@/lib/inbound-mail/edielMailboxPoller',()=>({runInboundEdielMailEngine:
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
 import {resolveCanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
 
-function mixed():Parts[]{return [...head(),line('1','735123456789012345','1','9'),qty('10'),...common('735123456789012345','A'),
- ...characteristic('Z07','E22'),...characteristic('Z12','D',3),...characteristic('Z15','Z32'),...characteristic('Z14','L639Q',3),
- ['NAD','IT',['735123456789012345','','9'],'','Installation','Street','City','','12345','SE'],['NAD','Z02',['54321','160','SVK'],'','','','','','','SE'],
- line('2','735123456789012345','2','9'),
- line('3','735123456789012352',undefined,'9'),qty('30'),...common('735123456789012352','B'),
- ...characteristic('Z07','E22'),...characteristic('Z12','D',3),...characteristic('Z15','Z32'),...characteristic('Z14','L639Q',3),
- ['NAD','IT',['735123456789012352','','9'],'','Installation','Street','City','','12345','SE'],['NAD','Z02',['54321','160','SVK'],'','','','','','','SE']]}
-
-beforeEach(()=>{state.messages=[];state.outbox=[];state.events=[];state.effects=[];state.routeAvailable=true;state.source={...source(raw(mixed(),'Z04'),'Z04'),company_id:'00000000-0000-4000-8000-000000000002',status:'received',
+beforeEach(()=>{state.messages=[];state.outbox=[];state.events=[];state.effects=[];state.routeAvailable=true;state.source={...source(raw(mixedZ04Parts(),'Z04'),'Z04'),company_id:'00000000-0000-4000-8000-000000000002',status:'received',
  canonical_rule_pack_id:'00000000-0000-4000-8000-000000000033',rule_profile_key:'PRODAT:Z04:L:26.A:r3',rule_profile_version_id:'00000000-0000-4000-8000-000000000032',rule_profile_version:'26.A:r3',rule_pack_checksum:'synthetic-source-hash',rule_pack_snapshot:{profileKey:'PRODAT:Z04:L:26.A:r3',profileVersionId:'00000000-0000-4000-8000-000000000032',version:'26.A:r3',checksum:'synthetic-source-hash'},parsed_payload:{fileEngine:{mode:'agt'}}} as EdielMessageRow})
 
 it('stores one routed CONTRL and one first-object negative APERAK without a sibling success or business effect',async()=>{
