@@ -411,3 +411,9 @@ PR381 `a307b91e` full E2E coverage failed four variants: synthetic receive 00:00
 | Lokal gren före commit | E66 invalid/missing BGM1225 + genuine E19 RED | `functional_rejected`/ERR before fix | Complete source-valid fixture apart from 204. |
 | Lokal gren före commit | 25 files, app/test types, scoped lint, final valid5 focus | 311/311 and other PASS | Native/own exact-head CI pending. |
 | `28ed2fc3a353c03058e9363b06a40a49235cef20` | PR381 corrected ordinary workflows | Browser SUCCESS; Ediel/E2E/OPS running at last check | Predecessor batch. |
+## 2026-09-26 — final main reconciliation
+
+| PR/head | Source-to-consumer verification | Native and ordinary CI | Main/deployment boundary |
+| --- | --- | --- | --- |
+| #387 `408dd5a0` | RED false 172 rejection; E66 mixed IDE, hold/ACK/zero quantities and real inbound stale-match negative effects; local five suites 81/81, app/test types and scoped lint | OPS `36235286768` clean replay 343/343, Ediel `36235286777`, browser `36235286786`, E2E `36235286795`: all success | Squash main `06b62d65`, Vercel `dpl_5xkqB5D6HjvXtK8S56W8bNAqUagt` READY, no Ediel traffic activation. |
+| #388 `ad90a080` | RED missing ID/agency, invalid agency; per-IDE ERC41/42 field533 and real inbound no business effect; local five suites 86/86, app/test types, lint/file budget | Ediel `36236181108`, browser `36236181005`, E2E `36236181105` success; OPS `36236181111` verify/quality success, native first blocked at ECR pull limit before tests, sole targeted retry `108404586642` clean replay 343/343 and authentic generated types/schema success | Squash main `72b405c7`, Vercel `dpl_A6N2A8Z6RwworAByEW3YBgyg598F` READY, no Ediel traffic activation. |

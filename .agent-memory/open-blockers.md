@@ -561,3 +561,9 @@ The guide compares DTM137 to `message_received_at`, falling back to `created_at`
 Annex C UG-122-7 requires nonblank BGM/C106/1004 and uniqueness over time with ERC42 for duplicate. The owner/tenant-scope and final ACK have not yet been traced through actual persistence; next bounded review. E66 LOC175 storage and custom UNA timezone remain fail-closed gaps.
 ## 2026-09-25 — Post-merge bounded scope
 PR372 and child stack are on main, with final CI native343/343 PASS. The S-code 1131 batch is locally verified but not yet CI qualified. Process archive retention/purge, pre-epoch complete:false, E66 regulating-object identity, native mixed-IDE ACK/storage, F3C-06/07 and later masterplan work remain open. PR310 stays paused. Main merge triggered the configured production deployment workflow; deployment outcome must be checked separately.
+## 2026-09-26 — current verified blockers (older entries below are historical)
+
+- Field203 UG-122-7 duplicate ERC42: no proven immutable tenant and legal-actor document-identity owner/reservation covering history, concurrency and idempotent retries. Presence/ERC41 is merged, not uniqueness.
+- E66 LOC+175: distinct per-IDE parsing and invalid field533 ID/agency ACK are merged; positive regulating-object identity needs a durable tenant/legal-actor owner and separate SQL sink, GS1 check digit and native retry/storage proof. Correct-looking objects remain `internal_review`, not positive consumption.
+- E035 historical pre-epoch `complete:false`, retention and deletion, F3C-02/04/05/06/07 and F1/F2/F4–F6 remain independently unclosed. Vercel READY is not market authorization; live schema, actor/mandate, transport and external TGT/AGT/counterparty gates are unverified for any Ediel capability.
+- PR #310 remains paused and excluded.

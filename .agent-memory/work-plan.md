@@ -406,3 +406,8 @@ Publish field205 source-backed header/policy correction stacked on draft PR380, 
 
 ## Active 2026-09-25 — F3C-05 BGM function204
 Publish bounded field204 guide/consumer batch stacked on PR381 corrected head; require ordinary exact-head CI. Then inspect fields202/203 with document-id uniqueness and per-IDE E66 209/533 distinct storage scope. F3C-04 native Z04, F3C-06 grammar, F3C-07 ledger remain. No staging/merge/PR310.
+## 2026-09-26 — active finite sequence
+
+1. PR #387/#388 are merged to main `72b405c7`; web deployment READY, no Ediel traffic activation. Do not reopen their bounded tests without changed assumptions.
+2. Source and reproduce GS1 check digit/field533 per IDE, or move to independent F3C-05 literal guide-first ordering if the original algorithm is unavailable. Keep valid LOC+175 held until separate durable actor/tenant object identity and SQL sink are proven.
+3. Establish field203/42 immutable owner or document precise external blocker; then close F3C-02/04/05/06/07 and E035 history/retention by their own criteria, followed by F1/F2/F4–F6 and capability-specific G gates. No estimated completion percentage from mixed denominators.

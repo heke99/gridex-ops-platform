@@ -166,3 +166,6 @@ Annex C UG-122-12/13 message date required/format/calendar/future check feeds ty
 
 ## 2026-09-25 — Bounded UTILTS field204 local verification
 Annex C UG-122-8 BGM1225 allowed5/9 now yields final guide field204 ERC41/42, negative APERAK over E19. Actual mocked inbound has no meter/billing/completion, and 311/311 relevant tests, app/test types and lint pass. Publication/own CI pending; full F3 incomplete.
+## 2026-09-26 — bounded E66 main deliveries
+
+PR #387 and #388 merged to remote main `72b405c7`. #387 parses LOC+175 separately per IDE and holds unsupported regulating-object data without positive APERAK, point attribution, quantities or billing, preserving a LOC+172 sibling. #388 issues ERC41/42 field533 for blank ID/missing or invalid agency per IDE and preserves the actual inbound negative response/no business effect. Both exact-head four ordinary CI workflows passed; clean replay native 343/343 each (the #388 one after one verified ECR-limit retry). Vercel production deployment for main READY. Neither GS1 checks nor positive LOC+175 processing, field203 uniqueness, E035 history/retention or full phase acceptance is completed.
