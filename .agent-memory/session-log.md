@@ -333,7 +333,10 @@ Verified remote main and no active competing code PR, traced field203 immutable 
 Reproduced old `upsert` resetting terminal/in-flight ACK outbox statuses. Direct RED then 6/6 GREEN, actual mixed Z04 consumer 11/11. First PR #396 OPS verify failed service-role tenant ratchet (+2); targeted `tenantDb` correction reduced direct calls 2402→2400. Corrected exact head `7f9ede0e` four ordinary workflows SUCCESS, OPS native lock/status 3/3 true. Squash merged `b4879ab0`; remote main and Vercel same-SHA READY verified. Stored mixed-Z04 final ACK remains next proof. PR310 untouched, no staging/market send.
 ## 2026-09-26 — #399 release receipt and next boundary
 Verified remote main and sole active code PR; first native route constraint RED, corrected forward and actual consumer test, authentic clean replay schema/type parity, exact-head workflows and guarded #399 merge. Main `5f554f1a`, Vercel READY. The earlier E035 observation-time failure is tracked unresolved; a later Docker image limit received one justified job retry. Frozen 121 rule/231 contract statuses were grouped, not overwritten from unrelated test counts. Next finite F3C-04 criterion; #310 untouched, no staging/market send.
-## 2026-09-26 — delivery checkpoint after #402
+## 2026-09-26 — after #403 and next criterion
+Merged checkpoint #403 after ordinary CI and verified main/Vercel same SHA. Original GS1 check-digit source/profile not established from local extraction; moved to independent UG-123-5. RED unknown SG2 NAD role led to E19, bounded header code-list GREEN with actual processor mock; native/CI pending. No market send, no #310 change.
+
+## Historical — delivery checkpoint after #402
 TDD source-led NAD 207/208 qualifier/agency (#401) and SVK 3039 shape (#402), real processor and native persisted ACK/no-effects tests, four exact-head workflows per PR, native 345/345 then 346/346, merges and remote-main/Vercel SHA READY verified. No staging/TGT/AGT/counterparty/market send; field203/LOC175/E035 and GS1 branch remain open. #310 untouched. Next independent source/owner trace; do not infer phase acceptance.
 
 ## Historical — NAD continuation

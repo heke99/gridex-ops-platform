@@ -1,4 +1,7 @@
-## Latest — after #402
+## Latest — header509 candidate after #403
+Supplied subordinate NAD role code-list candidate is locally tested but lacks native/CI/merge. It does not establish which role is mandatory or authorize DGG. Field203 immutable tenant/legal-actor history/ERC42, positive LOC175, GS1 NAD 9/305 source profile, E035 `complete:false`/history/retention/deletion and intermittent observation-time failure remain open. #310 paused. Entries below historical.
+
+## Historical — after #402
 NAD agency/qualifier and SVK five-digit identity checks are merged but market-disabled. GS1 NAD 9/305 exact check-digit profile remains separately unaccepted. Field203 immutable tenant/legal-actor identity and ERC42 temporal duplicate, positive LOC175 durable sink, E035 pre-epoch `complete:false`/history/retention/deletion and intermittent `invalid_document_observation_time` remain open. #310 paused. Entries below historical.
 
 ## Historical — after #396

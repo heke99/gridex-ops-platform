@@ -1,4 +1,7 @@
-## Latest — after #402
+## Latest — header509 candidate after #403
+Main `4221d0dced9ea5727c0bf6b18b49dc6ee9a9ce91`, Vercel `dpl_J9jh2tKEVJSw5ETnczoJRmyHmRVv` READY after documentation-only #403 exact-head four workflows success. New branch `codex/ediel-v2-utilts-header509-20260926` carries bounded supplied ancillary NAD code list and real processor/native fixture, local 298/298 UTILTS and types/lint; native/CI pending. No market activation or #310 change. Entries below historical.
+
+## Historical — after #402
 Remote main `34b1bf98c0efc7605f28a1052c1cdbc5d98bcbfe`, Vercel production `dpl_8jg42Cbuijfd2W3GNv6BwdqFBbaP` READY same SHA. #401 head `cf6839d7` four ordinary workflows green and native 345/345; #402 head `79417051` four green and native 346/346. Bounded NAD 207/208 agency/qualifier and SVK five-digit shape accepted in code, not market activation. Next inspect original GS1 check-digit source/profile or another independent rule; field203/LOC175/E035 remain gated. No staging/TGT/AGT/counterparty/live sends; #310 untouched. Entries below historical.
 
 ## Historical — after #396

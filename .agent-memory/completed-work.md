@@ -182,7 +182,10 @@ PR #387 and #388 merged to remote main `72b405c7`. #387 parses LOC+175 separatel
 PR #396 exact head `7f9ede0ea7e364052cfaef4b486c270d8c6232a4`: four ordinary workflows SUCCESS, direct helper and actual Z04 consumer tests 17/17, OPS clean replay native outbox lock/status checks 3/3 true. Merged main `b4879ab0face3a4da19040103379d21fbf16a2c0`; same-SHA Vercel production `dpl_CWH3ENdVerwLQ93buEJaJVX4xgT9` READY. Tenant-scoped immutable lock conflict no longer requeues terminal/in-flight ACK; conditional known-failure retry and worker race safe. Actual persisted mixed-Z04 ACK and whole F3C-04 still open.
 ## 2026-09-26 — PR #399 bounded ACK route
 Actual persisted `ediel_ack` route scope and unmocked local inbound mixed-Z04 consumer with tenant/legal actor, final CONTRL/negative APERAK/outbox, retry and zero business effects passed 344/344 native on exact PR head `d7c3762f`; all ordinary workflows green. Squash main `5f554f1a`, Vercel `dpl_6cHLqratq28QYGeG6euUHo7xfimu` READY. No Ediel traffic or full F3 acceptance. E035 intermittent observation-time failure remains open; see release-boundary audit.
-## 2026-09-26 — #402 bounded merge
+## 2026-09-26 — #403 checkpoint merge
+Documentation-only #403 reconciled #401/#402 delivery, frozen denominator and open gates. Four exact-head ordinary workflows succeeded; main `4221d0dc` and same-SHA Vercel READY. No extra market activation or whole-phase certificate.
+
+## Historical — #402 bounded merge
 UG-122-24 NAD MS/MR SVK five-digit 3039 shape merged via #402 after exact-head four ordinary CI workflows and native346/346. Verified remote main `34b1bf98` and same-SHA Vercel READY. The GS1 9/305 branch and all market gates remain unaccepted. See `quality/audits/ediel-masterplan-v2/release-boundary-pr402-20260926.md`.
 
 ## Historical — #401 bounded merge

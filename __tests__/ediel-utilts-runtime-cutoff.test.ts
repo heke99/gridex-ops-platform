@@ -6,6 +6,25 @@ import { buildAperakDraft } from '@/lib/ediel/ack'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 
 describe('UTILTS runtime effective-date cutoff', () => {
+  it('rejects unknown subordinate header NAD role as field 509 before E66 E19', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-nad-role')
+    expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')
+    const message = { ...control, sender_ediel_id: '91100', receiver_ediel_id: '21660',
+      raw_payload: control.raw_payload!.replace("NAD+DDQ'", "NAD+BAD'") }
+    const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+    expect(runtime.transactionDispositions.map(item => item.responseType)).toEqual(['negative_aperak'])
+    expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ fieldCode: '509', ercCode: '42' }),
+    ]))
+    expect(runtime.ackPlan.utiltsErrCodes).toEqual([])
+    const plan = resolveCanonicalRuntimeDecision(message).responsePlan.find(item => item.family === 'APERAK')!
+    expect(buildAperakDraft({ sourceMessage: message, outcome: 'negative', applicationErrors: plan.applicationErrors }).rawPayload)
+      .toContain('FTX+AAO++509::260')
+    for (const role of ['DDK', 'DDQ', 'DDX', 'DEA', 'DEC', 'DER', 'DGG', 'DGI', 'EZ', 'MDR', 'PQ']) {
+      const allowed = runUtiltsRuntimeForMessage({ ...control, raw_payload: control.raw_payload!.replace("NAD+DDQ'", `NAD+${role}'`) }, { referenceDate: '2026-09-30' })
+      expect(allowed.ackPlan.aperakApplicationErrors.some(issue => issue.fieldCode === '509'), role).toBe(false)
+    }
+  })
   it('requires exactly five decimal digits for NAD MS/MR 3039 when 1131 is SVK before E66 function', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-nad-identity')
     expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')
