@@ -266,7 +266,7 @@ it('interruption before witness leaves committed unwitnessed outcome',async()=>{
 })
 it.each(['before_append','before_witness','after_witness'].flatMap(boundary=>['delete','replace'].map(loss=>({boundary,loss}))))('storage $loss at $boundary preserves old receipt and new reads hold',async({boundary,loss})=>{
  const f=await seed();const original=supabaseService.rpc.bind(supabaseService)
- const trace:{hook?:string;storage?:string;storageError?:string;rpcError?:string}={}
+ const trace:{hook?:string;storage?:string;storageError?:string;rpcError?:string;observation?:unknown}={}
  const lose=async()=>{
   trace.storage='started'
   try{
@@ -277,7 +277,9 @@ it.each(['before_append','before_witness','after_witness'].flatMap(boundary=>['d
  }
  if(boundary!=='after_witness')vi.spyOn(supabaseService,'rpc').mockImplementation((name,params,options)=>{
   if(name===(boundary==='before_append'?'gridex_observe_document_reference_v1':'gridex_witness_document_reference_v1'))return {abortSignal:async()=>{
-   trace.hook=name;await lose();const response=await original(name,params,options)
+   trace.hook=name
+   if(name==='gridex_observe_document_reference_v1')trace.observation=(params as {p_observation?:unknown})?.p_observation
+   await lose();const response=await original(name,params,options)
    trace.rpcError=response.error?.message;return response
   }} as unknown as ReturnType<typeof supabaseService.rpc>
   return original(name,params,options)
@@ -293,7 +295,8 @@ it.each(['before_append','before_witness','after_witness'].flatMap(boundary=>['d
   const object=sql<{count:number;ids:string[]}>(`SELECT jsonb_build_object('count',count(*),
    'ids',coalesce(jsonb_agg(id::text ORDER BY id),'[]'::jsonb)) FROM storage.objects
    WHERE bucket_id='customer-contract-documents' AND name=${literal(f.document.storage_path)}`)
-  throw Error(`document_reference_capture_stage ${JSON.stringify({boundary,loss,objectPath:f.document.storage_path,object,capture,trace,durable})}`)
+  const clock=sql<{recordedAt:string;dbNow:string}>(`SELECT jsonb_build_object('recordedAt',recorded_at,'dbNow',clock_timestamp()) FROM gridex_received_sources.document_reference_attempts WHERE id=${literal(capture.attemptId)}`)
+  throw Error(`document_reference_capture_stage ${JSON.stringify({boundary,loss,objectPath:f.document.storage_path,object,capture,trace,clock,durable})}`)
  }
  expect(capture).toMatchObject({status:'recorded',observation:'verified_at_observation'})
  vi.restoreAllMocks();const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())'),old=saved(f,cutoff)

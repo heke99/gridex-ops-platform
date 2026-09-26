@@ -1,5 +1,7 @@
 # F3C-04 — actual ACK route and native inbound consumer
 
+Third head `70ee7ddc`: tenant, Ediel, browser and full E2E passed; OPS verify and quality/build passed. Clean replay's native suite was 341/344, with three unrelated E035 document-reference timing failures (`invalid_document_observation_time` in the observation RPC) during storage mutation tests. The Z04 ACK test passed. This is not qualified as an environment flake: the first error lacks the attempt/observation timestamps needed to tell whether the server rejected an earlier start or a future completion. Add failure-only timestamp diagnostics to that test and run a new exact head; do not relax the RPC's ordering rule or mark #399 mergeable meanwhile.
+
 Base `main` `cdc19d319ad7e210d97cceb373b7ff298dc0be31` after #398. PR #310 remains paused. No staging, TGT/AGT, counterpart or market send.
 
 | Source and exact rule | Code and database owner | Incoming/outgoing consumer; expected effect | Tests and status |
