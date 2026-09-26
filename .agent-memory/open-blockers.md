@@ -1,3 +1,6 @@
+## Latest — after #396
+Field203/ERC42 immutable owner, positive LOC+175 distinct durable owner and E035 history/retention remain blockers. Mixed-Z04 stored final ACK still open after bounded retry safety. Older entries below are historical.
+
 ## 2026-09-26 — after #394
 F3C-04 lacks actual persisted mixed-Z04 ACK/outbox and route/retry evidence; #394 proves only exact retained canonical register assessment, while the real inbound unit mocks ACK persistence. Field203 UG-122-7 duplicate/ERC42 still lacks immutable tenant/legal-actor document identity with history/concurrency/retries. Positive E66 LOC+175 still lacks a separate durable object and SQL sink. E035 historical `complete:false` and retention/deletion remain unclosed. Other F3/F1/F2/F4–F6 require own criterion proof; Vercel READY does not activate Ediel, PR310 paused.
 
@@ -576,3 +579,5 @@ PR372 and child stack are on main, with final CI native343/343 PASS. The S-code 
 - E66 LOC+175: distinct per-IDE parsing and invalid field533 ID/agency ACK are merged; positive regulating-object identity needs a durable tenant/legal-actor owner and separate SQL sink, GS1 check digit and native retry/storage proof. Correct-looking objects remain `internal_review`, not positive consumption.
 - E035 historical pre-epoch `complete:false`, retention and deletion, F3C-02/04/05/06/07 and F1/F2/F4–F6 remain independently unclosed. Vercel READY is not market authorization; live schema, actor/mandate, transport and external TGT/AGT/counterparty gates are unverified for any Ediel capability.
 - PR #310 remains paused and excluded.
+# 2026-09-26 — after #396
+ACK outbox retry status overwrite is fixed and native-verified, but actual persisted final CONTRL/negative APERAK for the complete mixed Z04 original is still unproven. Field203 UG-122-7 ERC42 requires an immutable tenant/legal-actor document identity across history, concurrency and retries. Positive LOC+175 requires a distinct regulating-object owner and SQL sink; do not borrow LOC+172. E035 historical `complete:false`, retention and deletion remain unclosed. Other F3C-02/05/06/07 and F1/F2/F4–F6 have criterion-specific work; zero whole-phase closure. Vercel READY is only web deployment; PR310 paused.

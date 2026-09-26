@@ -1,3 +1,6 @@
+## Latest — next criterion after #396
+Actual persisted mixed-Z04 final ACK/outbox, tenant route and case effects. Reproduce first; one bounded PR and exact-head CI/native. Field203/LOC+175 safely gated; E035 history/retention separate. Older entries below are historical.
+
 ## 2026-09-26 — next criterion after #394
 1. Reproduce the F3C-04 persisted ACK/outbox evidence gap for complete mixed Z04 through actual tenant route and DB owner; cover negative first-object reference, no sibling positive, retry and no case/business mutation. Fix a confirmed product defect only if reproduced.
 2. Keep field203/LOC+175 safely gated pending source-proven durable tenant/legal-actor owners; independently continue F3C-02/05/06/07 and E035 history/retention.
@@ -426,3 +429,7 @@ Publish bounded field204 guide/consumer batch stacked on PR381 corrected head; r
 1. PR #387/#388 are merged to main `72b405c7`; web deployment READY, no Ediel traffic activation. Do not reopen their bounded tests without changed assumptions.
 2. Source and reproduce GS1 check digit/field533 per IDE, or move to independent F3C-05 literal guide-first ordering if the original algorithm is unavailable. Keep valid LOC+175 held until separate durable actor/tenant object identity and SQL sink are proven.
 3. Establish field203/42 immutable owner or document precise external blocker; then close F3C-02/04/05/06/07 and E035 history/retention by their own criteria, followed by F1/F2/F4–F6 and capability-specific G gates. No estimated completion percentage from mixed denominators.
+# 2026-09-26 — next criterion after #396
+1. Verify persisted source-valid mixed-Z04 CONTRL/negative APERAK, tenant route, durable outbox and permitted/forbidden case effects with actual code and native SQL. First reproduce any defect; one bounded PR and exact-head CI.
+2. Keep field203/ERC42 and positive LOC+175 gated pending proven durable identity; independently pursue other F3C and E035 history/retention criteria one at a time.
+3. Maintain no-market-traffic release boundary; formal capability-specific TGT/AGT, mandate, transport and counterparty proof remain outside this code round. PR310 untouched.
