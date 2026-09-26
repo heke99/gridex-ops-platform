@@ -36,6 +36,22 @@ describe('UTILTS runtime effective-date cutoff', () => {
       ]))
     }
   })
+  it.each(['E30', 'S07'] as const)('validates a supplied %s LOC+172 at field 209 in the October guide', code => {
+    const source = observationHandoffMessage('2026-10-01', `tenant-${code}-point209`)
+    const raw = source.raw_payload!.replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : 'BGM+E30::260')
+      .replace('23-DDQ-E66-S', code === 'E30' ? '23-MDR-E30-S' : '23-DDQ-S07-S')
+    const message = { ...source, message_code: code,
+      application_reference: code === 'E30' ? '23-MDR-E30-S' : '23-DDQ-S07-S', raw_payload: raw }
+    expect(runUtiltsRuntimeForMessage(message, { referenceDate: '2026-10-01' }).validation.issues
+      .some(issue => issue.aperakFieldCode === '209')).toBe(false)
+    const invalid = { ...message, raw_payload: raw.replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000008::9') }
+    const runtime = runUtiltsRuntimeForMessage(invalid, { referenceDate: '2026-10-01' })
+    expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ fieldCode: '209', ercCode: '42', referenceNumber: 'GRIDEX2607E66001' }),
+    ]))
+    expect(runtime.transactionDispositions).toMatchObject([{ disposition: 'guide_rejected', responseType: 'negative_aperak' }])
+    expect(runtime.ackPlan.utiltsErrCodes).toEqual([])
+  })
   it('checks supplied per-IDE grid-area composite at 260a/b/c before E66 function', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-grid-area-guide')
     expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')

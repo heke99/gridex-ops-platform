@@ -321,6 +321,25 @@ it('routes a supplied invalid E66 LOC+172 identity to 209 without consuming its 
   expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ sourceTransactionReference: 'GRIDEX2607E66002', quantityKwh: 7 }))
   expect(io.complete).not.toHaveBeenCalled()
 })
+it.each(['E30', 'S07'] as const)('routes a supplied invalid %s LOC+172 to 209 with no business effects', async code => {
+  const message = incoming(true, false, '2026-10-01')
+  message.message_code = code
+  message.application_reference = code === 'E30' ? '23-MDR-E30-S' : '23-DDQ-S07-S'
+  message.raw_payload = message.raw_payload!
+    .replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : 'BGM+E30::260')
+    .replace('23-DDQ-E66-S', message.application_reference)
+    .replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000008::9')
+  io.get.mockResolvedValue(message)
+  results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
+  await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')![1]
+  expect(persisted.p_company_id).toBe(message.company_id)
+  expect(persisted.p_transactions).toMatchObject([{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak' }])
+  const aperak = io.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')
+  expect(JSON.stringify(aperak?.[0].draft)).toContain('209')
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+})
 it('routes an invalid IDE qualifier to field 505 APERAK while preserving its valid sibling', async () => {
   const message = incoming(true, true, '2026-09-30')
   message.raw_payload = message.raw_payload!.replace('IDE+24+GRIDEX2607E66001', 'IDE+25+GRIDEX2607E66001')

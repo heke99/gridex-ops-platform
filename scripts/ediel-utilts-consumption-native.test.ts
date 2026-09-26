@@ -635,6 +635,32 @@ it('native inbound persists field209 invalid GSRN with final negative ACK and st
   expect(snapshot(source.id)).toEqual(prior)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
 })
+it.each(['E30', 'S07'] as const)('native inbound holds supplied invalid %s LOC+172 at 209 through final ACK and retry', async code => {
+  const f = await seed(), application = code === 'E30' ? '23-MDR-E30-T' : '23-DDQ-S07-T'
+  const raw = f.original.raw_payload!
+    .replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : 'BGM+E30::260')
+    .replace('23-DDQ-E66-T', application)
+    .replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000008::9')
+  const source = await f.insertSource(raw, code)
+  const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
+  const run = code === 'S07' ? processInboundUtiltsMessageByCanonicalPolicy : processInboundUtiltsMessage
+  const first = await run({ actorUserId: f.ids.actor, edielMessageId: source.id })
+  expect(first.ingestedMeterValueIds).toEqual([])
+  expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
+  expect(effects.ack.mock.calls.map(([call]) => call.ackFamily)).toContain('APERAK')
+  expect(effects.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  expect(JSON.stringify(effects.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')![0].draft)).toContain('209')
+  expect(sql(`SELECT jsonb_agg(jsonb_build_object('company',company_id,'disposition',disposition,'plan',planned_response_type,
+   'final',final_response_type,'series',persisted_series_id)) FROM public.ediel_ack_transaction_results
+   WHERE source_message_id=${lit(source.id)}`)).toEqual([{ company: f.ids.company, disposition: 'guide_rejected',
+    plan: 'negative_aperak', final: 'negative_aperak', series: null }])
+  expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+  const prior = snapshot(source.id)
+  await run({ actorUserId: f.ids.actor, edielMessageId: source.id })
+  expect(snapshot(source.id)).toEqual(prior)
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+})
 it('native inbound persists supplied 260a grid-area guide rejection without a consumable series', async () => {
   const f = await seed()
   const source = await f.insertSource(f.original.raw_payload!.replace('LOC+239+TES:SVK:260', 'LOC+239+ABCD:SVK:260'))

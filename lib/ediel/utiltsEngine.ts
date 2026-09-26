@@ -696,8 +696,11 @@ function applyE66RegulatingObjectGuide(message: EdielMessageRow, result: UtiltsR
   return issues.length ? rebuildUtiltsRuntimeResult({ message, result, issues: [...result.validation.issues, ...issues] }) : result
 }
 
-function applyE66MeteringPointGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, referenceDate: string, policy?: CanonicalEdielPolicy): UtiltsRuntimeResult {
-  if (result.facts.messageCode !== 'E66') return result
+function applyUtiltsSuppliedMeteringPointGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, referenceDate: string, policy?: CanonicalEdielPolicy): UtiltsRuntimeResult {
+  // Field 209 is required for E30/S07 and conditional for E66 in U pp.54,123.
+  // Validate supplied LOC+172 for these codes; the separate absence rule for
+  // E66 requires the 172/175 object-domain decision.
+  if (!['E30', 'E66', 'S07'].includes(result.facts.messageCode ?? '')) return result
   // UG-123-11/12 here is sourced from 25-A-4. The older 25-A-3 original
   // is not present in the source pack, so this additional rule cannot be
   // projected onto a prior-guide transaction based on the shared E5SE5A wire.
@@ -847,7 +850,7 @@ export function runUtiltsRuntimeForMessage(
   const guideEffective = applyUtiltsEffectiveDatePolicyToRuntimeResult({
     message, result: guideCorrected, referenceDate, processabilityPolicy: canonicalPolicy?.utiltsProcessability,
   })
-  const guided = applyE66MeteringPointGuide(message, applyE66RegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, guideEffective)))), referenceDate, canonicalPolicy)
+  const guided = applyUtiltsSuppliedMeteringPointGuide(message, applyE66RegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, guideEffective)))), referenceDate, canonicalPolicy)
   const eligible = new Set(guided.transactionDispositions
     .filter(item => item.disposition === 'accepted')
     .map(item => String(item.transactionId ?? '')))
