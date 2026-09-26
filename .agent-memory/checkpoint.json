@@ -1,17 +1,17 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-26T13:50:00Z",
+  "updated_at": "2026-09-26T14:25:00Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "main",
   "active_pr": null,
-  "base_head_sha": "aa70ac5b1c6c21418b1103cd92d16632318e8495",
-  "runtime_accepted_sha": "aa70ac5b1c6c21418b1103cd92d16632318e8495",
-  "last_merged_pr": 390,
-  "last_accepted_pr": 390,
+  "base_head_sha": "fc4e688db414314bce4a85a7172c1d63bc15b804",
+  "runtime_accepted_sha": "fc4e688db414314bce4a85a7172c1d63bc15b804",
+  "last_merged_pr": 392,
+  "last_accepted_pr": 392,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "F3C-05 literal guide-before-function per IDE",
-  "current_audit": "quality/audits/ediel-masterplan-v2/e66-field533-gs1-20260926.md",
+  "active_item": "F3C-02/04 mixed Z04 source and final ACK/storage reconciliation",
+  "current_audit": "quality/audits/ediel-masterplan-v2/f3c05-guide-first-execution-20260926.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
     "published_head": "7750e2da44394b1b154eabfb4e3e8e80af30f4f6",
@@ -30,20 +30,24 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Reproduce and stage U-03 / AT-U-03 guide-before-function execution per IDE, preserving valid sibling ACK/storage. Field203 and LOC+175 positive sink require durable tenant/legal-actor owners. PR310 excluded.",
+  "next_action": "Reconcile source-valid mixed Z04 object, final APERAK references, persisted dispositions and effects; reproduce a gap before code changes. Keep field203/LOC+175 and E035 gates open.",
   "latest_verified_delivery": {
-    "main_sha": "aa70ac5b1c6c21418b1103cd92d16632318e8495",
+    "main_sha": "fc4e688db414314bce4a85a7172c1d63bc15b804",
     "merged_prs": [
       387,
       388,
       389,
-      390
+      390,
+      391,
+      392
     ],
     "pr390_head": "9d6bd3c2ba336ae0e82e0fb44c4dcbc4e63879ac",
     "pr390_ops_run": 36245827122,
     "pr390_native_tests": "343/343",
-    "vercel_deployment": "dpl_6jUX2McXMZaSVoEVKU1aUYrKytCi READY",
-    "boundary": "web deployed; Ediel market capabilities not activated"
+    "vercel_deployment": "dpl_75bdehtPGc6Sr13ZNUSkj6QP7g6Y READY",
+    "boundary": "web deployed; Ediel market capabilities not activated",
+    "pr392_head": "bf57d16e406842cb3325424f0b621b6588ed065b",
+    "pr392_ops_run": 36247794182
   },
   "task4_combined_snapshot": {
     "published_head": "b1c7f993affdb68d11f4c0941c483c4d145b938e",
@@ -157,7 +161,7 @@
     "ordinary_delivery_retest_needed": true
   },
   "independent_review": "PR371_FINAL_SPEC_QUALITY_NATIVE_ACCEPTED; PR372_TASK1_SPEC_QUALITY_APPROVED",
-  "ordinary_final_head_ci": "D7CBAB18_ALL_APPLICABLE_SUCCESS",
+  "ordinary_final_head_ci": "PR392_FOUR_APPLICABLE_SUCCESS_NATIVE_REPLAY",
   "full_source_disposition": "DATED_POST_LEDGER_Z04_Z06F_Z06G_Z10_AND_BGM5_E61_E62_PARTIAL; APPLICABILITY_AND_HISTORY_INCOMPLETE",
   "full_E035": "NOT_COMPLETE",
   "full_F3": "NOT_COMPLETE",
@@ -172,7 +176,7 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "d7cbab18b9b102e00cde256bc91c22271455d7c8",
+  "last_verified_pr_head": "bf57d16e406842cb3325424f0b621b6588ed065b",
   "ordinary_baseline_ci": {
     "head": "95b5e391159e3164869ddabd8ec96b8f69189fe2",
     "ops": 35842844058,

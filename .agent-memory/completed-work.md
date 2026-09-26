@@ -1,3 +1,6 @@
+## 2026-09-26 — bounded F3C-05 U-03 stage execution
+PR #392 merged as `fc4e688db414314bce4a85a7172c1d63bc15b804` after exact-head OPS, Ediel, browser and full E2E SUCCESS with native clean replay. Runtime now performs guide classification before eligible IDE functional checks; a rejected IDE invokes zero functional interval counts while a valid sibling retains ACK/storage. Vercel same-SHA production READY. F3C-05 as a whole remains open; Ediel traffic remains gated.
+
 ## 2026-09-26 — bounded PR390
 E66 LOC+175 agency-9 18-digit GS1 modulo-10 field533/ERC42 negative APERAK per IDE; accepted sibling unaffected. PR390 exact-head CI green with native343/343; merged main `aa70ac5b`, Vercel production READY. This is not positive regulating-object processing or whole F3 completion.
 

@@ -1,3 +1,8 @@
+## 2026-09-26 — after bounded U-03 acceptance
+1. Reconcile F3C-02/04 source-valid mixed Z04 objects, final APERAK references, persistence and business effects with actual consumer and native SQL; fix only reproduced defect in one PR with exact-head gates.
+2. Carry field203 duplicate and LOC+175 positive identity blockers safely gated while tracing their durable tenant/legal-actor ownership. Continue remaining F3C-05/06/07 and E035 history/retention separately.
+3. Keep Ediel capabilities gated; require capability-specific live schema, actor mandate, transport ACK, TGT/AGT and counterparty evidence before activation. No staging or live sends in this code round.
+
 ## 2026-09-26 — active finite criterion after #390
 1. Reproduce and implement U-03/AT-U-03 literal guide-before-function per IDE with genuine mixed-message ACK/storage proof; one PR and exact-head ordinary CI/native before merge.
 2. Recheck field203 and LOC+175 durable actor/tenant owners without inventing scope; move to independent F3C-02/04/06/07 if evidence remains absent. E035 history, retention/deletion and later phases remain criterion-specific.
