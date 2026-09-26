@@ -60,6 +60,7 @@ export type UtiltsAperakApplicationError = {
 export type UtiltsRuntimeTransaction = {
   transactionId: string | null
   meterPointId: string | null
+  regulatingObjectId?: string | null
   gridAreaId: string | null
   deliveryPeriodRaw: string | null
   deliveryPeriodFormat: string | null
@@ -603,7 +604,7 @@ function parseUnitFromGroup(group: UtiltsTransactionGroup): string | null {
   return parts[3]?.trim() || null
 }
 
-function parseLocValueFromGroup(group: UtiltsTransactionGroup, prefix: 'LOC+172' | 'LOC+239'): string | null {
+function parseLocValueFromGroup(group: UtiltsTransactionGroup, prefix: 'LOC+172' | 'LOC+175' | 'LOC+239'): string | null {
   return firstComponent(element(groupSegmentValue(group, prefix), 2))
 }
 
@@ -631,6 +632,7 @@ function parseUtiltsTransactionGroup(group: UtiltsTransactionGroup, sourceOrder:
   return {
     transactionId: transactionIssueReference(group, null),
     meterPointId: parseLocValueFromGroup(group, 'LOC+172'),
+    regulatingObjectId: parseLocValueFromGroup(group, 'LOC+175'),
     gridAreaId: parseLocValueFromGroup(group, 'LOC+239'),
     deliveryPeriodRaw: period.raw,
     deliveryPeriodFormat: period.format,
@@ -1052,7 +1054,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
 
   const needsMeteringPoint = ['S02', 'E30', 'E66'].includes(code)
   const needsGridArea = ['S02', 'S03', 'E30', 'E31', 'E66'].includes(code)
-  if (needsMeteringPoint && !facts.meterPointId) {
+  if (needsMeteringPoint && !facts.meterPointId && !(code === 'E66' && facts.transactions.some(transaction => transaction.regulatingObjectId))) {
     issues.push(buildIssue({
       severity: 'error',
       kind: 'application',
