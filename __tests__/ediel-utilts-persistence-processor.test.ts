@@ -293,7 +293,9 @@ it('real inbound keeps a guide-invalid E66 IDE separate from a valid sibling thr
   ])
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
   expect(io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK')).toHaveLength(2)
-  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
+  expect(io.meter).toHaveBeenCalledTimes(1); expect(io.bill).toHaveBeenCalledTimes(1)
+  expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ sourceTransactionReference: 'GRIDEX2607E66002', quantityKwh: 7 }))
+  expect(io.complete).not.toHaveBeenCalled()
 })
 it('routes an invalid IDE qualifier to field 505 APERAK while preserving its valid sibling', async () => {
   const message = incoming(true, true, '2026-09-30')
@@ -313,7 +315,8 @@ it('routes an invalid IDE qualifier to field 505 APERAK while preserving its val
   expect(aperaks).toHaveLength(2)
   expect(JSON.stringify(aperaks[0][0].draft)).toContain('505')
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
-  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+  expect(io.meter).toHaveBeenCalledTimes(1); expect(io.bill).toHaveBeenCalledTimes(1); expect(io.complete).not.toHaveBeenCalled()
+  expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ sourceTransactionReference: 'GRIDEX2607E66002', quantityKwh: 7 }))
 })
 it('routes a malformed supplied grid-area composite to 260a without rejecting its valid IDE sibling', async () => {
   const message = incoming(true, true, '2026-09-30')
@@ -333,7 +336,9 @@ it('routes a malformed supplied grid-area composite to 260a without rejecting it
   expect(aperaks).toHaveLength(2)
   expect(JSON.stringify(aperaks[0][0].draft)).toContain('260a')
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
-  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+  expect(io.meter).toHaveBeenCalledTimes(1); expect(io.bill).toHaveBeenCalledTimes(1); expect(io.complete).not.toHaveBeenCalled()
+  expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ sourceTransactionReference: 'GRIDEX2607E66002', quantityKwh: 7 }))
+  expect(io.meter.mock.invocationCallOrder[0]).toBeLessThan(io.ack.mock.invocationCallOrder[0])
 })
 it('prior applicable reading is held while an eligible 15-minute energy sibling stays independent in the actual processor',async()=>{
  const message=incoming(true,true,'2026-09-30');io.get.mockResolvedValue(message)
