@@ -480,3 +480,9 @@ PR `d7c3762f`: tenant `36261652172`, Ediel `36261652101`, browser `36261652129`,
 - GREEN: same targeted test 1/1, two runtime/consumer files 42/42, all 25 UTILTS test files 300/300.
 - `npm run typecheck`, `npx tsc --noEmit -p tsconfig.tests.json`, `npx tsc --noEmit -p tsconfig.scripts.json`, scoped ESLint and `git diff --check`: pass. Local Node 24; CI Node 22 is required.
 - Native synthetic tenant/SQL case written but not run locally. Ordinary exact-PR-head CI, merge, main and Vercel still pending. No migration or generated contract change.
+## 2026-09-27 — PR407 accepted; 260b/260c pair candidate
+| Head | Evidence | Result / boundary |
+| --- | --- | --- |
+| PR407 `c9b92fb0` | Ediel `36275554089`, browser `36275554104`, full E2E `36275554084`, OPS `36275554097` | Four SUCCESS; native351/351 including interrupted ACK and real sink retry, clean migration/generated parity, quality/build; scope guard on request/customer/point/site/owner. |
+| main `6732925b` | Remote ref, Vercel `dpl_BHqNeYHmQUq7QEs8oJpV1U67uaVv` | Same-SHA production READY; no Ediel market activation. |
+| local pair candidate | RED orphan LOC232/233 returned E19, GREEN 55/55 focused processor/runtime/order; app/test/script types, lint/diff | Native SQL/ACK/retry and all ordinary exact-head CI pending. No conditional Exchange/product certificate. |
