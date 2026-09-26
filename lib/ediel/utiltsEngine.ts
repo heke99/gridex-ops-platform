@@ -608,15 +608,20 @@ function applyUtiltsIdeGuide(message: EdielMessageRow, result: UtiltsRuntimeResu
 function applyUtiltsGridAreaGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
   const wire = tokenizeEdifact(message.raw_payload)
   const fields: Record<string, string> = { '239': '260a', '232': '260b', '233': '260c' }
+  // U pp.55/63 attaches the inseparable 260b/260c pair to these application
+  // profiles. An ERR may echo a malformed original and is not a new request.
+  const pairedAreaProfile = new Set(['E30', 'E31', 'E66', 'S01', 'S07', 'E72', 'E73', 'E74', 'S06'])
   const issues: UtiltsValidationIssue[] = []
   for (const [index, observed] of (result.facts.utiltsObservedTransactions ?? []).entries()) {
     const reference = resolveUtiltsTransactionId(observed.transactionId, index)
+    const pairedAreas = new Set<string>()
     for (const segment of observed.segments) {
       if (segment.tag === 'SEQ') break
       if (segment.tag !== 'LOC') continue
       const location = segmentComposite(segment, 1, wire.una)[0]
       const fieldCode = fields[location ?? '']
       if (!fieldCode) continue
+      if (location === '232' || location === '233') pairedAreas.add(location)
       const parts = segmentComposite(segment, 2, wire.una)
       const value = parts[0] ?? ''
       const codeList = parts[1] ?? ''
@@ -630,6 +635,18 @@ function applyUtiltsGridAreaGuide(message: EdielMessageRow, result: UtiltsRuntim
         description: `LOC+${location}/C517 måste innehålla tre tecken, SVK och 260.`,
         aperakErcCode: missing ? '41' : '42', aperakFieldCode: fieldCode,
         aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+        referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
+      })
+    }
+    if (!result.facts.isUtiltsErr && pairedAreaProfile.has(result.facts.messageCode ?? '') && pairedAreas.size === 1) {
+      const missingField = pairedAreas.has('232') ? '260c' : '260b'
+      issues.push({
+        severity: 'error', kind: 'application',
+        code: 'UTILTS_GRID_AREA_PAIR_MISSING',
+        title: 'Nätområdespar saknas',
+        description: `LOC+232 och LOC+233 måste förekomma tillsammans inom samma IDE; ${missingField} saknas.`,
+        aperakErcCode: '41', aperakFieldCode: missingField,
+        aperakText: 'MANDATORY FIELD MISSING',
         referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
       })
     }
