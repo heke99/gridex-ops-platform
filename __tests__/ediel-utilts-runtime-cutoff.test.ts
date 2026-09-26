@@ -59,6 +59,11 @@ describe('UTILTS runtime effective-date cutoff', () => {
       expect.objectContaining({ fieldCode: '260b', referenceNumber: 'GRIDEX2607E66002' }),
     ]))
     expect(separated.ackPlan.utiltsErrCodes).toEqual([])
+
+    const planning = { ...control, message_code: 'S02', raw_payload: withAreas("LOC+232+ABC:SVK:260'")
+      .replace('BGM+E66', 'BGM+S02').replace('23-DDQ-E66-S', '23-DDQ-S02-S') }
+    expect(runUtiltsRuntimeForMessage(planning, { referenceDate: '2026-09-30' }).validation.issues
+      .some(issue => issue.code === 'UTILTS_GRID_AREA_PAIR_MISSING')).toBe(false)
   })
   it('rejects a supplied non-24 IDE qualifier as field 505 before E66 function', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-ide505')

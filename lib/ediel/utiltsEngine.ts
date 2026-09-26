@@ -608,6 +608,9 @@ function applyUtiltsIdeGuide(message: EdielMessageRow, result: UtiltsRuntimeResu
 function applyUtiltsGridAreaGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
   const wire = tokenizeEdifact(message.raw_payload)
   const fields: Record<string, string> = { '239': '260a', '232': '260b', '233': '260c' }
+  // U pp.55/63 attaches the inseparable 260b/260c pair to these application
+  // profiles. An ERR may echo a malformed original and is not a new request.
+  const pairedAreaProfile = new Set(['E30', 'E31', 'E66', 'S01', 'S07', 'E72', 'E73', 'E74', 'S06'])
   const issues: UtiltsValidationIssue[] = []
   for (const [index, observed] of (result.facts.utiltsObservedTransactions ?? []).entries()) {
     const reference = resolveUtiltsTransactionId(observed.transactionId, index)
@@ -635,7 +638,7 @@ function applyUtiltsGridAreaGuide(message: EdielMessageRow, result: UtiltsRuntim
         referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
       })
     }
-    if (pairedAreas.size === 1) {
+    if (!result.facts.isUtiltsErr && pairedAreaProfile.has(result.facts.messageCode ?? '') && pairedAreas.size === 1) {
       const missingField = pairedAreas.has('232') ? '260c' : '260b'
       issues.push({
         severity: 'error', kind: 'application',

@@ -1,6 +1,6 @@
 # UTILTS 260b/260c physical IDE pair
 
-Source U §3.7 p.55 and p.63, application field rows `UF-metering_settlement-260b-55`, `UF-metering_settlement-260c-55`, `UF-request-260b-63`, `UF-request-260c-63`: LOC+232/260b and LOC+233/260c are always sent together when used. E30 may omit the pair; other occurrence depends on message and product. This criterion checks the inseparable pair within one physical IDE; it does not infer missing product context, make the pair universally mandatory, or approve 260a alongside an Exchange pair.
+Source U §3.7 p.55 and p.63, application field rows `UF-metering_settlement-260b-55`, `UF-metering_settlement-260c-55`, `UF-request-260b-63`, `UF-request-260c-63`: LOC+232/260b and LOC+233/260c are always sent together when used. E30 may omit the pair; other occurrence depends on message and product. The matrix scopes this check to E30/E31/E66/S01/S07 and E72/E73/E74/S06. It does not infer missing product context, make the pair universally mandatory, apply it to ERR echoes or S02 planning, or approve 260a alongside an Exchange pair.
 
 | Requirement | Owner and route | ACK and business effect | State |
 | --- | --- | --- | --- |
