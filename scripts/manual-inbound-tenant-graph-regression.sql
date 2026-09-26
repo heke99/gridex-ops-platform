@@ -105,6 +105,9 @@ rollback;
 -- ACK retries must not reset an in-flight or terminal outbox row by lock key.
 \ir ediel-ack-outbox-retry-regression.sql
 
+-- Actual canonical ACK/outbox relationship and tenant guard, disposable.
+\ir ediel-z04-ack-durable-regression.sql
+
 -- Real concurrent source-assessment append chain, fixed disposable localhost only.
 \! python3 scripts/ediel-source-validation-concurrency-regression.py
 \if :SHELL_ERROR
