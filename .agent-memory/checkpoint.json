@@ -1,17 +1,17 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-26T15:08:00Z",
+  "updated_at": "2026-09-26T16:18:00Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "main",
   "active_pr": null,
-  "base_head_sha": "103b7938318206c6d04f0ac48b13ce050ec7b3d8",
-  "runtime_accepted_sha": "103b7938318206c6d04f0ac48b13ce050ec7b3d8",
-  "last_merged_pr": 394,
-  "last_accepted_pr": 394,
+  "base_head_sha": "b4879ab0face3a4da19040103379d21fbf16a2c0",
+  "runtime_accepted_sha": "b4879ab0face3a4da19040103379d21fbf16a2c0",
+  "last_merged_pr": 396,
+  "last_accepted_pr": 396,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "F3C-04 persisted mixed Z04 ACK/outbox and route/retry proof",
-  "current_audit": "quality/audits/ediel-masterplan-v2/f3-z04-native-register-assessment-20260926.md",
+  "active_item": "F3C-04 persisted mixed Z04 final ACK/outbox, tenant route and case proof",
+  "current_audit": "quality/audits/ediel-masterplan-v2/f3-z04-ack-outbox-retry-20260926.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
     "published_head": "7750e2da44394b1b154eabfb4e3e8e80af30f4f6",
@@ -30,9 +30,9 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Trace actual persisted CONTRL/negative APERAK/outbox for complete mixed Z04 with tenant route and retry; reproduce any defect before changing product code.",
+  "next_action": "Verify actual persisted CONTRL/negative APERAK/outbox for complete mixed Z04 with tenant route and case effects; reproduce any defect before changing product code.",
   "latest_verified_delivery": {
-    "main_sha": "103b7938318206c6d04f0ac48b13ce050ec7b3d8",
+    "main_sha": "b4879ab0face3a4da19040103379d21fbf16a2c0",
     "merged_prs": [
       387,
       388,
@@ -41,17 +41,22 @@
       391,
       392,
       393,
-      394
+      394,
+      395,
+      396
     ],
     "pr390_head": "9d6bd3c2ba336ae0e82e0fb44c4dcbc4e63879ac",
     "pr390_ops_run": 36245827122,
     "pr390_native_tests": "343/343",
-    "vercel_deployment": "dpl_5XnstEtCjmy1YMKfZVxK295ibu8f READY",
+    "vercel_deployment": "dpl_CWH3ENdVerwLQ93buEJaJVX4xgT9 READY",
     "boundary": "web deployed; Ediel market capabilities not activated",
     "pr392_head": "bf57d16e406842cb3325424f0b621b6588ed065b",
     "pr392_ops_run": 36247794182,
     "pr394_head": "09c1727c109cc73d279272b80763f96a48bbeb9e",
-    "pr394_ops_run": 36250314341
+    "pr394_ops_run": 36250314341,
+    "pr396_head": "7f9ede0ea7e364052cfaef4b486c270d8c6232a4",
+    "pr396_ops_run": 36254423074,
+    "pr396_native_outbox": "3/3 true"
   },
   "task4_combined_snapshot": {
     "published_head": "b1c7f993affdb68d11f4c0941c483c4d145b938e",

@@ -1,3 +1,6 @@
+## Latest — after #396
+Next: actual persisted mixed-Z04 final ACK/outbox, tenant route and case-effect proof. The accepted retry guard is only a bounded subcriterion; older entries below are historical.
+
 ## 2026-09-26 — next F3C-04 persisted ACK boundary after #394
 PR #394's native exact source-bound mixed Z04 assessment merged; remote main `103b7938318206c6d04f0ac48b13ce050ec7b3d8` and Vercel same-SHA READY. Next one criterion: actual persisted CONTRL/negative APERAK/outbox and case result for complete source-valid two-object Z04 with only own QTY31/213 missing, including tenant route and retry. Existing JS test proves draft and zero mocked effects, native SQL proves retained canonical assessment, but neither proves stored final ACK. Do not infer partial sibling success. Field203 duplicate and positive LOC+175 durable identity owners, E035 history/retention and all whole F3 remain open; PR310 paused.
 
@@ -712,3 +715,5 @@ PR372 merged to main as `8b0d5c83` after final exact-head CI, including native34
 ## 2026-09-26 — active: next F3 criterion after two merged E66 slices
 
 No active code PR. Remote main `72b405c7` and Vercel deployment `dpl_A6N2A8Z6RwworAByEW3YBgyg598F` READY. #387 E66 LOC+175 safe hold and #388 field533 ID/agency guide are merged; exact-head four ordinary CI each green, native 343/343 each. Next: reproduce and own the next source-backed rule (GS1 check digit or F3C-05 literal guide-before-function), with positive/negative per-IDE and real inbound/ACK/persistence evidence; do not promote held LOC+175 to positive consumption without legal actor, tenant and durable DB identity. Field203/42 needs immutable historical reservation scope and retry semantics. Update registry only by per-contract evidence. PR310 paused. The older sections below are historical.
+# 2026-09-26 — next after #396
+The durable unique outbox retry guard is accepted and merged. Next bounded criterion: persist the complete source-valid mixed two-object Z04 final CONTRL/negative APERAK through actual tenant route, SQL ACK/outbox owner and case/business effects; distinguish it from the mocked 11-test inbound consumer and #394's retained assessment. Reproduce the missing evidence or a product defect first. Field203 duplicate/ERC42 and positive LOC+175 remain blocked on distinct durable legal-actor/tenant identity owners; E035 history `complete:false` and retention/deletion remain separate. No market activation, staging, TGT/AGT or counterparty sends; PR310 paused.
