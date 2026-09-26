@@ -1,3 +1,6 @@
+## 2026-09-26 — F3C-02/04 native assessment continuation
+Verified remote main after #393 and no other active writing PR. Source P26.A r3 mixed Z04 path and real inbound fixture inspected. Strengthened native assessment test from row-count-only to exact row/company/environment/raw hash/facts proof, local consumer 11/11 and migration checks PASS, merged #394 after four exact-head CI successes. Remote main `103b7938318206c6d04f0ac48b13ce050ec7b3d8`, Vercel same-SHA READY. Persisted ACK/outbox, field203/LOC+175 owners, E035 history/retention and whole phases remain open. PR310 untouched, no staging or live Ediel send.
+
 ## 2026-09-26 — F3C-05 literal execution
 Reproduced real premature functional invocation, implemented eligibility staging per IDE, verified mixed ACK/storage and no business effects, merged PR #392 after four ordinary exact-head CI workflows including OPS native clean replay. Remote main `fc4e688db414314bce4a85a7172c1d63bc15b804`, Vercel production READY on same SHA. No Ediel traffic, staging, TGT/AGT, counterpart or market sends; PR310 paused. Next F3C-02/04 mixed Z04 source and final consumer reconciliation.
 

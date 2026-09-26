@@ -1,3 +1,6 @@
+## 2026-09-26 — mixed Z04 retained register assessment
+PR #394 added exact append-only assessment checks for canonical facts bytes/hash, company, environment and original source hash; four exact-head workflows incl native clean replay passed, merged main `103b7938318206c6d04f0ac48b13ce050ec7b3d8`, same-SHA Vercel READY. Existing real inbound Z04 negative ACK draft 11/11 was rerun. This does not close persisted ACK or whole F3C-02/04.
+
 ## 2026-09-26 — bounded F3C-05 U-03 stage execution
 PR #392 merged as `fc4e688db414314bce4a85a7172c1d63bc15b804` after exact-head OPS, Ediel, browser and full E2E SUCCESS with native clean replay. Runtime now performs guide classification before eligible IDE functional checks; a rejected IDE invokes zero functional interval counts while a valid sibling retains ACK/storage. Vercel same-SHA production READY. F3C-05 as a whole remains open; Ediel traffic remains gated.
 

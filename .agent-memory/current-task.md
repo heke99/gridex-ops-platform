@@ -1,3 +1,6 @@
+## 2026-09-26 — next F3C-04 persisted ACK boundary after #394
+PR #394's native exact source-bound mixed Z04 assessment merged; remote main `103b7938318206c6d04f0ac48b13ce050ec7b3d8` and Vercel same-SHA READY. Next one criterion: actual persisted CONTRL/negative APERAK/outbox and case result for complete source-valid two-object Z04 with only own QTY31/213 missing, including tenant route and retry. Existing JS test proves draft and zero mocked effects, native SQL proves retained canonical assessment, but neither proves stored final ACK. Do not infer partial sibling success. Field203 duplicate and positive LOC+175 durable identity owners, E035 history/retention and all whole F3 remain open; PR310 paused.
+
 ## 2026-09-26 — next independent F3 criterion after #392
 PR #392 merged and deployment verified at `fc4e688db414314bce4a85a7172c1d63bc15b804`. U-03 / AT-U-03 literal guide-before-functional execution is accepted for the bounded canonical UTILTS runtime and real inbound mixed-IDE consumer. Next: reconcile F3C-02/04 mixed Z04 object/ACK/storage evidence against source and native consumer; reproduce an actual gap before any code change. Field203 temporal duplicate/ERC42 and positive LOC+175 remain blocked by durable tenant/legal-actor owners. E035 `complete:false`, history and retention/deletion remain open. No active PR; #310 paused.
 

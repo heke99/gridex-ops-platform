@@ -1,3 +1,6 @@
+## 2026-09-26 — #394 mixed Z04 durable assessment merged
+Remote main `103b7938318206c6d04f0ac48b13ce050ec7b3d8` includes #394. Exact PR head `09c1727c` passed four ordinary workflows; OPS clean replay verified `mixed-object-facets-stored-not-approved | t | exact source-bound assessment`. Vercel `dpl_5XnstEtCjmy1YMKfZVxK295ibu8f` READY for same main SHA. Source-valid Z04 inbound unit 11/11 checked negative FTX213 first-object reference and zero mocked case/business effect. This is a bounded persisted assessment, not stored APERAK/outbox or F3C-02/04 closure. Ediel market traffic remains gated, PR310 untouched.
+
 ## 2026-09-26 — PR392 bounded U-03 merge and deployment
 Remote `main` `fc4e688db414314bce4a85a7172c1d63bc15b804` includes #391–#392. PR #392 exact-head four ordinary workflows SUCCESS, OPS clean replay/native PASS, mixed IDE final ACK/storage/no business effects tested; Vercel `dpl_75bdehtPGc6Sr13ZNUSkj6QP7g6Y` READY for same SHA. U-03 stage execution accepted in this bounded UTILTS path, not all F3C-05 fields or full F3. Web deployment does not enable Ediel traffic. Field203 uniqueness, LOC+175 positive sink, E035 historical `complete:false` and retention/deletion remain open. PR310 untouched.
 

@@ -1,3 +1,10 @@
+## 2026-09-26 — PR394 native Z04 receipt
+| Head | Test/evidence | Result |
+| --- | --- | --- |
+| `09c1727c` | Real inbound source-valid mixed Z04 test | 11/11 PASS; FTX213 first-object reference, no positive sibling, no mocked business effects |
+| `09c1727c` | Ediel `36250314381`, browser `36250314333`, full E2E `36250314272`, OPS `36250314341` | Four SUCCESS; native job `108426998770` exact source-bound mixed facet `t`; clean replay/generated parity PASS |
+| main `103b7938` | Remote Git ref, Vercel `dpl_5XnstEtCjmy1YMKfZVxK295ibu8f` | Exact SHA and production READY; no Ediel traffic activation |
+
 ## 2026-09-26 — PR392 exact-head acceptance
 | Head | Test/evidence | Result |
 | --- | --- | --- |

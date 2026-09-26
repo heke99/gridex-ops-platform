@@ -1,5 +1,9 @@
 # Ediel v2: field 203 owner and bounded release, 2026-09-26
 
+## Current receipt after PR #394
+
+Verified remote `main` `103b7938318206c6d04f0ac48b13ce050ec7b3d8` contains the previously accepted #392 bounded U-03 guide-first runtime and #394 exact native source-bound mixed Z04 register assessment. #394 passed all four ordinary exact-head workflows; Vercel production `dpl_5XnstEtCjmy1YMKfZVxK295ibu8f` is READY for that SHA. The assessment proves retained register facts and tenant/source binding; final persisted APERAK/outbox, whole F3C-02/04, field203 duplicate/ERC42, positive LOC+175 and E035 historical `complete:false`/retention are open. Web production does not enable Ediel traffic. The frozen 121 rule cards and 231 planned acceptance contracts still lack row-by-row reconciliation; 0/8 whole F0–F7 phase closures are verified. No completion percentage follows.
+
 ## Current receipt after PR #392
 
 Verified remote `main` `fc4e688db414314bce4a85a7172c1d63bc15b804` includes #390 GS1 check digit, #391 checkpoint and #392 bounded U-03 guide-before-functional execution. #392's exact head `bf57d16e` passed OPS (including clean replay/native), Ediel regressions, browser and full E2E. Vercel production deployment `dpl_75bdehtPGc6Sr13ZNUSkj6QP7g6Y` is READY for this exact main SHA. The guide-first execution criterion is implemented, tested and merged for the covered canonical UTILTS mixed-IDE runtime and inbound ACK/storage; the rest of F3C-05 remains open. No Ediel traffic activation or live schema/transport acceptance follows. The release boundary, blocked field203 duplicate/ERC42 owner, blocked positive LOC+175 sink and E035 history/retention limitations below still apply. The frozen 121 rule cards and 231 planned acceptance contracts have not been reconciled row by row; 0/8 whole F0–F7 phase closures are verified, with no completion percentage.

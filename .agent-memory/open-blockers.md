@@ -1,3 +1,6 @@
+## 2026-09-26 — after #394
+F3C-04 lacks actual persisted mixed-Z04 ACK/outbox and route/retry evidence; #394 proves only exact retained canonical register assessment, while the real inbound unit mocks ACK persistence. Field203 UG-122-7 duplicate/ERC42 still lacks immutable tenant/legal-actor document identity with history/concurrency/retries. Positive E66 LOC+175 still lacks a separate durable object and SQL sink. E035 historical `complete:false` and retention/deletion remain unclosed. Other F3/F1/F2/F4–F6 require own criterion proof; Vercel READY does not activate Ediel, PR310 paused.
+
 ## 2026-09-26 — after #392
 Field203 UG-122-7 duplicate/ERC42 needs a source-proven, immutable tenant and legal-actor document identity reservation with historical, concurrent and retry semantics. Positive E66 LOC+175 needs a durable regulating-object owner and distinct SQL sink; valid IDs remain held. E035 historical `complete:false`, retention and deletion are unclosed. Remaining F3C-02/04/05 field rows/06/07 and F1/F2/F4–F6 need their own acceptance evidence. U-03 bounded guide-first execution was merged in #392. Vercel READY does not authorize market traffic; TGT/AGT and counterpart gates remain per capability. PR310 paused.
 
