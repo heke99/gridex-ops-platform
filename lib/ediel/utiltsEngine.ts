@@ -1,6 +1,7 @@
 import { canonicalBusinessDate } from '@/lib/ediel/core/messagePolicy'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { fieldRulesForMessage } from '@/lib/ediel/rulebook/fieldMatrix'
+import { resolveAuthoritativeEdielGuide } from '@/lib/ediel/rulebook/guideRegistry'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import type { UtiltsProcessabilityPolicy } from '@/lib/ediel/rulebook/utilts25A4'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -695,8 +696,15 @@ function applyE66RegulatingObjectGuide(message: EdielMessageRow, result: UtiltsR
   return issues.length ? rebuildUtiltsRuntimeResult({ message, result, issues: [...result.validation.issues, ...issues] }) : result
 }
 
-function applyE66MeteringPointGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
+function applyE66MeteringPointGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, referenceDate: string, policy?: CanonicalEdielPolicy): UtiltsRuntimeResult {
   if (result.facts.messageCode !== 'E66') return result
+  // UG-123-11/12 here is sourced from 25-A-4. The older 25-A-3 original
+  // is not present in the source pack, so this additional rule cannot be
+  // projected onto a prior-guide transaction based on the shared E5SE5A wire.
+  const selectedGuide = policy?.guide ?? resolveAuthoritativeEdielGuide({
+    family: 'UTILTS', referenceDate, associationAssignedCode: message.message_version,
+  })
+  if (selectedGuide.guideRevision !== '25-A-4') return result
   const wire = tokenizeEdifact(message.raw_payload)
   const issues: UtiltsValidationIssue[] = []
   for (const [index, observed] of (result.facts.utiltsObservedTransactions ?? []).entries()) {
@@ -839,7 +847,7 @@ export function runUtiltsRuntimeForMessage(
   const guideEffective = applyUtiltsEffectiveDatePolicyToRuntimeResult({
     message, result: guideCorrected, referenceDate, processabilityPolicy: canonicalPolicy?.utiltsProcessability,
   })
-  const guided = applyE66MeteringPointGuide(message, applyE66RegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, guideEffective)))))
+  const guided = applyE66MeteringPointGuide(message, applyE66RegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, guideEffective)))), referenceDate, canonicalPolicy)
   const eligible = new Set(guided.transactionDispositions
     .filter(item => item.disposition === 'accepted')
     .map(item => String(item.transactionId ?? '')))

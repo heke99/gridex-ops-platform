@@ -3,12 +3,12 @@ import { describe, expect, it } from 'vitest'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { resolveCanonicalRuntimeDecision } from '@/lib/ediel/core/runtimeDecision'
 import { buildAperakDraft } from '@/lib/ediel/ack'
+import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 
 describe('UTILTS runtime effective-date cutoff', () => {
   it('reports supplied E66 LOC+172 identity defects as field 209 before function', () => {
-    const control = observationHandoffMessage('2026-09-30', 'tenant-point209')
-    expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')
+    const control = observationHandoffMessage('2026-10-01', 'tenant-point209')
     for (const [replacement, ercCode] of [
       ['LOC+172+::9', '41'],
       ['LOC+172+735999260731000008::9', '42'],
@@ -16,11 +16,24 @@ describe('UTILTS runtime effective-date cutoff', () => {
       ['LOC+172+735999260731000007::260', '42'],
     ] as const) {
       const raw_payload = control.raw_payload!.replace('LOC+172+735999260731000007::9', replacement)
-      const runtime = runUtiltsRuntimeForMessage({ ...control, raw_payload }, { referenceDate: '2026-09-30' })
+      const runtime = runUtiltsRuntimeForMessage({ ...control, raw_payload }, { referenceDate: '2026-10-01' })
       expect(runtime.ackPlan.aperakApplicationErrors, replacement).toEqual(expect.arrayContaining([
         expect.objectContaining({ fieldCode: '209', ercCode, referenceNumber: 'GRIDEX2607E66001' }),
       ]))
       expect(runtime.ackPlan.utiltsErrCodes, replacement).toEqual([])
+    }
+  })
+  it('does not apply October field 209 GS1 evidence to the source-unverified 25-A-3 profile', () => {
+    const prior = observationHandoffMessage('2026-09-30', 'tenant-prior-point209')
+    const raw_payload = prior.raw_payload!.replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000008::9')
+    const policy = resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'E66', direction: 'inbound',
+      referenceDate: '2026-09-30', applicationReference: prior.application_reference, mode: 'parse' })
+    expect(policy.guide.guideRevision).toBe('25-A-3')
+    for (const options of [{ referenceDate: '2026-09-30' }, { canonicalPolicy: policy }]) {
+      const runtime = runUtiltsRuntimeForMessage({ ...prior, raw_payload }, options)
+      expect(runtime.validation.issues).not.toEqual(expect.arrayContaining([
+        expect.objectContaining({ code: 'UTILTS_METERING_POINT_GS1_CHECK_DIGIT_INVALID' }),
+      ]))
     }
   })
   it('checks supplied per-IDE grid-area composite at 260a/b/c before E66 function', () => {

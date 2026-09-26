@@ -299,7 +299,7 @@ it('real inbound keeps a guide-invalid E66 IDE separate from a valid sibling thr
   expect(io.complete).not.toHaveBeenCalled()
 })
 it('routes a supplied invalid E66 LOC+172 identity to 209 without consuming its IDE', async () => {
-  const message = incoming(true, true, '2026-09-30')
+  const message = incoming(true, true, '2026-10-01')
   message.raw_payload = message.raw_payload!.replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000008::9')
   io.get.mockResolvedValue(message)
   results = [
