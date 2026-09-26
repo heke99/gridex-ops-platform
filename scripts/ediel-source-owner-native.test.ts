@@ -52,13 +52,19 @@ function sql<T>(input:string):T {
   return out?JSON.parse(out) as T:undefined as T
 }
 let serial=0
+function fixtureGsrn(sequence:number):string {
+  const first17=`735123456789${String(sequence).padStart(5,'0')}`
+  const weighted=[...first17].reduce((sum,digit,index)=>sum+Number(digit)*(index%2===0?3:1),0)
+  return `${first17}${(10-weighted%10)%10}`
+}
 /** Only draft business rows are seeded. The actual business owner must perform
  * the UPDATE and supply INSERT through the real Supabase HTTP API. */
 async function seed(delegated=false, structural=false) {
   const caseNo=++serial
   const id=(n:number)=>`10000000-0000-4000-8000-${String(caseNo*100+n).padStart(12,'0')}`
   const ids={source:id(1),company:id(2),customer:id(3),point:id(4),site:id(5),grid:id(6),switch:id(7),actor:id(9),transport:id(10),outbound:id(11),reviewer:id(12),route:id(13),routeProfile:id(14)}
-  const external=`735123456789${String(caseNo).padStart(6,'0')}`
+  // E66 positive paths reuse this seeded point; keep its GS1 digit valid.
+  const external=fixtureGsrn(caseNo)
   const transportEdiel=String(88000+caseNo)
   const input=structural?structuralOwnerSource():ownerSource(), wire=String(input.raw_payload).replaceAll('735123456789012345',external).replace('+54321:14+',delegated?`+${transportEdiel}:14+`:'+54321:14+')
   const p=(key:keyof typeof ids)=>literal(ids[key])
@@ -529,7 +535,7 @@ it.each(['2026-09-30','2026-10-01'])('native reviewed Z04 qualifies prior/curren
  expect((await structuralSnapshot(f,pending.evidence.cutoffAt!)).versions[0].coverage).toBeNull()
  if(referenceDate==='2026-09-30'){
   const savedCutoff=matched.evidence.cutoffAt!,approved=stored(f.ids.source).at(-1)!
-  const unknownRoot=original.raw_payload!.replaceAll(point,'735999260731999999')
+  const unknownRoot=original.raw_payload!.replaceAll(point,'735999260731999998')
   expect(await qualify(unknownRoot)).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,
    evidence:{comparisons:[{status:'unavailable',codes:[]}]}})
   const beforeLedger=original.raw_payload!.replaceAll('202610010000','202609010000')
