@@ -1,4 +1,7 @@
-## Latest — after #396
+## Latest — after #402
+NAD agency/qualifier and SVK five-digit identity checks are merged but market-disabled. GS1 NAD 9/305 exact check-digit profile remains separately unaccepted. Field203 immutable tenant/legal-actor identity and ERC42 temporal duplicate, positive LOC175 durable sink, E035 pre-epoch `complete:false`/history/retention/deletion and intermittent `invalid_document_observation_time` remain open. #310 paused. Entries below historical.
+
+## Historical — after #396
 Field203/ERC42 immutable owner, positive LOC+175 distinct durable owner and E035 history/retention remain blockers. Mixed-Z04 stored final ACK still open after bounded retry safety. Older entries below are historical.
 
 ## 2026-09-26 — after #394
@@ -583,7 +586,10 @@ PR372 and child stack are on main, with final CI native343/343 PASS. The S-code 
 ACK outbox retry status overwrite is fixed and native-verified, but actual persisted final CONTRL/negative APERAK for the complete mixed Z04 original is still unproven. Field203 UG-122-7 ERC42 requires an immutable tenant/legal-actor document identity across history, concurrency and retries. Positive LOC+175 requires a distinct regulating-object owner and SQL sink; do not borrow LOC+172. E035 historical `complete:false`, retention and deletion remain unclosed. Other F3C-02/05/06/07 and F1/F2/F4–F6 have criterion-specific work; zero whole-phase closure. Vercel READY is only web deployment; PR310 paused.
 ## Latest — after #399
 Mixed Z04 actual tenant ACK route/CONTRL/negative APERAK/outbox and retry have bounded native acceptance; no whole F3C-04 claim. Field203 historical duplicate/ERC42 still needs a proven tenant/legal-actor-bound immutable identity; positive E66 LOC+175 needs a distinct regulating-object owner/sink. E035 dated structural E61/E62, pre-epoch `complete:false`, retention/deletion and intermittently rejected observation time remain open. G06 lacks complete versioned application grammar; PR #310 remains paused. No Ediel capability is activated by Vercel READY.
-## Latest — after #400
+## Latest — after #402
+NAD 207/208 3055/1131 and SVK five-digit 3039 bounded checks are merged, not market activated. UG-122-24 GS1 9/305 exact algorithm/profile remains separately unaccepted. Field203 durable tenant/legal-actor document identity and ERC42 historical duplicate, positive LOC175 durable sink, E035 pre-epoch `complete:false`/history/retention/deletion and intermittent `invalid_document_observation_time` remain open. #310 paused. Entries below historical.
+
+## Historical — after #400
 NAD207/208 candidate is not yet CI/native-qualified or merged. Field203 immutable tenant/legal-actor document identity, positive LOC+175 durable actor/object owner, E035 historic coverage/`complete:false` and retention/deletion remain open; `invalid_document_observation_time` still intermittent. All market activation gated; #310 paused. Older entries below are historical.
 ## Latest — after #401
 UG-123-2/3 NAD agency/qualifier accepted bounded, not market activated. SVK five-digit identity shape candidate pending native/CI; GS1 9/305 check digit lacks verified exact original algorithm/profile in this scope. Field203 durable tenant/legal-actor document owner, positive LOC175 owner, E035 historic `complete:false` and retention/deletion remain unresolved; intermittent `invalid_document_observation_time` remains. #310 paused. Older entries below historical.

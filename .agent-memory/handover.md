@@ -1,4 +1,7 @@
-## Latest — after #396
+## Latest — after #402
+Remote main `34b1bf98c0efc7605f28a1052c1cdbc5d98bcbfe`, Vercel production `dpl_8jg42Cbuijfd2W3GNv6BwdqFBbaP` READY same SHA. #401 head `cf6839d7` four ordinary workflows green and native 345/345; #402 head `79417051` four green and native 346/346. Bounded NAD 207/208 agency/qualifier and SVK five-digit shape accepted in code, not market activation. Next inspect original GS1 check-digit source/profile or another independent rule; field203/LOC175/E035 remain gated. No staging/TGT/AGT/counterparty/live sends; #310 untouched. Entries below historical.
+
+## Historical — after #396
 Main `b4879ab0`, same-SHA Vercel READY, all four workflows SUCCESS. Stored mixed-Z04 ACK/outbox remains the next proof. Older entries below are historical.
 
 ## 2026-09-26 — after #394
