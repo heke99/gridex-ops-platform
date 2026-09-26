@@ -107,6 +107,22 @@ it('actual inbound E66 sends a field-533 guide rejection before any regulating-o
  ]))
  expect(io.ingest).not.toHaveBeenCalled()
 })
+it('actual inbound E66 rejects a wrong GS1 check digit without storing business quantity',async()=>{
+ incoming=energyHandoffMessage('2026-10-01',COMPANY)
+ incoming.raw_payload=incoming.raw_payload!.replace('LOC+172+735999260731000007::9','LOC+175+735999260731000006::9')
+ const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:'2026-10-01',
+  applicationReference:incoming.application_reference,mode:'parse'})
+ const result=await processInboundUtiltsMessage({actorUserId:'operator',edielMessageId:incoming.id,canonicalPolicy:policy})
+ expect(result).toMatchObject({ingestedMeterValueId:null,ingestedMeterValueIds:[],billingUnderlayId:null})
+ // Rejected source quantities are retained for audit; the SQL consumption
+ // boundary makes them not applicable and no meter/billing sink consumes them.
+ expect(io.persist.mock.calls[0][0].transactions).toMatchObject([{disposition:'guide_rejected',responseType:'negative_aperak'}])
+ expect(io.ack.mock.calls[0][0].ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+  expect.objectContaining({ercCode:'42',fieldCode:'533'}),
+ ]))
+ expect(io.ack.mock.calls[0][0].ackPlan.utiltsErrCodes).toEqual([])
+ expect(io.ingest).not.toHaveBeenCalled()
+})
 // Exclude ONLY this new diagnostic on the two intended normalized surfaces.
 // Every other status, ACK, persistence, ingestion, event and return value stays
 // in the equality comparison. Existing PR369 outcome assertions are untouched.

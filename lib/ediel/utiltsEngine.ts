@@ -561,13 +561,17 @@ function applyE66RegulatingObjectGuide(message: EdielMessageRow, result: UtiltsR
     const value = parts[0]?.trim() ?? ''
     const agency = parts[2]?.trim() ?? ''
     const invalid = value && agency && !['9', '89'].includes(agency)
-    if (value && agency && !invalid) continue
+    // Agency 9 identifies GS1. The 18-digit numeric form has a modulo-10
+    // check digit, with weights 3 and 1 alternating from the right.
+    const gs1CheckDigitInvalid = agency === '9' && /^\d{18}$/.test(value)
+      && [...value].reduce((sum, digit, index) => sum + Number(digit) * (index % 2 === 0 ? 3 : 1), 0) % 10 !== 0
+    if (value && agency && !invalid && !gs1CheckDigitInvalid) continue
     const missing = !value || !agency
     issues.push({
       severity: 'error', kind: 'application',
-      code: !value ? 'UTILTS_REGULATING_OBJECT_ID_MISSING' : missing ? 'UTILTS_REGULATING_OBJECT_AGENCY_MISSING' : 'UTILTS_REGULATING_OBJECT_AGENCY_INVALID',
-      title: !value ? 'Reglerobjektsid saknas' : missing ? 'Byråkod för reglerobjekt saknas' : 'Ogiltig byråkod för reglerobjekt',
-      description: !value ? 'LOC+175/C517/3225 saknas.' : missing ? 'LOC+175/C517/3055 saknas.' : 'LOC+175/C517/3055 måste vara 9 eller 89.',
+      code: !value ? 'UTILTS_REGULATING_OBJECT_ID_MISSING' : missing ? 'UTILTS_REGULATING_OBJECT_AGENCY_MISSING' : invalid ? 'UTILTS_REGULATING_OBJECT_AGENCY_INVALID' : 'UTILTS_REGULATING_OBJECT_GS1_CHECK_DIGIT_INVALID',
+      title: !value ? 'Reglerobjektsid saknas' : missing ? 'Byråkod för reglerobjekt saknas' : invalid ? 'Ogiltig byråkod för reglerobjekt' : 'Ogiltig GS1-kontrollsiffra',
+      description: !value ? 'LOC+175/C517/3225 saknas.' : missing ? 'LOC+175/C517/3055 saknas.' : invalid ? 'LOC+175/C517/3055 måste vara 9 eller 89.' : 'LOC+175/C517/3225 har ogiltig GS1-kontrollsiffra.',
       aperakErcCode: missing ? '41' : '42', aperakFieldCode: '533',
       aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
       referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
