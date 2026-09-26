@@ -6,6 +6,24 @@ import { buildAperakDraft } from '@/lib/ediel/ack'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 
 describe('UTILTS runtime effective-date cutoff', () => {
+  it('requires exactly five decimal digits for NAD MS/MR 3039 when 1131 is SVK before E66 function', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-nad-identity')
+    expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')
+    for (const [original, replacement, fieldCode, ercCode] of [
+      ['NAD+MS+91100:SVK:260', 'NAD+MS+9110A:SVK:260', '207', '42'],
+      ['NAD+MR+21660:SVK:260', 'NAD+MR+216600:SVK:260', '208', '42'],
+      ['NAD+MS+91100:SVK:260', 'NAD+MS+:SVK:260', '207', '41'],
+    ] as const) {
+      const message = { ...control, sender_ediel_id: '91100', receiver_ediel_id: '21660',
+        raw_payload: control.raw_payload!.replace(original, replacement) }
+      const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+      expect(runtime.transactionDispositions.map(item => item.responseType), replacement).toEqual(['negative_aperak'])
+      expect(runtime.ackPlan.aperakApplicationErrors, replacement).toEqual(expect.arrayContaining([
+        expect.objectContaining({ fieldCode, ercCode }),
+      ]))
+      expect(runtime.ackPlan.utiltsErrCodes, replacement).toEqual([])
+    }
+  })
   it('rejects NAD MS/MR agency and conditional SVK qualifier at own field before E66 function', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-nad-guide')
     expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')

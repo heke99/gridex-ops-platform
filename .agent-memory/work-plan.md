@@ -439,3 +439,5 @@ Publish bounded field204 guide/consumer batch stacked on PR381 corrected head; r
 3. Web main is deployed; market traffic needs capability-specific actor/mandate/profile/live schema/transport/formal external gates. No staging, TGT/AGT, counterparty or real market sends in this code round; PR #310 paused.
 ## Latest — NAD207/208 one criterion
 Qualify actual guide rejection through local native clean replay on exact PR head; inspect all ordinary CI, review, merge and verify main/Vercel. Then select next independent source-led rule. No staging/TGT/AGT/counterparty/live sends; field203/LOC+175/E035 gates remain. Older entries below are historical.
+## Latest — after #401
+Publish and qualify bounded UG-122-24 SVK five-digit NAD party ID; require native persisted ACK/disposition, all ordinary CI, review, merge and same-SHA Vercel outcome. Then trace a separate source-led rule. GS1 9/305, field203 owner, positive LOC175 and E035 history/retention remain separately open; no market sends. Older entries below historical.
