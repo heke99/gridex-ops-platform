@@ -591,6 +591,13 @@ it('native inbound stores NAD receiver agency 208 guide rejection and no consuma
 it('native inbound binds IDE qualifier 505 rejection to tenant and source without consumption on retry', async () => {
   const f = await seed()
   const source = await f.insertSource(f.original.raw_payload!.replace('IDE+24+GRIDEX2607E66001', 'IDE+25+GRIDEX2607E66001'))
+  const supported = await f.prepare()
+  const forged = await supabaseService.rpc('gridex_persist_utilts_consumption_v1', {
+    p_company_id: f.ids.company, p_environment: 'test', p_source_message_id: source.id, p_message_code: 'E66', p_raw_payload: source.raw_payload!,
+    p_transactions: supported.transactions.map((t, i) => ({ ...t, consumptionContract: supported.contracts[i] })),
+  })
+  expect(forged.error?.message).toContain('utilts_consumption_identity_unsupported')
+  expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
   const first = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(first.ingestedMeterValueIds).toEqual([])
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
