@@ -459,3 +459,9 @@ PR `d7c3762f`: tenant `36261652172`, Ediel `36261652101`, browser `36261652129`,
 | #401 `cf6839d7` | Ediel 36264617444, browser 36264617405, E2E 36264617414, OPS 36264617415 | Four SUCCESS; native 345/345 including actual field208 persisted ACK-disposition/no effects; clean replay/types/build PASS |
 | main `9ae42858` | Git remote and Vercel `dpl_3KxDzd4CZbiEJZngnxjVsxRMLL2C` | SHA match, production READY; no market activation |
 | UG-122-24 candidate | E66 RED and local 38/38 processor/runtime, three typechecks and lint | GREEN local; native and exact PR-head CI pending |
+
+## 2026-09-26 — UG-122-24 NAD 9/305 candidate
+- RED: `npx vitest run __tests__/ediel-utilts-runtime-cutoff.test.ts -t 'checks the GLN digit'` failed with actual `utilts_err` rather than negative APERAK before fix.
+- GREEN: same targeted test 1/1, two runtime/consumer files 42/42, all 25 UTILTS test files 300/300.
+- `npm run typecheck`, `npx tsc --noEmit -p tsconfig.tests.json`, `npx tsc --noEmit -p tsconfig.scripts.json`, scoped ESLint and `git diff --check`: pass. Local Node 24; CI Node 22 is required.
+- Native synthetic tenant/SQL case written but not run locally. Ordinary exact-PR-head CI, merge, main and Vercel still pending. No migration or generated contract change.

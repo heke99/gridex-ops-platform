@@ -1,3 +1,6 @@
+## Latest — 2026-09-26 NAD GS1 candidate
+Base main `787678fc` after PR #404; local branch `codex/ediel-v2-utilts-nad-gs1-20260926`. Source/proof in `quality/audits/ediel-masterplan-v2/utilts-nad-gs1-20260926.md`. Four code/test files add header NAD 9/305 13-digit GLN modulo-10 validation, real consumer and native rejection. Local RED/GREEN, relevant 300/300 and three TypeScript projects passed. PR/native/ordinary CI/merge/deployment pending. Field203 duplicate lacks owner, positive LOC175 lacks sink; E035 historical `complete:false`/retention open. PR310 paused.
+
 ## Latest — header509 candidate after #403
 Main `4221d0dced9ea5727c0bf6b18b49dc6ee9a9ce91`, Vercel `dpl_J9jh2tKEVJSw5ETnczoJRmyHmRVv` READY after documentation-only #403 exact-head four workflows success. New branch `codex/ediel-v2-utilts-header509-20260926` carries bounded supplied ancillary NAD code list and real processor/native fixture, local 298/298 UTILTS and types/lint; native/CI pending. No market activation or #310 change. Entries below historical.
 

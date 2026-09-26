@@ -436,6 +436,21 @@ function applyUtiltsHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeR
         aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
       })
     }
+    // UG-122-24: agencies 9/305 identify GS1 parties. Their GLN is 13
+    // digits, including the final modulo-10 check digit. Keep this separate
+    // from the five-digit national Ediel-id under qualifier SVK.
+    if (['9', '305'].includes(agency) && (!/^\d{13}$/.test(partyId) ||
+      [...partyId].reduce((sum, digit, index) => sum + Number(digit) * (index % 2 === 0 ? 1 : 3), 0) % 10 !== 0)) {
+      const missing = !partyId
+      nadIssues.push({
+        severity: 'error', kind: 'application',
+        code: missing ? 'UTILTS_NAD_GS1_ID_MISSING' : 'UTILTS_NAD_GS1_CHECK_DIGIT_INVALID',
+        title: missing ? 'GS1-id saknas' : 'Ogiltigt GS1-id',
+        description: `NAD+${role}/C082/3039 ska vara ett GLN med giltig GS1-kontrollsiffra.`,
+        aperakErcCode: missing ? '41' : '42', aperakFieldCode: field,
+        aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+      })
+    }
   }
   const market = wire.segments.find(segment => segment.tag === 'MKS')
   const mksIssues = (['501', '502'] as const).flatMap(fieldNumber => {

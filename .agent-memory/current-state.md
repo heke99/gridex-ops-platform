@@ -1,3 +1,6 @@
+## Latest — NAD 9/305 GS1 candidate after #404
+Remote main `787678fcdc0887b21fa6be8fbec42e7a3d17c1b4`. One local branch `codex/ediel-v2-utilts-nad-gs1-20260926` has bounded UG-122-24 NAD MS/MR 9/305 GLN validation. RED/GREEN, 300/300 relevant tests, three TS projects, scoped lint and diff check pass. Native CI/PR/merge/deployment pending. Field203 duplicate, positive LOC175, E035 history/retention and market activation remain open; #310 paused. Older notes below are historical.
+
 ## Latest — #403 delivery and header509 active
 Main `4221d0dced9ea5727c0bf6b18b49dc6ee9a9ce91`, Vercel READY same SHA. Header509 code-list candidate is not yet merged/native accepted. #401/#402 bounded NAD checks remain in deployed web code, market traffic not enabled. Frozen 121/231 un-reconciled, whole phases 0/8. Field203, LOC175, E035 and GS1 branches open; #310 paused. Entries below historical.
 

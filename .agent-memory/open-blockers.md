@@ -1,3 +1,6 @@
+## Latest — 2026-09-26
+UG-122-7 field203 temporal uniqueness/ERC42: no proved legal-actor/tenant scope, immutable historical reservation, concurrent owner or retry semantics. Keep unaccepted; do not substitute UNB dedup or mutable BGM lookup. Positive LOC175 lacks separate regulating-object sink; E035 pre-epoch complete:false and retention/deletion remain open. NAD 9/305 candidate still needs native/CI/merge/deployment. Ediel market gates remain closed; PR310 paused. Older notes below are historical.
+
 ## Latest — header509 candidate after #403
 Supplied subordinate NAD role code-list candidate is locally tested but lacks native/CI/merge. It does not establish which role is mandatory or authorize DGG. Field203 immutable tenant/legal-actor history/ERC42, positive LOC175, GS1 NAD 9/305 source profile, E035 `complete:false`/history/retention/deletion and intermittent observation-time failure remain open. #310 paused. Entries below historical.
 

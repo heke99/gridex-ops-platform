@@ -1,3 +1,6 @@
+## Latest — qualify NAD GS1 on one PR
+UG-122-7 field203 duplicate remains blocked: no proven immutable tenant/legal-actor identity owner or atomic historical reservation. On branch `codex/ediel-v2-utilts-nad-gs1-20260926` complete bounded UG-122-24 header NAD 9/305 GS1 check. Local RED/GREEN and 300/300 relevant tests, app/tests/scripts TS, lint and diff pass; native SQL/ordinary exact-head CI, PR review, merge/main/deployment pending. Next publish exact source, inspect first CI failure or native receipt, merge only if clean. No staging/market send or #310 change.
+
 ## Latest — header509 candidate after #403
 PR #403 merged main `4221d0dced9ea5727c0bf6b18b49dc6ee9a9ce91`, same-SHA Vercel `dpl_J9jh2tKEVJSw5ETnczoJRmyHmRVv` READY. Current bounded UG-123-5 supplied header NAD role code list RED/GREEN and processor mock; native/CI pending. Does not grant DGG traffic or profile role mandate. Field203, LOC175, E035 and GS1 remain separately open; #310 paused. Entries below historical.
 

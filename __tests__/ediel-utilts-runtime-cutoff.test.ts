@@ -43,6 +43,31 @@ describe('UTILTS runtime effective-date cutoff', () => {
       expect(runtime.ackPlan.utiltsErrCodes, replacement).toEqual([])
     }
   })
+  it('checks the GLN digit for header MS/MR with agency 9 or 305 before E66 function', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-nad-gln')
+    expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')
+    for (const [role, agency, value, ercCode] of [
+      ['MS', '9', '7359990000014', '42'],
+      ['MR', '305', '7359990000014', '42'],
+      ['MS', '9', '735999000001', '42'],
+      ['MR', '305', '', '41'],
+    ] as const) {
+      const original = role === 'MS' ? 'NAD+MS+91100:SVK:260' : 'NAD+MR+21660:SVK:260'
+      const message = { ...control, raw_payload: control.raw_payload!.replace(original, `NAD+${role}+${value}::${agency}`) }
+      const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+      expect(runtime.transactionDispositions.map(item => item.responseType)).toEqual(['negative_aperak'])
+      expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+        expect.objectContaining({ fieldCode: role === 'MS' ? '207' : '208', ercCode }),
+      ]))
+      expect(runtime.ackPlan.utiltsErrCodes).toEqual([])
+    }
+    for (const agency of ['9', '305']) {
+      const message = { ...control, raw_payload: control.raw_payload!.replace('NAD+MS+91100:SVK:260', `NAD+MS+7359990000013::${agency}`) }
+      const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+      expect(runtime.ackPlan.aperakApplicationErrors.some(item => item.fieldCode === '207')).toBe(false)
+      expect(runtime.ackPlan.utiltsErrCodes).toContain('E19')
+    }
+  })
   it('rejects NAD MS/MR agency and conditional SVK qualifier at own field before E66 function', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-nad-guide')
     expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')

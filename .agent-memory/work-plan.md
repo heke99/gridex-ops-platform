@@ -1,3 +1,8 @@
+## Latest — active bounded criterion
+1. Field203 owner trace completed with blocker recorded in NAD GS1 audit; preserve safe gate.
+2. Publish NAD 9/305 GLN candidate on one PR, inspect native SQL stored ACK/no effects and four ordinary workflows on exact head; correct only genuine first failure.
+3. Self-review final diff, merge qualifying head, verify remote main and actual Vercel result. Continue next independent F3 criterion; retain LOC175, E035, field203 and market gates. PR310 untouched.
+
 ## Latest — header509 active
 Qualify the supplied SG2 NAD role list in real inbound native ACK/storage on exact PR head, ordinary CI, merge and same-SHA Vercel; do not infer mandate/required role from code-list acceptance. Then resume another independent F3C source criterion. Field203, LOC175, GS1 and E035 gated; #310 paused. Entries below historical.
 
