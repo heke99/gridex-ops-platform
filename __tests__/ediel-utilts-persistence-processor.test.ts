@@ -341,6 +341,25 @@ it.each([['E30', 'invalid'], ['E30', 'missing'], ['S07', 'invalid'], ['S07', 'mi
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
   })
+it('routes invalid October S01 LOC+175 to tenant-bound 533 negative APERAK without business effects', async () => {
+  const message = incoming(true, false, '2026-10-01')
+  message.message_code = 'S01'; message.application_reference = '23-DDK-S01-S'
+  message.customer_id = null; message.site_id = null; message.metering_point_id = null
+  message.raw_payload = message.raw_payload!
+    .replace('BGM+E66::260', 'BGM+S01:SVK:260')
+    .replace('23-DDQ-E66-S', '23-DDK-S01-S')
+    .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000008::9')
+  io.get.mockResolvedValue(message)
+  results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
+  const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
+  await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1]
+  expect(persisted?.p_company_id).toBe(message.company_id)
+  expect(persisted?.p_transactions).toMatchObject([{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak' }])
+  expect(JSON.stringify(io.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')?.[0].draft)).toContain('533')
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+})
 it('routes an invalid IDE qualifier to field 505 APERAK while preserving its valid sibling', async () => {
   const message = incoming(true, true, '2026-09-30')
   message.raw_payload = message.raw_payload!.replace('IDE+24+GRIDEX2607E66001', 'IDE+25+GRIDEX2607E66001')

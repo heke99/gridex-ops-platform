@@ -660,8 +660,14 @@ function invalidGs1Gsrn(value: string): boolean {
     || [...value].reduce((sum, digit, index) => sum + Number(digit) * (index % 2 === 0 ? 3 : 1), 0) % 10 !== 0
 }
 
-function applyE66RegulatingObjectGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
-  if (result.facts.messageCode !== 'E66') return result
+function applyUtiltsSuppliedRegulatingObjectGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, referenceDate: string, policy?: CanonicalEdielPolicy): UtiltsRuntimeResult {
+  const messageCode = result.facts.messageCode
+  if (messageCode !== 'E66' && messageCode !== 'S01') return result
+  // S01's conditional LOC+175 is sourced from the October 25-A-4 profile.
+  // Retain the existing E66 behavior until its earlier-profile source is reviewed.
+  if (messageCode === 'S01' && (policy?.guide ?? resolveAuthoritativeEdielGuide({
+    family: 'UTILTS', referenceDate, associationAssignedCode: message.message_version,
+  })).guideRevision !== '25-A-4') return result
   const wire = tokenizeEdifact(message.raw_payload)
   const issues: UtiltsValidationIssue[] = []
   let reference: string | null = null
@@ -860,7 +866,7 @@ export function runUtiltsRuntimeForMessage(
   const guideEffective = applyUtiltsEffectiveDatePolicyToRuntimeResult({
     message, result: guideCorrected, referenceDate, processabilityPolicy: canonicalPolicy?.utiltsProcessability,
   })
-  const guided = applyUtiltsSuppliedMeteringPointGuide(message, applyE66RegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, guideEffective)))), referenceDate, canonicalPolicy)
+  const guided = applyUtiltsSuppliedMeteringPointGuide(message, applyUtiltsSuppliedRegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, guideEffective))), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy)
   const eligible = new Set(guided.transactionDispositions
     .filter(item => item.disposition === 'accepted')
     .map(item => String(item.transactionId ?? '')))

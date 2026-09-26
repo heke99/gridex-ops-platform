@@ -52,6 +52,35 @@ describe('UTILTS runtime effective-date cutoff', () => {
     expect(runtime.transactionDispositions).toMatchObject([{ disposition: 'guide_rejected', responseType: 'negative_aperak' }])
     expect(runtime.ackPlan.utiltsErrCodes).toEqual([])
   })
+  it('reports a supplied invalid S01 regulating-object identity at field 533 in the October guide', () => {
+    const source = observationHandoffMessage('2026-10-01', 'tenant-s01-object533')
+    const raw_payload = source.raw_payload!
+      .replace('BGM+E66::260', 'BGM+S01:SVK:260')
+      .replace('23-DDQ-E66-S', '23-DDK-S01-S')
+      .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000008::9')
+    const message = { ...source, message_code: 'S01', application_reference: '23-DDK-S01-S', raw_payload }
+    const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-10-01' })
+    expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ fieldCode: '533', ercCode: '42', referenceNumber: 'GRIDEX2607E66001' }),
+    ]))
+    expect(runtime.transactionDispositions[0]).toMatchObject({ disposition: 'guide_rejected', responseType: 'negative_aperak' })
+  })
+  it('keeps S01 field 533 scoped to the selected October guide and permits a supplied national object ID', () => {
+    const source = observationHandoffMessage('2026-10-01', 'tenant-s01-object533-boundary')
+    const raw = source.raw_payload!
+      .replace('BGM+E66::260', 'BGM+S01:SVK:260')
+      .replace('23-DDQ-E66-S', '23-DDK-S01-S')
+      .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000008::9')
+    const message = { ...source, message_code: 'S01', application_reference: '23-DDK-S01-S', raw_payload: raw }
+    const prior = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+    expect(prior.validation.issues).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'UTILTS_REGULATING_OBJECT_GS1_CHECK_DIGIT_INVALID' }),
+    ]))
+    const national = runUtiltsRuntimeForMessage({ ...message,
+      raw_payload: raw.replace('LOC+175+735999260731000008::9', 'LOC+175+NATIONALOBJECT::89'),
+    }, { referenceDate: '2026-10-01' })
+    expect(national.validation.issues.some(issue => issue.aperakFieldCode === '533')).toBe(false)
+  })
   it.each(['E30', 'S07'] as const)('requires %s LOC+172 on its own IDE without borrowing a sibling', code => {
     const source = observationHandoffMessage('2026-10-01', `tenant-${code}-missing209`)
     const raw = source.raw_payload!.replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : 'BGM+E30::260')
