@@ -1,4 +1,7 @@
-## Latest — #402 delivery boundary
+## Latest — #403 delivery and header509 active
+Main `4221d0dced9ea5727c0bf6b18b49dc6ee9a9ce91`, Vercel READY same SHA. Header509 code-list candidate is not yet merged/native accepted. #401/#402 bounded NAD checks remain in deployed web code, market traffic not enabled. Frozen 121/231 un-reconciled, whole phases 0/8. Field203, LOC175, E035 and GS1 branches open; #310 paused. Entries below historical.
+
+## Historical — #402 delivery boundary
 Remote main `34b1bf98c0efc7605f28a1052c1cdbc5d98bcbfe`, same-SHA Vercel production READY. #401/#402 NAD bounded rules have native 345/345 and 346/346 receipts respectively. Web code is deployed, Ediel market traffic not activated. Frozen 121 rule cards/231 planned contracts are not reconciled one-to-one, 0/8 whole phases certified. Field203 uniqueness, LOC175 positive object, E035 history/retention still open. #310 paused. Entries below historical.
 
 ## Historical — #396 bounded ACK retry guard

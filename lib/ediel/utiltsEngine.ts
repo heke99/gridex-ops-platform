@@ -389,11 +389,22 @@ function applyUtiltsHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeR
   const rules = fieldRulesForMessage('UTILTS', result.facts.messageCode)
   const wire = tokenizeEdifact(message.raw_payload)
   const nadIssues: UtiltsValidationIssue[] = []
+  const ancillaryRoles = new Set(['DDK', 'DDQ', 'DDX', 'DEA', 'DEC', 'DER', 'DGG', 'DGI', 'EZ', 'MDR', 'PQ'])
   for (const segment of wire.segments) {
     if (segment.tag === 'IDE' || segment.tag === 'UNT') break
     if (segment.tag !== 'NAD') continue
-    const role = segmentComposite(segment, 1, wire.una)[0]
-    if (role !== 'MS' && role !== 'MR') continue
+    const role = segmentComposite(segment, 1, wire.una)[0]?.trim() ?? ''
+    if (role !== 'MS' && role !== 'MR') {
+      if (!ancillaryRoles.has(role)) nadIssues.push({
+        severity: 'error', kind: 'application',
+        code: role ? 'UTILTS_ANCILLARY_ROLE_INVALID' : 'UTILTS_ANCILLARY_ROLE_MISSING',
+        title: role ? 'Ogiltig underordnad roll' : 'Underordnad roll saknas',
+        description: role ? `SG2/NAD/3035 har otillåtet värde ${role}.` : 'SG2/NAD/3035 saknas.',
+        aperakErcCode: role ? '42' : '41', aperakFieldCode: '509',
+        aperakText: role ? 'INCORRECT DATA' : 'MANDATORY FIELD MISSING',
+      })
+      continue
+    }
     const field = role === 'MS' ? '207' : '208'
     const parts = segmentComposite(segment, 2, wire.una)
     const partyId = parts[0]?.trim() ?? ''

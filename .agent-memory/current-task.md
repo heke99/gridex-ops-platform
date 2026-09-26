@@ -1,4 +1,7 @@
-## Latest — after #402
+## Latest — header509 candidate after #403
+PR #403 merged main `4221d0dced9ea5727c0bf6b18b49dc6ee9a9ce91`, same-SHA Vercel `dpl_J9jh2tKEVJSw5ETnczoJRmyHmRVv` READY. Current bounded UG-123-5 supplied header NAD role code list RED/GREEN and processor mock; native/CI pending. Does not grant DGG traffic or profile role mandate. Field203, LOC175, E035 and GS1 remain separately open; #310 paused. Entries below historical.
+
+## Historical — after #402
 PR #401 and #402 are merged and exact remote main `34b1bf98c0efc7605f28a1052c1cdbc5d98bcbfe` is Vercel production READY (`dpl_8jg42Cbuijfd2W3GNv6BwdqFBbaP`). #402 four ordinary CI workflows green, native 346/346. Active next criterion is source/owner trace for NAD 9/305 GS1 check digit or another independent F3C rule; do not implement without exact source profile. Field203 historical document owner, LOC175 positive sink, E035 historical completeness/retention and F3C whole acceptance remain open. Ediel market traffic gated, #310 paused. Entries below are historical.
 
 ## Historical — after #396
