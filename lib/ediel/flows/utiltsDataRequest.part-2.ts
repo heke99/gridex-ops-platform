@@ -21,7 +21,7 @@ import { findActiveMeteringPermissionForUtiltsMessage } from '@/lib/onboarding/i
 
 
 
-import { buildUtiltsTransactionPersistencePayload, persistUtiltsTransactionResults, resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionPersistence'
+import { buildUtiltsTransactionPersistencePayload, persistUtiltsTransactionResults, resolveUtiltsTransactionId, storedUtiltsConsumption } from '@/lib/ediel/utilts/transactionPersistence'
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
 
 
@@ -553,6 +553,23 @@ export async function processInboundUtiltsMessage(params: {
   })
 
   if (allTransactionsFailedPersistence || (!runtime.validation.ok && !forcedPositiveTgtAckPlan) || shouldRejectByAckPlan) {
+    if (consumeAcceptedGuideSiblings && canonicalLinks.matchedDataRequest) {
+      const request = canonicalLinks.matchedDataRequest
+      for (const outcome of transactionPersistenceResults.filter(item => item.disposition === 'accepted')) {
+        const contract = storedUtiltsConsumption(outcome, message.id)
+        if (!contract || contract.metering.sourceRequestId !== request.id ||
+          contract.metering.meteringPointId !== request.metering_point_id ||
+          contract.metering.customerId !== request.customer_id ||
+          (request.site_id && contract.metering.siteId !== request.site_id) ||
+          (request.grid_owner_id && contract.metering.gridOwnerId !== request.grid_owner_id) ||
+          (contract.billing.capability === 'write' &&
+            (contract.billing.sourceRequestId !== request.id ||
+              contract.billing.meteringPointId !== request.metering_point_id ||
+              contract.billing.customerId !== request.customer_id))) {
+          throw new Error('utilts_partial_request_scope_conflict')
+        }
+      }
+    }
     // Consume before publishing a positive transaction ACK. An exception in a
     // sink leaves the source retryable, while the SQL binding and sink identity
     // keep a repeated attempt tied to the same accepted IDE and source bytes.
