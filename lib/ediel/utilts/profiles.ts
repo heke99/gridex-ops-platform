@@ -57,7 +57,7 @@ function intervalQuantities(
   return quantities.filter((quantity) => qualifier(quantity.qualifier) === '136')
 }
 
-export function validateCanonicalUtiltsProfile(facts: UtiltsRuntimeFacts): UtiltsValidationIssue[] {
+export function validateCanonicalUtiltsProfile(facts: UtiltsRuntimeFacts, functionalEligible?: ReadonlySet<string>): UtiltsValidationIssue[] {
   const profile = getCanonicalUtiltsProfile(facts.messageCode)
   if (!profile) return [issue('UTILTS_PROFILE_MISSING', 'UTILTS-profil saknas', `Ingen aktiv profil finns för ${facts.messageCode ?? '(saknas)'}.`)]
   if (profile.messageCode === 'ERR') return []
@@ -96,7 +96,7 @@ export function validateCanonicalUtiltsProfile(facts: UtiltsRuntimeFacts): Utilt
     if (profile.requiresQuantities && quantities.length === 0) issues.push(issue('UTILTS_PROFILE_QUANTITY_MISSING', 'Mätvärden saknas', `${profile.profileKey} kräver QTY-värden.`, reference))
 
     const countedQuantities = intervalQuantities(facts.messageCode, quantities)
-    if (profile.validatesDst && countedQuantities.length > 0) {
+    if (profile.validatesDst && countedQuantities.length > 0 && (!functionalEligible || functionalEligible.has(reference))) {
       const expected = expectedObservationCountForResolution({
         start: transaction.deliveryPeriodStart ?? facts.deliveryPeriodStart,
         end: transaction.deliveryPeriodEnd ?? facts.deliveryPeriodEnd,

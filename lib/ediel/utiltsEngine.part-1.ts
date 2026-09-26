@@ -331,6 +331,7 @@ function addObjectProcessabilityIssues(params: {
   message?: EdielMessageRow | null
   facts: UtiltsRuntimeFacts
   code: string
+  functionalEligible?: ReadonlySet<string>
 }) {
   const code = String(params.code ?? '').toUpperCase()
   const groups = splitTransactionGroups(params.facts.rawSegments)
@@ -345,6 +346,7 @@ function addObjectProcessabilityIssues(params: {
       params.facts.transactionId,
       index,
     )
+    if (params.functionalEligible && !params.functionalEligible.has(transactionReference)) continue
     const externalMeteringPointId = parseLocValueFromGroup(group, 'LOC+172')
     const externalGridAreaId = parseLocValueFromGroup(group, 'LOC+239')
     const transactionMatch = matchSnapshotForUtiltsGroup({
@@ -921,6 +923,7 @@ function rawLooksLikeE66SchContext(rawPayload: string): boolean {
 function promoteE66SchMissingReadingToFunctionalIssues(params: {
   message?: EdielMessageRow | null
   validation: UtiltsRuntimeValidation
+  functionalEligible?: ReadonlySet<string>
 }): UtiltsRuntimeValidation {
   const message = params.message
   if (!message) return params.validation
@@ -935,7 +938,8 @@ function promoteE66SchMissingReadingToFunctionalIssues(params: {
       issue.severity === 'error' &&
       issue.kind === 'application' &&
       issue.code === 'UTILTS_E66_MISSING_METER_READING' &&
-      issue.aperakFieldCode === '514',
+      issue.aperakFieldCode === '514' &&
+      (!params.functionalEligible || params.functionalEligible.has(String(issue.referenceNumber ?? issue.lineItemReference ?? ''))),
   )
 
   // A single missing reading in SCH can still be a pure guide/application error.
@@ -983,6 +987,7 @@ function promoteE66SchMissingReadingToFunctionalIssues(params: {
 function applyUtiltsProcessabilityClassification(params: {
   message?: EdielMessageRow | null
   validation: UtiltsRuntimeValidation
+  functionalEligible?: ReadonlySet<string>
 }): UtiltsRuntimeValidation {
   // Do not decide on test-case ids or transaction ids here. The runtime keeps a
   // production distinction: formal/anvisningsfel stays APERAK, but E66-S
@@ -992,9 +997,10 @@ function applyUtiltsProcessabilityClassification(params: {
   return promoteE66SchMissingReadingToFunctionalIssues(params)
 }
 
-function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRow | null): UtiltsRuntimeValidation {
+function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRow | null, functionalEligible?: ReadonlySet<string>): UtiltsRuntimeValidation {
   const issues: UtiltsValidationIssue[] = []
   const code = String(facts.messageCode ?? '').toUpperCase()
+  const mayCheckFunction = (reference: string | null) => !functionalEligible || functionalEligible.has(String(reference ?? ''))
 
   if (!facts.rawSegments.some((segment) => segment.startsWith('UNB+'))) {
     issues.push(buildIssue({
@@ -1094,9 +1100,9 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
     }))
   }
 
-  addObjectProcessabilityIssues({ issues, message, facts, code })
+  if (!functionalEligible || functionalEligible.size > 0) addObjectProcessabilityIssues({ issues, message, facts, code, functionalEligible })
 
-  if (['S02', 'S03'].includes(code) && !hasSegment(facts.rawSegments, 'STS+7')) {
+  if (['S02', 'S03'].includes(code) && (!functionalEligible || functionalEligible.size > 0) && !hasSegment(facts.rawSegments, 'STS+7')) {
     issues.push(buildIssue({
       severity: 'error',
       kind: 'functional',
@@ -1165,10 +1171,10 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
       }
 
       const groupPeriod = parsePeriodFromGroup(group)
-      const expectedMonths = monthsBetweenPeriod(groupPeriod.start, groupPeriod.end)
+      const expectedMonths = mayCheckFunction(transactionReference) ? monthsBetweenPeriod(groupPeriod.start, groupPeriod.end) : null
       const actualQuantities = parseQuantitiesFromGroup(group).length
       if (
-        expectedMonths !== null &&
+        mayCheckFunction(transactionReference) && expectedMonths !== null &&
         actualQuantities > 0 &&
         actualQuantities !== expectedMonths &&
         !hasMoreSpecificFunctionalIssueForReference({ issues, referenceNumber: transactionReference, ignoredCode: 'E87' })
@@ -1236,7 +1242,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
             lineItemReference: transactionReference,
           }))
 
-          if (groupHasMultipleSettlementShareDimensions(group)) {
+          if (mayCheckFunction(transactionReference) && groupHasMultipleSettlementShareDimensions(group)) {
             issues.push(buildIssue({
               severity: 'error',
               kind: 'functional',
@@ -1263,23 +1269,23 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
       const transactionReference = synthesizedTransactionIssueReference(group, facts.transactionId, index)
       const groupQuantities = parseQuantitiesFromGroup(group)
       const hasMissingValueStatus = groupHasStatusCode(group, '46')
-      const expectedCount = expectedQuantityCountForGroup(group)
+      const expectedCount = mayCheckFunction(transactionReference) ? expectedQuantityCountForGroup(group) : null
       const registrationTime = parseRegistrationDateTime(groupSegmentValue(group, 'DTM+597'))
       const resolution = parseDtmComposite(groupSegmentValue(group, 'DTM+354'))
 
-      if (groupQuantities.length === 0 && !hasMissingValueStatus) {
+      if (mayCheckFunction(transactionReference) && groupQuantities.length === 0 && !hasMissingValueStatus) {
         issues.push(buildIssue({ severity: 'error', kind: 'functional', code: 'UTILTS_E66_MISSING_METER_VALUE', title: 'Mätvärde saknas', description: 'E66-transaktionen saknar QTY-rad och är inte markerad som saknat värde.', utiltsErrCode: 'E10', referenceQualifier: 'TN', referenceNumber: transactionReference, lineItemReference: transactionReference }))
       }
-      if (groupHasMeterReadingEnergyMismatch(group)) {
+      if (mayCheckFunction(transactionReference) && groupHasMeterReadingEnergyMismatch(group)) {
         issues.push(buildIssue({ severity: 'error', kind: 'functional', code: 'UTILTS_E66_METER_READING_ENERGY_MISMATCH', title: 'Mätarställning stämmer inte med energimängd', description: 'Skillnaden mellan föregående och senaste mätarställning, multiplicerad med mätarkonstanten, stämmer inte med angiven energimängd.', utiltsErrCode: 'E19', referenceQualifier: 'TN', referenceNumber: transactionReference, lineItemReference: transactionReference }))
       }
-      if (groupRegistrationIsBeforeLatestMeterReadingDate(group)) {
+      if (mayCheckFunction(transactionReference) && groupRegistrationIsBeforeLatestMeterReadingDate(group)) {
         issues.push(buildIssue({ severity: 'error', kind: 'functional', code: 'UTILTS_E66_REGISTRATION_BEFORE_LATEST_READING', title: 'Registreringstidpunkt tidigare än senaste mätarställning', description: 'Registreringstidpunkten är tidigare än datum för senaste mätarställning i E66-transaktionen.', utiltsErrCode: 'E50', referenceQualifier: 'TN', referenceNumber: transactionReference, lineItemReference: transactionReference }))
       }
-      if (hasMissingValueStatus && groupQuantities.some((qty) => qty.value !== null)) {
+      if (mayCheckFunction(transactionReference) && hasMissingValueStatus && groupQuantities.some((qty) => qty.value !== null)) {
         issues.push(buildIssue({ severity: 'error', kind: 'functional', code: 'UTILTS_E66_MISSING_STATUS_WITH_VALUE', title: 'Saknat värde har ändå QTY', description: 'Status 46 anger saknat värde, men transaktionen innehåller QTY-värde.', utiltsErrCode: 'E90', referenceQualifier: 'TN', referenceNumber: transactionReference, lineItemReference: transactionReference }))
       }
-      if (groupQuantities.some((qty) => qty.value !== null && qty.value < 0)) {
+      if (mayCheckFunction(transactionReference) && groupQuantities.some((qty) => qty.value !== null && qty.value < 0)) {
         issues.push(buildIssue({ severity: 'error', kind: 'functional', code: 'UTILTS_E66_NEGATIVE_CONSUMPTION', title: 'Negativ förbrukning', description: 'E66 innehåller negativ förbrukning/mätvärde.', utiltsErrCode: 'E98', referenceQualifier: 'TN', referenceNumber: transactionReference, lineItemReference: transactionReference }))
       }
       const isIntervalValueSeries =
@@ -1287,7 +1293,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
         !groupHasMeterReadingQuantity(group)
 
       if (
-        isIntervalValueSeries &&
+        mayCheckFunction(transactionReference) && isIntervalValueSeries &&
         expectedCount !== null &&
         groupQuantities.length > 0 &&
         groupQuantities.length !== expectedCount &&
@@ -1321,7 +1327,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
     }
   }
 
-  issues.push(...validateCanonicalUtiltsProfile(facts))
+  issues.push(...validateCanonicalUtiltsProfile(facts, functionalEligible))
 
   const syntaxOk = !issues.some((issue) => issue.severity === 'error' && issue.kind === 'syntax')
   const hasFunctionalErrors = issues.some((issue) => issue.severity === 'error' && issue.kind === 'functional')
@@ -1615,12 +1621,12 @@ export function normalizeUtiltsRuntimePayload(facts: UtiltsRuntimeFacts, message
   }
 }
 
-export function runUtiltsRuntimeForMessage(message: EdielMessageRow): UtiltsRuntimeResult {
+export function runUtiltsRuntimeForMessage(message: EdielMessageRow, options?: { functionalEligible?: ReadonlySet<string> }): UtiltsRuntimeResult {
   const rawPayload = message.raw_payload ?? ''
   const facts = parseUtiltsRuntimeFacts(rawPayload)
   const normalizedPayload = normalizeUtiltsRuntimePayload(facts, message)
-  const baseValidation = validateUtiltsFacts(facts, message)
-  const validation = applyUtiltsProcessabilityClassification({ message, validation: baseValidation })
+  const baseValidation = validateUtiltsFacts(facts, message, options?.functionalEligible)
+  const validation = applyUtiltsProcessabilityClassification({ message, validation: baseValidation, functionalEligible: options?.functionalEligible })
   const transactionDispositions = resolveUtiltsTransactionDispositions({
     syntaxOk: validation.syntaxOk,
     transactions: facts.transactions,
