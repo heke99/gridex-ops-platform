@@ -102,6 +102,9 @@ rollback;
 -- E035 actual canonical register owner evidence remains facet-only.
 \ir ediel-register-validation-regression.sql
 
+-- ACK retries must not reset an in-flight or terminal outbox row by lock key.
+\ir ediel-ack-outbox-retry-regression.sql
+
 -- Real concurrent source-assessment append chain, fixed disposable localhost only.
 \! python3 scripts/ediel-source-validation-concurrency-regression.py
 \if :SHELL_ERROR
