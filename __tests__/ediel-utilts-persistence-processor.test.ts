@@ -343,7 +343,9 @@ it('routes a malformed supplied grid-area composite to 260a without rejecting it
 })
 for (const [present, missing] of [['232', '260c'], ['233', '260b']] as const) it(`routes orphan LOC+${present} to missing ${missing} before E66 function and business writes`, async () => {
   const message = incoming(true, false, '2026-09-30')
-  message.raw_payload = message.raw_payload!.replace("LOC+239+TES:SVK:260'", `LOC+239+TES:SVK:260'\nLOC+${present}+ABC:SVK:260'`)
+  const lines = message.raw_payload!.replace("LOC+239+TES:SVK:260'", `LOC+239+TES:SVK:260'\nLOC+${present}+ABC:SVK:260'`).split('\n')
+  lines[lines.findIndex(line => line.startsWith('UNT+'))] = `UNT+${lines.length - 2}+1'`
+  message.raw_payload = lines.join('\n')
   io.get.mockResolvedValue(message)
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
   await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })

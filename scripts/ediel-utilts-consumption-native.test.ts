@@ -633,8 +633,9 @@ it('native inbound persists supplied 260a grid-area guide rejection without a co
 })
 it.each([['232', '260c'], ['233', '260b']] as const)('native orphan LOC+%s persists negative %s and no consumption on retry', async (present, missing) => {
   const f = await seed()
-  const raw = f.original.raw_payload!.replace("LOC+239+TES:SVK:260'", `LOC+239+TES:SVK:260'\nLOC+${present}+ABC:SVK:260'`)
-  const source = await f.insertSource(raw)
+  const lines = f.original.raw_payload!.replace("LOC+239+TES:SVK:260'", `LOC+239+TES:SVK:260'\nLOC+${present}+ABC:SVK:260'`).split('\n')
+  lines[lines.findIndex(line => line.startsWith('UNT+'))] = `UNT+${lines.length - 2}+1'`
+  const source = await f.insertSource(lines.join('\n'))
   const first = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(first.ingestedMeterValueIds).toEqual([])
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
