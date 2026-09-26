@@ -1,17 +1,17 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-26T12:40:00Z",
+  "updated_at": "2026-09-26T13:50:00Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "main",
   "active_pr": null,
-  "base_head_sha": "72b405c7d49e75bec03294d3a4abc4c67c769473",
-  "runtime_accepted_sha": "72b405c7d49e75bec03294d3a4abc4c67c769473",
-  "last_merged_pr": 388,
-  "last_accepted_pr": 388,
+  "base_head_sha": "aa70ac5b1c6c21418b1103cd92d16632318e8495",
+  "runtime_accepted_sha": "aa70ac5b1c6c21418b1103cd92d16632318e8495",
+  "last_merged_pr": 390,
+  "last_accepted_pr": 390,
   "root_main_acceptance_comment": 5768848443,
-  "active_item": "F3 E66 field533 remaining GS1 and regulating-object identity; field203 uniqueness blocked",
-  "current_audit": "quality/audits/ediel-masterplan-v2/e66-field533-guide-20260926.md",
+  "active_item": "F3C-05 literal guide-before-function per IDE",
+  "current_audit": "quality/audits/ediel-masterplan-v2/e66-field533-gs1-20260926.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
     "published_head": "7750e2da44394b1b154eabfb4e3e8e80af30f4f6",
@@ -30,14 +30,19 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Trace source-backed GS1 check digit and per-IDE field533 response, then F3C-05 literal guide-before-function and remaining F3 criterion evidence. Field203/42 requires immutable tenant/legal-actor identity owner. PR310 excluded; no Ediel traffic activation.",
+  "next_action": "Reproduce and stage U-03 / AT-U-03 guide-before-function execution per IDE, preserving valid sibling ACK/storage. Field203 and LOC+175 positive sink require durable tenant/legal-actor owners. PR310 excluded.",
   "latest_verified_delivery": {
-    "main_sha": "72b405c7d49e75bec03294d3a4abc4c67c769473",
-    "merged_prs": [387, 388],
-    "pr388_head": "ad90a0803d6048845845e85c2a38542aa82b8b92",
-    "pr388_ops_run": 36236181111,
-    "pr388_native_tests": "343/343 after one registry-rate-limit retry",
-    "vercel_deployment": "dpl_A6N2A8Z6RwworAByEW3YBgyg598F READY",
+    "main_sha": "aa70ac5b1c6c21418b1103cd92d16632318e8495",
+    "merged_prs": [
+      387,
+      388,
+      389,
+      390
+    ],
+    "pr390_head": "9d6bd3c2ba336ae0e82e0fb44c4dcbc4e63879ac",
+    "pr390_ops_run": 36245827122,
+    "pr390_native_tests": "343/343",
+    "vercel_deployment": "dpl_6jUX2McXMZaSVoEVKU1aUYrKytCi READY",
     "boundary": "web deployed; Ediel market capabilities not activated"
   },
   "task4_combined_snapshot": {

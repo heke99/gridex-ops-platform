@@ -1,3 +1,6 @@
+## 2026-09-26 — bounded PR390
+E66 LOC+175 agency-9 18-digit GS1 modulo-10 field533/ERC42 negative APERAK per IDE; accepted sibling unaffected. PR390 exact-head CI green with native343/343; merged main `aa70ac5b`, Vercel production READY. This is not positive regulating-object processing or whole F3 completion.
+
 ## 2026-09-25 — Integrated checkpoint and local outbound fence RED/GREEN
 PR373–384 were merged inward to PR372; published doc head `0fbe6a5a` passed all applicable ordinary CI incl OPS `36190502740` verify/quality/clean replay; crawler skipped. Independent read-only review found critical outbound fence mismatch. Local focused unit test failed on old provider acceptance and passed 2/2 after JS correction; migration integrity/full check, app/test/script types, scoped lint and file budget passed. New private forward/native test remains unpublished/unexecuted in clean replay. No main merge, production or PR310 work.
 

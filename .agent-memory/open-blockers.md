@@ -1,3 +1,6 @@
+## 2026-09-26 — after PR390
+Field203 UG-122-7 duplicate/ERC42 lacks an immutable tenant and legal-actor scoped document identity reservation for history, concurrency and retries. Positive E66 LOC+175 needs durable regulating-object owner, separate SQL sink and native retry/storage proof; valid IDs are held. F3C-05 literal guide-before-function execution is not yet implemented, despite correct filtered final ACK cases. E035 pre-epoch `complete:false` and retention/deletion remain unclosed. No Ediel market capability is authorized by Vercel READY; TGT/AGT and counterpart gates are separate. PR310 paused and excluded.
+
 ## 2026-09-25 — LK exemption and first CI failure
 2026-09-25 follow-up: published intermediate PR372 `9b62d5d9` exposed first full E2E coverage failure `108259269158` (non-Z08 callback_missing and eight dependent/static cases). Independent correction review found legitimate Z08 LK exemption. Local TDD LK RED/GREEN and second forward `20260925234000` now return an explicit SQL-owned exemption; restored original non-Z08 direct lane. Exact four affected test files 52/52 PASS; final native and exact-head CI pending. Main unchanged; no production/staging/market send or PR310 change.
 

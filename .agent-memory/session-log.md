@@ -1,3 +1,6 @@
+## 2026-09-26 — E66 field533 GS1
+Verified remote main, sole active author and source rule, reproduced missing GS1 rejection in runtime and actual inbound, implemented agency-9 18-digit modulo-10 check, tested 111/111 and types/lint, published #390, qualified four exact-head CI workflows with native343/343 and authentic generated contracts, merged `aa70ac5b`, verified Vercel READY. No staging/TGT/AGT, counterparty or live send; #310 untouched. Continued read-only U-03 ordering trace: legacy validation precedes guide projection, so next criterion remains open.
+
 ## 2026-09-25 — LK exemption and first CI failure
 2026-09-25 follow-up: published intermediate PR372 `9b62d5d9` exposed first full E2E coverage failure `108259269158` (non-Z08 callback_missing and eight dependent/static cases). Independent correction review found legitimate Z08 LK exemption. Local TDD LK RED/GREEN and second forward `20260925234000` now return an explicit SQL-owned exemption; restored original non-Z08 direct lane. Exact four affected test files 52/52 PASS; final native and exact-head CI pending. Main unchanged; no production/staging/market send or PR310 change.
 

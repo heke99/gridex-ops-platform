@@ -1,3 +1,8 @@
+## 2026-09-26 — active finite criterion after #390
+1. Reproduce and implement U-03/AT-U-03 literal guide-before-function per IDE with genuine mixed-message ACK/storage proof; one PR and exact-head ordinary CI/native before merge.
+2. Recheck field203 and LOC+175 durable actor/tenant owners without inventing scope; move to independent F3C-02/04/06/07 if evidence remains absent. E035 history, retention/deletion and later phases remain criterion-specific.
+3. Keep Ediel capabilities gated; no staging, TGT/AGT, counterpart or live sends in this code round.
+
 ## 2026-09-25 — LK exemption and first CI failure
 2026-09-25 follow-up: published intermediate PR372 `9b62d5d9` exposed first full E2E coverage failure `108259269158` (non-Z08 callback_missing and eight dependent/static cases). Independent correction review found legitimate Z08 LK exemption. Local TDD LK RED/GREEN and second forward `20260925234000` now return an explicit SQL-owned exemption; restored original non-Z08 direct lane. Exact four affected test files 52/52 PASS; final native and exact-head CI pending. Main unchanged; no production/staging/market send or PR310 change.
 
