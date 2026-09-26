@@ -52,6 +52,27 @@ describe('UTILTS runtime effective-date cutoff', () => {
     expect(runtime.transactionDispositions).toMatchObject([{ disposition: 'guide_rejected', responseType: 'negative_aperak' }])
     expect(runtime.ackPlan.utiltsErrCodes).toEqual([])
   })
+  it.each(['E30', 'S07'] as const)('requires %s LOC+172 on its own IDE without borrowing a sibling', code => {
+    const source = observationHandoffMessage('2026-10-01', `tenant-${code}-missing209`)
+    const raw = source.raw_payload!.replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : 'BGM+E30::260')
+      .replace('23-DDQ-E66-S', code === 'E30' ? '23-MDR-E30-S' : '23-DDQ-S07-S')
+    const lines = raw.split('\n'), start = lines.findIndex(line => line.startsWith('IDE+24+')),
+      end = lines.findIndex(line => line.startsWith('UNT+'))
+    const first = lines.slice(start, end).filter(line => !line.startsWith('LOC+172'))
+    const second = lines.slice(start, end).map(line => line.replace('GRIDEX2607E66001', 'GRIDEX2607E66002'))
+    const joined = [...lines.slice(0, start), ...first, ...second, ...lines.slice(end)]
+    joined[joined.findIndex(line => line.startsWith('UNT+'))] = `UNT+${joined.length - 2}+1'`
+    const message = { ...source, message_code: code,
+      application_reference: code === 'E30' ? '23-MDR-E30-S' : '23-DDQ-S07-S', raw_payload: joined.join('\n') }
+    const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-10-01' })
+    expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ fieldCode: '209', ercCode: '41', referenceNumber: 'GRIDEX2607E66001' }),
+    ]))
+    expect(runtime.ackPlan.aperakApplicationErrors.filter(issue => issue.referenceNumber === 'GRIDEX2607E66001')
+      .map(issue => issue.fieldCode)).toEqual(['209'])
+    expect(runtime.transactionDispositions[0]).toMatchObject({ disposition: 'guide_rejected', responseType: 'negative_aperak' })
+    expect(runtime.transactionDispositions[1].disposition).not.toBe('guide_rejected')
+  })
   it('checks supplied per-IDE grid-area composite at 260a/b/c before E66 function', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-grid-area-guide')
     expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')

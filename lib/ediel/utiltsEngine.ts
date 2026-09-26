@@ -712,9 +712,11 @@ function applyUtiltsSuppliedMeteringPointGuide(message: EdielMessageRow, result:
   const issues: UtiltsValidationIssue[] = []
   for (const [index, observed] of (result.facts.utiltsObservedTransactions ?? []).entries()) {
     const reference = resolveUtiltsTransactionId(observed.transactionId, index)
+    let supplied = false
     for (const segment of observed.segments) {
       if (segment.tag === 'SEQ') break
       if (segment.tag !== 'LOC' || segmentComposite(segment, 1, wire.una)[0] !== '172') continue
+      supplied = true
       const parts = segmentComposite(segment, 2, wire.una)
       const value = parts[0]?.trim() ?? ''
       const agency = parts[2]?.trim() ?? ''
@@ -732,6 +734,14 @@ function applyUtiltsSuppliedMeteringPointGuide(message: EdielMessageRow, result:
         description: 'LOC+172/C517 kräver anläggningsid med byråkod 9 eller 89 och giltig GS1-kontrollsiffra när 9 används.',
         aperakErcCode: missing ? '41' : '42', aperakFieldCode: '209',
         aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+        referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
+      })
+    }
+    if (!supplied && (result.facts.messageCode === 'E30' || result.facts.messageCode === 'S07')) {
+      issues.push({
+        severity: 'error', kind: 'application', code: 'UTILTS_METERING_POINT_ID_MISSING',
+        title: 'Anläggningsidentitet saknas', description: 'SG5/LOC+172 krävs för denna transaktion.',
+        aperakErcCode: '41', aperakFieldCode: '209', aperakText: 'MANDATORY FIELD MISSING',
         referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
       })
     }

@@ -635,12 +635,13 @@ it('native inbound persists field209 invalid GSRN with final negative ACK and st
   expect(snapshot(source.id)).toEqual(prior)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
 })
-it.each(['E30', 'S07'] as const)('native inbound holds supplied invalid %s LOC+172 at 209 through final ACK and retry', async code => {
+it.each([['E30', 'invalid'], ['E30', 'missing'], ['S07', 'invalid'], ['S07', 'missing']] as const)(
+  'native inbound holds %s LOC+172 %s at 209 through final ACK and retry', async (code, defect) => {
   const f = await seed(), application = code === 'E30' ? '23-MDR-E30-T' : '23-DDQ-S07-T'
   const raw = f.original.raw_payload!
     .replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : 'BGM+E30::260')
     .replace('23-DDQ-E66-T', application)
-    .replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000008::9')
+    .replace('LOC+172+735999260731000007::9', defect === 'invalid' ? 'LOC+172+735999260731000008::9' : '')
   const source = await f.insertSource(raw, code)
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
   const run = code === 'S07' ? processInboundUtiltsMessageByCanonicalPolicy : processInboundUtiltsMessage
@@ -660,7 +661,7 @@ it.each(['E30', 'S07'] as const)('native inbound holds supplied invalid %s LOC+1
   await run({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(snapshot(source.id)).toEqual(prior)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
-})
+  })
 it('native inbound persists supplied 260a grid-area guide rejection without a consumable series', async () => {
   const f = await seed()
   const source = await f.insertSource(f.original.raw_payload!.replace('LOC+239+TES:SVK:260', 'LOC+239+ABCD:SVK:260'))
