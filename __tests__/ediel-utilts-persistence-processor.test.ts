@@ -2,6 +2,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
 import { energyHandoffMessage, observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 import { bindingRpcRows } from './helpers/utiltsBoundFixture'
+import { findMatchingGridOwnerDataRequest } from '@/lib/ediel/matching'
 import type { UtiltsBoundPersistenceInput } from '@/lib/ediel/utilts/transactionPersistence'
 
 const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), rpc: vi.fn(), from: vi.fn(), meter: vi.fn(), bill: vi.fn(), complete: vi.fn(), findOutbound: vi.fn() }))
@@ -293,7 +294,9 @@ it('real inbound keeps a guide-invalid E66 IDE separate from a valid sibling thr
   ])
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
   expect(io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK')).toHaveLength(2)
-  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
+  expect(io.meter).toHaveBeenCalledTimes(1); expect(io.bill).toHaveBeenCalledTimes(1)
+  expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ sourceTransactionReference: 'GRIDEX2607E66002', quantityKwh: 7 }))
+  expect(io.complete).not.toHaveBeenCalled()
 })
 it('routes an invalid IDE qualifier to field 505 APERAK while preserving its valid sibling', async () => {
   const message = incoming(true, true, '2026-09-30')
@@ -313,7 +316,47 @@ it('routes an invalid IDE qualifier to field 505 APERAK while preserving its val
   expect(aperaks).toHaveLength(2)
   expect(JSON.stringify(aperaks[0][0].draft)).toContain('505')
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
-  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+  expect(io.meter).toHaveBeenCalledTimes(1); expect(io.bill).toHaveBeenCalledTimes(1); expect(io.complete).not.toHaveBeenCalled()
+  expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ sourceTransactionReference: 'GRIDEX2607E66002', quantityKwh: 7 }))
+})
+it('routes a malformed supplied grid-area composite to 260a without rejecting its valid IDE sibling', async () => {
+  const message = incoming(true, true, '2026-09-30')
+  message.raw_payload = message.raw_payload!.replace('LOC+239+TES:SVK:260', 'LOC+239+ABCD:SVK:260')
+  io.get.mockResolvedValue(message)
+  results = [
+    { transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' },
+    accepted('GRIDEX2607E66002'),
+  ]
+  await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')![1].p_transactions
+  expect(persisted).toMatchObject([
+    { transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak' },
+    { transactionId: 'GRIDEX2607E66002', disposition: 'accepted', responseType: 'positive_aperak' },
+  ])
+  const aperaks = io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK')
+  expect(aperaks).toHaveLength(2)
+  expect(JSON.stringify(aperaks[0][0].draft)).toContain('260a')
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  expect(io.meter).toHaveBeenCalledTimes(1); expect(io.bill).toHaveBeenCalledTimes(1); expect(io.complete).not.toHaveBeenCalled()
+  expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ sourceTransactionReference: 'GRIDEX2607E66002', quantityKwh: 7 }))
+  expect(io.meter.mock.invocationCallOrder[0]).toBeLessThan(io.ack.mock.invocationCallOrder[0])
+})
+it('holds a positive sibling before ACK when its bound point and customer differ from the linked request', async () => {
+  const message = incoming(true, true, '2026-09-30')
+  message.raw_payload = message.raw_payload!.replace('LOC+239+TES:SVK:260', 'LOC+239+ABCD:SVK:260')
+  io.get.mockResolvedValue(message)
+  vi.mocked(findMatchingGridOwnerDataRequest).mockResolvedValueOnce({
+    id: 'request-a', request_scope: 'billing_underlay', response_payload: {},
+    customer_id: 'other-customer', metering_point_id: 'other-point',
+  } as Awaited<ReturnType<typeof findMatchingGridOwnerDataRequest>>)
+  results = [
+    { transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' },
+    accepted('GRIDEX2607E66002'),
+  ]
+  await expect(processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id }))
+    .rejects.toThrow('utilts_partial_request_scope_conflict')
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
+  expect(io.ack).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
 it('prior applicable reading is held while an eligible 15-minute energy sibling stays independent in the actual processor',async()=>{
  const message=incoming(true,true,'2026-09-30');io.get.mockResolvedValue(message)

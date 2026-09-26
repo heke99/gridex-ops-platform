@@ -605,6 +605,38 @@ function applyUtiltsIdeGuide(message: EdielMessageRow, result: UtiltsRuntimeResu
   return issues.length ? rebuildUtiltsRuntimeResult({ message, result, issues: [...result.validation.issues, ...issues] }) : result
 }
 
+function applyUtiltsGridAreaGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
+  const wire = tokenizeEdifact(message.raw_payload)
+  const fields: Record<string, string> = { '239': '260a', '232': '260b', '233': '260c' }
+  const issues: UtiltsValidationIssue[] = []
+  for (const [index, observed] of (result.facts.utiltsObservedTransactions ?? []).entries()) {
+    const reference = resolveUtiltsTransactionId(observed.transactionId, index)
+    for (const segment of observed.segments) {
+      if (segment.tag === 'SEQ') break
+      if (segment.tag !== 'LOC') continue
+      const location = segmentComposite(segment, 1, wire.una)[0]
+      const fieldCode = fields[location ?? '']
+      if (!fieldCode) continue
+      const parts = segmentComposite(segment, 2, wire.una)
+      const value = parts[0] ?? ''
+      const codeList = parts[1] ?? ''
+      const agency = parts[2] ?? ''
+      const missing = !value.trim() || !codeList || !agency
+      if (!missing && Array.from(value).length === 3 && codeList === 'SVK' && agency === '260') continue
+      issues.push({
+        severity: 'error', kind: 'application',
+        code: missing ? 'UTILTS_GRID_AREA_COMPONENT_MISSING' : 'UTILTS_GRID_AREA_COMPONENT_INVALID',
+        title: missing ? 'Nätområdesfält saknas' : 'Ogiltigt nätområdesfält',
+        description: `LOC+${location}/C517 måste innehålla tre tecken, SVK och 260.`,
+        aperakErcCode: missing ? '41' : '42', aperakFieldCode: fieldCode,
+        aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+        referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
+      })
+    }
+  }
+  return issues.length ? rebuildUtiltsRuntimeResult({ message, result, issues: [...result.validation.issues, ...issues] }) : result
+}
+
 function applyE66RegulatingObjectGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
   if (result.facts.messageCode !== 'E66') return result
   const wire = tokenizeEdifact(message.raw_payload)
@@ -753,7 +785,7 @@ export function runUtiltsRuntimeForMessage(
   const guideEffective = applyUtiltsEffectiveDatePolicyToRuntimeResult({
     message, result: guideCorrected, referenceDate, processabilityPolicy: canonicalPolicy?.utiltsProcessability,
   })
-  const guided = applyE66RegulatingObjectGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, guideEffective)))
+  const guided = applyE66RegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, guideEffective))))
   const eligible = new Set(guided.transactionDispositions
     .filter(item => item.disposition === 'accepted')
     .map(item => String(item.transactionId ?? '')))

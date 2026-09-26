@@ -21,7 +21,7 @@ import { findActiveMeteringPermissionForUtiltsMessage } from '@/lib/onboarding/i
 
 
 
-import { buildUtiltsTransactionPersistencePayload, persistUtiltsTransactionResults, resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionPersistence'
+import { buildUtiltsTransactionPersistencePayload, persistUtiltsTransactionResults, resolveUtiltsTransactionId, storedUtiltsConsumption } from '@/lib/ediel/utilts/transactionPersistence'
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
 
 
@@ -515,6 +515,23 @@ export async function processInboundUtiltsMessage(params: {
     ackPlan.shouldSendUtiltsErr ||
     (ackPlan.shouldSendAperak && ackPlan.aperakOutcome === 'negative')
 
+  // A guide error belongs to its IDE, not to a healthy sibling. Only enter
+  // the partial consumption path when every error is explicitly referenced to
+  // a rejected transaction and the persisted accepted result has its own
+  // source-bound contract. Header, syntax, functional and structural holds
+  // retain the whole-message stop below.
+  const rejectedGuideIds = new Set(transactionDispositions
+    .flatMap((item, index) => item.disposition === 'guide_rejected' ? [resolveUtiltsTransactionId(item.transactionId, index)] : []))
+  const consumeAcceptedGuideSiblings = !structuralDecisionRequired &&
+    runtime.validation.classification === 'application_rejected' &&
+    !allTransactionsFailedPersistence &&
+    ackPlan.contrlOutcome !== 'negative' && !ackPlan.shouldSendUtiltsErr &&
+    rejectedGuideIds.size > 0 && transactionDispositions.some(item => item.disposition === 'accepted') &&
+    transactionDispositions.every(item => item.disposition === 'accepted' || item.disposition === 'guide_rejected') &&
+    runtime.validation.issues.filter(issue => issue.severity === 'error').every(issue =>
+      issue.kind === 'application' && issue.referenceQualifier === 'ACW' &&
+      Boolean(issue.referenceNumber && rejectedGuideIds.has(issue.referenceNumber)))
+
   await updateEdielMessageStatus({
     actorUserId,
     edielMessageId: message.id,
@@ -536,6 +553,50 @@ export async function processInboundUtiltsMessage(params: {
   })
 
   if (allTransactionsFailedPersistence || (!runtime.validation.ok && !forcedPositiveTgtAckPlan) || shouldRejectByAckPlan) {
+    if (consumeAcceptedGuideSiblings && canonicalLinks.matchedDataRequest) {
+      const request = canonicalLinks.matchedDataRequest
+      for (const outcome of transactionPersistenceResults.filter(item => item.disposition === 'accepted')) {
+        const contract = storedUtiltsConsumption(outcome, message.id)
+        if (!contract || contract.metering.sourceRequestId !== request.id ||
+          contract.metering.meteringPointId !== request.metering_point_id ||
+          contract.metering.customerId !== request.customer_id ||
+          (request.site_id && contract.metering.siteId !== request.site_id) ||
+          (request.grid_owner_id && contract.metering.gridOwnerId !== request.grid_owner_id) ||
+          (contract.billing.capability === 'write' &&
+            (contract.billing.sourceRequestId !== request.id ||
+              contract.billing.meteringPointId !== request.metering_point_id ||
+              contract.billing.customerId !== request.customer_id))) {
+          throw new Error('utilts_partial_request_scope_conflict')
+        }
+      }
+    }
+    // Consume before publishing a positive transaction ACK. An exception in a
+    // sink leaves the source retryable, while the SQL binding and sink identity
+    // keep a repeated attempt tied to the same accepted IDE and source bytes.
+    const partialMeterValues = consumeAcceptedGuideSiblings ? await maybeIngestMeteringValue({
+      boundOutcomes: transactionPersistenceResults,
+      actorUserId,
+      customerId: canonicalLinks.siteAndCustomer?.customerId ?? canonicalLinks.matchedDataRequest?.customer_id ?? matchedPermission?.customer_id ?? null,
+      siteId: canonicalLinks.siteAndCustomer?.siteId ?? canonicalLinks.matchedDataRequest?.site_id ?? matchedPermission?.site_id ?? null,
+      meteringPointId: canonicalLinks.meteringPointId ?? canonicalLinks.matchedDataRequest?.metering_point_id ?? matchedPermission?.metering_point_id ?? null,
+      gridOwnerId: canonicalLinks.siteAndCustomer?.gridOwnerId ?? canonicalLinks.matchedDataRequest?.grid_owner_id ?? matchedPermission?.grid_owner_id ?? null,
+      dataRequestId: canonicalLinks.matchedDataRequest?.id ?? null,
+      message,
+      normalizedPayload,
+    }) : []
+    const partialBillingUnderlay = consumeAcceptedGuideSiblings && canonicalLinks.matchedDataRequest
+      ? await maybeCreateBillingUnderlay({
+          boundOutcomes: transactionPersistenceResults,
+          actorUserId,
+          dataRequest: canonicalLinks.matchedDataRequest,
+          customerId: canonicalLinks.siteAndCustomer?.customerId ?? canonicalLinks.matchedDataRequest.customer_id ?? null,
+          siteId: canonicalLinks.siteAndCustomer?.siteId ?? canonicalLinks.matchedDataRequest.site_id ?? null,
+          meteringPointId: canonicalLinks.meteringPointId ?? canonicalLinks.matchedDataRequest.metering_point_id ?? null,
+          gridOwnerId: canonicalLinks.siteAndCustomer?.gridOwnerId ?? canonicalLinks.matchedDataRequest.grid_owner_id ?? null,
+          message,
+          normalizedPayload,
+        }) : null
+    const partialMeterValueIds = partialMeterValues.map(row => row.id)
     const ackIds = await createUtiltsRuntimeAcks({
       actorUserId,
       sourceMessage: runtimeSourceMessage,
@@ -553,6 +614,8 @@ export async function processInboundUtiltsMessage(params: {
         ...(message.parsed_payload ?? {}),
         normalizedMeteringPayload: normalizedPayload,
         utiltsRuntimeFacts: runtime.facts,
+        ingestedMeterValueIds: partialMeterValueIds,
+        billingUnderlayId: partialBillingUnderlay?.id ?? null,
       },
       validationReport: {
         ...(message.validation_report ?? {}),
@@ -571,6 +634,8 @@ export async function processInboundUtiltsMessage(params: {
       eventStatus: 'warning',
       message: structuralQualification.hasInternalReview
         ? 'Inbound UTILTS väntar på godkänt strukturunderlag. Berörda transaktioner har inte kvitterats eller lagrats som mätvärden.'
+        : consumeAcceptedGuideSiblings
+          ? 'Inbound UTILTS avvisade guidefelaktiga transaktioner; endast separat accepterade transaktioner konsumerades och kvitterades.'
         : 'Inbound UTILTS avvisades av produktionsruntime och korrekt kvittensflöde skapades.',
       payload: {
         createdAckMessageIds: ackIds,
@@ -587,9 +652,9 @@ export async function processInboundUtiltsMessage(params: {
       ackIds,
       internalReviewRequired: structuralQualification.hasInternalReview,
       outboundRequestId: null,
-      ingestedMeterValueId: null,
-      ingestedMeterValueIds: [],
-      billingUnderlayId: null,
+      ingestedMeterValueId: partialMeterValueIds[0] ?? null,
+      ingestedMeterValueIds: partialMeterValueIds,
+      billingUnderlayId: partialBillingUnderlay?.id ?? null,
     }
   }
 

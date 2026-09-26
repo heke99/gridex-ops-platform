@@ -6,6 +6,30 @@ import { buildAperakDraft } from '@/lib/ediel/ack'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 
 describe('UTILTS runtime effective-date cutoff', () => {
+  it('checks supplied per-IDE grid-area composite at 260a/b/c before E66 function', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-grid-area-guide')
+    expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')
+    for (const [location, value, fieldCode, ercCode] of [
+      ['239', 'ABCD:SVK:260', '260a', '42'], ['239', ':SVK:260', '260a', '41'],
+      ['239', 'TES:BAD:260', '260a', '42'], ['239', 'TES:SVK:999', '260a', '42'],
+      ['232', 'ABCD:SVK:260', '260b', '42'], ['233', 'ABCD:SVK:260', '260c', '42'],
+    ] as const) {
+      const raw_payload = location === '239'
+        ? control.raw_payload!.replace('LOC+239+TES:SVK:260', `LOC+239+${value}`)
+        : control.raw_payload!.replace("LOC+239+TES:SVK:260'", `LOC+239+TES:SVK:260'\nLOC+${location}+${value}'`)
+      const runtime = runUtiltsRuntimeForMessage({ ...control, raw_payload }, { referenceDate: '2026-09-30' })
+      expect(runtime.ackPlan.aperakApplicationErrors, `${location}/${value}`).toEqual(expect.arrayContaining([
+        expect.objectContaining({ fieldCode, ercCode, referenceNumber: 'GRIDEX2607E66001' }),
+      ]))
+      expect(runtime.ackPlan.utiltsErrCodes).toEqual([])
+    }
+    for (const location of ['232', '233'] as const) {
+      const raw_payload = control.raw_payload!.replace("LOC+239+TES:SVK:260'", `LOC+239+TES:SVK:260'\nLOC+${location}+ABC:SVK:260'`)
+      const runtime = runUtiltsRuntimeForMessage({ ...control, raw_payload }, { referenceDate: '2026-09-30' })
+      expect(runtime.ackPlan.aperakApplicationErrors.some(issue => issue.fieldCode === (location === '232' ? '260b' : '260c'))).toBe(false)
+      expect(runtime.ackPlan.utiltsErrCodes).toContain('E19')
+    }
+  })
   it('rejects a supplied non-24 IDE qualifier as field 505 before E66 function', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-ide505')
     expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')
