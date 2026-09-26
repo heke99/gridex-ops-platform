@@ -4,7 +4,7 @@
 BEGIN;
 CREATE TEMP TABLE register_results(name text PRIMARY KEY,passed boolean NOT NULL,detail text) ON COMMIT DROP;
 CREATE FUNCTION pg_temp.register_case(label text, company uuid, source uuid, facts jsonb, reject boolean DEFAULT true) RETURNS void LANGUAGE plpgsql AS $$
-DECLARE blocked boolean:=false; unexpected text; before_count bigint; after_count bigint; receipt jsonb;
+DECLARE blocked boolean:=false; unexpected text; before_count bigint; after_count bigint; receipt jsonb; exact_saved boolean:=false;
 BEGIN
  SELECT count(*) INTO before_count FROM gridex_received_sources.validation_assessments WHERE source_message_id=source;
  BEGIN
@@ -17,9 +17,20 @@ BEGIN
  END;
  EXECUTE 'RESET ROLE';
  SELECT count(*) INTO after_count FROM gridex_received_sources.validation_assessments WHERE source_message_id=source;
+ IF NOT reject AND receipt ? 'assessmentId' THEN
+  SELECT EXISTS (
+   SELECT 1 FROM gridex_received_sources.validation_assessments a
+   JOIN gridex_received_sources.sources s ON s.source_message_id=a.source_message_id
+   WHERE a.id=(receipt->>'assessmentId')::uuid AND a.source_message_id=source
+    AND a.company_id=company AND a.environment='test' AND a.source_payload_hash=s.payload_hash
+    AND a.facts_text=facts::text
+    AND a.facts_hash=encode(sha256(convert_to(facts::text,'UTF8')),'hex')
+  ) INTO exact_saved;
+ END IF;
  INSERT INTO register_results VALUES(label,unexpected IS NULL AND blocked=reject
   AND after_count=before_count+CASE WHEN reject THEN 0 ELSE 1 END
-  AND (reject OR receipt->>'sourceDisposition'='not_established'),coalesce(unexpected,CASE WHEN blocked THEN 'rejected' ELSE 'stored' END));
+  AND (reject OR (exact_saved AND receipt->>'sourceDisposition'='not_established')),
+  coalesce(unexpected,CASE WHEN blocked THEN 'rejected' WHEN exact_saved THEN 'exact source-bound assessment' ELSE 'missing or altered assessment' END));
 END $$;
 DO $$
 DECLARE company uuid:=gen_random_uuid(); source uuid:=gen_random_uuid(); profile public.ediel_message_profiles%rowtype;
