@@ -146,6 +146,9 @@ export function buildUtiltsTransactionPersistencePayload(input: {
     const match =
       byTransactionReference(input.matches, disposition.transactionId) ??
       byTransactionReference(input.matches, transactionId)
+    // LOC+175 names a regulating object, never a metering point. A grid-area
+    // or stale transaction match must not turn that IDE into a point identity.
+    const regulatingObject = input.messageCode === 'E66' && Boolean(transaction?.regulatingObjectId)
 
     return {
       transactionId,
@@ -153,8 +156,8 @@ export function buildUtiltsTransactionPersistencePayload(input: {
       responseType: disposition.responseType,
       issueCodes: [...disposition.issueCodes],
       seriesKind,
-      meteringPointId: match?.meteringPointId ?? null,
-      externalMeteringPointId: match?.externalMeteringPointId ?? transaction?.meterPointId ?? null,
+      meteringPointId: regulatingObject ? null : match?.meteringPointId ?? null,
+      externalMeteringPointId: regulatingObject ? null : match?.externalMeteringPointId ?? transaction?.meterPointId ?? null,
       gridAreaId: match?.externalGridAreaId ?? transaction?.gridAreaId ?? null,
       periodStart: transaction?.deliveryPeriodStart ?? null,
       periodEnd: transaction?.deliveryPeriodEnd ?? null,

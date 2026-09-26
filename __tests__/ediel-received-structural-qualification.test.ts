@@ -113,6 +113,74 @@ it('held transactions cannot carry energy quantities into the persistence RPC',a
  const items=buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:result.runtime.facts.transactions,dispositions:result.runtime.transactionDispositions,matches:[]})
  expect(items).toMatchObject([{disposition:'internal_review',responseType:'none',quantities:[]}])
 })
+it('holds a regulating-object E66 IDE without borrowing a metering-point identity or issuing a national error',async()=>{
+ const args=input(true)
+ args.message.raw_payload=args.message.raw_payload!.replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9')
+ args.runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
+ expect(args.runtime.transactionDispositions,JSON.stringify(args.runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
+ const result=await qualifyReceivedUtiltsStructure(args)
+ expect(result).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,
+  runtime:{transactionDispositions:[{disposition:'internal_review',responseType:'none'}]}})
+ expect(result.runtime.ackPlan.utiltsErrCodes).toEqual([])
+ expect(await createUtiltsRuntimeAcks({actorUserId:ownerId(9),sourceMessage:args.message,ackPlan:result.runtime.ackPlan,
+  transactionDispositions:result.runtime.transactionDispositions})).toEqual(['synthetic-contrl'])
+ expect(buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:result.runtime.facts.transactions,
+  dispositions:result.runtime.transactionDispositions,matches:[{transactionReference:'GRIDEX2607E66001',
+   externalMeteringPointId:'735999260731000007',externalGridAreaId:'TES',meteringPointId:ownerId(8)}]})[0])
+  .toMatchObject({meteringPointId:null,externalMeteringPointId:null,quantities:[]})
+})
+it('isolates LOC+175 and LOC+172 sibling IDEs through disposition, ACK and persistence',async()=>{
+ const args=input(true)
+ const lines=args.message.raw_payload!.split('\n')
+ const start=lines.findIndex(line=>line.startsWith('IDE+24+'))
+ const end=lines.findIndex(line=>line.startsWith('UNT+'))
+ const sibling=lines.slice(start,end).map(line=>line.replace('GRIDEX2607E66001','GRIDEX2607E66002'))
+ lines[start+1]=lines[start+1].replace('LOC+172','LOC+175')
+ lines.splice(end,0,...sibling)
+ lines[end+sibling.length]=`UNT+${lines.length-2}+1'`
+ args.message.raw_payload=lines.join('\n')
+ args.runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
+ expect(args.runtime.facts.transactions).toMatchObject([
+  {meterPointId:null,regulatingObjectId:'735999260731000007'},
+  {meterPointId:'735999260731000007',regulatingObjectId:null},
+ ])
+ expect(args.runtime.transactionDispositions,JSON.stringify(args.runtime.validation.issues)).toMatchObject([
+  {disposition:'accepted'},{disposition:'accepted'},
+ ])
+ const result=await qualifyReceivedUtiltsStructure(args)
+ expect(result.runtime.transactionDispositions).toMatchObject([
+  {disposition:'internal_review',responseType:'none'},
+  {disposition:'accepted',responseType:'positive_aperak'},
+ ])
+ const items=buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:result.runtime.facts.transactions,
+  dispositions:result.runtime.transactionDispositions,matches:[]})
+ expect(items[0].quantities).toEqual([])
+ expect(items[1].quantities.length).toBeGreaterThan(0)
+ expect(result.runtime.ackPlan.utiltsErrCodes).toEqual([])
+})
+it('does not borrow a sibling LOC+172 when an E66 IDE lacks both identities',()=>{
+ const args=input(true)
+ const lines=args.message.raw_payload!.split('\n')
+ const start=lines.findIndex(line=>line.startsWith('IDE+24+'))
+ const end=lines.findIndex(line=>line.startsWith('UNT+'))
+ lines.splice(end,0,...lines.slice(start,end).filter(line=>!line.startsWith('LOC+172')).map(line=>line.replace('GRIDEX2607E66001','GRIDEX2607E66002')))
+ lines[lines.findIndex(line=>line.startsWith('UNT+'))]=`UNT+${lines.length-2}+1'`
+ args.message.raw_payload=lines.join('\n')
+ const runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
+ expect(runtime.transactionDispositions).toMatchObject([{disposition:'accepted'},{disposition:'guide_rejected'}])
+ expect(runtime.validation.issues).toEqual(expect.arrayContaining([expect.objectContaining({code:'UTILTS_PROFILE_METERING_POINT_MISSING',
+  referenceNumber:'GRIDEX2607E66002'})]))
+})
+it('holds an ambiguous E66 IDE with both object domains instead of consuming it as LOC+172',async()=>{
+ const args=input(true)
+ args.message.raw_payload=args.message.raw_payload!.replace("LOC+239+TES:SVK:260'", "LOC+175+735999260731000007::9'\nLOC+239+TES:SVK:260'")
+ args.runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
+ const result=await qualifyReceivedUtiltsStructure(args)
+ expect(result.runtime.transactionDispositions).toMatchObject([{disposition:'internal_review',responseType:'none'}])
+ expect(result.runtime.ackPlan.utiltsErrCodes).toEqual([])
+ expect(buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:result.runtime.facts.transactions,
+  dispositions:result.runtime.transactionDispositions,matches:[]})[0]).toMatchObject({meteringPointId:null,externalMeteringPointId:null,quantities:[]})
+})
 it('holds an unproved reading while preserving an exempt energy sibling in the same physical message',async()=>{
  const args=input()
  const lines=args.message.raw_payload!.split('\n')

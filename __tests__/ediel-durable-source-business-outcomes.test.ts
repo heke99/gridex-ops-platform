@@ -79,6 +79,20 @@ beforeEach(() => {
     externalGridAreaId: 'TES', matchStatus: 'matched', customerId: null, siteId: null, gridOwnerId: null }])
   io.allMatched.mockReturnValue(false); io.ingest.mockResolvedValue([{ id: 'value-1' }])
 })
+it('actual inbound E66 holds LOC+175 despite a stale metering-point match and emits no business value',async()=>{
+ incoming=energyHandoffMessage('2026-10-01',COMPANY)
+ incoming.raw_payload=incoming.raw_payload!.replace('LOC+172+735999260731000007::9','LOC+175+735999260731000007::9')
+ const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:'2026-10-01',
+  applicationReference:incoming.application_reference,mode:'parse'})
+ const result=await processInboundUtiltsMessage({actorUserId:'operator',edielMessageId:incoming.id,canonicalPolicy:policy})
+ expect(result).toMatchObject({ingestedMeterValueId:null,ingestedMeterValueIds:[],billingUnderlayId:null})
+ expect(io.persist).toHaveBeenCalledOnce()
+ expect(io.persist.mock.calls[0][0].transactions).toMatchObject([{disposition:'internal_review',responseType:'none',
+  meteringPointId:null,externalMeteringPointId:null,quantities:[]}])
+ expect(io.ack.mock.calls[0][0].transactionDispositions).toMatchObject([{disposition:'internal_review',responseType:'none'}])
+ expect(io.ack.mock.calls[0][0].ackPlan.utiltsErrCodes).toEqual([])
+ expect(io.ingest).not.toHaveBeenCalled()
+})
 // Exclude ONLY this new diagnostic on the two intended normalized surfaces.
 // Every other status, ACK, persistence, ingestion, event and return value stays
 // in the equality comparison. Existing PR369 outcome assertions are untouched.
