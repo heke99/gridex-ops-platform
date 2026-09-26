@@ -32,6 +32,8 @@ it('real inbound mixed Z04 persists routed CONTRL and only negative APERAK with 
       VALUES(${literal(ids.company)},'test',${literal(ids.actor)},'EdielId','54321',clock_timestamp()-interval '1 day');
     INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from)
       VALUES(${literal(ids.company)},'test',${literal(ids.actor)},'electricity_supplier',clock_timestamp()-interval '1 day');
+    INSERT INTO public.ediel_actor_settings(company_id,environment,actor_name,actor_ediel_id,ediel_id)
+      VALUES(${literal(ids.company)},'test','Synthetic native legal supplier','54321','54321');
     INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active)
       VALUES(${literal(ids.route)},${literal(ids.company)},'Native ACK route','ediel_ack','bilateral_test',true);
     INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled)
@@ -58,7 +60,8 @@ it('real inbound mixed Z04 persists routed CONTRL and only negative APERAK with 
     'switches',(SELECT count(*) FROM public.supplier_switch_requests WHERE inbound_z04_message_id=${literal(ids.source)}),
     'supply',(SELECT count(*) FROM public.customer_supply_periods WHERE source_message_id=${literal(ids.source)}))`)
   const first=persisted()
-  expect(first.messages.map(row=>[row.family,row.outcome])).toEqual([['APERAK','negative'],['CONTRL','positive']])
+  const blocked=sql<{message:string;payload:unknown}[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('message',message,'payload',payload) ORDER BY created_at),'[]') FROM public.ediel_message_events WHERE ediel_message_id=${literal(ids.source)} AND event_status='warning'`)
+  expect(first.messages.map(row=>[row.family,row.outcome]),JSON.stringify(blocked)).toEqual([['APERAK','negative'],['CONTRL','positive']])
   expect(first.messages.every(row=>row.company===ids.company&&row.route===ids.route&&row.profile===ids.profile)).toBe(true)
   const aperak=first.messages[0].wire
   expect(aperak).toContain('FTX+AAO++213::260')
