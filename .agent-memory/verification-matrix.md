@@ -1,3 +1,10 @@
+## 2026-09-26 — PR405 accepted, IDE505 candidate
+| Head | Evidence | Result / boundary |
+| --- | --- | --- |
+| PR405 `a44d93aa` | OPS `36270987349` native348/348 and clean replay, Ediel `36270987397`, browser `36270987395`, E2E `36270987383` | Four SUCCESS; UG-122-24 bounded NAD GS1 accepted. |
+| main `0e338e40` | Git remote ref, Vercel `dpl_EznfLhmmXeXiuHoNHDpmJv6dnSPK` | Exact SHA and production READY; no market activation. |
+| IDE505 local candidate | RED wrong E19/field512, GREEN field505 ERC41/42, mixed sibling and actual processor; app/tests/scripts types, scoped lint | Native SQL and exact PR-head ordinary CI pending. UG-123-8 temporal ID open. |
+
 ## 2026-09-26 — PR394 native Z04 receipt
 | Head | Test/evidence | Result |
 | --- | --- | --- |

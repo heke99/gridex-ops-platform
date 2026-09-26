@@ -1,3 +1,6 @@
+## 2026-09-26 — after #405 and IDE field505
+Verified PR #405 exact-head four workflows and native348/348; merged to remote main `0e338e40`, same-SHA Vercel production READY. Continued one independent UG-123-7 criterion: RED IDE+25 produced later E19/field512; guide-first per-IDE field505 and true mixed-sibling partition now pass local runtime/actual inbound tests. SQL native and four ordinary workflows still pending; PR310 paused, field203/IDE-number historical uniqueness and positive LOC175/E035 remain open. No staging/TGT/AGT, counterparty or market send.
+
 ## 2026-09-26 — F3C-02/04 native assessment continuation
 Verified remote main after #393 and no other active writing PR. Source P26.A r3 mixed Z04 path and real inbound fixture inspected. Strengthened native assessment test from row-count-only to exact row/company/environment/raw hash/facts proof, local consumer 11/11 and migration checks PASS, merged #394 after four exact-head CI successes. Remote main `103b7938318206c6d04f0ac48b13ce050ec7b3d8`, Vercel same-SHA READY. Persisted ACK/outbox, field203/LOC+175 owners, E035 history/retention and whole phases remain open. PR310 untouched, no staging or live Ediel send.
 

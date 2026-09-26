@@ -6,6 +6,44 @@ import { buildAperakDraft } from '@/lib/ediel/ack'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 
 describe('UTILTS runtime effective-date cutoff', () => {
+  it('rejects a supplied non-24 IDE qualifier as field 505 before E66 function', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-ide505')
+    expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')
+    const message = { ...control, raw_payload: control.raw_payload!.replace('IDE+24+', 'IDE+25+') }
+    const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+    expect(runtime.validation.classification).toBe('application_rejected')
+    expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ fieldCode: '505', ercCode: '42' }),
+    ]))
+    expect(runtime.ackPlan.utiltsErrCodes).toEqual([])
+  })
+  it('reports an omitted IDE qualifier as field 505 ERC 41', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-ide505-missing')
+    const message = { ...control, raw_payload: control.raw_payload!.replace('IDE+24+', 'IDE++') }
+    const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+    expect(runtime.transactionDispositions).toMatchObject([{ disposition: 'guide_rejected', responseType: 'negative_aperak' }])
+    expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ fieldCode: '505', ercCode: '41' }),
+    ]))
+    expect(runtime.ackPlan.utiltsErrCodes).toEqual([])
+  })
+  it('keeps an invalid IDE+25 separate from a valid IDE+24 sibling', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-ide-mixed')
+    const lines = control.raw_payload!.split('\n')
+    const start = lines.findIndex(line => line.startsWith('IDE+24+'))
+    const close = lines.findIndex(line => line.startsWith('UNT+'))
+    const invalid = lines.slice(start, close).map(line => line.replace('IDE+24+GRIDEX2607E66001', 'IDE+25+GRIDEX2607E66002'))
+    lines.splice(close, 0, ...invalid)
+    lines[lines.findIndex(line => line.startsWith('UNT+'))] = `UNT+${lines.length - 2}+1'`
+    const runtime = runUtiltsRuntimeForMessage({ ...control, raw_payload: lines.join('\n') }, { referenceDate: '2026-09-30' })
+    expect(runtime.facts.transactions.map(item => item.transactionId)).toEqual(['GRIDEX2607E66001', 'GRIDEX2607E66002'])
+    expect(runtime.transactionDispositions.map(item => [item.transactionId, item.responseType])).toEqual([
+      ['GRIDEX2607E66001', 'utilts_err'], ['GRIDEX2607E66002', 'negative_aperak'],
+    ])
+    expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ fieldCode: '505', ercCode: '42', referenceNumber: 'GRIDEX2607E66002' }),
+    ]))
+  })
   it('rejects unknown subordinate header NAD role as field 509 before E66 E19', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-nad-role')
     expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')

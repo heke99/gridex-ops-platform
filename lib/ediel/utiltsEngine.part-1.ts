@@ -569,7 +569,10 @@ function splitTransactionGroups(segments: readonly string[]): UtiltsTransactionG
   let current: UtiltsTransactionGroup | null = null
 
   for (const segment of segments) {
-    if (segment.toUpperCase().startsWith('IDE+24')) {
+    // Preserve a supplied invalid IDE as its own transaction. Otherwise its
+    // observations leak into the preceding valid IDE before the guide can
+    // reject field 505 for this specific transaction.
+    if (segment.toUpperCase().startsWith('IDE+')) {
       if (current) groups.push(current)
       current = {
         transactionId: firstComponent(element(segment, 2)),

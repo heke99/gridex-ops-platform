@@ -15,6 +15,7 @@ import {
   localEdifactDateTimeToUtc,
   parseEdifactTimezoneOffsetFromSegments,
 } from '@/lib/ediel/utilts/timezone'
+import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
 import {
   decideUtiltsRuntimeAckPlan,
   resolveUtiltsTransactionDispositions,
@@ -156,7 +157,7 @@ function rawTransactionGroups(facts: UtiltsRuntimeFacts): string[][] {
   const groups: string[][] = []
   let current: string[] | null = null
   for (const segment of facts.rawSegments) {
-    if (/^IDE\+24(?:\+|:|$)/i.test(segment)) {
+    if (/^IDE\+/i.test(segment)) {
       if (current) groups.push(current)
       current = [segment]
       continue
@@ -585,6 +586,25 @@ function applyUtiltsHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeR
   return rebuildUtiltsRuntimeResult({ message, result, issues: [...retained, ...issues] })
 }
 
+function applyUtiltsIdeGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
+  const issues: UtiltsValidationIssue[] = []
+  for (const [index, observed] of (result.facts.utiltsObservedTransactions ?? []).entries()) {
+    if (observed.identityQualifier === '24') continue
+    const missing = !observed.identityQualifier
+    const reference = resolveUtiltsTransactionId(observed.transactionId, index)
+    issues.push({
+      severity: 'error', kind: 'application',
+      code: missing ? 'UTILTS_IDE_QUALIFIER_MISSING' : 'UTILTS_IDE_QUALIFIER_INVALID',
+      title: missing ? 'Transaktionskod saknas' : 'Ogiltig transaktionskod',
+      description: `IDE/7495 ${missing ? 'saknas' : 'måste vara 24'}.`,
+      aperakErcCode: missing ? '41' : '42', aperakFieldCode: '505',
+      aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+      referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
+    })
+  }
+  return issues.length ? rebuildUtiltsRuntimeResult({ message, result, issues: [...result.validation.issues, ...issues] }) : result
+}
+
 function applyE66RegulatingObjectGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
   if (result.facts.messageCode !== 'E66') return result
   const wire = tokenizeEdifact(message.raw_payload)
@@ -733,7 +753,7 @@ export function runUtiltsRuntimeForMessage(
   const guideEffective = applyUtiltsEffectiveDatePolicyToRuntimeResult({
     message, result: guideCorrected, referenceDate, processabilityPolicy: canonicalPolicy?.utiltsProcessability,
   })
-  const guided = applyE66RegulatingObjectGuide(message, applyUtiltsHeaderGuide(message, guideEffective))
+  const guided = applyE66RegulatingObjectGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, guideEffective)))
   const eligible = new Set(guided.transactionDispositions
     .filter(item => item.disposition === 'accepted')
     .map(item => String(item.transactionId ?? '')))
