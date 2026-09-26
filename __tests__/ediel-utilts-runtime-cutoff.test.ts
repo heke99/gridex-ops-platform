@@ -6,6 +6,23 @@ import { buildAperakDraft } from '@/lib/ediel/ack'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 
 describe('UTILTS runtime effective-date cutoff', () => {
+  it('reports supplied E66 LOC+172 identity defects as field 209 before function', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-point209')
+    expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')
+    for (const [replacement, ercCode] of [
+      ['LOC+172+::9', '41'],
+      ['LOC+172+735999260731000008::9', '42'],
+      ['LOC+172+73599926073100007::9', '42'],
+      ['LOC+172+735999260731000007::260', '42'],
+    ] as const) {
+      const raw_payload = control.raw_payload!.replace('LOC+172+735999260731000007::9', replacement)
+      const runtime = runUtiltsRuntimeForMessage({ ...control, raw_payload }, { referenceDate: '2026-09-30' })
+      expect(runtime.ackPlan.aperakApplicationErrors, replacement).toEqual(expect.arrayContaining([
+        expect.objectContaining({ fieldCode: '209', ercCode, referenceNumber: 'GRIDEX2607E66001' }),
+      ]))
+      expect(runtime.ackPlan.utiltsErrCodes, replacement).toEqual([])
+    }
+  })
   it('checks supplied per-IDE grid-area composite at 260a/b/c before E66 function', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-grid-area-guide')
     expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')
