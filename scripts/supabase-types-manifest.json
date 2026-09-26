@@ -1,9 +1,9 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-09-25T11:11:26Z",
-  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run36127254985-artifact10860308328",
+  "generated_at": "2026-09-26T17:57:14Z",
+  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run36260469365-artifact10912276132",
   "generated_types": "supabase/database.types.ts",
   "sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
   "latest_migration": "20260926173514_ediel_ack_route_scope.sql",
-  "latest_migration_schema_effect": "communication_routes route_scope CHECK additionally permits ediel_ack; no column, RPC or generated TypeScript contract change. Byte parity with authentic clean replay remains required before merge."
+  "latest_migration_schema_effect": "Clean replay artifact10912276132 confirms communication_routes route_scope CHECK additionally permits ediel_ack; no column, RPC or generated TypeScript contract change. The regenerated type file is byte-identical to the committed file."
 }

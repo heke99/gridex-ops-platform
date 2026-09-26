@@ -55006,7 +55006,7 @@ CREATE TABLE public.communication_routes (
     market_party_role text,
     counterparty_ediel_id text,
     CONSTRAINT communication_routes_ediel_ack_environment_required CHECK (((route_scope <> 'ediel_ack'::text) OR (environment_type IS NOT NULL))),
-    CONSTRAINT communication_routes_route_scope_check CHECK ((route_scope = ANY (ARRAY['supplier_switch'::text, 'customer_masterdata'::text, 'meter_values'::text, 'metering_values'::text, 'billing_underlay'::text, 'metering_access'::text])))
+    CONSTRAINT communication_routes_route_scope_check CHECK ((route_scope = ANY (ARRAY['supplier_switch'::text, 'customer_masterdata'::text, 'meter_values'::text, 'metering_values'::text, 'billing_underlay'::text, 'metering_access'::text, 'ediel_ack'::text])))
 );
 
 --
