@@ -317,3 +317,6 @@ PR381 `a307b91e` full E2E coverage failed four variants: synthetic receive 00:00
 
 ## 2026-09-25 — F3C-05 BGM function204
 Corrected PR381 receipt chronology published as `28ed2fc3`; new branch reproduced invalid/missing BGM1225 + E19 functional ERR, then projected retained 5/9 rule into final field204 APERAK. Actual mocked inbound no business effects. 311/311 tests, app/test types/lint, valid5 focused control PASS. Publish separate draft and check exact-head CI.
+## 2026-09-26 — two bounded E66 PRs merged
+
+Verified remote main and no active competing code PR, traced field203 immutable owner blocker, then reproduced false E66 LOC+175 field209 rejection. TDD fixed distinct per-IDE parsing and fail-closed persistence/ACK, published #387, all four CI and native 343/343 passed, merged and verified Vercel READY. Continued to field533 missing/invalid ID/agency: RED, per-IDE final guide fix, actual inbound regression, #388 exact-head CI. Native first failed before tests on ECR image rate limit; one targeted retry passed 343/343. Merged #388 and verified main `72b405c7` and Vercel READY. No staging/TGT/AGT, counterparty or market send; PR310 untouched. Next source-backed GS1 or F3C-05 literal order, then remaining criterion matrix; no whole-masterplan claim.

@@ -1,5 +1,9 @@
 # Ediel v2: field 203 owner and bounded release, 2026-09-26
 
+## Continuation after PR #387–#388
+
+Remote main `72b405c7d49e75bec03294d3a4abc4c67c769473` includes two additional bounded E66 corrections. #387 holds LOC+175 per IDE without metering-point attribution or positive ACK and preserves a valid 172 sibling. #388 validates field533 nonblank ID and agency 9/89 with per-IDE ERC41/42 negative APERAK. Each had four green exact-head ordinary workflows and native clean replay 343/343; #388 needed exactly one targeted retry after an external ECR pull-rate-limit failure before native tests. Vercel production deployment `dpl_A6N2A8Z6RwworAByEW3YBgyg598F` is READY for this SHA. These are **implemented, tested and merged safe receipt boundaries**, not production activation of LOC+175 consumption. Its GS1 check digit, durable tenant/legal-actor object identity, separate SQL sink and retry semantics remain open; field203 unique-over-time/ERC42 remains blocked as described below. The denominator remains 231 static acceptance contracts requiring per-row PR/test reconciliation; no additional whole F0–F7 criterion is closed by these two slices (still 0/8 verified whole-phase closures). The baseline and historical deployment below refer to the earlier review date, not current main.
+
 Baseline: remote `main` `28d8ea0e27724261421ec063d45e65976b155cce` (PR #385). PR #310 is paused and excluded. This is a requirements and release decision record, not a protocol activation or acceptance certificate. No production database, staging, TGT/AGT, counterparty or market send was exercised.
 
 ## Active requirement and evidence
