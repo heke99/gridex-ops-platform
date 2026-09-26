@@ -433,3 +433,7 @@ Publish bounded field204 guide/consumer batch stacked on PR381 corrected head; r
 1. Verify persisted source-valid mixed-Z04 CONTRL/negative APERAK, tenant route, durable outbox and permitted/forbidden case effects with actual code and native SQL. First reproduce any defect; one bounded PR and exact-head CI.
 2. Keep field203/ERC42 and positive LOC+175 gated pending proven durable identity; independently pursue other F3C and E035 history/retention criteria one at a time.
 3. Maintain no-market-traffic release boundary; formal capability-specific TGT/AGT, mandate, transport and counterparty proof remain outside this code round. PR310 untouched.
+## Latest — one active item after #399
+1. Reconcile one remaining source-backed F3C-04 error/code/reference/final response case in the real parser → canonical decision → tenant/actor → persisted ACK/outbox → no forbidden business-effect chain. Reproduce first, one active PR, exact-head ordinary CI/native and guarded merge.
+2. Keep field203 duplicate/ERC42 and positive LOC+175 unactivated without durable scope/sink proof; treat E035 historical `complete:false`, retention/deletion and observation-time failure separately. Continue F3C-02/05/06/07 and later phases by their own criteria, never infer whole-phase closure.
+3. Web main is deployed; market traffic needs capability-specific actor/mandate/profile/live schema/transport/formal external gates. No staging, TGT/AGT, counterparty or real market sends in this code round; PR #310 paused.
