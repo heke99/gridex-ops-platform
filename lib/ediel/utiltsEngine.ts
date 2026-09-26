@@ -396,22 +396,35 @@ function applyUtiltsHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeR
     if (role !== 'MS' && role !== 'MR') continue
     const field = role === 'MS' ? '207' : '208'
     const parts = segmentComposite(segment, 2, wire.una)
+    const partyId = parts[0]?.trim() ?? ''
     const qualifier = parts[1]?.trim() ?? ''
     const agency = parts[2]?.trim() ?? ''
     const badAgency = !['260', '9', '305'].includes(agency)
     const badQualifier = agency === '260' && qualifier !== 'SVK'
-    if (!badAgency && !badQualifier) continue
-    const missing = badAgency ? !agency : !qualifier
-    const path = badAgency ? 'C082/3055' : 'C082/1131'
-    nadIssues.push({
-      severity: 'error', kind: 'application',
-      code: badAgency ? (missing ? 'UTILTS_NAD_AGENCY_MISSING' : 'UTILTS_NAD_AGENCY_INVALID')
-        : (missing ? 'UTILTS_NAD_QUALIFIER_MISSING' : 'UTILTS_NAD_QUALIFIER_INVALID'),
-      title: missing ? 'NAD-kod saknas' : 'Ogiltig NAD-kod',
-      description: `NAD+${role}/${path} ${missing ? 'saknas' : 'har otillåtet värde'}.`,
-      aperakErcCode: missing ? '41' : '42', aperakFieldCode: field,
-      aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
-    })
+    if (badAgency || badQualifier) {
+      const missing = badAgency ? !agency : !qualifier
+      const path = badAgency ? 'C082/3055' : 'C082/1131'
+      nadIssues.push({
+        severity: 'error', kind: 'application',
+        code: badAgency ? (missing ? 'UTILTS_NAD_AGENCY_MISSING' : 'UTILTS_NAD_AGENCY_INVALID')
+          : (missing ? 'UTILTS_NAD_QUALIFIER_MISSING' : 'UTILTS_NAD_QUALIFIER_INVALID'),
+        title: missing ? 'NAD-kod saknas' : 'Ogiltig NAD-kod',
+        description: `NAD+${role}/${path} ${missing ? 'saknas' : 'har otillåtet värde'}.`,
+        aperakErcCode: missing ? '41' : '42', aperakFieldCode: field,
+        aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+      })
+    }
+    if (qualifier === 'SVK' && !/^\d{5}$/.test(partyId)) {
+      const missing = !partyId
+      nadIssues.push({
+        severity: 'error', kind: 'application',
+        code: missing ? 'UTILTS_NAD_EDIEL_ID_MISSING' : 'UTILTS_NAD_EDIEL_ID_INVALID',
+        title: missing ? 'Ediel-id saknas' : 'Ogiltigt Ediel-id',
+        description: `NAD+${role}/C082/3039 ska vara fem siffror när 1131=SVK.`,
+        aperakErcCode: missing ? '41' : '42', aperakFieldCode: field,
+        aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+      })
+    }
   }
   const market = wire.segments.find(segment => segment.tag === 'MKS')
   const mksIssues = (['501', '502'] as const).flatMap(fieldNumber => {
