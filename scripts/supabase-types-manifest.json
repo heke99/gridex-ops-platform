@@ -5,5 +5,5 @@
   "generated_types": "supabase/database.types.ts",
   "sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
   "latest_migration": "20260926213000_utilts_ide_qualifier_membership.sql",
-  "latest_migration_schema_effect": "Candidate replaces the existing UTILTS RPC body without changing its signature. Authentic clean-replay generated type and schema parity remain required before acceptance."
+  "latest_migration_schema_effect": "OPS run 36273560267 clean replay generated type SHA256 36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d, byte-identical to the committed file. The UTILTS RPC body changed without a signature/type change; authentic schema snapshot 08ad0f03ceab3d7b0c33dcd626e3282d8a3430997aa33f957df9f87aacdf8aa6 matched."
 }

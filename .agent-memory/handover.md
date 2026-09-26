@@ -1,3 +1,6 @@
+## Latest — 2026-09-26 grid-area candidate after #406
+Remote main `08e06301f85c37be65c30bd6aa358d26e6b80173` from #406, four exact-head workflows incl OPS native349/349 and authentic schema/type parity SUCCESS; Vercel `dpl_5RBwnvx8P5JzbAjeDSFQaWrNkssV` READY at same SHA. Branch `codex/ediel-v2-utilts-grid-area-20260926` has bounded supplied LOC239/232/233 composite guide correction and native single/mixed IDE cases; local 306/306 and types/lint PASS, no PR yet. Publish, inspect exact-head native and all ordinary CI, review and merge only if green, verify main/deployment. Conditional grid-area occurrence, field203/IDE historical uniqueness, positive LOC175 and E035 remain open. PR310 untouched, no staging/market traffic.
+
 ## Latest — 2026-09-26 NAD GS1 candidate
 Base main `787678fc` after PR #404; local branch `codex/ediel-v2-utilts-nad-gs1-20260926`. Source/proof in `quality/audits/ediel-masterplan-v2/utilts-nad-gs1-20260926.md`. Four code/test files add header NAD 9/305 13-digit GLN modulo-10 validation, real consumer and native rejection. Local RED/GREEN, relevant 300/300 and three TypeScript projects passed. PR/native/ordinary CI/merge/deployment pending. Field203 duplicate lacks owner, positive LOC175 lacks sink; E035 historical `complete:false`/retention open. PR310 paused.
 

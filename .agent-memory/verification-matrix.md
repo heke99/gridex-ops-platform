@@ -1,3 +1,10 @@
+## 2026-09-26 — PR406 accepted and next grid-area candidate
+| Head | Evidence | Result / boundary |
+| --- | --- | --- |
+| PR406 `a8d58acd` | Ediel `36273560180`, browser `36273560151`, full E2E `36273560145`, OPS `36273560267` | Four SUCCESS; native349/349, guide-invalid IDE bound ACK and immutable retry/conflict, schema `08ad0f03`, generated types hash `36e98937` identical. |
+| main `08e06301` | Git remote ref and Vercel `dpl_5RBwnvx8P5JzbAjeDSFQaWrNkssV` | Exact SHA production READY; no Ediel activation. |
+| Local supplied grid-area candidate | RED 260a missing for ABCD; GREEN six invalid/missing across 239/232/233, valid 232/233, actual mixed consumer; 306/306 UTILTS and types/lint | Native SQL/ordinary exact-head CI pending. Conditional occurrence and whole F3C open. |
+
 ## 2026-09-26 — PR405 accepted, IDE505 candidate
 | Head | Evidence | Result / boundary |
 | --- | --- | --- |

@@ -315,6 +315,26 @@ it('routes an invalid IDE qualifier to field 505 APERAK while preserving its val
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
+it('routes a malformed supplied grid-area composite to 260a without rejecting its valid IDE sibling', async () => {
+  const message = incoming(true, true, '2026-09-30')
+  message.raw_payload = message.raw_payload!.replace('LOC+239+TES:SVK:260', 'LOC+239+ABCD:SVK:260')
+  io.get.mockResolvedValue(message)
+  results = [
+    { transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' },
+    accepted('GRIDEX2607E66002'),
+  ]
+  await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')![1].p_transactions
+  expect(persisted).toMatchObject([
+    { transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak' },
+    { transactionId: 'GRIDEX2607E66002', disposition: 'accepted', responseType: 'positive_aperak' },
+  ])
+  const aperaks = io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK')
+  expect(aperaks).toHaveLength(2)
+  expect(JSON.stringify(aperaks[0][0].draft)).toContain('260a')
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+})
 it('prior applicable reading is held while an eligible 15-minute energy sibling stays independent in the actual processor',async()=>{
  const message=incoming(true,true,'2026-09-30');io.get.mockResolvedValue(message)
  results=[{transactionId:'GRIDEX2607E66001',disposition:'internal_review',responseType:'none',persistenceStatus:'not_applicable'},accepted('GRIDEX2607E66002')]
