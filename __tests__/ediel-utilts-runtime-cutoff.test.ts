@@ -23,12 +23,37 @@ describe('UTILTS runtime effective-date cutoff', () => {
       ]))
       expect(runtime.ackPlan.utiltsErrCodes).toEqual([])
     }
-    for (const location of ['232', '233'] as const) {
-      const raw_payload = control.raw_payload!.replace("LOC+239+TES:SVK:260'", `LOC+239+TES:SVK:260'\nLOC+${location}+ABC:SVK:260'`)
+  })
+  it('requires LOC+232 and LOC+233 together within the same physical IDE', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-grid-area-pair')
+    for (const [present, missing] of [['232', '260c'], ['233', '260b']] as const) {
+      const raw_payload = control.raw_payload!.replace("LOC+239+TES:SVK:260'", `LOC+239+TES:SVK:260'\nLOC+${present}+ABC:SVK:260'`)
       const runtime = runUtiltsRuntimeForMessage({ ...control, raw_payload }, { referenceDate: '2026-09-30' })
-      expect(runtime.ackPlan.aperakApplicationErrors.some(issue => issue.fieldCode === (location === '232' ? '260b' : '260c'))).toBe(false)
-      expect(runtime.ackPlan.utiltsErrCodes).toContain('E19')
+      expect(runtime.transactionDispositions).toMatchObject([{ disposition: 'guide_rejected', responseType: 'negative_aperak' }])
+      expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+        expect.objectContaining({ fieldCode: missing, ercCode: '41', referenceNumber: 'GRIDEX2607E66001' }),
+      ]))
+      expect(runtime.ackPlan.utiltsErrCodes).toEqual([])
     }
+    const paired = control.raw_payload!.replace("LOC+239+TES:SVK:260'", "LOC+239+TES:SVK:260'\nLOC+232+ABC:SVK:260'\nLOC+233+DEF:SVK:260'")
+    const valid = runUtiltsRuntimeForMessage({ ...control, raw_payload: paired }, { referenceDate: '2026-09-30' })
+    expect(valid.ackPlan.aperakApplicationErrors.some(issue => issue.fieldCode === '260b' || issue.fieldCode === '260c')).toBe(false)
+    expect(valid.ackPlan.utiltsErrCodes).toContain('E19')
+
+    const lines = control.raw_payload!.replace("LOC+239+TES:SVK:260'", "LOC+239+TES:SVK:260'\nLOC+232+ABC:SVK:260'").split('\n')
+    const firstIde = lines.findIndex(line => line.startsWith('IDE+24+'))
+    const end = lines.findIndex(line => line.startsWith('UNT+'))
+    const secondIde = lines.slice(firstIde, end).map(line => line.replace('GRIDEX2607E66001', 'GRIDEX2607E66002')
+      .replace("LOC+232+ABC:SVK:260'", "LOC+233+DEF:SVK:260'"))
+    lines.splice(end, 0, ...secondIde)
+    lines[lines.findIndex(line => line.startsWith('UNT+'))] = `UNT+${lines.length - 2}+1'`
+    const separated = runUtiltsRuntimeForMessage({ ...control, raw_payload: lines.join('\n') }, { referenceDate: '2026-09-30' })
+    expect(separated.transactionDispositions.map(item => item.responseType)).toEqual(['negative_aperak', 'negative_aperak'])
+    expect(separated.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ fieldCode: '260c', referenceNumber: 'GRIDEX2607E66001' }),
+      expect.objectContaining({ fieldCode: '260b', referenceNumber: 'GRIDEX2607E66002' }),
+    ]))
+    expect(separated.ackPlan.utiltsErrCodes).toEqual([])
   })
   it('rejects a supplied non-24 IDE qualifier as field 505 before E66 function', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-ide505')
