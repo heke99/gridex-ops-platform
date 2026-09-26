@@ -255,6 +255,7 @@ function functionalIssue(input: {
 export function applyCanonicalE66QuantityPolicyToRuntimeResult(input: {
   message: EdielMessageRow
   result: UtiltsRuntimeResult
+  functionalEligible?: ReadonlySet<string>
 }): UtiltsRuntimeResult {
   if (String(input.result.facts.messageCode ?? '').trim().toUpperCase() !== 'E66') return input.result
 
@@ -278,6 +279,7 @@ export function applyCanonicalE66QuantityPolicyToRuntimeResult(input: {
       if (readings.length > 0 && ['UTILTS_E66_ENERGY_ONLY_WITHOUT_METER_READING', 'UTILTS_E66_MISSING_METER_READING'].includes(issue.code)) return false
       return true
     })
+    if (input.functionalEligible && !input.functionalEligible.has(reference)) return
 
     const readingValues = readings.map((quantity) => quantity.value).filter((value): value is number => value !== null)
     const energyValues = energies.map((quantity) => quantity.value).filter((value): value is number => value !== null)
@@ -381,30 +383,6 @@ export function applyUtiltsEffectiveDatePolicyToRuntimeResult(input: {
   })
 
   return rebuildUtiltsRuntimeResult({ message: input.message, result: input.result, issues })
-}
-
-function suppressFunctionalIssuesForGuideRejectedTransactions(
-  message: EdielMessageRow,
-  result: UtiltsRuntimeResult,
-): UtiltsRuntimeResult {
-  const guideIssues = result.validation.issues.filter(
-    (issue) => issue.severity === 'error' && issue.kind === 'application',
-  )
-  if (guideIssues.length === 0) return result
-
-  const rejected = new Set(resolveUtiltsTransactionDispositions({
-    syntaxOk: result.validation.syntaxOk,
-    transactions: result.facts.transactions,
-    issues: guideIssues,
-  }).filter((item) => item.disposition === 'guide_rejected').map((item) => item.transactionId))
-  if (rejected.size === 0) return result
-
-  const issues = result.validation.issues.filter((issue) => {
-    if (issue.severity !== 'error' || issue.kind !== 'functional') return true
-    const reference = issueReference(issue)
-    return reference ? !rejected.has(reference) : rejected.size !== result.facts.transactions.length
-  })
-  return rebuildUtiltsRuntimeResult({ message, result, issues })
 }
 
 function applyUtiltsHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
@@ -678,24 +656,34 @@ export function runUtiltsRuntimeForMessage(
   // enrich tenant/object facts, but must not choose a new guide at receipt time.
   const referenceDate = canonicalPolicy?.referenceDate ?? normalizedReferenceDate(message, options)
   const validationMessage = runtimeValidationMessage(message)
-  const legacyResult = runLegacyUtiltsRuntimeForMessage(validationMessage)
-  const resolutionCorrected = applyUtiltsResolutionFormatPolicyToRuntimeResult({
+  // Complete the syntax/application pass before invoking any functional
+  // validator. Guide failures cannot enter the functional pass; valid siblings
+  // retain their own transaction reference and checks.
+  const noFunctionalTransactions = new Set<string>()
+  const guideBase = runLegacyUtiltsRuntimeForMessage(validationMessage, { functionalEligible: noFunctionalTransactions })
+  const guideCorrected = applyCanonicalE66QuantityPolicyToRuntimeResult({
     message,
-    result: legacyResult,
+    result: applyUtiltsResolutionFormatPolicyToRuntimeResult({ message, result: guideBase }),
+    functionalEligible: noFunctionalTransactions,
   })
-  const e66Corrected = applyCanonicalE66QuantityPolicyToRuntimeResult({
+  const guideEffective = applyUtiltsEffectiveDatePolicyToRuntimeResult({
+    message, result: guideCorrected, referenceDate, processabilityPolicy: canonicalPolicy?.utiltsProcessability,
+  })
+  const guided = applyE66RegulatingObjectGuide(message, applyUtiltsHeaderGuide(message, guideEffective))
+  const eligible = new Set(guided.transactionDispositions
+    .filter(item => item.disposition === 'accepted')
+    .map(item => String(item.transactionId ?? '')))
+  if (eligible.size === 0) return applyCanonicalE66PersistencePayload(guided)
+
+  const functionalBase = runLegacyUtiltsRuntimeForMessage(validationMessage, { functionalEligible: eligible })
+  const functionalCorrected = applyCanonicalE66QuantityPolicyToRuntimeResult({
     message,
-    result: resolutionCorrected,
+    result: applyUtiltsResolutionFormatPolicyToRuntimeResult({ message, result: functionalBase }),
+    functionalEligible: eligible,
   })
-  const effective = applyUtiltsEffectiveDatePolicyToRuntimeResult({
-    message,
-    result: e66Corrected,
-    referenceDate,
-    processabilityPolicy: canonicalPolicy?.utiltsProcessability,
+  const functionalEffective = applyUtiltsEffectiveDatePolicyToRuntimeResult({
+    message, result: functionalCorrected, referenceDate, processabilityPolicy: canonicalPolicy?.utiltsProcessability,
   })
-  // Canonical quantity/effective-date checks can add processability findings
-  // after the guide pass. A guide-invalid IDE has no functional outcome.
-  return applyCanonicalE66PersistencePayload(
-    suppressFunctionalIssuesForGuideRejectedTransactions(message, applyE66RegulatingObjectGuide(message, applyUtiltsHeaderGuide(message, effective))),
-  )
+  const issues = [...guided.validation.issues, ...functionalEffective.validation.issues.filter(issue => issue.kind === 'functional')]
+  return applyCanonicalE66PersistencePayload(rebuildUtiltsRuntimeResult({ message, result: guided, issues }))
 }
