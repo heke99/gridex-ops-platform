@@ -66,6 +66,7 @@ export function validateCanonicalUtiltsProfile(facts: UtiltsRuntimeFacts): Utilt
     transactionId: facts.transactionId,
     meterPointId: facts.meterPointId,
     regulatingObjectId: null,
+    regulatingObjectPresent: false,
     gridAreaId: facts.gridAreaId,
     deliveryPeriodStart: facts.deliveryPeriodStart,
     deliveryPeriodEnd: facts.deliveryPeriodEnd,
@@ -84,7 +85,7 @@ export function validateCanonicalUtiltsProfile(facts: UtiltsRuntimeFacts): Utilt
     )
     if (!transaction.transactionId) issues.push(issue('UTILTS_TRANSACTION_ID_MISSING', 'Transaktions-id saknas', `${profile.profileKey} kräver IDE+24 eller TN-referens per transaktion.`, reference))
     if (profile.requiresMeteringPoint && !(facts.messageCode === 'E66'
-      ? transaction.meterPointId || transaction.regulatingObjectId
+      ? transaction.meterPointId || transaction.regulatingObjectPresent
       : transaction.meterPointId || facts.meterPointId)) issues.push(issue('UTILTS_PROFILE_METERING_POINT_MISSING', 'Anläggnings-id saknas', `${profile.profileKey} kräver ${facts.messageCode === 'E66' ? 'LOC+172 eller LOC+175' : 'LOC+172'} per transaktion.`, reference))
     if (profile.requiresGridArea && !transaction.gridAreaId && !facts.gridAreaId) issues.push(issue('UTILTS_PROFILE_GRID_AREA_MISSING', 'Nätområde saknas', `${profile.profileKey} kräver LOC+239.`, reference))
     const singletonReading = isSingletonE30Reading(facts, index)

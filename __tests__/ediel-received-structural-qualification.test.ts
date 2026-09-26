@@ -181,6 +181,43 @@ it('holds an ambiguous E66 IDE with both object domains instead of consuming it 
  expect(buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:result.runtime.facts.transactions,
   dispositions:result.runtime.transactionDispositions,matches:[]})[0]).toMatchObject({meteringPointId:null,externalMeteringPointId:null,quantities:[]})
 })
+it.each([
+ ['::9','41'],['735999260731000007','41'],['735999260731000007::260','42'],
+] as const)('rejects LOC+175 field 533 %s with ERC %s for its own IDE',async(value,erc)=>{
+ const args=input(true)
+ args.message.raw_payload=args.message.raw_payload!.replace('LOC+172+735999260731000007::9',`LOC+175+${value}`)
+ args.runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
+ expect(args.runtime.transactionDispositions).toMatchObject([{disposition:'guide_rejected',responseType:'negative_aperak'}])
+ expect(args.runtime.validation.issues).toEqual(expect.arrayContaining([expect.objectContaining({kind:'application',
+  aperakFieldCode:'533',aperakErcCode:erc,referenceNumber:'GRIDEX2607E66001'})]))
+ expect(args.runtime.ackPlan.utiltsErrCodes).toEqual([])
+ const result=await qualifyReceivedUtiltsStructure(args)
+ expect(result.hasInternalReview).toBe(false)
+ expect(io.rpc).not.toHaveBeenCalled()
+})
+it('keeps a valid LOC+172 sibling while LOC+175 agency fails field 533',async()=>{
+ const args=input(true)
+ const lines=args.message.raw_payload!.split('\n')
+ const start=lines.findIndex(line=>line.startsWith('IDE+24+'))
+ const end=lines.findIndex(line=>line.startsWith('UNT+'))
+ const sibling=lines.slice(start,end).map(line=>line.replace('GRIDEX2607E66001','GRIDEX2607E66002'))
+ lines[start+1]=lines[start+1].replace('LOC+172+735999260731000007::9','LOC+175+735999260731000007::260')
+ lines.splice(end,0,...sibling)
+ lines[end+sibling.length]=`UNT+${lines.length-2}+1'`
+ args.message.raw_payload=lines.join('\n')
+ args.runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
+ expect(args.runtime.transactionDispositions).toMatchObject([
+  {transactionId:'GRIDEX2607E66001',disposition:'guide_rejected',responseType:'negative_aperak'},
+  {transactionId:'GRIDEX2607E66002',disposition:'accepted',responseType:'positive_aperak'},
+ ])
+ expect(args.runtime.validation.issues.filter(issue=>issue.aperakFieldCode==='533')).toMatchObject([
+  {referenceNumber:'GRIDEX2607E66001',aperakErcCode:'42'},
+ ])
+ const result=await qualifyReceivedUtiltsStructure(args)
+ expect(result.runtime.transactionDispositions).toMatchObject([
+  {disposition:'guide_rejected'}, {disposition:'accepted'},
+ ])
+})
 it('holds an unproved reading while preserving an exempt energy sibling in the same physical message',async()=>{
  const args=input()
  const lines=args.message.raw_payload!.split('\n')

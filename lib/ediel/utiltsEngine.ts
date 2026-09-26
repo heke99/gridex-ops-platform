@@ -543,6 +543,39 @@ function applyUtiltsHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeR
   return rebuildUtiltsRuntimeResult({ message, result, issues: [...retained, ...issues] })
 }
 
+function applyE66RegulatingObjectGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
+  if (result.facts.messageCode !== 'E66') return result
+  const wire = tokenizeEdifact(message.raw_payload)
+  const issues: UtiltsValidationIssue[] = []
+  let reference: string | null = null
+  let inHeader = false
+  for (const segment of wire.segments) {
+    if (segment.tag === 'IDE') {
+      inHeader = segmentComposite(segment, 1, wire.una)[0] === '24'
+      reference = inHeader ? segmentComposite(segment, 2, wire.una)[0]?.trim() || null : null
+    } else if (segment.tag === 'SEQ' || segment.tag === 'UNT') {
+      inHeader = false
+    }
+    if (!inHeader || segment.tag !== 'LOC' || segmentComposite(segment, 1, wire.una)[0] !== '175') continue
+    const parts = segmentComposite(segment, 2, wire.una)
+    const value = parts[0]?.trim() ?? ''
+    const agency = parts[2]?.trim() ?? ''
+    const invalid = value && agency && !['9', '89'].includes(agency)
+    if (value && agency && !invalid) continue
+    const missing = !value || !agency
+    issues.push({
+      severity: 'error', kind: 'application',
+      code: !value ? 'UTILTS_REGULATING_OBJECT_ID_MISSING' : missing ? 'UTILTS_REGULATING_OBJECT_AGENCY_MISSING' : 'UTILTS_REGULATING_OBJECT_AGENCY_INVALID',
+      title: !value ? 'Reglerobjektsid saknas' : missing ? 'Byråkod för reglerobjekt saknas' : 'Ogiltig byråkod för reglerobjekt',
+      description: !value ? 'LOC+175/C517/3225 saknas.' : missing ? 'LOC+175/C517/3055 saknas.' : 'LOC+175/C517/3055 måste vara 9 eller 89.',
+      aperakErcCode: missing ? '41' : '42', aperakFieldCode: '533',
+      aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+      referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
+    })
+  }
+  return issues.length ? rebuildUtiltsRuntimeResult({ message, result, issues: [...result.validation.issues, ...issues] }) : result
+}
+
 function canonicalE66PersistenceTransactions(facts: UtiltsRuntimeFacts): Array<Record<string, unknown>> {
   const timezone = parseEdifactTimezoneOffsetFromSegments(facts.rawSegments)
   const transactions = facts.transactions.length > 0 ? facts.transactions : []
@@ -659,6 +692,6 @@ export function runUtiltsRuntimeForMessage(
   // Canonical quantity/effective-date checks can add processability findings
   // after the guide pass. A guide-invalid IDE has no functional outcome.
   return applyCanonicalE66PersistencePayload(
-    suppressFunctionalIssuesForGuideRejectedTransactions(message, applyUtiltsHeaderGuide(message, effective)),
+    suppressFunctionalIssuesForGuideRejectedTransactions(message, applyE66RegulatingObjectGuide(message, applyUtiltsHeaderGuide(message, effective))),
   )
 }

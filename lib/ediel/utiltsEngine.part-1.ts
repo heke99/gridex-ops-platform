@@ -61,6 +61,7 @@ export type UtiltsRuntimeTransaction = {
   transactionId: string | null
   meterPointId: string | null
   regulatingObjectId?: string | null
+  regulatingObjectPresent?: boolean
   gridAreaId: string | null
   deliveryPeriodRaw: string | null
   deliveryPeriodFormat: string | null
@@ -633,6 +634,7 @@ function parseUtiltsTransactionGroup(group: UtiltsTransactionGroup, sourceOrder:
     transactionId: transactionIssueReference(group, null),
     meterPointId: parseLocValueFromGroup(group, 'LOC+172'),
     regulatingObjectId: parseLocValueFromGroup(group, 'LOC+175'),
+    regulatingObjectPresent: groupSegmentValue(group, 'LOC+175') !== null,
     gridAreaId: parseLocValueFromGroup(group, 'LOC+239'),
     deliveryPeriodRaw: period.raw,
     deliveryPeriodFormat: period.format,
@@ -1054,7 +1056,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
 
   const needsMeteringPoint = ['S02', 'E30', 'E66'].includes(code)
   const needsGridArea = ['S02', 'S03', 'E30', 'E31', 'E66'].includes(code)
-  if (needsMeteringPoint && !facts.meterPointId && !(code === 'E66' && facts.transactions.some(transaction => transaction.regulatingObjectId))) {
+  if (needsMeteringPoint && !facts.meterPointId && !(code === 'E66' && facts.transactions.some(transaction => transaction.regulatingObjectPresent))) {
     issues.push(buildIssue({
       severity: 'error',
       kind: 'application',
