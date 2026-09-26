@@ -666,7 +666,7 @@ it('native S01 stores supplied LOC+175 field533 rejection with no aggregate or i
   const f = await seed()
   const raw = f.original.raw_payload!
     .replace('BGM+E66::260', 'BGM+S01:SVK:260')
-    .replace('23-DDQ-E66-T', '23-DDK-S01-T')
+    .replace('23-DDQ-E66-T', '23-DDK-S01-S')
     .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000008::9')
   const source = await f.insertSource(raw, 'S01')
   // An S01 aggregate source cannot borrow the fixture's individual customer/point link.
