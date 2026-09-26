@@ -141,6 +141,19 @@ function adaptResolution(resolution: SharedInboundTenantResolution): InboundTena
   }
 }
 
+function withActorIdentityFallbackWarning(
+  resolution: SharedInboundTenantResolution,
+  applicationReference: string | null,
+): SharedInboundTenantResolution {
+  return {
+    ...resolution,
+    warnings: [
+      ...resolution.warnings,
+      `Tenant identifierades via entydigt aktivt receiver-Ediel-ID. Application Reference ${applicationReference ?? 'saknas'} används inte som tenantägarskap och valideras separat av canonical meddelandepolicy.`,
+    ],
+  }
+}
+
 export async function resolveTenantForInboundEdiel(input: {
   existingCompanyId?: string | null
   mailboxCompanyId?: string | null
@@ -151,7 +164,7 @@ export async function resolveTenantForInboundEdiel(input: {
 }): Promise<InboundTenantResolution> {
   const marketActorEdielId = firstParty(input.parsed, 'DO', 'DDQ', 'MR', 'MS') ?? input.parsed.receiverEdielId
   const outbound = await findCompanyIdFromMatchedOutbound(input.parsed, input.environment)
-  const resolution = await resolveInboundTenantFromIdentifiers({
+  const sharedInput = {
     existingCompanyId: input.existingCompanyId ?? outbound.companyId,
     mailboxCompanyId: input.mailboxCompanyId,
     mailboxId: input.mailboxId,
@@ -162,11 +175,42 @@ export async function resolveTenantForInboundEdiel(input: {
     receiverEdielId: input.parsed.receiverEdielId,
     receiverSubaddress: input.parsed.receiverSubAddress,
     marketActorEdielId,
-    applicationReference: input.parsed.applicationReference,
     messageFamily: input.parsed.messageFamily,
     messageCode: input.parsed.messageCode,
     referenceCandidates: outbound.references.length > 0 ? outbound.references : referenceCandidatesForTenant(input.parsed),
-  })
+  }
 
-  return adaptResolution(resolution)
+  const strictResolution = await resolveInboundTenantFromIdentifiers({
+    ...sharedInput,
+    applicationReference: input.parsed.applicationReference,
+  })
+  if (strictResolution.status !== 'unresolved') return adaptResolution(strictResolution)
+
+  // Tenant ownership and message/process authorization are distinct security
+  // questions. A tenant may have one active legal Ediel identity while its
+  // actor-setting stores a default Application Reference for another message
+  // family (for example PRODAT). If strict route evidence cannot resolve the
+  // tenant, retry ownership without Application Reference, but accept the
+  // fallback only when the shared resolver resolves specifically through the
+  // active Ediel actor registry. Duplicate receiver ownership remains ambiguous
+  // and therefore fail-closed. Canonical family/Application Reference policy is
+  // still validated independently before any business side effect.
+  if (clean(input.parsed.receiverEdielId) && clean(input.parsed.applicationReference)) {
+    const actorIdentityResolution = await resolveInboundTenantFromIdentifiers({
+      ...sharedInput,
+      applicationReference: null,
+    })
+    if (
+      actorIdentityResolution.status === 'resolved' &&
+      actorIdentityResolution.companyId &&
+      actorIdentityResolution.source === 'ediel_actor_settings'
+    ) {
+      return adaptResolution(withActorIdentityFallbackWarning(
+        actorIdentityResolution,
+        clean(input.parsed.applicationReference),
+      ))
+    }
+  }
+
+  return adaptResolution(strictResolution)
 }
