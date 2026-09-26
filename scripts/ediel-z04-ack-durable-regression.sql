@@ -11,8 +11,8 @@ BEGIN
  INSERT INTO public.companies(id,name,status) VALUES(c,'Z04 ACK durable fixture','active'),(foreign_c,'Foreign ACK fixture','active');
  SELECT * INTO STRICT p FROM public.ediel_message_profiles WHERE profile_key='PRODAT:Z04:L:26.A:r3' AND is_enabled;
  SELECT * INTO STRICT pack FROM public.ediel_rule_packs WHERE id=p.rule_pack_id;
- INSERT INTO public.communication_routes(id,company_id,route_name,environment_type,is_active)
- VALUES(route,c,'Synthetic ACK route','bilateral_test',true);
+ INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active)
+ VALUES(route,c,'Synthetic ACK route','ediel_ack','bilateral_test',true);
  INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled)
  VALUES(profile,c,route,'Synthetic ACK profile','test','edifact','54321','12345','23-DDQ-PRODAT',true);
  INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,message_received_at,
