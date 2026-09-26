@@ -341,3 +341,5 @@ TDD source-led NAD 207/208 qualifier/agency (#401) and SVK 3039 shape (#402), re
 
 ## Historical — NAD continuation
 Checked remote main/worktree and sole active author; source annex C and code path. TDD RED for wrong NAD qualifier then GREEN, processor and native fixture; #401 exact-head four ordinary workflows green, native345/345, merged and same-SHA Vercel READY. Next independent UG-122-24 five-digit SVK shape RED/GREEN and real processor mock; native/CI pending. No staging/TGT/AGT/counterparty/live traffic, #310 untouched.
+
+2026-09-26: Remote main 787678fc after PR404. Field203 temporal uniqueness lacks durable legal-actor owner, so held. Scoped NAD 9/305 GLN validation RED/GREEN and 300/300 relevant tests, three TS projects, lint passed on local branch. Native fixture and audit prepared; PR/CI/merge/deployment pending. PR310 untouched.
