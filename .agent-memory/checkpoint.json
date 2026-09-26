@@ -3,14 +3,14 @@
   "updated_at": "2026-09-26T18:30:00Z",
   "status": "IN_PROGRESS",
   "paused": false,
-  "branch": "main",
+  "branch": "codex/ediel-v2-utilts-nad207-208-20260926",
   "active_pr": null,
-  "base_head_sha": "5f554f1ab2cb2043c9482b7c85d7975b86baba04",
+  "base_head_sha": "9b4ac5994f81a020b81cc9c0db230b51073adb91",
   "runtime_accepted_sha": "5f554f1ab2cb2043c9482b7c85d7975b86baba04",
   "last_merged_pr": 399,
   "last_accepted_pr": 399,
   "root_main_acceptance_comment": null,
-  "active_item": "Next independently sourced F3C-04 code/reference/final response criterion",
+  "active_item": "UG-123-2/3 UTILTS NAD207/208 header guide; native and exact-head CI pending",
   "current_audit": "quality/audits/ediel-masterplan-v2/release-boundary-pr399-20260926.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,9 +30,9 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Select one remaining source-backed F3C-04 final error/reference/response criterion; reproduce through real consumer and native durable owner before changing product code. Keep field203/LOC+175/E035 capability gates.",
+  "next_action": "Publish bounded NAD207/208 PR; verify exact-head ordinary CI including native persisted rejection, review, merge main and verify Vercel. Keep field203/LOC+175/E035 capability gates.",
   "latest_verified_delivery": {
-    "main_sha": "5f554f1ab2cb2043c9482b7c85d7975b86baba04",
+    "main_sha": "9b4ac5994f81a020b81cc9c0db230b51073adb91",
     "merged_prs": [
       387,
       388,

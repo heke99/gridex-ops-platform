@@ -388,6 +388,31 @@ export function applyUtiltsEffectiveDatePolicyToRuntimeResult(input: {
 function applyUtiltsHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
   const rules = fieldRulesForMessage('UTILTS', result.facts.messageCode)
   const wire = tokenizeEdifact(message.raw_payload)
+  const nadIssues: UtiltsValidationIssue[] = []
+  for (const segment of wire.segments) {
+    if (segment.tag === 'IDE' || segment.tag === 'UNT') break
+    if (segment.tag !== 'NAD') continue
+    const role = segmentComposite(segment, 1, wire.una)[0]
+    if (role !== 'MS' && role !== 'MR') continue
+    const field = role === 'MS' ? '207' : '208'
+    const parts = segmentComposite(segment, 2, wire.una)
+    const qualifier = parts[1]?.trim() ?? ''
+    const agency = parts[2]?.trim() ?? ''
+    const badAgency = !['260', '9', '305'].includes(agency)
+    const badQualifier = agency === '260' && qualifier !== 'SVK'
+    if (!badAgency && !badQualifier) continue
+    const missing = badAgency ? !agency : !qualifier
+    const path = badAgency ? 'C082/3055' : 'C082/1131'
+    nadIssues.push({
+      severity: 'error', kind: 'application',
+      code: badAgency ? (missing ? 'UTILTS_NAD_AGENCY_MISSING' : 'UTILTS_NAD_AGENCY_INVALID')
+        : (missing ? 'UTILTS_NAD_QUALIFIER_MISSING' : 'UTILTS_NAD_QUALIFIER_INVALID'),
+      title: missing ? 'NAD-kod saknas' : 'Ogiltig NAD-kod',
+      description: `NAD+${role}/${path} ${missing ? 'saknas' : 'har otillåtet värde'}.`,
+      aperakErcCode: missing ? '41' : '42', aperakFieldCode: field,
+      aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+    })
+  }
   const market = wire.segments.find(segment => segment.tag === 'MKS')
   const mksIssues = (['501', '502'] as const).flatMap(fieldNumber => {
     const rule = rules.find(item => item.fieldNumber === fieldNumber)
@@ -513,7 +538,7 @@ function applyUtiltsHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeR
       aperakFieldCode: '205',
       aperakText: !dateValue ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
     }] : []
-  const issues = [...mksIssues, ...documentQualifierIssues, ...documentAgencyIssues, ...documentIssues, ...functionIssues, ...ackIssues, ...timezoneIssues, ...dateIssues]
+  const issues = [...nadIssues, ...mksIssues, ...documentQualifierIssues, ...documentAgencyIssues, ...documentIssues, ...functionIssues, ...ackIssues, ...timezoneIssues, ...dateIssues]
   if (issues.length === 0) return result
   // These fields are in the message header: every IDE fails the guide gate, even
   // when no transaction identity was parsed. No functional finding is eligible.
