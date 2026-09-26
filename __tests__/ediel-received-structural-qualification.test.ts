@@ -195,6 +195,31 @@ it.each([
  expect(result.hasInternalReview).toBe(false)
  expect(io.rpc).not.toHaveBeenCalled()
 })
+it('checks a GS1 LOC+175 check digit per IDE and keeps distributor IDs outside GS1 arithmetic',()=>{
+ const args=input(true)
+ const lines=args.message.raw_payload!.split('\n')
+ const start=lines.findIndex(line=>line.startsWith('IDE+24+'))
+ const end=lines.findIndex(line=>line.startsWith('UNT+'))
+ const sibling=lines.slice(start,end).map(line=>line.replace('GRIDEX2607E66001','GRIDEX2607E66002'))
+ lines[start+1]=lines[start+1].replace('LOC+172+735999260731000007::9','LOC+175+735999260731000006::9')
+ sibling[1]=sibling[1].replace('LOC+172+735999260731000007::9','LOC+175+735999260731000007::9')
+ lines.splice(end,0,...sibling)
+ lines[end+sibling.length]=`UNT+${lines.length-2}+1'`
+ args.message.raw_payload=lines.join('\n')
+ const runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
+ expect(runtime.validation.issues.filter(issue=>issue.aperakFieldCode==='533')).toMatchObject([
+  {referenceNumber:'GRIDEX2607E66001',aperakErcCode:'42',code:'UTILTS_REGULATING_OBJECT_GS1_CHECK_DIGIT_INVALID'},
+ ])
+ expect(runtime.transactionDispositions).toMatchObject([
+  {disposition:'guide_rejected',responseType:'negative_aperak'},
+  {disposition:'accepted',responseType:'positive_aperak'},
+ ])
+ expect(runtime.ackPlan.utiltsErrCodes).toEqual([])
+ const distributor=input(true)
+ distributor.message.raw_payload=distributor.message.raw_payload!.replace('LOC+172+735999260731000007::9','LOC+175+735999260731000006::89')
+ expect(runUtiltsRuntimeForMessage(distributor.message,{canonicalPolicy:distributor.canonicalPolicy}).validation.issues
+  .filter(issue=>issue.aperakFieldCode==='533')).toEqual([])
+})
 it('keeps a valid LOC+172 sibling while LOC+175 agency fails field 533',async()=>{
  const args=input(true)
  const lines=args.message.raw_payload!.split('\n')
