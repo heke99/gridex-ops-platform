@@ -1,3 +1,6 @@
+## 2026-09-26 — next independent F3 criterion after #392
+PR #392 merged and deployment verified at `fc4e688db414314bce4a85a7172c1d63bc15b804`. U-03 / AT-U-03 literal guide-before-functional execution is accepted for the bounded canonical UTILTS runtime and real inbound mixed-IDE consumer. Next: reconcile F3C-02/04 mixed Z04 object/ACK/storage evidence against source and native consumer; reproduce an actual gap before any code change. Field203 temporal duplicate/ERC42 and positive LOC+175 remain blocked by durable tenant/legal-actor owners. E035 `complete:false`, history and retention/deletion remain open. No active PR; #310 paused.
+
 ## 2026-09-26 — Active F3C-05 literal guide order
 #390 merged and exact main/deployment verified. One next active criterion is U-03 / AT-U-03: syntax → header/IDE guide → function only for accepted IDE. Current legacy runtime computes functional checks first and later filters their issues; reproduce invocation ordering and isolate guide-invalid IDE without changing valid sibling outcomes. No active PR. Field203 temporal uniqueness and LOC+175 positive sink stay blocked by tenant/legal-actor durable owner. PR310 paused.
 

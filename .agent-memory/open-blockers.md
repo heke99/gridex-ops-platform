@@ -1,3 +1,6 @@
+## 2026-09-26 — after #392
+Field203 UG-122-7 duplicate/ERC42 needs a source-proven, immutable tenant and legal-actor document identity reservation with historical, concurrent and retry semantics. Positive E66 LOC+175 needs a durable regulating-object owner and distinct SQL sink; valid IDs remain held. E035 historical `complete:false`, retention and deletion are unclosed. Remaining F3C-02/04/05 field rows/06/07 and F1/F2/F4–F6 need their own acceptance evidence. U-03 bounded guide-first execution was merged in #392. Vercel READY does not authorize market traffic; TGT/AGT and counterpart gates remain per capability. PR310 paused.
+
 ## 2026-09-26 — after PR390
 Field203 UG-122-7 duplicate/ERC42 lacks an immutable tenant and legal-actor scoped document identity reservation for history, concurrency and retries. Positive E66 LOC+175 needs durable regulating-object owner, separate SQL sink and native retry/storage proof; valid IDs are held. F3C-05 literal guide-before-function execution is not yet implemented, despite correct filtered final ACK cases. E035 pre-epoch `complete:false` and retention/deletion remain unclosed. No Ediel market capability is authorized by Vercel READY; TGT/AGT and counterpart gates are separate. PR310 paused and excluded.
 

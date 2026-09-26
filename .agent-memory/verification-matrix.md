@@ -1,3 +1,10 @@
+## 2026-09-26 — PR392 exact-head acceptance
+| Head | Test/evidence | Result |
+| --- | --- | --- |
+| `bf57d16e` | RED spy; local 27 UTILTS suites 352/352, actual processor 23/23, app/test types, scoped lint | RED invoked function twice for rejected IDE; GREEN zero, valid sibling preserved; all stated checks PASS |
+| `bf57d16e` | OPS `36247794182`, Ediel `36247794205`, browser `36247794321`, full E2E `36247794364` | Four SUCCESS; OPS clean replay/native and generated parity, build, E2E smoke/coverage/certificate PASS |
+| main `fc4e688d` | Git remote ref, Vercel `dpl_75bdehtPGc6Sr13ZNUSkj6QP7g6Y` | Exact SHA, production READY; no Ediel capability activation |
+
 ## 2026-09-26 — PR390 exact-head receipt
 | Head | Test/evidence | Result |
 | --- | --- | --- |
