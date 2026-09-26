@@ -1,4 +1,7 @@
-## Latest — after #396
+## Latest — after #402
+PR #401 and #402 are merged and exact remote main `34b1bf98c0efc7605f28a1052c1cdbc5d98bcbfe` is Vercel production READY (`dpl_8jg42Cbuijfd2W3GNv6BwdqFBbaP`). #402 four ordinary CI workflows green, native 346/346. Active next criterion is source/owner trace for NAD 9/305 GS1 check digit or another independent F3C rule; do not implement without exact source profile. Field203 historical document owner, LOC175 positive sink, E035 historical completeness/retention and F3C whole acceptance remain open. Ediel market traffic gated, #310 paused. Entries below are historical.
+
+## Historical — after #396
 Next: actual persisted mixed-Z04 final ACK/outbox, tenant route and case-effect proof. The accepted retry guard is only a bounded subcriterion; older entries below are historical.
 
 ## 2026-09-26 — next F3C-04 persisted ACK boundary after #394

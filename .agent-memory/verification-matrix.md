@@ -441,7 +441,13 @@ PR381 `a307b91e` full E2E coverage failed four variants: synthetic receive 00:00
 | PR #396 / main `b4879ab0` | Head `7f9ede0e`, Ediel regressions, OPS hardening incl clean native replay, full E2E, browser/quality E2E | Four SUCCESS; native outbox lock/status 3/3 true; Vercel `dpl_CWH3ENdVerwLQ93buEJaJVX4xgT9` READY exact main SHA. Bounded retry guard only; no market activation. |
 ## 2026-09-26 — #399 exact head and production web receipt
 PR `d7c3762f`: tenant `36261652172`, Ediel `36261652101`, browser `36261652129`, full E2E `36261652051`, OPS `36261652141` all SUCCESS; crawler skipped. OPS clean replay job `108459647312` passed native 344/344, schema fingerprint `27b18060dd20cfc525fcd832876980b1ff3d6a4602ddbb27fba33c7d35d5fece`, types/schema parity. First OPS attempt stopped before replay on Docker registry rate limit; one failed-job rerun succeeded. Main `5f554f1a`, Vercel `dpl_6cHLqratq28QYGeG6euUHo7xfimu` READY; no market activation. Previous `70ee7ddc` E035 observation-time failures unresolved.
-## 2026-09-26 — #401 and next candidate
+## 2026-09-26 — #402 delivery
+| Head | Evidence | Result |
+| --- | --- | --- |
+| #402 `79417051` | Ediel 36265617154, browser 36265617157, E2E 36265617182, OPS 36265617156 | Four SUCCESS; clean replay/native 346/346 including actual SVK 3039 stored negative/no effects |
+| main `34b1bf98` | Remote ref and Vercel `dpl_8jg42Cbuijfd2W3GNv6BwdqFBbaP` | Exact SHA READY web; Ediel not activated |
+
+## Historical — #401 and next candidate
 | Scope | Evidence | Result |
 | --- | --- | --- |
 | #401 `cf6839d7` | Ediel 36264617444, browser 36264617405, E2E 36264617414, OPS 36264617415 | Four SUCCESS; native 345/345 including actual field208 persisted ACK-disposition/no effects; clean replay/types/build PASS |

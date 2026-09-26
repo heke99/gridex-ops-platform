@@ -1,4 +1,7 @@
-## Latest — #396 bounded ACK retry guard
+## Latest — #402 delivery boundary
+Remote main `34b1bf98c0efc7605f28a1052c1cdbc5d98bcbfe`, same-SHA Vercel production READY. #401/#402 NAD bounded rules have native 345/345 and 346/346 receipts respectively. Web code is deployed, Ediel market traffic not activated. Frozen 121 rule cards/231 planned contracts are not reconciled one-to-one, 0/8 whole phases certified. Field203 uniqueness, LOC175 positive object, E035 history/retention still open. #310 paused. Entries below historical.
+
+## Historical — #396 bounded ACK retry guard
 Main `b4879ab0face3a4da19040103379d21fbf16a2c0`, four exact-head workflows and native 3/3 true, Vercel `dpl_CWH3ENdVerwLQ93buEJaJVX4xgT9` READY. Stored mixed-Z04 final ACK still open; older entries below are historical.
 
 ## 2026-09-26 — #394 mixed Z04 durable assessment merged

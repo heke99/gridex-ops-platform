@@ -1,4 +1,7 @@
-## Latest — next criterion after #396
+## Latest — after #402
+First trace source-owned GS1 NAD 9/305 check digit and actual header/actor route; if exact profile cannot be established, record blocker and continue the next independent F3C criterion. Keep one active PR, require source/consumer/native ACK/storage, ordinary exact-head CI, merge/main/deployment before acceptance. Field203, LOC175 and E035 stay gated; no market sends or #310 work. Entries below historical.
+
+## Historical — next criterion after #396
 Actual persisted mixed-Z04 final ACK/outbox, tenant route and case effects. Reproduce first; one bounded PR and exact-head CI/native. Field203/LOC+175 safely gated; E035 history/retention separate. Older entries below are historical.
 
 ## 2026-09-26 — next criterion after #394
