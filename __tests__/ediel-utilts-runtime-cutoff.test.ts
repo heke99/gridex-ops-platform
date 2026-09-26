@@ -6,6 +6,28 @@ import { buildAperakDraft } from '@/lib/ediel/ack'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 
 describe('UTILTS runtime effective-date cutoff', () => {
+  it('rejects NAD MS/MR agency and conditional SVK qualifier at own field before E66 function', () => {
+    const control = observationHandoffMessage('2026-09-30', 'tenant-nad-guide')
+    expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')
+    for (const [original, replacement, fieldCode, ercCode] of [
+      ['NAD+MS+91100:SVK:260', 'NAD+MS+91100::260', '207', '41'],
+      ['NAD+MS+91100:SVK:260', 'NAD+MS+91100:BAD:260', '207', '42'],
+      ['NAD+MR+21660:SVK:260', 'NAD+MR+21660:SVK:999', '208', '42'],
+      ['NAD+MR+21660:SVK:260', 'NAD+MR+21660:SVK:', '208', '41'],
+    ] as const) {
+      const message = { ...control, sender_ediel_id: '91100', receiver_ediel_id: '21660',
+        raw_payload: control.raw_payload!.replace(original, replacement) }
+      const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+      expect(runtime.transactionDispositions.map(item => item.responseType), replacement).toEqual(['negative_aperak'])
+      expect(runtime.ackPlan.aperakApplicationErrors, replacement).toEqual(expect.arrayContaining([
+        expect.objectContaining({ fieldCode, ercCode }),
+      ]))
+      expect(runtime.ackPlan.utiltsErrCodes, replacement).toEqual([])
+      const plan = resolveCanonicalRuntimeDecision(message).responsePlan.find(item => item.family === 'APERAK')!
+      expect(buildAperakDraft({ sourceMessage: message, outcome: 'negative', applicationErrors: plan.applicationErrors }).rawPayload)
+        .toContain(`FTX+AAO++${fieldCode}::260`)
+    }
+  })
   it('requires BGM document qualifier SVK for S07 at field 202', () => {
     const source = observationHandoffMessage('2026-09-30', 'tenant-s07-qualifier')
     const raw = source.raw_payload!.replace('BGM+E66::260', 'BGM+S07:SVK:260')
