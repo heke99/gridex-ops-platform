@@ -298,6 +298,29 @@ it('real inbound keeps a guide-invalid E66 IDE separate from a valid sibling thr
   expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ sourceTransactionReference: 'GRIDEX2607E66002', quantityKwh: 7 }))
   expect(io.complete).not.toHaveBeenCalled()
 })
+it('routes a supplied invalid E66 LOC+172 identity to 209 without consuming its IDE', async () => {
+  const message = incoming(true, true, '2026-09-30')
+  message.raw_payload = message.raw_payload!.replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000008::9')
+  io.get.mockResolvedValue(message)
+  results = [
+    { transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' },
+    accepted('GRIDEX2607E66002'),
+  ]
+  await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')![1]
+  expect(persisted.p_company_id).toBe(message.company_id)
+  expect(persisted.p_transactions).toMatchObject([
+    { transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak' },
+    { transactionId: 'GRIDEX2607E66002', disposition: 'accepted', responseType: 'positive_aperak' },
+  ])
+  const aperaks = io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK')
+  expect(aperaks).toHaveLength(2)
+  expect(JSON.stringify(aperaks[0][0].draft)).toContain('209')
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  expect(io.meter).toHaveBeenCalledTimes(1); expect(io.bill).toHaveBeenCalledTimes(1)
+  expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ sourceTransactionReference: 'GRIDEX2607E66002', quantityKwh: 7 }))
+  expect(io.complete).not.toHaveBeenCalled()
+})
 it('routes an invalid IDE qualifier to field 505 APERAK while preserving its valid sibling', async () => {
   const message = incoming(true, true, '2026-09-30')
   message.raw_payload = message.raw_payload!.replace('IDE+24+GRIDEX2607E66001', 'IDE+25+GRIDEX2607E66001')

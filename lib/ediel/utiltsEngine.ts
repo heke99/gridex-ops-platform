@@ -654,6 +654,11 @@ function applyUtiltsGridAreaGuide(message: EdielMessageRow, result: UtiltsRuntim
   return issues.length ? rebuildUtiltsRuntimeResult({ message, result, issues: [...result.validation.issues, ...issues] }) : result
 }
 
+function invalidGs1Gsrn(value: string): boolean {
+  return !/^\d{18}$/.test(value)
+    || [...value].reduce((sum, digit, index) => sum + Number(digit) * (index % 2 === 0 ? 3 : 1), 0) % 10 !== 0
+}
+
 function applyE66RegulatingObjectGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
   if (result.facts.messageCode !== 'E66') return result
   const wire = tokenizeEdifact(message.raw_payload)
@@ -674,8 +679,7 @@ function applyE66RegulatingObjectGuide(message: EdielMessageRow, result: UtiltsR
     const invalid = value && agency && !['9', '89'].includes(agency)
     // Agency 9 identifies GS1. The 18-digit numeric form has a modulo-10
     // check digit, with weights 3 and 1 alternating from the right.
-    const gs1CheckDigitInvalid = agency === '9' && /^\d{18}$/.test(value)
-      && [...value].reduce((sum, digit, index) => sum + Number(digit) * (index % 2 === 0 ? 3 : 1), 0) % 10 !== 0
+    const gs1CheckDigitInvalid = agency === '9' && Boolean(value) && invalidGs1Gsrn(value)
     if (value && agency && !invalid && !gs1CheckDigitInvalid) continue
     const missing = !value || !agency
     issues.push({
@@ -687,6 +691,39 @@ function applyE66RegulatingObjectGuide(message: EdielMessageRow, result: UtiltsR
       aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
       referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
     })
+  }
+  return issues.length ? rebuildUtiltsRuntimeResult({ message, result, issues: [...result.validation.issues, ...issues] }) : result
+}
+
+function applyE66MeteringPointGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
+  if (result.facts.messageCode !== 'E66') return result
+  const wire = tokenizeEdifact(message.raw_payload)
+  const issues: UtiltsValidationIssue[] = []
+  for (const [index, observed] of (result.facts.utiltsObservedTransactions ?? []).entries()) {
+    const reference = resolveUtiltsTransactionId(observed.transactionId, index)
+    for (const segment of observed.segments) {
+      if (segment.tag === 'SEQ') break
+      if (segment.tag !== 'LOC' || segmentComposite(segment, 1, wire.una)[0] !== '172') continue
+      const parts = segmentComposite(segment, 2, wire.una)
+      const value = parts[0]?.trim() ?? ''
+      const agency = parts[2]?.trim() ?? ''
+      const missing = !value || !agency
+      const invalidAgency = Boolean(agency && !['9', '89'].includes(agency))
+      // The supplied agency-9 GSRN has an 18-digit modulo-10 control digit.
+      // Agency 89 is a national identity and is outside this GS1 arithmetic.
+      const invalidGs1 = agency === '9' && Boolean(value) && invalidGs1Gsrn(value)
+      if (!missing && !invalidAgency && !invalidGs1) continue
+      issues.push({
+        severity: 'error', kind: 'application',
+        code: !value ? 'UTILTS_METERING_POINT_ID_MISSING' : !agency ? 'UTILTS_METERING_POINT_AGENCY_MISSING'
+          : invalidAgency ? 'UTILTS_METERING_POINT_AGENCY_INVALID' : 'UTILTS_METERING_POINT_GS1_CHECK_DIGIT_INVALID',
+        title: missing ? 'Anläggningsidentitet saknas' : 'Ogiltig anläggningsidentitet',
+        description: 'LOC+172/C517 kräver anläggningsid med byråkod 9 eller 89 och giltig GS1-kontrollsiffra när 9 används.',
+        aperakErcCode: missing ? '41' : '42', aperakFieldCode: '209',
+        aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+        referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
+      })
+    }
   }
   return issues.length ? rebuildUtiltsRuntimeResult({ message, result, issues: [...result.validation.issues, ...issues] }) : result
 }
@@ -802,7 +839,7 @@ export function runUtiltsRuntimeForMessage(
   const guideEffective = applyUtiltsEffectiveDatePolicyToRuntimeResult({
     message, result: guideCorrected, referenceDate, processabilityPolicy: canonicalPolicy?.utiltsProcessability,
   })
-  const guided = applyE66RegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, guideEffective))))
+  const guided = applyE66MeteringPointGuide(message, applyE66RegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, guideEffective)))))
   const eligible = new Set(guided.transactionDispositions
     .filter(item => item.disposition === 'accepted')
     .map(item => String(item.transactionId ?? '')))

@@ -182,7 +182,7 @@ it('holds an ambiguous E66 IDE with both object domains instead of consuming it 
   dispositions:result.runtime.transactionDispositions,matches:[]})[0]).toMatchObject({meteringPointId:null,externalMeteringPointId:null,quantities:[]})
 })
 it.each([
- ['::9','41'],['735999260731000007','41'],['735999260731000007::260','42'],
+ ['::9','41'],['735999260731000007','41'],['735999260731000007::260','42'],['73599926073100007::9','42'],
 ] as const)('rejects LOC+175 field 533 %s with ERC %s for its own IDE',async(value,erc)=>{
  const args=input(true)
  args.message.raw_payload=args.message.raw_payload!.replace('LOC+172+735999260731000007::9',`LOC+175+${value}`)
