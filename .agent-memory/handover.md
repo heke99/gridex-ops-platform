@@ -1,3 +1,6 @@
+## 2026-09-26 — PR390 accepted; next guide ordering
+Main `aa70ac5b1c6c21418b1103cd92d16632318e8495`, Vercel `dpl_6jUX2McXMZaSVoEVKU1aUYrKytCi` READY. PR390 exact head `9d6bd3c2ba336ae0e82e0fb44c4dcbc4e63879ac`: Ediel `36245826936`, browser `36245826995`, E2E `36245826956`, OPS `36245827122` all success, native343/343, types/schema parity. Audit `quality/audits/ediel-masterplan-v2/e66-field533-gs1-20260926.md`. No market activation. Next source U-03 / AT-U-03 literal staged execution; current legacy function runs before guide projection. E035 complete:false and retention/deletion remain explicit. #310 excluded.
+
 ## 2026-09-25 — LK exemption and first CI failure
 2026-09-25 follow-up: published intermediate PR372 `9b62d5d9` exposed first full E2E coverage failure `108259269158` (non-Z08 callback_missing and eight dependent/static cases). Independent correction review found legitimate Z08 LK exemption. Local TDD LK RED/GREEN and second forward `20260925234000` now return an explicit SQL-owned exemption; restored original non-Z08 direct lane. Exact four affected test files 52/52 PASS; final native and exact-head CI pending. Main unchanged; no production/staging/market send or PR310 change.
 

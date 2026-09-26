@@ -1,3 +1,10 @@
+## 2026-09-26 — PR390 exact-head receipt
+| Head | Test/evidence | Result |
+| --- | --- | --- |
+| `9d6bd3c2` | RED wrong GS1 digit; local five suites, app/test typechecks, scoped lint, diff check | RED reproduced; GREEN 111/111, types/lint PASS |
+| `9d6bd3c2` | Ediel 36245826936, browser 36245826995, E2E 36245826956, OPS 36245827122 | Four SUCCESS; native 343/343, canonical types/schema/tenant gates PASS |
+| main `aa70ac5b` | GitHub compare to main and Vercel production deployment `dpl_6jUX2McXMZaSVoEVKU1aUYrKytCi` | Identical; READY |
+
 ## 2026-09-25 — LK exemption and first CI failure
 2026-09-25 follow-up: published intermediate PR372 `9b62d5d9` exposed first full E2E coverage failure `108259269158` (non-Z08 callback_missing and eight dependent/static cases). Independent correction review found legitimate Z08 LK exemption. Local TDD LK RED/GREEN and second forward `20260925234000` now return an explicit SQL-owned exemption; restored original non-Z08 direct lane. Exact four affected test files 52/52 PASS; final native and exact-head CI pending. Main unchanged; no production/staging/market send or PR310 change.
 

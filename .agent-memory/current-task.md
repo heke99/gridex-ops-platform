@@ -1,3 +1,6 @@
+## 2026-09-26 — Active F3C-05 literal guide order
+#390 merged and exact main/deployment verified. One next active criterion is U-03 / AT-U-03: syntax → header/IDE guide → function only for accepted IDE. Current legacy runtime computes functional checks first and later filters their issues; reproduce invocation ordering and isolate guide-invalid IDE without changing valid sibling outcomes. No active PR. Field203 temporal uniqueness and LOC+175 positive sink stay blocked by tenant/legal-actor durable owner. PR310 paused.
+
 ## 2026-09-25 — LK exemption and first CI failure
 2026-09-25 follow-up: published intermediate PR372 `9b62d5d9` exposed first full E2E coverage failure `108259269158` (non-Z08 callback_missing and eight dependent/static cases). Independent correction review found legitimate Z08 LK exemption. Local TDD LK RED/GREEN and second forward `20260925234000` now return an explicit SQL-owned exemption; restored original non-Z08 direct lane. Exact four affected test files 52/52 PASS; final native and exact-head CI pending. Main unchanged; no production/staging/market send or PR310 change.
 
