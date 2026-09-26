@@ -31,9 +31,9 @@ beforeEach(() => {
     const response = input ? { data: bindingRpcRows(input, results), error: null } : { data: null, error: { message: 'unavailable' } }
     return Object.assign(Promise.resolve(response), { abortSignal: () => Promise.resolve(response) })
   })
-  io.from.mockImplementation(() => {
-    const q = { select: () => q, eq: () => q, in: () => q, lte: () => q, limit: () => q, update: () => q,
-      then: (resolve: (value: unknown) => unknown) => Promise.resolve({ data: [], count: 0, error: null }).then(resolve) }
+  io.from.mockImplementation((table: string) => {
+    const q = { select: () => q, eq: () => q, is: () => q, in: () => q, lte: () => q, limit: () => q, update: () => q,
+      then: (resolve: (value: unknown) => unknown) => Promise.resolve({ data: table === 'ediel_ack_transaction_results' ? [{ id: 'ack-row' }] : [], count: 0, error: null }).then(resolve) }
     return q
   })
 })

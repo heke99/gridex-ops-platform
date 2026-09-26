@@ -6,7 +6,7 @@ import { utiltsNativeSourceFixture } from '../__tests__/helpers/utiltsNativeSour
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
-import { buildUtiltsTransactionPersistencePayload, persistUtiltsTransactionResults, type UtiltsBoundPersistenceInput } from '@/lib/ediel/utilts/transactionPersistence'
+import { buildUtiltsTransactionPersistencePayload, finalizeUtiltsTransactionAck, persistUtiltsTransactionResults, type UtiltsBoundPersistenceInput } from '@/lib/ediel/utilts/transactionPersistence'
 import { ingestBoundUtiltsMetering, createBoundUtiltsBilling } from '@/lib/ediel/utilts/consumptionSinks'
 import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
@@ -610,6 +610,10 @@ it('native inbound binds IDE qualifier 505 rejection to tenant and source withou
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
   const prior = snapshot(source.id)
   await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
+  expect(snapshot(source.id)).toEqual(prior)
+  await expect(finalizeUtiltsTransactionAck({ companyId: f.ids.company, environment: 'test', sourceMessageId: source.id,
+    transactionId: 'GRIDEX2607E66001', responseType: 'negative_aperak', responseMessageId: randomUUID() }))
+    .rejects.toThrow('utilts_transaction_ack_finalization_conflict')
   expect(snapshot(source.id)).toEqual(prior)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
 })

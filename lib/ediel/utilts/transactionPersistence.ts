@@ -206,18 +206,38 @@ export async function finalizeUtiltsTransactionAck(input: {
   responseType: 'positive_aperak' | 'negative_aperak' | 'utilts_err'
   responseMessageId: string
 }): Promise<void> {
-  const { error } = await supabaseService
+  const now = new Date().toISOString()
+  const { data: updated, error } = await supabaseService
     .from('ediel_ack_transaction_results')
     .update({
       final_response_type: input.responseType,
       response_message_id: input.responseMessageId,
-      finalized_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      finalized_at: now,
+      updated_at: now,
     })
     .eq('company_id', input.companyId)
     .eq('environment', input.environment)
     .eq('source_message_id', input.sourceMessageId)
     .eq('source_transaction_id', input.transactionId)
+    .is('finalized_at', null)
+    .select('id')
 
   if (error) throw new Error(`utilts_transaction_ack_finalization_failed:${error.message}`)
+  if (updated?.length === 1) return
+  if (updated?.length) throw new Error('utilts_transaction_ack_finalization_ambiguous')
+
+  // A concurrent finalizer or an identical retry can leave zero rows in the
+  // conditional update. The stored response must be the same immutable ACK.
+  const { data: existing, error: readError } = await supabaseService
+    .from('ediel_ack_transaction_results')
+    .select('final_response_type,response_message_id,finalized_at')
+    .eq('company_id', input.companyId)
+    .eq('environment', input.environment)
+    .eq('source_message_id', input.sourceMessageId)
+    .eq('source_transaction_id', input.transactionId)
+    .maybeSingle()
+  if (readError) throw new Error(`utilts_transaction_ack_finalization_failed:${readError.message}`)
+  if (!existing?.finalized_at || existing.final_response_type !== input.responseType || existing.response_message_id !== input.responseMessageId) {
+    throw new Error('utilts_transaction_ack_finalization_conflict')
+  }
 }
