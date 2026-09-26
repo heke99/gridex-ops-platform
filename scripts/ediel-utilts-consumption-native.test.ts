@@ -6,7 +6,7 @@ import { utiltsNativeSourceFixture } from '../__tests__/helpers/utiltsNativeSour
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
-import { buildUtiltsTransactionPersistencePayload, persistUtiltsTransactionResults, type UtiltsBoundPersistenceInput } from '@/lib/ediel/utilts/transactionPersistence'
+import { buildUtiltsTransactionPersistencePayload, finalizeUtiltsTransactionAck, persistUtiltsTransactionResults, type UtiltsBoundPersistenceInput } from '@/lib/ediel/utilts/transactionPersistence'
 import { ingestBoundUtiltsMetering, createBoundUtiltsBilling } from '@/lib/ediel/utilts/consumptionSinks'
 import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
@@ -586,6 +586,35 @@ it('native inbound stores NAD receiver agency 208 guide rejection and no consuma
   expect(sql(`SELECT jsonb_agg(jsonb_build_object('disposition',disposition,'plan',planned_response_type,'series',persisted_series_id)) FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)} AND company_id=${lit(f.ids.company)}`))
     .toEqual([{ disposition: 'guide_rejected', plan: 'negative_aperak', series: null }])
   expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+})
+it('native inbound binds IDE qualifier 505 rejection to tenant and source without consumption on retry', async () => {
+  const f = await seed()
+  const source = await f.insertSource(f.original.raw_payload!.replace('IDE+24+GRIDEX2607E66001', 'IDE+25+GRIDEX2607E66001'))
+  const supported = await f.prepare()
+  const forged = await supabaseService.rpc('gridex_persist_utilts_consumption_v1', {
+    p_company_id: f.ids.company, p_environment: 'test', p_source_message_id: source.id, p_message_code: 'E66', p_raw_payload: source.raw_payload!,
+    p_transactions: supported.transactions.map((t, i) => ({ ...t, consumptionContract: supported.contracts[i] })),
+  })
+  expect(forged.error?.message).toContain('utilts_consumption_identity_unsupported')
+  expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
+  const first = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
+  expect(first.ingestedMeterValueIds).toEqual([])
+  expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
+  expect(effects.ack.mock.calls.map(([call]) => call.ackFamily)).toContain('APERAK')
+  expect(effects.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  expect(JSON.stringify(effects.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')![0].draft)).toContain('505')
+  expect(sql(`SELECT jsonb_agg(jsonb_build_object('company',company_id,'disposition',disposition,'plan',planned_response_type,'series',persisted_series_id)) FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)}`))
+    .toEqual([{ company: f.ids.company, disposition: 'guide_rejected', plan: 'negative_aperak', series: null }])
+  expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+  const prior = snapshot(source.id)
+  await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
+  expect(snapshot(source.id)).toEqual(prior)
+  await expect(finalizeUtiltsTransactionAck({ companyId: f.ids.company, environment: 'test', sourceMessageId: source.id,
+    transactionId: 'GRIDEX2607E66001', responseType: 'negative_aperak', responseMessageId: randomUUID() }))
+    .rejects.toThrow('utilts_transaction_ack_finalization_conflict')
+  expect(snapshot(source.id)).toEqual(prior)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
 })
 it('native inbound stores six-digit SVK receiver field208 rejection and no consumable series', async () => {

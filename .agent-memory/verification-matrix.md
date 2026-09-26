@@ -1,3 +1,11 @@
+## 2026-09-26 — PR405 accepted, IDE505 candidate
+| Head | Evidence | Result / boundary |
+| --- | --- | --- |
+| PR405 `a44d93aa` | OPS `36270987349` native348/348 and clean replay, Ediel `36270987397`, browser `36270987395`, E2E `36270987383` | Four SUCCESS; UG-122-24 bounded NAD GS1 accepted. |
+| main `0e338e40` | Git remote ref, Vercel `dpl_EznfLhmmXeXiuHoNHDpmJv6dnSPK` | Exact SHA and production READY; no market activation. |
+| PR406 `0952bd2e` | RED wrong E19/field512, GREEN field505 ERC41/42, mixed sibling and actual processor; Ediel `36272185493`, browser `36272185536`, E2E `36272185399`, OPS verify/quality `36272185478` | Three workflows SUCCESS; OPS native job `108488123575` failed 348/349: `utilts_physical_membership_conflict` for IDE+25. Corrected SQL forward and a new exact head required. UG-123-8 temporal ID open. |
+| PR406 `37e5c0ea` | OPS native `108489936206`, clean replay and schema artifact `10915778551`; Ediel/browser/E2E/OPS quality and verify | SQL rejection, forged accepted guard, APERAK and zero series pass; one native failure 348/349 at identical ACK retry timestamps. Candidate now finalizes once; artifact schema copied byte-for-byte, final CI pending. |
+
 ## 2026-09-26 — PR394 native Z04 receipt
 | Head | Test/evidence | Result |
 | --- | --- | --- |

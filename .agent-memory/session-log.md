@@ -1,3 +1,6 @@
+## 2026-09-26 — after #405 and IDE field505
+Verified #405 four workflows/native348/348, merged remote main `0e338e40`, same-SHA Vercel READY. UG-123-7 RED wrong E19/field512, local guide-first per-IDE result. PR #406 `0952bd2e` native348/349 failed SQL membership; forward on `37e5c0ea` passed SQL/ACK but native348/349 exposed identical retry rewriting final ACK timestamps. Current candidate conditional finalization/readback plus native conflict probe; authentic replay artifact `10915778551` schema copied byte-for-byte, final native/typegen pending. PR310 paused; field203/IDE-number historical uniqueness, positive LOC175/E035 open. No staging/TGT/AGT, counterparty or market send.
+
 ## 2026-09-26 — F3C-02/04 native assessment continuation
 Verified remote main after #393 and no other active writing PR. Source P26.A r3 mixed Z04 path and real inbound fixture inspected. Strengthened native assessment test from row-count-only to exact row/company/environment/raw hash/facts proof, local consumer 11/11 and migration checks PASS, merged #394 after four exact-head CI successes. Remote main `103b7938318206c6d04f0ac48b13ce050ec7b3d8`, Vercel same-SHA READY. Persisted ACK/outbox, field203/LOC+175 owners, E035 history/retention and whole phases remain open. PR310 untouched, no staging or live Ediel send.
 

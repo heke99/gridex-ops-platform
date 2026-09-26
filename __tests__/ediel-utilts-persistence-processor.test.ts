@@ -31,9 +31,9 @@ beforeEach(() => {
     const response = input ? { data: bindingRpcRows(input, results), error: null } : { data: null, error: { message: 'unavailable' } }
     return Object.assign(Promise.resolve(response), { abortSignal: () => Promise.resolve(response) })
   })
-  io.from.mockImplementation(() => {
-    const q = { select: () => q, eq: () => q, in: () => q, lte: () => q, limit: () => q, update: () => q,
-      then: (resolve: (value: unknown) => unknown) => Promise.resolve({ data: [], count: 0, error: null }).then(resolve) }
+  io.from.mockImplementation((table: string) => {
+    const q = { select: () => q, eq: () => q, is: () => q, in: () => q, lte: () => q, limit: () => q, update: () => q,
+      then: (resolve: (value: unknown) => unknown) => Promise.resolve({ data: table === 'ediel_ack_transaction_results' ? [{ id: 'ack-row' }] : [], count: 0, error: null }).then(resolve) }
     return q
   })
 })
@@ -294,6 +294,26 @@ it('real inbound keeps a guide-invalid E66 IDE separate from a valid sibling thr
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
   expect(io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK')).toHaveLength(2)
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
+})
+it('routes an invalid IDE qualifier to field 505 APERAK while preserving its valid sibling', async () => {
+  const message = incoming(true, true, '2026-09-30')
+  message.raw_payload = message.raw_payload!.replace('IDE+24+GRIDEX2607E66001', 'IDE+25+GRIDEX2607E66001')
+  io.get.mockResolvedValue(message)
+  results = [
+    { transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' },
+    accepted('GRIDEX2607E66002'),
+  ]
+  await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')![1].p_transactions
+  expect(persisted).toMatchObject([
+    { transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', quantities: expect.arrayContaining([expect.objectContaining({ qualifier: '220' })]) },
+    { transactionId: 'GRIDEX2607E66002', disposition: 'accepted', responseType: 'positive_aperak' },
+  ])
+  const aperaks = io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK')
+  expect(aperaks).toHaveLength(2)
+  expect(JSON.stringify(aperaks[0][0].draft)).toContain('505')
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
 it('prior applicable reading is held while an eligible 15-minute energy sibling stays independent in the actual processor',async()=>{
  const message=incoming(true,true,'2026-09-30');io.get.mockResolvedValue(message)
